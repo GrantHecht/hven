@@ -19,6 +19,13 @@ originated in tycho and a companion SQP engine originated in a sibling
 project, but both engines' identity in this repository is `hven` — their
 origin project names do not appear here.
 
+One bounded exception, for as long as it exists: the golden-numerics rig's two
+OLD-SEAM adapters (`tests/golden_rig/seam_psiopt.cpp`, `seam_sqp.cpp`) name
+those projects, because they compile against those checkouts and are pinned to
+them by path and by tag — a temporary test-only artifact cannot be
+origin-neutral about the tree it includes. They are deleted when the two engine
+migrations close, and the rule holds without exception everywhere else.
+
 ## 2. Repository structure
 
 ```
@@ -144,13 +151,19 @@ no exceptions:
   zero-filled or interpolated. Absent evidence is reported as absent.
 - **`notices/` is protected.** Never modify or delete an existing entry
   in `notices/`; only add new entries when a new dependency is vendored.
-- **No test-only hooks in MPL-derived files.** A file carrying an MPL-2.0
-  notice (`hven/detail/linear/pardiso_session.*`,
-  `accelerate_session.*`, and any future file derived the same way) may
-  never gain a test-only branch, injection point, or `#ifdef`-gated hook,
-  however narrow. Fault-injection needs for such a file are met by a seam
-  in the Apache-2.0 adapter file that owns the contract logic around it —
-  see `docs/testing.md` for the convention and its rationale.
+- **Instrument at the boundary by preference, not by prohibition.** Test
+  hooks belong in the Apache-2.0 adapter file that owns the contract logic
+  around a backend session, not inside the MPL-derived session file itself
+  (`hven/detail/linear/pardiso_session.*`, `accelerate_session.*`, and any
+  future file derived the same way): an observation taken at the boundary is
+  one a consumer could have made too, and a derived file stays a clean diff
+  against its upstream. **Deviate when the work needs it, and say why** — a
+  fact that leaves no trace outside the function producing it cannot be seen
+  from the boundary, and refusing to look would trade a real coverage gap for
+  a tidy file. A deviation must be minimal, `#ifdef`-gated, proven to cost the
+  production build nothing (byte-identical object, no symbol in the library),
+  recorded in `notices/`, and argued in `docs/testing.md`, which lists every
+  sanctioned deviation in full. There is one today.
 
 ## 7. Measurement discipline
 
@@ -181,15 +194,17 @@ no exceptions:
   constraints — not the session's accumulated history — and retire an
   agent whose context has grown past usefulness rather than pushing it
   through one more round.
-- **Test-seam convention for fault paths no real backend takes**: the
-  binding rule (no hooks in MPL-derived files) lives in §6; the mechanism
-  that satisfies it is documented in full in `docs/testing.md` — a narrow
-  `HVEN_TESTING`-gated injection point in the Apache-2.0 adapter file that
-  owns the contract logic around a backend session (e.g.
+- **Test-seam convention for fault paths no real backend takes, and for
+  internal state no boundary observation can reach**: the instrumentation
+  preference and the terms on which it may be deviated from live in §6; the
+  mechanism is documented in full in `docs/testing.md` — a narrow
+  `HVEN_TESTING`-gated point in the Apache-2.0 adapter file that owns the
+  contract logic around a backend session (e.g.
   `src/linear/symmetric_factor_mkl.cpp`), with `HVEN_TESTING` defined
-  target-wide on a standalone test executable that recompiles the adapter
-  TU a second time and does not link `hven::hven`, so the production
-  library and `hven_tests` are never touched by it. Use this convention for
-  any new fault-injection need rather than inventing another; `docs/
-  testing.md` also records why each existing injector is or is not
-  faithful for scenarios beyond the one it was built for.
+  target-wide on a standalone test executable that recompiles those TUs a
+  second time and does not link `hven::hven`, so the production library and
+  `hven_tests` are never touched by it. Use this convention for any new need
+  rather than inventing another; `docs/testing.md` also records why each
+  existing injector is or is not faithful for scenarios beyond the one it was
+  built for, and lists every sanctioned inside-the-session-file deviation with
+  its reasoning and its cost evidence.

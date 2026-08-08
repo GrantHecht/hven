@@ -12,22 +12,62 @@ hven has two sparse backends(MKL Pardiso, Apple Accelerate),
     not just inspection.This page is the ONE place the convention that covers them is designed; every backend/component that needs a fault-injection seam
 should use it rather than inventing another.
 
-## The constraint that shapes the design
+## Where instrumentation goes: a preference, with an escape
 
 Both backend session implementations
 (`hven/detail/linear/pardiso_session.h`/`.cpp`,
 `hven/detail/linear/accelerate_session.h`/`.cpp`) are MPL-2.0-derived files
 (from Eigen's PardisoSupport and AccelerateSupport modules respectively —
-see the notice at the top of each). This repository's governance rule
-(CLAUDE.md §6, carried from Task 5's own precedent) is that MPL-derived files
-carry no test-only hooks. A fault-injection seam that adds an
-`#ifdef HVEN_TESTING` branch inside either session file would violate that,
-however narrow the branch.
-
-The two backend ADAPTER files that own the contract logic AROUND each
-session (`src/linear/symmetric_factor_mkl.cpp`,
+see the notice at the top of each). The two backend ADAPTER files that own the
+contract logic AROUND each session (`src/linear/symmetric_factor_mkl.cpp`,
 `src/linear/symmetric_factor_accelerate.cpp`) are ordinary Apache-2.0 hven
-files with no such restriction — they are where the seam lives.
+files.
+
+**Prefer boundary instrumentation. Deviate when the work needs it, and say
+why.** The default is the adapter boundary, for two reasons that are about
+engineering rather than licensing: an observation taken there is one a
+consumer could in principle have made too, and a derived file stays a clean
+diff against its upstream. A hook inside a session file is a deviation that
+has to earn itself — but it is a deviation, not a violation. Where the fact
+being observed leaves no trace outside the function that produces it, the
+boundary has nothing to watch and refusing to look would trade a real
+coverage gap for a tidy file.
+
+The rule for deviating is the same rule as for everything else here: do it
+where the work needs it, keep it as small as it can be, prove it costs the
+production build nothing, and write down why the boundary could not carry it.
+
+### The sanctioned deviations, in full
+
+**One, today.** `PardisoIparmObserver`'s did-the-write-execute fields, recorded
+at the two guarded parameter-array writes inside `FactorSession::analyze`
+(`src/linear/pardiso_session.cpp`).
+
+*Why the boundary cannot carry it.* The claim under test is
+don't-write-by-default: at `Options::ordering == kBackendDefault`, hven must
+not touch `iparm[1]` at all. The boundary can only read the array afterwards —
+and on some MKL versions `pardisoinit`'s own default for that entry equals one
+of the two values `Ordering` can request (3, on the version this repository
+currently links). On such a version "left it alone" and "wrote exactly that
+value" produce identical arrays, so no after-the-fact read can distinguish
+them and the rule falls back to inspecting an `if`. The fact that is missing
+is whether a statement *executed*, and a statement that did not execute leaves
+its trace nowhere but where it isn't.
+
+*What it costs.* Two `#ifdef HVEN_TESTING` lines per write site. Verified, not
+asserted: compiling `pardiso_session.cpp` with the production flags before and
+after the change yields a **byte-identical object file**, and `nm` finds no
+observer symbol anywhere in `libhven.a`.
+
+*What it buys.* The default-case test asserts `ordering_was_written == false`
+— a version-independent claim no backend default can make vacuous — and the
+non-default tests assert `true` plus the value, so the false assertion cannot
+pass for want of a live observable. Mutation-checked: inverting the guard in
+`pardiso_session.cpp` makes the default-case test fail on exactly that
+assertion **while every value-level assertion still passes**, which is the gap
+in one line.
+
+The `notices/eigen-mpl2.txt` entry for that file records the modification.
 
 ## The shape
 
@@ -135,10 +175,10 @@ way. The guard's own correctness was previously guaranteed by inspection
 only, exactly like `FactorizeFaultInjector`'s deeper scenario above.
 
 The fix is structurally the same seam, used for observation rather than
-injection: `SymmetricFactor::analyze()` (MKL adapter), under
-`#ifdef HVEN_TESTING`, records what `FactorSession::ordering_iparm()` /
-`weighted_matching_iparm()` actually returned right after a REAL,
-unmodified `analyze()` call — those two accessors are themselves ordinary,
+injection, in two layers. At the BOUNDARY: `SymmetricFactor::analyze()` (MKL
+adapter), under `#ifdef HVEN_TESTING`, records what
+`FactorSession::ordering_iparm()` / `weighted_matching_iparm()` actually
+returned right after a REAL, unmodified `analyze()` call — those two accessors are themselves ordinary,
 unconditional, non-test-gated `FactorSession` API (like `num_pos_eigs()`
 and friends), so adding them is production surface, not a test hook; only
 the act of recording their result into `PardisoIparmObserver` is
@@ -155,12 +195,23 @@ the act of recording their result into `PardisoIparmObserver` is
   fixed contract constant (2 / 3 / 1), which is a spec commitment, not a
   version-fragile assumption, so a literal is correct there.
 
-Manually verified once, not asserted by CI: deleting either `if` guard in
-`pardiso_session.cpp` makes the corresponding default-case
-`PardisoIparmObservation` test fail while every other test in the suite
-(including the plumbing tests in `test_symmetric_factor.cpp`) keeps
-passing — confirming this observer, and only this observer, is what gives
-the don't-write-by-default rule executable teeth.
+And at the WRITE SITE, for the half the boundary cannot reach: the
+`*_was_written` / `*_written_value` fields described under "the sanctioned
+deviations" above. The default case asserts both flags FALSE — the write did
+not execute — and each non-default case asserts its own flag TRUE with the
+value, so the FALSE assertions cannot pass for want of an observable. This is
+what makes the ordering half's coverage version-independent instead of
+contingent on the linked MKL's `pardisoinit` default differing from the
+option's value.
+
+Mutation-checked: inverting either `if` guard in `pardiso_session.cpp` makes
+the corresponding default-case `PardisoIparmObservation` assertion fail while
+every other test in the suite (including the plumbing tests in
+`test_symmetric_factor.cpp`) keeps passing — confirming this observer, and
+only this observer, is what gives the don't-write-by-default rule executable
+teeth. On the MKL currently linked, the assertion that catches it is the
+`*_was_written` one and not the value comparison, which is precisely why that
+field exists.
 
 ## How to use it for a new fault path
 
@@ -187,11 +238,15 @@ the don't-write-by-default rule executable teeth.
 
 ## Alternatives considered and rejected
 
-- **A CMake test-only define recompiling the MPL session TU itself**, with
-  `#ifdef HVEN_TESTING` hooks inside `pardiso_session.cpp` /
-  `accelerate_session.cpp`. Rejected outright: adds a test hook to an
-  MPL-derived file, which this repository's governance forbids regardless of
-  how the recompilation is wired.
+- **Putting the two FAULT INJECTORS inside the session files** rather than at
+  the adapter boundary. Rejected — not on principle, but because the boundary
+  carries them perfectly well: both injectors substitute the result of a call
+  the adapter itself makes, so nothing is lost by intercepting it one frame
+  out, and the derived files stay clean diffs against upstream. That reasoning
+  is what makes the boundary the preference; it is also what makes the
+  did-the-write-execute observable a genuine exception rather than a
+  precedent-by-erosion, since there the boundary demonstrably cannot see the
+  fact at all.
 - **A fully virtual `FactorSession` interface**, letting tests substitute an
   entirely fake session implementing the same interface. This WOULD let the
   MKL "succeeded, then fails" scenario be tested faithfully (the fake
@@ -281,13 +336,21 @@ cmake --build build-3seam
 MKL_NUM_THREADS=1 ctest --test-dir build-3seam --output-on-failure
 ```
 
-`MKL_NUM_THREADS=1` matters and is not decoration. The comparison policy
-requires every asserted run to pin threads to one by the mechanism the seam
-under test possesses; the native arms do that per-instance, but neither old
-seam has any thread control at all, so the rig pins the process for them (an
-in-process guard, which the environment variable backs up for the window
-before the backend first reads it). Every recorded row carries the mechanism
-and the value it pinned to.
+`MKL_NUM_THREADS=1` matters and is not decoration. Every asserted run pins
+threads to one by the mechanism the seam under test possesses; the native arms
+do that per-instance, but neither old seam has any thread control at all, so
+the rig pins the process for them (an in-process guard, which the environment
+variable backs up for the window before the backend first reads it). Every
+recorded row carries the mechanism and the value it pinned to.
+
+One leg deliberately escapes that pin: T8's unasserted smoke leg, whose whole
+subject is what happens at more than one thread. It requests an explicit count
+above one through the seam's own control, which overrides the environment
+setting — so the trace measures something real under the invocation above
+rather than comparing a run against itself. The count it used is recorded
+beside the deviation, because a cross-thread deviation cannot be read without
+it, and "no deviation" and "nothing varied" look identical otherwise. No other
+leg does this, and none of T8's asserted rows come from it.
 
 ### The report target
 
@@ -330,6 +393,23 @@ never copied from either sibling checkout and never read from a file. Each
 recipe's provenance string says what it does and does not reproduce from the
 fixture its authority names, and the report prints that string beside every
 observation.
+
+### Traces that fail by design
+
+Two traces assert the unified surface's honesty rules against seams that are
+known to break them, so a FAILURE on an old-seam arm is the finding rather than
+a defect: it is what a docket entry gets written from. The adapters carry each
+seam's real behaviour verbatim precisely so that this can happen — an adapter
+that answered the way the new surface would answer would make the failure
+silently never occur, which is the one way this rig could look healthy while
+proving nothing.
+
+As things stand, `P5` fails on the SQP old seam (it answers a real-looking
+zero-filled inertia triple before anything is factorized) and is expected to
+fail on the interior-point old seam's Apple arm for the same reason. It passes
+on the interior-point seam under MKL, honestly: the counts are genuinely
+indeterminate there, so its adapter reports the absence of a defined state
+rather than inventing one.
 
 ### Capabilities, and why a trace skips
 
