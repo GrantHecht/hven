@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -17,9 +18,17 @@ using hven::linear::DenseSymmetricFactor;
 // Relative tolerance for the analytic (known-inverse / known-solution)
 // cases below, all of which are exact rational values representable to
 // full double precision -- dsytrf/dsytrs round-trip them to within a few
-// ULPs.
-constexpr double kTightRelTol = 1e-13;
+// ULPs, so the brief's 1e-14 rel bound (not a looser one) holds in
+// practice; verified by running this suite at 1e-14 before committing it.
+constexpr double kTightRelTol = 1e-14;
 
+// |actual - expected| <= rel_tol * max(1, |expected|) -- a relative bound
+// for |expected| >= 1, falling back to an absolute bound of rel_tol itself
+// for |expected| < 1 (several fixtures below have expected entries in
+// (0, 1), e.g. 1/4, 1/3, 1/2, 3/4, where a pure relative bound would demand
+// unreasonably more digits than a raw double affords no benefit for).
+// rel_tol == 1e-14 either way, so the absolute floor this degenerates to
+// is already tight.
 void expect_mat_near(const Mat &actual, const Mat &expected, double rel_tol) {
     ASSERT_EQ(actual.rows(), expected.rows());
     ASSERT_EQ(actual.cols(), expected.cols());
@@ -135,6 +144,68 @@ TEST(DenseSymmetricFactor, IdentityMatrixSolveReproducesRhs) {
     expect_mat_near(X, RHS, kTightRelTol);
 }
 
+// Non-contiguous X: the border-stack consumers this component exists for
+// will typically solve directly into a sub-block of a larger owned matrix
+// rather than into a freshly allocated one, so solve()'s copy-through-
+// scratch fallback (taken whenever X.outerStride() != X.rows()) needs its
+// own coverage, not just the always-contiguous X used by every other test
+// above.
+//
+// A column-offset block of a same-height parent (e.g. big.block(0, 1, n,
+// k) inside an n x (k+2) matrix) is deceptively still CONTIGUOUS by this
+// class's own definition: consecutive columns of a column-major matrix
+// are back-to-back in memory regardless of which column range is sliced,
+// as long as every row is included, so outerStride() == rows() there and
+// the fast in-place path fires. Confirmed directly against Eigen before
+// writing this test (a column-offset block reports
+// outerStride()==rows()==3 for a 3x(3+2) parent). What genuinely breaks
+// contiguity in column-major storage is restricting ROWS: a block that
+// takes only the first n rows out of a TALLER parent has each column's
+// live data contiguous internally (innerStride()==1, so it still binds to
+// MatRef) but consecutive columns are parent.rows() apart, not n apart --
+// exactly what Eigen::Ref<Mat>'s Dynamic OuterStride exists to represent,
+// and exactly the case this test constructs.
+TEST(DenseSymmetricFactor, NonContiguousXTakesScratchPathAndMatchesContiguousResult) {
+    Mat A(3, 3);
+    A << 2, -1, 0, -1, 2, -1, 0, -1, 2;
+
+    Mat RHS(3, 2);
+    RHS << 1, 0, 2, 1, -1, 4;
+
+    DenseSymmetricFactor f;
+    f.factorize(A);
+
+    Mat X_contiguous(3, 2);
+    f.solve(RHS, X_contiguous);
+
+    // Taller parent (5 rows) than the block written into (3 rows): the
+    // block's outerStride is the PARENT's row count (5), not its own (3).
+    Mat big = Mat::Constant(5, 2, std::numeric_limits<double>::quiet_NaN());
+    auto X_block = big.block(0, 0, 3, 2);
+    ASSERT_NE(X_block.outerStride(), X_block.rows())
+        << "test fixture does not actually exercise the non-contiguous path";
+
+    f.solve(RHS, X_block);
+    expect_mat_near(X_block, X_contiguous, kTightRelTol);
+}
+
+// Zero-column RHS: X.cols() == 0 is a valid (degenerate) shape match
+// against an equally-empty RHS and must not be handed to LAPACK as an
+// empty/null buffer -- solve() returns immediately in this case.
+TEST(DenseSymmetricFactor, ZeroColumnRhsIsAcceptedAndNoOp) {
+    Mat A(3, 3);
+    A << 2, -1, 0, -1, 2, -1, 0, -1, 2;
+
+    DenseSymmetricFactor f;
+    f.factorize(A);
+
+    Mat RHS(3, 0);
+    Mat X(3, 0);
+    EXPECT_NO_THROW({ f.solve(RHS, X); });
+    EXPECT_EQ(X.rows(), 3);
+    EXPECT_EQ(X.cols(), 0);
+}
+
 // --- Error paths -----------------------------------------------------------
 
 TEST(DenseSymmetricFactor, SolveBeforeFactorizeThrows) {
@@ -186,10 +257,11 @@ TEST(DenseSymmetricFactor, XShapeMismatchThrows) {
     EXPECT_THROW({ f.solve(RHS, X_wrong_cols); }, std::invalid_argument);
 }
 
-// Singular matrix: [[1,1],[1,1]] is exactly rank-1 and symmetric.
-// Eliminating with a11=1 as the first pivot leaves an exact zero in the
-// trailing 1x1 submatrix (1 - (1*1/1)*1 == 0), so dsytrf detects a genuine
-// zero pivot rather than merely being fed a degenerate (all-zero) input.
+// Singular matrix: [[1,1],[1,1]] is exactly rank-1 and symmetric -- a
+// genuinely singular input (not a degenerate all-zero matrix), so dsytrf
+// is expected to detect a real zero pivot somewhere in its Bunch-Kaufman
+// elimination (which pivot ordering it picks, 1x1 or 2x2, is an algorithm
+// detail this test does not assume).
 TEST(DenseSymmetricFactor, SingularMatrixFactorizeThrowsWithInfoCode) {
     Mat A(2, 2);
     A << 1, 1, 1, 1;
