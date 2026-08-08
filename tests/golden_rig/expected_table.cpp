@@ -150,6 +150,12 @@ ExpectedTable ExpectedTable::load(const std::string &trace) {
             continue;
         }
         if (t[0] == '#') {
+            // Metadata is keyed on the text before the FIRST colon of a
+            // comment line. A wrapped banner paragraph's continuation lines
+            // therefore have no key and are dropped from this map -- harmless,
+            // because the map is informational (nothing compares against it)
+            // and the file itself remains the readable artifact. Worth knowing
+            // before writing a metadata reader that expects whole paragraphs.
             const std::string body = trim(t.substr(1));
             const auto colon = body.find(':');
             if (colon != std::string::npos) {
@@ -340,6 +346,8 @@ Comparison compare(const Observation &obs, const ExpectedTable *table) {
                                    obs.quantity, row->value, obs.value);
             return c;
         }
+        // Relative to the expectation, floored at one -- see ValueKind::kFloat
+        // for why the floor is there rather than a pure ratio.
         const double scale = std::max(1.0, std::abs(expected));
         const double err = std::abs(observed - expected);
         if (err <= row->tolerance * scale) {
@@ -376,6 +384,23 @@ Comparison compare(const Observation &obs, const ExpectedTable *table) {
     return c;
 }
 
+// A comma or a newline in any emitted field would split or break the row, and
+// the damage would surface late and somewhere else: a report row is copied
+// into a committed table, and the reader would then refuse the file at
+// derivation time with a column-count error pointing nowhere useful. One of
+// these fields is user-supplied (the machine name), so sanitize at emission --
+// the same treatment the backend version string already gets when it is read.
+std::string sanitize_field(std::string s) {
+    for (char &c : s) {
+        if (c == ',') {
+            c = ';';
+        } else if (c == '\n' || c == '\r') {
+            c = ' ';
+        }
+    }
+    return s;
+}
+
 std::string to_csv_row(const Observation &obs, const std::string &machine,
                        const std::string &backend, const std::string &thread_pin_mechanism,
                        int thread_pin_value, const std::string &commit, const std::string &date) {
@@ -383,9 +408,11 @@ std::string to_csv_row(const Observation &obs, const std::string &machine,
     if (obs.kind == ValueKind::kFloat) {
         tolerance = format_exact(obs.tolerance);
     }
-    return fmt::format("{},{},{},{},{},{},{},{},{},{},{}", obs.arm, obs.quantity,
-                       value_kind_name(obs.kind), obs.value, tolerance, machine, backend,
-                       thread_pin_mechanism, thread_pin_value, commit, date);
+    return fmt::format("{},{},{},{},{},{},{},{},{},{},{}", sanitize_field(obs.arm),
+                       sanitize_field(obs.quantity), value_kind_name(obs.kind),
+                       sanitize_field(obs.value), tolerance, sanitize_field(machine),
+                       sanitize_field(backend), sanitize_field(thread_pin_mechanism),
+                       thread_pin_value, sanitize_field(commit), sanitize_field(date));
 }
 
 } // namespace hven::rig

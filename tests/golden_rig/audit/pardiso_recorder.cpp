@@ -78,6 +78,17 @@ RecordingWindow::~RecordingWindow() { BackendRecorder::instance().disable(); }
 // signature below is the backend header's own, copied exactly: a mismatch here
 // would be undefined behaviour rather than a compile error, since the linker
 // only matches names.
+//
+// ONE ENTRY POINT IS WRAPPED, NOT TWO, and that is a claim rather than an
+// omission. The backend also exposes a 64-bit-index entry point, and the
+// static half of the audit does match it -- but no seam in scope can reach it.
+// hven's own session static_asserts that the backend's integer width matches
+// Eigen's sparse index width, which pins this build to the 32-bit interface;
+// the SQP old seam calls the 32-bit name directly; and the interior-point old
+// seam selects between the two by its matrix's storage-index type, which is
+// Eigen's default `int` for every matrix this rig builds. If a future build
+// ever links the 64-bit interface, hven's own static_assert fires first and
+// this comment becomes the place to add the second wrapper.
 
 extern "C" {
 

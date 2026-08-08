@@ -84,8 +84,8 @@ class NativeSeam final : public SeamUnderTest {
         return c;
     }
 
-    // The per-instance mechanism A.6 specifies: applied at call scope, never
-    // by touching a process-global or environment setting.
+    // The per-instance mechanism the unified surface specifies: applied at
+    // call scope, never by touching a process-global or environment setting.
     ThreadPinMechanism thread_pin_mechanism() const override {
         return ThreadPinMechanism::kPerInstance;
     }

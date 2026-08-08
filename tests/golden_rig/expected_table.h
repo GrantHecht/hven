@@ -38,8 +38,16 @@ namespace hven::rig {
 
 // What kind of thing a row asserts, which decides how it is compared.
 enum class ValueKind {
-    kCounter,  // exact integer
-    kFloat,    // compared at the row's stated relative tolerance
+    kCounter, // exact integer
+    // Compared at the row's stated tolerance, RELATIVE TO THE EXPECTED VALUE
+    // BUT FLOORED AT ONE: the test is |observed - expected| <= tolerance *
+    // max(1, |expected|), so for an expected value below one the comparison is
+    // effectively absolute. That floor is deliberate -- these tables carry
+    // solution components and residuals, and a relative test on a quantity
+    // that happens to be near zero demands agreement far below what the
+    // arithmetic that produced it can offer. Stated here, and in every table's
+    // own banner, because "relative" alone would misdescribe it.
+    kFloat,
     kState,    // an enumerated state, compared as a name
     kPresence, // "present" / "absent" -- whether an optional evidence field holds a value
     kBool      // "true" / "false"

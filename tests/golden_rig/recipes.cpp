@@ -61,6 +61,18 @@ Vec deterministic_rhs(Index dim, unsigned seed) {
     return b;
 }
 
+// The sentence every recipe that goes through assemble_kkt appends to its own
+// provenance. It exists because those recipes describe themselves as
+// "transcribed", and a reader is owed the one respect in which the assembled
+// matrix is not literally the cited fixture's blocks.
+const char *const kRegularizationNote =
+    " NOTE ON WHAT IS ADDED: the assembly puts the same primal and dual "
+    "regularization terms on the diagonals that the engines' own KKT assemblies "
+    "put there, so the matrix is the cited fixture's blocks PLUS those terms, "
+    "not the bare blocks. They are not decoration -- they are also what "
+    "guarantees the structurally present diagonal every backend requires. The "
+    "values are stated at each call site.";
+
 constexpr Index kChainNodes = 200;
 constexpr Index kChainStates = 3;
 constexpr Index kChainControls = 2;
@@ -266,7 +278,8 @@ Fixture hs76_kkt(const std::vector<Index> &active_rows) {
         "active-set search, not of the linear seam -- they are unreachable at this level and "
         "are not claimed. The working set below is a fixed, documented one, and what the trace "
         "pins is the seam-level clause: a factorization stays valid and unperturbed across "
-        "another factor's whole lifecycle.";
+        "another factor's whole lifecycle." +
+        std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = 4;
     f.n_dual = m;
@@ -285,7 +298,8 @@ Fixture saddle_kkt() {
                    "fixture header, transcribed: a Hessian of diag(1, -2) with no constraint in "
                    "the working set. Its residual vanishes at both a genuine minimizer and an "
                    "interior saddle, which is exactly why a verdict has to come from the "
-                   "inertia rather than from the residual.";
+                   "inertia rather than from the residual." +
+                   std::string(kRegularizationNote);
     f.K = assemble_kkt(H, Mat(0, 2), /*delta=*/1e-8, /*mu=*/0.0);
     f.n_primal = 2;
     f.n_dual = 0;
@@ -307,7 +321,8 @@ Fixture semidefinite_boundary_kkt() {
         "positive-SEMIdefinite Hessian with one exactly-zero eigenvalue, so that whether the "
         "factorization reports a zero class or a definite one is decided entirely by the "
         "regularization applied on top -- which is the property a boundary case is for. Flagged "
-        "in the task report as a trace whose authority text was not implementable as written.";
+        "in the task report as a trace whose authority text was not implementable as written." +
+        std::string(kRegularizationNote);
     f.K = assemble_kkt(H, Mat(0, 2), /*delta=*/0.0, /*mu=*/0.0);
     f.n_primal = 2;
     f.n_dual = 0;
@@ -342,7 +357,8 @@ Fixture pd_on_face_kkt(Index n_free, Index m_face) {
                    "reconstructed at the seam level: a Hessian that is positive definite on the "
                    "face and a full-rank face block, whose correct inertia is therefore exactly "
                    "(free variables, face rows, 0). The path itself is engine logic; what this "
-                   "pins is the evidence the engine reads off the factorization.";
+                   "pins is the evidence the engine reads off the factorization." +
+                   std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = n_free;
     f.n_dual = m_face;
@@ -366,7 +382,8 @@ Fixture duplicated_equality_kkt(double primal_reg, double dual_reg) {
         "modelling library to reach this matrix; the matrix itself is small enough to state "
         "directly, so this recipe states it. With no dual regularization it is exactly "
         "singular; a positive dual regularization is the rung an inertia-correction ladder "
-        "climbs.";
+        "climbs." +
+        std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, primal_reg, dual_reg);
     f.n_primal = 2;
     f.n_dual = 2;
@@ -394,7 +411,8 @@ Fixture active_bound_curvature_kkt(double sigma) {
         "solve through the modelling library; the condensed KKT it produces is this one, with "
         "the bound's curvature term on the first primal diagonal. Pinned to NOT read as "
         "singular however large that term gets, which is the misread the original pin exists "
-        "for.";
+        "for." +
+        std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = 2;
     f.n_dual = 1;
@@ -422,7 +440,8 @@ Fixture brutally_scaled_kkt() {
         "set. The gradient reaches the linear system through the right-hand side, which is "
         "where iterative refinement and pivot perturbation have something to respond to. "
         "WHETHER this matrix actually perturbs a pivot on a given backend is an OBSERVATION "
-        "the derivation records, not an assumption this recipe makes.";
+        "the derivation records, not an assumption this recipe makes." +
+        std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = 2;
     f.n_dual = 2;

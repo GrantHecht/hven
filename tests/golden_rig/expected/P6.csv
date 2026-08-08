@@ -5,6 +5,11 @@
 #   never copied; that header's provenance string says what each recipe does and
 #   does not reproduce from the fixture its authority names.
 # tolerance: 1e-6 relative on the residual (the fixture spans five orders of magnitude); counters exact
+# tolerance-rule: a float row is compared as |observed - expected| <= tolerance *
+#   max(1, |expected|) -- relative to the expectation, but FLOORED AT ONE, so for an
+#   expected value below one the test is effectively absolute. The floor is
+#   deliberate: a pure ratio on a solution component that happens to sit near zero
+#   would demand agreement far below what the arithmetic producing it can offer.
 # thread-pin: every asserted row records the MECHANISM its arm pinned with and the
 #   value it pinned to (the two columns below). A row carrying an observed value
 #   without a thread pin is REFUSED by the reader: float residuals at nine digits
