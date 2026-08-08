@@ -12,6 +12,7 @@
 
 namespace {
 
+using hven::Fnv1a;
 using hven::Index;
 using hven::pattern_hash;
 using hven::SpMatRM;
@@ -84,6 +85,52 @@ TEST(PatternHash, UncompressedInputThrows) {
     a.insert(1, 1) = 2.0;
     ASSERT_FALSE(a.isCompressed());
     EXPECT_THROW({ (void)pattern_hash(a); }, std::invalid_argument);
+}
+
+// Fnv1a::feed is the raw-byte composability surface the brief's public
+// surface names alongside feed_index/value; it is otherwise unused by
+// pattern_hash() (which goes through feed_index exclusively), so it needs
+// its own direct coverage rather than relying on pattern_hash tests to
+// exercise it transitively.
+TEST(PatternHash, Fnv1aFeedMixesRawBytesByteAtATime) {
+    constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
+    constexpr std::uint64_t kPrime = 1099511628211ULL;
+
+    const unsigned char bytes[] = {0x01, 0x02, 0x03, 0xFF, 0x00, 0xAB};
+
+    std::uint64_t expected = kOffsetBasis;
+    for (unsigned char b : bytes) {
+        expected ^= b;
+        expected *= kPrime;
+    }
+
+    Fnv1a h;
+    h.feed(bytes, sizeof(bytes));
+    EXPECT_EQ(h.value(), expected);
+
+    // Composability: splitting one feed() call into two adjacent calls over
+    // the same byte range accumulates to the same hash as one call over the
+    // whole range -- the property `feed`'s own doc comment claims ("mix
+    // data in one call at a time").
+    Fnv1a split;
+    split.feed(bytes, 3);
+    split.feed(bytes + 3, sizeof(bytes) - 3);
+    EXPECT_EQ(split.value(), expected);
+}
+
+// Literal-value hardening: pins one exact hash value for a fixed, small
+// matrix. Safe to pin now that the algorithm is frozen by spec review's
+// named adjudication (task-3-review.md section 3: hven's element-wise,
+// shift-based feed_index is accepted as the canonical, width- and
+// byte-order-stable form of the sibling project's own scheme). Uses the
+// same fixture as the cross-check test below; the expected value was
+// computed independently against the shipped algorithm and additionally
+// confirmed unchanged across the feed_index byte-cast -> shift-based
+// rewrite (both extract bytes least-significant-first on every supported
+// little-endian target, so the rewrite is a value-preserving change).
+TEST(PatternHash, LiteralValuePinnedForFixedFixture) {
+    SpMatRM A = make_matrix(3, 4, {{0, 1, 5.0}, {1, 3, -2.0}, {2, 0, 7.0}});
+    EXPECT_EQ(pattern_hash(A), 14789870936883269507ULL);
 }
 
 // Cross-check: pins the FNV-1a constants and feeding order against silent
