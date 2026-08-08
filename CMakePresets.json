@@ -1,0 +1,78 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 24,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "linux-clang-release",
+            "displayName": "Linux Clang Release",
+            "description": "Release build using system LLVM Clang on Linux",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "installDir": "${sourceDir}/build/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
+                "HVEN_FP_MODE": "SAFER_FAST",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
+            }
+        },
+        {
+            "name": "linux-clang-debug",
+            "displayName": "Linux Clang Debug",
+            "description": "Debug build using system LLVM Clang on Linux",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build-debug",
+            "installDir": "${sourceDir}/build-debug/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
+                "HVEN_FP_MODE": "SAFER_FAST",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux-clang-release",
+            "displayName": "Linux Clang Release Build",
+            "configurePreset": "linux-clang-release",
+            "nativeToolOptions": [
+                "-j6",
+                "-v"
+            ]
+        },
+        {
+            "name": "linux-clang-debug",
+            "displayName": "Linux Clang Debug Build",
+            "configurePreset": "linux-clang-debug",
+            "nativeToolOptions": [
+                "-j6",
+                "-v"
+            ]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "linux-clang-release",
+            "displayName": "Linux Clang Release Test",
+            "configurePreset": "linux-clang-release",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "linux-clang-debug",
+            "displayName": "Linux Clang Debug Test",
+            "configurePreset": "linux-clang-debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ]
+}
