@@ -5,6 +5,17 @@
 #   never copied; that header's provenance string says what each recipe does and
 #   does not reproduce from the fixture its authority names.
 # tolerance: no numbers: this trace's whole content is a state and an invalidity
+# tolerance-rule: a float row is compared as |observed - expected| <= tolerance *
+#   max(1, |expected|) -- relative to the expectation, but FLOORED AT ONE, so for an
+#   expected value below one the test is effectively absolute. The floor is
+#   deliberate: a pure ratio on a solution component that happens to sit near zero
+#   would demand agreement far below what the arithmetic producing it can offer.
+# fails-by-design: on any seam that zero-fills its counts before a
+#   factorization, this trace FAILS and that failure is the docket entry -- it is
+#   what the trace is for. Known: the SQP old seam (all platforms) and the
+#   interior-point old seam on Apple. The interior-point seam on MKL passes
+#   honestly: its counts are indeterminate there, so its adapter reports the
+#   absence of a defined state rather than inventing one.
 # thread-pin: every asserted row records the MECHANISM its arm pinned with and the
 #   value it pinned to (the two columns below). A row carrying an observed value
 #   without a thread pin is REFUSED by the reader: float residuals at nine digits

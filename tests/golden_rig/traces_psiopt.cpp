@@ -172,6 +172,16 @@ TEST_P(PsioptTrace, P3_SingularVerdictAndControl) {
         const hl::InertiaEvidence e = s->inertia();
         if (e.state == hl::InertiaEvidence::State::kObserved) {
             EXPECT_EQ(e.n_zero, 0) << "active-bound curvature must never read as a zero class";
+            // A REASONED EXTENSION BEYOND THE AUTHORITY, flagged as such. The
+            // pin this control comes from says only that the matrix must not
+            // read as singular. The perturbation count is the other half of
+            // the same misread on this backend -- a perturbed pivot here is
+            // the signal a driver would act on, and reading a zero class while
+            // ignoring it is exactly the mistake the pin exists to prevent --
+            // so the trace asserts it too. The cost if a future backend
+            // perturbs benignly here: this trace FAILS rather than records,
+            // and the right response is to demote this line to an
+            // observation, not to widen it.
             if (e.perturbed_pivots.has_value()) {
                 EXPECT_EQ(*e.perturbed_pivots, 0)
                     << "active-bound curvature must never provoke a perturbed pivot either -- "
@@ -234,6 +244,16 @@ TEST_P(PsioptTrace, P4_PerturbationEvidencePresenceIsBackendHonest) {
 // for). The non-LDLT factorization kinds, the authority's other named path, are
 // unreachable here for a different reason: constructing one throws, so no
 // object of that kind exists to query.
+//
+// THIS TRACE FAILS BY DESIGN ON ANY SEAM THAT ZERO-FILLS, which is what makes
+// it a docket source rather than a formality. Known so far: the SQP old seam
+// on every platform (its parameter array is zero-filled at construction and
+// its accessors are plain reads of it, so it answers a real-looking triple
+// before anything is factorized), and the interior-point old seam on Apple
+// (same shape, different mechanism). The interior-point seam on MKL passes,
+// and for an honest reason -- its counts are genuinely indeterminate there, so
+// its adapter reports the absence of a defined state rather than inventing
+// one. A failure here is the finding; it is not a broken trace.
 
 TEST_P(PsioptTrace, P5_InertiaBeforeFactorizationIsAnExplicitState) {
     TraceRun run("P5", GetParam());

@@ -49,9 +49,9 @@ static_assert(std::is_same_v<tycho::sqp::SpMatU, SpMatRM>,
 
 // See seam_psiopt.cpp's twin for why the pin is applied to the process: this
 // seam has no thread control whatsoever -- it never writes a thread-shaped
-// backend parameter -- so comparison policy B.2's "the mechanism the seam
-// possesses" resolves to none, and the rig pins the process instead and says
-// so in the provenance banner.
+// backend parameter -- so "pin by the mechanism the seam possesses" resolves
+// to none, and the rig pins the process instead and says so in the provenance
+// banner.
 class ProcessThreadPin {
   public:
     explicit ProcessThreadPin(int n) : engaged_(n > 0) {
@@ -143,7 +143,6 @@ class SqpSeam final : public SeamUnderTest {
             ++counters_.factorize_count;
             out.status = hl::FactorizeOutcome::Status::kBackendError;
             out.backend_code = 0;
-            factorized_ = false;
             return out;
         }
 
@@ -152,7 +151,6 @@ class SqpSeam final : public SeamUnderTest {
         }
         ++counters_.factorize_count;
         dim_ = A.rows();
-        factorized_ = true;
 
         out.status = hl::FactorizeOutcome::Status::kOk;
         out.backend_code = 0;
@@ -206,9 +204,23 @@ class SqpSeam final : public SeamUnderTest {
   private:
     hl::InertiaEvidence evidence() const {
         hl::InertiaEvidence e;
-        if (!factorized_) {
-            return e; // kUnavailable, counts left at their -1 sentinel
-        }
+
+        // NO PRE-FACTORIZATION GUARD, deliberately, and for the same reason
+        // the Apple branch of the other old-seam adapter has none: this seam
+        // DEFINES an answer before anything is factorized. Its parameter array
+        // is zero-filled at construction and its three accessors are plain
+        // reads of it, so asking for an inertia before a factorization returns
+        // zeros -- reported as though observed, with no state that could say
+        // "nothing here". That is a real, reachable instance of the
+        // fabrication class the unified surface's explicit kUnavailable
+        // exists to close, and this adapter reports it rather than
+        // substituting the new surface's honest answer. An adapter that
+        // answered kUnavailable here would make this seam's
+        // before-factorization rows indistinguishable from the native arm's,
+        // which is precisely the reading a derivation must not be handed.
+        //
+        // The zero class is DERIVED, as it must be -- this seam offers only
+        // the positive and negative counts -- and the flag says so.
         e.state = hl::InertiaEvidence::State::kObserved;
         e.n_pos = static_cast<Index>(kkt_.num_pos_eigs());
         e.n_neg = static_cast<Index>(kkt_.num_neg_eigs());
@@ -223,7 +235,6 @@ class SqpSeam final : public SeamUnderTest {
     tycho::sqp::KktSystem kkt_;
     Counters counters_;
     Index dim_ = 0;
-    bool factorized_ = false;
 };
 
 } // namespace

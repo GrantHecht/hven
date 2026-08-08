@@ -46,8 +46,8 @@ using OldSolver = Eigen::PardisoLDLT<SpMatRM, Eigen::Upper>;
 // Pins the PROCESS thread count for this arm's lifetime and restores it
 // afterwards.
 //
-// Comparison policy B.2 requires every asserted run to pin threads by "the
-// mechanism the seam under test possesses", and this seam possesses none. Its
+// Every asserted run must pin threads by the mechanism the seam under test
+// possesses, and this seam possesses none. Its
 // one thread-shaped field, PardisoLDLT::threads_ (written into iparm[33]), is
 // the conditional-numerical-reproducibility slot rather than a thread count,
 // and the interior-point engine only writes it when its CNR mode is on -- so
@@ -112,9 +112,9 @@ class PsioptSeam final : public SeamUnderTest {
 
     ThreadPinMechanism thread_pin_mechanism() const override {
 #if defined(__APPLE__)
-        // A.6: no public thread control on this backend, and the old seam's
-        // set_num_threads() maps onto the same absent control. Reported
-        // absent rather than fabricated.
+        // No public thread control exists on this backend at all, and the
+        // old seam's set_num_threads() maps onto that same absent control.
+        // Reported absent rather than fabricated.
         return ThreadPinMechanism::kAbsent;
 #else
         return ThreadPinMechanism::kProcessGlobal;
@@ -251,21 +251,15 @@ class PsioptSeam final : public SeamUnderTest {
 
     hl::InertiaEvidence evidence() const {
         hl::InertiaEvidence e;
-        if (counters_.factorize_count == 0) {
-            // A THIRD finding, alongside the two Apple fabrications below:
-            // this seam has NO DEFINED pre-factorization inertia state at all.
-            // Its count members are plain ints left uninitialized by the
-            // constructor, so asking it for an inertia before anything has
-            // been factorized reads indeterminate values -- there is no state
-            // to report and no way for it to say so. The adapter answers
-            // kUnavailable rather than reading them, which is the adapter
-            // being safer than the seam; the absence of a defined state is
-            // itself the observation, and it is the gap the unified surface's
-            // explicit kUnavailable closes.
-            return e; // kUnavailable, counts left at their -1 sentinel
-        }
+
+        // THE PRE-FACTORIZATION ANSWER IS DIFFERENT ON THE TWO BACKENDS, and
+        // this adapter reports each one as it actually is. Its job is
+        // FIDELITY TO EACH SEAM'S REAL BEHAVIOUR -- never smoothing either of
+        // them toward the semantics of the surface that replaces them. A
+        // single shared guard here would be exactly that smoothing, and it
+        // would delete a finding on the Apple side.
 #if defined(__APPLE__)
-        // UNOBSERVED, and deliberately faithful to two fabrications:
+        // UNOBSERVED, and deliberately faithful to three fabrications:
         //
         //  (1) ppivs() on this seam is `return 0;` -- a hardcoded literal on a
         //      backend with no perturbed-pivot counter. Carried through as a
@@ -277,6 +271,18 @@ class PsioptSeam final : public SeamUnderTest {
         //      way for a caller to tell that from a real reading, so this
         //      adapter can only ever report kObserved. The missing state is
         //      the finding.
+        //  (3) NO PRE-FACTORIZATION GUARD ON THIS BRANCH, deliberately. This
+        //      seam's count members are DEFINED here -- zero-initialized at
+        //      construction -- so asking it for an inertia before anything has
+        //      been factorized has a real answer, and that answer is a
+        //      zero-filled triple reported as though observed. That is the
+        //      same fabrication class as (2), reachable without provoking any
+        //      backend fault, and it is the slice this rig can actually drive.
+        //      Substituting kUnavailable here (as the MKL branch below must,
+        //      for a different and genuine reason) would report the NEW
+        //      surface's honest answer in place of the OLD seam's real one,
+        //      and the fail-by-design this arm exists to produce would
+        //      silently never happen.
         e.state = hl::InertiaEvidence::State::kObserved;
         e.n_pos = static_cast<Index>(solver_.peigs());
         e.n_neg = static_cast<Index>(solver_.neigs());
@@ -284,6 +290,20 @@ class PsioptSeam final : public SeamUnderTest {
         e.zero_is_derived = false;
         e.perturbed_pivots = static_cast<Index>(solver_.ppivs());
 #else
+        // The MKL branch DOES need the guard, and for a reason that is a
+        // finding in its own right rather than a convenience: this seam has no
+        // defined pre-factorization inertia state at all. Its count members
+        // are plain ints the constructor never initializes (it zeroes the
+        // parameter array and nothing else), so reading them before a
+        // factorization is an indeterminate read -- there is no answer to
+        // report faithfully and no way for the seam to say so. kUnavailable is
+        // the only representation that is not an invention, and the absence of
+        // a defined state is itself the observation. Note the asymmetry with
+        // the Apple branch above is a property of the two seams, not of this
+        // adapter's convenience.
+        if (counters_.factorize_count == 0) {
+            return e; // kUnavailable, counts left at their -1 sentinel
+        }
         e.state = hl::InertiaEvidence::State::kObserved;
         e.n_pos = static_cast<Index>(solver_.peigs());
         e.n_neg = static_cast<Index>(solver_.neigs());
