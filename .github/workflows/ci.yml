@@ -51,3 +51,14 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+      - name: Accelerate backend syntax check (Linux, stubbed)
+        # Cheap (a handful of `clang++ -fsyntax-only` calls, no MKL/network
+        # needed) and Linux-runnable, so it belongs in the same job rather
+        # than a separate one. Keeps scripts/check_accelerate_syntax_linux.sh's
+        # claim -- "syntax-checked against stubs on Linux" -- continuously
+        # true instead of rotting silently the first time someone edits the
+        # Accelerate TUs without running it locally. See that script's own
+        # header comment and docs/testing.md for exactly what this does and
+        # does not prove; it is not a substitute for the Mac hardware leg.
+        run: ./scripts/check_accelerate_syntax_linux.sh

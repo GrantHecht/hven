@@ -45,10 +45,13 @@ namespace hven::linear::detail {
 
 // The three partial-solve stages Accelerate can genuinely provide via
 // SparseCreateSubfactor, in the order SymmetricFactor::SolvePhase names them
-// (kForward, kDiagonal, kBackward) -- the adapter (symmetric_factor_accelerate.cpp)
-// casts SolvePhase straight to this enum's underlying value, so the two
-// orderings must stay in lock-step; a static_assert at the adapter's cast
-// site is the enforcement point.
+// (kForward, kDiagonal, kBackward). The adapter
+// (symmetric_factor_accelerate.cpp's accelerate_phase_of) maps SolvePhase to
+// this enum via an explicit, exhaustive switch -- not a bare cast -- so a
+// future reordering of either enum fails to COMPILE there (a missing switch
+// case) rather than silently swapping which subfactor a phase solves
+// against. That switch is the enforcement point; no static_assert is needed
+// or present.
 enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 
 // The backend knobs one session is created with. Fixed for the session's

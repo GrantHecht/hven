@@ -113,6 +113,17 @@ void FactorSession::analyze(const SpMatRM &A) {
     SparseSymbolicFactorOptions fopts{};
     fopts.control = SparseDefaultControl;
     fopts.orderMethod = SparseOrderDefault;
+    // `order = nullptr`: a deliberate, noted divergence from
+    // KktSystem::analyze, which passes a non-null buffer here to receive
+    // Accelerate's computed fill-reducing permutation back (its own audit
+    // instrument for inspecting the ordering -- see
+    // kkt_system_accelerate.h's perm_ field and its §(c) comment). hven's
+    // FactorSession has no consumer for that permutation, and Eigen's
+    // AccelerateSupport module (the upstream both ports derive from) also
+    // passes null here by default -- the write-back is documented as
+    // optional. Flagged rather than silently omitted: task-6-report.md's
+    // Accelerate-API precedent table lists this as a stated difference from
+    // KktSystem::analyze, not an unstated one.
     fopts.order = nullptr;
     fopts.ignoreRowsAndColumns = nullptr;
     fopts.malloc = std::malloc;
@@ -159,13 +170,29 @@ int FactorSession::factorize(const SpMatRM &A) {
     // equilibration; pivotTolerance 0.01 is "the recommended value for
     // difficult matrices in double" and is left at that default -- there is
     // no hven Options field asking for a different one. zeroTolerance is
-    // driven by pivot_perturb_exp: hven's own default (8) maps to
-    // 10^-8 * eps, TIGHTER (a smaller zero threshold, more conservative) than
-    // Apple's own out-of-box default of 1e-4 * eps (equivalently k=4 under
-    // this same formula) -- see the header's AccelerateConfig comment and the
-    // Task-6 report for the full rationale. This mapping is a documented
-    // engineering choice, not a claimed numeric equivalence to Pardiso's
-    // perturbation semantics, and is UNOBSERVED on real Accelerate hardware.
+    // driven by pivot_perturb_exp via zeroTolerance = 10^-k * eps -- the same
+    // functional SHAPE Apple's own default already uses (1e-4 * eps is
+    // exactly this formula at k = 4).
+    //
+    // NAMED QUESTION FOR THE MAC HARDWARE LEG, not resolved here: hven's
+    // OWN default is k = 8, i.e. zeroTolerance ~= 2.2e-24 -- FOUR ORDERS OF
+    // MAGNITUDE TIGHTER than k = 4 (~= 2.2e-20), which is the only
+    // configuration of this parameter that has actually run on real
+    // Accelerate hardware (kkt_system_accelerate.h:393, hardcoded, part of
+    // the audited KktSystem precedent). hven's shipped default therefore
+    // diverges from the sole hardware-proven value, and "tighter" is NOT
+    // straightforwardly "safer": a smaller zeroTolerance means a
+    // tiny-but-nonzero pivot is more likely to be USED by threshold partial
+    // pivoting rather than caught by the zero check, which on a
+    // near-singular fixture could degrade the factorization rather than
+    // improve it -- "directionally conservative" is true only for evidence
+    // honesty (less eager to declare a zero pivot that isn't observed), not
+    // obviously conservative numerically. This is a documented engineering
+    // choice, not a claimed equivalence to Pardiso's perturbation semantics,
+    // and it is UNOBSERVED on real Accelerate hardware. The Mac leg's
+    // checklist item: A/B k=8 (this default) against k=4 (the hardware-
+    // proven value) on the golden-rig fixtures, not merely "confirm no
+    // surprising effect" -- see the Task-6 report's fix-round section.
     SparseNumericFactorOptions nopts{};
     nopts.control = SparseDefaultControl;
     nopts.scalingMethod = SparseScalingDefault;

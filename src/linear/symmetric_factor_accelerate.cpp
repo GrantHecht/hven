@@ -12,8 +12,14 @@
 // backend-neutral forward declaration -- see
 // hven/detail/linear/accelerate_session.h): this TU owns the contract --
 // validation, pattern-hash discipline, counters, epochs, the entitlement
-// rules around shared sessions -- and none of the backend's vocabulary. This
-// mirrors symmetric_factor_mkl.cpp's own structure closely; the two files are
+// rules around shared sessions -- and none of the backend's vocabulary
+// EXCEPT the inertia query: evidence_of() below calls SparseGetInertia
+// directly against session.native_factorization() rather than reading a
+// value FactorSession cached at factorize() time. That placement is
+// deliberate, not a leak -- it is what lets the test-seam convention
+// (docs/testing.md) inject SparseGetInertia's failure without adding a hook
+// to the MPL-derived accelerate_session.h/.cpp. This mirrors
+// symmetric_factor_mkl.cpp's own structure closely; the two files are
 // deliberately kept in lock-step shape so a reader who knows one can find
 // their way around the other, even though neither #includes the other.
 //

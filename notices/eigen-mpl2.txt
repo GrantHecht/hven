@@ -16,6 +16,14 @@ added.
       sequence (symbolic / numeric / solve / release), the parameter-array
       value set, and the handling of Pardiso's error codes.
 
+  include/hven/detail/linear/accelerate_session.h
+  src/linear/accelerate_session.cpp
+      Derived from Eigen's AccelerateSupport module: the Accelerate Sparse
+      call discipline -- SparseMatrixStructure/SparseSymbolicFactorOptions
+      setup for the symbolic phase, SparseNumericFactorOptions for the
+      numeric phase, and the CSR-upper-as-CSC-lower interpretation of a
+      symmetric matrix's stored entries.
+
   Package:   Eigen
   Source:    https://eigen.tuxfamily.org/
   License:   Mozilla Public License, Version 2.0 (reproduced in full below)
