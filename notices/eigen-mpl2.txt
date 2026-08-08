@@ -1,24 +1,14 @@
 THIRD-PARTY NOTICE — Eigen (Mozilla Public License 2.0)
 ========================================================
 
-The following files are derived from the Eigen linear algebra library. The
-MPL-2.0 license applies only to these files; the remainder of the Tycho
-project is Apache 2.0.
+hven vendors the Eigen linear algebra library as a git submodule
+(dep/eigen/), unmodified. The MPL-2.0 license applies to Eigen; the
+remainder of the hven project is Apache 2.0.
 
-  src/Solvers/PardisioInterface.h — derived from Eigen's PardisoInterface.h
-    Modifications:
-      - Added member functions to access internal PARDISO solver parameters.
-      - Added methods to perform factorization phases without unnecessary
-        matrix copies.
+Individual hven source files derived from Eigen code (if any) carry an
+MPL-2.0 notice in their file headers and are listed here as they are
+added.
 
-  src/Solvers/AccelerateInterface.h — derived from Eigen's AccelerateSupport module (3.4)
-    Modifications:
-      - Added member variables and functions for fine-grained control of
-        Apple Accelerate sparse solvers.
-      - Avoided unnecessary copies and allocations.
-      - Added an iterative refinement implementation to improve solution
-        accuracy relative to the stock Accelerate backend.
-      - Aligned interface more closely with PardisoInterface.h.
   Package:   Eigen
   Source:    https://eigen.tuxfamily.org/
   License:   Mozilla Public License, Version 2.0 (reproduced in full below)

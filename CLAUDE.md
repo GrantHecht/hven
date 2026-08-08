@@ -169,3 +169,8 @@ no exceptions:
 - Sweep and benchmark runners own their own compute/time budgets — no
   unbounded cells that can run indefinitely or contend with other
   concurrent work.
+- Delegated implementation work carries an explicit context budget: give
+  a subagent the task, the interfaces it touches, and the binding
+  constraints — not the session's accumulated history — and retire an
+  agent whose context has grown past usefulness rather than pushing it
+  through one more round.

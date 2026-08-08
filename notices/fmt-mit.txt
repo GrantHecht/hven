@@ -1,8 +1,8 @@
 THIRD-PARTY NOTICE — {fmt} (MIT License)
 =========================================
 
-{fmt} is a text formatting library for C++ used by Tycho as a vendored
-dependency (dep/fmt/). It is unmodified.
+{fmt} is a text formatting library for C++ used by hven as a vendored
+dependency (dep/fmt/), unmodified.
   Package:   {fmt}
   Source:    https://github.com/fmtlib/fmt
   Copyright: 2012–present Victor Zverovich
