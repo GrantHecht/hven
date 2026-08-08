@@ -18,6 +18,7 @@
 
 #include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>
@@ -41,6 +42,15 @@ std::string sqp_arm_suffix(const testing::TestParamInfo<ArmSpec> &info) {
         }
     }
     return s;
+}
+
+// Full precision on the way out: a record-only value is still the raw material
+// for a docket entry, and rounding it here would lose the only digits that
+// distinguish "the two settings agreed" from "they agreed to eleven places".
+std::string format_deviation(double v) {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%.17g", v);
+    return buf;
 }
 
 class SqpTrace : public testing::TestWithParam<ArmSpec> {};
@@ -527,18 +537,20 @@ TEST_P(SqpTrace, T8_ThreadCountControl) {
     // backend's own default -- see smoke_thread_count() for why the default
     // makes this whole trace vacuous under the derivation invocation.
     const int smoke_threads = smoke_thread_count();
-    Counters default_counters;
+    SeamOptions smoke_options = GetParam().options;
+    smoke_options.num_threads = smoke_threads;
+
+    // The smoke engine outlives its block: its thread pin is what stamps the
+    // cross-thread rows below, and asking a destroyed engine for it would put
+    // the rig in the business of remembering configurations rather than
+    // reading them off the thing that ran.
+    std::unique_ptr<SeamUnderTest> smoke = run.seam_with(
+        smoke_options, "the unasserted-smoke leg, " + std::to_string(smoke_threads) + " threads");
     Vec x_default(fx.K.rows());
-    {
-        SeamOptions o = GetParam().options;
-        o.num_threads = smoke_threads;
-        std::unique_ptr<SeamUnderTest> s = run.seam_with(
-            o, "the unasserted-smoke leg, " + std::to_string(smoke_threads) + " threads");
-        s->analyze(fx.K);
-        ASSERT_EQ(s->factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
-        s->solve(fx.rhs, x_default);
-        default_counters = s->counters();
-    }
+    smoke->analyze(fx.K);
+    ASSERT_EQ(smoke->factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
+    smoke->solve(fx.rhs, x_default);
+    const Counters default_counters = smoke->counters();
 
     Counters pinned_counters;
     Vec x_pinned(fx.K.rows());
@@ -563,16 +575,27 @@ TEST_P(SqpTrace, T8_ThreadCountControl) {
 
     run.record_counters(pinned_counters);
     run.record_vector_head("x_pinned", x_pinned, 4, TraceRun::kDefaultTolerance);
-    // The amendment's "recorded as documentation" quantity, and beside it the
-    // thread count it was measured against -- without which the deviation row
-    // says nothing at all, and against which a later reader can tell "no
-    // deviation" apart from "nothing varied".
-    run.record(Observation::counter("T8", run.label(), "smoke_leg_thread_count", smoke_threads));
-    run.record(Observation::real("T8", run.label(), "cross_thread_relative_deviation", diff / scale,
-                                 TraceRun::kDefaultTolerance));
-    // Recorded, never asserted: the bitwise claim survives only if observed.
-    run.record(Observation::boolean("T8", run.label(), "bitwise_identical_across_thread_settings",
-                                    bitwise_equal(x_pinned, x_default)));
+    // THE THREE CROSS-THREAD QUANTITIES ARE RECORD-ONLY, and the kind is doing
+    // real work rather than labelling. Each describes a comparison BETWEEN two
+    // thread configurations, so no single thread pin describes it: stamped
+    // with the asserted leg's pin they would read as ordinary pinned rows, and
+    // a derivation following the copy-the-report-rows workflow would commit a
+    // run-to-run-nondeterministic number at a tight tolerance with the
+    // reader's pin-refusal unable to catch it, because the row would look
+    // perfectly pinned. The record-only kind makes that structurally
+    // impossible -- the reader REFUSES it in a committed table -- and the rows
+    // additionally carry the SMOKE leg's own mechanism and count, so the
+    // artifact says what was actually measured.
+    const std::string measured_between =
+        "measured between two thread settings (" + std::to_string(smoke_threads) +
+        " and 1), so no single thread pin describes it; documentation, never an expectation";
+    run.record_only("smoke_leg_thread_count", std::to_string(smoke_threads), measured_between,
+                    *smoke);
+    run.record_only("cross_thread_relative_deviation", format_deviation(diff / scale),
+                    measured_between, *smoke);
+    run.record_only("bitwise_identical_across_thread_settings",
+                    bitwise_equal(x_pinned, x_default) ? "true" : "false", measured_between,
+                    *smoke);
 }
 
 } // namespace

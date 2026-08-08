@@ -192,8 +192,14 @@ void TraceRun::record(Observation obs) {
     RecordedObservation rec;
     rec.comparison = compare(obs, table_.get());
     const RunProvenance &p = run_provenance();
-    rec.csv_row =
-        to_csv_row(obs, p.machine, p.backend, pin_mechanism_, pin_value_, p.commit, p.date);
+    // An observation measured under a configuration other than the run's own
+    // carries its own pin, so the row says what it was actually taken under
+    // rather than what the last engine built happened to be pinned to. Only
+    // record-only observations do this -- and the kind, not the stamp, is what
+    // keeps such a row from ever becoming an expectation.
+    const std::string mechanism = obs.pin_mechanism_override.value_or(pin_mechanism_);
+    const int pin = obs.pin_value_override.value_or(pin_value_);
+    rec.csv_row = to_csv_row(obs, p.machine, p.backend, mechanism, pin, p.commit, p.date);
     rec.obs = std::move(obs);
 
     if (run_mode() == RunMode::kAssert &&
@@ -244,6 +250,14 @@ void TraceRun::record_vector_head(const std::string &quantity, const Vec &v, Ind
         record(
             Observation::real(trace_, label_, fmt::format("{}[{}]", quantity, i), v(i), tolerance));
     }
+}
+
+void TraceRun::record_only(const std::string &quantity, const std::string &value,
+                           const std::string &why, const SeamUnderTest &measured_under) {
+    Observation obs = Observation::record_only(trace_, label_, quantity, value, why);
+    obs.pin_mechanism_override = thread_pin_mechanism_name(measured_under.thread_pin_mechanism());
+    obs.pin_value_override = measured_under.thread_pin_value();
+    record(std::move(obs));
 }
 
 void TraceRun::note(std::string text) {

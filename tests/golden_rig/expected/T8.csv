@@ -5,6 +5,15 @@
 #   never copied; that header's provenance string says what each recipe does and
 #   does not reproduce from the fixture its authority names.
 # tolerance: 1e-14 relative across thread settings; counters exact. The default-thread leg is unasserted smoke.
+# record-only: the three cross-thread quantities (smoke_leg_thread_count,
+#   cross_thread_relative_deviation, bitwise_identical_across_thread_settings) are
+#   emitted with kind `record-only` and are REFUSED by this reader if pasted here.
+#   Each describes a comparison BETWEEN two thread settings, so no single thread pin
+#   describes it -- stamped with the asserted leg's pin they would read as ordinary
+#   pinned rows and a tight tolerance would be committed against a run-to-run
+#   nondeterministic number, with the pin-refusal unable to catch it. They are
+#   documentation. The rows that DO belong here are the counters and the pinned
+#   leg's solution components.
 # tolerance-rule: a float row is compared as |observed - expected| <= tolerance *
 #   max(1, |expected|) -- relative to the expectation, but FLOORED AT ONE, so for an
 #   expected value below one the test is effectively absolute. The floor is

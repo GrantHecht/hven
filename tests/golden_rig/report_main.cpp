@@ -46,6 +46,8 @@ const char *verdict_name(Comparison::Verdict v) {
         return "NO-EXPECTATION";
     case Comparison::Verdict::kUnobserved:
         return "UNOBSERVED-SLOT";
+    case Comparison::Verdict::kRecordOnly:
+        return "RECORD-ONLY";
     }
     return "?";
 }
@@ -76,8 +78,10 @@ void write_report(std::ostream &out) {
         << tally[Comparison::Verdict::kMatch] << " matched, "
         << tally[Comparison::Verdict::kMismatch] << " contradicted, "
         << tally[Comparison::Verdict::kNoExpectation] << " with no expectation, "
-        << tally[Comparison::Verdict::kUnobserved] << " against unfilled slots; "
-        << sink.skips().size() << " runs skipped for a missing capability.\n\n";
+        << tally[Comparison::Verdict::kUnobserved] << " against unfilled slots, "
+        << tally[Comparison::Verdict::kRecordOnly]
+        << " recorded as documentation (unassertable by construction); " << sink.skips().size()
+        << " runs skipped for a missing capability.\n\n";
 
     if (!sink.notes().empty()) {
         out << "---------------- notes (fixtures, parity, overrides) ----------------\n";
@@ -115,10 +119,40 @@ void write_report(std::ostream &out) {
         by_trace[r.obs.trace].push_back(&r);
     }
     for (const auto &[trace, rows] : by_trace) {
-        out << "\n# ==== " << trace << " ====\n" << hven::rig::expected_table_header() << "\n";
+        bool wrote_header = false;
         for (const auto *r : rows) {
+            if (r->obs.kind == hven::rig::ValueKind::kRecordOnly) {
+                continue; // emitted separately below -- never paste these
+            }
+            if (!wrote_header) {
+                out << "\n# ==== " << trace << " ====\n"
+                    << hven::rig::expected_table_header() << "\n";
+                wrote_header = true;
+            }
             out << r->csv_row << "\n";
         }
+    }
+
+    // Kept OUT of the block above on purpose. These rows are documentation and
+    // the reader refuses their kind in a committed table, so pasting one in
+    // would break the file at load. Printing them here, plainly labelled and
+    // with the configuration each was measured under, gives a derivation the
+    // number without giving it a row to copy by reflex.
+    bool any_record_only = false;
+    for (const auto &r : sink.observations()) {
+        if (r.obs.kind != hven::rig::ValueKind::kRecordOnly) {
+            continue;
+        }
+        if (!any_record_only) {
+            out << "\n---------------- recorded as documentation (DO NOT PASTE INTO A TABLE) "
+                   "----------------\n"
+                   "# These are unassertable by construction -- each describes a comparison\n"
+                   "# BETWEEN configurations, so no single provenance stamp describes it, and\n"
+                   "# the expected-table reader refuses the kind outright.\n";
+            any_record_only = true;
+        }
+        out << "[" << r.obs.trace << " / " << r.obs.arm << "] " << r.obs.quantity << " = "
+            << r.obs.value << "   (" << r.obs.note << ")\n";
     }
 }
 

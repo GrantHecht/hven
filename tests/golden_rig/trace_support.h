@@ -120,6 +120,14 @@ class TraceRun {
     void record_vector_head(const std::string &quantity, const Vec &v, Index count,
                             double tolerance);
 
+    // Records a quantity that must never become an expectation, stamped with
+    // the thread pin of the engine it was actually measured under rather than
+    // the run's own. `why` is printed beside it. See ValueKind::kRecordOnly
+    // for what makes such a row structurally unassertable rather than merely
+    // discouraged.
+    void record_only(const std::string &quantity, const std::string &value, const std::string &why,
+                     const SeamUnderTest &measured_under);
+
     // Free text attached to this (trace, arm) in the report.
     void note(std::string text);
 

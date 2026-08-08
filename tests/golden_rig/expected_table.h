@@ -50,7 +50,25 @@ enum class ValueKind {
     kFloat,
     kState,    // an enumerated state, compared as a name
     kPresence, // "present" / "absent" -- whether an optional evidence field holds a value
-    kBool      // "true" / "false"
+    kBool,     // "true" / "false"
+
+    // RECORDED AND PRINTED, BUT UNASSERTABLE BY CONSTRUCTION. A quantity whose
+    // value is real and worth having in the artifact, but which must never
+    // become an expectation -- and which therefore must not merely be
+    // discouraged from becoming one. The reader REFUSES this kind in a
+    // committed table, the same way it refuses a bitwise kind, so a row copied
+    // out of a report and pasted into a CSV fails to load with the reason
+    // attached rather than quietly becoming a gate.
+    //
+    // The case it exists for: a measurement taken under a DIFFERENT
+    // configuration from the one the row's provenance columns describe. The
+    // cross-thread deviation is the example -- it is measured between a
+    // multithreaded leg and a pinned one, so no single thread-pin stamp
+    // describes it, and the pin-refusal that guards every other float row
+    // cannot catch it because the row would look perfectly pinned. Recording
+    // the true mechanism and value alongside is necessary but not sufficient;
+    // the kind is what makes it structurally safe.
+    kRecordOnly
 };
 
 const char *value_kind_name(ValueKind k);
@@ -127,6 +145,19 @@ struct Observation {
     static Observation presence(std::string trace, std::string arm, std::string quantity,
                                 bool present);
     static Observation boolean(std::string trace, std::string arm, std::string quantity, bool v);
+
+    // A recorded-but-unassertable quantity. `why` is printed with it in the
+    // report, because a reader meeting an unassertable row is owed the reason
+    // on the spot.
+    static Observation record_only(std::string trace, std::string arm, std::string quantity,
+                                   std::string value, std::string why);
+
+    // The thread pin this particular observation was taken under, when that
+    // differs from the run's own. Set only by record_only() observations
+    // measured under another configuration; empty otherwise, and the run's pin
+    // is used.
+    std::optional<std::string> pin_mechanism_override;
+    std::optional<int> pin_value_override;
 };
 
 // The result of comparing one observation against a table.
@@ -135,7 +166,8 @@ struct Comparison {
         kMatch,
         kMismatch,
         kNoExpectation, // the table has no row for this (arm, quantity)
-        kUnobserved     // the row exists and is an unfilled slot
+        kUnobserved,    // the row exists and is an unfilled slot
+        kRecordOnly     // the observation is unassertable by construction
     };
     Verdict verdict = Verdict::kNoExpectation;
     std::string detail; // human-readable, always populated

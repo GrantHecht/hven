@@ -91,6 +91,8 @@ const char *value_kind_name(ValueKind k) {
         return "presence";
     case ValueKind::kBool:
         return "bool";
+    case ValueKind::kRecordOnly:
+        return "record-only";
     }
     return "unknown";
 }
@@ -110,6 +112,17 @@ ValueKind value_kind_from_name(const std::string &name) {
     }
     if (name == "bool") {
         return ValueKind::kBool;
+    }
+    if (name == "record-only") {
+        throw std::invalid_argument(
+            "expected table: kind 'record-only' is not permitted in a committed table. A "
+            "record-only quantity is measured under a DIFFERENT configuration from the one this "
+            "row's provenance columns describe -- the cross-thread deviation, for instance, is "
+            "measured BETWEEN a multithreaded leg and a pinned one, so no single thread pin "
+            "describes it and the pin-refusal that guards every other float row would pass it "
+            "through looking perfectly pinned. It is reported as documentation and asserted "
+            "nowhere. A derivation that wants a cross-thread number pinned needs a trace "
+            "measuring one under a single stated configuration, not this row.");
     }
     if (name == "float0ulp" || name == "bitwise") {
         throw std::invalid_argument(fmt::format(
@@ -298,6 +311,18 @@ Observation Observation::presence(std::string trace, std::string arm, std::strin
     return o;
 }
 
+Observation Observation::record_only(std::string trace, std::string arm, std::string quantity,
+                                     std::string value, std::string why) {
+    Observation o;
+    o.trace = std::move(trace);
+    o.arm = std::move(arm);
+    o.quantity = std::move(quantity);
+    o.kind = ValueKind::kRecordOnly;
+    o.value = std::move(value);
+    o.note = std::move(why);
+    return o;
+}
+
 Observation Observation::boolean(std::string trace, std::string arm, std::string quantity, bool v) {
     Observation o;
     o.trace = std::move(trace);
@@ -310,6 +335,18 @@ Observation Observation::boolean(std::string trace, std::string arm, std::string
 
 Comparison compare(const Observation &obs, const ExpectedTable *table) {
     Comparison c;
+    if (obs.kind == ValueKind::kRecordOnly) {
+        // Short-circuited before any lookup, and before the null-table case:
+        // this kind can never appear in a table (the reader refuses it at
+        // load), so falling through would report it as "no expectation" and
+        // bury a deliberately unassertable quantity among the merely
+        // undelivered ones.
+        c.verdict = Comparison::Verdict::kRecordOnly;
+        c.detail =
+            fmt::format("({}, {}) = {} -- recorded as documentation, unassertable by construction",
+                        obs.arm, obs.quantity, obs.value);
+        return c;
+    }
     if (table == nullptr) {
         c.verdict = Comparison::Verdict::kNoExpectation;
         c.detail = fmt::format("no expected table for trace {} -- observed {} = {}", obs.trace,
@@ -364,6 +401,12 @@ Comparison compare(const Observation &obs, const ExpectedTable *table) {
         }
         return c;
     }
+    case ValueKind::kRecordOnly:
+        // Unreachable: short-circuited at the top of this function, and the
+        // reader refuses the kind in a table, so no row of it can exist here.
+        c.verdict = Comparison::Verdict::kRecordOnly;
+        c.detail = "record-only";
+        return c;
     case ValueKind::kCounter:
     case ValueKind::kState:
     case ValueKind::kPresence:
