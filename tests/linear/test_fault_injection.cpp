@@ -9,6 +9,7 @@
 // standalone target tests/CMakeLists.txt builds -- exactly one half is ever
 // active in a given build, mirroring the production backend split.
 
+#include <array>
 #include <stdexcept>
 #include <vector>
 
@@ -17,6 +18,14 @@
 #include "hven/core/types.h"
 #include "hven/detail/linear/fault_injection.h"
 #include "hven/linear/symmetric_factor.h"
+
+// MKL-only: needed for the ordering/weighted_matching don't-write-by-default
+// coverage below, which compares against a fresh, independent pardisoinit()
+// call (see PardisoinitReference). Not needed by anything Apple-gated in
+// this file, so scoped the same way the rest of the MKL half is.
+#if !defined(__APPLE__)
+#include "hven/detail/linear/pardiso_session.h"
+#endif
 
 namespace {
 
@@ -120,6 +129,94 @@ TEST(MklFactorizeFaultInjection, TheSameSessionFactorizesNormallyOnceTheInjector
     EXPECT_EQ(outcome.status, FactorizeOutcome::Status::kOk);
     EXPECT_EQ(factor.epoch(), 1u);
     EXPECT_EQ(outcome.inertia.state, InertiaEvidence::State::kObserved);
+}
+
+// =============================================================================
+// Ordering / weighted-matching don't-write-by-default: executable coverage
+// (PardisoIparmObserver, fault_injection.h) for the rule that
+// SymmetricFactor::Options::ordering and ::weighted_matching are guaranteed
+// by inspection alone in the normal (non-HVEN_TESTING) build -- see
+// pardiso_session.cpp's two guarded iparm writes and docs/testing.md.
+// =============================================================================
+
+// Independent ground truth: calls MKL's OWN pardisoinit for mtype = -2 (the
+// only mtype hven's SymmetricFactor ever builds -- config_from,
+// symmetric_factor_mkl.cpp), completely bypassing hven's analyze() and its
+// guarded writes. hven's own iparm[1]/iparm[12] at DEFAULT Options must
+// equal these exactly; comparing against a FRESH call like this one, rather
+// than a literal constant, is what keeps that assertion correct across MKL
+// versions whose pardisoinit default differs (the M1 review's F1 finding:
+// iparm[1]'s pardisoinit default is 2 on MKL 2025.3, 3 on 2026.0/2026.1;
+// iparm[12]'s is 0 on all three).
+struct PardisoinitReference {
+    MKL_INT ordering;
+    MKL_INT weighted_matching;
+};
+
+PardisoinitReference pardisoinit_reference() {
+    std::array<void *, hven::linear::detail::kPardisoSlots> pt{};
+    std::array<MKL_INT, hven::linear::detail::kPardisoSlots> iparm{};
+    MKL_INT mtype = -2;
+    pardisoinit(pt.data(), &mtype, iparm.data());
+    return PardisoinitReference{iparm[1], iparm[12]};
+}
+
+using hven::linear::detail::testing::PardisoIparmObserver;
+
+// At default Options, hven's analyze() must leave iparm[1]/iparm[12] EXACTLY
+// where pardisoinit put them -- the don't-write-by-default rule's core
+// claim. Asserted by comparison to a fresh, independent pardisoinit() call
+// (never a literal constant), so this test does not silently start failing
+// (or, worse, silently stop meaning anything) across an MKL upgrade that
+// moves pardisoinit's own default.
+TEST(PardisoIparmObservation, DefaultOptionsLeaveOrderingAndMatchingAtThePardisoinitDefault) {
+    SymmetricFactor factor{SymmetricFactor::Options{}};
+    factor.analyze(upper_csr(spd3()));
+
+    const PardisoinitReference reference = pardisoinit_reference();
+    EXPECT_EQ(PardisoIparmObserver::last_ordering_iparm, reference.ordering);
+    EXPECT_EQ(PardisoIparmObserver::last_weighted_matching_iparm, reference.weighted_matching);
+}
+
+// kNestedDissection's contract value (Options amendment: iparm[1] = 2) is a
+// fixed part of the frozen surface regardless of MKL version, so this one
+// literal is the spec's own commitment, not a version-fragile assumption.
+TEST(PardisoIparmObservation, NestedDissectionOrderingWritesExactly2) {
+    SymmetricFactor::Options opts;
+    opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
+    SymmetricFactor factor{opts};
+    factor.analyze(upper_csr(spd3()));
+
+    EXPECT_EQ(PardisoIparmObserver::last_ordering_iparm, 2);
+}
+
+// kParallelNestedDissection's contract value (iparm[1] = 3) is likewise
+// fixed. NOTE: on the MKL version this repository currently links (2026.1),
+// 3 is ALSO pardisoinit's own default for mtype = -2 (see F1 in
+// task-6.5-review.md), so choosing kParallelNestedDissection today is a
+// behavioral no-op on this box -- the value only diverges from
+// "leave it alone" on older MKLs (2025.3's default was 2). The point of
+// naming the option explicitly is exactly this: it PINS the choice against
+// that version drift, rather than leaving it to whatever the linked MKL
+// happens to default to.
+TEST(PardisoIparmObservation, ParallelNestedDissectionOrderingWritesExactly3) {
+    SymmetricFactor::Options opts;
+    opts.ordering = SymmetricFactor::Options::Ordering::kParallelNestedDissection;
+    SymmetricFactor factor{opts};
+    factor.analyze(upper_csr(spd3()));
+
+    EXPECT_EQ(PardisoIparmObserver::last_ordering_iparm, 3);
+}
+
+// weighted_matching = true's contract value (iparm[12] = 1) is likewise a
+// fixed part of the frozen surface.
+TEST(PardisoIparmObservation, WeightedMatchingTrueWritesExactly1) {
+    SymmetricFactor::Options opts;
+    opts.weighted_matching = true;
+    SymmetricFactor factor{opts};
+    factor.analyze(upper_csr(spd3()));
+
+    EXPECT_EQ(PardisoIparmObserver::last_weighted_matching_iparm, 1);
 }
 
 #endif // !defined(__APPLE__)

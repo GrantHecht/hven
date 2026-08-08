@@ -57,6 +57,18 @@ const char *kind_name(FactorKind kind) {
     return "unknown";
 }
 
+const char *ordering_name(SymmetricFactor::Options::Ordering ordering) {
+    switch (ordering) {
+    case SymmetricFactor::Options::Ordering::kBackendDefault:
+        return "kBackendDefault";
+    case SymmetricFactor::Options::Ordering::kNestedDissection:
+        return "kNestedDissection";
+    case SymmetricFactor::Options::Ordering::kParallelNestedDissection:
+        return "kParallelNestedDissection";
+    }
+    return "unknown";
+}
+
 detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     detail::AccelerateConfig cfg;
     // Only kLDLT reaches here -- the constructor rejects the kinds whose
@@ -298,11 +310,10 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // being dropped on the floor.
     static constexpr const char *kBackendName = "Accelerate";
     if (opts_.ordering != Options::Ordering::kBackendDefault) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: Options::ordering is a Pardiso-only option and has no {} "
-            "equivalent -- requires Ordering::kBackendDefault on this backend, got a non-default "
-            "value",
-            kBackendName));
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: Options::ordering is a Pardiso-only option and has no {} "
+                        "equivalent -- requires Ordering::kBackendDefault on this backend, got {}",
+                        kBackendName, ordering_name(opts_.ordering)));
     }
     if (opts_.weighted_matching) {
         throw std::invalid_argument(fmt::format(

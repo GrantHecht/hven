@@ -208,7 +208,12 @@ class SymmetricFactor {
         // DEFAULT: `false` does NOT write iparm[12] = 0, it leaves the entry
         // untouched; only `true` writes iparm[12] = 1. Pardiso-only: `true`
         // THROWS std::invalid_argument at construction on the Accelerate
-        // backend, which has no equivalent concept.
+        // backend, which has no equivalent concept. On MKL, setting this
+        // true also forces supports_partial_solve() to false for the
+        // lifetime of this engine's factorizations -- see that method's own
+        // doc comment: composition under active matching is unexercised at
+        // scale, and the predicate's design law is conservative, never a
+        // fabricated true.
         bool weighted_matching = false;
     };
 
@@ -336,8 +341,13 @@ class SymmetricFactor {
     // silently. On Accelerate there is no perturbation evidence at all, so
     // composability is unverifiable and the answer is a conservative false.
     //
-    // Caveat carried from the observation this rule came from: composition
-    // under active backend matching/scaling has not been exercised at scale.
+    // On MKL it ALSO requires Options::weighted_matching == false: composition
+    // under active matching has not been exercised at scale (the caveat this
+    // rule was originally carried under, now enforced rather than merely
+    // documented, since weighted_matching is the option that first makes
+    // matching reachable through this surface). This predicate's design law
+    // is conservative-never-fabricated-true -- a future tuning program may
+    // relax the conjunct, but only with evidence backing that decision.
     bool supports_partial_solve() const;
 
     // Evidence from the LAST factorization, as this engine is entitled to

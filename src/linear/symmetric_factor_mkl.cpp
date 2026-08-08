@@ -11,6 +11,7 @@
 
 #include "hven/linear/symmetric_factor.h"
 
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -36,15 +37,15 @@ const char *kind_name(FactorKind kind) {
     return "unknown";
 }
 
-// Maps SymmetricFactor::Options::Ordering onto the raw iparm[1] value
-// PardisoConfig carries (0 = don't write, matching Ordering::kBackendDefault
-// exactly). Written as an explicit switch, not a bare cast, so a future
-// Ordering value fails loudly here rather than writing an unintended iparm
-// entry.
-int pardiso_ordering_code(SymmetricFactor::Options::Ordering ordering) {
+// Maps SymmetricFactor::Options::Ordering onto the raw iparm[1] override
+// PardisoConfig carries (std::nullopt = don't write, matching
+// Ordering::kBackendDefault exactly). Written as an explicit switch, not a
+// bare cast, so a future Ordering value fails loudly here rather than
+// writing an unintended iparm entry.
+std::optional<int> pardiso_ordering_code(SymmetricFactor::Options::Ordering ordering) {
     switch (ordering) {
     case SymmetricFactor::Options::Ordering::kBackendDefault:
-        return 0;
+        return std::nullopt;
     case SymmetricFactor::Options::Ordering::kNestedDissection:
         return 2;
     case SymmetricFactor::Options::Ordering::kParallelNestedDissection:
@@ -56,17 +57,18 @@ int pardiso_ordering_code(SymmetricFactor::Options::Ordering ordering) {
 
 // The inverse of pardiso_ordering_code, for adopt() round-tripping a
 // session's stored PardisoConfig back into an Options value.
-SymmetricFactor::Options::Ordering pardiso_ordering_of(int code) {
-    switch (code) {
-    case 0:
+SymmetricFactor::Options::Ordering pardiso_ordering_of(std::optional<int> code) {
+    if (!code.has_value()) {
         return SymmetricFactor::Options::Ordering::kBackendDefault;
+    }
+    switch (*code) {
     case 2:
         return SymmetricFactor::Options::Ordering::kNestedDissection;
     case 3:
         return SymmetricFactor::Options::Ordering::kParallelNestedDissection;
     default:
         throw std::invalid_argument(
-            fmt::format("SymmetricFactor::adopt: unrecognized stored ordering code ({})", code));
+            fmt::format("SymmetricFactor::adopt: unrecognized stored ordering code ({})", *code));
     }
 }
 
@@ -280,6 +282,18 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     auto session = std::make_shared<detail::FactorSession>(config_from(opts_), epoch());
     session->analyze(A);
 
+#ifdef HVEN_TESTING
+    // Pure observation, not injection -- see PardisoIparmObserver's own doc
+    // comment (fault_injection.h) for why this is the ordering/
+    // weighted_matching don't-write-by-default rule's only executable
+    // coverage. Reads the accessors unconditionally: they are real,
+    // non-test-gated FactorSession API (pardiso_session.h), so this branch's
+    // only effect is recording their result into a testing-only struct.
+    detail::testing::PardisoIparmObserver::last_ordering_iparm = session->ordering_iparm();
+    detail::testing::PardisoIparmObserver::last_weighted_matching_iparm =
+        session->weighted_matching_iparm();
+#endif
+
     session_ = std::move(session);
     pattern_hash_ = hven::pattern_hash(A);
     has_pattern_ = true;
@@ -397,7 +411,18 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
 }
 
 bool SymmetricFactor::supports_partial_solve() const {
-    return has_usable_numerics() && session_->num_perturbed_pivots() == 0;
+    // Matching-on conjunct: the frozen spec's own composability caveat --
+    // "composition under active backend matching/scaling is unexercised at
+    // scale" -- applies squarely to Options::weighted_matching, which this
+    // option set is the first to make reachable through hven's surface at
+    // all. The predicate's design law is conservative-never-fabricated-true
+    // (see its doc comment in symmetric_factor.h), so until composition
+    // under matching has evidence behind it, matching being on forces this
+    // predicate false. A future tuning program may relax this conjunct, but
+    // only with bench/correctness evidence backing that decision -- not by
+    // quietly dropping it.
+    return has_usable_numerics() && session_->num_perturbed_pivots() == 0 &&
+           !opts_.weighted_matching;
 }
 
 InertiaEvidence SymmetricFactor::inertia() const {

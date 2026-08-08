@@ -38,6 +38,9 @@ guarded by `#ifdef HVEN_TESTING`:
 
 - `FactorizeFaultInjector` (MKL) — `active`, `injected_backend_code`.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
+- `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
+  `last_weighted_matching_iparm`. NOT a fault injector — see "A read-only
+  variant" below.
 
 The header compiles to **nothing** unless `HVEN_TESTING` is defined, so
 `#include`-ing it from a normal build is provably inert — there is nothing
@@ -117,6 +120,47 @@ lives where it does:
   states this scope limit explicitly so a future editor does not assume more
   coverage than exists.
 
+## A read-only variant: observing internal state instead of injecting a fault
+
+Not every gap this seam closes is a fault path. `PardisoIparmObserver`
+(added for the M1 ordering/weighted_matching amendment,
+task-6.5-review.md I1) covers a different kind of untestable claim: a
+guarded write inside the MPL-derived session file
+(`FactorSession::analyze`'s `if (cfg_.ordering.has_value()) iparm_[1] = …`
+and its `weighted_matching` twin) that behaves identically whether the
+guard is present or entirely deleted, for every observable a normal
+plumbing test can reach — a solve is correct and counters read 1/1/1 either
+way. The guard's own correctness was previously guaranteed by inspection
+only, exactly like `FactorizeFaultInjector`'s deeper scenario above.
+
+The fix is structurally the same seam, used for observation rather than
+injection: `SymmetricFactor::analyze()` (MKL adapter), under
+`#ifdef HVEN_TESTING`, records what `FactorSession::ordering_iparm()` /
+`weighted_matching_iparm()` actually returned right after a REAL,
+unmodified `analyze()` call — those two accessors are themselves ordinary,
+unconditional, non-test-gated `FactorSession` API (like `num_pos_eigs()`
+and friends), so adding them is production surface, not a test hook; only
+the act of recording their result into `PardisoIparmObserver` is
+`HVEN_TESTING`-gated. `tests/linear/test_fault_injection.cpp`'s
+`PardisoIparmObservation` suite then asserts:
+
+- at default `Options`, the recorded values equal a FRESH, independent
+  `pardisoinit()` call made directly in the test (never a literal
+  constant — see the test file's own comment on why hven's actual MKL
+  version currently makes `iparm[1]`'s default coincide with one of the
+  two non-default `Ordering` values, which would make a naive "assert
+  != some literal" check meaningless on this box);
+- at each non-default value, the recorded value equals the amendment's own
+  fixed contract constant (2 / 3 / 1), which is a spec commitment, not a
+  version-fragile assumption, so a literal is correct there.
+
+Manually verified once, not asserted by CI: deleting either `if` guard in
+`pardiso_session.cpp` makes the corresponding default-case
+`PardisoIparmObservation` test fail while every other test in the suite
+(including the plumbing tests in `test_symmetric_factor.cpp`) keeps
+passing — confirming this observer, and only this observer, is what gives
+the don't-write-by-default rule executable teeth.
+
 ## How to use it for a new fault path
 
 1. Confirm the fault path lives in an adapter file (Apache-2.0), not a
@@ -189,3 +233,15 @@ per-backend semantics table). The one assertion that needs to know which
 backend it is running against uses the standard `__APPLE__` predefined
 macro rather than a hand-rolled build option, so there is nothing beyond
 `src/CMakeLists.txt`'s own platform split to keep in sync.
+
+A second unconditionally-compiled, internally platform-split file follows
+the same convention:
+`tests/linear/test_symmetric_factor_pardiso_only_options.cpp` asserts the
+Accelerate throw path for `Options::ordering` / `Options::weighted_matching`
+(non-default values THROW `std::invalid_argument` at construction, per the
+M1 amendment's Accelerate semantics) under `#if defined(__APPLE__)`, and the
+inverse guard — the exact same non-default values do NOT throw on the MKL
+platform, since there they are real Pardiso options — under `#else`. Like
+`test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides the
+Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
+rather than executing on this Linux-only development pass.

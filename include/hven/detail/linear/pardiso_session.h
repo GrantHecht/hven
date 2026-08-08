@@ -24,6 +24,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include <mkl_pardiso.h>
@@ -53,13 +54,20 @@ struct PardisoConfig {
     int pivot_perturb_exp = 8;    // static pivot perturbation, 10^-k
     int max_refinement_iters = 0; // full-solve iterative refinement cap
 
-    // Fill-in reordering override for iparm[1]. 0 means "leave iparm[1]
-    // alone" -- pardisoinit's own value survives -- and is the only value
-    // this field takes at SymmetricFactor::Options::Ordering::
-    // kBackendDefault; the only other values FactorSession::analyze ever
-    // sees here are 2 (nested dissection / METIS) and 3 (its OpenMP-parallel
-    // variant), matching Options::Ordering exactly.
-    int ordering = 0;
+    // Fill-in reordering override for iparm[1]. std::nullopt means "leave
+    // iparm[1] alone" -- pardisoinit's own value survives -- and is the only
+    // state this field takes at SymmetricFactor::Options::Ordering::
+    // kBackendDefault; a present value is written verbatim. The only values
+    // FactorSession::analyze is asked for today are 2 (nested dissection /
+    // METIS) and 3 (its OpenMP-parallel variant), matching Options::Ordering
+    // exactly -- but the encoding itself does NOT foreclose 0 (minimum
+    // degree, a real Pardiso iparm[1] value psiopt exposes today as
+    // QPOrderingModes::MINDEG) for a future Options::Ordering enumerator: an
+    // earlier `int` encoding that used 0 itself as the "don't write"
+    // sentinel collided with that real value and would have had to change
+    // its wire representation to add it later. std::optional side-steps the
+    // collision entirely rather than reserving a magic sentinel.
+    std::optional<int> ordering;
 
     // Maximum weighted matching (iparm[12]). false leaves iparm[12] alone;
     // true writes iparm[12] = 1. There is no way to request writing
@@ -155,6 +163,18 @@ class FactorSession {
 
     // Refinement steps performed by the most recent solve.
     Index refinement_iters() const noexcept { return static_cast<Index>(refinement_iters_); }
+
+    // Read-only access to iparm[1] (fill-in reordering) / iparm[12] (maximum
+    // weighted matching) as they stand after the most recent analyze().
+    // General-purpose and unconditional -- NOT a test hook -- for entries
+    // this class writes on a caller's behalf but does not otherwise cache
+    // into a named field the way num_pos_eigs() and friends do for the
+    // entries its own contract logic consumes. Their first consumer is
+    // executable coverage for the ordering/weighted_matching
+    // don't-write-by-default rule (docs/testing.md, hven_fault_injection_tests);
+    // nothing about either accessor is conditional on HVEN_TESTING.
+    MKL_INT ordering_iparm() const noexcept { return iparm_[1]; }
+    MKL_INT weighted_matching_iparm() const noexcept { return iparm_[12]; }
 
   private:
     // Runs one Pardiso phase and returns its error code. `use_matrix`

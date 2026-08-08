@@ -566,40 +566,14 @@ TEST(SymmetricFactor, ExplicitThreadCountChangesNeitherCountersNorSolutions) {
 // weighted_matching -- Pardiso-only, don't-write-by-default)
 // =============================================================================
 
-// Two independently constructed Options{} engines -- one via the type's own
-// default member initializers, one via default_options()'s explicit
-// SymmetricFactor::Options{} -- must be indistinguishable: the don't-write-
-// by-default rule for ordering/weighted_matching means neither writes
-// anything the other doesn't, so results and counters line up bit-for-bit.
-TEST(SymmetricFactor, DefaultOptionsMatchAnExplicitOptionsBaseline) {
-    const Mat dense = spd4();
-    const SpMatRM A = upper_csr(dense);
-    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
-    const Vec b = dense * x_exact;
-
-    SymmetricFactor baseline(SymmetricFactor::Options{});
-    baseline.analyze(A);
-    factorize_ok(baseline, A);
-    Vec x_baseline(4);
-    baseline.solve(b, x_baseline);
-
-    SymmetricFactor defaulted(default_options());
-    defaulted.analyze(A);
-    factorize_ok(defaulted, A);
-    Vec x_defaulted(4);
-    defaulted.solve(b, x_defaulted);
-
-    expect_vec_identical(x_baseline, x_defaulted);
-    EXPECT_EQ(defaulted.counters().analyze_count, baseline.counters().analyze_count);
-    EXPECT_EQ(defaulted.counters().factorize_count, baseline.counters().factorize_count);
-    EXPECT_EQ(defaulted.counters().solve_count, baseline.counters().solve_count);
-
-    ASSERT_EQ(baseline.inertia().state, InertiaEvidence::State::kObserved);
-    ASSERT_EQ(defaulted.inertia().state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(defaulted.inertia().n_pos, baseline.inertia().n_pos);
-    EXPECT_EQ(defaulted.inertia().n_neg, baseline.inertia().n_neg);
-    EXPECT_EQ(defaulted.inertia().n_zero, baseline.inertia().n_zero);
-}
+// The defaults-write-nothing rule itself has executable coverage in
+// tests/linear/test_fault_injection.cpp's PardisoIparmObservation suite
+// (hven_fault_injection_tests), which compares hven's actual iparm[1]/
+// iparm[12] against a fresh, independent pardisoinit() call -- see
+// docs/testing.md. This suite (hven_tests) is not where that observability
+// lives (see PardisoIparmObserver's own doc comment for why: only the
+// standalone fault-injection target recompiles the adapter TU with the
+// hook that records it), so it is not duplicated here.
 
 TEST(SymmetricFactor, NestedDissectionOrderingFactorizesAndSolvesCorrectly) {
     SymmetricFactor::Options opts = default_options();
@@ -681,22 +655,39 @@ TEST(SymmetricFactor, WeightedMatchingFactorizesAndSolvesCorrectly) {
     EXPECT_EQ(factor.inertia().n_zero, 0);
 }
 
+// I3 (task-6.5-review.md): composition under active matching is
+// unexercised at scale (the frozen spec's own caveat), and
+// supports_partial_solve()'s design law is conservative-never-fabricated-
+// true, so weighted_matching = true must force the predicate false even
+// though the factorization itself has usable numerics and no perturbed
+// pivots -- an SPD 4x4 would otherwise report true here, exactly like the
+// plumbing test above.
+TEST(SymmetricFactor, WeightedMatchingForcesSupportsPartialSolveFalse) {
+    SymmetricFactor::Options opts = default_options();
+    opts.weighted_matching = true;
+
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+
+    ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
+    EXPECT_EQ(factor.counters().factorize_count, 1);
+    EXPECT_FALSE(factor.supports_partial_solve())
+        << "weighted_matching must force this predicate false regardless of "
+           "perturbed-pivot evidence -- see supports_partial_solve()'s doc comment";
+}
+
 // The inverse of the Accelerate throw-path guard in
 // test_symmetric_factor_pardiso_only_options.cpp: on the MKL platform these
 // options actually configure Pardiso, so the exact same non-default values
-// that throw on Accelerate must NOT throw here.
-TEST(SymmetricFactor, NonDefaultPardisoOnlyOptionsDoNotThrowOnMkl) {
-    SymmetricFactor::Options ordering_opts = default_options();
-    ordering_opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
-    EXPECT_NO_THROW(SymmetricFactor{ordering_opts});
-
-    ordering_opts.ordering = SymmetricFactor::Options::Ordering::kParallelNestedDissection;
-    EXPECT_NO_THROW(SymmetricFactor{ordering_opts});
-
-    SymmetricFactor::Options matching_opts = default_options();
-    matching_opts.weighted_matching = true;
-    EXPECT_NO_THROW(SymmetricFactor{matching_opts});
-}
+// that throw on Accelerate must NOT throw. (Deliberately not duplicated
+// here beyond one representative check -- test_symmetric_factor_pardiso_
+// only_options.cpp's NonDefaultOrderingDoesNotThrowOnMkl /
+// WeightedMatchingTrueDoesNotThrowOnMkl already cover every value; see
+// task-6.5-review.md M2.)
 
 // =============================================================================
 // Epochs and shared handles

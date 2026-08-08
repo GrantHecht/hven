@@ -18,9 +18,11 @@
 // (symmetric_factor_mkl.cpp, symmetric_factor_accelerate.cpp) are ordinary
 // Apache-2.0 hven files with no such restriction.
 //
-// This header is the ONE place both adapters' fault injectors are declared,
-// so the convention is documented once and used twice rather than invented
-// per-backend. It compiles to NOTHING unless HVEN_TESTING is defined --
+// This header is the ONE place both adapters' fault injectors are declared
+// (plus one read-only OBSERVER that rides the identical seam for a different
+// reason -- see PardisoIparmObserver below), so the convention is documented
+// once and used across all three rather than invented per-case. It compiles
+// to NOTHING unless HVEN_TESTING is defined --
 // #include-ing it from a normal (non-test) build of either adapter TU is
 // therefore provably inert: there is nothing here for the preprocessor to
 // keep once HVEN_TESTING is undefined, so the production `hven` library
@@ -65,6 +67,27 @@ struct FactorizeFaultInjector {
 struct InertiaQueryFaultInjector {
     static inline bool active = false;
     static inline int injected_rc = -1;
+};
+
+// NOT a fault injector -- a pure OBSERVER (MKL only), riding the same
+// target-wide HVEN_TESTING seam because it needs the same thing the two
+// structs above need: a read that only the ADAPTER
+// (symmetric_factor_mkl.cpp) can reach, since the MPL-derived session file
+// may carry no test-only hooks (see the file-level comment above and
+// docs/testing.md). It never changes behavior -- SymmetricFactor::analyze()
+// (MKL) records what iparm[1] / iparm[12] actually held right after a real,
+// unmodified analyze() call, via FactorSession's own unconditional,
+// non-test-gated ordering_iparm()/weighted_matching_iparm() accessors
+// (pardiso_session.h). `int`, not MKL_INT, keeps this header (shared by both
+// backends' adapter TUs) free of any MKL type dependency, matching the
+// style of the two structs above. Exists solely so a test can assert the
+// ordering/weighted_matching don't-write-by-default rule EXECUTES, rather
+// than trusting the guarded `if` in FactorSession::analyze by inspection
+// alone -- see tests/linear/test_fault_injection.cpp's Pardiso*Iparm* tests
+// and docs/testing.md.
+struct PardisoIparmObserver {
+    static inline int last_ordering_iparm = 0;
+    static inline int last_weighted_matching_iparm = 0;
 };
 
 } // namespace hven::linear::detail::testing
