@@ -44,6 +44,15 @@ set(HVEN_TEST_SOURCES
     linear/test_dense_symmetric_factor.cpp
 )
 
+# SymmetricFactor's tests follow the same platform split as its
+# implementation (src/CMakeLists.txt): the suite exercises MKL Pardiso
+# semantics — perturbed-pivot evidence, phase-split partial solves — that the
+# Accelerate backend answers differently, so it is compiled where that
+# backend is.
+if(NOT APPLE)
+    list(APPEND HVEN_TEST_SOURCES linear/test_symmetric_factor.cpp)
+endif()
+
 add_executable(hven_tests ${HVEN_TEST_SOURCES})
 target_link_libraries(hven_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_tests PRIVATE ${COMPILE_FLAGS})
