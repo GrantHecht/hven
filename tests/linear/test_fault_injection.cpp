@@ -149,12 +149,19 @@ TEST(MklFactorizeFaultInjection, TheSameSessionFactorizesNormallyOnceTheInjector
 // iparm[1]'s pardisoinit default is 2 on MKL 2025.3, 3 on 2026.0/2026.1;
 // iparm[12]'s is 0 on all three).
 //
-// Coverage honesty: because the linked MKL's own ordering default equals
-// kParallelNestedDissection's contract value (3), this value-level
-// observation cannot distinguish "left iparm[1] alone" from "wrote 3" on
-// THIS MKL — a was-it-written observable would need a hook in the
-// MPL-derived session file, which governance forbids. The matching half
-// (0 vs 1) is unambiguous on every MKL version.
+// Coverage: because the linked MKL's own ordering default equals
+// kParallelNestedDissection's contract value (3), this VALUE-LEVEL
+// observation cannot on its own distinguish "left iparm[1] alone" from
+// "wrote 3" on THIS MKL. That gap is closed outright, and version-
+// independently, by the DID-THE-WRITE-EXECUTE observable recorded at the two
+// guarded write sites themselves (PardisoIparmObserver::ordering_was_written
+// and its matching twin) — asserted below alongside every value assertion.
+// The hook that produces it sits inside the MPL-derived session file rather
+// than at the adapter boundary this project prefers to instrument at; that
+// is a sanctioned deviation with its reasoning in docs/testing.md, not a rule
+// being broken. The matching half (0 vs 1) was already unambiguous at the
+// value level on every MKL version; it carries the same flag for symmetry and
+// for the same mutation-resistance.
 struct PardisoinitReference {
     MKL_INT ordering;
     MKL_INT weighted_matching;
@@ -185,6 +192,18 @@ TEST(PardisoIparmObservation, DefaultOptionsLeaveOrderingAndMatchingAtThePardiso
     ASSERT_TRUE(PardisoIparmObserver::recorded);
     EXPECT_EQ(PardisoIparmObserver::last_ordering_iparm, reference.ordering);
     EXPECT_EQ(PardisoIparmObserver::last_weighted_matching_iparm, reference.weighted_matching);
+
+    // The claim the value comparison above cannot always make: not merely
+    // that the entries still hold pardisoinit's values, but that NEITHER
+    // ASSIGNMENT RAN. This one is version-independent -- no backend default
+    // can make it vacuous -- and it is what the don't-write-by-default rule
+    // actually says. The two non-default tests below assert the same flags
+    // TRUE, which is what keeps these two from passing for want of a live
+    // observable.
+    EXPECT_FALSE(PardisoIparmObserver::ordering_was_written)
+        << "default Options must not execute the iparm[1] write at all";
+    EXPECT_FALSE(PardisoIparmObserver::weighted_matching_was_written)
+        << "default Options must not execute the iparm[12] write at all";
 }
 
 // kNestedDissection's contract value (Options amendment: iparm[1] = 2) is a
@@ -199,6 +218,8 @@ TEST(PardisoIparmObservation, NestedDissectionOrderingWritesExactly2) {
 
     ASSERT_TRUE(PardisoIparmObserver::recorded);
     EXPECT_EQ(PardisoIparmObserver::last_ordering_iparm, 2);
+    EXPECT_TRUE(PardisoIparmObserver::ordering_was_written);
+    EXPECT_EQ(PardisoIparmObserver::ordering_written_value, 2);
 }
 
 // kParallelNestedDissection's contract value (iparm[1] = 3) is likewise
@@ -218,6 +239,11 @@ TEST(PardisoIparmObservation, ParallelNestedDissectionOrderingWritesExactly3) {
 
     ASSERT_TRUE(PardisoIparmObserver::recorded);
     EXPECT_EQ(PardisoIparmObserver::last_ordering_iparm, 3);
+    // On this MKL the value assertion above is satisfied by pardisoinit's own
+    // default too, so THIS is the line that actually distinguishes the option
+    // from doing nothing.
+    EXPECT_TRUE(PardisoIparmObserver::ordering_was_written);
+    EXPECT_EQ(PardisoIparmObserver::ordering_written_value, 3);
 }
 
 // weighted_matching = true's contract value (iparm[12] = 1) is likewise a
@@ -231,6 +257,8 @@ TEST(PardisoIparmObservation, WeightedMatchingTrueWritesExactly1) {
 
     ASSERT_TRUE(PardisoIparmObserver::recorded);
     EXPECT_EQ(PardisoIparmObserver::last_weighted_matching_iparm, 1);
+    EXPECT_TRUE(PardisoIparmObserver::weighted_matching_was_written);
+    EXPECT_EQ(PardisoIparmObserver::weighted_matching_written_value, 1);
 }
 
 #endif // !defined(__APPLE__)
@@ -252,7 +280,9 @@ class InertiaQueryFaultGuard {
 };
 
 // The Accelerate kQueryFailed test the frozen contract's fabrication fix
-// exists to cover (A.5: "counts INVALID, never zero-filled"). Unlike the MKL
+// exists to cover: a query that ran and failed leaves its counts INVALID and
+// never zero-filled, because a zero-filled triple reads exactly like a real
+// one. Unlike the MKL
 // test above, this injection is faithful in every scenario -- see
 // hven/detail/linear/fault_injection.h -- because SparseGetInertia is a
 // side-effect-free query against an ALREADY-successful factorization: the

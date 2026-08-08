@@ -16,6 +16,15 @@ added.
       sequence (symbolic / numeric / solve / release), the parameter-array
       value set, and the handling of Pardiso's error codes.
 
+      Modification of note: the .cpp carries two HVEN_TESTING-gated lines
+      per guarded parameter-array write in analyze(), recording whether
+      each write executed. They are absent from every normal build (the
+      header they use compiles to nothing without that macro; the
+      production object file is byte-identical with and without them), and
+      they exist because whether a guarded assignment ran is not
+      observable from outside the function on backend versions whose own
+      default equals the value the option would write. See docs/testing.md.
+
   include/hven/detail/linear/accelerate_session.h
   src/linear/accelerate_session.cpp
       Derived from Eigen's AccelerateSupport module: the Accelerate Sparse

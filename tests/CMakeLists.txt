@@ -75,13 +75,20 @@ gtest_discover_tests(hven_tests)
 
 ################################################################################
 # Fault-injection tests (docs/testing.md: the test-seam convention this repo
-# uses for backend fault paths no real fixture can provoke). A SEPARATE,
-# standalone executable that recompiles the platform's own backend session
-# TU (untouched -- pardiso_session.cpp / accelerate_session.cpp, both
-# MPL-derived, carry no test hooks) plus the platform's own adapter TU
-# (symmetric_factor_mkl.cpp / symmetric_factor_accelerate.cpp, Apache-2.0)
-# a SECOND time, with HVEN_TESTING defined ONLY on that second copy's
-# compile. This target does NOT link hven::hven:
+# uses for backend fault paths no real fixture can provoke, and for internal
+# state no boundary observation can reach). A SEPARATE, standalone executable
+# that recompiles the platform's own backend session TU
+# (pardiso_session.cpp / accelerate_session.cpp) plus the platform's own
+# adapter TU (symmetric_factor_mkl.cpp / symmetric_factor_accelerate.cpp) a
+# SECOND time, with HVEN_TESTING defined ONLY on that second copy's compile.
+#
+# The MKL session TU carries exactly ONE HVEN_TESTING-gated record -- two
+# lines at the guarded parameter-array writes in analyze(), recording whether
+# each write executed, which nothing outside that function can observe. It is
+# the single sanctioned deviation from this repo's boundary-first
+# instrumentation preference and is argued in docs/testing.md; it compiles to
+# nothing here, which the same not-linking-hven::hven arrangement below makes
+# checkable. This target does NOT link hven::hven:
 #   - it is what keeps the production `hven` library's own compiled adapter
 #     object (and hven_tests, which links it) completely untouched by
 #     HVEN_TESTING -- byte-for-byte what it would be if this target and
@@ -109,14 +116,13 @@ else()
     )
 endif()
 
-# HVEN_TESTING is target-wide (not per-source-file): the injectors in
-# hven/detail/linear/fault_injection.h must be visible both to the adapter
-# TU that guards its one call site with `#ifdef HVEN_TESTING` and to this
-# target's own test_fault_injection.cpp, which sets the injector flags
-# directly. The MPL-derived session TU (pardiso_session.cpp /
-# accelerate_session.cpp) has no HVEN_TESTING-gated code at all, so seeing
-# the definition here is a no-op for it either way. No other target ever
-# defines HVEN_TESTING -- see the block comment above.
+# HVEN_TESTING is target-wide (not per-source-file): the injectors and the
+# observer in hven/detail/linear/fault_injection.h must be visible to the
+# adapter TU that guards its one call site with `#ifdef HVEN_TESTING`, to the
+# MKL session TU that records the two did-the-write-execute flags under the
+# same guard, and to this target's own test_fault_injection.cpp, which reads
+# and resets them. No other target ever defines HVEN_TESTING -- see the block
+# comment above.
 target_compile_definitions(hven_fault_injection_tests PRIVATE HVEN_TESTING=1)
 
 target_include_directories(hven_fault_injection_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)

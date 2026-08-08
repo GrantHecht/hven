@@ -19,7 +19,11 @@
 // What is NOT derived: the session lifecycle, ownership and epoch semantics,
 // evidence reporting, and the partial-solve refinement rule around it are
 // hven's own and exist to serve the frozen interface contract of
-// hven/linear/symmetric_factor.h.
+// hven/linear/symmetric_factor.h. So is the one test-only record in the .cpp
+// -- two HVEN_TESTING-gated lines at the guarded parameter-array writes in
+// analyze(), compiling to nothing in any normal build. See docs/testing.md for
+// why that particular observation cannot be taken at the adapter boundary this
+// project otherwise instruments at.
 // =============================================================================
 
 #include <array>

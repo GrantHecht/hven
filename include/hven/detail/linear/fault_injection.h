@@ -10,31 +10,38 @@
 // perturbation gets through everything tried;
 // Accelerate: an inertia query that fails independently of a successful
 // factorization -- untestable at all without a fault-injection point, since
-// there is no known input that provokes it). Both backend session
-// implementations (pardiso_session.h/.cpp, accelerate_session.h/.cpp) are
-// MPL-derived files under the same governance Task 5 already established for
-// the Pardiso one: no test-only hooks may be added to them. The two
-// ADAPTER files that own the contract logic around each session
-// (symmetric_factor_mkl.cpp, symmetric_factor_accelerate.cpp) are ordinary
-// Apache-2.0 hven files with no such restriction.
+// there is no known input that provokes it).
 //
-// This header is the ONE place both adapters' fault injectors are declared
-// (plus one read-only OBSERVER that rides the identical seam for a different
-// reason -- see PardisoIparmObserver below), so the convention is documented
-// once and used across all three rather than invented per-case. It compiles
-// to NOTHING unless HVEN_TESTING is defined --
-// #include-ing it from a normal (non-test) build of either adapter TU is
-// therefore provably inert: there is nothing here for the preprocessor to
-// keep once HVEN_TESTING is undefined, so the production `hven` library
-// target's compiled objects are byte-for-byte what they would be if this
-// header did not exist. HVEN_TESTING is defined ONLY target-wide on the
-// standalone hven_fault_injection_tests executable (tests/CMakeLists.txt),
-// which recompiles the platform's adapter source file a second time (its own
-// object, never reused from libhven.a) alongside its own test sources and
-// does NOT link hven::hven -- so the normal hven_tests executable, which
+// WHERE INSTRUMENTATION GOES. The preference is the ADAPTER BOUNDARY:
+// symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp own the
+// contract logic around each backend session, they are ordinary Apache-2.0
+// hven files, and an observation taken there is one a consumer could in
+// principle have made too. The two session implementations
+// (pardiso_session.h/.cpp, accelerate_session.h/.cpp) are MPL-derived, so
+// reaching into them is a deviation that has to earn itself. It is a
+// preference with an escape, not a prohibition: where the fact being observed
+// leaves no trace outside the function that produces it, the boundary cannot
+// carry it and the hook goes where the fact is -- with the reason written
+// down. Exactly one such deviation exists today (PardisoIparmObserver's
+// did-the-write-execute fields, recorded inside FactorSession::analyze); it is
+// argued in full in docs/testing.md.
+//
+// This header is the ONE place all of it is declared -- both adapters' fault
+// injectors plus the read-only OBSERVER that rides the identical seam for a
+// different reason (see PardisoIparmObserver below) -- so the convention is
+// documented once rather than invented per-case. It compiles to NOTHING
+// unless HVEN_TESTING is defined, so #include-ing it from a normal (non-test)
+// build of any TU is provably inert: there is nothing here for the
+// preprocessor to keep, and the production `hven` library target's compiled
+// objects are byte-for-byte what they would be if this header did not exist.
+// HVEN_TESTING is defined ONLY target-wide on the standalone
+// hven_fault_injection_tests executable (tests/CMakeLists.txt), which
+// recompiles the platform's session and adapter sources a second time (their
+// own objects, never reused from libhven.a) alongside its own test sources
+// and does NOT link hven::hven -- so the normal hven_tests executable, which
 // links the real hven::hven static library, never sees HVEN_TESTING either,
-// and its 47+ pre-existing assertions are exercised against the exact same
-// object code as a release build.
+// and its pre-existing assertions are exercised against the exact same object
+// code as a release build.
 
 #ifdef HVEN_TESTING
 
@@ -94,10 +101,45 @@ struct PardisoIparmObserver {
         last_ordering_iparm = 0;
         last_weighted_matching_iparm = 0;
         recorded = false;
+        ordering_was_written = false;
+        ordering_written_value = 0;
+        weighted_matching_was_written = false;
+        weighted_matching_written_value = 0;
     }
     static inline bool recorded = false;
     static inline int last_ordering_iparm = 0;
     static inline int last_weighted_matching_iparm = 0;
+
+    // --- the DID-THE-WRITE-EXECUTE observable ---
+    //
+    // The value-level fields above cannot always settle the
+    // don't-write-by-default claim, and the reason is a coincidence rather
+    // than a design flaw: on some MKL versions pardisoinit's own iparm[1]
+    // default equals one of the two values Ordering can request, so "left it
+    // alone" and "wrote exactly that value" produce identical arrays and no
+    // after-the-fact read can tell them apart. On such a version the rule
+    // falls back to inspecting a guard -- exactly the kind of claim this seam
+    // exists to make executable.
+    //
+    // These four fields close it outright and version-independently. They are
+    // set at the two guarded write sites inside FactorSession::analyze
+    // (pardiso_session.cpp) and nowhere else, so the DEFAULT case can assert
+    // `ordering_was_written == false`: a claim about whether an assignment
+    // executed, which no backend default can make vacuous. The non-default
+    // cases assert `true` plus the value written, which is what keeps that
+    // false assertion from passing for want of a live observable.
+    //
+    // These are the ONE place this project instruments INSIDE an MPL-derived
+    // file rather than at the adapter boundary beside it. That is a sanctioned
+    // deviation from the boundary-first preference, not an oversight: the
+    // boundary genuinely cannot carry this one, because the fact being
+    // observed is the execution of a statement that leaves no trace anywhere
+    // outside the function containing it. The preference, this deviation and
+    // its reasoning are written out in docs/testing.md.
+    static inline bool ordering_was_written = false;
+    static inline int ordering_written_value = 0;
+    static inline bool weighted_matching_was_written = false;
+    static inline int weighted_matching_written_value = 0;
 };
 
 } // namespace hven::linear::detail::testing

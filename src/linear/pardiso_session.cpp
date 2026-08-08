@@ -11,6 +11,8 @@
 
 #include "hven/detail/linear/pardiso_session.h"
 
+#include "hven/detail/linear/fault_injection.h"
+
 #include <algorithm>
 #include <stdexcept>
 
@@ -161,14 +163,36 @@ void FactorSession::analyze(const SpMatRM &A) {
     // survives) when cfg_.ordering is nullopt; a present value (2 = nested
     // dissection via METIS, 3 = its OpenMP-parallel variant) overrides it --
     // see SymmetricFactor::Options::Ordering.
+    //
+    // THE ONE TEST-ONLY RECORD IN THIS FILE, and why it is here rather than at
+    // the adapter boundary where this project prefers to instrument: the fact
+    // under test is whether the assignment below EXECUTES, and a skipped
+    // assignment leaves no trace anywhere outside this function. On an MKL
+    // whose pardisoinit default for this entry happens to equal one of the
+    // values Ordering can request -- which is the case on the toolchain this
+    // was written against -- reading the array afterwards cannot tell "left it
+    // alone" from "wrote exactly that value", so the boundary has nothing to
+    // observe and the rule would rest on inspecting this `if`. The record goes
+    // where the fact is. It compiles to nothing outside the fault-injection
+    // test target (fault_injection.h is empty without HVEN_TESTING), and the
+    // deviation is argued in docs/testing.md.
     if (cfg_.ordering.has_value()) {
         iparm_[1] = static_cast<MKL_INT>(*cfg_.ordering);
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::ordering_was_written = true;
+        testing::PardisoIparmObserver::ordering_written_value = static_cast<int>(iparm_[1]);
+#endif
     }
     // iparm[12]: maximum weighted matching. Left untouched unless requested
     // -- `false` does not write 0, it writes nothing at all, same as
     // iparm[1] above -- see SymmetricFactor::Options::weighted_matching.
     if (cfg_.weighted_matching) {
         iparm_[12] = 1;
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::weighted_matching_was_written = true;
+        testing::PardisoIparmObserver::weighted_matching_written_value =
+            static_cast<int>(iparm_[12]);
+#endif
     }
 
     matrix_ = A;
