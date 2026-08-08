@@ -246,3 +246,130 @@ platform, since there they are real Pardiso options — under `#else`. Like
 `test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides the
 Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
 rather than executing on this Linux-only development pass.
+
+## The golden-numerics rig
+
+`tests/golden_rig/` is the instrument that gates both engine migrations. It
+runs a fixed set of traces — each pinning one clause of the frozen linear
+interface contract — against three *seams*: `hven::linear` itself, and the two
+seams it replaces, each driven through one abstract `SeamUnderTest` surface.
+Its purpose is to prove old-vs-new reproduction on the numerics the engines
+already trust, so the numbers come from observing the trusted thing rather
+than from asserting about the new one.
+
+### Running it
+
+The **native arms need nothing but this repository** and run in `ctest` on
+every build, so the harness, the recipes, the comparison engine and the audit
+tooling are all exercised continuously:
+
+```bash
+cmake --preset linux-clang-release
+cd build && ninja && ctest --output-on-failure
+```
+
+The **three-seam run is a local/derivation activity**. Both old-seam adapters
+are behind CMake path options, and the SQP one is pinned to a tag whose commit
+is verified at configure time:
+
+```bash
+cmake -S . -B build-3seam -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+    -DHVEN_RIG_PSIOPT_SEAM=/path/to/tycho \
+    -DHVEN_RIG_SQP_SEAM=/path/to/tycho_sqp
+cmake --build build-3seam
+MKL_NUM_THREADS=1 ctest --test-dir build-3seam --output-on-failure
+```
+
+`MKL_NUM_THREADS=1` matters and is not decoration. The comparison policy
+requires every asserted run to pin threads to one by the mechanism the seam
+under test possesses; the native arms do that per-instance, but neither old
+seam has any thread control at all, so the rig pins the process for them (an
+in-process guard, which the environment variable backs up for the window
+before the backend first reads it). Every recorded row carries the mechanism
+and the value it pinned to.
+
+### The report target
+
+`hven_golden_rig_report` runs the same traces in report mode and dumps
+observed-vs-expected. Its "observations" block emits each observation as a row
+in the committed tables' own CSV format, provenance columns already filled from
+the run, so deriving a table is a copy rather than a transcription:
+
+```bash
+HVEN_RIG_MACHINE="<a stable name for this machine>" \
+HVEN_RIG_REPORT_OUT=rig-report.txt \
+MKL_NUM_THREADS=1 ./build-3seam/tests/golden_rig/hven_golden_rig_report
+```
+
+Setting `HVEN_RIG_MACHINE` is optional (the run reads the host's own name
+otherwise) but worth doing for a derivation run, since that string is what
+every derived row's provenance carries.
+
+### Expected tables
+
+One committed CSV per trace, at `tests/golden_rig/expected/<trace>.csv`:
+metadata comment lines, then a fixed header row, then one row per (arm,
+quantity). The reader enforces the comparison policy rather than leaving each
+trace to remember it:
+
+- a row carrying an observed value must carry its full provenance **including
+  the thread-pin mechanism and value** — a row without a thread pin is refused
+  and the file fails to load;
+- a bitwise / 0-ULP kind is **refused in a table**, because bitwise equality
+  holds only between two observations of one pinned-thread process run; a trace
+  needing that property asserts it against its own second observation instead;
+- a float row must state a tolerance;
+- the literal `UNOBSERVED` is a legal value meaning nobody has run this arm
+  yet. It never compares equal to anything. Every slot for a backend arm this
+  project has no hardware for ships as `UNOBSERVED` and is filled only from a
+  hardware run.
+
+Trace matrices are **regenerated from recipes** (`tests/golden_rig/recipes.h`),
+never copied from either sibling checkout and never read from a file. Each
+recipe's provenance string says what it does and does not reproduce from the
+fixture its authority names, and the report prints that string beside every
+observation.
+
+### Capabilities, and why a trace skips
+
+An old seam does not have everything the unified surface has — no phase-split
+solve on one of them, no co-owning handle or epoch on either. Those gaps are
+declared through `Capabilities`, and a trace needing a capability an arm lacks
+**skips on that arm, naming what is missing**. Nothing is emulated: emulating a
+missing operation would make the rig prove a property of the rig.
+
+### The consumed-surface audit
+
+Two halves, in `tests/golden_rig/audit/`:
+
+- **Static.** `static_scan.sh <root> [...]` emits one CSV row per
+  backend touchpoint (parameter reads and writes, phase-entry calls, Accelerate
+  calls, dense LAPACK calls, thread-control calls) found in a source tree. Its
+  self-test runs the scanner over a committed sample carrying one line of every
+  touchpoint class plus two negative controls, so it checks the scanner on a
+  machine with neither sibling checkout, and is registered with ctest.
+- **Runtime.** `hven_golden_rig_audit` links a *link-level interposer* on the
+  backend's phase entry point (via the linker's `--wrap`), so every call from
+  hven's own session and from either old seam alike is recorded with the
+  parameter array as it stood at that moment. It forwards to the real symbol
+  unchanged; it only watches.
+
+The runtime half exists because a static pass reports what the source
+*mentions*, not what a run *executes*. Its **pre-registered coverage test** is
+the guard on the audit's method: the instrument must find, *without being told
+which entry to watch*, the correctness rule that forces the
+iterative-refinement cap to zero around a phase-split solve and restores it
+afterwards. That rule is not an option and no scan of an option surface would
+produce it. The detector reports which parameter indices changed value between
+calls, and the test asserts the refinement cap is among them — once against
+this library's own seam (so it runs in ordinary CI) and once against the old
+seam the rule was originally read out of (when that checkout is configured in).
+If the instrument ever stops finding it, the audit has a demonstrated coverage
+gap and its method is fixed before its output is trusted.
+
+### Temporary by construction
+
+`seam_psiopt.cpp` and `seam_sqp.cpp` are test-only and are **deleted when the
+two engine migrations close**. The traces stay, as permanent regression tests
+against the native arm.
