@@ -174,3 +174,15 @@ no exceptions:
   constraints — not the session's accumulated history — and retire an
   agent whose context has grown past usefulness rather than pushing it
   through one more round.
+- **Test-seam convention for fault paths no real backend takes**: see
+  `docs/testing.md`. In short — a narrow `HVEN_TESTING`-gated injection
+  point lives in the Apache-2.0 adapter file that owns the contract logic
+  around a backend session (e.g. `src/linear/symmetric_factor_mkl.cpp`),
+  never in an MPL-derived session file (`hven/detail/linear/
+  pardiso_session.*`, `accelerate_session.*`); `HVEN_TESTING` is defined
+  target-wide on a standalone test executable that recompiles the adapter
+  TU a second time and does not link `hven::hven`, so the production
+  library and `hven_tests` are never touched by it. Use this convention for
+  any new fault-injection need rather than inventing another; `docs/
+  testing.md` also records why each existing injector is or is not
+  faithful for scenarios beyond the one it was built for.
