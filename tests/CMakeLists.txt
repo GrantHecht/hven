@@ -5,12 +5,20 @@
 
 include(FetchContent)
 
+# EXCLUDE_FROM_ALL is a CMake >= 3.28 FetchContent_Declare keyword; this
+# project's floor is cmake_minimum_required(VERSION 3.24) (root
+# CMakeLists.txt), so it is omitted here rather than silently accepted-but-
+# ineffective on 3.24-3.27. The cost is that googletest's own targets
+# (gtest, gtest_main, gmock, gmock_main) become part of the default `all`
+# target instead of being pulled in only transitively; googletest's own
+# sample/test executables stay off by default regardless (gtest_build_tests /
+# gtest_build_samples default OFF upstream), so this only means gmock/
+# gmock_main compile even though hven_tests below links gtest_main only.
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG        v1.17.0
     GIT_SHALLOW    TRUE
-    EXCLUDE_FROM_ALL
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
@@ -30,10 +38,15 @@ include(GoogleTest)
 
 set(HVEN_TEST_SOURCES
     core/test_version.cpp
+    core/test_sparse_backend_link.cpp
 )
 
 add_executable(hven_tests ${HVEN_TEST_SOURCES})
 target_link_libraries(hven_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_tests PRIVATE ${COMPILE_FLAGS})
+
+# Same single source of truth as the hven target itself (root CMakeLists.txt)
+# — see src/core/version.cpp and core/test_version.cpp.
+target_compile_definitions(hven_tests PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
 
 gtest_discover_tests(hven_tests)

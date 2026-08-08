@@ -1,10 +1,15 @@
 #include "hven/core/version.h"
 
+#ifndef HVEN_VERSION_STRING
+#error "HVEN_VERSION_STRING must be defined by the build (see CMakeLists.txt)"
+#endif
+
 namespace hven {
 
-// Source of truth for this literal is the root CMakeLists.txt `project(hven
-// VERSION ...)` declaration; keep the two in sync by hand until a configured
-// header is worth the extra build-graph edge.
-const char *version() noexcept { return "0.1.0"; }
+// HVEN_VERSION_STRING is set by CMakeLists.txt from project(hven VERSION
+// ...) via target_compile_definitions(hven PRIVATE
+// HVEN_VERSION_STRING="${PROJECT_VERSION}") — the single source of truth,
+// not a hand-copied literal.
+const char *version() noexcept { return HVEN_VERSION_STRING; }
 
 } // namespace hven
