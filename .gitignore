@@ -1,0 +1,7 @@
+build*/
+.cache/
+compile_commands.json
+.superpowers/
+__pycache__/
+*.pyc
+.DS_Store
