@@ -177,6 +177,11 @@ endif()
 set(HVEN_RIG_TRACE_SOURCES
     traces_sqp.cpp
     traces_psiopt.cpp
+    # Inverted-expectation guards on the traces that are SUPPOSED to fail on an
+    # old seam. Without them, an adapter regressing to smoothing would turn a
+    # fail-by-design green and lose the finding silently. Compiled always; the
+    # per-seam controls inside are gated on their seam being configured in.
+    fail_by_design_control.cpp
 )
 
 add_executable(hven_golden_rig ${HVEN_RIG_TRACE_SOURCES})
