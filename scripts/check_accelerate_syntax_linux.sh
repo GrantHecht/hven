@@ -6,7 +6,7 @@
 # (tests/linear/test_fault_injection.cpp's `#if defined(__APPLE__)` block,
 # tests/linear/test_symmetric_factor_evidence_invariants.cpp's one
 # `#if defined(__APPLE__)` assertion). The test-file checks were added after
-# the Task-6 review (I2-b): before this, the Accelerate half of
+# review of the Accelerate backend work: before this, the Accelerate half of
 # test_fault_injection.cpp -- the ONLY executable coverage this repo has for
 # the SparseGetInertia-failure / kQueryFailed contract cell -- had never been
 # seen by any compiler, on any platform; this lane is what raises its claim
@@ -118,7 +118,7 @@ check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp"
 # instantiates.
 check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp" -DHVEN_TESTING=1
 
-# ---- Apple-gated test-file halves (I2-b) -----------------------------------
+# ---- Apple-gated test-file halves ------------------------------------------
 #
 # Both files below reach their `#if defined(__APPLE__)` code purely through
 # hven/linear/symmetric_factor.h's backend-neutral public API, so they need
@@ -138,6 +138,7 @@ do
     fi
 done
 
+TEST_HALVES_CHECKED=0
 if [[ -z "${GTEST_INCLUDE}" ]]; then
     echo
     echo "---- Apple-gated test-file halves ----"
@@ -146,6 +147,7 @@ if [[ -z "${GTEST_INCLUDE}" ]]; then
     echo "      at least once (cmake --preset linux-clang-release) so"
     echo "      FetchContent has pulled it, then re-run this script."
 else
+    TEST_HALVES_CHECKED=1
     check_one "${REPO_ROOT}/tests/linear/test_fault_injection.cpp" \
         -D__APPLE__ -DHVEN_TESTING=1 -isystem "${GTEST_INCLUDE}"
     check_one "${REPO_ROOT}/tests/linear/test_symmetric_factor_evidence_invariants.cpp" \
@@ -153,8 +155,20 @@ else
 fi
 
 echo
+# In CI a SKIP means the step checked less than it claims to gate: fail hard.
+if [[ "${TEST_HALVES_CHECKED}" -eq 0 && -n "${CI:-}" ]]; then
+    echo "FAIL (CI): the Apple-gated test halves were SKIPPED (no fetched gtest);"
+    echo "           this step must not go green having checked nothing."
+    STATUS=1
+fi
+
 if [[ "${STATUS}" -eq 0 ]]; then
-    echo "==== PASS: Accelerate-backend TUs and Apple-gated test halves are syntax-clean ===="
+    if [[ "${TEST_HALVES_CHECKED}" -eq 1 ]]; then
+        echo "==== PASS: Accelerate-backend TUs and Apple-gated test halves are syntax-clean ===="
+    else
+        echo "==== PASS (partial): Accelerate-backend TUs are syntax-clean;"
+        echo "     Apple-gated test halves were SKIPPED (no fetched gtest) and are NOT claimed clean ===="
+    fi
 else
     echo "==== FAIL: see above ===="
 fi

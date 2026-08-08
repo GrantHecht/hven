@@ -175,8 +175,13 @@ Fault injection covers paths no real backend takes. The complementary need —
 confirming the evidence-honesty invariants hold against whichever backend a
 given build actually links — is covered separately, by
 `tests/linear/test_symmetric_factor_evidence_invariants.cpp`: written once,
-compiled and run on BOTH platforms (unlike `test_symmetric_factor.cpp`,
-which is MKL-specific and gated `if(NOT APPLE)`), asserting properties that
+BUILT to compile and run on both platforms (unlike
+`test_symmetric_factor.cpp`, which is MKL-specific and gated
+`if(NOT APPLE)`). Execution status: on the only pass that has run —
+Linux/MKL — only the non-Apple half of each platform-split test file
+compiled and executed; the Accelerate halves (including the Accelerate
+inertia-query fault-injection test) are syntax-checked against stubs only
+and first EXECUTE on the Mac hardware leg. The file asserts properties that
 hold by construction regardless of which backend answers them (a present
 `perturbed_pivots` is never negative; an absent one implies
 `supports_partial_solve() == false`; `zero_is_derived` matches the
