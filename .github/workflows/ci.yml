@@ -21,7 +21,7 @@ jobs:
       - name: Install ninja and clang
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang ninja-build
+          sudo apt-get install -y clang ninja-build libomp-dev
 
       - name: Install Intel MKL via the oneAPI apt repository
         run: |
