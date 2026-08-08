@@ -1,0 +1,67 @@
+# trace: P2
+# title: inertia-correction ladder replay
+# clause: a KKT with the wrong inertia, factorized under a ladder of increasing dual regularization until the accepting condition holds. Recorded per rung: the inertia triple, the perturbation count, and which rung accepted. The whole ladder costs one symbolic analysis.
+# fixture: duplicated_equality at dual regularization 0, 1e-10, 1e-8, 1e-6, 1e-4 -- regenerated from a recipe in tests/golden_rig/recipes.h,
+#   never copied; that header's provenance string says what each recipe does and
+#   does not reproduce from the fixture its authority names.
+# tolerance: counters exact
+# thread-pin: every asserted row records the MECHANISM its arm pinned with and the
+#   value it pinned to (the two columns below). A row carrying an observed value
+#   without a thread pin is REFUSED by the reader: float residuals at nine digits
+#   are run-to-run nondeterministic under a multithreaded backend, so an unpinned
+#   expectation is not an expectation.
+# bitwise: a bitwise/0-ULP kind is REFUSED in this file. Bitwise equality holds
+#   only between two observations of ONE pinned-thread process run, so a trace
+#   that needs it asserts it against its own second observation instead.
+# status: HEADER ONLY. No value below has been derived. The rows present are the
+#   slots for backend arms this project has no hardware for, committed as the
+#   literal UNOBSERVED per the never-fabricate rule; they are filled only from a
+#   hardware run. Rows for the arms this build can run are written at derivation,
+#   copied from hven_golden_rig_report's own emission so their provenance columns
+#   are recorded rather than typed.
+arm,quantity,kind,value,tolerance,machine,backend,thread_pin_mechanism,thread_pin_value,commit,date
+native@accelerate,analyze_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,factorize_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,solve_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,partial_solve_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,accepting_rung,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung0_factorize_status,state,UNOBSERVED,,,,,,,
+native@accelerate,rung0_inertia_state,state,UNOBSERVED,,,,,,,
+native@accelerate,rung0_n_pos,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung0_n_neg,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung0_n_zero,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung0_zero_is_derived,bool,UNOBSERVED,,,,,,,
+native@accelerate,rung0_perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,rung0_perturbed_pivots,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung1_factorize_status,state,UNOBSERVED,,,,,,,
+native@accelerate,rung1_inertia_state,state,UNOBSERVED,,,,,,,
+native@accelerate,rung1_n_pos,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung1_n_neg,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung1_n_zero,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung1_zero_is_derived,bool,UNOBSERVED,,,,,,,
+native@accelerate,rung1_perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,rung1_perturbed_pivots,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung2_factorize_status,state,UNOBSERVED,,,,,,,
+native@accelerate,rung2_inertia_state,state,UNOBSERVED,,,,,,,
+native@accelerate,rung2_n_pos,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung2_n_neg,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung2_n_zero,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung2_zero_is_derived,bool,UNOBSERVED,,,,,,,
+native@accelerate,rung2_perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,rung2_perturbed_pivots,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung3_factorize_status,state,UNOBSERVED,,,,,,,
+native@accelerate,rung3_inertia_state,state,UNOBSERVED,,,,,,,
+native@accelerate,rung3_n_pos,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung3_n_neg,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung3_n_zero,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung3_zero_is_derived,bool,UNOBSERVED,,,,,,,
+native@accelerate,rung3_perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,rung3_perturbed_pivots,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung4_factorize_status,state,UNOBSERVED,,,,,,,
+native@accelerate,rung4_inertia_state,state,UNOBSERVED,,,,,,,
+native@accelerate,rung4_n_pos,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung4_n_neg,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung4_n_zero,counter,UNOBSERVED,,,,,,,
+native@accelerate,rung4_zero_is_derived,bool,UNOBSERVED,,,,,,,
+native@accelerate,rung4_perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,rung4_perturbed_pivots,counter,UNOBSERVED,,,,,,,

@@ -1,0 +1,48 @@
+# trace: T6
+# title: refusal and failure as explicit state
+# clause: a rank-deficient face. What is asserted is the honesty rule rather than an outcome: the factorization reports an explicit status, and an inertia query that failed leaves its counts invalid rather than zero-filled -- a zero-filled count is indistinguishable from a real reading.
+# fixture: duplicated_equality with no dual regularization (exactly singular) -- regenerated from a recipe in tests/golden_rig/recipes.h,
+#   never copied; that header's provenance string says what each recipe does and
+#   does not reproduce from the fixture its authority names.
+# tolerance: counters exact; the status and the evidence state are states, never sentinel numbers
+# thread-pin: every asserted row records the MECHANISM its arm pinned with and the
+#   value it pinned to (the two columns below). A row carrying an observed value
+#   without a thread pin is REFUSED by the reader: float residuals at nine digits
+#   are run-to-run nondeterministic under a multithreaded backend, so an unpinned
+#   expectation is not an expectation.
+# bitwise: a bitwise/0-ULP kind is REFUSED in this file. Bitwise equality holds
+#   only between two observations of ONE pinned-thread process run, so a trace
+#   that needs it asserts it against its own second observation instead.
+# status: HEADER ONLY. No value below has been derived. The rows present are the
+#   slots for backend arms this project has no hardware for, committed as the
+#   literal UNOBSERVED per the never-fabricate rule; they are filled only from a
+#   hardware run. Rows for the arms this build can run are written at derivation,
+#   copied from hven_golden_rig_report's own emission so their provenance columns
+#   are recorded rather than typed.
+arm,quantity,kind,value,tolerance,machine,backend,thread_pin_mechanism,thread_pin_value,commit,date
+native@accelerate,factorize_status,state,UNOBSERVED,,,,,,,
+native@accelerate,backend_code,counter,UNOBSERVED,,,,,,,
+native@accelerate,inertia_state,state,UNOBSERVED,,,,,,,
+native@accelerate,n_pos,counter,UNOBSERVED,,,,,,,
+native@accelerate,n_neg,counter,UNOBSERVED,,,,,,,
+native@accelerate,n_zero,counter,UNOBSERVED,,,,,,,
+native@accelerate,zero_is_derived,bool,UNOBSERVED,,,,,,,
+native@accelerate,perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,perturbed_pivots,counter,UNOBSERVED,,,,,,,
+native@accelerate,analyze_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,factorize_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,solve_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,partial_solve_count,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,factorize_status,state,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,backend_code,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,inertia_state,state,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,n_pos,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,n_neg,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,n_zero,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,zero_is_derived,bool,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,perturbed_pivots,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,analyze_count,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,factorize_count,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,solve_count,counter,UNOBSERVED,,,,,,,
+psiopt-old@accelerate,partial_solve_count,counter,UNOBSERVED,,,,,,,

@@ -1,0 +1,40 @@
+# trace: T1
+# title: phase-split lifecycle
+# clause: analyze once, then factorize and solve repeatedly: the symbolic analysis happens exactly once across the whole sequence, and the counters make that checkable rather than merely claimed.
+# fixture: collocation_chain -- regenerated from a recipe in tests/golden_rig/recipes.h,
+#   never copied; that header's provenance string says what each recipe does and
+#   does not reproduce from the fixture its authority names.
+# tolerance: 1e-14 relative on solution values; 1e-10 on the residual; counters exact
+# thread-pin: every asserted row records the MECHANISM its arm pinned with and the
+#   value it pinned to (the two columns below). A row carrying an observed value
+#   without a thread pin is REFUSED by the reader: float residuals at nine digits
+#   are run-to-run nondeterministic under a multithreaded backend, so an unpinned
+#   expectation is not an expectation.
+# bitwise: a bitwise/0-ULP kind is REFUSED in this file. Bitwise equality holds
+#   only between two observations of ONE pinned-thread process run, so a trace
+#   that needs it asserts it against its own second observation instead.
+# status: HEADER ONLY. No value below has been derived. The rows present are the
+#   slots for backend arms this project has no hardware for, committed as the
+#   literal UNOBSERVED per the never-fabricate rule; they are filled only from a
+#   hardware run. Rows for the arms this build can run are written at derivation,
+#   copied from hven_golden_rig_report's own emission so their provenance columns
+#   are recorded rather than typed.
+arm,quantity,kind,value,tolerance,machine,backend,thread_pin_mechanism,thread_pin_value,commit,date
+native@accelerate,analyze_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,factorize_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,solve_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,partial_solve_count,counter,UNOBSERVED,,,,,,,
+native@accelerate,x[0],float,UNOBSERVED,1e-14,,,,,,
+native@accelerate,x[1],float,UNOBSERVED,1e-14,,,,,,
+native@accelerate,x[2],float,UNOBSERVED,1e-14,,,,,,
+native@accelerate,x[3],float,UNOBSERVED,1e-14,,,,,,
+native@accelerate,relative_residual,float,UNOBSERVED,1e-10,,,,,,
+native@accelerate,inertia_state,state,UNOBSERVED,,,,,,,
+native@accelerate,n_pos,counter,UNOBSERVED,,,,,,,
+native@accelerate,n_neg,counter,UNOBSERVED,,,,,,,
+native@accelerate,n_zero,counter,UNOBSERVED,,,,,,,
+native@accelerate,zero_is_derived,bool,UNOBSERVED,,,,,,,
+native@accelerate,perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,perturbed_pivots,counter,UNOBSERVED,,,,,,,
+native@accelerate,refinement_iters_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,refinement_iters,counter,UNOBSERVED,,,,,,,

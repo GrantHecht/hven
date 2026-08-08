@@ -1,0 +1,321 @@
+// TEMPORARY, TEST-ONLY: the rig's arm over the interior-point engine's OLD
+// linear seam -- Eigen::PardisoLDLT on MKL platforms, Eigen::AccelerateLDLTTPP
+// on Apple, both from the sibling checkout named by the CMake option
+// HVEN_RIG_PSIOPT_SEAM. Compiled only when that option is supplied; never
+// installed, never linked into the hven library.
+//
+// THIS FILE IS DELETED WHEN THE INTERIOR-POINT ENGINE FINISHES MIGRATING onto
+// hven::linear. It exists for exactly one purpose: to let a trace run against
+// the seam that engine trusts today, so the expected tables are derived from
+// observation of the trusted thing rather than asserted about the new one.
+//
+// THE ADAPTER REPORTS WHAT THE OLD SEAM SAYS, INCLUDING WHERE THE OLD SEAM IS
+// WRONG. Two readings on the Apple branch below are fabrications the unified
+// surface exists to fix -- a perturbed-pivot count hardcoded to zero on a
+// backend with no such counter, and an inertia query whose failure is
+// zero-filled rather than reported. Both are carried through here verbatim,
+// because the traces that name them expect this arm to FAIL against the new
+// semantics; smoothing them over here would delete the finding.
+
+#include <memory>
+#include <stdexcept>
+
+#include <Eigen/SparseCore>
+
+#if defined(__APPLE__)
+#include <tycho/detail/solvers/linear/accelerate_interface.h>
+#else
+#include <mkl_service.h>
+
+#include <tycho/detail/solvers/linear/pardiso_interface.h>
+#endif
+
+#include "seam.h"
+
+namespace hven::rig {
+namespace {
+
+namespace hl = hven::linear;
+
+#if defined(__APPLE__)
+using OldSolver = Eigen::AccelerateLDLTTPP<SpMatRM, Eigen::Upper>;
+#else
+using OldSolver = Eigen::PardisoLDLT<SpMatRM, Eigen::Upper>;
+#endif
+
+// Pins the PROCESS thread count for this arm's lifetime and restores it
+// afterwards.
+//
+// Comparison policy B.2 requires every asserted run to pin threads by "the
+// mechanism the seam under test possesses", and this seam possesses none. Its
+// one thread-shaped field, PardisoLDLT::threads_ (written into iparm[33]), is
+// the conditional-numerical-reproducibility slot rather than a thread count,
+// and the interior-point engine only writes it when its CNR mode is on -- so
+// pinning through it would be a claim this rig cannot support. The pin is
+// therefore applied to the process, and the mechanism is REPORTED as
+// process-global so the expected tables' provenance banner says what actually
+// happened. Derivation runs are additionally invoked with MKL_NUM_THREADS=1 in
+// the environment (docs/testing.md's rig section); this guard is the in-process
+// belt that does not depend on when MKL first read the environment.
+class ProcessThreadPin {
+  public:
+    explicit ProcessThreadPin(int n) : engaged_(n > 0) {
+#if !defined(__APPLE__)
+        if (engaged_) {
+            previous_ = mkl_get_max_threads();
+            mkl_set_num_threads(n);
+        }
+#endif
+    }
+    ~ProcessThreadPin() {
+#if !defined(__APPLE__)
+        if (engaged_) {
+            mkl_set_num_threads(previous_);
+        }
+#endif
+    }
+    ProcessThreadPin(const ProcessThreadPin &) = delete;
+    ProcessThreadPin &operator=(const ProcessThreadPin &) = delete;
+
+  private:
+    bool engaged_ = false;
+    int previous_ = 0;
+};
+
+class PsioptSeam final : public SeamUnderTest {
+  public:
+    explicit PsioptSeam(const SeamOptions &opts) : opts_(opts), pin_(opts.num_threads) {
+        configure();
+    }
+
+    SeamId id() const override { return SeamId::kPsioptOld; }
+
+    Capabilities capabilities() const override {
+        Capabilities c;
+        // No phase-split solve on this seam at all: PardisoImpl's only solve
+        // path is phase 33, and there is no composability predicate to gate
+        // one with. Traces that need either SKIP on this arm.
+        c.partial_solve = false;
+        c.partial_solve_predicate = false;
+        // No handle, no epoch, no adopt: this seam's factorization lives and
+        // dies with the solver object, which is precisely the lifecycle gap
+        // the unified surface's co-owning handle closes.
+        c.share_handle = false;
+        c.epoch = false;
+        c.adopt = false;
+        c.multi_rhs = true;
+        c.reports_refinement_iters = kReportsRefinementIters;
+        c.reports_perturbed_pivots = true;
+        c.reports_inertia = true;
+        return c;
+    }
+
+    ThreadPinMechanism thread_pin_mechanism() const override {
+#if defined(__APPLE__)
+        // A.6: no public thread control on this backend, and the old seam's
+        // set_num_threads() maps onto the same absent control. Reported
+        // absent rather than fabricated.
+        return ThreadPinMechanism::kAbsent;
+#else
+        return ThreadPinMechanism::kProcessGlobal;
+#endif
+    }
+    int thread_pin_value() const override { return opts_.num_threads; }
+
+    std::string configuration_note() const override {
+#if defined(__APPLE__)
+        return "UNOBSERVED (never compiled or run): Accelerate LDLT-TPP with the "
+               "interior-point engine's own order/refinement settings; no thread control exists";
+#else
+        return "the interior-point engine's own set_params(): writes ~25 iparm entries "
+               "unconditionally (including iparm[4]=2, whose only in-tree reader is dead code), "
+               "so it has no don't-write-by-default state -- an ordering request of "
+               "backend-default is applied as that engine's own METIS value. Raw Pardiso error "
+               "codes are not surfaced by this seam; Eigen's ComputationInfo stands in.";
+#endif
+    }
+
+    void analyze(const SpMatRM &A) override {
+        solver_.analyze_pattern(A);
+        ++counters_.analyze_count;
+        dim_ = A.rows();
+    }
+
+    hl::FactorizeOutcome factorize(const SpMatRM &A) override {
+        solver_.factorize(A);
+        ++counters_.factorize_count;
+        dim_ = A.rows();
+
+        hl::FactorizeOutcome out;
+        const Eigen::ComputationInfo info = solver_.info();
+        out.status = (info == Eigen::Success) ? hl::FactorizeOutcome::Status::kOk
+                                              : hl::FactorizeOutcome::Status::kBackendError;
+        // This seam does not surface Pardiso's raw error code -- PardisoImpl
+        // folds it into Eigen's ComputationInfo and discards the original. The
+        // ComputationInfo value is recorded in its place, and the loss is the
+        // finding rather than an adapter shortcut.
+        out.backend_code = static_cast<int>(info);
+        out.inertia = evidence();
+        return out;
+    }
+
+    hl::SolveInfo solve(const Vec &rhs, Vec &x) override {
+        x = solver_.solve(rhs);
+        ++counters_.solve_count;
+        return solve_info();
+    }
+
+    hl::SolveInfo solve_multi(const Mat &RHS, Mat &X) override {
+        X = solver_.solve(RHS);
+        ++counters_.solve_count;
+        return solve_info();
+    }
+
+    hl::SolveInfo solve_partial(hl::SymmetricFactor::SolvePhase, const Vec &, Vec &) override {
+        throw std::logic_error("psiopt old seam: no phase-split solve exists on this seam");
+    }
+
+    bool supports_partial_solve() const override {
+        throw std::logic_error("psiopt old seam: no partial-solve predicate exists on this seam");
+    }
+
+    hl::InertiaEvidence inertia() const override { return evidence(); }
+    Counters counters() const override { return counters_; }
+
+    std::shared_ptr<const SeamHandle> share() override {
+        throw std::logic_error("psiopt old seam: no shared factorization handle exists");
+    }
+    std::uint64_t epoch() const override {
+        throw std::logic_error("psiopt old seam: no epoch exists on this seam");
+    }
+    std::unique_ptr<SeamUnderTest> adopt(std::shared_ptr<const SeamHandle>) const override {
+        throw std::logic_error("psiopt old seam: no adopt path exists on this seam");
+    }
+
+  private:
+#if defined(__APPLE__)
+    static constexpr bool kReportsRefinementIters = false;
+#else
+    static constexpr bool kReportsRefinementIters = true;
+#endif
+
+    // Reproduce the configuration the interior-point engine actually ships,
+    // then let the rig's own SeamOptions override the four knobs the unified
+    // surface names. Everything else is left at that engine's value so this
+    // arm is the seam as the engine drives it, not a rig-flavoured variant.
+    void configure() {
+#if defined(__APPLE__)
+        // UNOBSERVED: this branch has never been compiled or run. Its call
+        // shapes are taken from the engine's own set_qp_params() and from
+        // accelerate_interface.h's declarations; it first executes on the Mac
+        // hardware leg.
+        solver_.set_num_threads(opts_.num_threads);
+        solver_.set_iterative_refinement(opts_.max_refinement_iters > 0);
+        solver_.set_iterative_refinement_iterations(opts_.max_refinement_iters);
+#else
+        // The engine's settings, verbatim: METIS ordering, 2x2 pivoting,
+        // static pivot perturbation 10^-8, maximum weighted matching ON, no
+        // scaling, classic algorithm, serial forward/backward solve, silent.
+        // iparm[33] (the CNR slot the class calls `threads_`) is left at 0
+        // because the engine only writes it when CNR mode is on.
+        solver_.ord_ = ordering_value();
+        solver_.pivotstrat_ = 1;
+        solver_.pivotpert_ = opts_.pivot_perturb_exp;
+        solver_.matching_ = opts_.weighted_matching ? 1 : 0;
+        solver_.scaling_ = 0;
+        solver_.iterref_ = opts_.max_refinement_iters;
+        solver_.alg_ = 0;
+        solver_.msglvl_ = 0;
+        solver_.threads_ = 0;
+        solver_.parsolve_ = 0;
+        solver_.set_params();
+#endif
+    }
+
+    int ordering_value() const {
+        switch (opts_.ordering) {
+        case SeamOptions::Ordering::kNestedDissection:
+            return 2;
+        case SeamOptions::Ordering::kParallelNestedDissection:
+            return 3;
+        case SeamOptions::Ordering::kBackendDefault:
+            break;
+        }
+        // This seam has no don't-write-by-default state: set_params() always
+        // assigns iparm[1]. kBackendDefault therefore maps to the value the
+        // interior-point engine itself ships (METIS = 2), and the
+        // non-representability is recorded in the arm table's parity note
+        // rather than papered over with a silent zero.
+        return 2;
+    }
+
+    hl::InertiaEvidence evidence() const {
+        hl::InertiaEvidence e;
+        if (counters_.factorize_count == 0) {
+            // A THIRD finding, alongside the two Apple fabrications below:
+            // this seam has NO DEFINED pre-factorization inertia state at all.
+            // Its count members are plain ints left uninitialized by the
+            // constructor, so asking it for an inertia before anything has
+            // been factorized reads indeterminate values -- there is no state
+            // to report and no way for it to say so. The adapter answers
+            // kUnavailable rather than reading them, which is the adapter
+            // being safer than the seam; the absence of a defined state is
+            // itself the observation, and it is the gap the unified surface's
+            // explicit kUnavailable closes.
+            return e; // kUnavailable, counts left at their -1 sentinel
+        }
+#if defined(__APPLE__)
+        // UNOBSERVED, and deliberately faithful to two fabrications:
+        //
+        //  (1) ppivs() on this seam is `return 0;` -- a hardcoded literal on a
+        //      backend with no perturbed-pivot counter. Carried through as a
+        //      PRESENT zero, which is exactly what the unified surface's
+        //      absent optional now forbids, and exactly what the trace that
+        //      names this case asserts against.
+        //  (2) an inertia query that FAILS is zero-filled by this seam
+        //      (cacheInertia's else branch sets all three counts to 0) with no
+        //      way for a caller to tell that from a real reading, so this
+        //      adapter can only ever report kObserved. The missing state is
+        //      the finding.
+        e.state = hl::InertiaEvidence::State::kObserved;
+        e.n_pos = static_cast<Index>(solver_.peigs());
+        e.n_neg = static_cast<Index>(solver_.neigs());
+        e.n_zero = static_cast<Index>(solver_.zeigs());
+        e.zero_is_derived = false;
+        e.perturbed_pivots = static_cast<Index>(solver_.ppivs());
+#else
+        e.state = hl::InertiaEvidence::State::kObserved;
+        e.n_pos = static_cast<Index>(solver_.peigs());
+        e.n_neg = static_cast<Index>(solver_.neigs());
+        e.n_zero = dim_ - e.n_pos - e.n_neg;
+        e.zero_is_derived = true;
+        e.perturbed_pivots = static_cast<Index>(solver_.ppivs());
+#endif
+        return e;
+    }
+
+    hl::SolveInfo solve_info() const {
+        hl::SolveInfo s;
+#if !defined(__APPLE__)
+        // iparm[6]: refinement steps actually performed. PardisoLDLT exposes
+        // the whole parameter array publicly, so this is a read of the seam's
+        // own state, not a reconstruction.
+        s.refinement_iters = static_cast<Index>(solver_.iparm_[6]);
+#endif
+        return s;
+    }
+
+    SeamOptions opts_;
+    ProcessThreadPin pin_;
+    OldSolver solver_;
+    Counters counters_;
+    Index dim_ = 0;
+};
+
+} // namespace
+
+std::unique_ptr<SeamUnderTest> make_psiopt_seam(const SeamOptions &opts) {
+    return std::make_unique<PsioptSeam>(opts);
+}
+
+} // namespace hven::rig
