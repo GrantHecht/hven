@@ -205,7 +205,10 @@ int PardisoSession::factorize(const SpMatRM &A) {
     // makes the three properties below guaranteed by inspection of this one
     // function -- keep them that way: the invalidation stays ahead of the
     // call, the epoch is incremented in exactly one place after the error
-    // check, and no other code path touches either.
+    // check, and the only other writes to either are unconditional teardown or
+    // replacement (release() and analyze() set has_numerics_ = false; the
+    // constructor seeds epoch_ forward) -- none of which can make a failed
+    // factorization look usable.
     has_numerics_ = false;
 
     const MKL_INT error =

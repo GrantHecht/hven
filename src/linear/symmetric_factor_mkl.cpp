@@ -293,8 +293,8 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
         // No test reaches this branch: this backend does not refuse a
         // symmetric indefinite factorization, it perturbs its way through one
         // (see the note in PardisoSession::factorize). Correctness here rests
-        // on inspection, which is why the failure handling is four lines with
-        // nothing conditional in it.
+        // on inspection, which is why the failure handling is a single
+        // unconditional statement.
     }
     return outcome;
 }

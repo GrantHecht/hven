@@ -55,11 +55,13 @@ class PardisoSession;
 // template constrained on it (an exact match, so it wins for vector-shaped
 // arguments), and the multi-RHS entry point stays a plain overload.
 //
-// Spelled over MatrixBase rather than DenseBase so that an array expression
-// (Eigen::ArrayXd and friends) is excluded by the constraint and reported as
-// an ordinary "no matching overload", instead of satisfying the constraint
-// and then failing inside Eigen's Ref conversion with a diagnostic that
-// blames the library's internals.
+// Spelled over MatrixBase rather than DenseBase so the concept means what
+// its name says: a matrix expression with one column. An array expression
+// (Eigen::ArrayXd and friends) is excluded by this constraint but is NOT
+// rejected by the class -- it binds the multi-RHS overload via Ref
+// conversion and solves as a one-column right-hand side, which is benign
+// (a solve has no array-vs-matrix semantic ambiguity, and mis-shaped
+// inputs still hit this class's own size validation).
 template <class T>
 concept VectorShaped =
     std::derived_from<std::remove_cvref_t<T>, Eigen::MatrixBase<std::remove_cvref_t<T>>> &&
