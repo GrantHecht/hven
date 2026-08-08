@@ -1,0 +1,6 @@
+[submodule "dep/eigen"]
+	path = dep/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "dep/fmt"]
+	path = dep/fmt
+	url = https://github.com/fmtlib/fmt.git
