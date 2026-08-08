@@ -8,7 +8,9 @@ request. Steps:
 1. Checkout with `submodules: recursive` (pulls `dep/eigen`, `dep/fmt`).
 2. Install `clang` and `ninja-build` via apt.
 3. Install Intel MKL (`intel-oneapi-mkl-devel`) via the Intel oneAPI apt
-   repository.
+   repository, then export `ONEAPI_ROOT` and `MKLROOT` into
+   `$GITHUB_ENV` so `cmake/FindMKL.cmake` is not limited to its three
+   hardcoded fallback paths if apt's package layout ever shifts.
 4. Configure with the `linux-clang-release` CMake preset.
 5. Build (`cmake --build build`).
 6. Test (`ctest --test-dir build --output-on-failure`).
@@ -26,10 +28,11 @@ all passed.
 hven has no macOS CI runner yet. Until one exists, macOS coverage (the
 Accelerate sparse backend, `cmake/FindAccelerateSparse.cmake`) is a manual
 routine run by hand on Apple Silicon hardware. There is no `macos-*`
-entry in `CMakePresets.json` yet — one is added once real Mac hardware has
-run the routine below and confirmed the cache variables it needs (mirroring
-how tycho's `macos-llvm-release` preset was authored). Until then, run
-manually:
+entry in `CMakePresets.json` yet — a preset is only worth authoring once
+real Mac hardware has run the routine below and confirmed which cache
+variables (compiler path, Accelerate discovery) it actually needs; writing
+one blind risks encoding a wrong guess as if it were verified. Until then,
+run manually:
 
 ```bash
 mkdir build && cd build

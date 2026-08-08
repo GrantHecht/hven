@@ -31,6 +31,17 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
           sudo apt-get install -y intel-oneapi-mkl-devel
+          # cmake/FindMKL.cmake's only environment-free fallback paths are
+          # /opt/intel/oneapi/mkl/latest/{include,lib,lib/intel64} and, for
+          # libiomp5, /opt/intel/oneapi/compiler/latest/lib. Every other
+          # oneAPI layout it knows how to search (older packages put
+          # libiomp5 under compiler/latest/linux/compiler/lib/intel64_lin,
+          # for example) is reachable only via $ENV{ONEAPI_ROOT} /
+          # $ENV{MKLROOT}. Exporting both here makes MKL discovery
+          # layout-agnostic instead of depending on apt happening to match
+          # the three hardcoded fallbacks.
+          echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
+          echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"
 
       - name: Configure
         run: cmake --preset linux-clang-release
