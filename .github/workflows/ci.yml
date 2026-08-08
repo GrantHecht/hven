@@ -62,3 +62,118 @@ jobs:
         # header comment and docs/testing.md for exactly what this does and
         # does not prove; it is not a substitute for the Mac hardware leg.
         run: ./scripts/check_accelerate_syntax_linux.sh
+
+  macos-clang-release:
+    # This job is the milestone's first real Apple-hardware vehicle: the
+    # Accelerate session, shim, and Apple-gated test halves
+    # (src/linear/accelerate_session.cpp, symmetric_factor_accelerate.cpp,
+    # tests/linear's `#if defined(__APPLE__)` blocks) have so far only been
+    # syntax-checked against a hand-written stub on Linux (the job above) --
+    # see scripts/check_accelerate_syntax_linux.sh's own header comment and
+    # docs/testing.md for exactly what that does and does not prove. This is
+    # where that claim ceiling actually gets raised to "compiled, linked,
+    # and run on real Apple Silicon." First-contact failures here are
+    # expected and are findings about the Accelerate backend, not this
+    # workflow -- see docs/ci.md for how they get folded back in.
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+
+      - name: Install ninja
+        # AppleClang (the Xcode Command Line Tools' compiler) is used as-is
+        # via CMAKE_CXX_COMPILER left unset in the macos-clang-release
+        # preset -- no LLVM to install. Accelerate ships with the OS, so
+        # there is no package-install step for the sparse backend either;
+        # cmake/FindAccelerateSparse.cmake finds it via the SDK's default
+        # framework search path.
+        run: brew install ninja
+
+      - name: Configure
+        run: cmake --preset macos-clang-release
+
+      - name: Build
+        run: cmake --build build-macos
+
+      - name: Test
+        run: ctest --test-dir build-macos --output-on-failure
+
+  windows-clang-release:
+    # Like the macOS job above, this is a first-contact lane: the
+    # Windows/clang-cl compile-flag set in cmake/hven_compile_options.cmake
+    # is a byte-for-byte copy of tycho's own already-Windows-verified flags
+    # (compared directly against tycho's cmake/tycho_compile_options.cmake
+    # at the time this job was written), but hven's own CMake plumbing
+    # around it -- HVEN_FP_MODE's SAFER_FAST clang-cl feature-detection
+    # check, cmake/FindMKL.cmake's Windows hint paths, MKL discovery via a
+    # freshly-installed oneAPI on this exact runner image -- has not.
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      # Bump both together when Intel rotates the installer version --
+      # pull the current value from
+      # https://github.com/oneapi-src/oneapi-ci/blob/master/.github/workflows/build_all.yml
+      # (WINDOWS_TOOLKIT_URL). See scripts/install_windows_mkl.bat's header
+      # comment for how this URL and the component ids below were chosen.
+      HVEN_ONEAPI_CACHE_KEY: windows-oneapi-2026.1.0.191-mkl.devel-openmp-v1
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+
+      - name: Install ninja
+        run: choco install ninja --no-progress -y
+
+      - name: Cache Intel oneAPI MKL + OpenMP install
+        id: cache-oneapi-mkl
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\Program Files (x86)\Intel\oneAPI\mkl
+            C:\Program Files (x86)\Intel\oneAPI\compiler
+          key: ${{ runner.os }}-${{ env.HVEN_ONEAPI_CACHE_KEY }}
+
+      - name: Install Intel MKL (offline installer, cached)
+        # The download itself (~1.9 GB self-extracting archive of the full
+        # oneAPI Base+HPC toolkit) is what makes caching worth doing --
+        # scripts/install_windows_mkl.bat only extracts the two components
+        # this repo needs (MKL devel + the OpenMP runtime) from it via the
+        # embedded bootstrapper's --components= flag, but the download cost
+        # is paid regardless of how few components are selected.
+        if: steps.cache-oneapi-mkl.outputs.cache-hit != 'true'
+        shell: cmd
+        run: scripts\install_windows_mkl.bat
+
+      - name: Point FindMKL.cmake at the install
+        # Mirrors the Linux job's ONEAPI_ROOT/MKLROOT step above:
+        # cmake/FindMKL.cmake's environment-free fallback paths assume the
+        # Linux oneAPI layout (/opt/intel/oneapi/...); MKLROOT/ONEAPI_ROOT
+        # make it look in the actual Windows install location instead of
+        # depending on a hardcoded fallback matching it.
+        shell: bash
+        run: |
+          echo 'ONEAPI_ROOT=C:\Program Files (x86)\Intel\oneAPI' >> "$GITHUB_ENV"
+          echo 'MKLROOT=C:\Program Files (x86)\Intel\oneAPI\mkl\latest' >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: cmake --preset windows-clang-release
+
+      - name: Build
+        run: cmake --build build-windows
+
+      - name: Test
+        run: ctest --test-dir build-windows --output-on-failure
+
+      - name: Save oneAPI install logs
+        if: always() && steps.cache-oneapi-mkl.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-oneapi-install-logs
+          path: |
+            extract.log
+            bootstrapper*
+            installer*
+          retention-days: 7
+          if-no-files-found: ignore
