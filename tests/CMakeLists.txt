@@ -21,6 +21,7 @@ FetchContent_Declare(
     GIT_SHALLOW    TRUE
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF)   # keep gtest out of any future cmake --install of hven
 FetchContent_MakeAvailable(googletest)
 
 # Clang with MSVC headers: suppress char8_t->char32_t implicit conversion

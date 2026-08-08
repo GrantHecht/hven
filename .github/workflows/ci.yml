@@ -38,7 +38,7 @@ jobs:
           # libiomp5 under compiler/latest/linux/compiler/lib/intel64_lin,
           # for example) is reachable only via $ENV{ONEAPI_ROOT} /
           # $ENV{MKLROOT}. Exporting both here makes MKL discovery
-          # layout-agnostic instead of depending on apt happening to match
+          # able to find libiomp5 outside the hardcoded fallbacks instead of depending on apt happening to match
           # the three hardcoded fallbacks.
           echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
           echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"

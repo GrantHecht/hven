@@ -10,7 +10,9 @@ request. Steps:
 3. Install Intel MKL (`intel-oneapi-mkl-devel`) via the Intel oneAPI apt
    repository, then export `ONEAPI_ROOT` and `MKLROOT` into
    `$GITHUB_ENV` so `cmake/FindMKL.cmake` is not limited to its three
-   hardcoded fallback paths if apt's package layout ever shifts.
+   hardcoded fallback paths for libiomp5's directory (the piece most prone
+   to moving between oneAPI package layouts). MKLROOT itself still assumes
+   the mkl/latest symlink apt creates.
 4. Configure with the `linux-clang-release` CMake preset.
 5. Build (`cmake --build build`).
 6. Test (`ctest --test-dir build --output-on-failure`).
@@ -51,6 +53,6 @@ version, date, commit hash, and the configure/build/ctest result.
 No Mac-observed value may be fabricated, zero-filled, or interpolated from
 the Linux lane. A row with no real hardware run stays `UNOBSERVED` — it is
 not populated with a guess, and it is not silently dropped from this table.
-A `macos-llvm-release` CMake preset is added once a Mac has verified it end
+A `macos-clang-release` CMake preset is added once a Mac has verified it end
 to end (configure + build + ctest); until then, no such preset exists in
 `CMakePresets.json`.
