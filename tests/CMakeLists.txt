@@ -42,9 +42,14 @@ set(HVEN_TEST_SOURCES
     core/test_sparse_backend_link.cpp
     core/test_pattern_hash.cpp
     linear/test_dense_symmetric_factor.cpp
+    # Evidence-honesty invariants written once against the public API and
+    # checked on whichever backend this build targets -- see
+    # docs/testing.md and the file's own header comment. Deliberately NOT
+    # gated by platform, unlike test_symmetric_factor.cpp below.
+    linear/test_symmetric_factor_evidence_invariants.cpp
 )
 
-# SymmetricFactor's tests follow the same platform split as its
+# SymmetricFactor's MKL-specific tests follow the same platform split as its
 # implementation (src/CMakeLists.txt): the suite exercises MKL Pardiso
 # semantics — perturbed-pivot evidence, phase-split partial solves — that the
 # Accelerate backend answers differently, so it is compiled where that
@@ -62,3 +67,62 @@ target_compile_options(hven_tests PRIVATE ${COMPILE_FLAGS})
 target_compile_definitions(hven_tests PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
 
 gtest_discover_tests(hven_tests)
+
+################################################################################
+# Fault-injection tests (docs/testing.md: the test-seam convention this repo
+# uses for backend fault paths no real fixture can provoke). A SEPARATE,
+# standalone executable that recompiles the platform's own backend session
+# TU (untouched -- pardiso_session.cpp / accelerate_session.cpp, both
+# MPL-derived, carry no test hooks) plus the platform's own adapter TU
+# (symmetric_factor_mkl.cpp / symmetric_factor_accelerate.cpp, Apache-2.0)
+# a SECOND time, with HVEN_TESTING defined ONLY on that second copy's
+# compile. This target does NOT link hven::hven:
+#   - it is what keeps the production `hven` library's own compiled adapter
+#     object (and hven_tests, which links it) completely untouched by
+#     HVEN_TESTING -- byte-for-byte what it would be if this target and
+#     fault_injection.h did not exist;
+#   - it is also required for the link to succeed at all: both this
+#     target's freshly-compiled adapter TU and libhven.a's own define
+#     hven::linear::SymmetricFactor's and Factorization's methods, which
+#     would be a duplicate-symbol error if both were linked into one binary.
+################################################################################
+
+add_executable(hven_fault_injection_tests
+    ${CMAKE_SOURCE_DIR}/src/core/pattern_hash.cpp
+    linear/test_fault_injection.cpp
+)
+
+if(NOT APPLE)
+    target_sources(hven_fault_injection_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/linear/pardiso_session.cpp
+        ${CMAKE_SOURCE_DIR}/src/linear/symmetric_factor_mkl.cpp
+    )
+else()
+    target_sources(hven_fault_injection_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/linear/accelerate_session.cpp
+        ${CMAKE_SOURCE_DIR}/src/linear/symmetric_factor_accelerate.cpp
+    )
+endif()
+
+# HVEN_TESTING is target-wide (not per-source-file): the injectors in
+# hven/detail/linear/fault_injection.h must be visible both to the adapter
+# TU that guards its one call site with `#ifdef HVEN_TESTING` and to this
+# target's own test_fault_injection.cpp, which sets the injector flags
+# directly. The MPL-derived session TU (pardiso_session.cpp /
+# accelerate_session.cpp) has no HVEN_TESTING-gated code at all, so seeing
+# the definition here is a no-op for it either way. No other target ever
+# defines HVEN_TESTING -- see the block comment above.
+target_compile_definitions(hven_fault_injection_tests PRIVATE HVEN_TESTING=1)
+
+target_include_directories(hven_fault_injection_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(hven_fault_injection_tests PRIVATE
+    Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main
+)
+target_include_directories(hven_fault_injection_tests PRIVATE ${INCLUDE_DIRS})
+target_link_libraries(hven_fault_injection_tests PRIVATE ${LINK_LIBS})
+if(APPLE)
+    target_link_libraries(hven_fault_injection_tests PRIVATE AccelerateSparse::AccelerateSparse)
+endif()
+target_compile_options(hven_fault_injection_tests PRIVATE ${COMPILE_FLAGS})
+
+gtest_discover_tests(hven_fault_injection_tests)

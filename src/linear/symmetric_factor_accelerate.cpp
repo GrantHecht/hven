@@ -1,24 +1,39 @@
-// The MKL Pardiso backend for SymmetricFactor / Factorization. Compiled on
-// the platforms whose sparse backend is MKL (see src/CMakeLists.txt); the
-// Apple Accelerate backend implements the same header in its own TU.
+// The Apple Accelerate backend for SymmetricFactor / Factorization. Compiled
+// on the platforms whose sparse backend is Accelerate (see
+// src/CMakeLists.txt); MKL Pardiso implements the same header in its own TU
+// (symmetric_factor_mkl.cpp). The two adapters are intentionally NOT shared:
+// MKL's phase-driven session and Accelerate's symbolic/numeric factorization
+// objects have nothing in common below the public header, so each backend
+// gets its own TU and only the platform's own is ever compiled -- see the
+// comment in src/CMakeLists.txt.
 //
-// Everything Pardiso-shaped lives one layer down, in FactorSession (the
+// Everything Accelerate-shaped lives one layer down, in FactorSession (the
 // concrete definition this TU gives to hven/linear/symmetric_factor.h's
 // backend-neutral forward declaration -- see
-// hven/detail/linear/pardiso_session.h): this TU owns the contract --
+// hven/detail/linear/accelerate_session.h): this TU owns the contract --
 // validation, pattern-hash discipline, counters, epochs, the entitlement
-// rules around shared sessions -- and none of the backend's vocabulary.
+// rules around shared sessions -- and none of the backend's vocabulary. This
+// mirrors symmetric_factor_mkl.cpp's own structure closely; the two files are
+// deliberately kept in lock-step shape so a reader who knows one can find
+// their way around the other, even though neither #includes the other.
+//
+// UNOBSERVED: this file has been syntax-checked against a minimal local stub
+// of <Accelerate/Accelerate.h> on Linux (see scripts/check_accelerate_syntax_
+// linux.sh) but has never been compiled against the real Accelerate headers
+// or run on Apple hardware. See docs/testing.md and the Task-6 report for
+// exactly what that check does and does not prove.
 
 #include "hven/linear/symmetric_factor.h"
 
+#include <cmath>
 #include <stdexcept>
 #include <utility>
 
 #include <fmt/format.h>
 
 #include "hven/core/pattern_hash.h"
+#include "hven/detail/linear/accelerate_session.h"
 #include "hven/detail/linear/fault_injection.h"
-#include "hven/detail/linear/pardiso_session.h"
 
 namespace hven::linear {
 
@@ -36,11 +51,11 @@ const char *kind_name(FactorKind kind) {
     return "unknown";
 }
 
-detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
-    detail::PardisoConfig cfg;
-    // Real symmetric indefinite. Only kLDLT reaches here -- the constructor
-    // rejects the kinds whose backend paths have not landed.
-    cfg.mtype = -2;
+detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
+    detail::AccelerateConfig cfg;
+    // Only kLDLT reaches here -- the constructor rejects the kinds whose
+    // backend paths have not landed. SparseFactorizationLDLTTPP is what
+    // detail::FactorSession::analyze() actually asks Accelerate for.
     cfg.num_threads = opts.num_threads;
     cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
     cfg.max_refinement_iters = opts.max_refinement_iters;
@@ -49,13 +64,14 @@ detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
 
 // Validates the whole input convention in one pass: compressed, square,
 // non-empty, upper triangle only, and a structurally present diagonal in
-// every row.
-//
-// The last two are not decoration. Pardiso reads an upper-triangle CSR and
-// requires every diagonal entry to exist in the pattern even where its value
-// is zero; handed a matrix that violates either, it does not report a clean
-// error, it computes something else. Checking costs one pass over the stored
-// entries, once per symbolic analysis.
+// every row. Identical rule to (and deliberately duplicated from, not shared
+// with) symmetric_factor_mkl.cpp's own validate_upper_csr -- see
+// src/CMakeLists.txt's comment on why the two backend adapters do not share
+// a TU. The rule itself is backend-agnostic (hven's own upper-CSR
+// convention, documented at the top of symmetric_factor.h), but Accelerate
+// enforces it for the identical reason Pardiso does: fed a matrix that
+// violates either, it does not report a clean error, it computes something
+// else.
 void validate_upper_csr(const SpMatRM &A) {
     if (!A.isCompressed()) {
         throw std::invalid_argument(
@@ -102,24 +118,59 @@ void validate_upper_csr(const SpMatRM &A) {
 
 // Builds the inertia evidence for a session's current factorization.
 //
-// The MKL column of the backend semantics table, in code: Pardiso reports the
-// positive and negative counts and nothing else, so the zero class is derived
-// by subtraction and flagged as derived; the perturbed-pivot counter is
-// always present after a successful factorization on this backend, so it is
-// reported as a value, never as an absence.
+// The Accelerate column of the backend semantics table, in code: unlike
+// Pardiso's cheap iparm readback, SparseGetInertia is a genuine,
+// independently-fallible API call against the numeric factorization --
+// called HERE, in the adapter, rather than cached inside FactorSession at
+// factorize() time, precisely so the test-seam convention (docs/testing.md)
+// can inject its failure without touching the MPL-derived session file. A
+// query failure is reported as kQueryFailed with the counts left at their
+// invalid sentinel (-1), NEVER zero-filled -- the frozen contract's
+// fabrication fix (docs/dev/plans/2026-08-08-hven-m1-linear-and-rig-spec.md
+// A.5). perturbed_pivots is unconditionally absent: Accelerate has no
+// perturbed-pivot counter, and absence is the honest state (also A.5 -- NOT
+// the SQP shim's superseded choice of mapping Accelerate's zero-pivot count
+// into that field, which the frozen table's "less informative, never
+// differently-valued" degradation rule forbids as of this contract).
 InertiaEvidence evidence_of(const detail::FactorSession &session) {
     InertiaEvidence evidence;
+    if (!session.has_numerics()) {
+        return evidence; // kUnavailable
+    }
+
+    int n_pos = 0;
+    int n_zero = 0;
+    int n_neg = 0;
+    int rc;
+#ifdef HVEN_TESTING
+    if (detail::testing::InertiaQueryFaultInjector::active) {
+        // Side-effect-free query, so overriding its return code is faithful
+        // in every scenario -- see hven/detail/linear/fault_injection.h.
+        rc = detail::testing::InertiaQueryFaultInjector::injected_rc;
+    } else
+#endif
+    {
+        rc = SparseGetInertia(session.native_factorization(), &n_pos, &n_zero, &n_neg);
+    }
+
+    if (rc != 0) {
+        evidence.state = InertiaEvidence::State::kQueryFailed;
+        return evidence; // counts stay at their -1 sentinel; never zero-filled
+    }
+
     evidence.state = InertiaEvidence::State::kObserved;
-    evidence.n_pos = session.num_pos_eigs();
-    evidence.n_neg = session.num_neg_eigs();
-    evidence.n_zero = session.dim() - evidence.n_pos - evidence.n_neg;
-    evidence.zero_is_derived = true;
-    evidence.perturbed_pivots = session.num_perturbed_pivots();
+    evidence.n_pos = n_pos;
+    evidence.n_neg = n_neg;
+    evidence.n_zero = n_zero;
+    evidence.zero_is_derived = false; // native 3-way report, not derived by subtraction
+    evidence.perturbed_pivots = std::nullopt;
     return evidence;
 }
 
 // Shared solve bodies: SymmetricFactor and Factorization differ in who may
-// call them, not in what they do.
+// call them, not in what they do. Identical shape to
+// symmetric_factor_mkl.cpp's own run_solve pair; only the backend call
+// underneath (detail::FactorSession::solve) differs.
 SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRef X,
                     const char *what) {
     if (RHS.rows() != session.dim()) {
@@ -138,9 +189,11 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
         return SolveInfo{}; // nothing to solve; never reaches the backend
     }
 
-    // Pardiso needs contiguous column-major buffers and cannot solve in
-    // place, so the right-hand side is always copied. The solution buffer is
-    // only copied when X is a strided view into a larger matrix.
+    // Accelerate's DenseVector_Double solve (see FactorSession::solve) needs
+    // contiguous column-major buffers and cannot solve in place, so the
+    // right-hand side is always copied. The solution buffer is only copied
+    // when X is a strided view into a larger matrix. Identical discipline to
+    // the MKL adapter.
     Mat rhs_buffer = RHS;
     const bool x_contiguous = X.cols() == 1 || X.outerStride() == X.rows();
     Mat scratch;
@@ -158,9 +211,10 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
         X = scratch;
     }
 
-    SolveInfo info;
-    info.refinement_iters = session.refinement_iters();
-    return info;
+    // Accelerate reports no iterative-refinement count this session can
+    // honestly surface (see AccelerateConfig's doc comment) -- absent,
+    // never a fabricated value.
+    return SolveInfo{};
 }
 
 SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRef x,
@@ -181,19 +235,22 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
     Vec rhs_buffer = rhs;
     session.solve(rhs_buffer.data(), x.data(), 1);
 
-    SolveInfo info;
-    info.refinement_iters = session.refinement_iters();
-    return info;
+    return SolveInfo{};
 }
 
-int pardiso_phase_of(SymmetricFactor::SolvePhase phase) {
+// Maps the frozen SolvePhase enum onto the SubfactorPhase FactorSession's
+// solve_partial expects. Written as an explicit switch (not a bare
+// static_cast) even though the two enums' declared orders already agree, so
+// a future reordering of either one fails to compile here instead of
+// silently swapping which subfactor a phase solves against.
+detail::SubfactorPhase accelerate_phase_of(SymmetricFactor::SolvePhase phase) {
     switch (phase) {
     case SymmetricFactor::SolvePhase::kForward:
-        return 331;
+        return detail::SubfactorPhase::kForward;
     case SymmetricFactor::SolvePhase::kDiagonal:
-        return 332;
+        return detail::SubfactorPhase::kDiagonal;
     case SymmetricFactor::SolvePhase::kBackward:
-        return 333;
+        return detail::SubfactorPhase::kBackward;
     }
     throw std::invalid_argument(fmt::format(
         "SymmetricFactor::solve_partial: unknown solve phase ({})", static_cast<int>(phase)));
@@ -236,11 +293,10 @@ SymmetricFactor &SymmetricFactor::operator=(SymmetricFactor &&) noexcept = defau
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);
 
-    // A fresh session per analysis. The alternative -- re-running the
-    // symbolic phase in the existing session -- would silently destroy the
-    // factorization any outstanding handle is co-owning. Committing the new
-    // session only after the backend succeeds also means a failed analysis
-    // leaves this engine exactly as it was.
+    // A fresh session per analysis -- identical rationale to the MKL
+    // adapter's analyze(): a previously shared factorization is never
+    // disturbed by a re-analysis here, and a failed analysis leaves this
+    // engine exactly as it was.
     auto session = std::make_shared<detail::FactorSession>(config_from(opts_), epoch());
     session->analyze(A);
 
@@ -273,22 +329,7 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
             hash, pattern_hash_));
     }
 
-    int backend_code;
-#ifdef HVEN_TESTING
-    if (detail::testing::FactorizeFaultInjector::active) {
-        // See hven/detail/linear/fault_injection.h for the exact scope this
-        // is faithful within: valid ONLY when `session_` has never
-        // previously factorized successfully. The real backend call is
-        // skipped entirely rather than its result overridden, so
-        // `session_`'s own has_numerics_/epoch_ (owned by the MPL-derived
-        // FactorSession, never touched by this hook) are left exactly as
-        // they were.
-        backend_code = detail::testing::FactorizeFaultInjector::injected_backend_code;
-    } else
-#endif
-    {
-        backend_code = session_->factorize(A);
-    }
+    const int backend_code = session_->factorize(A);
     ++counters_.factorize_count;
 
     FactorizeOutcome outcome;
@@ -303,16 +344,19 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
     } else {
         outcome.status = FactorizeOutcome::Status::kBackendError;
         // The inertia stays kUnavailable: there is no factorization to
-        // describe, and reporting the previous one's counts here would be a
-        // fabrication. The session has already invalidated its numerics and
+        // describe. The session has already invalidated its numerics
+        // (FactorSession::factorize calls release_numeric() up front) and
         // left the epoch where it was, so solves through this engine and
         // through any shared handle throw until a factorization succeeds.
         //
-        // No test reaches this branch: this backend does not refuse a
-        // symmetric indefinite factorization, it perturbs its way through one
-        // (see the note in FactorSession::factorize). Correctness here rests
-        // on inspection, which is why the failure handling is a single
-        // unconditional statement.
+        // UNLIKE the MKL adapter's identical branch, this one is not known
+        // to be unreachable by ordinary fixtures: Accelerate is documented
+        // (and was measured on real hardware by the tycho_sqp audit,
+        // 2026-07-29-accelerate-audit-results.md) to genuinely refuse a
+        // numeric factorization on some singular/indefinite input rather
+        // than perturbing through it. It remains untested here regardless --
+        // this is a Linux-only development pass with no Accelerate runtime
+        // to provoke it against. See docs/testing.md.
     }
     return outcome;
 }
@@ -336,7 +380,7 @@ SolveInfo SymmetricFactor::solve_single(ConstVecRef rhs, VecRef x) const {
 SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecRef x) const {
     require_solvable("solve_partial");
 
-    const int backend_phase = pardiso_phase_of(phase);
+    const detail::SubfactorPhase backend_phase = accelerate_phase_of(phase);
 
     if (rhs.size() != session_->dim()) {
         throw std::invalid_argument(fmt::format(
@@ -355,14 +399,18 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
     session_->solve_partial(backend_phase, rhs_buffer.data(), x.data());
     ++counters_.partial_solve_count;
 
-    SolveInfo info;
-    info.refinement_iters = session_->refinement_iters();
-    return info;
+    return SolveInfo{}; // no refinement count to report on this backend
 }
 
-bool SymmetricFactor::supports_partial_solve() const {
-    return has_usable_numerics() && session_->num_perturbed_pivots() == 0;
-}
+// Unconditionally false on Accelerate: perturbation evidence is entirely
+// absent on this backend (evidence_of() never populates perturbed_pivots),
+// so composability of the partial-solve stages is unverifiable by
+// construction, not merely uninvestigated. This is the frozen contract's
+// conservative rung (A.3/A.5) -- never a fabricated true, and NOT gated on
+// has_usable_numerics() the way the MKL twin's predicate is, because there
+// is no numerics-dependent case where this backend could honestly answer
+// true.
+bool SymmetricFactor::supports_partial_solve() const { return false; }
 
 InertiaEvidence SymmetricFactor::inertia() const {
     if (!has_usable_numerics()) {
@@ -387,7 +435,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     }
 
     const std::shared_ptr<detail::FactorSession> &session = handle->session_;
-    const detail::PardisoConfig &cfg = session->config();
+    const detail::AccelerateConfig &cfg = session->config();
 
     // The adopting engine drives the emitter's session, so it inherits the
     // configuration that session was built with rather than imposing a new

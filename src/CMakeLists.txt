@@ -20,13 +20,19 @@ target_sources(hven PRIVATE
 # header — so each backend gets its own TU and only the platform's own is
 # ever compiled. A file that would #if itself away to nothing is a TU the
 # build should not be compiling in the first place.
-#
-# The Accelerate backend (linear/symmetric_factor_accelerate.cpp) lands with
-# that backend's own work; until then an Apple build of hven declares
-# SymmetricFactor without defining it.
 if(NOT APPLE)
     target_sources(hven PRIVATE
         linear/pardiso_session.cpp
         linear/symmetric_factor_mkl.cpp
+    )
+else()
+    # UNOBSERVED beyond a Linux syntax-only structural pass against a stub
+    # Accelerate.h (scripts/check_accelerate_syntax_linux.sh) -- this branch
+    # has never been configured or built by this development pass. See
+    # docs/testing.md and the Task-6 report for exactly what that pass does
+    # and does not prove.
+    target_sources(hven PRIVATE
+        linear/accelerate_session.cpp
+        linear/symmetric_factor_accelerate.cpp
     )
 endif()
