@@ -87,11 +87,10 @@ TEST(PatternHash, UncompressedInputThrows) {
     EXPECT_THROW({ (void)pattern_hash(a); }, std::invalid_argument);
 }
 
-// Fnv1a::feed is the raw-byte composability surface the brief's public
-// surface names alongside feed_index/value; it is otherwise unused by
-// pattern_hash() (which goes through feed_index exclusively), so it needs
-// its own direct coverage rather than relying on pattern_hash tests to
-// exercise it transitively.
+// Fnv1a::feed is the raw-byte composability surface offered alongside
+// feed_index/value; it is otherwise unused by pattern_hash() (which goes
+// through feed_index exclusively), so it needs its own direct coverage
+// rather than relying on pattern_hash tests to exercise it transitively.
 TEST(PatternHash, Fnv1aFeedMixesRawBytesByteAtATime) {
     constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
     constexpr std::uint64_t kPrime = 1099511628211ULL;
@@ -119,15 +118,13 @@ TEST(PatternHash, Fnv1aFeedMixesRawBytesByteAtATime) {
 }
 
 // Literal-value hardening: pins one exact hash value for a fixed, small
-// matrix. Safe to pin now that the algorithm is frozen by spec review's
-// named adjudication (task-3-review.md section 3: hven's element-wise,
-// shift-based feed_index is accepted as the canonical, width- and
-// byte-order-stable form of the sibling project's own scheme). Uses the
-// same fixture as the cross-check test below; the expected value was
-// computed independently against the shipped algorithm and additionally
-// confirmed unchanged across the feed_index byte-cast -> shift-based
-// rewrite (both extract bytes least-significant-first on every supported
-// little-endian target, so the rewrite is a value-preserving change).
+// matrix. The algorithm is frozen (element-wise, shift-based feed_index
+// as the canonical width- and byte-order-stable form), so an exact pin
+// is safe. Uses the same fixture as the cross-check test below, which
+// provides an independent in-repo derivation of this same value; the pin
+// was additionally confirmed unchanged across the feed_index
+// byte-cast -> shift-based rewrite (both extract bytes least-significant-
+// first on little-endian targets, so the rewrite preserved every value).
 TEST(PatternHash, LiteralValuePinnedForFixedFixture) {
     SpMatRM A = make_matrix(3, 4, {{0, 1, 5.0}, {1, 3, -2.0}, {2, 0, 7.0}});
     EXPECT_EQ(pattern_hash(A), 14789870936883269507ULL);
@@ -143,9 +140,12 @@ TEST(PatternHash, CrossCheckAgainstIndependentFnv1aReference) {
     constexpr std::uint64_t kPrime = 1099511628211ULL;
 
     auto ref_feed_index = [](std::uint64_t &h, std::int64_t v) {
-        const auto *bytes = reinterpret_cast<const unsigned char *>(&v);
-        for (std::size_t i = 0; i < sizeof(v); ++i) {
-            h ^= bytes[i];
+        // LSB-first shift extraction, matching the advertised byte order
+        // independently of host endianness (the implementation's spec is
+        // "least-significant byte first", not "object representation").
+        const auto u = static_cast<std::uint64_t>(v);
+        for (std::size_t i = 0; i < sizeof(u); ++i) {
+            h ^= (u >> (8 * i)) & 0xFFu;
             h *= kPrime;
         }
     };
