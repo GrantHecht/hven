@@ -130,15 +130,13 @@ struct DenseVector_Double {
 
 // ---- entry points ----------------------------------------------------------
 
-inline SparseOpaqueSymbolicFactorization SparseFactor(SparseFactorization_t,
-                                                       SparseMatrixStructure,
-                                                       SparseSymbolicFactorOptions) {
+inline SparseOpaqueSymbolicFactorization SparseFactor(SparseFactorization_t, SparseMatrixStructure,
+                                                      SparseSymbolicFactorOptions) {
     return SparseOpaqueSymbolicFactorization{SparseStatusOK};
 }
 
-inline SparseOpaqueFactorization_Double SparseFactor(SparseOpaqueSymbolicFactorization,
-                                                      SparseMatrix_Double,
-                                                      SparseNumericFactorOptions) {
+inline SparseOpaqueFactorization_Double
+SparseFactor(SparseOpaqueSymbolicFactorization, SparseMatrix_Double, SparseNumericFactorOptions) {
     return SparseOpaqueFactorization_Double{SparseStatusOK};
 }
 
@@ -161,6 +159,6 @@ inline void SparseSolve(SparseOpaqueFactorization_Double, DenseVector_Double, De
 inline void SparseSolve(SparseOpaqueSubfactor_Double, DenseVector_Double) {}
 
 inline SparseOpaqueSubfactor_Double SparseCreateSubfactor(SparseSubfactor_t,
-                                                           SparseOpaqueFactorization_Double) {
+                                                          SparseOpaqueFactorization_Double) {
     return SparseOpaqueSubfactor_Double{};
 }
