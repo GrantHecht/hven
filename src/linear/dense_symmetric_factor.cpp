@@ -4,13 +4,15 @@
 
 #include <fmt/format.h>
 
-// Backend routing follows the same pattern as the sibling SQP engine's own
-// dense Bunch-Kaufman consumer: USE_ACCELERATE_SPARSE is defined
-// project-wide (see cmake/hven_sparse_backend.cmake) exactly on Apple,
-// where Accelerate ships no native LAPACKE and the migrated shim stands in
-// for it. Everywhere else, MKL's own LAPACKE header is already on the
-// include path via the hven target's PUBLIC propagation.
-#ifdef USE_ACCELERATE_SPARSE
+// Backend routing: HVEN_USE_ACCELERATE_LAPACK is defined project-wide (see
+// cmake/hven_sparse_backend.cmake) exactly on Apple, where Accelerate ships
+// no native LAPACKE and the migrated shim stands in for it. Everywhere
+// else, MKL's own LAPACKE header is already on the include path via the
+// hven target's PUBLIC propagation. This is a dedicated macro, not a reuse
+// of USE_ACCELERATE_SPARSE (the sparse-backend selector) -- see
+// hven_sparse_backend.cmake's doc comment for why the two are named
+// separately even though they are set together today.
+#ifdef HVEN_USE_ACCELERATE_LAPACK
 #include "hven/detail/linear/lapacke_shim.h"
 using hven::linear::detail::lapack_int;
 using hven::linear::detail::LAPACKE_dsytrf;
@@ -70,31 +72,41 @@ void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
             X.rows(), X.cols(), RHS.rows(), RHS.cols()));
     }
 
+    if (X.cols() == 0) {
+        return; // no columns to solve; avoid handing LAPACK an empty/null buffer
+    }
+
     const auto n = static_cast<lapack_int>(dim_);
     const auto nrhs = static_cast<lapack_int>(X.cols());
 
     // LAPACKE_dsytrs solves in place and requires contiguous column-major
     // storage with leading dimension == n. X's own storage satisfies that
-    // whenever it is not itself a strided view into a larger matrix (e.g.
-    // a block of a caller-owned matrix); when it is, solve into an owned
-    // contiguous scratch buffer and copy the result back into X.
-    // Correctness first -- this component is small-matrix by design.
-    if (X.outerStride() == X.rows()) {
+    // whenever it is not itself a strided view into a larger matrix (e.g. a
+    // block of a caller-owned matrix); when it is, solve into an owned
+    // contiguous scratch buffer instead and copy the result back into X
+    // afterward. Correctness first -- this component is small-matrix by
+    // design. Both cases fill in `target` (the buffer LAPACK writes into)
+    // and share one dsytrs call below, rather than duplicating the call and
+    // its error check per branch.
+    const bool x_contiguous = X.outerStride() == X.rows();
+    Mat scratch;
+    double *target = nullptr;
+    if (x_contiguous) {
         X = RHS;
-        const auto info = static_cast<int>(LAPACKE_dsytrs(
-            LAPACK_COL_MAJOR, 'U', n, nrhs, factors_.data(), n, ipiv_.data(), X.data(), n));
-        if (info != 0) {
-            throw std::runtime_error(
-                fmt::format("DenseSymmetricFactor::solve: LAPACKE_dsytrs failed, info={}", info));
-        }
+        target = X.data();
     } else {
-        Mat scratch = RHS;
-        const auto info = static_cast<int>(LAPACKE_dsytrs(
-            LAPACK_COL_MAJOR, 'U', n, nrhs, factors_.data(), n, ipiv_.data(), scratch.data(), n));
-        if (info != 0) {
-            throw std::runtime_error(
-                fmt::format("DenseSymmetricFactor::solve: LAPACKE_dsytrs failed, info={}", info));
-        }
+        scratch = RHS;
+        target = scratch.data();
+    }
+
+    const auto info = static_cast<int>(LAPACKE_dsytrs(LAPACK_COL_MAJOR, 'U', n, nrhs,
+                                                      factors_.data(), n, ipiv_.data(), target, n));
+    if (info != 0) {
+        throw std::runtime_error(
+            fmt::format("DenseSymmetricFactor::solve: LAPACKE_dsytrs failed, info={}", info));
+    }
+
+    if (!x_contiguous) {
         X = scratch;
     }
 }
