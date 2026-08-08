@@ -286,7 +286,15 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
         outcome.status = FactorizeOutcome::Status::kBackendError;
         // The inertia stays kUnavailable: there is no factorization to
         // describe, and reporting the previous one's counts here would be a
-        // fabrication.
+        // fabrication. The session has already invalidated its numerics and
+        // left the epoch where it was, so solves through this engine and
+        // through any shared handle throw until a factorization succeeds.
+        //
+        // No test reaches this branch: this backend does not refuse a
+        // symmetric indefinite factorization, it perturbs its way through one
+        // (see the note in PardisoSession::factorize). Correctness here rests
+        // on inspection, which is why the failure handling is four lines with
+        // nothing conditional in it.
     }
     return outcome;
 }

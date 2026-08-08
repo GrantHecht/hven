@@ -191,7 +191,21 @@ int PardisoSession::factorize(const SpMatRM &A) {
 
     // A factorization attempt invalidates the previous numerics up front: if
     // this one fails, the session must not look like it still holds a usable
-    // factorization from before.
+    // factorization from before. Every co-owner sees that at once -- an
+    // engine's solves and a shared handle's solves both gate on
+    // has_numerics().
+    //
+    // NOT COVERED BY A TEST, AND DELIBERATELY NOT. Reaching the failure
+    // return below needs this backend to refuse a numeric factorization, and
+    // for a real symmetric indefinite matrix it does not: with static pivot
+    // perturbation on it perturbs its way through an exactly singular matrix
+    // and reports success (the suite's own singular fixture is exactly that).
+    // Any fixture contrived to provoke a failure here would pin an accident
+    // of the backend rather than this contract, so none is written. That
+    // makes the three properties below guaranteed by inspection of this one
+    // function -- keep them that way: the invalidation stays ahead of the
+    // call, the epoch is incremented in exactly one place after the error
+    // check, and no other code path touches either.
     has_numerics_ = false;
 
     const MKL_INT error =

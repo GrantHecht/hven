@@ -25,8 +25,8 @@ using hven::linear::SymmetricFactor;
 
 // Every fixture below is a small matrix with an exactly representable
 // solution (integer entries, integer right-hand sides), so the round trip
-// through the factorization is only a few ULPs wide and the brief's 1e-14
-// relative bound holds without slack.
+// through the factorization is only a few ULPs wide and a 1e-14 relative
+// bound holds without slack.
 constexpr double kTightRelTol = 1e-14;
 
 // |actual - expected| <= rel_tol * max(1, |expected|): a relative bound above
@@ -650,12 +650,27 @@ TEST(SymmetricFactor, AdoptingAStaleHandleRefusesNumericsButKeepsTheSymbolic) {
     const std::uint64_t emitted_epoch = handle->epoch();
     EXPECT_EQ(emitted_epoch, 1u);
 
+    Vec at_emission(3);
+    handle->solve(b, at_emission);
+
     // New values on the same pattern.
     const Mat updated = 2.0 * dense;
     factorize_ok(originator, upper_csr(updated, dense));
 
     EXPECT_EQ(handle->epoch(), emitted_epoch) << "the handle's epoch is fixed at emission";
     EXPECT_EQ(originator.epoch(), emitted_epoch + 1) << "the engine's epoch is live";
+
+    // The handle holds no snapshot it could serve: solving through it now
+    // answers with the session's CURRENT numerics, not the ones it was
+    // emitted for. That is the documented hazard the epoch exists to make
+    // detectable -- and doubling the matrix halves the solution, so the two
+    // are plainly different answers rather than the same one twice.
+    Vec through_handle_now(3);
+    handle->solve(b, through_handle_now);
+    Vec originator_now(3);
+    originator.solve(b, originator_now);
+    expect_vec_identical(through_handle_now, originator_now);
+    expect_vec_near(through_handle_now, Vec(at_emission / 2.0));
 
     SymmetricFactor adopter = SymmetricFactor::adopt(handle);
     Vec x(3);

@@ -54,9 +54,15 @@ class PardisoSession;
 // by compile-time column count instead: the single-RHS entry point is a
 // template constrained on it (an exact match, so it wins for vector-shaped
 // arguments), and the multi-RHS entry point stays a plain overload.
+//
+// Spelled over MatrixBase rather than DenseBase so that an array expression
+// (Eigen::ArrayXd and friends) is excluded by the constraint and reported as
+// an ordinary "no matching overload", instead of satisfying the constraint
+// and then failing inside Eigen's Ref conversion with a diagnostic that
+// blames the library's internals.
 template <class T>
 concept VectorShaped =
-    std::derived_from<std::remove_cvref_t<T>, Eigen::DenseBase<std::remove_cvref_t<T>>> &&
+    std::derived_from<std::remove_cvref_t<T>, Eigen::MatrixBase<std::remove_cvref_t<T>>> &&
     (std::remove_cvref_t<T>::ColsAtCompileTime == 1);
 
 } // namespace detail
@@ -65,6 +71,11 @@ concept VectorShaped =
 // indefinite) is the workhorse and the only kind implemented today;
 // constructing with any other kind throws std::logic_error until its backend
 // path lands.
+//
+// When kLLT and kLU do land, their inertia obligation is already settled:
+// neither reports one, on either backend, so inertia() and every
+// FactorizeOutcome they produce carry State::kUnavailable. Today that rule is
+// unreachable rather than untrue -- no object of those kinds can be built.
 enum class FactorKind { kLDLT, kLLT, kLU };
 
 // What a factorization observed about the matrix's inertia, and how much of
