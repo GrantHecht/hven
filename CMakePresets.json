@@ -17,7 +17,6 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
                 "HVEN_FP_MODE": "SAFER_FAST",
-                "CMAKE_C_COMPILER": "/usr/bin/clang",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
             }
         },
@@ -32,7 +31,6 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
                 "HVEN_FP_MODE": "SAFER_FAST",
-                "CMAKE_C_COMPILER": "/usr/bin/clang",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
             }
         }

@@ -3,8 +3,6 @@ project(hven VERSION 0.1.0 LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
-
 ################################################################################
 # Submodule helpers
 #
@@ -20,7 +18,7 @@ set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 include(cmake/git-submodule-init.cmake)
 include(cmake/git-submodule-update.cmake)
 
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt.")
 endif()
 
@@ -28,8 +26,15 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message(FATAL_ERROR "You cannot build hven with the Microsoft Compiler. Please use Clang or GCC and try again.")
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Needed before CMAKE_INSTALL_INCLUDEDIR is referenced by any target below
+# (both the vendored-dependency interface targets and the hven target itself
+# use it in their INSTALL_INTERFACE genex).
+include(GNUInstallDirs)
+
+# CMAKE_CXX_STANDARD / CMAKE_CXX_STANDARD_REQUIRED are set once, by
+# hven_compile_options() below — not duplicated here, so there is a single
+# owner for those two settings. CMAKE_CXX_EXTENSIONS is not touched by that
+# macro, so it is owned here instead.
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 ################################################################################
@@ -121,6 +126,8 @@ endif()
 
 # SIMD arch, release/debug, LTO, FP-mode, sanitizer, and inline-threshold
 # flag assembly lives in cmake/hven_compile_options.cmake (hven_compile_options()).
+# This is also where CMAKE_CXX_STANDARD / CMAKE_CXX_STANDARD_REQUIRED get set
+# (see the single-owner comment above).
 include(cmake/hven_compile_options.cmake)
 hven_compile_options()
 
@@ -192,8 +199,6 @@ endif()
 # Code Directories
 ################################################################################
 
-include(GNUInstallDirs)
-
 add_library(hven STATIC)
 add_library(hven::hven ALIAS hven)
 
@@ -203,16 +208,26 @@ target_include_directories(hven PUBLIC
 )
 
 # Consumers of hven::hven need Eigen types and the sparse-backend link flags,
-# so these are linked PUBLIC rather than PRIVATE.
+# so these are linked PUBLIC rather than PRIVATE. INCLUDE_DIRS/LINK_LIBS are
+# applied on every platform (on Apple, hven_resolve_sparse_backend() leaves
+# them as just Threads::Threads + ${CMAKE_DL_LIBS} since MKL_* is never
+# populated there) so there is one link block, not a platform-asymmetric one;
+# AccelerateSparse::AccelerateSparse is added on top for Apple specifically.
 target_link_libraries(hven PUBLIC Eigen3::Eigen fmt::fmt-header-only Threads::Threads)
+target_include_directories(hven PUBLIC ${INCLUDE_DIRS})
+target_link_libraries(hven PUBLIC ${LINK_LIBS})
 if(APPLE)
     target_link_libraries(hven PUBLIC AccelerateSparse::AccelerateSparse)
-else()
-    target_include_directories(hven PUBLIC ${INCLUDE_DIRS})
-    target_link_libraries(hven PUBLIC ${LINK_LIBS})
 endif()
 
 target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
+
+# HVEN_VERSION_STRING mirrors tycho's -DTYCHO_VERSIONSTRING="${CMAKE_PROJECT_VERSION}"
+# idiom: it makes src/core/version.cpp forward the single source of truth
+# (this file's `project()` VERSION) instead of carrying its own hardcoded
+# copy, and gives tests/core/test_version.cpp the same macro to compare
+# against so the test actually guards against the two drifting apart.
+target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
 
 # Sources come from src/CMakeLists.txt via target_sources(hven PRIVATE ...).
 add_subdirectory(src)
