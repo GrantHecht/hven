@@ -1,16 +1,15 @@
-# The test-seam convention
+#The test - seam convention
 
-hven has two sparse backends (MKL Pardiso, Apple Accelerate), and both have
-at least one fault path a real backend cannot be made to take from any
-fixture this repository can build: MKL will not genuinely refuse a symmetric
-indefinite `factorize()` (static pivot perturbation gets through everything
-tried — task-5-report.md's I1 disclosure), and Accelerate's inertia query has
-no known input that provokes a failure independent of a successful
-factorization. Both paths matter — the frozen contract's fabrication fixes
-(`docs/dev/plans/2026-08-08-hven-m1-linear-and-rig-spec.md` A.5) exist
-specifically to make these paths honest — so they need executable coverage,
-not just inspection. This page is the ONE place the convention that covers
-them is designed; every backend/component that needs a fault-injection seam
+hven has two sparse backends(MKL Pardiso, Apple Accelerate),
+    and both have at least one fault path a real backend cannot be made to take from any fixture
+    this repository can build : MKL will not genuinely refuse a symmetric indefinite `factorize()` (
+                                    static pivot perturbation gets through everything tried),
+    and Accelerate's inertia query has no known input that provokes a failure independent of a
+        successful factorization.Both paths matter — the frozen
+        contract's fabrication fixes (`docs / dev / plans / 2026 - 08 - 08 - hven - m1 - linear -
+                                      and-rig - spec.md` A.5) exist
+        specifically to make these paths honest — so they need executable coverage,
+    not just inspection.This page is the ONE place the convention that covers them is designed; every backend/component that needs a fault-injection seam
 should use it rather than inventing another.
 
 ## The constraint that shapes the design
@@ -69,11 +68,13 @@ executable that:
 - recompiles the platform's own adapter TU (`symmetric_factor_mkl.cpp` /
   `symmetric_factor_accelerate.cpp`) a **second time**, as its own object,
   with `HVEN_TESTING` defined;
-- does **not** link `hven::hven`.
+- does * *
+    not **link `hven::hven`
+              .
 
-Not linking `hven::hven` is not just tidiness — it is required. Both this
-target's freshly-compiled adapter object and `libhven.a`'s own define
-`hven::linear::SymmetricFactor`'s and `Factorization`'s methods; linking
+          Not linking `hven::hven` is not just tidiness — it is
+              required.Both this target 's freshly-compiled adapter object and `libhven.a`' s own
+                  define `hven::linear::SymmetricFactor`'s and `Factorization`' s methods; linking
 both into one binary would be a duplicate-symbol error. The consequence is
 also the point: the production `hven` library target, and `hven_tests`
 (which links it), never see `HVEN_TESTING` and are compiled exactly as they
@@ -115,7 +116,7 @@ lives where it does:
   factorize fails" scenario faithfully would require either a hook inside
   the MPL session file or a fully virtual session interface — both
   considered and rejected (see "Alternatives considered" below). It stays
-  **inspection-only**, exactly as task-5-report.md's I1 finding already
+  **inspection-only**, exactly as the in-code factorize-failure disclosure already
   disclosed; the code comment at `FactorizeFaultInjector`'s declaration
   states this scope limit explicitly so a future editor does not assume more
   coverage than exists.
@@ -124,7 +125,7 @@ lives where it does:
 
 Not every gap this seam closes is a fault path. `PardisoIparmObserver`
 (added for the M1 ordering/weighted_matching amendment,
-task-6.5-review.md I1) covers a different kind of untestable claim: a
+the write-nothing-by-default review finding) covers a different kind of untestable claim: a
 guarded write inside the MPL-derived session file
 (`FactorSession::analyze`'s `if (cfg_.ordering.has_value()) iparm_[1] = …`
 and its `weighted_matching` twin) that behaves identically whether the

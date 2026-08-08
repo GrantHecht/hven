@@ -121,7 +121,7 @@ void FactorSession::analyze(const SpMatRM &A) {
     // FactorSession has no consumer for that permutation, and Eigen's
     // AccelerateSupport module (the upstream both ports derive from) also
     // passes null here by default -- the write-back is documented as
-    // optional. Flagged rather than silently omitted: task-6-report.md's
+    // optional. Flagged rather than silently omitted: the review record's
     // Accelerate-API precedent table lists this as a stated difference from
     // KktSystem::analyze, not an unstated one.
     fopts.order = nullptr;

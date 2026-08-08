@@ -655,7 +655,7 @@ TEST(SymmetricFactor, WeightedMatchingFactorizesAndSolvesCorrectly) {
     EXPECT_EQ(factor.inertia().n_zero, 0);
 }
 
-// I3 (task-6.5-review.md): composition under active matching is
+// Composition under active matching is
 // unexercised at scale (the frozen spec's own caveat), and
 // supports_partial_solve()'s design law is conservative-never-fabricated-
 // true, so weighted_matching = true must force the predicate false even
@@ -687,7 +687,7 @@ TEST(SymmetricFactor, WeightedMatchingForcesSupportsPartialSolveFalse) {
 // here beyond one representative check -- test_symmetric_factor_pardiso_
 // only_options.cpp's NonDefaultOrderingDoesNotThrowOnMkl /
 // WeightedMatchingTrueDoesNotThrowOnMkl already cover every value; see
-// task-6.5-review.md M2.)
+// the guard consolidation noted in the test file header.)
 
 // =============================================================================
 // Epochs and shared handles

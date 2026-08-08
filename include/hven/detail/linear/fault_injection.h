@@ -7,7 +7,7 @@
 // Both sparse backends have at least one fault path that a real backend
 // cannot be made to take from this repository's own fixtures (MKL: a
 // symmetric-indefinite factorize() that genuinely fails -- static pivot
-// perturbation gets through everything tried, task-5-report.md I1;
+// perturbation gets through everything tried;
 // Accelerate: an inertia query that fails independently of a successful
 // factorization -- untestable at all without a fault-injection point, since
 // there is no known input that provokes it). Both backend session
@@ -52,7 +52,8 @@ namespace hven::linear::detail::testing {
 // "successful factorize, then a later one fails" scenario would require
 // either touching the MPL session file or a fully virtual session interface
 // -- both rejected in docs/testing.md; that deeper scenario stays
-// inspection-only, exactly as task-5-report.md's I1 already disclosed.
+// inspection-only, exactly as the factorize-failure disclosure in
+// symmetric_factor_mkl.cpp already states.
 struct FactorizeFaultInjector {
     static inline bool active = false;
     static inline int injected_backend_code = -99;
@@ -86,6 +87,15 @@ struct InertiaQueryFaultInjector {
 // alone -- see tests/linear/test_fault_injection.cpp's Pardiso*Iparm* tests
 // and docs/testing.md.
 struct PardisoIparmObserver {
+    // reset() before arming an observation keeps a later test whose
+    // expected value happens to be 0 from silently passing on stale
+    // state left by an earlier analyze().
+    static void reset() {
+        last_ordering_iparm = 0;
+        last_weighted_matching_iparm = 0;
+        recorded = false;
+    }
+    static inline bool recorded = false;
     static inline int last_ordering_iparm = 0;
     static inline int last_weighted_matching_iparm = 0;
 };

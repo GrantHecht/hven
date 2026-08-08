@@ -42,6 +42,13 @@ const char *kind_name(FactorKind kind) {
 // Ordering::kBackendDefault exactly). Written as an explicit switch, not a
 // bare cast, so a future Ordering value fails loudly here rather than
 // writing an unintended iparm entry.
+//
+// pardisoinit's own iparm[1] default has CHANGED across MKL versions
+// (2 on 2025.3; 3 on 2026.0/2026.1), so kBackendDefault floats with the
+// linked MKL, and kParallelNestedDissection coincides with the current
+// default — a behavioral no-op on this MKL. Naming a non-default value
+// is therefore how a caller PINS the ordering against version drift;
+// that is the option's purpose, not an oversight.
 std::optional<int> pardiso_ordering_code(SymmetricFactor::Options::Ordering ordering) {
     switch (ordering) {
     case SymmetricFactor::Options::Ordering::kBackendDefault:
@@ -289,6 +296,7 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // coverage. Reads the accessors unconditionally: they are real,
     // non-test-gated FactorSession API (pardiso_session.h), so this branch's
     // only effect is recording their result into a testing-only struct.
+    detail::testing::PardisoIparmObserver::recorded = true;
     detail::testing::PardisoIparmObserver::last_ordering_iparm = session->ordering_iparm();
     detail::testing::PardisoIparmObserver::last_weighted_matching_iparm =
         session->weighted_matching_iparm();
