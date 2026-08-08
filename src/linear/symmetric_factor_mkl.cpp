@@ -36,6 +36,40 @@ const char *kind_name(FactorKind kind) {
     return "unknown";
 }
 
+// Maps SymmetricFactor::Options::Ordering onto the raw iparm[1] value
+// PardisoConfig carries (0 = don't write, matching Ordering::kBackendDefault
+// exactly). Written as an explicit switch, not a bare cast, so a future
+// Ordering value fails loudly here rather than writing an unintended iparm
+// entry.
+int pardiso_ordering_code(SymmetricFactor::Options::Ordering ordering) {
+    switch (ordering) {
+    case SymmetricFactor::Options::Ordering::kBackendDefault:
+        return 0;
+    case SymmetricFactor::Options::Ordering::kNestedDissection:
+        return 2;
+    case SymmetricFactor::Options::Ordering::kParallelNestedDissection:
+        return 3;
+    }
+    throw std::invalid_argument(fmt::format("SymmetricFactor: unknown Options::Ordering value ({})",
+                                            static_cast<int>(ordering)));
+}
+
+// The inverse of pardiso_ordering_code, for adopt() round-tripping a
+// session's stored PardisoConfig back into an Options value.
+SymmetricFactor::Options::Ordering pardiso_ordering_of(int code) {
+    switch (code) {
+    case 0:
+        return SymmetricFactor::Options::Ordering::kBackendDefault;
+    case 2:
+        return SymmetricFactor::Options::Ordering::kNestedDissection;
+    case 3:
+        return SymmetricFactor::Options::Ordering::kParallelNestedDissection;
+    default:
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor::adopt: unrecognized stored ordering code ({})", code));
+    }
+}
+
 detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     detail::PardisoConfig cfg;
     // Real symmetric indefinite. Only kLDLT reaches here -- the constructor
@@ -44,6 +78,8 @@ detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.num_threads = opts.num_threads;
     cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
     cfg.max_refinement_iters = opts.max_refinement_iters;
+    cfg.ordering = pardiso_ordering_code(opts.ordering);
+    cfg.weighted_matching = opts.weighted_matching;
     return cfg;
 }
 
@@ -397,6 +433,8 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.num_threads = cfg.num_threads;
     opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
     opts.max_refinement_iters = cfg.max_refinement_iters;
+    opts.ordering = pardiso_ordering_of(cfg.ordering);
+    opts.weighted_matching = cfg.weighted_matching;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;

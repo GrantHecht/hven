@@ -52,6 +52,20 @@ struct PardisoConfig {
     int num_threads = 0;          // 0 = leave MKL's own default alone
     int pivot_perturb_exp = 8;    // static pivot perturbation, 10^-k
     int max_refinement_iters = 0; // full-solve iterative refinement cap
+
+    // Fill-in reordering override for iparm[1]. 0 means "leave iparm[1]
+    // alone" -- pardisoinit's own value survives -- and is the only value
+    // this field takes at SymmetricFactor::Options::Ordering::
+    // kBackendDefault; the only other values FactorSession::analyze ever
+    // sees here are 2 (nested dissection / METIS) and 3 (its OpenMP-parallel
+    // variant), matching Options::Ordering exactly.
+    int ordering = 0;
+
+    // Maximum weighted matching (iparm[12]). false leaves iparm[12] alone;
+    // true writes iparm[12] = 1. There is no way to request writing
+    // iparm[12] = 0 explicitly through this surface -- matching
+    // Options::weighted_matching's don't-write-by-default rule.
+    bool weighted_matching = false;
 };
 
 // One Pardiso factorization session: the `pt` handle, the parameter array,

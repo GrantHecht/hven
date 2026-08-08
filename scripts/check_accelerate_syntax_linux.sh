@@ -2,17 +2,20 @@
 # Linux syntax-only structural check of hven's Apple Accelerate backend
 # (hven/detail/linear/accelerate_session.h/.cpp,
 # src/linear/symmetric_factor_accelerate.cpp) AND of the Apple-gated halves
-# of the two test files that exercise it
+# of the three test files that exercise it
 # (tests/linear/test_fault_injection.cpp's `#if defined(__APPLE__)` block,
 # tests/linear/test_symmetric_factor_evidence_invariants.cpp's one
-# `#if defined(__APPLE__)` assertion). The test-file checks were added after
+# `#if defined(__APPLE__)` assertion,
+# tests/linear/test_symmetric_factor_pardiso_only_options.cpp's
+# `#if defined(__APPLE__)` block, which covers the ordering/weighted_matching
+# throw path). The test-file checks were added after
 # review of the Accelerate backend work: before this, the Accelerate half of
 # test_fault_injection.cpp -- the ONLY executable coverage this repo has for
 # the SparseGetInertia-failure / kQueryFailed contract cell -- had never been
 # seen by any compiler, on any platform; this lane is what raises its claim
 # ceiling from "never compiled" to "syntax-checked against stubs", matching
-# the two backend TUs below. Neither test file actually needs the Accelerate
-# stub itself: both reach the Apple-gated code purely through
+# the two backend TUs below. None of the three test files actually needs the
+# Accelerate stub itself: all reach the Apple-gated code purely through
 # hven/linear/symmetric_factor.h's backend-neutral public API, so their
 # checks below need real gtest headers but not the stub Accelerate.h.
 #
@@ -26,7 +29,7 @@
 # (scripts/accelerate_syntax_stub/), since the real Apple SDK header does
 # not exist on this machine.
 #
-# The two test-file checks also need `-D__APPLE__` to activate their guarded
+# The three test-file checks also need `-D__APPLE__` to activate their guarded
 # blocks at all, which drags in googletest's OWN `__APPLE__` platform-
 # detection path (gtest-port.h / gtest-port-arch.h) -- NOT part of hven's
 # Accelerate surface, but real macOS SDK headers gtest itself includes
@@ -41,7 +44,7 @@
 # the stub's declared signatures, no missing #includes. It also proves the
 # non-Apple-specific parts (hven's own contract logic, Eigen usage, fmt
 # usage) compile cleanly when isolated from the rest of the codebase. For
-# the two test files: it proves the `#if defined(__APPLE__)` blocks --
+# the three test files: it proves the `#if defined(__APPLE__)` blocks --
 # including hven::linear::detail::testing::InertiaQueryFaultInjector, the
 # fabrication-fix-2 test's only executable-adjacent evidence today -- are
 # themselves syntactically well-formed and type-check against
@@ -120,7 +123,7 @@ check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp" -DHVEN_TESTI
 
 # ---- Apple-gated test-file halves ------------------------------------------
 #
-# Both files below reach their `#if defined(__APPLE__)` code purely through
+# All three files below reach their `#if defined(__APPLE__)` code purely through
 # hven/linear/symmetric_factor.h's backend-neutral public API, so they need
 # real gtest headers (not the Accelerate stub) plus -D__APPLE__ to activate
 # the guarded block. gtest is a CMake FetchContent dependency, not vendored
@@ -151,6 +154,8 @@ else
     check_one "${REPO_ROOT}/tests/linear/test_fault_injection.cpp" \
         -D__APPLE__ -DHVEN_TESTING=1 -isystem "${GTEST_INCLUDE}"
     check_one "${REPO_ROOT}/tests/linear/test_symmetric_factor_evidence_invariants.cpp" \
+        -D__APPLE__ -isystem "${GTEST_INCLUDE}"
+    check_one "${REPO_ROOT}/tests/linear/test_symmetric_factor_pardiso_only_options.cpp" \
         -D__APPLE__ -isystem "${GTEST_INCLUDE}"
 fi
 

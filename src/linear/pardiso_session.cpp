@@ -157,6 +157,19 @@ void FactorSession::analyze(const SpMatRM &A) {
     // iparm[9]: static pivot perturbation exponent -- pivots too small to
     // use are replaced by ones of magnitude ~10^-k and counted in iparm[13].
     iparm_[9] = static_cast<MKL_INT>(cfg_.pivot_perturb_exp);
+    // iparm[1]: fill-in reordering. Left untouched (pardisoinit's own value
+    // survives) when cfg_.ordering == 0; a non-zero value (2 = nested
+    // dissection via METIS, 3 = its OpenMP-parallel variant) overrides it --
+    // see SymmetricFactor::Options::Ordering.
+    if (cfg_.ordering != 0) {
+        iparm_[1] = static_cast<MKL_INT>(cfg_.ordering);
+    }
+    // iparm[12]: maximum weighted matching. Left untouched unless requested
+    // -- `false` does not write 0, it writes nothing at all, same as
+    // iparm[1] above -- see SymmetricFactor::Options::weighted_matching.
+    if (cfg_.weighted_matching) {
+        iparm_[12] = 1;
+    }
 
     matrix_ = A;
 

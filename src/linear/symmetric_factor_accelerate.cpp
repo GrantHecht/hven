@@ -290,6 +290,26 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             fmt::format("SymmetricFactor: max_refinement_iters must be >= 0, got {}",
                         opts_.max_refinement_iters));
     }
+
+    // ordering and weighted_matching are Pardiso-only concepts (they
+    // configure iparm[1] / iparm[12], which do not exist on this backend).
+    // Accelerate never silently ignores them: a non-default value throws
+    // here, at construction, naming the option and the backend, rather than
+    // being dropped on the floor.
+    static constexpr const char *kBackendName = "Accelerate";
+    if (opts_.ordering != Options::Ordering::kBackendDefault) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::ordering is a Pardiso-only option and has no {} "
+            "equivalent -- requires Ordering::kBackendDefault on this backend, got a non-default "
+            "value",
+            kBackendName));
+    }
+    if (opts_.weighted_matching) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::weighted_matching is a Pardiso-only option and has no {} "
+            "equivalent -- requires false on this backend, got true",
+            kBackendName));
+    }
 }
 
 SymmetricFactor::~SymmetricFactor() = default;

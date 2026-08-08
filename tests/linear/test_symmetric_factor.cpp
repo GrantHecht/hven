@@ -562,6 +562,143 @@ TEST(SymmetricFactor, ExplicitThreadCountChangesNeitherCountersNorSolutions) {
 }
 
 // =============================================================================
+// Ordering and weighted matching (Options::ordering, Options::
+// weighted_matching -- Pardiso-only, don't-write-by-default)
+// =============================================================================
+
+// Two independently constructed Options{} engines -- one via the type's own
+// default member initializers, one via default_options()'s explicit
+// SymmetricFactor::Options{} -- must be indistinguishable: the don't-write-
+// by-default rule for ordering/weighted_matching means neither writes
+// anything the other doesn't, so results and counters line up bit-for-bit.
+TEST(SymmetricFactor, DefaultOptionsMatchAnExplicitOptionsBaseline) {
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor baseline(SymmetricFactor::Options{});
+    baseline.analyze(A);
+    factorize_ok(baseline, A);
+    Vec x_baseline(4);
+    baseline.solve(b, x_baseline);
+
+    SymmetricFactor defaulted(default_options());
+    defaulted.analyze(A);
+    factorize_ok(defaulted, A);
+    Vec x_defaulted(4);
+    defaulted.solve(b, x_defaulted);
+
+    expect_vec_identical(x_baseline, x_defaulted);
+    EXPECT_EQ(defaulted.counters().analyze_count, baseline.counters().analyze_count);
+    EXPECT_EQ(defaulted.counters().factorize_count, baseline.counters().factorize_count);
+    EXPECT_EQ(defaulted.counters().solve_count, baseline.counters().solve_count);
+
+    ASSERT_EQ(baseline.inertia().state, InertiaEvidence::State::kObserved);
+    ASSERT_EQ(defaulted.inertia().state, InertiaEvidence::State::kObserved);
+    EXPECT_EQ(defaulted.inertia().n_pos, baseline.inertia().n_pos);
+    EXPECT_EQ(defaulted.inertia().n_neg, baseline.inertia().n_neg);
+    EXPECT_EQ(defaulted.inertia().n_zero, baseline.inertia().n_zero);
+}
+
+TEST(SymmetricFactor, NestedDissectionOrderingFactorizesAndSolvesCorrectly) {
+    SymmetricFactor::Options opts = default_options();
+    opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
+
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    EXPECT_EQ(factor.counters().factorize_count, 1);
+    EXPECT_EQ(factor.counters().solve_count, 1);
+    // Orderings change internals, never results: the counters and the
+    // inertia read the same as the default-ordering baseline above.
+    ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
+    EXPECT_EQ(factor.inertia().n_pos, 4);
+    EXPECT_EQ(factor.inertia().n_neg, 0);
+    EXPECT_EQ(factor.inertia().n_zero, 0);
+}
+
+TEST(SymmetricFactor, ParallelNestedDissectionOrderingFactorizesAndSolvesCorrectly) {
+    SymmetricFactor::Options opts = default_options();
+    opts.ordering = SymmetricFactor::Options::Ordering::kParallelNestedDissection;
+
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    EXPECT_EQ(factor.counters().factorize_count, 1);
+    EXPECT_EQ(factor.counters().solve_count, 1);
+    ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
+    EXPECT_EQ(factor.inertia().n_pos, 4);
+    EXPECT_EQ(factor.inertia().n_neg, 0);
+    EXPECT_EQ(factor.inertia().n_zero, 0);
+}
+
+TEST(SymmetricFactor, WeightedMatchingFactorizesAndSolvesCorrectly) {
+    SymmetricFactor::Options opts = default_options();
+    opts.weighted_matching = true;
+
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    EXPECT_EQ(factor.counters().factorize_count, 1);
+    EXPECT_EQ(factor.counters().solve_count, 1);
+    ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
+    EXPECT_EQ(factor.inertia().n_pos, 4);
+    EXPECT_EQ(factor.inertia().n_neg, 0);
+    EXPECT_EQ(factor.inertia().n_zero, 0);
+}
+
+// The inverse of the Accelerate throw-path guard in
+// test_symmetric_factor_pardiso_only_options.cpp: on the MKL platform these
+// options actually configure Pardiso, so the exact same non-default values
+// that throw on Accelerate must NOT throw here.
+TEST(SymmetricFactor, NonDefaultPardisoOnlyOptionsDoNotThrowOnMkl) {
+    SymmetricFactor::Options ordering_opts = default_options();
+    ordering_opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
+    EXPECT_NO_THROW(SymmetricFactor{ordering_opts});
+
+    ordering_opts.ordering = SymmetricFactor::Options::Ordering::kParallelNestedDissection;
+    EXPECT_NO_THROW(SymmetricFactor{ordering_opts});
+
+    SymmetricFactor::Options matching_opts = default_options();
+    matching_opts.weighted_matching = true;
+    EXPECT_NO_THROW(SymmetricFactor{matching_opts});
+}
+
+// =============================================================================
 // Epochs and shared handles
 // =============================================================================
 

@@ -192,6 +192,24 @@ class SymmetricFactor {
         // Maximum iterative-refinement steps for a full solve. Partial
         // solves always run with refinement off -- see solve_partial().
         int max_refinement_iters = 0;
+
+        // Fill-in reordering for the symbolic analysis (Pardiso iparm[1]).
+        // DON'T-WRITE-BY-DEFAULT: at kBackendDefault, hven does not touch
+        // iparm[1] at all, so pardisoinit's own value survives exactly.
+        // kNestedDissection writes iparm[1] = 2 (METIS nested dissection);
+        // kParallelNestedDissection writes iparm[1] = 3 (its OpenMP-parallel
+        // variant). Pardiso-only: a non-default value THROWS
+        // std::invalid_argument at construction on the Accelerate backend,
+        // which has no equivalent concept.
+        enum class Ordering { kBackendDefault, kNestedDissection, kParallelNestedDissection };
+        Ordering ordering = Ordering::kBackendDefault;
+
+        // Maximum weighted matching (Pardiso iparm[12]). DON'T-WRITE-BY-
+        // DEFAULT: `false` does NOT write iparm[12] = 0, it leaves the entry
+        // untouched; only `true` writes iparm[12] = 1. Pardiso-only: `true`
+        // THROWS std::invalid_argument at construction on the Accelerate
+        // backend, which has no equivalent concept.
+        bool weighted_matching = false;
     };
 
     // The three factors of a symmetric factorization, solved against

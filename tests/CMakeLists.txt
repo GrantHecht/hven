@@ -47,6 +47,11 @@ set(HVEN_TEST_SOURCES
     # docs/testing.md and the file's own header comment. Deliberately NOT
     # gated by platform, unlike test_symmetric_factor.cpp below.
     linear/test_symmetric_factor_evidence_invariants.cpp
+    # Options::ordering / Options::weighted_matching throw-path coverage:
+    # internally platform-gated (like test_fault_injection.cpp), so it
+    # compiles into hven_tests on every platform and asserts the throw on
+    # Accelerate, the inverse guard on MKL.
+    linear/test_symmetric_factor_pardiso_only_options.cpp
 )
 
 # SymmetricFactor's MKL-specific tests follow the same platform split as its
