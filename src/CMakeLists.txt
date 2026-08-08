@@ -7,4 +7,5 @@
 target_sources(hven PRIVATE
     core/version.cpp
     core/pattern_hash.cpp
+    linear/dense_symmetric_factor.cpp
 )
