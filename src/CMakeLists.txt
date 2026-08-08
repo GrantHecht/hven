@@ -6,4 +6,5 @@
 
 target_sources(hven PRIVATE
     core/version.cpp
+    core/pattern_hash.cpp
 )
