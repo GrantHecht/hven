@@ -2,10 +2,12 @@
 // the platforms whose sparse backend is MKL (see src/CMakeLists.txt); the
 // Apple Accelerate backend implements the same header in its own TU.
 //
-// Everything Pardiso-shaped lives one layer down, in PardisoSession: this TU
-// owns the contract -- validation, pattern-hash discipline, counters, epochs,
-// the entitlement rules around shared sessions -- and none of the backend's
-// vocabulary.
+// Everything Pardiso-shaped lives one layer down, in FactorSession (the
+// concrete definition this TU gives to hven/linear/symmetric_factor.h's
+// backend-neutral forward declaration -- see
+// hven/detail/linear/pardiso_session.h): this TU owns the contract --
+// validation, pattern-hash discipline, counters, epochs, the entitlement
+// rules around shared sessions -- and none of the backend's vocabulary.
 
 #include "hven/linear/symmetric_factor.h"
 
@@ -104,7 +106,7 @@ void validate_upper_csr(const SpMatRM &A) {
 // by subtraction and flagged as derived; the perturbed-pivot counter is
 // always present after a successful factorization on this backend, so it is
 // reported as a value, never as an absence.
-InertiaEvidence evidence_of(const detail::PardisoSession &session) {
+InertiaEvidence evidence_of(const detail::FactorSession &session) {
     InertiaEvidence evidence;
     evidence.state = InertiaEvidence::State::kObserved;
     evidence.n_pos = session.num_pos_eigs();
@@ -117,7 +119,7 @@ InertiaEvidence evidence_of(const detail::PardisoSession &session) {
 
 // Shared solve bodies: SymmetricFactor and Factorization differ in who may
 // call them, not in what they do.
-SolveInfo run_solve(const detail::PardisoSession &session, ConstMatRef RHS, MatRef X,
+SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRef X,
                     const char *what) {
     if (RHS.rows() != session.dim()) {
         throw std::invalid_argument(
@@ -160,7 +162,7 @@ SolveInfo run_solve(const detail::PardisoSession &session, ConstMatRef RHS, MatR
     return info;
 }
 
-SolveInfo run_solve(const detail::PardisoSession &session, ConstVecRef rhs, VecRef x,
+SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRef x,
                     const char *what) {
     if (rhs.size() != session.dim()) {
         throw std::invalid_argument(
@@ -238,7 +240,7 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // factorization any outstanding handle is co-owning. Committing the new
     // session only after the backend succeeds also means a failed analysis
     // leaves this engine exactly as it was.
-    auto session = std::make_shared<detail::PardisoSession>(config_from(opts_), epoch());
+    auto session = std::make_shared<detail::FactorSession>(config_from(opts_), epoch());
     session->analyze(A);
 
     session_ = std::move(session);
@@ -292,7 +294,7 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
         //
         // No test reaches this branch: this backend does not refuse a
         // symmetric indefinite factorization, it perturbs its way through one
-        // (see the note in PardisoSession::factorize). Correctness here rests
+        // (see the note in FactorSession::factorize). Correctness here rests
         // on inspection, which is why the failure handling is a single
         // unconditional statement.
     }
@@ -368,7 +370,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
         throw std::invalid_argument("SymmetricFactor::adopt: handle must not be null");
     }
 
-    const std::shared_ptr<detail::PardisoSession> &session = handle->session_;
+    const std::shared_ptr<detail::FactorSession> &session = handle->session_;
     const detail::PardisoConfig &cfg = session->config();
 
     // The adopting engine drives the emitter's session, so it inherits the
@@ -421,7 +423,7 @@ void SymmetricFactor::require_solvable(const char *what) const {
 // Factorization
 // =============================================================================
 
-Factorization::Factorization(PrivateTag, std::shared_ptr<detail::PardisoSession> session,
+Factorization::Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
                              std::uint64_t pattern_hash, std::uint64_t epoch)
     : session_(std::move(session)), pattern_hash_(pattern_hash), epoch_(epoch) {}
 

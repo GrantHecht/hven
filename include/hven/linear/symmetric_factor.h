@@ -43,10 +43,16 @@ namespace hven::linear {
 
 namespace detail {
 
-// The backend session (Pardiso handle, its parameter array, and the CSR copy
-// it factorizes). Deliberately incomplete here: no backend type reaches this
-// header, so consumers never need MKL's headers on their include path.
-class PardisoSession;
+// The backend factorization session (Pardiso's phase-driven handle on MKL
+// platforms; Accelerate's symbolic/numeric factorization pair on Apple).
+// Deliberately incomplete here: no backend type reaches this header, so
+// consumers never need MKL's or Accelerate's headers on their include path.
+// The name is backend-NEUTRAL on purpose: exactly one concrete definition of
+// this type is ever compiled into a given build (src/linear/ picks the
+// platform's implementation the same way DenseSymmetricFactor's backend split
+// does), so both backends' session headers define a class with this exact
+// name rather than a backend-qualified one that would leak here.
+class FactorSession;
 
 // Eigen binds a vector to a matrix Ref and a matrix to a vector Ref, so a
 // pair of solve(vector) / solve(matrix) overloads spelled purely in terms of
@@ -389,7 +395,7 @@ class SymmetricFactor {
     bool has_usable_numerics() const;
 
     Options opts_;
-    std::shared_ptr<detail::PardisoSession> session_;
+    std::shared_ptr<detail::FactorSession> session_;
     std::uint64_t pattern_hash_ = 0;
     bool has_pattern_ = false;
 
@@ -424,7 +430,7 @@ class Factorization {
     friend class SymmetricFactor;
 
   public:
-    Factorization(PrivateTag, std::shared_ptr<detail::PardisoSession> session,
+    Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
                   std::uint64_t pattern_hash, std::uint64_t epoch);
     ~Factorization();
 
@@ -457,7 +463,7 @@ class Factorization {
   private:
     SolveInfo solve_single(ConstVecRef rhs, VecRef x) const;
 
-    std::shared_ptr<detail::PardisoSession> session_;
+    std::shared_ptr<detail::FactorSession> session_;
     std::uint64_t pattern_hash_ = 0;
     std::uint64_t epoch_ = 0;
 };

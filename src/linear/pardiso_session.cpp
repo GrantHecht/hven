@@ -88,16 +88,16 @@ const char *pardiso_error_text(MKL_INT code) {
 
 } // namespace
 
-PardisoSession::PardisoSession(const PardisoConfig &cfg, std::uint64_t initial_epoch)
+FactorSession::FactorSession(const PardisoConfig &cfg, std::uint64_t initial_epoch)
     : cfg_(cfg), epoch_(initial_epoch) {
     pt_.fill(nullptr);
     iparm_.fill(0);
 }
 
-PardisoSession::~PardisoSession() { release(); }
+FactorSession::~FactorSession() { release(); }
 
-MKL_INT PardisoSession::run_phase(MKL_INT phase, bool use_matrix, MKL_INT nrhs, const double *b,
-                                  double *x) const {
+MKL_INT FactorSession::run_phase(MKL_INT phase, bool use_matrix, MKL_INT nrhs, const double *b,
+                                 double *x) const {
     MKL_INT maxfct = 1;
     MKL_INT mnum = 1;
     MKL_INT mtype = static_cast<MKL_INT>(cfg_.mtype);
@@ -122,7 +122,7 @@ MKL_INT PardisoSession::run_phase(MKL_INT phase, bool use_matrix, MKL_INT nrhs, 
     return error;
 }
 
-void PardisoSession::release() noexcept {
+void FactorSession::release() noexcept {
     if (!active_) {
         return;
     }
@@ -134,7 +134,7 @@ void PardisoSession::release() noexcept {
     has_numerics_ = false;
 }
 
-void PardisoSession::analyze(const SpMatRM &A) {
+void FactorSession::analyze(const SpMatRM &A) {
     release();
 
     n_ = static_cast<MKL_INT>(A.rows());
@@ -172,7 +172,7 @@ void PardisoSession::analyze(const SpMatRM &A) {
     has_numerics_ = false;
 }
 
-int PardisoSession::factorize(const SpMatRM &A) {
+int FactorSession::factorize(const SpMatRM &A) {
     if (!active_) {
         throw std::runtime_error(
             "SymmetricFactor::factorize: no symbolic analysis is available in this session");
@@ -228,7 +228,7 @@ int PardisoSession::factorize(const SpMatRM &A) {
     return 0;
 }
 
-void PardisoSession::solve(const double *b, double *x, Index nrhs) const {
+void FactorSession::solve(const double *b, double *x, Index nrhs) const {
     const MKL_INT error =
         run_phase(/*phase=*/33, /*use_matrix=*/true, static_cast<MKL_INT>(nrhs), b, x);
     if (error != 0) {
@@ -240,7 +240,7 @@ void PardisoSession::solve(const double *b, double *x, Index nrhs) const {
     refinement_iters_ = iparm_[6];
 }
 
-void PardisoSession::solve_partial(int phase, const double *b, double *x) const {
+void FactorSession::solve_partial(int phase, const double *b, double *x) const {
     // Pardiso documents that a step-by-step (phase 33x) solve requires the
     // refinement cap at zero, "otherwise PARDISO produces wrong result" --
     // silently, with no error code. Saved and restored around the call so a

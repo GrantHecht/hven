@@ -70,17 +70,29 @@ struct PardisoConfig {
 //
 // Not internally synchronized -- see the thread-safety note on the public
 // class.
-class PardisoSession {
+//
+// Named `FactorSession`, not `PardisoSession`: hven/linear/symmetric_factor.h
+// (the backend-neutral public header) forward-declares and holds this type by
+// that name, so the ONE session type actually compiled into a given build --
+// this one on MKL platforms, its Accelerate counterpart
+// (hven/detail/linear/accelerate_session.h) on Apple -- must share it. No
+// polymorphism is involved: src/CMakeLists.txt compiles exactly one of the
+// two implementations per platform (mirroring how the dense component splits
+// platforms), so there is only ever one definition of
+// hven::linear::detail::FactorSession in a linked binary. Everything else
+// about this class -- its Pardiso-specific fields, methods, and call
+// discipline -- is unchanged from its origin as PardisoSession.
+class FactorSession {
   public:
     // `initial_epoch` seeds this session's numeric epoch so that an engine
     // re-analyzing into a fresh session continues its epoch sequence instead
     // of restarting it, which would let one epoch value name two different
     // sets of numerics.
-    PardisoSession(const PardisoConfig &cfg, std::uint64_t initial_epoch);
-    ~PardisoSession();
+    FactorSession(const PardisoConfig &cfg, std::uint64_t initial_epoch);
+    ~FactorSession();
 
-    PardisoSession(const PardisoSession &) = delete;
-    PardisoSession &operator=(const PardisoSession &) = delete;
+    FactorSession(const FactorSession &) = delete;
+    FactorSession &operator=(const FactorSession &) = delete;
 
     // Pardiso phase 11. Takes the CSR copy this session will factorize.
     // Throws std::runtime_error carrying Pardiso's error code on failure.
