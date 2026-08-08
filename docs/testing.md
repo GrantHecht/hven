@@ -345,12 +345,23 @@ recorded row carries the mechanism and the value it pinned to.
 
 One leg deliberately escapes that pin: T8's unasserted smoke leg, whose whole
 subject is what happens at more than one thread. It requests an explicit count
-above one through the seam's own control, which overrides the environment
-setting — so the trace measures something real under the invocation above
-rather than comparing a run against itself. The count it used is recorded
-beside the deviation, because a cross-thread deviation cannot be read without
-it, and "no deviation" and "nothing varied" look identical otherwise. No other
-leg does this, and none of T8's asserted rows come from it.
+above one, which overrides the environment setting either way — **on the native
+arms through the seam's own per-instance control; on the old-seam arms through
+the rig's process pin, since those seams have no control of their own** — so
+the trace measures something real under the invocation above rather than
+comparing a run against itself. No other leg does this, and none of T8's
+asserted rows come from it.
+
+The three quantities that leg produces (the deviation, the bitwise flag, the
+count it used) are emitted with kind `record-only`: each describes a comparison
+BETWEEN two thread settings, so no single thread pin describes it, and the
+expected-table reader **refuses that kind outright**. Stamped with the asserted
+leg's pin they would have read as ordinary pinned rows, and a derivation
+following the copy-the-report-rows workflow would have committed a
+run-to-run-nondeterministic number at a tight tolerance with the pin-refusal
+unable to catch it. They are printed in their own clearly-labelled block of the
+report, outside the paste-me section, and carry the smoke leg's own mechanism
+and count so the artifact says what was actually measured.
 
 ### The report target
 
@@ -410,6 +421,29 @@ fail on the interior-point old seam's Apple arm for the same reason. It passes
 on the interior-point seam under MKL, honestly: the counts are genuinely
 indeterminate there, so its adapter reports the absence of a defined state
 rather than inventing one.
+
+**A fail-by-design needs a control, and has one.** The arrangement has its own
+quiet failure mode: if an adapter regresses to smoothing, the trace stops
+failing, the suite goes green, and nothing says the finding was lost.
+`fail_by_design_control.cpp` asserts the OPPOSITE of what those traces assert —
+that the old seam really does produce the dishonest evidence, in the documented
+shape — so a regression is loud in one direction or the other and cannot pass
+silently. Mutation-checked: restoring the smoothing guard in the SQP adapter
+turns `P5` fully green while the control goes red.
+
+**Derivation checklist — the three-seam run MUST NOT be all-green.** The
+expected result is:
+
+```
+99% tests passed, 1 tests failed out of 151
+    Arms/PsioptTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
+```
+
+One failure, that exact entry, with all three `FailByDesignControl.*` tests
+green. All-green means the fail-by-design stopped firing and the run is not
+usable for derivation until that is explained; two or more failures means
+something else broke as well. Check the count and the name, not just the
+colour.
 
 ### Capabilities, and why a trace skips
 
