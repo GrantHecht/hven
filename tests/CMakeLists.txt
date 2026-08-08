@@ -131,3 +131,13 @@ endif()
 target_compile_options(hven_fault_injection_tests PRIVATE ${COMPILE_FLAGS})
 
 gtest_discover_tests(hven_fault_injection_tests)
+
+################################################################################
+# The golden-numerics rig: the harness, the seam adapters, the traces, the
+# expected-table machinery, and the consumed-surface audit tooling. Its native
+# arms need nothing beyond this repository and run here on every build; its two
+# old-seam arms are built only when their sibling checkout is named. See
+# tests/golden_rig/CMakeLists.txt and docs/testing.md's rig section.
+################################################################################
+
+add_subdirectory(golden_rig)
