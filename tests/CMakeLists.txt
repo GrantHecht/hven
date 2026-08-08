@@ -27,10 +27,41 @@ FetchContent_MakeAvailable(googletest)
 # Clang with MSVC headers: suppress char8_t->char32_t implicit conversion
 # warning in gtest-printers.h. gtest compiles with -WX so this becomes an
 # error without the suppression. Mirrors tycho's tests/cpp/CMakeLists.txt.
+#
+# -Wno-character-conversion is itself a version-dependent flag: clang only
+# grew a -Wcharacter-conversion diagnostic group at some point after LLVM
+# 20 (confirmed on hven's own Windows CI runner, clang-cl reporting "Clang
+# 20.1.8 with MSVC-like command-line" -- the flag is unrecognized there and,
+# because gtest's own /WX is already active on these two targets, an
+# unrecognized -Wno-* is promoted from clang's usual
+# -Wunknown-warning-option *warning* to a hard error, failing the build
+# outright rather than just losing the suppression). check_cxx_compiler_flag
+# probes for it first so the suppression is applied only where the compiler
+# actually understands it; CMAKE_REQUIRED_FLAGS=-Werror during the probe is
+# the standard belt-and-suspenders for this exact clang gotcha (some CMake
+# versions already promote -Wunknown-warning-option internally for
+# Clang-family compilers when probing a -Wno-* flag, but not all did before
+# this project's own CMake floor, so the probe does not rely on that).
 if(WIN32)
+    include(CheckCXXCompilerFlag)
+    set(CMAKE_REQUIRED_FLAGS "-Werror")
+    check_cxx_compiler_flag("-Wno-character-conversion" HVEN_HAS_NO_CHARACTER_CONVERSION_FLAG)
+    unset(CMAKE_REQUIRED_FLAGS)
     foreach(_t gtest gtest_main)
         if(TARGET ${_t})
-            target_compile_options(${_t} PRIVATE -Wno-character-conversion)
+            if(HVEN_HAS_NO_CHARACTER_CONVERSION_FLAG)
+                target_compile_options(${_t} PRIVATE -Wno-character-conversion)
+            else()
+                message(STATUS
+                    "${_t}: this clang does not recognize the -Wcharacter-conversion "
+                    "diagnostic group -- skipping the -Wno-character-conversion "
+                    "suppression (nothing to suppress if the compiler has no such "
+                    "warning to raise in the first place; not independently verified "
+                    "here, so if gtest-printers.h's char8_t->char32_t conversion does "
+                    "still fail /WX under a diagnostic with a different name on this "
+                    "compiler, that will surface as a build failure right after this "
+                    "message rather than silently).")
+            endif()
         endif()
     endforeach()
 endif()
