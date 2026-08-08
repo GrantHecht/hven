@@ -9,6 +9,13 @@ Individual hven source files derived from Eigen code (if any) carry an
 MPL-2.0 notice in their file headers and are listed here as they are
 added.
 
+  include/hven/detail/linear/pardiso_session.h
+  src/linear/pardiso_session.cpp
+      Derived from Eigen's PardisoSupport module: the Pardiso call
+      discipline -- the argument block handed to ::pardiso, the phase
+      sequence (symbolic / numeric / solve / release), the parameter-array
+      value set, and the handling of Pardiso's error codes.
+
   Package:   Eigen
   Source:    https://eigen.tuxfamily.org/
   License:   Mozilla Public License, Version 2.0 (reproduced in full below)
