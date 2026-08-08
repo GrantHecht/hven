@@ -26,7 +26,7 @@
 // UNOBSERVED: this file has been syntax-checked against a minimal local stub
 // of <Accelerate/Accelerate.h> on Linux (see scripts/check_accelerate_syntax_
 // linux.sh) but has never been compiled against the real Accelerate headers
-// or run on Apple hardware. See docs/testing.md and the Task-6 report for
+// or run on Apple hardware. See docs/testing.md for
 // exactly what that check does and does not prove.
 
 #include "hven/linear/symmetric_factor.h"

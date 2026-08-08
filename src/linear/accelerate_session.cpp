@@ -192,7 +192,7 @@ int FactorSession::factorize(const SpMatRM &A) {
     // and it is UNOBSERVED on real Accelerate hardware. The Mac leg's
     // checklist item: A/B k=8 (this default) against k=4 (the hardware-
     // proven value) on the golden-rig fixtures, not merely "confirm no
-    // surprising effect" -- see the Task-6 report's fix-round section.
+    // surprising effect" -- flagged for hardware adjudication on the Mac leg.
     SparseNumericFactorOptions nopts{};
     nopts.control = SparseDefaultControl;
     nopts.scalingMethod = SparseScalingDefault;
@@ -230,7 +230,7 @@ void FactorSession::solve(const double *b, double *x, Index nrhs) const {
     // One column at a time via the DenseVector_Double overload -- the exact
     // call shape KktSystem::solve uses on real hardware. Deliberately not
     // batched through a DenseMatrix_Double call (see the header comment and
-    // the Task-6 report): this keeps every Accelerate call this session
+    // the review record): this keeps every Accelerate call this session
     // makes traceable to a call shape that has actually run on Apple
     // hardware, at the cost of nrhs separate SparseSolve calls instead of
     // one.

@@ -18,7 +18,7 @@
 // proves internal self-consistency of hven's own code (types used the way
 // they are declared, no typos, no missing includes) -- it does NOT prove
 // this stub matches Apple's real API, and therefore does NOT prove the
-// real code will compile on Apple hardware. See the Task-6 report.
+// real code will compile on Apple hardware. See docs/testing.md's claim-ceiling section.
 //
 // No SNOPT, no Apple-copyrighted material, and no decompiled/reconstructed
 // header content is present here -- every declaration is a minimal

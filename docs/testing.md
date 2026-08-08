@@ -1,15 +1,15 @@
-#The test - seam convention
+# The test-seam convention
 
-hven has two sparse backends(MKL Pardiso, Apple Accelerate),
-    and both have at least one fault path a real backend cannot be made to take from any fixture
-    this repository can build : MKL will not genuinely refuse a symmetric indefinite `factorize()` (
-                                    static pivot perturbation gets through everything tried),
-    and Accelerate's inertia query has no known input that provokes a failure independent of a
-        successful factorization.Both paths matter — the frozen
-        contract's fabrication fixes (`docs / dev / plans / 2026 - 08 - 08 - hven - m1 - linear -
-                                      and-rig - spec.md` A.5) exist
-        specifically to make these paths honest — so they need executable coverage,
-    not just inspection.This page is the ONE place the convention that covers them is designed; every backend/component that needs a fault-injection seam
+hven has two sparse backends (MKL Pardiso, Apple Accelerate), and both
+have at least one fault path a real backend cannot be made to take from
+any fixture this repository can build: MKL will not genuinely refuse a
+symmetric indefinite `factorize()` (static pivot perturbation gets
+through everything tried), and Accelerate's inertia query has no known
+input that provokes a failure independent of a successful factorization.
+Both paths matter — the per-backend evidence contract exists specifically
+to make these paths honest — so they need executable coverage, not just
+inspection. This page is the ONE place the convention that covers them is
+designed; every backend/component that needs a fault-injection seam
 should use it rather than inventing another.
 
 ## Where instrumentation goes: a preference, with an escape
@@ -108,14 +108,12 @@ executable that:
 - recompiles the platform's own adapter TU (`symmetric_factor_mkl.cpp` /
   `symmetric_factor_accelerate.cpp`) a **second time**, as its own object,
   with `HVEN_TESTING` defined;
-- does * *
-    not **link `hven::hven`
-              .
+- does **not** link `hven::hven`.
 
-          Not linking `hven::hven` is not just tidiness — it is
-              required.Both this target 's freshly-compiled adapter object and `libhven.a`' s own
-                  define `hven::linear::SymmetricFactor`'s and `Factorization`' s methods; linking
-both into one binary would be a duplicate-symbol error. The consequence is
+Not linking `hven::hven` is not just tidiness — it is required. Both this
+target's freshly-compiled adapter object and `libhven.a`'s own object
+define `hven::linear::SymmetricFactor`'s and `Factorization`'s methods;
+linking both into one binary would be a duplicate-symbol error. The consequence is
 also the point: the production `hven` library target, and `hven_tests`
 (which links it), never see `HVEN_TESTING` and are compiled exactly as they
 would be if `fault_injection.h` and `hven_fault_injection_tests` did not
@@ -440,10 +438,19 @@ expected result is:
 ```
 
 One failure, that exact entry, with all three `FailByDesignControl.*` tests
-green. All-green means the fail-by-design stopped firing and the run is not
-usable for derivation until that is explained; two or more failures means
-something else broke as well. Check the count and the name, not just the
-colour.
+green — ON LINUX. The expected shape is platform-specific:
+
+- Linux three-seam run: 151 tests, exactly 1 failure (the entry above),
+  3 controls green.
+- Mac three-seam run (when the psiopt adapter's Apple arm exists): 152
+  tests, exactly 2 expected failures (the entry above AND P5 on the
+  interior-point old seam's Apple arm — its defined zero-fill), 4
+  controls green.
+
+On either platform: all-green means a fail-by-design stopped firing and
+the run is not usable for derivation until that is explained; more
+failures than the platform's expected count means something else broke
+as well. Check the counts and the names, not just the colour.
 
 ### Capabilities, and why a trace skips
 

@@ -29,7 +29,7 @@ else()
     # UNOBSERVED beyond a Linux syntax-only structural pass against a stub
     # Accelerate.h (scripts/check_accelerate_syntax_linux.sh) -- this branch
     # has never been configured or built by this development pass. See
-    # docs/testing.md and the Task-6 report for exactly what that pass does
+    # docs/testing.md for exactly what that pass does
     # and does not prove.
     target_sources(hven PRIVATE
         linear/accelerate_session.cpp

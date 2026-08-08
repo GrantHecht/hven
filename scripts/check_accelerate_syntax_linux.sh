@@ -73,7 +73,7 @@
 # The claim ceiling for anything this script demonstrates is exactly:
 # "syntax-checked against stubs on Linux." Nothing here may be cited as
 # evidence the Accelerate backend compiles, links, or runs on Apple
-# hardware -- see docs/testing.md and the Task-6 report.
+# hardware -- see docs/testing.md.
 #
 # Usage: scripts/check_accelerate_syntax_linux.sh
 # Environment overrides: CXX (default: clang++)

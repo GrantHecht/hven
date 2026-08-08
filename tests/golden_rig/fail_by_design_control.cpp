@@ -27,9 +27,8 @@
 namespace hven::rig {
 namespace {
 
-namespace hl = hven::linear;
-
 #if defined(HVEN_RIG_HAVE_SQP_SEAM)
+namespace hl = hven::linear;
 // The SQP old seam's parameter array is zero-filled at construction and its
 // three inertia accessors are plain reads of it, so asking for an inertia
 // before anything has been factorized returns a complete, real-looking triple

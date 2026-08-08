@@ -21,7 +21,7 @@
 // are the ones that have actually run against real Accelerate on real Mac
 // hardware, per tycho_sqp/docs/notes/2026-07-29-accelerate-audit-results.md.
 // This file's own compilation and execution on Apple hardware is UNOBSERVED
-// -- see docs/testing.md and the Task-6 report for exactly what is and is
+// -- see docs/testing.md for exactly what is and is
 // not verified here.
 //
 // MPL-2.0 applies to THIS FILE only, as the license permits; the remainder of
@@ -66,7 +66,7 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // fabricating one -- and no
 // native iterative-refinement counter this session can honestly report (a
 // hand-rolled refinement loop, as tycho's AccelerateImpl implements via vDSP,
-// is deliberately NOT ported here -- see the Task-6 report for why: an
+// is deliberately NOT ported here: an
 // unverified numerical loop with zero ability to check it on this Linux-only
 // development pass is a correctness risk this task declines to take on
 // speculatively).
@@ -131,7 +131,7 @@ class FactorSession {
     // DenseVector_Double SparseSolve overload (the exact call shape
     // KktSystem::solve uses on real hardware). `nrhs` columns are solved in
     // a loop rather than through a batched DenseMatrix_Double call:
-    // deliberately conservative, see the Task-6 report for why. `b` and `x`
+    // deliberately conservative (unverified on hardware). `b` and `x`
     // are contiguous column-major buffers of dim() * nrhs doubles and must
     // not alias. Throws std::runtime_error on any Accelerate error.
     void solve(const double *b, double *x, Index nrhs) const;
