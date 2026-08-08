@@ -2,8 +2,7 @@
 // ONCE, compiled and run on BOTH backends (see tests/CMakeLists.txt: this
 // file, unlike test_symmetric_factor.cpp, is NOT gated by `if(NOT APPLE)`).
 // Every assertion here is phrased purely in terms of the public API and the
-// frozen contract's per-backend semantics table
-// (docs/dev/plans/2026-08-08-hven-m1-linear-and-rig-spec.md A.5), so it is
+// frozen contract's per-backend semantics table, so it is
 // meaningful -- and, on whichever platform this build targets, actually
 // exercised against a REAL backend -- regardless of which one that is. See
 // docs/testing.md for how this fits alongside the two backend-specific
@@ -61,8 +60,8 @@ Mat spd4() {
 // so the invariant list itself has one definition.
 void expect_evidence_invariants(const InertiaEvidence &evidence) {
     // kQueryFailed means the counts are INVALID, never a zero-filled
-    // plausible-looking triple (the frozen contract's fabrication fix,
-    // A.5). Vacuous on a healthy factorization -- the backend-specific
+    // plausible-looking triple (the frozen contract's fabrication fix).
+    // Vacuous on a healthy factorization -- the backend-specific
     // fault-injection tests are what actually drive a real backend into
     // this state -- but a regression that let a failed query report
     // zero-filled counts on some future input would trip this the moment
@@ -76,7 +75,7 @@ void expect_evidence_invariants(const InertiaEvidence &evidence) {
     }
 
     // perturbed_pivots is a backend-qualified optional: present with
-    // Pardiso's semantics on MKL, absent on Accelerate (A.3/A.5). Whichever
+    // Pardiso's semantics on MKL, absent on Accelerate. Whichever
     // it is, a PRESENT value is never negative -- it is a count.
     if (evidence.perturbed_pivots.has_value()) {
         EXPECT_GE(*evidence.perturbed_pivots, 0);
@@ -98,14 +97,15 @@ TEST_F(SymmetricFactorEvidenceInvariants, ObservedEvidenceSatisfiesTheHonestyInv
     expect_evidence_invariants(factor.inertia());
 }
 
-// A.3: "False before the first successful factorization ... and false
-// whenever this engine has no usable numerics." True regardless of which
+// The predicate's own contract: false before the first successful
+// factorization, and false whenever this engine has no usable numerics. True
+// regardless of which
 // backend answers it, since neither backend can have usable numerics yet.
 TEST_F(SymmetricFactorEvidenceInvariants, PartialSolveUnsupportedBeforeAnyFactorization) {
     EXPECT_FALSE(factor.supports_partial_solve());
 }
 
-// A.3: absent perturbation evidence means composability is unverifiable, so
+// Absent perturbation evidence means composability is unverifiable, so
 // the predicate must answer false -- the conservative rung, checked against
 // whatever this platform's backend actually reports rather than assumed.
 TEST_F(SymmetricFactorEvidenceInvariants, AbsentPerturbedPivotsImpliesPartialSolveUnsupported) {
@@ -119,7 +119,8 @@ TEST_F(SymmetricFactorEvidenceInvariants, AbsentPerturbedPivotsImpliesPartialSol
     }
 }
 
-// A.5's table, checked by construction rather than assumed: MKL's zero class
+// The per-backend semantics table, checked by construction rather than
+// assumed: MKL's zero class
 // is DERIVED (dim - n_pos - n_neg); Accelerate's is a native 3-way report.
 // The two platforms disagree on the expected value, so this is the one
 // assertion in this file that needs to know which backend it is running

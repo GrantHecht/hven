@@ -30,8 +30,8 @@
 // What is NOT derived: the session lifecycle, ownership and epoch semantics,
 // evidence reporting, the pivot_perturb_exp -> zeroTolerance mapping, and the
 // partial-solve subfactor discipline around it are hven's own and exist to
-// serve the frozen interface contract of hven/linear/symmetric_factor.h
-// (docs/dev/plans/2026-08-08-hven-m1-linear-and-rig-spec.md Part A, table A.5).
+// serve the frozen interface contract of hven/linear/symmetric_factor.h and
+// its per-backend semantics table.
 // =============================================================================
 
 #include <cstdint>
@@ -61,8 +61,9 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 //
 // num_threads and max_refinement_iters are stored here (so SymmetricFactor::
 // adopt() can round-trip Options faithfully) but NOT applied to any backend
-// call: Accelerate exposes no per-instance thread control (A.6: "documented
-// best-effort-absent on Accelerate -- no public thread control") and no
+// call: Accelerate exposes no per-instance thread control -- the contract
+// records that control as best-effort-absent on this backend rather than
+// fabricating one -- and no
 // native iterative-refinement counter this session can honestly report (a
 // hand-rolled refinement loop, as tycho's AccelerateImpl implements via vDSP,
 // is deliberately NOT ported here -- see the Task-6 report for why: an

@@ -144,12 +144,12 @@ void validate_upper_csr(const SpMatRM &A) {
 // can inject its failure without touching the MPL-derived session file. A
 // query failure is reported as kQueryFailed with the counts left at their
 // invalid sentinel (-1), NEVER zero-filled -- the frozen contract's
-// fabrication fix (docs/dev/plans/2026-08-08-hven-m1-linear-and-rig-spec.md
-// A.5). perturbed_pivots is unconditionally absent: Accelerate has no
-// perturbed-pivot counter, and absence is the honest state (also A.5 -- NOT
-// the SQP shim's superseded choice of mapping Accelerate's zero-pivot count
-// into that field, which the frozen table's "less informative, never
-// differently-valued" degradation rule forbids as of this contract).
+// fabrication fix. perturbed_pivots is unconditionally absent: Accelerate has
+// no perturbed-pivot counter, and absence is the honest state -- NOT the SQP
+// shim's superseded choice of mapping Accelerate's zero-pivot count into that
+// field, which the contract's degradation rule (a reading on this backend may
+// be LESS INFORMATIVE than the reference one, never DIFFERENTLY VALUED)
+// forbids.
 InertiaEvidence evidence_of(const detail::FactorSession &session) {
     InertiaEvidence evidence;
     if (!session.has_numerics()) {
@@ -443,7 +443,7 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
 // absent on this backend (evidence_of() never populates perturbed_pivots),
 // so composability of the partial-solve stages is unverifiable by
 // construction, not merely uninvestigated. This is the frozen contract's
-// conservative rung (A.3/A.5) -- never a fabricated true, and NOT gated on
+// conservative rung -- never a fabricated true, and NOT gated on
 // has_usable_numerics() the way the MKL twin's predicate is, because there
 // is no numerics-dependent case where this backend could honestly answer
 // true.
