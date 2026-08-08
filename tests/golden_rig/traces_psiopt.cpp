@@ -299,12 +299,30 @@ TEST_P(PsioptTrace, P6_RefinementStepEvidence) {
     Vec x(fx.K.rows());
     const hl::SolveInfo info = seam->solve(fx.rhs, x);
 
+    // RIG_REQUIRE above already skips any arm whose capabilities() reports
+    // reports_refinement_iters == false -- the psiopt old seam correctly
+    // does this on Apple (seam_psiopt.cpp's kReportsRefinementIters is
+    // false there), so the only arm that reaches this point on Apple is
+    // native, whose capability is unconditionally true on every backend (the
+    // std::optional surface exists) even though Accelerate never populates
+    // it. Per the frozen contract (SolveInfo::refinement_iters's doc
+    // comment in include/hven/linear/symmetric_factor.h), refinement_iters
+    // is present with Pardiso semantics on MKL and legitimately absent --
+    // never zero-filled -- on Accelerate, which has no such counter.
+    // Asserting ABSENCE below is itself the fabrication guard for that
+    // backend.
+#if defined(__APPLE__)
+    EXPECT_FALSE(info.refinement_iters.has_value())
+        << "Accelerate has no refinement-step counter; a present value here would be a "
+           "fabrication, not evidence";
+#else
     EXPECT_TRUE(info.refinement_iters.has_value())
         << "this seam reports refinement steps, so the field must be present when refinement is "
            "configured on";
     if (info.refinement_iters.has_value()) {
         EXPECT_GE(*info.refinement_iters, 0);
     }
+#endif
 
     run.record_solve_info(info);
     run.record_inertia(seam->inertia());

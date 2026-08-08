@@ -476,16 +476,41 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
     const hl::SolveInfo info = seam.solve(fx.rhs, x);
     const hl::InertiaEvidence e = seam.inertia();
 
-    // A seam that says it surfaces a field must actually surface it. A seam
-    // that says it does not is recorded as absent, which is the honest state
-    // and not a failure.
+    // A seam that says it surfaces a field must actually surface it -- but
+    // "surfaces" and "populates" are different claims on Accelerate.
+    // seam_native.cpp's capabilities() sets both flags unconditionally on
+    // every backend on purpose: the capability says the std::optional
+    // surface exists; whether it carries a value is the backend's own
+    // answer. Per the frozen contract (include/hven/linear/symmetric_factor.h's
+    // InertiaEvidence::perturbed_pivots and SolveInfo::refinement_iters doc
+    // comments), both are present with Pardiso semantics on MKL and
+    // legitimately absent -- never zero-filled -- on Accelerate, which has
+    // neither counter. Asserting ABSENCE on Accelerate below is itself the
+    // fabrication guard: it is what would fail loudly if a future change
+    // ever zero-filled either field there instead of reporting it honestly
+    // absent. (No arm that reaches this trace on Apple reports either
+    // capability as false -- the SQP old seam has no Apple build at all, and
+    // native's capability is unconditionally true -- so this is a pure
+    // backend split, not a seam one.)
     if (caps.reports_perturbed_pivots) {
+#if defined(__APPLE__)
+        EXPECT_FALSE(e.perturbed_pivots.has_value())
+            << "Accelerate has no perturbed-pivot counter; a present value here would be a "
+               "fabrication, not evidence";
+#else
         EXPECT_TRUE(e.perturbed_pivots.has_value())
             << "this seam reports a perturbed-pivot count, so the field must be present";
+#endif
     }
     if (caps.reports_refinement_iters) {
+#if defined(__APPLE__)
+        EXPECT_FALSE(info.refinement_iters.has_value())
+            << "Accelerate has no refinement-step counter; a present value here would be a "
+               "fabrication, not evidence";
+#else
         EXPECT_TRUE(info.refinement_iters.has_value())
             << "this seam reports a refinement-step count, so the field must be present";
+#endif
     }
 
     run.record_inertia(e);
