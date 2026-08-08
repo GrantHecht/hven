@@ -41,6 +41,7 @@ set(HVEN_TEST_SOURCES
     core/test_version.cpp
     core/test_sparse_backend_link.cpp
     core/test_pattern_hash.cpp
+    linear/test_dense_symmetric_factor.cpp
 )
 
 add_executable(hven_tests ${HVEN_TEST_SOURCES})
