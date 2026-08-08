@@ -20,10 +20,12 @@
 // call instead of a literal: those are library defaults, not contract
 // constants, and a version bump is allowed to move them.
 
+#include <algorithm>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #if !defined(__APPLE__)
@@ -254,6 +256,19 @@ std::vector<ArmSpec> build_arms() {
 const std::vector<ArmSpec> &arms() {
     static const std::vector<ArmSpec> table = build_arms();
     return table;
+}
+
+int smoke_thread_count() {
+    // Capped low on purpose: the point is that MORE THAN ONE thread is in
+    // play, not that the machine is saturated. A big count would make the leg
+    // slow and, on a shared box, make its recorded deviation a measurement of
+    // whoever else is running.
+    constexpr unsigned kCap = 4;
+    const unsigned cores = std::thread::hardware_concurrency();
+    if (cores <= 1) {
+        return 1; // single core, or unknowable -- nothing to vary
+    }
+    return static_cast<int>(std::min(cores, kCap));
 }
 
 std::vector<ArmSpec> native_only_arms() {

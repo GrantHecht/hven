@@ -125,6 +125,25 @@ TraceRun::TraceRun(std::string trace, const ArmSpec &arm)
     : trace_(std::move(trace)), arm_(arm), label_(arm.label()) {
     if (ExpectedTable::exists(trace_)) {
         table_ = std::make_unique<ExpectedTable>(ExpectedTable::load(trace_));
+        return;
+    }
+    // A MISSING TABLE FAILS AS LOUDLY AS A MALFORMED ONE. Every trace has a
+    // committed table, so absence is only ever an accident -- a deleted file,
+    // a renamed trace -- and the accident's consequence is the worst kind:
+    // every observation degrades to "no expectation", nothing contradicts
+    // anything, and the trace goes green while gating exactly nothing. That is
+    // indistinguishable from a healthy run unless someone reads the report.
+    //
+    // Report mode is the exception, and deliberately: that mode exists to be
+    // run when expectations do not exist yet, and its whole output is the
+    // visible no-expectation rows.
+    if (run_mode() == RunMode::kAssert) {
+        ADD_FAILURE() << "golden rig: no expected table for trace " << trace_
+                      << " (tests/golden_rig/expected/" << trace_
+                      << ".csv). Every trace has a committed table, so this is a deleted or "
+                         "renamed file, not a state to run in -- without it this trace asserts "
+                         "nothing and would pass for that reason alone. Run the report target if "
+                         "you meant to observe rather than gate.";
     }
 }
 

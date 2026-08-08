@@ -52,9 +52,10 @@ const char *seam_id_name(SeamId id);
 const char *backend_arm_name();
 
 // How an arm pins its thread count, recorded verbatim into every expected
-// table's provenance banner. Comparison policy B.2 requires the mechanism and
-// its value on every asserted row, so an adapter reports the mechanism it
-// actually possesses rather than a mechanism the rig wishes it had.
+// table's provenance banner. Every asserted row must record the mechanism its
+// arm pinned with and the value it pinned to, so an adapter reports the
+// mechanism it actually possesses rather than a mechanism the rig wishes it
+// had.
 enum class ThreadPinMechanism {
     kPerInstance,   // the seam carries its own per-instance thread option
     kProcessGlobal, // the seam has none; the rig pins the process instead
@@ -85,7 +86,7 @@ struct Capabilities {
 // actually has, not with hven's own defaults. See seam_registry.cpp's arm
 // table, which documents every parity setting and why it is set.
 struct SeamOptions {
-    int num_threads = 1;          // 1 on every asserted run (comparison policy B.2)
+    int num_threads = 1;          // 1 on every asserted run
     int pivot_perturb_exp = 8;    // Pardiso static pivot perturbation 10^-k
     int max_refinement_iters = 0; // full-solve iterative-refinement cap
 
@@ -100,8 +101,8 @@ struct SeamOptions {
     bool weighted_matching = false;
 };
 
-// Exact call counts, the rig's asserted currency (comparison policy B.2 rule
-// 1: counters are exact integers, per backend, always).
+// Exact call counts, the rig's asserted currency: counters are exact
+// integers, per backend, always.
 //
 // On the native seam these are the engine's own counters. On an old seam they
 // are counted BY THE ADAPTER, because neither old seam counts anything -- the
@@ -153,7 +154,7 @@ class SeamUnderTest {
     // hven's defaults and the reason the parity arms exist.
     virtual std::string configuration_note() const = 0;
 
-    // --- lifecycle (mirrors A.3) ---
+    // --- lifecycle, mirroring the unified surface's own ---
     virtual void analyze(const SpMatRM &A) = 0;
     virtual hven::linear::FactorizeOutcome factorize(const SpMatRM &A) = 0;
     virtual hven::linear::SolveInfo solve(const Vec &rhs, Vec &x) = 0;
@@ -224,5 +225,24 @@ const std::vector<ArmSpec> &arms();
 // The subset of arms() that need no old-seam checkout. This is what the
 // default test suite runs, so CI exercises the harness on every commit.
 std::vector<ArmSpec> native_only_arms();
+
+// The thread count the one multithreaded (unasserted, smoke) leg in this suite
+// requests.
+//
+// It is an EXPLICIT count greater than one wherever the machine has more than
+// one core, never "whatever the backend defaults to". The default is not good
+// enough, for a concrete reason: the derivation invocation exports a
+// single-thread setting for the whole process, so a leg asking for the default
+// silently resolves to one thread, the cross-thread comparison compares a run
+// against itself, and the deviation the trace exists to record comes out
+// identically zero. An explicit request goes through the seam's own thread
+// control, which overrides that environment setting, so the leg is genuinely
+// multithreaded whatever the invocation. The value is also recorded as an
+// observation, because a cross-thread deviation is not interpretable without
+// knowing what it was measured against.
+//
+// Returns 1 only on a genuinely single-core machine, where the trace records
+// that its smoke leg had nothing to vary.
+int smoke_thread_count();
 
 } // namespace hven::rig

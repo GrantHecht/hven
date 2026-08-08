@@ -503,6 +503,14 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
 // Measured while writing this trace, and worth knowing before the derivation
 // reads the row: on this collocation class the deviation is not always zero.
 // It is the number the amendment asks to be recorded.
+//
+// THE SMOKE LEG ASKS FOR A THREAD COUNT EXPLICITLY. Asking for "the backend's
+// default" would have made this trace measure nothing under the very
+// invocation the derivation uses, which exports a single-thread setting for
+// the whole process -- both legs would resolve to one thread and the deviation
+// would be identically zero for a reason that has nothing to do with
+// threading. The count is recorded beside the deviation so the row can be
+// read.
 
 TEST_P(SqpTrace, T8_ThreadCountControl) {
     TraceRun run("T8", GetParam());
@@ -512,15 +520,20 @@ TEST_P(SqpTrace, T8_ThreadCountControl) {
     // The smoke leg runs FIRST and the asserted leg second, deliberately: every
     // row this trace records belongs to the pinned leg, and the run's recorded
     // thread pin is the one of the last engine it built. Running them the other
-    // way round would stamp the asserted rows with the unpinned leg's setting,
+    // way round would stamp the asserted rows with the smoke leg's setting,
     // which is precisely the provenance the comparison policy refuses.
+    //
+    // The smoke leg requests an EXPLICIT count above one rather than the
+    // backend's own default -- see smoke_thread_count() for why the default
+    // makes this whole trace vacuous under the derivation invocation.
+    const int smoke_threads = smoke_thread_count();
     Counters default_counters;
     Vec x_default(fx.K.rows());
     {
         SeamOptions o = GetParam().options;
-        o.num_threads = 0; // the backend's own default -- unasserted smoke
-        std::unique_ptr<SeamUnderTest> s =
-            run.seam_with(o, "the unasserted-smoke leg, backend-default threads");
+        o.num_threads = smoke_threads;
+        std::unique_ptr<SeamUnderTest> s = run.seam_with(
+            o, "the unasserted-smoke leg, " + std::to_string(smoke_threads) + " threads");
         s->analyze(fx.K);
         ASSERT_EQ(s->factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
         s->solve(fx.rhs, x_default);
@@ -550,7 +563,11 @@ TEST_P(SqpTrace, T8_ThreadCountControl) {
 
     run.record_counters(pinned_counters);
     run.record_vector_head("x_pinned", x_pinned, 4, TraceRun::kDefaultTolerance);
-    // The amendment's "recorded as documentation" quantity.
+    // The amendment's "recorded as documentation" quantity, and beside it the
+    // thread count it was measured against -- without which the deviation row
+    // says nothing at all, and against which a later reader can tell "no
+    // deviation" apart from "nothing varied".
+    run.record(Observation::counter("T8", run.label(), "smoke_leg_thread_count", smoke_threads));
     run.record(Observation::real("T8", run.label(), "cross_thread_relative_deviation", diff / scale,
                                  TraceRun::kDefaultTolerance));
     // Recorded, never asserted: the bitwise claim survives only if observed.
