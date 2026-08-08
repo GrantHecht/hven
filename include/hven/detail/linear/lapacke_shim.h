@@ -18,40 +18,70 @@
 // before being adjusted for hven's use here -- the shimmed entry points and
 // their behavior are unchanged.
 //
-// It relies on ACCELERATE_NEW_LAPACK being defined project-wide (see the
-// root CMakeLists.txt) so `dsytrf_`/`dsytrs_` come from Accelerate's own
-// <lapack.h> with `__LAPACK_int == int` under the default LP64 interface --
-// declaring the symbols locally would collide with Accelerate's own
-// declarations in TUs that include both this header and Accelerate.h.
+// hven's build defines ACCELERATE_NEW_LAPACK project-wide on Apple, next to
+// USE_ACCELERATE_SPARSE (cmake/hven_sparse_backend.cmake, the same
+// arrangement the source project uses in its own root CMakeLists.txt).
+// ACCELERATE_NEW_LAPACK selects Apple's non-deprecated, const-correct f77
+// LAPACK declarations from <Accelerate/Accelerate.h> -- in particular,
+// `dsytrs_`'s `a` parameter as `const double *` (matching the `const
+// double *a` this shim passes through) and the `__LAPACK_int` spelling
+// `lapack_int` aliases below. Without it, Accelerate.h resolves to the
+// legacy declarations instead, which are not const-correct and do not
+// provide `__LAPACK_int`; the #ifndef guard immediately below turns that
+// mismatch into a compile-time diagnostic here rather than a confusing
+// error at the first call site. (This is a build-time verifiable claim
+// about what hven's CMake defines, checked by the guard itself -- not a
+// claim about how the shim behaves once built, which is unverified until
+// it is actually compiled on Apple hardware.)
 //
 // Both functions follow LAPACKE's error-code contract (0 success, -i illegal
 // argument i, +i exact zero pivot at i) and never print or throw; the call
 // site in dense_symmetric_factor.cpp folds nonzero info values into thrown
 // exceptions, which is where hven's error-handling rules are satisfied.
 
+#ifndef ACCELERATE_NEW_LAPACK
+#error "lapacke_shim.h requires ACCELERATE_NEW_LAPACK (see cmake/hven_sparse_backend.cmake)"
+#endif
+
 #include <algorithm>
 #include <limits>
+#include <type_traits>
 #include <vector>
 
 #include <Accelerate/Accelerate.h>
+
+// LAPACKE's layout constants. Guarded rather than assumed unowned: if a
+// future Accelerate release ever ships its own LAPACKE (making this whole
+// shim unnecessary), these would already be defined and the source file
+// this was migrated from would need to drop this header entirely -- this
+// guard just keeps a same-named future definition from producing a
+// redefinition error in the meantime. LAPACK_ROW_MAJOR is defined for
+// LAPACKE parity; this shim only ever calls with LAPACK_COL_MAJOR.
+#ifndef LAPACK_ROW_MAJOR
+#define LAPACK_ROW_MAJOR 101
+#endif
+#ifndef LAPACK_COL_MAJOR
+#define LAPACK_COL_MAJOR 102
+#endif
 
 namespace hven::linear::detail {
 
 using lapack_int = __LAPACK_int;
 
-// dense_symmetric_factor.cpp stores ipiv_ as std::vector<int> and reads the
-// entries as ints; the ILP64 interface (ACCELERATE_LAPACK_ILP64) must not be
-// enabled silently underneath it.
-static_assert(sizeof(lapack_int) == sizeof(int),
+// dense_symmetric_factor.cpp passes ipiv_.data() (a std::vector<int>,
+// mandated by DenseSymmetricFactor's frozen public surface) directly as a
+// lapack_int* argument to LAPACKE_dsytrf/LAPACKE_dsytrs below -- a raw
+// pointer conversion that is only well-formed when lapack_int IS int (not
+// merely same-sized), since std::vector<int>::data() returns int* and no
+// implicit pointer conversion exists between distinct same-size types. The
+// LP64 Accelerate LAPACK interface (the default; ACCELERATE_LAPACK_ILP64
+// not enabled) is expected to satisfy this, but that is UNOBSERVED here --
+// no Apple compile has run against this header -- so this assert is what
+// turns a violation into a loud compile error instead of silent corruption
+// if it ever doesn't.
+static_assert(std::is_same_v<lapack_int, int>,
               "lapacke_shim.h requires the LP64 Accelerate LAPACK interface "
               "(__LAPACK_int == int); ACCELERATE_LAPACK_ILP64 is not supported here.");
-
-} // namespace hven::linear::detail
-
-#define LAPACK_ROW_MAJOR 101
-#define LAPACK_COL_MAJOR 102
-
-namespace hven::linear::detail {
 
 inline lapack_int LAPACKE_dsytrf(int matrix_layout, char uplo, lapack_int n, double *a,
                                  lapack_int lda, lapack_int *ipiv) {

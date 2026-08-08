@@ -35,15 +35,36 @@
 #                       ENABLE_PYTHON_BINDINGS is ON.
 #
 # Sets in caller scope: INCLUDE_DIRS (MKL headers) and LINK_LIBS (the sparse
-# backend plus Threads and dl), and on Apple the USE_ACCELERATE_SPARSE
-# compile definition and the AccelerateSparse::AccelerateSparse target.
+# backend plus Threads and dl), and on Apple the USE_ACCELERATE_SPARSE,
+# ACCELERATE_NEW_LAPACK, and HVEN_USE_ACCELERATE_LAPACK compile definitions
+# and the AccelerateSparse::AccelerateSparse target.
+#
+# HVEN_USE_ACCELERATE_LAPACK is a separate name from USE_ACCELERATE_SPARSE
+# on purpose, even though this macro currently sets both under the same
+# `if(APPLE)` branch: USE_ACCELERATE_SPARSE answers "which sparse backend",
+# HVEN_USE_ACCELERATE_LAPACK answers "which dense LAPACKE header" (see
+# dense_symmetric_factor.cpp, the one place that reads it). They are the
+# same fact today only because both questions currently have the same
+# Apple/not-Apple answer; naming them separately means a future option that
+# decouples the two (e.g. forcing MKL's LAPACKE on Apple while keeping
+# AccelerateSparse for the sparse solve) only has to change where this one
+# is set, not every call site that reads it.
 ################################################################################
 
 macro(hven_resolve_sparse_backend)
 
 if(APPLE)
   find_package(AccelerateSparse REQUIRED)
-  add_compile_definitions(USE_ACCELERATE_SPARSE)
+  # ACCELERATE_NEW_LAPACK selects Apple's non-deprecated, const-correct f77
+  # LAPACK declarations. Defined globally (not per-header) so
+  # lapacke_shim.h and every other Accelerate.h consumer agree in every TU
+  # regardless of include order -- mirrors the identical define in the
+  # sibling SQP engine's own CMakeLists.txt, where lapacke_shim.h
+  # originated. HVEN_USE_ACCELERATE_LAPACK is this macro's own name for
+  # "use the Accelerate LAPACKE shim for dense routing" -- see the doc
+  # comment above for why it is a distinct macro from USE_ACCELERATE_SPARSE
+  # rather than reusing it.
+  add_compile_definitions(USE_ACCELERATE_SPARSE ACCELERATE_NEW_LAPACK HVEN_USE_ACCELERATE_LAPACK)
 else()
   find_package(MKL)
   if(NOT MKL_FOUND)
