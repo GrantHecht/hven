@@ -26,7 +26,7 @@ constexpr double kTightRelTol = 1e-14;
 // for |expected| >= 1, falling back to an absolute bound of rel_tol itself
 // for |expected| < 1 (several fixtures below have expected entries in
 // (0, 1), e.g. 1/4, 1/3, 1/2, 3/4, where a pure relative bound would demand
-// unreasonably more digits than a raw double affords no benefit for).
+// more matching digits than double arithmetic can deliver, for no benefit).
 // rel_tol == 1e-14 either way, so the absolute floor this degenerates to
 // is already tight.
 void expect_mat_near(const Mat &actual, const Mat &expected, double rel_tol) {

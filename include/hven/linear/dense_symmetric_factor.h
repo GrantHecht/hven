@@ -40,6 +40,8 @@ class DenseSymmetricFactor {
     // be sized to match RHS -- this method never resizes X itself (X is
     // an Eigen::Ref, not an owning matrix).
     //
+    // A zero-column RHS is accepted and is a no-op (X is untouched).
+    //
     // Throws std::runtime_error if called before a successful
     // factorize(). Throws std::invalid_argument if RHS's row count does
     // not equal dim(), or if X's shape does not match RHS's shape.
