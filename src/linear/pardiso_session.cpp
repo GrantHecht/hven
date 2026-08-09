@@ -26,22 +26,30 @@ namespace {
 
 // Applies a per-instance thread count for the duration of one backend call.
 //
-// mkl_set_num_threads_local sets a THREAD-LOCAL override; restoring it to 0
-// hands control back to MKL's global setting. That is the whole point of
-// using it: an hven instance configured for two threads must not reach out
-// and change the thread count of every other MKL user in the process, and it
-// must not depend on the environment to undo what it did.
+// mkl_set_num_threads_local sets a THREAD-LOCAL override; that is the whole
+// point of using it: an hven instance configured for two threads must not
+// reach out and change the thread count of every other MKL user in the
+// process, and it must not depend on the environment to undo what it did.
+//
+// SAVE AND RESTORE, not restore-to-zero. The setter RETURNS the override
+// that was in force on this thread (0 when there was none, meaning "follow
+// MKL's global setting"), and that returned value is what the destructor
+// puts back. Restoring a hardcoded 0 instead would be correct only when hven
+// is the sole MKL user on the thread: a caller that had set its own local
+// override before calling in would silently lose it here, and the loss would
+// surface far away, as somebody else's solve running at the wrong width.
+// Undoing exactly what was done is the contract this scope exists to keep.
 class MklThreadScope {
   public:
     explicit MklThreadScope(int num_threads) : engaged_(num_threads > 0) {
         if (engaged_) {
-            mkl_set_num_threads_local(num_threads);
+            previous_ = mkl_set_num_threads_local(num_threads);
         }
     }
 
     ~MklThreadScope() {
         if (engaged_) {
-            mkl_set_num_threads_local(0);
+            mkl_set_num_threads_local(previous_);
         }
     }
 
@@ -50,6 +58,12 @@ class MklThreadScope {
 
   private:
     bool engaged_;
+
+    // The thread-local override in force before this scope engaged. Only
+    // meaningful while engaged_ is true; 0 is both the "there was none"
+    // answer MKL reports and the value that restores global control, so the
+    // unengaged case needs no separate sentinel.
+    int previous_ = 0;
 };
 
 // A one-line gloss for the Pardiso error codes hven can plausibly hit, so a
