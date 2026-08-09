@@ -2,8 +2,12 @@
 
 `.github/workflows/ci.yml` runs a three-OS matrix on every push to `main`
 and every pull request: `linux-clang-release`, `macos-clang-release`, and
-`windows-clang-release`. All three are required-green (see "Branch
-protection" below). A `concurrency` group (`ci-${{ github.ref }}`,
+`windows-clang-release`. All three are expected green, and this project's
+own merge rule treats a red lane as blocking — but that rule is a
+convention, not an enforced one: **branch protection is not enabled, so
+GitHub does not require any of them to pass before a merge.** See "Branch
+protection" below for the precondition still outstanding. A `concurrency`
+group (`ci-${{ github.ref }}`,
 `cancel-in-progress: true`) cancels a ref's stale in-flight run whenever a
 newer commit lands on the same ref.
 

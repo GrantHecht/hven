@@ -7,9 +7,17 @@ engine and an SQP engine sharing common infrastructure (sparse linear
 algebra, KKT assembly, warm-start currency, globalization primitives).
 Written in C++20, licensed Apache-2.0, under active development.
 
+Built so far: the core and linear-algebra components (`src/CMakeLists.txt`
+is the authority on what compiles). Neither engine is in this repository
+yet — both arrive with later milestones, migrated in from the projects
+they originated in — so a statement about "the engines" is a statement
+about where this is going, not about code you can read here.
+
 - Namespace: `hven::`
 - Public headers: `include/hven/`
-- CMake package/target: `hven::hven`
+- CMake target: `hven::hven`, consumed via `add_subdirectory`. Not a
+  CMake *package*: there are no install/export/package-config rules yet,
+  so `find_package(hven)` does not work.
 
 hven builds standalone with CMake and requires Intel MKL (Linux/Windows)
 or Apple Accelerate (macOS) as its sparse linear algebra backend. Its
