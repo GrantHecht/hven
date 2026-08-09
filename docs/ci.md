@@ -235,6 +235,12 @@ oneAPI tree through `cmake/FindMKL.cmake`'s Windows hints, and configured
 the non-Apple branch, before building and passing the full Windows test
 set — with no first-contact failures surfacing to document.
 
+**Formal closure of a parked item:** the earlier "`HVEN_FP_MODE=SAFER_FAST` is
+unexercised by numeric code" deferral (never formally closed in these docs)
+is superseded — `SAFER_FAST` now runs under every golden-rig trace at 1e-14
+relative tolerances on Linux, macOS, and Windows alike, this section's
+feature-detection evidence included; nothing left to decide.
+
 ## Build and test presets: what CI actually exercises
 
 `CMakePresets.json` ships `buildPresets` and `testPresets` for all four
