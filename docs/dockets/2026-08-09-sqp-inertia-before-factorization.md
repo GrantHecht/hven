@@ -9,6 +9,15 @@ configure). Machine `fedora-x86_64-linux`, Intel oneAPI MKL 2026.1
 **Trace: P5. Arm: `sqp-old@mkl`. This is the one failure the Linux
 three-seam run is supposed to have.**
 
+**Amended 2026-08-09.** Two source-read claims in the original record —
+the release-path re-zeroing and the pre-factorization
+`supports_partial_solve()` read — were misreads, caught by the SQP
+instance's verification against the pinned tree (its sign-off note,
+`tycho_sqp/docs/notes/2026-08-09-hven-m1-close-signoff-sqp.md` §5) and
+re-verified independently on this side before amending. The CONFIRMED
+half — the P5 trace, the quoted failure, and the constructor-zeroed
+unguarded accessors it proves — is unchanged.
+
 ## What the old seam does
 
 `tycho_sqp::KktSystem` reports inertia by reading three entries of the
@@ -22,7 +31,10 @@ inline Index KktSystem::num_perturbed_pivots() const { return static_cast<Index>
 
 Three plain reads, with no guard of any kind. The array they read is
 zero-filled by the constructor (`kkt_system.h:129`, `iparm_.fill(0)`), and
-zero-filled again on release (`kkt_system.h:277`).
+once more per object lifetime in `analyze()`'s `!initialized_` first-init
+branch (`kkt_system.h:277`, immediately before `pardisoinit`). Nothing
+else ever clears it — in particular `release()` (`kkt_system.h:205-240`)
+never touches `iparm_`.
 
 The consequence is not a crash and not a garbage value — it is worse than
 either. Asking a freshly-constructed `KktSystem` for its inertia returns
@@ -34,9 +46,13 @@ or zero eigenvalues is impossible; a zero triple from a matrix that was
 never factorized is what you always get. The seam offers no way to know
 which one you are holding.
 
-The same is true after `release()`: the array is re-zeroed, so a seam that
-HAS factorized, and then released, silently reverts to reporting the
-same real-looking triple.
+After `release()` the defect changes shape and gets worse. `release()`
+clears `active_` but leaves `iparm_` alone, so a seam that HAS
+factorized, and then released, keeps reporting the *previous
+factorization's* triple — real-looking numbers describing numerics that
+no longer exist. The pre-factorization zero triple is at least
+implausible for most matrices; the stale triple is a plausible reading
+of the wrong factorization, and no zero-plausibility check can catch it.
 
 Note what this is not. It is not an uninitialized read (the array is
 deliberately zeroed), and it is not a bug in the arithmetic. It is a
@@ -115,12 +131,16 @@ zero-filling too.
    be reached before a factorization (those assert the state), and any
    that can must route the unavailable case rather than treat it as
    `(0,0,0)`.
-2. **Audit for inertia reads on the release path specifically.** The
-   post-`release()` re-zeroing means a call site that reads inertia from a
-   released system gets the same fabricated triple, and unlike the
-   pre-factorization case that one can happen mid-lifecycle. This is the
-   likeliest place for a real latent misread and should be searched for by
-   hand, not assumed absent.
+2. **Audit for inertia reads on the release path specifically.** A call
+   site that reads inertia from a released system gets the *stale previous
+   factorization's* triple — not zeros — because `release()` never touches
+   `iparm_`. Unlike the pre-factorization case this one happens
+   mid-lifecycle, and the stale values are plausible, so no
+   zero-plausibility argument can catch it. This is the likeliest place
+   for a real latent misread and should be searched for by hand, not
+   assumed absent. Owner: the SQP instance self-assigned this audit, with
+   the corrected stale-not-zero semantics, as an M3 carry (its seam; its
+   sign-off note §5).
 3. **`zero_is_derived` stays true for this backend and is not affected.**
    MKL reports only the positive and negative counts, so the zero class is
    computed as `dim - p - n` on both the old seam and hven. The finding
@@ -129,7 +149,14 @@ zero-filling too.
    unguarded mechanism, so `num_perturbed_pivots()` reports a present zero
    before any factorization. On MKL the counter is real once a
    factorization has happened, so hven keeps it present — but the
-   pre-factorization present-zero is the same missing-state defect, and
-   `supports_partial_solve()` (`kkt_system.h:78`) is built directly on
-   that read. A partial-solve gate consulted before a factorization
-   currently answers from a fabricated zero.
+   pre-factorization present-zero is the same missing-state defect.
+   `supports_partial_solve()` (`kkt_system.h:78`) is built on that read
+   behind an `active_ &&` guard, which short-circuits before any analysis
+   and after `release()` (which clears `active_`) — in those windows the
+   gate answers `false` correctly from the lifecycle flag and never reads
+   `iparm_[13]`. The real gap is the post-`analyze()`/pre-`factorize()`
+   window: `analyze()` sets `active_ = true` immediately after phase 11
+   (`kkt_system.h:285`), before any numeric factorization has written the
+   count, so the gate there consults a perturbed-pivot count no
+   factorization produced — zero on a first lifetime, stale on a
+   re-analyze.
