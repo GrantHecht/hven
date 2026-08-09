@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual trigger, for the one thing this workflow does that is not a
+  # gate: the macOS job's report-mode artifact is the only route this
+  # project has to a real Accelerate observation, and asking for one
+  # should not require inventing a commit to push. See docs/ci.md.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -99,6 +104,40 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build-macos --output-on-failure
+
+      # The Accelerate arm of every expected table is UNOBSERVED, and this
+      # runner is the only Apple hardware the project reaches. Report mode
+      # emits each observation as a table row with its provenance columns
+      # already filled, so uploading that file is what turns this lane from
+      # "the Accelerate build is green" into a derivation the tables can be
+      # filled from -- by copying rows out of the artifact, never by typing
+      # a number a Mac was assumed to produce.
+      #
+      # It runs AFTER the gate above deliberately. Report mode still runs
+      # each trace's structural self-checks, so a failure here is a real
+      # finding rather than a reporting glitch -- but the same check already
+      # ran in the step above, so this step failing on its own would mean
+      # the two disagree, which is worth seeing rather than suppressing.
+      # No continue-on-error for that reason; the upload is if:always() so
+      # the artifact survives a failure and can be read.
+      - name: Emit the Accelerate observations for derivation
+        env:
+          HVEN_RIG_MACHINE: github-macos-latest-apple-silicon
+          HVEN_RIG_REPORT_OUT: rig-report-accelerate.txt
+        # No MKL_NUM_THREADS here: it would be decoration on this lane.
+        # Accelerate never reads it, and the native arm is the one seam
+        # that pins per-instance anyway -- the rig sets num_threads = 1 on
+        # the instance itself, which is the mechanism each emitted row
+        # records.
+        run: ./build-macos/tests/golden_rig/hven_golden_rig_report
+
+      - name: Upload the Accelerate observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rig-report-accelerate
+          path: rig-report-accelerate.txt
+          if-no-files-found: error
 
   windows-clang-release:
     # Like the macOS job above, this is a first-contact lane: the

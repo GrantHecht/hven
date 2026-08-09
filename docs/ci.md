@@ -201,16 +201,47 @@ ctest --output-on-failure
 | ---- | ------- | ----- | ------ | ------ |
 | —    | —       | —     | —      | UNOBSERVED |
 
-**Once — and only once — `macos-clang-release` has recorded a green run on
-GitHub's own Apple Silicon runners**, that CI lane becomes the ongoing
-execution record for this backend: every subsequent push to `main` and
-every pull request re-runs it automatically, which is strictly more
-continuous evidence than a hand-run table a human has to remember to
-update. This page is not making that claim yet — as of this update the job
-has been written and locally reviewed (configure-argument review, a diff
-against tycho's precedent, a real download of the exact installer URL and
-NuGet package this job's Windows sibling references) but has not yet
-executed on GitHub's infrastructure. The line above stays exactly this
-conditional, unresolved, until a real run closes it — see the task report
-that lands alongside this page for the first observed outcome, and this
-paragraph gets rewritten (not appended to) once that happens.
+**That condition is now closed.** `macos-clang-release` has executed on
+GitHub's own Apple Silicon runners and passed: run
+[31287205323](https://github.com/GrantHecht/hven/actions/runs/31287205323),
+commit `ca2744c1ba41bf111a71900ba3034897fd314144`, runner image
+`macos-26-arm64`, **51 tests, 51 passed, 1 skipped**. The Accelerate
+session, the Accelerate adapter and every `#if defined(__APPLE__)` test
+half compiled, linked and ran on real hardware for the first time there,
+and that whole lane re-runs on every push to `main` and every pull
+request. It is the ongoing execution record for this backend now; the
+hand-run table above stays as history and is not backfilled from it.
+
+### What a green lane does and does not fill in
+
+Green means the Apple *code paths* execute. It does **not** by itself put a
+number in an expected table — the ctest step asserts, it does not report,
+and a passing assertion against an `UNOBSERVED` slot is recorded as an
+unfilled slot rather than as an observation.
+
+The route from this lane to a filled Accelerate row is the
+`Emit the Accelerate observations for derivation` step: it runs
+`hven_golden_rig_report` in report mode after the gate and uploads
+`rig-report-accelerate.txt` as a build artifact. That file's observations
+block is the same paste-ready CSV the local three-seam derivation uses, so
+an Accelerate row gets filled by copying it out of a named artifact from a
+named run — never by typing what a Mac is assumed to produce. Whoever
+fills one records the run id and the commit beside the row's own
+provenance columns, so the artifact can be fetched again and the row
+re-checked against it.
+
+Two limits on what that artifact can ever fill:
+
+- **Native arms only.** Neither old seam builds on a runner (there are no
+  sibling checkouts there, and the SQP seam does not compile against
+  Accelerate at all), so `psiopt-old@accelerate` stays `UNOBSERVED` until
+  a Mac with both checkouts runs the three-seam configuration by hand.
+- **A row still has to reproduce before it is committed.** The two gates
+  the Linux derivation applied hold here too: the value must reproduce
+  across runs, and it must not move with the build configuration. One
+  artifact from one run demonstrates neither, so filling Accelerate rows
+  means at least two runs, and a check against a differently-configured
+  build, before anything is written down.
+
+The manual trigger (`workflow_dispatch`) exists for exactly this: asking
+for a derivation artifact should not require inventing a commit to push.

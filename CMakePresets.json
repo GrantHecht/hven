@@ -37,7 +37,7 @@
         {
             "name": "macos-clang-release",
             "displayName": "macOS Clang Release (AppleClang, CI)",
-            "description": "Release build using the Xcode Command Line Tools' AppleClang on macOS (Apple Silicon). Written for the macos-clang-release CI job (Task 8.5) -- AppleClang is preferred over Homebrew LLVM for this lane because it needs no extra brew formula and is what a from-scratch Mac checkout has by default; CMAKE_CXX_COMPILER is intentionally left unset so CMake picks up whatever `clang++` the runner's `xcode-select` resolves to. Accelerate is a system framework, not a package -- cmake/FindAccelerateSparse.cmake finds it via the SDK's default framework search path, no extra install step needed. This preset is UNOBSERVED beyond configure-arguments review until the CI lane records a green run -- see docs/ci.md.",
+            "description": "Release build using the Xcode Command Line Tools' AppleClang on macOS (Apple Silicon). Written for the macos-clang-release CI job (Task 8.5) -- AppleClang is preferred over Homebrew LLVM for this lane because it needs no extra brew formula and is what a from-scratch Mac checkout has by default; CMAKE_CXX_COMPILER is intentionally left unset so CMake picks up whatever `clang++` the runner's `xcode-select` resolves to. Accelerate is a system framework, not a package -- cmake/FindAccelerateSparse.cmake finds it via the SDK's default framework search path, no extra install step needed. OBSERVED: this preset configured, built and ran green on GitHub's macos-26-arm64 runner in CI run 31287205323 (commit ca2744c1ba41), 51/51 tests -- see docs/ci.md.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-macos",
             "installDir": "${sourceDir}/build-macos/install/${presetName}",
@@ -50,7 +50,7 @@
         {
             "name": "windows-clang-release",
             "displayName": "Windows Clang Release (clang-cl, CI)",
-            "description": "Release build using the LLVM/clang-cl toolchain preinstalled on GitHub's windows-latest runner. Compiler paths and the architecture/toolset block are the x64-Clang-Release preset from tycho's CMakePresets.json (the clang-cl precedent this was written from) verbatim -- same LLVM install location GitHub ships, same generator, same PIE/link setup. Written for the windows-clang-release CI job (Task 8.5); UNOBSERVED beyond configure-arguments review until the CI lane records a green run -- see docs/ci.md.",
+            "description": "Release build using the LLVM/clang-cl toolchain preinstalled on GitHub's windows-latest runner. Compiler paths and the architecture/toolset block are the x64-Clang-Release preset from tycho's CMakePresets.json (the clang-cl precedent this was written from) verbatim -- same LLVM install location GitHub ships, same generator, same PIE/link setup. Written for the windows-clang-release CI job (Task 8.5); OBSERVED -- it configured, built and ran green on GitHub's windows-latest runner in CI run 31287205323 (commit ca2744c1ba41). See docs/ci.md.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-windows",
             "installDir": "${sourceDir}/build-windows/install/${presetName}",
