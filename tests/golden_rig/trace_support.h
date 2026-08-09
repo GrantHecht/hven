@@ -42,6 +42,13 @@ struct RunProvenance {
     std::string backend; // backend name AND version
     std::string commit;
     std::string date;
+    // "Release", "Debug", ... -- CMAKE_BUILD_TYPE at configure time, stamped
+    // in the same way commit is: a compile definition the build system sets,
+    // never read from the environment, because unlike the machine name this
+    // is a real build-system fact and not something a derivation run needs
+    // to override. Compared against ExpectedTable::build_configs() before a
+    // float row is asserted -- see expected_table.h's ObservedContext.
+    std::string build_config;
 };
 const RunProvenance &run_provenance();
 

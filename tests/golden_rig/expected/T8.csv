@@ -27,6 +27,18 @@
 # bitwise: a bitwise/0-ULP kind is REFUSED in this file. Bitwise equality holds
 #   only between two observations of ONE pinned-thread process run, so a trace
 #   that needs it asserts it against its own second observation instead.
+# build-config: Release, Debug
+# build-config-note: every committed float row in this file survived the second
+#   derivation gate (docs/testing.md, "What a row has to survive before it is
+#   committed"): reproduced identically on a Release AND a Debug build of the
+#   same source, at the same thread pin, on the same machine. A float row is
+#   ASSERTED only when the observing run's own build configuration is one of
+#   the values above -- checked, along with machine and thread pin, by the
+#   expected-table reader before the value comparison runs. Any other context
+#   mismatch is refused the same way: reported as CONTEXT-MISMATCH and never
+#   asserted, never silent. Counters, states, presence and bool rows carry no
+#   such risk and are asserted on any machine, build configuration or thread
+#   pin.
 # status: DERIVED on Linux/MKL from a three-seam report-mode run, by pasting
 #   hven_golden_rig_report's own emitted rows -- every value and every
 #   provenance column below was copied from that artifact, none was typed.

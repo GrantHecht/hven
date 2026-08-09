@@ -59,6 +59,22 @@ if(Git_FOUND)
     endif()
 endif()
 
+# The build configuration this rig was configured at, stamped the same way
+# and for the same reason as HVEN_RIG_COMMIT above: it goes into every
+# observation's provenance and, for a float row, into the context match the
+# expected-table reader enforces before asserting one (a float row is pinned
+# to the build configuration(s) it was proven invariant across at derivation
+# -- see docs/testing.md and each expected/<trace>.csv's own "build-config"
+# metadata line). All of this project's presets are single-config Ninja
+# generators, so CMAKE_BUILD_TYPE is always meaningfully set here; the
+# "unknown" fallback only matters for a configure that skips the preset
+# entirely.
+if(CMAKE_BUILD_TYPE)
+    set(HVEN_RIG_BUILD_CONFIG "${CMAKE_BUILD_TYPE}")
+else()
+    set(HVEN_RIG_BUILD_CONFIG "unknown")
+endif()
+
 ################################################################################
 # Support objects: the seam abstraction and its adapters, the recipes, the
 # expected-table reader and comparison engine, and the shared trace scaffolding.
@@ -84,6 +100,7 @@ target_compile_options(hven_golden_rig_support PRIVATE ${COMPILE_FLAGS})
 target_compile_definitions(hven_golden_rig_support PUBLIC
     HVEN_RIG_EXPECTED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/expected"
     HVEN_RIG_COMMIT="${HVEN_RIG_COMMIT}"
+    HVEN_RIG_BUILD_CONFIG="${HVEN_RIG_BUILD_CONFIG}"
 )
 
 # --- the interior-point old-seam arm ------------------------------------------

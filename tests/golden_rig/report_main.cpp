@@ -46,6 +46,8 @@ const char *verdict_name(Comparison::Verdict v) {
         return "NO-EXPECTATION";
     case Comparison::Verdict::kUnobserved:
         return "UNOBSERVED-SLOT";
+    case Comparison::Verdict::kContextMismatch:
+        return "CONTEXT-MISMATCH";
     case Comparison::Verdict::kRecordOnly:
         return "RECORD-ONLY";
     }
@@ -79,6 +81,9 @@ void write_report(std::ostream &out) {
         << tally[Comparison::Verdict::kMismatch] << " contradicted, "
         << tally[Comparison::Verdict::kNoExpectation] << " with no expectation, "
         << tally[Comparison::Verdict::kUnobserved] << " against unfilled slots, "
+        << tally[Comparison::Verdict::kContextMismatch]
+        << " NOT ASSERTED for a context mismatch (machine, build configuration or thread pin --"
+           " see the comparisons block below for which), "
         << tally[Comparison::Verdict::kRecordOnly]
         << " recorded as documentation (unassertable by construction); " << sink.skips().size()
         << " runs skipped for a missing capability.\n\n";

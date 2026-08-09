@@ -254,6 +254,40 @@ ExpectedTable ExpectedTable::load(const std::string &trace) {
     if (!header_seen) {
         throw std::runtime_error(fmt::format("expected table {}: no header row found", path));
     }
+
+    // Comparison policy, table-wide: a "build-config" metadata line lists
+    // the build configuration(s) every committed float row in this file
+    // survived at derivation (see docs/testing.md's second reproduction
+    // gate). It is parsed once here, after the whole file -- including its
+    // leading comment block -- has been read.
+    {
+        const auto it = table.metadata_.find("build-config");
+        if (it != table.metadata_.end()) {
+            std::istringstream in(it->second);
+            std::string item;
+            while (std::getline(in, item, ',')) {
+                const std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    table.build_configs_.push_back(trimmed);
+                }
+            }
+        }
+    }
+    if (table.build_configs_.empty()) {
+        for (const ExpectedRow &row : table.rows_) {
+            if (row.kind == ValueKind::kFloat && !row.unobserved()) {
+                throw std::invalid_argument(fmt::format(
+                    "expected table {}: row ({}, {}) carries an observed float value but the "
+                    "file has no 'build-config' metadata line. A float row's context (machine, "
+                    "build configuration, thread pin) must match the observing run's own before "
+                    "it is asserted; without a declared build-config set there is nothing to "
+                    "match a float row's build configuration against, so the row cannot be "
+                    "trusted on any machine, including the one it was derived on.",
+                    path, row.arm, row.quantity));
+            }
+        }
+    }
+
     return table;
 }
 
@@ -333,7 +367,24 @@ Observation Observation::boolean(std::string trace, std::string arm, std::string
     return o;
 }
 
-Comparison compare(const Observation &obs, const ExpectedTable *table) {
+namespace {
+
+// Human-readable "a, b, c" for a small set of context values -- used only in
+// a mismatch's own detail string, never in a comparison.
+std::string join(const std::vector<std::string> &items) {
+    std::string out;
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        if (i != 0) {
+            out += ", ";
+        }
+        out += items[i].empty() ? std::string("(empty)") : items[i];
+    }
+    return out.empty() ? std::string("(none)") : out;
+}
+
+} // namespace
+
+Comparison compare(const Observation &obs, const ExpectedTable *table, const ObservedContext &ctx) {
     Comparison c;
     if (obs.kind == ValueKind::kRecordOnly) {
         // Short-circuited before any lookup, and before the null-table case:
@@ -371,6 +422,55 @@ Comparison compare(const Observation &obs, const ExpectedTable *table) {
         c.detail = fmt::format("({}, {}): expected a {} row, observed a {}", obs.arm, obs.quantity,
                                value_kind_name(row->kind), value_kind_name(obs.kind));
         return c;
+    }
+
+    // A float expectation is assertable only when the observing context
+    // matches the row's pinned context -- machine, build configuration, and
+    // thread pin all have to agree with the row's own provenance columns.
+    // Floats drift by a few ULPs to a few parts in 1e12 across machines and
+    // build configurations under -march=native / different libm builds,
+    // which is exactly the kind of difference this table's tolerance was
+    // never meant to absorb -- it exists to describe arithmetic noise WITHIN
+    // one context, not to paper over a different one. A counter, state,
+    // presence or bool row carries none of this risk (an integer count or a
+    // named state does not drift with the machine underneath it), so this
+    // gate applies to kFloat alone; every other kind is asserted regardless
+    // of context, unchanged from before.
+    if (obs.kind == ValueKind::kFloat) {
+        std::vector<std::string> mismatches;
+        if (row->machine != ctx.machine) {
+            mismatches.push_back(
+                fmt::format("machine (pinned '{}', observed '{}')", row->machine, ctx.machine));
+        }
+        const bool build_config_ok =
+            std::find(table->build_configs().begin(), table->build_configs().end(),
+                      ctx.build_config) != table->build_configs().end();
+        if (!build_config_ok) {
+            mismatches.push_back(fmt::format("build configuration (pinned {{{}}}, observed '{}')",
+                                             join(table->build_configs()), ctx.build_config));
+        }
+        if (row->thread_pin_mechanism != ctx.thread_pin_mechanism ||
+            row->thread_pin_value != ctx.thread_pin_value) {
+            mismatches.push_back(fmt::format("thread pin (pinned {}={}, observed {}={})",
+                                             row->thread_pin_mechanism, row->thread_pin_value,
+                                             ctx.thread_pin_mechanism, ctx.thread_pin_value));
+        }
+        if (!mismatches.empty()) {
+            c.verdict = Comparison::Verdict::kContextMismatch;
+            std::string joined_mismatches;
+            for (std::size_t i = 0; i < mismatches.size(); ++i) {
+                if (i != 0) {
+                    joined_mismatches += "; ";
+                }
+                joined_mismatches += mismatches[i];
+            }
+            c.detail = fmt::format(
+                "({}, {}): NOT ASSERTED -- observing context does not match this row's pinned "
+                "context: {}. Observed {} = {}; the row's expectation ({}) is reported but not "
+                "evaluated, because a mismatched context is not evidence for or against it.",
+                obs.arm, obs.quantity, joined_mismatches, obs.quantity, obs.value, row->value);
+            return c;
+        }
     }
 
     switch (obs.kind) {

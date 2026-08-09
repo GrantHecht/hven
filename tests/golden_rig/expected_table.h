@@ -116,6 +116,18 @@ class ExpectedTable {
     const std::map<std::string, std::string> &metadata() const { return metadata_; }
     const std::vector<ExpectedRow> &rows() const { return rows_; }
 
+    // The build configurations (e.g. "Release", "Debug") this table's
+    // committed float rows are pinned to, parsed from the table's own
+    // "build-config" metadata line. A row's build configuration is not a
+    // per-row column -- every row in one committed table comes from one
+    // derivation run, so the pin is table-wide -- and every entry here was
+    // independently reproduced under it (see docs/testing.md's "What a row
+    // has to survive before it is committed"). load() REFUSES a table that
+    // carries a non-UNOBSERVED float row but no "build-config" line, the
+    // same way it refuses a row without a thread pin: without it, a float
+    // row's context could never be soundly checked.
+    const std::vector<std::string> &build_configs() const { return build_configs_; }
+
     // The row for one (arm, quantity), or nothing if the table has no such row.
     const ExpectedRow *find(const std::string &arm, const std::string &quantity) const;
 
@@ -123,6 +135,7 @@ class ExpectedTable {
     std::string trace_;
     std::map<std::string, std::string> metadata_;
     std::vector<ExpectedRow> rows_;
+    std::vector<std::string> build_configs_;
 };
 
 // One thing a trace observed on one arm.
@@ -167,14 +180,43 @@ struct Comparison {
         kMismatch,
         kNoExpectation, // the table has no row for this (arm, quantity)
         kUnobserved,    // the row exists and is an unfilled slot
-        kRecordOnly     // the observation is unassertable by construction
+
+        // The row's PINNED context (machine, build configuration, thread
+        // pin) does not match the OBSERVING run's own -- see kFloat's own
+        // doc comment for why only a float row can land here. The row is
+        // NOT asserted: neither a match nor a contradiction, because the
+        // comparison it would take to decide that is not sound across a
+        // context the row's expectation was never shown to hold under.
+        // Reported loudly rather than folded into kNoExpectation, because
+        // an expectation genuinely exists here -- it is simply not safe to
+        // apply on this machine, in this build, at this thread pin.
+        kContextMismatch,
+
+        kRecordOnly // the observation is unassertable by construction
     };
     Verdict verdict = Verdict::kNoExpectation;
     std::string detail; // human-readable, always populated
 };
 
-// Compares one observation against a table under the policy above.
-Comparison compare(const Observation &obs, const ExpectedTable *table);
+// The OBSERVING run's own context, checked against a float row's pinned
+// context (ExpectedRow::machine, ExpectedTable::build_configs(),
+// ExpectedRow::thread_pin_mechanism / thread_pin_value) before that row is
+// asserted. Built by the caller from RunProvenance plus the thread pin the
+// engine under test actually reports -- expected_table.cpp has no way to
+// detect either on its own, and taking them as parameters keeps this file
+// free of any dependency on how a live run determines them.
+struct ObservedContext {
+    std::string machine;
+    std::string build_config;
+    std::string thread_pin_mechanism;
+    std::string thread_pin_value;
+};
+
+// Compares one observation against a table under the policy above. `ctx` is
+// the observing run's own context; consulted only for kFloat rows -- a
+// counter, state, presence or bool row is exact and machine-independent by
+// construction and is asserted regardless of context, same as always.
+Comparison compare(const Observation &obs, const ExpectedTable *table, const ObservedContext &ctx);
 
 // The comparison engine's rendering of an observation as a CSV row, with the
 // provenance columns filled from the live run. This is what the report emits,

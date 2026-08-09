@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <iostream>
 #include <utility>
 
 #include <gtest/gtest.h>
@@ -20,6 +21,10 @@
 
 #ifndef HVEN_RIG_COMMIT
 #define HVEN_RIG_COMMIT "unknown"
+#endif
+
+#ifndef HVEN_RIG_BUILD_CONFIG
+#define HVEN_RIG_BUILD_CONFIG "unknown"
 #endif
 
 namespace hven::rig {
@@ -101,6 +106,7 @@ const RunProvenance &run_provenance() {
         r.backend = detect_backend();
         r.commit = HVEN_RIG_COMMIT;
         r.date = today_utc();
+        r.build_config = HVEN_RIG_BUILD_CONFIG;
         return r;
     }();
     return p;
@@ -189,8 +195,6 @@ void TraceRun::record(Observation obs) {
     obs.trace = trace_;
     obs.arm = label_;
 
-    RecordedObservation rec;
-    rec.comparison = compare(obs, table_.get());
     const RunProvenance &p = run_provenance();
     // An observation measured under a configuration other than the run's own
     // carries its own pin, so the row says what it was actually taken under
@@ -199,12 +203,27 @@ void TraceRun::record(Observation obs) {
     // keeps such a row from ever becoming an expectation.
     const std::string mechanism = obs.pin_mechanism_override.value_or(pin_mechanism_);
     const int pin = obs.pin_value_override.value_or(pin_value_);
+
+    RecordedObservation rec;
+    const ObservedContext ctx{p.machine, p.build_config, mechanism, std::to_string(pin)};
+    rec.comparison = compare(obs, table_.get(), ctx);
     rec.csv_row = to_csv_row(obs, p.machine, p.backend, mechanism, pin, p.commit, p.date);
     rec.obs = std::move(obs);
 
     if (run_mode() == RunMode::kAssert &&
         rec.comparison.verdict == Comparison::Verdict::kMismatch) {
         ADD_FAILURE() << trace_ << " / " << label_ << ": " << rec.comparison.detail;
+    }
+    // A context mismatch is never a failure -- see kContextMismatch's own
+    // doc comment -- but it must never be silent either: it is the visible
+    // difference between "this machine genuinely disagrees with the pinned
+    // expectation" and "this machine cannot honestly compare against it at
+    // all". Printed unconditionally, in both assert and report mode, so it
+    // shows up in a direct run of either binary rather than only in the
+    // report tool's own summary and comparisons block.
+    if (rec.comparison.verdict == Comparison::Verdict::kContextMismatch) {
+        std::cout << "CONTEXT-MISMATCH " << trace_ << " / " << label_ << ": "
+                  << rec.comparison.detail << "\n";
     }
     ObservationSink::instance().add(std::move(rec));
 }

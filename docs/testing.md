@@ -413,7 +413,30 @@ trace to remember it:
 - the literal `UNOBSERVED` is a legal value meaning nobody has run this arm
   yet. It never compares equal to anything. Every slot for a backend arm this
   project has no hardware for ships as `UNOBSERVED` and is filled only from a
-  hardware run.
+  hardware run;
+- a table carrying a committed (non-`UNOBSERVED`) float row must declare the
+  build configuration(s) that row is pinned to, in a `# build-config:` metadata
+  line — a table with a committed float row and no such line is **refused at
+  load**, the same way a row without a thread pin is.
+
+**A float expectation is context-pinned three ways, and is asserted only when
+all three match: machine, build configuration, and thread pin.** These are
+exactly the row's own provenance columns (machine and thread pin, per row) plus
+the table's `# build-config:` declaration (build configuration, per table,
+since every row in one committed table comes from one derivation run under one
+configuration). On a mismatch of any of the three, the row is **not asserted**:
+it is reported as `CONTEXT-MISMATCH`, with both the pinned and the observed
+context named, and counted in the report's summary — never silently dropped
+and never treated as a pass. Counters, states, presence and bool rows carry
+none of this risk (an integer count or a named state does not drift with the
+machine, compiler, or thread count underneath it) and are asserted
+unconditionally, on every machine, in every build configuration, exactly as
+before. In practice this means: a CI run on a machine other than the one a
+table was derived on — the common case for every lane except the one that did
+the deriving — still asserts every counter, state, presence, and bool row
+exactly as strictly as ever, and reports (without asserting) the float rows,
+which is the correct outcome for a value this project has never claimed is
+portable across microarchitectures in the first place.
 
 ### What a row has to survive before it is committed
 
@@ -435,24 +458,32 @@ assumed:
    boolean and presence reproduced exactly.
 
 The second gate is the surprising one and the reason it is written down
-here. The provenance columns a table carries — machine, backend, thread
-pin, commit, date — **do not name a build configuration**, so a value that
-moves with `-O0` versus `-O2` is a value the table has no way to describe.
-Committing one would pin a number to a configuration the schema cannot
-record, and the next reader would have no way to tell which configuration
-it belonged to. Note that only 35 of those 103 actually exceeded their
-stated tolerance; the other 68 stayed inside it by luck, which is exactly
-why the criterion is "did it move", not "did it fail".
+here. At the time of the first derivation, the provenance columns a table
+carried — machine, backend, thread pin, commit, date — did not name a build
+configuration at all, so a value that moved with `-O0` versus `-O2` was a
+value the table had no way to describe. Committing one would have pinned a
+number to a configuration the schema could not record, and the next reader
+would have had no way to tell which configuration it belonged to. Note that
+only 35 of those 103 actually exceeded their stated tolerance; the other 68
+stayed inside it by luck, which is exactly why the criterion is "did it
+move", not "did it fail".
+
+**Every row this project HAS committed, though, was proven invariant across
+both configurations it was checked against (Release and Debug) at the same
+derivation.** A table's `# build-config:` metadata line records exactly that
+set — see the previous section — so the 103 held-back rows are the ones this
+still does not answer for, not the ones that are committed. Committing those
+103 is still a decision about the schema (a genuinely per-row build
+configuration, since a value that is only Release-invariant or only
+Debug-invariant cannot be described by one table-wide set) or a scoping rule
+for which builds a table applies to, not a wider tolerance. Widening until
+the numbers agree would make the tolerance describe the compiler rather than
+the numerics.
 
 Held-back rows are listed by name in their table's banner under
 `# nondeterministic-on-derivation:`, with the reason stated. They are
 `UNOBSERVED`, so a run against them is reported as an unfilled slot rather
 than passing silently.
-
-If a future derivation wants those rows, the fix is a decision about the
-schema — a configuration column, or a scoping rule for which builds a
-table applies to — not a wider tolerance. Widening until the numbers agree
-would make the tolerance describe the compiler rather than the numerics.
 
 Trace matrices are **regenerated from recipes** (`tests/golden_rig/recipes.h`),
 never copied from either sibling checkout and never read from a file. Each
