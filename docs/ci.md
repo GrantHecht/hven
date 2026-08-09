@@ -50,10 +50,26 @@ Runs on `macos-latest` (Apple Silicon). Steps:
    to), and Accelerate is a system framework, found by
    `cmake/FindAccelerateSparse.cmake` via the SDK's default framework
    search path with no install step at all.
-3. Configure with the new `macos-clang-release` CMake preset
+3. Derive this runner's machine-class label and export it as
+   `HVEN_RIG_MACHINE` for every later step (see "The machine label names the
+   runner CLASS" below for how it is built). One source, two consumers: the
+   Test step, where the committed Accelerate float rows are asserted, and the
+   report step, where new ones are derived. Without it the Test step observes
+   the host's `uname` instead, every Mac float row reports CONTEXT-MISMATCH,
+   and this lane gates counters and states while checking no numbers at all —
+   which is how the lane behaved before this step existed.
+4. Configure with the new `macos-clang-release` CMake preset
    (`CMakePresets.json`; `binaryDir` `build-macos/`).
-4. Build (`cmake --build build-macos`).
-5. Test (`ctest --test-dir build-macos --output-on-failure`).
+5. Build (`cmake --build build-macos`).
+6. Test (`ctest --test-dir build-macos --output-on-failure`) — the one lane
+   whose run asserts committed float rows rather than reporting them as
+   context-mismatched.
+
+The Linux and Windows lanes deliberately set no such label: their committed
+float rows are pinned to the machine they were derived on, which is not a
+GitHub runner, so those rows report CONTEXT-MISMATCH there by design. Naming
+a runner as the derivation machine would make them assert against hardware
+they were never observed on.
 
 **Why AppleClang, not Homebrew LLVM.** Homebrew LLVM (`macos-llvm-release`
 in tycho's own `CMakePresets.json`, the precedent this repo's Windows preset
@@ -379,12 +395,15 @@ written.** The first pair labelled itself `github-macos-latest-apple-silicon`,
 which names a moving alias: GitHub has repointed `macos-latest` at new
 hardware more than once, and a float pinned to that string would go on
 asserting across the change — the same label describing a different machine,
-which is the one substitution the context gate exists to catch. The step now
-builds the label from `$ImageOS` and `runner.arch`, giving
-`github-macos26-arm64`, so the pin follows the image and stops matching when
-the image moves. The step fails loudly if `$ImageOS` is unset, because a
-malformed-but-consistent label is the same quiet failure in different
-clothes.
+which is the one substitution the context gate exists to catch. A dedicated
+step near the top of the job now builds the label from `$ImageOS` and
+`runner.arch`, giving `github-macos26-arm64`, so the pin follows the image and
+stops matching when the image moves. It fails loudly if `$ImageOS` is unset,
+because a malformed-but-consistent label is the same quiet failure in
+different clothes. The derivation lives in that one step and reaches the rest
+of the job through `$GITHUB_ENV`: it used to sit inside the report step alone,
+which meant the Test step ran unlabelled and asserted none of the rows the
+report step's own label was written to fill.
 
 Two further limits on what that artifact can ever fill:
 
