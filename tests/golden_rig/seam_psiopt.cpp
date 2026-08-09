@@ -130,10 +130,21 @@ class PsioptSeam final : public SeamUnderTest {
         // kAbsent would itself be the fabrication this adapter exists to
         // avoid. kSeamThreadLocalBinary is the mechanism this seam actually
         // has; see its doc comment in seam.h for the Apple-evidence chain.
+        //
+        // The mechanism is VERSION-SPLIT, mirroring the seam's own runtime
+        // dispatch: BLASSetThreading (thread-local, binary) exists only on
+        // macOS 15+; on earlier systems accelerate_set_num_threads() falls
+        // back to the VECLIB_MAXIMUM_THREADS environment variable, which IS
+        // process-global. Reporting one label unconditionally would be wrong
+        // on whichever side it didn't match, so the report performs the same
+        // availability check the seam's control performs.
         // What is genuinely missing is HARDWARE OBSERVATION: this branch has
         // never been compiled or run (see configuration_note() below), so the
         // mechanism is reported honestly while remaining unexercised.
-        return ThreadPinMechanism::kSeamThreadLocalBinary;
+        if (__builtin_available(macOS 15.0, *)) {
+            return ThreadPinMechanism::kSeamThreadLocalBinary;
+        }
+        return ThreadPinMechanism::kProcessGlobal;
 #else
         return ThreadPinMechanism::kProcessGlobal;
 #endif

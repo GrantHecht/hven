@@ -384,8 +384,12 @@ One leg deliberately escapes that pin: T8's unasserted smoke leg, whose whole
 subject is what happens at more than one thread. It requests an explicit count
 above one, which overrides the environment setting either way — **on the native
 arms through the seam's own per-instance control (MKL; on Accelerate the count
-is stored and applied to nothing, as above); on the old-seam arms through
-the rig's process pin, since those seams have no control of their own** — so
+is stored and applied to nothing, as above); on the SQP old-seam arm through
+the rig's process pin (that seam has no control of its own); on the
+interior-point old-seam arm through that seam's OWN control — process-global
+env on MKL/Linux via the rig pin, and on Apple the version-split mechanism
+its adapter reports (thread-local binary on macOS 15+, process-global env
+earlier)** — so
 the trace measures something real under the invocation above rather than
 comparing a run against itself. No other leg does this, and none of T8's
 asserted rows come from it.
