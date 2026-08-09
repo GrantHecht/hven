@@ -1,15 +1,22 @@
-// Throw-path coverage for the two Pardiso-only options on
-// SymmetricFactor::Options (ordering, weighted_matching): a non-default
-// value must THROW std::invalid_argument at construction on the Accelerate
-// backend, which has no equivalent concept for either -- never silently
-// ignored.
+// Throw-path coverage for SymmetricFactor::Options::weighted_matching, the
+// one remaining Pardiso-only option: a non-default value must THROW
+// std::invalid_argument at construction on the Accelerate backend, which has
+// no equivalent concept -- never silently ignored.
+//
+// Options::ordering is NO LONGER Pardiso-only (M1 POST-FREEZE AMENDMENT,
+// hven/linear/symmetric_factor.h's own doc comment on Options::ordering):
+// every Ordering value now maps onto a real Accelerate order method, so this
+// file also asserts the inverse of what its name might suggest for that
+// option -- ALL FOUR values are accepted (never throw) on both backends.
+// This file's name predates that amendment and is kept for continuity with
+// the surrounding test suite; weighted_matching is the option it is actually
+// about now.
 //
 // Platform-gated the same way the backend split itself is (src/CMakeLists.txt):
-// the `#if defined(__APPLE__)` half below asserts the throw; the
-// `#else` half asserts the inverse guard -- the exact same non-default
-// values are ACCEPTED (never throw) on the MKL platform, which is the
-// backend they actually configure. The Apple half is exercised for real only
-// via the Accelerate syntax-check lane
+// the `#if defined(__APPLE__)` half below asserts the Accelerate acceptance/
+// throw split; the `#else` half asserts the same values on the MKL platform,
+// which is the backend weighted_matching actually configures. The Apple half
+// is exercised for real only via the Accelerate syntax-check lane
 // (scripts/check_accelerate_syntax_linux.sh) on this Linux development pass
 // -- see docs/testing.md for what that lane does and does not prove.
 
@@ -25,13 +32,22 @@ using hven::linear::SymmetricFactor;
 
 #if defined(__APPLE__)
 
-TEST(SymmetricFactorPardisoOnlyOptions, NonDefaultOrderingThrowsAtConstruction) {
-    SymmetricFactor::Options opts;
-    opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
-    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
-
-    opts.ordering = SymmetricFactor::Options::Ordering::kParallelNestedDissection;
-    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
+// The locked mapping's Accelerate half (frozen spec A.3): every Ordering
+// value is accepted at construction on this backend now -- kBackendDefault
+// -> SparseOrderDefault, kMinimumDegree -> SparseOrderAMD, kNestedDissection
+// -> SparseOrderMetis, kParallelNestedDissection -> SparseOrderMTMetis (with
+// the OS-availability downgrade to SparseOrderMetis where the host lacks it,
+// exercised inside accelerate_ordering_code() at analyze() time, not here at
+// construction).
+TEST(SymmetricFactorPardisoOnlyOptions, AllOrderingValuesAreAcceptedAtConstructionOnAccelerate) {
+    for (const auto ordering : {SymmetricFactor::Options::Ordering::kBackendDefault,
+                                SymmetricFactor::Options::Ordering::kMinimumDegree,
+                                SymmetricFactor::Options::Ordering::kNestedDissection,
+                                SymmetricFactor::Options::Ordering::kParallelNestedDissection}) {
+        SymmetricFactor::Options opts;
+        opts.ordering = ordering;
+        EXPECT_NO_THROW(SymmetricFactor{opts});
+    }
 }
 
 TEST(SymmetricFactorPardisoOnlyOptions, WeightedMatchingTrueThrowsAtConstruction) {
@@ -47,15 +63,16 @@ TEST(SymmetricFactorPardisoOnlyOptions, DefaultOptionsDoNotThrow) {
 #else // !defined(__APPLE__)
 
 // The inverse guard: on the MKL platform these are real Pardiso options, so
-// the exact same non-default values that throw on Accelerate must not throw
-// here.
+// the exact same non-default values accepted on Accelerate must not throw
+// here either.
 TEST(SymmetricFactorPardisoOnlyOptions, NonDefaultOrderingDoesNotThrowOnMkl) {
-    SymmetricFactor::Options opts;
-    opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
-    EXPECT_NO_THROW(SymmetricFactor{opts});
-
-    opts.ordering = SymmetricFactor::Options::Ordering::kParallelNestedDissection;
-    EXPECT_NO_THROW(SymmetricFactor{opts});
+    for (const auto ordering : {SymmetricFactor::Options::Ordering::kMinimumDegree,
+                                SymmetricFactor::Options::Ordering::kNestedDissection,
+                                SymmetricFactor::Options::Ordering::kParallelNestedDissection}) {
+        SymmetricFactor::Options opts;
+        opts.ordering = ordering;
+        EXPECT_NO_THROW(SymmetricFactor{opts});
+    }
 }
 
 TEST(SymmetricFactorPardisoOnlyOptions, WeightedMatchingTrueDoesNotThrowOnMkl) {

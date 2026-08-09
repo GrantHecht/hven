@@ -61,16 +61,17 @@ struct PardisoConfig {
     // Fill-in reordering override for iparm[1]. std::nullopt means "leave
     // iparm[1] alone" -- pardisoinit's own value survives -- and is the only
     // state this field takes at SymmetricFactor::Options::Ordering::
-    // kBackendDefault; a present value is written verbatim. The only values
-    // FactorSession::analyze is asked for today are 2 (nested dissection /
-    // METIS) and 3 (its OpenMP-parallel variant), matching Options::Ordering
-    // exactly -- but the encoding itself does NOT foreclose 0 (minimum
-    // degree, a real Pardiso iparm[1] value psiopt exposes today as
-    // QPOrderingModes::MINDEG) for a future Options::Ordering enumerator: an
+    // kBackendDefault; a present value is written verbatim. The values
+    // FactorSession::analyze is asked for today are 0 (minimum degree --
+    // kMinimumDegree, a real Pardiso iparm[1] value psiopt exposes as
+    // QPOrderingModes::MINDEG), 2 (nested dissection / METIS), and 3 (its
+    // OpenMP-parallel variant), matching Options::Ordering exactly. An
     // earlier `int` encoding that used 0 itself as the "don't write"
-    // sentinel collided with that real value and would have had to change
-    // its wire representation to add it later. std::optional side-steps the
-    // collision entirely rather than reserving a magic sentinel.
+    // sentinel would have collided with the real value 0 now represents --
+    // std::optional side-steps that collision entirely rather than reserving
+    // a magic sentinel, which is exactly what let kMinimumDegree land as a
+    // pure Options-side amendment with no change to this field's wire
+    // representation.
     std::optional<int> ordering;
 
     // Maximum weighted matching (iparm[12]). false leaves iparm[12] alone;

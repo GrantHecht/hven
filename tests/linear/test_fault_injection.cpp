@@ -206,6 +206,28 @@ TEST(PardisoIparmObservation, DefaultOptionsLeaveOrderingAndMatchingAtThePardiso
         << "default Options must not execute the iparm[12] write at all";
 }
 
+// kMinimumDegree's contract value (M1 POST-FREEZE AMENDMENT: iparm[1] = 0)
+// is a fixed part of the frozen surface. 0 is also MKL_INT's own
+// zero-initialized state, which is exactly why the *_was_written flag below
+// -- not the value comparison -- is what actually distinguishes "wrote 0"
+// from "never touched the array element pardisoinit itself may have left at
+// 0" on some future MKL version; on every MKL currently linked here,
+// pardisoinit's own iparm[1] default is 2 or 3 (never 0), so the value
+// comparison alone already carries this test today, but the flag assertion
+// is what keeps it version-independent.
+TEST(PardisoIparmObservation, MinimumDegreeOrderingWritesExactly0) {
+    PardisoIparmObserver::reset();
+    SymmetricFactor::Options opts;
+    opts.ordering = SymmetricFactor::Options::Ordering::kMinimumDegree;
+    SymmetricFactor factor{opts};
+    factor.analyze(upper_csr(spd3()));
+
+    ASSERT_TRUE(PardisoIparmObserver::recorded);
+    EXPECT_EQ(PardisoIparmObserver::last_ordering_iparm, 0);
+    EXPECT_TRUE(PardisoIparmObserver::ordering_was_written);
+    EXPECT_EQ(PardisoIparmObserver::ordering_written_value, 0);
+}
+
 // kNestedDissection's contract value (Options amendment: iparm[1] = 2) is a
 // fixed part of the frozen surface regardless of MKL version, so this one
 // literal is the spec's own commitment, not a version-fragile assumption.

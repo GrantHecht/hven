@@ -193,15 +193,42 @@ class SymmetricFactor {
         // solves always run with refinement off -- see solve_partial().
         int max_refinement_iters = 0;
 
-        // Fill-in reordering for the symbolic analysis (Pardiso iparm[1]).
-        // DON'T-WRITE-BY-DEFAULT: at kBackendDefault, hven does not touch
-        // iparm[1] at all, so pardisoinit's own value survives exactly.
-        // kNestedDissection writes iparm[1] = 2 (METIS nested dissection);
-        // kParallelNestedDissection writes iparm[1] = 3 (its OpenMP-parallel
-        // variant). Pardiso-only: a non-default value THROWS
-        // std::invalid_argument at construction on the Accelerate backend,
-        // which has no equivalent concept.
-        enum class Ordering { kBackendDefault, kNestedDissection, kParallelNestedDissection };
+        // Fill-in reordering for the symbolic analysis (Pardiso iparm[1] on
+        // MKL; Accelerate's own ordering-method control on the other
+        // backend). DON'T-WRITE-BY-DEFAULT ON MKL: at kBackendDefault, hven
+        // does not touch iparm[1] at all, so pardisoinit's own value
+        // survives exactly.
+        //
+        // Locked mapping (M1 POST-FREEZE AMENDMENT -- both backends support
+        // every value; there is no Pardiso-only throw for this option):
+        //   kBackendDefault            MKL: don't write iparm[1]
+        //                              Accelerate: SparseOrderDefault
+        //                              (documented by Apple as AMD for
+        //                              symmetric matrices)
+        //   kMinimumDegree             MKL: iparm[1] = 0
+        //                              Accelerate: SparseOrderAMD
+        //   kNestedDissection          MKL: iparm[1] = 2 (METIS)
+        //                              Accelerate: SparseOrderMetis
+        //   kParallelNestedDissection  MKL: iparm[1] = 3 (its OpenMP-
+        //                              parallel variant)
+        //                              Accelerate: SparseOrderMTMetis,
+        //                              downgraded to SparseOrderMetis at
+        //                              runtime on a host that lacks it
+        //                              (macOS < 26 -- passing the
+        //                              unsupported value unconditionally
+        //                              raises a backend parameter error)
+        //
+        // MIGRATION HAZARD: a caller migrating from a seam whose Accelerate
+        // default was METIS must request kNestedDissection explicitly --
+        // Accelerate's OWN default is AMD, so leaving this at
+        // kBackendDefault silently changes which ordering method runs, not
+        // merely its cost.
+        enum class Ordering {
+            kBackendDefault,
+            kMinimumDegree,
+            kNestedDissection,
+            kParallelNestedDissection
+        };
         Ordering ordering = Ordering::kBackendDefault;
 
         // Maximum weighted matching (Pardiso iparm[12]). DON'T-WRITE-BY-

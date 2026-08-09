@@ -563,7 +563,9 @@ TEST(SymmetricFactor, ExplicitThreadCountChangesNeitherCountersNorSolutions) {
 
 // =============================================================================
 // Ordering and weighted matching (Options::ordering, Options::
-// weighted_matching -- Pardiso-only, don't-write-by-default)
+// weighted_matching -- don't-write-by-default on this backend; weighted_matching
+// is Pardiso-only, ordering is not -- see symmetric_factor.h's own doc
+// comment on Options::ordering for the locked cross-backend mapping)
 // =============================================================================
 
 // The defaults-write-nothing rule itself has executable coverage in
@@ -574,6 +576,34 @@ TEST(SymmetricFactor, ExplicitThreadCountChangesNeitherCountersNorSolutions) {
 // lives (see PardisoIparmObserver's own doc comment for why: only the
 // standalone fault-injection target recompiles the adapter TU with the
 // hook that records it), so it is not duplicated here.
+
+TEST(SymmetricFactor, MinimumDegreeOrderingFactorizesAndSolvesCorrectly) {
+    SymmetricFactor::Options opts = default_options();
+    opts.ordering = SymmetricFactor::Options::Ordering::kMinimumDegree;
+
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    EXPECT_EQ(factor.counters().factorize_count, 1);
+    EXPECT_EQ(factor.counters().solve_count, 1);
+    // Orderings change internals, never results: the counters and the
+    // inertia read the same as the default-ordering baseline above.
+    ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
+    EXPECT_EQ(factor.inertia().n_pos, 4);
+    EXPECT_EQ(factor.inertia().n_neg, 0);
+    EXPECT_EQ(factor.inertia().n_zero, 0);
+}
 
 TEST(SymmetricFactor, NestedDissectionOrderingFactorizesAndSolvesCorrectly) {
     SymmetricFactor::Options opts = default_options();
@@ -680,14 +710,16 @@ TEST(SymmetricFactor, WeightedMatchingForcesSupportsPartialSolveFalse) {
            "perturbed-pivot evidence -- see supports_partial_solve()'s doc comment";
 }
 
-// The inverse of the Accelerate throw-path guard in
-// test_symmetric_factor_pardiso_only_options.cpp: on the MKL platform these
-// options actually configure Pardiso, so the exact same non-default values
-// that throw on Accelerate must NOT throw. (Deliberately not duplicated
-// here beyond one representative check -- test_symmetric_factor_pardiso_
-// only_options.cpp's NonDefaultOrderingDoesNotThrowOnMkl /
-// WeightedMatchingTrueDoesNotThrowOnMkl already cover every value; see
-// the guard consolidation noted in the test file header.)
+// The inverse of the Accelerate construction-time guard in
+// test_symmetric_factor_pardiso_only_options.cpp: on the MKL platform
+// weighted_matching = true actually configures Pardiso's iparm[12], so the
+// same value that throws on Accelerate must NOT throw here (ordering never
+// throws on either backend now -- see that file's own updated header
+// comment). (Deliberately not duplicated here beyond one representative
+// check -- test_symmetric_factor_pardiso_only_options.cpp's
+// NonDefaultOrderingDoesNotThrowOnMkl / WeightedMatchingTrueDoesNotThrowOnMkl
+// already cover every value; see the guard consolidation noted in the test
+// file header.)
 
 // =============================================================================
 // Epochs and shared handles

@@ -112,7 +112,13 @@ void FactorSession::analyze(const SpMatRM &A) {
     // implemented as TPP (both precedents make this same choice explicitly).
     SparseSymbolicFactorOptions fopts{};
     fopts.control = SparseDefaultControl;
-    fopts.orderMethod = SparseOrderDefault;
+    // Already resolved to Accelerate's own vocabulary (including the
+    // kParallelNestedDissection -> SparseOrderMTMetis OS-availability
+    // downgrade) by the adapter's accelerate_ordering_code() -- see
+    // AccelerateConfig::ordering's own doc comment. Defaults to
+    // SparseOrderDefault, the prior hardcoded value, when Options::ordering
+    // is kBackendDefault.
+    fopts.orderMethod = cfg_.ordering;
     // `order = nullptr`: a deliberate, noted divergence from
     // KktSystem::analyze, which passes a non-null buffer here to receive
     // Accelerate's computed fill-reducing permutation back (its own audit

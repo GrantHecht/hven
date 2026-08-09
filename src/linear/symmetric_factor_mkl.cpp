@@ -53,6 +53,8 @@ std::optional<int> pardiso_ordering_code(SymmetricFactor::Options::Ordering orde
     switch (ordering) {
     case SymmetricFactor::Options::Ordering::kBackendDefault:
         return std::nullopt;
+    case SymmetricFactor::Options::Ordering::kMinimumDegree:
+        return 0;
     case SymmetricFactor::Options::Ordering::kNestedDissection:
         return 2;
     case SymmetricFactor::Options::Ordering::kParallelNestedDissection:
@@ -69,6 +71,8 @@ SymmetricFactor::Options::Ordering pardiso_ordering_of(std::optional<int> code) 
         return SymmetricFactor::Options::Ordering::kBackendDefault;
     }
     switch (*code) {
+    case 0:
+        return SymmetricFactor::Options::Ordering::kMinimumDegree;
     case 2:
         return SymmetricFactor::Options::Ordering::kNestedDissection;
     case 3:

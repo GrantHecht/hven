@@ -28,10 +28,12 @@
 // hven is Apache-2.0. See notices/eigen-mpl2.txt.
 //
 // What is NOT derived: the session lifecycle, ownership and epoch semantics,
-// evidence reporting, the pivot_perturb_exp -> zeroTolerance mapping, and the
-// partial-solve subfactor discipline around it are hven's own and exist to
-// serve the frozen interface contract of hven/linear/symmetric_factor.h and
-// its per-backend semantics table.
+// evidence reporting, the pivot_perturb_exp -> zeroTolerance mapping, the
+// Options::Ordering -> SparseOrder_t mapping (AccelerateConfig::ordering,
+// resolved by the adapter -- see its own doc comment), and the partial-solve
+// subfactor discipline around it are hven's own and exist to serve the
+// frozen interface contract of hven/linear/symmetric_factor.h and its
+// per-backend semantics table.
 // =============================================================================
 
 #include <cstdint>
@@ -74,6 +76,18 @@ struct AccelerateConfig {
     int num_threads = 0;          // stored only; no per-instance backend control exists
     int pivot_perturb_exp = 8;    // -> zeroTolerance, see FactorSession::factorize
     int max_refinement_iters = 0; // stored only; Accelerate reports no refinement count
+
+    // Fill-in reordering method for the symbolic analysis, ALREADY resolved
+    // to Accelerate's own SparseOrder_t vocabulary (SymmetricFactor::
+    // Options::Ordering -> SparseOrder_t, including the kParallelNestedDissection
+    // -> SparseOrderMTMetis OS-availability downgrade) by the adapter's
+    // accelerate_ordering_code() (symmetric_factor_accelerate.cpp) --
+    // exactly the same division of labor as PardisoConfig::ordering on the
+    // MKL twin: the adapter translates hven's own Options vocabulary into
+    // the backend's, and this session file only carries the already-decided
+    // value through to SparseSymbolicFactorOptions::orderMethod. Defaults to
+    // SparseOrderDefault, matching Options::Ordering::kBackendDefault.
+    SparseOrder_t ordering = SparseOrderDefault;
 };
 
 // One Accelerate factorization session: the symbolic/numeric factorization

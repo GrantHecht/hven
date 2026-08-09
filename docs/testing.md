@@ -47,12 +47,12 @@ at the two guarded parameter-array writes inside `FactorSession::analyze`
 don't-write-by-default: at `Options::ordering == kBackendDefault`, hven must
 not touch `iparm[1]` at all. The boundary can only read the array afterwards —
 and on some MKL versions `pardisoinit`'s own default for that entry equals one
-of the two values `Ordering` can request (3, on the version this repository
-currently links). On such a version "left it alone" and "wrote exactly that
-value" produce identical arrays, so no after-the-fact read can distinguish
-them and the rule falls back to inspecting an `if`. The fact that is missing
-is whether a statement *executed*, and a statement that did not execute leaves
-its trace nowhere but where it isn't.
+of the three non-default values `Ordering` can request (3, on the version this
+repository currently links). On such a version "left it alone" and "wrote
+exactly that value" produce identical arrays, so no after-the-fact read can
+distinguish them and the rule falls back to inspecting an `if`. The fact that
+is missing is whether a statement *executed*, and a statement that did not
+execute leaves its trace nowhere but where it isn't.
 
 *What it costs.* Two `#ifdef HVEN_TESTING` lines per write site. Verified, not
 asserted: compiling `pardiso_session.cpp` with the production flags before and
@@ -187,11 +187,12 @@ the act of recording their result into `PardisoIparmObserver` is
   `pardisoinit()` call made directly in the test (never a literal
   constant — see the test file's own comment on why hven's actual MKL
   version currently makes `iparm[1]`'s default coincide with one of the
-  two non-default `Ordering` values, which would make a naive "assert
+  three non-default `Ordering` values, which would make a naive "assert
   != some literal" check meaningless on this box);
 - at each non-default value, the recorded value equals the amendment's own
-  fixed contract constant (2 / 3 / 1), which is a spec commitment, not a
-  version-fragile assumption, so a literal is correct there.
+  fixed contract constant (`Ordering`: 0 / 2 / 3; `weighted_matching`: 1),
+  which is a spec commitment, not a version-fragile assumption, so a literal
+  is correct there.
 
 And at the WRITE SITE, for the half the boundary cannot reach: the
 `*_was_written` / `*_written_value` fields described under "the sanctioned
@@ -291,13 +292,31 @@ macro rather than a hand-rolled build option, so there is nothing beyond
 A second unconditionally-compiled, internally platform-split file follows
 the same convention:
 `tests/linear/test_symmetric_factor_pardiso_only_options.cpp` asserts the
-Accelerate throw path for `Options::ordering` / `Options::weighted_matching`
-(non-default values THROW `std::invalid_argument` at construction, per the
-M1 amendment's Accelerate semantics) under `#if defined(__APPLE__)`, and the
-inverse guard — the exact same non-default values do NOT throw on the MKL
-platform, since there they are real Pardiso options — under `#else`. Like
-`test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides the
-Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
+construction-time behavior of the two options this file is named for, which
+now diverges between them per the M1 POST-FREEZE Ordering amendment (frozen
+spec A.3, `hven/linear/symmetric_factor.h`'s own doc comment on
+`Options::ordering`):
+
+- `Options::weighted_matching`: still Pardiso-only. A non-default value
+  (`true`) THROWS `std::invalid_argument` at construction on Accelerate,
+  which has no matching analogue, under `#if defined(__APPLE__)`; the
+  inverse guard — the same value does NOT throw on the MKL platform, where
+  it is a real Pardiso option — runs under `#else`.
+- `Options::ordering`: NO LONGER Pardiso-only. Every `Ordering` value now
+  maps onto a real Accelerate order method (`kBackendDefault` ->
+  `SparseOrderDefault`, `kMinimumDegree` -> `SparseOrderAMD`,
+  `kNestedDissection` -> `SparseOrderMetis`, `kParallelNestedDissection` ->
+  `SparseOrderMTMetis` with an OS-availability downgrade to
+  `SparseOrderMetis` on a host that lacks it), so the Apple half now asserts
+  ALL FOUR values are ACCEPTED (never throw) at construction — the mapping
+  itself is resolved later, inside `accelerate_ordering_code()`
+  (`src/linear/symmetric_factor_accelerate.cpp`) at `analyze()` time, not at
+  construction. The MKL-side `#else` half already accepted every non-default
+  value (real Pardiso options), and now additionally covers
+  `kMinimumDegree`.
+
+Like `test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides
+the Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
 rather than executing on this Linux-only development pass.
 
 ## The golden-numerics rig

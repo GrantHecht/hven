@@ -44,8 +44,23 @@ enum : SparseStatus_t {
 typedef int SparseControl_t;
 enum : SparseControl_t { SparseDefaultControl = 0 };
 
+// SparseOrderAMD is declared unconditionally here (not gated behind an SDK
+// version macro): it is a long-standing Accelerate order method, unlike
+// SparseOrderMTMetis (macOS 26+), which this stub deliberately does NOT
+// declare -- src/linear/symmetric_factor_accelerate.cpp's
+// accelerate_ordering_code() only references SparseOrderMTMetis inside an
+// `#ifdef HVEN_HAS_MTMETIS` block gated on `__MAC_OS_X_VERSION_MAX_ALLOWED`
+// (from AvailabilityMacros.h, stubbed empty in this same directory), which
+// is never defined on this Linux syntax-check -- exactly the same "SDK too
+// old to declare the symbol" state a real pre-macOS-26 SDK would leave this
+// stub's absence of SparseOrderMTMetis in.
 typedef int SparseOrder_t;
-enum : SparseOrder_t { SparseOrderDefault = 0, SparseOrderUser = 1, SparseOrderMetis = 2 };
+enum : SparseOrder_t {
+    SparseOrderDefault = 0,
+    SparseOrderUser = 1,
+    SparseOrderMetis = 2,
+    SparseOrderAMD = 3,
+};
 
 typedef int SparseScaling_t;
 enum : SparseScaling_t { SparseScalingDefault = 0 };

@@ -57,16 +57,89 @@ const char *kind_name(FactorKind kind) {
     return "unknown";
 }
 
-const char *ordering_name(SymmetricFactor::Options::Ordering ordering) {
+// MT-METIS (multi-threaded METIS) is only declared starting in the macOS 26
+// SDK. This is an SDK-version macro -- it says the enum constant
+// SparseOrderMTMetis EXISTS at compile time, not that the RUNNING host
+// implements it -- exactly mirroring psiopt's own
+// TYCHO_HAS_MTMETIS/accelerate_supported_order guard
+// (tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h),
+// which this block deliberately follows.
+#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
+#define HVEN_HAS_MTMETIS 1
+#endif
+
+#ifdef HVEN_HAS_MTMETIS
+// Downgrades SparseOrderMTMetis to SparseOrderMetis at RUNTIME on a host
+// that lacks it (macOS < 26): passing SparseOrderMTMetis unconditionally
+// there raises SparseParameterError and a dead solver, per the psiopt
+// precedent this mirrors. Every other order passes through unchanged.
+SparseOrder_t accelerate_supported_order(SparseOrder_t order) {
+    if (order != SparseOrderMTMetis) {
+        return order;
+    }
+    if (__builtin_available(macOS 26.0, *)) {
+        return order;
+    }
+    return SparseOrderMetis;
+}
+#endif
+
+// Maps SymmetricFactor::Options::Ordering onto Accelerate's own SparseOrder_t
+// vocabulary -- the Accelerate half of the M1 locked mapping (frozen spec
+// A.3): kBackendDefault -> SparseOrderDefault (Apple documents this as AMD
+// for symmetric matrices), kMinimumDegree -> SparseOrderAMD,
+// kNestedDissection -> SparseOrderMetis, kParallelNestedDissection ->
+// SparseOrderMTMetis with the OS-availability downgrade above. Written as an
+// explicit switch, not a bare cast, so a future Ordering value fails loudly
+// here rather than silently picking an unintended order method -- the same
+// discipline symmetric_factor_mkl.cpp's pardiso_ordering_code uses for its
+// half of the same mapping.
+SparseOrder_t accelerate_ordering_code(SymmetricFactor::Options::Ordering ordering) {
     switch (ordering) {
     case SymmetricFactor::Options::Ordering::kBackendDefault:
-        return "kBackendDefault";
+        return SparseOrderDefault;
+    case SymmetricFactor::Options::Ordering::kMinimumDegree:
+        return SparseOrderAMD;
     case SymmetricFactor::Options::Ordering::kNestedDissection:
-        return "kNestedDissection";
+        return SparseOrderMetis;
     case SymmetricFactor::Options::Ordering::kParallelNestedDissection:
-        return "kParallelNestedDissection";
+#ifdef HVEN_HAS_MTMETIS
+        return accelerate_supported_order(SparseOrderMTMetis);
+#else
+        // This SDK does not declare SparseOrderMTMetis at all -- the same
+        // state a host older than macOS 26 downgrades to at runtime above,
+        // reached here at compile time instead.
+        return SparseOrderMetis;
+#endif
     }
-    return "unknown";
+    throw std::invalid_argument(fmt::format("SymmetricFactor: unknown Options::Ordering value ({})",
+                                            static_cast<int>(ordering)));
+}
+
+// The inverse of accelerate_ordering_code, for adopt() round-tripping a
+// session's stored AccelerateConfig back into an Options value. A session
+// downgraded from SparseOrderMTMetis to SparseOrderMetis at analyze() time
+// round-trips as kNestedDissection here -- an accurate report, not a lossy
+// one: SparseOrderMetis is genuinely the order method that session is
+// running.
+SymmetricFactor::Options::Ordering accelerate_ordering_of(SparseOrder_t code) {
+    if (code == SparseOrderDefault) {
+        return SymmetricFactor::Options::Ordering::kBackendDefault;
+    }
+    if (code == SparseOrderAMD) {
+        return SymmetricFactor::Options::Ordering::kMinimumDegree;
+    }
+    if (code == SparseOrderMetis) {
+        return SymmetricFactor::Options::Ordering::kNestedDissection;
+    }
+#ifdef HVEN_HAS_MTMETIS
+    if (code == SparseOrderMTMetis) {
+        return SymmetricFactor::Options::Ordering::kParallelNestedDissection;
+    }
+#endif
+    throw std::invalid_argument(
+        fmt::format("SymmetricFactor::adopt: unrecognized stored Accelerate ordering code ({})",
+                    static_cast<int>(code)));
 }
 
 detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
@@ -77,6 +150,7 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.num_threads = opts.num_threads;
     cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
     cfg.max_refinement_iters = opts.max_refinement_iters;
+    cfg.ordering = accelerate_ordering_code(opts.ordering);
     return cfg;
 }
 
@@ -303,18 +377,20 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         opts_.max_refinement_iters));
     }
 
-    // ordering and weighted_matching are Pardiso-only concepts (they
-    // configure iparm[1] / iparm[12], which do not exist on this backend).
-    // Accelerate never silently ignores them: a non-default value throws
+    // weighted_matching is a Pardiso-only concept (it configures iparm[12],
+    // which has no Accelerate analogue -- Apple's own matching precedent,
+    // where it exists at all, is not exposed through this surface).
+    // Accelerate never silently ignores it: a non-default value throws
     // here, at construction, naming the option and the backend, rather than
     // being dropped on the floor.
+    //
+    // ordering, unlike weighted_matching, is NOT Pardiso-only: every
+    // Options::Ordering value maps onto an Accelerate order method (see
+    // accelerate_ordering_code() above and the locked mapping in
+    // symmetric_factor.h's own doc comment), so it is accepted unconditionally
+    // here -- the mapping is resolved once, in config_from(), at the point
+    // analyze() actually needs it.
     static constexpr const char *kBackendName = "Accelerate";
-    if (opts_.ordering != Options::Ordering::kBackendDefault) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: Options::ordering is a Pardiso-only option and has no {} "
-                        "equivalent -- requires Ordering::kBackendDefault on this backend, got {}",
-                        kBackendName, ordering_name(opts_.ordering)));
-    }
     if (opts_.weighted_matching) {
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor: Options::weighted_matching is a Pardiso-only option and has no {} "
@@ -482,6 +558,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.num_threads = cfg.num_threads;
     opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
     opts.max_refinement_iters = cfg.max_refinement_iters;
+    opts.ordering = accelerate_ordering_of(cfg.ordering);
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;
