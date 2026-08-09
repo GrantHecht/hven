@@ -354,10 +354,19 @@ MKL_NUM_THREADS=1 ctest --test-dir build-3seam --output-on-failure
 
 `MKL_NUM_THREADS=1` matters and is not decoration. Every asserted run pins
 threads to one by the mechanism the seam under test possesses; the native arms
-do that per-instance **on MKL**, but neither old seam has any thread control at
-all, so the rig pins the process for them (an in-process guard, which the
-environment variable backs up for the window before the backend first reads
-it). Every recorded row carries the mechanism and the value it pinned to.
+do that per-instance **on MKL**. The two old seams' MKL arms (PardisoLDLT
+underneath both) have no thread control of their own either, so the rig pins
+the process for them (an in-process guard, which the environment variable
+backs up for the window before the backend first reads it). The psiopt old
+seam's **Apple** arm is the one exception: it DOES have its own control
+(`AccelerateLDLTTPP::set_num_threads()`, which resolves to Apple's
+`BLASSetThreading` on macOS 15+ -- per-calling-thread, thread-local storage,
+binary single-vs-multi semantics rather than an exact count), reported as its
+own mechanism (`ThreadPinMechanism::kSeamThreadLocalBinary`) rather than
+folded into the MKL arms' process-global one; that arm is UNOBSERVED on every
+committed row (never compiled or run), so this asymmetry has not yet mattered
+in practice. Every recorded row carries the mechanism and the value it pinned
+to.
 
 **On Accelerate the native arm pins nothing, and records that.** hven's
 Accelerate session stores `Options::num_threads` so `adopt()` can round-trip
