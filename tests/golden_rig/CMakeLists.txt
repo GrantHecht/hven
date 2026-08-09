@@ -24,6 +24,19 @@ set(HVEN_RIG_SQP_SEAM "" CACHE PATH
     "Path to a tycho_sqp checkout at the pinned tag, enabling the rig's SQP old-seam arm \
 (TEMPORARY: deleted after that engine's migration)")
 
+# The escape hatch for the psiopt pin below, and nothing else. Its default is
+# OFF, which is the only setting a derivation run may ever use: derived
+# expected tables are only meaningful against the exact tree the pin names, so
+# a run that produces them must refuse to proceed on an unverifiable or
+# drifted checkout rather than warn and continue. This variable exists for the
+# other case -- iterating against a moving tycho checkout without deriving new
+# tables -- where refusing to configure at all would be a worse failure mode
+# than a loud warning.
+option(HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM
+    "Downgrade the interior-point old-seam pin/dirty/verifiability checks below from \
+FATAL_ERROR to WARNING. NEVER set this for a run that derives psiopt-old expected tables -- \
+only for iterating against a moving tycho checkout." OFF)
+
 # The SQP old seam is pinned to a TAG, not to whatever that checkout happens to
 # have on its branch: the expected tables derived against it are only meaningful
 # against one tree state. Both the tag's commit and the tree state of the
@@ -39,18 +52,27 @@ set(HVEN_RIG_SQP_SEAM "" CACHE PATH
 set(HVEN_RIG_SQP_SEAM_TAG "phase-7-close")
 set(HVEN_RIG_SQP_SEAM_COMMIT "4faa1df116da53c9dc68f36635c118f52d39d2b9")
 
-# The interior-point old seam is pinned the same way in spirit, but not in
-# strength: HVEN_RIG_PSIOPT_SEAM names a live tycho checkout (this project's
-# main development sibling), not a checkout frozen at a released tag the way
-# HVEN_RIG_SQP_SEAM is. It is expected to keep moving as tycho itself
-# develops, so a mismatch here is reported, not refused -- verification below
-# is advisory, and re-deriving the psiopt-old expected tables is the remedy
-# when the drift actually matters (Pardiso/Accelerate configuration or
-# linear-algebra behavior changed), not a configure-time gate everyone must
-# satisfy just to build against their own tycho checkout.
+# The interior-point old seam is pinned the same way in spirit as the SQP
+# seam above, and -- as of the FATAL enforcement below -- the same way in
+# strength too: HVEN_RIG_PSIOPT_SEAM names a live tycho checkout (this
+# project's main development sibling) rather than a checkout frozen at a
+# released tag, so unlike HVEN_RIG_SQP_SEAM there is no tag to re-resolve --
+# only a commit and a tree to check. But "expected to keep moving as tycho
+# develops" describes when the pin needs updating, not whether an unverified
+# or drifted checkout is safe to derive expectations from: it is not, so a
+# mismatch, a dirty consumed tree, or an unverifiable checkout (no git, or no
+# .git directory) is a configure-time FATAL_ERROR by default, same as the SQP
+# seam's checks. HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM=ON (above) downgrades
+# that to the previous WARNING-and-proceed behavior for the one case that
+# legitimately wants it -- iterating against a moving tycho checkout without
+# deriving new tables -- and re-deriving the psiopt-old expected tables is the
+# actual remedy when the drift touches Pardiso/Accelerate configuration or
+# linear-algebra behavior (psiopt/include/tycho/detail/solvers/linear/).
 #
 #   commit : the value below, checked at configure time when the checkout
-#            is a git repository; recorded either way.
+#            is a git repository; both the commit AND the cleanliness of the
+#            consumed linear/ tree are checked -- see the verification block
+#            below for why a HEAD match alone is not enough.
 set(HVEN_RIG_PSIOPT_SEAM_COMMIT "060ad2138a373bacd9d1ba2daabd6b503a9a6fb1")
 
 find_package(Git QUIET)
@@ -130,12 +152,23 @@ if(HVEN_RIG_PSIOPT_SEAM)
             "expected ${_psiopt_seam_include}/tycho/detail/solvers/linear/pardiso_interface.h")
     endif()
 
-    # Commit pin, mirroring the SQP arm's tag+commit verification above in
-    # mechanism but not in severity -- see the comment on
-    # HVEN_RIG_PSIOPT_SEAM_COMMIT for why a mismatch here WARNs instead of
-    # refusing to configure. Only possible when the checkout is a git
-    # repository at all; some setups (a tarball export, a copied tree) are
-    # not, and for those the pin is recorded but simply cannot be checked.
+    # Commit pin, mirroring the SQP arm's tag+commit verification above --
+    # now in severity too, not just mechanism. Three ways this can fail to
+    # verify, each collected into _psiopt_pin_problem rather than emitted
+    # immediately, so the single FATAL_ERROR/WARNING decision below (gated on
+    # HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM) is the only place severity is
+    # decided:
+    #   1. the checkout is not a git repository this rig can query at all
+    #      (no git, or no .git directory) -- unverifiable is not the same as
+    #      acceptable, so this is a problem, not a silent "recorded, not
+    #      checked".
+    #   2. HEAD is not the pinned commit.
+    #   3. HEAD IS the pinned commit, but the tree the adapter actually
+    #      compiles against (psiopt/include/tycho/detail/solvers/linear) has
+    #      uncommitted changes -- a dirty tree at the right commit is still
+    #      not the tree the expected tables were derived against.
+    set(HVEN_RIG_PSIOPT_SEAM_VERIFIED "unverified")
+    unset(_psiopt_pin_problem)
     if(Git_FOUND AND EXISTS "${HVEN_RIG_PSIOPT_SEAM}/.git")
         execute_process(
             COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
@@ -145,37 +178,80 @@ if(HVEN_RIG_PSIOPT_SEAM)
             RESULT_VARIABLE _psiopt_head_rc
             ERROR_QUIET)
         if(NOT _psiopt_head_rc EQUAL 0)
-            message(WARNING
-                "golden rig: HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} has a .git directory but "
-                "its HEAD commit could not be resolved, so the pin to "
-                "${HVEN_RIG_PSIOPT_SEAM_COMMIT} COULD NOT BE VERIFIED.")
-        elseif(_psiopt_head_commit STREQUAL HVEN_RIG_PSIOPT_SEAM_COMMIT)
-            message(STATUS
-                "golden rig: interior-point old-seam arm pinned to ${HVEN_RIG_PSIOPT_SEAM_COMMIT}, "
-                "HEAD matches")
+            string(CONCAT _psiopt_pin_problem
+                "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} has a .git directory but its HEAD "
+                "commit could not be resolved, so the pin to ${HVEN_RIG_PSIOPT_SEAM_COMMIT} COULD "
+                "NOT BE VERIFIED.")
+        elseif(NOT _psiopt_head_commit STREQUAL HVEN_RIG_PSIOPT_SEAM_COMMIT)
+            string(CONCAT _psiopt_pin_problem
+                "HVEN_RIG_PSIOPT_SEAM's checkout HEAD is ${_psiopt_head_commit}, not the commit "
+                "(${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected tables were "
+                "derived against. Re-derive the psiopt-old rows in tests/golden_rig/expected/ if "
+                "the drift touches Pardiso/Accelerate configuration or linear-algebra behavior "
+                "(psiopt/include/tycho/detail/solvers/linear/), then update "
+                "HVEN_RIG_PSIOPT_SEAM_COMMIT here to match.")
         else()
-            message(WARNING
-                "golden rig: HVEN_RIG_PSIOPT_SEAM's checkout HEAD is ${_psiopt_head_commit}, not the "
-                "commit (${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected tables were "
-                "derived against. This is a live checkout, expected to move as tycho develops, so "
-                "configure proceeds -- but if the drift touches Pardiso/Accelerate configuration or "
-                "linear-algebra behavior (psiopt/include/tycho/detail/solvers/linear/), re-derive "
-                "the psiopt-old rows in tests/golden_rig/expected/; otherwise the committed rows "
-                "still describe what was actually observed at the pinned commit.")
+            execute_process(
+                COMMAND "${GIT_EXECUTABLE}" status --porcelain --
+                        "psiopt/include/tycho/detail/solvers/linear"
+                WORKING_DIRECTORY "${HVEN_RIG_PSIOPT_SEAM}"
+                OUTPUT_VARIABLE _psiopt_dirty
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                RESULT_VARIABLE _psiopt_status_rc
+                ERROR_QUIET)
+            if(NOT _psiopt_status_rc EQUAL 0)
+                string(CONCAT _psiopt_pin_problem
+                    "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM}: 'git status' over the consumed "
+                    "psiopt/include/tycho/detail/solvers/linear tree could not be run, so its "
+                    "cleanliness COULD NOT BE VERIFIED.")
+            elseif(NOT _psiopt_dirty STREQUAL "")
+                string(CONCAT _psiopt_pin_problem
+                    "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} has uncommitted changes under "
+                    "psiopt/include/tycho/detail/solvers/linear, the tree seam_psiopt.cpp actually "
+                    "compiles against:\n${_psiopt_dirty}\nHEAD matches the pin "
+                    "(${HVEN_RIG_PSIOPT_SEAM_COMMIT}) but the checked-out linear/ headers are not "
+                    "the ones that commit contains, so this checkout is HEAD-pinned but not "
+                    "tree-pinned.")
+            else()
+                set(HVEN_RIG_PSIOPT_SEAM_VERIFIED "verified")
+                message(STATUS
+                    "golden rig: interior-point old-seam arm pinned to "
+                    "${HVEN_RIG_PSIOPT_SEAM_COMMIT}, HEAD matches, consumed linear/ tree clean")
+            endif()
         endif()
     else()
-        message(WARNING
-            "golden rig: HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} is not a git checkout (no "
-            ".git found), so its commit cannot be verified against the pin "
-            "(${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected tables were derived "
-            "against. Recorded, not checked.")
+        string(CONCAT _psiopt_pin_problem
+            "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} is not a git checkout this rig can "
+            "verify (git not found, or no .git directory), so its commit cannot be checked "
+            "against the pin (${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected "
+            "tables were derived against.")
+    endif()
+
+    if(_psiopt_pin_problem)
+        if(HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM)
+            message(WARNING
+                "golden rig: ${_psiopt_pin_problem}\nProceeding anyway because "
+                "HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM=ON was set explicitly. NEVER set this for a "
+                "run that derives new psiopt-old expected tables.")
+        else()
+            message(FATAL_ERROR
+                "golden rig: ${_psiopt_pin_problem}\nSet HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM=ON "
+                "to downgrade this to a warning and configure anyway -- but never for a run that "
+                "derives new expected tables; an unverified checkout produces expected tables "
+                "with an unverifiable provenance.")
+        endif()
     endif()
 
     target_sources(hven_golden_rig_support PRIVATE seam_psiopt.cpp)
     target_include_directories(hven_golden_rig_support SYSTEM PUBLIC "${_psiopt_seam_include}")
+    # HVEN_RIG_PSIOPT_SEAM_VERIFIED carries the outcome of the verification
+    # block above ("verified" or "unverified") into the report generator, so
+    # a report row's provenance says whether the checkout it ran against was
+    # actually checked rather than just recording the commit it claims.
     target_compile_definitions(hven_golden_rig_support PUBLIC
         HVEN_RIG_HAVE_PSIOPT_SEAM=1
         HVEN_RIG_PSIOPT_SEAM_COMMIT="${HVEN_RIG_PSIOPT_SEAM_COMMIT}"
+        HVEN_RIG_PSIOPT_SEAM_VERIFIED="${HVEN_RIG_PSIOPT_SEAM_VERIFIED}"
     )
     message(STATUS "golden rig: interior-point old-seam arm enabled (${HVEN_RIG_PSIOPT_SEAM})")
 endif()
@@ -190,6 +266,11 @@ if(HVEN_RIG_SQP_SEAM)
     endif()
 
     # Pin verification, in two steps, because they catch different mistakes.
+    # HVEN_RIG_SQP_SEAM_VERIFIED mirrors the psiopt arm's own verified-state
+    # tracking so the report generator can carry both old seams' provenance
+    # symmetrically (see the target_compile_definitions call below and
+    # report_main.cpp).
+    set(HVEN_RIG_SQP_SEAM_VERIFIED "unverified")
     if(Git_FOUND)
         # 1. The tag resolves to the commit this rig was pinned against. A
         #    moved or re-cut tag is a different tree wearing the same name.
@@ -232,6 +313,7 @@ if(HVEN_RIG_SQP_SEAM)
                 "tree state; check that checkout out at the tag (it is read-only to this rig, "
                 "which is why this is reported rather than fixed here).")
         endif()
+        set(HVEN_RIG_SQP_SEAM_VERIFIED "verified")
         message(STATUS
             "golden rig: SQP old-seam arm pinned to ${HVEN_RIG_SQP_SEAM_TAG} "
             "(${HVEN_RIG_SQP_SEAM_COMMIT}), tree state verified")
@@ -244,9 +326,16 @@ if(HVEN_RIG_SQP_SEAM)
 
     target_sources(hven_golden_rig_support PRIVATE seam_sqp.cpp)
     target_include_directories(hven_golden_rig_support SYSTEM PUBLIC "${_sqp_seam_include}")
+    # HVEN_RIG_SQP_SEAM_TAG and HVEN_RIG_SQP_SEAM_VERIFIED reach the report
+    # generator the same way the psiopt arm's do above -- this seam already
+    # verifies at configure time (the FATAL_ERROR calls above), but until now
+    # that identity never reached report output; report_main.cpp prints both
+    # old seams' provenance symmetrically.
     target_compile_definitions(hven_golden_rig_support PUBLIC
         HVEN_RIG_HAVE_SQP_SEAM=1
+        HVEN_RIG_SQP_SEAM_TAG="${HVEN_RIG_SQP_SEAM_TAG}"
         HVEN_RIG_SQP_SEAM_COMMIT="${HVEN_RIG_SQP_SEAM_COMMIT}"
+        HVEN_RIG_SQP_SEAM_VERIFIED="${HVEN_RIG_SQP_SEAM_VERIFIED}"
     )
 endif()
 
