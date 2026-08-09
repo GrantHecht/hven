@@ -44,21 +44,32 @@ typedef int SparseControl_t;
 enum : SparseControl_t { SparseDefaultControl = 0 };
 
 // SparseOrderAMD is declared unconditionally here (not gated behind an SDK
-// version macro): it is a long-standing Accelerate order method, unlike
-// SparseOrderMTMetis (macOS 26+), which this stub deliberately does NOT
-// declare -- src/linear/symmetric_factor_accelerate.cpp's
-// accelerate_ordering_code() only references SparseOrderMTMetis inside an
-// `#ifdef HVEN_HAS_MTMETIS` block gated on `__MAC_OS_X_VERSION_MAX_ALLOWED`
-// (from AvailabilityMacros.h, stubbed empty in this same directory), which
-// is never defined on this Linux syntax-check -- exactly the same "SDK too
-// old to declare the symbol" state a real pre-macOS-26 SDK would leave this
-// stub's absence of SparseOrderMTMetis in.
+// version macro): it is a long-standing Accelerate order method. SparseOrder-
+// MTMetis (macOS 26+) is declared conditionally, mirroring how the real SDK
+// header only exposes it once the deployment target is new enough --
+// gated on the exact same predicate
+// src/linear/symmetric_factor_accelerate.cpp's HVEN_HAS_MTMETIS guard uses
+// (`defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&
+// __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000`).
+//
+// The DEFAULT syntax-only checks in check_accelerate_syntax_linux.sh define
+// neither macro, so SparseOrderMTMetis stays undeclared and only the
+// mapper's `#else` (pre-macOS-26 / non-Apple) fallback compiles -- the same
+// "SDK too old to declare the symbol" state a real pre-macOS-26 SDK leaves
+// this stub in. A SEPARATE check in that script passes
+// `-D__APPLE__ -D__MAC_OS_X_VERSION_MAX_ALLOWED=260000` to activate this
+// branch and exercise the availability-guarded code path itself (see that
+// script's "SDK-26 MT-METIS activated branch" section).
 typedef int SparseOrder_t;
 enum : SparseOrder_t {
     SparseOrderDefault = 0,
     SparseOrderUser = 1,
     SparseOrderMetis = 2,
     SparseOrderAMD = 3,
+#if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&                               \
+    __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
+    SparseOrderMTMetis = 4,
+#endif
 };
 
 typedef int SparseScaling_t;

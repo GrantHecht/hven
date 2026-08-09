@@ -31,6 +31,9 @@ hl::SymmetricFactor::Options to_native_options(const SeamOptions &o) {
     case SeamOptions::Ordering::kBackendDefault:
         n.ordering = hl::SymmetricFactor::Options::Ordering::kBackendDefault;
         break;
+    case SeamOptions::Ordering::kMinimumDegree:
+        n.ordering = hl::SymmetricFactor::Options::Ordering::kMinimumDegree;
+        break;
     case SeamOptions::Ordering::kNestedDissection:
         n.ordering = hl::SymmetricFactor::Options::Ordering::kNestedDissection;
         break;
@@ -95,11 +98,37 @@ class NativeSeam final : public SeamUnderTest {
         // Every SeamOptions field this arm was given is applied verbatim --
         // the rig's neutral option set was drawn from this class's own -- so
         // the note only has to say which of the two don't-write-by-default
-        // knobs actually wrote anything.
+        // knobs actually wrote anything. The ordering method itself is
+        // cross-platform, but WHAT IS ACTUALLY IN FORCE per backend is not --
+        // MKL writes (or leaves alone) Pardiso's iparm[1]; Accelerate sets (or
+        // leaves alone) its own SparseOrder_t control -- so the two backends
+        // report their own real vocabulary here rather than a shared,
+        // Pardiso-only one that would be fiction on the Accelerate arm.
         std::string note = "applies every requested option; ordering=";
+#if defined(__APPLE__)
+        switch (opts_.ordering) {
+        case SeamOptions::Ordering::kBackendDefault:
+            note += "backend-default (SparseOrder_t not set; SparseOrderDefault, Apple's own "
+                    "default, is what runs)";
+            break;
+        case SeamOptions::Ordering::kMinimumDegree:
+            note += "minimum-degree (SparseOrderAMD)";
+            break;
+        case SeamOptions::Ordering::kNestedDissection:
+            note += "nested-dissection (SparseOrderMetis)";
+            break;
+        case SeamOptions::Ordering::kParallelNestedDissection:
+            note += "parallel-nested-dissection (SparseOrderMTMetis, downgraded to "
+                    "SparseOrderMetis at runtime on a host that lacks it)";
+            break;
+        }
+#else
         switch (opts_.ordering) {
         case SeamOptions::Ordering::kBackendDefault:
             note += "backend-default (iparm[1] not written)";
+            break;
+        case SeamOptions::Ordering::kMinimumDegree:
+            note += "minimum-degree (iparm[1]=0)";
             break;
         case SeamOptions::Ordering::kNestedDissection:
             note += "nested-dissection (iparm[1]=2)";
@@ -108,6 +137,7 @@ class NativeSeam final : public SeamUnderTest {
             note += "parallel-nested-dissection (iparm[1]=3)";
             break;
         }
+#endif
         note += opts_.weighted_matching ? ", weighted_matching=on (iparm[12]=1)"
                                         : ", weighted_matching=off (iparm[12] not written)";
         return note;

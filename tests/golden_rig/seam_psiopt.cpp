@@ -212,6 +212,12 @@ class PsioptSeam final : public SeamUnderTest {
         solver_.set_num_threads(opts_.num_threads);
         solver_.set_iterative_refinement(opts_.max_refinement_iters > 0);
         solver_.set_iterative_refinement_iterations(opts_.max_refinement_iters);
+        // Every SeamOptions::Ordering value is representable on this seam via
+        // set_order() (which applies accelerate_supported_order()'s own
+        // OS-availability downgrade for kParallelNestedDissection), so it is
+        // applied explicitly here -- never left as a silent no-op the way an
+        // unrepresentable option would have to be.
+        solver_.set_order(ordering_value());
 #else
         // The engine's settings, verbatim: METIS ordering, 2x2 pivoting,
         // static pivot perturbation 10^-8, maximum weighted matching ON, no
@@ -232,8 +238,35 @@ class PsioptSeam final : public SeamUnderTest {
 #endif
     }
 
+#if defined(__APPLE__)
+    // Every SeamOptions::Ordering value maps onto a real Accelerate order
+    // method (mirroring hven::linear's own accelerate_ordering_code()), so
+    // this seam represents all four -- unlike weighted_matching, ordering is
+    // not a Pardiso-only concept here either.
+    SparseOrder_t ordering_value() const {
+        switch (opts_.ordering) {
+        case SeamOptions::Ordering::kMinimumDegree:
+            return SparseOrderAMD;
+        case SeamOptions::Ordering::kNestedDissection:
+            return SparseOrderMetis;
+        case SeamOptions::Ordering::kParallelNestedDissection:
+            return SparseOrderMTMetis;
+        case SeamOptions::Ordering::kBackendDefault:
+            break;
+        }
+        // This seam has no don't-write-by-default state: order_ is a plain
+        // data member with a class default (SparseOrderMetis), always applied
+        // via set_order() above. kBackendDefault therefore maps to the value
+        // the interior-point engine itself ships (METIS), the same
+        // non-representability recorded for the MKL branch below, and in the
+        // arm table's parity note.
+        return SparseOrderMetis;
+    }
+#else
     int ordering_value() const {
         switch (opts_.ordering) {
+        case SeamOptions::Ordering::kMinimumDegree:
+            return 0;
         case SeamOptions::Ordering::kNestedDissection:
             return 2;
         case SeamOptions::Ordering::kParallelNestedDissection:
@@ -248,6 +281,7 @@ class PsioptSeam final : public SeamUnderTest {
         // rather than papered over with a silent zero.
         return 2;
     }
+#endif
 
     hl::InertiaEvidence evidence() const {
         hl::InertiaEvidence e;

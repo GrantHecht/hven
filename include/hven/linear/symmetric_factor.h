@@ -199,8 +199,8 @@ class SymmetricFactor {
         // does not touch iparm[1] at all, so pardisoinit's own value
         // survives exactly.
         //
-        // Locked mapping (M1 POST-FREEZE AMENDMENT -- both backends support
-        // every value; there is no Pardiso-only throw for this option):
+        // Backend-neutral mapping -- both backends support every value;
+        // there is no Pardiso-only throw for this option:
         //   kBackendDefault            MKL: don't write iparm[1]
         //                              Accelerate: SparseOrderDefault
         //                              (documented by Apple as AMD for

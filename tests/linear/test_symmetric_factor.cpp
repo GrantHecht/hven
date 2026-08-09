@@ -686,7 +686,7 @@ TEST(SymmetricFactor, WeightedMatchingFactorizesAndSolvesCorrectly) {
 }
 
 // Composition under active matching is
-// unexercised at scale (the frozen spec's own caveat), and
+// unexercised at scale, and
 // supports_partial_solve()'s design law is conservative-never-fabricated-
 // true, so weighted_matching = true must force the predicate false even
 // though the factorization itself has usable numerics and no perturbed

@@ -162,8 +162,8 @@ lives where it does:
 ## A read-only variant: observing internal state instead of injecting a fault
 
 Not every gap this seam closes is a fault path. `PardisoIparmObserver`
-(added for the M1 ordering/weighted_matching amendment,
-the write-nothing-by-default review finding) covers a different kind of untestable claim: a
+(added for the ordering/weighted_matching write-nothing-by-default review
+finding) covers a different kind of untestable claim: a
 guarded write inside the MPL-derived session file
 (`FactorSession::analyze`'s `if (cfg_.ordering.has_value()) iparm_[1] = …`
 and its `weighted_matching` twin) that behaves identically whether the
@@ -250,7 +250,7 @@ field exists.
   entirely fake session implementing the same interface. This WOULD let the
   MKL "succeeded, then fails" scenario be tested faithfully (the fake
   controls 100% of the session's observable state, including
-  `has_numerics()`/`epoch()`). Rejected for Task 6 because it adds permanent
+  `has_numerics()`/`epoch()`). Rejected because it adds permanent
   virtual-dispatch overhead to a call path that is otherwise a direct,
   non-polymorphic call in every build (production and test alike), for a
   gap that is already disclosed and bounded rather than silently wrong,
@@ -293,9 +293,8 @@ A second unconditionally-compiled, internally platform-split file follows
 the same convention:
 `tests/linear/test_symmetric_factor_pardiso_only_options.cpp` asserts the
 construction-time behavior of the two options this file is named for, which
-now diverges between them per the M1 POST-FREEZE Ordering amendment (frozen
-spec A.3, `hven/linear/symmetric_factor.h`'s own doc comment on
-`Options::ordering`):
+now diverges between them per the backend-neutral ordering mapping
+(`hven/linear/symmetric_factor.h`'s own doc comment on `Options::ordering`):
 
 - `Options::weighted_matching`: still Pardiso-only. A non-default value
   (`true`) THROWS `std::invalid_argument` at construction on Accelerate,

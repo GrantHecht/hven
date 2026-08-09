@@ -160,9 +160,10 @@ void FactorSession::analyze(const SpMatRM &A) {
     // use are replaced by ones of magnitude ~10^-k and counted in iparm[13].
     iparm_[9] = static_cast<MKL_INT>(cfg_.pivot_perturb_exp);
     // iparm[1]: fill-in reordering. Left untouched (pardisoinit's own value
-    // survives) when cfg_.ordering is nullopt; a present value (2 = nested
-    // dissection via METIS, 3 = its OpenMP-parallel variant) overrides it --
-    // see SymmetricFactor::Options::Ordering.
+    // survives) when cfg_.ordering is nullopt; a present value (0 = minimum
+    // degree via AMD, 2 = nested dissection via METIS, 3 = its OpenMP-
+    // parallel variant) overrides it -- see
+    // SymmetricFactor::Options::Ordering.
     //
     // THE ONE TEST-ONLY RECORD IN THIS FILE, and why it is here rather than at
     // the adapter boundary where this project prefers to instrument: the fact

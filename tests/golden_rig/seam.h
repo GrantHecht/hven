@@ -93,7 +93,12 @@ struct SeamOptions {
     // Mirrors hven::linear::SymmetricFactor::Options::Ordering, including its
     // don't-write-by-default semantics: kBackendDefault means the arm does
     // not touch the backend's ordering parameter at all.
-    enum class Ordering { kBackendDefault, kNestedDissection, kParallelNestedDissection };
+    enum class Ordering {
+        kBackendDefault,
+        kMinimumDegree,
+        kNestedDissection,
+        kParallelNestedDissection
+    };
     Ordering ordering = Ordering::kBackendDefault;
 
     // Same don't-write-by-default rule: false leaves the backend's own value

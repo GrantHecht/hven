@@ -7,8 +7,8 @@
 # tests/linear/test_symmetric_factor_evidence_invariants.cpp's one
 # `#if defined(__APPLE__)` assertion,
 # tests/linear/test_symmetric_factor_pardiso_only_options.cpp's
-# `#if defined(__APPLE__)` block, which covers the ordering/weighted_matching
-# throw path). The test-file checks were added after
+# `#if defined(__APPLE__)` block, which covers ordering's all-values-accepted
+# path and weighted_matching's throw path). The test-file checks were added after
 # review of the Accelerate backend work: before this lane existed, the
 # Accelerate half of test_fault_injection.cpp -- the SparseGetInertia-failure
 # / kQueryFailed contract cell -- had never been seen by any compiler, on any
@@ -23,14 +23,18 @@
 # checks below need real gtest headers but not the stub Accelerate.h.
 #
 # hven's psiopt/tycho_sqp precedents were searched for an existing
-# "Apple-TU compile lane on Linux" trick (the pattern Task-6's brief asked
-# to mirror if one exists) and none was found: tycho's own Accelerate
-# hygiene canary (scripts/check_accelerate_warnings.sh) is Apple-only and
-# exits immediately on any other platform. So this script is the fallback
-# the brief specifies instead: a `clang++ -fsyntax-only` pass against a
-# minimal, hand-written stub of <Accelerate/Accelerate.h>
-# (scripts/accelerate_syntax_stub/), since the real Apple SDK header does
-# not exist on this machine.
+# "Apple-TU compile lane on Linux" trick and none was found: tycho's own
+# Accelerate hygiene canary (scripts/check_accelerate_warnings.sh) is
+# Apple-only and exits immediately on any other platform. So this script is
+# a `clang++ -fsyntax-only` pass against a minimal, hand-written stub of
+# <Accelerate/Accelerate.h> (scripts/accelerate_syntax_stub/), since the real
+# Apple SDK header does not exist on this machine.
+#
+# A separate pair of checks ("SDK-26 MT-METIS activated branch" below) adds
+# `-D__APPLE__ -D__MAC_OS_X_VERSION_MAX_ALLOWED=260000` to compile
+# symmetric_factor_accelerate.cpp's HVEN_HAS_MTMETIS-guarded branch itself
+# (accelerate_supported_order() and the SparseOrderMTMetis arm of
+# accelerate_ordering_code()), which the two checks above never activate.
 #
 # The three test-file checks also need `-D__APPLE__` to activate their guarded
 # blocks at all, which drags in googletest's OWN `__APPLE__` platform-
@@ -67,6 +71,13 @@
 #     results, or the reportError callback's actual invocation semantics.
 #     This script proves AccelerateInertiaQueryFaultInjection.* syntax-sound,
 #     nothing more; macOS CI now executes that test against real Accelerate.
+#   - That the SDK-26 MT-METIS activated branch (accelerate_supported_order(),
+#     the `__builtin_available(macOS 26.0, *)` guard, SparseOrderMTMetis
+#     itself) behaves correctly at runtime on either an old or a new macOS
+#     host. The "SDK-26 MT-METIS activated branch" checks below only prove
+#     that branch is syntax-sound when compiled with __APPLE__ and a
+#     macOS-26-or-newer deployment target defined; __builtin_available's
+#     actual OS-version test cannot execute on Linux at all.
 #   - That CMake's actual Apple configuration (cmake/FindAccelerateSparse.cmake,
 #     the ACCELERATE_NEW_LAPACK / USE_ACCELERATE_SPARSE defines) produces a
 #     working build; this script bypasses CMake and hven's own build flags
@@ -122,6 +133,30 @@ check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp"
 # fault-injection call site's #ifdef branch, which the check above never
 # instantiates.
 check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp" -DHVEN_TESTING=1
+
+# ---- SDK-26 MT-METIS activated branch --------------------------------------
+#
+# The two checks above never define __APPLE__/__MAC_OS_X_VERSION_MAX_ALLOWED,
+# so HVEN_HAS_MTMETIS never gets defined in symmetric_factor_accelerate.cpp
+# and only the pre-macOS-26/non-Apple `#else` fallback of
+# accelerate_ordering_code()'s kParallelNestedDissection arm, and the whole
+# body of accelerate_supported_order() (including its
+# `__builtin_available(macOS 26.0, *)` guard), stay unseen by any compiler on
+# this platform -- neither Apple hardware (which never compiles the `#else`
+# fallback) nor the two checks above (which never activate the guard) alone
+# cover both arms. The two checks below define
+# `-D__APPLE__ -D__MAC_OS_X_VERSION_MAX_ALLOWED=260000`, which flips
+# HVEN_HAS_MTMETIS on: the stub's Accelerate.h (see the comment on its
+# SparseOrder_t enum) then also declares SparseOrderMTMetis under the same
+# predicate, so this is the ONLY pair of checks in this script that compiles
+# the SDK-26-activated branch -- accelerate_supported_order() body and all --
+# rather than just its always-available fallback. This still proves syntax
+# only: __builtin_available's actual runtime OS-version check is not, and
+# cannot be, exercised on Linux; see docs/testing.md for the claim ceiling.
+check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp" \
+    -D__APPLE__ -D__MAC_OS_X_VERSION_MAX_ALLOWED=260000
+check_one "${REPO_ROOT}/src/linear/symmetric_factor_accelerate.cpp" \
+    -D__APPLE__ -D__MAC_OS_X_VERSION_MAX_ALLOWED=260000 -DHVEN_TESTING=1
 
 # ---- Apple-gated test-file halves ------------------------------------------
 #

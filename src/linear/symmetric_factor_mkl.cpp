@@ -423,9 +423,9 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
 }
 
 bool SymmetricFactor::supports_partial_solve() const {
-    // Matching-on conjunct: the frozen spec's own composability caveat --
-    // "composition under active backend matching/scaling is unexercised at
-    // scale" -- applies squarely to Options::weighted_matching, which this
+    // Matching-on conjunct: composition under active backend
+    // matching/scaling is unexercised at scale, and that caveat applies
+    // squarely to Options::weighted_matching, which this
     // option set is the first to make reachable through hven's surface at
     // all. The predicate's design law is conservative-never-fabricated-true
     // (see its doc comment in symmetric_factor.h), so until composition

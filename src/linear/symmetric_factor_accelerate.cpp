@@ -60,10 +60,13 @@ const char *kind_name(FactorKind kind) {
 // SDK. This is an SDK-version macro -- it says the enum constant
 // SparseOrderMTMetis EXISTS at compile time, not that the RUNNING host
 // implements it -- exactly mirroring psiopt's own
-// TYCHO_HAS_MTMETIS/accelerate_supported_order guard
+// TYCHO_HAS_MTMETIS/accelerate_supported_order guard, full predicate
+// included (`defined(__APPLE__)` guards the SDK-version macro check itself,
+// which is otherwise meaningless off Apple platforms)
 // (tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h),
 // which this block deliberately follows.
-#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
+#if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&                               \
+    __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 #define HVEN_HAS_MTMETIS 1
 #endif
 
@@ -84,9 +87,9 @@ SparseOrder_t accelerate_supported_order(SparseOrder_t order) {
 #endif
 
 // Maps SymmetricFactor::Options::Ordering onto Accelerate's own SparseOrder_t
-// vocabulary -- the Accelerate half of the M1 locked mapping (frozen spec
-// A.3): kBackendDefault -> SparseOrderDefault (Apple documents this as AMD
-// for symmetric matrices), kMinimumDegree -> SparseOrderAMD,
+// vocabulary -- the Accelerate half of the backend-neutral ordering mapping
+// documented in symmetric_factor.h: kBackendDefault -> SparseOrderDefault
+// (Apple documents this as AMD for symmetric matrices), kMinimumDegree -> SparseOrderAMD,
 // kNestedDissection -> SparseOrderMetis, kParallelNestedDissection ->
 // SparseOrderMTMetis with the OS-availability downgrade above. Written as an
 // explicit switch, not a bare cast, so a future Ordering value fails loudly

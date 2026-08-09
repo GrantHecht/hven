@@ -115,11 +115,11 @@ struct PardisoIparmObserver {
     // The value-level fields above cannot always settle the
     // don't-write-by-default claim, and the reason is a coincidence rather
     // than a design flaw: on some MKL versions pardisoinit's own iparm[1]
-    // default equals one of the two values Ordering can request, so "left it
-    // alone" and "wrote exactly that value" produce identical arrays and no
-    // after-the-fact read can tell them apart. On such a version the rule
-    // falls back to inspecting a guard -- exactly the kind of claim this seam
-    // exists to make executable.
+    // default equals one of the three non-default values Ordering can
+    // request, so "left it alone" and "wrote exactly that value" produce
+    // identical arrays and no after-the-fact read can tell them apart. On
+    // such a version the rule falls back to inspecting a guard -- exactly
+    // the kind of claim this seam exists to make executable.
     //
     // These four fields close it outright and version-independently. They are
     // set at the two guarded write sites inside FactorSession::analyze

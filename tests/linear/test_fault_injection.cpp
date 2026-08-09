@@ -206,8 +206,8 @@ TEST(PardisoIparmObservation, DefaultOptionsLeaveOrderingAndMatchingAtThePardiso
         << "default Options must not execute the iparm[12] write at all";
 }
 
-// kMinimumDegree's contract value (M1 POST-FREEZE AMENDMENT: iparm[1] = 0)
-// is a fixed part of the frozen surface. 0 is also MKL_INT's own
+// kMinimumDegree's contract value (iparm[1] = 0) is a fixed part of the
+// public contract. 0 is also MKL_INT's own
 // zero-initialized state, which is exactly why the *_was_written flag below
 // -- not the value comparison -- is what actually distinguishes "wrote 0"
 // from "never touched the array element pardisoinit itself may have left at

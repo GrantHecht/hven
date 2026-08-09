@@ -3,12 +3,12 @@
 // std::invalid_argument at construction on the Accelerate backend, which has
 // no equivalent concept -- never silently ignored.
 //
-// Options::ordering is NO LONGER Pardiso-only (M1 POST-FREEZE AMENDMENT,
+// Options::ordering is NOT Pardiso-only (see
 // hven/linear/symmetric_factor.h's own doc comment on Options::ordering):
-// every Ordering value now maps onto a real Accelerate order method, so this
+// every Ordering value maps onto a real Accelerate order method, so this
 // file also asserts the inverse of what its name might suggest for that
 // option -- ALL FOUR values are accepted (never throw) on both backends.
-// This file's name predates that amendment and is kept for continuity with
+// This file's name predates that surface and is kept for continuity with
 // the surrounding test suite; weighted_matching is the option it is actually
 // about now.
 //
@@ -32,8 +32,8 @@ using hven::linear::SymmetricFactor;
 
 #if defined(__APPLE__)
 
-// The locked mapping's Accelerate half (frozen spec A.3): every Ordering
-// value is accepted at construction on this backend now -- kBackendDefault
+// The backend-neutral ordering mapping's Accelerate half: every Ordering
+// value is accepted at construction on this backend -- kBackendDefault
 // -> SparseOrderDefault, kMinimumDegree -> SparseOrderAMD, kNestedDissection
 // -> SparseOrderMetis, kParallelNestedDissection -> SparseOrderMTMetis (with
 // the OS-availability downgrade to SparseOrderMetis where the host lacks it,
