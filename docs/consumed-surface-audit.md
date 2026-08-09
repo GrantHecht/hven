@@ -7,7 +7,7 @@ Roots scanned:
 
 | Seam | Root | State |
 | --- | --- | --- |
-| interior-point | `/home/ghecht/Projects/tycho/psiopt` | live checkout at hven's pinned reference |
+| interior-point | `/home/ghecht/Projects/tycho/psiopt` | live checkout, at `060ad2138a373bacd9d1ba2daabd6b503a9a6fb1` (hven's recorded pin — `tests/golden_rig/CMakeLists.txt`'s `HVEN_RIG_PSIOPT_SEAM_COMMIT`), advisory-verified since this checkout is expected to move |
 | SQP | `/home/ghecht/Projects/tycho_sqp` | tag `phase-7-close` = `4faa1df116da53c9dc68f36635c118f52d39d2b9`, tree state verified at configure |
 
 The question this audit answers is not "what backend surface exists" but
