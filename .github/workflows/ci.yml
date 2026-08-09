@@ -122,16 +122,38 @@ jobs:
       # the two disagree, which is worth seeing rather than suppressing.
       # No continue-on-error for that reason; the upload is if:always() so
       # the artifact survives a failure and can be read.
+      # The machine label is derived from the runner IMAGE, not written as a
+      # literal, and that is load-bearing rather than tidy. A float row is
+      # asserted only when the observing run's machine string matches the
+      # row's, so the label has to name the runner CLASS: a literal
+      # "macos-latest" names a moving alias, and GitHub has repointed it at
+      # new hardware more than once. Pinned to an alias, a float row goes on
+      # asserting across that change -- same string, different machine --
+      # which is precisely the substitution the context gate exists to catch.
+      # Derived from $ImageOS, the label instead becomes github-macos27-arm64
+      # the moment the image moves, the pin stops matching, and the affected
+      # rows report CONTEXT-MISMATCH until someone re-derives them on the new
+      # class. The guard is there because an unset $ImageOS would silently
+      # produce a malformed-but-consistent label, which is the same quiet
+      # failure wearing different clothes.
       - name: Emit the Accelerate observations for derivation
         env:
-          HVEN_RIG_MACHINE: github-macos-latest-apple-silicon
           HVEN_RIG_REPORT_OUT: rig-report-accelerate.txt
+          RUNNER_ARCH_LOWER: ${{ runner.arch }}
         # No MKL_NUM_THREADS here: it would be decoration on this lane.
         # Accelerate never reads it, and the native arm is the one seam
         # that pins per-instance anyway -- the rig sets num_threads = 1 on
         # the instance itself, which is the mechanism each emitted row
         # records.
-        run: ./build-macos/tests/golden_rig/hven_golden_rig_report
+        run: |
+          if [ -z "${ImageOS:-}" ]; then
+            echo "ImageOS is unset: refusing to emit observations with a machine" >&2
+            echo "label that does not name this runner's image class." >&2
+            exit 1
+          fi
+          export HVEN_RIG_MACHINE="github-${ImageOS}-$(echo "$RUNNER_ARCH_LOWER" | tr '[:upper:]' '[:lower:]')"
+          echo "machine label for this derivation: $HVEN_RIG_MACHINE"
+          ./build-macos/tests/golden_rig/hven_golden_rig_report
 
       - name: Upload the Accelerate observations
         if: always()

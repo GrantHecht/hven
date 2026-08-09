@@ -31,6 +31,34 @@
 #   mismatch is reported as CONTEXT-MISMATCH and never asserted, never
 #   silent. Counters, states, presence and bool rows carry no such risk
 #   and are asserted under any context.
+# accelerate-derivation: the native@accelerate rows carrying values were
+#   observed on real Apple Silicon, in the macOS CI lane's report-mode
+#   artifact -- runs 31295310213 and 31295501823 at commit
+#   48414157cee0, runner image macos-26-arm64, both Release, both pinned
+#   per-instance to one thread. The two artifacts are BYTE-IDENTICAL, which
+#   is the cross-run reproduction these rows had to show before being
+#   committed: runner hosts vary within a class, so one run demonstrates
+#   nothing about the next.
+#   Only counters, states, bools and presences are filled. Those are
+#   asserted regardless of machine, build configuration and thread pin --
+#   an integer count does not drift with the hardware underneath it -- so
+#   the machine column's exact spelling cannot make them wrong.
+#   The native@accelerate FLOAT rows are deliberately still UNOBSERVED,
+#   and not for want of a measurement: both runs produced them and agreed.
+#   The machine string those runs report is
+#   'github-macos-latest-apple-silicon', which names a MOVING ALIAS rather
+#   than a runner class. A float pinned to it would go on asserting after
+#   GitHub repoints macos-latest at different hardware -- the same string
+#   describing a different machine, which is the one failure the context
+#   gate exists to prevent. They are filled once the workflow labels the
+#   runner by its class and a fresh pair of runs is taken.
+#   The rows filled below still carry that alias in their machine column,
+#   because it is what the run reported and the column records where a
+#   value came from. Nothing asserts against it -- these kinds are
+#   context-independent -- and the whole accelerate row set is re-derived
+#   under the class label when the floats are.
+#   Old-seam Apple arms stay UNOBSERVED regardless: no sibling checkout
+#   builds on a runner, so no run can reach them.
 # status: DERIVED on Linux/MKL from a three-seam report-mode run, by pasting
 #   hven_golden_rig_report's own emitted rows -- every value and every
 #   provenance column below was copied from that artifact, none was typed.
@@ -92,15 +120,15 @@ sqp-old@mkl,n_zero,counter,0,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Li
 sqp-old@mkl,zero_is_derived,bool,true,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
 sqp-old@mkl,perturbed_pivots_presence,presence,present,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
 sqp-old@mkl,perturbed_pivots,counter,1,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
-native@accelerate,supports_partial_solve,bool,UNOBSERVED,,,,,,,
-native@accelerate,analyze_count,counter,UNOBSERVED,,,,,,,
-native@accelerate,factorize_count,counter,UNOBSERVED,,,,,,,
-native@accelerate,solve_count,counter,UNOBSERVED,,,,,,,
-native@accelerate,partial_solve_count,counter,UNOBSERVED,,,,,,,
-native@accelerate,inertia_state,state,UNOBSERVED,,,,,,,
-native@accelerate,n_pos,counter,UNOBSERVED,,,,,,,
-native@accelerate,n_neg,counter,UNOBSERVED,,,,,,,
-native@accelerate,n_zero,counter,UNOBSERVED,,,,,,,
-native@accelerate,zero_is_derived,bool,UNOBSERVED,,,,,,,
-native@accelerate,perturbed_pivots_presence,presence,UNOBSERVED,,,,,,,
+native@accelerate,supports_partial_solve,bool,false,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,analyze_count,counter,1,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,factorize_count,counter,1,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,solve_count,counter,1,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,partial_solve_count,counter,0,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,inertia_state,state,kObserved,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,n_pos,counter,1,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,n_neg,counter,1,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,n_zero,counter,1,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,zero_is_derived,bool,false,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
+native@accelerate,perturbed_pivots_presence,presence,absent,,github-macos-latest-apple-silicon,accelerate/UNOBSERVED,per-instance,1,48414157cee0,2026-08-09
 native@accelerate,perturbed_pivots,counter,UNOBSERVED,,,,,,,

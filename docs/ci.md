@@ -341,7 +341,38 @@ fills one records the run id and the commit beside the row's own
 provenance columns, so the artifact can be fetched again and the row
 re-checked against it.
 
-Two limits on what that artifact can ever fill:
+**First derivation from this route, 2026-08-09.** Two `workflow_dispatch`
+runs at commit `48414157cee0` — [31295310213](https://github.com/GrantHecht/hven/actions/runs/31295310213)
+and [31295501823](https://github.com/GrantHecht/hven/actions/runs/31295501823),
+both `macos-26-arm64`, both green at 51/51 — produced **byte-identical**
+artifacts. 223 observations on `native@accelerate`; **180 counters, states,
+bools and presences are committed**, and the 43 float rows are not (see the
+machine-label note below).
+
+They are worth reading for more than their count: `perturbed_pivots` came
+back **absent** rather than a zero, `zero_is_derived` came back **false**
+because Accelerate's `SparseGetInertia` measures the zero class instead of
+deriving it, and a pre-factorization inertia query answered `kUnavailable`
+with counts left at `-1`. Those are the per-backend semantics the frozen
+table asserts, confirmed on hardware for the first time — and the first two
+are exactly what the old seam's Apple branch gets wrong.
+
+**Trigger the two runs sequentially, not together.** The workflow's
+concurrency group is keyed on the ref with `cancel-in-progress: true`, so a
+second dispatch on the same ref cancels the first.
+
+**The machine label must name the runner CLASS, and is derived rather than
+written.** The first pair of runs labelled themselves
+`github-macos-latest-apple-silicon`, which names a moving alias: GitHub has
+repointed `macos-latest` at new hardware more than once, and a float pinned
+to that string would go on asserting across the change — the same label
+describing a different machine, which is the one substitution the context
+gate exists to catch. The step now builds the label from `$ImageOS` and
+`runner.arch` (`github-macos26-arm64`), so the pin follows the image and
+stops matching when the image moves. The 43 float rows stay `UNOBSERVED`
+until a fresh pair of runs is taken under the derived label.
+
+Two further limits on what that artifact can ever fill:
 
 - **Native arms only.** Neither old seam builds on a runner (there are no
   sibling checkouts there, and the SQP seam does not compile against
