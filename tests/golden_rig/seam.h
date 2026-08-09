@@ -67,7 +67,26 @@ enum class ThreadPinMechanism {
     // were produced at whatever width the backend chose for itself, which is
     // the only thing a provenance column can honestly claim. An arm reporting
     // this pairs it with a pin VALUE of 0 -- there is no count to name.
-    kAbsent
+    kAbsent,
+    // The seam's own control exists, and it is neither per-instance nor
+    // process-global: it is stored in THREAD-LOCAL STORAGE, scoped to
+    // whichever thread calls the setter, and its semantics are BINARY rather
+    // than a count. This is the psiopt old seam's Apple arm's real mechanism
+    // -- Apple's BLASSetThreading (macOS 15+), which
+    // tycho/detail/solvers/linear/accelerate_utils.h documents (read-only
+    // reference, not owned by this repository) as: "provides per-thread
+    // dynamic control via thread-local storage. It supports a binary toggle:
+    // single-threaded vs multi-threaded. 'Multi' returns to the thread count
+    // cached from VECLIB_MAXIMUM_THREADS at the first BLAS call." kProcessGlobal
+    // would be wrong twice over for that arm -- this seam DOES carry its own
+    // control (unlike the "the seam has none" case kProcessGlobal above
+    // documents), and that control is not process-scoped, it is
+    // per-calling-thread. An arm reporting this mechanism pairs it with a pin
+    // VALUE that names what was REQUESTED (0 = multithreaded/unset, 1 =
+    // single-threaded requested), never an exact thread count: values greater
+    // than one are not honored as counts by this mechanism, only as "not
+    // single-threaded".
+    kSeamThreadLocalBinary
 };
 
 const char *thread_pin_mechanism_name(ThreadPinMechanism m);

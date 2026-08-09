@@ -78,6 +78,8 @@ const char *thread_pin_mechanism_name(ThreadPinMechanism m) {
         return "process-global";
     case ThreadPinMechanism::kAbsent:
         return "absent";
+    case ThreadPinMechanism::kSeamThreadLocalBinary:
+        return "seam-thread-local-binary";
     }
     return "unknown";
 }
