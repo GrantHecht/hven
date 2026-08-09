@@ -887,3 +887,71 @@ TEST(SymmetricFactor, AdoptingAHandleForAnotherPatternRequiresAFreshAnalysis) {
 TEST(SymmetricFactor, AdoptRejectsANullHandle) {
     EXPECT_THROW(SymmetricFactor::adopt(nullptr), std::invalid_argument);
 }
+
+// THE FORK THE IDENTITY TRIPLE EXISTS FOR. Re-analyzing an engine starts a
+// FRESH backend session while an outstanding handle keeps the old one alive
+// and solvable, and the fresh session's epoch sequence CONTINUES the old
+// one's rather than restarting it. Both branches can therefore go on
+// committing different numerics on the same sparsity pattern and land on the
+// same epoch: (pattern_hash, epoch) names both at once, and a consumer keyed
+// on that pair would accept whichever it met first. The session id is the
+// conjunct that separates them.
+//
+// This test drives exactly that scenario -- the one the existing epoch tests
+// above do not reach, because they each stay on a single branch.
+TEST(SymmetricFactor, ReanalysisForksTheSessionAndTheSessionIdSeparatesTheBranches) {
+    const Mat dense = saddle3();
+    const SpMatRM K = upper_csr(dense);
+    const Vec x_exact = (Vec(3) << 1.0, 2.0, 3.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor engine(default_options());
+    EXPECT_EQ(engine.session_id(), 0u) << "no session exists before analyze()";
+
+    engine.analyze(K);
+    factorize_ok(engine, K);
+
+    std::shared_ptr<const Factorization> old_handle = engine.share();
+    const std::uint64_t branch_a = old_handle->session_id();
+    EXPECT_NE(branch_a, 0u) << "0 is reserved for 'no session'";
+    EXPECT_EQ(branch_a, engine.session_id());
+    EXPECT_EQ(old_handle->epoch(), 1u);
+
+    // The fork. The engine moves onto a new session; the handle keeps the old
+    // one, which is what makes the two branches concurrently live.
+    engine.analyze(K);
+    const std::uint64_t branch_b = engine.session_id();
+    EXPECT_NE(branch_b, branch_a) << "a re-analysis is a new session, not a continuation of one";
+    EXPECT_EQ(engine.epoch(), 1u) << "the epoch sequence is seeded from the old session's";
+
+    // Branch B commits its own numerics: same pattern, values scaled by two
+    // (a power of two, so the expected solution stays exact).
+    factorize_ok(engine, upper_csr(2.0 * dense, dense));
+
+    // Branch A commits different numerics again, through the old handle --
+    // whose numerics were still current, so this is a FULL reuse, not a
+    // refused one.
+    SymmetricFactor adopter = SymmetricFactor::adopt(old_handle);
+    EXPECT_EQ(adopter.session_id(), branch_a);
+    factorize_ok(adopter, upper_csr(4.0 * dense, dense));
+    EXPECT_EQ(adopter.counters().analyze_count, 0) << "the adopted symbolic was reusable";
+
+    // The collision itself, stated as an assertion rather than a comment:
+    // one pattern, one epoch, two different sets of numbers.
+    std::shared_ptr<const Factorization> from_a = adopter.share();
+    std::shared_ptr<const Factorization> from_b = engine.share();
+    EXPECT_EQ(from_a->pattern_hash(), from_b->pattern_hash());
+    EXPECT_EQ(from_a->epoch(), from_b->epoch());
+
+    Vec x_a(3);
+    Vec x_b(3);
+    adopter.solve(b, x_a);
+    engine.solve(b, x_b);
+    expect_vec_near(x_a, Vec(x_exact / 4.0));
+    expect_vec_near(x_b, Vec(x_exact / 2.0));
+
+    // ... and the third conjunct is what tells them apart.
+    EXPECT_NE(from_a->session_id(), from_b->session_id());
+    EXPECT_EQ(from_a->session_id(), branch_a);
+    EXPECT_EQ(from_b->session_id(), branch_b);
+}

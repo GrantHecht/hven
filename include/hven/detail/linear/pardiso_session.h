@@ -16,7 +16,8 @@
 // MPL-2.0 applies to THIS FILE only, as the license permits; the remainder of
 // hven is Apache-2.0. See notices/eigen-mpl2.txt.
 //
-// What is NOT derived: the session lifecycle, ownership and epoch semantics,
+// What is NOT derived: the session lifecycle, ownership, session-identity and
+// epoch semantics,
 // evidence reporting, and the partial-solve refinement rule around it are
 // hven's own and exist to serve the frozen interface contract of
 // hven/linear/symmetric_factor.h. So is the one test-only record in the .cpp
@@ -35,6 +36,7 @@
 #include <mkl_types.h>
 
 #include "hven/core/types.h"
+#include "hven/detail/linear/session_id.h"
 
 namespace hven::linear::detail {
 
@@ -157,8 +159,16 @@ class FactorSession {
     bool has_numerics() const noexcept { return has_numerics_; }
 
     // The committed numeric epoch: incremented by each successful
-    // factorize(), never by a failed one.
+    // factorize(), never by a failed one. Unique only WITHIN this session --
+    // see session_id() for the part of the identity that separates two
+    // sessions carrying the same epoch.
     std::uint64_t epoch() const noexcept { return epoch_; }
+
+    // This session's process-unique identity, fixed at construction. Re-
+    // analysis builds a NEW session (a fork) whose epoch sequence continues
+    // the old one's, so the epoch alone cannot tell the two branches apart;
+    // this id can. See hven/detail/linear/session_id.h.
+    std::uint64_t session_id() const noexcept { return session_id_; }
 
     // Readbacks from the most recent successful factorization. Only
     // meaningful while has_numerics() is true.
@@ -209,6 +219,7 @@ class FactorSession {
     bool active_ = false; // pt_ holds Pardiso-owned memory (needs phase -1)
     bool has_numerics_ = false;
     std::uint64_t epoch_ = 0;
+    const std::uint64_t session_id_ = next_session_id();
 
     MKL_INT n_pos_ = 0;
     MKL_INT n_neg_ = 0;

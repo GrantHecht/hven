@@ -161,8 +161,21 @@ class Factorization;
 // SHARING. share() hands out a co-owning, read-only handle on the CURRENT
 // factorization. It does not empty this engine and does not copy anything:
 // the handle and this engine drive the same backend session. Staleness is
-// detected rather than prevented, via the epoch -- see epoch(), share(), and
-// adopt() below.
+// detected rather than prevented, via the session id and the epoch -- see
+// session_id(), epoch(), share(), and adopt() below.
+//
+// IDENTITY. One set of numerics is named by the TRIPLE (pattern_hash,
+// session_id, epoch), and it takes all three. The pattern hash says which
+// structure was factorized; the session id says which backend session
+// produced the numbers; the epoch says which of that session's successive
+// factorizations they came from. Two of the three are not enough: analyze()
+// FORKS -- it starts a fresh session while any outstanding handle keeps the
+// old one alive and solvable, and the fresh session's epoch sequence
+// CONTINUES the old one's rather than restarting it -- so both branches can
+// go on committing numerics and reach the same epoch on the same pattern.
+// The session ids differ, which is what keeps the two branches
+// distinguishable. A consumer keying a cache or a warm start on a
+// factorization must key it on the triple.
 //
 // THREAD SAFETY. Solves are not internally synchronized. An engine and any
 // handles sharing its session are one backend session between them;
@@ -396,11 +409,11 @@ class SymmetricFactor {
     // The consequence to design around: a handle's solve() reflects the
     // session's CURRENT numeric state, not a snapshot taken at emission. If
     // any co-owner refactorizes, the handle solves against the NEW numerics.
-    // The handle's epoch is fixed at emission, so a consumer that needs
-    // emission-time numerics compares handle->epoch() against the live
-    // epoch() first and treats a mismatch as stale. Same for
-    // Factorization::inertia(), which likewise reports the session's current
-    // evidence.
+    // The handle's session id and epoch are fixed at emission, so a consumer
+    // that needs emission-time numerics compares handle->session_id() and
+    // handle->epoch() against the live session_id() and epoch() first and
+    // treats any difference as stale. Same for Factorization::inertia(),
+    // which likewise reports the session's current evidence.
     //
     // Throws std::runtime_error if there is no usable factorization to
     // share.
@@ -411,21 +424,40 @@ class SymmetricFactor {
     // including one driven by a co-owner. A FAILED factorize does not
     // advance it, so an epoch always names numerics that actually committed.
     // Re-analyzing carries the count forward rather than restarting it, so
-    // an epoch value is never reused for different numerics.
+    // an epoch never runs backwards.
+    //
+    // AN EPOCH IS NOT AN IDENTITY ON ITS OWN. It is unique within one
+    // session; re-analysis forks (see the IDENTITY note on this class), and
+    // two branches of a fork can commit different numerics at the same epoch
+    // on the same pattern. Pair it with session_id().
     std::uint64_t epoch() const;
 
-    // Build an engine on top of an existing shared factorization, validating
-    // both structural and numeric currency and degrading rather than lying:
+    // The process-unique id of the backend session this engine currently
+    // drives; 0 before the first analyze() and before adopting a handle.
+    // Fixed for the life of the session: analyze() moves this engine onto a
+    // NEW session (and a new id), adopt() moves it onto the emitter's, and
+    // nothing else changes it. This is the conjunct that makes an epoch an
+    // identity rather than a per-branch counter.
     //
-    //   - epoch match: full reuse. Solves work immediately against the
-    //     shared session, and a later factorize() reuses the symbolic with
-    //     no re-analysis.
-    //   - epoch MISMATCH (a co-owner has refactorized since the handle was
-    //     emitted): symbolic-only reuse. The handle's numerics are stale, so
-    //     solves through this engine are REFUSED with a std::runtime_error
-    //     explaining the staleness -- but the symbolic is still good, so the
-    //     first factorize() reuses it with no re-analysis and clears the
-    //     refusal.
+    // Not stable across processes -- it names a session that exists, so it
+    // is never written down and read back. The pattern hash is the part of
+    // the triple that survives a process boundary.
+    std::uint64_t session_id() const;
+
+    // Build an engine on top of an existing shared factorization, validating
+    // both structural and numeric currency and degrading rather than lying.
+    // Numeric reuse takes the whole identity triple -- same session AND same
+    // epoch AND, at the first factorize(), the same pattern:
+    //
+    //   - session and epoch both match: full reuse. Solves work immediately
+    //     against the shared session, and a later factorize() reuses the
+    //     symbolic with no re-analysis.
+    //   - session or epoch MISMATCH (a co-owner has refactorized since the
+    //     handle was emitted): symbolic-only reuse. The handle's numerics are
+    //     stale, so solves through this engine are REFUSED with a
+    //     std::runtime_error explaining the staleness -- but the symbolic is
+    //     still good, so the first factorize() reuses it with no re-analysis
+    //     and clears the refusal.
     //   - pattern mismatch: the structural key travels with the handle and
     //     is checked at the first factorize(), which throws
     //     std::invalid_argument for a different pattern. The recovery is an
@@ -469,8 +501,8 @@ class SymmetricFactor {
 // It stays valid after the emitting engine is destroyed or idle; the session
 // is released when the last co-owner goes away. Its solves reflect the
 // session's CURRENT numeric state (see SymmetricFactor::share()), while its
-// pattern_hash() and epoch() are fixed at emission -- that pairing is what
-// makes staleness detectable.
+// pattern_hash(), session_id() and epoch() -- the identity triple -- are
+// fixed at emission. That pairing is what makes staleness detectable.
 //
 // Thread-safety: solves on one Factorization are not internally
 // synchronized; concurrent use requires external serialization.
@@ -512,7 +544,17 @@ class Factorization {
     // emission.
     std::uint64_t pattern_hash() const;
 
-    // The emitting engine's committed epoch at emission, fixed.
+    // The id of the session this handle co-owns. Fixed by construction
+    // rather than merely recorded: a handle co-owns exactly the session it
+    // was emitted from and never rebinds, and a session's id never changes,
+    // so the live value and the emission-time value are the same value.
+    // Together with pattern_hash() and epoch() it is the identity triple --
+    // see the IDENTITY note on SymmetricFactor.
+    std::uint64_t session_id() const;
+
+    // The emitting engine's committed epoch at emission, fixed. Meaningful
+    // as an identity only alongside session_id(): a co-owner's re-analysis
+    // forks the session, and the fork's epochs continue this one's.
     std::uint64_t epoch() const;
 
   private:

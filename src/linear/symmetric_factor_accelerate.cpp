@@ -544,6 +544,10 @@ std::shared_ptr<const Factorization> SymmetricFactor::share() {
 
 std::uint64_t SymmetricFactor::epoch() const { return session_ ? session_->epoch() : 0; }
 
+std::uint64_t SymmetricFactor::session_id() const {
+    return session_ ? session_->session_id() : 0;
+}
+
 SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> handle) {
     if (!handle) {
         throw std::invalid_argument("SymmetricFactor::adopt: handle must not be null");
@@ -567,13 +571,19 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     adopted.pattern_hash_ = handle->pattern_hash_;
     adopted.has_pattern_ = true;
 
-    // Both conjuncts are validated before any reuse: the epoch here, and the
-    // pattern hash at the first factorize(). An epoch mismatch means a
-    // co-owner has refactorized since this handle was emitted, so the
-    // symbolic is still reusable but the numerics are not this handle's any
-    // more -- refuse them rather than solving against numbers the adopter
-    // never agreed to.
-    if (handle->epoch() != session->epoch()) {
+    // The identity triple is validated before any reuse: the session and the
+    // epoch here, the pattern hash at the first factorize(). An epoch
+    // mismatch means a co-owner has refactorized since this handle was
+    // emitted, so the symbolic is still reusable but the numerics are not
+    // this handle's any more -- refuse them rather than solving against
+    // numbers the adopter never agreed to.
+    //
+    // The session conjunct is written out although it cannot fail from here:
+    // `session` IS `handle->session_`, so the two ids are the same id today.
+    // It is the identity rule, not a redundancy -- the rule is "same session
+    // AND same epoch", and stating it here is what makes this the one place
+    // to look if a handle ever comes to name a session it does not co-own.
+    if (handle->session_id() != session->session_id() || handle->epoch() != session->epoch()) {
         adopted.numerics_refused_ = true;
         adopted.refused_epoch_ = handle->epoch();
     }
@@ -633,6 +643,12 @@ InertiaEvidence Factorization::inertia() const {
 }
 
 std::uint64_t Factorization::pattern_hash() const { return pattern_hash_; }
+
+// Read from the co-owned session rather than stored at emission: the handle
+// never rebinds and a session's id never changes, so there is nothing here
+// that could go out of step with the session, and no second copy to keep in
+// step. Contrast epoch_, which is a SNAPSHOT of a value that does move.
+std::uint64_t Factorization::session_id() const { return session_->session_id(); }
 
 std::uint64_t Factorization::epoch() const { return epoch_; }
 
