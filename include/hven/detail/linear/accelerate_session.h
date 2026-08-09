@@ -27,7 +27,8 @@
 // MPL-2.0 applies to THIS FILE only, as the license permits; the remainder of
 // hven is Apache-2.0. See notices/eigen-mpl2.txt.
 //
-// What is NOT derived: the session lifecycle, ownership and epoch semantics,
+// What is NOT derived: the session lifecycle, ownership, session-identity and
+// epoch semantics,
 // evidence reporting, the pivot_perturb_exp -> zeroTolerance mapping, the
 // Options::Ordering -> SparseOrder_t mapping (AccelerateConfig::ordering,
 // resolved by the adapter -- see its own doc comment), and the partial-solve
@@ -42,6 +43,7 @@
 #include <Accelerate/Accelerate.h>
 
 #include "hven/core/types.h"
+#include "hven/detail/linear/session_id.h"
 
 namespace hven::linear::detail {
 
@@ -162,8 +164,17 @@ class FactorSession {
     bool has_numerics() const noexcept { return have_numeric_; }
 
     // The committed numeric epoch: incremented by each successful
-    // factorize(), never by a failed one.
+    // factorize(), never by a failed one. Unique only WITHIN this session --
+    // see session_id() for the part of the identity that separates two
+    // sessions carrying the same epoch.
     std::uint64_t epoch() const noexcept { return epoch_; }
+
+    // This session's process-unique identity, fixed at construction. Re-
+    // analysis builds a NEW session (a fork) whose epoch sequence continues
+    // the old one's, so the epoch alone cannot tell the two branches apart;
+    // this id can. See hven/detail/linear/session_id.h. Identical in role and
+    // semantics to the MKL twin's.
+    std::uint64_t session_id() const noexcept { return session_id_; }
 
     // The native factorization handle, exposed so the ADAPTER
     // (symmetric_factor_accelerate.cpp, Apache-licensed, not MPL-derived)
@@ -207,6 +218,7 @@ class FactorSession {
 
     int n_ = 0;
     std::uint64_t epoch_ = 0;
+    const std::uint64_t session_id_ = next_session_id();
 };
 
 } // namespace hven::linear::detail
