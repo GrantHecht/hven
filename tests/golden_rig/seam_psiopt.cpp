@@ -46,10 +46,10 @@ using OldSolver = Eigen::PardisoLDLT<SpMatRM, Eigen::Upper>;
 // Pins the PROCESS thread count for this arm's lifetime and restores it
 // afterwards. MKL-ONLY: its constructor and destructor bodies are both
 // `#if !defined(__APPLE__)`, so on Apple this class is inert -- the real
-// process-scoped control on that branch is solver_.set_num_threads(), called
-// from configure() below, not this class. See thread_pin_mechanism() for why
-// that is reported as kProcessGlobal on both branches despite the different
-// mechanism underneath.
+// control on that branch is solver_.set_num_threads(), called from
+// configure() below, not this class, and it is NOT process-scoped -- see
+// thread_pin_mechanism() for the two branches' genuinely different
+// mechanisms (kSeamThreadLocalBinary on Apple, kProcessGlobal on MKL).
 //
 // Every asserted run must pin threads by the mechanism the seam under test
 // possesses, and PardisoLDLT (the MKL branch's solver) possesses none. Its
@@ -117,30 +117,43 @@ class PsioptSeam final : public SeamUnderTest {
 
     ThreadPinMechanism thread_pin_mechanism() const override {
 #if defined(__APPLE__)
-        // NOT absent: configure() (below) calls solver_.set_num_threads(),
-        // which resolves to accelerate_set_num_threads()
-        // (tycho/detail/solvers/linear/accelerate_utils.h) -- BLASSetThreading
-        // on macOS 15+, or else the VECLIB_MAXIMUM_THREADS environment
-        // variable, read once at the first BLAS call. Either way it is a
-        // real, process-scoped control, not the per-instance solver option
-        // this class reports for other seams -- reporting kAbsent here would
-        // itself be the fabrication this adapter exists to avoid. What is
-        // genuinely missing is HARDWARE OBSERVATION: this branch has never
-        // been compiled or run (see configuration_note() below), so the
+        // NOT process-global, and NOT absent either. configure() (below)
+        // calls solver_.set_num_threads(), which resolves to
+        // accelerate_set_num_threads()
+        // (tycho/detail/solvers/linear/accelerate_utils.h, read-only
+        // reference) -- BLASSetThreading on macOS 15+, which that header
+        // documents as PER-CALLING-THREAD (thread-local storage) with BINARY
+        // semantics: a value greater than one selects "multithreaded", not an
+        // exact count. Reporting kProcessGlobal here would be wrong twice --
+        // this seam DOES have its own control (unlike the case kProcessGlobal
+        // documents), and that control is not process-scoped. Reporting
+        // kAbsent would itself be the fabrication this adapter exists to
+        // avoid. kSeamThreadLocalBinary is the mechanism this seam actually
+        // has; see its doc comment in seam.h for the Apple-evidence chain.
+        // What is genuinely missing is HARDWARE OBSERVATION: this branch has
+        // never been compiled or run (see configuration_note() below), so the
         // mechanism is reported honestly while remaining unexercised.
-        return ThreadPinMechanism::kProcessGlobal;
+        return ThreadPinMechanism::kSeamThreadLocalBinary;
 #else
         return ThreadPinMechanism::kProcessGlobal;
 #endif
     }
+    // On MKL this is the exact process-global count ProcessThreadPin actually
+    // applied. On Apple it is NOT an exact count -- kSeamThreadLocalBinary's
+    // mechanism is binary, so this reports what was REQUESTED, not what
+    // BLASSetThreading honors as a width. Every asserted run requests 1
+    // (SeamOptions::num_threads' documented default), so an Apple row's pin
+    // value of 1 reads as "single-threaded requested", never as "exactly one
+    // thread used".
     int thread_pin_value() const override { return opts_.num_threads; }
 
     std::string configuration_note() const override {
 #if defined(__APPLE__)
         return "UNOBSERVED (never compiled or run): Accelerate LDLT-TPP with the "
                "interior-point engine's own order/refinement settings; thread control is "
-               "process-scoped (BLASSetThreading on macOS 15+, else VECLIB_MAXIMUM_THREADS), "
-               "not per-instance";
+               "per-calling-thread and binary (BLASSetThreading on macOS 15+ -- thread-local "
+               "storage, single-vs-multi only -- else VECLIB_MAXIMUM_THREADS), neither "
+               "per-instance nor process-global";
 #else
         return "the interior-point engine's own set_params(): writes ~25 iparm entries "
                "unconditionally (including iparm[4]=2, whose only in-tree reader is dead code), "
