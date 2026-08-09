@@ -27,6 +27,27 @@
 #define HVEN_RIG_BUILD_CONFIG "unknown"
 #endif
 
+// Defined only when tests/golden_rig/CMakeLists.txt configured the
+// corresponding old-seam arm in (HVEN_RIG_HAVE_PSIOPT_SEAM /
+// HVEN_RIG_HAVE_SQP_SEAM); the #ifndef fallbacks below only matter for a
+// build that somehow defines HAVE without COMMIT/VERIFIED, which should not
+// happen but should not read garbage if it does.
+#ifndef HVEN_RIG_PSIOPT_SEAM_COMMIT
+#define HVEN_RIG_PSIOPT_SEAM_COMMIT "unknown"
+#endif
+#ifndef HVEN_RIG_PSIOPT_SEAM_VERIFIED
+#define HVEN_RIG_PSIOPT_SEAM_VERIFIED "unverified"
+#endif
+#ifndef HVEN_RIG_SQP_SEAM_TAG
+#define HVEN_RIG_SQP_SEAM_TAG "unknown"
+#endif
+#ifndef HVEN_RIG_SQP_SEAM_COMMIT
+#define HVEN_RIG_SQP_SEAM_COMMIT "unknown"
+#endif
+#ifndef HVEN_RIG_SQP_SEAM_VERIFIED
+#define HVEN_RIG_SQP_SEAM_VERIFIED "unverified"
+#endif
+
 namespace hven::rig {
 namespace {
 
@@ -107,6 +128,18 @@ const RunProvenance &run_provenance() {
         r.commit = HVEN_RIG_COMMIT;
         r.date = today_utc();
         r.build_config = HVEN_RIG_BUILD_CONFIG;
+#if defined(HVEN_RIG_HAVE_PSIOPT_SEAM)
+        r.psiopt_seam_provenance = fmt::format("commit {} ({})", HVEN_RIG_PSIOPT_SEAM_COMMIT,
+                                               HVEN_RIG_PSIOPT_SEAM_VERIFIED);
+#else
+        r.psiopt_seam_provenance = "not configured (HVEN_RIG_PSIOPT_SEAM not set)";
+#endif
+#if defined(HVEN_RIG_HAVE_SQP_SEAM)
+        r.sqp_seam_provenance = fmt::format("tag {} (commit {}, {})", HVEN_RIG_SQP_SEAM_TAG,
+                                            HVEN_RIG_SQP_SEAM_COMMIT, HVEN_RIG_SQP_SEAM_VERIFIED);
+#else
+        r.sqp_seam_provenance = "not configured (HVEN_RIG_SQP_SEAM not set)";
+#endif
         return r;
     }();
     return p;

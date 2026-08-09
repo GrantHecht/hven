@@ -49,6 +49,20 @@ struct RunProvenance {
     // to override. Compared against ExpectedTable::build_configs() before a
     // float row is asserted -- see expected_table.h's ObservedContext.
     std::string build_config;
+
+    // Provenance for the two TEMPORARY old-seam checkouts this build may
+    // consume, one line each: "not configured (...)" when this build has no
+    // arm for that seam at all, otherwise the commit (and, for SQP, tag) it
+    // was pinned to plus "verified"/"unverified" -- the outcome the CMake
+    // configure-time pin check (tests/golden_rig/CMakeLists.txt) actually
+    // reached, not merely the commit it claims. "unverified" here does not
+    // mean configure failed to notice a problem: a FATAL_ERROR pin mismatch
+    // stops the build before this string is ever read, so "unverified"
+    // reaching a report means either git was unavailable to check with, or
+    // (psiopt only) HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM downgraded a real
+    // mismatch to a warning-and-proceed.
+    std::string psiopt_seam_provenance;
+    std::string sqp_seam_provenance;
 };
 const RunProvenance &run_provenance();
 

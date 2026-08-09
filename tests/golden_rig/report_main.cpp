@@ -64,7 +64,9 @@ void write_report(std::ostream &out) {
         << "machine : " << p.machine << "\n"
         << "backend : " << p.backend << "\n"
         << "commit  : " << p.commit << "\n"
-        << "date    : " << p.date << "\n\n";
+        << "date    : " << p.date << "\n"
+        << "psiopt old-seam checkout : " << p.psiopt_seam_provenance << "\n"
+        << "sqp old-seam checkout    : " << p.sqp_seam_provenance << "\n\n";
 
     out << "arms in this build:\n";
     for (const hven::rig::ArmSpec &a : hven::rig::arms()) {
