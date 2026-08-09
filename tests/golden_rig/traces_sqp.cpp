@@ -488,15 +488,38 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
     // neither counter. Asserting ABSENCE on Accelerate below is itself the
     // fabrication guard: it is what would fail loudly if a future change
     // ever zero-filled either field there instead of reporting it honestly
-    // absent. (No arm that reaches this trace on Apple reports either
-    // capability as false -- the SQP old seam has no Apple build at all, and
-    // native's capability is unconditionally true -- so this is a pure
-    // backend split, not a seam one.)
+    // absent.
+    //
+    // NATIVE-ARM-ONLY on Apple, and deliberately so: this trace is the
+    // backend-parameter GOVERNANCE floor (see the note above), not one of
+    // the rig's fail-by-design traces (docs/testing.md, "Traces that fail
+    // by design"). The psiopt old seam's Apple adapter fabricates a
+    // PRESENT perturbed_pivots on purpose, verbatim, on every arm that
+    // reads it (seam_psiopt.cpp's evidence(): "ppivs() ... is
+    // `return 0;` -- a hardcoded literal on a backend with no
+    // perturbed-pivot counter"). An arm-blind absence assertion here would
+    // fail against that seam too, turning this floor trace into an
+    // accidental THIRD fail-by-design entry for the exact perturbed_pivots
+    // fact P4_PerturbationEvidencePresenceIsBackendHonest
+    // (traces_psiopt.cpp) already targets and
+    // fail_by_design_control.cpp's
+    // PsioptSeamStillZeroFillsItsPreFactorizationInertiaOnApple already
+    // guards -- not a new finding, just this trace tripping over one P4
+    // already owns (P4 itself is a separate, currently-unresolved gap on
+    // this same arm -- see docs/testing.md, not fixed here). Scoping the
+    // absence claim to the
+    // native arm keeps this trace doing its own job (recording what the
+    // PRODUCT under test does) without duplicating or fragmenting the
+    // rig's fail-by-design bookkeeping; run.record_inertia() below still
+    // records every arm's actual value regardless; only the ASSERTION is
+    // narrowed.
     if (caps.reports_perturbed_pivots) {
 #if defined(__APPLE__)
-        EXPECT_FALSE(e.perturbed_pivots.has_value())
-            << "Accelerate has no perturbed-pivot counter; a present value here would be a "
-               "fabrication, not evidence";
+        if (GetParam().seam == SeamId::kNative) {
+            EXPECT_FALSE(e.perturbed_pivots.has_value())
+                << "Accelerate has no perturbed-pivot counter; a present value here would be a "
+                   "fabrication, not evidence";
+        }
 #else
         EXPECT_TRUE(e.perturbed_pivots.has_value())
             << "this seam reports a perturbed-pivot count, so the field must be present";

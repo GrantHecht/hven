@@ -21,15 +21,15 @@ REM Content-Length ~1.9 GB) by a direct request before being pasted here --
 REM not guessed. Bump it by pulling the current WINDOWS_TOOLKIT_URL from
 REM that workflow file when Intel rotates the version.
 REM
-REM This script's own claim ceiling: it has been reviewed against a live,
-REM reachable download URL and a real, currently-published component id
-REM (intel.oneapi.win.mkl.devel, per https://oneapi-src.github.io/oneapi-ci/)
-REM plus a best-effort second id for the OpenMP runtime
-REM (intel.oneapi.win.openmp) that was NOT independently confirmed the same
-REM way -- if the bootstrapper rejects that id, or the installed MKL layout
-REM under C:\Program Files (x86)\Intel\oneAPI\mkl\latest does not match what
-REM FindMKL.cmake expects, that is exactly the kind of first-contact finding
-REM the windows-clang-release CI job exists to surface. See docs/ci.md.
+REM This script's own claim ceiling: both component ids below are now
+REM CONFIRMED, not just plausible -- intel.oneapi.win.mkl.devel was verified
+REM against Intel's own published component listing when this script was
+REM written, and intel.oneapi.win.openmp (a best-effort guess at the time)
+REM is confirmed by the strongest evidence there is: across five real CI
+REM runs, the component installed, libiomp5md.lib resolved at configure
+REM time under C:\Program Files (x86)\Intel\oneAPI\compiler\latest\lib
+REM exactly where FindMKL.cmake expects it, and every test binary that
+REM links it loaded and ran. See docs/ci.md's Windows lane section.
 REM
 REM Usage: scripts\install_windows_mkl.bat
 REM Requires: curl (bundled with Windows 10 1803+ and the windows-latest
@@ -44,8 +44,16 @@ curl.exe --output %TEMP%\webimage.exe --url %URL% --retry 5 --retry-delay 5
 if errorlevel 1 exit /b 1
 
 start /b /wait %TEMP%\webimage.exe -s -x -f webimage_extracted --log extract.log
+if errorlevel 1 (
+    del %TEMP%\webimage.exe
+    exit /b 1
+)
 del %TEMP%\webimage.exe
 
+REM A failed extraction here would otherwise surface only indirectly, as
+REM bootstrapper.exe not existing below (errorlevel 9009, still caught and
+REM returned by the block after it) -- the explicit check above gives a
+REM legible failure at the point it actually happened instead.
 webimage_extracted\bootstrapper.exe -s --action install --components=%COMPONENTS% --eula=accept -p=NEED_VS2017_INTEGRATION=0 -p=NEED_VS2019_INTEGRATION=0 -p=NEED_VS2022_INTEGRATION=0 --log-dir=.
 set installer_exit_code=%ERRORLEVEL%
 

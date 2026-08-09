@@ -44,24 +44,31 @@ FetchContent_MakeAvailable(googletest)
 # this project's own CMake floor, so the probe does not rely on that).
 if(WIN32)
     include(CheckCXXCompilerFlag)
+    # Save/restore rather than unconditionally unset: harmless today since
+    # nothing sets CMAKE_REQUIRED_FLAGS earlier in this file, but the
+    # save/restore idiom costs nothing and does not silently start
+    # clobbering a caller's value if this probe is ever hoisted or reused
+    # somewhere CMAKE_REQUIRED_FLAGS is already in use.
+    set(_hven_saved_required_flags "${CMAKE_REQUIRED_FLAGS}")
     set(CMAKE_REQUIRED_FLAGS "-Werror")
     check_cxx_compiler_flag("-Wno-character-conversion" HVEN_HAS_NO_CHARACTER_CONVERSION_FLAG)
-    unset(CMAKE_REQUIRED_FLAGS)
+    set(CMAKE_REQUIRED_FLAGS "${_hven_saved_required_flags}")
+    unset(_hven_saved_required_flags)
+    if(NOT HVEN_HAS_NO_CHARACTER_CONVERSION_FLAG)
+        message(STATUS
+            "gtest/gtest_main: this clang does not recognize the "
+            "-Wcharacter-conversion diagnostic group -- skipping the "
+            "-Wno-character-conversion suppression (nothing to suppress if the "
+            "compiler has no such warning to raise in the first place; not "
+            "independently verified here, so if gtest-printers.h's "
+            "char8_t->char32_t conversion does still fail /WX under a "
+            "diagnostic with a different name on this compiler, that will "
+            "surface as a build failure right after this message rather than "
+            "silently).")
+    endif()
     foreach(_t gtest gtest_main)
-        if(TARGET ${_t})
-            if(HVEN_HAS_NO_CHARACTER_CONVERSION_FLAG)
-                target_compile_options(${_t} PRIVATE -Wno-character-conversion)
-            else()
-                message(STATUS
-                    "${_t}: this clang does not recognize the -Wcharacter-conversion "
-                    "diagnostic group -- skipping the -Wno-character-conversion "
-                    "suppression (nothing to suppress if the compiler has no such "
-                    "warning to raise in the first place; not independently verified "
-                    "here, so if gtest-printers.h's char8_t->char32_t conversion does "
-                    "still fail /WX under a diagnostic with a different name on this "
-                    "compiler, that will surface as a build failure right after this "
-                    "message rather than silently).")
-            endif()
+        if(TARGET ${_t} AND HVEN_HAS_NO_CHARACTER_CONVERSION_FLAG)
+            target_compile_options(${_t} PRIVATE -Wno-character-conversion)
         endif()
     endforeach()
 endif()

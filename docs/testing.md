@@ -468,6 +468,39 @@ shape — so a regression is loud in one direction or the other and cannot pass
 silently. Mutation-checked: restoring the smoothing guard in the SQP adapter
 turns `P5` fully green while the control goes red.
 
+**A trace NOT meant to be fail-by-design almost became a third one, and the
+near-miss is worth keeping visible.** `T7_BackendParameterSurfaceFloor`
+(`traces_sqp.cpp`) is the backend-parameter GOVERNANCE floor, not a
+fail-by-design trace — but for one CI review cycle its Apple branch asserted
+`perturbed_pivots` absence with no arm gate at all, which would have failed
+against the psiopt old seam's Apple arm too (that seam's `evidence()`
+fabricates a present `perturbed_pivots` unconditionally, on every arm that
+reads it, the exact same fact P5's control below already names). Fixed by
+scoping the absence assertion to the `native` arm only
+(`traces_sqp.cpp`'s `GetParam().seam == SeamId::kNative` guard): T7 keeps
+recording every arm's actual value, but only asserts the contract-honesty
+claim about the one arm it is actually a floor for. No new
+`FailByDesignControl.*` test was added for this, because none was needed
+this time — the fact T7's stray branch would have (re)detected is already
+named and guarded by
+`FailByDesignControl.PsioptSeamStillZeroFillsItsPreFactorizationInertiaOnApple`
+below; a second control asserting the identical `ppivs()` fact through a
+different call path would duplicate coverage rather than add any.
+
+**A KNOWN, UNRESOLVED gap of the same shape: `P4_PerturbationEvidencePresenceIsBackendHonest`
+(`traces_psiopt.cpp`).** Unlike T7, P4 was not touched by this fix, and it
+carries the identical unscoped shape T7's stray branch had: an `#if
+defined(__APPLE__)` `EXPECT_FALSE(perturbed_pivots.has_value())` with no arm
+gate, `RIG_REQUIRE`d only on `reports_inertia` (which the psiopt old seam
+declares `true`). A real Mac three-seam run should therefore be expected to
+show P4 ALSO failing on `psiopt-old@accelerate`, for the same reason P5
+does — this is inferred from reading the code (see below for what is and is
+not actually observed), not yet confirmed against real hardware, and it is
+called out here explicitly rather than silently left for whoever runs the
+three-seam configuration on a Mac to discover unwarned. Closing it (arm
+scope or a third named fail-by-design entry with its own control, matching
+whichever shape a maintainer picks) is future work, not part of this fix.
+
 **Derivation checklist — the three-seam run MUST NOT be all-green.** The
 expected result is:
 
@@ -477,14 +510,65 @@ expected result is:
 ```
 
 One failure, that exact entry, with all three `FailByDesignControl.*` tests
-green — ON LINUX. The expected shape is platform-specific:
+green — ON LINUX. Independently re-verified against a real three-seam Linux
+build while writing this correction
+(`-DHVEN_RIG_PSIOPT_SEAM=<tycho> -DHVEN_RIG_SQP_SEAM=<tycho_sqp>`, tag
+`phase-7-close`): 151 tests, exactly this one failure, 3
+`FailByDesignControl.*` tests green — the numbers above were and still are
+correct for Linux.
 
-- Linux three-seam run: 151 tests, exactly 1 failure (the entry above),
-  3 controls green.
-- Mac three-seam run (when the psiopt adapter's Apple arm exists): 152
-  tests, exactly 2 expected failures (the entry above AND P5 on the
-  interior-point old seam's Apple arm — its defined zero-fill), 4
-  controls green.
+**The Mac shape was never actually derived — it was guessed, and the guess
+was wrong on the total, not just the failure count.** The `152` figure
+(`151` from Linux, `+1` for the extra failure) implicitly assumed the Mac
+three-seam run has roughly the same shape as Linux's; it does not. Recomputed
+here from two pieces of REAL evidence — the actual native-only
+`macos-clang-release` CI green run (`docs/ci.md`, 51 tests: `Arms` 16,
+non-`Arms` 35) plus the real three-seam Linux run above (which shows exactly
+what an added old-seam arm contributes: 16 `Arms/*` cases per arm, whether or
+not some of them skip on it) — not from a real Mac three-seam observation,
+which still does not exist:
+
+- The psiopt old seam is the ONLY old seam that can ever exist on Apple (the
+  SQP old seam's adapter `#include`s `<mkl_service.h>` unconditionally and
+  cannot compile there at all), and neither parity arm exists on Apple
+  either (`seam_registry.cpp`'s `#if !defined(__APPLE__)` gate) — so a Mac
+  three-seam run has exactly two arms, `native` and `psiopt-old`, not five.
+- `psiopt-old` contributes 16 `Arms/*` cases (same per-arm count as every
+  other arm), 3 of which skip on it regardless of platform
+  (`T2b_PartialSolvePredicateUnderPerturbation`, `T4_HandleOutlivesItsEmitter`,
+  `T4b_AdoptRefusesStaleNumerics` — `seam_psiopt.cpp`'s
+  `partial_solve_predicate`/`share_handle`/`epoch`/`adopt` capabilities are
+  all unconditionally `false`, not backend-split), still counted in the
+  total.
+- `FailByDesignControl.PsioptSeamStillZeroFillsItsPreFactorizationInertiaOnApple`
+  (currently gated `#if defined(HVEN_RIG_HAVE_PSIOPT_SEAM) && defined(__APPLE__)`,
+  so absent from every count observed so far) becomes real: `+1`.
+- No other file gates a test on `HVEN_RIG_HAVE_PSIOPT_SEAM` (checked by
+  grep, not assumed).
+
+`51 + 16 + 1 = 68` — not `152`. The expected shape, corrected:
+
+- Linux three-seam run: 151 tests, exactly 1 failure
+  (`P5`/`sqp-old@mkl`), 3 controls green. Unchanged, and independently
+  re-verified above.
+- Mac three-seam run (when the psiopt adapter's Apple arm exists): **68**
+  tests (not 152), exactly 1 expected failure — `P5` on the interior-point
+  old seam's Apple arm, its defined zero-fill (T7 no longer contributes one,
+  per the fix above) — 2 controls green
+  (`ControlsArePresentForWhicheverOldSeamsThisBuildHas` and
+  `PsioptSeamStillZeroFillsItsPreFactorizationInertiaOnApple`; there is no
+  Mac equivalent of the SQP-seam controls, since that seam never exists
+  there). **This count does not yet account for the P4 gap named above** —
+  if a real run shows P4 also failing on `psiopt-old@accelerate` before that
+  gap is closed, that is expected given the code as it stands today, not a
+  new problem; the count to compare against at that point is 2 failures
+  (`P4` + `P5`), 68 tests, same 2 controls.
+
+This corrected Mac shape is itself still UNOBSERVED — inferred from a real
+Linux three-seam run and a real Mac native-only CI run, not from an actual
+Mac three-seam execution, which has never happened on this repository's
+hardware. Confirm it against a real run before trusting it over further
+inference.
 
 On either platform: all-green means a fail-by-design stopped firing and
 the run is not usable for derivation until that is explained; more

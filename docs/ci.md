@@ -81,6 +81,44 @@ hardware anywhere in this repo's history at the time this job was written.
 If it does not, that is exactly the kind of first-contact finding this job
 exists to surface — see the note below.
 
+**Erratum.** An earlier version of this task's report (and, uncorrectably,
+pushed commit `026b578`'s message) described the first green macOS run as
+"114/116 tests passing". That denominator was wrong: the macOS lane builds
+and runs **51** of the suite's 116 total cases, not 116 — see "What this
+lane covers" below for why. The correct figure for that run was 2 failures
+out of 51, both since fixed (see this task's report for the diagnosis). The
+substance of the finding (Accelerate compiled, linked, and ran correctly on
+first contact, with only a rig-harness bug surfacing) was accurate; only the
+denominator was not.
+
+**What this lane covers: 51 of 116 cases, not the whole suite.** macOS
+compiles a materially smaller test surface than Linux, by design. Real
+per-category counts, diffed from both jobs' own actual test-name lists
+(Linux from a local native-only build, macOS from CI run 31287205323 — not
+estimated):
+
+| Suite | Linux | macOS | Why the difference |
+| --- | --- | --- | --- |
+| `SymmetricFactor` (MKL-specific: perturbed-pivot evidence, phase-split partial solves) | 26 | 0 | `tests/CMakeLists.txt`: `if(NOT APPLE)` |
+| `PardisoIparmObservation` | 4 | 0 | same file, same gate |
+| `MklFactorizeFaultInjection` | 2 | 0 | MKL-only fault-injection seam |
+| `AuditRuntimeShim` (the consumed-surface audit's runtime half) | 3 | 0 | `tests/golden_rig/CMakeLists.txt`: `if(UNIX AND NOT APPLE)` — Linux-only, not Windows either (see `docs/testing.md`'s audit section) |
+| Rig parity arms (`native-sqp-parity`, `native-psiopt-parity`; 32 of the 48 `Arms/*` cases) | included in the 48 | 0 | `seam_registry.cpp`: `#if !defined(__APPLE__)` — native rig arm only on Apple (16 `Arms/*` cases) |
+| `SymmetricFactorPardisoOnlyOptions` | 2 (`...DoesNotThrowOnMkl` cases) | 3 (`...ThrowsAtConstruction` cases plus a default-options case) | same file, platform-conditional halves with a genuinely different case count on each side, not just different names |
+| `AccelerateInertiaQueryFaultInjection` | 0 | 1 | Apple-only fault-injection seam (the structural mirror of `MklFactorizeFaultInjection`, which is why the counts don't need to match) |
+| Everything else (native `Arms/*` only — 16 of the 48 — plus `DenseSymmetricFactor`, `PatternHash`, `SymmetricFactorEvidenceInvariants`, `SparseBackendLink`, `Version`, `GoldenRigAudit.StaticScanSelfTest`, `FailByDesignControl`'s no-old-seam-configured case) | 47 | 47 | backend-neutral, same cases both sides |
+
+macOS total: `47 + 3 (SymmetricFactorPardisoOnlyOptions) + 1
+(AccelerateInertiaQueryFaultInjection) = 51`. Linux total: `47 + 26 + 4 + 2 +
+3 (AuditRuntimeShim) + 32 (parity arms) + 2
+(SymmetricFactorPardisoOnlyOptions) = 116`. (Windows is a third, smaller
+number again — 113 — for the unrelated `AuditRuntimeShim` reason in that
+row; see the Windows lane section.) None of the 51 macOS cases are skipped
+by design on a native-only checkout except the two the "What a green lane
+does and does not fill in" section below already names. A green macOS run is
+strong evidence for the Accelerate backend specifically — it is not evidence
+about MKL Pardiso semantics, which no macOS job can exercise.
+
 **This is the milestone's first real Apple-hardware run.** The Accelerate
 session, shim, and Apple-gated test halves
 (`src/linear/accelerate_session.cpp`, `symmetric_factor_accelerate.cpp`,
@@ -131,8 +169,12 @@ confirmed as a real, currently-published component id via
 [`oneapi-src.github.io/oneapi-ci`](https://oneapi-src.github.io/oneapi-ci/))
 and `intel.oneapi.win.openmp` (the OpenMP runtime `cmake/FindMKL.cmake`'s
 default, unset-`MKL_USE_SEQUENTIAL` threading layer links against —
-`libiomp5md.lib` — chosen by inference, **not** independently confirmed the
-same way the MKL component id was). After install, `MKLROOT` and
+`libiomp5md.lib`). That component id was chosen by inference when this job
+was first written, not confirmed against Intel's own component listing the
+way the MKL id was — it is now confirmed by the strongest evidence there
+is: the component installed, `libiomp5md.lib` resolved at configure time,
+and every test binary that links it loaded and ran, across five real CI
+runs. After install, `MKLROOT` and
 `ONEAPI_ROOT` are exported into `$GITHUB_ENV`, mirroring the Linux job's own
 step, so `cmake/FindMKL.cmake` looks under the actual Windows install
 location rather than depending on one of its Linux-shaped hardcoded
@@ -148,6 +190,42 @@ synthetic `MKLROOT` tree; the offline-installer route needs neither, since
 its install layout is the same `<oneAPI root>/mkl/<version>/...` shape
 `cmake/FindMKL.cmake`'s existing (Linux-derived) hints already anticipate.
 
+**The cache's SAVE path is proven; its RESTORE path is UNOBSERVED.** Every
+run to date logged `Cache not found for input keys` on the `actions/cache`
+step — the first four because the job failed before `actions/cache`'s
+post-step save runs (`actions/cache` does not persist a cache from a failed
+job), and the fifth because no prior successful save existed yet to hit.
+That fifth (green) run's post-step logged `Cache saved with key:
+Windows-windows-oneapi-2026.1.0.191-mkl.devel-openmp-v1` (the ~1.17 GB
+`mkl/` + `compiler/` tree), so a cache entry now exists — but no CI run has
+yet actually restored from it and built against the restored tree.
+Whether a cache-hit run (a) correctly skips the install step
+(`if: steps.cache-oneapi-mkl.outputs.cache-hit != 'true'`) and (b) finds a
+restored-but-never-installed tree fully satisfies `cmake/FindMKL.cmake` and
+the PATH step below without anything the installer would otherwise have
+written to the registry, is inferred from this job's layering (acquisition,
+link-time discovery, and load-time PATH resolution are all separately,
+purely file/env-var driven — see the design note two paragraphs up) rather
+than observed. The next push that does NOT change `HVEN_ONEAPI_CACHE_KEY`
+is what actually exercises this path for the first time; watch that run's
+logs for a `Cache restored from key` line before trusting it further.
+
+**Local Windows builds have a hard `bash` prerequisite, not just a Ninja and
+clang-cl one.** `tests/golden_rig/CMakeLists.txt` locates `bash`
+(`find_program(HVEN_BASH_EXECUTABLE NAMES bash REQUIRED)`) to run
+`GoldenRigAudit.StaticScanSelfTest`'s `static_scan.sh` on `WIN32`, since
+Windows' `CreateProcess()` has no shebang-execution mechanism the way
+Linux's and macOS's `exec()` do. The `REQUIRED` keyword makes a missing
+`bash` a **hard configure-time failure of the entire project**, not a
+skipped test — a plain clang-cl/Visual Studio setup with no Git for Windows
+on `PATH` cannot configure `hven` at all until one is installed, over a
+single shell-script test. On `windows-latest` this resolves to Git for
+Windows' `C:\Program Files\Git\bin\bash.EXE`, already relied on elsewhere in
+this same workflow's own `shell: bash` steps, so CI needs no extra install
+step for it — a local Windows checkout does, if it lacks Git for Windows
+(most won't, but it is worth stating as a real prerequisite rather than
+leaving a first-time contributor to discover it from a configure error).
+
 **The Windows/clang-cl flag set has not run here before either.**
 `cmake/hven_compile_options.cmake`'s `WIN32` branches were migrated from
 tycho verbatim — a direct diff against tycho's own
@@ -162,6 +240,27 @@ of the above with `cmake/hven_sparse_backend.cmake`'s non-Apple branch.
 First-contact failures here get the same treatment as the macOS lane above:
 fixed, documented, not treated as an indictment of the workflow.
 
+## Build and test presets: what CI actually exercises
+
+`CMakePresets.json` ships `buildPresets` and `testPresets` for all four
+configure presets, but the macOS and Windows CI steps above invoke the
+underlying build directory directly (`cmake --build build-macos`,
+`ctest --test-dir build-windows --output-on-failure`), not
+`cmake --build --preset macos-clang-release` /
+`ctest --preset windows-clang-release`. Practical effect: those two
+presets' `configurePresets` entries are exercised by every green run (CI
+would not be green otherwise), but their `buildPresets`/`testPresets`
+entries — including the `-j3`/`-j4` `nativeToolOptions` — are not; nothing
+in this repository's CI has ever invoked them. This is a deliberate choice
+made here, not an oversight rediscovered later: switching the two steps to
+`--preset` form would make those preset entries load-bearing at effectively
+no behavioral cost, but it is also a change to a now-fully-green matrix
+made for preset hygiene rather than because anything is broken, so it is
+left as a documented, low-priority follow-up rather than bundled into this
+page's other corrections. The Linux job's `buildPresets`/`testPresets`
+entries are unaffected either way — that job predates this note and was
+not touched by it.
+
 ## Branch protection (human step, GitHub settings)
 
 Not automatable by this repository's own files — a human with admin access
@@ -175,7 +274,18 @@ to include all three job names:
 
 Do this once all three have recorded at least one successful run on a real
 pull request against `main` — requiring a check that has never gone green
-locks out every PR until it does.
+locks out every PR until it does. **That precondition is not yet met.**
+Every CI run to date (`gh run list`) has `event: push`; the `pull_request`
+trigger itself has never fired. The push path and the `pull_request` path
+share the same job definitions and the same `concurrency` group
+configuration, so risk is low, but the PR-specific behavior — how the
+concurrency group resolves on a `refs/pull/N/merge` ref, and whether GitHub
+records the three required-check names from a PR-triggered run identically
+to a push-triggered one — is UNOBSERVED. Enabling branch protection is a
+one-line config change on GitHub's side that this repository's files cannot
+force; opening (or re-triggering) a real pull request against `main` is
+what actually closes this gap, and should happen before, not after, the
+step above.
 
 ## UNOBSERVED discipline: Apple hardware
 
@@ -188,7 +298,9 @@ Before the `macos-clang-release` CI job existed, this repository's only
 possible source of real Apple-hardware evidence was a human running the
 manual routine below by hand and recording the row in the table. That table
 is kept below as the historical record of every hand-run observation to
-date; do not delete or backfill it.
+date; do not delete or backfill it. Record, for every run: the machine
+(model, chip), macOS version, Xcode/LLVM version, date, commit hash, and the
+configure/build/ctest result.
 
 ```bash
 mkdir build && cd build
@@ -205,7 +317,11 @@ ctest --output-on-failure
 GitHub's own Apple Silicon runners and passed: run
 [31287205323](https://github.com/GrantHecht/hven/actions/runs/31287205323),
 commit `ca2744c1ba41bf111a71900ba3034897fd314144`, runner image
-`macos-26-arm64`, **51 tests, 51 passed, 1 skipped**. The Accelerate
+`macos-26-arm64`, **51 tests: 49 passed, 2 skipped
+(`SparseBackendLink.AcceleratePlaceholderUnobserved`,
+`FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas` —
+both skip by design on a native-only checkout, not failures), 0 failed**.
+The Accelerate
 session, the Accelerate adapter and every `#if defined(__APPLE__)` test
 half compiled, linked and ran on real hardware for the first time there,
 and that whole lane re-runs on every push to `main` and every pull
