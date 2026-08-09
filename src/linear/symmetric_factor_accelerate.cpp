@@ -544,9 +544,7 @@ std::shared_ptr<const Factorization> SymmetricFactor::share() {
 
 std::uint64_t SymmetricFactor::epoch() const { return session_ ? session_->epoch() : 0; }
 
-std::uint64_t SymmetricFactor::session_id() const {
-    return session_ ? session_->session_id() : 0;
-}
+std::uint64_t SymmetricFactor::session_id() const { return session_ ? session_->session_id() : 0; }
 
 SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> handle) {
     if (!handle) {
