@@ -5,12 +5,31 @@ hven vendors the Eigen linear algebra library as a git submodule
 (dep/eigen/), unmodified. The MPL-2.0 license applies to Eigen; the
 remainder of the hven project is Apache 2.0.
 
-Individual hven source files derived from Eigen code (if any) carry an
-MPL-2.0 notice in their file headers and are listed here as they are
-added.
+One module inside Eigen carries a second license of its own: PardisoSupport,
+Intel's contributed Pardiso binding, reproduces Intel's BSD-3-Clause notice
+in every file. The hven files derived from it therefore carry both notices
+-- see the per-file list below.
+
+Individual hven source files derived from Eigen code (if any) carry the
+license notice(s) their upstream module carries in their file headers, and
+are listed here as they are added.
 
   include/hven/detail/linear/pardiso_session.h
   src/linear/pardiso_session.cpp
+      DUAL HERITAGE — MPL-2.0 *and* Intel's BSD-3-Clause. Eigen's
+      PardisoSupport module is Intel's contributed Pardiso binding: it is
+      MPL-2.0 as part of Eigen, and every file in it also reproduces
+      Intel's own BSD-3-Clause copyright, conditions and disclaimer
+      (dep/eigen/Eigen/src/PardisoSupport/PardisoSupport.h, first ~26
+      lines: "Copyright (c) 2011, Intel Corporation. All rights
+      reserved."). These two hven files derive from that module, so they
+      reproduce BOTH notices verbatim in their own headers, which is what
+      the BSD terms' source-redistribution condition requires and what
+      MPL-2.0 section 3.4 forbids removing. Neither notice is optional and
+      neither supersedes the other; classifying these files as MPL-only
+      would drop the BSD copyright, conditions and disclaimer that the
+      upstream file retains.
+
       Derived from Eigen's PardisoSupport module: the Pardiso call
       discipline -- the argument block handed to ::pardiso, the phase
       sequence (symbolic / numeric / solve / release), the parameter-array
