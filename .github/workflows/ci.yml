@@ -55,6 +55,12 @@ jobs:
         run: cmake --build build
 
       - name: Test
+        # No HVEN_RIG_MACHINE here, by design: the committed MKL float rows are
+        # pinned to the machine they were derived on, and this runner is not it,
+        # so they report CONTEXT-MISMATCH rather than asserting. Labelling this
+        # runner as the derivation machine would make them assert against
+        # hardware they were never observed on, which is the false claim the
+        # context gate exists to prevent.
         run: ctest --test-dir build --output-on-failure
 
       - name: Accelerate backend syntax check (Linux, stubbed)
@@ -98,6 +104,41 @@ jobs:
         # framework search path.
         run: brew install ninja
 
+      # ONE SOURCE for this job's machine label, exported to every later step.
+      # It has two consumers and they must agree: the Test step, where the
+      # committed Mac float rows are asserted, and the report step, where new
+      # ones are derived. A float row is asserted only when the observing run's
+      # machine string equals the row's, so a Test step running without this
+      # label observes the host's uname instead, every Mac float row reports
+      # CONTEXT-MISMATCH, and the lane gates counters and states while
+      # silently checking no numbers at all. That was the state before this
+      # step existed, with the label derived inside the report step alone.
+      #
+      # The label is derived from the runner IMAGE, not written as a literal,
+      # and that is load-bearing rather than tidy: it has to name the runner
+      # CLASS. A literal "macos-latest" names a moving alias, and GitHub has
+      # repointed it at new hardware more than once -- pinned to an alias, a
+      # float row goes on asserting across that change, same string, different
+      # machine, which is precisely the substitution the context gate exists to
+      # catch. Derived from $ImageOS, the label becomes github-macos27-arm64
+      # the moment the image moves, the pin stops matching, and the affected
+      # rows report CONTEXT-MISMATCH until someone re-derives them on the new
+      # class. The guard is there because an unset $ImageOS would silently
+      # produce a malformed-but-consistent label, which is the same quiet
+      # failure wearing different clothes.
+      - name: Derive this runner's machine-class label
+        env:
+          RUNNER_ARCH_LOWER: ${{ runner.arch }}
+        run: |
+          if [ -z "${ImageOS:-}" ]; then
+            echo "ImageOS is unset: refusing to run with a machine label that does" >&2
+            echo "not name this runner's image class." >&2
+            exit 1
+          fi
+          label="github-${ImageOS}-$(echo "$RUNNER_ARCH_LOWER" | tr '[:upper:]' '[:lower:]')"
+          echo "machine label for this job: $label"
+          echo "HVEN_RIG_MACHINE=$label" >> "$GITHUB_ENV"
+
       - name: Configure
         run: cmake --preset macos-clang-release
 
@@ -105,6 +146,9 @@ jobs:
         run: cmake --build build-macos
 
       - name: Test
+        # HVEN_RIG_MACHINE comes from the label step above (via $GITHUB_ENV),
+        # which is what makes the committed Accelerate float rows genuinely
+        # assert here rather than report CONTEXT-MISMATCH.
         run: ctest --test-dir build-macos --output-on-failure
 
       # The Accelerate arm of every expected table is UNOBSERVED, and this
@@ -122,24 +166,16 @@ jobs:
       # the two disagree, which is worth seeing rather than suppressing.
       # No continue-on-error for that reason; the upload is if:always() so
       # the artifact survives a failure and can be read.
-      # The machine label is derived from the runner IMAGE, not written as a
-      # literal, and that is load-bearing rather than tidy. A float row is
-      # asserted only when the observing run's machine string matches the
-      # row's, so the label has to name the runner CLASS: a literal
-      # "macos-latest" names a moving alias, and GitHub has repointed it at
-      # new hardware more than once. Pinned to an alias, a float row goes on
-      # asserting across that change -- same string, different machine --
-      # which is precisely the substitution the context gate exists to catch.
-      # Derived from $ImageOS, the label instead becomes github-macos27-arm64
-      # the moment the image moves, the pin stops matching, and the affected
-      # rows report CONTEXT-MISMATCH until someone re-derives them on the new
-      # class. The guard is there because an unset $ImageOS would silently
-      # produce a malformed-but-consistent label, which is the same quiet
-      # failure wearing different clothes.
+      #
+      # HVEN_RIG_MACHINE is NOT derived here. It comes from the label step
+      # near the top of this job, so the rows this step emits and the rows the
+      # Test step asserts are stamped by one source -- two derivations that
+      # drifted apart would let a table be filled from a label nothing ever
+      # asserts against. See that step for how the label is built and why it
+      # names the image class rather than the runner alias.
       - name: Emit the Accelerate observations for derivation
         env:
           HVEN_RIG_REPORT_OUT: rig-report-accelerate.txt
-          RUNNER_ARCH_LOWER: ${{ runner.arch }}
         # No MKL_NUM_THREADS here: it would be decoration on this lane.
         # Accelerate never reads it -- and neither does anything else, on
         # this backend: the rig asks the native arm for num_threads = 1, but
@@ -150,12 +186,6 @@ jobs:
         # this lane are therefore reproduced across two separate runs before
         # being committed, which is the assurance a pin would otherwise give.
         run: |
-          if [ -z "${ImageOS:-}" ]; then
-            echo "ImageOS is unset: refusing to emit observations with a machine" >&2
-            echo "label that does not name this runner's image class." >&2
-            exit 1
-          fi
-          export HVEN_RIG_MACHINE="github-${ImageOS}-$(echo "$RUNNER_ARCH_LOWER" | tr '[:upper:]' '[:lower:]')"
           echo "machine label for this derivation: $HVEN_RIG_MACHINE"
           ./build-macos/tests/golden_rig/hven_golden_rig_report
 
@@ -265,6 +295,10 @@ jobs:
         run: cmake --build build-windows
 
       - name: Test
+        # No HVEN_RIG_MACHINE here, by design -- same reason as the Linux lane:
+        # the committed float rows name the machine they were derived on, this
+        # runner is not it, and labelling it as such would make those rows
+        # assert against hardware they were never observed on.
         run: ctest --test-dir build-windows --output-on-failure
 
       - name: Save oneAPI install logs
