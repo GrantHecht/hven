@@ -452,38 +452,53 @@ assumed:
    block.
 2. **Across build configurations.** Run the report from a Release build
    and a Debug build of the same source, at the same thread pin on the
-   same machine, and commit only what did not move. **103 float rows moved
-   and are held at `UNOBSERVED`.** All of them are solution components and
-   residuals on the collocation-class fixtures; every counter, state,
-   boolean and presence reproduced exactly.
+   same machine, and record which rows move. **103 float rows do** — all
+   of them solution components and residuals on the collocation-class
+   fixtures. Every counter, state, boolean and presence reproduced
+   exactly.
+3. **Pinned to a context future runs will report.** A row's pin has to
+   name the context the runs you want it to assert under will actually
+   produce, or it asserts nowhere.
 
-The second gate is the surprising one and the reason it is written down
-here. At the time of the first derivation, the provenance columns a table
-carried — machine, backend, thread pin, commit, date — did not name a build
-configuration at all, so a value that moved with `-O0` versus `-O2` was a
-value the table had no way to describe. Committing one would have pinned a
-number to a configuration the schema could not record, and the next reader
-would have had no way to tell which configuration it belonged to. Note that
-only 35 of those 103 actually exceeded their stated tolerance; the other 68
-stayed inside it by luck, which is exactly why the criterion is "did it
-move", not "did it fail".
+The second gate is the surprising one. Note that only 35 of those 103
+actually exceeded their stated tolerance; the other 68 stayed inside it by
+luck, which is exactly why the criterion is "did it move", not "did it
+fail" — a tolerance-based rule would have committed the lucky ones as
+though they were reproducible.
 
-**Every row this project HAS committed, though, was proven invariant across
-both configurations it was checked against (Release and Debug) at the same
-derivation.** A table's `# build-config:` metadata line records exactly that
-set — see the previous section — so the 103 held-back rows are the ones this
-still does not answer for, not the ones that are committed. Committing those
-103 is still a decision about the schema (a genuinely per-row build
-configuration, since a value that is only Release-invariant or only
-Debug-invariant cannot be described by one table-wide set) or a scoping rule
-for which builds a table applies to, not a wider tolerance. Widening until
-the numbers agree would make the tolerance describe the compiler rather than
-the numerics.
+**How the 103 are handled: by narrowing the declared context, never by
+widening a tolerance.** A table's `# build-config:` line is table-wide, so
+a file containing any Release-only row declares `Release` alone, and the
+reader refuses to assert ANY of its float rows under another configuration
+— reported as `CONTEXT-MISMATCH`, never silently compared. Seven tables
+(P1, T1, T2, T3, T4, T4b, T8) are in that position; the other nine declare
+`Release, Debug` because they were shown under both, and narrowing them
+too would discard real evidence for the sake of uniformity.
 
-Held-back rows are listed by name in their table's banner under
-`# nondeterministic-on-derivation:`, with the reason stated. They are
-`UNOBSERVED`, so a run against them is reported as an unfilled slot rather
-than passing silently.
+That trade is worth stating in numbers rather than leaving to be
+discovered. Pinning those seven to Release alone costs a Debug run its
+assertion of **114** float observations in those files (they are reported
+instead), and buys **103** rows that previously asserted nowhere at all.
+Release is where the derivation and CI both run; Debug still asserts every
+counter, state, presence and bool, which is the half of each trace that
+carries its structural claim.
+
+**The third gate was learned the hard way, and it is the cheapest one to
+get wrong.** The first derivation set `HVEN_RIG_MACHINE` to a hand-chosen
+label. That pinned every float row to a string an ordinary `ctest` run
+never produces, so the context gate refused all 198 of them on the very
+machine they were derived on — the tables looked fully derived and asserted
+nothing. Derive with `HVEN_RIG_MACHINE` **unset**, so the machine column
+carries what the harness reports on its own. Set it to make a one-off
+report easier to read; do not set it when deriving, unless the string you
+choose is exactly what the runs you want to assert will report. The same
+rule is what makes a CI-derived row work: pin it to the runner CLASS the
+job will keep reporting, never to a hostname and never to a moving alias.
+
+A row held back under any of these gates is listed by name in its table's
+banner under `# nondeterministic-on-derivation:` and left `UNOBSERVED`, so
+a run against it is reported as an unfilled slot rather than passing
+silently. No row is held on that basis today.
 
 Trace matrices are **regenerated from recipes** (`tests/golden_rig/recipes.h`),
 never copied from either sibling checkout and never read from a file. Each
@@ -554,7 +569,7 @@ whichever shape a maintainer picks) is future work, not part of this fix.
 expected result is:
 
 ```
-99% tests passed, 1 tests failed out of 151
+99% tests passed, 1 tests failed out of 153
     Arms/PsioptTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
 ```
 
@@ -562,9 +577,19 @@ One failure, that exact entry, with all three `FailByDesignControl.*` tests
 green — ON LINUX. Independently re-verified against a real three-seam Linux
 build while writing this correction
 (`-DHVEN_RIG_PSIOPT_SEAM=<tycho> -DHVEN_RIG_SQP_SEAM=<tycho_sqp>`, tag
-`phase-7-close`): 151 tests, exactly this one failure, 3
-`FailByDesignControl.*` tests green — the numbers above were and still are
-correct for Linux.
+`phase-7-close`): exactly this one failure, 3 `FailByDesignControl.*` tests
+green.
+
+**The total moved from 151 to 153 when the `kMinimumDegree` ordering
+amendment landed**, and the two it added
+(`SymmetricFactor.MinimumDegreeOrderingFactorizesAndSolvesCorrectly`,
+`PardisoIparmObservation.MinimumDegreeOrderingWritesExactly0`) are both
+MKL-only, so the Mac projection below is unaffected — confirmed against a
+real macOS CI run at the same commit, which is still 51. Re-derived rather
+than adjusted by arithmetic: the rig's own `Arms/*` count did not change,
+which is why the failure and control expectations are untouched. A total
+that drifts silently would make this checklist worse than useless, since
+its whole job is to say when a run has one failure too many.
 
 **The Mac shape was never actually derived — it was guessed, and the guess
 was wrong on the total, not just the failure count.** The `152` figure
@@ -597,9 +622,8 @@ which still does not exist:
 
 `51 + 16 + 1 = 68` — not `152`. The expected shape, corrected:
 
-- Linux three-seam run: 151 tests, exactly 1 failure
-  (`P5`/`sqp-old@mkl`), 3 controls green. Unchanged, and independently
-  re-verified above.
+- Linux three-seam run: 153 tests, exactly 1 failure
+  (`P5`/`sqp-old@mkl`), 3 controls green. Independently re-verified above.
 - Mac three-seam run (when the psiopt adapter's Apple arm exists): **68**
   tests (not 152), exactly 1 expected failure — `P5` on the interior-point
   old seam's Apple arm, its defined zero-fill (T7 no longer contributes one,

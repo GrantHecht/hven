@@ -18,134 +18,99 @@
 # bitwise: a bitwise/0-ULP kind is REFUSED in this file. Bitwise equality holds
 #   only between two observations of ONE pinned-thread process run, so a trace
 #   that needs it asserts it against its own second observation instead.
-# build-config: Release, Debug
-# build-config-note: every committed float row in this file survived the second
-#   derivation gate (docs/testing.md, "What a row has to survive before it is
-#   committed"): reproduced identically on a Release AND a Debug build of the
-#   same source, at the same thread pin, on the same machine. A float row is
-#   ASSERTED only when the observing run's own build configuration is one of
-#   the values above -- checked, along with machine and thread pin, by the
-#   expected-table reader before the value comparison runs. Any other context
-#   mismatch is refused the same way: reported as CONTEXT-MISMATCH and never
-#   asserted, never silent. Counters, states, presence and bool rows carry no
-#   such risk and are asserted on any machine, build configuration or thread
-#   pin.
+# build-config: Release
+# build-config-note: this file is pinned to Release ALONE, which is
+#   narrower than most of the tables here, on purpose. Some of its float
+#   rows are values that MOVE between a Release and a Debug build of the
+#   same source at the same thread pin on the same machine -- they were
+#   measured doing exactly that. A row here is therefore honest about one
+#   configuration and silent about the other, and declaring both would be
+#   a claim this file cannot support.
+#   The consequence, stated rather than left to be discovered: under any
+#   build configuration but Release, every float row in this file is
+#   reported as CONTEXT-MISMATCH and NOT asserted. That is the intended
+#   reading -- a mismatched context is not evidence for or against an
+#   expectation -- but it does mean a Debug run does not check these
+#   numbers. It still checks the counters, states, presences and bools,
+#   which carry no such risk and are asserted under any context.
 # status: DERIVED on Linux/MKL from a three-seam report-mode run, by pasting
 #   hven_golden_rig_report's own emitted rows -- every value and every
 #   provenance column below was copied from that artifact, none was typed.
-#   A row was committed only if it passed BOTH reproduction gates: the same
-#   binary run twice produced the identical value, AND a Debug build of the
-#   same source at the same thread pin on the same machine produced the
-#   identical value. The second gate matters because the provenance columns
-#   this schema carries (machine, backend, thread pin, commit, date) do not
-#   name a build configuration, so a value that moves with the build
-#   configuration is a value this table cannot honestly describe.
-#   The rows reading UNOBSERVED are slots no run has filled: the backend arms
-#   this project has no hardware for, plus any row held back below. They never
-#   compare equal to anything until a run fills them.
-# nondeterministic-on-derivation: the rows listed here WERE observed, twice,
-#   reproducing byte-for-byte both times -- but they are NOT committed as
-#   expectations, and the reason is not run-to-run noise. They moved between
-#   a Release and a Debug build of this same source at the same thread pin on
-#   the same machine, so they are determined by something the provenance
-#   columns above do not record. Committing one would pin a number to a
-#   configuration the table has no column for, and the next reader would have
-#   no way to tell which configuration it belonged to. Held back instead:
-#   native@mkl / x_first[0]
-#   native@mkl / x_first[1]
-#   native@mkl / x_first[2]
-#   native@mkl / x_first[3]
-#   native@mkl / x_second[0]
-#   native@mkl / x_second[1]
-#   native@mkl / x_second[2]
-#   native@mkl / x_second[3]
-#   native@mkl / relative_residual_second
-#   native-sqp-parity@mkl / x_first[0]
-#   native-sqp-parity@mkl / x_first[1]
-#   native-sqp-parity@mkl / x_first[3]
-#   native-sqp-parity@mkl / x_second[2]
-#   native-sqp-parity@mkl / x_second[3]
-#   native-sqp-parity@mkl / relative_residual_second
-#   native-psiopt-parity@mkl / x_first[3]
-#   native-psiopt-parity@mkl / x_second[2]
-#   native-psiopt-parity@mkl / x_second[3]
-#   native-psiopt-parity@mkl / relative_residual_second
-#   psiopt-old@mkl / x_first[3]
-#   psiopt-old@mkl / x_second[2]
-#   psiopt-old@mkl / x_second[3]
-#   psiopt-old@mkl / relative_residual_second
-#   sqp-old@mkl / x_first[0]
-#   sqp-old@mkl / x_first[1]
-#   sqp-old@mkl / x_first[3]
-#   sqp-old@mkl / x_second[2]
-#   sqp-old@mkl / x_second[3]
-#   sqp-old@mkl / relative_residual_second
+#   Reproduction, all measured: the derivation ran twice with byte-identical
+#   results; an earlier derivation on an older commit produced the same
+#   values; and the machine column carries what the harness reports when
+#   nobody tells it, so an ordinary run on this box matches the pin instead
+#   of being refused for naming a machine it does not call itself.
+#   Some rows here reproduce only under Release, which is why this file
+#   declares Release alone -- see the build-config note above.
+#   The rows still reading UNOBSERVED are slots no run has filled: backend
+#   arms no hardware has reached. They never compare equal to anything.
 arm,quantity,kind,value,tolerance,machine,backend,thread_pin_mechanism,thread_pin_value,commit,date
-native@mkl,analyze_count,counter,1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native@mkl,factorize_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native@mkl,solve_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native@mkl,partial_solve_count,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native@mkl,x_first[0],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,x_first[1],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,x_first[2],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,x_first[3],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,x_second[0],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,x_second[1],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,x_second[2],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,x_second[3],float,UNOBSERVED,1e-14,,,,,,
-native@mkl,relative_residual_second,float,UNOBSERVED,1e-10,,,,,,
-native-sqp-parity@mkl,analyze_count,counter,1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-sqp-parity@mkl,factorize_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-sqp-parity@mkl,solve_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-sqp-parity@mkl,partial_solve_count,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-sqp-parity@mkl,x_first[0],float,UNOBSERVED,1e-14,,,,,,
-native-sqp-parity@mkl,x_first[1],float,UNOBSERVED,1e-14,,,,,,
-native-sqp-parity@mkl,x_first[2],float,1.1583674053558977,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-sqp-parity@mkl,x_first[3],float,UNOBSERVED,1e-14,,,,,,
-native-sqp-parity@mkl,x_second[0],float,0.16883647793250728,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-sqp-parity@mkl,x_second[1],float,-0.41849730339941665,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-sqp-parity@mkl,x_second[2],float,UNOBSERVED,1e-14,,,,,,
-native-sqp-parity@mkl,x_second[3],float,UNOBSERVED,1e-14,,,,,,
-native-sqp-parity@mkl,relative_residual_second,float,UNOBSERVED,1e-10,,,,,,
-native-psiopt-parity@mkl,analyze_count,counter,1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,factorize_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,solve_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,partial_solve_count,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,x_first[0],float,0.16883901336041163,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,x_first[1],float,-0.41849483615260397,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,x_first[2],float,1.158367405350873,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,x_first[3],float,UNOBSERVED,1e-14,,,,,,
-native-psiopt-parity@mkl,x_second[0],float,0.16883647793474665,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,x_second[1],float,-0.41849730339890812,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
-native-psiopt-parity@mkl,x_second[2],float,UNOBSERVED,1e-14,,,,,,
-native-psiopt-parity@mkl,x_second[3],float,UNOBSERVED,1e-14,,,,,,
-native-psiopt-parity@mkl,relative_residual_second,float,UNOBSERVED,1e-10,,,,,,
-psiopt-old@mkl,analyze_count,counter,1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,factorize_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,solve_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,partial_solve_count,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,x_first[0],float,0.16883901336041163,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,x_first[1],float,-0.41849483615260397,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,x_first[2],float,1.158367405350873,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,x_first[3],float,UNOBSERVED,1e-14,,,,,,
-psiopt-old@mkl,x_second[0],float,0.16883647793474665,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,x_second[1],float,-0.41849730339890812,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-psiopt-old@mkl,x_second[2],float,UNOBSERVED,1e-14,,,,,,
-psiopt-old@mkl,x_second[3],float,UNOBSERVED,1e-14,,,,,,
-psiopt-old@mkl,relative_residual_second,float,UNOBSERVED,1e-10,,,,,,
-sqp-old@mkl,analyze_count,counter,1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-sqp-old@mkl,factorize_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-sqp-old@mkl,solve_count,counter,2,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-sqp-old@mkl,partial_solve_count,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-sqp-old@mkl,x_first[0],float,UNOBSERVED,1e-14,,,,,,
-sqp-old@mkl,x_first[1],float,UNOBSERVED,1e-14,,,,,,
-sqp-old@mkl,x_first[2],float,1.1583674053558977,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-sqp-old@mkl,x_first[3],float,UNOBSERVED,1e-14,,,,,,
-sqp-old@mkl,x_second[0],float,0.16883647793250728,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-sqp-old@mkl,x_second[1],float,-0.41849730339941665,1e-14,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
-sqp-old@mkl,x_second[2],float,UNOBSERVED,1e-14,,,,,,
-sqp-old@mkl,x_second[3],float,UNOBSERVED,1e-14,,,,,,
-sqp-old@mkl,relative_residual_second,float,UNOBSERVED,1e-10,,,,,,
+native@mkl,analyze_count,counter,1,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,factorize_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,solve_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,partial_solve_count,counter,0,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_first[0],float,0.16883901336387455,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_first[1],float,-0.41849483615418903,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_first[2],float,1.1583674053484645,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_first[3],float,-31.542844483601971,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_second[0],float,0.16883647793222095,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_second[1],float,-0.41849730340160579,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_second[2],float,1.1583644139266867,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,x_second[3],float,-34.945151070142273,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native@mkl,relative_residual_second,float,8.1253832373122945e-06,1e-10,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,analyze_count,counter,1,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,factorize_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,solve_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,partial_solve_count,counter,0,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_first[0],float,0.16883901336445561,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_first[1],float,-0.41849483615242877,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_first[2],float,1.1583674053558977,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_first[3],float,-31.542844261273459,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_second[0],float,0.16883647793250728,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_second[1],float,-0.41849730339941665,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_second[2],float,1.1583644139341616,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,x_second[3],float,-34.945150823152368,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-sqp-parity@mkl,relative_residual_second,float,1.0969383159472678e-11,1e-10,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,analyze_count,counter,1,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,factorize_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,solve_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,partial_solve_count,counter,0,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_first[0],float,0.16883901336041163,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_first[1],float,-0.41849483615260397,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_first[2],float,1.158367405350873,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_first[3],float,-31.542844261274663,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_second[0],float,0.16883647793474665,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_second[1],float,-0.41849730339890812,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_second[2],float,1.1583644139318494,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,x_second[3],float,-34.945150823153426,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+native-psiopt-parity@mkl,relative_residual_second,float,3.0751093402411356e-11,1e-10,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
+psiopt-old@mkl,analyze_count,counter,1,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,factorize_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,solve_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,partial_solve_count,counter,0,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_first[0],float,0.16883901336041163,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_first[1],float,-0.41849483615260397,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_first[2],float,1.158367405350873,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_first[3],float,-31.542844261274663,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_second[0],float,0.16883647793474665,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_second[1],float,-0.41849730339890812,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_second[2],float,1.1583644139318494,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,x_second[3],float,-34.945150823153426,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+psiopt-old@mkl,relative_residual_second,float,3.0751093402411356e-11,1e-10,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,analyze_count,counter,1,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,factorize_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,solve_count,counter,2,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,partial_solve_count,counter,0,,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_first[0],float,0.16883901336445561,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_first[1],float,-0.41849483615242877,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_first[2],float,1.1583674053558977,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_first[3],float,-31.542844261273459,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_second[0],float,0.16883647793250728,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_second[1],float,-0.41849730339941665,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_second[2],float,1.1583644139341616,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,x_second[3],float,-34.945150823152368,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
+sqp-old@mkl,relative_residual_second,float,1.0969383159472678e-11,1e-10,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,48414157cee0,2026-08-09
 native@accelerate,analyze_count,counter,UNOBSERVED,,,,,,,
 native@accelerate,factorize_count,counter,UNOBSERVED,,,,,,,
 native@accelerate,solve_count,counter,UNOBSERVED,,,,,,,
