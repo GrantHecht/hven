@@ -29,11 +29,46 @@ the scheme:
   Hessian and two constraint Jacobians) into one combined key, one after
   another, each with its own leading rows/cols/nnz triple and no separator
   beyond that. This header provides the single-matrix primitive with the
-  same per-array feeding discipline; a caller that needs a combined key
-  over several matrices gets it by calling `pattern_hash` matrix by
-  matrix and folding the results together, or equivalently by extending
-  one running `Fnv1a` accumulator across matrices -- nothing here
-  special-cases "three".
+  same per-array feeding discipline; nothing here special-cases "three".
+
+### The combined key over several matrices is NOT provided, and is not a fold
+
+An earlier version of this page said a caller could build the sibling's
+combined key by folding several `pattern_hash` results together, "or
+equivalently" by extending one running `Fnv1a` accumulator across
+matrices. The two are not equivalent, and neither reproduces the sibling's
+key:
+
+- **`pattern_hash` always starts from the offset basis.** It constructs a
+  fresh `Fnv1a` per call (`src/core/pattern_hash.cpp`). There is no
+  overload taking an accumulator to continue, and `Fnv1a`'s state cannot
+  be seeded from a digest -- the struct exposes `feed`/`feed_index` and
+  `value()`, no inverse. So "extending one running accumulator across
+  matrices" is not something this public surface can do: it describes
+  code a caller would have to write against `Fnv1a` directly, feeding
+  each matrix's ingredients itself and never calling `pattern_hash` at
+  all.
+- **Folding digests is a different function from continued
+  accumulation.** Feeding the eight bytes of a completed 64-bit digest
+  into an accumulator mixes eight bytes; continuing the accumulation
+  across the second matrix mixes that matrix's dimensions and every
+  index-array entry. Same primitive, different byte streams, different
+  results. A fold is a perfectly good combined key -- it is just not
+  *this* one, and it is not the sibling's.
+
+What IS true, and all this page claims: the single-matrix digest is
+comparable with the sibling's single-matrix digest, ingredient for
+ingredient, at a fixed width and byte order (see the section below).
+
+**Which combined-key recipe hven adopts is deliberately left open, and is
+settled at the warm-start migration** -- the point where the combined key
+first has a consumer and the sibling's warm-start objects first have to be
+read. The choice is between an append-style extension of this primitive
+(reproducing the sibling's continued accumulation exactly, at the cost of
+a new public entry point) and a stated fold over per-matrix digests
+(nothing new to expose, no bit-for-bit compatibility with the sibling's
+existing keys). Deciding it here, before either constraint is real, would
+be guessing.
 
 ## One deliberate generalization, and why it is width-stable rather than a loosening
 
