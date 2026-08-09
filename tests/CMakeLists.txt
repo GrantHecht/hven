@@ -68,6 +68,35 @@ endif()
 
 include(GoogleTest)
 
+# gtest_discover_tests() defaults to DISCOVERY_MODE POST_BUILD: it runs the
+# freshly-linked test binary as part of the ninja build graph itself, right
+# after linking, to enumerate its cases. That makes a plain `ninja`/`cmake
+# --build` non-hermetic with respect to the runtime environment -- the build
+# graph now depends on the binary being *runnable*, not just producible, and
+# CMake has no reach into what environment that build-time run inherits (it
+# is whatever the invoking job's process environment already has). On
+# Windows this is a real problem: hven links MKL's OpenMP runtime
+# (libiomp5md.lib), which is an import stub for a DLL with no static
+# equivalent on Windows -- so hven_tests.exe genuinely cannot load without
+# the oneAPI redist bin directories on PATH (see
+# .github/workflows/ci.yml's windows-clang-release job for where PATH gets
+# set), and a build that runs before PATH is correct fails inside ninja's
+# own output rather than at `ctest`, which is a confusing place to have to
+# diagnose it. DISCOVERY_MODE PRE_TEST defers discovery to `ctest`
+# invocation time instead (a generated wrapper runs discovery immediately
+# before the tests execute), which decouples "the build produced an
+# artifact" from "the artifact can run" -- a PATH/DLL problem then surfaces
+# as a Test-step failure with ctest's own diagnostics, not a build failure.
+# Linux and macOS do not have this problem in the first place -- FindMKL.cmake
+# bakes MKL's directory into CMAKE_BUILD_RPATH on Linux, and Accelerate is a
+# system framework on macOS -- so POST_BUILD (the default, and the simpler,
+# more immediate option when nothing forces the change) stays in place
+# there; only Windows switches.
+set(HVEN_GTEST_DISCOVERY_MODE POST_BUILD)
+if(WIN32)
+    set(HVEN_GTEST_DISCOVERY_MODE PRE_TEST)
+endif()
+
 set(HVEN_TEST_SOURCES
     core/test_version.cpp
     core/test_sparse_backend_link.cpp
@@ -102,7 +131,7 @@ target_compile_options(hven_tests PRIVATE ${COMPILE_FLAGS})
 # — see src/core/version.cpp and core/test_version.cpp.
 target_compile_definitions(hven_tests PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
 
-gtest_discover_tests(hven_tests)
+gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 ################################################################################
 # Fault-injection tests (docs/testing.md: the test-seam convention this repo
@@ -167,7 +196,7 @@ if(APPLE)
 endif()
 target_compile_options(hven_fault_injection_tests PRIVATE ${COMPILE_FLAGS})
 
-gtest_discover_tests(hven_fault_injection_tests)
+gtest_discover_tests(hven_fault_injection_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 ################################################################################
 # The golden-numerics rig: the harness, the seam adapters, the traces, the

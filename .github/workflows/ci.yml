@@ -157,6 +157,38 @@ jobs:
           echo 'ONEAPI_ROOT=C:\Program Files (x86)\Intel\oneAPI' >> "$GITHUB_ENV"
           echo 'MKLROOT=C:\Program Files (x86)\Intel\oneAPI\mkl\latest' >> "$GITHUB_ENV"
 
+      - name: Put the MKL / OpenMP runtime DLLs on PATH
+        # hven links MKL's "static" import libraries (FindMKL.cmake selects
+        # mkl_intel_lp64.lib / mkl_intel_thread.lib / mkl_core.lib, never the
+        # BUILD_SHARED_LIBS-only _dll.lib names -- this project never turns
+        # that on), but Intel's OpenMP runtime is ALWAYS a DLL on Windows:
+        # libiomp5md.lib ("md" = multithreaded DLL CRT) is an import stub,
+        # not a true static archive, so hven_tests.exe has a genuine
+        # load-time DLL dependency regardless of how "static" the rest of
+        # the link looks. Confirmed the hard way: run 31284216427 built and
+        # linked hven_tests.exe successfully, then died with
+        # STATUS_DLL_NOT_FOUND (0xc0000135) the moment CMake's own
+        # gtest_discover_tests tried to execute it during the Build step
+        # (see the DISCOVERY_MODE note in tests/CMakeLists.txt -- this repo
+        # switches Windows to DISCOVERY_MODE PRE_TEST so that specific
+        # failure mode moves to the Test step, but PRE_TEST still needs to
+        # run the binary, at ctest time instead of build time, so the PATH
+        # problem itself has to be fixed regardless of discovery mode).
+        # Prepending here, before Configure, means every later step in this
+        # job -- Build (whichever discovery mode is active) and Test alike --
+        # inherits a PATH that can actually load the binary; $GITHUB_PATH
+        # changes apply to every subsequent step in the job, not just the
+        # next one. Paths are the Windows Intel-64 "bin (DLLs)" directories
+        # from oneMKL's own Windows developer guide's high-level directory
+        # structure ("<mkl directory>\bin (DLLs)"; the OpenMP RTL's DLL
+        # under "<compiler directory>\bin", mirroring the exact \lib paths
+        # the Configure step above already resolved MKL_INTERFACE_LIBRARY /
+        # MKL_OMP_LIBRARY to).
+        shell: bash
+        run: |
+          echo 'C:\Program Files (x86)\Intel\oneAPI\mkl\latest\bin' >> "$GITHUB_PATH"
+          echo 'C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin' >> "$GITHUB_PATH"
+
       - name: Configure
         run: cmake --preset windows-clang-release
 

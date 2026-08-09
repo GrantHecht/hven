@@ -189,7 +189,10 @@ target_link_libraries(hven_golden_rig PRIVATE
     hven_golden_rig_support hven::hven GTest::gtest_main
 )
 target_compile_options(hven_golden_rig PRIVATE ${COMPILE_FLAGS})
-gtest_discover_tests(hven_golden_rig)
+# HVEN_GTEST_DISCOVERY_MODE: POST_BUILD everywhere except Windows, where it is
+# PRE_TEST -- see the ../CMakeLists.txt comment above this variable's
+# definition for why.
+gtest_discover_tests(hven_golden_rig DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 add_executable(hven_golden_rig_report ${HVEN_RIG_TRACE_SOURCES} report_main.cpp)
 target_link_libraries(hven_golden_rig_report PRIVATE
@@ -223,7 +226,10 @@ if(NOT APPLE)
     target_include_directories(hven_golden_rig_audit PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/audit)
     target_compile_options(hven_golden_rig_audit PRIVATE ${COMPILE_FLAGS})
     target_link_options(hven_golden_rig_audit PRIVATE "-Wl,--wrap=pardiso")
-    gtest_discover_tests(hven_golden_rig_audit)
+    # Same HVEN_GTEST_DISCOVERY_MODE as hven_golden_rig above -- this target
+    # is APPLE-excluded anyway, but stays consistent with the other three
+    # call sites rather than being the one exception.
+    gtest_discover_tests(hven_golden_rig_audit DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 endif()
 
 # The static half's self-test. Runs the scanner over a committed sample that
