@@ -595,7 +595,7 @@ whichever shape a maintainer picks) is future work, not part of this fix.
 expected result is:
 
 ```
-99% tests passed, 1 tests failed out of 153
+99% tests passed, 1 tests failed out of 155
     Arms/PsioptTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
 ```
 
@@ -605,6 +605,16 @@ build while writing this correction
 (`-DHVEN_RIG_PSIOPT_SEAM=<tycho> -DHVEN_RIG_SQP_SEAM=<tycho_sqp>`, tag
 `phase-7-close`): exactly this one failure, 3 `FailByDesignControl.*` tests
 green.
+
+**The total moved from 153 to 155 with the session-identity and thread-scope
+fixes**, and the two cases they added
+(`SymmetricFactor.ReanalysisForksTheSessionAndTheSessionIdSeparatesTheBranches`,
+`SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride`)
+both live in `tests/linear/test_symmetric_factor.cpp`, which is MKL-only, so
+the Mac projection below is unaffected — the same shape as the previous
+amendment, and re-derived the same way: a real three-seam Linux run at the
+fix commit shows 155 with the identical one failure and 3 green controls,
+and the rig's own `Arms/*` count did not change.
 
 **The total moved from 151 to 153 when the `kMinimumDegree` ordering
 amendment landed**, and the two it added
@@ -648,7 +658,7 @@ which still does not exist:
 
 `51 + 16 + 1 = 68` — not `152`. The expected shape, corrected:
 
-- Linux three-seam run: 153 tests, exactly 1 failure
+- Linux three-seam run: 155 tests, exactly 1 failure
   (`P5`/`sqp-old@mkl`), 3 controls green. Independently re-verified above.
 - Mac three-seam run (when the psiopt adapter's Apple arm exists): **68**
   tests (not 152), exactly 1 expected failure — `P5` on the interior-point
