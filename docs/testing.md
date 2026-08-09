@@ -496,9 +496,22 @@ rule is what makes a CI-derived row work: pin it to the runner CLASS the
 job will keep reporting, never to a hostname and never to a moving alias.
 
 A row held back under any of these gates is listed by name in its table's
-banner under `# nondeterministic-on-derivation:` and left `UNOBSERVED`, so
-a run against it is reported as an unfilled slot rather than passing
-silently. No row is held on that basis today.
+banner and left `UNOBSERVED`, so a run against it is reported as an
+unfilled slot rather than passing silently. No row is held for
+run-to-run or cross-run movement today.
+
+**Five rows are held for a fourth reason, worth knowing before deriving on
+a new backend: the build-configuration declaration is table-wide, so a
+value can be blocked by an arm it has nothing to do with.** Every
+Accelerate observation this project has comes from the macOS CI lane, and
+there is no macOS Debug lane, so all of them are Release-only. In a table
+pinned to Release that is fine. In a table declaring `Release, Debug` — a
+claim earned by its MKL rows — an Accelerate float would inherit a Debug
+reproduction nobody ran. Those five (`native@accelerate` floats in P6 and
+T7) stay `UNOBSERVED`. Narrowing the two files to Release instead would
+cost their MKL rows 24 Debug float assertions to gain 5, so the residue is
+cheaper than the fix. What closes it properly is a per-arm build
+configuration, or a Mac Debug observation — never inheriting the claim.
 
 Trace matrices are **regenerated from recipes** (`tests/golden_rig/recipes.h`),
 never copied from either sibling checkout and never read from a file. Each

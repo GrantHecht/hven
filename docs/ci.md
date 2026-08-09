@@ -341,13 +341,20 @@ fills one records the run id and the commit beside the row's own
 provenance columns, so the artifact can be fetched again and the row
 re-checked against it.
 
-**First derivation from this route, 2026-08-09.** Two `workflow_dispatch`
-runs at commit `48414157cee0` — [31295310213](https://github.com/GrantHecht/hven/actions/runs/31295310213)
-and [31295501823](https://github.com/GrantHecht/hven/actions/runs/31295501823),
-both `macos-26-arm64`, both green at 51/51 — produced **byte-identical**
-artifacts. 223 observations on `native@accelerate`; **180 counters, states,
-bools and presences are committed**, and the 43 float rows are not (see the
-machine-label note below).
+**First derivation from this route, 2026-08-09.** Four `workflow_dispatch`
+runs, in two sequential pairs, all `macos-26-arm64` and all green at 51/51.
+The first pair ([31295310213](https://github.com/GrantHecht/hven/actions/runs/31295310213),
+[31295501823](https://github.com/GrantHecht/hven/actions/runs/31295501823))
+exposed the machine-label problem below; the second pair
+([31295853190](https://github.com/GrantHecht/hven/actions/runs/31295853190),
+[31295971689](https://github.com/GrantHecht/hven/actions/runs/31295971689),
+commit `a74cb4b3a69f`) ran with the corrected label and is what the
+committed rows come from. **Each pair is byte-identical internally, and all
+four agree on all 223 values** — the label change moved provenance, not
+numbers.
+
+**218 of the 223 `native@accelerate` observations are committed**; the five
+exceptions are explained under the build-configuration limit below.
 
 They are worth reading for more than their count: `perturbed_pivots` came
 back **absent** rather than a zero, `zero_is_derived` came back **false**
@@ -361,16 +368,17 @@ are exactly what the old seam's Apple branch gets wrong.
 concurrency group is keyed on the ref with `cancel-in-progress: true`, so a
 second dispatch on the same ref cancels the first.
 
-**The machine label must name the runner CLASS, and is derived rather than
-written.** The first pair of runs labelled themselves
-`github-macos-latest-apple-silicon`, which names a moving alias: GitHub has
-repointed `macos-latest` at new hardware more than once, and a float pinned
-to that string would go on asserting across the change — the same label
-describing a different machine, which is the one substitution the context
-gate exists to catch. The step now builds the label from `$ImageOS` and
-`runner.arch` (`github-macos26-arm64`), so the pin follows the image and
-stops matching when the image moves. The 43 float rows stay `UNOBSERVED`
-until a fresh pair of runs is taken under the derived label.
+**The machine label names the runner CLASS, and is derived rather than
+written.** The first pair labelled itself `github-macos-latest-apple-silicon`,
+which names a moving alias: GitHub has repointed `macos-latest` at new
+hardware more than once, and a float pinned to that string would go on
+asserting across the change — the same label describing a different machine,
+which is the one substitution the context gate exists to catch. The step now
+builds the label from `$ImageOS` and `runner.arch`, giving
+`github-macos26-arm64`, so the pin follows the image and stops matching when
+the image moves. The step fails loudly if `$ImageOS` is unset, because a
+malformed-but-consistent label is the same quiet failure in different
+clothes.
 
 Two further limits on what that artifact can ever fill:
 
@@ -378,12 +386,20 @@ Two further limits on what that artifact can ever fill:
   sibling checkouts there, and the SQP seam does not compile against
   Accelerate at all), so `psiopt-old@accelerate` stays `UNOBSERVED` until
   a Mac with both checkouts runs the three-seam configuration by hand.
-- **A row still has to reproduce before it is committed.** The two gates
-  the Linux derivation applied hold here too: the value must reproduce
-  across runs, and it must not move with the build configuration. One
-  artifact from one run demonstrates neither, so filling Accelerate rows
-  means at least two runs, and a check against a differently-configured
-  build, before anything is written down.
+- **A row still has to reproduce before it is committed**, and on this
+  route the second gate is the one that binds. Reproduction across runs is
+  easy to get — two dispatches, and the artifacts were byte-identical. The
+  build-configuration gate is not, because **there is no macOS Debug lane**:
+  every Accelerate observation this project has is a Release observation.
+  For a table pinned to Release alone that is exactly right. For a table
+  declaring `Release, Debug`, committing an Accelerate float would make the
+  banner claim a Debug reproduction for that arm which nobody has ever run,
+  so **five float rows (P6, T7) stay `UNOBSERVED`** — not for want of a
+  measurement, but because the declaration is table-wide and would be
+  inherited from a different arm. Narrowing those two files to Release
+  instead would cost their MKL rows 24 Debug float assertions to gain 5,
+  which is the worse trade. They are closed by a Mac Debug observation, or
+  by making the build configuration per-arm rather than per-table.
 
 The manual trigger (`workflow_dispatch`) exists for exactly this: asking
 for a derivation artifact should not require inventing a commit to push.
