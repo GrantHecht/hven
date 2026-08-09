@@ -104,7 +104,6 @@ native@accelerate,before_factorize_n_neg,counter,-1,,github-macos26-arm64,accele
 native@accelerate,before_factorize_n_zero,counter,-1,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
 native@accelerate,before_factorize_zero_is_derived,bool,false,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
 native@accelerate,before_factorize_perturbed_pivots_presence,presence,absent,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,before_factorize_perturbed_pivots,counter,UNOBSERVED,,,,,,,
 psiopt-old@accelerate,before_factorize_inertia_state,state,UNOBSERVED,,,,,,,
 psiopt-old@accelerate,before_factorize_n_pos,counter,UNOBSERVED,,,,,,,
 psiopt-old@accelerate,before_factorize_n_neg,counter,UNOBSERVED,,,,,,,
