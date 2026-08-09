@@ -397,6 +397,45 @@ trace to remember it:
   project has no hardware for ships as `UNOBSERVED` and is filled only from a
   hardware run.
 
+### What a row has to survive before it is committed
+
+Deriving a table is a copy, but not every emitted row is copyable. Two
+gates, both learned from the first derivation (2026-08-09) rather than
+assumed:
+
+1. **Run to run.** Run the report twice and commit only what reproduced.
+   This is the thread pin's proof of work: an unpinned float at nine
+   digits is run-to-run nondeterministic, and if the pin is doing its job
+   the two runs are identical. On the first derivation they were —
+   byte-for-byte, all 1145 rows, including the cross-thread record-only
+   block.
+2. **Across build configurations.** Run the report from a Release build
+   and a Debug build of the same source, at the same thread pin on the
+   same machine, and commit only what did not move. **103 float rows moved
+   and are held at `UNOBSERVED`.** All of them are solution components and
+   residuals on the collocation-class fixtures; every counter, state,
+   boolean and presence reproduced exactly.
+
+The second gate is the surprising one and the reason it is written down
+here. The provenance columns a table carries — machine, backend, thread
+pin, commit, date — **do not name a build configuration**, so a value that
+moves with `-O0` versus `-O2` is a value the table has no way to describe.
+Committing one would pin a number to a configuration the schema cannot
+record, and the next reader would have no way to tell which configuration
+it belonged to. Note that only 35 of those 103 actually exceeded their
+stated tolerance; the other 68 stayed inside it by luck, which is exactly
+why the criterion is "did it move", not "did it fail".
+
+Held-back rows are listed by name in their table's banner under
+`# nondeterministic-on-derivation:`, with the reason stated. They are
+`UNOBSERVED`, so a run against them is reported as an unfilled slot rather
+than passing silently.
+
+If a future derivation wants those rows, the fix is a decision about the
+schema — a configuration column, or a scoping rule for which builds a
+table applies to — not a wider tolerance. Widening until the numbers agree
+would make the tolerance describe the compiler rather than the numerics.
+
 Trace matrices are **regenerated from recipes** (`tests/golden_rig/recipes.h`),
 never copied from either sibling checkout and never read from a file. Each
 recipe's provenance string says what it does and does not reproduce from the
