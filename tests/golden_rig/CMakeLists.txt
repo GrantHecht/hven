@@ -39,6 +39,20 @@ set(HVEN_RIG_SQP_SEAM "" CACHE PATH
 set(HVEN_RIG_SQP_SEAM_TAG "phase-7-close")
 set(HVEN_RIG_SQP_SEAM_COMMIT "4faa1df116da53c9dc68f36635c118f52d39d2b9")
 
+# The interior-point old seam is pinned the same way in spirit, but not in
+# strength: HVEN_RIG_PSIOPT_SEAM names a live tycho checkout (this project's
+# main development sibling), not a checkout frozen at a released tag the way
+# HVEN_RIG_SQP_SEAM is. It is expected to keep moving as tycho itself
+# develops, so a mismatch here is reported, not refused -- verification below
+# is advisory, and re-deriving the psiopt-old expected tables is the remedy
+# when the drift actually matters (Pardiso/Accelerate configuration or
+# linear-algebra behavior changed), not a configure-time gate everyone must
+# satisfy just to build against their own tycho checkout.
+#
+#   commit : the value below, checked at configure time when the checkout
+#            is a git repository; recorded either way.
+set(HVEN_RIG_PSIOPT_SEAM_COMMIT "060ad2138a373bacd9d1ba2daabd6b503a9a6fb1")
+
 find_package(Git QUIET)
 
 # The commit this rig was configured at, stamped into every report row's
@@ -111,9 +125,54 @@ if(HVEN_RIG_PSIOPT_SEAM)
             "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} does not look like a tycho checkout: "
             "expected ${_psiopt_seam_include}/tycho/detail/solvers/linear/pardiso_interface.h")
     endif()
+
+    # Commit pin, mirroring the SQP arm's tag+commit verification above in
+    # mechanism but not in severity -- see the comment on
+    # HVEN_RIG_PSIOPT_SEAM_COMMIT for why a mismatch here WARNs instead of
+    # refusing to configure. Only possible when the checkout is a git
+    # repository at all; some setups (a tarball export, a copied tree) are
+    # not, and for those the pin is recorded but simply cannot be checked.
+    if(Git_FOUND AND EXISTS "${HVEN_RIG_PSIOPT_SEAM}/.git")
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
+            WORKING_DIRECTORY "${HVEN_RIG_PSIOPT_SEAM}"
+            OUTPUT_VARIABLE _psiopt_head_commit
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE _psiopt_head_rc
+            ERROR_QUIET)
+        if(NOT _psiopt_head_rc EQUAL 0)
+            message(WARNING
+                "golden rig: HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} has a .git directory but "
+                "its HEAD commit could not be resolved, so the pin to "
+                "${HVEN_RIG_PSIOPT_SEAM_COMMIT} COULD NOT BE VERIFIED.")
+        elseif(_psiopt_head_commit STREQUAL HVEN_RIG_PSIOPT_SEAM_COMMIT)
+            message(STATUS
+                "golden rig: interior-point old-seam arm pinned to ${HVEN_RIG_PSIOPT_SEAM_COMMIT}, "
+                "HEAD matches")
+        else()
+            message(WARNING
+                "golden rig: HVEN_RIG_PSIOPT_SEAM's checkout HEAD is ${_psiopt_head_commit}, not the "
+                "commit (${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected tables were "
+                "derived against. This is a live checkout, expected to move as tycho develops, so "
+                "configure proceeds -- but if the drift touches Pardiso/Accelerate configuration or "
+                "linear-algebra behavior (psiopt/include/tycho/detail/solvers/linear/), re-derive "
+                "the psiopt-old rows in tests/golden_rig/expected/; otherwise the committed rows "
+                "still describe what was actually observed at the pinned commit.")
+        endif()
+    else()
+        message(WARNING
+            "golden rig: HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} is not a git checkout (no "
+            ".git found), so its commit cannot be verified against the pin "
+            "(${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected tables were derived "
+            "against. Recorded, not checked.")
+    endif()
+
     target_sources(hven_golden_rig_support PRIVATE seam_psiopt.cpp)
     target_include_directories(hven_golden_rig_support SYSTEM PUBLIC "${_psiopt_seam_include}")
-    target_compile_definitions(hven_golden_rig_support PUBLIC HVEN_RIG_HAVE_PSIOPT_SEAM=1)
+    target_compile_definitions(hven_golden_rig_support PUBLIC
+        HVEN_RIG_HAVE_PSIOPT_SEAM=1
+        HVEN_RIG_PSIOPT_SEAM_COMMIT="${HVEN_RIG_PSIOPT_SEAM_COMMIT}"
+    )
     message(STATUS "golden rig: interior-point old-seam arm enabled (${HVEN_RIG_PSIOPT_SEAM})")
 endif()
 
