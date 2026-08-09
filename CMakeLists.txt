@@ -207,6 +207,18 @@ target_include_directories(hven PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+# The C++20 requirement TRAVELS WITH THE TARGET, not just with this directory.
+# hven_compile_options() sets CMAKE_CXX_STANDARD, which governs targets defined
+# under this project and nothing else: a parent project that does
+# add_subdirectory(hven) and links hven::hven from a target of ITS own gets the
+# headers without the standard, and include/hven/linear/symmetric_factor.h
+# needs <concepts>. Below C++20 that consumer fails to compile, inside a header
+# it did not write, for a reason its own CMakeLists never mentions. A PUBLIC
+# compile feature makes the requirement part of the target's usage
+# requirements, so a consumer is raised to C++20 instead of being diagnosed at
+# the preprocessor.
+target_compile_features(hven PUBLIC cxx_std_20)
+
 # Consumers of hven::hven need Eigen types and the sparse-backend link flags,
 # so these are linked PUBLIC rather than PRIVATE. INCLUDE_DIRS/LINK_LIBS are
 # applied on every platform (on Apple, hven_resolve_sparse_backend() leaves

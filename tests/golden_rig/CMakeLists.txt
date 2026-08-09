@@ -64,7 +64,11 @@ set(HVEN_RIG_COMMIT "unknown")
 if(Git_FOUND)
     execute_process(
         COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        # hven's own root, reached relatively -- see the note on HVEN_SRC_DIR
+        # in tests/CMakeLists.txt for why not ${CMAKE_SOURCE_DIR}. Here a
+        # wrong root fails quietly rather than loudly: a parent-project build
+        # would stamp every report row with the PARENT's commit.
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../.."
         OUTPUT_VARIABLE HVEN_RIG_COMMIT
         OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_QUIET)
@@ -104,7 +108,7 @@ add_library(hven_golden_rig_support OBJECT
 
 target_include_directories(hven_golden_rig_support PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 target_include_directories(hven_golden_rig_support PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(hven_golden_rig_support PUBLIC

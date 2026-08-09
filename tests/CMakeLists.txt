@@ -166,20 +166,29 @@ gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 #     would be a duplicate-symbol error if both were linked into one binary.
 ################################################################################
 
+# Rooted at THIS directory, not at ${CMAKE_SOURCE_DIR}. Tests are on by
+# default, and CMAKE_SOURCE_DIR is the top-level source directory of whatever
+# build is running -- which is hven's own root only when hven is the top-level
+# project. Under add_subdirectory(hven) from a parent project it is the
+# PARENT's root, and configuration fails outright looking for hven's sources
+# beneath a tree that does not contain them. The relative form is correct in
+# both cases and needs no knowledge of who is building.
+set(HVEN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+
 add_executable(hven_fault_injection_tests
-    ${CMAKE_SOURCE_DIR}/src/core/pattern_hash.cpp
+    ${HVEN_SRC_DIR}/core/pattern_hash.cpp
     linear/test_fault_injection.cpp
 )
 
 if(NOT APPLE)
     target_sources(hven_fault_injection_tests PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/linear/pardiso_session.cpp
-        ${CMAKE_SOURCE_DIR}/src/linear/symmetric_factor_mkl.cpp
+        ${HVEN_SRC_DIR}/linear/pardiso_session.cpp
+        ${HVEN_SRC_DIR}/linear/symmetric_factor_mkl.cpp
     )
 else()
     target_sources(hven_fault_injection_tests PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/linear/accelerate_session.cpp
-        ${CMAKE_SOURCE_DIR}/src/linear/symmetric_factor_accelerate.cpp
+        ${HVEN_SRC_DIR}/linear/accelerate_session.cpp
+        ${HVEN_SRC_DIR}/linear/symmetric_factor_accelerate.cpp
     )
 endif()
 
@@ -192,7 +201,8 @@ endif()
 # comment above.
 target_compile_definitions(hven_fault_injection_tests PRIVATE HVEN_TESTING=1)
 
-target_include_directories(hven_fault_injection_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(hven_fault_injection_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 target_link_libraries(hven_fault_injection_tests PRIVATE
     Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main
 )
