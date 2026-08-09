@@ -246,9 +246,13 @@ target_compile_options(hven_golden_rig_report PRIVATE ${COMPILE_FLAGS})
 # GoldenRigAudit.StaticScanSelfTest (below, outside this if() block) is
 # UNSCOPED on purpose: it is the audit's separate static-scanner half, run as
 # a plain shell script against a committed sample file, with no linker
-# involvement and no old-seam dependency at all -- it runs everywhere,
-# including on this repo's macOS and Windows CI jobs today, and confirms the
-# scanner itself works on a machine that has neither sibling checkout.
+# involvement and no old-seam dependency at all -- it runs on every platform
+# this repo builds on, including macOS and Windows CI, and confirms the
+# scanner itself works on a machine that has neither sibling checkout. (Its
+# own COMMAND still needs an explicit interpreter on Windows -- see the
+# add_test() call below -- CreateProcess() cannot execute a bare .sh file the
+# way Unix's shebang-aware exec() can; that is a process-launch mechanism
+# question, unrelated to what makes hven_golden_rig_audit above Linux-only.)
 ################################################################################
 
 if(UNIX AND NOT APPLE)
@@ -275,5 +279,25 @@ endif()
 # carries one line of every touchpoint class plus two negative controls, so it
 # checks the SCANNER on a machine that has neither sibling checkout -- which is
 # what keeps it in ordinary CI rather than only in a derivation run.
-add_test(NAME GoldenRigAudit.StaticScanSelfTest
-         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/audit/static_scan.sh" --self-test)
+#
+# static_scan.sh is invoked directly on Linux and macOS, relying on its own
+# `#!/usr/bin/env bash` shebang -- both platforms' exec() honors it, and both
+# already run and pass this test. Windows' CreateProcess() has no shebang
+# concept at all and cannot launch a bare .sh file as a process; ctest
+# reports that as BAD_COMMAND ("Process not started ... [inappropriate file
+# type or format]"), not a script failure, which is exactly what a real
+# windows-clang-release run surfaced the first time it got far enough to
+# reach this test. Run through an explicit bash interpreter on WIN32 instead
+# -- found via find_program(... REQUIRED) rather than assumed bare "bash" on
+# PATH, so a missing interpreter fails loudly at configure time instead of
+# mysteriously at test time. Git for Windows (preinstalled on GitHub's
+# windows-latest runner image, and already this project's Windows CI steps'
+# `shell: bash`) is what resolves it there.
+if(WIN32)
+    find_program(HVEN_BASH_EXECUTABLE NAMES bash REQUIRED)
+    add_test(NAME GoldenRigAudit.StaticScanSelfTest
+             COMMAND "${HVEN_BASH_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/audit/static_scan.sh" --self-test)
+else()
+    add_test(NAME GoldenRigAudit.StaticScanSelfTest
+             COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/audit/static_scan.sh" --self-test)
+endif()
