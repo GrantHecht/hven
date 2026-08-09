@@ -1,0 +1,226 @@
+kind,symbol,file,line,text
+parameter_write,iparm_[11],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,384,//    case SvNoTrans    : iparm_[11] = 0 ; break;
+parameter_write,iparm_[11],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,385,//    case SvTranspose  : iparm_[11] = 2 ; break;
+parameter_write,iparm_[11],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,386,//    case SvAdjoint    : iparm_[11] = 1 ; break;
+parameter_write,iparm_[11],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,389,//      not supported by the PARDISO backend\n"; iparm_[11] = 0;
+parameter_write,iparm_[0],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,618,iparm_[0] = 1;           // No solver default
+parameter_write,iparm_[1],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,619,iparm_[1] = ord_;        // use Metis for the ordering
+parameter_write,iparm_[2],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,620,iparm_[2] = 0;           // Reserved by MKL PARDISO; must be set to zero.
+parameter_write,iparm_[3],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,621,iparm_[3] = 0;           // No iterative-direct algorithm
+parameter_write,iparm_[4],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,622,iparm_[4] = store_perm_; // No user fill-in reducing permutation
+parameter_write,iparm_[5],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,623,iparm_[5] = 0;           // Write solution into x; b is left unchanged
+parameter_write,iparm_[6],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,624,iparm_[6] = 0;           // Not in use
+parameter_write,iparm_[7],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,625,iparm_[7] = iterref_;    // Max numbers of iterative refinement steps
+parameter_write,iparm_[8],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,626,iparm_[8] = 0;           // Not in use
+parameter_write,iparm_[9],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,627,iparm_[9] = pivotpert_;  // Perturb the pivot elements with 1E-13
+parameter_write,iparm_[10],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,628,iparm_[10] = scaling_;   // Use nonsymmetric permutation and scaling MPS
+parameter_write,iparm_[11],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,629,iparm_[11] = 0;          // Not in use
+parameter_write,iparm_[12],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,630,iparm_[12] = matching_;  // Maximum weighted matching algorithm is switched-off
+parameter_write,iparm_[12],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,631,// (default for symmetric). Try iparm_[12] = 1 in case of
+parameter_write,iparm_[13],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,633,iparm_[13] = 0;          // Output: Number of perturbed pivots
+parameter_write,iparm_[14],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,634,iparm_[14] = 0;          // Not in use
+parameter_write,iparm_[15],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,635,iparm_[15] = 0;          // Not in use
+parameter_write,iparm_[16],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,636,iparm_[16] = 0;          // Not in use
+parameter_write,iparm_[17],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,637,iparm_[17] = -1;         // Output: Number of nonzeros in the factor LU
+parameter_write,iparm_[18],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,638,iparm_[18] = -1;         // Output: Mflops for LU factorization
+parameter_write,iparm_[19],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,639,iparm_[19] = 0;          // Output: Numbers of CG Iterations
+parameter_write,iparm_[20],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,641,iparm_[20] = pivotstrat_; // 1x1 pivoting
+parameter_write,iparm_[23],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,642,iparm_[23] = alg_;        // Two level
+parameter_write,iparm_[24],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,643,iparm_[24] = parsolve_;   // Parallel forward/backward solve
+parameter_write,iparm_[26],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,645,iparm_[26] = 0; // No matrix checker
+parameter_write,iparm_[27],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,646,iparm_[27] = (sizeof(RealScalar) == 4) ? 1 : 0;
+parameter_write,iparm_[33],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,647,iparm_[33] = threads_;
+parameter_write,iparm_[34],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,648,iparm_[34] = 1; // C indexing
+parameter_write,iparm_[36],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,649,iparm_[36] = 0; // CSR
+parameter_write,iparm_[59],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,650,iparm_[59] = 0; // 0 - In-Core ; 1 - Automatic switch between In-Core and
+parameter_read,iparm_[17],tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,469,// the NUMBER OF NONZEROS in the factor (iparm_[17]). Both surface as
+parameter_read,iparm[0],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,192,// zero-initialized (see the `PardisoImpl` constructor); PARDISO interprets `iparm[0] == 0`
+parameter_read,iparm[22],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,230,int neigs_; // iparm[22]
+parameter_read,iparm[21],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,231,int peigs_; // iparm[21]
+parameter_read,iparm[13],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,232,int ppiv_;  // iparm[13]
+parameter_read,iparm_[21],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,250,peigs_ = iparm_[21];
+parameter_read,iparm_[22],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,251,neigs_ = iparm_[22];
+parameter_read,iparm_[13],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,252,ppiv_ = iparm_[13];
+parameter_read,iparm_[18],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,254,flops_ = iparm_[18];
+parameter_read,iparm_[17],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,255,mem_ = iparm_[17];
+parameter_read,iparm_[21],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,274,peigs_ = iparm_[21];
+parameter_read,iparm_[22],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,275,neigs_ = iparm_[22];
+parameter_read,iparm_[13],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,276,ppiv_ = iparm_[13];
+parameter_read,iparm_[18],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,277,flops_ = iparm_[18];
+parameter_read,iparm_[17],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,278,mem_ = iparm_[17];
+parameter_read,iparm_[21],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,335,peigs_ = iparm_[21];
+parameter_read,iparm_[22],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,336,neigs_ = iparm_[22];
+parameter_read,iparm_[13],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,337,ppiv_ = iparm_[13];
+parameter_read,iparm_[18],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,338,flops_ = iparm_[18];
+parameter_read,iparm_[17],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,339,mem_ = iparm_[17];
+parameter_read,iparm_[21],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,353,peigs_ = iparm_[21];
+parameter_read,iparm_[22],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,354,neigs_ = iparm_[22];
+parameter_read,iparm_[13],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,355,ppiv_ = iparm_[13];
+parameter_read,iparm_[18],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,356,flops_ = iparm_[18];
+parameter_read,iparm_[17],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,357,mem_ = iparm_[17];
+parameter_read,iparm_[0],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,368,if (iparm_[0] == 0) // Factorization was not computed
+parameter_read,iparm[7],tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,612,int iterref_ = 2; // iparm[7]
+parameter_read,iparm[12],tycho/psiopt/include/tycho/detail/solvers/psiopt.h,402,// MKL Pardiso weighted matching (iparm[12]) / MPS scaling (iparm[10]); 0/1 flags.
+phase_call,pardiso,tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,48,::pardiso(pt; &maxfct; &mnum; &type; &phase; &n; a; ia; ja; perm; &nrhs; iparm; &msglvl; b;
+phase_call,pardiso_64,tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,60,::pardiso_64(pt; &maxfct; &mnum; &type; &phase; &n; a; ia; ja; perm; &nrhs; iparm; &msglvl;
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,50,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,62,* \sa \ref TutorialSparseSolverConcept; class AccelerateLLT
+accelerate_call,SparseFactorizationCholesky,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,66,AccelerateImpl<MatrixType; UpLo | Symmetric; SparseFactorizationCholesky; true>;
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,77,* \sa \ref TutorialSparseSolverConcept; class AccelerateLDLT
+accelerate_call,SparseFactorizationLDLT,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,80,using AccelerateLDLT = AccelerateImpl<MatrixType; UpLo | Symmetric; SparseFactorizationLDLT; true>;
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,92,* \sa \ref TutorialSparseSolverConcept; class AccelerateLDLTUnpivoted
+accelerate_call,SparseFactorizationLDLTUnpivoted,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,96,AccelerateImpl<MatrixType; UpLo | Symmetric; SparseFactorizationLDLTUnpivoted; true>;
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,108,* \sa \ref TutorialSparseSolverConcept; class AccelerateLDLTSBK
+accelerate_call,SparseFactorizationLDLTSBK,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,112,AccelerateImpl<MatrixType; UpLo | Symmetric; SparseFactorizationLDLTSBK; true>;
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,124,* \sa \ref TutorialSparseSolverConcept; class AccelerateLDLTTPP
+accelerate_call,SparseFactorizationLDLTTPP,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,128,AccelerateImpl<MatrixType; UpLo | Symmetric; SparseFactorizationLDLTTPP; true>;
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,138,* \sa \ref TutorialSparseSolverConcept; class AccelerateQR
+accelerate_call,SparseFactorizationQR,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,141,using AccelerateQR = AccelerateImpl<MatrixType; 0; SparseFactorizationQR; false>;
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,152,* \sa \ref TutorialSparseSolverConcept; class AccelerateCholeskyAtA
+accelerate_call,SparseFactorizationCholeskyAtA,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,155,using AccelerateCholeskyAtA = AccelerateImpl<MatrixType; 0; SparseFactorizationCholeskyAtA; false>;
+accelerate_call,SparseCleanup,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,161,SparseCleanup(*sym);
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,231,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseSolverBase,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,233,: public SparseSolverBase<AccelerateImpl<MatrixType_; UpLo_; Solver_; EnforceSquare_>> {
+accelerate_call,SparseSolverBase,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,235,using Base = SparseSolverBase<AccelerateImpl>;
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,399,template <SparseFactorization_t S = Solver_>
+accelerate_call,SparseFactorizationLDLTTPP,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,400,std::enable_if_t<S == SparseFactorizationLDLTTPP; Index> peigs() const {
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,404,template <SparseFactorization_t S = Solver_>
+accelerate_call,SparseFactorizationLDLTTPP,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,405,std::enable_if_t<S == SparseFactorizationLDLTTPP; Index> neigs() const {
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,409,template <SparseFactorization_t S = Solver_>
+accelerate_call,SparseFactorizationLDLTTPP,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,410,std::enable_if_t<S == SparseFactorizationLDLTTPP; Index> zeigs() const {
+accelerate_call,SparseFactorizationLDLTTPP,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,444,if constexpr (Solver_ == SparseFactorizationLDLTTPP) {
+accelerate_call,SparseGetInertia,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,447,if (SparseGetInertia(*m_numericFactorization; &np; &nz; &nn) == 0) {
+accelerate_call,SparseFactor,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,568,new SymbolicFactorization(SparseFactor(Solver_; accel_matrix_.structure; fopts)));
+accelerate_call,SparseFactor,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,601,SparseFactor(*m_symbolicFactorization; accel_matrix_; nopts;
+accelerate_call,SparseRefactor,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,639,SparseRefactor(accel_matrix_; m_numericFactorization.get(); ws);
+accelerate_call,SparseFactorizationFailed,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,660,case SparseFactorizationFailed
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,699,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,722,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,740,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,760,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,776,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseSolve,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,826,// run) -- Accelerate's SparseSolve itself tolerates it. WITH iterative
+accelerate_call,SparseSolve,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,828,// original b" AFTER SparseSolve has already overwritten xmat.data; and
+accelerate_call,SparseSolve,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,835,// SparseSolve overload instead: it destroys b; which the refinement block
+accelerate_call,SparseSolve,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,863,SparseSolve(*m_numericFactorization; bmat; xmat; ws);
+accelerate_call,SparseSolve,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,866,// effect: Apple's SDK passes the factorization to SparseSolve() BY VALUE
+accelerate_call,SparseSolve,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,896,SparseSolve(*m_numericFactorization; ref_mat; ws);
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,914,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,946,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,959,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,973,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,980,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactorization,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h,1002,template <typename MatrixType_; int UpLo_; SparseFactorization_t Solver_; bool EnforceSquare_>
+accelerate_call,SparseFactor,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,99,auto sym = SparseFactor(SparseFactorizationLDLTTPP; structure; fopts);
+accelerate_call,SparseFactor,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,101,auto num = SparseFactor(sym; A);
+accelerate_call,SparseCleanup,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,102,// Apple requires SparseCleanup even for a FAILED factorization.
+accelerate_call,SparseCleanup,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,103,SparseCleanup(num);
+accelerate_call,SparseCleanup,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,105,SparseCleanup(sym);
+accelerate_call,SparseSolverBase,tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,93,template <class Derived> class PardisoImpl : public SparseSolverBase<Derived> {
+accelerate_call,SparseSolverBase,tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,95,typedef SparseSolverBase<Derived> Base;
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,429,* \sa \ref TutorialSparseSolverConcept; class SparseLU
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,479,* \sa \ref TutorialSparseSolverConcept; class SimplicialLLT
+accelerate_call,SparseSolverConcept,tycho/psiopt/include/tycho/detail/solvers/linear/pardiso_interface.h,538,* \sa \ref TutorialSparseSolverConcept; class SimplicialLDLT
+accelerate_call,SparseSolve,tycho/psiopt/tests/test_accelerate_interface.cpp,324,// Pre-fix this is worse than stale: the main SparseSolve no-ops; then the
+accelerate_call,SparseSolve,tycho/psiopt/tests/test_accelerate_interface.cpp,326,// it works fine); the inner SparseSolve also no-ops leaving r as the raw
+accelerate_call,SparseSolve,tycho/psiopt/tests/test_accelerate_interface.cpp,354,// a buffer SparseSolve had already overwritten; silently corrupting x.
+thread_control,mkl_set_num_threads,tycho/psiopt/include/tycho/detail/solvers/jet.h,51,/// mkl_set_num_threads(); leaving it set after a Jet job that ran on the
+thread_control,mkl_set_num_threads_local,tycho/psiopt/include/tycho/detail/solvers/jet.h,55,MklLocalPinGuard() : prev_(mkl_set_num_threads_local(1)) {}
+thread_control,mkl_set_num_threads_local,tycho/psiopt/include/tycho/detail/solvers/jet.h,56,~MklLocalPinGuard() { mkl_set_num_threads_local(prev_); }
+thread_control,BLASSetThreading,tycho/psiopt/include/tycho/detail/solvers/jet.h,164,// Per-thread single-threaded mode (BLASSetThreading is
+thread_control,BLASSetThreading,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,21,// BLASSetThreading (macOS 15+) provides per-thread dynamic control via
+thread_control,VECLIB_MAXIMUM_THREADS,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,24,// VECLIB_MAXIMUM_THREADS at the first BLAS call.
+thread_control,VECLIB_MAXIMUM_THREADS,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,26,// VECLIB_MAXIMUM_THREADS is read exactly once — at the first BLAS call.
+thread_control,BLASSetThreading,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,27,// setenv() after that point is a no-op. BLASSetThreading is the only
+thread_control,VECLIB_MAXIMUM_THREADS,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,110,// allocators). VECLIB_MAXIMUM_THREADS must be set before the first BLAS call;
+thread_control,VECLIB_MAXIMUM_THREADS,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,113,setenv("VECLIB_MAXIMUM_THREADS"; std::to_string(num_threads).c_str(); 1);
+thread_control,BLASSetThreading,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,122,// On macOS 15+; uses BLASSetThreading (per-thread; thread-local).
+thread_control,VECLIB_MAXIMUM_THREADS,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,123,// On older systems; falls back to VECLIB_MAXIMUM_THREADS env var
+thread_control,BLASSetThreading,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,128,// BLASSetThreading is API_AVAILABLE(macos(15.0)) and therefore weak-linked;
+thread_control,BLASSetThreading,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,133,BLASSetThreading(BLAS_THREADING_SINGLE_THREADED);
+thread_control,BLASSetThreading,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,135,BLASSetThreading(BLAS_THREADING_MULTI_THREADED);
+thread_control,VECLIB_MAXIMUM_THREADS,tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h,139,setenv("VECLIB_MAXIMUM_THREADS"; std::to_string(num_threads).c_str(); 1);
+thread_control,VECLIB_MAXIMUM_THREADS,tycho/psiopt/include/tycho/detail/solvers/solver_init.h,9,/// On Accelerate: sets VECLIB_MAXIMUM_THREADS; triggers a trivial BLAS call;
+thread_control,mkl_set_num_threads_local,tycho/psiopt/src/psiopt.cpp,631,mkl_set_num_threads_local(settings_.qp_threads_);
+thread_control,BLASSetThreading,tycho/psiopt/src/psiopt.cpp,3286,// BLASSetThreading on macOS 15+; or detail::MklLocalPinGuard in jet.h on
+thread_control,mkl_set_num_threads_local,tycho/psiopt/src/psiopt.cpp,3312,mkl_set_num_threads_local(settings_.qp_threads_);
+thread_control,mkl_set_num_threads,tycho/psiopt/tests/test_jet_mkl_guard.cpp,6,// mkl_set_num_threads() PSIOPT applies; an unreset pin on the calling
+thread_control,mkl_set_num_threads_local,tycho/psiopt/tests/test_jet_mkl_guard.cpp,29,// global default (ctor captures mkl_set_num_threads_local's return).
+thread_control,mkl_set_num_threads_local,tycho/psiopt/tests/test_jet_mkl_guard.cpp,30,mkl_set_num_threads_local(2);
+thread_control,mkl_set_num_threads_local,tycho/psiopt/tests/test_jet_mkl_guard.cpp,32,mkl_set_num_threads_local(0);
+thread_control,mkl_set_num_threads_local,tycho/psiopt/tests/test_jet_mkl_guard.cpp,40,mkl_set_num_threads_local(0); // revert to global for later tests
+parameter_write,iparm[34],tycho_sqp/include/tycho_sqp/kkt_system.h,30,// indexing (iparm[34] = 1) so Eigen's outerIndexPtr()/innerIndexPtr()/
+parameter_write,iparm_[34],tycho_sqp/include/tycho_sqp/kkt_system.h,279,iparm_[34] = 1; // zero-based (C-style) CSR indexing
+parameter_write,iparm_[7],tycho_sqp/include/tycho_sqp/kkt_system.h,328,iparm_[7] = 0; // MKL requires zero refinement steps for phase-33x solves
+parameter_write,iparm_[7],tycho_sqp/include/tycho_sqp/kkt_system.h,332,iparm_[7] = saved_refinement_steps;
+parameter_write,iparm_[7],tycho_sqp/include/tycho_sqp/kkt_system.h,335,iparm_[7] = saved_refinement_steps;
+parameter_write,iparm[12],tycho_sqp/tests/test_kkt_inertia_probe.cpp,18,// table and derivation): with pardiso's default settings (iparm[12] = 1;
+parameter_read,iparm[7],tycho_sqp/include/tycho_sqp/kkt_system.h,62,// additionally requires zero refinement steps (iparm[7] == 0) during
+parameter_read,iparm[12],tycho_sqp/include/tycho_sqp/kkt_system.h,75,// active matching/scaling (iparm[12] != 0 taking effect on larger
+parameter_read,iparm[21],tycho_sqp/include/tycho_sqp/kkt_system.h,81,Index num_pos_eigs() const; // iparm[21]
+parameter_read,iparm[22],tycho_sqp/include/tycho_sqp/kkt_system.h,82,Index num_neg_eigs() const; // iparm[22]
+parameter_read,iparm[13],tycho_sqp/include/tycho_sqp/kkt_system.h,86,Index num_perturbed_pivots() const; // iparm[13]
+parameter_read,iparm[7],tycho_sqp/include/tycho_sqp/kkt_system.h,103,// rhs size; then runs `phase` with iparm[7] (refinement steps) forced to
+parameter_read,iparm[7],tycho_sqp/include/tycho_sqp/kkt_system.h,106,// wrong result"). The previous iparm[7] value is restored afterward so
+parameter_read,iparm_[7],tycho_sqp/include/tycho_sqp/kkt_system.h,327,const MKL_INT saved_refinement_steps = iparm_[7];
+parameter_read,iparm_[21],tycho_sqp/include/tycho_sqp/kkt_system.h,351,inline Index KktSystem::num_pos_eigs() const { return static_cast<Index>(iparm_[21]); }
+parameter_read,iparm_[22],tycho_sqp/include/tycho_sqp/kkt_system.h,353,inline Index KktSystem::num_neg_eigs() const { return static_cast<Index>(iparm_[22]); }
+parameter_read,iparm_[13],tycho_sqp/include/tycho_sqp/kkt_system.h,355,inline Index KktSystem::num_perturbed_pivots() const { return static_cast<Index>(iparm_[13]); }
+parameter_read,iparm[13],tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,405,// input (error 0; iparm[13] > 0); Accelerate reports
+phase_call,pardisoinit,tycho_sqp/include/tycho_sqp/kkt_system.h,120,bool initialized_ = false; // pardisoinit() has been called at least once
+phase_call,pardiso,tycho_sqp/include/tycho_sqp/kkt_system.h,235,pardiso(pt_.data(); &maxfct; &mnum; &kMtype; &phase; &n; nullptr; nullptr; nullptr;
+phase_call,pardiso,tycho_sqp/include/tycho_sqp/kkt_system.h,253,pardiso(pt_.data(); &maxfct; &mnum; &kMtype; &phase; &n; a; ia; ja; perm_.data(); &nrhs;
+phase_call,pardisoinit,tycho_sqp/include/tycho_sqp/kkt_system.h,278,pardisoinit(pt_.data(); &kMtype; iparm_.data());
+accelerate_call,SparseFactor,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,21,// API (SparseFactor / SparseSolve / SparseCreateSubfactor); presenting the
+accelerate_call,SparseFactorizationLDLTTPP,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,35,//  - the factorization kind is SparseFactorizationLDLTTPP explicitly; not the
+accelerate_call,SparseFactorizationLDLT,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,36,//    SparseFactorizationLDLT alias: SparseGetInertia is documented as
+accelerate_call,SparseFactor,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,56,// Symbolic analysis (Accelerate symbolic SparseFactor). Stores a hash of
+accelerate_call,SparseGetInertia,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,102,// Inertia of the most recent factorization; from SparseGetInertia
+accelerate_call,SparseGetInertia,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,114,// count from SparseGetInertia; and that is what this returns. A 0 here
+accelerate_call,SparseFactorizationLDLT,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,129,// Explicit TPP; not the SparseFactorizationLDLT alias: SparseGetInertia
+accelerate_call,SparseFactorization,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,132,static constexpr SparseFactorization_t kFactorization = SparseFactorizationLDLTTPP;
+accelerate_call,SparseCleanup,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,213,// flags is what prevents a double SparseCleanup; since all cleanup here
+accelerate_call,SparseCleanup,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,288,SparseCleanup(numeric_);
+accelerate_call,SparseCleanup,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,297,SparseCleanup(symbolic_);
+accelerate_call,SparseFactor,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,303,// SparseFactor. (The MKL twin has the isomorphic shape; noted in the
+accelerate_call,SparseFactor,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,356,symbolic_ = SparseFactor(kFactorization; structure(); fopts);
+accelerate_call,SparseFactor,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,400,numeric_ = SparseFactor(symbolic_; A; nopts);
+accelerate_call,SparseMatrixIsSingular,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,406,// SparseMatrixIsSingular (-2) or SparseFactorizationFailed (-1)
+accelerate_call,SparseGetInertia,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,422,const int rc = SparseGetInertia(numeric_; &pos; &zero; &neg);
+accelerate_call,SparseSolve,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,443,SparseSolve(numeric_; b; xv);
+accelerate_call,SparseSolve,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,444,// SparseSolve takes the factorization by value; so no status is
+accelerate_call,SparseCleanup,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,469,~SubfactorGuard() { SparseCleanup(sub); }
+accelerate_call,SparseCreateSubfactor,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,473,SubfactorGuard guard{SparseCreateSubfactor(which; numeric_)};
+accelerate_call,SparseCreateSubfactor,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,477,throw std::runtime_error(fmt::format("KktSystem::{}: SparseCreateSubfactor reported: {}";
+accelerate_call,SparseSolve,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,485,SparseSolve(guard.sub; xb);
+accelerate_call,SparseGetInertia,tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h,505,// Without a valid factorization (never factorized; or SparseGetInertia
+accelerate_call,SparseOpaqueSymbolicFactorization,tycho_sqp/tests/test_accelerate_probes.cpp,200,SparseOpaqueSymbolicFactorization sym = SparseFactor(SparseFactorizationLDLTTPP; s; fopts);
+accelerate_call,SparseCleanup,tycho_sqp/tests/test_accelerate_probes.cpp,207,SparseCleanup(sym);
+accelerate_call,SparseOpaqueSymbolicFactorization,tycho_sqp/tests/test_accelerate_probes.cpp,215,SparseOpaqueSymbolicFactorization sym_user = SparseFactor(SparseFactorizationLDLTTPP; s; fopts);
+accelerate_call,SparseCleanup,tycho_sqp/tests/test_accelerate_probes.cpp,218,SparseCleanup(sym_user);
+accelerate_call,SparseSolver,tycho_sqp/prototypes/piqp_bridge/piqp_f7_driver.cpp,406,piqp::SparseSolver<double> solver;
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/lapacke_shim.h,10,// `LAPACKE_dsytrf` performs internally on MKL. This header implements ONLY
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/lapacke_shim.h,11,// the two entry points schur_complement.h uses -- LAPACKE_dsytrf and
+lapack_call,LAPACKE_dsytrs,tycho_sqp/include/tycho_sqp/lapacke_shim.h,12,// LAPACKE_dsytrs; column-major layout only -- so the dense Schur-complement
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/lapacke_shim.h,44,inline lapack_int LAPACKE_dsytrf(int matrix_layout; char uplo; lapack_int n; double *a;
+lapack_call,LAPACKE_dsytrs,tycho_sqp/include/tycho_sqp/lapacke_shim.h,74,inline lapack_int LAPACKE_dsytrs(int matrix_layout; char uplo; lapack_int n; lapack_int nrhs;
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,20,// (Bunch-Kaufman) factorization -- LAPACKE_dsytrf; C = L*D*L^T with D a block
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,95,// numerically singular; even though LAPACKE_dsytrf completed without
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,164,"(LAPACKE_dsytrf reported a zero pivot); refactorize instead of solving";
+lapack_call,LAPACKE_dsytrs,tycho_sqp/include/tycho_sqp/schur_complement.h,172,y = rhs1 - vtw; // LAPACKE_dsytrs solves in place
+lapack_call,LAPACKE_dsytrs,tycho_sqp/include/tycho_sqp/schur_complement.h,173,const lapack_int info = LAPACKE_dsytrs(
+lapack_call,LAPACKE_dsytrs,tycho_sqp/include/tycho_sqp/schur_complement.h,178,fmt::format("SchurComplement::solve: LAPACKE_dsytrs failed; info={}"; info));
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,224,// (LAPACKE_dsytrf info > 0) -- any of which means the caller must stop
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,268,"singular (LAPACKE_dsytrf reported a zero pivot); refactorize instead of "
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,277,// factorizes it via LAPACKE_dsytrf (Bunch-Kaufman; lower triangle); and
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,294,// triangle is read by LAPACKE_dsytrf(...; 'L'; ...); but it's
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,307,LAPACKE_dsytrf(LAPACK_COL_MAJOR; 'L'; static_cast<lapack_int>(m); factored_.data();
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,311,"SchurComplement: LAPACKE_dsytrf argument {} had an illegal value"; -info));
+lapack_call,LAPACKE_dsytrf,tycho_sqp/include/tycho_sqp/schur_complement.h,370,// per LAPACKE_dsytrf(LAPACK_COL_MAJOR; 'L'; ...); paired with ipiv_.
+lapack_call,LAPACKE_dsytrf,tycho_sqp/tests/test_schur.cpp,217,// LAPACKE_dsytrf reports a zero pivot (info > 0) for that; so
+lapack_call,LAPACKE_dsytrf,tycho_sqp/tests/test_schur.cpp,260,// LAPACKE_dsytrf reports an exact zero pivot -- and the solves it produces are
+lapack_call,LAPACKE_dsytrf,tycho_sqp/tests/test_accelerate_probes.cpp,230,const lapack_int info = LAPACKE_dsytrf(LAPACK_COL_MAJOR; 'L'; 2; C.data(); 2; ipiv.data());
+lapack_call,LAPACKE_dsytrs,tycho_sqp/tests/test_accelerate_probes.cpp,242,LAPACKE_dsytrs(LAPACK_COL_MAJOR; 'L'; 2; 1; C.data(); 2; ipiv.data(); b.data(); 2);
+lapack_call,LAPACKE_dsytrf,tycho_sqp/tests/test_accelerate_probes.cpp,254,const lapack_int info = LAPACKE_dsytrf(LAPACK_COL_MAJOR; 'L'; 2; C.data(); 2; ipiv.data());
+lapack_call,LAPACKE_dsytrf,tycho_sqp/tests/test_accelerate_probes.cpp,265,EXPECT_EQ(LAPACKE_dsytrf(LAPACK_ROW_MAJOR; 'L'; 2; C.data(); 2; ipiv.data()); -1);
+lapack_call,LAPACKE_dsytrf,tycho_sqp/tests/test_accelerate_probes.cpp,274,if (LAPACKE_dsytrf(LAPACK_COL_MAJOR; 'L'; n; C.data(); n; ipiv.data()) != 0)
