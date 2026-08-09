@@ -141,10 +141,14 @@ jobs:
           HVEN_RIG_REPORT_OUT: rig-report-accelerate.txt
           RUNNER_ARCH_LOWER: ${{ runner.arch }}
         # No MKL_NUM_THREADS here: it would be decoration on this lane.
-        # Accelerate never reads it, and the native arm is the one seam
-        # that pins per-instance anyway -- the rig sets num_threads = 1 on
-        # the instance itself, which is the mechanism each emitted row
-        # records.
+        # Accelerate never reads it -- and neither does anything else, on
+        # this backend: the rig asks the native arm for num_threads = 1, but
+        # hven's Accelerate session stores that count without applying it to
+        # any backend call, so NOTHING is pinned here. Each emitted row
+        # records that as its mechanism ('absent', value 0) rather than the
+        # per-instance pin the MKL lane genuinely applies. Rows derived from
+        # this lane are therefore reproduced across two separate runs before
+        # being committed, which is the assurance a pin would otherwise give.
         run: |
           if [ -z "${ImageOS:-}" ]; then
             echo "ImageOS is unset: refusing to emit observations with a machine" >&2

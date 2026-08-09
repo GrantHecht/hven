@@ -354,15 +354,28 @@ MKL_NUM_THREADS=1 ctest --test-dir build-3seam --output-on-failure
 
 `MKL_NUM_THREADS=1` matters and is not decoration. Every asserted run pins
 threads to one by the mechanism the seam under test possesses; the native arms
-do that per-instance, but neither old seam has any thread control at all, so
-the rig pins the process for them (an in-process guard, which the environment
-variable backs up for the window before the backend first reads it). Every
-recorded row carries the mechanism and the value it pinned to.
+do that per-instance **on MKL**, but neither old seam has any thread control at
+all, so the rig pins the process for them (an in-process guard, which the
+environment variable backs up for the window before the backend first reads
+it). Every recorded row carries the mechanism and the value it pinned to.
+
+**On Accelerate the native arm pins nothing, and records that.** hven's
+Accelerate session stores `Options::num_threads` so `adopt()` can round-trip
+the options faithfully and applies it to no backend call — the surface calls
+per-instance thread control best-effort-absent on this backend rather than
+fabricating one. The arm therefore reports mechanism `absent`, value `0`, and
+every `native@accelerate` row in `expected/` carries that pair. The reader
+still compares a float row only against a run whose own mechanism matches, so
+an unpinned row never stands in for a pinned one; what replaces the pin's
+protection against thread-count nondeterminism is the requirement that
+Accelerate rows reproduce byte-identically across two separate CI runs before
+being committed (see the `accelerate-derivation` banner in each table).
 
 One leg deliberately escapes that pin: T8's unasserted smoke leg, whose whole
 subject is what happens at more than one thread. It requests an explicit count
 above one, which overrides the environment setting either way — **on the native
-arms through the seam's own per-instance control; on the old-seam arms through
+arms through the seam's own per-instance control (MKL; on Accelerate the count
+is stored and applied to nothing, as above); on the old-seam arms through
 the rig's process pin, since those seams have no control of their own** — so
 the trace measures something real under the invocation above rather than
 comparing a run against itself. No other leg does this, and none of T8's
