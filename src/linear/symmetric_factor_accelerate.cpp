@@ -388,7 +388,7 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     //
     // ordering, unlike weighted_matching, is NOT Pardiso-only: every
     // Options::Ordering value maps onto an Accelerate order method (see
-    // accelerate_ordering_code() above and the locked mapping in
+    // accelerate_ordering_code() above and the backend-neutral mapping in
     // symmetric_factor.h's own doc comment), so it is accepted unconditionally
     // here -- the mapping is resolved once, in config_from(), at the point
     // analyze() actually needs it.

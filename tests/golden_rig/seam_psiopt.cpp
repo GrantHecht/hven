@@ -243,6 +243,18 @@ class PsioptSeam final : public SeamUnderTest {
     // method (mirroring hven::linear's own accelerate_ordering_code()), so
     // this seam represents all four -- unlike weighted_matching, ordering is
     // not a Pardiso-only concept here either.
+    //
+    // SparseOrderMTMetis is only DECLARED starting in the macOS 26 SDK --
+    // exactly the same SDK-version gap
+    // src/linear/symmetric_factor_accelerate.cpp's HVEN_HAS_MTMETIS guards.
+    // This seam already includes
+    // tycho/detail/solvers/linear/accelerate_interface.h (above), which pulls
+    // in accelerate_utils.h's own TYCHO_HAS_MTMETIS / accelerate_supported_order()
+    // -- the very guard that hven's production file was written to mirror --
+    // so this arm reuses psiopt's own guard directly rather than duplicating
+    // it, with the same fallback semantics: on a pre-SDK-26 Apple build,
+    // SparseOrderMTMetis is not declared at all, and this case downgrades to
+    // SparseOrderMetis at compile time instead.
     SparseOrder_t ordering_value() const {
         switch (opts_.ordering) {
         case SeamOptions::Ordering::kMinimumDegree:
@@ -250,7 +262,20 @@ class PsioptSeam final : public SeamUnderTest {
         case SeamOptions::Ordering::kNestedDissection:
             return SparseOrderMetis;
         case SeamOptions::Ordering::kParallelNestedDissection:
-            return SparseOrderMTMetis;
+#ifdef TYCHO_HAS_MTMETIS
+            // set_order() (accelerate_interface.h) applies
+            // accelerate_supported_order() again on this value before it
+            // reaches Accelerate, so this call is a compile-time SDK
+            // declaration guard first and a belt-and-suspenders runtime
+            // downgrade second -- never a correctness gap.
+            return accelerate_supported_order(SparseOrderMTMetis);
+#else
+            // This SDK does not declare SparseOrderMTMetis at all -- the same
+            // state a host older than macOS 26 downgrades to at runtime via
+            // accelerate_supported_order(), reached here at compile time
+            // instead.
+            return SparseOrderMetis;
+#endif
         case SeamOptions::Ordering::kBackendDefault:
             break;
         }

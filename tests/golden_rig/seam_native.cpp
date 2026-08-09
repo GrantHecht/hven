@@ -97,19 +97,25 @@ class NativeSeam final : public SeamUnderTest {
     std::string configuration_note() const override {
         // Every SeamOptions field this arm was given is applied verbatim --
         // the rig's neutral option set was drawn from this class's own -- so
-        // the note only has to say which of the two don't-write-by-default
-        // knobs actually wrote anything. The ordering method itself is
-        // cross-platform, but WHAT IS ACTUALLY IN FORCE per backend is not --
-        // MKL writes (or leaves alone) Pardiso's iparm[1]; Accelerate sets (or
-        // leaves alone) its own SparseOrder_t control -- so the two backends
-        // report their own real vocabulary here rather than a shared,
-        // Pardiso-only one that would be fiction on the Accelerate arm.
+        // the note only has to say what actually ends up in force for each
+        // knob. The ordering method itself is cross-platform, but WHAT IS
+        // ACTUALLY IN FORCE per backend is not -- MKL writes (or, at
+        // kBackendDefault, leaves alone) Pardiso's iparm[1], a genuine
+        // don't-write-by-default control; Accelerate has no such sentinel for
+        // ordering -- symmetric_factor_accelerate.cpp's config_from() always
+        // assigns orderMethod, on every Ordering value including
+        // kBackendDefault -- so the two backends report their own real
+        // vocabulary here rather than a shared, Pardiso-only one that would
+        // be fiction on the Accelerate arm. weighted_matching remains a
+        // genuine don't-write-by-default knob on the MKL side only (Accelerate
+        // rejects a true value at construction, so this note never runs with
+        // it there).
         std::string note = "applies every requested option; ordering=";
 #if defined(__APPLE__)
         switch (opts_.ordering) {
         case SeamOptions::Ordering::kBackendDefault:
-            note += "backend-default (SparseOrder_t not set; SparseOrderDefault, Apple's own "
-                    "default, is what runs)";
+            note += "backend-default (resolves to SparseOrderDefault, Apple's own default for "
+                    "symmetric matrices, always assigned to orderMethod)";
             break;
         case SeamOptions::Ordering::kMinimumDegree:
             note += "minimum-degree (SparseOrderAMD)";
