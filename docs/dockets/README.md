@@ -45,6 +45,15 @@ An AWAITING-MAC-RUN record becomes CONFIRMED by someone running the Mac
 three-seam leg and pasting what the run actually printed — not by
 agreeing that the prediction looks right.
 
+Note what a green macOS CI lane does and does not move. It runs
+`native@accelerate` only, so it can confirm the **replacement** half of an
+Apple record — what hven answers instead — and both Apple records below now
+carry that half as observed. It cannot touch the **finding** half, which is
+what the old seam does, because no runner has a sibling checkout on it.
+A record whose replacement half is observed and whose finding half is not
+stays AWAITING-MAC-RUN: the status tracks the finding, which is the part
+the docket exists for.
+
 ## Index
 
 | Record | Trace | Seam | Status |

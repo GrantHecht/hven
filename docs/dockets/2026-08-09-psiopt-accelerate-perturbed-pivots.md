@@ -88,6 +88,20 @@ a Mac reading may be **less informative** than an MKL one, never
 not degrade to a number, because a number is not less information than a
 number — it is different information, and the consumer cannot tell.
 
+**That half is now OBSERVED on hardware.** The macOS CI lane's report-mode
+artifacts (runs 31295310213 and 31295501823 at commit `48414157cee0`,
+`macos-26-arm64`, byte-identical) record, for `native@accelerate` on this
+trace's own fixture:
+
+```
+native@accelerate,perturbed_pivots_presence,presence,absent
+```
+
+So the replacement behaviour is confirmed, not merely specified: hven
+answers **absent** where the old seam answers a hardcoded zero. What
+remains AWAITING-MAC-RUN is the old seam's half — that arm needs a Mac with
+the sibling checkout on it, which no runner has.
+
 ## Migration consequence
 
 **Owner: the interior-point engine retarget (M2), with an M3 obligation

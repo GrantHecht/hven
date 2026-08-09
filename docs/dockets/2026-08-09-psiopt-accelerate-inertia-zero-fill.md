@@ -134,6 +134,23 @@ the zero class is measured, not computed as `dim - p - n` the way MKL
 requires. That is a genuine per-backend difference and is not part of this
 finding.
 
+**hven's side of both rows is now OBSERVED on hardware.** The macOS CI
+lane's report-mode artifacts (runs 31295310213 and 31295501823 at commit
+`48414157cee0`, `macos-26-arm64`, byte-identical) record for
+`native@accelerate`:
+
+```
+before_factorize_inertia_state = kUnavailable
+before_factorize_n_pos / n_neg / n_zero = -1 / -1 / -1
+zero_is_derived (after a successful factorization) = false
+```
+
+The never-factorized case answers with an explicit state and counts left
+invalid — not zero-filled — and the zero class really is measured rather
+than derived on this backend. Both are confirmed rather than specified.
+The old seam's half stays AWAITING-MAC-RUN: no runner carries the sibling
+checkout, so that arm has still never executed.
+
 ## Migration consequence
 
 **Owner: the interior-point engine retarget (M2).**
