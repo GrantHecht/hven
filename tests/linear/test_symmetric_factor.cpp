@@ -8,6 +8,11 @@
 
 #include <gtest/gtest.h>
 
+// This file compiles on MKL platforms only (tests/CMakeLists.txt gates it on
+// NOT APPLE), which is what lets a test here read MKL's own thread state
+// directly to check hven's call-scoped thread handling.
+#include <mkl_service.h>
+
 #include "hven/core/pattern_hash.h"
 #include "hven/core/types.h"
 #include "hven/linear/symmetric_factor.h"
@@ -559,6 +564,44 @@ TEST(SymmetricFactor, ExplicitThreadCountChangesNeitherCountersNorSolutions) {
     EXPECT_EQ(threaded.counters().solve_count, defaulted.counters().solve_count);
     expect_vec_near(x_threaded, x_exact);
     expect_vec_near(x_default, x_exact);
+}
+
+// The other half of the call-scoped promise: hven undoes exactly what it did,
+// so a caller who had a thread-local MKL override of their own still has it
+// afterwards. Restoring a hardcoded zero would pass every assertion in the
+// test above -- nothing there looks at what the thread was set to before --
+// while quietly resetting every other MKL user on this thread to the global
+// default.
+//
+// The value is read back the only way MKL exposes it: the setter returns the
+// override it replaced, so setting 0 both reports the value in force and
+// hands control back to the global setting, which is where this test wants
+// the thread left anyway.
+TEST(SymmetricFactor, APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride) {
+    constexpr int kCallerOverride = 3;
+    constexpr int kHvenThreads = 1;
+
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor::Options opts = default_options();
+    opts.num_threads = kHvenThreads;
+
+    mkl_set_num_threads_local(kCallerOverride);
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+
+    const int in_force_after = mkl_set_num_threads_local(0);
+    EXPECT_EQ(in_force_after, kCallerOverride)
+        << "hven's call-scoped thread count must restore the caller's own thread-local "
+           "override, not reset the thread to MKL's global setting";
 }
 
 // =============================================================================
