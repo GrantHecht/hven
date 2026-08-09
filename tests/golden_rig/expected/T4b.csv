@@ -15,6 +15,14 @@
 #   without a thread pin is REFUSED by the reader: float residuals at nine digits
 #   are run-to-run nondeterministic under a multithreaded backend, so an unpinned
 #   expectation is not an expectation.
+#   'absent' IS A MECHANISM AND IT IS RECORDED AS ONE. An arm that pins nothing
+#   -- hven's Accelerate backend stores a thread count and applies it to no
+#   backend call -- says 'absent, 0' rather than borrowing another arm's
+#   mechanism. Such a row is still compared only against a run whose own
+#   mechanism is 'absent', so it never silently stands in for a pinned one; what
+#   it does NOT carry is the pin's protection against thread-count
+#   nondeterminism, which is why the rows that have it were required to
+#   reproduce byte-identically across two separate runs before being committed.
 # bitwise: a bitwise/0-ULP kind is REFUSED in this file. Bitwise equality holds
 #   only between two observations of ONE pinned-thread process run, so a trace
 #   that needs it asserts it against its own second observation instead.
@@ -36,11 +44,23 @@
 # accelerate-derivation: the native@accelerate rows carrying values were
 #   observed on real Apple Silicon, in the macOS CI lane's report-mode
 #   artifact -- workflow_dispatch runs 31295853190 and 31295971689
-#   at commit a74cb4b3a69f, runner image macos-26-arm64, Release, pinned
-#   per-instance to one thread. The two artifacts are BYTE-IDENTICAL: that
+#   at commit a74cb4b3a69f, runner image macos-26-arm64, Release, with NO
+#   thread pin in force. The two artifacts are BYTE-IDENTICAL: that
 #   is the reproduction these rows had to show before being committed,
 #   because runner hosts vary within a class and one run says nothing
 #   about the next.
+#   THE PIN COLUMNS WERE RE-STAMPED FROM TRUTH, values untouched. They
+#   originally read 'per-instance, 1', copied from a seam adapter that
+#   reported the mechanism the unified surface specifies rather than the
+#   one this backend applies: hven's Accelerate session stores
+#   Options::num_threads and applies it to nothing (see
+#   hven/detail/linear/accelerate_session.h and the native seam's
+#   thread_pin_mechanism()), so these values were produced at whatever
+#   width Accelerate chose for itself. They now read 'absent, 0', which is
+#   what was actually in force. The observations themselves are unchanged
+#   and still reproduced byte-identically across the two runs above -- the
+#   correction is to what the rows CLAIM about how they were produced, not
+#   to what was produced.
 #   The machine column names the runner CLASS, derived by the workflow
 #   from the image itself rather than written as a literal. An alias like
 #   'macos-latest' would keep matching after GitHub repoints it at new
@@ -93,13 +113,13 @@ native-psiopt-parity@mkl,x_after_adopt_refactorize[0],float,0.16883647793474665,
 native-psiopt-parity@mkl,x_after_adopt_refactorize[1],float,-0.41849730339890812,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
 native-psiopt-parity@mkl,x_after_adopt_refactorize[2],float,1.1583644139318494,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
 native-psiopt-parity@mkl,x_after_adopt_refactorize[3],float,-34.945150823153426,1e-14,fedora Linux x86_64,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,48414157cee0,2026-08-09
-native@accelerate,analyze_count,counter,0,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,factorize_count,counter,1,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,solve_count,counter,1,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,partial_solve_count,counter,0,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,handle_epoch_at_emission,counter,1,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,originator_epoch_after_refactorize,counter,2,,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,x_after_adopt_refactorize[0],float,0.16883647793509643,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,x_after_adopt_refactorize[1],float,-0.41849730339841479,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,x_after_adopt_refactorize[2],float,1.1583644139326759,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
-native@accelerate,x_after_adopt_refactorize[3],float,-34.945150823118759,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,per-instance,1,a74cb4b3a69f,2026-08-09
+native@accelerate,analyze_count,counter,0,,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,factorize_count,counter,1,,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,solve_count,counter,1,,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,partial_solve_count,counter,0,,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,handle_epoch_at_emission,counter,1,,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,originator_epoch_after_refactorize,counter,2,,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,x_after_adopt_refactorize[0],float,0.16883647793509643,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,x_after_adopt_refactorize[1],float,-0.41849730339841479,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,x_after_adopt_refactorize[2],float,1.1583644139326759,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09
+native@accelerate,x_after_adopt_refactorize[3],float,-34.945150823118759,1e-14,github-macos26-arm64,accelerate/UNOBSERVED,absent,0,a74cb4b3a69f,2026-08-09

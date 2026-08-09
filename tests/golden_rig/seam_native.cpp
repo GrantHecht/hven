@@ -87,18 +87,47 @@ class NativeSeam final : public SeamUnderTest {
         return c;
     }
 
-    // The per-instance mechanism the unified surface specifies: applied at
-    // call scope, never by touching a process-global or environment setting.
+    // The mechanism this arm ACTUALLY pinned with, which is backend-split
+    // even though the option that requests it is not.
+    //
+    // On MKL, Options::num_threads is applied at call scope around every
+    // backend call and undone afterwards (src/linear/pardiso_session.cpp's
+    // MklThreadScope) -- the per-instance mechanism the unified surface
+    // specifies, never a process-global or environment setting.
+    //
+    // On Accelerate there is NO pin. The session stores num_threads so that
+    // adopt() can round-trip Options faithfully and applies it to nothing
+    // (hven/detail/linear/accelerate_session.h documents that as
+    // best-effort-absent: Accelerate exposes no per-instance thread control,
+    // and hven does not reach for the process-scoped one either). Reporting
+    // kPerInstance here would stamp every Accelerate row -- including the
+    // committed Mac float rows, whose whole claim to repeatability rests on
+    // this column -- with a pin that no code applies. The value goes to 0 for
+    // the same reason: `opts_.num_threads` is what was ASKED for, and naming
+    // it would be naming a count nothing ran at.
     ThreadPinMechanism thread_pin_mechanism() const override {
+#if defined(__APPLE__)
+        return ThreadPinMechanism::kAbsent;
+#else
         return ThreadPinMechanism::kPerInstance;
+#endif
     }
-    int thread_pin_value() const override { return opts_.num_threads; }
+
+    int thread_pin_value() const override {
+#if defined(__APPLE__)
+        return 0;
+#else
+        return opts_.num_threads;
+#endif
+    }
 
     std::string configuration_note() const override {
         // Every SeamOptions field this arm was given is applied verbatim --
-        // the rig's neutral option set was drawn from this class's own -- so
-        // the note only has to say what actually ends up in force for each
-        // knob. The ordering method itself is cross-platform, but WHAT IS
+        // the rig's neutral option set was drawn from this class's own --
+        // with one backend-specific exception noted below (num_threads on
+        // Accelerate), so the note only has to say what actually ends up in
+        // force for each knob. The ordering method itself is cross-platform,
+        // but WHAT IS
         // ACTUALLY IN FORCE per backend is not -- MKL writes (or, at
         // kBackendDefault, leaves alone) Pardiso's iparm[1], a genuine
         // don't-write-by-default control; Accelerate has no such sentinel for
@@ -110,7 +139,16 @@ class NativeSeam final : public SeamUnderTest {
         // genuine don't-write-by-default knob on the MKL side only (Accelerate
         // rejects a true value at construction, so this note never runs with
         // it there).
+        // One SeamOptions field is the exception to "applied verbatim" and
+        // says so first: on Accelerate, num_threads is stored and never
+        // applied (see thread_pin_mechanism() above), so the note leads with
+        // the knob that is NOT in force rather than burying it.
+#if defined(__APPLE__)
+        std::string note = "applies every requested option EXCEPT num_threads, which this backend "
+                           "stores without applying (no thread pin is in force); ordering=";
+#else
         std::string note = "applies every requested option; ordering=";
+#endif
 #if defined(__APPLE__)
         switch (opts_.ordering) {
         case SeamOptions::Ordering::kBackendDefault:

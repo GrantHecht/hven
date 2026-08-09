@@ -59,7 +59,15 @@ const char *backend_arm_name();
 enum class ThreadPinMechanism {
     kPerInstance,   // the seam carries its own per-instance thread option
     kProcessGlobal, // the seam has none; the rig pins the process instead
-    kAbsent         // no thread control exists on this backend at all
+    // NOTHING WAS PINNED on this arm. Either the backend has no thread
+    // control at all, or -- the case the native arm hits on Accelerate -- the
+    // surface accepts a thread count and stores it without applying it to any
+    // backend call. The distinction between those two matters to a reader of
+    // the source and not at all to a reader of a row: both mean the numbers
+    // were produced at whatever width the backend chose for itself, which is
+    // the only thing a provenance column can honestly claim. An arm reporting
+    // this pairs it with a pin VALUE of 0 -- there is no count to name.
+    kAbsent
 };
 
 const char *thread_pin_mechanism_name(ThreadPinMechanism m);
