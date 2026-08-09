@@ -474,7 +474,17 @@ Two halves, in `tests/golden_rig/audit/`:
   backend's phase entry point (via the linker's `--wrap`), so every call from
   hven's own session and from either old seam alike is recorded with the
   parameter array as it stood at that moment. It forwards to the real symbol
-  unchanged; it only watches.
+  unchanged; it only watches. **Linux-only** (`tests/golden_rig/CMakeLists.txt`:
+  `if(UNIX AND NOT APPLE)`) — `--wrap` is an ELF/GNU-ld-and-lld feature with no
+  COFF equivalent (confirmed on the `windows-clang-release` CI job: lld-link
+  ignores `-Wl,--wrap=pardiso` outright and fails on the resulting undefined
+  `__real_pardiso`) and no Mach-O one either (ld64 has never implemented
+  `--wrap`; Mach-O's nearest analogue, dyld's `__DATA,__interpose` runtime
+  interposition, is not a linker-flag swap). Independent of the toolchain
+  question, the target has no mission on either platform anyway: both old
+  seams it watches only ever build against sibling Linux/MKL checkouts, so
+  there is no derivation run for it to observe there. The static half above
+  has neither limitation and runs everywhere, including macOS and Windows CI.
 
 The runtime half exists because a static pass reports what the source
 *mentions*, not what a run *executes*. Its **pre-registered coverage test** is

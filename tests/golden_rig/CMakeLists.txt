@@ -211,11 +211,47 @@ target_compile_options(hven_golden_rig_report PRIVATE ${COMPILE_FLAGS})
 # is exactly the case its pre-registered coverage test is about.
 #
 # Its own executable, so the --wrap flag (which applies to a whole link) stays
-# off the trace suite. Apple has no such entry point, so this target is built
-# where the backend is.
+# off the trace suite.
+#
+# PLATFORM SCOPE: Linux only (UNIX AND NOT APPLE), for two independent
+# reasons, not one:
+#
+#   1. --wrap is a GNU ld / LLVM lld ELF-format feature; it has no COFF
+#      equivalent. lld-link (the linker this project's Windows preset uses)
+#      does not implement it -- confirmed the hard way: passing
+#      -Wl,--wrap=pardiso through clang-cl on Windows produces "lld-link:
+#      warning: ignoring unknown argument '-Wl,--wrap=pardiso'" followed by
+#      an undefined-symbol error on __real_pardiso, because nothing actually
+#      wired __wrap_pardiso to the real symbol. It has no Mach-O equivalent
+#      either -- ld64 has never implemented --wrap or a comparable
+#      link-time symbol-aliasing mechanism (Mach-O's nearest analogue,
+#      dyld's __DATA,__interpose section, is a runtime interposition table,
+#      not a linker flag, and would need a materially different
+#      implementation here, not a flag swap) -- which is the deeper reason
+#      "Apple has no such entry point" was never actually tested against a
+#      linker that could have proven or disproven it.
+#   2. Even where the toolchain could support it, this target has no
+#      Windows (or Apple) MISSION to prove: the audit exists to observe the
+#      OLD seams' real pardiso touchpoints during three-seam derivation
+#      (HVEN_RIG_PSIOPT_SEAM / HVEN_RIG_SQP_SEAM), and both old-seam
+#      adapters only ever build against sibling Linux/MKL checkouts (see
+#      seam_sqp.cpp's unconditional <mkl_service.h> include and
+#      seam_registry.cpp's #if !defined(__APPLE__) arm gates) -- there is no
+#      derivation run this target could ever observe on Windows or macOS,
+#      with or without a working --wrap. Porting the wrap mechanism to a
+#      platform with nothing for it to watch would be effort spent widening
+#      toolchain coverage for a target with no reason to run there, not
+#      closing a real gap.
+#
+# GoldenRigAudit.StaticScanSelfTest (below, outside this if() block) is
+# UNSCOPED on purpose: it is the audit's separate static-scanner half, run as
+# a plain shell script against a committed sample file, with no linker
+# involvement and no old-seam dependency at all -- it runs everywhere,
+# including on this repo's macOS and Windows CI jobs today, and confirms the
+# scanner itself works on a machine that has neither sibling checkout.
 ################################################################################
 
-if(NOT APPLE)
+if(UNIX AND NOT APPLE)
     add_executable(hven_golden_rig_audit
         audit/pardiso_recorder.cpp
         audit/test_audit_shim.cpp
@@ -226,9 +262,12 @@ if(NOT APPLE)
     target_include_directories(hven_golden_rig_audit PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/audit)
     target_compile_options(hven_golden_rig_audit PRIVATE ${COMPILE_FLAGS})
     target_link_options(hven_golden_rig_audit PRIVATE "-Wl,--wrap=pardiso")
-    # Same HVEN_GTEST_DISCOVERY_MODE as hven_golden_rig above -- this target
-    # is APPLE-excluded anyway, but stays consistent with the other three
-    # call sites rather than being the one exception.
+    # HVEN_GTEST_DISCOVERY_MODE is POST_BUILD here unconditionally in
+    # practice: this target only ever configures on UNIX-and-not-APPLE,
+    # where the variable (../CMakeLists.txt) is never switched to PRE_TEST.
+    # Spelled with the variable anyway, not the literal, so this call site
+    # does not silently stop matching the other three if that variable's own
+    # condition ever changes.
     gtest_discover_tests(hven_golden_rig_audit DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 endif()
 
