@@ -24,13 +24,51 @@
 # bitwise: a bitwise/0-ULP kind is REFUSED in this file. Bitwise equality holds
 #   only between two observations of ONE pinned-thread process run, so a trace
 #   that needs it asserts it against its own second observation instead.
-# status: HEADER ONLY. No value below has been derived. The rows present are the
-#   slots for backend arms this project has no hardware for, committed as the
-#   literal UNOBSERVED per the never-fabricate rule; they are filled only from a
-#   hardware run. Rows for the arms this build can run are written at derivation,
-#   copied from hven_golden_rig_report's own emission so their provenance columns
-#   are recorded rather than typed.
+# status: DERIVED on Linux/MKL from a three-seam report-mode run, by pasting
+#   hven_golden_rig_report's own emitted rows -- every value and every
+#   provenance column below was copied from that artifact, none was typed.
+#   A row was committed only if it passed BOTH reproduction gates: the same
+#   binary run twice produced the identical value, AND a Debug build of the
+#   same source at the same thread pin on the same machine produced the
+#   identical value. The second gate matters because the provenance columns
+#   this schema carries (machine, backend, thread pin, commit, date) do not
+#   name a build configuration, so a value that moves with the build
+#   configuration is a value this table cannot honestly describe.
+#   The rows reading UNOBSERVED are slots no run has filled: the backend arms
+#   this project has no hardware for, plus any row held back below. They never
+#   compare equal to anything until a run fills them.
 arm,quantity,kind,value,tolerance,machine,backend,thread_pin_mechanism,thread_pin_value,commit,date
+native@mkl,before_factorize_inertia_state,state,kUnavailable,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native@mkl,before_factorize_n_pos,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native@mkl,before_factorize_n_neg,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native@mkl,before_factorize_n_zero,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native@mkl,before_factorize_zero_is_derived,bool,false,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native@mkl,before_factorize_perturbed_pivots_presence,presence,absent,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-sqp-parity@mkl,before_factorize_inertia_state,state,kUnavailable,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-sqp-parity@mkl,before_factorize_n_pos,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-sqp-parity@mkl,before_factorize_n_neg,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-sqp-parity@mkl,before_factorize_n_zero,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-sqp-parity@mkl,before_factorize_zero_is_derived,bool,false,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-sqp-parity@mkl,before_factorize_perturbed_pivots_presence,presence,absent,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-psiopt-parity@mkl,before_factorize_inertia_state,state,kUnavailable,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-psiopt-parity@mkl,before_factorize_n_pos,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-psiopt-parity@mkl,before_factorize_n_neg,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-psiopt-parity@mkl,before_factorize_n_zero,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-psiopt-parity@mkl,before_factorize_zero_is_derived,bool,false,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+native-psiopt-parity@mkl,before_factorize_perturbed_pivots_presence,presence,absent,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,per-instance,1,ca2744c1ba41,2026-08-09
+psiopt-old@mkl,before_factorize_inertia_state,state,kUnavailable,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+psiopt-old@mkl,before_factorize_n_pos,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+psiopt-old@mkl,before_factorize_n_neg,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+psiopt-old@mkl,before_factorize_n_zero,counter,-1,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+psiopt-old@mkl,before_factorize_zero_is_derived,bool,false,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+psiopt-old@mkl,before_factorize_perturbed_pivots_presence,presence,absent,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+sqp-old@mkl,before_factorize_inertia_state,state,kObserved,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+sqp-old@mkl,before_factorize_n_pos,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+sqp-old@mkl,before_factorize_n_neg,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+sqp-old@mkl,before_factorize_n_zero,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+sqp-old@mkl,before_factorize_zero_is_derived,bool,true,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+sqp-old@mkl,before_factorize_perturbed_pivots_presence,presence,present,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
+sqp-old@mkl,before_factorize_perturbed_pivots,counter,0,,fedora-x86_64-linux,Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications,process-global,1,ca2744c1ba41,2026-08-09
 native@accelerate,before_factorize_inertia_state,state,UNOBSERVED,,,,,,,
 native@accelerate,before_factorize_n_pos,counter,UNOBSERVED,,,,,,,
 native@accelerate,before_factorize_n_neg,counter,UNOBSERVED,,,,,,,
