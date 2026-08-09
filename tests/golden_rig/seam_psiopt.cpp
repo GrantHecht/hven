@@ -44,10 +44,15 @@ using OldSolver = Eigen::PardisoLDLT<SpMatRM, Eigen::Upper>;
 #endif
 
 // Pins the PROCESS thread count for this arm's lifetime and restores it
-// afterwards.
+// afterwards. MKL-ONLY: its constructor and destructor bodies are both
+// `#if !defined(__APPLE__)`, so on Apple this class is inert -- the real
+// process-scoped control on that branch is solver_.set_num_threads(), called
+// from configure() below, not this class. See thread_pin_mechanism() for why
+// that is reported as kProcessGlobal on both branches despite the different
+// mechanism underneath.
 //
 // Every asserted run must pin threads by the mechanism the seam under test
-// possesses, and this seam possesses none. Its
+// possesses, and PardisoLDLT (the MKL branch's solver) possesses none. Its
 // one thread-shaped field, PardisoLDLT::threads_ (written into iparm[33]), is
 // the conditional-numerical-reproducibility slot rather than a thread count,
 // and the interior-point engine only writes it when its CNR mode is on -- so
@@ -112,10 +117,18 @@ class PsioptSeam final : public SeamUnderTest {
 
     ThreadPinMechanism thread_pin_mechanism() const override {
 #if defined(__APPLE__)
-        // No public thread control exists on this backend at all, and the
-        // old seam's set_num_threads() maps onto that same absent control.
-        // Reported absent rather than fabricated.
-        return ThreadPinMechanism::kAbsent;
+        // NOT absent: configure() (below) calls solver_.set_num_threads(),
+        // which resolves to accelerate_set_num_threads()
+        // (tycho/detail/solvers/linear/accelerate_utils.h) -- BLASSetThreading
+        // on macOS 15+, or else the VECLIB_MAXIMUM_THREADS environment
+        // variable, read once at the first BLAS call. Either way it is a
+        // real, process-scoped control, not the per-instance solver option
+        // this class reports for other seams -- reporting kAbsent here would
+        // itself be the fabrication this adapter exists to avoid. What is
+        // genuinely missing is HARDWARE OBSERVATION: this branch has never
+        // been compiled or run (see configuration_note() below), so the
+        // mechanism is reported honestly while remaining unexercised.
+        return ThreadPinMechanism::kProcessGlobal;
 #else
         return ThreadPinMechanism::kProcessGlobal;
 #endif
@@ -125,7 +138,9 @@ class PsioptSeam final : public SeamUnderTest {
     std::string configuration_note() const override {
 #if defined(__APPLE__)
         return "UNOBSERVED (never compiled or run): Accelerate LDLT-TPP with the "
-               "interior-point engine's own order/refinement settings; no thread control exists";
+               "interior-point engine's own order/refinement settings; thread control is "
+               "process-scoped (BLASSetThreading on macOS 15+, else VECLIB_MAXIMUM_THREADS), "
+               "not per-instance";
 #else
         return "the interior-point engine's own set_params(): writes ~25 iparm entries "
                "unconditionally (including iparm[4]=2, whose only in-tree reader is dead code), "
