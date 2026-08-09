@@ -44,6 +44,7 @@ curl.exe --output %TEMP%\webimage.exe --url %URL% --retry 5 --retry-delay 5
 if errorlevel 1 exit /b 1
 
 start /b /wait %TEMP%\webimage.exe -s -x -f webimage_extracted --log extract.log
+REM Cache hits bypass this guard; any cache miss reaches it, so ERRORLEVEL propagation through start /b /wait is assumed correct but has not been directly observed.
 if errorlevel 1 (
     del %TEMP%\webimage.exe
     exit /b 1

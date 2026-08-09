@@ -9,14 +9,17 @@
 # tests/linear/test_symmetric_factor_pardiso_only_options.cpp's
 # `#if defined(__APPLE__)` block, which covers the ordering/weighted_matching
 # throw path). The test-file checks were added after
-# review of the Accelerate backend work: before this, the Accelerate half of
-# test_fault_injection.cpp -- the ONLY executable coverage this repo has for
-# the SparseGetInertia-failure / kQueryFailed contract cell -- had never been
-# seen by any compiler, on any platform; this lane is what raises its claim
-# ceiling from "never compiled" to "syntax-checked against stubs", matching
-# the two backend TUs below. None of the three test files actually needs the
-# Accelerate stub itself: all reach the Apple-gated code purely through
-# hven/linear/symmetric_factor.h's backend-neutral public API, so their
+# review of the Accelerate backend work: before this lane existed, the
+# Accelerate half of test_fault_injection.cpp -- the SparseGetInertia-failure
+# / kQueryFailed contract cell -- had never been seen by any compiler, on any
+# platform; this lane is what first raised its claim ceiling from "never
+# compiled" to "syntax-checked against stubs", matching the two backend TUs
+# below. macOS CI now compiles and executes that same test against the real
+# Accelerate framework, so this lane's syntax check is no longer the only
+# Apple-test evidence for that cell -- see docs/testing.md. None of the
+# three test files actually needs the Accelerate stub itself: all reach the
+# Apple-gated code purely through hven/linear/symmetric_factor.h's
+# backend-neutral public API, so their
 # checks below need real gtest headers but not the stub Accelerate.h.
 #
 # hven's psiopt/tycho_sqp precedents were searched for an existing
@@ -46,7 +49,8 @@
 # usage) compile cleanly when isolated from the rest of the codebase. For
 # the three test files: it proves the `#if defined(__APPLE__)` blocks --
 # including hven::linear::detail::testing::InertiaQueryFaultInjector, the
-# fabrication-fix-2 test's only executable-adjacent evidence today -- are
+# fabrication-fix-2 test's Linux-side evidence, now supplemented by macOS
+# CI's real execution of the same test against real Accelerate -- are
 # themselves syntactically well-formed and type-check against
 # symmetric_factor.h's real public API, given a real gtest and the two
 # environment stubs above.
@@ -61,10 +65,8 @@
 #     this is a compile-only, not a build, check.
 #   - Runtime behavior of any kind -- return codes, error paths, numeric
 #     results, or the reportError callback's actual invocation semantics.
-#     In particular, AccelerateInertiaQueryFaultInjection.* (the Accelerate
-#     kQueryFailed test) has NEVER EXECUTED anywhere, on any platform, at any
-#     point in this task -- this script proves it is syntax-sound, nothing
-#     more. It first runs on the Mac hardware leg.
+#     This script proves AccelerateInertiaQueryFaultInjection.* syntax-sound,
+#     nothing more; macOS CI now executes that test against real Accelerate.
 #   - That CMake's actual Apple configuration (cmake/FindAccelerateSparse.cmake,
 #     the ACCELERATE_NEW_LAPACK / USE_ACCELERATE_SPARSE defines) produces a
 #     working build; this script bypasses CMake and hven's own build flags

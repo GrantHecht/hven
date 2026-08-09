@@ -16,9 +16,9 @@
 // the `#if defined(__APPLE__)` half below asserts the Accelerate acceptance/
 // throw split; the `#else` half asserts the same values on the MKL platform,
 // which is the backend weighted_matching actually configures. The Apple half
-// is exercised for real only via the Accelerate syntax-check lane
-// (scripts/check_accelerate_syntax_linux.sh) on this Linux development pass
-// -- see docs/testing.md for what that lane does and does not prove.
+// is syntax-checked on Linux and also compiles and executes against the real
+// framework in macOS CI; see docs/testing.md for the syntax lane's narrower
+// claim ceiling.
 
 #include <stdexcept>
 

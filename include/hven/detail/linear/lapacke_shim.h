@@ -29,10 +29,9 @@
 // legacy declarations instead, which are not const-correct and do not
 // provide `__LAPACK_int`; the #ifndef guard immediately below turns that
 // mismatch into a compile-time diagnostic here rather than a confusing
-// error at the first call site. (This is a build-time verifiable claim
-// about what hven's CMake defines, checked by the guard itself -- not a
-// claim about how the shim behaves once built, which is unverified until
-// it is actually compiled on Apple hardware.)
+// error at the first call site. This build-time claim is checked by the
+// guard itself, and macOS CI compiles and exercises the shim against the
+// real Accelerate framework through the dense-factor tests.
 //
 // Both functions follow LAPACKE's error-code contract (0 success, -i illegal
 // argument i, +i exact zero pivot at i) and never print or throw; the call
@@ -75,10 +74,8 @@ using lapack_int = __LAPACK_int;
 // merely same-sized), since std::vector<int>::data() returns int* and no
 // implicit pointer conversion exists between distinct same-size types. The
 // LP64 Accelerate LAPACK interface (the default; ACCELERATE_LAPACK_ILP64
-// not enabled) is expected to satisfy this, but that is UNOBSERVED here --
-// no Apple compile has run against this header -- so this assert is what
-// turns a violation into a loud compile error instead of silent corruption
-// if it ever doesn't.
+// not enabled) satisfies this on every macOS CI compile. This assert keeps a
+// future interface change loud instead of allowing silent corruption.
 static_assert(std::is_same_v<lapack_int, int>,
               "lapacke_shim.h requires the LP64 Accelerate LAPACK interface "
               "(__LAPACK_int == int); ACCELERATE_LAPACK_ILP64 is not supported here.");

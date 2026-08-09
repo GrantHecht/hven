@@ -69,17 +69,19 @@ jobs:
         run: ./scripts/check_accelerate_syntax_linux.sh
 
   macos-clang-release:
-    # This job is the milestone's first real Apple-hardware vehicle: the
+    # This job raised the milestone's Apple-hardware claim ceiling: the
     # Accelerate session, shim, and Apple-gated test halves
     # (src/linear/accelerate_session.cpp, symmetric_factor_accelerate.cpp,
-    # tests/linear's `#if defined(__APPLE__)` blocks) have so far only been
-    # syntax-checked against a hand-written stub on Linux (the job above) --
-    # see scripts/check_accelerate_syntax_linux.sh's own header comment and
-    # docs/testing.md for exactly what that does and does not prove. This is
-    # where that claim ceiling actually gets raised to "compiled, linked,
-    # and run on real Apple Silicon." First-contact failures here are
-    # expected and are findings about the Accelerate backend, not this
-    # workflow -- see docs/ci.md for how they get folded back in.
+    # tests/linear's `#if defined(__APPLE__)` blocks) had, up to this job's
+    # first green run, only ever been syntax-checked against a hand-written
+    # stub on Linux (the job above) -- see
+    # scripts/check_accelerate_syntax_linux.sh's own header comment and
+    # docs/testing.md for exactly what that does and does not prove. This
+    # job is where that claim ceiling was actually raised to "compiled,
+    # linked, and run on real Apple Silicon." First-contact failures here
+    # were expected and were treated as findings about the Accelerate
+    # backend, not this workflow; the lane has since run green repeatedly
+    # -- see docs/ci.md for how the first run's findings got folded back in.
     runs-on: macos-latest
     permissions:
       contents: read
@@ -140,14 +142,16 @@ jobs:
           if-no-files-found: error
 
   windows-clang-release:
-    # Like the macOS job above, this is a first-contact lane: the
+    # Like the macOS job above, this was a first-contact lane: the
     # Windows/clang-cl compile-flag set in cmake/hven_compile_options.cmake
     # is a byte-for-byte copy of tycho's own already-Windows-verified flags
     # (compared directly against tycho's cmake/tycho_compile_options.cmake
     # at the time this job was written), but hven's own CMake plumbing
     # around it -- HVEN_FP_MODE's SAFER_FAST clang-cl feature-detection
     # check, cmake/FindMKL.cmake's Windows hint paths, MKL discovery via a
-    # freshly-installed oneAPI on this exact runner image -- has not.
+    # freshly-installed oneAPI on this exact runner image -- had not run
+    # before this job. Green Windows runs have since exercised all of it
+    # repeatedly; see docs/ci.md for the run-by-run evidence.
     runs-on: windows-latest
     permissions:
       contents: read

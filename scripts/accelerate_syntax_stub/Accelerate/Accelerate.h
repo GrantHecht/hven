@@ -11,14 +11,13 @@
 // downstream ports this backend follows (tycho's accelerate_interface.h /
 // accelerate_utils.h and tycho_sqp's kkt_system_accelerate.h) -- NOT from
 // Apple's own header, which is unavailable on this Linux development
-// machine. Field names, types, and function signatures are believed
-// correct based on those two precedents' successful (real-hardware-tested)
-// use of the exact same calls, but every declaration here is UNVERIFIED
-// against Apple's actual header. A syntax-only compile against this stub
-// proves internal self-consistency of hven's own code (types used the way
-// they are declared, no typos, no missing includes) -- it does NOT prove
-// this stub matches Apple's real API, and therefore does NOT prove the
-// real code will compile on Apple hardware. See docs/testing.md's claim-ceiling section.
+// machine. Field names, types, and function signatures were based on those
+// two precedents' successful real-hardware use of the same calls. macOS CI
+// now compiles hven's call sites against Apple's actual header, confirming
+// that this stub is compatible with the current SDK surface hven consumes.
+// A syntax-only compile against the stub still proves only internal
+// self-consistency; it does not prove runtime behavior or future-SDK parity.
+// See docs/testing.md's claim-ceiling section.
 //
 // No SNOPT, no Apple-copyrighted material, and no decompiled/reconstructed
 // header content is present here -- every declaration is a minimal

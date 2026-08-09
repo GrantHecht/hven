@@ -20,9 +20,9 @@
 // SparseFactor/SparseSolve call shapes (no caller-managed aligned buffers)
 // are the ones that have actually run against real Accelerate on real Mac
 // hardware, per tycho_sqp/docs/notes/2026-07-29-accelerate-audit-results.md.
-// This file's own compilation and execution on Apple hardware is UNOBSERVED
-// -- see docs/testing.md for exactly what is and is
-// not verified here.
+// This file now compiles and executes against the real Accelerate framework
+// on every macOS CI run. The Linux stub lane remains a narrower structural
+// check; see docs/testing.md for its exact claim ceiling.
 //
 // MPL-2.0 applies to THIS FILE only, as the license permits; the remainder of
 // hven is Apache-2.0. See notices/eigen-mpl2.txt.
@@ -68,10 +68,8 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // fabricating one -- and no
 // native iterative-refinement counter this session can honestly report (a
 // hand-rolled refinement loop, as tycho's AccelerateImpl implements via vDSP,
-// is deliberately NOT ported here: an
-// unverified numerical loop with zero ability to check it on this Linux-only
-// development pass is a correctness risk this task declines to take on
-// speculatively).
+// is deliberately NOT ported here: adding an unverified numerical loop
+// without dedicated numerical validation would be a correctness risk).
 struct AccelerateConfig {
     int num_threads = 0;          // stored only; no per-instance backend control exists
     int pivot_perturb_exp = 8;    // -> zeroTolerance, see FactorSession::factorize
@@ -135,10 +133,10 @@ class FactorSession {
     // factorization on singular/indefinite-beyond-repair input
     // (SparseMatrixIsSingular / SparseFactorizationFailed) rather than
     // perturbing through it -- so this path, unlike the MKL twin's, is not
-    // expected to be unreachable by ordinary fixtures. It remains untested
-    // here regardless: this is a Linux-only development pass with no
-    // Accelerate runtime to provoke it against. See docs/testing.md for the
-    // seam that covers the reachable slice of this backend's fault paths.
+    // expected to be unreachable by ordinary fixtures. Native macOS CI now
+    // runs this backend, but no contract test pins a particular fixture to a
+    // nonzero numeric-factorization status. See docs/testing.md for the seam
+    // that covers the reachable slice of this backend's fault paths.
     int factorize(const SpMatRM &A);
 
     // Full solve, one right-hand side at a time via Accelerate's

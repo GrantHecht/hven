@@ -216,8 +216,8 @@ TEST_P(PsioptTrace, P4_PerturbationEvidencePresenceIsBackendHonest) {
     const hl::InertiaEvidence e = seam.inertia();
 
 #if defined(__APPLE__)
-    // UNOBSERVED on this development pass: never compiled, never run. This is
-    // the assertion a hardcoded zero fails.
+    // The native arm compiles and passes in every macOS CI run. The psiopt-old
+    // Apple arm remains unobserved; this is the assertion its hardcoded zero fails.
     EXPECT_FALSE(e.perturbed_pivots.has_value())
         << "this backend has no perturbed-pivot counter, so the evidence must be ABSENT; a zero "
            "would be a fabricated reading";

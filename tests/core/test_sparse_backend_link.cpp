@@ -13,8 +13,7 @@
 // hven_sparse_backend.cmake) defines USE_ACCELERATE_SPARSE and links
 // AccelerateSparse::AccelerateSparse instead of MKL. Accelerate has no
 // mkl_get_version()-shaped self-report entry point to probe the same way;
-// this leg is currently UNOBSERVED (no Apple Silicon hardware — see
-// docs/ci.md) and is recorded rather than skipped silently.
+// this leg is skipped because there is no equivalent entry point to probe.
 TEST(SparseBackendLink, AcceleratePlaceholderUnobserved) {
     GTEST_SKIP() << "Accelerate backend: no MKL-equivalent entry point to "
                     "probe here; see docs/ci.md Mac lane.";

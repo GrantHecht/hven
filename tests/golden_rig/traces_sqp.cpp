@@ -525,6 +525,13 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
             << "this seam reports a perturbed-pivot count, so the field must be present";
 #endif
     }
+    // UNLIKE the perturbed_pivots block above, this refinement_iters block below carries no
+    // `if (GetParam().seam == SeamId::kNative)` arm gate -- and none is needed today: on Apple,
+    // seam_psiopt.cpp declares kReportsRefinementIters=false, so caps.reports_refinement_iters
+    // is already false for the psiopt-old arm and this block never runs against it. If that
+    // constexpr is ever flipped to true, this block would run arm-blind against the old seam
+    // too, silently re-creating the exact fabrication risk the perturbed_pivots gate above
+    // exists to avoid -- add the same native-arm gate here if that happens.
     if (caps.reports_refinement_iters) {
 #if defined(__APPLE__)
         EXPECT_FALSE(info.refinement_iters.has_value())
@@ -553,10 +560,10 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
 // multithreaded run only as unasserted smoke, and this trace's amendment says
 // in as many words that the stronger claim is retained only if a derivation
 // run demonstrates it for this trace's own matrix and that otherwise the
-// observed deviation is recorded as documentation. No derivation has run yet,
-// so asserting a tolerance here would be inventing the very expectation this
-// task is not allowed to invent. What IS asserted about the values is that
-// they are finite -- a crash-or-garbage guard, which is what "smoke" means.
+// observed deviation is recorded as documentation. The Linux derivation kept
+// these cross-thread quantities record-only, so no tolerance is asserted here.
+// What IS asserted about the values is that they are finite -- a
+// crash-or-garbage guard, which is what "smoke" means.
 //
 // Measured while writing this trace, and worth knowing before the derivation
 // reads the row: on this collocation class the deviation is not always zero.

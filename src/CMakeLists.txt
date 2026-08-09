@@ -26,11 +26,10 @@ if(NOT APPLE)
         linear/symmetric_factor_mkl.cpp
     )
 else()
-    # UNOBSERVED beyond a Linux syntax-only structural pass against a stub
-    # Accelerate.h (scripts/check_accelerate_syntax_linux.sh) -- this branch
-    # has never been configured or built by this development pass. See
-    # docs/testing.md for exactly what that pass does
-    # and does not prove.
+    # This branch is configured, built, and tested against the real Accelerate
+    # framework on every macOS CI run. The Linux syntax-only pass against a
+    # stub Accelerate.h (scripts/check_accelerate_syntax_linux.sh) remains a
+    # narrower structural cross-check; docs/testing.md states its claim ceiling.
     target_sources(hven PRIVATE
         linear/accelerate_session.cpp
         linear/symmetric_factor_accelerate.cpp

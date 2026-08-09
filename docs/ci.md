@@ -190,25 +190,16 @@ synthetic `MKLROOT` tree; the offline-installer route needs neither, since
 its install layout is the same `<oneAPI root>/mkl/<version>/...` shape
 `cmake/FindMKL.cmake`'s existing (Linux-derived) hints already anticipate.
 
-**The cache's SAVE path is proven; its RESTORE path is UNOBSERVED.** Every
-run to date logged `Cache not found for input keys` on the `actions/cache`
-step — the first four because the job failed before `actions/cache`'s
-post-step save runs (`actions/cache` does not persist a cache from a failed
-job), and the fifth because no prior successful save existed yet to hit.
-That fifth (green) run's post-step logged `Cache saved with key:
-Windows-windows-oneapi-2026.1.0.191-mkl.devel-openmp-v1` (the ~1.17 GB
-`mkl/` + `compiler/` tree), so a cache entry now exists — but no CI run has
-yet actually restored from it and built against the restored tree.
-Whether a cache-hit run (a) correctly skips the install step
-(`if: steps.cache-oneapi-mkl.outputs.cache-hit != 'true'`) and (b) finds a
-restored-but-never-installed tree fully satisfies `cmake/FindMKL.cmake` and
-the PATH step below without anything the installer would otherwise have
-written to the registry, is inferred from this job's layering (acquisition,
-link-time discovery, and load-time PATH resolution are all separately,
-purely file/env-var driven — see the design note two paragraphs up) rather
-than observed. The next push that does NOT change `HVEN_ONEAPI_CACHE_KEY`
-is what actually exercises this path for the first time; watch that run's
-logs for a `Cache restored from key` line before trusting it further.
+**The cache's SAVE and RESTORE paths have both run successfully.** The first
+green cold run saved the ~1.17 GB `mkl/` + `compiler/` tree under
+`Windows-windows-oneapi-2026.1.0.191-mkl.devel-openmp-v1`. GitHub Actions
+run [31289696937](https://github.com/GrantHecht/hven/actions/runs/31289696937),
+job `windows-clang-release`, then recorded a cache hit, skipped the
+conditional install step, and used the restored tree to configure, build,
+and pass all 113 tests. That cache-hit job finished in 2m42s, compared with
+18m34s for the cold run. The restored files plus the exported `MKLROOT`,
+`ONEAPI_ROOT`, and PATH entries were therefore sufficient without registry
+state from an installer invocation in that job.
 
 **Local Windows builds have a hard `bash` prerequisite, not just a Ninja and
 clang-cl one.** `tests/golden_rig/CMakeLists.txt` locates `bash`
@@ -226,19 +217,23 @@ step for it — a local Windows checkout does, if it lacks Git for Windows
 (most won't, but it is worth stating as a real prerequisite rather than
 leaving a first-time contributor to discover it from a configure error).
 
-**The Windows/clang-cl flag set has not run here before either.**
-`cmake/hven_compile_options.cmake`'s `WIN32` branches were migrated from
-tycho verbatim — a direct diff against tycho's own
-`cmake/tycho_compile_options.cmake` at the time this job was written showed
-no functional difference, only comment wording — so the flags themselves
-carry tycho's own Windows track record. What has never run before is
-everything hven-specific wrapped around them on this exact runner image:
-`HVEN_FP_MODE=SAFER_FAST`'s clang-cl `/clang:-fno-finite-math-only`
-feature-detection check (`CMakeLists.txt`), `cmake/FindMKL.cmake`'s Windows
-hint paths against a freshly-installed oneAPI, and the combination of all
-of the above with `cmake/hven_sparse_backend.cmake`'s non-Apple branch.
-First-contact failures here get the same treatment as the macOS lane above:
-fixed, documented, not treated as an indictment of the workflow.
+**The Windows/clang-cl flag set had never run here before this job; it now
+has, green, repeatedly.** `cmake/hven_compile_options.cmake`'s `WIN32`
+branches were migrated from tycho verbatim — a direct diff against tycho's
+own `cmake/tycho_compile_options.cmake` at the time this job was written
+showed no functional difference, only comment wording — so the flags
+themselves carried tycho's own Windows track record even before this job
+ran. What had never run before was everything hven-specific wrapped around
+them on this exact runner image: `HVEN_FP_MODE=SAFER_FAST`'s clang-cl
+`/clang:-fno-finite-math-only` feature-detection check (`CMakeLists.txt`),
+`cmake/FindMKL.cmake`'s Windows hint paths against a freshly-installed
+oneAPI, and the combination of all of the above with
+`cmake/hven_sparse_backend.cmake`'s non-Apple branch. Those first-contact
+risks are now resolved: green Windows runs have executed the
+feature-detection check, resolved a freshly installed or cache-restored
+oneAPI tree through `cmake/FindMKL.cmake`'s Windows hints, and configured
+the non-Apple branch, before building and passing the full Windows test
+set — with no first-contact failures surfacing to document.
 
 ## Build and test presets: what CI actually exercises
 

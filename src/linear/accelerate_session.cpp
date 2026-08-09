@@ -180,13 +180,11 @@ int FactorSession::factorize(const SpMatRM &A) {
     // functional SHAPE Apple's own default already uses (1e-4 * eps is
     // exactly this formula at k = 4).
     //
-    // NAMED QUESTION FOR THE MAC HARDWARE LEG, not resolved here: hven's
-    // OWN default is k = 8, i.e. zeroTolerance ~= 2.2e-24 -- FOUR ORDERS OF
-    // MAGNITUDE TIGHTER than k = 4 (~= 2.2e-20), which is the only
-    // configuration of this parameter that has actually run on real
-    // Accelerate hardware (kkt_system_accelerate.h:393, hardcoded, part of
-    // the audited KktSystem precedent). hven's shipped default therefore
-    // diverges from the sole hardware-proven value, and "tighter" is NOT
+    // When this implementation was written, the only real-hardware precedent
+    // was k = 4 (~= 2.2e-20; kkt_system_accelerate.h:393, hardcoded, part of
+    // the audited KktSystem precedent). hven's own k = 8 default makes
+    // zeroTolerance ~= 2.2e-24 -- FOUR ORDERS OF MAGNITUDE TIGHTER -- and
+    // therefore diverges from that precedent. "Tighter" is NOT
     // straightforwardly "safer": a smaller zeroTolerance means a
     // tiny-but-nonzero pivot is more likely to be USED by threshold partial
     // pivoting rather than caught by the zero check, which on a
@@ -194,11 +192,10 @@ int FactorSession::factorize(const SpMatRM &A) {
     // improve it -- "directionally conservative" is true only for evidence
     // honesty (less eager to declare a zero pivot that isn't observed), not
     // obviously conservative numerically. This is a documented engineering
-    // choice, not a claimed equivalence to Pardiso's perturbation semantics,
-    // and it is UNOBSERVED on real Accelerate hardware. The Mac leg's
-    // checklist item: A/B k=8 (this default) against k=4 (the hardware-
-    // proven value) on the golden-rig fixtures, not merely "confirm no
-    // surprising effect" -- flagged for hardware adjudication on the Mac leg.
+    // choice, not a claimed equivalence to Pardiso's perturbation semantics.
+    // The shipped k=8 default now runs green on real Apple Silicon in native
+    // macOS CI; what remains UNOBSERVED is the Mac A/B of k=8 against k=4 on
+    // the golden-rig fixtures, not merely "confirm no surprising effect."
     SparseNumericFactorOptions nopts{};
     nopts.control = SparseDefaultControl;
     nopts.scalingMethod = SparseScalingDefault;

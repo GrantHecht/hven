@@ -23,11 +23,10 @@
 // deliberately kept in lock-step shape so a reader who knows one can find
 // their way around the other, even though neither #includes the other.
 //
-// UNOBSERVED: this file has been syntax-checked against a minimal local stub
-// of <Accelerate/Accelerate.h> on Linux (see scripts/check_accelerate_syntax_
-// linux.sh) but has never been compiled against the real Accelerate headers
-// or run on Apple hardware. See docs/testing.md for
-// exactly what that check does and does not prove.
+// This file compiles and runs against the real Accelerate framework on every
+// macOS CI run. The minimal local-stub pass on Linux
+// (scripts/check_accelerate_syntax_linux.sh) remains a narrower structural
+// check; docs/testing.md states exactly what that pass does and does not prove.
 
 #include "hven/linear/symmetric_factor.h"
 
@@ -467,9 +466,9 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
         // (and was measured on real hardware by the tycho_sqp audit,
         // 2026-07-29-accelerate-audit-results.md) to genuinely refuse a
         // numeric factorization on some singular/indefinite input rather
-        // than perturbing through it. It remains untested here regardless --
-        // this is a Linux-only development pass with no Accelerate runtime
-        // to provoke it against. See docs/testing.md.
+        // than perturbing through it. Native macOS CI now runs this backend,
+        // but no contract test pins a particular fixture to this nonzero-status
+        // branch. See docs/testing.md.
     }
     return outcome;
 }

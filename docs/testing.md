@@ -276,12 +276,12 @@ given build actually links — is covered separately, by
 `tests/linear/test_symmetric_factor_evidence_invariants.cpp`: written once,
 BUILT to compile and run on both platforms (unlike
 `test_symmetric_factor.cpp`, which is MKL-specific and gated
-`if(NOT APPLE)`). Execution status: on the only pass that has run —
-Linux/MKL — only the non-Apple half of each platform-split test file
-compiled and executed; the Accelerate halves (including the Accelerate
-inertia-query fault-injection test) are syntax-checked against stubs only
-and first EXECUTE on the Mac hardware leg. The file asserts properties that
-hold by construction regardless of which backend answers them (a present
+`if(NOT APPLE)`). Linux and Windows CI compile and execute the MKL halves of
+the platform-split tests; macOS CI compiles and executes their Accelerate
+halves against the real framework, including the Accelerate inertia-query
+fault-injection test. The Linux stub lane remains an additional syntax-only
+check of the Apple halves. The file asserts properties that hold by
+construction regardless of which backend answers them (a present
 `perturbed_pivots` is never negative; an absent one implies
 `supports_partial_solve() == false`; `zero_is_derived` matches the
 per-backend semantics table). The one assertion that needs to know which
@@ -317,7 +317,7 @@ spec A.3, `hven/linear/symmetric_factor.h`'s own doc comment on
 
 Like `test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides
 the Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
-rather than executing on this Linux-only development pass.
+and also compiles and executes against the real framework in macOS CI.
 
 ## The golden-numerics rig
 

@@ -285,8 +285,8 @@ Stated because an audit's negative results are part of its output:
   ("the coverage claim is observed, not assumed"). The traces already
   cover every touchpoint class the audit found; findings 1–8 are surface
   questions for the freeze gate, not gaps in what the rig exercises. The
-  one item that would want a trace — Accelerate ordering, finding 7 — has
-  no arm to run on until the Mac leg exists.
+  Accelerate ordering mapping identified by finding 7 now has native-arm
+  coverage in the macOS CI lane.
 - **The 64-bit Pardiso entry point is reachable in principle but not
   consumed.** `pardiso_64` appears exactly once, in the
   `pardiso_run_selector<long long int>` specialization
