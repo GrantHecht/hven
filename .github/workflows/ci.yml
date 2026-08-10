@@ -61,7 +61,7 @@ jobs:
         # runner as the derivation machine would make them assert against
         # hardware they were never observed on, which is the false claim the
         # context gate exists to prevent.
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --timeout 300
 
       - name: Accelerate backend syntax check (Linux, stubbed)
         # Cheap (a handful of `clang++ -fsyntax-only` calls, no MKL/network
@@ -149,7 +149,7 @@ jobs:
         # HVEN_RIG_MACHINE comes from the label step above (via $GITHUB_ENV),
         # which is what makes the committed Accelerate float rows genuinely
         # assert here rather than report CONTEXT-MISMATCH.
-        run: ctest --test-dir build-macos --output-on-failure
+        run: ctest --test-dir build-macos --output-on-failure --timeout 300
 
       # The Accelerate arm of every expected table is UNOBSERVED, and this
       # runner is the only Apple hardware the project reaches. Report mode
@@ -299,7 +299,7 @@ jobs:
         # the committed float rows name the machine they were derived on, this
         # runner is not it, and labelling it as such would make those rows
         # assert against hardware they were never observed on.
-        run: ctest --test-dir build-windows --output-on-failure
+        run: ctest --test-dir build-windows --output-on-failure --timeout 300
 
       - name: Save oneAPI install logs
         if: always() && steps.cache-oneapi-mkl.outputs.cache-hit != 'true'
