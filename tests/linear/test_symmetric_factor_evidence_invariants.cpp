@@ -140,4 +140,60 @@ TEST_F(SymmetricFactorEvidenceInvariants, ZeroClassDerivationMatchesTheBackendCo
 #endif
 }
 
+// FactorEvidence's per-backend semantics table, checked the same way as
+// ZeroClassDerivationMatchesTheBackendContract above: with
+// report_factor_evidence off (this fixture's default Options), every field
+// is absent on both backends -- no field is ever a fabricated zero.
+TEST_F(SymmetricFactorEvidenceInvariants, FactorEvidenceAbsentWhenNotRequested) {
+    const SpMatRM A = upper_csr(spd4());
+    factor.analyze(A);
+    const auto outcome = factor.factorize(A);
+    ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk);
+
+    Vec rhs = Vec::Ones(4);
+    Vec x(4);
+    const auto info = factor.solve(rhs, x);
+
+    EXPECT_FALSE(info.factor.factor_nonzeros.has_value());
+    EXPECT_FALSE(info.factor.factor_mflops.has_value());
+    EXPECT_FALSE(info.factor.factor_size_bytes.has_value());
+}
+
+// With report_factor_evidence on, each backend populates its OWN fields and
+// leaves the other backend's fields absent -- the two never share a name
+// under a shared meaning. This is the one assertion in this block that
+// needs to know which backend it is running against, via the standard
+// predefined macro, same as ZeroClassDerivationMatchesTheBackendContract.
+TEST(SymmetricFactorFactorEvidence, RequestedEvidenceMatchesTheBackendContract) {
+    SymmetricFactor::Options opts;
+    opts.report_factor_evidence = true;
+    SymmetricFactor factor{opts};
+
+    Mat A4(4, 4);
+    A4 << 2, -1, 0, 0, /**/ -1, 2, -1, 0, /**/ 0, -1, 2, -1, /**/ 0, 0, -1, 2;
+    const SpMatRM A = upper_csr(A4);
+    factor.analyze(A);
+    const auto outcome = factor.factorize(A);
+    ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk);
+
+    Vec rhs = Vec::Ones(4);
+    Vec x(4);
+    const auto info = factor.solve(rhs, x);
+
+#if defined(__APPLE__)
+    EXPECT_FALSE(info.factor.factor_nonzeros.has_value())
+        << "Accelerate has no nonzero-count counter";
+    EXPECT_FALSE(info.factor.factor_mflops.has_value()) << "Accelerate reports no cost estimate";
+    ASSERT_TRUE(info.factor.factor_size_bytes.has_value());
+    EXPECT_GT(*info.factor.factor_size_bytes, 0);
+#else
+    ASSERT_TRUE(info.factor.factor_nonzeros.has_value());
+    ASSERT_TRUE(info.factor.factor_mflops.has_value());
+    EXPECT_GE(*info.factor.factor_nonzeros, 0);
+    EXPECT_GE(*info.factor.factor_mflops, 0);
+    EXPECT_FALSE(info.factor.factor_size_bytes.has_value())
+        << "MKL reports an entry count and a cost estimate, never a byte size";
+#endif
+}
+
 } // namespace

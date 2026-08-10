@@ -242,6 +242,69 @@ void FactorSession::analyze(const SpMatRM &A) {
             static_cast<int>(iparm_[12]);
 #endif
     }
+    // iparm[10]: matrix scaling. Same don't-write-by-default shape as
+    // iparm[12] above -- see SymmetricFactor::Options::matrix_scaling.
+    if (cfg_.matrix_scaling) {
+        iparm_[10] = 1;
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::matrix_scaling_was_written = true;
+        testing::PardisoIparmObserver::matrix_scaling_written_value = static_cast<int>(iparm_[10]);
+#endif
+    }
+    // iparm[20]: pivoting strategy for symmetric indefinite matrices. Left
+    // untouched (pardisoinit's own value survives) when cfg_.pivot_strategy
+    // is nullopt; a present value overrides it verbatim -- see
+    // SymmetricFactor::Options::PivotStrategy.
+    if (cfg_.pivot_strategy.has_value()) {
+        iparm_[20] = static_cast<MKL_INT>(*cfg_.pivot_strategy);
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::pivot_strategy_was_written = true;
+        testing::PardisoIparmObserver::pivot_strategy_written_value = static_cast<int>(iparm_[20]);
+#endif
+    }
+    // iparm[23]: the two-level factorization algorithm. Left untouched when
+    // cfg_.factorization_algorithm is nullopt; a present value overrides it
+    // verbatim -- see SymmetricFactor::Options::FactorizationAlgorithm.
+    if (cfg_.factorization_algorithm.has_value()) {
+        iparm_[23] = static_cast<MKL_INT>(*cfg_.factorization_algorithm);
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::factorization_algorithm_was_written = true;
+        testing::PardisoIparmObserver::factorization_algorithm_written_value =
+            static_cast<int>(iparm_[23]);
+#endif
+    }
+    // iparm[24]: parallel forward/backward solve. Same don't-write-by-
+    // default shape as iparm[12] -- see
+    // SymmetricFactor::Options::parallel_solve.
+    if (cfg_.parallel_solve) {
+        iparm_[24] = 1;
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::parallel_solve_was_written = true;
+        testing::PardisoIparmObserver::parallel_solve_written_value = static_cast<int>(iparm_[24]);
+#endif
+    }
+    // iparm[33]: thread count for conditional numerical reproducibility
+    // (CNR) mode. 0 means "leave iparm[33] alone" -- CNR off -- see
+    // SymmetricFactor::Options::cnr_threads.
+    if (cfg_.cnr_threads > 0) {
+        iparm_[33] = static_cast<MKL_INT>(cfg_.cnr_threads);
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::cnr_was_written = true;
+        testing::PardisoIparmObserver::cnr_written_value = static_cast<int>(iparm_[33]);
+#endif
+    }
+    // iparm[17] / iparm[18]: factor-size evidence request (nonzero count,
+    // Mflop count). Left untouched unless requested -- see
+    // SymmetricFactor::Options::report_factor_evidence. Both entries are
+    // written together under one guard, so they carry one was-written flag
+    // rather than a pair.
+    if (cfg_.report_factor_evidence) {
+        iparm_[17] = -1;
+        iparm_[18] = -1;
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::factor_evidence_was_written = true;
+#endif
+    }
 
     matrix_ = A;
 
@@ -307,6 +370,15 @@ int FactorSession::factorize(const SpMatRM &A) {
     n_pos_ = iparm_[21];
     n_neg_ = iparm_[22];
     perturbed_pivots_ = iparm_[13];
+
+    // iparm[17] / iparm[18]: factor nonzero count and Mflop count, read
+    // back only when cfg_.report_factor_evidence requested them at
+    // analyze() time -- otherwise these entries hold whatever pardisoinit
+    // left them at, which is not this session's own observation to report.
+    if (cfg_.report_factor_evidence) {
+        factor_nonzeros_ = iparm_[17];
+        factor_mflops_ = iparm_[18];
+    }
 
     has_numerics_ = true;
     ++epoch_;

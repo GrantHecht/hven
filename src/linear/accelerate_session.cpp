@@ -201,8 +201,16 @@ int FactorSession::factorize(const SpMatRM &A) {
     nopts.scalingMethod = SparseScalingDefault;
     nopts.scaling = nullptr;
     nopts.pivotTolerance = 0.01;
-    nopts.zeroTolerance = std::pow(10.0, -static_cast<double>(cfg_.pivot_perturb_exp)) *
-                          std::numeric_limits<double>::epsilon();
+    // zero_tolerance_override (Options::accelerate_zero_tolerance) bypasses
+    // the pivot_perturb_exp-derived formula entirely when present -- an
+    // explicit absolute threshold, not a further exponent to feed the
+    // formula. std::nullopt (the common case) leaves the formula as the
+    // only source for this value, unchanged from before this option
+    // existed.
+    nopts.zeroTolerance = cfg_.zero_tolerance_override.has_value()
+                              ? *cfg_.zero_tolerance_override
+                              : std::pow(10.0, -static_cast<double>(cfg_.pivot_perturb_exp)) *
+                                    std::numeric_limits<double>::epsilon();
 
     SparseMatrix_Double amat{};
     amat.structure = structure();

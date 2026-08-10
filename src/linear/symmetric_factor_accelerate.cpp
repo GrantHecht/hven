@@ -153,6 +153,13 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
     cfg.max_refinement_iters = opts.max_refinement_iters;
     cfg.ordering = accelerate_ordering_code(opts.ordering);
+    // matrix_scaling, pivot_strategy, factorization_algorithm,
+    // parallel_solve and cnr_threads are Pardiso-only -- the constructor
+    // below throws before construction succeeds on any non-default value,
+    // so AccelerateConfig carries no fields for them at all, matching
+    // weighted_matching's existing precedent.
+    cfg.zero_tolerance_override = opts.accelerate_zero_tolerance;
+    cfg.report_factor_evidence = opts.report_factor_evidence;
     return cfg;
 }
 
@@ -261,6 +268,21 @@ InertiaEvidence evidence_of(const detail::FactorSession &session) {
     return evidence;
 }
 
+// Builds the factor-size evidence for a session's current factorization.
+//
+// The Accelerate column of the FactorEvidence semantics table, in code:
+// present only when Options::report_factor_evidence requested it (see
+// FactorSession::has_factor_evidence()); factor_nonzeros/factor_mflops stay
+// std::nullopt unconditionally on this backend, which reports a byte size
+// instead, never an entry count, and reports no cost estimate at all.
+FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
+    FactorEvidence evidence;
+    if (session.has_factor_evidence()) {
+        evidence.factor_size_bytes = static_cast<Index>(session.factor_size_bytes());
+    }
+    return evidence;
+}
+
 // Shared solve bodies: SymmetricFactor and Factorization differ in who may
 // call them, not in what they do. Identical shape to
 // symmetric_factor_mkl.cpp's own run_solve pair; only the backend call
@@ -280,7 +302,12 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
             what, X.rows(), X.cols(), RHS.rows(), RHS.cols()));
     }
     if (X.cols() == 0) {
-        return SolveInfo{}; // nothing to solve; never reaches the backend
+        // Nothing to solve; never reaches the backend. Still reports the
+        // current factorization's own evidence -- see the identical note in
+        // symmetric_factor_mkl.cpp's own run_solve.
+        SolveInfo info;
+        info.factor = factor_evidence_of(session);
+        return info;
     }
 
     // Accelerate's DenseVector_Double solve (see FactorSession::solve) needs
@@ -308,7 +335,9 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
     // Accelerate reports no iterative-refinement count this session can
     // honestly surface (see AccelerateConfig's doc comment) -- absent,
     // never a fabricated value.
-    return SolveInfo{};
+    SolveInfo info;
+    info.factor = factor_evidence_of(session);
+    return info;
 }
 
 SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRef x,
@@ -329,7 +358,9 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
     Vec rhs_buffer = rhs;
     session.solve(rhs_buffer.data(), x.data(), 1);
 
-    return SolveInfo{};
+    SolveInfo info;
+    info.factor = factor_evidence_of(session);
+    return info;
 }
 
 // Maps the frozen SolvePhase enum onto the SubfactorPhase FactorSession's
@@ -378,6 +409,11 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             fmt::format("SymmetricFactor: max_refinement_iters must be >= 0, got {}",
                         opts_.max_refinement_iters));
     }
+    if (opts_.cnr_threads < 0) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: cnr_threads must be >= 0 (0 means CNR mode is off), got {}",
+            opts_.cnr_threads));
+    }
 
     // weighted_matching is a Pardiso-only concept (it configures iparm[12],
     // which has no Accelerate analogue -- Apple's own matching precedent,
@@ -398,6 +434,62 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             "SymmetricFactor: Options::weighted_matching is a Pardiso-only option and has no {} "
             "equivalent -- requires false on this backend, got true",
             kBackendName));
+    }
+
+    // matrix_scaling: same judgment as weighted_matching, and for the same
+    // reason (see Options::matrix_scaling's own doc comment) -- iparm[10]'s
+    // MPS scaling is computed FROM the weighted-matching permutation, so a
+    // backend with no matching has no scaling to pair it with either.
+    if (opts_.matrix_scaling) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::matrix_scaling is a Pardiso-only option and has no {} "
+            "equivalent -- requires false on this backend, got true",
+            kBackendName));
+    }
+    // pivot_strategy: Pardiso-only -- Accelerate's LDLTTPP factorization has
+    // a fixed pivoting scheme with no per-call selector.
+    if (opts_.pivot_strategy != Options::PivotStrategy::kBackendDefault) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: Options::pivot_strategy is a Pardiso-only option and has "
+                        "no {} equivalent -- requires kBackendDefault on this backend",
+                        kBackendName));
+    }
+    // factorization_algorithm: Pardiso-only -- Accelerate has no two-level
+    // factorization concept.
+    if (opts_.factorization_algorithm != Options::FactorizationAlgorithm::kBackendDefault) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::factorization_algorithm is a Pardiso-only option and has no "
+            "{} equivalent -- requires kBackendDefault on this backend",
+            kBackendName));
+    }
+    // parallel_solve: Pardiso-only -- Accelerate has no per-instance thread
+    // control for this to parallelize a solve with.
+    if (opts_.parallel_solve) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::parallel_solve is a Pardiso-only option and has no {} "
+            "equivalent -- requires false on this backend, got true",
+            kBackendName));
+    }
+    // cnr_threads: Pardiso-only -- Accelerate has no CNR reproducibility
+    // concept, and this is a guarantee a silent no-op would misrepresent
+    // (see the option's own doc comment).
+    if (opts_.cnr_threads > 0) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::cnr_threads is a Pardiso-only option and has no {} "
+            "equivalent -- requires 0 on this backend, got {}",
+            kBackendName, opts_.cnr_threads));
+    }
+
+    // accelerate_zero_tolerance is this backend's own knob (checked for
+    // validity here, symmetrically with how MKL's own throw for it lives in
+    // its own adapter file's constructor).
+    if (opts_.accelerate_zero_tolerance.has_value()) {
+        const double value = *opts_.accelerate_zero_tolerance;
+        if (!(value > 0.0) || !std::isfinite(value)) {
+            throw std::invalid_argument(fmt::format(
+                "SymmetricFactor: accelerate_zero_tolerance must be finite and > 0, got {}",
+                value));
+        }
     }
 }
 
@@ -514,7 +606,9 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
     session_->solve_partial(backend_phase, rhs_buffer.data(), x.data());
     ++counters_.partial_solve_count;
 
-    return SolveInfo{}; // no refinement count to report on this backend
+    SolveInfo info; // no refinement count to report on this backend
+    info.factor = factor_evidence_of(*session_);
+    return info;
 }
 
 // Unconditionally false on Accelerate: perturbation evidence is entirely
@@ -563,6 +657,8 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
     opts.max_refinement_iters = cfg.max_refinement_iters;
     opts.ordering = accelerate_ordering_of(cfg.ordering);
+    opts.accelerate_zero_tolerance = cfg.zero_tolerance_override;
+    opts.report_factor_evidence = cfg.report_factor_evidence;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;

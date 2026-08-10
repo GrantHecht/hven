@@ -83,6 +83,96 @@ SymmetricFactor::Options::Ordering pardiso_ordering_of(std::optional<int> code) 
     }
 }
 
+// Maps SymmetricFactor::Options::PivotStrategy onto the raw iparm[20]
+// override PardisoConfig carries (std::nullopt = don't write, matching
+// kBackendDefault exactly). Explicit switch, not a bare cast, for the same
+// reason pardiso_ordering_code is one.
+std::optional<int> pardiso_pivot_strategy_code(SymmetricFactor::Options::PivotStrategy strategy) {
+    using PivotStrategy = SymmetricFactor::Options::PivotStrategy;
+    switch (strategy) {
+    case PivotStrategy::kBackendDefault:
+        return std::nullopt;
+    case PivotStrategy::kOneByOne:
+        return 0;
+    case PivotStrategy::kTwoByTwo:
+        return 1;
+    case PivotStrategy::kE4:
+        return 4;
+    case PivotStrategy::kE6:
+        return 6;
+    case PivotStrategy::kE8:
+        return 8;
+    case PivotStrategy::kE13:
+        return 13;
+    }
+    throw std::invalid_argument(fmt::format(
+        "SymmetricFactor: unknown Options::PivotStrategy value ({})", static_cast<int>(strategy)));
+}
+
+// The inverse of pardiso_pivot_strategy_code, for adopt() round-tripping.
+SymmetricFactor::Options::PivotStrategy pardiso_pivot_strategy_of(std::optional<int> code) {
+    using PivotStrategy = SymmetricFactor::Options::PivotStrategy;
+    if (!code.has_value()) {
+        return PivotStrategy::kBackendDefault;
+    }
+    switch (*code) {
+    case 0:
+        return PivotStrategy::kOneByOne;
+    case 1:
+        return PivotStrategy::kTwoByTwo;
+    case 4:
+        return PivotStrategy::kE4;
+    case 6:
+        return PivotStrategy::kE6;
+    case 8:
+        return PivotStrategy::kE8;
+    case 13:
+        return PivotStrategy::kE13;
+    default:
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor::adopt: unrecognized stored pivot strategy code ({})", *code));
+    }
+}
+
+// Maps SymmetricFactor::Options::FactorizationAlgorithm onto the raw
+// iparm[23] override PardisoConfig carries (std::nullopt = don't write,
+// matching kBackendDefault exactly).
+std::optional<int>
+pardiso_factorization_algorithm_code(SymmetricFactor::Options::FactorizationAlgorithm algorithm) {
+    using FactorizationAlgorithm = SymmetricFactor::Options::FactorizationAlgorithm;
+    switch (algorithm) {
+    case FactorizationAlgorithm::kBackendDefault:
+        return std::nullopt;
+    case FactorizationAlgorithm::kClassic:
+        return 0;
+    case FactorizationAlgorithm::kTwoLevel:
+        return 1;
+    }
+    throw std::invalid_argument(
+        fmt::format("SymmetricFactor: unknown Options::FactorizationAlgorithm value ({})",
+                    static_cast<int>(algorithm)));
+}
+
+// The inverse of pardiso_factorization_algorithm_code, for adopt()
+// round-tripping.
+SymmetricFactor::Options::FactorizationAlgorithm
+pardiso_factorization_algorithm_of(std::optional<int> code) {
+    using FactorizationAlgorithm = SymmetricFactor::Options::FactorizationAlgorithm;
+    if (!code.has_value()) {
+        return FactorizationAlgorithm::kBackendDefault;
+    }
+    switch (*code) {
+    case 0:
+        return FactorizationAlgorithm::kClassic;
+    case 1:
+        return FactorizationAlgorithm::kTwoLevel;
+    default:
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor::adopt: unrecognized stored factorization algorithm code ({})",
+            *code));
+    }
+}
+
 detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     detail::PardisoConfig cfg;
     // Real symmetric indefinite. Only kLDLT reaches here -- the constructor
@@ -93,6 +183,13 @@ detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.max_refinement_iters = opts.max_refinement_iters;
     cfg.ordering = pardiso_ordering_code(opts.ordering);
     cfg.weighted_matching = opts.weighted_matching;
+    cfg.matrix_scaling = opts.matrix_scaling;
+    cfg.pivot_strategy = pardiso_pivot_strategy_code(opts.pivot_strategy);
+    cfg.factorization_algorithm =
+        pardiso_factorization_algorithm_code(opts.factorization_algorithm);
+    cfg.parallel_solve = opts.parallel_solve;
+    cfg.cnr_threads = opts.cnr_threads;
+    cfg.report_factor_evidence = opts.report_factor_evidence;
     return cfg;
 }
 
@@ -167,6 +264,22 @@ InertiaEvidence evidence_of(const detail::FactorSession &session) {
     return evidence;
 }
 
+// Builds the factor-size evidence for a session's current factorization.
+//
+// The MKL column of the FactorEvidence semantics table, in code: present
+// only when Options::report_factor_evidence requested it (see
+// FactorSession::has_factor_evidence()); factor_size_bytes stays
+// std::nullopt unconditionally on this backend, which reports an entry
+// count and a cost estimate instead, never a byte size.
+FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
+    FactorEvidence evidence;
+    if (session.has_factor_evidence()) {
+        evidence.factor_nonzeros = session.factor_nonzeros();
+        evidence.factor_mflops = session.factor_mflops();
+    }
+    return evidence;
+}
+
 // Shared solve bodies: SymmetricFactor and Factorization differ in who may
 // call them, not in what they do.
 SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRef X,
@@ -184,7 +297,12 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
             what, X.rows(), X.cols(), RHS.rows(), RHS.cols()));
     }
     if (X.cols() == 0) {
-        return SolveInfo{}; // nothing to solve; never reaches the backend
+        // Nothing to solve; never reaches the backend. Still reports the
+        // current factorization's own evidence, which does not depend on
+        // this particular (empty) solve having happened.
+        SolveInfo info;
+        info.factor = factor_evidence_of(session);
+        return info;
     }
 
     // Pardiso needs contiguous column-major buffers and cannot solve in
@@ -209,6 +327,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
 
     SolveInfo info;
     info.refinement_iters = session.refinement_iters();
+    info.factor = factor_evidence_of(session);
     return info;
 }
 
@@ -232,6 +351,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
 
     SolveInfo info;
     info.refinement_iters = session.refinement_iters();
+    info.factor = factor_evidence_of(session);
     return info;
 }
 
@@ -275,6 +395,22 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
         throw std::invalid_argument(
             fmt::format("SymmetricFactor: max_refinement_iters must be >= 0, got {}",
                         opts_.max_refinement_iters));
+    }
+    if (opts_.cnr_threads < 0) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: cnr_threads must be >= 0 (0 means CNR mode is off), got {}",
+            opts_.cnr_threads));
+    }
+
+    // accelerate_zero_tolerance is Accelerate's own knob (it overrides
+    // Accelerate's zeroTolerance directly); MKL has no zeroTolerance
+    // concept for it to override. A present value here would otherwise be
+    // silently ignored on this backend, exactly the situation
+    // weighted_matching's own throw exists to prevent.
+    if (opts_.accelerate_zero_tolerance.has_value()) {
+        throw std::invalid_argument(
+            "SymmetricFactor: Options::accelerate_zero_tolerance is an Accelerate-only option and "
+            "has no MKL equivalent -- requires std::nullopt on this backend, got a value");
     }
 }
 
@@ -419,6 +555,7 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
 
     SolveInfo info;
     info.refinement_iters = session_->refinement_iters();
+    info.factor = factor_evidence_of(*session_);
     return info;
 }
 
@@ -474,6 +611,12 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.max_refinement_iters = cfg.max_refinement_iters;
     opts.ordering = pardiso_ordering_of(cfg.ordering);
     opts.weighted_matching = cfg.weighted_matching;
+    opts.matrix_scaling = cfg.matrix_scaling;
+    opts.pivot_strategy = pardiso_pivot_strategy_of(cfg.pivot_strategy);
+    opts.factorization_algorithm = pardiso_factorization_algorithm_of(cfg.factorization_algorithm);
+    opts.parallel_solve = cfg.parallel_solve;
+    opts.cnr_threads = cfg.cnr_threads;
+    opts.report_factor_evidence = cfg.report_factor_evidence;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;

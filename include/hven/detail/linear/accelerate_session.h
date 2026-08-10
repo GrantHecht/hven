@@ -38,6 +38,7 @@
 // =============================================================================
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include <Accelerate/Accelerate.h>
@@ -88,6 +89,22 @@ struct AccelerateConfig {
     // value through to SparseSymbolicFactorOptions::orderMethod. Defaults to
     // SparseOrderDefault, matching Options::Ordering::kBackendDefault.
     SparseOrder_t ordering = SparseOrderDefault;
+
+    // An explicit override for zeroTolerance, bypassing the
+    // pivot_perturb_exp-derived formula above entirely when present.
+    // std::nullopt (default) means "use that formula" -- the only state
+    // this field takes at Options::accelerate_zero_tolerance == std::nullopt.
+    // See that option's own doc comment.
+    std::optional<double> zero_tolerance_override;
+
+    // Whether to report the symbolic factorization's own factor-size
+    // evidence (see FactorSession::factor_size_bytes()). false (default):
+    // hven simply does not surface it; matches
+    // Options::report_factor_evidence, though unlike the MKL side there is
+    // no backend query to skip -- Accelerate always computes this value as
+    // part of the symbolic factorization regardless, so this flag gates
+    // hven's own reporting, not any Accelerate work.
+    bool report_factor_evidence = false;
 };
 
 // One Accelerate factorization session: the symbolic/numeric factorization
@@ -188,6 +205,24 @@ class FactorSession {
     // true.
     const SparseOpaqueFactorization_Double &native_factorization() const noexcept {
         return numeric_;
+    }
+
+    // True iff cfg_.report_factor_evidence requested factor-size evidence
+    // -- derived straight from the config, mirroring the MKL twin's
+    // has_factor_evidence(). factor_size_bytes() is only meaningful while
+    // this is true (symbolic factorization already provides the value
+    // unconditionally, but hven only reports it when asked).
+    bool has_factor_evidence() const noexcept { return cfg_.report_factor_evidence; }
+
+    // The symbolic factorization's own reported factor size, in bytes.
+    // General-purpose and unconditional -- NOT gated on has_factor_evidence()
+    // itself, since Accelerate always computes this value as part of
+    // SparseFactor() regardless of whether hven's own option asked for it;
+    // the ADAPTER decides whether to surface it (see
+    // symmetric_factor_accelerate.cpp's factor_evidence_of()), exactly the
+    // same division of labor as native_factorization() above.
+    long factor_size_bytes() const noexcept {
+        return static_cast<long>(symbolic_.factorSize_Double);
     }
 
   private:

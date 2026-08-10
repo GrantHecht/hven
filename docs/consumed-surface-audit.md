@@ -169,6 +169,11 @@ off with an opt-in. hven has no way to express it. A user who has opted in
 today loses the ability to after the migration. Default `0` coincides with
 `pardisoinit`'s `0` on this build, so the *default* path is unaffected.
 
+**Disposition:** `SymmetricFactor::Options::matrix_scaling`
+(bool, don't-write-by-default, iparm[10]). Pardiso-only: throws on
+Accelerate for `true` — see the option's own doc comment for why this is
+the same judgment as `weighted_matching`, not a separate one.
+
 ### 2. `iparm[20]` — pivoting strategy (`qp_pivot_strategy_`)
 
 A six-valued user-facing enum (`QPPivotModes{OneByOne, TwoByTwo, E4, E6,
@@ -181,12 +186,26 @@ distinction the ordering/weighted-matching amendment was written around:
 effect". A library-default move on an MKL bump changes hven's pivoting
 strategy and does not change the engine's.
 
+**Disposition:** `SymmetricFactor::Options::pivot_strategy`
+(`PivotStrategy` enum: `kBackendDefault`, `kOneByOne`, `kTwoByTwo`, `kE4`,
+`kE6`, `kE8`, `kE13` — iparm[20]'s own six documented codes, matching
+`QPPivotModes`), don't-write-by-default. Pardiso-only: any non-default
+value throws on Accelerate, which has no pivoting-strategy selector.
+
 ### 3. `iparm[23]` and `iparm[24]` — two-level algorithm, parallel solve
 
 `qp_alg_` (`QPAlgModes{Classic, TwoLevel}`) and `qp_par_solve_`. Both
 user-facing, both defaulting to `0`, both coinciding with `pardisoinit`'s
 `0` here. Same shape as finding 2 at lower stakes: expressible today, not
 expressible after.
+
+**Disposition:**
+`SymmetricFactor::Options::factorization_algorithm` (`FactorizationAlgorithm`
+enum: `kBackendDefault`, `kClassic`, `kTwoLevel` — iparm[23]) and
+`SymmetricFactor::Options::parallel_solve` (bool — iparm[24]), both
+don't-write-by-default. Pardiso-only: either throws on Accelerate for a
+non-default value, which has no two-level-algorithm concept and no
+per-instance thread control to parallelize a solve with.
 
 ### 4. `iparm[33]` — conditional numerical reproducibility
 
@@ -198,6 +217,11 @@ which is the same property the golden-rig derivation had to hold rows back
 over. A migration that drops it drops a reproducibility control while the
 tables it is being validated against were themselves gated on
 reproducibility. Deserves a decision, not a default.
+
+**Disposition:** `SymmetricFactor::Options::cnr_threads` (int,
+0 = off/don't-write, iparm[33]). Pardiso-only: a positive value throws on
+Accelerate, which has no CNR concept — a silent no-op would misrepresent a
+reproducibility guarantee as still holding.
 
 ### 5. `iparm[17]` / `iparm[18]` — factor size and Mflops are consumed evidence
 
@@ -217,6 +241,17 @@ Note the same pair exists on the Accelerate side with **different meaning**
 factor size in BYTES where Pardiso's is a nonzero COUNT, and both surface
 as `result_.factor_mem_`. If this evidence is added to the frozen surface,
 that is a per-backend semantics row to write, not a field to copy.
+
+**Disposition:** `SymmetricFactor::Options::report_factor_evidence`
+(bool, don't-write-by-default) gates a new `FactorEvidence` struct joining
+`SolveInfo::factor` (`hven/linear/symmetric_factor.h`), with the mandatory
+per-backend semantics row this finding calls for: MKL populates
+`factor_nonzeros` (iparm[17]) and `factor_mflops` (iparm[18]) and leaves
+`factor_size_bytes` absent; Accelerate populates `factor_size_bytes` (the
+symbolic factorization's own byte size) and leaves `factor_nonzeros` /
+`factor_mflops` absent — no field is ever populated with the other
+backend's meaning. Honored (never throws) on both backends, unlike the
+options above.
 
 ### 6. Accelerate has a per-thread control, contradicting A.6's premise
 
@@ -272,6 +307,14 @@ every `set_qp_params()`. The frozen `pivot_perturb_exp` names an
 Accelerate mapping ("Accelerate: pivot tolerance mapping documented per
 backend"), so the first is arguably covered pending that mapping being
 written down. **The zero tolerance is not covered by anything.**
+
+**Disposition:** `SymmetricFactor::Options::accelerate_zero_tolerance`
+(`std::optional<double>`, don't-write-by-default — `std::nullopt` keeps
+the existing `pivot_perturb_exp`-derived formula). Accelerate-only: a
+present value throws on MKL, which has no zeroTolerance concept of its
+own for it to override. The pivot tolerance half of this finding stays
+covered by `pivot_perturb_exp`'s existing Accelerate mapping, unchanged
+by this task.
 
 ## What was NOT found
 

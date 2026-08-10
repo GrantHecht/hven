@@ -137,6 +137,17 @@ struct SparseNumericFactorOptions {
 
 struct SparseOpaqueSymbolicFactorization {
     SparseStatus_t status = SparseStatusReleased;
+
+    // Real Accelerate fields (confirmed by the two Mac-hardware-verified
+    // downstream ports symmetric_factor_accelerate.cpp's own header comment
+    // names -- tycho's accelerate_interface.h reads
+    // m_symbolicFactorization->factorSize_Double/factorSize_Float on real
+    // hardware). Reported by Apple in BYTES. Only *_Double is read by this
+    // repository (hven's SpMatRM is always double-valued); *_Float is
+    // declared alongside it for shape-fidelity with the real header, not
+    // because anything here reads it.
+    size_t factorSize_Double = 0;
+    size_t factorSize_Float = 0;
 };
 
 struct SparseOpaqueFactorization_Double {

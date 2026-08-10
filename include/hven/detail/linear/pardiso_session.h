@@ -117,6 +117,43 @@ struct PardisoConfig {
     // iparm[12] = 0 explicitly through this surface -- matching
     // Options::weighted_matching's don't-write-by-default rule.
     bool weighted_matching = false;
+
+    // Matrix scaling (iparm[10]). false leaves iparm[10] alone; true writes
+    // iparm[10] = 1 -- same don't-write-by-default shape as
+    // weighted_matching, and see Options::matrix_scaling for why the two
+    // are the same judgment call on the Accelerate side.
+    bool matrix_scaling = false;
+
+    // Pivoting strategy override for iparm[20]. std::nullopt means "leave
+    // iparm[20] alone" -- the only state this field takes at
+    // Options::PivotStrategy::kBackendDefault; a present value (0, 1, 4, 6,
+    // 8, or 13 -- Options::PivotStrategy's own documented values) overrides
+    // it verbatim.
+    std::optional<int> pivot_strategy;
+
+    // Two-level factorization algorithm override for iparm[23].
+    // std::nullopt means "leave iparm[23] alone" -- the only state this
+    // field takes at Options::FactorizationAlgorithm::kBackendDefault; a
+    // present value (0 = classic, 1 = two-level) overrides it verbatim.
+    std::optional<int> factorization_algorithm;
+
+    // Parallel forward/backward solve (iparm[24]). false leaves iparm[24]
+    // alone; true writes iparm[24] = 1 -- same don't-write-by-default shape
+    // as weighted_matching and matrix_scaling.
+    bool parallel_solve = false;
+
+    // Thread count for conditional numerical reproducibility mode
+    // (iparm[33]). 0 (default) leaves iparm[33] alone -- CNR mode off; a
+    // positive value writes iparm[33] to that count and turns CNR mode on.
+    int cnr_threads = 0;
+
+    // Whether to request factor-size evidence (iparm[17] nonzero count,
+    // iparm[18] Mflop count) during analyze(), and read it back after a
+    // successful factorize(). false (default) leaves both entries alone and
+    // FactorSession::factor_nonzeros()/factor_mflops() report the
+    // not-collected sentinel; see Options::report_factor_evidence for why
+    // this is opt-in.
+    bool report_factor_evidence = false;
 };
 
 // One Pardiso factorization session: the `pt` handle, the parameter array,
@@ -215,6 +252,14 @@ class FactorSession {
     // Refinement steps performed by the most recent solve.
     Index refinement_iters() const noexcept { return static_cast<Index>(refinement_iters_); }
 
+    // True iff cfg_.report_factor_evidence requested factor-size evidence
+    // -- derived straight from the config rather than a separate flag,
+    // since the two can never disagree. factor_nonzeros()/factor_mflops()
+    // are only meaningful while this AND has_numerics() are both true.
+    bool has_factor_evidence() const noexcept { return cfg_.report_factor_evidence; }
+    Index factor_nonzeros() const noexcept { return static_cast<Index>(factor_nonzeros_); }
+    Index factor_mflops() const noexcept { return static_cast<Index>(factor_mflops_); }
+
     // Read-only access to iparm[1] (fill-in reordering) / iparm[12] (maximum
     // weighted matching) as they stand after the most recent analyze().
     // General-purpose and unconditional -- NOT a test hook -- for entries
@@ -261,6 +306,11 @@ class FactorSession {
     MKL_INT n_neg_ = 0;
     MKL_INT perturbed_pivots_ = 0;
     mutable MKL_INT refinement_iters_ = 0;
+
+    // Cached from iparm[17]/iparm[18] at factorize() time, only when
+    // cfg_.report_factor_evidence is set -- see has_factor_evidence().
+    MKL_INT factor_nonzeros_ = -1;
+    MKL_INT factor_mflops_ = -1;
 };
 
 } // namespace hven::linear::detail

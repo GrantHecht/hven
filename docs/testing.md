@@ -314,9 +314,59 @@ now diverges between them per the backend-neutral ordering mapping
   value (real Pardiso options), and now additionally covers
   `kMinimumDegree`.
 
+The consumed-surface audit (`docs/consumed-surface-audit.md`, findings
+1–4 and 8) added five more Pardiso-only options plus one Accelerate-only
+one to this file, all following the identical throw/no-throw split:
+
+- `Options::matrix_scaling`, `Options::pivot_strategy`,
+  `Options::factorization_algorithm`, `Options::parallel_solve`,
+  `Options::cnr_threads`: Pardiso-only. Any non-default value THROWS
+  `std::invalid_argument` at construction on Accelerate, under
+  `#if defined(__APPLE__)`; the same values do NOT throw on MKL, under
+  `#else`.
+- `Options::accelerate_zero_tolerance`: the inverse case — Accelerate's
+  OWN option. A present value does NOT throw under
+  `#if defined(__APPLE__)`, and THROWS `std::invalid_argument` under
+  `#else` (MKL has no zeroTolerance concept for it to override).
+- `Options::report_factor_evidence`: like `ordering`, honored (never
+  throws) on BOTH backends — it is not one of this file's throw-path
+  options, but is asserted alongside them for completeness since the
+  file now covers the option set as a whole, not merely the two options
+  its name predates.
+
 Like `test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides
 the Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
 and also compiles and executes against the real framework in macOS CI.
+
+### Factor-size evidence's PardisoIparmObserver coverage
+
+`Options::report_factor_evidence`'s five sibling knobs
+(`matrix_scaling`, `pivot_strategy`, `factorization_algorithm`,
+`parallel_solve`, `cnr_threads`) and the evidence-collection request
+itself (`report_factor_evidence`, which writes iparm[17]/iparm[18]
+together under one guard) extend `PardisoIparmObserver`
+(`hven/detail/linear/fault_injection.h`) with the identical
+did-the-write-execute pair the `ordering`/`weighted_matching` amendment
+established, at the same write sites inside `FactorSession::analyze`
+(`pardiso_session.cpp`). `tests/linear/test_fault_injection.cpp`'s
+`PardisoIparmObservation` suite asserts, for each new knob: the
+default-Options case leaves its `*_was_written` flag `false`, and each
+non-default value sets it `true` with `*_written_value` equal to the
+knob's own fixed contract code (`PivotStrategy`: 0 / 1 / 4 / 6 / 8 / 13;
+`FactorizationAlgorithm`: 0 / 1; the two booleans: 1;
+`cnr_threads`: the requested count). Unlike the original two fields,
+none of these six is independently known to need the flag to settle an
+otherwise-ambiguous value-level comparison on the MKL currently linked —
+they carry it for the same symmetry and mutation-resistance reasons the
+`weighted_matching` field already does. A companion pair of plain
+(non-`HVEN_TESTING`) tests in the same file exercises the public-API
+consequence end to end: with `report_factor_evidence` on, a real solve's
+`SolveInfo::factor` carries present `factor_nonzeros`/`factor_mflops` and
+an absent `factor_size_bytes`; with it off (default), all three stay
+absent. `tests/linear/test_symmetric_factor_evidence_invariants.cpp`
+carries the backend-conditional twin of that same check (MKL vs.
+Accelerate), following `ZeroClassDerivationMatchesTheBackendContract`'s
+own `#if defined(__APPLE__)` pattern.
 
 ## The golden-numerics rig
 

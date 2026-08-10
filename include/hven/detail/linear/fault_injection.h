@@ -100,15 +100,40 @@ struct PardisoIparmObserver {
     static void reset() {
         last_ordering_iparm = 0;
         last_weighted_matching_iparm = 0;
+        last_matrix_scaling_iparm = 0;
+        last_pivot_strategy_iparm = 0;
+        last_factorization_algorithm_iparm = 0;
+        last_parallel_solve_iparm = 0;
+        last_cnr_iparm = 0;
+        last_factor_nonzeros_iparm = 0;
+        last_factor_mflops_iparm = 0;
         recorded = false;
         ordering_was_written = false;
         ordering_written_value = 0;
         weighted_matching_was_written = false;
         weighted_matching_written_value = 0;
+        matrix_scaling_was_written = false;
+        matrix_scaling_written_value = 0;
+        pivot_strategy_was_written = false;
+        pivot_strategy_written_value = 0;
+        factorization_algorithm_was_written = false;
+        factorization_algorithm_written_value = 0;
+        parallel_solve_was_written = false;
+        parallel_solve_written_value = 0;
+        cnr_was_written = false;
+        cnr_written_value = 0;
+        factor_evidence_was_written = false;
     }
     static inline bool recorded = false;
     static inline int last_ordering_iparm = 0;
     static inline int last_weighted_matching_iparm = 0;
+    static inline int last_matrix_scaling_iparm = 0;
+    static inline int last_pivot_strategy_iparm = 0;
+    static inline int last_factorization_algorithm_iparm = 0;
+    static inline int last_parallel_solve_iparm = 0;
+    static inline int last_cnr_iparm = 0;
+    static inline int last_factor_nonzeros_iparm = 0;
+    static inline int last_factor_mflops_iparm = 0;
 
     // --- the DID-THE-WRITE-EXECUTE observable ---
     //
@@ -140,6 +165,28 @@ struct PardisoIparmObserver {
     static inline int ordering_written_value = 0;
     static inline bool weighted_matching_was_written = false;
     static inline int weighted_matching_written_value = 0;
+
+    // The same did-the-write-execute pair for the option set's five other
+    // guarded iparm writes (matrix_scaling, pivot_strategy,
+    // factorization_algorithm, parallel_solve, cnr_threads) plus the
+    // factor-evidence request pair (iparm[17]/iparm[18], written together
+    // under one guard -- see report_factor_evidence's own doc comment),
+    // for the identical reason and at the identical write sites in
+    // FactorSession::analyze. Carried for every new knob for symmetry and
+    // the same mutation-resistance the original two fields document, not
+    // because every one of them is independently known to be ambiguous at
+    // the value level on the MKL currently linked.
+    static inline bool matrix_scaling_was_written = false;
+    static inline int matrix_scaling_written_value = 0;
+    static inline bool pivot_strategy_was_written = false;
+    static inline int pivot_strategy_written_value = 0;
+    static inline bool factorization_algorithm_was_written = false;
+    static inline int factorization_algorithm_written_value = 0;
+    static inline bool parallel_solve_was_written = false;
+    static inline int parallel_solve_written_value = 0;
+    static inline bool cnr_was_written = false;
+    static inline int cnr_written_value = 0;
+    static inline bool factor_evidence_was_written = false;
 };
 
 } // namespace hven::linear::detail::testing
