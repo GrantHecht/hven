@@ -314,17 +314,23 @@ now diverges between them per the backend-neutral ordering mapping
   value (real Pardiso options), and now additionally covers
   `kMinimumDegree`.
 
-This file also covers five more Pardiso-only options plus one
-Accelerate-only one, all following the identical throw/no-throw split
-(see `docs/consumed-surface-audit.md` for the backend consumed-surface
-survey each option answers):
+This file also covers six more Pardiso-only options plus one
+Accelerate-only one, all following the identical throw/no-throw split by
+themselves in ISOLATION — three of the six additionally interact with
+each other or with `ordering`, and the paragraph right after this list
+covers exactly which combinations still throw on MKL (see
+`docs/consumed-surface-audit.md` for the backend consumed-surface survey
+each option answers):
 
 - `Options::matrix_scaling`, `Options::pivot_strategy`,
   `Options::factorization_algorithm`, `Options::solve_parallelism`,
   `Options::cnr_threads`, `Options::collect_factor_mflops`: Pardiso-only.
   Any non-default value THROWS `std::invalid_argument` at construction on
-  Accelerate, under `#if defined(__APPLE__)`; the same values do NOT
-  throw on MKL, under `#else`.
+  Accelerate, under `#if defined(__APPLE__)`; on MKL, under `#else`, a
+  non-default value BY ITSELF (against otherwise-default sibling options)
+  does NOT throw — but `matrix_scaling`, `cnr_threads`, and
+  `factorization_algorithm` each carry a further requirement on other
+  options that DOES throw when unmet, detailed next.
 - `Options::accelerate_zero_tolerance`: the inverse case — Accelerate's
   OWN option. A present value does NOT throw under
   `#if defined(__APPLE__)`, and THROWS `std::invalid_argument` under

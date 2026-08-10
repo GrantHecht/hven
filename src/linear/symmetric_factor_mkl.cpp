@@ -506,10 +506,12 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     if (opts_.factorization_algorithm == Options::FactorizationAlgorithm::kTwoLevel &&
         opts_.ordering != Options::Ordering::kNestedDissection &&
         opts_.ordering != Options::Ordering::kParallelNestedDissection) {
-        throw std::invalid_argument(
+        throw std::invalid_argument(fmt::format(
             "SymmetricFactor: factorization_algorithm == kTwoLevel requires ordering == "
             "kNestedDissection or kParallelNestedDissection -- Intel documents that the two-level "
-            "algorithm only supports nested dissection orderings (iparm[1] = 2 or 3)");
+            "algorithm only supports nested dissection orderings (iparm[1] = 2 or 3), got ordering "
+            "= {} (Options::Ordering enum value)",
+            static_cast<int>(opts_.ordering)));
     }
 
     // The two-level factorization algorithm is documented incompatible with
@@ -518,10 +520,12 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // the two-level factorization algorithm."
     if (opts_.factorization_algorithm == Options::FactorizationAlgorithm::kTwoLevel &&
         (opts_.matrix_scaling || opts_.weighted_matching)) {
-        throw std::invalid_argument(
+        throw std::invalid_argument(fmt::format(
             "SymmetricFactor: factorization_algorithm == kTwoLevel requires matrix_scaling == "
             "false and weighted_matching == false -- Intel documents that scaling and matching "
-            "must be disabled when using the two-level factorization algorithm");
+            "must be disabled when using the two-level factorization algorithm, got matrix_scaling "
+            "= {}, weighted_matching = {}",
+            opts_.matrix_scaling, opts_.weighted_matching));
     }
 }
 
