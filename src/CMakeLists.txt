@@ -35,3 +35,53 @@ else()
         linear/symmetric_factor_accelerate.cpp
     )
 endif()
+
+################################################################################
+# Interior-point engine (ex-PSIOPT) — migrated as-is from the standalone
+# psiopt/ project this repository's primary consumer (tycho) previously
+# hosted (hven M2 milestone, engine-move task). The split below —
+# drivers/ (the top-level PSIOPT algorithm + NonLinearProgram),
+# model/ (the NLPProblem/NLPSolver contract + its adapter), and
+# interior/ + globalization/ under include/hven/detail/ (barrier /
+# interior-point machinery) — mirrors psiopt's own internal grouping: a
+# path map onto hven's directory conventions, not a reorganization. See
+# docs/dev notes for the migration's file-by-file record.
+################################################################################
+
+target_sources(hven PRIVATE
+    drivers/psiopt.cpp
+    drivers/psiopt_globalization.cpp
+    drivers/psiopt_print.cpp
+    drivers/psiopt_settings.cpp
+    drivers/solver_init.cpp
+    drivers/non_linear_program.cpp
+    model/nlp_adapter.cpp
+    model/nlp_solver.cpp
+    interior/utils/color_text.cpp
+    interior/utils/fmtlib.cpp
+    interior/utils/get_core_count.cpp
+    interior/utils/memory_management.cpp
+    interior/utils/thread_pool.cpp
+)
+
+# color_text.h / fmtlib.h are private headers the driver TUs above include
+# unqualified (#include "color_text.h"), exactly as psiopt/CMakeLists.txt's
+# own PRIVATE include-dir setup (src/ + src/utils/) made possible there.
+target_include_directories(hven PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/interior/utils
+)
+
+# Alternative NLP solver backend (Ipopt). Exactly one of the two
+# implementations of the backend entry points is compiled in: the real
+# adapter when Ipopt is linked, the fallback stub that reports the missing
+# build support otherwise. Mirrors psiopt/CMakeLists.txt's ENABLE_IPOPT
+# branch; the HVEN_ENABLE_IPOPT option and its pkg-config lookup live in
+# the root CMakeLists.txt.
+if(HVEN_ENABLE_IPOPT)
+    target_sources(hven PRIVATE drivers/ipopt_tnlp_adapter.cpp)
+    target_compile_definitions(hven PRIVATE HVEN_ENABLE_IPOPT)
+    target_include_directories(hven PRIVATE ${IPOPT_INCLUDE_DIRS})
+    target_link_libraries(hven PRIVATE $<BUILD_INTERFACE:PkgConfig::IPOPT>)
+else()
+    target_sources(hven PRIVATE drivers/ipopt_backend_stub.cpp)
+endif()

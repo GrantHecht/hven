@@ -44,6 +44,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ON)
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
+option(HVEN_ENABLE_IPOPT
+    "Link against an installed Ipopt (found via pkg-config) to enable the interior-point engine's alternative NLP solver backend"
+    OFF)
+if(HVEN_ENABLE_IPOPT)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(IPOPT REQUIRED IMPORTED_TARGET ipopt)
+endif()
 
 # bench/ and bindings/ are empty scaffolding directories today (no
 # CMakeLists.txt yet) — fail loudly rather than silently no-op if someone
@@ -193,6 +200,39 @@ hven_resolve_sparse_backend()
 
 if(UNIX)
     list(APPEND LINK_LIBS m)
+endif()
+
+################################################################################
+# Preprocessor definitions the interior-point engine (ex-PSIOPT, migrated in
+# under src/drivers, src/model, src/interior) assumes were set project-wide by
+# its origin project's own root CMakeLists.txt. Applied here, at directory
+# scope, so every target configured below (hven itself, hven_tests, the
+# interior-engine test executable, and golden_rig) sees the same preprocessor
+# state the engine's own numerics depend on — most load-bearingly the first
+# two, which the origin project's build comments mark "NEVER EVER GET RID OF
+# THIS EVER": Eigen matrices left uninitialized (the release-build default)
+# can silently carry NaN/garbage into a computation instead of a
+# reproducible zero, and EIGEN_DONT_PARALLELIZE keeps Eigen's own internal
+# threading from contending with the engine's explicit thread pool.
+add_compile_definitions(EIGEN_INITIALIZE_MATRICES_BY_ZERO)
+add_compile_definitions(EIGEN_DONT_PARALLELIZE)
+# fmt is already FMT_HEADER_ONLY (hven_dep_fmt, above); this additionally
+# matches the origin project's -DFMT_USE_LOCALE=0 so the engine's
+# fmt-based printing keeps the same (locale-independent) formatting
+# behavior it had there.
+add_compile_definitions(FMT_USE_LOCALE=0)
+# Sizing knobs the engine's headers/sources read directly (jet.h's QP
+# thread default, memory_management.h's arena size). These are NOT
+# renamed to an HVEN_ prefix: they are supplied by the build, not defined
+# in any moved file (see the migration report's mechanical-edit-class
+# audit for the distinction that rule follows).
+add_compile_definitions(TYCHO_DEFAULT_QP_THREADS=8)
+add_compile_definitions(TYCHO_DEFAULT_ARENA_SIZE=256)
+if(WIN32)
+    # clang-cl against the MSVC STL: std::mutex's constexpr default
+    # constructor trips a known STL/compiler interaction the engine's
+    # thread_pool.h (many std::mutex members) then hits at compile time.
+    add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 endif()
 
 ################################################################################

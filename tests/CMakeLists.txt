@@ -226,3 +226,11 @@ gtest_discover_tests(hven_fault_injection_tests DISCOVERY_MODE ${HVEN_GTEST_DISC
 ################################################################################
 
 add_subdirectory(golden_rig)
+
+################################################################################
+# The interior-point engine (ex-PSIOPT) test suite, migrated in from
+# psiopt/tests/ (hven M2 milestone, engine-move task). See
+# tests/interior/CMakeLists.txt.
+################################################################################
+
+add_subdirectory(interior)
