@@ -319,6 +319,7 @@ void FactorSession::analyze(const SpMatRM &A) {
         iparm_[18] = -1;
 #ifdef HVEN_TESTING
         testing::PardisoIparmObserver::factor_mflops_was_written = true;
+        testing::PardisoIparmObserver::factor_mflops_written_value = static_cast<int>(iparm_[18]);
 #endif
     }
 

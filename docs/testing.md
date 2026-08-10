@@ -314,9 +314,10 @@ now diverges between them per the backend-neutral ordering mapping
   value (real Pardiso options), and now additionally covers
   `kMinimumDegree`.
 
-The consumed-surface audit (`docs/consumed-surface-audit.md`, findings
-1–5 and 8) added five more Pardiso-only options plus one Accelerate-only
-one to this file, all following the identical throw/no-throw split:
+This file also covers five more Pardiso-only options plus one
+Accelerate-only one, all following the identical throw/no-throw split
+(see `docs/consumed-surface-audit.md` for the backend consumed-surface
+survey each option answers):
 
 - `Options::matrix_scaling`, `Options::pivot_strategy`,
   `Options::factorization_algorithm`, `Options::solve_parallelism`,
@@ -331,7 +332,9 @@ one to this file, all following the identical throw/no-throw split:
 
 The MKL `#else` half also covers the documented MULTI-OPTION interactions
 `symmetric_factor_mkl.cpp`'s constructor validates (see that file's own
-Intel-documentation citations): CNR mode (`cnr_threads > 0`) requires
+Intel-documentation citations): matrix scaling requires weighted matching
+on this backend's matrix type (`matrix_scaling == true` without
+`weighted_matching == true` throws); CNR mode (`cnr_threads > 0`) requires
 `ordering == kNestedDissection` exactly (every other value, including
 `kBackendDefault`, throws); the two-level factorization algorithm
 requires `ordering` to be `kNestedDissection` or

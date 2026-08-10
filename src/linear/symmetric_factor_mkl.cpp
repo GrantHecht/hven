@@ -443,14 +443,38 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // silently ignored on this backend, exactly the situation
     // weighted_matching's own throw exists to prevent.
     if (opts_.accelerate_zero_tolerance.has_value()) {
-        throw std::invalid_argument(
+        throw std::invalid_argument(fmt::format(
             "SymmetricFactor: Options::accelerate_zero_tolerance is an Accelerate-only option and "
-            "has no MKL equivalent -- requires std::nullopt on this backend, got a value");
+            "has no MKL equivalent -- requires std::nullopt on this backend, got {}",
+            *opts_.accelerate_zero_tolerance));
     }
 
     // --- documented MKL option interactions, validated rather than left
     // for Pardiso to silently ignore ---
     //
+    // Matrix scaling requires weighted matching on this backend's matrix
+    // type. Intel (oneMKL Developer Reference, "pardiso iparm Parameter",
+    // the iparm[10] entry) states a CAPABILITY condition for symmetric
+    // indefinite matrices, distinct from the separate advisory
+    // recommendation two sentences later: "The scaling can also be used
+    // for symmetric indefinite matrices (mtype = -2, mtype = -4, mtype =
+    // 6) when the symmetric weighted matchings are applied (iparm[12] =
+    // 1)." This class (mtype = -2) is the ONLY one this session ever
+    // builds (see config_from() above), so the capability condition
+    // applies unconditionally here: `matrix_scaling == true` without
+    // `weighted_matching == true` requests a capability Intel documents as
+    // usable only alongside matching on this matrix type, and throws
+    // rather than being silently accepted and doing something
+    // undocumented.
+    if (opts_.matrix_scaling && !opts_.weighted_matching) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: matrix_scaling == true requires weighted_matching == true -- Intel "
+            "documents scaling for symmetric indefinite matrices (mtype = -2, this class's own "
+            "matrix type) as usable only when symmetric weighted matching is applied (iparm[12] = "
+            "1), got matrix_scaling = true, weighted_matching = {}",
+            opts_.weighted_matching));
+    }
+
     // CNR mode requires nested-dissection ordering. Intel (oneMKL Developer
     // Reference, "pardiso iparm Parameter", the iparm[33] entry): "CNR is
     // only available for the in-core version of Intel oneMKL PARDISO and

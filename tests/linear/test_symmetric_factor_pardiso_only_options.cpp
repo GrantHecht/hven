@@ -16,11 +16,23 @@
 // test suite; the throwing options are what it is actually about now.
 //
 // The MKL half additionally covers the documented MULTI-OPTION interactions
-// (cnr_threads + ordering, factorization_algorithm + ordering,
-// factorization_algorithm + matrix_scaling/weighted_matching) that only
-// exist to validate on the backend where the individual fields are accepted
-// at all -- see symmetric_factor_mkl.cpp's constructor for the Intel
-// documentation citations backing each one.
+// (matrix_scaling + weighted_matching, cnr_threads + ordering,
+// factorization_algorithm + ordering, factorization_algorithm +
+// matrix_scaling/weighted_matching) that only exist to validate on the
+// backend where the individual fields are accepted at all -- see
+// symmetric_factor_mkl.cpp's constructor for the Intel documentation
+// citations backing each one.
+//
+// accelerate_zero_tolerance's validity checks (finite, > 0) run on
+// Accelerate regardless of platform -- construction-validated here even
+// though this box has no real Accelerate framework to link against, and
+// executed for real in macOS CI. Whether the accepted value is forwarded
+// to Accelerate's own zeroTolerance field EXACTLY is unobservable from
+// this environment: the Accelerate syntax-check lane
+// (scripts/check_accelerate_syntax_linux.sh) compiles with `-fsyntax-only`
+// against a hand-written stub and never links or runs an executable, so
+// there is no seam here to assert a forwarded value against -- only
+// construction-time acceptance/rejection is covered below.
 //
 // Platform-gated the same way the backend split itself is (src/CMakeLists.txt):
 // the `#if defined(__APPLE__)` half below asserts the Accelerate acceptance/
@@ -30,6 +42,7 @@
 // real framework in macOS CI; see docs/testing.md for the syntax lane's
 // narrower claim ceiling.
 
+#include <limits>
 #include <stdexcept>
 
 #include <gtest/gtest.h>
@@ -115,11 +128,45 @@ TEST(SymmetricFactorPardisoOnlyOptions, CollectFactorMflopsTrueThrowsAtConstruct
 }
 
 // accelerate_zero_tolerance is the inverse case: it is Accelerate's OWN
-// option, so a present value must NOT throw here.
+// option, so a present, VALID value must NOT throw here.
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceDoesNotThrowOnAccelerate) {
     SymmetricFactor::Options opts;
     opts.accelerate_zero_tolerance = 1e-20;
     EXPECT_NO_THROW(SymmetricFactor{opts});
+}
+
+// A present value that fails its own validity check (finite, > 0) still
+// throws on Accelerate -- being this backend's OWN option does not mean
+// every value is accepted, only that a well-formed one is not rejected
+// merely for being Pardiso-foreign.
+TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsZero) {
+    SymmetricFactor::Options opts;
+    opts.accelerate_zero_tolerance = 0.0;
+    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
+}
+
+TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsNegative) {
+    SymmetricFactor::Options opts;
+    opts.accelerate_zero_tolerance = -1e-20;
+    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
+}
+
+TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsNaN) {
+    SymmetricFactor::Options opts;
+    opts.accelerate_zero_tolerance = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
+}
+
+TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsPositiveInfinity) {
+    SymmetricFactor::Options opts;
+    opts.accelerate_zero_tolerance = std::numeric_limits<double>::infinity();
+    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
+}
+
+TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsNegativeInfinity) {
+    SymmetricFactor::Options opts;
+    opts.accelerate_zero_tolerance = -std::numeric_limits<double>::infinity();
+    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
 TEST(SymmetricFactorPardisoOnlyOptions, DefaultOptionsDoNotThrow) {
@@ -147,9 +194,19 @@ TEST(SymmetricFactorPardisoOnlyOptions, WeightedMatchingTrueDoesNotThrowOnMkl) {
     EXPECT_NO_THROW(SymmetricFactor{opts});
 }
 
-TEST(SymmetricFactorPardisoOnlyOptions, MatrixScalingTrueDoesNotThrowOnMkl) {
+// matrix_scaling requires weighted_matching on this backend's matrix type
+// (mtype = -2) -- see symmetric_factor_mkl.cpp's constructor for the
+// Intel citation. Scaling alone THROWS; scaling with matching does not.
+TEST(SymmetricFactorPardisoOnlyOptions, MatrixScalingTrueAloneThrowsOnMkl) {
     SymmetricFactor::Options opts;
     opts.matrix_scaling = true;
+    EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
+}
+
+TEST(SymmetricFactorPardisoOnlyOptions, MatrixScalingTrueWithWeightedMatchingDoesNotThrowOnMkl) {
+    SymmetricFactor::Options opts;
+    opts.matrix_scaling = true;
+    opts.weighted_matching = true;
     EXPECT_NO_THROW(SymmetricFactor{opts});
 }
 
@@ -257,11 +314,18 @@ TEST(SymmetricFactorPardisoOnlyOptions,
 
 // The two-level factorization algorithm is documented incompatible with
 // scaling and matching, even with an otherwise-compatible ordering.
+// weighted_matching is set alongside matrix_scaling here specifically so
+// that matrix_scaling's own requires-weighted_matching precondition (see
+// its doc comment) is satisfied -- this isolates the two-level-forbids-
+// scaling rule under test from that separate rule, which would otherwise
+// throw first for a different reason and make this test pass without
+// actually exercising the two-level interaction.
 TEST(SymmetricFactorPardisoOnlyOptions, TwoLevelFactorizationAlgorithmThrowsWithScalingOnMkl) {
     SymmetricFactor::Options opts;
     opts.factorization_algorithm = SymmetricFactor::Options::FactorizationAlgorithm::kTwoLevel;
     opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
     opts.matrix_scaling = true;
+    opts.weighted_matching = true;
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 

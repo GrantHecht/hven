@@ -116,6 +116,7 @@ struct PardisoIparmObserver {
         cnr_was_written = false;
         cnr_written_value = 0;
         factor_mflops_was_written = false;
+        factor_mflops_written_value = 0;
     }
     static inline bool recorded = false;
     static inline int last_ordering_iparm = 0;
@@ -178,7 +179,12 @@ struct PardisoIparmObserver {
     static inline int solve_parallelism_written_value = 0;
     static inline bool cnr_was_written = false;
     static inline int cnr_written_value = 0;
+    // The written VALUE, not just whether the write ran -- the same pair
+    // shape as every knob above, so the claim "iparm[18] was written and
+    // was written to the exact contract constant Pardiso expects (-1)" is
+    // asserted directly rather than inferred from the flag alone.
     static inline bool factor_mflops_was_written = false;
+    static inline int factor_mflops_written_value = 0;
 };
 
 } // namespace hven::linear::detail::testing

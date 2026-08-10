@@ -147,9 +147,11 @@ struct FactorEvidence {
     std::optional<Index> factor_nonzeros;
 
     // MKL Pardiso only: the estimated factorization cost in Mflops
-    // (iparm[18]), collected only when Options::collect_factor_mflops is
-    // set -- see that option's own doc comment for why it stays opt-in
-    // where factor_nonzeros does not. std::nullopt on Accelerate (no
+    // (iparm[18]), REPORTED only when Options::collect_factor_mflops
+    // requested the report -- see that option's own doc comment for the
+    // reporting-only distinction (the option controls whether hven asks
+    // for and returns this value, not whether the backend performs the
+    // underlying counting work). std::nullopt on Accelerate (no
     // equivalent estimate exists) and std::nullopt on MKL too when the
     // option is off.
     std::optional<Index> factor_mflops;
@@ -309,19 +311,31 @@ class SymmetricFactor {
         // fabricated true.
         bool weighted_matching = false;
 
-        // Matrix scaling for the numeric factorization (Pardiso iparm[10],
-        // Intel's own comment: "Use nonsymmetric permutation and scaling
-        // MPS"). DON'T-WRITE-BY-DEFAULT: `false` does NOT write iparm[10] =
-        // 0, it leaves the entry untouched; only `true` writes iparm[10] =
-        // 1. Pardiso-only: `true` THROWS std::invalid_argument at
-        // construction on Accelerate. This is the SAME judgment as
-        // weighted_matching above, not a separate one: iparm[10]'s MPS
-        // scaling is computed FROM the maximum-weighted-matching
-        // permutation that option switches on, so a backend with no
-        // matching concept has no scaling concept to pair it with either --
-        // Accelerate's own numeric-factorization scaling (inf-norm
-        // equilibration, on unconditionally, no off switch) is a different
-        // mechanism entirely, not a lower-fidelity version of this one.
+        // Matrix scaling for the numeric factorization (Pardiso iparm[10]).
+        // DON'T-WRITE-BY-DEFAULT: `false` does NOT write iparm[10] = 0, it
+        // leaves the entry untouched; only `true` writes iparm[10] = 1.
+        //
+        // REQUIRES weighted_matching == true, validated at construction.
+        // This is not a recommendation -- Intel (oneMKL Developer
+        // Reference, "pardiso iparm Parameter", the iparm[10] entry) states
+        // a CAPABILITY condition for symmetric indefinite matrices (mtype =
+        // -2, the only class this session ever builds): "The scaling can
+        // also be used for symmetric indefinite matrices... when the
+        // symmetric weighted matchings are applied (iparm[12] = 1)." A
+        // `true` here without `weighted_matching == true` THROWS
+        // std::invalid_argument naming the missing dependency, rather than
+        // being silently accepted to do something Intel does not document
+        // as working on this matrix type.
+        //
+        // Pardiso-only: `true` ALSO THROWS std::invalid_argument at
+        // construction on Accelerate, independent of weighted_matching's
+        // own value -- iparm[10]'s scaling is computed FROM the maximum-
+        // weighted-matching permutation weighted_matching switches on, so a
+        // backend with no matching concept has no scaling concept to pair
+        // it with either. Accelerate's own numeric-factorization scaling
+        // (inf-norm equilibration, on unconditionally, no off switch) is a
+        // different mechanism entirely, not a lower-fidelity version of
+        // this one.
         bool matrix_scaling = false;
 
         // Pivoting strategy for symmetric indefinite matrices (Pardiso
@@ -477,36 +491,43 @@ class SymmetricFactor {
         // silently dropping it would let a caller believe it still held.
         int cnr_threads = 0;
 
-        // Whether to collect and report the factorization's Mflop-cost
-        // estimate (Pardiso iparm[18]) as FactorizeOutcome::factor
-        // .factor_mflops. DON'T-WRITE-BY-DEFAULT: `false` leaves iparm[18]
-        // untouched; `true` writes iparm[18] = -1, Pardiso's own request
-        // code. Opt-in rather than unconditional because Intel documents a
-        // real cost: "Enable report if iparm[18] < 0 on entry. This
-        // increases the reordering time." (oneMKL Developer Reference,
-        // "pardiso iparm Parameter", the iparm[18] entry). Contrast
-        // FactorizeOutcome::factor.factor_nonzeros (iparm[17]), which
-        // carries NO such cost warning and is always collected -- see that
-        // field's own doc comment for why it needs no option at all.
+        // Whether hven REPORTS the factorization's Mflop-cost estimate
+        // (Pardiso iparm[18]) as FactorizeOutcome::factor.factor_mflops.
+        // REPORTING-ONLY: this option controls whether hven requests the
+        // report and returns it through the public API -- it does NOT
+        // control, and cannot guarantee, whether the backend itself
+        // performs (or avoids) the underlying Mflop-counting work.
+        // DON'T-WRITE-BY-DEFAULT: `false` leaves iparm[18] untouched, so
+        // whatever count-or-don't-count state pardisoinit's own sample
+        // initialization already established for this entry is what
+        // stays in force -- hven neither disables backend counting nor
+        // guarantees cost avoidance at `false`. `true` writes iparm[18] =
+        // -1, Pardiso's own request code, and always causes
+        // FactorizeOutcome::factor.factor_mflops to be populated.
         //
-        // KNOWN VERSION-DEPENDENT CAVEAT, recorded rather than silently
-        // relied on: on the MKL this was verified against (oneAPI MKL
-        // 2026.1), pardisoinit's OWN sample initialization already sets
-        // iparm[18] = -1 for mtype = -2 -- the identical value this option
-        // would write for `true` -- even though Intel's own iparm[18]
-        // table marks ">= 0" (disabled) as the default. This is the same
-        // kind of pardisoinit-vs-documented-default coincidence `ordering`
-        // and `factorization_algorithm` already document for their own
-        // entries, carried here because it means `false` (don't write) may
-        // NOT actually avoid the documented time cost on every linked MKL
-        // version -- only an explicit MKL-version audit of pardisoinit's
-        // own array can confirm which state a given build is actually in.
-        // hven does not force-write a canceling value here: doing so would
-        // break this option's don't-write-by-default shape (identical to
-        // every sibling option in this struct) to chase a guarantee this
-        // project cannot make ("no cost by default") given a backend whose
-        // own sample initializer already disagrees with its own
-        // documentation on this one entry.
+        // Intel documents a real cost for the underlying counting work
+        // itself: "Enable report if iparm[18] < 0 on entry. This increases
+        // the reordering time." (oneMKL Developer Reference, "pardiso
+        // iparm Parameter", the iparm[18] entry). Contrast
+        // FactorizeOutcome::factor.factor_nonzeros (iparm[17]), which
+        // carries NO such cost warning and is always collected AND always
+        // reported -- see that field's own doc comment for why it needs no
+        // option at all.
+        //
+        // OBSERVED, NOT ASSUMED: on the MKL this was verified against
+        // (oneAPI MKL 2026.1), pardisoinit's OWN sample initialization
+        // already sets iparm[18] = -1 for mtype = -2 -- the identical value
+        // this option would write for `true` -- even though Intel's own
+        // iparm[18] table marks ">= 0" (disabled) as the documented
+        // default. This is the same kind of pardisoinit-vs-documented-
+        // default divergence `ordering` and `factorization_algorithm`
+        // already document for their own entries. hven does NOT force-
+        // write a canceling value at `false` to try to guarantee the
+        // backend skips the counting work: doing so would introduce an
+        // ACTIVE default write, contrary to this option's own
+        // don't-write-by-default shape and every sibling option in this
+        // struct. `false` is honestly "hven does not ask for or report
+        // this," not "the backend is guaranteed not to compute it."
         bool collect_factor_mflops = false;
 
         // An explicit override for Accelerate's zero-pivot threshold

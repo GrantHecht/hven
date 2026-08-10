@@ -344,8 +344,8 @@ written down. **The zero tolerance is not covered by anything.**
 the existing `pivot_perturb_exp`-derived formula). Accelerate-only: a
 present value throws on MKL, which has no zeroTolerance concept of its
 own for it to override. The pivot tolerance half of this finding stays
-covered by `pivot_perturb_exp`'s existing Accelerate mapping, unchanged
-by this task.
+covered by `pivot_perturb_exp`'s existing Accelerate mapping, which this
+option does not change.
 
 ## What was NOT found
 

@@ -229,10 +229,15 @@ TEST(PardisoIparmObservation, DefaultOptionsLeaveOrderingAndMatchingAtThePardiso
 
 // matrix_scaling = true's contract value (iparm[10] = 1) is a fixed part of
 // the frozen surface, same shape as weighted_matching's own test above.
+// weighted_matching must also be set -- matrix_scaling alone now throws at
+// construction (see symmetric_factor_mkl.cpp's constructor and
+// test_symmetric_factor_pardiso_only_options.cpp's
+// MatrixScalingTrueAloneThrowsOnMkl).
 TEST(PardisoIparmObservation, MatrixScalingTrueWritesExactly1) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
     opts.matrix_scaling = true;
+    opts.weighted_matching = true;
     SymmetricFactor factor{opts};
     factor.analyze(upper_csr(spd3()));
 
@@ -335,11 +340,12 @@ TEST(PardisoIparmObservation, CnrThreadsWritesTheRequestedCount) {
 }
 
 // collect_factor_mflops = true writes iparm[18] = -1 (the Pardiso request
-// code). iparm[17] (factor_nonzeros) is NOT gated by this option -- it is
-// written unconditionally regardless -- so this test's only claim is about
-// iparm[18] specifically, individually verifiable from
-// iparm[17]'s own unconditional write (finding the shared-flag gap the
-// PardisoIparmObserver::factor_mflops_was_written rename closes).
+// code) -- asserted as an exact VALUE, not merely that some write ran.
+// iparm[17] (factor_nonzeros) is NOT gated by this option -- it is
+// written unconditionally regardless, with no guard and therefore no
+// observable of its own -- so this test's only claim is about iparm[18]
+// specifically, verifiable on its own dedicated flag/value pair without
+// depending on any observation of iparm[17].
 TEST(PardisoIparmObservation, CollectFactorMflopsTrueRequestsIparm18) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
@@ -349,6 +355,7 @@ TEST(PardisoIparmObservation, CollectFactorMflopsTrueRequestsIparm18) {
 
     ASSERT_TRUE(PardisoIparmObserver::recorded);
     EXPECT_TRUE(PardisoIparmObserver::factor_mflops_was_written);
+    EXPECT_EQ(PardisoIparmObserver::factor_mflops_written_value, -1);
 }
 
 // Functional companion: FactorEvidence's free/costly split, proven through
