@@ -171,7 +171,7 @@ no exceptions:
   a tidy file. A deviation must be minimal, `#ifdef`-gated, proven to cost the
   production build nothing (byte-identical object, no symbol in the library),
   recorded in `notices/`, and argued in `docs/testing.md`, which lists every
-  sanctioned deviation in full. There is one today.
+  sanctioned deviation in full. There are two today.
 
 ## 7. Measurement discipline
 

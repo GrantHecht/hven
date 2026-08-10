@@ -22,9 +22,11 @@
 // preference with an escape, not a prohibition: where the fact being observed
 // leaves no trace outside the function that produces it, the boundary cannot
 // carry it and the hook goes where the fact is -- with the reason written
-// down. Exactly one such deviation exists today (PardisoIparmObserver's
-// did-the-write-execute fields, recorded inside FactorSession::analyze); it is
-// argued in full in docs/testing.md.
+// down. Two such deviations exist today (PardisoIparmObserver's
+// did-the-write-execute fields, recorded inside FactorSession::analyze; and
+// its post_pardisoinit_* fields, recorded at a different line in the same
+// function for a different reason); both are argued in full in
+// docs/testing.md.
 //
 // This header is the ONE place all of it is declared -- both adapters' fault
 // injectors plus the read-only OBSERVER that rides the identical seam for a
@@ -93,6 +95,22 @@ struct InertiaQueryFaultInjector {
 // than trusting the guarded `if` in FactorSession::analyze by inspection
 // alone -- see tests/linear/test_fault_injection.cpp's Pardiso*Iparm* tests
 // and docs/testing.md.
+//
+// The post_pardisoinit_* fields below serve a related but DISTINCT purpose
+// and come from a DIFFERENT point in FactorSession::analyze -- not the
+// adapter boundary at all. They pin the linked MKL's pardisoinit defaults
+// for iparm[10]/iparm[33]/iparm[18], for a canary a design decision
+// elsewhere relies on (see
+// BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero in
+// test_fault_injection.cpp). They cannot be adapter-boundary reads the way
+// last_ordering_iparm/last_weighted_matching_iparm are: this session's own
+// phase-11 (symbolic analysis) backend call was observed, empirically, to
+// overwrite iparm[33] (and iparm[18]) with its own output before
+// FactorSession::analyze returns, so a read taken after that call answers
+// "what phase 11 left there," not "what pardisoinit defaulted this to."
+// Recorded instead at the one line inside the session file where the fact
+// is still true -- see that file's own comment at the capture site for the
+// full argument.
 struct PardisoIparmObserver {
     // reset() before arming an observation keeps a later test whose
     // expected value happens to be 0 from silently passing on stale
@@ -100,6 +118,10 @@ struct PardisoIparmObserver {
     static void reset() {
         last_ordering_iparm = 0;
         last_weighted_matching_iparm = 0;
+        post_pardisoinit_recorded = false;
+        post_pardisoinit_matrix_scaling_iparm = 0;
+        post_pardisoinit_cnr_iparm = 0;
+        post_pardisoinit_factor_mflops_request_iparm = 0;
         recorded = false;
         ordering_was_written = false;
         ordering_written_value = 0;
@@ -121,6 +143,20 @@ struct PardisoIparmObserver {
     static inline bool recorded = false;
     static inline int last_ordering_iparm = 0;
     static inline int last_weighted_matching_iparm = 0;
+
+    // The raw array values for iparm[10] (matrix scaling), iparm[33] (CNR
+    // thread count), and iparm[18] (Mflop-report request code) EXACTLY as
+    // pardisoinit left them -- captured inside FactorSession::analyze,
+    // before that function's own phase-11 call runs, per this struct's own
+    // doc comment above. `post_pardisoinit_recorded` is a separate flag
+    // from `recorded` above: the two are set at different lines (this one
+    // right after pardisoinit(), the other at the very end of analyze()),
+    // so a test using only one of the two pairs still gets an honest
+    // "did this actually run" signal for the half it uses.
+    static inline bool post_pardisoinit_recorded = false;
+    static inline int post_pardisoinit_matrix_scaling_iparm = 0;
+    static inline int post_pardisoinit_cnr_iparm = 0;
+    static inline int post_pardisoinit_factor_mflops_request_iparm = 0;
 
     // --- the DID-THE-WRITE-EXECUTE observable ---
     //

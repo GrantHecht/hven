@@ -10,6 +10,7 @@
 // active in a given build, mirroring the production backend split.
 
 #include <array>
+#include <iostream>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -462,6 +463,62 @@ TEST(PardisoIparmObservation, WeightedMatchingTrueWritesExactly1) {
     EXPECT_EQ(PardisoIparmObserver::last_weighted_matching_iparm, 1);
     EXPECT_TRUE(PardisoIparmObserver::weighted_matching_was_written);
     EXPECT_EQ(PardisoIparmObserver::weighted_matching_written_value, 1);
+}
+
+// =============================================================================
+// A backend-default premise a design decision elsewhere relies on
+// =============================================================================
+
+// hven's own surface leaves iparm[10] (matrix scaling) and iparm[33] (CNR
+// thread count) untouched at their default Options -- that is the whole
+// point of don't-write-by-default. A separate decision (the interior-point
+// retarget design note) chose to treat "hven doesn't write these" and "the
+// migrating engine explicitly writes 0 to these" as having IDENTICAL effect
+// on this backend, rather than growing the surface a write-the-default
+// semantic to make the acts match. That choice is only sound as long as
+// pardisoinit's own defaults for both entries are actually 0 on the linked
+// MKL -- if a future MKL version moves either default, the two acts stop
+// being effect-equivalent and the decision needs revisiting.
+//
+// This test pins that premise, reading PardisoIparmObserver's
+// post_pardisoinit_* fields -- NOT its ordinary last_*/recorded pair, which
+// are read at the adapter boundary after analyze() fully returns. That
+// distinction matters here specifically: this session's own phase-11 call
+// (which analyze() runs as part of the very call this test makes) was
+// found, empirically, to overwrite iparm[33] with its own output before
+// analyze() returns, so a boundary-timed read would report phase 11's
+// output, not pardisoinit's default, and this test would either assert the
+// wrong thing or pass for the wrong reason. See
+// FactorSession::analyze's own comment (pardiso_session.cpp) at the capture
+// site for the full argument and how it was found.
+TEST(BackendDefaultPremise, MklPardisoinitLeavesScalingAndCnrAtZero) {
+    PardisoIparmObserver::reset();
+    SymmetricFactor factor{SymmetricFactor::Options{}};
+    factor.analyze(upper_csr(spd3()));
+
+    ASSERT_TRUE(PardisoIparmObserver::post_pardisoinit_recorded);
+    EXPECT_EQ(PardisoIparmObserver::post_pardisoinit_matrix_scaling_iparm, 0)
+        << "the retarget design note's effect-parity decision for iparm[10] assumes pardisoinit "
+           "leaves it at 0 on the linked MKL -- it no longer does, so that decision needs "
+           "revisiting with this evidence in hand";
+    EXPECT_EQ(PardisoIparmObserver::post_pardisoinit_cnr_iparm, 0)
+        << "the retarget design note's effect-parity decision for iparm[33] assumes pardisoinit "
+           "leaves it at 0 on the linked MKL -- it no longer does, so that decision needs "
+           "revisiting with this evidence in hand";
+
+    // Durable probe evidence, not a claim this test enforces: iparm[18]'s
+    // own pardisoinit default has separately been observed (by hand, once)
+    // to diverge from Intel's documented default on this MKL -- see
+    // Options::collect_factor_mflops's own doc comment. Recorded here so
+    // that observation lives in the test suite and is reproduced on every
+    // run, rather than resting on a one-off manual probe. No EXPECT/ASSERT
+    // on its value: unlike iparm[10]/iparm[33] above, no decision in this
+    // codebase currently depends on which way it goes.
+    const int post_pardisoinit_iparm18 =
+        PardisoIparmObserver::post_pardisoinit_factor_mflops_request_iparm;
+    RecordProperty("post_pardisoinit_iparm18", post_pardisoinit_iparm18);
+    std::cout << "[BackendDefaultPremise] post-pardisoinit iparm[18] (Mflop-report request) = "
+              << post_pardisoinit_iparm18 << " (recorded, not asserted)\n";
 }
 
 #endif // !defined(__APPLE__)

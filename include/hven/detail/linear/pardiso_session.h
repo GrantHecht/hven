@@ -283,6 +283,14 @@ class FactorSession {
     // executable coverage for the ordering/weighted_matching
     // don't-write-by-default rule (docs/testing.md, hven_fault_injection_tests);
     // nothing about either accessor is conditional on HVEN_TESTING.
+    //
+    // NOT a model for iparm[10]/iparm[18]/iparm[33]: those three are
+    // touched by this session's own phase-11 backend call (see
+    // FactorSession::analyze's post-pardisoinit test-only record), so a
+    // general-purpose accessor reading the live array after analyze() would
+    // silently answer a different question than "what did pardisoinit
+    // default this to" -- there is no safe unconditional accessor for those
+    // three to add here.
     MKL_INT ordering_iparm() const noexcept { return iparm_[1]; }
     MKL_INT weighted_matching_iparm() const noexcept { return iparm_[12]; }
 

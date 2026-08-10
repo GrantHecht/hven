@@ -197,6 +197,34 @@ void FactorSession::analyze(const SpMatRM &A) {
     MKL_INT mtype = static_cast<MKL_INT>(cfg_.mtype);
     pardisoinit(pt_.data(), &mtype, iparm_.data());
 
+    // A SECOND test-only record in this function, alongside the
+    // did-the-write-execute flags further down -- same file, same guard,
+    // same underlying reason (a fact that leaves no trace anywhere outside
+    // this function), captured at a different line because it is a
+    // different kind of fact. This one is the RAW array state exactly as
+    // pardisoinit left it, before anything else -- including this
+    // function's own upcoming phase-11 (symbolic analysis) backend call --
+    // touches it. That call is not a no-op on these entries: phase 11 was
+    // observed, empirically, to overwrite iparm[33] (and iparm[18]) with
+    // its own output by the time this function returns, so a read taken at
+    // the adapter boundary AFTER analyze() completes -- the normal
+    // boundary-preferred approach, and the one this project uses for
+    // iparm[1]/iparm[12] just below -- does not see pardisoinit's value for
+    // those two entries at all; it sees whatever phase 11 left there
+    // instead. Only a read taken at exactly this line, before phase 11
+    // runs, answers "what did pardisoinit actually default this to."
+    // Compiles to nothing outside the fault-injection test target, same as
+    // every other HVEN_TESTING-gated line in this file; the deviation is
+    // argued in docs/testing.md.
+#ifdef HVEN_TESTING
+    testing::PardisoIparmObserver::post_pardisoinit_recorded = true;
+    testing::PardisoIparmObserver::post_pardisoinit_matrix_scaling_iparm =
+        static_cast<int>(iparm_[10]);
+    testing::PardisoIparmObserver::post_pardisoinit_cnr_iparm = static_cast<int>(iparm_[33]);
+    testing::PardisoIparmObserver::post_pardisoinit_factor_mflops_request_iparm =
+        static_cast<int>(iparm_[18]);
+#endif
+
     // iparm[34] = 1: zero-based (C-style) CSR indexing, so Eigen's index
     // arrays feed Pardiso directly with no reindexing pass.
     iparm_[34] = 1;
@@ -212,8 +240,9 @@ void FactorSession::analyze(const SpMatRM &A) {
     // parallel variant) overrides it -- see
     // SymmetricFactor::Options::Ordering.
     //
-    // THE ONE TEST-ONLY RECORD IN THIS FILE, and why it is here rather than at
-    // the adapter boundary where this project prefers to instrument: the fact
+    // THE OTHER TEST-ONLY RECORD IN THIS FILE (the first is just above, the
+    // post-pardisoinit snapshot), and why it is here rather than at the
+    // adapter boundary where this project prefers to instrument: the fact
     // under test is whether the assignment below EXECUTES, and a skipped
     // assignment leaves no trace anywhere outside this function. On an MKL
     // whose pardisoinit default for this entry happens to equal one of the

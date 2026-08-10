@@ -149,13 +149,15 @@ gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 # adapter TU (symmetric_factor_mkl.cpp / symmetric_factor_accelerate.cpp) a
 # SECOND time, with HVEN_TESTING defined ONLY on that second copy's compile.
 #
-# The MKL session TU carries exactly ONE HVEN_TESTING-gated record -- two
-# lines at the guarded parameter-array writes in analyze(), recording whether
-# each write executed, which nothing outside that function can observe. It is
-# the single sanctioned deviation from this repo's boundary-first
-# instrumentation preference and is argued in docs/testing.md; it compiles to
-# nothing here, which the same not-linking-hven::hven arrangement below makes
-# checkable. This target does NOT link hven::hven:
+# The MKL session TU carries TWO HVEN_TESTING-gated records -- the guarded
+# parameter-array writes in analyze() (recording whether each write executed,
+# which nothing outside that function can observe), and a separate
+# post-pardisoinit snapshot of iparm[10]/iparm[33]/iparm[18] taken before
+# those same entries can be touched by that function's own phase-11 call.
+# Both are sanctioned deviations from this repo's boundary-first
+# instrumentation preference and are argued in docs/testing.md; they compile
+# to nothing here, which the same not-linking-hven::hven arrangement below
+# makes checkable. This target does NOT link hven::hven:
 #   - it is what keeps the production `hven` library's own compiled adapter
 #     object (and hven_tests, which links it) completely untouched by
 #     HVEN_TESTING -- byte-for-byte what it would be if this target and

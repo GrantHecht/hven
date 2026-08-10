@@ -69,6 +69,51 @@ in one line.
 
 The `notices/eigen-mpl2.txt` entry for that file records the modification.
 
+**Two, today.** `PardisoIparmObserver`'s `post_pardisoinit_*` fields, recorded
+at one capture site inside `FactorSession::analyze`
+(`src/linear/pardiso_session.cpp`), immediately after the `pardisoinit()` call
+and before anything else in that function — including that same function's
+own phase-11 (symbolic analysis) backend call — touches the array.
+
+*Why the boundary cannot carry it.* The fact under test is what `pardisoinit`
+itself defaulted `iparm[10]`/`iparm[33]`/`iparm[18]` to, on this linked MKL.
+That fact is not stable to the end of the function: this session's own
+phase-11 call was observed, empirically, to overwrite `iparm[33]` and
+`iparm[18]` with its own output before `analyze()` returns, so a read taken at
+the adapter boundary afterward — the approach this project uses for
+`ordering_iparm()`/`weighted_matching_iparm()` just above — sees phase 11's
+output for those two entries, not `pardisoinit`'s value. There is no safe
+unconditional `FactorSession` accessor that could answer this from outside
+the function either: by the time `analyze()` returns and any caller could
+ask, the fact the caller would be asking about is already gone (see
+`FactorSession`'s own doc comment, `include/hven/detail/linear/pardiso_session.h`,
+on why `ordering_iparm()`/`weighted_matching_iparm()` are not a model for
+these three).
+
+*What it costs.* Four `#ifdef HVEN_TESTING` lines at one capture site.
+Verified, not asserted: from a clean `ce423ec` checkout and from the working
+tree with this change applied, built with the identical build directory and
+toolchain (`git stash`/`git stash pop` to isolate the two source states
+without reconfiguring, `linux-clang-release` preset, `ninja hven` — the
+production CMake target, which never defines `HVEN_TESTING`), both
+recompiled translation units come out byte-identical: `pardiso_session.cpp.o`
+(the file the hook lives in) and `symmetric_factor_mkl.cpp.o` (recompiled
+only because it includes the touched headers), matching SHA-256 and `cmp`
+both ways. `nm --defined-only`'s full symbol listing of the resulting
+`libhven.a` is identical before and after, byte for byte — no symbol of any
+kind is added anywhere in the library.
+
+*What it buys.* `tests/linear/test_fault_injection.cpp`'s
+`BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero` asserts
+`pardisoinit`'s own `iparm[10]`/`iparm[33]` defaults on the linked MKL are
+exactly 0 — the premise `docs/retarget-design.md`'s effect-parity disposition
+for those two entries relies on — and records, without asserting, `iparm[18]`'s
+`pardisoinit` default as durable evidence for the divergence
+`Options::collect_factor_mflops` already documents by hand
+(`include/hven/linear/symmetric_factor.h`).
+
+The `notices/eigen-mpl2.txt` entry for that file records this modification too.
+
 ## The shape
 
 `hven/detail/linear/fault_injection.h` declares, for each backend, a small
@@ -78,8 +123,11 @@ guarded by `#ifdef HVEN_TESTING`:
 - `FactorizeFaultInjector` (MKL) — `active`, `injected_backend_code`.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
-  `last_weighted_matching_iparm`. NOT a fault injector — see "A read-only
-  variant" below.
+  `last_weighted_matching_iparm`, plus the unrelated `post_pardisoinit_*`
+  trio (`post_pardisoinit_matrix_scaling_iparm`, `post_pardisoinit_cnr_iparm`,
+  `post_pardisoinit_factor_mflops_request_iparm`) described under "A canary
+  for a design decision's backend-default premise" below. NOT a fault
+  injector — see "A read-only variant" below.
 
 The header compiles to **nothing** unless `HVEN_TESTING` is defined, so
 `#include`-ing it from a normal build is provably inert — there is nothing
@@ -395,6 +443,33 @@ it is internally platform-split rather than shared, mirroring
 evidence lives on `FactorizeOutcome`, not `SolveInfo` — it is read at the
 same point in the lifecycle as `InertiaEvidence` (right after a
 successful numeric factorization), and a solve does not refresh it.
+
+### A canary for a design decision's backend-default premise
+
+`PardisoIparmObserver` also carries the `post_pardisoinit_*` trio — the
+second sanctioned deviation above, not a general-purpose `FactorSession`
+accessor: `iparm[10]`/`iparm[33]`/`iparm[18]` are captured directly inside
+`FactorSession::analyze`, `#ifdef HVEN_TESTING`, right after `pardisoinit()`
+runs and before that same function's own phase-11 call gets a chance to
+overwrite two of the three. There is no boundary-side equivalent the way
+`ordering_iparm()`/`weighted_matching_iparm()` are for the first deviation —
+see that file's own doc comment on why no unconditional accessor for these
+three entries would answer the right question once `analyze()` has returned.
+`test_fault_injection.cpp`'s
+`BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero`
+uses the first two fields to pin a premise a retarget design decision relies
+on (`docs/retarget-design.md`): that choosing not to grow the `Options`
+surface a write-the-default semantic for `matrix_scaling`/`cnr_threads`
+is safe only because pardisoinit already leaves both entries at 0 on the
+linked MKL, making "hven doesn't write it" and "the migrating engine
+writes 0 explicitly" the same act in effect. If a future MKL version
+moves either default, this test fails instead of that equivalence
+silently breaking. The third field's value (iparm[18]) is recorded in
+the same test via `RecordProperty` and a diagnostic print, not asserted —
+it durably reproduces a pardisoinit-default observation this project
+previously only made by hand (`Options::collect_factor_mflops`'s own doc
+comment, `include/hven/linear/symmetric_factor.h`), without pinning any
+decision to it.
 
 ## The golden-numerics rig
 

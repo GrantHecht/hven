@@ -44,6 +44,17 @@ are listed here as they are added.
       observable from outside the function on backend versions whose own
       default equals the value the option would write. See docs/testing.md.
 
+      Second modification of note, same shape as the first: a handful of
+      additional HVEN_TESTING-gated lines immediately after the
+      pardisoinit() call in analyze(), recording iparm[10]/iparm[18]/
+      iparm[33] exactly as pardisoinit left them. Same build-cost profile
+      (absent from every normal build, byte-identical production object).
+      They exist because those three entries were found to be overwritten
+      by this same function's own phase-11 backend call before analyze()
+      returns, so a read taken after that call answers a different
+      question than "what did pardisoinit default this to" -- see
+      docs/testing.md.
+
   include/hven/detail/linear/accelerate_session.h
   src/linear/accelerate_session.cpp
       Derived from Eigen's AccelerateSupport module: the Accelerate Sparse
