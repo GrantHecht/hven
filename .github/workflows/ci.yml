@@ -145,11 +145,30 @@ jobs:
       - name: Build
         run: cmake --build build-macos
 
-      - name: Test
-        # HVEN_RIG_MACHINE comes from the label step above (via $GITHUB_ENV),
-        # which is what makes the committed Accelerate float rows genuinely
-        # assert here rather than report CONTEXT-MISMATCH.
-        run: ctest --test-dir build-macos --output-on-failure --timeout 300
+      # TEMPORARY DIAGNOSTIC (replaces the ctest sweep for one iteration):
+      # the migrated engine suite hangs on this runner class — many cases,
+      # suggesting a shared init path rather than one test. Run the whole
+      # binary IN ONE PROCESS so gtest's own [ RUN ] output names the first
+      # hanging case, then `sample` the live process for the exact stack.
+      - name: Test (hang diagnostic)
+        run: |
+          sw_vers; sysctl hw.ncpu hw.perflevel0.logicalcpu 2>/dev/null || true
+          BIN=$(find build-macos -name hven_interior_tests -type f | head -1)
+          echo "binary: $BIN"
+          "$BIN" > interior_run.log 2>&1 &
+          PID=$!
+          sleep 90
+          if kill -0 $PID 2>/dev/null; then
+            echo "=== STILL RUNNING after 90s — last gtest lines: ==="
+            tail -15 interior_run.log
+            echo "=== sample of hung process: ==="
+            sample $PID 5 -file sample.txt 2>/dev/null || true
+            head -120 sample.txt || true
+            kill -9 $PID
+            exit 1
+          fi
+          echo "=== binary finished on its own — tail: ==="
+          tail -25 interior_run.log
 
       # The Accelerate arm of every expected table is UNOBSERVED, and this
       # runner is the only Apple hardware the project reaches. Report mode
