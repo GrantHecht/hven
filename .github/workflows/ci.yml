@@ -145,30 +145,23 @@ jobs:
       - name: Build
         run: cmake --build build-macos
 
-      # TEMPORARY DIAGNOSTIC (replaces the ctest sweep for one iteration):
-      # the migrated engine suite hangs on this runner class — many cases,
-      # suggesting a shared init path rather than one test. Run the whole
-      # binary IN ONE PROCESS so gtest's own [ RUN ] output names the first
-      # hanging case, then `sample` the live process for the exact stack.
-      - name: Test (hang diagnostic)
+      # QoS experiment: the migrated engine suite deadlocks in
+      # libSparse's MT-METIS warmup (dispatch_apply starvation) when the
+      # job runs at the runner's degraded QoS on a 3-core VM. sudo -E
+      # launches at default QoS -- if this passes, the fix is
+      # environment-side and the engine is untouched.
+      - name: Test (QoS experiment)
         run: |
-          sw_vers; sysctl hw.ncpu hw.perflevel0.logicalcpu 2>/dev/null || true
           BIN=$(find build-macos -name hven_interior_tests -type f | head -1)
-          echo "binary: $BIN"
-          "$BIN" > interior_run.log 2>&1 &
+          sudo -E "$BIN" > interior_run.log 2>&1 &
           PID=$!
-          sleep 90
+          sleep 240
           if kill -0 $PID 2>/dev/null; then
-            echo "=== STILL RUNNING after 90s — last gtest lines: ==="
-            tail -15 interior_run.log
-            echo "=== sample of hung process: ==="
-            sample $PID 5 -file sample.txt 2>/dev/null || true
-            head -120 sample.txt || true
-            kill -9 $PID
-            exit 1
+            echo "=== STILL HANGING under sudo -E ==="; tail -8 interior_run.log
+            sudo sample $PID 3 -file sample.txt 2>/dev/null || true; head -60 sample.txt || true
+            sudo kill -9 $PID; exit 1
           fi
-          echo "=== binary finished on its own — tail: ==="
-          tail -25 interior_run.log
+          tail -6 interior_run.log
 
       # The Accelerate arm of every expected table is UNOBSERVED, and this
       # runner is the only Apple hardware the project reaches. Report mode
