@@ -489,7 +489,18 @@ TEST(L1RestoStepApplication, TrialResidualShiftIsAlphaBlendedSlackDifference) {
     // shift = (n + alpha*dn) - (p + alpha*dp).
     const Eigen::VectorXd expected =
         (r.ec_n() + alpha * r.ec_dn()) - (r.ec_p() + alpha * r.ec_dp());
-    EXPECT_NEAR((eq_shift - expected).cwiseAbs().maxCoeff(), 0.0, 1e-14);
+    // 1e-12, not 1e-14 -- same class as TrialElasticStepApplication's bound
+    // just above: trial_residual_shift's internal alpha-blend and this
+    // expression contract FMAs differently depending on the CPU's FMA
+    // policy. This site is machine-observed, not hypothesized: 1e-14 passed
+    // on the migrating developer's machine but measured
+    // 2.8421709430404007e-14 on hven's GitHub Actions Linux CI runner (a
+    // different x86-64 microarchitecture / compiler FMA-contraction
+    // decision, same source, same logic) -- i.e. the original 1e-14 bound
+    // was machine-marginal, not a correctness signal. 1e-12 keeps ~350x
+    // margin over the observed value while staying far below any bound that
+    // would mask a real regression in this O(1)-magnitude quantity.
+    EXPECT_NEAR((eq_shift - expected).cwiseAbs().maxCoeff(), 0.0, 1e-12);
 }
 
 TEST(L1RestoStepApplication, TrialObjectiveBlendsSlacksAndProximalTerm) {

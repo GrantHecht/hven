@@ -233,6 +233,39 @@ if(WIN32)
     # constructor trips a known STL/compiler interaction the engine's
     # thread_pool.h (many std::mutex members) then hits at compile time.
     add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+
+    # VERIFIED header chain that pulls <windows.h> into the migrated
+    # interior-point engine's translation units, unguarded (no NOMINMAX
+    # defined anywhere before this fix): include/hven/detail/interior/
+    # utils/thread_pool.h itself does `#elif defined(_WIN32) #include
+    # <windows.h>` (its Windows thread-naming/affinity path), and that
+    # header is pulled in transitively by non_linear_program.h -> psiopt.h
+    # -> every driver TU, so windows.h's own `max`/`min` function-like
+    # macros are live for the rest of each such translation unit --
+    # exactly the classic collision with the `std::max`/`std::min` calls
+    # further down in thread_pool.h itself and in non_linear_program.h,
+    # barrier_math.h, inertia_regularization.h, and others reached the
+    # same way. Two further, independent sites, same pattern, found by a
+    # follow-up sweep of every <windows.h>/_WIN32 site in the moved tree:
+    # src/interior/utils/get_core_count.cpp includes <Windows.h> directly
+    # (its GetLogicalProcessorInformation path) and
+    # src/interior/utils/color_text.cpp includes <Windows.h> directly (its
+    # SetConsoleMode path) -- both with WIN32_LEAN_AND_MEAN locally
+    # defined but no NOMINMAX. psiopt never hit any of this inside tycho
+    # because tycho's own include environment never manifested the
+    # collision (a different header-inclusion order/set) -- it is exposed
+    # here, not introduced here. NOMINMAX/WIN32_LEAN_AND_MEAN are
+    # compile-definition-only
+    # (edit-class (d)): the moved sources are not touched, and defining
+    # NOMINMAX before ANY <windows.h> inclusion in a TU is exactly the
+    # documented, standard fix for this exact collision. No pre-existing
+    # hven file (core/, linear/) includes <windows.h> at all (grepped
+    # clean), so narrowing what windows.h itself declares
+    # (WIN32_LEAN_AND_MEAN, which get_core_count.cpp already opts into
+    # locally) costs nothing here; hven uses none of the subsystems it
+    # excludes (winsock, COM, GDI, ...).
+    add_compile_definitions(NOMINMAX)
+    add_compile_definitions(WIN32_LEAN_AND_MEAN)
 endif()
 
 ################################################################################
