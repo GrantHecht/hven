@@ -598,6 +598,23 @@ trace to remember it:
   line — a table with a committed float row and no such line is **refused at
   load**, the same way a row without a thread pin is.
 
+**The derivation's fixed build environment** also includes three preprocessor
+definitions that are not part of the `# build-config:` axis (they do not vary
+between `Release` and `Debug`, or between any lane this project builds) because
+as of the hven M2 interior-point engine migration they are unconditional,
+repo-wide, for every configuration: `EIGEN_INITIALIZE_MATRICES_BY_ZERO`,
+`EIGEN_DONT_PARALLELIZE`, and `FMT_USE_LOCALE=0` (root `CMakeLists.txt`). The
+committed derived tables were revalidated under these definitions — the full
+suite (native arms and the three-seam run) passed after the change, with no
+row moving — so today's tables remain trustworthy as derived. Because these
+three are unconditional rather than declared per-table, a future change to any
+of them (removing one, or narrowing its scope to a subset of targets) is a
+change to the fixed environment every committed float row assumes, and
+requires the same two gates §"What a row has to survive before it is
+committed" describes for a build-configuration change — run-to-run and
+before/after reproduction, checked before the tables are trusted again — even
+though no `# build-config:` line would show it.
+
 **A float expectation is context-pinned three ways, and is asserted only when
 all three match: machine, build configuration, and thread pin.** These are
 exactly the row's own provenance columns (machine and thread pin, per row) plus

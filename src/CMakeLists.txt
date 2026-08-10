@@ -58,11 +58,16 @@ target_sources(hven PRIVATE
     model/nlp_adapter.cpp
     model/nlp_solver.cpp
     interior/utils/color_text.cpp
-    interior/utils/fmtlib.cpp
     interior/utils/get_core_count.cpp
     interior/utils/memory_management.cpp
     interior/utils/thread_pool.cpp
 )
+# interior/utils/fmtlib.cpp is NOT compiled here: it is a bare
+# `#include "fmtlib.h"` with no definitions of its own, and psiopt's own
+# utility library target (psiopt/CMakeLists.txt) never compiled it either
+# -- restoring that omission here restores original target membership.
+# fmtlib.h/.cpp still moved with the rest of src/utils/ (see
+# src/interior/utils/); only its compilation into hven is skipped.
 
 # color_text.h / fmtlib.h are private headers the driver TUs above include
 # unqualified (#include "color_text.h"), exactly as psiopt/CMakeLists.txt's
