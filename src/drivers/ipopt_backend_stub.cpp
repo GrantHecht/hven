@@ -22,7 +22,7 @@ OptimizationProblemBase::NlpSolveOutput solve(OptimizationProblemBase &prob,
     (void)prob;
     (void)mode;
     (void)input;
-    throw std::runtime_error("Tycho was built without Ipopt support; configure with "
+    throw std::runtime_error("hven was built without Ipopt support; configure with "
                              "-DHVEN_ENABLE_IPOPT=ON (requires an installed Ipopt discoverable "
                              "via pkg-config) to use nlp_solver = ipopt");
 }
