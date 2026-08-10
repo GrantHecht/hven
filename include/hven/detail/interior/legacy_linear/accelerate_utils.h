@@ -82,13 +82,17 @@ inline void warmup_sparse_solver() {
 
     SparseSymbolicFactorOptions fopts{};
     fopts.control = SparseDefaultControl;
-    fopts.orderMethod = accelerate_supported_order(
-#ifdef HVEN_HAS_MTMETIS
-        SparseOrderMTMetis
-#else
-        SparseOrderMetis
-#endif
-    );
+    // Serial METIS, deliberately, on every OS version. This warmup used to
+    // request SparseOrderMTMetis where available, but (a) libSparse's
+    // MT-METIS path deadlocks inside dispatch_apply on constrained
+    // virtualized hosts (observed and stack-sampled on a 3-core macOS 26.5
+    // CI VM, at default QoS as well as degraded), hanging every first solve;
+    // and (b) the solver's own default ordering on this platform is serial
+    // METIS, so MT-METIS pool warm-up only ever benefited a caller who
+    // explicitly selects the parallel ordering -- that caller now pays the
+    // pool's cold start on first use instead of at startup. Numerics are
+    // unaffected either way: this factors a throwaway 2x2.
+    fopts.orderMethod = SparseOrderMetis;
     fopts.malloc = malloc;
     fopts.free = free;
     // Without a reportError callback, an Accelerate parameter-check failure

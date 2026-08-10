@@ -145,23 +145,11 @@ jobs:
       - name: Build
         run: cmake --build build-macos
 
-      # QoS experiment: the migrated engine suite deadlocks in
-      # libSparse's MT-METIS warmup (dispatch_apply starvation) when the
-      # job runs at the runner's degraded QoS on a 3-core VM. sudo -E
-      # launches at default QoS -- if this passes, the fix is
-      # environment-side and the engine is untouched.
-      - name: Test (QoS experiment)
-        run: |
-          BIN=$(find build-macos -name hven_interior_tests -type f | head -1)
-          sudo -E "$BIN" > interior_run.log 2>&1 &
-          PID=$!
-          sleep 240
-          if kill -0 $PID 2>/dev/null; then
-            echo "=== STILL HANGING under sudo -E ==="; tail -8 interior_run.log
-            sudo sample $PID 3 -file sample.txt 2>/dev/null || true; head -60 sample.txt || true
-            sudo kill -9 $PID; exit 1
-          fi
-          tail -6 interior_run.log
+      - name: Test
+        # HVEN_RIG_MACHINE comes from the label step above (via $GITHUB_ENV),
+        # which is what makes the committed Accelerate float rows genuinely
+        # assert here rather than report CONTEXT-MISMATCH.
+        run: ctest --test-dir build-macos --output-on-failure --timeout 300
 
       # The Accelerate arm of every expected table is UNOBSERVED, and this
       # runner is the only Apple hardware the project reaches. Report mode
