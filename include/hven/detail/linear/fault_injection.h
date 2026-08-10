@@ -100,13 +100,6 @@ struct PardisoIparmObserver {
     static void reset() {
         last_ordering_iparm = 0;
         last_weighted_matching_iparm = 0;
-        last_matrix_scaling_iparm = 0;
-        last_pivot_strategy_iparm = 0;
-        last_factorization_algorithm_iparm = 0;
-        last_parallel_solve_iparm = 0;
-        last_cnr_iparm = 0;
-        last_factor_nonzeros_iparm = 0;
-        last_factor_mflops_iparm = 0;
         recorded = false;
         ordering_was_written = false;
         ordering_written_value = 0;
@@ -118,22 +111,15 @@ struct PardisoIparmObserver {
         pivot_strategy_written_value = 0;
         factorization_algorithm_was_written = false;
         factorization_algorithm_written_value = 0;
-        parallel_solve_was_written = false;
-        parallel_solve_written_value = 0;
+        solve_parallelism_was_written = false;
+        solve_parallelism_written_value = 0;
         cnr_was_written = false;
         cnr_written_value = 0;
-        factor_evidence_was_written = false;
+        factor_mflops_was_written = false;
     }
     static inline bool recorded = false;
     static inline int last_ordering_iparm = 0;
     static inline int last_weighted_matching_iparm = 0;
-    static inline int last_matrix_scaling_iparm = 0;
-    static inline int last_pivot_strategy_iparm = 0;
-    static inline int last_factorization_algorithm_iparm = 0;
-    static inline int last_parallel_solve_iparm = 0;
-    static inline int last_cnr_iparm = 0;
-    static inline int last_factor_nonzeros_iparm = 0;
-    static inline int last_factor_mflops_iparm = 0;
 
     // --- the DID-THE-WRITE-EXECUTE observable ---
     //
@@ -167,26 +153,32 @@ struct PardisoIparmObserver {
     static inline int weighted_matching_written_value = 0;
 
     // The same did-the-write-execute pair for the option set's five other
-    // guarded iparm writes (matrix_scaling, pivot_strategy,
-    // factorization_algorithm, parallel_solve, cnr_threads) plus the
-    // factor-evidence request pair (iparm[17]/iparm[18], written together
-    // under one guard -- see report_factor_evidence's own doc comment),
-    // for the identical reason and at the identical write sites in
+    // guarded iparm writes -- matrix_scaling (iparm[10]), pivot_strategy
+    // (iparm[20]), factorization_algorithm (iparm[23]), solve_parallelism
+    // (iparm[24]), cnr_threads (iparm[33]) -- plus the Mflop-evidence
+    // request (iparm[18], gated on Options::collect_factor_mflops; the
+    // sibling iparm[17] write is UNCONDITIONAL, so it carries no flag
+    // here -- see FactorSession::factor_nonzeros()'s own doc comment), for
+    // the identical reason and at the identical write sites in
     // FactorSession::analyze. Carried for every new knob for symmetry and
     // the same mutation-resistance the original two fields document, not
     // because every one of them is independently known to be ambiguous at
-    // the value level on the MKL currently linked.
+    // the value level on the MKL currently linked. Each entry gets its OWN
+    // flag pair -- no entry shares a flag with any other, including the
+    // iparm[17]/iparm[18] pair the frozen-evidence amendment originally
+    // bundled under one flag before the split into an unconditional write
+    // (iparm[17]) and this one remaining guarded write (iparm[18]).
     static inline bool matrix_scaling_was_written = false;
     static inline int matrix_scaling_written_value = 0;
     static inline bool pivot_strategy_was_written = false;
     static inline int pivot_strategy_written_value = 0;
     static inline bool factorization_algorithm_was_written = false;
     static inline int factorization_algorithm_written_value = 0;
-    static inline bool parallel_solve_was_written = false;
-    static inline int parallel_solve_written_value = 0;
+    static inline bool solve_parallelism_was_written = false;
+    static inline int solve_parallelism_written_value = 0;
     static inline bool cnr_was_written = false;
     static inline int cnr_written_value = 0;
-    static inline bool factor_evidence_was_written = false;
+    static inline bool factor_mflops_was_written = false;
 };
 
 } // namespace hven::linear::detail::testing

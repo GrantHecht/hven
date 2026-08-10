@@ -207,22 +207,24 @@ TEST(PardisoIparmObservation, DefaultOptionsLeaveOrderingAndMatchingAtThePardiso
         << "default Options must not execute the iparm[12] write at all";
 
     // The identical claim for the option set's five other guarded writes
-    // plus the factor-evidence request pair -- see fault_injection.h's own
-    // doc comment on why every new knob carries this flag even where the
-    // value-level ambiguity that originally motivated it for ordering does
-    // not independently arise for each one.
+    // -- see fault_injection.h's own doc comment on why every new knob
+    // carries this flag even where the value-level ambiguity that
+    // originally motivated it for ordering does not independently arise
+    // for each one. iparm[17] (factor_nonzeros) carries NO flag here: it is
+    // written unconditionally, not guarded -- see
+    // FactorSession::factor_nonzeros()'s own doc comment.
     EXPECT_FALSE(PardisoIparmObserver::matrix_scaling_was_written)
         << "default Options must not execute the iparm[10] write at all";
     EXPECT_FALSE(PardisoIparmObserver::pivot_strategy_was_written)
         << "default Options must not execute the iparm[20] write at all";
     EXPECT_FALSE(PardisoIparmObserver::factorization_algorithm_was_written)
         << "default Options must not execute the iparm[23] write at all";
-    EXPECT_FALSE(PardisoIparmObserver::parallel_solve_was_written)
+    EXPECT_FALSE(PardisoIparmObserver::solve_parallelism_was_written)
         << "default Options must not execute the iparm[24] write at all";
     EXPECT_FALSE(PardisoIparmObserver::cnr_was_written)
         << "default Options must not execute the iparm[33] write at all";
-    EXPECT_FALSE(PardisoIparmObserver::factor_evidence_was_written)
-        << "default Options must not execute the iparm[17]/iparm[18] writes at all";
+    EXPECT_FALSE(PardisoIparmObserver::factor_mflops_was_written)
+        << "default Options must not execute the iparm[18] write at all";
 }
 
 // matrix_scaling = true's contract value (iparm[10] = 1) is a fixed part of
@@ -240,14 +242,17 @@ TEST(PardisoIparmObservation, MatrixScalingTrueWritesExactly1) {
 }
 
 // Every named PivotStrategy value writes its own fixed contract code to
-// iparm[20] -- a spec commitment (psiopt's own QPPivotModes values), not a
+// iparm[20] -- EXACTLY Intel's own documented iparm[20] codes (see
+// PivotStrategy's own doc comment, symmetric_factor.h), not a
 // version-fragile assumption, so the literal codes below are correct to
 // assert directly.
 TEST(PardisoIparmObservation, PivotStrategyWritesItsOwnContractCode) {
     using PivotStrategy = SymmetricFactor::Options::PivotStrategy;
     const std::vector<std::pair<PivotStrategy, int>> cases = {
-        {PivotStrategy::kOneByOne, 0}, {PivotStrategy::kTwoByTwo, 1}, {PivotStrategy::kE4, 4},
-        {PivotStrategy::kE6, 6},       {PivotStrategy::kE8, 8},       {PivotStrategy::kE13, 13},
+        {PivotStrategy::kOneByOne, 0},
+        {PivotStrategy::kTwoByTwo, 1},
+        {PivotStrategy::kOneByOneNoAutoRefine, 2},
+        {PivotStrategy::kTwoByTwoNoAutoRefine, 3},
     };
     for (const auto &[strategy, code] : cases) {
         PardisoIparmObserver::reset();
@@ -263,7 +268,10 @@ TEST(PardisoIparmObservation, PivotStrategyWritesItsOwnContractCode) {
 }
 
 // Every named FactorizationAlgorithm value writes its own fixed contract
-// code to iparm[23].
+// code to iparm[23]. Ordering is pinned to kNestedDissection for both
+// cases -- kTwoLevel requires it (see symmetric_factor_mkl.cpp's
+// constructor); kClassic is indifferent to it, so pinning it for both
+// keeps this loop uniform without changing what it tests.
 TEST(PardisoIparmObservation, FactorizationAlgorithmWritesItsOwnContractCode) {
     using FactorizationAlgorithm = SymmetricFactor::Options::FactorizationAlgorithm;
     const std::vector<std::pair<FactorizationAlgorithm, int>> cases = {
@@ -274,6 +282,7 @@ TEST(PardisoIparmObservation, FactorizationAlgorithmWritesItsOwnContractCode) {
         PardisoIparmObserver::reset();
         SymmetricFactor::Options opts;
         opts.factorization_algorithm = algorithm;
+        opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
         SymmetricFactor factor{opts};
         factor.analyze(upper_csr(spd3()));
 
@@ -283,23 +292,40 @@ TEST(PardisoIparmObservation, FactorizationAlgorithmWritesItsOwnContractCode) {
     }
 }
 
-TEST(PardisoIparmObservation, ParallelSolveTrueWritesExactly1) {
-    PardisoIparmObserver::reset();
-    SymmetricFactor::Options opts;
-    opts.parallel_solve = true;
-    SymmetricFactor factor{opts};
-    factor.analyze(upper_csr(spd3()));
+// Every named SolveParallelism value writes its own fixed contract code to
+// iparm[24] -- EXACTLY Intel's own documented iparm[24] codes (see
+// SolveParallelism's own doc comment, symmetric_factor.h). kAdaptivePartitioning
+// writes 0, not the historically-wrong "true writes 1" a bare bool once did
+// -- see that enum's own naming-history note.
+TEST(PardisoIparmObservation, SolveParallelismWritesItsOwnContractCode) {
+    using SolveParallelism = SymmetricFactor::Options::SolveParallelism;
+    const std::vector<std::pair<SolveParallelism, int>> cases = {
+        {SolveParallelism::kAdaptivePartitioning, 0},
+        {SolveParallelism::kSequential, 1},
+        {SolveParallelism::kMatrixPartitionParallel, 2},
+    };
+    for (const auto &[mode, code] : cases) {
+        PardisoIparmObserver::reset();
+        SymmetricFactor::Options opts;
+        opts.solve_parallelism = mode;
+        SymmetricFactor factor{opts};
+        factor.analyze(upper_csr(spd3()));
 
-    ASSERT_TRUE(PardisoIparmObserver::recorded);
-    EXPECT_TRUE(PardisoIparmObserver::parallel_solve_was_written);
-    EXPECT_EQ(PardisoIparmObserver::parallel_solve_written_value, 1);
+        ASSERT_TRUE(PardisoIparmObserver::recorded);
+        EXPECT_TRUE(PardisoIparmObserver::solve_parallelism_was_written);
+        EXPECT_EQ(PardisoIparmObserver::solve_parallelism_written_value, code);
+    }
 }
 
 // cnr_threads writes its OWN value (not a fixed 0/1 flag) to iparm[33].
+// Ordering is pinned to kNestedDissection -- the only ordering CNR mode is
+// documented compatible with (see cnr_threads' own doc comment); without
+// it, construction itself would throw before analyze() ever ran.
 TEST(PardisoIparmObservation, CnrThreadsWritesTheRequestedCount) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
     opts.cnr_threads = 5;
+    opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
     SymmetricFactor factor{opts};
     factor.analyze(upper_csr(spd3()));
 
@@ -308,60 +334,50 @@ TEST(PardisoIparmObservation, CnrThreadsWritesTheRequestedCount) {
     EXPECT_EQ(PardisoIparmObserver::cnr_written_value, 5);
 }
 
-// report_factor_evidence = true writes BOTH iparm[17] and iparm[18] to -1
-// (the Pardiso request codes), under one guard, so it carries a single
-// was-written flag rather than a pair -- see fault_injection.h.
-TEST(PardisoIparmObservation, ReportFactorEvidenceTrueRequestsBothEntries) {
+// collect_factor_mflops = true writes iparm[18] = -1 (the Pardiso request
+// code). iparm[17] (factor_nonzeros) is NOT gated by this option -- it is
+// written unconditionally regardless -- so this test's only claim is about
+// iparm[18] specifically, individually verifiable from
+// iparm[17]'s own unconditional write (finding the shared-flag gap the
+// PardisoIparmObserver::factor_mflops_was_written rename closes).
+TEST(PardisoIparmObservation, CollectFactorMflopsTrueRequestsIparm18) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
-    opts.report_factor_evidence = true;
+    opts.collect_factor_mflops = true;
     SymmetricFactor factor{opts};
     factor.analyze(upper_csr(spd3()));
 
     ASSERT_TRUE(PardisoIparmObserver::recorded);
-    EXPECT_TRUE(PardisoIparmObserver::factor_evidence_was_written);
+    EXPECT_TRUE(PardisoIparmObserver::factor_mflops_was_written);
 }
 
-// Functional companion: with the option enabled, a real factorization
-// reports present, non-negative evidence through the public API -- not just
-// that the request bit was set, but that the readback actually flows
-// through SolveInfo::factor.
-TEST(PardisoIparmObservation, ReportFactorEvidenceTruePopulatesSolveInfoFactorEvidence) {
-    SymmetricFactor::Options opts;
-    opts.report_factor_evidence = true;
-    SymmetricFactor factor{opts};
-    const SpMatRM A = upper_csr(spd3());
-    factor.analyze(A);
-    const auto outcome = factor.factorize(A);
-    ASSERT_EQ(outcome.status, FactorizeOutcome::Status::kOk);
+// Functional companion: FactorEvidence's free/costly split, proven through
+// the public API rather than just the request bit. Evidence
+// lives on FactorizeOutcome, not SolveInfo -- see FactorEvidence's own doc
+// comment (symmetric_factor.h) for why.
+//
+// factor_nonzeros is ALWAYS present after a successful factorization --
+// no Options field gates it. factor_mflops is present only when
+// collect_factor_mflops requested it. factor_size_bytes never appears on
+// MKL.
+TEST(PardisoIparmObservation, FactorNonzerosIsAlwaysPresentRegardlessOfCollectFactorMflops) {
+    for (const bool collect_mflops : {false, true}) {
+        SymmetricFactor::Options opts;
+        opts.collect_factor_mflops = collect_mflops;
+        SymmetricFactor factor{opts};
+        const SpMatRM A = upper_csr(spd3());
+        factor.analyze(A);
+        const auto outcome = factor.factorize(A);
+        ASSERT_EQ(outcome.status, FactorizeOutcome::Status::kOk);
 
-    Vec rhs = Vec::Ones(3);
-    Vec x(3);
-    const auto info = factor.solve(rhs, x);
-
-    ASSERT_TRUE(info.factor.factor_nonzeros.has_value());
-    ASSERT_TRUE(info.factor.factor_mflops.has_value());
-    EXPECT_GE(*info.factor.factor_nonzeros, 0);
-    EXPECT_GE(*info.factor.factor_mflops, 0);
-    EXPECT_FALSE(info.factor.factor_size_bytes.has_value())
-        << "MKL never populates the Accelerate-only byte-size field";
-}
-
-// Companion: at default Options, SolveInfo::factor is entirely absent.
-TEST(PardisoIparmObservation, DefaultOptionsLeaveSolveInfoFactorEvidenceAbsent) {
-    SymmetricFactor factor{SymmetricFactor::Options{}};
-    const SpMatRM A = upper_csr(spd3());
-    factor.analyze(A);
-    const auto outcome = factor.factorize(A);
-    ASSERT_EQ(outcome.status, FactorizeOutcome::Status::kOk);
-
-    Vec rhs = Vec::Ones(3);
-    Vec x(3);
-    const auto info = factor.solve(rhs, x);
-
-    EXPECT_FALSE(info.factor.factor_nonzeros.has_value());
-    EXPECT_FALSE(info.factor.factor_mflops.has_value());
-    EXPECT_FALSE(info.factor.factor_size_bytes.has_value());
+        ASSERT_TRUE(outcome.factor.factor_nonzeros.has_value())
+            << "factor_nonzeros must be present regardless of collect_factor_mflops";
+        EXPECT_GE(*outcome.factor.factor_nonzeros, 0);
+        EXPECT_EQ(outcome.factor.factor_mflops.has_value(), collect_mflops)
+            << "factor_mflops must track collect_factor_mflops exactly";
+        EXPECT_FALSE(outcome.factor.factor_size_bytes.has_value())
+            << "MKL never populates the Accelerate-only byte-size field";
+    }
 }
 
 // kMinimumDegree's contract value (iparm[1] = 0) is a fixed part of the

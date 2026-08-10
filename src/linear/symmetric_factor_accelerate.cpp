@@ -154,12 +154,14 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.max_refinement_iters = opts.max_refinement_iters;
     cfg.ordering = accelerate_ordering_code(opts.ordering);
     // matrix_scaling, pivot_strategy, factorization_algorithm,
-    // parallel_solve and cnr_threads are Pardiso-only -- the constructor
-    // below throws before construction succeeds on any non-default value,
-    // so AccelerateConfig carries no fields for them at all, matching
-    // weighted_matching's existing precedent.
+    // solve_parallelism, cnr_threads and collect_factor_mflops are all
+    // Pardiso-only -- the constructor below throws before construction
+    // succeeds on any non-default value, so AccelerateConfig carries no
+    // fields for them at all, matching weighted_matching's existing
+    // precedent. factor_size_bytes similarly needs no config field at all:
+    // it is always collected (see FactorSession::factor_size_bytes()'s own
+    // doc comment), with nothing to gate.
     cfg.zero_tolerance_override = opts.accelerate_zero_tolerance;
-    cfg.report_factor_evidence = opts.report_factor_evidence;
     return cfg;
 }
 
@@ -269,17 +271,20 @@ InertiaEvidence evidence_of(const detail::FactorSession &session) {
 }
 
 // Builds the factor-size evidence for a session's current factorization.
+// Called only from factorize()'s success branch -- see FactorEvidence's own
+// doc comment (symmetric_factor.h) for why this evidence lives on
+// FactorizeOutcome rather than being recomputed per solve.
 //
 // The Accelerate column of the FactorEvidence semantics table, in code:
-// present only when Options::report_factor_evidence requested it (see
-// FactorSession::has_factor_evidence()); factor_nonzeros/factor_mflops stay
-// std::nullopt unconditionally on this backend, which reports a byte size
-// instead, never an entry count, and reports no cost estimate at all.
+// factor_size_bytes is UNCONDITIONAL -- Accelerate computes it as part of
+// the symbolic factorization regardless of any hven option, so there is no
+// gate to check (see FactorSession::factor_size_bytes()'s own doc
+// comment); factor_nonzeros/factor_mflops stay std::nullopt
+// unconditionally on this backend, which reports a byte size instead,
+// never an entry count, and reports no cost estimate at all.
 FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
     FactorEvidence evidence;
-    if (session.has_factor_evidence()) {
-        evidence.factor_size_bytes = static_cast<Index>(session.factor_size_bytes());
-    }
+    evidence.factor_size_bytes = static_cast<Index>(session.factor_size_bytes());
     return evidence;
 }
 
@@ -302,12 +307,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
             what, X.rows(), X.cols(), RHS.rows(), RHS.cols()));
     }
     if (X.cols() == 0) {
-        // Nothing to solve; never reaches the backend. Still reports the
-        // current factorization's own evidence -- see the identical note in
-        // symmetric_factor_mkl.cpp's own run_solve.
-        SolveInfo info;
-        info.factor = factor_evidence_of(session);
-        return info;
+        return SolveInfo{}; // nothing to solve; never reaches the backend
     }
 
     // Accelerate's DenseVector_Double solve (see FactorSession::solve) needs
@@ -335,9 +335,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
     // Accelerate reports no iterative-refinement count this session can
     // honestly surface (see AccelerateConfig's doc comment) -- absent,
     // never a fabricated value.
-    SolveInfo info;
-    info.factor = factor_evidence_of(session);
-    return info;
+    return SolveInfo{};
 }
 
 SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRef x,
@@ -358,9 +356,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
     Vec rhs_buffer = rhs;
     session.solve(rhs_buffer.data(), x.data(), 1);
 
-    SolveInfo info;
-    info.factor = factor_evidence_of(session);
-    return info;
+    return SolveInfo{};
 }
 
 // Maps the frozen SolvePhase enum onto the SubfactorPhase FactorSession's
@@ -462,12 +458,12 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             "{} equivalent -- requires kBackendDefault on this backend",
             kBackendName));
     }
-    // parallel_solve: Pardiso-only -- Accelerate has no per-instance thread
-    // control for this to parallelize a solve with.
-    if (opts_.parallel_solve) {
+    // solve_parallelism: Pardiso-only -- Accelerate has no per-instance
+    // thread control for this to parallelize a solve with.
+    if (opts_.solve_parallelism != Options::SolveParallelism::kBackendDefault) {
         throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: Options::parallel_solve is a Pardiso-only option and has no {} "
-            "equivalent -- requires false on this backend, got true",
+            "SymmetricFactor: Options::solve_parallelism is a Pardiso-only option and has no {} "
+            "equivalent -- requires kBackendDefault on this backend",
             kBackendName));
     }
     // cnr_threads: Pardiso-only -- Accelerate has no CNR reproducibility
@@ -478,6 +474,20 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             "SymmetricFactor: Options::cnr_threads is a Pardiso-only option and has no {} "
             "equivalent -- requires 0 on this backend, got {}",
             kBackendName, opts_.cnr_threads));
+    }
+    // collect_factor_mflops: Pardiso-only -- Accelerate reports no
+    // factorization-cost estimate under any configuration (see
+    // FactorEvidence::factor_mflops's own doc comment), so `true` would
+    // otherwise be silently ignored -- the same situation the other
+    // Pardiso-only throws above exist to prevent. factor_nonzeros'
+    // Accelerate counterpart, factor_size_bytes, needs no such throw: it is
+    // always collected on this backend, with no option to silently ignore.
+    if (opts_.collect_factor_mflops) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: Options::collect_factor_mflops is a Pardiso-only option "
+                        "and has no {} "
+                        "equivalent -- requires false on this backend, got true",
+                        kBackendName));
     }
 
     // accelerate_zero_tolerance is this backend's own knob (checked for
@@ -544,6 +554,7 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
     if (backend_code == 0) {
         outcome.status = FactorizeOutcome::Status::kOk;
         outcome.inertia = evidence_of(*session_);
+        outcome.factor = factor_evidence_of(*session_);
         // This engine has now produced numerics of its own, which retires
         // any staleness inherited from an adopted handle.
         numerics_refused_ = false;
@@ -606,9 +617,7 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
     session_->solve_partial(backend_phase, rhs_buffer.data(), x.data());
     ++counters_.partial_solve_count;
 
-    SolveInfo info; // no refinement count to report on this backend
-    info.factor = factor_evidence_of(*session_);
-    return info;
+    return SolveInfo{}; // no refinement count to report on this backend
 }
 
 // Unconditionally false on Accelerate: perturbation evidence is entirely
@@ -658,7 +667,6 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.max_refinement_iters = cfg.max_refinement_iters;
     opts.ordering = accelerate_ordering_of(cfg.ordering);
     opts.accelerate_zero_tolerance = cfg.zero_tolerance_override;
-    opts.report_factor_evidence = cfg.report_factor_evidence;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;

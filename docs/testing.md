@@ -315,24 +315,31 @@ now diverges between them per the backend-neutral ordering mapping
   `kMinimumDegree`.
 
 The consumed-surface audit (`docs/consumed-surface-audit.md`, findings
-1–4 and 8) added five more Pardiso-only options plus one Accelerate-only
+1–5 and 8) added five more Pardiso-only options plus one Accelerate-only
 one to this file, all following the identical throw/no-throw split:
 
 - `Options::matrix_scaling`, `Options::pivot_strategy`,
-  `Options::factorization_algorithm`, `Options::parallel_solve`,
-  `Options::cnr_threads`: Pardiso-only. Any non-default value THROWS
-  `std::invalid_argument` at construction on Accelerate, under
-  `#if defined(__APPLE__)`; the same values do NOT throw on MKL, under
-  `#else`.
+  `Options::factorization_algorithm`, `Options::solve_parallelism`,
+  `Options::cnr_threads`, `Options::collect_factor_mflops`: Pardiso-only.
+  Any non-default value THROWS `std::invalid_argument` at construction on
+  Accelerate, under `#if defined(__APPLE__)`; the same values do NOT
+  throw on MKL, under `#else`.
 - `Options::accelerate_zero_tolerance`: the inverse case — Accelerate's
   OWN option. A present value does NOT throw under
   `#if defined(__APPLE__)`, and THROWS `std::invalid_argument` under
   `#else` (MKL has no zeroTolerance concept for it to override).
-- `Options::report_factor_evidence`: like `ordering`, honored (never
-  throws) on BOTH backends — it is not one of this file's throw-path
-  options, but is asserted alongside them for completeness since the
-  file now covers the option set as a whole, not merely the two options
-  its name predates.
+
+The MKL `#else` half also covers the documented MULTI-OPTION interactions
+`symmetric_factor_mkl.cpp`'s constructor validates (see that file's own
+Intel-documentation citations): CNR mode (`cnr_threads > 0`) requires
+`ordering == kNestedDissection` exactly (every other value, including
+`kBackendDefault`, throws); the two-level factorization algorithm
+requires `ordering` to be `kNestedDissection` or
+`kParallelNestedDissection`, and requires both `matrix_scaling` and
+`weighted_matching` to stay `false`. These interaction throws only exist
+to test on MKL, where the individual fields are accepted at all — a
+non-default value of any of the fields involved already throws
+unconditionally on Accelerate before an interaction could matter.
 
 Like `test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides
 the Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
@@ -340,33 +347,45 @@ and also compiles and executes against the real framework in macOS CI.
 
 ### Factor-size evidence's PardisoIparmObserver coverage
 
-`Options::report_factor_evidence`'s five sibling knobs
-(`matrix_scaling`, `pivot_strategy`, `factorization_algorithm`,
-`parallel_solve`, `cnr_threads`) and the evidence-collection request
-itself (`report_factor_evidence`, which writes iparm[17]/iparm[18]
-together under one guard) extend `PardisoIparmObserver`
+`Options::collect_factor_mflops`'s five sibling knobs (`matrix_scaling`,
+`pivot_strategy`, `factorization_algorithm`, `solve_parallelism`,
+`cnr_threads`) extend `PardisoIparmObserver`
 (`hven/detail/linear/fault_injection.h`) with the identical
 did-the-write-execute pair the `ordering`/`weighted_matching` amendment
 established, at the same write sites inside `FactorSession::analyze`
-(`pardiso_session.cpp`). `tests/linear/test_fault_injection.cpp`'s
-`PardisoIparmObservation` suite asserts, for each new knob: the
-default-Options case leaves its `*_was_written` flag `false`, and each
-non-default value sets it `true` with `*_written_value` equal to the
-knob's own fixed contract code (`PivotStrategy`: 0 / 1 / 4 / 6 / 8 / 13;
-`FactorizationAlgorithm`: 0 / 1; the two booleans: 1;
-`cnr_threads`: the requested count). Unlike the original two fields,
-none of these six is independently known to need the flag to settle an
-otherwise-ambiguous value-level comparison on the MKL currently linked —
-they carry it for the same symmetry and mutation-resistance reasons the
-`weighted_matching` field already does. A companion pair of plain
-(non-`HVEN_TESTING`) tests in the same file exercises the public-API
-consequence end to end: with `report_factor_evidence` on, a real solve's
-`SolveInfo::factor` carries present `factor_nonzeros`/`factor_mflops` and
-an absent `factor_size_bytes`; with it off (default), all three stay
-absent. `tests/linear/test_symmetric_factor_evidence_invariants.cpp`
-carries the backend-conditional twin of that same check (MKL vs.
-Accelerate), following `ZeroClassDerivationMatchesTheBackendContract`'s
-own `#if defined(__APPLE__)` pattern.
+(`pardiso_session.cpp`). `collect_factor_mflops` itself gets the same
+pair, gating iparm[18] alone -- its sibling iparm[17] (the nonzero-count
+request) is written UNCONDITIONALLY, every `analyze()` call, with no
+Options field and therefore no flag to observe: see
+`FactorSession::factor_nonzeros()`'s own doc comment
+(`pardiso_session.h`) for why that entry needs no gate at all.
+`tests/linear/test_fault_injection.cpp`'s `PardisoIparmObservation` suite
+asserts, for each guarded knob: the default-Options case leaves its
+`*_was_written` flag `false`, and each non-default value sets it `true`
+with `*_written_value` equal to the knob's own fixed contract code
+(`PivotStrategy`: 0 / 1 / 2 / 3, EXACTLY Intel's documented iparm[20]
+codes; `FactorizationAlgorithm`: 0 / 1; `SolveParallelism`: 0 / 1 / 2,
+EXACTLY Intel's documented iparm[24] codes; `matrix_scaling`: 1;
+`cnr_threads`: the requested count; `collect_factor_mflops`: iparm[18]
+alone). Unlike the original two fields, none of these is independently
+known to need the flag to settle an otherwise-ambiguous value-level
+comparison on the MKL currently linked — they carry it for the same
+symmetry and mutation-resistance reasons the `weighted_matching` field
+already does. A companion functional test in the same file exercises the
+public-API consequence end to end: `factor_nonzeros` is present after
+every successful factorization regardless of `collect_factor_mflops`;
+`factor_mflops` tracks that option exactly.
+`tests/linear/test_symmetric_factor_evidence_invariants.cpp` carries the
+backend-conditional twin of that same check (MKL vs. Accelerate),
+following `ZeroClassDerivationMatchesTheBackendContract`'s own
+`#if defined(__APPLE__)` pattern — including that `collect_factor_mflops`
+itself throws on Accelerate (it is Pardiso-only, unlike the always-on
+`factor_nonzeros`/`factor_size_bytes` fields), so that file's coverage of
+it is internally platform-split rather than shared, mirroring
+`test_symmetric_factor_pardiso_only_options.cpp`'s own convention. This
+evidence lives on `FactorizeOutcome`, not `SolveInfo` — it is read at the
+same point in the lifecycle as `InertiaEvidence` (right after a
+successful numeric factorization), and a solve does not refresh it.
 
 ## The golden-numerics rig
 

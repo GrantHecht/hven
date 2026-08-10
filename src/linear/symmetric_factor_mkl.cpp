@@ -86,7 +86,9 @@ SymmetricFactor::Options::Ordering pardiso_ordering_of(std::optional<int> code) 
 // Maps SymmetricFactor::Options::PivotStrategy onto the raw iparm[20]
 // override PardisoConfig carries (std::nullopt = don't write, matching
 // kBackendDefault exactly). Explicit switch, not a bare cast, for the same
-// reason pardiso_ordering_code is one.
+// reason pardiso_ordering_code is one. The four non-default codes are
+// EXACTLY Intel's own documented iparm[20] values -- see PivotStrategy's
+// own doc comment in symmetric_factor.h for the citation.
 std::optional<int> pardiso_pivot_strategy_code(SymmetricFactor::Options::PivotStrategy strategy) {
     using PivotStrategy = SymmetricFactor::Options::PivotStrategy;
     switch (strategy) {
@@ -96,14 +98,10 @@ std::optional<int> pardiso_pivot_strategy_code(SymmetricFactor::Options::PivotSt
         return 0;
     case PivotStrategy::kTwoByTwo:
         return 1;
-    case PivotStrategy::kE4:
-        return 4;
-    case PivotStrategy::kE6:
-        return 6;
-    case PivotStrategy::kE8:
-        return 8;
-    case PivotStrategy::kE13:
-        return 13;
+    case PivotStrategy::kOneByOneNoAutoRefine:
+        return 2;
+    case PivotStrategy::kTwoByTwoNoAutoRefine:
+        return 3;
     }
     throw std::invalid_argument(fmt::format(
         "SymmetricFactor: unknown Options::PivotStrategy value ({})", static_cast<int>(strategy)));
@@ -120,17 +118,55 @@ SymmetricFactor::Options::PivotStrategy pardiso_pivot_strategy_of(std::optional<
         return PivotStrategy::kOneByOne;
     case 1:
         return PivotStrategy::kTwoByTwo;
-    case 4:
-        return PivotStrategy::kE4;
-    case 6:
-        return PivotStrategy::kE6;
-    case 8:
-        return PivotStrategy::kE8;
-    case 13:
-        return PivotStrategy::kE13;
+    case 2:
+        return PivotStrategy::kOneByOneNoAutoRefine;
+    case 3:
+        return PivotStrategy::kTwoByTwoNoAutoRefine;
     default:
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor::adopt: unrecognized stored pivot strategy code ({})", *code));
+    }
+}
+
+// Maps SymmetricFactor::Options::SolveParallelism onto the raw iparm[24]
+// override PardisoConfig carries (std::nullopt = don't write, matching
+// kBackendDefault exactly). The three non-default codes are EXACTLY
+// Intel's own documented iparm[24] values -- see SolveParallelism's own
+// doc comment in symmetric_factor.h for the citation and the naming
+// history (an earlier bool wrote iparm[24] = 1 for "true", backwards from
+// what that code means).
+std::optional<int> pardiso_solve_parallelism_code(SymmetricFactor::Options::SolveParallelism mode) {
+    using SolveParallelism = SymmetricFactor::Options::SolveParallelism;
+    switch (mode) {
+    case SolveParallelism::kBackendDefault:
+        return std::nullopt;
+    case SolveParallelism::kAdaptivePartitioning:
+        return 0;
+    case SolveParallelism::kSequential:
+        return 1;
+    case SolveParallelism::kMatrixPartitionParallel:
+        return 2;
+    }
+    throw std::invalid_argument(fmt::format(
+        "SymmetricFactor: unknown Options::SolveParallelism value ({})", static_cast<int>(mode)));
+}
+
+// The inverse of pardiso_solve_parallelism_code, for adopt() round-tripping.
+SymmetricFactor::Options::SolveParallelism pardiso_solve_parallelism_of(std::optional<int> code) {
+    using SolveParallelism = SymmetricFactor::Options::SolveParallelism;
+    if (!code.has_value()) {
+        return SolveParallelism::kBackendDefault;
+    }
+    switch (*code) {
+    case 0:
+        return SolveParallelism::kAdaptivePartitioning;
+    case 1:
+        return SolveParallelism::kSequential;
+    case 2:
+        return SolveParallelism::kMatrixPartitionParallel;
+    default:
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor::adopt: unrecognized stored solve parallelism code ({})", *code));
     }
 }
 
@@ -187,9 +223,9 @@ detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.pivot_strategy = pardiso_pivot_strategy_code(opts.pivot_strategy);
     cfg.factorization_algorithm =
         pardiso_factorization_algorithm_code(opts.factorization_algorithm);
-    cfg.parallel_solve = opts.parallel_solve;
+    cfg.solve_parallelism = pardiso_solve_parallelism_code(opts.solve_parallelism);
     cfg.cnr_threads = opts.cnr_threads;
-    cfg.report_factor_evidence = opts.report_factor_evidence;
+    cfg.collect_factor_mflops = opts.collect_factor_mflops;
     return cfg;
 }
 
@@ -265,16 +301,22 @@ InertiaEvidence evidence_of(const detail::FactorSession &session) {
 }
 
 // Builds the factor-size evidence for a session's current factorization.
+// Called only from factorize()'s success branch -- see FactorEvidence's own
+// doc comment (symmetric_factor.h) for why this evidence lives on
+// FactorizeOutcome rather than being recomputed per solve.
 //
-// The MKL column of the FactorEvidence semantics table, in code: present
-// only when Options::report_factor_evidence requested it (see
-// FactorSession::has_factor_evidence()); factor_size_bytes stays
-// std::nullopt unconditionally on this backend, which reports an entry
-// count and a cost estimate instead, never a byte size.
+// The MKL column of the FactorEvidence semantics table, in code:
+// factor_nonzeros is UNCONDITIONAL (session.factor_nonzeros() is always
+// meaningful once has_numerics() is true -- see that accessor's own doc
+// comment); factor_mflops is present only when
+// Options::collect_factor_mflops requested it (session.has_factor_mflops());
+// factor_size_bytes stays std::nullopt unconditionally on this backend,
+// which reports an entry count and (opt-in) a cost estimate instead, never
+// a byte size.
 FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
     FactorEvidence evidence;
-    if (session.has_factor_evidence()) {
-        evidence.factor_nonzeros = session.factor_nonzeros();
+    evidence.factor_nonzeros = session.factor_nonzeros();
+    if (session.has_factor_mflops()) {
         evidence.factor_mflops = session.factor_mflops();
     }
     return evidence;
@@ -297,12 +339,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
             what, X.rows(), X.cols(), RHS.rows(), RHS.cols()));
     }
     if (X.cols() == 0) {
-        // Nothing to solve; never reaches the backend. Still reports the
-        // current factorization's own evidence, which does not depend on
-        // this particular (empty) solve having happened.
-        SolveInfo info;
-        info.factor = factor_evidence_of(session);
-        return info;
+        return SolveInfo{}; // nothing to solve; never reaches the backend
     }
 
     // Pardiso needs contiguous column-major buffers and cannot solve in
@@ -327,7 +364,6 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
 
     SolveInfo info;
     info.refinement_iters = session.refinement_iters();
-    info.factor = factor_evidence_of(session);
     return info;
 }
 
@@ -351,7 +387,6 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
 
     SolveInfo info;
     info.refinement_iters = session.refinement_iters();
-    info.factor = factor_evidence_of(session);
     return info;
 }
 
@@ -411,6 +446,58 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
         throw std::invalid_argument(
             "SymmetricFactor: Options::accelerate_zero_tolerance is an Accelerate-only option and "
             "has no MKL equivalent -- requires std::nullopt on this backend, got a value");
+    }
+
+    // --- documented MKL option interactions, validated rather than left
+    // for Pardiso to silently ignore ---
+    //
+    // CNR mode requires nested-dissection ordering. Intel (oneMKL Developer
+    // Reference, "pardiso iparm Parameter", the iparm[33] entry): "CNR is
+    // only available for the in-core version of Intel oneMKL PARDISO and
+    // the non-parallel version of the nested dissection algorithm... not
+    // set iparm[1] to 3 in order to not use the parallel version of the
+    // nested dissection algorithm. Otherwise Intel oneMKL PARDISO does not
+    // produce numerically repeatable results even if CNR is enabled." Read
+    // literally, the positive requirement names nested dissection
+    // specifically (iparm[1] = 2) -- not minimum degree -- so the
+    // compatible set is exactly {kNestedDissection}; every other Ordering
+    // value, INCLUDING kBackendDefault (which floats with the linked MKL --
+    // see Ordering's own doc comment -- and is 3, the documented-
+    // incompatible value, on the MKL this was verified against) throws.
+    if (opts_.cnr_threads > 0 && opts_.ordering != Options::Ordering::kNestedDissection) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: cnr_threads > 0 (CNR mode) requires ordering == "
+            "Ordering::kNestedDissection -- Intel documents CNR as reproducible only under the "
+            "non-parallel nested dissection algorithm (iparm[1] = 2); every other ordering, "
+            "including kBackendDefault, is documented-incompatible or unverified, got cnr_threads "
+            "= {} with a non-kNestedDissection ordering",
+            opts_.cnr_threads));
+    }
+
+    // The two-level factorization algorithm requires nested-dissection
+    // ordering. Intel (same reference, the iparm[23] entry): "NOTE: If a
+    // two-level factorization algorithm is chosen (that is, iparm[23]=1),
+    // then only nested dissection algorithms are available (iparm[1]=2 or
+    // iparm[1]=3)." kBackendDefault and kMinimumDegree both throw.
+    if (opts_.factorization_algorithm == Options::FactorizationAlgorithm::kTwoLevel &&
+        opts_.ordering != Options::Ordering::kNestedDissection &&
+        opts_.ordering != Options::Ordering::kParallelNestedDissection) {
+        throw std::invalid_argument(
+            "SymmetricFactor: factorization_algorithm == kTwoLevel requires ordering == "
+            "kNestedDissection or kParallelNestedDissection -- Intel documents that the two-level "
+            "algorithm only supports nested dissection orderings (iparm[1] = 2 or 3)");
+    }
+
+    // The two-level factorization algorithm is documented incompatible with
+    // scaling and matching. Intel (same reference, the iparm[23] entry):
+    // "Disable iparm[10] (scaling) and iparm[12]=1 (matching) when using
+    // the two-level factorization algorithm."
+    if (opts_.factorization_algorithm == Options::FactorizationAlgorithm::kTwoLevel &&
+        (opts_.matrix_scaling || opts_.weighted_matching)) {
+        throw std::invalid_argument(
+            "SymmetricFactor: factorization_algorithm == kTwoLevel requires matrix_scaling == "
+            "false and weighted_matching == false -- Intel documents that scaling and matching "
+            "must be disabled when using the two-level factorization algorithm");
     }
 }
 
@@ -494,6 +581,7 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
     if (backend_code == 0) {
         outcome.status = FactorizeOutcome::Status::kOk;
         outcome.inertia = evidence_of(*session_);
+        outcome.factor = factor_evidence_of(*session_);
         // This engine has now produced numerics of its own, which retires
         // any staleness inherited from an adopted handle.
         numerics_refused_ = false;
@@ -555,7 +643,6 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
 
     SolveInfo info;
     info.refinement_iters = session_->refinement_iters();
-    info.factor = factor_evidence_of(*session_);
     return info;
 }
 
@@ -614,9 +701,9 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.matrix_scaling = cfg.matrix_scaling;
     opts.pivot_strategy = pardiso_pivot_strategy_of(cfg.pivot_strategy);
     opts.factorization_algorithm = pardiso_factorization_algorithm_of(cfg.factorization_algorithm);
-    opts.parallel_solve = cfg.parallel_solve;
+    opts.solve_parallelism = pardiso_solve_parallelism_of(cfg.solve_parallelism);
     opts.cnr_threads = cfg.cnr_threads;
-    opts.report_factor_evidence = cfg.report_factor_evidence;
+    opts.collect_factor_mflops = cfg.collect_factor_mflops;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;

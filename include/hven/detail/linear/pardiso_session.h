@@ -126,34 +126,42 @@ struct PardisoConfig {
 
     // Pivoting strategy override for iparm[20]. std::nullopt means "leave
     // iparm[20] alone" -- the only state this field takes at
-    // Options::PivotStrategy::kBackendDefault; a present value (0, 1, 4, 6,
-    // 8, or 13 -- Options::PivotStrategy's own documented values) overrides
-    // it verbatim.
+    // Options::PivotStrategy::kBackendDefault; a present value (0, 1, 2, or
+    // 3 -- Options::PivotStrategy's own documented values) overrides it
+    // verbatim.
     std::optional<int> pivot_strategy;
 
     // Two-level factorization algorithm override for iparm[23].
     // std::nullopt means "leave iparm[23] alone" -- the only state this
     // field takes at Options::FactorizationAlgorithm::kBackendDefault; a
-    // present value (0 = classic, 1 = two-level) overrides it verbatim.
+    // present value (0 = classic, 1 = two-level) overrides it verbatim. The
+    // interactions this value carries with `ordering`, `matrix_scaling`,
+    // and `weighted_matching` are validated at the Options layer (the
+    // adapter's constructor), not here -- this struct only carries the
+    // already-validated wire values through.
     std::optional<int> factorization_algorithm;
 
-    // Parallel forward/backward solve (iparm[24]). false leaves iparm[24]
-    // alone; true writes iparm[24] = 1 -- same don't-write-by-default shape
-    // as weighted_matching and matrix_scaling.
-    bool parallel_solve = false;
+    // Parallel forward/backward solve control override for iparm[24].
+    // std::nullopt means "leave iparm[24] alone" -- the only state this
+    // field takes at Options::SolveParallelism::kBackendDefault; a present
+    // value (0, 1, or 2 -- Options::SolveParallelism's own documented
+    // values) overrides it verbatim.
+    std::optional<int> solve_parallelism;
 
     // Thread count for conditional numerical reproducibility mode
     // (iparm[33]). 0 (default) leaves iparm[33] alone -- CNR mode off; a
     // positive value writes iparm[33] to that count and turns CNR mode on.
+    // The `ordering` compatibility this requires is validated at the
+    // Options layer (the adapter's constructor), not here.
     int cnr_threads = 0;
 
-    // Whether to request factor-size evidence (iparm[17] nonzero count,
-    // iparm[18] Mflop count) during analyze(), and read it back after a
-    // successful factorize(). false (default) leaves both entries alone and
-    // FactorSession::factor_nonzeros()/factor_mflops() report the
-    // not-collected sentinel; see Options::report_factor_evidence for why
-    // this is opt-in.
-    bool report_factor_evidence = false;
+    // Whether to request the Mflop-cost estimate (iparm[18]) during
+    // analyze(), and read it back after a successful factorize(). false
+    // (default) leaves iparm[18] alone; see Options::collect_factor_mflops
+    // for why this stays opt-in while the nonzero count (iparm[17]) does
+    // not -- iparm[17] carries no Options field at all and is always
+    // requested (see FactorSession::analyze's own comment).
+    bool collect_factor_mflops = false;
 };
 
 // One Pardiso factorization session: the `pt` handle, the parameter array,
@@ -252,12 +260,18 @@ class FactorSession {
     // Refinement steps performed by the most recent solve.
     Index refinement_iters() const noexcept { return static_cast<Index>(refinement_iters_); }
 
-    // True iff cfg_.report_factor_evidence requested factor-size evidence
-    // -- derived straight from the config rather than a separate flag,
-    // since the two can never disagree. factor_nonzeros()/factor_mflops()
-    // are only meaningful while this AND has_numerics() are both true.
-    bool has_factor_evidence() const noexcept { return cfg_.report_factor_evidence; }
+    // The number of nonzero entries in the LDLT factor (iparm[17]).
+    // UNCONDITIONAL -- unlike factor_mflops() below, this carries no gate:
+    // iparm[17] is requested unconditionally in analyze() (see that
+    // method's own comment), so this is meaningful whenever has_numerics()
+    // is true, with no Options field to check first.
     Index factor_nonzeros() const noexcept { return static_cast<Index>(factor_nonzeros_); }
+
+    // True iff cfg_.collect_factor_mflops requested the Mflop-cost estimate
+    // -- derived straight from the config rather than a separate flag,
+    // since the two can never disagree. factor_mflops() is only meaningful
+    // while this AND has_numerics() are both true.
+    bool has_factor_mflops() const noexcept { return cfg_.collect_factor_mflops; }
     Index factor_mflops() const noexcept { return static_cast<Index>(factor_mflops_); }
 
     // Read-only access to iparm[1] (fill-in reordering) / iparm[12] (maximum
@@ -307,8 +321,10 @@ class FactorSession {
     MKL_INT perturbed_pivots_ = 0;
     mutable MKL_INT refinement_iters_ = 0;
 
-    // Cached from iparm[17]/iparm[18] at factorize() time, only when
-    // cfg_.report_factor_evidence is set -- see has_factor_evidence().
+    // Cached from iparm[17]/iparm[18] at factorize() time.
+    // factor_nonzeros_ is cached UNCONDITIONALLY (see factor_nonzeros()'s
+    // own doc comment); factor_mflops_ only when cfg_.collect_factor_mflops
+    // is set -- see has_factor_mflops().
     MKL_INT factor_nonzeros_ = -1;
     MKL_INT factor_mflops_ = -1;
 };

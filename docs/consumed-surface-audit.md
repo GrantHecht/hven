@@ -187,10 +187,17 @@ effect". A library-default move on an MKL bump changes hven's pivoting
 strategy and does not change the engine's.
 
 **Disposition:** `SymmetricFactor::Options::pivot_strategy`
-(`PivotStrategy` enum: `kBackendDefault`, `kOneByOne`, `kTwoByTwo`, `kE4`,
-`kE6`, `kE8`, `kE13` — iparm[20]'s own six documented codes, matching
-`QPPivotModes`), don't-write-by-default. Pardiso-only: any non-default
-value throws on Accelerate, which has no pivoting-strategy selector.
+(`PivotStrategy` enum: `kBackendDefault`, `kOneByOne`, `kTwoByTwo`,
+`kOneByOneNoAutoRefine`, `kTwoByTwoNoAutoRefine` — iparm[20]'s own FOUR
+documented codes, 0/1/2/3 per Intel's oneMKL Developer Reference
+("pardiso iparm Parameter"). `QPPivotModes`' `E4`/`E6`/`E8`/`E13` names
+(4/6/8/13) are NOT among Intel's documented iparm[20] values and are not
+carried over here — `psiopt` writing one of those codes writes an
+undocumented iparm[20] value, which is a fact about `psiopt`'s own
+surface, not one this option reproduces. `kTwoByTwo` (1) is `psiopt`'s
+own default and stays expressible.), don't-write-by-default. Pardiso-only:
+any non-default value throws on Accelerate, which has no pivoting-strategy
+selector.
 
 ### 3. `iparm[23]` and `iparm[24]` — two-level algorithm, parallel solve
 
@@ -202,10 +209,20 @@ expressible after.
 **Disposition:**
 `SymmetricFactor::Options::factorization_algorithm` (`FactorizationAlgorithm`
 enum: `kBackendDefault`, `kClassic`, `kTwoLevel` — iparm[23]) and
-`SymmetricFactor::Options::parallel_solve` (bool — iparm[24]), both
-don't-write-by-default. Pardiso-only: either throws on Accelerate for a
-non-default value, which has no two-level-algorithm concept and no
-per-instance thread control to parallelize a solve with.
+`SymmetricFactor::Options::solve_parallelism` (`SolveParallelism` enum:
+`kBackendDefault`, `kAdaptivePartitioning`, `kSequential`,
+`kMatrixPartitionParallel` — iparm[24]'s own three documented codes, 0/1/2
+per Intel's oneMKL Developer Reference; iparm[24] = 1 is SEQUENTIAL, not
+parallel — an earlier revision of this option was a bare bool that wrote 1
+for `true`, backwards from what the code means, corrected to this named
+enum), both don't-write-by-default. Pardiso-only: either throws on
+Accelerate for a non-default value, which has no two-level-algorithm
+concept and no per-instance thread control to parallelize a solve with.
+`factorization_algorithm == kTwoLevel` additionally requires
+`ordering ∈ {kNestedDissection, kParallelNestedDissection}` and
+`matrix_scaling == weighted_matching == false`, both validated at
+construction (Intel documents both as requirements of the two-level
+algorithm, not merely as recommendations).
 
 ### 4. `iparm[33]` — conditional numerical reproducibility
 
@@ -221,7 +238,13 @@ reproducibility. Deserves a decision, not a default.
 **Disposition:** `SymmetricFactor::Options::cnr_threads` (int,
 0 = off/don't-write, iparm[33]). Pardiso-only: a positive value throws on
 Accelerate, which has no CNR concept — a silent no-op would misrepresent a
-reproducibility guarantee as still holding.
+reproducibility guarantee as still holding. A positive value ALSO requires
+`ordering == kNestedDissection` exactly, validated at construction: Intel
+documents CNR as reproducible only under "the non-parallel version of the
+nested dissection algorithm," and this MKL's own `kBackendDefault` floats
+to the documented-incompatible parallel variant (iparm[1] = 3) — so
+`kBackendDefault` throws here too, not only the values obviously
+unrelated to nested dissection.
 
 ### 5. `iparm[17]` / `iparm[18]` — factor size and Mflops are consumed evidence
 
@@ -242,16 +265,24 @@ factor size in BYTES where Pardiso's is a nonzero COUNT, and both surface
 as `result_.factor_mem_`. If this evidence is added to the frozen surface,
 that is a per-backend semantics row to write, not a field to copy.
 
-**Disposition:** `SymmetricFactor::Options::report_factor_evidence`
-(bool, don't-write-by-default) gates a new `FactorEvidence` struct joining
-`SolveInfo::factor` (`hven/linear/symmetric_factor.h`), with the mandatory
-per-backend semantics row this finding calls for: MKL populates
-`factor_nonzeros` (iparm[17]) and `factor_mflops` (iparm[18]) and leaves
-`factor_size_bytes` absent; Accelerate populates `factor_size_bytes` (the
-symbolic factorization's own byte size) and leaves `factor_nonzeros` /
-`factor_mflops` absent — no field is ever populated with the other
-backend's meaning. Honored (never throws) on both backends, unlike the
-options above.
+**Disposition:** a new `FactorEvidence` struct joins
+`FactorizeOutcome::factor` (`hven/linear/symmetric_factor.h`) — not
+`SolveInfo`: this evidence is read at the same point in the lifecycle as
+`InertiaEvidence` (right after a successful numeric factorization), and a
+solve does not refresh it — with the mandatory per-backend semantics row
+this finding calls for. The two entries this finding names split
+differently, per Intel's own documented cost: iparm[17] (nonzero count)
+carries no documented request cost and pardisoinit's own sample
+initialization already requests it, so `FactorEvidence::factor_nonzeros`
+is collected UNCONDITIONALLY on MKL, no Options field at all; iparm[18]
+(Mflop estimate) is documented to increase factorization time when
+requested, so `FactorEvidence::factor_mflops` stays gated by
+`SymmetricFactor::Options::collect_factor_mflops` (bool,
+don't-write-by-default) — Pardiso-only, throws on Accelerate for `true`,
+same shape as the options above. Accelerate's `factor_size_bytes` (the
+symbolic factorization's own byte size) is likewise collected
+UNCONDITIONALLY, no Options field: Accelerate computes it regardless.
+No field is ever populated with the other backend's meaning.
 
 ### 6. Accelerate has a per-thread control, contradicting A.6's premise
 

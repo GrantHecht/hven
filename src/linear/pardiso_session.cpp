@@ -273,19 +273,27 @@ void FactorSession::analyze(const SpMatRM &A) {
             static_cast<int>(iparm_[23]);
 #endif
     }
-    // iparm[24]: parallel forward/backward solve. Same don't-write-by-
-    // default shape as iparm[12] -- see
-    // SymmetricFactor::Options::parallel_solve.
-    if (cfg_.parallel_solve) {
-        iparm_[24] = 1;
+    // iparm[24]: parallel forward/backward solve control. Left untouched
+    // (pardisoinit's own value survives) when cfg_.solve_parallelism is
+    // nullopt; a present value (0 = Pardiso's own adaptive
+    // partitioning/RHS strategy, 1 = sequential, 2 = matrix-partition
+    // parallel regardless of RHS count) overrides it verbatim -- see
+    // SymmetricFactor::Options::SolveParallelism. iparm[24] = 1 is
+    // SEQUENTIAL, not parallel -- see that enum's own doc comment for the
+    // naming history this corrects.
+    if (cfg_.solve_parallelism.has_value()) {
+        iparm_[24] = static_cast<MKL_INT>(*cfg_.solve_parallelism);
 #ifdef HVEN_TESTING
-        testing::PardisoIparmObserver::parallel_solve_was_written = true;
-        testing::PardisoIparmObserver::parallel_solve_written_value = static_cast<int>(iparm_[24]);
+        testing::PardisoIparmObserver::solve_parallelism_was_written = true;
+        testing::PardisoIparmObserver::solve_parallelism_written_value =
+            static_cast<int>(iparm_[24]);
 #endif
     }
     // iparm[33]: thread count for conditional numerical reproducibility
     // (CNR) mode. 0 means "leave iparm[33] alone" -- CNR off -- see
-    // SymmetricFactor::Options::cnr_threads.
+    // SymmetricFactor::Options::cnr_threads. The `ordering` compatibility
+    // CNR requires is validated at construction (symmetric_factor_mkl.cpp),
+    // before this method ever runs.
     if (cfg_.cnr_threads > 0) {
         iparm_[33] = static_cast<MKL_INT>(cfg_.cnr_threads);
 #ifdef HVEN_TESTING
@@ -293,16 +301,24 @@ void FactorSession::analyze(const SpMatRM &A) {
         testing::PardisoIparmObserver::cnr_written_value = static_cast<int>(iparm_[33]);
 #endif
     }
-    // iparm[17] / iparm[18]: factor-size evidence request (nonzero count,
-    // Mflop count). Left untouched unless requested -- see
-    // SymmetricFactor::Options::report_factor_evidence. Both entries are
-    // written together under one guard, so they carry one was-written flag
-    // rather than a pair.
-    if (cfg_.report_factor_evidence) {
-        iparm_[17] = -1;
+    // iparm[17]: request the nonzero-count report. UNCONDITIONAL, not
+    // gated by any Options field: Intel documents no cost for this request
+    // (contrast iparm[18] just below), and pardisoinit's own sample
+    // initialization for mtype = -2 already sets this entry to the same
+    // value (-1) on every MKL version checked while writing this -- so
+    // this write does not change what Pardiso computes, only makes hven's
+    // own request explicit and version-independent rather than accidentally
+    // riding pardisoinit's current default. See
+    // SymmetricFactor::FactorEvidence::factor_nonzeros's own doc comment.
+    iparm_[17] = -1;
+    // iparm[18]: request the Mflop-cost estimate. Left untouched unless
+    // requested -- Intel documents a real time cost for this one (unlike
+    // iparm[17] above) -- see SymmetricFactor::Options::collect_factor_mflops,
+    // including the version-dependent caveat recorded there.
+    if (cfg_.collect_factor_mflops) {
         iparm_[18] = -1;
 #ifdef HVEN_TESTING
-        testing::PardisoIparmObserver::factor_evidence_was_written = true;
+        testing::PardisoIparmObserver::factor_mflops_was_written = true;
 #endif
     }
 
@@ -371,12 +387,15 @@ int FactorSession::factorize(const SpMatRM &A) {
     n_neg_ = iparm_[22];
     perturbed_pivots_ = iparm_[13];
 
-    // iparm[17] / iparm[18]: factor nonzero count and Mflop count, read
-    // back only when cfg_.report_factor_evidence requested them at
-    // analyze() time -- otherwise these entries hold whatever pardisoinit
-    // left them at, which is not this session's own observation to report.
-    if (cfg_.report_factor_evidence) {
-        factor_nonzeros_ = iparm_[17];
+    // iparm[17]: factor nonzero count. UNCONDITIONALLY read back -- the
+    // request itself is unconditional too (analyze() writes iparm[17] = -1
+    // on every call, no gate) -- see factor_nonzeros()'s own doc comment.
+    factor_nonzeros_ = iparm_[17];
+    // iparm[18]: Mflop-cost estimate, read back only when
+    // cfg_.collect_factor_mflops requested it at analyze() time --
+    // otherwise this entry holds whatever pardisoinit left it at, which is
+    // not this session's own observation to report.
+    if (cfg_.collect_factor_mflops) {
         factor_mflops_ = iparm_[18];
     }
 
