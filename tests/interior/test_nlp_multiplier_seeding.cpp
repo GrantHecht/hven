@@ -288,8 +288,8 @@ TEST(NLPMultiplierSeedingTest, UnseededPathDoesNotConsultStaging) {
 }
 
 // -----------------------------------------------------------------------------
-// Fix round 1: (1) MakeConstraint + seeding, (2) staleness/ipopt-backend
-// staging hygiene, (3) NaN rejection + magnitude cap, (4) solve-first phase
+// Fix round 1: (1) MakeConstraint + seeding, (2) staleness/staging
+// hygiene, (3) NaN rejection + magnitude cap, (4) solve-first phase
 // sequencing (SOE ignores the seed; it must reach the first OPT/OPTNO phase).
 // -----------------------------------------------------------------------------
 
@@ -555,28 +555,3 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     EXPECT_DOUBLE_EQ(captured_iq_mult, 1.0e6);
 }
 
-// Not in the required list, but directly covers finding 2b (otherwise
-// untested): a problem that requests seeding while nlp_solver_ is set to the
-// ipopt backend must fail loudly rather than silently dropping the seed (the
-// ipopt backend's run_nlp_solver path never reaches
-// PSIOPT::run_phase_sequence, so a staged seed would sit unconsumed forever).
-// This throws purely from the nlp_solver_ == ipopt check in
-// apply_starting_multipliers, before run_nlp_solver/ipopt_backend::solve is
-// ever reached, so it does not require an ENABLE_IPOPT build.
-struct SeededIpoptRejectEqOnlyProblem : SeedEqOnlyProblem {
-    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
-        lambda[0] = -2.0;
-        return true;
-    }
-    std::string name() const override { return "SeededIpoptRejectEqOnlyProblem"; }
-};
-
-TEST(NLPMultiplierSeedingTest, SeededProblemRejectsIpoptBackend) {
-    NLPSolver solver(std::make_shared<SeededIpoptRejectEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.nlp_solver_ = hven::solvers::NLPSolvers::ipopt;
-
-    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    EXPECT_THROW(solver.optimize(x0), std::invalid_argument);
-    EXPECT_FALSE(solver.optimizer_->mults_staged_);
-}

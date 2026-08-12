@@ -44,13 +44,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ON)
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
-option(HVEN_ENABLE_IPOPT
-    "Link against an installed Ipopt (found via pkg-config) to enable the interior-point engine's alternative NLP solver backend"
-    OFF)
-if(HVEN_ENABLE_IPOPT)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(IPOPT REQUIRED IMPORTED_TARGET ipopt)
-endif()
 
 # bench/ and bindings/ are empty scaffolding directories today (no
 # CMakeLists.txt yet) — fail loudly rather than silently no-op if someone

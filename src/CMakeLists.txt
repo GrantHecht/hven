@@ -75,18 +75,3 @@ target_sources(hven PRIVATE
 target_include_directories(hven PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/interior/utils
 )
-
-# Alternative NLP solver backend (Ipopt). Exactly one of the two
-# implementations of the backend entry points is compiled in: the real
-# adapter when Ipopt is linked, the fallback stub that reports the missing
-# build support otherwise. Mirrors psiopt/CMakeLists.txt's ENABLE_IPOPT
-# branch; the HVEN_ENABLE_IPOPT option and its pkg-config lookup live in
-# the root CMakeLists.txt.
-if(HVEN_ENABLE_IPOPT)
-    target_sources(hven PRIVATE drivers/ipopt_tnlp_adapter.cpp)
-    target_compile_definitions(hven PRIVATE HVEN_ENABLE_IPOPT)
-    target_include_directories(hven PRIVATE ${IPOPT_INCLUDE_DIRS})
-    target_link_libraries(hven PRIVATE $<BUILD_INTERFACE:PkgConfig::IPOPT>)
-else()
-    target_sources(hven PRIVATE drivers/ipopt_backend_stub.cpp)
-endif()
