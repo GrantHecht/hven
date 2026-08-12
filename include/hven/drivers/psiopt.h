@@ -37,16 +37,14 @@
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/iterate_info.h"
+#include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/drivers/non_linear_program.h"
 #include "hven/detail/drivers/psiopt_fwd.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 
 #ifdef USE_ACCELERATE_SPARSE
-#include "hven/detail/interior/legacy_linear/accelerate_interface.h"
 #include <limits>
-#else
-#include "hven/detail/interior/legacy_linear/pardiso_interface.h"
 #endif
 
 // Forward declarations of gtest-generated test-fixture classes (global
@@ -694,7 +692,7 @@ class PSIOPT {
 
     // Neither copyable nor movable: the out-of-line destructor above (needed
     // for the incomplete-type unique_ptr members) already silently suppresses
-    // the implicit move members, and PSIOPT's raw kkt_sol_ solver handle plus
+    // the implicit move members, and PSIOPT's kkt_sol_ factorization plus
     // its unique_ptr<...> globalization components have no defined transfer
     // semantics today. Explicit rather than relying on that suppression, so
     // the constraint is visible at the declaration instead of discovered at a
@@ -1116,11 +1114,9 @@ class PSIOPT {
     bool resto_recentered_ = false;
 
     // --- KKT solver ---
-#ifdef USE_ACCELERATE_SPARSE
-    Eigen::AccelerateLDLTTPP<Eigen::SparseMatrix<double, Eigen::RowMajor>, Eigen::Upper> kkt_sol_;
-#else
-    Eigen::PardisoLDLT<Eigen::SparseMatrix<double, Eigen::RowMajor>, Eigen::Upper> kkt_sol_;
-#endif
+    // The assembly buffer, the sparse symmetric factor driving it, and the
+    // evidence projection the inertia machinery reads (kkt_factorization.h).
+    KktFactorization kkt_sol_;
     bool qp_analyzed_ = false;
 
     // --- Callbacks ---

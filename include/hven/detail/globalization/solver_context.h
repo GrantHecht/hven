@@ -36,11 +36,9 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-// SolverContext exposes PSIOPT::Settings by reference and the concrete KKT
-// solver type: both are only visible once the PSIOPT class itself has been
-// parsed (Settings is a nested struct; the KKT solver type mirrors
-// PSIOPT::kkt_sol_'s declaration exactly, macro-guarded the same way psiopt.h
-// guards it). This mirrors the existing include discipline used by other
+// SolverContext exposes PSIOPT::Settings by reference, which is only visible
+// once the PSIOPT class itself has been parsed (Settings is a nested struct).
+// This mirrors the existing include discipline used by other
 // downstream consumers of the PSIOPT class (see
 // include/hven/drivers/optimization_problem_base.h, which also
 // #includes psiopt.h directly) — psiopt.h itself does NOT include this
@@ -50,13 +48,8 @@
 // circular-include trick.
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
+#include "hven/detail/interior/kkt_factorization.h"
 #include "hven/drivers/psiopt.h"
-
-#ifdef USE_ACCELERATE_SPARSE
-#include "hven/detail/interior/legacy_linear/accelerate_interface.h"
-#else
-#include "hven/detail/interior/legacy_linear/pardiso_interface.h"
-#endif
 
 namespace hven::solvers {
 
@@ -67,18 +60,11 @@ namespace hven::solvers {
 // is exactly when every restoration branch that consults it is provably dead.
 class RestorationStrategy;
 
-// The concrete sparse KKT factorization type, mirroring PSIOPT::kkt_sol_'s
-// declaration (psiopt.h) exactly — same macro guard, same template
-// arguments. Components never choose or construct this type; they only ever
+// The sparse KKT factorization type, matching PSIOPT::kkt_sol_'s declaration
+// (psiopt.h). Components never choose or construct this type; they only ever
 // see it through SolverContext::kkt_solver_, driving solves/refactors that
 // PSIOPT itself still owns.
-#ifdef USE_ACCELERATE_SPARSE
-using KktSolverType =
-    Eigen::AccelerateLDLTTPP<Eigen::SparseMatrix<double, Eigen::RowMajor>, Eigen::Upper>;
-#else
-using KktSolverType =
-    Eigen::PardisoLDLT<Eigen::SparseMatrix<double, Eigen::RowMajor>, Eigen::Upper>;
-#endif
+using KktSolverType = KktFactorization;
 
 // =============================================================================
 // SolverContext — references-only view into the live PSIOPT instance.

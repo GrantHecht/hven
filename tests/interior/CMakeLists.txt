@@ -14,12 +14,12 @@
 ################################################################################
 
 set(HVEN_INTERIOR_TEST_SOURCES
-    test_accelerate_interface.cpp
     test_acceptance_diagnostics.cpp
     test_classic_merit_restoration.cpp
     test_filter_acceptance.cpp
     test_funnel_acceptance.cpp
     test_jet_mkl_guard.cpp
+    test_kkt_factorization.cpp
     test_l1_restoration.cpp
     test_merit_rules.cpp
     test_monitored_governor.cpp

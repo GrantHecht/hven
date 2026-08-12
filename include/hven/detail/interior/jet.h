@@ -31,7 +31,7 @@
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/detail/interior/utils/timer.h"
 #ifdef USE_ACCELERATE_SPARSE
-#include "hven/detail/interior/legacy_linear/accelerate_utils.h"
+#include "hven/detail/interior/utils/accelerate_threads.h"
 #else
 #include "mkl_service.h"
 #endif

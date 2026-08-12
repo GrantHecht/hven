@@ -29,6 +29,12 @@
 #include "hven/detail/drivers/solver_init.h"
 #include "hven/detail/interior/utils/timer.h"
 
+#ifdef USE_ACCELERATE_SPARSE
+// The engine's own Accelerate thread control, which the sparse linear surface
+// deliberately does not provide -- see that header for the ownership split.
+#include "hven/detail/interior/utils/accelerate_threads.h"
+#endif
+
 // Globalization component interfaces. Included here (rather than from
 // psiopt.h) so this, the actual TU that builds PSIOPT, exercises them on
 // every build without psiopt.h having to include a directory of headers
@@ -58,10 +64,6 @@
 #include "hven/detail/globalization/feasibility_stall.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"
 
-#ifndef USE_ACCELERATE_SPARSE
-#include <mkl.h>
-#endif
-
 namespace {
 
 // Per-iterate acceptable tier: all four monitored residuals strictly inside
@@ -84,61 +86,140 @@ bool psiopt_iterate_acceptable(const hven::solvers::IterateInfo &it,
 // QP parameter setup
 // =============================================================================
 
-void hven::solvers::PSIOPT::set_qp_params() {
-#ifdef USE_ACCELERATE_SPARSE
-    // Accelerate interface uses different configuration methods
-    switch (settings_.qp_ord_) {
-    case QPOrderingModes::MINDEG:
-        this->kkt_sol_.set_order(SparseOrderAMD);
-        break;
-    case QPOrderingModes::METIS:
-        // Serial METIS: faster than MT-METIS at all tested scales (up to
-        // ~5400 primal variables) due to per-call thread coordination overhead.
-        this->kkt_sol_.set_order(SparseOrderMetis);
-        break;
-    case QPOrderingModes::PARMETIS:
-        // MT-METIS (macOS 26+): currently slower than serial METIS at tested
-        // scales. Retained for tracking Apple's improvements across releases.
-#ifdef HVEN_HAS_MTMETIS
-        this->kkt_sol_.set_order(SparseOrderMTMetis);
-#else
-        this->kkt_sol_.set_order(SparseOrderMetis);
-#endif
-        break;
-    default:
-        throw std::invalid_argument("Unknown QPOrderingMode");
-    }
-    this->kkt_sol_.set_num_threads(settings_.qp_threads_);
-    this->kkt_sol_.set_iterative_refinement(settings_.qp_ref_steps_ > 0);
-    this->kkt_sol_.set_iterative_refinement_iterations(settings_.qp_ref_steps_);
-    this->kkt_sol_.set_pivot_tolerance(settings_.accel_pivot_tolerance_);
-    this->kkt_sol_.set_zero_tolerance(settings_.accel_zero_tolerance_);
-#else
-    // Same exhaustive-switch hardening as the Accelerate branch's qp_ord_
-    // switch above (T6): a value outside QPOrderingModes' three cases would
-    // otherwise land in Pardiso's iparm ordering slot as an unvalidated int.
-    switch (settings_.qp_ord_) {
-    case QPOrderingModes::MINDEG:
-    case QPOrderingModes::METIS:
-    case QPOrderingModes::PARMETIS:
-        this->kkt_sol_.ord_ = static_cast<int>(settings_.qp_ord_);
-        break;
-    default:
-        throw std::invalid_argument("Unknown QPOrderingMode");
-    }
-    this->kkt_sol_.pivotstrat_ = static_cast<int>(settings_.qp_pivot_strategy_);
-    this->kkt_sol_.pivotpert_ = settings_.qp_pivot_perturb_;
-    this->kkt_sol_.matching_ = settings_.qp_matching_;
-    this->kkt_sol_.scaling_ = settings_.qp_scaling_;
-    this->kkt_sol_.iterref_ = settings_.qp_ref_steps_;
-    this->kkt_sol_.alg_ = static_cast<int>(settings_.qp_alg_);
-    this->kkt_sol_.msglvl_ = settings_.qp_print_;
+namespace {
 
-    if (settings_.cnr_mode_)
-        this->kkt_sol_.threads_ = settings_.qp_threads_;
-    this->kkt_sol_.parsolve_ = settings_.qp_par_solve_;
-    this->kkt_sol_.set_params();
+using LinearOptions = hven::linear::SymmetricFactor::Options;
+
+// Fill-in reordering. Exhaustive, so a value outside QPOrderingModes' three
+// cases is rejected here rather than reaching a backend parameter slot as an
+// unvalidated int. Requested explicitly on both backends: Accelerate's own
+// default is AMD, so leaving the ordering unstated there would silently change
+// which method runs, not merely its cost.
+LinearOptions::Ordering linear_ordering_of(hven::solvers::PSIOPT::QPOrderingModes mode) {
+    using QPOrderingModes = hven::solvers::PSIOPT::QPOrderingModes;
+    switch (mode) {
+    case QPOrderingModes::MINDEG:
+        return LinearOptions::Ordering::kMinimumDegree;
+    case QPOrderingModes::METIS:
+        // Serial METIS: faster than the parallel variant at all tested scales
+        // (up to ~5400 primal variables) due to per-call thread coordination
+        // overhead.
+        return LinearOptions::Ordering::kNestedDissection;
+    case QPOrderingModes::PARMETIS:
+        // The parallel nested-dissection variant. Currently slower than serial
+        // at tested scales; retained for tracking backend improvements. The
+        // linear layer downgrades it at runtime on a host that lacks it.
+        return LinearOptions::Ordering::kParallelNestedDissection;
+    }
+    throw std::invalid_argument(
+        fmt::format("PSIOPT: unknown QPOrderingMode ({})", static_cast<int>(mode)));
+}
+
+// Pivoting strategy for symmetric indefinite matrices. Only the backend's own
+// documented codes are expressible through the linear surface, so the four
+// undocumented ones this enum also carries are rejected rather than passed
+// through as raw integers.
+LinearOptions::PivotStrategy linear_pivot_strategy_of(hven::solvers::PSIOPT::QPPivotModes mode) {
+    using QPPivotModes = hven::solvers::PSIOPT::QPPivotModes;
+    switch (mode) {
+    case QPPivotModes::OneByOne:
+        return LinearOptions::PivotStrategy::kOneByOne;
+    case QPPivotModes::TwoByTwo:
+        return LinearOptions::PivotStrategy::kTwoByTwo;
+    case QPPivotModes::E4:
+    case QPPivotModes::E6:
+    case QPPivotModes::E8:
+    case QPPivotModes::E13:
+        break;
+    }
+    throw std::invalid_argument(fmt::format(
+        "PSIOPT: qp_pivot_strategy = {} is not a documented pivoting-strategy code and has no "
+        "equivalent in the sparse linear surface; use OneByOne or TwoByTwo",
+        static_cast<int>(mode)));
+}
+
+LinearOptions::FactorizationAlgorithm
+linear_factorization_algorithm_of(hven::solvers::PSIOPT::QPAlgModes mode) {
+    using QPAlgModes = hven::solvers::PSIOPT::QPAlgModes;
+    switch (mode) {
+    case QPAlgModes::Classic:
+        return LinearOptions::FactorizationAlgorithm::kClassic;
+    case QPAlgModes::TwoLevel:
+        return LinearOptions::FactorizationAlgorithm::kTwoLevel;
+    }
+    throw std::invalid_argument(
+        fmt::format("PSIOPT: unknown QPAlgMode ({})", static_cast<int>(mode)));
+}
+
+LinearOptions::SolveParallelism linear_solve_parallelism_of(int code) {
+    switch (code) {
+    case 0:
+        return LinearOptions::SolveParallelism::kAdaptivePartitioning;
+    case 1:
+        return LinearOptions::SolveParallelism::kSequential;
+    case 2:
+        return LinearOptions::SolveParallelism::kMatrixPartitionParallel;
+    default:
+        break;
+    }
+    throw std::invalid_argument(fmt::format(
+        "PSIOPT: qp_par_solve = {} is not a parallel-solve code; expected 0 (partition the "
+        "matrix for a single right-hand side, otherwise parallelize over right-hand sides), "
+        "1 (sequential), or 2 (matrix-partition parallel regardless of right-hand-side count)",
+        code));
+}
+
+} // namespace
+
+void hven::solvers::PSIOPT::set_qp_params() {
+    LinearOptions opts;
+    opts.kind = hven::linear::FactorKind::kLDLT;
+    opts.num_threads = settings_.qp_threads_;
+    opts.pivot_perturb_exp = settings_.qp_pivot_perturb_;
+    opts.max_refinement_iters = settings_.qp_ref_steps_;
+    opts.ordering = linear_ordering_of(settings_.qp_ord_);
+
+#ifdef USE_ACCELERATE_SPARSE
+    // Accelerate carries no weighted-matching, scaling, pivoting-strategy,
+    // two-level-algorithm, solve-parallelism, CNR or factorization-cost
+    // concept, so every one of those options must stay at its
+    // nothing-requested value here; requesting any of them throws.
+    //
+    // The zero-pivot threshold is the one Accelerate-specific knob the engine
+    // still names. The pivot tolerance is not: the linear layer fixes it at
+    // the value this engine has always requested, so a setting that agrees is
+    // simply the default and one that disagrees is rejected rather than
+    // silently dropped.
+    if (settings_.accel_pivot_tolerance_ != 0.01) {
+        throw std::invalid_argument(fmt::format(
+            "PSIOPT: accel_pivot_tolerance = {} cannot be applied -- the sparse linear surface "
+            "fixes the LDLT pivot tolerance at 0.01 and exposes no override",
+            settings_.accel_pivot_tolerance_));
+    }
+    opts.accelerate_zero_tolerance = settings_.accel_zero_tolerance_;
+#else
+    opts.weighted_matching = settings_.qp_matching_ != 0;
+    opts.matrix_scaling = settings_.qp_scaling_ != 0;
+    opts.pivot_strategy = linear_pivot_strategy_of(settings_.qp_pivot_strategy_);
+    opts.factorization_algorithm = linear_factorization_algorithm_of(settings_.qp_alg_);
+    opts.solve_parallelism = linear_solve_parallelism_of(settings_.qp_par_solve_);
+    opts.cnr_threads = settings_.cnr_mode_ ? settings_.qp_threads_ : 0;
+    // The factorization-cost estimate is read unconditionally after every
+    // numeric factorization and reported in the exit statistics, so the report
+    // is requested unconditionally too.
+    opts.collect_factor_mflops = true;
+
+    // Backend chatter has no route through the linear surface, which calls the
+    // backend silently. The shipped setting agrees; anything else is rejected
+    // rather than quietly ignored.
+    if (settings_.qp_print_) {
+        throw std::invalid_argument(
+            "PSIOPT: qp_print = true cannot be applied -- the sparse linear surface calls the "
+            "backend silently and exposes no message-level control");
+    }
 #endif
+
+    this->kkt_sol_.reconfigure(opts);
 }
 
 // =============================================================================
@@ -621,22 +702,19 @@ void hven::solvers::PSIOPT::set_nlp(std::shared_ptr<NonLinearProgram> np) {
     // definition below for the neutrality argument on the default path.
     this->set_qp_params();
 #ifdef USE_ACCELERATE_SPARSE
+    // Retained because the sparse linear surface applies no Accelerate thread
+    // control of its own — see detail/interior/utils/accelerate_threads.h.
+    // There is no MKL counterpart here any more: on that backend the factor
+    // applies its own thread count at backend-call scope and undoes it
+    // afterwards, so a driver-level thread-local set would only be reaching
+    // past it to touch other components' work.
     accelerate_set_num_threads(settings_.qp_threads_);
-#else
-    // Thread-local, not global: only the calling thread's Pardiso thread
-    // count is affected, so concurrent PSIOPT drivers in the same process
-    // (or on other threads) cannot clobber each other's setting. Return
-    // value (previous local count) is intentionally discarded — this is a
-    // fire-and-forget set, matching the prior global-setter semantics.
-    mkl_set_num_threads_local(settings_.qp_threads_);
 #endif
 
-    this->nlp_->analyze_sparsity(this->kkt_sol_.get_matrix());
-#ifdef USE_ACCELERATE_SPARSE
-    // we need to call this to update the internal AccelSparseMatrix since
-    // we changed the sparsity pattern via the reference returned from get_matrix.
-    this->kkt_sol_.reinitialize_internal_matrix_representation();
-#endif
+    // The pattern is laid out directly into the assembly buffer; the symbolic
+    // analysis over it runs at the next compute(), which qp_analyzed_ = false
+    // below is what schedules.
+    this->nlp_->analyze_sparsity(this->kkt_sol_.matrix());
     this->qp_analyzed_ = false;
 }
 
@@ -1359,8 +1437,7 @@ bool hven::solvers::PSIOPT::try_soft_feasibility_step(AlgorithmModes algmode, do
     // An un-evaluable trial is not a reduced one: report no reduction so the
     // caller escalates to the full restoration entry.
     try {
-        this->eval_nlp(algmode, obj_scale, XSL2, trial_obj, GX, RHS2, this->kkt_sol_.get_matrix(),
-                       mu);
+        this->eval_nlp(algmode, obj_scale, XSL2, trial_obj, GX, RHS2, this->kkt_sol_.matrix(), mu);
     } catch (const std::exception &e) {
         this->eval_error_log_.record(e.what());
         return false;
@@ -1510,14 +1587,10 @@ int hven::solvers::PSIOPT::factor_impl(bool docompute, bool Zfac, double ipurt, 
             }
         }
     };
-    auto Perturb = [&](double p) {
-        this->nlp_->perturb_kkt_p_diags(p, this->kkt_sol_.get_matrix());
-    };
-    auto Refactor = [&]() { this->kkt_sol_.refactorize_internal(); };
-    auto Compute = [&]() { this->kkt_sol_.compute_internal(); };
-    auto PerturbC = [&](double p) {
-        this->nlp_->perturb_kkt_c_diags(p, this->kkt_sol_.get_matrix());
-    };
+    auto Perturb = [&](double p) { this->nlp_->perturb_kkt_p_diags(p, this->kkt_sol_.matrix()); };
+    auto Refactor = [&]() { this->kkt_sol_.refactorize(); };
+    auto Compute = [&]() { this->kkt_sol_.compute(); };
+    auto PerturbC = [&](double p) { this->nlp_->perturb_kkt_c_diags(p, this->kkt_sol_.matrix()); };
     // On-demand dual regularization (delta_c). dual_shift is the magnitude
     // available to this call (0.0 while a nested l1 restoration phase owns the
     // constraint-row diagonals -- the caller suppresses it). The proximal branch
@@ -1786,8 +1859,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
         // Evaluate NLP and build barrier terms
         Funtimer.start();
 
-        this->eval_nlp(algmode, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.get_matrix(),
-                       mu);
+        this->eval_nlp(algmode, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix(), mu);
 
         if (this->inequal_cons_ > 0) {
             // apply_reset_slacks completes the raw inequality residual g(x) into the
@@ -1804,8 +1876,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
                                              this->restoration_->is_nested();
             if (!nested_resto_active)
                 this->apply_reset_slacks(v_xsl.slacks(), v_rhs.iq_cons());
-            this->barrier_hessian(this->kkt_sol_.get_matrix(), v_xsl.slacks(), v_xsl.iq_lmults(),
-                                  mu);
+            this->barrier_hessian(this->kkt_sol_.matrix(), v_xsl.slacks(), v_xsl.iq_lmults(), mu);
         }
         // The complementarity account and the barrier-parameter update below run
         // whenever there is ANY barrier term to drive -- inequality slacks or
@@ -1834,8 +1905,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
         Funtimer.stop();
         if (this->early_callback_enabled_) {
             CBtimer.start();
-            this->early_callback_(i, obj_scale, XSL, prim_obj, PGX, RHS,
-                                  this->kkt_sol_.get_matrix());
+            this->early_callback_(i, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix());
             CBtimer.stop();
         }
 
@@ -2475,9 +2545,10 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
 
         // The REAL step solve (distinct from the PROBE predictor solve, which
         // moved into ClassicAdaptiveGovernor::update_barrier — see its solve-into
-        // comment): direct assignment + in-place negate avoids the extra
-        // temporary that `-kkt_sol_.solve(RHS)` forces.
-        DXSL = this->kkt_sol_.solve(RHS);
+        // comment): the solution is written straight into DXSL and negated in
+        // place, keeping the existing order (solve, then negate) so nothing
+        // about the arithmetic moves.
+        this->kkt_sol_.solve(RHS, DXSL);
         DXSL = -DXSL;
         bool GoodStep = std::isfinite(DXSL.squaredNorm());
 
@@ -3110,7 +3181,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::init_impl(const Eigen::VectorXd &x, doubl
     // multiplier initializer), so the μ argument is inert here; pass mu for
     // consistency with the live phase parameter.
     this->eval_nlp(AlgorithmModes::INIT, settings_.obj_scale_, XSL, val,
-                   RHS.head(this->primal_vars_), RHS, this->kkt_sol_.get_matrix(), mu);
+                   RHS.head(this->primal_vars_), RHS, this->kkt_sol_.matrix(), mu);
 
     KKTVector v_xsl = kkt_view(XSL);
     KKTVector v_rhs = kkt_view(RHS);
@@ -3131,22 +3202,22 @@ Eigen::VectorXd hven::solvers::PSIOPT::init_impl(const Eigen::VectorXd &x, doubl
     RHS.tail(this->equal_cons_ + this->inequal_cons_).setZero();
 
     if (this->inequal_cons_ > 0)
-        this->nlp_->assign_kkt_slack_hessian(hp, this->kkt_sol_.get_matrix());
+        this->nlp_->assign_kkt_slack_hessian(hp, this->kkt_sol_.matrix());
     if (settings_.print_level_ < 2) {
         print_beginning("KKT-Matrix Analysis ");
     }
 
     if (docompute)
-        this->kkt_sol_.compute_internal();
+        this->kkt_sol_.compute();
     else
-        this->kkt_sol_.refactorize_internal();
+        this->kkt_sol_.refactorize();
     kktt.stop();
 
     double pretime = double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
     this->result_.pre_time_ += pretime;
 
-    this->result_.factor_flops_ = this->kkt_sol_.flops_;
-    this->result_.factor_mem_ = this->kkt_sol_.mem_;
+    this->result_.factor_flops_ = this->kkt_sol_.factor_flops();
+    this->result_.factor_mem_ = this->kkt_sol_.factor_mem();
 
     if (settings_.print_level_ < 2) {
         auto cyan = fmt::fg(fmt::color::cyan);
@@ -3163,9 +3234,10 @@ Eigen::VectorXd hven::solvers::PSIOPT::init_impl(const Eigen::VectorXd &x, doubl
         print_finished("KKT-Matrix Analysis ");
     }
 
-    // See the solve-into comment in alg_impl: direct-assign + in-place negate
-    // avoids the extra temporary that `-kkt_sol_.solve(RHS)` forces.
-    Eigen::VectorXd dx = this->kkt_sol_.solve(RHS);
+    // See the solve-into comment in alg_impl: solve straight into the
+    // destination, then negate in place, in that order.
+    Eigen::VectorXd dx(this->kkt_dim_);
+    this->kkt_sol_.solve(RHS, dx);
     dx = -dx;
     KKTVector v_dx = kkt_view(dx);
 
@@ -3282,34 +3354,21 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
 
     // Re-apply the QP threading setting on every solve entry, not just in
     // set_nlp() (which only runs on transcribe): a single-thread pin left on
-    // this thread by another component (e.g. Jet's per-job pin — thread-local
-    // BLASSetThreading on macOS 15+, or detail::MklLocalPinGuard in jet.h on
-    // the MKL side) must not silently single-thread reused solves.
-    //
-    // This re-apply is NOT redundant now that the MKL setter below is
-    // thread-local rather than global — if anything it is MORE load-bearing:
-    // a nonzero thread-local override takes priority over the process-global
-    // value on that thread until explicitly reset, so a *global* re-apply
-    // could never have actually overridden a lingering local pin in the
-    // first place. A solve driven through Jet::map runs jet_run() ->
+    // this thread by another component (Jet's per-job pin — thread-local
+    // BLASSetThreading on macOS 15+) must not silently single-thread reused
+    // solves. A solve driven through Jet::map runs jet_run() ->
     // solve()/optimize() -> run_phase_sequence() on the pool worker thread
-    // *while still inside* detail::MklLocalPinGuard's scope (jet.h), which
-    // has pinned that thread's local MKL thread count to 1. The explicit
-    // thread-local set here is what makes this thread (whichever one is
-    // calling) actually run Pardiso with this driver's own qp_threads_,
-    // instead of silently inheriting whatever local value a previous
-    // occupant left behind. In the Jet::map case specifically,
-    // jet_initialize() forces qp_threads_ == 1 (via set_num_partitions(1, 1)),
-    // so this re-apply sets the local value to 1 — consistent with, and
-    // redundant to, the guard's own pin — but for any other thread reusing a
-    // pool worker outside of Jet, this call is what restores the driver's
-    // intended thread count on its own calling thread.
+    // while that pin is still in scope, and this is what makes the calling
+    // thread run at this driver's own qp_threads_ instead of inheriting
+    // whatever a previous occupant left behind.
+    //
+    // There is no MKL counterpart: the factor applies its own thread count
+    // around each backend call and restores the caller's prior thread-local
+    // value afterwards, so it neither inherits a lingering pin nor needs a
+    // driver-level repair — and a repair here would silently re-point every
+    // other MKL user on this thread at this driver's thread count.
 #ifdef USE_ACCELERATE_SPARSE
     accelerate_set_num_threads(settings_.qp_threads_);
-#else
-    // Return value (previous local count) intentionally discarded; see the
-    // set_nlp() call site above for the fire-and-forget rationale.
-    mkl_set_num_threads_local(settings_.qp_threads_);
 #endif
 
     // Classify the NLP's variable bounds for this solve, once, before any
@@ -3339,10 +3398,10 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
     if (this->nlp_->configure_variable_treatment(settings_.fixed_variable_treatment_,
                                                  settings_.bound_relax_factor_)) {
         this->refresh_nlp_dimensions();
-        this->nlp_->analyze_sparsity(this->kkt_sol_.get_matrix());
-#ifdef USE_ACCELERATE_SPARSE
-        this->kkt_sol_.reinitialize_internal_matrix_representation();
-#endif
+        // A new pattern in the assembly buffer; marking the analysis stale is
+        // what routes the entry factorization through compute() so the
+        // symbolic is redone over it.
+        this->nlp_->analyze_sparsity(this->kkt_sol_.matrix());
         this->qp_analyzed_ = false;
     }
 

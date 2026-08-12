@@ -90,10 +90,10 @@ void hven::solvers::PSIOPT::print_stats() {
     fmt::print(" KKT-Matrix DIM (P+S+E+I) : ");
     fmt::print(cyan, "{:<10}\n", this->kkt_dim_);
     fmt::print(" KKT-Matrix NNZs          : ");
-    fmt::print(cyan, "{:<10}\n", this->kkt_sol_.get_matrix().nonZeros());
+    fmt::print(cyan, "{:<10}\n", this->kkt_sol_.matrix().nonZeros());
     fmt::print(" KKT-Matrix NNZ%          : ");
     fmt::print(cyan, "{:.6f}%\n",
-               100.0 * double(this->kkt_sol_.get_matrix().nonZeros()) /
+               100.0 * double(this->kkt_sol_.matrix().nonZeros()) /
                    (double(this->kkt_dim_) * double(this->kkt_dim_)));
     fmt::print("\n");
 }

@@ -57,6 +57,7 @@ target_sources(hven PRIVATE
     drivers/non_linear_program.cpp
     model/nlp_adapter.cpp
     model/nlp_solver.cpp
+    interior/kkt_factorization.cpp
     interior/utils/color_text.cpp
     interior/utils/get_core_count.cpp
     interior/utils/memory_management.cpp

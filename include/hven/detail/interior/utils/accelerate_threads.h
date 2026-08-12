@@ -14,6 +14,23 @@
 
 #pragma once
 
+// Apple Accelerate thread control and startup initialization for the
+// interior-point engine.
+//
+// This is deliberately NOT part of hven's linear-algebra surface, and it is
+// what the engine keeps for itself when that surface owns everything else
+// about the factorization. hven::linear's own num_threads option is applied at
+// backend-call scope on MKL and stored-but-not-applied on Accelerate, because
+// Accelerate's control is version-split, per-calling-thread, and binary rather
+// than a count -- a shape no per-instance option can honestly promise. Until
+// some hven surface adopts that contract explicitly, the engine keeps driving
+// it here: the startup initialization, the per-solve repair of a lingering
+// single-thread pin, and Jet's per-worker pin.
+//
+// Whether these BLAS controls govern Accelerate's Sparse routines at all
+// remains unobserved; the mechanism is retained because dropping it would be a
+// new, unexplained behavior change, not because its reach has been measured.
+
 #include <Accelerate/Accelerate.h>
 #include <cstdlib>
 #include <string>
@@ -29,34 +46,6 @@
 #if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
 #define HVEN_HAS_BLAS_SET_THREADING 1
 #endif
-
-// MT-METIS (multi-threaded METIS) is available starting in macOS 26.
-#if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&                               \
-    __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
-#define HVEN_HAS_MTMETIS 1
-#endif
-
-// Maps a requested ordering onto one this HOST supports.
-//
-// HVEN_HAS_MTMETIS is an SDK-version macro: it says the enum constant exists
-// at compile time, not that the running OS implements it. Passing
-// SparseOrderMTMetis on macOS < 26 yields SparseParameterError and a dead
-// solver, so downgrade at runtime instead.
-inline SparseOrder_t accelerate_supported_order(SparseOrder_t order) {
-#ifdef HVEN_HAS_MTMETIS
-    // __builtin_available must be the sole condition of its `if` -- combining
-    // it with `&&`/`!` in one expression (as a first draft of this function
-    // did) trips -Wunsupported-availability-guard, because the compiler can
-    // no longer identify the guarded scope. Two single-condition ifs instead.
-    if (order != SparseOrderMTMetis)
-        return order;
-    if (__builtin_available(macOS 26.0, *))
-        return order;
-    return SparseOrderMetis;
-#else
-    return order;
-#endif
-}
 
 // Warm up the Accelerate sparse solver subsystem by performing a trivial
 // LDLT factorization. On macOS 26+, this triggers MT-METIS thread pool

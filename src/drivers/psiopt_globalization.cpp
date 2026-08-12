@@ -1198,13 +1198,10 @@ double ClassicAdaptiveGovernor::update_barrier(PSIOPT::BarrierModes barmode, dou
     switch (barmode) {
     case PSIOPT::BarrierModes::PROBE:
         this->barrier_gradient(v_xsl.iq_lmults(), v_rhs.dual_grad());
-        // Assign the Solve<> expression directly (hits Eigen's specialized
-        // Assignment<DstXprType, Solve<...>> and writes straight into DXSL,
-        // no temporary) then negate in place (elementwise, alias-safe) --
-        // avoids the extra kkt_dim_-sized temporary that
-        // `DXSL = -kkt_sol_.solve(RHS)` forces via Solve's
-        // EvalBeforeNestingBit when wrapped in a CwiseUnaryOp.
-        DXSL = ctx.kkt_solver_.solve(RHS);
+        // Solve straight into DXSL, then negate in place (elementwise,
+        // alias-safe) -- the same order the main step solve keeps, so the
+        // arithmetic is unchanged and no kkt_dim_-sized temporary appears.
+        ctx.kkt_solver_.solve(RHS, DXSL);
         DXSL = -DXSL;
         mechanism.max_primal_dual_step(XSL, DXSL, ctx.settings_.bound_fraction_, alphap, alphad,
                                        ctx);
@@ -1407,7 +1404,7 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
 
         // Correction on the LIVE factorization — one back-substitution, no
         // refactor. Same sign convention as the main step (DXSL = -solve(RHS)).
-        dxsl_soc = ctx.kkt_solver_.solve(rhs_soc);
+        ctx.kkt_solver_.solve(rhs_soc, dxsl_soc);
         dxsl_soc = -dxsl_soc;
         if (!std::isfinite(dxsl_soc.squaredNorm()))
             return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
