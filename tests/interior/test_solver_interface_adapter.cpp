@@ -13,8 +13,11 @@
 
 #include "adapter_fixture_functions.h"
 
+using adapter_fixture::StubAdapterMissingObjective;
 using adapter_fixture::StubConstraintOnly;
 using adapter_fixture::StubDefectFamily;
+using adapter_fixture::StubMixinConstraintOnly;
+using adapter_fixture::StubPartialObjective;
 using adapter_fixture::StubScalarObjective;
 using adapter_fixture::StubUnregistered;
 using hven::solvers::ConstraintInterface;
@@ -66,6 +69,49 @@ TEST(SolverInterfaceAdapter, RegisteredScalarObjectiveIsStoredAsItself) {
     const StubScalarObjective f{};
     const ObjectiveInterface oi(f);
     EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubScalarObjective>));
+}
+
+// The mixin route is a real registration, not a way of opting out of one: the
+// direction it DOES support must still work, and must still store directly.
+TEST(SolverInterfaceAdapter, MixinDeclaredConstraintOnlyTypeStillEntersTheConstraintInterface) {
+    EXPECT_TRUE(SolverInterfaceAdapter<StubMixinConstraintOnly>::registered);
+
+    const StubMixinConstraintOnly f{};
+    const ConstraintInterface ci(f);
+    EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubMixinConstraintOnly>));
+}
+
+// Same for the adapter that merely omits install_objective: its constraint
+// route is unaffected, and only the objective route is diagnosed (by the
+// compile-fail probe -- an omission cannot be observed from here).
+TEST(SolverInterfaceAdapter, AdapterMissingAnInstallStillServesTheOneItHas) {
+    const StubAdapterMissingObjective f{};
+    const ConstraintInterface ci(f);
+    EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubAdapterMissingObjective>));
+}
+
+// The surface probes must agree with what the Models actually call -- that
+// correspondence is what lets the install bodies refuse a type before
+// instantiating a Model on it. These pin the discriminating cases the
+// compile-fail probes exercise from the other side.
+TEST(SolverInterfaceAdapter, SurfaceProbesMatchWhatTheModelsRequire) {
+    using hven::solvers::SolverConstraintFunction;
+    using hven::solvers::SolverObjectiveFunction;
+    using hven::solvers::SolverObjectiveSurface;
+
+    // Every fixture carries the full constraint surface; that is not what
+    // separates them.
+    EXPECT_TRUE(SolverConstraintFunction<StubScalarObjective>);
+    EXPECT_TRUE(SolverConstraintFunction<StubConstraintOnly>);
+    EXPECT_TRUE(SolverConstraintFunction<StubPartialObjective>);
+
+    EXPECT_TRUE(SolverObjectiveSurface<StubScalarObjective>);
+    EXPECT_FALSE(SolverObjectiveSurface<StubConstraintOnly>);
+    // The case a probe of objective() alone would have waved through.
+    EXPECT_FALSE(SolverObjectiveSurface<StubPartialObjective>);
+
+    EXPECT_TRUE(SolverObjectiveFunction<StubScalarObjective>);
+    EXPECT_FALSE(SolverObjectiveFunction<StubPartialObjective>);
 }
 
 // Copying an interface must reproduce the stored dynamic type, not collapse

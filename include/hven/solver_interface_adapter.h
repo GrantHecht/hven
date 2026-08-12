@@ -52,10 +52,29 @@
 // they will be stored whole, at two dispatches per call. Decide this before
 // freezing the representation, not after.
 //
+// Every specialization provides BOTH operations. A specialization is looked
+// up by type, not by interface, so a type registered at all is reachable from
+// BOTH ConstraintInterface and ObjectiveInterface. A specialization that
+// simply omits one of the two installs does not fall back to the primary
+// template -- the primary is not consulted once a specialization matches --
+// so its authored message could never fire and the omission would surface as
+// a raw "no member named" diagnostic instead. Declare the unsupported
+// direction rather than omitting it: inherit ConstraintUnsupported<T> or
+// ObjectiveUnsupported<T> below and the refusal gets its own authored
+// message. DirectFunctionModel supports both directions and needs neither.
+//
 // There is deliberately NO default adapter. An unregistered type reaching
 // either interface is a compile error with an authored message, because the
 // alternative -- quietly accepting it -- is exactly the silent
 // double-dispatch this seam exists to make impossible.
+//
+// Every refusal on every route is an authored message and nothing else. The
+// interfaces themselves check that the selected adapter offers the operation
+// before calling it, the install bodies check the function surface before
+// emplacing, and both guard the work they would otherwise do with the same
+// condition they assert on -- so no raw instantiation failure is ever reached
+// behind a failed check. The compile-fail fixtures assert the absence of raw
+// diagnostics, not just the presence of the authored one.
 
 namespace hven::solvers {
 
@@ -95,8 +114,56 @@ template <class T> struct SolverInterfaceAdapter {
     }
 };
 
+/// Ready-made half-policy: this type cannot be a constraint. Inherit it in a
+/// specialization that defines install_objective only, so the constraint
+/// route still answers with an authored message instead of a raw lookup
+/// failure:
+///
+///     template <> struct hven::solvers::SolverInterfaceAdapter<MyObjective>
+///         : hven::solvers::ConstraintUnsupported<MyObjective> {
+///         static void install_constraint(...);  // NOT declared -- the mixin's is used
+///         static void install_objective(const MyObjective &t, ObjectiveInterface &oi) { ... }
+///     };
+template <class T> struct ConstraintUnsupported {
+    static constexpr bool registered = true;
+
+    static void install_constraint(const T &, ConstraintInterface &) {
+        static_assert(adapter_dependent_false_v<T>,
+                      "hven constraint adapter: this type's SolverInterfaceAdapter inherits "
+                      "hven::solvers::ConstraintUnsupported, which declares it registered for "
+                      "the OBJECTIVE interface only. It cannot enter ConstraintInterface. If "
+                      "that is wrong, give its adapter an install_constraint (or inherit "
+                      "hven::solvers::DirectFunctionModel<T> to store it directly).");
+    }
+};
+
+/// Ready-made half-policy: this type cannot be an objective -- the common
+/// case, since most functions are constraints and the scalar objective
+/// surface is extra. Inherit it in a specialization that defines
+/// install_constraint only:
+///
+///     template <> struct hven::solvers::SolverInterfaceAdapter<MyConstraint>
+///         : hven::solvers::ObjectiveUnsupported<MyConstraint> {
+///         static void install_constraint(const MyConstraint &t, ConstraintInterface &ci) { ... }
+///     };
+template <class T> struct ObjectiveUnsupported {
+    static constexpr bool registered = true;
+
+    static void install_objective(const T &, ObjectiveInterface &) {
+        static_assert(adapter_dependent_false_v<T>,
+                      "hven objective adapter: this type's SolverInterfaceAdapter inherits "
+                      "hven::solvers::ObjectiveUnsupported, which declares it registered for "
+                      "the CONSTRAINT interface only. It cannot enter ObjectiveInterface. If "
+                      "that is wrong, give its adapter an install_objective and give the type "
+                      "the scalar objective surface (objective / objective_gradient / "
+                      "objective_gradient_hessian).");
+    }
+};
+
 /// Ready-made policy for a plain value type: store T itself, one erasure and
-/// one virtual dispatch per solver call. Register a type by inheriting this:
+/// one virtual dispatch per solver call. Supports BOTH directions, so a type
+/// registered through it needs neither mixin above. Register a type by
+/// inheriting this:
 ///
 ///     template <> struct hven::solvers::SolverInterfaceAdapter<MyFunction>
 ///         : hven::solvers::DirectFunctionModel<MyFunction> {};

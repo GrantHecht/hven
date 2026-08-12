@@ -94,6 +94,28 @@ struct StubScalarObjective : StubConstraintSurface {
 /// constraint, a diagnosed error as an objective.
 struct StubConstraintOnly : StubConstraintSurface {};
 
+/// Registered for direct storage with a PARTIAL objective surface: it has
+/// objective() but neither objective_gradient nor objective_gradient_hessian.
+/// A guard that probed only objective() would wave this through and let
+/// ObjectiveModel produce the raw diagnostics for the other two.
+struct StubPartialObjective : StubConstraintSurface {
+    void objective(double, const Eigen::Ref<const Eigen::VectorXd> &, double &Val,
+                   const hven::solvers::SolverIndexingData &) const {
+        Val = 0.0;
+    }
+};
+
+/// Registered by a hand-written adapter that declares the type constraint-only
+/// through the ObjectiveUnsupported mixin -- the sanctioned way to register
+/// one direction.
+struct StubMixinConstraintOnly : StubConstraintSurface {};
+
+/// Registered by a hand-written adapter that provides install_constraint and
+/// simply OMITS install_objective, without the mixin. Specialization lookup
+/// does not fall back to the primary template, so only the interface's own
+/// backstop can diagnose this one.
+struct StubAdapterMissingObjective : StubConstraintSurface {};
+
 /// Never registered anywhere. Reaching either interface with it is a
 /// diagnosed error.
 struct StubUnregistered : StubConstraintSurface {};
@@ -116,5 +138,35 @@ struct SolverInterfaceAdapter<adapter_fixture::StubScalarObjective>
 template <>
 struct SolverInterfaceAdapter<adapter_fixture::StubConstraintOnly>
     : DirectFunctionModel<adapter_fixture::StubConstraintOnly> {};
+
+template <>
+struct SolverInterfaceAdapter<adapter_fixture::StubPartialObjective>
+    : DirectFunctionModel<adapter_fixture::StubPartialObjective> {};
+
+// The composition pattern the mixin exists for: one install written out, the
+// other inherited from the mixin that refuses it in words. Note that the two
+// cannot simply be multiply-inherited -- DirectFunctionModel supplies an
+// install_objective of its own, so inheriting both would make the name
+// ambiguous, which is a raw error and exactly what the mixin is here to avoid.
+template <>
+struct SolverInterfaceAdapter<adapter_fixture::StubMixinConstraintOnly>
+    : ObjectiveUnsupported<adapter_fixture::StubMixinConstraintOnly> {
+    static void install_constraint(const adapter_fixture::StubMixinConstraintOnly &t,
+                                   ConstraintInterface &ci) {
+        DirectFunctionModel<adapter_fixture::StubMixinConstraintOnly>::install_constraint(t, ci);
+    }
+};
+
+// Deliberately malformed: install_objective is missing and the mixin is not
+// inherited. Only the interface constructor's backstop can catch this.
+template <> struct SolverInterfaceAdapter<adapter_fixture::StubAdapterMissingObjective> {
+    static constexpr bool registered = true;
+
+    static void install_constraint(const adapter_fixture::StubAdapterMissingObjective &t,
+                                   ConstraintInterface &ci) {
+        DirectFunctionModel<adapter_fixture::StubAdapterMissingObjective>::install_constraint(t,
+                                                                                              ci);
+    }
+};
 
 } // namespace hven::solvers
