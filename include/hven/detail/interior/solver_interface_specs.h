@@ -16,12 +16,18 @@
 //   - Python binding methods moved to src/bindings/ (nanobind)
 //   - PR 9: Replaced rubber_types with TypeStorage; deleted dead
 //     Model<>/ExternalInterface<> boilerplate and SolverInterfaceSelector.
+//   - Function entry routed through hven/solver_interface_adapter.h: the
+//     consumer-type forward declaration and its preferred constructors are
+//     gone; both interfaces now delegate to SolverInterfaceAdapter<T>, so
+//     what gets stored is declared by the type's owner rather than inferred
+//     here.
 // =============================================================================
 
 #pragma once
 
 #include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/interior/sizing_specs.h"
+#include "hven/solver_interface_adapter.h"
 #include <algorithm>
 #include <array>
 #include <functional>
@@ -49,23 +55,10 @@
 #include "hven/detail/interior/utils/type_name.h"
 #include "hven/detail/interior/utils/type_storage.h"
 
-// GenericFunction is only NAMED here. The two converting constructors below are
-// templates, and a template's body is only instantiated where it is used: every
-// such use is in a translation unit that already includes the full
-// VectorFunction machinery, and the solver library itself never instantiates
-// them. Naming the template is therefore all this header needs, and a forward
-// declaration keeps it -- and with it the whole solver subtree -- free of any
-// VectorFunction include. The declaration must stay identical in kind and
-// parameters to the real one in vf/core/expression_fwd_declarations.h.
-namespace hven::vf {
-template <int IR, int OR> struct GenericFunction;
-}
-
 namespace hven::solvers {
 
 // Import cross-namespace types used throughout the solver layer.
 using utils::TypeStorage;
-using vf::GenericFunction;
 
 /*
  * Spec for vector function that can be used as a constraint inside of PSIOPT.
@@ -219,12 +212,7 @@ struct ConstraintInterface {
                            !std::is_base_of_v<Eigen::EigenBase<std::decay_t<T>>, std::decay_t<T>>,
                            bool> = true>
     ConstraintInterface(const T &t) {
-        storage_.emplace<ConstraintModel<std::decay_t<T>>>(t);
-    }
-
-    // Stores T directly (one virtual dispatch per solver call) instead of double-erasure.
-    template <int IR, int OR> ConstraintInterface(const GenericFunction<IR, OR> &t) {
-        t.func_.get().pack_into_constraint_interface(*this);
+        SolverInterfaceAdapter<std::decay_t<T>>::install_constraint(t, *this);
     }
 
     // ---- Forwarding methods ----
@@ -385,12 +373,7 @@ struct ObjectiveInterface {
                            !std::is_base_of_v<Eigen::EigenBase<std::decay_t<T>>, std::decay_t<T>>,
                            bool> = true>
     ObjectiveInterface(const T &t) {
-        storage_.emplace<ObjectiveModel<std::decay_t<T>>>(t);
-    }
-
-    // Stores T directly (one virtual dispatch per solver call).
-    template <int IR> ObjectiveInterface(const GenericFunction<IR, 1> &t) {
-        t.func_.get().pack_into_objective_interface(*this);
+        SolverInterfaceAdapter<std::decay_t<T>>::install_objective(t, *this);
     }
 
     // ---- Forwarding methods ----
@@ -467,5 +450,33 @@ struct ObjectiveInterface {
                                                   KKTClashes, KKTLocks, data);
     }
 };
+
+// ---- DirectFunctionModel bodies ----
+//
+// Declared in hven/solver_interface_adapter.h; defined here because they
+// emplace into the interfaces above, which that header only forward-declares.
+// The emplacement is the same call the interfaces made inline before the
+// adapter seam existed, so the stored object and the per-call dispatch count
+// are unchanged.
+
+template <class T>
+void DirectFunctionModel<T>::install_constraint(const T &t, ConstraintInterface &ci) {
+    ci.storage_.emplace<ConstraintModel<T>>(t);
+}
+
+template <class T>
+void DirectFunctionModel<T>::install_objective(const T &t, ObjectiveInterface &oi) {
+    // Registration is per type, not per interface: a family registered for
+    // direct storage is registered for BOTH interfaces, and a constraint-only
+    // family reaching this one would otherwise fail deep inside
+    // ObjectiveModel<T>'s instantiation with no statement of what is wrong.
+    static_assert(
+        requires(const T &f, double s, const Eigen::Ref<const Eigen::VectorXd> &x, double &v,
+                 const SolverIndexingData &d) { f.objective(s, x, v, d); },
+        "hven objective adapter: this registered type does not provide the scalar "
+        "objective interface (objective / objective_gradient / "
+        "objective_gradient_hessian; OR == 1). It can enter ConstraintInterface only.");
+    oi.storage_.emplace<ObjectiveModel<T>>(t);
+}
 
 } // namespace hven::solvers

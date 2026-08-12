@@ -121,7 +121,8 @@ using hven::EigenRef;
 // Three is the smallest window that survives the observed one- and
 // two-iteration recoverable excursions (Maratos-class overshoots,
 // restoration-entry transients) while still failing fast — within three
-// iterations of the onset — on genuine divergence. It is a Tycho policy choice
+// iterations of the onset — on genuine divergence. It is this engine's own
+// policy choice
 // with no external reference: Ipopt ships no divergence abort at all. The
 // supporting evidence is the corpus differential — the same literature problem
 // diverges at iteration two with the per-iterate abort and converges to the
@@ -393,7 +394,7 @@ class PSIOPT {
         InertiaModes inertia_mode_ = InertiaModes::classic;
 
         // --- QP solver ---
-        int qp_threads_ = TYCHO_DEFAULT_QP_THREADS;
+        int qp_threads_ = HVEN_DEFAULT_QP_THREADS;
         QPAlgModes qp_alg_ = QPAlgModes::Classic;
         QPOrderingModes qp_ord_ = QPOrderingModes::METIS;
         QPPivotModes qp_pivot_strategy_ = QPPivotModes::TwoByTwo;

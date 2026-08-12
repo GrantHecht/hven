@@ -59,12 +59,11 @@ const char *kind_name(FactorKind kind) {
 // MT-METIS (multi-threaded METIS) is only declared starting in the macOS 26
 // SDK. This is an SDK-version macro -- it says the enum constant
 // SparseOrderMTMetis EXISTS at compile time, not that the RUNNING host
-// implements it -- exactly mirroring psiopt's own
-// TYCHO_HAS_MTMETIS/accelerate_supported_order guard, full predicate
-// included (`defined(__APPLE__)` guards the SDK-version macro check itself,
-// which is otherwise meaningless off Apple platforms)
-// (tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h),
-// which this block deliberately follows.
+// implements it -- exactly mirroring psiopt's own has-MT-METIS /
+// accelerate_supported_order guard, full predicate included
+// (`defined(__APPLE__)` guards the SDK-version macro check itself, which is
+// otherwise meaningless off Apple platforms), which this block deliberately
+// follows.
 #if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&                               \
     __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 #define HVEN_HAS_MTMETIS 1
@@ -594,8 +593,8 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
         //
         // UNLIKE the MKL adapter's identical branch, this one is not known
         // to be unreachable by ordinary fixtures: Accelerate is documented
-        // (and was measured on real hardware by the tycho_sqp audit,
-        // 2026-07-29-accelerate-audit-results.md) to genuinely refuse a
+        // (and was measured on real hardware by the SQP engine's
+        // 2026-07-29 Accelerate audit) to genuinely refuse a
         // numeric factorization on some singular/indefinite input rather
         // than perturbing through it. Native macOS CI now runs this backend,
         // but no contract test pins a particular fixture to this nonzero-status

@@ -114,7 +114,7 @@
 // smallest-known-infeasibility tracker, the WMNO penalty ν, and the flexible
 // interval (π_l, π_u) — is structurally FROZEN while restoration runs, and the
 // restoration-exit test (is_infeasibility_sufficiently_reduced) reduces against
-// that frozen tracker. Tycho drives one object across both phases, so it must
+// that frozen tracker. This engine drives one object across both phases, so it must
 // stash the optimality-phase state at restoration entry and restore it at exit
 // to get the same behavior:
 //

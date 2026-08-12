@@ -663,11 +663,11 @@ void hven::solvers::PSIOPT::ensure_solver_initialized() {
 // through both the destructor and the constructors' exception-cleanup paths.
 // Bodies are the former header-inline bodies, unchanged.
 hven::solvers::PSIOPT::PSIOPT() {
-    settings_.qp_threads_ = std::min(TYCHO_DEFAULT_QP_THREADS, hven::utils::get_core_count());
+    settings_.qp_threads_ = std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count());
 }
 
 hven::solvers::PSIOPT::PSIOPT(std::shared_ptr<NonLinearProgram> np) {
-    settings_.qp_threads_ = std::min(TYCHO_DEFAULT_QP_THREADS, hven::utils::get_core_count());
+    settings_.qp_threads_ = std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count());
     this->set_nlp(np);
 }
 
@@ -745,10 +745,10 @@ void hven::solvers::PSIOPT::set_nlp(std::shared_ptr<NonLinearProgram> np) {
 // field (which alg_impl/governor_/etc. already read live off settings_ each
 // iteration). Before this fix, these knobs were snapshotted at whichever
 // (re)transcription last ran set_nlp() and silently ignored by a later
-// solve() call that changed them without retranscribing — see
-// tychopy/test/test_Solvers/test_psiopt_globalization_settings.py's
-// test_ComponentRebuildTakesEffectWithoutRetranscription for the reachable-
-// from-Python repro (the two acceptance strategies produce different
+// solve() call that changed them without retranscribing — see the origin
+// project's component-rebuild-takes-effect-without-retranscription test
+// for the reachable-from-a-binding repro (the two acceptance strategies
+// produce different
 // iteration counts from the same cold start, so a stale acceptance_ is
 // directly observable).
 //
@@ -1177,7 +1177,7 @@ void hven::solvers::PSIOPT::enter_feasibility_restoration(Eigen::VectorXd &XSL,
                 std::max(theta_orig, v_rhs.iq_cons().template lpNorm<Eigen::Infinity>());
         this->resto_theta_orig_prev_ = theta_orig;
 
-        // Verified entry multiplier init. In tycho's slack-complementarity
+        // Verified entry multiplier init. In this engine's slack-complementarity
         // formulation the inequality multipliers ARE the slack/bound multipliers
         // (s·λ = μ, strictly positive), so they take Ipopt's min(ρ, current)
         // clamp on the bound multipliers (keeps them positive); the free-sign

@@ -13,13 +13,13 @@
 // matrix's stored entries. That module reached hven by way of two
 // downstream, Mac-hardware-verified ports: the interior-point engine's own
 // Eigen-derived Accelerate interface
-// (psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h +
-// accelerate_utils.h) and the SQP engine's audited KktSystem port
-// (tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h) -- this file follows
+// (the interior-point project's accelerate_interface.h + accelerate_utils.h)
+// and the SQP engine's audited KktSystem port (its
+// kkt_system_accelerate.h) -- this file follows
 // the SECOND of those two most closely: its simpler, implicit-workspace
 // SparseFactor/SparseSolve call shapes (no caller-managed aligned buffers)
 // are the ones that have actually run against real Accelerate on real Mac
-// hardware, per tycho_sqp/docs/notes/2026-07-29-accelerate-audit-results.md.
+// hardware, per the SQP engine's 2026-07-29 Accelerate audit results.
 // This file now compiles and executes against the real Accelerate framework
 // on every macOS CI run. The Linux stub lane remains a narrower structural
 // check; see docs/testing.md for its exact claim ceiling.
@@ -70,7 +70,8 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // records that control as best-effort-absent on this backend rather than
 // fabricating one -- and no
 // native iterative-refinement counter this session can honestly report (a
-// hand-rolled refinement loop, as tycho's AccelerateImpl implements via vDSP,
+// hand-rolled refinement loop, as the origin project's AccelerateImpl
+// implements via vDSP,
 // is deliberately NOT ported here: adding an unverified numerical loop
 // without dedicated numerical validation would be a correctness risk).
 struct AccelerateConfig {
@@ -139,7 +140,7 @@ class FactorSession {
     // count. Throws std::invalid_argument if it does not.
     //
     // UNLIKE Pardiso, Accelerate is documented (and was measured on real
-    // hardware by the tycho_sqp audit) to genuinely REFUSE a numeric
+    // hardware by the SQP engine's audit) to genuinely REFUSE a numeric
     // factorization on singular/indefinite-beyond-repair input
     // (SparseMatrixIsSingular / SparseFactorizationFailed) rather than
     // perturbing through it -- so this path, unlike the MKL twin's, is not

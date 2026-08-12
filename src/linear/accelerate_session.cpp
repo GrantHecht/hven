@@ -34,7 +34,7 @@ static_assert(std::is_same_v<SpMatRM::StorageIndex, int>,
 namespace {
 
 // Capture target for Accelerate's reportError callback, exactly the
-// KktSystem precedent's pattern (tycho_sqp/include/tycho_sqp/
+// KktSystem precedent's pattern (the SQP engine's
 // kkt_system_accelerate.h): a NULL callback makes Accelerate log via os_log
 // and __builtin_trap() on parameter errors, which library code must never do
 // (hven's T5/T6 rules -- CLAUDE.md Sec. 4), and printing from the callback

@@ -20,6 +20,7 @@
 #include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/model/nlp_problem.h"
+#include "hven/solver_interface_adapter.h"
 
 namespace hven::solvers {
 
@@ -455,6 +456,15 @@ struct NLPConstraintPiece {
         }
     }
 };
+
+// Both pieces are plain value types, not erased handles, so each is stored as
+// itself: one erasure, one virtual dispatch per solver call. Registered here,
+// beside the definitions, per the placement rule in
+// hven/solver_interface_adapter.h.
+template <>
+struct SolverInterfaceAdapter<NLPObjectivePiece> : DirectFunctionModel<NLPObjectivePiece> {};
+template <>
+struct SolverInterfaceAdapter<NLPConstraintPiece> : DirectFunctionModel<NLPConstraintPiece> {};
 
 /// Builds the single-partition NonLinearProgram for an adapter core: the
 /// objective piece, the constraint pieces the row counts call for, the staged

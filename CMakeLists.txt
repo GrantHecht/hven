@@ -7,12 +7,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Submodule helpers
 #
 # cmake/git-submodule-init.cmake and cmake/git-submodule-update.cmake (both
-# migrated verbatim from tycho) define the `git-submodule-init` /
+# migrated verbatim from the origin project) define the `git-submodule-init` /
 # `git-submodule-update` convenience targets (run manually, e.g. `ninja
 # git-submodule-update`, after a fresh clone). The FATAL_ERROR checks below
 # tell a fresh clone exactly what command closes the gap when dep/eigen or
-# dep/fmt is missing — the same pattern tycho's root CMakeLists.txt uses for
-# its own dep/ submodules.
+# dep/fmt is missing — the same pattern the origin project's root
+# CMakeLists.txt uses for its own dep/ submodules.
 ################################################################################
 
 include(cmake/git-submodule-init.cmake)
@@ -214,13 +214,12 @@ add_compile_definitions(EIGEN_DONT_PARALLELIZE)
 # fmt-based printing keeps the same (locale-independent) formatting
 # behavior it had there.
 add_compile_definitions(FMT_USE_LOCALE=0)
-# Sizing knobs the engine's headers/sources read directly (jet.h's QP
-# thread default, memory_management.h's arena size). These are NOT
-# renamed to an HVEN_ prefix: they are supplied by the build, not defined
-# in any moved file (see the migration report's mechanical-edit-class
-# audit for the distinction that rule follows).
-add_compile_definitions(TYCHO_DEFAULT_QP_THREADS=8)
-add_compile_definitions(TYCHO_DEFAULT_ARENA_SIZE=256)
+# The two sizing knobs the engine's headers/sources read directly (the QP
+# thread default and the arena size) are NOT defined here at directory
+# scope. They are usage requirements of the hven target -- one of them is
+# read by a PUBLIC header -- so they are attached to the target itself,
+# further down, where a consumer inherits them by linking rather than by
+# happening to be configured under this directory.
 if(WIN32)
     # clang-cl against the MSVC STL: std::mutex's constexpr default
     # constructor trips a known STL/compiler interaction the engine's
@@ -244,8 +243,8 @@ if(WIN32)
     # (its GetLogicalProcessorInformation path) and
     # src/interior/utils/color_text.cpp includes <Windows.h> directly (its
     # SetConsoleMode path) -- both with WIN32_LEAN_AND_MEAN locally
-    # defined but no NOMINMAX. psiopt never hit any of this inside tycho
-    # because tycho's own include environment never manifested the
+    # defined but no NOMINMAX. None of this was hit in the origin project
+    # because its own include environment never manifested the
     # collision (a different header-inclusion order/set) -- it is exposed
     # here, not introduced here. NOMINMAX/WIN32_LEAN_AND_MEAN are
     # compile-definition-only
@@ -300,12 +299,28 @@ endif()
 
 target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
 
-# HVEN_VERSION_STRING mirrors tycho's -DTYCHO_VERSIONSTRING="${CMAKE_PROJECT_VERSION}"
-# idiom: it makes src/core/version.cpp forward the single source of truth
-# (this file's `project()` VERSION) instead of carrying its own hardcoded
+# HVEN_VERSION_STRING follows the origin project's version-string-on-the-
+# command-line idiom: it makes src/core/version.cpp forward the single source
+# of truth (this file's `project()` VERSION) instead of carrying its own hardcoded
 # copy, and gives tests/core/test_version.cpp the same macro to compare
 # against so the test actually guards against the two drifting apart.
 target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
+
+# The engine's two build-supplied sizing knobs.
+#
+# HVEN_DEFAULT_QP_THREADS is PUBLIC because two PUBLIC headers read it
+# directly -- include/hven/drivers/psiopt.h (the qp_threads_ default member
+# initializer) and include/hven/drivers/optimization_problem_base.h -- so a
+# consumer that includes them without the definition would fail on an
+# undefined identifier inside a header it did not write. Carried as a usage
+# requirement, linking hven::hven is all a consumer has to do.
+#
+# HVEN_DEFAULT_ARENA_SIZE is PRIVATE: the only reader is
+# src/interior/utils/memory_management.cpp, an hven source, and nothing in
+# any header names it.
+target_compile_definitions(hven
+    PUBLIC HVEN_DEFAULT_QP_THREADS=8
+    PRIVATE HVEN_DEFAULT_ARENA_SIZE=256)
 
 # Sources come from src/CMakeLists.txt via target_sources(hven PRIVATE ...).
 add_subdirectory(src)

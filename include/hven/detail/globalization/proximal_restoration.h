@@ -76,7 +76,7 @@
 //     IpBacktrackingLineSearch.cpp: Ipopt refuses to enter restoration at an
 //     almost-feasible point, testing constraint violation against a SCALED
 //     tolerance (1e-2 · tol) AND an UNSCALED one (1e-1 · constr_viol_tol)
-//     together. Tycho's ProgressMeasures/SolverContext carry a single
+//     together. This engine's ProgressMeasures/SolverContext carry a single
 //     constraint-violation measure and a single econ_tol_, not Ipopt's
 //     scaled/unscaled pair, so this is a single-measure ADAPTATION, not a
 //     transcription:
@@ -84,8 +84,8 @@
 //       refuse entry iff constraint_violation <= kNearFeasibleGuardFactor · econ_tol_
 //
 //     with kNearFeasibleGuardFactor = 0.1, chosen to match the UNSCALED member
-//     of Ipopt's pair (1e-1 · constr_viol_tol) since Tycho's econ_tol_ is
-//     itself unscaled. DISCLOSED CONSEQUENCE: because Tycho tests one measure
+//     of Ipopt's pair (1e-1 · constr_viol_tol) since this engine's econ_tol_ is
+//     itself unscaled. DISCLOSED CONSEQUENCE: because one measure is tested
 //     against one threshold instead of Ipopt's two-measure AND, this guard can
 //     refuse entry slightly earlier or later than Ipopt's dual test would at
 //     any given point where the scaled and unscaled tests would have
@@ -95,7 +95,7 @@
 //
 // (4) Budget guard: entry_permitted() ALSO refuses once this phase's entry
 //     count has reached ctx.settings_.max_feas_rest_ (Settings, psiopt.h) —
-//     an int Tycho-side budget with no direct Uno/Ipopt analog (both those
+//     an int budget local to this engine with no direct Uno/Ipopt analog (both those
 //     solvers gate re-entry through their own restoration-specific state
 //     machines instead of a flat per-phase counter). max_feas_rest_ == 0
 //     means the budget is exhausted before the first entry, so entry is
@@ -136,7 +136,7 @@ inline constexpr double kRestoProximityWeight = 1.0;
 // (IpRestoMinC_1Nrm.cpp, commit 72a29c9a): at or below it the restoration is
 // treated as having reached a (near-)feasible point — a soft, recoverable
 // outcome — and only above it is the problem declared locally infeasible.
-// Tycho applies the same 1e2 factor to its unscaled econ_tol_ (same
+// This engine applies the same 1e2 factor to its unscaled econ_tol_ (same
 // single-measure adaptation as the entry guard above). Using the entry-guard
 // factor here instead would misclassify every stall with violation in
 // (0.1·tol, 1e2·tol] — points Ipopt considers feasible-enough to continue

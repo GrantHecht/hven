@@ -1,5 +1,5 @@
 ################################################################################
-# Migrated from Tycho; flags kept identical.
+# Migrated from the origin project; flags kept identical.
 #
 # hven_resolve_sparse_backend()
 #
@@ -17,7 +17,7 @@
 # AccelerateSparse::AccelerateSparse (or the MKL_LIBRARIES/LINK_LIBS
 # variables) to still exist.
 #
-# Migrated from tycho's cmake/tycho_sparse_backend.cmake -- no behavior
+# Migrated from the origin project's sparse-backend module -- no behavior
 # changes.
 #
 # Prerequisites the caller must set before invoking (all read from caller

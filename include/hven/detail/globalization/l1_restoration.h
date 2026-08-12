@@ -131,7 +131,7 @@
 //       multipliers at zero.
 //
 //   (d) Single-measure floors. Ipopt carries separate scaled/unscaled
-//       tolerances; Tycho carries one econ_tol_. The entry guard and the stall
+//       tolerances; this engine carries one econ_tol_. The entry guard and the stall
 //       failure classification both use econ_tol_ (the same single-measure
 //       adaptation as the proximal switch, whose constants this component
 //       reuses). Consequence: boundary behavior can differ from Ipopt where its

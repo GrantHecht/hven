@@ -57,9 +57,9 @@
 //     QF:81-99), so the default error is the sum of the three squared,
 //     per-dimension-averaged part norms.
 //
-//     Tycho mapping (monitor_error()): the IterateInfo residual scalars that
-//     converge_check() consumes are ∞-norm (max) reductions, not 2-norms, and
-//     Tycho decomposes the constraint block into equality/inequality parts.
+//     This engine's mapping (monitor_error()): the IterateInfo residual scalars
+//     that converge_check() consumes are ∞-norm (max) reductions, not 2-norms,
+//     and the constraint block is decomposed into equality/inequality parts.
 //     The closest faithful composition preserving the "sum of squared parts"
 //     structure is
 //
@@ -67,7 +67,7 @@
 //
 //     Documented deviations from [AMU] (chosen because these are the only
 //     residual scalars carried on IterateInfo, and using them keeps the monitor
-//     consistent with Tycho's own convergence test):
+//     consistent with this engine's own convergence test):
 //       - each part is an ∞-norm scalar (kkt_inf_ = ‖prim_grad‖∞, econ_inf_ =
 //         ‖eq_cons‖∞, icon_inf_ = ‖iq_cons‖∞), not the ‖·‖₂ Ipopt squares;
 //       - no per-dimension division (n_dual/n_pri/n_comp): these are THREE
@@ -128,8 +128,8 @@
 //       μ⁺ = max( floor, min( kBarrierKappaMu·μ, μ^kBarrierThetaMu ) ),   (AMU:327-329)
 //       floor = min(bar_tol, kkt_tol) / (kBarrierTolFactor + 1).
 //
-//     [AMU]'s floor is Min(compl_inf_tol, tol)/(barrier_tol_factor+1); Tycho has
-//     no single overall "tol" and instead carries per-part tolerances, so the
+//     [AMU]'s floor is Min(compl_inf_tol, tol)/(barrier_tol_factor+1); this
+//     engine has no single overall "tol" and instead carries per-part tolerances, so the
 //     complementarity tolerance maps to bar_tol_ (≈ Ipopt compl_inf_tol) and the
 //     overall optimality tolerance to kkt_tol_ (the stationarity gate). The
 //     result is additionally clamped to [min_mu, max_mu] for consistency with
@@ -156,7 +156,7 @@
 //     subproblem-convergence gate and only when μ strictly decreases).
 // mu_event does NOT fire on the monotone -> free re-entry: Ipopt's reset there
 // (AMU:431) is the free-mode oracle's per-iteration line-search reset, fired on
-// every free-mode iteration, which Tycho's classic free-mode path (delegated to
+// every free-mode iteration, which this engine's classic free-mode path (delegated to
 // ClassicAdaptiveGovernor) does not reproduce and which is out of scope for the
 // barrier-subproblem event. Firing on the handoff as well as the advances (both
 // begin a new barrier subproblem) is the source-faithful reading of the earlier

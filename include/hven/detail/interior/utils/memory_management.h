@@ -6,8 +6,8 @@
 // Source: https://github.com/AlabamaASRL/asset_asrl
 // Original Developer: James B. Pezent
 //
-// Defines Tycho's memory manager for allocation of temporary matrices in
-// VectorFunction expressions
+// Defines this library's memory manager for allocation of temporary
+// matrices in expression evaluation
 //
 // Modifications in Tycho (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):

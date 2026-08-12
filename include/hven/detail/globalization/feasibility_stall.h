@@ -19,7 +19,7 @@
 // window of consecutive iterations at or above a fixed multiple of the best
 // value the stage has ever held.
 //
-// Provenance: Tycho-original. The reference interior-point method (Ipopt) has
+// Provenance: original to this engine. The reference interior-point method (Ipopt) has
 // no feasibility-only stage and therefore no analog of this detector; its
 // restoration dispatch rides the line-search failure path, which the
 // zero-objective stage never takes.

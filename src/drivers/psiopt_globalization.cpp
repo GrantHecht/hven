@@ -119,8 +119,8 @@ bool ClassicMeritAcceptance::is_infeasibility_sufficiently_reduced(
     // reference.infeasibility; orig_trial_inf_pr = trial.infeasibility.
     //
     // Ipopt floors the relative target with Min(tol, constr_viol_tol) — its
-    // separate optimality and constraint-violation tolerances. Tycho carries a
-    // single constraint-violation tolerance (settings_.econ_tol_, the same field
+    // separate optimality and constraint-violation tolerances. This engine
+    // carries a single constraint-violation tolerance (settings_.econ_tol_, the same field
     // RestorationStrategy::entry_permitted reads via near_feasible()), so the floor here is
     // that one tolerance — a disclosed single-tolerance adaptation of Ipopt's
     // two-tolerance minimum. Classic merit has no Uno counterpart; the Ipopt
@@ -2121,7 +2121,7 @@ bool FilterAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasu
     // (Tmax) relative θ-reduction with the constraint-tolerance floor:
     //   orig_inf_pr_max = Max(kappa_resto_ * orig_curr_inf_pr,
     //                         Min(orig tol, orig constr_viol_tol_));
-    // Tycho's single constraint tolerance stands in for Ipopt's two-tolerance
+    // This engine's single constraint tolerance stands in for Ipopt's two-tolerance
     // minimum (injected via set_restoration_constraint_tol; see the divergence
     // note in the header).
     const double floor = std::max(kKappaResto * theta_ref, restoration_constraint_tol_);
@@ -2232,7 +2232,7 @@ MonitoredBarrierGovernor::MonitoredBarrierGovernor(std::unique_ptr<BarrierGovern
 MonitoredBarrierGovernor::~MonitoredBarrierGovernor() = default;
 
 double MonitoredBarrierGovernor::monitor_error(const IterateInfo &it) {
-    // (1): sum of squared ∞-norm residual parts — the Tycho mapping of Ipopt's
+    // (1): sum of squared ∞-norm residual parts — this engine's mapping of Ipopt's
     // 2-norm-squared quality function (IpAdaptiveMuUpdate.cpp:657-675).
     return it.kkt_inf_ * it.kkt_inf_ + it.econ_inf_ * it.econ_inf_ +
            it.icon_inf_ * it.icon_inf_ + it.barr_inf_ * it.barr_inf_;

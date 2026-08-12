@@ -38,8 +38,8 @@ endif()
 
 ################################################################################
 # Interior-point engine (ex-PSIOPT) — migrated as-is from the standalone
-# psiopt/ project this repository's primary consumer (tycho) previously
-# hosted (hven M2 milestone, engine-move task). The split below —
+# psiopt/ project the origin project previously hosted (hven M2
+# milestone, engine-move task). The split below —
 # drivers/ (the top-level PSIOPT algorithm + NonLinearProgram),
 # model/ (the NLPProblem/NLPSolver contract + its adapter), and
 # interior/ + globalization/ under include/hven/detail/ (barrier /

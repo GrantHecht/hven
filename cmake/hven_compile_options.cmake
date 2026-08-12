@@ -1,5 +1,5 @@
 ################################################################################
-# Migrated from Tycho; flags kept identical.
+# Migrated from the origin project; flags kept identical.
 #
 # hven_compile_options()
 #
@@ -18,7 +18,7 @@
 # via PARENT_SCOPE; a macro avoids that entirely by executing directly in the
 # caller's scope, matching the behavior of the code this was extracted from.
 #
-# Migrated from tycho's cmake/tycho_compile_options.cmake -- no flag values
+# Migrated from the origin project's compile-options module -- no flag values
 # were changed by this move.
 #
 # Prerequisites the caller must set before invoking (all read from caller

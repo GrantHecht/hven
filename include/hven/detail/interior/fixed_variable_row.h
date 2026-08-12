@@ -32,6 +32,7 @@
 #include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/solver_interface_adapter.h"
 
 namespace hven::solvers {
 
@@ -192,6 +193,12 @@ struct FixedVariableRow {
         }
     }
 };
+
+// A plain value type, not an erased handle, so it is stored as itself: one
+// erasure, one virtual dispatch per solver call. Registered here, beside the
+// definition, per the placement rule in hven/solver_interface_adapter.h.
+template <>
+struct SolverInterfaceAdapter<FixedVariableRow> : DirectFunctionModel<FixedVariableRow> {};
 
 /// <summary>
 /// Builds one internal equality row pinning primal variable @p index to

@@ -3,8 +3,10 @@
 //   Apache 2.0 — see LICENSE.txt)
 //
 // General-purpose SBO container with value semantics. Replaces
-// rubber_types::TypeErasure for GenericConditional, ConstraintInterface,
-// and ObjectiveInterface. GFStorage (GenericFunction) keeps shared_ptr.
+// rubber_types::TypeErasure as the storage behind this library's erased
+// function handles — ConstraintInterface and ObjectiveInterface (see
+// detail/interior/solver_interface_specs.h) — and available to any consumer
+// handle built on the same clone_into convention below.
 //
 // Convention: the base class C must declare
 //   virtual void clone_into(TypeStorage<C, SBO_CAP>&) const = 0.
@@ -83,7 +85,7 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
             // (rejects shared_ptr), so we cannot static_assert on it.
             // NOTE: MSVC STL's checked-iterator proxy (_ITERATOR_DEBUG_LEVEL >= 1)
             // adds self-referential state to std::vector and other containers.
-            // Tycho's Release builds set /DNDEBUG (_ITERATOR_DEBUG_LEVEL=0),
+            // This project's Release builds set /DNDEBUG (_ITERATOR_DEBUG_LEVEL=0),
             // disabling the proxy entirely. Do not use TypeStorage inline storage
             // in Debug builds on MSVC without verifying relocatability.
             // If adding a new Model type here, manually verify it has no

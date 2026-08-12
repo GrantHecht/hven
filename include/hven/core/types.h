@@ -1,8 +1,7 @@
 #pragma once
 
 // Shared Eigen-based type aliases used across hven. Mirrors the shape of
-// tycho's own typedefs (psiopt/include/tycho/detail/typedefs/eigen_types.h)
-// but keeps ONLY the aliases the linear-algebra layer and its test rig need
+// the origin project's own Eigen typedefs but keeps ONLY the aliases the linear-algebra layer and its test rig need
 // right now — nothing speculative.
 
 #include <cstdint>

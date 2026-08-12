@@ -48,7 +48,7 @@
 //     Cipolla–Gondzio 1e-10 floor) and, each iteration, decays by the ladder's
 //     own decrease factor toward that floor.
 //
-// The ρ_k dynamics are a Tycho-original composition and carry NO direct
+// The ρ_k dynamics are an original composition of this engine's and carry NO direct
 // literature reference. The convex-QP proximal literature holds ρ fixed within
 // an inner solve (CG) or decreases it only per OUTER proximal step (FO); there
 // is no published always-on, per-iteration decaying-primal-shift rule for

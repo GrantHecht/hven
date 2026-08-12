@@ -154,8 +154,8 @@
 //                (Ipopt IsAcceptableToCurrentIterate against the frozen entry
 //                 = `reference`, margined exactly like the live (1a) test).
 //
-//          Ipopt's floor is Min(orig tol, orig constr_viol_tol); Tycho carries a
-//          single constraint tolerance (restoration_constraint_tol_, defaulting
+//          Ipopt's floor is Min(orig tol, orig constr_viol_tol); this engine
+//          carries a single constraint tolerance (restoration_constraint_tol_, defaulting
 //          to and matching PSIOPT::Settings::econ_tol_'s default). Because the
 //          strategy holds no SolverContext, that tolerance is injected via
 //          set_restoration_constraint_tol() — rebuild_globalization_components()
@@ -185,7 +185,7 @@
 // Cross-phase disclosure (why a stash at all — Ipopt structure, not Uno's).
 //   Uno keeps ONE filter across the optimality and feasibility phases because
 //   its objective MEASURE stays the original objective in both phases, so its
-//   (θ, φ) pairs remain mutually comparable. Tycho's proximal mode-switch
+//   (θ, φ) pairs remain mutually comparable. This engine's proximal mode-switch
 //   substitutes the PROXIMAL objective into the live objective measure during
 //   feasibility (progress.objective carries the proximal term, auxiliary the
 //   barrier term), which makes an optimality-phase (θ, φ) pair and a

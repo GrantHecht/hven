@@ -19,7 +19,7 @@ double ensure_solver_initialized() {
         hven::utils::Timer t;
         t.start();
 #ifdef USE_ACCELERATE_SPARSE
-        ensure_accelerate_initialized(TYCHO_DEFAULT_QP_THREADS);
+        ensure_accelerate_initialized(HVEN_DEFAULT_QP_THREADS);
 #else
         dsecnd();
 #endif

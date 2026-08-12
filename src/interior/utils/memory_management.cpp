@@ -18,8 +18,8 @@
 namespace hven::utils {
 
 thread_local BumpAllocator::SuperScalarStackType BumpAllocator::SuperScalarStack =
-    detail::BumpStack<hven::DefaultSuperScalar>(TYCHO_DEFAULT_ARENA_SIZE);
+    detail::BumpStack<hven::DefaultSuperScalar>(HVEN_DEFAULT_ARENA_SIZE);
 thread_local BumpAllocator::ScalarStackType BumpAllocator::ScalarStack =
-    detail::BumpStack<double>(TYCHO_DEFAULT_ARENA_SIZE);
+    detail::BumpStack<double>(HVEN_DEFAULT_ARENA_SIZE);
 
 } // namespace hven::utils

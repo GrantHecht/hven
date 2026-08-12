@@ -113,7 +113,7 @@
 //     The reference solver constructs a SEPARATE globalization-strategy instance
 //     for the feasibility phase, so the optimality funnel's width is
 //     structurally FROZEN during restoration and both the exit test and the
-//     exit re-base operate on that frozen width. Tycho drives one object across
+//     exit re-base operate on that frozen width. This engine drives one object across
 //     both phases, so the entry hook STASHES the optimality width (and re-arms
 //     the base's lazy θ₀ init) to reproduce that freeze; the exit hook restores
 //     it before re-basing.
@@ -141,8 +141,8 @@
 //          does at entry). The reference solver's FunnelMethod::
 //          notify_switch_to_feasibility body IS an empty no-op — but that no-op
 //          is correct ONLY because its optimality funnel instance is untouched
-//          by the feasibility phase (a separate instance runs there). Tycho's
-//          single-instance design would otherwise let feasibility-phase h-type
+//          by the feasibility phase (a separate instance runs there). This
+//          engine's single-instance design would otherwise let feasibility-phase h-type
 //          accepts keep tightening the very width the exit test and exit re-base
 //          consult, so it must stash to reproduce the reference's structural
 //          freeze — the stash IS the single-instance equivalent of that no-op.

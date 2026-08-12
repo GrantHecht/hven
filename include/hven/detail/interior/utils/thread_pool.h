@@ -93,7 +93,7 @@ struct DispatchContext {
         // with a misleading OOM at the dispatcher boundary.
         std::string msg;
         try {
-            msg = "[Tycho] dispatch: ";
+            msg = "[hven] dispatch: ";
             msg += std::to_string(total);
             msg += " concurrent worker exception(s):";
             for (int i = 0; i < n; ++i) {
@@ -130,7 +130,7 @@ inline bool is_pool_worker() noexcept { return detail::g_is_pool_worker; }
 // task — SBO callable wrapper (move-only, 64-byte inline buffer)
 //
 // Replaces std::function<void()> as the task unit. Zero heap allocation for
-// all Tycho dispatch closures (verified <= 64 bytes). The static_assert
+// all of this library's dispatch closures (verified <= 64 bytes). The static_assert
 // fires at compile time if a closure exceeds the buffer.
 //
 // Current largest closures (approximate, 64-bit, Clang):
@@ -231,11 +231,11 @@ class task {
 // =============================================================================
 // WorkStealingQueue — per-worker task queue
 //
-// Mutex-based work-stealing queue. Not lock-free — Tycho dispatches O(NumPartitions)
+// Mutex-based work-stealing queue. Not lock-free — this library dispatches O(NumPartitions)
 // tasks per PSIOPT iteration with ms-scale durations, so lock contention is negligible
 // vs task cost. A lock-free Chase-Lev deque would be appropriate if tasks
 // were sub-microsecond, but would add complexity for no measurable benefit
-// at Tycho's task granularity.
+// at this library's task granularity.
 //
 // Owner pushes/pops from front (LIFO — cache locality).
 // Thieves steal from back (FIFO — older tasks, reduces contention with owner's LIFO pops).
@@ -245,7 +245,8 @@ class task {
 /// @brief Per-worker mutex-based work-stealing task queue used by `ThreadPool`.
 ///
 /// Owner pushes/pops from the front (LIFO). Thief threads steal from the back (FIFO).
-/// Not lock-free: at Tycho's ms-scale task granularity, mutex overhead is negligible.
+/// Not lock-free: at this library's ms-scale task granularity, mutex overhead is
+/// negligible.
 class WorkStealingQueue {
     std::deque<task> m_deque;
     mutable std::mutex m_mutex;
@@ -331,7 +332,7 @@ class WorkStealingQueue {
 struct ThreadPoolTestAccess; // forward-declared for friend access from tests
 
 /// @internal
-/// @brief Work-stealing thread pool backing the Tycho parallel dispatch helpers.
+/// @brief Work-stealing thread pool backing this library's parallel dispatch helpers.
 ///
 /// Each worker thread has its own `WorkStealingQueue`. Tasks are enqueued
 /// round-robin; workers try their own queue first, then steal from others.
@@ -370,15 +371,15 @@ class ThreadPool {
                 detail::g_is_pool_worker = true;
 #if defined(__APPLE__)
                 char name[16];
-                std::snprintf(name, sizeof(name), "tycho-pool-%u", i);
+                std::snprintf(name, sizeof(name), "hven-pool-%u", i);
                 pthread_setname_np(name);
 #elif defined(__linux__)
                 char name[16];
-                std::snprintf(name, sizeof(name), "tycho-pool-%u", i);
+                std::snprintf(name, sizeof(name), "hven-pool-%u", i);
                 pthread_setname_np(pthread_self(), name);
 #elif defined(_WIN32)
                 wchar_t name[32];
-                swprintf(name, sizeof(name) / sizeof(wchar_t), L"tycho-pool-%u", i);
+                swprintf(name, sizeof(name) / sizeof(wchar_t), L"hven-pool-%u", i);
                 SetThreadDescription(GetCurrentThread(), name);
 #endif
                 while (true) {
@@ -393,7 +394,7 @@ class ThreadPool {
                     // Phase 2: if nothing found, block on own queue.
                     // Starvation note: a worker blocked here misses work on other
                     // queues. In practice, round-robin enqueue from a single
-                    // dispatcher (Tycho's pattern) distributes evenly, and push()
+                    // dispatcher (this library's pattern) distributes evenly, and push()
                     // wakes this worker when its queue gets work. A timed wait
                     // (try_pop_for) was tested but pthread_cond_timedwait overhead
                     // caused 13-17% PSIOPT regression vs pthread_cond_wait.
@@ -412,13 +413,13 @@ class ThreadPool {
                         f();
                     } catch (const std::exception &e) {
                         std::fprintf(
-                            stderr, "[Tycho] FATAL: unhandled exception in enqueue_work task: %s\n",
+                            stderr, "[hven] FATAL: unhandled exception in enqueue_work task: %s\n",
                             e.what());
                         std::terminate();
                     } catch (...) {
                         std::fprintf(
                             stderr,
-                            "[Tycho] FATAL: unhandled non-std::exception in enqueue_work task\n");
+                            "[hven] FATAL: unhandled non-std::exception in enqueue_work task\n");
                         std::terminate();
                     }
                     if (m_tasks_pending.fetch_sub(1, std::memory_order_release) == 1)

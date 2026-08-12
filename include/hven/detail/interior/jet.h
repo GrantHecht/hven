@@ -231,7 +231,7 @@ struct Jet {
                         } catch (const std::exception &e) {
                             if (suppressed == 0)
                                 fmt::print(stderr,
-                                           "[Tycho] Jet::map: additional job also failed: {}\n",
+                                           "[hven] Jet::map: additional job also failed: {}\n",
                                            e.what());
                             ++suppressed;
                         } catch (...) {
@@ -240,7 +240,7 @@ struct Jet {
                     }
                     if (suppressed > 1)
                         fmt::print(stderr,
-                                   "[Tycho] Jet::map: {} additional exceptions suppressed\n",
+                                   "[hven] Jet::map: {} additional exceptions suppressed\n",
                                    suppressed - 1);
                     break;
                 }

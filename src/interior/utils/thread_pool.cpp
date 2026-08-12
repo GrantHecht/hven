@@ -11,7 +11,7 @@ std::atomic<int> g_num_threads{static_cast<int>(std::max(1u, std::thread::hardwa
 /// of calling set_num_threads() concurrently with active computation.
 /// Note: there is a narrow TOCTOU window between the dispatch helper's check
 /// and the actual enqueue_work() call. Closing it fully would require a mutex
-/// on the hot path, which is unacceptable for Tycho's dispatch frequency.
+/// on the hot path, which is unacceptable at this library's dispatch frequency.
 std::atomic<bool> g_pool_configuring{false};
 
 /// Serializes concurrent set_num_threads() calls. Without this, two concurrent

@@ -28,6 +28,7 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_nlp_solver.cpp
     test_proximal_restoration.cpp
     test_recovery_dispatch_gate.cpp
+    test_solver_interface_adapter.cpp
     test_switching_acceptance.cpp
     test_watchdog.cpp
 )
@@ -58,3 +59,54 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
 endif()
 
 gtest_discover_tests(hven_interior_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+
+################################################################################
+# Compile-fail probes for the function-entry seam
+# (include/hven/solver_interface_adapter.h).
+#
+# The seam's whole point is that the wrong type entering an interface is a
+# LOUD compile error rather than a silent second virtual dispatch, so the
+# refusals are only actually tested by trying to compile them. Each probe is
+# a TU that MUST FAIL; ctest passes iff `cmake --build` returns non-zero AND
+# the build log carries that probe's expected diagnostic.
+#
+# The regexes are the authored static_assert message prefixes, which is why
+# those prefixes are distinct per route ("hven constraint adapter:" vs "hven
+# objective adapter:"): an unrelated build break, or the RIGHT probe failing
+# for the WRONG reason, then does not pass as a fake success.
+#
+# Built on every platform: these targets compile hven's headers only, and
+# what they prove -- including that a constrained partial specialization of
+# the adapter is accepted, which the positive test above covers -- has to
+# hold on all three CI frontends, not just the one that happens to be
+# convenient.
+################################################################################
+set(_hven_adapter_probes
+    unregistered_constraint
+    constraint_only_objective
+)
+foreach(_probe ${_hven_adapter_probes})
+    add_library(hven_compile_fail_${_probe} OBJECT EXCLUDE_FROM_ALL
+        compile_fail/${_probe}.cpp)
+    target_link_libraries(hven_compile_fail_${_probe} PRIVATE hven::hven)
+    # The fixture header these probes share with test_solver_interface_adapter.cpp.
+    target_include_directories(hven_compile_fail_${_probe} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_options(hven_compile_fail_${_probe} PRIVATE ${COMPILE_FLAGS})
+endforeach()
+
+add_test(NAME hven_compile_fail_unregistered_constraint
+    COMMAND ${CMAKE_COMMAND}
+        -DBINARY_DIR=${CMAKE_BINARY_DIR}
+        -DTARGET=hven_compile_fail_unregistered_constraint
+        -DCONFIG=$<CONFIG>
+        "-DEXPECTED_REGEX=hven constraint adapter:"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/compile_fail/run_build_must_fail.cmake)
+
+add_test(NAME hven_compile_fail_constraint_only_objective
+    COMMAND ${CMAKE_COMMAND}
+        -DBINARY_DIR=${CMAKE_BINARY_DIR}
+        -DTARGET=hven_compile_fail_constraint_only_objective
+        -DCONFIG=$<CONFIG>
+        "-DEXPECTED_REGEX=hven objective adapter:"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/compile_fail/run_build_must_fail.cmake)
