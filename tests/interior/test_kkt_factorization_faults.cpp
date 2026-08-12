@@ -165,7 +165,10 @@ TEST(KktFactorizationFaultTest, AccelerateFailedFactorizationZeroFillsItsEvidenc
     kkt.matrix() = fault_probe_matrix();
 
     // A successful factorization first, so the values below are demonstrably
-    // reset rather than merely never written.
+    // reset rather than merely never written. This stays inside the injector's
+    // faithful scope: compute() re-analyzes, and an analysis always starts a
+    // FRESH session, so the injected failure below is still a
+    // never-succeeded session's first factorization.
     kkt.compute();
     ASSERT_EQ(kkt.peigs(), 1);
     ASSERT_GT(kkt.factor_mem(), 0);

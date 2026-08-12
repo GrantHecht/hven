@@ -49,9 +49,17 @@
 
 namespace hven::linear::detail::testing {
 
-// Fault injection for SymmetricFactor::factorize()'s call into the MKL
-// session (see its use site in symmetric_factor_mkl.cpp for the exact
-// scope). When active, the real detail::FactorSession::factorize() call is
+// Fault injection for SymmetricFactor::factorize()'s call into the backend
+// session (BOTH backends -- see the use sites in symmetric_factor_mkl.cpp and
+// symmetric_factor_accelerate.cpp for the exact scope, which is identical on
+// each). MKL is the backend that cannot be made to fail from a fixture at all;
+// Accelerate's numeric refusal is reachable in principle on real hardware but
+// not from any input this repository's fixtures produce, and its consumer --
+// the interior-point engine's zero-filling evidence projection on a failed
+// factorization -- needs the failure to be provoked deterministically and by
+// specific status code, which only injection gives.
+//
+// When active, the real detail::FactorSession::factorize() call is
 // SKIPPED entirely and `injected_backend_code` is used in its place -- the
 // session's own internal state is therefore left completely untouched by
 // this injector, which is what keeps the injected scenario faithful: it is

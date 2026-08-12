@@ -558,7 +558,20 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
             hash, pattern_hash_));
     }
 
-    const int backend_code = session_->factorize(A);
+    int backend_code;
+#ifdef HVEN_TESTING
+    if (detail::testing::FactorizeFaultInjector::active) {
+        // See hven/detail/linear/fault_injection.h for the exact scope this is
+        // faithful within -- identical to the MKL twin's: the real backend
+        // call is SKIPPED rather than its result overridden, so the session's
+        // own state is left exactly as it was, which is only a faithful
+        // scenario on a session that has never factorized successfully.
+        backend_code = detail::testing::FactorizeFaultInjector::injected_backend_code;
+    } else
+#endif
+    {
+        backend_code = session_->factorize(A);
+    }
     ++counters_.factorize_count;
 
     FactorizeOutcome outcome;

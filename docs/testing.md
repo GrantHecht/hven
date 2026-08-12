@@ -120,7 +120,14 @@ The `notices/eigen-mpl2.txt` entry for that file records this modification too.
 `static inline` struct under `hven::linear::detail::testing`, entirely
 guarded by `#ifdef HVEN_TESTING`:
 
-- `FactorizeFaultInjector` (MKL) — `active`, `injected_backend_code`.
+- `FactorizeFaultInjector` (both backends) — `active`, `injected_backend_code`.
+  Originally MKL-only, where no fixture can provoke a numeric failure at all;
+  extended to Accelerate, where the failure is reachable in principle on real
+  hardware but not from any fixture here, and where its consumer — the
+  interior-point engine's zero-filling evidence projection on a failed
+  factorization — needs it provoked deterministically and by specific status
+  code. Same scope on both: faithful only on a session that has never
+  factorized successfully (see the declaration's own comment).
 - `AnalyzeFaultInjector` (both backends) — `active`, `injected_backend_code`.
   Faithful in every scenario: the failure is raised before the freshly built
   session replaces the live one, so a failed analysis leaves the engine
@@ -178,10 +185,10 @@ exist. `hven_fault_injection_tests` is registered with `gtest_discover_tests`
 like `hven_tests` — it is a normal, separate ctest executable, not a
 special-cased build step.
 
-## Why two different injection points, not one mechanism copy-pasted
+## Why several injection points, not one mechanism copy-pasted
 
-The two injectors are NOT interchangeable, and the difference is why each
-lives where it does:
+The injectors are NOT interchangeable, and the difference is why each lives
+where it does:
 
 - **`InertiaQueryFaultInjector` (Accelerate) is faithful in every scenario.**
   `SparseGetInertia` is a side-effect-free query against an
@@ -194,8 +201,16 @@ lives where it does:
   MPL-derived session at `factorize()` time: keeping the call site in the
   adapter is what makes it interceptable at all without touching that file.
 
-- **`FactorizeFaultInjector` (MKL) is faithful in ONE scenario only: a
-  session that has never previously factorized successfully.** The injector
+- **`AnalyzeFaultInjector` (both backends) is faithful in every scenario.**
+  The failure is raised INSTEAD of the session's symbolic call and BEFORE the
+  freshly built session replaces the live one, so a failed analysis leaves the
+  engine exactly as it was — which is precisely what `analyze()`'s own contract
+  promises on a real backend failure, and what makes the next `analyze()` an
+  ordinary one. Nothing about an existing session is touched, because nothing
+  about an existing session has been replaced yet at that point.
+
+- **`FactorizeFaultInjector` (both backends) is faithful in ONE scenario only:
+  a session that has never previously factorized successfully.** The injector
   SKIPS the real `session_->factorize(A)` call entirely rather than
   overriding its result, so the session's own `has_numerics_`/`epoch_` (both
   owned by the MPL-derived `FactorSession`, never touched by this hook) are
@@ -215,6 +230,13 @@ lives where it does:
   disclosed; the code comment at `FactorizeFaultInjector`'s declaration
   states this scope limit explicitly so a future editor does not assume more
   coverage than exists.
+
+  The scope limit is not as narrow in practice as it first reads, because
+  `analyze()` FORKS: every `analyze()` starts a fresh session. A consumer whose
+  compute path is analyze-then-factorize — the interior-point engine's is —
+  therefore reaches the injector on a never-succeeded session on every call,
+  however many successful factorizations preceded it, so a test may establish
+  real evidence first and still inject faithfully afterwards.
 
 ## A read-only variant: observing internal state instead of injecting a fault
 
