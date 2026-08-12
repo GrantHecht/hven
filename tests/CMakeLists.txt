@@ -179,7 +179,15 @@ set(HVEN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 add_executable(hven_fault_injection_tests
     ${HVEN_SRC_DIR}/core/pattern_hash.cpp
+    # The interior-point engine's KKT factorization rides the same seam: its
+    # evidence projection on a failed factorization, and its
+    # record-the-status-and-continue behavior on a failed symbolic analysis,
+    # are both backend-specific and both unreachable from any fixture. The TU
+    # depends on nothing but the linear surface's public header, so it
+    # compiles here as cheaply as it does into the library.
+    ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
     linear/test_fault_injection.cpp
+    interior/test_kkt_factorization_faults.cpp
 )
 
 if(NOT APPLE)

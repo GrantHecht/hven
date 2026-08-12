@@ -542,6 +542,18 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // session only after the backend succeeds also means a failed analysis
     // leaves this engine exactly as it was.
     auto session = std::make_shared<detail::FactorSession>(config_from(opts_), epoch());
+#ifdef HVEN_TESTING
+    // See AnalyzeFaultInjector's own doc comment (fault_injection.h) for why
+    // the symbolic phase needs an injector at all. Raised INSTEAD of the
+    // backend call and before `session_` is replaced below, so this engine is
+    // left exactly as it was -- the same guarantee a real symbolic failure
+    // carries.
+    if (detail::testing::AnalyzeFaultInjector::active) {
+        const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
+        throw std::runtime_error(fmt::format(
+            "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
+    }
+#endif
     session->analyze(A);
 
 #ifdef HVEN_TESTING

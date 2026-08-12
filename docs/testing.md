@@ -121,6 +121,15 @@ The `notices/eigen-mpl2.txt` entry for that file records this modification too.
 guarded by `#ifdef HVEN_TESTING`:
 
 - `FactorizeFaultInjector` (MKL) — `active`, `injected_backend_code`.
+- `AnalyzeFaultInjector` (both backends) — `active`, `injected_backend_code`.
+  Faithful in every scenario: the failure is raised before the freshly built
+  session replaces the live one, so a failed analysis leaves the engine
+  exactly as it was — which is what `analyze()`'s own contract promises on a
+  real backend failure. It exists because the adapters reject every
+  malformed-input case as a caller error before the backend sees it, leaving
+  the symbolic phase's own reordering/sizing failures unreachable from any
+  fixture; the consumer is the interior-point engine's
+  record-the-status-and-continue behavior on that path.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
   `last_weighted_matching_iparm`, plus the unrelated `post_pardisoinit_*`

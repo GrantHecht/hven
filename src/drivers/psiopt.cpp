@@ -196,6 +196,20 @@ void hven::solvers::PSIOPT::set_qp_params() {
             "fixes the LDLT pivot tolerance at 0.01 and exposes no override",
             settings_.accel_pivot_tolerance_));
     }
+
+    // Iterative refinement, same rule. The linear surface stores the cap on
+    // this backend but performs no refinement -- there is no native refinement
+    // on Accelerate, and the hand-rolled loop the engine's previous interface
+    // ran was deliberately not carried across. A request for refinement would
+    // therefore do nothing at all, which is exactly the silent drop the
+    // rejection above exists to prevent.
+    if (settings_.qp_ref_steps_ != 0) {
+        throw std::invalid_argument(fmt::format(
+            "PSIOPT: qp_ref_steps = {} cannot be applied -- the sparse linear surface performs no "
+            "iterative refinement on this backend, so a nonzero cap would be inert",
+            settings_.qp_ref_steps_));
+    }
+
     opts.accelerate_zero_tolerance = settings_.accel_zero_tolerance_;
 #else
     opts.weighted_matching = settings_.qp_matching_ != 0;
@@ -3353,22 +3367,37 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
     settings_.validate();
 
     // Re-apply the QP threading setting on every solve entry, not just in
-    // set_nlp() (which only runs on transcribe): a single-thread pin left on
-    // this thread by another component (Jet's per-job pin — thread-local
-    // BLASSetThreading on macOS 15+) must not silently single-thread reused
-    // solves. A solve driven through Jet::map runs jet_run() ->
-    // solve()/optimize() -> run_phase_sequence() on the pool worker thread
-    // while that pin is still in scope, and this is what makes the calling
-    // thread run at this driver's own qp_threads_ instead of inheriting
-    // whatever a previous occupant left behind.
+    // set_qp_params() (which only runs on transcribe). The two backends need
+    // this for different reasons and get different treatment.
     //
-    // There is no MKL counterpart: the factor applies its own thread count
-    // around each backend call and restores the caller's prior thread-local
-    // value afterwards, so it neither inherits a lingering pin nor needs a
-    // driver-level repair — and a repair here would silently re-point every
-    // other MKL user on this thread at this driver's thread count.
+    // On Accelerate: a single-thread pin left on this thread by another
+    // component (Jet's per-job pin — thread-local BLASSetThreading on macOS
+    // 15+) must not silently single-thread reused solves. A solve driven
+    // through Jet::map runs jet_run() -> solve()/optimize() ->
+    // run_phase_sequence() on the pool worker thread while that pin is still
+    // in scope, and this is what makes the calling thread run at this driver's
+    // own qp_threads_ instead of inheriting whatever a previous occupant left
+    // behind.
+    //
+    // On MKL: the factor applies its own thread count around each backend call
+    // and restores the caller's prior thread-local value afterwards, so there
+    // is no lingering pin to repair — and a driver-level repair would silently
+    // re-point every other MKL user on this thread at this driver's thread
+    // count. What DOES need refreshing is the count the factor itself holds:
+    // it was captured at the last configuration, so a set_qp_threads() call
+    // between transcription and this solve would otherwise not reach the
+    // backend at all. The count lives in the session the symbolic analysis
+    // lives in, so an actual change rebuilds both — which is why this is
+    // conditional on the count having moved, and why the analysis is marked
+    // stale when it has. An unchanged count (every repeat solve) costs
+    // nothing. This runs before claim_kkt_analysis() below, which is what
+    // turns the stale mark into the entry factorization's re-analysis.
 #ifdef USE_ACCELERATE_SPARSE
     accelerate_set_num_threads(settings_.qp_threads_);
+#else
+    if (this->kkt_sol_.set_num_threads(settings_.qp_threads_)) {
+        this->qp_analyzed_ = false;
+    }
 #endif
 
     // Classify the NLP's variable bounds for this solve, once, before any

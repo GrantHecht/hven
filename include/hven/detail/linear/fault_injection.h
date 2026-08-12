@@ -68,6 +68,30 @@ struct FactorizeFaultInjector {
     static inline int injected_backend_code = -99;
 };
 
+// Fault injection for SymmetricFactor::analyze()'s call into the backend
+// session's symbolic phase (BOTH backends -- see the use sites in
+// symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp). When active,
+// the real session's analyze() is SKIPPED and a failure is raised in its
+// place, exactly as a backend symbolic failure would be: the freshly built
+// session is discarded before it is committed, so this engine keeps whatever
+// state it had, which is the same guarantee analyze()'s own contract makes on
+// a real failure. Faithful in every scenario for that reason -- nothing about
+// an existing session is touched, because the failure happens before any
+// existing session is replaced.
+//
+// It exists because no matrix reaching this surface makes either backend's
+// symbolic phase fail: the adapters validate the input convention themselves
+// (compressed, square, non-empty, upper triangle, structural diagonal) and
+// reject a violation as a caller error before the backend sees it, so what is
+// left for the backend to fail on is reordering and sizing, which no fixture
+// can provoke. The consumer of this seam is the interior-point engine's
+// record-the-status-and-continue behavior on a symbolic failure, which is
+// otherwise unreachable.
+struct AnalyzeFaultInjector {
+    static inline bool active = false;
+    static inline int injected_backend_code = -3;
+};
+
 // Fault injection for SymmetricFactor::inertia()'s SparseGetInertia call
 // (Accelerate only -- see its use site in symmetric_factor_accelerate.cpp).
 // SparseGetInertia is a side-effect-free query against an already-successful

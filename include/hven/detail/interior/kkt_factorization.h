@@ -22,6 +22,13 @@
 // land in one integer -- so that swapping the backend is not also an
 // algorithm-policy change. Adopting the honest evidence shapes inside the
 // engine is a separate piece of work with its own justification.
+//
+// FIDELITY EXTENDS TO THE FAILURE PATHS, and those are BACKEND-SPECIFIC: the
+// two interfaces this replaced categorized their own backends' error codes
+// differently and left different values behind on a failed factorization, so
+// the projection has to be written per backend rather than once over a code
+// that means different things on each. The implementation splits on the sparse
+// backend for exactly that reason and for nothing else.
 
 #include <Eigen/Core>
 
@@ -53,10 +60,29 @@ class KktFactorization {
     /// lives in, so a new configuration needs a new session.
     void reconfigure(const Options &opts);
 
+    /// Point the factor at a (possibly new) thread count, so a thread setting
+    /// changed after the last reconfigure() still governs the backend calls.
+    ///
+    /// Returns true iff the count actually changed, which forces the factor to
+    /// be rebuilt and therefore DROPS the symbolic analysis -- the caller owns
+    /// arranging for the next factorization to re-analyze. An unchanged count
+    /// is a no-op and returns false, so the common path costs nothing.
+    bool set_num_threads(int num_threads);
+
+    /// The thread count the factor is currently configured with.
+    int num_threads() const { return opts_.num_threads; }
+
     /// Drop the factorization, the symbolic analysis and the assembly buffer.
     void release();
 
     /// Symbolic analysis followed by a numeric factorization.
+    ///
+    /// A backend symbolic failure does NOT propagate: it is recorded in the
+    /// reporting-only status and the call returns, leaving the object
+    /// analyzable again -- the control flow the engine has always had on that
+    /// path. A caller error (a matrix that is not compressed, not upper
+    /// triangular, or missing a structural diagonal) is a different thing and
+    /// still throws.
     void compute();
 
     /// Numeric factorization into the existing symbolic analysis. Throws if
@@ -94,16 +120,16 @@ class KktFactorization {
 
   private:
     void record(const hven::linear::FactorizeOutcome &outcome);
+
+    /// The evidence a factorization that did not produce one leaves behind.
+    /// Backend-specific: see the implementation.
+    void record_failed_factorization(const hven::linear::FactorizeOutcome &outcome);
+
     void clear_evidence();
 
     Options opts_;
     hven::linear::SymmetricFactor factor_;
     SpMatRM matrix_;
-
-    /// True once a factorization requesting the Mflop estimate has been
-    /// configured, which makes the estimate's absence a defect rather than a
-    /// backend that simply does not report one.
-    bool expect_factor_mflops_ = false;
 
     int n_pos_ = 0;
     int n_neg_ = 0;

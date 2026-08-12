@@ -554,4 +554,3 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     EXPECT_DOUBLE_EQ(captured_iq_mult, 1.0e6);
 }
-
