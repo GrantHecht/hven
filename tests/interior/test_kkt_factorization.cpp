@@ -141,28 +141,34 @@ TEST(KktFactorizationTest, ReconfigureRebuildsTheFactorAndDropsTheAnalysis) {
     EXPECT_EQ(kkt.neigs(), 1);
 }
 
-// The thread count lives in the same backend session the symbolic analysis
-// does, so changing it necessarily costs the analysis -- and NOT changing it
-// must cost nothing, since the solver refreshes this on every solve entry.
+// The thread count is applied per backend call, not baked into the symbolic
+// factorization, so the solver's refresh at every solve entry costs a store
+// and nothing else -- whether or not the count actually moved. refactorize()
+// is the observable on both: it throws when there is no analysis to
+// factorize into, so a refactorize() that succeeds is an analysis that
+// survived.
 TEST(KktFactorizationTest, SettingTheSameThreadCountKeepsTheAnalysis) {
     KktFactorization kkt(mkl_like_options());
     kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
     kkt.compute();
 
-    EXPECT_FALSE(kkt.set_num_threads(kkt.num_threads()));
+    kkt.set_num_threads(kkt.num_threads());
     EXPECT_NO_THROW(kkt.refactorize());
     EXPECT_EQ(kkt.peigs(), 1);
 }
 
-TEST(KktFactorizationTest, ChangingTheThreadCountRebuildsAndReportsTheDroppedAnalysis) {
+TEST(KktFactorizationTest, ChangingTheThreadCountKeepsTheAnalysisToo) {
     KktFactorization kkt(mkl_like_options());
     kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
     kkt.compute();
 
-    EXPECT_TRUE(kkt.set_num_threads(2));
+    kkt.set_num_threads(2);
     EXPECT_EQ(kkt.num_threads(), 2);
-    EXPECT_THROW(kkt.refactorize(), std::runtime_error);
-    EXPECT_NO_THROW(kkt.compute());
+    // No re-analysis required, and the numerics the analysis carried are
+    // still there to refactorize into.
+    EXPECT_NO_THROW(kkt.refactorize());
+    EXPECT_EQ(kkt.peigs(), 1);
+    EXPECT_EQ(kkt.neigs(), 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -213,11 +219,10 @@ struct KktConfigRejectProblem : hven::solvers::NLPProblem {
 };
 
 // A thread count changed AFTER transcription must still reach the backend at
-// the next solve. The factor holds the count in the same session the symbolic
-// analysis lives in, so the refresh at solve entry drops that analysis -- and
-// the solve has to notice, or the entry factorization asks to reuse a symbolic
-// that is no longer there. The second solve below is the one that matters: the
-// first leaves the analysis in place for it to invalidate.
+// the next solve. The refresh happens at solve entry and, since the count is
+// applied per backend call, it keeps the symbolic analysis the first solve
+// left behind -- so the second solve below (the one that matters) runs
+// against that analysis at the new width rather than paying to rebuild it.
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
     hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
     solver.optimizer_->set_print_level(10);

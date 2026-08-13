@@ -255,6 +255,44 @@ struct PardisoIparmObserver {
     static inline int factor_mflops_written_value = 0;
 };
 
+// NOT a fault injector either -- a second pure OBSERVER (MKL only), and one
+// that needs no deviation at all: it is taken at the ADAPTER BOUNDARY this
+// project prefers, in symmetric_factor_mkl.cpp, immediately before a solve
+// hands the session's own solve() the buffers, and it reads the count
+// through FactorSession's ordinary, non-test-gated config() accessor
+// (pardiso_session.h). So it observes exactly what the backend call about to
+// run will apply, at the moment it applies it.
+//
+// It exists for SymmetricFactor::set_num_threads, whose whole claim is that
+// a mid-life thread change reaches SUBSEQUENT backend calls without
+// rebuilding anything. The public API cannot show that: the count changes no
+// result (a different thread count is allowed to reassociate arithmetic, not
+// to change it), MKL exposes no query for a thread-local override in force,
+// and no accessor reports the live session's configuration. Without this,
+// the claim would rest on inspection alone.
+//
+// WHAT IT DOES NOT COVER, stated rather than implied: the last link, from
+// the session's stored count to mkl_set_num_threads_local, is a single
+// unconditional line inside the MPL-derived session file (the thread scope
+// in FactorSession::run_phase) and is not observable from the boundary. It
+// is covered instead by SymmetricFactor.
+// APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride, which
+// proves the scope engages and restores around a real backend call. Reaching
+// into the session file to close the gap end-to-end would be a deviation
+// that buys one already-covered line, so it is deliberately not taken.
+struct ThreadCountObserver {
+    static void reset() {
+        recorded = false;
+        last_applied_num_threads = -1;
+    }
+
+    // -1 rather than 0 as the unset value: 0 is a REAL count here (it means
+    // "leave the backend's own default alone"), so a zero-initialized field
+    // would be indistinguishable from an observation of it.
+    static inline bool recorded = false;
+    static inline int last_applied_num_threads = -1;
+};
+
 } // namespace hven::linear::detail::testing
 
 #endif // HVEN_TESTING

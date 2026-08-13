@@ -144,6 +144,10 @@ guarded by `#ifdef HVEN_TESTING`:
   `post_pardisoinit_factor_mflops_request_iparm`) described under "A canary
   for a design decision's backend-default premise" below. NOT a fault
   injector — see "A read-only variant" below.
+- `ThreadCountObserver` (MKL) — `recorded`, `last_applied_num_threads`. Also
+  a read-only observer rather than an injector, and the one that needs no
+  deviation at all: it is taken purely at the adapter boundary. See
+  "Observing what a backend call is about to apply" below.
 
 The header compiles to **nothing** unless `HVEN_TESTING` is defined, so
 `#include`-ing it from a normal build is provably inert — there is nothing
@@ -290,6 +294,36 @@ only this observer, is what gives the don't-write-by-default rule executable
 teeth. On the MKL currently linked, the assertion that catches it is the
 `*_was_written` one and not the value comparison, which is precisely why that
 field exists.
+
+## Observing what a backend call is about to apply
+
+`ThreadCountObserver` (MKL) is the seam's simplest use and the one that
+takes no deviation whatsoever: both of its records are made in the adapter
+(`symmetric_factor_mkl.cpp`), in the shared `run_solve` bodies, immediately
+before the session's own `solve()` is called, and both read the count
+through `FactorSession::config()` — ordinary, unconditional, non-test-gated
+session API. Only the recording is `HVEN_TESTING`-gated.
+
+It exists for `SymmetricFactor::set_num_threads`, whose contract is that a
+mid-life thread change reaches SUBSEQUENT backend calls without rebuilding
+the session or dropping the symbolic analysis. The second half of that is
+plain public-API coverage (`test_symmetric_factor.cpp`'s
+`ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics`: session id,
+epoch, analyze counter, and a working refactorize/solve after the setter).
+The first half has no public observable at all — a thread count is licensed
+to reassociate arithmetic, not to change a result; MKL exposes no query for
+the thread-local override in force; and nothing reports a live session's
+configuration — so without this it would rest on inspection.
+
+What it deliberately does NOT cover, and why that is acceptable: the final
+link, from the session's stored count to `mkl_set_num_threads_local`, is one
+unconditional line inside the MPL-derived session file (`MklThreadScope` in
+`FactorSession::run_phase`). Reaching in there would be a deviation bought
+for a line that is already covered from the outside by
+`test_symmetric_factor.cpp`'s
+`APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride`, which
+proves the scope engages and restores around a real backend call. The
+boundary carries everything else, so the boundary is where it stays.
 
 ## How to use it for a new fault path
 

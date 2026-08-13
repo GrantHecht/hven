@@ -3415,18 +3415,14 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // count. What DOES need refreshing is the count the factor itself holds:
     // it was captured at the last configuration, so a set_qp_threads() call
     // between transcription and this solve would otherwise not reach the
-    // backend at all. The count lives in the session the symbolic analysis
-    // lives in, so an actual change rebuilds both — which is why this is
-    // conditional on the count having moved, and why the analysis is marked
-    // stale when it has. An unchanged count (every repeat solve) costs
-    // nothing. This runs before claim_kkt_analysis() below, which is what
-    // turns the stale mark into the entry factorization's re-analysis.
+    // backend at all. The refresh is unconditional and costs a store: the
+    // count is applied per backend call rather than baked into the symbolic
+    // factorization, so pointing the factor at a new one keeps the analysis
+    // and the numerics and the next solve simply runs at the new width.
 #ifdef USE_ACCELERATE_SPARSE
     accelerate_set_num_threads(settings_.qp_threads_);
 #else
-    if (this->kkt_sol_.set_num_threads(settings_.qp_threads_)) {
-        this->qp_analyzed_ = false;
-    }
+    this->kkt_sol_.set_num_threads(settings_.qp_threads_);
 #endif
 
     // Classify the NLP's variable bounds for this solve, once, before any

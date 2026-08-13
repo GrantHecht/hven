@@ -209,6 +209,18 @@ pardiso_factorization_algorithm_of(std::optional<int> code) {
     }
 }
 
+// The thread-count rule, applied by the constructor to Options::num_threads
+// and again by the live setter -- one function so the two cannot drift into
+// accepting different values. `where` is the entry point the message names,
+// which is the only thing that differs between the two callers.
+void validate_num_threads(int num_threads, const char *where) {
+    if (num_threads < 0) {
+        throw std::invalid_argument(
+            fmt::format("{}: num_threads must be >= 0 (0 means the backend default), got {}", where,
+                        num_threads));
+    }
+}
+
 detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     detail::PardisoConfig cfg;
     // Real symmetric indefinite. Only kLDLT reaches here -- the constructor
@@ -322,6 +334,18 @@ FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
     return evidence;
 }
 
+#ifdef HVEN_TESTING
+// Records the thread count this session will apply to the backend call about
+// to run -- see ThreadCountObserver (fault_injection.h) for what it is for
+// and what it deliberately does not cover. A boundary read through
+// FactorSession's ordinary config() accessor; compiles to nothing outside
+// the fault-injection test target.
+void record_applied_thread_count(const detail::FactorSession &session) {
+    detail::testing::ThreadCountObserver::recorded = true;
+    detail::testing::ThreadCountObserver::last_applied_num_threads = session.config().num_threads;
+}
+#endif
+
 // Shared solve bodies: SymmetricFactor and Factorization differ in who may
 // call them, not in what they do.
 SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRef X,
@@ -356,6 +380,9 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
         target = scratch.data();
     }
 
+#ifdef HVEN_TESTING
+    record_applied_thread_count(session);
+#endif
     session.solve(rhs_buffer.data(), target, static_cast<Index>(X.cols()));
 
     if (!x_contiguous) {
@@ -383,6 +410,9 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
     }
 
     Vec rhs_buffer = rhs;
+#ifdef HVEN_TESTING
+    record_applied_thread_count(session);
+#endif
     session.solve(rhs_buffer.data(), x.data(), 1);
 
     SolveInfo info;
@@ -416,12 +446,7 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         "a backend path today",
                         kind_name(opts_.kind)));
     }
-    if (opts_.num_threads < 0) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: num_threads must be >= 0 (0 means the backend default), "
-                        "got {}",
-                        opts_.num_threads));
-    }
+    validate_num_threads(opts_.num_threads, "SymmetricFactor");
     if (opts_.pivot_perturb_exp < 0) {
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor: pivot_perturb_exp must be >= 0, got {}", opts_.pivot_perturb_exp));
@@ -532,6 +557,24 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
 SymmetricFactor::~SymmetricFactor() = default;
 SymmetricFactor::SymmetricFactor(SymmetricFactor &&) noexcept = default;
 SymmetricFactor &SymmetricFactor::operator=(SymmetricFactor &&) noexcept = default;
+
+void SymmetricFactor::set_num_threads(int num_threads) {
+    // Validated before anything moves, so a rejected count leaves this engine
+    // exactly as it was -- the same shape analyze() keeps on a failed
+    // symbolic phase.
+    validate_num_threads(num_threads, "SymmetricFactor::set_num_threads");
+
+    opts_.num_threads = num_threads;
+    if (session_) {
+        // The live session is where a backend call reads the count from, and
+        // Pardiso reads it at CALL SCOPE -- the count is not in the parameter
+        // array and the symbolic phase never saw it -- so moving it here
+        // takes effect on the next call and invalidates nothing. `opts_`
+        // above is what a LATER analyze() would build its session from, and
+        // the two must not disagree.
+        session_->set_num_threads(num_threads);
+    }
+}
 
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);

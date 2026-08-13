@@ -143,6 +143,22 @@ SymmetricFactor::Options::Ordering accelerate_ordering_of(SparseOrder_t code) {
                     static_cast<int>(code)));
 }
 
+// The thread-count rule, applied by the constructor to Options::num_threads
+// and again by the live setter -- one function so the two cannot drift into
+// accepting different values. `where` is the entry point the message names,
+// which is the only thing that differs between the two callers. The rule is
+// validated here even though this backend applies the count to nothing: an
+// argument that is invalid on the surface is invalid on every backend, and
+// silently accepting a negative one here would make the two backends
+// disagree about what the API takes.
+void validate_num_threads(int num_threads, const char *where) {
+    if (num_threads < 0) {
+        throw std::invalid_argument(
+            fmt::format("{}: num_threads must be >= 0 (0 means the backend default), got {}", where,
+                        num_threads));
+    }
+}
+
 detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     detail::AccelerateConfig cfg;
     // Only kLDLT reaches here -- the constructor rejects the kinds whose
@@ -389,12 +405,7 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         "a backend path today",
                         kind_name(opts_.kind)));
     }
-    if (opts_.num_threads < 0) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: num_threads must be >= 0 (0 means the backend default), "
-                        "got {}",
-                        opts_.num_threads));
-    }
+    validate_num_threads(opts_.num_threads, "SymmetricFactor");
     if (opts_.pivot_perturb_exp < 0) {
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor: pivot_perturb_exp must be >= 0, got {}", opts_.pivot_perturb_exp));
@@ -505,6 +516,25 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
 SymmetricFactor::~SymmetricFactor() = default;
 SymmetricFactor::SymmetricFactor(SymmetricFactor &&) noexcept = default;
 SymmetricFactor &SymmetricFactor::operator=(SymmetricFactor &&) noexcept = default;
+
+void SymmetricFactor::set_num_threads(int num_threads) {
+    // Validated before anything moves, so a rejected count leaves this engine
+    // exactly as it was -- the same rule and the same message the MKL adapter
+    // applies, because the argument's validity is a property of the surface,
+    // not of the backend behind it.
+    validate_num_threads(num_threads, "SymmetricFactor::set_num_threads");
+
+    // BEST-EFFORT-ABSENT, per Options::num_threads' own contract: this
+    // backend has no per-instance thread control, so the count is stored and
+    // applied to nothing. Storing it in BOTH places is what keeps the stored
+    // value honest -- `opts_` is what a later analyze() builds a session
+    // from, the session's copy is what adopt() round-trips back into Options
+    // -- and the two must not disagree about a value a caller has set.
+    opts_.num_threads = num_threads;
+    if (session_) {
+        session_->set_num_threads(num_threads);
+    }
+}
 
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);

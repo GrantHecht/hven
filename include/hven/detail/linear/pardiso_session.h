@@ -88,11 +88,19 @@ static_assert(sizeof(MKL_INT) == sizeof(SpMatRM::StorageIndex),
               "hven requires an LP64 MKL: MKL_INT must match Eigen's sparse StorageIndex width");
 
 // The backend knobs one session is created with. Fixed for the session's
-// lifetime: they are baked into the factorization it produces, so an engine
-// that adopts a session inherits them rather than reinterpreting them.
+// lifetime -- with the single exception noted on num_threads below: they are
+// baked into the factorization it produces, so an engine that adopts a
+// session inherits them rather than reinterpreting them.
 struct PardisoConfig {
-    int mtype = -2;               // real symmetric indefinite
-    int num_threads = 0;          // 0 = leave MKL's own default alone
+    int mtype = -2; // real symmetric indefinite
+
+    // 0 = leave MKL's own default alone. The ONE entry here that is not
+    // frozen for the session's lifetime: it is applied per backend call (the
+    // thread scope in run_phase), never written into the parameter array and
+    // never read by the symbolic phase, so FactorSession::set_num_threads
+    // moves it in place without invalidating anything. See that method.
+    int num_threads = 0;
+
     int pivot_perturb_exp = 8;    // static pivot perturbation, 10^-k
     int max_refinement_iters = 0; // full-solve iterative refinement cap
 
@@ -233,6 +241,21 @@ class FactorSession {
     void solve_partial(int phase, const double *b, double *x) const;
 
     const PardisoConfig &config() const noexcept { return cfg_; }
+
+    // Repoint the thread count this session applies to its backend calls,
+    // from the next call onward. Nothing else in the session moves: the
+    // count is applied at call scope by run_phase's thread scope, is never
+    // written into the parameter array, and is never seen by the symbolic
+    // phase -- so the analysis, the numerics, the epoch and the session id
+    // all stand. It is the only PardisoConfig entry that can be moved this
+    // way (see that struct's own note); every other one is baked into the
+    // factorization this session produced.
+    //
+    // The caller validates: SymmetricFactor::set_num_threads applies the
+    // same >= 0 rule its constructor applies to Options::num_threads before
+    // this is ever reached.
+    void set_num_threads(int num_threads) noexcept { cfg_.num_threads = num_threads; }
+
     Index dim() const noexcept { return static_cast<Index>(n_); }
 
     // True iff a numeric factorization has succeeded and has not since been

@@ -521,6 +521,51 @@ TEST(BackendDefaultPremise, MklPardisoinitLeavesScalingAndCnrAtZero) {
               << post_pardisoinit_iparm18 << " (recorded, not asserted)\n";
 }
 
+// ---------------------------------------------------------------------------
+// The live thread-count setter reaches the next backend call
+// ---------------------------------------------------------------------------
+
+using hven::linear::detail::testing::ThreadCountObserver;
+
+// SymmetricFactor::set_num_threads claims that a mid-life change reaches
+// SUBSEQUENT backend calls while the analysis, the session and the numerics
+// all stand. The second half is checkable through the public API alone (see
+// SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics in
+// tests/linear/test_symmetric_factor.cpp); the first half is not -- the count
+// changes no result and MKL exposes no query for the override in force -- so
+// it is observed at the adapter boundary, where the count the session is
+// about to apply is read through FactorSession's ordinary config() accessor
+// immediately before the solve call. See ThreadCountObserver's own doc
+// comment (fault_injection.h) for the one link this cannot see and for what
+// covers that link instead.
+TEST(ThreadCountObservation, ANewCountReachesTheNextSolveWithoutReAnalyzing) {
+    SymmetricFactor::Options opts;
+    opts.num_threads = 1;
+    SymmetricFactor factor{opts};
+    const SpMatRM A = upper_csr(spd3());
+    factor.analyze(A);
+    ASSERT_EQ(factor.factorize(A).status, FactorizeOutcome::Status::kOk);
+
+    const Vec b = Vec::Ones(A.rows());
+    Vec x(A.rows());
+
+    ThreadCountObserver::reset();
+    factor.solve(b, x);
+    ASSERT_TRUE(ThreadCountObserver::recorded);
+    EXPECT_EQ(ThreadCountObserver::last_applied_num_threads, 1)
+        << "the configured count is what the first solve applied";
+
+    factor.set_num_threads(2);
+
+    ThreadCountObserver::reset();
+    factor.solve(b, x);
+    ASSERT_TRUE(ThreadCountObserver::recorded);
+    EXPECT_EQ(ThreadCountObserver::last_applied_num_threads, 2)
+        << "the new count must reach the very next backend call, with no rebuild in between";
+    EXPECT_EQ(factor.counters().analyze_count, 1)
+        << "and must reach it without costing a symbolic analysis";
+}
+
 #endif // !defined(__APPLE__)
 
 #if defined(__APPLE__)

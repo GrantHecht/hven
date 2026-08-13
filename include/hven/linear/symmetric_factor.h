@@ -250,6 +250,13 @@ class SymmetricFactor {
         // environment setting, which would leak into every other solver in
         // the process. Best-effort-absent on backends with no thread
         // control.
+        //
+        // The ONE option on this struct that is not frozen at construction:
+        // because it is applied per backend call rather than baked into the
+        // symbolic factorization, set_num_threads() can move it mid-life
+        // without disturbing the analysis. Every other field here is fixed
+        // for the engine's lifetime and changes only by building a new
+        // engine.
         int num_threads = 0;
 
         // Static pivot perturbation exponent k: a pivot too small to use is
@@ -593,6 +600,42 @@ class SymmetricFactor {
     SymmetricFactor &operator=(const SymmetricFactor &) = delete;
     SymmetricFactor(SymmetricFactor &&) noexcept;
     SymmetricFactor &operator=(SymmetricFactor &&) noexcept;
+
+    // --- configuration ---
+
+    // Repoint this engine's thread count, effective from the NEXT backend
+    // call. Nothing else moves: the backend session, the analyzed pattern,
+    // the symbolic analysis and the current numerics all survive, so this
+    // costs no re-analysis and no refactorization.
+    //
+    // That is a statement about where the count lives, not a convenience:
+    // the thread count is applied AT CALL SCOPE (see Options::num_threads),
+    // so it was never part of the symbolic factorization in the first place.
+    // Every other option IS baked into the session the analysis lives in and
+    // therefore has no setter -- changing one means building a new engine.
+    //
+    // Throws std::invalid_argument for a negative count, the same rule the
+    // constructor applies to Options::num_threads; the engine is left
+    // untouched when it throws.
+    //
+    // SHARED SESSIONS. The count belongs to the backend session, which this
+    // engine may be co-owning with handles emitted by share() and with
+    // engines built by adopt(). A change here therefore governs every
+    // co-owner's subsequent calls on that session, which is the same
+    // one-session-between-them rule the class's THREAD SAFETY and SHARING
+    // notes already state; it also means a later share()/adopt() round trip
+    // reports the CURRENT count rather than the one the session was analyzed
+    // with. Before the first analyze() there is no session yet, and the value
+    // set here is what the next analyze() builds one with.
+    //
+    // BEST-EFFORT-ABSENT ON ACCELERATE, exactly as Options::num_threads
+    // itself is: that backend exposes no per-instance thread control, so the
+    // value is stored (keeping the Options round trip honest) and applied to
+    // nothing. The call is accepted and validated there rather than
+    // rejected -- a plain thread count is a request a backend may honestly
+    // not be able to honor, unlike Options::cnr_threads, whose reproducibility
+    // GUARANTEE that backend refuses outright rather than silently drop.
+    void set_num_threads(int num_threads);
 
     // --- lifecycle ---
 

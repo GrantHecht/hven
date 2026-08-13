@@ -60,8 +60,9 @@ namespace hven::linear::detail {
 enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 
 // The backend knobs one session is created with. Fixed for the session's
-// lifetime, mirroring PardisoConfig's role for the MKL session -- baked into
-// the factorization it produces, so an engine that adopts a session inherits
+// lifetime -- with the single exception noted on num_threads below --
+// mirroring PardisoConfig's role for the MKL session: baked into the
+// factorization it produces, so an engine that adopts a session inherits
 // them rather than reinterpreting them.
 //
 // num_threads and max_refinement_iters are stored here (so SymmetricFactor::
@@ -75,7 +76,13 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // is deliberately NOT ported here: adding an unverified numerical loop
 // without dedicated numerical validation would be a correctness risk).
 struct AccelerateConfig {
-    int num_threads = 0;          // stored only; no per-instance backend control exists
+    // Stored only; no per-instance backend control exists on this backend.
+    // Also the ONE entry here that is not frozen for the session's lifetime:
+    // FactorSession::set_num_threads moves it in place, which keeps the
+    // Options round trip honest after SymmetricFactor::set_num_threads
+    // without applying anything to a backend that has nothing to apply it to.
+    int num_threads = 0;
+
     int pivot_perturb_exp = 8;    // -> zeroTolerance, see FactorSession::factorize
     int max_refinement_iters = 0; // stored only; Accelerate reports no refinement count
 
@@ -166,6 +173,16 @@ class FactorSession {
     void solve_partial(SubfactorPhase phase, const double *b, double *x) const;
 
     const AccelerateConfig &config() const noexcept { return cfg_; }
+
+    // Repoint the stored thread count. INERT on this backend by contract --
+    // there is no per-instance thread control here for it to reach (see
+    // AccelerateConfig::num_threads) -- so this only keeps the stored value,
+    // and therefore SymmetricFactor::adopt()'s Options round trip, honest
+    // after a live SymmetricFactor::set_num_threads. Nothing about the
+    // symbolic or numeric factorization is touched, which is the same
+    // guarantee the MKL twin makes for a reason that is real there.
+    void set_num_threads(int num_threads) noexcept { cfg_.num_threads = num_threads; }
+
     Index dim() const noexcept { return static_cast<Index>(n_); }
 
     // True iff a numeric factorization has succeeded and has not since been

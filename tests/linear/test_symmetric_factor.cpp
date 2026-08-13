@@ -604,6 +604,102 @@ TEST(SymmetricFactor, APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOve
            "override, not reset the thread to MKL's global setting";
 }
 
+// The live setter's whole point: the thread count is applied at call scope,
+// so moving it mid-life costs nothing that was already computed. Everything
+// that names the current factorization -- the analysis, the session, the
+// epoch -- has to survive, and the surface's own throw contract is what makes
+// "the analysis survived" observable rather than merely asserted: factorize()
+// throws when there is no symbolic analysis to factorize into, so a
+// factorize() that succeeds after the setter had one to reuse. The analyze
+// counter says the same thing from the other side (it never moved), which is
+// the currency this suite already trades in.
+TEST(SymmetricFactor, ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics) {
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor::Options opts = default_options();
+    opts.num_threads = 1;
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+
+    const std::uint64_t session_before = factor.session_id();
+    const std::uint64_t epoch_before = factor.epoch();
+
+    factor.set_num_threads(2);
+
+    // No new session, no new numerics, no re-analysis: the setter moved a
+    // value the backend reads per call and nothing else.
+    EXPECT_EQ(factor.session_id(), session_before);
+    EXPECT_EQ(factor.epoch(), epoch_before);
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+
+    // Solving needs no re-analysis, and neither does the next numeric
+    // factorization -- which is exactly what analyze()'s absence would have
+    // made throw.
+    Vec x_after(4);
+    factor.solve(b, x_after);
+    expect_vec_near(x_after, x_exact);
+    factorize_ok(factor, A);
+    EXPECT_EQ(factor.counters().analyze_count, 1) << "the symbolic analysis survived the setter";
+    EXPECT_EQ(factor.epoch(), epoch_before + 1) << "the second factorization committed normally";
+
+    Vec x_refactorized(4);
+    factor.solve(b, x_refactorized);
+    expect_vec_near(x_refactorized, x_exact);
+}
+
+// Before there is a session, the setter still has somewhere to put the count:
+// the next analyze() builds its session from it. Observable here only as "the
+// engine works normally afterwards" -- what the count reaches once a session
+// exists is pinned at the adapter boundary instead (tests/linear/
+// test_fault_injection.cpp's ThreadCountObservation).
+TEST(SymmetricFactor, AThreadCountSetBeforeAnalyzeIsCarriedIntoTheSession) {
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor factor(default_options());
+    factor.set_num_threads(1);
+
+    factor.analyze(A);
+    factorize_ok(factor, A);
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+}
+
+// The setter takes the same argument rule the constructor does, and takes it
+// BEFORE it moves anything: a rejected count leaves a working engine working.
+TEST(SymmetricFactor, ANegativeThreadCountIsRejectedAndChangesNothing) {
+    const Mat dense = spd4();
+    const SpMatRM A = upper_csr(dense);
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+
+    SymmetricFactor::Options opts = default_options();
+    opts.num_threads = 1;
+
+    SymmetricFactor factor(opts);
+    factor.analyze(A);
+    factorize_ok(factor, A);
+
+    EXPECT_THROW(factor.set_num_threads(-1), std::invalid_argument);
+
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    Vec x(4);
+    factor.solve(b, x);
+    expect_vec_near(x, x_exact);
+}
+
 // =============================================================================
 // Ordering and weighted matching (Options::ordering, Options::
 // weighted_matching -- don't-write-by-default on this backend; weighted_matching
