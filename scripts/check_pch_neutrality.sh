@@ -295,14 +295,22 @@ fi
 expected_objects="$(python3 -c "
 import json, sys
 entries = json.load(open('${NOPCH_BUILD}/compile_commands.json'))
-# The 'output' field is only present in newer CMake's compile databases; on
-# older CMake fall back to the object path inside the command line itself.
-# This is the PCH-DISABLED build, so there is no cmake_pch wrapper entry to
-# exclude either way.
+# The compile-database spec allows three shapes: an optional 'output' field
+# (newer CMake), a 'command' string, or an 'arguments' array in place of
+# 'command'. Cover all three -- CI runners have shipped each variant. This is
+# the PCH-DISABLED build, so there is no cmake_pch wrapper entry to exclude
+# either way.
 want = '/CMakeFiles/hven.dir/'
-def is_hven(e):
-    return want in e.get('output', '') or want in e.get('command', '')
-print(sum(1 for e in entries if is_hven(e)))
+def blob(e):
+    parts = [e.get('output', ''), e.get('command', '')]
+    args = e.get('arguments')
+    if isinstance(args, list):
+        parts.append(' '.join(args))
+    return ' '.join(parts)
+n = sum(1 for e in entries if want in blob(e))
+if n == 0 and entries:
+    print('KEYS:' + ','.join(sorted(entries[0].keys())), file=sys.stderr)
+print(n)
 ")"
 if [ "${expected_objects}" -eq 0 ]; then
     echo "FAIL: could not derive the expected object count from the compile database"
