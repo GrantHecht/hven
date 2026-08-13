@@ -300,7 +300,7 @@ entries = json.load(open('${NOPCH_BUILD}/compile_commands.json'))
 # 'command'. Cover all three -- CI runners have shipped each variant. This is
 # the PCH-DISABLED build, so there is no cmake_pch wrapper entry to exclude
 # either way.
-want = '/CMakeFiles/hven.dir/'
+want = 'CMakeFiles/hven.dir/'  # no leading slash: CI emits RELATIVE paths here, local CMake absolute
 def blob(e):
     parts = [e.get('output', ''), e.get('command', '')]
     args = e.get('arguments')
