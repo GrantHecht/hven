@@ -1,6 +1,6 @@
 #pragma once
 
-// tests/support/hs_problems.h — test-support only, NOT part of the public
+// tests/sqp/support/hs_problems.h — test-support only, NOT part of the public
 // library surface. Twenty-seven problems of the Hock-Schittkowski (HS) test
 // collection, transcribed into NlpModel (nlp_model.h) form.
 //

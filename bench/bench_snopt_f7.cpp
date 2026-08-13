@@ -271,7 +271,8 @@ int main(int argc, char **argv) {
         // fail before any solve runs rather than after the expensive ones.
         F7CollocationChain model(static_cast<Index>(cfg.nodes), 3, 2, points.front(), 1.0);
 
-        std::ofstream csv = hven::solvers::bench_cli::open_output_or_throw(kUsage, "--csv", cfg.csv);
+        std::ofstream csv =
+            hven::solvers::bench_cli::open_output_or_throw(kUsage, "--csv", cfg.csv);
         csv << "solver,family,N,n,p,arm,status,iterations_major,iterations_minor,"
                "wall_seconds,x_err_inf,f_err_rel\n";
 
@@ -317,8 +318,8 @@ int main(int argc, char **argv) {
                 std::ofstream dump = hven::solvers::bench_cli::open_output_or_throw(
                     kUsage, "--dump-solution", cfg.dump_solution);
                 hven::solvers::bench_cli::write_solution_dump(dump, "F7", cfg.nodes, arm_label, p,
-                                                           r.status, r.f, x.data(),
-                                                           static_cast<std::size_t>(x.size()));
+                                                              r.status, r.f, x.data(),
+                                                              static_cast<std::size_t>(x.size()));
             }
         }
         return 0;

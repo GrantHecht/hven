@@ -1,6 +1,6 @@
 #pragma once
 
-// tests/support/nlp_kkt_check.h — test-support only, NOT part of the public
+// tests/sqp/support/nlp_kkt_check.h — test-support only, NOT part of the public
 // library surface. The IN-TEST KKT SELF-CHECK: given a model and the
 // SqpSolution a driver returned for it, recompute the whole KKT quadruple
 // FROM THE MODEL at the returned point.

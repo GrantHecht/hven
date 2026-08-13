@@ -760,7 +760,7 @@ struct SqpOptions {
     // progress existed -- none did, at any rho -- but they still ended up at
     // an ARBITRARY point among many equally optimal ones, and that choice is
     // not stable under this lever. MEASURED on the corpus this fixture's own
-    // class comes from (tests/support/hs_sweeps.h's HS15, cold arm): turning
+    // class comes from (tests/sqp/support/hs_sweeps.h's HS15, cold arm): turning
     // this lever on reshapes the TRAJECTORY -- majors 86 -> 63,
     // elastic_activations 48 -> 27, accepted/rejected 70/16 -> 49/14 --
     // because an early tie-break returning a different point propagates

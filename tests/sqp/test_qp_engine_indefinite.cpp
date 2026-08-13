@@ -13,7 +13,7 @@
 // the test itself, per mode -- never against each other.
 //
 // Task 8 generalized that into an enumerated LOCAL-MINIMIZER ORACLE
-// (tests/support/dense_oracle.h's enumerate_local_minimizers), which the last
+// (tests/sqp/support/dense_oracle.h's enumerate_local_minimizers), which the last
 // third of this file exercises: the oracle's own hand-derived self-tests, then
 // a battery -- eight hand-built indefinite QPs plus 25 randomized ones -- that
 // only requires the engine's answer to be SOME local minimizer, which is all a
@@ -1552,7 +1552,7 @@ TEST(QpEngineIndefinite, RideOnAWideBoxLpReachesTheTrueMinimizer) {
 
 // === Task 8: the local-minimizer oracle ===================================
 //
-// tests/support/dense_oracle.h's enumerate_local_minimizers() runs the SAME
+// tests/sqp/support/dense_oracle.h's enumerate_local_minimizers() runs the SAME
 // exhaustive active-set enumeration solve_dense_oracle() does, but instead of
 // returning the single lowest-objective KKT point it returns EVERY enumerated
 // KKT point whose reduced Hessian (H projected onto the null space of the

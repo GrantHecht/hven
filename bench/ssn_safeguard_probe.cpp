@@ -16,7 +16,7 @@
 // hven_sqp_f7_cold: "an uncompiled probe rots silently." Deliberately NOT
 // ctest-registered -- it is a measurement instrument whose longest documented
 // invocation runs for many minutes, not a per-commit assertion. Its fixtures
-// are tests/support/ssn_fixtures.h, the SAME file tests/test_ssn_engine.cpp
+// are tests/sqp/support/ssn_fixtures.h, the SAME file tests/test_ssn_engine.cpp
 // includes, so a fixture cannot drift between the note and the test suite.
 //
 // INVOCATIONS (from the repo root, after `cmake --build build`; this project's

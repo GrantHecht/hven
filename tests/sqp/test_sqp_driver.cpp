@@ -119,7 +119,7 @@
 using namespace hven::solvers;
 using hven::solvers::test_support::HsProblem;
 using hven::solvers::test_support::make_hs;
-// TASK 11 MOVED THESE TWO to tests/support/nlp_kkt_check.h so that the
+// TASK 11 MOVED THESE TWO to tests/sqp/support/nlp_kkt_check.h so that the
 // Hock-Schittkowski battery can run the same check on 27 problems rather than
 // keep a second copy of it. The definitions are unchanged; only their home is.
 using hven::solvers::test_support::NlpKktResidual;
@@ -5164,7 +5164,7 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
     // stops trusting a rung the full ladder would still have escalated past.
     // This is the counter-example that keeps the lever off by default; see
     // this test's own banner and sqp_types.h's note for the reading on
-    // tests/support/hs_sweeps.h's HS15, which shows the same effect on an
+    // tests/sqp/support/hs_sweeps.h's HS15, which shows the same effect on an
     // unrelated published problem.
     EXPECT_LT(on.counters.major_iters, off.counters.major_iters);
     ::testing::Test::RecordProperty(
@@ -5662,7 +5662,7 @@ TEST(SqpDriverDiagnostics, LedgerRecordsOneSqpSolveRecordPerDriverSolveAndQpReco
 // SqpDriverEvalEconomics -- Task 8: the values/derivatives split, measured.
 // =========================================================================
 //
-// THE FIXTURE: HS40 re-posed by tests/support/hs_sweeps.h's HsSweep (the
+// THE FIXTURE: HS40 re-posed by tests/sqp/support/hs_sweeps.h's HsSweep (the
 // same tilt/shift hs_sweep_spec(40) uses for the Phase-5 Task-7 corpus,
 // spec.number/tilt/ce_shift/ci_shift), POISONED by posing it at p = 2 --
 // well outside the corpus's own [p0, p1] = [0, 1] sweep range -- while
@@ -6304,7 +6304,7 @@ TEST(SqpDriverCrashBasis, SeededIngestWithNoActivityHintStillArmsTheCrashBasis) 
 namespace {
 
 // An NLP whose subproblem is EXACTLY Task 4's `indefinite_qp` fixture
-// (tests/support/ssn_fixtures.h), lifted to the driver:
+// (tests/sqp/support/ssn_fixtures.h), lifted to the driver:
 //
 //     min  1/2 x0^2 - x1^2 - c x0 + 1/4 x1     on [-1, 1]^2
 //

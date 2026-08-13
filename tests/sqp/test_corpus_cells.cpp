@@ -457,7 +457,8 @@ TEST(CorpusCellsRunner, PerQpFactorizationsMatchTheIterateHistoryExactly) {
     // caught.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::solvers::Vec::Constant(1, 0.85));
-    hven::solvers::SqpDriver driver(detail::options_for_cell(tiny_cell(StartTaxonomy::kNeutralCold)));
+    hven::solvers::SqpDriver driver(
+        detail::options_for_cell(tiny_cell(StartTaxonomy::kNeutralCold)));
     const auto sol = detail::budgeted_solve(driver, model, model.start_point());
 
     std::vector<int> expected;
@@ -654,7 +655,8 @@ TEST(CorpusCellsRunner, FirstQpForCellFiresSetupCompleteExactlyOnceOnEveryTaxono
           StartTaxonomy::kActivityOnly, StartTaxonomy::kFullWarm}) {
         SCOPED_TRACE(to_string(t));
         int calls = 0;
-        const hven::solvers::QpProblem qp = detail::first_qp_for_cell(tiny_cell(t), [&] { ++calls; });
+        const hven::solvers::QpProblem qp =
+            detail::first_qp_for_cell(tiny_cell(t), [&] { ++calls; });
         EXPECT_EQ(calls, 1);
         EXPECT_GT(qp.n(), 0);
     }

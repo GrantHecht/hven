@@ -137,7 +137,7 @@ struct SqpSolveRecord {
     // bookkeeping) -- the measurement the Phase-5 scale/benchmark work reads.
     //
     // INFORMATIONAL ONLY, EXACTLY LIKE PEAK RSS ELSEWHERE IN THIS PROJECT
-    // (tests/support/scale_problems.h's own note on its peak_rss_mib(), the
+    // (tests/sqp/support/scale_problems.h's own note on its peak_rss_mib(), the
     // same standing rule): THIS FIELD IS NEVER ASSERTED ON A SPECIFIC VALUE
     // BY ANY TEST, and no counter or regression contract may depend on it.
     // It is machine-, load-, backend- and build-type-dependent (Debug's

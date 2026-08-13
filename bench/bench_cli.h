@@ -10,7 +10,7 @@
 // never installed, and it exists only so two throwaway measurement binaries
 // share one implementation of "parse this argument or throw with the usage
 // text attached". It follows the same precedent as
-// tests/support/*.h — support code that lives next to its only consumers.
+// tests/sqp/support/*.h — support code that lives next to its only consumers.
 //
 // T6 (the project's error rule) is what the helpers exist to get right, and
 // they get it right in ONE place: every rejection throws std::invalid_argument

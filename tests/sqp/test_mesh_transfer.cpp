@@ -2,7 +2,7 @@
 // the synthetic (transcription-agnostic) map of a WarmStart between
 // discretization meshes.
 //
-// THE FIXTURE IS F6PathBoundQuadrature (tests/support/parametric_families.h),
+// THE FIXTURE IS F6PathBoundQuadrature (tests/sqp/support/parametric_families.h),
 // the quadrature discretization of
 //     min_y INTEGRAL_0^1 (cosh(y - sin(pi t)) - 1) dt  s.t.  y(t) <= p,
 // whose analytic multipliers are lambda_i = w_i * nu(t_i) with the mesh-free

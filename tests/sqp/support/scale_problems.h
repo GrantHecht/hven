@@ -1,6 +1,6 @@
 #pragma once
 
-// tests/support/scale_problems.h — test-support only, NOT part of the public
+// tests/sqp/support/scale_problems.h — test-support only, NOT part of the public
 // library surface. THE PHASE-5 SCALE GENERATOR: one parametric family, F7,
 // shaped like the workload tycho actually runs (a direct-collocation optimal
 // control transcription) and carrying a MANUFACTURED SOLUTION that is exact in
@@ -8,7 +8,7 @@
 // IPM head-to-head in Phase 5 is measured against this family, so its
 // analytic surface -- x*(p), f*(p), the multipliers, the active set and the
 // activity junctions -- is DERIVED here in full rather than asserted, in the
-// same style as tests/support/parametric_families.h's F1-F6. This header
+// same style as tests/sqp/support/parametric_families.h's F1-F6. This header
 // INCLUDES that one, for its AnalyticActiveSet encoding and its
 // parametric_detail helpers: there is no second copy of either.
 //

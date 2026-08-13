@@ -1,6 +1,6 @@
 #pragma once
 
-// tests/support/derivative_check.h — test-support only, NOT part of the
+// tests/sqp/support/derivative_check.h — test-support only, NOT part of the
 // public library surface. Central-difference verification of an NlpModel's
 // analytic derivatives against its own zeroth/first-order functions -- the
 // TRANSCRIPTION GUARD for every hand-derived Hock-Schittkowski problem in

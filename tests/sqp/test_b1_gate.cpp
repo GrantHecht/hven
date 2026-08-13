@@ -31,7 +31,7 @@
 // **THAT "NO" IS A DISJUNCTION, ROW-WISE OVER EVERY CHANNEL p ENTERS
 // THROUGH**, and it is the trap a corpus designer falls into. ONE COUPLED
 // GATE RESCUES A MODEL WHOSE INEQUALITY ROW IS OTHERWISE EXPOSED. F4 of
-// tests/support/parametric_families.h is exactly that near-miss: its cI row IS
+// tests/sqp/support/parametric_families.h is exactly that near-miss: its cI row IS
 // B-1-shaped in isolation (relaxing, stale positive price), and it survives
 // only because the same scalar a(p) simultaneously moves an equality row
 // (feasibility fires at |Delta a|) and a lower bound (the released bound gives

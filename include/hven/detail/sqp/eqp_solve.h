@@ -31,7 +31,7 @@
 // --- Sign convention ---
 //
 // The K/rhs pairing above reproduces exactly the stationarity/constraint
-// block the dense oracle solves (tests/support/dense_oracle.h), modulo the
+// block the dense oracle solves (tests/sqp/support/dense_oracle.h), modulo the
 // delta/mu regularization on the diagonal: solving [H C^T; C 0] y = [-g; d]
 // yields multipliers that satisfy grad(f) + C^T lambda = 0 DIRECTLY, with no
 // sign flip needed. Concretely:

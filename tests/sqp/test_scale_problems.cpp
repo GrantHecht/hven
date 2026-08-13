@@ -1,5 +1,5 @@
 // tests/test_scale_problems.cpp — Phase-5 Task 1: the F7 collocation-chain
-// scale generator of tests/support/scale_problems.h, held to the two gates
+// scale generator of tests/sqp/support/scale_problems.h, held to the two gates
 // tests/test_parametric_families.cpp holds F1-F6 to, plus the two Phase-5
 // additions that are the point of this family.
 //
@@ -274,7 +274,7 @@ Vec probe_direction(Index n, int seed) {
 }
 
 // peak_rss_mib() -- PHASE-5 TASK 2 moved this from a local helper here into
-// tests/support/scale_problems.h so bench/bench_scale.cpp can share the same
+// tests/sqp/support/scale_problems.h so bench/bench_scale.cpp can share the same
 // /proc/self/status parser rather than duplicating it; see that header's own
 // note for the -1 sentinel contract (unchanged) and this file's THE PEAK-RSS
 // PRINT IS INFORMATIONAL note below for how the one call site here still

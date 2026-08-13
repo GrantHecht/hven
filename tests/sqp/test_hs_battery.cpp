@@ -3,7 +3,7 @@
 // Tasks 4-10 landed (funnel trust region, second-order correction, elastic
 // tier, restoration phase, adaptive dual regularization) runs together, from
 // each problem's PUBLISHED start point, over the 27 problems
-// tests/support/hs_problems.h ships.
+// tests/sqp/support/hs_problems.h ships.
 //
 // WHAT THIS FILE ASSERTS, AND IN WHAT ORDER OF AUTHORITY:
 //

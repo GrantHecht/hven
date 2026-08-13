@@ -30,7 +30,7 @@
 //       whole reason F7 exists, and it is reported here.
 //
 // Both programs read the same F7CollocationChain from
-// tests/support/scale_problems.h and the same SqpDriver, so where their
+// tests/sqp/support/scale_problems.h and the same SqpDriver, so where their
 // configurations coincide their counters agree; the note records one such
 // cross-check (N = 150, both tolerance settings, identical 1276 minors and
 // 853/4 factorizations).

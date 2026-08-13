@@ -12,7 +12,7 @@
 // F7 carries a manufactured solution at all.
 //
 // THE REFEREE IS F7'S ANALYTIC OPTIMUM, not our solver's answer.
-// tests/support/scale_problems.h derives x*(p), f*(p), the multipliers and the
+// tests/sqp/support/scale_problems.h derives x*(p), f*(p), the multipliers and the
 // active set in closed form (its prose was NumPy-verified), so the assertion
 // below compares SNOPT against MATHEMATICS rather than against our engine.
 // That ordering matters: if this gate compared the two solvers to each other,

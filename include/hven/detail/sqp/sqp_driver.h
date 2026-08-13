@@ -338,7 +338,7 @@
 // THE DEFECT THIS REPAIRS (finding B-1,
 // docs/notes/2026-07-31-nonconvex-sweep-adjudications.md §1; confirmed
 // independently by the Task-7 review on a convex n = 3 problem of its own and
-// on tests/support/parametric_families.h's F6). A warm ingest seeds lambda_e/
+// on tests/sqp/support/parametric_families.h's F6). A warm ingest seeds lambda_e/
 // lambda_i FROM A SOLVE OF A DIFFERENT PROBLEM (solve_impl's WARM-START
 // INGEST), and the convergence test above runs at the TOP of the major loop --
 // before any subproblem of THIS solve exists. The O(||lambda_i|| ||p||)
@@ -1438,7 +1438,7 @@
 // point of, and that is what is not stable under this lever: WHICH tie-break
 // the driver acts on, not whether the ladder still had progress left. The
 // effect is not confined to this one hand-built fixture: turning the lever
-// on for tests/support/hs_sweeps.h's HS15 (cold arm) -- built from an
+// on for tests/sqp/support/hs_sweeps.h's HS15 (cold arm) -- built from an
 // unrelated published problem, not designed to exercise this -- reshapes the
 // whole solve's trajectory (majors 86 -> 63, elastic_activations 48 -> 27),
 // because an early tie-break returning a different point propagates into
@@ -3096,7 +3096,7 @@ inline QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const
 // phase minimizes, factored out as a public class so it can be tested away
 // from the driver's loop (the precedent set by qp_failure_is_retryable,
 // build_soc_subproblem and build_elastic_subproblem) -- and, in particular, so
-// that tests/support/derivative_check.h's finite-difference guards can be
+// that tests/sqp/support/derivative_check.h's finite-difference guards can be
 // pointed at it like at any other NlpModel, which is the transcription check
 // for the four derivative blocks below.
 // =============================================================================

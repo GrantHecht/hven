@@ -1,6 +1,6 @@
 #pragma once
 
-// tests/support/hs_sweeps.h — test-support only, NOT part of the public
+// tests/sqp/support/hs_sweeps.h — test-support only, NOT part of the public
 // library surface. PHASE-5 TASK 7: a NONCONVEX PARAMETRIC CORPUS, built by
 // re-posing six of hs_problems.h's Hock-Schittkowski models along a
 // one-dimensional parameter.
@@ -9,7 +9,7 @@
 // WHY THIS EXISTS, AND WHY IT IS NOT parametric_families.h
 //
 // Phase 4 shipped seven synthetic parametric families (F1-F7,
-// tests/support/parametric_families.h) with analytic solution paths, and the
+// tests/sqp/support/parametric_families.h) with analytic solution paths, and the
 // Task-13 warm-start battery measured the whole warm-start subsystem on them.
 // That corpus answered the economics questions it was built for and left TWO
 // POLICY LEVERS UNADJUDICATED, for the same underlying reason in both cases:

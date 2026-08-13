@@ -58,7 +58,7 @@
 // `cmake --build`) touches a patched header, and only in a scratch directory
 // outside the repository.
 //
-// WHAT IT MEASURES: the COLD ARM of all six `tests/support/hs_sweeps.h`
+// WHAT IT MEASURES: the COLD ARM of all six `tests/sqp/support/hs_sweeps.h`
 // corpus problems (the same vehicle `tests/test_hs_sweeps.cpp`'s
 // `run_cold_grid`/`spec_grid` use, at the same default options
 // `sweep_options(StartLevel::kCold, /*full_step=*/false, /*enable_soc=*/false,

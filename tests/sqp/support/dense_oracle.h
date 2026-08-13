@@ -1,6 +1,6 @@
 #pragma once
 
-// tests/support/dense_oracle.h — test-support only, NOT part of the public
+// tests/sqp/support/dense_oracle.h — test-support only, NOT part of the public
 // library surface. Exhaustive active-set enumeration for small QPs; exact for
 // n + mi + (number of bounded variables) <= ~14. This is the correctness
 // reference the rest of the QP engine's tests are checked against, so it

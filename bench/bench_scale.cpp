@@ -37,7 +37,7 @@
 //          (the tangential predictor, Task 9).
 //
 // ---------------------------------------------------------------------
-// THE TWO FAMILIES (tests/support/{parametric_families,scale_problems}.h):
+// THE TWO FAMILIES (tests/sqp/support/{parametric_families,scale_problems}.h):
 //
 //   F3   F3SpringChain(n, /*p_act=*/0.5, /*p0=*/0.25) swept over p: 0.25 ->
 //        0.75 -- the SAME construction and range
@@ -61,7 +61,7 @@
 //                 timed record -- the harness does not need to (and does
 //                 not) time the whole continuation call to get a per-row
 //                 number.
-//   peak_rss_mib  tests/support/scale_problems.h's peak_rss_mib() (moved
+//   peak_rss_mib  tests/sqp/support/scale_problems.h's peak_rss_mib() (moved
 //                 there from test_scale_problems.cpp by this same task so
 //                 the /proc/self/status parser is not duplicated): the
 //                 WHOLE-PROCESS high-water mark (-1 off Linux or if
@@ -179,8 +179,8 @@
 // ---------------------------------------------------------------------
 // PHASE-5 TASK 9 ADDITION -- --dump-solution, THE CROSS-SOLVER REFEREE HOOK.
 //
-// Task 9 puts this SQP engine head to head with the IPM engine (tycho's bundled
-// interior-point solver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
+// Task 9 puts this SQP engine head to head with the IPM engine (now
+// hven::solvers::InteriorPointSolver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
 // both solvers must land on x*(p) = ( y*(t_k) ; u*(t_k) )_k with
 // y*(t) = min(p(1 + sin pi t), R) e, or the comparison is between two
 // different problems. Checking that needs the CONVERGED POINT, which the CSV
@@ -272,7 +272,7 @@ constexpr const char *kUsage =
     "       hven_sqp_bench --self-check\n"
     "       hven_sqp_bench --help\n"
     "\n"
-    "  --family F3|F7   the parametric family (tests/support/{parametric_families,\n"
+    "  --family F3|F7   the parametric family (tests/sqp/support/{parametric_families,\n"
     "                   scale_problems}.h); F3: p sweeps 0.25 -> 0.75, --n is the\n"
     "                   chain length; F7: p sweeps 0.3 -> 0.9, --n is the node count.\n"
     "  --n <int>        family size (F3: chain length n >= 2; F7: node count >= 3).\n"

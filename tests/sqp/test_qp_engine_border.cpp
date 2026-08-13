@@ -600,7 +600,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     // factorized) regularized system. solve_eqp applies this same step, so
     // without it the two paths agree only to O(primal_delta) ~ 1e-8, not the
     // 1e-9 this test asserts. Shared with BorderOps.PinVariableMatchesEliminated
-    // (test_border_ops.cpp) via tests/support/border_test_utils.h.
+    // (test_border_ops.cpp) via tests/sqp/support/border_test_utils.h.
     std::vector<Vec> border_v{e0};
     std::vector<double> border_d{-opts.dual_mu};
     sol = test_support::refine_bordered_solve(full.K, qp.n(), border_v, border_d, schur, rhs, sol,

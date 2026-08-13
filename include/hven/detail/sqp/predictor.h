@@ -246,7 +246,7 @@
 // WEAKLY ACTIVE ROWS ARE KEPT, NOT DROPPED -- a deliberate decision, and the
 // one place this file's behaviour at a DEGENERATE warm start is not forced by
 // the mathematics. Where strict complementarity fails (an active constraint
-// with multiplier exactly 0 -- tests/support/parametric_families.h's F1 is
+// with multiplier exactly 0 -- tests/sqp/support/parametric_families.h's F1 is
 // such a family across its entire middle branch), the solution path is only
 // DIRECTIONALLY differentiable (Kojima): the true dx follows one of several
 // linear branches depending on which weakly-active constraints stay active,
@@ -402,7 +402,7 @@ struct PredictorOptions {
     // predictor, not a predictor-corrector). On a piecewise-affine family that
     // costs nothing, because those matrices are constant. On a CURVED family
     // it costs more the further the path runs, and the degradation is
-    // measurable: on F7 (tests/support/scale_problems.h, a collocation chain
+    // measurable: on F7 (tests/sqp/support/scale_problems.h, a collocation chain
     // whose path constraint is a ball on the state) at N = 20 nodes stepping
     // p 0.55 -> 0.75, letting the path run to its natural end leaves it having
     // DROPPED eight of the ten rows it should have kept and PINNED three

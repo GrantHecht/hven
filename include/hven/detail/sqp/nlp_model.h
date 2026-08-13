@@ -8,7 +8,7 @@
 //           l <= x <= u
 //
 // NlpModel is a pure interface. Every Hock-Schittkowski problem in
-// tests/support/hs_problems.h implements it; sqp_driver.h (Task 4) will
+// tests/sqp/support/hs_problems.h implements it; sqp_driver.h (Task 4) will
 // consume it the way qp_engine.h consumes QpProblem -- linearizing cE/cI at
 // the current iterate into a QpProblem each major iteration.
 //
@@ -38,7 +38,7 @@
 // SAME Lagrangian sign convention as the stationarity condition above
 // (+lambda_e^T cE, +lambda_i^T cI). obj_scale exists for the driver's later
 // elastic-mode/merit-function scaling (Tasks 8-9); every Task-3 caller passes
-// obj_scale = 1.0. tests/support/derivative_check.h's assert_hessian is the
+// obj_scale = 1.0. tests/sqp/support/derivative_check.h's assert_hessian is the
 // transcription guard for this composite: it finite-differences the
 // GRADIENT OF THE LAGRANGIAN (eval_grad + Je^T lambda_e + Ji^T lambda_i), not
 // just hess(f) alone, so a model that gets a constraint Hessian wrong (or
@@ -142,7 +142,7 @@ class NlpModel {
     // a DIFFERENT number: whatever this returns must be bit-identical to
     // calling eval_f(x)/eval_ce(x)/eval_ci(x) directly, the same invariant
     // eval_nlp already rests its f/ce/ci fields on. See
-    // tests/support/scale_problems.h's F7CollocationChain override for the
+    // tests/sqp/support/scale_problems.h's F7CollocationChain override for the
     // one model in this tree that exercises the override rather than the
     // default.
     virtual void eval_values(const Vec &x, double &f, Vec &cE, Vec &cI) const {
@@ -158,7 +158,7 @@ class NlpModel {
 // predictor (predictor.h) differences the model across p to build its
 // sensitivity right-hand side, and the continuation driver (continuation.h)
 // sweeps p from p0 to p1 re-solving at each step -- and the surface
-// tests/support/parametric_families.h's three synthetic families implement.
+// tests/sqp/support/parametric_families.h's three synthetic families implement.
 //
 // The parameters are MODEL STATE, not an argument threaded through every
 // eval_*: every NlpModel method above reports the model AT THE CURRENT p, so

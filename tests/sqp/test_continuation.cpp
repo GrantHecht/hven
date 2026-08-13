@@ -7,7 +7,7 @@
 // only warm ones.
 //
 // WHAT IS ASSERTED, AND WHY EACH FAMILY WAS PICKED FOR IT
-// (tests/support/parametric_families.h has the analytic paths):
+// (tests/sqp/support/parametric_families.h has the analytic paths):
 //
 //   (a) SweepF1CrossesActivationsWarm. F1, p: 0 -> 1. The sweep must reach p1,
 //       every step past the first must have RESOLVED to kWarm or above (a
@@ -977,7 +977,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
 // PHASE-6 TASK 1 -- RETRY ECONOMICS (continuation.h's RETRY ECONOMICS note).
 //
 // THE FIXTURE, and why it is this one. F7CollocationChain
-// (tests/support/scale_problems.h) at N = 100 nodes (n = 500 variables),
+// (tests/sqp/support/scale_problems.h) at N = 100 nodes (n = 500 variables),
 // swept p: 0.3 -> 0.9 with dp_init = 0.4. The FIRST proposal, 0.3 -> 0.7,
 // lands in the WIDE-WINDOW regime -- the same regime in which every one of
 // the five failed proposals of the nx = 10^5 sweep failed

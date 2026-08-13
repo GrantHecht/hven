@@ -534,7 +534,7 @@ TEST(RestorationModel, IsTheSmoothL1FeasibilityProblem) {
 }
 
 // ALL FOUR DERIVATIVE BLOCKS, against central differences -- the same
-// transcription guard every model in tests/support/hs_problems.h passes
+// transcription guard every model in tests/sqp/support/hs_problems.h passes
 // (test_nlp_model.cpp), pointed at the wrapper. This is the check that the
 // Jacobian's constant slack columns, the linear objective's gradient and the
 // obj_scale = 0 Hessian pass-through are all what the header says they are.

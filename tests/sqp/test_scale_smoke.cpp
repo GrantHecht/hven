@@ -6,7 +6,7 @@
 // convex QP at n ~ 3000, solved cold and warm, in both ws_algebra modes, with
 // SELF-CHECKED KKT residuals standing in for the dense oracle (which is
 // exponential in mi + bounded-variable count and cannot run at this size at
-// all -- see tests/support/dense_oracle.h).
+// all -- see tests/sqp/support/dense_oracle.h).
 //
 // This is deliberately also a SPIKE (per the task brief): the assertions
 // below are chosen to be ROBUST to small cross-machine/library-version
@@ -23,7 +23,7 @@
 //
 // Everything above this line is Phase-3's QP-LEVEL spike (a hand-built banded
 // QP handed straight to a QpEngine). What follows is Phase-5's DRIVER-LEVEL
-// one: whole SqpDriver cold solves of tests/support/scale_problems.h's F7
+// one: whole SqpDriver cold solves of tests/sqp/support/scale_problems.h's F7
 // collocation family, whose optimum is known in closed form at every size, so
 // these can pin CORRECTNESS at scale and not merely self-consistency.
 //
@@ -208,7 +208,7 @@ QpProblem banded_qp(Index n_blocks, Index block, unsigned seed) {
 //
 // No dense oracle exists at this size (enumerate_kkt_candidates is
 // exponential in mi + bounded-variable count; 300 general rows alone put
-// 2^mi far beyond tests/support/dense_oracle.h's own guard). Instead this
+// 2^mi far beyond tests/sqp/support/dense_oracle.h's own guard). Instead this
 // verifies the returned QpSolution is a KKT point OF ITS OWN RIGHT, reading
 // only qp_problem.h's stationarity convention (grad(f) + Ae^T lambda_e +
 // Ai^T lambda_i - z = 0, lambda_i >= 0, z >= 0 at an active lower bound,

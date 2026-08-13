@@ -61,7 +61,7 @@
 // THE MAPPING, STATED IN BOTH DIRECTIONS (fidelity is the whole point: a
 // comparison against a DIFFERENT problem is worthless).
 //
-// F7 (tests/support/scale_problems.h, nlp_model.h's sign conventions) is
+// F7 (tests/sqp/support/scale_problems.h, nlp_model.h's sign conventions) is
 //
 //     min f(x)  s.t.  cE(x) = 0,  cI(x) <= 0,  l <= x <= u,
 //

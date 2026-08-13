@@ -1,6 +1,6 @@
 #pragma once
 
-// tests/support/parametric_families.h — test-support only, NOT part of the
+// tests/sqp/support/parametric_families.h — test-support only, NOT part of the
 // public library surface. SIX SYNTHETIC PARAMETRIC FAMILIES with fully
 // ANALYTIC solution paths: the fixed test bed the rest of Phase 4's
 // parametric half is written against (the tangential predictor's O(||dp||^2)

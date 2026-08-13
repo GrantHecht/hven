@@ -45,12 +45,10 @@ option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Tes
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
 
-# bench/ and bindings/ are empty scaffolding directories today (no
-# CMakeLists.txt yet) — fail loudly rather than silently no-op if someone
-# turns the option on before the subdirectory exists.
-if(HVEN_BUILD_BENCH)
-    message(FATAL_ERROR "HVEN_BUILD_BENCH=ON but bench/ has no CMakeLists.txt yet — not yet available.")
-endif()
+# bindings/ is an empty scaffolding directory today (no CMakeLists.txt yet)
+# — fail loudly rather than silently no-op if someone turns the option on
+# before the subdirectory exists. bench/ became real at M3 (the SQP engine's
+# bench harness) and is wired in below, next to the tests.
 if(HVEN_BUILD_BINDINGS)
     message(FATAL_ERROR "HVEN_BUILD_BINDINGS=ON but bindings/ has no CMakeLists.txt yet — not yet available.")
 endif()

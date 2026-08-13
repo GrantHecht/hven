@@ -13,7 +13,7 @@
 // guarantees. They live here now, and BOTH consumers include this one file:
 // tests/test_ssn_engine.cpp (the behavioural record) and
 // bench/ssn_safeguard_probe.cpp (the note's reproduction vehicle). This is the
-// pattern bench/corpus_cells.h and tests/support/hs_sweeps.h already follow.
+// pattern bench/corpus_cells.h and tests/sqp/support/hs_sweeps.h already follow.
 //
 // Test-support only, and deliberately gtest-free so a bench target can link
 // it. Nothing here is shipped.

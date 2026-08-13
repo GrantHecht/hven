@@ -1354,7 +1354,8 @@ TEST(WarmStart, WatchdogRebaseNeverWidensTheFunnel) {
     const double h_restored = sol.history.back().violation_l1;
     ASSERT_GT(h_restored, tau_ingest)
         << "this fixture only tests the clamp while the restore lands outside the funnel";
-    EXPECT_GT((1.0 - detail::kFunnelKappa) * h_restored + detail::kFunnelKappa * tau_ingest, tau_ingest)
+    EXPECT_GT((1.0 - detail::kFunnelKappa) * h_restored + detail::kFunnelKappa * tau_ingest,
+              tau_ingest)
         << "and the unclamped update really is a widening -- stated as arithmetic, not asserted "
            "about the code";
 

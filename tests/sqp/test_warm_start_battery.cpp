@@ -29,7 +29,7 @@
 //                        Kungurtsev-Diehl rule, the OPEN QUESTION this battery
 //                        was built to answer (see FULL-STEP DECISION INPUT).
 //
-//   x FAMILIES (6)       tests/support/parametric_families.h
+//   x FAMILIES (6)       tests/sqp/support/parametric_families.h
 //     F1        n = 2   box QP, p: 0 -> 1, crosses both bound activations.
 //     F2        n = 2   disk NLP, p: 0 -> 1, crosses p* = 0.786151377757423.
 //     F2far     n = 2   THE SAME F2 with one thing changed -- start_point()
@@ -1474,7 +1474,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
 // -- the three-figure decomposition of docs/notes/2026-07-30-warm-start-
 // battery-results.md sec 2 ((a) matched-grid per-solve, (b) traversal, (c)
 // end-to-end), plus the hot arm and the pinned corpus-totals discipline --
-// on F7CollocationChain (tests/support/scale_problems.h) at N = 2000 nodes,
+// on F7CollocationChain (tests/sqp/support/scale_problems.h) at N = 2000 nodes,
 // ns = 3, nc = 2, i.e. n = N*(ns+nc) = 10000. See
 // docs/notes/2026-07-31-warm-start-at-scale.md for the full story, including
 // the n = 10^5 and wide-crossing measurements this one cell deliberately does

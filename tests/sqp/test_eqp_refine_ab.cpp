@@ -366,7 +366,7 @@ class ScaledRowModel : public NlpModel {
 // two variables before any refinement default is re-ruled. This is it.
 //
 // THE CONSTRUCTION: F7, THE COLLOCATION FAMILY, WITH ITS OBJECTIVE INFLATED.
-// tests/support/scale_problems.h's F7CollocationChain wrapped so that
+// tests/sqp/support/scale_problems.h's F7CollocationChain wrapped so that
 //
 //     f_S(x) = S * f(x),      constraints, bounds and start point UNTOUCHED.
 //

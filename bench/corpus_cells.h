@@ -9,7 +9,7 @@
 // RECIPES, NOT MATRICES (spec section 3). A CorpusCell is a deterministic
 // GENERATION SPEC -- family, node count, p-path, start taxonomy, constraint
 // window -- replayed through the committed bench generators
-// (tests/support/scale_problems.h's F7CollocationChain, the same family
+// (tests/sqp/support/scale_problems.h's F7CollocationChain, the same family
 // bench/bench_scale.cpp and bench/bench_f7_cold.cpp already drive). Nothing
 // here stores a matrix or a solved point; every cell is re-derived from the
 // family's own analytic surface and the library's ordinary solve path each
@@ -17,7 +17,7 @@
 // (tests/test_corpus_cells.cpp) meaningful rather than circular.
 //
 // THIS IS BENCH-LOCAL, NOT PART OF THE LIBRARY SURFACE -- same standing as
-// bench/bench_cli.h and tests/support/*.h: nothing in include/ or src/
+// bench/bench_cli.h and tests/sqp/support/*.h: nothing in include/ or src/
 // depends on it, and it is never installed.
 //
 // =============================================================================
@@ -231,7 +231,7 @@ struct CorpusRow {
     // =========================================================================
     //
     // Recomputed FROM THE MODEL at the returned point on EVERY row, both
-    // engines, by tests/support/nlp_kkt_check.h's `self_check_kkt` -- the same
+    // engines, by tests/sqp/support/nlp_kkt_check.h's `self_check_kkt` -- the same
     // function tests/test_hs_battery.cpp gates its 27 problems with, reused
     // rather than re-derived. Four residuals, `kkt_verdict` the ruling on them
     // (see `kkt_gate_verdict` below for the pre-registered rule and the two

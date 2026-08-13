@@ -3,7 +3,7 @@
 // WarmStart at p into a first-order-accurate WarmStart at p + dp.
 //
 // WHAT IS ASSERTED, AND WHY EACH FAMILY WAS PICKED FOR IT
-// (tests/support/parametric_families.h has the analytic paths):
+// (tests/sqp/support/parametric_families.h has the analytic paths):
 //
 //   1. ORDER OF ACCURACY (PredictorTracksSmoothPath). On F2 -- the only one of
 //      the three families whose solution path is genuinely CURVED in p -- the
@@ -920,7 +920,7 @@ TEST(Predictor, PredictorDropsAStrictlyActiveRowAcrossItsThreshold) {
 //     passing. What covers the band is F7 below: without it, a symmetric pair
 //     of nodes costs two rounds instead of one, the whole budget sweep shifts
 //     by one column, and the F7 cell's pinned minor count moves 9 -> 8.
-//   * F7 IS THE CURVED, MANY-JUNCTION CASE (tests/support/scale_problems.h),
+//   * F7 IS THE CURVED, MANY-JUNCTION CASE (tests/sqp/support/scale_problems.h),
 //     and the one where the old scheme did not merely cost minors but produced
 //     a seed the consuming solve could not converge from at all.
 // =====================================================================

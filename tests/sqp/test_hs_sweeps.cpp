@@ -2,7 +2,7 @@
 // the policy adjudications it exists to produce.
 //
 // STEP 1 (this file's first half) is the TRANSCRIPTION GUARD on
-// tests/support/hs_sweeps.h: derivative checks and pattern-invariance checks
+// tests/sqp/support/hs_sweeps.h: derivative checks and pattern-invariance checks
 // on every corpus member at several parameter values, plus the T6 contract
 // checks on set_parameters. Nothing in the second half means anything if a
 // wrapper reports a gradient its own objective does not have.
@@ -60,7 +60,7 @@
 // trap a corpus designer falls into: ONE COUPLED GATE RESCUES A MODEL WHOSE
 // INEQUALITY ROW IS OTHERWISE EXPOSED, so a family can contain a perfectly
 // B-1-shaped relaxing inequality and still be immune. F4 of
-// tests/support/parametric_families.h is exactly that near-miss -- its cI row
+// tests/sqp/support/parametric_families.h is exactly that near-miss -- its cI row
 // IS exposed in isolation, and it survives only because the same scalar a(p)
 // simultaneously moves an equality row and a bound (note §1.4). CONSEQUENCE FOR
 // ANY REGRESSION CORPUS BUILT AGAINST B-1: it must contain a problem where a
@@ -76,7 +76,7 @@
 // only, not the criterion -- see those constants' own note. The Task-7 review
 // reproduced the defect on a convex n = 3 problem of its own AND on
 // F6PathBoundQuadrature, a CONVEX family already shipped in
-// tests/support/parametric_families.h, whose p is a pure constant shift of cI.
+// tests/sqp/support/parametric_families.h, whose p is a pure constant shift of cI.
 // An earlier version of this banner and of the note scoped the defect by
 // convexity; that was wrong and is corrected in the note's §1.4.
 //
@@ -1294,7 +1294,7 @@ void check_soc_costs_what_it_costs() {
 // ---------------------------------------------------------------------
 // THE THIRD NEAR-IDENTICAL RECORDING STRATEGY IN THE TEST TREE
 // (test_sqp_driver.cpp's RecordingStrategy, test_sqp_restoration.cpp's), and
-// the Task-7 review is right that it belongs in tests/support/ (M-6). It is
+// the Task-7 review is right that it belongs in tests/sqp/support/ (M-6). It is
 // left here deliberately: hoisting it means editing two other test files, which
 // is a refactor rather than a fix and does not belong in this task's fix round.
 // Carried in the note's §5. It compiles cleanly as it stands -- all three live
