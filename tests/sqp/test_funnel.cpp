@@ -105,8 +105,8 @@ TEST(FunnelConstants, MatchKlvTableOne) {
     EXPECT_DOUBLE_EQ(kFunnelKappaBar, 1.25);  // κ̄,  Table 1 (Eq. 9)
     EXPECT_DOUBLE_EQ(kFunnelDelta, 0.999);    // δ,  Table 1 (Eq. 10)
     EXPECT_DOUBLE_EQ(kFunnelSigma, 1.0e-4);   // σ,  Table 1 (Eq. 11)
-    EXPECT_DOUBLE_EQ(kFunnelBeta, 0.99);      // β,  Table 1 (Eq. 12)
-    EXPECT_DOUBLE_EQ(kFunnelKappa, 0.5);      // κ,  Table 1 (Eq. 13)
+    EXPECT_DOUBLE_EQ(detail::kFunnelBeta, 0.99);      // β,  Table 1 (Eq. 12)
+    EXPECT_DOUBLE_EQ(detail::kFunnelKappa, 0.5);      // κ,  Table 1 (Eq. 13)
     EXPECT_DOUBLE_EQ(kFunnelFeasEps, 1.0e-6); // ε,  Sec. 5.1 (infeasible-stationary test)
 }
 
@@ -117,16 +117,16 @@ TEST(FunnelConstants, LieInTheirStatedRanges) {
     EXPECT_LT(kFunnelDelta, 1.0);
     EXPECT_GT(kFunnelSigma, 0.0); // "σ ∈ (0,1)" — Eq. (11)
     EXPECT_LT(kFunnelSigma, 1.0);
-    EXPECT_GT(kFunnelBeta, 0.0); // "β ∈ (0,1)" — Eq. (12)
-    EXPECT_LT(kFunnelBeta, 1.0);
-    EXPECT_GT(kFunnelKappa, 0.0); // "κ ∈ (0,1)" — Eq. (13)
-    EXPECT_LT(kFunnelKappa, 1.0);
+    EXPECT_GT(detail::kFunnelBeta, 0.0); // "β ∈ (0,1)" — Eq. (12)
+    EXPECT_LT(detail::kFunnelBeta, 1.0);
+    EXPECT_GT(detail::kFunnelKappa, 0.0); // "κ ∈ (0,1)" — Eq. (13)
+    EXPECT_LT(detail::kFunnelKappa, 1.0);
 }
 
 // Thm. 1, case 1: τ⁺ <= θ·τ with θ = 1 − (1−β)(1−κ) ∈ (0,1). With Table 1's
 // β = 0.99, κ = 0.5 this is θ = 1 − 0.01·0.5 = 0.995.
 TEST(FunnelConstants, TheoremOneContractionFactorIsInZeroOne) {
-    const double theta = 1.0 - (1.0 - kFunnelBeta) * (1.0 - kFunnelKappa);
+    const double theta = 1.0 - (1.0 - detail::kFunnelBeta) * (1.0 - detail::kFunnelKappa);
     EXPECT_GT(theta, 0.0);
     EXPECT_LT(theta, 1.0);
     EXPECT_DOUBLE_EQ(theta, 0.995);
@@ -220,15 +220,15 @@ TEST(FunnelHType, AcceptanceShrinksTheWidthByEquationThirteen) {
 TEST(FunnelHType, SufficientDecreaseBoundaryIsInclusive) {
     {
         FunnelStrategy s = funnel_at_1000();
-        const double on_boundary = kFunnelBeta * 1000.0;
+        const double on_boundary = detail::kFunnelBeta * 1000.0;
         EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, on_boundary, 0.0)), StepVerdict::kAcceptH);
         // (13): τ⁺ = 0.5·(β·1000) + 0.5·1000.
-        EXPECT_DOUBLE_EQ(s.width(), (1.0 - kFunnelKappa) * on_boundary + kFunnelKappa * 1000.0);
+        EXPECT_DOUBLE_EQ(s.width(), (1.0 - detail::kFunnelKappa) * on_boundary + detail::kFunnelKappa * 1000.0);
     }
     {
         FunnelStrategy s = funnel_at_1000();
         const double above =
-            std::nextafter(kFunnelBeta * 1000.0, std::numeric_limits<double>::infinity());
+            std::nextafter(detail::kFunnelBeta * 1000.0, std::numeric_limits<double>::infinity());
         // Still inside the funnel (Eq. 8 holds: above < 1000), so this is a
         // pure Eq. (12) failure, not a membership failure.
         EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, above, 0.0)), StepVerdict::kReject);
@@ -245,12 +245,12 @@ TEST(FunnelHType, SufficientDecreaseBoundaryIsInclusive) {
 // ever move off 0.5, this fails, and every Eq. (13) arithmetic assertion in
 // the suite becomes role-sensitive at the same moment.
 TEST(FunnelHType, KappaRoleIsUnobservableAtOneHalf) {
-    ASSERT_DOUBLE_EQ(kFunnelKappa, 0.5);
+    ASSERT_DOUBLE_EQ(detail::kFunnelKappa, 0.5);
 
     const double h = 123.0;
     const double tau = 456.0;
-    const double as_written = (1.0 - kFunnelKappa) * h + kFunnelKappa * tau;
-    const double role_swapped = (1.0 - kFunnelKappa) * tau + kFunnelKappa * h;
+    const double as_written = (1.0 - detail::kFunnelKappa) * h + detail::kFunnelKappa * tau;
+    const double role_swapped = (1.0 - detail::kFunnelKappa) * tau + detail::kFunnelKappa * h;
 
     EXPECT_DOUBLE_EQ(as_written, role_swapped)
         << "at κ = 0.5 Eq. (13) cannot distinguish its two arguments; if this "
@@ -322,7 +322,7 @@ TEST(FunnelFType, SwitchingAndArmijoBoundariesAreInclusive) {
         s.reset(0.0);
         const double below = std::nextafter(on_switching, -std::numeric_limits<double>::infinity());
         EXPECT_EQ(s.judge(ctx(10.0, 9.0, h, h, below)), StepVerdict::kAcceptH);
-        EXPECT_DOUBLE_EQ(s.width(), (1.0 - kFunnelKappa) * h + kFunnelKappa * 100.0);
+        EXPECT_DOUBLE_EQ(s.width(), (1.0 - detail::kFunnelKappa) * h + detail::kFunnelKappa * 100.0);
     }
     { // Δf straddling σ·Δm_f. Written with a 1% margin rather than an ulp:
         // f_old − f_new is a subtraction, so an exactly-on-the-boundary f_new
@@ -561,7 +561,7 @@ TEST(FunnelRestore, NearMissTrialIsInsideTheFunnel) {
 // moves ONLY on a kAcceptH, and each such move contracts by at least the
 // factor θ = 1 − (1−β)(1−κ) from Thm. 1 case 1.
 TEST(FunnelInvariant, WidthIsMonotoneAndContractsOnlyOnHTypeAccepts) {
-    const double theta = 1.0 - (1.0 - kFunnelBeta) * (1.0 - kFunnelKappa);
+    const double theta = 1.0 - (1.0 - detail::kFunnelBeta) * (1.0 - detail::kFunnelKappa);
 
     // A scripted mixed sequence: h-type accepts, f-type accepts, rejections
     // for each of the three reasons, and a restoration request.
@@ -589,7 +589,7 @@ TEST(FunnelInvariant, WidthIsMonotoneAndContractsOnlyOnHTypeAccepts) {
             EXPECT_LT(now, previous) << "step " << i << ": an h-type accept must shrink it";
             EXPECT_LE(now, theta * previous)
                 << "step " << i << ": Thm. 1's contraction factor was not met";
-            EXPECT_DOUBLE_EQ(now, (1.0 - kFunnelKappa) * script[i].h_new + kFunnelKappa * previous)
+            EXPECT_DOUBLE_EQ(now, (1.0 - detail::kFunnelKappa) * script[i].h_new + detail::kFunnelKappa * previous)
                 << "step " << i << ": Eq. (13) arithmetic";
         } else {
             EXPECT_DOUBLE_EQ(now, previous)
@@ -603,7 +603,7 @@ TEST(FunnelInvariant, WidthIsMonotoneAndContractsOnlyOnHTypeAccepts) {
 // The same invariant driven by a deterministic pseudo-random script, so the
 // property is exercised over many orderings rather than one hand-picked path.
 TEST(FunnelInvariant, WidthIsMonotoneOverManyScriptedSequences) {
-    const double theta = 1.0 - (1.0 - kFunnelBeta) * (1.0 - kFunnelKappa); // Thm. 1
+    const double theta = 1.0 - (1.0 - detail::kFunnelBeta) * (1.0 - detail::kFunnelKappa); // Thm. 1
     std::uint64_t seed = 0x9e3779b97f4a7c15ULL;
     auto next = [&seed]() {
         seed ^= seed << 13;
@@ -642,7 +642,7 @@ TEST(FunnelInvariant, WidthIsMonotoneOverManyScriptedSequences) {
                 EXPECT_LT(s.width(), previous);
                 EXPECT_LE(s.width(), theta * previous);
                 EXPECT_DOUBLE_EQ(s.width(),
-                                 (1.0 - kFunnelKappa) * c.h_new + kFunnelKappa * previous)
+                                 (1.0 - detail::kFunnelKappa) * c.h_new + detail::kFunnelKappa * previous)
                     << "Eq. (13) arithmetic";
             } else {
                 EXPECT_DOUBLE_EQ(s.width(), previous);
@@ -674,7 +674,7 @@ TEST(FunnelInvariant, ResetClearsState) {
 
     // And the funnel behaves like a freshly constructed one at that width.
     EXPECT_EQ(s.judge(ctx(10.0, 10.0, 1000.0, 600.0, 0.0)), StepVerdict::kAcceptH);
-    EXPECT_DOUBLE_EQ(s.width(), (1.0 - kFunnelKappa) * 600.0 + kFunnelKappa * 1250.0);
+    EXPECT_DOUBLE_EQ(s.width(), (1.0 - detail::kFunnelKappa) * 600.0 + detail::kFunnelKappa * 1250.0);
 }
 
 // =============================================================================
@@ -701,7 +701,7 @@ TEST(FunnelResume, RebasesByEqThirteenAndNotByEqNine) {
 
     // A restoration lands at h = 1e-9. Eq. (13): tau_+ = 0.5*1e-9 + 0.5*126.
     s.resume_from_restoration(1.0e-9);
-    EXPECT_DOUBLE_EQ(s.width(), (1.0 - kFunnelKappa) * 1.0e-9 + kFunnelKappa * before);
+    EXPECT_DOUBLE_EQ(s.width(), (1.0 - detail::kFunnelKappa) * 1.0e-9 + detail::kFunnelKappa * before);
     EXPECT_LT(s.width(), before) << "the width must not grow on the way back";
     // Eq. (9) would have produced max(100, 1.25e-9) = 100 here, which is a
     // DIFFERENT number and, from a tighter funnel, a wider one.

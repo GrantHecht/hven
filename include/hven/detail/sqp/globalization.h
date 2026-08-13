@@ -230,11 +230,23 @@ inline constexpr double kFunnelDelta = 0.999;
 // sigma in (0,1): the Armijo fraction of the predicted decrease (Eq. (11);
 // Table 1 = 1e-4).
 inline constexpr double kFunnelSigma = 1.0e-4;
+// beta and kappa live one level down, in detail::, unlike their five KLV
+// siblings above: the IPM engine's funnel (detail/globalization/
+// funnel_acceptance.h) already defines hven::solvers::kFunnelBeta and
+// hven::solvers::kFunnelKappa as inline constexprs WITH A DIFFERENT BETA
+// (0.9999, Uno's value, vs 0.99, KLV Table 1), so leaving these two at
+// namespace scope would be an ODR violation the linker resolves silently.
+// detail:: nesting is the sanctioned collision mechanism for the two
+// engines' internal names (M3 plan §2 -- never new top-level namespaces);
+// the five non-colliding siblings stay put so this deviation from the
+// verbatim import is exactly as large as the collision that forces it.
+namespace detail {
 // beta in (0,1): the funnel sufficient-decrease margin (Eq. (12); Table 1 = 0.99).
 inline constexpr double kFunnelBeta = 0.99;
 // kappa in (0,1): the convex-combination coefficient in the width update
 // (Eq. (13); Table 1 = 0.5).
 inline constexpr double kFunnelKappa = 0.5;
+} // namespace detail
 // epsilon: the feasibility tolerance separating a feasible point from an
 // INFEASIBLE STATIONARY one. KLV Sec. 5.1 states the two termination outcomes
 // with the same epsilon = 1e-6 -- a KKT point needs ||c(x*)|| <= eps, an
@@ -700,7 +712,7 @@ class FunnelStrategy final : public GlobalizationStrategy {
         }
 
         // h-TYPE. Eq. (12): the funnel sufficient decrease condition.
-        if (ctx.h_new <= kFunnelBeta * width_) {
+        if (ctx.h_new <= detail::kFunnelBeta * width_) {
             // Eq. (13). Written in the paper's own term order so the arithmetic
             // is the arithmetic the tests hand-derive.
             //
@@ -715,7 +727,7 @@ class FunnelStrategy final : public GlobalizationStrategy {
             // spot is recorded in the suite. Should kappa ever move off 0.5,
             // that test fails and the existing Eq. (13) arithmetic assertions
             // become role-sensitive automatically.
-            width_ = (1.0 - kFunnelKappa) * ctx.h_new + kFunnelKappa * width_;
+            width_ = (1.0 - detail::kFunnelKappa) * ctx.h_new + detail::kFunnelKappa * width_;
             return StepVerdict::kAcceptH;
         }
 
@@ -765,7 +777,7 @@ class FunnelStrategy final : public GlobalizationStrategy {
                             "point)",
                             h_restored));
         }
-        width_ = (1.0 - kFunnelKappa) * h_restored + kFunnelKappa * width_;
+        width_ = (1.0 - detail::kFunnelKappa) * h_restored + detail::kFunnelKappa * width_;
         full_step_ = false;
     }
 
