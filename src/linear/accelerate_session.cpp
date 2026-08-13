@@ -34,7 +34,7 @@ static_assert(std::is_same_v<SpMatRM::StorageIndex, int>,
 namespace {
 
 // Capture target for Accelerate's reportError callback, exactly the
-// KktSystem precedent's pattern (tycho_sqp/include/tycho_sqp/
+// KktSystem precedent's pattern (the SQP engine's
 // kkt_system_accelerate.h): a NULL callback makes Accelerate log via os_log
 // and __builtin_trap() on parameter errors, which library code must never do
 // (hven's T5/T6 rules -- CLAUDE.md Sec. 4), and printing from the callback
@@ -201,8 +201,16 @@ int FactorSession::factorize(const SpMatRM &A) {
     nopts.scalingMethod = SparseScalingDefault;
     nopts.scaling = nullptr;
     nopts.pivotTolerance = 0.01;
-    nopts.zeroTolerance = std::pow(10.0, -static_cast<double>(cfg_.pivot_perturb_exp)) *
-                          std::numeric_limits<double>::epsilon();
+    // zero_tolerance_override (Options::accelerate_zero_tolerance) bypasses
+    // the pivot_perturb_exp-derived formula entirely when present -- an
+    // explicit absolute threshold, not a further exponent to feed the
+    // formula. std::nullopt (the common case) leaves the formula as the
+    // only source for this value, unchanged from before this option
+    // existed.
+    nopts.zeroTolerance = cfg_.zero_tolerance_override.has_value()
+                              ? *cfg_.zero_tolerance_override
+                              : std::pow(10.0, -static_cast<double>(cfg_.pivot_perturb_exp)) *
+                                    std::numeric_limits<double>::epsilon();
 
     SparseMatrix_Double amat{};
     amat.structure = structure();

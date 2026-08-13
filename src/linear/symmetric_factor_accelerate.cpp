@@ -59,12 +59,11 @@ const char *kind_name(FactorKind kind) {
 // MT-METIS (multi-threaded METIS) is only declared starting in the macOS 26
 // SDK. This is an SDK-version macro -- it says the enum constant
 // SparseOrderMTMetis EXISTS at compile time, not that the RUNNING host
-// implements it -- exactly mirroring psiopt's own
-// TYCHO_HAS_MTMETIS/accelerate_supported_order guard, full predicate
-// included (`defined(__APPLE__)` guards the SDK-version macro check itself,
-// which is otherwise meaningless off Apple platforms)
-// (tycho/psiopt/include/tycho/detail/solvers/linear/accelerate_utils.h),
-// which this block deliberately follows.
+// implements it -- exactly mirroring the legacy interior-point engine's own has-MT-METIS /
+// accelerate_supported_order guard, full predicate included
+// (`defined(__APPLE__)` guards the SDK-version macro check itself, which is
+// otherwise meaningless off Apple platforms), which this block deliberately
+// follows.
 #if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&                               \
     __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 #define HVEN_HAS_MTMETIS 1
@@ -73,7 +72,7 @@ const char *kind_name(FactorKind kind) {
 #ifdef HVEN_HAS_MTMETIS
 // Downgrades SparseOrderMTMetis to SparseOrderMetis at RUNTIME on a host
 // that lacks it (macOS < 26): passing SparseOrderMTMetis unconditionally
-// there raises SparseParameterError and a dead solver, per the psiopt
+// there raises SparseParameterError and a dead solver, per the legacy interior-point engine
 // precedent this mirrors. Every other order passes through unchanged.
 SparseOrder_t accelerate_supported_order(SparseOrder_t order) {
     if (order != SparseOrderMTMetis) {
@@ -153,6 +152,15 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
     cfg.max_refinement_iters = opts.max_refinement_iters;
     cfg.ordering = accelerate_ordering_code(opts.ordering);
+    // matrix_scaling, pivot_strategy, factorization_algorithm,
+    // solve_parallelism, cnr_threads and collect_factor_mflops are all
+    // Pardiso-only -- the constructor below throws before construction
+    // succeeds on any non-default value, so AccelerateConfig carries no
+    // fields for them at all, matching weighted_matching's existing
+    // precedent. factor_size_bytes similarly needs no config field at all:
+    // it is always collected (see FactorSession::factor_size_bytes()'s own
+    // doc comment), with nothing to gate.
+    cfg.zero_tolerance_override = opts.accelerate_zero_tolerance;
     return cfg;
 }
 
@@ -258,6 +266,24 @@ InertiaEvidence evidence_of(const detail::FactorSession &session) {
     evidence.n_zero = n_zero;
     evidence.zero_is_derived = false; // native 3-way report, not derived by subtraction
     evidence.perturbed_pivots = std::nullopt;
+    return evidence;
+}
+
+// Builds the factor-size evidence for a session's current factorization.
+// Called only from factorize()'s success branch -- see FactorEvidence's own
+// doc comment (symmetric_factor.h) for why this evidence lives on
+// FactorizeOutcome rather than being recomputed per solve.
+//
+// The Accelerate column of the FactorEvidence semantics table, in code:
+// factor_size_bytes is UNCONDITIONAL -- Accelerate computes it as part of
+// the symbolic factorization regardless of any hven option, so there is no
+// gate to check (see FactorSession::factor_size_bytes()'s own doc
+// comment); factor_nonzeros/factor_mflops stay std::nullopt
+// unconditionally on this backend, which reports a byte size instead,
+// never an entry count, and reports no cost estimate at all.
+FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
+    FactorEvidence evidence;
+    evidence.factor_size_bytes = static_cast<Index>(session.factor_size_bytes());
     return evidence;
 }
 
@@ -378,6 +404,11 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             fmt::format("SymmetricFactor: max_refinement_iters must be >= 0, got {}",
                         opts_.max_refinement_iters));
     }
+    if (opts_.cnr_threads < 0) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: cnr_threads must be >= 0 (0 means CNR mode is off), got {}",
+            opts_.cnr_threads));
+    }
 
     // weighted_matching is a Pardiso-only concept (it configures iparm[12],
     // which has no Accelerate analogue -- Apple's own matching precedent,
@@ -399,6 +430,76 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             "equivalent -- requires false on this backend, got true",
             kBackendName));
     }
+
+    // matrix_scaling: same judgment as weighted_matching, and for the same
+    // reason (see Options::matrix_scaling's own doc comment) -- iparm[10]'s
+    // MPS scaling is computed FROM the weighted-matching permutation, so a
+    // backend with no matching has no scaling to pair it with either.
+    if (opts_.matrix_scaling) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::matrix_scaling is a Pardiso-only option and has no {} "
+            "equivalent -- requires false on this backend, got true",
+            kBackendName));
+    }
+    // pivot_strategy: Pardiso-only -- Accelerate's LDLTTPP factorization has
+    // a fixed pivoting scheme with no per-call selector.
+    if (opts_.pivot_strategy != Options::PivotStrategy::kBackendDefault) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: Options::pivot_strategy is a Pardiso-only option and has "
+                        "no {} equivalent -- requires kBackendDefault on this backend",
+                        kBackendName));
+    }
+    // factorization_algorithm: Pardiso-only -- Accelerate has no two-level
+    // factorization concept.
+    if (opts_.factorization_algorithm != Options::FactorizationAlgorithm::kBackendDefault) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::factorization_algorithm is a Pardiso-only option and has no "
+            "{} equivalent -- requires kBackendDefault on this backend",
+            kBackendName));
+    }
+    // solve_parallelism: Pardiso-only -- Accelerate has no per-instance
+    // thread control for this to parallelize a solve with.
+    if (opts_.solve_parallelism != Options::SolveParallelism::kBackendDefault) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::solve_parallelism is a Pardiso-only option and has no {} "
+            "equivalent -- requires kBackendDefault on this backend",
+            kBackendName));
+    }
+    // cnr_threads: Pardiso-only -- Accelerate has no CNR reproducibility
+    // concept, and this is a guarantee a silent no-op would misrepresent
+    // (see the option's own doc comment).
+    if (opts_.cnr_threads > 0) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: Options::cnr_threads is a Pardiso-only option and has no {} "
+            "equivalent -- requires 0 on this backend, got {}",
+            kBackendName, opts_.cnr_threads));
+    }
+    // collect_factor_mflops: Pardiso-only -- Accelerate reports no
+    // factorization-cost estimate under any configuration (see
+    // FactorEvidence::factor_mflops's own doc comment), so `true` would
+    // otherwise be silently ignored -- the same situation the other
+    // Pardiso-only throws above exist to prevent. factor_nonzeros'
+    // Accelerate counterpart, factor_size_bytes, needs no such throw: it is
+    // always collected on this backend, with no option to silently ignore.
+    if (opts_.collect_factor_mflops) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: Options::collect_factor_mflops is a Pardiso-only option "
+                        "and has no {} "
+                        "equivalent -- requires false on this backend, got true",
+                        kBackendName));
+    }
+
+    // accelerate_zero_tolerance is this backend's own knob (checked for
+    // validity here, symmetrically with how MKL's own throw for it lives in
+    // its own adapter file's constructor).
+    if (opts_.accelerate_zero_tolerance.has_value()) {
+        const double value = *opts_.accelerate_zero_tolerance;
+        if (!(value > 0.0) || !std::isfinite(value)) {
+            throw std::invalid_argument(fmt::format(
+                "SymmetricFactor: accelerate_zero_tolerance must be finite and > 0, got {}",
+                value));
+        }
+    }
 }
 
 SymmetricFactor::~SymmetricFactor() = default;
@@ -413,6 +514,18 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // disturbed by a re-analysis here, and a failed analysis leaves this
     // engine exactly as it was.
     auto session = std::make_shared<detail::FactorSession>(config_from(opts_), epoch());
+#ifdef HVEN_TESTING
+    // See AnalyzeFaultInjector's own doc comment (fault_injection.h) for why
+    // the symbolic phase needs an injector at all. Raised INSTEAD of the
+    // backend call and before `session_` is replaced below, so this engine is
+    // left exactly as it was -- the same guarantee a real symbolic failure
+    // carries.
+    if (detail::testing::AnalyzeFaultInjector::active) {
+        const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
+        throw std::runtime_error(fmt::format(
+            "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
+    }
+#endif
     session->analyze(A);
 
     session_ = std::move(session);
@@ -444,7 +557,20 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
             hash, pattern_hash_));
     }
 
-    const int backend_code = session_->factorize(A);
+    int backend_code;
+#ifdef HVEN_TESTING
+    if (detail::testing::FactorizeFaultInjector::active) {
+        // See hven/detail/linear/fault_injection.h for the exact scope this is
+        // faithful within -- identical to the MKL twin's: the real backend
+        // call is SKIPPED rather than its result overridden, so the session's
+        // own state is left exactly as it was, which is only a faithful
+        // scenario on a session that has never factorized successfully.
+        backend_code = detail::testing::FactorizeFaultInjector::injected_backend_code;
+    } else
+#endif
+    {
+        backend_code = session_->factorize(A);
+    }
     ++counters_.factorize_count;
 
     FactorizeOutcome outcome;
@@ -452,6 +578,7 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
     if (backend_code == 0) {
         outcome.status = FactorizeOutcome::Status::kOk;
         outcome.inertia = evidence_of(*session_);
+        outcome.factor = factor_evidence_of(*session_);
         // This engine has now produced numerics of its own, which retires
         // any staleness inherited from an adopted handle.
         numerics_refused_ = false;
@@ -466,8 +593,8 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
         //
         // UNLIKE the MKL adapter's identical branch, this one is not known
         // to be unreachable by ordinary fixtures: Accelerate is documented
-        // (and was measured on real hardware by the tycho_sqp audit,
-        // 2026-07-29-accelerate-audit-results.md) to genuinely refuse a
+        // (and was measured on real hardware by the SQP engine's
+        // 2026-07-29 Accelerate audit) to genuinely refuse a
         // numeric factorization on some singular/indefinite input rather
         // than perturbing through it. Native macOS CI now runs this backend,
         // but no contract test pins a particular fixture to this nonzero-status
@@ -563,6 +690,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
     opts.max_refinement_iters = cfg.max_refinement_iters;
     opts.ordering = accelerate_ordering_of(cfg.ordering);
+    opts.accelerate_zero_tolerance = cfg.zero_tolerance_override;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;

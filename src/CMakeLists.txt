@@ -35,3 +35,44 @@ else()
         linear/symmetric_factor_accelerate.cpp
     )
 endif()
+
+################################################################################
+# Interior-point engine (ex-PSIOPT) — migrated as-is from the standalone
+# psiopt/ project the origin project previously hosted (hven M2
+# milestone, engine-move task). The split below —
+# drivers/ (the top-level InteriorPointSolver algorithm + NonLinearProgram),
+# model/ (the NLPProblem/NLPSolver contract + its adapter), and
+# interior/ + globalization/ under include/hven/detail/ (barrier /
+# interior-point machinery) — mirrors psiopt's own internal grouping: a
+# path map onto hven's directory conventions, not a reorganization. See
+# docs/dev notes for the migration's file-by-file record.
+################################################################################
+
+target_sources(hven PRIVATE
+    drivers/interior_point_solver.cpp
+    drivers/interior_point_solver_globalization.cpp
+    drivers/interior_point_solver_print.cpp
+    drivers/interior_point_solver_settings.cpp
+    drivers/solver_init.cpp
+    drivers/non_linear_program.cpp
+    model/nlp_adapter.cpp
+    model/nlp_solver.cpp
+    interior/kkt_factorization.cpp
+    interior/utils/color_text.cpp
+    interior/utils/get_core_count.cpp
+    interior/utils/memory_management.cpp
+    interior/utils/thread_pool.cpp
+)
+# interior/utils/fmtlib.cpp is NOT compiled here: it is a bare
+# `#include "fmtlib.h"` with no definitions of its own, and psiopt's own
+# utility library target (psiopt/CMakeLists.txt) never compiled it either
+# -- restoring that omission here restores original target membership.
+# fmtlib.h/.cpp still moved with the rest of src/utils/ (see
+# src/interior/utils/); only its compilation into hven is skipped.
+
+# color_text.h / fmtlib.h are private headers the driver TUs above include
+# unqualified (#include "color_text.h"), exactly as psiopt/CMakeLists.txt's
+# own PRIVATE include-dir setup (src/ + src/utils/) made possible there.
+target_include_directories(hven PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/interior/utils
+)

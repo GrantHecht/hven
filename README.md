@@ -16,9 +16,10 @@ The primary consumer is [tycho](https://github.com/GrantHecht/tycho),
 a trajectory design and optimal control library. hven builds
 standalone with CMake and requires Intel MKL (Linux/Windows) or Apple
 Accelerate (macOS) as its sparse linear algebra backend. It is consumed
-today by `add_subdirectory` plus the `hven::hven` target; install/export
-rules and a CMake package config arrive with a later milestone, so
-`find_package(hven)` does not work yet.
+either by `add_subdirectory` plus the `hven::hven` target, or as an
+installed CMake package via `find_package(hven)` +
+`target_link_libraries(app hven::hven)` (see
+`scripts/check_install_smoke.sh`).
 
 The name: Hven is the island where Tycho Brahe built his observatories
 — the ground both his instruments stood on.

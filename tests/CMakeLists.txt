@@ -149,13 +149,15 @@ gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 # adapter TU (symmetric_factor_mkl.cpp / symmetric_factor_accelerate.cpp) a
 # SECOND time, with HVEN_TESTING defined ONLY on that second copy's compile.
 #
-# The MKL session TU carries exactly ONE HVEN_TESTING-gated record -- two
-# lines at the guarded parameter-array writes in analyze(), recording whether
-# each write executed, which nothing outside that function can observe. It is
-# the single sanctioned deviation from this repo's boundary-first
-# instrumentation preference and is argued in docs/testing.md; it compiles to
-# nothing here, which the same not-linking-hven::hven arrangement below makes
-# checkable. This target does NOT link hven::hven:
+# The MKL session TU carries TWO HVEN_TESTING-gated records -- the guarded
+# parameter-array writes in analyze() (recording whether each write executed,
+# which nothing outside that function can observe), and a separate
+# post-pardisoinit snapshot of iparm[10]/iparm[33]/iparm[18] taken before
+# those same entries can be touched by that function's own phase-11 call.
+# Both are sanctioned deviations from this repo's boundary-first
+# instrumentation preference and are argued in docs/testing.md; they compile
+# to nothing here, which the same not-linking-hven::hven arrangement below
+# makes checkable. This target does NOT link hven::hven:
 #   - it is what keeps the production `hven` library's own compiled adapter
 #     object (and hven_tests, which links it) completely untouched by
 #     HVEN_TESTING -- byte-for-byte what it would be if this target and
@@ -177,7 +179,15 @@ set(HVEN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 
 add_executable(hven_fault_injection_tests
     ${HVEN_SRC_DIR}/core/pattern_hash.cpp
+    # The interior-point engine's KKT factorization rides the same seam: its
+    # evidence projection on a failed factorization, and its
+    # record-the-status-and-continue behavior on a failed symbolic analysis,
+    # are both backend-specific and both unreachable from any fixture. The TU
+    # depends on nothing but the linear surface's public header, so it
+    # compiles here as cheaply as it does into the library.
+    ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
     linear/test_fault_injection.cpp
+    interior/test_kkt_factorization_faults.cpp
 )
 
 if(NOT APPLE)
@@ -224,3 +234,11 @@ gtest_discover_tests(hven_fault_injection_tests DISCOVERY_MODE ${HVEN_GTEST_DISC
 ################################################################################
 
 add_subdirectory(golden_rig)
+
+################################################################################
+# The interior-point engine (ex-PSIOPT) test suite, migrated in from
+# psiopt/tests/ (hven M2 milestone, engine-move task). See
+# tests/interior/CMakeLists.txt.
+################################################################################
+
+add_subdirectory(interior)

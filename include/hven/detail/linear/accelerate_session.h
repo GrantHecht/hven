@@ -13,13 +13,13 @@
 // matrix's stored entries. That module reached hven by way of two
 // downstream, Mac-hardware-verified ports: the interior-point engine's own
 // Eigen-derived Accelerate interface
-// (psiopt/include/tycho/detail/solvers/linear/accelerate_interface.h +
-// accelerate_utils.h) and the SQP engine's audited KktSystem port
-// (tycho_sqp/include/tycho_sqp/kkt_system_accelerate.h) -- this file follows
+// (the interior-point project's accelerate_interface.h + accelerate_utils.h)
+// and the SQP engine's audited KktSystem port (its
+// kkt_system_accelerate.h) -- this file follows
 // the SECOND of those two most closely: its simpler, implicit-workspace
 // SparseFactor/SparseSolve call shapes (no caller-managed aligned buffers)
 // are the ones that have actually run against real Accelerate on real Mac
-// hardware, per tycho_sqp/docs/notes/2026-07-29-accelerate-audit-results.md.
+// hardware, per the SQP engine's 2026-07-29 Accelerate audit results.
 // This file now compiles and executes against the real Accelerate framework
 // on every macOS CI run. The Linux stub lane remains a narrower structural
 // check; see docs/testing.md for its exact claim ceiling.
@@ -38,6 +38,7 @@
 // =============================================================================
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include <Accelerate/Accelerate.h>
@@ -69,7 +70,8 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // records that control as best-effort-absent on this backend rather than
 // fabricating one -- and no
 // native iterative-refinement counter this session can honestly report (a
-// hand-rolled refinement loop, as tycho's AccelerateImpl implements via vDSP,
+// hand-rolled refinement loop, as the origin project's AccelerateImpl
+// implements via vDSP,
 // is deliberately NOT ported here: adding an unverified numerical loop
 // without dedicated numerical validation would be a correctness risk).
 struct AccelerateConfig {
@@ -88,6 +90,13 @@ struct AccelerateConfig {
     // value through to SparseSymbolicFactorOptions::orderMethod. Defaults to
     // SparseOrderDefault, matching Options::Ordering::kBackendDefault.
     SparseOrder_t ordering = SparseOrderDefault;
+
+    // An explicit override for zeroTolerance, bypassing the
+    // pivot_perturb_exp-derived formula above entirely when present.
+    // std::nullopt (default) means "use that formula" -- the only state
+    // this field takes at Options::accelerate_zero_tolerance == std::nullopt.
+    // See that option's own doc comment.
+    std::optional<double> zero_tolerance_override;
 };
 
 // One Accelerate factorization session: the symbolic/numeric factorization
@@ -131,7 +140,7 @@ class FactorSession {
     // count. Throws std::invalid_argument if it does not.
     //
     // UNLIKE Pardiso, Accelerate is documented (and was measured on real
-    // hardware by the tycho_sqp audit) to genuinely REFUSE a numeric
+    // hardware by the SQP engine's audit) to genuinely REFUSE a numeric
     // factorization on singular/indefinite-beyond-repair input
     // (SparseMatrixIsSingular / SparseFactorizationFailed) rather than
     // perturbing through it -- so this path, unlike the MKL twin's, is not
@@ -188,6 +197,17 @@ class FactorSession {
     // true.
     const SparseOpaqueFactorization_Double &native_factorization() const noexcept {
         return numeric_;
+    }
+
+    // The symbolic factorization's own reported factor size, in bytes.
+    // General-purpose and UNCONDITIONAL -- no gate, no Options field: this
+    // is a real Accelerate output computed as part of SparseFactor()
+    // regardless of hven configuration, mirroring how factor_nonzeros() is
+    // unconditional on the MKL twin (see that accessor's own doc comment).
+    // Only meaningful while has_numerics() is true, matching
+    // native_factorization() above.
+    long factor_size_bytes() const noexcept {
+        return static_cast<long>(symbolic_.factorSize_Double);
     }
 
   private:

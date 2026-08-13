@@ -122,6 +122,55 @@ struct InertiaEvidence {
     std::optional<Index> perturbed_pivots;
 };
 
+// What a factorization reports about its own size and cost. Per-backend
+// semantics are STRUCTURALLY different, not merely differently named or
+// scaled -- MKL Pardiso reports an entry COUNT and (opt-in) a cost
+// estimate; Accelerate reports a BYTE size and no cost estimate at all --
+// so no field here is ever populated with more than one backend's meaning,
+// and a backend with no real observable for a field leaves it
+// std::nullopt. Same evidence-honesty discipline InertiaEvidence follows:
+// absent is never zero-filled into a plausible-looking number.
+//
+// Lives on FactorizeOutcome, alongside InertiaEvidence, because both are
+// read at the SAME point in the lifecycle -- right after a successful
+// numeric factorization -- and neither exists yet on a path where no
+// backend factorize() has run. A solve does not refresh this evidence: it
+// describes the factorization solves run against, not the solve itself.
+struct FactorEvidence {
+    // MKL Pardiso only: the number of nonzero entries in the LDLT factor
+    // (iparm[17]). ALWAYS collected after a successful MKL factorization --
+    // no Options field gates this one, because Intel documents no cost for
+    // requesting it and pardisoinit's own default already requests it (see
+    // this field's fuller treatment in pardiso_session.cpp). std::nullopt
+    // on Accelerate, which reports a byte size instead (below), never an
+    // entry count.
+    std::optional<Index> factor_nonzeros;
+
+    // MKL Pardiso only: the estimated factorization cost in Mflops
+    // (iparm[18]), REPORTED only when Options::collect_factor_mflops
+    // requested the report -- see that option's own doc comment for the
+    // reporting-only distinction (the option controls whether hven asks
+    // for and returns this value, not whether the backend performs the
+    // underlying counting work). std::nullopt on Accelerate (no
+    // equivalent estimate exists) and std::nullopt on MKL too when the
+    // option is off.
+    std::optional<Index> factor_mflops;
+
+    // Accelerate only: the symbolic factorization's own reported factor
+    // size, in BYTES. ALWAYS collected after a successful Accelerate
+    // factorization -- Accelerate computes this value as part of the
+    // symbolic factorization regardless of any hven option, so there is
+    // nothing to gate. A structurally different quantity from
+    // factor_nonzeros above -- a byte size, not an entry count -- so it is
+    // never folded into that field under a shared name. std::nullopt on
+    // MKL. Accelerate reports no factorization-cost estimate at all, so
+    // there is no Accelerate counterpart to factor_mflops, not even an
+    // absent one -- the frozen contract's ABSENT-never-zero rule applies to
+    // a field that could exist and currently does not report, not to a
+    // field the backend has no concept of whatsoever.
+    std::optional<Index> factor_size_bytes;
+};
+
 // The result of one numeric factorization. A backend error is reported here,
 // not thrown: the caller decides whether a failed factorization is fatal or
 // just means "regularize and try again".
@@ -137,6 +186,12 @@ struct FactorizeOutcome {
     // Evidence from this factorization. kQueryFailed here is NOT by itself a
     // factorize failure -- status carries that.
     InertiaEvidence inertia;
+
+    // Factor-size and factor-cost evidence from this SAME factorization --
+    // see FactorEvidence's own doc comment for why it lives here rather
+    // than on SolveInfo. Default-constructed (every field absent) on a
+    // kBackendError outcome, exactly like inertia.
+    FactorEvidence factor;
 };
 
 // What a solve reports about itself. Populated where the backend reports it;
@@ -255,6 +310,238 @@ class SymmetricFactor {
         // scale, and the predicate's design law is conservative, never a
         // fabricated true.
         bool weighted_matching = false;
+
+        // Matrix scaling for the numeric factorization (Pardiso iparm[10]).
+        // DON'T-WRITE-BY-DEFAULT: `false` does NOT write iparm[10] = 0, it
+        // leaves the entry untouched; only `true` writes iparm[10] = 1.
+        //
+        // REQUIRES weighted_matching == true, validated at construction.
+        // This is not a recommendation -- Intel (oneMKL Developer
+        // Reference, "pardiso iparm Parameter", the iparm[10] entry) states
+        // a CAPABILITY condition for symmetric indefinite matrices (mtype =
+        // -2, the only class this session ever builds): "The scaling can
+        // also be used for symmetric indefinite matrices... when the
+        // symmetric weighted matchings are applied (iparm[12] = 1)." A
+        // `true` here without `weighted_matching == true` THROWS
+        // std::invalid_argument naming the missing dependency, rather than
+        // being silently accepted to do something Intel does not document
+        // as working on this matrix type.
+        //
+        // Pardiso-only: `true` ALSO THROWS std::invalid_argument at
+        // construction on Accelerate, independent of weighted_matching's
+        // own value -- iparm[10]'s scaling is computed FROM the maximum-
+        // weighted-matching permutation weighted_matching switches on, so a
+        // backend with no matching concept has no scaling concept to pair
+        // it with either. Accelerate's own numeric-factorization scaling
+        // (inf-norm equilibration, on unconditionally, no off switch) is a
+        // different mechanism entirely, not a lower-fidelity version of
+        // this one.
+        bool matrix_scaling = false;
+
+        // Pivoting strategy for symmetric indefinite matrices (Pardiso
+        // iparm[20]). DON'T-WRITE-BY-DEFAULT: kBackendDefault leaves
+        // iparm[20] untouched -- pardisoinit's own value survives -- the
+        // same shape as `ordering` above and for the identical reason: on
+        // the MKL version this was written against, pardisoinit's own
+        // default for this entry already equals kTwoByTwo's value, so
+        // naming kTwoByTwo explicitly is how a caller PINS the choice
+        // against version drift rather than a behavioral no-op.
+        //
+        // The four named values are EXACTLY Pardiso's own documented
+        // iparm[20] codes (Intel's oneMKL Developer Reference, "pardiso
+        // iparm Parameter", the iparm[20] entry) -- no others are
+        // documented, so no others are exposed here:
+        //   kOneByOne              iparm[20] = 0  "Apply 1x1 diagonal
+        //                          pivoting during the factorization
+        //                          process."
+        //   kTwoByTwo              iparm[20] = 1  "Apply 1x1 and 2x2
+        //                          Bunch-Kaufman pivoting during the
+        //                          factorization process." (Pardiso's own
+        //                          documented default, and the value
+        //                          the interior-point engine writes today.)
+        //   kOneByOneNoAutoRefine  iparm[20] = 2  Same as kOneByOne,
+        //                          "except that the solve step does not
+        //                          automatically make iterative
+        //                          refinements when perturbed pivots are
+        //                          obtained."
+        //   kTwoByTwoNoAutoRefine  iparm[20] = 3  Same as kTwoByTwo, with
+        //                          the identical no-auto-refine exception.
+        //
+        // Pardiso-only: any non-default value THROWS std::invalid_argument
+        // at construction on Accelerate, which exposes no equivalent
+        // pivoting-strategy selector -- its LDLT factorization's pivoting
+        // scheme is fixed by the TPP factorization kind this class always
+        // requests, with no per-call override.
+        enum class PivotStrategy {
+            kBackendDefault,
+            kOneByOne,
+            kTwoByTwo,
+            kOneByOneNoAutoRefine,
+            kTwoByTwoNoAutoRefine,
+        };
+        PivotStrategy pivot_strategy = PivotStrategy::kBackendDefault;
+
+        // The two-level factorization algorithm (Pardiso iparm[23]).
+        // DON'T-WRITE-BY-DEFAULT: kBackendDefault leaves iparm[23]
+        // untouched. kClassic writes iparm[23] = 0 (Pardiso's own classic
+        // algorithm, which coincides with pardisoinit's own default on
+        // every MKL version observed -- naming it explicitly still PINS the
+        // choice, the same rationale as `ordering` and `pivot_strategy`
+        // above); kTwoLevel writes iparm[23] = 1. Pardiso-only: any
+        // non-default value THROWS std::invalid_argument at construction on
+        // Accelerate, which has no two-level factorization concept at all.
+        //
+        // kTwoLevel carries two REQUIRED interactions with other options,
+        // both documented by Intel (oneMKL Developer Reference, "pardiso
+        // iparm Parameter", the iparm[23] entry) and both VALIDATED at
+        // construction (throwing std::invalid_argument naming the
+        // conflict) rather than left for Pardiso to silently ignore:
+        //   - "If a two-level factorization algorithm is chosen (that is,
+        //     iparm[23]=1), then only nested dissection algorithms are
+        //     available (iparm[1]=2 or iparm[1]=3)." -- `ordering` must be
+        //     kNestedDissection or kParallelNestedDissection; kBackendDefault
+        //     and kMinimumDegree both throw.
+        //   - "Disable iparm[10] (scaling) and iparm[12]=1 (matching) when
+        //     using the two-level factorization algorithm." -- both
+        //     `matrix_scaling` and `weighted_matching` must be false.
+        enum class FactorizationAlgorithm { kBackendDefault, kClassic, kTwoLevel };
+        FactorizationAlgorithm factorization_algorithm = FactorizationAlgorithm::kBackendDefault;
+
+        // Parallel forward/backward solve control (Pardiso iparm[24]).
+        // DON'T-WRITE-BY-DEFAULT: kBackendDefault leaves iparm[24]
+        // untouched. Every other value WRITES iparm[24] explicitly --
+        // including kAdaptivePartitioning, which pins Pardiso's own
+        // default strategy against version drift the same way `ordering`'s
+        // non-default values do, and is the value the interior-point engine writes today.
+        //
+        // The three non-default values are EXACTLY Pardiso's own documented
+        // iparm[24] codes (Intel's oneMKL Developer Reference, "pardiso
+        // iparm Parameter", the iparm[24] entry):
+        //   kAdaptivePartitioning       iparm[24] = 0  "In the case of the
+        //                               one right-hand side, the
+        //                               parallelization will be performed
+        //                               by partitioning the matrix.
+        //                               Otherwise, the parallelization
+        //                               will be over the right-hand
+        //                               sides." (Pardiso's own documented
+        //                               default.)
+        //   kSequential                 iparm[24] = 1  "Intel oneMKL
+        //                               PARDISO uses the sequential
+        //                               forward and backward solve."
+        //   kMatrixPartitionParallel    iparm[24] = 2  "Independent from
+        //                               the number of the right-hand
+        //                               sides, Intel oneMKL PARDISO uses
+        //                               the parallel algorithm based on
+        //                               the matrix partitioning."
+        //
+        // NAMING NOTE: an earlier revision of this option was a bare
+        // `bool parallel_solve` that wrote iparm[24] = 1 for `true` --
+        // exactly backwards, since 1 is the SEQUENTIAL code and 0 (the
+        // default) is Pardiso's own parallel strategy. This enum exists
+        // instead of a corrected bool specifically so the value names say
+        // what they do rather than relying on a reader to remember which
+        // way a boolean points.
+        //
+        // Pardiso-only: any non-default value THROWS std::invalid_argument
+        // at construction on Accelerate, which has no per-instance thread
+        // control of any kind for this option to parallelize a solve with
+        // (see num_threads' own doc comment on that backend's
+        // best-effort-absent treatment) -- a silently-inert non-default
+        // value would defeat the point of naming the option at all, exactly
+        // the situation weighted_matching's throw exists to prevent.
+        enum class SolveParallelism {
+            kBackendDefault,
+            kAdaptivePartitioning,
+            kSequential,
+            kMatrixPartitionParallel,
+        };
+        SolveParallelism solve_parallelism = SolveParallelism::kBackendDefault;
+
+        // Thread count for conditional numerical reproducibility (CNR)
+        // mode (Pardiso iparm[33]). 0 (default) leaves iparm[33] untouched
+        // -- CNR mode off, matching Pardiso's own default; a positive value
+        // WRITES iparm[33] to that count and turns CNR mode on, trading
+        // some performance for a bitwise-reproducible reduction order
+        // across runs using that many threads.
+        //
+        // REQUIRED interaction with `ordering`, documented by Intel
+        // (oneMKL Developer Reference, "pardiso iparm Parameter", the
+        // iparm[33] entry) and VALIDATED at construction rather than left
+        // for Pardiso to silently fail to reproduce: "CNR is only
+        // available for the in-core version of Intel oneMKL PARDISO and
+        // the non-parallel version of the nested dissection algorithm...
+        // not set iparm[1] to 3 in order to not use the parallel version
+        // of the nested dissection algorithm. Otherwise Intel oneMKL
+        // PARDISO does not produce numerically repeatable results even if
+        // CNR is enabled." Read literally -- CNR's positive requirement
+        // names nested dissection specifically, not minimum degree -- a
+        // positive `cnr_threads` REQUIRES `ordering ==
+        // Ordering::kNestedDissection` exactly; every other Ordering value,
+        // INCLUDING kBackendDefault (whose value floats with the linked
+        // MKL -- see `ordering`'s own doc comment -- and is 3, the
+        // documented-incompatible one, on the MKL this was verified
+        // against) and kMinimumDegree (not named by the positive
+        // requirement clause), THROWS std::invalid_argument naming the
+        // conflict.
+        //
+        // Pardiso-only: a positive value THROWS std::invalid_argument at
+        // construction on Accelerate, which has no CNR concept. Unlike
+        // num_threads, this is not a plain thread count Accelerate could
+        // best-effort-ignore: CNR is a reproducibility GUARANTEE, and
+        // silently dropping it would let a caller believe it still held.
+        int cnr_threads = 0;
+
+        // Whether hven REPORTS the factorization's Mflop-cost estimate
+        // (Pardiso iparm[18]) as FactorizeOutcome::factor.factor_mflops.
+        // REPORTING-ONLY: this option controls whether hven requests the
+        // report and returns it through the public API -- it does NOT
+        // control, and cannot guarantee, whether the backend itself
+        // performs (or avoids) the underlying Mflop-counting work.
+        // DON'T-WRITE-BY-DEFAULT: `false` leaves iparm[18] untouched, so
+        // whatever count-or-don't-count state pardisoinit's own sample
+        // initialization already established for this entry is what
+        // stays in force -- hven neither disables backend counting nor
+        // guarantees cost avoidance at `false`. `true` writes iparm[18] =
+        // -1, Pardiso's own request code, and always causes
+        // FactorizeOutcome::factor.factor_mflops to be populated.
+        //
+        // Intel documents a real cost for the underlying counting work
+        // itself: "Enable report if iparm[18] < 0 on entry. This increases
+        // the reordering time." (oneMKL Developer Reference, "pardiso
+        // iparm Parameter", the iparm[18] entry). Contrast
+        // FactorizeOutcome::factor.factor_nonzeros (iparm[17]), which
+        // carries NO such cost warning and is always collected AND always
+        // reported -- see that field's own doc comment for why it needs no
+        // option at all.
+        //
+        // OBSERVED, NOT ASSUMED: on the MKL this was verified against
+        // (oneAPI MKL 2026.1), pardisoinit's OWN sample initialization
+        // already sets iparm[18] = -1 for mtype = -2 -- the identical value
+        // this option would write for `true` -- even though Intel's own
+        // iparm[18] table marks ">= 0" (disabled) as the documented
+        // default. This is the same kind of pardisoinit-vs-documented-
+        // default divergence `ordering` and `factorization_algorithm`
+        // already document for their own entries. hven does NOT force-
+        // write a canceling value at `false` to try to guarantee the
+        // backend skips the counting work: doing so would introduce an
+        // ACTIVE default write, contrary to this option's own
+        // don't-write-by-default shape and every sibling option in this
+        // struct. `false` is honestly "hven does not ask for or report
+        // this," not "the backend is guaranteed not to compute it."
+        bool collect_factor_mflops = false;
+
+        // An explicit override for Accelerate's zero-pivot threshold
+        // (SparseNumericFactorOptions::zeroTolerance), bypassing the
+        // pivot_perturb_exp-derived formula documented on that field
+        // entirely. std::nullopt (default) uses that formula; a present
+        // value is passed to Accelerate verbatim and must be > 0.
+        // Accelerate-only: a present value THROWS std::invalid_argument at
+        // construction on MKL, which has no zeroTolerance concept of its
+        // own -- pivot_perturb_exp's MKL meaning (a perturbation EXPONENT
+        // feeding iparm[9]'s relative formula) is not the same knob as this
+        // one (an absolute THRESHOLD), so a value set here cannot silently
+        // fold into pivot_perturb_exp's MKL behavior instead.
+        std::optional<double> accelerate_zero_tolerance;
     };
 
     // The three factors of a symmetric factorization, solved against

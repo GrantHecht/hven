@@ -1,5 +1,5 @@
 ################################################################################
-# Migrated from Tycho; flags kept identical.
+# Migrated from the origin project; flags kept identical.
 #
 # hven_compile_options()
 #
@@ -18,7 +18,7 @@
 # via PARENT_SCOPE; a macro avoids that entirely by executing directly in the
 # caller's scope, matching the behavior of the code this was extracted from.
 #
-# Migrated from tycho's cmake/tycho_compile_options.cmake -- no flag values
+# Migrated from the origin project's compile-options module -- no flag values
 # were changed by this move.
 #
 # Prerequisites the caller must set before invoking (all read from caller
@@ -51,6 +51,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SIMD_FLAGS)
 set(FP_FLAGS)
+# RELEASE_FLAGS/DEBUG_FLAGS/COMMON_FLAGS/COMPILE_FLAGS are accumulator
+# variables this macro only ever APPENDs to below -- reset here for the same
+# reason SIMD_FLAGS/FP_FLAGS are reset just above. This macro is a macro, not
+# a function, so it executes directly in the CALLER's variable scope; when
+# hven is add_subdirectory()'d by a parent project that has ALREADY called
+# ITS OWN, identically-named compile-options macro in that same scope (the
+# parent project does, via its own macro of the same kind, before
+# add_subdirectory(dep/hven)), add_subdirectory's child scope still sees the
+# parent's values for any variable this macro does not locally reset first.
+# Without this reset, hven's own target ends up compiled with BOTH the
+# parent's flag lists AND hven's own appended after them -- normally
+# silently redundant (harmless duplicate flags), but a HARD clang error the
+# moment they disagree: found live via a parent-project wheel configure,
+# where the parent project's own -inline-threshold=400 leaked into hven's
+# target's command line ahead of
+# hven's own (default) -inline-threshold=225, and CMake's option
+# de-duplication collapsed the shared "-mllvm" down to one copy, leaving the
+# second "-inline-threshold=225" as an argument clang rejects outright with
+# no "-mllvm" of its own.
+set(COMMON_FLAGS)
+set(RELEASE_FLAGS)
+set(DEBUG_FLAGS)
 
 
 # Release Flags

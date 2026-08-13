@@ -1,0 +1,178 @@
+@PACKAGE_INIT@
+
+if(TARGET hven::hven)
+    # Already configured by an earlier find_package(hven)/find_dependency(hven)
+    # in this same CMake run (e.g. a sibling package's own direct
+    # find_package(hven) plus a downstream project's own find_dependency(hven)
+    # both resolving here). Everything below, including the set_property(APPEND ...)
+    # reattachment block, already ran once; running it again would duplicate
+    # entries on hven::hven's INTERFACE_LINK_LIBRARIES rather than being a
+    # no-op. Nothing left to do.
+    return()
+endif()
+
+include(CMakeFindDependencyMacro)
+
+# Make hven's Find modules (FindMKL.cmake, FindAccelerateSparse.cmake --
+# installed alongside this file) available to the find_dependency() calls
+# below. Save/restore so this does not leak into the consumer's own
+# CMAKE_MODULE_PATH.
+set(_hven_cmake_module_path "${CMAKE_MODULE_PATH}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
+find_dependency(Threads)
+
+# Re-find the sparse solver hven was built with.
+set(_hven_sparse_solver "@HVEN_SPARSE_SOLVER@")
+if(_hven_sparse_solver STREQUAL "AccelerateSparse")
+    find_dependency(AccelerateSparse)
+elseif(_hven_sparse_solver STREQUAL "MKL")
+    find_dependency(MKL)
+else()
+    message(FATAL_ERROR
+        "hven: unknown sparse solver '${_hven_sparse_solver}'. "
+        "Expected 'AccelerateSparse' or 'MKL'.")
+endif()
+
+# Installed include root, computed via configure_package_config_file's
+# PATH_VARS mechanism rather than hardcoding "include": a consumer that
+# installed hven with -DCMAKE_INSTALL_INCLUDEDIR=<something else> would
+# otherwise fail every EXISTS check below against a path that was never
+# actually used.
+set(_hven_include_dir "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+
+# Eigen3 -- vendored, no upstream Config file of its own. hven's install
+# rules flatten dep/eigen's headers into this package's own include tree
+# (${_hven_include_dir}/Eigen, .../unsupported), so the target is
+# reconstructed directly from that location rather than via
+# find_dependency(Eigen3). Guarded by NOT TARGET so this composes cleanly
+# when a sibling package that vendors the same Eigen commit has already
+# defined Eigen3::Eigen the same way.
+if(NOT TARGET Eigen3::Eigen)
+    if(NOT EXISTS "${_hven_include_dir}/Eigen/Core")
+        message(FATAL_ERROR
+            "hven: bundled Eigen headers not found at "
+            "${_hven_include_dir}/Eigen/. "
+            "The hven installation may be incomplete.")
+    endif()
+    add_library(Eigen3::Eigen INTERFACE IMPORTED)
+    set_target_properties(Eigen3::Eigen PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${_hven_include_dir}"
+    )
+endif()
+
+# fmt -- vendored the same way as Eigen3 above, for the same reason.
+# FMT_HEADER_ONLY is a PUBLIC compile definition on hven::hven itself (set in
+# the root CMakeLists.txt), not repeated here.
+if(NOT TARGET fmt::fmt-header-only)
+    if(NOT EXISTS "${_hven_include_dir}/fmt/format.h")
+        message(FATAL_ERROR
+            "hven: bundled fmt headers not found at "
+            "${_hven_include_dir}/fmt/. "
+            "The hven installation may be incomplete.")
+    endif()
+    add_library(fmt::fmt-header-only INTERFACE IMPORTED)
+    set_target_properties(fmt::fmt-header-only PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${_hven_include_dir}"
+    )
+endif()
+
+set(_hven_targets_file "${CMAKE_CURRENT_LIST_DIR}/hvenTargets.cmake")
+if(NOT EXISTS "${_hven_targets_file}")
+    message(FATAL_ERROR
+        "hven: required file not found: ${_hven_targets_file}\n"
+        "The hven installation may be incomplete.")
+endif()
+include("${_hven_targets_file}")
+unset(_hven_targets_file)
+
+if(NOT TARGET hven::hven)
+    message(FATAL_ERROR
+        "hven: target hven::hven was not defined by hvenTargets.cmake. "
+        "The installation may be corrupted.")
+endif()
+
+# Validate critical installed headers are present.
+if(NOT EXISTS "${_hven_include_dir}/hven/model/nlp_solver.h")
+    message(FATAL_ERROR
+        "hven: public headers not found at "
+        "${_hven_include_dir}/hven/. "
+        "The hven installation may be incomplete.")
+endif()
+
+# Re-attach transitive link dependencies that were stripped from the export.
+# The hven target uses BUILD_INTERFACE guards on these (see the root
+# CMakeLists.txt, immediately above its target_compile_definitions(hven
+# PUBLIC ...) block) so the parent project does not encode host-specific absolute paths
+# (this build machine's MKL install location) or unexported ALIAS targets
+# (Eigen3::Eigen/fmt::fmt-header-only) into hvenTargets.cmake. CRITICAL:
+# every library wrapped that way there must be re-found and re-attached here.
+# If a new dependency is added to that block, add it here too.
+
+set_property(TARGET hven::hven APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES Threads::Threads)
+
+set_property(TARGET hven::hven APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES Eigen3::Eigen)
+
+set_property(TARGET hven::hven APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES fmt::fmt-header-only)
+
+if(_hven_sparse_solver STREQUAL "MKL")
+    # Validate MKL was fully found. FindMKL.cmake does not include
+    # MKL_OMP_LIBRARY in FIND_PACKAGE_HANDLE_STANDARD_ARGS, so MKL_FOUND=TRUE
+    # can occur while libiomp5 (MKL_OMP_LIBRARY) was not found, leaving a
+    # NOTFOUND entry in MKL_LIBRARIES.
+    if(NOT MKL_LIBRARIES)
+        message(FATAL_ERROR
+            "hven: MKL_LIBRARIES is empty after find_dependency(MKL). "
+            "Set MKLROOT to the MKL installation directory.")
+    endif()
+    foreach(_hven_mkl_lib IN LISTS MKL_LIBRARIES)
+        if("${_hven_mkl_lib}" MATCHES "NOTFOUND")
+            message(FATAL_ERROR
+                "hven: MKL library not found: ${_hven_mkl_lib}. "
+                "Your MKL installation may be incomplete.")
+        endif()
+    endforeach()
+    unset(_hven_mkl_lib)
+    if(UNIX AND NOT APPLE)
+        # Static MKL archives have circular dependencies and must be wrapped
+        # in --start-group/--end-group so the linker rescans them -- mirrors
+        # hven_resolve_sparse_backend() in cmake/hven_sparse_backend.cmake.
+        set_property(TARGET hven::hven APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES
+                -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group)
+    else()
+        set_property(TARGET hven::hven APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES ${MKL_LIBRARIES})
+    endif()
+    if(MKL_INCLUDE_DIRS)
+        set_property(TARGET hven::hven APPEND PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIRS})
+    endif()
+elseif(_hven_sparse_solver STREQUAL "AccelerateSparse")
+    if(NOT TARGET AccelerateSparse::AccelerateSparse)
+        message(FATAL_ERROR
+            "hven: AccelerateSparse::AccelerateSparse target not found after "
+            "find_dependency(AccelerateSparse).")
+    endif()
+    set_property(TARGET hven::hven APPEND PROPERTY
+        INTERFACE_LINK_LIBRARIES AccelerateSparse::AccelerateSparse)
+endif()
+
+# System libraries (dl, m -- see hven_resolve_sparse_backend()'s LINK_LIBS
+# assembly in cmake/hven_sparse_backend.cmake for dl, and the `if(UNIX)
+# list(APPEND LINK_LIBS m)` block in the root CMakeLists.txt for m).
+if(UNIX)
+    set_property(TARGET hven::hven APPEND PROPERTY
+        INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS} m)
+endif()
+
+# Restore caller's CMAKE_MODULE_PATH.
+set(CMAKE_MODULE_PATH "${_hven_cmake_module_path}")
+unset(_hven_cmake_module_path)
+unset(_hven_sparse_solver)
+unset(_hven_include_dir)
+
+check_required_components(hven)

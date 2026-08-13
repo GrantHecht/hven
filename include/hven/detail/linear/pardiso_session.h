@@ -101,7 +101,7 @@ struct PardisoConfig {
     // state this field takes at SymmetricFactor::Options::Ordering::
     // kBackendDefault; a present value is written verbatim. The values
     // FactorSession::analyze is asked for today are 0 (minimum degree --
-    // kMinimumDegree, a real Pardiso iparm[1] value psiopt exposes as
+    // kMinimumDegree, a real Pardiso iparm[1] value the interior-point engine exposes as
     // QPOrderingModes::MINDEG), 2 (nested dissection / METIS), and 3 (its
     // OpenMP-parallel variant), matching Options::Ordering exactly. An
     // earlier `int` encoding that used 0 itself as the "don't write"
@@ -117,6 +117,51 @@ struct PardisoConfig {
     // iparm[12] = 0 explicitly through this surface -- matching
     // Options::weighted_matching's don't-write-by-default rule.
     bool weighted_matching = false;
+
+    // Matrix scaling (iparm[10]). false leaves iparm[10] alone; true writes
+    // iparm[10] = 1 -- same don't-write-by-default shape as
+    // weighted_matching, and see Options::matrix_scaling for why the two
+    // are the same judgment call on the Accelerate side.
+    bool matrix_scaling = false;
+
+    // Pivoting strategy override for iparm[20]. std::nullopt means "leave
+    // iparm[20] alone" -- the only state this field takes at
+    // Options::PivotStrategy::kBackendDefault; a present value (0, 1, 2, or
+    // 3 -- Options::PivotStrategy's own documented values) overrides it
+    // verbatim.
+    std::optional<int> pivot_strategy;
+
+    // Two-level factorization algorithm override for iparm[23].
+    // std::nullopt means "leave iparm[23] alone" -- the only state this
+    // field takes at Options::FactorizationAlgorithm::kBackendDefault; a
+    // present value (0 = classic, 1 = two-level) overrides it verbatim. The
+    // interactions this value carries with `ordering`, `matrix_scaling`,
+    // and `weighted_matching` are validated at the Options layer (the
+    // adapter's constructor), not here -- this struct only carries the
+    // already-validated wire values through.
+    std::optional<int> factorization_algorithm;
+
+    // Parallel forward/backward solve control override for iparm[24].
+    // std::nullopt means "leave iparm[24] alone" -- the only state this
+    // field takes at Options::SolveParallelism::kBackendDefault; a present
+    // value (0, 1, or 2 -- Options::SolveParallelism's own documented
+    // values) overrides it verbatim.
+    std::optional<int> solve_parallelism;
+
+    // Thread count for conditional numerical reproducibility mode
+    // (iparm[33]). 0 (default) leaves iparm[33] alone -- CNR mode off; a
+    // positive value writes iparm[33] to that count and turns CNR mode on.
+    // The `ordering` compatibility this requires is validated at the
+    // Options layer (the adapter's constructor), not here.
+    int cnr_threads = 0;
+
+    // Whether to request the Mflop-cost estimate (iparm[18]) during
+    // analyze(), and read it back after a successful factorize(). false
+    // (default) leaves iparm[18] alone; see Options::collect_factor_mflops
+    // for why this stays opt-in while the nonzero count (iparm[17]) does
+    // not -- iparm[17] carries no Options field at all and is always
+    // requested (see FactorSession::analyze's own comment).
+    bool collect_factor_mflops = false;
 };
 
 // One Pardiso factorization session: the `pt` handle, the parameter array,
@@ -215,6 +260,20 @@ class FactorSession {
     // Refinement steps performed by the most recent solve.
     Index refinement_iters() const noexcept { return static_cast<Index>(refinement_iters_); }
 
+    // The number of nonzero entries in the LDLT factor (iparm[17]).
+    // UNCONDITIONAL -- unlike factor_mflops() below, this carries no gate:
+    // iparm[17] is requested unconditionally in analyze() (see that
+    // method's own comment), so this is meaningful whenever has_numerics()
+    // is true, with no Options field to check first.
+    Index factor_nonzeros() const noexcept { return static_cast<Index>(factor_nonzeros_); }
+
+    // True iff cfg_.collect_factor_mflops requested the Mflop-cost estimate
+    // -- derived straight from the config rather than a separate flag,
+    // since the two can never disagree. factor_mflops() is only meaningful
+    // while this AND has_numerics() are both true.
+    bool has_factor_mflops() const noexcept { return cfg_.collect_factor_mflops; }
+    Index factor_mflops() const noexcept { return static_cast<Index>(factor_mflops_); }
+
     // Read-only access to iparm[1] (fill-in reordering) / iparm[12] (maximum
     // weighted matching) as they stand after the most recent analyze().
     // General-purpose and unconditional -- NOT a test hook -- for entries
@@ -224,6 +283,14 @@ class FactorSession {
     // executable coverage for the ordering/weighted_matching
     // don't-write-by-default rule (docs/testing.md, hven_fault_injection_tests);
     // nothing about either accessor is conditional on HVEN_TESTING.
+    //
+    // NOT a model for iparm[10]/iparm[18]/iparm[33]: those three are
+    // touched by this session's own phase-11 backend call (see
+    // FactorSession::analyze's post-pardisoinit test-only record), so a
+    // general-purpose accessor reading the live array after analyze() would
+    // silently answer a different question than "what did pardisoinit
+    // default this to" -- there is no safe unconditional accessor for those
+    // three to add here.
     MKL_INT ordering_iparm() const noexcept { return iparm_[1]; }
     MKL_INT weighted_matching_iparm() const noexcept { return iparm_[12]; }
 
@@ -261,6 +328,13 @@ class FactorSession {
     MKL_INT n_neg_ = 0;
     MKL_INT perturbed_pivots_ = 0;
     mutable MKL_INT refinement_iters_ = 0;
+
+    // Cached from iparm[17]/iparm[18] at factorize() time.
+    // factor_nonzeros_ is cached UNCONDITIONALLY (see factor_nonzeros()'s
+    // own doc comment); factor_mflops_ only when cfg_.collect_factor_mflops
+    // is set -- see has_factor_mflops().
+    MKL_INT factor_nonzeros_ = -1;
+    MKL_INT factor_mflops_ = -1;
 };
 
 } // namespace hven::linear::detail

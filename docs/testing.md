@@ -69,17 +69,81 @@ in one line.
 
 The `notices/eigen-mpl2.txt` entry for that file records the modification.
 
+**Two, today.** `PardisoIparmObserver`'s `post_pardisoinit_*` fields, recorded
+at one capture site inside `FactorSession::analyze`
+(`src/linear/pardiso_session.cpp`), immediately after the `pardisoinit()` call
+and before anything else in that function — including that same function's
+own phase-11 (symbolic analysis) backend call — touches the array.
+
+*Why the boundary cannot carry it.* The fact under test is what `pardisoinit`
+itself defaulted `iparm[10]`/`iparm[33]`/`iparm[18]` to, on this linked MKL.
+That fact is not stable to the end of the function: this session's own
+phase-11 call was observed, empirically, to overwrite `iparm[33]` and
+`iparm[18]` with its own output before `analyze()` returns, so a read taken at
+the adapter boundary afterward — the approach this project uses for
+`ordering_iparm()`/`weighted_matching_iparm()` just above — sees phase 11's
+output for those two entries, not `pardisoinit`'s value. There is no safe
+unconditional `FactorSession` accessor that could answer this from outside
+the function either: by the time `analyze()` returns and any caller could
+ask, the fact the caller would be asking about is already gone (see
+`FactorSession`'s own doc comment, `include/hven/detail/linear/pardiso_session.h`,
+on why `ordering_iparm()`/`weighted_matching_iparm()` are not a model for
+these three).
+
+*What it costs.* Four `#ifdef HVEN_TESTING` lines at one capture site.
+Verified, not asserted: from a clean `ce423ec` checkout and from the working
+tree with this change applied, built with the identical build directory and
+toolchain (`git stash`/`git stash pop` to isolate the two source states
+without reconfiguring, `linux-clang-release` preset, `ninja hven` — the
+production CMake target, which never defines `HVEN_TESTING`), both
+recompiled translation units come out byte-identical: `pardiso_session.cpp.o`
+(the file the hook lives in) and `symmetric_factor_mkl.cpp.o` (recompiled
+only because it includes the touched headers), matching SHA-256 and `cmp`
+both ways. `nm --defined-only`'s full symbol listing of the resulting
+`libhven.a` is identical before and after, byte for byte — no symbol of any
+kind is added anywhere in the library.
+
+*What it buys.* `tests/linear/test_fault_injection.cpp`'s
+`BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero` asserts
+`pardisoinit`'s own `iparm[10]`/`iparm[33]` defaults on the linked MKL are
+exactly 0 — the premise `docs/retarget-design.md`'s effect-parity disposition
+for those two entries relies on — and records, without asserting, `iparm[18]`'s
+`pardisoinit` default as durable evidence for the divergence
+`Options::collect_factor_mflops` already documents by hand
+(`include/hven/linear/symmetric_factor.h`).
+
+The `notices/eigen-mpl2.txt` entry for that file records this modification too.
+
 ## The shape
 
 `hven/detail/linear/fault_injection.h` declares, for each backend, a small
 `static inline` struct under `hven::linear::detail::testing`, entirely
 guarded by `#ifdef HVEN_TESTING`:
 
-- `FactorizeFaultInjector` (MKL) — `active`, `injected_backend_code`.
+- `FactorizeFaultInjector` (both backends) — `active`, `injected_backend_code`.
+  Originally MKL-only, where no fixture can provoke a numeric failure at all;
+  extended to Accelerate, where the failure is reachable in principle on real
+  hardware but not from any fixture here, and where its consumer — the
+  interior-point engine's zero-filling evidence projection on a failed
+  factorization — needs it provoked deterministically and by specific status
+  code. Same scope on both: faithful only on a session that has never
+  factorized successfully (see the declaration's own comment).
+- `AnalyzeFaultInjector` (both backends) — `active`, `injected_backend_code`.
+  Faithful in every scenario: the failure is raised before the freshly built
+  session replaces the live one, so a failed analysis leaves the engine
+  exactly as it was — which is what `analyze()`'s own contract promises on a
+  real backend failure. It exists because the adapters reject every
+  malformed-input case as a caller error before the backend sees it, leaving
+  the symbolic phase's own reordering/sizing failures unreachable from any
+  fixture; the consumer is the interior-point engine's
+  record-the-status-and-continue behavior on that path.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
-  `last_weighted_matching_iparm`. NOT a fault injector — see "A read-only
-  variant" below.
+  `last_weighted_matching_iparm`, plus the unrelated `post_pardisoinit_*`
+  trio (`post_pardisoinit_matrix_scaling_iparm`, `post_pardisoinit_cnr_iparm`,
+  `post_pardisoinit_factor_mflops_request_iparm`) described under "A canary
+  for a design decision's backend-default premise" below. NOT a fault
+  injector — see "A read-only variant" below.
 
 The header compiles to **nothing** unless `HVEN_TESTING` is defined, so
 `#include`-ing it from a normal build is provably inert — there is nothing
@@ -121,10 +185,10 @@ exist. `hven_fault_injection_tests` is registered with `gtest_discover_tests`
 like `hven_tests` — it is a normal, separate ctest executable, not a
 special-cased build step.
 
-## Why two different injection points, not one mechanism copy-pasted
+## Why several injection points, not one mechanism copy-pasted
 
-The two injectors are NOT interchangeable, and the difference is why each
-lives where it does:
+The injectors are NOT interchangeable, and the difference is why each lives
+where it does:
 
 - **`InertiaQueryFaultInjector` (Accelerate) is faithful in every scenario.**
   `SparseGetInertia` is a side-effect-free query against an
@@ -137,8 +201,16 @@ lives where it does:
   MPL-derived session at `factorize()` time: keeping the call site in the
   adapter is what makes it interceptable at all without touching that file.
 
-- **`FactorizeFaultInjector` (MKL) is faithful in ONE scenario only: a
-  session that has never previously factorized successfully.** The injector
+- **`AnalyzeFaultInjector` (both backends) is faithful in every scenario.**
+  The failure is raised INSTEAD of the session's symbolic call and BEFORE the
+  freshly built session replaces the live one, so a failed analysis leaves the
+  engine exactly as it was — which is precisely what `analyze()`'s own contract
+  promises on a real backend failure, and what makes the next `analyze()` an
+  ordinary one. Nothing about an existing session is touched, because nothing
+  about an existing session has been replaced yet at that point.
+
+- **`FactorizeFaultInjector` (both backends) is faithful in ONE scenario only:
+  a session that has never previously factorized successfully.** The injector
   SKIPS the real `session_->factorize(A)` call entirely rather than
   overriding its result, so the session's own `has_numerics_`/`epoch_` (both
   owned by the MPL-derived `FactorSession`, never touched by this hook) are
@@ -158,6 +230,13 @@ lives where it does:
   disclosed; the code comment at `FactorizeFaultInjector`'s declaration
   states this scope limit explicitly so a future editor does not assume more
   coverage than exists.
+
+  The scope limit is not as narrow in practice as it first reads, because
+  `analyze()` FORKS: every `analyze()` starts a fresh session. A consumer whose
+  compute path is analyze-then-factorize — the interior-point engine's is —
+  therefore reaches the injector on a never-succeeded session on every call,
+  however many successful factorizations preceded it, so a test may establish
+  real evidence first and still inject faithfully afterwards.
 
 ## A read-only variant: observing internal state instead of injecting a fault
 
@@ -314,9 +393,114 @@ now diverges between them per the backend-neutral ordering mapping
   value (real Pardiso options), and now additionally covers
   `kMinimumDegree`.
 
+This file also covers six more Pardiso-only options plus one
+Accelerate-only one, all following the identical throw/no-throw split by
+themselves in ISOLATION — three of the six additionally interact with
+each other or with `ordering`, and the paragraph right after this list
+covers exactly which combinations still throw on MKL (see
+`docs/consumed-surface-audit.md` for the backend consumed-surface survey
+each option answers):
+
+- `Options::matrix_scaling`, `Options::pivot_strategy`,
+  `Options::factorization_algorithm`, `Options::solve_parallelism`,
+  `Options::cnr_threads`, `Options::collect_factor_mflops`: Pardiso-only.
+  Any non-default value THROWS `std::invalid_argument` at construction on
+  Accelerate, under `#if defined(__APPLE__)`; on MKL, under `#else`, a
+  non-default value BY ITSELF (against otherwise-default sibling options)
+  does NOT throw — but `matrix_scaling`, `cnr_threads`, and
+  `factorization_algorithm` each carry a further requirement on other
+  options that DOES throw when unmet, detailed next.
+- `Options::accelerate_zero_tolerance`: the inverse case — Accelerate's
+  OWN option. A present value does NOT throw under
+  `#if defined(__APPLE__)`, and THROWS `std::invalid_argument` under
+  `#else` (MKL has no zeroTolerance concept for it to override).
+
+The MKL `#else` half also covers the documented MULTI-OPTION interactions
+`symmetric_factor_mkl.cpp`'s constructor validates (see that file's own
+Intel-documentation citations): matrix scaling requires weighted matching
+on this backend's matrix type (`matrix_scaling == true` without
+`weighted_matching == true` throws); CNR mode (`cnr_threads > 0`) requires
+`ordering == kNestedDissection` exactly (every other value, including
+`kBackendDefault`, throws); the two-level factorization algorithm
+requires `ordering` to be `kNestedDissection` or
+`kParallelNestedDissection`, and requires both `matrix_scaling` and
+`weighted_matching` to stay `false`. These interaction throws only exist
+to test on MKL, where the individual fields are accepted at all — a
+non-default value of any of the fields involved already throws
+unconditionally on Accelerate before an interaction could matter.
+
 Like `test_symmetric_factor_evidence_invariants.cpp`, its Apple half rides
 the Accelerate syntax-check lane (`scripts/check_accelerate_syntax_linux.sh`)
 and also compiles and executes against the real framework in macOS CI.
+
+### Factor-size evidence's PardisoIparmObserver coverage
+
+`Options::collect_factor_mflops`'s five sibling knobs (`matrix_scaling`,
+`pivot_strategy`, `factorization_algorithm`, `solve_parallelism`,
+`cnr_threads`) extend `PardisoIparmObserver`
+(`hven/detail/linear/fault_injection.h`) with the identical
+did-the-write-execute pair the `ordering`/`weighted_matching` amendment
+established, at the same write sites inside `FactorSession::analyze`
+(`pardiso_session.cpp`). `collect_factor_mflops` itself gets the same
+pair, gating iparm[18] alone -- its sibling iparm[17] (the nonzero-count
+request) is written UNCONDITIONALLY, every `analyze()` call, with no
+Options field and therefore no flag to observe: see
+`FactorSession::factor_nonzeros()`'s own doc comment
+(`pardiso_session.h`) for why that entry needs no gate at all.
+`tests/linear/test_fault_injection.cpp`'s `PardisoIparmObservation` suite
+asserts, for each guarded knob: the default-Options case leaves its
+`*_was_written` flag `false`, and each non-default value sets it `true`
+with `*_written_value` equal to the knob's own fixed contract code
+(`PivotStrategy`: 0 / 1 / 2 / 3, EXACTLY Intel's documented iparm[20]
+codes; `FactorizationAlgorithm`: 0 / 1; `SolveParallelism`: 0 / 1 / 2,
+EXACTLY Intel's documented iparm[24] codes; `matrix_scaling`: 1;
+`cnr_threads`: the requested count; `collect_factor_mflops`: iparm[18]
+alone). Unlike the original two fields, none of these is independently
+known to need the flag to settle an otherwise-ambiguous value-level
+comparison on the MKL currently linked — they carry it for the same
+symmetry and mutation-resistance reasons the `weighted_matching` field
+already does. A companion functional test in the same file exercises the
+public-API consequence end to end: `factor_nonzeros` is present after
+every successful factorization regardless of `collect_factor_mflops`;
+`factor_mflops` tracks that option exactly.
+`tests/linear/test_symmetric_factor_evidence_invariants.cpp` carries the
+backend-conditional twin of that same check (MKL vs. Accelerate),
+following `ZeroClassDerivationMatchesTheBackendContract`'s own
+`#if defined(__APPLE__)` pattern — including that `collect_factor_mflops`
+itself throws on Accelerate (it is Pardiso-only, unlike the always-on
+`factor_nonzeros`/`factor_size_bytes` fields), so that file's coverage of
+it is internally platform-split rather than shared, mirroring
+`test_symmetric_factor_pardiso_only_options.cpp`'s own convention. This
+evidence lives on `FactorizeOutcome`, not `SolveInfo` — it is read at the
+same point in the lifecycle as `InertiaEvidence` (right after a
+successful numeric factorization), and a solve does not refresh it.
+
+### A canary for a design decision's backend-default premise
+
+`PardisoIparmObserver` also carries the `post_pardisoinit_*` trio — the
+second sanctioned deviation above, not a general-purpose `FactorSession`
+accessor: `iparm[10]`/`iparm[33]`/`iparm[18]` are captured directly inside
+`FactorSession::analyze`, `#ifdef HVEN_TESTING`, right after `pardisoinit()`
+runs and before that same function's own phase-11 call gets a chance to
+overwrite two of the three. There is no boundary-side equivalent the way
+`ordering_iparm()`/`weighted_matching_iparm()` are for the first deviation —
+see that file's own doc comment on why no unconditional accessor for these
+three entries would answer the right question once `analyze()` has returned.
+`test_fault_injection.cpp`'s
+`BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero`
+uses the first two fields to pin a premise a retarget design decision relies
+on (`docs/retarget-design.md`): that choosing not to grow the `Options`
+surface a write-the-default semantic for `matrix_scaling`/`cnr_threads`
+is safe only because pardisoinit already leaves both entries at 0 on the
+linked MKL, making "hven doesn't write it" and "the migrating engine
+writes 0 explicitly" the same act in effect. If a future MKL version
+moves either default, this test fails instead of that equivalence
+silently breaking. The third field's value (iparm[18]) is recorded in
+the same test via `RecordProperty` and a diagnostic print, not asserted —
+it durably reproduces a pardisoinit-default observation this project
+previously only made by hand (`Options::collect_factor_mflops`'s own doc
+comment, `include/hven/linear/symmetric_factor.h`), without pinning any
+decision to it.
 
 ## The golden-numerics rig
 
@@ -444,6 +628,23 @@ trace to remember it:
   build configuration(s) that row is pinned to, in a `# build-config:` metadata
   line — a table with a committed float row and no such line is **refused at
   load**, the same way a row without a thread pin is.
+
+**The derivation's fixed build environment** also includes three preprocessor
+definitions that are not part of the `# build-config:` axis (they do not vary
+between `Release` and `Debug`, or between any lane this project builds) because
+as of the hven M2 interior-point engine migration they are unconditional,
+repo-wide, for every configuration: `EIGEN_INITIALIZE_MATRICES_BY_ZERO`,
+`EIGEN_DONT_PARALLELIZE`, and `FMT_USE_LOCALE=0` (root `CMakeLists.txt`). The
+committed derived tables were revalidated under these definitions — the full
+suite (native arms and the three-seam run) passed after the change, with no
+row moving — so today's tables remain trustworthy as derived. Because these
+three are unconditional rather than declared per-table, a future change to any
+of them (removing one, or narrowing its scope to a subset of targets) is a
+change to the fixed environment every committed float row assumes, and
+requires the same two gates §"What a row has to survive before it is
+committed" describes for a build-configuration change — run-to-run and
+before/after reproduction, checked before the tables are trusted again — even
+though no `# build-config:` line would show it.
 
 **A float expectation is context-pinned three ways, and is asserted only when
 all three match: machine, build configuration, and thread pin.** These are
@@ -591,7 +792,7 @@ below; a second control asserting the identical `ppivs()` fact through a
 different call path would duplicate coverage rather than add any.
 
 **A KNOWN, UNRESOLVED gap of the same shape: `P4_PerturbationEvidencePresenceIsBackendHonest`
-(`traces_psiopt.cpp`).** Unlike T7, P4 was not touched by this fix, and it
+(`traces_interior_point.cpp`).** Unlike T7, P4 was not touched by this fix, and it
 carries the identical unscoped shape T7's stray branch had: an `#if
 defined(__APPLE__)` `EXPECT_FALSE(perturbed_pivots.has_value())` with no arm
 gate, `RIG_REQUIRE`d only on `reports_inertia` (which the psiopt old seam
@@ -609,7 +810,7 @@ expected result is:
 
 ```
 99% tests passed, 1 tests failed out of 155
-    Arms/PsioptTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
+    Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
 ```
 
 One failure, that exact entry, with all three `FailByDesignControl.*` tests

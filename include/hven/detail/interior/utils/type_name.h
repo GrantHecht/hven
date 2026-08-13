@@ -1,0 +1,58 @@
+// =============================================================================
+// Originally from ASSET (AlabamaASRL/asset_asrl)
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space
+//   Research Lab. Licensed under the Apache License, Version 2.0
+// License: notices/asset-apache2.txt.
+// Source: https://github.com/AlabamaASRL/asset_asrl
+// Original Developer: James B. Pezent
+//
+// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
+//   Apache 2.0 — see LICENSE.txt):
+//   - Namespace: asset -> tycho -> hven
+//   - Python binding methods moved to src/bindings/ (nanobind)
+// =============================================================================
+
+// Return demangled type name string
+// Citation:
+// https://stackoverflow.com/questions/81870/is-it-possible-to-print-a-variables-type-in-standard-c
+
+#pragma once
+
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+
+#ifndef _MSC_VER
+#include <cxxabi.h>
+#endif
+
+/// @brief Return the demangled C++ type name of @p T as a string.
+///
+/// Uses `abi::__cxa_demangle` on GCC/Clang to produce a human-readable name.
+/// On MSVC the raw `typeid` name is returned unchanged.  Appends `const`,
+/// `volatile`, `&`, or `&&` qualifiers as appropriate.
+///
+/// @tparam T  The type to query (may be a reference or cv-qualified type).
+/// @return  A human-readable string representation of @p T.
+template <class T> std::string type_name() {
+    typedef typename std::remove_reference<T>::type TR;
+    std::unique_ptr<char, void (*)(void *)> own(
+#ifndef _MSC_VER
+        abi::__cxa_demangle(typeid(TR).name(), nullptr, nullptr, nullptr),
+#else
+        nullptr,
+#endif
+        std::free);
+    std::string r = own != nullptr ? own.get() : typeid(TR).name();
+    if (std::is_const<TR>::value)
+        r += " const";
+    if (std::is_volatile<TR>::value)
+        r += " volatile";
+    if (std::is_lvalue_reference<T>::value)
+        r += "&";
+    else if (std::is_rvalue_reference<T>::value)
+        r += "&&";
+    return r;
+}

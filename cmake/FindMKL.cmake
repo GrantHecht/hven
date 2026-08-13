@@ -246,9 +246,8 @@ endif()
 # MKL_CORE_LIBRARY (libmkl_*.so) and MKL_OMP_LIBRARY (libiomp5.so) live
 # in separate directories (mkl/latest/lib vs compiler/latest/lib) —
 # rpath needs both. Appending to CMAKE_BUILD_RPATH makes the build-tree
-# _tychopy.so importable without LD_LIBRARY_PATH (required by nanobind
-# stubgen and by autodoc/doctests in the docs build, which import the
-# build-tree binary directly).
+# build-tree consumers (a Python extension module, say) loadable without
+# LD_LIBRARY_PATH.
 set(MKL_RPATH_DIR "")
 if(MKL_CORE_LIBRARY AND NOT "${MKL_CORE_LIBRARY}" MATCHES "NOTFOUND")
   get_filename_component(MKL_RPATH_DIR ${MKL_CORE_LIBRARY} DIRECTORY)

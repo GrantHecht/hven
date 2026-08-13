@@ -501,7 +501,7 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
     // fail against that seam too, turning this floor trace into an
     // accidental THIRD fail-by-design entry for the exact perturbed_pivots
     // fact P4_PerturbationEvidencePresenceIsBackendHonest
-    // (traces_psiopt.cpp) already targets and
+    // (traces_interior_point.cpp) already targets and
     // fail_by_design_control.cpp's
     // PsioptSeamStillZeroFillsItsPreFactorizationInertiaOnApple already
     // guards -- not a new finding, just this trace tripping over one P4

@@ -169,6 +169,11 @@ off with an opt-in. hven has no way to express it. A user who has opted in
 today loses the ability to after the migration. Default `0` coincides with
 `pardisoinit`'s `0` on this build, so the *default* path is unaffected.
 
+**Disposition:** `SymmetricFactor::Options::matrix_scaling`
+(bool, don't-write-by-default, iparm[10]). Pardiso-only: throws on
+Accelerate for `true` — see the option's own doc comment for why this is
+the same judgment as `weighted_matching`, not a separate one.
+
 ### 2. `iparm[20]` — pivoting strategy (`qp_pivot_strategy_`)
 
 A six-valued user-facing enum (`QPPivotModes{OneByOne, TwoByTwo, E4, E6,
@@ -181,12 +186,43 @@ distinction the ordering/weighted-matching amendment was written around:
 effect". A library-default move on an MKL bump changes hven's pivoting
 strategy and does not change the engine's.
 
+**Disposition:** `SymmetricFactor::Options::pivot_strategy`
+(`PivotStrategy` enum: `kBackendDefault`, `kOneByOne`, `kTwoByTwo`,
+`kOneByOneNoAutoRefine`, `kTwoByTwoNoAutoRefine` — iparm[20]'s own FOUR
+documented codes, 0/1/2/3 per Intel's oneMKL Developer Reference
+("pardiso iparm Parameter"). `QPPivotModes`' `E4`/`E6`/`E8`/`E13` names
+(4/6/8/13) are NOT among Intel's documented iparm[20] values and are not
+carried over here — `psiopt` writing one of those codes writes an
+undocumented iparm[20] value, which is a fact about `psiopt`'s own
+surface, not one this option reproduces. `kTwoByTwo` (1) is `psiopt`'s
+own default and stays expressible.), don't-write-by-default. Pardiso-only:
+any non-default value throws on Accelerate, which has no pivoting-strategy
+selector.
+
 ### 3. `iparm[23]` and `iparm[24]` — two-level algorithm, parallel solve
 
 `qp_alg_` (`QPAlgModes{Classic, TwoLevel}`) and `qp_par_solve_`. Both
 user-facing, both defaulting to `0`, both coinciding with `pardisoinit`'s
 `0` here. Same shape as finding 2 at lower stakes: expressible today, not
 expressible after.
+
+**Disposition:**
+`SymmetricFactor::Options::factorization_algorithm` (`FactorizationAlgorithm`
+enum: `kBackendDefault`, `kClassic`, `kTwoLevel` — iparm[23]) and
+`SymmetricFactor::Options::solve_parallelism` (`SolveParallelism` enum:
+`kBackendDefault`, `kAdaptivePartitioning`, `kSequential`,
+`kMatrixPartitionParallel` — iparm[24]'s own three documented codes, 0/1/2
+per Intel's oneMKL Developer Reference; iparm[24] = 1 is SEQUENTIAL, not
+parallel — an earlier revision of this option was a bare bool that wrote 1
+for `true`, backwards from what the code means, corrected to this named
+enum), both don't-write-by-default. Pardiso-only: either throws on
+Accelerate for a non-default value, which has no two-level-algorithm
+concept and no per-instance thread control to parallelize a solve with.
+`factorization_algorithm == kTwoLevel` additionally requires
+`ordering ∈ {kNestedDissection, kParallelNestedDissection}` and
+`matrix_scaling == weighted_matching == false`, both validated at
+construction (Intel documents both as requirements of the two-level
+algorithm, not merely as recommendations).
 
 ### 4. `iparm[33]` — conditional numerical reproducibility
 
@@ -198,6 +234,17 @@ which is the same property the golden-rig derivation had to hold rows back
 over. A migration that drops it drops a reproducibility control while the
 tables it is being validated against were themselves gated on
 reproducibility. Deserves a decision, not a default.
+
+**Disposition:** `SymmetricFactor::Options::cnr_threads` (int,
+0 = off/don't-write, iparm[33]). Pardiso-only: a positive value throws on
+Accelerate, which has no CNR concept — a silent no-op would misrepresent a
+reproducibility guarantee as still holding. A positive value ALSO requires
+`ordering == kNestedDissection` exactly, validated at construction: Intel
+documents CNR as reproducible only under "the non-parallel version of the
+nested dissection algorithm," and this MKL's own `kBackendDefault` floats
+to the documented-incompatible parallel variant (iparm[1] = 3) — so
+`kBackendDefault` throws here too, not only the values obviously
+unrelated to nested dissection.
 
 ### 5. `iparm[17]` / `iparm[18]` — factor size and Mflops are consumed evidence
 
@@ -217,6 +264,25 @@ Note the same pair exists on the Accelerate side with **different meaning**
 factor size in BYTES where Pardiso's is a nonzero COUNT, and both surface
 as `result_.factor_mem_`. If this evidence is added to the frozen surface,
 that is a per-backend semantics row to write, not a field to copy.
+
+**Disposition:** a new `FactorEvidence` struct joins
+`FactorizeOutcome::factor` (`hven/linear/symmetric_factor.h`) — not
+`SolveInfo`: this evidence is read at the same point in the lifecycle as
+`InertiaEvidence` (right after a successful numeric factorization), and a
+solve does not refresh it — with the mandatory per-backend semantics row
+this finding calls for. The two entries this finding names split
+differently, per Intel's own documented cost: iparm[17] (nonzero count)
+carries no documented request cost and pardisoinit's own sample
+initialization already requests it, so `FactorEvidence::factor_nonzeros`
+is collected UNCONDITIONALLY on MKL, no Options field at all; iparm[18]
+(Mflop estimate) is documented to increase factorization time when
+requested, so `FactorEvidence::factor_mflops` stays gated by
+`SymmetricFactor::Options::collect_factor_mflops` (bool,
+don't-write-by-default) — Pardiso-only, throws on Accelerate for `true`,
+same shape as the options above. Accelerate's `factor_size_bytes` (the
+symbolic factorization's own byte size) is likewise collected
+UNCONDITIONALLY, no Options field: Accelerate computes it regardless.
+No field is ever populated with the other backend's meaning.
 
 ### 6. Accelerate has a per-thread control, contradicting A.6's premise
 
@@ -272,6 +338,14 @@ every `set_qp_params()`. The frozen `pivot_perturb_exp` names an
 Accelerate mapping ("Accelerate: pivot tolerance mapping documented per
 backend"), so the first is arguably covered pending that mapping being
 written down. **The zero tolerance is not covered by anything.**
+
+**Disposition:** `SymmetricFactor::Options::accelerate_zero_tolerance`
+(`std::optional<double>`, don't-write-by-default — `std::nullopt` keeps
+the existing `pivot_perturb_exp`-derived formula). Accelerate-only: a
+present value throws on MKL, which has no zeroTolerance concept of its
+own for it to override. The pivot tolerance half of this finding stays
+covered by `pivot_perturb_exp`'s existing Accelerate mapping, which this
+option does not change.
 
 ## What was NOT found
 
