@@ -12,8 +12,8 @@
 // element-by-element gather. It used to live with the VectorFunction flags,
 // which made the solver's own indexing header include a VectorFunction header
 // for an enum the two layers merely share; the enum now lives here and
-// vf/core/functional_flags.h re-exports it, so every existing
-// hven::vf::ParsedIOFlags reference keeps working unchanged.
+// vf/core/functional_flags.h re-exports it, so every existing ParsedIOFlags
+// reference in the consuming VectorFunction layer keeps working unchanged.
 //
 // Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):

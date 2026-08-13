@@ -49,12 +49,13 @@
 //     Cipolla–Gondzio 1e-10 floor) and, each iteration, decays by the ladder's
 //     own decrease factor toward that floor.
 //
-// The ρ_k dynamics are an original composition of this engine's and carry NO direct
-// literature reference. The convex-QP proximal literature holds ρ fixed within
-// an inner solve (CG) or decreases it only per OUTER proximal step (FO); there
-// is no published always-on, per-iteration decaying-primal-shift rule for
-// nonconvex NLP, and Ipopt ships no always-on primal (Hessian-block) mode at
-// all — only the constraint-block `perturb_always_cd`. The design instead
+// The ρ_k dynamics are an original composition native to this engine and
+// carry NO direct literature reference. The convex-QP proximal literature
+// holds ρ fixed within an inner solve (CG) or decreases it only per OUTER
+// proximal step (FO); there is no published always-on, per-iteration
+// decaying-primal-shift rule for nonconvex NLP, and Ipopt ships no
+// always-on primal (Hessian-block) mode at all — only the constraint-block
+// `perturb_always_cd`. The design instead
 // mirrors the classic ladder's own warm-start memory: on a healthy problem ρ_k
 // sits at the floor (numerically negligible, parity by construction); on
 // curvature-troubled stretches the informed base attempt replaces the wasted

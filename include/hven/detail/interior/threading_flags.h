@@ -12,7 +12,8 @@
 // VectorFunction flags, which made the solver headers include a VectorFunction
 // header for an enum the VectorFunction layer only forwards; the enum now lives
 // here and vf/core/functional_flags.h re-exports it, so every existing
-// hven::vf::ThreadingFlags reference keeps working unchanged.
+// ThreadingFlags reference in the consuming VectorFunction layer keeps working
+// unchanged.
 //
 // Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):

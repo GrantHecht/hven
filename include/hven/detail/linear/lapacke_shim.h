@@ -13,11 +13,10 @@
 // names resolve, whether to MKL's own LAPACKE header or to this shim.
 //
 // Migrated in from the origin project. This file originated in the SQP
-// solver's standalone
-// development (a companion engine now sharing this repository's identity;
-// see docs/pattern-hash.md for another primitive with the same lineage)
-// before being adjusted for hven's use here -- the shimmed entry points and
-// their behavior are unchanged.
+// solver's standalone development (a companion engine now sharing this
+// repository's identity; see docs/pattern-hash.md for another primitive
+// with the same lineage) before being adjusted for hven's use here -- the
+// shimmed entry points and their behavior are unchanged.
 //
 // hven's build defines ACCELERATE_NEW_LAPACK project-wide on Apple, next to
 // USE_ACCELERATE_SPARSE (cmake/hven_sparse_backend.cmake, the same

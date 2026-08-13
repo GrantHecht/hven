@@ -34,8 +34,9 @@ namespace internal {
 
 // Mark Array<double, W, 1> as "arithmetic" so Eigen 5's binary-op overloads
 // (e.g. ArrayBase::pow(scalar_exponent)) accept it as a scalar exponent.
-// Required for hven::vf::CwisePow::cwise_compute(x, fx) where the SuperScalar
-// path constructs `Scalar(power)` from a double and passes it to .pow().
+// Required for the consuming VectorFunction layer's CwisePow::cwise_compute(x, fx),
+// where the SuperScalar path constructs `Scalar(power)` from a double and
+// passes it to .pow().
 template <>
 struct is_arithmetic<Array<double, 2, 1>> {
     enum { value = true };

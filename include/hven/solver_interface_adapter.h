@@ -121,7 +121,6 @@ template <class T> struct SolverInterfaceAdapter {
 ///
 ///     template <> struct hven::solvers::SolverInterfaceAdapter<MyObjective>
 ///         : hven::solvers::ConstraintUnsupported<MyObjective> {
-///         static void install_constraint(...);  // NOT declared -- the mixin's is used
 ///         static void install_objective(const MyObjective &t, ObjectiveInterface &oi) { ... }
 ///     };
 template <class T> struct ConstraintUnsupported {
