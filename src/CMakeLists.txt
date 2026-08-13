@@ -152,12 +152,20 @@ set(_hven_pch_sources
 
 target_precompile_headers(hven PRIVATE hven_pch.h)
 
-# Omit the embedded timestamp from the generated PCH so ccache can reuse cached
-# object files across PCH regenerations. Pairs with the developer-side ccache
-# settings documented in docs/build.md (sloppiness = pch_defines,time_macros
-# and pch_external_checksum = true): consumers then hash the PCH *content*, so
-# a regenerated-but-identical PCH costs nothing while a genuinely changed one
-# still invalidates.
+# Omit the embedded timestamp from the generated PCH. Under Clang this is a
+# REQUIREMENT for using ccache at all, not a tuning knob: clang stamps a
+# timestamp into the PCH, and ccache's manual is explicit that a clang PCH has
+# to be built with this flag for caching to work. The developer-side half is
+# `sloppiness = pch_defines,time_macros`, without which ccache refuses to cache
+# PCH-consuming compiles outright.
+#
+# Note for anyone reading an older revision of this comment: ccache's
+# `pch_external_checksum` is deliberately NOT part of this arrangement. It does
+# not make consumers hash the PCH's content -- ccache already does that by
+# default. It substitutes a `<pch>.sum` sidecar for the PCH when one exists, as
+# a performance workaround for very large precompiled headers, and nothing here
+# emits such a file, so setting it would be inert. docs/build.md carries the
+# corrected write-up.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(hven PRIVATE -Xclang -fno-pch-timestamp)
 endif()
@@ -188,6 +196,16 @@ set(_hven_expected_source_count 18)
 # it is hven's root whether hven is the top-level project or is being consumed
 # via add_subdirectory() by an embedding project, where CMAKE_SOURCE_DIR would
 # point at that project's root instead.
+#
+# The exact scope of the guarantee, stated so it is not read as broader than it
+# is: this covers every source added while hven's own directory tree is being
+# processed, which is where all of hven's sources come from. It does NOT cover
+# an embedding project calling target_sources(hven ...) from its own scope
+# after add_subdirectory() returns -- the deferred call has already run by
+# then, so such a source would receive the PCH unchecked. That is outside this
+# project's contract (hven owns its own source list), and scripts/
+# check_pch_neutrality.sh would still catch the consequence, but nothing here
+# prevents it.
 
 # The opt-in list, the directory it is written relative to, and the expected
 # source count travel to the deferred call through GLOBAL properties rather

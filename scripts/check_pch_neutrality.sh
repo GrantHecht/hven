@@ -187,6 +187,10 @@ echo "== hven PCH neutrality check"
 echo "   source:    ${HVEN_ROOT}"
 echo "   scratch:   ${WORK_DIR}"
 echo "   jobs:      ${JOBS}"
+# Length expansion ${#arr[@]} never trips `set -u` on an empty array, in any
+# bash version -- only element expansion "${arr[@]}" does (bash < 4.4), which
+# is why the expansions below carry the ${arr[@]+...} guard and this one does
+# not need it.
 if [ "${#COMPILER_ARGS[@]}" -gt 0 ]; then
     echo "   compiler:  ${COMPILER_ARGS[0]#-DCMAKE_CXX_COMPILER=} (project default; override by passing -DCMAKE_CXX_COMPILER=...)"
 else
@@ -283,10 +287,32 @@ if [ "${compared}" -eq 0 ]; then
     exit 1
 fi
 
+# The object count must also match what the build actually compiled: a partial
+# build that emitted 3 objects instead of the full set would otherwise pass the
+# loop above. Derive the expectation from the PCH-disabled build's own compile
+# database rather than hard-coding a count that would drift with the source
+# list.
+expected_objects="$(python3 -c "
+import json, sys
+entries = json.load(open('${NOPCH_BUILD}/compile_commands.json'))
+print(sum(1 for e in entries if '/CMakeFiles/hven.dir/' in e.get('output', '')))
+")"
+if [ "${compared}" -ne "${expected_objects}" ]; then
+    echo "FAIL: compared ${compared} objects but the PCH-disabled build's compile"
+    echo "      database lists ${expected_objects} hven translation units. Some objects"
+    echo "      were never emitted or never compared -- a silent skip, not a pass."
+    exit 1
+fi
+echo "   object count matches the compile database: ${compared}/${expected_objects}"
+
 # The archive too: it is what actually ships, and it catches anything that
 # differs in member ordering or metadata rather than in an object's own bytes.
+# If the archive is ever relocated (ARCHIVE_OUTPUT_DIRECTORY), this loop must
+# not silently degrade into comparing nothing -- hence the found counter.
+archives_compared=0
 for archive in libhven.a hven.lib; do
     if [ -f "${NOPCH_BUILD}/${archive}" ] && [ -f "${PCH_BUILD}/${archive}" ]; then
+        archives_compared=$((archives_compared + 1))
         compared=$((compared + 1))
         if cmp -s "${NOPCH_BUILD}/${archive}" "${PCH_BUILD}/${archive}"; then
             echo "   ${archive}: identical"
@@ -296,6 +322,13 @@ for archive in libhven.a hven.lib; do
         fi
     fi
 done
+if [ "${archives_compared}" -eq 0 ]; then
+    echo "FAIL: no library archive was found to compare (looked for libhven.a and"
+    echo "      hven.lib at the build-directory roots). If the archive output"
+    echo "      location changed, update this script -- the archive comparison is"
+    echo "      part of the check, not optional."
+    exit 1
+fi
 
 echo "   objects compared: ${compared}, differing: ${differing}"
 
