@@ -2,7 +2,7 @@
 
 #include "support/dense_oracle.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 static QpProblem simple_box_qp() {
     // min 1/2(x0^2 + x1^2) - x0 - 2 x1  s.t. x0 + x1 <= 1, 0 <= x <= 10

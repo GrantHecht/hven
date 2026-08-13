@@ -83,9 +83,9 @@
 
 #include <Eigen/SparseCore>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // The driver-facing NLP. IMPLEMENTER PRECONDITION: eval_hess/eval_jac_e/
 // eval_jac_i return an x-INDEPENDENT sparsity pattern, and eval_hess's is
@@ -201,4 +201,4 @@ class ParametricNlpModel : public NlpModel {
     virtual Vec parameters() const = 0;            // size parameter_dim()
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

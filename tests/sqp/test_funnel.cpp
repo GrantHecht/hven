@@ -6,7 +6,7 @@
 //   [KLV] D. Kiessling, S. Leyffer, C. Vanaret, "A Unified Funnel Restoration
 //         SQP Algorithm", arXiv:2409.09208, Math. Program. (2025).
 //
-// Equation map (see include/tycho_sqp/globalization.h for the full
+// Equation map (see include/hven/detail/sqp/globalization.h for the full
 // source-mapping note):
 //   Eq. (8)  h(x̂) <= τ                     funnel condition (membership)
 //   Eq. (9)  τ⁰ = max(τ̄, κ̄·h⁰)             initialization
@@ -51,10 +51,10 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/globalization.h>
-#include <tycho_sqp/sqp_driver.h>
+#include <hven/detail/sqp/globalization.h>
+#include <hven/detail/sqp/sqp_driver.h>
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 
@@ -885,7 +885,7 @@ TEST(FunnelFullStep, ArmingBeforeResetThrows) {
 // =============================================================================
 
 // KLV Sec. 2.4.1 defines h(x) = ‖c(x)‖₁ for an NCO whose only inequalities are
-// bounds that "are always feasible throughout SQP iterations". tycho_sqp's NLP
+// bounds that "are always feasible throughout SQP iterations". This engine's NLP
 // carries general inequalities cI(x) <= 0, so the ℓ1 violation generalizes to
 // ‖cE‖₁ + Σⱼ max(0, cIⱼ) and reduces to the paper's h when mi() == 0.
 TEST(FunnelMeasure, IsTheL1ConstraintViolation) {

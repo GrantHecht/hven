@@ -71,19 +71,19 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
 
 #include "support/hs_problems.h"
 #include "support/nlp_kkt_check.h"
 
-using namespace tycho::sqp;
-using tycho::sqp::test_support::hs_numbers;
-using tycho::sqp::test_support::HsProblem;
-using tycho::sqp::test_support::make_hs;
-using tycho::sqp::test_support::NlpKktResidual;
-using tycho::sqp::test_support::self_check_kkt;
+using namespace hven::solvers;
+using hven::solvers::test_support::hs_numbers;
+using hven::solvers::test_support::HsProblem;
+using hven::solvers::test_support::make_hs;
+using hven::solvers::test_support::NlpKktResidual;
+using hven::solvers::test_support::self_check_kkt;
 
 namespace {
 

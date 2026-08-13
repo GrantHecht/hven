@@ -3,7 +3,7 @@
 // Platform dispatch: Apple builds get the Accelerate backend; the MKL Pardiso
 // implementation below is byte-untouched so warm-start merges stay clean.
 #ifdef USE_ACCELERATE_SPARSE
-#include <tycho_sqp/kkt_system_accelerate.h>
+#include <hven/detail/sqp/kkt_system_accelerate.h>
 #else
 
 #include <array>
@@ -17,16 +17,16 @@
 #include <mkl_pardiso.h>
 #include <mkl_types.h>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // Direct wrapper around Intel MKL Pardiso for factoring and solving the
 // symmetric indefinite KKT system K x = b (mtype = -2), with inertia
 // (positive/negative eigenvalue counts) and perturbed-pivot reporting.
 //
 // K is supplied as the upper triangle of a symmetric matrix in row-major CSR
-// (the tycho_sqp::SpMatU convention). Pardiso is configured for 0-based
+// (the hven::solvers::SpMatU convention). Pardiso is configured for 0-based
 // indexing (iparm[34] = 1) so Eigen's outerIndexPtr()/innerIndexPtr()/
 // valuePtr() feed directly into the C API with no reindexing, and Eigen's
 // default int StorageIndex matches MKL_INT under the MKL_LP64 interface this
@@ -354,6 +354,6 @@ inline Index KktSystem::num_neg_eigs() const { return static_cast<Index>(iparm_[
 
 inline Index KktSystem::num_perturbed_pivots() const { return static_cast<Index>(iparm_[13]); }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers
 
 #endif // USE_ACCELERATE_SPARSE

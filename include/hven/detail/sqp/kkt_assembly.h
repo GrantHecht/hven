@@ -14,7 +14,7 @@
 // kAtLower/kFixed, qp.upper(i) for kAtUpper) rather than appearing in K;
 // their contribution moves to the right-hand side (see rhs_shift below).
 //
-// K is returned as the UPPER triangle only (the tycho_sqp::SpMatU
+// K is returned as the UPPER triangle only (the hven::solvers::SpMatU
 // convention used throughout: KktSystem, qp_problem.h's H, etc.), with rows
 // laid out as [free-variable Hessian rows | equality rows | working-
 // inequality rows], sizes [n_free | me | n_working].
@@ -70,11 +70,11 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 struct KktAssembly {
     SpMatU K;                        // (n_free + me + n_working) square, upper triangle stored
@@ -245,4 +245,4 @@ inline KktAssembly assemble_kkt_full(const QpProblem &qp, const WorkingSet &ws,
     return detail::assemble_kkt_core(qp, ws, opts, /*eliminate_bounds=*/false, "assemble_kkt_full");
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

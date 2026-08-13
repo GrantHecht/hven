@@ -48,9 +48,9 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include <tycho_sqp/nlp_model.h>
+#include <hven/detail/sqp/nlp_model.h>
 
-namespace tycho::sqp::test_support {
+namespace hven::solvers::test_support {
 
 namespace detail {
 
@@ -2358,4 +2358,4 @@ inline HsProblem make_hs(int number) {
     }
 }
 
-} // namespace tycho::sqp::test_support
+} // namespace hven::solvers::test_support

@@ -13,9 +13,9 @@
 
 #include <Accelerate/Accelerate.h>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // AUDIT PORT of the Pardiso KktSystem wrapper onto Apple Accelerate's Sparse
 // API (SparseFactor / SparseSolve / SparseCreateSubfactor), presenting the
@@ -38,7 +38,7 @@ namespace tycho::sqp {
 //    currently implemented as TPP) records a different type tag.
 //
 // K is supplied as the upper triangle of a symmetric matrix in row-major CSR
-// (the tycho_sqp::SpMatU convention). Accelerate consumes CSC: the CSR-upper
+// (the hven::solvers::SpMatU convention). Accelerate consumes CSC: the CSR-upper
 // index arrays, read column-wise, are exactly the lower triangle of Kᵀ = K,
 // so they are fed unchanged with kind = SparseSymmetric and
 // triangle = SparseLowerTriangle. The only conversion is columnStarts, which
@@ -520,4 +520,4 @@ inline Index KktSystem::num_neg_eigs() const { return inertia_ready() ? neg_ : 0
 
 inline Index KktSystem::num_perturbed_pivots() const { return inertia_ready() ? zero_ : n_; }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

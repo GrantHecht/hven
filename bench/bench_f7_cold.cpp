@@ -5,9 +5,9 @@
 // repository rather than from a scratch directory.
 //
 // ---------------------------------------------------------------------
-// WHY THIS EXISTS ALONGSIDE tycho_sqp_bench, WHICH IT DOES NOT REPLACE.
+// WHY THIS EXISTS ALONGSIDE hven_sqp_bench, WHICH IT DOES NOT REPLACE.
 //
-// tycho_sqp_bench is Task 2's harness: four arms, a parameter sweep, a
+// hven_sqp_bench is Task 2's harness: four arms, a parameter sweep, a
 // ledger-derived CSV whose column set is fixed Phase API, and a --self-check
 // gate pinned to the Phase-4 warm-start battery. It answers "how do cold, warm,
 // hot and predicted compare across a sweep". It deliberately fixes two things
@@ -49,7 +49,7 @@
 // model.start_point(), one solve per invocation, no warm start anywhere.
 //
 // USAGE
-//     tycho_sqp_f7_cold <nodes> <p> [qp_max_iter] [schur_cap] [ws_algebra] [qp_opt_tol]
+//     hven_sqp_f7_cold <nodes> <p> [qp_max_iter] [schur_cap] [ws_algebra] [qp_opt_tol]
 //                       [crash_basis]
 //
 //     nodes        N >= 3. n = N*(ns + nc) = 5N with this file's fixed
@@ -152,10 +152,10 @@
 #include <Eigen/Core> // Eigen::Infinity, for the lpNorm below
 #include <fmt/format.h>
 
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
 
 #include "bench_cli.h"
 
@@ -163,16 +163,16 @@
 
 namespace {
 
-using tycho::sqp::Index;
-using tycho::sqp::SqpDriver;
-using tycho::sqp::SqpOptions;
-using tycho::sqp::SqpSolution;
-using tycho::sqp::WorkingSetLinearAlgebra;
-using tycho::sqp::test_support::F7CollocationChain;
-using tycho::sqp::test_support::peak_rss_mib;
+using hven::solvers::Index;
+using hven::solvers::SqpDriver;
+using hven::solvers::SqpOptions;
+using hven::solvers::SqpSolution;
+using hven::solvers::WorkingSetLinearAlgebra;
+using hven::solvers::test_support::F7CollocationChain;
+using hven::solvers::test_support::peak_rss_mib;
 
 constexpr const char *kUsage =
-    "usage: tycho_sqp_f7_cold <nodes> <p> [qp_max_iter] [schur_cap] [ws_algebra] "
+    "usage: hven_sqp_f7_cold <nodes> <p> [qp_max_iter] [schur_cap] [ws_algebra] "
     "[qp_opt_tol] [crash_basis]\n"
     "\n"
     "  nodes        N >= 3; n = 5N (ns = 3 states, nc = 2 controls per node).\n"
@@ -192,15 +192,15 @@ constexpr const char *kUsage =
 // these out of the two byte-identical copies the bench binaries had grown);
 // this file's own kUsage is the only thing they add.
 [[noreturn]] void throw_usage(const std::string &detail) {
-    tycho::sqp::bench_cli::throw_usage(kUsage, detail);
+    hven::solvers::bench_cli::throw_usage(kUsage, detail);
 }
 
 long long parse_ll(const std::string &what, const std::string &value) {
-    return tycho::sqp::bench_cli::parse_ll(kUsage, what, value);
+    return hven::solvers::bench_cli::parse_ll(kUsage, what, value);
 }
 
 double parse_double(const std::string &what, const std::string &value) {
-    return tycho::sqp::bench_cli::parse_double(kUsage, what, value);
+    return hven::solvers::bench_cli::parse_double(kUsage, what, value);
 }
 
 } // namespace
@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
         const double f_star = model.f_star(p);
 
         SqpDriver driver(opts);
-        tycho::sqp::Ledger ledger;
+        hven::solvers::Ledger ledger;
         driver.attach_ledger(&ledger, "f7_cold");
         const auto t0 = std::chrono::steady_clock::now();
         const SqpSolution sol = driver.solve(model, model.start_point());
@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
         Index distinct_bound = 0;
         Index drop_ties = 0;
         Index ratio_ties = 0;
-        for (const tycho::sqp::SolveRecord &rec : ledger.records()) {
+        for (const hven::solvers::SolveRecord &rec : ledger.records()) {
             qp_max_minors = std::max(qp_max_minors, rec.counters.minor_iters);
             schur_updates += rec.counters.schur_updates;
             ws_adds += rec.counters.ws_adds;
@@ -331,7 +331,7 @@ int main(int argc, char **argv) {
             drop_ties += rec.counters.drop_ties;
             ratio_ties += rec.counters.ratio_ties;
         }
-        const tycho::sqp::test_support::AnalyticActiveSet analytic = model.active_set(p);
+        const hven::solvers::test_support::AnalyticActiveSet analytic = model.active_set(p);
         const Index active_rows = static_cast<Index>(
             std::count(analytic.ineq_active.begin(), analytic.ineq_active.end(), 1));
 
@@ -342,15 +342,15 @@ int main(int argc, char **argv) {
         // through the same helper the engine uses.
         Index bounded = 0;
         for (Index i = 0; i < model.n(); ++i) {
-            if (model.lower()(i) > -tycho::sqp::detail::kEngineInfBound ||
-                model.upper()(i) < tycho::sqp::detail::kEngineInfBound) {
+            if (model.lower()(i) > -hven::solvers::detail::kEngineInfBound ||
+                model.upper()(i) < hven::solvers::detail::kEngineInfBound) {
                 ++bounded;
             }
         }
         const Index cap_base = model.n() + model.mi() + bounded;
         const Index cap_eff = opts.qp.max_iter > 0
                                   ? opts.qp.max_iter
-                                  : tycho::sqp::detail::derived_qp_max_iter(cap_base);
+                                  : hven::solvers::detail::derived_qp_max_iter(cap_base);
 
         fmt::print("N={} n={} p={:.6f} active={} status={} majors={} minors={} qpmax={} "
                    "capbase={} cap={} crash={} crashrows={} crashbnd={} fact={} "
@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
                    peak_rss_mib());
         return 0;
     } catch (const std::exception &e) {
-        fmt::print(stderr, "tycho_sqp_f7_cold: error: {}\n", e.what());
+        fmt::print(stderr, "hven_sqp_f7_cold: error: {}\n", e.what());
         return 1;
     }
 }

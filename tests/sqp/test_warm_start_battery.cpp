@@ -3,7 +3,7 @@
 // Everything Tasks 0-12 built is composed here into one sweep grid and
 // MEASURED; the numbers this file pins are the ones
 // docs/notes/2026-07-30-warm-start-battery-results.md reports and the ones
-// Phase 6 has to beat PSIOPT with.
+// Phase 6 has to beat the IPM engine with.
 //
 // =====================================================================
 // THE GRID
@@ -268,16 +268,16 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/continuation.h>
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/continuation.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/warm_start.h>
 
 #include "support/parametric_families.h"
 #include "support/scale_problems.h"
 
-namespace tycho::sqp {
+namespace hven::solvers {
 namespace {
 
 using test_support::F1BoxQp;
@@ -362,7 +362,7 @@ struct CellStats {
     // ContinuationResult note), zero on every healthy cell in this file and
     // read only by the failure-economics cell at the bottom.
     // `failed_minors` is the share of `minors` spent on attempts that did not
-    // converge, which is the quantity section 4.5(b) of the PSIOPT note
+    // converge, which is the quantity section 4.5(b) of the IPM comparison note
     // attributes 84 % of the nx = 10^5 sweep to.
     Index proposals_abandoned = 0, proposals_full_cost = 0, failed_minors = 0;
     // ---- not ledger-derivable ----
@@ -1942,21 +1942,21 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 // crossover (warm_start.h's from_interior_point) is one of the two producers it
 // was built for, and the Phase-5 head-to-head
 // (docs/notes/2026-08-01-psiopt-first-comparison.md) is where that producer's
-// motivating consumer lives: PSIOPT runs to near-KKT on F7, tycho_sqp polishes.
+// motivating consumer lives: the IPM engine runs to near-KKT on F7, this engine polishes.
 // Through Phase 5 the polish could receive nothing but an x0. This cell
 // measures what it receives now.
 //
 // **THE ONE THING THIS CELL CANNOT DO, STATED FIRST BECAUSE IT BOUNDS EVERY
-// NUMBER BELOW: IT DOES NOT USE PSIOPT'S OWN MULTIPLIERS, BECAUSE THE SHIPPED
+// NUMBER BELOW: IT DOES NOT USE THE IPM ENGINE'S OWN MULTIPLIERS, BECAUSE THE SHIPPED
 // BRIDGE CANNOT PRODUCE THEM.** prototypes/psiopt_bridge/run_comparison.py
-// reaches PSIOPT through `tychopy.solvers.OptimizationProblem`, which is
-// tychopy's only route to PSIOPT for a generic NLP, and whose entire Python
+// reaches the IPM engine through `tychopy.solvers.OptimizationProblem`, which is
+// tychopy's only route to the IPM engine for a generic NLP, and whose entire Python
 // surface is set_vars / return_vars / add_equal_con / add_inequal_con /
 // add_objective (verified against tycho's own
 // src/bindings/solvers/optimization_problem_bind.cpp at this task's HEAD).
-// `return_vars` returns the PRIMAL VECTOR AND NOTHING ELSE; the PSIOPT binding
+// `return_vars` returns the PRIMAL VECTOR AND NOTHING ELSE; the IPM binding
 // itself exposes settings and run info, never a multiplier vector. So there is
-// no way, today, to get a real PSIOPT dual into a WarmStart from Python, and
+// no way, today, to get a real IPM dual into a WarmStart from Python, and
 // the bridge's own `--dump-solution` format carries x alone.
 //
 // WHAT THIS CELL DOES INSTEAD, and why it is still the right measurement:
@@ -1971,23 +1971,23 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 //     CrossoverRecoversExactSolveHs14 shipped in Phase 4: take a converged
 //     reference point, displace x by a small amount, and give each ACTIVE row
 //     the barrier residue slack = -mu/lambda that an interior-point method
-//     stops at. mu = 1e-8 is the bridge's own PSIOPT `bar_tol` default.
+//     stops at. mu = 1e-8 is the bridge's own IPM `bar_tol` default.
 //   - SO WHAT IS MEASURED IS THE CHAIN'S DRIVER-SIDE HALF: given a near-KKT
 //     primal-dual point of the shape an IP method hands over, does the seeded
 //     ingest buy counted work against feeding the same point as a bare x0?
 //     That is the half kSeeded is responsible for. The half it is not -- how
-//     good PSIOPT's actual duals are -- is not measurable from here at all,
+//     good the IPM engine's actual duals are -- is not measurable from here at all,
 //     and this cell does not pretend to.
 //
 // THE FINDING IS CARRIED FORWARD, not swallowed: closing the real chain needs
 // either a multiplier accessor on tychopy's OptimizationProblem or a C++-side
-// PSIOPT bridge. docs/notes/2026-08-04-kseeded-ingest.md records it as an open
+// IPM bridge. docs/notes/2026-08-04-kseeded-ingest.md records it as an open
 // item.
 // =====================================================================
 TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
     constexpr Index kNodes = 100; // nx = 500, the note's sweep_n100 row
     constexpr double kP = 0.9;
-    constexpr double kMu = 1.0e-8; // the bridge's PSIOPT bar_tol default
+    constexpr double kMu = 1.0e-8; // the bridge's IPM bar_tol default
 
     const auto make = [] {
         return F7CollocationChain(/*nodes=*/kNodes, /*states=*/3, /*controls=*/2, /*p0=*/kP,
@@ -2155,4 +2155,4 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
 }
 
 } // namespace
-} // namespace tycho::sqp
+} // namespace hven::solvers

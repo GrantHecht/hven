@@ -140,12 +140,12 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/types.h>
 
 #include "hs_problems.h"
 
-namespace tycho::sqp::test_support {
+namespace hven::solvers::test_support {
 
 // One Hock-Schittkowski problem re-posed along a scalar parameter -- see this
 // header's THE CONSTRUCTION note for the three-line formula and for why it is
@@ -342,4 +342,4 @@ inline std::unique_ptr<HsSweep> make_hs_sweep(int number) {
     return std::make_unique<HsSweep>(s.number, s.tilt, s.ce_shift, s.ci_shift, s.p0);
 }
 
-} // namespace tycho::sqp::test_support
+} // namespace hven::solvers::test_support

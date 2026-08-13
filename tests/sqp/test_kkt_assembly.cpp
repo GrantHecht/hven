@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <tycho_sqp/kkt_assembly.h>
-using namespace tycho::sqp;
+#include <hven/detail/sqp/kkt_assembly.h>
+using namespace hven::solvers;
 
 TEST(KktAssembly, DimensionsAndRegularization) {
     QpProblem qp; // 3 vars, 1 equality, 2 inequalities (build as in earlier tests)

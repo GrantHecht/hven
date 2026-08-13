@@ -28,7 +28,7 @@
 // HOW TO RUN IT (it is DISABLED_ because it is a measurement, not an
 // assertion -- it must not vote on whether the branch is green):
 //
-//     build/tests/tycho_sqp_tests --gtest_also_run_disabled_tests \
+//     build/tests/hven_sqp_tests --gtest_also_run_disabled_tests \
 //         --gtest_filter='EqpRefinementAb.DISABLED_FullBattery'
 //
 // It prints one line per (cell, problem) and one aggregate line per cell to
@@ -47,18 +47,18 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/eqp_solve.h>
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/eqp_solve.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
 
 #include "support/hs_problems.h"
 #include "support/scale_problems.h"
 
-using namespace tycho::sqp;
-using tycho::sqp::test_support::hs_numbers;
-using tycho::sqp::test_support::HsProblem;
-using tycho::sqp::test_support::make_hs;
+using namespace hven::solvers;
+using hven::solvers::test_support::hs_numbers;
+using hven::solvers::test_support::HsProblem;
+using hven::solvers::test_support::make_hs;
 
 namespace {
 
@@ -528,7 +528,7 @@ void scaled_row_sweep(double a, double lo, double tol) {
 // residual/footprint, which must stay below 1 for the single step to be
 // enough. See docs/notes/2026-07-29-eqp-refinement-ab.md's DISPOSITION.
 //
-//     build/tests/tycho_sqp_tests --gtest_also_run_disabled_tests \
+//     build/tests/hven_sqp_tests --gtest_also_run_disabled_tests \
 //         --gtest_filter='EqpRefinementAb.DISABLED_FootprintRuleProbe'
 TEST(EqpRefinementAb, DISABLED_FootprintRuleProbe) {
     fmt::print("\n=== footprint-rule probe (solve_eqp, one mandatory step) ===\n");

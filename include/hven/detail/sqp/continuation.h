@@ -282,14 +282,14 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/predictor.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/predictor.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // How the sweep proposes and re-sizes its parameter steps. Every field is a
 // CALLER-VISIBLE POLICY: none of them changes what a converged step means,
@@ -885,4 +885,4 @@ inline ContinuationResult run_continuation(ParametricNlpModel &model, const Vec 
     }
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

@@ -190,10 +190,10 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // Opaque Task-4 hot-start handle; fully defined in qp_engine.h, right next
 // to QpEngine's own border-mode reuse state. Forward-declared here only so
@@ -534,7 +534,7 @@ struct WarmStart {
 // Builds a WarmStart from an INTERIOR-POINT-STYLE primal-dual iterate: the
 // Knitro crossover pattern (an IP method runs to near-KKT, then hands off to
 // an active-set method for the final polish) -- in tycho this is exactly how
-// a PSIOPT solve would seed this SQP driver's own refinement. Unlike
+// an IPM solve would seed this SQP driver's own refinement. Unlike
 // mesh_transfer.h's MeshTransfer (which maps a WarmStart born from THIS
 // driver's own solve onto a different mesh), this function's INPUT never
 // went through this driver at all: there is no QpEngine working set, no
@@ -553,7 +553,7 @@ struct WarmStart {
 // -- i.e. s_i = -cI_i(x). THIS FUNCTION TAKES `slack_i` AS THE cI(x) VALUES
 // THEMSELVES (this project's own convention, matching every other slot in
 // this header), NOT the IP solver's own non-negative s_i: a caller wiring a
-// PSIOPT- or Knitro-style s_i through must negate it first
+// IPM- or Knitro-style s_i through must negate it first
 // (slack_i = -s_i). Getting this backwards would flip every activity
 // verdict below without producing any error, so it is stated here in the
 // starkest terms this header has: PASS cI(x) VALUES, NEVER THE IP SLACK
@@ -652,7 +652,7 @@ struct WarmStart {
 //                   dual_tol) * min |cI_j| over the strictly slack rows,
 //     which past N ~ 800 is just mu <= dual_tol * min|cI| -- 1.2e-9 on F7 at
 //     N = 1600. So mu = 1e-9 (just) holds and mu = 1e-8, ONE DECADE AWAY AND
-//     THE LEVEL THE SHIPPED PSIOPT BRIDGE HANDS OVER AT, does not: measured
+//     THE LEVEL THE SHIPPED IPM BRIDGE HANDS OVER AT, does not: measured
 //     false actives are 12 / 24 / 46 at N = 1600 / 3200 / 6400 against
 //     0 / 2 / 4 at mu = 1e-9, with recall identical at both levels
 //     (CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel). The
@@ -954,4 +954,4 @@ inline WarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Ve
     return out;
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

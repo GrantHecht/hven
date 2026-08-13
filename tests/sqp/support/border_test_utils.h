@@ -41,10 +41,10 @@
 // diag(reg)*sol -- refines toward the same target solve_eqp's own
 // refinement step converges to.
 
-#include <tycho_sqp/bordered_eqp.h>
+#include <hven/detail/sqp/bordered_eqp.h>
 
-namespace tycho::sqp::test_support {
+namespace hven::solvers::test_support {
 
-using tycho::sqp::refine_bordered_solve;
+using hven::solvers::refine_bordered_solve;
 
-} // namespace tycho::sqp::test_support
+} // namespace hven::solvers::test_support

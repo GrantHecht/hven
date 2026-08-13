@@ -1,7 +1,7 @@
 // tests/test_snopt_bridge_gate.cpp — PHASE-6 TASK 0. THE REFEREE GATE for the
 // SNOPT bridge.
 //
-// WHAT THIS FILE IS FOR. Phase 6 compares tycho_sqp against SNOPT on F7, and
+// WHAT THIS FILE IS FOR. Phase 6 compares this SQP engine against SNOPT on F7, and
 // every one of those comparisons is worthless if the bridge is solving a
 // DIFFERENT problem than our own solver is. A transcription defect in
 // bench/snopt_f7_driver.h -- an off-by-one in the coordinate arrays, a
@@ -14,7 +14,7 @@
 // THE REFEREE IS F7'S ANALYTIC OPTIMUM, not our solver's answer.
 // tests/support/scale_problems.h derives x*(p), f*(p), the multipliers and the
 // active set in closed form (its prose was NumPy-verified), so the assertion
-// below compares SNOPT against MATHEMATICS rather than against tycho_sqp.
+// below compares SNOPT against MATHEMATICS rather than against our engine.
 // That ordering matters: if this gate compared the two solvers to each other,
 // a shared misreading of F7 would pass it.
 //
@@ -22,7 +22,7 @@
 // (see the driver header's firewall banner). Machines without it must keep
 // building and testing normally, so tests/CMakeLists.txt adds this file to the
 // test binary ONLY when the SNOPT directory exists, and the whole translation
-// unit is additionally inert without TYCHO_SQP_HAVE_SNOPT. On a machine
+// unit is additionally inert without HVEN_SQP_HAVE_SNOPT. On a machine
 // without SNOPT the suite is unchanged at 446 tests; with SNOPT it is 450.
 //
 // TOLERANCE POSTURE -- "RECORD, DON'T FIGHT", AND WHAT THAT TURNED OUT TO
@@ -62,7 +62,7 @@
 // driver header for why the guide is cited for mechanism and measurement for
 // defaults.
 
-#ifdef TYCHO_SQP_HAVE_SNOPT
+#ifdef HVEN_SQP_HAVE_SNOPT
 
 #include <algorithm>
 #include <cmath>
@@ -71,20 +71,20 @@
 
 #include <Eigen/Core>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
-#include "../bench/snopt_f7_driver.h"
+#include "../../bench/snopt_f7_driver.h"
 
 #include "support/scale_problems.h"
 
 namespace {
 
-using tycho::sqp::Index;
-using tycho::sqp::Vec;
-using tycho::sqp::snopt_bridge::SnoptF7Driver;
-using tycho::sqp::snopt_bridge::SnoptOptions;
-using tycho::sqp::snopt_bridge::SnoptResult;
-using tycho::sqp::test_support::F7CollocationChain;
+using hven::solvers::Index;
+using hven::solvers::Vec;
+using hven::solvers::snopt_bridge::SnoptF7Driver;
+using hven::solvers::snopt_bridge::SnoptOptions;
+using hven::solvers::snopt_bridge::SnoptResult;
+using hven::solvers::test_support::F7CollocationChain;
 
 // The brief's gate instance: N = 30 nodes, p = 0.85. n = 5N = 150 variables,
 // me = 3N = 90 equality rows, mi = N = 30 path rows. p = 0.85 > R/2 = 0.5 puts
@@ -267,4 +267,4 @@ TEST(SnoptBridgeGate, WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter) {
     EXPECT_LT(warm.f_err_rel, 1e-9);
 }
 
-#endif // TYCHO_SQP_HAVE_SNOPT
+#endif // HVEN_SQP_HAVE_SNOPT

@@ -10,7 +10,7 @@
 // orchestration and I/O: nothing that decides a verdict.
 //
 // NOT ctest-registered, same reason every other bench binary in this project
-// is not (tycho_sqp_bench, tycho_sqp_f7_cold, tycho_sqp_tau_bar_sweep_probe):
+// is not (hven_sqp_bench, hven_sqp_f7_cold, hven_sqp_tau_bar_sweep_probe):
 // it is a measurement instrument, and the baseline sweep this task commits
 // (docs/notes/data/2026-08-06-corpus/walk_baseline.csv) touches N = 20000
 // cells that run for minutes to hours. Its correctness gate is
@@ -113,46 +113,46 @@
 #include "bench_cli.h"
 #include "corpus_cells.h"
 
-#ifndef TYCHO_SQP_CORPUS_GIT_DESCRIBE
-#define TYCHO_SQP_CORPUS_GIT_DESCRIBE "unknown"
+#ifndef HVEN_SQP_CORPUS_GIT_DESCRIBE
+#define HVEN_SQP_CORPUS_GIT_DESCRIBE "unknown"
 #endif
 
 namespace {
 
-using tycho::sqp::QpProblem;
-using tycho::sqp::Vec;
-using tycho::sqp::corpus::all_cells;
-using tycho::sqp::corpus::budget_table_hash;
-using tycho::sqp::corpus::CorpusCell;
-using tycho::sqp::corpus::CorpusOutcome;
-using tycho::sqp::corpus::CorpusRow;
-using tycho::sqp::corpus::dnf_phase_status_string;
-using tycho::sqp::corpus::DnfPhase;
-using tycho::sqp::corpus::dual_sign_would_fail;
-using tycho::sqp::corpus::evaluate_gates;
-using tycho::sqp::corpus::find_cell;
-using tycho::sqp::corpus::kkt_gate_verdict;
-using tycho::sqp::corpus::KktVerdict;
-using tycho::sqp::corpus::run_cell;
-using tycho::sqp::corpus::to_string;
-using tycho::sqp::corpus::detail::first_qp_for_cell;
-using tycho::sqp::corpus::detail::wall_budget_for_cell;
+using hven::solvers::QpProblem;
+using hven::solvers::Vec;
+using hven::solvers::corpus::all_cells;
+using hven::solvers::corpus::budget_table_hash;
+using hven::solvers::corpus::CorpusCell;
+using hven::solvers::corpus::CorpusOutcome;
+using hven::solvers::corpus::CorpusRow;
+using hven::solvers::corpus::dnf_phase_status_string;
+using hven::solvers::corpus::DnfPhase;
+using hven::solvers::corpus::dual_sign_would_fail;
+using hven::solvers::corpus::evaluate_gates;
+using hven::solvers::corpus::find_cell;
+using hven::solvers::corpus::kkt_gate_verdict;
+using hven::solvers::corpus::KktVerdict;
+using hven::solvers::corpus::run_cell;
+using hven::solvers::corpus::to_string;
+using hven::solvers::corpus::detail::first_qp_for_cell;
+using hven::solvers::corpus::detail::wall_budget_for_cell;
 
 // The measurement-arm levers, named once. See corpus_cells.h's EngineConfig.
-using EngineLevers = tycho::sqp::corpus::detail::EngineConfig;
+using EngineLevers = hven::solvers::corpus::detail::EngineConfig;
 // Task 6b Phase B's three iteration-shape rules (sqp_types.h), named here for
 // the same reason every other type above is: this file spells one namespace.
-using tycho::sqp::SsnHintRule;
-using tycho::sqp::SsnInfeasibilityRule;
-using tycho::sqp::SsnSigmaRule;
+using hven::solvers::SsnHintRule;
+using hven::solvers::SsnInfeasibilityRule;
+using hven::solvers::SsnSigmaRule;
 
 constexpr const char *kUsage =
-    "usage: tycho_sqp_corpus --engine walk|ssn --cells all|<id1,id2,...> --csv <path> "
+    "usage: hven_sqp_corpus --engine walk|ssn --cells all|<id1,id2,...> --csv <path> "
     "[--score-gates]\n"
-    "       tycho_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
-    "       tycho_sqp_corpus --dump-qp <cell> --dump-qp-out <path>\n"
-    "       tycho_sqp_corpus --list\n"
-    "       tycho_sqp_corpus --help\n"
+    "       hven_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
+    "       hven_sqp_corpus --dump-qp <cell> --dump-qp-out <path>\n"
+    "       hven_sqp_corpus --list\n"
+    "       hven_sqp_corpus --help\n"
     "\n"
     "  --dump-qp <cell>  PHASE-7 TASK 2 (PIQP oracle). Build the cell's OWN\n"
     "                    designated (target) hop's FIRST QP subproblem --\n"
@@ -246,7 +246,7 @@ constexpr const char *kUsage =
     "the DEADLINE that was enforced, not a measurement.\n";
 
 [[noreturn]] void throw_usage(const std::string &detail) {
-    tycho::sqp::bench_cli::throw_usage(kUsage, detail);
+    hven::solvers::bench_cli::throw_usage(kUsage, detail);
 }
 
 // T6 with CONTEXT. std::stoi's own message is the word "stoi"; a malformed
@@ -262,7 +262,7 @@ int parse_int_field(const std::string &what, const std::string &value) {
         return parsed;
     } catch (const std::exception &) {
         throw std::invalid_argument(
-            fmt::format("tycho_sqp_corpus: {}: '{}' is not an integer", what, value));
+            fmt::format("hven_sqp_corpus: {}: '{}' is not an integer", what, value));
     }
 }
 
@@ -276,7 +276,7 @@ double parse_double_field(const std::string &what, const std::string &value) {
         return parsed;
     } catch (const std::exception &) {
         throw std::invalid_argument(
-            fmt::format("tycho_sqp_corpus: {}: '{}' is not a number", what, value));
+            fmt::format("hven_sqp_corpus: {}: '{}' is not a number", what, value));
     }
 }
 
@@ -376,15 +376,15 @@ Args parse_args(int argc, char **argv) {
         } else if (arg == "--internal-force-wall-budget-seconds") {
             // Legacy spelling, kept so an existing invocation keeps working:
             // forces BOTH phases.
-            const double v = tycho::sqp::bench_cli::parse_double(kUsage, arg, next_value(arg));
+            const double v = hven::solvers::bench_cli::parse_double(kUsage, arg, next_value(arg));
             a.internal_force_setup_budget_s = v;
             a.internal_force_solve_budget_s = v;
         } else if (arg == "--internal-force-setup-budget-seconds") {
             a.internal_force_setup_budget_s =
-                tycho::sqp::bench_cli::parse_double(kUsage, arg, next_value(arg));
+                hven::solvers::bench_cli::parse_double(kUsage, arg, next_value(arg));
         } else if (arg == "--internal-force-solve-budget-seconds") {
             a.internal_force_solve_budget_s =
-                tycho::sqp::bench_cli::parse_double(kUsage, arg, next_value(arg));
+                hven::solvers::bench_cli::parse_double(kUsage, arg, next_value(arg));
         } else if (arg == "--ssn-prox-carry") {
             a.ssn_prox_carry = true;
         } else if (arg == "--ssn-certify-from-face") {
@@ -512,8 +512,8 @@ void write_provenance(std::ostream &os, int argc, char **argv, const EngineLever
     if (::gmtime_r(&now, &utc) != nullptr) {
         std::strftime(stamp, sizeof(stamp), "%Y-%m-%dT%H:%M:%SZ", &utc);
     }
-    os << "# tycho_sqp_corpus provenance\n";
-    os << fmt::format("# binary: {}\n", TYCHO_SQP_CORPUS_GIT_DESCRIBE);
+    os << "# hven_sqp_corpus provenance\n";
+    os << fmt::format("# binary: {}\n", HVEN_SQP_CORPUS_GIT_DESCRIBE);
     // PHASE-7 TASK 6b: the CSV SCHEMA GENERATION, stated rather than counted.
     // 14 = Task 1's baseline, 31 = Task 6's KKT gate + SSN counters, 37 = this
     // task's escape-reason census. The reader accepts all three; the committed
@@ -604,7 +604,7 @@ void write_outcome(std::ostream &os, const CorpusOutcome &out) {
                           "-1,-1,-1,-1,-1,-1\n",
                           cell.id, to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
                           to_string(cell.start), cell.degenerate ? 1 : 0,
-                          out.engine_error ? tycho::sqp::corpus::kEngineErrorStatusString
+                          out.engine_error ? hven::solvers::corpus::kEngineErrorStatusString
                                            : dnf_phase_status_string(out.dnf_phase),
                           out.dnf_wall_s);
         return;
@@ -655,7 +655,7 @@ void write_qp_dump(std::ostream &os, const CorpusCell &cell, const QpProblem &qp
     os << fmt::format("# family: {}  n_nodes: {}  window: {}  taxonomy: {}\n",
                       to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
                       to_string(cell.start));
-    os << fmt::format("# binary: {}\n", TYCHO_SQP_CORPUS_GIT_DESCRIBE);
+    os << fmt::format("# binary: {}\n", HVEN_SQP_CORPUS_GIT_DESCRIBE);
     os << fmt::format("cell {}\n", cell.id);
     os << fmt::format("taxonomy {}\n", to_string(cell.start));
     os << fmt::format("window {}\n", to_string(cell.ctag));
@@ -666,19 +666,19 @@ void write_qp_dump(std::ostream &os, const CorpusCell &cell, const QpProblem &qp
 
     std::size_t h_nnz = 0;
     for (int k = 0; k < qp.H.outerSize(); ++k) {
-        for (tycho::sqp::SpMatU::InnerIterator it(qp.H, k); it; ++it) {
+        for (hven::solvers::SpMatU::InnerIterator it(qp.H, k); it; ++it) {
             ++h_nnz;
         }
     }
     os << fmt::format("H_NNZ {}\n", h_nnz);
     for (int k = 0; k < qp.H.outerSize(); ++k) {
-        for (tycho::sqp::SpMatU::InnerIterator it(qp.H, k); it; ++it) {
+        for (hven::solvers::SpMatU::InnerIterator it(qp.H, k); it; ++it) {
             os << fmt::format("{} {} {:.17g}\n", it.row(), it.col(), it.value());
         }
     }
 
     os << fmt::format("G_VEC {}\n", qp.g.size());
-    for (tycho::sqp::Index i = 0; i < qp.g.size(); ++i) {
+    for (hven::solvers::Index i = 0; i < qp.g.size(); ++i) {
         os << fmt::format("{:.17g}\n", qp.g(i));
     }
 
@@ -698,7 +698,7 @@ void write_qp_dump(std::ostream &os, const CorpusCell &cell, const QpProblem &qp
     };
     auto dump_vec = [&](const char *tag, const Vec &v) {
         os << fmt::format("{}_VEC {}\n", tag, v.size());
-        for (tycho::sqp::Index i = 0; i < v.size(); ++i) {
+        for (hven::solvers::Index i = 0; i < v.size(); ++i) {
             os << fmt::format("{:.17g}\n", v(i));
         }
     };
@@ -721,24 +721,24 @@ void print_list() {
     }
 }
 
-tycho::sqp::SqpStatus parse_status(const std::string &s) {
+hven::solvers::SqpStatus parse_status(const std::string &s) {
     if (s == "Optimal") {
-        return tycho::sqp::SqpStatus::kOptimal;
+        return hven::solvers::SqpStatus::kOptimal;
     }
     if (s == "MaxIter") {
-        return tycho::sqp::SqpStatus::kMaxIter;
+        return hven::solvers::SqpStatus::kMaxIter;
     }
     if (s == "Infeasible") {
-        return tycho::sqp::SqpStatus::kInfeasible;
+        return hven::solvers::SqpStatus::kInfeasible;
     }
     if (s == "NumericalError") {
-        return tycho::sqp::SqpStatus::kNumericalError;
+        return hven::solvers::SqpStatus::kNumericalError;
     }
     if (s == "BudgetExhausted") {
-        return tycho::sqp::SqpStatus::kBudgetExhausted;
+        return hven::solvers::SqpStatus::kBudgetExhausted;
     }
     throw std::invalid_argument(
-        fmt::format("tycho_sqp_corpus: internal row parse: unrecognised status string '{}'", s));
+        fmt::format("hven_sqp_corpus: internal row parse: unrecognised status string '{}'", s));
 }
 
 // =============================================================================
@@ -752,7 +752,7 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
     std::ifstream in(path);
     if (!in) {
         throw std::invalid_argument(
-            fmt::format("tycho_sqp_corpus: --from-csv: could not read '{}'", path));
+            fmt::format("hven_sqp_corpus: --from-csv: could not read '{}'", path));
     }
     std::vector<CorpusOutcome> out;
     std::string line;
@@ -795,8 +795,8 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
         o.cell = cell;
         const std::string &status = col[6];
         if (status == "dnf_setup" || status == "dnf_budget" ||
-            status == tycho::sqp::corpus::kEngineErrorStatusString) {
-            if (status == tycho::sqp::corpus::kEngineErrorStatusString) {
+            status == hven::solvers::corpus::kEngineErrorStatusString) {
+            if (status == hven::solvers::corpus::kEngineErrorStatusString) {
                 o.engine_error = true;
             } else {
                 o.dnf_phase = status == "dnf_setup" ? DnfPhase::kSetup : DnfPhase::kSolve;
@@ -851,15 +851,15 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
             // rather than scored, exactly as an internally inconsistent
             // qp_subproblems column is. This is what makes the wrong-answer
             // category re-checkable offline instead of trusted.
-            const tycho::sqp::corpus::KktVerdict stored =
-                tycho::sqp::corpus::kkt_verdict_from_string(col[14]);
-            const tycho::sqp::corpus::KktVerdict derived =
-                tycho::sqp::corpus::kkt_gate_verdict(o.row);
+            const hven::solvers::corpus::KktVerdict stored =
+                hven::solvers::corpus::kkt_verdict_from_string(col[14]);
+            const hven::solvers::corpus::KktVerdict derived =
+                hven::solvers::corpus::kkt_gate_verdict(o.row);
             if (stored != derived) {
                 throw std::invalid_argument(fmt::format(
                     "{}: kkt_verdict says '{}' but this row's own residuals re-derive to '{}' -- "
                     "the artifact is internally inconsistent and must not be scored",
-                    where, col[14], tycho::sqp::corpus::to_string(derived)));
+                    where, col[14], hven::solvers::corpus::to_string(derived)));
             }
         }
         // PHASE-7 TASK 6b's escape-reason census, read on the SAME optional-tail
@@ -896,11 +896,11 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
             // is internally inconsistent and must not be scored. (`escapes`
             // is CorpusRow::escapes, read from column 9 above, which is
             // SqpCounters::ssn::ssn_escapes verbatim.)
-            const tycho::sqp::Index census =
+            const hven::solvers::Index census =
                 o.row.ssn.ssn_escape_budget + o.row.ssn.ssn_escape_singular +
                 o.row.ssn.ssn_escape_no_contraction + o.row.ssn.ssn_escape_infeasible_suspect +
                 o.row.ssn.ssn_escape_indefinite + o.row.ssn.ssn_escape_gate_refused;
-            if (census != static_cast<tycho::sqp::Index>(o.row.escapes)) {
+            if (census != static_cast<hven::solvers::Index>(o.row.escapes)) {
                 throw std::invalid_argument(fmt::format(
                     "{}: the escape-reason census sums to {} but `escapes` says {} -- the "
                     "artifact is internally inconsistent and must not be scored",
@@ -926,7 +926,7 @@ std::vector<CorpusOutcome> in_census_order(std::vector<CorpusOutcome> outcomes) 
     }
     if (ordered.size() != outcomes.size()) {
         throw std::invalid_argument(
-            fmt::format("tycho_sqp_corpus: merge: {} of {} rows did not match a census cell",
+            fmt::format("hven_sqp_corpus: merge: {} of {} rows did not match a census cell",
                         outcomes.size() - ordered.size(), outcomes.size()));
     }
     return ordered;
@@ -975,7 +975,7 @@ void run_internal_one(const std::string &cell_id, const std::string &engine,
                     std::abort();
                 }
                 if (force_throw) {
-                    throw std::invalid_argument("tycho_sqp_corpus: FORCED TEST THROW from the "
+                    throw std::invalid_argument("hven_sqp_corpus: FORCED TEST THROW from the "
                                                 "child (--internal-force-child-throw)");
                 }
             },
@@ -1004,7 +1004,7 @@ CorpusRow read_internal_row(const std::string &path, const CorpusCell &cell) {
     const std::vector<CorpusOutcome> rows = read_outcomes_csv(path);
     if (rows.size() != 1 || rows.front().cell != &cell) {
         throw std::invalid_argument(
-            fmt::format("tycho_sqp_corpus: internal row '{}' for cell '{}' carries {} row(s) for "
+            fmt::format("hven_sqp_corpus: internal row '{}' for cell '{}' carries {} row(s) for "
                         "the wrong cell or none at all",
                         path, cell.id, rows.size()));
     }
@@ -1036,7 +1036,7 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
     const double setup_budget_s = forced_setup_s.value_or(band_s);
     const double solve_budget_s = forced_solve_s.value_or(band_s);
     const std::string out_path =
-        fmt::format("/tmp/tycho_sqp_corpus_internal_{}_{}.row", ::getpid(), cell.id);
+        fmt::format("/tmp/hven_sqp_corpus_internal_{}_{}.row", ::getpid(), cell.id);
     const std::string setup_marker = out_path + ".setup";
     const std::string error_path = out_path + ".error";
     std::remove(setup_marker.c_str());
@@ -1045,7 +1045,7 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
     const pid_t pid = fork();
     if (pid < 0) {
         throw std::runtime_error(
-            fmt::format("tycho_sqp_corpus: fork() failed for cell '{}'", cell.id));
+            fmt::format("hven_sqp_corpus: fork() failed for cell '{}'", cell.id));
     }
     if (pid == 0) {
         // Child: re-exec self in internal single-cell mode. execv only returns
@@ -1121,7 +1121,7 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
             if (!(WIFEXITED(status) && WEXITSTATUS(status) == 0)) {
                 cleanup();
                 throw std::runtime_error(fmt::format(
-                    "tycho_sqp_corpus: cell '{}' child exited abnormally "
+                    "hven_sqp_corpus: cell '{}' child exited abnormally "
                     "(WIFEXITED={} WEXITSTATUS={}) -- a signal or an unexpected exit code is a "
                     "runner failure, never a measurement",
                     cell.id, WIFEXITED(status) != 0, WIFEXITED(status) ? WEXITSTATUS(status) : -1));
@@ -1178,11 +1178,11 @@ void print_gate_verdict(const std::vector<CorpusOutcome> &outcomes) {
     std::size_t escapes = 0;
     std::size_t subproblems = 0;
     for (const CorpusOutcome &o : outcomes) {
-        if (o.cell != nullptr && tycho::sqp::corpus::in_g1_g2_population(*o.cell)) {
+        if (o.cell != nullptr && hven::solvers::corpus::in_g1_g2_population(*o.cell)) {
             ++population;
         }
         if (o.cell != nullptr &&
-            tycho::sqp::corpus::in_g1_g2_population(*o.cell, /*include_corrupted=*/true)) {
+            hven::solvers::corpus::in_g1_g2_population(*o.cell, /*include_corrupted=*/true)) {
             ++population_wc;
         }
         if (o.dnf()) {
@@ -1363,14 +1363,14 @@ int main(int argc, char **argv) {
         }
 
         if (args.internal_force_child_throw) {
-            fmt::print(stderr, "tycho_sqp_corpus: WARNING: --internal-force-child-throw is in "
+            fmt::print(stderr, "hven_sqp_corpus: WARNING: --internal-force-child-throw is in "
                                "force. Every cell in this invocation will report engine_error "
                                "regardless of what the engine would have done; these rows are "
                                "TEST FIXTURES and must never be cited as a measurement.\n");
         }
         if (args.internal_force_setup_budget_s || args.internal_force_solve_budget_s) {
             fmt::print(stderr,
-                       "tycho_sqp_corpus: WARNING: a hidden TEST-ONLY wall-budget override is in "
+                       "hven_sqp_corpus: WARNING: a hidden TEST-ONLY wall-budget override is in "
                        "force (setup={}, solve={}). These rows are NOT produced under the "
                        "committed budget table and must never be cited as a baseline; the CSV's "
                        "own provenance header records this.\n",
@@ -1494,7 +1494,7 @@ int main(int argc, char **argv) {
         }
         return 0;
     } catch (const std::exception &e) {
-        fmt::print(stderr, "tycho_sqp_corpus: error: {}\n", e.what());
+        fmt::print(stderr, "hven_sqp_corpus: error: {}\n", e.what());
         return 1;
     }
 }

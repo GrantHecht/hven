@@ -6,12 +6,12 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/ssn_engine.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/ssn_engine.h>
 
 #include "support/ssn_fixtures.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 
@@ -21,7 +21,7 @@ namespace {
 // here -- every iteration count below is an OBSERVED VALUE measured with
 // clang++ against MKL Pardiso, ============ MKL-OBSERVED. NOT YET
 // RE-VERIFIED ON APPLE ACCELERATE. ============ -- travels with them.
-using namespace tycho::sqp::test_support;
+using namespace hven::solvers::test_support;
 
 QpOptions default_opts() { return QpOptions{}; }
 
@@ -2037,7 +2037,7 @@ TEST(SsnEngineLocal, InfeasibilityIsReachedByBothRoutesAndOnBothShapes) {
     // routes' conjuncts were reworked so a FEASIBLE badly-scaled or
     // proximally damped trajectory cannot reach them, and the counts below are
     // that rework's re-derivation, from
-    // `./build/bench/tycho_sqp_ssn_safeguard_probe trace`:
+    // `./build/bench/hven_sqp_ssn_safeguard_probe trace`:
     //   * contradictory_qp   7 accepted steps (unmoved), diagnosed on the
     //     exhaustion route at attempt 7 -- its duals multiply by 154 on the
     //     last accepted step, which is the new per-step conjunct;

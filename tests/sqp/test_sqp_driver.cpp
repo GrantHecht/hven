@@ -107,23 +107,23 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
 
 #include "support/hs_problems.h"
 #include "support/hs_sweeps.h"
 #include "support/nlp_kkt_check.h"
 
-using namespace tycho::sqp;
-using tycho::sqp::test_support::HsProblem;
-using tycho::sqp::test_support::make_hs;
+using namespace hven::solvers;
+using hven::solvers::test_support::HsProblem;
+using hven::solvers::test_support::make_hs;
 // TASK 11 MOVED THESE TWO to tests/support/nlp_kkt_check.h so that the
 // Hock-Schittkowski battery can run the same check on 27 problems rather than
 // keep a second copy of it. The definitions are unchanged; only their home is.
-using tycho::sqp::test_support::NlpKktResidual;
-using tycho::sqp::test_support::self_check_kkt;
+using hven::solvers::test_support::NlpKktResidual;
+using hven::solvers::test_support::self_check_kkt;
 
 namespace {
 
@@ -5677,8 +5677,8 @@ TEST(SqpDriverDiagnostics, LedgerRecordsOneSqpSolveRecordPerDriverSolveAndQpReco
 // property into repeated funnel rejections (and, on several of them, an
 // engaged second-order correction) before the solve finds x*(2).
 TEST(SqpDriverEvalEconomics, RejectionHeavyHs40PoisonedFixtureCutsFullEvals) {
-    using tycho::sqp::test_support::hs_sweep_spec;
-    using tycho::sqp::test_support::HsSweep;
+    using hven::solvers::test_support::hs_sweep_spec;
+    using hven::solvers::test_support::HsSweep;
 
     const auto &spec = hs_sweep_spec(40);
     CountingModel model(std::make_unique<HsSweep>(spec.number, spec.tilt, spec.ce_shift,
@@ -5793,8 +5793,8 @@ TEST(SqpDriverEvalEconomics, HsSweepPoisonedHs40MatchesTheBaseProblemAtPZero) {
     // find the same optimum the unposed problem does -- if it did not,
     // "poisoned at p = 2" would be testing a broken re-posing rather than a
     // genuinely harder start.
-    using tycho::sqp::test_support::hs_sweep_spec;
-    using tycho::sqp::test_support::HsSweep;
+    using hven::solvers::test_support::hs_sweep_spec;
+    using hven::solvers::test_support::HsSweep;
     const auto &spec = hs_sweep_spec(40);
     HsSweep at_zero(spec.number, spec.tilt, spec.ce_shift, spec.ci_shift, /*p_init=*/0.0);
     SqpDriver driver{SqpOptions{}};
@@ -6399,8 +6399,8 @@ SqpOptions ssn_mode_options(Index max_iter = 60) {
 // wants to be able to make.
 // =====================================================================
 TEST(SqpDriverSsnMode, EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn) {
-    using tycho::sqp::test_support::hs_numbers;
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::hs_numbers;
+    using hven::solvers::test_support::make_hs;
 
     Index problems_with_an_escape = 0;
     Index problems_with_a_prox_climb = 0;
@@ -6551,7 +6551,7 @@ TEST(SqpDriverSsnMode, EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn) {
 // run.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheSecondOrderCorrectionIsReachableUnderKSsnFromAnSsnSeed) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     auto walk_problem = make_hs(77);
     SqpOptions walk_opts;
@@ -6735,8 +6735,8 @@ TEST(SqpDriverSsnMode, TheUsabilityGateRefusesEveryEscapeAndAnOutOfRegionCertifi
 // (or, worse, certify) at the wrong residual.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheTightFinishIsReachedUnderKSsnExactlyAsUnderTheWalk) {
-    using tycho::sqp::test_support::make_hs;
-    using tycho::sqp::test_support::self_check_kkt;
+    using hven::solvers::test_support::make_hs;
+    using hven::solvers::test_support::self_check_kkt;
 
     for (int number : {7, 76, 40, 79}) {
         SCOPED_TRACE(fmt::format("HS{}", number));
@@ -6774,7 +6774,7 @@ TEST(SqpDriverSsnMode, TheTightFinishIsReachedUnderKSsnExactlyAsUnderTheWalk) {
 // is about. See sqp_driver.h's WHY THE ADAPTIVE-mu SCHEDULE IS OFF UNDER kSsn.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     // HS26 IS THE FIXTURE BECAUSE THE SCHEDULE ACTUALLY MOVES ON IT. Measured
     // over the whole corpus with the lever on, `SqpIterate::mu` leaves its
@@ -6866,7 +6866,7 @@ TEST(SqpDriverSsnMode, TheProximalCarryRoundTripsAndIsGatedOffByDefault) {
 }
 
 TEST(SqpDriverSsnMode, TheProximalCarryLeverMovesTheLadderAndIsOffByDefault) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     // HS27 IS THE CELL THE LEVER MOVES, and it is chosen because it moves the
     // counter it is NAMED for -- `ssn_prox_updates`, 7 -> 0 -- with the
@@ -6950,7 +6950,7 @@ TEST(SqpDriverSsnMode, TheProximalCarryLeverMovesTheLadderAndIsOffByDefault) {
 // doubles the ladder climbs it was supposed to remove. This is the evidence
 // the default rests on, so it is a test rather than a sentence in a note.
 TEST(SqpDriverSsnMode, TheProximalCarryHasACommittedCounterExample) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     auto exporter_problem = make_hs(15);
     SqpDriver exporter_driver(ssn_mode_options());
@@ -7163,7 +7163,7 @@ TEST(SqpDriverSsnMode, TheSsnStartMirrorsTheWalkSeedButNeverItsPrimal) {
 // folding them would corrupt every published figure in this repository.
 // =====================================================================
 TEST(SqpDriverSsnMode, SsnWorkIsNeverFoldedIntoTheWalksMinorCurrency) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     // HS14 certifies every subproblem under kSsn with no escape at all
     // (observed: 9 SSN iterations, 0 escapes, 0 backtracks).
@@ -7202,7 +7202,7 @@ TEST(SqpDriverSsnMode, SsnWorkIsNeverFoldedIntoTheWalksMinorCurrency) {
 // would damp a subproblem on evidence from a problem it never solved.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheProximalExportDoesNotLeakFromOneSolveToTheNext) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     SqpDriver driver(ssn_mode_options());
 
@@ -7245,7 +7245,7 @@ TEST(SqpDriverSsnMode, TheProximalExportDoesNotLeakFromOneSolveToTheNext) {
 // an active set it had already paid to identify.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheSsnBoundActivityReachesTheHandOff) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     auto walk_problem = make_hs(30);
     SqpOptions walk_opts;
@@ -7352,7 +7352,7 @@ TEST(SqpDriverSsnMode, RestorationStaysOnTheWalkUnderKSsn) {
 // precisely the claim.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     // (1) FIXTURE PREMISE: unbudgeted, HS1 under kSsn converges and spends no
     // walk minors at all.
@@ -7438,7 +7438,7 @@ TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee)
 // subproblem that then CERTIFIES, carries both.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheCarriedProximalCentreIsNeverAnEscapedIterate) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     // (a) THE ESCAPED CLIMB. The level carries; the centre does not.
     IndefiniteBoxModel escaped;
@@ -7498,7 +7498,7 @@ TEST(SqpDriverSsnMode, TheCarriedProximalCentreIsNeverAnEscapedIterate) {
 // is exactly the shape continuation drives. Two identical solves on ONE driver
 // is the whole test; the second must be indistinguishable from the first.
 TEST(SqpDriverSsnMode, TheCentresHighWaterMarkIsClearedBetweenSolves) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     auto first_problem = make_hs(7);
     auto second_problem = make_hs(7);
@@ -7583,7 +7583,7 @@ TEST(SqpDriverSsnMode, TheSsnFbToleranceTracksTheTighterOfTheDriversTwoTolerance
     // (3) AND THE DRIVER REACHES 1e-10 THROUGH IT, on the same fixture the
     // tight-finish arm uses -- so the derivation change did not cost the
     // property that arm exists to protect.
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
     auto p = make_hs(7);
     SqpOptions opts = ssn_mode_options();
     opts.kkt_tol = 1e-10;
@@ -7622,8 +7622,8 @@ TEST(SqpDriverSsnMode, TheSsnFbToleranceTracksTheTighterOfTheDriversTwoTolerance
 // face solve, and nothing else moved to pay for it.
 // ============ MKL-OBSERVED, NOT RE-VERIFIED ON ACCELERATE. ============
 TEST(SqpDriverSsnMode, CertifyFromFaceCostsExactlyOneFactorizationPerAcceptedRefinement) {
-    using tycho::sqp::test_support::hs_numbers;
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::hs_numbers;
+    using hven::solvers::test_support::make_hs;
 
     Index total_saved = 0;
     Index problems_that_saved = 0;
@@ -7685,7 +7685,7 @@ TEST(SqpDriverSsnMode, CertifyFromFaceCostsExactlyOneFactorizationPerAcceptedRef
 // This is the cheap detector the byte-identity discipline is enforced through.
 // ============ MKL-OBSERVED, NOT RE-VERIFIED ON ACCELERATE. ============
 TEST(SqpDriverSsnMode, CertifyFromFaceIsInertAtTheWalkDefault) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
     for (int number : {7, 15, 33, 76}) {
         SCOPED_TRACE(fmt::format("HS{}", number));
         auto a_problem = make_hs(number);

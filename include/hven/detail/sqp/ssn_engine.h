@@ -555,12 +555,12 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 namespace detail {
 
@@ -3604,4 +3604,4 @@ class SsnEngine {
     double deferred_fb_tol_ = 0.0;
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

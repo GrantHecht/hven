@@ -73,15 +73,15 @@
 
 #include <Eigen/SparseCore>
 
-#include <tycho_sqp/border_ops.h>
-#include <tycho_sqp/eqp_solve.h>
-#include <tycho_sqp/kkt_assembly.h>
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/schur_complement.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/border_ops.h>
+#include <hven/detail/sqp/eqp_solve.h>
+#include <hven/detail/sqp/kkt_assembly.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/schur_complement.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // detail::kMaxBorderRefineSteps and detail::kBorderRefineRelFloor -- the
 // budget and floor this file's refinement loop runs on -- live in eqp_solve.h
@@ -385,4 +385,4 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     return res;
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

@@ -1,4 +1,4 @@
-// tycho_sqp_ssn_safeguard_probe -- the reproduction vehicle for
+// hven_sqp_ssn_safeguard_probe -- the reproduction vehicle for
 // docs/notes/2026-08-07-ssn-safeguards.md (Phase-7 Task 4, review fix round 1,
 // finding I5; Fable review F1/F3).
 //
@@ -11,9 +11,9 @@
 // ratification scheduled on the first of those numbers would have rested on
 // figures nobody could re-derive. This program is that vehicle.
 //
-// PLACEMENT. A normal CMake target linked against `tycho_sqp` and BUILT IN BOTH
+// PLACEMENT. A normal CMake target linked against `hven::hven` and BUILT IN BOTH
 // CONFIGURATIONS, for the reason bench/CMakeLists.txt already states about
-// tycho_sqp_f7_cold: "an uncompiled probe rots silently." Deliberately NOT
+// hven_sqp_f7_cold: "an uncompiled probe rots silently." Deliberately NOT
 // ctest-registered -- it is a measurement instrument whose longest documented
 // invocation runs for many minutes, not a per-commit assertion. Its fixtures
 // are tests/support/ssn_fixtures.h, the SAME file tests/test_ssn_engine.cpp
@@ -23,15 +23,15 @@
 // authoritative configuration is clang++ / MKL Pardiso, and wall-clock figures
 // are quoted under MKL_NUM_THREADS=1):
 //
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe trace
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe search   [qps-per-family]
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe pdas     [qps]
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe tau      [qps]
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe tausweep
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe ablate
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe census   [qps]
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe band     [qps]
-//   ./build/bench/tycho_sqp_ssn_safeguard_probe routes   [qps]
+//   ./build/bench/hven_sqp_ssn_safeguard_probe trace
+//   ./build/bench/hven_sqp_ssn_safeguard_probe search   [qps-per-family]
+//   ./build/bench/hven_sqp_ssn_safeguard_probe pdas     [qps]
+//   ./build/bench/hven_sqp_ssn_safeguard_probe tau      [qps]
+//   ./build/bench/hven_sqp_ssn_safeguard_probe tausweep
+//   ./build/bench/hven_sqp_ssn_safeguard_probe ablate
+//   ./build/bench/hven_sqp_ssn_safeguard_probe census   [qps]
+//   ./build/bench/hven_sqp_ssn_safeguard_probe band     [qps]
+//   ./build/bench/hven_sqp_ssn_safeguard_probe routes   [qps]
 //
 // **THE COUNT ARGUMENT IS QPs, NOT CELLS** (review fix round 2, finding N7; the
 // banner used to say "cells-per-family" while every mode consumes it as QPs).
@@ -58,9 +58,9 @@
 // no-hysteresis variant (the alpha-only-damping variant is the same recipe with
 // the other sed):
 //
-//   rm -rf /tmp/ssn_patch && mkdir -p /tmp/ssn_patch/tycho_sqp
-//   cp include/tycho_sqp/ssn_engine.h /tmp/ssn_patch/tycho_sqp/
-//   F=/tmp/ssn_patch/tycho_sqp/ssn_engine.h
+//   rm -rf /tmp/ssn_patch && mkdir -p /tmp/ssn_patch/hven/detail/sqp
+//   cp include/hven/detail/sqp/ssn_engine.h /tmp/ssn_patch/hven/detail/sqp/
+//   F=/tmp/ssn_patch/hven/detail/sqp/ssn_engine.h
 //   # no hysteresis: the leave gate becomes the enter gate
 //   sed -i 's/was_uncertain ? tau \* detail::kSsnUncertainLeaveRatio : tau/tau/' "$F"
 //   # (alpha-only damping instead -- a sed on the beta assignment alone would
@@ -71,8 +71,8 @@
 //   #   '            beta[k] = detail::kSsnDegenerateFbDeriv;',
 //   #   'kUncertain) {\n            alpha[k] = detail::kSsnDegenerateFbDeriv;'))"
 //   clang++ -DFMT_HEADER_ONLY -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
-//     -I /tmp/ssn_patch -I include -I tests \
-//     -isystem ../tycho/dep/eigen -isystem ../tycho/dep/fmt/include \
+//     -I /tmp/ssn_patch -I include -I tests/sqp \
+//     -isystem dep/eigen -isystem dep/fmt/include \
 //     -isystem /opt/intel/oneapi/mkl/latest/include \
 //     bench/ssn_safeguard_probe.cpp -o /tmp/ssn_probe \
 //     -Wl,--start-group /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a \
@@ -92,9 +92,9 @@
 //     's/^        if (project) {/        if (false) {/' on the patched copy,
 //     which is unique in ssn_engine.h; and
 //   * `census`'s PRE-FIX arm -- instead of a sed, seed the patched copy from
-//     the pre-fix engine itself,
-//     `git show f20dcfe:include/tycho_sqp/ssn_engine.h`, and add
-//     -DTYCHO_SQP_PROBE_PREFIX_ENGINE so this file's escape-name switch omits
+//     the pre-fix engine itself (the archived sandbox's commit f20dcfe, its
+//     copy of ssn_engine.h -- see section 12.2 below), and add
+//     -DHVEN_SQP_PROBE_PREFIX_ENGINE so this file's escape-name switch omits
 //     the one enumerator fix round 1 introduced. That define exists for this
 //     arm alone; no CMake target sets it.
 
@@ -108,13 +108,13 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/ssn_engine.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/ssn_engine.h>
 
 #include "support/ssn_fixtures.h"
 
-using namespace tycho::sqp;
-using namespace tycho::sqp::test_support;
+using namespace hven::solvers;
+using namespace hven::solvers::test_support;
 
 namespace {
 
@@ -157,12 +157,13 @@ const char *escape_name(SsnEscape e) {
         return "kNoContraction";
     case SsnEscape::kInfeasibleSuspect:
         return "kInfeasibleSuspect";
-#ifndef TYCHO_SQP_PROBE_PREFIX_ENGINE
+#ifndef HVEN_SQP_PROBE_PREFIX_ENGINE
     // The ONE enumerator fix round 1 added. Guarded so that the pre-fix
-    // A/B arm of section 12.2 -- this same file compiled against
-    // `git show f20dcfe:include/tycho_sqp/ssn_engine.h` -- is a documented
-    // recompile rather than a source edit. The define is never set by any
-    // CMake target here; both configurations build the shipped branch.
+    // A/B arm of section 12.2 -- this same file compiled against the
+    // archived sandbox's pre-fix ssn_engine.h (its commit f20dcfe) -- is a
+    // documented recompile rather than a source edit. The define is never
+    // set by any CMake target here; both configurations build the shipped
+    // branch.
     case SsnEscape::kIndefinite:
         return "kIndefinite";
 #endif
@@ -626,15 +627,16 @@ void mode_ablate() {
 // Section 12.2: the FALSE-kInfeasible census -- the A/B whose two headline rows
 // (48.3% -> 0.0% and 58.9% -> 0.0%) fix round 1 produced from two uncommitted
 // scratch programs, which is the very defect finding I5 raised. This is the
-// committed half; the PRE-fix arm is the same binary rebuilt against
-// `git show f20dcfe:include/tycho_sqp/ssn_engine.h`, resolved ahead of
-// include/ exactly as the band variants are, with -DTYCHO_SQP_PROBE_PREFIX_ENGINE
-// so this file's escape-name switch does not name the enumerator that fix round
-// 1 added:
+// committed half; the PRE-fix arm is the same binary rebuilt against the
+// pre-fix engine header (the archived sandbox's commit f20dcfe), resolved
+// ahead of include/ exactly as the band variants are, with
+// -DHVEN_SQP_PROBE_PREFIX_ENGINE so this file's escape-name switch does not
+// name the enumerator that fix round 1 added:
 //
-//   mkdir -p /tmp/ssn_prefix/tycho_sqp
-//   git show f20dcfe:include/tycho_sqp/ssn_engine.h > /tmp/ssn_prefix/tycho_sqp/ssn_engine.h
-//   clang++ ... -DTYCHO_SQP_PROBE_PREFIX_ENGINE -I /tmp/ssn_prefix -I include -I tests ...
+//   mkdir -p /tmp/ssn_prefix/hven/detail/sqp
+//   # in the archived sandbox checkout: git show f20dcfe:<its ssn_engine.h>
+//   #   > /tmp/ssn_prefix/hven/detail/sqp/ssn_engine.h
+//   clang++ ... -DHVEN_SQP_PROBE_PREFIX_ENGINE -I /tmp/ssn_prefix -I include -I tests/sqp ...
 //
 // EVERY QP HERE IS FEASIBLE BY CONSTRUCTION and confirmed so by the walk, so
 // every kInfeasible counted below is a FALSE POSITIVE -- the one status a driver
@@ -1353,7 +1355,7 @@ int main(int argc, char **argv) {
     const std::uint64_t seed =
         argc > 3 ? static_cast<std::uint64_t>(std::atoll(argv[3])) : kDefaultSeed;
 
-    std::printf("# tycho_sqp_ssn_safeguard_probe mode=%s count=%lld seed=%llu\n", mode.c_str(),
+    std::printf("# hven_sqp_ssn_safeguard_probe mode=%s count=%lld seed=%llu\n", mode.c_str(),
                 count, (unsigned long long)seed);
     if (mode == "trace") {
         mode_trace();

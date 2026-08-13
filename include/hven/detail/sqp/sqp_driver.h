@@ -838,7 +838,7 @@
 // test that judges (f, h) at the raw trial point rejects a great step for a
 // reason that has nothing to do with its quality. The funnel above has no way
 // to tell "the model was locally wrong" from "the step was bad" -- both look
-// like a kReject with h_new > h_old. THE SPEC NAMES THIS AS TYCHO_SQP'S
+// like a kReject with h_new > h_old. THE SPEC NAMES THIS AS THIS ENGINE'S
 // DELIBERATE, CHEAP EDGE OVER UNO, WHICH OMITS SOC ENTIRELY: one extra,
 // hot-started QP re-solve buys back exactly the class of rejection this
 // section handles. "Near-free" describes the DESIGN REGIME this targets --
@@ -2122,18 +2122,18 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/globalization.h>
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/ssn_engine.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/globalization.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/ssn_engine.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // =============================================================================
 // Trust-region update constants. See this header's RADIUS MANAGEMENT note for
@@ -3938,7 +3938,7 @@ inline constexpr double kAdaptiveMuMax = 1e-8; // == QpOptions::dual_mu's own de
 //   (2) THAT CLASS SCALES WITH THE PRODUCER'S TOLERANCE, NOT WITH OURS. An IP
 //       method's residual sign noise near convergence sits about an order above
 //       its own stopping tolerance -- the 1e-8 in (1) accompanies a
-//       complementarity residue of mu = 1e-9 in that fixture, and the PSIOPT
+//       complementarity residue of mu = 1e-9 in that fixture, and the IPM
 //       bridge's own matched-accuracy arm runs bar_tol = 1e-12
 //       (docs/notes/2026-08-01-psiopt-first-comparison.md Sec. 4.6). A producer
 //       converged to 1e-7 or better therefore lands inside 1e-6.
@@ -6896,4 +6896,4 @@ inline std::string format_iteration_table(const SqpSolution &sol) {
     return result;
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

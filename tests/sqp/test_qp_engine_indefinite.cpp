@@ -32,13 +32,13 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/kkt_assembly.h>
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/qp_engine.h>
+#include <hven/detail/sqp/kkt_assembly.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/qp_engine.h>
 
 #include "support/dense_oracle.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 

@@ -41,15 +41,15 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
 
 #include "support/derivative_check.h"
 #include "support/nlp_kkt_check.h"
 #include "support/parametric_families.h"
 
-namespace tycho::sqp {
+namespace hven::solvers {
 namespace {
 
 using test_support::AnalyticActiveSet;
@@ -860,4 +860,4 @@ TEST(ParametricModelContract, SpringChainRejectsDegenerateConstruction) {
 }
 
 } // namespace
-} // namespace tycho::sqp
+} // namespace hven::solvers

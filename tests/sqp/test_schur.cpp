@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <tycho_sqp/schur_complement.h>
-using namespace tycho::sqp;
+#include <hven/detail/sqp/schur_complement.h>
+using namespace hven::solvers;
 
 // K0 = [H Aᵀ; A 0] with H = diag(2,3), A = [1 1]. Saddle point: inertia (2,1,0).
 // (Repeated verbatim from tests/test_kkt_system.cpp's make_kkt3().)

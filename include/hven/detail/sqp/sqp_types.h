@@ -12,11 +12,11 @@
 #include <memory>
 #include <vector>
 
-#include <tycho_sqp/globalization.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/globalization.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // Outcome of a whole SQP solve. Deliberately mirrors QpStatus one-for-one --
 // the driver's Task-4 status routing was a direct map from the subproblem's
@@ -1839,4 +1839,4 @@ struct SqpSolution {
     WarmStart warm_start;
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

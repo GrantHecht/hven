@@ -24,10 +24,10 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // Bookkeeping tag for one currently-live border, kept by the engine (Task 3)
 // in SchurComplement::add_border call order (so its position in this list
@@ -179,4 +179,4 @@ struct BorderOps {
     }
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

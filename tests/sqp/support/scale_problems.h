@@ -5,7 +5,7 @@
 // shaped like the workload tycho actually runs (a direct-collocation optimal
 // control transcription) and carrying a MANUFACTURED SOLUTION that is exact in
 // closed form at every problem size. Every scale study, policy ruling and the
-// PSIOPT head-to-head in Phase 5 is measured against this family, so its
+// IPM head-to-head in Phase 5 is measured against this family, so its
 // analytic surface -- x*(p), f*(p), the multipliers, the active set and the
 // activity junctions -- is DERIVED here in full rather than asserted, in the
 // same style as tests/support/parametric_families.h's F1-F6. This header
@@ -391,12 +391,12 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/types.h>
 
 #include "parametric_families.h"
 
-namespace tycho::sqp::test_support {
+namespace hven::solvers::test_support {
 
 #if defined(__linux__)
 // Peak resident set size in MiB, from /proc/self/status's VmHWM. INFORMATIONAL
@@ -480,7 +480,7 @@ class F7CollocationChain : public ParametricNlpModel {
     Index node_offset(Index k) const { return k * (ns_ + nc_); }
     // e and s are exposed for the same reason F1-F6 expose their analytic
     // surface: a downstream task that wants to build its own reference profile
-    // (a mesh transfer, a predictor's finite difference, the PSIOPT bridge's
+    // (a mesh transfer, a predictor's finite difference, the IPM bridge's
     // problem dump) should read the vectors this family actually uses rather
     // than re-transcribe two formulas from the banner. Neither has a caller
     // TODAY -- flagged in review round 1 (Q-8) so a later reader does not
@@ -1128,4 +1128,4 @@ class F7CollocationChain : public ParametricNlpModel {
     Vec data_g_;  // (F7-G), n entries
 };
 
-} // namespace tycho::sqp::test_support
+} // namespace hven::solvers::test_support

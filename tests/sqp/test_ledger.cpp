@@ -2,13 +2,13 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/sqp_driver.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/sqp_driver.h>
 
 #include "support/parametric_families.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 

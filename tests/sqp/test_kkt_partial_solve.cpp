@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <tycho_sqp/kkt_system.h>
-using namespace tycho::sqp;
+#include <hven/detail/sqp/kkt_system.h>
+using namespace hven::solvers;
 
 TEST(KktPartialSolve, ComposedPartialsMatchFullSolve) {
     Eigen::MatrixXd D(3, 3);

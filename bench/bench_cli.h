@@ -6,7 +6,7 @@
 // copies of them.
 //
 // THIS IS NOT PART OF THE LIBRARY SURFACE and is deliberately not under
-// include/tycho_sqp/: nothing in include/ or src/ may depend on it, it is
+// include/hven/detail/sqp/: nothing in include/ or src/ may depend on it, it is
 // never installed, and it exists only so two throwaway measurement binaries
 // share one implementation of "parse this argument or throw with the usage
 // text attached". It follows the same precedent as
@@ -27,7 +27,7 @@
 
 #include <fmt/format.h>
 
-namespace tycho::sqp::bench_cli {
+namespace hven::solvers::bench_cli {
 
 // Throw std::invalid_argument carrying `detail` followed by `usage`. The
 // [[noreturn]] is load-bearing at both call sites: it is what lets the parse
@@ -72,7 +72,7 @@ inline double parse_double(const char *usage, const std::string &what, const std
 }
 
 // ---------------------------------------------------------------------
-// PHASE-5 TASK 9 (the PSIOPT bridge). The two helpers behind
+// PHASE-5 TASK 9 (the IPM bridge). The two helpers behind
 // bench_scale.cpp's --dump-solution flag, here rather than there for the same
 // reason the parse helpers are: they are the part a TEST can reach
 // (tests/test_bench_dump.cpp), since bench_scale.cpp is a main() with no
@@ -105,7 +105,7 @@ inline std::ofstream open_output_or_throw(const char *usage, const std::string &
 inline void write_solution_dump(std::ostream &os, const std::string &family, long long n_flag,
                                 const std::string &arm, double p, const std::string &status,
                                 double f, const double *x, std::size_t nx) {
-    os << "# tycho_sqp_bench --dump-solution\n";
+    os << "# hven_sqp_bench --dump-solution\n";
     os << fmt::format("# family: {}\n", family);
     os << fmt::format("# arm: {}\n", arm);
     os << fmt::format("# n_flag: {}\n", n_flag);
@@ -119,4 +119,4 @@ inline void write_solution_dump(std::ostream &os, const std::string &family, lon
     }
 }
 
-} // namespace tycho::sqp::bench_cli
+} // namespace hven::solvers::bench_cli

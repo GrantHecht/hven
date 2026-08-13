@@ -5,10 +5,10 @@
 
 #include <fmt/core.h>
 
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // A single solve event: label, warm start flag, status, and performance counters.
 struct SolveRecord {
@@ -279,4 +279,4 @@ class Ledger {
     std::vector<SqpSolveRecord> sqp_records_;
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

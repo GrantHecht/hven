@@ -98,13 +98,13 @@
 
 #include <Eigen/SparseCore>
 
-#include <tycho_sqp/kkt_assembly.h>
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/kkt_assembly.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 namespace detail {
 
@@ -245,4 +245,4 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, KktSystem 
     return out;
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

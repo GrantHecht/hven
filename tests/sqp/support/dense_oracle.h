@@ -64,10 +64,10 @@
 #include <Eigen/Dense>
 #include <fmt/format.h>
 
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 namespace detail {
 
@@ -500,4 +500,4 @@ inline std::vector<QpSolution> enumerate_local_minimizers(const QpProblem &qp) {
     return minimizers;
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

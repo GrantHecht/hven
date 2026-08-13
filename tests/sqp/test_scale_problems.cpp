@@ -53,16 +53,16 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
 
 #include "support/derivative_check.h"
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
 
-namespace tycho::sqp {
+namespace hven::solvers {
 namespace {
 
 using test_support::AnalyticActiveSet;
@@ -1138,7 +1138,7 @@ TEST(ScaleF7Contract, RejectsBadConstructionAndParameterSize) {
 // and the per-commit `ctest --test-dir build[-debug]` run never executes it.
 // It is still an ordinary gtest and is run directly:
 //
-//     ./tests/tycho_sqp_tests --gtest_filter='ScaleF7Slow.*'
+//     ./tests/hven_sqp_tests --gtest_filter='ScaleF7Slow.*'
 //
 // WHEN IT MUST RUN: in the PHASE-GATE Debug sweep (CLAUDE.md's "the Debug suite
 // must be green before each phase merge" applies to this file too -- the
@@ -1311,4 +1311,4 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
 }
 
 } // namespace
-} // namespace tycho::sqp
+} // namespace hven::solvers

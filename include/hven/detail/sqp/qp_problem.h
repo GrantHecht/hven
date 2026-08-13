@@ -23,9 +23,9 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 struct QpProblem {
     SpMatU H;                                            // n x n, upper triangle
@@ -121,4 +121,4 @@ struct QpSolution {
     std::vector<bool> tr_active;
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

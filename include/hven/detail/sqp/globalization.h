@@ -21,7 +21,7 @@
 //   [TYC] tycho's validated funnel port,
 //         ../tycho/include/tycho/detail/solvers/globalization/funnel_acceptance.h
 //         (+ switching_acceptance.h, whose Wachter-Biegler skeleton it sits
-//         on). That port transplanted the KLV funnel into PSIOPT's BARRIER
+//         on). That port transplanted the KLV funnel into the IPM engine's BARRIER
 //         interior-point context and took its constants from the Uno solver's
 //         shipped option defaults.
 //
@@ -29,7 +29,7 @@
 // disagree, [KLV] WINS and the resolution is recorded at the point of
 // divergence below (six of them, each tagged "DIVERGENCE FROM [TYC]"). The
 // barrier adaptations in [TYC] are precisely what must NOT be inherited: they
-// exist because PSIOPT judges a BARRIER objective phi = f + auxiliary along a
+// exist because the IPM engine judges a BARRIER objective phi = f + auxiliary along a
 // line search with a step length alpha, and neither of those things is true
 // here. This file is a trust-region SQP judging f itself.
 //
@@ -193,7 +193,7 @@
 //
 // NOT a divergence, but a documented GENERALIZATION: h itself. KLV Sec. 2.4.1
 // defines h(x) = ||c(x)||_1 for an NCO whose only inequalities are bounds,
-// which "are always feasible throughout SQP iterations". tycho_sqp's NLP
+// which "are always feasible throughout SQP iterations". This engine's NLP
 // carries general inequalities cI(x) <= 0, so the l1 violation generalizes to
 // ||cE||_1 + sum_j max(0, cI_j) and reduces to the paper's h exactly when
 // mi() == 0. Bounds are excluded for the paper's own reason -- and here that
@@ -209,9 +209,9 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // =============================================================================
 // KLV parameters. Every value is Table 1 ("Parameter values of the funnel
@@ -799,4 +799,4 @@ class FunnelStrategy final : public GlobalizationStrategy {
     bool full_step_ = false;
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

@@ -4,15 +4,15 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/eqp_solve.h>
-#include <tycho_sqp/kkt_assembly.h>
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/schur_complement.h>
+#include <hven/detail/sqp/eqp_solve.h>
+#include <hven/detail/sqp/kkt_assembly.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/schur_complement.h>
 
 #include "support/border_test_utils.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 

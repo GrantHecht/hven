@@ -8,7 +8,7 @@
 // THE SOURCE FIREWALL, WHICH IS THE FIRST THING TO KNOW ABOUT THIS FILE.
 //
 // SNOPT is commercial, third-party, and NOT vendored: it lives outside the
-// repository at ${TYCHO_SQP_SNOPT_DIR} (default ~/Software/snopt7), is
+// repository at ${HVEN_SQP_SNOPT_DIR} (default ~/Software/snopt7), is
 // referenced by path from bench/CMakeLists.txt, and nothing SNOPT-derived is
 // copied into this tree. NO SNOPT SOURCE (.f/.f90) WAS READ TO WRITE THIS
 // FILE. Everything here was written against exactly three public artifacts:
@@ -27,7 +27,7 @@
 //
 // DISCLOSED: a full SNOPT SOURCE distribution also exists on this development
 // machine, at ~/Source/snopt7. It was NEVER referenced -- not by this
-// repository, not by the build (TYCHO_SQP_SNOPT_DIR points at the BINARY
+// repository, not by the build (HVEN_SQP_SNOPT_DIR points at the BINARY
 // install, ~/Software/snopt7), and not by any scratch work. NO SOURCE FILE
 // under that path was opened. It is named here rather than left unmentioned,
 // so that the three-artifact list above is a complete account of what this
@@ -84,7 +84,7 @@
 //   bound size is 1.0e+20 (guide section 7.3, p.63): a bound at or beyond
 //   infBnd is "non-existent" (section 3.4, xlow/xupp). The two constants
 //   coincide, so lower()/upper() are copied through UNMODIFIED and both
-//   solvers see the identical box. THIS IS THE ONE PLACE THE PSIOPT BRIDGE
+//   solvers see the identical box. THIS IS THE ONE PLACE THE IPM BRIDGE
 //   HAD TO PAY A PENALTY AND THIS ONE DOES NOT: SNOPT handles bounds
 //   natively as bounds, so there is no bound-to-row expansion here and no
 //   1.8x row inflation. Stated in the note in both directions.
@@ -128,7 +128,7 @@
 //   Lagrangian (guide section 1.1, and section 7.7 "Hessian full memory /
 //   Hessian limited memory", p.73), defaulting to LIMITED MEMORY whenever
 //   the nonlinear variable count n1 > 75 -- which is every instance this
-//   bridge measures. tycho_sqp supplies an EXACT analytic Hessian. This is
+//   bridge measures. This engine supplies an EXACT analytic Hessian. This is
 //   not a knob either side can turn: it is a structural difference between
 //   the two methods and it belongs in the note next to every major-iteration
 //   count, because it is the single most likely explanation of a major-count
@@ -218,7 +218,7 @@
 //     (eq. 7.1) -- normalized BY THE SIZE OF THE SOLUTION;
 //   * Major optimality tolerance tests maxComp = max_j Comp_j / ||pi|| <= tau
 //     (eq. 7.2) -- normalized by the dual norm.
-// tycho_sqp's kkt_tol/feas_tol are absolute. On F7 at n = 10^5, ||x|| is
+// This engine's kkt_tol/feas_tol are absolute. On F7 at n = 10^5, ||x|| is
 // O(sqrt(n)), so SNOPT at its default 1e-6 admits absolute violations three
 // orders of magnitude larger than the same number would mean for us. THIS
 // IS WHY THE BRIDGE COMPUTES ITS OWN ABSOLUTE ACCURACY METRICS -- x_err_inf
@@ -259,13 +259,13 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
 #include "snoptProblem.hpp"
 
 #include "support/scale_problems.h"
 
-namespace tycho::sqp::snopt_bridge {
+namespace hven::solvers::snopt_bridge {
 
 // SNOPT's default Infinite bound size (guide section 7.3, p.63). Identical to
 // parametric_families.h's kParamInf, which is what makes the box transcription
@@ -887,4 +887,4 @@ class SnoptF7Driver {
     long long stop_calls_ = 0;
 };
 
-} // namespace tycho::sqp::snopt_bridge
+} // namespace hven::solvers::snopt_bridge

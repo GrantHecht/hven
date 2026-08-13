@@ -353,17 +353,17 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <tycho_sqp/border_ops.h>
-#include <tycho_sqp/kkt_assembly.h>
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/schur_complement.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/border_ops.h>
+#include <hven/detail/sqp/kkt_assembly.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/schur_complement.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // Tuning for predict(). Both fields are the Phase-4 plan's own.
 struct PredictorOptions {
@@ -1437,4 +1437,4 @@ inline WarmStart predict(ParametricNlpModel &model, const WarmStart &warm, const
     }
 }
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

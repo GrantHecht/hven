@@ -24,11 +24,11 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/qp_engine.h>
+#include <hven/detail/sqp/qp_engine.h>
 
 #include "support/dense_oracle.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 

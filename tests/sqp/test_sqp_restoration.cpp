@@ -39,18 +39,18 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
 
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
 
-using namespace tycho::sqp;
-using tycho::sqp::test_support::assert_gradient;
-using tycho::sqp::test_support::assert_hessian;
-using tycho::sqp::test_support::assert_jacobians;
-using tycho::sqp::test_support::HsProblem;
-using tycho::sqp::test_support::make_hs;
+using namespace hven::solvers;
+using hven::solvers::test_support::assert_gradient;
+using hven::solvers::test_support::assert_hessian;
+using hven::solvers::test_support::assert_jacobians;
+using hven::solvers::test_support::HsProblem;
+using hven::solvers::test_support::make_hs;
 
 namespace {
 

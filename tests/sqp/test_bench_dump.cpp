@@ -16,7 +16,7 @@
 //
 // bench_cli.h is included by RELATIVE PATH, exactly as bench_scale.cpp
 // includes tests/support/*.h by relative path in the other direction. Neither
-// header is part of the library surface (include/tycho_sqp/), and nothing in
+// header is part of the library surface (include/hven/detail/sqp/), and nothing in
 // include/ or src/ depends on either.
 //
 // ---------------------------------------------------------------------
@@ -51,21 +51,21 @@
 
 #include <gtest/gtest.h>
 
-#include "../bench/bench_cli.h"
+#include "../../bench/bench_cli.h"
 
 namespace {
 
-using tycho::sqp::bench_cli::open_output_or_throw;
-using tycho::sqp::bench_cli::write_solution_dump;
+using hven::solvers::bench_cli::open_output_or_throw;
+using hven::solvers::bench_cli::write_solution_dump;
 
-constexpr const char *kUsage = "usage: tycho_sqp_bench --family F3|F7 ... [THE USAGE TEXT]\n";
+constexpr const char *kUsage = "usage: hven_sqp_bench --family F3|F7 ... [THE USAGE TEXT]\n";
 
 // A path inside a directory that does not exist, so ofstream cannot open it.
 // Built under the system temp directory rather than a literal so the test does
 // not depend on '/' being unwritable (it is not, for root).
 std::string unopenable_path() {
     return (std::filesystem::temp_directory_path() /
-            "tycho_sqp_test_bench_dump_no_such_directory_2ad9/out.txt")
+            "hven_sqp_test_bench_dump_no_such_directory_2ad9/out.txt")
         .string();
 }
 
@@ -87,7 +87,7 @@ std::vector<std::pair<std::string, std::string>> parse_header(const std::string 
         const std::string body = line.substr(1, std::string::npos);
         const std::size_t sep = body.find(": ");
         if (sep == std::string::npos) {
-            continue; // the banner line, "# tycho_sqp_bench --dump-solution"
+            continue; // the banner line, "# hven_sqp_bench --dump-solution"
         }
         out.emplace_back(body.substr(1, sep - 1), body.substr(sep + 2));
     }
@@ -142,7 +142,7 @@ TEST(BenchDump, OpenOutputThrowsWithFlagPathAndUsageFoldedIn) {
 // The success path, so the throw above is not vacuously satisfied by a helper
 // that rejects everything.
 TEST(BenchDump, OpenOutputReturnsAWritableStreamOnAGoodPath) {
-    const std::string path = writable_path("tycho_sqp_test_bench_dump_ok.txt");
+    const std::string path = writable_path("hven_sqp_test_bench_dump_ok.txt");
     std::filesystem::remove(path);
     {
         std::ofstream out = open_output_or_throw(kUsage, "--dump-solution", path);

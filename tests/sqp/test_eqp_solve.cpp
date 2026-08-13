@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/eqp_solve.h>
+#include <hven/detail/sqp/eqp_solve.h>
 
 #include "support/dense_oracle.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 

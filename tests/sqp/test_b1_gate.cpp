@@ -114,19 +114,19 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/continuation.h>
-#include <tycho_sqp/mesh_transfer.h>
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/continuation.h>
+#include <hven/detail/sqp/mesh_transfer.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
 
 #include "support/hs_problems.h"
 #include "support/nlp_kkt_check.h"
 #include "support/parametric_families.h"
 
-namespace tycho::sqp {
+namespace hven::solvers {
 namespace {
 
 using test_support::F6PathBoundQuadrature;
@@ -1544,4 +1544,4 @@ TEST(B1Gate, ReviewSphereIsRepairedUnderKSsnToo) {
 }
 
 } // namespace
-} // namespace tycho::sqp
+} // namespace hven::solvers

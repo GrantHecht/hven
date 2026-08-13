@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // Type aliases
 using Index = Eigen::Index;
@@ -90,7 +90,7 @@ struct QpOptions {
     // Sec. 3's cost law), so ANY fixed constant is eventually below the
     // demand: 500 is already below it at n = 250 on the F7 collocation family
     // (docs/notes/2026-07-30-scale-study-cold.md Sec. 5), and 6 of the 15
-    // instances of the F7 cold grid were recorded as tycho_sqp FAILURES that
+    // instances of the F7 cold grid were recorded as SQP-engine FAILURES that
     // are nothing but this cap sitting under a demand of 850-7341 minors
     // (docs/notes/2026-08-03-identification-stall-study.md Sec. 5, which
     // recovers three of them outright by raising it and nothing else).
@@ -293,7 +293,7 @@ struct QpCounters {
     // and the six added in fix round 1, below) is read by any decision in
     // qp_engine.h; they are written and never consulted, so the walk's
     // trajectory is bit-for-bit what it was before they existed (verified:
-    // `tycho_sqp_bench --self-check` byte-exact and the full suite green in
+    // `hven_sqp_bench --self-check` byte-exact and the full suite green in
     // both build configurations at the commit that added them).
     //
     // WHY THEY EXIST. Phase 5 closed with the F7 wide-window minor-stall as
@@ -498,4 +498,4 @@ struct QpCounters {
     Index ratio_ties = 0;
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

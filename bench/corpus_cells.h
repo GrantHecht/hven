@@ -114,36 +114,36 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
 
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
 
-namespace tycho::sqp::corpus {
+namespace hven::solvers::corpus {
 
-using tycho::sqp::from_interior_point;
-using tycho::sqp::Index;
-using tycho::sqp::IpCrossoverOptions;
-using tycho::sqp::QpMode;
-using tycho::sqp::SqpCounters;
-using tycho::sqp::SqpDriver;
-using tycho::sqp::SqpOptions;
-using tycho::sqp::SqpSolution;
-using tycho::sqp::SqpStatus;
-using tycho::sqp::SsnCounters;
-using tycho::sqp::StartLevel;
-using tycho::sqp::Vec;
-using tycho::sqp::WarmStart;
-using tycho::sqp::test_support::F7CollocationChain;
-using tycho::sqp::test_support::NlpKktResidual;
-using tycho::sqp::test_support::self_check_kkt;
+using hven::solvers::from_interior_point;
+using hven::solvers::Index;
+using hven::solvers::IpCrossoverOptions;
+using hven::solvers::QpMode;
+using hven::solvers::SqpCounters;
+using hven::solvers::SqpDriver;
+using hven::solvers::SqpOptions;
+using hven::solvers::SqpSolution;
+using hven::solvers::SqpStatus;
+using hven::solvers::SsnCounters;
+using hven::solvers::StartLevel;
+using hven::solvers::Vec;
+using hven::solvers::WarmStart;
+using hven::solvers::test_support::F7CollocationChain;
+using hven::solvers::test_support::NlpKktResidual;
+using hven::solvers::test_support::self_check_kkt;
 
 // =============================================================================
 // TYPES (spec section 3's "produces" list -- later tasks rely on these exact
-// names and this exact namespace, tycho::sqp::corpus).
+// names and this exact namespace, hven::solvers::corpus).
 // =============================================================================
 
 // An alias over the bench generators' own --family switch values
@@ -870,7 +870,7 @@ constexpr double kPathInterfaceP = 0.85;
 constexpr double kPathInterfaceP0 = 0.80;
 
 // The committed cap (identification-stall-study.md Sec. 3's own invocation,
-// `tycho_sqp_f7_cold <N> 0.85 20000 512 refactorize`; scale-study-cold.md
+// `hven_sqp_f7_cold <N> 0.85 20000 512 refactorize`; scale-study-cold.md
 // Sec. 4.2's N = 800/2000 rows) applied UNIFORMLY to every path-interface
 // cell in this corpus, healthy or not. This is a Task-1 TRACTABILITY choice,
 // stated plainly: at N ranges this note never measured (5000/10000/20000)
@@ -1052,7 +1052,7 @@ inline std::uint64_t budget_table_hash() {
     return h;
 }
 
-// bench_scale.cpp's own bench_options() tolerances/levers (PSIOPT-bridge-
+// bench_scale.cpp's own bench_options() tolerances/levers (IPM-bridge-
 // comparable, and the convention every Phase 5-7 bench CSV in this project
 // already reports under) -- reused verbatim rather than re-derived so this
 // corpus's numbers sit on the same footing as every prior sweep.
@@ -1393,7 +1393,7 @@ inline double last_kkt_residual(const SqpSolution &sol) {
 // COST: one gradient and two Jacobian evaluations at the returned point, i.e.
 // strictly less than one major iteration of the solve it is checking, at any
 // N in this census. Nothing is factorized.
-inline void record_kkt_check(const tycho::sqp::NlpModel &model, const SqpSolution &sol,
+inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpSolution &sol,
                              double bound_tol, CorpusRow &row) {
     const NlpKktResidual r = self_check_kkt(model, sol, bound_tol);
     row.kkt_stationarity = r.stationarity;
@@ -1439,7 +1439,7 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpSolution &so
     // C3: the PER-QP reading the gates name. `qp_factorizations` is
     // documented "meaningful iff qp_solved" (sqp_types.h), so a
     // stopped-AT-iterate row contributes nothing -- it built no subproblem.
-    for (const tycho::sqp::SqpIterate &it : sol.history) {
+    for (const hven::solvers::SqpIterate &it : sol.history) {
         if (it.qp_solved) {
             row.qp_factorizations.push_back(static_cast<int>(it.qp_factorizations));
         }
@@ -1458,7 +1458,7 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpSolution &so
 // minors) without needing a fixture that burns through 50000 real minors to
 // exercise the same code path. Every call site in run_cell_walk below uses
 // the default.
-inline SqpSolution budgeted_solve(SqpDriver &driver, const tycho::sqp::NlpModel &model,
+inline SqpSolution budgeted_solve(SqpDriver &driver, const hven::solvers::NlpModel &model,
                                   const Vec &x0, const WarmStart &warm = WarmStart{},
                                   Index budget = kMinorBudget) {
     return driver.solve(model, x0, warm, budget);
@@ -1492,7 +1492,7 @@ inline void notify_setup_complete(const SetupCompleteFn &fn) {
 // was measured by a binary with no such check in it. The check is charged to
 // nobody's wall.
 template <typename Fn>
-CorpusRow timed_row(const CorpusCell &cell, const tycho::sqp::NlpModel &model,
+CorpusRow timed_row(const CorpusCell &cell, const hven::solvers::NlpModel &model,
                     const SetupCompleteFn &on_setup_complete, Fn &&solve_target) {
     notify_setup_complete(on_setup_complete);
     const auto t0 = std::chrono::steady_clock::now();
@@ -1580,7 +1580,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
 // the QpProblem that call would build as its own first subproblem, instead
 // of solving it. This is bit-for-bit what SqpDriver::solve's first iteration
 // builds for the same (x, lambda_e, lambda_i) at obj_scale = 1
-// (tycho::sqp::build_subproblem, sqp_driver.h) -- the driver's own first call
+// (hven::solvers::build_subproblem, sqp_driver.h) -- the driver's own first call
 // is exactly this one, so a caller replaying this QP through an external
 // solver is replaying the SAME subproblem the walk baseline's own first
 // major iteration solved, not a re-derived approximation of it.
@@ -1602,7 +1602,7 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
 
     auto first_qp_at = [&](const Vec &x, const Vec &lambda_e, const Vec &lambda_i) {
         notify_setup_complete(on_setup_complete);
-        return tycho::sqp::build_subproblem(model, x, lambda_e, lambda_i);
+        return hven::solvers::build_subproblem(model, x, lambda_e, lambda_i);
     };
 
     switch (cell.start) {
@@ -1675,4 +1675,4 @@ inline CorpusRow run_cell(const CorpusCell &cell, const std::string &engine,
         fmt::format("run_cell: '{}' is not a known engine (expected walk|ssn)", engine));
 }
 
-} // namespace tycho::sqp::corpus
+} // namespace hven::solvers::corpus

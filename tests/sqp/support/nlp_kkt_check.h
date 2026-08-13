@@ -28,10 +28,10 @@
 
 #include <Eigen/Dense>
 
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/sqp_types.h>
 
-namespace tycho::sqp::test_support {
+namespace hven::solvers::test_support {
 
 struct NlpKktResidual {
     double stationarity = 0.0;    // ||grad f + Je^T le + Ji^T li - z||inf
@@ -102,4 +102,4 @@ inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpSolution &s
     return r;
 }
 
-} // namespace tycho::sqp::test_support
+} // namespace hven::solvers::test_support

@@ -67,15 +67,15 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/qp_engine.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
 
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 
@@ -436,8 +436,8 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
 
 namespace {
 
-using tycho::sqp::test_support::AnalyticActiveSet;
-using tycho::sqp::test_support::F7CollocationChain;
+using hven::solvers::test_support::AnalyticActiveSet;
+using hven::solvers::test_support::F7CollocationChain;
 
 // The options every F7 smoke below solves with, EXCEPT for the one knob each
 // test names. Deliberately the same tolerances as
@@ -495,8 +495,8 @@ void check_against_manufactured_optimum(const F7CollocationChain &model, const S
     const double f_star = model.f_star(p);
     EXPECT_LE(std::abs(sol.f - f_star), 1e-7 * std::max(1.0, std::abs(f_star))) << label;
     EXPECT_LE((sol.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), x_tol) << label;
-    const tycho::sqp::test_support::NlpKktResidual chk =
-        tycho::sqp::test_support::self_check_kkt(model, sol, opts.feas_tol);
+    const hven::solvers::test_support::NlpKktResidual chk =
+        hven::solvers::test_support::self_check_kkt(model, sol, opts.feas_tol);
     EXPECT_LT(chk.stationarity, 1e-7) << label;
     EXPECT_LT(chk.primal, 1e-8) << label;
     EXPECT_LT(chk.complementarity, 1e-8) << label;

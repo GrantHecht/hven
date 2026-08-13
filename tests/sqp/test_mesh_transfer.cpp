@@ -59,17 +59,17 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/mesh_transfer.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/mesh_transfer.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/warm_start.h>
 
 #include "support/parametric_families.h"
 
-using namespace tycho::sqp;
-using tycho::sqp::test_support::F6PathBoundQuadrature;
-using tycho::sqp::test_support::trapezoid_weights;
-using tycho::sqp::test_support::uniform_nodes;
+using namespace hven::solvers;
+using hven::solvers::test_support::F6PathBoundQuadrature;
+using hven::solvers::test_support::trapezoid_weights;
+using hven::solvers::test_support::uniform_nodes;
 
 namespace {
 

@@ -92,17 +92,17 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/predictor.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/predictor.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/warm_start.h>
 
 #include "support/derivative_check.h"
 #include "support/parametric_families.h"
 #include "support/scale_problems.h"
 
-namespace tycho::sqp {
+namespace hven::solvers {
 namespace {
 
 using test_support::AnalyticActiveSet;
@@ -1400,4 +1400,4 @@ TEST(Predictor, TheFrozenSetStepAlsoEmitsANonNegativePrice) {
     EXPECT_DOUBLE_EQ(pred.lambda_i(0), 0.0);
 }
 } // namespace
-} // namespace tycho::sqp
+} // namespace hven::solvers

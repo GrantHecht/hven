@@ -15,9 +15,9 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 class WorkingSet {
   public:
@@ -77,4 +77,4 @@ class WorkingSet {
     std::vector<Index> active_ineq_; // sorted, unique
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

@@ -25,10 +25,10 @@
 
 #include <Accelerate/Accelerate.h>
 
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/lapacke_shim.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/lapacke_shim.h>
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 namespace {
 

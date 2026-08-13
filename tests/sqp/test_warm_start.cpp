@@ -26,21 +26,21 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/globalization.h>
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/globalization.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/warm_start.h>
 
 #include "support/hs_problems.h"
 #include "support/parametric_families.h"
 #include "support/scale_problems.h"
 
-using namespace tycho::sqp;
-using tycho::sqp::test_support::F1BoxQp;
-using tycho::sqp::test_support::F7CollocationChain;
-using tycho::sqp::test_support::make_hs;
+using namespace hven::solvers;
+using hven::solvers::test_support::F1BoxQp;
+using hven::solvers::test_support::F7CollocationChain;
+using hven::solvers::test_support::make_hs;
 
 namespace {
 
@@ -239,15 +239,15 @@ TEST(WarmStart, ZeroMajorSolveEmitsTheSameStructureHashAsABuiltSubproblem) {
 // Hs7Model's own (structural_hash hashes sparsity pattern only, never
 // values -- qp_engine.h), which is exactly what lets a HS7 warm object
 // resolve to kWarm here.
-class Hs7PerturbedModel : public tycho::sqp::test_support::Hs7Model {
+class Hs7PerturbedModel : public hven::solvers::test_support::Hs7Model {
   public:
     explicit Hs7PerturbedModel(double eps) : eps_(eps) {}
 
     double eval_f(const Vec &x) const override {
-        return tycho::sqp::test_support::Hs7Model::eval_f(x) + eps_ * x(0);
+        return hven::solvers::test_support::Hs7Model::eval_f(x) + eps_ * x(0);
     }
     Vec eval_grad(const Vec &x) const override {
-        Vec g = tycho::sqp::test_support::Hs7Model::eval_grad(x);
+        Vec g = hven::solvers::test_support::Hs7Model::eval_grad(x);
         g(0) += eps_;
         return g;
     }
@@ -1700,7 +1700,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
 // PHASE-4 TASK 12: from_interior_point -- the interior-point crossover
 // (warm_start.h). THE KNITRO CROSSOVER PATTERN: an IP method runs to
 // near-KKT, then hands off to an active-set method (this driver) for the
-// final polish -- in tycho this is exactly how a PSIOPT solve would seed
+// final polish -- in tycho this is exactly how an IPM solve would seed
 // this driver.
 // =============================================================================
 
@@ -2529,7 +2529,7 @@ constexpr double kDisp = 1e-7;
 
 // (a) THE REPAIR'S HEADLINE: a converged IP hand-off at collocation scale is
 // read TRUTHFULLY on the shipped defaults, at both barrier levels the record
-// names -- mu = 1e-8 (the PSIOPT bridge's own bar_tol default, and the value
+// names -- mu = 1e-8 (the IPM bridge's own bar_tol default, and the value
 // docs/notes/2026-08-04-kseeded-ingest.md section 6.2 measured 0-of-92 at) and
 // mu = 1e-9 (the value the Phase-4 crossover recipe uses).
 //
@@ -2970,7 +2970,7 @@ TEST(WarmStart, CrossoverBoundActivityIsInferredAtCollocationScale) {
 //
 // The refinement arm above measures `mu = 1e-9`, where nothing is invented at
 // any mesh -- but the level the shipped bridge hands over at is `mu = 1e-8`
-// (PSIOPT's own bar_tol default, and the level
+// (the IPM engine's own bar_tol default, and the level
 // docs/notes/2026-08-04-kseeded-ingest.md section 6.2 measured the defect at).
 // One decade is the whole difference, and this arm is where it shows.
 //
@@ -3083,7 +3083,7 @@ TEST(WarmStart, CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel) {
 // is asserted here is the GATE, in both directions, and the emission contract.
 // =====================================================================
 TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
-    using tycho::sqp::test_support::make_hs;
+    using hven::solvers::test_support::make_hs;
 
     // (1) A kWalk SOLVE EMITS NOTHING. This is the byte-identity property
     // restated as an assertion: at the shipped default no SSN subproblem runs,

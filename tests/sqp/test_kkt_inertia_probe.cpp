@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
-#include <tycho_sqp/kkt_system.h>
+#include <hven/detail/sqp/kkt_system.h>
 
 #include <fmt/format.h>
 
-using namespace tycho::sqp;
+using namespace hven::solvers;
 
 // Near-singular KKT: H = diag(1, eps), A = [1 0]. As eps -> 0 the reduced
 // Hessian degenerates; probe what pardiso reports for inertia and

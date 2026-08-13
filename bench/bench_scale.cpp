@@ -179,7 +179,7 @@
 // ---------------------------------------------------------------------
 // PHASE-5 TASK 9 ADDITION -- --dump-solution, THE CROSS-SOLVER REFEREE HOOK.
 //
-// Task 9 puts tycho_sqp head to head with PSIOPT (tycho's bundled
+// Task 9 puts this SQP engine head to head with the IPM engine (tycho's bundled
 // interior-point solver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
 // both solvers must land on x*(p) = ( y*(t_k) ; u*(t_k) )_k with
 // y*(t) = min(p(1 + sin pi t), R) e, or the comparison is between two
@@ -228,12 +228,12 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/continuation.h>
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
+#include <hven/detail/sqp/continuation.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
 
 #include "bench_cli.h"
 
@@ -242,35 +242,35 @@
 
 namespace {
 
-using tycho::sqp::ContinuationOptions;
-using tycho::sqp::ContinuationResult;
-using tycho::sqp::ContinuationStep;
-using tycho::sqp::Index;
-using tycho::sqp::Ledger;
-using tycho::sqp::ParametricNlpModel;
-using tycho::sqp::QpMode;
-using tycho::sqp::QpOptions;
-using tycho::sqp::QpStatus;
-using tycho::sqp::run_continuation;
-using tycho::sqp::SolveRecord;
-using tycho::sqp::SqpDriver;
-using tycho::sqp::SqpOptions;
-using tycho::sqp::SqpSolution;
-using tycho::sqp::SqpSolveRecord;
-using tycho::sqp::SqpStatus;
-using tycho::sqp::StartLevel;
-using tycho::sqp::Vec;
-using tycho::sqp::WarmStart;
-using tycho::sqp::WorkingSetLinearAlgebra;
-using tycho::sqp::test_support::F3SpringChain;
-using tycho::sqp::test_support::F7CollocationChain;
-using tycho::sqp::test_support::peak_rss_mib;
+using hven::solvers::ContinuationOptions;
+using hven::solvers::ContinuationResult;
+using hven::solvers::ContinuationStep;
+using hven::solvers::Index;
+using hven::solvers::Ledger;
+using hven::solvers::ParametricNlpModel;
+using hven::solvers::QpMode;
+using hven::solvers::QpOptions;
+using hven::solvers::QpStatus;
+using hven::solvers::run_continuation;
+using hven::solvers::SolveRecord;
+using hven::solvers::SqpDriver;
+using hven::solvers::SqpOptions;
+using hven::solvers::SqpSolution;
+using hven::solvers::SqpSolveRecord;
+using hven::solvers::SqpStatus;
+using hven::solvers::StartLevel;
+using hven::solvers::Vec;
+using hven::solvers::WarmStart;
+using hven::solvers::WorkingSetLinearAlgebra;
+using hven::solvers::test_support::F3SpringChain;
+using hven::solvers::test_support::F7CollocationChain;
+using hven::solvers::test_support::peak_rss_mib;
 
 constexpr const char *kUsage =
-    "usage: tycho_sqp_bench --family F3|F7 --n <int> --arm cold|warm|pred|hot "
+    "usage: hven_sqp_bench --family F3|F7 --n <int> --arm cold|warm|pred|hot "
     "--sweep <int> --csv <path>\n"
-    "       tycho_sqp_bench --self-check\n"
-    "       tycho_sqp_bench --help\n"
+    "       hven_sqp_bench --self-check\n"
+    "       hven_sqp_bench --help\n"
     "\n"
     "  --family F3|F7   the parametric family (tests/support/{parametric_families,\n"
     "                   scale_problems}.h); F3: p sweeps 0.25 -> 0.75, --n is the\n"
@@ -331,7 +331,7 @@ constexpr const char *kUsage =
     "                   counters. Exit 0 on a match, 1 on a mismatch.\n"
     "  --help           print this text and exit 0.\n"
     "\n"
-    "CROSS-SOLVER FLAG (Phase-5 Task 9 -- the PSIOPT bridge; see the file banner's\n"
+    "CROSS-SOLVER FLAG (Phase-5 Task 9 -- the IPM bridge; see the file banner's\n"
     "own --dump-solution note):\n"
     "  --dump-solution <path>  ALSO write the LAST solve's converged point (one x\n"
     "                   component per line at 17 significant digits, under a\n"
@@ -355,7 +355,7 @@ constexpr const char *kUsage =
 // reads exactly as it did before the Task-3 fix-round dedupe -- this file's own
 // kUsage is the only thing they add.
 [[noreturn]] void throw_usage(const std::string &detail) {
-    tycho::sqp::bench_cli::throw_usage(kUsage, detail);
+    hven::solvers::bench_cli::throw_usage(kUsage, detail);
 }
 
 // ---------------------------------------------------------------------
@@ -487,7 +487,7 @@ struct Tuning {
     // invocation that does not pass --qp-mode is byte-identical to every
     // measurement this harness has ever produced -- including --self-check,
     // which does not read this struct's flags at all. The flag exists because
-    // the PSIOPT envelope row this phase owes is defined as "the SAME vehicle
+    // the IPM envelope row this phase owes is defined as "the SAME vehicle
     // as Phase-6 section 5.1, under kSsn", and a patched-header recompile
     // would have made that row unquotable from a committed binary.
     QpMode qp_mode = QpMode::kWalk;
@@ -751,11 +751,11 @@ struct Args {
 };
 
 double parse_double(const std::string &flag, const std::string &value) {
-    return tycho::sqp::bench_cli::parse_double(kUsage, flag, value);
+    return hven::solvers::bench_cli::parse_double(kUsage, flag, value);
 }
 
 long long parse_ll(const std::string &flag, const std::string &value) {
-    return tycho::sqp::bench_cli::parse_ll(kUsage, flag, value);
+    return hven::solvers::bench_cli::parse_ll(kUsage, flag, value);
 }
 
 Args parse_args(int argc, char **argv) {
@@ -940,9 +940,9 @@ int main(int argc, char **argv) {
                 throw_usage(fmt::format("--dump-solution: the '{}' arm produced no solve to dump",
                                         *args.arm));
             }
-            std::ofstream dump_out = tycho::sqp::bench_cli::open_output_or_throw(
+            std::ofstream dump_out = hven::solvers::bench_cli::open_output_or_throw(
                 kUsage, "--dump-solution", *args.dump_solution);
-            tycho::sqp::bench_cli::write_solution_dump(
+            hven::solvers::bench_cli::write_solution_dump(
                 dump_out, *args.family, static_cast<long long>(n), *args.arm, dump.p,
                 to_string(dump.status), dump.f, dump.x.data(),
                 static_cast<std::size_t>(dump.x.size()));
@@ -951,7 +951,7 @@ int main(int argc, char **argv) {
         }
         return 0;
     } catch (const std::exception &e) {
-        fmt::print(stderr, "tycho_sqp_bench: error: {}\n", e.what());
+        fmt::print(stderr, "hven_sqp_bench: error: {}\n", e.what());
         return 1;
     }
 }

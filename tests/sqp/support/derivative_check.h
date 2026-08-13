@@ -69,9 +69,9 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/nlp_model.h>
+#include <hven/detail/sqp/nlp_model.h>
 
-namespace tycho::sqp::test_support {
+namespace hven::solvers::test_support {
 
 namespace detail {
 
@@ -240,4 +240,4 @@ inline ::testing::AssertionResult assert_hessian(const NlpModel &model, const Ve
     return ::testing::AssertionSuccess();
 }
 
-} // namespace tycho::sqp::test_support
+} // namespace hven::solvers::test_support

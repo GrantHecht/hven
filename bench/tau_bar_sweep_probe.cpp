@@ -1,15 +1,15 @@
-// tycho_sqp_tau_bar_sweep_probe -- reproducible artifact for
+// hven_sqp_tau_bar_sweep_probe -- reproducible artifact for
 // docs/notes/2026-08-01-tuning-elastic-tau.md §4.4 (Phase-5 Task 10, fix
 // round 1, finding I-5).
 //
 // PLACEMENT (fix round 1). This lives here, as a normal CMake target linked
-// against `tycho_sqp` and BUILT IN BOTH CONFIGURATIONS, rather than in
+// against `hven::hven` and BUILT IN BOTH CONFIGURATIONS, rather than in
 // `prototypes/` (that directory's own carve-out is Python/NumPy/SciPy only --
 // CLAUDE.md -- and this has to drive the real `SqpDriver` engine to be a
 // reproduction rather than a re-implementation) or as a loose file under
-// `docs/notes/`. `tycho_sqp_f7_cold`'s own banner (this directory's
+// `docs/notes/`. `hven_sqp_f7_cold`'s own banner (this directory's
 // CMakeLists.txt) states the reason exactly: "BUILT in both configurations...
-// an uncompiled probe rots silently." Like that probe and `tycho_sqp_bench`,
+// an uncompiled probe rots silently." Like that probe and `hven_sqp_bench`,
 // this one is deliberately NOT ctest-registered (add_test /
 // gtest_discover_tests) -- it is a measurement instrument for this note, not
 // a per-commit correctness assertion.
@@ -17,7 +17,7 @@
 // WHAT THIS IS. `kFunnelTauBar` (globalization.h) is an `inline constexpr`,
 // not a runtime option, so the shipped, CMake-built form of this program only
 // ever reads the ONE value the library ships (100.0) -- running it via
-// `cmake --build build && ./build/bench/tycho_sqp_tau_bar_sweep_probe`
+// `cmake --build build && ./build/bench/hven_sqp_tau_bar_sweep_probe`
 // reproduces this note's §4.4 baseline row exactly, and keeps doing so as
 // long as the corpus or the shipped constant changes, because it is compiled
 // against the real headers every time.
@@ -33,13 +33,13 @@
 // MKL_NUM_THREADS=1):
 //
 //   for TAU in 1 10 100 1e3 1e5; do
-//     rm -rf /tmp/tau_bar_patch && mkdir -p /tmp/tau_bar_patch/tycho_sqp
-//     cp include/tycho_sqp/globalization.h /tmp/tau_bar_patch/tycho_sqp/
-//     F=/tmp/tau_bar_patch/tycho_sqp/globalization.h
+//     rm -rf /tmp/tau_bar_patch && mkdir -p /tmp/tau_bar_patch/hven/detail/sqp
+//     cp include/hven/detail/sqp/globalization.h /tmp/tau_bar_patch/hven/detail/sqp/
+//     F=/tmp/tau_bar_patch/hven/detail/sqp/globalization.h
 //     sed -i "s/kFunnelTauBar = 100.0;/kFunnelTauBar = ${TAU};/" "$F"
 //     clang++ -DFMT_HEADER_ONLY -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
-//       -I /tmp/tau_bar_patch -I include -I tests \
-//       -isystem ../tycho/dep/eigen -isystem ../tycho/dep/fmt/include \
+//       -I /tmp/tau_bar_patch -I include -I tests/sqp \
+//       -isystem dep/eigen -isystem dep/fmt/include \
 //       -isystem /opt/intel/oneapi/mkl/latest/include \
 //       bench/tau_bar_sweep_probe.cpp -o /tmp/tau_bar_probe \
 //       -Wl,--start-group /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a \
@@ -51,9 +51,9 @@
 //   done
 //
 // The `-I /tmp/tau_bar_patch` ahead of `-I include` is what makes
-// `#include <tycho_sqp/globalization.h>` resolve to the patched copy while
+// `#include <hven/detail/sqp/globalization.h>` resolve to the patched copy while
 // every OTHER header (sqp_driver.h, types.h, ...) still resolves to the real
-// `include/tycho_sqp/`, unmodified -- this file does not, and cannot, change
+// `include/hven/detail/sqp/`, unmodified -- this file does not, and cannot, change
 // anything the shipped library ships; only the SWEEP invocation above (never
 // `cmake --build`) touches a patched header, and only in a scratch directory
 // outside the repository.
@@ -69,12 +69,12 @@
 
 #include <cstdio>
 
-#include <tycho_sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_driver.h>
 
 #include "support/hs_sweeps.h"
 
-using namespace tycho::sqp;
-using namespace tycho::sqp::test_support;
+using namespace hven::solvers;
+using namespace hven::solvers::test_support;
 
 namespace {
 

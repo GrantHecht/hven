@@ -23,10 +23,10 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp::test_support {
+namespace hven::solvers::test_support {
 
 // =============================================================================
 // THE ANALYTIC FIXTURES (Phase-7 Task 3)
@@ -680,4 +680,4 @@ inline QpProblem sign_cone_discriminating_infeasible_qp() {
     qp.upper = Vec::Constant(2, 3.0);
     return qp;
 }
-} // namespace tycho::sqp::test_support
+} // namespace hven::solvers::test_support

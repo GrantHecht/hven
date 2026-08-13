@@ -108,19 +108,19 @@
 #include <fmt/ranges.h>
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/continuation.h>
-#include <tycho_sqp/globalization.h>
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/nlp_model.h>
-#include <tycho_sqp/sqp_driver.h>
-#include <tycho_sqp/sqp_types.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/continuation.h>
+#include <hven/detail/sqp/globalization.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/nlp_model.h>
+#include <hven/detail/sqp/sqp_driver.h>
+#include <hven/detail/sqp/sqp_types.h>
+#include <hven/detail/sqp/types.h>
 
 #include "support/derivative_check.h"
 #include "support/hs_sweeps.h"
 #include "support/nlp_kkt_check.h"
 
-namespace tycho::sqp {
+namespace hven::solvers {
 namespace {
 
 using test_support::assert_gradient;
@@ -1514,4 +1514,4 @@ TEST(HsSweepModels, Hs15BranchEndsAtAPointWhereLicqFails) {
 }
 
 } // namespace
-} // namespace tycho::sqp
+} // namespace hven::solvers

@@ -1495,18 +1495,18 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/border_ops.h>
-#include <tycho_sqp/bordered_eqp.h>
-#include <tycho_sqp/eqp_solve.h>
-#include <tycho_sqp/kkt_assembly.h>
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/ledger.h>
-#include <tycho_sqp/qp_problem.h>
-#include <tycho_sqp/schur_complement.h>
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/border_ops.h>
+#include <hven/detail/sqp/bordered_eqp.h>
+#include <hven/detail/sqp/eqp_solve.h>
+#include <hven/detail/sqp/kkt_assembly.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/ledger.h>
+#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/sqp/schur_complement.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 namespace detail {
 
@@ -5069,4 +5069,4 @@ class QpEngine {
     mutable std::uint64_t border_generation_ = 0;
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

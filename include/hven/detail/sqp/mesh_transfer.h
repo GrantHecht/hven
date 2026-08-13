@@ -380,11 +380,11 @@
 
 #include <fmt/format.h>
 
-#include <tycho_sqp/types.h>
-#include <tycho_sqp/warm_start.h>
-#include <tycho_sqp/working_set.h>
+#include <hven/detail/sqp/types.h>
+#include <hven/detail/sqp/warm_start.h>
+#include <hven/detail/sqp/working_set.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 // A discretization mesh: STRICTLY INCREASING nodes and STRICTLY POSITIVE
 // quadrature weights, one weight per node. Deliberately a plain aggregate with
@@ -685,4 +685,4 @@ class MeshTransfer {
     }
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers

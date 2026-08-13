@@ -22,20 +22,20 @@
 
 #include <gtest/gtest.h>
 
-#include <tycho_sqp/nlp_model.h>
+#include <hven/detail/sqp/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
 
-using tycho::sqp::Index;
-using tycho::sqp::NlpModel;
-using tycho::sqp::SpMatU;
-using tycho::sqp::Vec;
-using tycho::sqp::test_support::assert_gradient;
-using tycho::sqp::test_support::assert_hessian;
-using tycho::sqp::test_support::assert_jacobians;
-using tycho::sqp::test_support::HsProblem;
-using tycho::sqp::test_support::make_hs;
+using hven::solvers::Index;
+using hven::solvers::NlpModel;
+using hven::solvers::SpMatU;
+using hven::solvers::Vec;
+using hven::solvers::test_support::assert_gradient;
+using hven::solvers::test_support::assert_hessian;
+using hven::solvers::test_support::assert_jacobians;
+using hven::solvers::test_support::HsProblem;
+using hven::solvers::test_support::make_hs;
 
 namespace {
 
@@ -374,8 +374,8 @@ TEST(NlpModelHs, Hs79DimensionsAndDerivatives) {
 // and crash the battery). Checked here rather than in the battery so the
 // failure names the list, not a solve.
 TEST(NlpModelHs, EveryListedNumberIsConstructible) {
-    ASSERT_EQ(tycho::sqp::test_support::hs_numbers().size(), 27u);
-    for (int number : tycho::sqp::test_support::hs_numbers()) {
+    ASSERT_EQ(hven::solvers::test_support::hs_numbers().size(), 27u);
+    for (int number : hven::solvers::test_support::hs_numbers()) {
         SCOPED_TRACE(::testing::Message() << "HS" << number);
         HsProblem hs = make_hs(number);
         EXPECT_NE(hs.model, nullptr);

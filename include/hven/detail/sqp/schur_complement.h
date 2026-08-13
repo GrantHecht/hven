@@ -79,15 +79,15 @@
 #include <fmt/format.h>
 
 #ifdef USE_ACCELERATE_SPARSE
-#include <tycho_sqp/lapacke_shim.h>
+#include <hven/detail/sqp/lapacke_shim.h>
 #else
 #include <mkl_lapacke.h>
 #endif
 
-#include <tycho_sqp/kkt_system.h>
-#include <tycho_sqp/types.h>
+#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/types.h>
 
-namespace tycho::sqp {
+namespace hven::solvers {
 
 namespace detail {
 
@@ -375,4 +375,4 @@ class SchurComplement {
     Index neg_count_ = 0;                // true count of negative eigenvalues among block_abs_eigs_
 };
 
-} // namespace tycho::sqp
+} // namespace hven::solvers
