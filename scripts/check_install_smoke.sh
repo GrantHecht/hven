@@ -44,6 +44,20 @@ set -euo pipefail
 
 HVEN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXTRA_CMAKE_ARGS=("$@")
+# Below, EXTRA_CMAKE_ARGS is expanded as
+# "${EXTRA_CMAKE_ARGS[@]+"${EXTRA_CMAKE_ARGS[@]}"}", not the plain
+# "${EXTRA_CMAKE_ARGS[@]}" the local-run case would suggest: under `set
+# -u` (above), bash < 4.4 -- which is exactly what macOS ships as
+# /bin/bash (3.2, frozen at the last GPLv2 release) -- treats
+# "${EXTRA_CMAKE_ARGS[@]}" on an EMPTY array as an unbound-variable error,
+# not as zero words. Confirmed live: CI run 31702162693's macOS lane
+# failed configuring hven itself (no extra args on that call site) with
+# exactly "line 75: EXTRA_CMAKE_ARGS[@]: unbound variable" before this
+# fix. The `+` form only expands the alternate value (the array itself)
+# when the parameter is SET, which an empty array satisfies, so it is
+# old-bash-safe for zero args (the macOS/Linux local-run and CI case) and
+# behaves identically to a plain expansion whenever args are actually
+# present (the Windows CI case).
 
 if [ -n "${HVEN_INSTALL_SMOKE_WORKDIR:-}" ]; then
     WORK_DIR="${HVEN_INSTALL_SMOKE_WORKDIR}"
@@ -75,7 +89,7 @@ echo "== configuring hven (Release) into ${BUILD_DIR}"
 cmake -S "${HVEN_ROOT}" -B "${BUILD_DIR}" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DHVEN_BUILD_TESTS=OFF \
-    "${EXTRA_CMAKE_ARGS[@]}" | tee "${CONFIGURE_LOG}"
+    "${EXTRA_CMAKE_ARGS[@]+"${EXTRA_CMAKE_ARGS[@]}"}" | tee "${CONFIGURE_LOG}"
 
 echo "== building hven"
 cmake --build "${BUILD_DIR}" --parallel "${HVEN_INSTALL_SMOKE_JOBS:-6}"
@@ -87,7 +101,7 @@ echo "== configuring the smoke consumer against the installed package"
 cmake -S "${HVEN_ROOT}/tests/install_smoke" -B "${SMOKE_BUILD_DIR}" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
-    "${EXTRA_CMAKE_ARGS[@]}"
+    "${EXTRA_CMAKE_ARGS[@]+"${EXTRA_CMAKE_ARGS[@]}"}"
 
 echo "== building the smoke consumer"
 cmake --build "${SMOKE_BUILD_DIR}" --parallel "${HVEN_INSTALL_SMOKE_JOBS:-6}"
