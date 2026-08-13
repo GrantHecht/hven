@@ -1,5 +1,6 @@
 // =============================================================================
-// Tycho (Copyright 2026-present Grant R. Hecht, Apache 2.0 — see LICENSE.txt)
+// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
+//   Apache 2.0 — see LICENSE.txt)
 //
 // The internal equality row the MakeConstraint fixed-variable treatment installs:
 // x[index] - value = 0, one per variable whose declared bounds are equal.

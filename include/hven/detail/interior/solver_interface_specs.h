@@ -10,9 +10,9 @@
 // and concrete type erasure (ConstraintInterface, ObjectiveInterface) that
 // enable vector functions to interface with PSIOPT and NonLinearProgram.
 //
-// Modifications in Tycho (Copyright 2026-present Grant R. Hecht,
+// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):
-//   - Namespace renamed: asset -> tycho (with sub-namespaces tycho::vf, tycho::oc, etc.)
+//   - Namespace: asset -> tycho -> hven
 //   - Python binding methods moved to src/bindings/ (nanobind)
 //   - PR 9: Replaced rubber_types with TypeStorage; deleted dead
 //     Model<>/ExternalInterface<> boilerplate and SolverInterfaceSelector.

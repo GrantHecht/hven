@@ -1,5 +1,6 @@
 // =============================================================================
-// Tycho (Copyright 2026-present Grant R. Hecht, Apache 2.0 — see LICENSE.txt)
+// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
+//   Apache 2.0 — see LICENSE.txt)
 // =============================================================================
 //
 // Part of the globalization component extraction: RecoveryChain provides an

@@ -1,5 +1,5 @@
 // =============================================================================
-// Tycho — Copyright 2026-present Grant R. Hecht. Apache 2.0.
+// New file in Tycho, carried into hven — Copyright 2026-present Grant R. Hecht. Apache 2.0.
 // SuperScalar (Eigen::Array<double, W, 1>) trait registrations needed for
 // Eigen 5 to accept it as a Matrix Scalar.
 //

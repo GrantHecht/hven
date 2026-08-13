@@ -12,9 +12,9 @@
 // manages all memory allocation, sparsity pattern computation, work partitioning, and function
 // evaluation.
 //
-// Modifications in Tycho (Copyright 2026-present Grant R. Hecht,
+// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):
-//   - Namespace renamed: asset -> tycho (with sub-namespaces tycho::vf, tycho::oc, etc.)
+//   - Namespace: asset -> tycho -> hven
 //   - Python binding methods moved to src/bindings/ (nanobind)
 // =============================================================================
 

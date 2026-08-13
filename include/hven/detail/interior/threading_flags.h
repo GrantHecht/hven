@@ -14,9 +14,9 @@
 // here and vf/core/functional_flags.h re-exports it, so every existing
 // hven::vf::ThreadingFlags reference keeps working unchanged.
 //
-// Modifications in Tycho (Copyright 2026-present Grant R. Hecht,
+// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):
-//   - Namespace renamed: asset -> tycho (with sub-namespaces tycho::vf, tycho::oc, etc.)
+//   - Namespace: asset -> tycho -> hven
 //   - Python binding methods moved to src/bindings/ (nanobind)
 // =============================================================================
 

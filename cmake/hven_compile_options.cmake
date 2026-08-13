@@ -56,15 +56,16 @@ set(FP_FLAGS)
 # reason SIMD_FLAGS/FP_FLAGS are reset just above. This macro is a macro, not
 # a function, so it executes directly in the CALLER's variable scope; when
 # hven is add_subdirectory()'d by a parent project that has ALREADY called
-# ITS OWN, identically-named compile-options macro in that same scope (tycho
-# does, via tycho_compile_options(), before add_subdirectory(dep/hven)),
-# add_subdirectory's child scope still sees the parent's values for any
-# variable this macro does not locally reset first. Without this reset,
-# hven's own target ends up compiled with BOTH the parent's flag lists AND
-# hven's own appended after them -- normally silently redundant (harmless
-# duplicate flags), but a HARD clang error the moment they disagree: found
-# live via a BUILD_TYCHO_WHEEL configure, where tycho's own
-# -inline-threshold=400 leaked into hven's target's command line ahead of
+# ITS OWN, identically-named compile-options macro in that same scope (the
+# parent project does, via its own macro of the same kind, before
+# add_subdirectory(dep/hven)), add_subdirectory's child scope still sees the
+# parent's values for any variable this macro does not locally reset first.
+# Without this reset, hven's own target ends up compiled with BOTH the
+# parent's flag lists AND hven's own appended after them -- normally
+# silently redundant (harmless duplicate flags), but a HARD clang error the
+# moment they disagree: found live via a parent-project wheel configure,
+# where the parent project's own -inline-threshold=400 leaked into hven's
+# target's command line ahead of
 # hven's own (default) -inline-threshold=225, and CMake's option
 # de-duplication collapsed the shared "-mllvm" down to one copy, leaving the
 # second "-inline-threshold=225" as an argument clang rejects outright with

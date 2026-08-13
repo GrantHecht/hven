@@ -3,8 +3,8 @@
 if(TARGET hven::hven)
     # Already configured by an earlier find_package(hven)/find_dependency(hven)
     # in this same CMake run (e.g. a sibling package's own direct
-    # find_package(hven) plus tycho's find_dependency(hven) both resolving
-    # here). Everything below, including the set_property(APPEND ...)
+    # find_package(hven) plus a downstream project's own find_dependency(hven)
+    # both resolving here). Everything below, including the set_property(APPEND ...)
     # reattachment block, already ran once; running it again would duplicate
     # entries on hven::hven's INTERFACE_LINK_LIBRARIES rather than being a
     # no-op. Nothing left to do.
@@ -46,8 +46,8 @@ set(_hven_include_dir "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
 # (${_hven_include_dir}/Eigen, .../unsupported), so the target is
 # reconstructed directly from that location rather than via
 # find_dependency(Eigen3). Guarded by NOT TARGET so this composes cleanly
-# when a sibling package (e.g. tycho, which vendors the same Eigen commit)
-# has already defined Eigen3::Eigen the same way.
+# when a sibling package that vendors the same Eigen commit has already
+# defined Eigen3::Eigen the same way.
 if(NOT TARGET Eigen3::Eigen)
     if(NOT EXISTS "${_hven_include_dir}/Eigen/Core")
         message(FATAL_ERROR
@@ -103,7 +103,7 @@ endif()
 # Re-attach transitive link dependencies that were stripped from the export.
 # The hven target uses BUILD_INTERFACE guards on these (see the root
 # CMakeLists.txt, immediately above its target_compile_definitions(hven
-# PUBLIC ...) block) so tycho does not encode host-specific absolute paths
+# PUBLIC ...) block) so the parent project does not encode host-specific absolute paths
 # (this build machine's MKL install location) or unexported ALIAS targets
 # (Eigen3::Eigen/fmt::fmt-header-only) into hvenTargets.cmake. CRITICAL:
 # every library wrapped that way there must be re-found and re-attached here.

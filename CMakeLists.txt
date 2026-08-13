@@ -477,12 +477,13 @@ endif()
 ################################################################################
 # Install / export
 #
-# No PROJECT_IS_TOP_LEVEL guard: hven's primary consumer (tycho) pulls this
+# No PROJECT_IS_TOP_LEVEL guard: hven's primary consumer pulls this
 # project in via add_subdirectory() and needs these same rules to fire as
 # part of ITS OWN `cmake --install` so libhven.a, hven's headers, and hven's
-# own export files land inside tycho's install tree alongside tycho's -- that
-# is the only way a `find_package(tycho)` install-tree consumer ends up able
-# to link the solver symbols tycho's headers declare. A consumer that wants
+# own export files land inside that consumer's install tree alongside its
+# own -- that is the only way a `find_package()` install-tree consumer of
+# the parent project ends up able to link the solver symbols its headers
+# declare. A consumer that wants
 # hven on its own still gets a normal install by configuring hven/ as the
 # top-level project (its CMakeLists.txt already tests that way -- see
 # cmake/git-submodule-*.cmake and the FATAL_ERROR guards above, which run
@@ -523,7 +524,7 @@ install(DIRECTORY include/hven
 # CMAKE_INSTALL_INCLUDEDIR, the same include root hven's own headers land in,
 # so hvenConfig.cmake.in can reconstruct both as IMPORTED targets purely from
 # PACKAGE_PREFIX_DIR without any consumer-side find_package(Eigen3) /
-# find_package(fmt). This mirrors tycho's own root CMakeLists.txt precedent
+# find_package(fmt). This mirrors the parent project's own root CMakeLists.txt precedent
 # for the identical situation (its bundled-Eigen / bundled-fmt install
 # blocks) -- chosen over find_dependency(Eigen3)/find_dependency(fmt) because
 # neither is a real, independently-installed package here: they are vendored
@@ -559,8 +560,8 @@ install(DIRECTORY dep/fmt/include/fmt
 # whichever one hven itself was built against via find_dependency(), which
 # needs these two custom Find modules (neither MKL nor AccelerateSparse ships
 # a real upstream CMake package) on the consumer's module path -- install
-# them alongside the rest of the package config, the same pattern tycho's own
-# root CMakeLists.txt uses for the identical re-find.
+# them alongside the rest of the package config, the same pattern the parent
+# project's own root CMakeLists.txt uses for the identical re-find.
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindMKL.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindAccelerateSparse.cmake"
