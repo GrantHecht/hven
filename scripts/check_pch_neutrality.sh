@@ -295,8 +295,21 @@ fi
 expected_objects="$(python3 -c "
 import json, sys
 entries = json.load(open('${NOPCH_BUILD}/compile_commands.json'))
-print(sum(1 for e in entries if '/CMakeFiles/hven.dir/' in e.get('output', '')))
+# The 'output' field is only present in newer CMake's compile databases; on
+# older CMake fall back to the object path inside the command line itself.
+# This is the PCH-DISABLED build, so there is no cmake_pch wrapper entry to
+# exclude either way.
+want = '/CMakeFiles/hven.dir/'
+def is_hven(e):
+    return want in e.get('output', '') or want in e.get('command', '')
+print(sum(1 for e in entries if is_hven(e)))
 ")"
+if [ "${expected_objects}" -eq 0 ]; then
+    echo "FAIL: could not derive the expected object count from the compile database"
+    echo "      (neither 'output' nor 'command' entries mention CMakeFiles/hven.dir)."
+    echo "      Fix the derivation in this script; do not remove the assertion."
+    exit 1
+fi
 if [ "${compared}" -ne "${expected_objects}" ]; then
     echo "FAIL: compared ${compared} objects but the PCH-disabled build's compile"
     echo "      database lists ${expected_objects} hven translation units. Some objects"
