@@ -950,3 +950,84 @@ gap and its method is fixed before its output is trusted.
 `seam_psiopt.cpp` and `seam_sqp.cpp` are test-only and are **deleted when the
 two engine migrations close**. The traces stay, as permanent regression tests
 against the native arm.
+
+## Tight absolute-tolerance sites: the M2.5 watch-list disposition
+
+During the M2 engine migration, one test tolerance
+(`test_l1_restoration.cpp`'s `TrialResidualShiftIsAlphaBlendedSlackDifference`)
+was widened from `1e-14` to `1e-12` after a GitHub Actions Linux runner
+measured `2.8421709430404007e-14` against the original `1e-14` bound — a
+different FMA-contraction decision for the same source expression than the
+machine the migration ran on, not a correctness regression. The same task
+swept `tests/interior/*.cpp` for sibling absolute comparisons at `1e-14` or
+tighter, found 30, and parked all 30 untouched as a watch item (M2 Task 3
+report, `.superpowers/sdd/2026-08-10-hven-m2-plan/task-3-report.md`).
+
+hven M2.5 Task 3 dispositioned that watch list. Route: recovered the
+inventory from the M2 report (it lists the 30 sites by file:line) rather than
+re-deriving it from scratch, then re-ran the same sweep
+(`grep -rnE "1e-1[4-9]|1e-2[0-9]" tests/interior/*.cpp`) against the current
+tree to confirm the same 30 logical sites still exist (line numbers had
+shifted by intervening commits; the file/count distribution — 27 in
+`test_nlp_adapter.cpp`, 2 in `test_l1_restoration.cpp`, 1 in
+`test_nlp_solver.cpp` — matched exactly), plus a broader sweep of `tests/`
+for any `EXPECT_NEAR`/`ASSERT_NEAR` literal `<= 1e-13` outside those three
+files (none found) and any custom tight-tolerance constant (found two,
+`kTightRelTol = 1e-14` in `tests/linear/test_dense_symmetric_factor.cpp` and
+`test_symmetric_factor.cpp` — out of scope: these are *relative*-tolerance
+constants in an unrelated, pre-existing (non-migrated) test corpus, already
+carrying their own documented exactness rationale, and not part of the M2
+inventory).
+
+Classification standard applied per site: **(a) bit-identity pin** — asserts
+exact reproduction of a pinned/golden value; stays untouched, unconditionally
+(none of the 30 are this class — the golden-rig's pinned rows are a separate
+corpus). **(b) arithmetic-path assertion** — the reference-side expression
+combines two or more independently-rounded terms (a sum/difference where at
+least one term is a product, or a value delivered through the engine's
+duplicate-slot Hessian accumulation) — widened to `1e-12`, this file's
+existing precedent, because hven's default `HVEN_FP_MODE=SAFER_FAST` build
+compiles with `-ffast-math`, which permits per-translation-unit reassociation
+even when the test and the production code write the nominally same formula.
+**(c) exact-by-construction** — a bare literal, a direct copy, a single
+negation, or a single multiplication/division with no summed terms: fast-math
+reassociation has nothing to act on when there is only one operation, so
+there is no plausible hazard to future-proof against; stays at its current
+tolerance.
+
+| Site | Current tol | Class | Disposition | Reason |
+| --- | --- | --- | --- | --- |
+| `test_nlp_adapter.cpp:239` (`val`) | 1e-14 | (b) | **widened to 1e-12** | `sigma * (x0*x0 + x1*x1)`: sum of two products, reassociation-plausible under `-ffast-math`. |
+| `test_nlp_adapter.cpp:240` (`FXE[0]`) | 1e-14 | (b) | **widened to 1e-12** | `x0 + 2*x1 - 4.0`: sum/difference with a product term. |
+| `test_nlp_adapter.cpp:241` (`FXI[0]`) | 1e-14 | (b) | **widened to 1e-12** | `x0*x0 + x1 - 9.0`: sum/difference with a product term. |
+| `test_nlp_adapter.cpp:242` (`FXI[1]`) | 1e-14 | (b) | **widened to 1e-12** | `1.0 - x0*x1`: subtraction of a product (FMA-contractible `fnma` shape). |
+| `test_nlp_adapter.cpp:243` (`PGX[0]`) | 1e-14 | (c) | kept exact | `sigma * 2 * x0`: single product chain, no summed terms. |
+| `test_nlp_adapter.cpp:244` (`PGX[1]`) | 1e-14 | (c) | kept exact | Same shape as 243. |
+| `test_nlp_adapter.cpp:246` (`AGX[0]`) | 1e-14 | (b) | **widened to 1e-12** | Three-term product sum (adjoint gradient contraction). |
+| `test_nlp_adapter.cpp:247` (`AGX[1]`) | 1e-14 | (b) | **widened to 1e-12** | Same shape as 246. |
+| `test_nlp_adapter.cpp:257` (`kkt.coeff(0,0)`) | 1e-14 | (b) | **widened to 1e-12** | Physically a duplicate-slot accumulation of two separately-rounded `eval_hess` contributions (the struct's own comment: "duplicate slot to prove duplicate slots are summed"), compared against a clean two-term reference sum. |
+| `test_nlp_adapter.cpp:258` (`kkt.coeff(1,1)`) | 1e-14 | (c) | kept exact | Single physical slot, single product (`2.0*obj_factor`). |
+| `test_nlp_adapter.cpp:259` (`kkt.coeff(0,1)`) | 1e-14 | (c) | kept exact | Single negation (`-LI[1]`), no summed terms. |
+| `test_nlp_adapter.cpp:262,263,266` (`kkt.coeff(...)` vs `1.0`/`2.0`) | 1e-14 | (c) | kept exact | Bare-literal Jacobian scatter (single claim onto a zeroed slot). |
+| `test_nlp_adapter.cpp:265` (`kkt.coeff(0,iq0+0)`) | 1e-14 | (c) | kept exact | Single product (`2*x0`), duplicated verbatim from the fixture's own `eval_jac`. |
+| `test_nlp_adapter.cpp:267,268` (`kkt.coeff(...)` vs `-x1`/`-x0`) | 1e-14 | (c) | kept exact | Single negation of a raw variable. |
+| `test_nlp_adapter.cpp:299` (`kkt.coeff(1,1)` vs `0.0`) | 1e-14 | (c) | kept exact | No-objective assembly: single slot, `2.0*0.0`, zero-check. |
+| `test_nlp_adapter.cpp:300` (`kkt.coeff(0,0)` vs `2*LI[0]`) | 1e-14 | (b) | **widened to 1e-12** | Same duplicate-slot accumulation site as line 257, treated consistently regardless of this call's particular (zero) objective factor. |
+| `test_nlp_adapter.cpp:302` (`kkt.coeff(0,1)` vs `-LI[1]`) | 1e-14 | (c) | kept exact | Single negation via `compose_user_lambda`'s `LowerBounded` case. |
+| `test_nlp_adapter.cpp:306` (`kkt.coeff(1,1)` vs `2.0*2.0`) | 1e-14 | (c) | kept exact | Single physical slot, single product. |
+| `test_nlp_adapter.cpp:362` (`kkt.coeff(1,1)` vs `0.0`) | 1e-14 | (c) | kept exact | Same shape as 299 (no-objective aborted-assembly recovery test). |
+| `test_nlp_adapter.cpp:436,437` (`FXI[0]`,`FXI[1]`) | 1e-14 | (c) | kept exact | Single subtraction, duplicated verbatim from the fixture's own `eval_g`. |
+| `test_nlp_adapter.cpp:443,444` (`kkt.coeff(...)` vs `1.0`/`-1.0`) | 1e-14 | (c) | kept exact | Bare-literal Range-row Jacobian scatter (single claim, single negation). |
+| `test_nlp_adapter.cpp:447` (`kkt.coeff(0,0)` vs `LI[0]-LI[1]`) | 1e-14 | (c) | kept exact | Single subtraction via `compose_user_lambda`'s `Range` case. |
+| `test_l1_restoration.cpp:380` (`primal_boundary_alpha`) | 1e-14 | (b) | **widened to 1e-12** | Tau-cap formula duplicated between the test's `L1RestoTauCap` and production `l1resto_tau_cap`, compiled in separate translation units under this build's default `-ffast-math` — same class as the already-fixed `TrialResidualShiftIsAlphaBlendedSlackDifference` sibling two tests below. |
+| `test_l1_restoration.cpp:381` (`dual_boundary_alpha`) | 1e-14 | (b) | **widened to 1e-12** | Same as 380. |
+| `test_nlp_solver.cpp:371` (`return_multipliers()[0]` vs `0.0`) | 1e-14 | (c) | kept exact | A dropped (`Free`-kind) row's multiplier is hardcoded to the literal `0.0` in `compose_user_lambda` (`src/model/nlp_adapter.cpp`) — never touched by any solve arithmetic. |
+
+**Totals: 30 sites audited, 10 widened to `1e-12`, 20 kept at their current
+tolerance (0 bit-identity pins in this inventory; all 20 kept sites are class
+(c) exact-by-construction).** Every widening is test-only — no engine source
+changed. Applied in one commit; see that commit's message for the exact
+diff. If a future CI run flags one of the 20 kept sites, the same
+machine-observed-value / structural-classification treatment in this section
+applies: re-derive the class from the failing expression's shape (sum of
+independently-rounded terms vs. single operation), not a reflexive widening.

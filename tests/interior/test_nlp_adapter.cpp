@@ -236,15 +236,22 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     nlp->eval_kkt(sigma, X, LE, LI, val, PGX, AGX, FXE, FXI, kkt);
 
     const double x0 = X[0], x1 = X[1];
-    EXPECT_NEAR(val, sigma * (x0 * x0 + x1 * x1), 1e-14);
-    EXPECT_NEAR(FXE[0], x0 + 2 * x1 - 4.0, 1e-14);
-    EXPECT_NEAR(FXI[0], x0 * x0 + x1 - 9.0, 1e-14);
-    EXPECT_NEAR(FXI[1], 1.0 - x0 * x1, 1e-14);
+    // Sum-of-products reference expressions (val, FXE, FXI, AGX below) widened
+    // to 1e-12: hven M2.5 Task 3 tight-tolerance audit, docs/testing.md "Tight
+    // absolute-tolerance sites" -- same FMA/fast-math-reassociation class as
+    // this file's TrialElasticStepApplication precedent (the build's default
+    // HVEN_FP_MODE=SAFER_FAST permits reassociation across these multi-term
+    // sums). PGX below stays at 1e-14: a bare product with no summed terms has
+    // nothing for reassociation to diverge on.
+    EXPECT_NEAR(val, sigma * (x0 * x0 + x1 * x1), 1e-12);
+    EXPECT_NEAR(FXE[0], x0 + 2 * x1 - 4.0, 1e-12);
+    EXPECT_NEAR(FXI[0], x0 * x0 + x1 - 9.0, 1e-12);
+    EXPECT_NEAR(FXI[1], 1.0 - x0 * x1, 1e-12);
     EXPECT_NEAR(PGX[0], sigma * 2 * x0, 1e-14);
     EXPECT_NEAR(PGX[1], sigma * 2 * x1, 1e-14);
     // Adjoint gradient: J_eq^T LE + J_iq^T LI over the SOLVER rows (lower negated).
-    EXPECT_NEAR(AGX[0], LE[0] * 1.0 + LI[0] * 2 * x0 + LI[1] * (-x1), 1e-14);
-    EXPECT_NEAR(AGX[1], LE[0] * 2.0 + LI[0] * 1.0 + LI[1] * (-x0), 1e-14);
+    EXPECT_NEAR(AGX[0], LE[0] * 1.0 + LI[0] * 2 * x0 + LI[1] * (-x1), 1e-12);
+    EXPECT_NEAR(AGX[1], LE[0] * 2.0 + LI[0] * 1.0 + LI[1] * (-x0), 1e-12);
 
     // User-space lambda: eq passes through, upper passes through, lower negates.
     const double lam1 = LI[0], lam2 = -LI[1];
@@ -254,7 +261,11 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     // like (constraint_row, variable_col), with constraint_row always the
     // larger index, is read back via kkt.coeff(variable_col, constraint_row).
     // The Hessian block's own diagonal entries need no such reordering.
-    EXPECT_NEAR(kkt.coeff(0, 0), sigma * 2 + 2 * lam1, 1e-14); // duplicate slots summed
+    // Widened: duplicate Hessian slots (0,0) physically accumulate two
+    // separately-rounded eval_hess contributions (see the struct comment
+    // above) -- a genuine multi-term accumulation, same class as the
+    // val/FXE/FXI/AGX widenings above.
+    EXPECT_NEAR(kkt.coeff(0, 0), sigma * 2 + 2 * lam1, 1e-12); // duplicate slots summed
     EXPECT_NEAR(kkt.coeff(1, 1), sigma * 2, 1e-14);
     EXPECT_NEAR(kkt.coeff(0, 1), lam2, 1e-14);
     // Jacobian block: constraint rows sit after primals and slacks.
@@ -297,7 +308,9 @@ TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     zero_kkt();
     nlp->eval_kkt_no(2.0, X, LE, LI, val, PGX, AGX, FXE, FXI, kkt);
     EXPECT_NEAR(kkt.coeff(1, 1), 0.0, 1e-14);       // the 2*sigma term is gone
-    EXPECT_NEAR(kkt.coeff(0, 0), 2 * LI[0], 1e-14); // constraint curvature stays
+    // Widened: (0,0) is the same duplicate-slot accumulation as the dense
+    // assembly test above.
+    EXPECT_NEAR(kkt.coeff(0, 0), 2 * LI[0], 1e-12); // constraint curvature stays
     // Physically stored at (min, max) -- see the comment in the previous test.
     EXPECT_NEAR(kkt.coeff(0, 1), -LI[1], 1e-14);
     // And a full assembly afterwards has the objective curvature back.
