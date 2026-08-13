@@ -17,6 +17,17 @@
 //   - Settings converters/setters/validation extracted to psiopt_settings.cpp
 // =============================================================================
 
+// clang-format off
+//
+// Include sorting is disabled for this block on purpose. src/hven_pch.h
+// precompiles this exact list, in this exact order, and the precompiled
+// header is only permitted near engine code because it produces
+// byte-identical objects -- a property that holds precisely because the two
+// lists agree. clang-format's default is to alphabetize, which would reorder
+// this block, change template instantiation order, and cost that property
+// silently: nothing would fail to build. Keep the two lists in step, and see
+// scripts/check_pch_neutrality.sh for the check that proves they still are.
+
 #include "hven/drivers/interior_point_solver.h"
 
 #include <algorithm>
@@ -63,6 +74,8 @@
 #include "hven/detail/globalization/l1_restoration.h"
 #include "hven/detail/globalization/feasibility_stall.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"
+
+// clang-format on
 
 namespace {
 

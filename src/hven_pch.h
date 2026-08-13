@@ -7,7 +7,7 @@
 // Measured on this tree (Linux, clang, -O3, ccache disabled): parsing the
 // header set below costs 3.01 s, and that cost is paid once per translation
 // unit that includes it. For the engine's largest TU,
-// drivers/interior_point_solver.cpp, 3.01 s of its 7.02 s total is header
+// drivers/interior_point_solver.cpp, 3.01 s of its ~7.0 s total is header
 // parsing -- only 4.01 s is its own 3722 lines of body. Header parsing, not
 // file length, is what the engine's build time is made of: core/pattern_hash.cpp
 // is 39 lines and still costs 2.98 s.
@@ -30,9 +30,11 @@
 // emitted into the object file. Keeping this list byte-for-byte in step with
 // that TU's own include block is what lets the PCH build produce an object
 // that is byte-identical to the non-PCH build -- the property the engine's
-// numerics gate relies on. If you edit this list, re-run the byte-identity
-// check described in docs/build.md and update the participating-TU list in
-// src/CMakeLists.txt to match what still qualifies.
+// numerics gate relies on. If you edit this list, run
+// scripts/check_pch_neutrality.sh and update the participating-TU list in
+// src/CMakeLists.txt to match what still qualifies. Both this list and that
+// TU's carry a // clang-format off guard, because alphabetizing either one
+// silently costs the property.
 //
 // Membership is opt-in: src/CMakeLists.txt names the TUs that use this PCH and
 // opts every other source out, so a TU joins only after it is measured to get

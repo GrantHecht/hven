@@ -17,7 +17,11 @@ ccache disabled):
   cost is paid once per TU that includes it.
 - `src/drivers/interior_point_solver.cpp` is the largest TU at 3722
   lines and 7.02 s. **3.01 s of that is the headers**; only 4.01 s is
-  its own body.
+  its own body. (The per-TU table in `src/CMakeLists.txt` records 6.99 s
+  for the same file. The two figures are separate measurements — this
+  one taken from a full clean build, that one from the isolated
+  with/without-PCH sweep — and the ~0.03 s between them is run-to-run
+  noise, not a discrepancy.)
 - `src/core/pattern_hash.cpp` is **39 lines** and still costs 2.98 s.
 
 So file length barely predicts compile cost here, and the lever that
@@ -68,48 +72,93 @@ decision, not a build decision.
 The header's include list is the include block of
 `src/drivers/interior_point_solver.cpp`, verbatim and in the same order.
 That ordering is load-bearing — it is what makes the byte-identity
-property hold. After any edit, re-run the byte-identity check against a
-non-PCH build and update the participating-TU list to whatever still
-qualifies. `src/CMakeLists.txt` fails configuration outright if a name
-in the opt-in list no longer matches a real source, so a rename cannot
-silently widen or narrow the PCH's coverage.
+property hold, which is why both lists carry a `// clang-format off`
+guard (clang-format would otherwise alphabetize them). After any edit,
+run `scripts/check_pch_neutrality.sh` and update the participating-TU
+list to whatever still qualifies.
+
+`src/CMakeLists.txt` also refuses to configure if the opt-in list stops
+describing the build: it fails if a listed name matches no real source,
+if the opt-out fails to take effect for any non-participating source, or
+if the target's source count changes without the list being revisited.
 
 ## ccache
 
-The build uses ccache automatically when it is on `PATH`. Getting useful
-hit rates on a PCH-using tree needs a little configuration, because
-ccache is conservative about precompiled headers by default — it will
-refuse to cache PCH-consuming compiles unless told how to hash them.
+The build uses ccache automatically when it is on `PATH`. Two settings
+matter on a PCH-using tree.
 
 Put this in `~/.config/ccache/ccache.conf`:
 
 ```ini
 max_size = 40G
 sloppiness = pch_defines,time_macros
-pch_external_checksum = true
 ```
-
-What each line is for:
 
 - **`max_size`** — the default (5G) is too small for a tree of this
   shape; a full build writes several GiB and the cache thrashes rather
   than helping.
-- **`sloppiness = pch_defines,time_macros`** — permits caching of
-  compiles that consume a PCH at all. Without it those compiles are
-  simply uncacheable, which on this tree is most of the expensive ones.
-- **`pch_external_checksum`** — makes consumers hash the PCH's
-  *content*. This is what makes the sloppiness above safe: a
-  regenerated-but-byte-identical PCH costs nothing, while a genuinely
-  changed PCH still invalidates everything downstream.
+- **`sloppiness = pch_defines,time_macros`** — this is what makes
+  PCH-consuming compiles cacheable at all. Without it ccache refuses
+  them, which on this tree means refusing most of the expensive ones.
 
-The build pairs with this by compiling the PCH with `-Xclang
--fno-pch-timestamp` under Clang (`src/CMakeLists.txt`), so a regenerated
-PCH that happens to be identical does not force every consumer to
-recompile on a timestamp alone.
+Two clarifications, because the folklore around this is wrong often
+enough to be worth stating precisely:
 
-One consequence worth stating plainly: a timestamp-free PCH means clang
-itself will no longer reject a stale PCH whose input headers changed
-only in content and mtime (a size change is still caught). The content
-checksum from `pch_external_checksum` is the guard that replaces that
-check. That is why the setting is recommended rather than merely
-optional on a Clang development machine.
+- **`-Xclang -fno-pch-timestamp` is a requirement, not an
+  optimization.** ccache's manual is explicit that Clang embeds a
+  timestamp in the PCH, and that using ccache with a Clang PCH requires
+  compiling it with this flag. `src/CMakeLists.txt` passes it under
+  Clang for exactly that reason. It is not a tuning knob that buys a few
+  extra cache hits — without it the arrangement does not work.
+- **`pch_external_checksum` is inert here, and is deliberately not in
+  the config above.** It does not "make consumers hash the PCH" —
+  hashing the PCH is already what ccache does by default. The setting
+  tells ccache to hash a `<pch>.sum` file *instead of* the PCH itself
+  when one exists, as a performance workaround for very large
+  precompiled headers. Nothing in this build emits a `.sum` file, so the
+  setting would do nothing. It was recommended here in an earlier
+  revision of this page; that was a misreading of the manual.
+
+The safeguard that actually protects the verification path is neither of
+these: `scripts/check_pch_neutrality.sh` exports `CCACHE_DISABLE=1` for
+both of its builds, so the byte-identity comparison always compiles the
+sources in front of it rather than replaying whatever a cache happened
+to hold.
+
+## Disclosed limitations
+
+Three things this setup does not prove, stated so nobody has to infer
+them:
+
+- **The membership bars are Linux-and-clang measurements.** Both the
+  timing table and the byte-identity results were produced on Linux with
+  clang. They are assumed, not verified, to transfer to the macOS and
+  Windows lanes; those lanes assert only that the PCH is *engaged* on
+  the expected six TUs, not that it is byte-neutral there. A full
+  neutrality run on macOS is Mac-leg work.
+- **Byte-identity holds for clang, and does not hold for GCC.** Measured
+  on GCC 16.1.1, three of the six opted-in TUs
+  (`interior_point_solver_settings.cpp`, `non_linear_program.cpp`,
+  `nlp_adapter.cpp`) emit a different object with the PCH than without
+  it. Clang is the toolchain `CLAUDE.md` documents, every preset selects
+  and all three CI lanes use, so this is outside the supported
+  configuration — but it is a real boundary on the claim, not a
+  rounding error. `scripts/check_pch_neutrality.sh` defaults to clang
+  for this reason and prints the compiler it used.
+- **tycho-embedded composition is build-verified, not
+  identity-verified.** When tycho consumes hven via `add_subdirectory`,
+  the two projects' precompiled headers are independent per-target
+  objects and were confirmed to build cleanly together. That check did
+  not compare object bytes in the embedded configuration. If that proof
+  is ever needed, `scripts/check_pch_neutrality.sh` is runnable
+  standalone against any pair of build directories.
+
+## A note on diagnostics
+
+CMake compiles its generated PCH wrapper with system-header semantics.
+A practical consequence: warnings originating inside the shared header
+set are suppressed in the six TUs that consume the PCH. This is not a
+loss of coverage in practice — the test suite compiles those same
+headers without the PCH — but it does mean a new warning introduced in
+one of those headers will surface from the tests rather than from the
+library build.

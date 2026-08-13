@@ -86,10 +86,13 @@ target_include_directories(hven PRIVATE
 # build. The PCH is built once and amortizes it.
 #
 # Membership is OPT-IN. Only the TUs listed below use the PCH; every other
-# source in the target is opted out by the loop underneath, so a source added
-# later gets no PCH until someone measures it and adds it here. That default
-# is deliberate: on this library the PCH is a win for some TUs and a loss for
-# others, and the losers are not guessable from file size.
+# source is explicitly opted out by the deferred block underneath, which then
+# reads the opt-out back and refuses to configure if it did not stick. A
+# source added later does not quietly inherit the PCH and does not quietly
+# inherit the opt-out either -- it trips the source-count postcondition, so
+# somebody has to decide. That is deliberate: on this library the PCH is a win
+# for some TUs and a loss for others, and the losers are not guessable from
+# file size.
 #
 # A TU qualifies only if it clears BOTH bars, measured on an idle box with
 # ccache disabled (Linux, clang, Release -O3):
@@ -135,8 +138,9 @@ target_include_directories(hven PRIVATE
 # roughly 5.4 s more; that is a numerics-governance call, not a build call.
 #
 # The macOS-only linear backends (linear/accelerate_session.cpp,
-# linear/symmetric_factor_accelerate.cpp) are unmeasured on this box and so are
-# opted out by the default above, like every other unlisted source.
+# linear/symmetric_factor_accelerate.cpp) are unmeasured -- the table above is
+# Linux -- so they are not on the opt-in list and are explicitly opted out on
+# that branch, like every other unlisted source.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -158,58 +162,164 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(hven PRIVATE -Xclang -fno-pch-timestamp)
 endif()
 
-# Opt out everything not in the list above. Driven off the target's actual
-# SOURCES so it stays correct as sources are added or as the platform branch
-# above selects a different linear backend. target_sources() stores absolute
-# paths, so the participating list is absolutized before comparing rather than
-# compared as written -- a relative-vs-absolute mismatch here would silently
-# match nothing, which is why the count is asserted at the end.
-set(_hven_pch_sources_abs "")
-foreach(_hven_src IN LISTS _hven_pch_sources)
-    list(APPEND _hven_pch_sources_abs "${CMAKE_CURRENT_SOURCE_DIR}/${_hven_src}")
-endforeach()
+# Total number of sources the hven target is expected to carry, per platform
+# branch (both branches happen to come to the same number today: the shared
+# sources plus exactly two platform-specific linear backend TUs). This is a
+# tripwire, not bookkeeping -- adding a source to the target should be a
+# moment where someone decides whether it belongs in the PCH, and a stale
+# number here forces that decision instead of letting the new TU inherit a
+# default nobody measured.
+set(_hven_expected_source_count 18)
 
-get_target_property(_hven_all_sources hven SOURCES)
-if(NOT _hven_all_sources)
-    message(FATAL_ERROR
-        "hven: cannot read the target's SOURCES to apply the PCH opt-out list. "
-        "Without it every source would silently receive the precompiled header, "
-        "including ones measured to be slower or to produce a non-byte-identical "
-        "object. Refusing to configure rather than shipping that silently.")
-endif()
+# Everything below runs DEFERRED, at the end of the directory scope that
+# defines the hven target, rather than here.
+#
+# Here is too early. target_sources() can legitimately be called again after
+# this point -- from later in this file, from another add_subdirectory(), or
+# by an embedding project -- and a loop that runs now would only ever see a
+# snapshot. Sources appended afterwards would silently receive the PCH,
+# because target_precompile_headers() applies to the whole target while the
+# opt-out is applied per source. That is the dangerous direction: a TU nobody
+# measured, quietly compiled against the shared header set, with the
+# byte-identity property lost and a green configure.
+#
+# Deferring to the end of hven's own top-level scope means the loop sees the
+# final source list. PROJECT_SOURCE_DIR (not CMAKE_SOURCE_DIR) is deliberate:
+# it is hven's root whether hven is the top-level project or is being consumed
+# via add_subdirectory() by an embedding project, where CMAKE_SOURCE_DIR would
+# point at that project's root instead.
 
-set(_hven_pch_applied 0)
-foreach(_hven_src IN LISTS _hven_all_sources)
-    get_filename_component(_hven_src_abs "${_hven_src}" ABSOLUTE)
-    if(_hven_src_abs IN_LIST _hven_pch_sources_abs)
-        math(EXPR _hven_pch_applied "${_hven_pch_applied} + 1")
-    else()
-        # TARGET_DIRECTORY, not a bare call: source-file properties are scoped
-        # to a directory, and `hven` is created by add_library() in the ROOT
-        # CMakeLists.txt, not here. A bare set_source_files_properties() would
-        # write the property into this (src/) scope, where nothing reads it,
-        # and the opt-out would silently do nothing.
-        set_source_files_properties("${_hven_src}"
-            TARGET_DIRECTORY hven
-            PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+# The opt-in list, the directory it is written relative to, and the expected
+# source count travel to the deferred call through GLOBAL properties rather
+# than through variables or call arguments. Both alternatives fail here: a
+# deferred call executes in the scope of the directory it was deferred TO
+# (hven's root), not the one that scheduled it (src/), so plain variables set
+# above are invisible inside; and deferred call arguments do not survive list
+# expansion intact. Global properties have neither problem, and reading one
+# that was never set is caught by the guards below rather than silently
+# yielding an empty list.
+function(_hven_apply_pch_membership)
+    get_property(_list_dir GLOBAL PROPERTY HVEN_PCH_LIST_DIR)
+    get_property(_expected_source_count GLOBAL PROPERTY HVEN_PCH_EXPECTED_SOURCE_COUNT)
+    get_property(_optin_rel GLOBAL PROPERTY HVEN_PCH_SOURCES)
+    if(NOT _list_dir OR NOT _expected_source_count)
+        message(FATAL_ERROR
+            "hven: the precompiled-header membership parameters did not reach the "
+            "deferred check. Refusing to configure rather than applying the PCH to an "
+            "unverified set of sources.")
     endif()
-endforeach()
+    if(NOT _optin_rel)
+        message(FATAL_ERROR
+            "hven: the precompiled-header opt-in list arrived empty. Every source "
+            "would be opted out, silently discarding the PCH and its measured build-"
+            "time win. Refusing to configure rather than degrading quietly.")
+    endif()
+    get_target_property(_all_sources hven SOURCES)
+    if(NOT _all_sources)
+        message(FATAL_ERROR
+            "hven: cannot read the hven target's SOURCES to apply the "
+            "precompiled-header opt-out. Without it every source would silently "
+            "receive the PCH, including ones measured to be slower or to produce a "
+            "non-byte-identical object. Refusing to configure rather than shipping "
+            "that silently.")
+    endif()
 
-# Assert the opt-in list actually matched. Without this a typo or a renamed
-# source degrades silently in the expensive direction: the PCH stays ON for a
-# TU nobody measured, and the byte-identity property the numerics gate leans on
-# is lost with no signal at configure time.
-list(LENGTH _hven_pch_sources _hven_pch_expected)
-if(NOT _hven_pch_applied EQUAL _hven_pch_expected)
-    message(FATAL_ERROR
-        "hven: the precompiled-header opt-in list matched ${_hven_pch_applied} of "
-        "${_hven_pch_expected} sources. Every name in _hven_pch_sources must name a "
-        "source actually compiled into the hven target (paths relative to "
-        "${CMAKE_CURRENT_SOURCE_DIR}). Fix the list rather than letting the PCH "
-        "silently cover a different set of TUs than the measured one.")
-endif()
+    # The opt-in list is written relative to the directory that declares it.
+    set(_optin_abs "")
+    foreach(_src IN LISTS _optin_rel)
+        list(APPEND _optin_abs "${_list_dir}/${_src}")
+    endforeach()
 
-unset(_hven_all_sources)
-unset(_hven_pch_sources_abs)
-unset(_hven_pch_applied)
-unset(_hven_pch_expected)
+    # Target sources may come back absolute (what target_sources() stores) or
+    # relative (what add_library() in the target's own directory can store).
+    # Resolve relative ones against the target's directory, NOT against
+    # whatever directory this deferred call happens to run in -- resolving
+    # against the wrong base silently matches nothing, which fails open.
+    get_target_property(_target_dir hven SOURCE_DIR)
+
+    set(_applied 0)
+    set(_total 0)
+    set(_not_optin "")
+    foreach(_src IN LISTS _all_sources)
+        math(EXPR _total "${_total} + 1")
+        if(IS_ABSOLUTE "${_src}")
+            set(_abs "${_src}")
+        else()
+            set(_abs "${_target_dir}/${_src}")
+        endif()
+        if(_abs IN_LIST _optin_abs)
+            math(EXPR _applied "${_applied} + 1")
+        else()
+            # TARGET_DIRECTORY names the scope explicitly. Source-file
+            # properties are directory-scoped and `hven` is created by
+            # add_library() in hven's ROOT CMakeLists.txt, not in src/; this
+            # deferred call happens to already run in that root scope, so a
+            # bare call would land correctly today. It is written explicitly
+            # anyway, because that coincidence is a property of where the
+            # DEFER points and would stop holding if this block were ever
+            # moved back inline. Note that the explicitness is documentation,
+            # not enforcement -- the readback postcondition below is what
+            # actually catches the property failing to stick, and it was
+            # verified to fire by making this call a no-op for one source.
+            set_source_files_properties("${_src}"
+                TARGET_DIRECTORY hven
+                PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+            list(APPEND _not_optin "${_src}")
+        endif()
+    endforeach()
+
+    # Postcondition 1: every name in the opt-in list matched a real source.
+    # Catches a typo or a rename, which would otherwise leave a measured TU
+    # quietly outside the PCH (cheap direction) or, combined with the readback
+    # below, reveal a list that no longer describes the build.
+    list(LENGTH _optin_rel _expected)
+    if(NOT _applied EQUAL _expected)
+        message(FATAL_ERROR
+            "hven: the precompiled-header opt-in list matched ${_applied} of "
+            "${_expected} entries. Every name in _hven_pch_sources must name a source "
+            "actually compiled into the hven target (paths relative to ${_list_dir}). "
+            "Fix the list rather than letting the PCH cover a different set of TUs "
+            "than the measured one.")
+    endif()
+
+    # Postcondition 2: read the property back for every non-participating
+    # source and require it to be set. Postcondition 1 only proves the path
+    # arithmetic matched; it says nothing about whether the opt-out actually
+    # took effect. If TARGET_DIRECTORY is dropped, moved, or scoped wrongly,
+    # the writes land somewhere unread and all sources get the PCH -- with
+    # postcondition 1 still passing. This is the check that fails in that case.
+    foreach(_src IN LISTS _not_optin)
+        get_source_file_property(_skip "${_src}" TARGET_DIRECTORY hven
+                                 SKIP_PRECOMPILE_HEADERS)
+        if(NOT _skip)
+            message(FATAL_ERROR
+                "hven: SKIP_PRECOMPILE_HEADERS did not stick for ${_src}. The opt-out "
+                "was written but does not read back from the hven target's directory "
+                "scope, which means every source in the target is about to be compiled "
+                "against the precompiled header -- including TUs measured to be slower "
+                "with it or to produce a non-byte-identical object. This is what a "
+                "missing or misplaced TARGET_DIRECTORY looks like. Refusing to "
+                "configure.")
+        endif()
+    endforeach()
+
+    # Postcondition 3: the target carries the number of sources this list was
+    # written against. A source added without revisiting the PCH decision trips
+    # here rather than silently inheriting the unmeasured default.
+    if(NOT _total EQUAL _expected_source_count)
+        message(FATAL_ERROR
+            "hven: the hven target carries ${_total} sources, but the "
+            "precompiled-header membership list was written against "
+            "${_expected_source_count}. A source was added or removed without "
+            "revisiting whether it belongs in the PCH. Measure it (scripts/"
+            "check_pch_neutrality.sh proves the byte-identity half), then update "
+            "_hven_pch_sources and _hven_expected_source_count together.")
+    endif()
+endfunction()
+
+set_property(GLOBAL PROPERTY HVEN_PCH_LIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set_property(GLOBAL PROPERTY HVEN_PCH_EXPECTED_SOURCE_COUNT "${_hven_expected_source_count}")
+set_property(GLOBAL PROPERTY HVEN_PCH_SOURCES "${_hven_pch_sources}")
+
+cmake_language(DEFER DIRECTORY "${PROJECT_SOURCE_DIR}"
+               CALL _hven_apply_pch_membership)

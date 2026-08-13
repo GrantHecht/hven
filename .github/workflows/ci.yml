@@ -74,6 +74,30 @@ jobs:
         # does not prove; it is not a substitute for the Mac hardware leg.
         run: ./scripts/check_accelerate_syntax_linux.sh
 
+      # Precompiled-header neutrality: builds hven twice (with and without
+      # the PCH) and requires every object and libhven.a to come out
+      # byte-identical, plus asserts the PCH is actually engaged on exactly
+      # the six translation units it is opted in for.
+      #
+      # This is the enforcement half of the PCH's licence to exist. The PCH
+      # sits over engine headers and is permitted only because it changes
+      # nothing the compiler emits; that was measured once when it landed,
+      # and without this step it would decay silently -- reordering
+      # src/hven_pch.h's include list, or letting clang-format alphabetize
+      # the include block of src/drivers/interior_point_solver.cpp, breaks
+      # the property without breaking the build. See docs/build.md.
+      #
+      # Linux only. The full two-build comparison is the expensive half, and
+      # this is the lane where a regression would be introduced and caught
+      # first; the macOS and Windows lanes get the cheap engagement half
+      # instead (see their own steps below), because a full neutrality run on
+      # those lanes is Mac-leg territory. docs/build.md records that
+      # disposition.
+      - name: Assert PCH neutrality (Linux)
+        env:
+          HVEN_PCH_NEUTRALITY_JOBS: "6"
+        run: ./scripts/check_pch_neutrality.sh
+
       # Install-verification: proves `cmake --install` + a downstream
       # `find_package(hven)` consumer actually link and run, and that the
       # exported hvenTargets.cmake carries exactly the platform/ABI
@@ -184,6 +208,18 @@ jobs:
         # which is what makes the committed Accelerate float rows genuinely
         # assert here rather than report CONTEXT-MISMATCH.
         run: ctest --test-dir build-macos --output-on-failure --timeout 300
+
+      # Cheap half of the PCH check: assert the precompiled header is actually
+      # applied to exactly the six translation units it is opted in for, by
+      # reading this lane's own compile_commands.json. Catches "the PCH
+      # silently stopped applying on macOS" -- a build-time regression no
+      # test would notice -- for the cost of reading a JSON file.
+      #
+      # The full two-build byte-identity comparison runs on the Linux lane
+      # only; doing it here would double this lane's build. docs/build.md
+      # records that split and what it does and does not prove.
+      - name: Assert PCH engagement (macOS)
+        run: ./scripts/check_pch_neutrality.sh --engagement-only build-macos
 
       # Install-verification: this is the job that closes the one gap the
       # install/export rules had left -- the platform-macro export
@@ -367,6 +403,19 @@ jobs:
         # runner is not it, and labelling it as such would make those rows
         # assert against hardware they were never observed on.
         run: ctest --test-dir build-windows --output-on-failure --timeout 300
+
+      # Cheap half of the PCH check: assert the precompiled header is actually
+      # applied to exactly the six translation units it is opted in for, by
+      # reading this lane's own compile_commands.json. Catches "the PCH
+      # silently stopped applying on Windows" -- a build-time regression no
+      # test would notice -- for the cost of reading a JSON file.
+      #
+      # The full two-build byte-identity comparison runs on the Linux lane
+      # only; doing it here would double this lane's build. docs/build.md
+      # records that split and what it does and does not prove.
+      - name: Assert PCH engagement (Windows)
+        shell: bash
+        run: ./scripts/check_pch_neutrality.sh --engagement-only build-windows
 
       # Install-verification, same as the Linux and macOS lanes above --
       # see scripts/check_install_smoke.sh and scripts/
