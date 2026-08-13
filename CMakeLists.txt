@@ -290,14 +290,72 @@ target_compile_features(hven PUBLIC cxx_std_20)
 # them as just Threads::Threads + ${CMAKE_DL_LIBS} since MKL_* is never
 # populated there) so there is one link block, not a platform-asymmetric one;
 # AccelerateSparse::AccelerateSparse is added on top for Apple specifically.
-target_link_libraries(hven PUBLIC Eigen3::Eigen fmt::fmt-header-only Threads::Threads)
-target_include_directories(hven PUBLIC ${INCLUDE_DIRS})
-target_link_libraries(hven PUBLIC ${LINK_LIBS})
+#
+# Every entry here is wrapped in $<BUILD_INTERFACE:...>: Eigen3::Eigen and
+# fmt::fmt-header-only are ALIASes of local (non-exported) INTERFACE targets,
+# and INCLUDE_DIRS/LINK_LIBS/AccelerateSparse::AccelerateSparse resolve to
+# absolute paths captured on THIS build machine (MKL's find_library() hits,
+# the Apple SDK's framework search). None of that belongs baked into
+# hvenTargets.cmake -- install(EXPORT) would either reject the unexported
+# ALIAS targets outright or silently pin an install-tree consumer to this
+# machine's MKL location. BUILD_INTERFACE keeps all of it build-tree-only;
+# the install/export block at the end of this file re-attaches every one of
+# them for install-tree consumers via cmake/hvenConfig.cmake.in, which must
+# be kept in sync with whatever is wrapped here.
+target_link_libraries(hven PUBLIC
+    $<BUILD_INTERFACE:Eigen3::Eigen>
+    $<BUILD_INTERFACE:fmt::fmt-header-only>
+    $<BUILD_INTERFACE:Threads::Threads>
+)
+target_include_directories(hven PUBLIC $<BUILD_INTERFACE:${INCLUDE_DIRS}>)
+target_link_libraries(hven PUBLIC $<BUILD_INTERFACE:${LINK_LIBS}>)
 if(APPLE)
-    target_link_libraries(hven PUBLIC AccelerateSparse::AccelerateSparse)
+    target_link_libraries(hven PUBLIC $<BUILD_INTERFACE:AccelerateSparse::AccelerateSparse>)
 endif()
 
+# Usage requirements a consumer's own translation units need regardless of
+# whether they compile hven's Eigen/fmt-touching public headers via
+# add_subdirectory or an installed hven::hven -- these are plain macros, not
+# paths, so unlike the block above they are safe (and necessary) to bake
+# directly into the exported target rather than route through BUILD_INTERFACE
+# + config-file re-attachment. FMT_HEADER_ONLY was previously reached only by
+# linking the fmt::fmt-header-only ALIAS (now BUILD_INTERFACE-only above);
+# the other three were previously directory-scope add_compile_definitions()
+# calls above, which apply to hven's own sources and anything add_subdirectory
+# ()'d under this directory (src/, tests/) but never to an external consumer's
+# translation units.
+target_compile_definitions(hven PUBLIC
+    FMT_HEADER_ONLY
+    FMT_USE_LOCALE=0
+    EIGEN_INITIALIZE_MATRICES_BY_ZERO
+    EIGEN_DONT_PARALLELIZE
+)
+
 target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
+
+# SIMD and floating-point flags are a usage requirement, not a private build
+# detail: hven's public headers instantiate templated Eigen code (NLPProblem/
+# NLPSolver signatures, the interior-point machinery under
+# hven/detail/interior/) in the CONSUMER's own translation units, and a
+# mismatch between the vectorization/fast-math ABI hven's own sources were
+# compiled with (SIMD_FLAGS/FP_FLAGS, set by hven_compile_options() above)
+# and whatever the consumer happens to use corrupts memory at the boundary
+# rather than failing to compile -- found live by
+# scripts/check_install_smoke.sh: a bare find_package(hven) consumer built
+# without these flags crashed with heap corruption inside PSIOPT's very
+# first solve. Mirrors tycho's own root/src CMakeLists.txt handling of the
+# identical hazard for ITS public headers (see the "Compile options required
+# for correct ABI with header-template code" comment there).
+if(SIMD_FLAGS)
+    target_compile_options(hven PUBLIC ${SIMD_FLAGS})
+endif()
+if(FP_FLAGS)
+    target_compile_options(hven PUBLIC ${FP_FLAGS})
+endif()
+target_compile_options(hven PUBLIC
+    $<$<CXX_COMPILER_ID:Clang>:-mllvm>
+    $<$<CXX_COMPILER_ID:Clang>:-inline-threshold=${CLANG_MAX_INLINE_DEPTH}>
+)
 
 # HVEN_VERSION_STRING follows the origin project's version-string-on-the-
 # command-line idiom: it makes src/core/version.cpp forward the single source
@@ -329,3 +387,122 @@ if(HVEN_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+################################################################################
+# Install / export
+#
+# No PROJECT_IS_TOP_LEVEL guard: hven's primary consumer (tycho) pulls this
+# project in via add_subdirectory() and needs these same rules to fire as
+# part of ITS OWN `cmake --install` so libhven.a, hven's headers, and hven's
+# own export files land inside tycho's install tree alongside tycho's -- that
+# is the only way a `find_package(tycho)` install-tree consumer ends up able
+# to link the solver symbols tycho's headers declare. A consumer that wants
+# hven on its own still gets a normal install by configuring hven/ as the
+# top-level project (its CMakeLists.txt already tests that way -- see
+# cmake/git-submodule-*.cmake and the FATAL_ERROR guards above, which run
+# the same regardless of who is the top-level project).
+#
+# Only the `hven` target itself is installed/exported. hven_dep_eigen and
+# hven_dep_fmt (the local INTERFACE targets ALIASed to Eigen3::Eigen /
+# fmt::fmt-header-only) are deliberately NOT part of hvenTargets: every link
+# to them on the `hven` target above is BUILD_INTERFACE-wrapped, so they
+# never appear in the exported target's usage requirements in the first
+# place, and install(EXPORT) never has to reason about exporting an ALIAS of
+# a target that is itself un-exported.
+################################################################################
+
+include(CMakePackageConfigHelpers)
+
+install(TARGETS hven
+    EXPORT hvenTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY include/hven
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+# Eigen and fmt are vendored submodules with no install rules of their own;
+# hven publishes them under the standard Eigen3::Eigen / fmt::fmt-header-only
+# names (see the hven_dep_eigen/hven_dep_fmt block above), so a self-contained
+# install needs their headers too -- flattened directly into
+# CMAKE_INSTALL_INCLUDEDIR, the same include root hven's own headers land in,
+# so hvenConfig.cmake.in can reconstruct both as IMPORTED targets purely from
+# PACKAGE_PREFIX_DIR without any consumer-side find_package(Eigen3) /
+# find_package(fmt). This mirrors tycho's own root CMakeLists.txt precedent
+# for the identical situation (its bundled-Eigen / bundled-fmt install
+# blocks) -- chosen over find_dependency(Eigen3)/find_dependency(fmt) because
+# neither is a real, independently-installed package here: they are vendored
+# submodule checkouts with no upstream Config file, so find_dependency would
+# require a consumer to have their OWN Eigen3/fmt CMake packages installed,
+# which is not this project's vendoring contract on the add_subdirectory side
+# either.
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dep/eigen/Eigen/Core")
+    message(FATAL_ERROR
+        "Bundled Eigen not found at dep/eigen/. "
+        "Run: git submodule update --init dep/eigen")
+endif()
+install(DIRECTORY dep/eigen/Eigen
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(DIRECTORY dep/eigen/unsupported
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dep/fmt/include/fmt/format.h")
+    message(FATAL_ERROR
+        "Bundled fmt not found at dep/fmt/. "
+        "Run: git submodule update --init dep/fmt")
+endif()
+install(DIRECTORY dep/fmt/include/fmt
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# MKL and AccelerateSparse are real system/SDK dependencies, not vendored
+# ones -- unlike Eigen/fmt above, a consumer must independently have MKL (or,
+# on Apple, the Accelerate framework) available, exactly as an
+# add_subdirectory() consumer already must. hvenConfig.cmake.in re-finds
+# whichever one hven itself was built against via find_dependency(), which
+# needs these two custom Find modules (neither MKL nor AccelerateSparse ships
+# a real upstream CMake package) on the consumer's module path -- install
+# them alongside the rest of the package config, the same pattern tycho's own
+# root CMakeLists.txt uses for the identical re-find.
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindMKL.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindAccelerateSparse.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hven
+)
+
+if(APPLE)
+    set(HVEN_SPARSE_SOLVER "AccelerateSparse")
+else()
+    set(HVEN_SPARSE_SOLVER "MKL")
+endif()
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/hvenConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/hvenConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/hvenConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hven
+)
+
+install(EXPORT hvenTargets
+    FILE hvenTargets.cmake
+    NAMESPACE hven::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hven
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/hvenConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/hvenConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hven
+)

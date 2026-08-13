@@ -15,9 +15,14 @@ about where this is going, not about code you can read here.
 
 - Namespace: `hven::`
 - Public headers: `include/hven/`
-- CMake target: `hven::hven`, consumed via `add_subdirectory`. Not a
-  CMake *package*: there are no install/export/package-config rules yet,
-  so `find_package(hven)` does not work.
+- CMake target: `hven::hven`, consumable either via `add_subdirectory`
+  (tycho's mode) or as an installed CMake package: `cmake --install`
+  produces libhven.a, the flattened headers (hven's own plus its vendored
+  Eigen/fmt), and `hvenConfig.cmake`/`hvenTargets.cmake` under
+  `<prefix>/lib/cmake/hven`, so `find_package(hven)` +
+  `target_link_libraries(app hven::hven)` works against an install tree.
+  See `scripts/check_install_smoke.sh` for the standalone install/consume
+  round-trip.
 
 hven builds standalone with CMake and requires Intel MKL (Linux/Windows)
 or Apple Accelerate (macOS) as its sparse linear algebra backend. Its
