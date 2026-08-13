@@ -260,37 +260,52 @@ struct PardisoIparmObserver {
 // project prefers, in symmetric_factor_mkl.cpp, immediately before a solve
 // hands the session's own solve() the buffers, and it reads the count
 // through FactorSession's ordinary, non-test-gated config() accessor
-// (pardiso_session.h). So it observes exactly what the backend call about to
-// run will apply, at the moment it applies it.
+// (pardiso_session.h).
 //
-// It exists for SymmetricFactor::set_num_threads, whose whole claim is that
-// a mid-life thread change reaches SUBSEQUENT backend calls without
-// rebuilding anything. The public API cannot show that: the count changes no
-// result (a different thread count is allowed to reassociate arithmetic, not
-// to change it), MKL exposes no query for a thread-local override in force,
-// and no accessor reports the live session's configuration. Without this,
-// the claim would rest on inspection alone.
+// READ THE NAME LITERALLY. What is recorded is the count STORED IN THE
+// SESSION CONFIG at the moment of a backend call -- not a measurement of
+// what MKL then ran at. This observer would report the same values if the
+// thread scope inside the session were deleted outright; it is not, and
+// cannot be, evidence that the scope engages.
 //
-// WHAT IT DOES NOT COVER, stated rather than implied: the last link, from
-// the session's stored count to mkl_set_num_threads_local, is a single
-// unconditional line inside the MPL-derived session file (the thread scope
-// in FactorSession::run_phase) and is not observable from the boundary. It
-// is covered instead by SymmetricFactor.
-// APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride, which
-// proves the scope engages and restores around a real backend call. Reaching
-// into the session file to close the gap end-to-end would be a deviation
-// that buys one already-covered line, so it is deliberately not taken.
+// It exists for SymmetricFactor::set_num_threads, and it pins the half of
+// that setter's claim which has no public observable: that a mid-life change
+// lands in the configuration a subsequent backend call reads, with no
+// rebuild and no re-analysis in between. (The public API cannot show even
+// that much: a thread count changes no result, MKL exposes no query for the
+// thread-local override in force, and no accessor reports a live session's
+// configuration.)
+//
+// THE REST OF THE CLAIM IS CARRIED BY TWO OTHER THINGS, deliberately, rather
+// than by instrumenting the MPL-derived session file:
+//   - Traced data flow: the recorded field IS the field the backend call
+//     scope reads. FactorSession::run_phase constructs
+//     MklThreadScope(cfg_.num_threads) immediately before the one ::pardiso
+//     call in this codebase, and every phase -- symbolic, numeric, solve,
+//     release -- reaches the backend through that single function. There is
+//     no second path and no copy taken earlier.
+//   - Behavioural coverage of the scope itself:
+//     SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride
+//     (tests/linear/test_symmetric_factor.cpp) proves the scope engages and
+//     restores the caller's own thread-local override around a real backend
+//     call.
+// Closing the seam between those two from inside the session file would be a
+// deviation bought for one already-covered line, so it is not taken.
 struct ThreadCountObserver {
     static void reset() {
         recorded = false;
-        last_applied_num_threads = -1;
+        last_config_num_threads = -1;
     }
 
     // -1 rather than 0 as the unset value: 0 is a REAL count here (it means
     // "leave the backend's own default alone"), so a zero-initialized field
     // would be indistinguishable from an observation of it.
     static inline bool recorded = false;
-    static inline int last_applied_num_threads = -1;
+
+    // The session config's num_threads as it stood when the last observed
+    // backend solve was issued. Named for what it is -- see the literal-name
+    // paragraph above.
+    static inline int last_config_num_threads = -1;
 };
 
 } // namespace hven::linear::detail::testing

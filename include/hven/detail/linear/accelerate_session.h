@@ -60,10 +60,17 @@ namespace hven::linear::detail {
 enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 
 // The backend knobs one session is created with. Fixed for the session's
-// lifetime -- with the single exception noted on num_threads below --
-// mirroring PardisoConfig's role for the MKL session: baked into the
-// factorization it produces, so an engine that adopts a session inherits
-// them rather than reinterpreting them.
+// lifetime with one exception, mirroring PardisoConfig's role for the MKL
+// session: baked into the factorization it produces, so an engine that
+// adopts a session inherits them rather than reinterpreting them.
+//
+// THE EXCEPTION IS num_threads, the same one the MKL twin carries:
+// FactorSession::set_num_threads moves it in place, which is what keeps the
+// stored value -- and therefore SymmetricFactor::adopt()'s Options round
+// trip -- honest after a live SymmetricFactor::set_num_threads. It applies
+// nothing to a backend that has nothing to apply it to. Documented here
+// rather than on the field so the field list stays character-for-character
+// what it was.
 //
 // num_threads and max_refinement_iters are stored here (so SymmetricFactor::
 // adopt() can round-trip Options faithfully) but NOT applied to any backend
@@ -76,13 +83,7 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // is deliberately NOT ported here: adding an unverified numerical loop
 // without dedicated numerical validation would be a correctness risk).
 struct AccelerateConfig {
-    // Stored only; no per-instance backend control exists on this backend.
-    // Also the ONE entry here that is not frozen for the session's lifetime:
-    // FactorSession::set_num_threads moves it in place, which keeps the
-    // Options round trip honest after SymmetricFactor::set_num_threads
-    // without applying anything to a backend that has nothing to apply it to.
-    int num_threads = 0;
-
+    int num_threads = 0;          // stored only; no per-instance backend control exists
     int pivot_perturb_exp = 8;    // -> zeroTolerance, see FactorSession::factorize
     int max_refinement_iters = 0; // stored only; Accelerate reports no refinement count
 

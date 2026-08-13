@@ -335,14 +335,16 @@ FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
 }
 
 #ifdef HVEN_TESTING
-// Records the thread count this session will apply to the backend call about
-// to run -- see ThreadCountObserver (fault_injection.h) for what it is for
-// and what it deliberately does not cover. A boundary read through
-// FactorSession's ordinary config() accessor; compiles to nothing outside
-// the fault-injection test target.
-void record_applied_thread_count(const detail::FactorSession &session) {
+// Records the thread count STORED IN THE SESSION CONFIG as the backend call
+// about to run is issued -- the field FactorSession::run_phase's own thread
+// scope reads, not a measurement of what MKL then ran at. See
+// ThreadCountObserver (fault_injection.h) for exactly what that does and
+// does not establish. A boundary read through FactorSession's ordinary
+// config() accessor; compiles to nothing outside the fault-injection test
+// target.
+void record_config_thread_count(const detail::FactorSession &session) {
     detail::testing::ThreadCountObserver::recorded = true;
-    detail::testing::ThreadCountObserver::last_applied_num_threads = session.config().num_threads;
+    detail::testing::ThreadCountObserver::last_config_num_threads = session.config().num_threads;
 }
 #endif
 
@@ -381,7 +383,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
     }
 
 #ifdef HVEN_TESTING
-    record_applied_thread_count(session);
+    record_config_thread_count(session);
 #endif
     session.solve(rhs_buffer.data(), target, static_cast<Index>(X.cols()));
 
@@ -411,7 +413,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
 
     Vec rhs_buffer = rhs;
 #ifdef HVEN_TESTING
-    record_applied_thread_count(session);
+    record_config_thread_count(session);
 #endif
     session.solve(rhs_buffer.data(), x.data(), 1);
 
