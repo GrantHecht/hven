@@ -169,7 +169,7 @@ template <class T> struct ObjectiveUnsupported {
 ///
 /// Do NOT use it for an erased handle -- see the CONTRACT above.
 ///
-/// The bodies are defined in detail/interior/solver_interface_specs.h, after
+/// The bodies are defined in detail/solvers/solver_interface_specs.h, after
 /// the interface definitions they emplace into.
 template <class T> struct DirectFunctionModel {
     static constexpr bool registered = true;

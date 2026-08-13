@@ -27,7 +27,7 @@
 #include <Eigen/Core>
 
 #include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/solver_interface_specs.h"
+#include "hven/detail/solvers/solver_interface_specs.h"
 #include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 

@@ -18,7 +18,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/detail/interior/solver_interface_specs.h"
+#include "hven/detail/solvers/solver_interface_specs.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace adapter_fixture {
