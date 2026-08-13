@@ -242,3 +242,15 @@ add_subdirectory(golden_rig)
 ################################################################################
 
 add_subdirectory(interior)
+
+################################################################################
+# The SQP engine test suite, migrated at M3 (phase A). See
+# tests/sqp/CMakeLists.txt. UNIX-only for now: the suite's subprocess
+# wall-deadline tests drive the corpus runner, whose deadline enforcement is
+# fork/exec orchestration, and the suite has never been built or derived on
+# Windows — enabling it there is future work, not a migration step.
+################################################################################
+
+if(NOT WIN32)
+    add_subdirectory(sqp)
+endif()
