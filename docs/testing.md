@@ -792,7 +792,7 @@ below; a second control asserting the identical `ppivs()` fact through a
 different call path would duplicate coverage rather than add any.
 
 **A KNOWN, UNRESOLVED gap of the same shape: `P4_PerturbationEvidencePresenceIsBackendHonest`
-(`traces_psiopt.cpp`).** Unlike T7, P4 was not touched by this fix, and it
+(`traces_interior_point.cpp`).** Unlike T7, P4 was not touched by this fix, and it
 carries the identical unscoped shape T7's stray branch had: an `#if
 defined(__APPLE__)` `EXPECT_FALSE(perturbed_pivots.has_value())` with no arm
 gate, `RIG_REQUIRE`d only on `reports_inertia` (which the psiopt old seam
@@ -810,7 +810,7 @@ expected result is:
 
 ```
 99% tests passed, 1 tests failed out of 155
-    Arms/PsioptTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
+    Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
 ```
 
 One failure, that exact entry, with all three `FailByDesignControl.*` tests

@@ -86,7 +86,7 @@
 // plus the soft-pre-stage counter (this link's own recovery state, cleared by
 // reset()). reset()/notify_step_accepted() thread straight through to the inner
 // chain in addition to clearing the counter. Definitions live in
-// src/solvers/psiopt_globalization.cpp.
+// src/solvers/interior_point_solver_globalization.cpp.
 
 #pragma once
 
@@ -130,11 +130,12 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, PSIOPT::LineSearchModes lsmode,
-                            double obj_scale, double mu, double prim_obj, double barr_obj,
-                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism,
+                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+                            int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     // A genuinely accepted regular step means the ordinary optimality-phase

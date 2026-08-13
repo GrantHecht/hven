@@ -23,7 +23,7 @@ namespace {
 
 namespace hl = hven::linear;
 
-std::string psiopt_arm_suffix(const testing::TestParamInfo<ArmSpec> &info) {
+std::string interior_point_arm_suffix(const testing::TestParamInfo<ArmSpec> &info) {
     std::string s = info.param.name;
     for (char &c : s) {
         if (std::isalnum(static_cast<unsigned char>(c)) == 0) {
@@ -33,9 +33,10 @@ std::string psiopt_arm_suffix(const testing::TestParamInfo<ArmSpec> &info) {
     return s;
 }
 
-class PsioptTrace : public testing::TestWithParam<ArmSpec> {};
+class InteriorPointTrace : public testing::TestWithParam<ArmSpec> {};
 
-INSTANTIATE_TEST_SUITE_P(Arms, PsioptTrace, testing::ValuesIn(arms()), psiopt_arm_suffix);
+INSTANTIATE_TEST_SUITE_P(Arms, InteriorPointTrace, testing::ValuesIn(arms()),
+                         interior_point_arm_suffix);
 
 // --- P1 -- iterate-loop lifecycle --------------------------------------------
 //
@@ -45,7 +46,7 @@ INSTANTIATE_TEST_SUITE_P(Arms, PsioptTrace, testing::ValuesIn(arms()), psiopt_ar
 // refactorization trace, kept separate because the matrix class differs -- this
 // one carries a barrier diagonal, the other is bound-eliminated.
 
-TEST_P(PsioptTrace, P1_IterateLoopLifecycle) {
+TEST_P(InteriorPointTrace, P1_IterateLoopLifecycle) {
     TraceRun run("P1", GetParam());
     constexpr Index kIterates = 3;
 
@@ -89,7 +90,7 @@ TEST_P(PsioptTrace, P1_IterateLoopLifecycle) {
 // that the EVIDENCE the driver reads is there, rung by rung, and that the whole
 // ladder costs one symbolic analysis.
 
-TEST_P(PsioptTrace, P2_InertiaCorrectionLadderReplay) {
+TEST_P(InteriorPointTrace, P2_InertiaCorrectionLadderReplay) {
     TraceRun run("P2", GetParam());
     SeamUnderTest &seam = run.seam();
     RIG_REQUIRE(run, seam.capabilities().reports_inertia, "an inertia readback");
@@ -144,7 +145,7 @@ TEST_P(PsioptTrace, P2_InertiaCorrectionLadderReplay) {
 // perturbation count as recorded quantities, and this trace records reality
 // rather than pinning the superseded assumption.
 
-TEST_P(PsioptTrace, P3_SingularVerdictAndControl) {
+TEST_P(InteriorPointTrace, P3_SingularVerdictAndControl) {
     TraceRun run("P3", GetParam());
     RIG_REQUIRE(run, run.seam().capabilities().reports_inertia, "an inertia readback");
 
@@ -203,7 +204,7 @@ TEST_P(PsioptTrace, P3_SingularVerdictAndControl) {
 // its perturbed-pivot accessor, so THIS TRACE FAILS BY DESIGN on that arm.
 // That failure is the docket entry.
 
-TEST_P(PsioptTrace, P4_PerturbationEvidencePresenceIsBackendHonest) {
+TEST_P(InteriorPointTrace, P4_PerturbationEvidencePresenceIsBackendHonest) {
     TraceRun run("P4", GetParam());
     SeamUnderTest &seam = run.seam();
     RIG_REQUIRE(run, seam.capabilities().reports_inertia, "an inertia readback");
@@ -255,7 +256,7 @@ TEST_P(PsioptTrace, P4_PerturbationEvidencePresenceIsBackendHonest) {
 // its adapter reports the absence of a defined state rather than inventing
 // one. A failure here is the finding; it is not a broken trace.
 
-TEST_P(PsioptTrace, P5_InertiaBeforeFactorizationIsAnExplicitState) {
+TEST_P(InteriorPointTrace, P5_InertiaBeforeFactorizationIsAnExplicitState) {
     TraceRun run("P5", GetParam());
     SeamUnderTest &seam = run.seam();
     RIG_REQUIRE(run, seam.capabilities().reports_inertia, "an inertia readback");
@@ -281,7 +282,7 @@ TEST_P(PsioptTrace, P5_InertiaBeforeFactorizationIsAnExplicitState) {
 // refinement cap is an OVERRIDE of this arm's own configuration, which the
 // report records, because the point of the trace is the knob.
 
-TEST_P(PsioptTrace, P6_RefinementStepEvidence) {
+TEST_P(InteriorPointTrace, P6_RefinementStepEvidence) {
     TraceRun run("P6", GetParam());
     RIG_REQUIRE(run, run.seam().capabilities().reports_refinement_iters,
                 "a refinement-step readback");

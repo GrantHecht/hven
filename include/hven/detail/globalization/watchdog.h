@@ -7,9 +7,9 @@
 // watchdog, and the ChainedRecovery composition that ties them to SOC
 // (soc.h). All three are opt-in and default OFF; with both
 // Settings::ls_extended_iters_ == 0 and Settings::watchdog_ == false (and
-// Settings::max_soc_ == 0), PSIOPT::rebuild_globalization_components()
+// Settings::max_soc_ == 0), InteriorPointSolver::rebuild_globalization_components()
 // installs a plain NoopRecovery and the solver is bit-identical to its
-// pre-recovery-chain behavior — see the wiring comment in psiopt.cpp's
+// pre-recovery-chain behavior — see the wiring comment in interior_point_solver.cpp's
 // rebuild_globalization_components().
 //
 // -----------------------------------------------------------------------------
@@ -30,7 +30,7 @@
 // backtracking always goes through the dispatcher and lets it route to
 // classic_line_search or generic_line_search as appropriate. This works out
 // exactly because of how BOTH the classic ls_lang/ls_l1/ls_auglang loop and
-// the generic loop are structured (psiopt_globalization.cpp): each starts its
+// the generic loop are structured (interior_point_solver_globalization.cpp): each starts its
 // OWN internal alpha at 1.0 and, on exhaustion (every one of
 // ctx.settings_.max_ls_iters_ internal trials rejected), returns the alpha
 // value ONE MORE division past the last-tested point — i.e. the returned
@@ -75,7 +75,7 @@
 // (see should_dispatch_recovery in recovery_chain.h). That happens two ways:
 // (1) the classic backtrack FULLY rejects a step (every one of
 // max_ls_iters_ trials failed the merit test), or (2) a step the merit test
-// found acceptable is force-rejected anyway by psiopt.cpp's alg_impl when
+// found acceptable is force-rejected anyway by interior_point_solver.cpp's alg_impl when
 // this iteration's KKT factorization exhausted the inertia-correction ladder
 // (the `if (kkt_exhausted) Citer.accepted_ = false;` site, upstream of this
 // gate) -- a genuinely accepted step can therefore still reach this hook. An
@@ -106,7 +106,7 @@
 // real working set: it snapshots XSL (the pre-watchdog iterate) at the
 // moment WatchdogState arms, and uses `merit` = prim_obj + barr_obj — the
 // same leading term every classic merit variant's own LangInit/ptest+btest
-// value is built from (see ls_lang/ls_l1/ls_auglang in psiopt_globalization.
+// value is built from (see ls_lang/ls_l1/ls_auglang in interior_point_solver_globalization.
 // cpp) — as an always-available proxy for "did the point improve", since
 // AcceptanceStrategy exposes no generic current-merit accessor on the
 // classic path (is_iterate_acceptable throws there — see
@@ -180,11 +180,12 @@ class ExtendedBacktrackRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, PSIOPT::LineSearchModes lsmode,
-                            double obj_scale, double mu, double prim_obj, double barr_obj,
-                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism,
+                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+                            int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     // Stateless: nothing to clear.
@@ -299,7 +300,7 @@ class WatchdogState {
 // accept; on kTrialRevert, XSL is restored to the pre-watchdog snapshot.
 //
 // `inner` must be non-null -- every construction site
-// (PSIOPT::rebuild_globalization_components()) always supplies a real chain
+// (InteriorPointSolver::rebuild_globalization_components()) always supplies a real chain
 // (NoopRecovery at minimum), so the constructor enforces
 // this invariant once, up front, letting on_step_rejected/notify_step_accepted/
 // reset dereference inner_ unconditionally rather than guarding a state that
@@ -317,11 +318,12 @@ class WatchdogRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, PSIOPT::LineSearchModes lsmode,
-                            double obj_scale, double mu, double prim_obj, double barr_obj,
-                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism,
+                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+                            int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     // Resets consecutive_shortened_ on real progress (see the file
@@ -374,11 +376,12 @@ class ChainedRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, PSIOPT::LineSearchModes lsmode,
-                            double obj_scale, double mu, double prim_obj, double barr_obj,
-                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism,
+                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+                            int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     // Propagates to whichever link(s) are present -- same null-guard pattern

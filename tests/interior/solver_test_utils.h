@@ -7,7 +7,7 @@
 // fixture and make_brach_solver_phase(), which build a real
 // ODEPhase<BrachODE> and therefore need the full tycho/tycho.h umbrella --
 // stays on the Tycho side under its original name and path
-// (tests/cpp/solvers/solver_test_utils.h), since psiopt has no VectorFunction
+// (tests/cpp/solvers/solver_test_utils.h), since hven has no VectorFunction
 // dependency to build that against.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -51,7 +51,7 @@ using namespace hven::solvers;
 ///////////////////////////////////////////////////////////////////////////////
 
 struct InertSolverContext {
-    PSIOPT::Settings settings_;
+    InteriorPointSolver::Settings settings_;
     KktSolverType kkt_solver_;
     Eigen::VectorXd scratch_;
     int primal_vars_ = 0;

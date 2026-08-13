@@ -18,7 +18,7 @@
 // memory). Line numbers are pinned to Ipopt releases/3.14.19
 // (2695946fa79d2e84f3034e065e788933a81466eb) — every AMU:/MMU:/QF: shorthand
 // citation below, and every corresponding citation in
-// MonitoredBarrierGovernor's implementation (psiopt_globalization.cpp), is
+// MonitoredBarrierGovernor's implementation (interior_point_solver_globalization.cpp), is
 // against that tagged commit, not a moving `master`:
 //   [AMU]  src/Algorithm/IpAdaptiveMuUpdate.cpp — the adaptive (free<->fixed)
 //          mu strategy with the "kkt-error" globalization. This governor
@@ -204,7 +204,7 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     explicit MonitoredBarrierGovernor(std::unique_ptr<BarrierGovernor> free_delegate);
     ~MonitoredBarrierGovernor() override;
 
-    double update_barrier(PSIOPT::BarrierModes barmode, double mu_in, double avgcomp,
+    double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in, double avgcomp,
                           double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
                           Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
                           GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
@@ -238,9 +238,9 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     void reset() override;
 
     // Reports last_monotone_switches_/last_monotone_iters_ into the
-    // corresponding SolveResult fields (psiopt.h) — see BarrierGovernor::
+    // corresponding SolveResult fields (interior_point_solver.h) — see BarrierGovernor::
     // append_diagnostics() for the call-site contract this overrides.
-    void append_diagnostics(PSIOPT::SolveResult &result) const override;
+    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override;
 
     // ------------------------------------------------------------------------
     // Testable state machine. `decide` advances the monitor/mode state from
@@ -278,7 +278,7 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
 
   private:
     // Barrier tail helpers — verbatim copies of the identically-named
-    // PSIOPT/ClassicAdaptiveGovernor methods (reading through ctx), applied in
+    // InteriorPointSolver/ClassicAdaptiveGovernor methods (reading through ctx), applied in
     // monotone mode to write the barrier objective and dual gradient at the
     // fixed monotone μ (free mode delegates this to the composed governor).
     double barrier_objective(Eigen::Ref<Eigen::VectorXd> S, double mu,
@@ -293,8 +293,8 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     double monotone_mu_ = 0.0; // current monotone barrier parameter (meaningful iff monotone_mode_)
 
     // Write-only SolveResult diagnostics, bound to the result via
-    // append_diagnostics() (see PSIOPT::SolveResult::last_monotone_switches_/
-    // last_monotone_iters_ in psiopt.h).
+    // append_diagnostics() (see InteriorPointSolver::SolveResult::last_monotone_switches_/
+    // last_monotone_iters_ in interior_point_solver.h).
     int last_monotone_switches_ = 0; // free -> monotone handoffs this phase.
     int last_monotone_iters_ = 0;    // iterations spent in monotone mode this phase.
 };

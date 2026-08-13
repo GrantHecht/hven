@@ -34,11 +34,11 @@
 
 namespace {
 
+using hven::solvers::InteriorPointSolver;
 using hven::solvers::kNearFeasibleGuardFactor;
 using hven::solvers::kRestoProximityWeight;
 using hven::solvers::ProgressMeasures;
 using hven::solvers::ProximalSwitchRestoration;
-using hven::solvers::PSIOPT;
 using hven::solvers::SolverContext;
 using TychoTest::InertSolverContext;
 
@@ -342,7 +342,7 @@ TEST(ProxRestoReference, ReturnsTheEntryPointPassedIn) {
 
 TEST(ProxRestoDiagnostics, NeverEnteredReportsZeroZero) {
     ProximalSwitchRestoration r;
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     r.append_diagnostics(result);
     // Constructed but never entered: 0/0 is the correct report (only the
     // interface's default no-op / "no strategy at all" path uses the -1
@@ -365,7 +365,7 @@ TEST(ProxRestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_restoration(ref, x0, 0.02);
     r.note_iteration();
 
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     r.append_diagnostics(result);
     EXPECT_EQ(result.last_feas_rest_entries_, 2);
     EXPECT_EQ(result.last_feas_rest_iters_, 4);

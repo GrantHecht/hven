@@ -164,7 +164,7 @@ struct Jet {
             // Per-thread single-threaded mode (BLASSetThreading is
             // thread-local on macOS 15+; env-var fallback on older systems
             // is inert after the first BLAS call). Like the MKL pin, this
-            // would leak into reused solves on this thread — PSIOPT
+            // would leak into reused solves on this thread — InteriorPointSolver
             // re-applies its qp_threads_ setting at every solve entry
             // (run_phase_sequence) to heal any leftover pin.
             accelerate_set_num_threads(1);

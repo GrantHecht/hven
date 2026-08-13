@@ -15,7 +15,7 @@
 // survived BacktrackingLineSearch's capped backtrack (compute_step) is simply
 // taken as-is; there is no SOC retry, no extended backtrack, no watchdog
 // revert, and no feasibility-switch handoff. Wiring this hook is therefore
-// purely structural: the call site in alg_impl (src/solvers/psiopt.cpp) is
+// purely structural: the call site in alg_impl (src/solvers/interior_point_solver.cpp) is
 // provably inert (see the comment block at that call site) — NoopRecovery
 // cannot produce kRetry / kSwitchToFeasibility / kGiveUp, so no dispatch
 // branch downstream of the call is reachable, and the CBWR gate (bit-identical
@@ -27,7 +27,7 @@
 // by rebuild_globalization_components() whenever the corresponding Settings
 // field opts in (max_soc_, ls_extended_iters_, watchdog_, restoration_mode_).
 // The inertia/perturbation ladder (factor_impl's Zfac cycling + 8x/(1/3)
-// escalation) is a SEPARATE mechanism that stays inside PSIOPT::factor_impl
+// escalation) is a SEPARATE mechanism that stays inside InteriorPointSolver::factor_impl
 // and is not part of this chain; a future inertia-dispatch stage may wire
 // it in.
 //
@@ -53,12 +53,12 @@ class NoopRecovery : public RecoveryChain {
     Action on_step_rejected(IterateInfo & /*Citer*/, const std::vector<IterateInfo> & /*iters*/,
                             SolverContext & /*ctx*/, AcceptanceStrategy & /*acceptance*/,
                             GlobalizationMechanism & /*mechanism*/,
-                            PSIOPT::LineSearchModes /*lsmode*/, double /*obj_scale*/, double /*mu*/,
-                            double /*prim_obj*/, double /*barr_obj*/, Eigen::VectorXd & /*XSL*/,
-                            Eigen::VectorXd & /*DXSL*/, Eigen::VectorXd & /*XSL2*/,
-                            Eigen::VectorXd & /*RHS*/, Eigen::VectorXd & /*RHS2*/,
-                            double & /*alpha*/, double & /*alphap*/, double & /*alphad*/,
-                            int & /*soc_steps*/, int & /*resolved_depth*/,
+                            InteriorPointSolver::LineSearchModes /*lsmode*/, double /*obj_scale*/,
+                            double /*mu*/, double /*prim_obj*/, double /*barr_obj*/,
+                            Eigen::VectorXd & /*XSL*/, Eigen::VectorXd & /*DXSL*/,
+                            Eigen::VectorXd & /*XSL2*/, Eigen::VectorXd & /*RHS*/,
+                            Eigen::VectorXd & /*RHS2*/, double & /*alpha*/, double & /*alphap*/,
+                            double & /*alphad*/, int & /*soc_steps*/, int & /*resolved_depth*/,
                             int & /*watchdog_activations*/) override {
         return Action::kAcceptAsIs;
     }

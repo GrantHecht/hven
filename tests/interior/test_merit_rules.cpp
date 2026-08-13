@@ -27,8 +27,8 @@
 
 #include "progress_measures_test_utils.h"
 
+#include "hven/detail/drivers/interior_point_solver_fwd.h"
 #include "hven/detail/globalization/modern_merit.h"
-#include "hven/detail/drivers/psiopt_fwd.h"
 
 #include <gtest/gtest.h>
 

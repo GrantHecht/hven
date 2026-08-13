@@ -6,11 +6,11 @@
 //   - the default (base-class) body is a no-op: a strategy that does not
 //     override it leaves the SolveResult untouched;
 //   - a fake strategy's override IS invoked through the virtual dispatch, the
-//     same call shape run_phase_sequence() uses (see psiopt.cpp);
+//     same call shape run_phase_sequence() uses (see interior_point_solver.cpp);
 //   - the two real overrides (FunnelAcceptance, FilterAcceptance) report their
 //     documented fields (funnel_acceptance.h / filter_acceptance.h);
-//   - PSIOPT::SolveResult::reset_accumulators() restores the three sentinel
-//     values (-1.0 / -1 / -1) documented on the fields in psiopt.h.
+//   - InteriorPointSolver::SolveResult::reset_accumulators() restores the three sentinel
+//     values (-1.0 / -1 / -1) documented on the fields in interior_point_solver.h.
 //
 // UNITY RULE: anonymous namespace does not protect names against the unity
 // build — every helper/class here is prefixed Diag* to stay globally unique
@@ -22,7 +22,7 @@
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/filter_acceptance.h"
 #include "hven/detail/globalization/funnel_acceptance.h"
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
 #include <gtest/gtest.h>
 
@@ -31,9 +31,9 @@ namespace {
 using hven::solvers::AcceptanceStrategy;
 using hven::solvers::FilterAcceptance;
 using hven::solvers::FunnelAcceptance;
+using hven::solvers::InteriorPointSolver;
 using hven::solvers::kFunnelInfeasibilityFactor;
 using hven::solvers::ProgressMeasures;
-using hven::solvers::PSIOPT;
 using TychoTest::pm;
 
 // Bare AcceptanceStrategy: implements only the pure-virtual surface and does
@@ -72,7 +72,7 @@ class DiagFakeAcceptance : public AcceptanceStrategy {
     }
     void reset() override {}
 
-    void append_diagnostics(PSIOPT::SolveResult &result) const override {
+    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override {
         ++calls_;
         result.last_funnel_width_ = 42.0;
     }
@@ -84,7 +84,7 @@ class DiagFakeAcceptance : public AcceptanceStrategy {
 // values is untouched by a strategy that doesn't override append_diagnostics.
 TEST(AcceptanceDiagnostics, DefaultIsNoop) {
     DiagBareAcceptance strategy;
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     result.reset_accumulators();
     ASSERT_DOUBLE_EQ(result.last_funnel_width_, -1.0);
     ASSERT_EQ(result.last_filter_size_, -1);
@@ -105,7 +105,7 @@ TEST(AcceptanceDiagnostics, DefaultIsNoop) {
 // this->acceptance_->append_diagnostics(this->result_)).
 TEST(AcceptanceDiagnostics, FakeStrategyOverrideIsInvoked) {
     DiagFakeAcceptance strategy;
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     result.reset_accumulators();
 
     AcceptanceStrategy &base = strategy;
@@ -129,7 +129,7 @@ TEST(AcceptanceDiagnostics, FunnelReportsWidth) {
     ASSERT_FALSE(primed);
     ASSERT_DOUBLE_EQ(funnel.funnel_width(), kFunnelInfeasibilityFactor * 4.0);
 
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     result.reset_accumulators();
     static_cast<AcceptanceStrategy &>(funnel).append_diagnostics(result);
 
@@ -150,7 +150,7 @@ TEST(AcceptanceDiagnostics, DiagFunnelUninitializedWidthSentinel) {
     // Do NOT call is_iterate_acceptable — width_ remains at +∞.
     ASSERT_FALSE(std::isfinite(funnel.funnel_width()));
 
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     result.reset_accumulators();
     static_cast<AcceptanceStrategy &>(funnel).append_diagnostics(result);
 
@@ -173,7 +173,7 @@ TEST(AcceptanceDiagnostics, FilterReportsSizeAndResets) {
     ASSERT_EQ(filter.filter_size(), 1u);
     ASSERT_EQ(filter.filter_resets(), 0);
 
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     result.reset_accumulators();
     static_cast<AcceptanceStrategy &>(filter).append_diagnostics(result);
 
@@ -187,7 +187,7 @@ TEST(AcceptanceDiagnostics, FilterReportsSizeAndResets) {
 // reset_accumulators() restores all three sentinels, regardless of what a
 // prior append_diagnostics() call left behind.
 TEST(AcceptanceDiagnostics, ResetAccumulatorsRestoresSentinels) {
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     result.last_funnel_width_ = 6.0;
     result.last_filter_size_ = 3;
     result.last_filter_resets_ = 2;

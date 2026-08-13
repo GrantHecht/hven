@@ -84,7 +84,7 @@ struct BoundSet {
 ///
 /// Solver-owned rather than NLP-owned: unlike the bound set itself, which is a
 /// property of the problem, these are iterate state that belongs to whichever
-/// solve is running. PSIOPT sizes and seeds them at solve entry (the interior
+/// solve is running. InteriorPointSolver sizes and seeds them at solve entry (the interior
 /// push), fills the step vectors from each Newton solve, and commits the
 /// multipliers once per accepted iterate.
 /// </summary>

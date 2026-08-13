@@ -40,6 +40,7 @@ using hven::solvers::AcceptanceStrategy;
 using hven::solvers::ChainedRecovery;
 using hven::solvers::ExtendedBacktrackRecovery;
 using hven::solvers::GlobalizationMechanism;
+using hven::solvers::InteriorPointSolver;
 using hven::solvers::IterateInfo;
 using hven::solvers::kRecoveryDepthExtended;
 using hven::solvers::kRecoveryDepthSoc;
@@ -48,7 +49,6 @@ using hven::solvers::kRecoveryDepthWatchdog;
 using hven::solvers::kWatchdogShortenedIterTrigger;
 using hven::solvers::kWatchdogTrialIterMax;
 using hven::solvers::ProgressMeasures;
-using hven::solvers::PSIOPT;
 using hven::solvers::RecoveryChain;
 using hven::solvers::SolverContext;
 using hven::solvers::WatchdogRecovery;
@@ -207,9 +207,9 @@ class ExtBtUnusedAcceptance : public AcceptanceStrategy {
 // of the extended-backtracking path and must never be reached.
 class ExtBtPassThroughMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(PSIOPT::LineSearchModes, double, double, double, double, Eigen::VectorXd &,
+    double compute_step(InteriorPointSolver::LineSearchModes, double, double, double, double,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                        AcceptanceStrategy &, double &, double &, IterateInfo &,
+                        Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
                         const std::vector<IterateInfo> &, SolverContext &) override {
         ADD_FAILURE() << "compute_step must never be reached by ExtendedBacktrackRecovery";
         return 1.0;
@@ -218,12 +218,13 @@ class ExtBtPassThroughMechanism : public GlobalizationMechanism {
                               const SolverContext &) override {
         ADD_FAILURE() << "max_primal_dual_step must never be reached by ExtendedBacktrackRecovery";
     }
-    double run_acceptance_backtrack(PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
-                                    double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                    AcceptanceStrategy &acceptance, IterateInfo &Citer,
-                                    const std::vector<IterateInfo> &iters, SolverContext &) override {
+    double run_acceptance_backtrack(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                                    double mu, double prim_obj, double barr_obj,
+                                    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                                    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
+                                    IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+                                    SolverContext &) override {
         return acceptance.classic_line_search(lsmode, obj_scale, mu, prim_obj, barr_obj, XSL, DXSL,
                                               XSL2, RHS, RHS2, Citer, iters);
     }
@@ -250,7 +251,7 @@ class ExtBtScriptedAcceptance : public AcceptanceStrategy {
     }
     void reset() override {}
 
-    double classic_line_search(PSIOPT::LineSearchModes, double, double, double, double,
+    double classic_line_search(InteriorPointSolver::LineSearchModes, double, double, double, double,
                                Eigen::VectorXd &, Eigen::VectorXd &DXSL, Eigen::VectorXd &,
                                Eigen::VectorXd &, Eigen::VectorXd &, IterateInfo &Citer,
                                const std::vector<IterateInfo> &) override {
@@ -289,9 +290,9 @@ TEST(ExtendedBacktrackGuards, DisabledDeclines) {
 
     ExtendedBacktrackRecovery ext;
     const Action action = ext.on_step_rejected(
-        citer, iters, ctx, acceptance, mechanism, PSIOPT::LineSearchModes::AUGLANG, 1.0, 1e-3, 0.0,
-        0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps, resolved_depth,
-        watchdog_activations);
+        citer, iters, ctx, acceptance, mechanism, InteriorPointSolver::LineSearchModes::AUGLANG,
+        1.0, 1e-3, 0.0, 0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps,
+        resolved_depth, watchdog_activations);
     EXPECT_EQ(action, Action::kAcceptAsIs);
     EXPECT_DOUBLE_EQ(alpha, 0.5); // untouched
 }
@@ -320,9 +321,9 @@ TEST(ExtendedBacktrackLadder, ContinuesFromLiveAlphaAndHonorsCap) {
 
     ExtendedBacktrackRecovery ext;
     const Action action = ext.on_step_rejected(
-        citer, iters, ctx, acceptance, mechanism, PSIOPT::LineSearchModes::AUGLANG, 1.0, 1e-3, 0.0,
-        0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps, resolved_depth,
-        watchdog_activations);
+        citer, iters, ctx, acceptance, mechanism, InteriorPointSolver::LineSearchModes::AUGLANG,
+        1.0, 1e-3, 0.0, 0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps,
+        resolved_depth, watchdog_activations);
 
     EXPECT_EQ(action, Action::kAcceptAsIs); // budget exhausted, no acceptance
     EXPECT_EQ(acceptance.calls_, 3);        // cap honored: exactly 3 external trials
@@ -360,9 +361,9 @@ TEST(ExtendedBacktrackLadder, AcceptsAndStopsEarly) {
 
     ExtendedBacktrackRecovery ext;
     const Action action = ext.on_step_rejected(
-        citer, iters, ctx, acceptance, mechanism, PSIOPT::LineSearchModes::AUGLANG, 1.0, 1e-3, 0.0,
-        0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps, resolved_depth,
-        watchdog_activations);
+        citer, iters, ctx, acceptance, mechanism, InteriorPointSolver::LineSearchModes::AUGLANG,
+        1.0, 1e-3, 0.0, 0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps,
+        resolved_depth, watchdog_activations);
 
     EXPECT_EQ(action, Action::kRetry);
     EXPECT_EQ(acceptance.calls_, 2); // stopped as soon as accepted
@@ -399,9 +400,9 @@ class WatchdogUnusedAcceptance : public AcceptanceStrategy {
 
 class WatchdogUnusedMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(PSIOPT::LineSearchModes, double, double, double, double, Eigen::VectorXd &,
+    double compute_step(InteriorPointSolver::LineSearchModes, double, double, double, double,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                        AcceptanceStrategy &, double &, double &, IterateInfo &,
+                        Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
                         const std::vector<IterateInfo> &, SolverContext &) override {
         ADD_FAILURE() << "mechanism must not be reached by a spy recovery link";
         return 1.0;
@@ -422,7 +423,7 @@ class WatchdogSpyRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &, const std::vector<IterateInfo> &, SolverContext &,
                             AcceptanceStrategy &, GlobalizationMechanism &,
-                            PSIOPT::LineSearchModes, double, double, double, double,
+                            InteriorPointSolver::LineSearchModes, double, double, double, double,
                             Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                             Eigen::VectorXd &, Eigen::VectorXd &, double &, double &, double &,
                             int &, int &, int &) override {
@@ -453,9 +454,9 @@ struct WatchdogChainDrive {
 Action watchdog_drive_chain(RecoveryChain &chain, WatchdogChainDrive &d, SolverContext &ctx,
                             AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism) {
     return chain.on_step_rejected(d.citer, d.iters, ctx, acceptance, mechanism,
-                                  PSIOPT::LineSearchModes::AUGLANG, 1.0, 1e-3, 0.0, 0.0, d.v, d.v,
-                                  d.v, d.v, d.v, d.alpha, d.alphap, d.alphad, d.soc_steps,
-                                  d.resolved_depth, d.watchdog_activations);
+                                  InteriorPointSolver::LineSearchModes::AUGLANG, 1.0, 1e-3, 0.0,
+                                  0.0, d.v, d.v, d.v, d.v, d.v, d.alpha, d.alphap, d.alphad,
+                                  d.soc_steps, d.resolved_depth, d.watchdog_activations);
 }
 
 // SOC tried first: if the SOC-position link resolves (returns non-kAcceptAsIs),
@@ -550,10 +551,10 @@ Action drive_watchdog(WatchdogRecovery &watchdog, SolverContext &ctx,
     std::vector<IterateInfo> iters;
     double alphap = 1.0, alphad = 1.0;
     int soc_steps = 0;
-    return watchdog.on_step_rejected(citer, iters, ctx, acceptance, mechanism,
-                                     PSIOPT::LineSearchModes::AUGLANG, /*obj_scale=*/1.0, mu,
-                                     prim_obj, /*barr_obj=*/0.0, v, v, v, v, v, alpha, alphap,
-                                     alphad, soc_steps, resolved_depth, watchdog_activations);
+    return watchdog.on_step_rejected(
+        citer, iters, ctx, acceptance, mechanism, InteriorPointSolver::LineSearchModes::AUGLANG,
+        /*obj_scale=*/1.0, mu, prim_obj, /*barr_obj=*/0.0, v, v, v, v, v, alpha, alphap, alphad,
+        soc_steps, resolved_depth, watchdog_activations);
 }
 
 // WatchdogRecovery as an outer decorator: while not armed, delegates every

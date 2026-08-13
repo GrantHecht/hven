@@ -34,14 +34,14 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
+#include "hven/detail/drivers/interior_point_solver_fwd.h"
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/drivers/non_linear_program.h"
-#include "hven/detail/drivers/psiopt_fwd.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/drivers/non_linear_program.h"
 
 #ifdef USE_ACCELERATE_SPARSE
 #include <limits>
@@ -49,7 +49,7 @@
 
 // Forward declarations of gtest-generated test-fixture classes (global
 // namespace, per gtest's TEST() expansion) that are befriended below. See the
-// "Test access" comment in the PSIOPT class body for why this exists.
+// "Test access" comment in the InteriorPointSolver class body for why this exists.
 class RecoveryDispatchGate_FunnelSelectionConstructsFunnelAcceptance_Test;
 class RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_Test;
 class RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test;
@@ -96,7 +96,7 @@ class NativeBoundsHarness;
 
 namespace hven::solvers {
 
-// Pull root-namespace Eigen type aliases into hven::solvers so that PSIOPT
+// Pull root-namespace Eigen type aliases into hven::solvers so that InteriorPointSolver
 // member declarations (EigenRef<VectorXd>, ConstEigenRef<VectorXd>, …) resolve
 // without full qualification inside this namespace.
 using hven::ConstEigenRef;
@@ -129,37 +129,37 @@ using hven::EigenRef;
 // optimum without it.
 inline constexpr int kDivergencePersistIters = 3;
 
-// Part of the globalization component extraction: PSIOPT owns its
+// Part of the globalization component extraction: InteriorPointSolver owns its
 // step-acceptance strategy through a std::unique_ptr<AcceptanceStrategy>.
 // Only the forward declaration is needed here (the complete type lives in
 // detail/globalization/acceptance_strategy.h, which includes THIS
-// header — so psiopt.h must not include it back). Because the member is a
-// unique_ptr to this incomplete type, PSIOPT's constructors and destructor are
-// declared here and defined out-of-line in psiopt.cpp, where the concrete
+// header — so interior_point_solver.h must not include it back). Because the member is a
+// unique_ptr to this incomplete type, InteriorPointSolver's constructors and destructor are
+// declared here and defined out-of-line in interior_point_solver.cpp, where the concrete
 // ClassicMeritAcceptance is complete.
 //
-// PSIOPT likewise owns its step-length globalization mechanism
+// InteriorPointSolver likewise owns its step-length globalization mechanism
 // through a std::unique_ptr<GlobalizationMechanism> (concrete type
-// BacktrackingLineSearch, complete only in psiopt.cpp). Same forward-declare +
+// BacktrackingLineSearch, complete only in interior_point_solver.cpp). Same forward-declare +
 // out-of-line ctor/dtor discipline as AcceptanceStrategy above.
 //
-// PSIOPT owns its barrier-parameter governor through a
+// InteriorPointSolver owns its barrier-parameter governor through a
 // std::unique_ptr<BarrierGovernor> (concrete type ClassicAdaptiveGovernor,
-// complete only in psiopt.cpp). Same forward-declare + out-of-line ctor/dtor
+// complete only in interior_point_solver.cpp). Same forward-declare + out-of-line ctor/dtor
 // discipline.
 //
-// PSIOPT owns its post-rejection recovery chain through a
+// InteriorPointSolver owns its post-rejection recovery chain through a
 // std::unique_ptr<RecoveryChain> (concrete type depends on settings — see
-// the recovery_ field comment below; complete only in psiopt.cpp). Same
+// the recovery_ field comment below; complete only in interior_point_solver.cpp). Same
 // forward-declare + out-of-line ctor/dtor discipline. NoopRecovery is
 // installed only on the all-default path (max_soc_ == 0, ls_extended_iters_
 // == 0, watchdog_ == false, restoration_mode_ == off); live links exist for
 // every opt-in (SocRecovery, ExtendedBacktrackRecovery, WatchdogRecovery,
 // FeasibilitySwitchRecovery — see rebuild_globalization_components()).
-// PSIOPT also owns an optional feasibility-restoration mode-switch through a
+// InteriorPointSolver also owns an optional feasibility-restoration mode-switch through a
 // std::unique_ptr<RestorationStrategy> (concrete type ProximalSwitchRestoration
 // or NestedL1Restoration depending on restoration_mode_, complete only in
-// psiopt.cpp). Unlike the four components above it is NOT always constructed:
+// interior_point_solver.cpp). Unlike the four components above it is NOT always constructed:
 // rebuild_globalization_components() leaves it null unless restoration_mode_
 // != off, so on the default path every restoration branch guards on
 // `restoration_ != nullptr` and is provably dead. Same forward-declare +
@@ -172,7 +172,7 @@ class RestorationStrategy;
 struct ProgressMeasures;
 struct FeasibilityStallDetector;
 
-class PSIOPT {
+class InteriorPointSolver {
   public:
     enum class BarrierModes { PROBE, LOQO };
     enum class LineSearchModes { AUGLANG, LANG, L1, NOLS };
@@ -196,7 +196,7 @@ class PSIOPT {
     };
     enum class PDStepStrategies { PrimSlackEq_Iq, AllMinimum, PrimSlack_EqIq, MaxEq };
 
-    // --- Static string-to-enum converters (defined in psiopt.cpp) ---
+    // --- Static string-to-enum converters (defined in interior_point_solver.cpp) ---
     static QPOrderingModes strto_OrderingMode(const std::string &str);
     static LineSearchModes strto_LineSearchMode(const std::string &str);
     static BarrierModes strto_BarrierMode(const std::string &str);
@@ -279,7 +279,7 @@ class PSIOPT {
         // line search bit-identically. merit selects the modernized merit
         // family driven through the GENERIC AcceptanceStrategy path, with the
         // penalty rule chosen by merit_penalty_rule_ (only read when
-        // acceptance_strategy_ == merit). Both enums live in psiopt_fwd.h.
+        // acceptance_strategy_ == merit). Both enums live in interior_point_solver_fwd.h.
         AcceptanceStrategies acceptance_strategy_ = AcceptanceStrategies::classic_merit;
         MeritPenaltyRules merit_penalty_rule_ = MeritPenaltyRules::wmno;
 
@@ -291,7 +291,7 @@ class PSIOPT {
         // The funnel/filter acceptance strategies are designed to operate above
         // a monotone barrier safeguard; validate() rejects them combined with
         // classic_adaptive unless never_monotone_ is explicitly set (see
-        // validate()'s guard below). Enum lives in psiopt_fwd.h.
+        // validate()'s guard below). Enum lives in interior_point_solver_fwd.h.
         BarrierGovernors barrier_governor_ = BarrierGovernors::classic_adaptive;
 
         // Expert escape hatch mirroring Ipopt's never-monotone-mode: explicitly
@@ -318,7 +318,7 @@ class PSIOPT {
         // every acceptance_strategy_ and barrier_governor_ (no matrix
         // restrictions — every shipped acceptance strategy implements the
         // restoration exit test the modes rely on). Enum lives in
-        // psiopt_fwd.h; the per-phase entry budget is max_feas_rest_ above,
+        // interior_point_solver_fwd.h; the per-phase entry budget is max_feas_rest_ above,
         // shared by both modes.
         RestorationModes restoration_mode_ = RestorationModes::off;
 
@@ -390,7 +390,7 @@ class PSIOPT {
         // δ_c-ladder constants in globalization/inertia_regularization.h and is
         // suppressed while a nested l1 restoration phase is active. Closed-set
         // enum, so validate() needs no range check; no other setting is
-        // required. Enum lives in psiopt_fwd.h.
+        // required. Enum lives in interior_point_solver_fwd.h.
         InertiaModes inertia_mode_ = InertiaModes::classic;
 
         // --- QP solver ---
@@ -683,25 +683,25 @@ class PSIOPT {
         std::function<int(const IterateInfo &, ConstEigenRef<VectorXd>, ConstEigenRef<VectorXd>)>;
 
     // --- Constructors / destructor ---
-    // Defined out-of-line in psiopt.cpp: the unique_ptr<AcceptanceStrategy>
+    // Defined out-of-line in interior_point_solver.cpp: the unique_ptr<AcceptanceStrategy>
     // member forces even the constructors' exception-cleanup paths (and the
     // destructor) to see the complete AcceptanceStrategy type, which is only
     // available in the .cpp. Bodies are otherwise unchanged.
-    PSIOPT();
-    PSIOPT(std::shared_ptr<NonLinearProgram> np);
-    ~PSIOPT();
+    InteriorPointSolver();
+    InteriorPointSolver(std::shared_ptr<NonLinearProgram> np);
+    ~InteriorPointSolver();
 
     // Neither copyable nor movable: the out-of-line destructor above (needed
     // for the incomplete-type unique_ptr members) already silently suppresses
-    // the implicit move members, and PSIOPT's kkt_sol_ factorization plus
+    // the implicit move members, and InteriorPointSolver's kkt_sol_ factorization plus
     // its unique_ptr<...> globalization components have no defined transfer
     // semantics today. Explicit rather than relying on that suppression, so
     // the constraint is visible at the declaration instead of discovered at a
     // failed call site.
-    PSIOPT(const PSIOPT &) = delete;
-    PSIOPT &operator=(const PSIOPT &) = delete;
-    PSIOPT(PSIOPT &&) = delete;
-    PSIOPT &operator=(PSIOPT &&) = delete;
+    InteriorPointSolver(const InteriorPointSolver &) = delete;
+    InteriorPointSolver &operator=(const InteriorPointSolver &) = delete;
+    InteriorPointSolver(InteriorPointSolver &&) = delete;
+    InteriorPointSolver &operator=(InteriorPointSolver &&) = delete;
 
     // --- Accessors ---
     /// Returns a mutable reference to the settings struct. Direct writes bypass
@@ -723,7 +723,7 @@ class PSIOPT {
     Eigen::VectorXd optimize_solve(const Eigen::VectorXd &x);
     Eigen::VectorXd solve_optimize_solve(const Eigen::VectorXd &x);
 
-    // --- Validated setter methods (defined in psiopt.cpp) ---
+    // --- Validated setter methods (defined in interior_point_solver.cpp) ---
     void set_max_iters(int max_iters);
     void set_max_acc_iters(int max_acc_iters);
     void set_max_ls_iters(int max_ls_iters);
@@ -808,9 +808,9 @@ class PSIOPT {
     // std::invalid_argument (listing every valid name) for an unrecognized
     // name. The preset table -- field values, evidence-of-record citations,
     // and the name list this error message dispatches against -- lives in
-    // detail/drivers/psiopt_presets.h. The Python binding's docstring repeats
+    // detail/drivers/interior_point_solver_presets.h. The Python binding's docstring repeats
     // the preset names by hand; a Python test pins it against this table.
-    // Defined in psiopt_settings.cpp alongside the other Settings-only logic.
+    // Defined in interior_point_solver_settings.cpp alongside the other Settings-only logic.
     void apply_preset(std::string_view name);
 
     // --- Callback methods ---
@@ -841,7 +841,7 @@ class PSIOPT {
     /// Ceiling applied to every seeded multiplier (both signs for equality
     /// rows; the upper end for inequality rows, alongside kSeededIqMultFloor's
     /// lower end). Parity with Ipopt's own seeded-multiplier ceiling
-    /// (warm_start_mult_init_max, default 1e6) and with PSIOPT's own
+    /// (warm_start_mult_init_max, default 1e6) and with InteriorPointSolver's own
     /// bound-multiplier seeding precedent (kBoundMultInitCap = 1e3 in
     /// push_initial_point_interior, bound_set.h).
     static constexpr double kSeededMultInitMax = 1.0e6;
@@ -975,7 +975,7 @@ class PSIOPT {
     // max_soc, ls_extended_iters, watchdog, merit_penalty_rule) must take
     // effect on the very next solve even without a re-transcription in
     // between, matching every other Settings field's live-at-next-solve
-    // semantics. See psiopt.cpp's definition for the neutrality argument on
+    // semantics. See interior_point_solver.cpp's definition for the neutrality argument on
     // the default (all-off) path.
     void rebuild_globalization_components();
 
@@ -1003,7 +1003,7 @@ class PSIOPT {
 
     // --- Reusable per-iteration scratch buffers (avoid per-call heap allocation) ---
     // complementarity()/barrier_hessian() are only ever invoked serially from
-    // alg_impl's single-threaded control loop for this PSIOPT instance (no
+    // alg_impl's single-threaded control loop for this InteriorPointSolver instance (no
     // partition-level concurrency at this level -- that only happens inside
     // NLP eval calls). Sized to inequal_cons_/slack_vars_ (resize-in-place;
     // a no-op once the size matches, which it does for the lifetime of a solve).
@@ -1153,7 +1153,7 @@ class PSIOPT {
     Eigen::VectorXd run_phase_sequence(const Eigen::VectorXd &x,
                                        std::initializer_list<PhaseStep> steps);
 
-    // --- Core algorithm (defined in psiopt.cpp) ---
+    // --- Core algorithm (defined in interior_point_solver.cpp) ---
     Eigen::VectorXd alg_impl(AlgorithmModes algmode, BarrierModes barmode, LineSearchModes lsmode,
                              double obj_scale, double MuI, Eigen::Ref<Eigen::VectorXd> xsl);
 
@@ -1191,7 +1191,7 @@ class PSIOPT {
     // alg_impl now drives both through mechanism_->compute_step
     // (which fuses the step scaling and acceptance backtrack).
 
-    // --- KKT factorization (defined in psiopt.cpp) ---
+    // --- KKT factorization (defined in interior_point_solver.cpp) ---
     // `finalpert` is the last perturbation DELTA applied via Perturb() -- this is
     // the exact value alg_impl's Hpert0 warm-start consumes today and must keep
     // consuming byte-identically (see the comment at its call site). `cumpert` is
@@ -1216,7 +1216,7 @@ class PSIOPT {
 
     void ensure_solver_initialized();
 
-    // --- Barrier math helpers (defined in psiopt.cpp) ---
+    // --- Barrier math helpers (defined in interior_point_solver.cpp) ---
     void apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> FXI) const;
     // max_step_to_boundary was extracted verbatim into BacktrackingLineSearch;
     // it is now a private helper of that mechanism.
@@ -1250,7 +1250,7 @@ class PSIOPT {
                                         int base_count) const;
     void barrier_hessian(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
                          Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> LI, double mu);
-    // --- Native variable-bound helpers (defined in psiopt.cpp) ---
+    // --- Native variable-bound helpers (defined in interior_point_solver.cpp) ---
     // Every one of these is a no-op when bounds_ is null.
 
     // Projects `x` into the strict interior of the recorded bounds and seeds the
@@ -1285,7 +1285,7 @@ class PSIOPT {
     // kFreeModeClipMuCap. The two differ because a free-mode barrier parameter
     // is an oracle's proposal for the NEXT step rather than a description of
     // where the iterate currently sits, and it is the latter the safeguard
-    // needs. PSIOPT's classic_adaptive governor is the free-mu case, the
+    // needs. InteriorPointSolver's classic_adaptive governor is the free-mu case, the
     // monitored governor reports its live mode, and a phase with no inequality
     // constraints runs no governor at all and so holds mu fixed.
     void apply_bound_dual_step(double alphad, KKTVector &xsl_new, double mu, bool monotone_mu);
@@ -1311,19 +1311,19 @@ class PSIOPT {
     double dual_infeasibility_inf(ConstEigenRef<Eigen::VectorXd> prim_base) const;
 
     // loqo_mu / mpc_mu were extracted verbatim into ClassicAdaptiveGovernor
-    // (src/solvers/psiopt_globalization.cpp); the barrier-
+    // (src/solvers/interior_point_solver_globalization.cpp); the barrier-
     // parameter update now runs through governor_->update_barrier(). The
     // barrier_objective()/barrier_gradient() helpers formerly declared here were
-    // dead after that extraction (PSIOPT no longer called them) and have been
+    // dead after that extraction (InteriorPointSolver no longer called them) and have been
     // removed; ClassicMeritAcceptance and ClassicAdaptiveGovernor each carry
     // their own copies. complementarity() STAYS — it is still called from the
     // evaluate stage (its maxcomp output feeds converge_check's barr_inf_).
 
-    // --- NLP eval dispatch methods (defined in psiopt.cpp) ---
+    // --- NLP eval dispatch methods (defined in interior_point_solver.cpp) ---
     // The four wrappers below differ only in which NonLinearProgram entry point
     // they call; the segment expressions that slice XSL/GX/AGXS_FX into the
     // compound [primals | slacks | eq | iq] layout are written once, here. `fn` is
-    // a pointer to the NonLinearProgram member to invoke. Defined in psiopt.cpp,
+    // a pointer to the NonLinearProgram member to invoke. Defined in interior_point_solver.cpp,
     // its only translation unit.
     template <class Fn>
     void eval_dispatch(Fn fn, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
@@ -1349,7 +1349,7 @@ class PSIOPT {
                   double &val, EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat, double mu);
 
-    // --- Feasibility-restoration exit measures (defined in psiopt.cpp) ---
+    // --- Feasibility-restoration exit measures (defined in interior_point_solver.cpp) ---
     // Shared by every restoration exit/teardown site (the two continuing-exit
     // arms, the in-loop locally-infeasible break, and the post-loop teardown).
     // While restoration is active, the loop's own prim_obj_ is φ_prox (the
@@ -1364,7 +1364,7 @@ class PSIOPT {
                                                      ConstEigenRef<VectorXd> primals,
                                                      double barr_obj);
 
-    // --- Feasibility-restoration lifecycle (defined in psiopt.cpp) ---
+    // --- Feasibility-restoration lifecycle (defined in interior_point_solver.cpp) ---
     // Shared entry orchestration for the kSwitchToFeasibility case. Builds the
     // (θ,f) entry measures from the current RHS/primals, then dispatches on the
     // strategy family: the proximal switch takes enter_restoration; the nested
@@ -1440,7 +1440,7 @@ class PSIOPT {
     // original-problem infeasibility must fall to at most max(kKappaResto ·
     // previous-iteration infeasibility, econ_tol_) (Ipopt RestoConvCheck's
     // orig_inf_pr_max, single-tolerance floor). Reads resto_theta_orig_prev_
-    // (seeded at entry, ratcheted each phase iteration). Defined in psiopt.cpp so
+    // (seeded at entry, ratcheted each phase iteration). Defined in interior_point_solver.cpp so
     // the kKappaResto constant (globalization/acceptance_strategy.h) stays out of
     // this header's include set.
     bool resto_ratchet_passes(double theta_orig) const;
@@ -1494,7 +1494,7 @@ class PSIOPT {
     double primal_dual_error(KKTVector &xsl, KKTVector &rhs,
                              ConstEigenRef<Eigen::VectorXd> prim_base, double mu) const;
 
-    // Nested soft feasibility pre-stage trial (defined in psiopt.cpp). Forms the
+    // Nested soft feasibility pre-stage trial (defined in interior_point_solver.cpp). Forms the
     // full fraction-to-boundary trial point XSL + DXSL (DXSL already carries the
     // fraction-to-boundary scaling from compute_step), evaluates the original
     // problem there (into the caller-supplied XSL2/RHS2/GX scratch), and returns
@@ -1518,7 +1518,7 @@ class PSIOPT {
     // deliberately does NOT set barr_obj_/mu_ (only settled once the barrier-
     // parameter update runs, later this iteration) or p_pivots_ (kkt_sol_.ppivs(),
     // which only reflects a real value once this iteration's factorization has
-    // actually run) -- see the definition in psiopt.cpp for the full rationale.
+    // actually run) -- see the definition in interior_point_solver.cpp for the full rationale.
     void fill_residual_info(KKTVector &xsl, KKTVector &rhs, double pobj, IterateInfo &iter) const;
     void fill_iter_info(KKTVector &xsl, KKTVector &rhs, double pobj, double bobj, double mu,
                         IterateInfo &iter) const;
@@ -1538,7 +1538,7 @@ class PSIOPT {
     // predictor call site).
 
     // --- Printing methods ---
-    static void print_psiopt();
+    static void print_banner();
     void print_settings();
     void print_stats();
     void print_last_iterate(const std::vector<IterateInfo> &iters);

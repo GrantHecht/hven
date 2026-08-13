@@ -15,7 +15,7 @@
 // alg_impl uses to decide whether to invoke the chain at all. IMPORTANT
 // scope note: the inertia/perturbation LADDER itself (factor_impl's Zfac
 // cycling + the 8x/(1/3) escalation) is NOT what this interface wraps — it
-// stays inside PSIOPT::factor_impl; a future inertia-dispatch stage may fold
+// stays inside InteriorPointSolver::factor_impl; a future inertia-dispatch stage may fold
 // it into this chain. This interface is the POST-REJECTION dispatcher: what
 // to do once a trial step has already been rejected by an AcceptanceStrategy.
 // NoopRecovery (noop_recovery.h) is the all-default-path implementation: an
@@ -52,10 +52,10 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// PSIOPT::LineSearchModes (forwarded to the acceptance re-test during a
-// second-order correction) requires the complete PSIOPT class; pulled in
+// InteriorPointSolver::LineSearchModes (forwarded to the acceptance re-test during a
+// second-order correction) requires the complete InteriorPointSolver class; pulled in
 // transitively via the two globalization headers above, which already include
-// psiopt.h. See solver_context.h's one-directional include-discipline note.
+// interior_point_solver.h. See solver_context.h's one-directional include-discipline note.
 
 namespace hven::solvers {
 
@@ -65,7 +65,7 @@ namespace hven::solvers {
 // into the `resolved_depth` out-parameter of on_step_rejected below;
 // individual links (SocRecovery, ExtendedBacktrackRecovery) do not write it
 // themselves — only a composing/wrapping link knows which position in the
-// dispatch order actually won. PSIOPT::alg_impl() also overwrites it
+// dispatch order actually won. InteriorPointSolver::alg_impl() also overwrites it
 // directly, outside the chain call, in two feasibility-restoration branches:
 // the nested elastic re-centering fallback (try_recenter_elastics, guarded
 // on resolved_depth still being the unresolved sentinel) and the
@@ -73,18 +73,18 @@ namespace hven::solvers {
 // iteration to restoration rather than to whatever depth the chain itself
 // resolved (even a watchdog-resolved one). The soft-feasibility-step
 // escalation is not a third site — FeasibilitySwitchRecovery stamps the
-// depth itself before returning that action. Backs PSIOPT::SolveResult::
-// recovery_depth_histogram_[d] (psiopt.h).
+// depth itself before returning that action. Backs InteriorPointSolver::SolveResult::
+// recovery_depth_histogram_[d] (interior_point_solver.h).
 inline constexpr int kRecoveryDepthSoc = 0;
 inline constexpr int kRecoveryDepthExtended = 1;
 inline constexpr int kRecoveryDepthWatchdog = 2;
 inline constexpr int kRecoveryDepthUnresolved = 3; // classic give-up: no link resolved it.
 // Feasibility-restoration mode-switch: written by FeasibilitySwitchRecovery
 // (globalization/feasibility_switch_recovery.h) when it converts an inner
-// kAcceptAsIs into a kSwitchToFeasibility, and by PSIOPT::alg_impl() directly
+// kAcceptAsIs into a kSwitchToFeasibility, and by InteriorPointSolver::alg_impl() directly
 // (see the note above). Reachable whenever restoration_mode_ != off
-// (proximal_switch or l1_nested); PSIOPT::SolveResult::
-// recovery_depth_histogram_ (psiopt.h) is sized to 5 to hold this bucket.
+// (proximal_switch or l1_nested); InteriorPointSolver::SolveResult::
+// recovery_depth_histogram_ (interior_point_solver.h) is sized to 5 to hold this bucket.
 inline constexpr int kRecoveryDepthRestoration = 4;
 
 // =============================================================================
@@ -159,20 +159,19 @@ class RecoveryChain {
     //   watchdog_activations         — accumulator WatchdogRecovery increments
     //                                 once per arm event (diagnostic; every
     //                                 other link ignores it).
-    virtual Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
-                                     SolverContext &ctx, AcceptanceStrategy &acceptance,
-                                     GlobalizationMechanism &mechanism,
-                                     PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
-                                     double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                                     double &alphap, double &alphad, int &soc_steps,
-                                     int &resolved_depth, int &watchdog_activations) = 0;
+    virtual Action
+    on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
+                     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
+                     InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu,
+                     double prim_obj, double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                     Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                     double &alpha, double &alphap, double &alphad, int &soc_steps,
+                     int &resolved_depth, int &watchdog_activations) = 0;
 
     // Called once per genuinely ACCEPTED iteration -- i.e. the rejection hook
     // above was skipped this iteration because should_dispatch_recovery was
     // false (GoodStep && Citer.accepted_; see alg_impl's call site in
-    // psiopt.cpp, in the branch mirroring should_dispatch_recovery's gate).
+    // interior_point_solver.cpp, in the branch mirroring should_dispatch_recovery's gate).
     // Implementations MAY use this to reset counters tied to real progress
     // (e.g. WatchdogRecovery's consecutive-shortened-iteration count -- see
     // watchdog.h); an implementation must NOT touch solver state (XSL/DXSL/
@@ -189,7 +188,7 @@ class RecoveryChain {
 // citer.accepted_ is false AND the KKT step direction was usable (good_step).
 // accepted_ reads false for two reasons: the acceptance strategy actually
 // rejected the trial (the line search's out-signal reports not-accepted), or
-// psiopt.cpp's alg_impl force-rejects a trial the acceptance strategy DID
+// interior_point_solver.cpp's alg_impl force-rejects a trial the acceptance strategy DID
 // accept when this iteration's factorization exhausted the inertia-correction
 // ladder (the `if (kkt_exhausted) Citer.accepted_ = false;` site, run before
 // this gate is checked) -- so a genuinely accepted step can still reach the

@@ -3,7 +3,7 @@
 //   Apache 2.0 — see LICENSE.txt)
 // =============================================================================
 //
-// Part of the globalization component extraction: PSIOPT's step-acceptance,
+// Part of the globalization component extraction: InteriorPointSolver's step-acceptance,
 // step-length, and barrier-parameter logic is being pulled out of the
 // monolithic solver into standalone components under this directory.
 //
@@ -40,7 +40,7 @@ namespace hven::solvers {
 // objective would contaminate the filter/funnel machinery — this is the hook
 // that makes filter/funnel work inside an interior-point method, and it is
 // already exercised by the shipped FunnelAcceptance/FilterAcceptance
-// strategies (psiopt_globalization.cpp). The classic merit acceptance
+// strategies (interior_point_solver_globalization.cpp). The classic merit acceptance
 // strategy does not need this separation (it sums prim_obj_ + barr_obj_
 // directly — see ls_lang/ls_l1/ls_auglang in merit_acceptance.h); the slot
 // exists so this data shape did not need to change when filter/funnel were

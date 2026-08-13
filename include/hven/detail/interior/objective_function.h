@@ -8,7 +8,7 @@
 //
 // Implements the ObjectiveFunction class.
 // Holds an ObjectiveInterface type erasure class and SolverIndexingData struct.
-// Interfaces directly with NonLinearProgram and PSIOPT.
+// Interfaces directly with NonLinearProgram and InteriorPointSolver.
 //
 // Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):
@@ -56,8 +56,8 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
 
     /*
     Interface for calling the underlying type erased function's .objective method.
-    Passes the arguments from PSIOPT and NonLinearProgram as well as the indexing data struct to the
-    underlying vector function.
+    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
+    struct to the underlying vector function.
     */
     void objective(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val) const {
         this->function_.objective(ObjScale, X, Val, this->index_data_);
@@ -65,8 +65,8 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
 
     /*
     Interface for calling the underlying type erased function's .objective_gradient method.
-    Passes the arguments from PSIOPT and NonLinearProgram as well as the indexing data struct to the
-    underlying vector function.
+    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
+    struct to the underlying vector function.
     */
     void objective_gradient(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
                             EigenRef<Eigen::VectorXd> GX) const {
@@ -75,8 +75,8 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
 
     /*
     Interface for calling the underlying type erased function's .objective_gradient_hessian method.
-    Passes the arguments from PSIOPT and NonLinearProgram as well as the indexing data struct to the
-    underlying vector function.
+    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
+    struct to the underlying vector function.
     */
     void objective_gradient_hessian(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
                                     EigenRef<Eigen::VectorXd> GX,

@@ -140,16 +140,16 @@
 // exit test's ratio·(+∞) = +∞ passes at the first check. This matches the
 // reference and is kept.
 //
-// Definitions live in src/solvers/psiopt_globalization.cpp.
+// Definitions live in src/solvers/interior_point_solver_globalization.cpp.
 
 #pragma once
 
 #include <limits>
 #include <stdexcept>
 
+#include "hven/detail/drivers/interior_point_solver_fwd.h"
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/progress_measures.h"
-#include "hven/detail/drivers/psiopt_fwd.h"
 
 namespace hven::solvers {
 
@@ -219,7 +219,7 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     // the entry point, is the reference this rule reduces against). While in the
     // feasibility phase the tracker read is the STASHED (frozen optimality-phase)
     // one — see the state-isolation section above; outside the phase it is the
-    // live tracker. See the definition in psiopt_globalization.cpp.
+    // live tracker. See the definition in interior_point_solver_globalization.cpp.
     bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
                                                const ProgressMeasures &trial) const override;
 

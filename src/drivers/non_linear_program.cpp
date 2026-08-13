@@ -494,14 +494,14 @@ void hven::solvers::NonLinearProgram::finalize_data() {
 void hven::solvers::NonLinearProgram::analyze_sparsity(
     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     /*
-    Calculates Sparsity Pattern of NLP. PSIOPT requires that only the upper triangular part of a CSR
-    matrix be filled. get_mat_space calculates the non-zeros of the lower triangular part. Therefore
-    in this routine we transpose the the row-column indices when making the triplet vector that
-    Eigen uses to calculate the compressed sparsity pattern of the upper triangular CSR matrix. Once
-    this routine clculates the sparsity pattern of the KKT matrix it back calculates where every
-    element specified by kkt_coeff_rows_[i],kkt_coeff_cols_[i], should be summed into the KKT
-    matrix. This info is stored in kkt_locations_, and is passed back to all functions so that they
-    know where to scatter their outputs.
+    Calculates Sparsity Pattern of NLP. InteriorPointSolver requires that only the upper triangular
+    part of a CSR matrix be filled. get_mat_space calculates the non-zeros of the lower triangular
+    part. Therefore in this routine we transpose the the row-column indices when making the triplet
+    vector that Eigen uses to calculate the compressed sparsity pattern of the upper triangular CSR
+    matrix. Once this routine clculates the sparsity pattern of the KKT matrix it back calculates
+    where every element specified by kkt_coeff_rows_[i],kkt_coeff_cols_[i], should be summed into
+    the KKT matrix. This info is stored in kkt_locations_, and is passed back to all functions so
+    that they know where to scatter their outputs.
 
     */
     KKTmat.resize(this->kkt_dim_, this->kkt_dim_);

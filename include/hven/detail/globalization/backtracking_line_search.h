@@ -9,14 +9,14 @@
 // documented below.
 //
 // BacktrackingLineSearch implements GlobalizationMechanism::compute_step by
-// hosting today's PSIOPT::max_primal_dual_step fraction-to-boundary scaling
+// hosting today's InteriorPointSolver::max_primal_dual_step fraction-to-boundary scaling
 // plus its max_step_to_boundary scalar helper, moved VERBATIM from
-// src/solvers/psiopt.cpp (statement order and operand order preserved exactly
+// src/solvers/interior_point_solver.cpp (statement order and operand order preserved exactly
 // — the merge gate is a bit-identical CBWR iteration-count comparison). The
-// only edits are context-plumbing renames: former PSIOPT member reads
+// only edits are context-plumbing renames: former InteriorPointSolver member reads
 // (settings_.pd_step_strategy_, inequal_cons_, equal_cons_) now go through the
 // SolverContext reference passed to the call. Definitions live in
-// src/solvers/psiopt_globalization.cpp.
+// src/solvers/interior_point_solver_globalization.cpp.
 //
 // Riskiest-seam design note:
 //   max_primal_dual_step SCALES DXSL's primal/slack/multiplier blocks IN PLACE
@@ -32,11 +32,11 @@
 //
 // Byte-identity design note (references-only channel):
 //   Like ClassicMeritAcceptance (merit_acceptance.h), this component reaches
-//   PSIOPT state ONLY through SolverContext, and builds a KKTVector view over
+//   InteriorPointSolver state ONLY through SolverContext, and builds a KKTVector view over
 //   the raw XSL/DXSL blocks from the context's dimensions. The view type is the
 //   shared hven::solvers::KKTVector (detail/interior/kkt_vector.h) — this
 //   header used to carry a verbatim copy of it, because the type was private to
-//   PSIOPT and not name-accessible from a non-member, non-friend type.
+//   InteriorPointSolver and not name-accessible from a non-member, non-friend type.
 //
 // Ownership rule: BacktrackingLineSearch holds no SOLVER-owned state (matches
 // the GlobalizationMechanism ownership rule). Every per-iteration transient
@@ -45,7 +45,7 @@
 // SolverContext reference passed to the call — never cached across calls.
 // resto_eq_shift_scratch_/resto_iq_shift_scratch_ below are the one exception:
 // scratch backing storage (to avoid per-backtrack heap allocation), the same
-// discipline PSIOPT's own *_scratch_ members use — not solver state, and not
+// discipline InteriorPointSolver's own *_scratch_ members use — not solver state, and not
 // cleared by reset(). reset() is a no-op (classic backtracking carries no
 // persistent DECISION state across iterations).
 
@@ -62,7 +62,7 @@
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -73,7 +73,7 @@ namespace hven::solvers {
 //
 // Holds no solver-owned state, per GlobalizationMechanism's ownership rule
 // (see the ownership-rule note above for the scratch-buffer exception).
-// Constructed by PSIOPT::rebuild_globalization_components() at the
+// Constructed by InteriorPointSolver::rebuild_globalization_components() at the
 // start of every solve invocation; every call receives the live
 // SolverContext view of the solver as an explicit parameter.
 // =============================================================================
@@ -83,7 +83,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
 
     // Fused fraction-to-boundary scaling + acceptance backtrack — see the
     // riskiest-seam note above and GlobalizationMechanism::compute_step.
-    double compute_step(PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
+    double compute_step(InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu,
                         double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                         Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                         Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap,
@@ -95,7 +95,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     void reset() override {}
 
     // Fraction-to-boundary primal/dual step (verbatim today's
-    // PSIOPT::max_primal_dual_step). Public so the PROBE barrier block's
+    // InteriorPointSolver::max_primal_dual_step). Public so the PROBE barrier block's
     // predictor call site can drive it directly on the predictor DXSL; builds
     // the KKTVector view over the raw XSL/DXSL blocks internally
     // and MUTATES DXSL in place. bfrac / dims / pd_step_strategy_ are read
@@ -111,17 +111,17 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     // acceptance.classic_line_search; on the generic path it runs
     // generic_line_search (which owns the trial-point evaluation the recovery
     // links cannot reach on their own).
-    double run_acceptance_backtrack(PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
-                                    double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                    AcceptanceStrategy &acceptance, IterateInfo &Citer,
-                                    const std::vector<IterateInfo> &iters,
+    double run_acceptance_backtrack(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                                    double mu, double prim_obj, double barr_obj,
+                                    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                                    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
+                                    IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                                     SolverContext &ctx) override;
 
   private:
     // The compound-KKT segment view (hven::solvers::KKTVector,
-    // detail/interior/kkt_vector.h) is shared with PSIOPT and the sibling
+    // detail/interior/kkt_vector.h) is shared with InteriorPointSolver and the sibling
     // components, so the moved step body keeps its named-segment accessors
     // (dxsl.primals()/dxsl.slacks()/…) unchanged. Only the factory below is
     // per-component: the dimensions come from the SolverContext.
@@ -132,7 +132,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     }
 
     // Scalar fraction-to-boundary step for one block of strictly-positive
-    // quantities and their step (verbatim today's PSIOPT::max_step_to_boundary).
+    // quantities and their step (verbatim today's InteriorPointSolver::max_step_to_boundary).
     // `count` is the block length: it was read off `ctx.inequal_cons_` when the
     // slack and inequality-multiplier blocks were the only callers, and is now
     // passed explicitly so the variable-bound distances and multipliers -- whose
@@ -154,8 +154,8 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     // Trial-point evaluation goes through the shared modern_eval_trial_point
     // free helper in the .cpp (a parallel copy of the classic eval — the
     // classic path's own copies are left untouched).
-    double generic_line_search(PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
-                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    double generic_line_search(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                               double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
                                IterateInfo &Citer, SolverContext &ctx);

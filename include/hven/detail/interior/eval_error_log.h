@@ -3,9 +3,10 @@
 //   Apache 2.0 — see LICENSE.txt)
 // =============================================================================
 //
-// EvalErrorLog, extracted from psiopt.h. It has no dependency on the PSIOPT
-// class, but eight globalization headers reach it through psiopt.h today; giving
-// it its own small header lets a consumer that only needs the log say so.
+// EvalErrorLog, extracted from interior_point_solver.h. It has no dependency on the
+// InteriorPointSolver class, but eight globalization headers reach it through
+// interior_point_solver.h today; giving it its own small header lets a consumer that only needs the
+// log say so.
 
 #pragma once
 

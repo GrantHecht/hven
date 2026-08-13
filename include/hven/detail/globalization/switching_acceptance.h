@@ -144,7 +144,7 @@
 // is the μ-event / phase-change hook: it clears the lazy-init flag and defers
 // to the subclass's reset_bounds().
 //
-// Definitions live in src/solvers/psiopt_globalization.cpp.
+// Definitions live in src/solvers/interior_point_solver_globalization.cpp.
 
 #pragma once
 
@@ -199,7 +199,7 @@ class SwitchingAcceptance : public AcceptanceStrategy {
     // to decide whether a trial has reduced infeasibility enough to leave
     // restoration and resume optimality (the nested l1 phase's
     // κ_resto-ratchet exit and the proximal phase's relative-θ-reduction
-    // exit, psiopt.cpp). Base SwitchingAcceptance still throws (T6) rather
+    // exit, interior_point_solver.cpp). Base SwitchingAcceptance still throws (T6) rather
     // than fabricate an answer; FilterAcceptance/FunnelAcceptance override it
     // with a real body.
     bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,

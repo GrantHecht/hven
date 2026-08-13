@@ -9,7 +9,8 @@
 // Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):
 //   - Namespace: asset -> tycho -> hven
-//   - Extracted the compound-KKT segment view from PSIOPT (psiopt.h), where it
+//   - Extracted the compound-KKT segment view from InteriorPointSolver (interior_point_solver.h),
+//   where it
 //     was a private nested class that the globalization components could not
 //     name and therefore each reproduced verbatim
 // =============================================================================
@@ -17,18 +18,18 @@
 // The solver's compound KKT vectors are plain Eigen::VectorXd of length
 // primal_vars + slack_vars + equal_cons + inequal_cons. KKTVector is the
 // non-owning view that gives those four blocks names. It is deliberately a
-// standalone header with no PSIOPT dependency: PSIOPT and every globalization
-// component (ClassicMeritAcceptance, BacktrackingLineSearch,
-// ClassicAdaptiveGovernor, ...) builds its views from the SAME type, so the
-// segment expressions that encode the layout exist once in the codebase.
+// standalone header with no InteriorPointSolver dependency: InteriorPointSolver and every
+// globalization component (ClassicMeritAcceptance, BacktrackingLineSearch, ClassicAdaptiveGovernor,
+// ...) builds its views from the SAME type, so the segment expressions that encode the layout exist
+// once in the codebase.
 //
 // Each component supplies its own kkt_view() factory, since the dimensions come
-// from different places (PSIOPT's own members; a SolverContext's dimension
+// from different places (InteriorPointSolver's own members; a SolverContext's dimension
 // references).
 //
 // Not every multiplier the solver carries lives in this vector. The native
 // primal variable-bound multipliers (z_L, z_U) are held separately, in the
-// PSIOPT-owned BoundDualState (detail/interior/bound_set.h), because the bound
+// InteriorPointSolver-owned BoundDualState (detail/interior/bound_set.h), because the bound
 // rows are condensed into the primal diagonal rather than enlarging the KKT
 // system — which is precisely why the layout above is unchanged by that
 // feature. A reader looking for "all the duals" needs both.

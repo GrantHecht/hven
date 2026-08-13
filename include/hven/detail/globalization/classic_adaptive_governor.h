@@ -7,15 +7,15 @@
 // component.
 //
 // ClassicAdaptiveGovernor implements BarrierGovernor::update_barrier by hosting
-// today's PROBE/LOQO barrier-parameter block (psiopt.cpp barmode switch: the
+// today's PROBE/LOQO barrier-parameter block (interior_point_solver.cpp barmode switch: the
 // PROBE Mehrotra predictor-corrector branch, the LOQO branch, and the common
 // clamp + barrier_objective + corrector barrier_gradient tail) plus the loqo_mu
-// / mpc_mu oracles, moved VERBATIM from src/solvers/psiopt.cpp (statement order
+// / mpc_mu oracles, moved VERBATIM from src/solvers/interior_point_solver.cpp (statement order
 // and operand order preserved exactly — the merge gate is a bit-identical CBWR
 // iteration-count comparison). The only edits are context-plumbing renames:
-// former PSIOPT member reads (kkt_sol_ -> ctx.kkt_solver_, settings_/dims ->
+// former InteriorPointSolver member reads (kkt_sol_ -> ctx.kkt_solver_, settings_/dims ->
 // ctx.*) and the mechanism_ base pointer -> the mechanism reference parameter.
-// Definitions live in src/solvers/psiopt_globalization.cpp.
+// Definitions live in src/solvers/interior_point_solver_globalization.cpp.
 //
 // PROBE-impurity design note:
 //   PROBE's mu update is NOT a pure function of (mu_in, avgcomp, mincomp). It
@@ -48,18 +48,18 @@
 //
 // Byte-identity design note (references-only channel):
 //   Like ClassicMeritAcceptance (merit_acceptance.h) and BacktrackingLineSearch
-//   (backtracking_line_search.h), this component reaches PSIOPT state ONLY
+//   (backtracking_line_search.h), this component reaches InteriorPointSolver state ONLY
 //   through SolverContext, and builds a KKTVector view over the raw
 //   XSL/RHS/Temp blocks from the context's dimensions. The view type is the
 //   shared hven::solvers::KKTVector (detail/interior/kkt_vector.h) — this
 //   header used to carry a verbatim copy of it, because the type was private to
-//   PSIOPT and not name-accessible from this non-member, non-friend type. Of the
+//   InteriorPointSolver and not name-accessible from this non-member, non-friend type. Of the
 //   barrier oracles this governor needs, barrier_objective and the four-argument
 //   barrier_gradient are now one-line forwarders into
 //   detail/interior/barrier_math.h; the two-argument (PROBE corrector)
 //   barrier_gradient has no second copy and stays here. complementarity is
 //   deliberately NOT shared: it is a TOKEN-IDENTICAL copy of
-//   PSIOPT::complementarity INCLUDING its ULP warning, because its .sum()
+//   InteriorPointSolver::complementarity INCLUDING its ULP warning, because its .sum()
 //   reduction feeds mu (via mpc_mu) and the reduction order must NOT change;
 //   unifying it needs its own evidence.
 //
@@ -82,7 +82,7 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -90,7 +90,7 @@ namespace hven::solvers {
 // ClassicAdaptiveGovernor — the classic PROBE/LOQO barrier-parameter update.
 //
 // Stateless (holds NO solver state, per BarrierGovernor's ownership rule).
-// Constructed by PSIOPT::rebuild_globalization_components() at the start of
+// Constructed by InteriorPointSolver::rebuild_globalization_components() at the start of
 // every solve invocation; every call receives the live SolverContext view of
 // the solver and the GlobalizationMechanism as explicit parameters. Always
 // reports in_monotone_mode() == false (free-mode only).
@@ -99,7 +99,7 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
   public:
     ClassicAdaptiveGovernor() = default;
 
-    // Verbatim today's psiopt.cpp barmode switch + common clamp/objective/
+    // Verbatim today's interior_point_solver.cpp barmode switch + common clamp/objective/
     // gradient tail — see the PROBE-impurity design note above. Called under
     // alg_impl's `if (inequal_cons_ > 0)` guard (the guard stays at the call
     // site, exactly as the block was guarded before extraction).
@@ -108,7 +108,7 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
     // iteration state) and `mu_event` is never written (this governor has no
     // monotone mode), so the caller's mu-event reset branch stays dead on the
     // classic path.
-    double update_barrier(PSIOPT::BarrierModes barmode, double mu_in, double avgcomp,
+    double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in, double avgcomp,
                           double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
                           Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
                           GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
@@ -120,7 +120,7 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
 
   private:
     // The compound-KKT segment view (hven::solvers::KKTVector,
-    // detail/interior/kkt_vector.h) is shared with PSIOPT and the sibling
+    // detail/interior/kkt_vector.h) is shared with InteriorPointSolver and the sibling
     // components, so the moved barrier block keeps its named-segment accessors
     // (v_xsl.slacks()/v_rhs.dual_grad()/v_temp.iq_lmults()/…) unchanged. Only
     // the factory below is per-component: the dimensions come from the
@@ -131,16 +131,16 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
         return KKTVector(v, ctx.primal_vars_, ctx.slack_vars_, ctx.equal_cons_, ctx.inequal_cons_);
     }
 
-    // --- Barrier oracles: moved VERBATIM from PSIOPT (psiopt.cpp). ---
+    // --- Barrier oracles: moved VERBATIM from InteriorPointSolver (interior_point_solver.cpp). ---
     // loqo_mu / mpc_mu move here as the BarrierGovernor's own members; the
     // barrier_* helpers forward to the shared inline kernels in barrier_math.h,
-    // as do PSIOPT's own members of the same name.
+    // as do InteriorPointSolver's own members of the same name.
 
-    // TOKEN-IDENTICAL copy of PSIOPT::complementarity INCLUDING the ULP warning:
+    // TOKEN-IDENTICAL copy of InteriorPointSolver::complementarity INCLUDING the ULP warning:
     // the .sum() reduction order feeds mu (via mpc_mu) and must not be reordered.
-    // Uses ctx.stli_scratch_ (the same PSIOPT-owned buffer) instead of a PSIOPT
-    // member, and reaches the bound set / bound multipliers through ctx instead
-    // of through PSIOPT's own members -- the same plumbing rename, applied to
+    // Uses ctx.stli_scratch_ (the same InteriorPointSolver-owned buffer) instead of a
+    // InteriorPointSolver member, and reaches the bound set / bound multipliers through ctx instead
+    // of through InteriorPointSolver's own members -- the same plumbing rename, applied to
     // one more pair of names. `X` is the primal block the bound pairs need.
     void complementarity(Eigen::Ref<Eigen::VectorXd> X, Eigen::Ref<Eigen::VectorXd> S,
                          Eigen::Ref<Eigen::VectorXd> LI, double &avgcomp, double &mincomp,

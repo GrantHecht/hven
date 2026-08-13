@@ -8,7 +8,7 @@
 //
 // Defines the type erasure specs (SolverConstraintSpec, SolverObjectiveSpec)
 // and concrete type erasure (ConstraintInterface, ObjectiveInterface) that
-// enable vector functions to interface with PSIOPT and NonLinearProgram.
+// enable vector functions to interface with InteriorPointSolver and NonLinearProgram.
 //
 // Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):
@@ -121,7 +121,7 @@ template <class T>
 concept SolverObjectiveFunction = SolverConstraintFunction<T> && SolverObjectiveSurface<T>;
 
 /*
- * Spec for vector function that can be used as a constraint inside of PSIOPT.
+ * Spec for vector function that can be used as a constraint inside of InteriorPointSolver.
  */
 struct SolverConstraintSpec {
     struct Concept {
@@ -168,7 +168,7 @@ struct SolverConstraintSpec {
 };
 
 /*
- * Spec for scalar vector functions that can be used as an objective inside of PSIOPT.
+ * Spec for scalar vector functions that can be used as an objective inside of InteriorPointSolver.
  */
 struct SolverObjectiveSpec {
     struct Concept {

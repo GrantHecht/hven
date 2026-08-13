@@ -10,8 +10,8 @@
 //   Apache 2.0 — see LICENSE.txt):
 //   - Namespace: asset -> tycho -> hven
 //   - Extracted the slack-reset and log-barrier objective/gradient kernels from
-//     PSIOPT (psiopt.cpp), where the globalization component extraction had left
-//     one verbatim copy per component
+//     InteriorPointSolver (interior_point_solver.cpp), where the globalization component extraction
+//     had left one verbatim copy per component
 //   - Added the primal variable-bound barrier kernels (objective, the two
 //     gradient forms, and the condensed sigma diagonal)
 // =============================================================================
@@ -21,7 +21,7 @@
 // its dual gradient. They depend on nothing but their arguments, which is why
 // each extracted component (ClassicMeritAcceptance, ClassicAdaptiveGovernor,
 // MonitoredBarrierGovernor) could carry its own verbatim copy reading through a
-// SolverContext instead of a PSIOPT member. This header is the single home; each
+// SolverContext instead of a InteriorPointSolver member. This header is the single home; each
 // former member is now a one-line forwarder, so the arithmetic exists once.
 //
 // The four bound kernels at the bottom are the same idea for barrier terms on
@@ -37,7 +37,7 @@
 // path, and the merge gate for the component extraction was a bit-identical
 // iteration-count comparison.
 //
-// PSIOPT::complementarity is deliberately NOT here. Its .sum() reduction feeds
+// InteriorPointSolver::complementarity is deliberately NOT here. Its .sum() reduction feeds
 // mu, so any change to how that sum is formed can move iterates by a ULP under
 // fast-math; unifying it needs its own evidence and is out of scope for a
 // move-neutral extraction.
@@ -210,7 +210,7 @@ inline void accumulate_bound_dual_terms(const BoundSet &b, const BoundDualState 
 //
 // `base_count` is how many pairs were reduced into `avgcomp` (so their sum can
 // be reconstructed as avgcomp*base_count and re-averaged over the union). The
-// combination is the same shape PSIOPT::augment_complementarity_nested uses for
+// combination is the same shape InteriorPointSolver::augment_complementarity_nested uses for
 // the restoration elastics, and for the same reason: the base aggregates are
 // NOT re-reduced, so the exact Eigen reduction that produced them -- whose
 // ordering feeds mu and is therefore ULP-load-bearing under fast-math -- is

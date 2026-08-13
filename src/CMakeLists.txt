@@ -40,7 +40,7 @@ endif()
 # Interior-point engine (ex-PSIOPT) — migrated as-is from the standalone
 # psiopt/ project the origin project previously hosted (hven M2
 # milestone, engine-move task). The split below —
-# drivers/ (the top-level PSIOPT algorithm + NonLinearProgram),
+# drivers/ (the top-level InteriorPointSolver algorithm + NonLinearProgram),
 # model/ (the NLPProblem/NLPSolver contract + its adapter), and
 # interior/ + globalization/ under include/hven/detail/ (barrier /
 # interior-point machinery) — mirrors psiopt's own internal grouping: a
@@ -49,10 +49,10 @@ endif()
 ################################################################################
 
 target_sources(hven PRIVATE
-    drivers/psiopt.cpp
-    drivers/psiopt_globalization.cpp
-    drivers/psiopt_print.cpp
-    drivers/psiopt_settings.cpp
+    drivers/interior_point_solver.cpp
+    drivers/interior_point_solver_globalization.cpp
+    drivers/interior_point_solver_print.cpp
+    drivers/interior_point_solver_settings.cpp
     drivers/solver_init.cpp
     drivers/non_linear_program.cpp
     model/nlp_adapter.cpp

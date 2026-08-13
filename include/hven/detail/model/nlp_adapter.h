@@ -211,7 +211,7 @@ struct NLPObjectivePiece {
         // A user callback further down this same assembly (an eq/iq piece's
         // eval_g/eval_jac/eval_hess) can throw after this method has already
         // recorded pending_obj_scale_. An aborted assembly must not leave that
-        // record behind for a later, unrelated chain (PSIOPT's restoration
+        // record behind for a later, unrelated chain (InteriorPointSolver's restoration
         // entry runs eval_kkt_no next; a caller can also retry solve() after a
         // propagated exception) to read as if it were this chain's own -- so
         // any exception escaping this method clears both consume-once records

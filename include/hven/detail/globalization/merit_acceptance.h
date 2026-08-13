@@ -7,28 +7,28 @@
 // merit acceptance component.
 //
 // ClassicMeritAcceptance implements AcceptanceStrategy::classic_line_search by
-// hosting today's PSIOPT::ls_impl dispatcher plus the ls_lang / ls_l1 /
+// hosting today's InteriorPointSolver::ls_impl dispatcher plus the ls_lang / ls_l1 /
 // ls_auglang merit variants and their eval_trial_point_occ / compute_penalties
-// / secondary_accept helpers, moved VERBATIM from src/solvers/psiopt.cpp (the
+// / secondary_accept helpers, moved VERBATIM from src/solvers/interior_point_solver.cpp (the
 // merge gate is a bit-identical CBWR iteration-count comparison, so operand
 // order and statement order are preserved exactly; the only edits are
 // context-plumbing renames — member reads such as settings_/equal_cons_/nlp_
 // now come through the SolverContext reference `ctx_`). Definitions live in
-// src/solvers/psiopt_globalization.cpp.
+// src/solvers/interior_point_solver_globalization.cpp.
 //
 // Byte-identity design note (references-only channel):
-//   The moved merit bodies call four tiny PSIOPT barrier/eval helpers
+//   The moved merit bodies call four tiny InteriorPointSolver barrier/eval helpers
 //   (eval_rhs, apply_reset_slacks, barrier_objective, barrier_gradient) and
 //   use the compound-KKT segment view + a PenaltyTerms value type. Per this
 //   component architecture (acceptance_strategy.h and solver_context.h) a
-//   non-member, non-friend AcceptanceStrategy may reach PSIOPT state ONLY
+//   non-member, non-friend AcceptanceStrategy may reach InteriorPointSolver state ONLY
 //   through SolverContext (nlp_/settings_/dims/scratch references), so each
 //   helper survives here as a private method reading through `ctx_`.
 //   apply_reset_slacks / barrier_objective / barrier_gradient are now one-line
 //   forwarders into detail/interior/barrier_math.h, the single home for those
 //   three kernels; eval_rhs remains a local copy (it slices the KKT layout for
 //   an NLP call rather than doing barrier arithmetic). The segment view is
-//   hven::solvers::KKTVector (detail/interior/kkt_vector.h), shared with PSIOPT
+//   hven::solvers::KKTVector (detail/interior/kkt_vector.h), shared with InteriorPointSolver
 //   and the sibling components — this header's former verbatim copy of it, and
 //   the identical copies in BacktrackingLineSearch and ClassicAdaptiveGovernor,
 //   were consolidated there. PenaltyTerms stays a private nested type (it has
@@ -49,7 +49,7 @@
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -57,9 +57,9 @@ namespace hven::solvers {
 // ClassicMeritAcceptance — the classic backtracking merit line search.
 //
 // Holds a SolverContext BY VALUE (references-only aggregate; cheap to copy,
-// cannot dangle because PSIOPT owns the acceptance_ unique_ptr and therefore
-// outlives it, and every SolverContext member refers to a stable PSIOPT
-// member). Rebuilt by PSIOPT::rebuild_globalization_components() at the start
+// cannot dangle because InteriorPointSolver owns the acceptance_ unique_ptr and therefore
+// outlives it, and every SolverContext member refers to a stable InteriorPointSolver
+// member). Rebuilt by InteriorPointSolver::rebuild_globalization_components() at the start
 // of every solve invocation, so the captured nlp_ raw pointer never goes
 // stale (dims are captured by reference and track the live members
 // regardless; nlp_ and the dims are themselves only ever written by
@@ -85,7 +85,7 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     // is no Uno counterpart — Uno pairs restoration with its own
     // filter/funnel strategies, not a monolithic merit line search — so the
     // Ipopt IpRestoConvCheck relative-reduction shape is the reference (see the
-    // definition in psiopt_globalization.cpp for the term-for-term mapping and
+    // definition in interior_point_solver_globalization.cpp for the term-for-term mapping and
     // the single-tolerance floor adaptation).
     bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
                                                const ProgressMeasures &trial) const override;
@@ -94,9 +94,9 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     // persistent state across iterations (see acceptance_strategy.h).
     void reset() override {}
 
-    // --- Classic fused entry point (verbatim today's PSIOPT::ls_impl) ---
-    double classic_line_search(PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
-                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    // --- Classic fused entry point (verbatim today's InteriorPointSolver::ls_impl) ---
+    double classic_line_search(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                               double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                Eigen::VectorXd &RHS2, IterateInfo &Citer,
                                const std::vector<IterateInfo> &iters) override;
@@ -105,7 +105,7 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     SolverContext ctx_;
 
     // The compound-KKT segment view (hven::solvers::KKTVector,
-    // detail/interior/kkt_vector.h) is shared with PSIOPT and the sibling
+    // detail/interior/kkt_vector.h) is shared with InteriorPointSolver and the sibling
     // components, so the moved merit bodies keep their exact
     // `xsl.primals()`/`rhs.all_cons()` named-segment accessors unchanged. Only
     // the factory below is per-component: the dimensions come from ctx_.
@@ -116,13 +116,13 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
                          ctx_.inequal_cons_);
     }
 
-    // Moved verbatim from PSIOPT (psiopt.h), which no longer has one: the merit
-    // penalty triple is used only by the moved merit bodies below.
+    // Moved verbatim from InteriorPointSolver (interior_point_solver.h), which no longer has one:
+    // the merit penalty triple is used only by the moved merit bodies below.
     struct PenaltyTerms {
         double l1_, l2_, linf_;
     };
 
-    // --- Merit variants + shared helpers (moved verbatim from psiopt.cpp) ---
+    // --- Merit variants + shared helpers (moved verbatim from interior_point_solver.cpp) ---
     double ls_lang(double obj_scale, double mu, double prim_obj, double barr_obj, KKTVector &xsl,
                    KKTVector &dxsl, KKTVector &xsl2, KKTVector &rhs, KKTVector &rhs2,
                    IterateInfo &citer);
@@ -142,7 +142,7 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
 
     // --- Barrier/eval helpers ---
     //     apply_reset_slacks/barrier_objective/barrier_gradient forward to the
-    //     shared inline kernels in barrier_math.h, as do PSIOPT's own members
+    //     shared inline kernels in barrier_math.h, as do InteriorPointSolver's own members
     //     of the same name. eval_rhs stays a real body here (it forwards to
     //     ctx_.nlp_->eval_rhs with the segment plumbing this component needs);
     //     it has no shared-header counterpart.

@@ -11,8 +11,8 @@
 // elastic/penalty relaxation is expected to follow. Constructed by
 // rebuild_globalization_components when Settings::restoration_mode_ selects the
 // nested l1 mode; the evaluation/step seam and the entry/exit orchestration
-// live in src/solvers/psiopt.cpp, definitions in
-// src/solvers/psiopt_globalization.cpp.
+// live in src/solvers/interior_point_solver.cpp, definitions in
+// src/solvers/interior_point_solver_globalization.cpp.
 //
 // =============================================================================
 // FORMULATION — transcribed from pinned source (fetched + read, not memory):
@@ -113,7 +113,7 @@
 //       KKT is therefore more sensitive to a barrier parameter that runs ahead
 //       of the elastic complementarity — the reason the phase's barrier
 //       schedule feeds the elastic pairs to the oracle and runs the monotone
-//       safeguard (see the barrier-schedule notes in psiopt.cpp); the
+//       safeguard (see the barrier-schedule notes in interior_point_solver.cpp); the
 //       asymmetry itself is inherent to the condensation and is the price of
 //       avoiding the enlarged system.
 //
@@ -202,7 +202,7 @@ inline constexpr double kRestoPenaltyParameter = 1.0e3;
 
 // Threshold above which the re-entry bound-multiplier update resets all slack
 // multipliers to 1; Ipopt option "bound_mult_reset_threshold" default 1e3
-// (IpRestoMinC_1Nrm.cpp). Consumed by PSIOPT::exit_feasibility_restoration_nested's
+// (IpRestoMinC_1Nrm.cpp). Consumed by InteriorPointSolver::exit_feasibility_restoration_nested's
 // step (3); the component exposes it here so both live at the same literature
 // default.
 inline constexpr double kBoundMultResetThreshold = 1.0e3;

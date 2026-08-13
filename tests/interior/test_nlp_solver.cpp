@@ -422,7 +422,7 @@ TEST(NLPSolverTest, FixedVariableSolvesExactlyAtItsFixedValue) {
 
 // EqOnlyProblem plus a starting_multipliers() override that returns true and
 // seeds the exact solution multiplier (lambda = -2, see
-// EqualityMultiplierHasIpoptSign above) -- proves the seed reaches PSIOPT and
+// EqualityMultiplierHasIpoptSign above) -- proves the seed reaches InteriorPointSolver and
 // still converges to the same optimum as the unseeded solve.
 struct SeededEqOnlyProblem : EqOnlyProblem {
     bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
@@ -495,7 +495,7 @@ TEST(NLPSolverTest, JetLifecycleRoundTrip) {
 
 // starting_multipliers() returning a non-finite entry must fail the
 // allFinite() guard in apply_starting_multipliers -- before ever reaching
-// PSIOPT::set_initial_multipliers, and with a distinct message.
+// InteriorPointSolver::set_initial_multipliers, and with a distinct message.
 struct NonFiniteSeedProblem : EqOnlyProblem {
     bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
         lambda[0] = std::numeric_limits<double>::quiet_NaN();

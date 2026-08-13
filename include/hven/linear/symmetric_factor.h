@@ -358,7 +358,7 @@ class SymmetricFactor {
         //                          Bunch-Kaufman pivoting during the
         //                          factorization process." (Pardiso's own
         //                          documented default, and the value
-        //                          psiopt writes today.)
+        //                          the interior-point engine writes today.)
         //   kOneByOneNoAutoRefine  iparm[20] = 2  Same as kOneByOne,
         //                          "except that the solve step does not
         //                          automatically make iterative
@@ -412,7 +412,7 @@ class SymmetricFactor {
         // untouched. Every other value WRITES iparm[24] explicitly --
         // including kAdaptivePartitioning, which pins Pardiso's own
         // default strategy against version drift the same way `ordering`'s
-        // non-default values do, and is the value psiopt writes today.
+        // non-default values do, and is the value the interior-point engine writes today.
         //
         // The three non-default values are EXACTLY Pardiso's own documented
         // iparm[24] codes (Intel's oneMKL Developer Reference, "pardiso

@@ -95,7 +95,7 @@
 //     already established by the other globalization components.
 //
 // (4) Budget guard: entry_permitted() ALSO refuses once this phase's entry
-//     count has reached ctx.settings_.max_feas_rest_ (Settings, psiopt.h) —
+//     count has reached ctx.settings_.max_feas_rest_ (Settings, interior_point_solver.h) —
 //     an int budget local to this engine with no direct Uno/Ipopt analog (both those
 //     solvers gate re-entry through their own restoration-specific state
 //     machines instead of a flat per-phase counter). max_feas_rest_ == 0
@@ -109,7 +109,7 @@
 // state, per restoration.h's ownership rule. No SolverContext reference or
 // NLP handle is retained beyond a single call.
 //
-// Definitions live in src/solvers/psiopt_globalization.cpp.
+// Definitions live in src/solvers/interior_point_solver_globalization.cpp.
 
 #pragma once
 

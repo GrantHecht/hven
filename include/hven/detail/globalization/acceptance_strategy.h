@@ -30,7 +30,7 @@
 // the call as a μ-event and deliberately lets the stashed (frozen
 // optimality-phase) copy of that state survive, since the restoration-exit
 // test reduces against it. reset() is the μ-event/phase-change hook: called
-// whenever PSIOPT starts a new phase (run_phase_sequence) or the barrier parameter is
+// whenever InteriorPointSolver starts a new phase (run_phase_sequence) or the barrier parameter is
 // reset, so a stateful strategy (e.g. the filter clearing its (θ,f) pairs)
 // has a defined place to do it. The ClassicMeritAcceptance implementation of
 // reset() is a no-op (the classic merit test carries no persistent state
@@ -45,13 +45,13 @@
 
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/interior/iterate_info.h"
-// AcceptanceStrategy::classic_line_search takes PSIOPT::LineSearchModes by
-// value, which requires the complete PSIOPT class (a nested enum cannot be
-// forward-declared independently of its enclosing class). psiopt.h does NOT
+// AcceptanceStrategy::classic_line_search takes InteriorPointSolver::LineSearchModes by
+// value, which requires the complete InteriorPointSolver class (a nested enum cannot be
+// forward-declared independently of its enclosing class). interior_point_solver.h does NOT
 // include this directory back (see solver_context.h's include-discipline
 // note) so this is a plain, one-directional, non-circular include — exactly
 // like include/hven/drivers/optimization_problem_base.h already does.
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -105,7 +105,7 @@ class AcceptanceStrategy {
     // to `reference`, the point restoration was entered from) to leave
     // restoration mode? Driven by alg_impl's two exit-test call sites, one
     // per restoration mode: the nested l1 phase's κ_resto-ratchet exit and
-    // the proximal phase's relative-θ-reduction exit (psiopt.cpp). The
+    // the proximal phase's relative-θ-reduction exit (interior_point_solver.cpp). The
     // near-feasible exits are plain threshold tests that never consult this
     // strategy.
     virtual bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
@@ -145,7 +145,7 @@ class AcceptanceStrategy {
     // Solver-level observability hook: writes this strategy's diagnostic
     // state (if any) into `result`. Called by run_phase_sequence() once per
     // phase, right after that phase's alg_impl() returns and before the NEXT
-    // phase's reset() (see the call site's comment in psiopt.cpp) — so a
+    // phase's reset() (see the call site's comment in interior_point_solver.cpp) — so a
     // multi-phase solve (e.g. solve_optimize()) ends up with the LAST
     // phase's values, overwritten in phase order like every other SolveResult
     // field. WRITE-ONLY on purpose: this hook never reads `result` or any
@@ -158,14 +158,16 @@ class AcceptanceStrategy {
     // strategy overrides it. FunnelAcceptance and FilterAcceptance override
     // this to report their width/size (+ reset count for the filter) — see
     // funnel_acceptance.h / filter_acceptance.h and the corresponding
-    // SolveResult fields in psiopt.h.
-    virtual void append_diagnostics(PSIOPT::SolveResult &result) const { (void)result; }
+    // SolveResult fields in interior_point_solver.h.
+    virtual void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
+        (void)result;
+    }
 
     // --- Classic fused entry point ---
-    // Signature mirrors the former private PSIOPT::ls_impl dispatcher exactly
+    // Signature mirrors the former private InteriorPointSolver::ls_impl dispatcher exactly
     // (the symbol no longer exists — its body was extracted into
-    // ClassicMeritAcceptance; see the note beside PSIOPT::alg_impl in
-    // psiopt.h) — NOT the private per-variant
+    // ClassicMeritAcceptance; see the note beside InteriorPointSolver::alg_impl in
+    // interior_point_solver.h) — NOT the private per-variant
     // ls_lang/ls_l1/ls_auglang signatures, which take hven::solvers::KKTVector
     // views (include/hven/detail/interior/kkt_vector.h). ls_impl's own
     // public-facing signature already operates on the raw Eigen::VectorXd
@@ -189,11 +191,12 @@ class AcceptanceStrategy {
     // purely through is_iterate_acceptable() and never call this entry
     // point, so the default body is a T6-style logic error, not a silent
     // fallback.
-    virtual double classic_line_search(PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
-                                        double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                        Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                        Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                        IterateInfo &Citer, const std::vector<IterateInfo> &iters) {
+    virtual double classic_line_search(InteriorPointSolver::LineSearchModes lsmode,
+                                       double obj_scale, double mu, double prim_obj,
+                                       double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                                       Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                       Eigen::VectorXd &RHS2, IterateInfo &Citer,
+                                       const std::vector<IterateInfo> &iters) {
         (void)lsmode;
         (void)obj_scale;
         (void)mu;

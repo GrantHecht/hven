@@ -33,9 +33,9 @@
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// PSIOPT::LineSearchModes (forwarded to AcceptanceStrategy::classic_line_search)
-// requires the complete PSIOPT class; see acceptance_strategy.h's include note.
-#include "hven/drivers/psiopt.h"
+// InteriorPointSolver::LineSearchModes (forwarded to AcceptanceStrategy::classic_line_search)
+// requires the complete InteriorPointSolver class; see acceptance_strategy.h's include note.
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -49,7 +49,7 @@ class GlobalizationMechanism {
 
     // Riskiest seam in the whole extraction: today's max_primal_dual_step()
     // SCALES DXSL's primal/slack/multiplier blocks IN PLACE (see
-    // BacktrackingLineSearch::max_primal_dual_step, psiopt_globalization.cpp),
+    // BacktrackingLineSearch::max_primal_dual_step, interior_point_solver_globalization.cpp),
     // between the negate (DXSL = -kkt_sol_.solve(RHS)) and the
     // merit backtrack — and the backtrack's trial points (xsl + alpha*dxsl)
     // and the eventual commit (XSL += alpha*DXSL) both operate on that SAME,
@@ -80,13 +80,12 @@ class GlobalizationMechanism {
     // alphap/alphad are out-parameters (today's max_primal_dual_step
     // out-params); the return value is the final backtracked alpha (today's
     // ls_impl return value).
-    virtual double compute_step(PSIOPT::LineSearchModes lsmode, double obj_scale, double mu,
-                                 double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                 Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                 Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                 AcceptanceStrategy &acceptance, double &alphap, double &alphad,
-                                 IterateInfo &Citer, const std::vector<IterateInfo> &iters,
-                                 SolverContext &ctx) = 0;
+    virtual double compute_step(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                                double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
+                                double &alphap, double &alphad, IterateInfo &Citer,
+                                const std::vector<IterateInfo> &iters, SolverContext &ctx) = 0;
 
     // Fraction-to-boundary primal/dual step (today's max_primal_dual_step),
     // exposed on the interface so alg_impl's BarrierModes::PROBE predictor
@@ -94,7 +93,7 @@ class GlobalizationMechanism {
     // pointer WITHOUT the acceptance backtrack (compute_step's second half).
     // PROBE's mpc_mu() consumes a predictor DXSL that has already been scaled
     // to the boundary (see ClassicAdaptiveGovernor::update_barrier's PROBE
-    // case, psiopt_globalization.cpp); that scaling is barrier/IPM logic
+    // case, interior_point_solver_globalization.cpp); that scaling is barrier/IPM logic
     // independent of the globalization strategy, so it belongs on this
     // interface. Reconstructs the KKTVector view over the
     // raw XSL/DXSL blocks internally and MUTATES DXSL in place; bfrac, the
@@ -105,7 +104,7 @@ class GlobalizationMechanism {
     // by the shared rule: inequality slacks present, or an active nested
     // restoration whose condensed elastic variables carry positivity caps
     // even for an equality-only problem (see BacktrackingLineSearch::
-    // compute_step, psiopt_globalization.cpp). This standalone entry point
+    // compute_step, interior_point_solver_globalization.cpp). This standalone entry point
     // exists for callers that need the scaling without a backtrack. Two live
     // callers beyond compute_step itself: ClassicAdaptiveGovernor::update_barrier's
     // PROBE predictor block (same operands, same position — and the path
@@ -146,14 +145,11 @@ class GlobalizationMechanism {
     // generic driving path must override it. It is never reached on any
     // configuration that does not enable a recovery link that re-drives
     // acceptance.
-    virtual double run_acceptance_backtrack(PSIOPT::LineSearchModes lsmode, double obj_scale,
-                                            double mu, double prim_obj, double barr_obj,
-                                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                                            Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                                            Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
-                                            IterateInfo &Citer,
-                                            const std::vector<IterateInfo> &iters,
-                                            SolverContext &ctx) {
+    virtual double run_acceptance_backtrack(
+        InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+        double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+        Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
+        IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx) {
         (void)lsmode;
         (void)obj_scale;
         (void)mu;

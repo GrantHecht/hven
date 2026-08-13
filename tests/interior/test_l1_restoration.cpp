@@ -35,6 +35,7 @@
 namespace {
 
 using hven::solvers::ElasticSlackInit;
+using hven::solvers::InteriorPointSolver;
 using hven::solvers::kBoundMultResetThreshold;
 using hven::solvers::kNearFeasibleGuardFactor;
 using hven::solvers::kRestoPenaltyParameter;
@@ -42,7 +43,6 @@ using hven::solvers::kRestoProximityWeight;
 using hven::solvers::l1_elastic_slack_init;
 using hven::solvers::NestedL1Restoration;
 using hven::solvers::ProgressMeasures;
-using hven::solvers::PSIOPT;
 using hven::solvers::SolverContext;
 using TychoTest::InertSolverContext;
 
@@ -754,7 +754,7 @@ TEST(L1RestoReset, ClearsAllElasticState) {
 
 TEST(L1RestoDiagnostics, NeverEnteredReportsZeroZero) {
     NestedL1Restoration r;
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     r.append_diagnostics(result);
     EXPECT_EQ(result.last_feas_rest_entries_, 0);
     EXPECT_EQ(result.last_feas_rest_iters_, 0);
@@ -777,7 +777,7 @@ TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_nested(ref, xr, eq, empty, 0.2);
     r.note_iteration();
 
-    PSIOPT::SolveResult result;
+    InteriorPointSolver::SolveResult result;
     r.append_diagnostics(result);
     EXPECT_EQ(result.last_feas_rest_entries_, 2);
     EXPECT_EQ(result.last_feas_rest_iters_, 4);

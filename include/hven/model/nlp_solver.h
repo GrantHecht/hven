@@ -15,7 +15,7 @@
 
 namespace hven::solvers {
 
-/// Solves an NLPProblem with PSIOPT. Owns the optimizer and its settings
+/// Solves an NLPProblem with InteriorPointSolver. Owns the optimizer and its settings
 /// (via OptimizationProblemBase); transcription happens lazily on the first
 /// solve call. The problem is evaluated single-partition on the calling
 /// thread, which is what a subclass implemented in Python requires anyway.

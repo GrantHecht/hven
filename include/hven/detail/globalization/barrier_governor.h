@@ -33,10 +33,10 @@
 
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// PSIOPT::BarrierModes requires the complete PSIOPT class; see
+// InteriorPointSolver::BarrierModes requires the complete InteriorPointSolver class; see
 // acceptance_strategy.h's include note for why this is a plain,
-// non-circular include (psiopt.h does not include this directory back).
-#include "hven/drivers/psiopt.h"
+// non-circular include (interior_point_solver.h does not include this directory back).
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -46,7 +46,7 @@ namespace hven::solvers {
 // main-path step uses — this is the "second caller of that entry point"
 // globalization_mechanism.h anticipates. A reference parameter needs only the
 // incomplete type here; the concrete BacktrackingLineSearch is visible at the
-// psiopt_globalization.cpp definition site.
+// interior_point_solver_globalization.cpp definition site.
 class GlobalizationMechanism;
 
 // =============================================================================
@@ -60,7 +60,7 @@ class BarrierGovernor {
     // Mirrors ClassicAdaptiveGovernor::update_barrier's PROBE/LOQO body (the
     // free-mode oracles extracted verbatim from the original inline
     // pre-extraction block). avgcomp/mincomp are the
-    // complementarity measures PSIOPT::complementarity() already computed
+    // complementarity measures InteriorPointSolver::complementarity() already computed
     // this iteration (computed once per iteration, before factorization —
     // NOT recomputed here). barmode selects PROBE (Mehrotra
     // predictor-corrector) vs. LOQO exactly as today's switch does.
@@ -96,7 +96,7 @@ class BarrierGovernor {
     // (sub_err <= kBarrierTolFactor * mu_in) and advances
     // (fiacco_mccormick_mu(mu_in, ...)) off it directly, whenever a governor
     // without its own restoration safeguard (ClassicAdaptiveGovernor) is
-    // driving a nested restoration phase (psiopt.cpp).
+    // driving a nested restoration phase (interior_point_solver.cpp).
     //
     // Returns the new (already-clamped) mu; barr_obj is an out-parameter
     // (today's barr_obj local, set by the common tail's barrier_objective()
@@ -118,11 +118,11 @@ class BarrierGovernor {
     // acceptance filter/funnel before the iteration's line search runs). The
     // classic free-mode oracles never set it, so on the default path the
     // caller's reset branch is dead and the solve stays bit-identical.
-    virtual double update_barrier(PSIOPT::BarrierModes barmode, double mu_in, double avgcomp,
-                                  double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
-                                  Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
-                                  GlobalizationMechanism &mechanism, SolverContext &ctx,
-                                  double &barr_obj, const IterateInfo &current,
+    virtual double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in,
+                                  double avgcomp, double mincomp, Eigen::VectorXd &XSL,
+                                  Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
+                                  Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
+                                  SolverContext &ctx, double &barr_obj, const IterateInfo &current,
                                   bool &mu_event) = 0;
 
     // Barrier update while a nested l1 feasibility-restoration phase is active,
@@ -202,8 +202,10 @@ class BarrierGovernor {
     // MonitoredBarrierGovernor overrides this to report its
     // last_monotone_switches_/last_monotone_iters_ counters — see
     // monitored_governor.h and the corresponding SolveResult fields in
-    // psiopt.h.
-    virtual void append_diagnostics(PSIOPT::SolveResult &result) const { (void)result; }
+    // interior_point_solver.h.
+    virtual void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
+        (void)result;
+    }
 };
 
 } // namespace hven::solvers

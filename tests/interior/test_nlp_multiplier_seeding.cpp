@@ -2,7 +2,7 @@
 // Tycho (Copyright 2026-present Grant R. Hecht, Apache 2.0 — see LICENSE.txt)
 // =============================================================================
 //
-// PSIOPT::set_initial_multipliers / apply_staged_multipliers -- the opt-in
+// InteriorPointSolver::set_initial_multipliers / apply_staged_multipliers -- the opt-in
 // constraint-multiplier seeding entry consumed by NLPSolver::
 // apply_starting_multipliers. Problem structs here are deliberately distinct
 // from (though structurally similar to) the ones in test_nlp_solver.cpp: the
@@ -186,9 +186,9 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndIsConsumed) {
     solver.optimizer_->set_initial_multipliers(bad_eq, bad_iq);
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    // Probing PSIOPT's own optimizer_ directly, not NLPSolver::optimize():
+    // Probing InteriorPointSolver's own optimizer_ directly, not NLPSolver::optimize():
     // SeedEqOnlyProblem's starting_multipliers() returns false, so going
-    // through NLPSolver would itself clear this staging before PSIOPT ever
+    // through NLPSolver would itself clear this staging before InteriorPointSolver ever
     // saw it (see DecliningProblemClearsStaleStaging) -- that is the correct
     // behavior for a problem that never asked to be seeded, but it means
     // this size-mismatch probe has to bypass it. The throw now fires from
@@ -257,7 +257,7 @@ struct SeedLowerBoundProblem : NLPProblem {
 // LowerBoundedRowActiveWithNegativeIpoptMultiplier in test_nlp_solver.cpp --
 // the correct sign is negative). apply_starting_multipliers's
 // LowerBounded-row mapping negates it (iqm = -lam), so this deliberately
-// produces a negative seed on the PSIOPT-internal inequality multiplier,
+// produces a negative seed on the InteriorPointSolver-internal inequality multiplier,
 // which apply_staged_multipliers must clamp to kSeededIqMultFloor rather than
 // installing it verbatim.
 struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem {
@@ -294,7 +294,7 @@ TEST(NLPMultiplierSeedingTest, UnseededPathDoesNotConsultStaging) {
 // -----------------------------------------------------------------------------
 
 // SeededPhaseEntryEqOnlyProblem's seed reaching the OPT phase's very first
-// iteration (before any Newton step) is observed through PSIOPT's early
+// iteration (before any Newton step) is observed through InteriorPointSolver's early
 // (per-iteration) callback: XSL's KKTVector layout is documented as
 // [primals | slacks | eq_lmults | iq_lmults] (kkt_vector.h). For
 // SeedEqOnlyProblem specifically -- 2 unbounded primal vars (so reduced ==
@@ -308,9 +308,9 @@ struct SeededPhaseEntryEqOnlyProblem : SeedEqOnlyProblem {
         // the true optimum with the true multiplier, and init_impl's own
         // fresh KKT solve at the inter-phase re-init would independently
         // re-derive that same -2.0 regardless of any seed. Seeding a value
-        // that is otherwise impossible for PSIOPT to produce here is what
+        // that is otherwise impossible for InteriorPointSolver to produce here is what
         // makes "the callback observed the seed" distinguishable from "the
-        // callback observed PSIOPT's own correct answer by coincidence".
+        // callback observed InteriorPointSolver's own correct answer by coincidence".
         lambda[0] = 7.0;
         return true;
     }
@@ -359,14 +359,14 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         ASSERT_EQ(solver.solve_optimize(x0), hven::ConvergenceFlags::CONVERGED);
     }
 
-    EXPECT_DOUBLE_EQ(unseeded_opt_entry_eq_mult, -2.0); // PSIOPT's own correct answer
+    EXPECT_DOUBLE_EQ(unseeded_opt_entry_eq_mult, -2.0); // InteriorPointSolver's own correct answer
     EXPECT_DOUBLE_EQ(seeded_opt_entry_eq_mult, 7.0);    // the seed, verbatim
     EXPECT_NE(seeded_opt_entry_eq_mult, unseeded_opt_entry_eq_mult);
 }
 
 // Same objective/constraint as SeedEqOnlyProblem (x0^2 + x1^2 s.t. x0+x1=2),
 // but x1 is FIXED (xl==xu==1.0). Under the MakeConstraint fixed-variable
-// treatment PSIOPT keeps x1 as a solver variable and adds one internal
+// treatment InteriorPointSolver keeps x1 as a solver variable and adds one internal
 // equality row x1-1=0 on top of the problem's own single row -- growing
 // equal_cons_ to 2 while user_equal_cons_ (what starting_multipliers()/
 // NLPSolver see) stays at 1. That mismatch is exactly what finding 1's fix
@@ -449,7 +449,7 @@ TEST(NLPMultiplierSeedingTest, DecliningProblemClearsStaleStaging) {
     // starting_multipliers() returns false, so this solve never asked to be
     // seeded. If apply_starting_multipliers's early-return path failed to
     // clear the stale staging, this NaN would reach
-    // PSIOPT::validate_staged_multipliers and throw -- so a clean CONVERGED
+    // InteriorPointSolver::validate_staged_multipliers and throw -- so a clean CONVERGED
     // result below is itself proof the stale seed was never applied.
     Eigen::VectorXd stale_eq(1);
     stale_eq << std::numeric_limits<double>::quiet_NaN();
@@ -481,7 +481,7 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     // Direct optimizer_ call, not NLPSolver::optimize() -- see the note in
     // SeedSizeMismatchThrowsAndIsConsumed above: SeedEqOnlyProblem declines
     // to seed, so going through NLPSolver would clear this staging first.
-    // Probing PSIOPT's own validation this way is also the point: it must
+    // Probing InteriorPointSolver's own validation this way is also the point: it must
     // reject a non-finite seed even from a caller that bypasses NLPSolver's
     // allFinite() guard entirely.
     EXPECT_THROW(solver.optimizer_->optimize(x0), std::invalid_argument);
@@ -525,7 +525,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
 // slack for the single active lower-bound row, 0 eq rows) puts the iq
 // multiplier at XSL[2] (primal(1)+slack(1)+eq(0)). starting_multipliers()'s
 // LowerBounded-row mapping negates lam (iqm = -lam), so seeding lam=-1e12
-// arrives at PSIOPT as a +1e12 iq seed, which the upper clamp (not the floor
+// arrives at InteriorPointSolver as a +1e12 iq seed, which the upper clamp (not the floor
 // -- that only bites negative seeds) must cap.
 struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem {
     bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {

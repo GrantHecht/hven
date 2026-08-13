@@ -59,7 +59,7 @@ const char *kind_name(FactorKind kind) {
 // MT-METIS (multi-threaded METIS) is only declared starting in the macOS 26
 // SDK. This is an SDK-version macro -- it says the enum constant
 // SparseOrderMTMetis EXISTS at compile time, not that the RUNNING host
-// implements it -- exactly mirroring psiopt's own has-MT-METIS /
+// implements it -- exactly mirroring the legacy interior-point engine's own has-MT-METIS /
 // accelerate_supported_order guard, full predicate included
 // (`defined(__APPLE__)` guards the SDK-version macro check itself, which is
 // otherwise meaningless off Apple platforms), which this block deliberately
@@ -72,7 +72,7 @@ const char *kind_name(FactorKind kind) {
 #ifdef HVEN_HAS_MTMETIS
 // Downgrades SparseOrderMTMetis to SparseOrderMetis at RUNTIME on a host
 // that lacks it (macOS < 26): passing SparseOrderMTMetis unconditionally
-// there raises SparseParameterError and a dead solver, per the psiopt
+// there raises SparseParameterError and a dead solver, per the legacy interior-point engine
 // precedent this mirrors. Every other order passes through unchanged.
 SparseOrder_t accelerate_supported_order(SparseOrder_t order) {
     if (order != SparseOrderMTMetis) {

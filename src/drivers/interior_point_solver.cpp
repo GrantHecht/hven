@@ -17,7 +17,7 @@
 //   - Settings converters/setters/validation extracted to psiopt_settings.cpp
 // =============================================================================
 
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
 #include <algorithm>
 #include <cassert>
@@ -36,11 +36,11 @@
 #endif
 
 // Globalization component interfaces. Included here (rather than from
-// psiopt.h) so this, the actual TU that builds PSIOPT, exercises them on
-// every build without psiopt.h having to include a directory of headers
-// that themselves need the complete PSIOPT class (a circular-include
-// arrangement that is fragile for the "middle" headers below — see the
-// include-discipline note in solver_context.h). Dependency-ordered.
+// interior_point_solver.h) so this, the actual TU that builds InteriorPointSolver, exercises them
+// on every build without interior_point_solver.h having to include a directory of headers that
+// themselves need the complete InteriorPointSolver class (a circular-include arrangement that is
+// fragile for the "middle" headers below — see the include-discipline note in solver_context.h).
+// Dependency-ordered.
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/globalization/acceptance_strategy.h"
@@ -74,8 +74,9 @@ namespace {
 // decide whether a failed line search can exit at the acceptable level instead
 // of aborting. Both call sites must agree, so neither open-codes the four
 // comparisons.
-bool psiopt_iterate_acceptable(const hven::solvers::IterateInfo &it,
-                               const hven::solvers::PSIOPT::Settings &settings) {
+bool interior_point_iterate_acceptable(
+    const hven::solvers::IterateInfo &it,
+    const hven::solvers::InteriorPointSolver::Settings &settings) {
     return (it.kkt_inf_ < settings.acc_kkt_tol_) && (it.econ_inf_ < settings.acc_econ_tol_) &&
            (it.icon_inf_ < settings.acc_icon_tol_) && (it.barr_inf_ < settings.acc_bar_tol_);
 }
@@ -95,8 +96,9 @@ using LinearOptions = hven::linear::SymmetricFactor::Options;
 // unvalidated int. Requested explicitly on both backends: Accelerate's own
 // default is AMD, so leaving the ordering unstated there would silently change
 // which method runs, not merely its cost.
-LinearOptions::Ordering linear_ordering_of(hven::solvers::PSIOPT::QPOrderingModes mode) {
-    using QPOrderingModes = hven::solvers::PSIOPT::QPOrderingModes;
+LinearOptions::Ordering
+linear_ordering_of(hven::solvers::InteriorPointSolver::QPOrderingModes mode) {
+    using QPOrderingModes = hven::solvers::InteriorPointSolver::QPOrderingModes;
     switch (mode) {
     case QPOrderingModes::MINDEG:
         return LinearOptions::Ordering::kMinimumDegree;
@@ -111,16 +113,17 @@ LinearOptions::Ordering linear_ordering_of(hven::solvers::PSIOPT::QPOrderingMode
         // linear layer downgrades it at runtime on a host that lacks it.
         return LinearOptions::Ordering::kParallelNestedDissection;
     }
-    throw std::invalid_argument(
-        fmt::format("PSIOPT: unknown QPOrderingMode ({})", static_cast<int>(mode)));
+    throw std::invalid_argument(fmt::format(
+        "hven interior-point solver: unknown QPOrderingMode ({})", static_cast<int>(mode)));
 }
 
 // Pivoting strategy for symmetric indefinite matrices. Only the backend's own
 // documented codes are expressible through the linear surface, so the four
 // undocumented ones this enum also carries are rejected rather than passed
 // through as raw integers.
-LinearOptions::PivotStrategy linear_pivot_strategy_of(hven::solvers::PSIOPT::QPPivotModes mode) {
-    using QPPivotModes = hven::solvers::PSIOPT::QPPivotModes;
+LinearOptions::PivotStrategy
+linear_pivot_strategy_of(hven::solvers::InteriorPointSolver::QPPivotModes mode) {
+    using QPPivotModes = hven::solvers::InteriorPointSolver::QPPivotModes;
     switch (mode) {
     case QPPivotModes::OneByOne:
         return LinearOptions::PivotStrategy::kOneByOne;
@@ -132,15 +135,16 @@ LinearOptions::PivotStrategy linear_pivot_strategy_of(hven::solvers::PSIOPT::QPP
     case QPPivotModes::E13:
         break;
     }
-    throw std::invalid_argument(fmt::format(
-        "PSIOPT: qp_pivot_strategy = {} is not a documented pivoting-strategy code and has no "
-        "equivalent in the sparse linear surface; use OneByOne or TwoByTwo",
-        static_cast<int>(mode)));
+    throw std::invalid_argument(
+        fmt::format("hven interior-point solver: qp_pivot_strategy = {} is not a documented "
+                    "pivoting-strategy code and has no "
+                    "equivalent in the sparse linear surface; use OneByOne or TwoByTwo",
+                    static_cast<int>(mode)));
 }
 
 LinearOptions::FactorizationAlgorithm
-linear_factorization_algorithm_of(hven::solvers::PSIOPT::QPAlgModes mode) {
-    using QPAlgModes = hven::solvers::PSIOPT::QPAlgModes;
+linear_factorization_algorithm_of(hven::solvers::InteriorPointSolver::QPAlgModes mode) {
+    using QPAlgModes = hven::solvers::InteriorPointSolver::QPAlgModes;
     switch (mode) {
     case QPAlgModes::Classic:
         return LinearOptions::FactorizationAlgorithm::kClassic;
@@ -148,7 +152,7 @@ linear_factorization_algorithm_of(hven::solvers::PSIOPT::QPAlgModes mode) {
         return LinearOptions::FactorizationAlgorithm::kTwoLevel;
     }
     throw std::invalid_argument(
-        fmt::format("PSIOPT: unknown QPAlgMode ({})", static_cast<int>(mode)));
+        fmt::format("hven interior-point solver: unknown QPAlgMode ({})", static_cast<int>(mode)));
 }
 
 LinearOptions::SolveParallelism linear_solve_parallelism_of(int code) {
@@ -163,7 +167,8 @@ LinearOptions::SolveParallelism linear_solve_parallelism_of(int code) {
         break;
     }
     throw std::invalid_argument(fmt::format(
-        "PSIOPT: qp_par_solve = {} is not a parallel-solve code; expected 0 (partition the "
+        "hven interior-point solver: qp_par_solve = {} is not a parallel-solve code; expected 0 "
+        "(partition the "
         "matrix for a single right-hand side, otherwise parallelize over right-hand sides), "
         "1 (sequential), or 2 (matrix-partition parallel regardless of right-hand-side count)",
         code));
@@ -171,7 +176,7 @@ LinearOptions::SolveParallelism linear_solve_parallelism_of(int code) {
 
 } // namespace
 
-void hven::solvers::PSIOPT::set_qp_params() {
+void hven::solvers::InteriorPointSolver::set_qp_params() {
     LinearOptions opts;
     opts.kind = hven::linear::FactorKind::kLDLT;
     opts.num_threads = settings_.qp_threads_;
@@ -191,10 +196,11 @@ void hven::solvers::PSIOPT::set_qp_params() {
     // simply the default and one that disagrees is rejected rather than
     // silently dropped.
     if (settings_.accel_pivot_tolerance_ != 0.01) {
-        throw std::invalid_argument(fmt::format(
-            "PSIOPT: accel_pivot_tolerance = {} cannot be applied -- the sparse linear surface "
-            "fixes the LDLT pivot tolerance at 0.01 and exposes no override",
-            settings_.accel_pivot_tolerance_));
+        throw std::invalid_argument(
+            fmt::format("hven interior-point solver: accel_pivot_tolerance = {} cannot be applied "
+                        "-- the sparse linear surface "
+                        "fixes the LDLT pivot tolerance at 0.01 and exposes no override",
+                        settings_.accel_pivot_tolerance_));
     }
 
     // Iterative refinement, same rule. The linear surface stores the cap on
@@ -204,10 +210,11 @@ void hven::solvers::PSIOPT::set_qp_params() {
     // therefore do nothing at all, which is exactly the silent drop the
     // rejection above exists to prevent.
     if (settings_.qp_ref_steps_ != 0) {
-        throw std::invalid_argument(fmt::format(
-            "PSIOPT: qp_ref_steps = {} cannot be applied -- the sparse linear surface performs no "
-            "iterative refinement on this backend, so a nonzero cap would be inert",
-            settings_.qp_ref_steps_));
+        throw std::invalid_argument(
+            fmt::format("hven interior-point solver: qp_ref_steps = {} cannot be applied -- the "
+                        "sparse linear surface performs no "
+                        "iterative refinement on this backend, so a nonzero cap would be inert",
+                        settings_.qp_ref_steps_));
     }
 
     opts.accelerate_zero_tolerance = settings_.accel_zero_tolerance_;
@@ -227,9 +234,9 @@ void hven::solvers::PSIOPT::set_qp_params() {
     // backend silently. The shipped setting agrees; anything else is rejected
     // rather than quietly ignored.
     if (settings_.qp_print_) {
-        throw std::invalid_argument(
-            "PSIOPT: qp_print = true cannot be applied -- the sparse linear surface calls the "
-            "backend silently and exposes no message-level control");
+        throw std::invalid_argument("hven interior-point solver: qp_print = true cannot be applied "
+                                    "-- the sparse linear surface calls the "
+                                    "backend silently and exposes no message-level control");
     }
 #endif
 
@@ -240,7 +247,7 @@ void hven::solvers::PSIOPT::set_qp_params() {
 // KKT matrix analysis
 // =============================================================================
 
-bool hven::solvers::PSIOPT::claim_kkt_analysis() {
+bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
     bool docompute = true;
     if (this->qp_analyzed_ && !(settings_.force_qp_analysis_)) {
         docompute = false;
@@ -254,7 +261,7 @@ bool hven::solvers::PSIOPT::claim_kkt_analysis() {
 // Release
 // =============================================================================
 
-void hven::solvers::PSIOPT::release() {
+void hven::solvers::InteriorPointSolver::release() {
     this->kkt_sol_.release();
     this->qp_analyzed_ = false;
     // The bound set lives in the NLP being released; the multipliers indexed it.
@@ -272,18 +279,19 @@ void hven::solvers::PSIOPT::release() {
 // Barrier math helpers
 // =============================================================================
 
-void hven::solvers::PSIOPT::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
-                                                Eigen::Ref<Eigen::VectorXd> FXI) const {
+void hven::solvers::InteriorPointSolver::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
+                                                            Eigen::Ref<Eigen::VectorXd> FXI) const {
     detail::apply_reset_slacks(S, FXI, this->slack_vars_, settings_.neg_slack_reset_);
 }
 
 // max_step_to_boundary was extracted verbatim into BacktrackingLineSearch
-// (src/solvers/psiopt_globalization.cpp).
+// (src/solvers/interior_point_solver_globalization.cpp).
 
-void hven::solvers::PSIOPT::complementarity(Eigen::Ref<Eigen::VectorXd> X,
-                                             Eigen::Ref<Eigen::VectorXd> S,
-                                             Eigen::Ref<Eigen::VectorXd> LI, double &avgcomp,
-                                             double &mincomp, double &maxcomp) const {
+void hven::solvers::InteriorPointSolver::complementarity(Eigen::Ref<Eigen::VectorXd> X,
+                                                         Eigen::Ref<Eigen::VectorXd> S,
+                                                         Eigen::Ref<Eigen::VectorXd> LI,
+                                                         double &avgcomp, double &mincomp,
+                                                         double &maxcomp) const {
     // Keep the exact Eigen .sum()/minCoeff()/maxCoeff() reduction expressions
     // over the slack pairs unchanged. avgcomp feeds mu (see mpc_mu/loqo_mu call
     // sites), so a hand-fused loop that reorders the sum could perturb the
@@ -318,15 +326,17 @@ void hven::solvers::PSIOPT::complementarity(Eigen::Ref<Eigen::VectorXd> X,
                                               avgcomp, mincomp, maxcomp);
 }
 
-int hven::solvers::PSIOPT::complementarity_pair_count(int slack_count) const {
+int hven::solvers::InteriorPointSolver::complementarity_pair_count(int slack_count) const {
     if (!this->bounds_)
         return slack_count;
     return slack_count + static_cast<int>(this->bounds_->lower_idx_.size()) +
            static_cast<int>(this->bounds_->upper_idx_.size());
 }
 
-void hven::solvers::PSIOPT::augment_complementarity_nested(double &avgcomp, double &mincomp,
-                                                            double &maxcomp, int base_count) const {
+void hven::solvers::InteriorPointSolver::augment_complementarity_nested(double &avgcomp,
+                                                                        double &mincomp,
+                                                                        double &maxcomp,
+                                                                        int base_count) const {
     // Off the nested restoration path this is a pure no-op: the aggregates keep
     // the exact values complementarity() produced, so the default/proximal
     // barrier machinery is byte-identical (the CBWR gate depends on it).
@@ -360,9 +370,9 @@ void hven::solvers::PSIOPT::augment_complementarity_nested(double &avgcomp, doub
     }
 }
 
-void hven::solvers::PSIOPT::barrier_hessian(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                                             Eigen::Ref<Eigen::VectorXd> S,
-                                             Eigen::Ref<Eigen::VectorXd> LI, double mu) {
+void hven::solvers::InteriorPointSolver::barrier_hessian(
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat, Eigen::Ref<Eigen::VectorXd> S,
+    Eigen::Ref<Eigen::VectorXd> LI, double mu) {
     this->hp_scratch_.resize(S.size());
     this->hp_scratch_ = LI.cwiseQuotient(S);
     for (int i = 0; i < this->inequal_cons_; i++) {
@@ -374,7 +384,7 @@ void hven::solvers::PSIOPT::barrier_hessian(Eigen::SparseMatrix<double, Eigen::R
 }
 
 // loqo_mu / mpc_mu were extracted verbatim into ClassicAdaptiveGovernor
-// (src/solvers/psiopt_globalization.cpp); the barrier-parameter
+// (src/solvers/interior_point_solver_globalization.cpp); the barrier-parameter
 // update now runs through governor_->update_barrier().
 
 // =============================================================================
@@ -382,16 +392,17 @@ void hven::solvers::PSIOPT::barrier_hessian(Eigen::SparseMatrix<double, Eigen::R
 // which is the whole story on a problem that declares no variable bounds.
 // =============================================================================
 
-void hven::solvers::PSIOPT::push_initial_point_interior(EigenRef<Eigen::VectorXd> x, double mu0) {
+void hven::solvers::InteriorPointSolver::push_initial_point_interior(EigenRef<Eigen::VectorXd> x,
+                                                                     double mu0) {
     this->bound_duals_ = BoundDualState{};
     if (!this->bounds_)
         return;
 
     if (x.size() != this->primal_vars_)
-        throw std::logic_error(
-            fmt::format("PSIOPT: interior push expected a {0}-element reduced primal vector "
-                        "(got {1})",
-                        this->primal_vars_, x.size()));
+        throw std::logic_error(fmt::format("hven interior-point solver: interior push expected a "
+                                           "{0}-element reduced primal vector "
+                                           "(got {1})",
+                                           this->primal_vars_, x.size()));
 
     const BoundSet &b = *this->bounds_;
     const int nl = static_cast<int>(b.lower_idx_.size());
@@ -452,9 +463,8 @@ void hven::solvers::PSIOPT::push_initial_point_interior(EigenRef<Eigen::VectorXd
     }
 }
 
-void hven::solvers::PSIOPT::compute_bound_dual_direction(ConstEigenRef<Eigen::VectorXd> x,
-                                                          ConstEigenRef<Eigen::VectorXd> dx,
-                                                          double mu) {
+void hven::solvers::InteriorPointSolver::compute_bound_dual_direction(
+    ConstEigenRef<Eigen::VectorXd> x, ConstEigenRef<Eigen::VectorXd> dx, double mu) {
     if (!this->bounds_)
         return;
     const BoundSet &b = *this->bounds_;
@@ -476,8 +486,8 @@ void hven::solvers::PSIOPT::compute_bound_dual_direction(ConstEigenRef<Eigen::Ve
     }
 }
 
-void hven::solvers::PSIOPT::apply_bound_dual_step(double alphad, KKTVector &xsl_new, double mu,
-                                                   bool monotone_mu) {
+void hven::solvers::InteriorPointSolver::apply_bound_dual_step(double alphad, KKTVector &xsl_new,
+                                                               double mu, bool monotone_mu) {
     if (!this->bounds_)
         return;
     const BoundSet &b = *this->bounds_;
@@ -571,15 +581,15 @@ void hven::solvers::PSIOPT::apply_bound_dual_step(double alphad, KKTVector &xsl_
     this->bound_duals_.dz_upper_.setZero();
 }
 
-void hven::solvers::PSIOPT::add_bound_sigma(ConstEigenRef<Eigen::VectorXd> x,
-                                             EigenRef<Eigen::VectorXd> diag) const {
+void hven::solvers::InteriorPointSolver::add_bound_sigma(ConstEigenRef<Eigen::VectorXd> x,
+                                                         EigenRef<Eigen::VectorXd> diag) const {
     if (!this->bounds_)
         return;
     detail::accumulate_bound_sigma(x, *this->bounds_, this->bound_duals_, diag);
 }
 
-void hven::solvers::PSIOPT::install_primal_diags_with_sigma(ConstEigenRef<Eigen::VectorXd> x,
-                                                             double base) {
+void hven::solvers::InteriorPointSolver::install_primal_diags_with_sigma(
+    ConstEigenRef<Eigen::VectorXd> x, double base) {
     if (!this->bounds_) {
         this->nlp_->set_primal_diags(base);
         return;
@@ -589,8 +599,8 @@ void hven::solvers::PSIOPT::install_primal_diags_with_sigma(ConstEigenRef<Eigen:
     this->nlp_->set_primal_diags(this->bound_sigma_scratch_);
 }
 
-double
-hven::solvers::PSIOPT::dual_infeasibility_inf(ConstEigenRef<Eigen::VectorXd> prim_base) const {
+double hven::solvers::InteriorPointSolver::dual_infeasibility_inf(
+    ConstEigenRef<Eigen::VectorXd> prim_base) const {
     if (!this->bounds_)
         return prim_base.lpNorm<Eigen::Infinity>();
     this->bound_resid_scratch_ = prim_base;
@@ -604,10 +614,9 @@ hven::solvers::PSIOPT::dual_infeasibility_inf(ConstEigenRef<Eigen::VectorXd> pri
 // =============================================================================
 
 template <class Fn>
-void hven::solvers::PSIOPT::eval_dispatch(Fn fn, double obj_scale, ConstEigenRef<VectorXd> XSL,
-                                           double &val, EigenRef<VectorXd> GX,
-                                           EigenRef<VectorXd> AGXS_FX,
-                                           Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::solvers::InteriorPointSolver::eval_dispatch(
+    Fn fn, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
+    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     ((*this->nlp_).*fn)(
         obj_scale, XSL.head(primal_vars_), XSL.segment(primal_vars_ + slack_vars_, equal_cons_),
         XSL.tail(inequal_cons_), val, GX.head(primal_vars_), AGXS_FX.head(primal_vars_),
@@ -615,27 +624,27 @@ void hven::solvers::PSIOPT::eval_dispatch(Fn fn, double obj_scale, ConstEigenRef
         KKTmat);
 }
 
-void hven::solvers::PSIOPT::eval_kkt(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                      EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::solvers::InteriorPointSolver::eval_kkt(
+    double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
+    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->eval_dispatch(&NonLinearProgram::eval_kkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
-void hven::solvers::PSIOPT::eval_kkt_no(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                         EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                         Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::solvers::InteriorPointSolver::eval_kkt_no(
+    double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
+    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->eval_dispatch(&NonLinearProgram::eval_kkt_no, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
-void hven::solvers::PSIOPT::eval_aug(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                      EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::solvers::InteriorPointSolver::eval_aug(
+    double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
+    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->eval_dispatch(&NonLinearProgram::eval_aug, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
-void hven::solvers::PSIOPT::eval_soe(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                      EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::solvers::InteriorPointSolver::eval_soe(
+    double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
+    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->eval_dispatch(&NonLinearProgram::eval_soe, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
@@ -643,7 +652,7 @@ void hven::solvers::PSIOPT::eval_soe(double obj_scale, ConstEigenRef<VectorXd> X
 // Solver initialization and NLP setup
 // =============================================================================
 
-void hven::solvers::PSIOPT::ensure_solver_initialized() {
+void hven::solvers::InteriorPointSolver::ensure_solver_initialized() {
     double initMs = ::hven::solvers::ensure_solver_initialized();
     if (initMs > 0.0) {
         this->result_.solver_init_time_ = initMs / 1000.0;
@@ -662,16 +671,16 @@ void hven::solvers::PSIOPT::ensure_solver_initialized() {
 // members need their complete concrete types for their destructors — reached
 // through both the destructor and the constructors' exception-cleanup paths.
 // Bodies are the former header-inline bodies, unchanged.
-hven::solvers::PSIOPT::PSIOPT() {
+hven::solvers::InteriorPointSolver::InteriorPointSolver() {
     settings_.qp_threads_ = std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count());
 }
 
-hven::solvers::PSIOPT::PSIOPT(std::shared_ptr<NonLinearProgram> np) {
+hven::solvers::InteriorPointSolver::InteriorPointSolver(std::shared_ptr<NonLinearProgram> np) {
     settings_.qp_threads_ = std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count());
     this->set_nlp(np);
 }
 
-hven::solvers::PSIOPT::~PSIOPT() = default;
+hven::solvers::InteriorPointSolver::~InteriorPointSolver() = default;
 
 // Re-reads the problem dimensions from the NLP. The primal width is the SOLVER's
 // -- the NLP's variable count minus whatever the fixed-variable treatment
@@ -681,7 +690,7 @@ hven::solvers::PSIOPT::~PSIOPT() = default;
 // initial guess must have and what a returned solution is expanded back to.
 // Called by set_nlp and again at solve entry whenever a configuration changed
 // the reduction.
-void hven::solvers::PSIOPT::refresh_nlp_dimensions() {
+void hven::solvers::InteriorPointSolver::refresh_nlp_dimensions() {
     this->full_primal_vars_ = this->nlp_->primal_vars_;
     this->primal_vars_ = this->nlp_->reduced_primal_vars();
     this->equal_cons_ = this->nlp_->equal_cons_;
@@ -689,15 +698,17 @@ void hven::solvers::PSIOPT::refresh_nlp_dimensions() {
     this->slack_vars_ = this->nlp_->slack_vars_;
     this->kkt_dim_ = this->nlp_->kkt_dim_;
     if (kkt_dim_ != primal_vars_ + slack_vars_ + equal_cons_ + inequal_cons_)
-        throw std::logic_error(
-            fmt::format("PSIOPT: NLP kkt_dim ({}) != solver primal_vars ({}) + slack_vars ({}) "
-                        "+ equal_cons ({}) + inequal_cons ({})",
-                        kkt_dim_, primal_vars_, slack_vars_, equal_cons_, inequal_cons_));
+        throw std::logic_error(fmt::format("hven interior-point solver: NLP kkt_dim ({}) != solver "
+                                           "primal_vars ({}) + slack_vars ({}) "
+                                           "+ equal_cons ({}) + inequal_cons ({})",
+                                           kkt_dim_, primal_vars_, slack_vars_, equal_cons_,
+                                           inequal_cons_));
 }
 
-void hven::solvers::PSIOPT::set_nlp(std::shared_ptr<NonLinearProgram> np) {
+void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgram> np) {
     if (!np)
-        throw std::invalid_argument("PSIOPT::set_nlp: NonLinearProgram pointer must not be null");
+        throw std::invalid_argument(
+            "InteriorPointSolver::set_nlp: NonLinearProgram pointer must not be null");
     this->nlp_ = np;
     // Any bound set this solver was pointing at belonged to the previous NLP,
     // and the multipliers indexed it. The next solve's configuration step
@@ -771,7 +782,7 @@ void hven::solvers::PSIOPT::set_nlp(std::shared_ptr<NonLinearProgram> np) {
 // kkt_dim_, and every component reads the updated values through its reference.
 // A component that copied them here would be left describing a problem that no
 // longer exists.
-void hven::solvers::PSIOPT::rebuild_globalization_components() {
+void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     // (Re)build the optional feasibility-restoration mode-switch FIRST, so the
     // ClassicMeritAcceptance SolverContext below captures a valid (or null)
     // restoration_ pointer. Default (off) leaves it null — no RestorationStrategy
@@ -899,7 +910,7 @@ void hven::solvers::PSIOPT::rebuild_globalization_components() {
 }
 
 // max_primal_dual_step was extracted verbatim into BacktrackingLineSearch
-// (src/solvers/psiopt_globalization.cpp). alg_impl drives it
+// (src/solvers/interior_point_solver_globalization.cpp). alg_impl drives it
 // through mechanism_ (fused into compute_step on the main path; via the public
 // method at the PROBE predictor call site).
 
@@ -918,8 +929,8 @@ void hven::solvers::PSIOPT::rebuild_globalization_components() {
 // iteration (RHS's prim_grad()/eq_cons()/iq_cons()/all_cons() blocks and XSL's
 // slacks()/iq_lmults()/eq_lmults() are not written again until `XSL += alpha*DXSL`,
 // which only executes strictly after this iteration's earliest possible break).
-void hven::solvers::PSIOPT::fill_residual_info(KKTVector &xsl, KKTVector &rhs, double pobj,
-                                                IterateInfo &iter) const {
+void hven::solvers::InteriorPointSolver::fill_residual_info(KKTVector &xsl, KKTVector &rhs,
+                                                            double pobj, IterateInfo &iter) const {
 
     iter.prim_obj_ = pobj;
     // The z-FORM dual infeasibility. On a problem without variable bounds this
@@ -962,19 +973,19 @@ void hven::solvers::PSIOPT::fill_residual_info(KKTVector &xsl, KKTVector &rhs, d
     }
 }
 
-void hven::solvers::PSIOPT::fill_iter_info(KKTVector &xsl, KKTVector &rhs, double pobj,
-                                            double bobj, double mu, IterateInfo &iter) const {
+void hven::solvers::InteriorPointSolver::fill_iter_info(KKTVector &xsl, KKTVector &rhs, double pobj,
+                                                        double bobj, double mu,
+                                                        IterateInfo &iter) const {
     this->fill_residual_info(xsl, rhs, pobj, iter);
     iter.barr_obj_ = bobj;
     iter.mu_ = mu;
     iter.p_pivots_ = this->kkt_sol_.ppivs();
 }
 
-void hven::solvers::PSIOPT::eval_nlp(AlgorithmModes algmode, double obj_scale,
-                                      ConstEigenRef<VectorXd> XSL, double &val,
-                                      EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                                      double mu) {
+void hven::solvers::InteriorPointSolver::eval_nlp(
+    AlgorithmModes algmode, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
+    EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat, double mu) {
     std::fill_n(KKTmat.valuePtr(), KKTmat.nonZeros(), 0.0);
 
     // Feasibility-restoration evaluation seam. Dead on the default path
@@ -1110,7 +1121,7 @@ void hven::solvers::PSIOPT::eval_nlp(AlgorithmModes algmode, double obj_scale,
 // consumers expect true-objective scale. This re-evaluates the true objective
 // once at the live primals, matching the non-OPT obj_val_ eval pattern below
 // (zero the accumulator, then let eval_obj accumulate into it).
-hven::solvers::ProgressMeasures hven::solvers::PSIOPT::build_restoration_exit_measures(
+hven::solvers::ProgressMeasures hven::solvers::InteriorPointSolver::build_restoration_exit_measures(
     double obj_scale, double infeasibility, ConstEigenRef<VectorXd> primals, double barr_obj) {
     ProgressMeasures measures;
     measures.infeasibility = infeasibility;
@@ -1124,9 +1135,8 @@ hven::solvers::ProgressMeasures hven::solvers::PSIOPT::build_restoration_exit_me
 // kSwitchToFeasibility case. Dead on the default path (only reached with
 // restoration_ non-null). Factors the entry sub-steps once so the proximal and
 // nested families do not duplicate the notify/recovery-reset scaffolding.
-void hven::solvers::PSIOPT::enter_feasibility_restoration(Eigen::VectorXd &XSL,
-                                                           Eigen::VectorXd &RHS, double prim_obj,
-                                                           double barr_obj, double &mu) {
+void hven::solvers::InteriorPointSolver::enter_feasibility_restoration(
+    Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, double prim_obj, double barr_obj, double &mu) {
     KKTVector v_xsl = kkt_view(XSL);
     KKTVector v_rhs = kkt_view(RHS);
 
@@ -1199,11 +1209,10 @@ void hven::solvers::PSIOPT::enter_feasibility_restoration(Eigen::VectorXd &XSL,
 }
 
 // Restoration-entry dispatch: one owner of the note_dispatch / entry /
-// reset_window ordering. See the declaration in psiopt.h.
-void hven::solvers::PSIOPT::dispatch_restoration_entry(Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
-                                                        double prim_obj, double barr_obj,
-                                                        double &mu, double theta,
-                                                        FeasibilityStallDetector &feas_stall) {
+// reset_window ordering. See the declaration in interior_point_solver.h.
+void hven::solvers::InteriorPointSolver::dispatch_restoration_entry(
+    Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, double prim_obj, double barr_obj, double &mu,
+    double theta, FeasibilityStallDetector &feas_stall) {
     // A stage resumed after an episode restarts its stall window, and this entry
     // becomes the handback the stall exit measures net progress against.
     feas_stall.note_dispatch(theta);
@@ -1211,10 +1220,10 @@ void hven::solvers::PSIOPT::dispatch_restoration_entry(Eigen::VectorXd &XSL, Eig
     feas_stall.reset_window();
 }
 
-// Restoration-exit protocol. See the declaration in psiopt.h for why this order
+// Restoration-exit protocol. See the declaration in interior_point_solver.h for why this order
 // is load-bearing.
-void hven::solvers::PSIOPT::leave_restoration(const ProgressMeasures &measures,
-                                               bool restore_stashed_mu, double &mu) {
+void hven::solvers::InteriorPointSolver::leave_restoration(const ProgressMeasures &measures,
+                                                           bool restore_stashed_mu, double &mu) {
     if (restore_stashed_mu) {
         mu = this->stashed_mu_;
         this->governor_->reset();
@@ -1228,10 +1237,8 @@ void hven::solvers::PSIOPT::leave_restoration(const ProgressMeasures &measures,
 // MinC_1NrmRestorationPhase::PerformRestoration, strict order). Dead on the
 // default path. Shared byte-for-byte by the κ_resto ratchet exit and the
 // near-feasible stall exit.
-void hven::solvers::PSIOPT::exit_feasibility_restoration_nested(Eigen::VectorXd &XSL,
-                                                                 double obj_scale,
-                                                                 double theta_orig, double barr_obj,
-                                                                 double &mu) {
+void hven::solvers::InteriorPointSolver::exit_feasibility_restoration_nested(
+    Eigen::VectorXd &XSL, double obj_scale, double theta_orig, double barr_obj, double &mu) {
     KKTVector v_xsl = kkt_view(XSL);
 
     // (1) The phase's final x/s are already in XSL — kept as both current and
@@ -1348,19 +1355,19 @@ void hven::solvers::PSIOPT::exit_feasibility_restoration_nested(Eigen::VectorXd 
 // Per-iteration κ_resto ratchet: the original-problem infeasibility must fall to
 // at most max(kKappaResto · previous-iteration value, econ_tol_) (Ipopt
 // RestoConvCheck::CheckConvergence's orig_inf_pr_max, single-tolerance floor).
-bool hven::solvers::PSIOPT::resto_ratchet_passes(double theta_orig) const {
+bool hven::solvers::InteriorPointSolver::resto_ratchet_passes(double theta_orig) const {
     return theta_orig <= std::max(kKappaResto * this->resto_theta_orig_prev_, settings_.econ_tol_);
 }
 
-// ‖c‖₁ over a KKT vector's constraint block. See the declaration in psiopt.h.
-double hven::solvers::PSIOPT::constraint_violation_l1(KKTVector &v) const {
+// ‖c‖₁ over a KKT vector's constraint block. See the declaration in interior_point_solver.h.
+double hven::solvers::InteriorPointSolver::constraint_violation_l1(KKTVector &v) const {
     return v.all_cons().template lpNorm<1>();
 }
 
 // Original-problem infeasibility (∞-norm) from the nested restoration eval
 // seam's saved raw residuals. Two separate reductions, deliberately not fused;
-// see the declaration in psiopt.h.
-double hven::solvers::PSIOPT::original_infeasibility_inf() const {
+// see the declaration in interior_point_solver.h.
+double hven::solvers::InteriorPointSolver::original_infeasibility_inf() const {
     double theta_orig = 0.0;
     if (this->equal_cons_ > 0)
         theta_orig =
@@ -1377,7 +1384,7 @@ double hven::solvers::PSIOPT::original_infeasibility_inf() const {
 // zero primal/dual step, so an unbounded retry could stall). Reads the raw
 // residuals the eval seam saved this iteration (resto_ec_/ic_scratch_) and
 // re-solves the elastic pairs in closed form at the current phase μ.
-bool hven::solvers::PSIOPT::try_recenter_elastics(double mu) {
+bool hven::solvers::InteriorPointSolver::try_recenter_elastics(double mu) {
     if (this->resto_recentered_)
         return false; // budget already consumed this failure run — fall through.
     this->restoration_->recenter_elastics(mu, this->resto_ec_scratch_, this->resto_ic_scratch_);
@@ -1386,10 +1393,9 @@ bool hven::solvers::PSIOPT::try_recenter_elastics(double mu) {
 }
 
 // Primal-dual system error at μ: the ∞-norm of the full KKT residual. See the
-// declaration in psiopt.h for the Ipopt mapping. Dead on the default path.
-double hven::solvers::PSIOPT::primal_dual_error(KKTVector &xsl, KKTVector &rhs,
-                                                 ConstEigenRef<Eigen::VectorXd> prim_base,
-                                                 double mu) const {
+// declaration in interior_point_solver.h for the Ipopt mapping. Dead on the default path.
+double hven::solvers::InteriorPointSolver::primal_dual_error(
+    KKTVector &xsl, KKTVector &rhs, ConstEigenRef<Eigen::VectorXd> prim_base, double mu) const {
     double err = 0.0;
     if (this->primal_vars_ > 0)
         err = std::max(err, this->dual_infeasibility_inf(prim_base));
@@ -1406,14 +1412,13 @@ double hven::solvers::PSIOPT::primal_dual_error(KKTVector &xsl, KKTVector &rhs,
     return err;
 }
 
-// Nested soft feasibility pre-stage trial. See the declaration in psiopt.h. Dead
+// Nested soft feasibility pre-stage trial. See the declaration in interior_point_solver.h. Dead
 // on the default path (only reached with a nested restoration strategy, via the
 // kSoftFeasibilityStep recovery action; restoration is NOT yet active here).
-bool hven::solvers::PSIOPT::try_soft_feasibility_step(AlgorithmModes algmode, double obj_scale,
-                                                       double mu, Eigen::VectorXd &XSL,
-                                                       Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                                       Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                                       Eigen::VectorXd &GX) {
+bool hven::solvers::InteriorPointSolver::try_soft_feasibility_step(
+    AlgorithmModes algmode, double obj_scale, double mu, Eigen::VectorXd &XSL,
+    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+    Eigen::VectorXd &GX) {
     KKTVector v_xsl = kkt_view(XSL);
     KKTVector v_rhs = kkt_view(RHS);
     // Current point: the live RHS already carries the full stationarity (the
@@ -1470,7 +1475,8 @@ bool hven::solvers::PSIOPT::try_soft_feasibility_step(AlgorithmModes algmode, do
     return trial_pd <= kSoftRestoPdErrorReductionFactor * curr_pd;
 }
 
-hven::ConvergenceFlags hven::solvers::PSIOPT::converge_check(std::vector<IterateInfo> &iters) {
+hven::ConvergenceFlags
+hven::solvers::InteriorPointSolver::converge_check(std::vector<IterateInfo> &iters) {
     assert(!iters.empty() && "converge_check called with empty iteration history");
     ConvergenceFlags Flag = ConvergenceFlags::CONVERGED;
     IterateInfo last = iters.back();
@@ -1486,7 +1492,7 @@ hven::ConvergenceFlags hven::solvers::PSIOPT::converge_check(std::vector<Iterate
     // finite residual merely past threshold (beyond_thresholds) is treated as a
     // possibly-recoverable transient and only aborts once it has persisted for
     // kDivergencePersistIters iterations in a row (see the constant's rationale
-    // in psiopt.h). Splitting the two keeps the hard-error path immediate while
+    // in interior_point_solver.h). Splitting the two keeps the hard-error path immediate while
     // giving genuinely recoverable overshoots (Maratos-class) room to recover.
     auto iterate_divergent = [this](const IterateInfo &it) {
         return (it.kkt_inf_ > settings_.div_kkt_tol_) || !std::isfinite(it.kkt_inf_) ||
@@ -1540,7 +1546,7 @@ hven::ConvergenceFlags hven::solvers::PSIOPT::converge_check(std::vector<Iterate
     } else if (int(iters.size()) > settings_.max_acc_iters_) {
         int nfeas = 0;
         for (int i = 0; i < settings_.max_acc_iters_; i++) {
-            if (psiopt_iterate_acceptable(iters[int(iters.size()) - i - 1], settings_))
+            if (interior_point_iterate_acceptable(iters[int(iters.size()) - i - 1], settings_))
                 nfeas++;
             else
                 break;
@@ -1558,9 +1564,11 @@ hven::ConvergenceFlags hven::solvers::PSIOPT::converge_check(std::vector<Iterate
 // inertia (more negative eigenvalues than expected from the constraint block),
 // perturb the primal diagonal by increasing amounts until correct inertia is
 // achieved or max_refac_ attempts are exhausted.
-int hven::solvers::PSIOPT::factor_impl(bool docompute, bool Zfac, double ipurt, double incpurt0,
-                                        double incpurt, double &finalpert, double &cumpert,
-                                        double base_prox, double dual_shift, bool &exhausted) {
+int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, double ipurt,
+                                                    double incpurt0, double incpurt,
+                                                    double &finalpert, double &cumpert,
+                                                    double base_prox, double dual_shift,
+                                                    bool &exhausted) {
     auto Inertia = [&]() {
         return this->kkt_sol_.neigs() - (this->equal_cons_ + this->inequal_cons_);
     };
@@ -1581,7 +1589,7 @@ int hven::solvers::PSIOPT::factor_impl(bool docompute, bool Zfac, double ipurt, 
     // T6 (dead-status fix): kkt_sol_.info() was computed by every Compute()/
     // Refactor() call below and never read anywhere -- a dead status. This records
     // the last non-Success status into result_.last_kkt_info_ (surfaced only by
-    // print_exit_stats(), see psiopt_print.cpp) and, for hard failures only, emits
+    // print_exit_stats(), see interior_point_solver_print.cpp) and, for hard failures only, emits
     // an immediate diagnostic gated the same as the sibling RankDef()/perturbation-
     // exhausted warnings in this function. NumericalIssue (Pardiso info -4/-7:
     // zero/near-zero pivot; Accelerate factorization-failed/singular) is a NORMAL,
@@ -1732,11 +1740,13 @@ int hven::solvers::PSIOPT::factor_impl(bool docompute, bool Zfac, double ipurt, 
 }
 
 // Best-iterate scoring + snapshot for the return_best_ path. See the declaration
-// in psiopt.h; the return_best_ / restoration-active guard stays at each call
+// in interior_point_solver.h; the return_best_ / restoration-active guard stays at each call
 // site.
-void hven::solvers::PSIOPT::track_best_iterate(const IterateInfo &iter, int i,
-                                                const VectorXd &XSL, const VectorXd &RHS,
-                                                double &BestCriteriaVal, int &BestIter) {
+void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &iter, int i,
+                                                            const VectorXd &XSL,
+                                                            const VectorXd &RHS,
+                                                            double &BestCriteriaVal,
+                                                            int &BestIter) {
     double critval;
     switch (settings_.best_criteria_) {
     case BestCriteriaModes::ECONS:
@@ -1762,9 +1772,11 @@ void hven::solvers::PSIOPT::track_best_iterate(const IterateInfo &iter, int i,
     }
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierModes barmode,
-                                                 LineSearchModes lsmode, double obj_scale,
-                                                 double MuI, Eigen::Ref<Eigen::VectorXd> xsl) {
+Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algmode,
+                                                             BarrierModes barmode,
+                                                             LineSearchModes lsmode,
+                                                             double obj_scale, double MuI,
+                                                             Eigen::Ref<Eigen::VectorXd> xsl) {
     Eigen::VectorXd XSL = xsl;
     Eigen::VectorXd RHS(this->kkt_dim_);
     Eigen::VectorXd DXSL(this->kkt_dim_);
@@ -1801,7 +1813,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
     // References-only view of this solver, passed to the
     // step-length mechanism (mechanism_) at its call sites below. Built once
     // here (dims/settings/scratch are stable for the solve); it must not
-    // outlive this alg_impl frame or the PSIOPT members it references.
+    // outlive this alg_impl frame or the InteriorPointSolver members it references.
     SolverContext ctx{this->nlp_.get(),         this->kkt_sol_,         this->settings_,
                       this->primal_vars_,       this->slack_vars_,      this->equal_cons_,
                       this->inequal_cons_,      this->kkt_dim_,         this->stli_scratch_,
@@ -2520,7 +2532,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
         // consumer of barr_obj is a merit/acceptance account, and each of them
         // compares it against a trial-point barrier objective that carries the
         // matching bound term (added at the three trial evaluators in
-        // psiopt_globalization.cpp), so the two sides stay in the same units.
+        // interior_point_solver_globalization.cpp), so the two sides stay in the same units.
         //
         // Added here rather than inside the governors, which is where the SLACK
         // barrier objective is produced, for one reason: that whole block is
@@ -2809,7 +2821,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
                     // touched XSL (the `XSL += alpha*DXSL` commit is below the
                     // loop's exit check).
                     const double violation_ue = this->constraint_violation_l1(v_rhs);
-                    if (psiopt_iterate_acceptable(Citer, settings_)) {
+                    if (interior_point_iterate_acceptable(Citer, settings_)) {
                         alpha = 0.0;
                         Citer.accepted_ = false;
                         exit_at_acceptable = true;
@@ -2828,7 +2840,8 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
                         // alpha was reduced once more after the last rejected rung, so
                         // the smallest fraction actually evaluated is alpha * alpha_red_.
                         throw std::runtime_error(fmt::format(
-                            "PSIOPT: line search failed at iteration {} because the NLP could "
+                            "hven interior-point solver: line search failed at iteration {} "
+                            "because the NLP could "
                             "not be evaluated at the trial steps ({} evaluation failure(s) this "
                             "iteration; smallest trial step fraction attempted {:.3e}). "
                             "Feasibility restoration (restoration_mode) was unavailable to "
@@ -2899,9 +2912,9 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
                 break;
             }
             case RecoveryChain::Action::kGiveUp:
-                throw std::logic_error(
-                    "PSIOPT: recovery gave up on the step, but no give-up handling exists yet "
-                    "(no recovery link can produce this Action)");
+                throw std::logic_error("hven interior-point solver: recovery gave up on the step, "
+                                       "but no give-up handling exists yet "
+                                       "(no recovery link can produce this Action)");
             }
             this->result_.recovery_depth_histogram_[resolved_depth]++;
         } else if (GoodStep && Citer.accepted_) {
@@ -3009,7 +3022,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
         // nested restoration return, which re-anchors them on the stashed outer
         // barrier parameter applying no dz and moving no x — a different event
         // class, and the same one that has always rewritten the slack
-        // multipliers. See the two-event note on bound_duals_ in psiopt.h.)
+        // multipliers. See the two-event note on bound_duals_ in interior_point_solver.h.)
         // Every recovery outcome funnels through the line
         // above: an accepted first trial, a second-order correction, an extended
         // backtrack, a restoration dispatch or a re-center (both alpha = 0), and
@@ -3174,8 +3187,8 @@ Eigen::VectorXd hven::solvers::PSIOPT::alg_impl(AlgorithmModes algmode, BarrierM
     return XSL;
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::init_impl(const Eigen::VectorXd &x, double mu,
-                                                  bool docompute) {
+Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::VectorXd &x, double mu,
+                                                              bool docompute) {
 
     hven::utils::Timer kktt;
     kktt.start();
@@ -3264,8 +3277,8 @@ Eigen::VectorXd hven::solvers::PSIOPT::init_impl(const Eigen::VectorXd &x, doubl
     return XSL;
 }
 
-void hven::solvers::PSIOPT::validate_staged_multipliers(const Eigen::VectorXd &eq_mults,
-                                                         const Eigen::VectorXd &iq_mults) {
+void hven::solvers::InteriorPointSolver::validate_staged_multipliers(
+    const Eigen::VectorXd &eq_mults, const Eigen::VectorXd &iq_mults) {
     // eq_mults is accepted at either of two sizes: the problem's user-facing
     // equality row count (the common case -- what a caller building on
     // NLPProblem/starting_multipliers() or hand-transcribing their own rows
@@ -3278,19 +3291,21 @@ void hven::solvers::PSIOPT::validate_staged_multipliers(const Eigen::VectorXd &e
     const bool eq_size_ok = eq_mults.size() == user_eq || eq_mults.size() == this->equal_cons_;
     if (!eq_size_ok || iq_mults.size() != this->inequal_cons_) {
         throw std::invalid_argument(fmt::format(
-            "PSIOPT: seeded multipliers sized ({} eq, {} iq) do not match the problem's {} user "
+            "hven interior-point solver: seeded multipliers sized ({} eq, {} iq) do not match the "
+            "problem's {} user "
             "equality rows ({} eq once the fixed-variable treatment's internal rows are "
             "included, {} iq)",
             eq_mults.size(), iq_mults.size(), user_eq, this->equal_cons_, this->inequal_cons_));
     }
     if (!eq_mults.allFinite() || !iq_mults.allFinite()) {
-        throw std::invalid_argument("PSIOPT: seeded multipliers contain a non-finite value");
+        throw std::invalid_argument(
+            "hven interior-point solver: seeded multipliers contain a non-finite value");
     }
 }
 
-void hven::solvers::PSIOPT::apply_staged_multipliers(Eigen::VectorXd &XSL,
-                                                      const Eigen::VectorXd &eq_mults,
-                                                      const Eigen::VectorXd &iq_mults) {
+void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorXd &XSL,
+                                                                  const Eigen::VectorXd &eq_mults,
+                                                                  const Eigen::VectorXd &iq_mults) {
     // Install-only: validate_staged_multipliers() (always called first, at
     // run_phase_sequence entry) has already rejected a mis-sized or
     // non-finite seed, so eq_mults/iq_mults are known-good here. A seed sized
@@ -3318,8 +3333,9 @@ void hven::solvers::PSIOPT::apply_staged_multipliers(Eigen::VectorXd &XSL,
     }
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd &x,
-                                                           std::initializer_list<PhaseStep> steps) {
+Eigen::VectorXd
+hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
+                                                       std::initializer_list<PhaseStep> steps) {
     // Disarm any staged multiplier seed immediately, before anything below --
     // the nlp_/x-size checks just after this, settings_.validate(), the
     // variable-treatment reconfiguration, ... -- gets a chance to throw and
@@ -3353,13 +3369,13 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
     }
 
     if (!this->nlp_) {
-        throw std::runtime_error("PSIOPT::run_phase_sequence: no NLP has been set. "
+        throw std::runtime_error("InteriorPointSolver::run_phase_sequence: no NLP has been set. "
                                  "Call set_nlp() before optimize/solve.");
     }
     if (x.size() != full_primal_vars_) {
-        throw std::invalid_argument(
-            fmt::format("PSIOPT: initial guess has {} elements, expected {} primal variables",
-                        x.size(), full_primal_vars_));
+        throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
+                                                "elements, expected {} primal variables",
+                                                x.size(), full_primal_vars_));
     }
 
     this->result_.reset_accumulators();
@@ -3472,7 +3488,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
         print_stats();
     if (settings_.print_level_ < 2) {
         print_header();
-        print_beginning("PSIOPT ");
+        print_beginning("InteriorPointSolver ");
     }
     this->ensure_solver_initialized();
 
@@ -3569,7 +3585,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
         // κ_resto ratchet baseline) is cleared here too — this is the
         // phase-boundary reset, distinct from the μ-event reset() mid-phase that
         // deliberately preserves the stash (see the members' reset-invariant
-        // note in psiopt.h).
+        // note in interior_point_solver.h).
         if (this->restoration_) {
             this->restoration_->reset();
             this->stashed_mu_ = 0.0;
@@ -3617,7 +3633,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
         // forced-rejected step was discarded, alpha = 0.0), but the
         // most-severe verdict reached so far must not be silently
         // overwritten by a later phase's own converge_flag_ (severity order
-        // via operator<=> in psiopt_fwd.h) -- DIVERGING and anything more
+        // via operator<=> in interior_point_solver_fwd.h) -- DIVERGING and anything more
         // severe ends the sequence.
         if (result_.converge_flag_ >= ConvergenceFlags::DIVERGING) {
             if (settings_.print_level_ < 3)
@@ -3643,9 +3659,9 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
 
     if (settings_.print_level_ < 2) {
         print_timing_summary();
-        fmt::print(" PSIOPT Total Time            : ");
+        fmt::print(" Total Solve Time             : ");
         fmt::print(fmt::fg(fmt::color::cyan), "{0:>10.3f} ms\n", tottime);
-        print_finished("PSIOPT ");
+        print_finished("InteriorPointSolver ");
         print_header();
     }
 
@@ -3670,24 +3686,24 @@ Eigen::VectorXd hven::solvers::PSIOPT::run_phase_sequence(const Eigen::VectorXd 
     return result_.primals_;
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::optimize(const Eigen::VectorXd &x) {
+Eigen::VectorXd hven::solvers::InteriorPointSolver::optimize(const Eigen::VectorXd &x) {
     return run_phase_sequence(x, {{AlgorithmModes::OPT, settings_.opt_bar_mode_,
                                    settings_.opt_ls_mode_, "Optimization Algorithm "}});
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::solve(const Eigen::VectorXd &x) {
+Eigen::VectorXd hven::solvers::InteriorPointSolver::solve(const Eigen::VectorXd &x) {
     return run_phase_sequence(x, {{settings_.soe_mode_, settings_.soe_bar_mode_,
                                    settings_.soe_ls_mode_, "Solve Algorithm "}});
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::solve_optimize(const Eigen::VectorXd &x) {
+Eigen::VectorXd hven::solvers::InteriorPointSolver::solve_optimize(const Eigen::VectorXd &x) {
     return run_phase_sequence(x, {{settings_.soe_mode_, settings_.soe_bar_mode_,
                                    settings_.soe_ls_mode_, "Solve Algorithm "},
                                   {AlgorithmModes::OPT, settings_.opt_bar_mode_,
                                    settings_.opt_ls_mode_, "Optimization Algorithm "}});
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::optimize_solve(const Eigen::VectorXd &x) {
+Eigen::VectorXd hven::solvers::InteriorPointSolver::optimize_solve(const Eigen::VectorXd &x) {
     return run_phase_sequence(
         x, {{AlgorithmModes::OPT, settings_.opt_bar_mode_, settings_.opt_ls_mode_,
              "Optimization Algorithm "},
@@ -3695,7 +3711,7 @@ Eigen::VectorXd hven::solvers::PSIOPT::optimize_solve(const Eigen::VectorXd &x) 
              "Solve Algorithm ", /*conditional_=*/true}});
 }
 
-Eigen::VectorXd hven::solvers::PSIOPT::solve_optimize_solve(const Eigen::VectorXd &x) {
+Eigen::VectorXd hven::solvers::InteriorPointSolver::solve_optimize_solve(const Eigen::VectorXd &x) {
     return run_phase_sequence(
         x,
         {{settings_.soe_mode_, settings_.soe_bar_mode_, settings_.soe_ls_mode_, "Solve Algorithm "},

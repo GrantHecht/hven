@@ -7,13 +7,13 @@
 // ClassicMeritAcceptance. The classic_line_search dispatcher and the
 // ls_lang / ls_l1 / ls_auglang merit variants plus their
 // eval_trial_point_occ / compute_penalties / secondary_accept helpers are
-// moved VERBATIM from src/solvers/psiopt.cpp (statement order and operand
+// moved VERBATIM from src/solvers/interior_point_solver.cpp (statement order and operand
 // order preserved exactly — the merge gate is a bit-identical CBWR
 // iteration-count comparison). The only edits are context-plumbing renames:
-// former PSIOPT member reads (settings_, equal_cons_, inequal_cons_, nlp_)
+// former InteriorPointSolver member reads (settings_, equal_cons_, inequal_cons_, nlp_)
 // now go through the SolverContext reference ctx_. Of the four barrier/eval
 // helpers, apply_reset_slacks/barrier_objective/barrier_gradient forward to
-// the shared inline kernels in barrier_math.h (as do PSIOPT's own
+// the shared inline kernels in barrier_math.h (as do InteriorPointSolver's own
 // identically-named methods); eval_rhs has no shared counterpart and stays a
 // real body forwarding to ctx_.nlp_->eval_rhs (see merit_acceptance.h's
 // byte-identity design note).
@@ -27,7 +27,7 @@
 // update) — verbatim today's PROBE/LOQO barmode switch + common clamp/objective/
 // gradient tail, plus the loqo_mu / mpc_mu oracles it consumes. Its barrier_*
 // helpers forward to the shared inline kernels in barrier_math.h; complementarity
-// stays a real, TOKEN-IDENTICAL copy of PSIOPT's own (including its
+// stays a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own (including its
 // ULP-load-bearing .sum() warning), since its avgcomp/mincomp feed mu and are not
 // candidates for the shared header. See classic_adaptive_governor.h's
 // PROBE-impurity design note.
@@ -92,7 +92,7 @@ void note_eval_error_unknown(EvalErrorLog *log) {
 // strategies are the ones that give it a real body, since they are the ones
 // that actually drive it. is_infeasibility_sufficiently_reduced below is a
 // separate case: it has a real body right here, because it IS driven on the
-// classic path (see alg_impl, psiopt.cpp).
+// classic path (see alg_impl, interior_point_solver.cpp).
 // ============================================================================
 bool ClassicMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
                                                    const ProgressMeasures &trial,
@@ -476,14 +476,15 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
 }
 
 // ============================================================================
-// Line search — dispatcher (verbatim today's PSIOPT::ls_impl)
+// Line search — dispatcher (verbatim today's InteriorPointSolver::ls_impl)
 // ============================================================================
 
-double ClassicMeritAcceptance::classic_line_search(PSIOPT::LineSearchModes lsmode, double obj_scale,
-                                                   double mu, double prim_obj, double barr_obj,
-                                                   Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                                                   Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                                                   Eigen::VectorXd &RHS2, IterateInfo &Citer,
+double ClassicMeritAcceptance::classic_line_search(InteriorPointSolver::LineSearchModes lsmode,
+                                                   double obj_scale, double mu, double prim_obj,
+                                                   double barr_obj, Eigen::VectorXd &XSL,
+                                                   Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                                                   Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                                                   IterateInfo &Citer,
                                                    const std::vector<IterateInfo> &iters) {
     // Line search exhaustion (all max_ls_iters_ attempts fail the merit test) is
     // signaled by Citer.ls_iters_ == max_ls_iters_ in the iteration table.
@@ -501,16 +502,16 @@ double ClassicMeritAcceptance::classic_line_search(PSIOPT::LineSearchModes lsmod
     KKTVector v_rhs2 = kkt_view(RHS2);
 
     switch (lsmode) {
-    case PSIOPT::LineSearchModes::LANG:
+    case InteriorPointSolver::LineSearchModes::LANG:
         return ls_lang(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                        Citer);
-    case PSIOPT::LineSearchModes::L1:
+    case InteriorPointSolver::LineSearchModes::L1:
         return ls_l1(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                      Citer);
-    case PSIOPT::LineSearchModes::AUGLANG:
+    case InteriorPointSolver::LineSearchModes::AUGLANG:
         return ls_auglang(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                           Citer);
-    case PSIOPT::LineSearchModes::NOLS:
+    case InteriorPointSolver::LineSearchModes::NOLS:
         // Unreachable through the mechanism: run_acceptance_backtrack takes the
         // NOLS early-out before dispatching here. Kept as an explicit case so a
         // direct call still gets the NOLS convention rather than the default throw.
@@ -725,7 +726,7 @@ namespace {
 // copy of ClassicMeritAcceptance::eval_trial_point_occ's math (same slack-reset
 // + barrier convention as apply_reset_slacks / barrier_objective) — the classic
 // path's own copies are deliberately NOT reused or touched, so the classic
-// diff stays empty. Reaches PSIOPT state through the SolverContext only.
+// diff stays empty. Reaches InteriorPointSolver state through the SolverContext only.
 // Returns ptest (σ-scaled primal objective at the trial), btest (barrier term
 // −μ·Σ log s), and theta (L1 constraint-norm merit infeasibility ‖c‖₁).
 // ============================================================================
@@ -800,9 +801,9 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
 // ============================================================================
 // BacktrackingLineSearch — step-length mechanism. max_step_to_
 // boundary and max_primal_dual_step are moved VERBATIM from src/solvers/
-// psiopt.cpp (statement order and operand order preserved exactly — the merge
+// interior_point_solver.cpp (statement order and operand order preserved exactly — the merge
 // gate is a bit-identical CBWR iteration-count comparison). The only edits are
-// context-plumbing renames: former PSIOPT member reads (settings_.pd_step_
+// context-plumbing renames: former InteriorPointSolver member reads (settings_.pd_step_
 // strategy_, inequal_cons_, equal_cons_) now go through the SolverContext
 // reference `ctx`, and the KKTVector view over the raw XSL/DXSL blocks is
 // reconstructed inside max_primal_dual_step (the caller used to build and pass
@@ -889,16 +890,18 @@ void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::V
     double eqmultstep = Smax;
     double iqmultstep = Lmax;
 
-    if (ctx.settings_.pd_step_strategy_ == PSIOPT::PDStepStrategies::PrimSlackEq_Iq) {
-    } else if (ctx.settings_.pd_step_strategy_ == PSIOPT::PDStepStrategies::AllMinimum) {
+    if (ctx.settings_.pd_step_strategy_ == InteriorPointSolver::PDStepStrategies::PrimSlackEq_Iq) {
+    } else if (ctx.settings_.pd_step_strategy_ ==
+               InteriorPointSolver::PDStepStrategies::AllMinimum) {
         double step = std::min(Smax, Lmax);
         primstep = step;
         slackstep = step;
         eqmultstep = step;
         iqmultstep = step;
-    } else if (ctx.settings_.pd_step_strategy_ == PSIOPT::PDStepStrategies::PrimSlack_EqIq) {
+    } else if (ctx.settings_.pd_step_strategy_ ==
+               InteriorPointSolver::PDStepStrategies::PrimSlack_EqIq) {
         eqmultstep = Lmax;
-    } else if (ctx.settings_.pd_step_strategy_ == PSIOPT::PDStepStrategies::MaxEq) {
+    } else if (ctx.settings_.pd_step_strategy_ == InteriorPointSolver::PDStepStrategies::MaxEq) {
         double step = std::max(Smax, Lmax);
         eqmultstep = step;
     }
@@ -922,10 +925,10 @@ void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::V
 // DXSL. SocRecovery::do_correction applies the same rule to corrected
 // directions.
 double BacktrackingLineSearch::compute_step(
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap, double &alphad,
-    IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx) {
+    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap,
+    double &alphad, IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx) {
     // The fraction-to-boundary scaling runs when there are inequality slacks OR
     // when the problem declares variable bounds (whose distances and multipliers
     // need the same positivity caps, on an equality-only problem just as much as
@@ -954,14 +957,14 @@ double BacktrackingLineSearch::compute_step(
 // classic_line_search; the generic path (drives_classic_path() == false) runs
 // the loop-in-mechanism generic_line_search.
 double BacktrackingLineSearch::run_acceptance_backtrack(
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, IterateInfo &Citer,
+    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, IterateInfo &Citer,
     const std::vector<IterateInfo> &iters, SolverContext &ctx) {
     // NOLS short-circuits both driving paths identically, so the early-out lives
     // here rather than being repeated at the head of each. Both dispatch arms are
     // reached only through this function.
-    if (lsmode == PSIOPT::LineSearchModes::NOLS) {
+    if (lsmode == InteriorPointSolver::LineSearchModes::NOLS) {
         Citer.ls_iters_ = 0;
         // No line search runs: the full step is taken, i.e. accepted.
         Citer.accepted_ = true;
@@ -979,10 +982,13 @@ double BacktrackingLineSearch::run_acceptance_backtrack(
 // max_ls_iters_, alpha /= alpha_red_ on reject) and the classic signal stores,
 // but the accept/reject verdict comes from
 // AcceptanceStrategy::is_iterate_acceptable on a ProgressMeasures triple.
-double BacktrackingLineSearch::generic_line_search(
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, IterateInfo &Citer, SolverContext &ctx) {
+double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSearchModes lsmode,
+                                                   double obj_scale, double mu, double prim_obj,
+                                                   double barr_obj, Eigen::VectorXd &XSL,
+                                                   Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                                                   Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                                                   AcceptanceStrategy &acceptance,
+                                                   IterateInfo &Citer, SolverContext &ctx) {
     KKTVector v_dxsl = kkt_view(DXSL, ctx);
     KKTVector v_rhs = kkt_view(RHS, ctx);
 
@@ -1057,17 +1063,17 @@ double BacktrackingLineSearch::generic_line_search(
 // ============================================================================
 // ClassicAdaptiveGovernor — barrier-parameter update. The
 // PROBE/LOQO barmode switch + common clamp/objective/gradient tail and the
-// loqo_mu / mpc_mu oracles are moved from src/solvers/psiopt.cpp (statement
+// loqo_mu / mpc_mu oracles are moved from src/solvers/interior_point_solver.cpp (statement
 // order and operand order preserved exactly — the merge gate is a
 // bit-identical CBWR iteration-count comparison). Besides context-plumbing
-// renames (former PSIOPT member reads (kkt_sol_ -> ctx.kkt_solver_,
+// renames (former InteriorPointSolver member reads (kkt_sol_ -> ctx.kkt_solver_,
 // settings_/dims -> ctx.*) and the mechanism_ base pointer -> the mechanism
 // reference parameter), loqo_mu dropped its unused S/LI parameters (the
-// former PSIOPT::loqo_mu took Eigen::Ref<Eigen::VectorXd> S, LI ahead of
+// former InteriorPointSolver::loqo_mu took Eigen::Ref<Eigen::VectorXd> S, LI ahead of
 // avgcomp/mincomp; neither was read by the body). Of the barrier_* /
 // complementarity helpers below, barrier_objective/barrier_gradient are
 // one-line forwarders into the shared kernels in barrier_math.h;
-// complementarity remains a real, TOKEN-IDENTICAL copy of PSIOPT's own
+// complementarity remains a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own
 // (including its ULP-load-bearing .sum() warning), since its avgcomp/mincomp
 // feed mu and are not a candidate for the shared header. See
 // classic_adaptive_governor.h's PROBE-impurity and byte-identity design notes.
@@ -1169,7 +1175,7 @@ double ClassicAdaptiveGovernor::mpc_mu(Eigen::Ref<Eigen::VectorXd> X, Eigen::Ref
     return std::pow(navgcomp / avgcomp, 3) * avgcomp;
 }
 
-// Verbatim today's psiopt.cpp barmode switch (the former `if (inequal_cons_ > 0)`
+// Verbatim today's interior_point_solver.cpp barmode switch (the former `if (inequal_cons_ > 0)`
 // body). The guard stays at the alg_impl call site, but it is no longer an
 // inequality-count guard: it fires when there is ANY barrier term to drive, so
 // this function must NOT assume inequal_cons_ > 0. It does not need to -- the
@@ -1180,14 +1186,11 @@ double ClassicAdaptiveGovernor::mpc_mu(Eigen::Ref<Eigen::VectorXd> X, Eigen::Ref
 // alphap/alphad are locals here (discarded — see the divergence-path note in the
 // header). `current` is ignored and `mu_event` is never written (free mode only;
 // see the header).
-double ClassicAdaptiveGovernor::update_barrier(PSIOPT::BarrierModes barmode, double mu_in,
-                                               double avgcomp, double mincomp, Eigen::VectorXd &XSL,
-                                               Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
-                                               Eigen::VectorXd &Temp,
-                                               GlobalizationMechanism &mechanism,
-                                               SolverContext &ctx, double &barr_obj,
-                                               const IterateInfo & /*current*/,
-                                               bool & /*mu_event*/) {
+double ClassicAdaptiveGovernor::update_barrier(
+    InteriorPointSolver::BarrierModes barmode, double mu_in, double avgcomp, double mincomp,
+    Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
+    GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
+    const IterateInfo & /*current*/, bool & /*mu_event*/) {
     KKTVector v_xsl = kkt_view(XSL, ctx);
     KKTVector v_rhs = kkt_view(RHS, ctx);
     KKTVector v_temp = kkt_view(Temp, ctx);
@@ -1197,7 +1200,7 @@ double ClassicAdaptiveGovernor::update_barrier(PSIOPT::BarrierModes barmode, dou
     double alphad = 1.0;
 
     switch (barmode) {
-    case PSIOPT::BarrierModes::PROBE:
+    case InteriorPointSolver::BarrierModes::PROBE:
         this->barrier_gradient(v_xsl.iq_lmults(), v_rhs.dual_grad());
         // Solve straight into DXSL, then negate in place (elementwise,
         // alias-safe) -- the same order the main step solve keeps, so the
@@ -1211,7 +1214,7 @@ double ClassicAdaptiveGovernor::update_barrier(PSIOPT::BarrierModes barmode, dou
                           ctx);
 
         break;
-    case PSIOPT::BarrierModes::LOQO:
+    case InteriorPointSolver::BarrierModes::LOQO:
         mu = this->loqo_mu(avgcomp, mincomp);
         break;
     default:
@@ -1339,10 +1342,10 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
 RecoveryChain::Action SocRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad, int &soc_steps,
-    int & /*resolved_depth*/, int & /*watchdog_activations*/) {
+    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+    int &soc_steps, int & /*resolved_depth*/, int & /*watchdog_activations*/) {
     const int max_soc = ctx.settings_.max_soc_;
     if (max_soc <= 0)
         return Action::kAcceptAsIs; // defensive: SocRecovery is only built when max_soc_ > 0.
@@ -1357,7 +1360,7 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     // the norm by drives_classic_path() keeps the classic path byte-identical
     // (squaredNorm, unchanged) while making the generic trigger dimensionally
     // consistent. RHS's inequality block already carries the merit slack reset
-    // (see the RHS assembly in psiopt.cpp), and during a nested restoration
+    // (see the RHS assembly in interior_point_solver.cpp), and during a nested restoration
     // phase it carries the condensed residual r̃ — the same quantity the driving
     // line search's current measure reads, so the comparison stays internally
     // consistent on that path too.
@@ -1490,10 +1493,11 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
 RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, double &alpha, double & /*alphap*/, double & /*alphad*/,
-    int & /*soc_steps*/, int & /*resolved_depth*/, int & /*watchdog_activations*/) {
+    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double & /*alphap*/,
+    double & /*alphad*/, int & /*soc_steps*/, int & /*resolved_depth*/,
+    int & /*watchdog_activations*/) {
     const int max_extended = ctx.settings_.ls_extended_iters_;
     if (max_extended <= 0)
         return Action::kAcceptAsIs; // defensive: only built when ls_extended_iters_ > 0.
@@ -1537,10 +1541,10 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
 RecoveryChain::Action WatchdogRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad, int &soc_steps,
-    int &resolved_depth, int &watchdog_activations) {
+    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+    int &soc_steps, int &resolved_depth, int &watchdog_activations) {
     // Always-available proxy for "did the point improve" — see the file
     // docstring for why prim_obj + barr_obj (rather than a per-variant merit
     // value) is used here.
@@ -1622,10 +1626,10 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
 RecoveryChain::Action ChainedRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad, int &soc_steps,
-    int &resolved_depth, int &watchdog_activations) {
+    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+    int &soc_steps, int &resolved_depth, int &watchdog_activations) {
     // Links in trial order, each paired with the depth it stamps when it resolves.
     // A null link is simply absent from the chain.
     const std::array<std::pair<RecoveryChain *, int>, 2> links = {
@@ -1656,10 +1660,10 @@ RecoveryChain::Action ChainedRecovery::on_step_rejected(
 RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    PSIOPT::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-    Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad, int &soc_steps,
-    int &resolved_depth, int &watchdog_activations) {
+    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+    int &soc_steps, int &resolved_depth, int &watchdog_activations) {
     // Delegate the whole rejection to the inner chain first.
     const Action inner = inner_->on_step_rejected(
         Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale, mu, prim_obj, barr_obj, XSL,
@@ -1898,7 +1902,7 @@ void FunnelAcceptance::register_accepted_step(const ProgressMeasures &current,
     }
 }
 
-void FunnelAcceptance::append_diagnostics(PSIOPT::SolveResult &result) const {
+void FunnelAcceptance::append_diagnostics(InteriorPointSolver::SolveResult &result) const {
     result.last_funnel_width_ = std::isfinite(width_) ? width_ : -1.0;
 }
 
@@ -2103,7 +2107,7 @@ void FilterAcceptance::register_accepted_step(const ProgressMeasures &current,
     }
 }
 
-void FilterAcceptance::append_diagnostics(PSIOPT::SolveResult &result) const {
+void FilterAcceptance::append_diagnostics(InteriorPointSolver::SolveResult &result) const {
     result.last_filter_size_ = static_cast<int>(filter_.size());
     result.last_filter_resets_ = n_filter_resets_;
 }
@@ -2349,11 +2353,13 @@ void MonitoredBarrierGovernor::barrier_gradient(Eigen::Ref<Eigen::VectorXd> S,
     detail::barrier_gradient(S, LI, mu, AGS);
 }
 
-double MonitoredBarrierGovernor::update_barrier(
-    PSIOPT::BarrierModes barmode, double mu_in, double avgcomp, double mincomp,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
-    GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
-    const IterateInfo &current, bool &mu_event) {
+double MonitoredBarrierGovernor::update_barrier(InteriorPointSolver::BarrierModes barmode,
+                                                double mu_in, double avgcomp, double mincomp,
+                                                Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
+                                                Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
+                                                GlobalizationMechanism &mechanism,
+                                                SolverContext &ctx, double &barr_obj,
+                                                const IterateInfo &current, bool &mu_event) {
     const BarrierDecision d = decide(current, mu_in, avgcomp, ctx.settings_.bar_tol_,
                                      ctx.settings_.kkt_tol_, ctx.settings_.min_mu_,
                                      ctx.settings_.max_mu_);
@@ -2363,7 +2369,7 @@ double MonitoredBarrierGovernor::update_barrier(
         // Monotone mode: hold μ fixed and write the barrier tail directly (the
         // same objective/dual-gradient the free-mode common tail produces). The
         // slack / inequality-multiplier / dual-gradient blocks are the same
-        // contiguous segments PSIOPT::KKTVector names (slacks/iq_lmults on XSL,
+        // contiguous segments InteriorPointSolver::KKTVector names (slacks/iq_lmults on XSL,
         // dual_grad on RHS): segment(primal_vars_, slack_vars_) and tail(...).
         const double mu = d.mu;
         auto slacks = XSL.segment(ctx.primal_vars_, ctx.slack_vars_);
@@ -2393,7 +2399,7 @@ void MonitoredBarrierGovernor::reset() {
     }
 }
 
-void MonitoredBarrierGovernor::append_diagnostics(PSIOPT::SolveResult &result) const {
+void MonitoredBarrierGovernor::append_diagnostics(InteriorPointSolver::SolveResult &result) const {
     result.last_monotone_switches_ = last_monotone_switches_;
     result.last_monotone_iters_ = last_monotone_iters_;
 }

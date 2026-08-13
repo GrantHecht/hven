@@ -39,7 +39,7 @@ struct IterateInfo {
     double h_pert_ = 0;
     int h_facs_ = 0;
 
-    // PSIOPT 2.4 (display-only carve-out): the running total of every inertia-
+    // InteriorPointSolver 2.4 (display-only carve-out): the running total of every inertia-
     // perturbation delta applied to the KKT diagonal during this iteration's
     // factor_impl() call (i.e. the actual cumulative perturbation, as opposed to
     // h_pert_ above, which is only the LAST delta). Split into its own field so the
@@ -68,7 +68,7 @@ struct IterateInfo {
     // the merit line search at the point it decides accept vs. reject; not
     // consumed on the classic solve path except by the recovery-dispatch gate
     // in alg_impl (which reads accepted_). These fields are NOT printed — the
-    // iteration table formats an explicit field list (see psiopt_print.cpp) —
+    // iteration table formats an explicit field list (see interior_point_solver_print.cpp) —
     // so adding them leaves console output byte-identical.
     //   accepted_               — did the merit test accept a step this line
     //                             search (false if every backtrack was
@@ -118,7 +118,7 @@ struct IterateInfo {
     // acceptance attempts (line-search rungs, SOC/extended-backtrack trials,
     // soft-feasibility trial). 0 on the overwhelmingly common no-exception
     // path. Not printed in the iteration table. The `iters` vector alg_impl
-    // accumulates is solve-local, but PSIOPT::LateCallBackType hands each
+    // accumulates is solve-local, but InteriorPointSolver::LateCallBackType hands each
     // completed IterateInfo (iters.back()) to a registered C++ callback once
     // per iteration; no Python surface exposes it.
     int eval_exceptions_ = 0;

@@ -25,10 +25,10 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
-#include "hven/drivers/non_linear_program.h"
-#include "hven/drivers/psiopt.h"
 #include "hven/detail/interior/utils/get_core_count.h"
 #include "hven/detail/interior/utils/thread_pool.h"
+#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/non_linear_program.h"
 
 namespace hven::solvers {
 
@@ -48,12 +48,12 @@ struct OptimizationProblemBase {
     JetJobModes jet_job_mode_ = JetJobModes::NotSet;
 
     std::shared_ptr<NonLinearProgram> nlp_;
-    std::shared_ptr<PSIOPT> optimizer_;
+    std::shared_ptr<InteriorPointSolver> optimizer_;
 
     virtual ~OptimizationProblemBase() = default;
 
     OptimizationProblemBase() {
-        this->optimizer_ = std::make_shared<PSIOPT>();
+        this->optimizer_ = std::make_shared<InteriorPointSolver>();
         this->init_partitions();
     }
 
@@ -149,7 +149,7 @@ struct OptimizationProblemBase {
     };
 
     /// Single dispatch point for the five solve modes, mapping each onto the
-    /// matching PSIOPT entry point and collecting the uniform result above.
+    /// matching InteriorPointSolver entry point and collecting the uniform result above.
     /// Defined out of line below.
     NlpSolveOutput run_nlp_solver(JetJobModes mode, const Eigen::VectorXd &input);
 

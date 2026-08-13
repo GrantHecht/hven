@@ -157,11 +157,11 @@
 //
 //          Ipopt's floor is Min(orig tol, orig constr_viol_tol); this engine
 //          carries a single constraint tolerance (restoration_constraint_tol_, defaulting
-//          to and matching PSIOPT::Settings::econ_tol_'s default). Because the
+//          to and matching InteriorPointSolver::Settings::econ_tol_'s default). Because the
 //          strategy holds no SolverContext, that tolerance is injected via
 //          set_restoration_constraint_tol() — rebuild_globalization_components()
 //          calls it with the live econ_tol_ whenever a FilterAcceptance is
-//          built, independent of restoration_mode_ (see psiopt.cpp); the const
+//          built, independent of restoration_mode_ (see interior_point_solver.cpp); the const
 //          exit test then reads the stored value — see the divergence note
 //          below.
 //
@@ -204,7 +204,7 @@
 //     ProgressMeasures), so the const exit test cannot read Settings::econ_tol_
 //     directly the way ClassicMeritAcceptance (which does hold a context) does.
 //     The tolerance is instead a member, restoration_constraint_tol_, defaulting
-//     to PSIOPT::Settings::econ_tol_'s own default (1e-6) and settable by the
+//     to InteriorPointSolver::Settings::econ_tol_'s own default (1e-6) and settable by the
 //     solver seam at restoration entry via set_restoration_constraint_tol().
 //     Consequence: with no seam call the exit floor uses the default tolerance;
 //     the seam overrides it to the live value. The polymorphic AcceptanceStrategy
@@ -268,7 +268,7 @@
 // filter/counter state. reset() (via the base) re-arms the lazy θ₀ init and
 // calls reset_bounds(), which empties the filter and zeroes the counters.
 //
-// Definitions live in src/solvers/psiopt_globalization.cpp.
+// Definitions live in src/solvers/interior_point_solver_globalization.cpp.
 
 #pragma once
 
@@ -375,7 +375,7 @@ class FilterAcceptance final : public SwitchingAcceptance {
     // SolveResult::last_filter_size_ and filter_resets() (n_filter_resets_,
     // the per-phase reset-heuristic total — see (4) and reset_bounds()) into
     // SolveResult::last_filter_resets_.
-    void append_diagnostics(PSIOPT::SolveResult &result) const override;
+    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override;
 
     // --- Feasibility-restoration hooks (see (5) in the file-top formulation) ---
     // (5b) Restoration-exit test: relative θ-reduction floor AND acceptable to
@@ -450,15 +450,15 @@ class FilterAcceptance final : public SwitchingAcceptance {
     // μ-event reset mid-feasibility-phase must preserve the stash + this flag.
     bool in_feasibility_phase_ = false;
     // Injected constraint-violation tolerance for the exit floor; derived from
-    // PSIOPT::Settings's own default (not a duplicated literal) so this member
+    // InteriorPointSolver::Settings's own default (not a duplicated literal) so this member
     // and Settings::econ_tol_ can never silently drift apart. Configuration,
     // not working state — left untouched by reset(). See
     // set_restoration_constraint_tol(). Seeded by
     // rebuild_globalization_components() from the live Settings::econ_tol_
-    // every solve, whenever a FilterAcceptance is built (psiopt.cpp) — the
+    // every solve, whenever a FilterAcceptance is built (interior_point_solver.cpp) — the
     // default above is only ever observed by standalone/unit-test
     // construction that bypasses that seam.
-    double restoration_constraint_tol_ = PSIOPT::Settings{}.econ_tol_;
+    double restoration_constraint_tol_ = InteriorPointSolver::Settings{}.econ_tol_;
 };
 
 } // namespace hven::solvers

@@ -5,7 +5,7 @@
 //
 // Part of the globalization component extraction: this header declares
 // SolverContext, a references-only aggregate that bundles the persistent
-// PSIOPT state the globalization components need to read (and, for a few
+// InteriorPointSolver state the globalization components need to read (and, for a few
 // scratch buffers, write).
 //
 // This file: declares SolverContext. The member list here is exactly the
@@ -18,8 +18,8 @@
 // as the final member set.
 //
 // Ownership rule: SolverContext owns nothing. Every member is a reference or
-// a non-owning pointer into the live PSIOPT instance; a SolverContext must
-// not outlive the PSIOPT it was built from (same lifetime discipline as
+// a non-owning pointer into the live InteriorPointSolver instance; a SolverContext must
+// not outlive the InteriorPointSolver it was built from (same lifetime discipline as
 // hven::solvers::KKTVector, include/hven/detail/interior/kkt_vector.h). Most
 // call sites construct one fresh (as a temporary) for the duration of a
 // single call. One exception:
@@ -30,27 +30,26 @@
 // SolverContext. Components hold no OTHER solver state themselves;
 // SolverContext (plus the explicit per-iteration transient parameters
 // threaded through each interface method, e.g. mu/prim_obj/barr_obj) is the
-// only channel by which they observe or mutate PSIOPT's persistent state.
+// only channel by which they observe or mutate InteriorPointSolver's persistent state.
 
 #pragma once
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-// SolverContext exposes PSIOPT::Settings by reference, which is only visible
-// once the PSIOPT class itself has been parsed (Settings is a nested struct).
+// SolverContext exposes InteriorPointSolver::Settings by reference, which is only visible
+// once the InteriorPointSolver class itself has been parsed (Settings is a nested struct).
 // This mirrors the existing include discipline used by other
-// downstream consumers of the PSIOPT class (see
+// downstream consumers of the InteriorPointSolver class (see
 // include/hven/drivers/optimization_problem_base.h, which also
-// #includes psiopt.h directly) — psiopt.h itself does NOT include this
-// directory (see psiopt.cpp for where these headers are pulled into the
-// build instead); that one-directional arrangement is what keeps every
-// header below self-sufficient/standalone-compilable without a fragile
-// circular-include trick.
+// #includes interior_point_solver.h directly) — interior_point_solver.h itself does NOT include
+// this directory (see interior_point_solver.cpp for where these headers are pulled into the build
+// instead); that one-directional arrangement is what keeps every header below
+// self-sufficient/standalone-compilable without a fragile circular-include trick.
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -61,14 +60,14 @@ namespace hven::solvers {
 // is exactly when every restoration branch that consults it is provably dead.
 class RestorationStrategy;
 
-// The sparse KKT factorization type, matching PSIOPT::kkt_sol_'s declaration
-// (psiopt.h). Components never choose or construct this type; they only ever
+// The sparse KKT factorization type, matching InteriorPointSolver::kkt_sol_'s declaration
+// (interior_point_solver.h). Components never choose or construct this type; they only ever
 // see it through SolverContext::kkt_solver_, driving solves/refactors that
-// PSIOPT itself still owns.
+// InteriorPointSolver itself still owns.
 using KktSolverType = KktFactorization;
 
 // =============================================================================
-// SolverContext — references-only view into the live PSIOPT instance.
+// SolverContext — references-only view into the live InteriorPointSolver instance.
 //
 // Every member below is documented with which state-inventory row it
 // corresponds to and which component(s) read (or read+write) it today; this
@@ -79,13 +78,13 @@ struct SolverContext {
     // `nlp_` — "eval_*, barrier_hessian, perturb, diags" — read by
     // Acceptance (eval_trial_point_occ/eval_rhs) and BarrierGovernor
     // (barrier_hessian) call sites once wired. Raw, non-owning pointer:
-    // PSIOPT retains the owning std::shared_ptr<NonLinearProgram>.
+    // InteriorPointSolver retains the owning std::shared_ptr<NonLinearProgram>.
     NonLinearProgram *nlp_;
 
     // `kkt_sol_` — "factor_impl, all solves, ppivs/neigs/peigs" —
     // read (solve) by BarrierGovernor's PROBE predictor solve and by the
     // (not-yet-extracted) main step solve; written (factor/refactor) by
-    // RecoveryChain's future inertia-ladder dispatch. Reference: PSIOPT
+    // RecoveryChain's future inertia-ladder dispatch. Reference: InteriorPointSolver
     // retains ownership of the actual Eigen solver object.
     KktSolverType &kkt_solver_;
 
@@ -101,10 +100,10 @@ struct SolverContext {
     // helpers, BacktrackingLineSearch::compute_step,
     // ClassicAdaptiveGovernor::update_barrier), so one reference covers every
     // component's disjoint subset without per-field plumbing.
-    const PSIOPT::Settings &settings_;
+    const InteriorPointSolver::Settings &settings_;
 
     // --- Problem dimensions (shared, immutable during solve) ---
-    // References (not copies) into PSIOPT's own dimension members: they are
+    // References (not copies) into InteriorPointSolver's own dimension members: they are
     // fixed for the lifetime of a solve, but SolverContext never takes a
     // snapshot — it always observes the live value.
     const int &primal_vars_;
@@ -115,16 +114,16 @@ struct SolverContext {
 
     // --- Reusable scratch buffers ---
     // stli_scratch_: read+write by ClassicAdaptiveGovernor::complementarity(),
-    // which is a moved copy of PSIOPT::complementarity and uses the SAME
-    // PSIOPT-owned buffer to avoid per-call heap allocation (see
-    // PSIOPT::stli_scratch_).
+    // which is a moved copy of InteriorPointSolver::complementarity and uses the SAME
+    // InteriorPointSolver-owned buffer to avoid per-call heap allocation (see
+    // InteriorPointSolver::stli_scratch_).
     //
     // This is the only scratch buffer any component reaches through the context.
     // hp_scratch_ (barrier_hessian's buffer) and best_xsl_scratch_/
     // best_rhs_scratch_ (the return_best_ snapshots) used to be here too, on the
     // expectation that a future BarrierGovernor/RecoveryChain would need them;
-    // no component ever read one, and both remained PSIOPT-internal (the
-    // best-iterate bookkeeping is PSIOPT::track_best_iterate). They were dropped
+    // no component ever read one, and both remained InteriorPointSolver-internal (the
+    // best-iterate bookkeeping is InteriorPointSolver::track_best_iterate). They were dropped
     // rather than carried forward as three unused references passed at every
     // construction site.
     Eigen::VectorXd &stli_scratch_;
@@ -142,7 +141,7 @@ struct SolverContext {
     const RestorationStrategy *restoration_ = nullptr;
 
     // --- Trial-evaluation exception log (optional; null in isolation) ---
-    // Non-owning pointer to the live PSIOPT's EvalErrorLog. The wrapped
+    // Non-owning pointer to the live InteriorPointSolver's EvalErrorLog. The wrapped
     // trial-evaluation sites record through it; a defaulted nullptr keeps
     // existing braced-init call sites (unit tests constructing a bare
     // SolverContext) compiling, and every recording site null-guards.
@@ -151,8 +150,8 @@ struct SolverContext {
     // --- Native primal variable bounds (optional; null when there are none) ---
     // `bounds_` is the NLP-owned classification of the finite variable bounds
     // the solve must keep barrier terms for, in the solver's REDUCED index
-    // space; `bound_duals_` is the matching PSIOPT-owned multiplier state.
-    // PSIOPT sets both only on the configuration success path, and only when the
+    // space; `bound_duals_` is the matching InteriorPointSolver-owned multiplier state.
+    // InteriorPointSolver sets both only on the configuration success path, and only when the
     // set is non-empty -- so a problem with no variable bounds leaves them null
     // and every component's bound branch is provably unreachable, which is what
     // makes the assembly on such a problem byte-identical. A defaulted nullptr

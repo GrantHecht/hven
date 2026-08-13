@@ -180,7 +180,7 @@
 // scalar width state. reset() (via the base) re-arms the lazy θ₀ init and calls
 // reset_bounds(), which restores the width to its uninitialized sentinel.
 //
-// Definitions live in src/solvers/psiopt_globalization.cpp.
+// Definitions live in src/solvers/interior_point_solver_globalization.cpp.
 
 #pragma once
 
@@ -222,7 +222,7 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     // SolveResult::last_funnel_width_, or the -1.0 sentinel if width_ is
     // uninitialized (the pathological case of a phase that never calls
     // is_iterate_acceptable, e.g. converges at the initial iterate).
-    void append_diagnostics(PSIOPT::SolveResult &result) const override;
+    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override;
 
     // --- Feasibility-restoration hooks (see (5) in the file-top formulation) ---
     // (5a) Restoration-exit test: funnel-membership (against the stashed width

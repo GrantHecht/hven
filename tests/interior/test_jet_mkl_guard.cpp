@@ -3,7 +3,7 @@
 //
 // Regression: Jet::map's per-job MKL pin must not outlive the job
 // (CODEBASE_REVIEW 1.3). The thread-local setting overrides the global
-// mkl_set_num_threads() PSIOPT applies; an unreset pin on the calling
+// mkl_set_num_threads() InteriorPointSolver applies; an unreset pin on the calling
 // thread (serial fallback) single-threads every later Pardiso solve.
 ///////////////////////////////////////////////////////////////////////////////
 

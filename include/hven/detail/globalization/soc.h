@@ -130,10 +130,10 @@ inline constexpr int kSocRecommendedMaxCorrections = 4;
 // uses: the squared L2 norm of the full constraint block (all_cons) on the
 // classic merit path, or its L1 norm on the generic path (modern merit,
 // filter, funnel) — see AcceptanceStrategy::drives_classic_path() and its
-// caller in SocRecovery::on_step_rejected (psiopt_globalization.cpp) for the
+// caller in SocRecovery::on_step_rejected (interior_point_solver_globalization.cpp) for the
 // selection. Either way alg_impl derives it from RHS.all_cons() at the hook,
 // whose inequality block carries the identical slack reset (see the RHS
-// assembly in psiopt.cpp).
+// assembly in interior_point_solver.cpp).
 //
 // Known asymmetry: the augmented-Lagrangian merit variant zeroes constraint
 // entries within tolerance when it records theta_at_first_rejection_, while
@@ -218,11 +218,12 @@ class SocRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, PSIOPT::LineSearchModes lsmode,
-                            double obj_scale, double mu, double prim_obj, double barr_obj,
-                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism,
+                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
+                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
+                            int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     // Stateless (per RecoveryChain's ownership rule): nothing to clear.

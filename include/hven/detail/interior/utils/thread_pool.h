@@ -232,7 +232,7 @@ class task {
 // WorkStealingQueue — per-worker task queue
 //
 // Mutex-based work-stealing queue. Not lock-free — this library dispatches O(NumPartitions)
-// tasks per PSIOPT iteration with ms-scale durations, so lock contention is negligible
+// tasks per InteriorPointSolver iteration with ms-scale durations, so lock contention is negligible
 // vs task cost. A lock-free Chase-Lev deque would be appropriate if tasks
 // were sub-microsecond, but would add complexity for no measurable benefit
 // at this library's task granularity.
@@ -397,7 +397,7 @@ class ThreadPool {
                     // dispatcher (this library's pattern) distributes evenly, and push()
                     // wakes this worker when its queue gets work. A timed wait
                     // (try_pop_for) was tested but pthread_cond_timedwait overhead
-                    // caused 13-17% PSIOPT regression vs pthread_cond_wait.
+                    // caused 13-17% InteriorPointSolver regression vs pthread_cond_wait.
                     if (!f) {
                         if (!m_queues[i].pop(f))
                             break; // shutdown

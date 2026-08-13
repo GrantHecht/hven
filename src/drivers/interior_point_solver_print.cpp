@@ -12,9 +12,9 @@
 //   - Printing methods extracted from psiopt.cpp for build-organization clarity
 // =============================================================================
 
-#include "hven/drivers/psiopt.h"
+#include "hven/drivers/interior_point_solver.h"
 
-void hven::solvers::PSIOPT::print_timing_summary() {
+void hven::solvers::InteriorPointSolver::print_timing_summary() {
     auto cyan = fmt::fg(fmt::color::cyan);
     fmt::print(" KKT Analysis/Init Time       : ");
     fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.pre_time_ * 1000.0);
@@ -28,22 +28,19 @@ void hven::solvers::PSIOPT::print_timing_summary() {
     fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.misc_time() * 1000.0);
 }
 
-void hven::solvers::PSIOPT::print_psiopt() {
+void hven::solvers::InteriorPointSolver::print_banner() {
 
-    constexpr const char *PsioptStr =
-        "       ____    _____    ____          ____     ____   ______\n"
-        "      / __ \\  / ___/   /  _/         / __ \\   / __ \\ /_  __/\n"
-        "     / /_/ /  \\__ \\    / /   ______ / / / /  / /_/ /  / /   \n"
-        "    / ____/  ___/ /  _/ /   /_____// /_/ /  / ____/  / /    \n"
-        "   /_/      /____/  /___/          \\____/  /_/      /_/    \n";
+    constexpr const char *BannerStr = "    / /_ | | / / __ \\/ __ \\\n"
+                                      "   / __ \\| |/ / /_/ / / / /\n"
+                                      "  / / / /|   / _, _/ /_/ / \n"
+                                      " /_/ /_/ |__/_/ |_|\\____/  \n";
     print_header();
-    fmt::print(fmt::fg(fmt::color::crimson), PsioptStr);
-    fmt::print(fmt::fg(fmt::color::crimson),
-               " \n       Parallel Sparse Interior-point Optimizer\n");
+    fmt::print(fmt::fg(fmt::color::crimson), BannerStr);
+    fmt::print(fmt::fg(fmt::color::crimson), " \n       hven Interior-Point Solver\n");
     print_header();
 }
 
-void hven::solvers::PSIOPT::print_settings() {
+void hven::solvers::InteriorPointSolver::print_settings() {
     auto magenta = fmt::fg(fmt::color::magenta);
 
     fmt::print(magenta, "Convergence Criteria\n\n");
@@ -60,8 +57,8 @@ void hven::solvers::PSIOPT::print_settings() {
                settings_.acc_icon_tol_, settings_.div_icon_tol_);
 }
 
-void hven::solvers::PSIOPT::print_stats() {
-    print_psiopt();
+void hven::solvers::InteriorPointSolver::print_stats() {
+    print_banner();
 
     auto cyan = fmt::fg(fmt::color::cyan);
     auto magenta = fmt::fg(fmt::color::magenta);
@@ -98,7 +95,7 @@ void hven::solvers::PSIOPT::print_stats() {
     fmt::print("\n");
 }
 
-void hven::solvers::PSIOPT::print_last_iterate(const std::vector<IterateInfo> &iters) {
+void hven::solvers::InteriorPointSolver::print_last_iterate(const std::vector<IterateInfo> &iters) {
     const auto &last = iters.back();
 
     if (last.iter_ % 10 == 0) {
@@ -166,7 +163,7 @@ void hven::solvers::PSIOPT::print_last_iterate(const std::vector<IterateInfo> &i
     fmt::print(Icol, "{:>10.4e}", last.icon_inf_);
     chash(IHashcol);
 
-    // PSIOPT 2.4 (display-only carve-out): the HPert column shows the CUMULATIVE
+    // InteriorPointSolver 2.4 (display-only carve-out): the HPert column shows the CUMULATIVE
     // perturbation total (h_pert_cum_), not the last delta (h_pert_). h_pert_
     // itself is untouched and still feeds the Hpert0 warm-start in alg_impl() --
     // only this print statement's source field changed.
@@ -182,14 +179,14 @@ void hven::solvers::PSIOPT::print_last_iterate(const std::vector<IterateInfo> &i
     }
 }
 
-void hven::solvers::PSIOPT::print_beginning(std::string_view msg) const {
+void hven::solvers::InteriorPointSolver::print_beginning(std::string_view msg) const {
     fmt::print(fmt::fg(fmt::color::dim_gray), "Beginning");
     fmt::print(": ");
     fmt::print(fmt::fg(fmt::color::royal_blue), "{}", msg);
     fmt::print("\n");
 }
 
-void hven::solvers::PSIOPT::print_finished(std::string_view msg) const {
+void hven::solvers::InteriorPointSolver::print_finished(std::string_view msg) const {
 
     fmt::print(fmt::fg(fmt::color::dim_gray), "Finished ");
     fmt::print(": ");
@@ -197,9 +194,10 @@ void hven::solvers::PSIOPT::print_finished(std::string_view msg) const {
     fmt::print("\n");
 }
 
-void hven::solvers::PSIOPT::print_exit_stats(ConvergenceFlags ExitCode, const IterateInfo &last,
-                                              int iternum, double tottime, double nlptime,
-                                              double qptime, double printtime) {
+void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitCode,
+                                                          const IterateInfo &last, int iternum,
+                                                          double tottime, double nlptime,
+                                                          double qptime, double printtime) {
     fmt::text_style Kcol =
         calculate_color(last.kkt_inf_, settings_.kkt_tol_, settings_.acc_kkt_tol_);
     fmt::text_style Bcol =
@@ -266,7 +264,8 @@ void hven::solvers::PSIOPT::print_exit_stats(ConvergenceFlags ExitCode, const It
     }
 }
 
-fmt::text_style hven::solvers::PSIOPT::calculate_color(double val, double targ, double acc) {
+fmt::text_style hven::solvers::InteriorPointSolver::calculate_color(double val, double targ,
+                                                                    double acc) {
     constexpr double kFloor = 1e-300;
     auto level1 = std::log(std::max(targ, kFloor));
     auto level3 = std::log(std::max(acc, kFloor));

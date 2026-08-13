@@ -249,7 +249,7 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     // User-space lambda: eq passes through, upper passes through, lower negates.
     const double lam1 = LI[0], lam2 = -LI[1];
     // NonLinearProgram::analyze_sparsity stores every claimed (row, col) pair
-    // physically at (min(row, col), max(row, col)) -- PSIOPT's sparse backends
+    // physically at (min(row, col), max(row, col)) -- InteriorPointSolver's sparse backends
     // want the upper triangle of the symmetric KKT system filled, so a claim
     // like (constraint_row, variable_col), with constraint_row always the
     // larger index, is read back via kkt.coeff(variable_col, constraint_row).
@@ -353,7 +353,7 @@ TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
     EXPECT_THROW(nlp->eval_kkt(2.0, X2, LE, LI, val, PGX, AGX, FXE, FXI, kkt), std::runtime_error);
     prob->armed_ = false;
 
-    // (3) A no-objective assembly (PSIOPT's restoration entry point) at the
+    // (3) A no-objective assembly (InteriorPointSolver's restoration entry point) at the
     // now-cached x1 iterate must see obj_factor == 0: without the fix, the
     // stale pending_obj_scale_ left behind by the aborted assembly in (2)
     // would leak sigma's curvature into this constraint-only Hessian.

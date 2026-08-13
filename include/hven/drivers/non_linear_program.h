@@ -7,7 +7,7 @@
 // Original Developer: James B. Pezent
 //
 // This file defines the default composite non-linear program class
-// for interfacing with PSIOPT. This class is responsible for combining many different
+// for interfacing with InteriorPointSolver. This class is responsible for combining many different
 // dense or sparse objective or constraints into a single optimization problem and
 // manages all memory allocation, sparsity pattern computation, work partitioning, and function
 // evaluation.
@@ -364,7 +364,7 @@ struct NonLinearProgram {
     ///
     /// @return true iff this call rebuilt the KKT/RHS structures, in which case
     /// the caller must re-read the dimensions and recompute the sparsity pattern
-    /// (PSIOPT does both at its solve entry). false means nothing changed.
+    /// (InteriorPointSolver does both at its solve entry). false means nothing changed.
     /// </summary>
     bool configure_variable_treatment(FixedVariableTreatments treatment, double bound_relax_factor);
 
@@ -690,7 +690,7 @@ struct NonLinearProgram {
     // the dual shift (−δ_c) here as part of the base matrix, after the KKT
     // assembly and before the first factorization; the classic (default) mode
     // calls it on demand, at most once per phase, when a factorization reports
-    // the singularity signal (see PSIOPT::factor_impl). Until either happens
+    // the singularity signal (see InteriorPointSolver::factor_impl). Until either happens
     // these slots hold 0.0.
     void perturb_kkt_c_diags(double pert, Eigen::SparseMatrix<double, Eigen::RowMajor> &mat) {
         int eofs = this->e_pivot_data_start_ + this->num_user_kkt_elems_;
@@ -807,7 +807,7 @@ struct NonLinearProgram {
     /// Per-partition objective/value accumulator scratch, shared across
     /// eval_rhs/eval_ogc/eval_occ/eval_obj/eval_kkt/eval_aug. Each of those
     /// entry points is only ever invoked serially on this NLP instance -- a
-    /// single NLP is inside at most one alg_impl call at a time (PSIOPT's
+    /// single NLP is inside at most one alg_impl call at a time (InteriorPointSolver's
     /// outer control loop is single-threaded; the only concurrency is the
     /// parallel_sequence dispatch *within* one call, which writes disjoint
     /// vals_scratch_[thrnum] entries, exactly as the old per-call local

@@ -21,7 +21,7 @@ namespace hven {
 /// Optimizer convergence status. Lives in hven:: (not hven::solvers) so callers
 /// outside the solvers module can reference it directly. Placed in a forward-
 /// declaration header so dependent modules can use ConvergenceFlags and forward-
-/// declare PSIOPT without pulling in the full definition and its heavy transitive
+/// declare InteriorPointSolver without pulling in the full definition and its heavy transitive
 /// includes.
 enum class ConvergenceFlags {
     CONVERGED = 0,
@@ -40,11 +40,11 @@ constexpr auto operator<=>(ConvergenceFlags a, ConvergenceFlags b) {
 } // namespace hven
 
 namespace hven::solvers {
-class PSIOPT;
+class InteriorPointSolver;
 
-// Step-acceptance strategy selector (PSIOPT::Settings::acceptance_strategy_).
-// Declared here — rather than nested in PSIOPT like BarrierModes/LineSearchModes
-// — so both PSIOPT::Settings (psiopt.h) and the acceptance components
+// Step-acceptance strategy selector (InteriorPointSolver::Settings::acceptance_strategy_).
+// Declared here — rather than nested in InteriorPointSolver like BarrierModes/LineSearchModes
+// — so both InteriorPointSolver::Settings (interior_point_solver.h) and the acceptance components
 // (globalization/modern_merit.h) can name it without a circular include.
 // Style matches the nested mode enums: strongly-typed with explicit values.
 //   classic_merit — the fused classic backtracking merit line search
@@ -58,7 +58,7 @@ class PSIOPT;
 enum class AcceptanceStrategies { classic_merit = 0, merit = 1, funnel = 2, filter = 3 };
 
 // Penalty-parameter rule for the modernized merit family
-// (PSIOPT::Settings::merit_penalty_rule_; read only when
+// (InteriorPointSolver::Settings::merit_penalty_rule_; read only when
 // acceptance_strategy_ == merit).
 //   wmno     — Waltz, Morales, Nocedal & Orban, Math. Program. 107 (2006),
 //              §3.1: single penalty ν updated from the directional-derivative
@@ -68,11 +68,11 @@ enum class AcceptanceStrategies { classic_merit = 0, merit = 1, funnel = 2, filt
 //              for at least one π in the interval (Eqs 2.1, 3.9, 3.10).
 enum class MeritPenaltyRules { wmno = 0, flexible = 1 };
 
-// Barrier-parameter governor selector (PSIOPT::Settings::barrier_governor_).
+// Barrier-parameter governor selector (InteriorPointSolver::Settings::barrier_governor_).
 // Declared here alongside AcceptanceStrategies/MeritPenaltyRules — for the
-// same reason: both PSIOPT::Settings (psiopt.h) and the governor components
-// (globalization/classic_adaptive_governor.h, globalization/
-// monitored_governor.h) need it without a circular include.
+// same reason: both InteriorPointSolver::Settings (interior_point_solver.h) and the governor
+// components (globalization/classic_adaptive_governor.h, globalization/ monitored_governor.h) need
+// it without a circular include.
 //   classic_adaptive — the classic PROBE/LOQO free-mode barrier update
 //                      (ClassicAdaptiveGovernor); the bit-identical default.
 //   monitored        — the free<->monotone monitored governor
@@ -84,9 +84,9 @@ enum class MeritPenaltyRules { wmno = 0, flexible = 1 };
 //                      may pair with it.
 enum class BarrierGovernors { classic_adaptive = 0, monitored = 1 };
 
-// Feasibility-restoration mode selector (PSIOPT::Settings::restoration_mode_).
+// Feasibility-restoration mode selector (InteriorPointSolver::Settings::restoration_mode_).
 // Declared here alongside the other strategy selectors — for the same reason:
-// both PSIOPT::Settings (psiopt.h) and the restoration component
+// both InteriorPointSolver::Settings (interior_point_solver.h) and the restoration component
 // (globalization/proximal_restoration.h) need it without a circular include.
 //   off             — no feasibility restoration (default). The globalization
 //                     failure path behaves exactly as it did before restoration
@@ -114,12 +114,12 @@ enum class BarrierGovernors { classic_adaptive = 0, monitored = 1 };
 enum class RestorationModes { off = 0, proximal_switch = 1, l1_nested = 2 };
 
 // KKT inertia-correction / regularization mode selector
-// (PSIOPT::Settings::inertia_mode_). Declared here alongside the other strategy
-// selectors so both PSIOPT::Settings (psiopt.h) and the regularization helpers
-// (globalization/inertia_regularization.h) can name it without a circular
-// include. Strongly-typed with explicit values, matching the neighbors.
+// (InteriorPointSolver::Settings::inertia_mode_). Declared here alongside the other strategy
+// selectors so both InteriorPointSolver::Settings (interior_point_solver.h) and the regularization
+// helpers (globalization/inertia_regularization.h) can name it without a circular include.
+// Strongly-typed with explicit values, matching the neighbors.
 //   classic                 — the on-demand inertia ladder inline in
-//                             PSIOPT::factor_impl (the bit-identical default):
+//                             InteriorPointSolver::factor_impl (the bit-identical default):
 //                             each iteration first attempts an unperturbed
 //                             factorization and only shifts the Hessian diagonal
 //                             (by increasing amounts) when the factorization

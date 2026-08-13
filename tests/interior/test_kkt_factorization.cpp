@@ -262,7 +262,8 @@ TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
 // integers.
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
     hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().qp_pivot_strategy_ = hven::solvers::PSIOPT::QPPivotModes::E13;
+    solver.optimizer_->settings().qp_pivot_strategy_ =
+        hven::solvers::InteriorPointSolver::QPPivotModes::E13;
     EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
 }
 

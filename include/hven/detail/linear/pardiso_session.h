@@ -101,7 +101,7 @@ struct PardisoConfig {
     // state this field takes at SymmetricFactor::Options::Ordering::
     // kBackendDefault; a present value is written verbatim. The values
     // FactorSession::analyze is asked for today are 0 (minimum degree --
-    // kMinimumDegree, a real Pardiso iparm[1] value psiopt exposes as
+    // kMinimumDegree, a real Pardiso iparm[1] value the interior-point engine exposes as
     // QPOrderingModes::MINDEG), 2 (nested dissection / METIS), and 3 (its
     // OpenMP-parallel variant), matching Options::Ordering exactly. An
     // earlier `int` encoding that used 0 itself as the "don't write"

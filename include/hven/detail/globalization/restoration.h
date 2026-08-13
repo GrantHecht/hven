@@ -36,10 +36,10 @@
 
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-// PSIOPT::SolveResult requires the complete PSIOPT class; see
+// InteriorPointSolver::SolveResult requires the complete InteriorPointSolver class; see
 // acceptance_strategy.h's include note for why this is a plain, non-circular
-// include (psiopt.h does not include this directory back).
-#include "hven/drivers/psiopt.h"
+// include (interior_point_solver.h does not include this directory back).
+#include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
@@ -76,7 +76,7 @@ class RestorationStrategy {
     // deactivating the mode; the solver-side multiplier reset around a
     // nested-restoration exit (the Newton complementarity step on the slack
     // multipliers plus the equality-multiplier zeroing) already ships at the
-    // call site — see PSIOPT::exit_feasibility_restoration_nested —
+    // call site — see InteriorPointSolver::exit_feasibility_restoration_nested —
     // deliberately kept out of this interface because it is solver state,
     // not restoration-strategy state.
     virtual void exit_restoration() = 0;
@@ -154,9 +154,9 @@ class RestorationStrategy {
     // restoration_mode_ == off no RestorationStrategy is constructed at all,
     // so this is never reached on that path and the corresponding
     // SolveResult fields stay at their -1 sentinel (see
-    // PSIOPT::SolveResult::last_feas_rest_entries_ / last_feas_rest_iters_ in
-    // psiopt.h).
-    void append_diagnostics(PSIOPT::SolveResult &result) const {
+    // InteriorPointSolver::SolveResult::last_feas_rest_entries_ / last_feas_rest_iters_ in
+    // interior_point_solver.h).
+    void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
         result.last_feas_rest_entries_ = entries_;
         result.last_feas_rest_iters_ = iterations_in_mode_;
     }

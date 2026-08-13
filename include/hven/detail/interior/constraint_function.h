@@ -8,7 +8,7 @@
 //
 // Implements the ConstraintFunction class.
 // Holds an ConstraintInterface type erasure class and SolverIndexingData struct.
-// Interfaces directly with NonLinearProgram and PSIOPT.
+// Interfaces directly with NonLinearProgram and InteriorPointSolver.
 //
 // Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
 //   Apache 2.0 — see LICENSE.txt):
@@ -64,8 +64,8 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
 
     /*
     Interface for calling the underlying type erased function's .constraints method.
-    Passes the arguments from PSIOPT and NonLinearProgram as well as the indexing data struct to the
-    underlying vector function.
+    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
+    struct to the underlying vector function.
     */
     void constraints(ConstEigenRef<Eigen::VectorXd> X, Eigen::Ref<Eigen::VectorXd> FX) const {
         this->function_.constraints(X, FX, this->index_data_);
@@ -73,8 +73,8 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
 
     /*
     Interface for calling the underlying type erased function's .constraints_adjointgradient method.
-    Passes the arguments from PSIOPT and NonLinearProgram as well as the indexing data struct to the
-    underlying vector function.
+    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
+    struct to the underlying vector function.
     */
     void constraints_adjointgradient(ConstEigenRef<Eigen::VectorXd> X,
                                      ConstEigenRef<Eigen::VectorXd> L, EigenRef<Eigen::VectorXd> FX,
@@ -84,8 +84,8 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
 
     /*
     Interface for calling the underlying type erased function's .constraints_jacobian method.
-    Passes the arguments from PSIOPT and NonLinearProgram as well as the indexing data struct to the
-    underlying vector function.
+    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
+    struct to the underlying vector function.
     */
     void constraints_jacobian(ConstEigenRef<Eigen::VectorXd> X, EigenRef<Eigen::VectorXd> FX,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
@@ -98,7 +98,7 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
 
     /*
     Interface for calling the underlying type erased function's
-    .constraints_jacobian_adjointgradient method. Passes the arguments from PSIOPT and
+    .constraints_jacobian_adjointgradient method. Passes the arguments from InteriorPointSolver and
     NonLinearProgram as well as the indexing data struct to the underlying vector function.
     */
     void constraints_jacobian_adjointgradient(ConstEigenRef<Eigen::VectorXd> X,
@@ -115,8 +115,9 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
 
     /*
     Interface for calling the underlying type erased function's
-    .constraints_jacobian_adjointgradient_adjointhessian method. Passes the arguments from PSIOPT
-    and NonLinearProgram as well as the indexing data struct to the underlying vector function.
+    .constraints_jacobian_adjointgradient_adjointhessian method. Passes the arguments from
+    InteriorPointSolver and NonLinearProgram as well as the indexing data struct to the underlying
+    vector function.
     */
     void constraints_jacobian_adjointgradient_adjointhessian(
         ConstEigenRef<Eigen::VectorXd> X, ConstEigenRef<Eigen::VectorXd> L,
