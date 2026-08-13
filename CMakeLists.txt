@@ -331,31 +331,117 @@ target_compile_definitions(hven PUBLIC
     EIGEN_DONT_PARALLELIZE
 )
 
-target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
+# Platform/backend macros that hven's PUBLIC headers themselves branch on --
+# these change struct LAYOUT, not just codegen, so an install-tree consumer
+# that omits them gets a different sizeof/offsetof than the library was built
+# with. Audited by tracing the transitive #include closure of every header
+# under include/hven/ that is NOT under include/hven/detail/ (the public
+# surface) for #ifdef/#ifndef/#if defined() on anything hven's own build
+# defines (as opposed to compiler/OS builtins like __APPLE__/_WIN32, which
+# the consumer's own compiler already supplies correctly):
+#
+#   - USE_ACCELERATE_SPARSE gates two double members and two setter
+#     declarations directly on PSIOPT's settings struct
+#     (include/hven/drivers/psiopt.h) -- a real ABI-layout hazard on Apple.
+#   - NOMINMAX / WIN32_LEAN_AND_MEAN / _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
+#     are needed for include/hven/detail/interior/utils/thread_pool.h to
+#     even COMPILE on Windows (it is reached from the public
+#     include/hven/drivers/non_linear_program.h); without them a Windows
+#     consumer hits the exact <windows.h> max/min collision and
+#     constexpr-mutex-constructor failure this project's own build works
+#     around for itself (see the if(WIN32) add_compile_definitions() block
+#     above).
+#
+# ACCELERATE_NEW_LAPACK / HVEN_USE_ACCELERATE_LAPACK were checked and are
+# NOT exported: the only header that requires them
+# (hven/detail/linear/lapacke_shim.h) is reached exclusively from
+# src/linear/dense_symmetric_factor.cpp, never from any header a consumer
+# includes. Likewise MKL_LP64 (mkl_types.h only branches on MKL_ILP64, which
+# hven never defines, so MKL_INT is `int` regardless) and the MKL_INT-using
+# headers (pardiso_session.h, fault_injection.h, accelerate_session.h) are
+# .cpp-only, never reached from a public header either.
+if(APPLE)
+    target_compile_definitions(hven PUBLIC USE_ACCELERATE_SPARSE)
+endif()
+if(WIN32)
+    target_compile_definitions(hven PUBLIC
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+        _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
+    )
+endif()
 
-# SIMD and floating-point flags are a usage requirement, not a private build
-# detail: hven's public headers instantiate templated Eigen code (NLPProblem/
-# NLPSolver signatures, the interior-point machinery under
-# hven/detail/interior/) in the CONSUMER's own translation units, and a
-# mismatch between the vectorization/fast-math ABI hven's own sources were
-# compiled with (SIMD_FLAGS/FP_FLAGS, set by hven_compile_options() above)
-# and whatever the consumer happens to use corrupts memory at the boundary
-# rather than failing to compile -- found live by
-# scripts/check_install_smoke.sh: a bare find_package(hven) consumer built
-# without these flags crashed with heap corruption inside PSIOPT's very
-# first solve. Mirrors tycho's own root/src CMakeLists.txt handling of the
-# identical hazard for ITS public headers (see the "Compile options required
-# for correct ABI with header-template code" comment there).
-if(SIMD_FLAGS)
-    target_compile_options(hven PUBLIC ${SIMD_FLAGS})
-endif()
-if(FP_FLAGS)
-    target_compile_options(hven PUBLIC ${FP_FLAGS})
-endif()
-target_compile_options(hven PUBLIC
-    $<$<CXX_COMPILER_ID:Clang>:-mllvm>
-    $<$<CXX_COMPILER_ID:Clang>:-inline-threshold=${CLANG_MAX_INLINE_DEPTH}>
+# The alignment Eigen assumes for its own heap allocations and fixed-size
+# vectorized types (EIGEN_MAX_ALIGN_BYTES) is the actual ABI-layout quantity
+# behind the heap corruption scripts/check_install_smoke.sh found live: it is
+# derived from whichever SIMD ISA macros (__AVX512F__/__AVX__/__AVX2__/...)
+# are defined at the point <Eigen/Core> is included, which SIMD_FLAGS (below)
+# controls for hven's own sources but says nothing about a consumer's TU.
+# Codegen flags (-march/-mtune/-ffast-math/the inline-threshold pair) are
+# NOT re-exported here -- they affect instruction selection, not layout, and
+# exporting them would (a) force -march=native to re-evaluate on the
+# consumer's own host, which gives NO cross-machine guarantee and can
+# reproduce the exact corruption class this is fixing if the consumer's CPU
+# supports a narrower ISA than the build machine's, (b) silently flip a
+# strict-FP consumer to fast-math, and (c) collide with any consumer that
+# sets its own -inline-threshold (an unwrapped "-mllvm"/"-inline-threshold=N"
+# pair split by CMake's option de-duplication is a hard clang error the
+# moment the consumer's value differs from hven's). Resolved by an actual
+# compile+run against hven's own SIMD_FLAGS (cmake/probes/
+# eigen_max_align_bytes.cpp) rather than duplicating Eigen's ISA-to-alignment
+# table here, so it tracks Eigen's own logic exactly and can never drift.
+#
+# Invoked as a direct compiler call (execute_process), not try_compile/
+# try_run: try_compile's generated CMakeLists.txt unconditionally forwards
+# the CALLING scope's CURRENT CMAKE_CXX_FLAGS (which cmake/FindMKL.cmake
+# mutates via a bare `set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_LP64
+# ${ABI}")`, above) with a plain set() that silently shadows any override
+# passed through CMAKE_FLAGS "-DCMAKE_CXX_FLAGS=..." -- confirmed live: that
+# form of this probe compiled with "-DMKL_LP64 -m64" only and reported 16
+# regardless of SIMD_FLAGS, i.e. it never saw -march=native at all. Calling
+# the compiler directly sidesteps try_compile's variable-forwarding rules
+# entirely and uses exactly and only the flags listed here.
+execute_process(
+    COMMAND "${CMAKE_CXX_COMPILER}" -std=c++20 ${SIMD_FLAGS}
+        -I "${CMAKE_CURRENT_SOURCE_DIR}/dep/eigen"
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/probes/eigen_max_align_bytes.cpp"
+        -o "${CMAKE_CURRENT_BINARY_DIR}/hven_align_probe"
+    RESULT_VARIABLE _hven_align_compile_result
+    OUTPUT_VARIABLE _hven_align_compile_output
+    ERROR_VARIABLE _hven_align_compile_output
 )
+if(NOT _hven_align_compile_result EQUAL 0)
+    message(FATAL_ERROR
+        "hven: failed to compile the EIGEN_MAX_ALIGN_BYTES probe (see "
+        "cmake/probes/eigen_max_align_bytes.cpp) with SIMD_FLAGS='${SIMD_FLAGS}': "
+        "${_hven_align_compile_output}")
+endif()
+execute_process(
+    COMMAND "${CMAKE_CURRENT_BINARY_DIR}/hven_align_probe"
+    RESULT_VARIABLE _hven_align_run_result
+    OUTPUT_VARIABLE HVEN_EIGEN_MAX_ALIGN_BYTES
+)
+if(NOT _hven_align_run_result EQUAL 0 OR NOT HVEN_EIGEN_MAX_ALIGN_BYTES MATCHES "^[0-9]+$")
+    message(FATAL_ERROR
+        "hven: failed to run the EIGEN_MAX_ALIGN_BYTES probe (exit "
+        "${_hven_align_run_result}, output '${HVEN_EIGEN_MAX_ALIGN_BYTES}'). "
+        "This value is required to export a correct ABI contract to hven's "
+        "consumers -- see cmake/probes/eigen_max_align_bytes.cpp.")
+endif()
+unset(_hven_align_compile_result)
+unset(_hven_align_compile_output)
+unset(_hven_align_run_result)
+message(STATUS
+    "hven: EIGEN_MAX_ALIGN_BYTES resolved to ${HVEN_EIGEN_MAX_ALIGN_BYTES} "
+    "for the active SIMD flags")
+# PUBLIC (not INTERFACE-only): forcing this on hven's own sources too is a
+# no-op (it is exactly the value Eigen would have auto-derived from the same
+# SIMD_FLAGS) and removes any risk of the exported value silently drifting
+# from what hven's own build actually used.
+target_compile_definitions(hven PUBLIC
+    EIGEN_MAX_ALIGN_BYTES=${HVEN_EIGEN_MAX_ALIGN_BYTES})
+
+target_compile_options(hven PRIVATE ${COMPILE_FLAGS})
 
 # HVEN_VERSION_STRING follows the origin project's version-string-on-the-
 # command-line idiom: it makes src/core/version.cpp forward the single source
@@ -413,12 +499,16 @@ endif()
 
 include(CMakePackageConfigHelpers)
 
+# No INCLUDES DESTINATION here: the `hven` target already declares its own
+# $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> include directory (see
+# target_include_directories(hven PUBLIC ...) above) -- adding INCLUDES
+# DESTINATION on top of that duplicated the same path twice in the generated
+# hvenTargets.cmake's INTERFACE_INCLUDE_DIRECTORIES. One source of truth.
 install(TARGETS hven
     EXPORT hvenTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(DIRECTORY include/hven
@@ -489,10 +579,17 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
+# PATH_VARS CMAKE_INSTALL_INCLUDEDIR makes @PACKAGE_CMAKE_INSTALL_INCLUDEDIR@
+# available in hvenConfig.cmake.in, computed relative to the relocated
+# install prefix rather than the hardcoded literal "include" -- a consumer
+# that installs hven with -DCMAKE_INSTALL_INCLUDEDIR=<something else> still
+# gets a config file whose EXISTS checks (Eigen/fmt/hven headers) point at
+# where the headers actually landed.
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/hvenConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/hvenConfig.cmake"
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hven
+    PATH_VARS CMAKE_INSTALL_INCLUDEDIR
 )
 
 install(EXPORT hvenTargets
