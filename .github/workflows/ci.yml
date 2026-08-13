@@ -74,6 +74,40 @@ jobs:
         # does not prove; it is not a substitute for the Mac hardware leg.
         run: ./scripts/check_accelerate_syntax_linux.sh
 
+      # Install-verification: proves `cmake --install` + a downstream
+      # `find_package(hven)` consumer actually link and run, and that the
+      # exported hvenTargets.cmake carries exactly the platform/ABI
+      # contract the root CMakeLists.txt documents (no more, no less).
+      # Run on all three lanes -- see the matching steps in the macOS and
+      # Windows jobs below, and scripts/check_export_contract.sh (shared
+      # by all three) for what "exactly the contract" means. HVEN_INSTALL_
+      # SMOKE_WORKDIR keeps the scratch build/install tree around after
+      # the script returns so the next step can inspect the installed
+      # hvenTargets.cmake and the hven configure log; a plain local run of
+      # the script (no env var set) still self-cleans as before.
+      - name: Run hven install smoke (configure/build/install/consume)
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
+          HVEN_INSTALL_SMOKE_JOBS: "6"
+        run: ./scripts/check_install_smoke.sh
+
+      - name: Assert installed export contract (Linux)
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
+        run: |
+          set -euo pipefail
+          targets_file="$(find "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-install" -name hvenTargets.cmake -print -quit)"
+          if [ -z "${targets_file}" ]; then
+            echo "hvenTargets.cmake not found under ${HVEN_INSTALL_SMOKE_WORKDIR}/hven-install" >&2
+            exit 1
+          fi
+          align="$(grep -oE 'resolved to [0-9]+' "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log" | grep -oE '[0-9]+' || true)"
+          if [ -z "${align}" ]; then
+            echo "could not find the computed EIGEN_MAX_ALIGN_BYTES value in ${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log" >&2
+            exit 1
+          fi
+          ./scripts/check_export_contract.sh "${targets_file}" linux "${align}"
+
   macos-clang-release:
     # This job raised the milestone's Apple-hardware claim ceiling: the
     # Accelerate session, shim, and Apple-gated test halves
@@ -150,6 +184,39 @@ jobs:
         # which is what makes the committed Accelerate float rows genuinely
         # assert here rather than report CONTEXT-MISMATCH.
         run: ctest --test-dir build-macos --output-on-failure --timeout 300
+
+      # Install-verification: this is the job that closes the one gap the
+      # install/export rules had left -- the platform-macro export
+      # (USE_ACCELERATE_SPARSE on Apple) and the computed
+      # EIGEN_MAX_ALIGN_BYTES value had only ever been checked by reading
+      # the CMakeLists.txt logic, never by inspecting an actual installed
+      # hvenTargets.cmake on real Mac hardware. See scripts/
+      # check_install_smoke.sh (configure/build/install/consume against a
+      # scratch prefix) and scripts/check_export_contract.sh (the shared
+      # assertion script also run on the Linux and Windows lanes, below
+      # and above) for what is actually checked.
+      - name: Run hven install smoke (configure/build/install/consume)
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
+          HVEN_INSTALL_SMOKE_JOBS: "3"
+        run: ./scripts/check_install_smoke.sh
+
+      - name: Assert installed export contract (macOS)
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
+        run: |
+          set -euo pipefail
+          targets_file="$(find "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-install" -name hvenTargets.cmake -print -quit)"
+          if [ -z "${targets_file}" ]; then
+            echo "hvenTargets.cmake not found under ${HVEN_INSTALL_SMOKE_WORKDIR}/hven-install" >&2
+            exit 1
+          fi
+          align="$(grep -oE 'resolved to [0-9]+' "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log" | grep -oE '[0-9]+' || true)"
+          if [ -z "${align}" ]; then
+            echo "could not find the computed EIGEN_MAX_ALIGN_BYTES value in ${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log" >&2
+            exit 1
+          fi
+          ./scripts/check_export_contract.sh "${targets_file}" apple "${align}"
 
       # The Accelerate arm of every expected table is UNOBSERVED, and this
       # runner is the only Apple hardware the project reaches. Report mode
@@ -300,6 +367,50 @@ jobs:
         # runner is not it, and labelling it as such would make those rows
         # assert against hardware they were never observed on.
         run: ctest --test-dir build-windows --output-on-failure --timeout 300
+
+      # Install-verification, same as the Linux and macOS lanes above --
+      # see scripts/check_install_smoke.sh and scripts/
+      # check_export_contract.sh. shell: bash (matching the "Point
+      # FindMKL.cmake..."/"Put the MKL... DLLs on PATH" steps above) since
+      # both scripts are bash. The extra -D overrides forwarded to
+      # check_install_smoke.sh are the same CMAKE_C(XX)_COMPILER/_AR/
+      # _RANLIB/CMAKE_LINKER values windows-clang-release sets in
+      # CMakePresets.json -- without them, a bare `cmake -S ... -B ...`
+      # here would resolve whatever default toolchain a bash shell finds
+      # instead of clang-cl, and the consumer's link would not match how
+      # hven itself (or MKL's import libraries) were built.
+      - name: Run hven install smoke (configure/build/install/consume)
+        shell: bash
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
+          HVEN_INSTALL_SMOKE_JOBS: "4"
+        run: |
+          ./scripts/check_install_smoke.sh \
+            -DCMAKE_C_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe" \
+            -DCMAKE_C_COMPILER_AR="C:/Program Files/LLVM/bin/llvm-ar.exe" \
+            -DCMAKE_C_COMPILER_RANLIB="C:/Program Files/LLVM/bin/llvm-ranlib.exe" \
+            -DCMAKE_CXX_COMPILER="C:/Program Files/LLVM/bin/clang-cl.exe" \
+            -DCMAKE_CXX_COMPILER_AR="C:/Program Files/LLVM/bin/llvm-ar.exe" \
+            -DCMAKE_CXX_COMPILER_RANLIB="C:/Program Files/LLVM/bin/llvm-ranlib.exe" \
+            -DCMAKE_LINKER="C:/Program Files/LLVM/bin/lld-link.exe"
+
+      - name: Assert installed export contract (Windows)
+        shell: bash
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
+        run: |
+          set -euo pipefail
+          targets_file="$(find "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-install" -name hvenTargets.cmake -print -quit)"
+          if [ -z "${targets_file}" ]; then
+            echo "hvenTargets.cmake not found under ${HVEN_INSTALL_SMOKE_WORKDIR}/hven-install" >&2
+            exit 1
+          fi
+          align="$(grep -oE 'resolved to [0-9]+' "${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log" | grep -oE '[0-9]+' || true)"
+          if [ -z "${align}" ]; then
+            echo "could not find the computed EIGEN_MAX_ALIGN_BYTES value in ${HVEN_INSTALL_SMOKE_WORKDIR}/hven-configure.log" >&2
+            exit 1
+          fi
+          ./scripts/check_export_contract.sh "${targets_file}" windows "${align}"
 
       - name: Save oneAPI install logs
         if: always() && steps.cache-oneapi-mkl.outputs.cache-hit != 'true'
