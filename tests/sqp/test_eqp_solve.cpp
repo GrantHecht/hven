@@ -70,7 +70,7 @@ TEST(EqpSolve, MatchesOracleOnItsOptimalWorkingSet) {
     auto oracle = solve_dense_oracle(qp);
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
-    KktSystem kkt{QpOptions{}};
+    detail::KktFactor kkt;
     auto eqp = solve_eqp(qp, ws, kkt, QpOptions{});
 
     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
@@ -81,7 +81,7 @@ TEST(EqpSolve, MatchesOracleOnEqualityOnlyProblem) {
     auto oracle = solve_dense_oracle(qp);
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
-    KktSystem kkt{QpOptions{}};
+    detail::KktFactor kkt;
     auto eqp = solve_eqp(qp, ws, kkt, QpOptions{});
 
     EXPECT_LT((eqp.x - oracle.x).norm(), 1e-10);
@@ -116,7 +116,7 @@ TEST(EqpSolve, FixedVariableWithEqualityRefinementImprovesAccuracy) {
 
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
-    KktSystem kkt{QpOptions{}};
+    detail::KktFactor kkt;
     EqpResult unrefined;
     auto refined = solve_eqp(qp, ws, kkt, QpOptions{}, &unrefined);
 

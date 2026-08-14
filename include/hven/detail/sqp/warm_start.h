@@ -24,9 +24,9 @@
 // rather than duplicating anything Pardiso-owned -- see HotState's own
 // OWNERSHIP note in qp_engine.h for the full argument and the one caller
 // invariant it asks for), but it is no longer lifetime-free in the way the
-// rest of this struct is: `hot`, when non-null, keeps a KktSystem (and its
-// live Pardiso handle) alive for as long as any copy of this WarmStart
-// does. SAME-PROCESS ONLY: nothing here serializes `hot` (a shared_ptr and
+// rest of this struct is: `hot`, when non-null, keeps a sparse KKT factor
+// (and its live backend session) alive for as long as any copy of this
+// WarmStart does. SAME-PROCESS ONLY: nothing here serializes `hot` (a shared_ptr and
 // a Pardiso handle have no on-disk representation), and none of this
 // struct's own (de)serialization -- there is none -- is expected to grow
 // any. A default-constructed WarmStart (valid == false) leaves `hot` null,

@@ -33,7 +33,6 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_system.h>
 #include <hven/detail/sqp/qp_engine.h>
 
 #include "support/dense_oracle.h"
@@ -41,6 +40,26 @@
 using namespace hven::solvers;
 
 namespace {
+
+// hven's SymmetricFactor validates the STRUCTURAL diagonal at analyze() --
+// every row's diagonal entry must be present in the pattern, value zero or
+// not (symmetric_factor.h; the engine's own assemblies emit it
+// unconditionally). The dissolved seam forwarded the pattern unvalidated, so
+// these dense-built fixtures could drop the zero diagonal via sparseView();
+// this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
+// does.
+SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatU K(D.rows(), D.cols());
+    for (Eigen::Index r = 0; r < D.rows(); ++r) {
+        for (Eigen::Index c = r; c < D.cols(); ++c) {
+            if (r == c || D(r, c) != 0.0) {
+                K.insert(r, c) = D(r, c);
+            }
+        }
+    }
+    K.makeCompressed();
+    return K;
+}
 
 // min 1/2 (x0^2 - x1^2) over [-1,1]^2: H = diag(1, -1), g = 0, no general
 // constraints. The only stationary point of the unconstrained objective is the
@@ -71,7 +90,7 @@ QpProblem saddle_box_qp() {
 // (1,1) diagonal entry ends up being h11 + delta:
 //   h11 == -1e-8 makes that entry EXACTLY zero -- the findings doc's
 //     ExactlySingular case, and pardiso perturbs a pivot (measured:
-//     num_perturbed_pivots() == 1) while reporting a plausible (3, 1).
+//     a perturbed-pivot count of 1) while reporting a plausible (3, 1).
 //   h11 == -2e-8 leaves it at -1e-8: nonsingular, genuinely indefinite, and
 //     pardiso reports the true (2, 2) with ZERO perturbed pivots.
 // Either way the minimizer is x = (0, 1, 1): x0 is fixed by the equality, x1's
@@ -499,7 +518,7 @@ TEST(QpEngineIndefinite, IndefiniteStartRepairsToVertex) {
 //
 // h11 = -1e-8 puts K0's (1,1) entry at exactly zero. Measured: pardiso reports
 // (pos, neg) = (3, 1) -- precisely the expected inertia for this system -- with
-// num_perturbed_pivots() == 1 and no error raised. A gate reading only the sign
+// a perturbed-pivot count of 1 and no error raised. A gate reading only the sign
 // counts would conclude "second-order consistent, nothing to do" on a
 // factorization one of whose pivot signs was fabricated.
 //
@@ -536,25 +555,30 @@ TEST(QpEngineIndefinite, InertiaGateRefusesPerturbedFactorization) {
         QpOptions opts;
         WorkingSet ws(3, 0);
         const KktAssembly a = assemble_kkt_full(qp, ws, opts);
-        KktSystem kkt{opts};
-        kkt.factorize(a.K);
-        ASSERT_EQ(kkt.num_perturbed_pivots(), 1);
+        detail::KktFactor kkt;
+        const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, a.K).inertia;
+        ASSERT_EQ(e.state, hven::linear::InertiaEvidence::State::kObserved);
 // OBSERVED (results note §(a)): Accelerate reports (2, 1) plus one zero
-// pivot, so pos + neg falls short of the dimension and inertia_verdict lands
-// on kSuspect through BOTH of its tests (nonzero counter, short sum); on MKL
-// only the counter flags it while the sign counts impersonate a healthy
-// (3, 1).
+// pivot -- through InertiaEvidence, an honestly-absent perturbed_pivots and
+// a natively-measured n_zero == 1 -- so pos + neg falls short of the
+// dimension and inertia_verdict lands on kSuspect through the short-sum
+// rule; on MKL only the perturbed-pivot count flags it while the sign
+// counts impersonate a healthy (3, 1).
 #ifdef USE_ACCELERATE_SPARSE
-        ASSERT_EQ(kkt.num_pos_eigs(), 2); // honest: the zero pivot is in the zero bucket
-        ASSERT_EQ(kkt.num_neg_eigs(), 1);
+        ASSERT_EQ(e.n_pos, 2); // honest: the zero pivot is in the zero bucket
+        ASSERT_EQ(e.n_neg, 1);
+        ASSERT_FALSE(e.zero_is_derived);
+        ASSERT_EQ(e.n_zero, 1);
 #else
-        ASSERT_EQ(kkt.num_pos_eigs(), 3); // looks exactly like a healthy factorization
-        ASSERT_EQ(kkt.num_neg_eigs(), 1);
+        ASSERT_TRUE(e.perturbed_pivots.has_value());
+        ASSERT_EQ(*e.perturbed_pivots, 1);
+        ASSERT_EQ(e.n_pos, 3); // looks exactly like a healthy factorization
+        ASSERT_EQ(e.n_neg, 1);
 #endif
         // ... and the gate refuses it anyway, precisely because of the
         // perturbed pivot: the expectation it is handed here is the one it
         // "matches".
-        EXPECT_EQ(detail::inertia_verdict(kkt, 3, 1), detail::InertiaVerdict::kSuspect);
+        EXPECT_EQ(detail::inertia_verdict(e, 3, 1), detail::InertiaVerdict::kSuspect);
     }
 
     for (const auto algebra :
@@ -634,18 +658,24 @@ TEST(QpEngineIndefinite, SuspectStallIsNotCertifiedOptimal) {
     constexpr double kDelta = 1e-10;
     const QpProblem qp = suspect_stall_qp(kDelta, /*x1_bound=*/1e12);
 
-    // Precondition: the seed K0 really is the exactly-singular case, on either
-    // backend (num_perturbed_pivots() is Accelerate's zero-pivot count -- see
-    // kkt_system_accelerate.h's contract mapping).
+    // Precondition: the seed K0 really is the exactly-singular case, on
+    // either backend (a perturbed pivot on MKL; a natively-measured zero
+    // eigenvalue on Accelerate -- the same trust signal through
+    // InertiaEvidence's honest channel, docs/retarget-design-sqp.md §4.1).
     {
         QpOptions opts;
         opts.primal_delta = kDelta;
         WorkingSet ws(3, 0);
         const KktAssembly a = assemble_kkt_full(qp, ws, opts);
-        KktSystem kkt{opts};
-        kkt.factorize(a.K);
-        ASSERT_EQ(kkt.num_perturbed_pivots(), 1);
-        ASSERT_EQ(detail::inertia_verdict(kkt, 3, 1), detail::InertiaVerdict::kSuspect);
+        detail::KktFactor kkt;
+        const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, a.K).inertia;
+#ifdef USE_ACCELERATE_SPARSE
+        ASSERT_EQ(e.n_zero, 1);
+#else
+        ASSERT_TRUE(e.perturbed_pivots.has_value());
+        ASSERT_EQ(*e.perturbed_pivots, 1);
+#endif
+        ASSERT_EQ(detail::inertia_verdict(e, 3, 1), detail::InertiaVerdict::kSuspect);
     }
 
     for (const auto algebra :
@@ -818,36 +848,41 @@ TEST(QpEngineIndefinite, FreeBlockStationarityTreatsNanAsAFailure) {
 // doc's own matrix (docs/notes/2026-07-27-pardiso-inertia-findings.md): K =
 // [[1,0,1],[0,0,0],[1,0,0]] factorizes with no error, reports (2, 1) -- which
 // is the EXACT analytic inertia of every eps > 0 neighbor of this matrix, and
-// so looks entirely healthy -- and sets num_perturbed_pivots() == 1. Whatever
+// so looks entirely healthy -- and sets the perturbed-pivot count to 1. Whatever
 // expectation it is compared against, the verdict must be kSuspect: never kOk
 // (which would trust a fabricated sign) and never kWrong (which would act on
 // one as evidence).
 TEST(QpEngineIndefinite, InertiaVerdictNeverTrustsAPerturbedFactorization) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
-    SpMatU K = D.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    K.makeCompressed();
-    KktSystem kkt{QpOptions{}};
-    kkt.factorize(K);
-    ASSERT_EQ(kkt.num_perturbed_pivots(), 1);
+    SpMatU K = upper_with_structural_diag(D);
+    detail::KktFactor kkt;
+    const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, K).inertia;
+#ifdef USE_ACCELERATE_SPARSE
+    ASSERT_EQ(e.n_zero, 1);
+#else
+    ASSERT_TRUE(e.perturbed_pivots.has_value());
+    ASSERT_EQ(*e.perturbed_pivots, 1);
+#endif
 
-    EXPECT_EQ(detail::inertia_verdict(kkt, 2, 1), detail::InertiaVerdict::kSuspect);
-    EXPECT_EQ(detail::inertia_verdict(kkt, 1, 2), detail::InertiaVerdict::kSuspect);
+    EXPECT_EQ(detail::inertia_verdict(e, 2, 1), detail::InertiaVerdict::kSuspect);
+    EXPECT_EQ(detail::inertia_verdict(e, 1, 2), detail::InertiaVerdict::kSuspect);
 
     // Control: the same matrix with eps = 1e-12 factorizes unperturbed, and
     // there the same two calls are decided on the numbers themselves.
     Eigen::MatrixXd De(3, 3);
     De << 1, 0, 1, 0, 1e-12, 0, 1, 0, 0;
-    SpMatU Ke = De.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    Ke.makeCompressed();
-    KktSystem kkt_e{QpOptions{}};
-    kkt_e.factorize(Ke);
-    ASSERT_EQ(kkt_e.num_perturbed_pivots(), 0);
-    EXPECT_EQ(detail::inertia_verdict(kkt_e, 2, 1), detail::InertiaVerdict::kOk);
-    EXPECT_EQ(detail::inertia_verdict(kkt_e, 1, 2), detail::InertiaVerdict::kWrong);
+    SpMatU Ke = upper_with_structural_diag(De);
+    detail::KktFactor kkt_e;
+    const hven::linear::InertiaEvidence e_ctrl = detail::factorize_checked(kkt_e, Ke).inertia;
+    if (e_ctrl.perturbed_pivots.has_value()) {
+        ASSERT_EQ(*e_ctrl.perturbed_pivots, 0);
+    }
+    EXPECT_EQ(detail::inertia_verdict(e_ctrl, 2, 1), detail::InertiaVerdict::kOk);
+    EXPECT_EQ(detail::inertia_verdict(e_ctrl, 1, 2), detail::InertiaVerdict::kWrong);
     // A short sum (an expectation of a different dimension) is unknowable,
     // not wrong.
-    EXPECT_EQ(detail::inertia_verdict(kkt_e, 2, 2), detail::InertiaVerdict::kSuspect);
+    EXPECT_EQ(detail::inertia_verdict(e_ctrl, 2, 2), detail::InertiaVerdict::kSuspect);
 }
 
 // A TRUSTWORTHY wrong inertia -- the case the repair exists for -- on the same
@@ -864,10 +899,12 @@ TEST(QpEngineIndefinite, TrustworthyWrongInertiaRepairsToVertex) {
         QpOptions opts;
         WorkingSet ws(3, 0);
         const KktAssembly a = assemble_kkt_full(qp, ws, opts);
-        KktSystem kkt{opts};
-        kkt.factorize(a.K);
-        ASSERT_EQ(kkt.num_perturbed_pivots(), 0);
-        ASSERT_EQ(detail::inertia_verdict(kkt, /*expected_pos=*/3, /*expected_neg=*/1),
+        detail::KktFactor kkt;
+        const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, a.K).inertia;
+        if (e.perturbed_pivots.has_value()) {
+            ASSERT_EQ(*e.perturbed_pivots, 0);
+        }
+        ASSERT_EQ(detail::inertia_verdict(e, /*expected_pos=*/3, /*expected_neg=*/1),
                   detail::InertiaVerdict::kWrong);
     }
 

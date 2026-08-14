@@ -180,7 +180,7 @@
 //                                    QpOptions::primal_delta -- the SAME two
 //                                    regularizers kkt_assembly.h applies)
 //
-// stored as the UPPER TRIANGLE (SpMatU) and factored by the SAME KktSystem
+// stored as the UPPER TRIANGLE (SpMatU) and factored by the SAME sparse factor
 // (MKL Pardiso / Apple Accelerate) the walk uses. Nothing about the linear
 // algebra is new; only the diagonal's contents are.
 //
@@ -225,8 +225,8 @@
 //     (an exact-zero triplet is not a slot one may rely on);
 //   * consequently ONE Newton iteration costs one numeric factorization and
 //     ZERO symbolic analyses, and a SECOND QP of identical structure costs
-//     zero symbolic analyses too -- KktSystem::pattern_matches() sees the same
-//     hash and KktSystem::factorize() skips Pardiso phase 11 (kkt_system.h).
+//     zero symbolic analyses too -- needs_analysis() sees the same
+//     hash and factorize_checked() skips the symbolic analysis (kkt_calls.h).
 //
 // SsnResult::symbolic_analyses reports this directly (counted at the call
 // site, before factorize(), exactly as qp_engine.h's rebuild_k0() counts
@@ -507,7 +507,7 @@
 // whether a caller that convexifies its Hessian may declare so and skip it.
 //
 // **ACCELERATE (fix round 1, C1 corollary).** The gate reads
-// KktSystem::num_perturbed_pivots(), which means PERTURBED pivots on MKL and
+// the factorization evidence's perturbed-pivot count, which means PERTURBED pivots on MKL and
 // ZERO pivots on Accelerate, and the verdict tests it FIRST. An Accelerate
 // factorization of an indefinite K that reports a zero pivot therefore lands on
 // kSuspect, which does not act -- so the verification CERTIFIES THE SADDLE
@@ -555,10 +555,11 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/kkt_calls.h>
 #include <hven/detail/sqp/qp_problem.h>
 #include <hven/detail/sqp/sqp_types.h>
 #include <hven/detail/sqp/types.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace hven::solvers {
 
@@ -979,27 +980,32 @@ struct SsnNorms {
 //
 // **THIS IS qp_engine.h's detail::InertiaVerdict, RESTATED RATHER THAN
 // INCLUDED**, for the same reason kSsnInfBound is restated: ssn_engine.h
-// depends on the QP data types and on KktSystem, never on the walk's
-// internals, and reaching across for a nine-line enum would couple this file
-// to a 6000-line header. The three verdicts, the perturbed-pivot-first order
-// and the short-sum rule are qp_engine.h's exactly (and its own justification,
-// docs/notes/2026-07-27-pardiso-inertia-findings.md, applies unchanged): a
-// factorization whose pivots were perturbed reports an inertia that looks
-// exactly like a genuine one, so its counts carry no information AT ALL --
-// including when they happen to match.
+// depends on the QP data types and on the KKT factor helper, never on the
+// walk's internals, and reaching across for a nine-line enum would couple
+// this file to a 6000-line header. The verdict rules are qp_engine.h's
+// exactly (docs/retarget-design-sqp.md SS4.1; the original justification,
+// docs/notes/2026-07-27-pardiso-inertia-findings.md, applies unchanged):
+// non-kObserved evidence routes to kSuspect explicitly, then perturbed
+// pivots first (a factorization whose pivots were perturbed reports an
+// inertia that looks exactly like a genuine one, so its counts carry no
+// information AT ALL -- including when they happen to match; absent
+// evidence on Accelerate triggers nothing), then the short-sum rule.
 enum class SsnInertia {
     kOk,      // trustworthy AND equal to the expectation
     kSuspect, // untrustworthy: perturbed pivots, or counts that do not sum to n
     kWrong,   // trustworthy AND different from the expectation
 };
 
-inline SsnInertia ssn_inertia_verdict(const KktSystem &kkt, Index expected_pos,
+inline SsnInertia ssn_inertia_verdict(const hven::linear::InertiaEvidence &e, Index expected_pos,
                                       Index expected_neg) {
-    if (kkt.num_perturbed_pivots() != 0) {
+    if (e.state != hven::linear::InertiaEvidence::State::kObserved) {
         return SsnInertia::kSuspect;
     }
-    const Index pos = kkt.num_pos_eigs();
-    const Index neg = kkt.num_neg_eigs();
+    if (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) {
+        return SsnInertia::kSuspect;
+    }
+    const Index pos = static_cast<Index>(e.n_pos);
+    const Index neg = static_cast<Index>(e.n_neg);
     if (pos + neg != expected_pos + expected_neg) {
         return SsnInertia::kSuspect;
     }
@@ -1561,16 +1567,16 @@ struct SsnResult {
 // The engine
 // =============================================================================
 //
-// Holds ONE KktSystem across solves, which is what makes the "symbolic
+// Holds ONE KktFactor across solves, which is what makes the "symbolic
 // analysis once per structure, reused across QPs of identical structure"
 // property of header section 3 observable: construct one SsnEngine and solve a
 // sequence of same-shaped QPs through it.
 //
-// NOT THREAD-SAFE and not copyable, for the same reason KktSystem is not: it
+// NOT THREAD-SAFE and not copyable, for the same reason the sparse factor is not: it
 // owns live Pardiso/Accelerate internal state.
 class SsnEngine {
   public:
-    explicit SsnEngine(const QpOptions &opts) : opts_(opts), kkt_(opts) {}
+    explicit SsnEngine(const QpOptions &opts) : opts_(opts) {}
 
     SsnEngine(const SsnEngine &) = delete;
     SsnEngine &operator=(const SsnEngine &) = delete;
@@ -2151,13 +2157,13 @@ class SsnEngine {
             // --- factor and step ---------------------------------------
             Vec dw;
             try {
-                if (!kkt_.pattern_matches(k_)) {
+                if (detail::needs_analysis(kkt_, k_)) {
                     ++out->symbolic_analyses;
                 }
-                kkt_.factorize(k_);
+                detail::factorize_checked(kkt_, k_);
                 ++out->factorizations;
                 if (!verifying) {
-                    dw = kkt_.solve(rhs);
+                    dw = detail::solve_vec(kkt_, rhs);
                 }
             } catch (const std::exception &e) {
                 out->status = QpStatus::kNumericalError;
@@ -2219,8 +2225,12 @@ class SsnEngine {
             // fabrication. It is recorded and surfaces only if the solve later
             // fails for another reason.
             if (guarded) {
-                const detail::SsnInertia verdict =
-                    detail::ssn_inertia_verdict(kkt_, n, me + mi + mb);
+                // Evidence captured ONCE and consumed by verdict and
+                // diagnostics alike, so a message can never describe a
+                // different factorization than the verdict judged
+                // (docs/retarget-design-sqp.md SS4.2).
+                const hven::linear::InertiaEvidence ie = kkt_.factor.inertia();
+                const detail::SsnInertia verdict = detail::ssn_inertia_verdict(ie, n, me + mi + mb);
                 if (verdict == detail::SsnInertia::kWrong) {
                     if (verifying) {
                         // **THE POINT IS FIRST-ORDER KKT AND IS NOT A
@@ -2247,8 +2257,7 @@ class SsnEngine {
                             "against the ({}, {}) a positive-definite primal block requires. "
                             "The point is a saddle or a maximizer of this QP, which no "
                             "residual-based test can see, so it is NOT certified",
-                            it, nrm.inf_norm, sopts.fb_tol, kkt_.num_pos_eigs(),
-                            kkt_.num_neg_eigs(), n, me + mi + mb);
+                            it, nrm.inf_norm, sopts.fb_tol, ie.n_pos, ie.n_neg, n, me + mi + mb);
                         break;
                     }
                     if (escalate_prox(qp, n, me, mi, mb)) {
@@ -2263,7 +2272,7 @@ class SsnEngine {
                         "{}) against the ({}, {}) a positive-definite primal block requires, "
                         "and the proximal ladder is at its ceiling (sigma = {}). The Newton "
                         "step is toward a KKT point that need not be a minimizer",
-                        it, kkt_.num_pos_eigs(), kkt_.num_neg_eigs(), n, me + mi + mb, prox_sigma_);
+                        it, ie.n_pos, ie.n_neg, n, me + mi + mb, prox_sigma_);
                     break;
                 }
             }
@@ -2509,10 +2518,10 @@ class SsnEngine {
         }
         deferred_pending_ = false;
         try {
-            if (!kkt_.pattern_matches(k_)) {
+            if (detail::needs_analysis(kkt_, k_)) {
                 ++out->symbolic_analyses;
             }
-            kkt_.factorize(k_);
+            detail::factorize_checked(kkt_, k_);
             ++out->factorizations;
         } catch (const std::exception &e) {
             out->status = QpStatus::kNumericalError;
@@ -2522,7 +2531,8 @@ class SsnEngine {
             ++out->counters.ssn_escape_singular;
             return false;
         }
-        if (detail::ssn_inertia_verdict(kkt_, deferred_pos_, deferred_neg_) ==
+        const hven::linear::InertiaEvidence ie = kkt_.factor.inertia();
+        if (detail::ssn_inertia_verdict(ie, deferred_pos_, deferred_neg_) ==
             detail::SsnInertia::kWrong) {
             out->status = QpStatus::kNumericalError;
             out->escape_reason = SsnEscape::kIndefinite;
@@ -2533,8 +2543,8 @@ class SsnEngine {
                 "positive-definite primal block requires. The point is a saddle or a maximizer "
                 "of this QP, which no residual-based test can see, so it is NOT certified "
                 "(deferred verification, SsnOptions::defer_certification)",
-                deferred_attempt_, deferred_fb_residual_, deferred_fb_tol_, kkt_.num_pos_eigs(),
-                kkt_.num_neg_eigs(), deferred_pos_, deferred_neg_);
+                deferred_attempt_, deferred_fb_residual_, deferred_fb_tol_, ie.n_pos, ie.n_neg,
+                deferred_pos_, deferred_neg_);
             ++out->counters.ssn_escapes;
             ++out->counters.ssn_escape_indefinite;
             return false;
@@ -2883,15 +2893,15 @@ class SsnEngine {
     // THE STRUCTURE KEY is an FNV-1a hash of the dimensions, the three input
     // matrices' index arrays, and the bound-row list -- i.e. of exactly the
     // inputs build_pattern reads and nothing else. It is the same instrument,
-    // with the same collision exposure, that KktSystem::hash_pattern already
-    // uses to decide whether to skip Pardiso's phase 11 (kkt_system.h), and it
-    // uses to decide whether to skip Pardiso's phase 11 (kkt_system.h).
+    // with the same collision exposure, that the KKT factor helper's
+    // pattern compare already uses to decide whether to skip the symbolic
+    // analysis (kkt_calls.h / hven::pattern_hash).
     //
     // **THIS FILE USED TO CLAIM THE KEY WAS "deliberately NOT the only guard",
     // AND THAT WAS FALSE** (Fable kernel review, M-1). On a collision the
     // REFRESH path writes the new QP's values through the STALE value_pos_ map
-    // and returns -- all before KktSystem is involved at all -- and
-    // KktSystem::pattern_matches then hashes k_'s own cached pattern, which of
+    // and returns -- all before the factor is involved at all -- and
+    // needs_analysis() then hashes k_'s own cached pattern, which of
     // course matches, so it cannot see the corruption. Its hash guards
     // Pardiso's symbolic reuse against a CHANGED K, which is a different
     // failure. Worse, a colliding structure that emits MORE entries would run
@@ -2961,8 +2971,8 @@ class SsnEngine {
         };
         auto mix_index = [&mix](Index v) { mix(&v, sizeof(v)); };
         // **HASHED THROUGH InnerIterator, NOT off the raw index arrays**, which
-        // is the one place this differs from KktSystem::hash_pattern
-        // (kkt_system.h) and it is deliberate. KktSystem hashes a matrix IT
+        // is the one place this differs from the factor helper's
+        // pattern hash (hven::pattern_hash) and it is deliberate. That hash sees a matrix IT
         // requires to be compressed (require_compressed throws otherwise);
         // qp.H/Ae/Ai are CALLER-SUPPLIED and QpProblem imposes no such
         // requirement, and for an uncompressed matrix innerIndexPtr() holds
@@ -3557,7 +3567,7 @@ class SsnEngine {
     }
 
     QpOptions opts_;
-    KktSystem kkt_;
+    detail::KktFactor kkt_;
     SpMatU k_;
     Index dim_ = 0;
     std::vector<detail::SsnBoundRow> bound_rows_;

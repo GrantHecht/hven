@@ -3,13 +3,31 @@
 using namespace hven::solvers;
 
 // K0 = [H Aᵀ; A 0] with H = diag(2,3), A = [1 1]. Saddle point: inertia (2,1,0).
-// (Repeated verbatim from tests/test_kkt_system.cpp's make_kkt3().)
+// (Repeated verbatim from the dissolved test_kkt_system.cpp's make_kkt3().)
+// hven's SymmetricFactor validates the STRUCTURAL diagonal at analyze() --
+// every row's diagonal entry must be present in the pattern, value zero or
+// not (symmetric_factor.h; the engine's own assemblies emit it
+// unconditionally). The dissolved seam forwarded the pattern unvalidated, so
+// these dense-built fixtures could drop the zero diagonal via sparseView();
+// this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
+// does.
+static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatU K(D.rows(), D.cols());
+    for (Eigen::Index r = 0; r < D.rows(); ++r) {
+        for (Eigen::Index c = r; c < D.cols(); ++c) {
+            if (r == c || D(r, c) != 0.0) {
+                K.insert(r, c) = D(r, c);
+            }
+        }
+    }
+    K.makeCompressed();
+    return K;
+}
+
 static SpMatU make_kkt3() {
     Eigen::MatrixXd D(3, 3);
     D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
-    SpMatU K = D.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    K.makeCompressed();
-    return K;
+    return upper_with_structural_diag(D);
 }
 
 TEST(Schur, BorderedSolveMatchesDirectFactorization) {
@@ -17,8 +35,8 @@ TEST(Schur, BorderedSolveMatchesDirectFactorization) {
     // variable 1. Compare against factorizing the 4x4 system directly.
     SpMatU K0 = make_kkt3();
     QpOptions opts;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
     Vec v(3);
     v << 0, 1, 0;
@@ -43,8 +61,8 @@ TEST(Schur, RefactorizationTriggerFires) {
     SpMatU K0 = make_kkt3();
     QpOptions opts;
     opts.schur_cap = 2;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
 
     Vec v0(3);
@@ -67,8 +85,8 @@ TEST(Schur, DropBorderMatchesDirectFactorizationOfSurvivor) {
     // system directly factorized from K0 + the SECOND border only.
     SpMatU K0 = make_kkt3();
     QpOptions opts;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
 
     Vec v1(3);
@@ -98,8 +116,8 @@ TEST(Schur, DropBorderMatchesDirectFactorizationOfSurvivor) {
 TEST(Schur, DropBorderThrowsOnOutOfRange) {
     SpMatU K0 = make_kkt3();
     QpOptions opts;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
     EXPECT_THROW(schur.drop_border(0), std::out_of_range);
 
@@ -119,8 +137,8 @@ TEST(Schur, IndefiniteSchurSolveMatchesDirect) {
     // -- one negative, one positive eigenvalue, neither block trivial.
     SpMatU K0 = make_kkt3();
     QpOptions opts;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
 
     Vec v1(3);
@@ -164,7 +182,7 @@ TEST(Schur, IndefiniteSchurSolveMatchesDirect) {
 
 TEST(Schur, AntiDiagonalSchurBlock) {
     // Construct borders so C is (bit-for-bit) exactly anti-diagonal: pick
-    // d_i = v_i^T K0^-1 v_i via the SAME KktSystem::solve calls add_border
+    // d_i = v_i^T K0^-1 v_i via the SAME K0 solve calls add_border
     // uses internally, so each diagonal entry of C cancels to exactly 0.0,
     // leaving C = [[0, c], [c, 0]] with c = -v1^T K0^-1 v2 ~= 0.2. This is
     // the pattern the reviewer found Eigen::LDLT silently mis-solves
@@ -174,15 +192,15 @@ TEST(Schur, AntiDiagonalSchurBlock) {
     // spans the WHOLE of C).
     SpMatU K0 = make_kkt3();
     QpOptions opts;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
 
     Vec v1(3);
     v1 << 1, 0, 0;
     Vec v2(3);
     v2 << 0, 1, 0;
-    const double d1 = v1.dot(kkt.solve(v1));
-    const double d2 = v2.dot(kkt.solve(v2));
+    const double d1 = v1.dot(detail::solve_vec(kkt, v1));
+    const double d2 = v2.dot(detail::solve_vec(kkt, v2));
 
     SchurComplement schur(kkt, opts);
     schur.add_border(v1, d1);
@@ -222,12 +240,12 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
     // a singular C.
     SpMatU K0 = make_kkt3();
     QpOptions opts;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
 
     Vec v(3);
     v << 1, 0, 0;
-    const double d = v.dot(kkt.solve(v)); // makes C = d - v^T K0^-1 v == 0.0 exactly
+    const double d = v.dot(detail::solve_vec(kkt, v)); // makes C = d - v^T K0^-1 v == 0.0 exactly
 
     SchurComplement schur(kkt, opts);
     schur.add_border(v, d);
@@ -244,8 +262,8 @@ TEST(Schur, InertiaBookkeepingPinnedVariable) {
     // exactly one negative diagonal entry.
     SpMatU K0 = make_kkt3();
     QpOptions opts;
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
     Vec v(3);
     v << 0, 1, 0;
@@ -267,8 +285,8 @@ TEST(Schur, NearlySingularOneByOneNeedsRefactorization) {
     SpMatU K0 = K0d.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
     K0.makeCompressed();
 
-    KktSystem kkt(opts);
-    kkt.factorize(K0);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
 
     // C = d - v^T K0^-1 v = (1 + eps) - 1 = eps, a single 1x1 block.
     Vec v(1);

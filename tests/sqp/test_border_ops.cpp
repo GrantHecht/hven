@@ -6,7 +6,6 @@
 #include <hven/detail/sqp/border_ops.h>
 #include <hven/detail/sqp/eqp_solve.h>
 #include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_system.h>
 #include <hven/detail/sqp/schur_complement.h>
 #include <hven/detail/sqp/working_set.h>
 
@@ -111,8 +110,8 @@ TEST(BorderOps, AddIneqRowMatchesDirect) {
     KktAssembly full = assemble_kkt_full(qp, ws0, opts);
     ASSERT_EQ(full.K.rows(), qp.n() + qp.me()); // n_working == 0
 
-    KktSystem kkt0(opts);
-    kkt0.factorize(full.K);
+    detail::KktFactor kkt0;
+    detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
     const Index k0_rows = full.K.rows();
@@ -162,8 +161,8 @@ TEST(BorderOps, DeleteK0RowMatchesDirect) {
     const Index me = qp.me();
     ASSERT_EQ(full.K.rows(), var_count + me + 1); // n_working == 1
 
-    KktSystem kkt1(opts);
-    kkt1.factorize(full.K);
+    detail::KktFactor kkt1;
+    detail::factorize_checked(kkt1, full.K);
     SchurComplement schur(kkt1, opts);
 
     const Index k0_rows = full.K.rows();
@@ -230,8 +229,8 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
     WorkingSet ws_empty(qp.n(), qp.mi());
     KktAssembly full = assemble_kkt_full(qp, ws_empty, opts);
 
-    KktSystem kkt0(opts);
-    kkt0.factorize(full.K);
+    detail::KktFactor kkt0;
+    detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
     Vec v = BorderOps::pin_variable(/*i=*/0, full.K.rows());
@@ -255,7 +254,7 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
 
     WorkingSet ws_pin(qp.n(), qp.mi());
     ws_pin.bound_state()[0] = BoundState::kAtLower;
-    KktSystem kkt1(opts);
+    detail::KktFactor kkt1;
     EqpResult eqp = solve_eqp(qp, ws_pin, kkt1, opts);
 
     ASSERT_EQ(x_border.size(), eqp.x.size());
@@ -271,15 +270,15 @@ TEST(BorderOps, AddThenDropRoundTrip) {
     WorkingSet ws0(qp.n(), qp.mi());
     KktAssembly full = assemble_kkt_full(qp, ws0, opts);
 
-    KktSystem kkt0(opts);
-    kkt0.factorize(full.K);
+    detail::KktFactor kkt0;
+    detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
     Vec rhs0(full.K.rows());
     rhs0.head(qp.n()) = -qp.g;
     rhs0(qp.n()) = qp.be(0);
 
-    Vec x_before = kkt0.solve(rhs0);
+    Vec x_before = detail::solve_vec(kkt0, rhs0);
 
     Vec v = BorderOps::add_ineq_row(qp, /*j=*/0, full.K.rows());
     schur.add_border(v, -opts.dual_mu);
@@ -315,8 +314,8 @@ TEST(BorderOps, ComposedDeleteAndAddBorders) {
     const Index k0_rows = full.K.rows();
     ASSERT_EQ(k0_rows, var_count + me + 1); // n_working == 1
 
-    KktSystem kkt(opts);
-    kkt.factorize(full.K);
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, full.K);
     SchurComplement schur(kkt, opts);
 
     // Border 0: deactivate row 0 (K0's constraint row k == me, the sole

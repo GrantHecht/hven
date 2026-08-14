@@ -1569,8 +1569,8 @@ TEST(SsnEngineLocal, HardBudgetStopsWithABudgetEscape) {
 // outcomes come back as a status, only caller errors throw. The trigger here
 // is a non-finite objective gradient, which is the one route to this branch
 // that is deterministic on both backends -- an exactly singular K is NOT, since
-// Pardiso answers a zero pivot by PERTURBING it (kkt_system.h's
-// num_perturbed_pivots) and returning a finite, meaningless step rather than
+// Pardiso answers a zero pivot by PERTURBING it (the factorization
+// evidence's perturbed-pivot count) and returning a finite, meaningless step rather than
 // an error, which this file verified directly on three rank-deficient and
 // zero-Hessian probes before settling on this one.
 TEST(SsnEngineLocal, NonFiniteStepIsReportedNotThrown) {

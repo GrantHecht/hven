@@ -265,24 +265,24 @@ struct QpCounters {
     // does not exist.
     bool k0_reused = false;
 
-    // PHASE-4 TASK 4 FIX ROUND 2. Number of Pardiso PHASE-11 (symbolic
-    // analysis) calls this solve() call actually paid for -- i.e. the number
-    // of times qp_engine.h's rebuild_k0() found `!kkt.pattern_matches(K)`
-    // before calling `kkt.factorize()` (KktSystem::factorize() itself skips
-    // analyze() whenever the sparsity pattern is unchanged from the last
-    // analyzed matrix -- kkt_system.h). Counted here, at the call site,
-    // rather than inside KktSystem, so this stays a QP-engine-level
+    // PHASE-4 TASK 4 FIX ROUND 2. Number of backend SYMBOLIC-ANALYSIS
+    // calls this solve() call actually paid for -- i.e. the number
+    // of times qp_engine.h's rebuild_k0() found `needs_analysis(kkt, K)`
+    // before calling `factorize_checked()` (which itself skips
+    // the analysis whenever the sparsity pattern is unchanged from the last
+    // analyzed matrix -- kkt_calls.h). Counted here, at the call site,
+    // rather than inside the factor, so this stays a QP-engine-level
     // observable like every other QpCounters field and touches no
     // MKL-adjacent code. This is the direct regression net for the
     // re-review's finding 2c: detaching onto a FRESH BorderState (a fresh
-    // KktSystem, with no cached pattern) on every value-changing major of an
+    // KktFactor, with no cached pattern) on every value-changing major of an
     // ordinary, NEVER-SHARED solve paid a full re-analysis per major --
     // measured at 48 on HS38's own 48-major solve, vs 1 for a solve whose
-    // sole-owner rebuilds reuse the SAME KktSystem's cached pattern. A
+    // sole-owner rebuilds reuse the SAME KktFactor's cached pattern. A
     // never-shared solve should show this at 1 (or 0, if the pattern never
     // needed rebuilding at all) regardless of how many `factorizations` it
     // pays; a solve whose fixture legitimately forces detaches (the
-    // sharing/generation-mismatch tests) is expected to show more.
+    // sharing/identity-mismatch tests) is expected to show more.
     Index symbolic_analyses = 0;
 
     // ---------------------------------------------------------------------

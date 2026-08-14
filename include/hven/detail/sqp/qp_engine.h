@@ -13,7 +13,8 @@
 //
 // Everything numerical lives in the components below this file: the working
 // set (working_set.h), the regularized bound-eliminated KKT assembly
-// (kkt_assembly.h), the Pardiso factorization (kkt_system.h) and the
+// (kkt_assembly.h), the sparse factorization (hven::linear::SymmetricFactor
+// through kkt_calls.h's KktFactor helper) and the
 // equality-QP solve with iterative refinement (eqp_solve.h). What follows is
 // only the loop that walks between working sets.
 //
@@ -116,7 +117,7 @@
 //    QpOptions::ws_algebra == kRefactorize (selectable, and the equivalence
 //    oracle every border-mode battery is checked against -- see below), every
 //    working-set change is followed by a fresh assemble_kkt() +
-//    KktSystem::factorize() on the next iteration (solve_eqp does both),
+//    factorize_checked() on the next iteration (solve_eqp does both),
 //    counted in QpCounters::factorizations.
 //
 //    BORDER MODE (ws_algebra == kSchurBorder, the DEFAULT) keeps the loop
@@ -293,20 +294,26 @@
 //          the pre-loop refresh_shifts() call, i.e. exactly what the first
 //          border_candidate() call will see -- equals the EXIT working set
 //          of that same previous solve.
-//      (e) FIX ROUND 1 (Phase-4 Task 4). border_'s own live
-//          BorderState::generation counter -- bumped once inside
-//          rebuild_k0(), the sole site that reassigns K0 or refactorizes it,
-//          BY WHICHEVER ENGINE INSTANCE calls it -- equals the value THIS
-//          engine last saw as trustworthy (border_generation_ below,
+//      (e) FIX ROUND 1 (Phase-4 Task 4; M3 phase B retargeted it onto the
+//          factor's identity). border_'s factor's own live (session_id,
+//          epoch) pair -- the session id moved by analyze() and the epoch
+//          advanced by every successful factorize() inside rebuild_k0(),
+//          the sole site that reassigns K0 or refactorizes it, BY WHICHEVER
+//          ENGINE INSTANCE calls it -- equals the pair THIS engine last saw
+//          as trustworthy (border_kkt_session_id_/border_kkt_epoch_ below,
 //          committed alongside the other fingerprints and adopted alongside
-//          them from a HotState handle). Conditions (a)-(d) alone describe
+//          them from a HotState handle), AND the factor's current numerics
+//          are USABLE (`inertia().state == kObserved` -- false precisely
+//          when the last factorize failed or none happened, the SS7.2
+//          conjunct that covers what generation's bump-before-mutate used
+//          to). Conditions (a)-(d) alone describe
 //          the PROBLEM being solved and are necessarily silent about WHICH
 //          OBJECT border_ currently names: a WarmStart's `hot` handle can be
 //          fed to a second QpEngine instance (see HotState below) while the
 //          producing engine keeps the object alive and keeps mutating it,
 //          and (a)-(d) cannot tell that apart from an untouched object with
 //          the identical fingerprint. (e) is what can, by comparing against
-//          the object's OWN counter rather than a value copied out of it.
+//          the object's OWN identity rather than a value copied out of it.
 //          READ HOTSTATE'S OWN OWNERSHIP NOTE (below QpEngine, where the
 //          adjudication actually lives) BEFORE OVER-CREDITING THIS
 //          CONDITION, though: it is DEFENSE-IN-DEPTH, not the mechanism that
@@ -317,7 +324,7 @@
 //          the handle's fingerprint describes, and sync_borders()'s
 //          unconditional reconciliation (the note just above) absorbs any
 //          difference in which rows happen to be folded into K0 versus
-//          carried as borders. So a stale-generation reuse that (e) alone
+//          carried as borders. So a stale-identity reuse that (e) alone
 //          would have blocked is not, on the evidence measured so far, a
 //          wrong-answer case -- see HotState's OWNERSHIP note for the full
 //          adjudication. (e) still earns its keep as an independent, cheap
@@ -379,8 +386,9 @@
 //    All five conditions are NECESSARY, but even together they are NOT
 //    SUFFICIENT for `factorizations == 0` -- they only make skipping
 //    rebuild_k0 correct when border_candidate's OWN, pre-existing checks
-//    also agree there is nothing to redo. A carried-over
-//    border_.kkt.num_perturbed_pivots() != 0 from the previous solve's last
+//    also agree there is nothing to redo. A carried-over perturbed-pivot
+//    (or, on Accelerate, natively-observed zero-eigenvalue) count in
+//    border_.kkt.factor.inertia() from the previous solve's last
 //    factorization, or a border stack already past needs_refactorization()
 //    (e.g. over schur_cap), still forces a rebuild regardless of
 //    (a)/(b)/(c)/(d)/(e).
@@ -429,19 +437,19 @@
 //        THEN, after that call has returned, feed it to a solve() on a
 //        different engine, on the same thread or a different one, with no
 //        overlap in time) is exactly what this mechanism is FOR, and is
-//        safe: BorderState::generation (its own note has the full argument)
-//        detects a producer that mutated the shared object again before its
-//        handle was consumed, and degrades silently to kWarm rather than
-//        computing a wrong answer.
+//        safe: the factor's session/epoch identity (HotState's own note
+//        has the full argument) detects a producer that mutated the shared
+//        object again before its handle was consumed, and degrades silently
+//        to kWarm rather than computing a wrong answer.
 //      - CONCURRENT use of a shared BorderState -- two engines calling
 //        solve() AT THE SAME TIME, on any thread, while both hold a copy of
-//        the same handle's shared_ptr -- is UNDEFINED. `generation` is an
-//        ordinary unsynchronized std::uint64_t, not an atomic; it detects a
-//        STALE handle precisely because engine calls are assumed to happen
-//        one at a time, in some order. It provides no ordering, no memory
-//        fence and no exclusion, so concurrent calls race on `generation`
-//        itself, on every other BorderState member, and on the Pardiso pt_
-//        array underneath `kkt` -- the ordinary meaning of a data race,
+//        the same handle's shared_ptr -- is UNDEFINED. The session/epoch
+//        identity is ordinary unsynchronized state, not atomic; it detects
+//        a STALE handle precisely because engine calls are assumed to
+//        happen one at a time, in some order. It provides no ordering, no
+//        memory fence and no exclusion, so concurrent calls race on the
+//        identity itself, on every other BorderState member, and on the
+//        backend session underneath `kkt` -- the ordinary meaning of a data race,
 //        with all its usual consequences, not merely a wrong QP answer.
 //        "Use a separate QpEngine per thread" remains necessary advice; it
 //        is no longer SUFFICIENT once a hot handle can be shared out of an
@@ -502,15 +510,16 @@
 //
 //    PERTURBED PIVOTS ARE NOT A PASS AND NOT A REPAIR TRIGGER. Per
 //    docs/notes/2026-07-27-pardiso-inertia-findings.md, pardiso's
-//    (num_pos_eigs, num_neg_eigs) pair may be trusted IF AND ONLY IF
-//    num_perturbed_pivots() == 0: on an exactly singular matrix it silently
+//    (n_pos, n_neg) evidence pair may be trusted IF AND ONLY IF
+//    its perturbed_pivots count is zero: on an exactly singular matrix it silently
 //    fabricates a pivot sign and reports an inertia INDISTINGUISHABLE from
 //    the nonsingular case (the findings-doc probe reports (2,1) either way),
 //    and it does NOT raise error -4, so exception handling is not a
 //    singularity detector. The gate therefore has THREE verdicts, not two
 //    (detail::InertiaVerdict):
 //      kOk       trustworthy and matching -- proceed;
-//      kSuspect  num_perturbed_pivots() != 0, or the reported counts do not
+//      kSuspect  non-kObserved or perturbed evidence, or reported counts
+//                that do not
 //                even sum to the matrix dimension, or (border path) C is
 //                past needs_refactorization() so its inertia cannot be read.
 //                The inertia is UNKNOWN. It is never treated as a pass; it is
@@ -519,7 +528,7 @@
 //                ground truth -- precisely what the findings doc forbids.
 //                Suspect factorizations are already handled by the
 //                refactorization machinery in step 4 (border_candidate
-//                rebuilds K0 whenever num_perturbed_pivots() != 0), which is
+//                rebuilds K0 whenever the evidence is untrusted), which is
 //                the findings doc's prescribed response.
 //      kWrong    trustworthy and DISAGREEING with the expectation -- the
 //                working set is second-order inconsistent, and at solve start
@@ -642,7 +651,7 @@
 //    silent" is no longer the last word. Audit finding D9
 //    (docs/notes/2026-07-29-accelerate-audit-results.md) showed the failure
 //    the refactorization machinery was assumed to cover: rebuilding K0 "while
-//    num_perturbed_pivots() != 0" can make ZERO PROGRESS -- the rebuild
+//    the evidence reports perturbed pivots" can make ZERO PROGRESS -- the rebuild
 //    re-derives the same exactly-singular K0 -- and the loop then reaches a
 //    negligible-step exit and certifies kOptimal at a point that is not a KKT
 //    point at all. So a persistent kSuspect is a signal, but it was a signal
@@ -1499,12 +1508,13 @@
 #include <hven/detail/sqp/bordered_eqp.h>
 #include <hven/detail/sqp/eqp_solve.h>
 #include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/kkt_calls.h>
 #include <hven/detail/sqp/ledger.h>
 #include <hven/detail/sqp/qp_problem.h>
 #include <hven/detail/sqp/schur_complement.h>
 #include <hven/detail/sqp/types.h>
 #include <hven/detail/sqp/working_set.h>
+#include <hven/linear/symmetric_factor.h>
 
 namespace hven::solvers {
 
@@ -1663,31 +1673,44 @@ enum class InertiaVerdict {
     kWrong,   // trustworthy AND different from the expectation
 };
 
-// Gate one KktSystem's most recent factorization against an expected
-// (positive, negative) eigenvalue count. `expected_pos + expected_neg` must
-// be the factorized matrix's dimension -- an expectation of zero zero-
-// eigenvalues is part of what is being asserted.
+// Gate one factorization's InertiaEvidence against an expected (positive,
+// negative) eigenvalue count. `expected_pos + expected_neg` must be the
+// factorized matrix's dimension -- an expectation of zero zero-eigenvalues
+// is part of what is being asserted. Call sites pass
+// `kkt.factor.inertia()`, the evidence of the most recent factorization.
 //
-// The num_perturbed_pivots() check comes FIRST and is the whole reason this
-// helper exists rather than an inline comparison: per the findings doc, a
-// factorization pardiso had to perturb reports an inertia that looks exactly
-// like a genuine one (the probe's exactly-singular matrix reports the same
-// (2, 1) its nonsingular neighbors do), so the reported counts carry no
-// information at all in that case -- including when they happen to MATCH the
-// expectation, which is the silent-failure direction this guards. Pardiso
-// raises no error for that matrix either, so there is nothing to catch.
-inline InertiaVerdict inertia_verdict(const KktSystem &kkt, Index expected_pos,
+// Rule order (docs/retarget-design-sqp.md SS4.1):
+//   1. non-kObserved evidence -> kSuspect. The explicit route for "no
+//      factorization has produced counts" (pre-factorization, failed
+//      factorization, a failed backend query): the dissolved seam read a
+//      constructor-zeroed triple there and landed on kSuspect through the
+//      short-sum rule; the same verdict now takes the honest channel.
+//   2. perturbed pivots (present and nonzero) -> kSuspect. Per the findings
+//      doc, a factorization pardiso had to perturb reports an inertia that
+//      looks exactly like a genuine one (the probe's exactly-singular matrix
+//      reports the same (2, 1) its nonsingular neighbors do), so the
+//      reported counts carry no information at all in that case -- including
+//      when they happen to MATCH the expectation, which is the
+//      silent-failure direction this guards. Pardiso raises no error for
+//      that matrix either, so there is nothing to catch. Absent evidence
+//      (Accelerate has no such counter) does not trigger this rule --
+//      nothing is fabricated from absence.
+//   3. short sum -> kSuspect. The two sign counts account for every
+//      eigenvalue except the zero class, so a short sum means the
+//      factorization did not see the matrix this expectation describes (a
+//      zero eigenvalue -- derived on MKL, measured natively on Accelerate).
+//   4. exact match -> kOk, else kWrong.
+inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, Index expected_pos,
                                       Index expected_neg) {
-    if (kkt.num_perturbed_pivots() != 0) {
+    if (e.state != hven::linear::InertiaEvidence::State::kObserved) {
         return InertiaVerdict::kSuspect;
     }
-    const Index pos = kkt.num_pos_eigs();
-    const Index neg = kkt.num_neg_eigs();
+    if (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) {
+        return InertiaVerdict::kSuspect;
+    }
+    const Index pos = static_cast<Index>(e.n_pos);
+    const Index neg = static_cast<Index>(e.n_neg);
     if (pos + neg != expected_pos + expected_neg) {
-        // Pardiso accounts for every eigenvalue in these two counters, so a
-        // short sum means the factorization did not see the matrix this
-        // expectation describes (a zero eigenvalue, or a stale/absent
-        // factorization). Nothing may be concluded from it either way.
         return InertiaVerdict::kSuspect;
     }
     return (pos == expected_pos && neg == expected_neg) ? InertiaVerdict::kOk
@@ -1915,7 +1938,8 @@ inline double hessian_scale(const QpProblem &qp) {
 // core) never reads them, so a solve that only perturbs g/b cannot change
 // either fingerprint.
 
-// FNV-1a mixing step, identical constants to KktSystem::hash_pattern.
+// FNV-1a mixing step, identical constants to the dissolved seam's
+// hash_pattern (and the same FNV-1a family hven::pattern_hash uses).
 inline void fnv1a_mix(std::uint64_t &h, const void *data, std::size_t len) {
     constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
     const auto *bytes = static_cast<const unsigned char *>(data);
@@ -1926,7 +1950,7 @@ inline void fnv1a_mix(std::uint64_t &h, const void *data, std::size_t len) {
 }
 
 // A caller-supplied QpProblem matrix is not guaranteed to already be in
-// COMPRESSED form (unlike KktSystem's K, which this engine assembles itself
+// COMPRESSED form (unlike the KKT matrix K, which this engine assembles itself
 // via setFromTriplets + makeCompressed), so both hashers below only pay for
 // a compressed COPY when the input actually needs one; the common case
 // (already compressed, e.g. anything built via .sparseView() or this
@@ -2022,11 +2046,11 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
 // thrown exception is kept from leaving this in a state a later solve()
 // would wrongly trust.
 //
-// K0 gets its OWN KktSystem, separate from the one the elimination path
+// K0 gets its OWN KktFactor, separate from the one the elimination path
 // uses. That is what lets an iteration fall back to solve_eqp (see
 // border_candidate) without destroying K0's factorization: solve_eqp
 // factorizes a different, bound-eliminated matrix, and if the two shared
-// a KktSystem every fallback would silently invalidate the border stack's
+// a factor every fallback would silently invalidate the border stack's
 // cached K0^-1 v columns. Copy and move are DELETED rather than merely
 // discouraged: `schur` holds a reference to the `kkt` member, so a moved
 // BorderState would leave the SchurComplement pointing at the corpse.
@@ -2051,7 +2075,7 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
 // handle `kkt` owns. See HotState's own OWNERSHIP note for the full
 // argument.
 struct BorderState {
-    explicit BorderState(const QpOptions &opts) : kkt(opts) {}
+    BorderState() = default;
     BorderState(const BorderState &) = delete;
     BorderState &operator=(const BorderState &) = delete;
     BorderState(BorderState &&) = delete;
@@ -2060,24 +2084,22 @@ struct BorderState {
     KktAssembly k0;
     std::vector<Index> k0_rows;
     std::vector<BorderLedgerEntry> ledger; // in SchurComplement::add_border order
-    KktSystem kkt;
+    detail::KktFactor kkt;                 // configured by sqp_kkt_options()
     std::optional<SchurComplement> schur;
     bool latched = false;
 
-    // PHASE-4 TASK 4 FIX ROUND 1: a monotone counter, bumped exactly once per
-    // K0-INVALIDATING mutation -- i.e. every call to rebuild_k0(), the SOLE
-    // site in this file that reassigns `k0` or calls `kkt.factorize()` (see
-    // that function's own comment; `sync_borders()` only ever adds/drops
-    // BORDERS around a fixed K0, it never touches `k0`/`kkt` themselves, so
-    // it does not bump this). This is what lets a SECOND engine instance that
-    // has adopted this object via a HotState handle (see that struct's own
-    // note) detect that the object it is looking at has moved on since the
-    // handle was taken, EVEN THOUGH every other fingerprint field
-    // (structural/values hash, effective delta/mu, exit working set) still
-    // matches -- those describe the PROBLEM, this describes the OBJECT, and
-    // it is the gap between the two that Fix Round 1's review found. See
-    // QpEngine::reuse_eligible's fifth conjunct and HotState::generation.
-    std::uint64_t generation = 0;
+    // M3 PHASE B (docs/retarget-design-sqp.md SS7): the FIX ROUND 1
+    // `generation` counter this struct used to carry is DELETED. Its job --
+    // letting a SECOND engine instance that adopted this object via a
+    // HotState handle detect that the object has moved on since the handle
+    // was taken, even though every problem-shaped fingerprint still matches
+    // -- is carried by the backend factor's own identity: `analyze()` moves
+    // `kkt.factor.session_id()` and every successful `factorize()` advances
+    // `kkt.factor.epoch()`, so rebuild_k0() no longer stamps anything (the
+    // factorize IS the stamp). See QpEngine::reuse_eligible's condition (e)
+    // and HotState's kkt_session_id/kkt_epoch pair; the failed-rebuild case
+    // generation's bump-before-mutate used to cover is closed by the
+    // usable-numerics conjunct there (SS7.2).
 };
 
 // PHASE-4 TASK 4: HOT-START LEVEL. The opaque handle behind
@@ -2091,9 +2113,10 @@ struct BorderState {
 // handle included.
 //
 // OWNERSHIP AND THE PARDISO-HANDLE SAFETY ARGUMENT (the design this task's
-// brief asked to be stated explicitly). KktSystem (kkt_system.h) is
-// move-only with a non-throwing destructor that releases its Pardiso pt_
-// array exactly once (phase -1); BorderState wraps one BY VALUE and is
+// brief asked to be stated explicitly). hven::linear::SymmetricFactor (the
+// factor inside KktFactor) is move-only with a non-throwing destructor that
+// releases its backend session (Pardiso pt handle included) exactly once;
+// BorderState wraps one BY VALUE and is
 // itself both non-copyable AND non-movable (its own `schur` holds a
 // reference into its own `kkt`, so moving the struct would leave that
 // reference dangling -- see BorderState's note above). Two designs were
@@ -2107,8 +2130,8 @@ struct BorderState {
 // that same shared_ptr (not a raw pointer, not a reference), and
 // hot_state() below hands out that copy rather than anything that could
 // outlive the BorderState it names. Consequences:
-//   - NO DOUBLE FREE: a BorderState's destructor (and through it,
-//     KktSystem::release()'s single phase -1 call) runs exactly once, when
+//   - NO DOUBLE FREE: a BorderState's destructor (and through it, the
+//     factor's single backend-session release) runs exactly once, when
 //     the LAST std::shared_ptr referencing it -- whichever engine or
 //     WarmStart/HotState chain happens to hold it -- is destroyed. It is
 //     irrelevant how many engines have copied the pointer meanwhile.
@@ -2141,7 +2164,7 @@ struct BorderState {
 //
 // TWO INDEPENDENT MECHANISMS WENT IN TO CLOSE THIS, and FIX ROUND 2's
 // re-review is explicit about which one actually does the work:
-//   - DETACH (`border_ = std::make_shared<BorderState>(opts_)` at every
+//   - DETACH (`border_ = std::make_shared<BorderState>()` at every
 //     `!reuse_eligible` site, rather than wiping the existing object's
 //     fields in place) is THE LOAD-BEARING FIX. Once a refused reuse
 //     allocates a FRESH object instead of mutating the shared one, the ONLY
@@ -2161,39 +2184,48 @@ struct BorderState {
 //     has produced a wrong ANSWER once detach is in place; every regression
 //     it catches is a factorization-count / start_level_used assertion, the
 //     answer itself matching a clean control exactly.
-//   - `BorderState::generation` (above) plus this engine's own
-//     `border_generation_` member (below) are DEFENSE-IN-DEPTH, not the
-//     mechanism that makes the sharing safe. `generation` is bumped on the
-//     object itself by every rebuild_k0() call, whoever makes it, and
-//     HotState freezes the value it saw AT EMISSION; QpEngine::run()'s
-//     reuse_eligible check (its fifth conjunct) compares that FROZEN value
-//     against the LIVE `border_->generation` on EVERY solve() call -- not
-//     only at adoption -- which is what would catch the SYMMETRIC ordering
-//     too (C adopts, THEN P solves again, THEN C solves again): C's own
-//     four problem-shaped fields never changed, but the object did, and the
-//     generation read live off the object is what notices. A mismatch
-//     degrades to kWarm exactly like any other reuse_eligible failure --
-//     silent, never a throw -- and forces a rebuild in a case that, by the
-//     argument above, was already value-consistent and so was never going
-//     to compute a wrong answer either way. It earns its place as a cheap,
-//     independent check that does not rely on the sync_borders argument
-//     holding in every corner this file's own tests have not tried to
-//     reach, not because reuse would otherwise be unsound.
+//   - The factor's IDENTITY pair -- `kkt.factor.session_id()` / `epoch()`,
+//     M3 phase B's replacement for the deleted `BorderState::generation` --
+//     plus this engine's own committed copies (below) are DEFENSE-IN-DEPTH,
+//     not the mechanism that makes the sharing safe. Every rebuild_k0()
+//     call advances the epoch on the object itself (factorize() IS the
+//     stamp), whoever makes it, and a pattern-change rebuild moves the
+//     session id too (analyze() forks a fresh session); HotState freezes
+//     the pair it saw AT EMISSION; QpEngine::run()'s reuse_eligible check
+//     (its condition (e)) compares that FROZEN pair against LIVE
+//     `session_id()`/`epoch()` reads off the shared object on EVERY solve()
+//     call -- not only at adoption -- which is what would catch the
+//     SYMMETRIC ordering too (C adopts, THEN P solves again, THEN C solves
+//     again): C's own four problem-shaped fields never changed, but the
+//     object did, and the identity read live off the object is what
+//     notices. (The one case the old counter caught that the epoch does not
+//     -- a FAILED rebuild, which bumped generation before the mutation that
+//     threw but does NOT advance an epoch -- is closed by condition (e)'s
+//     usable-numerics conjunct, docs/retarget-design-sqp.md SS7.2: a failed
+//     factorize leaves `inertia().state != kObserved`, so reuse is refused
+//     on that ground instead.) A mismatch degrades to kWarm exactly like
+//     any other reuse_eligible failure -- silent, never a throw -- and
+//     forces a rebuild in a case that, by the argument above, was already
+//     value-consistent and so was never going to compute a wrong answer
+//     either way. It earns its place as a cheap, independent check that
+//     does not rely on the sync_borders argument holding in every corner
+//     this file's own tests have not tried to reach, not because reuse
+//     would otherwise be unsound.
 //
 // WHAT REMAINS GENUINELY UNSAFE: CONCURRENCY, not sequencing. The
-// generation counter is an ordinary, unsynchronized std::uint64_t read and
+// session/epoch identity is ordinary, unsynchronized state read and
 // written with no atomics and no locking -- it detects a STALE handle
 // exactly because engine calls happen one at a time, in some order, on one
 // thread (or on threads that never overlap in time). It detects nothing,
 // and prevents nothing, if two QpEngine instances that share a
-// BorderState call solve() CONCURRENTLY: that is a data race on
-// `generation` itself, on `border_->kkt`'s Pardiso pt_ array, and on every
-// other BorderState member, full stop, regardless of what any fingerprint
-// says. See the THREAD SAFETY note below QpEngine's declaration -- it is
-// the canonical location for this rule and states it in those terms; this
-// paragraph exists so a reader who lands here first is not left thinking
-// shared ownership plus a generation stamp is a concurrency story, because
-// it is not one.
+// BorderState call solve() CONCURRENTLY: that is a data race on the
+// factor's identity state, on `border_->kkt`'s backend session, and on
+// every other BorderState member, full stop, regardless of what any
+// fingerprint says. See the THREAD SAFETY note below QpEngine's
+// declaration -- it is the canonical location for this rule and states it
+// in those terms; this paragraph exists so a reader who lands here first
+// is not left thinking shared ownership plus an identity stamp is a
+// concurrency story, because it is not one.
 //
 // SAME-PROCESS ONLY, per warm_start.h: HotState is never serialized, and
 // nothing here attempts to make it so -- a std::shared_ptr and a live
@@ -2222,17 +2254,25 @@ struct HotState {
     double effective_mu = 0.0;
     std::vector<BoundState> exit_bound_state;
     std::vector<Index> exit_active_ineq;
-    // PHASE-4 TASK 4 FIX ROUND 1: BorderState::generation's value AT
-    // EMISSION (hot_state() reads it live off the object it is about to
-    // hand out a shared_ptr to). The fifth reuse condition -- see
-    // QpEngine::run()'s reuse_eligible and the OWNERSHIP note above.
-    std::uint64_t generation = 0;
+    // M3 PHASE B (docs/retarget-design-sqp.md SS7): the COMMITTED
+    // (session_id, epoch) identity of `border`'s factor at emission --
+    // hot_state() emits this engine's own last-committed pair, never a live
+    // re-read off the possibly-shared object (see hot_state()'s FIX ROUND 2
+    // note). Replaces FIX ROUND 1's `generation` stamp: analyze() moving
+    // the session id covers the pattern-rebuild case, factorize()
+    // advancing the epoch covers every numeric rebuild, and the two
+    // together are exactly the object-identity half of hven's
+    // (pattern_hash, session_id, epoch) naming triple (the pattern member
+    // is carried by `structural_hash`, condition (a)). Condition (e) --
+    // see QpEngine::run()'s reuse_eligible and the OWNERSHIP note above.
+    std::uint64_t kkt_session_id = 0;
+    std::uint64_t kkt_epoch = 0;
 };
 
 class QpEngine {
   public:
     explicit QpEngine(const QpOptions &opts)
-        : opts_(opts), border_(std::make_shared<BorderState>(opts_)) {}
+        : opts_(opts), border_(std::make_shared<BorderState>()) {}
 
     // Attach a ledger for instrumentation (nullptr = off, default off).
     // Emits one SolveRecord per solve() call with the given label prefix
@@ -2304,32 +2344,34 @@ class QpEngine {
     // above BorderState, for what sharing the returned pointer does and does
     // not make safe.
     //
-    // FIX ROUND 2 (re-review finding 2b): emits `border_generation_` (this
-    // engine's own COMMITTED value, from its own last successful run()),
-    // NEVER `border_->generation` (a LIVE read off the possibly-shared
-    // object). The two are equal at every ordinary call site -- this
-    // engine's last commit set `border_generation_ = border_->generation`
-    // and nothing between then and now can have changed either -- EXCEPT
-    // when a DIFFERENT engine sharing `border_` has since rebuilt it
-    // (exactly the sharing this handle exists to support). Emitting the
-    // live value there would mint a SELF-CONSISTENT FORGED HANDLE: a
-    // snapshot whose fingerprint fields describe this engine's own last
-    // problem (correct) but whose generation matches the object's CURRENT,
-    // foreign-mutated state (wrong) -- so a later adopter's condition (e)
-    // would pass on an object this engine itself never certified as
-    // representing that generation. Demonstrated at this API directly
-    // (re-review's R3 probe): P emits h1 (gen 2); a second engine C adopts
-    // h1 against a value-consistent problem (its own conditions (a)-(d)
-    // pass, so it is not detached -- see HotState's OWNERSHIP note for why
-    // that is the only way a shared object is ever mutated) and needs one
-    // mid-solve rebuild for reasons unrelated to any hash, bumping the
-    // SHARED object to gen 3; P -- which never solved again -- then calls
-    // hot_state() a SECOND time and, reading the live value, would emit h2
-    // claiming gen 3 for a fingerprint that has been sitting at gen 2 the
-    // whole time. Emitting the committed `border_generation_` (still 2)
-    // instead means h2 == h1 in every field that matters, and a later
-    // adopter's condition (e) is judged against what P actually last
-    // certified, not against whatever the object happens to read right now.
+    // FIX ROUND 2 (re-review finding 2b), re-derived for M3 phase B's
+    // session/epoch identity: emits `border_kkt_session_id_`/
+    // `border_kkt_epoch_` (this engine's own COMMITTED pair, from its own
+    // last successful run()), NEVER a LIVE `border_->kkt.factor` read off
+    // the possibly-shared object. The two are equal at every ordinary call
+    // site -- this engine's last commit captured the live pair and nothing
+    // between then and now can have changed either -- EXCEPT when a
+    // DIFFERENT engine sharing `border_` has since rebuilt it (exactly the
+    // sharing this handle exists to support). Emitting the live pair there
+    // would mint a SELF-CONSISTENT FORGED HANDLE: a snapshot whose
+    // fingerprint fields describe this engine's own last problem (correct)
+    // but whose identity matches the object's CURRENT, foreign-mutated
+    // state (wrong) -- so a later adopter's condition (e) would pass on an
+    // object this engine itself never certified as representing that
+    // identity. Demonstrated at this API directly (re-review's R3 probe,
+    // retargeted in tests/sqp/test_qp_warm_start.cpp): P emits h1 (epoch
+    // E); a second engine C adopts h1 against a value-consistent problem
+    // (its own conditions (a)-(d) pass, so it is not detached -- see
+    // HotState's OWNERSHIP note for why that is the only way a shared
+    // object is ever mutated) and needs one mid-solve rebuild for reasons
+    // unrelated to any hash, advancing the SHARED object's epoch; P --
+    // which never solved again -- then calls hot_state() a SECOND time
+    // and, reading the live pair, would emit h2 claiming the advanced
+    // epoch for a fingerprint that has been sitting at E the whole time.
+    // Emitting the committed pair (still E) instead means h2 == h1 in
+    // every field that matters, and a later adopter's condition (e) is
+    // judged against what P actually last certified, not against whatever
+    // the object happens to read right now.
     std::shared_ptr<const HotState> hot_state() const {
         if (!border_valid_) {
             return nullptr;
@@ -2337,7 +2379,7 @@ class QpEngine {
         return std::make_shared<const HotState>(
             HotState{border_, border_structural_hash_, border_values_hash_, border_effective_delta_,
                      border_effective_mu_, border_exit_bound_state_, border_exit_active_ineq_,
-                     border_generation_});
+                     border_kkt_session_id_, border_kkt_epoch_});
     }
 
     // =====================================================================
@@ -2499,11 +2541,11 @@ class QpEngine {
         }
 
         // --- One exact solve on that face ---------------------------------
-        KktSystem kkt{eff_opts};
+        detail::KktFactor kkt;
         ++out.counters.factorizations;
         const EqpResult eqp = solve_eqp(qp, ws, kkt, eff_opts);
         out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
-        if (detail::inertia_verdict(kkt, ws.num_free(), me + n_working) !=
+        if (detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(), me + n_working) !=
             detail::InertiaVerdict::kOk) {
             return false;
         }
@@ -2738,7 +2780,8 @@ class QpEngine {
         // pessimistic-invalidation snapshot immediately below
         // (prev_border_valid etc.) reads them right back out, so the
         // reuse-eligibility check below (conditions (a)-(e) -- (e), the
-        // generation conjunct, is this fix round's own addition; (a)-(d)
+        // identity conjunct, is this fix round's own addition, retargeted
+        // by M3 phase B onto session/epoch + usable numerics; (a)-(d)
         // predate it and are unchanged) is the only thing that decides
         // whether adopting it actually skips a factorization on THIS call --
         // this block adds no new invalidation logic of its own. ws_algebra ==
@@ -2746,14 +2789,15 @@ class QpEngine {
         // in that mode, hot_state() never emits a non-null handle built
         // from it, and a handle from elsewhere is meaningless here.
         //
-        // FIX ROUND 1 also copies `hot->generation` into `border_generation_`
-        // here, alongside the four pre-existing fields -- it is adopted
-        // exactly like they are, and is what lets the reuse gate below (its
-        // fifth conjunct) tell whether the OBJECT `border_` now points at is
-        // still the one this generation number describes, not merely
-        // whether the PROBLEM still looks the same. See BorderState's own
-        // `generation` note and HotState's OWNERSHIP note for why the
-        // problem-shaped fields alone cannot make that distinction.
+        // FIX ROUND 1 (retargeted onto the session/epoch identity, M3 phase
+        // B) also copies `hot->kkt_session_id`/`hot->kkt_epoch` into the
+        // committed members here, alongside the four pre-existing fields --
+        // the pair is adopted exactly like they are, and is what lets the
+        // reuse gate below (its condition (e)) tell whether the OBJECT
+        // `border_` now points at still carries the numerics this identity
+        // describes, not merely whether the PROBLEM still looks the same.
+        // See HotState's OWNERSHIP note for why the problem-shaped fields
+        // alone cannot make that distinction.
         if (!border_valid_ && hot != nullptr && hot->border != nullptr &&
             opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
             border_ = hot->border;
@@ -2763,7 +2807,8 @@ class QpEngine {
             border_effective_mu_ = hot->effective_mu;
             border_exit_bound_state_ = hot->exit_bound_state;
             border_exit_active_ineq_ = hot->exit_active_ineq;
-            border_generation_ = hot->generation;
+            border_kkt_session_id_ = hot->kkt_session_id;
+            border_kkt_epoch_ = hot->kkt_epoch;
             border_valid_ = true;
         }
 
@@ -2781,14 +2826,16 @@ class QpEngine {
         const std::uint64_t prev_border_values_hash = border_values_hash_;
         const double prev_border_effective_delta = border_effective_delta_;
         const double prev_border_effective_mu = border_effective_mu_;
-        // FIX ROUND 1: this engine's own last-trusted generation number for
-        // whatever object `border_` currently names (possibly just adopted
-        // above). Compared, at the reuse gate below, against that object's
-        // OWN live counter -- not against each other's frozen copies -- so a
+        // FIX ROUND 1 (retargeted, M3 phase B): this engine's own
+        // last-trusted (session_id, epoch) pair for whatever object
+        // `border_` currently names (possibly just adopted above).
+        // Compared, at the reuse gate below, against that object's OWN live
+        // identity -- not against each other's frozen copies -- so a
         // mutation any OTHER holder made to the shared object in the
         // meantime is detected even though every problem-shaped fingerprint
         // above still matches.
-        const std::uint64_t prev_border_generation = border_generation_;
+        const std::uint64_t prev_border_kkt_session_id = border_kkt_session_id_;
+        const std::uint64_t prev_border_kkt_epoch = border_kkt_epoch_;
         border_valid_ = false;
 
         // Resolve this solve's SolveOverrides against opts_ ONCE, into the
@@ -2941,7 +2988,7 @@ class QpEngine {
         // reason: that call is itself a source of counters.shift_adds -- the
         // seed's own homotopy admission -- and QpCounters documents that the
         // pre-loop call is included. Nothing else reads it this early.
-        KktSystem kkt{eff_opts};
+        detail::KktFactor kkt;
         QpCounters counters;
         WalkSeen seen{std::vector<std::uint8_t>(static_cast<std::size_t>(mi), 0),
                       std::vector<std::uint8_t>(static_cast<std::size_t>(n), 0)};
@@ -2983,34 +3030,52 @@ class QpEngine {
             // needed no entry here; now it can, and K0's values depend on it
             // exactly as they depend on H/Ae/Ai.
             //
-            // Condition (e), FIX ROUND 1: `border_`'s OWN live generation
-            // counter (bumped by rebuild_k0(), whichever engine calls it --
-            // see BorderState::generation) must equal what THIS engine last
-            // saw as trustworthy for whatever object `border_` currently
-            // names. Conditions (a)-(d) alone describe the PROBLEM, never
-            // WHICH OBJECT `border_` currently names, and a DIFFERENT engine
+            // Condition (e), FIX ROUND 1 retargeted onto the factor's own
+            // identity (M3 phase B, docs/retarget-design-sqp.md SS7):
+            // `border_`'s factor's OWN live (session_id, epoch) -- the
+            // session id moved by analyze() at a pattern rebuild, the epoch
+            // advanced by every successful factorize(), whichever engine
+            // drives it -- must equal what THIS engine last saw as
+            // trustworthy for whatever object `border_` currently names.
+            // Conditions (a)-(d) alone describe the PROBLEM, never WHICH
+            // OBJECT `border_` currently names, and a DIFFERENT engine
             // sharing this same BorderState (via a HotState hand-off) can
             // rebuild it for its own problem while every one of (a)-(d)
-            // still matches -- the SYMMETRIC ordering (adopt, then the OTHER
-            // holder mutates it, then solve again on THIS engine): this
-            // engine's own four problem-shaped fields never changed, but the
-            // object did, and only a live read of the object's own counter,
-            // on EVERY solve() call rather than only at adoption, sees that.
-            // FIX ROUND 2's adjudication (HotState's own OWNERSHIP note):
-            // whether this conjunct alone ever prevents a WRONG ANSWER, as
-            // opposed to an unnecessary-but-harmless rebuild, is not
-            // demonstrated by this file's own fixtures -- DETACH (below) is
-            // what the evidence shows is load-bearing; this conjunct is
-            // defense-in-depth kept for the same reason any cheap,
-            // independent check earns its keep.
-            const bool reuse_eligible = prev_border_valid &&
-                                        current_structural_hash == prev_border_structural_hash &&
-                                        current_values_hash == prev_border_values_hash &&
-                                        eff_opts.primal_delta == prev_border_effective_delta &&
-                                        eff_opts.dual_mu == prev_border_effective_mu &&
-                                        ws.bound_state() == border_exit_bound_state_ &&
-                                        ws.active_ineq() == border_exit_active_ineq_ &&
-                                        border_->generation == prev_border_generation;
+            // still matches -- the SYMMETRIC ordering (adopt, then the
+            // OTHER holder mutates it, then solve again on THIS engine):
+            // this engine's own four problem-shaped fields never changed,
+            // but the object did, and only a live read of the object's own
+            // identity, on EVERY solve() call rather than only at adoption,
+            // sees that. FIX ROUND 2's adjudication (HotState's own
+            // OWNERSHIP note): whether this conjunct alone ever prevents a
+            // WRONG ANSWER, as opposed to an unnecessary-but-harmless
+            // rebuild, is not demonstrated by this file's own fixtures --
+            // DETACH (below) is what the evidence shows is load-bearing;
+            // this conjunct is defense-in-depth kept for the same reason
+            // any cheap, independent check earns its keep.
+            //
+            // The USABLE-NUMERICS conjunct (SS7.2, the ordered-pin closure):
+            // an epoch does not advance on a FAILED factorize, so after
+            // another holder's failed rebuild a stale (session_id, epoch)
+            // pair can still MATCH an object whose numerics are
+            // invalidated -- reuse would then throw at the first solve
+            // where the old generation stamp detached and rebuilt
+            // gracefully. `inertia().state == kObserved` is false precisely
+            // when the last factorize failed or none happened (pinned at
+            // hven: tests/linear/test_fault_injection.cpp's
+            // FailedFactorizeEvidencePin), restoring detach-on-mismatch as
+            // the failure mode.
+            const bool reuse_eligible =
+                prev_border_valid && current_structural_hash == prev_border_structural_hash &&
+                current_values_hash == prev_border_values_hash &&
+                eff_opts.primal_delta == prev_border_effective_delta &&
+                eff_opts.dual_mu == prev_border_effective_mu &&
+                ws.bound_state() == border_exit_bound_state_ &&
+                ws.active_ineq() == border_exit_active_ineq_ &&
+                border_->kkt.factor.session_id() == prev_border_kkt_session_id &&
+                border_->kkt.factor.epoch() == prev_border_kkt_epoch &&
+                border_->kkt.factor.inertia().state ==
+                    hven::linear::InertiaEvidence::State::kObserved;
             // FIX ROUND 1 (Q5): the direct "did the gate pass" signal --
             // see QpCounters::k0_reused's own note for why a caller must
             // read THIS rather than infer reuse from `factorizations == 0`.
@@ -3030,19 +3095,19 @@ class QpEngine {
                 // was "behaviourally identical to the old wipe for the
                 // never-shared case, since nothing else could ever have
                 // observed the difference there" -- MARKED AS FALSE by the
-                // re-review, and measured: KktSystem::factorize()
-                // (kkt_system.h) skips Pardiso's phase-11 symbolic analysis
-                // only when pattern_matches(K) still holds on the SAME
-                // KktSystem object, so a fresh BorderState -- a fresh
-                // KktSystem, has_pattern_ == false -- pays a FULL Pardiso
-                // re-analysis on every value-changing major of an ORDINARY,
+                // re-review, and measured: factorize_checked() (kkt_calls.h)
+                // skips the backend's symbolic analysis only when
+                // needs_analysis(K) is false on the SAME KktFactor object,
+                // so a fresh BorderState -- a fresh KktFactor, analyzed ==
+                // false -- pays a FULL symbolic re-analysis
+                // on every value-changing major of an ORDINARY,
                 // NEVER-SHARED solve, which is most majors of a real SQP run
                 // (H changes almost every major). Measured before this
                 // guard existed: HS38 48 phase-11 analyses per solve vs 1
                 // pre-Task-4, HS26 17 vs 1, HS77 10 vs 1 -- invisible on
                 // this project's toy KKT systems, squarely material at
-                // tycho scale where phase 11 is the whole reason
-                // `has_pattern_` exists.
+                // tycho scale where the symbolic analysis is the whole
+                // reason the pattern cache exists.
                 //
                 // `border_.use_count()` -- how many shared_ptr copies of
                 // THIS object exist, this engine's own included -- is
@@ -3057,7 +3122,7 @@ class QpEngine {
                 // observed a difference here, the case Round 1's claim
                 // should have been scoped to -- so the SAME object's
                 // border-stack fields are wiped in place instead, letting
-                // the next rebuild_k0() reuse this KktSystem's still-live
+                // the next rebuild_k0() reuse this KktFactor's still-live
                 // symbolic analysis when the sparsity pattern has not
                 // changed. `use_count()` is reliable here under this
                 // file's own documented sequential-use contract (THREAD
@@ -3065,7 +3130,7 @@ class QpEngine {
                 // be the safe direction, but no such doubt exists under
                 // that contract.
                 if (border_.use_count() > 1) {
-                    border_ = std::make_shared<BorderState>(opts_);
+                    border_ = std::make_shared<BorderState>();
                 } else {
                     border_->schur.reset();
                     border_->latched = false;
@@ -3311,12 +3376,12 @@ class QpEngine {
                                 // wiped and rebuilt in place -- see that
                                 // branch's own comment for the full argument,
                                 // including why the sole-owner case wipes in
-                                // place instead to keep this KktSystem's
-                                // Pardiso symbolic analysis alive. rebuild_k0
-                                // below starts a detached object's
-                                // `generation` back at 0, same as there; a
-                                // wiped-in-place object keeps counting from
-                                // where it was.
+                                // place instead to keep this KktFactor's
+                                // backend symbolic analysis alive. A
+                                // detached object starts with a fresh
+                                // factor identity, same as there; a
+                                // wiped-in-place object keeps its session
+                                // and epoch sequence.
                                 //
                                 // THE RESET IS NOT DISTINGUISHED BY ANY SHIPPED
                                 // FIXTURE, and that is recorded rather than
@@ -3337,7 +3402,7 @@ class QpEngine {
                                 ++counters.suspect_escalations;
                                 eff_opts.primal_delta *= detail::kSuspectDeltaFactor;
                                 if (border_.use_count() > 1) {
-                                    border_ = std::make_shared<BorderState>(opts_);
+                                    border_ = std::make_shared<BorderState>();
                                 } else {
                                     border_->schur.reset();
                                     border_->latched = false;
@@ -3455,15 +3520,17 @@ class QpEngine {
             border_effective_mu_ = eff_opts.dual_mu;
             border_exit_bound_state_ = ws.bound_state();
             border_exit_active_ineq_ = ws.active_ineq();
-            // Condition (e), FIX ROUND 1: commit `border_`'s OWN live
-            // generation as of THIS solve's exit -- whatever it ended at,
-            // whether that is unchanged (reuse was granted, nothing
-            // rebuilt) or freshly bumped (a rebuild_k0 ran during this
-            // solve, on this object or a freshly detached one). The NEXT
-            // solve's reuse gate compares this snapshot against a live
-            // re-read of the same member, which is what notices if some
-            // OTHER holder has since rebuilt the object out from under it.
-            border_generation_ = border_->generation;
+            // Condition (e), FIX ROUND 1 retargeted (M3 phase B): commit
+            // `border_`'s factor's OWN live (session_id, epoch) identity as
+            // of THIS solve's exit -- whatever it ended at, whether that is
+            // unchanged (reuse was granted, nothing rebuilt) or freshly
+            // advanced (a rebuild_k0 ran during this solve, on this object
+            // or a freshly detached one). The NEXT solve's reuse gate
+            // compares this snapshot against a live re-read of the same
+            // identity, which is what notices if some OTHER holder has
+            // since rebuilt the object out from under it.
+            border_kkt_session_id_ = border_->kkt.factor.session_id();
+            border_kkt_epoch_ = border_->kkt.factor.epoch();
             border_valid_ = true;
         }
 
@@ -3887,7 +3954,7 @@ class QpEngine {
     // `opts` is the effective options this solve resolved (see run()'s
     // `eff_opts`); threaded down to every assembly/solve call below it that
     // reads primal_delta/dual_mu.
-    EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, KktSystem &kkt,
+    EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
                             BorderState &border, QpCounters &counters,
                             detail::InertiaVerdict &verdict, const QpOptions &opts) const {
         if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
@@ -3902,9 +3969,9 @@ class QpEngine {
     // that short-circuit is also why a border-mode fallback on an
     // all-variables-pinned working set costs no factorization at all. `opts`
     // is the effective options this solve resolved (see run()'s `eff_opts`).
-    EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws, KktSystem &kkt,
-                                   QpCounters &counters, detail::InertiaVerdict &verdict,
-                                   const QpOptions &opts) const {
+    EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws,
+                                   detail::KktFactor &kkt, QpCounters &counters,
+                                   detail::InertiaVerdict &verdict, const QpOptions &opts) const {
         const bool empty_system = ws.num_free() == 0 && qp.me() == 0 && ws.active_ineq().empty();
         if (empty_system) {
             // Nothing was factorized, and a 0x0 system trivially has the
@@ -3927,7 +3994,7 @@ class QpEngine {
         // solve_eqp leaves `kkt` holding the factorization of the
         // bound-ELIMINATED K, whose expected inertia is (n_free, me +
         // n_working, 0) -- the reduced form of the gate in section 4b.
-        verdict = detail::inertia_verdict(kkt, ws.num_free(),
+        verdict = detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(),
                                           qp.me() + static_cast<Index>(ws.active_ineq().size()));
         return res;
     }
@@ -3938,7 +4005,7 @@ class QpEngine {
     // short-circuit above has no counterpart here and needs none -- K0 spans
     // all n variables whatever the working set does. `opts` is the effective
     // options this solve resolved (see run()'s `eff_opts`).
-    EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, KktSystem &kkt,
+    EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
                                BorderState &border, QpCounters &counters,
                                detail::InertiaVerdict &verdict, const QpOptions &opts) const {
         // LATCHED: bordering has been abandoned for this working-set shape
@@ -3962,12 +4029,28 @@ class QpEngine {
                                              /*rebuilt=*/true, opts);
         }
 
-        // A K0 factorization Pardiso had to perturb pivots in is untrustworthy
-        // whatever the border stack does, so that check comes BEFORE the sync:
-        // re-adding borders onto a factorization already known to be discarded
-        // is pure waste.
+        // A K0 factorization the backend had to perturb pivots in is
+        // untrustworthy whatever the border stack does, so that check comes
+        // BEFORE the sync: re-adding borders onto a factorization already
+        // known to be discarded is pure waste. This deliberately reads the
+        // PREVIOUS solve's factorization evidence; the short-circuit
+        // guarantees a successful factorization exists (`schur.has_value()`
+        // implies rebuild_k0 completed). Rewritten per
+        // docs/retarget-design-sqp.md SS4.2 (approved): rebuild on
+        // non-kObserved evidence (defensive, unreachable today), on a
+        // present-and-nonzero perturbed-pivot count (the old MKL rule), or
+        // on a NATIVELY-OBSERVED nonzero zero class -- the dissolved
+        // Accelerate twin's zero-pivot trust signal, preserved through the
+        // honest channel (inert on MKL, where the zero class is derived).
         bool rebuilt = false;
-        if (!border.schur.has_value() || border.kkt.num_perturbed_pivots() != 0) {
+        bool k0_untrusted = false;
+        if (border.schur.has_value()) {
+            const hven::linear::InertiaEvidence e = border.kkt.factor.inertia();
+            k0_untrusted = e.state != hven::linear::InertiaEvidence::State::kObserved ||
+                           (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) ||
+                           (!e.zero_is_derived && e.n_zero != 0);
+        }
+        if (!border.schur.has_value() || k0_untrusted) {
             rebuild_k0(qp, ws, border, counters, opts); // the seed working set's K0
             rebuilt = true;
         }
@@ -3980,10 +4063,10 @@ class QpEngine {
     // falling back to the elimination path (and latching where appropriate)
     // when it is not. `opts` is the effective options this solve resolved
     // (see run()'s `eff_opts`).
-    EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws, KktSystem &kkt,
-                                        BorderState &border, QpCounters &counters,
-                                        detail::InertiaVerdict &verdict, bool rebuilt,
-                                        const QpOptions &opts) const {
+    EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
+                                        detail::KktFactor &kkt, BorderState &border,
+                                        QpCounters &counters, detail::InertiaVerdict &verdict,
+                                        bool rebuilt, const QpOptions &opts) const {
         if (border.schur->needs_refactorization()) {
             // Rebuilding re-derives K0 from the CURRENT working set, folding
             // the working ROWS that triggered it back into K0. It cannot do
@@ -4024,9 +4107,10 @@ class QpEngine {
         // so a singular factor that slips through degrades to the elimination
         // path like any other untrustworthy border stack.
         //
-        // That must NOT swallow every std::runtime_error, though: KktSystem
-        // throws the same type for a failed Pardiso phase and for a solve
-        // before any successful factorize, and those are genuine faults that
+        // That must NOT swallow every std::runtime_error, though: the KKT
+        // factor throws the same type for a failed backend factorization
+        // (factorize_checked) and for a solve before any successful
+        // factorize, and those are genuine faults that
         // kRefactorize mode reports and border mode must not hide. The
         // discriminator is the state the throw leaves behind -- a singular C
         // sets SchurComplement's own singular_ flag, so needs_refactorization()
@@ -4084,13 +4168,14 @@ class QpEngine {
         const Index expected_pos = qp.n() + deletes;
         const Index expected_neg = qp.me() + n_w0 + dim - deletes;
 
-        // ACTUAL inertia = K0's (pardiso) + C's (Haynsworth). Rather than
-        // adding C's contribution to pardiso's counters, back it out of the
-        // expectation and let the shared helper compare K0's own numbers --
-        // same test, and it keeps the perturbed-pivot policy in one place.
+        // ACTUAL inertia = K0's (backend evidence) + C's (Haynsworth).
+        // Rather than adding C's contribution to the backend's counts, back
+        // it out of the expectation and let the shared helper compare K0's
+        // own numbers -- same test, and it keeps the perturbed-pivot policy
+        // in one place.
         const Index extra_neg = neg_c;
         const Index extra_pos = dim - neg_c;
-        return detail::inertia_verdict(border.kkt, expected_pos - extra_pos,
+        return detail::inertia_verdict(border.kkt.factor.inertia(), expected_pos - extra_pos,
                                        expected_neg - extra_neg);
     }
 
@@ -4105,9 +4190,9 @@ class QpEngine {
     // counted like any other.
     // `opts` is the effective options this solve resolved (see run()'s
     // `eff_opts`).
-    detail::InertiaVerdict probe_inertia(const QpProblem &qp, const WorkingSet &ws, KktSystem &kkt,
-                                         BorderState &border, QpCounters &counters,
-                                         const QpOptions &opts) const {
+    detail::InertiaVerdict probe_inertia(const QpProblem &qp, const WorkingSet &ws,
+                                         detail::KktFactor &kkt, BorderState &border,
+                                         QpCounters &counters, const QpOptions &opts) const {
         detail::InertiaVerdict verdict = detail::InertiaVerdict::kOk;
         (void)eqp_candidate(qp, ws, kkt, border, counters, verdict, opts);
         return verdict;
@@ -4157,7 +4242,7 @@ class QpEngine {
     // probe_inertia -> eqp_candidate below regardless, which does need the
     // effective primal_delta/dual_mu.
     bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift, const Vec &lambda_i,
-                                     const Vec &z, WorkingSet &ws, KktSystem &kkt,
+                                     const Vec &z, WorkingSet &ws, detail::KktFactor &kkt,
                                      BorderState &border, QpCounters &counters, ProbeState &probe,
                                      DropRecord &dropped, const QpOptions &opts) const {
         struct Candidate {
@@ -4335,8 +4420,8 @@ class QpEngine {
     // working set; on failure both are restored to what they were.
     // `opts` is the effective options this solve resolved (see run()'s
     // `eff_opts`), threaded through to probe_inertia -> eqp_candidate.
-    bool repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec &x, KktSystem &kkt,
-                                 BorderState &border, QpCounters &counters,
+    bool repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec &x,
+                                 detail::KktFactor &kkt, BorderState &border, QpCounters &counters,
                                  const QpOptions &opts) const {
         const Index n = qp.n();
         const Vec hdiag = hessian_diagonal(qp);
@@ -4474,47 +4559,34 @@ class QpEngine {
     // from opts.primal_delta/opts.dual_mu, which is exactly what this task's
     // reuse-key extension (condition (d)) tracks.
     //
-    // THIS IS THE SOLE SITE that reassigns `border.k0` or calls
-    // `border.kkt.factorize()` -- i.e. the sole site that changes what K0
-    // actually IS (see BorderState::generation's own note) -- which is
-    // exactly why `++border.generation` belongs here and nowhere else:
+    // THIS IS THE SOLE SITE that reassigns `border.k0` or factorizes
+    // `border.kkt` -- i.e. the sole site that changes what K0 actually IS.
+    // M3 phase B: it no longer stamps anything -- the FIX ROUND 2
+    // bump-before-mutate `++border.generation` that used to open this
+    // function is deleted, because `factorize_checked()` advancing the
+    // factor's epoch (and `analyze()` moving its session id at a pattern
+    // change) IS the stamp, for EVERY caller, engine-own or shared.
     // sync_borders() below only ever adds/drops BORDERS around whatever K0
     // this call last built, it never touches `k0`/`kkt`, so it correctly
-    // does not bump this. Bumped for EVERY caller, not just an engine
-    // rebuilding its own state, since `border` may be a BorderState another
-    // engine instance shares via a HotState hand-off -- see FIX ROUND 1's
-    // condition (e) in run()'s reuse_eligible for what reads this.
+    // moves neither. The defensive role generation's early bump played on a
+    // FAILED rebuild (a throw below leaving the object mutated but the
+    // stamp already moved) is carried by condition (e)'s usable-numerics
+    // conjunct instead: a failed factorize leaves `inertia().state !=
+    // kObserved`, so every stale holder refuses reuse on that ground (see
+    // run()'s reuse gate and docs/retarget-design-sqp.md SS7.2).
     void rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState &border,
                     QpCounters &counters, const QpOptions &opts) const {
-        // FIX ROUND 2 (re-review nit): bump `generation` FIRST, before any
-        // of the mutations below that can throw (assemble_kkt_full,
-        // kkt.factorize -- a Pardiso phase failure raises
-        // std::runtime_error). Bump-before-mutate is the defensive
-        // direction: if a throw leaves `k0`/`kkt` reassigned but
-        // inconsistent (or, symmetrically, `k0` untouched because
-        // assemble_kkt_full itself threw before returning), a generation
-        // already bumped means any OTHER holder of this shared object --
-        // whose own frozen snapshot recorded the PRE-rebuild value -- reads
-        // a MISMATCH on its next reuse-eligibility check and refuses to
-        // trust the object, rather than reading a stale, unbumped
-        // generation that still happens to match a k0 that is no longer
-        // what it was. The reverse ordering (bump last) would leave a
-        // window where a half-rebuilt object's generation still equals the
-        // value a stale holder's condition (e) expects -- an unnecessary
-        // extra rebuild is always the safe failure mode here; a false
-        // match never is.
-        ++border.generation;
         border.k0 = assemble_kkt_full(qp, ws, opts);
         border.k0_rows = ws.active_ineq();
         // FIX ROUND 2 (QpCounters::symbolic_analyses' own note): checked
-        // BEFORE factorize(), which is the only way to know whether THIS
-        // call is about to pay Pardiso's phase-11 analysis -- factorize()
-        // itself decides that internally (kkt_system.h) and does not report
-        // it back.
-        if (!border.kkt.pattern_matches(border.k0.K)) {
+        // BEFORE the factorize, which is the only way to know whether THIS
+        // call is about to pay the backend's symbolic analysis --
+        // factorize_checked() decides that internally (kkt_calls.h) and
+        // does not report it back.
+        if (detail::needs_analysis(border.kkt, border.k0.K)) {
             ++counters.symbolic_analyses;
         }
-        border.kkt.factorize(border.k0.K);
+        detail::factorize_checked(border.kkt, border.k0.K);
         ++counters.factorizations;
         border.ledger.clear();
         // Constructed AFTER the factorization: add_border caches K0^-1 v
@@ -5058,15 +5130,19 @@ class QpEngine {
     mutable double border_effective_mu_ = 0.0;
     mutable std::vector<BoundState> border_exit_bound_state_;
     mutable std::vector<Index> border_exit_active_ineq_;
-    // Condition (e), FIX ROUND 1 (BorderState::generation's own note, and
-    // HotState's OWNERSHIP note, have the full argument): this engine's own
-    // last-trusted value of whatever object `border_` currently names.
-    // Compared against that object's LIVE `generation` member -- not
-    // against another frozen copy -- at the top of every run() call, which
-    // is what detects a DIFFERENT engine (reached via a HotState hand-off)
-    // having rebuilt the shared object in the meantime, even when every
-    // other fingerprint above still matches this solve's own problem.
-    mutable std::uint64_t border_generation_ = 0;
+    // Condition (e), FIX ROUND 1 retargeted onto the factor's identity (M3
+    // phase B; HotState's OWNERSHIP note has the full argument): this
+    // engine's own last-trusted (session_id, epoch) pair of whatever object
+    // `border_` currently names. Compared against that object's LIVE
+    // `kkt.factor.session_id()`/`epoch()` -- not against another frozen
+    // copy -- at the top of every run() call, which is what detects a
+    // DIFFERENT engine (reached via a HotState hand-off) having rebuilt the
+    // shared object in the meantime, even when every other fingerprint
+    // above still matches this solve's own problem. Joined there by the
+    // SS7.2 usable-numerics conjunct, which covers the failed-rebuild case
+    // no epoch advance records.
+    mutable std::uint64_t border_kkt_session_id_ = 0;
+    mutable std::uint64_t border_kkt_epoch_ = 0;
 };
 
 } // namespace hven::solvers

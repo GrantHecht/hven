@@ -1241,18 +1241,18 @@ struct SqpCounters {
     // named identically to QpCounters::symbolic_analyses (types.h; see that
     // field's own note for what it counts and why). THIS IS NOT A COUNT OF
     // EVERY PHASE-11 CALL THIS SOLVE PAID ACROSS EVERY CODE PATH: the
-    // elimination path constructs its own per-solve KktSystem and pays its
-    // own phase-11 calls through it, which this field does not see and so
+    // elimination path constructs its own per-solve KktFactor and pays its
+    // own symbolic analyses through it, which this field does not see and so
     // under-reports on a solve that uses that path (measured: HS39 reads 1
     // here against 2 real analyze() calls -- Task 4 re-review r2's deferred
     // nit). A driver whose every major keeps a single, unshared
     // BorderState (the ordinary case) should see this stay small (1, or 0 on
     // an immediate-convergence solve) across the WHOLE solve regardless of
     // how many `factorizations` were paid, since qp_engine.h's rebuild_k0()
-    // reuses one KktSystem's cached sparsity pattern across same-pattern
+    // reuses one KktFactor's cached sparsity pattern across same-pattern
     // rebuilds; a large value on an otherwise-ordinary solve is the
     // regression signal Fix Round 2 exists to catch (detaching onto a fresh
-    // KktSystem on every value-changing major, discarding that cache).
+    // KktFactor on every value-changing major, discarding that cache).
     Index symbolic_analyses = 0;
     // PHASE-4 TASK 3/4. The RESOLVED warm-start level this solve actually
     // used -- NOT the level a caller merely requested by populating `warm`

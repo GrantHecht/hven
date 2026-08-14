@@ -15,7 +15,7 @@
 // their contribution moves to the right-hand side (see rhs_shift below).
 //
 // K is returned as the UPPER triangle only (the hven::solvers::SpMatU
-// convention used throughout: KktSystem, qp_problem.h's H, etc.), with rows
+// convention used throughout: the KKT factor, qp_problem.h's H, etc.), with rows
 // laid out as [free-variable Hessian rows | equality rows | working-
 // inequality rows], sizes [n_free | me | n_working].
 //
@@ -42,7 +42,8 @@
 // variables contribute to the LHS of that row's equation" (Hx + ... for
 // Hessian rows, Ax for constraint rows). Task 7 assembles the actual solve
 // right-hand side from g, be, bi (and the working-set's bi-Ai*x terms) and
-// is expected to SUBTRACT rhs_shift from it before calling KktSystem::solve,
+// is expected to SUBTRACT rhs_shift from it before solving through the
+// KKT factor,
 // since the reduced system is K y = b - rhs_shift.
 //
 // --- assemble_kkt_full: the GMSW (Gill-Murray-Saunders-Wright) border form

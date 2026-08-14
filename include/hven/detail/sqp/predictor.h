@@ -279,14 +279,15 @@
 //      is engine-internal bookkeeping, and duplicating it here to save one
 //      factorization would couple the predictor to the engine's border
 //      strategy -- the coupling this file is deliberately without (it depends
-//      on kkt_assembly/kkt_system/schur_complement/border_ops, never on
+//      on kkt_assembly/kkt_calls/schur_complement/border_ops, never on
 //      QpEngine or SqpDriver).
 //   2. Back-solving against a SHARED factorization is not provably free of
-//      side effects: SchurComplement takes KktSystem by non-const reference,
-//      and KktSystem's Pardiso calls write into its own `mutable` iparm array.
+//      side effects: SchurComplement takes the KKT factor by non-const
+//      reference, and the backend session underneath it is per-call mutable
+//      state.
 //      A DETACH-style private copy is not available either -- BorderState is
 //      deliberately non-copyable AND non-movable (its SchurComplement holds a
-//      reference into its own KktSystem). Given the choice the brief offers,
+//      reference into its own KKT factor). Given the choice the brief offers,
 //      a fresh factorization is the route with no shared-state argument to
 //      make at all.
 //   3. The saving is one factorization of a system the caller is about to
@@ -355,7 +356,7 @@
 
 #include <hven/detail/sqp/border_ops.h>
 #include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/kkt_calls.h>
 #include <hven/detail/sqp/nlp_model.h>
 #include <hven/detail/sqp/qp_problem.h>
 #include <hven/detail/sqp/schur_complement.h>
@@ -659,10 +660,12 @@ inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &
 // THE VALIDATE-THEN-CATCH-EVERYTHING TAXONOMY (fix round 1). The split is by
 // PHASE, not by exception TYPE, because typing it was wrong: an earlier
 // version caught only std::runtime_error on the theory that
-// std::invalid_argument means "caller error", but schur_complement.h reports
-// two of its own LAPACKE failures (dsytrs info != 0, dsytrf illegal argument)
-// as std::invalid_argument, so those escaped the fallback and threw out of a
-// function documented not to. So: EVERY caller-input check runs FIRST, above,
+// std::invalid_argument means "caller error", but the border stack's LAPACK
+// failures have historically crossed that type line (the dissolved border
+// reported dsytrs info != 0 and dsytrf illegal-argument as
+// std::invalid_argument; DenseSymmetricFactor reports both as
+// std::runtime_error today), so a type-keyed net either leaked or would go
+// stale on exactly such a change. So: EVERY caller-input check runs FIRST, above,
 // and throws; from that point on, nothing that can fail is the caller's fault
 // in a way this layer can act on, and ANY std::exception is caught and
 // reported as kDegraded. What is inside that net, all of it "cannot predict
@@ -958,8 +961,8 @@ inline WarmStart predict(ParametricNlpModel &model, const WarmStart &warm, const
 
         Vec dx = Vec::Zero(n);
 
-        KktSystem kkt(qopts);
-        kkt.factorize(k0.K); // THE one factorization
+        detail::KktFactor kkt;
+        detail::factorize_checked(kkt, k0.K); // THE one factorization
         SchurComplement schur(kkt, qopts);
         std::vector<predictor_detail::PredictorBorder> borders;
 

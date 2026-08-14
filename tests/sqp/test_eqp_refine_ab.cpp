@@ -537,7 +537,7 @@ TEST(EqpRefinementAb, DISABLED_FootprintRuleProbe) {
 
     const auto probe = [](const std::string &name, const QpProblem &qp, const WorkingSet &ws) {
         QpOptions on;
-        KktSystem kkt{on};
+        detail::KktFactor kkt;
         const EqpResult r = solve_eqp(qp, ws, kkt, on);
 
         Vec stat = qp.H.selfadjointView<Eigen::Upper>() * r.x + qp.g;

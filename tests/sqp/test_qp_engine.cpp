@@ -1383,7 +1383,8 @@ TEST(QpEngineFaceRefine, AFaceThatViolatesARowItLeftOffIsRefused) {
 // (1, 1), so the verdict is not kOk and the refinement is refused -- AFTER
 // paying its factorization, which is what the verdict is read from.
 //
-// **BACKEND NOTE.** `inertia_verdict` reads `num_perturbed_pivots()`, whose
+// **BACKEND NOTE.** `inertia_verdict` reads the evidence's perturbed-pivot
+// count (absent on Accelerate) and zero class, whose
 // meaning differs on Apple Accelerate (checklist sections (h) and (j)). This
 // arm asserts a REFUSAL, which is the safe direction on any backend whose
 // verdict degrades; it is the ACCEPTING arms above that a degraded verdict

@@ -99,7 +99,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/kkt_calls.h>
 #include <hven/detail/sqp/qp_problem.h>
 #include <hven/detail/sqp/types.h>
 #include <hven/detail/sqp/working_set.h>
@@ -164,7 +164,7 @@ struct EqpResult {
 // `unrefined_out` is non-null, it receives the PRE-refinement result --
 // intended for tests that need to observe the refinement step's effect in
 // isolation.
-inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, KktSystem &kkt,
+inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
                            const QpOptions &opts, EqpResult *unrefined_out = nullptr) {
     qp.validate();
 
@@ -208,8 +208,8 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, KktSystem 
         rhs(n_free + me + k) = qp.bi(row) - asm_.rhs_shift(n_free + me + k);
     }
 
-    kkt.factorize(asm_.K);
-    Vec y = kkt.solve(rhs);
+    detail::factorize_checked(kkt, asm_.K);
+    Vec y = detail::solve_vec(kkt, rhs);
 
     auto scatter = [&](const Vec &yy) {
         EqpResult res;
@@ -238,7 +238,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, KktSystem 
         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
     };
 
-    y = y + kkt.solve(residual_of(y));
+    y = y + detail::solve_vec(kkt, residual_of(y));
 
     EqpResult out = scatter(y);
     out.refine_steps = 0; // no iterated loop on this path -- see the header note

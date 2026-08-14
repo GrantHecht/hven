@@ -6780,8 +6780,9 @@ class SqpDriver {
     // PHASE-7 TASK 5. The semismooth-Newton tier's engine, LAZILY CONSTRUCTED
     // and never touched at the shipped default.
     //
-    // WHY A POINTER RATHER THAN A MEMBER. SsnEngine owns a live KktSystem (and
-    // through it a Pardiso/Accelerate handle), exactly as QpEngine does. Making
+    // WHY A POINTER RATHER THAN A MEMBER. SsnEngine owns a live KktFactor (and
+    // through it a Pardiso/Accelerate backend session), exactly as QpEngine
+    // does. Making
     // it a plain member would allocate that state on EVERY SqpDriver a caller
     // constructs, including the overwhelming majority that run `qp_mode ==
     // QpMode::kWalk` and will never solve an SSN subproblem -- and including
@@ -6791,7 +6792,7 @@ class SqpDriver {
     // constructed, so none of ssn_engine.h runs.
     //
     // ONE ENGINE FOR THE WHOLE DRIVER, for the same reason engine_ is one:
-    // ssn_engine.h holds its KktSystem across solves, which is what makes its
+    // ssn_engine.h holds its KktFactor across solves, which is what makes its
     // "one symbolic analysis per structure, reused across QPs of identical
     // structure" property (that header's section 3) observable at all. A fresh
     // engine per subproblem would pay a phase-11 analysis on every major.

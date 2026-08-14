@@ -13,7 +13,7 @@
 // without ever re-factorizing K0 itself.
 //
 // This header only builds `v` vectors (plain data, no SchurComplement/
-// KktSystem dependency) -- the diagonal `d` and the border's own rhs entry
+// KKT-factor dependency) -- the diagonal `d` and the border's own rhs entry
 // are the CALLER's responsibility (documented per-method below) because
 // they depend on which regularization convention the caller wants (matching
 // kkt_assembly.h's -mu*I on every other constraint row) and on the RHS

@@ -50,12 +50,12 @@
 // later optimization if profiling ever shows the O(dim()^3) rebuild
 // mattering -- it does not at this scale.
 //
-// K0^-1 v_i is cached at add_border time (one KktSystem::solve per border) so
+// K0^-1 v_i is cached at add_border time (one K0 solve per border) so
 // `solve` costs exactly two K0 solves (for w and for x0), independent of
 // dim(). This is the plain two-solve variant the task brief asks for first;
-// the partial-solve fast path (composing solve_forward/solve_diagonal/
-// solve_backward to shave one of those two solves when
-// kkt.supports_partial_solve() is true) is NOT implemented here. Note
+// the partial-solve fast path (composing SymmetricFactor::solve_partial's
+// forward/diagonal/backward phases to shave one of those two solves when
+// kkt.factor.supports_partial_solve() is true) is NOT implemented here. Note
 // supports_partial_solve() is in fact CONSTANT for the lifetime of a given
 // SchurComplement instance -- K0 (owned by `kkt`) is held fixed across
 // add_border/drop_border by this class's own contract, and a fresh
@@ -79,7 +79,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/kkt_system.h>
+#include <hven/detail/sqp/kkt_calls.h>
 #include <hven/detail/sqp/types.h>
 #include <hven/linear/dense_symmetric_factor.h>
 
@@ -107,13 +107,13 @@ constexpr double kSchurSingularEigFrac = 1e-12;
 
 class SchurComplement {
   public:
-    SchurComplement(KktSystem &kkt, const QpOptions &opts) : kkt_(kkt), opts_(opts) {}
+    SchurComplement(detail::KktFactor &kkt, const QpOptions &opts) : kkt_(kkt), opts_(opts) {}
 
     // Borders K0 with column v (size K0.rows()) and diagonal entry d. Costs
-    // one KktSystem::solve (to cache K0^-1 v) plus an O(dim()^2 * n0 +
+    // one K0 solve (to cache K0^-1 v) plus an O(dim()^2 * n0 +
     // dim()^3) dense rebuild-and-factorize of C.
     void add_border(const Vec &v, double d) {
-        Vec k0inv_v = kkt_.solve(v);
+        Vec k0inv_v = detail::solve_vec(kkt_, v);
         v_.push_back(v);
         k0inv_v_.push_back(std::move(k0inv_v));
         d_.push_back(d);
@@ -150,7 +150,7 @@ class SchurComplement {
         }
 
         const Vec rhs0 = rhs_full.head(n0);
-        const Vec w = kkt_.solve(rhs0); // K0^-1 rhs0
+        const Vec w = detail::solve_vec(kkt_, rhs0); // K0^-1 rhs0
 
         Vec y(m);
         if (m > 0) {
@@ -173,7 +173,7 @@ class SchurComplement {
         for (Index i = 0; i < m; ++i) {
             rhs0_adj -= y(i) * v_[static_cast<std::size_t>(i)];
         }
-        const Vec x0 = kkt_.solve(rhs0_adj); // K0^-1 (rhs0 - V y)
+        const Vec x0 = detail::solve_vec(kkt_, rhs0_adj); // K0^-1 (rhs0 - V y)
 
         Vec x(n0 + m);
         x.head(n0) = x0;
@@ -315,7 +315,7 @@ class SchurComplement {
         evidence_ = factor_.block_evidence();
     }
 
-    KktSystem &kkt_;
+    detail::KktFactor &kkt_;
     QpOptions opts_;
     std::vector<Vec> v_;
     std::vector<Vec> k0inv_v_;

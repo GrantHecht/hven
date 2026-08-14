@@ -6,7 +6,6 @@
 
 #include <hven/detail/sqp/eqp_solve.h>
 #include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_system.h>
 #include <hven/detail/sqp/qp_engine.h>
 #include <hven/detail/sqp/schur_complement.h>
 
@@ -38,13 +37,31 @@ QpProblem simple_box_qp() {
 }
 
 // K = [H Aᵀ; A 0] with H = diag(2,3), A = [1 1]. Saddle point: inertia
-// (2,1,0). (Repeated verbatim from tests/test_kkt_system.cpp's make_kkt3().)
+// (2,1,0). (Repeated verbatim from the dissolved test_kkt_system.cpp's make_kkt3().)
+// hven's SymmetricFactor validates the STRUCTURAL diagonal at analyze() --
+// every row's diagonal entry must be present in the pattern, value zero or
+// not (symmetric_factor.h; the engine's own assemblies emit it
+// unconditionally). The dissolved seam forwarded the pattern unvalidated, so
+// these dense-built fixtures could drop the zero diagonal via sparseView();
+// this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
+// does.
+static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatU K(D.rows(), D.cols());
+    for (Eigen::Index r = 0; r < D.rows(); ++r) {
+        for (Eigen::Index c = r; c < D.cols(); ++c) {
+            if (r == c || D(r, c) != 0.0) {
+                K.insert(r, c) = D(r, c);
+            }
+        }
+    }
+    K.makeCompressed();
+    return K;
+}
+
 SpMatU make_kkt3() {
     Eigen::MatrixXd D(3, 3);
     D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
-    SpMatU K = D.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    K.makeCompressed();
-    return K;
+    return upper_with_structural_diag(D);
 }
 
 // --- Equivalence-battery fixtures ---------------------------------------
@@ -574,8 +591,8 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     }
     EXPECT_DOUBLE_EQ(full.rhs_shift.norm(), 0.0); // all-zero in full mode
 
-    KktSystem kkt0(opts);
-    kkt0.factorize(full.K);
+    detail::KktFactor kkt0;
+    detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
     Vec e0 = Vec::Zero(full.K.rows());
@@ -611,38 +628,45 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     // variable 0 marked kAtLower in the working set. ---
     WorkingSet ws_pin(qp.n(), qp.mi());
     ws_pin.bound_state()[0] = BoundState::kAtLower;
-    KktSystem kkt1(opts);
+    detail::KktFactor kkt1;
     EqpResult eqp = solve_eqp(qp, ws_pin, kkt1, opts);
 
     ASSERT_EQ(x_border.size(), eqp.x.size());
     EXPECT_LT((x_border - eqp.x).norm(), 1e-9);
 }
 
-// Phase-1 deferred debt item: KktSystem must remain usable after a move
-// construction (the border-mode engine, from this task onward, holds a
-// long-lived KktSystem that Task 4 will move around), and the moved-from
-// object must destruct without double-freeing Pardiso's internal memory.
-TEST(QpEngineBorder, KktSystemMoveKeepsFactorizationUsable) {
-    QpOptions opts;
+// Phase-1 deferred debt item, retargeted onto the KKT factor (M3 phase B,
+// docs/retarget-design-sqp.md §10 item 6): the factor must remain usable
+// after a move construction (the border-mode engine holds a long-lived
+// factor that the hot-start machinery moves around), and the moved-from
+// object must destruct without double-freeing the backend session. The
+// backend-level move/share pins live in tests/linear; this arm keeps the
+// SQP-facing claim -- a moved KktFactor keeps its factorization, its
+// evidence, and its pattern mirror -- exercised through the SQP surface.
+TEST(QpEngineBorder, KktFactorMoveKeepsFactorizationUsable) {
     SpMatU K = make_kkt3();
 
-    KktSystem source(opts);
-    source.factorize(K);
+    detail::KktFactor source;
+    detail::factorize_checked(source, K);
 
-    KktSystem dest(std::move(source));
+    detail::KktFactor dest(std::move(source));
 
     Vec rhs(3);
     rhs << 1.0, 2.0, 0.5;
-    Vec x = dest.solve(rhs);
+    Vec x = detail::solve_vec(dest, rhs);
     Eigen::MatrixXd Kd = Eigen::MatrixXd(K).selfadjointView<Eigen::Upper>();
     EXPECT_LT((Kd * x - rhs).norm(), 1e-10);
-    EXPECT_EQ(dest.num_pos_eigs(), 2);
-    EXPECT_EQ(dest.num_neg_eigs(), 1);
+    const hven::linear::InertiaEvidence e = dest.factor.inertia();
+    ASSERT_EQ(e.state, hven::linear::InertiaEvidence::State::kObserved);
+    EXPECT_EQ(e.n_pos, 2);
+    EXPECT_EQ(e.n_neg, 1);
+    EXPECT_TRUE(dest.analyzed);
+    EXPECT_FALSE(detail::needs_analysis(dest, K));
 
     // `source` is moved-from; its destructor runs at end of scope. If move
-    // construction left it holding a stale Pardiso handle (rather than the
-    // nulled-out state KktSystem's move constructor is supposed to leave
-    // behind), that destructor would double-release `dest`'s Pardiso memory.
+    // construction left it holding a stale backend session (rather than the
+    // released state SymmetricFactor's move constructor is supposed to leave
+    // behind), that destructor would double-release `dest`'s session.
 }
 
 // The equivalence oracle for the whole border path: the refactorize path is

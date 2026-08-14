@@ -217,7 +217,7 @@ TEST(QpWarmStart, HChangeForcesRefactorization) {
     // factorization was built from, so reuse must NOT be taken even though
     // the seed working set still matches the previous exit exactly -- the
     // engine refactorizes K0 exactly once (symbolic reuse still applies
-    // inside KktSystem since the sparsity PATTERN is unchanged).
+    // inside the factor helper since the sparsity PATTERN is unchanged).
     auto qp = random_strictly_convex(6, 4, 20);
     QpEngine engine{QpOptions{}};
     auto cold = engine.solve(qp);
@@ -423,21 +423,23 @@ QpProblem row_and_bound_qp(double c0, double c1, double bi) {
     return qp;
 }
 
-// FIX ROUND 2 (re-review finding 2b): hot_state() must emit the COMMITTED
-// generation (border_generation_, this engine's own last-trusted value),
-// never a LIVE re-read off the shared object -- the re-review's R3 probe,
-// reproduced here at the public QpEngine API. P emits h1; a second engine C
-// adopts h1 against a value-consistent problem (same H/Ai, only c0/c1/bi
-// differ, so C's own gate passes and it is never detached -- see
+// FIX ROUND 2 (re-review finding 2b), re-derived against M3 phase B's
+// session/epoch identity: hot_state() must emit the COMMITTED pair
+// (border_kkt_session_id_/border_kkt_epoch_, this engine's own last-trusted
+// values), never a LIVE re-read off the shared object -- the re-review's R3
+// probe, reproduced here at the public QpEngine API. P emits h1; a second
+// engine C adopts h1 against a value-consistent problem (same H/Ai, only
+// c0/c1/bi differ, so C's own gate passes and it is never detached -- see
 // HotState's OWNERSHIP note for why that is the only way the shared object
 // is ever mutated) and needs one schur_cap-forced mid-solve rebuild,
-// bumping the SHARED object's live generation. P -- which never solves
-// again -- then calls hot_state() a SECOND time. Before this fix, reading
-// `border_->generation` live would emit a SELF-CONSISTENT FORGED handle:
-// P's own fingerprint fields (still describing qpA) paired with a
-// generation that actually describes C's mutation, which a later adopter's
-// condition (e) would wrongly accept.
-TEST(QpWarmStart, HotStateEmitsCommittedGenerationNotLive) {
+// advancing the SHARED object's live epoch (factorize() is the stamp now;
+// one rebuild maps to one epoch advance). P -- which never solves again --
+// then calls hot_state() a SECOND time. Before this fix, reading the live
+// identity would emit a SELF-CONSISTENT FORGED handle: P's own fingerprint
+// fields (still describing qpA) paired with an identity that actually
+// describes C's mutation, which a later adopter's condition (e) would
+// wrongly accept.
+TEST(QpWarmStart, HotStateEmitsCommittedIdentityNotLive) {
     QpOptions opts;
     opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
     opts.schur_cap = 1;
@@ -448,7 +450,8 @@ TEST(QpWarmStart, HotStateEmitsCommittedGenerationNotLive) {
     ASSERT_EQ(sol_a.status, QpStatus::kOptimal);
     const auto h1 = engine_p.hot_state();
     ASSERT_NE(h1, nullptr);
-    const std::uint64_t h1_generation = h1->generation;
+    const std::uint64_t h1_session = h1->kkt_session_id;
+    const std::uint64_t h1_epoch = h1->kkt_epoch;
 
     // optimum (0, 0): BOTH bounds active, the row inactive -- a genuine
     // shape change from qpA's own exit, which is what forces the mid-solve
@@ -464,14 +467,20 @@ TEST(QpWarmStart, HotStateEmitsCommittedGenerationNotLive) {
         << "C's own gate must pass (byte-identical H/Ai) for it to ever touch the shared object "
            "at all -- a refused adoption would detach instead, per Q3, and never reach it";
     ASSERT_GE(sol_c.counters.factorizations, 1)
-        << "and it must have actually rebuilt, which is what bumps the SHARED generation";
+        << "and it must have actually rebuilt, which is what advances the SHARED epoch";
 
     const auto h2 = engine_p.hot_state();
     ASSERT_NE(h2, nullptr);
     EXPECT_EQ(h2->border.get(), h1->border.get()) << "still the same shared object";
-    EXPECT_EQ(h2->generation, h1_generation)
-        << "hot_state() must emit the COMMITTED generation, not a live re-read off the "
+    EXPECT_EQ(h2->kkt_session_id, h1_session)
+        << "hot_state() must emit the COMMITTED session id, not a live re-read off the "
            "possibly-shared object -- THE PIN for the forged-handle scenario";
+    EXPECT_EQ(h2->kkt_epoch, h1_epoch)
+        << "hot_state() must emit the COMMITTED epoch, not a live re-read off the "
+           "possibly-shared object -- THE PIN for the forged-handle scenario";
+    EXPECT_NE(h2->border->kkt.factor.epoch(), h1_epoch)
+        << "precondition of the pin: C's rebuild really did advance the shared object's live "
+           "epoch, so committed-vs-live is a real distinction here";
 }
 
 } // namespace
