@@ -54,7 +54,9 @@ docs-only after the tag.
   (EIGEN_INITIALIZE_MATRICES_BY_ZERO, EIGEN_DONT_PARALLELIZE,
   FMT_USE_LOCALE=0) DO apply — same fixed environment the rig already
   compiles the old seam under, with no row moving (testing.md). Full
-  compile-flags diff: [TBD artifact]. Question deferred to this review:
+  compile-flags diff:
+  `docs/notes/data/2026-08-14-m3-gate-a/compile-flags-diff.txt`. Question
+  deferred to this review:
   whether/when the suite moves to unified flags (phase C compiles engine TUs
   into the library under library flags, so it lands there at the latest, as
   a declared re-derivation if any pin moves).
