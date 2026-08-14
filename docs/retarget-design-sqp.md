@@ -66,8 +66,8 @@
 > delta; the licensed deltas are enumerated in §11 and nowhere else.
 
 **Authority and scope.** This note expands the M3 plan rev B's §4 design
-skeleton (sibling archive:
-`/home/ghecht/Projects/tycho_sqp/docs/notes/2026-08-14-hven-m3-plan-revB.md`,
+skeleton (the reviewer-side note
+`docs/notes/2026-08-14-hven-m3-plan-revB.md` in the sibling archive,
 §4 and §9) into the phase-B edit plan, mirroring the M2 precedent
 ([`docs/retarget-design.md`](retarget-design.md)) in shape: surface
 verdict → configuration mapping → ownership/lifecycle → evidence
@@ -81,6 +81,15 @@ amended docket
 are discharged in §4. Every file:line below was verified against this
 repository at phase-A HEAD (`0ba1b9f`); where a plan-quoted line number
 has drifted, the drift is noted.
+
+**Review status.** The execution review (2026-08-14; the reviewer-side
+note `docs/notes/2026-08-14-m3-gate-a-and-phase-b-review.md`) returned
+**APPROVED WITH CHANGES** on this note. Its three REQUIRED changes are
+folded into §6.3, §4.1 and §7.2, its open-item rulings are recorded in
+§12, and its consolidated gate-B checklist is merged into §11.1. Every
+post-approval fold carries a bracketed provenance tag naming the review
+section it came from, so a reader can tell approved text from folded
+text.
 
 **What dissolves.** `include/hven/detail/sqp/kkt_system.h` (the MKL
 Pardiso `KktSystem`, with the platform dispatch at its lines 5-7),
@@ -136,6 +145,11 @@ The intended factory — ONE function, platform-neutral, replacing nothing
 inline hven::linear::SymmetricFactor::Options sqp_kkt_options() {
     hven::linear::SymmetricFactor::Options o;
     o.kind = hven::linear::FactorKind::kLDLT;
+    // 0 = backend default, and the test-side process-wide MKL_NUM_THREADS
+    // pin is what makes runs reproducible. That pair is the intended and
+    // sufficient mechanism: no consumer moves the count at runtime, so no
+    // per-instance thread control is exposed. [Comment required by the
+    // execution review (2026-08-14), §2.4 addendum-(c) ruling.]
     o.num_threads = 0;
     o.pivot_perturb_exp = std::nullopt;    // NEW don't-write state, §2
     o.max_refinement_iters = std::nullopt; // NEW don't-write state, §2
@@ -407,12 +421,30 @@ This preserves every verdict on BOTH backends:
   the constructor-zeroed array and returned a verdict computed from
   `(0, 0, ppiv 0)` — the docket's CONFIRMED defect (P5's `kObserved`
   zero triple). Rule 1 now routes `kUnavailable` to `kSuspect`
-  explicitly. `kSuspect` DOES NOT ACT anywhere in either engine
-  (`qp_engine.h:4133-4137`; `ssn_engine.h:2215-2220`), and the old
-  zero-triple reading also produced `kSuspect` through the short-sum
-  rule at every reachable site (a real system has `expected_pos +
-  expected_neg = dim > 0`), so no DECISION moves — the delta is the
+  explicitly. The preservation argument is **identical-verdict-in,
+  identical-action-out**: the zero triple produced `kSuspect` under the
+  old helper's short-sum rule at every reachable site (a real system has
+  `expected_pos + expected_neg = dim > 0`), and produces `kSuspect`
+  under rule 1, so every downstream consumer sees the SAME verdict
+  stream and takes the same action. No DECISION moves — the delta is the
   evidence row, licensed in §11.
+
+  [Folded per the execution review (2026-08-14), §2.2. This bullet
+  previously argued that `kSuspect` "DOES NOT ACT anywhere in either
+  engine", citing `qp_engine.h:4133-4137` and `ssn_engine.h:2215-2220`.
+  **That claim is false as stated** and is withdrawn: those two sites are
+  places kSuspect deliberately doesn't act, not the whole engine. The
+  section-4b **suspect-stall gate DOES act on kSuspect at certification
+  time** (archived tag, `qp_engine.h:3287-3345`): a kSuspect verdict
+  triggers the free-block stationarity check, and on failure escalates
+  `primal_delta` by `kSuspectDeltaFactor`, rebuilds K0, and counts
+  `counters.suspect_escalations` — a PINNED counter with per-backend arms
+  (the standing rule from the Accelerate audit: tests asserting
+  `suspect_escalations == 0` on exactly-singular fixtures need
+  per-backend arms). The conclusion never needed the inert-verdict
+  premise; it rests on identical-verdict, as now written. Consequence
+  carried into the gate: `suspect_escalations` is an explicit
+  gate-blocking check at gate B (§11.1).]
 - **Accelerate, zero-pivot factorization:** the old twin mapped Apple's
   ZERO-pivot count into `num_perturbed_pivots()`
   (`kkt_system_accelerate.h:109-123,521`) — a *differently-valued*
@@ -600,14 +632,35 @@ anticipates (`dense_symmetric_factor.h:6-9`):
    whose entry points already take `uplo` through —
    `lapacke_shim.h:83,113`), so there is no per-backend semantics
    divergence to document beyond "identical on both".
-2. **Non-throwing exact singularity**: `factorize` returns a small
-   outcome (`kOk` / `kExactlySingular`) instead of throwing on
-   `info > 0`; `info < 0` (internal illegal-argument bug) and
-   validation failures keep throwing. `factorized()` stays false on
-   `kExactlySingular`; `solve()` before a successful factorize keeps
-   throwing (`dense_symmetric_factor.h:44-47`) — which is exactly the
-   border's own solve-on-singular behavior once `SchurComplement` keeps
-   its `singular_` flag from the returned outcome.
+2. **Non-throwing exact singularity, ADDITIVELY**
+   [folded per the execution review (2026-08-14), §2.1 — this item
+   previously proposed mutating `factorize`'s contract; that proposal is
+   withdrawn]. The existing `factorize(A)` and the new
+   `factorize(A, Triangle)` overload keep TODAY'S documented contract
+   exactly: they throw on `info > 0`
+   (`dense_symmetric_factor.h:30-34`), throw on `info < 0` (internal
+   illegal-argument bug), and throw on validation failure. The
+   outcome-returning behavior arrives as a SEPARATE entry point —
+   working name `try_factorize(A, Triangle)`, final name the
+   implementer's choice — declared `[[nodiscard]]` and returning
+   `kOk` / `kExactlySingular`; `info < 0` and validation failures still
+   throw from it. `SchurComplement` consumes THAT entry and sets its
+   `singular_` flag from the returned outcome. `factorized()` stays
+   false on `kExactlySingular`; `solve()` before a successful factorize
+   keeps throwing (`dense_symmetric_factor.h:44-47`) — which is exactly
+   the border's own solve-on-singular behavior.
+
+   The reason it must be additive, recorded because it is the binding
+   constraint: the current consumer set is
+   `tests/linear/test_dense_symmetric_factor.cpp` and
+   `tests/golden_rig/traces_sqp.cpp` ONLY (the IPM engine never adopted
+   the dense factor), and both must be untouched. A mutated contract
+   either silently changes an existing caller — a caller that ignores
+   the new return proceeds where it previously got a throw, the exact
+   silent-failure shape this project exists to forbid — or forces edits
+   to the rig trace instrument mid-measurement (hazard 6's spirit).
+   Additive costs every existing caller nothing, gives the border its
+   state contract, and leaves the instrument alone.
 3. **Block evidence**: a `BunchKaufmanBlockEvidence` (name at
    implementer's discretion) computed by the factor — it owns the
    uplo convention the walk depends on — carrying the per-block
@@ -626,8 +679,10 @@ anticipates (`dense_symmetric_factor.h:6-9`):
 Rejected alternative, recorded: raw `factors()`/`ipiv()` accessors with
 the walk left in `schur_complement.h`. It avoids growing an evidence
 type but exports LAPACK internals as public surface and leaves two
-copies of the walk possible; the reviewer may still prefer it, and
-nothing else in this note depends on the choice.
+copies of the walk possible. [Folded per the execution review
+(2026-08-14), §2.1: **RULED — the evidence struct**, on the grounds that
+it owns the uplo convention and exports no LAPACK internals. The
+alternative stays recorded as history, not as a live option.]
 
 With this, `schur_complement.h` drops both LAPACKE includes
 (`schur_complement.h:81-85` — the `#ifdef USE_ACCELERATE_SPARSE` switch
@@ -700,11 +755,22 @@ reuse gate gains a usable-numerics conjunct —
 — which is false precisely when the last factorize failed or none
 happened. This is the same evidence read §4.2's rebuild gate already
 performs, costs one struct copy, and restores detach-on-mismatch as the
-failure mode. (Open verification item for execution: pin that
-`inertia()` reports non-`kObserved` after a FAILED factorize —
-`symmetric_factor.h:741-745` states the not-factorized and stale-adopt
-cases explicitly; the failed-factorize case follows from
-"invalidates the current numerics" but has no dedicated pin today.)
+failure mode.
+
+**ORDERED PIN (blocking): the failed-factorize evidence pin.** The
+conjunct rests on "`inertia()` reports non-`kObserved` after a FAILED
+factorize". `symmetric_factor.h:741-745` states the not-factorized and
+stale-adopt cases explicitly; the failed-factorize case follows from
+"invalidates the current numerics" but has no dedicated pin today. **A
+reuse gate may not rest on an unpinned contract.** The pin lands in
+`tests/linear` in the SAME commit/review lane as §2's Options change —
+it is an `hven::linear` behavior pin, and the scoped tycho-side lane
+reviews it with the rest. If the pin cannot deterministically fail a
+factorize without the fault injector, the fault-injection suite is the
+sanctioned home. Either way it exists BEFORE the reuse gate's
+usable-numerics conjunct ships; the conjunct may not land first.
+[Folded per the execution review (2026-08-14), §2.3 — this was a flagged
+open verification item and is now an ordered, gate-blocking pin.]
 
 Session-fork aliasing itself stays unreachable in the current
 single-session driver — `analyze()` on `border.kkt` happens only inside
@@ -774,7 +840,7 @@ retarget to `SymmetricFactor`/the helper; none carries code.)
 
 | Site | Current touch | Replacement |
 | --- | --- | --- |
-| `schur_complement.h:305-308` | `LAPACKE_dsytrf(..., 'L', ...)` on rebuilt C | `DenseSymmetricFactor::factorize(C, Triangle::kLower)` returning the §6.3 outcome; `singular_` set from `kExactlySingular` |
+| `schur_complement.h:305-308` | `LAPACKE_dsytrf(..., 'L', ...)` on rebuilt C | `DenseSymmetricFactor::try_factorize(C, Triangle::kLower)` — the §6.3 additive outcome-returning entry, NOT `factorize` (which keeps throwing); `singular_` set from `kExactlySingular` [folded per the execution review (2026-08-14), §2.1] |
 | `schur_complement.h:309-312` | `info < 0` throw | retained inside the dense factor (illegal-argument stays a throw) |
 | `schur_complement.h:313-325` | `info > 0` → `singular_` state | consumed from the outcome; leave-evidence-empty behavior unchanged |
 | `schur_complement.h:330-359` | Bunch-Kaufman block walk over `factored_`/`ipiv_` | consume the factor's block evidence (§6.3), arithmetic migrated verbatim |
@@ -868,7 +934,13 @@ enumerated in the gate report):
    the Options change, `BackendDefaultPremise` family.
 3. **Don't-write act pins** for the two new states, via the §2.2
    observer fields (same shape as the existing ordering act pin).
-4. **The constraint-side seam fixture** (plan §1.2, handoff item 4
+4. **The failed-factorize evidence pin** (§7.2's ORDERED pin), in
+   `tests/linear` — `inertia()` reports non-`kObserved` after a failed
+   factorize — in the same commit/review lane as the §2 Options change,
+   or in the fault-injection suite if a deterministic factorize failure
+   needs the injector. It is ordered BEFORE §7.2's usable-numerics
+   conjunct ships. [Folded per the execution review (2026-08-14), §2.3.]
+5. **The constraint-side seam fixture** (plan §1.2, handoff item 4
    accepted into M3): ONE objective-only fixture type registered via
    `ConstraintUnsupported<T>`, with a compile-fail probe asserting the
    AUTHORED constraint-route message fires and the raw member-lookup
@@ -878,7 +950,7 @@ enumerated in the gate report):
    compile-fail probes cost ~90 s serial per ctest run and nested
    builds are unthrottled under `ctest -j` (the M2 t55f2-m1 cost note,
    carried by the plan).
-5. **Dissolved with declaration:** `test_kkt_system.cpp` (2 tests —
+6. **Dissolved with declaration:** `test_kkt_system.cpp` (2 tests —
    both pinned behaviors are covered at
    `tests/linear/test_symmetric_factor.cpp` by
    `AnalyzeOnceFactorizeManyOnAFixedPattern`/`FactorizeRejectsAForeignPattern`
@@ -893,7 +965,7 @@ enumerated in the gate report):
    Accelerate arms; the shim probes retarget onto
    `hven::linear::detail`'s shim. Every disposition is enumerated in
    the gate report with the count arithmetic.
-6. **Retargeted in place, count-neutral (the §8.6 transitive
+7. **Retargeted in place, count-neutral (the §8.6 transitive
    consumers):** `test_schur.cpp` (all 19 constructions),
    `test_eqp_solve.cpp` (locals at 73, 84, 119), and
    `test_eqp_refine_ab.cpp:540` retarget mechanically with no test
@@ -924,21 +996,69 @@ lower-triangle requirement exists to prevent exactly that), and any SSN
 rebuild-count change (phase B does not touch the SSN structure key —
 §3.2).
 
+### 11.1 What phase B's gate must show (consolidated)
+
+[Folded per the execution review (2026-08-14), §2.6, which states these
+are "no new demands": §10 and §11 already carry them, and they are
+gathered here so the gate report can tick them in one pass. Merged, not
+duplicated — each row points at the section that owns it.]
+
+- **Count arithmetic with every disposition enumerated**, including
+  §10 item 7's explicit zero-delta rows for the retargeted-in-place
+  test files.
+- **The 57-cell census byte-identical at the inherited refinement cap**,
+  with the `pardisoinit`-defaults canary green (§2.4, hazard 1).
+- **`test_schur.cpp`'s float-parity witness unmoved** — `cond_estimate`,
+  `expected_neg_eigs_delta`, `nearly_singular`, and the exact-singular
+  behavior come back bit-identical through `DenseSymmetricFactor`
+  (§8.6, §10 item 7).
+- **`suspect_escalations` pins unmoved on BOTH backends** — all pins;
+  any movement is a gate-blocking unlicensed delta, and the Mac leg
+  re-verifies the per-backend arms. This is an explicit gate-blocking
+  item, not a note (§4.1's fold; review §2.2).
+- **The §11 ledger's four rows and nothing else** — any old-vs-new
+  difference not on that list blocks the gate.
+- **Clean-configure provenance stamps** on every gate-B artifact, so the
+  stamp names a real commit (gate A's census stamp read
+  `cf65a03a77eb-dirty`; content unaffected, hygiene carried forward).
+- **The ordered failed-factorize pin landed in the linear suite**
+  (§7.2, §10 item 4), before §7.2's usable-numerics conjunct ships.
+
 ## 12. What this note does NOT decide
 
+[Folded per the execution review (2026-08-14), §2.4: every item this
+section opened for the reviewer has now been ruled. The ruled items are
+marked **RESOLVED** in place with the ruling and its one-line ground;
+the items that remain genuinely undecided are unmarked and stay open.]
+
 - **The don't-write states' final spelling.** `std::optional<int>` with
-  unchanged defaults is proposed and argued (§2.1); the human iparm
-  review and the tycho-side lane may substitute a different mechanic —
-  the ruling being implemented is the STATE's existence, not its
-  spelling.
+  unchanged defaults is proposed and argued (§2.1).
+  **RESOLVED — ENDORSED** [execution review (2026-08-14), §2.4]: the
+  defaults-stay-written argument is right — the ruling requires the
+  state to EXIST, not to be the default, so the IPM side changes
+  nothing. Reminder unchanged and not substituted for by the verdict:
+  the iparm-surface commit still requires **Grant's human review** plus
+  the scoped tycho-side review lane.
 - **§2.3's Accelerate don't-write semantics** (documented-Apple-default
   vs explicit override + platform-split factory). Proposed: the former.
-  Reviewer rules; §9.7 records the consequence of the fallback.
+  **RESOLVED — ADOPTED as proposed** [execution review (2026-08-14),
+  §2.4]: citing Apple's own documented default (`1e-4 * eps`) is citing
+  a document, not fabricating a measurement; the rejected alternative
+  would have required a fabricated exponent. The platform-neutral
+  factory stands and the explicit-override fallback is not needed
+  (hazard 7's platform-split contingency does not fire).
 - **The `DenseSymmetricFactor` growth shape** (§6.3's evidence struct
-  vs raw accessors). Proposed: the evidence struct. Either closes the
-  gap; the review lane picks.
-- **The helper's home and name** (§3.2) — execution review approves
-  placement; phase C re-homes it regardless.
+  vs raw accessors). Proposed: the evidence struct.
+  **RESOLVED — the evidence struct** [execution review (2026-08-14),
+  §2.1]: it owns the uplo convention and exports no LAPACK internals.
+  Note that §6.3 item 2's singularity mechanic changed in the same
+  ruling — additive `try_factorize`, not a mutated `factorize`.
+- **The helper's home and name** (§3.2) — phase C re-homes it
+  regardless. **RESOLVED — APPROVED** [execution review (2026-08-14),
+  §2.4]: the `KktFactor` + three free functions shape, the
+  deliberately-not-an-adapter framing, and the `needs_analysis` probe
+  preserving `symbolic_analyses` call-site counting are all approved;
+  name and home are settled at execution review as proposed.
 - **Anything the IPM engine consumes.** Zero IPM-side change: the IPM
   keeps its explicit written values, its compatibility cache, and its
   postponed honesty-state adoption (`retarget-design.md`'s inertia
@@ -955,10 +1075,31 @@ rebuild-count change (phase B does not touch the SSN structure key —
   source is a gate-B observation to be made on real hardware; empty
   slots stay `UNOBSERVED` until then.
 - **Whether `inertia()` after a FAILED factorize reports
-  non-`kObserved`** is asserted by the header's contract but not yet
-  pinned (§7.2's noted verification item); if the execution finds
-  otherwise, the reuse conjunct is re-derived and this note amended —
-  loudly, not silently.
+  non-`kObserved`** was asserted by the header's contract but unpinned.
+  **RESOLVED — ORDERED PIN** [execution review (2026-08-14), §2.3]: a
+  reuse gate may not rest on an unpinned contract, so the pin is
+  required in `tests/linear` (or the fault-injection suite) ahead of
+  §7.2's usable-numerics conjunct. Full terms at §7.2; gate row at
+  §11.1. If the execution finds the contract does not hold, the conjunct
+  is re-derived and this note amended — loudly, not silently.
+
+### 12.1 Rulings the review settled that this section did not open
+
+[Folded per the execution review (2026-08-14), §2.4 — recorded so the
+answers are on file where the questions would otherwise have no home.]
+
+- **§4.2's rebuild-gate rewrite** (`qp_engine.h:3970`): **APPROVED** —
+  the "natively-observed `n_zero != 0`" qualifier does the work; inert
+  on MKL where the zero class is derived, and it preserves the
+  Accelerate twin's zero-pivot trust signal through the honest channel.
+- **§1's parity items**: `collect_factor_mflops = false`,
+  `ordering = kBackendDefault`-is-exact-parity-on-both-backends, and the
+  fixed-0.01 Accelerate pivot tolerance — **APPROVED**, verified against
+  the audit's SQP table and the dissolved twin's source.
+- **§2.2's act-evidence extension** of the sanctioned observer
+  deviation: **ENDORSED**, on the same terms §2.2 already states
+  (byte-identical-object proof re-run, `docs/testing.md` and `notices/`
+  updated).
 
 ## Addendum (2026-08-14): M2.5 merge — live thread-count setter
 
@@ -1024,6 +1165,14 @@ called. Flagged here because `adopt()`/`share()` are part of the same
 frozen-except-num_threads surface this note otherwise assumes throughout
 §3 and §7.
 
+**RULED — WEIGHED, INERT for phase B** [execution review (2026-08-14),
+§2.4]: the retargeted design's co-ownership is `shared_ptr<BorderState>`
+holding the `SymmetricFactor` BY VALUE, and there is no `share()` /
+`adopt()` call site anywhere in the phase-B consumer set — so the changed
+semantics cannot bite. Recorded so the question has an answer on file; if
+M5's crossover ever adopts handles across engines, this line item is the
+pointer to re-open it.
+
 **(c) Implication to be ruled on.** §1's factory sets
 `o.num_threads = 0` for exact parity with the dissolved seam (no
 per-instance thread control existed there; reproducibility today comes
@@ -1035,6 +1184,15 @@ the thread count explicitly — e.g. a pass-through
 `0` plus the env-pin is the intended and sufficient mechanism — or is
 silence (today's `o.num_threads = 0`, unchanged) still correct because
 nothing in phase B's consumer set needs to move the count at runtime?
-This note does not decide it; it is an open question for the design
-reviewer, and neither §1's factory nor §3.2's `KktFactor` sketch above
-should be read as having settled it either way.
+
+**RULED — SILENCE** [execution review (2026-08-14), §2.4]:
+`o.num_threads = 0` stays, and phase B does **not** expose a
+`KktFactor::set_num_threads` pass-through. No phase-B consumer moves the
+count at runtime; parity is phase B's law; a live mutation channel with
+zero consumers is surface without a user and would owe its own
+reproducibility story against the census discipline. The one thing the
+ruling DOES require is the explicit comment in `sqp_kkt_options()`
+recording that `0` plus the process-env pin is the intended and
+sufficient mechanism — folded into §1's factory sketch above. If a real
+consumer emerges (tycho consumption, Jet-style per-worker pinning),
+exposure is a reviewed change then, not a phase-B one.

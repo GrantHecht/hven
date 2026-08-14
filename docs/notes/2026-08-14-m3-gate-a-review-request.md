@@ -47,14 +47,21 @@ docs-only after the tag.
   mechanism-dir placement deferred to phase C where the plan's collision rule
   makes it a reviewed choice; the KktSystem trio never leaves detail/ (phase
   B dissolves it).
-- **Compile flags: sandbox-matched, NOT hven's COMPILE_FLAGS.** The origin
-  suite compiled at plain `-O3 -DNDEBUG -std=c++20` (no `-march=native`, no
-  inline-threshold, no omit-frame-pointer); every pin/baseline was derived
-  there. hven's repo-wide directory definitions
+- **Compile flags: sandbox-matched on the optimization flags, NOT purely
+  sandbox-matched.** The origin suite compiled at plain
+  `-O3 -DNDEBUG -std=c++20` (no `-march=native`, no inline-threshold, no
+  omit-frame-pointer); every pin/baseline was derived there, and the
+  migrated suite matches that. But hven's repo-wide directory definitions
   (EIGEN_INITIALIZE_MATRICES_BY_ZERO, EIGEN_DONT_PARALLELIZE,
-  FMT_USE_LOCALE=0) DO apply — same fixed environment the rig already
-  compiles the old seam under, with no row moving (testing.md). Full
-  compile-flags diff:
+  EIGEN_MAX_ALIGN_BYTES=32, FMT_USE_LOCALE=0) **DO apply to the migrated
+  suite and did NOT apply in the sandbox** — so the posture is
+  sandbox-matched-plus-those-defines, and saying "sandbox-matched" flat
+  would overstate it. What makes the difference acceptable is not the rig
+  precedent alone (the rig does compile the old seam under the same fixed
+  environment with no row moving, testing.md) but the **empirical
+  inertness proof phase A itself produced**: the full suite, float pins
+  included, and the 57-cell census are byte-identical under those
+  defines. Full compile-flags diff:
   `docs/notes/data/2026-08-14-m3-gate-a/compile-flags-diff.txt`. Question
   deferred to this review:
   whether/when the suite moves to unified flags (phase C compiles engine TUs
@@ -179,3 +186,48 @@ that at Gate B when the census re-runs anyway.
   configuration; belongs to the tycho instance's rig-derivation lane, and
   gate B's three-seam Mac/Linux legs need a ruling on how that arm is
   checked out (pinned worktree vs. re-derivation).
+
+## Review outcome (2026-08-14)
+
+The execution review (2026-08-14; the reviewer-side note
+`docs/notes/2026-08-14-m3-gate-a-and-phase-b-review.md`) returned
+**Gate A: PASS**, with the rulings below. Every ruling rests on evidence
+the reviewer re-derived independently rather than accepting on assertion.
+
+- **Census flip adjudication: ACCEPTED**, after independent
+  re-derivation — the reviewer recomputed the ratio distribution from the
+  committed CSVs (min 0.528, an exact match), re-ran a 7-column counter
+  cross-check on all mutually-`Optimal` cells with **zero** mismatches
+  (independently confirming the 56/57 byte-identity), and confirmed
+  grounds 1, 3 and 4 by direct read. Ruling: a wall-clock boundary flip
+  in the favorable direction, on a cell whose baseline asserts nothing
+  numerical; gate A's byte-identity requirement is satisfied on every
+  cell where the baseline asserts numerical content.
+- **Baseline amendment: DEFERRED to gate B, structured.**
+  `bench/baselines/2026-08-06-corpus/walk_baseline.csv` stays unchanged
+  through gate B — the flip is now pre-adjudicated and expected to
+  recur — and the amendment folds into the **declared commit that closes
+  gate B**, citing BOTH fresh rows (gate A's and gate B's) as the
+  re-derivation evidence. The amended pin therefore arrives with two
+  independent reproductions on the migrated engine, not one.
+- **Flags unification: ruled.** Engine TUs compile under library flags at
+  phase C (forced by the TU split; the per-boundary bit-identity proofs
+  are the net that catches any flag-induced movement, and a movement
+  there is a declared re-derivation, never silent). The test/bench
+  harness TUs **stay sandbox-matched indefinitely** — they are the
+  measurement instrument, and changing instrument flags buys nothing
+  while risking silent pin drift. Revisit only on a concrete need.
+- **Gate-B hygiene item recorded.** Gate-B evidence must be produced from
+  a clean configure so the provenance stamp names a real commit: gate A's
+  census binary stamped `cf65a03a77eb-dirty`. Gate A's evidence is
+  unaffected (the census content is what it is), but the stamp is not to
+  repeat.
+- **The remaining decisions above — all APPROVED as proposed**: the flat
+  `include/hven/detail/sqp/` phase-A home, bench built with the suite
+  (load-bearing, not stylistic — the WallDeadline subprocess tests need
+  the corpus binary), the Windows exclusion, and macOS watch-only until
+  gate B.
+
+The same review returned **APPROVED WITH CHANGES** on the phase-B design
+note; its three required changes and its open-item rulings are folded
+into [`docs/retarget-design-sqp.md`](../retarget-design-sqp.md).
