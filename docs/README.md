@@ -5,6 +5,7 @@ measurement records carry provenance banners.
 | --- | --- |
 | [testing.md](testing.md) | The test-seam convention, the fault-injection seam, and the golden-numerics rig — how to run it, how its tables work, what its audit proves |
 | [ci.md](ci.md) | The three CI lanes, and the route from the macOS lane to a real Accelerate observation |
+| [build.md](build.md) | The precompiled header — what it covers, the byte-identity rule for joining it — and the ccache settings it needs |
 | [counters.md](counters.md) | The operation counters and what each one means |
 | [pattern-hash.md](pattern-hash.md) | The structural key: what it hashes, and therefore what it does and does not detect |
 | [consumed-surface-audit.md](consumed-surface-audit.md) | What the two engines being migrated actually consume from the sparse backends, reconciled against the frozen option set |

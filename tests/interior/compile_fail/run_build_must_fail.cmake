@@ -33,6 +33,20 @@
 #                    compiler often repeats a phrase in explanatory NOTES
 #                    attached to the authored diagnostic, and forbidding those
 #                    would forbid the diagnostic explaining itself.
+#   EXPECT_SINGLE_ERROR — OPTIONAL, opt-in per probe (ON/OFF, default OFF).
+#                    A stronger check than FORBIDDEN_REGEX: counts every
+#                    `error:`-severity diagnostic in the build log and fails
+#                    the probe if there is more than one. FORBIDDEN_REGEX only
+#                    rules out one specific raw diagnostic; a probe can still
+#                    leak a *different* second error the author never
+#                    anticipated and pass anyway. This check is opt-in, not
+#                    default-on, because it is only valid for a probe whose
+#                    author has actually verified the build log carries
+#                    exactly one authored `error:` and no legitimate second
+#                    one (a probe that intentionally triggers two independent
+#                    authored diagnostics, or whose compiler emits an
+#                    `error:`-severity note for unrelated reasons, would be
+#                    broken by defaulting this on).
 # =============================================================================
 
 if(NOT DEFINED BINARY_DIR)
@@ -43,6 +57,9 @@ if(NOT DEFINED TARGET)
 endif()
 if(NOT DEFINED CONFIG)
     set(CONFIG "")
+endif()
+if(NOT DEFINED EXPECT_SINGLE_ERROR)
+    set(EXPECT_SINGLE_ERROR OFF)
 endif()
 if(NOT DEFINED EXPECTED_REGEX OR EXPECTED_REGEX STREQUAL "")
     message(FATAL_ERROR
@@ -99,6 +116,21 @@ if(DEFINED FORBIDDEN_REGEX AND NOT FORBIDDEN_REGEX STREQUAL "")
             "diagnostic was supposed to be the only output: something behind "
             "the failed check still got instantiated, and the raw compiler "
             "errors from it are riding along with the authored message.")
+    endif()
+endif()
+
+if(EXPECT_SINGLE_ERROR)
+    string(REGEX MATCHALL "error:" _error_hits "${_combined}")
+    list(LENGTH _error_hits _error_count)
+    if(_error_count GREATER 1)
+        message("--- build STDOUT ---\n${_out}")
+        message("--- build STDERR ---\n${_err}")
+        message(FATAL_ERROR
+            "Compile-fail probe target '${TARGET}' declared EXPECT_SINGLE_ERROR "
+            "but the build log carries ${_error_count} 'error:'-severity "
+            "diagnostics, not one.  This probe's contract is a single authored "
+            "error; a second one (even if unrelated to FORBIDDEN_REGEX) means "
+            "something beyond the intended check is also failing to compile.")
     endif()
 endif()
 

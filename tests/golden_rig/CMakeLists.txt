@@ -73,7 +73,17 @@ set(HVEN_RIG_SQP_SEAM_COMMIT "4faa1df116da53c9dc68f36635c118f52d39d2b9")
 #            is a git repository; both the commit AND the cleanliness of the
 #            consumed linear/ tree are checked -- see the verification block
 #            below for why a HEAD match alone is not enough.
-set(HVEN_RIG_PSIOPT_SEAM_COMMIT "060ad2138a373bacd9d1ba2daabd6b503a9a6fb1")
+#
+#   Re-pinned 2026-08-13 (hven M2.5, Task 2) from 060ad2138a373b... to tycho
+#   main's current HEAD below. This was NOT a blind bump: before moving the
+#   pin, `git diff 060ad2138a373bacd9d1ba2daabd6b503a9a6fb1..main --stat --
+#   psiopt/` was run against the tycho checkout and returned EMPTY -- the
+#   frozen psiopt/ tree (including the consumed linear/ headers this pin's
+#   expected tables were derived against) is byte-identical between the old
+#   pin and this new one, so no re-derivation of the psiopt-old expected
+#   tables was needed. Re-pinning past a commit range with a non-empty diff
+#   there would require re-deriving those tables first.
+set(HVEN_RIG_PSIOPT_SEAM_COMMIT "5b5dc736c238b285915507c3677d7952227c0d1b")
 
 find_package(Git QUIET)
 

@@ -63,11 +63,29 @@ class KktFactorization {
     /// Point the factor at a (possibly new) thread count, so a thread setting
     /// changed after the last reconfigure() still governs the backend calls.
     ///
-    /// Returns true iff the count actually changed, which forces the factor to
-    /// be rebuilt and therefore DROPS the symbolic analysis -- the caller owns
-    /// arranging for the next factorization to re-analyze. An unchanged count
-    /// is a no-op and returns false, so the common path costs nothing.
-    bool set_num_threads(int num_threads);
+    /// Costs nothing beyond the store: the linear surface applies the count
+    /// per backend call, so moving it keeps the backend session, the symbolic
+    /// analysis and the current numerics -- a solve that follows needs no
+    /// re-analysis. Throws std::invalid_argument for a negative count, which
+    /// is the linear surface's own rule.
+    ///
+    /// NOTE the deliberate asymmetry with `opts_.cnr_threads`: this setter
+    /// refreshes `opts_.num_threads` on every solve entry (see the engine's
+    /// run_phase_sequence() call site), but nothing analogous refreshes
+    /// `cnr_threads` -- it is set exactly once, in set_qp_params() at
+    /// transcribe time, and reconfigure() is the only thing that can move it
+    /// afterward. This is fidelity-preserving, not an oversight: the
+    /// pre-migration engine never re-derived CNR thread count outside of
+    /// transcription either, so a mid-life qp_threads_ change under CNR mode
+    /// (cnr_mode_ == true) leaves `cnr_threads` at whatever value was
+    /// configured at the last transcribe, even though `num_threads` itself
+    /// tracks the new setting immediately. Reproducibility-mode threading and
+    /// ordinary solve threading are intentionally on different refresh
+    /// cadences here -- and, unlike `num_threads`, `cnr_threads` genuinely IS
+    /// baked into the session (it is a parameter-array entry the symbolic
+    /// phase reads), so it could not be moved live even if the engine wanted
+    /// to.
+    void set_num_threads(int num_threads);
 
     /// The thread count the factor is currently configured with.
     int num_threads() const { return opts_.num_threads; }
