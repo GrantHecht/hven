@@ -111,17 +111,17 @@ touched: the seam never writes `iparm[1]`, `[9]`, `[10]`, `[12]`,
 | `SymmetricFactor::Options` member | Value for parity | Grounding and exact effect |
 | --- | --- | --- |
 | `kind` | `FactorKind::kLDLT` | `KktSystem` is mtype = -2 on MKL (`kkt_system.h:92`) and `SparseFactorizationLDLTTPP` on Accelerate (`kkt_system_accelerate.h:132`); hven's kLDLT is exactly this pair. |
-| `num_threads` | `0` (backend default) | The seam has no per-instance thread control anywhere (audit, `consumed-surface-audit.md:59-75`: no thread rows for this seam); asserted runs pin threads process-wide via `MKL_NUM_THREADS=1` (the docket's own provenance stamp records `process-global=1`), and that test-side env-pin discipline continues unchanged. `0` leaves the backend default alone (`symmetric_factor.h:247-253`) — exact act parity. |
+| `num_threads` | `0` (backend default) | The seam has no per-instance thread control anywhere (audit, `consumed-surface-audit.md:59-75`: no thread rows for this seam); asserted runs pin threads process-wide via `MKL_NUM_THREADS=1` (the docket's own provenance stamp records `process-global=1`), and that test-side env-pin discipline continues unchanged. `0` leaves the backend default alone (`symmetric_factor.h:247-260`) — exact act parity. |
 | `pivot_perturb_exp` | **the NEW don't-write state** (§2) | Never wrote `iparm[9]`; effective exponent is `pardisoinit`'s (13 on the audited build — canary, §2.4). hven today writes it unconditionally (`pardiso_session.cpp:234-236`), so the state must be grown first. |
 | `max_refinement_iters` | **the NEW don't-write state** (§2) | Never wrote `iparm[7]` except the phase-33x save/zero/restore (`kkt_system.h:327-335`), which §5 dissolves; effective FULL-solve cap is `pardisoinit`'s (2 on the audited build, observed by the audit's runtime shim, `consumed-surface-audit.md:145-151`). The census pins depend on that effective cap — the refinement-default parity carry closes here. |
-| `ordering` | `Ordering::kBackendDefault` | Never wrote `iparm[1]` — don't-write is EXACT ACT parity, unlike the IPM's explicit METIS. On Accelerate the twin requests `SparseOrderDefault` (`kkt_system_accelerate.h:348`), which is literally what hven passes at `kBackendDefault` (`symmetric_factor.h:270-275`) — exact parity there too, so the IPM's Accelerate-ordering migration hazard (`symmetric_factor.h:289-293`) does NOT apply to this seam. |
-| `weighted_matching` | `false` | Never wrote `iparm[12]`; `false` writes nothing (`symmetric_factor.h:302-312`). Also keeps `supports_partial_solve()`'s matching conjunct inert (§5). |
-| `matrix_scaling` | `false` | Never wrote `iparm[10]`; `false` writes nothing (`symmetric_factor.h:314-339`). |
-| `pivot_strategy` | `PivotStrategy::kBackendDefault` | Never wrote `iparm[20]`; `kBackendDefault` writes nothing (`symmetric_factor.h:341-382`). |
-| `factorization_algorithm` | `FactorizationAlgorithm::kBackendDefault` | Never wrote `iparm[23]` (`symmetric_factor.h:384-408`). |
-| `solve_parallelism` | `SolveParallelism::kBackendDefault` | Never wrote `iparm[24]` (`symmetric_factor.h:410-458`). |
-| `cnr_threads` | `0` | Never wrote `iparm[33]`; `0` writes nothing (`symmetric_factor.h:460-492`). |
-| `collect_factor_mflops` | `false` | The seam never reads `iparm[18]`/`iparm[17]` (audit read rows: `iparm[7]` — the phase-33x save half — plus `iparm[13]/[21]/[22]`; no factor-size or cost row) and reports no factor size or cost anywhere; `false` requests nothing (`symmetric_factor.h:494-531`). |
+| `ordering` | `Ordering::kBackendDefault` | Never wrote `iparm[1]` — don't-write is EXACT ACT parity, unlike the IPM's explicit METIS. On Accelerate the twin requests `SparseOrderDefault` (`kkt_system_accelerate.h:348`), which is literally what hven passes at `kBackendDefault` (`symmetric_factor.h:277-282`) — exact parity there too, so the IPM's Accelerate-ordering migration hazard (`symmetric_factor.h:296-300`) does NOT apply to this seam. |
+| `weighted_matching` | `false` | Never wrote `iparm[12]`; `false` writes nothing (`symmetric_factor.h:309-319`). Also keeps `supports_partial_solve()`'s matching conjunct inert (§5). |
+| `matrix_scaling` | `false` | Never wrote `iparm[10]`; `false` writes nothing (`symmetric_factor.h:321-346`). |
+| `pivot_strategy` | `PivotStrategy::kBackendDefault` | Never wrote `iparm[20]`; `kBackendDefault` writes nothing (`symmetric_factor.h:348-389`). |
+| `factorization_algorithm` | `FactorizationAlgorithm::kBackendDefault` | Never wrote `iparm[23]` (`symmetric_factor.h:391-415`). |
+| `solve_parallelism` | `SolveParallelism::kBackendDefault` | Never wrote `iparm[24]` (`symmetric_factor.h:417-465`). |
+| `cnr_threads` | `0` | Never wrote `iparm[33]`; `0` writes nothing (`symmetric_factor.h:467-499`). |
+| `collect_factor_mflops` | `false` | The seam never reads `iparm[18]`/`iparm[17]` (audit read rows: `iparm[7]` — the phase-33x save half — plus `iparm[13]/[21]/[22]`; no factor-size or cost row) and reports no factor size or cost anywhere; `false` requests nothing (`symmetric_factor.h:501-538`). |
 | `accelerate_zero_tolerance` | `std::nullopt`, **given §2.3's Accelerate semantics for the pivot-exponent don't-write state** | The twin writes Apple's own documented default `1e-4 * eps` (`kkt_system_accelerate.h:383-393`, whose comment says exactly that it restates the documented default). With §2.3, don't-write on Accelerate supplies precisely that value, so no override is needed and one platform-neutral factory serves both backends. If the reviewer rejects §2.3, the fallback is an explicit Accelerate-only `accelerate_zero_tolerance = 1e-4 * std::numeric_limits<double>::epsilon()` (the IPM's own mapping shape, `retarget-design.md` row 13) in a platform-split factory. |
 
 The Accelerate pivot tolerance needs nothing: the twin writes the fixed
@@ -167,7 +167,7 @@ Arguments, in order of weight:
   standing for nothing Pardiso documents for these entries.
 - **The surface already has the optional-means-don't-write precedent**:
   `accelerate_zero_tolerance` is `std::optional<double>` with `nullopt`
-  = don't-write (`symmetric_factor.h:533-544`), and the session's own
+  = don't-write (`symmetric_factor.h:540-551`), and the session's own
   internal config already models every don't-write enum as an optional
   (`pardiso_session.cpp:237-262,283-309`: `cfg_.ordering.has_value()`
   etc.). The public mechanic converges with the internal one.
@@ -258,7 +258,7 @@ two entries this seam's parity rests on.
 
 `KktSystem` appears in exactly four ownership positions, all of which
 become a `SymmetricFactor` (move-only, like the class it replaces —
-`symmetric_factor.h:590-595`; `kkt_system.h:39-42`) constructed from
+`symmetric_factor.h:597-602`; `kkt_system.h:39-42`) constructed from
 `sqp_kkt_options()`:
 
 | Owner | Site | Notes |
@@ -276,7 +276,7 @@ same type (`Eigen::SparseMatrix<double, Eigen::RowMajor>`,
 `include/hven/detail/sqp/types.h:12`; `include/hven/core/types.h:44`),
 so matrices flow into `analyze()`/`factorize()` with no conversion. The
 structural-diagonal requirement `analyze()` validates
-(`symmetric_factor.h:29-32,599-609`) is satisfied by construction:
+(`symmetric_factor.h:29-32,660-670`) is satisfied by construction:
 every K this engine builds emits its diagonal unconditionally, value
 zero or not (`kkt_assembly.h:188,204,221`; `ssn_engine.h:2927-2946`,
 the `for_each_entry` walk).
@@ -290,7 +290,7 @@ symbolic_analyses` is counted at the call sites by probing
 `pattern_matches` BEFORE `factorize()` (`types.h:269-286`;
 `qp_engine.h:4509-4516`; `ssn_engine.h:2154-2156,2512-2514`). hven's
 contract is deliberately different: `factorize()` NEVER re-analyzes and
-throws on a foreign pattern (`symmetric_factor.h:611-622`), and
+throws on a foreign pattern (`symmetric_factor.h:672-683`), and
 `SymmetricFactor` exposes no `pattern_matches` probe.
 
 The retarget therefore carries the decision to the consumer side, as a
@@ -355,7 +355,7 @@ only, e.g. `tests/sqp/test_ssn_engine.cpp:224,2065,2840`), and §11
 records the residual exposure for the gate.
 
 `analyze()` failures already throw on both sides
-(`kkt_system.h:284` via `run_phase`; `symmetric_factor.h:599-609`) —
+(`kkt_system.h:284` via `run_phase`; `symmetric_factor.h:660-670`) —
 no mapping needed. The Accelerate twin's factorize-throws-on-singular
 behavior (`kkt_system_accelerate.h:402-415`) maps onto the same
 `kBackendError`-to-throw conversion; the status code text changes
@@ -375,7 +375,7 @@ release-path audit this closes is §4.4.
 This is where M3 deliberately differs from M2: no compatibility cache,
 no integer projection. The verdict consumers are rewritten to consume
 `hven::linear::InertiaEvidence` (`symmetric_factor.h:100-123`), read
-via `SymmetricFactor::inertia()` (`symmetric_factor.h:680-684`), and
+via `SymmetricFactor::inertia()` (`symmetric_factor.h:741-745`), and
 the compiler enforces the classification the amended docket's
 consequence 1 demands: once the type carries the state, no call site
 can skip the question.
@@ -495,7 +495,7 @@ hand-search of this tree:
 - Conclusion: **no call site relies on a stale read.** The window
   defect itself is closed structurally by the retarget: hven's
   `inertia()` reports `kUnavailable` until THIS engine's factorization
-  exists (`symmetric_factor.h:680-684`), and the false-before-
+  exists (`symmetric_factor.h:741-745`), and the false-before-
   factorization contract is PINNED at hven
   (`tests/linear/test_symmetric_factor.cpp:470`,
   `SupportsPartialSolveIsFalseBeforeAFactorization` — analyze-then-read
@@ -506,7 +506,7 @@ hand-search of this tree:
 
 | Old operation | hven operation |
 | --- | --- |
-| `KktSystem::solve(rhs)` — Pardiso phase 33 (`kkt_system.h:300-313`) / Accelerate `SparseSolve` (`kkt_system_accelerate.h:429-452`) | pre-size `x`, `factor.solve(rhs, x)` (`symmetric_factor.h:629-645`); `solve_vec` keeps the Vec-returning call shape |
+| `KktSystem::solve(rhs)` — Pardiso phase 33 (`kkt_system.h:300-313`) / Accelerate `SparseSolve` (`kkt_system_accelerate.h:429-452`) | pre-size `x`, `factor.solve(rhs, x)` (`symmetric_factor.h:690-706`); `solve_vec` keeps the Vec-returning call shape |
 | `solve_forward` — phase 331 / `SparseSubfactorL` | `solve_partial(SolvePhase::kForward, rhs, x)` |
 | `solve_diagonal` — phase 332 / `SparseSubfactorD` | `solve_partial(SolvePhase::kDiagonal, rhs, x)` |
 | `solve_backward` — phase 333 / `SparseSubfactorL` transposed | `solve_partial(SolvePhase::kBackward, rhs, x)` |
@@ -516,7 +516,7 @@ audit's runtime shim independently re-found
 (`consumed-surface-audit.md:123-156`; source: `kkt_system.h:104-108,
 327-335`) is subsumed by `solve_partial()`'s contract: refinement is
 forced off for every partial solve regardless of the configured cap
-(`symmetric_factor.h:647-659`; implementation
+(`symmetric_factor.h:708-720`; implementation
 `pardiso_session.cpp:455-459` — the identical save/zero/call/restore,
 now inside the session where no caller can get it wrong). Callers must
 not mutate anything around `solve_partial()` — there is nothing left to
@@ -526,7 +526,7 @@ mutate.
 `active_ && num_perturbed_pivots() == 0` (`kkt_system.h:78`) on MKL and
 hardwired `false` on Accelerate (`kkt_system_accelerate.h:100`,
 measured divergence, not caution). hven's predicate
-(`symmetric_factor.h:661-678`): false before a successful
+(`symmetric_factor.h:722-739`): false before a successful
 factorization, false without usable numerics, false on any perturbed
 pivot (MKL), false under active matching (inert here —
 `weighted_matching = false`), false always on Accelerate (no
@@ -681,7 +681,7 @@ triple through `HotState`:
   proposed.
 - `BorderState::generation` and `border_generation_` are deleted;
   `rebuild_k0` no longer stamps anything — `factorize()` advancing the
-  epoch (`symmetric_factor.h:708-719`) IS the stamp, and `analyze()`
+  epoch (`symmetric_factor.h:769-780`) IS the stamp, and `analyze()`
   moving the session id covers the pattern-rebuild case.
 
 ### 7.2 The one semantic gap the mapping opens, and its closure
@@ -690,10 +690,10 @@ triple through `HotState`:
 bump-before-mutate is deliberate defense (`qp_engine.h:4489-4506`) — so
 a FAILED rebuild on a shared object leaves every other holder's (e)
 mismatching. The epoch, by contrast, does NOT advance on a failed
-factorize (`symmetric_factor.h:710-712`): after another holder's failed
+factorize (`symmetric_factor.h:771-773`): after another holder's failed
 rebuild, a stale holder's `(session_id, epoch)` can still MATCH an
 object whose numerics are invalidated (solves throw until a
-factorization succeeds, `symmetric_factor.h:619-621`). Reuse would then
+factorization succeeds, `symmetric_factor.h:680-682`). Reuse would then
 throw where today it detaches and rebuilds gracefully. Closure: the
 reuse gate gains a usable-numerics conjunct —
 `border_->kkt.factor.inertia().state == InertiaEvidence::State::kObserved`
@@ -702,7 +702,7 @@ happened. This is the same evidence read §4.2's rebuild gate already
 performs, costs one struct copy, and restores detach-on-mismatch as the
 failure mode. (Open verification item for execution: pin that
 `inertia()` reports non-`kObserved` after a FAILED factorize —
-`symmetric_factor.h:680-684` states the not-factorized and stale-adopt
+`symmetric_factor.h:741-745` states the not-factorized and stale-adopt
 cases explicitly; the failed-factorize case follows from
 "invalidates the current numerics" but has no dedicated pin today.)
 
@@ -818,13 +818,13 @@ rows do not surface them. Every construction line, named:
 3. **`factorize()` never auto-analyzes at hven.** Any call site that
    bypasses `factorize_checked` and calls `factor.factorize(K)` after a
    pattern change gets a THROWN `std::invalid_argument`
-   (`symmetric_factor.h:614-618`) where the old seam silently
+   (`symmetric_factor.h:675-679`) where the old seam silently
    re-analyzed. The helper is the contract; the compile break from the
    type change is what forces every site through it.
 4. **`SymmetricFactor::Counters` are NOT the census counters.**
    `QpCounters::factorizations`/`symbolic_analyses` stay counted at the
    call sites (`types.h:269-286`) — moving them onto the factor's own
-   counters (`symmetric_factor.h:561-584`) would change per-instance
+   counters (`symmetric_factor.h:568-591`) would change per-instance
    scoping (fresh `KktFactor` locals restart at zero) and is not
    attempted in phase B.
 5. **Throw-type discrimination in border fallback.** The
@@ -842,7 +842,7 @@ rows do not surface them. Every construction line, named:
    (§1) is platform-neutral only under §2.3's ruling; if the reviewer
    picks the explicit-override fallback, the factory must be
    platform-split, because a present `accelerate_zero_tolerance` throws
-   on MKL (`symmetric_factor.h:538-544`).
+   on MKL (`symmetric_factor.h:545-551`).
 
 ## 10. New and migrated tests phase B adds
 
@@ -959,3 +959,82 @@ rebuild-count change (phase B does not touch the SSN structure key —
   pinned (§7.2's noted verification item); if the execution finds
   otherwise, the reuse conjunct is re-derived and this note amended —
   loudly, not silently.
+
+## Addendum (2026-08-14): M2.5 merge — live thread-count setter
+
+**(a) What landed.** M2.5 (merged into this branch as `8d078ed`) added a
+live thread-count setter to `SymmetricFactor` — the one field on
+`Options` this note otherwise treats as frozen at construction (§1's
+`num_threads` row, §9 item 7's construction-throws discussion) is no
+longer the whole story:
+
+```cpp
+void set_num_threads(int num_threads);          // symmetric_factor.h:645
+int num_threads() const noexcept { return opts_.num_threads; }
+                                                  // symmetric_factor.h:656
+```
+
+Contract, as encoded by the new tests (`tests/linear/
+test_symmetric_factor.cpp:616` `ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics`,
+`:663` `AThreadCountSetBeforeAnalyzeIsCarriedIntoTheSession`, `:682`
+`ANegativeThreadCountIsRejectedAndChangesNothing`; `tests/interior/
+test_kkt_factorization.cpp:150` `SettingTheSameThreadCountKeepsTheAnalysis`,
+`:160` `ChangingTheThreadCountKeepsTheAnalysisToo`):
+
+- **Kept, not invalidated:** the symbolic analysis (`analyze_count` does
+  not move), the backend session (`session_id()` unchanged), and the
+  current numerics/epoch (`epoch()` unchanged, and a subsequent
+  `factorize()`/`refactorize()` needs no re-analysis). Nothing about the
+  call is observable as a re-analysis or a new session — the test suite's
+  proof is exactly that the counters and identity triple stay put while
+  the count moves.
+- **What actually moves:** the count takes effect from the NEXT backend
+  call — MKL updates the live session's stored config in place
+  (`session_->set_num_threads(...)`, `symmetric_factor_mkl.cpp`), so a
+  call in flight or already issued is unaffected and the following one
+  picks up the new value. On Accelerate the value is stored and applied
+  to nothing (best-effort-absent, the same treatment
+  `Options::num_threads` itself already has on that backend).
+- **Before the first `analyze()`:** the setter still has somewhere to
+  put the count — `opts_` — and the next `analyze()` builds its session
+  from that stored value.
+- **Rejection:** a negative count throws `std::invalid_argument` (the
+  constructor's own rule, reused via a shared `validate_num_threads`
+  helper), validated BEFORE anything is mutated, so a rejected call
+  leaves the engine exactly as it was.
+- **Shared sessions:** per the header's own SHARING/THREAD SAFETY notes,
+  the count belongs to the session, not to one co-owning `SymmetricFactor`
+  — a change governs every co-owner's subsequent calls on that session,
+  and is the caller's to serialize against concurrent calls, the same
+  rule that already covers solves across co-owners.
+
+**(b) Substance-changed declarations found.** None of the citations
+corrected in the refresh above point to a declaration whose contract
+changed — the drift was line-number movement caused by the setter's
+insertion, not a meaning change at any cited site. One declaration in
+the M2.5 diff DID change in substance but is not cited anywhere in this
+note by line number, so no citation needed rewriting: `adopt()`'s doc
+comment (`symmetric_factor.h:815-823`) changed from "the adopting engine
+inherits the emitting engine's Options" to "takes its Options from the
+SESSION, not from the emitting engine" — because `num_threads` can now
+move on a live session after a handle is emitted, an adopter receives
+whatever count is in force NOW, which may differ from the count the
+session was analyzed with or the count in force when `share()` was
+called. Flagged here because `adopt()`/`share()` are part of the same
+frozen-except-num_threads surface this note otherwise assumes throughout
+§3 and §7.
+
+**(c) Implication to be ruled on.** §1's factory sets
+`o.num_threads = 0` for exact parity with the dissolved seam (no
+per-instance thread control existed there; reproducibility today comes
+from the test-side `MKL_NUM_THREADS=1` process-wide pin, unaffected by
+any of this). Now that a live setter exists on the surface `KktFactor`
+(§3.2) wraps, should `KktFactor` or `sqp_kkt_options()` expose or pin
+the thread count explicitly — e.g. a pass-through
+`KktFactor::set_num_threads()`, or an explicit comment recording that
+`0` plus the env-pin is the intended and sufficient mechanism — or is
+silence (today's `o.num_threads = 0`, unchanged) still correct because
+nothing in phase B's consumer set needs to move the count at runtime?
+This note does not decide it; it is an open question for the design
+reviewer, and neither §1's factory nor §3.2's `KktFactor` sketch above
+should be read as having settled it either way.
