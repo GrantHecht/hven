@@ -1029,6 +1029,9 @@ reassociation has nothing to act on when there is only one operation, so
 there is no plausible hazard to future-proof against; stays at its current
 tolerance.
 
+Line numbers below are as of the disposition commit and drift as comments
+are added; locate a site by its quoted expression when they disagree.
+
 | Site | Current tol | Class | Disposition | Reason |
 | --- | --- | --- | --- | --- |
 | `test_nlp_adapter.cpp:239` (`val`) | 1e-14 | (b) | **widened to 1e-12** | `sigma * (x0*x0 + x1*x1)`: sum of two products, reassociation-plausible under `-ffast-math`. |
@@ -1053,12 +1056,12 @@ tolerance.
 | `test_nlp_adapter.cpp:436,437` (`FXI[0]`,`FXI[1]`) | 1e-14 | (c) | kept exact | Single subtraction, duplicated verbatim from the fixture's own `eval_g`. |
 | `test_nlp_adapter.cpp:443,444` (`kkt.coeff(...)` vs `1.0`/`-1.0`) | 1e-14 | (c) | kept exact | Bare-literal Range-row Jacobian scatter (single claim, single negation). |
 | `test_nlp_adapter.cpp:447` (`kkt.coeff(0,0)` vs `LI[0]-LI[1]`) | 1e-14 | (c) | kept exact | Single subtraction via `compose_user_lambda`'s `Range` case. |
-| `test_l1_restoration.cpp:380` (`primal_boundary_alpha`) | 1e-14 | (b) | **widened to 1e-12** | Tau-cap formula duplicated between the test's `L1RestoTauCap` and production `l1resto_tau_cap`, compiled in separate translation units under this build's default `-ffast-math` — same class as the already-fixed `TrialResidualShiftIsAlphaBlendedSlackDifference` sibling two tests below. |
-| `test_l1_restoration.cpp:381` (`dual_boundary_alpha`) | 1e-14 | (b) | **widened to 1e-12** | Same as 380. |
+| `test_l1_restoration.cpp` (`primal_boundary_alpha`) | 1e-14 | (c) | kept exact | Re-adjudicated at the milestone's final review: the tau-cap formula (`min(alpha, -tau*v/dv)`) is a single multiply/divide chain with NO summed terms — reassociation has nothing to act on, so it is class (c) by this standard's own definition. The TU-duplication argument applies only where a sum/FMA shape exists (the alpha-blend sibling has one; this does not). Initially widened, reverted for consistency with the rule the other 20 kept sites were held to. |
+| `test_l1_restoration.cpp` (`dual_boundary_alpha`) | 1e-14 | (c) | kept exact | Same re-adjudication as `primal_boundary_alpha`. |
 | `test_nlp_solver.cpp:371` (`return_multipliers()[0]` vs `0.0`) | 1e-14 | (c) | kept exact | A dropped (`Free`-kind) row's multiplier is hardcoded to the literal `0.0` in `compose_user_lambda` (`src/model/nlp_adapter.cpp`) — never touched by any solve arithmetic. |
 
-**Totals: 30 sites audited, 10 widened to `1e-12`, 20 kept at their current
-tolerance (0 bit-identity pins in this inventory; all 20 kept sites are class
+**Totals: 30 sites audited, 8 widened to `1e-12`, 22 kept at their current
+tolerance (0 bit-identity pins in this inventory; all 22 kept sites are class
 (c) exact-by-construction).** Every widening is test-only — no engine source
 changed. Applied in one commit; see that commit's message for the exact
 diff. If a future CI run flags one of the 20 kept sites, the same

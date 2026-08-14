@@ -377,16 +377,13 @@ TEST(L1RestoFractionToBoundary, PrimalAndDualCapsMatchTauRule) {
     dvd << r.ec_dzn(), r.ec_dzp();
     const double expected_dual = L1RestoTauCap(vd, dvd, tau);
 
-    // 1e-12, not 1e-14 -- hven M2.5 Task 3 tight-tolerance audit: the tau-cap
-    // formula is duplicated verbatim between this file's L1RestoTauCap and the
-    // production l1resto_tau_cap, but the two compile in separate translation
-    // units under this build's default -ffast-math (HVEN_FP_MODE=SAFER_FAST),
-    // which permits per-call-site reassociation -- the same class this file's
-    // TrialResidualShiftIsAlphaBlendedSlackDifference test already hit on CI
-    // (see its comment below). See docs/testing.md "Tight absolute-tolerance
-    // sites" for the full site disposition.
-    EXPECT_NEAR(r.primal_boundary_alpha(tau), expected_primal, 1e-12);
-    EXPECT_NEAR(r.dual_boundary_alpha(tau), expected_dual, 1e-12);
+    // Kept at 1e-14: the tau-cap formula is a single multiply/divide chain
+    // with no summed terms, so it is exact-by-construction under this
+    // disposition's own classification (docs/testing.md, "Tight
+    // absolute-tolerance sites"). If a runner ever trips these at 1e-14,
+    // re-adjudicate with that evidence rather than pre-widening.
+    EXPECT_NEAR(r.primal_boundary_alpha(tau), expected_primal, 1e-14);
+    EXPECT_NEAR(r.dual_boundary_alpha(tau), expected_dual, 1e-14);
 
     // With rho = 1e3 the primal step Delta n is strongly negative, so the primal
     // cap must actually bind below 1 (exercises the tau rule, not just the 1.0
