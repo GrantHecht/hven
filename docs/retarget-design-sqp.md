@@ -1010,6 +1010,8 @@ Anything old-vs-new not on this list blocks gate B.
 | Pre-factorization / post-release inertia: fabricated zero / stale triple → explicit `kUnavailable` routed as `kSuspect` (§4.1, §4.4) | amended docket `sqp-inertia-before-factorization`; the golden P5 rows keep recording the OLD seam's answer (`tests/golden_rig/expected/P5.csv`), and the rig adapter stays unsmoothed |
 | kHot reuse key gains the session/epoch conjunct, drops `generation` (§7) | plan §4.3/§9; no counter expected to move; declared pin-review if any does |
 | Namespace/include paths; backend-error MESSAGE TEXT (`"pardiso phase 22 failed: error N"` → hven-authored, backend code preserved) reaching `escape_detail` (§3.3) | mechanical; no pin or census row asserts the old text (verified §3.3) — if gate B finds one, it is a declared re-derivation, not a silent break |
+| Dense-border can't-happen throw types: `std::invalid_argument` → `std::runtime_error` for dsytrs `info != 0` and dsytrf illegal-argument (`src/linear/dense_symmetric_factor.cpp`) | both throw paths are unreachable with valid state (LAPACK contract: `info != 0`/illegal-argument cannot fire on well-formed input); no test pins the old exception type; the predictor's degradation net catches `std::exception` by phase for exactly this reason, so the type change is not observable through that consumer [added at B4 fix round, per task review I-1] |
+| `SymmetricFactor::analyze()` validates the structural diagonal that the dissolved seam forwarded to the backend unvalidated: a pattern missing a diagonal entry is now rejected at analyze time instead of reaching Pardiso/Accelerate | unreachable from engine assemblies, which emit the diagonal unconditionally (§3.1); reachable only from hand-built matrices — five test fixtures needed an explicit zero diagonal added to stay valid; solver behavior on well-formed input (the diagonal always present) is unchanged, no counter moves [added at B4 fix round, per task review I-1] |
 
 Explicitly NOT licensed: any float, counter, status, or census delta
 not named above — including any refinement-cap effect change (§2's
@@ -1040,7 +1042,7 @@ duplicated — each row points at the section that owns it.]
   any movement is a gate-blocking unlicensed delta, and the Mac leg
   re-verifies the per-backend arms. This is an explicit gate-blocking
   item, not a note (§4.1's fold; review §2.2).
-- **The §11 ledger's four rows and nothing else** — any old-vs-new
+- **The §11 ledger's six rows and nothing else** — any old-vs-new
   difference not on that list blocks the gate.
 - **Clean-configure provenance stamps** on every gate-B artifact, so the
   stamp names a real commit (gate A's census stamp read
