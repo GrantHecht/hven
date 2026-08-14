@@ -109,6 +109,12 @@ set(HVEN_TEST_SOURCES
     core/test_sparse_backend_link.cpp
     core/test_pattern_hash.cpp
     linear/test_dense_symmetric_factor.cpp
+    # The dense factor's phase-B growth (Triangle, try_factorize, block
+    # evidence), in its own file rather than appended to the suite above:
+    # that suite is the frozen witness that the pre-growth contract did not
+    # move, so it stays byte-for-byte untouched by the change that grew the
+    # surface.
+    linear/test_dense_symmetric_factor_growth.cpp
     # Evidence-honesty invariants written once against the public API and
     # checked on whichever backend this build targets -- see
     # docs/testing.md and the file's own header comment. Deliberately NOT
