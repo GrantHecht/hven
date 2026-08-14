@@ -192,7 +192,7 @@ struct PardisoIparmObserver {
     // the same deviation for the same reason: they are the entries the
     // max_refinement_iters / pivot_perturb_exp don't-write states inherit,
     // and the load-bearing BackendDefaultPremise canary pinning their
-    // pardisoinit defaults (2 / 13 on the audited MKL) can only be fed
+    // pardisoinit defaults (2 / 8 on the audited MKL) can only be fed
     // from this capture point. `post_pardisoinit_recorded` is a separate
     // flag from `recorded` above: the two are set at different lines (this
     // one right after pardisoinit(), the other at the very end of
@@ -272,7 +272,7 @@ struct PardisoIparmObserver {
     // The same did-the-write-execute pair for the two writes the
     // don't-write-state amendment turned conditional: max_refinement_iters
     // (iparm[7]) and pivot_perturb_exp (iparm[9]). Unlike every knob above,
-    // these two default to WRITTEN (8 / 0 -- see their Options doc
+    // these two default to WRITTEN (0 / 8 -- see their Options doc
     // comments), so the default-Options act pin asserts the flags TRUE with
     // the exact legacy values -- that is the byte-identity proof that a
     // default-constructed Options still performs the identical writes the

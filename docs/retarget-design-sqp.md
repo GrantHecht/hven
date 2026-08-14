@@ -14,7 +14,8 @@
 >    audited MKL the effective values the seam actually runs under are
 >    `pardisoinit`'s own — refinement cap **2** (the audit's runtime shim
 >    observed it: `consumed-surface-audit.md:145-151`) and pivot exponent
->    **13** — so mapping `max_refinement_iters = 0` would CHANGE the
+>    **8** (corrected from this note's original 13; see the §2.4
+>    amendment) — so mapping `max_refinement_iters = 0` would CHANGE the
 >    engine's effective refinement and break the 57-cell census. Both
 >    options grow an explicit don't-write state (§2 below proposes the
 >    mechanic), guarded by a `pardisoinit`-defaults canary in the same
@@ -262,9 +263,14 @@ canary's own first run falsified it: the post-`pardisoinit` capture observes
 **8** on the linked MKL (oneAPI 2026.1, mtype = -2), a standalone
 `pardisoinit()` probe outside hven's session code confirms 8 (and reproduces
 13 only for mtype = 11), Intel's oneMKL Developer Reference documents 13 as
-the NONSYMMETRIC default and 8 for symmetric indefinite matrices, and the
-repo's own prior records (`docs/retarget-design.md`'s `pivot_perturb_exp`
-row; `consumed-surface-audit.md:87-90`) already recorded 8. The original 13
+the NONSYMMETRIC default and 8 for symmetric indefinite matrices. The repo's
+own prior records (`docs/retarget-design.md`'s `pivot_perturb_exp` row;
+`consumed-surface-audit.md:87-90`) already recorded 8 too, but for a
+different quantity -- the engine's WRITTEN default for `qp_pivot_perturb_`,
+not `pardisoinit`'s own value -- so that match is corroborative by
+coincidence of value, not independent evidence of the `pardisoinit` default;
+the live canary, the standalone probe, and Intel's mtype-specific
+documentation carry the correction on their own. The original 13
 was an Intel-doc misread (the mtype = 11 row). Parity consequence: benign —
 the dissolved seam's effective exponent was 8, which coincides in value with
 the 8 the IPM engine and hven's default both write, so the don't-write state

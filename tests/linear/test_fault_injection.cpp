@@ -653,7 +653,7 @@ TEST(BackendDefaultPremise, MklPardisoinitLeavesScalingAndCnrAtZero) {
 // SQP retarget's parity argument depends on the EFFECTIVE values the
 // don't-write states inherit: the audited seam never wrote iparm[7] or
 // iparm[9], so its effective refinement cap and pivot-perturbation exponent
-// were pardisoinit's own -- observed as 2 and 13 on the audited MKL -- and
+// were pardisoinit's own -- observed as 2 and 8 on the audited MKL -- and
 // the migrated engine's census byte-identity depends on the same effective
 // values surviving. If a future MKL moves either default, this test fails
 // loudly instead of the parity silently breaking, exactly the

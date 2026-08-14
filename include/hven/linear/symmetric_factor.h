@@ -277,7 +277,7 @@ class SymmetricFactor {
         //                 accelerate_zero_tolerance below for the override
         //                 that bypasses this formula entirely).
         //   std::nullopt  MKL: iparm[9] is never touched -- pardisoinit's
-        //                 own value survives exactly (13 on the MKL this
+        //                 own value survives exactly (8 on the MKL this
         //                 was verified against; the fault-injection
         //                 suite's BackendDefaultPremise canary pins that
         //                 value, so an MKL default move fails a test
