@@ -28,6 +28,24 @@ inline hven::linear::SymmetricFactor::Options sqp_kkt_options() {
 // The SQP engine's lifecycle state around a sparse symmetric factor. This is
 // deliberately not a compatibility adapter: it owns only the explicit
 // analyze-if-needed decision that KktSystem previously made internally.
+//
+// Invariant: `factorize_checked()` must be the only thing that ever drives
+// an analysis on `factor`. `analyzed`/`analyzed_pattern` mirror state that
+// `SymmetricFactor` keeps privately and exposes through no getter, so the
+// mirror is only correct as long as nothing else touches the factor's
+// symbolic state behind this struct's back:
+//   - Calling `factor.analyze(K)` directly (bypassing this struct) leaves
+//     the mirror stale, so the next `factorize_checked()` runs a redundant
+//     second symbolic analysis and moves `symbolic_analyses` a second time
+//     for one logical change.
+//   - Installing a `SymmetricFactor::adopt()`-built factor (e.g.
+//     `KktFactor{SymmetricFactor::adopt(handle)}`) leaves `analyzed ==
+//     false` even though the adopted engine may already carry a reusable
+//     symbolic, so the first `factorize_checked()` forks a new session
+//     (`SymmetricFactor::analyze()`), moving `session_id()` and breaking
+//     §7.1's reuse condition (e) for every other holder of that handle. A
+//     future adopt path must seed `analyzed`/`analyzed_pattern` from the
+//     handle's own `pattern_hash()` before first use.
 struct KktFactor {
     hven::linear::SymmetricFactor factor{sqp_kkt_options()};
     std::uint64_t analyzed_pattern = 0;

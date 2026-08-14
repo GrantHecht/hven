@@ -8,6 +8,25 @@ target_sources(hven PRIVATE
     core/version.cpp
     core/pattern_hash.cpp
     linear/dense_symmetric_factor.cpp
+    # src/sqp/kkt_calls.cpp is the first SQP-side TU to compile under this
+    # target's library flag regime (-O3 -march=native -mtune=native
+    # -ffast-math -fno-finite-math-only ...), while the rest of the SQP
+    # suite (tests/sqp/, header-only today) is sandbox-matched: it compiles
+    # under plain per-config defaults, deliberately, because the M3 gate's
+    # pinned values were derived under those flags (tests/sqp/CMakeLists.txt).
+    # This is safe for kkt_calls.cpp specifically: its three functions
+    # (needs_analysis, factorize_checked, solve_vec) carry no floating-point
+    # arithmetic at all -- an integer FNV pattern-hash compare, two forwarded
+    # SymmetricFactor calls, and a Vec allocation whose zero-fill is governed
+    # by EIGEN_INITIALIZE_MATRICES_BY_ZERO in both regimes -- so no pinned
+    # value can move by crossing into -ffast-math here.
+    # No SQP code that DOES carry floating-point arithmetic (inertia
+    # comparisons, dense border/Schur assembly, any assembly helper, etc.)
+    # may move into src/sqp/ before phase C's per-boundary bit-identity
+    # proofs settle the library-flags-vs-engine-TUs question (the execution
+    # review's flags ruling, task-b3-review.md I1). Any future addition to
+    # src/sqp/ must re-argue FP-freedom the way this comment does, or wait
+    # for that phase-C proof.
     sqp/kkt_calls.cpp
 )
 
