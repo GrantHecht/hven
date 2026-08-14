@@ -16,9 +16,10 @@
 //     x0 = K0^-1 (rhs0 - V y)
 //
 // C is maintained dense and factored from scratch on
-// every add_border/drop_border via MKL LAPACKE's symmetric indefinite
-// (Bunch-Kaufman) factorization -- LAPACKE_dsytrf, C = L*D*L^T with D a block
-// diagonal matrix of 1x1 and 2x2 blocks -- rather than Eigen::LDLT.
+// every add_border/drop_border via hven::linear::DenseSymmetricFactor's
+// symmetric indefinite (Bunch-Kaufman) factorization -- LAPACK dsytrf on the
+// LOWER triangle, C = L*D*L^T with D a block diagonal matrix of 1x1 and 2x2
+// blocks -- rather than Eigen::LDLT.
 // Eigen::LDLT was tried first and rejected: it has no pivoting strategy for
 // genuinely indefinite dense matrices (it always produces 1x1 diagonal
 // blocks), so on e.g. C = [[0,1],[1,0]] it reports info()==NumericalIssue,
@@ -69,8 +70,8 @@
 // deleting a row/column from an existing factorization.
 
 #include <algorithm>
-#include <cmath>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -78,14 +79,9 @@
 
 #include <fmt/format.h>
 
-#ifdef USE_ACCELERATE_SPARSE
-#include <hven/detail/sqp/lapacke_shim.h>
-#else
-#include <mkl_lapacke.h>
-#endif
-
 #include <hven/detail/sqp/kkt_system.h>
 #include <hven/detail/sqp/types.h>
+#include <hven/linear/dense_symmetric_factor.h>
 
 namespace hven::solvers {
 
@@ -169,14 +165,8 @@ class SchurComplement {
             for (Index i = 0; i < m; ++i) {
                 vtw(i) = v_[static_cast<std::size_t>(i)].dot(w);
             }
-            y = rhs1 - vtw; // LAPACKE_dsytrs solves in place
-            const lapack_int info = LAPACKE_dsytrs(
-                LAPACK_COL_MAJOR, 'L', static_cast<lapack_int>(m), /*nrhs=*/1, factored_.data(),
-                static_cast<lapack_int>(m), ipiv_.data(), y.data(), static_cast<lapack_int>(m));
-            if (info != 0) {
-                throw std::invalid_argument(
-                    fmt::format("SchurComplement::solve: LAPACKE_dsytrs failed, info={}", info));
-            }
+            const Vec cy = rhs1 - vtw;
+            factor_.solve(cy, y); // dsytrs against the cached lower-triangle factorization
         }
 
         Vec rhs0_adj = rhs0;
@@ -207,7 +197,7 @@ class SchurComplement {
         }
         double max_abs = 0.0;
         double min_abs = std::numeric_limits<double>::infinity();
-        for (const double e : block_abs_eigs_) {
+        for (const double e : evidence_->block_abs_eigs) {
             max_abs = std::max(max_abs, e);
             min_abs = std::min(min_abs, e);
         }
@@ -239,7 +229,7 @@ class SchurComplement {
         }
         double max_abs = 0.0;
         double min_abs = std::numeric_limits<double>::infinity();
-        for (const double e : block_abs_eigs_) {
+        for (const double e : evidence_->block_abs_eigs) {
             max_abs = std::max(max_abs, e);
             min_abs = std::min(min_abs, e);
         }
@@ -269,94 +259,60 @@ class SchurComplement {
                 "querying its inertia",
                 dim()));
         }
-        return neg_count_;
+        return static_cast<Index>(evidence_->neg_eigs);
     }
 
   private:
     // Rebuilds C = D - Vt K0^-1 V (dense, from the cached K0^-1v columns),
-    // factorizes it via LAPACKE_dsytrf (Bunch-Kaufman, lower triangle), and
-    // caches the per-block eigenvalues used by cond_estimate() and
-    // expected_neg_eigs_delta(). See the header comment for why
-    // Bunch-Kaufman (not Eigen::LDLT) and why recomputed from scratch.
+    // factorizes it via DenseSymmetricFactor::try_factorize on the LOWER
+    // triangle (Bunch-Kaufman -- 'L' is float-load-bearing: 'U' eliminates
+    // in a different order and produces different rounding), and caches the
+    // factor's block evidence, which carries the per-block eigenvalues used
+    // by cond_estimate() and expected_neg_eigs_delta(). See the header
+    // comment for why Bunch-Kaufman (not Eigen::LDLT) and why recomputed
+    // from scratch.
     void rebuild_schur() {
         const Index m = dim();
         singular_ = false;
-        block_abs_eigs_.clear();
-        neg_count_ = 0;
+        evidence_.reset();
         if (m == 0) {
-            factored_ = Eigen::MatrixXd(0, 0);
-            ipiv_.clear();
             return;
         }
 
-        // Column-major to match LAPACK_COL_MAJOR / Eigen::MatrixXd's default
-        // storage directly (no transposition needed). Only the lower
-        // triangle is read by LAPACKE_dsytrf(..., 'L', ...), but it's
-        // cheapest to just fill the whole symmetric matrix.
-        factored_ = Eigen::MatrixXd::Zero(m, m);
+        // Column-major to match DenseSymmetricFactor's LAPACK_COL_MAJOR call
+        // / Eigen::MatrixXd's default storage directly (no transposition
+        // needed). Only the lower triangle is read (Triangle::kLower), but
+        // it's cheapest to just fill the whole symmetric matrix.
+        Eigen::MatrixXd c = Eigen::MatrixXd::Zero(m, m);
         for (Index i = 0; i < m; ++i) {
             for (Index j = 0; j < m; ++j) {
-                factored_(i, j) =
+                c(i, j) =
                     -v_[static_cast<std::size_t>(i)].dot(k0inv_v_[static_cast<std::size_t>(j)]);
             }
-            factored_(i, i) += d_[static_cast<std::size_t>(i)];
+            c(i, i) += d_[static_cast<std::size_t>(i)];
         }
 
-        ipiv_.assign(static_cast<std::size_t>(m), 0);
-        const lapack_int info =
-            LAPACKE_dsytrf(LAPACK_COL_MAJOR, 'L', static_cast<lapack_int>(m), factored_.data(),
-                           static_cast<lapack_int>(m), ipiv_.data());
-        if (info < 0) {
-            throw std::invalid_argument(fmt::format(
-                "SchurComplement: LAPACKE_dsytrf argument {} had an illegal value", -info));
-        }
-        if (info > 0) {
-            // D(info,info) is exactly zero -- C is exactly singular. The
-            // factorization is complete but not usable for solve() or for
-            // reading an inertia off of it: leave block_abs_eigs_/neg_count_
-            // empty and let needs_refactorization() report the singularity
-            // while solve() and expected_neg_eigs_delta() both throw
-            // std::runtime_error, rather than either of them silently
-            // returning a plausible-looking but wrong answer (an empty
-            // neg_count_ would read as "0 negative eigenvalues", which does
-            // not follow from a factorization that did not complete).
+        // try_factorize, not factorize: an exact zero pivot is a reportable
+        // STATE this class degrades on (needs_refactorization() reports it,
+        // solve()/expected_neg_eigs_delta() throw), never an error to
+        // propagate. An illegal-argument failure (info < 0) still throws
+        // from inside the dense factor.
+        const hven::linear::DenseFactorizeOutcome outcome =
+            factor_.try_factorize(c, hven::linear::Triangle::kLower);
+        if (outcome == hven::linear::DenseFactorizeOutcome::kExactlySingular) {
+            // C is exactly singular. The factorization ran to completion but
+            // is not usable for solve() or for reading an inertia off of it:
+            // leave the evidence absent and let needs_refactorization()
+            // report the singularity while solve() and
+            // expected_neg_eigs_delta() both throw std::runtime_error,
+            // rather than either of them silently returning a
+            // plausible-looking but wrong answer (absent evidence read as "0
+            // negative eigenvalues" would not follow from a factorization
+            // that did not complete usably).
             singular_ = true;
             return;
         }
-
-        // Walk the Bunch-Kaufman block structure (uplo='L' convention):
-        // ipiv_[k] > 0 marks a 1x1 block at k; ipiv_[k] == ipiv_[k+1] < 0
-        // marks a 2x2 block spanning k, k+1 (LAPACK dsytrf documentation).
-        Index k = 0;
-        while (k < m) {
-            const auto uk = static_cast<std::size_t>(k);
-            if (ipiv_[uk] > 0) {
-                const double dii = factored_(k, k);
-                block_abs_eigs_.push_back(std::abs(dii));
-                if (dii < 0.0) {
-                    ++neg_count_;
-                }
-                k += 1;
-            } else {
-                const double a11 = factored_(k, k);
-                const double a21 = factored_(k + 1, k);
-                const double a22 = factored_(k + 1, k + 1);
-                const double trace = a11 + a22;
-                const double det = a11 * a22 - a21 * a21;
-                const double disc = std::sqrt(std::max(0.0, trace * trace - 4.0 * det));
-                const double e1 = (trace + disc) / 2.0;
-                const double e2 = (trace - disc) / 2.0;
-                block_abs_eigs_.push_back(std::abs(e1));
-                block_abs_eigs_.push_back(std::abs(e2));
-                if (e1 < 0.0) {
-                    ++neg_count_;
-                }
-                if (e2 < 0.0) {
-                    ++neg_count_;
-                }
-                k += 2;
-            }
-        }
+        evidence_ = factor_.block_evidence();
     }
 
     KktSystem &kkt_;
@@ -365,14 +321,15 @@ class SchurComplement {
     std::vector<Vec> k0inv_v_;
     std::vector<double> d_;
 
-    // Bunch-Kaufman factor of C: on success, packed L (strict lower
-    // triangle) and block-diagonal D (diagonal + subdiagonal), column-major,
-    // per LAPACKE_dsytrf(LAPACK_COL_MAJOR, 'L', ...); paired with ipiv_.
-    Eigen::MatrixXd factored_;
-    std::vector<lapack_int> ipiv_;
-    bool singular_ = false;              // true iff last dsytrf found a zero pivot (info > 0)
-    std::vector<double> block_abs_eigs_; // |eigenvalue| per 1x1/2x2 D block, valid iff !singular_
-    Index neg_count_ = 0;                // true count of negative eigenvalues among block_abs_eigs_
+    // Bunch-Kaufman factor of C (lower triangle -- see rebuild_schur) and
+    // the block evidence read off it. The evidence is absent exactly when
+    // singular_ (the factor's own leave-absent discipline); the judgment
+    // calls consuming it -- kSchurSingularEigFrac, needs_refactorization(),
+    // expected_neg_eigs_delta()'s throw-on-singular -- stay here: they are
+    // border-stack policy, not dense-factor facts.
+    hven::linear::DenseSymmetricFactor factor_;
+    bool singular_ = false; // true iff last try_factorize was kExactlySingular
+    std::optional<hven::linear::BunchKaufmanBlockEvidence> evidence_;
 };
 
 } // namespace hven::solvers

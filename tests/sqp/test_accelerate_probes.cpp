@@ -1,6 +1,17 @@
 // Accelerate-backend audit probes (macOS only) — the measurement instruments
-// for docs/notes/2026-07-28-accelerate-audit-checklist.md sections (a)-(c)
-// and (e), reported in docs/notes/2026-07-29-accelerate-audit-results.md.
+// for docs/notes/2026-07-28-accelerate-audit-checklist.md sections (c) and
+// (e), reported in docs/notes/2026-07-29-accelerate-audit-results.md.
+//
+// M3 PHASE B DISPOSITIONS (docs/retarget-design-sqp.md §10 item 6): the
+// §(a) inertia probes and the §(b) partial-solve composition probes pinned
+// the dissolved Accelerate KktSystem twin's OWN mappings (its zero-pivot
+// reading of num_perturbed_pivots(), its bare-subfactor solves) and retired
+// with it; the composition coverage now lives in test_kkt_partial_solve.cpp's
+// Accelerate arms, retargeted onto SymmetricFactor::solve_partial /
+// supports_partial_solve(). The §(c) ordering probe (raw Sparse API, no
+// dissolved seam involved) survives unchanged, and the §(e) shim probes
+// retarget onto hven::linear::detail's namespaced LAPACKE shim (the SQP copy
+// of the shim was deleted with the twin).
 //
 // FIRST-RUN POSTURE: every numeric expectation below that is marked
 // "OBSERVED" was pinned from a run on this machine (Apple Silicon, macOS 26,
@@ -25,133 +36,15 @@
 
 #include <Accelerate/Accelerate.h>
 
-#include <hven/detail/sqp/kkt_system.h>
-#include <hven/detail/sqp/lapacke_shim.h>
+#include <hven/detail/linear/lapacke_shim.h>
+#include <hven/detail/sqp/types.h>
 
 using namespace hven::solvers;
+using hven::linear::detail::lapack_int;
+using hven::linear::detail::LAPACKE_dsytrf;
+using hven::linear::detail::LAPACKE_dsytrs;
 
 namespace {
-
-// The checklist's canonical 3x3 probe matrices (upper triangle, CSR).
-SpMatU dense_to_upper(const Eigen::MatrixXd &D) {
-    SpMatU K = D.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    K.makeCompressed();
-    return K;
-}
-
-SpMatU near_singular_kkt(double eps) {
-    Eigen::MatrixXd D(3, 3);
-    D << 1, 0, 1, 0, eps, 0, 1, 0, 0;
-    return dense_to_upper(D);
-}
-
-SpMatU saddle_kkt3() {
-    Eigen::MatrixXd D(3, 3);
-    D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
-    return dense_to_upper(D);
-}
-
-Eigen::MatrixXd full_from_upper(const SpMatU &K) {
-    return Eigen::MatrixXd(K).selfadjointView<Eigen::Upper>();
-}
-
-// --- Checklist §(a): inertia reporting across the eps sweep ---------------
-
-TEST(AccelerateProbe, InertiaEpsSweep) {
-    for (double eps : {1e-6, 1e-10, 1e-12, 1e-14}) {
-        KktSystem kkt{QpOptions{}};
-        kkt.factorize(near_singular_kkt(eps));
-        const std::string tag = fmt::format("{:.0e}", eps);
-        RecordProperty(fmt::format("pos_{}", tag).c_str(), std::to_string(kkt.num_pos_eigs()));
-        RecordProperty(fmt::format("neg_{}", tag).c_str(), std::to_string(kkt.num_neg_eigs()));
-        RecordProperty(fmt::format("zero_{}", tag).c_str(),
-                       std::to_string(kkt.num_perturbed_pivots()));
-        // Analytic inertia is (2, 1, 0) for every eps > 0.
-        EXPECT_EQ(kkt.num_pos_eigs() + kkt.num_neg_eigs() + kkt.num_perturbed_pivots(), 3)
-            << "eps=" << eps;
-
-        // Solve accuracy alongside the inertia claim.
-        Vec b(3);
-        b << 1, 2, 3;
-        const Vec x = kkt.solve(b);
-        const double resid = (full_from_upper(near_singular_kkt(eps)) * x - b).norm();
-        RecordProperty(fmt::format("resid_{}", tag).c_str(), fmt::format("{:.3e}", resid));
-        EXPECT_TRUE(std::isfinite(resid)) << "eps=" << eps;
-    }
-}
-
-// §(a): the exactly-singular case. Pardiso's pinned behavior: no throw,
-// silently perturbs one pivot, reports (2, 1, perturbed=1). What does
-// Accelerate LDLTTPP do — complete with a zero pivot, or fail the
-// factorization with SparseMatrixIsSingular (a throw from factorize())?
-TEST(AccelerateProbe, ExactlySingularBehavior) {
-    KktSystem kkt{QpOptions{}};
-    bool threw = false;
-    std::string what;
-    try {
-        kkt.factorize(near_singular_kkt(0.0));
-    } catch (const std::runtime_error &e) {
-        threw = true;
-        what = e.what();
-    }
-    RecordProperty("threw", threw ? "yes" : "no");
-    RecordProperty("what", what.c_str());
-    if (!threw) {
-        RecordProperty("pos", std::to_string(kkt.num_pos_eigs()));
-        RecordProperty("neg", std::to_string(kkt.num_neg_eigs()));
-        RecordProperty("zero", std::to_string(kkt.num_perturbed_pivots()));
-    }
-    SUCCEED(); // the recorded properties are the deliverable
-}
-
-// --- Checklist §(b): partial-solve composition ----------------------------
-
-// Clean (unperturbed on MKL) saddle matrix: does the bare L/D/L^T composition
-// reproduce the full solve on Accelerate, where the internal AMD permutation
-// P and inf-norm equilibration S are NOT folded into the subfactor stages?
-TEST(AccelerateProbe, ComposedPartialsVsFullSolve) {
-    KktSystem kkt{QpOptions{}};
-    kkt.factorize(saddle_kkt3());
-    Vec b(3);
-    b << 1, 2, 3;
-    const Vec x_full = kkt.solve(b);
-    const Vec x_comp = kkt.solve_backward(kkt.solve_diagonal(kkt.solve_forward(b)));
-    const double diff = (x_full - x_comp).norm();
-    const double full_resid = (full_from_upper(saddle_kkt3()) * x_full - b).norm();
-    RecordProperty(
-        "x_full", fmt::format("[{:.6g}, {:.6g}, {:.6g}]", x_full(0), x_full(1), x_full(2)).c_str());
-    RecordProperty(
-        "x_comp", fmt::format("[{:.6g}, {:.6g}, {:.6g}]", x_comp(0), x_comp(1), x_comp(2)).c_str());
-    RecordProperty("diff", fmt::format("{:.3e}", diff).c_str());
-    RecordProperty("full_resid", fmt::format("{:.3e}", full_resid).c_str());
-    EXPECT_LT(full_resid, 1e-10); // the full solve itself must be trustworthy
-}
-
-// Same question on a matrix big enough for AMD to actually reorder (arrow
-// matrix: dense last row/column), so a "composition happens to match because
-// P == I" false pass is ruled out.
-TEST(AccelerateProbe, ComposedPartialsVsFullSolveArrow) {
-    const int n = 8;
-    Eigen::MatrixXd D = Eigen::MatrixXd::Zero(n, n);
-    for (int i = 0; i < n - 1; ++i) {
-        D(i, i) = 2.0 + i;
-        D(i, n - 1) = 1.0;
-    }
-    D(n - 1, n - 1) = -1.0; // indefinite tip
-    SpMatU K = dense_to_upper(D);
-    KktSystem kkt{QpOptions{}};
-    kkt.factorize(K);
-    Vec b = Vec::LinSpaced(n, 1.0, static_cast<double>(n));
-    const Vec x_full = kkt.solve(b);
-    const Vec x_comp = kkt.solve_backward(kkt.solve_diagonal(kkt.solve_forward(b)));
-    const double diff = (x_full - x_comp).norm();
-    const double full_resid = (full_from_upper(K) * x_full - b).norm();
-    RecordProperty("diff", fmt::format("{:.3e}", diff).c_str());
-    RecordProperty("full_resid", fmt::format("{:.3e}", full_resid).c_str());
-    RecordProperty("pos", std::to_string(kkt.num_pos_eigs()));
-    RecordProperty("neg", std::to_string(kkt.num_neg_eigs()));
-    EXPECT_LT(full_resid, 1e-9);
-}
 
 // --- Checklist §(c): ordering behavior (raw Sparse API) -------------------
 
@@ -266,8 +159,9 @@ TEST(AccelerateProbe, ShimRejectsRowMajor) {
 }
 
 // Block-walk cross-check: factor a matrix through the shim and count negative
-// eigenvalues with the SAME 1x1/2x2 decode convention schur_complement.h's
-// rebuild_schur() uses. Returns -1 on factorization failure.
+// eigenvalues with the SAME 1x1/2x2 decode convention
+// DenseSymmetricFactor::block_evidence() uses (the walk migrated there from
+// schur_complement.h's rebuild_schur()). Returns -1 on factorization failure.
 Index shim_block_walk_neg_count(Eigen::MatrixXd C, std::vector<lapack_int> &ipiv) {
     const auto n = static_cast<lapack_int>(C.rows());
     ipiv.assign(static_cast<std::size_t>(n), 0);
