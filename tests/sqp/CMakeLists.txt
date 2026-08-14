@@ -28,6 +28,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_scaffold.cpp
     test_types.cpp
     test_kkt_system.cpp
+    test_kkt_calls.cpp
     test_kkt_inertia_probe.cpp
     test_kkt_partial_solve.cpp
     test_dense_oracle.cpp

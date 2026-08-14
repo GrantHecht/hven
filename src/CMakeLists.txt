@@ -8,6 +8,7 @@ target_sources(hven PRIVATE
     core/version.cpp
     core/pattern_hash.cpp
     linear/dense_symmetric_factor.cpp
+    sqp/kkt_calls.cpp
 )
 
 # The sparse symmetric factor's two backends are split at the source level,
@@ -177,7 +178,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 18)
+set(_hven_expected_source_count 19)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
