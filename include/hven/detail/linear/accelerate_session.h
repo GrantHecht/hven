@@ -60,9 +60,17 @@ namespace hven::linear::detail {
 enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 
 // The backend knobs one session is created with. Fixed for the session's
-// lifetime, mirroring PardisoConfig's role for the MKL session -- baked into
-// the factorization it produces, so an engine that adopts a session inherits
-// them rather than reinterpreting them.
+// lifetime with one exception, mirroring PardisoConfig's role for the MKL
+// session: baked into the factorization it produces, so an engine that
+// adopts a session inherits them rather than reinterpreting them.
+//
+// THE EXCEPTION IS num_threads, the same one the MKL twin carries:
+// FactorSession::set_num_threads moves it in place, which is what keeps the
+// stored value -- and therefore SymmetricFactor::adopt()'s Options round
+// trip -- honest after a live SymmetricFactor::set_num_threads. It applies
+// nothing to a backend that has nothing to apply it to. Documented here
+// rather than on the field so the field list stays character-for-character
+// what it was.
 //
 // num_threads and max_refinement_iters are stored here (so SymmetricFactor::
 // adopt() can round-trip Options faithfully) but NOT applied to any backend
@@ -166,6 +174,16 @@ class FactorSession {
     void solve_partial(SubfactorPhase phase, const double *b, double *x) const;
 
     const AccelerateConfig &config() const noexcept { return cfg_; }
+
+    // Repoint the stored thread count. INERT on this backend by contract --
+    // there is no per-instance thread control here for it to reach (see
+    // AccelerateConfig::num_threads) -- so this only keeps the stored value,
+    // and therefore SymmetricFactor::adopt()'s Options round trip, honest
+    // after a live SymmetricFactor::set_num_threads. Nothing about the
+    // symbolic or numeric factorization is touched, which is the same
+    // guarantee the MKL twin makes for a reason that is real there.
+    void set_num_threads(int num_threads) noexcept { cfg_.num_threads = num_threads; }
+
     Index dim() const noexcept { return static_cast<Index>(n_); }
 
     // True iff a numeric factorization has succeeded and has not since been

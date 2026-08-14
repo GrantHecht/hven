@@ -140,5 +140,17 @@ foreach(_probe ${_hven_adapter_probes})
             -DCONFIG=$<CONFIG>
             "-DEXPECTED_REGEX=${_hven_probe_regex_${_probe}}"
             "-DFORBIDDEN_REGEX=${_hven_raw_member_diagnostic}"
+            -DEXPECT_SINGLE_ERROR=ON
             -P ${CMAKE_CURRENT_SOURCE_DIR}/compile_fail/run_build_must_fail.cmake)
+    # Each probe drives its own nested `cmake --build` invocation against the
+    # shared build directory. Those nested builds all read/write the same
+    # .ninja_log (and the same underlying object/dep files for hven::hven),
+    # so under `ctest -j` they race each other -- harmless when they happen
+    # to interleave cleanly, but capable of corrupting the shared build state
+    # or spiking memory on a tight box when several land at once. A single
+    # RESOURCE_LOCK shared across all probes in this file makes ctest run
+    # them one at a time relative to each other, regardless of -j; they stay
+    # free to run concurrently with unrelated (non-nested-build) tests.
+    set_tests_properties(hven_compile_fail_${_probe} PROPERTIES
+        RESOURCE_LOCK hven_compile_fail_nested_build)
 endforeach()

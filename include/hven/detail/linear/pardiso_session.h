@@ -54,6 +54,10 @@
 //
 // What is NOT derived: the session lifecycle, ownership, session-identity and
 // epoch semantics,
+// the configuration struct and its accessors (PardisoConfig, config(),
+// set_num_threads -- hven's own option carriage, with no counterpart
+// upstream, which is why a production accessor may be added to them without
+// touching anything derived),
 // evidence reporting, and the partial-solve refinement rule around it are
 // hven's own and exist to serve the frozen interface contract of
 // hven/linear/symmetric_factor.h. So is the one test-only record in the .cpp
@@ -88,8 +92,18 @@ static_assert(sizeof(MKL_INT) == sizeof(SpMatRM::StorageIndex),
               "hven requires an LP64 MKL: MKL_INT must match Eigen's sparse StorageIndex width");
 
 // The backend knobs one session is created with. Fixed for the session's
-// lifetime: they are baked into the factorization it produces, so an engine
-// that adopts a session inherits them rather than reinterpreting them.
+// lifetime, with one exception named below: they are baked into the
+// factorization it produces, so an engine that adopts a session inherits
+// them rather than reinterpreting them.
+//
+// THE EXCEPTION IS num_threads. It is never written into the parameter array
+// and never becomes part of what the symbolic phase PRODUCES -- it is
+// applied at call scope, around every phase alike (the thread scope in
+// run_phase, which the symbolic phase itself also runs under). So
+// FactorSession::set_num_threads can move it in place without invalidating
+// anything any phase computed, and it is the only entry below that can move
+// at all. Documented here rather than on the field so the field list stays
+// character-for-character what it was.
 struct PardisoConfig {
     int mtype = -2;               // real symmetric indefinite
     int num_threads = 0;          // 0 = leave MKL's own default alone
@@ -233,6 +247,23 @@ class FactorSession {
     void solve_partial(int phase, const double *b, double *x) const;
 
     const PardisoConfig &config() const noexcept { return cfg_; }
+
+    // Repoint the thread count this session applies to its backend calls,
+    // from the next call onward. Nothing else in the session moves: the
+    // count is applied at call scope by run_phase's thread scope and is
+    // never written into the parameter array, so nothing the symbolic phase
+    // COMPUTED depends on it -- the analysis, the numerics, the epoch and
+    // the session id all stand. (The symbolic phase does RUN under the scope,
+    // like every other phase; what it produces does not carry the count.) It
+    // is the only PardisoConfig entry that can be moved this way (see that
+    // struct's own note); every other one is baked into the factorization
+    // this session produced.
+    //
+    // The caller validates: SymmetricFactor::set_num_threads applies the
+    // same >= 0 rule its constructor applies to Options::num_threads before
+    // this is ever reached.
+    void set_num_threads(int num_threads) noexcept { cfg_.num_threads = num_threads; }
+
     Index dim() const noexcept { return static_cast<Index>(n_); }
 
     // True iff a numeric factorization has succeeded and has not since been

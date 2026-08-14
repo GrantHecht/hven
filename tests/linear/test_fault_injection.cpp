@@ -521,6 +521,58 @@ TEST(BackendDefaultPremise, MklPardisoinitLeavesScalingAndCnrAtZero) {
               << post_pardisoinit_iparm18 << " (recorded, not asserted)\n";
 }
 
+// ---------------------------------------------------------------------------
+// The live thread-count setter lands in the config the next backend call reads
+// ---------------------------------------------------------------------------
+
+using hven::linear::detail::testing::ThreadCountObserver;
+
+// SymmetricFactor::set_num_threads claims that a mid-life change reaches
+// SUBSEQUENT backend calls while the analysis, the session and the numerics
+// all stand. The second half is checkable through the public API alone (see
+// SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics in
+// tests/linear/test_symmetric_factor.cpp, and the backend-neutral trio in
+// test_symmetric_factor_evidence_invariants.cpp).
+//
+// This test covers the first half, and covers it EXACTLY AS FAR AS THE
+// BOUNDARY REACHES: what it asserts is that the new count is sitting in the
+// session's configuration -- the very field FactorSession::run_phase's
+// thread scope reads -- as the next solve is issued, with no re-analysis in
+// between. It does NOT measure what MKL ran at, and would pass unchanged if
+// that thread scope were deleted; the scope's own behaviour is covered
+// separately by
+// SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride.
+// See ThreadCountObserver's own doc comment (fault_injection.h) for the
+// traced data flow that joins the two, and for why closing the seam from
+// inside the session file is deliberately not done.
+TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutReAnalyzing) {
+    SymmetricFactor::Options opts;
+    opts.num_threads = 1;
+    SymmetricFactor factor{opts};
+    const SpMatRM A = upper_csr(spd3());
+    factor.analyze(A);
+    ASSERT_EQ(factor.factorize(A).status, FactorizeOutcome::Status::kOk);
+
+    const Vec b = Vec::Ones(A.rows());
+    Vec x(A.rows());
+
+    ThreadCountObserver::reset();
+    factor.solve(b, x);
+    ASSERT_TRUE(ThreadCountObserver::recorded);
+    EXPECT_EQ(ThreadCountObserver::last_config_num_threads, 1)
+        << "the configured count is what the first solve applied";
+
+    factor.set_num_threads(2);
+
+    ThreadCountObserver::reset();
+    factor.solve(b, x);
+    ASSERT_TRUE(ThreadCountObserver::recorded);
+    EXPECT_EQ(ThreadCountObserver::last_config_num_threads, 2)
+        << "the new count must reach the very next backend call, with no rebuild in between";
+    EXPECT_EQ(factor.counters().analyze_count, 1)
+        << "and must reach it without costing a symbolic analysis";
+}
+
 #endif // !defined(__APPLE__)
 
 #if defined(__APPLE__)

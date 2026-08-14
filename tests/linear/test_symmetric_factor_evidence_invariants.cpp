@@ -9,6 +9,7 @@
 // fault-injection tests.
 
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 
@@ -171,6 +172,92 @@ TEST_F(SymmetricFactorEvidenceInvariants, DefaultOptionsMatchTheFreeCostlySplit)
     EXPECT_FALSE(outcome.factor.factor_size_bytes.has_value())
         << "MKL never populates the Accelerate-only byte-size field";
 #endif
+}
+
+// =============================================================================
+// The live thread-count setter (SymmetricFactor::set_num_threads)
+// =============================================================================
+//
+// Written here rather than in test_symmetric_factor.cpp because the setter's
+// contract is backend-NEUTRAL in exactly the way this file exists for: the
+// validation rule, the "nothing else moves" guarantee, and the Options round
+// trip through adopt() are the same claims on both backends, and each has an
+// observable in the public API alone.
+//
+// It matters most on Accelerate. There the count is stored and applied to
+// nothing (see Options::num_threads' best-effort-absent contract), so the
+// STORED value is the entire observable behaviour -- and until these tests
+// existed, that backend's copy of the setter was compiled and never
+// executed for the round trip, since test_symmetric_factor.cpp is gated on
+// NOT APPLE. (The engine-level KKT tests do call the setter on macOS; what
+// they do not exercise is the validation rule or the adopt() round trip,
+// which is precisely what the three tests below pin.)
+
+// The argument rule is the constructor's own, applied before anything moves:
+// a rejected count leaves the configured one exactly as it was.
+TEST(SymmetricFactorThreadCount, ANegativeCountIsRejectedAndLeavesTheCountAlone) {
+    SymmetricFactor::Options opts;
+    opts.num_threads = 1;
+    SymmetricFactor factor{opts};
+
+    EXPECT_THROW(factor.set_num_threads(-1), std::invalid_argument);
+    EXPECT_EQ(factor.num_threads(), 1);
+}
+
+// The whole point of the setter: it moves a value the backend reads per
+// call, so nothing that names the current factorization may move with it.
+// analyze_count, session_id() and epoch() are the public observables for
+// "the symbolic analysis, the session and the committed numerics all
+// survived"; a factorize() that then succeeds is the fourth, since
+// factorize() throws when there is no analysis to reuse.
+TEST(SymmetricFactorThreadCount, ANewCountCostsNoAnalysisNoSessionAndNoEpoch) {
+    SymmetricFactor::Options opts;
+    opts.num_threads = 1;
+    SymmetricFactor factor{opts};
+
+    const SpMatRM A = upper_csr(spd4());
+    factor.analyze(A);
+    ASSERT_EQ(factor.factorize(A).status, hven::linear::FactorizeOutcome::Status::kOk);
+
+    const std::uint64_t session_before = factor.session_id();
+    const std::uint64_t epoch_before = factor.epoch();
+
+    factor.set_num_threads(2);
+
+    EXPECT_EQ(factor.num_threads(), 2);
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    EXPECT_EQ(factor.session_id(), session_before);
+    EXPECT_EQ(factor.epoch(), epoch_before);
+
+    ASSERT_EQ(factor.factorize(A).status, hven::linear::FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(factor.counters().analyze_count, 1) << "the symbolic analysis survived the setter";
+    EXPECT_EQ(factor.epoch(), epoch_before + 1);
+}
+
+// The round trip that proves the count reached the SESSION and not merely
+// this engine's own copy: adopt() rebuilds its Options from the session's
+// stored configuration, so an adopter of a session whose count was moved
+// after the analysis must report the moved value. A setter that updated only
+// the engine would leave this reporting the analyze-time count instead.
+//
+// This is the one assertion that covers the Accelerate stored-only contract
+// end to end: on that backend, being stored faithfully is all the count
+// does.
+TEST(SymmetricFactorThreadCount, AdoptReportsTheCountSetAfterTheAnalysis) {
+    SymmetricFactor::Options opts;
+    opts.num_threads = 1;
+    SymmetricFactor factor{opts};
+
+    const SpMatRM A = upper_csr(spd4());
+    factor.analyze(A);
+    ASSERT_EQ(factor.factorize(A).status, hven::linear::FactorizeOutcome::Status::kOk);
+
+    factor.set_num_threads(3);
+
+    const SymmetricFactor adopted = SymmetricFactor::adopt(factor.share());
+    EXPECT_EQ(adopted.num_threads(), 3)
+        << "adopt() reads the session's CURRENT count, so a co-owner's later set is what an "
+           "adopter receives";
 }
 
 // collect_factor_mflops's costly opt-in is genuinely MKL-only now: it

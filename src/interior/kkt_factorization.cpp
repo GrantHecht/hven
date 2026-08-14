@@ -62,14 +62,12 @@ void KktFactorization::reconfigure(const Options &opts) {
     clear_evidence();
 }
 
-bool KktFactorization::set_num_threads(int num_threads) {
-    if (num_threads == opts_.num_threads) {
-        return false;
-    }
-    Options opts = opts_;
-    opts.num_threads = num_threads;
-    reconfigure(opts);
-    return true;
+void KktFactorization::set_num_threads(int num_threads) {
+    // The factor validates first, so a rejected count leaves both this
+    // object's options and the factor itself untouched. `opts_` is then kept
+    // in step because release() and reconfigure() rebuild the factor from it.
+    factor_.set_num_threads(num_threads);
+    opts_.num_threads = num_threads;
 }
 
 void KktFactorization::release() {
