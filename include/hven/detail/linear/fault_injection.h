@@ -131,10 +131,11 @@ struct InertiaQueryFaultInjector {
 // The post_pardisoinit_* fields below serve a related but DISTINCT purpose
 // and come from a DIFFERENT point in FactorSession::analyze -- not the
 // adapter boundary at all. They pin the linked MKL's pardisoinit defaults
-// for iparm[10]/iparm[33]/iparm[18], for a canary a design decision
-// elsewhere relies on (see
-// BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero in
-// test_fault_injection.cpp). They cannot be adapter-boundary reads the way
+// for iparm[10]/iparm[33]/iparm[18] and for iparm[7]/iparm[9], for the
+// canaries design decisions elsewhere rely on (see
+// BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero and
+// BackendDefaultPremise.MklPardisoinitDefaultsTheRefinementCapAndPivotPerturbExponent
+// in test_fault_injection.cpp). They cannot be adapter-boundary reads the way
 // last_ordering_iparm/last_weighted_matching_iparm are: this session's own
 // phase-11 (symbolic analysis) backend call was observed, empirically, to
 // overwrite iparm[33] (and iparm[18]) with its own output before
@@ -154,6 +155,8 @@ struct PardisoIparmObserver {
         post_pardisoinit_matrix_scaling_iparm = 0;
         post_pardisoinit_cnr_iparm = 0;
         post_pardisoinit_factor_mflops_request_iparm = 0;
+        post_pardisoinit_refinement_cap_iparm = 0;
+        post_pardisoinit_pivot_perturb_iparm = 0;
         recorded = false;
         ordering_was_written = false;
         ordering_written_value = 0;
@@ -171,24 +174,36 @@ struct PardisoIparmObserver {
         cnr_written_value = 0;
         factor_mflops_was_written = false;
         factor_mflops_written_value = 0;
+        max_refinement_was_written = false;
+        max_refinement_written_value = 0;
+        pivot_perturb_was_written = false;
+        pivot_perturb_written_value = 0;
     }
     static inline bool recorded = false;
     static inline int last_ordering_iparm = 0;
     static inline int last_weighted_matching_iparm = 0;
 
     // The raw array values for iparm[10] (matrix scaling), iparm[33] (CNR
-    // thread count), and iparm[18] (Mflop-report request code) EXACTLY as
-    // pardisoinit left them -- captured inside FactorSession::analyze,
-    // before that function's own phase-11 call runs, per this struct's own
-    // doc comment above. `post_pardisoinit_recorded` is a separate flag
-    // from `recorded` above: the two are set at different lines (this one
-    // right after pardisoinit(), the other at the very end of analyze()),
-    // so a test using only one of the two pairs still gets an honest
-    // "did this actually run" signal for the half it uses.
+    // thread count), iparm[18] (Mflop-report request code), iparm[7]
+    // (full-solve refinement cap), and iparm[9] (pivot perturbation
+    // exponent) EXACTLY as pardisoinit left them -- captured inside
+    // FactorSession::analyze, before that function's own phase-11 call
+    // runs, per this struct's own doc comment above. The last two extend
+    // the same deviation for the same reason: they are the entries the
+    // max_refinement_iters / pivot_perturb_exp don't-write states inherit,
+    // and the load-bearing BackendDefaultPremise canary pinning their
+    // pardisoinit defaults (2 / 13 on the audited MKL) can only be fed
+    // from this capture point. `post_pardisoinit_recorded` is a separate
+    // flag from `recorded` above: the two are set at different lines (this
+    // one right after pardisoinit(), the other at the very end of
+    // analyze()), so a test using only one of the two pairs still gets an
+    // honest "did this actually run" signal for the half it uses.
     static inline bool post_pardisoinit_recorded = false;
     static inline int post_pardisoinit_matrix_scaling_iparm = 0;
     static inline int post_pardisoinit_cnr_iparm = 0;
     static inline int post_pardisoinit_factor_mflops_request_iparm = 0;
+    static inline int post_pardisoinit_refinement_cap_iparm = 0;
+    static inline int post_pardisoinit_pivot_perturb_iparm = 0;
 
     // --- the DID-THE-WRITE-EXECUTE observable ---
     //
@@ -253,6 +268,23 @@ struct PardisoIparmObserver {
     // asserted directly rather than inferred from the flag alone.
     static inline bool factor_mflops_was_written = false;
     static inline int factor_mflops_written_value = 0;
+
+    // The same did-the-write-execute pair for the two writes the
+    // don't-write-state amendment turned conditional: max_refinement_iters
+    // (iparm[7]) and pivot_perturb_exp (iparm[9]). Unlike every knob above,
+    // these two default to WRITTEN (8 / 0 -- see their Options doc
+    // comments), so the default-Options act pin asserts the flags TRUE with
+    // the exact legacy values -- that is the byte-identity proof that a
+    // default-constructed Options still performs the identical writes the
+    // unconditional statements always performed -- and the nullopt case
+    // asserts them FALSE, the don't-write act no boundary read can pin
+    // (pardisoinit's own values for both entries are exactly what a
+    // no-op-write would also leave there, the original ordering ambiguity
+    // in its strongest form).
+    static inline bool max_refinement_was_written = false;
+    static inline int max_refinement_written_value = 0;
+    static inline bool pivot_perturb_was_written = false;
+    static inline int pivot_perturb_written_value = 0;
 };
 
 // NOT a fault injector either -- a second pure OBSERVER (MKL only), and one

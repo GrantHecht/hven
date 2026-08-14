@@ -259,14 +259,67 @@ class SymmetricFactor {
         // engine.
         int num_threads = 0;
 
-        // Static pivot perturbation exponent k: a pivot too small to use is
-        // replaced by one of magnitude ~10^-k relative to the matrix, and
-        // counted in InertiaEvidence::perturbed_pivots.
-        int pivot_perturb_exp = 8;
+        // Static pivot perturbation exponent k (Pardiso iparm[9] on MKL;
+        // the zeroTolerance formula on Accelerate): a pivot too small to
+        // use is replaced by one of magnitude ~10^-k relative to the
+        // matrix, and counted in InertiaEvidence::perturbed_pivots.
+        //
+        // OPTIONAL, WITH A WRITTEN DEFAULT: std::nullopt is the DON'T-WRITE
+        // state -- the optional-means-don't-write mechanic
+        // accelerate_zero_tolerance already established on this surface --
+        // while the default stays the WRITTEN value 8, so a
+        // default-constructed Options produces exactly the backend writes
+        // it produced before the state existed.
+        //
+        // Per-backend semantics:
+        //   present k     MKL: writes iparm[9] = k.
+        //                 Accelerate: zeroTolerance = 10^-k * eps (see
+        //                 accelerate_zero_tolerance below for the override
+        //                 that bypasses this formula entirely).
+        //   std::nullopt  MKL: iparm[9] is never touched -- pardisoinit's
+        //                 own value survives exactly (13 on the MKL this
+        //                 was verified against; the fault-injection
+        //                 suite's BackendDefaultPremise canary pins that
+        //                 value, so an MKL default move fails a test
+        //                 rather than silently moving behavior).
+        //                 Accelerate: zeroTolerance = 1e-4 * eps, Apple's
+        //                 OWN documented default (the formula above at
+        //                 k = 4). That backend is configured by a struct
+        //                 and has no untouched-entry mechanism -- SOME
+        //                 value is always passed -- so "don't write" there
+        //                 MEANS "pass the backend's documented default
+        //                 value": the closest expressible act, and a value
+        //                 citable from Apple's own documentation rather
+        //                 than an observation.
+        std::optional<int> pivot_perturb_exp = 8;
 
-        // Maximum iterative-refinement steps for a full solve. Partial
-        // solves always run with refinement off -- see solve_partial().
-        int max_refinement_iters = 0;
+        // Maximum iterative-refinement steps for a full solve (Pardiso
+        // iparm[7] on MKL; Accelerate has no refinement mechanism at all).
+        // Partial solves always run with refinement off -- see
+        // solve_partial().
+        //
+        // OPTIONAL, WITH A WRITTEN DEFAULT, the same mechanic as
+        // pivot_perturb_exp above: std::nullopt = don't write; the default
+        // stays the WRITTEN value 0.
+        //
+        // Per-backend semantics:
+        //   present n     MKL: writes iparm[7] = n.
+        //                 Accelerate: stored only (adopt() round-trips
+        //                 it); no backend act exists, and
+        //                 SolveInfo::refinement_iters stays absent -- the
+        //                 same store-only treatment num_threads already
+        //                 has on that backend.
+        //   std::nullopt  MKL: iparm[7] is never touched -- pardisoinit's
+        //                 own cap survives (2 on the MKL this was verified
+        //                 against; canary-pinned alongside iparm[9]'s
+        //                 default above). Partial solves still force the
+        //                 entry to 0 for the call and restore it
+        //                 afterward, exactly as for a written value -- the
+        //                 restore target is simply whatever the entry
+        //                 held, written or inherited.
+        //                 Accelerate: as the present-value row -- no
+        //                 mechanism, no act.
+        std::optional<int> max_refinement_iters = 0;
 
         // Fill-in reordering for the symbolic analysis (Pardiso iparm[1] on
         // MKL; Accelerate's own ordering-method control on the other

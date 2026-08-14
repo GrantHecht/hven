@@ -204,13 +204,24 @@ int FactorSession::factorize(const SpMatRM &A) {
     // zero_tolerance_override (Options::accelerate_zero_tolerance) bypasses
     // the pivot_perturb_exp-derived formula entirely when present -- an
     // explicit absolute threshold, not a further exponent to feed the
-    // formula. std::nullopt (the common case) leaves the formula as the
-    // only source for this value, unchanged from before this option
-    // existed.
-    nopts.zeroTolerance = cfg_.zero_tolerance_override.has_value()
-                              ? *cfg_.zero_tolerance_override
-                              : std::pow(10.0, -static_cast<double>(cfg_.pivot_perturb_exp)) *
-                                    std::numeric_limits<double>::epsilon();
+    // formula. Otherwise a present pivot_perturb_exp feeds the formula,
+    // unchanged from before either optional existed. When BOTH are nullopt
+    // (pivot_perturb_exp's don't-write state), the value passed is Apple's
+    // OWN documented default, 1e-4 * eps -- the formula at k = 4, written
+    // as the explicit product of the documented constants rather than
+    // through std::pow so what reaches Accelerate is exactly the
+    // documented value. "Don't write" has no literal referent on a backend
+    // configured by struct (SOME value is always passed), so it means the
+    // backend's documented default: a value citable from Apple's own
+    // documentation, not an observation fabricated here.
+    if (cfg_.zero_tolerance_override.has_value()) {
+        nopts.zeroTolerance = *cfg_.zero_tolerance_override;
+    } else if (cfg_.pivot_perturb_exp.has_value()) {
+        nopts.zeroTolerance = std::pow(10.0, -static_cast<double>(*cfg_.pivot_perturb_exp)) *
+                              std::numeric_limits<double>::epsilon();
+    } else {
+        nopts.zeroTolerance = 1e-4 * std::numeric_limits<double>::epsilon();
+    }
 
     SparseMatrix_Double amat{};
     amat.structure = structure();

@@ -406,14 +406,22 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         kind_name(opts_.kind)));
     }
     validate_num_threads(opts_.num_threads, "SymmetricFactor");
-    if (opts_.pivot_perturb_exp < 0) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: pivot_perturb_exp must be >= 0, got {}", opts_.pivot_perturb_exp));
-    }
-    if (opts_.max_refinement_iters < 0) {
+    // A present value is validated; std::nullopt is the don't-write state
+    // (on this backend: Apple's own documented defaults -- see the two
+    // options' doc comments) and needs no range check. Identical rule and
+    // message to the MKL adapter's, because the argument's validity is a
+    // property of the surface, not of the backend behind it.
+    if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
         throw std::invalid_argument(
-            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0, got {}",
-                        opts_.max_refinement_iters));
+            fmt::format("SymmetricFactor: pivot_perturb_exp must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.pivot_perturb_exp));
+    }
+    if (opts_.max_refinement_iters.has_value() && *opts_.max_refinement_iters < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.max_refinement_iters));
     }
     if (opts_.cnr_threads < 0) {
         throw std::invalid_argument(fmt::format(

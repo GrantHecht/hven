@@ -83,9 +83,19 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // is deliberately NOT ported here: adding an unverified numerical loop
 // without dedicated numerical validation would be a correctness risk).
 struct AccelerateConfig {
-    int num_threads = 0;          // stored only; no per-instance backend control exists
-    int pivot_perturb_exp = 8;    // -> zeroTolerance, see FactorSession::factorize
-    int max_refinement_iters = 0; // stored only; Accelerate reports no refinement count
+    int num_threads = 0; // stored only; no per-instance backend control exists
+
+    // pivot_perturb_exp -> zeroTolerance (see FactorSession::factorize);
+    // std::nullopt is the don't-write state, which on this struct-configured
+    // backend means Apple's OWN documented default 1e-4 * eps is passed --
+    // the formula at k = 4. max_refinement_iters is stored only in either
+    // state (Accelerate has no refinement mechanism and reports no
+    // refinement count); the optional exists so SymmetricFactor::adopt()'s
+    // Options round trip is exact. Defaults stay the written 8 / 0,
+    // mirroring PardisoConfig -- see SymmetricFactor::Options' own doc
+    // comments for both states' per-backend semantics.
+    std::optional<int> pivot_perturb_exp = 8;
+    std::optional<int> max_refinement_iters = 0;
 
     // Fill-in reordering method for the symbolic analysis, ALREADY resolved
     // to Accelerate's own SparseOrder_t vocabulary (SymmetricFactor::

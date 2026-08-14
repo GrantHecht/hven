@@ -40,8 +40,21 @@ production build nothing, and write down why the boundary could not carry it.
 ### The sanctioned deviations, in full
 
 **One, today.** `PardisoIparmObserver`'s did-the-write-execute fields, recorded
-at the two guarded parameter-array writes inside `FactorSession::analyze`
-(`src/linear/pardiso_session.cpp`).
+at the guarded parameter-array writes inside `FactorSession::analyze`
+(`src/linear/pardiso_session.cpp`) — originally the two `ordering` /
+`weighted_matching` sites, later extended knob-by-knob to every guarded write
+in that function, most recently the two writes the don't-write-state
+amendment (`docs/retarget-design-sqp.md` §2) turned conditional:
+`max_refinement_iters` (iparm[7]) and `pivot_perturb_exp` (iparm[9]). Those
+two invert the usual polarity — their DEFAULTS are written values (0 / 8), so
+the default-Options act pin asserts the flags TRUE with the exact legacy
+values (the byte-identity proof that the amendment changed nothing for
+existing consumers), and the `std::nullopt` case asserts them FALSE. They are
+also the original ambiguity in its strongest form: `pardisoinit`'s own
+defaults for both entries (2 / 8 on the linked MKL) are exactly what a
+skipped write leaves behind — for iparm[9] the skipped write and hven's own
+written default (8) even coincide in value — so no after-the-fact read can
+ever settle whether the write ran.
 
 *Why the boundary cannot carry it.* The claim under test is
 don't-write-by-default: at `Options::ordering == kBackendDefault`, hven must
@@ -73,10 +86,16 @@ The `notices/eigen-mpl2.txt` entry for that file records the modification.
 at one capture site inside `FactorSession::analyze`
 (`src/linear/pardiso_session.cpp`), immediately after the `pardisoinit()` call
 and before anything else in that function — including that same function's
-own phase-11 (symbolic analysis) backend call — touches the array.
+own phase-11 (symbolic analysis) backend call — touches the array. Originally
+the `iparm[10]`/`iparm[33]`/`iparm[18]` trio; the don't-write-state amendment
+(`docs/retarget-design-sqp.md` §2.4) extended the same capture site with
+`iparm[7]` and `iparm[9]` — the two entries whose new don't-write states
+inherit `pardisoinit`'s values — for the load-bearing
+`BackendDefaultPremise` canary that pins what those states actually inherit.
 
 *Why the boundary cannot carry it.* The fact under test is what `pardisoinit`
-itself defaulted `iparm[10]`/`iparm[33]`/`iparm[18]` to, on this linked MKL.
+itself defaulted `iparm[10]`/`iparm[33]`/`iparm[18]` (and now
+`iparm[7]`/`iparm[9]`) to, on this linked MKL.
 That fact is not stable to the end of the function: this session's own
 phase-11 call was observed, empirically, to overwrite `iparm[33]` and
 `iparm[18]` with its own output before `analyze()` returns, so a read taken at
@@ -90,7 +109,8 @@ ask, the fact the caller would be asking about is already gone (see
 on why `ordering_iparm()`/`weighted_matching_iparm()` are not a model for
 these three).
 
-*What it costs.* Four `#ifdef HVEN_TESTING` lines at one capture site.
+*What it costs.* Six `#ifdef HVEN_TESTING` lines at one capture site (four
+at the original extension, two more for `iparm[7]`/`iparm[9]`).
 Verified, not asserted: from a clean `ce423ec` checkout and from the working
 tree with this change applied, built with the identical build directory and
 toolchain (`git stash`/`git stash pop` to isolate the two source states
@@ -101,7 +121,12 @@ recompiled translation units come out byte-identical: `pardiso_session.cpp.o`
 only because it includes the touched headers), matching SHA-256 and `cmp`
 both ways. `nm --defined-only`'s full symbol listing of the resulting
 `libhven.a` is identical before and after, byte for byte — no symbol of any
-kind is added anywhere in the library.
+kind is added anywhere in the library. The `iparm[7]`/`iparm[9]` extension
+re-ran the identical proof shape against its own baseline: the shipped
+`pardiso_session.cpp` compiled with production flags (no `HVEN_TESTING`),
+with and without every newly added `#ifdef HVEN_TESTING` block stripped,
+yields a byte-identical object, and `nm --defined-only` on `libhven.a`
+still lists no observer symbol of any kind.
 
 *What it buys.* `tests/linear/test_fault_injection.cpp`'s
 `BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero` asserts
@@ -127,7 +152,15 @@ guarded by `#ifdef HVEN_TESTING`:
   interior-point engine's zero-filling evidence projection on a failed
   factorization — needs it provoked deterministically and by specific status
   code. Same scope on both: faithful only on a session that has never
-  factorized successfully (see the declaration's own comment).
+  factorized successfully (see the declaration's own comment). Its consumers
+  now include the ORDERED failed-factorize evidence pin
+  (`docs/retarget-design-sqp.md` §7.2):
+  `FailedFactorizeEvidencePin.InertiaReportsNonObservedAfterAFailedFactorize`
+  (`tests/linear/test_fault_injection.cpp`, one backend-neutral body compiled
+  per platform) pins that `inertia()` reports non-`kObserved` after a FAILED
+  factorize — the contract clause the SQP reuse gate's usable-numerics
+  conjunct rests on — within exactly that faithful scope; the deeper
+  succeeded-then-fails scenario stays inspection-only as below.
 - `AnalyzeFaultInjector` (both backends) — `active`, `injected_backend_code`.
   Faithful in every scenario: the failure is raised before the freshly built
   session replaces the live one, so a failed analysis leaves the engine
@@ -139,9 +172,13 @@ guarded by `#ifdef HVEN_TESTING`:
   record-the-status-and-continue behavior on that path.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
-  `last_weighted_matching_iparm`, plus the unrelated `post_pardisoinit_*`
-  trio (`post_pardisoinit_matrix_scaling_iparm`, `post_pardisoinit_cnr_iparm`,
-  `post_pardisoinit_factor_mflops_request_iparm`) described under "A canary
+  `last_weighted_matching_iparm`, the per-knob did-the-write-execute pairs
+  (including `max_refinement_*`/`pivot_perturb_*` for the two don't-write
+  states), plus the unrelated `post_pardisoinit_*` fields
+  (`post_pardisoinit_matrix_scaling_iparm`, `post_pardisoinit_cnr_iparm`,
+  `post_pardisoinit_factor_mflops_request_iparm`,
+  `post_pardisoinit_refinement_cap_iparm`,
+  `post_pardisoinit_pivot_perturb_iparm`) described under "A canary
   for a design decision's backend-default premise" below. NOT a fault
   injector — see "A read-only variant" below.
 - `ThreadCountObserver` (MKL) — `recorded`, `last_applied_num_threads`. Also
@@ -535,6 +572,25 @@ it durably reproduces a pardisoinit-default observation this project
 previously only made by hand (`Options::collect_factor_mflops`'s own doc
 comment, `include/hven/linear/symmetric_factor.h`), without pinning any
 decision to it.
+
+The don't-write-state amendment (`docs/retarget-design-sqp.md` §2.4) added a
+second, load-bearing canary on the same capture point:
+`BackendDefaultPremise.MklPardisoinitDefaultsTheRefinementCapAndPivotPerturbExponent`
+asserts `pardisoinit`'s own iparm[7] (full-solve refinement cap) and
+iparm[9] (pivot perturbation exponent) values on the linked MKL — the
+EFFECTIVE values `max_refinement_iters = std::nullopt` and
+`pivot_perturb_exp = std::nullopt` inherit, which the SQP retarget's census
+byte-identity depends on. An MKL default move must become a failing test,
+never a silent census break. The canary's own first run performed exactly
+its job for iparm[9]: the design note predicted 13 (Intel's documented
+default for NONSYMMETRIC matrices, mtype = 11), and the value observation —
+confirmed by a standalone `pardisoinit` probe outside hven's session code —
+shows 8 for mtype = -2 on the linked MKL, matching Intel's documented
+symmetric-indefinite default and `docs/retarget-design.md`'s own row for
+this entry. The canary pins the observed 8, and the note carries a declared
+amendment recording the correction and its evidence
+(`docs/retarget-design-sqp.md` §2.4) — a declared re-derivation, never a
+silent adaptation.
 
 ## The golden-numerics rig
 

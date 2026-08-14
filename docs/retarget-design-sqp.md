@@ -121,7 +121,7 @@ touched: the seam never writes `iparm[1]`, `[9]`, `[10]`, `[12]`,
 | --- | --- | --- |
 | `kind` | `FactorKind::kLDLT` | `KktSystem` is mtype = -2 on MKL (`kkt_system.h:92`) and `SparseFactorizationLDLTTPP` on Accelerate (`kkt_system_accelerate.h:132`); hven's kLDLT is exactly this pair. |
 | `num_threads` | `0` (backend default) | The seam has no per-instance thread control anywhere (audit, `consumed-surface-audit.md:59-75`: no thread rows for this seam); asserted runs pin threads process-wide via `MKL_NUM_THREADS=1` (the docket's own provenance stamp records `process-global=1`), and that test-side env-pin discipline continues unchanged. `0` leaves the backend default alone (`symmetric_factor.h:247-260`) — exact act parity. |
-| `pivot_perturb_exp` | **the NEW don't-write state** (§2) | Never wrote `iparm[9]`; effective exponent is `pardisoinit`'s (13 on the audited build — canary, §2.4). hven today writes it unconditionally (`pardiso_session.cpp:234-236`), so the state must be grown first. |
+| `pivot_perturb_exp` | **the NEW don't-write state** (§2) | Never wrote `iparm[9]`; effective exponent is `pardisoinit`'s (8 on the audited build — canary, §2.4; corrected from this note's original 13, see the §2.4 amendment). hven today writes it unconditionally (`pardiso_session.cpp:234-236`), so the state must be grown first. |
 | `max_refinement_iters` | **the NEW don't-write state** (§2) | Never wrote `iparm[7]` except the phase-33x save/zero/restore (`kkt_system.h:327-335`), which §5 dissolves; effective FULL-solve cap is `pardisoinit`'s (2 on the audited build, observed by the audit's runtime shim, `consumed-surface-audit.md:145-151`). The census pins depend on that effective cap — the refinement-default parity carry closes here. |
 | `ordering` | `Ordering::kBackendDefault` | Never wrote `iparm[1]` — don't-write is EXACT ACT parity, unlike the IPM's explicit METIS. On Accelerate the twin requests `SparseOrderDefault` (`kkt_system_accelerate.h:348`), which is literally what hven passes at `kBackendDefault` (`symmetric_factor.h:277-282`) — exact parity there too, so the IPM's Accelerate-ordering migration hazard (`symmetric_factor.h:296-300`) does NOT apply to this seam. |
 | `weighted_matching` | `false` | Never wrote `iparm[12]`; `false` writes nothing (`symmetric_factor.h:309-319`). Also keeps `supports_partial_solve()`'s matching conjunct inert (§5). |
@@ -198,7 +198,7 @@ Per-backend semantics rows (the knobs discipline's mandatory rows):
 | Member / state | MKL Pardiso | Apple Accelerate |
 | --- | --- | --- |
 | `pivot_perturb_exp`, present `k` | writes `iparm[9] = k` (today's unconditional write at `pardiso_session.cpp:234-236` becomes the present-value branch) | `zeroTolerance = 10^-k * eps`, the existing formula (`accelerate_session.cpp:210-214`), unchanged |
-| `pivot_perturb_exp`, `nullopt` | `iparm[9]` untouched — `pardisoinit`'s own value survives (13 on the audited build; canary §2.4) | `zeroTolerance = 1e-4 * eps` — Apple's OWN documented default (the formula at `k = 4`, which `accelerate_session.cpp:180-182` already identifies as Apple's default), passed explicitly because Accelerate takes an options struct and has no untouched-entry mechanism. "Don't-write" on this backend MEANS "the backend's documented default value", the closest expressible act — see §2.3. |
+| `pivot_perturb_exp`, `nullopt` | `iparm[9]` untouched — `pardisoinit`'s own value survives (8 on the audited build; canary §2.4, corrected from 13) | `zeroTolerance = 1e-4 * eps` — Apple's OWN documented default (the formula at `k = 4`, which `accelerate_session.cpp:180-182` already identifies as Apple's default), passed explicitly because Accelerate takes an options struct and has no untouched-entry mechanism. "Don't-write" on this backend MEANS "the backend's documented default value", the closest expressible act — see §2.3. |
 | `max_refinement_iters`, present `n` | writes `iparm[7] = n` (today's `pardiso_session.cpp:231-233` becomes the present-value branch). Partial solves still force `0` for the call and restore, regardless of the resting value (`pardiso_session.cpp:455-459`) — the restore target simply becomes whatever the entry held, written or inherited. | no refinement mechanism exists in the session at all (`accelerate_session.cpp` contains no refinement handling — verified by search); the value produces no backend act, and `SolveInfo::refinement_iters` stays absent. Same store-only treatment `num_threads` already has there. |
 | `max_refinement_iters`, `nullopt` | `iparm[7]` untouched — `pardisoinit`'s cap survives (2 on the audited build; canary §2.4). Partial solves force `0`/restore exactly as above, which reproduces the dissolved seam's save/zero/restore acts (`kkt_system.h:327-335`) against the inherited cap — the same acts the audit's runtime shim verified (`consumed-surface-audit.md:123-156`). | as the row above — no mechanism, no act. |
 
@@ -254,7 +254,25 @@ point (`pardiso_session.cpp:219-226` — the only point that answers
 overwrite), that on the linked MKL:
 
 - `iparm[7]` (refinement cap) is **2**, and
-- `iparm[9]` (pivot perturbation exponent) is **13**.
+- `iparm[9]` (pivot perturbation exponent) is **8**.
+
+**[Amendment, 2026-08-14, B1 implementation — a declared correction, not a
+silent one.]** This note originally predicted **13** for `iparm[9]`, and the
+canary's own first run falsified it: the post-`pardisoinit` capture observes
+**8** on the linked MKL (oneAPI 2026.1, mtype = -2), a standalone
+`pardisoinit()` probe outside hven's session code confirms 8 (and reproduces
+13 only for mtype = 11), Intel's oneMKL Developer Reference documents 13 as
+the NONSYMMETRIC default and 8 for symmetric indefinite matrices, and the
+repo's own prior records (`docs/retarget-design.md`'s `pivot_perturb_exp`
+row; `consumed-surface-audit.md:87-90`) already recorded 8. The original 13
+was an Intel-doc misread (the mtype = 11 row). Parity consequence: benign —
+the dissolved seam's effective exponent was 8, which coincides in value with
+the 8 the IPM engine and hven's default both write, so the don't-write state
+differs from the written default as an ACT but not in effective value on
+this MKL; no census implication. The canary asserts 8; the two §1/§2.1
+table mentions of 13 are corrected in place with pointers here. This is
+exactly the canary doing the job this section assigned it — converting the
+assumption into a test — one commit earlier than anticipated.
 
 `PardisoIparmObserver`'s `post_pardisoinit_*` trio grows two fields for
 this (`post_pardisoinit_refinement_cap_iparm`,

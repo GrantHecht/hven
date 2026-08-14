@@ -105,10 +105,19 @@ static_assert(sizeof(MKL_INT) == sizeof(SpMatRM::StorageIndex),
 // at all. Documented here rather than on the field so the field list stays
 // character-for-character what it was.
 struct PardisoConfig {
-    int mtype = -2;               // real symmetric indefinite
-    int num_threads = 0;          // 0 = leave MKL's own default alone
-    int pivot_perturb_exp = 8;    // static pivot perturbation, 10^-k
-    int max_refinement_iters = 0; // full-solve iterative refinement cap
+    int mtype = -2;      // real symmetric indefinite
+    int num_threads = 0; // 0 = leave MKL's own default alone
+
+    // Static pivot perturbation exponent override for iparm[9] (10^-k), and
+    // the full-solve iterative-refinement cap override for iparm[7].
+    // std::nullopt means "leave the entry alone" -- pardisoinit's own value
+    // survives -- the identical optional shape `ordering` below carries; a
+    // present value is written verbatim. Defaults stay the WRITTEN 8 / 0,
+    // so a default-built config produces the identical writes it always
+    // did -- see SymmetricFactor::Options' own doc comments for the
+    // per-backend semantics of both states.
+    std::optional<int> pivot_perturb_exp = 8;
+    std::optional<int> max_refinement_iters = 0;
 
     // Fill-in reordering override for iparm[1]. std::nullopt means "leave
     // iparm[1] alone" -- pardisoinit's own value survives -- and is the only

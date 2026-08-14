@@ -223,17 +223,45 @@ void FactorSession::analyze(const SpMatRM &A) {
     testing::PardisoIparmObserver::post_pardisoinit_cnr_iparm = static_cast<int>(iparm_[33]);
     testing::PardisoIparmObserver::post_pardisoinit_factor_mflops_request_iparm =
         static_cast<int>(iparm_[18]);
+    // iparm[7] / iparm[9]: the two entries whose don't-write states inherit
+    // pardisoinit's own values -- captured at this same only-valid line for
+    // the same reason as the three above, for the load-bearing
+    // BackendDefaultPremise canary the don't-write parity rests on.
+    testing::PardisoIparmObserver::post_pardisoinit_refinement_cap_iparm =
+        static_cast<int>(iparm_[7]);
+    testing::PardisoIparmObserver::post_pardisoinit_pivot_perturb_iparm =
+        static_cast<int>(iparm_[9]);
 #endif
 
     // iparm[34] = 1: zero-based (C-style) CSR indexing, so Eigen's index
     // arrays feed Pardiso directly with no reindexing pass.
     iparm_[34] = 1;
-    // iparm[7]: cap on iterative-refinement steps for a full solve. Forced
-    // to zero around partial solves (see solve_partial).
-    iparm_[7] = static_cast<MKL_INT>(cfg_.max_refinement_iters);
+    // iparm[7]: cap on iterative-refinement steps for a full solve. Left
+    // untouched (pardisoinit's own cap survives) when
+    // cfg_.max_refinement_iters is nullopt; a present value overrides it
+    // verbatim -- see SymmetricFactor::Options::max_refinement_iters.
+    // Forced to zero around partial solves either way (see solve_partial,
+    // whose save/restore targets whatever this entry holds, written or
+    // inherited).
+    if (cfg_.max_refinement_iters.has_value()) {
+        iparm_[7] = static_cast<MKL_INT>(*cfg_.max_refinement_iters);
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::max_refinement_was_written = true;
+        testing::PardisoIparmObserver::max_refinement_written_value = static_cast<int>(iparm_[7]);
+#endif
+    }
     // iparm[9]: static pivot perturbation exponent -- pivots too small to
     // use are replaced by ones of magnitude ~10^-k and counted in iparm[13].
-    iparm_[9] = static_cast<MKL_INT>(cfg_.pivot_perturb_exp);
+    // Left untouched (pardisoinit's own exponent survives) when
+    // cfg_.pivot_perturb_exp is nullopt; a present value overrides it
+    // verbatim -- see SymmetricFactor::Options::pivot_perturb_exp.
+    if (cfg_.pivot_perturb_exp.has_value()) {
+        iparm_[9] = static_cast<MKL_INT>(*cfg_.pivot_perturb_exp);
+#ifdef HVEN_TESTING
+        testing::PardisoIparmObserver::pivot_perturb_was_written = true;
+        testing::PardisoIparmObserver::pivot_perturb_written_value = static_cast<int>(iparm_[9]);
+#endif
+    }
     // iparm[1]: fill-in reordering. Left untouched (pardisoinit's own value
     // survives) when cfg_.ordering is nullopt; a present value (0 = minimum
     // degree via AMD, 2 = nested dissection via METIS, 3 = its OpenMP-
