@@ -296,6 +296,18 @@ scope creep.
 
 **Proof:** P-BENCH (both arms) + the artifact. **Alone.**
 
+**[B1 outcome, 2026-08-15 — `docs/notes/data/2026-08-15-m3-b1-hash-cost/`]**
+Measured at `31e57b0` under both instruments the method names. The extra hash is
+**6.12 %–7.76 % of SSN-major wall-clock** (median 7.34 %) on the SSN-heavy
+families — equivalently ~20 % of one numeric KKT factorization — and removing it
+cuts whole-solve wall by **5.58 % pooled** over the thirteen `qp_minors = 0`
+cells, with **zero counter movement** across eight passes. **The 5 % threshold is
+crossed: B2 fires, and it is GATE-BLOCKING, not optional.** Two method points
+declared there rather than here: the "archived pre-retarget engine at the pinned
+tag" does not exist in this repository (no tags), so arm B is `31e57b0` plus an
+uncommitted patch reproducing the dissolved seam's two-hash steady state; and
+the A3 end-state row reads **3 → 2 → 2**.
+
 ### B2 — (conditional on B1) remove the redundant hashes (Opus)
 
 **Scope.** The redundancy is structural, not algorithmic: `factorize_checked`
