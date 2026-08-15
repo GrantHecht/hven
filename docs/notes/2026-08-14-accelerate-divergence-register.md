@@ -28,6 +28,31 @@ a guessed `D20` could silently collide with an entry that already means
 something else. Origin numbers are cited as origin numbers where a test
 already carries one.
 
+**The `D`-series citations were repointed at phase C, task C0.3.** Each one now
+either names the register row that succeeds it — only `D19` has one, `M3-2` —
+or carries an explicit marker saying the origin note did not migrate and that
+the quoting comment is the citable record here, since the observation is
+quoted there in full. The repointed sites are `test_sqp_restoration.cpp`
+(`D14`, two blocks), `test_warm_start.cpp` (`D15`), `test_b1_gate.cpp`
+(`D16`), `test_hs_sweeps.cpp` (`D17`, and the `D16` cross-reference),
+`test_predictor.cpp` (`D18`), `include/hven/detail/sqp/predictor.h`
+(`D16`/`D17`/`D18`), `test_continuation.cpp` (`D19`, repointed at gate B) and
+`test_warm_start_battery.cpp` (`D22`). The disposition was repoint rather than
+migrate: the observations are quoted at the citing sites, and the origin notes
+are a citable archive that the M3 plan explicitly does not migrate.
+
+**Wider, and deliberately out of that task's scope:** those same four notes are
+also cited from roughly a dozen comments that carry no `D` number (audit
+checklist items, standing rules, contrast paragraphs), and the suite cites
+about thirty further non-migrated `docs/notes/2026-0[78]-*` files besides —
+around 180 references in all. Those are algorithm-design and results notes with
+no successor artifact in this repository, so there is nothing here to repoint
+them *to*; this paragraph is their standing disclosure. Read any
+`docs/notes/2026-07-*` or pre-`2026-08-14` `docs/notes/2026-08-*` citation in
+`include/hven/detail/sqp/`, `tests/sqp/` or `bench/` as naming an origin
+document that is not readable from this tree, with the quoting comment as the
+record.
+
 ## What may be committed here, and on what evidence
 
 The macOS CI lane (`macos-clang-release`, runner class

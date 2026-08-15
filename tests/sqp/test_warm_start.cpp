@@ -1679,7 +1679,13 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     // The LAST row (trial 3), not the min-h row (a)'s solve picks out.
     EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
 #ifdef USE_ACCELERATE_SPARSE
-    // D15 (docs/notes/2026-07-30-accelerate-at-head-results.md): the f-pin
+    // Origin divergence entry D15. The note that carried it
+    // (docs/notes/2026-07-30-accelerate-at-head-results.md) did NOT migrate
+    // into hven, and the register that succeeds it here
+    // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why this
+    // file exists at this path") has no row for D15 -- the observation is
+    // quoted in full below, and this comment is its citable record here.
+    // What was observed: the f-pin
     // below is MKL-measured. On Accelerate, three truncated majors on HS26
     // (rank-deficient at the solution) amplify last-digit linear-algebra
     // differences into ~8.69e-12 of f -- the 1e-9 x-pin and every structural

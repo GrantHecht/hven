@@ -786,7 +786,14 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         const SqpSolution sol = driver.solve(model);
 #ifdef USE_ACCELERATE_SPARSE
         if (algebra == WorkingSetLinearAlgebra::kSchurBorder) {
-            // D14 (docs/notes/2026-07-30-accelerate-at-head-results.md): on
+            // Origin divergence entry D14. The note that carried it
+            // (docs/notes/2026-07-30-accelerate-at-head-results.md) did NOT
+            // migrate into hven, and the register that succeeds it here
+            // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why
+            // this file exists at this path") has no row for D14 -- the
+            // observation is quoted in full below and in the second D14 block
+            // further down, and those comments are its citable record here.
+            // What was observed: on
             // Accelerate, border mode departs from the MKL mechanism at major
             // 0 -- the first elastic subproblem exits QpStatus::kMaxIter with
             // |p|inf == 0 instead of taking MKL's 0.125 elastic step, and the
@@ -812,13 +819,15 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
     }
 
 #ifdef USE_ACCELERATE_SPARSE
-    // D14: on Accelerate, border mode's iterate at the cap is mid-restoration
+    // Origin divergence entry D14, second half (see the first block above for
+    // why the origin note is cited as not-migrated and this comment is the
+    // record): on Accelerate, border mode's iterate at the cap is mid-restoration
     // -- x = (1.50000000031, 1.49999999969), sum 3.0000000000000004 -- not on
     // the open-relaxation LP face x0 + x1 == 2 that MKL and refactorize mode
     // both reach. Refactorize mode is unaffected. Values are
     // Accelerate-observed (macOS 26.5.2 / AppleClang 21) and will be
     // re-verified on the next Mac session; the x-components are quoted to 11
-    // significant digits in the source note, hence the looser tolerance there
+    // significant digits in the origin note, hence the looser tolerance there
     // than on the (full-precision) sum.
     EXPECT_NEAR(x_border(0), 1.50000000031, 1e-9);
     EXPECT_NEAR(x_border(1), 1.49999999969, 1e-9);

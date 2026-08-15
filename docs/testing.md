@@ -626,6 +626,103 @@ precisely because they agree, and nothing rests on the act, because an
 unconditional write has no don't-write state to be told apart from (contrast
 the `was_written` flags `max_refinement_iters`/`pivot_perturb_exp` need).
 
+## Per-backend arms, and the divergence register
+
+The two sections above cover cross-backend *contract* coverage. This one
+covers the other case: a test whose subject genuinely reads a different
+number on Accelerate than on MKL Pardiso, where neither number is wrong.
+
+**The convention is a per-backend arm, never a widened tolerance.** A pin that
+diverges is split under `#ifdef USE_ACCELERATE_SPARSE` (the SQP suite's
+predicate; `#if defined(__APPLE__)` in `tests/linear/`, which has no such
+option), with each backend asserting *its own observed value*. The MKL
+assertion is never relaxed to accommodate the Apple one, and the pair is never
+replaced by an inequality or a loosened tolerance that both happen to satisfy
+— a range that admits both numbers stops detecting a regression in either. The
+`suspect_escalations` precedent is the standing example. Worked instances live
+in `tests/sqp/test_continuation.cpp` (303 / 304 factorizations),
+`test_hs_sweeps.cpp` (3719 / 3717 minors), `test_hs_battery.cpp` (862/859 vs
+861/858 minors) and `test_ssn_engine.cpp` (the weakly-active tie).
+
+**The register.** `docs/notes/2026-08-14-accelerate-divergence-register.md`
+records each such divergence: what was observed, where, on what evidence, and
+what the test was changed to assert as a result. An entry is not a bug report
+— most of them are a trajectory that forked without changing an answer — and
+an arm should not be committed without one, because the arm alone records
+*that* the numbers differ and never *why the difference is acceptable*.
+
+**Its evidence bar is asymmetric, and deliberately so** (the register states
+this in full; repeated here because it governs whether a new arm may be
+written at all):
+
+- **Counters, states and lists** carry no machine, thread or configuration
+  context, so a count that reproduces across macOS CI runs is committable as
+  an asserted per-backend value. A CI run on `github-macos26-arm64` *is* a
+  real observation — CLAUDE.md's rule bars invented values, not measured ones.
+- **Floats are not.** hven's Accelerate session stores `num_threads` without
+  applying it to any backend call, so nothing pins the reduction order on that
+  lane. A float row needs two-run byte agreement before it may be committed,
+  and a column that fails that bar is **reported, not asserted** on Accelerate
+  (register entry M3-3 is the worked case: five `{:.9e}` residual columns
+  asserted on MKL, reported on Apple). An unobserved Apple value stays
+  `UNOBSERVED` — never zero-filled, never interpolated from the MKL arm.
+
+**Origin entries `D14`–`D19`/`D22` are cited but not readable here.** The SQP
+suite arrived carrying citations to four origin notes
+(`2026-07-28-accelerate-audit-checklist.md`,
+`2026-07-29-accelerate-audit-results.md`,
+`2026-07-31-accelerate-second-pass-results.md`,
+`2026-08-01-accelerate-register-3.md`) that did not migrate into this
+repository. The register keeps its own `M3-n` numbering rather than continuing
+the `D`-series, for the reason it states: the origin's highest number is
+unknown from inside this tree, so a guessed `D20` could collide. Every
+`D`-series citation in the suite now either points at the register row that
+succeeds it (`D19` → `M3-2`) or carries an explicit not-migrated marker naming
+the comment itself as the citable record, because the observation is quoted
+there in full. **A new divergence gets an `M3-n` register row; it does not get
+a new `D` number.**
+
+## The migrated SQP suite
+
+`tests/sqp/` is the test suite that arrived with the SQP engine at M3 phase A,
+imported at its archived tag and then retargeted onto `hven::linear`. It is
+its own CMake target, `hven_sqp_tests` (`tests/sqp/CMakeLists.txt`), built
+under sandbox-matched flags so its pinned trajectories reproduce the numbers
+they were derived under; `tests/sqp/support/` carries the parametric problem
+families and scale fixtures the pins are built on, shared with `bench/`.
+
+What it asserts, in the currencies this project treats as binding:
+
+- **Counter pins** — majors, QP minors, factorizations, per-phase escalation
+  counts — asserted as exact values, per backend where they diverge (above).
+  Counters are the asserted currency (CLAUDE.md §7); wall-clock is
+  informational and is never asserted.
+- **Trajectory pins** — `{:.9e}`/binary64 constants for iterates, objectives
+  and multipliers, context-pinned three ways (machine, build configuration,
+  thread count) as the float rule below requires.
+- **Corpus and battery cells** — `test_corpus_cells.cpp`,
+  `test_hs_battery.cpp`, `test_warm_start_battery.cpp` compare against the
+  committed artifacts under `bench/baselines/`, byte-strict on every asserted
+  column, with any licensed exception named as a single cell rather than a
+  widened comparator.
+
+Two standing notes on running it. The suite is green under `ctest`, which
+runs **one process per test** — that is the asserted currency. Running the
+whole `hven_sqp_tests` binary as a single process fails
+`CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers`
+through cross-test in-process interaction; this is pre-existing, was verified
+present at the B4 base by stash-and-rerun, and is out-of-contract usage rather
+than a regression. And `MKL_NUM_THREADS=1` is the asserted configuration for
+every counter and float claim.
+
+**Owed, not yet written: this entry's translation-unit half.** The
+header/TU structure of `include/hven/detail/sqp/` and `src/sqp/` is under
+active decision in M3 phase C (tasks T0 and T9 — the flag-regime ruling and
+the PCH-membership/source-count tripwire), and the entry that describes it is
+deliberately deferred to those tasks rather than pre-written against a
+structure that is not yet ruled. What is written above is the suite as it
+stands and does not depend on that outcome.
+
 ## The golden-numerics rig
 
 `tests/golden_rig/` is the instrument that gates both engine migrations. It

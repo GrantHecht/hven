@@ -432,3 +432,55 @@ Two further limits on what that artifact can ever fill:
 
 The manual trigger (`workflow_dispatch`) exists for exactly this: asking
 for a derivation artifact should not require inventing a commit to push.
+
+### What a per-backend divergence needs before an arm is written
+
+A green macOS lane licenses a per-backend *counter* arm and does not license a
+per-backend *float* arm. That asymmetry, the convention for writing the arm
+(each backend asserts its own observed value; the MKL side is never relaxed
+and the pair is never replaced by a range that admits both), and the register
+that records what was observed and why the difference is acceptable, are all
+specified in `docs/testing.md`, "Per-backend arms, and the divergence
+register", with the register itself at
+`docs/notes/2026-08-14-accelerate-divergence-register.md`. The CI-side half of
+that rule is the one on this page: a run on `github-macos26-arm64` is a real
+observation, a run's counter that reproduces across runs is committable, and a
+float needs two-run byte agreement because nothing on this lane pins the
+reduction order.
+
+## The gtest XML artifact each lane produces
+
+All three lanes upload a `gtest-xml-<platform>` build artifact
+(`gtest-xml-linux`, `gtest-xml-macos`, `gtest-xml-windows`) containing
+GoogleTest's XML (JUnit-format) output for the whole run. Each is uploaded
+with `if: always()`, so a failing run produces one too — which is when it is
+most useful.
+
+Three mechanics worth knowing before reading one:
+
+- **It is produced by `GTEST_OUTPUT`, not by a ctest flag.** `ctest` does not
+  forward unrecognized CLI options through to the binaries
+  `gtest_discover_tests` registers, so the request arrives as an environment
+  variable on the Test step instead of as `--gtest_output`.
+- **The value names a DIRECTORY** (trailing slash),
+  `${{ runner.temp }}/gtest-xml/`, not a file. `gtest_discover_tests` invokes
+  the test binary once per test case; GoogleTest's directory-mode writer
+  generates a fresh collision-free filename per invocation, where a fixed path
+  would leave only the last test's output behind.
+- **`if-no-files-found: warn`**, deliberately: the artifact is diagnostic
+  output, and a missing one is not itself a failure the way a missing
+  `rig-report-accelerate.txt` is (that one is `error`, because it is the
+  derivation route's only product).
+
+What it is *for*: it is where `RecordProperty` observations land durably
+instead of being formatted to a console and discarded. Tests that record
+rather than assert — the `iparm[18]` `pardisoinit` default in
+`tests/linear/test_fault_injection.cpp`, and the observed task-6b residual
+columns in `tests/sqp/test_corpus_cells.cpp`, the ones the divergence register
+reports rather than asserts on Accelerate — put their values in these files,
+which is what makes a reported value re-readable from a named run rather than
+lost. (The Test step's own comment also names `test_ssn_engine.cpp` here; that
+file's Accelerate readings were *pinned* as assertions at gate B, register
+entry M3-4, and it records no properties today.) It is
+diagnostic, never an assertion: nothing in the gate reads it, and a value that
+only exists in one of these XML files has been reported, not pinned.

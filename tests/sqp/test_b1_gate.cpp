@@ -721,9 +721,15 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
     // %a: HS7 -0x1.bb67ae8a20f7dp+0, HS26 0x1.4130f91e14ceep-39,
     // HS40 -0x1.000000000dfap-2, HS77 0x1.ee9a3dafc1692p-3).
 #ifdef USE_ACCELERATE_SPARSE
-    // D16 (docs/notes/2026-07-31-accelerate-second-pass-results.md): an
+    // Origin divergence entry D16. The note that carried it
+    // (docs/notes/2026-07-31-accelerate-second-pass-results.md) did NOT
+    // migrate into hven, and the register that succeeds it here
+    // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why this
+    // file exists at this path") has no row for D16 -- so the observation
+    // below is quoted in full in this comment, and this comment is the
+    // citable record for it in this repository. What was observed: an
     // on-Apple A/B (pre-repair 0fbdca6 sqp_driver.h shadowing the repaired
-    // one, same protocol the note documents for the MKL measurement)
+    // one, same protocol the origin documents for the MKL measurement)
     // reproduced every field below bit-identically ACROSS THE REPAIR, so the
     // control's PURPOSE -- the repair moves nothing on equality-only models
     // -- holds on this backend exactly as on MKL. Only its ENCODING (MKL
@@ -733,9 +739,10 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
     // and HS26 x0 take the Accelerate-observed constants below (distances
     // 4.2e-22, 2.4e-21, 1.6e-13 respectively -- HS7 x0 and HS26 f are both
     // near-zero readings, where ulp distance is enormous but absolute
-    // distance is tiny, per the note's caution (i)).
+    // distance is tiny, per the origin's caution (i), quoted here because the
+    // origin itself is not readable from this tree).
     //
-    // HS77 f is the note's flagged TRAP: it passes on Accelerate against the
+    // HS77 f is the origin's flagged TRAP: it passes on Accelerate against the
     // MKL constant, but only through EXPECT_DOUBLE_EQ's 4-ulp gate, at
     // EXACTLY 4 ulps -- zero margin, one further ulp of drift anywhere in
     // this dependency chain flips it to a failure with no warning. Rather

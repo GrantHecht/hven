@@ -529,7 +529,14 @@ TEST(Predictor, PredictorHandlesBoundCrossing) {
         // merely change sign -- a free variable carries no z, and
         // predictor.h's RELAX note is about precisely that term.
 #ifdef USE_ACCELERATE_SPARSE
-        // D18 (docs/notes/2026-07-31-accelerate-second-pass-results.md): the
+        // Origin divergence entry D18. The note that carried it
+        // (docs/notes/2026-07-31-accelerate-second-pass-results.md) did NOT
+        // migrate into hven, and the register that succeeds it here
+        // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why
+        // this file exists at this path") has no row for D18 -- the
+        // observation is quoted in full below, and this comment is its
+        // citable record here (predictor.h's RELAX note points at it). What
+        // was observed: the
         // zero predictor.h's RELAX note describes is arithmetic cancellation
         // THROUGH THE LINEAR SOLVE, not an assignment -- MKL Pardiso happens
         // to cancel bit-exactly (EXPECT_DOUBLE_EQ, the #else arm, holds

@@ -1821,8 +1821,13 @@ const FailureEconomics &f7_failure_economics_cell() {
         // whose entire subject is "what a FAILED proposal costs" would have
         // been measuring nothing. Restoring the cap keeps the twelve pinned
         // counters below (which Grant's Mac pass reproduced bit-for-bit on
-        // Accelerate -- docs/notes/2026-08-01-accelerate-register-3.md, item
-        // D22) testing exactly the trajectory they were derived on.
+        // Accelerate -- origin divergence entry D22; the note that carried it,
+        // docs/notes/2026-08-01-accelerate-register-3.md, did NOT migrate into
+        // hven and the register that succeeds it here,
+        // docs/notes/2026-08-14-accelerate-divergence-register.md, has no row
+        // for D22, so the observation stands quoted in this comment and this
+        // comment is its citable record) testing exactly the trajectory they
+        // were derived on.
         //
         // AND THE M6 READING ITSELF IS NOT LOST -- it is the uncomfortable half
         // of docs/notes/2026-08-03-crash-basis.md Sec. 6.3: 2460 capped minors

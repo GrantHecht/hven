@@ -123,8 +123,12 @@
 //         subtraction removes, not a claim about the exact floating-point
 //         bit pattern the linear solve returns: on MKL Pardiso the
 //         cancellation through the solve happens to land at exactly 0.0
-//         bit-for-bit (D16/D17/D18,
-//         docs/notes/2026-07-31-accelerate-second-pass-results.md); on
+//         bit-for-bit (origin divergence entries D16/D17/D18 -- the note
+//         that carried them did not migrate into hven and the register
+//         here has no successor row, so the observation is quoted in this
+//         comment and in test_predictor.cpp's D18 arm rather than cited;
+//         see docs/notes/2026-08-14-accelerate-divergence-register.md,
+//         "Why this file exists at this path"); on
 //         Accelerate the same cancellation leaves an O(1e-34) residue
 //         (measured -7.7037197775489434e-34 against a frozen z of -0.05,
 //         i.e. ~1.5e-32 of the frozen value it is cancelling) -- thirty

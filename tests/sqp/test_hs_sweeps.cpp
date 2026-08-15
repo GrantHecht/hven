@@ -1234,16 +1234,24 @@ void check_soc_costs_what_it_costs() {
     // minors by its warm arm's truncation. It is superseded and appears only in
     // the note's revision history.)
 #ifdef USE_ACCELERATE_SPARSE
-    // D17 (docs/notes/2026-07-31-accelerate-second-pass-results.md): this is
+    // Origin divergence entry D17. The note that carried it
+    // (docs/notes/2026-07-31-accelerate-second-pass-results.md) did NOT
+    // migrate into hven, and the register that succeeds it here
+    // (docs/notes/2026-08-14-accelerate-divergence-register.md, "Why this
+    // file exists at this path") has no row for D17 -- the observation is
+    // quoted in full below, and this comment is its citable record here.
+    // What was observed: this is
     // the corpus's ONLY failing assertion on Accelerate. Every abridged row
     // is byte-identical to the Linux measurement except HS26, which forks by
     // exactly one minor in each of its two SOC-on cells (cold 88/190/88 ->
     // 88/191/88 on MKL, warm 29/60/29 -> 29/61/29 on MKL) -- the same single
-    // HS26 trajectory fork that dominates D16. Majors and factorizations are
+    // HS26 trajectory fork that dominates origin entry D16 (quoted at
+    // tests/sqp/test_b1_gate.cpp's own Accelerate arm, same not-migrated
+    // origin). Majors and factorizations are
     // unchanged in both cells, and the SOC numerator this test also pins
     // (extra_minors == 23, extra_factorizations == 4, two lines above) holds
     // EXACTLY on this backend -- the fork is confined to the denominator.
-    // The note's quoted 23/3719 = 0.62 % is unaffected at its own precision
+    // The origin's quoted 23/3719 = 0.62 % is unaffected at its own precision
     // by the -2 total here (23/3717 = 0.62 % also).
     EXPECT_EQ(3717, total_minors) << corpus_table();
 #else
