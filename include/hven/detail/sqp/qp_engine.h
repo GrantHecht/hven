@@ -4578,15 +4578,20 @@ class QpEngine {
                     QpCounters &counters, const QpOptions &opts) const {
         border.k0 = assemble_kkt_full(qp, ws, opts);
         border.k0_rows = ws.active_ineq();
-        // FIX ROUND 2 (QpCounters::symbolic_analyses' own note): checked
+        // FIX ROUND 2 (QpCounters::symbolic_analyses' own note): decided
         // BEFORE the factorize, which is the only way to know whether THIS
         // call is about to pay the backend's symbolic analysis --
-        // factorize_checked() decides that internally (kkt_calls.h) and
-        // does not report it back.
-        if (detail::needs_analysis(border.kkt, border.k0.K)) {
+        // factorize_checked() acts on the decision but does not report it
+        // back. M3 phase C (B2): the decision is TAKEN here and HANDED to
+        // factorize_checked(), rather than taken here and taken again in
+        // there, so one factorization costs one pattern hash at this layer
+        // and not two (kkt_calls.h's AnalysisDecision).
+        const detail::AnalysisDecision analysis =
+            detail::analysis_decision(border.kkt, border.k0.K);
+        if (analysis.needed) {
             ++counters.symbolic_analyses;
         }
-        detail::factorize_checked(border.kkt, border.k0.K);
+        detail::factorize_checked(border.kkt, border.k0.K, analysis);
         ++counters.factorizations;
         border.ledger.clear();
         // Constructed AFTER the factorization: add_border caches K0^-1 v

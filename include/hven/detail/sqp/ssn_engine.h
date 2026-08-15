@@ -225,7 +225,7 @@
 //     (an exact-zero triplet is not a slot one may rely on);
 //   * consequently ONE Newton iteration costs one numeric factorization and
 //     ZERO symbolic analyses, and a SECOND QP of identical structure costs
-//     zero symbolic analyses too -- needs_analysis() sees the same
+//     zero symbolic analyses too -- the analysis decision sees the same
 //     hash and factorize_checked() skips the symbolic analysis (kkt_calls.h).
 //
 // SsnResult::symbolic_analyses reports this directly (counted at the call
@@ -2157,10 +2157,11 @@ class SsnEngine {
             // --- factor and step ---------------------------------------
             Vec dw;
             try {
-                if (detail::needs_analysis(kkt_, k_)) {
+                const detail::AnalysisDecision analysis = detail::analysis_decision(kkt_, k_);
+                if (analysis.needed) {
                     ++out->symbolic_analyses;
                 }
-                detail::factorize_checked(kkt_, k_);
+                detail::factorize_checked(kkt_, k_, analysis);
                 ++out->factorizations;
                 if (!verifying) {
                     dw = detail::solve_vec(kkt_, rhs);
@@ -2518,10 +2519,11 @@ class SsnEngine {
         }
         deferred_pending_ = false;
         try {
-            if (detail::needs_analysis(kkt_, k_)) {
+            const detail::AnalysisDecision analysis = detail::analysis_decision(kkt_, k_);
+            if (analysis.needed) {
                 ++out->symbolic_analyses;
             }
-            detail::factorize_checked(kkt_, k_);
+            detail::factorize_checked(kkt_, k_, analysis);
             ++out->factorizations;
         } catch (const std::exception &e) {
             out->status = QpStatus::kNumericalError;

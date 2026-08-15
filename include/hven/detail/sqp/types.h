@@ -267,10 +267,12 @@ struct QpCounters {
 
     // PHASE-4 TASK 4 FIX ROUND 2. Number of backend SYMBOLIC-ANALYSIS
     // calls this solve() call actually paid for -- i.e. the number
-    // of times qp_engine.h's rebuild_k0() found `needs_analysis(kkt, K)`
-    // before calling `factorize_checked()` (which itself skips
-    // the analysis whenever the sparsity pattern is unchanged from the last
-    // analyzed matrix -- kkt_calls.h). Counted here, at the call site,
+    // of times qp_engine.h's rebuild_k0() found the analysis decision
+    // `needed` before calling `factorize_checked()` (which skips the
+    // analysis whenever the sparsity pattern is unchanged from the last
+    // analyzed matrix -- kkt_calls.h; M3 phase C B2 hands that same decision
+    // in rather than letting it be retaken, which changes when the pattern
+    // is hashed and nothing else). Counted here, at the call site,
     // rather than inside the factor, so this stays a QP-engine-level
     // observable like every other QpCounters field and touches no
     // MKL-adjacent code. This is the direct regression net for the

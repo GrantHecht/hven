@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/sqp/types.h>
@@ -52,14 +53,55 @@ struct KktFactor {
     bool analyzed = false;
 };
 
+// The analyze-or-not decision for K, carrying the pattern hash it was taken
+// on so nothing downstream has to recompute it.
+//
+// `needed` is exactly what needs_analysis() reports. `pattern` holds
+// hven::pattern_hash(K) WHEN ONE WAS COMPUTED, and is disengaged on the
+// short-circuit path: a factor with `analyzed == false` needs an analysis
+// whatever K's pattern is, so K is not hashed to decide that. Preserving
+// that short-circuit is not cosmetic -- pattern_hash() throws on an
+// uncompressed matrix, so hashing unconditionally here would move a throw
+// site (docs/retarget-design-sqp.md section 11, ledger row 8).
+//
+// WHY THIS EXISTS (M3 phase C, B2). Steady state used to pay THREE O(nnz)
+// pattern hashes per SSN major -- the call site's needs_analysis(), a second
+// one inside factorize_checked(), and SymmetricFactor::factorize()'s own
+// pattern guard -- where the dissolved KktSystem seam paid two. B1 priced
+// the extra one at 6.12-7.76 % of SSN-major wall-clock on the SSN-heavy
+// families (docs/notes/data/2026-08-15-m3-b1-hash-cost/), above the plan's
+// 5 % gate-blocking threshold. Threading the decision through is what puts
+// steady state back at two: this one, plus factorize()'s guard -- which is
+// hven::linear's own published contract (SymmetricFactor rejects a foreign
+// pattern) and is therefore the floor, not something B2 removes.
+struct AnalysisDecision {
+    bool needed = false;
+    std::optional<std::uint64_t> pattern;
+};
+
+// The analyze-or-not decision for K, with the hash it was taken on kept for
+// the caller to hand back to factorize_checked(). The pair
+// `analysis_decision()` + `factorize_checked(k, K, decision)` is the form
+// every call site that counts symbolic_analyses should use.
+AnalysisDecision analysis_decision(const KktFactor &k, const SpMatU &K);
+
 // True iff factorize_checked() would run an analysis for K. SQP call sites
 // consult this before factorize_checked() to preserve their
-// symbolic_analyses counting contract.
+// symbolic_analyses counting contract. It is `analysis_decision(k, K).needed`
+// and cannot disagree with it -- one is implemented in terms of the other.
 bool needs_analysis(const KktFactor &k, const SpMatU &K);
 
 // Analyze iff the pattern changed, then factorize. A backend failure is
 // restored to KktSystem's throwing contract.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K);
+
+// The same, on a decision the caller has already taken -- which is what
+// keeps the pattern from being hashed twice for one factorization. The
+// decision MUST be the one `analysis_decision()` returned for this same `k`
+// and this same K's pattern; handing back a stale decision would analyze (or
+// skip analyzing) against the wrong pattern.
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K,
+                                                 const AnalysisDecision &decision);
 
 // Allocate and solve, matching KktSystem's Vec-returning call shape.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);

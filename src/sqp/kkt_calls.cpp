@@ -6,14 +6,28 @@
 
 namespace hven::solvers::detail {
 
-bool needs_analysis(const KktFactor &k, const SpMatU &K) {
-    return !k.analyzed || hven::pattern_hash(K) != k.analyzed_pattern;
+AnalysisDecision analysis_decision(const KktFactor &k, const SpMatU &K) {
+    // Short-circuits on `!k.analyzed` exactly as needs_analysis() always has:
+    // nothing has been analyzed, so the answer is `true` without looking at
+    // K, and no hash is computed to be carried.
+    if (!k.analyzed) {
+        return AnalysisDecision{true, std::nullopt};
+    }
+    const std::uint64_t pattern = hven::pattern_hash(K);
+    return AnalysisDecision{pattern != k.analyzed_pattern, pattern};
 }
 
-hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K) {
-    if (needs_analysis(k, K)) {
+bool needs_analysis(const KktFactor &k, const SpMatU &K) { return analysis_decision(k, K).needed; }
+
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K,
+                                                 const AnalysisDecision &decision) {
+    if (decision.needed) {
         k.factor.analyze(K);
-        k.analyzed_pattern = hven::pattern_hash(K);
+        // The record reuses the hash the decision was taken on. Only the
+        // short-circuit path (nothing analyzed yet, so K was never hashed)
+        // has none to reuse, and there this is the pattern's FIRST hash, not
+        // a second one -- the count is the same either way.
+        k.analyzed_pattern = decision.pattern ? *decision.pattern : hven::pattern_hash(K);
         k.analyzed = true;
     }
 
@@ -24,6 +38,10 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K) 
                         outcome.backend_code));
     }
     return outcome;
+}
+
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K) {
+    return factorize_checked(k, K, analysis_decision(k, K));
 }
 
 Vec solve_vec(const KktFactor &k, const Vec &rhs) {

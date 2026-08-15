@@ -372,6 +372,27 @@ Phase B does NOT re-key `detail::structural_hash`/`values_hash`
 (`ssn_engine.h:2951-3019`) — those are phase-C §5 work and stay
 byte-identical here.
 
+> **AMENDMENT — M3 phase C, task B2 (2026-08-15).** The shape above grew
+> **one struct and one overload**, additively: `AnalysisDecision` (the
+> `needs_analysis` answer plus the `pattern_hash` it was taken on) and
+> `factorize_checked(k, K, decision)`. `KktFactor`, `needs_analysis`,
+> `factorize_checked(k, K)` and `solve_vec` are unchanged, and the
+> `symbolic_analyses` call-site counting contract is unchanged — the
+> three counting call sites (`ssn_engine.h` ×2, `qp_engine.h`'s
+> `rebuild_k0`) still take the decision BEFORE the factorize and still
+> count off it; they now hand it in instead of letting
+> `factorize_checked` retake it. **Reason:** as designed above, steady
+> state hashed the pattern THREE times per SSN major where the dissolved
+> seam hashed it twice, and B1 priced the extra pass at 6.12–7.76 % of
+> SSN-major wall-clock on the SSN-heavy families
+> ([`notes/data/2026-08-15-m3-b1-hash-cost/`](notes/data/2026-08-15-m3-b1-hash-cost/report.md)),
+> over the phase-C plan's 5 % gate-blocking bar. Steady state is now two:
+> the decision's own, and `SymmetricFactor::factorize`'s pattern guard,
+> which is `hven::linear`'s published contract and is the floor B2 does
+> not touch. No decision, counter, or float moves; proven by P-SUITE
+> (Release + Debug), the 57-cell P-CENSUS, and P-BENCH
+> ([`notes/data/2026-08-15-m3-b2-hash-removal/`](notes/data/2026-08-15-m3-b2-hash-removal/report.md)).
+
 ### 3.3 Error mapping — throws stay throws
 
 Old `KktSystem` converts every nonzero Pardiso error to
