@@ -78,8 +78,24 @@ jobs:
         # output behind. This is what makes `RecordProperty` observations (see
         # tests/sqp/test_corpus_cells.cpp, test_ssn_engine.cpp) land somewhere
         # durable instead of being formatted and discarded.
+        #
+        # MKL_NUM_THREADS pins Pardiso to one thread, matching CLAUDE.md §7's
+        # measurement discipline ("every local proof run in this phase" is
+        # MKL_NUM_THREADS=1, serialized) -- this lane was the one place that
+        # discipline was not applied. Its absence is the diagnosed root cause of
+        # three counter-/trajectory-pinned test flakes on this lane (all
+        # Linux-only, never local, objects byte-identical across the flake): see
+        # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md's R5
+        # report §7-8 (SqpDriverRadius, B1Gate, CorpusTask6bPhaseB,
+        # SsnEngineLocal on run 31893392460 attempt 1, with two earlier
+        # occurrences noted in docs/notes/2026-08-14-m3-gate-b-review-request.md
+        # and docs/notes/2026-08-15-m3-phase-c-plan.md's microarch-flake watch
+        # rule). Threaded MKL reductions are order-dependent, so an unpinned
+        # thread count exposes pinned tests to whatever core count and MKL
+        # dispatch the runner happens to offer.
         env:
           GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
+          MKL_NUM_THREADS: "1"
         run: ctest --test-dir build --output-on-failure --timeout 300
 
       - name: Accelerate backend syntax check (Linux, stubbed)
@@ -260,6 +276,16 @@ jobs:
         # tests/sqp/test_ssn_engine.cpp, tests/sqp/test_corpus_cells.cpp --
         # needs to land in durably on the only Apple hardware this project
         # reaches, instead of being formatted and discarded.
+        #
+        # No MKL_NUM_THREADS here, and that is a deliberately open question, not
+        # an oversight mirroring the Linux fix. The Linux lane's Test step now
+        # pins MKL_NUM_THREADS=1 (root-caused to three counter-pinned flakes,
+        # see .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md
+        # §7-8), but this lane is Accelerate, not MKL, and its committed float
+        # rows -- the divergence register's per-backend arms -- were recorded
+        # under this lane's current (unpinned) threading config. Changing it here
+        # would be a re-observation decision, not a mechanical port of the Linux
+        # fix, and is left to the gate reviewer.
         env:
           GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
         run: ctest --test-dir build-macos --output-on-failure --timeout 300
@@ -503,8 +529,15 @@ jobs:
         # GTEST_OUTPUT: see the Linux lane's Test step for the full rationale
         # (env-var form of `--gtest_output`, directory-mode to avoid the
         # per-test-case overwrite collision).
+        #
+        # MKL_NUM_THREADS: this lane also links and runs against MKL Pardiso
+        # (same hven_tests binary, same counter-/trajectory-pinned suite), so it
+        # gets the same pin as the Linux lane's Test step, for the same reason --
+        # see that step's comment and
+        # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md §7-8.
         env:
           GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
+          MKL_NUM_THREADS: "1"
         run: ctest --test-dir build-windows --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
