@@ -381,8 +381,14 @@ under a different environment.
 - **`ScaleF7Slow.*`** — excluded from ctest REGISTRATION by
   `tests/sqp/CMakeLists.txt` L136 (`TEST_FILTER "-ScaleF7Slow.*"`), whose own
   banner says it must run "in the phase-gate Debug sweep and in Release CI runs
-  of the M3 gate". It is not part of this fast half and was not run. Gate A ran
-  it (Release 6/6, 52.6 s; Debug 6/6, 915 s). Flagging it so it is not lost.
+  of the M3 gate". It is not part of this fast half and was not run **in this
+  battery**. Gate A ran it (Release 6/6, 52.6 s; Debug 6/6, 915 s). Flagging it
+  so it is not lost. **[gate-B fix round]** It was subsequently run for this
+  gate by the orchestrator — separately from the battery, post-battery and
+  pre-census, `MKL_NUM_THREADS=1`, machine otherwise idle, same commit
+  `6535566` — and passed **6/6 in both configs** (Release 55.0 s, Debug
+  1013.0 s). The captured output is committed alongside this report as
+  `scalef7slow-both-configs.log`; the gate note §2.4 quotes it.
 - **Mac leg** — every Accelerate-arm item in the gate-B checklist
   (perturbed-pivots verdict consumer, `suspect_escalations` per-backend arms,
   the retargeted `test_kkt_partial_solve`/`test_kkt_inertia_probe` Accelerate

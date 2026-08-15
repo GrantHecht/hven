@@ -1,0 +1,23 @@
+Test project /home/ghecht/Projects/hven/build
+    Start 487: Schur.BorderedSolveMatchesDirectFactorization
+1/9 Test #487: Schur.BorderedSolveMatchesDirectFactorization ..........   Passed    0.01 sec
+    Start 488: Schur.RefactorizationTriggerFires
+2/9 Test #488: Schur.RefactorizationTriggerFires ......................   Passed    0.01 sec
+    Start 489: Schur.DropBorderMatchesDirectFactorizationOfSurvivor
+3/9 Test #489: Schur.DropBorderMatchesDirectFactorizationOfSurvivor ...   Passed    0.01 sec
+    Start 490: Schur.DropBorderThrowsOnOutOfRange
+4/9 Test #490: Schur.DropBorderThrowsOnOutOfRange .....................   Passed    0.01 sec
+    Start 491: Schur.IndefiniteSchurSolveMatchesDirect
+5/9 Test #491: Schur.IndefiniteSchurSolveMatchesDirect ................   Passed    0.01 sec
+    Start 492: Schur.AntiDiagonalSchurBlock
+6/9 Test #492: Schur.AntiDiagonalSchurBlock ...........................   Passed    0.01 sec
+    Start 493: Schur.SingularOneByOneSchurBlockThrowsOnInertiaQuery
+7/9 Test #493: Schur.SingularOneByOneSchurBlockThrowsOnInertiaQuery ...   Passed    0.01 sec
+    Start 494: Schur.InertiaBookkeepingPinnedVariable
+8/9 Test #494: Schur.InertiaBookkeepingPinnedVariable .................   Passed    0.01 sec
+    Start 495: Schur.NearlySingularOneByOneNeedsRefactorization
+9/9 Test #495: Schur.NearlySingularOneByOneNeedsRefactorization .......   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 9
+
+Total Test time (real) =   0.09 sec

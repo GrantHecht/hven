@@ -76,6 +76,27 @@
 #                        promoted to solo tier 2 (default 1800)
 #   --physics-cell ID    always-solo cell id (default f7_n10000_path_physics)
 #   --dry-run            print the schedule and exit; no directories, no solves
+#
+# ------------------------------------------------------------- exit status ---
+#
+# A MISMATCH is a report, not an error: this sweep's whole purpose is to find
+# and list disagreeing cells, and the serial-confirm list is the finding.  An
+# INFRASTRUCTURE failure is an error: it means the sweep did not produce the
+# evidence it claims to.  The two must not share an exit code, or a broken run
+# reads as a clean one.
+#
+#   0   the sweep completed and its evidence is whole.  Either every cell
+#       matched, or some cells mismatched -- in which case a WARN line names
+#       them and serial_confirm_list.txt carries the list.
+#   1   INFRASTRUCTURE failure: a row file is missing (completed rows !=
+#       --expect-cells), the merge/score step failed, the comparator itself
+#       failed, or the comparator reported a cell-roster problem (MISSING /
+#       EXTRA cell) rather than a value disagreement.  Nothing here is a
+#       finding about the engine; all of it means re-run, not re-adjudicate.
+#   2   usage / preflight failure (bad arguments, unreadable inputs, too few
+#       physical cores, lock held).
+#   3   fatal mid-sweep condition (binary's cell set disagrees with the
+#       baseline; no row files at all).
 set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -326,6 +347,19 @@ run_tier 3 "$T3_WIDTH" "${T3[@]}"
 # --------------------------------------------------------------- merge/score --
 mapfile -t ROWFILES < <(find "$ROWS" -maxdepth 1 -name '*.csv' | sort)
 if [ "${#ROWFILES[@]}" -eq 0 ]; then say "FATAL: no row files to merge"; exit 3; fi
+
+# Hard completeness check BEFORE the merge.  A merge over 55 of 57 rows produces
+# a CSV that looks well-formed and silently under-reports the sweep, so the
+# count is checked against --expect-cells here rather than inferred later from
+# the comparator's MISSING CELL lines.
+INFRA_FAIL=0
+if [ "${#ROWFILES[@]}" -ne "$EXPECT_CELLS" ]; then
+    INFRA_FAIL=1
+    say "FATAL: $EXPECT_CELLS cells expected, ${#ROWFILES[@]} row files completed --"
+    say "       $(( EXPECT_CELLS - ${#ROWFILES[@]} )) cell(s) produced no row; see $FAILED/ and $RUN/logs/."
+    say "       Merging anyway so the partial evidence is inspectable, but this run FAILS."
+fi
+
 say "merging ${#ROWFILES[@]} row files"
 FILES=$(IFS=,; echo "${ROWFILES[*]}")
 set +e
@@ -334,6 +368,10 @@ MKL_NUM_THREADS=1 "$BIN" --from-csv "$FILES" --csv "$MERGED" --score-gates \
 merge_rc=$?
 set -e
 say "merge+score exit: $merge_rc"
+if [ "$merge_rc" -ne 0 ]; then
+    INFRA_FAIL=1
+    say "FATAL: merge/score step failed (rc=$merge_rc); see $RUN/score_gates.txt"
+fi
 
 # Provenance header, prepended to the merged CSV.  A comparator that ignores
 # '#' lines cannot be perturbed by it; the protocol declaration required by
@@ -354,7 +392,8 @@ say "merge+score exit: $merge_rc"
 if [ -s "$MERGED" ]; then
     cat "$RUN/provenance_header.txt" "$MERGED" >"$MERGED.tmp" && mv "$MERGED.tmp" "$MERGED"
 else
-    say "WARNING: merged CSV missing or empty; provenance header left at $RUN/provenance_header.txt"
+    INFRA_FAIL=1
+    say "FATAL: merged CSV missing or empty; provenance header left at $RUN/provenance_header.txt"
 fi
 
 # ------------------------------------------------------------------- compare --
@@ -366,6 +405,31 @@ if [ -n "$CMP" ]; then
     set -e
     say "compare exit: $cmp_rc"
     cat "$RUN/compare.txt"
+    # Classify the comparator's verdict.  Its contract: 0 = every cell matched;
+    # 1 = it ran and found disagreements, which it lists; anything else = the
+    # comparator itself failed (bad header, unreadable input, traceback).  A
+    # value disagreement is a FINDING and leaves the exit code alone; a roster
+    # problem (MISSING / EXTRA cell) means the evidence is incomplete, which is
+    # infrastructure.
+    N_MISMATCH=$(grep -c '^MISMATCH ' "$RUN/compare.txt" || true)
+    N_ROSTER=$(grep -cE '^(MISSING|EXTRA) CELL ' "$RUN/compare.txt" || true)
+    if [ "$cmp_rc" -ne 0 ] && [ "$cmp_rc" -ne 1 ]; then
+        INFRA_FAIL=1
+        say "FATAL: comparator failed (rc=$cmp_rc) -- this is not a census result; see $RUN/compare.txt"
+    elif [ "$cmp_rc" -eq 1 ] && [ "$N_MISMATCH" -eq 0 ] && [ "$N_ROSTER" -eq 0 ]; then
+        INFRA_FAIL=1
+        say "FATAL: comparator reported failure (rc=1) with no MISMATCH/MISSING/EXTRA line to explain it"
+    fi
+    if [ "$N_ROSTER" -gt 0 ]; then
+        INFRA_FAIL=1
+        say "FATAL: comparator reports $N_ROSTER cell-roster problem(s) (MISSING/EXTRA CELL) -- evidence incomplete"
+    fi
+    if [ "$N_MISMATCH" -gt 0 ]; then
+        say "WARN: $N_MISMATCH cell(s) disagree with the baseline on the 13 asserted columns."
+        say "WARN: that is a REPORT, not a runner failure -- each one is listed in"
+        say "WARN: serial_confirm_list.txt and is NOT a regression until it has been"
+        say "WARN: re-run ALONE and still disagrees.  Exit status stays 0."
+    fi
 else
     : >"$RUN/compare.txt"
     say "compare SKIPPED (no --compare given); merged CSV at $MERGED"
@@ -396,5 +460,9 @@ n_confirm=$(grep -vc '^#' "$RUN/serial_confirm_list.txt" || true)
 say "serial-confirm list: $n_confirm cell(s) -> $RUN/serial_confirm_list.txt"
 [ "$n_confirm" -gt 0 ] && grep -v '^#' "$RUN/serial_confirm_list.txt"
 
-say "=== census done (merge_rc=$merge_rc compare_rc=$cmp_rc) ==="
+say "=== census done (merge_rc=$merge_rc compare_rc=$cmp_rc rows=${#ROWFILES[@]}/$EXPECT_CELLS) ==="
+if [ "$INFRA_FAIL" -ne 0 ]; then
+    say "=== RUN FAILED: the sweep did not produce whole evidence (see the FATAL lines above) ==="
+    exit 1
+fi
 exit 0

@@ -5,13 +5,36 @@ execution reviewer), via Grant. **Plan of record:** the reviewer-side
 `docs/notes/2026-08-14-hven-m3-plan-revB.md` §3 (phase B) and §9, and — as
 folded and approved — this repository's
 [`docs/retarget-design-sqp.md`](../retarget-design-sqp.md), whose §11 ledger and
-§11.1 gate checklist this note ticks item by item.
+§11.1 gate checklist this note works through item by item.
 
-**Branch:** `m3` (PR #5, draft). **Phase-B range:** `b12b72b..6535566`
-(7 commits; base `e6e2399`, the design-note fold that closed gate A's review).
+**Branch:** `m3` (PR #5, draft). **Phase-B implementation increment:**
+`e6e2399..6535566` — **8 commits**, base `e6e2399` (the design-note fold that
+closed gate A's review), tip `6535566`. [Corrected at the gate-B dual review:
+this note previously wrote the range as `b12b72b..6535566` "7 commits", which is
+the two-dot arithmetic of an interval that **excludes B1's own commit**
+`b12b72b`. The increment under review includes B1; the eight commits are the
+eight rows of §1's table.]
 Gate A's package is `docs/notes/2026-08-14-m3-gate-a-review-request.md`; its
 review outcome (PASS, with the census adjudication accepted and the baseline
 amendment deferred **to this commit**) is the postscript on that note.
+
+**Status of this submission: CONDITIONAL.** [Framing set at the gate-B dual
+review — the earlier draft's language read as final in places, which overstated
+what this note is entitled to claim.] Gate B is submitted as complete **except**
+for two enumerated remainders, and it is not a self-declared pass:
+
+1. **The M3-4 ruling (§9.4)** — a design-level question the implementer
+   deliberately does not answer. It is routed to the **execution reviewer**, and
+   every pin on that leg is `UNOBSERVED`-held until it is ruled.
+2. **The Mac-leg items (§9.5) and the tycho pin ruling (§10)** — owed to
+   **Grant** on the Mac/tycho lane: the deliberate reading of the §11 row-1
+   `n_zero`-branch Accelerate evidence, the new docket entry that row 1
+   requires, the three-seam rig's Mac legs, and the never-executed
+   `test_accelerate_probes.cpp` shim probes.
+
+Everything else in this note is submitted as evidenced and closed. The verdict
+on gate B is the reviewer's to give; this note asks for it (§11) and does not
+pronounce it.
 
 ---
 
@@ -189,6 +212,37 @@ Wall-clock informational only.)
   We state this rather than let "bench parity" imply a baseline file that does
   not exist.
 
+### 2.6 Committed evidence inventory — the raw execution artifacts
+
+[Added at the gate-B dual review, sol Major 4: §§2 and 4's claims were narrated
+from logs that lived only in a scratchpad, and the battery report cited those
+logs by name from inside a committed file. Every log behind a claim in this note
+is now committed under `docs/notes/data/2026-08-14-m3-gate-b/`, so a reader can
+check the narration against the run.]
+
+| Artifact | What it backs |
+| --- | --- |
+| `gateB-configure-release.log`, `gateB-configure-debug.log`, `gateB-build-release.log`, `gateB-build-debug.log` | the clean `rm -rf` configure/build of both configs (§2 preamble) |
+| `gateB-stamp-probe.log`, `gateB-stamp-probe.csv` | the live provenance-stamp probe — the `6535566ce749`, no-`-dirty` claim (§1, §6) |
+| `gateB-ctest-release.log`, `gateB-ctest-debug.log` | the full ctest runs behind §2.1's 1150/0-failed table and §2.3's two skips |
+| `scalef7slow-both-configs.log` | §2.4's `ScaleF7Slow` 6/6 in both configs. **Run separately from the battery** — post-battery, pre-census, `MKL_NUM_THREADS=1`, machine otherwise idle, commit `6535566`; its two-line header says so, and the battery report's "was not run" line now points here |
+| `gateB-selfcheck-release.log` | §2.5's `--self-check` PASSED block |
+| `gateB-schur-release.log`, `gateB-schur-debug.log` | §2.5's 9/9 float-parity witness, both configs |
+| `gateB-bench-parity.log`, `gateB-bench-parity-F3n1000warm.csv` | §2.5's bench-parity pass and the CSV its counter sums were read from |
+| `gateB-configure-3seam.log`, `gateB-build-3seam.log` | §4's three-seam configure, including the seam-provenance lines (`verified` / unpinned-escape) quoted there |
+| `gateB-rig-pseries.log`, `gateB-rig-full.log` | §4's P-series table (28/1/1) and the whole-binary run (83 tests) |
+| `walk_census_gateB.csv`, `compare.txt`, `serial_confirm_list.txt`, `run.log`, `score_gates.txt` | §3's census, comparator verdict, safety-valve list and timeline |
+| `battery-report.md`, `macos-ci-investigation.md` | the battery narrative (§§2, 4) and the macOS forensics (§9.1) |
+
+Two notes on reading them. The rig logs and the three-seam configure log name
+`psiopt` and the public tycho consumer — rig-machinery identifiers, the same
+bounded exception the battery report already carries; the SQP old seam is
+identified by **tag and hash only** (`phase-7-close`,
+`4faa1df116da53c9dc68f36635c118f52d39d2b9`), with no origin path anywhere in the
+committed set. And `score_gates.txt` ships with its G1–G4 performance gates at
+sentinel values: **the G-gates are not asserted at gate B** — they are M3
+end-state targets, and this note claims nothing about them.
+
 ---
 
 ## 3. The census — parallel-tiered protocol
@@ -252,6 +306,20 @@ its counters were taken under.
 The runner is committed as `scripts/run_walk_census.sh` in this gate's close
 commit (§8.1) — the protocol stops being a scratchpad artifact and becomes
 reproducible.
+
+**The runner's exit contract, hardened at the gate-B dual review** (sol Minor 1;
+the committed script previously exited 0 unconditionally, so a failed merge or a
+short row set read as a clean sweep). The distinction it now draws is the one
+this protocol turns on: **a mismatch is a report, an incomplete sweep is an
+error.** Exit 0 means the evidence is whole — either every cell matched, or some
+disagreed and are named on a `WARN` line and in `serial_confirm_list.txt` for
+serial re-confirmation. Exit 1 means **infrastructure failure**: completed row
+files ≠ `--expect-cells` (checked hard, before the merge), a failed merge/score
+step, an empty merged CSV, a comparator that itself failed, or a comparator
+roster problem (`MISSING`/`EXTRA CELL`). Nothing at exit 1 is a finding about
+the engine; all of it means re-run. Applied to this gate's run, the contract
+yields **exit 0 with one WARN line** — 57/57 rows, merge clean, one
+pre-adjudicated mismatch — which is exactly what §3.3 reports.
 
 ### 3.3 Result
 
@@ -368,15 +436,16 @@ separate configure and is not.
 
 ---
 
-## 5. The §11 ledger — declared at SIX rows, and why it grew from four
+## 5. The §11 ledger — declared at EIGHT rows, and why it grew from four
 
 **This is a mandatory declaration, not a footnote.** The execution review's §2.6
 checklist — folded into `docs/retarget-design-sqp.md` §11.1 — was written when
 the ledger had **four** rows, and its text read "the ledger's four rows and
-nothing else". **The ledger now has six.** The gate must not tick that item
-as-is, and this section is the declaration of the difference.
+nothing else". **The ledger now has eight** (four → six at the B4 fix round,
+six → eight at the gate-B dual review). The gate must not tick that item as-is,
+and this section is the declaration of the difference.
 
-**Provenance of the growth: the B4 task review, finding I-1.** During B4 the
+**Provenance of the first growth: the B4 task review, finding I-1.** During B4 the
 implementer found two residual old-vs-new differences and reported them, by
 name, as sitting inside row 4's "mechanical" license (row 4 covers *namespace and
 include paths* and *backend-error message text*). The task reviewer **rejected
@@ -385,9 +454,21 @@ not an include path" — and required each to be promoted to its own named ledge
 row before gate B closes. That fix landed as `6535566` (docs only), taking §11
 from four rows to six and updating §11.1's own wording to "six rows".
 
-So the growth is **reviewed, not silent**: it was found by a reviewer, ruled by a
-reviewer, and both rows are named in `docs/retarget-design-sqp.md` §11 with their
-mitigations. Nothing was discovered after review and slipped in.
+**Provenance of the second growth: the gate-B dual review, Fable finding I-1.**
+Reading the ledger against its own guard sentence ("anything old-vs-new not on
+this list blocks gate B"), the dual review found three further old-vs-new
+differences that were true but unlisted. All three are **engine-unreachable,
+delta-free, or both**, and none needed a fixture or moved a counter — but the
+ledger's standard is letter-level, so they are now on it: row 6 was widened to
+name the whole analyze-boundary validation set (its **empty-0x0** and
+**below-diagonal** siblings were unlisted), and rows **7** and **8** are new.
+The `docs/retarget-design-sqp.md` §1 `collect_factor_mflops` row, which said
+"`false` requests nothing" and thereby mischaracterized the unconditional
+`iparm[17]` write, is corrected in the same amendment.
+
+So both growths are **reviewed, not silent**: each was found by a reviewer,
+ruled by a reviewer, and every row is named in `docs/retarget-design-sqp.md` §11
+with its mitigation. Nothing was discovered after review and slipped in.
 
 | # | Row | Status at gate B |
 | --- | --- | --- |
@@ -396,18 +477,20 @@ mitigations. Nothing was discovered after review and slipped in.
 | 3 | kHot reuse key gains the session/epoch conjunct (+ §7.2 usable-numerics), drops `generation` | IMPLEMENTED; **no counter moved** — `k0_reused`, `factorizations`, `symbolic_analyses` and the warm-start battery pins all pass unmodified, so §7's declared-pin-review clause was never triggered |
 | 4 | Namespace/include paths; backend-error MESSAGE TEXT reaching `escape_detail` (backend code preserved) | IMPLEMENTED; no pin asserted the old text (re-verified: the suite's `escape_detail` assertions match engine-authored substrings only) |
 | **5** | **Dense-border can't-happen throw types**: `std::invalid_argument` → `std::runtime_error` for dsytrs `info != 0` and dsytrf illegal-argument | **NEW at `6535566` per I-1.** Both paths unreachable with valid state (LAPACK contract); no test pins the type; the one consumer that ever cared (the predictor's degradation net) catches `std::exception` by phase for exactly this reason |
-| **6** | **`SymmetricFactor::analyze()` validates the structural diagonal** the dissolved seam forwarded unvalidated | **NEW at `6535566` per I-1.** Unreachable from engine assemblies (§3.1 — they emit the diagonal unconditionally); reachable only from hand-built matrices, which is why five test fixtures gained an explicit zero diagonal. Same values, same analytic inertia, same assertions; no counter moves |
+| **6** | **`SymmetricFactor::analyze()` validates at the analyze boundary** what the dissolved seam forwarded unvalidated — compressed, square, **non-empty**, **no below-diagonal entry**, structural diagonal in every row | **NEW at `6535566` per I-1; widened at the gate-B dual review** to name the empty-matrix and below-diagonal siblings, which were true of the code and absent from the row. Unreachable from engine assemblies (§3.1 — square, non-empty, upper-triangle-only, diagonal emitted unconditionally); reachable only from hand-built matrices, which is why five test fixtures gained an explicit zero diagonal. Same values, same analytic inertia, same assertions; no counter moves |
+| **7** | **`iparm[17] = -1` is written unconditionally on every analyze**, where the dissolved seam never touched `iparm[17]` at all; `collect_factor_mflops = false` gates only `iparm[18]` | **NEW at the gate-B dual review.** Delta-free rather than unreachable: `pardisoinit`'s own mtype = −2 initialization already sets −1 on every MKL version checked, so the write changes nothing Pardiso computes, and the seam read neither entry. **Disclosed gap:** unlike `iparm[7]`/`iparm[9]` it has **no canary**, so a `pardisoinit` default drift would open this silently — extending `BackendDefaultPremise` to `iparm[17]` is carried as a phase-C item (§12) |
+| **8** | **Probe-side throw site moves**: `needs_analysis(fresh, uncompressed K)` returns `true` where old `pattern_matches` threw from the probe itself | **NEW at the gate-B dual review**, per B3 task review M4, which required it "in §11's ledger or the gate report" and got neither until now. Unreachable from engine assemblies (every call site hands a compressed matrix) and delta-free off that path too: the throw still fires one call later inside `analyze()`, no invalid matrix reaches a backend, and no test asserts on the probe-side throw (searched at B3 review) |
 
 **Explicit zero-delta rows hold**: the pinned counters (`suspect_escalations`,
 `symbolic_analyses`, `factorizations`, `eqp_refine_steps`, `border_refine_steps`),
 the SSN structure key and `structural_hash`/`values_hash`, the dense border's
 floats, Accelerate ordering (`kBackendDefault` = `SparseOrderDefault`), and the
 refinement-cap effect (don't-write states + canary, landed at B1). **Nothing
-outside the six rows moved.**
+outside the eight rows moved.**
 
 ---
 
-## 6. §11.1 checklist, ticked item by item
+## 6. §11.1 checklist, item by item
 
 | §11.1 item | Verdict | Evidence |
 | --- | --- | --- |
@@ -415,16 +498,22 @@ outside the six rows moved.**
 | **The 57-cell census byte-identical at the inherited refinement cap**, with the `pardisoinit`-defaults canary green | ✅ **TICKED** — 56/57 byte-identical, the 57th the pre-adjudicated flip now folded into the baseline (§8.1); canary green in-suite in both configs | §3.3 |
 | **`test_schur.cpp`'s float-parity witness unmoved** (`cond_estimate`, `expected_neg_eigs_delta`, `nearly_singular`, exact-singular behavior bit-identical through `DenseSymmetricFactor`) | ✅ **TICKED** | 9/9 both configs, assertion content untouched by the diff (§2.5) |
 | **`suspect_escalations` pins unmoved on BOTH backends** — gate-blocking | ✅ **TICKED** — Linux verified by assertion-reading; Accelerate now **observed** on the macOS lane, green in runs 31856281528 and 31857420601 | §7 below |
-| **The §11 ledger's six rows and nothing else** | ✅ **TICKED, with the 4→6 growth declared** | §5 above; the checklist's own "four rows" wording is superseded at `6535566` |
+| **The §11 ledger's rows and nothing else** | ⚠️ **PARTIAL — NOT TICKED** [downgraded at the gate-B dual review, sol Major 2]. The ledger is complete and declared at **eight** rows (4→6 at `6535566`, 6→8 at the dual review), and rows 2–8 are discharged. **Row 1 is not**: its Accelerate half still owes the *deliberate reading* of the §4.2 rebuild gate's `n_zero`-branch evidence and the new docket entry (§9.5 items 1–2). The lane executing those arms green is a pass, not the reading the row asks for, so this item stays PARTIAL until the Mac leg discharges it | §5 above; §9.5 items 1–2 for exactly what is owed and to whom |
 | **Clean-configure provenance stamps** on every gate-B artifact | ✅ **TICKED** | stamp `6535566ce749`, no `-dirty`; verified statically (`strings`) and live (a `--from-csv` pass wrote the stamp into an artifact header) — §1 |
 | **The ordered failed-factorize pin landed in the linear suite** before §7.2's usable-numerics conjunct ships | ✅ **TICKED** | `FailedFactorizeEvidencePin.InertiaReportsNonObservedAfterAFailedFactorize` landed in B1 (`b12b72b`), in the same commit as the `Options` change, per review §2.3's ordering; the conjunct shipped later at B4 (`ab8aeda`). Ordering satisfied, and the B4 review traced the conjunct in code (ruling (e)) |
 
-Every item is now ticked. The two that were open when this note was drafted —
-the **census** (§3.3) and the **Mac half of `suspect_escalations`** (§7) — both
-closed with live evidence: the census with 56/57 byte-identity plus the licensed
-amendment, and the Mac half with an all-lanes-green macOS CI run. What remains
-open is not a checklist item but a **ruling** (§9.4, the M3-4 question), and the
-three-seam rig's Mac legs, which still need the tycho pin ruling (§10).
+**Six of seven items are ticked; the ledger item is PARTIAL.** The two that were
+open when this note was drafted — the **census** (§3.3) and the **Mac half of
+`suspect_escalations`** (§7) — both closed with live evidence: the census with
+56/57 byte-identity plus the licensed amendment, and the Mac half with an
+all-lanes-green macOS CI run. What remains is the ledger row-1 Mac remainder
+above, a **ruling** (§9.4, the M3-4 question), and the three-seam rig's Mac legs,
+which still need the tycho pin ruling (§10) — the two conditions named in this
+note's CONDITIONAL status block.
+
+[Recording correction, gate-B dual review: this paragraph previously read "Every
+item is now ticked", which the same note contradicted at §9.5. The checklist now
+says PARTIAL where the body already said "owed".]
 
 ---
 
@@ -731,11 +820,16 @@ Green CI does not discharge everything:
 
 ## 11. What this gate asks for
 
-A verdict on **Gate B**, and specifically on:
+A verdict on **Gate B**, submitted **CONDITIONAL** (see the status block at the
+top: the M3-4 ruling and the Mac-leg items are the two enumerated remainders),
+and specifically on:
 
 1. The **census result and its protocol** (§3) — including whether the reviewer
    accepts the co-run argument, or wants the census re-run serially.
-2. The **§11 ledger at six rows** (§5), and the two new rows' mitigations.
+2. The **§11 ledger at eight rows** (§5), and the four new rows' mitigations —
+   rows 5–6 from the B4 fix round, rows 7–8 from the gate-B dual review, plus
+   row 6's widening. The ledger item on the §11.1 checklist is submitted
+   **PARTIAL**, not ticked, because row 1's Mac half is still owed (§6, §9.5).
 3. The **declared baseline amendment** (§8.1), whose structure the gate-A review
    specified and whose licensing condition is stated to fail loudly.
 4. The **`CLAUDE.md` §7 amendment** (§8.2) as a governance change.
@@ -746,3 +840,62 @@ A verdict on **Gate B**, and specifically on:
    attention?** Every pin on that leg is `UNOBSERVED`-held until this is ruled.
 6. The **remaining Mac-leg items** (§9.5) as the honest `UNOBSERVED` remainder,
    and the **tycho pin ruling** (§10) that gates the rig's Mac legs.
+
+---
+
+## 12. Addendum — recordings owed to this gate (added at the gate-B dual review)
+
+Four things the phase-B task reviews attached to the gate package and that the
+package did not carry. They are recorded here because a condition attached by a
+reviewer that never reaches the gate instrument is, in practice, a condition
+that was dropped.
+
+**1. The §3.3 error mapping's only coverage is consumer-level** (B3 task review
+M1). `src/sqp/kkt_calls.cpp`'s `kBackendError` → `std::runtime_error`
+conversion — the path `SsnEngine`'s `kNumericalError`/`kSingular` routing and
+border mode's throw discrimination are built on — has **no direct test**. B3's
+review gave the alternative explicitly: cover it in the `HVEN_TESTING` seam
+executable, or record here that its only coverage is B4's consumer-level tests.
+**We record it.** A deterministic backend failure needs the fault injector, and
+`hven_sqp_tests` links `hven::hven`, so the seam executable (CLAUDE.md §8) is
+the only home for a direct pin; standing that up is a **phase-C candidate**, not
+a phase-B omission. What exists today: the consumers are pinned, so a regression
+that stopped throwing would surface as a routing failure rather than as a silent
+success — but it would surface one layer away from its cause.
+
+**2. The retarget's only known steady-state cost: one extra O(nnz) pattern hash
+per factorization** (B3 task review M2), paid **per SSN major**. Steady state
+with the call-site probe computes the pattern hash three times (`needs_analysis`
+at the call site, `factorize_checked`'s own `needs_analysis`, `factorize()`'s
+internal `hven::pattern_hash`) where the dissolved seam computed two
+(`pattern_matches` at the call site, again inside `factorize`); on the analysis
+branch a fourth is computed for the record where a local would have served.
+Against a numeric factorization this is expected to be noise — but "expected to
+be noise" is a presumption, and CLAUDE.md §5's runtime-neutrality clause and §7
+both require it be **measured**. **Obligation, stated as a gate-B disclosure and
+discharged in phase C:** the phase-C benchmark comparison must price this
+against the pre-retarget engine before the retarget merges to `main`, on the
+SSN-heavy families where the per-major cost actually lands. Until then the
+retarget carries one disclosed, unmeasured steady-state cost regression, and the
+census's counter identity does **not** cover it — counters are scheduling- and
+cost-blind by construction.
+
+**3. The live iparm transition is activated by `ab8aeda`, which carries no
+`IPARM-SURFACE` label** (sol Minor 2). B1 (`b12b72b`) grew the don't-write
+states and is correctly labelled `IPARM-SURFACE: requires human review (Grant)`;
+`ab8aeda` is the commit that **deletes the old live iparm path and puts the
+`nullopt` configuration into service**, and its message does not say so. History
+is immutable and will not be rewritten, so the disposition is: **the iparm
+human-review obligation covers `b12b72b` and `ab8aeda` together**, and Grant's
+§6 review must read both. Named here so the label's absence cannot be mistaken
+for the change's absence.
+
+**4. Two phase-C items this amendment opens.** (a) `iparm[17]` has no
+`pardisoinit` canary (§11 ledger row 7): extend `BackendDefaultPremise` to cover
+it, so a backend-default drift on the one unconditional write cannot open a
+silent old-vs-new divergence. (b) The committed `scripts/run_walk_census.sh` is
+a cleaned generalization of the runner that produced these artifacts — the
+committed artifacts' provenance keys read `gateB.` where a fresh run of the
+committed script writes `census.`, and the banner and the pre-adjudication
+annotation are worded differently. Nothing substantive differs; the protocol
+reproduces; the labels regenerate.

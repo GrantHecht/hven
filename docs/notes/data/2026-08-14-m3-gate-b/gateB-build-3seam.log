@@ -1,0 +1,45 @@
+[1/36] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+In file included from /home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/src/gtest-all.cc:38:
+In file included from /home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/include/gtest/gtest.h:64:
+In file included from /home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/include/gtest/gtest-death-test.h:43:
+In file included from /home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/include/gtest/internal/gtest-death-test-internal.h:47:
+In file included from /home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/include/gtest/gtest-matchers.h:49:
+/home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/include/gtest/gtest-printers.h:528:35: warning: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+  528 |   PrintTo(ImplicitCast_<char32_t>(c), os);
+      |           ~~~~~~~~~~~~~           ^
+1 warning generated.
+[2/36] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[3/36] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[4/36] Building CXX object CMakeFiles/hven.dir/src/sqp/kkt_calls.cpp.o
+[5/36] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[6/36] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[7/36] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[8/36] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[9/36] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_globalization.cpp.o
+[10/36] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[11/36] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[12/36] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[13/36] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[14/36] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[15/36] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[16/36] Linking CXX static library lib/libgtest.a
+[17/36] Linking CXX static library lib/libgtest_main.a
+[18/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_native.cpp.o
+[19/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/recipes.cpp.o
+[20/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/expected_table.cpp.o
+[21/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_registry.cpp.o
+[22/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_psiopt.cpp.o
+[23/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_sqp.cpp.o
+[24/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_sqp.cpp.o
+[25/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+[26/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/fail_by_design_control.cpp.o
+[27/36] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[28/36] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_interior_point.cpp.o
+[29/36] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_settings.cpp.o
+[30/36] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_print.cpp.o
+[31/36] Building CXX object CMakeFiles/hven.dir/src/model/nlp_solver.cpp.o
+[32/36] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[33/36] Building CXX object CMakeFiles/hven.dir/src/drivers/non_linear_program.cpp.o
+[34/36] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver.cpp.o
+[35/36] Linking CXX static library libhven.a
+[36/36] Linking CXX executable tests/golden_rig/hven_golden_rig
