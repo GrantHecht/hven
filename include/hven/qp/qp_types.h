@@ -1,16 +1,67 @@
 #pragma once
 
 #include <limits>
+#include <type_traits>
 
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 
+#include "hven/core/types.h"
+
 namespace hven::solvers {
 
-// Type aliases
-using Index = Eigen::Index;
-using SpMatU = Eigen::SparseMatrix<double, Eigen::RowMajor>;
-using Vec = Eigen::VectorXd;
+// Type aliases -- RECONCILED onto hven/core/types.h, not redefined here.
+//
+// These three names were previously independent Eigen spellings in this header
+// (`Eigen::Index`, `Eigen::VectorXd`, `Eigen::SparseMatrix<double,
+// Eigen::RowMajor>`) for types `hven` already owns, so `hven::Index` and
+// `hven::solvers::Index` agreed only by platform coincidence rather than by
+// construction. They are now aliases OF the core types: one definition, in
+// core/types.h, named from both namespaces.
+//
+// The SQP-side NAMES survive as re-exports; what is deleted is the duplicate
+// definition. That is deliberate and not a half-measure: ~30 test and bench TUs
+// reach these types through `using namespace hven::solvers;`, and a
+// using-directive does not make the enclosing namespace's members visible, so
+// dropping the names would turn an alias reconcile into an unrelated
+// call-site rename across the SQP test surface.
+//
+// `SpMatU` also keeps its own spelling because the name carries information
+// `SpMatRM` does not: the `U` records the upper-triangle storage convention the
+// KKT path builds these matrices in (see kkt_assembly.h). It is the same type,
+// used under a convention-bearing name.
+using Index = hven::Index;
+using SpMatU = hven::SpMatRM;
+using Vec = hven::Vec;
+
+// The identity pin (phase-C S1; required by the O7 ruling, not optional).
+//
+// Each assert states that the reconciled alias denotes EXACTLY the type this
+// header defined before the reconcile. That is what makes the reconcile a
+// no-op rather than a claim of one: if `hven::Index` (`std::int64_t`) and
+// `Eigen::Index` (`std::ptrdiff_t`) were ever distinct types on a target, the
+// change could silently re-resolve an overload, and this build fails instead.
+// LP64 Linux, both Apple targets, and LLP64 Windows all satisfy it today.
+//
+// The pin lives HERE, on the consumer side, and deliberately not in
+// core/types.h: `hven::Index` is documented there as a fixed-width type
+// independent of Eigen's platform-defined one, and hven does not promise the
+// two coincide. This reconcile is what depends on the coincidence, so this is
+// where it is checked.
+static_assert(std::is_same_v<Index, Eigen::Index>,
+              "hven::solvers::Index must remain Eigen::Index -- the S1 reconcile onto "
+              "hven::Index (std::int64_t) is sound only while std::int64_t and "
+              "std::ptrdiff_t are the same type on this target.");
+static_assert(std::is_same_v<Vec, Eigen::VectorXd>,
+              "hven::solvers::Vec must remain Eigen::VectorXd after the S1 reconcile onto "
+              "hven::Vec.");
+static_assert(std::is_same_v<SpMatU, Eigen::SparseMatrix<double, Eigen::RowMajor>>,
+              "hven::solvers::SpMatU must remain a row-major double sparse matrix after the "
+              "S1 reconcile onto hven::SpMatRM.");
+static_assert(std::is_same_v<SpMatU::StorageIndex, int>,
+              "SpMatU's storage index must stay 32-bit: the sparse backends are built against "
+              "int indices and hven hands these arrays over with no reindexing pass "
+              "(hven/core/types.h; hven/detail/linear/pardiso_session.h).");
 
 // Bound state enumeration
 enum class BoundState {

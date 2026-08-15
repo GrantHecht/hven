@@ -310,9 +310,12 @@ There is NO separate assembly-buffer change (unlike the IPM retarget's
 `kkt_matrix_`): every consumer already owns its matrix and passes it
 explicitly (`border.k0.K`, `SsnEngine::k_`, `solve_eqp`'s `asm_.K`,
 predictor's `k0.K`). `hven::solvers::SpMatU` and `hven::SpMatRM` are the
-same type (`Eigen::SparseMatrix<double, Eigen::RowMajor>`,
-`include/hven/detail/sqp/types.h:12`; `include/hven/core/types.h:44`),
-so matrices flow into `analyze()`/`factorize()` with no conversion. The
+same type (`Eigen::SparseMatrix<double, Eigen::RowMajor>`) — since M3
+phase-C S1 by construction rather than by coincidence: `SpMatU` is an
+alias OF `hven::SpMatRM`, pinned by a `static_assert` in
+`include/hven/qp/qp_types.h`, defined once in
+`include/hven/core/types.h:44`. Matrices therefore flow into
+`analyze()`/`factorize()` with no conversion. The
 structural-diagonal requirement `analyze()` validates
 (`symmetric_factor.h:29-32,660-670`) is satisfied by construction:
 every K this engine builds emits its diagonal unconditionally, value
