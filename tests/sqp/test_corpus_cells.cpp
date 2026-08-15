@@ -2132,13 +2132,30 @@ TEST(CorpusBaseline, TheCommittedWalkBaselineScoresToItsDocumentedVerdict) {
     // The walk engine fails all four of its own gates on the repaired
     // instrument (it passed three of four on the first issue's) -- that is the
     // instrument being discriminating, not a claim about SSN.
+    //
+    // DECLARED RE-DERIVATION (CLAUDE.md section 7: intentional breaks of a
+    // pinned value are declared and re-derived explicitly, never silent). The
+    // baseline row f7_n10000_path_physics was amended at gate B per the
+    // execution review's structured ruling -- dnf_budget with -1 counter
+    // sentinels -> the fresh Optimal row -- both fresh rows byte-identical on
+    // all 13 asserted columns; see docs/notes/2026-08-14-m3-gate-b-review-request.md
+    // and the gate-A note's review-outcome postscript
+    // (docs/notes/2026-08-14-m3-gate-a-review-request.md), landed in a1b42ca.
+    // Exactly two of the pinned figures below move with that one cell, and
+    // both were re-derived by re-scoring the amended file offline:
+    //   DNF rows                11 -> 10   (the amended cell no longer DNFs)
+    //   G4 escape rate per QP   0.6667 -> 0.6369
+    // Every other figure is untouched: the amended cell is `physics`, so it was
+    // never in the G1/G2 warm|activity population, and n = 10000 is outside G3's
+    // 5000->20000 pair. The verdict itself is unchanged -- all four gates still
+    // fail.
     for (const char *expected :
-         {"rows = 57", "DNF rows = 11",
+         {"rows = 57", "DNF rows = 10",
           "G1/G2 population (path-interface, warm|activity, non-degenerate) = 8 cells",
           "G1 median factorizations per QP = 1000000.000  (<=12)  fail",
           "G2 p95 factorizations per QP    = 1000000.000  (<=25)  fail",
           "G3 median growth 5000->20000    = 1000000.000  (<=0)   fail",
-          "G4 escape rate per QP           = 0.6667  (<0.02) fail"}) {
+          "G4 escape rate per QP           = 0.6369  (<0.02) fail"}) {
         EXPECT_NE(text.find(expected), std::string::npos) << "missing: " << expected << "\n"
                                                           << text;
     }
@@ -2191,12 +2208,45 @@ TEST(CorpusBaseline, TheCommittedSsnBatteryScoresToItsDocumentedVerdict) {
     std::remove(log.c_str());
 }
 
+// -----------------------------------------------------------------------------
+// THE ONE ADJUDICATED EXCEPTION, NAMED (CLAUDE.md section 7: intentional breaks
+// of a pinned artifact are declared and re-derived explicitly, never silent).
+//
+// The committed walk baseline's f7_n10000_path_physics row was amended at gate B
+// per the execution review's structured ruling -- dnf_budget with -1 counter
+// sentinels -> the fresh Optimal row -- and BOTH fresh reproductions (gate A,
+// serial and alone; gate B, run in the census's SOLO tier) are byte-identical on
+// all 13 asserted columns, differing only in wall_s, which every comparator here
+// excludes by construction. See docs/notes/2026-08-14-m3-gate-b-review-request.md
+// and the gate-A note's review-outcome postscript
+// (docs/notes/2026-08-14-m3-gate-a-review-request.md); landed in a1b42ca.
+//
+// The FROZEN artifacts below are evidence and are never edited: they still carry
+// the pre-amendment dnf_budget row, correctly. The two cross-comparisons
+// therefore carry this single-cell exception rather than a rewritten artifact --
+// and it is a NAMED cell whose expected shape is asserted, not a silent skip, so
+// the exception cannot quietly widen to cover a real counter regression. All 56
+// other cells stay byte-strict on every asserted column.
+// -----------------------------------------------------------------------------
+namespace {
+
+const std::set<std::string> kGateBAmendedCells = {"f7_n10000_path_physics"};
+
+// The status column of both schemas (id, family, n, ctype, start, degenerate,
+// status, ...), which is the entire content of the amendment.
+constexpr std::size_t kStatusColumn = 6;
+
+} // namespace
+
 TEST(CorpusBaseline, TheReSweptWalkArmIsCounterIdenticalToTheCommittedBaseline) {
     // THE PRECONDITION THE WHOLE BATTERY RESTS ON. The walk census re-swept
     // through the binary that carries the Task-6 instrument must reproduce the
     // Task-1 baseline EXACTLY on every counter/status column. wall_s is
     // excluded and only wall_s: it is informational, and on a DNF row it is a
     // statement about the machine rather than about the solve.
+    //
+    // ...with the single gate-B adjudicated cell above excepted, since the
+    // baseline was amended there and this frozen re-sweep was not.
     const auto base = runner_test::data_rows(HVEN_SQP_CORPUS_BASELINE_CSV);
     const auto resweep = runner_test::data_rows(HVEN_SQP_WALK_RESWEPT_CSV);
     ASSERT_EQ(base.size(), 57u);
@@ -2206,10 +2256,24 @@ TEST(CorpusBaseline, TheReSweptWalkArmIsCounterIdenticalToTheCommittedBaseline) 
         std::vector<std::string> col = runner_test::split_all(r);
         by_id[col[0]] = col;
     }
+    int adjudicated = 0;
     for (const std::string &r : base) {
         const std::vector<std::string> b = runner_test::split_all(r);
         const auto it = by_id.find(b[0]);
         ASSERT_NE(it, by_id.end()) << "cell missing from the re-sweep: " << b[0];
+        if (kGateBAmendedCells.count(b[0]) == 1) {
+            ++adjudicated;
+            // The exception is licensed in exactly ONE shape: the amended
+            // baseline claims the fresh Optimal row, the frozen re-sweep still
+            // claims the pre-amendment budget DNF. Any other disagreement on
+            // this cell is a finding, and these two assertions are what report
+            // it.
+            EXPECT_EQ(b[kStatusColumn], "Optimal")
+                << "the committed baseline no longer carries the gate-B amendment";
+            EXPECT_EQ(it->second[kStatusColumn], "dnf_budget")
+                << "the FROZEN re-sweep was edited -- it is evidence and must not be";
+            continue;
+        }
         // Columns 0..12: everything Task 1 measured except wall_s (13).
         for (std::size_t k = 0; k < 13; ++k) {
             EXPECT_EQ(b[k], it->second[k])
@@ -2217,6 +2281,7 @@ TEST(CorpusBaseline, TheReSweptWalkArmIsCounterIdenticalToTheCommittedBaseline) 
                 << "and the re-sweep -- the instrument is NOT inert at qp_mode = kWalk";
         }
     }
+    EXPECT_EQ(adjudicated, 1) << "exactly one cell is excepted; the other 56 are byte-strict";
 }
 
 // =====================================================================
@@ -2240,6 +2305,13 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
     // baseline (schema 14) and Task 6's re-sweep (schema 31) -- because they
     // are themselves pinned equal, so agreeing with one and not the other
     // would be a contradiction this test should surface rather than hide.
+    //
+    // ...pinned equal EXCEPT on the one gate-B adjudicated cell named above,
+    // where the baseline was amended and the two frozen artifacts were not.
+    // The exception is taken against the BASELINE ref only: this post-repair
+    // artifact and the Task-6 re-sweep are both frozen, both still carry the
+    // pre-amendment row, and their comparison stays byte-strict on all 57
+    // cells, which is what claim (1) actually rests on.
     const auto post = runner_test::data_rows(HVEN_SQP_TASK6B_WALK_CSV);
     ASSERT_EQ(post.size(), 57u);
     std::map<std::string, std::vector<std::string>> by_id;
@@ -2247,13 +2319,23 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
         std::vector<std::string> col = runner_test::split_all(r);
         by_id[col[0]] = col;
     }
+    int adjudicated = 0;
     for (const char *ref : {HVEN_SQP_CORPUS_BASELINE_CSV, HVEN_SQP_WALK_RESWEPT_CSV}) {
+        const bool ref_is_amended_baseline = std::string(ref) == HVEN_SQP_CORPUS_BASELINE_CSV;
         const auto base = runner_test::data_rows(ref);
         ASSERT_EQ(base.size(), 57u) << ref;
         for (const std::string &r : base) {
             const std::vector<std::string> b = runner_test::split_all(r);
             const auto it = by_id.find(b[0]);
             ASSERT_NE(it, by_id.end()) << "cell missing from the re-sweep: " << b[0];
+            if (ref_is_amended_baseline && kGateBAmendedCells.count(b[0]) == 1) {
+                ++adjudicated;
+                EXPECT_EQ(b[kStatusColumn], "Optimal")
+                    << "the committed baseline no longer carries the gate-B amendment";
+                EXPECT_EQ(it->second[kStatusColumn], "dnf_budget")
+                    << "the FROZEN post-repair arm was edited -- it is evidence and must not be";
+                continue;
+            }
             // Every column `ref`'s OWN row carries, except wall_s (13, a
             // statement about the machine, not about the solve). This widens
             // to columns 14-30 on the schema-31 ref (final branch review,
@@ -2269,6 +2351,8 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
             }
         }
     }
+    EXPECT_EQ(adjudicated, 1) << "exactly one (ref, cell) pair is excepted -- the baseline's "
+                                 "amended row; every other comparison is byte-strict";
 }
 
 TEST(CorpusTask6bRepair, TheKSsnArmMovesTheFourCrashingCellsAndNothingElse) {
