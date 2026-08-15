@@ -83,7 +83,7 @@
 
 #include <Eigen/SparseCore>
 
-#include <hven/detail/sqp/types.h>
+#include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
 

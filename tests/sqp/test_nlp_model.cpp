@@ -22,7 +22,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/nlp_model.h>
+#include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"

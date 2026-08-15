@@ -37,7 +37,7 @@
 #include <Accelerate/Accelerate.h>
 
 #include <hven/detail/linear/lapacke_shim.h>
-#include <hven/detail/sqp/types.h>
+#include <hven/qp/qp_types.h>
 
 using namespace hven::solvers;
 using hven::linear::detail::lapack_int;

@@ -391,8 +391,8 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/nlp_model.h>
-#include <hven/detail/sqp/types.h>
+#include <hven/model/nlp_model.h>
+#include <hven/qp/qp_types.h>
 
 #include "parametric_families.h"
 

@@ -48,9 +48,9 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/sqp/eqp_solve.h>
-#include <hven/detail/sqp/nlp_model.h>
 #include <hven/detail/sqp/sqp_driver.h>
-#include <hven/detail/sqp/sqp_types.h>
+#include <hven/drivers/sqp_types.h>
+#include <hven/model/nlp_model.h>
 
 #include "support/hs_problems.h"
 #include "support/scale_problems.h"

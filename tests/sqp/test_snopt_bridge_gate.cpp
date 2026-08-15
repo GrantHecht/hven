@@ -71,7 +71,7 @@
 
 #include <Eigen/Core>
 
-#include <hven/detail/sqp/types.h>
+#include <hven/qp/qp_types.h>
 
 #include "../../bench/snopt_f7_driver.h"
 

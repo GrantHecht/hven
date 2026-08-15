@@ -4,8 +4,8 @@
 #include <optional>
 
 #include <hven/core/pattern_hash.h>
-#include <hven/detail/sqp/types.h>
 #include <hven/linear/symmetric_factor.h>
+#include <hven/qp/qp_types.h>
 
 namespace hven::solvers::detail {
 

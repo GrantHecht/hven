@@ -92,11 +92,11 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/nlp_model.h>
 #include <hven/detail/sqp/predictor.h>
 #include <hven/detail/sqp/sqp_driver.h>
-#include <hven/detail/sqp/sqp_types.h>
 #include <hven/detail/sqp/warm_start.h>
+#include <hven/drivers/sqp_types.h>
+#include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/parametric_families.h"

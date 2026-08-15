@@ -69,7 +69,7 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/nlp_model.h>
+#include <hven/model/nlp_model.h>
 
 namespace hven::solvers::test_support {
 

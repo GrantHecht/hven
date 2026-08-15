@@ -557,9 +557,9 @@
 
 #include <hven/detail/sqp/kkt_calls.h>
 #include <hven/detail/sqp/qp_problem.h>
-#include <hven/detail/sqp/sqp_types.h>
-#include <hven/detail/sqp/types.h>
+#include <hven/drivers/sqp_types.h>
 #include <hven/linear/symmetric_factor.h>
+#include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
 

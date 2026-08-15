@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/ledger.h>
+#include <hven/core/ledger.h>
 #include <hven/detail/sqp/qp_engine.h>
 #include <hven/detail/sqp/sqp_driver.h>
 

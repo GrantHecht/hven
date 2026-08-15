@@ -259,7 +259,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/types.h>
+#include <hven/qp/qp_types.h>
 
 #include "snoptProblem.hpp"
 

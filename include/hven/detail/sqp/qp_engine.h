@@ -1504,17 +1504,17 @@
 
 #include <fmt/format.h>
 
+#include <hven/core/ledger.h>
 #include <hven/detail/sqp/border_ops.h>
 #include <hven/detail/sqp/bordered_eqp.h>
 #include <hven/detail/sqp/eqp_solve.h>
 #include <hven/detail/sqp/kkt_assembly.h>
 #include <hven/detail/sqp/kkt_calls.h>
-#include <hven/detail/sqp/ledger.h>
 #include <hven/detail/sqp/qp_problem.h>
 #include <hven/detail/sqp/schur_complement.h>
-#include <hven/detail/sqp/types.h>
 #include <hven/detail/sqp/working_set.h>
 #include <hven/linear/symmetric_factor.h>
+#include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
 

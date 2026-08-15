@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <hven/detail/sqp/types.h>
+#include <hven/qp/qp_types.h>
 
 TEST(Types, DefaultsMatchSpec) {
     hven::solvers::QpOptions opts;

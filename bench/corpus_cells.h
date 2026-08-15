@@ -115,9 +115,9 @@
 #include <fmt/format.h>
 
 #include <hven/detail/sqp/sqp_driver.h>
-#include <hven/detail/sqp/sqp_types.h>
-#include <hven/detail/sqp/types.h>
 #include <hven/detail/sqp/warm_start.h>
+#include <hven/drivers/sqp_types.h>
+#include <hven/qp/qp_types.h>
 
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"

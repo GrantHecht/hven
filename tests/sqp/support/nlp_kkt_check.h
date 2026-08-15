@@ -28,8 +28,8 @@
 
 #include <Eigen/Dense>
 
-#include <hven/detail/sqp/nlp_model.h>
-#include <hven/detail/sqp/sqp_types.h>
+#include <hven/drivers/sqp_types.h>
+#include <hven/model/nlp_model.h>
 
 namespace hven::solvers::test_support {
 

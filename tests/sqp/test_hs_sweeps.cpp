@@ -108,13 +108,13 @@
 #include <fmt/ranges.h>
 #include <gtest/gtest.h>
 
+#include <hven/core/ledger.h>
 #include <hven/detail/sqp/continuation.h>
 #include <hven/detail/sqp/globalization.h>
-#include <hven/detail/sqp/ledger.h>
-#include <hven/detail/sqp/nlp_model.h>
 #include <hven/detail/sqp/sqp_driver.h>
-#include <hven/detail/sqp/sqp_types.h>
-#include <hven/detail/sqp/types.h>
+#include <hven/drivers/sqp_types.h>
+#include <hven/model/nlp_model.h>
+#include <hven/qp/qp_types.h>
 
 #include "support/derivative_check.h"
 #include "support/hs_sweeps.h"

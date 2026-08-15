@@ -73,7 +73,7 @@
 
 #include <hven/detail/sqp/qp_engine.h>
 #include <hven/detail/sqp/sqp_driver.h>
-#include <hven/detail/sqp/sqp_types.h>
+#include <hven/drivers/sqp_types.h>
 
 #include "support/hs_problems.h"
 #include "support/nlp_kkt_check.h"
