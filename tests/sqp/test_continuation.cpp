@@ -1063,15 +1063,26 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // section 4.5(b) calls "cap-pinned".
     EXPECT_EQ(off.steps[1].counters.major_iters, 3) << trajectory(off);
     EXPECT_EQ(off.steps[1].counters.qp_minor_iters, 1002) << trajectory(off);
-    // PER-BACKEND, D19 (docs/notes/2026-08-01-accelerate-register-3.md, Grant's
-    // Mac pass at BASE fe47aef). This ONE counter is the whole of the Phase-6
-    // Accelerate divergence register: Apple Accelerate reads 304 here, Release
-    // and Debug byte-identically, where MKL Pardiso reads 303 -- on the FAILED,
-    // thrown-away proposal, with majors, minors, status, arms B and C and every
-    // backend-independent claim in this file matching exactly. It is left as an
-    // MKL-only pin with the Apple observation recorded rather than widened into
-    // an inequality, so the next Mac pass re-adjudicates a number rather than a
-    // range.
+    // PER-BACKEND, origin entry D19, re-adjudicated at M3 gate B and recorded
+    // as M3-2 in docs/notes/2026-08-14-accelerate-divergence-register.md. (The
+    // origin note this used to cite, docs/notes/2026-08-01-accelerate-
+    // register-3.md from Grant's Mac pass at BASE fe47aef, did NOT migrate
+    // into hven; the register above is where the entry lives here, and it says
+    // so.) This ONE counter is the whole of the Phase-6 Accelerate divergence
+    // register: Apple Accelerate reads 304 here where MKL Pardiso reads 303 --
+    // on the FAILED, thrown-away proposal, with majors, minors, status, arms B
+    // and C and every backend-independent claim in this file matching exactly.
+    //
+    // IT WAS LEFT AS AN MKL-ONLY PIN so the next Mac pass would re-adjudicate a
+    // number rather than a range. That pass has now happened, on macOS CI
+    // (runner class github-macos26-arm64, Release, AppleClang), ten times
+    // across the m3 branch -- from
+    // https://github.com/GrantHecht/hven/actions/runs/31736708703 (0ba1b9f) to
+    // https://github.com/GrantHecht/hven/actions/runs/31824897327 (6535566) --
+    // and it re-adjudicated the same number every time. So the arm below is
+    // written, still as a NUMBER on each backend rather than a widened
+    // inequality. D19's Debug half is not re-observed here: this lane has no
+    // Debug leg, and that claim stays on the origin pass's authority.
     //
     // PHASE-6 TASK 4 (M6) DID NOT MOVE IT. The cap this arm runs at is the
     // pre-M6 500, restored explicitly in make_options above, so arms A-C are
@@ -1079,9 +1090,15 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // still applies unchanged. Arms D and E below are NEW and are MKL-observed
     // only -- they have no Apple value yet and must not be given one until a
     // Mac pass produces it.
-    EXPECT_EQ(off.steps[1].counters.factorizations, 303)
-        << "MKL Pardiso; Accelerate observed 304 (D19)\n"
+#ifdef USE_ACCELERATE_SPARSE
+    EXPECT_EQ(off.steps[1].counters.factorizations, 304)
+        << "Apple Accelerate (origin D19, re-adjudicated as M3-2); MKL Pardiso reads 303\n"
         << trajectory(off);
+#else
+    EXPECT_EQ(off.steps[1].counters.factorizations, 303)
+        << "MKL Pardiso; Accelerate observed 304 (origin D19, re-adjudicated as M3-2)\n"
+        << trajectory(off);
+#endif
     EXPECT_EQ(off.steps[1].counters.probe_budget_stops, 0);
 
     // ---- ARM B: the default probe budget ---------------------------------

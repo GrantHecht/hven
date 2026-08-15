@@ -200,7 +200,11 @@ jobs:
       - name: Configure
         run: cmake --preset macos-clang-release
 
+      # `id` so the post-Test steps below can condition on THIS step rather
+      # than on the default "nothing has failed yet": every one of them needs a
+      # build tree and none of them needs a test result.
       - name: Build
+        id: build
         run: cmake --build build-macos
 
       - name: Test
@@ -218,7 +222,21 @@ jobs:
       # The full two-build byte-identity comparison runs on the Linux lane
       # only; doing it here would double this lane's build. docs/build.md
       # records that split and what it does and does not prove.
+      #
+      # WHY THIS AND THE THREE STEPS BELOW CARRY A CONDITION (M3 gate B). A
+      # step with no `if:` runs only while no earlier step has failed, so a red
+      # Test step silently skipped this gate, the install smoke, the export
+      # contract and the observation emit on EVERY m3 run -- four checks
+      # reported as "skipped" that nobody had decided to skip. None of them
+      # reads a test result: this one reads compile_commands.json, the two
+      # below build and consume an install tree, and the emit re-runs the rig
+      # in report mode. Each now names the step it genuinely depends on -- a
+      # successful Build -- so it runs on its own merits, while `!cancelled()`
+      # keeps a cancelled job quiet. The ORDER is unchanged and the
+      # dependencies that are real are still enforced; what is fixed is one
+      # step's failure suppressing three later checks that never read it.
       - name: Assert PCH engagement (macOS)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: ./scripts/check_pch_neutrality.sh --engagement-only build-macos
 
       # Install-verification: this is the job that closes the one gap the
@@ -232,12 +250,19 @@ jobs:
       # assertion script also run on the Linux and Windows lanes, below
       # and above) for what is actually checked.
       - name: Run hven install smoke (configure/build/install/consume)
+        id: install_smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
           HVEN_INSTALL_SMOKE_JOBS: "3"
         run: ./scripts/check_install_smoke.sh
 
+      # This one is gated on the smoke step specifically, not on `!cancelled()`
+      # alone: it inspects the install tree that step produces, so without a
+      # successful smoke there is nothing here to assert against and a bare
+      # `!cancelled()` would turn a skip into a second, derivative failure.
       - name: Assert installed export contract (macOS)
+        if: ${{ !cancelled() && steps.install_smoke.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
         run: |
@@ -270,6 +295,14 @@ jobs:
       # No continue-on-error for that reason; the upload is if:always() so
       # the artifact survives a failure and can be read.
       #
+      # `!cancelled()` (M3 gate B): the upload was already if:always(), but
+      # this step was not, so a red Test step meant the upload ran, found no
+      # file, and failed on if-no-files-found -- the lane has never once
+      # produced this artifact on m3. The whole point of the artifact is to
+      # supply observations for adjudicating divergences, and a lane is red
+      # precisely when there are divergences to adjudicate: gating the
+      # evidence on the absence of the thing it explains is backwards.
+      #
       # HVEN_RIG_MACHINE is NOT derived here. It comes from the label step
       # near the top of this job, so the rows this step emits and the rows the
       # Test step asserts are stamped by one source -- two derivations that
@@ -277,6 +310,7 @@ jobs:
       # asserts against. See that step for how the label is built and why it
       # names the image class rather than the runner alias.
       - name: Emit the Accelerate observations for derivation
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_RIG_REPORT_OUT: rig-report-accelerate.txt
         # No MKL_NUM_THREADS here: it would be decoration on this lane.

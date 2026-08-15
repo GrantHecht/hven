@@ -867,25 +867,51 @@ std::string slurp(const std::string &path) {
 } // namespace runner_test
 
 TEST(CorpusRunnerProcess, WallDeadlineEmitsADnfBudgetRowWhenTheSOLVEPhaseIsForcedTiny) {
-    // f7_n5000_bound_neutral genuinely takes low hundreds of milliseconds
-    // (this task's own measured figure, ~150-270 ms) -- comfortably past the
-    // runner's 20 ms poll interval, so a forced 1 ms SOLVE budget reliably
-    // observes the child still running at a poll and kills it. Its SETUP
-    // budget is left at the band (900 s) so this arm cannot accidentally
+    // THE FIXTURE HAS TO OUTLAST A POLL GAP, and the margin is the whole
+    // design of this test. The parent polls every 20 ms (bench_corpus.cpp's
+    // run_cell_with_deadline): it notices the setup marker at one poll, arms
+    // the 1 ms SOLVE deadline, and can only enforce it at the NEXT poll -- so
+    // a child whose SOLVE phase fits inside one poll gap exits first, is
+    // reaped, and writes a finished row instead of a dnf_budget one. Nothing
+    // is wrong with the enforcement when that happens; the fixture simply
+    // failed to still be running when the parent looked.
+    //
+    // f7_n5000_bound_neutral, this test's original cell, was chosen against a
+    // measured ~150-270 ms and lost that race on the macOS CI lane: the Apple
+    // runner solves it in 83.7 ms (row emitted at
+    // https://github.com/GrantHecht/hven/actions/runs/31824897327, `Optimal`,
+    // wall_s 0.083678334) and, with CI scheduler jitter stretching the
+    // parent's 20 ms sleep, the child finished inside a single gap. The test
+    // passed on 2 of 8 m3 runs there and failed the other 6 -- a race, in the
+    // observed direction.
+    //
+    // THE FIX IS THE FIXTURE, NOT THE ASSERTION. There is no per-platform
+    // expectation here and no Apple number to pin: `dnf_budget` is what the
+    // runner must emit on every platform. f7_n20000_bound_neutral is the same
+    // cell shape at 4x the nodes and measures 0.35 s of SOLVE (Linux, Release,
+    // clang, where the same measurement puts n=5000 at 0.091 s -- within ~10 %
+    // of the Apple reading above, so a comparable ~4x margin there) while
+    // costing this
+    // test almost nothing in wall time, because the child is killed 20-40 ms
+    // into a solve it never finishes -- only its SETUP is paid in full. Its
+    // SETUP budget is left at the band (900 s) so this arm cannot accidentally
     // measure the other phase.
+    //
+    // If this ever races again, the next move is in-child enforcement (the
+    // child checking its own deadline), NOT a platform-conditional assertion.
     const std::string csv = runner_test::temp_path("corpus_dnf_solve.csv");
-    ASSERT_EQ(
-        runner_test::run_binary(fmt::format("--engine walk --cells f7_n5000_bound_neutral --csv {} "
-                                            "--internal-force-solve-budget-seconds 0.001",
-                                            csv)),
-        0);
+    ASSERT_EQ(runner_test::run_binary(
+                  fmt::format("--engine walk --cells f7_n20000_bound_neutral --csv {} "
+                              "--internal-force-solve-budget-seconds 0.001",
+                              csv)),
+              0);
     const std::vector<std::string> rows = runner_test::data_rows(csv);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> cols = runner_test::split_all(rows[0]);
     // 14 Task-1 columns + Task 6's 17 + Phase-7 Task 6b's 6 (the escape-reason
     // census). A SCHEMA-GENERATION pin, moved deliberately with the schema.
     ASSERT_EQ(cols.size(), 37u) << rows[0];
-    EXPECT_EQ(cols[0], "f7_n5000_bound_neutral");
+    EXPECT_EQ(cols[0], "f7_n20000_bound_neutral");
     EXPECT_EQ(cols[6], "dnf_budget") << rows[0];
     for (const std::size_t i : {7u, 8u, 9u, 10u}) {
         EXPECT_EQ(cols[i], "-1") << "column " << i << " must be absent-by-design: " << rows[0];
@@ -2334,7 +2360,10 @@ TEST(CorpusTask6bRepair, TheKSsnArmMovesTheFourCrashingCellsAndNothingElse) {
 //
 // Every column is compared except wall_s, which is a statement about the
 // machine.
-// ============ MKL-OBSERVED, NOT RE-VERIFIED ON ACCELERATE. ============
+// ======= MKL-OBSERVED. RE-VERIFIED ON ACCELERATE AT M3 GATE B: every =======
+// ======= integer column, the status and the per-QP shape reproduce it  =======
+// ======= exactly; the five float residual columns do not and are not   =======
+// ======= assertable there (register entry M3-3, at the compare below). =======
 TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
     // Pin the thread count the same way every committed artifact's provenance
     // header does (see bench_corpus.cpp's `# MKL_NUM_THREADS:` line): the five
@@ -2412,11 +2441,46 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         }
         EXPECT_EQ(per_qp, w[11]);
         // The residuals, to the artifact's own printed precision.
+        //
+        // M3-3 (docs/notes/2026-08-14-accelerate-divergence-register.md). The
+        // committed artifact is MKL-observed, and on MKL the MKL_NUM_THREADS
+        // pin above makes a byte-compare of these five columns a legitimate
+        // claim. IT IS NOT ONE ON ACCELERATE: hven's Accelerate session stores
+        // num_threads without applying it to any backend call, so nothing pins
+        // the reduction order on that backend, and the observed values are not
+        // even stable run-to-run on the macOS CI lane -- f7_n1000_path_neutral's
+        // kkt_residual read 3.053657327e-10, 3.053661768e-10 and
+        // 3.053663988e-10 on three separate runs (31817935342, 31824897327,
+        // 31812442998), failing the two-run reproduction bar this project
+        // requires before any float is committed.
+        //
+        // So on Accelerate these five are REPORTED, NOT ASSERTED, per
+        // docs/testing.md's context-pinned float discipline -- and no
+        // Accelerate byte value is committed here, because there is no
+        // reproducible one to commit. Every INTEGER column, the status, and the
+        // per-QP shape above stay asserted on both backends, which is where
+        // this test's actual subject (that four levers move nothing) lives:
+        // all of them reproduce the MKL artifact exactly on Apple hardware.
+        const std::string residuals = fmt::format(
+            "kkt_residual={} stationarity={} primal={} dual_sign={} complementarity={}",
+            fmt::format("{:.9e}", row.kkt_residual), fmt::format("{:.9e}", row.kkt_stationarity),
+            fmt::format("{:.9e}", row.kkt_primal), fmt::format("{:.9e}", row.kkt_dual_sign),
+            fmt::format("{:.9e}", row.kkt_complementarity));
+#ifdef USE_ACCELERATE_SPARSE
+        ::testing::Test::RecordProperty(fmt::format("task6b_residuals_observed_{}", id), residuals);
+        ::testing::Test::RecordProperty(
+            fmt::format("task6b_residuals_artifact_{}", id),
+            fmt::format("kkt_residual={} stationarity={} primal={} dual_sign={} "
+                        "complementarity={}",
+                        w[12], w[15], w[16], w[17], w[18]));
+#else
+        (void)residuals;
         EXPECT_EQ(fmt::format("{:.9e}", row.kkt_residual), w[12]);
         EXPECT_EQ(fmt::format("{:.9e}", row.kkt_stationarity), w[15]);
         EXPECT_EQ(fmt::format("{:.9e}", row.kkt_primal), w[16]);
         EXPECT_EQ(fmt::format("{:.9e}", row.kkt_dual_sign), w[17]);
         EXPECT_EQ(fmt::format("{:.9e}", row.kkt_complementarity), w[18]);
+#endif
     }
 }
 
