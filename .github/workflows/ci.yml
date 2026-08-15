@@ -51,7 +51,11 @@ jobs:
       - name: Configure
         run: cmake --preset linux-clang-release
 
+      # `id` so the post-Test steps below can condition on THIS step rather
+      # than on the default "nothing has failed yet" (M3 gate B, replicated
+      # from the macOS lane -- see its Build step's comment for why).
       - name: Build
+        id: build
         run: cmake --build build
 
       - name: Test
@@ -61,6 +65,21 @@ jobs:
         # runner as the derivation machine would make them assert against
         # hardware they were never observed on, which is the false claim the
         # context gate exists to prevent.
+        #
+        # GTEST_OUTPUT is GoogleTest's own env-var form of `--gtest_output`
+        # (identical to the CLI flag; ctest does not forward unrecognized CLI
+        # options through to the binaries `gtest_discover_tests` registers, so
+        # the flag has to arrive as an env var instead). It is pointed at a
+        # DIRECTORY (trailing slash), not a fixed file: `gtest_discover_tests`
+        # invokes hven_tests once per test case, and GoogleTest's directory-mode
+        # writer (`FilePath::GenerateUniqueFileName`, gtest-filepath.cc)
+        # generates a fresh, collision-free filename per invocation instead of
+        # overwriting -- a fixed-file path would leave only the last test's
+        # output behind. This is what makes `RecordProperty` observations (see
+        # tests/sqp/test_corpus_cells.cpp, test_ssn_engine.cpp) land somewhere
+        # durable instead of being formatted and discarded.
+        env:
+          GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
         run: ctest --test-dir build --output-on-failure --timeout 300
 
       - name: Accelerate backend syntax check (Linux, stubbed)
@@ -93,7 +112,14 @@ jobs:
       # instead (see their own steps below), because a full neutrality run on
       # those lanes is Mac-leg territory. docs/build.md records that
       # disposition.
+      # M3 gate B: gated on `steps.build.outcome`, not default success-chaining
+      # -- same fix as the macOS lane's identically-commented steps, replicated
+      # here because this pattern (a step with no `if:` inherits `success()`,
+      # so a red Test silently skips every check below it even though none of
+      # them reads a test result) is not macOS-specific. See the macOS Build
+      # step's comment for the full rationale.
       - name: Assert PCH neutrality (Linux)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_PCH_NEUTRALITY_JOBS: "6"
         run: ./scripts/check_pch_neutrality.sh
@@ -110,12 +136,19 @@ jobs:
       # hvenTargets.cmake and the hven configure log; a plain local run of
       # the script (no env var set) still self-cleans as before.
       - name: Run hven install smoke (configure/build/install/consume)
+        id: install_smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
           HVEN_INSTALL_SMOKE_JOBS: "6"
         run: ./scripts/check_install_smoke.sh
 
+      # Gated on the smoke step specifically, not `!cancelled()` alone, same
+      # reason as the macOS lane: this step inspects the install tree the
+      # smoke step produces, so a bare `!cancelled()` would turn a skip into a
+      # second, derivative failure.
       - name: Assert installed export contract (Linux)
+        if: ${{ !cancelled() && steps.install_smoke.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
         run: |
@@ -131,6 +164,14 @@ jobs:
             exit 1
           fi
           ./scripts/check_export_contract.sh "${targets_file}" linux "${align}"
+
+      - name: Upload gtest XML (Linux)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtest-xml-linux
+          path: ${{ runner.temp }}/gtest-xml
+          if-no-files-found: warn
 
   macos-clang-release:
     # This job raised the milestone's Apple-hardware claim ceiling: the
@@ -211,6 +252,16 @@ jobs:
         # HVEN_RIG_MACHINE comes from the label step above (via $GITHUB_ENV),
         # which is what makes the committed Accelerate float rows genuinely
         # assert here rather than report CONTEXT-MISMATCH.
+        #
+        # GTEST_OUTPUT: see the Linux lane's Test step for the full rationale
+        # (env-var form of `--gtest_output`, directory-mode to avoid the
+        # per-test-case overwrite collision). This is what a `RecordProperty`
+        # observation -- the M3-4 register's open questions in
+        # tests/sqp/test_ssn_engine.cpp, tests/sqp/test_corpus_cells.cpp --
+        # needs to land in durably on the only Apple hardware this project
+        # reaches, instead of being formatted and discarded.
+        env:
+          GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
         run: ctest --test-dir build-macos --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
@@ -334,6 +385,14 @@ jobs:
           path: rig-report-accelerate.txt
           if-no-files-found: error
 
+      - name: Upload gtest XML (macOS)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtest-xml-macos
+          path: ${{ runner.temp }}/gtest-xml
+          if-no-files-found: warn
+
   windows-clang-release:
     # Like the macOS job above, this was a first-contact lane: the
     # Windows/clang-cl compile-flag set in cmake/hven_compile_options.cmake
@@ -428,7 +487,11 @@ jobs:
       - name: Configure
         run: cmake --preset windows-clang-release
 
+      # `id` so the post-Test steps below can condition on THIS step rather
+      # than on the default "nothing has failed yet" (M3 gate B, replicated
+      # from the macOS lane -- see its Build step's comment for why).
       - name: Build
+        id: build
         run: cmake --build build-windows
 
       - name: Test
@@ -436,6 +499,12 @@ jobs:
         # the committed float rows name the machine they were derived on, this
         # runner is not it, and labelling it as such would make those rows
         # assert against hardware they were never observed on.
+        #
+        # GTEST_OUTPUT: see the Linux lane's Test step for the full rationale
+        # (env-var form of `--gtest_output`, directory-mode to avoid the
+        # per-test-case overwrite collision).
+        env:
+          GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
         run: ctest --test-dir build-windows --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
@@ -447,7 +516,14 @@ jobs:
       # The full two-build byte-identity comparison runs on the Linux lane
       # only; doing it here would double this lane's build. docs/build.md
       # records that split and what it does and does not prove.
+      # M3 gate B: gated on `steps.build.outcome`, not default success-chaining
+      # -- same fix as the macOS lane's identically-commented steps, replicated
+      # here because this pattern (a step with no `if:` inherits `success()`,
+      # so a red Test silently skips every check below it even though none of
+      # them reads a test result) is not macOS-specific. See the macOS Build
+      # step's comment for the full rationale.
       - name: Assert PCH engagement (Windows)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: bash
         run: ./scripts/check_pch_neutrality.sh --engagement-only build-windows
 
@@ -463,6 +539,8 @@ jobs:
       # instead of clang-cl, and the consumer's link would not match how
       # hven itself (or MKL's import libraries) were built.
       - name: Run hven install smoke (configure/build/install/consume)
+        id: install_smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: bash
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
@@ -477,7 +555,12 @@ jobs:
             -DCMAKE_CXX_COMPILER_RANLIB="C:/Program Files/LLVM/bin/llvm-ranlib.exe" \
             -DCMAKE_LINKER="C:/Program Files/LLVM/bin/lld-link.exe"
 
+      # Gated on the smoke step specifically, not `!cancelled()` alone, same
+      # reason as the macOS lane: this step inspects the install tree the
+      # smoke step produces, so a bare `!cancelled()` would turn a skip into a
+      # second, derivative failure.
       - name: Assert installed export contract (Windows)
+        if: ${{ !cancelled() && steps.install_smoke.outcome == 'success' }}
         shell: bash
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
@@ -494,6 +577,14 @@ jobs:
             exit 1
           fi
           ./scripts/check_export_contract.sh "${targets_file}" windows "${align}"
+
+      - name: Upload gtest XML (Windows)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtest-xml-windows
+          path: ${{ runner.temp }}/gtest-xml
+          if-no-files-found: warn
 
       - name: Save oneAPI install logs
         if: always() && steps.cache-oneapi-mkl.outputs.cache-hit != 'true'

@@ -131,15 +131,28 @@ not uncertain. `ssn_uncertain_peak` still reads 1.
 
 Stable across all ten suite-carrying runs. The coin outcomes themselves are
 not a defect — the test's own banner says both readings are correct readings
-of a tie — and the portable property underneath them ("a tie must end
-UNCERTAIN, whichever way the activity coin lands") is what the test now
-asserts on this backend.
+of a tie. What the test actually asserts on this backend is strictly weaker
+than "a tie must end UNCERTAIN": `ssn_uncertain_peak == 1` (the third,
+weakly-active set fired at some point during the solve, both backends);
+`res.ineq_active[1] || res.ineq_uncertain[1]` (row 1 is never
+inactive-and-certain, both backends); and, in the coin-flip cell,
+`bool(bare.ineq_active[1]) != bool(full.ineq_active[1])` (bare and
+safeguarded disagree on row 1, both backends). It does **not** assert that
+the tie ends uncertain on Accelerate — it cannot: on this backend the
+default run's end state reports `ineq_uncertain[1] == false`, so the tied
+row *leaves* the uncertain set before the solve finishes, the opposite of
+MKL's end state.
 
-**What is open**: `ssn_bulk_flips` reads **4** on Accelerate against MKL's 1.
-That assertion is a claim ("no oscillation"), not a coin call, so 4 > 1 says
-the Accelerate trajectory oscillates three extra times before settling.
-Whether that is legitimate for this trajectory or evidence that the
-oscillation guard under-damps on Accelerate is a **design question, routed to
-the execution reviewer at gate B and deliberately not answered here**. The
-specifics stay `UNOBSERVED`-held in the test until it is ruled on; the CI
-observation above is citable input to that ruling.
+**What is open**: two questions, both routed to the execution reviewer at
+gate B and deliberately not answered here. First, `ssn_bulk_flips` reads **4**
+on Accelerate against MKL's 1 — that assertion is a claim ("no oscillation"),
+not a coin call, so 4 > 1 says the Accelerate trajectory oscillates three
+extra times before settling, and whether that is legitimate for this
+trajectory or evidence that the oscillation guard under-damps on Accelerate
+is undecided. Second, and tied to the first: whether the tied row leaving the
+uncertain set before end state is the same event as one of those flips seen
+from the other side, and whether the export-honesty property this leg was
+written to defend needs a portable substitute for end-state uncertainty (or
+whether the three weaker assertions above are the right final shape), is also
+undecided. The specifics stay `UNOBSERVED`-held in the test until both are
+ruled on; the CI observation above is citable input to that ruling.
