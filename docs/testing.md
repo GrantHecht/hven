@@ -723,6 +723,58 @@ deliberately deferred to those tasks rather than pre-written against a
 structure that is not yet ruled. What is written above is the suite as it
 stands and does not depend on that outcome.
 
+## Amending a pinned artifact: sweep its consumers in the same commit
+
+CLAUDE.md §7's rule is that an intentional break of a pinned or reproduced
+value is **declared and re-derived explicitly, never silent**. This section
+adds the half that rule leaves implicit, and that this project has already
+paid for once: *declaring* an amendment is not the same as *landing* it.
+
+**The protocol.** A commit that amends a pinned artifact — a
+`bench/baselines/` CSV cell, a golden-rig expected-table row, a pinned counter
+or constant in a test — must, in that same commit, sweep every consumer of the
+artifact and update or except each one. Three consumer classes, all of which
+have to be searched for explicitly, because none of them is found by building:
+
+1. **Direct consumers** — tests that read the artifact and assert its content.
+2. **Scorers and derived figures** — anything that computes a summary *from*
+   the artifact (a rate, a count of rows in a class, a verdict). These are the
+   easiest to miss, because they never quote the amended cell: they quote a
+   number derived from it, which moves without ever mentioning why.
+3. **Cross-comparisons** — tests that compare the artifact against a *second*,
+   frozen artifact. These are the ones an amendment cannot simply propagate
+   into: a frozen resweep artifact is evidence and is never edited to match, so
+   the comparison takes a **named single-cell exception** that asserts the
+   licensed *shape* of the difference, never a widened or skipped comparator.
+
+The sweep is part of the amendment, not follow-up work. An amendment that
+declares itself in a commit message while leaving its consumers red has
+declared nothing to anyone who was not reading that message.
+
+**The episode this is the repair for.** `a1b42ca` amended
+`bench/baselines/2026-08-06-corpus/walk_baseline.csv`'s
+`f7_n10000_path_physics` row — a properly adjudicated, properly declared break,
+accepted by an execution review that re-derived all four of its grounds. It
+landed without the consumer sweep. Three tests consume that baseline, one from
+each class above:
+`CorpusBaseline.TheCommittedWalkBaselineScoresToItsDocumentedVerdict` (a scorer
+— two derived figures moved, DNF rows 11 → 10 and G4 escape rate per QP 0.6667
+→ 0.6369, neither of them the amended cell),
+`CorpusBaseline.TheReSweptWalkArmIsCounterIdenticalToTheCommittedBaseline` and
+`CorpusTask6bRepair.TheWalkArmIsCounterIdenticalAcrossTheD0Repair` (both
+cross-comparisons against frozen resweep artifacts that correctly still carry
+the pre-amendment content). All three went red **on Linux and macOS**, and
+stayed red across several commits until `31e57b0` swept them — updating the two
+derived figures by re-scoring the amended file, and giving the two
+cross-comparisons a `kGateBAmendedCells = {"f7_n10000_path_physics"}` exception
+that asserts the licensed shape (baseline `Optimal`, frozen `dnf_budget`) and
+asserts that exactly **one** comparison was excepted, so the exception cannot
+widen to cover a real regression. The other 56 cells stayed byte-strict.
+
+The cost of the miss was a multi-commit red window on two lanes for a change
+that was correct on its merits. Nothing about the amendment was wrong; only its
+reach was under-counted.
+
 ## The golden-numerics rig
 
 `tests/golden_rig/` is the instrument that gates both engine migrations. It
