@@ -135,3 +135,16 @@ endif()
 gtest_discover_tests(hven_sqp_tests
     TEST_FILTER "-ScaleF7Slow.*"
     DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+
+# Continuation.ProbeBudgetBoundsAFailingProposal drives F7CollocationChain(100,
+# ...) through four arms with a cap-pinned QP (1002 minors on the failing
+# proposal) and takes ~780 s in Debug (R6 report, task-c-r6-report.md §4). The
+# default ctest timeout (600 s, the CI Release lane's value) is too small for
+# this one Debug test and produces a spurious Timeout. gtest_discover_tests()
+# tests do not exist at CMake-configure time (they are added by a generated
+# script included via the directory's TEST_INCLUDE_FILES property at ctest
+# time), so a plain set_tests_properties() call here would fail to find the
+# test. Append a second include file, appended after gtest_discover_tests()'s
+# own, that raises just this one test's TIMEOUT once it has been defined.
+set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/continuation_probe_budget_timeout.cmake")
