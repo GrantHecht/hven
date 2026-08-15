@@ -390,8 +390,12 @@ byte-identical here.
 > the decision's own, and `SymmetricFactor::factorize`'s pattern guard,
 > which is `hven::linear`'s published contract and is the floor B2 does
 > not touch. No decision, counter, or float moves; proven by P-SUITE
-> (Release + Debug), the 57-cell P-CENSUS, and P-BENCH
+> (Release + Debug) and P-BENCH
 > ([`notes/data/2026-08-15-m3-b2-hash-removal/`](notes/data/2026-08-15-m3-b2-hash-removal/report.md)).
+> **P-CENSUS did not run for B2** and was not owed: the SQP execution reviewer's
+> census-frequency ruling (2026-08-15) routes intermediate content-change
+> censuses into one cumulative counter census after H3, with the full 57-cell
+> bar unchanged at Gate C. That artifact's §4 records the disposition.
 
 ### 3.3 Error mapping — throws stay throws
 
