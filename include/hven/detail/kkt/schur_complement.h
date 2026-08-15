@@ -88,8 +88,8 @@ namespace hven::solvers {
 namespace detail {
 
 // Relative floor beneath which C's smallest |block eigenvalue| counts as
-// numerically singular, even though LAPACKE_dsytrf completed without
-// reporting a zero pivot.
+// numerically singular, even though the dense factorization completed
+// without reporting an exactly zero pivot.
 //
 // This exists because cond_estimate() is a pure RATIO and is therefore
 // structurally blind at dim() == 1: a 1x1 Schur complement of 1e-300 has
@@ -157,7 +157,8 @@ class SchurComplement {
             if (singular_) {
                 throw std::runtime_error(fmt::format(
                     "SchurComplement::solve: Schur complement (dim={}) is exactly singular "
-                    "(LAPACKE_dsytrf reported a zero pivot); refactorize instead of solving",
+                    "(DenseSymmetricFactor reported kExactlySingular); refactorize instead "
+                    "of solving",
                     m));
             }
             const Vec rhs1 = rhs_full.tail(m);
@@ -211,7 +212,8 @@ class SchurComplement {
     // schur_cond_max, its smallest block eigenvalue has collapsed relative to
     // its largest (see kSchurSingularEigFrac -- the case cond_estimate() is
     // blind to at dim 1), or C's last factorization hit an exact zero pivot
-    // (LAPACKE_dsytrf info > 0) -- any of which means the caller must stop
+    // (DenseFactorizeOutcome::kExactlySingular) -- any of which means the
+    // caller must stop
     // bordering this factorization and take a different path.
     bool needs_refactorization() const {
         return singular_ || nearly_singular() || dim() > opts_.schur_cap ||
@@ -255,8 +257,8 @@ class SchurComplement {
         if (singular_) {
             throw std::runtime_error(fmt::format(
                 "SchurComplement::expected_neg_eigs_delta: Schur complement (dim={}) is exactly "
-                "singular (LAPACKE_dsytrf reported a zero pivot); refactorize instead of "
-                "querying its inertia",
+                "singular (DenseSymmetricFactor reported kExactlySingular); refactorize instead "
+                "of querying its inertia",
                 dim()));
         }
         return static_cast<Index>(evidence_->neg_eigs);

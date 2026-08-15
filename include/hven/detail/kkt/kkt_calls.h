@@ -91,8 +91,9 @@ AnalysisDecision analysis_decision(const KktFactor &k, const SpMatU &K);
 // and cannot disagree with it -- one is implemented in terms of the other.
 bool needs_analysis(const KktFactor &k, const SpMatU &K);
 
-// Analyze iff the pattern changed, then factorize. A backend failure is
-// restored to KktSystem's throwing contract.
+// Analyze iff the pattern changed, then factorize. A
+// FactorizeOutcome::Status::kBackendError is raised as a std::runtime_error
+// rather than returned; every other status is returned to the caller.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K);
 
 // The same, on a decision the caller has already taken -- which is what
@@ -103,7 +104,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K);
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K,
                                                  const AnalysisDecision &decision);
 
-// Allocate and solve, matching KktSystem's Vec-returning call shape.
+// Allocate and solve, returning the solution by value.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
 
 } // namespace hven::solvers::detail
