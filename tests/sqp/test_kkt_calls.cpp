@@ -114,6 +114,27 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     ASSERT_EQ(factorize_checked(k, changed_pattern).status,
               hven::linear::FactorizeOutcome::Status::kOk);
 
+    // B4 M-1, restored. The dissolved KktSystem.PatternHashDetectsChange
+    // ended on exactly this re-read -- `EXPECT_EQ(kkt.num_neg_eigs(), 1)`
+    // after a cross-pattern re-factorize, with the comment "must re-analyze
+    // internally, not corrupt state" on the re-factorize line above it. This
+    // test is its successor and inherited the pattern-change coverage, but
+    // asserted only the OUTCOME STATUS across the change, not the inertia
+    // value; that gap was disclosed at gate B as an assertion-strength
+    // regression, and the verdict's rule is that disclosed regressions decay
+    // toward zero rather than accumulate.
+    //
+    // Status alone is the weaker claim: a re-analysis that silently kept the
+    // FIRST pattern's symbolic structure could still return kOk while
+    // reporting the wrong inertia off a stale factor. The inertia value is
+    // what makes "did not corrupt state" checkable -- the same reason the
+    // original assertion existed. Read AFTER the third factorize_checked,
+    // the cross-pattern one, because that is the call the original's re-read
+    // followed (its K2 is this test's changed_pattern, entry for entry).
+    const hven::linear::InertiaEvidence after_pattern_change = k.factor.inertia();
+    ASSERT_EQ(after_pattern_change.state, hven::linear::InertiaEvidence::State::kObserved);
+    EXPECT_EQ(after_pattern_change.n_neg, 1);
+
     EXPECT_EQ(symbolic_analyses, 2);
     EXPECT_EQ(k.factor.counters().analyze_count, symbolic_analyses);
     EXPECT_EQ(k.factor.counters().factorize_count, 3);
