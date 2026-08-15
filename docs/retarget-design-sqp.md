@@ -973,7 +973,18 @@ enumerated in the gate report):
    `tests/interior/compile_fail/`). ONE fixture, not a matrix:
    compile-fail probes cost ~90 s serial per ctest run and nested
    builds are unthrottled under `ctest -j` (the M2 t55f2-m1 cost note,
-   carried by the plan).
+   carried by the plan). **DISCHARGED 2026-08-15 (phase-C C0.4):**
+   `adapter_fixture::StubMixinObjectiveOnly` in
+   `tests/interior/adapter_fixture_functions.h`, registered through
+   `ConstraintUnsupported<T>`, with the sixth family probe
+   `tests/interior/compile_fail/constraint_unsupported_mixin.cpp`
+   inheriting the family's `FORBIDDEN_REGEX`, `EXPECT_SINGLE_ERROR` and
+   shared `RESOURCE_LOCK` unchanged. It landed with the family rather
+   than under `tests/sqp/` because forking the family would fork the
+   resource lock the nested builds share. Count arithmetic: +1 ctest
+   entry for the probe (`add_test` runs once per probe name) and +1 for
+   the positive gtest case that exercises the direction the mixin does
+   support, 1151 → 1153.
 6. **Dissolved with declaration:** `test_kkt_system.cpp` (2 tests —
    both pinned behaviors are covered at
    `tests/linear/test_symmetric_factor.cpp` by

@@ -93,6 +93,7 @@ set(_hven_adapter_probes
     constraint_only_objective
     partial_objective_surface
     objective_unsupported_mixin
+    constraint_unsupported_mixin
     adapter_missing_objective
 )
 foreach(_probe ${_hven_adapter_probes})
@@ -130,6 +131,7 @@ set(_hven_probe_regex_unregistered_constraint  "hven constraint adapter:")
 set(_hven_probe_regex_constraint_only_objective "hven objective adapter:")
 set(_hven_probe_regex_partial_objective_surface "hven objective adapter:")
 set(_hven_probe_regex_objective_unsupported_mixin "hven objective adapter:")
+set(_hven_probe_regex_constraint_unsupported_mixin "hven constraint adapter:")
 set(_hven_probe_regex_adapter_missing_objective "hven objective adapter:")
 
 foreach(_probe ${_hven_adapter_probes})

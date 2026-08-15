@@ -967,6 +967,72 @@ recipe's provenance string says what it does and does not reproduce from the
 fixture its authority names, and the report prints that string beside every
 observation.
 
+### The nine-trace reachability ratification
+
+Every recipe was written before either engine was in this repository, against a
+naming authority's *description* of a fixture the author could not read. Nine
+recipes name a fixture in a sibling checkout that way; the tenth
+(`perturbing_singular`) is hven's own and was never in question. Both engines
+are now migrated, so on **2026-08-15** each of the nine was compared against the
+fixture its authority names and the verdict written into the provenance string
+the report prints. Four upgraded; five did not, and *why* they did not is the
+more useful half of the result.
+
+| Recipe (traces) | Named fixture, per the authority | Verdict |
+|---|---|---|
+| `collocation_chain` (T1, T3, T4, T4b, T8) | the F7 corpus cell at ~10⁵ primal variables, first major, empty path window | **STRUCTURE VERIFIED** — `tests/sqp/support/scale_problems.h`'s `F7CollocationChain` + `bench/corpus_cells.h`. Trapezoidal defect row, state/control coupling, initial-condition block and empty window all match; the 1e-8 regularization matches the engine's own defaults, which had never been checked. Scale still not reproduced: the cell's K has no standalone builder even now. |
+| `barrier_chain` (P1, P4) | a brachistochrone KKT from the interior-point corpus at iterations {1, 2, k} | **NOT RATIFIABLE** — the fixture is not here and no migration brought it: its half stayed with the modelling library it needs, and the corpus is problem definitions with no KKT builder. The *mechanism* checks out against the migrated engine (σ = z/d condensed onto the primal diagonal, pattern fixed across rungs). |
+| `hs76` (T2) | HS76 with a walk trace and a known admission sequence | **VERIFIED** — `tests/sqp/support/hs_problems.h`'s `Hs76Model`, entry for entry. The disclaimer was re-checked too: no pinned HS76 minor/factorization counters exist in the migrated tests, so nothing was left unclaimed that could have been claimed. |
+| `saddle` (T5a) | the indefinite two-variable fixture from the solver fixture header | **VERIFIED** — `tests/sqp/support/ssn_fixtures.h`'s `indefinite_qp()`. Hessian and linear term match; the empty working set is the fixture's own shape. Nuance recorded: the fixture's box makes its minimizer a bound solution, so the configuration factorized here is the interior one — which is the ambiguity the inertia gate exists for. |
+| `semidefinite_boundary` (T5b) | "the semidefinite-boundary case from the review fixtures" | **NOT RATIFIABLE — the fixture never existed.** Confirmed on both sides; the phrase occurs only in the authority sentence. This is the T5(b) errata, now corrected at the source (below). |
+| `pd_on_face` (T5c) | a clean PD-on-face EQP from the on-face refinement path's accepted case | **NOT RATIFIABLE — the authority named a path, not a matrix.** The path migrated and its accepted arm is under test, but that arm builds its face by hand on a small box QP; there is no committed matrix to have been transcribed. The property (inertia exactly (n_free, m_face, 0)) does check out. |
+| `duplicated_equality` (T6, P2, P3) | the interior-point engine's singular-routing fixtures; and, for T6, a rank pre-screen fixture | **NOT RATIFIABLE, on both authorities.** The interior-point suite here reaches singular states by injection on a `diag(2, -3)` probe and has no duplicated-equality fixture; the migrated SQP pre-screen refuses an over-determined face *without factorizing*, so it never forms a KKT to compare against. |
+| `active_bound_curvature` (P3 control) | the interior-point engine's active-bound-curvature pin | **NOT RATIFIABLE** — same modelling-library-dependent half; the only `sigma` in the migrated interior-point tests is the objective factor, a different quantity with the same letter. The mechanism checks out against the migrated engine. |
+| `brutally_scaled` (T7, P6) | the brutally-scaled feasible fixture from the solver fixture header | **VERIFIED** — `tests/sqp/support/ssn_fixtures.h`'s `brutally_scaled_feasible_qp()`, coefficient for coefficient. Its ±3 box is active at the documented solution, so taking both inequality rows into the working set is a stated configuration choice, not the walk's. |
+
+**Tally: 4 verified (3 coefficient-level, 1 structural), 5 not ratifiable.**
+
+**What the five have in common, and what to do about it.** None is a case of a
+recipe getting a fixture wrong. Three name fixtures that depend on the modelling
+library neither engine migration brought here, one names a code path rather than
+a matrix, and one names a fixture that never existed. The recipes were right to
+say so at the time and are not changed now; what changed is that the claim
+"unverified" has become the sharper claim "unverifiable, for this stated
+reason". The three modelling-library cases become checkable only if that layer
+is ever migrated; if it is not, they are permanently structural reconstructions
+and should be declared so rather than left looking like outstanding debt. The
+other two are closed: a path has no matrix to check, and a nonexistent fixture
+has been corrected at its source.
+
+**Nothing was changed on either side to make a comparison come out even.** Where
+a recipe and a fixture differ, the difference is recorded in the recipe's
+provenance and above; no recipe was edited to match a fixture and no fixture was
+edited to match a recipe.
+
+#### T5(b) errata
+
+T5's naming authority — the M0 trace-selection note in the archived engine
+tree's `docs/notes/` — specifies case (b) as "the semidefinite-boundary case
+from the Task-4 review fixtures". **No such fixture exists**, and the
+ratification above confirmed it a second time: the phrase matches nothing in the
+migrated SQP tree and nothing in the archived tree either. It occurs exactly
+once anywhere, in the authority sentence itself.
+
+Disposition: the authority's own T5 entry has been **amended in place** with a
+dated erratum — it remains writable until M3 closes, and correcting the
+authority is the only fix that survives the note being read again later. That
+correction is reproduced here because hven's rig ships and runs without that
+checkout, so a reader with this repository and not that one must still be able
+to learn the fact from hven alone.
+
+What the trace actually does, unchanged by the errata: `semidefinite_boundary_kkt`
+implements the boundary the phrase *describes* — a positive-semidefinite Hessian
+with one exactly-zero eigenvalue, assembled with no regularization, so whether
+the factorization reports a zero class or perturbs past it is decided entirely
+by what the backend does. T5 case (b) records that outcome and asserts nothing
+about it, which is the correct treatment for a case whose authority could not be
+satisfied as written.
+
 ### Traces that fail by design
 
 Two traces assert the unified surface's honesty rules against seams that are

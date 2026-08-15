@@ -73,6 +73,33 @@ const char *const kRegularizationNote =
     "guarantees the structurally present diagonal every backend requires. The "
     "values are stated at each call site.";
 
+// ---------------------------------------------------------------------------
+// THE REACHABILITY RATIFICATION (2026-08-15).
+//
+// Every recipe below was written before either engine was in this repository,
+// against a naming authority's DESCRIPTION of a fixture it could not read. Both
+// engines are now migrated, so each recipe has been compared against the fixture
+// its authority names, and the verdict is recorded in the provenance string the
+// report prints. Three verdicts occur, and the wording distinguishes them
+// because they are not the same claim:
+//
+//   VERIFIED AGAINST FIXTURE -- the migrated fixture exists and this recipe
+//       matches it. The clause names the file it was checked against.
+//   STRUCTURE VERIFIED AGAINST FIXTURE -- the migrated GENERATOR exists and the
+//       structure matches clause for clause, but the named matrix still cannot
+//       be produced without running a solve, so the scale (or the instant in a
+//       solve) is not reproduced and stays declared.
+//   NOT RATIFIABLE -- there is no migrated fixture to compare against, because
+//       the authority named a code path rather than a matrix, or named a
+//       fixture that never existed, or named one that neither engine migration
+//       brought into this tree. The recipe is NOT upgraded, and the reason is
+//       stated where a reader of the report will see it.
+//
+// The per-recipe table and the adjudication of each NOT RATIFIABLE case are in
+// docs/testing.md, "The nine-trace reachability ratification". Nothing was
+// changed on either side to make a comparison come out even.
+// ---------------------------------------------------------------------------
+
 constexpr Index kChainNodes = 200;
 constexpr Index kChainStates = 3;
 constexpr Index kChainControls = 2;
@@ -199,7 +226,21 @@ Fixture collocation_chain_kkt(Index nodes, unsigned value_seed) {
         "that has no such checkout -- so this recipe builds the STRUCTURAL CLASS the authority "
         "describes (trapezoidal chain, 3 states + 2 controls per node, defect rows coupling "
         "consecutive nodes, an initial-condition block, no inequality in the working set) at a "
-        "rig-fixed node count, and the scale difference is recorded rather than hidden.");
+        "rig-fixed node count, and the scale difference is recorded rather than hidden. "
+        "STRUCTURE VERIFIED AGAINST FIXTURE 2026-08-15: the migrated generator is "
+        "tests/sqp/support/scale_problems.h's F7CollocationChain(nodes, states=3, controls=2, "
+        "p, radius=1), driven by the corpus cell table in bench/corpus_cells.h. Every clause "
+        "matched: the trapezoidal defect row y_(k+1) - y_k - (h/2)[F_k + F_(k+1)] at "
+        "h = 1/(N-1) with the same -I - (h/2)A / +I - (h/2)A state coupling and the same "
+        "-(h/2)C on BOTH nodes' controls, an initial-condition block of `states` rows at "
+        "identity, and an empty path window (the bound-arc cells sit below the activation "
+        "radius, so no inequality row is active). The regularization matched too, which had "
+        "never been checked: this recipe's 1e-8 primal and dual terms are the engine's own "
+        "QpOptions::primal_delta / dual_mu defaults. WHAT IS STILL NOT REPRODUCED, and why "
+        "this stays a reconstruction: the named cell's K has no standalone builder even now -- "
+        "the migrated tree can dump the first QP subproblem but never the assembled KKT, which "
+        "exists only inside a running solve -- so the node count (and with it the scale) is the "
+        "rig's, not the cell's.");
 }
 
 Fixture barrier_chain_kkt(Index nodes, Index iterate) {
@@ -228,7 +269,17 @@ Fixture barrier_chain_kkt(Index nodes, Index iterate) {
         "solve. This recipe therefore builds what the authority says distinguishes the class: "
         "a full interior-point KKT with a BARRIER DIAGONAL on the primal block, over a "
         "collocation structure, with the barrier parameter stepping down per iterate and the "
-        "sparsity pattern fixed across iterates.");
+        "sparsity pattern fixed across iterates. NOT RATIFIABLE 2026-08-15: the named fixture "
+        "is not in this repository and neither engine migration brought it here -- the "
+        "brachistochrone half stayed with the modelling library it needs (recorded at "
+        "tests/interior/solver_test_utils.h's migration note), and the corpus it belongs to is "
+        "still Python problem definitions with no standalone KKT builder. So this recipe is NOT "
+        "upgraded. What the migration DID make checkable is the mechanism it claims, and that "
+        "mechanism holds: the migrated engine condenses the bound curvature sigma = z/d onto "
+        "the primal diagonal (include/hven/detail/interior/barrier_math.h's "
+        "accumulate_bound_sigma) without growing the KKT, and writes it into pre-allocated "
+        "structural slots, so the pattern really is fixed across rungs. The recipe reproduces "
+        "the right thing; what it cannot claim is that it reproduces the named matrix.");
 }
 
 Fixture hs76_kkt(const std::vector<Index> &active_rows) {
@@ -278,7 +329,15 @@ Fixture hs76_kkt(const std::vector<Index> &active_rows) {
         "active-set search, not of the linear seam -- they are unreachable at this level and "
         "are not claimed. The working set below is a fixed, documented one, and what the trace "
         "pins is the seam-level clause: a factorization stays valid and unperturbed across "
-        "another factor's whole lifecycle." +
+        "another factor's whole lifecycle. VERIFIED AGAINST FIXTURE 2026-08-15: "
+        "tests/sqp/support/hs_problems.h's Hs76Model. Its constant Hessian upper triangle "
+        "((0,0)=2, (0,2)=-1, (1,1)=1, (2,2)=2, (2,3)=1, (3,3)=1), its linear objective term "
+        "(-1, -3, 1, -1), its three Jacobian rows ([1,2,1,1], [3,1,2,-1], [0,-1,-4,0]) and its "
+        "x >= 0 bounds are entry for entry what this recipe states, and the pinned optimum it "
+        "carries is the standard one. The not-reproduced clause above was re-checked at the "
+        "same time and still holds: the migrated tests carry no pinned HS76 minor or "
+        "factorization counters, only recorded observations, so there is nothing here that "
+        "could have been claimed and was not." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = 4;
@@ -298,7 +357,16 @@ Fixture saddle_kkt() {
                    "fixture header, transcribed: a Hessian of diag(1, -2) with no constraint in "
                    "the working set. Its residual vanishes at both a genuine minimizer and an "
                    "interior saddle, which is exactly why a verdict has to come from the "
-                   "inertia rather than from the residual." +
+                   "inertia rather than from the residual. VERIFIED AGAINST FIXTURE 2026-08-15: "
+                   "tests/sqp/support/ssn_fixtures.h's indefinite_qp(), whose Hessian is "
+                   "diag(1, -2) and whose linear term (-0.5, 0.25) is this recipe's right-hand "
+                   "side negated -- entry for entry. It carries no equality and no inequality "
+                   "row, so an empty working set is the fixture's own shape rather than a "
+                   "simplification. ONE NUANCE WORTH THE RECORD: the fixture also carries a "
+                   "+/-1 box, and its documented minimizer sits on that box, so the empty "
+                   "working set this recipe factorizes is the INTERIOR configuration -- which "
+                   "is the one the fixture's own note names as the ambiguity (the interior "
+                   "saddle at (0.5, 0.125)) and therefore the one the inertia gate exists for." +
                    std::string(kRegularizationNote);
     f.K = assemble_kkt(H, Mat(0, 2), /*delta=*/1e-8, /*mu=*/0.0);
     f.n_primal = 2;
@@ -320,8 +388,15 @@ Fixture semidefinite_boundary_kkt() {
         "authority itself). This recipe implements the boundary the phrase describes: a "
         "positive-SEMIdefinite Hessian with one exactly-zero eigenvalue, so that whether the "
         "factorization reports a zero class or a definite one is decided entirely by the "
-        "regularization applied on top -- which is the property a boundary case is for. Flagged "
-        "in the task report as a trace whose authority text was not implementable as written." +
+        "regularization applied on top -- which is the property a boundary case is for. "
+        "NOT RATIFIABLE 2026-08-15, AND NOW CORRECTED AT THE SOURCE: the re-check confirmed the "
+        "original finding on both sides -- the phrase matches nothing in the migrated SQP tree "
+        "and nothing in the archived engine tree either; it occurs only in the authority "
+        "sentence itself. This is the T5(b) fixture errata the plan of record carried, and it "
+        "is no longer only a note here: the authority's own T5 entry has been amended in place "
+        "with a dated erratum, and docs/testing.md carries the correction for readers who have "
+        "this repository and not that one. The recipe below is unchanged -- what changes is "
+        "that the reference it could not satisfy no longer stands uncorrected." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, Mat(0, 2), /*delta=*/0.0, /*mu=*/0.0);
     f.n_primal = 2;
@@ -357,7 +432,19 @@ Fixture pd_on_face_kkt(Index n_free, Index m_face) {
                    "reconstructed at the seam level: a Hessian that is positive definite on the "
                    "face and a full-rank face block, whose correct inertia is therefore exactly "
                    "(free variables, face rows, 0). The path itself is engine logic; what this "
-                   "pins is the evidence the engine reads off the factorization." +
+                   "pins is the evidence the engine reads off the factorization. "
+                   "NOT RATIFIABLE 2026-08-15, for a reason worth stating precisely: the "
+                   "authority named a PATH, not a matrix. QpEngine::refine_on_face migrated "
+                   "(include/hven/detail/sqp/qp_engine.h), and its accepted arm is under test "
+                   "(tests/sqp/test_qp_engine.cpp), but that arm builds its face by hand on a "
+                   "small box QP rather than instantiating any named fixture -- there is no "
+                   "committed matrix for this recipe to have been transcribed from, then or "
+                   "now. So the matrix below is an INDEPENDENT construction and is not upgraded "
+                   "to verified. The PROPERTY it exists to pin does check out against the "
+                   "migrated arm: on a face that is positive definite with a full-rank face "
+                   "block, the accepted path's inertia is exactly (free variables, face rows, "
+                   "0), which is what this recipe is built to produce and what T5's case c "
+                   "asserts." +
                    std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = n_free;
@@ -382,7 +469,18 @@ Fixture duplicated_equality_kkt(double primal_reg, double dual_reg) {
         "modelling library to reach this matrix; the matrix itself is small enough to state "
         "directly, so this recipe states it. With no dual regularization it is exactly "
         "singular; a positive dual regularization is the rung an inertia-correction ladder "
-        "climbs." +
+        "climbs. NOT RATIFIABLE 2026-08-15, on both of the authorities that point here. The "
+        "interior-point half: the singular-routing fixtures named above are not in this "
+        "repository -- the migrated interior-point suite reaches its singular states by "
+        "INJECTION on a diag(2, -3) probe matrix, and its one equality-only problem is a "
+        "single full-rank row, so there is no duplicated-equality fixture here to compare "
+        "against. The SQP half (T6's authority names a rank pre-screen fixture): that "
+        "pre-screen migrated and is under test, but it REFUSES an over-determined face without "
+        "factorizing at all, so it never produces a KKT -- a matrix recipe cannot be checked "
+        "against a path whose whole assertion is that no matrix was formed. Not upgraded. What "
+        "did survive the re-check is that the ladder this recipe is built for is real: the "
+        "migrated engine climbs dual regularization on demand, and P2 replays that as rungs on "
+        "a pattern it asserts unchanged." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, primal_reg, dual_reg);
     f.n_primal = 2;
@@ -411,7 +509,16 @@ Fixture active_bound_curvature_kkt(double sigma) {
         "solve through the modelling library; the condensed KKT it produces is this one, with "
         "the bound's curvature term on the first primal diagonal. Pinned to NOT read as "
         "singular however large that term gets, which is the misread the original pin exists "
-        "for." +
+        "for. NOT RATIFIABLE 2026-08-15: the named pin is not in this repository -- it belongs "
+        "to the same modelling-library-dependent half of the interior-point suite that stayed "
+        "behind, and the only sigma in the migrated interior-point tests is the objective "
+        "factor, a different quantity with the same letter. Not upgraded. The MECHANISM the "
+        "recipe reproduces is now checkable, and it checks out: the migrated engine accumulates "
+        "sigma = z/d from the bound multipliers onto the primal diagonal "
+        "(include/hven/detail/interior/barrier_math.h) and eliminates the bound-multiplier rows "
+        "rather than carrying them, so a condensed KKT of exactly this shape -- the curvature "
+        "term on a primal diagonal entry, no extra row -- is what that engine actually hands a "
+        "factorization." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = 2;
@@ -440,7 +547,14 @@ Fixture brutally_scaled_kkt() {
         "set. The gradient reaches the linear system through the right-hand side, which is "
         "where iterative refinement and pivot perturbation have something to respond to. "
         "WHETHER this matrix actually perturbs a pivot on a given backend is an OBSERVATION "
-        "the derivation records, not an assumption this recipe makes." +
+        "the derivation records, not an assumption this recipe makes. VERIFIED AGAINST FIXTURE "
+        "2026-08-15: tests/sqp/support/ssn_fixtures.h's brutally_scaled_feasible_qp(). Hessian "
+        "(1.9e-4, -2.18e-2; -2.18e-2, 12.56), objective gradient (-2.9e9, 5.0e8), inequality "
+        "rows ([-1.2, 0.5], [-0.3, -1.2]) and right-hand side (-1.0, 1.3) all match entry for "
+        "entry. The fixture additionally carries a +/-3 box whose bound is active at its "
+        "documented solution, so taking both inequality rows into the working set -- as the "
+        "line above already says this recipe does -- is a stated choice of configuration and "
+        "not the walk's own." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = 2;
