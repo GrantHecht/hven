@@ -90,9 +90,11 @@ jobs:
         # SsnEngineLocal on run 31893392460 attempt 1, with two earlier
         # occurrences noted in docs/notes/2026-08-14-m3-gate-b-review-request.md
         # and docs/notes/2026-08-15-m3-phase-c-plan.md's microarch-flake watch
-        # rule). Threaded MKL reductions are order-dependent, so an unpinned
-        # thread count exposes pinned tests to whatever core count and MKL
-        # dispatch the runner happens to offer.
+        # rule). A third occurrence (run 31907664085) happened WITH
+        # MKL_NUM_THREADS=1 pinned, so thread count is not a sufficient cause;
+        # the class is tracked in
+        # docs/notes/2026-08-15-linux-runner-divergence-register.md (L-1) —
+        # residual explanation: runner microarch / MKL kernel dispatch variance.
         env:
           GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
           MKL_NUM_THREADS: "1"

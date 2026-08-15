@@ -626,6 +626,27 @@ a claim.
 **Proof:** P-SUITE + P-SYM (expected: identical, no `__FILE__`-class difference
 either) + P-CENSUS. **Alone.**
 
+**Amended 2026-08-15, S1 executed — the hazard paragraph's Apple premise is
+measured-FALSE, and the pin is what proved it.** On macOS arm64,
+`std::int64_t` is `long long` while `std::ptrdiff_t`/`Eigen::Index` is `long`:
+same width and signedness, distinct types. The mandatory `static_assert`
+landed exactly as this section required (`58dac2a`) and failed the
+`macos-clang-release` lane (CI run 31902660573) while Linux and Windows passed
+the same commit — the check-don't-assume discipline this paragraph asked for
+is the only instrument that could have caught it, since every Linux-side proof
+(P-SUITE, P-SYM) was green on the failing commit. Outcome (`9e90595`,
+execution-reviewer ruling `2026-08-15-m3-s1-ruling.md` reviewer-side, SIGNOFF
+S1-RULING-FINAL, Ruling 1 confirmed by the owner): S1 closed at two-of-three —
+`Vec`/`SpMatU` reconciled with identity pins; `Index` ruled UNRECONCILABLE,
+staying `Eigen::Index` with the measured reason and CI citation inline in
+`qp/qp_types.h` and its pin re-aimed at the width/signedness invariant the
+SQP↔linear-algebra boundary actually needs. Redefining `hven::Index` as
+`std::ptrdiff_t` (full unification at zero width change) is recorded as a
+post-M3 `core/` public-surface question; nothing in phase C depends on it.
+Teaching point for every later task touching a platform-dependent typedef:
+land the compile-time pin in the same commit and treat the CI matrix, not the
+local proof stack, as the verdict.
+
 ### S2 — split `sqp_types.h`, and close the `core/` layering inversion (Opus)
 
 **Scope.** Plan §2: "options/diagnostics/counters split into `core/` per the
@@ -668,6 +689,39 @@ is T1's.
 **Proof:** P-SUITE + P-SYM + **P-CENSUS** (this is a wider content change than
 the draft's version of S2 and touches the counters' own headers, so the census is
 mandatory, not optional). **Alone.**
+
+### S2b — vocabulary rename onto the library's aliases (owner-directed; Opus)
+
+**Added 2026-08-15 by owner override.** The execution reviewer's S1 Ruling 2
+("the re-exports stand as landed, permanently") was overruled by the owner:
+"Rename in M3. The same aliases should be used consistently throughout hven."
+The reviewer's ruling stands on its own record; this row is the override's
+execution shape, communicated to the reviewer the same day.
+
+**Scope.** Move every call site onto the library vocabulary and delete the two
+reconcilable solvers-side aliases: `hven::solvers::Vec` → `hven::Vec`,
+`hven::solvers::SpMatU` → `hven::SpMatRM` (~237 occurrences across ~40 files,
+plus restoring `Vec` resolution in the ~30 test/bench TUs that reach it via
+`using namespace hven::solvers;`). The upper-triangle mnemonic the `U` carried
+is recorded as a comment at the KKT assembly fill site instead of a type name.
+**`hven::solvers::Index` SURVIVES** — per the S1 amendment above it is a
+genuinely distinct type on Apple, not a redundant alias, and cannot move onto
+`hven::Index` unless the deferred post-M3 redefinition happens.
+
+**Hazards, recorded at S2 so they are not rediscovered:** (1) deleting the
+`Vec`/`SpMatU` aliases must NOT delete S1's `Index` width/signedness
+`static_assert` or the `SpMatU`-adjacent pins' surviving analogues; (2)
+`hven::solvers::Index` has two edit sites (`qp/qp_types.h` normative,
+`core/start_level.h` re-declaration) that must move together if it ever moves.
+
+**Sequencing:** after S2 (+ its review), before S3 — so the S3 carve of
+`sqp_driver.h` happens in the final vocabulary and its content-identity proof
+is not followed by another text pass over the carved files.
+
+**Proof:** P-SUITE both configs + P-SYM byte-identity (a rename of an
+alias-of-an-alias is codegen-neutral; any P-SYM difference means the change
+was not mechanical — stop and report, do not adjudicate). No census
+(schedule ruling unchanged). **Alone.**
 
 ### S3 — carve the globalization logic out of `sqp_driver.h` (**FABLE**)
 
@@ -1168,7 +1222,13 @@ HEAD) plus the verdict's carries. The gate package is a review-request note in
     GitHub Linux microarch flake occurs during phase C, capture the four test
     names and their observed values into the divergence register's evidence style
     before they scroll out of CI retention. Conditional — nothing owed if it does
-    not fire.
+    not fire. **FIRED AND DISCHARGED 2026-08-15**: the third occurrence hit S2's
+    `e7f89a7` (run 31907664085 attempt 1) — with `MKL_NUM_THREADS=1` already
+    pinned, falsifying R5's root cause as sufficient. Captured with full
+    per-cell values in `docs/notes/2026-08-15-linux-runner-divergence-register.md`
+    (entry L-1, class corrected to "last-bits arithmetic, two of four cells
+    surfacing as discrete-state divergences"). The runner-pin/-march question it
+    opens is routed to U0's design note.
 11. **A behavioral-delta ledger for phase C**, in plan §9's shape. Expected rows,
     named in advance: hash values change under the H-series re-key (licensed by
     plan §9 row 3, conditional on H1); include paths and header names (mechanical);
