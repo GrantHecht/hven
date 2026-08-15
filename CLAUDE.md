@@ -183,9 +183,24 @@ no exceptions:
 - Counters are the asserted currency of correctness and performance
   claims; wall-clock timings are informational only.
 - Quoted wall-clock numbers are single-threaded unless stated otherwise.
-- Concurrent MKL solvers spin-wait catastrophically against each other,
-  so benchmark and sweep runners must serialize their suites rather than
-  running solves in parallel.
+- Concurrent MKL solvers spin-wait catastrophically against each other, so
+  any measurement that ASSERTS wall-clock — a benchmark, a timing baseline,
+  a throughput or build-time comparison — must serialize its suite: one
+  solve at a time, alone on the machine. Nothing produced any other way is
+  a quotable timing.
+- A replay that asserts only COUNTERS may co-run. Counters are
+  scheduling-invariant at `MKL_NUM_THREADS=1`, and contention can only push
+  a cell toward a budget/deadline outcome, never toward a false success or a
+  false counter value. The terms are fixed: one process per pinned PHYSICAL
+  core (SMT siblings left idle), `MKL_NUM_THREADS=1` in every process, and
+  wall-clock from such a run stays informational — it is never quoted as a
+  measurement and never compared against a serial timing.
+- A counter deviation observed under a co-run is a candidate, not a
+  regression. Re-run the deviating cell ALONE, under the serial rule above,
+  and reproduce the deviation before calling it one.
+- A co-run protocol is declared in the evidence artifact it produces — the
+  tiering rule, the widths, and the pinning — so a reader knows the
+  conditions the counters were taken under.
 - Every benchmark artifact carries a provenance stamp (toolchain,
   hardware, date, commit).
 - Intentional breaks of a pinned/reproduced value are declared and

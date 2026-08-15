@@ -42,7 +42,7 @@ f7_n10000_bound_corrupted,F7,10000,bound,corrupted,0,Optimal,1,2,0,1,1,9.1891705
 f7_n10000_bound_activity,F7,10000,bound,activity,0,Optimal,1,2,0,1,1,1.016558709e-15,0.457334460
 f7_n10000_bound_warm,F7,10000,bound,warm,0,Optimal,1,2,0,1,1,4.196023677e-14,0.435775005
 f7_n10000_path_neutral,F7,10000,path,neutral,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000
-f7_n10000_path_physics,F7,10000,path,physics,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000
+f7_n10000_path_physics,F7,10000,path,physics,0,Optimal,8798,19311,0,2,8797;1,1.399679852e-10,2868.340825348
 f7_n10000_path_corrupted,F7,10000,path,corrupted,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000
 f7_n10000_path_activity,F7,10000,path,activity,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000
 f7_n10000_path_warm,F7,10000,path,warm,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000

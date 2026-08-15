@@ -1,0 +1,4 @@
+MISMATCH f7_n10000_path_physics
+  base : f7_n10000_path_physics,F7,10000,path,physics,0,dnf_budget,-1,-1,-1,-1,,-1.0
+  fresh: f7_n10000_path_physics,F7,10000,path,physics,0,Optimal,8798,19311,0,2,8797;1,1.399679852e-10
+57 baseline cells, 57 fresh cells, 1 mismatches

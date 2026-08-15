@@ -1,0 +1,4 @@
+# gate-B cells requiring a SERIAL re-run before any regression claim.
+# Produced under parallel-tiered v1 (T1 6-wide pinned / T2 solo / T3 5-wide full-budget); contention is a live confound for every line here.
+# Re-run each alone: taskset -c 0 env MKL_NUM_THREADS=1 /home/ghecht/Projects/hven/build/bench/hven_sqp_corpus --engine walk --cells <cell> --csv <row>
+f7_n10000_path_physics	13-column mismatch  [pre-adjudicated at gate A — expected flip, not a regression]
