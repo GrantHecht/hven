@@ -114,8 +114,8 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/sqp_driver.h>
 #include <hven/detail/warmstart/warm_start.h>
+#include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/qp/qp_types.h>
 
