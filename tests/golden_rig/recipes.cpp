@@ -220,9 +220,10 @@ Fixture collocation_chain_kkt(Index nodes, unsigned value_seed) {
         nodes, value_seed, nullptr, "collocation_chain",
         "REGENERATED FROM THE RECIPE DESCRIPTION, not from the named cell. The naming "
         "authority points at a collocation corpus cell of 100000 primal variables taken at a "
-        "solve's first major, on an empty path-constraint window. That cell's generator lives "
-        "in the sqp checkout's bench/test-support tree and produces its matrix only by running "
-        "that engine's own walk, which would make this trace unavailable on the default build "
+        "solve's first major, on an empty path-constraint window. That cell's generator was "
+        "written against the sqp checkout's bench/test-support tree and produced its matrix "
+        "only by running that engine's own walk, which would make this trace unavailable on "
+        "the default build "
         "that has no such checkout -- so this recipe builds the STRUCTURAL CLASS the authority "
         "describes (trapezoidal chain, 3 states + 2 controls per node, defect rows coupling "
         "consecutive nodes, an initial-condition block, no inequality in the working set) at a "
@@ -323,7 +324,7 @@ Fixture hs76_kkt(const std::vector<Index> &active_rows) {
     f.name = "hs76";
     f.provenance =
         "HS76's own data, transcribed from its standard statement; the sqp checkout's model "
-        "class carries the same coefficients and the same optimal value. WHAT IS NOT "
+        "class carried the same coefficients and the same optimal value. WHAT IS NOT "
         "REPRODUCED: the authority names a walk trace with a known admission sequence, and the "
         "walk's pinned minor and factorization counters are a property of that engine's "
         "active-set search, not of the linear seam -- they are unreachable at this level and "
@@ -353,8 +354,8 @@ Fixture saddle_kkt() {
     H << 1.0, 0.0, 0.0, -2.0;
     Fixture f;
     f.name = "saddle";
-    f.provenance = "the indefinite two-variable fixture from the sqp checkout's own solver "
-                   "fixture header, transcribed: a Hessian of diag(1, -2) with no constraint in "
+    f.provenance = "the indefinite two-variable fixture, transcribed from the sqp checkout's own "
+                   "solver fixture header: a Hessian of diag(1, -2) with no constraint in "
                    "the working set. Its residual vanishes at both a genuine minimizer and an "
                    "interior saddle, which is exactly why a verdict has to come from the "
                    "inertia rather than from the residual. VERIFIED AGAINST FIXTURE 2026-08-15: "
@@ -541,8 +542,8 @@ Fixture brutally_scaled_kkt() {
     Fixture f;
     f.name = "brutally_scaled";
     f.provenance =
-        "the brutally-scaled feasible fixture from the sqp checkout's solver fixture header, "
-        "transcribed coefficient for coefficient (Hessian eigenvalues spanning about five "
+        "the brutally-scaled feasible fixture, transcribed from the sqp checkout's solver "
+        "fixture header coefficient for coefficient (Hessian eigenvalues spanning about five "
         "orders, objective gradient at 1e9), with both inequality rows taken into the working "
         "set. The gradient reaches the linear system through the right-hand side, which is "
         "where iterative refinement and pivot perturbation have something to respond to. "
