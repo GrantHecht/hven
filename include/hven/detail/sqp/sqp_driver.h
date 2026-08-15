@@ -2123,12 +2123,12 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/qp/ssn_engine.h>
+#include <hven/detail/qp/working_set.h>
 #include <hven/detail/sqp/globalization.h>
-#include <hven/detail/sqp/qp_engine.h>
-#include <hven/detail/sqp/qp_problem.h>
-#include <hven/detail/sqp/ssn_engine.h>
 #include <hven/detail/sqp/warm_start.h>
-#include <hven/detail/sqp/working_set.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>

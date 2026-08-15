@@ -76,9 +76,9 @@
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/schur_complement.h>
-#include <hven/detail/sqp/eqp_solve.h>
-#include <hven/detail/sqp/qp_problem.h>
-#include <hven/detail/sqp/working_set.h>
+#include <hven/detail/qp/eqp_solve.h>
+#include <hven/detail/qp/qp_problem.h>
+#include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {

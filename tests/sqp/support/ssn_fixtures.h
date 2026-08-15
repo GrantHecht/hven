@@ -23,7 +23,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 
-#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers::test_support {

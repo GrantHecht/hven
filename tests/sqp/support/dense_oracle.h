@@ -64,7 +64,7 @@
 #include <Eigen/Dense>
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/qp_problem.h>
+#include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {

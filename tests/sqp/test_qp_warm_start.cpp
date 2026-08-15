@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/qp_engine.h>
+#include <hven/detail/qp/qp_engine.h>
 
 #include "support/dense_oracle.h"
 
