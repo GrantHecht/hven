@@ -27,7 +27,7 @@ target_sources(hven PRIVATE
     # review's flags ruling, task-b3-review.md I1). Any future addition to
     # src/sqp/ must re-argue FP-freedom the way this comment does, or wait
     # for that phase-C proof.
-    sqp/kkt_calls.cpp
+    kkt/kkt_calls.cpp
 )
 
 # The sparse symmetric factor's two backends are split at the source level,

@@ -358,11 +358,11 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/border_ops.h>
-#include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_calls.h>
+#include <hven/detail/kkt/border_ops.h>
+#include <hven/detail/kkt/kkt_assembly.h>
+#include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/kkt/schur_complement.h>
 #include <hven/detail/sqp/qp_problem.h>
-#include <hven/detail/sqp/schur_complement.h>
 #include <hven/detail/sqp/warm_start.h>
 #include <hven/detail/sqp/working_set.h>
 #include <hven/model/nlp_model.h>

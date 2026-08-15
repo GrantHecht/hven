@@ -98,8 +98,8 @@
 
 #include <Eigen/SparseCore>
 
-#include <hven/detail/sqp/kkt_assembly.h>
-#include <hven/detail/sqp/kkt_calls.h>
+#include <hven/detail/kkt/kkt_assembly.h>
+#include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/sqp/qp_problem.h>
 #include <hven/detail/sqp/working_set.h>
 #include <hven/qp/qp_types.h>

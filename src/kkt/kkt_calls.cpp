@@ -1,4 +1,4 @@
-#include <hven/detail/sqp/kkt_calls.h>
+#include <hven/detail/kkt/kkt_calls.h>
 
 #include <stdexcept>
 

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <hven/detail/sqp/schur_complement.h>
+#include <hven/detail/kkt/schur_complement.h>
 using namespace hven::solvers;
 
 // K0 = [H Aᵀ; A 0] with H = diag(2,3), A = [1 1]. Saddle point: inertia (2,1,0).

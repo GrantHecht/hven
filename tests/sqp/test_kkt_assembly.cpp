@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <hven/detail/sqp/kkt_assembly.h>
+#include <hven/detail/kkt/kkt_assembly.h>
 using namespace hven::solvers;
 
 TEST(KktAssembly, DimensionsAndRegularization) {

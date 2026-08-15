@@ -79,7 +79,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/kkt_calls.h>
+#include <hven/detail/kkt/kkt_calls.h>
 #include <hven/linear/dense_symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 

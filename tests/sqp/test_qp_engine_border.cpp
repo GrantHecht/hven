@@ -4,10 +4,10 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/detail/kkt/kkt_assembly.h>
+#include <hven/detail/kkt/schur_complement.h>
 #include <hven/detail/sqp/eqp_solve.h>
-#include <hven/detail/sqp/kkt_assembly.h>
 #include <hven/detail/sqp/qp_engine.h>
-#include <hven/detail/sqp/schur_complement.h>
 
 #include "support/border_test_utils.h"
 

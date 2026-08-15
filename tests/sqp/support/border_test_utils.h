@@ -41,7 +41,7 @@
 // diag(reg)*sol -- refines toward the same target solve_eqp's own
 // refinement step converges to.
 
-#include <hven/detail/sqp/bordered_eqp.h>
+#include <hven/detail/kkt/bordered_eqp.h>
 
 namespace hven::solvers::test_support {
 

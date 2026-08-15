@@ -555,7 +555,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/detail/sqp/kkt_calls.h>
+#include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/sqp/qp_problem.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/linear/symmetric_factor.h>
