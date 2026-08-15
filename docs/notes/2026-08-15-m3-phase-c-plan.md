@@ -301,7 +301,10 @@ Measured at `31e57b0` under both instruments the method names. The extra hash is
 **6.12 %–7.76 % of SSN-major wall-clock** (median 7.34 %) on the SSN-heavy
 families — equivalently ~20 % of one numeric KKT factorization — and removing it
 cuts whole-solve wall by **5.58 % pooled** over the thirteen `qp_minors = 0`
-cells, with **zero counter movement** across eight passes. **The 5 % threshold is
+cells, with **zero counter movement** across eight passes. The two percentages
+have **different denominators** and only the first is the rule's metric; the range
+is over 11 of the 13 cells under an exclusion rule stated in the artifact's §5,
+and the excluded pair's evidence points the same way. **The 5 % threshold is
 crossed: B2 fires, and it is GATE-BLOCKING, not optional.** Two method points
 declared there rather than here: the "archived pre-retarget engine at the pinned
 tag" does not exist in this repository (no tags), so arm B is `31e57b0` plus an
@@ -833,6 +836,18 @@ H2, so its objects must be identical). **Alone.**
   `(var, sign)` data as a separate conjunct** (hash or direct comparison —
   implementer's choice per plan §5 item 3).
 - `values_hash` untouched.
+
+**Cost constraint carried from B1 (artifact §7, `docs/notes/data/2026-08-15-m3-b1-hash-cost/`).**
+The steady-state per-SSN-major `hven::pattern_hash` count is **2 post-B2, and H3
+must not move it** — H3 re-keys the two SQP-side hashes, not the KKT-level one, so
+it changes the digest and not the count. B1 priced the unit: **one** added O(nnz)
+pass per major costs ≈ 7.3 % of SSN-major wall on the SSN-heavy families, so H1's
+Q3 constraint (a compressed copy or an extra iteration pass per major) is a
+measured cost, not a theoretical one. B1 also records a second, separately-counted
+O(nnz) hash H3 should price against: `SsnEngine::structure_hash` itself, computed
+unconditionally in `sync_matrix` (`ssn_engine.h:3034`) from both `:1688` and
+`:3259` — ≈ 0.15 calls per major on this corpus (≈ 1 % of SSN-major wall), so
+worth inventorying at H1 but not a hot path here.
 
 **The two ingredients have different statuses and the composite must preserve
 both for different reasons** — verified against source at `ssn_engine.h:3004-3025`:
