@@ -10,14 +10,36 @@
 
 namespace hven::solvers {
 
-// Type aliases -- RECONCILED onto hven/core/types.h, not redefined here.
+// Type aliases -- RECONCILED onto hven/core/types.h where that is a no-op, and
+// NOT reconciled where it would not be. Both halves are load-bearing; read the
+// Index note before changing either.
 //
-// These three names were previously independent Eigen spellings in this header
-// (`Eigen::Index`, `Eigen::VectorXd`, `Eigen::SparseMatrix<double,
-// Eigen::RowMajor>`) for types `hven` already owns, so `hven::Index` and
-// `hven::solvers::Index` agreed only by platform coincidence rather than by
-// construction. They are now aliases OF the core types: one definition, in
-// core/types.h, named from both namespaces.
+// `Vec` and `SpMatU` were independent Eigen spellings in this header
+// (`Eigen::VectorXd`, `Eigen::SparseMatrix<double, Eigen::RowMajor>`) for types
+// `hven` already owns. They are now aliases OF the core types: one definition,
+// in core/types.h, named from both namespaces. Those two spellings name the
+// same type on every target by construction -- no platform-dependent typedef
+// enters either -- so the reconcile is a no-op everywhere, pinned below.
+//
+// `Index` IS NOT RECONCILED, and the reason is a measured fact, not caution.
+// M3 phase-C S1 attempted `using Index = hven::Index;` on the plan's stated
+// premise that `std::int64_t` and `std::ptrdiff_t` are the same type on LP64
+// Linux and on both Apple targets. THE PREMISE IS FALSE ON APPLE: on macOS
+// arm64, `std::int64_t` is `long long` while `std::ptrdiff_t` (and therefore
+// `Eigen::Index`) is `long`. Two 64-bit signed types, same width, same
+// signedness, DISTINCT TYPES -- so the reconcile would silently change what
+// `hven::solvers::Index` denotes on Apple and could re-resolve an overload
+// there, which is the exact hazard the plan named. Observed at the CI
+// macos-clang-release lane, which failed the identity pin below with
+// `std::is_same_v<long long, long>` (run 31902660573, commit 58dac2a). The
+// pin did its job: it turned an assumption into a compile error on the one
+// target where it is wrong.
+//
+// So `Index` stays `Eigen::Index` here. What IS pinned is the interoperation
+// invariant the boundary actually needs -- `hven::Index` and this `Index` are
+// the same width and signedness, so values cross the linear-algebra boundary
+// without truncation or sign change on every supported target, whether or not
+// the two are the same type.
 //
 // The SQP-side NAMES survive as re-exports; what is deleted is the duplicate
 // definition. That is deliberate and not a half-measure: ~30 test and bench TUs
@@ -30,28 +52,28 @@ namespace hven::solvers {
 // `SpMatRM` does not: the `U` records the upper-triangle storage convention the
 // KKT path builds these matrices in (see kkt_assembly.h). It is the same type,
 // used under a convention-bearing name.
-using Index = hven::Index;
+using Index = Eigen::Index;
 using SpMatU = hven::SpMatRM;
 using Vec = hven::Vec;
 
 // The identity pin (phase-C S1; required by the O7 ruling, not optional).
 //
-// Each assert states that the reconciled alias denotes EXACTLY the type this
-// header defined before the reconcile. That is what makes the reconcile a
-// no-op rather than a claim of one: if `hven::Index` (`std::int64_t`) and
-// `Eigen::Index` (`std::ptrdiff_t`) were ever distinct types on a target, the
-// change could silently re-resolve an overload, and this build fails instead.
-// LP64 Linux, both Apple targets, and LLP64 Windows all satisfy it today.
+// Each assert states that the alias denotes EXACTLY the type this header
+// defined before the reconcile. That is what makes the reconcile a no-op
+// rather than a claim of one.
 //
-// The pin lives HERE, on the consumer side, and deliberately not in
+// The pins live HERE, on the consumer side, and deliberately not in
 // core/types.h: `hven::Index` is documented there as a fixed-width type
 // independent of Eigen's platform-defined one, and hven does not promise the
-// two coincide. This reconcile is what depends on the coincidence, so this is
-// where it is checked.
-static_assert(std::is_same_v<Index, Eigen::Index>,
-              "hven::solvers::Index must remain Eigen::Index -- the S1 reconcile onto "
-              "hven::Index (std::int64_t) is sound only while std::int64_t and "
-              "std::ptrdiff_t are the same type on this target.");
+// two coincide -- on Apple they demonstrably do not. This header is where the
+// two vocabularies meet, so this is where the relationship is checked.
+static_assert(sizeof(Index) == sizeof(hven::Index) &&
+                  std::is_signed_v<Index> == std::is_signed_v<hven::Index>,
+              "hven::solvers::Index (Eigen::Index / std::ptrdiff_t) and hven::Index "
+              "(std::int64_t) must stay the same width and signedness: they are NOT the "
+              "same type on Apple targets (long vs long long), and every value that "
+              "crosses between the SQP layer and hven's linear-algebra boundary relies on "
+              "the conversion being exact.");
 static_assert(std::is_same_v<Vec, Eigen::VectorXd>,
               "hven::solvers::Vec must remain Eigen::VectorXd after the S1 reconcile onto "
               "hven::Vec.");
