@@ -7,17 +7,61 @@ ruled four and a half of them answerable; those resolutions are now folded into
 `phase-c-plan.md` §12 (with the tasks that carry them) and are **not** repeated
 here.
 
-**Status (2026-08-15): Q1 is RULED by the phase-C ratification. Q6b remains
-open, Grant's, with the reviewer's recommendation to codify.**
+**Status (2026-08-15): BOTH QUESTIONS CLOSED.** Q1 is CLOSED by Grant's owner
+ruling on rider 1 (uniform flags), folded into the plan by the flag-unification
+re-plan (2026-08-15). Q6b is **RESOLVED-CODIFIED** — Grant ruled codify, and
+CLAUDE.md §1 now carries the second bounded exception. This file is now a
+record, not a queue.
 
 | # | Owner | Decision needed | Blocks |
 |---|---|---|---|
-| **Q1** | **RULED** (phase-C ratification, 2026-08-15) — option (a); Grant's governance sign-off still required before T0's outcome is final (rider 1) | None remaining for the execution reviewer — ruling recorded below | Nothing further from the SQP-instance execution reviewer; T0's pilot and Grant's rider-1 sign-off remain on the critical path for T4–T8 |
-| **Q6b** | Grant | Whether to *record* a second origin-naming exception in CLAUDE.md §1 | Nothing — hygiene, not correctness |
+| **Q1** | **CLOSED** (Grant's owner ruling, 2026-08-15) — uniform flags; the ratification's option-(a) regime rule is void and T0 is dissolved | None — the final chapter is recorded below | Nothing. The critical path is now U0 (plan §0, §6 U0) |
+| **Q6b** | **RESOLVED-CODIFIED** (Grant, 2026-08-15) — codify | None — CLAUDE.md §1 carries it | Nothing |
 
 ---
 
-## Q1 — **RULED (phase-C ratification, 2026-08-15).** Plan §6 clause 2 cannot execute under the flag regimes phase B declared
+## Q1 — **CLOSED (Grant's owner ruling, 2026-08-15).** Plan §6 clause 2 cannot execute under the flag regimes phase B declared
+
+### Final chapter: Grant's owner ruling, and what it dissolved
+
+The ratification's option-(a) ruling carried **rider 1**: Grant's governance
+sign-off was required before T0's outcome became final, because a non-uniform
+library flag regime is a project-shape call and the execution reviewer's ruling
+was only the execution-review half. **Grant ruled on that rider, and ruled the
+other way:**
+
+- **Uniform library flags.** One regime for engine, tests, and bench.
+- **TUs split cleanly for build efficiency, without sacrificing performance** —
+  boundaries are drawn on code quality and build efficiency.
+- **Code quality is not limited to preserve census bit-identity** against the
+  existing baseline.
+- **The runtime-neutrality bar is unchanged** — P-BENCH per boundary, and
+  CLAUDE.md §5's outranking clause, both stand.
+
+The execution half is the **flag-unification re-plan (2026-08-15)**,
+reviewer-side note `docs/notes/2026-08-15-m3-flag-unification-replan.md`
+(SIGNOFF FLAG-REPLAN-FINAL), folded into
+`2026-08-15-m3-phase-c-plan.md` §0 (the ruling, the unify-first insight, the
+revised sequencing, the census re-basing) and §6 U0 (the task: a flags-only
+zero-code-motion commit plus its same-event mass re-derivation, with the full
+evidence package, the four float-pin classes needing design attention, and the
+five binding conditions).
+
+**What this dissolved:** option (a)'s regime-assignment rule (void — there is
+one regime); the gate-A ruling that harness TUs stay sandbox-matched
+indefinitely (void); **T0 as a task, together with its pilot** — its deliverable
+collapses into U0's design note and its Fable tier moves to U0's re-derivation
+event; and O11's deferral (void — the `tests/sqp` CMake comment's deadline is
+answered "yes, at U0," and the comment is deleted there).
+
+**What survived unchanged:** the runtime-neutrality bar; the census-frequency
+ruling's schedule and floor clause, which re-base onto the new baseline; and
+every non-flag ruling in the ratification.
+
+---
+
+**Historical record below: the ratification's ruling, now superseded on its
+flag half by the owner ruling above.**
 
 **Ruling: option (a), with a stated regime-assignment rule; (b) stands as the
 fallback (fires as a ruled deferral if Grant rejects (a)); (c) rejected for
@@ -135,7 +179,25 @@ fallback fires.
 
 ---
 
-## Q6b — Recording a second origin-naming exception in CLAUDE.md §1
+## Q6b — **RESOLVED-CODIFIED (Grant, 2026-08-15).** Recording a second origin-naming exception in CLAUDE.md §1
+
+**Ruling: codify.** Grant ruled with the reviewer's recommendation. **CLAUDE.md
+§1 now states two bounded exceptions**: the two OLD-SEAM rig adapters (temporary,
+deleted when the migrations close) and, permanent by construction, that frozen
+baseline and evidence CSVs **retain their origin-naming provenance headers
+verbatim** as pinned artifacts. The stated reason is the failure mode this
+question named: a rule reading "without exception everywhere else" invites a
+future cleanup pass to mutate a pinned artifact for cosmetic reasons, which is
+exactly the silent pin break §7 exists to prevent.
+
+Behaviour is unchanged either way — the frozen header was never touched, and no
+phase-C task proposed touching it. What changed is that the next agent who greps
+for origin strings finds a sanctioned answer instead of an apparent violation.
+U0's re-derivation narrows the exception's future scope further: the new dated
+baseline it produces carries an hven-native header, so the exception applies to
+the frozen historical file and does not grow (plan §6 U0 (b) item 3).
+
+**Historical record below (the question as escalated).**
 
 **Owner: Grant.** Governance hygiene; blocks nothing. **The phase-C
 ratification (2026-08-15) reiterates the recommendation below** (Verdict 3:

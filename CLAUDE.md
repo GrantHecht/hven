@@ -32,12 +32,26 @@ originated in tycho and a companion SQP engine originated in a sibling
 project, but both engines' identity in this repository is `hven` — their
 origin project names do not appear here.
 
-One bounded exception, for as long as it exists: the golden-numerics rig's two
+Two bounded exceptions.
+
+The first, for as long as it exists: the golden-numerics rig's two
 OLD-SEAM adapters (`tests/golden_rig/seam_psiopt.cpp`, `seam_sqp.cpp`) name
 those projects, because they compile against those checkouts and are pinned to
 them by path and by tag — a temporary test-only artifact cannot be
 origin-neutral about the tree it includes. They are deleted when the two engine
-migrations close, and the rule holds without exception everywhere else.
+migrations close.
+
+The second, permanent by construction: **frozen baseline and evidence CSVs
+retain their origin-naming provenance headers verbatim.** A provenance header
+records what actually ran — the binary, the invocation, the machine — and a
+pinned artifact's bytes are the pin. Rewriting one to satisfy a naming rule
+would be a silent pin mutation, which §7 forbids; the exception exists precisely
+to prevent a future cleanup pass from "fixing" a pin for cosmetic reasons. These
+headers are historical records, not statements about this repository's identity.
+Artifacts derived *after* the migrations close carry hven-native headers, so the
+exception does not grow.
+
+Outside these two, the rule holds without exception.
 
 ## 2. Repository structure
 
@@ -213,6 +227,15 @@ no exceptions:
   hardware, date, commit).
 - Intentional breaks of a pinned/reproduced value are declared and
   re-derived explicitly — never silent.
+- The library, its tests, and its bench compile under **one uniform flag
+  regime** (owner ruling, 2026-08-15): TU boundaries are drawn for code
+  quality and build efficiency, not to preserve bit-identity against an
+  existing census baseline, and the runtime-neutrality bar above is
+  unchanged by that. The unification and the re-derivation of every
+  flag-sensitive pin, battery artifact, and census baseline it moves are
+  one **declared event** — phase C's task U0 — governed by the protocol
+  above, not an exception to it. See
+  `docs/notes/2026-08-15-m3-phase-c-plan.md` §0 and §6 U0.
 
 ## 8. Process rules for agents
 

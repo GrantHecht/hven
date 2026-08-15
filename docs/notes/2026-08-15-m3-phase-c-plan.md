@@ -2,6 +2,15 @@
 > `docs/notes/2026-08-15-m3-phase-c-ratification.md`, sentinel-signed).
 > Amendments A1-A3 folded. Q1 ruled option (a), with Grant's rider-1
 > sign-off pending at T0.
+>
+> **Amended 2026-08-15 by the flag-unification re-plan** (reviewer-side note
+> `docs/notes/2026-08-15-m3-flag-unification-replan.md`, SIGNOFF
+> FLAG-REPLAN-FINAL), which implements **Grant's owner ruling on Q1 rider 1**:
+> uniform library flags. The ruling's owner half governs, as the reviewer's own
+> rider said it would. **Q1's option-(a) regime-assignment rule is void; T0 is
+> dissolved; O11's deferral is void; the answer to the `tests/sqp` CMake
+> comment's deadline is now "yes, at U0."** Everything the re-plan does not name
+> stands as ratified. Read §0 below before executing any phase-C task.
 
 # M3 Phase C — execution plan (mechanism restructure + TU split + structure-hash re-key)
 
@@ -75,6 +84,83 @@ commit contains no content change; a content change contains no relocation.
 
 ---
 
+## 0. Flag unification re-plan (2026-08-15)
+
+Folded from the flag-unification re-plan (2026-08-15), reviewer-side note
+`docs/notes/2026-08-15-m3-flag-unification-replan.md`. It is the execution half
+of **Grant's owner ruling on Q1 rider 1**; where it and the ratification
+disagree, this section governs.
+
+### 0.1 Grant's owner ruling
+
+- **Uniform library flags.** The library is one flag regime. The
+  non-uniform per-source/object-library regime option (a) proposed is not
+  taken.
+- **TUs split cleanly for build efficiency, without sacrificing performance.**
+  Where to draw a TU boundary is decided on code quality and build efficiency.
+- **Code quality is not limited to preserve census bit-identity.** Bit-identity
+  against the *existing* census baseline is not a constraint on how the library
+  is flagged or structured.
+- **The runtime-neutrality bar is unchanged.** P-BENCH per boundary stands, and
+  CLAUDE.md §5's "never at measurable runtime cost" outranking clause stands —
+  Grant's own "without sacrificing performance" re-affirms it. The ruling
+  removes bit-identity as a constraint on *flags*; it removes nothing from the
+  performance bar.
+
+**Superseded by this section:** Q1's option-(a) regime-assignment rule (void);
+the gate-A ruling that harness TUs stay sandbox-matched indefinitely (void);
+T0-as-ruling-task and its pilot (dissolved, §6); O11's deferral (void — §10).
+**Not superseded:** the runtime-neutrality bar; the census-frequency ruling's
+schedule and floor clause (they re-base onto the new baseline unchanged, §0.4);
+every non-flag ruling in the ratification.
+
+### 0.2 The structural insight: unify FIRST, in a commit that moves no code
+
+The engine is header-mostly, and the harness (the `tests/sqp` and `bench/` TUs)
+compiles nearly all engine code today — so **the pin-moving event is the harness
+flag change itself, not the TU splits**. The moment `tests/sqp` and `bench/`
+adopt `COMPILE_FLAGS`, every header-inlined FP path in the engine recompiles
+under `-ffast-math`/`-march=native`, and every flag-sensitive pin moves AT ONCE,
+regardless of how many TU splits have happened. Two consequences:
+
+1. **"Re-derive once after all splits land" is the wrong shape.** Each
+   FP-carrying split would move pins again relative to the previous state (more
+   code crossing regimes each time), the suite would be partially red for the
+   whole T-series, and the final delta would be confounded — flags × code
+   motion × split boundaries.
+2. **The right shape is a single unification commit — U0 — that changes FLAGS
+   ONLY and moves ZERO code**, immediately followed by its declared mass
+   re-derivation as one event. Old-vs-new is then purely flag-attributable (the
+   cleanest available experimental design), and every subsequent T-split moves
+   code between *same-flagged* homes — which **restores per-boundary
+   bit-identity as the proof currency for the entire T-series**. Grant's ruling
+   removes bit-identity as a constraint on flags; U0's placement gets it back as
+   a proof tool for the splits, free.
+
+### 0.3 Revised phase-C sequencing
+
+**B2** (mid-flight at the ruling; completes under current flags — its evidence
+stays valid and its semantic carries) → **R1–R6** → **S1–S4** (flag-invariant
+restructures, proven against today's stable pins; S3's content-identity proof in
+particular wants the old-flag world) → **U0 + the mass re-derivation event**
+(one task, one declared event, §6) → **T1–T8** (ordinary splits under uniform
+flags, per-boundary bit-identity restored, P-BENCH/P-BUILD per the ratified
+plan) → **H1–H3** (per-backend no-op proven against the POST-U0 state) → **the
+one counter census** → **Gate C full 57** — the last two against the NEW
+baseline.
+
+### 0.4 The census-frequency ruling, re-based
+
+The census-frequency schedule (§10 O3) is **unchanged in structure** and
+re-bases onto the new baseline: P-SUITE + P-SYM per relocation batch, P-CENSUS
+at the relocation-group boundary and on every content change, one counter census
+post-H3, Gate C's full 57 at the gate, floor clause standing. The only change is
+the object of comparison: **the post-H3 census and Gate C's full 57 run against
+the NEW baseline U0's event derives**, not against
+`bench/baselines/2026-08-06-corpus/walk_baseline.csv`.
+
+---
+
 ## 1. Proof vocabulary
 
 Defined once here; every task below cites these by name rather than restating
@@ -86,7 +172,7 @@ provenance stamp names a real commit.
 |---|---|---|
 | **P-SUITE** | Full `ctest` — `hven_tests`, `hven_interior_tests`, `hven_sqp_tests`, `hven_fault_injection_tests` — in **Release AND Debug**, with the count arithmetic stated against the **1150-registered** phase-C entry baseline (N new tests move the count by exactly N) and against **both** configuration shapes (SNOPT-enabled = the pinned figure; no-SNOPT = recorded beside it, plan §8 item 2) | ~minutes |
 | **P-SYM** | **Release**-config per-symbol disassembly identity, `CCACHE_DISABLE=1`, identical configure on the same host, against the immediately preceding build. **Object set:** `libhven.a`, every `hven_sqp_tests` object, **and the `bench/` objects the asserted artifacts come from** — `hven_sqp_corpus` (the census binary), `hven_sqp_bench`, `ssn_safeguard_probe`. Only licensed difference: `__FILE__`-derived string content (assert/throw messages, debug info). **Coverage limit:** the Accelerate `#ifdef` arms are not compiled on Linux at all, so P-SYM says nothing about them — acceptable because the census baseline is MKL-derived and the Accelerate proof lands at H3 and Gate C. Precedent for the comparison: the PCH table's "identical instructions per symbol" (`src/CMakeLists.txt:149-152`). Debug objects differ trivially and are not part of P-SYM; Debug correctness is P-SUITE's job. **T-task scoping (phase-C ratification A1, 2026-08-15):** for T-tasks (§6), P-SYM is asserted over all symbols OUTSIDE the task's declared blast radius — the moved bodies and their direct callers, enumerated in the commit message; inside the radius the proof is P-CENSUS + P-BENCH + P-SUITE, not P-SYM, because out-of-lining a function changes its callers' codegen by construction and an unscoped P-SYM would be an impossible obligation for a T-task | ~one build |
-| **P-CENSUS** | 57-cell walk census byte-identical to `bench/baselines/2026-08-06-corpus/walk_baseline.csv` as amended at `02bc6b7`, via `scripts/run_walk_census.sh` under the accepted parallel-tiered protocol (gate-B verdict §1.1) | ~6 h |
+| **P-CENSUS** | 57-cell walk census byte-identical to the baseline of record, via `scripts/run_walk_census.sh` under the accepted parallel-tiered protocol (gate-B verdict §1.1). **The baseline of record is `bench/baselines/2026-08-06-corpus/walk_baseline.csv` as amended at `02bc6b7` up to and including S4, and the NEW dated baseline U0's re-derivation event produces from U0 onward** (§0.4, §6 U0) | ~6 h |
 | **P-WSB** | Warm-start battery + `ScaleF7Slow` run explicitly + the four `--from-csv` artifact re-scores + every `kPins` row + `bench_scale --self-check` | ~1 h |
 | **P-BENCH** | `hven_sqp_bench` (`bench_scale`), `hven_sqp_corpus`, `hven_sqp_ssn_safeguard_probe`, single-threaded, provenance-stamped, against the phase-C base measurement taken in **B1**. (These are the substitute vehicles for plan §6 clause 3's named psiopt-envelope sweep, which does not exist in this repository — see §12 Q6a) | ~1 h/arm |
 | **P-BUILD** | Clean-build **parallel wall-clock** (`-j$(nproc)`) and **peak RSS** (`/usr/bin/time -v` on the build), `CCACHE_DISABLE=1`, three runs, median reported. Build-side benefit is judged on these two, never serial CPU-time (CLAUDE.md §5) | ~10 min |
@@ -192,7 +278,7 @@ twice:
   artifact the lanes produce (request note §10).
 - **`docs/testing.md`'s missing entry for the migrated SQP suite** (gate-A carry)
   — write the entry that exists today, and mark the TU-structure half as owed to
-  T0/T9 rather than pre-writing a structure that is not yet ruled.
+  U0/T9 rather than pre-writing a structure that is not yet ruled.
 - **The consumer-sweep protocol** (phase-C ratification, Notes for the record §4,
   2026-08-15): document that declared amendments of pinned artifacts include a
   same-commit consumer sweep — the line from the reviewer's post-gate-B reply,
@@ -404,8 +490,9 @@ both — flagged in §10 O6 as a map completion rather than a silent choice.
 The `.cpp` move edits `src/CMakeLists.txt`'s source list (path only; the source
 count is unchanged, so the PCH tripwire does not fire). The long FP-freedom
 comment at `src/CMakeLists.txt:11-29` moves with it **verbatim** — it is the
-phase-B flags declaration that T0 exists to discharge, and rewriting it here
-would be a content change.
+phase-B flags declaration, **U0 is what discharges it** (U0 deletes the
+flag-regime boundary declaration outright; §6 U0), and rewriting it here would
+be a content change.
 
 **Stale-comment fold:** `SchurComplement::solve`'s singular-throw message still
 names `LAPACKE_dsytrf` (review M-4), and `kkt_calls.h` carries B3-era historical
@@ -601,8 +688,14 @@ that reads as a compile-fix:
 4. **Floating-point identity across the move.** Moving `kFunnelDelta * h * h`
    from one header to another changes nothing *if* the flags are the same. The
    flags **are** the same for this task (headers, compiled by `hven_sqp_tests`
-   under sandbox flags) — which is precisely why S3 is a restructure and T4–T8
-   are a separate, riskier step.
+   under sandbox flags) — which is precisely why S3 is a restructure and the
+   T-splits are a separate step.
+
+**Ordering (re-plan condition 4, §0):** **S3 lands BEFORE U0.** Its
+content-identity proof wants the old-flag world and today's stable pins; running
+it after the unification would confound a carve-out proof with a flag change.
+The same logic puts the H-series and the Mac session's pre-re-key capture
+*after* U0.
 
 **Proof:** P-SUITE + P-SYM + **P-CENSUS** + P-WSB. **Alone.**
 
@@ -619,67 +712,149 @@ comment-only.
 
 ---
 
-## 6. T0–T9 — the TU split
+## 6. U0 and T1–T9 — flag unification and the TU split
 
-### T0 — the flag-regime ruling (**FABLE**, and it gates T4–T8)
+### U0 — the flag-unification commit and its mass re-derivation event (**FABLE**)
 
-**This is the one blocking conflict phase C carries into ratification**, and the
-plan of record does not know about it. Full statement, with all three texts
-verified, in `phase-c-plan-open-questions.md` Q1; the task review confirmed it
-"REAL AND BLOCKING" at all three cited locations and endorsed the resolution
-ordering below. The short version:
+Folded from the flag-unification re-plan (2026-08-15). **This is now the phase's
+measurement-critical task** — the Fable-tier assignment T0 held moves here, to
+the re-derivation event.
 
-- Plan §6 clause 2 mandates TU-izing FP-carrying orchestration.
-- `src/CMakeLists.txt:23-29` (phase-B-landed, verdict-§1.3-accepted) forbids
-  exactly that "before phase C's per-boundary bit-identity proofs settle the
-  library-flags-vs-engine-TUs question."
-- `tests/sqp/CMakeLists.txt:10-25` — and `bench/` likewise — compile under plain
-  per-config defaults because every pinned value was derived under them.
+**Why it is one task and not two.** Per §0.2, the harness flag change *is* the
+pin-moving event; the TU splits are not. Unifying first, in a commit that moves
+no code, makes the old-vs-new delta purely flag-attributable and hands the
+T-series back per-boundary bit-identity as its proof currency.
 
-**Deliverable:** a short design note in `docs/` (mirroring the retarget-design
-precedent) that prices three options and proposes one, plus the CMake mechanism
-for whichever is chosen:
+#### (a) The commit: flags only, zero code motion
 
-| Option | Mechanism | Cost |
-|---|---|---|
-| **(a) Sandbox-matched flags for the SQP library TUs** | per-source `COMPILE_OPTIONS`, or an object library with its own regime, linked into `hven` | The library is no longer uniform-flagged. Needs a rule stating which regime a file is in and why, and an install/export story. Preserves bit-identity by construction |
-| **(b) TU-ize only FP-arithmetic-free code** | no CMake change; `kkt_calls.cpp`'s FP-freedom argument becomes the general admission test | Safe, cheap, delivers T1–T3 only. **Plan §6 clause 2 goes unexecuted** and must be explicitly deferred to M4/M5 with the reviewer's sign-off |
-| **(c) Unify: the SQP suite moves to `COMPILE_FLAGS`, every pin re-derived** | delete the tests/sqp flags exception | Re-derives the census baseline, the four battery artifacts, and every measurement pin — a baseline the gate-B verdict accepted days ago. Recommend **against** for M3 |
+Engine, `tests/sqp`, and `bench/` all move onto `COMPILE_FLAGS`. In the same
+commit, and nothing else:
 
-**Ruled (phase-C ratification, 2026-08-15; Verdict 2; full text:
-`phase-c-plan-open-questions.md` Q1): option (a), fallback (b) as a ruled
-deferral if Grant rejects (a) under rider 1, reject (c) for M3.** The
-regime-assignment rule T0's design note must codify: a TU carrying FP
-arithmetic on any asserted-value path compiles under the
-**census-derivation regime** (sandbox-matched; object-library or per-source
-mechanism is the implementer's choice); an FP-arithmetic-free TU compiles
-under **library flags** with its FP-freedom argument recorded at the CMake
-site — the `kkt_calls.cpp` precedent generalized into the admission test.
-T1/T2 are FP-free → library flags; T3's NaN-branch disassembly verification is
-REQUIRED in its own commit under the library regime; T4–T8 are FP-carrying →
-census-derivation regime.
+- Delete the flag-regime boundary declaration at `src/CMakeLists.txt:11-29` —
+  the phase-B comment forbidding FP-carrying SQP code in `src/sqp/` "before
+  phase C's per-boundary bit-identity proofs settle the
+  library-flags-vs-engine-TUs question." The question is settled; the
+  declaration goes.
+- Delete the `tests/sqp/CMakeLists.txt:10-25` flags exception comment — the one
+  that defers the decision to "no later than the phase-C TU split." Its deadline
+  is answered here, "yes."
+- `kkt_calls.cpp`'s bespoke FP-freedom argument becomes historical. Harmless
+  either way: it may stay as a comment or go, implementer's choice, stated in
+  the commit message.
 
-**Proof:** the note itself + a **pilot**: take one FP-carrying function
-(proposal: `FunnelStrategy::accept`'s body), TU-ize it under the chosen regime,
-and show P-SYM per-symbol identity against the header build plus P-CENSUS
-unchanged. If the pilot cannot show identity, (a) is falsified and the fallback
-fires.
+**The design note T0 was to have written collapses into this task** (§6 T0
+below): one page — the unified flag set, the re-derivation protocol, the
+delta-report bar.
 
-**T0's design note must also state (phase-C ratification A1, 2026-08-15):** the
-pilot's per-symbol P-SYM bar is achievable for `FunnelStrategy::accept`
-*specifically because* it is virtual-dispatched — its callers are already
-indirect and its body is already an out-of-line symbol through the vtable. That
-is the pilot's bar, correct for the pilot; it is **not** the general T-task bar
-(P-SYM scoped to outside the declared blast radius, per §1's T-task scoping
-rule). Say so explicitly in T0's note, or the first non-virtual TU-ization (T3)
-reads as a pilot failure rather than as the expected, scoped result.
+#### (b) The same-event mass re-derivation and its evidence package
 
-**Alone.**
+The re-derivation is U0's **same-event companion**, not a follow-up task.
+
+1. **Two independent reproductions of every re-derived artifact, before it
+   becomes the bar** — the licensing precedent applied at mass scale. The new
+   census baseline comes from **two full-57 runs** under the ratified
+   parallel-tiered protocol; battery artifacts and suite pins are likewise
+   two-run byte-agreed. Gate C is then a **third** witness, not the second.
+2. **The old-vs-new delta CHARACTERIZED, not merely declared** — a committed
+   delta report carrying:
+   - per-cell counter deltas;
+   - **status flips enumerated, with statuses-must-not-regress as a HARD BAR**:
+     a solved cell that stops solving is a finding that **halts acceptance**,
+     not flag noise. DNF→Optimal boundary flips get physics-cell-style
+     adjudication;
+   - an old-vs-new **KKT-residual distribution comparison** — systematic
+     degradation beyond flag-plausible bounds is a finding;
+   - battery counter deltas;
+   - **U0's P-BENCH old-vs-new**: Grant's "without sacrificing performance"
+     measured at the event itself. Uniform flags should be neutral-or-better,
+     and what they buy is worth recording.
+3. **A NEW baseline file, not an in-place rewrite.** The gate-A and gate-B
+   records cite the current `walk_baseline.csv` *by content*; a 57-row in-place
+   rewrite would muddy those citations. So: a **new dated baseline directory**,
+   the CMake define **repointed** to it, and the **old file frozen as historical
+   evidence** — which also confines Q6b's origin-string question to the old
+   file, since the new header is hven-native.
+4. **The consumer sweep** (the protocol line from the C0.4 round, §2) run for
+   every amended or repointed artifact, **in the same commit**.
+5. **The frozen-artifact live-comparison tests dispositioned.** The
+   frozen-resweep cross-comparisons (`TheReSweptWalkArmIsCounterIdentical…` and
+   the D0-repair twin) assert continuity between origin-era artifacts and the
+   live engine — a claim the flag unification **ends**. They either **retire
+   with declaration** (their continuity purpose was discharged on the gate-B
+   record) or **convert to frozen-vs-frozen**; the single-cell
+   adjudicated-exception mechanism does not stretch to 57 cells. The four
+   `--from-csv` re-scores of frozen artifacts **survive** — the reader re-scores
+   frozen bytes and its arithmetic is flag-insensitive — but that is
+   **verified at the event, not assumed**.
+6. **Acceptance gate.** The delta report is **reviewed by the execution reviewer
+   and summarized to Grant as owner BEFORE the new pins become the bar.** A mass
+   re-derivation must not self-accept.
+
+#### (c) Suite float pins: mechanical for most, four classes need design attention
+
+Mechanical run-and-pin (two reproductions) for the bulk, EXCEPT:
+
+1. **Cross-config pins** — tables and tests asserting the same float in Release
+   AND Debug. Verify which of the unified flags are config-invariant; where
+   Release-only flags move values, **pins split per config** (the context-pin
+   machinery already supports build-config pinning — use it, **never widen a
+   tolerance**).
+2. **Knife-edge counter and zero-pins** — `suspect_escalations == 0` fixtures,
+   escape counts, refusal counts, the battery's exact minors. Re-derived values
+   get a **per-pin plausibility eyeball in the delta report**: a zero-pin going
+   nonzero, or an escape appearing where none existed, is a **reviewed finding,
+   not an auto-pin**. **Status and verdict pins must not move at all**; any that
+   do **halt the event**.
+3. **Documented-verdict constants** (the gate evaluator) — recomputed from the
+   new baseline. If any **G-gate VERDICT** (not figure) flips under the new
+   flags, **surface it loudly**: that is Phase-8-relevant evidence, not
+   bookkeeping.
+4. **Accelerate-side values** — M3-4 arm pins, divergence-register entries,
+   report-only rows. Re-observed on Mac CI under the unified flag set's Apple
+   form, two-run bar for counters, register updated; folded into the
+   already-scheduled Mac session (§7, O12) where possible.
+
+#### Binding conditions
+
+1. **U0 moves zero code** — flags and the two deleted boundary declarations
+   only. **Any code motion found in U0's diff makes the delta unattributable and
+   fails the commit.**
+2. The mass re-derivation is U0's same-event companion; **the suite is never
+   left red across a task boundary** — U0 + re-derivation land as **one proven
+   unit**.
+3. The (b) package **in full**, including the statuses-must-not-regress halt
+   condition and the acceptance gate (reviewer review + owner summary before the
+   new pins are the bar).
+4. **S3 lands before U0** (content-identity proof against stable pins); the
+   **H-series after** (no-op proof against the post-U0 world); the **Mac
+   session's pre-re-key capture is post-U0** by the same logic.
+5. **Everything not named here stands as ratified.**
+
+**Proof:** the U0 design note + the (b) evidence package in full — two-run
+P-CENSUS (new baseline), two-run P-WSB, P-SUITE in Release AND Debug, P-BENCH
+old-vs-new, the committed delta report, the consumer sweep — plus the
+acceptance gate. **Alone.**
+
+### T0 — DISSOLVED (flag-unification re-plan, 2026-08-15)
+
+**No admission test, no regime machinery, no pilot.** Grant's owner ruling
+removed the question T0 existed to answer; the re-plan dissolves the task. Its
+**deliverable collapses into U0's design note** — one page: the flag set, the
+re-derivation protocol, the delta-report bar — and its **Fable-tier assignment
+moves to U0's re-derivation event**, which is now the phase's
+measurement-critical task.
+
+Two consequences that were T0's and are now nobody's: the regime-assignment rule
+(void — there is one regime) and the pilot's per-symbol P-SYM bar for
+`FunnelStrategy::accept` (moot — there is no pilot). §1's T-task P-SYM scoping
+rule (phase-C ratification A1) is **unaffected** and remains the general T-task
+bar.
 
 ### T1–T9 — the candidate set
 
-**Fifteen candidates enumerated from the actual headers; eight recommended
-(three unconditional, five gated on T0); seven rejected** — all 20 headers
+**Fifteen candidates enumerated from the actual headers; eight recommended (all
+eight now un-gated — the T0 gate is dissolved and T4–T8 are ordinary splits
+under uniform flags); seven rejected** — all 20 headers
 dispositioned. The whole SQP tree is effectively non-template (three `template`
 declarations across 24 957 lines, in `warm_start.h`, `ssn_engine.h`,
 `mesh_transfer.h`), so CLAUDE.md §5's "stays templated" clause does almost no
@@ -687,19 +862,28 @@ work here; the deciding question is **call frequency and inlining sensitivity**,
 and LTO is **opt-in and off by default** (`cmake/hven_compile_options.cmake:37`),
 so a cross-TU call really does lose inlining.
 
-#### Recommended, unconditional (FP-arithmetic-free — admissible under T0 option (a) *or* (b))
+#### Recommended (FP-arithmetic-free — flag-indifferent, land whenever convenient)
 
 | # | Candidate | Sites | Frequency | Why it is safe |
 |---|---|---|---|---|
 | **T1** | Printing: `to_string(SqpStatus)`, `to_string(StepVerdict)`, `to_string(StartLevel)`, `to_string(PredictorOutcome)`, `format_iteration_table(SqpSolution)` | `sqp_types.h:408`, `sqp_driver.h:6828`, `warm_start.h:298`, `predictor.h:489`, `sqp_driver.h:6871` (pre-S2/S3 coordinates) | O(1) per solve / per report row | Switch-to-string and `fmt` formatting. No FP arithmetic — `fmt` *reads* doubles, it does not compute with them. CLAUDE.md §5 names printing explicitly. New TU: `src/drivers/sqp_print.cpp` (IPM precedent: `interior_point_solver_print.cpp`) |
 | **T2** | `Ledger::level_histogram`, `Ledger::summary_table`, `Ledger::sqp_summary_table` | `core/ledger.h:180-278` | Once per report | Integer counters + string formatting only. CLAUDE.md §5 names ledger code explicitly. Keep `record()`/accessors inline (one `push_back` per solve; moving them buys nothing). New TU: `src/core/ledger.cpp` |
-| **T3** | `SqpDriver`'s constructor option validation, `sqp_driver.h:3986-4030` | | Once per driver construction | Comparisons + `fmt`-formatted throws. **One caveat that must be verified, not assumed:** the `!(x > 0.0)` NaN-catching idiom depends on `-fno-finite-math-only`, which the library regime *does* set — verify by disassembly that the NaN branch survives, in the same commit. New TU: `src/drivers/sqp_options.cpp` |
+| **T3** | `SqpDriver`'s constructor option validation, `sqp_driver.h:3986-4030` | | Once per driver construction | Comparisons + `fmt`-formatted throws. **The NaN-branch pin stays exactly as planned, on an updated premise (flag-unification re-plan, 2026-08-15):** the `!(x > 0.0)` NaN-catching idiom depends on `-fno-finite-math-only`, and **the unified flag set includes it** — that is now the premise the disassembly verification pins, in the same commit. New TU: `src/drivers/sqp_options.cpp` |
 
-#### Recommended, **gated on T0** (FP-carrying orchestration — plan §6 clause 2's actual content)
+**T1 and T2 are flag-indifferent** (FP-free) and may land before or after U0.
+T3's pin is written against the unified set, so it lands **after U0**.
+
+#### Recommended, un-gated (FP-carrying orchestration — plan §6 clause 2's actual content)
+
+**Un-gated by the flag-unification re-plan (2026-08-15).** T0's gate is
+dissolved. T4–T8 run as **ordinary splits under uniform flags** with the
+ratified proof set, and with **per-boundary bit-identity RESTORED** — same flags
+on both sides of every boundary, per §0.2 — and P-SYM's A1 blast-radius scoping
+intact.
 
 | # | Candidate | Sites | Frequency | Note |
 |---|---|---|---|---|
-| **T4** | `FunnelStrategy` (the globalization state machine) | `detail/globalization/sqp/globalization.h:428-806` post-S3 | Once per major | Already virtual-dispatched through `GlobalizationStrategy`, so out-of-lining costs nothing the vtable was not already costing. The FP is `h_new <= beta*width_`, `pred_df >= delta*h_old*h_old` — reassociation/contraction exposure is real, which is why T0 gates it |
+| **T4** | `FunnelStrategy` (the globalization state machine) | `detail/globalization/sqp/globalization.h:428-806` post-S3 | Once per major | Already virtual-dispatched through `GlobalizationStrategy`, so out-of-lining costs nothing the vtable was not already costing. The FP is `h_new <= beta*width_`, `pred_df >= delta*h_old*h_old` — reassociation/contraction exposure was T0's reason to gate it; post-U0 both sides of the boundary carry the same flags, so bit-identity carries the proof |
 | **T5** | `SqpDriver::solve`'s major loop — `sqp_driver.h:4031-6828`, i.e. the class body **excluding** the constructor block T3 carves out | | Once per solve, loops per major | The biggest build-time win in the tree and the one plan §6 most wants. Highest bench risk: it currently inlines `eval_nlp`, `evaluate_kkt`, `build_subproblem` |
 | **T6** | Elastic/SOC/restoration builders: `build_soc_subproblem`, `ElasticQp` + its four functions, `RestorationModel` | post-S3 `soc.h`, `elastic.h`, `restoration.h` | Per major, on the escape paths only | `RestorationModel` is already virtual (derives `NlpModel`). The elastic builders allocate — call overhead is already dominated |
 | **T7** | Warm-start ingest + `StartLevel` resolution | `detail/warmstart/warm_start.h` | Once per solve | Ingest is orchestration by CLAUDE.md §5's own list |
@@ -754,6 +938,14 @@ T4–T8 **each alone** — "per-boundary proof" means per boundary.
 ---
 
 ## 7. H1–H3 — the structure-hash re-key (plan §5)
+
+**Ordering (re-plan condition 4, §0):** the **whole H-series runs after U0**, and
+H3's per-backend no-op is proven **against the post-U0 state** — both the
+pre-re-key and post-re-key captures are taken in the unified-flag world, or the
+comparison would confound a re-key with a flag change. The Mac session's
+pre-re-key capture (O12) is post-U0 for the same reason, and its Accelerate
+values are re-observed under the unified set's Apple form at U0 (§6 U0 (c) class
+4) before it serves as H3's baseline.
 
 ### H1 — the survey (Opus)
 
@@ -933,9 +1125,13 @@ HEAD) plus the verdict's carries. The gate package is a review-request note in
    SNOPT-enabled figure is the gate; the no-SNOPT figure recorded beside it;
    both shapes matched in **Release AND Debug**, ± the tests this plan adds
    against the **1150** entry baseline (C0.1 +1, H2's new tests, T3's NaN-branch
-   pin, any T-task pin), each enumerated with its count arithmetic.
+   pin, any T-task pin, and **U0's retirements/conversions of the
+   frozen-artifact live-comparison tests**, §6 U0 (b) item 5), each enumerated
+   with its count arithmetic.
 5. **57-cell census byte-identical; warm-start battery; `bench_scale
-   --self-check`; every `kPins` row.**
+   --self-check`; every `kPins` row.** **Against the NEW baseline** U0's
+   re-derivation event produced (§0.4), with the old baseline file cited as
+   frozen history.
 6. **Bench parity** — specifically the **B1 O(nnz) hash-cost measurement
    discharged** (the verdict's named gate-C obligation, on SSN-heavy families)
    with B2's remediation if B1's decision rule fired. The gate package states
@@ -959,15 +1155,21 @@ HEAD) plus the verdict's carries. The gate package is a review-request note in
     named in advance: hash values change under the H-series re-key (licensed by
     plan §9 row 3, conditional on H1); include paths and header names (mechanical);
     backend-error/throw message text where R2's sweep touched it (already licensed
-    at `docs/retarget-design-sqp.md` §11 row 4's precedent); and, **pre-registered
-    (phase-C ratification A3, 2026-08-15) if T0 lands option (a)**: "SQP engine
-    TUs compile under the census-derivation regime; library-flag unification
-    deferred to a declared re-derivation" — the flag-regime outcome is a delta in
-    project shape and belongs on the ledger where the next phase reads it, not
-    only in T0's note. **Nothing else beyond these four rows.**
-    Explicitly not licensed: any counter, status, float, or census delta; any SSN
-    rebuild-count change (the composite key exists to prevent exactly that); any
-    build-flag-induced FP change (T0 exists to prevent exactly that).
+    at `docs/retarget-design-sqp.md` §11 row 4's precedent); and, **re-registered
+    under the flag-unification re-plan (2026-08-15), replacing the A3 row that
+    was conditional on T0 landing option (a)**: "the library, its tests, and its
+    bench are unified onto one flag regime at U0; the flag-sensitive pins,
+    battery artifacts, and the 57-cell census baseline are re-derived in that
+    same declared event, against a new dated baseline, with the old baseline
+    frozen as history" — the flag outcome is a delta in project shape and belongs
+    on the ledger where the next phase reads it, not only in U0's note.
+    **Nothing else beyond these four rows.**
+    Explicitly not licensed: any SSN rebuild-count change (the composite key
+    exists to prevent exactly that); any counter, status, float, or census delta
+    outside U0's declared re-derivation event — **U0's deltas are licensed by
+    that event and its (b) evidence package, and by nothing else**, and its
+    statuses-must-not-regress bar means status flips of the halting kind are
+    never licensed at all.
 12. **Both configs green** (Release + Debug) per the standing phase-merge rule.
 
 **Reviews at the gate:**
@@ -977,10 +1179,11 @@ HEAD) plus the verdict's carries. The gate package is a review-request note in
   open items are the first thing it should rule on, and it should rule on them
   **before** execution starts, not at the gate.
 - **Grant's items**, which no verdict substitutes for: the `IPARM-SURFACE` review
-  of C0.1; the governance question in T0 if option (a) is taken (a non-uniform
-  library flag regime is a project-shape decision); the frozen-baseline
-  origin-string exception (open-questions Q6b); and the standing gate-B
-  conditions still open at his end.
+  of C0.1; **the owner summary of U0's delta report before the new pins become
+  the bar** (§6 U0 (b) item 6 — this is the item that replaced T0's governance
+  question, which Grant's ruling on Q1 rider 1 already answered); and the
+  standing gate-B conditions still open at his end. **Q6b is closed** — Grant
+  ruled codify, and CLAUDE.md §1 carries the codification.
 
 ---
 
@@ -995,7 +1198,7 @@ relitigate them. Cited so a future reader can find the ruling, not the argument.
 | 1 | Don't-write states are `std::optional<int>` with **defaults unchanged** — the ruling required the state to exist, not to be the default | retarget-design-sqp §12, ENDORSED |
 | 2 | Accelerate don't-write semantics cite Apple's documented default; platform-neutral factory stands; no explicit-override fallback | retarget-design-sqp §12, ADOPTED |
 | 3 | `DenseSymmetricFactor` grows an **evidence struct** (not raw accessors) and an **additive `try_factorize`** (not a mutated `factorize`) | retarget-design-sqp §12 |
-| 4 | The `KktFactor` + three free functions shape, its name, and the `needs_analysis` probe preserving `symbolic_analyses` call-site counting — approved. **Only its directory is re-homed by C** | retarget-design-sqp §12 |
+| 4 | The `KktFactor` + free-function shape, its name, and the `needs_analysis` probe preserving `symbolic_analyses` call-site counting — approved. **Only its directory is re-homed by C.** **[housekeeping per B2 concern 3]** The B3-era "three free functions" description is amended to the surface B2 shipped: `KktFactor` + `AnalysisDecision` + `analysis_decision()`, `needs_analysis()`, `solve_vec()`, and **two** `factorize_checked()` overloads — the second taking a caller-held `AnalysisDecision`. The addition is **purely additive**: the original three-function surface is unchanged and still supported, and every property this row protects (the shape, the name, `needs_analysis`'s call-site counting contract) is unchanged — `needs_analysis(k, K)` is now `analysis_decision(k, K).needed` and cannot disagree with it. The ruling is not reopened; only its description of the surface is brought current | retarget-design-sqp §12; surface amended at B2 (`ff461ad`) |
 | 5 | **Zero IPM-side change.** The IPM keeps its explicit written values, its compatibility cache, and its postponed honesty-state adoption | retarget-design-sqp §12 |
 | 6 | `o.num_threads = 0` + the process-env pin is the whole mechanism; **no `KktFactor::set_num_threads` pass-through** | retarget-design-sqp's **M2.5 addendum (c)**, RULED — SILENCE |
 | 7 | §4.2's rebuild-gate rewrite (the natively-observed `n_zero != 0` qualifier) | retarget-design-sqp §12.1 |
@@ -1017,24 +1220,26 @@ Genuine choices this plan made. Every item below is now **RULED** by the
 execution reviewer's ratification (2026-08-15); three of them (O4, O7, O8)
 change task content, and **O3's tripwire and O7's `static_assert` pin are part
 of the ratified rule, not advice.** Q2–Q5 and Q6a from the draft's
-open-questions file were already **resolved** (§12) before ratification; Q1
-(which O4 carries) is now ruled per Verdict 2 of the ratification (full text:
-`phase-c-plan-open-questions.md` Q1, and plan §6 T0); Q6b remains Grant's, with
-the reviewer's recommendation to codify.
+open-questions file were already **resolved** (§12) before ratification.
+
+**Amended 2026-08-15 by the flag-unification re-plan (§0):** **O4's and O11's
+rulings are SUPERSEDED by Grant's owner ruling** — the rows below carry both the
+ratification's text and what replaced it. **Q6b is RESOLVED-CODIFIED** (Grant
+ruled codify; CLAUDE.md §1 carries it). Every other row stands.
 
 | # | Question | This plan's recommendation | Ruling (phase-C ratification, 2026-08-15) |
 |---|---|---|---|
 | **O1** | **Public vs `detail/` placement** per mechanism dir. Plan §2's map and CLAUDE.md §2 describe public dirs; the IPM precedent puts mechanism internals under `detail/` and only the driver/model contract at the top level | Consumer-facing public (`model/nlp_model.h`, `qp/qp_types.h`, `drivers/sqp_types.h`, `drivers/sqp_driver.h`, `core/ledger.h`, and S2's `core/solver_counters.h` / `core/solver_status.h` / `core/start_level.h`); mechanism internals under `detail/{kkt,qp,warmstart,globalization/sqp}/` | **RULED — as proposed.** Public: `model/nlp_model.h`, `qp/qp_types.h`, `drivers/sqp_types.h`, `drivers/sqp_driver.h`, `core/ledger.h` + S2's three `core/` homes; internals under `detail/{kkt,qp,warmstart,globalization/sqp}/`. Matches the IPM precedent exactly |
 | **O2** | **Batch boundaries** — six relocation batches (R1 leaves/model/ledger, R2 kkt, R3 qp, R4 warmstart, R5 globalization, R6 driver), with R2/R5 carrying a **second** commit for their stale-comment fold | As proposed; R4+R5 may merge into five batches if the reviewer prefers | **RULED — as proposed** — six batches, R2/R5 carrying their stale-comment fold as a SECOND commit (content never inside a relocation commit; the two-commit shape is ratified). Keep R4/R5 separate: the collision-profile argument is right and the saving from merging is one ctest run |
 | **O3** | **Census frequency per batch.** P-CENSUS is ~6 h. Running it on all six relocation batches costs ~36 h for commits that, by construction, cannot change codegen | **P-SUITE + P-SYM per batch; P-CENSUS once at the relocation-group boundary (R6), then on every content change (B2, S1, S2, S3, all T-tasks, H3) and at Gate C.** The argument: over the object set P-SYM compares — which now includes the census binary `hven_sqp_corpus` and the bench binaries, closing the draft's coverage hole — per-symbol disassembly identity is **strictly stronger than a census for the Linux/MKL build**: a census can only move if codegen moves, and P-SYM proves it did not, in one build instead of six hours. Two bounded limits, stated rather than implied: the Accelerate `#ifdef` arms are not compiled on Linux so P-SYM says nothing about them (acceptable — the census baseline is MKL and the Accelerate proof lands at H3/Gate C), and P-SYM is Release-only (Debug correctness is P-SUITE's). Residual risk is bounded by design: R6's group-boundary P-CENSUS still catches anything that slipped, at the cost of attribution, not detection. If P-SYM shows any non-`__FILE__` difference, the batch is not relocation-only and P-CENSUS becomes mandatory for it | **RULED.** P-SUITE + P-SYM per relocation batch; P-CENSUS at the group boundary (R6) and on every content change. The strictly-stronger argument holds for the Linux/MKL build because the object set includes the census and bench binaries' own objects — that inclusion is what makes it sound, and the stated **tripwire (any non-`__FILE__` P-SYM difference ⇒ the batch is not relocation-only and P-CENSUS becomes mandatory for it) is part of the ratified rule, not advice.** C0.3's noise-floor calibration before the R-batches depend on P-SYM is required, as planned |
-| **O4** | **The flag-regime ruling (T0)** — option (a) per-source sandbox-matched flags for SQP library TUs, (b) TU-ize only FP-free code, or (c) unify and re-derive every pin | **(a)**, with (b) as the fallback; (c) rejected for M3. Ordering endorsed by the task review. **This decides whether plan §6 clause 2 executes at all**, and it collapses the candidate set 8 → 3 under (b) — so it must be ruled **before the R-batches**. See open-questions Q1 | **RULED via Verdict 2, not the §1.1 table — option (a)**, with a stated regime-assignment rule and Grant's governance rider; (b) is the fallback (fires as a ruled deferral if Grant rejects (a)); (c) rejected for M3. Full text: open-questions.md Q1 and plan §6 T0 |
+| **O4** | **The flag-regime ruling (T0)** — option (a) per-source sandbox-matched flags for SQP library TUs, (b) TU-ize only FP-free code, or (c) unify and re-derive every pin | **(a)**, with (b) as the fallback; (c) rejected for M3. Ordering endorsed by the task review. **This decides whether plan §6 clause 2 executes at all**, and it collapses the candidate set 8 → 3 under (b) — so it must be ruled **before the R-batches**. See open-questions Q1 | **SUPERSEDED (flag-unification re-plan, 2026-08-15).** The ratification ruled option (a) via Verdict 2, with a regime-assignment rule and Grant's governance rider. **Grant ruled on that rider: uniform flags — effectively option (c), executed as U0.** The regime-assignment rule is void, T0 is dissolved, and the re-derivation option (c) priced as prohibitive is taken with its full evidence package. See §0 and §6 U0; the ratification's text is kept here as the record of what was superseded |
 | **O5** | **The TU candidate set** — 15 analyzed, 8 recommended (T1–T3 unconditional, T4–T8 gated on O4), 7 rejected | As tabled in §6. The reviewer should specifically confirm T5 (the major loop) is wanted given it is the highest bench risk, and that the rejected list's per-element rationale is accepted | **RULED — the 15/8/7 disposition is ratified, and T5 is confirmed wanted** — with the revert rule standing in full force: T5 is the boundary most likely to be REVERTED under CLAUDE.md §5's outranking clause, and a revert there is a finding, not a failure. The inlining loss at the TU boundary applies to calls INTO the TU (once per solve); `eval_nlp`/`evaluate_kkt`/`build_subproblem` remain inlinable *within* the TU since their headers come along — P-BENCH arbitrates, the prediction does not. The rejected-seven's per-element rationale is accepted |
 | **O6** | **Map gaps:** `kkt_assembly.h` and `kkt_calls.h` have no row in plan §2's table (both post-date it) | Both to `detail/kkt/`; `src/sqp/kkt_calls.cpp` to `src/kkt/` | **RULED — as proposed** — `kkt_assembly.h`, `kkt_calls.h` → `detail/kkt/`; `src/sqp/kkt_calls.cpp` → `src/kkt/`. Recorded as map completion |
 | **O7** | **`types.h` → `core/`** (plan §2's literal row) vs its actual contents, and the same row's governance of S2's counters/diagnostics consolidation | Ratify the amended letter: **aliases** reconcile into `core/types.h` at S1 (+`static_assert` pin); **QP options/enums** to public `qp/qp_types.h` at R1; **counters and status/level enums** to `core/` at S2, which is what closes the `core/ledger.h` layering inversion. Resolution ratified at §12 Q2; O7 is the reviewer's ratification of the map row's letter | **RULED — the amended map letter is ratified**: aliases → `core/types.h` at S1 (with the `static_assert` pin — **REQUIRED, not optional**); QP surface → public `qp/qp_types.h` at R1; counters/status/`StartLevel` → `core/` at S2. The original row was the reviewer's and its literal reading was impossible; this amendment preserves its intent |
 | **O8** | **The globalization collision mechanic** — plan §2 offers `funnel_*.h` prefixes or an `sqp_` subdirectory, "an execution-time choice the implementer proposes and the execution review approves" | **`include/hven/detail/globalization/sqp/`.** Evidence: zero *type-name* collisions between the 23 IPM headers and the SQP set today, but S3's carve-out wants `soc.h`/`restoration.h`/`funnel.h` and `detail/globalization/` already has `soc.h`, `restoration.h`, `l1_restoration.h`, `funnel_acceptance.h` | **RULED — the `sqp/` subdirectory** under `detail/globalization/`, as proposed. The evidence (zero type-name collisions today; four file-name collisions waiting at S3) decides it; prefixes rot |
 | **O9** | **Does C0.1 need the `IPARM-SURFACE` label?** It observes the iparm array rather than changing it | **Label it anyway.** Zero cost; the gate-B disposition on `ab8aeda` records what the opposite mistake costs | **RULED — label C0.1 `IPARM-SURFACE`.** Ratified with the plan's own reasoning |
 | **O10** | **The seam-executable direct pin** for `kkt_calls.cpp`'s `kBackendError` → `std::runtime_error` mapping (the gate-B request note's §12 addendum item 1 calls the seam executable "the phase-C home" and standing it up "a phase-C candidate") | Defer past M3 unless the reviewer wants it. It is a *candidate*, the consumers are pinned, and phase C's task list is already the longest of the three phases | **RULED — defer the seam-executable direct pin past M3** — with the reviewer's assent recorded, which is what the gate-B disposition asked for. The consumers are pinned; a candidate stays a candidate |
-| **O11** | **Does the SQP suite move onto unified `COMPILE_FLAGS`?** `tests/sqp/CMakeLists.txt:21-24` defers this decision to "no later than the phase-C TU split" | **No, not in M3.** It is option (c) of O4 and would re-derive a gate-B-accepted baseline. Record the deferral explicitly so the deadline the CMake comment sets is answered rather than passed | **RULED — the suite does NOT move onto unified `COMPILE_FLAGS` in M3.** This is the reviewer's gate-A ruling restated ("harness TUs stay sandbox-matched indefinitely"), and recording the deferral as the answer to the CMake comment's own deadline is the right closure |
+| **O11** | **Does the SQP suite move onto unified `COMPILE_FLAGS`?** `tests/sqp/CMakeLists.txt:21-24` defers this decision to "no later than the phase-C TU split" | **No, not in M3.** It is option (c) of O4 and would re-derive a gate-B-accepted baseline. Record the deferral explicitly so the deadline the CMake comment sets is answered rather than passed | **DEFERRAL VOID; ANSWERED "YES, AT U0" (flag-unification re-plan, 2026-08-15).** The ratification ruled the suite does NOT move in M3, restating the gate-A "harness TUs stay sandbox-matched indefinitely" ruling. **Grant's owner ruling voids both.** The `tests/sqp` suite and `bench/` move onto `COMPILE_FLAGS` at U0 — and per §0.2 that move *is* the pin-moving event, not a rider on it. **The CMake comment's deadline is answered, not deferred: the comment is deleted at U0** along with `src/CMakeLists.txt:11-29`'s flag-regime boundary declaration |
 | **O12** | **The Mac session, with its two tracked prerequisites.** H3's proof needs an Accelerate arm; Gate C item 3 needs the rig's Mac leg | One scheduled Grant-hardware session serving both, sequenced before Gate C is declared, and **booked only after** (i) the **tycho-side rig-pin ruling** closes — otherwise the rig's Mac legs run under the sanctioned unpinned escape or not at all — and structured as **two passes in one session**: the pre-re-key Accelerate capture (H3's parent commit) and the post-re-key comparison (H3 HEAD), because the per-backend no-op proof (§12 Q5) needs both | **RULED** — one Grant-hardware session, two passes (pre-re-key capture at H3's parent, post-re-key comparison at H3 HEAD), booked only after the tycho-side rig-pin ruling closes. Both prerequisites tracked, neither assumed |
 
 ---
@@ -1059,15 +1264,16 @@ the reviewer's recommendation to codify.
 | S2 | Split `sqp_types.h`; counters/status/`StartLevel` → `core/`; close the ledger layering inversion | Opus | Alone |
 | S3 | Carve funnel/TR/SOC/elastic/restoration out of `sqp_driver.h` | **Fable** | Alone |
 | S4 | Stale-comment sweep residue | Opus | Batchable |
-| T0 | The flag-regime ruling + pilot | **Fable** | Alone |
-| T1 | Printing TU (`src/drivers/sqp_print.cpp`) | Opus | With T2 |
-| T2 | Ledger TU (`src/core/ledger.cpp`) | Opus | With T1 |
-| T3 | Options/validation TU (`src/drivers/sqp_options.cpp`) | Opus | Alone |
-| T4 | `FunnelStrategy` TU | Opus | Alone (gated on T0) |
-| T5 | `SqpDriver::solve` major-loop TU | Opus *(borderline Fable — see below)* | Alone (gated on T0) |
-| T6 | Elastic/SOC/restoration TUs | Opus | Alone (gated on T0) |
-| T7 | Warm-start ingest TU | Opus | Alone (gated on T0) |
-| T8 | Continuation TU | Opus | Alone (gated on T0) |
+| ~~T0~~ | ~~The flag-regime ruling + pilot~~ — **DISSOLVED** (flag-unification re-plan, 2026-08-15); deliverable collapses into U0's design note | — | — |
+| **U0** | **Flag unification (flags only, zero code motion) + the mass re-derivation event** — one task, one declared event | **Fable** | Alone (one proven unit) |
+| T1 | Printing TU (`src/drivers/sqp_print.cpp`) | Opus | With T2; flag-indifferent |
+| T2 | Ledger TU (`src/core/ledger.cpp`) | Opus | With T1; flag-indifferent |
+| T3 | Options/validation TU (`src/drivers/sqp_options.cpp`) | Opus | Alone (post-U0: its NaN-branch pin is written against the unified set) |
+| T4 | `FunnelStrategy` TU | Opus | Alone (post-U0) |
+| T5 | `SqpDriver::solve` major-loop TU | Opus *(borderline Fable — see below)* | Alone (post-U0) |
+| T6 | Elastic/SOC/restoration TUs | Opus | Alone (post-U0) |
+| T7 | Warm-start ingest TU | Opus | Alone (post-U0) |
+| T8 | Continuation TU | Opus | Alone (post-U0) |
 | T9 | PCH membership + source-count tripwire | Opus | Folded into each T commit |
 | H1 | Hash survey (incl. the plan §5 premise correction) | Opus | Alone |
 | H2 | hven `core/` multi-matrix continuation entry point + tests + docs | Opus *(escalate to Fable — see §7)* | Alone |
@@ -1081,10 +1287,14 @@ the reviewer's recommendation to codify.
   linkage, circularity between the driver and restoration, FP identity across
   the move), and the failure mode is a behavior change that reads as a
   compile-fix.
-- **T0** — the flag-regime ruling. Three authoritative documents disagree, the
-  answer determines whether plan §6 clause 2 executes at all, it requires
-  reasoning about `-ffast-math` reassociation/contraction against a byte-identity
-  obligation, and one branch is a project-shape governance change.
+- **U0** — the flag unification and its mass re-derivation event, which
+  **inherits T0's Fable tier** (flag-unification re-plan, 2026-08-15). It is the
+  phase's measurement-critical task: one commit that must move zero code while
+  moving every flag-sensitive pin at once, then characterize a 57-cell
+  old-vs-new delta well enough that a status regression is caught rather than
+  absorbed as flag noise, across four classes of pin that are not mechanical.
+  The failure mode is a mass re-derivation that quietly launders a real
+  regression into the new bar.
 - **H3** — the composite key. Correctness half is a wrong-slot-write class that
   a mutation already survived once; behavior half must move zero counters; the
   digest changes value and feed mechanics simultaneously; the proof is over reuse
@@ -1111,7 +1321,9 @@ makes "mechanical" a proof rather than a claim.
 Recorded here so the resolutions live in the plan rather than in a side file.
 Full statements and evidence are in the review
 (`.superpowers/sdd/2026-08-14-hven-m3-plan-revB/phase-c-plan-review.md` §2 and
-§7). **Q1 and Q6b remain open** and stay in `phase-c-plan-open-questions.md`.
+§7). **Q1 and Q6b are now both closed** — Q1 by Grant's owner ruling as folded
+here (§0, §6 U0), Q6b as RESOLVED-CODIFIED (CLAUDE.md §1). Their final chapters
+are recorded in `2026-08-15-m3-phase-c-open-questions.md`.
 
 | Q | Conflict | Resolution (task review, 2026-08-15) | Where it lands |
 |---|---|---|---|
