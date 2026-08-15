@@ -1914,15 +1914,17 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
 // as ssn_bulk_flips staying at the single flip the trajectory legitimately has.
 //
 // BACKEND SCOPE (M3 gate B,
-// docs/notes/2026-08-14-accelerate-divergence-register.md entry M3-4). Every
-// sentence above with a DIRECTION in it -- which way the coin lands, which mode
-// gets it "wrong", the single flip -- is an MKL Pardiso reading. On Apple
-// Accelerate each of those lands the other way, which is exactly what a fixture
-// built on a tie should be expected to do across two different factorizations,
-// and is why the assertions below are split: the properties that hold whichever
-// way the coin lands are asserted on both backends, and the directions
-// themselves stay MKL-asserted with the Accelerate observations recorded and a
-// ruling owed on the flip count. Read the two arms below for what is held and
+// docs/notes/2026-08-14-accelerate-divergence-register.md entry M3-4, RULED by
+// the gate-B execution review (2026-08-15), Verdict 2). Every sentence above
+// with a DIRECTION in it -- which way the coin lands, which mode gets it
+// "wrong", the single flip -- is an MKL Pardiso reading. On Apple Accelerate
+// each of those lands the other way, which is exactly what a fixture built on
+// a tie should be expected to do across two different factorizations, and is
+// why the assertions below are split: the properties that hold whichever way
+// the coin lands are asserted on both backends (Verdict 2 item 1), and the
+// directions themselves are now pinned per backend -- MKL's arm unchanged,
+// Accelerate's arm carrying its own observed coin directions, end state, and
+// flip count (Verdict 2 item 2). Read the two arms below for what is held and
 // why.
 TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
     const QpProblem qp = weakly_active_qp();
@@ -1953,41 +1955,37 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
                "presented as fact";
 #ifdef USE_ACCELERATE_SPARSE
         // M3-4 (docs/notes/2026-08-14-accelerate-divergence-register.md),
-        // HELD UNOBSERVED PENDING A RULING -- deliberately NOT a pin.
-        //
-        // Observed on Apple Accelerate, stable across all ten m3 CI runs
+        // RULED per the gate-B execution review (2026-08-15), Verdict 2, item
+        // 2: PIN the Accelerate arm -- coin directions, end-state, and flip
+        // count -- as per-backend-arm assertions, lifting the UNOBSERVED
+        // holds. The ten-run stability across all suite-carrying CI runs
         // (most recently
-        // https://github.com/GrantHecht/hven/actions/runs/31824897327): every
-        // coin in this fixture lands the OTHER way. Here row 1 comes back
-        // ACTIVE and NOT uncertain, where MKL Pardiso returns it inactive and
-        // uncertain -- and ssn_bulk_flips reads 4 against MKL's 1.
+        // https://github.com/GrantHecht/hven/actions/runs/31824897327) meets
+        // the register's own committability bar for counters (the two-run
+        // byte bar is a float rule).
         //
-        // Note what that costs and what it does not. `ssn_uncertain_peak == 1`
-        // above holds on BOTH backends, so the third set does fire on
-        // Accelerate; the row simply leaves it before the solve ends. The
-        // specifics are held here rather than pinned because the flip count is
-        // the one quantity in this test that is a CLAIM ("no oscillation")
-        // rather than a coin call: 4 says the Accelerate trajectory oscillates
-        // three extra times before settling, and the exit-from-uncertain is
-        // plausibly the same event seen from the other side.
-        //
-        // THE OPEN DESIGN QUESTION -- is ssn_bulk_flips = 4 legitimate for the
-        // Accelerate trajectory, or is it evidence that the oscillation guard
-        // under-damps on that backend (and, with it, is a tie that leaves the
-        // uncertain set the export honesty this leg was written to defend)? --
-        // IS ROUTED TO THE EXECUTION REVIEWER AT M3 GATE B AND IS DELIBERATELY
-        // NOT ANSWERED HERE. Committing 4 as a per-backend expectation would
-        // answer it by pinning it, which is exactly what the register forbids
-        // while a ruling is owed. The observations are recorded for the ruling
-        // to read; the assertion left standing is only the direction that
-        // cannot be wrong under either answer.
-        ::testing::Test::RecordProperty(
-            "M3_4_default_run_observed",
-            "ineq_active[1]=" + std::to_string(static_cast<int>(bool(res.ineq_active[1]))) +
-                " ineq_uncertain[1]=" +
-                std::to_string(static_cast<int>(bool(res.ineq_uncertain[1]))) +
-                " ssn_bulk_flips=" + std::to_string(res.counters.ssn_bulk_flips));
-        EXPECT_GE(res.counters.ssn_bulk_flips, 1);
+        // On Apple Accelerate every coin in this fixture lands the OTHER way:
+        // row 1 comes back ACTIVE and NOT uncertain here, where MKL Pardiso
+        // returns it inactive and uncertain. `ssn_uncertain_peak == 1` above
+        // holds on BOTH backends, so the third set does fire on Accelerate;
+        // the row simply leaves it before the solve ends -- a defensible
+        // reading of the tie (Verdict 2: "at c* = 0 the row IS at its
+        // boundary; the twin readings are both correct readings"), not a
+        // dropped constraint, because the portable never-inactive-and-certain
+        // property above already excludes the dangerous export.
+        // `ssn_bulk_flips` reads 4 against MKL's 1: three extra flips
+        // confined to this deliberately degenerate tie fixture, stable across
+        // ten runs, is backend tie resolution rather than under-damping --
+        // the HS battery's near-identical minor counts (M3-1: 861/858 on
+        // Accelerate vs. 862/859 on MKL) are the systemic evidence that
+        // settles that question, not this fixture. No algorithmic change is
+        // warranted absent the ruling's named re-open trigger (Verdict 2 item
+        // 4): M5 crossover measurement attributing hint-quality loss to tie
+        // misclassification on Apple, first remedy to evaluate being
+        // margin-based uncertain membership.
+        EXPECT_TRUE(res.ineq_active[1]);
+        EXPECT_FALSE(res.ineq_uncertain[1]);
+        EXPECT_EQ(res.counters.ssn_bulk_flips, 4);
 #else
         EXPECT_FALSE(res.ineq_active[1]);
         EXPECT_TRUE(res.ineq_uncertain[1]);
@@ -2000,13 +1998,13 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
     // active row ACTIVE and the safeguarded engine reports it inactive AND
     // uncertain. Both are "correct" readings of a tie; only one of them says so.
     //
-    // ON ACCELERATE BOTH COINS LAND THE OTHER WAY (M3-4): bare reads the row
-    // inactive and the safeguarded engine reads it active. The CONTRAST -- the
-    // two modes disagreeing about a row that is exactly on the boundary --
-    // survives the swap and is what this cell actually demonstrates, so that is
-    // what is asserted on both backends; the individual readings stay
-    // MKL-asserted and Accelerate-held, with the same ruling owed on them as
-    // above.
+    // ON ACCELERATE BOTH COINS LAND THE OTHER WAY (M3-4, RULED per the gate-B
+    // execution review (2026-08-15), Verdict 2): bare reads the row inactive
+    // and the safeguarded engine reads it active. The CONTRAST -- the two
+    // modes disagreeing about a row that is exactly on the boundary --
+    // survives the swap and is what this cell actually demonstrates, so that
+    // is what is asserted on both backends; the individual readings are now
+    // pinned per backend, MKL's arm unchanged.
     {
         SsnStart start;
         start.x = Vec(2);
@@ -2027,13 +2025,15 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
                "differently; bare.ineq_active[1] = "
             << bool(bare.ineq_active[1]);
 #ifdef USE_ACCELERATE_SPARSE
-        ::testing::Test::RecordProperty(
-            "M3_4_coin_flip_cell_observed",
-            "bare active/uncertain=" + std::to_string(static_cast<int>(bool(bare.ineq_active[1]))) +
-                "/" + std::to_string(static_cast<int>(bool(bare.ineq_uncertain[1]))) +
-                " full active/uncertain=" +
-                std::to_string(static_cast<int>(bool(full.ineq_active[1]))) + "/" +
-                std::to_string(static_cast<int>(bool(full.ineq_uncertain[1]))));
+        // M3-4, PINNED per the gate-B execution review (2026-08-15), Verdict 2,
+        // item 2: this cell's coin directions, stable across all ten
+        // suite-carrying CI runs. Both readings flip relative to MKL; bare's
+        // uncertain flag does not move because bare mode has no third set to
+        // report uncertain in on either backend.
+        EXPECT_FALSE(bare.ineq_active[1]);
+        EXPECT_FALSE(bare.ineq_uncertain[1]);
+        EXPECT_TRUE(full.ineq_active[1]);
+        EXPECT_FALSE(full.ineq_uncertain[1]);
 #else
         EXPECT_TRUE(bare.ineq_active[1]); // the tie, decided by rounding
         EXPECT_FALSE(bare.ineq_uncertain[1]);

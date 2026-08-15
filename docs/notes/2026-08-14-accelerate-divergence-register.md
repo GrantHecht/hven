@@ -119,7 +119,7 @@ Disposition: the five float compares are asserted on MKL and **reported, not
 asserted** on Accelerate. No Accelerate byte value is committed, and none may
 be until the lane's threading is pinnable.
 
-### M3-4 — the weakly-active tie lands the other way, and flips four times — **OPEN**
+### M3-4 — the weakly-active tie lands the other way, and flips four times — **RULED**
 
 `tests/sqp/test_ssn_engine.cpp`, `SsnEngineLocal.WeaklyActiveRowFinishesUncertain`.
 
@@ -131,9 +131,9 @@ not uncertain. `ssn_uncertain_peak` still reads 1.
 
 Stable across all ten suite-carrying runs. The coin outcomes themselves are
 not a defect — the test's own banner says both readings are correct readings
-of a tie. What the test actually asserts on this backend is strictly weaker
-than "a tie must end UNCERTAIN": `ssn_uncertain_peak == 1` (the third,
-weakly-active set fired at some point during the solve, both backends);
+of a tie. What the test asserts on this backend is strictly weaker than "a
+tie must end UNCERTAIN": `ssn_uncertain_peak == 1` (the third, weakly-active
+set fired at some point during the solve, both backends);
 `res.ineq_active[1] || res.ineq_uncertain[1]` (row 1 is never
 inactive-and-certain, both backends); and, in the coin-flip cell,
 `bool(bare.ineq_active[1]) != bool(full.ineq_active[1])` (bare and
@@ -143,16 +143,44 @@ default run's end state reports `ineq_uncertain[1] == false`, so the tied
 row *leaves* the uncertain set before the solve finishes, the opposite of
 MKL's end state.
 
-**What is open**: two questions, both routed to the execution reviewer at
-gate B and deliberately not answered here. First, `ssn_bulk_flips` reads **4**
-on Accelerate against MKL's 1 — that assertion is a claim ("no oscillation"),
-not a coin call, so 4 > 1 says the Accelerate trajectory oscillates three
-extra times before settling, and whether that is legitimate for this
-trajectory or evidence that the oscillation guard under-damps on Accelerate
-is undecided. Second, and tied to the first: whether the tied row leaving the
-uncertain set before end state is the same event as one of those flips seen
-from the other side, and whether the export-honesty property this leg was
-written to defend needs a portable substitute for end-state uncertainty (or
-whether the three weaker assertions above are the right final shape), is also
-undecided. The specifics stay `UNOBSERVED`-held in the test until both are
-ruled on; the CI observation above is citable input to that ruling.
+**Ruled by the gate-B execution review (2026-08-15), Verdict 2.** Both
+questions this entry left open are answered:
+
+- On the flips (4 vs 1): legitimate, not under-damping. The fixture's flip
+  sequence is ulp-sensitive to the backend's factorization rounding by
+  construction, because it sits on a knife-edge tie — a tie is the one
+  geometry where flip-count portability should NOT be expected. The systemic
+  question ("does the oscillation guard under-damp on Accelerate?") is
+  answered by the battery-wide evidence, not this fixture: M3-1 records the
+  full HS battery at 861/858 minors on Accelerate against MKL's 862/859, with
+  factorization counts and problem lists identical — a one-minor difference
+  across ~860. Three extra flips confined to a deliberately degenerate cell,
+  stable across ten runs, is backend tie resolution, not oscillation.
+- On the end state (tie leaves the uncertain set): the weaker portable
+  assertion set already in the test IS the right final shape. **End-state tie
+  membership is backend-dependent by nature at exact ties** — an
+  active-and-certain reading of a tied row is as defensible a reading of the
+  tie as an uncertain one, since at `c* = 0` the row IS at its boundary. The
+  portable guarantee this leg exists to defend is the
+  never-inactive-and-certain property (`res.ineq_active[1] ||
+  res.ineq_uncertain[1]`, asserted on both backends): that is what excludes
+  the dangerous export (dropping a tied, binding row from the hint silently).
+  No portable substitute for end-state uncertainty is required beyond that.
+
+**Disposition**: the Accelerate arm is now PINNED, lifting the `UNOBSERVED`
+holds — coin directions as observed, end-state `ineq_uncertain[1] == false`,
+and `ssn_bulk_flips == 4`, all per-backend-arm assertions. The ten-run counter
+stability meets this register's own committability bar for counters (the
+two-run byte bar above is a float rule). The MKL assertions are not relaxed
+in any way — the `suspect_escalations` precedent applies: pin each backend's
+own value, never widen.
+
+**Named re-open trigger**, quoted from the ruling: "if M5's crossover
+measurement ever attributes hint-quality loss to tie misclassification on
+Apple — measurably worse warm ingest from Accelerate-exported activity —
+this ruling re-opens with that evidence, and the remedy family to evaluate
+first is margin-based uncertain membership (conditioning/magnitude-ratio
+criteria from the second-pass research, Q2), which would make membership a
+function of the geometry rather than the coin." Until that trigger fires, no
+algorithmic change is warranted — changing a tie-resolution rule to force
+cross-backend agreement would be tuning the algorithm to the test.

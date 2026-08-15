@@ -707,6 +707,10 @@ guessed `D20` could silently collide.
 
 ### 9.4 The one ruling owed — routed to the execution reviewer
 
+**CLOSED** by the gate-B execution review (2026-08-15), Verdict 2 — see
+`docs/notes/2026-08-14-accelerate-divergence-register.md`, entry M3-4 (RULED),
+for the disposition.
+
 **Register entry M3-4 is OPEN, deliberately.** On Accelerate the weakly-active
 tie lands the opposite way from MKL on every coin, and two things follow that a
 value cannot settle:
