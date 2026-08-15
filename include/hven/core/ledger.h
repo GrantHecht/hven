@@ -5,8 +5,9 @@
 
 #include <fmt/core.h>
 
-#include <hven/drivers/sqp_types.h>
-#include <hven/qp/qp_types.h>
+#include <hven/core/solver_counters.h>
+#include <hven/core/solver_status.h>
+#include <hven/core/start_level.h>
 
 namespace hven::solvers {
 
@@ -149,29 +150,6 @@ struct SqpSolveRecord {
     // field asserts only that it is populated (> 0 on a solve that did any
     // work), never a magnitude.
     double wall_seconds = 0.0;
-};
-
-// PHASE-6 TASK 5. How many of a ledger's whole-driver solves resolved at each
-// StartLevel -- the aggregate the kSeeded level made worth having, since a
-// crossover or mesh-refinement loop's headline question is "how many of my
-// hand-offs were actually ingested, and at what level".
-//
-// ONE FIELD PER ENUMERATOR, NOT A MAP OR AN ARRAY INDEXED BY THE ENUM. The
-// enum's integer values are load-bearing for ORDERING (warm_start.h's
-// StartLevel note: kSeeded had to be inserted BETWEEN kCold and kWarm, which
-// renumbered kWarm and kHot), so anything that indexes by them would silently
-// re-bind its columns the next time a level is inserted. Named fields cannot.
-//
-// `total()` is the number of SqpSolveRecords the histogram was built from, so a
-// caller can assert the four columns account for every solve rather than
-// assuming they do.
-struct StartLevelHistogram {
-    Index cold = 0;
-    Index seeded = 0;
-    Index warm = 0;
-    Index hot = 0;
-
-    Index total() const { return cold + seeded + warm + hot; }
 };
 
 // Instrumentation ledger for cold-vs-warm solve tracking (QP-level, Phase 1)
