@@ -630,6 +630,13 @@ We flag this as a **governance edit** for the reviewer's explicit attention. It
 is the only rule in this repository the census protocol needed changed, and we
 would rather have it argued than assumed.
 
+**Grant ruled on 2026-08-14**: §7 is broadened from COUNTERS-only to
+deterministic-replay licensing (counters, statuses, and residuals computed at
+a fixed thread count; wall-clock-dependent statuses still run solo or with
+their full budget honored), and §6's `notices/` protection is clarified with
+an append-only-deviation exception for a derived file's own entry — both
+rulings land in this commit, resolving the sol-review Majors 1 and 3.
+
 ---
 
 ## 9. The Mac leg — landed, green, with one ruling owed

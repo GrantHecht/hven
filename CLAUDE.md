@@ -164,6 +164,10 @@ no exceptions:
   zero-filled or interpolated. Absent evidence is reported as absent.
 - **`notices/` is protected.** Never modify or delete an existing entry
   in `notices/`; only add new entries when a new dependency is vendored.
+  The one exception: append-only deviation records inside a derived
+  file's own entry — the sanctioned test-seam deviation recording that
+  §6's instrumentation rule itself mandates — may be appended to;
+  existing text and prior records may never be altered or deleted.
 - **Instrument at the boundary by preference, not by prohibition.** Test
   hooks belong in the Apache-2.0 adapter file that owns the contract logic
   around a backend session, not inside the MPL-derived session file itself
@@ -188,16 +192,20 @@ no exceptions:
   a throughput or build-time comparison — must serialize its suite: one
   solve at a time, alone on the machine. Nothing produced any other way is
   a quotable timing.
-- A replay that asserts only COUNTERS may co-run. Counters are
-  scheduling-invariant at `MKL_NUM_THREADS=1`, and contention can only push
-  a cell toward a budget/deadline outcome, never toward a false success or a
-  false counter value. The terms are fixed: one process per pinned PHYSICAL
-  core (SMT siblings left idle), `MKL_NUM_THREADS=1` in every process, and
-  wall-clock from such a run stays informational — it is never quoted as a
-  measurement and never compared against a serial timing.
-- A counter deviation observed under a co-run is a candidate, not a
-  regression. Re-run the deviating cell ALONE, under the serial rule above,
-  and reproduce the deviation before calling it one.
+- A replay asserting only deterministic per-process columns — counters,
+  statuses, and residuals computed at a fixed thread count — may co-run.
+  Such columns are scheduling-invariant at `MKL_NUM_THREADS=1`, and
+  contention can only push a cell toward a budget/deadline outcome, never
+  toward a false success or a false value. The terms are fixed: one
+  process per pinned PHYSICAL core (SMT siblings left idle),
+  `MKL_NUM_THREADS=1` in every process, and wall-clock from such a run
+  stays informational — it is never quoted as a measurement and never
+  compared against a serial timing. Wall-clock-DEPENDENT statuses —
+  deadline-truncated outcomes — are not scheduling-invariant and must run
+  solo, or co-run only with their full budget honored.
+- A deviation observed under a co-run is a candidate, not a regression.
+  Re-run the deviating cell ALONE, under the serial rule above, and
+  reproduce the deviation before calling it one.
 - A co-run protocol is declared in the evidence artifact it produces — the
   tiering rule, the widths, and the pinning — so a reader knows the
   conditions the counters were taken under.
