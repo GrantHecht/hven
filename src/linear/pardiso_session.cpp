@@ -231,6 +231,13 @@ void FactorSession::analyze(const SpMatRM &A) {
         static_cast<int>(iparm_[7]);
     testing::PardisoIparmObserver::post_pardisoinit_pivot_perturb_iparm =
         static_cast<int>(iparm_[9]);
+    // iparm[17]: the mirror image of the two above. This function writes it
+    // UNCONDITIONALLY a few lines further down, and the ledger's claim that
+    // the write is delta-free rests on pardisoinit having already put the
+    // same value there -- so the premise is only checkable from a read taken
+    // BEFORE that write, i.e. from exactly this line.
+    testing::PardisoIparmObserver::post_pardisoinit_factor_nnz_request_iparm =
+        static_cast<int>(iparm_[17]);
 #endif
 
     // iparm[34] = 1: zero-based (C-style) CSR indexing, so Eigen's index
@@ -365,7 +372,12 @@ void FactorSession::analyze(const SpMatRM &A) {
     // value (-1) on every MKL version checked while writing this -- so
     // this write does not change what Pardiso computes, only makes hven's
     // own request explicit and version-independent rather than accidentally
-    // riding pardisoinit's current default. See
+    // riding pardisoinit's current default. That "already -1" premise is no
+    // longer a belief: it is pinned by
+    // BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount
+    // (tests/linear/test_fault_injection.cpp), fed from the post-pardisoinit
+    // capture above -- if a future MKL moves the default, that test fails
+    // instead of the ledger's delta-free row going quietly stale. See
     // SymmetricFactor::FactorEvidence::factor_nonzeros's own doc comment.
     iparm_[17] = -1;
     // iparm[18]: request the Mflop-cost estimate. Left untouched unless

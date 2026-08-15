@@ -131,10 +131,11 @@ struct InertiaQueryFaultInjector {
 // The post_pardisoinit_* fields below serve a related but DISTINCT purpose
 // and come from a DIFFERENT point in FactorSession::analyze -- not the
 // adapter boundary at all. They pin the linked MKL's pardisoinit defaults
-// for iparm[10]/iparm[33]/iparm[18] and for iparm[7]/iparm[9], for the
-// canaries design decisions elsewhere rely on (see
-// BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero and
+// for iparm[10]/iparm[33]/iparm[18], for iparm[7]/iparm[9], and for
+// iparm[17], for the canaries design decisions elsewhere rely on (see
+// BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero,
 // BackendDefaultPremise.MklPardisoinitDefaultsTheRefinementCapAndPivotPerturbExponent
+// and BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount
 // in test_fault_injection.cpp). They cannot be adapter-boundary reads the way
 // last_ordering_iparm/last_weighted_matching_iparm are: this session's own
 // phase-11 (symbolic analysis) backend call was observed, empirically, to
@@ -157,6 +158,7 @@ struct PardisoIparmObserver {
         post_pardisoinit_factor_mflops_request_iparm = 0;
         post_pardisoinit_refinement_cap_iparm = 0;
         post_pardisoinit_pivot_perturb_iparm = 0;
+        post_pardisoinit_factor_nnz_request_iparm = 0;
         recorded = false;
         ordering_was_written = false;
         ordering_written_value = 0;
@@ -185,15 +187,21 @@ struct PardisoIparmObserver {
 
     // The raw array values for iparm[10] (matrix scaling), iparm[33] (CNR
     // thread count), iparm[18] (Mflop-report request code), iparm[7]
-    // (full-solve refinement cap), and iparm[9] (pivot perturbation
-    // exponent) EXACTLY as pardisoinit left them -- captured inside
+    // (full-solve refinement cap), iparm[9] (pivot perturbation
+    // exponent), and iparm[17] (factor-nonzero-count request) EXACTLY as
+    // pardisoinit left them -- captured inside
     // FactorSession::analyze, before that function's own phase-11 call
-    // runs, per this struct's own doc comment above. The last two extend
-    // the same deviation for the same reason: they are the entries the
-    // max_refinement_iters / pivot_perturb_exp don't-write states inherit,
-    // and the load-bearing BackendDefaultPremise canary pinning their
-    // pardisoinit defaults (2 / 8 on the audited MKL) can only be fed
-    // from this capture point. `post_pardisoinit_recorded` is a separate
+    // runs, per this struct's own doc comment above. iparm[7]/iparm[9]
+    // extend the same deviation for the same reason: they are the entries
+    // the max_refinement_iters / pivot_perturb_exp don't-write states
+    // inherit, and the load-bearing BackendDefaultPremise canary pinning
+    // their pardisoinit defaults (2 / 8 on the audited MKL) can only be fed
+    // from this capture point. iparm[17] extends it once more for the
+    // mirror-image reason: that entry is written UNCONDITIONALLY by
+    // analyze() a few lines later, and the §11 ledger's delta-free
+    // argument for that write rests entirely on pardisoinit having already
+    // put the same value (-1) there -- a premise only a read taken before
+    // the write can check. `post_pardisoinit_recorded` is a separate
     // flag from `recorded` above: the two are set at different lines (this
     // one right after pardisoinit(), the other at the very end of
     // analyze()), so a test using only one of the two pairs still gets an
@@ -204,6 +212,7 @@ struct PardisoIparmObserver {
     static inline int post_pardisoinit_factor_mflops_request_iparm = 0;
     static inline int post_pardisoinit_refinement_cap_iparm = 0;
     static inline int post_pardisoinit_pivot_perturb_iparm = 0;
+    static inline int post_pardisoinit_factor_nnz_request_iparm = 0;
 
     // --- the DID-THE-WRITE-EXECUTE observable ---
     //

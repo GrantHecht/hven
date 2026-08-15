@@ -695,6 +695,56 @@ TEST(BackendDefaultPremise, MklPardisoinitDefaultsTheRefinementCapAndPivotPertur
            "decision needs revisiting with this evidence in hand";
 }
 
+// The third canary on the same capture point, and the mirror image of the
+// second: iparm[17] is the one entry analyze() writes UNCONDITIONALLY --
+// `iparm_[17] = -1`, gated by no Options field at all
+// (src/linear/pardiso_session.cpp) -- where the dissolved seam never touched
+// iparm[17] in any phase. The SQP retarget's §11 ledger row 7
+// (docs/retarget-design-sqp.md) carries that unconditional write as
+// DELTA-FREE rather than merely unobserved, and the entire delta-free
+// argument is one premise: pardisoinit's own mtype = -2 initialization
+// already leaves this entry at -1, so hven's write changes nothing Pardiso
+// computes and only makes the request explicit instead of riding a backend
+// default. Until this test, that premise carried no canary -- ledger row 7
+// said so in as many words -- so a future MKL moving the default would have
+// turned a delta-free row into a live behavioural difference in silence.
+//
+// The value is OBSERVED, not assumed: -1 on the linked MKL (2026.0.1, build
+// 20260612), from hven's own session via this capture point AND from a
+// standalone pardisoinit() probe outside hven's session code, for mtype = -2
+// and mtype = 11 alike. That two-source shape is the one the iparm[9]
+// correction established at gate B, where a documented-default prediction
+// (13) lost to a value observation (8); this canary exists so that class of
+// mistake cannot hide behind row 7.
+//
+// Note what this test does NOT claim. It pins pardisoinit's DEFAULT, not the
+// act of hven's own write -- the two are indistinguishable by value here,
+// precisely because they agree. The act is not instrumented because nothing
+// rests on it: the write is unconditional, so there is no don't-write state
+// to tell apart from a write (contrast max_refinement_iters / pivot_perturb_
+// exp, whose was_written flags exist for exactly that reason). What could
+// change is the backend's side of the agreement, and that is what is pinned.
+//
+// Same capture point and same reason as the two canaries above: only the
+// post-pardisoinit record answers "what did pardisoinit default this to" --
+// and here the boundary is doubly unable to, since by the time analyze()
+// returns, hven's own unconditional write has overwritten the entry with the
+// very value under test, so a boundary read would report hven's write back
+// to itself and pass no matter what pardisoinit did.
+TEST(BackendDefaultPremise, MklPardisoinitAlreadyRequestsTheFactorNonzeroCount) {
+    PardisoIparmObserver::reset();
+    SymmetricFactor factor{SymmetricFactor::Options{}};
+    factor.analyze(upper_csr(spd3()));
+
+    ASSERT_TRUE(PardisoIparmObserver::post_pardisoinit_recorded);
+    EXPECT_EQ(PardisoIparmObserver::post_pardisoinit_factor_nnz_request_iparm, -1)
+        << "the SQP retarget's §11 ledger row 7 carries hven's UNCONDITIONAL iparm[17] = -1 "
+           "write as delta-free solely because pardisoinit's own mtype = -2 initialization "
+           "already leaves iparm[17] at -1 on the linked MKL -- it no longer does, so that "
+           "write is now a real behavioural difference against the dissolved seam (which never "
+           "touched iparm[17]) and row 7 needs re-deriving with this evidence in hand";
+}
+
 // ---------------------------------------------------------------------------
 // The live thread-count setter lands in the config the next backend call reads
 // ---------------------------------------------------------------------------

@@ -67,6 +67,18 @@ are listed here as they are added.
       absent from every normal build, byte-identical production object,
       no symbol added to libhven.a. See docs/testing.md.
 
+      Fourth modification of note, extending the post-pardisoinit capture
+      site by one more line for the same kind of fact: iparm[17] (the
+      factor-nonzero-count request) exactly as pardisoinit left it. This
+      one is the mirror image of the iparm[7]/iparm[9] case -- analyze()
+      writes iparm[17] unconditionally a few lines later, so a read taken
+      anywhere after that write reports hven's own value back, and the
+      premise under test (that pardisoinit already put -1 there, which is
+      why the write is delta-free) is checkable only before it. Same
+      build-cost profile, re-verified: absent from every normal build,
+      byte-identical production object, no symbol added to libhven.a. See
+      docs/testing.md.
+
   include/hven/detail/linear/accelerate_session.h
   src/linear/accelerate_session.cpp
       Derived from Eigen's AccelerateSupport module: the Accelerate Sparse

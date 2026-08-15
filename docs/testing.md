@@ -92,16 +92,23 @@ the `iparm[10]`/`iparm[33]`/`iparm[18]` trio; the don't-write-state amendment
 `iparm[7]` and `iparm[9]` — the two entries whose new don't-write states
 inherit `pardisoinit`'s values — for the load-bearing
 `BackendDefaultPremise` canary that pins what those states actually inherit.
+Phase C added `iparm[17]` to the same site, for the mirror-image reason: that
+entry is written *unconditionally* by `analyze()`, and the §11 ledger row 7
+argument that the write is delta-free rests on `pardisoinit` already having
+put `-1` there.
 
 *Why the boundary cannot carry it.* The fact under test is what `pardisoinit`
 itself defaulted `iparm[10]`/`iparm[33]`/`iparm[18]` (and now
-`iparm[7]`/`iparm[9]`) to, on this linked MKL.
+`iparm[7]`/`iparm[9]`/`iparm[17]`) to, on this linked MKL.
 That fact is not stable to the end of the function: this session's own
 phase-11 call was observed, empirically, to overwrite `iparm[33]` and
 `iparm[18]` with its own output before `analyze()` returns, so a read taken at
 the adapter boundary afterward — the approach this project uses for
 `ordering_iparm()`/`weighted_matching_iparm()` just above — sees phase 11's
-output for those two entries, not `pardisoinit`'s value. There is no safe
+output for those two entries, not `pardisoinit`'s value. `iparm[17]` is
+unreachable from the boundary for a second, independent reason: `analyze()`
+writes it unconditionally, so a boundary read reports hven's own `-1` back to
+itself and would pass whatever `pardisoinit` had done. There is no safe
 unconditional `FactorSession` accessor that could answer this from outside
 the function either: by the time `analyze()` returns and any caller could
 ask, the fact the caller would be asking about is already gone (see
@@ -109,8 +116,9 @@ ask, the fact the caller would be asking about is already gone (see
 on why `ordering_iparm()`/`weighted_matching_iparm()` are not a model for
 these three).
 
-*What it costs.* Six `#ifdef HVEN_TESTING` lines at one capture site (four
-at the original extension, two more for `iparm[7]`/`iparm[9]`).
+*What it costs.* Seven `#ifdef HVEN_TESTING` lines at one capture site (four
+at the original extension, two more for `iparm[7]`/`iparm[9]`, one more for
+`iparm[17]`).
 Verified, not asserted: from a clean `ce423ec` checkout and from the working
 tree with this change applied, built with the identical build directory and
 toolchain (`git stash`/`git stash pop` to isolate the two source states
@@ -126,7 +134,11 @@ re-ran the identical proof shape against its own baseline: the shipped
 `pardiso_session.cpp` compiled with production flags (no `HVEN_TESTING`),
 with and without every newly added `#ifdef HVEN_TESTING` block stripped,
 yields a byte-identical object, and `nm --defined-only` on `libhven.a`
-still lists no observer symbol of any kind.
+still lists no observer symbol of any kind. The `iparm[17]` extension re-ran
+that same proof once more against its own baseline, with the same result:
+`pardiso_session.cpp.o` and `symmetric_factor_mkl.cpp.o` byte-identical
+(matching SHA-256) with and without the added line under production flags,
+and `libhven.a`'s `nm --defined-only` listing unchanged byte for byte.
 
 *What it buys.* `tests/linear/test_fault_injection.cpp`'s
 `BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero` asserts
@@ -178,7 +190,8 @@ guarded by `#ifdef HVEN_TESTING`:
   (`post_pardisoinit_matrix_scaling_iparm`, `post_pardisoinit_cnr_iparm`,
   `post_pardisoinit_factor_mflops_request_iparm`,
   `post_pardisoinit_refinement_cap_iparm`,
-  `post_pardisoinit_pivot_perturb_iparm`) described under "A canary
+  `post_pardisoinit_pivot_perturb_iparm`,
+  `post_pardisoinit_factor_nnz_request_iparm`) described under "A canary
   for a design decision's backend-default premise" below. NOT a fault
   injector — see "A read-only variant" below.
 - `ThreadCountObserver` (MKL) — `recorded`, `last_applied_num_threads`. Also
@@ -591,6 +604,27 @@ this entry. The canary pins the observed 8, and the note carries a declared
 amendment recording the correction and its evidence
 (`docs/retarget-design-sqp.md` §2.4) — a declared re-derivation, never a
 silent adaptation.
+
+Phase C added a third canary on the same capture point, closing the one
+`pardisoinit`-default premise that had none:
+`BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount`
+asserts `pardisoinit` leaves iparm[17] (the factor-nonzero-count request) at
+−1 for mtype = −2 on the linked MKL. That is the whole of the §11 ledger row
+7 argument (`docs/retarget-design-sqp.md`) for hven's **unconditional**
+`iparm[17] = -1` write — the one iparm write gated by no `Options` field, and
+one the dissolved seam never made in any phase. Row 7 calls the write
+delta-free rather than merely unobserved *because* the backend already
+defaults the entry to the same value; if a future MKL moves that default, the
+write becomes a live behavioural difference, and this test is what makes that
+loud. The pinned value is a two-source observation (hven's own session via
+this capture point, plus a standalone `pardisoinit()` probe outside hven's
+session code: −1 for mtype = −2 and for mtype = 11 alike, MKL 2026.0.1 build
+20260612) — the shape the iparm[9] correction established, applied before
+rather than after a prediction could go wrong. What it pins is the *backend's*
+default, not the act of hven's write: the two are indistinguishable by value
+precisely because they agree, and nothing rests on the act, because an
+unconditional write has no don't-write state to be told apart from (contrast
+the `was_written` flags `max_refinement_iters`/`pivot_perturb_exp` need).
 
 ## The golden-numerics rig
 
