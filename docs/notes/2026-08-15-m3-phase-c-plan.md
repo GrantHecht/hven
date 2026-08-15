@@ -723,6 +723,51 @@ alias-of-an-alias is codegen-neutral; any P-SYM difference means the change
 was not mechanical — stop and report, do not adjudicate). No census
 (schedule ruling unchanged). **Alone.**
 
+**Executed 2026-08-15 (`f390d40`), review clean.** One proof-vocabulary
+correction from execution, binding on later mechanical tasks: an
+insertion-bearing mechanical change's P-SYM bar is "byte-identical OR
+class-(a) with 1:1 insertion accounting, and library objects strictly
+byte-identical" — S2b's mandated using-declarations shifted `__LINE__` in 23
+test objects (each audited to its file's exact inserted-line count; all
+library and bench objects byte-identical), so a flat "expect 60/60" prediction
+mis-sets the alarm for tasks whose own scope inserts lines.
+
+### S2c — redefine `hven::Index` onto Eigen's index; retire the last alias (owner-directed; Opus)
+
+**Added 2026-08-15 by owner order** (extending the S1 ruling's recorded-not-
+ordered rider into an M3 task; the execution reviewer's hazard scan,
+reviewer-side `2026-08-15-m3-s2c-hazards.md` SIGNOFF S2C-HAZARDS-FINAL, found
+no blocking hazard and endorsed shape and sequencing). Full index
+unification: one index type on every platform, no vocabulary exceptions.
+
+**Commit 1 — the type event alone.** `core/types.h`: `Index` =
+`std::int64_t` → `Eigen::Index` (`std::ptrdiff_t`), contract rewritten from
+fixed-width to pointer-width-64-on-all-supported-targets, with same-commit
+pins (`sizeof==8` + signedness + `is_same_v<Index, Eigen::Index>`). Per the
+hazard scan's Flag 1, `Fnv1a::feed_index`'s parameter re-types to literal
+`std::int64_t` and `docs/pattern-hash.md`'s wording drops its alias
+dependence, same commit — no hash value moves on any supported target, but
+the hash's width contract must not ride the alias. Per Flag 2, the
+pre-landing scan covers committed artifacts (no expected table/baseline CSV
+carries a hash value column — negative result recorded in the commit
+message) plus code reliance on literal `int64_t` identity. On Linux (LP64)
+and Windows (LLP64) the redefinition is provably no-type-change; macOS arm64
+is the real type change, evidenced by same-commit pins plus the macOS lane's
+full suite. ZERO numeric churn is the expectation: any non-`__FILE__` Linux
+P-SYM difference fires the stop-and-report rule — U0's re-derivation is a
+safety net, not a license.
+
+**Commit 2 — the alias retires.** `hven::solvers::Index` (now the same type
+everywhere) deletes from both edit sites together (`qp/qp_types.h`,
+`core/start_level.h` — S2's recorded hazard); S1's Apple-finding comments
+become historical records; S1's width/signedness pin is replaced by the
+identity pin S1 originally specified, now true on every target.
+
+**Proof:** P-SUITE both configs; P-SYM at both commits (Linux byte-identity
+expected at each, class-(a) licensed only with 1:1 insertion accounting per
+the S2b correction above); CI all three lanes with the macOS lane as the
+Apple evidence. No census. **Alone.**
+
 ### S3 — carve the globalization logic out of `sqp_driver.h` (**FABLE**)
 
 **Scope.** Plan §2 row 6 + §6 clause 2: "the funnel/TR/SOC/elastic/restoration
@@ -777,6 +822,11 @@ The same logic puts the H-series and the Mac session's pre-re-key capture
 `tests/sqp/test_scale_smoke.cpp` (~L715-717) and `tests/sqp/test_warm_start.cpp`
 (L934, L944) still name the dissolved KKT seam. Plus any comment the R/S commits
 newly staled (an inventory of "comments naming `detail/sqp/`" after R6).
+Added from S2b execution (2026-08-15): in `qp/qp_types.h`, the frozen Index
+note's "which failed the identity pin below" dangles (S2b deleted those pins,
+and retitled the surviving pin's heading to "The interoperation pin") — fix the
+phrase and heading together, unless S2c's commit 2 has already rewritten that
+comment block as historical, in which case verify and strike this item.
 
 **Proof:** P-SUITE + P-SYM. **Batchable** — this is the one task that can ride
 alongside another commit if the reviewer prefers fewer commits, since it is
