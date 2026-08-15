@@ -280,7 +280,10 @@ Fixture barrier_chain_kkt(Index nodes, Index iterate) {
         "the primal diagonal (include/hven/detail/interior/barrier_math.h's "
         "accumulate_bound_sigma) without growing the KKT, and writes it into pre-allocated "
         "structural slots, so the pattern really is fixed across rungs. The recipe reproduces "
-        "the right thing; what it cannot claim is that it reproduces the named matrix.");
+        "the right thing; what it cannot claim is that it reproduces the named matrix. PER C0.4 "
+        "RULING 1: authority not reproducible in this repository (unmigrated modelling "
+        "library); structural reconstruction, verified against no fixture -- C0.4 report, "
+        "2026-08-15.");
 }
 
 Fixture hs76_kkt(const std::vector<Index> &active_rows) {
@@ -397,7 +400,9 @@ Fixture semidefinite_boundary_kkt() {
         "is no longer only a note here: the authority's own T5 entry has been amended in place "
         "with a dated erratum, and docs/testing.md carries the correction for readers who have "
         "this repository and not that one. The recipe below is unchanged -- what changes is "
-        "that the reference it could not satisfy no longer stands uncorrected." +
+        "that the reference it could not satisfy no longer stands uncorrected. PER C0.4 RULING "
+        "1: authority not reproducible in this repository (fixture never existed); structural "
+        "reconstruction, verified against no fixture -- C0.4 report, 2026-08-15." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, Mat(0, 2), /*delta=*/0.0, /*mu=*/0.0);
     f.n_primal = 2;
@@ -445,7 +450,9 @@ Fixture pd_on_face_kkt(Index n_free, Index m_face) {
                    "migrated arm: on a face that is positive definite with a full-rank face "
                    "block, the accepted path's inertia is exactly (free variables, face rows, "
                    "0), which is what this recipe is built to produce and what T5's case c "
-                   "asserts." +
+                   "asserts. PER C0.4 RULING 1: authority not reproducible in this repository "
+                   "(authority names a code path, not a matrix); structural reconstruction, "
+                   "verified against no fixture -- C0.4 report, 2026-08-15." +
                    std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = n_free;
@@ -481,7 +488,13 @@ Fixture duplicated_equality_kkt(double primal_reg, double dual_reg) {
         "against a path whose whole assertion is that no matrix was formed. Not upgraded. What "
         "did survive the re-check is that the ladder this recipe is built for is real: the "
         "migrated engine climbs dual regularization on demand, and P2 replays that as rungs on "
-        "a pattern it asserts unchanged." +
+        "a pattern it asserts unchanged. PER C0.4 RULING 1, one marking per authority since the "
+        "two halves fail for different reasons: for the interior-point half, authority not "
+        "reproducible in this repository (unmigrated modelling library); structural "
+        "reconstruction, verified against no fixture -- C0.4 report, 2026-08-15. For the SQP "
+        "half, authority not reproducible in this repository (authority names a code path, not "
+        "a matrix); structural reconstruction, verified against no fixture -- C0.4 report, "
+        "2026-08-15." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, primal_reg, dual_reg);
     f.n_primal = 2;
@@ -519,7 +532,9 @@ Fixture active_bound_curvature_kkt(double sigma) {
         "(include/hven/detail/interior/barrier_math.h) and eliminates the bound-multiplier rows "
         "rather than carrying them, so a condensed KKT of exactly this shape -- the curvature "
         "term on a primal diagonal entry, no extra row -- is what that engine actually hands a "
-        "factorization." +
+        "factorization. PER C0.4 RULING 1: authority not reproducible in this repository "
+        "(unmigrated modelling library); structural reconstruction, verified against no "
+        "fixture -- C0.4 report, 2026-08-15." +
         std::string(kRegularizationNote);
     f.K = assemble_kkt(H, A, /*delta=*/1e-8, /*mu=*/1e-8);
     f.n_primal = 2;
