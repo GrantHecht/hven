@@ -92,9 +92,9 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/predictor.h>
 #include <hven/detail/sqp/sqp_driver.h>
-#include <hven/detail/sqp/warm_start.h>
+#include <hven/detail/warmstart/predictor.h>
+#include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/model/nlp_model.h>
 

@@ -59,9 +59,9 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/mesh_transfer.h>
 #include <hven/detail/sqp/sqp_driver.h>
-#include <hven/detail/sqp/warm_start.h>
+#include <hven/detail/warmstart/mesh_transfer.h>
+#include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_types.h>
 
 #include "support/parametric_families.h"

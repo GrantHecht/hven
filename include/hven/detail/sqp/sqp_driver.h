@@ -2128,7 +2128,7 @@
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/sqp/globalization.h>
-#include <hven/detail/sqp/warm_start.h>
+#include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>

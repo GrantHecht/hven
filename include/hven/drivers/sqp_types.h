@@ -13,7 +13,7 @@
 #include <vector>
 
 #include <hven/detail/sqp/globalization.h>
-#include <hven/detail/sqp/warm_start.h>
+#include <hven/detail/warmstart/warm_start.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
