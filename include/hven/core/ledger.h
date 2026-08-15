@@ -248,10 +248,30 @@ class Ledger {
     }
 
   private:
-    // SqpStatus -> string is sqp_types.h's to_string(SqpStatus) (this header
-    // already depends on sqp_types.h for the enum itself, so sharing it here
-    // costs nothing extra and removes a hand-synced copy -- see that
-    // header's note).
+    // The two -> string helpers this class's tables use are
+    // core/solver_status.h's to_string(SqpStatus) and core/start_level.h's
+    // to_string(StartLevel). Both arrive through the includes at the top of
+    // this file, and every one of those is a core/ header.
+    //
+    // THIS NOTE USED TO SAY THE OPPOSITE, and correcting it is not cosmetic.
+    // Through M3 phase-C S2 it read "this header already depends on
+    // sqp_types.h for the enum itself, so sharing it here costs nothing
+    // extra" -- true when it was written, FALSE NOW, and precisely the
+    // sentence a maintainer could act on to reopen the layering inversion S2
+    // closed. S2 moved SqpStatus/QpStatus, SqpCounters/SsnCounters/QpCounters,
+    // StartLevel and StartLevelHistogram out of drivers/sqp_types.h,
+    // qp/qp_types.h and detail/warmstart/warm_start.h into core/ exactly so
+    // that this header -- which records a whole-driver solve -- stops reaching
+    // UP into drivers/ for the types it records. Its include closure is now
+    // core/ headers plus <string>, <vector>, fmt and Eigen, and nothing else.
+    //
+    // SO: DO NOT ADD AN INCLUDE OF drivers/, qp/, model/, kkt/, interior/,
+    // linear/, globalization/, warmstart/ OR detail/ TO THIS OR ANY OTHER
+    // core/ HEADER. core/ is the bottom tier of CLAUDE.md section 2's map and
+    // depends on nothing above it. That is ENFORCED rather than merely asked
+    // for: tests/core/test_core_layering.cpp scans every header in
+    // include/hven/core/ and fails the suite on any such include, naming the
+    // file and the line.
 
     std::vector<SolveRecord> records_;
     std::vector<SqpSolveRecord> sqp_records_;

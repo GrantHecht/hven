@@ -108,6 +108,12 @@ set(HVEN_TEST_SOURCES
     core/test_version.cpp
     core/test_sparse_backend_link.cpp
     core/test_pattern_hash.cpp
+    # The include-graph regression net for CLAUDE.md section 2's tier order:
+    # scans include/hven/core/'s own headers and fails if any of them includes a
+    # header from a tier ABOVE core/. It reads source text rather than linking
+    # anything, so it belongs to no backend and is not platform-gated. See
+    # HVEN_CORE_INCLUDE_DIR below for the path it is given.
+    core/test_core_layering.cpp
     linear/test_dense_symmetric_factor.cpp
     # The dense factor's phase-B growth (Triangle, try_factorize, block
     # evidence), in its own file rather than appended to the suite above:
@@ -143,6 +149,17 @@ target_compile_options(hven_tests PRIVATE ${COMPILE_FLAGS})
 # Same single source of truth as the hven target itself (root CMakeLists.txt)
 # — see src/core/version.cpp and core/test_version.cpp.
 target_compile_definitions(hven_tests PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
+
+# The directory core/test_core_layering.cpp scans. Rooted at THIS directory
+# rather than at ${CMAKE_SOURCE_DIR}, for the same reason HVEN_SRC_DIR below is:
+# under add_subdirectory(hven) from a parent project, CMAKE_SOURCE_DIR is the
+# PARENT's top-level source directory and would point the scan somewhere that
+# does not exist. Passed as an absolute path so the test is independent of the
+# working directory ctest launches it from; the test asserts the directory exists
+# and contains the headers it expects, so a wrong path fails loudly instead of
+# scanning nothing and passing.
+target_compile_definitions(hven_tests
+    PRIVATE HVEN_CORE_INCLUDE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../include/hven/core")
 
 gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
