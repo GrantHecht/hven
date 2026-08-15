@@ -114,6 +114,16 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     ASSERT_EQ(factorize_checked(k, changed_pattern).status,
               hven::linear::FactorizeOutcome::Status::kOk);
 
+    // B2 review I-2. The engaged-decision path records `analyzed_pattern` from
+    // the value `analysis_decision()` computed at the call site rather than
+    // recomputing it in `factorize_checked`; nothing previously asserted that
+    // VALUE on the changed-pattern (engaged) branch -- only the disengaged
+    // branch is pinned above (line 67). Pin both the recorded value and its
+    // downstream consequence (no further analysis is needed against the same
+    // pattern).
+    EXPECT_EQ(k.analyzed_pattern, hven::pattern_hash(changed_pattern));
+    EXPECT_FALSE(needs_analysis(k, changed_pattern));
+
     // B4 M-1, restored. The dissolved KktSystem.PatternHashDetectsChange
     // ended on exactly this re-read -- `EXPECT_EQ(kkt.num_neg_eigs(), 1)`
     // after a cross-pattern re-factorize, with the comment "must re-analyze
