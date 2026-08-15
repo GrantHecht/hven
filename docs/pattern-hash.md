@@ -76,8 +76,9 @@ The sibling project's version feeds each index array as one contiguous
 block of raw bytes, at whatever machine width Eigen's sparse storage index
 happens to be on that build (typically a 32-bit `int`). This header
 instead feeds each outer/inner index-array entry element-wise, each entry
-widened to the portable 64-bit `Index` alias (`types.h`), through
-`Fnv1a::feed_index`.
+widened to 64 bits (`std::int64_t`, `Fnv1a::feed_index`'s own parameter
+type -- the hash's width contract is stated in fixed-width terms so it does
+not depend on what `hven::Index` is aliased to), through `Fnv1a::feed_index`.
 
 This does not weaken comparability -- it removes a build-dependent
 variable from the same algorithm. `Fnv1a::feed_index` extracts the eight

@@ -45,7 +45,7 @@ struct Fnv1a {
         }
     }
 
-    // Feeds one Index value's bytes, least-significant byte first, via
+    // Feeds one index value's eight bytes, least-significant byte first, via
     // explicit shift-and-mask rather than by reading `value`'s object
     // representation through `feed()`. Two consequences: this member is
     // genuinely `constexpr` (no pointer-punning cast, so it is usable in a
@@ -55,7 +55,14 @@ struct Fnv1a {
     // storage-index width (see docs/pattern-hash.md). Every ingredient
     // pattern_hash() mixes in (dimensions, nnz, index-array entries) goes
     // through this one call.
-    constexpr void feed_index(Index value) noexcept {
+    //
+    // THE PARAMETER IS LITERALLY `std::int64_t`, NOT `hven::Index`, and that
+    // is the width contract rather than a spelling preference: the hash's
+    // stability claim is "evaluated at a fixed 64-bit width", so it must not
+    // ride an alias that a future retypedef could move. `Index` converts to
+    // it exactly on every supported target (both are signed 64-bit), so no
+    // hash value depends on which of the two a caller passes.
+    constexpr void feed_index(std::int64_t value) noexcept {
         const auto u = static_cast<std::uint64_t>(value);
         for (int i = 0; i < 8; ++i) {
             hash_ ^= static_cast<unsigned char>(u >> (8 * i));
