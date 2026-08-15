@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-#include <hven/detail/sqp/globalization.h>
+#include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/qp/qp_types.h>
 

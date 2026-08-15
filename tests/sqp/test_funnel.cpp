@@ -51,7 +51,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/detail/sqp/globalization.h>
+#include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/sqp/sqp_driver.h>
 
 using namespace hven::solvers;
