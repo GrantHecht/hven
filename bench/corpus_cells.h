@@ -124,6 +124,7 @@
 
 namespace hven::solvers::corpus {
 
+using hven::Vec;
 using hven::solvers::from_interior_point;
 using hven::solvers::Index;
 using hven::solvers::IpCrossoverOptions;
@@ -135,7 +136,6 @@ using hven::solvers::SqpSolution;
 using hven::solvers::SqpStatus;
 using hven::solvers::SsnCounters;
 using hven::solvers::StartLevel;
-using hven::solvers::Vec;
 using hven::solvers::WarmStart;
 using hven::solvers::test_support::F7CollocationChain;
 using hven::solvers::test_support::NlpKktResidual;

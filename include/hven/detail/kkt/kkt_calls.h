@@ -83,25 +83,25 @@ struct AnalysisDecision {
 // the caller to hand back to factorize_checked(). The pair
 // `analysis_decision()` + `factorize_checked(k, K, decision)` is the form
 // every call site that counts symbolic_analyses should use.
-AnalysisDecision analysis_decision(const KktFactor &k, const SpMatU &K);
+AnalysisDecision analysis_decision(const KktFactor &k, const SpMatRM &K);
 
 // True iff factorize_checked() would run an analysis for K. SQP call sites
 // consult this before factorize_checked() to preserve their
 // symbolic_analyses counting contract. It is `analysis_decision(k, K).needed`
 // and cannot disagree with it -- one is implemented in terms of the other.
-bool needs_analysis(const KktFactor &k, const SpMatU &K);
+bool needs_analysis(const KktFactor &k, const SpMatRM &K);
 
 // Analyze iff the pattern changed, then factorize. A
 // FactorizeOutcome::Status::kBackendError is raised as a std::runtime_error
 // rather than returned; every other status is returned to the caller.
-hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K);
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K);
 
 // The same, on a decision the caller has already taken -- which is what
 // keeps the pattern from being hashed twice for one factorization. The
 // decision MUST be the one `analysis_decision()` returned for this same `k`
 // and this same K's pattern; handing back a stale decision would analyze (or
 // skip analyzing) against the wrong pattern.
-hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K,
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision);
 
 // Allocate and solve, returning the solution by value.

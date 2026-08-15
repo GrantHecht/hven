@@ -12,16 +12,13 @@
 
 namespace hven::solvers {
 
-// Type aliases -- RECONCILED onto hven/core/types.h where that is a no-op, and
-// NOT reconciled where it would not be. Both halves are load-bearing; read the
-// Index note before changing either.
-//
-// `Vec` and `SpMatU` were independent Eigen spellings in this header
-// (`Eigen::VectorXd`, `Eigen::SparseMatrix<double, Eigen::RowMajor>`) for types
-// `hven` already owns. They are now aliases OF the core types: one definition,
-// in core/types.h, named from both namespaces. Those two spellings name the
-// same type on every target by construction -- no platform-dependent typedef
-// enters either -- so the reconcile is a no-op everywhere, pinned below.
+// Type alias. This header used to define `Vec` and `SpMatU` as well --
+// SQP-side spellings of types `hven` itself owns. Phase-C S1 made them aliases
+// OF the core types; phase-C S2b finished the job and deleted them, moving
+// every call site onto `hven::Vec` and `hven::SpMatRM` so the SQP layer and the
+// rest of the library speak one vocabulary. `Index` is the one alias that
+// stays, and the reason it stays is load-bearing; read the note before
+// changing it.
 //
 // `Index` IS NOT RECONCILED, and the reason is a measured fact, not caution.
 // M3 phase-C S1 attempted `using Index = hven::Index;` on the plan's stated
@@ -42,27 +39,9 @@ namespace hven::solvers {
 // the same width and signedness, so values cross the linear-algebra boundary
 // without truncation or sign change on every supported target, whether or not
 // the two are the same type.
-//
-// The SQP-side NAMES survive as re-exports; what is deleted is the duplicate
-// definition. That is deliberate and not a half-measure: ~30 test and bench TUs
-// reach these types through `using namespace hven::solvers;`, and a
-// using-directive does not make the enclosing namespace's members visible, so
-// dropping the names would turn an alias reconcile into an unrelated
-// call-site rename across the SQP test surface.
-//
-// `SpMatU` also keeps its own spelling because the name carries information
-// `SpMatRM` does not: the `U` records the upper-triangle storage convention the
-// KKT path builds these matrices in (see kkt_assembly.h). It is the same type,
-// used under a convention-bearing name.
 using Index = Eigen::Index;
-using SpMatU = hven::SpMatRM;
-using Vec = hven::Vec;
 
-// The identity pin (phase-C S1; required by the O7 ruling, not optional).
-//
-// Each assert states that the alias denotes EXACTLY the type this header
-// defined before the reconcile. That is what makes the reconcile a no-op
-// rather than a claim of one.
+// The interoperation pin (phase-C S1; required by the O7 ruling, not optional).
 //
 // The pins live HERE, on the consumer side, and deliberately not in
 // core/types.h: `hven::Index` is documented there as a fixed-width type
@@ -76,15 +55,14 @@ static_assert(sizeof(Index) == sizeof(hven::Index) &&
               "same type on Apple targets (long vs long long), and every value that "
               "crosses between the SQP layer and hven's linear-algebra boundary relies on "
               "the conversion being exact.");
-static_assert(std::is_same_v<Vec, Eigen::VectorXd>,
-              "hven::solvers::Vec must remain Eigen::VectorXd after the S1 reconcile onto "
-              "hven::Vec.");
-static_assert(std::is_same_v<SpMatU, Eigen::SparseMatrix<double, Eigen::RowMajor>>,
-              "hven::solvers::SpMatU must remain a row-major double sparse matrix after the "
-              "S1 reconcile onto hven::SpMatRM.");
-static_assert(std::is_same_v<SpMatU::StorageIndex, int>,
-              "SpMatU's storage index must stay 32-bit: the sparse backends are built against "
-              "int indices and hven hands these arrays over with no reindexing pass "
+
+// The 32-bit-index pin (phase-C S1; re-aimed at the library's own alias in S2b,
+// when the SQP-side spelling it used to name was deleted). It guards the same
+// handoff it always did: the sparse matrices this layer builds and hands to the
+// backends are `hven::SpMatRM`, and their storage index must stay `int`.
+static_assert(std::is_same_v<hven::SpMatRM::StorageIndex, int>,
+              "hven::SpMatRM's storage index must stay 32-bit: the sparse backends are built "
+              "against int indices and hven hands these arrays over with no reindexing pass "
               "(hven/core/types.h; hven/detail/linear/pardiso_session.h).");
 
 // Bound state enumeration

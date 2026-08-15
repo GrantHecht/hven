@@ -187,8 +187,8 @@ class B1MinimalRelease : public ParametricNlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, x(0) - p_); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(1, 1);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
         h.insert(0, 0) = obj_scale;
         h.makeCompressed();
         return h;
@@ -259,8 +259,8 @@ class B1ReviewSphere : public ParametricNlpModel {
         return Vec::Constant(1, x.squaredNorm() - 1.0 - p_);
     }
 
-    SpMatU eval_hess(const Vec &, double, const Vec &, const Vec &li) const override {
-        SpMatU h(3, 3);
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &li) const override {
+        SpMatRM h(3, 3);
         for (int i = 0; i < 3; ++i) {
             h.insert(i, i) = 2.0 * li(0); // f is linear; only the row contributes
         }
@@ -1072,8 +1072,8 @@ class B1ScaledStalePrice : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, x(0) - eps_); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(1, 1);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
         h.insert(0, 0) = obj_scale;
         h.makeCompressed();
         return h;

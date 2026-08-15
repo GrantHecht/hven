@@ -74,7 +74,7 @@ struct BorderOps {
                 "BorderOps::add_ineq_row: k0_rows {} smaller than qp.n() {}", k0_rows, n));
         }
         Vec v = Vec::Zero(k0_rows);
-        for (SpMatU::InnerIterator it(qp.Ai, j); it; ++it) {
+        for (SpMatRM::InnerIterator it(qp.Ai, j); it; ++it) {
             v(it.col()) = it.value();
         }
         return v;

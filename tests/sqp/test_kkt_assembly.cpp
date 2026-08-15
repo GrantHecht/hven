@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 using namespace hven::solvers;
+using hven::Vec;
 
 TEST(KktAssembly, DimensionsAndRegularization) {
     QpProblem qp; // 3 vars, 1 equality, 2 inequalities (build as in earlier tests)

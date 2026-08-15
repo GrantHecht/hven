@@ -7,6 +7,8 @@
 #include "support/dense_oracle.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 
 namespace {
 
@@ -274,7 +276,7 @@ TEST(QpWarmStart, InfeasibleExitInvalidatesReuseCache) {
     // also hold (H/Ai untouched), so a broken policy would wrongly skip
     // refactorization here. The correct policy forces at least one.
     QpProblem qp;
-    qp.H = SpMatU(2, 2);
+    qp.H = SpMatRM(2, 2);
     qp.H.insert(0, 0) = 1.0;
     qp.H.insert(1, 1) = 1.0;
     qp.H.makeCompressed();
@@ -327,7 +329,7 @@ TEST(QpWarmStart, StructureChangeAtConstantValueBytesForcesRefactorization) {
     // matching vacuously -- so condition (b) is satisfied by the ordinary
     // warm-start path this whole file otherwise exercises.
     QpProblem qp1; // Ai: row 0 = [1, 0], row 1 = [0, -1] (row 1 touches x1).
-    qp1.H = SpMatU(2, 2);
+    qp1.H = SpMatRM(2, 2);
     qp1.H.insert(0, 0) = 2.0;
     qp1.H.insert(1, 1) = 2.0;
     qp1.H.makeCompressed();

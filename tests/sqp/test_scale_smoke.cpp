@@ -76,6 +76,8 @@
 #include "support/scale_problems.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 
 namespace {
 
@@ -172,7 +174,7 @@ QpProblem banded_qp(Index n_blocks, Index block, unsigned seed) {
     }
 
     QpProblem qp;
-    qp.H = SpMatU(n, n);
+    qp.H = SpMatRM(n, n);
     qp.H.setFromTriplets(h_trips.begin(), h_trips.end());
     qp.H.makeCompressed();
 

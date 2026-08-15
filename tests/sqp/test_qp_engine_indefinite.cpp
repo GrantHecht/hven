@@ -38,6 +38,8 @@
 #include "support/dense_oracle.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 
 namespace {
 
@@ -48,8 +50,8 @@ namespace {
 // these dense-built fixtures could drop the zero diagonal via sparseView();
 // this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
 // does.
-SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
-    SpMatU K(D.rows(), D.cols());
+SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatRM K(D.rows(), D.cols());
     for (Eigen::Index r = 0; r < D.rows(); ++r) {
         for (Eigen::Index c = r; c < D.cols(); ++c) {
             if (r == c || D(r, c) != 0.0) {
@@ -855,7 +857,7 @@ TEST(QpEngineIndefinite, FreeBlockStationarityTreatsNanAsAFailure) {
 TEST(QpEngineIndefinite, InertiaVerdictNeverTrustsAPerturbedFactorization) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
-    SpMatU K = upper_with_structural_diag(D);
+    SpMatRM K = upper_with_structural_diag(D);
     detail::KktFactor kkt;
     const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, K).inertia;
 #ifdef USE_ACCELERATE_SPARSE
@@ -872,7 +874,7 @@ TEST(QpEngineIndefinite, InertiaVerdictNeverTrustsAPerturbedFactorization) {
     // there the same two calls are decided on the numbers themselves.
     Eigen::MatrixXd De(3, 3);
     De << 1, 0, 1, 0, 1e-12, 0, 1, 0, 0;
-    SpMatU Ke = upper_with_structural_diag(De);
+    SpMatRM Ke = upper_with_structural_diag(De);
     detail::KktFactor kkt_e;
     const hven::linear::InertiaEvidence e_ctrl = detail::factorize_checked(kkt_e, Ke).inertia;
     if (e_ctrl.perturbed_pivots.has_value()) {

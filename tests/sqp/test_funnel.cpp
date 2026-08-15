@@ -55,6 +55,7 @@
 #include <hven/drivers/sqp_driver.h>
 
 using namespace hven::solvers;
+using hven::Vec;
 
 namespace {
 

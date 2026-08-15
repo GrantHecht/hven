@@ -180,7 +180,7 @@
 //                                    QpOptions::primal_delta -- the SAME two
 //                                    regularizers kkt_assembly.h applies)
 //
-// stored as the UPPER TRIANGLE (SpMatU) and factored by the SAME sparse factor
+// stored as the UPPER TRIANGLE (SpMatRM) and factored by the SAME sparse factor
 // (MKL Pardiso / Apple Accelerate) the walk uses. Nothing about the linear
 // algebra is new; only the diagonal's contents are.
 //
@@ -2103,7 +2103,7 @@ class SsnEngine {
 
             // --- diagonal refresh: the ONLY thing that changes in K -----
             double *vals = k_.valuePtr();
-            const SpMatU::StorageIndex *outer = k_.outerIndexPtr();
+            const SpMatRM::StorageIndex *outer = k_.outerIndexPtr();
             for (Index k = 0; k < mi + mb; ++k) {
                 const std::size_t kk = static_cast<std::size_t>(k);
                 const double alpha_f = std::max(alpha[kk], detail::kSsnAlphaFloor);
@@ -2932,7 +2932,7 @@ class SsnEngine {
 
         // H is already upper-triangular (qp.validate() enforces row <= col).
         for (Index i = 0; i < n; ++i) {
-            for (SpMatU::InnerIterator it(qp.H, i); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
                 emit(i, it.col(), it.value());
             }
         }
@@ -2940,13 +2940,13 @@ class SsnEngine {
             emit(i, i, eff_delta_);
         }
         for (Index r = 0; r < me; ++r) {
-            for (SpMatU::InnerIterator it(qp.Ae, r); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.Ae, r); it; ++it) {
                 emit(it.col(), eq_off + r, it.value());
             }
             emit(eq_off + r, eq_off + r, -eff_mu_);
         }
         for (Index k = 0; k < mi; ++k) {
-            for (SpMatU::InnerIterator it(qp.Ai, k); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.Ai, k); it; ++it) {
                 emit(it.col(), ineq_off + k, it.value());
             }
             emit(ineq_off + k, ineq_off + k, -1.0); // placeholder
@@ -2985,12 +2985,12 @@ class SsnEngine {
         // exact in both storage states. (Everything else here walks these
         // matrices with InnerIterator too, so this also keeps the key and the
         // emission agreeing about what "the pattern" is.)
-        auto mix_pattern = [&mix_index](const SpMatU &m) {
+        auto mix_pattern = [&mix_index](const SpMatRM &m) {
             mix_index(m.rows());
             mix_index(m.cols());
             mix_index(m.nonZeros());
             for (Index r = 0; r < m.rows(); ++r) {
-                for (SpMatU::InnerIterator it(m, r); it; ++it) {
+                for (SpMatRM::InnerIterator it(m, r); it; ++it) {
                     mix_index(r);
                     mix_index(it.col());
                 }
@@ -3067,23 +3067,23 @@ class SsnEngine {
         for_each_entry(qp, n, me, mi, mb,
                        [&trips](Index r, Index c, double v) { trips.emplace_back(r, c, v); });
 
-        k_ = SpMatU(dim_, dim_);
+        k_ = SpMatRM(dim_, dim_);
         k_.setFromTriplets(trips.begin(), trips.end());
         k_.makeCompressed();
 
         // Record where each emitted entry landed. Every row's inner indices are
         // sorted after makeCompressed(), so this is a binary search per entry.
         value_pos_.assign(trips.size(), 0);
-        const SpMatU::StorageIndex *outer = k_.outerIndexPtr();
-        const SpMatU::StorageIndex *inner = k_.innerIndexPtr();
+        const SpMatRM::StorageIndex *outer = k_.outerIndexPtr();
+        const SpMatRM::StorageIndex *inner = k_.innerIndexPtr();
         for (std::size_t t = 0; t < trips.size(); ++t) {
             const Index row = trips[t].row();
             const Index col = trips[t].col();
-            const SpMatU::StorageIndex *begin = inner + outer[row];
-            const SpMatU::StorageIndex *end = inner + outer[row + 1];
-            const SpMatU::StorageIndex *hit =
-                std::lower_bound(begin, end, static_cast<SpMatU::StorageIndex>(col));
-            if (hit == end || *hit != static_cast<SpMatU::StorageIndex>(col)) {
+            const SpMatRM::StorageIndex *begin = inner + outer[row];
+            const SpMatRM::StorageIndex *end = inner + outer[row + 1];
+            const SpMatRM::StorageIndex *hit =
+                std::lower_bound(begin, end, static_cast<SpMatRM::StorageIndex>(col));
+            if (hit == end || *hit != static_cast<SpMatRM::StorageIndex>(col)) {
                 // Unreachable for a matrix just built from these very triplets;
                 // checked rather than asserted because a Release build compiles
                 // an assert out entirely and a wrong position would corrupt K
@@ -3356,7 +3356,7 @@ class SsnEngine {
         double gap_abs = 0.0;
         for (Index k = 0; k < me; ++k) {
             const double y = ye(k);
-            for (SpMatU::InnerIterator it(qp.Ae, k); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.Ae, k); it; ++it) {
                 r(it.col()) += it.value() * y;
                 r_abs(it.col()) += std::abs(it.value() * y);
             }
@@ -3365,7 +3365,7 @@ class SsnEngine {
         }
         for (Index k = 0; k < mi; ++k) {
             const double y = yi(k);
-            for (SpMatU::InnerIterator it(qp.Ai, k); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.Ai, k); it; ++it) {
                 r(it.col()) += it.value() * y;
                 r_abs(it.col()) += std::abs(it.value() * y);
             }
@@ -3408,7 +3408,7 @@ class SsnEngine {
 
         resid_x = qp.g;
         for (Index i = 0; i < n; ++i) { // H stores the upper triangle only
-            for (SpMatU::InnerIterator it(qp.H, i); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
                 const Index j = it.col();
                 resid_x(i) += it.value() * x(j);
                 if (j != i) {
@@ -3418,7 +3418,7 @@ class SsnEngine {
         }
         for (Index r = 0; r < me; ++r) {
             double ax = 0.0;
-            for (SpMatU::InnerIterator it(qp.Ae, r); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.Ae, r); it; ++it) {
                 ax += it.value() * x(it.col());
                 resid_x(it.col()) += it.value() * le(r);
             }
@@ -3426,7 +3426,7 @@ class SsnEngine {
         }
         for (Index k = 0; k < mi; ++k) {
             double ax = 0.0;
-            for (SpMatU::InnerIterator it(qp.Ai, k); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.Ai, k); it; ++it) {
                 ax += it.value() * x(it.col());
                 resid_x(it.col()) += it.value() * li(k);
             }
@@ -3570,7 +3570,7 @@ class SsnEngine {
 
     QpOptions opts_;
     detail::KktFactor kkt_;
-    SpMatU k_;
+    SpMatRM k_;
     Index dim_ = 0;
     std::vector<detail::SsnBoundRow> bound_rows_;
     std::vector<double> real_lower_, real_upper_;

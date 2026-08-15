@@ -1921,7 +1921,7 @@ constexpr double kRideNullspaceTol = 1e-8;
 inline double hessian_scale(const QpProblem &qp) {
     double s = 0.0;
     for (Index i = 0; i < qp.n(); ++i) {
-        for (SpMatU::InnerIterator it(qp.H, i); it; ++it) {
+        for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
             s = std::max(s, std::abs(it.value()));
         }
     }
@@ -1955,15 +1955,15 @@ inline void fnv1a_mix(std::uint64_t &h, const void *data, std::size_t len) {
 // a compressed COPY when the input actually needs one; the common case
 // (already compressed, e.g. anything built via .sparseView() or this
 // engine's own assemble_kkt_full) binds `m` straight to the caller's matrix.
-inline void mix_pattern(std::uint64_t &h, const SpMatU &m_in) {
-    SpMatU tmp;
-    const SpMatU *mp = &m_in;
+inline void mix_pattern(std::uint64_t &h, const SpMatRM &m_in) {
+    SpMatRM tmp;
+    const SpMatRM *mp = &m_in;
     if (!m_in.isCompressed()) {
         tmp = m_in;
         tmp.makeCompressed();
         mp = &tmp;
     }
-    const SpMatU &m = *mp;
+    const SpMatRM &m = *mp;
     const Index rows = m.rows();
     const Index cols = m.cols();
     const Index nnz = m.nonZeros();
@@ -1971,8 +1971,8 @@ inline void mix_pattern(std::uint64_t &h, const SpMatU &m_in) {
     fnv1a_mix(h, &cols, sizeof(cols));
     fnv1a_mix(h, &nnz, sizeof(nnz));
     fnv1a_mix(h, m.outerIndexPtr(),
-              sizeof(SpMatU::StorageIndex) * static_cast<std::size_t>(rows + 1));
-    fnv1a_mix(h, m.innerIndexPtr(), sizeof(SpMatU::StorageIndex) * static_cast<std::size_t>(nnz));
+              sizeof(SpMatRM::StorageIndex) * static_cast<std::size_t>(rows + 1));
+    fnv1a_mix(h, m.innerIndexPtr(), sizeof(SpMatRM::StorageIndex) * static_cast<std::size_t>(nnz));
 }
 
 // Mixes rows/cols/nnz as a separator BEFORE the value bytes themselves, not
@@ -1987,15 +1987,15 @@ inline void mix_pattern(std::uint64_t &h, const SpMatU &m_in) {
 // mixing the shape in here too means values_hash alone is no longer
 // collision-prone across a shape change, cheaply, in case it is ever
 // consulted on its own.
-inline void mix_values(std::uint64_t &h, const SpMatU &m_in) {
-    SpMatU tmp;
-    const SpMatU *mp = &m_in;
+inline void mix_values(std::uint64_t &h, const SpMatRM &m_in) {
+    SpMatRM tmp;
+    const SpMatRM *mp = &m_in;
     if (!m_in.isCompressed()) {
         tmp = m_in;
         tmp.makeCompressed();
         mp = &tmp;
     }
-    const SpMatU &m = *mp;
+    const SpMatRM &m = *mp;
     const Index rows = m.rows();
     const Index cols = m.cols();
     const Index nnz = m.nonZeros();
@@ -4368,7 +4368,7 @@ class QpEngine {
     static Vec hessian_diagonal(const QpProblem &qp) {
         Vec d = Vec::Zero(qp.n());
         for (Index i = 0; i < qp.n(); ++i) {
-            for (SpMatU::InnerIterator it(qp.H, i); it; ++it) {
+            for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
                 if (it.col() == i) {
                     d(i) = it.value();
                 }

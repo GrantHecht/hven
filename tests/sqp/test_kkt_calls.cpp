@@ -3,12 +3,14 @@
 #include <hven/detail/kkt/kkt_calls.h>
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 using namespace hven::solvers::detail;
 
 namespace {
 
-SpMatU make_kkt3(double h00 = 2.0) {
-    SpMatU K(3, 3);
+SpMatRM make_kkt3(double h00 = 2.0) {
+    SpMatRM K(3, 3);
     K.insert(0, 0) = h00;
     K.insert(0, 2) = 1.0;
     K.insert(1, 1) = 3.0;
@@ -18,8 +20,8 @@ SpMatU make_kkt3(double h00 = 2.0) {
     return K;
 }
 
-SpMatU make_kkt3_different_pattern() {
-    SpMatU K(3, 3);
+SpMatRM make_kkt3_different_pattern() {
+    SpMatRM K(3, 3);
     K.insert(0, 0) = 2.0;
     K.insert(1, 1) = 3.0;
     K.insert(1, 2) = 1.0;
@@ -53,7 +55,7 @@ TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
 
 TEST(KktFactor, FreshAnalyzeFactorizeAndSolve) {
     KktFactor k;
-    const SpMatU K = make_kkt3();
+    const SpMatRM K = make_kkt3();
 
     EXPECT_FALSE(k.analyzed);
     EXPECT_TRUE(needs_analysis(k, K));
@@ -79,8 +81,8 @@ TEST(KktFactor, FreshAnalyzeFactorizeAndSolve) {
 
 TEST(KktFactor, RefactorizesAValueChangeWithoutReanalyzing) {
     KktFactor k;
-    const SpMatU first = make_kkt3();
-    const SpMatU second = make_kkt3(4.0);
+    const SpMatRM first = make_kkt3();
+    const SpMatRM second = make_kkt3(4.0);
 
     ASSERT_EQ(factorize_checked(k, first).status, hven::linear::FactorizeOutcome::Status::kOk);
     EXPECT_FALSE(needs_analysis(k, second));
@@ -92,9 +94,9 @@ TEST(KktFactor, RefactorizesAValueChangeWithoutReanalyzing) {
 
 TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     KktFactor k;
-    const SpMatU first = make_kkt3();
-    const SpMatU same_pattern = make_kkt3(4.0);
-    const SpMatU changed_pattern = make_kkt3_different_pattern();
+    const SpMatRM first = make_kkt3();
+    const SpMatRM same_pattern = make_kkt3(4.0);
+    const SpMatRM changed_pattern = make_kkt3_different_pattern();
     Index symbolic_analyses = 0;
 
     if (needs_analysis(k, first)) {

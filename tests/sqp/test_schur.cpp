@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/schur_complement.h>
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 
 // K0 = [H Aᵀ; A 0] with H = diag(2,3), A = [1 1]. Saddle point: inertia (2,1,0).
 // (Repeated verbatim from the dissolved test_kkt_system.cpp's make_kkt3().)
@@ -11,8 +13,8 @@ using namespace hven::solvers;
 // these dense-built fixtures could drop the zero diagonal via sparseView();
 // this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
 // does.
-static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
-    SpMatU K(D.rows(), D.cols());
+static SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatRM K(D.rows(), D.cols());
     for (Eigen::Index r = 0; r < D.rows(); ++r) {
         for (Eigen::Index c = r; c < D.cols(); ++c) {
             if (r == c || D(r, c) != 0.0) {
@@ -24,7 +26,7 @@ static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
     return K;
 }
 
-static SpMatU make_kkt3() {
+static SpMatRM make_kkt3() {
     Eigen::MatrixXd D(3, 3);
     D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
     return upper_with_structural_diag(D);
@@ -33,7 +35,7 @@ static SpMatU make_kkt3() {
 TEST(Schur, BorderedSolveMatchesDirectFactorization) {
     // Border with one constraint row a = (0,1,0), i.e. additionally pin
     // variable 1. Compare against factorizing the 4x4 system directly.
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K0);
@@ -58,7 +60,7 @@ TEST(Schur, BorderedSolveMatchesDirectFactorization) {
 }
 
 TEST(Schur, RefactorizationTriggerFires) {
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     opts.schur_cap = 2;
     detail::KktFactor kkt;
@@ -83,7 +85,7 @@ TEST(Schur, RefactorizationTriggerFires) {
 TEST(Schur, DropBorderMatchesDirectFactorizationOfSurvivor) {
     // Add two borders, drop the first, and check solve() matches a 4x4
     // system directly factorized from K0 + the SECOND border only.
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K0);
@@ -114,7 +116,7 @@ TEST(Schur, DropBorderMatchesDirectFactorizationOfSurvivor) {
 }
 
 TEST(Schur, DropBorderThrowsOnOutOfRange) {
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K0);
@@ -135,7 +137,7 @@ TEST(Schur, IndefiniteSchurSolveMatchesDirect) {
     // off-diagonally through K0^-1. By hand (see task-8-report.md, Fix round
     // 1): C ~= [[-0.20000001, -0.2], [-0.2, 4.8]], eig(C) ~= [-0.208, 4.808]
     // -- one negative, one positive eigenvalue, neither block trivial.
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K0);
@@ -190,7 +192,7 @@ TEST(Schur, AntiDiagonalSchurBlock) {
     // exception raised) -- Bunch-Kaufman must instead form a 2x2 pivot block
     // here and solve it correctly (dim 2 is small enough that a 2x2 block
     // spans the WHOLE of C).
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K0);
@@ -238,7 +240,7 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
     // WRONG "no negative eigenvalues" answer for a matrix with no usable
     // factorization -- must instead throw, matching solve()'s own behavior on
     // a singular C.
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K0);
@@ -260,7 +262,7 @@ TEST(Schur, InertiaBookkeepingPinnedVariable) {
     // d = -mu, C = d - v^T K0^-1 v is a 1x1 matrix equal to
     // -1e-8 - 0.2 ~= -0.2000000, i.e. strictly negative -- so C's LDLT has
     // exactly one negative diagonal entry.
-    SpMatU K0 = make_kkt3();
+    SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K0);
@@ -282,7 +284,7 @@ TEST(Schur, NearlySingularOneByOneNeedsRefactorization) {
     QpOptions opts;
     Eigen::MatrixXd K0d(1, 1);
     K0d << 1.0;
-    SpMatU K0 = K0d.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    SpMatRM K0 = K0d.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
     K0.makeCompressed();
 
     detail::KktFactor kkt;

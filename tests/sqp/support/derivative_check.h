@@ -84,9 +84,9 @@ inline double scaled_tol(double tol, double analytic) {
     return tol * std::max(1.0, std::abs(analytic));
 }
 
-// Symmetrizes an upper-triangle-only sparse matrix (SpMatU's convention)
+// Symmetrizes an upper-triangle-only sparse matrix (SpMatRM's convention)
 // into a dense n x n matrix.
-inline Eigen::MatrixXd symmetrize_upper(const SpMatU &upper) {
+inline Eigen::MatrixXd symmetrize_upper(const SpMatRM &upper) {
     const Eigen::MatrixXd dense = Eigen::MatrixXd(upper);
     return Eigen::MatrixXd(dense.selfadjointView<Eigen::Upper>());
 }
@@ -213,7 +213,7 @@ inline ::testing::AssertionResult assert_hessian(const NlpModel &model, const Ve
         return g;
     };
 
-    const SpMatU H = model.eval_hess(x, 1.0, lambda_e, lambda_i);
+    const SpMatRM H = model.eval_hess(x, 1.0, lambda_e, lambda_i);
     if (H.rows() != n || H.cols() != n) {
         return ::testing::AssertionFailure() << "assert_hessian: eval_hess returned " << H.rows()
                                              << "x" << H.cols() << ", expected " << n << "x" << n;

@@ -116,7 +116,7 @@ inline Vec bordered_regularization(Index n0, Index var_count, const std::vector<
 // K0_true = K0 - diag(reg) implies r = rhs - K0_true*sol = (rhs - K0*sol) +
 // diag(reg)*sol -- targets the same solution solve_eqp's own refinement step
 // converges to.
-inline Vec bordered_residual(const SpMatU &K0, Index var_count, const std::vector<Vec> &border_v,
+inline Vec bordered_residual(const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
                              const std::vector<double> &border_d, const Vec &rhs, const Vec &sol,
                              const QpOptions &opts) {
     const Index n0 = K0.rows();
@@ -147,7 +147,7 @@ inline Vec bordered_residual(const SpMatU &K0, Index var_count, const std::vecto
 // refine_bordered_solve_iterated for the case where one step is not enough. It
 // is kept as the single-step primitive that function and the border
 // equivalence tests are both written against.
-inline Vec refine_bordered_solve(const SpMatU &K0, Index var_count,
+inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
                                  const std::vector<Vec> &border_v,
                                  const std::vector<double> &border_d, const SchurComplement &schur,
                                  const Vec &rhs, const Vec &sol, const QpOptions &opts) {
@@ -224,7 +224,7 @@ inline Vec refine_bordered_solve(const SpMatU &K0, Index var_count,
 // the strict-decrease rule is discarded and not counted. This is what feeds
 // QpCounters::border_refine_steps; the Accelerate audit checklist (§(f)) asks
 // auditors to compare exactly this number between backends.
-inline Vec refine_bordered_solve_iterated(const SpMatU &K0, Index var_count,
+inline Vec refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count,
                                           const std::vector<Vec> &border_v,
                                           const std::vector<double> &border_d,
                                           const SchurComplement &schur, const Vec &rhs,

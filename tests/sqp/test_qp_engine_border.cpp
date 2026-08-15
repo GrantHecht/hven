@@ -12,6 +12,8 @@
 #include "support/border_test_utils.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 
 namespace {
 
@@ -45,8 +47,8 @@ QpProblem simple_box_qp() {
 // these dense-built fixtures could drop the zero diagonal via sparseView();
 // this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
 // does.
-static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
-    SpMatU K(D.rows(), D.cols());
+static SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatRM K(D.rows(), D.cols());
     for (Eigen::Index r = 0; r < D.rows(); ++r) {
         for (Eigen::Index c = r; c < D.cols(); ++c) {
             if (r == c || D(r, c) != 0.0) {
@@ -58,7 +60,7 @@ static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
     return K;
 }
 
-SpMatU make_kkt3() {
+SpMatRM make_kkt3() {
     Eigen::MatrixXd D(3, 3);
     D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
     return upper_with_structural_diag(D);
@@ -644,7 +646,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
 // SQP-facing claim -- a moved KktFactor keeps its factorization, its
 // evidence, and its pattern mirror -- exercised through the SQP surface.
 TEST(QpEngineBorder, KktFactorMoveKeepsFactorizationUsable) {
-    SpMatU K = make_kkt3();
+    SpMatRM K = make_kkt3();
 
     detail::KktFactor source;
     detail::factorize_checked(source, K);

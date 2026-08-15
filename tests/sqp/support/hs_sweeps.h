@@ -202,8 +202,8 @@ class HsSweep : public ParametricNlpModel {
     // arguments pass through unchanged, which is what carries the Phase-5
     // Task 0 clause (pattern independent of obj_scale and of the lambda
     // VALUES) as well as the original x clause.
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &lambda_i) const override {
         return base_->eval_hess(x, obj_scale, lambda_e, lambda_i);
     }
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {

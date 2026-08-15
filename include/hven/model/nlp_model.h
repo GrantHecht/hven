@@ -27,7 +27,7 @@
 // the driver.
 //
 // EXACT LAGRANGIAN HESSIAN. eval_hess(x, obj_scale, lambda_e, lambda_i)
-// returns the upper triangle only (SpMatU -- same storage convention as
+// returns the upper triangle only (SpMatRM -- same storage convention as
 // qp_problem.h::H, enforced the same way by that header's validate()) of
 //
 //     obj_scale * hess(f)(x)
@@ -108,8 +108,8 @@ class NlpModel {
     virtual Vec eval_ci(const Vec &x) const = 0;   // size mi()
 
     // Exact Lagrangian Hessian, upper triangle only. See header comment.
-    virtual SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                             const Vec &lambda_i) const = 0;
+    virtual SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                              const Vec &lambda_i) const = 0;
 
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const = 0;
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const = 0;

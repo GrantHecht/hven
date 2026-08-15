@@ -507,7 +507,7 @@ TEST(ParametricF3, ScaleReadinessAtTenThousand) {
 
     // The Hessian, structurally: the exact path Laplacian's upper triangle,
     // 2n - 1 stored entries, values 1/2/-1 as derived.
-    const SpMatU H = model.eval_hess(x, 1.0, lambda_e, Vec(0));
+    const SpMatRM H = model.eval_hess(x, 1.0, lambda_e, Vec(0));
     ASSERT_EQ(H.rows(), kN);
     ASSERT_EQ(H.nonZeros(), 2 * kN - 1);
     for (Index j = 0; j < kN; ++j) {

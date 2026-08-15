@@ -242,6 +242,7 @@
 
 namespace {
 
+using hven::Vec;
 using hven::solvers::ContinuationOptions;
 using hven::solvers::ContinuationResult;
 using hven::solvers::ContinuationStep;
@@ -259,7 +260,6 @@ using hven::solvers::SqpSolution;
 using hven::solvers::SqpSolveRecord;
 using hven::solvers::SqpStatus;
 using hven::solvers::StartLevel;
-using hven::solvers::Vec;
 using hven::solvers::WarmStart;
 using hven::solvers::WorkingSetLinearAlgebra;
 using hven::solvers::test_support::F3SpringChain;

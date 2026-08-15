@@ -829,7 +829,7 @@ inline WarmStart predict(ParametricNlpModel &model, const WarmStart &warm, const
         const Vec &x = warm.x;
         const predictor_detail::ModelSample base =
             predictor_detail::sample_model(model, x, warm.lambda_e, warm.lambda_i);
-        SpMatU H = model.eval_hess(x, 1.0, warm.lambda_e, warm.lambda_i);
+        SpMatRM H = model.eval_hess(x, 1.0, warm.lambda_e, warm.lambda_i);
         H.makeCompressed();
         Eigen::SparseMatrix<double, Eigen::RowMajor> Je = model.eval_jac_e(x);
         Je.makeCompressed();

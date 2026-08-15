@@ -9,6 +9,7 @@
 #include "support/parametric_families.h"
 
 using namespace hven::solvers;
+using hven::Vec;
 
 namespace {
 

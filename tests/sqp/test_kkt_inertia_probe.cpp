@@ -4,6 +4,7 @@
 #include <fmt/format.h>
 
 using namespace hven::solvers;
+using hven::SpMatRM;
 using hven::linear::InertiaEvidence;
 
 namespace {
@@ -15,8 +16,8 @@ namespace {
 // these dense-built fixtures could drop the zero diagonal via sparseView();
 // this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
 // does.
-static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
-    SpMatU K(D.rows(), D.cols());
+static SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatRM K(D.rows(), D.cols());
     for (Eigen::Index r = 0; r < D.rows(); ++r) {
         for (Eigen::Index c = r; c < D.cols(); ++c) {
             if (r == c || D(r, c) != 0.0) {
@@ -51,7 +52,7 @@ TEST(InertiaProbe, NearSingularReducedHessian) {
     for (double eps : {1e-6, 1e-10, 1e-12, 1e-14}) {
         Eigen::MatrixXd D(3, 3);
         D << 1, 0, 1, 0, eps, 0, 1, 0, 0;
-        SpMatU K = upper_with_structural_diag(D);
+        SpMatRM K = upper_with_structural_diag(D);
         detail::KktFactor kkt;
         const hven::linear::FactorizeOutcome outcome = detail::factorize_checked(kkt, K);
         ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk) << "eps=" << eps;
@@ -110,7 +111,7 @@ TEST(InertiaProbe, NearSingularReducedHessian) {
 TEST(InertiaProbe, ExactlySingular) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
-    SpMatU K = upper_with_structural_diag(D);
+    SpMatRM K = upper_with_structural_diag(D);
     detail::KktFactor kkt;
 
     hven::linear::FactorizeOutcome outcome;

@@ -46,6 +46,8 @@
 #include "support/hs_problems.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 using hven::solvers::test_support::assert_gradient;
 using hven::solvers::test_support::assert_hessian;
 using hven::solvers::test_support::assert_jacobians;
@@ -108,8 +110,8 @@ class InfeasibleCircleLineModel : public NlpModel {
     Vec eval_ci(const Vec &) const override { return Vec(0); }
     // f is linear and cE2 is linear, so the whole Lagrangian Hessian is
     // lambda_e(0) * hess(cE1) = 2*lambda_e(0)*I.
-    SpMatU eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = 2.0 * lambda_e(0);
         h.insert(1, 1) = 2.0 * lambda_e(0);
         h.makeCompressed();
@@ -216,9 +218,9 @@ class StalledValleyModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * 0.001 + lambda_e(0) * 2000.0;
         h.insert(1, 1) = obj_scale * 10.0;
         h.makeCompressed();
@@ -276,8 +278,8 @@ class BoxBlockedEqualityModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale;
         h.insert(1, 1) = obj_scale;
         h.makeCompressed();
@@ -325,8 +327,8 @@ class CircleInequalityModel : public NlpModel {
         c << x(0) * x(0) + x(1) * x(1) - 4.0;
         return c;
     }
-    SpMatU eval_hess(const Vec &, double, const Vec &, const Vec &lambda_i) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &lambda_i) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = 2.0 * lambda_i(0);
         h.insert(1, 1) = 2.0 * lambda_i(0);
         h.makeCompressed();
@@ -1028,9 +1030,9 @@ class RunawayValleyModel : public StalledValleyModel {
         g << 0.001 * x(0) - 0.01, 0.001 * x(1) - 10.0;
         return g;
     }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * 0.001 + lambda_e(0) * 2000.0;
         h.insert(1, 1) = obj_scale * 0.001;
         h.makeCompressed();

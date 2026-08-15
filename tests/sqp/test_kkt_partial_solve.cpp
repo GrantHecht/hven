@@ -2,6 +2,8 @@
 #include <hven/detail/kkt/kkt_calls.h>
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 using hven::linear::SymmetricFactor;
 
 namespace {
@@ -13,8 +15,8 @@ namespace {
 // these dense-built fixtures could drop the zero diagonal via sparseView();
 // this builder keeps it explicit, exactly as test_kkt_calls.cpp's fixture
 // does.
-static SpMatU upper_with_structural_diag(const Eigen::MatrixXd &D) {
-    SpMatU K(D.rows(), D.cols());
+static SpMatRM upper_with_structural_diag(const Eigen::MatrixXd &D) {
+    SpMatRM K(D.rows(), D.cols());
     for (Eigen::Index r = 0; r < D.rows(); ++r) {
         for (Eigen::Index c = r; c < D.cols(); ++c) {
             if (r == c || D(r, c) != 0.0) {
@@ -46,7 +48,7 @@ Vec composed_partials(const detail::KktFactor &kkt, const Vec &b) {
 TEST(KktPartialSolve, ComposedPartialsMatchFullSolve) {
     Eigen::MatrixXd D(3, 3);
     D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
-    SpMatU K = upper_with_structural_diag(D);
+    SpMatRM K = upper_with_structural_diag(D);
     detail::KktFactor kkt;
     detail::factorize_checked(kkt, K);
 #ifdef USE_ACCELERATE_SPARSE
@@ -98,7 +100,7 @@ TEST(KktPartialSolve, ComposedPartialsMatchFullSolve) {
 TEST(KktPartialSolve, GateClosesOnPerturbedPivots) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
-    SpMatU K = upper_with_structural_diag(D);
+    SpMatRM K = upper_with_structural_diag(D);
     detail::KktFactor kkt;
     const hven::linear::FactorizeOutcome outcome = detail::factorize_checked(kkt, K);
     ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk);

@@ -119,8 +119,8 @@
 
 namespace {
 
+using hven::Vec;
 using hven::solvers::QpProblem;
-using hven::solvers::Vec;
 using hven::solvers::corpus::all_cells;
 using hven::solvers::corpus::budget_table_hash;
 using hven::solvers::corpus::CorpusCell;
@@ -666,13 +666,13 @@ void write_qp_dump(std::ostream &os, const CorpusCell &cell, const QpProblem &qp
 
     std::size_t h_nnz = 0;
     for (int k = 0; k < qp.H.outerSize(); ++k) {
-        for (hven::solvers::SpMatU::InnerIterator it(qp.H, k); it; ++it) {
+        for (hven::SpMatRM::InnerIterator it(qp.H, k); it; ++it) {
             ++h_nnz;
         }
     }
     os << fmt::format("H_NNZ {}\n", h_nnz);
     for (int k = 0; k < qp.H.outerSize(); ++k) {
-        for (hven::solvers::SpMatU::InnerIterator it(qp.H, k); it; ++it) {
+        for (hven::SpMatRM::InnerIterator it(qp.H, k); it; ++it) {
             os << fmt::format("{} {} {:.17g}\n", it.row(), it.col(), it.value());
         }
     }

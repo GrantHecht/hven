@@ -14,10 +14,19 @@
 // kAtLower/kFixed, qp.upper(i) for kAtUpper) rather than appearing in K;
 // their contribution moves to the right-hand side (see rhs_shift below).
 //
-// K is returned as the UPPER triangle only (the hven::solvers::SpMatU
-// convention used throughout: the KKT factor, qp_problem.h's H, etc.), with rows
-// laid out as [free-variable Hessian rows | equality rows | working-
-// inequality rows], sizes [n_free | me | n_working].
+// K is returned as the UPPER triangle only, with rows laid out as
+// [free-variable Hessian rows | equality rows | working-inequality rows],
+// sizes [n_free | me | n_working].
+//
+// THE UPPER-TRIANGLE CONVENTION IS NOT IN THE TYPE. `hven::SpMatRM` is a plain
+// row-major double sparse matrix; nothing about it says which half of a
+// symmetric matrix is stored. Every symmetric `SpMatRM` this layer builds or
+// consumes -- the K assembled here, qp_problem.h's H, and what the KKT factor
+// is handed -- holds the UPPER triangle only, and the sparse backends are
+// driven on that assumption. A caller that fills both triangles, or the lower
+// one, is silently wrong. (Until M3 phase-C S2b the SQP layer spelled this type
+// `SpMatU` and let the `U` carry the convention; the vocabulary is now the
+// library's, so the convention is recorded here, at the fill site, instead.)
 //
 // --- rhs_shift semantics ---
 //
@@ -78,7 +87,7 @@
 namespace hven::solvers {
 
 struct KktAssembly {
-    SpMatU K;                        // (n_free + me + n_working) square, upper triangle stored
+    SpMatRM K;                       // (n_free + me + n_working) square, upper triangle stored
     std::vector<Index> free_of_full; // free-index -> full-variable-index map, increasing
     Vec rhs_shift;                   // see header comment above; same row layout as K
 };
@@ -170,7 +179,7 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
     // fixed row (p) with free col (q) contributes via the SAME stored
     // value H(p,q) but attributed to free row q (since H(q,p) == H(p,q)).
     for (Index i = 0; i < n; ++i) {
-        for (SpMatU::InnerIterator it(qp.H, i); it; ++it) {
+        for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
             const Index j = it.col();
             const double val = it.value();
             const Index fi = full_to_free[static_cast<std::size_t>(i)];
@@ -192,7 +201,7 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
     // Equality rows: Ae_F^T into K's top-right block; fixed columns into
     // rhs_shift's equality rows; -mu*I on the equality diagonal.
     for (Index r = 0; r < me; ++r) {
-        for (SpMatU::InnerIterator it(qp.Ae, r); it; ++it) {
+        for (SpMatRM::InnerIterator it(qp.Ae, r); it; ++it) {
             const Index j = it.col();
             const double val = it.value();
             const Index fj = full_to_free[static_cast<std::size_t>(j)];
@@ -209,7 +218,7 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
     // active rows in sorted order.
     for (Index k = 0; k < n_working; ++k) {
         const Index row = aw[static_cast<std::size_t>(k)];
-        for (SpMatU::InnerIterator it(qp.Ai, row); it; ++it) {
+        for (SpMatRM::InnerIterator it(qp.Ai, row); it; ++it) {
             const Index j = it.col();
             const double val = it.value();
             const Index fj = full_to_free[static_cast<std::size_t>(j)];
@@ -222,7 +231,7 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
         trips.emplace_back(ineq_off + k, ineq_off + k, -opts.dual_mu);
     }
 
-    SpMatU K(dim, dim);
+    SpMatRM K(dim, dim);
     K.setFromTriplets(trips.begin(), trips.end());
     K.makeCompressed();
 

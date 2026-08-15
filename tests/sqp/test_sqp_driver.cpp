@@ -117,6 +117,8 @@
 #include "support/nlp_kkt_check.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 using hven::solvers::test_support::HsProblem;
 using hven::solvers::test_support::make_hs;
 // TASK 11 MOVED THESE TWO to tests/sqp/support/nlp_kkt_check.h so that the
@@ -255,7 +257,7 @@ class CountingModel : public NlpModel {
         ++n_ci;
         return inner_->eval_ci(x);
     }
-    SpMatU eval_hess(const Vec &x, double s, const Vec &le, const Vec &li) const override {
+    SpMatRM eval_hess(const Vec &x, double s, const Vec &le, const Vec &li) const override {
         ++n_hess;
         return inner_->eval_hess(x, s, le, li);
     }
@@ -522,8 +524,8 @@ class NanPastRadiusModel : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(1, 1);
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
         h.insert(0, 0) =
             in_domain(x) ? obj_scale * kCurvature : std::numeric_limits<double>::quiet_NaN();
         return h;
@@ -1851,8 +1853,8 @@ class InconsistentBoundedModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale;
         h.insert(1, 1) = obj_scale;
         h.makeCompressed();
@@ -2016,8 +2018,8 @@ class FlatQuarticModel : public NlpModel {
     }
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * 3.0 * x(0) * x(0);
         h.insert(1, 1) = obj_scale * 1.0;
         h.makeCompressed();
@@ -2091,8 +2093,8 @@ class SecondOrderInfeasibleModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &le, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &le, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * 0.001 + le(0) * 2000.0;
         h.insert(1, 1) = obj_scale * 0.001;
         h.makeCompressed();
@@ -2196,7 +2198,7 @@ TEST(SqpDriverTrustRegion, PredictedDecreaseIsTheQpModelDecrease) {
     //   p^T H p   = 2*3 + (-1)*(-2) = 8
     //   pred_df   = -(-5 + 0.5*8) = -(-1) = +1
     QpProblem qp;
-    qp.H = SpMatU(2, 2);
+    qp.H = SpMatRM(2, 2);
     qp.H.insert(0, 0) = 2.0;
     qp.H.insert(0, 1) = 1.0; // upper triangle only; the (1,0) mirror is implied
     qp.H.insert(1, 1) = 4.0;
@@ -2849,7 +2851,7 @@ class TwinSaddleModel : public NlpModel {
         }
         return J.sparseView();
     }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         Eigen::MatrixXd H = Eigen::MatrixXd::Zero(3 * blocks_, 3 * blocks_);
         for (Index b = 0; b < blocks_; ++b) {
             H(3 * b, 3 * b + 1) = obj_scale;
@@ -2905,13 +2907,13 @@ class SuspectStallModel : public NlpModel {
     Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, x(0)); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &, double s, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double s, const Vec &, const Vec &) const override {
         // cE is linear, so the Lagrangian Hessian is s * hess(f) alone.
         Eigen::MatrixXd hd = Eigen::MatrixXd::Zero(3, 3);
         hd(0, 0) = s;
         hd(1, 1) = -s * delta_;
         hd(2, 2) = s;
-        return SpMatU(hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView());
+        return SpMatRM(hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView());
     }
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
         Eigen::MatrixXd jd(1, 3);
@@ -3419,7 +3421,7 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
 //               mutation-killing assertion rather than a vacuous one.
 TEST(SqpDriverSoc, BuildSocSubproblemShiftsRhsOnActiveRowsOnly) {
     QpProblem qp;
-    qp.H = SpMatU(2, 2);
+    qp.H = SpMatRM(2, 2);
     qp.H.insert(0, 0) = 1.0;
     qp.H.insert(1, 1) = 1.0;
     qp.H.makeCompressed();
@@ -3487,7 +3489,7 @@ TEST(SqpDriverSoc, BuildSocSubproblemShiftsRhsOnActiveRowsOnly) {
 // isolation.
 TEST(SqpDriverSoc, BuildSocSubproblemHandlesEqualityOnlyQp) {
     QpProblem qp;
-    qp.H = SpMatU(1, 1);
+    qp.H = SpMatRM(1, 1);
     qp.H.insert(0, 0) = 2.0;
     qp.H.makeCompressed();
     qp.g = Vec(1);
@@ -3551,9 +3553,9 @@ class MaratosModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &le, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &le, const Vec &) const override {
         // Hess f = 4*I; Hess cE = 2*I (cE is itself a quadratic form).
-        SpMatU h(2, 2);
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * 4.0 + le(0) * 2.0;
         h.insert(1, 1) = obj_scale * 4.0 + le(0) * 2.0;
         h.makeCompressed();
@@ -3802,11 +3804,11 @@ class QuarticWithLinearEqualityModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         // cE(x) = x1 - 2 is AFFINE: its Hessian contribution is exactly
         // zero, so H is UNCHANGED from FlatQuarticModel's regardless of
         // lambda_e.
-        SpMatU h(2, 2);
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * 3.0 * x(0) * x(0);
         h.insert(1, 1) = obj_scale * 1.0;
         h.makeCompressed();
@@ -4004,8 +4006,8 @@ class CurvedActiveInequalityModel : public NlpModel {
         c << x(1) * x(1) - kBound, x(0) - 10.0;
         return c;
     }
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &li) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &li) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * 3.0 * x(0) * x(0);
         h.insert(1, 1) = obj_scale * kReg + li(0) * 2.0;
         h.makeCompressed();
@@ -4374,8 +4376,8 @@ class InfeasibleCircleLineModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = 2.0 * lambda_e(0);
         h.insert(1, 1) = 2.0 * lambda_e(0);
         h.makeCompressed();
@@ -4435,8 +4437,8 @@ class InconsistentLinearizationModel : public NlpModel {
         return c;
     }
     // grad^2 f = diag(2, 2); grad^2 c1 = grad^2 c2 = S * diag(-2, 0).
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &li) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &li) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = 2.0 * obj_scale - 2.0 * scale_ * (li(0) + li(1));
         h.insert(1, 1) = 2.0 * obj_scale;
         h.makeCompressed();
@@ -4509,7 +4511,7 @@ class InconsistentLinearizationModel : public NlpModel {
 // load-bearing.
 TEST(SqpDriverElastic, ElasticConstructionRelaxesOnlyViolatedRows) {
     QpProblem qp;
-    qp.H = SpMatU(2, 2);
+    qp.H = SpMatRM(2, 2);
     qp.H.insert(0, 0) = 2.0;
     qp.H.insert(1, 1) = 4.0;
     qp.H.makeCompressed();
@@ -4657,7 +4659,7 @@ TEST(SqpDriverElastic, ElasticConstructionRelaxesOnlyViolatedRows) {
 // to 1e8 is a search for a rho above the subproblem's own multipliers.
 TEST(SqpDriverElastic, ElasticReformulationRecoversAFeasibleQpsSolution) {
     QpProblem qp;
-    qp.H = SpMatU(2, 2);
+    qp.H = SpMatRM(2, 2);
     qp.H.insert(0, 0) = 1.0;
     qp.H.insert(1, 1) = 1.0;
     qp.H.makeCompressed();
@@ -5226,8 +5228,8 @@ class ScaledRowModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale;
         h.insert(1, 1) = obj_scale;
         h.makeCompressed();
@@ -5984,8 +5986,8 @@ class BoundaryStartModel : public NlpModel {
     }
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &x) const override { return -x; }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(n_, n_);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(n_, n_);
         for (Index i = 0; i < n_; ++i) {
             h.insert(i, i) = obj_scale;
         }
@@ -6151,7 +6153,7 @@ TEST(SqpDriverCrashBasis, IsInertOnAWarmIngest) {
 // needing a separate test -- crash_basis_seed's own note).
 TEST(SqpDriverCrashBasis, SeedBuilderReadsTheSubproblemsOwnGeometry) {
     QpProblem qp;
-    qp.H = SpMatU(3, 3);
+    qp.H = SpMatRM(3, 3);
     qp.g = Vec::Zero(3);
     qp.Ae = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 3);
     qp.be = Vec(0);
@@ -6346,8 +6348,8 @@ class IndefiniteBoxModel : public NlpModel {
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
         return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
     }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale;
         h.insert(1, 1) = -2.0 * obj_scale;
         h.makeCompressed();
@@ -7790,8 +7792,8 @@ class NearSaddleIndefiniteModel : public NlpModel {
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
         return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
     }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale;
         h.insert(1, 1) = -2.0 * obj_scale;
         h.makeCompressed();

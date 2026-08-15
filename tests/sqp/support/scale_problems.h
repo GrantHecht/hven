@@ -715,8 +715,8 @@ class F7CollocationChain : public ParametricNlpModel {
     // hess L = obj_scale*W + sum_k lambda_i(k) * (I on node k's state block);
     // cE is affine, so lambda_e contributes nothing. EVERY entry below is
     // emitted on every call, whatever obj_scale and the multipliers are.
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(nodes_ * (2 * ns_ + nc_)));
         for (Index k = 0; k < nodes_; ++k) {

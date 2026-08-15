@@ -79,6 +79,8 @@
 #include "support/nlp_kkt_check.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 using hven::solvers::test_support::hs_numbers;
 using hven::solvers::test_support::HsProblem;
 using hven::solvers::test_support::make_hs;
@@ -440,7 +442,7 @@ TEST(HsBattery, BorderModeFalseInfeasible) {
     QpProblem qp;
     qp.g = (Vec(3) << -9.2, 9.2, 0.0).finished();
     {
-        SpMatU H(3, 3);
+        SpMatRM H(3, 3);
         const std::vector<Eigen::Triplet<double>> t = {{0, 0, 2.0}, {0, 1, -2.0}, {0, 2, 0.0},
                                                        {1, 1, 2.0}, {1, 2, 0.0},  {2, 2, 0.0}};
         H.setFromTriplets(t.begin(), t.end());
@@ -523,7 +525,7 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
     QpProblem qp;
     qp.g = (Vec(3) << -9.2, 9.2, 0.0).finished();
     {
-        SpMatU H(3, 3);
+        SpMatRM H(3, 3);
         const std::vector<Eigen::Triplet<double>> t = {{0, 0, 2.0}, {0, 1, -2.0}, {0, 2, 0.0},
                                                        {1, 1, 2.0}, {1, 2, 0.0},  {2, 2, 0.0}};
         H.setFromTriplets(t.begin(), t.end());

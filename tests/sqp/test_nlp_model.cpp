@@ -27,10 +27,10 @@
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
 
+using hven::SpMatRM;
+using hven::Vec;
 using hven::solvers::Index;
 using hven::solvers::NlpModel;
-using hven::solvers::SpMatU;
-using hven::solvers::Vec;
 using hven::solvers::test_support::assert_gradient;
 using hven::solvers::test_support::assert_hessian;
 using hven::solvers::test_support::assert_jacobians;
@@ -101,13 +101,13 @@ void CheckHsDimensions(int number) {
 
     const Vec lambda_e = Vec::Zero(me);
     const Vec lambda_i = Vec::Zero(mi);
-    const SpMatU H = model.eval_hess(x, 1.0, lambda_e, lambda_i);
+    const SpMatRM H = model.eval_hess(x, 1.0, lambda_e, lambda_i);
     EXPECT_EQ(H.rows(), n);
     EXPECT_EQ(H.cols(), n);
     // eval_hess must store only its upper triangle, same requirement as
     // qp_problem.h::H's validate().
     for (Index i = 0; i < H.outerSize(); ++i) {
-        for (SpMatU::InnerIterator it(H, i); it; ++it) {
+        for (SpMatRM::InnerIterator it(H, i); it; ++it) {
             EXPECT_LE(it.row(), it.col())
                 << "eval_hess has a lower-triangle entry at (row=" << it.row()
                 << ", col=" << it.col() << ")";
@@ -180,8 +180,8 @@ class WrongGradientModel : public NlpModel {
     Vec eval_ce(const Vec &x) const override { return base_.eval_ce(x); }
     Vec eval_ci(const Vec &x) const override { return base_.eval_ci(x); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &lambda_i) const override {
         return base_.eval_hess(x, obj_scale, lambda_e, lambda_i);
     }
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
@@ -218,8 +218,8 @@ class WrongValuesModel : public NlpModel {
     Vec eval_grad(const Vec &x) const override { return base_.eval_grad(x); }
     Vec eval_ce(const Vec &x) const override { return base_.eval_ce(x); }
     Vec eval_ci(const Vec &x) const override { return base_.eval_ci(x); }
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &lambda_i) const override {
         return base_.eval_hess(x, obj_scale, lambda_e, lambda_i);
     }
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {

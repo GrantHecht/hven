@@ -57,10 +57,10 @@ namespace detail {
 constexpr double kInf = 1e20; // "effectively infinite" bound, matches
                               // qp_problem.h/dense_oracle.h's convention.
 
-// Builds an n x n SpMatU (upper triangle only) from (row, col, value)
+// Builds an n x n SpMatRM (upper triangle only) from (row, col, value)
 // triples with row <= col.
-inline SpMatU make_upper(Index n, std::vector<Eigen::Triplet<double>> triplets) {
-    SpMatU H(n, n);
+inline SpMatRM make_upper(Index n, std::vector<Eigen::Triplet<double>> triplets) {
+    SpMatRM H(n, n);
     H.setFromTriplets(triplets.begin(), triplets.end());
     return H;
 }
@@ -126,7 +126,7 @@ class Hs1Model : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         // Standard Rosenbrock Hessian: [[1200 x1^2 - 400 x2 + 2, -400 x1], [-400 x1, 200]].
         const double h00 = 1200.0 * x(0) * x(0) - 400.0 * x(1) + 2.0;
         const double h01 = -400.0 * x(0);
@@ -185,7 +185,7 @@ class Hs3Model : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         return detail::make_upper(
             2, {{0, 0, obj_scale * 2e-5}, {0, 1, obj_scale * -2e-5}, {1, 1, obj_scale * 2e-5}});
     }
@@ -243,7 +243,7 @@ class Hs5Model : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         const double s = std::sin(x(0) + x(1));
         const double h00 = -s + 2.0;
         const double h01 = -s - 2.0;
@@ -305,8 +305,8 @@ class Hs6Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
         // hess(f) = [[2, 0], [0, 0]]; hess(cE) = [[-20, 0], [0, 0]].
         const double le = lambda_e(0);
         return detail::make_upper(2, {{0, 0, obj_scale * 2.0 + le * -20.0}, {1, 1, 0.0}});
@@ -367,8 +367,8 @@ class Hs7Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
         const double x1 = x(0);
         const double p = 1.0 + x1 * x1;
         // hess(f) = [[(2 - 2 x1^2)/(1+x1^2)^2, 0], [0, 0]].
@@ -463,7 +463,7 @@ class Hs76Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         // hess(f): constant, all three linear constraints have zero Hessian.
         return detail::make_upper(4, {{0, 0, obj_scale * 2.0},
                                       {0, 2, obj_scale * -1.0},
@@ -588,7 +588,7 @@ class Hs10Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double, const Vec &, const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &lambda_i) const override {
         const double li = lambda_i(0);
         // hess(f) = 0; hess(cI1) = [[6, -2], [-2, 2]].
         return detail::make_upper(2, {{0, 0, li * 6.0}, {0, 1, li * -2.0}, {1, 1, li * 2.0}});
@@ -651,8 +651,8 @@ class Hs11Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         // hess(f) = diag(2, 2); hess(cI1) = diag(2, 0).
         return detail::make_upper(
             2, {{0, 0, obj_scale * 2.0 + lambda_i(0) * 2.0}, {1, 1, obj_scale * 2.0}});
@@ -709,8 +709,8 @@ class Hs12Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         // hess(f) = [[1, -1], [-1, 2]]; hess(cI1) = diag(8, 2).
         const double li = lambda_i(0);
         return detail::make_upper(2, {{0, 0, obj_scale * 1.0 + li * 8.0},
@@ -789,8 +789,8 @@ class Hs14Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         // hess(f) = diag(2, 2); hess(cE) = 0 (linear); hess(cI1) = diag(0.5, 2).
         const double li = lambda_i(0);
         return detail::make_upper(
@@ -855,8 +855,8 @@ class Hs15Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         // hess(f): Rosenbrock's. hess(cI1) = [[0, -1], [-1, 0]].
         // hess(cI2) = [[0, 0], [0, -2]].
         const double h00 = 1200.0 * x(0) * x(0) - 400.0 * x(1) + 2.0;
@@ -920,8 +920,8 @@ class Hs22Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         // hess(cI1) = 0 (linear); hess(cI2) = diag(2, 0).
         return detail::make_upper(
             2, {{0, 0, obj_scale * 2.0 + lambda_i(1) * 2.0}, {1, 1, obj_scale * 2.0}});
@@ -990,7 +990,7 @@ class Hs24Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         // Every general row is LINEAR, so the multipliers contribute nothing.
         const double a = x(0) - 3.0;
         const double x2 = x(1);
@@ -1095,7 +1095,7 @@ class Hs25Model : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         double h[3][3] = {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
         for (int i = 1; i <= kM; ++i) {
             Terms t;
@@ -1241,8 +1241,8 @@ class Hs26Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
         const double b2 = 12.0 * (x(1) - x(2)) * (x(1) - x(2));
         const double le = lambda_e(0);
         // hess(cE): d2/dx1dx2 = 2 x2, d2/dx2^2 = 2 x1, d2/dx3^2 = 12 x3^2.
@@ -1319,8 +1319,8 @@ class Hs27Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
         const double h00 = 0.02 + 12.0 * x(0) * x(0) - 4.0 * x(1);
         return detail::make_upper(3, {{0, 0, obj_scale * h00},
                                       {0, 1, obj_scale * -4.0 * x(0)},
@@ -1384,7 +1384,7 @@ class Hs28Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         return detail::make_upper(3, {{0, 0, obj_scale * 2.0},
                                       {0, 1, obj_scale * 2.0},
                                       {1, 1, obj_scale * 4.0},
@@ -1442,8 +1442,8 @@ class Hs30Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         const double li = lambda_i(0);
         return detail::make_upper(3, {{0, 0, obj_scale * 2.0 + li * -2.0},
                                       {1, 1, obj_scale * 2.0 + li * -2.0},
@@ -1516,8 +1516,8 @@ class Hs33Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         const double l1 = lambda_i(0), l2 = lambda_i(1);
         // hess(cI1) = diag(2, 2, -2); hess(cI2) = diag(-2, -2, -2).
         return detail::make_upper(3,
@@ -1590,7 +1590,7 @@ class Hs35Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         // Constant: the objective is exactly quadratic, the row exactly linear.
         return detail::make_upper(3, {{0, 0, obj_scale * 4.0},
                                       {0, 1, obj_scale * 2.0},
@@ -1662,7 +1662,7 @@ class Hs38Model : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         const double h00 = 1200.0 * x(0) * x(0) - 400.0 * x(1) + 2.0;
         const double h22 = 1080.0 * x(2) * x(2) - 360.0 * x(3) + 2.0;
         return detail::make_upper(4, {{0, 0, obj_scale * h00},
@@ -1731,7 +1731,7 @@ class Hs39Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double, const Vec &lambda_e, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double, const Vec &lambda_e, const Vec &) const override {
         const double l1 = lambda_e(0), l2 = lambda_e(1);
         // hess(cE1): d2/dx1^2 = -6 x1, d2/dx3^2 = -2.
         // hess(cE2): d2/dx1^2 = 2,      d2/dx4^2 = -2.
@@ -1809,8 +1809,8 @@ class Hs40Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
         const double l1 = lambda_e(0), l2 = lambda_e(1), l3 = lambda_e(2);
         // hess(f): zero diagonal, off-diagonal (i,j) = -prod of the other two.
         // hess(cE1): d2/dx1^2 = 6 x1, d2/dx2^2 = 2.
@@ -1905,8 +1905,8 @@ class Hs43Model : public NlpModel {
         return c;
     }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         const double l1 = lambda_i(0), l2 = lambda_i(1), l3 = lambda_i(2);
         // Every Hessian here is CONSTANT and diagonal.
         return detail::make_upper(4, {{0, 0, obj_scale * 2.0 + l1 * 2.0 + l2 * 2.0 + l3 * 4.0},
@@ -1997,7 +1997,7 @@ class Hs45Model : public NlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         std::vector<Eigen::Triplet<double>> trips;
         for (Index i = 0; i < 5; ++i) {
             for (Index j = i; j < 5; ++j) {
@@ -2106,8 +2106,8 @@ class Hs77Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
         const double d = x(3) - 1.0, e = x(4) - 1.0;
         const double s = std::sin(x(3) - x(4));
         const double l1 = lambda_e(0), l2 = lambda_e(1);
@@ -2208,8 +2208,8 @@ class Hs79Model : public NlpModel {
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
 
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
-                     const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
         const double d2 = 12.0 * (x(2) - x(3)) * (x(2) - x(3));
         const double e2 = 12.0 * (x(3) - x(4)) * (x(3) - x(4));
         const double l1 = lambda_e(0), l2 = lambda_e(1), l3 = lambda_e(2);

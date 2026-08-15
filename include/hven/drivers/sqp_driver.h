@@ -2902,11 +2902,11 @@ inline ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius,
     std::vector<Eigen::Triplet<double>> t;
     t.reserve(static_cast<std::size_t>(qp.H.nonZeros()));
     for (Index i = 0; i < n; ++i) {
-        for (SpMatU::InnerIterator it(qp.H, i); it; ++it) {
+        for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
             t.emplace_back(it.row(), it.col(), it.value());
         }
     }
-    e.qp.H = SpMatU(n2, n2);
+    e.qp.H = SpMatRM(n2, n2);
     e.qp.H.setFromTriplets(t.begin(), t.end());
     e.qp.H.makeCompressed();
 
@@ -3262,17 +3262,17 @@ class RestorationModel final : public NlpModel {
     // entries in an n_-square frame with no new nonzeros -- the elastic tier's
     // H-extension, verbatim, and it satisfies QpProblem::validate's
     // upper-triangle rule for the same reason (no entry moves).
-    SpMatU eval_hess(const Vec &y, double, const Vec &lambda_e,
-                     const Vec &lambda_i) const override {
-        const SpMatU inner = model_.eval_hess(original_x(y), 0.0, lambda_e, lambda_i);
+    SpMatRM eval_hess(const Vec &y, double, const Vec &lambda_e,
+                      const Vec &lambda_i) const override {
+        const SpMatRM inner = model_.eval_hess(original_x(y), 0.0, lambda_e, lambda_i);
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(inner.nonZeros()));
         for (Index i = 0; i < nx_; ++i) {
-            for (SpMatU::InnerIterator it(inner, i); it; ++it) {
+            for (SpMatRM::InnerIterator it(inner, i); it; ++it) {
                 t.emplace_back(it.row(), it.col(), it.value());
             }
         }
-        SpMatU H(n_, n_);
+        SpMatRM H(n_, n_);
         H.setFromTriplets(t.begin(), t.end());
         H.makeCompressed();
         return H;

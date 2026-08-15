@@ -353,12 +353,12 @@ TEST(CorpusCellsRunner, TheKktCheckRecordsTheRowsOwnScaleDenominators) {
     // carrying a large multiplier and a large primal, which is exactly the
     // regime the relative rule exists for.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
-    model.set_parameters(hven::solvers::Vec::Constant(1, 0.85));
+    model.set_parameters(hven::Vec::Constant(1, 0.85));
     hven::solvers::SqpSolution sol;
-    sol.x = hven::solvers::Vec::Constant(model.n(), 3.0);
-    sol.lambda_e = hven::solvers::Vec::Zero(model.me());
-    sol.lambda_i = hven::solvers::Vec::Zero(model.mi());
-    sol.z = hven::solvers::Vec::Zero(model.n());
+    sol.x = hven::Vec::Constant(model.n(), 3.0);
+    sol.lambda_e = hven::Vec::Zero(model.me());
+    sol.lambda_i = hven::Vec::Zero(model.mi());
+    sol.z = hven::Vec::Zero(model.n());
     ASSERT_GT(model.mi(), 0);
     sol.lambda_i(0) = 1.0e6;
     CorpusRow row{};
@@ -456,7 +456,7 @@ TEST(CorpusCellsRunner, PerQpFactorizationsMatchTheIterateHistoryExactly) {
     // pushed the whole-solve sum, or included stopped-AT-iterate rows, is
     // caught.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
-    model.set_parameters(hven::solvers::Vec::Constant(1, 0.85));
+    model.set_parameters(hven::Vec::Constant(1, 0.85));
     hven::solvers::SqpDriver driver(
         detail::options_for_cell(tiny_cell(StartTaxonomy::kNeutralCold)));
     const auto sol = detail::budgeted_solve(driver, model, model.start_point());
@@ -508,9 +508,9 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
     //       activity from the dual/slack pair alone, so displacing the primal
     //       does not degrade it.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
-    model.set_parameters(hven::solvers::Vec::Constant(1, 0.85));
-    const hven::solvers::Vec x_star = model.x_star(0.85);
-    const hven::solvers::Vec x0 = detail::physics_informed_start(model, 0.85);
+    model.set_parameters(hven::Vec::Constant(1, 0.85));
+    const hven::Vec x_star = model.x_star(0.85);
+    const hven::Vec x0 = detail::physics_informed_start(model, 0.85);
     EXPECT_GT((x0 - x_star).cwiseAbs().maxCoeff(), 0.0)
         << "the crossover primal must not BE the answer";
 
@@ -600,10 +600,10 @@ TEST(CorpusCellsRunner, FirstQpForCellMatchesBuildSubproblemOnNeutralCold) {
     // nonzero initial multipliers is caught.
     const CorpusCell cell = tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false);
     hven::solvers::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p, 1.0);
-    model.set_parameters(hven::solvers::Vec::Constant(1, cell.p));
-    const hven::solvers::Vec x0 = model.start_point();
+    model.set_parameters(hven::Vec::Constant(1, cell.p));
+    const hven::Vec x0 = model.start_point();
     const hven::solvers::QpProblem expected = hven::solvers::build_subproblem(
-        model, x0, hven::solvers::Vec::Zero(model.me()), hven::solvers::Vec::Zero(model.mi()));
+        model, x0, hven::Vec::Zero(model.me()), hven::Vec::Zero(model.mi()));
 
     const hven::solvers::QpProblem actual = detail::first_qp_for_cell(cell);
     EXPECT_EQ(actual.n(), expected.n());
@@ -626,12 +626,12 @@ TEST(CorpusCellsRunner, FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm) {
     // zero, or reused the setup's own p rather than the target's, is caught.
     const CorpusCell cell = tiny_cell(StartTaxonomy::kFullWarm);
     hven::solvers::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p0, 1.0);
-    model.set_parameters(hven::solvers::Vec::Constant(1, cell.p0));
+    model.set_parameters(hven::Vec::Constant(1, cell.p0));
     hven::solvers::SqpDriver driver(detail::options_for_cell(cell));
     const auto seed = detail::budgeted_solve(driver, model, model.start_point());
     ASSERT_EQ(seed.status, hven::solvers::SqpStatus::kOptimal);
 
-    model.set_parameters(hven::solvers::Vec::Constant(1, cell.p));
+    model.set_parameters(hven::Vec::Constant(1, cell.p));
     const hven::solvers::QpProblem expected = hven::solvers::build_subproblem(
         model, seed.warm_start.x, seed.warm_start.lambda_e, seed.warm_start.lambda_i);
 
@@ -767,7 +767,7 @@ TEST(CorpusCellsRunner, MinorBudgetConstantIsFiftyThousand) {
 
 TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget) {
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
-    model.set_parameters(hven::solvers::Vec::Constant(1, 0.85));
+    model.set_parameters(hven::Vec::Constant(1, 0.85));
     hven::solvers::SqpOptions opts;
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
@@ -791,7 +791,7 @@ TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     // sqp_types.h's own documented contract -- rather than run to completion
     // or hang.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
-    model.set_parameters(hven::solvers::Vec::Constant(1, 0.85));
+    model.set_parameters(hven::Vec::Constant(1, 0.85));
     hven::solvers::SqpOptions opts;
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
@@ -1474,7 +1474,7 @@ std::map<std::pair<Index, Index>, double> canonicalize(const std::vector<Triplet
     return out;
 }
 
-// Covers both `QpProblem::H` (SpMatU = Eigen::SparseMatrix<double, RowMajor>)
+// Covers both `QpProblem::H` (SpMatRM = Eigen::SparseMatrix<double, RowMajor>)
 // and `QpProblem::Ae`/`Ai` (the same underlying type) with one overload.
 std::map<std::pair<Index, Index>, double>
 canonicalize(const Eigen::SparseMatrix<double, Eigen::RowMajor> &m) {

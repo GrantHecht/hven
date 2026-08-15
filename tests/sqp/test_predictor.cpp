@@ -1300,8 +1300,8 @@ class W1ScaledPriceLine : public ParametricNlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, x(0) - 1.0); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(1, 1);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
         h.insert(0, 0) = obj_scale;
         h.makeCompressed();
         return h;

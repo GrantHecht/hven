@@ -7,7 +7,7 @@
 //           Ai x <= bi
 //           l <= x <= u
 //
-// H is stored as the upper triangle of a symmetric n x n matrix (SpMatU).
+// H is stored as the upper triangle of a symmetric n x n matrix (SpMatRM).
 //
 // Multiplier sign convention (stationarity of the KKT system):
 //
@@ -28,7 +28,7 @@
 namespace hven::solvers {
 
 struct QpProblem {
-    SpMatU H;                                            // n x n, upper triangle
+    SpMatRM H;                                           // n x n, upper triangle
     Vec g;                                               // n
     Eigen::SparseMatrix<double, Eigen::RowMajor> Ae, Ai; // me x n, mi x n
     Vec be, bi;                                          // me, mi
@@ -55,7 +55,7 @@ struct QpProblem {
         // notice, since it symmetrizes explicitly and so agrees with the
         // wrong answer. Reject it here instead.
         for (Index i = 0; i < nn; ++i) {
-            for (SpMatU::InnerIterator it(H, i); it; ++it) {
+            for (SpMatRM::InnerIterator it(H, i); it; ++it) {
                 if (it.row() > it.col()) {
                     throw std::invalid_argument(
                         fmt::format("QpProblem::validate: H has a lower-triangle entry at "

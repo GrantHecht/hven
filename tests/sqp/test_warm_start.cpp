@@ -38,6 +38,8 @@
 #include "support/scale_problems.h"
 
 using namespace hven::solvers;
+using hven::SpMatRM;
+using hven::Vec;
 using hven::solvers::test_support::F1BoxQp;
 using hven::solvers::test_support::F7CollocationChain;
 using hven::solvers::test_support::make_hs;
@@ -473,8 +475,8 @@ class ScaledRowModel : public NlpModel {
         return c;
     }
     Vec eval_ci(const Vec &) const override { return Vec(0); }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale * hval_;
         h.insert(1, 1) = obj_scale * hval_;
         h.makeCompressed();
@@ -548,8 +550,8 @@ class RowAndBoundModel : public NlpModel {
         c << x(0) + x(1) - bi_;
         return c;
     }
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatU h(2, 2);
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
         h.insert(0, 0) = obj_scale;
         h.insert(1, 1) = obj_scale;
         h.makeCompressed();
@@ -2059,8 +2061,8 @@ class P2TwoRowLine : public NlpModel {
         c << x(0), -x(0) - 1.0;
         return c;
     }
-    SpMatU eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
-        SpMatU h(1, 1);
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
         h.makeCompressed();
         return h;
     }

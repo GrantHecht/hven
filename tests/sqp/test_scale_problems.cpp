@@ -260,7 +260,7 @@ ModelPattern patterns_at(const NlpModel &model, const Vec &x, double obj_scale, 
 }
 
 // The symmetric product H*v for an upper-triangle-only H (F3's gate).
-Vec symmetric_product(const SpMatU &H, const Vec &v) {
+Vec symmetric_product(const SpMatRM &H, const Vec &v) {
     return H * v + H.transpose() * v - H.diagonal().cwiseProduct(v);
 }
 
@@ -766,7 +766,7 @@ void check_structure(const F7CollocationChain &model) {
     const Index nv = model.vars_per_node();
     const Vec x = model.start_point();
 
-    const SpMatU H = model.eval_hess(x, 1.0, Vec::Zero(model.me()), Vec::Zero(model.mi()));
+    const SpMatRM H = model.eval_hess(x, 1.0, Vec::Zero(model.me()), Vec::Zero(model.mi()));
     ASSERT_EQ(H.rows(), model.n());
     EXPECT_EQ(H.nonZeros(), N * (2 * ns + nc));
     const auto Je = model.eval_jac_e(x);
@@ -792,7 +792,7 @@ void check_structure(const F7CollocationChain &model) {
         }
     }
     for (int c = 0; c < H.outerSize(); ++c) {
-        for (SpMatU::InnerIterator it(H, c); it; ++it) {
+        for (SpMatRM::InnerIterator it(H, c); it; ++it) {
             EXPECT_EQ(static_cast<Index>(it.row()) / nv, static_cast<Index>(it.col()) / nv);
         }
     }
@@ -816,7 +816,7 @@ TEST(ScaleF7, StructureMatchesTheClosedFormCounts) {
     // state-control coupling that makes hess L non-diagonal.
     F7CollocationChain model(10, 3, 2);
     const Vec li = Vec::LinSpaced(model.mi(), 0.1, 1.0);
-    const SpMatU H = model.eval_hess(model.start_point(), 2.0, Vec::Zero(model.me()), li);
+    const SpMatRM H = model.eval_hess(model.start_point(), 2.0, Vec::Zero(model.me()), li);
     const double h = model.step();
     for (Index k = 0; k < model.node_count(); ++k) {
         const Index b = model.node_offset(k);
@@ -842,7 +842,7 @@ TEST(ScaleF7, StructureMatchesTheClosedFormCounts) {
 // along v (Phase-4 Task-8's precedent, cited in this file's banner).
 void check_directional_derivatives(const F7CollocationChain &model, const Vec &x,
                                    const Vec &lambda_e, const Vec &lambda_i, int directions) {
-    const SpMatU H = model.eval_hess(x, 1.0, lambda_e, lambda_i);
+    const SpMatRM H = model.eval_hess(x, 1.0, lambda_e, lambda_i);
     const auto Je = model.eval_jac_e(x);
     // The -> Vec is load-bearing: without it the lambda returns an Eigen
     // EXPRESSION holding references to temporaries built inside it, which

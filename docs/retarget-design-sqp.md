@@ -309,12 +309,15 @@ become a `SymmetricFactor` (move-only, like the class it replaces —
 There is NO separate assembly-buffer change (unlike the IPM retarget's
 `kkt_matrix_`): every consumer already owns its matrix and passes it
 explicitly (`border.k0.K`, `SsnEngine::k_`, `solve_eqp`'s `asm_.K`,
-predictor's `k0.K`). `hven::solvers::SpMatU` and `hven::SpMatRM` are the
-same type (`Eigen::SparseMatrix<double, Eigen::RowMajor>`) — since M3
-phase-C S1 by construction rather than by coincidence: `SpMatU` is an
-alias OF `hven::SpMatRM`, pinned by a `static_assert` in
-`include/hven/qp/qp_types.h`, defined once in
-`include/hven/core/types.h:44`. Matrices therefore flow into
+predictor's `k0.K`). Every one of those matrices IS `hven::SpMatRM`
+(`Eigen::SparseMatrix<double, Eigen::RowMajor>`, defined once in
+`include/hven/core/types.h:44`): the SQP layer used to spell the type
+`hven::solvers::SpMatU`, M3 phase-C S1 made that name an alias OF
+`hven::SpMatRM`, and phase-C S2b deleted the alias and moved every call
+site onto the library's own name. What survives in
+`include/hven/qp/qp_types.h` is the `static_assert` that matters at this
+boundary — that `hven::SpMatRM::StorageIndex` stays 32-bit, which is what
+the sparse backends are built against. Matrices therefore flow into
 `analyze()`/`factorize()` with no conversion. The
 structural-diagonal requirement `analyze()` validates
 (`symmetric_factor.h:29-32,660-670`) is satisfied by construction:
@@ -349,10 +352,10 @@ struct KktFactor {
 // True iff factorize_checked() would run an analysis for K --
 // the direct replacement for the call sites' pattern_matches probe,
 // consulted (as today) BEFORE the factorize for symbolic_analyses.
-bool needs_analysis(const KktFactor &k, const SpMatU &K);
+bool needs_analysis(const KktFactor &k, const SpMatRM &K);
 // analyze-iff-needed, then factorize; throws std::runtime_error on a
 // kBackendError outcome (§3.3) -- KktSystem::factorize()'s contract.
-hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K);
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K);
 // allocate-and-solve, matching KktSystem::solve's Vec-returning shape.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
 ```

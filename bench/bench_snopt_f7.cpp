@@ -92,8 +92,8 @@
 
 namespace {
 
+using hven::Vec;
 using hven::solvers::Index;
-using hven::solvers::Vec;
 using hven::solvers::snopt_bridge::SnoptF7Driver;
 using hven::solvers::snopt_bridge::SnoptOptions;
 using hven::solvers::snopt_bridge::SnoptResult;

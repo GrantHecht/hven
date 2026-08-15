@@ -117,12 +117,12 @@ namespace parametric_detail {
 // would be a redefinition in any TU that included both.
 constexpr double kParamInf = 1e20;
 
-// Builds an n x n SpMatU (upper triangle only) from (row, col, value) triples
+// Builds an n x n SpMatRM (upper triangle only) from (row, col, value) triples
 // with row <= col. Explicit zeros are preserved (setFromTriplets), which is
 // what keeps a family's pattern constant across x and p as nlp_model.h's
 // STRUCTURAL PATTERN INVARIANCE precondition requires.
-inline SpMatU make_upper(Index n, const std::vector<Eigen::Triplet<double>> &triplets) {
-    SpMatU H(n, n);
+inline SpMatRM make_upper(Index n, const std::vector<Eigen::Triplet<double>> &triplets) {
+    SpMatRM H(n, n);
     H.setFromTriplets(triplets.begin(), triplets.end());
     return H;
 }
@@ -296,7 +296,7 @@ class F1BoxQp : public ParametricNlpModel {
 
     // hess f = I; cI is linear so it contributes nothing. Pattern (two
     // diagonal entries) is constant in x and in p.
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         return parametric_detail::make_upper(2, {{0, 0, obj_scale}, {1, 1, obj_scale}});
     }
 
@@ -499,8 +499,8 @@ class F2CircleNlp : public ParametricNlpModel {
 
     // hess L = obj_scale * 2I + lambda_i(0) * 2I -- both terms diagonal, so
     // the pattern is the two diagonal entries at every x and every p.
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &,
-                     const Vec &lambda_i) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &,
+                      const Vec &lambda_i) const override {
         const double d = 2.0 * obj_scale + 2.0 * lambda_i(0);
         return parametric_detail::make_upper(2, {{0, 0, d}, {1, 1, d}});
     }
@@ -732,7 +732,7 @@ class F3SpringChain : public ParametricNlpModel {
     // obj_scale * L, upper triangle: diagonal 1 at the two ends and 2 in
     // between, -1 on the first superdiagonal. cE is linear and contributes
     // nothing.
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(2 * n_));
         for (Index j = 0; j < n_; ++j) {
@@ -964,7 +964,7 @@ class F4MovingConstraints : public ParametricNlpModel {
     Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, x(0) - a()); }
     Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, -x(1) + a()); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         return parametric_detail::make_upper(
             3, {{0, 0, obj_scale}, {1, 1, obj_scale}, {2, 2, obj_scale}});
     }
@@ -1105,7 +1105,7 @@ class F5MovingThreshold : public ParametricNlpModel {
     Vec eval_ce(const Vec &) const override { return Vec(0); }
     Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, -x(0) + p_(0)); }
 
-    SpMatU eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
         return parametric_detail::make_upper(2, {{0, 0, obj_scale}, {1, 1, obj_scale}});
     }
 
@@ -1405,7 +1405,7 @@ class F6PathBoundQuadrature : public ParametricNlpModel {
     // diag(obj_scale * w_i * cosh(x_i - a_i)); cI is affine and contributes
     // nothing. Every diagonal entry is emitted at every x, so the pattern is
     // constant (STRUCTURAL PATTERN INVARIANCE).
-    SpMatU eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &, const Vec &) const override {
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(n()));
         for (Index i = 0; i < n(); ++i) {

@@ -6,7 +6,7 @@
 
 namespace hven::solvers::detail {
 
-AnalysisDecision analysis_decision(const KktFactor &k, const SpMatU &K) {
+AnalysisDecision analysis_decision(const KktFactor &k, const SpMatRM &K) {
     // Short-circuits on `!k.analyzed` exactly as needs_analysis() always has:
     // nothing has been analyzed, so the answer is `true` without looking at
     // K, and no hash is computed to be carried.
@@ -17,9 +17,9 @@ AnalysisDecision analysis_decision(const KktFactor &k, const SpMatU &K) {
     return AnalysisDecision{pattern != k.analyzed_pattern, pattern};
 }
 
-bool needs_analysis(const KktFactor &k, const SpMatU &K) { return analysis_decision(k, K).needed; }
+bool needs_analysis(const KktFactor &k, const SpMatRM &K) { return analysis_decision(k, K).needed; }
 
-hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K,
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision) {
     if (decision.needed) {
         k.factor.analyze(K);
@@ -40,7 +40,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K,
     return outcome;
 }
 
-hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatU &K) {
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K) {
     return factorize_checked(k, K, analysis_decision(k, K));
 }
 
