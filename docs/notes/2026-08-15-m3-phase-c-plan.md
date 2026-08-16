@@ -830,6 +830,20 @@ The same logic puts the H-series and the Mac session's pre-re-key capture
 
 **Proof:** P-SUITE + P-SYM + **P-CENSUS** + P-WSB. **Alone.**
 
+**Executed 2026-08-15 (`dc98d70`), review clean, ruling closed.** P-SYM 60/60
+byte-identical with zero noise; content identity mechanical both directions;
+`sqp_driver.h` byte-exactly reconstructed from base + three declared edits.
+The carve table's "+ the TR update logic inside `SqpDriver`" clause was NOT
+taken and the execution reviewer ruled it **INAPPLICABLE-AS-WRITTEN**
+(reviewer-side `2026-08-15-m3-s3-ruling.md`, SIGNOFF S3-RULING-FINAL): the
+update logic is loop orchestration reading `opts_` — driver code by the same
+orchestration-vs-mechanism line that shaped the map; it travels with the loop
+when T5 TU-izes it. Recorded as a **scope clarification for Gate C's
+behavioral ledger, not a delta**; the debt is killed — any future extraction
+is a NEW designed content change, explicitly not an S3 leftover. The ruling's
+second rider is a **hard requirement on U0** (see the U0 section). Fourth
+L-1 flake occurrence on this task's run, recorded in the register.
+
 ### S4 — the stale-comment sweep residue (Opus)
 
 **Scope.** What the R-batch inventories did not permit:
@@ -844,6 +858,33 @@ a confirming glance, no edit.
 **Proof:** P-SUITE + P-SYM. **Batchable** — this is the one task that can ride
 alongside another commit if the reviewer prefers fewer commits, since it is
 comment-only.
+
+**Executed 2026-08-15 (`9ddb2f2` + fix round `85240bc`), review closed.**
+P-SYM 60/60 byte-identical on both commits. All 16 inventory items
+dispositioned; the fix round re-derived the exclusion classification over the
+whole population and re-aimed eleven moved-referent sites (closure grep now
+empty). Two of the fixes were correctness-bearing (the bench probes'
+shadow-include recipes — a stale path there silently measures the unpatched
+engine); both verified end-to-end in review. Deferred to S4b with counts
+re-derived: **40 rename-class `types.h` references across 15 files** + **19
+phase-A self-name banners** — and a recorded hazard: **three of the 40
+(`qp_engine.h:2646,:2652,:2657`) are inside throw-message string literals**,
+so S4b cannot hold a byte-identical P-SYM bar for those (`.rodata` and length
+immediates move; message-text changes are licensed by §10 item 11's R2
+precedent). `src/CMakeLists.txt:11,25,28`'s stale `src/sqp/` naming was
+deliberately left — U0's first act deletes that block.
+
+### S4b — the deferred reference sweep (post-U0; Opus)
+
+**Added 2026-08-15 from S4's execution record.** Scope: the 40 rename-class
+`types.h` references (15 files), the 19 phase-A self-name banners, and any
+stragglers S4's closure grep class definitions surface. Sequenced **after
+U0**: the three throw-message string-literal sites are a content change under
+pre-U0 pins but ride ordinarily under the post-U0 evidence world with the
+message-text license above; the rest is comment-only. Proof: P-SUITE +
+P-SYM with the string-literal sites' objects accounted explicitly (not
+byte-identical for those TUs, by declared necessity). **Batchable** with a
+T-series commit if the reviewer prefers.
 
 ---
 
@@ -880,6 +921,19 @@ commit, and nothing else:
 **The design note T0 was to have written collapses into this task** (§6 T0
 below): one page — the unified flag set, the re-derivation protocol, the
 delta-report bar.
+
+**HARD REQUIREMENT added 2026-08-15 (S3 ruling rider, S3-RULING-FINAL): the
+design note must decide the CI flag posture explicitly — "unaddressed" is not
+an option.** Four L-1 occurrences (same four tests, same sites, thread pin in
+place, byte-identical objects) make runner-microarchitecture/MKL-dispatch
+variance the working explanation, and `-march=native` on a heterogeneous CI
+fleet means per-runner codegen: counter and status pins are asserted on CI,
+and the CI-vs-local divergence widens by construction under `native`. The
+options (a fixed `-march` baseline for CI lanes vs `native` locally; or
+runner-class pinning) are U0's to design; re-derived pins must be assertable
+on the lanes that actually run them. Related: S4 confirmed
+`src/CMakeLists.txt:11,25,28` still name `src/sqp/` — deleted by this
+commit's first act, no separate fix owed.
 
 #### (b) The same-event mass re-derivation and its evidence package
 
