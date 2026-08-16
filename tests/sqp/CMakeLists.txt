@@ -7,21 +7,13 @@
 # own separately-buildable binary and keeps the migration diff reviewable on
 # its own. googletest is already fetched by the parent tests/CMakeLists.txt.
 #
-# COMPILE FLAGS — deliberately NOT ${COMPILE_FLAGS}, unlike every other test
-# target in this repository. The origin sandbox compiled this suite with plain
-# per-config defaults (-O3/-DNDEBUG Release, -g Debug; no -march=native, no
-# inline-threshold override, no -fomit-frame-pointer), and every pinned value
-# the M3 gate asserts — the measurement pins in these tests, the 57-cell walk
-# census baseline, the two gate-battery artifacts — was derived under those
-# flags. Phase A's marching orders are "compile flags matched", so this target
-# reproduces the origin regime; the repo-wide directory-scope definitions
-# (EIGEN_INITIALIZE_MATRICES_BY_ZERO, EIGEN_DONT_PARALLELIZE, FMT_USE_LOCALE=0,
-# and the Apple sparse-backend trio) still apply, exactly as they already do to
-# the golden rig's old-seam arm that compiles this same engine. Whether the
-# suite moves onto hven's unified COMPILE_FLAGS regime is an execution-review
-# question (any pin that moves under the unified flags is a declared
-# re-derivation, never a silent one), revisited no later than the phase-C TU
-# split, which compiles engine TUs into the library under library flags.
+# COMPILE FLAGS: ${COMPILE_FLAGS}, like every other target in this repository
+# (the owner's uniform-flags ruling, CLAUDE.md §7, executed at phase-C U0).
+# The origin-regime exception that used to live here — plain per-config
+# defaults, matching the flags every pre-U0 pinned value was derived under —
+# was retired by U0's declared mass re-derivation event; the pins this suite
+# asserts are derived under the unified regime and the pre-U0 artifacts are
+# frozen history. See docs/notes/2026-08-16-m3-u0-design.md.
 ################################################################################
 
 set(HVEN_SQP_TEST_SOURCES
@@ -65,6 +57,7 @@ set(HVEN_SQP_TEST_SOURCES
 
 add_executable(hven_sqp_tests ${HVEN_SQP_TEST_SOURCES})
 target_link_libraries(hven_sqp_tests PRIVATE hven::hven GTest::gtest_main)
+target_compile_options(hven_sqp_tests PRIVATE ${COMPILE_FLAGS})
 
 # test_corpus_cells.cpp includes "../../bench/corpus_cells.h" by relative path
 # (one implementation shared by the measurement binary and the assertion that

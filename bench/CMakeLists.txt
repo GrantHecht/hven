@@ -11,10 +11,10 @@
 # an uncompiled probe rots silently — the origin project's own committed
 # rationale, kept.
 #
-# COMPILE FLAGS: same deliberate choice as tests/sqp/CMakeLists.txt — plain
-# per-config defaults, matching the regime every committed baseline was
-# derived under. See that file's banner for the full reasoning and the
-# execution-review question it defers.
+# COMPILE FLAGS: ${COMPILE_FLAGS}, same as tests/sqp/CMakeLists.txt — the
+# uniform regime (owner ruling, CLAUDE.md §7), adopted at phase-C U0 together
+# with the mass re-derivation of every baseline these binaries produce or
+# consume. See docs/notes/2026-08-16-m3-u0-design.md.
 ################################################################################
 
 # hven_sqp_bench — the bench harness and wall-time instrumentation. Its own
@@ -22,6 +22,7 @@
 # which the M3 gate (and any benchmark script) runs explicitly.
 add_executable(hven_sqp_bench bench_scale.cpp)
 target_link_libraries(hven_sqp_bench PRIVATE hven::hven)
+target_compile_options(hven_sqp_bench PRIVATE ${COMPILE_FLAGS})
 # tests/sqp/support/{parametric_families,scale_problems}.h are
 # test-support-only headers (no gtest dependency), included by relative path.
 target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
@@ -31,6 +32,7 @@ target_include_directories(hven_sqp_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/.
 # ctest-registered (its longest documented invocation runs well over an hour).
 add_executable(hven_sqp_f7_cold bench_f7_cold.cpp)
 target_link_libraries(hven_sqp_f7_cold PRIVATE hven::hven)
+target_compile_options(hven_sqp_f7_cold PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_f7_cold PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
 
 # hven_sqp_tau_bar_sweep_probe — the hs_sweeps.h cold-arm reproduction vehicle
@@ -40,6 +42,7 @@ target_include_directories(hven_sqp_f7_cold PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}
 # documents the exact invocation), never a CMake option here.
 add_executable(hven_sqp_tau_bar_sweep_probe tau_bar_sweep_probe.cpp)
 target_link_libraries(hven_sqp_tau_bar_sweep_probe PRIVATE hven::hven)
+target_compile_options(hven_sqp_tau_bar_sweep_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_tau_bar_sweep_probe
                             PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
 
@@ -52,6 +55,7 @@ target_include_directories(hven_sqp_tau_bar_sweep_probe
 if(HVEN_SQP_HAVE_SNOPT)
     add_executable(hven_sqp_snopt_f7 bench_snopt_f7.cpp)
     target_link_libraries(hven_sqp_snopt_f7 PRIVATE hven::hven hven_sqp_snopt)
+    target_compile_options(hven_sqp_snopt_f7 PRIVATE ${COMPILE_FLAGS})
     target_include_directories(hven_sqp_snopt_f7 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
 endif()
 
@@ -64,6 +68,7 @@ endif()
 # correctness gate is tests/sqp/test_corpus_cells.cpp.
 add_executable(hven_sqp_corpus bench_corpus.cpp)
 target_link_libraries(hven_sqp_corpus PRIVATE hven::hven)
+target_compile_options(hven_sqp_corpus PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
 
 # Every CSV this runner writes carries a provenance header, and the first line
@@ -110,5 +115,6 @@ endif()
 # patched-header recompiles outside this build — see the probe's banner.
 add_executable(hven_sqp_ssn_safeguard_probe ssn_safeguard_probe.cpp)
 target_link_libraries(hven_sqp_ssn_safeguard_probe PRIVATE hven::hven)
+target_compile_options(hven_sqp_ssn_safeguard_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_ssn_safeguard_probe
                             PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")

@@ -96,6 +96,15 @@ tests one arithmetic instead of a pool lottery. That interacts with the U0
 flag-unification event's re-derivation and belongs to its design note, not to
 a fix riding a task commit.
 
+**ANSWERED at U0 (2026-08-16):** the design note
+(`2026-08-16-m3-u0-design.md` §2) rules a fixed per-lane ISA baseline —
+`-march=x86-64-v3` on the Linux/Windows lanes, `-mcpu=apple-m1` on the macOS
+lane, via `HVEN_SIMD_ARCH` — with `native` remaining the local/derivation
+regime. Runner-class pinning was rejected as not purchasable on hosted
+runners. This removes the per-runner-codegen half of the exposure; the MKL
+kernel-dispatch half (this class, L-1) remains OPEN and is unchanged by the
+posture.
+
 ### Relation to the observations in this register's sibling
 
 The Accelerate register records cross-backend divergences observed on the

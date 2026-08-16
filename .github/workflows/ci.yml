@@ -48,8 +48,15 @@ jobs:
           echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
           echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"
 
+      # HVEN_SIMD_ARCH=x86-64-v3 pins this lane's ISA (phase-C U0 CI flag
+      # posture): under the unified flag regime the asserting binaries carry
+      # -ffast-math SIMD codegen, and `-march=native` on a heterogeneous
+      # runner pool would make the lane's arithmetic a per-runner lottery
+      # (the L-1 register's open question, answered at U0 — see
+      # docs/notes/2026-08-16-m3-u0-design.md §2). A fixed baseline makes any
+      # lane-vs-local pin divergence a stable, re-derivable finding.
       - name: Configure
-        run: cmake --preset linux-clang-release
+        run: cmake --preset linux-clang-release -DHVEN_SIMD_ARCH=x86-64-v3
 
       # `id` so the post-Test steps below can condition on THIS step rather
       # than on the default "nothing has failed yet" (M3 gate B, replicated
@@ -256,8 +263,11 @@ jobs:
           echo "machine label for this job: $label"
           echo "HVEN_RIG_MACHINE=$label" >> "$GITHUB_ENV"
 
+      # HVEN_SIMD_ARCH=apple-m1 (-mcpu=apple-m1, the wheel path's own Apple
+      # baseline) pins this lane's ISA — same U0 CI flag posture as the Linux
+      # lane's Configure step; see docs/notes/2026-08-16-m3-u0-design.md §2.
       - name: Configure
-        run: cmake --preset macos-clang-release
+        run: cmake --preset macos-clang-release -DHVEN_SIMD_ARCH=apple-m1
 
       # `id` so the post-Test steps below can condition on THIS step rather
       # than on the default "nothing has failed yet": every one of them needs a
@@ -512,8 +522,11 @@ jobs:
           echo 'C:\Program Files (x86)\Intel\oneAPI\mkl\latest\bin' >> "$GITHUB_PATH"
           echo 'C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin' >> "$GITHUB_PATH"
 
+      # HVEN_SIMD_ARCH=x86-64-v3 — same U0 CI flag posture as the Linux lane's
+      # Configure step (this lane also asserts the MKL-backend suite); see
+      # docs/notes/2026-08-16-m3-u0-design.md §2.
       - name: Configure
-        run: cmake --preset windows-clang-release
+        run: cmake --preset windows-clang-release -DHVEN_SIMD_ARCH=x86-64-v3
 
       # `id` so the post-Test steps below can condition on THIS step rather
       # than on the default "nothing has failed yet" (M3 gate B, replicated

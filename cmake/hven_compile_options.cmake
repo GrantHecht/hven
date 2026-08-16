@@ -122,9 +122,26 @@ if(BUILD_HVEN_WHEEL)
     set(CLANG_MAX_INLINE_DEPTH 400)
 
 else()
-    list(APPEND SIMD_FLAGS "-march=native")
-    if(NOT WIN32)
-        list(APPEND SIMD_FLAGS "-mtune=native")
+    # HVEN_SIMD_ARCH selects the SIMD target for non-wheel builds. The default,
+    # `native`, is the library's regime and the regime every U0-re-derived pin
+    # was derived under. CI lanes pass a FIXED baseline (`x86-64-v3` on the
+    # x86 lanes, `apple-m1` on the macOS lane) so each lane compiles ONE
+    # defined arithmetic instead of a per-runner `native` lottery — the CI
+    # flag posture decided at phase-C U0. Rationale, alternatives, and the
+    # L-1 flake-class evidence: docs/notes/2026-08-16-m3-u0-design.md §2 and
+    # docs/notes/2026-08-15-linux-runner-divergence-register.md.
+    set(HVEN_SIMD_ARCH "native" CACHE STRING
+        "SIMD target for non-wheel builds: native (default), an -march= value \
+(e.g. x86-64-v3), or an Apple -mcpu= value (apple-*)")
+    if(HVEN_SIMD_ARCH STREQUAL "native")
+        list(APPEND SIMD_FLAGS "-march=native")
+        if(NOT WIN32)
+            list(APPEND SIMD_FLAGS "-mtune=native")
+        endif()
+    elseif(HVEN_SIMD_ARCH MATCHES "^apple-")
+        list(APPEND SIMD_FLAGS "-mcpu=${HVEN_SIMD_ARCH}")
+    else()
+        list(APPEND SIMD_FLAGS "-march=${HVEN_SIMD_ARCH}")
     endif()
 endif()
 
