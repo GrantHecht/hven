@@ -277,7 +277,7 @@ void sweep(const Regime &g) {
 
     // Harness invariants, not solver claims: every cell ran every problem, and
     // no cell can report an EXTRA solve_eqp refinement step -- that path has no
-    // iterated loop at all now (types.h's QpCounters note).
+    // iterated loop at all now (solver_counters.h's QpCounters note).
     for (std::size_t ci = 0; ci < cs.size(); ++ci) {
         ASSERT_EQ(statuses[ci].size(), rows.size());
         EXPECT_EQ(aggs[ci].eqp_refine_steps, 0) << "cell " << cs[ci].name();
@@ -714,7 +714,7 @@ TEST(EqpRefinementAb, DISABLED_FullBattery) {
 // isolates the lever.
 //
 // eqp_refine_steps IS ASSERTED ZERO HERE TOO, which is the standing invariant
-// types.h describes: solve_eqp takes its one mandatory refinement step and no
+// solver_counters.h describes: solve_eqp takes its one mandatory refinement step and no
 // more, and a nonzero reading would mean it grew a second one.
 TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
     constexpr Index kNodes = 12;

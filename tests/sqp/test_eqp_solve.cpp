@@ -139,6 +139,6 @@ TEST(EqpSolve, FixedVariableWithEqualityRefinementImprovesAccuracy) {
 
     // solve_eqp takes its ONE mandatory step and has no iterated loop, so the
     // EXTRA-step counter is identically zero -- the same statement the QP
-    // engine's eqp_refine_steps aggregate makes at solve level (types.h).
+    // engine's eqp_refine_steps aggregate makes at solve level (solver_counters.h).
     EXPECT_EQ(refined.refine_steps, 0);
 }

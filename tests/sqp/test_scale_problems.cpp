@@ -498,7 +498,7 @@ TEST(ScaleF7, AnalyticPathMatchesColdSolveAtHundredNodes) {
 // Phase 5 closed with the F7 wide-window minor-stall open and its mechanism
 // unknown, and the phase-6 design spec's standing hypothesis for it was
 // "degenerate working-set churn". The eleven QpCounters fields Task 3 added
-// (types.h, observation-only) separate that compound hypothesis into its
+// (solver_counters.h, observation-only) separate that compound hypothesis into its
 // independent halves, and the corpus answers them differently:
 //
 //   CHURN: YES, AND IT IS A ROW PHENOMENON. Fix round 1 added the

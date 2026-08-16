@@ -235,7 +235,7 @@
 //    the same two EQP call sites as factorizations: every solve_bordered_eqp
 //    call adds its TOTAL kept steps (>= 1) to border_refine_steps, every
 //    solve_eqp call adds its EXTRA kept steps (identically 0 -- the eliminated
-//    path has no iterated loop) to eqp_refine_steps -- see types.h for why the
+//    path has no iterated loop) to eqp_refine_steps -- see core/solver_counters.h for why the
 //    two baselines differ and why the zero one is still reported. A
 //    border-mode solve that falls back to the elimination path therefore
 //    contributes to both, exactly as it already does to factorizations.
@@ -3988,7 +3988,7 @@ class QpEngine {
         }
         ++counters.factorizations;
         EqpResult res = solve_eqp(qp, ws, kkt, opts);
-        // EXTRA steps only, i.e. identically 0 (types.h): the eliminated path
+        // EXTRA steps only, i.e. identically 0 (solver_counters.h): the eliminated path
         // takes its one mandatory step and has no iterated loop.
         counters.eqp_refine_steps += res.refine_steps;
         // solve_eqp leaves `kkt` holding the factorization of the
@@ -4124,7 +4124,7 @@ class QpEngine {
             verdict = border_inertia_verdict(qp, border);
             EqpResult res = solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur,
                                                border.ledger, ws, opts);
-            // TOTAL steps, mandatory first one included (types.h).
+            // TOTAL steps, mandatory first one included (solver_counters.h).
             counters.border_refine_steps += res.refine_steps;
             return res;
         } catch (const std::runtime_error &) {

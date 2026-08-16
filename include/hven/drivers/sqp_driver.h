@@ -1476,9 +1476,9 @@
 // numerical-zero threshold, NOT a bit-for-bit test -- see WHAT THE EXIT
 // ACTUALLY TESTS above) deliberately: a looser comparison would only make
 // the false-positive class above larger, not smaller. kElasticStallScale is
-// declared alongside
-// kElasticRhoInit/Max/Factor below, at the same NUMERICAL-ZERO value
-// (1e-12 relative) kZeroStepScale uses further down this file, for the same
+// declared alongside kElasticRhoInit/Max/Factor in
+// detail/globalization/sqp/elastic.h, at the same NUMERICAL-ZERO value
+// (1e-12 relative) kZeroStepScale uses in trust_region.h, for the same
 // reason: two rungs that differ by less than that differ by rounding alone.
 // See sqp_types.h's SqpOptions::elastic_ladder_early_exit for what DOES and
 // does not move on the safe (bound-pinned) fixtures when this is turned on

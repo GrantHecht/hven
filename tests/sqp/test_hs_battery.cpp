@@ -511,7 +511,7 @@ TEST(HsBattery, BorderModeFalseInfeasible) {
 // instrumented until now).
 //
 // WHAT IS PINNED AND WHY IN THIS SHAPE. border_refine_steps counts TOTAL kept
-// steps including each bordered solve's mandatory first (types.h), so on a
+// steps including each bordered solve's mandatory first (solver_counters.h), so on a
 // solve that spends S bordered EQP solves it is >= S by construction and the
 // EXCESS over S is what the iterated loop bought. This test pins:
 //   (i)  the total as an exact OBSERVED value, so a change in either the

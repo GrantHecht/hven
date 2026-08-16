@@ -167,7 +167,7 @@
 //       degenerate_run_max -- and six more in its fix round: ws_adds_bound,
 //       ws_drops_bound, distinct_ineq_added, distinct_bound_added, drop_ties
 //       and ratio_ties) -- for the same kind of
-//       reason, one level further in, stated in full by QpCounters (types.h):
+//       reason, one level further in, stated in full by QpCounters (solver_counters.h):
 //       every pre-existing QP-level column counts a LINEAR-ALGEBRA event,
 //       while the wide-window minor-stall this project carried out of Phase 5
 //       is a claim about the COMBINATORIAL walk, which nothing observed. They
@@ -393,7 +393,7 @@ void write_header(std::ostream &os) {
           "peak_rss_mib\n";
 }
 
-// types.h declares no to_string(QpStatus) (only the SQP-level statuses have
+// core/solver_status.h declares no to_string(QpStatus) (only the SQP-level statuses have
 // one), so the QP-level CSV names them here rather than adding a formatter to
 // a library header for a bench-only column.
 const char *qp_status_name(QpStatus s) {

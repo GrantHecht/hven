@@ -146,7 +146,7 @@ struct EqpResult {
 
     // Refinement steps this ONE solve kept. Its meaning depends on which
     // function produced the result, and the difference is deliberate -- see
-    // QpCounters (types.h), whose two fields these feed:
+    // QpCounters (core/solver_counters.h), whose two fields these feed:
     //   solve_eqp           EXTRA steps beyond the mandatory first. That path
     //                       has no iterated loop (see the header note), so
     //                       this is identically 0 and is left set that way
