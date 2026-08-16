@@ -755,7 +755,36 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
         {40, 4, 0, -0.2500000000031779, 0.7937005259836708},
         {77, 12, 0, 0.24150512879002822, 1.1661721897049999},
     };
+#elif defined(NDEBUG)
+    // U0 DECLARED RE-DERIVATION (phase-C flag unification, 2026-08-16, see
+    // docs/notes/2026-08-16-m3-u0-design.md): the MKL binary64 trajectory
+    // constants below are the RELEASE unified-flags encoding of this
+    // control. Three of the eight moved in their last bits when tests/sqp
+    // adopted COMPILE_FLAGS (-ffast-math -march=native, Release-only
+    // generator expressions): HS7 x0 (3.4794942110750977e-10 ->
+    // 3.4794942110708625e-10 -- coincidentally the Accelerate arm's own
+    // value, both being near-zero readings), HS26 f (2.282201458793485e-12
+    // -> 2.2822014587976076e-12), and HS77 f (0.24150512879002811 ->
+    // 0.24150512879002839). The control's PURPOSE -- the repair moves
+    // nothing on equality-only models -- held unchanged: every counter,
+    // status, and the in-process first.f == second.f identity passed across
+    // the flag change; only the trajectory ENCODING moved, exactly as it did
+    // between backends (the Accelerate arm above). The pre-U0 constants stay
+    // asserted in Debug (the #else arm below), whose arithmetic the
+    // unification did not move -- a config-split pin per §6(c)1 of the
+    // phase-C plan, tolerances not widened. Two fresh reproductions agreed
+    // on every constant before this landed.
+    const std::vector<EqualityControl> controls = {
+        {7, 9, 0, -1.7320508086422415, 3.4794942110708625e-10},
+        {26, 17, 0, 2.2822014587976076e-12, 0.99938512958694969},
+        {40, 4, 0, -0.2500000000031779, 0.7937005259836708},
+        {77, 12, 0, 0.24150512879002839, 1.1661721897049999},
+    };
 #else
+    // Debug: the pre-U0 constants, unchanged -- Debug carries no
+    // -ffast-math/-march (those ride Release-only genexes), so its
+    // trajectory is the one these were originally derived on. See the
+    // NDEBUG arm's U0 note.
     const std::vector<EqualityControl> controls = {
         {7, 9, 0, -1.7320508086422415, 3.4794942110750977e-10},
         {26, 17, 0, 2.282201458793485e-12, 0.99938512958694969},

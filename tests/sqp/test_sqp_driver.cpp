@@ -313,8 +313,20 @@ TEST(SqpDriverContract, BuildSubproblemLinearizesTheModel) {
 
     // Bounds are the box RELATIVE to x: l - x .. u - x. No trust region is
     // baked in -- the radius is a per-solve engine override.
-    EXPECT_LT((qp.lower - (m.lower() - x)).lpNorm<Eigen::Infinity>(), 1e-15);
-    EXPECT_LT((qp.upper - (m.upper() - x)).lpNorm<Eigen::Infinity>(), 1e-15);
+    //
+    // Compared ENTRYWISE FOR EXACT EQUALITY, not as a norm of a nested
+    // difference (U0, unified flags). `u - x` is one subtraction on both
+    // sides, so the doubles agree exactly -- but the old form
+    // `(qp.upper - (m.upper() - x))` is a difference of differences, which
+    // -ffast-math licenses clang to reassociate into `(qp.upper - m.upper())
+    // + x`; on HS76's INFINITE upper bounds that rewrite computes the true
+    // 0.5 instead of the rounded 0 (1e20 - 0.5 == 1e20 in binary64) and
+    // failed the norm bound. Equality comparisons carry no arithmetic to
+    // reassociate.
+    for (Index i = 0; i < qp.n(); ++i) {
+        EXPECT_EQ(qp.lower(i), m.lower()(i) - x(i)) << "lower, entry " << i;
+        EXPECT_EQ(qp.upper(i), m.upper()(i) - x(i)) << "upper, entry " << i;
+    }
     for (Index i = 0; i < qp.n(); ++i) {
         EXPECT_DOUBLE_EQ(qp.lower(i), -0.5); // l = 0, x = 0.5
         EXPECT_GT(qp.upper(i), 0.5 * kInfBound);
@@ -3239,6 +3251,28 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
 // there. Same terminal contract, longer chain: the fixture's "needs more than
 // 3 minors at every radius" premise is Pardiso-specific.
 #ifdef USE_ACCELERATE_SPARSE
+    EXPECT_EQ(sol.status, SqpStatus::kNumericalError);
+    ASSERT_EQ(sol.history.size(), 4u);
+    EXPECT_EQ(sol.history[0].qp_status, QpStatus::kMaxIter);
+    EXPECT_EQ(sol.history[1].qp_status, QpStatus::kOptimal);
+    EXPECT_EQ(sol.history[2].qp_status, QpStatus::kMaxIter);
+    EXPECT_EQ(sol.history[3].qp_status, QpStatus::kMaxIter);
+    EXPECT_DOUBLE_EQ(sol.history[1].tr_radius, 0.5 * sol.history[0].tr_radius);
+    EXPECT_DOUBLE_EQ(sol.history[3].tr_radius, 0.5 * sol.history[2].tr_radius);
+    EXPECT_EQ(sol.counters.rejected_steps, 2);
+#elif defined(NDEBUG)
+    // U0 (unified flags, 2026-08-16, declared): under -ffast-math
+    // -march=native the MKL Release chain takes the SAME longer shape the
+    // Accelerate arm above documents -- the subproblem at the halved radius
+    // finishes inside the 3-minor cap, so the first retry succeeds and a
+    // fresh failure chain starts. The D5 observation's own diagnosis said it:
+    // the fixture's "needs more than 3 minors at every radius" premise is a
+    // codegen-level property, not a Pardiso guarantee, and the unified flags
+    // moved MKL Release onto the other side of it. The terminal contract --
+    // kMaxIter repeats exhaust the retry and map to kNumericalError -- is
+    // UNCHANGED (the status pin did not move). Debug, whose arithmetic the
+    // unification did not touch, still walks the original two-row chain (the
+    // #else arm). Two fresh reproductions agreed.
     EXPECT_EQ(sol.status, SqpStatus::kNumericalError);
     ASSERT_EQ(sol.history.size(), 4u);
     EXPECT_EQ(sol.history[0].qp_status, QpStatus::kMaxIter);

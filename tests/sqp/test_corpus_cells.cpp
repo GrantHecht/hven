@@ -2557,6 +2557,38 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             fmt::format("kkt_residual={} stationarity={} primal={} dual_sign={} "
                         "complementarity={}",
                         w[12], w[15], w[16], w[17], w[18]));
+#elif defined(NDEBUG)
+        // U0 (unified flags, 2026-08-16, declared re-derivation -- see
+        // docs/notes/2026-08-16-m3-u0-design.md and the delta report). The
+        // committed schema-37 artifact is OLD-REGIME evidence (plain
+        // per-config flags) and stays frozen; under COMPILE_FLAGS the live
+        // Release residuals moved in their last digits, so the Release arm
+        // pins the UNIFIED-FLAGS re-derivation inline (two fresh
+        // reproductions, MKL, MKL_NUM_THREADS=1). Every INTEGER column, the
+        // status, and the per-QP shape above still assert against the frozen
+        // artifact UNCHANGED -- the levers-move-nothing subject of this test
+        // survived the flag change with zero counter movement on both cells;
+        // only the float encodings forked, exactly as they forked between
+        // backends (M3-3). Debug arithmetic did not move, so the #else arm
+        // still byte-compares the artifact (config-split per plan §6(c)1).
+        struct U0Residuals {
+            const char *kkt, *stationarity, *primal, *dual_sign, *complementarity;
+        };
+        static const std::map<std::string, U0Residuals> kU0ReleaseResiduals = {
+            {"f7_n1000_bound_neutral",
+             {"6.295832335e-14", "6.295832335e-14", "1.937883159e-14", "0.000000000e+00",
+              "0.000000000e+00"}},
+            {"f7_n1000_path_neutral",
+             {"3.053665099e-10", "1.045096220e-10", "3.053665099e-10", "4.555244335e-07",
+              "1.271441541e-13"}},
+        };
+        (void)residuals;
+        const U0Residuals &exp9 = kU0ReleaseResiduals.at(id);
+        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_residual), exp9.kkt);
+        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_stationarity), exp9.stationarity);
+        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_primal), exp9.primal);
+        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_dual_sign), exp9.dual_sign);
+        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_complementarity), exp9.complementarity);
 #else
         (void)residuals;
         EXPECT_EQ(fmt::format("{:.9e}", row.kkt_residual), w[12]);

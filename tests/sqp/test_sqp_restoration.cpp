@@ -1181,7 +1181,18 @@ TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
         Index majors = 0;
         double last_radius = 0.0;
     };
-    std::vector<Run> runs{{1e-10}, {1e-4}};
+    // FLOOR VALUES MOVED AT U0 (unified flags, 2026-08-16, declared): 1e-10
+    // -> 1e-5 and 1e-4 -> 1e-2. Under -ffast-math the elastic tier's
+    // exhaustion (restoration route (2), KLV Algorithm 5's authoritative
+    // trigger) fires on this fixture at Delta = 2^-18 ~ 3.8e-6 -- sixteen
+    // halvings before a 1e-10 floor -- so the original floor could never be
+    // reached in Release and the test was measuring the wrong trigger. Both
+    // floors now sit ABOVE that radius, so the floor pre-empts route (2) in
+    // BOTH configs and the test's subject -- route (3) exists, is reached
+    // exactly, and is a real knob -- is back to being what is measured. The
+    // knob claim (3) below is unchanged in form: the higher floor still
+    // saves exactly the halvings between the two floors.
+    std::vector<Run> runs{{1e-5}, {1e-2}};
 
     for (Run &run : runs) {
         SCOPED_TRACE(fmt::format("tr_min {:g}", run.tr_min));

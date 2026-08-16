@@ -549,7 +549,20 @@ TEST(Predictor, PredictorHandlesBoundCrossing) {
         // against.
         EXPECT_NEAR(pred.z(1), 0.0, 1e-12);
 #else
-        EXPECT_DOUBLE_EQ(pred.z(1), 0.0);
+        // U0 (unified flags, 2026-08-16): the MKL arm joins the same
+        // discipline as the Accelerate arm above, for the same structural
+        // reason the D18 record gives -- the zero is arithmetic cancellation
+        // THROUGH THE LINEAR SOLVE, and the bit-exact cancellation this arm
+        // used to pin (EXPECT_DOUBLE_EQ against 0.0) was a property of the
+        // old plain-flags codegen, not of the algorithm. Under
+        // -ffast-math -march=native the residue observed is
+        // -5.4805061420557189e-35 (two fresh reproductions), thirty orders
+        // below the O(||dp||) leftover this assertion guards against; the
+        // 1e-12 bound separates the two regimes exactly as argued for the
+        // Accelerate arm. A ZERO-PIN GOING NONZERO is a reviewed finding, not
+        // an auto-pin: the review is in the U0 delta report
+        // (docs/notes/data/2026-08-16-m3-u0-rederivation/delta-report.md).
+        EXPECT_NEAR(pred.z(1), 0.0, 1e-12);
 #endif
         // Geometric cross-check, independent of the reported flags.
         model.set_parameters(p_vec(p_far));

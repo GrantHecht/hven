@@ -309,7 +309,15 @@ TEST(FunnelFType, ArmijoFailureRejectsWithoutFallingBackToTheHTypeBranch) {
 
 // Both of Eq. (10) and Eq. (11) are non-strict ">=" — pin each boundary.
 TEST(FunnelFType, SwitchingAndArmijoBoundariesAreInclusive) {
-    const double h = 1.0e-3;
+    // h IS A POWER OF TWO (2^-10 ~ 1e-3), and that is load-bearing under the
+    // unified flag regime (U0, -ffast-math): with h = 1e-3 the boundary value
+    // δ·h·h rounds differently depending on multiplication order, which
+    // fast-math leaves to the compiler -- the value this test computed sat one
+    // ulp below the threshold the strategy computed, and the "exactly on the
+    // boundary" case silently became the "one ulp below" case. Scaling by a
+    // power of two is EXACT, so δ·h·h is the same double under every
+    // association and the boundary construction is flag-independent.
+    const double h = 0x1p-10;
     const double on_switching = kFunnelDelta * h * h; // Eq. (10) with equality
 
     { // Δm_f exactly on the switching boundary ⇒ f-type (and Armijo passes).
