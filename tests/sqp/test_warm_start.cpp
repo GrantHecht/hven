@@ -934,7 +934,7 @@ TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
 
 // Re-review finding 2c: detaching UNCONDITIONALLY on every `!reuse_eligible`
 // (Fix Round 1's own code) meant a fresh BorderState -- hence a fresh
-// KktSystem, with no cached Pardiso sparsity pattern -- on every
+// KktFactor, with no cached Pardiso sparsity pattern -- on every
 // value-changing major, even when `border_` was never shared with anyone.
 // HS38's H changes at essentially every major (a real, non-toy SQP
 // trajectory), so its own engine's top-level reuse check fails on
@@ -944,7 +944,7 @@ TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
 // use_count() > 1 guard in place (qp_engine.h's reuse_eligible block) --
 // this driver's engine_ is never shared with any other engine, so
 // use_count() reads 1 at every one of those majors and the SAME
-// BorderState/KktSystem is wiped and reused in place instead of replaced,
+// BorderState/KktFactor is wiped and reused in place instead of replaced,
 // keeping the cached sparsity pattern alive across every refactorization.
 TEST(WarmStart, NeverSharedSolvePaysOneSymbolicAnalysis) {
     const auto p = make_hs(38);

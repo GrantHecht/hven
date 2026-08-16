@@ -3,10 +3,12 @@
 // elastic.h -- the elastic (l1 exact-penalty) tier's subproblem construction,
 // carved verbatim out of drivers/sqp_driver.h (phase-C S3, restructure only).
 // The comments below still speak from that header's point of view: the
-// ELASTIC TIER and WARM SEEDING notes and qp_failure_is_retryable remain in
-// drivers/sqp_driver.h, which includes this file at the exact point the
-// carved code stood; kZeroStepScale ("further down this file") is now
-// detail/globalization/sqp/trust_region.h's.
+// ELASTIC TIER, WARM SEEDING and REPORTED BOUND MULTIPLIER notes and
+// qp_failure_is_retryable remain in drivers/sqp_driver.h, which includes this
+// file at the exact point the carved code stood; kZeroStepScale ("further down
+// this file") is now detail/globalization/sqp/trust_region.h's. THAT IS THE
+// RULE, NOT AN EXHAUSTIVE LIST: any reference of the form "this file"/"this
+// header" that does not resolve here resolves in drivers/sqp_driver.h.
 
 #include <algorithm>
 #include <cmath>

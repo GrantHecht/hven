@@ -716,12 +716,16 @@ than a regression. And `MKL_NUM_THREADS=1` is the asserted configuration for
 every counter and float claim.
 
 **Owed, not yet written: this entry's translation-unit half.** The
-header/TU structure of `include/hven/detail/sqp/` and `src/sqp/` is under
-active decision in M3 phase C (tasks T0 and T9 — the flag-regime ruling and
-the PCH-membership/source-count tripwire), and the entry that describes it is
-deliberately deferred to those tasks rather than pre-written against a
-structure that is not yet ruled. What is written above is the suite as it
-stands and does not depend on that outcome.
+header/TU structure of the SQP layer — relocated out of the now-retired
+`include/hven/detail/sqp/` and `src/sqp/` by M3 phase C's R-batches, and
+today spread across `include/hven/{core,qp,model,drivers}/`,
+`include/hven/detail/{kkt,qp,warmstart,globalization}/` and `src/kkt/` — is
+still under active decision in that phase (task U0, the flag-regime ruling,
+and tasks T1–T9, the TU splits and the PCH-membership/source-count
+tripwire), and the entry that describes it is deliberately deferred to those
+tasks rather than pre-written against a structure that is not yet ruled.
+What is written above is the suite as it stands and does not depend on that
+outcome.
 
 ## Amending a pinned artifact: sweep its consumers in the same commit
 

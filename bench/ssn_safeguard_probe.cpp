@@ -58,9 +58,9 @@
 // no-hysteresis variant (the alpha-only-damping variant is the same recipe with
 // the other sed):
 //
-//   rm -rf /tmp/ssn_patch && mkdir -p /tmp/ssn_patch/hven/detail/sqp
-//   cp include/hven/detail/sqp/ssn_engine.h /tmp/ssn_patch/hven/detail/sqp/
-//   F=/tmp/ssn_patch/hven/detail/sqp/ssn_engine.h
+//   rm -rf /tmp/ssn_patch && mkdir -p /tmp/ssn_patch/hven/detail/qp
+//   cp include/hven/detail/qp/ssn_engine.h /tmp/ssn_patch/hven/detail/qp/
+//   F=/tmp/ssn_patch/hven/detail/qp/ssn_engine.h
 //   # no hysteresis: the leave gate becomes the enter gate
 //   sed -i 's/was_uncertain ? tau \* detail::kSsnUncertainLeaveRatio : tau/tau/' "$F"
 //   # (alpha-only damping instead -- a sed on the beta assignment alone would
@@ -635,9 +635,9 @@ void mode_ablate() {
 // -DHVEN_SQP_PROBE_PREFIX_ENGINE so this file's escape-name switch does not
 // name the enumerator that fix round 1 added:
 //
-//   mkdir -p /tmp/ssn_prefix/hven/detail/sqp
+//   mkdir -p /tmp/ssn_prefix/hven/detail/qp
 //   # in the archived sandbox checkout: git show f20dcfe:<its ssn_engine.h>
-//   #   > /tmp/ssn_prefix/hven/detail/sqp/ssn_engine.h
+//   #   > /tmp/ssn_prefix/hven/detail/qp/ssn_engine.h
 //   clang++ ... -DHVEN_SQP_PROBE_PREFIX_ENGINE -I /tmp/ssn_prefix -I include -I tests/sqp ...
 //
 // EVERY QP HERE IS FEASIBLE BY CONSTRUCTION and confirmed so by the walk, so

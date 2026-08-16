@@ -6,7 +6,7 @@
 // copies of them.
 //
 // THIS IS NOT PART OF THE LIBRARY SURFACE and is deliberately not under
-// include/hven/detail/sqp/: nothing in include/ or src/ may depend on it, it is
+// include/hven/: nothing in include/ or src/ may depend on it, it is
 // never installed, and it exists only so two throwaway measurement binaries
 // share one implementation of "parse this argument or throw with the usage
 // text attached". It follows the same precedent as

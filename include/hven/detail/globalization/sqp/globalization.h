@@ -93,7 +93,7 @@
 //   acceptable <- true // KKT point found". That reads the STEP, which is not
 //   in StepContext, so it cannot live here.
 //
-//   WHERE IT DOES LIVE, corrected in Task 9: sqp_driver.h's kZeroStepScale,
+//   WHERE IT DOES LIVE, corrected in Task 9: trust_region.h's kZeroStepScale,
 //   as an explicit test on the step, NOT the convergence test at the top of
 //   the major. The original text here said the convergence test already
 //   covered it; that was wrong, and wrong in a way that cost a whole

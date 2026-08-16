@@ -33,9 +33,9 @@
 // MKL_NUM_THREADS=1):
 //
 //   for TAU in 1 10 100 1e3 1e5; do
-//     rm -rf /tmp/tau_bar_patch && mkdir -p /tmp/tau_bar_patch/hven/detail/sqp
-//     cp include/hven/detail/sqp/globalization.h /tmp/tau_bar_patch/hven/detail/sqp/
-//     F=/tmp/tau_bar_patch/hven/detail/sqp/globalization.h
+//     D=/tmp/tau_bar_patch/hven/detail/globalization/sqp; rm -rf /tmp/tau_bar_patch
+//     mkdir -p "$D" && cp include/hven/detail/globalization/sqp/globalization.h "$D/"
+//     F="$D/globalization.h"
 //     sed -i "s/kFunnelTauBar = 100.0;/kFunnelTauBar = ${TAU};/" "$F"
 //     clang++ -DFMT_HEADER_ONLY -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
 //       -I /tmp/tau_bar_patch -I include -I tests/sqp \
@@ -50,13 +50,13 @@
 //     MKL_NUM_THREADS=1 LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/lib /tmp/tau_bar_probe
 //   done
 //
-// The `-I /tmp/tau_bar_patch` ahead of `-I include` is what makes
-// `#include <hven/detail/sqp/globalization.h>` resolve to the patched copy while
-// every OTHER header (sqp_driver.h, types.h, ...) still resolves to the real
-// `include/hven/detail/sqp/`, unmodified -- this file does not, and cannot, change
-// anything the shipped library ships; only the SWEEP invocation above (never
-// `cmake --build`) touches a patched header, and only in a scratch directory
-// outside the repository.
+// The `-I /tmp/tau_bar_patch` ahead of `-I include` is what makes `#include
+// <hven/detail/globalization/sqp/globalization.h>` resolve to the patched copy
+// while every OTHER header (sqp_driver.h, qp_types.h, ...) still resolves to the
+// real `include/hven/detail/globalization/sqp/`, unmodified -- this file does
+// not, and cannot, change anything the shipped library ships; only the SWEEP
+// invocation above (never `cmake --build`) touches a patched header, and only
+// in a scratch directory outside the repository.
 //
 // WHAT IT MEASURES: the COLD ARM of all six `tests/sqp/support/hs_sweeps.h`
 // corpus problems (the same vehicle `tests/test_hs_sweeps.cpp`'s

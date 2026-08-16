@@ -4,8 +4,8 @@
 // driver, carved verbatim out of drivers/sqp_driver.h (phase-C S3, restructure
 // only). The comments below still speak from that header's point of view: the
 // SECOND-ORDER CORRECTION and MODEL EVALUATION notes they cite remain at the
-// top of drivers/sqp_driver.h ("the header note's WARM START paragraph" is
-// qp_engine.h's own, exactly as before the move).
+// top of drivers/sqp_driver.h; "the header note's WARM START paragraph" is the
+// SECOND-ORDER CORRECTION note's own, which cites qp_engine.h's HOT-START REUSE.
 //
 // NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in drivers/sqp_driver.h,
 // which includes this header at the exact point the carved code stood -- after

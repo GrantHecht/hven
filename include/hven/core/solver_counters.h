@@ -332,7 +332,7 @@ struct QpCounters {
 // whole SQP solve, exactly as qp_minor_iters/factorizations already aggregate
 // the walk's QpCounters.
 //
-// PURELY OBSERVATIONAL, like the eleven walk counters in types.h: nothing in
+// PURELY OBSERVATIONAL, like the eleven walk counters above: nothing in
 // ssn_engine.h reads any of these back to make a decision, so writing them
 // cannot move a trajectory.
 //
@@ -725,12 +725,12 @@ struct SqpCounters {
     // EQP refinement work, summed over every QP solve this driver spent --
     // subproblems, SOC re-solves, elastic rungs and the restoration
     // sub-solve alike, exactly like qp_minor_iters/factorizations above. The
-    // two fields carry QpCounters' (types.h) meanings unchanged:
+    // two fields carry QpCounters' (above) meanings unchanged:
     // border_refine_steps is TOTAL steps including each bordered solve's
     // mandatory first, eqp_refine_steps is EXTRA steps beyond solve_eqp's
     // mandatory first and so is identically 0 -- the flag-gated loop it once
     // counted was deleted as measured-inert on both shipped backends (see
-    // types.h's QpCounters note and the DISPOSITION section of
+    // QpCounters' own note above and the DISPOSITION section of
     // docs/notes/2026-07-29-eqp-refinement-ab.md). They exist so the refinement
     // A/B could price refinement per solve rather than per subproblem, and the
     // zero one stays as that A/B's standing invariant.
@@ -739,7 +739,7 @@ struct SqpCounters {
     // Rungs of the QP engine's SUSPECT-STALL ESCALATION LADDER
     // (qp_engine.h's section 4b), summed over every QP solve this driver
     // spent -- same aggregation set as the two refinement counters above, and
-    // named identically to QpCounters::suspect_escalations (types.h) so the
+    // named identically to QpCounters::suspect_escalations (above) so the
     // per-solve and per-driver readings are the same quantity at two scales.
     //
     // ZERO IS THE EXPECTED READING and a nonzero one is a finding, not a
@@ -758,7 +758,7 @@ struct SqpCounters {
     // rebuild_k0(), same scope as QpCounters::symbolic_analyses's own note),
     // summed over every QP solve this driver spent -- same aggregation set
     // as the two refinement counters and suspect_escalations above, and
-    // named identically to QpCounters::symbolic_analyses (types.h; see that
+    // named identically to QpCounters::symbolic_analyses (above; see that
     // field's own note for what it counts and why). THIS IS NOT A COUNT OF
     // EVERY PHASE-11 CALL THIS SOLVE PAID ACROSS EVERY CODE PATH: the
     // elimination path constructs its own per-solve KktFactor and pays its
@@ -788,7 +788,7 @@ struct SqpCounters {
     // hash == 0 "no model was seen" sentinel a mesh-transferred or crossover
     // object carries included -- no longer lands on kCold: it lands on
     // **kSeeded**, which takes the object's values (x, duals, activity hint)
-    // and refuses its provenance-dependent state (see warm_start.h's
+    // and refuses its provenance-dependent state (see core/start_level.h's
     // StartLevel note for the exact list). kSeeded is also what a
     // `start_level` ceiling of kSeeded produces from an object that would
     // otherwise have earned kWarm/kHot. Then: kWarm when a structural
@@ -808,7 +808,7 @@ struct SqpCounters {
     // deliberate: that count can read zero for reasons unrelated to reuse
     // (an empty reduced system, or a crossed-bounds exit before the loop
     // ever runs), which `k0_reused` does not confuse with a genuine cache
-    // hit (see QpCounters::k0_reused's own note, types.h).
+    // hit (see QpCounters::k0_reused's own note above).
     StartLevel start_level_used = StartLevel::kCold;
 
     // PHASE-4 TASK 5. Majors solved while globalization.h's FULL-STEP MODE was
@@ -978,7 +978,7 @@ struct SqpCounters {
     Index crash_seeded_rows = 0;
     Index crash_seeded_bounds = 0;
 
-    // PHASE-6 TASK 5 (the kSeeded ingest level, warm_start.h's StartLevel).
+    // PHASE-6 TASK 5 (the kSeeded ingest level, core/start_level.h's StartLevel).
     //
     // n_seeded: 1 iff THIS solve's warm-start resolution landed on
     // StartLevel::kSeeded, else 0 -- a flag with a counter's type, kept as an

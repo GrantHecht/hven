@@ -43,7 +43,7 @@ struct SolveRecord {
 // of truth (`counters`) and these are a read-only-shaped copy of part of it,
 // never an independent measurement.
 //
-// EACH NAME MATCHES ITS SOURCE FIELD IN SqpCounters (sqp_types.h) EXACTLY --
+// EACH NAME MATCHES ITS SOURCE FIELD IN SqpCounters (solver_counters.h) EXACTLY --
 // deliberately, closing a naming question the Phase-4 warm-start plan's own
 // Task-1 carry raised for `soc_steps` (the plan's draft called it
 // `soc_attempts`; Phase 4 already ruled there is no separate "attempts"
@@ -71,11 +71,11 @@ struct SolveRecord {
 // subproblem actually skipped its own factorization by reusing an offered
 // hot-start K0, else 0 -- i.e. exactly
 //     (start_level_used == StartLevel::kHot) ? 1 : 0.
-// This is sound, not a guess, because sqp_types.h's own note on
+// This is sound, not a guess, because solver_counters.h's own note on
 // `start_level_used` already states its kHot reading is set ONLY when
 // QpCounters::k0_reused read true on that first subproblem (the engine's own
 // observed-reuse signal, not an inference from `qp_factorizations == 0` --
-// see that field's note in types.h for why the two are not interchangeable).
+// see that field's note in solver_counters.h for why the two are not interchangeable).
 // So this field re-derives nothing new; it is start_level_used's own
 // evidence, restated as a count for a benchmark that wants "how many
 // factorizations did warm-starting save" rather than "which level resolved".
@@ -114,7 +114,7 @@ struct SqpSolveRecord {
     // the single source of truth and these are a read-only-shaped copy of part
     // of it.
     //
-    // EACH NAME MATCHES ITS SOURCE FIELD IN SsnCounters (sqp_types.h)
+    // EACH NAME MATCHES ITS SOURCE FIELD IN SsnCounters (solver_counters.h)
     // EXACTLY, the same rule the block above states for SqpCounters.
     //
     // THREE OF SIX, NOT ALL SIX, AND THAT IS A CHOICE. `ssn_iters` is the
@@ -174,7 +174,7 @@ class Ledger {
     // PHASE-6 TASK 5. The start-level histogram over every SqpSolveRecord this
     // ledger holds (QP-level SolveRecords have no level and are not counted).
     // Reads `start_level_used`, which is the RESOLVED level -- what was
-    // observed to happen, never what a caller offered (sqp_types.h).
+    // observed to happen, never what a caller offered (solver_counters.h).
     StartLevelHistogram level_histogram() const {
         StartLevelHistogram h;
         for (const SqpSolveRecord &rec : sqp_records_) {

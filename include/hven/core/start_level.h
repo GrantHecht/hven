@@ -56,7 +56,7 @@ namespace hven::solvers {
 // model of the DESTINATION solve to hash), and through Phase 5 that sentinel
 // resolved every such object to kCold, so nothing but `x` -- passed explicitly
 // as the caller's own x0 -- could reach a solve. The gap was written up twice,
-// independently, as this header's THE CROSSOVER'S VALUE TODAY and
+// independently, as warm_start.h's THE CROSSOVER'S VALUE TODAY and
 // mesh_transfer.h's THE PHASE-6 INGEST GAP; kSeeded is the driver-side change
 // both of those notes named ("option (i)", equivalently the battery note's
 // repair C) and both are now RESOLVED rather than deferred.
@@ -107,7 +107,7 @@ namespace hven::solvers {
 // route into the ingest is hash-gated, and the producers that can clear a
 // hash gate are non-negative by construction; kSeeded admits objects a
 // FOREIGN solver or a caller's own hand assembled, which is exactly the
-// input class this header's SIGN CONVENTIONS paragraph states as a
+// input class warm_start.h's SIGN CONVENTIONS paragraph states as a
 // PRECONDITION and which sqp_driver.h's THE INGESTED MULTIPLIERS ARE MADE
 // COMPLEMENTARY note itemizes as ungated (O-B1-4). At the seeded level it is
 // no longer ungated: a small negative price is CLAMPED to zero and counted,
@@ -116,9 +116,9 @@ enum class StartLevel { kCold, kSeeded, kWarm, kHot };
 
 // StartLevel -> a short display string. PHASE-4 TASK 7: the cold-vs-warm
 // ledger instrumentation and sqp_driver.h's iteration-table printer both need
-// to render `SqpCounters::start_level_used` (sqp_types.h) for a human, so the
-// switch lives here once rather than being hand-copied at each call site --
-// the same rationale sqp_types.h's to_string(SqpStatus) states for itself.
+// to render `SqpCounters::start_level_used` (solver_counters.h) for a human,
+// so the switch lives here once rather than being hand-copied at each call
+// site -- the same rationale solver_status.h's to_string(SqpStatus) gives.
 inline const char *to_string(StartLevel level) {
     switch (level) {
     case StartLevel::kCold:
@@ -139,8 +139,8 @@ inline const char *to_string(StartLevel level) {
 // hand-offs were actually ingested, and at what level".
 //
 // ONE FIELD PER ENUMERATOR, NOT A MAP OR AN ARRAY INDEXED BY THE ENUM. The
-// enum's integer values are load-bearing for ORDERING (warm_start.h's
-// StartLevel note: kSeeded had to be inserted BETWEEN kCold and kWarm, which
+// enum's integer values are load-bearing for ORDERING (the ORDER IS LOAD-BEARING
+// note above: kSeeded had to be inserted BETWEEN kCold and kWarm, which
 // renumbered kWarm and kHot), so anything that indexes by them would silently
 // re-bind its columns the next time a level is inserted. Named fields cannot.
 //

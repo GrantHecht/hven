@@ -16,7 +16,7 @@
 //
 // bench_cli.h is included by RELATIVE PATH, exactly as bench_scale.cpp
 // includes tests/sqp/support/*.h by relative path in the other direction. Neither
-// header is part of the library surface (include/hven/detail/sqp/), and nothing in
+// header is part of the library surface (include/hven/), and nothing in
 // include/ or src/ depends on either.
 //
 // ---------------------------------------------------------------------

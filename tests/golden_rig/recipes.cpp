@@ -441,7 +441,7 @@ Fixture pd_on_face_kkt(Index n_free, Index m_face) {
                    "pins is the evidence the engine reads off the factorization. "
                    "NOT RATIFIABLE 2026-08-15, for a reason worth stating precisely: the "
                    "authority named a PATH, not a matrix. QpEngine::refine_on_face migrated "
-                   "(include/hven/detail/sqp/qp_engine.h), and its accepted arm is under test "
+                   "(include/hven/detail/qp/qp_engine.h), and its accepted arm is under test "
                    "(tests/sqp/test_qp_engine.cpp), but that arm builds its face by hand on a "
                    "small box QP rather than instantiating any named fixture -- there is no "
                    "committed matrix for this recipe to have been transcribed from, then or "

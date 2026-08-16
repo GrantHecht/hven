@@ -6,7 +6,7 @@
 //   [KLV] D. Kiessling, S. Leyffer, C. Vanaret, "A Unified Funnel Restoration
 //         SQP Algorithm", arXiv:2409.09208, Math. Program. (2025).
 //
-// Equation map (see include/hven/detail/sqp/globalization.h for the full
+// Equation map (see include/hven/detail/globalization/sqp/globalization.h for the full
 // source-mapping note):
 //   Eq. (8)  h(x̂) <= τ                     funnel condition (membership)
 //   Eq. (9)  τ⁰ = max(τ̄, κ̄·h⁰)             initialization

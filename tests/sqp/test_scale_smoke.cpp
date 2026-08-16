@@ -715,9 +715,9 @@ TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
     // THE COUNTER IS BACKEND-PORTABLE BY CONSTRUCTION, which is the reason a
     // guard suffices where a per-backend arm would otherwise be owed:
     // QpCounters::symbolic_analyses is bumped at the qp_engine.h CALL SITE, on
-    // `!border.kkt.pattern_matches(border.k0.K)` (see its note in types.h), and
-    // KktSystem::pattern_matches is implemented by BOTH shipped backends
-    // (kkt_system.h and kkt_system_accelerate.h). So it counts K0 pattern
+    // `analysis_decision(border.kkt, border.k0.K).needed` (kkt_calls.h), and
+    // that decision compares hven::pattern_hash(K) -- hven's own hash, not a
+    // backend call -- against KktFactor's mirror. So it counts K0 pattern
     // changes, not Pardiso phase-11 calls, and it cannot be structurally zero
     // on Accelerate. What is NOT verified on Accelerate is the VALUE: 10 and 3
     // are MKL-measured on this machine, and a different trajectory there would

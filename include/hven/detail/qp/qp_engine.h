@@ -1724,7 +1724,7 @@ inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, In
 // kSuspectDeltaFactor and resume, at most kMaxSuspectEscalations times.
 //
 // ONE DECADE PER RUNG, mirroring the driver's elastic penalty ladder
-// (kElasticRhoFactor in sqp_driver.h) so the project has one escalation
+// (kElasticRhoFactor in globalization/sqp/elastic.h) so the project has one escalation
 // convention rather than two. A decade is also the smallest bump that is
 // certainly enough for the shape this exists for: the stall needs a Hessian
 // diagonal to cancel primal_delta to within the backend's zero tolerance

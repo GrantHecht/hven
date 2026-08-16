@@ -112,12 +112,12 @@
 // EXISTS (Phase 6). TODAY, THOUGH, IT IS NOT REACHED", because
 // `from_interior_point` carries `structure_hash == 0` unconditionally and the
 // driver's ingest resolved every such object to `kCold` before any dual it
-// carried was consulted. THAT LEVEL NOW EXISTS: `StartLevel::kSeeded` (above)
-// takes a hash-less object's duals, so a crossover object REACHES THE CLEAR on
-// an ordinary `solve()` call and the clause above describes something that
-// happens, not something that would. The B-1 clear runs FIRST at that level and
-// the `lambda_i >= 0` clamp SECOND -- see sqp_driver.h's THE SEEDED DUAL CLAMP
-// for why that order, and not the reverse, is the normative one.
+// carried was consulted. THAT LEVEL NOW EXISTS: `StartLevel::kSeeded`
+// (start_level.h) takes a hash-less object's duals, so a crossover object
+// REACHES THE CLEAR on an ordinary `solve()` call and the clause above
+// describes something that happens, not something that would. The B-1 clear
+// runs FIRST and the `lambda_i >= 0` clamp SECOND -- see sqp_driver.h's THE
+// SEEDED DUAL CLAMP for why that order, and not the reverse, is normative.
 //
 // **AND THE `lambda_i >= 0` CONVENTION ABOVE IS NOW LOAD-BEARING AT INGEST,
 // not merely descriptive.** Read the SIGN CONVENTIONS paragraph at the top of
