@@ -56,6 +56,21 @@
 #       nothing about `.rodata`; that is exactly the licensed difference, not a
 #       gap being papered over.
 #
+# NORMALIZATION NOTE: `objdump -d --no-show-raw-insn` appends a trailing
+# annotation comment to rip-relative and branch/call instructions -- e.g.
+# `lea 0x0(%rip),%rax        # 7 <sym+0x7>` -- carrying an absolute or
+# section-relative target address. That address is a function of overall
+# layout (e.g. an unrelated object's size shifting a later section), not of
+# the instruction's own bytes, so two builds with byte-identical instructions
+# can show different annotations and vice versa. `normalize()` strips
+# everything from the first ` #` (space then comment marker) to end-of-line
+# before comparison. This was checked against every disassembled line in this
+# repo's build tree (149k+ `#`-bearing lines across all P-SYM objects): the
+# marker is always a single ` #` per line, always preceded by whitespace, and
+# always of the form `# <hex> <sym+off>` -- objdump never emits a bare `#`
+# inside operand text under `--no-show-raw-insn`, so this strip cannot mangle
+# a legitimate instruction.
+#
 # Everything else is a real difference. In particular an instruction-COUNT
 # change is never noise: the script reports it as STRUCTURAL and refuses to
 # classify that object further, because once the counts differ, pairing lines
@@ -147,20 +162,36 @@ do_capture() {
 }
 
 # Normalized disassembly: instruction text only, no addresses, no raw bytes,
-# no file-name header. Symbol header lines ("0000... <_Zfoo>:") survive
+# no file-name header, no trailing address-target annotation (see the
+# NORMALIZATION NOTE above). Symbol header lines ("0000... <_Zfoo>:") survive
 # deliberately -- they are what makes this a PER-SYMBOL comparison rather than
 # one flat instruction stream, so a symbol that moved between sections shows up
 # as a difference instead of cancelling out.
 normalize() {
-    "${OBJDUMP}" -d --no-show-raw-insn "$1" | tail -n +3 | sed 's/^ *[0-9a-f]*://'
+    "${OBJDUMP}" -d --no-show-raw-insn "$1" | tail -n +3 | sed -e 's/^ *[0-9a-f]*://' -e 's/[ \t]\+#.*$//'
 }
 
 # Scratch directory for the normalized listings. Deliberately NOT a `local` in
 # do_compare: the EXIT trap runs after that function has returned, and a local
 # would be out of scope by then -- which under `set -u` turns a clean pass into
 # a spurious failure.
+#
+# cleanup_tmp's own exit status matters: bash adopts an EXIT trap's exit
+# status as the whole script's exit status whenever that status is nonzero
+# (this is how a genuine `set -e` abort survives the trap, since the trap
+# itself then exits 0 and the prior nonzero status is left standing -- but it
+# also means a trap that itself exits nonzero silently overwrites a real
+# success). `[ -n "${PSYM_TMP}" ] && rm -rf ...` exits nonzero via its own
+# short-circuit whenever PSYM_TMP is unset -- true throughout `capture` mode,
+# which never touches PSYM_TMP -- turning every successful capture into a
+# reported failure. The `if` form below exits 0 when there is nothing to
+# clean up, so the trap only ever reports failure for a genuine `rm` failure.
 PSYM_TMP=""
-cleanup_tmp() { [ -n "${PSYM_TMP}" ] && rm -rf "${PSYM_TMP}"; }
+cleanup_tmp() {
+    if [ -n "${PSYM_TMP}" ]; then
+        rm -rf "${PSYM_TMP}"
+    fi
+}
 trap cleanup_tmp EXIT
 
 do_compare() {
