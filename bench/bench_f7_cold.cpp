@@ -163,7 +163,7 @@
 
 namespace {
 
-using hven::solvers::Index;
+using hven::Index;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;

@@ -76,6 +76,7 @@
 #include "support/scale_problems.h"
 
 using namespace hven::solvers;
+using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 

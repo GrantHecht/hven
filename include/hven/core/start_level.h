@@ -12,25 +12,21 @@
 // order). `warm_start.h` includes this header, so every call site that reached
 // `StartLevel` through it still does.
 
-#include <Eigen/Core>
+#include <hven/core/types.h>
 
 namespace hven::solvers {
 
-// The SQP layer's index type. THIS IS A RE-DECLARATION, NOT A SECOND
-// DEFINITION: `hven/qp/qp_types.h` declares the identical alias and carries the
-// NORMATIVE block -- why `Index` is `Eigen::Index` and deliberately NOT
-// reconciled onto `hven::Index` (they are distinct types on Apple), plus the
-// static_asserts that pin the relationship (M3 phase-C S1). Repeating an
-// alias-declaration for the same type is legal C++, and the two cannot disagree:
-// both name `Eigen::Index`, and S1's pins fire on either if that ever stops
-// being true.
-//
-// It is repeated HERE rather than included FROM `qp_types.h` because this is a
-// `core/` header and `core/` does not depend upward on `qp/` -- closing exactly
-// that inversion is what S2 exists for. Read `qp_types.h`'s alias block for the
-// argument; this line only lets the histogram below, and the counters in
-// `core/solver_counters.h`, spell their fields the way they always have.
-using Index = Eigen::Index;
+// `Index` BELOW IS `hven::Index`, reached by ordinary enclosing-namespace
+// lookup out of `hven::solvers` -- there is no SQP-side index alias any more.
+// This header used to re-declare one (`using Index = Eigen::Index;`), because
+// M3 phase-C S1 had found `hven::Index` and `Eigen::Index` to be DISTINCT types
+// on Apple arm64 and the SQP layer needed Eigen's; `qp/qp_types.h` carried the
+// normative block and the pins, and this was a copy of the alias rather than an
+// include of that header, since `core/` may not depend upward on `qp/`. Phase-C
+// S2c redefined `hven::Index` onto `Eigen::Index`, which made both the alias
+// and the copy redundant; `qp_types.h` keeps the historical record and the
+// identity pin. The upward-dependency argument is untouched: this header
+// includes `core/types.h`, a `core/` sibling.
 
 // How much of a previous solve's state a caller intends to feed into the
 // next one: kCold ignores it entirely (an ordinary cold solve), kSeeded

@@ -24,10 +24,10 @@
 //     dependency S2 deleted. It has been corrected and now says the opposite,
 //     but a reader who wants a status-rendering helper is exactly the reader who
 //     reaches for drivers/sqp_types.h.
-//   * core/start_level.h re-declares `using Index = Eigen::Index;` rather than
-//     including qp/qp_types.h for it (S2, and the header says why at length). A
-//     later "simplification" that deletes the re-declaration and includes
-//     qp/qp_types.h instead compiles, and is the inversion.
+//   * core/start_level.h once re-declared `using Index = Eigen::Index;` rather
+//     than including qp/qp_types.h for it (S2); S2c deleted that alias and the
+//     header now takes `Index` from core/types.h. A later "simplification" that
+//     reaches for qp/qp_types.h from any core/ header is still the inversion.
 //
 // DIRECT INCLUDES ARE ENOUGH, and that is a proof rather than a shortcut: if
 // EVERY core/ header includes only core/ headers (plus non-hven ones), then the

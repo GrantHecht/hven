@@ -678,7 +678,7 @@ void write_qp_dump(std::ostream &os, const CorpusCell &cell, const QpProblem &qp
     }
 
     os << fmt::format("G_VEC {}\n", qp.g.size());
-    for (hven::solvers::Index i = 0; i < qp.g.size(); ++i) {
+    for (hven::Index i = 0; i < qp.g.size(); ++i) {
         os << fmt::format("{:.17g}\n", qp.g(i));
     }
 
@@ -698,7 +698,7 @@ void write_qp_dump(std::ostream &os, const CorpusCell &cell, const QpProblem &qp
     };
     auto dump_vec = [&](const char *tag, const Vec &v) {
         os << fmt::format("{}_VEC {}\n", tag, v.size());
-        for (hven::solvers::Index i = 0; i < v.size(); ++i) {
+        for (hven::Index i = 0; i < v.size(); ++i) {
             os << fmt::format("{:.17g}\n", v(i));
         }
     };
@@ -896,11 +896,11 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
             // is internally inconsistent and must not be scored. (`escapes`
             // is CorpusRow::escapes, read from column 9 above, which is
             // SqpCounters::ssn::ssn_escapes verbatim.)
-            const hven::solvers::Index census =
+            const hven::Index census =
                 o.row.ssn.ssn_escape_budget + o.row.ssn.ssn_escape_singular +
                 o.row.ssn.ssn_escape_no_contraction + o.row.ssn.ssn_escape_infeasible_suspect +
                 o.row.ssn.ssn_escape_indefinite + o.row.ssn.ssn_escape_gate_refused;
-            if (census != static_cast<hven::solvers::Index>(o.row.escapes)) {
+            if (census != static_cast<hven::Index>(o.row.escapes)) {
                 throw std::invalid_argument(fmt::format(
                     "{}: the escape-reason census sums to {} but `escapes` says {} -- the "
                     "artifact is internally inconsistent and must not be scored",

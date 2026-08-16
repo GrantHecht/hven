@@ -12,6 +12,7 @@
 #include "support/border_test_utils.h"
 
 using namespace hven::solvers;
+using hven::Index;
 using hven::Vec;
 
 namespace {

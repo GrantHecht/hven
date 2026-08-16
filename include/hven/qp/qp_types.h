@@ -12,49 +12,50 @@
 
 namespace hven::solvers {
 
-// Type alias. This header used to define `Vec` and `SpMatU` as well --
-// SQP-side spellings of types `hven` itself owns. Phase-C S1 made them aliases
-// OF the core types; phase-C S2b finished the job and deleted them, moving
-// every call site onto `hven::Vec` and `hven::SpMatRM` so the SQP layer and the
-// rest of the library speak one vocabulary. `Index` is the one alias that
-// stays, and the reason it stays is load-bearing; read the note before
-// changing it.
+// THIS HEADER NO LONGER DEFINES ANY TYPE ALIAS, and the last one to go was
+// `Index`. It used to define `Vec`, `SpMatU` and `Index` -- SQP-side spellings
+// of types `hven` itself owns. Phase-C S1 made `Vec`/`SpMatU` aliases OF the
+// core types and S2b deleted them; phase-C S2c deleted `Index`. Code in
+// `namespace hven::solvers` that says `Index` now resolves to `hven::Index` by
+// ordinary enclosing-namespace lookup -- same spelling at every call site, one
+// type, one vocabulary.
 //
-// `Index` IS NOT RECONCILED, and the reason is a measured fact, not caution.
-// M3 phase-C S1 attempted `using Index = hven::Index;` on the plan's stated
-// premise that `std::int64_t` and `std::ptrdiff_t` are the same type on LP64
-// Linux and on both Apple targets. THE PREMISE IS FALSE ON APPLE: on macOS
-// arm64, `std::int64_t` is `long long` while `std::ptrdiff_t` (and therefore
-// `Eigen::Index`) is `long`. Two 64-bit signed types, same width, same
-// signedness, DISTINCT TYPES -- so the reconcile would silently change what
-// `hven::solvers::Index` denotes on Apple and could re-resolve an overload
-// there, which is the exact hazard the plan named. Observed at the CI
-// macos-clang-release lane, which failed the identity pin below with
-// `std::is_same_v<long long, long>` (run 31902660573, commit 58dac2a). The
-// pin did its job: it turned an assumption into a compile error on the one
-// target where it is wrong.
+// HISTORICAL RECORD OF WHY `Index` OUTLIVED THE OTHER TWO, kept rather than
+// deleted because the run cited below is the only direct evidence this
+// repository holds for the Apple `long`/`long long` split, and without it
+// someone re-derives it the hard way. M3 phase-C S1 attempted
+// `using Index = hven::Index;` on the plan's stated premise that
+// `std::int64_t` and `std::ptrdiff_t` are the same type on LP64 Linux and on
+// both Apple targets. THE PREMISE WAS FALSE ON APPLE: on macOS arm64
+// `std::int64_t` is `long long` while `std::ptrdiff_t` (and therefore
+// `Eigen::Index`) is `long` -- two 64-bit signed types, same width, same
+// signedness, DISTINCT TYPES, so that reconcile would have silently changed
+// what `hven::solvers::Index` denoted on Apple and could have re-resolved an
+// overload there. It was measured, not argued: the CI macos-clang-release lane
+// failed S1's identity pin with `std::is_same_v<long long, long>` (run
+// 31902660573, commit 58dac2a). S1 therefore recorded the alias as a genuinely
+// distinct type on Apple and left it standing, pinned to `hven::Index` by
+// width and signedness rather than by identity.
 //
-// So `Index` stays `Eigen::Index` here. What IS pinned is the interoperation
-// invariant the boundary actually needs -- `hven::Index` and this `Index` are
-// the same width and signedness, so values cross the linear-algebra boundary
-// without truncation or sign change on every supported target, whether or not
-// the two are the same type.
-using Index = Eigen::Index;
+// S2c RESOLVED IT FROM THE OTHER END, on an owner ruling: rather than keep two
+// index types reconciled by a width pin, `hven::Index` was redefined onto
+// `Eigen::Index` (hven/core/types.h). That makes the two one type on every
+// target -- including Apple -- and makes this alias redundant, so it retired
+// here.
 
-// The interoperation pin (phase-C S1; required by the O7 ruling, not optional).
-//
-// The pins live HERE, on the consumer side, and deliberately not in
-// core/types.h: `hven::Index` is documented there as a fixed-width type
-// independent of Eigen's platform-defined one, and hven does not promise the
-// two coincide -- on Apple they demonstrably do not. This header is where the
-// two vocabularies meet, so this is where the relationship is checked.
-static_assert(sizeof(Index) == sizeof(hven::Index) &&
-                  std::is_signed_v<Index> == std::is_signed_v<hven::Index>,
-              "hven::solvers::Index (Eigen::Index / std::ptrdiff_t) and hven::Index "
-              "(std::int64_t) must stay the same width and signedness: they are NOT the "
-              "same type on Apple targets (long vs long long), and every value that "
-              "crosses between the SQP layer and hven's linear-algebra boundary relies on "
-              "the conversion being exact.");
+// THE IDENTITY PIN S1 ORIGINALLY SPECIFIED and could not have then -- now true
+// on every supported target, and the compile-time proof that deleting the alias
+// above was sound rather than merely convenient. It replaces S1's width-and-
+// signedness pin, which was the weaker invariant a two-type world could
+// actually promise. It fires if `hven::Index` is ever moved back off Eigen's
+// index type, which is precisely the change that would re-split this layer's
+// vocabulary on Apple without touching a line of SQP code.
+static_assert(std::is_same_v<Eigen::Index, hven::Index>,
+              "hven::Index must BE Eigen::Index: the SQP layer spells its index type "
+              "`Index` and relies on that resolving to ONE type on every target. On Apple "
+              "arm64 std::int64_t (long long) and std::ptrdiff_t (long) are distinct types "
+              "-- measured, CI run 31902660573 -- which is why this is pinned rather than "
+              "assumed (see hven/core/types.h).");
 
 // The 32-bit-index pin (phase-C S1; re-aimed at the library's own alias in S2b,
 // when the SQP-side spelling it used to name was deleted). It guards the same

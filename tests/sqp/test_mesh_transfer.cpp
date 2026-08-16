@@ -67,6 +67,7 @@
 #include "support/parametric_families.h"
 
 using namespace hven::solvers;
+using hven::Index;
 using hven::Vec;
 using hven::solvers::test_support::F6PathBoundQuadrature;
 using hven::solvers::test_support::trapezoid_weights;

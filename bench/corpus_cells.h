@@ -124,9 +124,9 @@
 
 namespace hven::solvers::corpus {
 
+using hven::Index;
 using hven::Vec;
 using hven::solvers::from_interior_point;
-using hven::solvers::Index;
 using hven::solvers::IpCrossoverOptions;
 using hven::solvers::QpMode;
 using hven::solvers::SqpCounters;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 using namespace hven::solvers;
+using hven::Index;
 using hven::Vec;
 
 TEST(KktAssembly, DimensionsAndRegularization) {

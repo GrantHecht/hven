@@ -242,11 +242,11 @@
 
 namespace {
 
+using hven::Index;
 using hven::Vec;
 using hven::solvers::ContinuationOptions;
 using hven::solvers::ContinuationResult;
 using hven::solvers::ContinuationStep;
-using hven::solvers::Index;
 using hven::solvers::Ledger;
 using hven::solvers::ParametricNlpModel;
 using hven::solvers::QpMode;

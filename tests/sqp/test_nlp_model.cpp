@@ -27,9 +27,9 @@
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
 
+using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using hven::solvers::Index;
 using hven::solvers::NlpModel;
 using hven::solvers::test_support::assert_gradient;
 using hven::solvers::test_support::assert_hessian;

@@ -38,6 +38,7 @@
 #include "support/scale_problems.h"
 
 using namespace hven::solvers;
+using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 using hven::solvers::test_support::F1BoxQp;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/schur_complement.h>
 using namespace hven::solvers;
+using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 

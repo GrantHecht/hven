@@ -74,6 +74,7 @@
 #include "support/hs_sweeps.h"
 
 using namespace hven::solvers;
+using hven::Index;
 using hven::Vec;
 using namespace hven::solvers::test_support;
 

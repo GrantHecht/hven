@@ -3,6 +3,7 @@
 #include <hven/detail/kkt/kkt_calls.h>
 
 using namespace hven::solvers;
+using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 using namespace hven::solvers::detail;
