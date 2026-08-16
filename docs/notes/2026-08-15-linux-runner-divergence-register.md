@@ -18,13 +18,23 @@ Created 2026-08-15, when the phase-C plan's microarch-flake watch rule
 **Status: OPEN — root cause narrowed, not closed.** Not attributable to any
 library change (see exoneration). Standing lane property.
 
-**The three occurrences:**
+**The occurrences:**
 
 | # | Run / where recorded | Commit | Thread pin state |
 |---|---|---|---|
 | 1 | recorded in `2026-08-14-m3-gate-b-review-request.md` | gate-B era | lane UNPINNED |
 | 2 | run `31893392460` attempt 1; task R5's report §7–8 | R5 | lane UNPINNED (diagnosis event) |
 | 3 | run `31907664085` attempt 1 | `e7f89a7` (S2) | **`MKL_NUM_THREADS=1` PINNED** (`23247e3`, verified in the failing run's `ci.yml`) |
+| 4 | run `31921576722` attempt 1 | `dc98d70` (S3) | PINNED |
+
+Occurrence 4 (2026-08-15): same four tests, same assertion sites as
+occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60
+byte-identical, so the exoneration basis holds at its strongest. Per-cell
+values were not re-lifted — occurrence 3's table remains the durable
+exemplar of the class; the S3 task report records both attempts. Frequency
+note: two pinned-lane occurrences in one day of heavy CI traffic
+strengthens the microarch/dispatch-variance hypothesis and the case for
+answering the runner-pin/`-march` question at the flag-unification event.
 
 **Why occurrence 3 changes the diagnosis.** R5 root-caused the class to the
 lane's missing thread pin (threaded MKL reductions are order-dependent);
