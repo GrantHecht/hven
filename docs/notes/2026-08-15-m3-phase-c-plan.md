@@ -768,6 +768,20 @@ expected at each, class-(a) licensed only with 1:1 insertion accounting per
 the S2b correction above); CI all three lanes with the macOS lane as the
 Apple evidence. No census. **Alone.**
 
+**Executed 2026-08-15 (`bcdf287` type event / `9875d69` retirement /
+`9d80c23` declared fix), review clean.** Three commits, not two: the
+retirement broke the macOS lane on `tests/sqp/test_accelerate_probes.cpp`,
+whose whole body is `#ifdef`-gated — a Linux-error enumeration of call sites
+is structurally blind to platform-gated TUs, and an amend of the
+already-pushed commit was (correctly) refused, so the one-line fix landed
+declared. Zero numeric churn held at every step; both scans negative; macOS
+1065/1065 on the real type change (run 31918684985). Method carry-forwards:
+(1) any future rename/retirement task must enumerate call sites in
+platform-gated TUs by grep, not by compile error; (2)
+`scripts/check_accelerate_syntax_linux.sh` does not cover
+`test_accelerate_probes.cpp` — extending it is a candidate improvement, not
+yet done.
+
 ### S3 — carve the globalization logic out of `sqp_driver.h` (**FABLE**)
 
 **Scope.** Plan §2 row 6 + §6 clause 2: "the funnel/TR/SOC/elastic/restoration
@@ -822,11 +836,10 @@ The same logic puts the H-series and the Mac session's pre-re-key capture
 `tests/sqp/test_scale_smoke.cpp` (~L715-717) and `tests/sqp/test_warm_start.cpp`
 (L934, L944) still name the dissolved KKT seam. Plus any comment the R/S commits
 newly staled (an inventory of "comments naming `detail/sqp/`" after R6).
-Added from S2b execution (2026-08-15): in `qp/qp_types.h`, the frozen Index
-note's "which failed the identity pin below" dangles (S2b deleted those pins,
-and retitled the surviving pin's heading to "The interoperation pin") — fix the
-phrase and heading together, unless S2c's commit 2 has already rewritten that
-comment block as historical, in which case verify and strike this item.
+Added from S2b execution (2026-08-15), DISCHARGED by S2c the same day: the
+`qp/qp_types.h` dangling-phrase/heading pair was rewritten out of existence by
+S2c commit 2's historical rewrite (verified in the S2c review). S4 owes only
+a confirming glance, no edit.
 
 **Proof:** P-SUITE + P-SYM. **Batchable** — this is the one task that can ride
 alongside another commit if the reviewer prefers fewer commits, since it is
