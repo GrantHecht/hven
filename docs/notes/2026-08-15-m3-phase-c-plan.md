@@ -1150,6 +1150,25 @@ redrawn** — CLAUDE.md §5's clause outranks the split. P-SYM here is scoped pe
 declared blast radius only; inside the radius, P-CENSUS + P-BENCH + P-SUITE
 carry the proof.
 
+> **OWNER RULING (2026-08-17, at T1+T2's close) — the T-series
+> runtime-neutrality standard ("layout-band").** How CLAUDE.md §5's "a
+> boundary that costs measurable runtime is reverted or redrawn" is judged
+> for every T-task: **counters must be bit-identical across arms; wall-clock
+> is judged on the pooled median and the engine-heavy (multi-second) cells;
+> the sub-second cells carry an explicit ±1.5 % layout-noise band.** A move
+> beyond the band, or any engine-heavy-cell regression, still triggers the
+> revert clause. Basis: T1+T2's escalation evidence — the moved functions run
+> O(1) per solve (lost inlining arithmetically excluded); a semantically-null
+> include-reorder control at the base commit moves the same sub-second cells
+> −0.34 %; a same-binary cross-session floor measures pooled +0.03 %; and in
+> `bench_corpus.cpp.o` only 2 of 478 text symbols changed size (`main`,
+> `write_outcome` — the engine is size-identical) while 96.1 % of the linked
+> binary's symbols moved address, isolating the mechanism as emission-order/
+> layout, not codegen. U0's accepted ±1.2 % on the same cells is the
+> precedent. The reviewer's caveat is recorded with the ruling: the null
+> control is a single draw, so the band is calibrated conservatively (1.5 %,
+> above every observed layout excursion) rather than fitted.
+
 **Batching:** T1+T2 may share a commit (both FP-free printing/ledger, one new TU
 each — but then P-BUILD attributes the build win to the pair, which is
 acceptable). T3 alone (the NaN-branch verification is its own argument).
