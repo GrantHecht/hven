@@ -139,9 +139,17 @@ class NlpModel {
     // go faster than that baseline -- e.g. by sharing sub-expressions across
     // f/cE/cI that eval_f/eval_ce/eval_ci would otherwise recompute
     // independently, or by a cheaper closed form entirely -- never to return
-    // a DIFFERENT number: whatever this returns must be bit-identical to
-    // calling eval_f(x)/eval_ce(x)/eval_ci(x) directly, the same invariant
-    // eval_nlp already rests its f/ce/ci fields on. See
+    // a DIFFERENT number: whatever this returns must be identical to calling
+    // eval_f(x)/eval_ce(x)/eval_ci(x) directly under value-preserving
+    // compilation; under the library's own flag regime (fast-math in
+    // Release), agreement is to reassociation residue -- the same last-bit
+    // freedom the compiler already has within any one evaluation. The
+    // contract's purpose is catching transcription slips between an override
+    // and the separate evals, which are O(1) relative errors, so the
+    // enforcing test holds a near-ulp relative gate rather than a byte
+    // compare (owner ruling at the U0 flag-unification event, 2026-08-17;
+    // see docs/notes/data/2026-08-16-m3-u0-rederivation/delta-report.md).
+    // eval_nlp rests its f/ce/ci fields on the same invariant. See
     // tests/sqp/support/scale_problems.h's F7CollocationChain override for the
     // one model in this tree that exercises the override rather than the
     // default.
