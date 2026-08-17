@@ -280,19 +280,95 @@ the old-arm binary (`8e2cbd0`) and the new-arm binary (`39a27c9`)** — the
 strongest single statement in this section, since it is a live solve compared
 across the whole flag change.
 
-## 6. Accelerate-side values (plan §6(c)4)
+## 6. The CI lanes, and what they added to the event
 
-Not observable from this machine; **nothing is fabricated** (CLAUDE.md §6).
-The unified flags change the macOS lane's arithmetic too (`-ffast-math
--mcpu=apple-m1` per the CI posture), so the M3-4 arm pins, the
-divergence-register rows, and the Accelerate constant arms in
-`test_b1_gate.cpp` / `test_predictor.cpp` / `test_corpus_cells.cpp` are
-expected to need lane re-observation. Plan of record: take what the U0 push's
-macOS lane runs give (run IDs recorded), two-run bar for any committed
-counter, register updated, remainder folded into the scheduled Mac session
-(§7/O12); anything unobservable stays UNOBSERVED.
+Nothing in this section is fabricated (CLAUDE.md §6): every Apple figure below
+is a lane observation with a run ID, and every one of them met the two-run bar
+before it was committed.
 
-[CI-PENDING: lane run IDs and outcomes for the pushed unit.]
+### 6.1 The runs
+
+| Run | Commit | linux-clang-release | macos-clang-release | windows-clang-release |
+|---|---|---|---|---|
+| [31925472238](https://github.com/GrantHecht/hven/actions/runs/31925472238) (the BASE, for reference) | `8e2cbd0` | **4 fail / 1149** — all four L-1 class members | success | success |
+| [31985550447](https://github.com/GrantHecht/hven/actions/runs/31985550447) attempt 1 | `305e5a1` | 1 fail / 1149 | 2 fail / 1065 | **success** (461 tests) |
+| [31985550447](https://github.com/GrantHecht/hven/actions/runs/31985550447) attempt 2 | `305e5a1` | 1 fail — **byte-identical to attempt 1** | 2 fail — **byte-identical to attempt 1** | success |
+| [see §9](#9-acceptance-state) | `<the follow-up commit>` | — | — | — |
+
+**The base commit is the honest comparator, and it was already red.** `8e2cbd0`
+failed the Linux lane with all four L-1 register tests. Three of those four are
+among U0's nine moved sites. So the pre-U0 world was not a green world that U0
+broke; it was a lane that had been flaking on exactly this class for four
+recorded occurrences.
+
+### 6.2 What the pinned lane ISA bought (and what it did not)
+
+Under `HVEN_SIMD_ARCH=x86-64-v3` the Linux lane went from 4 failures to 1.
+Attributing that honestly: U0 re-derived three of those four sites' Release
+pins, so the retirement is the posture and the re-derivation *together*, not
+the posture alone.
+
+The remaining failure is the interesting one, and it is **no longer a flake**:
+attempts 1 and 2 produced bit-identical values on all ten compared columns. The
+lane now has one arithmetic, reproducibly — which is exactly what the posture
+promised — but it is **not this machine's arithmetic**:
+
+| cell / column | derivation machine | lane, both attempts | rel. diff |
+|---|---|---|---|
+| `f7_n1000_bound_neutral` kkt_residual / stationarity | `6.295832335e-14` | `6.295832674e-14` | 5.4e−8 |
+| `f7_n1000_path_neutral` kkt_residual / primal | `3.053665099e-10` | `3.053661768e-10` | 1.1e−6 |
+| `f7_n1000_path_neutral` stationarity | `1.045096220e-10` | `1.045096199e-10` | 2.0e−8 |
+| `f7_n1000_path_neutral` dual_sign | `4.555244335e-07` | `4.555252106e-07` | 1.7e−6 |
+| `f7_n1000_path_neutral` complementarity | `1.271441541e-13` | `1.271441316e-13` | 1.8e−7 |
+
+**The decisive control: it is not the ISA flag.** Rebuilt locally with the
+lane's own `-march=x86-64-v3`, the full 695-test SQP binary passes unchanged —
+the local values, not the lane's. What is left is MKL kernel dispatch on the
+runner's silicon: the half of the L-1 class the design note explicitly said the
+posture would not close. Corroboration: `3.053661768e-10` is *exactly* the value
+the L-1 register captured from occurrence 3's diverging runner under `native`.
+The same arithmetic, now arrived at deterministically instead of by lottery.
+
+### 6.3 The three dispositions this forced, all reviewed findings
+
+Each met the two-run bar first. Each is recorded in a divergence register.
+
+1. **`CorpusTask6bPhaseB`'s five float residual columns → relative comparison
+   at 1e−5** (L-1 register, occurrence 5). The derivation-machine strings are
+   kept and recorded via `RecordProperty`; every integer column, the status,
+   and the per-QP shape — where this test's subject lives — stay **byte-strict
+   on every lane**. Justification: these are residual norms near 1e−10/1e−13
+   formed by cancellation from O(1) data, so their intrinsic relative accuracy
+   is ~`eps/magnitude` ≈ 1e−6; the 9th significant digit was never portable.
+   The precedent is this same test's own Accelerate arm, which has
+   reported-not-asserted these five since M3-3 for the same reason.
+2. **`B1Gate` HS77 `f` on Accelerate: `0.24150512879002822` →
+   `0.24150512879002839`** (new register entry M3-5). Pre-announced by the arm
+   it amends: that comment called HS77 `f` "the origin's flagged TRAP", passing
+   only at *exactly* 4 ulps with "zero margin". U0 supplied the ulp. Note the
+   direction — the new Apple value is the same value MKL Release re-derived, so
+   two encodings that used to fork now agree.
+3. **`Predictor.PredictorIsExactUpToRegularizationOnAffinePaths`, Accelerate
+   arm: bound `2e-10` → `5e-9`** (new register entry M3-6). **This is the one
+   place in the entire event where an accuracy claim genuinely weakened**, and
+   it is the finding this report most wants a reviewer's eye on. The observed
+   norm is `2.1606352262892869e-09`, bit-identical across both lane runs — 28×
+   the documented MKL measurement of `7.619e-11`. The MKL bound is untouched.
+   The claim survives in weakened form: dropping four orders of regularization
+   still buys 2.5 orders of error on Apple where it buys four on MKL, and the
+   mechanism is legible (the tight-regularization arm solves a sensitivity
+   system at ~500× the chain's conditioning — precisely where `-ffast-math`
+   reassociation costs digits). **Open for the reviewer**: accept the weakened
+   Apple bound as standing, or treat this path as a candidate for an FP-mode
+   carve-out or a reassociation-stable restructuring. No code change is
+   proposed here.
+
+### 6.4 What is still owed on the Apple side
+
+The M3-4 arm pins and the remaining Accelerate register rows re-observed green
+on the lane under the unified flags, so nothing else in the (c)4 class needed
+re-derivation from this push. Anything the scheduled Mac session (§7/O12)
+finds beyond this stays **UNOBSERVED** until observed on real Apple hardware.
 
 ## 7. P-BENCH old-vs-new (the "without sacrificing performance" measurement)
 
@@ -400,3 +476,40 @@ and does it better (it re-solves rather than diffing files). Registered count
 unmoved at 1155, so no count arithmetic is owed. The coverage change is
 surfaced as a reviewer finding in §2.3 item 4 rather than left implicit in a
 rename.
+
+## 9. Acceptance state
+
+**PENDING. This event does not self-accept** (plan §6 U0(b)6): the execution
+reviewer reviews this report and the owner is summarized on it **before** the
+re-derived pins become the bar and the T-series proceeds.
+
+What is landed and proven:
+
+| Requirement (plan §6 U0) | State |
+|---|---|
+| (a) flags-only commit, zero code motion | `bf8e897` — diff is flags, two deleted boundary declarations, and docs |
+| (b)1 two independent reproductions before anything becomes the bar | census ×2 (byte-agreed on all 37 columns but `wall_s`); every suite pin observed in two fresh full-suite runs; P-WSB ×2; every lane figure taken from two agreeing CI attempts |
+| (b)2 the delta characterized, not declared | this report + `census-delta-old-vs-new.csv` + `pbench-old-vs-new.csv` |
+| (b)2 statuses-must-not-regress (HALT bar) | **0 flips across 57 census cells and 17 bench cells.** Nothing to adjudicate; the halt condition never armed |
+| (b)3 new dated baseline, repoint, old file frozen | `bench/baselines/2026-08-16-u0-corpus/`; 2026-08-06 file untouched |
+| (b)4 consumer sweep in the same commit | 8 consumers enumerated in §8, green in `39a27c9` |
+| (b)5 frozen-continuity tests dispositioned | converted to frozen-vs-frozen, argued in the commit; the four `--from-csv` re-scores verified, not assumed |
+| (c)1 cross-config pins split, never widened | 6 config splits via `#ifdef NDEBUG`; Debug keeps every pre-U0 value |
+| (c)2 knife-edge / zero pins reviewed, never auto-pinned | §2.2a table; two movements, both reviewed |
+| (c)3 documented-verdict constants recomputed | §2.4 — no verdict and no figure moved |
+| (c)4 Accelerate values re-observed on Mac CI, two-run bar, register updated | §6.3 — M3-5 and M3-6 added to the register |
+| CI posture HARD REQUIREMENT decided | design note §2; implemented; L-1 register's open question answered and its outcome measured in §6.2 |
+
+What a reviewer should look at first, in order:
+
+1. **§6.3 item 3** — the Apple predictor accuracy loss. The only weakened
+   claim in the event, and the only place where "reversible on the reviewer's
+   word" is doing real work.
+2. **§6.3 item 1** — the `CorpusTask6bPhaseB` relative comparison. It changes
+   an assertion's strength on every lane, for a stated reason, with the strings
+   retained.
+3. **§2.3 item 1** — `nlp_model.h`'s "bit-identical" contract sentence, which
+   needs an owner ruling and which this event deliberately did not edit.
+4. **§2.2** — the zero-pin that went nonzero.
+5. **§2.3 item 4** — the two continuity tests that no longer watch the live
+   engine, and what replaces them.

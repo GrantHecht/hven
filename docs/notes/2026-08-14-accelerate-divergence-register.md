@@ -209,3 +209,78 @@ criteria from the second-pass research, Q2), which would make membership a
 function of the geometry rather than the coin." Until that trigger fires, no
 algorithmic change is warranted — changing a tie-resolution rule to force
 cross-backend agreement would be tuning the algorithm to the test.
+
+### M3-5 — HS77's objective encoding moves one ulp under the unified flags
+
+`tests/sqp/test_b1_gate.cpp`,
+`B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair`, HS77 `f`.
+
+| quantity | pre-U0 Accelerate arm | post-U0 Accelerate arm |
+| --- | --- | --- |
+| HS77 `f` | `0.24150512879002822` | **`0.24150512879002839`** |
+
+**This entry was pre-announced by the arm it amends.** That arm's own comment
+recorded HS77 `f` as "the origin's flagged TRAP": it passed against the MKL
+constant only through `EXPECT_DOUBLE_EQ`'s 4-ulp gate, at *exactly* 4 ulps,
+"zero margin, one further ulp of drift anywhere in this dependency chain flips
+it to a failure with no warning." The phase-C flag unification (U0) supplied
+that ulp — `tests/sqp` now compiles `-ffast-math -mcpu=apple-m1` on this lane
+— and the trap sprang exactly as written.
+
+Provenance: **two macOS lane runs, bit-identical**, CI run
+[31985550447](https://github.com/GrantHecht/hven/actions/runs/31985550447)
+attempts 1 and 2, commit `305e5a1`, Release, AppleClang,
+`github-macos26-arm64`. That meets this register's two-run byte bar for a
+float. Observed, never computed.
+
+Two things worth recording beyond the number. First, the new Apple value is
+**the same value MKL Release re-derived under the same flag change** — two
+encodings that used to fork now agree, which is the opposite of the usual
+direction here. Second, the control's *purpose* is untouched on this backend:
+`first.f == second.f` across the repair held on both lane runs, so what moved
+is the encoding this arm pins, not the claim the test exists to make.
+
+Disposition: per-backend arm re-pinned to the observed value, the trap
+paragraph kept and annotated with what happened to it.
+
+### M3-6 — the tight-regularization predictor loses ~1.4 orders on this lane — **REVIEWED FINDING**
+
+`tests/sqp/test_predictor.cpp`,
+`Predictor.PredictorIsExactUpToRegularizationOnAffinePaths`, F3 free branch,
+tight-regularization arm (line 494).
+
+| quantity | MKL / derivation machine | Accelerate, post-U0 |
+| --- | --- | --- |
+| `‖sharp.x − x*‖∞` | `7.619e-11` (measured, ~2.6× margin under a 2e-10 bound) | **`2.1606352262892869e-09`** |
+| bound asserted | `2e-10` (unchanged) | `5e-9` (new per-backend arm) |
+
+**This is the one place in the whole U0 flag-unification event where an
+accuracy claim genuinely weakened, and it is filed as a reviewed finding
+rather than a quiet widening.** Everything else the event moved was an
+encoding: last digits of a residual, a knife-edge counter, a fixture's own
+arithmetic. This is an error norm that got 28× larger than its documented
+measurement and 10.8× larger than the bound it was asserted against.
+
+Provenance: **two macOS lane runs, bit-identical to 17 significant digits**,
+CI run [31985550447](https://github.com/GrantHecht/hven/actions/runs/31985550447)
+attempts 1 and 2, commit `305e5a1`. It is a stable property of this backend
+under these flags, not a flake. Observed, never computed.
+
+Why the claim survives, stated so a reviewer can disagree with it: the test's
+subject is "the only error left is the regularization floor," and that is still
+true, just less sharply. The loose arm (δ = 1e-8) reads `7.590e-07` on both
+backends; dropping four orders of regularization still buys **2.5** orders of
+error on Apple where it buys **four** on MKL. The mechanism is legible — this
+is the tight-regularization solve of a sensitivity system carrying roughly
+500× the spring chain's own conditioning, which is precisely where
+`-ffast-math` reassociation costs digits, and it is the only assertion in that
+file sitting close enough to its bound to notice. The MKL bound is **not**
+relaxed, so the loss is confined to the backend that has it.
+
+Disposition: per-backend arm at `5e-9`, set from the observed value with
+margin and not fitted to it. **Open for the reviewer**: whether an accuracy
+loss of this size on the Apple path is acceptable standing, or whether the
+predictor's tight-regularization path should be excluded from `-ffast-math`
+(an FP-mode carve-out, which the unified-flags ruling would have to license)
+or restructured to be reassociation-stable. Nothing here proposes a code
+change; the finding is the deliverable.

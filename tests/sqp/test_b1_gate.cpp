@@ -749,11 +749,27 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
     // than leave that latent, this arm takes the Accelerate-observed value
     // for HS77 f too, so the Accelerate branch is a 0-ulp match like every
     // other passing cell instead of a 4-ulp one.
+    //
+    // U0 (2026-08-16): THE TRAP SPRANG, exactly where the paragraph above
+    // said it would. Under the unified flag set's Apple form
+    // (-ffast-math -mcpu=apple-m1; docs/notes/2026-08-16-m3-u0-design.md §2)
+    // HS77 f re-observed on the macOS lane as 0.24150512879002839 rather than
+    // 0.24150512879002822 -- one further ulp of drift in this dependency
+    // chain, which is all the zero-margin 4-ulp gate had left. RE-OBSERVED,
+    // NOT COMPUTED (CLAUDE.md §6 forbids fabricating an Apple value): the
+    // figure is bit-identical in TWO macOS lane runs, CI run 31985550447
+    // attempts 1 and 2 on commit 305e5a1, which is this project's two-run
+    // bar. Two notes for the record. (i) The new Apple value is the SAME
+    // value MKL Release re-derived under the same flag change (see the NDEBUG
+    // arm below) -- the two backends' HS77 encodings, which used to differ,
+    // now agree. (ii) The control's PURPOSE is untouched: `first.f ==
+    // second.f` across the repair held on both lane runs; only the encoding
+    // this arm pins moved. Nothing else in this table moved on Apple.
     const std::vector<EqualityControl> controls = {
         {7, 9, 0, -1.7320508086422415, 3.4794942110708625e-10},
         {26, 17, 0, 2.282201461221889e-12, 0.99938512958678594},
         {40, 4, 0, -0.2500000000031779, 0.7937005259836708},
-        {77, 12, 0, 0.24150512879002822, 1.1661721897049999},
+        {77, 12, 0, 0.24150512879002839, 1.1661721897049999},
     };
 #elif defined(NDEBUG)
     // U0 DECLARED RE-DERIVATION (phase-C flag unification, 2026-08-16, see

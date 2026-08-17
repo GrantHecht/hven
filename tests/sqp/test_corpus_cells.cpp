@@ -2608,13 +2608,56 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
              {"3.053665099e-10", "1.045096220e-10", "3.053665099e-10", "4.555244335e-07",
               "1.271441541e-13"}},
         };
-        (void)residuals;
+        // U0 FOLLOW-UP (2026-08-16, the SAME event, after its first CI push):
+        // these five columns are compared RELATIVELY, not byte-for-byte, and
+        // the derivation-machine strings are recorded so no information is
+        // lost. This is a REVIEWED FINDING in the delta report, reversible on
+        // the reviewer's word.
+        //
+        // WHY. A byte-compare of these five was already known not to be a
+        // legitimate claim on Accelerate (the M3-3 paragraph above). The U0
+        // push showed it is not one ACROSS x86 HOSTS either: the Linux lane
+        // reproduced its own values bit-identically on two attempts (CI run
+        // 31985550447 attempts 1 and 2, commit 305e5a1) and they differ from
+        // the derivation machine's -- e.g. f7_n1000_path_neutral kkt_residual
+        // 3.053661768e-10 on the lane against 3.053665099e-10 locally, a
+        // relative difference of 1.1e-6, with 1.7e-6 the largest of the ten.
+        // It is NOT the ISA: rebuilding locally with the lane's own
+        // -march=x86-64-v3 reproduces the LOCAL values exactly (all 695 SQP
+        // tests green). What is left is MKL kernel dispatch on the runner's
+        // silicon -- the residual half of the L-1 flake class, which the U0
+        // CI-flag posture explicitly did not claim to close (see the
+        // divergence register and 2026-08-16-m3-u0-design.md §2). The lane
+        // value is in fact the SAME value the register captured from L-1
+        // occurrence 3, so the ISA pin did what it promised -- it turned a
+        // per-runner lottery into one stable lane arithmetic; it just is not
+        // this machine's.
+        //
+        // WHY 1e-5 RELATIVE IS A REAL GATE AND NOT A SHRUG. These are KKT
+        // residual norms near 1e-10 and 1e-13 formed by cancellation from
+        // O(1) data, so their own relative accuracy is only about
+        // eps/magnitude -- of order 1e-6 here. The 9th significant digit was
+        // never a physically meaningful quantity to pin across hosts; 1e-5
+        // sits just above the observed host-to-host spread and still five or
+        // more orders below anything that could mean a lever actually did
+        // something -- and a lever that did something would move an integer
+        // column or the per-QP shape, every one of which stays BYTE-STRICT
+        // above on every lane. The subject of this test is untouched.
         const U0Residuals &exp9 = kU0ReleaseResiduals.at(id);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_residual), exp9.kkt);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_stationarity), exp9.stationarity);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_primal), exp9.primal);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_dual_sign), exp9.dual_sign);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_complementarity), exp9.complementarity);
+        ::testing::Test::RecordProperty(fmt::format("task6b_residuals_observed_{}", id), residuals);
+        constexpr double kHostRelTol = 1e-5;
+        const auto close = [&](double observed, const char *derived, const char *what) {
+            const double want = std::stod(derived);
+            const double scale = std::max(std::abs(want), std::abs(observed));
+            EXPECT_LE(std::abs(observed - want), kHostRelTol * scale)
+                << what << " on cell " << id << ": observed "
+                << fmt::format("{:.9e}", observed) << ", derivation machine " << derived;
+        };
+        close(row.kkt_residual, exp9.kkt, "kkt_residual");
+        close(row.kkt_stationarity, exp9.stationarity, "kkt_stationarity");
+        close(row.kkt_primal, exp9.primal, "kkt_primal");
+        close(row.kkt_dual_sign, exp9.dual_sign, "kkt_dual_sign");
+        close(row.kkt_complementarity, exp9.complementarity, "kkt_complementarity");
 #else
         (void)residuals;
         EXPECT_EQ(fmt::format("{:.9e}", row.kkt_residual), w[12]);

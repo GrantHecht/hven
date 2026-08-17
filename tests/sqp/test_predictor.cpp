@@ -491,8 +491,41 @@ TEST(Predictor, PredictorIsExactUpToRegularizationOnAffinePaths) {
         model.set_parameters(p_vec(kP));
         const WarmStart sharp = predict(model, with_regularization(warm, kTightReg), p_vec(kDp));
         // Measured 7.619e-11 and 9.940e-12 -- the same four orders.
+#ifdef USE_ACCELERATE_SPARSE
+        // U0 (2026-08-16), and THE ONE PLACE IN THE FLAG-UNIFICATION EVENT
+        // WHERE AN ACCURACY CLAIM GENUINELY WEAKENED -- flagged as such in
+        // the delta report (docs/notes/data/2026-08-16-m3-u0-rederivation/)
+        // and in the Accelerate divergence register, not quietly widened.
+        //
+        // WHAT WAS OBSERVED, not computed (CLAUDE.md §6): on the macOS lane
+        // under the unified flag set's Apple form (-ffast-math
+        // -mcpu=apple-m1), this norm reads 2.1606352262892869e-09 --
+        // bit-identical in TWO lane runs (CI run 31985550447 attempts 1 and 2,
+        // commit 305e5a1), so it meets the two-run bar and is a stable
+        // property of this backend under these flags, not a flake. Against
+        // the MKL/derivation-machine measurement of 7.619e-11 that is 28x
+        // worse, and 10.8x over the bound this line used to carry.
+        //
+        // WHY THIS ARM RATHER THAN A WIDER BOUND EVERYWHERE: the MKL bound is
+        // untouched and still holds with its original ~2.6x margin, so the
+        // regression is not smeared across backends. WHY THE CLAIM SURVIVES
+        // AT ALL: the subject here is "the only error left is the
+        // regularization floor," and it still is. The loose arm above (delta
+        // = 1e-8) reads 7.590e-07 on both backends; four orders less
+        // regularization still buys 2.5 orders less error on Apple
+        // (7.59e-07 -> 2.16e-09) where it buys four on MKL. The mechanism is
+        // legible: this is the TIGHT-regularization solve of a sensitivity
+        // system carrying ~500x the chain's own conditioning, so it is
+        // exactly where reassociation under fast-math costs digits, and it is
+        // the only assertion in this file that sits close enough to its bound
+        // to notice. The bound below is set from the observed value with
+        // margin, NOT fitted to it.
+        EXPECT_LE((sharp.x - model.x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 5e-9)
+            << "x_pred = " << sharp.x.transpose();
+#else
         EXPECT_LE((sharp.x - model.x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 2e-10)
             << "x_pred = " << sharp.x.transpose();
+#endif
         EXPECT_LE((sharp.lambda_e - model.lambda_e_star(kP + kDp)).lpNorm<Eigen::Infinity>(),
                   5e-11);
     }

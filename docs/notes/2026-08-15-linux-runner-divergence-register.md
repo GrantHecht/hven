@@ -15,8 +15,12 @@ Created 2026-08-15, when the phase-C plan's microarch-flake watch rule
 
 ## L-1 — the four-test Linux flake class
 
-**Status: OPEN — root cause narrowed, not closed.** Not attributable to any
-library change (see exoneration). Standing lane property.
+**Status: OPEN — root cause narrowed twice, not closed.** Not attributable to
+any library change (see exoneration). Standing lane property. **Read the
+occurrence-5 section below before using anything above it**: under the U0 CI
+flag posture three of the four members retired and the fourth stopped being a
+flake at all — it is now a stable, reproducible lane-vs-local divergence, which
+changes how it must be handled.
 
 **The occurrences:**
 
@@ -26,6 +30,7 @@ library change (see exoneration). Standing lane property.
 | 2 | run `31893392460` attempt 1; task R5's report §7–8 | R5 | lane UNPINNED (diagnosis event) |
 | 3 | run `31907664085` attempt 1 | `e7f89a7` (S2) | **`MKL_NUM_THREADS=1` PINNED** (`23247e3`, verified in the failing run's `ci.yml`) |
 | 4 | run `31921576722` attempt 1 | `dc98d70` (S3) | PINNED |
+| 5 | run `31985550447` attempts 1 **and 2** | `305e5a1` (U0) | PINNED, **and the lane ISA pinned to `x86-64-v3`** |
 
 Occurrence 4 (2026-08-15): same four tests, same assertion sites as
 occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60
@@ -104,6 +109,74 @@ regime. Runner-class pinning was rejected as not purchasable on hosted
 runners. This removes the per-runner-codegen half of the exposure; the MKL
 kernel-dispatch half (this class, L-1) remains OPEN and is unchanged by the
 posture.
+
+### What the U0 push actually showed — occurrence 5, and a narrowing
+
+**The posture worked on three of the four tests, and turned the fourth from a
+flake into a fact.**
+
+CI run [31985550447](https://github.com/GrantHecht/hven/actions/runs/31985550447)
+(commit `305e5a1`, the first push carrying `HVEN_SIMD_ARCH=x86-64-v3` on this
+lane) is the first observation under the pinned ISA. Compare it against the
+base commit's run
+[31925472238](https://github.com/GrantHecht/hven/actions/runs/31925472238)
+(`8e2cbd0`, `native`), which failed with **all four** class members:
+
+| test | at `8e2cbd0`, `native` | at `305e5a1`, `x86-64-v3` |
+| --- | --- | --- |
+| `SqpDriverRadius.FloorRaisesTheRestorationRequest` | FAIL | **pass** |
+| `B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair` | FAIL | **pass** |
+| `SsnEngineLocal.WeaklyActiveRowFinishesUncertain` | FAIL | **pass** |
+| `CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers` | FAIL | FAIL (occurrence 5) |
+
+Three of those passes are partly re-derivation rather than posture — U0 moved
+those three sites' Release pins — so the honest reading is that the two changes
+together retired three of the four, not that the ISA pin alone did.
+
+**Occurrence 5 is different in kind from occurrences 1–4, and that is the
+finding.** It did **not** go green on rerun. Attempts 1 and 2 of run
+31985550447 produced **bit-identical values on all ten compared columns**, so
+the standing rerun-and-exonerate handling does not apply to it: this lane now
+has *one* arithmetic, reproducibly, and it is not the derivation machine's.
+
+| cell / column | derivation machine | this lane, both attempts |
+| --- | --- | --- |
+| `f7_n1000_bound_neutral` kkt_residual, stationarity | `6.295832335e-14` | `6.295832674e-14` |
+| `f7_n1000_path_neutral` kkt_residual, primal | `3.053665099e-10` | `3.053661768e-10` |
+| `f7_n1000_path_neutral` stationarity | `1.045096220e-10` | `1.045096199e-10` |
+| `f7_n1000_path_neutral` dual_sign | `4.555244335e-07` | `4.555252106e-07` |
+| `f7_n1000_path_neutral` complementarity | `1.271441541e-13` | `1.271441316e-13` |
+
+Largest relative difference: **1.7e-6**. No counter, status, escape census
+column or per-QP shape moved on either attempt — those stayed byte-strict
+against the frozen artifact, on the lane, as they always have.
+
+**It is not the ISA flag.** Rebuilding locally with this lane's exact
+`-march=x86-64-v3` reproduces the LOCAL values — the whole 695-test SQP binary
+passes unchanged under the lane's declared arithmetic. So the pinned baseline
+did what §2 of the U0 design note claimed for it (one defined codegen per lane)
+and the residue is the half that note said it would not close: **MKL kernel
+dispatch on the runner's silicon.** Corroborating detail: `3.053661768e-10` is
+*exactly* the value occurrence 3's table above captured from a diverging runner
+under `native` — the same arithmetic, now arrived at deterministically.
+
+**Class status: NARROWED, still OPEN.** The per-runner-codegen half is closed
+by the posture. The MKL-dispatch half is now a stable, reproducible lane
+property rather than an intermittent one — which is an improvement in
+diagnosability, not a fix.
+
+Disposition taken at U0 (a **reviewed finding**, reversible on the reviewer's
+word; see the U0 delta report): the five float residual columns in
+`CorpusTask6bPhaseB` are compared **relatively at 1e-5** rather than as exact
+9-digit strings, with the derivation-machine strings recorded via
+`RecordProperty` so nothing is lost. The justification is in the test's own
+comment: these are residual norms near 1e-10 and 1e-13 formed by cancellation
+from O(1) data, so their intrinsic relative accuracy is about `eps/magnitude`
+— of order 1e-6 here — and the 9th significant digit was never a portable
+quantity. Every integer column, the status, and the per-QP shape, which are
+where this test's subject lives, remain **byte-strict on every lane**. The
+sibling precedent is this same test's existing Accelerate arm, which has
+reported-not-asserted those five columns since M3-3 for the same reason.
 
 ### Relation to the observations in this register's sibling
 
