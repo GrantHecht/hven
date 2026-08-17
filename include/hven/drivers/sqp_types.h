@@ -726,6 +726,31 @@ struct SqpOptions {
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms;
 };
 
+// THE BOUNDARY VALIDATION SqpDriver's constructor runs over the struct above.
+// Throws std::invalid_argument, with a message naming the option and the value
+// it had, on any option the driver cannot honour: a non-positive or NaN
+// kkt_tol/feas_tol, a negative max_iter, a non-positive or NaN tr_init, a
+// tr_max below tr_init, or a tr_min that is non-positive or above either end of
+// the range it floors. Returns normally on an options object the driver accepts.
+//
+// M3 PHASE-C T3 gave it a translation unit (src/drivers/sqp_options.cpp) and
+// this declaration; before that it was an inline block inside class SqpDriver,
+// compiled into every TU that includes sqp_driver.h for a function that runs
+// once per construction. The DECLARATION lives here, on the header that owns
+// SqpOptions, for the same reason the enum printers' declarations live on the
+// headers that own their enums: this is the type the contract is about.
+//
+// Callers other than the driver may use it -- it is the cheapest way for a
+// front end to reject an options object before building a solver around it --
+// but the driver validates unconditionally, so calling it first is an
+// optimization, never a prerequisite.
+//
+// EVERY PREDICATE IN IT IS WRITTEN AS THE NEGATION OF THE ACCEPTANCE CONDITION
+// so that NaN is rejected rather than admitted, which rests on the build's
+// `-fno-finite-math-only`; that TU's banner carries the argument and T3's
+// battery pins it by disassembly.
+void validate_sqp_options(const SqpOptions &opts);
+
 // One row of the per-major history -- the record of ONE ITERATE and of the
 // subproblem solved from it (if any).
 //

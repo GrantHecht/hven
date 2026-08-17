@@ -3288,60 +3288,24 @@ class SqpDriver {
     // itself stuck" regardless of that shape.
     SqpDriver(const SqpOptions &opts, bool allow_restoration)
         : opts_(opts), engine_(opts.qp), allow_restoration_(allow_restoration) {
-        if (!(opts_.kkt_tol > 0.0) || !(opts_.feas_tol > 0.0)) {
-            throw std::invalid_argument(
-                fmt::format("SqpDriver: kkt_tol ({}) and feas_tol ({}) must both be > 0",
-                            opts_.kkt_tol, opts_.feas_tol));
-        }
-        if (opts_.max_iter < 0) {
-            throw std::invalid_argument(
-                fmt::format("SqpDriver: max_iter ({}) must be >= 0", opts_.max_iter));
-        }
-        if (!(opts_.tr_init > 0.0)) { // catches NaN, negatives and exactly 0
-            throw std::invalid_argument(fmt::format(
-                "SqpDriver: tr_init ({}) must be > 0 (use +inf for no trust region; 0 would "
-                "pin every step to zero and stall until max_iter)",
-                opts_.tr_init));
-        }
-        // tr_max is READ from Task 6 on (it caps the growth rule), so a
-        // ceiling below the floor is now a contradiction rather than an
-        // ignored field: it would silently mean "the radius may never grow,
-        // and the very first subproblem already violates the cap".
+        // M3 PHASE-C T3 MOVED THE CHECKS THEMSELVES into the library TU
+        // src/drivers/sqp_options.cpp, leaving this call. Nothing about the
+        // contract moved: the same six rejections fire in the same order with
+        // the same messages, still before the driver is usable and still after
+        // engine_ has been constructed from opts.qp (which validates its own
+        // options on its own account). What moved is where the code is
+        // generated -- as an inline body here, six comparison chains and six
+        // fmt::format call chains were parsed and emitted in EVERY TU that
+        // includes this header, for a function that runs exactly once per
+        // driver construction. CLAUDE.md section 5 names options code as .cpp-TU
+        // code for precisely that shape.
         //
-        // tr_init == +inf IS EXEMPT FROM THIS PARTICULAR CHECK, because at
-        // that value there is no starting radius for tr_max to be a ceiling
-        // ON. It is no longer exempt from tr_max MATTERING: from Task 9 the
-        // FIRST rejection lands the radius on tr_max (see RADIUS MANAGEMENT),
-        // so the pair is meaningful after all -- what +inf now means is
-        // "unbounded until the method finds it needs a bound, then tr_max".
-        // The growth rule is still skipped while the radius is +inf
-        // (min(+inf*2, tr_max) would REDUCE it, which no growth rule may do).
-        if (!std::isinf(opts_.tr_init) && !(opts_.tr_max >= opts_.tr_init)) { // catches NaN too
-            throw std::invalid_argument(
-                fmt::format("SqpDriver: tr_max ({}) must be >= tr_init ({}); it is the ceiling "
-                            "the trust-region growth rule expands toward",
-                            opts_.tr_max, opts_.tr_init));
-        }
-        // THE FLOOR (Task 9). It must be positive (0 would make it
-        // unreachable, since the radius only ever halves, and the restoration
-        // trigger it exists to arm would be dead), and it must not exceed
-        // either end of the range it floors -- tr_min > tr_init would put the
-        // FIRST subproblem below the floor, i.e. request restoration before
-        // the solve has tried anything, and tr_min > tr_max would do the same
-        // to the radius a +inf tr_init lands on. Both forms catch NaN.
-        if (!(opts_.tr_min > 0.0)) {
-            throw std::invalid_argument(fmt::format(
-                "SqpDriver: tr_min ({}) must be > 0; it is the radius floor whose crossing "
-                "raises a restoration request, and 0 can never be crossed by halving",
-                opts_.tr_min));
-        }
-        if (!(opts_.tr_min <= opts_.tr_init) || !(opts_.tr_min <= opts_.tr_max)) {
-            throw std::invalid_argument(
-                fmt::format("SqpDriver: tr_min ({}) must be <= both tr_init ({}) and tr_max ({}); "
-                            "a floor above the starting radius requests restoration before the "
-                            "first trial is judged",
-                            opts_.tr_min, opts_.tr_init, opts_.tr_max));
-        }
+        // READ THAT TU'S BANNER BEFORE TOUCHING A PREDICATE THERE. The checks
+        // are written as `!(x > 0.0)` rather than `x <= 0.0` because that is the
+        // form that rejects NaN, and that equivalence is broken on purpose by
+        // the build's `-fno-finite-math-only` -- the banner states the premise
+        // and T3's battery pins it by disassembly.
+        validate_sqp_options(opts_);
     }
 
   public:

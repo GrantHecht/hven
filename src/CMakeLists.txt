@@ -90,9 +90,17 @@ target_include_directories(hven PRIVATE
 # carries the argument; more of these appear as the T-series lands, and they
 # collect here rather than in the interior-point block above, which is a record
 # of a migration this file is not part of.
+#
+# T3 adds the second: drivers/sqp_options.cpp, the SqpOptions boundary
+# validation SqpDriver's constructor runs (CLAUDE.md §5 names options code
+# alongside printing). Its banner also carries the ONE flag premise in this
+# tree that a comparison's spelling depends on -- `-fno-finite-math-only`,
+# without which `!(x > 0.0)` may be rewritten to `x <= 0.0` and stop rejecting
+# NaN -- and T3's battery pins that premise by disassembling this TU.
 ################################################################################
 
 target_sources(hven PRIVATE
+    drivers/sqp_options.cpp
     drivers/sqp_print.cpp
 )
 
@@ -190,6 +198,28 @@ target_sources(hven PRIVATE
 # quietly become 18 of 19. Measuring it here closes that gap without changing
 # its (already correct, default) opted-out status. With this addendum the
 # Linux table covers all 21 sources.
+#
+# M3 PHASE-C T3 ADDENDUM (2026-08-17). Same method, same box, same session
+# shape as the T1/T2 addendum: two configures differing only in
+# -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON, CCACHE_DISABLE=1, the TU's own compile
+# command replayed three times per arm, minimum reported, objects byte-compared.
+# The two opt-in controls were re-measured again and reproduce (6.96 -> 4.32 and
+# 4.07 -> 1.83, both identical), so the arms are comparable with the T1/T2 rows.
+#
+#     ------ the source this commit adds: faster, NOT byte-identical ---------
+#   drivers/sqp_options.cpp                       3.10 -> 1.60  -1.49  differs
+#
+# It does NOT join the opt-in list: bar 1 is cleared comfortably, bar 2 is not.
+# The plan predicted this TU would resemble drivers/interior_point_solver_
+# settings.cpp (opt-in, identical); measured, it lands in the large
+# "faster but not byte-identical" group instead, exactly as T1's two did. The
+# measurement is recorded rather than the prediction. Linux table: 22 sources.
+#
+# NOTE ON MEASURING AN OPTED-OUT TU. An opted-out source carries no PCH flags
+# in the normal configure, so a "with-PCH" arm read straight out of that build's
+# compile_commands.json would not consume the PCH and would report a delta of
+# zero. The number above comes from a THROWAWAY configure with this source
+# temporarily added to _hven_pch_sources, and the list here is unchanged.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -226,7 +256,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 21)
+set(_hven_expected_source_count 22)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

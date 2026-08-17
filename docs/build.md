@@ -53,10 +53,10 @@ Bar 2 is the one that matters most. The translation-unit section of
 presumed for anything touching engine code, and a byte-identical object
 is the strongest available proof: identical bytes cannot move a
 golden-rig row or a counter. With the current list, every object file the
-Linux build produces (21 of them since M3 phase-C T1/T2 added
+Linux build produces (22 of them: 21 after M3 phase-C T1/T2 added
 `drivers/sqp_print.cpp` and `core/ledger.cpp` and brought the
-previously-unmeasured `kkt/kkt_calls.cpp` into the measurement table)
-*and* `libhven.a` itself
+previously-unmeasured `kkt/kkt_calls.cpp` into the measurement table,
+then T3's `drivers/sqp_options.cpp`) *and* `libhven.a` itself
 are byte-identical with and without the PCH — which is what
 `scripts/check_pch_neutrality.sh` re-proves on demand and in CI.
 
