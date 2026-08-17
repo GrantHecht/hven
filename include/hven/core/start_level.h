@@ -120,17 +120,17 @@ enum class StartLevel { kCold, kSeeded, kWarm, kHot };
 // so the switch exists once, declared here, rather than being hand-copied at
 // each call site -- the same rationale solver_status.h's to_string gives.
 //
-// M3 PHASE-C T1 MOVED THE DEFINITION out of this header into the library TU
-// `src/drivers/sqp_print.cpp`, alongside the other four solver-enum printers
-// and the iteration-table renderer (CLAUDE.md section 5 homes printing in a
-// .cpp TU). The DECLARATION stays here, on the header that owns the enum, so
-// every existing call site compiles unchanged; only the switch itself is now
-// compiled once instead of once per including TU.
+// M3 PHASE-C T1 MOVED THE DEFINITION out of this header into a library TU
+// (CLAUDE.md section 5 homes printing in a .cpp TU). The DECLARATION stays
+// here, on the header that owns the enum, so every existing call site compiles
+// unchanged; only the switch itself is now compiled once instead of once per
+// including TU.
 //
-// The definition lives in a `drivers/` TU rather than a `core/` one because T1
-// carves all five printers into ONE TU. That is a link-time edge inside
-// libhven.a only -- `core/` headers still include nothing above `core/`, which
-// is the layering rule tests/core/test_core_layering.cpp actually enforces.
+// T1 put it in `src/drivers/sqp_print.cpp` with the other four printers, which
+// left `src/core/ledger.cpp` resolving a symbol out of a `drivers/` object -- a
+// link-time edge up CLAUDE.md section 2's tier order, invisible to
+// tests/core/test_core_layering.cpp, which scans include DIRECTIVES. T3's
+// follow-up moved this switch and SqpStatus's into `src/core/enum_names.cpp`.
 const char *to_string(StartLevel level);
 
 // PHASE-6 TASK 5. How many of a ledger's whole-driver solves resolved at each

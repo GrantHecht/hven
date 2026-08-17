@@ -8,6 +8,12 @@ target_sources(hven PRIVATE
     core/version.cpp
     core/pattern_hash.cpp
     core/ledger.cpp
+    # The display-string switches for the two solver enums core/ owns
+    # (SqpStatus, StartLevel). They are in a core/ TU, not the drivers/ printing
+    # TU that carries the other three, so that no core/ object resolves a symbol
+    # out of a drivers/ one -- see the file's own banner (M3 phase-C T3, closing
+    # the T1 review's finding F1).
+    core/enum_names.cpp
     linear/dense_symmetric_factor.cpp
     kkt/kkt_calls.cpp
 )
@@ -220,6 +226,24 @@ target_sources(hven PRIVATE
 # compile_commands.json would not consume the PCH and would report a delta of
 # zero. The number above comes from a THROWAWAY configure with this source
 # temporarily added to _hven_pch_sources, and the list here is unchanged.
+#
+# T3 FOLLOW-UP (same session, same method and controls). The commit that adds
+# core/enum_names.cpp also SHRINKS drivers/sqp_print.cpp by two switches, so its
+# existing row above is re-measured rather than assumed to still hold:
+#
+#     ------ the source this commit adds: faster, NOT byte-identical ---------
+#   core/enum_names.cpp                           1.41 -> 0.14  -1.27  differs
+#     ------ re-measured because its content shrank -------------------------
+#   drivers/sqp_print.cpp                         4.80 -> 2.95  -1.85  differs
+#
+# enum_names.cpp does not join the opt-in list either -- same verdict, same
+# reason. Its row is also the clearest statement of what this PCH actually
+# buys: a 70-line TU whose own code is two switches costs 1.41 s to compile
+# without the PCH and 0.14 s with it, i.e. essentially ALL of its cost is the
+# shared-header parse floor. And sqp_print.cpp's row is unmoved to within the
+# measurement's own spread (4.82 -> 2.97 before, 4.80 -> 2.95 after) although it
+# lost two functions, which is the same fact from the other side. Linux table:
+# 23 sources.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -256,7 +280,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 22)
+set(_hven_expected_source_count 23)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

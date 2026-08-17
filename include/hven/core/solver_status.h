@@ -88,13 +88,13 @@ enum class SqpStatus {
 // (rather than keeping a hand-synced copy in each) means a grown enum value
 // needs one edit instead of two.
 //
-// M3 PHASE-C T1 MOVED THE DEFINITION into the library TU
-// `src/drivers/sqp_print.cpp`, with the other four solver-enum printers and
-// the iteration-table renderer. CLAUDE.md section 5 names printing explicitly
-// as .cpp-TU code: the switch is O(1) per report, depends on no inlining, and
-// as an `inline` definition here it was parsed and code-generated in every TU
-// that included this header. Only the definition moved -- every call site
-// compiles unchanged.
+// M3 PHASE-C T1 MOVED THE DEFINITION out of this header into a library TU:
+// CLAUDE.md section 5 names printing explicitly as .cpp-TU code, the switch is
+// O(1) per report and depends on no inlining, and as an `inline` definition
+// here it was parsed and code-generated in every TU that included this header.
+// T3's follow-up rehomed it from `src/drivers/sqp_print.cpp` into
+// `src/core/enum_names.cpp`, so no `core/` object resolves a symbol out of a
+// `drivers/` one. Only the definition ever moved; every call site is unchanged.
 const char *to_string(SqpStatus status);
 
 } // namespace hven::solvers
