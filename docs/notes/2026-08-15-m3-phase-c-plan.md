@@ -892,6 +892,37 @@ T-series commit if the reviewer prefers.
 
 ### U0 — the flag-unification commit and its mass re-derivation event (**FABLE**)
 
+> **EXECUTED AND ACCEPTED (folded 2026-08-17).** The unit is
+> `bf8e897..62bcab2` (six commits, pushed, two consecutive fully-green
+> three-lane CI runs 31988455020 / 31989138134). Result: 74 solved cells
+> (57-cell census + 17-cell bench set) re-derived twice each — **zero
+> status flips, zero counter movement, zero verdict movement**; every
+> old-vs-new delta is a `kkt_residual` last-digit change. Two census runs
+> byte-agreed on all schema columns except `wall_s`; no serial-confirm
+> owed. P-BENCH pooled median −0.97 % (range −2.07 %…+1.21 %),
+> counter-identical across arms. New baseline of record:
+> `bench/baselines/2026-08-16-u0-corpus/` (hven-native header,
+> eight-consumer sweep green in the repoint commit); old baselines frozen.
+> Delta report: `docs/notes/data/2026-08-16-m3-u0-rederivation/`. The CI
+> hard requirement is DISCHARGED with measured outcome (HVEN_SIMD_ARCH
+> lane pinning; L-1 4 failures → 1 explained MKL-dispatch residue → green
+> lanes; register updated). Debug arithmetic proven unchanged; six
+> config-split pins keep every pre-U0 Debug value. Acceptance:
+> reviewer verdict ACCEPTED
+> (`tycho_sqp:docs/notes/2026-08-16-m3-u0-review.md`, SIGNOFF
+> U0-REVIEW-FINAL — items 1–3, 5, 6 closed there, incl. M3-6 accepted
+> with a named M5 re-open trigger now folded into the Accelerate
+> register); owner acknowledgment relayed 2026-08-17. One item routed to
+> the owner and tracked outside this task: the `nlp_model.h`
+> "bit-identical" `eval_values` contract sentence (reviewer recommends
+> re-wording to "identical under value-preserving compilation; agreement
+> to reassociation residue under the library's flag regime"). Execution
+> was split across two implementers by owner budget directive (Fable
+> first half, Opus second half); state file
+> `.superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-u0-report.md`.
+> **The re-derived pins are now the bar; the T-series proceeds against
+> them with per-boundary bit-identity as its proof currency.**
+
 Folded from the flag-unification re-plan (2026-08-15). **This is now the phase's
 measurement-critical task** — the Fable-tier assignment T0 held moves here, to
 the re-derivation event.

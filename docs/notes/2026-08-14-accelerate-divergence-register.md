@@ -278,9 +278,20 @@ file sitting close enough to its bound to notice. The MKL bound is **not**
 relaxed, so the loss is confined to the backend that has it.
 
 Disposition: per-backend arm at `5e-9`, set from the observed value with
-margin and not fitted to it. **Open for the reviewer**: whether an accuracy
-loss of this size on the Apple path is acceptable standing, or whether the
-predictor's tight-regularization path should be excluded from `-ffast-math`
-(an FP-mode carve-out, which the unified-flags ruling would have to license)
-or restructured to be reassociation-stable. Nothing here proposes a code
-change; the finding is the deliverable.
+margin and not fitted to it.
+
+**RULED (U0 review, 2026-08-16, `tycho_sqp:docs/notes/2026-08-16-m3-u0-review.md`,
+SIGNOFF U0-REVIEW-FINAL): ACCEPTED AS LANDED.** Grounds: bit-identical across
+two lane runs (real, not noise); mechanism legible (a sensitivity solve at
+~500× the chain's conditioning is precisely where reassociation costs
+digits); the claim survives in useful form (tight regularization still buys
+2.5 orders on Apple); and the consumer — the warm-start predictor feeding
+ingest — tolerates approximate seeds by design. No code change now: tuning
+the path to restore a test bound nobody consumes would be tuning to the test.
+
+**Named re-open trigger:** if M5's crossover/predictor-quality measurement on
+Apple shows seed degradation attributable to this path, this finding re-opens
+with that evidence. Remedy order when it does: the FP-mode carve-out is the
+first remedy to price; the reassociation-stable restructure is last resort (a
+restructure touches solve code for an accuracy claim no consumer currently
+needs).
