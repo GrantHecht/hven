@@ -66,7 +66,10 @@
 #   --out DIR            run directory: rows/, logs/, merged CSV, compare output
 #                        (REQUIRED)
 #   --baseline PATH      frozen baseline CSV
-#                        (default: bench/baselines/2026-08-06-corpus/walk_baseline.csv)
+#                        (default: bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv
+#                        -- the baseline of record since the U0 flag-unification
+#                        event; the pre-U0 2026-08-06 file stays frozen as the
+#                        evidence the gate-A/gate-B records cite by content)
 #   --compare PATH       comparator script; the compare step runs only when this
 #                        is given (the comparator may live evidence-side)
 #   --expect-cells N     baseline cell count to require (default 57)
@@ -104,7 +107,7 @@ REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
 
 BIN=""
 RUN=""
-BASELINE="$REPO_ROOT/bench/baselines/2026-08-06-corpus/walk_baseline.csv"
+BASELINE="$REPO_ROOT/bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv"
 CMP=""
 EXPECT_CELLS=57
 T1_WIDTH=6

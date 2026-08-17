@@ -779,6 +779,19 @@ The cost of the miss was a multi-commit red window on two lanes for a change
 that was correct on its merits. Nothing about the amendment was wrong; only its
 reach was under-counted.
 
+**Post-U0 addendum (2026-08-16).** The names above are the ones the episode
+had. The flag-unification event re-derived the walk baseline into a new dated
+directory — `bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv` is the
+baseline of record now, the 2026-08-06 file is frozen evidence, and the sweep
+ran with the repoint rather than after it. Two of the three consumers above
+changed shape in the process: the first cross-comparison was renamed
+`CorpusBaseline.TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline`
+and, with the D0-repair twin, converted to **frozen-vs-frozen** — both now read
+the pre-U0 baseline through a second define, because the continuity they assert
+is a historical claim about origin-era artifacts and the flag unification ended
+the live half of it. The scorer still reads the baseline of record, and its
+figures were re-derived (unchanged) at the event.
+
 ## The golden-numerics rig
 
 `tests/golden_rig/` is the instrument that gates both engine migrations. It

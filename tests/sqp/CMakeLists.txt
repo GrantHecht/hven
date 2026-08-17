@@ -70,11 +70,17 @@ target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # The committed walk baseline, so test_corpus_cells.cpp can re-score THE
 # ARTIFACT ITSELF through the offline --from-csv path and pin the verdict.
-# A path, not a copy: the test reads the file the repository ships (the five
-# artifacts migrated into bench/baselines/ at M3 phase A, byte-identical to
-# the archived tag's copies).
+# A path, not a copy: the test reads the file the repository ships.
+#
+# REPOINTED AT U0 (phase-C flag unification, 2026-08-16, declared — plan §6
+# U0(b)3, docs/notes/2026-08-16-m3-u0-design.md): the baseline of record is
+# the U0 re-derivation (two full-57 runs, byte-agreed on every asserted
+# column). The pre-U0 baseline stays frozen at its old path as historical
+# evidence, still cited by the gate-A/gate-B records and still read by the
+# frozen-vs-frozen continuity tests through the PRE_U0 define below.
 target_compile_definitions(hven_sqp_tests PRIVATE
-    HVEN_SQP_CORPUS_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-06-corpus/walk_baseline.csv")
+    HVEN_SQP_CORPUS_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv"
+    HVEN_SQP_PRE_U0_WALK_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-06-corpus/walk_baseline.csv")
 
 # The gate battery's own two artifacts, pinned the same way and for the same
 # reason: the kSsn arm IS the phase-7 verdict, and a verdict that lives only

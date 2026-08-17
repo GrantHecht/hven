@@ -2133,6 +2133,15 @@ TEST(CorpusBaseline, TheCommittedWalkBaselineScoresToItsDocumentedVerdict) {
     // instrument (it passed three of four on the first issue's) -- that is the
     // instrument being discriminating, not a claim about SSN.
     //
+    // U0 (2026-08-16): the define now points at the U0-re-derived baseline
+    // (see tests/sqp/CMakeLists.txt). EVERY figure below was re-verified
+    // against the new artifact and is UNCHANGED, because the U0 census moved
+    // no counter and no status on any of the 57 cells -- the entire
+    // old-vs-new delta is kkt_residual last digits, which no gate reads.
+    // The evaluator's documented-verdict constants therefore carry over
+    // bit-for-bit ((c)3 of the U0 plan section: recomputed, compared, no
+    // G-gate verdict OR figure moved).
+    //
     // DECLARED RE-DERIVATION (CLAUDE.md section 7: intentional breaks of a
     // pinned value are declared and re-derived explicitly, never silent). The
     // baseline row f7_n10000_path_physics was amended at gate B per the
@@ -2238,7 +2247,7 @@ constexpr std::size_t kStatusColumn = 6;
 
 } // namespace
 
-TEST(CorpusBaseline, TheReSweptWalkArmIsCounterIdenticalToTheCommittedBaseline) {
+TEST(CorpusBaseline, TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline) {
     // THE PRECONDITION THE WHOLE BATTERY RESTS ON. The walk census re-swept
     // through the binary that carries the Task-6 instrument must reproduce the
     // Task-1 baseline EXACTLY on every counter/status column. wall_s is
@@ -2247,7 +2256,18 @@ TEST(CorpusBaseline, TheReSweptWalkArmIsCounterIdenticalToTheCommittedBaseline) 
     //
     // ...with the single gate-B adjudicated cell above excepted, since the
     // baseline was amended there and this frozen re-sweep was not.
-    const auto base = runner_test::data_rows(HVEN_SQP_CORPUS_BASELINE_CSV);
+    //
+    // CONVERTED TO FROZEN-VS-FROZEN AT U0 (plan §6 U0(b)5, 2026-08-16,
+    // renamed from ...ToTheCommittedBaseline): both sides of this comparison
+    // are origin-era artifacts derived under the pre-U0 flag regime, and the
+    // claim is a historical one about the Task-6 instrument being inert —
+    // discharged on the gate-B record and kept assertable here against the
+    // FROZEN pre-U0 baseline. The LIVE baseline of record is the U0
+    // re-derivation (HVEN_SQP_CORPUS_BASELINE_CSV), which this frozen
+    // comparison deliberately does not read: continuity between origin-era
+    // artifacts and the live engine ended at the flag unification, by
+    // design and by declaration.
+    const auto base = runner_test::data_rows(HVEN_SQP_PRE_U0_WALK_BASELINE_CSV);
     const auto resweep = runner_test::data_rows(HVEN_SQP_WALK_RESWEPT_CSV);
     ASSERT_EQ(base.size(), 57u);
     ASSERT_EQ(resweep.size(), 57u);
@@ -2320,8 +2340,14 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
         by_id[col[0]] = col;
     }
     int adjudicated = 0;
-    for (const char *ref : {HVEN_SQP_CORPUS_BASELINE_CSV, HVEN_SQP_WALK_RESWEPT_CSV}) {
-        const bool ref_is_amended_baseline = std::string(ref) == HVEN_SQP_CORPUS_BASELINE_CSV;
+    // U0 (2026-08-16): the first ref is the FROZEN pre-U0 baseline, not the
+    // live baseline of record — this test diffs three origin-era artifacts
+    // against each other (frozen-vs-frozen; see the conversion note on the
+    // test above). The D0-repair claim is a historical claim about those
+    // artifacts and survives the flag unification untouched.
+    for (const char *ref : {HVEN_SQP_PRE_U0_WALK_BASELINE_CSV, HVEN_SQP_WALK_RESWEPT_CSV}) {
+        const bool ref_is_amended_baseline =
+            std::string(ref) == HVEN_SQP_PRE_U0_WALK_BASELINE_CSV;
         const auto base = runner_test::data_rows(ref);
         ASSERT_EQ(base.size(), 57u) << ref;
         for (const std::string &r : base) {
