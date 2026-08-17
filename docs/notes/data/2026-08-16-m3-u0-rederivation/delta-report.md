@@ -3,7 +3,8 @@
 **Event:** phase-C U0 (`docs/notes/2026-08-15-m3-phase-c-plan.md` §6; design
 note `docs/notes/2026-08-16-m3-u0-design.md`). One unit: the flags commit
 `bf8e897` (flags only, zero code motion), the suite-pin re-derivation
-`cc97315`, the baseline re-derivation `39a27c9`, and this report.
+`cc97315`, the baseline re-derivation `39a27c9`, this report (`305e5a1`), and
+the lane-derived pins the first push surfaced (`558a845`, §6.3).
 Old-vs-new is **purely flag-attributable**: no code moved anywhere in the
 unit.
 
@@ -293,7 +294,9 @@ before it was committed.
 | [31925472238](https://github.com/GrantHecht/hven/actions/runs/31925472238) (the BASE, for reference) | `8e2cbd0` | **4 fail / 1149** — all four L-1 class members | success | success |
 | [31985550447](https://github.com/GrantHecht/hven/actions/runs/31985550447) attempt 1 | `305e5a1` | 1 fail / 1149 | 2 fail / 1065 | **success** (461 tests) |
 | [31985550447](https://github.com/GrantHecht/hven/actions/runs/31985550447) attempt 2 | `305e5a1` | 1 fail — **byte-identical to attempt 1** | 2 fail — **byte-identical to attempt 1** | success |
-| [see §9](#9-acceptance-state) | `<the follow-up commit>` | — | — | — |
+| [31988455020](https://github.com/GrantHecht/hven/actions/runs/31988455020) | `558a845` (the three lane-derived pins) | **success** | **success** | **success** |
+
+**The landed unit is green on all three lanes.**
 
 **The base commit is the honest comparator, and it was already red.** `8e2cbd0`
 failed the Linux lane with all four L-1 register tests. Three of those four are
@@ -499,6 +502,7 @@ What is landed and proven:
 | (c)3 documented-verdict constants recomputed | §2.4 — no verdict and no figure moved |
 | (c)4 Accelerate values re-observed on Mac CI, two-run bar, register updated | §6.3 — M3-5 and M3-6 added to the register |
 | CI posture HARD REQUIREMENT decided | design note §2; implemented; L-1 register's open question answered and its outcome measured in §6.2 |
+| Pushed and green on all three lanes | run [31988455020](https://github.com/GrantHecht/hven/actions/runs/31988455020) at `558a845`: linux, macos, windows all **success** |
 
 What a reviewer should look at first, in order:
 
