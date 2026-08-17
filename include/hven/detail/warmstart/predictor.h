@@ -490,17 +490,17 @@ struct PredictorOptions {
 // call site compiling unchanged).
 enum class PredictorOutcome { kPredicted, kZeroStep, kDegraded };
 
-inline const char *to_string(PredictorOutcome outcome) {
-    switch (outcome) {
-    case PredictorOutcome::kPredicted:
-        return "Predicted";
-    case PredictorOutcome::kZeroStep:
-        return "ZeroStep";
-    case PredictorOutcome::kDegraded:
-        return "Degraded";
-    }
-    return "Unknown";
-}
+// M3 PHASE-C T1 MOVED THE DEFINITION to the library TU
+// `src/drivers/sqp_print.cpp`, with the other four solver-enum printers and
+// the iteration-table renderer: printing is what CLAUDE.md section 5 names as
+// belonging in a .cpp TU, and this switch was being code-generated in every
+// TU that included this header. The declaration stays here so that no call
+// site changed. THE LINE COUNT OF THIS BLOCK IS PRESERVED DELIBERATELY: this
+// header is long and the code below it reaches objects all over the build, so
+// holding the line numbers steady keeps the carve's P-SYM comparison free of
+// `__LINE__`-class noise that would otherwise have to be accounted by hand.
+// (No FP arithmetic here -- switch-to-string is the whole of T1's premise.)
+const char *to_string(PredictorOutcome outcome);
 
 namespace predictor_detail {
 

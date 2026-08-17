@@ -82,25 +82,19 @@ enum class SqpStatus {
     kBudgetExhausted = 4,
 };
 
-// SqpStatus -> a short display string. The natural home for this: both
-// ledger.h's ledger dump and sqp_driver.h's iteration-table printer already
-// depend on this header for the enum itself, so hoisting the switch here
+// SqpStatus -> a short display string. The natural home for the DECLARATION:
+// both ledger.h's ledger dump and sqp_driver.h's iteration-table printer
+// already depend on this header for the enum itself, so declaring it here
 // (rather than keeping a hand-synced copy in each) means a grown enum value
 // needs one edit instead of two.
-inline const char *to_string(SqpStatus status) {
-    switch (status) {
-    case SqpStatus::kOptimal:
-        return "Optimal";
-    case SqpStatus::kMaxIter:
-        return "MaxIter";
-    case SqpStatus::kInfeasible:
-        return "Infeasible";
-    case SqpStatus::kNumericalError:
-        return "NumericalError";
-    case SqpStatus::kBudgetExhausted:
-        return "BudgetExhausted";
-    }
-    return "Unknown";
-}
+//
+// M3 PHASE-C T1 MOVED THE DEFINITION into the library TU
+// `src/drivers/sqp_print.cpp`, with the other four solver-enum printers and
+// the iteration-table renderer. CLAUDE.md section 5 names printing explicitly
+// as .cpp-TU code: the switch is O(1) per report, depends on no inlining, and
+// as an `inline` definition here it was parsed and code-generated in every TU
+// that included this header. Only the definition moved -- every call site
+// compiles unchanged.
+const char *to_string(SqpStatus status);
 
 } // namespace hven::solvers

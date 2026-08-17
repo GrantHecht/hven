@@ -7,6 +7,7 @@
 target_sources(hven PRIVATE
     core/version.cpp
     core/pattern_hash.cpp
+    core/ledger.cpp
     linear/dense_symmetric_factor.cpp
     kkt/kkt_calls.cpp
 )
@@ -79,6 +80,23 @@ target_include_directories(hven PRIVATE
 )
 
 ################################################################################
+# SQP engine
+#
+# The SQP engine itself has not been migrated into this repository yet — it
+# arrives with a later milestone — so today its code lives entirely in
+# include/hven/drivers/ and include/hven/detail/. This is the first piece of it
+# to acquire a translation unit, carved out by M3 phase-C task T1 under
+# CLAUDE.md §5's rule that printing belongs in a .cpp TU. The file's own banner
+# carries the argument; more of these appear as the T-series lands, and they
+# collect here rather than in the interior-point block above, which is a record
+# of a migration this file is not part of.
+################################################################################
+
+target_sources(hven PRIVATE
+    drivers/sqp_print.cpp
+)
+
+################################################################################
 # Precompiled header
 #
 # What it contains and why the include order is load-bearing: src/hven_pch.h.
@@ -103,8 +121,8 @@ target_include_directories(hven PRIVATE
 #      is proven, not presumed". Byte-identical objects cannot move a
 #      golden-rig row.
 #
-# Measured, all 18 Linux TUs (no-PCH -> with-PCH, seconds; identical = object
-# byte-for-byte equal). Participating TUs first:
+# Measured, all 18 Linux TUs as of the original sweep (no-PCH -> with-PCH,
+# seconds; identical = object byte-for-byte equal). Participating TUs first:
 #
 #   drivers/interior_point_solver.cpp             6.99 -> 5.04  -1.95  identical
 #   drivers/non_linear_program.cpp                6.54 -> 4.66  -1.88  identical
@@ -142,6 +160,36 @@ target_include_directories(hven PRIVATE
 # linear/symmetric_factor_accelerate.cpp) are unmeasured -- the table above is
 # Linux -- so they are not on the opt-in list and are explicitly opted out on
 # that branch, like every other unlisted source.
+#
+# M3 PHASE-C T1/T2 ADDENDUM (2026-08-17, task T9's obligation on a commit that
+# adds a source). Re-measured on the post-U0 unified flag set, same method,
+# same box (AMD Ryzen 7 5800X3D, clang 22.1.8, Release, CCACHE_DISABLE=1,
+# minimum of three compiles per arm, the two arms being a normal configure and
+# one with -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON). The absolute seconds are
+# NOT comparable with the table above -- that sweep predates the flag
+# unification -- so two TUs already on the opt-in list were re-measured in the
+# same pass as controls, and they reproduce their verdict:
+#
+#   drivers/interior_point_solver.cpp             6.95 -> 4.32  -2.63  identical
+#   model/nlp_solver.cpp                          4.07 -> 1.84  -2.23  identical
+#     ------ the two sources this commit adds: faster, NOT byte-identical ----
+#   drivers/sqp_print.cpp                         4.82 -> 2.97  -1.85  differs
+#   core/ledger.cpp                               2.98 -> 1.53  -1.46  differs
+#     ------ pre-existing gap, measured in the same pass -------------------
+#   kkt/kkt_calls.cpp                             3.10 -> 1.55  -1.55  differs
+#
+# So NEITHER new source joins the opt-in list: both clear bar 1 comfortably
+# and both fail bar 2, which puts them in the same "faster but not
+# byte-identical" group as most of the library. The phase-C plan's written
+# prediction was that sqp_print.cpp would qualify and that ledger.cpp might be
+# SLOWER with the PCH; both halves are falsified here by measurement, which is
+# what the plan asked for rather than the prediction being carried forward.
+#
+# kkt/kkt_calls.cpp is not a source this commit adds -- it was added earlier
+# and never appeared in the sweep above, so the "all 18 Linux TUs" claim had
+# quietly become 18 of 19. Measuring it here closes that gap without changing
+# its (already correct, default) opted-out status. With this addendum the
+# Linux table covers all 21 sources.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -178,7 +226,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 19)
+set(_hven_expected_source_count 21)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

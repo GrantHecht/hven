@@ -117,21 +117,21 @@ enum class StartLevel { kCold, kSeeded, kWarm, kHot };
 // StartLevel -> a short display string. PHASE-4 TASK 7: the cold-vs-warm
 // ledger instrumentation and sqp_driver.h's iteration-table printer both need
 // to render `SqpCounters::start_level_used` (solver_counters.h) for a human,
-// so the switch lives here once rather than being hand-copied at each call
-// site -- the same rationale solver_status.h's to_string(SqpStatus) gives.
-inline const char *to_string(StartLevel level) {
-    switch (level) {
-    case StartLevel::kCold:
-        return "Cold";
-    case StartLevel::kSeeded:
-        return "Seeded";
-    case StartLevel::kWarm:
-        return "Warm";
-    case StartLevel::kHot:
-        return "Hot";
-    }
-    return "Unknown";
-}
+// so the switch exists once, declared here, rather than being hand-copied at
+// each call site -- the same rationale solver_status.h's to_string gives.
+//
+// M3 PHASE-C T1 MOVED THE DEFINITION out of this header into the library TU
+// `src/drivers/sqp_print.cpp`, alongside the other four solver-enum printers
+// and the iteration-table renderer (CLAUDE.md section 5 homes printing in a
+// .cpp TU). The DECLARATION stays here, on the header that owns the enum, so
+// every existing call site compiles unchanged; only the switch itself is now
+// compiled once instead of once per including TU.
+//
+// The definition lives in a `drivers/` TU rather than a `core/` one because T1
+// carves all five printers into ONE TU. That is a link-time edge inside
+// libhven.a only -- `core/` headers still include nothing above `core/`, which
+// is the layering rule tests/core/test_core_layering.cpp actually enforces.
+const char *to_string(StartLevel level);
 
 // PHASE-6 TASK 5. How many of a ledger's whole-driver solves resolved at each
 // StartLevel -- the aggregate the kSeeded level made worth having, since a

@@ -6116,22 +6116,17 @@ class SqpDriver {
 
 // TASK 12. Human-readable names for the printer below. Used only there --
 // nothing in the driver itself branches on a printable string.
-inline const char *to_string(StepVerdict v) {
-    switch (v) {
-    case StepVerdict::kAcceptF:
-        return "AcceptF";
-    case StepVerdict::kAcceptH:
-        return "AcceptH";
-    case StepVerdict::kReject:
-        return "Reject";
-    case StepVerdict::kRestore:
-        return "Restore";
-    }
-    return "?";
-}
+//
+// M3 PHASE-C T1 MOVED THE DEFINITION (and format_iteration_table's, below)
+// into the library TU `src/drivers/sqp_print.cpp`. See that file's banner for
+// the whole argument; in short, CLAUDE.md section 5 names printing as .cpp-TU
+// code, and neither function is on any hot path. The declarations stay here,
+// on the header that owns them, so every call site compiles unchanged.
+const char *to_string(StepVerdict v);
 
-// SqpStatus -> string is sqp_types.h's to_string(SqpStatus) (hoisted there in
-// the fix wave that closed N3 -- it used to be a second copy here).
+// SqpStatus -> string is core/solver_status.h's to_string(SqpStatus) (hoisted
+// out of here in the fix wave that closed N3 -- it used to be a second copy
+// here -- and rehomed from drivers/sqp_types.h into core/ by phase-C S2).
 
 // TASK 12. THE ITERATION PRINTER the brief asks for: an fmt-based table
 // rendering of sol.history (one row per SqpIterate -- trial index, f, the
@@ -6159,33 +6154,9 @@ inline const char *to_string(StepVerdict v) {
 //     start_level_used (sqp_types.h) is a SOLVE-WIDE reading, not a
 //     per-row one, so it belongs in the footer rather than repeated on
 //     every row the way the WD marker is.
-inline std::string format_iteration_table(const SqpSolution &sol) {
-    std::string result;
-    const std::string header =
-        fmt::format("{:>5} {:>14} {:>14} {:>14} {:>12} {:>9} {:>7} {:>7} {:>3}", "Trial", "f",
-                    "KKT Res", "h", "Delta", "Verdict", "QP It", "QP Fact", "WD");
-    result += header + "\n";
-    result += std::string(header.size(), '-');
-    result += "\n";
-
-    for (const SqpIterate &row : sol.history) {
-        const char *wd_marker = row.watchdog_restored ? "*" : "";
-        if (row.qp_solved) {
-            result += fmt::format(
-                "{:>5} {:>14.6e} {:>14.6e} {:>14.6e} {:>12.6e} {:>9} {:>7} {:>7} {:>3}\n",
-                row.trial, row.f, row.kkt_residual, row.violation_l1, row.tr_radius,
-                to_string(row.verdict), row.qp_minor_iters, row.qp_factorizations, wd_marker);
-        } else {
-            result += fmt::format(
-                "{:>5} {:>14.6e} {:>14.6e} {:>14.6e} {:>12.6e} {:>9} {:>7} {:>7} {:>3}\n",
-                row.trial, row.f, row.kkt_residual, row.violation_l1, row.tr_radius, "-", "-", "-",
-                wd_marker);
-        }
-    }
-
-    result += fmt::format("\nStatus: {}\n", to_string(sol.status));
-    result += fmt::format("Start Level: {}\n", to_string(sol.counters.start_level_used));
-    return result;
-}
+// M3 PHASE-C T1: the DEFINITION now lives in `src/drivers/sqp_print.cpp`.
+// The rendering rules above are the contract; the file that implements them
+// is the one to edit when a column changes.
+std::string format_iteration_table(const SqpSolution &sol);
 
 } // namespace hven::solvers

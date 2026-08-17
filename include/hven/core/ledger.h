@@ -3,6 +3,14 @@
 #include <string>
 #include <vector>
 
+// NOTE (M3 phase-C T2): after the three reporting functions moved to
+// src/core/ledger.cpp, nothing in THIS header uses fmt any more. The include
+// is kept anyway, and deliberately: dropping it changes the preprocessed input
+// of every TU that includes this header, which is nearly the whole SQP tree,
+// and that is exactly the kind of include-order perturbation the PCH
+// measurement table in src/CMakeLists.txt records as moving emission order.
+// Removing it is a fine separate change with its own P-SYM run; folding it
+// into a TU carve would confound the carve's own bit-identity proof.
 #include <fmt/core.h>
 
 #include <hven/core/solver_counters.h>
@@ -171,81 +179,31 @@ class Ledger {
     // Access all recorded whole-driver solve events.
     const std::vector<SqpSolveRecord> &sqp_records() const { return sqp_records_; }
 
+    // THE THREE REPORTING FUNCTIONS BELOW ARE DEFINED IN `src/core/ledger.cpp`
+    // (M3 phase-C T2), not here. They run once per report -- a tally and two
+    // fmt-formatted tables -- so nothing about them wants inlining, while as
+    // header definitions they were code-generated in every TU that included
+    // this header, which on this library is nearly every SQP TU (sqp_driver.h
+    // includes it). CLAUDE.md section 5 names ledger code explicitly as
+    // .cpp-TU code. record() and the accessors above deliberately STAY inline:
+    // one push_back per solve, and out-of-lining them would put a call on the
+    // recording path in exchange for no measurable build time.
+
     // PHASE-6 TASK 5. The start-level histogram over every SqpSolveRecord this
     // ledger holds (QP-level SolveRecords have no level and are not counted).
     // Reads `start_level_used`, which is the RESOLVED level -- what was
     // observed to happen, never what a caller offered (solver_counters.h).
-    StartLevelHistogram level_histogram() const {
-        StartLevelHistogram h;
-        for (const SqpSolveRecord &rec : sqp_records_) {
-            switch (rec.start_level_used) {
-            case StartLevel::kCold:
-                ++h.cold;
-                break;
-            case StartLevel::kSeeded:
-                ++h.seeded;
-                break;
-            case StartLevel::kWarm:
-                ++h.warm;
-                break;
-            case StartLevel::kHot:
-                ++h.hot;
-                break;
-            }
-        }
-        return h;
-    }
+    StartLevelHistogram level_histogram() const;
 
     // Formatted table: label, warm?, iters, factorizations, schur updates.
-    std::string summary_table() const {
-        if (records_.empty()) {
-            return "";
-        }
-
-        // Build the table with header
-        std::string result;
-        const std::string header = fmt::format("{:<30} {:<10} {:<8} {:<16} {:<14}", "Label",
-                                               "Warm?", "Iters", "Factorizations", "Schur Updates");
-        result += header + "\n";
-        result += std::string(header.size(), '-');
-        result += "\n";
-
-        for (const auto &rec : records_) {
-            result += fmt::format("{:<30} {:<10} {:<8} {:<16} {:<14}\n", rec.label,
-                                  rec.warm ? "yes" : "no", rec.counters.minor_iters,
-                                  rec.counters.factorizations, rec.counters.schur_updates);
-        }
-
-        return result;
-    }
+    std::string summary_table() const;
 
     // Formatted table: label, status, major/QP-minor/factorization counters --
     // the SQP-level analogue of summary_table() above. PHASE-4 TASK 7 adds
     // the Level column (SqpSolveRecord::start_level_used) -- the "row
     // extension" the cold-vs-warm ledger instrumentation exists to add,
     // since it is exactly the column a cold-vs-warm comparison groups by.
-    std::string sqp_summary_table() const {
-        if (sqp_records_.empty()) {
-            return "";
-        }
-
-        std::string result;
-        const std::string header =
-            fmt::format("{:<30} {:<16} {:<6} {:<8} {:<12} {:<14}", "Label", "Status", "Level",
-                        "Majors", "QP Minors", "Factorizations");
-        result += header + "\n";
-        result += std::string(header.size(), '-');
-        result += "\n";
-
-        for (const auto &rec : sqp_records_) {
-            result += fmt::format("{:<30} {:<16} {:<6} {:<8} {:<12} {:<14}\n", rec.label,
-                                  to_string(rec.status), to_string(rec.start_level_used),
-                                  rec.counters.major_iters, rec.counters.qp_minor_iters,
-                                  rec.counters.factorizations);
-        }
-
-        return result;
-    }
+    std::string sqp_summary_table() const;
 
   private:
     // The two -> string helpers this class's tables use are
