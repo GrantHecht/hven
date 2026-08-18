@@ -103,11 +103,21 @@ target_include_directories(hven PRIVATE
 # tree that a comparison's spelling depends on -- `-fno-finite-math-only`,
 # without which `!(x > 0.0)` may be rewritten to `x <= 0.0` and stop rejecting
 # NaN -- and T3's battery pins that premise by disassembling this TU.
+#
+# T4 adds the third, and the first that COMPUTES with doubles:
+# globalization/sqp/funnel.cpp, FunnelStrategy's acceptance state machine. It
+# mirrors include/hven/detail/globalization/sqp/ (the `sqp/` level is what keeps
+# it apart from the interior-point engine's own globalization code, which lives
+# in drivers/interior_point_solver_globalization.cpp). Because the arithmetic
+# it moves is re-associable under -ffast-math, its proof is bit-identity of
+# every asserted counter across the boundary -- which the ONE uniform flag
+# regime U0 established is what makes it available at all.
 ################################################################################
 
 target_sources(hven PRIVATE
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
+    globalization/sqp/funnel.cpp
 )
 
 ################################################################################
@@ -244,6 +254,23 @@ target_sources(hven PRIVATE
 # measurement's own spread (4.82 -> 2.97 before, 4.80 -> 2.95 after) although it
 # lost two functions, which is the same fact from the other side. Linux table:
 # 23 sources.
+#
+# M3 PHASE-C T4 ADDENDUM (2026-08-18). Same method, same box, same two controls,
+# and the same throwaway-configure technique the note above describes (this
+# source is opted out, so the with-PCH arm has to come from a configure that
+# temporarily lists it). The controls reproduce their T3 readings to within a
+# hundredth of a second (6.98 -> 4.32 and 4.09 -> 1.84, both identical), so the
+# arms are comparable with every row above:
+#
+#     ------ the source this commit adds: faster, NOT byte-identical ---------
+#   globalization/sqp/funnel.cpp                  3.00 -> 1.45  -1.55  differs
+#
+# It does NOT join the opt-in list: bar 1 cleared, bar 2 failed. That is the
+# FOURTH consecutive TU carved out of the SQP tree to land in the "faster but
+# not byte-identical" group (sqp_print.cpp, ledger.cpp, sqp_options.cpp,
+# enum_names.cpp before it), and the plan's per-TU predictions have now been
+# falsified every time they were made. The measurement is what is recorded.
+# Linux table: 24 sources.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -280,7 +307,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 23)
+set(_hven_expected_source_count 24)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
