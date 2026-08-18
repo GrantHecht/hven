@@ -1168,6 +1168,20 @@ carry the proof.
 > precedent. The reviewer's caveat is recorded with the ruling: the null
 > control is a single draw, so the band is calibrated conservatively (1.5 %,
 > above every observed layout excursion) rather than fitted.
+>
+> **AMENDED (owner, 2026-08-18, at T3's close — direction and threshold,
+> closing the two gaps the T3 review surfaced):** (a) the sub-second band is
+> a **cost gate, one-sided**: a cell fails only beyond **+1.5 % slower**;
+> favourable moves of any size pass and are recorded, not adjudicated.
+> (b) the engine-heavy limb's threshold is explicit: a **reproducible
+> slowdown beyond +0.5 %** on an engine-heavy cell (≈3× the largest
+> excursion observed across three arms, 15× the measured +0.03 % pooled
+> cross-session floor) triggers §5's revert clause. Counters bit-identical
+> remains the hard unconditional bar. Under the amended text T3's P-BENCH
+> is discharged as measured. Evidence basis: T1+T2 → T3 shows the
+> sub-second class oscillating (+1.20 % then −1.50 % on the same ten
+> cells), not accumulating — two independent draws supporting the layout
+> mechanism the original ruling adopted.
 
 **Batching:** T1+T2 may share a commit (both FP-free printing/ledger, one new TU
 each — but then P-BUILD attributes the build win to the pair, which is
