@@ -42,7 +42,7 @@
 //       -isystem dep/eigen -isystem dep/fmt/include \
 //       -isystem /opt/intel/oneapi/mkl/latest/include \
 //       bench/tau_bar_sweep_probe.cpp src/globalization/sqp/funnel.cpp \
-//       -o /tmp/tau_bar_probe \
+//       build/libhven.a -o /tmp/tau_bar_probe \
 //       -Wl,--start-group /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a \
 //       /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a \
 //       /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a -Wl,--end-group \
@@ -63,12 +63,17 @@
 // T4) for the same reason the `-I` ordering is there. That carve moved
 // FunnelStrategy's three virtual definitions -- including reset(), the ONLY
 // reader of kFunnelTauBar -- out of the header and into a library TU, so this
-// standalone compile, which links no libhven, needs the TU to resolve them.
-// Compiling it here rather than linking the shipped library is also what keeps
-// the sweep meaningful: this TU includes the same header through the same `-I`
-// order, so it sees the PATCHED constant. Linking libhven.a instead would
-// silently bind reset() to the shipped 100.0 and every sweep row would come out
-// identical.
+// standalone compile needs the TU to resolve them.
+//
+// `build/libhven.a` JOINS THE COMMAND LINE TOO (fix round 1). The SQP tree is
+// NOT header-only today -- T3 carved sqp_options.cpp and src/linear has its
+// own TUs -- so linking only funnel.cpp still leaves undefined references
+// (validate_sqp_options, SymmetricFactor, ...) that have nothing to do with
+// this probe; the archive is now required to resolve those. It does NOT
+// reintroduce the shipped-constant trap: a linker satisfies a symbol from an
+// explicit object file before it ever opens an archive member, so `reset()`
+// still resolves to the funnel.cpp compiled here -- against the PATCHED
+// header -- and the archive's own copy of FunnelStrategy is never pulled.
 //
 // WHAT IT MEASURES: the COLD ARM of all six `tests/sqp/support/hs_sweeps.h`
 // corpus problems (the same vehicle `tests/test_hs_sweeps.cpp`'s
