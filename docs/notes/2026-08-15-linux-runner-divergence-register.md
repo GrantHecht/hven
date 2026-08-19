@@ -17,10 +17,14 @@ Created 2026-08-15, when the phase-C plan's microarch-flake watch rule
 
 **Status: OPEN — root cause narrowed twice, not closed.** Not attributable to
 any library change (see exoneration). Standing lane property. **Read the
-occurrence-5 section below before using anything above it**: under the U0 CI
-flag posture three of the four members retired and the fourth stopped being a
-flake at all — it is now a stable, reproducible lane-vs-local divergence, which
-changes how it must be handled.
+occurrence-5 AND occurrence-6 sections below before using anything above
+them**: under the U0 CI flag posture the fourth member stopped being a flake at
+all — it is now a stable, reproducible lane-vs-local divergence, which changes
+how it must be handled — while the other three were read as retired on a single
+green observation. Occurrence 6 (2026-08-19) falsifies that reading for
+`SsnEngineLocal.WeaklyActiveRowFinishesUncertain`, which flaked again under the
+pinned ISA and went green on a rerun of identical source. Treat the flake half
+of this class as OPEN.
 
 **The occurrences:**
 
@@ -31,6 +35,7 @@ changes how it must be handled.
 | 3 | run `31907664085` attempt 1 | `e7f89a7` (S2) | **`MKL_NUM_THREADS=1` PINNED** (`23247e3`, verified in the failing run's `ci.yml`) |
 | 4 | run `31921576722` attempt 1 | `dc98d70` (S3) | PINNED |
 | 5 | run `31985550447` attempts 1 **and 2** | `305e5a1` (U0) | PINNED, **and the lane ISA pinned to `x86-64-v3`** |
+| 6 | run `32277243150` attempt 1 (green on the next run of identical source, `32309301233`) | `772c25c` (docs-only, atop T5's `de97f5d`) | PINNED + `x86-64-v3` |
 
 Occurrence 4 (2026-08-15): same four tests, same assertion sites as
 occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60
@@ -177,6 +182,53 @@ quantity. Every integer column, the status, and the per-QP shape, which are
 where this test's subject lives, remain **byte-strict on every lane**. The
 sibling precedent is this same test's existing Accelerate arm, which has
 reported-not-asserted those five columns since M3-3 for the same reason.
+
+### Occurrence 6 (2026-08-19, phase-C T5) — the flake half is NOT retired
+
+CI run [32277243150](https://github.com/GrantHecht/hven/actions/runs/32277243150)
+on `772c25c` (a docs-only commit sitting on top of T5's carve `de97f5d`) failed
+`linux-clang-release` on **one** class member,
+`SsnEngineLocal.WeaklyActiveRowFinishesUncertain`, at the class's own
+registered assertion site and with the class's own registered values:
+
+```
+test_ssn_engine.cpp:1995  res.counters.ssn_bulk_flips   Which is: 3   expected: 1
+test_ssn_engine.cpp:2025  bool(bare.ineq_active[1]) != bool(full.ineq_active[1])
+                          actual: true vs true
+test_ssn_engine.cpp:2042  full.ineq_active[1]  Actual: true  Expected: false
+```
+
+That is occurrence 3's table row verbatim (`ssn_bulk_flips` — actual 3,
+expected 1). Windows and macOS were green; the other three class members
+passed.
+
+**It went green on the next run of the same source.** Run
+[32309301233](https://github.com/GrantHecht/hven/actions/runs/32309301233)
+(`beac64b`, which adds only a tracked docs note on top of `772c25c`) is
+**success on all three lanes**, this test included. So the standing
+rerun-and-exonerate handling DOES apply to this member — unlike occurrence 5's
+`CorpusTask6bPhaseB`, which reproduced across attempts and was dispositioned
+separately.
+
+**Correction to the occurrence-5 reading, which is why this is worth
+recording.** That section's table shows this test passing under the pinned ISA
+and concludes the posture plus U0's re-derivation "retired three of the four".
+Occurrence 6 shows that for this member the retirement is **not** established:
+it is still an intermittent lane flake, seen once in two runs of identical
+source three days later. The narrowing stands (per-runner *codegen* is closed
+by `HVEN_SIMD_ARCH`); what does not stand is treating a single green
+observation as retirement of a member whose mechanism — MKL kernel dispatch on
+runner silicon — the posture never claimed to close.
+
+**T5's carve is exonerated on the strongest available basis, and it is not a
+rerun argument.** `tests/sqp/test_ssn_engine.cpp.o` is OUTSIDE T5's declared
+P-SYM blast radius and was proven **byte-identical** across the carve, as was
+every one of the 24 pre-existing library objects it links against; the TU
+defines no `SqpDriver` member and the carve moved no code it compiles. T5's own
+P-CENSUS (57/57 cells, zero mismatches) and P-BENCH (36 asserted columns × 17
+cells × 8 reps, all identical) show no counter moving anywhere, and the test
+passes in all three local P-SUITE configurations. See
+`docs/notes/2026-08-19-m3-phase-c-t5-battery.md`.
 
 ### Relation to the observations in this register's sibling
 
