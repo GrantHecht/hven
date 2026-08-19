@@ -1188,6 +1188,25 @@ each — but then P-BUILD attributes the build win to the pair, which is
 acceptable). T3 alone (the NaN-branch verification is its own argument).
 T4–T8 **each alone** — "per-boundary proof" means per boundary.
 
+> **OWNER AMENDMENT (2026-08-19, at T4's close) — the census leg only.**
+> Five consecutive full censuses since U0 (U0×2, T1+T2, T3, T4) found zero
+> counter movement; each confirmed what P-SYM + P-SUITE + P-BENCH had
+> already shown. The cost/evidence ratio no longer supports a ~6 h census
+> per boundary. Amended: **T6–T8 keep every per-commit leg (P-SYM, P-SUITE,
+> P-BENCH, P-BUILD, P-PCH) but share ONE P-CENSUS at the combined head**,
+> T1+T2-pattern; Gate C's full census against the baseline of record
+> backstops the series close. T5 retains its own census (highest-risk
+> boundary). "Per-boundary proof" is unchanged for every other leg — the
+> census's attribution role is what the amendment trades, and a counter
+> regression surfacing at the shared run is attributed by bisection over
+> the (at most three) candidate commits. **Post-M3 direction (owner, same
+> ruling, to be formalized in the close-out carry doc):** the census
+> becomes a gate/event/on-demand instrument — milestone gates, flag and
+> toolchain events, releases, and whenever the cheap legs disagree — not a
+> per-change requirement; per-change proof is the ladder (byte-identity
+> for mechanical changes; suite + bench counters for behavior-preserving
+> work; declared re-derivation for intentional numeric change).
+
 ---
 
 ## 7. H1–H3 — the structure-hash re-key (plan §5)
