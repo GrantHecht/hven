@@ -27,15 +27,53 @@
 #   scripts/psym_compare.sh capture /tmp/psym-after
 #   scripts/psym_compare.sh compare /tmp/psym-before /tmp/psym-after
 #
+# PRECONDITION, AND IT IS THE ONE MOST EASILY BROKEN: BOTH ARMS MUST BE BUILT
+# AT THE SAME ABSOLUTE BUILD-DIRECTORY PATH. Note that the session above uses
+# the literal path `build` for both captures, and that is not incidental. The
+# build directory's absolute path reaches an object through more than one route
+# -- `__FILE__` expansions in anything compiled out of the build tree, the
+# configure-time stamps CMake generates into sources, and assertion/throw
+# strings built from a source path -- so two arms compiled at, say,
+# `build-before/` and `build-after/` will differ in ways that have nothing to
+# do with the change under test, and the differences land in `.rodata`, where
+# this script's TEXT comparison cannot see them to classify them. What it CAN
+# see is the knock-on: a `.rodata` size change shifts later sections, which
+# moves symbol addresses, which changes the rip-relative annotations
+# `normalize()` strips -- so the failure mode is not a clean signal but a
+# quiet, partial one. Configure ONE build directory, capture the before arm,
+# rebuild IN PLACE, capture the after arm. This script cannot check the
+# precondition for you: a capture snapshot records object bytes, not the path
+# they came from, and inferring the path from the bytes is exactly the
+# `.rodata` archaeology the comparison is defined not to do.
+#
 # Exit status is the verdict: 0 iff every object is either byte-identical or
 # differs ONLY within the accepted noise class defined below. Any other
 # difference exits 1 and is printed with the offending instruction pair.
 #
 # THE OBJECT SET is the one the phase-C plan names for P-SYM: `libhven.a`,
-# every `hven_sqp_tests` object, and the objects of the three bench binaries
-# the asserted artifacts come from (`hven_sqp_corpus`, `hven_sqp_bench`,
-# `hven_sqp_ssn_safeguard_probe`). Debug objects are NOT part of P-SYM -- they
+# every `hven_sqp_tests` object, and the objects of the bench binaries the
+# asserted artifacts come from (`hven_sqp_corpus`, `hven_sqp_bench`,
+# `hven_sqp_ssn_safeguard_probe`, `hven_sqp_f7_cold`,
+# `hven_sqp_tau_bar_sweep_probe`). Debug objects are NOT part of P-SYM -- they
 # differ trivially, and Debug correctness is P-SUITE's job.
+#
+# The last two joined the set in phase-C T6 (2026-08-19). They were omitted
+# originally because their artifacts are archived studies rather than gated
+# baselines -- but three consecutive T-tasks (T4, T5, T6) each had to declare
+# them as objects their blast radius covered and the script did not compare,
+# and each had to reconcile that arithmetic by hand in its report. A probe the
+# instrument cannot see is a probe whose regressions nobody is looking for;
+# `bench/CMakeLists.txt` already makes the same argument for BUILDING them
+# ("an uncompiled probe rots silently"), and this is that argument applied one
+# step further. Both are ordinary `bench/CMakeFiles/<target>.dir` object sets,
+# so nothing about the comparison changes -- only its coverage.
+#
+# Adding a target here WIDENS what must be identical, so it can only make the
+# instrument stricter, never laxer. A snapshot captured before this change has
+# fewer entries in its `.psym-manifest` than one captured after; `compare`
+# iterates the BEFORE manifest, so an old-vs-new pairing silently skips the two
+# new targets rather than reporting them missing. Capture both arms with the
+# same version of this script.
 #
 # THE ACCEPTED NOISE CLASS, stated so that widening it is a visible act:
 #
@@ -122,7 +160,8 @@ psym_objects() {
     find "${build}/CMakeFiles/hven.dir" -name '*.o' 2>/dev/null | sort
     find "${build}/tests/sqp/CMakeFiles/hven_sqp_tests.dir" -name '*.o' 2>/dev/null | sort
     local target
-    for target in hven_sqp_corpus hven_sqp_bench hven_sqp_ssn_safeguard_probe; do
+    for target in hven_sqp_corpus hven_sqp_bench hven_sqp_ssn_safeguard_probe \
+                  hven_sqp_f7_cold hven_sqp_tau_bar_sweep_probe; do
         find "${build}/bench/CMakeFiles/${target}.dir" -name '*.o' 2>/dev/null | sort
     done
 }
