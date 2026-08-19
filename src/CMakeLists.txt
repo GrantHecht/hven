@@ -112,9 +112,23 @@ target_include_directories(hven PRIVATE
 # it moves is re-associable under -ffast-math, its proof is bit-identity of
 # every asserted counter across the boundary -- which the ONE uniform flag
 # regime U0 established is what makes it available at all.
+#
+# T5 adds the fourth, and it is the big one: drivers/sqp_driver.cpp, holding
+# SqpDriver::solve_impl -- the major loop itself -- together with everything the
+# loop orchestrates (the trust-region update logic, the ledger tail, the exit
+# helpers, the SSN tier's accessors) and the public solve() overloads. Every
+# member function of the class except its two constructors is now defined there;
+# the class, its data members and its documentation stay in the header. At
+# ~2 330 moved lines it is the largest body this series relocates, and the one
+# the plan's build-time case rests on. Its banner carries the object-file
+# evidence that the loop's per-element calls were ALREADY out-of-line at -O3, so
+# the boundary removes no inlining, and the S3 ruling under which the TR update
+# functions travel with the loop while the TR policy constants stay in
+# globalization.
 ################################################################################
 
 target_sources(hven PRIVATE
+    drivers/sqp_driver.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
     globalization/sqp/funnel.cpp
@@ -271,6 +285,31 @@ target_sources(hven PRIVATE
 # enum_names.cpp before it), and the plan's per-TU predictions have now been
 # falsified every time they were made. The measurement is what is recorded.
 # Linux table: 24 sources.
+#
+# M3 PHASE-C T5 ADDENDUM (2026-08-19). Same method, same box, same two controls,
+# same throwaway-configure technique. The controls reproduce their T4 readings
+# to within 0.02 s (6.96 -> 4.31 and 4.07 -> 1.84, both identical), so this row
+# is comparable with every row above:
+#
+#     ------ the source this commit adds: faster, NOT byte-identical ---------
+#   drivers/sqp_driver.cpp                       10.46 -> 8.56  -1.90  differs
+#
+# It does NOT join the opt-in list: bar 1 cleared, bar 2 failed. Fifth
+# consecutive SQP-side TU in the "faster but not byte-identical" group.
+#
+# THE ROW'S SHAPE IS NEW AND IS THE POINT. Every other source in this table
+# costs 1.3-7 s without the PCH, of which the ~3 s shared-header parse floor is
+# most or all -- which is why their with-PCH times collapse toward zero and why
+# their savings cluster at -1.5 to -2.7 s. sqp_driver.cpp costs 10.46 s, the
+# most expensive TU in the library by a factor of 1.5 over the next
+# (interior_point_solver.cpp at 6.96), and its saving is SMALLER in absolute
+# terms than either control's. The reason is arithmetic: ~2 330 lines of driver
+# body is real work no precompiled header can amortize, so only the floor part
+# of its cost is removable. Reading the two facts together -- the largest TU in
+# the tree, and the smallest PCH leverage per second of compile -- is the
+# honest summary of what carving the major loop out costs the build, and
+# T5's P-BUILD (task-c-t5-report.md) measures the whole-tree consequence.
+# Linux table: 25 sources.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -307,7 +346,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 24)
+set(_hven_expected_source_count 25)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
