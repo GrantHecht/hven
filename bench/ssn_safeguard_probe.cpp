@@ -829,6 +829,13 @@ void mode_band(long long qps, std::uint64_t seed) {
     for (const double tau : {0.1, 0.3, 0.9}) {
         std::mt19937_64 rng(seed);
         long long cells = 0, optimal = 0, iters = 0, flips = 0, peak = 0;
+        // Same mistyped seed as bench/corpus_cells.h's budget_table_hash: the
+        // FNV-1a 64-bit offset basis with its final digit dropped. This sig is
+        // not pinned anywhere, but the twin there IS (0x357aee91dee27391, one
+        // test plus six baseline CSV headers), and a future tidy-pass would
+        // "fix" both occurrences in one grep. Left as-is so the two stay the
+        // same function; changing either is a declared re-derivation under
+        // CLAUDE.md section 7.
         std::uint64_t sig = 1469598103934665603ULL;
         for (long long t = 0; t < qps; ++t) {
             Index n = 0;

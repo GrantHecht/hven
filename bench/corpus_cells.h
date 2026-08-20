@@ -1044,6 +1044,13 @@ inline std::uint64_t budget_table_hash() {
     const std::string material =
         fmt::format("{}|{}|{:.6f}|{:.6f}|{:.6f}", kWallBudgetFloorNx, kWallBudgetMidNx,
                     kWallBudgetFloorSeconds, kWallBudgetMidSeconds, kWallBudgetCeilingSeconds);
+    // The seed is the FNV-1a 64-bit offset basis with its final digit dropped
+    // (14695981039346656037 mistyped as 19 digits). INTENTIONALLY AS-IS: the
+    // pinned budget_table_hash 0x357aee91dee27391 -- asserted in
+    // tests/sqp/test_corpus_cells.cpp and stamped into six baseline CSV
+    // headers under bench/baselines/ -- was computed with this value, so
+    // "correcting" it silently breaks all seven. Any change here is a
+    // declared re-derivation under CLAUDE.md section 7, never a tidy-up.
     std::uint64_t h = 1469598103934665603ULL;
     for (const char c : material) {
         h ^= static_cast<std::uint64_t>(static_cast<unsigned char>(c));
