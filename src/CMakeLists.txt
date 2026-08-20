@@ -138,6 +138,16 @@ target_include_directories(hven PRIVATE
 # evidence that every definition it moves was ALREADY called through a direct
 # relocation at -O3, and the one function the plan named that measurement kept
 # in the header instead (set_elastic_penalty, inlined at every use).
+#
+# T7 adds the sixth, and the first under warmstart/: warmstart/warm_start.cpp,
+# holding from_interior_point -- the interior-point crossover's ingest, which
+# runs at most once per solve. Its header keeps ONE of the three `template`
+# declarations in the SQP tree, detail::ip_activity_threshold, and that stays
+# in the header for a reason stronger than the template exemption: it takes its
+# residual as a template parameter so the ingest can pass an Eigen expression
+# rather than materialise two n-sized temporaries at n = 1e6. Because this TU
+# includes the header, that template is still inlined into the body exactly
+# where it was.
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -146,6 +156,7 @@ target_sources(hven PRIVATE
     drivers/sqp_print.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
+    warmstart/warm_start.cpp
 )
 
 ################################################################################
@@ -350,6 +361,22 @@ target_sources(hven PRIVATE
 # floor: ~370 moved lines is little enough work that the floor dominates, which
 # is exactly the contrast T5's note draws.
 # Linux table: 26 sources.
+#
+# M3 PHASE-C T7 ADDENDUM (2026-08-19). Same method, same box, same two
+# controls, same throwaway-configure technique. The controls reproduce their T6
+# readings to within 0.08 s (6.95 -> 4.32 and 4.08 -> 1.84, both identical), so
+# this row is comparable with every row above:
+#
+#     ------ the source this commit adds: faster, NOT byte-identical ---------
+#   warmstart/warm_start.cpp                      3.25 ->  1.75  -1.50  differs
+#
+# It does NOT join the opt-in list: bar 1 cleared, bar 2 failed. Seventh
+# consecutive SQP-side TU in that group, and the expectation the T6 addendum
+# stated is now measured rather than assumed for one more row. At 3.25 s this
+# is the SMALLEST of the six SQP-side carves -- about the shared-header parse
+# floor plus a hundred lines of ingest -- which is why its absolute saving is
+# the smallest and why its RATIO (-46 %) is nevertheless the largest of them.
+# Linux table: 27 sources.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -386,7 +413,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 26)
+set(_hven_expected_source_count 27)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
