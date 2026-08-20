@@ -36,6 +36,7 @@ of this class as OPEN.
 | 4 | run `31921576722` attempt 1 | `dc98d70` (S3) | PINNED |
 | 5 | run `31985550447` attempts 1 **and 2** | `305e5a1` (U0) | PINNED, **and the lane ISA pinned to `x86-64-v3`** |
 | 6 | run `32277243150` attempt 1 (green on the next run of identical source, `32309301233`) | `772c25c` (docs-only, atop T5's `de97f5d`) | PINNED + `x86-64-v3` |
+| 7 | run `32347392685` attempt 1 (**green on attempt 2, the `--failed` rerun of the same run**) | `222ed68` (docs-only, atop T6/T7/T8) | PINNED + `x86-64-v3` |
 
 Occurrence 4 (2026-08-15): same four tests, same assertion sites as
 occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60
@@ -229,6 +230,48 @@ P-CENSUS (57/57 cells, zero mismatches) and P-BENCH (36 asserted columns × 17
 cells × 8 reps, all identical) show no counter moving anywhere, and the test
 passes in all three local P-SUITE configurations. See
 `docs/notes/2026-08-19-m3-phase-c-t5-battery.md`.
+
+### Occurrence 7 (2026-08-20, phase-C T6+T7+T8) — same member, same values, rerun green
+
+CI run [32347392685](https://github.com/GrantHecht/hven/actions/runs/32347392685)
+on `222ed68` (the tracked battery note sitting on top of the three carves
+`0a76fe0`, `a4db5f0`, `8400424`) failed `linux-clang-release` on the **same
+single member** as occurrence 6, `SsnEngineLocal.WeaklyActiveRowFinishesUncertain`,
+at the same three assertion sites and with the class's registered values:
+
+```
+test_ssn_engine.cpp:1995  res.counters.ssn_bulk_flips   Which is: 3   expected: 1
+test_ssn_engine.cpp:2025  bool(bare.ineq_active[1]) != bool(full.ineq_active[1])
+                          actual: true vs true
+test_ssn_engine.cpp:2042  full.ineq_active[1]  Actual: true  Expected: false
+```
+
+Windows and macOS were green on attempt 1; the other three class members passed.
+**Attempt 2 — a `--failed` rerun of the same run, i.e. the identical commit and
+the identical artifacts — is success on all three lanes.**
+
+This is the third data point on the flake half and it does not change the class
+status, but it does sharpen one thing. Occurrence 6's rerun was a *different
+run of different (docs-only) source*; occurrence 7's is a rerun of the **same
+run**, so the only variable between red and green is the runner instance. That
+is as clean a demonstration as this register is likely to get that the mechanism
+is a property of the runner rather than of anything in the tree.
+
+**Class status: unchanged — NARROWED, still OPEN.** Two consecutive T-series
+pushes have now hit this member once each, which suggests a per-push hit rate
+worth quantifying rather than continuing to absorb one rerun at a time. Flagged
+for the orchestrator as a candidate for its own task; not fixed here.
+
+**T6, T7 and T8 are exonerated on the strongest available basis, and it is not
+the rerun.** `tests/sqp/test_ssn_engine.cpp.o` is OUTSIDE all three commits'
+declared P-SYM blast radii, and it is **byte-identical across all four P-SYM
+captures of this unit** — base, T6, T7 and T8 — one md5 for all four. It defines
+none of the symbols any of the three carves moved. The shared P-CENSUS at the
+combined head (57/57 cells, **zero mismatches**, zero cells needing serial
+confirmation) and P-BENCH (36 asserted columns x 17 cells x 8 reps, all
+identical) show no counter moving anywhere, and the test passes in all nine
+local P-SUITE runs across the three commits — Release, Debug and no-SNOPT. See
+`docs/notes/2026-08-20-m3-phase-c-t678-battery.md`.
 
 ### Relation to the observations in this register's sibling
 
