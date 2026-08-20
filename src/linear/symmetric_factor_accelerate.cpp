@@ -544,6 +544,22 @@ void SymmetricFactor::set_num_threads(int num_threads) {
     }
 }
 
+int SymmetricFactor::num_threads() const noexcept {
+    // The same read-through the MKL adapter does, and for the same reason:
+    // `opts_` is only THIS engine's copy, and a co-owner's set_num_threads()
+    // moves the session's without touching it. The mechanism is identical
+    // across backends because it is a statement about which copy is
+    // authoritative for the surface, not about what either backend does with
+    // the number.
+    //
+    // What differs here is only what the count then GOVERNS: nothing.
+    // Accelerate exposes no per-instance thread control, so the value is
+    // stored and applied to no backend call (Options::num_threads' own
+    // BEST-EFFORT-ABSENT contract). Reading it back faithfully is the whole of
+    // this backend's obligation to it, and is exactly what this preserves.
+    return session_ ? session_->config().num_threads : opts_.num_threads;
+}
+
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);
 

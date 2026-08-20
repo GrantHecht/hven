@@ -51,7 +51,11 @@ them *to*; this paragraph is their standing disclosure. Read any
 `docs/notes/2026-07-*` or pre-`2026-08-14` `docs/notes/2026-08-*` citation in
 `include/hven/detail/sqp/`, `tests/sqp/` or `bench/` as naming an origin
 document that is not readable from this tree, with the quoting comment as the
-record.
+record. Later restructuring moved some of those comments out of the three
+directories named above, so read the same way any such citation in
+`include/hven/detail/warmstart/continuation.h` and
+`include/hven/drivers/sqp_driver.h`: this disclosure follows the citations
+themselves, not the directories they happened to sit in when it was written.
 
 ## What may be committed here, and on what evidence
 

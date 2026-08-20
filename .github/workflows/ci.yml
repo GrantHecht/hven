@@ -381,8 +381,9 @@ jobs:
       # finding rather than a reporting glitch -- but the same check already
       # ran in the step above, so this step failing on its own would mean
       # the two disagree, which is worth seeing rather than suppressing.
-      # No continue-on-error for that reason; the upload is if:always() so
-      # the artifact survives a failure and can be read.
+      # No continue-on-error for that reason; this step runs whenever the
+      # build produced something to run, so the artifact survives a red Test
+      # step and can be read.
       #
       # `!cancelled()` (M3 gate B): the upload was already if:always(), but
       # this step was not, so a red Test step meant the upload ran, found no
@@ -392,6 +393,15 @@ jobs:
       # precisely when there are divergences to adjudicate: gating the
       # evidence on the absence of the thing it explains is backwards.
       #
+      # M3 FINAL REVIEW (FX-2): the UPLOAD below stopped being if:always() for
+      # the mirror-image reason. When THIS step is skipped or fails there is no
+      # file by construction, so an unconditional upload carrying
+      # if-no-files-found: error manufactured a SECOND red on a gate-relevant
+      # lane out of one real failure. It keys off this step's own outcome now
+      # (hence the `id:`), which keeps if-no-files-found: error meaningful -- a
+      # producer that ran green and still emitted nothing is a hard failure --
+      # without inventing a derivative red when the producer never ran.
+      #
       # HVEN_RIG_MACHINE is NOT derived here. It comes from the label step
       # near the top of this job, so the rows this step emits and the rows the
       # Test step asserts are stamped by one source -- two derivations that
@@ -399,6 +409,7 @@ jobs:
       # asserts against. See that step for how the label is built and why it
       # names the image class rather than the runner alias.
       - name: Emit the Accelerate observations for derivation
+        id: accelerate_report
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_RIG_REPORT_OUT: rig-report-accelerate.txt
@@ -416,7 +427,7 @@ jobs:
           ./build-macos/tests/golden_rig/hven_golden_rig_report
 
       - name: Upload the Accelerate observations
-        if: always()
+        if: ${{ !cancelled() && steps.accelerate_report.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: rig-report-accelerate

@@ -260,6 +260,47 @@ TEST(SymmetricFactorThreadCount, AdoptReportsTheCountSetAfterTheAnalysis) {
            "adopter receives";
 }
 
+// M3 final review (FX-4): the reader reports the count THIS ENGINE'S NEXT CALL
+// will run at, which on a shared session is the SESSION's current count -- not
+// a snapshot of the Options this engine was built from. The distinction is
+// invisible at adopt() time (adopt seeds Options from the session) and only
+// appears afterwards, when a CO-OWNER moves the count: the setter writes its
+// own engine's Options and the shared session, and every other co-owner of
+// that session runs at the new count whether or not its own Options ever heard
+// about it. A snapshot reader kept answering with the stale copy.
+//
+// Backend-neutral by construction: it asserts hven's own stored-count
+// round trip, which both backends owe, and nothing about a thread count either
+// backend was observed to APPLY (on Accelerate the count is applied to
+// nothing at all -- see set_num_threads there).
+TEST(SymmetricFactorThreadCount, AnAdoptedEngineTracksACoOwnersLaterSet) {
+    SymmetricFactor::Options opts;
+    opts.num_threads = 1;
+    SymmetricFactor factor{opts};
+
+    const SpMatRM A = upper_csr(spd4());
+    factor.analyze(A);
+    ASSERT_EQ(factor.factorize(A).status, hven::linear::FactorizeOutcome::Status::kOk);
+
+    SymmetricFactor adopted = SymmetricFactor::adopt(factor.share());
+    ASSERT_EQ(adopted.num_threads(), 1) << "the two agree at adopt() time";
+
+    factor.set_num_threads(4); // moved by a co-owner, on the SHARED session
+
+    EXPECT_EQ(adopted.num_threads(), 4)
+        << "the adopter's next call runs at the session's current count, so that is what it "
+           "reports";
+    EXPECT_EQ(factor.num_threads(), 4);
+
+    // The documented consequence of the read-through, pinned so it cannot
+    // change silently: analyze() forks a FRESH session from this engine's own
+    // Options, so the adopter stops tracking the count it never agreed to.
+    adopted.analyze(A);
+    EXPECT_EQ(adopted.num_threads(), 1)
+        << "a re-analysis puts the engine back on its own Options' count";
+    EXPECT_EQ(factor.num_threads(), 4) << "and leaves the co-owner's session alone";
+}
+
 // collect_factor_mflops's costly opt-in is genuinely MKL-only now: it
 // THROWS at construction on Accelerate (see
 // test_symmetric_factor_pardiso_only_options.cpp), so this test is

@@ -112,12 +112,51 @@ class SchurComplement {
     // Borders K0 with column v (size K0.rows()) and diagonal entry d. Costs
     // one K0 solve (to cache K0^-1 v) plus an O(dim()^2 * n0 +
     // dim()^3) dense rebuild-and-factorize of C.
+    //
+    // ALL-OR-NOTHING ON THE BORDER STACK. If anything below throws -- the K0
+    // solve, an allocation, or rebuild_schur()'s own factorization -- this
+    // call leaves v_/k0inv_v_/d_ EXACTLY as it found them, so dim() never
+    // counts a border the call did not finish adding. That is not tidiness:
+    // the caller (qp_engine.h sync_borders) records each successful add in a
+    // parallel ledger AFTER this returns, and drop_border() indexes by
+    // add-order position. A border left behind by a throwing add would be
+    // invisible to that ledger forever, and would shift every later drop onto
+    // the WRONG border -- a silent wrong bordered solve, which is the same
+    // misalignment the ledger's own reserve-before-add closes from its side.
+    //
+    // The cached C factorization is NOT restored -- it cannot be, short of
+    // re-running the rebuild that just failed. It is left DISCARDED instead
+    // (see rebuild_schur()'s invariant note on evidence_), which makes
+    // needs_refactorization() true and every evidence reader refuse; the
+    // caller must rebuild K0 rather than keep bordering.
     void add_border(const Vec &v, double d) {
         Vec k0inv_v = detail::solve_vec(kkt_, v);
-        v_.push_back(v);
-        k0inv_v_.push_back(std::move(k0inv_v));
-        d_.push_back(d);
-        rebuild_schur();
+
+        // Every allocation the three pushes below could need is taken HERE,
+        // before any of them mutates anything, so the classic torn state --
+        // v_ grown, k0inv_v_/d_ not, because the second push_back hit
+        // bad_alloc -- cannot form at all. (drop_border's per-array erase and
+        // rebuild_schur's C assembly both index all three at dim(), so a
+        // length skew is an unguarded out-of-bounds read in Release, not a
+        // degraded answer.) Growing GEOMETRICALLY, not to the exact size
+        // needed: reserving base + 1 every time would turn push_back's
+        // amortized growth into a reallocation per add_border.
+        reserve_all(v_.size() + 1);
+
+        const std::size_t base = v_.size();
+        try {
+            v_.push_back(v);
+            k0inv_v_.push_back(std::move(k0inv_v));
+            d_.push_back(d);
+            rebuild_schur();
+        } catch (...) {
+            // Shrinking three vectors to a size they already held: no
+            // allocation, no reallocation, nothing here can throw.
+            v_.resize(base);
+            k0inv_v_.resize(base);
+            d_.resize(base);
+            throw;
+        }
     }
 
     // Removes the k-th added border (0-indexed in add_border call order,
@@ -193,7 +232,7 @@ class SchurComplement {
         if (dim() == 0) {
             return 1.0;
         }
-        if (singular_) {
+        if (!evidence_usable()) {
             return std::numeric_limits<double>::infinity();
         }
         double max_abs = 0.0;
@@ -216,17 +255,17 @@ class SchurComplement {
     // caller must stop
     // bordering this factorization and take a different path.
     bool needs_refactorization() const {
-        return singular_ || nearly_singular() || dim() > opts_.schur_cap ||
+        return (dim() > 0 && !evidence_usable()) || nearly_singular() || dim() > opts_.schur_cap ||
                cond_estimate() > opts_.schur_cond_max;
     }
 
     // True iff C's smallest |block eigenvalue| has collapsed to a negligible
     // fraction of its largest (floored at 1.0). False when dim() == 0, and
-    // false when singular_ -- not because a singular C is well conditioned,
-    // but because the block eigenvalues are not populated in that case and
-    // needs_refactorization() already reports it directly.
+    // false whenever the block evidence is not usable -- not because such a C
+    // is well conditioned, but because the block eigenvalues are not populated
+    // in that case and needs_refactorization() already reports it directly.
     bool nearly_singular() const {
-        if (dim() == 0 || singular_) {
+        if (dim() == 0 || !evidence_usable()) {
             return false;
         }
         double max_abs = 0.0;
@@ -245,26 +284,69 @@ class SchurComplement {
     // negative and one positive eigenvalue -- computed directly here (not
     // assumed) from the block's own two eigenvalues.
     //
-    // Throws std::runtime_error if C's last factorization found an exact
-    // zero pivot (singular_), matching solve()'s behavior. Returning 0 in
-    // that case would be a plausible-LOOKING but WRONG answer: a singular C
-    // may still be indefinite, and this class has no basis for claiming "no
-    // negative eigenvalues" about a matrix it could not factor.
+    // Throws std::runtime_error whenever there is no usable block evidence to
+    // read the inertia off -- C's last factorization found an exact zero pivot
+    // (singular_), or the last rebuild threw before it produced any. Returning
+    // 0 in either case would be a plausible-LOOKING but WRONG answer: a
+    // singular C may still be indefinite, and this class has no basis for
+    // claiming "no negative eigenvalues" about a matrix it could not factor.
     Index expected_neg_eigs_delta() const {
         if (dim() == 0) {
             return 0;
         }
-        if (singular_) {
+        if (!evidence_usable()) {
             throw std::runtime_error(fmt::format(
-                "SchurComplement::expected_neg_eigs_delta: Schur complement (dim={}) is exactly "
-                "singular (DenseSymmetricFactor reported kExactlySingular); refactorize instead "
-                "of querying its inertia",
-                dim()));
+                "SchurComplement::expected_neg_eigs_delta: Schur complement (dim={}) has no "
+                "usable factorization ({}); refactorize instead of querying its inertia",
+                dim(),
+                singular_ ? "DenseSymmetricFactor reported kExactlySingular"
+                          : "the last rebuild threw before producing block evidence"));
         }
         return static_cast<Index>(evidence_->neg_eigs);
     }
 
   private:
+    // THE ONE GUARD BEHIND ALL THREE EVIDENCE READERS. `evidence_` is engaged
+    // exactly when the last rebuild_schur() RAN TO COMPLETION on a nonempty C
+    // and got a usable factorization out of it. Two states leave it
+    // disengaged, and neither may be read through:
+    //
+    //   * singular_ -- try_factorize reported kExactlySingular, so the factor
+    //     completed but carries nothing decodable (rebuild_schur's own note).
+    //   * A THROW OUT OF rebuild_schur, which is a real path, not a
+    //     theoretical one: DenseSymmetricFactor::try_factorize throws on
+    //     LAPACKE info < 0 (dense_symmetric_factor.cpp), and LAPACKE's own
+    //     NaN screen returns info < 0 for a C carrying a non-finite entry --
+    //     which one non-finite border value is enough to produce. The throw
+    //     escapes add_border/drop_border with evidence_ already reset, so a
+    //     caller that catches it and asks any question about the stack would,
+    //     without this guard, dereference a disengaged optional. dim() and
+    //     singular_ are BOTH the wrong thing to test for it: the stack is
+    //     nonempty and the factorization was not singular, it simply never
+    //     finished.
+    //
+    // The readers' contracts are unchanged for every state that could already
+    // occur -- cond_estimate() reports infinity, nearly_singular() declines to
+    // judge, expected_neg_eigs_delta() throws -- which is exactly what each
+    // already did for singular_. solve() needs no guard here: it reaches
+    // factor_.solve(), which refuses a factor that never completed with its
+    // own std::runtime_error.
+    bool evidence_usable() const noexcept { return !singular_ && evidence_.has_value(); }
+
+    // Grows all three border arrays to hold at least `want` entries, doing
+    // EVERY allocation before any of them is mutated -- see add_border. The
+    // early return keeps this free once there is spare capacity, and the
+    // doubling keeps the amortized growth push_back would have given.
+    void reserve_all(std::size_t want) {
+        if (v_.capacity() >= want && k0inv_v_.capacity() >= want && d_.capacity() >= want) {
+            return;
+        }
+        const std::size_t grown = std::max(want, 2 * v_.size());
+        v_.reserve(grown);
+        k0inv_v_.reserve(grown);
+        d_.reserve(grown);
+    }
+
     // Rebuilds C = D - Vt K0^-1 V (dense, from the cached K0^-1v columns),
     // factorizes it via DenseSymmetricFactor::try_factorize on the LOWER
     // triangle (Bunch-Kaufman -- 'L' is float-load-bearing: 'U' eliminates
@@ -273,6 +355,13 @@ class SchurComplement {
     // by cond_estimate() and expected_neg_eigs_delta(). See the header
     // comment for why Bunch-Kaufman (not Eigen::LDLT) and why recomputed
     // from scratch.
+    //
+    // THIS CAN THROW, and its throw is caught nowhere inside this class
+    // except by add_border's rollback. It clears the cached evidence FIRST, so
+    // an escape leaves the object with the border arrays intact (or restored,
+    // for add_border) and no usable factorization -- the state
+    // evidence_usable() exists to describe. Every reader is written against
+    // that; do not add one that assumes evidence_ survives a failed rebuild.
     void rebuild_schur() {
         const Index m = dim();
         singular_ = false;
@@ -324,11 +413,13 @@ class SchurComplement {
     std::vector<double> d_;
 
     // Bunch-Kaufman factor of C (lower triangle -- see rebuild_schur) and
-    // the block evidence read off it. The evidence is absent exactly when
-    // singular_ (the factor's own leave-absent discipline); the judgment
-    // calls consuming it -- kSchurSingularEigFrac, needs_refactorization(),
-    // expected_neg_eigs_delta()'s throw-on-singular -- stay here: they are
-    // border-stack policy, not dense-factor facts.
+    // the block evidence read off it. The evidence is absent when singular_
+    // (the factor's own leave-absent discipline) AND whenever a rebuild threw
+    // partway; evidence_usable() is the single test for both, and no reader
+    // may dereference evidence_ without it. The judgment calls consuming it --
+    // kSchurSingularEigFrac, needs_refactorization(),
+    // expected_neg_eigs_delta()'s throw -- stay here: they are border-stack
+    // policy, not dense-factor facts.
     hven::linear::DenseSymmetricFactor factor_;
     bool singular_ = false; // true iff last try_factorize was kExactlySingular
     std::optional<hven::linear::BunchKaufmanBlockEvidence> evidence_;

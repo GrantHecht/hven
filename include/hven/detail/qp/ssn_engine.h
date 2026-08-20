@@ -2934,8 +2934,11 @@ class SsnEngine {
     // **THE GUARD IS NOT TEST-REACHABLE, AND A MUTATION REMOVING IT SURVIVES**
     // -- reaching it requires forging an FNV-1a collision, which no fixture can
     // do. Recorded here as a knowingly-unkillable defensive line, alongside the
-    // FB diagonal's placeholder and the structure key's sign term, rather than
-    // left looking like coverage that was forgotten.
+    // FB diagonal's placeholder, rather than left looking like coverage that
+    // was forgotten. (The structure key's sign term used to be listed here too;
+    // under the H3 composite it is an exact comparison, hence killable and
+    // PINNED -- SignFlipAtConstantBoundLayoutForcesRebuild -- so it no longer
+    // belongs on this list. See bound_rows_match_cached() below.)
     template <typename Emit>
     void for_each_entry(const QpProblem &qp, Index n, Index me, Index mi, Index mb,
                         Emit emit) const {

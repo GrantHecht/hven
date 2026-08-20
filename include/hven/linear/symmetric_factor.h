@@ -697,16 +697,32 @@ class SymmetricFactor {
     // GUARANTEE that backend refuses outright rather than silently drop.
     void set_num_threads(int num_threads);
 
-    // The thread count this engine is configured with: what the constructor
-    // was given, moved by set_num_threads(), and -- on an engine built by
-    // adopt() -- read from the session that engine took over, so it reports
-    // that session's CURRENT count rather than the one it was analyzed with.
+    // The thread count that governs THIS ENGINE'S NEXT BACKEND CALL.
+    //
+    // Once there is a session, that is the SESSION's current count, read
+    // through on every query rather than snapshotted -- because the session is
+    // where a backend call reads it from, and because the session may be
+    // co-owned (see set_num_threads()' SHARED SESSIONS note). A
+    // set_num_threads() on any ONE co-owner moves the count for all of them,
+    // and each of them reports the moved value here; a snapshot of this
+    // engine's own Options would have kept reporting the count this engine
+    // last agreed to, which is not the count its next solve will run at.
+    //
+    // Before the first analyze() there is no session yet, so this reports what
+    // the constructor was given as moved by set_num_threads() -- which is
+    // exactly what the next analyze() will build a session with.
+    //
+    // A LATER analyze() ON THIS ENGINE therefore RESETS what this reports, and
+    // deliberately so: analyze() forks a fresh session from this engine's OWN
+    // Options (a co-owner's count was never this engine's to inherit past the
+    // session it was set on), so from that point the read-through and the
+    // snapshot agree again on this engine's own value.
     //
     // The only Option with a reader, for the same reason it is the only one
     // with a setter: it is the only one that can change after construction,
     // so it is the only one a caller cannot already know from the Options it
     // passed in.
-    int num_threads() const noexcept { return opts_.num_threads; }
+    int num_threads() const noexcept;
 
     // --- lifecycle ---
 

@@ -1,3 +1,7 @@
+#include <cmath>
+#include <limits>
+#include <string>
+
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/schur_complement.h>
 using namespace hven::solvers;
@@ -256,6 +260,68 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
 
     EXPECT_TRUE(schur.needs_refactorization());
     EXPECT_THROW(schur.expected_neg_eigs_delta(), std::runtime_error);
+}
+
+// M3 final review (FX-1 + FX-7b), one fixture for both halves. A non-finite
+// border makes C non-finite, and LAPACKE screens for that BEFORE dsytrf and
+// reports it as info < 0 -- an illegal argument, not a fact about A -- so
+// DenseSymmetricFactor::try_factorize THROWS rather than returning
+// kExactlySingular. That throw escapes add_border from inside rebuild_schur(),
+// which is the only path that produces a nonempty stack with no cached block
+// evidence and singular_ == false.
+//
+// FX-7b: the stack must come back exactly as it was, because the caller's
+// parallel ledger (qp_engine.h) only records a border AFTER add_border
+// returns; a border left behind here would be undroppable and would shift
+// every later drop onto the wrong one.
+//
+// FX-1: every evidence reader must survive being asked, having previously
+// tested only dim() and singular_ -- neither of which is true in this state --
+// and dereferenced a disengaged optional.
+TEST(Schur, NonFiniteBorderLeavesTheStackUnchangedAndTheEvidenceUnreadable) {
+    SpMatRM K0 = make_kkt3();
+    QpOptions opts;
+    detail::KktFactor kkt;
+    detail::factorize_checked(kkt, K0);
+    SchurComplement schur(kkt, opts);
+
+    Vec v1(3);
+    v1 << 0, 1, 0;
+    schur.add_border(v1, -opts.dual_mu);
+    ASSERT_EQ(schur.dim(), 1);
+    ASSERT_FALSE(schur.needs_refactorization());
+
+    Vec v2(3);
+    v2 << 1, 0, 0;
+    EXPECT_THROW(schur.add_border(v2, std::numeric_limits<double>::quiet_NaN()),
+                 std::runtime_error);
+
+    EXPECT_EQ(schur.dim(), 1) << "the failed add left no border behind";
+
+    EXPECT_TRUE(std::isinf(schur.cond_estimate()));
+    EXPECT_FALSE(schur.nearly_singular());
+    EXPECT_TRUE(schur.needs_refactorization())
+        << "the cached factorization is gone, so the caller must rebuild K0 rather than keep "
+           "bordering";
+    // Pinned by MESSAGE, not just by type: it is what distinguishes THIS
+    // state (a rebuild that threw) from the exactly-singular one the readers
+    // already handled, and so what proves the readers were reached through the
+    // no-evidence branch rather than through singular_.
+    try {
+        (void)schur.expected_neg_eigs_delta();
+        FAIL() << "expected_neg_eigs_delta() must refuse a stack with no usable factorization";
+    } catch (const std::runtime_error &e) {
+        EXPECT_NE(std::string(e.what()).find("threw before producing block evidence"),
+                  std::string::npos)
+            << e.what();
+    }
+
+    // And the surviving border is still a real border: dropping it by its
+    // original index empties the stack, which it could not do if the failed
+    // add had shifted the indices.
+    schur.drop_border(0);
+    EXPECT_EQ(schur.dim(), 0);
+    EXPECT_FALSE(schur.needs_refactorization());
 }
 
 TEST(Schur, InertiaBookkeepingPinnedVariable) {

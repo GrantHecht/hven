@@ -4568,14 +4568,33 @@ class QpEngine {
     // this call last built, it never touches `k0`/`kkt`, so it correctly
     // moves neither. The defensive role generation's early bump played on a
     // FAILED rebuild (a throw below leaving the object mutated but the
-    // stamp already moved) is carried by condition (e)'s usable-numerics
-    // conjunct instead: a failed factorize leaves `inertia().state !=
-    // kObserved`, so every stale holder refuses reuse on that ground (see
-    // run()'s reuse gate and docs/retarget-design-sqp.md SS7.2).
+    // stamp already moved) is carried by TWO things now. Condition (e)'s
+    // usable-numerics conjunct is one: a failed NUMERIC factorize leaves
+    // `inertia().state != kObserved`, so every stale holder refuses reuse on
+    // that ground (see run()'s reuse gate and docs/retarget-design-sqp.md
+    // SS7.2). The other is this function's COMMIT-LAST ordering, below, which
+    // covers the case that conjunct cannot see.
+    //
+    // COMMIT-LAST (M3 final review, FX-6). Nothing this function publishes on
+    // `border` is published until the factorization has SUCCEEDED. The case
+    // that forces it is a throw out of the SYMBOLIC analysis, not the numeric
+    // factorization: SymmetricFactor::analyze() has the strong guarantee (a
+    // failed analysis leaves the engine exactly as it was -- session id,
+    // epoch, and kObserved inertia all preserved, KktFactor's mirror
+    // untouched), so the usable-numerics conjunct sees a perfectly healthy
+    // factor and reuse is granted. Assigning `k0`/`k0_rows` first therefore
+    // published a NEW K0 against the OLD factorization, ledger and Schur
+    // cache, and a second holder of this shared BorderState (a HotState hand-
+    // off) then passed every reuse conjunct and solved the bordered system
+    // against a factor of a matrix that is no longer `border.k0` -- silently
+    // wrong, not detectably wrong. Assembling into locals and moving them in
+    // afterwards costs nothing: Eigen's sparse move-assignment is a swap, so
+    // the buffers the backend was just handed are the same buffers `border.k0`
+    // ends up owning.
     void rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState &border,
                     QpCounters &counters, const QpOptions &opts) const {
-        border.k0 = assemble_kkt_full(qp, ws, opts);
-        border.k0_rows = ws.active_ineq();
+        KktAssembly k0 = assemble_kkt_full(qp, ws, opts);
+        std::vector<Index> k0_rows = ws.active_ineq();
         // FIX ROUND 2 (QpCounters::symbolic_analyses' own note): decided
         // BEFORE the factorize, which is the only way to know whether THIS
         // call is about to pay the backend's symbolic analysis --
@@ -4584,13 +4603,22 @@ class QpEngine {
         // factorize_checked(), rather than taken here and taken again in
         // there, so one factorization costs one pattern hash at this layer
         // and not two (kkt_calls.h's AnalysisDecision).
-        const detail::AnalysisDecision analysis =
-            detail::analysis_decision(border.kkt, border.k0.K);
+        const detail::AnalysisDecision analysis = detail::analysis_decision(border.kkt, k0.K);
         if (analysis.needed) {
             ++counters.symbolic_analyses;
         }
-        detail::factorize_checked(border.kkt, border.k0.K, analysis);
+        detail::factorize_checked(border.kkt, k0.K, analysis);
         ++counters.factorizations;
+
+        // Commit, against a factorization that already succeeded. Same
+        // statements in the same order as before, with the same effect: both
+        // members that used to be assigned at the TOP of this function are
+        // assigned here instead, from locals built up there, so the two
+        // allocations they need are still paid before the factorize and only
+        // the (non-throwing) hand-over moved. The clear/emplace pair below
+        // always ran here.
+        border.k0 = std::move(k0);
+        border.k0_rows = std::move(k0_rows);
         border.ledger.clear();
         // Constructed AFTER the factorization: add_border caches K0^-1 v
         // against whatever `border.kkt` currently holds. SchurComplement only
@@ -4651,6 +4679,21 @@ class QpEngine {
                 has_border(ledger, BorderLedgerEntry::Kind::kVarPin, i)) {
                 continue;
             }
+            // RESERVE BEFORE THE SCHUR MUTATION (M3 final review, FX-8), in
+            // all three add loops. The ledger and the border stack are one
+            // structure kept in two places, matched by add-order POSITION:
+            // the drop loop above walks the ledger and drops the border at
+            // the same index. So an add_border() that succeeds followed by a
+            // ledger.push_back() that throws on its growth allocation leaves
+            // a border the ledger cannot name -- undroppable forever, and
+            // shifting every later drop by one, which removes the WRONG
+            // border and silently solves the wrong bordered system. A trivial
+            // entry has no other throw in it than that allocation, so
+            // reserving here puts the only throw AHEAD of the border stack
+            // mutation, where a throw costs nothing. (The add_border side of
+            // the same invariant is closed in schur_complement.h: a throwing
+            // add leaves the stack exactly as it was.)
+            ledger.reserve(ledger.size() + 1);
             border.schur->add_border(BorderOps::pin_variable(i, n0), -opts.dual_mu);
             ledger.push_back({BorderLedgerEntry::Kind::kVarPin, i});
             ++counters.schur_updates;
@@ -4661,6 +4704,7 @@ class QpEngine {
                 has_border(ledger, BorderLedgerEntry::Kind::kRowDelete, k)) {
                 continue;
             }
+            ledger.reserve(ledger.size() + 1); // FX-8; see the pin loop above
             border.schur->add_border(BorderOps::delete_k0_row(k, me, n, n0), 0.0);
             ledger.push_back({BorderLedgerEntry::Kind::kRowDelete, k});
             ++counters.schur_updates;
@@ -4670,6 +4714,7 @@ class QpEngine {
                 has_border(ledger, BorderLedgerEntry::Kind::kIneqRow, row)) {
                 continue;
             }
+            ledger.reserve(ledger.size() + 1); // FX-8; see the pin loop above
             border.schur->add_border(BorderOps::add_ineq_row(qp, row, n0), -opts.dual_mu);
             ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, row});
             ++counters.schur_updates;

@@ -583,6 +583,20 @@ void SymmetricFactor::set_num_threads(int num_threads) {
     }
 }
 
+int SymmetricFactor::num_threads() const noexcept {
+    // Read THROUGH to the session rather than reporting `opts_`, whose copy
+    // goes stale the moment a CO-OWNER of this session moves the count (the
+    // setter above writes both, but it writes only ITS OWN engine's `opts_`).
+    // The session's copy is the one Pardiso is handed at call scope, so it is
+    // the only one that answers the question this reader is asked. `opts_`
+    // remains the answer before the first analyze(), when there is no session
+    // to read and `opts_` is what the next one will be built from.
+    //
+    // Kept in the adapter, not the session header: this is contract logic
+    // about which of two copies is authoritative, not a Pardiso fact.
+    return session_ ? session_->config().num_threads : opts_.num_threads;
+}
+
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);
 
