@@ -109,6 +109,17 @@
 # inside operand text under `--no-show-raw-insn`, so this strip cannot mangle
 # a legitimate instruction.
 #
+# The same layout-derived argument applies to a SECOND annotation objdump
+# emits inline on branch/call targets rather than as a trailing comment --
+# e.g. `call   27f5 <.L.str.137+0x466>` -- where the bracketed
+# `<symbol+off>` is objdump's nearest-symbol-by-address label for the target,
+# not part of the instruction: a `.rodata` size change elsewhere in the
+# object shifts what symbol is nearest, so the SAME call to the SAME address
+# gets a different label across builds. `normalize()` strips a trailing
+# `<...>` group the same way it strips the trailing `#` comment, leaving the
+# target address and the mnemonic/operands untouched -- only the cosmetic
+# symbolization goes.
+#
 # Everything else is a real difference. In particular an instruction-COUNT
 # change is never noise: the script reports it as STRUCTURAL and refuses to
 # classify that object further, because once the counts differ, pairing lines
@@ -201,13 +212,15 @@ do_capture() {
 }
 
 # Normalized disassembly: instruction text only, no addresses, no raw bytes,
-# no file-name header, no trailing address-target annotation (see the
-# NORMALIZATION NOTE above). Symbol header lines ("0000... <_Zfoo>:") survive
-# deliberately -- they are what makes this a PER-SYMBOL comparison rather than
-# one flat instruction stream, so a symbol that moved between sections shows up
-# as a difference instead of cancelling out.
+# no file-name header, no trailing address-target annotation, no inline
+# call/jump-target symbolization (see the NORMALIZATION NOTE above). Symbol
+# header lines ("0000... <_Zfoo>:") survive deliberately -- they are what
+# makes this a PER-SYMBOL comparison rather than one flat instruction stream,
+# so a symbol that moved between sections shows up as a difference instead of
+# cancelling out.
 normalize() {
-    "${OBJDUMP}" -d --no-show-raw-insn "$1" | tail -n +3 | sed -e 's/^ *[0-9a-f]*://' -e 's/[ \t]\+#.*$//'
+    "${OBJDUMP}" -d --no-show-raw-insn "$1" | tail -n +3 \
+        | sed -e 's/^ *[0-9a-f]*://' -e 's/[ \t]\+#.*$//' -e 's/[ \t]*<[^<>]*>[ \t]*$//'
 }
 
 # Scratch directory for the normalized listings. Deliberately NOT a `local` in
