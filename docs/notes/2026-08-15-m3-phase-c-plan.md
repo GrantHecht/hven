@@ -909,7 +909,7 @@ T-series commit if the reviewer prefers.
 > lanes; register updated). Debug arithmetic proven unchanged; six
 > config-split pins keep every pre-U0 Debug value. Acceptance:
 > reviewer verdict ACCEPTED
-> (`tycho_sqp:docs/notes/2026-08-16-m3-u0-review.md`, SIGNOFF
+> (reviewer-side `2026-08-16-m3-u0-review.md`, SIGNOFF
 > U0-REVIEW-FINAL — items 1–3, 5, 6 closed there, incl. M3-6 accepted
 > with a named M5 re-open trigger now folded into the Accelerate
 > register); owner acknowledgment relayed 2026-08-17. One item routed to

@@ -280,7 +280,7 @@ relaxed, so the loss is confined to the backend that has it.
 Disposition: per-backend arm at `5e-9`, set from the observed value with
 margin and not fitted to it.
 
-**RULED (U0 review, 2026-08-16, `tycho_sqp:docs/notes/2026-08-16-m3-u0-review.md`,
+**RULED (U0 review, 2026-08-16, reviewer-side `2026-08-16-m3-u0-review.md`,
 SIGNOFF U0-REVIEW-FINAL): ACCEPTED AS LANDED.** Grounds: bit-identical across
 two lane runs (real, not noise); mechanism legible (a sensitivity solve at
 ~500× the chain's conditioning is precisely where reassociation costs

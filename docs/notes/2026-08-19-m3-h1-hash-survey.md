@@ -571,5 +571,5 @@ is adopted with three binding riders on H2 (literal frozen; literal-arm
 oracle REQUIRED in the compressed/uncompressed equality test; H2's first
 build observes the pin at its base). The byte-order claim and the
 FNV-seed guard-comment dispositions were also ruled there. See
-`tycho_sqp:docs/notes/2026-08-19-m3-h1-ruling.md` (SIGNOFF
+reviewer-side `2026-08-19-m3-h1-ruling.md` (SIGNOFF
 H1-RULING-FINAL).
