@@ -550,11 +550,13 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/drivers/sqp_types.h>
@@ -962,7 +964,8 @@ struct SsnBoundRow {
     // whatever real bound (if any) the QP declares on this side. It is an
     // EXPORT attribute, not a structural one: a TR row occupies the same slot
     // in K as the real row it displaced, so this field must never enter the
-    // structure key (see structure_hash) -- if it did, two different radii
+    // structure key (see structure_hash / bound_rows_match_cached, the key's
+    // two conjuncts) -- if it did, two different radii
     // would look like two different structures and the pattern cache would
     // rebuild on every major of a shrink-retry loop, which is exactly the tax
     // the cache exists to remove.
@@ -2892,12 +2895,19 @@ class SsnEngine {
     // then += reproduces that summation exactly; a straight = would silently
     // drop primal_delta wherever H has a stored diagonal.
     //
-    // THE STRUCTURE KEY is an FNV-1a hash of the dimensions, the three input
-    // matrices' index arrays, and the bound-row list -- i.e. of exactly the
-    // inputs build_pattern reads and nothing else. It is the same instrument,
-    // with the same collision exposure, that the KKT factor helper's
-    // pattern compare already uses to decide whether to skip the symbolic
-    // analysis (kkt_calls.h / hven::pattern_hash).
+    // THE STRUCTURE KEY is a COMPOSITE of two conjuncts (phase-C H3), read
+    // from exactly the inputs build_pattern reads and nothing else:
+    //
+    //   1. structure_hash -- hven's combined pattern key (one Fnv1a threaded
+    //      across the dimensions and the three input matrices' patterns by
+    //      feed_pattern, docs/pattern-hash.md), the same FNV-1a instrument,
+    //      with the same collision exposure, that the KKT factor helper's
+    //      pattern compare already uses to decide whether to skip the
+    //      symbolic analysis (kkt_calls.h / hven::pattern_hash).
+    //   2. the bound-row (var, sign) list, compared EXACTLY against the copy
+    //      cached when the current pattern was built (bound_rows_match_cached
+    //      / structure_bound_key_) -- not hashed, so no collision exposure at
+    //      all on this half.
     //
     // **THIS FILE USED TO CLAIM THE KEY WAS "deliberately NOT the only guard",
     // AND THAT WAS FALSE** (Fable kernel review, M-1). On a collision the
@@ -2916,7 +2926,10 @@ class SsnEngine {
     // drift, including every collision whose structures differ in entry count,
     // and it converts the UB into a thrown std::runtime_error. A collision
     // between two structures with identical entry counts remains undetected --
-    // a 64-bit FNV coincidence, and the honest residual exposure.
+    // a 64-bit FNV coincidence, and the honest residual exposure. Under the H3
+    // composite that exposure lives entirely in conjunct 1's hashed half (the
+    // dimensions and the three matrix patterns); the bound-row half cannot
+    // collide, having stopped being a hash.
     //
     // **THE GUARD IS NOT TEST-REACHABLE, AND A MUTATION REMOVING IT SURVIVES**
     // -- reaching it requires forging an FNV-1a collision, which no fixture can
@@ -2958,76 +2971,82 @@ class SsnEngine {
         }
     }
 
-    // FNV-1a over the dimensions, the three input patterns and the bound-row
-    // list -- the complete set of inputs that determine K's structure.
+    // CONJUNCT 1 of the composite structure key: hven's combined pattern key
+    // over the dimensions and the three input patterns. Fed **through
+    // feed_pattern, NOT off the raw index arrays**, and that carries the
+    // property the old InnerIterator walk here existed for: qp.H/Ae/Ai are
+    // CALLER-SUPPLIED and QpProblem imposes no compression requirement, and
+    // feed_pattern's contract is that either storage state produces the
+    // compressed digest -- same O(nnz), no compressed copy, exact in both
+    // states. (The emission still walks these matrices with InnerIterator, and
+    // feed_pattern's stream is defined by the same iteration, so the key and
+    // the emission keep agreeing about what "the pattern" is.) Every
+    // ingredient goes through Fnv1a::feed_index -- 64-bit widened, LSB-first
+    // -- so the digest does not depend on host byte order or on
+    // SpMatRM::StorageIndex's width. The bound-row list is DELIBERATELY not
+    // here: it is conjunct 2 (bound_rows_match_cached below), compared
+    // exactly rather than hashed. The digest's VALUE changed with the H3
+    // re-key (declared in that commit); it is only ever compared against
+    // another computation of this same function on this same engine.
     std::uint64_t structure_hash(const QpProblem &qp, Index n, Index me, Index mi, Index mb) const {
-        constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
-        constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
-        std::uint64_t h = kOffsetBasis;
-        auto mix = [&h](const void *data, std::size_t len) {
-            const auto *bytes = static_cast<const unsigned char *>(data);
-            for (std::size_t i = 0; i < len; ++i) {
-                h ^= bytes[i];
-                h *= kFnvPrime;
-            }
-        };
-        auto mix_index = [&mix](Index v) { mix(&v, sizeof(v)); };
-        // **HASHED THROUGH InnerIterator, NOT off the raw index arrays**, which
-        // is the one place this differs from the factor helper's
-        // pattern hash (hven::pattern_hash) and it is deliberate. That hash sees a matrix IT
-        // requires to be compressed (require_compressed throws otherwise);
-        // qp.H/Ae/Ai are CALLER-SUPPLIED and QpProblem imposes no such
-        // requirement, and for an uncompressed matrix innerIndexPtr() holds
-        // per-vector gaps that nonZeros() does not describe -- reading
-        // nnz entries off it would hash a slice that is neither the pattern nor
-        // a stable function of it, so two genuinely different structures could
-        // collide and be wrongly reused. Iterating is the same O(nnz) and is
-        // exact in both storage states. (Everything else here walks these
-        // matrices with InnerIterator too, so this also keeps the key and the
-        // emission agreeing about what "the pattern" is.)
-        auto mix_pattern = [&mix_index](const SpMatRM &m) {
-            mix_index(m.rows());
-            mix_index(m.cols());
-            mix_index(m.nonZeros());
-            for (Index r = 0; r < m.rows(); ++r) {
-                for (SpMatRM::InnerIterator it(m, r); it; ++it) {
-                    mix_index(r);
-                    mix_index(it.col());
-                }
-            }
-        };
-        mix_index(n);
-        mix_index(me);
-        mix_index(mi);
-        mix_index(mb);
-        mix_pattern(qp.H);
-        mix_pattern(qp.Ae);
-        mix_pattern(qp.Ai);
-        // **br.var IS THE LOAD-BEARING HALF, AND mb ALONE DOES NOT COVER IT**
-        // (fix round 1: a mutation that dropped this loop entirely SURVIVED the
-        // first sweep, because almost every bound change also changes mb, which
-        // is mixed above). The case mb misses is a DIFFERENT ASSIGNMENT of the
-        // same NUMBER of bound rows to variables -- two rows both on variable 0
-        // versus one row each on variables 0 and 1 -- which puts the bound
-        // block's off-diagonal entries in different columns of K. Reusing a
-        // pattern across that would write B's values into A's slots.
-        // PatternKeySeparatesBoundLayoutsOfEqualSize is the fixture.
-        //
-        // br.sign is mixed too, CONSERVATIVELY rather than necessarily, and
-        // **a mutation removing it is EXPECTED TO SURVIVE**: a sign flip (a
-        // variable trading its lower bound for its upper) moves no slot, only a
-        // value, and the refresh path re-emits br.sign -- so dropping sign from
-        // the key would still be correct, just as `+ mb` alone would not be.
-        // It is kept because an over-conservative key costs one avoidable
-        // rebuild in that one case and buys never having to re-derive this
-        // argument. Recorded as a knowingly-unkillable line rather than left
-        // looking untested; the fixture below pins the half that IS killable.
-        for (const detail::SsnBoundRow &br : bound_rows_) {
-            mix_index(br.var);
-            const double sign = br.sign;
-            mix(&sign, sizeof(sign));
+        Fnv1a h;
+        h.feed_index(n);
+        h.feed_index(me);
+        h.feed_index(mi);
+        h.feed_index(mb);
+        feed_pattern(h, qp.H);
+        feed_pattern(h, qp.Ae);
+        feed_pattern(h, qp.Ai);
+        return h.value();
+    }
+
+    // CONJUNCT 2: the bound-row (var, sign) list, compared EXACTLY against
+    // the copy cached when the current pattern was built.
+    //
+    // **br.var IS THE LOAD-BEARING HALF, AND mb ALONE DOES NOT COVER IT**
+    // (fix round 1: a mutation that dropped the bound rows from the old
+    // in-hash key entirely SURVIVED the first sweep, because almost every
+    // bound change also changes mb, which structure_hash mixes). The case mb
+    // misses is a DIFFERENT ASSIGNMENT of the same NUMBER of bound rows to
+    // variables -- two rows both on variable 0 versus one row each on
+    // variables 0 and 1 -- which puts the bound block's off-diagonal entries
+    // in different columns of K. Reusing a pattern across that would write
+    // B's values into A's slots. PatternKeySeparatesBoundLayoutsOfEqualSize
+    // is the fixture; as an exact comparison the check is now deterministic,
+    // where the old in-hash form left it a 2^-64 coincidence away from
+    // exactly that wrong-slot write.
+    //
+    // sign participates too, CONSERVATIVELY rather than necessarily: a sign
+    // flip (a variable trading its lower bound for its upper) moves no slot,
+    // only a value, and the refresh path re-emits br.sign -- so dropping sign
+    // from the conjunct would still be correct, just as `+ mb` alone would
+    // not be. It is kept because an over-conservative key costs one avoidable
+    // rebuild in that one case and buys never having to re-derive this
+    // argument -- and because rebuild COUNTS are pinned currency: the old key
+    // rebuilt on a sign flip, so the composite must too.
+    // SignFlipAtConstantBoundLayoutForcesRebuild is the fixture (the old
+    // in-hash sign term was recorded as knowingly unkillable; the exact
+    // comparison is killable, so it is pinned rather than recorded).
+    //
+    // rhs and from_tr are EXCLUDED, exactly as they were from the old hash:
+    // both are value attributes of a row whose slot they do not move (see
+    // SsnBoundRow), and comparing either would rebuild the pattern on bound
+    // VALUE moves -- from_tr on every radius change of a shrink-retry loop,
+    // which is exactly the tax this cache exists to remove. The cache is a
+    // (var, sign) pair list, not a SsnBoundRow copy, so neither CAN be
+    // compared by accident.
+    bool bound_rows_match_cached() const {
+        if (bound_rows_.size() != structure_bound_key_.size()) {
+            return false;
         }
-        return h;
+        for (std::size_t r = 0; r < bound_rows_.size(); ++r) {
+            const detail::SsnBoundRow &br = bound_rows_[r];
+            if (br.var != structure_bound_key_[r].first ||
+                br.sign != structure_bound_key_[r].second) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Brings k_ up to date for `qp`. Returns true iff the pattern was rebuilt.
@@ -3035,7 +3054,8 @@ class SsnEngine {
         dim_ = n + me + mi + mb;
         const std::uint64_t key = structure_hash(qp, n, me, mi, mb);
 
-        if (has_structure_ && key == structure_key_ && k_.rows() == dim_) {
+        if (has_structure_ && key == structure_key_ && bound_rows_match_cached() &&
+            k_.rows() == dim_) {
             double *vals = k_.valuePtr();
             std::fill(vals, vals + k_.nonZeros(), 0.0);
             std::size_t t = 0;
@@ -3097,6 +3117,11 @@ class SsnEngine {
         }
 
         structure_key_ = key;
+        structure_bound_key_.clear();
+        structure_bound_key_.reserve(bound_rows_.size());
+        for (const detail::SsnBoundRow &br : bound_rows_) {
+            structure_bound_key_.emplace_back(br.var, br.sign);
+        }
         has_structure_ = true;
         return true;
     }
@@ -3574,11 +3599,13 @@ class SsnEngine {
     Index dim_ = 0;
     std::vector<detail::SsnBoundRow> bound_rows_;
     std::vector<double> real_lower_, real_upper_;
-    // The pattern cache (M5): the structure key k_ was built for, and the
-    // position in k_.valuePtr() of each entry for_each_entry() emits, in
-    // emission order.
+    // The pattern cache (M5): the structure key k_ was built for -- both
+    // conjuncts of it (the combined pattern digest, and the bound-row
+    // (var, sign) list the digest deliberately omits) -- and the position in
+    // k_.valuePtr() of each entry for_each_entry() emits, in emission order.
     std::vector<std::size_t> value_pos_;
     std::uint64_t structure_key_ = 0;
+    std::vector<std::pair<Index, double>> structure_bound_key_;
     bool has_structure_ = false;
     // The regularizers THIS solve resolved to (SolveOverrides, or opts_ when
     // the override is at its sentinel). Members rather than parameters because

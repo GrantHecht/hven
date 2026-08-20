@@ -1472,6 +1472,77 @@ TEST(SsnEngineLocal, PatternKeySeparatesBoundLayoutsOfEqualSize) {
     }
 }
 
+// A sign FLIP at a constant bound layout -- same mb, same variable sequence,
+// identical H/Ae/Ai patterns; variable 1 trades its lower bound for its upper
+// -- moves a VALUE, not a slot: the bound block's off-diagonal entry stays in
+// the same column of K, so reusing the pattern here would be CORRECT. The key
+// still rebuilds, DELIBERATELY (see bound_rows_match_cached in ssn_engine.h:
+// an over-conservative key costs one avoidable rebuild in exactly this case
+// and buys never re-deriving the argument) -- and that conservatism is pinned
+// currency, not a preference: the pre-H3 in-hash key rebuilt here, rebuild
+// counters are asserted across the corpus, so the composite key must
+// reproduce the decision exactly. This pins the sign half of the bound-row
+// conjunct, which the exact comparison made killable -- the old in-hash sign
+// term was recorded as knowingly UNkillable, because no fixture can forge the
+// FNV collision that would distinguish it from the var term it was mixed in
+// with. A comparison is distinguishable: a mutant dropping the sign check
+// reuses here and fails the rebuild count below.
+TEST(SsnEngineLocal, SignFlipAtConstantBoundLayoutForcesRebuild) {
+    auto box_on_var1 = [](bool lower_side) {
+        QpProblem qp;
+        qp.H = Eigen::MatrixXd::Identity(3, 3)
+                   .triangularView<Eigen::Upper>()
+                   .toDenseMatrix()
+                   .sparseView();
+        qp.g = Vec::Zero(3);
+        // Push variable 1 through its bound so the bound is ACTIVE at the
+        // solution and a misplaced or stale entry cannot hide.
+        qp.g(1) = lower_side ? 3.0 : -3.0;
+        qp.Ae.resize(0, 3);
+        qp.be = Vec(0);
+        qp.Ai.resize(0, 3);
+        qp.bi = Vec(0);
+        qp.lower = Vec::Constant(3, -1e20);
+        qp.upper = Vec::Constant(3, 1e20);
+        if (lower_side) {
+            qp.lower(1) = -1.0; // row (var 1, sign -1)
+        } else {
+            qp.upper(1) = 1.0; // row (var 1, sign +1)
+        }
+        return qp;
+    };
+
+    const QpProblem a = box_on_var1(true);
+    const QpProblem b = box_on_var1(false);
+
+    SsnEngine engine(default_opts());
+    SsnResult ra;
+    engine.solve(a, SsnStart{}, SsnOptions{}, &ra);
+    ASSERT_EQ(ra.status, QpStatus::kOptimal);
+    EXPECT_EQ(ra.pattern_rebuilds, 1);
+    EXPECT_NEAR(ra.x(1), -1.0, 1e-6);
+    EXPECT_EQ(ra.bound_state[1], BoundState::kAtLower);
+
+    SsnResult rb;
+    engine.solve(b, SsnStart{}, SsnOptions{}, &rb);
+    ASSERT_EQ(rb.status, QpStatus::kOptimal);
+    EXPECT_EQ(rb.pattern_rebuilds, 1) << "same layout, flipped sign: the conservative rebuild";
+    EXPECT_NEAR(rb.x(1), 1.0, 1e-6);
+    EXPECT_EQ(rb.bound_state[1], BoundState::kAtUpper);
+
+    const QpSolution walk = walk_solution(b);
+    ASSERT_EQ(walk.status, QpStatus::kOptimal);
+    for (Index j = 0; j < 3; ++j) {
+        EXPECT_NEAR(rb.x(j), walk.x(j), 1e-6) << "x(" << j << ")";
+    }
+
+    // The equal side of the conjunct: an identical re-solve still reuses.
+    SsnResult rb2;
+    engine.solve(b, SsnStart{}, SsnOptions{}, &rb2);
+    ASSERT_EQ(rb2.status, QpStatus::kOptimal);
+    EXPECT_EQ(rb2.pattern_rebuilds, 0) << "identical structure and bound rows: reuse";
+}
+
 // =============================================================================
 // HOW THE COUNT SCALES IN n (review fix round 1, I2)
 // =============================================================================

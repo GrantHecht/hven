@@ -1505,6 +1505,7 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
+#include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/bordered_eqp.h>
 #include <hven/detail/kkt/kkt_assembly.h>
@@ -1940,6 +1941,8 @@ inline double hessian_scale(const QpProblem &qp) {
 
 // FNV-1a mixing step, identical constants to the dissolved seam's
 // hash_pattern (and the same FNV-1a family hven::pattern_hash uses).
+// Since phase-C H3 this feeds only `values_hash` below: the STRUCTURAL
+// fingerprint is hven's combined pattern key and no longer mixes raw bytes.
 inline void fnv1a_mix(std::uint64_t &h, const void *data, std::size_t len) {
     constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
     const auto *bytes = static_cast<const unsigned char *>(data);
@@ -1949,44 +1952,28 @@ inline void fnv1a_mix(std::uint64_t &h, const void *data, std::size_t len) {
     }
 }
 
-// A caller-supplied QpProblem matrix is not guaranteed to already be in
-// COMPRESSED form (unlike the KKT matrix K, which this engine assembles itself
-// via setFromTriplets + makeCompressed), so both hashers below only pay for
-// a compressed COPY when the input actually needs one; the common case
-// (already compressed, e.g. anything built via .sparseView() or this
-// engine's own assemble_kkt_full) binds `m` straight to the caller's matrix.
-inline void mix_pattern(std::uint64_t &h, const SpMatRM &m_in) {
-    SpMatRM tmp;
-    const SpMatRM *mp = &m_in;
-    if (!m_in.isCompressed()) {
-        tmp = m_in;
-        tmp.makeCompressed();
-        mp = &tmp;
-    }
-    const SpMatRM &m = *mp;
-    const Index rows = m.rows();
-    const Index cols = m.cols();
-    const Index nnz = m.nonZeros();
-    fnv1a_mix(h, &rows, sizeof(rows));
-    fnv1a_mix(h, &cols, sizeof(cols));
-    fnv1a_mix(h, &nnz, sizeof(nnz));
-    fnv1a_mix(h, m.outerIndexPtr(),
-              sizeof(SpMatRM::StorageIndex) * static_cast<std::size_t>(rows + 1));
-    fnv1a_mix(h, m.innerIndexPtr(), sizeof(SpMatRM::StorageIndex) * static_cast<std::size_t>(nnz));
-}
-
 // Mixes rows/cols/nnz as a separator BEFORE the value bytes themselves, not
 // just the bytes alone. This hardens against a real collision class: two
 // matrices with different SHAPE can produce byte-identical value streams,
 // e.g. mi=2 with rows [1,0],[-1,0] (values [1,-1], one nonzero per row)
 // versus mi=1 with the single row [1,-1] (values [1,-1], both nonzero) --
-// same bytes, different mi. structural_hash (mix_pattern, above) is the
-// primary guard against that class and IS checked alongside this one in
-// every reuse decision (see the header contract's HOT-START REUSE note and
+// same bytes, different mi. structural_hash (the combined pattern key,
+// below) is the primary guard against that class and IS checked alongside
+// this one in every reuse decision (see the header contract's HOT-START
+// REUSE note and
 // QpWarmStart.StructureChangeAtConstantValueBytesForcesRefactorization), but
 // mixing the shape in here too means values_hash alone is no longer
 // collision-prone across a shape change, cheaply, in case it is ever
 // consulted on its own.
+//
+// A caller-supplied QpProblem matrix is not guaranteed to already be in
+// COMPRESSED form (unlike the KKT matrix K, which this engine assembles
+// itself via setFromTriplets + makeCompressed), so this hasher only pays for
+// a compressed COPY when the input actually needs one; the common case
+// (already compressed, e.g. anything built via .sparseView() or this
+// engine's own assemble_kkt_full) binds `m` straight to the caller's matrix.
+// (structural_hash needs no such copy: `feed_pattern` produces the
+// compressed digest from either storage state.)
 inline void mix_values(std::uint64_t &h, const SpMatRM &m_in) {
     SpMatRM tmp;
     const SpMatRM *mp = &m_in;
@@ -2012,12 +1999,23 @@ constexpr std::uint64_t kFnvOffsetBasis = 14695981039346656037ULL;
 // H/Ae/Ai's own nonzero patterns (delta/mu diagonals are always present
 // regardless), so hashing the three raw patterns is equivalent to hashing an
 // assembled K0's pattern -- without ever assembling one.
+//
+// Since phase-C H3 the digest is hven's combined pattern key -- one Fnv1a
+// threaded across the three matrices by feed_pattern (docs/pattern-hash.md)
+// -- not a raw-byte FNV over the index arrays. Same ingredient set (each
+// matrix's shape and sparsity pattern, nothing else), three properties
+// gained: the value no longer depends on host byte order or on
+// SpMatRM::StorageIndex's width (every ingredient is fed 64-bit widened,
+// LSB-first), and an uncompressed caller-supplied matrix is hashed IN PLACE
+// -- feed_pattern's derived-offset stream produces the compressed digest in
+// either storage state, so the compressed copy the old mix_pattern paid for
+// on that path is gone. The digest's VALUE changed with the re-key (declared
+// in the H3 commit): no consumer compares it against anything but another
+// computation of this same function in the same process, and 0 stays
+// meaningful only as WarmStart::structure_hash's "no claim made" sentinel,
+// which no computed digest is expected to hit.
 inline std::uint64_t structural_hash(const QpProblem &qp) {
-    std::uint64_t h = kFnvOffsetBasis;
-    mix_pattern(h, qp.H);
-    mix_pattern(h, qp.Ae);
-    mix_pattern(h, qp.Ai);
-    return h;
+    return combined_pattern_hash(qp.H, qp.Ae, qp.Ai);
 }
 
 // Condition (c): have H/Ae/Ai's VALUES changed? Named `values_hash` per the

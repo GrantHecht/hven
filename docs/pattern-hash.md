@@ -172,31 +172,31 @@ fix-up.
 
 ## Relationship to the SQP engine's own structural fingerprints
 
-The SQP engine keeps two structural hashes of its own -- the QP engine's
-hot-start reuse fingerprint (`include/hven/detail/qp/qp_engine.h`) and the
-SSN pattern-rebuild gate's key (`include/hven/detail/qp/ssn_engine.h`).
-Both were written against the same scheme as this primitive: same offset
-basis (`14695981039346656037`), same prime (`1099511628211`), same
-per-matrix ingredient order, one accumulator threaded across the three
-matrices of a QP with no separator beyond each one's leading triple. That
-last point is why the combined key here is a continuation: it is the shape
-the engine side already computes.
+The SQP engine keeps two structural keys of its own, and since the phase-C
+re-key both are built on this surface rather than beside it:
 
-Where they still differ, as of this page's writing:
+- **The QP engine's hot-start reuse fingerprint**
+  (`include/hven/detail/qp/qp_engine.h`, `detail::structural_hash`) is
+  `combined_pattern_hash(H, Ae, Ai)` -- the combined key above, nothing
+  more.
+- **The SSN pattern-rebuild gate's key**
+  (`include/hven/detail/qp/ssn_engine.h`) is a composite of two conjuncts:
+  a digest (one `Fnv1a` fed `n`, `me`, `mi`, `mb` through `feed_index`,
+  then `feed_pattern` over the three matrices -- the interleaving pattern
+  this page describes as the caller-side spelling of the combined key),
+  and the engine's bound-row `(var, sign)` list, which is deliberately NOT
+  hashed: the gate compares it exactly against the copy cached when the
+  pattern was built. The list has no counterpart on this page because it
+  is not a hash ingredient anywhere.
 
-- they feed each index array as one contiguous block of raw bytes at
-  whatever machine width the storage index happens to be, so their digests
-  are `StorageIndex`-width- and host-byte-order-dependent, while this one
-  is neither;
-- the SSN key feeds no outer array at all -- it emits a `(row, col)` pair
-  per stored entry -- and carries a bound-row `(var, sign)` list that has
-  no counterpart here;
-- both tolerate uncompressed input by their own means (a compressed copy on
-  the QP side, `InnerIterator` iteration on the SSN side) rather than
-  through this surface.
+Both engine keys therefore inherit this surface's properties: uncompressed
+tolerance with no compressed copy (the QP side used to pay one; the SSN
+side used to iterate on its own), and digests independent of
+`StorageIndex` width and host byte order. Their values are compared only
+against other computations of themselves in the same process -- nothing
+pins either digest's value, and `0` remains the warm-start currency's
+"no claim made" sentinel rather than any computed digest.
 
-Re-keying those two onto this entry point is a separate, planned change;
-nothing in this page describes them as they will be. `values_hash`
-(`qp_engine.h`) is not a pattern hash at all -- it fingerprints stored
-numeric values and answers a different reuse question -- and is unrelated
-to everything above.
+`values_hash` (`qp_engine.h`) is not a pattern hash at all -- it
+fingerprints stored numeric values and answers a different reuse question
+-- and is unrelated to everything above; the re-key did not touch it.

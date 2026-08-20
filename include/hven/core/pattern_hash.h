@@ -8,13 +8,13 @@
 // warm-start currency will use later to decide whether a hand-off's own
 // structural fingerprint still matches the model being solved.
 //
-// The SQP engine keeps two structural fingerprints of its own
-// (`hven/detail/qp/qp_engine.h`, `hven/detail/qp/ssn_engine.h`) built from
-// the same offset basis and prime; docs/pattern-hash.md states how they
-// relate to this primitive, where they still differ (they feed index arrays
-// as raw machine-width bytes; this one feeds every ingredient 64-bit widened
-// and byte-order-fixed), and the recipe for the combined key over several
-// matrices.
+// The SQP engine keeps two structural keys of its own
+// (`hven/detail/qp/qp_engine.h`, `hven/detail/qp/ssn_engine.h`); both are
+// built ON this surface -- the QP engine's is `combined_pattern_hash` over
+// its three matrices, the SSN engine's threads `feed_index` and
+// `feed_pattern` through one accumulator and pairs the digest with a
+// non-hashed conjunct of its own. docs/pattern-hash.md states the recipe for
+// the combined key over several matrices and how those two keys sit on it.
 #include <cstddef>
 #include <cstdint>
 
