@@ -54,36 +54,68 @@ set(HVEN_RIG_SQP_SEAM_COMMIT "4faa1df116da53c9dc68f36635c118f52d39d2b9")
 
 # The interior-point old seam is pinned the same way in spirit as the SQP
 # seam above, and -- as of the FATAL enforcement below -- the same way in
-# strength too: HVEN_RIG_PSIOPT_SEAM names a live tycho checkout (this
-# project's main development sibling) rather than a checkout frozen at a
-# released tag, so unlike HVEN_RIG_SQP_SEAM there is no tag to re-resolve --
-# only a commit and a tree to check. But "expected to keep moving as tycho
-# develops" describes when the pin needs updating, not whether an unverified
-# or drifted checkout is safe to derive expectations from: it is not, so a
-# mismatch, a dirty consumed tree, or an unverifiable checkout (no git, or no
-# .git directory) is a configure-time FATAL_ERROR by default, same as the SQP
-# seam's checks. HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM=ON (above) downgrades
-# that to the previous WARNING-and-proceed behavior for the one case that
-# legitimately wants it -- iterating against a moving tycho checkout without
-# deriving new tables -- and re-deriving the psiopt-old expected tables is the
-# actual remedy when the drift touches Pardiso/Accelerate configuration or
-# linear-algebra behavior (psiopt/include/tycho/detail/solvers/linear/).
+# strength too, but by a different IDENTITY. HVEN_RIG_PSIOPT_SEAM names a
+# live tycho checkout (this project's main development sibling) rather than a
+# checkout frozen at a released tag, so unlike HVEN_RIG_SQP_SEAM there is no
+# tag to re-resolve. Pinning that checkout's HEAD COMMIT made every advance
+# of it -- including the great majority that cannot touch these tables at all
+# -- a FATAL to be cleared by hand, while verifying only a proxy for the tree
+# the expected tables actually depend on. So the pin is the CONTENT of the
+# consumed subtree: the rig verifies the git tree hash of
+# HVEN_RIG_PSIOPT_SEAM_SCOPE at the checkout's HEAD against
+# HVEN_RIG_PSIOPT_SEAM_TREE below. An advance that does not touch the
+# consumed subtree is a non-event; one that does still FATALs. (Ruled by the
+# rig-pin ruling, 2026-08-19, reviewer-side
+# `2026-08-19-rig-pin-ruling-and-nine-set-confirmation.md`, SIGNOFF
+# RIG-PIN-RULING-FINAL.)
 #
-#   commit : the value below, checked at configure time when the checkout
-#            is a git repository; both the commit AND the cleanliness of the
-#            consumed linear/ tree are checked -- see the verification block
-#            below for why a HEAD match alone is not enough.
+# The scope is closed, and self-guarding: seam_psiopt.cpp includes exactly
+# two headers from the checkout (pardiso_interface.h on the MKL branch,
+# accelerate_interface.h on the Apple branch), whose include closure inside
+# the checkout reaches only accelerate_utils.h beside them -- Eigen and fmt
+# come from hven's own dep/ trees and MKL/Accelerate from the system, and the
+# checkout is on the include path only via ${HVEN_RIG_PSIOPT_SEAM}/psiopt/
+# include. Any future edit that widened that closure would necessarily edit a
+# file inside the scope directory, changing the tree hash and FATALing here.
+# The one residual coupling is seam_psiopt.cpp's own include set: if that
+# changes, the scope has to be re-ruled in the same review.
 #
-#   Re-pinned 2026-08-13 (hven M2.5, Task 2) from 060ad2138a373b... to tycho
-#   main's current HEAD below. This was NOT a blind bump: before moving the
-#   pin, `git diff 060ad2138a373bacd9d1ba2daabd6b503a9a6fb1..main --stat --
-#   psiopt/` was run against the tycho checkout and returned EMPTY -- the
-#   frozen psiopt/ tree (including the consumed linear/ headers this pin's
-#   expected tables were derived against) is byte-identical between the old
-#   pin and this new one, so no re-derivation of the psiopt-old expected
-#   tables was needed. Re-pinning past a commit range with a non-empty diff
-#   there would require re-deriving those tables first.
-set(HVEN_RIG_PSIOPT_SEAM_COMMIT "5b5dc736c238b285915507c3677d7952227c0d1b")
+# "Expected to keep moving" describes when the pin needs updating, not
+# whether an unverified or drifted checkout is safe to derive expectations
+# from: it is not, so a consumed tree that hashes differently, a dirty
+# consumed tree, or an unverifiable checkout (no git, or no .git directory)
+# is a configure-time FATAL_ERROR by default, same as the SQP seam's checks.
+# HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM=ON (above) downgrades that to the
+# WARNING-and-proceed behavior for the one case that legitimately wants it --
+# iterating against a moving tycho checkout without deriving new tables --
+# and re-deriving the psiopt-old expected tables is the actual remedy when
+# the drift touches Pardiso/Accelerate configuration or linear-algebra
+# behavior in the scope directory.
+#
+#   tree   : the value below, checked at configure time when the checkout is
+#            a git repository; both the HEAD tree hash AND the cleanliness of
+#            the consumed linear/ tree are checked -- see the verification
+#            block below for why a HEAD-tree match alone is not enough.
+#   HEAD   : observed, never pinned. Recorded in the report rows' provenance
+#            beside the verified tree hash, so provenance still names a
+#            human-findable commit.
+#   anchor : 5b5dc736c238b285915507c3677d7952227c0d1b -- the commit the
+#            psiopt-old expected tables were derived at, and the previous
+#            HEAD-commit pin. The consumed tree hashes to the value below
+#            there, which is why converting this pin to a tree hash owes no
+#            re-derivation. (That commit was itself re-pinned 2026-08-13
+#            (hven M2.5, Task 2) from 060ad2138a373b... only after a `git
+#            diff ..main --stat -- psiopt/` over the range came back EMPTY;
+#            the tree check below now IS that argument, made by the build
+#            rather than by hand.)
+#
+# M6 forward note: M6 deletes psiopt/ from the checkout, at which point this
+# check FATALs whatever its shape -- converting this arm to the SQP arm's
+# tag+commit form against a tag cut on the last psiopt-bearing commit, or
+# retiring the arm with the milestone, is decided at M6 planning, not here
+# (same ruling as above).
+set(HVEN_RIG_PSIOPT_SEAM_SCOPE "psiopt/include/tycho/detail/solvers/linear")
+set(HVEN_RIG_PSIOPT_SEAM_TREE "bfb7d30c5cc821069b7af3f9efa077f29474de5e")
 
 find_package(Git QUIET)
 
@@ -162,24 +194,33 @@ if(HVEN_RIG_PSIOPT_SEAM)
             "expected ${_psiopt_seam_include}/tycho/detail/solvers/linear/pardiso_interface.h")
     endif()
 
-    # Commit pin, mirroring the SQP arm's tag+commit verification above --
-    # now in severity too, not just mechanism. Three ways this can fail to
-    # verify, each collected into _psiopt_pin_problem rather than emitted
-    # immediately, so the single FATAL_ERROR/WARNING decision below (gated on
+    # Tree-hash pin, mirroring the SQP arm's tag+commit verification above in
+    # severity and in structure, though not in identity (see the long note on
+    # HVEN_RIG_PSIOPT_SEAM_TREE above for why this arm pins content rather
+    # than a commit). Four ways this can fail to verify, each collected into
+    # _psiopt_pin_problem rather than emitted immediately, so the single
+    # FATAL_ERROR/WARNING decision below (gated on
     # HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM) is the only place severity is
     # decided:
     #   1. the checkout is not a git repository this rig can query at all
     #      (no git, or no .git directory) -- unverifiable is not the same as
     #      acceptable, so this is a problem, not a silent "recorded, not
     #      checked".
-    #   2. HEAD is not the pinned commit.
-    #   3. HEAD IS the pinned commit, but the tree the adapter actually
-    #      compiles against (psiopt/include/tycho/detail/solvers/linear) has
-    #      uncommitted changes -- a dirty tree at the right commit is still
-    #      not the tree the expected tables were derived against.
+    #   2. the checkout can be queried but HEAD, or the consumed subtree at
+    #      HEAD, does not resolve.
+    #   3. the consumed subtree resolves but hashes to something other than
+    #      the pinned tree.
+    #   4. the consumed subtree at HEAD matches the pin, but the tree the
+    #      adapter actually compiles against has uncommitted changes -- a
+    #      HEAD tree hash cannot see working-tree state, so this check stays
+    #      load-bearing exactly as it was under the commit pin.
     set(HVEN_RIG_PSIOPT_SEAM_VERIFIED "unverified")
+    set(HVEN_RIG_PSIOPT_SEAM_HEAD "unknown")
     unset(_psiopt_pin_problem)
     if(Git_FOUND AND EXISTS "${HVEN_RIG_PSIOPT_SEAM}/.git")
+        # HEAD is read for PROVENANCE, not for the pin: the report rows name
+        # the commit the verified tree was observed at, so a reader has
+        # something human-findable beside the content hash.
         execute_process(
             COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
             WORKING_DIRECTORY "${HVEN_RIG_PSIOPT_SEAM}"
@@ -190,51 +231,70 @@ if(HVEN_RIG_PSIOPT_SEAM)
         if(NOT _psiopt_head_rc EQUAL 0)
             string(CONCAT _psiopt_pin_problem
                 "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} has a .git directory but its HEAD "
-                "commit could not be resolved, so the pin to ${HVEN_RIG_PSIOPT_SEAM_COMMIT} COULD "
-                "NOT BE VERIFIED.")
-        elseif(NOT _psiopt_head_commit STREQUAL HVEN_RIG_PSIOPT_SEAM_COMMIT)
-            string(CONCAT _psiopt_pin_problem
-                "HVEN_RIG_PSIOPT_SEAM's checkout HEAD is ${_psiopt_head_commit}, not the commit "
-                "(${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected tables were "
-                "derived against. Re-derive the psiopt-old rows in tests/golden_rig/expected/ if "
-                "the drift touches Pardiso/Accelerate configuration or linear-algebra behavior "
-                "(psiopt/include/tycho/detail/solvers/linear/), then update "
-                "HVEN_RIG_PSIOPT_SEAM_COMMIT here to match.")
+                "could not be resolved, so the consumed ${HVEN_RIG_PSIOPT_SEAM_SCOPE} tree COULD "
+                "NOT BE VERIFIED against the pinned tree ${HVEN_RIG_PSIOPT_SEAM_TREE}.")
         else()
+            set(HVEN_RIG_PSIOPT_SEAM_HEAD "${_psiopt_head_commit}")
             execute_process(
-                COMMAND "${GIT_EXECUTABLE}" status --porcelain --
-                        "psiopt/include/tycho/detail/solvers/linear"
+                COMMAND "${GIT_EXECUTABLE}" rev-parse "HEAD:${HVEN_RIG_PSIOPT_SEAM_SCOPE}"
                 WORKING_DIRECTORY "${HVEN_RIG_PSIOPT_SEAM}"
-                OUTPUT_VARIABLE _psiopt_dirty
+                OUTPUT_VARIABLE _psiopt_tree_hash
                 OUTPUT_STRIP_TRAILING_WHITESPACE
-                RESULT_VARIABLE _psiopt_status_rc
+                RESULT_VARIABLE _psiopt_tree_rc
                 ERROR_QUIET)
-            if(NOT _psiopt_status_rc EQUAL 0)
+            if(NOT _psiopt_tree_rc EQUAL 0)
                 string(CONCAT _psiopt_pin_problem
-                    "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM}: 'git status' over the consumed "
-                    "psiopt/include/tycho/detail/solvers/linear tree could not be run, so its "
-                    "cleanliness COULD NOT BE VERIFIED.")
-            elseif(NOT _psiopt_dirty STREQUAL "")
+                    "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM}: the consumed "
+                    "${HVEN_RIG_PSIOPT_SEAM_SCOPE} tree does not resolve at HEAD "
+                    "(${_psiopt_head_commit}), so it COULD NOT BE VERIFIED against the pinned "
+                    "tree ${HVEN_RIG_PSIOPT_SEAM_TREE}.")
+            elseif(NOT _psiopt_tree_hash STREQUAL HVEN_RIG_PSIOPT_SEAM_TREE)
                 string(CONCAT _psiopt_pin_problem
-                    "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} has uncommitted changes under "
-                    "psiopt/include/tycho/detail/solvers/linear, the tree seam_psiopt.cpp actually "
-                    "compiles against:\n${_psiopt_dirty}\nHEAD matches the pin "
-                    "(${HVEN_RIG_PSIOPT_SEAM_COMMIT}) but the checked-out linear/ headers are not "
-                    "the ones that commit contains, so this checkout is HEAD-pinned but not "
-                    "tree-pinned.")
+                    "HVEN_RIG_PSIOPT_SEAM's consumed ${HVEN_RIG_PSIOPT_SEAM_SCOPE} tree hashes to "
+                    "${_psiopt_tree_hash} at HEAD ${_psiopt_head_commit}, not the tree "
+                    "(${HVEN_RIG_PSIOPT_SEAM_TREE}) this rig's psiopt-old expected tables were "
+                    "derived against. The headers seam_psiopt.cpp compiles against have changed "
+                    "content. Re-derive the psiopt-old rows in tests/golden_rig/expected/ if the "
+                    "drift touches Pardiso/Accelerate configuration or linear-algebra behavior, "
+                    "then update HVEN_RIG_PSIOPT_SEAM_TREE here to match.")
             else()
-                set(HVEN_RIG_PSIOPT_SEAM_VERIFIED "verified")
-                message(STATUS
-                    "golden rig: interior-point old-seam arm pinned to "
-                    "${HVEN_RIG_PSIOPT_SEAM_COMMIT}, HEAD matches, consumed linear/ tree clean")
+                execute_process(
+                    COMMAND "${GIT_EXECUTABLE}" status --porcelain --
+                            "${HVEN_RIG_PSIOPT_SEAM_SCOPE}"
+                    WORKING_DIRECTORY "${HVEN_RIG_PSIOPT_SEAM}"
+                    OUTPUT_VARIABLE _psiopt_dirty
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    RESULT_VARIABLE _psiopt_status_rc
+                    ERROR_QUIET)
+                if(NOT _psiopt_status_rc EQUAL 0)
+                    string(CONCAT _psiopt_pin_problem
+                        "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM}: 'git status' over the "
+                        "consumed ${HVEN_RIG_PSIOPT_SEAM_SCOPE} tree could not be run, so its "
+                        "cleanliness COULD NOT BE VERIFIED.")
+                elseif(NOT _psiopt_dirty STREQUAL "")
+                    string(CONCAT _psiopt_pin_problem
+                        "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} has uncommitted changes "
+                        "under ${HVEN_RIG_PSIOPT_SEAM_SCOPE}, the tree seam_psiopt.cpp actually "
+                        "compiles against:\n${_psiopt_dirty}\nThe tree at HEAD matches the pin "
+                        "(${HVEN_RIG_PSIOPT_SEAM_TREE}) but the checked-out linear/ headers are "
+                        "not the ones that tree contains, so this checkout is HEAD-pinned but not "
+                        "working-tree-pinned.")
+                else()
+                    set(HVEN_RIG_PSIOPT_SEAM_VERIFIED "verified")
+                    message(STATUS
+                        "golden rig: interior-point old-seam arm pinned to consumed tree "
+                        "${HVEN_RIG_PSIOPT_SEAM_TREE} (${HVEN_RIG_PSIOPT_SEAM_SCOPE}), matched at "
+                        "HEAD ${_psiopt_head_commit}, consumed linear/ tree clean")
+                endif()
             endif()
         endif()
     else()
         string(CONCAT _psiopt_pin_problem
             "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM} is not a git checkout this rig can "
-            "verify (git not found, or no .git directory), so its commit cannot be checked "
-            "against the pin (${HVEN_RIG_PSIOPT_SEAM_COMMIT}) this rig's psiopt-old expected "
-            "tables were derived against.")
+            "verify (git not found, or no .git directory), so its consumed "
+            "${HVEN_RIG_PSIOPT_SEAM_SCOPE} tree cannot be checked against the pin "
+            "(${HVEN_RIG_PSIOPT_SEAM_TREE}) this rig's psiopt-old expected tables were derived "
+            "against.")
     endif()
 
     if(_psiopt_pin_problem)
@@ -257,10 +317,14 @@ if(HVEN_RIG_PSIOPT_SEAM)
     # HVEN_RIG_PSIOPT_SEAM_VERIFIED carries the outcome of the verification
     # block above ("verified" or "unverified") into the report generator, so
     # a report row's provenance says whether the checkout it ran against was
-    # actually checked rather than just recording the commit it claims.
+    # actually checked rather than just recording the tree it claims.
+    # HVEN_RIG_PSIOPT_SEAM_HEAD goes with it as the OBSERVED commit that tree
+    # was seen at ("unknown" when the checkout could not be queried) -- the
+    # pin is the tree, the commit is how a reader finds it again.
     target_compile_definitions(hven_golden_rig_support PUBLIC
         HVEN_RIG_HAVE_PSIOPT_SEAM=1
-        HVEN_RIG_PSIOPT_SEAM_COMMIT="${HVEN_RIG_PSIOPT_SEAM_COMMIT}"
+        HVEN_RIG_PSIOPT_SEAM_TREE="${HVEN_RIG_PSIOPT_SEAM_TREE}"
+        HVEN_RIG_PSIOPT_SEAM_HEAD="${HVEN_RIG_PSIOPT_SEAM_HEAD}"
         HVEN_RIG_PSIOPT_SEAM_VERIFIED="${HVEN_RIG_PSIOPT_SEAM_VERIFIED}"
     )
     message(STATUS "golden rig: interior-point old-seam arm enabled (${HVEN_RIG_PSIOPT_SEAM})")

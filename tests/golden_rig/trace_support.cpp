@@ -30,10 +30,18 @@
 // Defined only when tests/golden_rig/CMakeLists.txt configured the
 // corresponding old-seam arm in (HVEN_RIG_HAVE_PSIOPT_SEAM /
 // HVEN_RIG_HAVE_SQP_SEAM); the #ifndef fallbacks below only matter for a
-// build that somehow defines HAVE without COMMIT/VERIFIED, which should not
-// happen but should not read garbage if it does.
-#ifndef HVEN_RIG_PSIOPT_SEAM_COMMIT
-#define HVEN_RIG_PSIOPT_SEAM_COMMIT "unknown"
+// build that somehow defines HAVE without TREE/HEAD/COMMIT/VERIFIED, which
+// should not happen but should not read garbage if it does.
+//
+// The psiopt arm is pinned by the CONTENT of the subtree its adapter
+// compiles against, not by a commit: TREE is the pinned and verified tree
+// hash, HEAD the commit that tree was observed at (observed, never pinned --
+// see the pin note in tests/golden_rig/CMakeLists.txt).
+#ifndef HVEN_RIG_PSIOPT_SEAM_TREE
+#define HVEN_RIG_PSIOPT_SEAM_TREE "unknown"
+#endif
+#ifndef HVEN_RIG_PSIOPT_SEAM_HEAD
+#define HVEN_RIG_PSIOPT_SEAM_HEAD "unknown"
 #endif
 #ifndef HVEN_RIG_PSIOPT_SEAM_VERIFIED
 #define HVEN_RIG_PSIOPT_SEAM_VERIFIED "unverified"
@@ -129,8 +137,9 @@ const RunProvenance &run_provenance() {
         r.date = today_utc();
         r.build_config = HVEN_RIG_BUILD_CONFIG;
 #if defined(HVEN_RIG_HAVE_PSIOPT_SEAM)
-        r.psiopt_seam_provenance = fmt::format("commit {} ({})", HVEN_RIG_PSIOPT_SEAM_COMMIT,
-                                               HVEN_RIG_PSIOPT_SEAM_VERIFIED);
+        r.psiopt_seam_provenance =
+            fmt::format("consumed tree {} at HEAD {} ({})", HVEN_RIG_PSIOPT_SEAM_TREE,
+                        HVEN_RIG_PSIOPT_SEAM_HEAD, HVEN_RIG_PSIOPT_SEAM_VERIFIED);
 #else
         r.psiopt_seam_provenance = "not configured (HVEN_RIG_PSIOPT_SEAM not set)";
 #endif
