@@ -82,9 +82,37 @@ No cell fails either gate. §5's revert clause is not triggered.
 than that: T5's build win came from deleting ~2 330 lines of body from a header
 that 20 objects instantiated, whereas these three delete ~370 / ~115 / ~290
 lines from headers whose bodies only 3 / 4 / 5 objects ever emitted. The
-build-side case for these boundaries is therefore **not** wall-clock; it is
-header hygiene and ~840 KB of duplicated object code removed. Recorded as a
-cost rather than explained away.
+build-side case for these boundaries is therefore **not** wall-clock.
+
+**Nor is the object-size ledger the clean win an earlier revision of this note
+implied.** That revision paired the NET wall-clock cost above with a GROSS
+object-code figure, which is not a comparison; the honest statement is net, and
+net it is small and unevenly earned:
+
+| carve | removed from existing objects | new library object | **net** |
+|---|---|---|---|
+| T6 | −135 792 B (3 objects) | +273 672 B | **+137 880 B (+134.6 KiB)** |
+| T7 | −46 576 B (4 objects) | +188 992 B | **+142 416 B (+139.1 KiB)** |
+| T8 | −726 536 B (5 objects) | +343 552 B | **−382 984 B (−374.0 KiB)** |
+| **unit** | **−908 904 B (11 distinct objects)** | **+806 216 B** | **−102 688 B (−100.3 KiB)** |
+
+So **T6 and T7 each ADD build output; only T8 pays for the unit**, and the unit
+nets −100.3 KiB — **0.75 %** of those objects' combined base size, not the
+~840 KB an unqualified gross figure suggested. (Eleven distinct objects, not
+twelve: `test_warm_start_battery.cpp.o` is in both T7's and T8's radius and
+shrinks twice. The per-carve rows above sum to the unit row exactly because the
+two shrinks compose; the end-to-end check against the pre-unit and post-unit
+captures gives the same −908 904 B.) T8 earns it because its body was
+duplicated into five objects and is large; T6's and T7's bodies were duplicated
+into three and four, and the single library copy costs more than the duplicates
+it replaces.
+
+What survives that correction is the argument that did not depend on size: the
+**header hygiene** — a declaration-only `RestorationModel`, a single emission of
+its vtable and typeinfo instead of one per touching TU, and three headers that
+no longer compile their own bodies into every consumer. That is the case for
+these three boundaries. The build-time and object-size ledgers are recorded as
+what they are: a small cost and a small, unevenly distributed saving.
 
 ## P-SYM (per commit; radius declared in its own file before each compare)
 
@@ -133,12 +161,6 @@ object. Admitting them would mean relaxing bar 2, which `docs/build.md` is
 explicit is a numerics-governance decision; eight measurements are now the
 evidence for that conversation.
 
-## P-SUITE (per commit)
-
-Nine full runs, three per commit, **0 failures** throughout: Release 1153/1153,
-Debug 1153/1153 (Eigen asserts live), Release-without-SNOPT 1149/1149. No test
-added or retired at any step.
-
 ## One declared deviation from a plan row
 
 `set_elastic_penalty` — named in the T6 row as one of the elastic tier's "four
@@ -166,7 +188,9 @@ Nine full suite runs, three per commit, **0 failures** throughout: Release
   where the n = 1e6 path needs it.
 - **T8** moved the continuation driver, its validator and its closure, and
   accounted for every one of the three relocation counts that changed.
-- The unit costs **+1.9 % of build wall-clock** and buys header hygiene plus
-  ~840 KB of de-duplicated object code. Runtime is neutral to the limits of the
-  instruments: counters bit-identical across 57 census cells and 17 bench cells
-  × 8 reps, and both wall-clock limbs inside their thresholds.
+- The unit costs **+1.9 % of build wall-clock** and nets **−100.3 KiB** of build
+  output (T6 +134.6 KiB and T7 +139.1 KiB, both ADDING; T8 −374.0 KiB, paying
+  for all three). What it buys is **header hygiene**, not size. Runtime is
+  neutral to the limits of the instruments: counters bit-identical across 57
+  census cells and 17 bench cells × 8 reps, and both wall-clock limbs inside
+  their thresholds.
