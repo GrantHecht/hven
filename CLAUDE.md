@@ -162,9 +162,14 @@ no exceptions:
 - **SNOPT source firewall (absolute).** No SNOPT source, headers, or
   decompiled material may be read or incorporated into this repository,
   by any agent or tool, under any circumstance.
-- **MKL iparm changes require human review.** Any change to the Pardiso
-  `iparm` surface must be flagged for explicit human review before it
-  merges.
+- **MKL iparm changes require labeling and validation evidence, not
+  blocking human review** (owner ruling, reiterated 2026-08-20; the
+  explicit-human-review form of this rule predated hven and the SQP
+  proof of concept and is retired). Any change to the Pardiso `iparm`
+  surface must carry an `IPARM-SURFACE` label on its commit, cite the
+  validation evidence that justifies it, and pass the tycho-lane review
+  when one is in scope. The owner spot-checks at their discretion; their
+  sign-off is not a merge gate.
 - **MKL redistribution terms are sensitive.** Flag any change touching
   MKL integration or redistribution for manual review.
 - **Math-only license discipline for GPL/LGPL-tainted references.**
