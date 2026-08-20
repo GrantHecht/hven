@@ -6,9 +6,11 @@ sparse matrix: a 64-bit FNV-1a hash over a matrix's shape and sparsity
 pattern only (its dimensions plus its index arrays) -- never its stored
 values. The linear-algebra layer uses this to key a cached factorization
 (does the matrix's structure still match what it was factorized from?),
-and it is the same key the warm-start currency uses to decide whether a
-hand-off's own structural fingerprint still matches the model being
-solved.
+and it is the same key the warm-start currency will use later to decide
+whether a hand-off's own structural fingerprint still matches the model
+being solved. That second consumer is not wired up yet; the header says the
+same thing in the same tense, and neither should be read as describing
+something the tree does today.
 
 ## The surface
 

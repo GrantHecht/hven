@@ -232,6 +232,42 @@ SpMatRM make_uncompressed(Index rows, Index cols, const Entries &entries, Index 
 const Entries kPinnedFixtureEntries = {{0, 1, 5.0}, {1, 3, -2.0}, {2, 0, 7.0}};
 constexpr std::uint64_t kPinnedFixtureHash = 14789870936883269507ULL;
 
+// An independent FNV-1a reference over an EXPLICIT stream. Dimensions, outer
+// offsets and inner indices are passed in -- written out by hand from the
+// structure under test -- so this function never reads a matrix, and in
+// particular never reads the outer array whose derivation is the thing under
+// test. It does not call `hven::Fnv1a` either: the constants and the mixing
+// step are re-stated here deliberately, exactly as
+// CrossCheckAgainstIndependentFnv1aReference re-states them, so a
+// self-consistent change to both the implementation and its accumulator
+// still fails.
+std::uint64_t reference_digest(std::int64_t rows, std::int64_t cols,
+                               const std::vector<std::int64_t> &outer,
+                               const std::vector<std::int64_t> &inner) {
+    constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
+    constexpr std::uint64_t kPrime = 1099511628211ULL;
+
+    std::uint64_t h = kOffsetBasis;
+    auto feed = [&h](std::int64_t v) {
+        const auto u = static_cast<std::uint64_t>(v);
+        for (std::size_t i = 0; i < sizeof(u); ++i) {
+            h ^= (u >> (8 * i)) & 0xFFu;
+            h *= kPrime;
+        }
+    };
+
+    feed(rows);
+    feed(cols);
+    feed(static_cast<std::int64_t>(inner.size())); // nnz
+    for (std::int64_t o : outer) {
+        feed(o);
+    }
+    for (std::int64_t i : inner) {
+        feed(i);
+    }
+    return h;
+}
+
 } // namespace
 
 // The oracle arm: the tolerant path, on the pinned fixture, in BOTH storage
@@ -308,6 +344,61 @@ TEST(PatternHash, TolerantPathAgreesWithCompressedOnLeadingAndTrailingEmptyRows)
     SpMatRM zero_by_zero(0, 0);
     zero_by_zero.makeCompressed();
     EXPECT_EQ(combined_pattern_hash(zero_by_zero), pattern_hash(zero_by_zero));
+}
+
+// The ABSOLUTE pin for the gapped shapes. Every other gapped assertion in
+// this file compares the new code against another run of the new code, so
+// the derived-offset loop -- the one piece of this design that could be
+// wrong, on exactly the shape the structure-hash survey called decisive --
+// would otherwise be pinned only relative to itself. Here the expected
+// digest comes from `reference_digest`, which is handed the outer offsets
+// `makeCompressed()` produces for these structures WRITTEN OUT BY HAND, and
+// never reads a matrix at all. Both storage states must reproduce it.
+TEST(PatternHash, GappedStructureDigestsMatchTheIndependentReference) {
+    // Interior gap: 5x5, rows 1 and 2 empty. Row 0 holds columns 2 and 4,
+    // row 3 holds column 0, row 4 holds column 4 -- so the compressed outer
+    // array is 0,2,2,2,3,4 and the inner array is 2,4,0,4.
+    {
+        const Entries entries = {{0, 2, 1.0}, {0, 4, 2.0}, {3, 0, 3.0}, {4, 4, 4.0}};
+        const std::uint64_t expected = reference_digest(5, 5, {0, 2, 2, 2, 3, 4}, {2, 4, 0, 4});
+
+        SpMatRM compressed = make_matrix(5, 5, entries);
+        SpMatRM uncompressed = make_uncompressed(5, 5, entries);
+        ASSERT_TRUE(compressed.isCompressed());
+        ASSERT_FALSE(uncompressed.isCompressed());
+
+        EXPECT_EQ(pattern_hash(compressed), expected);
+        EXPECT_EQ(combined_pattern_hash(uncompressed), expected);
+    }
+
+    // Leading and trailing gaps: 4x3, only row 2 populated (column 1) -- so
+    // the compressed outer array is 0,0,0,1,1 and the inner array is 1. The
+    // repeated leading zeros and the repeated trailing one are what an
+    // off-by-one in the running total gets wrong.
+    {
+        const Entries entries = {{2, 1, 1.0}};
+        const std::uint64_t expected = reference_digest(4, 3, {0, 0, 0, 1, 1}, {1});
+
+        SpMatRM compressed = make_matrix(4, 3, entries);
+        SpMatRM uncompressed = make_uncompressed(4, 3, entries);
+        ASSERT_FALSE(uncompressed.isCompressed());
+
+        EXPECT_EQ(pattern_hash(compressed), expected);
+        EXPECT_EQ(combined_pattern_hash(uncompressed), expected);
+    }
+
+    // No stored entries at all: every offset is zero, the inner array is
+    // empty, and the digest is still a function of the dimensions.
+    {
+        const std::uint64_t expected = reference_digest(3, 3, {0, 0, 0, 0}, {});
+
+        SpMatRM compressed = make_matrix(3, 3, {});
+        SpMatRM uncompressed = make_uncompressed(3, 3, {});
+        ASSERT_FALSE(uncompressed.isCompressed());
+
+        EXPECT_EQ(pattern_hash(compressed), expected);
+        EXPECT_EQ(combined_pattern_hash(uncompressed), expected);
+    }
 }
 
 // Mixed storage states across one combined key: the tolerance is per matrix,
