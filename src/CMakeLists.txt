@@ -148,6 +148,15 @@ target_include_directories(hven PRIVATE
 # rather than materialise two n-sized temporaries at n = 1e6. Because this TU
 # includes the header, that template is still inlined into the body exactly
 # where it was.
+#
+# T8 adds the seventh and closes the T-series: warmstart/continuation.cpp,
+# holding run_continuation and the input validation it runs first. One sweep
+# per call and one whole SqpDriver::solve() per step, so the call into it is
+# arithmetically the cheapest thing in any program that makes it. Three symbols
+# move rather than two: run_continuation, continuation_detail::validate (its
+# only caller called it exactly once and never inlined it), and the out-of-line
+# operator() of run_continuation's own `record` closure, which lived in its own
+# COMDAT section and is defined inside the moved body.
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -156,6 +165,7 @@ target_sources(hven PRIVATE
     drivers/sqp_print.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
+    warmstart/continuation.cpp
     warmstart/warm_start.cpp
 )
 
@@ -377,6 +387,26 @@ target_sources(hven PRIVATE
 # floor plus a hundred lines of ingest -- which is why its absolute saving is
 # the smallest and why its RATIO (-46 %) is nevertheless the largest of them.
 # Linux table: 27 sources.
+#
+# M3 PHASE-C T8 ADDENDUM (2026-08-19), closing the T-series. Same method, same
+# box, same two controls, same throwaway-configure technique. The controls
+# reproduce their T7 readings to within 0.01 s (6.96 -> 4.33 and 4.08 -> 1.84,
+# both identical), so this row is comparable with every row above:
+#
+#     ------ the source this commit adds: faster, NOT byte-identical ---------
+#   warmstart/continuation.cpp                    6.23 ->  4.35  -1.87  differs
+#
+# It does NOT join the opt-in list: bar 1 cleared, bar 2 failed. EIGHTH
+# consecutive SQP-side TU in that group, and the T-series is now closed with a
+# clean sweep: every one of the seven TUs T1-T8 added to this target compiles
+# faster with the PCH and none produces a byte-identical object. The mechanism
+# was named in the T6 addendum and has not needed revising -- these TUs include
+# a different header set in a different order from src/hven_pch.h's, so
+# prefixing the shared block changes template instantiation and therefore
+# emission order. Anyone proposing to admit them is proposing to relax bar 2,
+# which docs/build.md is explicit is a numerics-governance decision and not a
+# build one. Eight measurements is now the evidence for that conversation.
+# Linux table: 28 sources.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -413,7 +443,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 27)
+set(_hven_expected_source_count 28)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
