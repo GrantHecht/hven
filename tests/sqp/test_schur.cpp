@@ -262,23 +262,37 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
     EXPECT_THROW(schur.expected_neg_eigs_delta(), std::runtime_error);
 }
 
-// M3 final review (FX-1 + FX-7b), one fixture for both halves. A non-finite
-// border makes C non-finite, and LAPACKE screens for that BEFORE dsytrf and
-// reports it as info < 0 -- an illegal argument, not a fact about A -- so
-// DenseSymmetricFactor::try_factorize THROWS rather than returning
-// kExactlySingular. That throw escapes add_border from inside rebuild_schur(),
-// which is the only path that produces a nonempty stack with no cached block
-// evidence and singular_ == false.
+// M3 final review (FX-1 + FX-7b). A non-finite border makes C non-finite, and
+// WHAT THE DENSE FACTOR DOES WITH THAT IS BACKEND-SPECIFIC -- which is the
+// whole reason this fixture is split rather than shared:
 //
-// FX-7b: the stack must come back exactly as it was, because the caller's
-// parallel ledger (qp_engine.h) only records a border AFTER add_border
-// returns; a border left behind here would be undroppable and would shift
-// every later drop onto the wrong one.
+//   * On MKL, LAPACKE screens the matrix for non-finite entries BEFORE calling
+//     dsytrf and reports it as info < 0 -- an illegal ARGUMENT, not a fact
+//     about A -- so DenseSymmetricFactor::try_factorize THROWS. That throw
+//     escaping rebuild_schur() is the only non-allocation path that produces a
+//     nonempty stack with no cached block evidence and singular_ == false:
+//     FX-1's state, and the one add_border must roll back out of (FX-7b).
 //
-// FX-1: every evidence reader must survive being asked, having previously
-// tested only dim() and singular_ -- neither of which is true in this state --
-// and dereferenced a disengaged optional.
-TEST(Schur, NonFiniteBorderLeavesTheStackUnchangedAndTheEvidenceUnreadable) {
+//   * On Apple there is no LAPACKE at all. hven's shim
+//     (hven/detail/linear/lapacke_shim.h) reproduces only LAPACKE's workspace
+//     management and deliberately NOT its NaN pre-screen, so dsytrf_ sees the
+//     non-finite C itself and reports info > 0 -- an exact zero pivot -- which
+//     try_factorize DEMOTES to kExactlySingular rather than throwing. The
+//     border is committed and the state reached is the ordinary singular_ one.
+//     OBSERVED on the macOS CI lane (M3 final review), not assumed: this arm
+//     asserts a control-flow outcome that lane executed, and no Accelerate
+//     float.
+//
+// So FX-1's new no-evidence branch is covered here on MKL only. On Apple it
+// stays reachable, but only through allocation failure inside rebuild_schur
+// (the C allocation, or the shim's own workspace vector), which puts it in the
+// same untestable-without-allocator-injection class as FX-7(a) and FX-8.
+//
+// What BOTH backends owe, and what the shared tail below pins: whichever of
+// the two states the backend produced, no evidence reader may dereference the
+// absent evidence, and every one of them must tell the caller to stop
+// bordering this factorization.
+TEST(Schur, NonFiniteBorderNeverLeavesAReadableEvidenceState) {
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
     detail::KktFactor kkt;
@@ -293,19 +307,18 @@ TEST(Schur, NonFiniteBorderLeavesTheStackUnchangedAndTheEvidenceUnreadable) {
 
     Vec v2(3);
     v2 << 1, 0, 0;
-    EXPECT_THROW(schur.add_border(v2, std::numeric_limits<double>::quiet_NaN()),
-                 std::runtime_error);
+    const double nan_d = std::numeric_limits<double>::quiet_NaN();
 
+#if defined(__APPLE__)
+    schur.add_border(v2, nan_d);
+    EXPECT_EQ(schur.dim(), 2) << "the demoted-to-singular add commits its border";
+#else
+    EXPECT_THROW(schur.add_border(v2, nan_d), std::runtime_error);
     EXPECT_EQ(schur.dim(), 1) << "the failed add left no border behind";
 
-    EXPECT_TRUE(std::isinf(schur.cond_estimate()));
-    EXPECT_FALSE(schur.nearly_singular());
-    EXPECT_TRUE(schur.needs_refactorization())
-        << "the cached factorization is gone, so the caller must rebuild K0 rather than keep "
-           "bordering";
-    // Pinned by MESSAGE, not just by type: it is what distinguishes THIS
-    // state (a rebuild that threw) from the exactly-singular one the readers
-    // already handled, and so what proves the readers were reached through the
+    // Pinned by MESSAGE, not just by type: it is what distinguishes THIS state
+    // (a rebuild that threw) from the exactly-singular one the readers already
+    // handled, and so what proves the reader was reached through the
     // no-evidence branch rather than through singular_.
     try {
         (void)schur.expected_neg_eigs_delta();
@@ -315,11 +328,21 @@ TEST(Schur, NonFiniteBorderLeavesTheStackUnchangedAndTheEvidenceUnreadable) {
                   std::string::npos)
             << e.what();
     }
+#endif
 
-    // And the surviving border is still a real border: dropping it by its
-    // original index empties the stack, which it could not do if the failed
-    // add had shifted the indices.
-    schur.drop_border(0);
+    EXPECT_TRUE(std::isinf(schur.cond_estimate()));
+    EXPECT_FALSE(schur.nearly_singular());
+    EXPECT_TRUE(schur.needs_refactorization())
+        << "there is no usable cached factorization, so the caller must rebuild K0 rather than "
+           "keep bordering";
+    EXPECT_THROW((void)schur.expected_neg_eigs_delta(), std::runtime_error);
+
+    // The surviving borders are still real borders at their original indices:
+    // dropping from the top empties the stack and restores a healthy one, which
+    // it could not do if the add had skewed the three arrays against each other.
+    while (schur.dim() > 0) {
+        schur.drop_border(schur.dim() - 1);
+    }
     EXPECT_EQ(schur.dim(), 0);
     EXPECT_FALSE(schur.needs_refactorization());
 }

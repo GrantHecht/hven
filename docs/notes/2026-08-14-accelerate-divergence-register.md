@@ -299,3 +299,51 @@ with that evidence. Remedy order when it does: the FP-mode carve-out is the
 first remedy to price; the reassociation-stable restructure is last resort (a
 restructure touches solve code for an accuracy claim no consumer currently
 needs).
+
+### M3-7 — a non-finite dense matrix is an ARGUMENT error on MKL and a SINGULAR one on Apple
+
+`hven::linear::DenseSymmetricFactor::try_factorize`
+(`src/linear/dense_symmetric_factor.cpp`), reached from `SchurComplement`'s
+border rebuild; fixture
+`tests/sqp/test_schur.cpp`,
+`Schur.NonFiniteBorderNeverLeavesAReadableEvidenceState`.
+
+| quantity | MKL Pardiso lane | Accelerate lane |
+| --- | --- | --- |
+| `dsytrf` info for a C carrying a NaN | `< 0` (illegal argument) | `> 0` (exact zero pivot) |
+| `try_factorize` behavior | **throws** `std::runtime_error` | **returns** `kExactlySingular` |
+| resulting `SchurComplement` state | rebuild threw; evidence absent, `singular_ == false` | `singular_ == true`, border committed |
+| `dim()` after the add | `1` (rolled back) | `2` |
+
+Unlike most entries here this is **not** a floating-point divergence, and its
+mechanism is source-visible rather than numerical. MKL's LAPACKE performs a
+NaN pre-screen and rejects the matrix as a bad ARGUMENT before `dsytrf_` ever
+runs. Accelerate ships no LAPACKE at all, and hven's stand-in
+(`include/hven/detail/linear/lapacke_shim.h`) reproduces only LAPACKE's
+workspace management — deliberately, and documented as such in its own header
+— so `dsytrf_` sees the non-finite matrix itself and reports it the way it
+reports any unusable pivot.
+
+Neither backend is wrong, and no behavior was changed to accommodate either.
+What the divergence costs is COVERAGE, which is why it is recorded rather than
+merely commented: the M3 final review's FX-1 (guarding `SchurComplement`'s
+disengaged block evidence) and FX-7b (rolling `add_border` back when the
+rebuild throws) both address a state that this NaN probe reaches ON MKL ONLY.
+On Apple the same input lands in the ordinary `singular_` state, which was
+already handled before FX-1. The FX-1 state remains REACHABLE on Apple —
+`rebuild_schur` still allocates, and the shim allocates its own workspace — but
+only through allocation failure, which puts it in the same
+untestable-without-allocator-injection class as FX-7(a) and FX-8. The fixture
+is split accordingly: an MKL arm that pins the throw, the rollback and the
+no-evidence reader branch by exception message, an Apple arm that pins the
+demotion, and a shared tail asserting what both backends owe — that no reader
+dereferences absent evidence and every one of them reports
+`needs_refactorization()`.
+
+Provenance: first observed as a red macOS lane on CI run
+[32428001114](https://github.com/GrantHecht/hven/actions/runs/32428001114),
+commit `9e54c88`, job `96613893191` — the shared fixture asserted MKL's
+control flow and the Apple lane reported
+`DenseSymmetricFactor reported kExactlySingular` at `dim=2` instead. Observed,
+never computed; a control-flow outcome and a status, no float, so nothing here
+is an Apple VALUE.
