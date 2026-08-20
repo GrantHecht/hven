@@ -1,4 +1,5 @@
 build*/
+.scratch/
 .cache/
 compile_commands.json
 .superpowers/
