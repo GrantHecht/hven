@@ -1,4 +1,4 @@
-// tests/test_parametric_families.cpp — Phase-4 Task 8: the synthetic
+// tests/sqp/test_parametric_families.cpp — Phase-4 Task 8: the synthetic
 // parametric families of tests/sqp/support/parametric_families.h, checked in the
 // two ways that make them usable as a test bed for Tasks 9/10 and Phase 5/6.
 //

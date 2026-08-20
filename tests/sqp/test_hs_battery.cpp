@@ -1,4 +1,4 @@
-// tests/test_hs_battery.cpp — Task 11: the Hock-Schittkowski battery, the
+// tests/sqp/test_hs_battery.cpp — Task 11: the Hock-Schittkowski battery, the
 // first WHOLE-SOLVER validation in this project. Every driver mechanism that
 // Tasks 4-10 landed (funnel trust region, second-order correction, elastic
 // tier, restoration phase, adaptive dual regularization) runs together, from
@@ -475,7 +475,7 @@ TEST(HsBattery, BorderModeFalseInfeasible) {
     const QpSolution bor = border.solve(qp);
 
     // THE ORACLE HALF: kRefactorize is this project's equivalence oracle
-    // (types.h's WorkingSetLinearAlgebra note), and it gets this right.
+    // (qp_types.h's WorkingSetLinearAlgebra note), and it gets this right.
     ASSERT_EQ(good.status, QpStatus::kOptimal);
     EXPECT_LT(std::abs((qp.Ae * good.x)(0) - qp.be(0)), 1e-12)
         << "the oracle's answer must satisfy the one equality row";

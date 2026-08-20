@@ -1364,11 +1364,11 @@
 //    QpEngine(const QpOptions &opts) : opts_(opts), ...`, never reassigned):
 //    that field itself is exactly what it was and cannot vary across solve()
 //    calls on one instance. What changed is that it no longer has to -- every
-//    solve() overload now also takes a `const SolveOverrides &` (types.h),
+//    solve() overload now also takes a `const SolveOverrides &` (qp_types.h),
 //    resolved ONCE at the very top of run() into effective tr_radius/
 //    primal_delta/dual_mu values (a field at its sentinel resolves to the
 //    corresponding opts_ value, so a default-constructed SolveOverrides
-//    reproduces opts_ exactly -- see types.h's SolveOverrides for the
+//    reproduces opts_ exactly -- see qp_types.h's SolveOverrides for the
 //    sentinel convention). Those effective values, not opts_'s own fields,
 //    are what every read site in this file below actually consults from that
 //    point on (the two-argument/three-argument overloads without a
@@ -1527,7 +1527,7 @@ constexpr double kEngineInfBound = 1e20;
 // ---------------------------------------------------------------------
 // PHASE-6 TASK 4 (M6) -- THE SIZE-DERIVED QP ITERATION CAP.
 //
-// QpOptions::max_iter (types.h) now defaults to the sentinel 0, meaning
+// QpOptions::max_iter (qp_types.h) now defaults to the sentinel 0, meaning
 // "derive the cap from this subproblem's size"; a positive value is an
 // explicit absolute cap and wins outright. These three helpers are the whole
 // of the derivation, factored out of run() so they can be tested (and quoted
@@ -2289,7 +2289,7 @@ class QpEngine {
 
     // Cold start from clamp(0, l, u) with an empty working set. Forwards a
     // default-constructed SolveOverrides, which resolves to every opts_
-    // value unchanged -- see types.h's SolveOverrides and the header
+    // value unchanged -- see qp_types.h's SolveOverrides and the header
     // contract's PHASE-3 DESIGN FRICTION note -- so this is byte-identical
     // to the pre-Task-2 engine.
     QpSolution solve(const QpProblem &qp) const {
@@ -2304,7 +2304,7 @@ class QpEngine {
     }
 
     // Cold start with a per-solve override of tr_radius/primal_delta/
-    // dual_mu (see types.h's SolveOverrides). Resolved once, at the top of
+    // dual_mu (see qp_types.h's SolveOverrides). Resolved once, at the top of
     // run(), into the effective values every read site below actually
     // consults.
     QpSolution solve(const QpProblem &qp, const SolveOverrides &overrides) const {
@@ -2615,7 +2615,7 @@ class QpEngine {
   private:
     // Resolve one call's SolveOverrides against an engine's QpOptions, into
     // the effective values every tr_radius/primal_delta/dual_mu read site
-    // consults from there on (types.h's SolveOverrides; the header contract's
+    // consults from there on (qp_types.h's SolveOverrides; the header contract's
     // PHASE-3 DESIGN FRICTION note). Extracted from run() in Phase-7 Task 5's
     // fix round 1 so that refine_on_face() cannot resolve them differently.
     //
@@ -2631,7 +2631,7 @@ class QpEngine {
     // tr_radius = -0.5 on a [-2,2]^2 box, which returns kOptimal at (-0.5, 0)
     // with no diagnostic at all in Release (Debug's assert does catch it).
     // primal_delta/dual_mu keep their documented negative-means-sentinel
-    // convention (types.h) unchanged -- only NaN is rejected for them, since
+    // convention (qp_types.h) unchanged -- only NaN is rejected for them, since
     // NaN is not a value either field's resolution ternary (or any downstream
     // arithmetic) can absorb.
     //
@@ -2643,18 +2643,18 @@ class QpEngine {
         if (std::isnan(overrides.tr_radius) || overrides.tr_radius < 0.0) {
             throw std::invalid_argument(fmt::format(
                 "QpEngine::solve: SolveOverrides.tr_radius must be >= 0, or the +inf sentinel "
-                "for \"use opts_.tr_radius\" (types.h) -- got {}",
+                "for \"use opts_.tr_radius\" (qp_types.h) -- got {}",
                 overrides.tr_radius));
         }
         if (std::isnan(overrides.primal_delta)) {
             throw std::invalid_argument(
                 "QpEngine::solve: SolveOverrides.primal_delta must not be NaN (negative is the "
-                "documented sentinel for \"use opts_.primal_delta\" -- see types.h)");
+                "documented sentinel for \"use opts_.primal_delta\" -- see qp_types.h)");
         }
         if (std::isnan(overrides.dual_mu)) {
             throw std::invalid_argument(
                 "QpEngine::solve: SolveOverrides.dual_mu must not be NaN (negative is the "
-                "documented sentinel for \"use opts_.dual_mu\" -- see types.h)");
+                "documented sentinel for \"use opts_.dual_mu\" -- see qp_types.h)");
         }
         QpOptions eff = opts;
         eff.tr_radius = std::isfinite(overrides.tr_radius) ? overrides.tr_radius : opts.tr_radius;
@@ -2840,7 +2840,7 @@ class QpEngine {
 
         // Resolve this solve's SolveOverrides against opts_ ONCE, into the
         // effective values every opts_.tr_radius/primal_delta/dual_mu read
-        // site below actually consults from here on (see types.h's
+        // site below actually consults from here on (see qp_types.h's
         // SolveOverrides and the header contract's PHASE-3 DESIGN FRICTION
         // note). `eff_opts` is opts_ verbatim except for these three fields,
         // so passing it anywhere opts_ used to be passed as a whole
@@ -2860,7 +2860,7 @@ class QpEngine {
         // probed at tr_radius = -0.5 on a [-2,2]^2 box, which returns
         // kOptimal at (-0.5, 0) with no diagnostic at all in Release (Debug's
         // assert does catch it). primal_delta/dual_mu keep their documented
-        // negative-means-sentinel convention (types.h) unchanged -- only NaN
+        // negative-means-sentinel convention (qp_types.h) unchanged -- only NaN
         // is rejected for them, since NaN is not a value either field's
         // resolution ternary (or any downstream arithmetic) can absorb.
         // EXTRACTED, FIX ROUND 1 of Phase-7 Task 5, so that refine_on_face()

@@ -1316,7 +1316,7 @@
 // above is min(delta, opts_.qp.tr_radius), so the original block is right,
 // but the engine will then ALSO apply its own radius to the slacks (the +inf
 // sentinel means "use opts_.tr_radius", and SolveOverrides has no way to say
-// "+inf, overriding a finite default" -- types.h's own single-sentinel
+// "+inf, overriding a finite default" -- qp_types.h's own single-sentinel
 // tradeoff). In that configuration a large violation can leave the elastic QP
 // infeasible and the tier degrades to Task 6b's behaviour. It is a
 // configuration nothing else in the driver needs: the driver passes its own
@@ -1904,7 +1904,7 @@
 // factorizations -- which is exactly what
 // SqpDriver.WarmSeedingKeepsLateSubproblemsCheap asserts.
 //
-// THE REJECTION RETRY IS THE EXCEPTION, and it is why types.h has
+// THE REJECTION RETRY IS THE EXCEPTION, and it is why qp_types.h has
 // SolveOverrides at all. A rejected trial re-solves the SAME QpProblem
 // object -- the iterate did not move, so H, g, Ae, Ai and the box are the
 // same bytes -- with only SolveOverrides::tr_radius changed, on the same
@@ -3289,7 +3289,7 @@ class SqpDriver {
     // Throws std::invalid_argument on an option that cannot be honoured
     // (non-positive tolerance, negative max_iter, non-positive/NaN radius).
     // The radius is additionally re-validated per solve by the engine
-    // (types.h's SolveOverrides PRECONDITION); it is checked here too so the
+    // (qp_types.h's SolveOverrides PRECONDITION); it is checked here too so the
     // message names the driver option the caller actually set.
     //
     // tr_init == 0 IS REJECTED, not merely warned about: a zero radius pins

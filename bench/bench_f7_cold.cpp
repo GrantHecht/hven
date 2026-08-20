@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
         // pre-Task-3 column above reproduces byte-for-byte.
         // PHASE-6 TASK 4 (M6) added `qpmax` -- the LARGEST per-subproblem
         // minor count of this solve -- for one reason: the size-derived cap
-        // (types.h's QpOptions::max_iter, qp_engine.h's
+        // (qp_types.h's QpOptions::max_iter, qp_engine.h's
         // detail::effective_qp_max_iter) applies PER SUBPROBLEM, so the
         // quantity a cap has to clear is this maximum and NOT the `minors`
         // total beside it. On this family the two are nearly equal (one

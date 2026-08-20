@@ -1,4 +1,4 @@
-// tests/test_continuation.cpp — Phase-4 Task 10: the CONTINUATION DRIVER
+// tests/sqp/test_continuation.cpp — Phase-4 Task 10: the CONTINUATION DRIVER
 // (continuation.h), the sweep loop that composes everything the phase built --
 // warm ingest (Task 3), the hot handle (Task 4), the Kungurtsev-Diehl
 // full-step-first rule (Task 5), budgeted mode (Task 6) and the tangential
@@ -1018,7 +1018,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // MARKED CORRECTION, PHASE-6 TASK 4 (M6). This line is NEW and it
         // restores, EXPLICITLY, the QP minor cap that was the library default
         // when this fixture was built. It is not a workaround -- it is the
-        // escape hatch M6 was required to keep (types.h's QpOptions::max_iter
+        // escape hatch M6 was required to keep (qp_types.h's QpOptions::max_iter
         // precedence rule), used for exactly the case it exists for.
         //
         // WHY IT IS NEEDED, and it is a RESULT rather than a maintenance

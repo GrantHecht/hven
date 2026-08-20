@@ -229,7 +229,7 @@ struct WarmStart {
     std::vector<std::uint8_t> ineq_active;
 
     // Per-variable exit bound activity: -1 at an active LOWER bound, 0 FREE,
-    // +1 at an active UPPER bound. A kFixed variable (types.h's BoundState,
+    // +1 at an active UPPER bound. A kFixed variable (qp_types.h's BoundState,
     // lower(i) == upper(i)) is reported as +1: it sits at both bounds at
     // once and is not sign-constrained (qp_engine.h's own note on kFixed),
     // so either label is equally valid and +1 is the arbitrary-but-consistent
@@ -261,7 +261,7 @@ struct WarmStart {
     double tr_radius = -1.0;
 
     // The EFFECTIVE primal_delta/dual_mu the last subproblem was solved with
-    // (types.h's SolveOverrides resolution, not its sentinel) -- -1 is this
+    // (qp_types.h's SolveOverrides resolution, not its sentinel) -- -1 is this
     // struct's own "never populated" default and is otherwise never a valid
     // regularization value (both are physically positive constants).
     double primal_delta = -1.0, dual_mu = -1.0;
@@ -579,7 +579,7 @@ struct WarmStart {
 //     that loose, and a caller crossing over at mu >> ||lambda||inf * 1e-3
 //     should expect a hint it would have been no worse off without.
 //
-// A kFixed variable (lower(i) == upper(i), types.h's BoundState) is reported
+// A kFixed variable (lower(i) == upper(i), qp_types.h's BoundState) is reported
 // +1, the same arbitrary-but-consistent choice WarmStart::bound_active's own
 // note makes for a solve-derived object.
 //

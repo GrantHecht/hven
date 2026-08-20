@@ -1,4 +1,4 @@
-// tests/test_scale_problems.cpp — Phase-5 Task 1: the F7 collocation-chain
+// tests/sqp/test_scale_problems.cpp — Phase-5 Task 1: the F7 collocation-chain
 // scale generator of tests/sqp/support/scale_problems.h, held to the two gates
 // tests/test_parametric_families.cpp holds F1-F6 to, plus the two Phase-5
 // additions that are the point of this family.
@@ -189,7 +189,7 @@ const std::vector<double> &path_samples() {
 // without converging (the solve still returns kOptimal, in 279 s at a cap of
 // 20000 and 4944 s at 500000). Unreachable at the shipped default cap.
 // MARKED NOTE, PHASE-6 TASK 4 (M6): `opts.qp.max_iter = 5000` below is now an
-// EXPLICIT cap in the precedence sense (types.h's QpOptions::max_iter) rather
+// EXPLICIT cap in the precedence sense (qp_types.h's QpOptions::max_iter) rather
 // than merely a raised one -- it wins outright over the size-derived default,
 // so every figure this file publishes is measured at exactly the cap it always
 // was and none of them moved under M6.

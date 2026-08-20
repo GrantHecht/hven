@@ -1,4 +1,4 @@
-// tests/test_sqp_restoration.cpp — Task 9: the restoration phase and the
+// tests/sqp/test_sqp_restoration.cpp — Task 9: the restoration phase and the
 // rapid infeasibility detection it makes possible.
 //
 // Three batteries:
@@ -764,7 +764,7 @@ TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
 // SO THE EQUIVALENCE ORACLE IS NOT BROKEN. qp_engine.h scopes the
 // border/refactorize equivalence claim to CONVEX H; H == 0 is convex but not
 // strictly convex, so it delivers a common optimal VALUE and not a common
-// optimal POINT. types.h's WorkingSetLinearAlgebra note carries that caveat
+// optimal POINT. qp_types.h's WorkingSetLinearAlgebra note carries that caveat
 // explicitly since this task.
 //
 // AND IT IS NOT A MODE RANKING. Border mode's 3-major certification is a

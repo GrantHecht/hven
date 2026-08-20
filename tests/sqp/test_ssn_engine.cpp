@@ -928,7 +928,7 @@ TEST(SsnEngineLocal, TrustRegionRadiusIsNotPartOfTheStructureKey) {
     EXPECT_EQ(no_tr.pattern_rebuilds, 1);
 }
 
-// The other two SolveOverrides fields resolve by types.h's rules too. dual_mu
+// The other two SolveOverrides fields resolve by qp_types.h's rules too. dual_mu
 // is the observable one: on a rank-deficient active set the regularizer picks
 // the multiplier split, so overriding it to 0 must visibly abandon the
 // minimum-norm answer the engine default produces.

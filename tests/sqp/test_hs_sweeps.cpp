@@ -1,4 +1,4 @@
-// tests/test_hs_sweeps.cpp — PHASE-5 TASK 7: THE NONCONVEX SWEEP CORPUS and
+// tests/sqp/test_hs_sweeps.cpp — PHASE-5 TASK 7: THE NONCONVEX SWEEP CORPUS and
 // the policy adjudications it exists to produce.
 //
 // STEP 1 (this file's first half) is the TRANSCRIPTION GUARD on

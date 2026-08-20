@@ -1108,7 +1108,7 @@ TEST(QpEngineExportInvariant, HoldsOnEveryBatteryFixtureAndEveryStatus) {
 // PHASE-6 TASK 4 (M6) -- THE SIZE-DERIVED max_iter.
 //
 // QpOptions::max_iter's default became a SENTINEL meaning "derive the cap
-// from this subproblem's size" (types.h). The derivation is three small
+// from this subproblem's size" (qp_types.h). The derivation is three small
 // functions in qp_engine.h's detail namespace, tested here directly so the
 // policy is pinned away from any solve, and so a change to the coefficient
 // or the floor fails LOUDLY rather than through a distant counter pin.

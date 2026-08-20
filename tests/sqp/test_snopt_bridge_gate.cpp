@@ -1,4 +1,4 @@
-// tests/test_snopt_bridge_gate.cpp — PHASE-6 TASK 0. THE REFEREE GATE for the
+// tests/sqp/test_snopt_bridge_gate.cpp — PHASE-6 TASK 0. THE REFEREE GATE for the
 // SNOPT bridge.
 //
 // WHAT THIS FILE IS FOR. Phase 6 compares this SQP engine against SNOPT on F7, and

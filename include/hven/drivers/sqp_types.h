@@ -5,7 +5,7 @@
 // driver itself (the loop, the subproblem construction and the KKT measure)
 // lives in sqp_driver.h; nothing in this file does any work.
 //
-// This file is to sqp_driver.h what types.h is to qp_engine.h.
+// This file is to sqp_driver.h what qp_types.h is to qp_engine.h.
 
 #include <functional>
 #include <limits>
@@ -160,7 +160,7 @@ inline constexpr Index kWarmFullStepWindow = 5;
 // the same number.
 //
 // TRUST REGION. tr_init is the l-infinity radius the FIRST subproblem of a
-// solve is given, through SolveOverrides::tr_radius (types.h); from there the
+// solve is given, through SolveOverrides::tr_radius (qp_types.h); from there the
 // Task-6 loop manages it (sqp_driver.h's RADIUS MANAGEMENT note) -- doubling
 // it on a strong accepted step up to the tr_max ceiling, halving it on a
 // rejected one, and never below the tr_min FLOOR. tr_max must be >= tr_init
@@ -221,7 +221,7 @@ inline constexpr Index kWarmFullStepWindow = 5;
 //
 // qp is copied into the driver's single QpEngine instance at construction,
 // so per-solve variation goes through SolveOverrides, never through this
-// struct (see types.h's PER-INSTANCE, CONST note on QpOptions::tr_radius).
+// struct (see qp_types.h's PER-INSTANCE, CONST note on QpOptions::tr_radius).
 //
 // SECOND-ORDER CORRECTION (Task 7). enable_soc defaults ON: it is this
 // project's cheap edge over Uno, which the spec calls out as omitting SOC
@@ -319,7 +319,7 @@ struct SqpOptions {
     bool adaptive_mu = true;
     // Copied into the driver's single QpEngine AT CONSTRUCTION, so per-solve
     // variation must go through SolveOverrides (sqp_driver.h), never through
-    // this struct -- see types.h's PER-INSTANCE, CONST note on
+    // this struct -- see qp_types.h's PER-INSTANCE, CONST note on
     // QpOptions::tr_radius for why. No default beyond QpOptions' own.
     QpOptions qp;
     // Factory for the globalization strategy, called ONCE PER solve() call;

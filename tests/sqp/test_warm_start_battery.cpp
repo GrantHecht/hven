@@ -1,4 +1,4 @@
-// tests/test_warm_start_battery.cpp — PHASE-4 TASK 13: THE WARM-START
+// tests/sqp/test_warm_start_battery.cpp — PHASE-4 TASK 13: THE WARM-START
 // BENCHMARK BATTERY, the evidence generator the whole phase exists to feed.
 // Everything Tasks 0-12 built is composed here into one sweep grid and
 // MEASURED; the numbers this file pins are the ones
@@ -1515,7 +1515,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
 //
 // MARKED CORRECTION, PHASE-6 TASK 4 (M6): that 500 is no longer the library
 // default -- QpOptions::max_iter now defaults to the size-derived sentinel
-// (types.h), which at N = 2000 resolves to max(500, 5 * (10000 + 2000 + 4000))
+// (qp_types.h), which at N = 2000 resolves to max(500, 5 * (10000 + 2000 + 4000))
 // = 80000. The WALL described above was therefore a property of the old fixed
 // cap, and this cell's own range choice (p: 0.3 -> 0.54) is more conservative
 // than it now needs to be. It is deliberately NOT widened here: the cell's
@@ -1830,7 +1830,7 @@ const FailureEconomics &f7_failure_economics_cell() {
         // MARKED CORRECTION, PHASE-6 TASK 4 (M6). `cap500` is NEW: it restores,
         // EXPLICITLY, the QP minor cap that was the library default when this
         // cell was pinned, through the escape hatch M6 was required to keep
-        // (types.h's QpOptions::max_iter precedence rule).
+        // (qp_types.h's QpOptions::max_iter precedence rule).
         //
         // WHY, and it is a RESULT rather than a maintenance chore. Under M6's
         // size-derived default this cell (N = 700 nodes, base = n + mi +

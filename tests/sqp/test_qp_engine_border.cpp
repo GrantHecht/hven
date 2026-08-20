@@ -1022,7 +1022,7 @@ TEST(QpEngineBorder, LatchedBorderModeDoesNotThrashOnRowChanges) {
 }
 
 // Task 4, test (c): QpOptions{}.ws_algebra == kSchurBorder. Written FIRST
-// (TDD) against the pre-flip default; the flip in types.h is what makes it
+// (TDD) against the pre-flip default; the flip in qp_types.h is what makes it
 // pass.
 TEST(QpEngineBorder, DefaultIsBorderMode) {
     EXPECT_EQ(QpOptions{}.ws_algebra, WorkingSetLinearAlgebra::kSchurBorder);

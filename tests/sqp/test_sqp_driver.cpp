@@ -1,4 +1,4 @@
-// tests/test_sqp_driver.cpp — the SQP driver: Task 4's skeleton and Task 6's
+// tests/sqp/test_sqp_driver.cpp — the SQP driver: Task 4's skeleton and Task 6's
 // trust-region major loop.
 //
 // Seven batteries:

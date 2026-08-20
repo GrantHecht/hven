@@ -1,4 +1,4 @@
-// tests/test_eqp_refine_ab.cpp — the EQP-refinement A/B harness (Phase-4
+// tests/sqp/test_eqp_refine_ab.cpp — the EQP-refinement A/B harness (Phase-4
 // Task 0, discharging the Phase-3 carry in
 // docs/notes/2026-07-29-phase-3-close-carries.md).
 //

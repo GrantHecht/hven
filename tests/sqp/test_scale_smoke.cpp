@@ -1,4 +1,4 @@
-// tests/test_scale_smoke.cpp — Task 10: moderate-scale smoke test.
+// tests/sqp/test_scale_smoke.cpp — Task 10: moderate-scale smoke test.
 //
 // Every other test in this suite runs at toy sizes (n <= ~10 in the dense-
 // oracle-checked batteries, n <= ~30 in the largest randomized ones). This
@@ -454,7 +454,7 @@ using hven::solvers::test_support::F7CollocationChain;
 //
 // MARKED CORRECTION, PHASE-6 TASK 4 (M6): that library default is no longer
 // the fixed 500 this comment used to name -- it is the SIZE-DERIVED sentinel
-// (types.h's QpOptions::max_iter). Nothing below changes behaviour, and that
+// (qp_types.h's QpOptions::max_iter). Nothing below changes behaviour, and that
 // is the point: every solve here is either 2 minors or explicitly capped, so
 // the cap it would have been measured against never binds either way.
 SqpOptions f7_smoke_options() {

@@ -1,4 +1,4 @@
-// tests/test_warm_start.cpp — Phase-4 Task 2: the WarmStart value object
+// tests/sqp/test_warm_start.cpp — Phase-4 Task 2: the WarmStart value object
 // (warm_start.h) SqpDriver::solve() emits on SqpSolution::warm_start.
 //
 // THREE CHECKS, per the task brief:

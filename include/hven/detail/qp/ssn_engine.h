@@ -309,10 +309,10 @@
 // 6. THE PER-SOLVE SEAM: TRUST REGION AND REGULARIZERS
 // -----------------------------------------------------------------------------
 //
-// solve() has an overload taking types.h's SolveOverrides -- THE WALK'S OWN
+// solve() has an overload taking qp_types.h's SolveOverrides -- THE WALK'S OWN
 // struct, not a parallel one, because the funnel driver already builds one per
 // subproblem and per SOC re-solve and a second type would be a translation
-// layer for Task 5 to maintain. Sentinels and resolution are types.h's rules
+// layer for Task 5 to maintain. Sentinels and resolution are qp_types.h's rules
 // unchanged.
 //
 // THE TRUST REGION IS A BOX, AND THAT IS THE WHOLE DESIGN. lo_eff =
@@ -1598,17 +1598,17 @@ class SsnEngine {
     // This overload forwards a default-constructed SolveOverrides, which
     // resolves to every opts_ value unchanged, so it is BYTE-IDENTICAL to
     // solving with no override support at all -- the same guarantee
-    // QpEngine's plain overloads carry (types.h).
+    // QpEngine's plain overloads carry (qp_types.h).
     void solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
                SsnResult *out) {
         solve(qp, start, sopts, SolveOverrides{}, out);
     }
 
     // THE PER-SOLVE SEAM (Fable kernel review, I1). Takes the WALK'S OWN
-    // SolveOverrides (types.h) rather than a parallel type, because the funnel
+    // SolveOverrides (qp_types.h) rather than a parallel type, because the funnel
     // driver already builds one per subproblem and per SOC re-solve, and a
     // second struct would only be a translation layer for Task 5 to maintain.
-    // Every field's sentinel and resolution rule is types.h's, unchanged:
+    // Every field's sentinel and resolution rule is qp_types.h's, unchanged:
     // tr_radius +inf means "no radius", primal_delta/dual_mu negative means
     // "use the engine's".
     //
@@ -2577,7 +2577,7 @@ class SsnEngine {
     // -----------------------------------------------------------------------
     // Validation
     // -----------------------------------------------------------------------
-    // types.h's SolveOverrides precondition, applied unchanged: tr_radius must
+    // qp_types.h's SolveOverrides precondition, applied unchanged: tr_radius must
     // be the +inf sentinel or >= 0 -- never negative (a negative Delta would
     // silently cross lo_eff and up_eff) and never NaN; primal_delta/dual_mu
     // keep the negative-means-sentinel convention but reject NaN, which no
@@ -2677,7 +2677,7 @@ class SsnEngine {
     //
     //     lo_eff = max(lower, x0 - Delta),   up_eff = min(upper, x0 + Delta)
     //
-    // -- types.h's SolveOverrides::tr_radius contract for the walk, applied
+    // -- qp_types.h's SolveOverrides::tr_radius contract for the walk, applied
     // here unchanged, including "about the SOLVE'S OWN start point x0" and
     // "computed once, at the top of solve()". A row is marked from_tr iff the
     // trust region is STRICTLY tighter than the real bound on that side (a tie

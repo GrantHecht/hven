@@ -1,4 +1,4 @@
-// tests/test_predictor.cpp — Phase-4 Task 9: the TANGENTIAL PREDICTOR
+// tests/sqp/test_predictor.cpp — Phase-4 Task 9: the TANGENTIAL PREDICTOR
 // (predictor.h), i.e. the parametric-sensitivity step that turns a converged
 // WarmStart at p into a first-order-accurate WarmStart at p + dp.
 //

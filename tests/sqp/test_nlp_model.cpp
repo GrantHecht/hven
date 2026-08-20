@@ -1,4 +1,4 @@
-// tests/test_nlp_model.cpp — Task 3: NlpModel interface, derivative checker,
+// tests/sqp/test_nlp_model.cpp — Task 3: NlpModel interface, derivative checker,
 // and the first six Hock-Schittkowski problems.
 //
 // Two batteries:

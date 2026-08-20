@@ -1,4 +1,4 @@
-// tests/test_bench_dump.cpp — PHASE-5 TASK 9. The asserting cover for
+// tests/sqp/test_bench_dump.cpp — PHASE-5 TASK 9. The asserting cover for
 // bench/bench_cli.h's two --dump-solution helpers.
 //
 // WHY THIS FILE EXISTS AT ALL, given that bench/ is deliberately NOT
