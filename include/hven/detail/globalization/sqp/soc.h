@@ -7,6 +7,15 @@
 // top of drivers/sqp_driver.h; "the header note's WARM START paragraph" is the
 // SECOND-ORDER CORRECTION note's own, which cites qp_engine.h's HOT-START REUSE.
 //
+// WHERE THE DEFINITION LIVES (M3 phase-C T6): the body of the function
+// declared below is in src/globalization/sqp/soc_elastic_restoration.cpp,
+// together with elastic.h's and restoration.h's -- one TU for the three
+// recovery tiers, because all three are reached from one place in
+// SqpDriver::solve_impl and two of the three need this header's own
+// NOT-SELF-CONTAINED dependency below. That file's banner carries the
+// measurement the carve rests on. This header keeps every declaration, and
+// every word of the derivation.
+//
 // NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in drivers/sqp_driver.h,
 // which includes this header at the exact point the carved code stood -- after
 // NlpEval's definition, before the driver class -- so the original definition
@@ -45,31 +54,7 @@ namespace hven::solvers {
 //         was never the thing that failed, and shifting it risks
 //         manufacturing a NEW active row the correction was never meant to
 //         touch. (inequalities)
-inline QpProblem build_soc_subproblem(const QpProblem &qp, const NlpEval &ev,
-                                      const NlpEval &ev_trial, const Vec &p,
-                                      const std::vector<bool> &ineq_active) {
-    QpProblem soc_qp = qp;
-    if (qp.me() > 0) {
-        const Vec residual_e = ev_trial.ce - ev.ce - qp.Ae * p;
-        soc_qp.be = -ev.ce - residual_e;
-    }
-    if (qp.mi() > 0) {
-        if (static_cast<Index>(ineq_active.size()) != qp.mi()) {
-            throw std::invalid_argument(fmt::format(
-                "build_soc_subproblem: ineq_active has size {}, expected {} (= qp.mi())",
-                ineq_active.size(), qp.mi()));
-        }
-        const Vec Ai_p = qp.Ai * p;
-        Vec bi_soc = qp.bi; // UNCHANGED on inactive rows -- see the note above
-        for (Index j = 0; j < qp.mi(); ++j) {
-            if (ineq_active[j]) {
-                const double residual_i = ev_trial.ci(j) - ev.ci(j) - Ai_p(j);
-                bi_soc(j) = -ev.ci(j) - residual_i;
-            }
-        }
-        soc_qp.bi = std::move(bi_soc);
-    }
-    return soc_qp;
-}
+QpProblem build_soc_subproblem(const QpProblem &qp, const NlpEval &ev, const NlpEval &ev_trial,
+                               const Vec &p, const std::vector<bool> &ineq_active);
 
 } // namespace hven::solvers

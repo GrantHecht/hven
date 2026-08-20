@@ -9,6 +9,15 @@
 // this file") is now detail/globalization/sqp/trust_region.h's. THAT IS THE
 // RULE, NOT AN EXHAUSTIVE LIST: any reference of the form "this file"/"this
 // header" that does not resolve here resolves in drivers/sqp_driver.h.
+//
+// WHERE THE DEFINITIONS LIVE (M3 phase-C T6): the bodies of ElasticQp's two
+// member functions and of build_elastic_subproblem, elastic_seed and
+// elastic_project are in src/globalization/sqp/soc_elastic_restoration.cpp,
+// together with soc.h's and restoration.h's. That file's banner carries the
+// measurement the carve rests on. ONE FUNCTION STAYED: set_elastic_penalty is
+// still defined here, and its own note says why. This header keeps every
+// declaration, every constant, ElasticQp's layout, and every word of the
+// derivation.
 
 #include <algorithm>
 #include <cmath>
@@ -100,16 +109,14 @@ struct ElasticQp {
     // The slack block of an augmented primal vector, in the SCALED variable;
     // empty when ns == 0. Callers judging feasibility want
     // slack_violations() instead -- this is the raw variable.
-    Vec slacks(const Vec &x_aug) const {
-        return x_aug.size() == qp.n() ? Vec(x_aug.tail(ns)) : Vec::Zero(ns);
-    }
+    Vec slacks(const Vec &x_aug) const;
 
     // The ACTUAL linearized violation each relaxed row was left with,
     // sigma_j * s_j -- the quantity in the same units as violation_l1 and as
     // SqpOptions::feas_tol, and therefore the one every test in the driver
     // (the escalation ladder's "materially nonzero", the usability
     // comparison) is written against.
-    Vec slack_violations(const Vec &x_aug) const { return slacks(x_aug).cwiseProduct(slack_scale); }
+    Vec slack_violations(const Vec &x_aug) const;
 };
 
 // Builds the elastic reformulation of `qp` at penalty rho.
@@ -171,114 +178,7 @@ struct ElasticQp {
 // (about p_ref, since the seed's primal is zeroed), applied to the ORIGINAL
 // block only, and the solve is made with the +inf sentinel.
 // `tr_radius` may be +inf, in which case the box is the caller's unchanged.
-inline ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double rho,
-                                          double tol) {
-    const Index n = qp.n();
-    const Index me = qp.me();
-    const Index mi = qp.mi();
-
-    ElasticQp e;
-    e.n_orig = n;
-    e.p_ref = Vec::Zero(n);
-
-    Vec lo(n), up(n);
-    const bool tr = std::isfinite(tr_radius);
-    for (Index i = 0; i < n; ++i) {
-        e.p_ref(i) = std::min(std::max(0.0, qp.lower(i)), qp.upper(i));
-        lo(i) = tr ? std::max(qp.lower(i), e.p_ref(i) - tr_radius) : qp.lower(i);
-        up(i) = tr ? std::min(qp.upper(i), e.p_ref(i) + tr_radius) : qp.upper(i);
-    }
-
-    // Which rows are violated at p_ref, and by how much.
-    const Vec eq_res = me > 0 ? Vec(qp.be - qp.Ae * e.p_ref) : Vec(0);
-    const Vec in_res = mi > 0 ? Vec(qp.Ai * e.p_ref - qp.bi) : Vec(0);
-    e.eq_slack.assign(static_cast<std::size_t>(me), kNoSlack);
-    e.ineq_slack.assign(static_cast<std::size_t>(mi), kNoSlack);
-    std::vector<double> scales;
-    Index ns = 0;
-    for (Index k = 0; k < me; ++k) {
-        if (std::abs(eq_res(k)) > tol) {
-            e.eq_slack[static_cast<std::size_t>(k)] = n + ns++;
-            e.violation_l1 += std::abs(eq_res(k));
-            scales.push_back(std::max(1.0, std::abs(eq_res(k))));
-        }
-    }
-    for (Index j = 0; j < mi; ++j) {
-        if (in_res(j) > tol) {
-            e.ineq_slack[static_cast<std::size_t>(j)] = n + ns++;
-            e.violation_l1 += in_res(j);
-            scales.push_back(std::max(1.0, in_res(j)));
-        }
-    }
-    e.ns = ns;
-    e.slack_scale = Eigen::Map<const Vec>(scales.data(), ns);
-    const Index n2 = n + ns;
-
-    std::vector<Eigen::Triplet<double>> t;
-    t.reserve(static_cast<std::size_t>(qp.H.nonZeros()));
-    for (Index i = 0; i < n; ++i) {
-        for (SpMatRM::InnerIterator it(qp.H, i); it; ++it) {
-            t.emplace_back(it.row(), it.col(), it.value());
-        }
-    }
-    e.qp.H = SpMatRM(n2, n2);
-    e.qp.H.setFromTriplets(t.begin(), t.end());
-    e.qp.H.makeCompressed();
-
-    e.qp.g = Vec::Zero(n2);
-    e.qp.g.head(n) = qp.g;
-    e.qp.g.tail(ns) = rho * e.slack_scale; // rho * (the VIOLATION), see set_elastic_penalty
-
-    t.clear();
-    t.reserve(static_cast<std::size_t>(qp.Ae.nonZeros()) + static_cast<std::size_t>(me));
-    for (Index k = 0; k < me; ++k) {
-        for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(qp.Ae, k); it; ++it) {
-            t.emplace_back(it.row(), it.col(), it.value());
-        }
-        const Index col = e.eq_slack[static_cast<std::size_t>(k)];
-        if (col != kNoSlack) {
-            const double sigma = e.slack_scale(col - n);
-            t.emplace_back(k, col, eq_res(k) > 0.0 ? sigma : -sigma);
-        }
-    }
-    e.qp.Ae = Eigen::SparseMatrix<double, Eigen::RowMajor>(me, n2);
-    e.qp.Ae.setFromTriplets(t.begin(), t.end());
-    e.qp.Ae.makeCompressed();
-    e.qp.be = qp.be;
-
-    t.clear();
-    t.reserve(static_cast<std::size_t>(qp.Ai.nonZeros()) + static_cast<std::size_t>(mi));
-    for (Index j = 0; j < mi; ++j) {
-        for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(qp.Ai, j); it; ++it) {
-            t.emplace_back(it.row(), it.col(), it.value());
-        }
-        const Index col = e.ineq_slack[static_cast<std::size_t>(j)];
-        if (col != kNoSlack) {
-            t.emplace_back(j, col, -e.slack_scale(col - n));
-        }
-    }
-    e.qp.Ai = Eigen::SparseMatrix<double, Eigen::RowMajor>(mi, n2);
-    e.qp.Ai.setFromTriplets(t.begin(), t.end());
-    e.qp.Ai.makeCompressed();
-    e.qp.bi = qp.bi;
-
-    e.qp.lower = Vec::Zero(n2);
-    e.qp.upper = Vec::Zero(n2);
-    e.qp.lower.head(n) = lo;
-    e.qp.upper.head(n) = up;
-    // THE SLACK CEILING (fix round 1): violation_l1 IN ACTUAL UNITS, i.e.
-    // violation_l1 / sigma_j in the scaled variable, rather than +inf. It
-    // says the relaxation may not leave the linearization MORE violated in
-    // total than it already is at p_ref, and it cannot cut off the witness
-    // point, whose actual violation |r_j| is at most sum_k |r_k| =
-    // violation_l1 by construction. A slack that saturates it is reported
-    // kAtUpper, which qp_engine.h's is_runaway skips outright ("pinned at a
-    // bound: it did not run away").
-    for (Index k = 0; k < ns; ++k) {
-        e.qp.upper(n + k) = e.violation_l1 / e.slack_scale(k);
-    }
-    return e;
-}
+ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double rho, double tol);
 
 // Rewrites the penalty in place -- the SLACK BLOCK OF g AND NOTHING ELSE.
 // The entry is rho * sigma_j, not rho: the slack VARIABLE is the row's
@@ -297,6 +197,20 @@ inline ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius,
 // the same stale solution pays a K0 rebuild per rung regardless -- which is
 // what the driver's ladder did before fix round 1, and why it now chains the
 // seed.
+//
+// THE ONE DEFINITION IN THIS FILE'S SCOPE THAT M3 PHASE-C T6 LEFT INLINE, and
+// the reason is a measurement rather than a preference. At T6's base commit
+// this function emitted NO symbol in any of the 68 objects of a clean Release
+// build and had ZERO direct call sites anywhere -- which is what full inlining
+// at every use looks like, and is the same test phase-C T4 applied to
+// FunnelStrategy's four fully-inlined members before deciding they stay in
+// globalization.h. It is also the one function in the tier whose stated reason
+// for being carvable does not hold: the plan's premise for the elastic
+// builders is that they ALLOCATE, so a call is already dominated. This one
+// allocates nothing -- it is a single Eigen assignment into a block that
+// already exists, on the ladder's own rung path. Out-of-lining it would turn a
+// measured inline into a call and falsify the premise the rest of the carve
+// rests on, so it is deliberately not done.
 inline void set_elastic_penalty(ElasticQp &e, double rho) {
     e.qp.g.tail(e.ns) = rho * e.slack_scale;
 }
@@ -314,23 +228,7 @@ inline void set_elastic_penalty(ElasticQp &e, double rho) {
 // A size mismatch degrades to "no hint" rather than throwing: the engine
 // ignores a wrongly-sized seed block silently, and the seed is an
 // optimization, never a correctness input.
-inline QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
-    const Index n2 = e.qp.n();
-    QpSolution s;
-    s.status = QpStatus::kOptimal;
-    s.x = Vec::Zero(n2);
-    s.bound_state.assign(static_cast<std::size_t>(n2), BoundState::kFree);
-    if (static_cast<Index>(failed.bound_state.size()) == e.n_orig) {
-        for (Index i = 0; i < e.n_orig; ++i) {
-            s.bound_state[static_cast<std::size_t>(i)] =
-                failed.bound_state[static_cast<std::size_t>(i)];
-        }
-    }
-    s.ineq_active = static_cast<Index>(failed.ineq_active.size()) == e.qp.mi()
-                        ? failed.ineq_active
-                        : std::vector<bool>(static_cast<std::size_t>(e.qp.mi()), false);
-    return s;
-}
+QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed);
 
 // Reads an augmented solution back in the ORIGINAL variables, so that every
 // consumer downstream of the elastic tier (the funnel judgment, the warm
@@ -364,45 +262,7 @@ inline QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
 // When the relaxation CLOSED (every slack at 0) there is no contamination to
 // worry about: the elastic solution then satisfies every original row, so it
 // solves the UNRELAXED subproblem and its multipliers are that subproblem's.
-inline QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
-                                  bool carry_multipliers) {
-    const Index n = e.n_orig;
-    QpSolution out;
-    out.status = aug.status;
-    out.counters = aug.counters;
-    out.x = aug.x.size() >= n ? Vec(aug.x.head(n)) : Vec::Zero(n);
-    // z IS QUARANTINED WITH THE MULTIPLIERS (fix round 1), not carried
-    // independently: a bound price at index i is the stationarity residual
-    // there, so it is contaminated by exactly the same rho the row
-    // multipliers are (see carry_multipliers below). SqpDriver itself never
-    // reads QpSolution::z -- it reports the MODEL-implied bound multiplier
-    // instead (this header's REPORTED BOUND MULTIPLIER note) -- so this
-    // changes nothing today; it removes a trap for the next reader.
-    out.z = carry_multipliers && aug.z.size() >= n ? Vec(aug.z.head(n)) : Vec::Zero(n);
-    out.lambda_e =
-        carry_multipliers && aug.lambda_e.size() == qp.me() ? aug.lambda_e : Vec::Zero(qp.me());
-    out.lambda_i =
-        carry_multipliers && aug.lambda_i.size() == qp.mi() ? aug.lambda_i : Vec::Zero(qp.mi());
-    out.ineq_active = static_cast<Index>(aug.ineq_active.size()) == qp.mi()
-                          ? aug.ineq_active
-                          : std::vector<bool>(static_cast<std::size_t>(qp.mi()), false);
-    out.bound_state.assign(static_cast<std::size_t>(n), BoundState::kFree);
-    out.tr_active.assign(static_cast<std::size_t>(n), false);
-    if (static_cast<Index>(aug.bound_state.size()) < n) {
-        return out;
-    }
-    for (Index i = 0; i < n; ++i) {
-        const auto si = static_cast<std::size_t>(i);
-        const BoundState st = aug.bound_state[si];
-        const bool tr = (st == BoundState::kAtLower && e.qp.lower(i) > qp.lower(i)) ||
-                        (st == BoundState::kAtUpper && e.qp.upper(i) < qp.upper(i));
-        out.tr_active[si] = tr;
-        out.bound_state[si] = tr ? BoundState::kFree : st;
-        if (tr) {
-            out.z(i) = 0.0;
-        }
-    }
-    return out;
-}
+QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
+                           bool carry_multipliers);
 
 } // namespace hven::solvers

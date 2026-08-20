@@ -7,6 +7,15 @@
 // and qp_failure_is_retryable remain in drivers/sqp_driver.h; the elastic
 // tier they compare against is now detail/globalization/sqp/elastic.h's.
 //
+// WHERE THE DEFINITIONS LIVE (M3 phase-C T6): every member function of
+// RestorationModel declared below is defined in
+// src/globalization/sqp/soc_elastic_restoration.cpp, together with soc.h's and
+// elastic.h's. That file's banner carries the measurement the carve rests on.
+// One consequence is worth stating here, where the class is: `n()` is now the
+// class's KEY FUNCTION, so the vtable, typeinfo and typeinfo-name are emitted
+// in that TU alone rather than weakly in every TU that touches the class. This
+// header keeps every declaration, the layout, and every word of the derivation.
+//
 // NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in drivers/sqp_driver.h,
 // which includes this header at the exact point the carved code stood -- after
 // NlpEval's definition, before the driver class -- so the original definition
@@ -85,109 +94,28 @@ class RestorationModel final : public NlpModel {
     // `ev` must be eval_nlp(model, x_entry) -- the entry point's evaluation,
     // already in the driver's hand, from which the sigmas and the start
     // point's slacks are both read without a single extra model call.
-    RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev)
-        : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()) {
-        if (x_entry.size() != nx_) {
-            throw std::invalid_argument(
-                fmt::format("RestorationModel: x_entry has size {}, expected {} (= model.n())",
-                            x_entry.size(), nx_));
-        }
-        n_ = nx_ + 2 * me_ + mi_;
+    RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev);
 
-        sigma_e_ = Vec::Ones(me_);
-        for (Index k = 0; k < me_; ++k) {
-            double row_max = 0.0;
-            for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(ev.Je, k); it;
-                 ++it) {
-                row_max = std::max(row_max, std::abs(it.value()));
-            }
-            sigma_e_(k) = std::max(1.0, row_max);
-        }
-        sigma_i_ = Vec::Ones(mi_);
-        for (Index j = 0; j < mi_; ++j) {
-            double row_max = 0.0;
-            for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(ev.Ji, j); it;
-                 ++it) {
-                row_max = std::max(row_max, std::abs(it.value()));
-            }
-            sigma_i_(j) = std::max(1.0, row_max);
-        }
-
-        lower_ = Vec::Zero(n_);
-        upper_ = Vec::Constant(n_, kRestorationSlackBound);
-        lower_.head(nx_) = model.lower();
-        upper_.head(nx_) = model.upper();
-
-        // THE START POINT IS FEASIBLE FOR THIS WRAPPER BY CONSTRUCTION, with
-        // objective exactly h(x_entry): put each row's whole violation into
-        // the slack that absorbs it, in that slack's own units.
-        start_ = Vec::Zero(n_);
-        start_.head(nx_) = x_entry;
-        for (Index k = 0; k < me_; ++k) {
-            const double c = ev.ce(k);
-            start_(nx_ + k) = std::max(0.0, -c) / sigma_e_(k);      // sp
-            start_(nx_ + me_ + k) = std::max(0.0, c) / sigma_e_(k); // sm
-        }
-        for (Index j = 0; j < mi_; ++j) {
-            start_(nx_ + 2 * me_ + j) = std::max(0.0, ev.ci(j)) / sigma_i_(j); // si
-        }
-    }
-
-    Index n() const override { return n_; }
-    Index me() const override { return me_; }
-    Index mi() const override { return mi_; }
+    Index n() const override;
+    Index me() const override;
+    Index mi() const override;
 
     // The original variables of an augmented point -- what the driver takes
     // back out of a restoration solve.
-    Vec original_x(const Vec &y) const {
-        return y.size() >= nx_ ? Vec(y.head(nx_)) : Vec::Zero(nx_);
-    }
-    const Vec &slack_scale_e() const { return sigma_e_; }
-    const Vec &slack_scale_i() const { return sigma_i_; }
+    Vec original_x(const Vec &y) const;
+    const Vec &slack_scale_e() const;
+    const Vec &slack_scale_i() const;
 
-    double eval_f(const Vec &y) const override {
-        double s = 0.0;
-        for (Index k = 0; k < me_; ++k) {
-            s += sigma_e_(k) * (y(nx_ + k) + y(nx_ + me_ + k));
-        }
-        for (Index j = 0; j < mi_; ++j) {
-            s += sigma_i_(j) * y(nx_ + 2 * me_ + j);
-        }
-        return s;
-    }
+    double eval_f(const Vec &y) const override;
 
     // Constant: the objective is LINEAR, and has no x-block at all. That zero
     // x-block is what makes a stationary point of this problem a stationary
     // point of h rather than of some trade-off against f (header note).
-    Vec eval_grad(const Vec &) const override {
-        Vec g = Vec::Zero(n_);
-        g.segment(nx_, me_) = sigma_e_;
-        g.segment(nx_ + me_, me_) = sigma_e_;
-        g.segment(nx_ + 2 * me_, mi_) = sigma_i_;
-        return g;
-    }
+    Vec eval_grad(const Vec &) const override;
 
-    Vec eval_ce(const Vec &y) const override {
-        if (me_ == 0) {
-            return Vec(0);
-        }
-        Vec c = model_.eval_ce(original_x(y));
-        for (Index k = 0; k < me_; ++k) {
-            c(k) += sigma_e_(k) * (y(nx_ + k) - y(nx_ + me_ + k));
-        }
-        return c;
-    }
+    Vec eval_ce(const Vec &y) const override;
 
-    Vec eval_ci(const Vec &y) const override {
-        if (mi_ == 0) {
-            return Vec(0);
-        }
-        Vec c = model_.eval_ci(original_x(y));
-        for (Index j = 0; j < mi_; ++j) {
-            c(j) -= sigma_i_(j) * y(nx_ + 2 * me_ + j);
-        }
-        return c;
-    }
+    Vec eval_ci(const Vec &y) const override;
 
     // obj_scale IS DELIBERATELY IGNORED HERE, and that is exact rather than a
     // shortcut: nlp_model.h defines this as obj_scale*hess(f) + sum lambda *
@@ -200,65 +128,17 @@ class RestorationModel final : public NlpModel {
     // H-extension, verbatim, and it satisfies QpProblem::validate's
     // upper-triangle rule for the same reason (no entry moves).
     SpMatRM eval_hess(const Vec &y, double, const Vec &lambda_e,
-                      const Vec &lambda_i) const override {
-        const SpMatRM inner = model_.eval_hess(original_x(y), 0.0, lambda_e, lambda_i);
-        std::vector<Eigen::Triplet<double>> t;
-        t.reserve(static_cast<std::size_t>(inner.nonZeros()));
-        for (Index i = 0; i < nx_; ++i) {
-            for (SpMatRM::InnerIterator it(inner, i); it; ++it) {
-                t.emplace_back(it.row(), it.col(), it.value());
-            }
-        }
-        SpMatRM H(n_, n_);
-        H.setFromTriplets(t.begin(), t.end());
-        H.makeCompressed();
-        return H;
-    }
+                      const Vec &lambda_i) const override;
 
     // [ Je(x) | diag(sigmaE) | -diag(sigmaE) | 0 ]
-    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &y) const override {
-        Eigen::SparseMatrix<double, Eigen::RowMajor> J(me_, n_);
-        if (me_ == 0) {
-            return J;
-        }
-        const Eigen::SparseMatrix<double, Eigen::RowMajor> Je = model_.eval_jac_e(original_x(y));
-        std::vector<Eigen::Triplet<double>> t;
-        t.reserve(static_cast<std::size_t>(Je.nonZeros() + 2 * me_));
-        for (Index k = 0; k < me_; ++k) {
-            for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(Je, k); it; ++it) {
-                t.emplace_back(it.row(), it.col(), it.value());
-            }
-            t.emplace_back(k, nx_ + k, sigma_e_(k));
-            t.emplace_back(k, nx_ + me_ + k, -sigma_e_(k));
-        }
-        J.setFromTriplets(t.begin(), t.end());
-        J.makeCompressed();
-        return J;
-    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &y) const override;
 
     // [ Ji(x) | 0 | 0 | -diag(sigmaI) ]
-    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &y) const override {
-        Eigen::SparseMatrix<double, Eigen::RowMajor> J(mi_, n_);
-        if (mi_ == 0) {
-            return J;
-        }
-        const Eigen::SparseMatrix<double, Eigen::RowMajor> Ji = model_.eval_jac_i(original_x(y));
-        std::vector<Eigen::Triplet<double>> t;
-        t.reserve(static_cast<std::size_t>(Ji.nonZeros() + mi_));
-        for (Index j = 0; j < mi_; ++j) {
-            for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(Ji, j); it; ++it) {
-                t.emplace_back(it.row(), it.col(), it.value());
-            }
-            t.emplace_back(j, nx_ + 2 * me_ + j, -sigma_i_(j));
-        }
-        J.setFromTriplets(t.begin(), t.end());
-        J.makeCompressed();
-        return J;
-    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &y) const override;
 
-    const Vec &lower() const override { return lower_; }
-    const Vec &upper() const override { return upper_; }
-    Vec start_point() const override { return start_; }
+    const Vec &lower() const override;
+    const Vec &upper() const override;
+    Vec start_point() const override;
 
   private:
     const NlpModel &model_;

@@ -125,6 +125,19 @@ target_include_directories(hven PRIVATE
 # the boundary removes no inlining, and the S3 ruling under which the TR update
 # functions travel with the loop while the TR policy constants stay in
 # globalization.
+#
+# T6 adds the fifth: globalization/sqp/soc_elastic_restoration.cpp, holding the
+# three step-recovery tiers the driver reaches for when a plain subproblem does
+# not produce a usable step -- the second-order correction, the elastic l1
+# exact-penalty tier, and the restoration phase's feasibility-model wrapper.
+# ONE TU for the three headers, because soc.h and restoration.h both declare
+# themselves not self-contained (they need NlpEval, which only
+# drivers/sqp_driver.h defines), so each implementation TU would have to parse
+# that header; and because the three tiers are entered from one place in
+# solve_impl and are one recovery path. Its banner carries the object-file
+# evidence that every definition it moves was ALREADY called through a direct
+# relocation at -O3, and the one function the plan named that measurement kept
+# in the header instead (set_elastic_penalty, inlined at every use).
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -132,6 +145,7 @@ target_sources(hven PRIVATE
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
     globalization/sqp/funnel.cpp
+    globalization/sqp/soc_elastic_restoration.cpp
 )
 
 ################################################################################
@@ -310,6 +324,32 @@ target_sources(hven PRIVATE
 # honest summary of what carving the major loop out costs the build, and
 # T5's P-BUILD (task-c-t5-report.md) measures the whole-tree consequence.
 # Linux table: 25 sources.
+#
+# M3 PHASE-C T6 ADDENDUM (2026-08-19). Same method, same box, same two
+# controls, same throwaway-configure technique. The controls reproduce their T5
+# readings to within 0.07 s (7.03 -> 4.36 and 4.10 -> 1.84, both identical), so
+# this row is comparable with every row above:
+#
+#     ------ the source this commit adds: faster, NOT byte-identical ---------
+#   globalization/sqp/soc_elastic_restoration.cpp 5.58 ->  3.70  -1.87  differs
+#
+# It does NOT join the opt-in list: bar 1 cleared, bar 2 failed. SIXTH
+# consecutive SQP-side TU in the "faster but not byte-identical" group. Six for
+# six is no longer a run of coincidences, and it is worth naming the mechanism
+# the earlier notes already identified: these TUs include a different header
+# set in a different order from src/hven_pch.h's, so prefixing the shared block
+# changes template instantiation and therefore emission order. Every SQP-side
+# carve inherits that property from the headers it must include, so the
+# expectation for the remaining carves is the same -- stated as an expectation
+# to be measured, not a prediction to be assumed.
+#
+# The row's shape is unremarkable next to T5's: 5.58 s puts it third in the
+# table behind sqp_driver.cpp (10.46) and interior_point_solver.cpp (7.03), and
+# its -1.87 s saving sits in the same -1.5 to -2.7 s band as everything else.
+# That is what a TU costs when most of its cost IS the shared-header parse
+# floor: ~370 moved lines is little enough work that the floor dominates, which
+# is exactly the contrast T5's note draws.
+# Linux table: 26 sources.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
@@ -346,7 +386,7 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 25)
+set(_hven_expected_source_count 26)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
