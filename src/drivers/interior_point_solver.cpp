@@ -656,7 +656,7 @@ void hven::solvers::InteriorPointSolver::assemble_dispatch(
     // the constraint-row pivots and the slack Jacobian this solver set on its
     // own storage. assemble() does not write them.
     //
-    // SEQUENCED AFTER THE EVALUATION, NOT CONCURRENT WITH IT. The contract
+    // Sequenced after the evaluation rather than run alongside it. The contract
     // permits a consumer to overlap its own coefficient steps with assemble()
     // when the two write disjoint destinations, and these do not: a primal
     // diagonal is added onto the Hessian (1,1) diagonal element, which a

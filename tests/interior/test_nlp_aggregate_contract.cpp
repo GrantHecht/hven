@@ -23,6 +23,7 @@
 #include <set>
 #include <vector>
 
+#include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/model/non_linear_program.h"
 
@@ -397,6 +398,25 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
     AggPinSolverStorage legacy(*nlp);
     AggPinSolverStorage assembled(*nlp);
 
+    // The solver coefficients are SEEDED, and the seeding is what gives the
+    // responsibility transfer any protection at all. They default to zero, and a
+    // zero coefficient scatters zero: with the defaults left in place both sides
+    // of a KKT comparison agree whether or not the consumer-side
+    // fill_solver_coeffs runs, so the check would pass over a retarget that
+    // silently dropped the transferred step. Distinct nonzero values per block,
+    // and per row within a block, so a dropped block or a mis-sliced one shows
+    // as a difference rather than cancelling.
+    Eigen::VectorXd primal_diags =
+        Eigen::VectorXd::LinSpaced(nlp->reduced_primal_vars_count_, 0.25, 1.0);
+    Eigen::VectorXd slack_diags = Eigen::VectorXd::LinSpaced(nlp->slack_vars_, 1.5, 2.0);
+    Eigen::VectorXd e_pivots = Eigen::VectorXd::LinSpaced(nlp->equal_cons_, -0.125, -0.5);
+    Eigen::VectorXd i_pivots = Eigen::VectorXd::LinSpaced(nlp->inequal_cons_, 0.75, 1.25);
+    nlp->set_primal_diags(primal_diags);
+    nlp->set_slack_diags(slack_diags);
+    nlp->set_e_pivots(e_pivots);
+    nlp->set_i_pivots(i_pivots);
+    nlp->set_slacks_ones();
+
     const Eigen::VectorXd x = agg_pin_x();
     const Eigen::VectorXd le = agg_pin_le();
     const Eigen::VectorXd li = agg_pin_li();
@@ -487,7 +507,9 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
             EXPECT_EQ(assembled.agx, legacy.agx);
         }
         if (shape.kkt_bearing) {
-            EXPECT_EQ(agg_pin_kkt_values(assembled.kkt), agg_pin_kkt_values(legacy.kkt));
+            EXPECT_EQ(agg_pin_kkt_values(assembled.kkt), agg_pin_kkt_values(legacy.kkt))
+                << "the assembled matrix differs from the entry's; if only the solver "
+                   "coefficients differ, the consumer-side fill_solver_coeffs is missing";
         }
     }
 }
@@ -1011,12 +1033,106 @@ TEST(NlpAggregateEngineCapabilities, TheValuesFastPathIsDeclaredAndDirectScatter
 }
 
 // ---------------------------------------------------------------------------
+// The consumer's view builders, against the segment expressions they replaced
+// ---------------------------------------------------------------------------
+
+/// The retarget replaced hand-written segment expressions at each call site
+/// with three shared builders. A builder that addressed one block differently
+/// would move values into the wrong rows while every request, table and
+/// destination check still looked right, so the builders are pinned against the
+/// expressions verbatim rather than against a re-derivation of them.
+///
+/// The five trace cells cover this dynamically on live solves; this is the
+/// targeted check that names the block when one of them moves.
+TEST(NlpAggregateConsumerViews, BuildersAddressExactlyTheLegacySegments) {
+    namespace views = hven::solvers::detail;
+
+    auto nlp = agg_pin_build_small();
+    const int pv = nlp->reduced_primal_vars_count_;
+    const int sv = nlp->slack_vars_;
+    const int ec = nlp->equal_cons_;
+    const int ic = nlp->inequal_cons_;
+    ASSERT_EQ(nlp->kkt_dim_, pv + sv + ec + ic);
+
+    Eigen::VectorXd GX = Eigen::VectorXd::Zero(nlp->kkt_dim_);
+    Eigen::VectorXd AGXS_FX = Eigen::VectorXd::Zero(nlp->kkt_dim_);
+    double val = 0.0;
+
+    const RhsScatterView rhs =
+        views::compound_rhs_scatter_view(*nlp, val, GX, AGXS_FX, pv, sv, ec, ic);
+
+    EXPECT_EQ(rhs.objective_, &val);
+    // The four destinations the legacy entry was handed, as it wrote them.
+    EXPECT_EQ(rhs.objective_gradient_.values_, GX.head(pv).data());
+    EXPECT_EQ(rhs.objective_gradient_.size_, pv);
+    EXPECT_EQ(rhs.objective_gradient_.locations_, &nlp->objective_gradient_table());
+    EXPECT_EQ(rhs.constraint_adjoint_gradient_.values_, AGXS_FX.head(pv).data());
+    EXPECT_EQ(rhs.constraint_adjoint_gradient_.size_, pv);
+    EXPECT_EQ(rhs.constraint_adjoint_gradient_.locations_,
+              &nlp->constraint_adjoint_gradient_table());
+    EXPECT_EQ(rhs.equality_residuals_.values_, AGXS_FX.segment(pv + sv, ec).data());
+    EXPECT_EQ(rhs.equality_residuals_.size_, ec);
+    EXPECT_EQ(rhs.equality_residuals_.locations_, &nlp->equality_residual_table());
+    EXPECT_EQ(rhs.inequality_residuals_.values_, AGXS_FX.tail(ic).data());
+    EXPECT_EQ(rhs.inequality_residuals_.size_, ic);
+    EXPECT_EQ(rhs.inequality_residuals_.locations_, &nlp->inequality_residual_table());
+
+    // The line-search call site passes one vector as BOTH gradient destinations,
+    // so the two arenas alias and the two fills accumulate into one block in
+    // order. The legacy entry did exactly this; a builder that quietly gave one
+    // of them its own storage would break that.
+    const RhsScatterView aliased =
+        views::compound_rhs_scatter_view(*nlp, val, AGXS_FX, AGXS_FX, pv, sv, ec, ic);
+    EXPECT_EQ(aliased.objective_gradient_.values_, aliased.constraint_adjoint_gradient_.values_);
+
+    // The residual-only builder, at both layouts its call sites use: a standalone
+    // [eq | iq] vector, and the compound solver layout.
+    Eigen::VectorXd cons = Eigen::VectorXd::Zero(ec + ic);
+    const RhsScatterView standalone = views::residual_rhs_scatter_view(
+        *nlp, val, cons.data(), cons.data() + (cons.size() - ic), ec, ic);
+    EXPECT_EQ(standalone.objective_, &val);
+    EXPECT_EQ(standalone.equality_residuals_.values_, cons.head(ec).data());
+    EXPECT_EQ(standalone.inequality_residuals_.values_, cons.tail(ic).data());
+    EXPECT_TRUE(standalone.objective_gradient_.empty())
+        << "a request naming no objective gradient must leave that arena empty";
+    EXPECT_TRUE(standalone.constraint_adjoint_gradient_.empty())
+        << "a request naming no adjoint gradient must leave that arena empty";
+
+    Eigen::VectorXd RHS2 = Eigen::VectorXd::Zero(nlp->kkt_dim_);
+    const RhsScatterView compound = views::residual_rhs_scatter_view(
+        *nlp, val, RHS2.data() + pv + sv, RHS2.data() + (RHS2.size() - ic), ec, ic);
+    EXPECT_EQ(compound.equality_residuals_.values_, RHS2.segment(pv + sv, ec).data());
+    EXPECT_EQ(compound.inequality_residuals_.values_, RHS2.tail(ic).data());
+
+    // The KKT view names the analysed buffer and the engine's own table.
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
+    nlp->analyze_sparsity(kkt);
+    const KktScatterView kkt_view = views::kkt_scatter_view(*nlp, kkt);
+    EXPECT_EQ(kkt_view.values_, kkt.valuePtr());
+    EXPECT_EQ(kkt_view.locations_, &nlp->kkt_location_table());
+    EXPECT_EQ(kkt_view.values_, nlp->bound_kkt_destination());
+
+    // On the identity path the declaration-space primal block IS the caller's
+    // own vector: no copy, and the scratch stays untouched.
+    Eigen::VectorXd scratch;
+    const Eigen::VectorXd reduced = Eigen::VectorXd::LinSpaced(pv, -1.0, 1.0);
+    ASSERT_FALSE(nlp->is_reduced()) << "this fixture eliminates nothing";
+    const Eigen::Ref<const Eigen::VectorXd> declaration =
+        views::declaration_primals(*nlp, scratch, reduced);
+    EXPECT_EQ(declaration.data(), reduced.data());
+    EXPECT_EQ(scratch.size(), 0);
+
+    // And the multiplier block a values-only point carries is empty, not zeros.
+    EXPECT_EQ(views::no_multipliers().size(), 0);
+}
+
+// ---------------------------------------------------------------------------
 // Why the consumer's coefficient scatter is sequenced, not overlapped
 // ---------------------------------------------------------------------------
 
 /// The contract lets a consumer run its own coefficient steps concurrently with
 /// assemble() when the two write disjoint destinations. For this engine they do
-/// NOT, and this pins which block is responsible so the sequencing in
+/// not, and this pins which block is responsible, so the sequencing in
 /// InteriorPointSolver::assemble_dispatch is a recorded consequence rather than
 /// caution.
 ///
@@ -1028,7 +1144,7 @@ TEST(NlpAggregateEngineCapabilities, TheValuesFastPathIsDeclaredAndDirectScatter
 ///
 /// The other four blocks are disjoint from every piece claim, which is the half
 /// the legacy engine relied on: its parallel_task overlapped the coefficient
-/// scatter with the RIGHT-HAND-SIDE fill, never with the KKT pass.
+/// scatter with the right-hand-side fill, never with the KKT pass.
 TEST(NlpAggregateEngineBinding, SolverCoefficientBlocksAgainstPieceClaims) {
     auto nlp = agg_pin_build_small();
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
