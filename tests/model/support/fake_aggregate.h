@@ -1,0 +1,150 @@
+// A minimal NlpAggregate implementation, written against the Level 2 contract
+// surface alone. It exists so the contract's own semantics -- the structure
+// epoch's ordering guarantee, the failure-restore rule, and the request
+// masking rule -- can be pinned WITHOUT the partitioned evaluation engine.
+//
+// It is not a solver and computes nothing meaningful: every arena a request
+// names is filled with a recognizable marker so a test can tell "written" from
+// "left alone". The live-engine versions of these pins arrive when the engine
+// implements this contract.
+
+#pragma once
+
+#include <algorithm>
+#include <stdexcept>
+#include <vector>
+
+#include <Eigen/Core>
+
+#include "hven/core/types.h"
+#include "hven/model/nlp_aggregate.h"
+
+namespace hven::model_tests {
+
+using hven::ConstVecRef;
+using hven::Vec;
+using hven::solvers::AggregateCapability;
+using hven::solvers::AggregateDeclaration;
+using hven::solvers::CandidateFirstOrder;
+using hven::solvers::CandidatePoint;
+using hven::solvers::CandidateValues;
+using hven::solvers::EvalRequest;
+using hven::solvers::IdentityProbe;
+using hven::solvers::KktScatterView;
+using hven::solvers::ModelStructureKey;
+using hven::solvers::NlpAggregate;
+using hven::solvers::RhsScatterView;
+using hven::solvers::StructureEpoch;
+
+/// The marker every filled slot receives. Distinct from the sentinel a test
+/// pre-fills its buffers with, so "this arena was written" is observable.
+inline constexpr double kFillMarker = 7.5;
+
+/// The sentinel a test pre-fills destination storage with.
+inline constexpr double kUntouchedSentinel = -101.25;
+
+class FakeAggregate final : public NlpAggregate {
+  public:
+    static constexpr int kPrimalVars = 4;
+    static constexpr int kEqualityRows = 2;
+    static constexpr int kInequalityRows = 3;
+    static constexpr int kMaxPartitions = 3;
+
+    FakeAggregate() {
+        declaration_.primal_vars_ = kPrimalVars;
+        declaration_.equality_rows_ = kEqualityRows;
+        declaration_.inequality_rows_ = kInequalityRows;
+        declaration_.partition_count_ = adopted_partitions_;
+        // The first layout: a provider lays structures before it can be
+        // evaluated, and that first lay is a structural event like any other.
+        this->relay_structures();
+    }
+
+    const AggregateDeclaration &declaration() const override { return declaration_; }
+
+    int negotiate_partition_count(int requested) override {
+        const int adopted = std::clamp(requested, 1, kMaxPartitions);
+        adopted_partitions_ = adopted;
+        declaration_.partition_count_ = adopted;
+        // A renegotiation re-lays the arenas even when the claim structure is
+        // untouched -- claim ORDER moves, so a consumer's slot-indexed state is
+        // stale. The re-lay bumps.
+        this->relay_structures();
+        return adopted;
+    }
+
+    int evaluation_threads() const override { return threads_; }
+    void set_evaluation_threads(int n) override { threads_ = n; }
+
+    ModelStructureKey model_structure_key() const override { return key_; }
+    AggregateCapability capabilities() const override { return capabilities_; }
+
+    void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
+                  RhsScatterView rhs) override;
+
+    void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) override;
+    void evaluate_candidate_first_order(const CandidatePoint &point,
+                                        CandidateFirstOrder out) override;
+
+    IdentityProbe probe_identity(ConstVecRef x) override;
+
+    // ---- test hooks -------------------------------------------------------
+
+    /// Re-lays the structures. The bump is the LAST thing this does, so no
+    /// evaluation of the new structures is reachable under the old epoch.
+    void relay_structures() {
+        layout_serial_++;
+        key_.claim_digest_ = static_cast<std::uint64_t>(layout_serial_) * 1099511628211ULL;
+        key_.partition_count_ = adopted_partitions_;
+        this->bump_structure_epoch();
+    }
+
+    /// A reconfiguration that re-lays the arenas and is then rejected. The
+    /// restore is itself a structural event: the structures on hand are not the
+    /// ones the consumer last saw, so it bumps under the same guarantee, and
+    /// only then does the rejection propagate.
+    void reconfigure_and_reject() {
+        const int restore_to = layout_serial_;
+        layout_serial_++; // the rejected lay
+        layout_serial_ = restore_to;
+        key_.claim_digest_ = static_cast<std::uint64_t>(restore_to) * 1099511628211ULL;
+        this->bump_structure_epoch();
+        throw std::invalid_argument("FakeAggregate: reconfiguration rejected");
+    }
+
+    void set_capabilities(AggregateCapability capabilities) { capabilities_ = capabilities; }
+
+    int layout_serial() const { return layout_serial_; }
+    int adopted_partitions() const { return adopted_partitions_; }
+
+    /// What structure_epoch() reported from INSIDE the last evaluation, and the
+    /// layout that evaluation ran against. The ordering guarantee is the
+    /// statement that these two never disagree.
+    StructureEpoch epoch_seen_at_last_evaluation() const { return epoch_seen_; }
+    int layout_serial_seen_at_last_evaluation() const { return layout_serial_seen_; }
+
+    int values_calls() const { return values_calls_; }
+
+  private:
+    void record_evaluation() {
+        epoch_seen_ = this->structure_epoch();
+        layout_serial_seen_ = layout_serial_;
+    }
+
+    /// A named empty vector: the multiplier blocks of a values-only candidate
+    /// point are legally empty, and a point's blocks must outlive the call that
+    /// reads them, so this is a member rather than a temporary at the call site.
+    Vec empty_multipliers_;
+
+    AggregateDeclaration declaration_;
+    ModelStructureKey key_;
+    AggregateCapability capabilities_ = AggregateCapability::kNone;
+    int adopted_partitions_ = 1;
+    int threads_ = 1;
+    int layout_serial_ = 0;
+    int values_calls_ = 0;
+    StructureEpoch epoch_seen_;
+    int layout_serial_seen_ = -1;
+};
+
+} // namespace hven::model_tests

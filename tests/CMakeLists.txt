@@ -267,6 +267,14 @@ add_subdirectory(golden_rig)
 add_subdirectory(interior)
 
 ################################################################################
+# The model contract surface's test suite: what the provider-side contract in
+# include/hven/model/ guarantees before any engine implements it. See
+# tests/model/CMakeLists.txt.
+################################################################################
+
+add_subdirectory(model)
+
+################################################################################
 # The SQP engine test suite, migrated at M3 (phase A). See
 # tests/sqp/CMakeLists.txt. UNIX-only for now: the suite's subprocess
 # wall-deadline tests drive the corpus runner, whose deadline enforcement is
