@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "hven/detail/model/nlp_adapter.h"
@@ -1007,6 +1008,62 @@ TEST(NlpAggregateEngineCapabilities, TheValuesFastPathIsDeclaredAndDirectScatter
     // KKT fill: the flag is the weakest claim over the whole provider, so one
     // path holding an intermediate settles it for all of them.
     EXPECT_FALSE(has_capability(declared, AggregateCapability::kDirectScatter));
+}
+
+// ---------------------------------------------------------------------------
+// Why the consumer's coefficient scatter is sequenced, not overlapped
+// ---------------------------------------------------------------------------
+
+/// The contract lets a consumer run its own coefficient steps concurrently with
+/// assemble() when the two write disjoint destinations. For this engine they do
+/// NOT, and this pins which block is responsible so the sequencing in
+/// InteriorPointSolver::assemble_dispatch is a recorded consequence rather than
+/// caution.
+///
+/// The primal-diagonal coefficients share value-array slots with piece claims:
+/// a primal diagonal is added onto the Hessian (1,1) diagonal element, and a
+/// Hessian piece claims that same element. Both accumulate into it, so running
+/// the scatter alongside the evaluation would be two unsynchronized `+=` on one
+/// double.
+///
+/// The other four blocks are disjoint from every piece claim, which is the half
+/// the legacy engine relied on: its parallel_task overlapped the coefficient
+/// scatter with the RIGHT-HAND-SIDE fill, never with the KKT pass.
+TEST(NlpAggregateEngineBinding, SolverCoefficientBlocksAgainstPieceClaims) {
+    auto nlp = agg_pin_build_small();
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
+    nlp->analyze_sparsity(kkt);
+
+    const hven::solvers::KktLocationTable &pieces = nlp->kkt_location_table();
+    ASSERT_GT(pieces.size(), 0) << "no piece claims: the comparison would be vacuous";
+    ASSERT_GT(nlp->num_solver_kkt_elems_, 0)
+        << "no solver coefficients: the comparison would be vacuous";
+
+    std::set<int> claimed_by_pieces;
+    for (int slot = 0; slot < pieces.size(); slot++) {
+        claimed_by_pieces.insert(pieces.location(slot));
+    }
+
+    auto is_primal_diagonal = [&](int i) {
+        return i >= nlp->primal_diags_data_start_ && i < nlp->slack_diag_data_start_;
+    };
+
+    int shared_primal_diagonals = 0;
+    for (int i = 0; i < nlp->num_solver_kkt_elems_; i++) {
+        const int offset = nlp->kkt_locations_[nlp->num_user_kkt_elems_ + i];
+        const bool shared = claimed_by_pieces.count(offset) != 0;
+        if (is_primal_diagonal(i)) {
+            shared_primal_diagonals += shared ? 1 : 0;
+            continue;
+        }
+        EXPECT_FALSE(shared) << "solver coefficient " << i
+                             << ", outside the primal-diagonal block, lands at value-array offset "
+                             << offset << ", which a piece claim also addresses";
+    }
+
+    EXPECT_GT(shared_primal_diagonals, 0)
+        << "no primal diagonal shares a slot with a piece claim on this model, so this fixture no "
+           "longer demonstrates the conflict the sequencing exists for";
 }
 
 // ---------------------------------------------------------------------------

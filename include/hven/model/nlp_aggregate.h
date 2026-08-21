@@ -39,6 +39,11 @@
 // consumer may do to a busy aggregate. A consumer that must evaluate alongside
 // an in-flight solve holds its OWN aggregate rather than sharing the solve's.
 //
+// A consumer's own work on its own storage is a separate question, settled at
+// assemble(): it may run concurrently with an evaluation when its writes touch
+// no destination the scatter views name. This does not relax the
+// one-evaluation-at-a-time rule for the aggregate's own entries.
+//
 // Engine-independent by construction: nothing here includes from the
 // interior-point machinery.
 
@@ -537,6 +542,12 @@ class NlpAggregate {
     /// them is a consumer-owned step outside provider evaluation. The mapping
     /// table records that transfer per row, because in the shapes this call
     /// replaces the two steps ran inside one entry.
+    ///
+    /// A consumer may run its own coefficient steps concurrently with
+    /// assemble() when its writes touch no destination the scatter views name;
+    /// destination disjointness is the consumer's obligation. The interior
+    /// engine does not meet it and sequences instead; rationale and that
+    /// engine's own pin: docs/notes/2026-08-m4-ledger.md.
     void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                   RhsScatterView rhs) {
         const AggregateDeclaration &declared = this->declaration();
