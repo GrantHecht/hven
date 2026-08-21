@@ -398,7 +398,7 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
     AggPinSolverStorage legacy(*nlp);
     AggPinSolverStorage assembled(*nlp);
 
-    // The solver coefficients are SEEDED, and the seeding is what gives the
+    // The solver coefficients are seeded, and the seeding is what gives the
     // responsibility transfer any protection at all. They default to zero, and a
     // zero coefficient scatters zero: with the defaults left in place both sides
     // of a KKT comparison agree whether or not the consumer-side
@@ -415,7 +415,10 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
     nlp->set_slack_diags(slack_diags);
     nlp->set_e_pivots(e_pivots);
     nlp->set_i_pivots(i_pivots);
-    nlp->set_slacks_ones();
+    // The slack Jacobian is seeded through its coefficient block rather than
+    // set_slacks_ones(), whose constant 1.0 would leave a mis-slice within that
+    // block undetectable: a shifted constant equals itself.
+    nlp->slack_coeffs() = Eigen::VectorXd::LinSpaced(nlp->slack_vars_, 2.5, 3.0);
 
     const Eigen::VectorXd x = agg_pin_x();
     const Eigen::VectorXd le = agg_pin_le();
@@ -1077,7 +1080,7 @@ TEST(NlpAggregateConsumerViews, BuildersAddressExactlyTheLegacySegments) {
     EXPECT_EQ(rhs.inequality_residuals_.size_, ic);
     EXPECT_EQ(rhs.inequality_residuals_.locations_, &nlp->inequality_residual_table());
 
-    // The line-search call site passes one vector as BOTH gradient destinations,
+    // The line-search call site passes one vector as both gradient destinations,
     // so the two arenas alias and the two fills accumulate into one block in
     // order. The legacy entry did exactly this; a builder that quietly gave one
     // of them its own storage would break that.
