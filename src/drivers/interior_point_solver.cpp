@@ -626,39 +626,119 @@ double hven::solvers::InteriorPointSolver::dual_infeasibility_inf(
 // NLP eval dispatch methods
 // =============================================================================
 
-template <class Fn>
-void hven::solvers::InteriorPointSolver::eval_dispatch(
-    Fn fn, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
-    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    ((*this->nlp_).*fn)(
-        obj_scale, XSL.head(primal_vars_), XSL.segment(primal_vars_ + slack_vars_, equal_cons_),
-        XSL.tail(inequal_cons_), val, GX.head(primal_vars_), AGXS_FX.head(primal_vars_),
-        AGXS_FX.segment(primal_vars_ + slack_vars_, equal_cons_), AGXS_FX.tail(inequal_cons_),
-        KKTmat);
+Eigen::Ref<const hven::solvers::InteriorPointSolver::VectorXd>
+hven::solvers::InteriorPointSolver::declaration_primals(ConstEigenRef<VectorXd> reduced) {
+    if (!this->nlp_->is_reduced()) {
+        // The solver's primal space IS the declared one, so the iterate is
+        // already a declaration-space point and goes in as it stands.
+        return reduced;
+    }
+    // The eliminated coordinates put back at their pinned values -- byte for
+    // byte the buffer the legacy entries' own primal_view() built from the same
+    // reduced iterate, so the pieces read the same numbers either way.
+    this->declaration_primals_scratch_.resize(this->full_primal_vars_);
+    this->nlp_->scatter_full_x(reduced, this->declaration_primals_scratch_);
+    return this->declaration_primals_scratch_;
+}
+
+hven::solvers::RhsScatterView
+hven::solvers::InteriorPointSolver::rhs_scatter_view(double &val, EigenRef<VectorXd> GX,
+                                                     EigenRef<VectorXd> AGXS_FX) {
+    // The same four blocks the legacy entries were handed, in the same order,
+    // sliced out of the same two compound vectors -- expressed as pointers and
+    // lengths because that is what an arena view is. Each block's location table
+    // is the engine's own row table for that arena, so the fill behind them is
+    // the fill that always ran.
+    RhsScatterView rhs;
+    rhs.objective_ = &val;
+    rhs.objective_gradient_ =
+        RhsArenaView{GX.data(), this->primal_vars_, &this->nlp_->objective_gradient_table()};
+    rhs.constraint_adjoint_gradient_ = RhsArenaView{
+        AGXS_FX.data(), this->primal_vars_, &this->nlp_->constraint_adjoint_gradient_table()};
+    rhs.equality_residuals_ =
+        RhsArenaView{AGXS_FX.data() + this->primal_vars_ + this->slack_vars_, this->equal_cons_,
+                     &this->nlp_->equality_residual_table()};
+    rhs.inequality_residuals_ =
+        RhsArenaView{AGXS_FX.data() + (AGXS_FX.size() - this->inequal_cons_), this->inequal_cons_,
+                     &this->nlp_->inequality_residual_table()};
+    return rhs;
+}
+
+hven::solvers::KktScatterView hven::solvers::InteriorPointSolver::kkt_scatter_view(
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    return KktScatterView{KKTmat.valuePtr(), static_cast<int>(KKTmat.nonZeros()),
+                          &this->nlp_->kkt_location_table()};
+}
+
+void hven::solvers::InteriorPointSolver::assemble_dispatch(
+    EvalRequest request, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
+    EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |
+                                        EvalRequest::kConstraintJacobian |
+                                        EvalRequest::kConstraintAdjointHessian;
+    const bool kkt_bearing = (request & kKktBearing) != EvalRequest::kNone;
+
+    const CandidatePoint point{
+        this->declaration_primals(XSL.head(this->primal_vars_)),
+        XSL.segment(this->primal_vars_ + this->slack_vars_, this->equal_cons_),
+        XSL.tail(this->inequal_cons_), obj_scale};
+
+    this->nlp_->assemble(point, request,
+                         kkt_bearing ? this->kkt_scatter_view(KKTmat) : KktScatterView{},
+                         this->rhs_scatter_view(val, GX, AGXS_FX));
+
+    if (kkt_bearing) {
+        // The responsibility the contract transfers to the consumer, discharged
+        // by the consumer. The coefficients being scattered here are the ones
+        // this solver set on its own storage -- set_primal_diags, set_e_pivots,
+        // set_i_pivots and the slack block -- and every caller's set/reset
+        // bracket still encloses this call, exactly as it enclosed the legacy
+        // entry that did the scatter internally.
+        this->nlp_->fill_solver_coeffs(KKTmat);
+    }
+}
+
+void hven::solvers::InteriorPointSolver::assemble_objective(double obj_scale,
+                                                            ConstEigenRef<VectorXd> primals,
+                                                            double &val) {
+    RhsScatterView rhs;
+    rhs.objective_ = &val;
+    // Values-only, so the multiplier blocks are legally empty -- empty meaning
+    // "no multipliers", which is what shape 1 reads.
+    this->nlp_->assemble(CandidatePoint{this->declaration_primals(primals), this->no_multipliers_,
+                                        this->no_multipliers_, obj_scale},
+                         kRequestObjectiveOnly, KktScatterView{}, rhs);
 }
 
 void hven::solvers::InteriorPointSolver::eval_kkt(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_kkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    this->assemble_dispatch(kRequestFullKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
 void hven::solvers::InteriorPointSolver::eval_kkt_no(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_kkt_no, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    // No-objective mode: obj_scale and val are unused by this shape, which
+    // names no objective output at all. Both stay in the signature so the four
+    // wrappers keep one shape for eval_nlp's switch to call through.
+    this->assemble_dispatch(kRequestConstraintKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
 void hven::solvers::InteriorPointSolver::eval_aug(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_aug, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    this->assemble_dispatch(kRequestFirstOrderKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
 void hven::solvers::InteriorPointSolver::eval_soe(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_soe, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    // Constraint-only mode, as eval_kkt_no above: neither obj_scale nor val is
+    // read by this shape.
+    this->assemble_dispatch(kRequestConstraintJacobianOnly, obj_scale, XSL, val, GX, AGXS_FX,
+                            KKTmat);
 }
 
 // =============================================================================
@@ -1022,8 +1102,9 @@ void hven::solvers::InteriorPointSolver::eval_nlp(
         // switch does, and each constraint-row RHS carries the condensed residual
         // r̃ in place of the raw residual. μ is the live phase barrier parameter
         // (η(μ) is recomputed on every evaluation). Pivots and the primal diagonal
-        // must be set BEFORE eval_kkt_no (they scatter inside fill_solver_coeffs)
-        // and reset to 0.0 after, mirroring the set_primal_diags discipline.
+        // must be set BEFORE eval_kkt_no (assemble_dispatch's own
+        // fill_solver_coeffs step scatters them) and reset to 0.0 after,
+        // mirroring the set_primal_diags discipline.
         if (this->restoration_->is_nested()) {
             const int ec = this->equal_cons_;
             const int ic = this->inequal_cons_;
@@ -1133,13 +1214,14 @@ void hven::solvers::InteriorPointSolver::eval_nlp(
 // handed to notify_switch_to_optimality or reported as obj_val_, since both
 // consumers expect true-objective scale. This re-evaluates the true objective
 // once at the live primals, matching the non-OPT obj_val_ eval pattern below
-// (zero the accumulator, then let eval_obj accumulate into it).
+// (zero the accumulator, then let the objective-value request accumulate into
+// it).
 hven::solvers::ProgressMeasures hven::solvers::InteriorPointSolver::build_restoration_exit_measures(
     double obj_scale, double infeasibility, ConstEigenRef<VectorXd> primals, double barr_obj) {
     ProgressMeasures measures;
     measures.infeasibility = infeasibility;
     measures.objective = 0.0;
-    this->nlp_->eval_obj(obj_scale, primals, measures.objective);
+    this->assemble_objective(obj_scale, primals, measures.objective);
     measures.auxiliary = barr_obj;
     return measures;
 }
@@ -2191,7 +2273,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 // unlike the notify measures, which record the exit point. With
                 // return_best_ off the two evaluations coincide.
                 restoration_true_obj = 0.0;
-                this->nlp_->eval_obj(obj_scale, v_xsl.primals(), restoration_true_obj);
+                this->assemble_objective(obj_scale, v_xsl.primals(), restoration_true_obj);
                 this->result_.converge_flag_ = ExitCode;
                 if (settings_.print_level_ == 0) {
                     Printtimer.start();
@@ -3128,7 +3210,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     } else {
         Funtimer.start();
         this->result_.obj_val_ = 0;
-        this->nlp_->eval_obj(obj_scale, v_xsl.primals(), this->result_.obj_val_);
+        this->assemble_objective(obj_scale, v_xsl.primals(), this->result_.obj_val_);
         Funtimer.stop();
     }
 
