@@ -136,8 +136,18 @@ inline constexpr int kMinKktElementsPerPartition = 1000;
 /// the fold that follows walks them in claim order, so the accumulation order
 /// is a property of the layout alone: the same problem produces bit-identical
 /// right-hand sides at any thread count. This library's pins rest on that
-/// stability, and it outranks the no-copy property. Removing the intermediate
-/// would be a regression, not an optimization.
+/// stability, and ON THE DETERMINISTIC PATH -- the default, and the path
+/// every pin and measurement runs on -- it outranks the no-copy property:
+/// removing the intermediate there would be a regression, not an
+/// optimization. Accumulation-VALUE determinism is a property of this path,
+/// not a library absolute (owner ruling): a future user-selectable
+/// max-performance fill may relax it, exactly as threaded MKL already does,
+/// behind an explicit mode choice -- never silently, and never as this
+/// path's default. What stays hard everywhere, on every path and for every
+/// provider, is LAYOUT determinism: claim order, structural keys, and
+/// location tables are untouched by that option; keys, byte-stable pins,
+/// and warm-start identity rest on them, and only the floating-point
+/// summation order is ever mode-dependent.
 ///
 /// The two facts are per-major/per-minor consistent with how the same question
 /// is scoped for a Level 1 bridge: what is protected is the per-minor hot path,
