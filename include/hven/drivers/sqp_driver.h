@@ -2178,6 +2178,20 @@ struct NlpEval {
 // eval_hess per accepted iterate -- and, on a solve that accepts none
 // because it builds no subproblem at all, the single eval_hess
 // make_warm_start's zero-major probe pays instead (see NlpEval above).
+//
+// THE CALLBACK RETURNS ARE CHECKED, NOT ASSUMED (M3 final review, S-1), and
+// this is a wrong-answer guard rather than a courtesy. The argument x is the
+// caller's and was always size-checked; the five RETURNS are the MODEL's, and
+// nothing downstream re-measures them. An eval_ci that returns an EMPTY vector
+// on a model whose mi() is 1 propagates a 0-sized ev.ci past allFinite() --
+// vacuously true on an empty vector, so the finiteness screen sees nothing
+// wrong -- and into evaluate_kkt's `for j < model.mi()` loop, which reads
+// ev.ci(0) out of bounds. Eigen's own assert catches that in Debug and is
+// compiled out under NDEBUG (CLAUDE.md §4), so in Release it is an unguarded
+// read of whatever follows the empty vector's buffer. Every check below is an
+// O(1) integer comparison against a dimension the model already declared, and
+// each throw NAMES THE CALLBACK, because "size 0, expected 1" is not
+// actionable unless the reader knows which of six functions produced it.
 inline NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
     const Index n = model.n();
     if (x.size() != n) {
@@ -2187,11 +2201,27 @@ inline NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
     NlpEval ev;
     ev.f = model.eval_f(x);
     ev.grad = model.eval_grad(x);
+    if (ev.grad.size() != n) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp: model.eval_grad returned size {}, expected {} (= model.n())",
+                        ev.grad.size(), n));
+    }
     ev.all_finite = std::isfinite(ev.f) && ev.grad.allFinite();
 
     if (model.me() > 0) {
         ev.ce = model.eval_ce(x);
+        if (ev.ce.size() != model.me()) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_ce returned size {}, expected {} (= model.me())",
+                            ev.ce.size(), model.me()));
+        }
         ev.Je = model.eval_jac_e(x);
+        if (ev.Je.rows() != model.me() || ev.Je.cols() != n) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_jac_e returned a {}x{} matrix, expected {}x{} "
+                            "(= model.me() x model.n())",
+                            ev.Je.rows(), ev.Je.cols(), model.me(), n));
+        }
         ev.all_finite = ev.all_finite && ev.ce.allFinite();
     } else {
         ev.ce = Vec(0);
@@ -2199,7 +2229,18 @@ inline NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
     }
     if (model.mi() > 0) {
         ev.ci = model.eval_ci(x);
+        if (ev.ci.size() != model.mi()) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_ci returned size {}, expected {} (= model.mi())",
+                            ev.ci.size(), model.mi()));
+        }
         ev.Ji = model.eval_jac_i(x);
+        if (ev.Ji.rows() != model.mi() || ev.Ji.cols() != n) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_jac_i returned a {}x{} matrix, expected {}x{} "
+                            "(= model.mi() x model.n())",
+                            ev.Ji.rows(), ev.Ji.cols(), model.mi(), n));
+        }
         ev.all_finite = ev.all_finite && ev.ci.allFinite();
     } else {
         ev.ci = Vec(0);
@@ -2234,6 +2275,25 @@ inline NlpEval eval_nlp_values(const NlpModel &model, const Vec &x) {
     }
     NlpEval ev;
     model.eval_values(x, ev.f, ev.ce, ev.ci);
+    // S-1, exactly as in eval_nlp above: eval_values writes cE/cI through
+    // out-parameters, so a model that sizes either one wrong hands the same
+    // out-of-range read to every consumer of this bundle. One override, two
+    // blocks, both checked -- and unconditionally, because eval_values is a
+    // SINGLE call that must produce both, with no me()/mi() > 0 branch to hide
+    // behind (a 0-row block must come back size 0, which this check demands
+    // just as strictly as it demands a nonzero one come back full).
+    if (ev.ce.size() != model.me()) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp_values: model.eval_values returned cE of size {}, expected {} "
+                        "(= model.me())",
+                        ev.ce.size(), model.me()));
+    }
+    if (ev.ci.size() != model.mi()) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp_values: model.eval_values returned cI of size {}, expected {} "
+                        "(= model.mi())",
+                        ev.ci.size(), model.mi()));
+    }
     ev.all_finite = std::isfinite(ev.f) && ev.ce.allFinite() && ev.ci.allFinite();
     ev.grad = Vec::Zero(n);
     ev.Je = Eigen::SparseMatrix<double, Eigen::RowMajor>(model.me(), n);

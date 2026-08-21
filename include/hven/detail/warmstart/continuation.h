@@ -483,6 +483,12 @@ struct ContinuationResult {
     // pair a caller reads to answer "what did this sweep pay for proposals it
     // then threw away, and how much of that did the probe budget catch".
     //
+    // "EVERY FAILED ATTEMPT" INCLUDES THE COLD SOLVE AT p0 (M3 final review,
+    // S-4), which is a step record like any other and is classified by the
+    // same probe_budget_stops test as the loop's own. A sweep whose p0 never
+    // converged therefore reports one failure here, not zero -- the sum
+    // invariant above holds on that sweep exactly as it does on every other.
+    //
     //   proposals_abandoned   attempts cut short by the probe budget
     //                         (ContinuationOptions::probe_budget), i.e. whose
     //                         solve came back with

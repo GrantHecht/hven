@@ -169,6 +169,20 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             "SqpDriver::solve: x0 contains a NaN or infinite entry; the start point must be "
             "finite in every coordinate");
     }
+    // THE BOX IS THE MODEL'S OTHER SIZED RETURN (M3 final review, S-1), and it
+    // is checked ONCE, here, rather than at each of the several sites that
+    // index it. lower()/upper() are read coordinate-wise by evaluate_kkt's
+    // activity test and by build_subproblem's l - x .. u - x window, both of
+    // which loop i = 0..n-1 with no size of their own to compare against; a
+    // model returning a short box therefore reads out of bounds in Release,
+    // where Eigen's own assert is compiled out. Two O(1) comparisons per
+    // solve, against the same n() the start point is already checked against.
+    if (model.lower().size() != n || model.upper().size() != n) {
+        throw std::invalid_argument(
+            fmt::format("SqpDriver::solve: model.lower()/model.upper() are sized ({}, {}), "
+                        "expected ({}, {}) (= model.n())",
+                        model.lower().size(), model.upper().size(), n, n));
+    }
 
     // ONE strategy per solve() call, so funnel state never leaks between
     // solves and solve() stays repeatable. See SqpOptions::make_strategy.
@@ -352,22 +366,27 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
         warm.valid && warm.x.size() == n && warm.lambda_e.size() == model.me() &&
         warm.lambda_i.size() == model.mi() && warm.qp_working_set.n() == n &&
         warm.qp_working_set.mi() == model.mi();
-    const bool ingest_allowed = opts_.start_level != StartLevel::kCold && warm_dims_plausible;
-    // THE SEEDED GATE (Phase-6 Task 5): dimensions plus FINITENESS, and
-    // nothing else -- no hash, no probe, no model evaluation. Finiteness is
-    // checked HERE, and gates ONLY the seeded resolution, because kSeeded
-    // is the first level reachable by an object no solve of this library
-    // produced: a hash-matching object came from a solve (or a predictor
-    // step) whose own exits are finite by construction, while a
-    // hand-assembled or foreign-solver object has made no such promise.
-    // Leaving the kWarm/kHot path's own conditions untouched is deliberate
-    // -- widening a check onto a route with no reachable defect would move
-    // pinned trajectories for nothing. The three vectors tested are exactly
-    // the three that are ingested; `z` is not (this ingest has never read
-    // it), and `tr_radius`/`funnel_width` are guarded by their own
+    // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one (M3 final
+    // review, S-3). It used to sit on the kSeeded resolution alone, on the
+    // argument that a hash-matching object "came from a solve whose own exits
+    // are finite by construction" -- true of every object this library
+    // PRODUCES, and not a property of the object a caller HANDS this function.
+    // WarmStart is an aggregate with public fields: a hand-assembled or
+    // foreign-solver object can carry warm.x(0) = NaN and a structure_hash
+    // that matches, resolve kWarm, and be ingested -- which contradicts
+    // solver_counters.h's documented contract that a non-finite ingested
+    // vector resolves kCold unconditionally. Hoisting the three conjuncts into
+    // `ingest_allowed` makes the seeded gate and the probe gate share one
+    // answer, which is what that contract says. The three vectors tested are
+    // exactly the three that are ingested; `z` is not (this ingest has never
+    // read it), and `tr_radius`/`funnel_width` are guarded by their own
     // `>= 0.0` tests, which a NaN fails.
-    if (ingest_allowed && warm.x.allFinite() && warm.lambda_e.allFinite() &&
-        warm.lambda_i.allFinite()) {
+    const bool ingest_allowed = opts_.start_level != StartLevel::kCold && warm_dims_plausible &&
+                                warm.x.allFinite() && warm.lambda_e.allFinite() &&
+                                warm.lambda_i.allFinite();
+    // THE SEEDED GATE (Phase-6 Task 5): dimensions plus FINITENESS, and
+    // nothing else -- no hash, no probe, no model evaluation.
+    if (ingest_allowed) {
         resolved_level = StartLevel::kSeeded;
     }
     const bool probe_is_worth_running =

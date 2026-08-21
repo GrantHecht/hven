@@ -2263,6 +2263,63 @@ TEST(WarmStart, SeededGateRejectsIncompatibleAndNonFiniteObjects) {
     }
 }
 
+// M3 FINAL REVIEW, S-3. THE FINITENESS GATE COVERS THE HASH-MATCHING ROUTE
+// TOO. Test (4)(b) above deliberately zeroes structure_hash to force the
+// SEEDED route, which is where the gate used to live; this one leaves the hash
+// INTACT so the object resolves kWarm (or kHot) on its own merits and then
+// poisons an ingested vector. solver_counters.h states the rule without a
+// route qualifier -- "kCold ... when any ingested vector is non-finite" -- and
+// the argument the old placement rested on ("a hash-matching object came from
+// a solve whose exits are finite by construction") is a fact about objects
+// this library PRODUCES, not about the aggregate a caller may hand in with
+// every field public.
+TEST(WarmStart, NonFiniteObjectResolvesColdEvenWithAMatchingHash) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    const auto seed_p = make_hs(7);
+    SqpDriver seed_driver{SqpOptions{}};
+    const SqpSolution seed = seed_driver.solve(*seed_p.model);
+    ASSERT_EQ(seed.status, SqpStatus::kOptimal);
+    ASSERT_NE(seed.warm_start.structure_hash, 0u)
+        << "the object must carry a real hash, or this test is test (4)(b) again";
+
+    // THE CONTROL first: unpoisoned, this exact object resolves above kSeeded,
+    // so the kCold below is the NaN and not some unrelated mismatch.
+    {
+        const auto p = make_hs(7);
+        SqpDriver driver{SqpOptions{}};
+        const SqpSolution warm = driver.solve(*p.model, p.model->start_point(), seed.warm_start);
+        EXPECT_GE(static_cast<int>(warm.counters.start_level_used),
+                  static_cast<int>(StartLevel::kWarm))
+            << "the unpoisoned object earns the hash-matching route";
+        EXPECT_EQ(warm.status, SqpStatus::kOptimal);
+    }
+
+    for (int which = 0; which < 3; ++which) {
+        SCOPED_TRACE(which == 0 ? "x" : which == 1 ? "lambda_e" : "lambda_i");
+        WarmStart poisoned = seed.warm_start;
+        if (which == 0) {
+            poisoned.x(0) = nan;
+        } else if (which == 1 && poisoned.lambda_e.size() > 0) {
+            poisoned.lambda_e(0) = nan;
+        } else if (which == 2 && poisoned.lambda_i.size() > 0) {
+            poisoned.lambda_i(0) = nan;
+        } else {
+            continue; // HS7 has no rows of this kind; nothing to poison
+        }
+        ASSERT_NE(poisoned.structure_hash, 0u) << "the hash is deliberately left matching";
+
+        const auto p = make_hs(7);
+        SqpDriver driver{SqpOptions{}};
+        const SqpSolution sol = driver.solve(*p.model, p.model->start_point(), poisoned);
+        EXPECT_EQ(sol.counters.start_level_used, StartLevel::kCold)
+            << "a matching hash does not buy an ingest of a NaN";
+        EXPECT_EQ(sol.counters.n_seeded, 0);
+        EXPECT_EQ(sol.status, SqpStatus::kOptimal) << "and the cold solve is unharmed";
+        EXPECT_TRUE(sol.x.allFinite()) << "the NaN was never ingested";
+    }
+}
+
 // (5) THE THREE REFUSALS. A kSeeded ingest must take x/duals/activity and
 // NOTHING ELSE: no trust-region radius, no funnel width, no Kungurtsev-Diehl
 // window. Isolated by feeding the SAME object twice, once with the ceiling at

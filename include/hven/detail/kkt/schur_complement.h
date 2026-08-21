@@ -162,16 +162,52 @@ class SchurComplement {
     // Removes the k-th added border (0-indexed in add_border call order,
     // shifting later indices down by one). Throws std::out_of_range if k is
     // outside [0, dim()).
+    //
+    // ALL-OR-NOTHING ON THE BORDER STACK, the exact mirror of add_border's own
+    // guarantee and required for the same reason (M3 final review, S-7 --
+    // FX-7/FX-8 closed the ADD side of this invariant and left the DROP side
+    // open). The caller (qp_engine.h sync_borders) drops the border FIRST and
+    // erases the matching ledger entry SECOND, so a throw out of the
+    // rebuild_schur() below -- after all three arrays are already shortened --
+    // leaves a ledger entry naming a border that is gone. Every later drop
+    // then indexes one position too high: it removes the WRONG border, which
+    // is a silent wrong bordered solve rather than a reported failure. That is
+    // FX-8's orphan with the two sides swapped.
+    //
+    // THE FALLIBLE PART CANNOT BE HOISTED HERE the way add_border hoists its
+    // allocations: rebuild_schur() rebuilds C from the arrays as they stand
+    // AFTER the erase, so it cannot run before one. Rollback is the available
+    // shape. Re-inserting into three vectors that were just erased from needs
+    // no allocation (erase does not shrink capacity, so size() < capacity()
+    // holds at every insert) and moves only Eigen dynamic vectors, whose move
+    // assignment steals a pointer -- so, as in add_border's catch, nothing in
+    // the recovery can itself throw.
+    //
+    // The cached C factorization is NOT restored, for add_border's reason:
+    // needs_refactorization() is true after a failed rebuild and every
+    // evidence reader refuses. What the rollback preserves is the STACK's
+    // agreement with the caller's ledger, not the ability to keep bordering.
     void drop_border(Index k) {
         if (k < 0 || k >= dim()) {
             throw std::out_of_range(fmt::format(
                 "SchurComplement::drop_border: index {} out of range [0, {})", k, dim()));
         }
         const auto idx = static_cast<std::size_t>(k);
-        v_.erase(v_.begin() + static_cast<std::ptrdiff_t>(idx));
-        k0inv_v_.erase(k0inv_v_.begin() + static_cast<std::ptrdiff_t>(idx));
-        d_.erase(d_.begin() + static_cast<std::ptrdiff_t>(idx));
-        rebuild_schur();
+        const auto at = static_cast<std::ptrdiff_t>(idx);
+        Vec saved_v = std::move(v_[idx]);
+        Vec saved_k0inv_v = std::move(k0inv_v_[idx]);
+        const double saved_d = d_[idx];
+        v_.erase(v_.begin() + at);
+        k0inv_v_.erase(k0inv_v_.begin() + at);
+        d_.erase(d_.begin() + at);
+        try {
+            rebuild_schur();
+        } catch (...) {
+            v_.insert(v_.begin() + at, std::move(saved_v));
+            k0inv_v_.insert(k0inv_v_.begin() + at, std::move(saved_k0inv_v));
+            d_.insert(d_.begin() + at, saved_d);
+            throw;
+        }
     }
 
     // rhs_full sized K0.rows() + dim(); returns [x0; y] of the same size.

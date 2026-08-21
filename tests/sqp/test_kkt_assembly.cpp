@@ -96,6 +96,55 @@ TEST(KktAssembly, MismatchedWorkingSetThrows) {
     EXPECT_THROW(assemble_kkt(qp, ws, QpOptions{}), std::invalid_argument);
 }
 
+// M3 FINAL REVIEW, S-6. The two checks above measure the WorkingSet against
+// the QP; this one measures the QP against ITSELF. The bound-elimination path
+// reads qp.lower(i) / qp.upper(i) at every variable the working set pins, and
+// the index comes from ws.bound_state() -- whose size is n by the first check
+// -- not from lower/upper's own length. A short box is therefore an
+// assert-only read past the end in Debug and an unguarded one in Release, on
+// exactly the same footing as the mismatched-WorkingSet case above.
+//
+// Deliberately NOT a call to qp.validate(): that is O(nnz) in H/Ae/Ai and this
+// assembly runs once per working-set change on the refactorize path. Two size
+// comparisons close the out-of-bounds read; the pattern scan is not needed to.
+TEST(KktAssembly, MismatchedBoundVectorsThrow) {
+    const auto make_qp = [] {
+        QpProblem qp;
+        qp.H = Eigen::MatrixXd::Identity(2, 2)
+                   .triangularView<Eigen::Upper>()
+                   .toDenseMatrix()
+                   .sparseView();
+        qp.g = Vec::Zero(2);
+        qp.Ae = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+        qp.be = Vec(0);
+        qp.Ai = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+        qp.bi = Vec(0);
+        qp.lower = Vec::Constant(2, -1e20);
+        qp.upper = Vec::Constant(2, 1e20);
+        return qp;
+    };
+    // n == 2, variable 1 pinned at its lower bound -- the index the assembly
+    // reads, and the one a size-1 `lower` does not have.
+    WorkingSet ws(2, 0);
+    ws.bound_state()[1] = BoundState::kAtLower;
+
+    QpProblem short_lower = make_qp();
+    short_lower.lower = Vec::Constant(1, -1e20);
+    EXPECT_THROW(assemble_kkt(short_lower, ws, QpOptions{}), std::invalid_argument);
+
+    QpProblem short_upper = make_qp();
+    short_upper.upper = Vec::Constant(1, 1e20);
+    EXPECT_THROW(assemble_kkt(short_upper, ws, QpOptions{}), std::invalid_argument);
+
+    // Both are also rejected by assemble_kkt_full, which shares the same core
+    // and eliminates no bounds -- the check belongs to the QP's own
+    // consistency, not to the elimination path that happens to read it.
+    EXPECT_THROW(assemble_kkt_full(short_lower, ws, QpOptions{}), std::invalid_argument);
+
+    // THE CONTROL: the same working set against a correctly sized box.
+    EXPECT_NO_THROW(assemble_kkt(make_qp(), ws, QpOptions{}));
+}
+
 // Mirror of HessianEliminationShift: here the FIXED variable has the SMALLER
 // full index, so the coupling entry's upper-triangle storage is
 // (row = fixed 0, col = free 1) and the shift must be gathered through the

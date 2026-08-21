@@ -127,7 +127,34 @@ TEST(NLPAdapterCoreTest, RejectsBadSizesAndStructures) {
         p.xu_[0] = 0.0;
     }); // inverted var bound
     bad([](AdapterValProblem &p) { p.xl_[0] = std::numeric_limits<double>::quiet_NaN(); });
+    // M3 FINAL REVIEW, S-2. A VARIABLE FIXED AT INFINITY, both signs. Neither
+    // preceding check catches it (inf is not NaN, and inf > inf is false), and
+    // the install loop asks isfinite() before installing either side -- so
+    // before this it passed construction and came out as a variable with NO
+    // bound at all: "fixed" declared, FREE installed. The constraint-row twin
+    // has rejected exactly this shape since it was written
+    // (NLPRowClassificationTest.RejectsInvertedAndNaNAndInfiniteEqualityBounds
+    // above); the variable loop now matches it.
+    bad([](AdapterValProblem &p) {
+        p.xl_[0] = kInf;
+        p.xu_[0] = kInf;
+    });
+    bad([](AdapterValProblem &p) {
+        p.xl_[1] = -kInf;
+        p.xu_[1] = -kInf;
+    });
     EXPECT_THROW(NLPAdapterCore{nullptr}, std::invalid_argument);
+
+    // THE CONTROL, and the reason the check is `lo == up && !isfinite(lo)`
+    // rather than a blanket equality test: fixing a variable at a FINITE value
+    // is the ordinary way to fix one and stays accepted.
+    auto fixed_finite = std::make_shared<AdapterValProblem>();
+    fixed_finite->xl_[0] = 2.0;
+    fixed_finite->xu_[0] = 2.0;
+    EXPECT_NO_THROW(NLPAdapterCore{fixed_finite});
+    // And an ordinary free variable (-inf, +inf) is untouched -- the two
+    // infinities differ, so the new check never sees it.
+    EXPECT_NO_THROW(NLPAdapterCore{std::make_shared<AdapterValProblem>()});
 }
 
 TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
@@ -307,7 +334,7 @@ TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     // ...so the no-objective assembly gets a pure-constraint Hessian.
     zero_kkt();
     nlp->eval_kkt_no(2.0, X, LE, LI, val, PGX, AGX, FXE, FXI, kkt);
-    EXPECT_NEAR(kkt.coeff(1, 1), 0.0, 1e-14);       // the 2*sigma term is gone
+    EXPECT_NEAR(kkt.coeff(1, 1), 0.0, 1e-14); // the 2*sigma term is gone
     // Widened: (0,0) is the same duplicate-slot accumulation as the dense
     // assembly test above.
     EXPECT_NEAR(kkt.coeff(0, 0), 2 * LI[0], 1e-12); // constraint curvature stays

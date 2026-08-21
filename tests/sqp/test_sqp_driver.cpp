@@ -98,6 +98,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
@@ -277,6 +278,101 @@ class CountingModel : public NlpModel {
   private:
     std::unique_ptr<NlpModel> inner_;
 };
+
+// M3 FINAL REVIEW, S-1. A decorator that forwards everything to a real model
+// except ONE callback, whose return it deliberately mis-SIZES -- the shape a
+// consumer-written model produces by getting me()/mi()/n() wrong in one place
+// and right everywhere else. Every arm is a size error and nothing else: the
+// values are the base model's own, so what the eval boundary is being asked to
+// notice is the dimension and not a NaN or a wild number.
+//
+// EMPTY IS THE INTERESTING CASE, and it is why `kCi` returns a 0-sized vector
+// rather than a merely-short one: the finiteness screen these bundles carry is
+// allFinite(), which is VACUOUSLY TRUE on an empty vector, so an empty cI on a
+// model with mi() == 1 passes every check that existed before S-1 and is then
+// indexed at ev.ci(0) by evaluate_kkt.
+class MisSizingModel : public NlpModel {
+  public:
+    // kNone is the control arm: the decorator forwards everything untouched,
+    // which is what makes "the other arms throw" a statement about the arms
+    // rather than about the decorator.
+    enum class Which { kNone, kGrad, kCe, kJacE, kCi, kJacI, kLower, kUpper, kValuesCe, kValuesCi };
+
+    MisSizingModel(std::unique_ptr<NlpModel> inner, Which which)
+        : inner_(std::move(inner)), which_(which) {
+        short_box_ = Vec::Zero(inner_->n() > 0 ? inner_->n() - 1 : 0);
+    }
+
+    Index n() const override { return inner_->n(); }
+    Index me() const override { return inner_->me(); }
+    Index mi() const override { return inner_->mi(); }
+
+    double eval_f(const Vec &x) const override { return inner_->eval_f(x); }
+    Vec eval_grad(const Vec &x) const override {
+        const Vec g = inner_->eval_grad(x);
+        return which_ == Which::kGrad ? Vec(g.head(g.size() - 1)) : g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        const Vec c = inner_->eval_ce(x);
+        return which_ == Which::kCe ? Vec(0) : c;
+    }
+    Vec eval_ci(const Vec &x) const override {
+        const Vec c = inner_->eval_ci(x);
+        return which_ == Which::kCi ? Vec(0) : c;
+    }
+    SpMatRM eval_hess(const Vec &x, double s, const Vec &le, const Vec &li) const override {
+        return inner_->eval_hess(x, s, le, li);
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> J = inner_->eval_jac_e(x);
+        if (which_ == Which::kJacE) {
+            J.conservativeResize(J.rows() + 1, J.cols()); // one row too many
+        }
+        return J;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> J = inner_->eval_jac_i(x);
+        if (which_ == Which::kJacI) {
+            J.conservativeResize(J.rows(), J.cols() + 1); // one column too many
+        }
+        return J;
+    }
+    void eval_values(const Vec &x, double &f, Vec &cE, Vec &cI) const override {
+        inner_->eval_values(x, f, cE, cI);
+        if (which_ == Which::kValuesCe) {
+            cE = Vec::Zero(inner_->me() + 1);
+        }
+        if (which_ == Which::kValuesCi) {
+            cI = Vec::Zero(inner_->mi() + 1);
+        }
+    }
+    const Vec &lower() const override {
+        return which_ == Which::kLower ? short_box_ : inner_->lower();
+    }
+    const Vec &upper() const override {
+        return which_ == Which::kUpper ? short_box_ : inner_->upper();
+    }
+    Vec start_point() const override { return inner_->start_point(); }
+
+  private:
+    std::unique_ptr<NlpModel> inner_;
+    Which which_;
+    Vec short_box_;
+};
+
+// Runs `fn` and returns the message of the std::invalid_argument it must
+// throw, so a caller can assert on the TEXT and not merely on the type -- S-1's
+// whole point is that the diagnostic names which callback misbehaved.
+std::string message_of_throw(const std::function<void()> &fn) {
+    try {
+        fn();
+    } catch (const std::invalid_argument &e) {
+        return e.what();
+    } catch (...) {
+        return "<a non-invalid_argument exception>";
+    }
+    return "<no exception was thrown>";
+}
 
 } // namespace
 
@@ -906,6 +1002,77 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
         SqpDriver driver{SqpOptions{}};
         EXPECT_THROW(driver.solve(*p.model, Vec::Zero(3)), std::invalid_argument);
     }
+}
+
+// M3 FINAL REVIEW, S-1 (Critical). THE EVAL BOUNDARY CHECKS WHAT THE MODEL
+// RETURNS, not just what the caller passed in. Before this, eval_nlp
+// size-checked `x` -- the one quantity it did not obtain from the model -- and
+// took all five callback returns on trust. A consumer model that mis-sizes one
+// of them therefore reached an out-of-bounds read in Release rather than a
+// diagnostic: the case reproduced by the kCi arm below (an EMPTY cI on a model
+// declaring mi() == 1) slipped past allFinite(), which is vacuously true on an
+// empty vector, and was then indexed by evaluate_kkt's `for j < model.mi()`.
+//
+// EVERY ARM ASSERTS THE MESSAGE, not just the throw. "size 0, expected 1" is
+// not actionable on a model with six sized returns unless it says WHICH one,
+// so the name of the offending callback is part of the contract.
+TEST(SqpDriverContract, MisSizedCallbackReturnsAreRejectedByName) {
+    using Which = MisSizingModel::Which;
+    const Vec x7 = make_hs(7).model->start_point();
+    const Vec x10 = make_hs(10).model->start_point();
+
+    // (a) eval_nlp's five derivative returns. HS7 (n=2, me=1, mi=0) carries the
+    // equality arms and HS10 (n=2, me=0, mi=1) the inequality ones, because
+    // eval_nlp only CALLS the block callbacks whose dimension is nonzero.
+    struct Arm {
+        int hs;
+        Which which;
+        const char *names;
+    };
+    for (const Arm &arm : {Arm{7, Which::kGrad, "eval_grad"}, Arm{7, Which::kCe, "eval_ce"},
+                           Arm{7, Which::kJacE, "eval_jac_e"}, Arm{10, Which::kCi, "eval_ci"},
+                           Arm{10, Which::kJacI, "eval_jac_i"}}) {
+        SCOPED_TRACE(arm.names);
+        const MisSizingModel model(make_hs(arm.hs).model, arm.which);
+        const Vec &x = arm.hs == 7 ? x7 : x10;
+        const std::string msg = message_of_throw([&] { (void)eval_nlp(model, x); });
+        EXPECT_NE(msg.find(arm.names), std::string::npos)
+            << "the throw must name the callback that misbehaved; got: " << msg;
+        EXPECT_NE(msg.find("eval_nlp"), std::string::npos) << msg;
+    }
+
+    // (b) eval_nlp_values' two out-parameters. One call produces both, so both
+    // are checked unconditionally -- including on a block whose declared
+    // dimension is zero, which is what the HS10 cE arm exercises.
+    for (const Arm &arm : {Arm{10, Which::kValuesCe, "cE"}, Arm{10, Which::kValuesCi, "cI"}}) {
+        SCOPED_TRACE(arm.names);
+        const MisSizingModel model(make_hs(arm.hs).model, arm.which);
+        const std::string msg = message_of_throw([&] { (void)eval_nlp_values(model, x10); });
+        EXPECT_NE(msg.find("eval_values"), std::string::npos)
+            << "the throw must name eval_values; got: " << msg;
+        EXPECT_NE(msg.find(arm.names), std::string::npos) << "and which block: " << msg;
+    }
+
+    // (c) THE BOX, checked once at solve entry rather than at each of the
+    // several sites that index it coordinate-wise.
+    for (const Which which : {Which::kLower, Which::kUpper}) {
+        SCOPED_TRACE(which == Which::kLower ? "lower" : "upper");
+        const MisSizingModel model(make_hs(5).model, which);
+        SqpDriver driver{SqpOptions{}};
+        const std::string msg =
+            message_of_throw([&] { (void)driver.solve(model, model.start_point()); });
+        EXPECT_NE(msg.find("model.lower()"), std::string::npos) << msg;
+        EXPECT_NE(msg.find("model.upper()"), std::string::npos) << msg;
+    }
+
+    // (d) THE CONTROL. The same decorator with no arm selected mis-sizes
+    // nothing, so every path above is clean -- without this the assertions
+    // could all be passing on a decorator that is simply broken.
+    const MisSizingModel honest(make_hs(76).model, Which::kNone);
+    EXPECT_NO_THROW((void)eval_nlp(honest, honest.start_point()));
+    EXPECT_NO_THROW((void)eval_nlp_values(honest, honest.start_point()));
+    SqpDriver clean{SqpOptions{}};
+    EXPECT_NO_THROW((void)clean.solve(honest, honest.start_point()));
 }
 
 // MODEL EVALUATION IS THE COST THAT MATTERS on tycho's target workloads, so

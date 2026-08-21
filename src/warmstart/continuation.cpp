@@ -183,14 +183,53 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
 
     out.final_warm = sol.warm_start;
     if (sol.status != SqpStatus::kOptimal) {
+        // THE FAILED INITIAL POINT IS A FAILED ATTEMPT (M3 final review, S-4)
+        // and is classified here EXACTLY as the loop classifies its own
+        // (below): caught by the probe budget, or paid in full. It used to
+        // return with both counters at zero, which broke
+        // ContinuationResult's own invariant -- that the two sum to the number
+        // of failed attempts -- on every sweep whose p0 did not solve, the one
+        // case where `steps` is entirely failures. Both ways of arriving here
+        // are covered by the one classification: the direct failure, and a
+        // budget chain that ran past kBudgetContinuationsMax (which leaves the
+        // loop above with a non-kOptimal status and falls through to exactly
+        // this return).
+        if (sol.counters.probe_budget_stops > 0) {
+            ++out.proposals_abandoned;
+        } else {
+            ++out.proposals_full_cost;
+        }
         return out; // no path to follow from a p0 that did not solve
     }
 
+    // ENDPOINT EQUALITY IS DECIDED EXACTLY, and the arc length is measured
+    // stably (M3 final review, S-5). `segment.norm()` SQUARES before it sums,
+    // so a segment of all-subnormal entries (p1 - p0 = [1e-300]) underflows to
+    // 0.0 and the old `!(total > 0.0)` test then claimed "p1 == p0: the cold
+    // solve IS the sweep" and reported reached_p1 -- for a p1 that was never
+    // solved at, and never even proposed. Two separate questions were being
+    // answered by one number. The p1 == p0 CLAIM is now the exact
+    // componentwise equality it always asserted, and the arc length uses
+    // stableNorm(), which scales out the largest magnitude before summing and
+    // so returns 1e-300 rather than 0 for that segment -- letting a genuinely
+    // tiny sweep parameterize.
     const Vec segment = p1 - p0;
-    const double total = segment.norm();
-    if (!(total > 0.0)) {
+    if ((p1.array() == p0.array()).all()) {
         out.reached_p1 = true; // p1 == p0: the cold solve IS the sweep
         return out;
+    }
+    const double total = segment.stableNorm();
+    if (!(total > 0.0)) {
+        // Unreachable for the inputs validate() admits: p0 and p1 are finite
+        // and, past the equality test above, differ in at least one
+        // coordinate, so a scaled norm of their difference is strictly
+        // positive. Kept because the alternative to failing loudly here is
+        // dividing by it on the next line -- the silent wrong answer this item
+        // exists to remove, restored in a different place.
+        throw std::invalid_argument(fmt::format(
+            "run_continuation: p1 differs from p0 but the segment length came out {}; the sweep "
+            "has no direction to follow",
+            total));
     }
     const Vec direction = segment / total;
 

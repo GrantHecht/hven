@@ -103,6 +103,19 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NLPProblem> problem) : problem_(s
                 fmt::format("{}: variable {} lower bound {} exceeds upper bound {}",
                             problem_->name(), i, x_lower_[i], x_upper_[i]));
         }
+        // A VARIABLE FIXED AT INFINITY IS REJECTED, exactly as its
+        // constraint-row twin is (NLPRowClassification::classify above). The
+        // two preceding checks both pass it: inf is not NaN, and inf > inf is
+        // false. The install loop then asks `isfinite` before installing
+        // either side, so such a variable ends up with NO bound at all -- a
+        // "fixed" variable silently FREE, which is a wrong answer rather than
+        // a missing diagnostic. Equality at a FINITE value is untouched and
+        // remains the ordinary way to fix a variable.
+        if (x_lower_[i] == x_upper_[i] && !std::isfinite(x_lower_[i])) {
+            throw std::invalid_argument(
+                fmt::format("{}: variable {}: both bounds are {} — a variable fixed at infinity",
+                            problem_->name(), i, x_lower_[i]));
+        }
     }
     rows_ = NLPRowClassification::classify(gl, gu);
 

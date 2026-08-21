@@ -926,6 +926,102 @@ TEST(Continuation, ZeroLengthSweepIsJustTheColdSolve) {
     EXPECT_TRUE(res.final_warm.valid);
 }
 
+// M3 FINAL REVIEW, S-5. A SEGMENT WHOSE SQUARE UNDERFLOWS IS STILL A SEGMENT.
+// p0 = 0, p1 = 1e-300: `segment.norm()` squares before it sums, so 1e-300
+// becomes 0 and the old length test read that as "p1 == p0" -- returning
+// reached_p1 == true after a single cold solve at p0, having never proposed p1
+// at all. reached_p1 is the field a caller trusts to mean "the sweep arrived",
+// so that was a wrong answer rather than a rounding nicety. stableNorm() scales
+// the largest magnitude out before summing and returns 1e-300, and the p1 == p0
+// claim is now the exact componentwise equality it always asserted.
+TEST(Continuation, SubnormalSegmentIsParameterizedRatherThanCalledZeroLength) {
+    constexpr double kTiny = 1e-300;
+    ASSERT_EQ(kTiny * kTiny, 0.0)
+        << "the fixture depends on the SQUARE underflowing, not the value";
+
+    F1BoxQp model(0.0);
+    SqpDriver driver(sweep_options());
+    const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(kTiny), driver);
+
+    EXPECT_TRUE(res.reached_p1) << trajectory(res);
+    // TWO steps, not one: the cold solve at p0 and a solve AT p1. One step
+    // with reached_p1 set is precisely the dishonest report this item removes.
+    ASSERT_EQ(res.steps.size(), 2u) << "p1 was never proposed:\n" << trajectory(res);
+    EXPECT_EQ(res.steps.back().p(0), kTiny) << trajectory(res);
+    EXPECT_EQ(res.steps.back().status, SqpStatus::kOptimal) << trajectory(res);
+    EXPECT_EQ(res.steps.back().dp, kTiny) << trajectory(res);
+
+    // AND THE EXACT-EQUALITY ARM STILL SHORT-CIRCUITS. ZeroLengthSweepIsJust
+    // TheColdSolve above pins the p0 == p1 case at 0.3; repeated here at 0.0
+    // so the two neighbouring behaviours are stated side by side, and so a
+    // regression that made the equality test approximate again would swallow
+    // the sweep above rather than fail only there.
+    F1BoxQp same(0.0);
+    SqpDriver same_driver(sweep_options());
+    const ContinuationResult zero = run_continuation(same, p_vec(0.0), p_vec(0.0), same_driver);
+    EXPECT_TRUE(zero.reached_p1) << trajectory(zero);
+    EXPECT_EQ(zero.steps.size(), 1u) << trajectory(zero);
+}
+
+// M3 FINAL REVIEW, S-4. THE FAILED COLD SOLVE IS A FAILED ATTEMPT. The pair
+// (proposals_abandoned, proposals_full_cost) is documented to sum to the number
+// of failed attempts in `steps`; on a sweep whose p0 never converged -- the one
+// case where every recorded step is a failure -- both used to come back 0.
+TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
+    // (a) THE DIRECT FAILURE. max_iter = 0 with budget_mode off reports
+    // kMaxIter at p0, so the sweep records one step and returns.
+    {
+        SqpOptions starved = sweep_options();
+        starved.max_iter = 0;
+        F1BoxQp model(0.0);
+        SqpDriver driver(starved);
+
+        const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver);
+        ASSERT_EQ(res.steps.size(), 1u) << trajectory(res);
+        ASSERT_NE(res.steps.front().status, SqpStatus::kOptimal) << trajectory(res);
+        EXPECT_EQ(res.proposals_abandoned + res.proposals_full_cost, 1)
+            << "the sum invariant must hold on a sweep whose only step failed:\n"
+            << trajectory(res);
+        // No probe budget is ever armed at p0 (the cold solve is unbudgeted),
+        // so the classification lands on full_cost -- the same test the loop
+        // applies to its own failures, reaching the same answer.
+        EXPECT_EQ(res.proposals_abandoned, 0) << trajectory(res);
+        EXPECT_EQ(res.proposals_full_cost, 1) << trajectory(res);
+    }
+
+    // (b) THE BUDGET CHAIN PAST ITS CAP -- ColdStepFollowsTheSameBudgetRule's
+    // fixture, read through the retry-cost split. The chain itself is a
+    // sequence of CONTINUATIONS, which continuation.h says are in neither
+    // counter; only the attempt the cap demotes counts, ONCE.
+    {
+        SqpOptions starved = sweep_options();
+        starved.max_iter = 0;
+        starved.budget_mode = true;
+        F2CircleNlp model(0.6);
+        SqpDriver driver(starved);
+
+        const ContinuationResult res = run_continuation(model, p_vec(0.6), p_vec(1.0), driver);
+        ASSERT_EQ(res.steps.size(), 4u) << trajectory(res);
+        EXPECT_EQ(res.proposals_abandoned + res.proposals_full_cost, 1)
+            << "a demoted chain is ONE failed attempt, not four and not zero:\n"
+            << trajectory(res);
+    }
+
+    // (c) THE CONTROL. A sweep whose p0 DOES converge is untouched -- this is
+    // the counter-neutrality argument for the change, asserted rather than
+    // asserted-about: every existing proposals_* pin in this file is on a
+    // fixture of exactly this shape.
+    {
+        F1BoxQp model(0.3);
+        SqpDriver driver(sweep_options());
+        const ContinuationResult res = run_continuation(model, p_vec(0.3), p_vec(0.5), driver);
+        ASSERT_TRUE(res.reached_p1) << trajectory(res);
+        EXPECT_EQ(res.proposals_abandoned + res.proposals_full_cost, 0)
+            << "a clean sweep records no failed attempt:\n"
+            << trajectory(res);
+    }
+}
+
 // FIX ROUND 1, M1: the COLD step follows the same budget rule as every other
 // parameter value -- an exhaustion at p0 is a continue, not a fatal.
 TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {

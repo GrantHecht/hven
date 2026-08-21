@@ -117,6 +117,34 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
             fmt::format("{}: WorkingSet has {} inequality rows, expected {} (= qp.mi())", who,
                         ws.mi(), qp.mi()));
     }
+    // THE BOX IS CHECKED TOO (M3 final review, S-6). The two checks above
+    // measure the WorkingSet against the QP; these measure the QP against
+    // ITSELF, because the bound-elimination path below reads qp.lower(i) /
+    // qp.upper(i) at every variable the working set pins -- indices that come
+    // from ws.bound_state(), whose size is n by the first check, and NOT from
+    // lower/upper's own length. A QP carrying a short box (n == 2 with
+    // lower.size() == 1, variable 1 kAtLower) is an assert-only read past the
+    // end in Debug and an unguarded one in Release.
+    //
+    // TWO SIZE COMPARISONS, NOT qp.validate(). The full validation is O(nnz)
+    // in H/Ae/Ai and this function runs once per working-set change on the
+    // refactorize path, so calling it here would put a pattern-sized scan
+    // inside a hot loop -- and would re-validate, on every driver path, a QP
+    // the driver already validated once. The two O(1) checks close the actual
+    // out-of-bounds read at no measurable cost.
+    //
+    // REACHABILITY: every in-tree driver validates its QP upstream of this
+    // call, so the throws are dead on all of them. The consumer that reaches
+    // them is a direct user of this detail header, which is the same class of
+    // caller the assembly's existing WorkingSet checks are written for.
+    if (qp.lower.size() != n) {
+        throw std::invalid_argument(fmt::format("{}: qp.lower has size {}, expected {} (= qp.n())",
+                                                who, qp.lower.size(), n));
+    }
+    if (qp.upper.size() != n) {
+        throw std::invalid_argument(fmt::format("{}: qp.upper has size {}, expected {} (= qp.n())",
+                                                who, qp.upper.size(), n));
+    }
 
     const std::vector<BoundState> &bound_state = ws.bound_state();
     const std::vector<Index> &aw = ws.active_ineq();
