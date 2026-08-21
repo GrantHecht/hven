@@ -55,8 +55,7 @@ endif()
 # interior-point machinery) — mirrors psiopt's own internal grouping: a
 # path map onto hven's directory conventions, not a reorganization. See
 # docs/dev notes for the migration's file-by-file record. NonLinearProgram
-# later moved from drivers/ into model/ as an as-is relocation, ahead of a
-# separately-proven step that carves a contract surface onto it.
+# later moved from drivers/ into model/ as an as-is relocation.
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -202,6 +201,8 @@ target_sources(hven PRIVATE
 #
 #   drivers/interior_point_solver.cpp             6.99 -> 5.04  -1.95  identical
 #   drivers/non_linear_program.cpp                6.54 -> 4.66  -1.88  identical
+#     (this source has since moved to model/non_linear_program.cpp; the row
+#     above is left at its original path, recording the sweep as it ran)
 #   drivers/interior_point_solver_settings.cpp    4.00 -> 2.45  -1.55  identical
 #   drivers/interior_point_solver_print.cpp       4.09 -> 2.56  -1.53  identical
 #   model/nlp_solver.cpp                          4.09 -> 2.56  -1.53  identical
