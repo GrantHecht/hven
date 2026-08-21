@@ -182,6 +182,17 @@ struct QpOptions {
     // FRICTION note, updated for this resolved state, and its HOT-START
     // REUSE note for why tr_radius -- unlike primal_delta/dual_mu below --
     // never has to join the reuse key: bounds never enter K0).
+    //
+    // PRECONDITION, VALIDATED AT SOLVE START, on exactly the domain
+    // SolveOverrides::tr_radius is validated on (below): >= 0, or the +inf
+    // value that disables the feature -- never negative, never NaN.
+    // QpEngine::solve throws std::invalid_argument otherwise, before anything
+    // else in that call can run, on every call whose SolveOverrides leaves
+    // tr_radius at its sentinel and therefore RESOLVES TO THIS FIELD (which
+    // includes every call through the plain, non-override solve() overloads).
+    // The reasons are the override's reasons verbatim: a negative Delta
+    // silently crosses lo_eff/up_eff behind an assert a Release build compiles
+    // out, and a NaN would be read as "disabled" -- a meaning only +inf has.
     double tr_radius = std::numeric_limits<double>::infinity();
 };
 

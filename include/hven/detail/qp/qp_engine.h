@@ -2633,6 +2633,33 @@ class QpEngine {
     // NaN is not a value either field's resolution ternary (or any downstream
     // arithmetic) can absorb.
     //
+    // THE SENTINEL PATH IS VALIDATED TOO, on the SAME domain (PR #5 codex
+    // inline review). When `overrides.tr_radius` is the +inf sentinel the
+    // resolution below copies `opts.tr_radius` straight into `eff.tr_radius`,
+    // and from that point on NOTHING downstream can tell the two paths apart:
+    // both feed the identical `eff_opts.tr_radius` read sites (run()'s section
+    // 6, refine_on_face()'s window). So a stored radius reaching those sites
+    // has to satisfy exactly what an overriding one does. Checking only the
+    // override left the whole hazard above reachable through the PLAIN
+    // solve(qp) / solve(qp, seed) overloads -- they forward a
+    // default-constructed SolveOverrides, i.e. the sentinel, always -- with
+    // opts_.tr_radius = -0.5 producing precisely the crossed-box Release
+    // kOptimal described above. Nor is that a caller-only route: the SQP
+    // driver's elastic rungs pass a default-constructed SolveOverrides
+    // deliberately (sqp_driver.cpp: the radius is already folded into the
+    // elastic box, so passing it again would cap the SLACKS at Delta), so a
+    // driver configured with a malformed opts_.qp.tr_radius reaches this branch
+    // from inside the library. NaN is rejected here for the same reason it is
+    // rejected for the override: `std::isfinite(NaN)` is false, so a stored NaN
+    // would be silently READ AS "trust region disabled", which is not a
+    // documented meaning of this field -- qp_types.h names +inf, and only +inf,
+    // as the disabling value.
+    //
+    // Only the SELECTED value is checked. An `opts.tr_radius` that a finite
+    // override supersedes is never read by this solve, so rejecting it would
+    // refuse a call that is entirely well-formed in the radius it actually
+    // uses.
+    //
     // Every OTHER field of `opts` is carried through untouched (feas_tol,
     // opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra), which is what
     // makes the result safe to pass anywhere a whole QpOptions was passed.
@@ -2643,6 +2670,13 @@ class QpEngine {
                 "QpEngine::solve: SolveOverrides.tr_radius must be >= 0, or the +inf sentinel "
                 "for \"use opts_.tr_radius\" (qp_types.h) -- got {}",
                 overrides.tr_radius));
+        }
+        if (!std::isfinite(overrides.tr_radius) &&
+            (std::isnan(opts.tr_radius) || opts.tr_radius < 0.0)) {
+            throw std::invalid_argument(fmt::format(
+                "QpEngine::solve: QpOptions.tr_radius must be >= 0, or the +inf value that "
+                "disables the trust region (qp_types.h) -- got {}",
+                opts.tr_radius));
         }
         if (std::isnan(overrides.primal_delta)) {
             throw std::invalid_argument(
@@ -2860,11 +2894,17 @@ class QpEngine {
         // assert does catch it). primal_delta/dual_mu keep their documented
         // negative-means-sentinel convention (qp_types.h) unchanged -- only NaN
         // is rejected for them, since NaN is not a value either field's
-        // resolution ternary (or any downstream arithmetic) can absorb.
+        // resolution ternary (or any downstream arithmetic) can absorb. The
+        // SAME domain is enforced on opts_.tr_radius whenever the +inf sentinel
+        // selects it -- which includes every call through the PLAIN solve()
+        // overloads -- since the resolved value is what section 6 below reads
+        // either way (PR #5 codex inline review; see
+        // resolve_effective_options).
         // EXTRACTED, FIX ROUND 1 of Phase-7 Task 5, so that refine_on_face()
         // resolves the SAME per-solve overrides through the SAME code rather
         // than a second copy that could drift. The body below is the original
-        // three checks and three ternaries verbatim, in the original order.
+        // three checks and three ternaries verbatim, in the original order,
+        // plus the sentinel-path radius check that fix added.
         QpOptions eff_opts = resolve_effective_options(opts_, overrides);
 
         qp_in.validate();

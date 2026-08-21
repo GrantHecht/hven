@@ -20,6 +20,7 @@
 
 #include <cmath>
 #include <limits>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -703,6 +704,84 @@ TEST(QpEngineTr, OverrideValidationRejectsNaN) {
     SolveOverrides nan_mu;
     nan_mu.dual_mu = nan;
     EXPECT_THROW(eng.solve(qp, nan_mu), std::invalid_argument);
+}
+
+// (j2) PR #5 codex inline review: the SAME two rejections, reached through the
+// PLAIN solve() overloads, which forward a default-constructed SolveOverrides
+// -- i.e. the +inf sentinel -- so the radius that actually reaches section 6
+// is the STORED opts_.tr_radius. Before the fix that branch copied opts_'s
+// value with no check at all: a stored -0.5 crossed lo_eff/up_eff behind the
+// assert NDEBUG compiles out (Release returned a spurious kOptimal), and a
+// stored NaN was silently read as "trust region disabled" because
+// std::isfinite(NaN) is false. The engine now applies the override's domain to
+// the stored value whenever the sentinel selects it, so both paths agree.
+//
+// The warm overload is exercised too: it forwards the same default overrides,
+// and the check must fire before the seed is even looked at.
+TEST(QpEngineTr, StoredRadiusValidationRejectsNegativeRadiusOnPlainOverloads) {
+    QpProblem qp = unconstrained_quadratic_qp();
+    qp.lower = Vec::Constant(2, -2.0);
+    qp.upper = Vec::Constant(2, 2.0);
+
+    QpOptions bad_opts;
+    bad_opts.tr_radius = -0.5;
+    QpEngine eng{bad_opts};
+
+    EXPECT_THROW(eng.solve(qp), std::invalid_argument);
+
+    QpSolution seed;
+    seed.status = QpStatus::kOptimal;
+    seed.x = Vec::Zero(2);
+    seed.bound_state.assign(2, BoundState::kFree);
+    seed.ineq_active.assign(0, false);
+    seed.lambda_e = Vec(0);
+    seed.lambda_i = Vec(0);
+    seed.z = Vec::Zero(2);
+    EXPECT_THROW(eng.solve(qp, seed), std::invalid_argument);
+
+    // The message names the option that is actually wrong -- QpOptions', not
+    // SolveOverrides' -- so a caller who passed no override is not sent
+    // looking at a struct they never touched.
+    try {
+        eng.solve(qp);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("QpOptions.tr_radius"), std::string::npos);
+    }
+}
+
+TEST(QpEngineTr, StoredRadiusValidationRejectsNaNOnPlainOverloads) {
+    const QpProblem qp = unconstrained_quadratic_qp();
+
+    QpOptions nan_opts;
+    nan_opts.tr_radius = std::numeric_limits<double>::quiet_NaN();
+    QpEngine eng{nan_opts};
+
+    EXPECT_THROW(eng.solve(qp), std::invalid_argument);
+}
+
+// (j3) Counter-neutrality of (j2), stated as a test rather than only in the
+// commit message: a well-formed stored radius carries a valid value, so the
+// new check is unreachable on every legitimate configuration and cannot move
+// a counter. Both accepted stored readings -- the +inf that disables the
+// feature and a finite Delta >= 0 -- still solve, through the plain overloads,
+// exactly as before; Delta == 0 is included because it is the boundary the
+// check admits.
+TEST(QpEngineTr, StoredRadiusValidationLeavesWellFormedRadiiUntouched) {
+    QpProblem qp = unconstrained_quadratic_qp();
+    qp.lower = Vec::Constant(2, -2.0);
+    qp.upper = Vec::Constant(2, 2.0);
+
+    for (const double radius : {std::numeric_limits<double>::infinity(), 1.0, 0.0}) {
+        SCOPED_TRACE(radius);
+
+        QpOptions opts;
+        opts.tr_radius = radius;
+        QpEngine eng{opts};
+
+        const QpSolution sol = eng.solve(qp);
+        EXPECT_EQ(sol.status, QpStatus::kOptimal);
+    }
 }
 
 // (k) Fix round 1 [M7]: the Task-6-shaped reuse case with a LIVE, non-empty
