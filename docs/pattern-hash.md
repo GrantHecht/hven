@@ -61,10 +61,13 @@ two recipes are easy to confuse:
   `CombinedKeyIsContinuedAccumulationNotAFoldOverDigests` pins the two
   apart so the distinction cannot be lost by a later "equivalent"
   rewrite.
-- **The continuation was chosen because it is the stronger key at the same
-  cost.** It mixes every ingredient of every matrix into one 64-bit state;
-  a fold discards all but 64 bits per matrix before combining. Both are
-  O(total nnz); only one of them is a hash of the whole input.
+- **The continuation was chosen because it mixes every ingredient rather
+  than eight bytes per matrix.** It mixes every ingredient of every matrix
+  into one 64-bit state; a fold discards all but 64 bits per matrix before
+  combining. Both are O(total nnz); only one of them is a hash of the whole
+  input. That is a difference in what is mixed, not a categorical strength
+  ordering -- both digests are 64 bits wide and carry the same
+  ~2^-64 residual collision risk.
 
 Two properties follow, and both are pinned by tests:
 

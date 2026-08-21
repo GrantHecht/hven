@@ -52,10 +52,15 @@ struct RunProvenance {
 
     // Provenance for the two TEMPORARY old-seam checkouts this build may
     // consume, one line each: "not configured (...)" when this build has no
-    // arm for that seam at all, otherwise the commit (and, for SQP, tag) it
-    // was pinned to plus "verified"/"unverified" -- the outcome the CMake
-    // configure-time pin check (tests/golden_rig/CMakeLists.txt) actually
-    // reached, not merely the commit it claims. "unverified" here does not
+    // arm for that seam at all, otherwise the identity that seam was checked
+    // at plus "verified"/"unverified" -- the outcome the CMake configure-time
+    // pin check (tests/golden_rig/CMakeLists.txt) actually reached, not
+    // merely the identity the checkout claims. The psiopt line leads with the
+    // consumed-tree hash this configure OBSERVED and labels the pinned one
+    // "pin", so an unpinned-and-drifted checkout reports the tree it really
+    // compiled against (or "unknown" when none was ever hashed) instead of
+    // asserting the pin; the SQP line names the tag and commit it is pinned
+    // to. "unverified" here does not
     // mean configure failed to notice a problem: a FATAL_ERROR pin mismatch
     // stops the build before this string is ever read, so "unverified"
     // reaching a report means either git was unavailable to check with, or

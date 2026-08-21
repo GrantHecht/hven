@@ -185,8 +185,10 @@ std::uint64_t pattern_hash(const SpMatRM &A);
 // the recipe hven adopted.
 //
 // No separator is inserted between matrices: each one's leading rows/cols/nnz
-// triple is the separator, which is also what keeps a re-partitioned
-// sequence from colliding with the original. Order is significant.
+// triple is the separator, which is what makes the serialization
+// self-delimiting -- a re-partitioned sequence feeds a DIFFERENT stream than
+// the original, so the two can collide only at the ordinary 64-bit-digest
+// level, never structurally. Order is significant.
 //
 // The one-matrix case is the tolerant single-matrix digest:
 // `combined_pattern_hash(A) == pattern_hash(A)` for every compressed `A`,

@@ -484,9 +484,10 @@ TEST(PatternHash, CombinedKeyIsContinuedAccumulationNotAFoldOverDigests) {
     EXPECT_NE(combined, combined_pattern_hash(b, a));
     EXPECT_EQ(combined_pattern_hash(a), pattern_hash(a));
 
-    // The per-matrix leading rows/cols/nnz triple is the separator: the same
-    // stored entries re-partitioned across a differently-shaped pair of
-    // matrices is a different key.
+    // The per-matrix leading rows/cols/nnz triple is the separator, which
+    // makes the serialization self-delimiting: the same stored entries
+    // re-partitioned across a differently-shaped pair of matrices feed a
+    // different STREAM, and -- as this fixture pins -- a different key.
     SpMatRM a_wide = make_matrix(3, 6, kPinnedFixtureEntries);
     EXPECT_NE(combined, combined_pattern_hash(a_wide, b));
 }

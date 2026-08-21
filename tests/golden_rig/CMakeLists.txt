@@ -214,8 +214,20 @@ if(HVEN_RIG_PSIOPT_SEAM)
     #      adapter actually compiles against has uncommitted changes -- a
     #      HEAD tree hash cannot see working-tree state, so this check stays
     #      load-bearing exactly as it was under the commit pin.
+    #
+    # HVEN_RIG_PSIOPT_SEAM_TREE_OBSERVED is what the checkout ACTUALLY hashed
+    # to, as distinct from HVEN_RIG_PSIOPT_SEAM_TREE, which is what it was
+    # pinned to. The two are equal on a verified configure and that is the
+    # point of the pin -- but under the escape hatch they can differ, and the
+    # report's provenance names the OBSERVED hash as the tree the adapter
+    # compiled against, so no row can assert a content identity the compiled
+    # headers do not have. It defaults to "unknown" rather than to the pin
+    # because failure paths 1 and 2 never compute a hash at all: there is no
+    # observation to report on them, and reporting the pin instead would be
+    # exactly the false assertion this variable exists to prevent.
     set(HVEN_RIG_PSIOPT_SEAM_VERIFIED "unverified")
     set(HVEN_RIG_PSIOPT_SEAM_HEAD "unknown")
+    set(HVEN_RIG_PSIOPT_SEAM_TREE_OBSERVED "unknown")
     unset(_psiopt_pin_problem)
     if(Git_FOUND AND EXISTS "${HVEN_RIG_PSIOPT_SEAM}/.git")
         # HEAD is read for PROVENANCE, not for the pin: the report rows name
@@ -242,6 +254,13 @@ if(HVEN_RIG_PSIOPT_SEAM)
                 OUTPUT_STRIP_TRAILING_WHITESPACE
                 RESULT_VARIABLE _psiopt_tree_rc
                 ERROR_QUIET)
+            # Recorded the moment it exists, on EVERY arm below -- matched,
+            # drifted, or matched-but-dirty. The provenance row reports what
+            # was seen; whether what was seen is acceptable is the pin check's
+            # separate verdict, carried by HVEN_RIG_PSIOPT_SEAM_VERIFIED.
+            if(_psiopt_tree_rc EQUAL 0)
+                set(HVEN_RIG_PSIOPT_SEAM_TREE_OBSERVED "${_psiopt_tree_hash}")
+            endif()
             if(NOT _psiopt_tree_rc EQUAL 0)
                 string(CONCAT _psiopt_pin_problem
                     "HVEN_RIG_PSIOPT_SEAM=${HVEN_RIG_PSIOPT_SEAM}: the consumed "
@@ -314,16 +333,29 @@ if(HVEN_RIG_PSIOPT_SEAM)
 
     target_sources(hven_golden_rig_support PRIVATE seam_psiopt.cpp)
     target_include_directories(hven_golden_rig_support SYSTEM PUBLIC "${_psiopt_seam_include}")
-    # HVEN_RIG_PSIOPT_SEAM_VERIFIED carries the outcome of the verification
-    # block above ("verified" or "unverified") into the report generator, so
-    # a report row's provenance says whether the checkout it ran against was
-    # actually checked rather than just recording the tree it claims.
-    # HVEN_RIG_PSIOPT_SEAM_HEAD goes with it as the OBSERVED commit that tree
-    # was seen at ("unknown" when the checkout could not be queried) -- the
-    # pin is the tree, the commit is how a reader finds it again.
+    # Four facts reach the report generator, and they are four because a
+    # provenance row must separate what was SEEN from what was DEMANDED:
+    #   TREE          -- the pin, the tree the expected tables were derived
+    #                    against. A constant of this file.
+    #   TREE_OBSERVED -- what this configure actually hashed the consumed
+    #                    subtree to, or "unknown" if it never got that far.
+    #                    This, not TREE, is the tree the adapter compiled
+    #                    against, so this is what the row names as the
+    #                    consumed identity.
+    #   HEAD          -- the OBSERVED commit that tree was seen at ("unknown"
+    #                    when the checkout could not be queried) -- the pin is
+    #                    the tree, the commit is how a reader finds it again.
+    #   VERIFIED      -- the outcome of the block above, so a row says whether
+    #                    the checkout was actually checked rather than just
+    #                    recording the tree it claims.
+    # TREE_OBSERVED is a HEAD-tree observation and so cannot see working-tree
+    # state; on the matched-but-dirty arm it equals the pin while the compiled
+    # headers differ from both. That case is exactly why VERIFIED stays
+    # load-bearing beside it and is not made redundant by the observed hash.
     target_compile_definitions(hven_golden_rig_support PUBLIC
         HVEN_RIG_HAVE_PSIOPT_SEAM=1
         HVEN_RIG_PSIOPT_SEAM_TREE="${HVEN_RIG_PSIOPT_SEAM_TREE}"
+        HVEN_RIG_PSIOPT_SEAM_TREE_OBSERVED="${HVEN_RIG_PSIOPT_SEAM_TREE_OBSERVED}"
         HVEN_RIG_PSIOPT_SEAM_HEAD="${HVEN_RIG_PSIOPT_SEAM_HEAD}"
         HVEN_RIG_PSIOPT_SEAM_VERIFIED="${HVEN_RIG_PSIOPT_SEAM_VERIFIED}"
     )
