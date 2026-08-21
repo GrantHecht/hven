@@ -40,6 +40,7 @@ of this class as OPEN.
 | 8 | run `32363949523` attempt 1 (green on attempt 2) | `7ec864c` (test-only — compiles no SQP object) | PINNED + `x86-64-v3` |
 | 9 | run `32429045353` attempts 1 **and 2** (**green on attempt 3**) | `099cdda` (test/docs-only atop the final-review fix batch) | PINNED + `x86-64-v3` |
 | 10 | run `32432724478` attempts 1 **and 2** (**green on attempt 3**) | `cd33962` (docs-only — this register's own occurrence-8/9 fold) | PINNED + `x86-64-v3` |
+| 11 | run `32438752595` attempt 1 (green on attempt 2) | `2508b6a` (rig/comment/docs-only — byte-identical `pattern_hash.cpp.o` proven in-task) | PINNED + `x86-64-v3` |
 
 Occurrences 8 and 9 (2026-08-20/21, both the single surviving member
 `SsnEngineLocal.WeaklyActiveRowFinishesUncertain`, same assertion sites —
