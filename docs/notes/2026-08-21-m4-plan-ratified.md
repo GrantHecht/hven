@@ -223,7 +223,7 @@ Owner key: **[T]** tycho lane, **[S]** SQP lane, **[H]** hven lane.
 Every hven-repo task lands on an `m4` feature branch (PR to main at
 gate, mirroring M3); every tycho-repo task lands on a tycho feature
 branch (never direct to main). Proof-ladder class is stated per task
-(hven constraint 5); each phase gate carries a census leg.
+(hven constraint 5); the census runs at STRATEGIC points only (owner ruling, 2026-08-21, relayed via the drafting lane): the Phase 1 census of record is the Task 2b run; Tasks 3–8 carry no census legs and prove through the ladder (suite + bit-identical counters/traces + the standing bench compare with its wall bands); the Task 9 close gate carries the one remaining census; outside these, a census requires a trigger — a counter moved, a trace diverged, an unexplained band trip — never routine cadence.
 
 **Phase 0 — pre-flight**
 
@@ -339,9 +339,10 @@ branch (never direct to main). Proof-ladder class is stated per task
 **Phase 4 — M4 gate**
 
 - **Task 9 [T+S+H]**: gate battery — hven suites green; tycho full
-  pre-merge sequence green; census legs on the Phase 1/2/3 events,
-  each leg naming its baseline of record (the U0 corpus baseline and
-  the gate-C census artifact are the standing ones; MF-6); bench
+  pre-merge sequence green; the M4 close census (the
+  milestone's second and final, per the owner's strategic-points
+  ruling; the Task 2b artifact is the first), naming its baselines of
+  record (the U0 corpus baseline and the gate-C census artifact; MF-6); bench
   counters vs both baselines (byte-stable where pinned; any
   intentional break declared and re-derived); conversion-equivalence
   suite green; the SQP lane's ingest-clause checklist walked; then the
