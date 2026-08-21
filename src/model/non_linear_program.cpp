@@ -1632,14 +1632,9 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         this->fill_fxi(arena_vector(rhs.inequality_residuals_));
     }
 
-    // WHAT THE KKT VIEW'S size_ DOES AND DOES NOT BUY ON THIS PATH. The engine
-    // scatters through analyzed_kkt_matrix_, whose value array the entry has
-    // already established the view NAMES (validate_bound_destination) and is
-    // non-empty for (validate_request_destinations). Nothing anywhere compares
-    // the view's size_ against that array's length, so a view carrying the
-    // right pointer and a wrong size is accepted here and then ignored -- the
-    // fill addresses the matrix, never the view. Identity and non-emptiness are
-    // the guarantees; length is not one of them.
+    // size_ is not validated on the engine path; identity and non-emptiness
+    // are. A wrong-size view with the right pointer is accepted and ignored:
+    // the fill addresses analyzed_kkt_matrix_, never the view.
     static_cast<void>(kkt);
 }
 

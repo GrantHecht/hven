@@ -629,13 +629,12 @@ double hven::solvers::InteriorPointSolver::dual_infeasibility_inf(
 Eigen::Ref<const hven::solvers::InteriorPointSolver::VectorXd>
 hven::solvers::InteriorPointSolver::declaration_primals(ConstEigenRef<VectorXd> reduced) {
     if (!this->nlp_->is_reduced()) {
-        // The solver's primal space IS the declared one, so the iterate is
-        // already a declaration-space point and goes in as it stands.
+        // The solver's primal space is the declared one; the iterate goes in as
+        // it stands.
         return reduced;
     }
-    // The eliminated coordinates put back at their pinned values -- byte for
-    // byte the buffer the legacy entries' own primal_view() built from the same
-    // reduced iterate, so the pieces read the same numbers either way.
+    // Eliminated coordinates put back at their pinned values: the same buffer
+    // NonLinearProgram::primal_view() builds from the same reduced iterate.
     this->declaration_primals_scratch_.resize(this->full_primal_vars_);
     this->nlp_->scatter_full_x(reduced, this->declaration_primals_scratch_);
     return this->declaration_primals_scratch_;
@@ -644,11 +643,8 @@ hven::solvers::InteriorPointSolver::declaration_primals(ConstEigenRef<VectorXd> 
 hven::solvers::RhsScatterView
 hven::solvers::InteriorPointSolver::rhs_scatter_view(double &val, EigenRef<VectorXd> GX,
                                                      EigenRef<VectorXd> AGXS_FX) {
-    // The same four blocks the legacy entries were handed, in the same order,
-    // sliced out of the same two compound vectors -- expressed as pointers and
-    // lengths because that is what an arena view is. Each block's location table
-    // is the engine's own row table for that arena, so the fill behind them is
-    // the fill that always ran.
+    // The four blocks sliced out of the two compound vectors, as pointer and
+    // length. Each arena's location table is the engine's row table for it.
     RhsScatterView rhs;
     rhs.objective_ = &val;
     rhs.objective_gradient_ =
@@ -689,12 +685,9 @@ void hven::solvers::InteriorPointSolver::assemble_dispatch(
                          this->rhs_scatter_view(val, GX, AGXS_FX));
 
     if (kkt_bearing) {
-        // The responsibility the contract transfers to the consumer, discharged
-        // by the consumer. The coefficients being scattered here are the ones
-        // this solver set on its own storage -- set_primal_diags, set_e_pivots,
-        // set_i_pivots and the slack block -- and every caller's set/reset
-        // bracket still encloses this call, exactly as it enclosed the legacy
-        // entry that did the scatter internally.
+        // The consumer-owned coefficient scatter: the primal and slack
+        // diagonals, the constraint-row pivots and the slack Jacobian this
+        // solver set on its own storage. assemble() does not write them.
         this->nlp_->fill_solver_coeffs(KKTmat);
     }
 }
@@ -704,8 +697,7 @@ void hven::solvers::InteriorPointSolver::assemble_objective(double obj_scale,
                                                             double &val) {
     RhsScatterView rhs;
     rhs.objective_ = &val;
-    // Values-only, so the multiplier blocks are legally empty -- empty meaning
-    // "no multipliers", which is what shape 1 reads.
+    // A values-only request reads no multipliers, so both blocks are empty.
     this->nlp_->assemble(CandidatePoint{this->declaration_primals(primals), this->no_multipliers_,
                                         this->no_multipliers_, obj_scale},
                          kRequestObjectiveOnly, KktScatterView{}, rhs);
@@ -720,9 +712,9 @@ void hven::solvers::InteriorPointSolver::eval_kkt(
 void hven::solvers::InteriorPointSolver::eval_kkt_no(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    // No-objective mode: obj_scale and val are unused by this shape, which
-    // names no objective output at all. Both stay in the signature so the four
-    // wrappers keep one shape for eval_nlp's switch to call through.
+    // No-objective mode: this request names no objective output, so obj_scale
+    // and val are unused. Both stay in the signature to keep one shape across
+    // the four wrappers.
     this->assemble_dispatch(kRequestConstraintKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
@@ -736,7 +728,7 @@ void hven::solvers::InteriorPointSolver::eval_soe(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     // Constraint-only mode, as eval_kkt_no above: neither obj_scale nor val is
-    // read by this shape.
+    // read by this request.
     this->assemble_dispatch(kRequestConstraintJacobianOnly, obj_scale, XSL, val, GX, AGXS_FX,
                             KKTmat);
 }
@@ -1102,9 +1094,9 @@ void hven::solvers::InteriorPointSolver::eval_nlp(
         // switch does, and each constraint-row RHS carries the condensed residual
         // r̃ in place of the raw residual. μ is the live phase barrier parameter
         // (η(μ) is recomputed on every evaluation). Pivots and the primal diagonal
-        // must be set BEFORE eval_kkt_no (assemble_dispatch's own
-        // fill_solver_coeffs step scatters them) and reset to 0.0 after,
-        // mirroring the set_primal_diags discipline.
+        // are set before eval_kkt_no (assemble_dispatch's fill_solver_coeffs
+        // step scatters them) and reset to 0.0 after, mirroring the
+        // set_primal_diags discipline.
         if (this->restoration_->is_nested()) {
             const int ec = this->equal_cons_;
             const int ic = this->inequal_cons_;

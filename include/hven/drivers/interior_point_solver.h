@@ -1105,17 +1105,12 @@ class InteriorPointSolver {
     mutable Eigen::VectorXd bound_resid_scratch_;
     Eigen::VectorXd bound_grad_scratch_;
 
-    // The declaration-space primal block handed to the contract's evaluation
-    // entry, under the same no-per-call-allocation discipline. Stays EMPTY on
-    // the identity path: declaration_primals() returns a view of the solver's
-    // own iterate there and never touches this, so a solve that eliminates
-    // nothing allocates nothing for it.
+    // declaration_primals_scratch_ backs the declaration-space primal block the
+    // contract's evaluation entry is handed. Stays empty when no variable is
+    // eliminated, where declaration_primals() views the iterate directly.
+    // no_multipliers_ is the empty multiplier block a values-only candidate
+    // point carries; never written.
     Eigen::VectorXd declaration_primals_scratch_;
-
-    // The empty multiplier blocks a values-only candidate point carries. Empty
-    // means "no multipliers" rather than "zeros", and shape 1 reads neither.
-    // Never written; a member rather than a local so the point's views never
-    // outlive what they name.
     Eigen::VectorXd no_multipliers_;
 
     // One-shot guard for the second-level elastic re-centering fallback (nested l1
@@ -1333,60 +1328,74 @@ class InteriorPointSolver {
     // evaluate stage (its maxcomp output feeds converge_check's barr_inf_).
 
     // --- NLP eval dispatch methods (defined in interior_point_solver.cpp) ---
-    // The four wrappers below differ only in which EVALUATION REQUEST they name;
-    // the segment expressions that slice XSL/GX/AGXS_FX into the compound
-    // [primals | slacks | eq | iq] layout are written once, in the three view
-    // builders below. Defined in interior_point_solver.cpp, their only
-    // translation unit.
-    //
-    // THE PROVIDER SURFACE THEY GO THROUGH is the Level 2 contract's single
-    // assemble(point, request, kkt, rhs) entry, not the eight legacy eval_
-    // entries. Each request constant names exactly the evaluation shape the
-    // entry it replaced produced -- the mapping table in
-    // model/candidate_point.h is the contract text for that pairing, and the
-    // pairing is bijective, so what this solver evaluates per call is
-    // unchanged.
-    //
-    // WHAT THE SOLVER NOW DOES FOR ITSELF: the solver's own KKT coefficients --
-    // the slack Jacobian, the primal and slack diagonals, the equality and
-    // inequality pivots -- are values THIS class set on storage THIS class
-    // owns, and under the contract scattering them is a consumer-owned step
-    // outside provider evaluation. The legacy KKT-bearing entries did it
-    // internally, at the end of their own dispatch; assemble_dispatch does it
-    // here instead, immediately after the assemble call and still inside the
-    // set-diagonals/reset-diagonals bracket every caller wraps it in. Dropping
-    // it would leave an assembled matrix that factorizes, and factorizes wrong.
+    // The four wrappers below differ only in which evaluation request they name.
+    // They reach the NLP through the aggregate contract's assemble() entry; the
+    // request constants pair with the evaluation shapes documented in the
+    // mapping table of model/candidate_point.h.
+
+    /// @brief Evaluate the NLP at the current iterate through the aggregate
+    ///        contract, then scatter the solver's own KKT coefficients.
+    ///
+    /// Builds the candidate point and the scatter views from the compound
+    /// [primals | slacks | eq | iq] layout, calls
+    /// NlpAggregate::assemble(), and — for any request naming KKT-bearing
+    /// output — follows it with NonLinearProgram::fill_solver_coeffs(). The
+    /// slack Jacobian, the primal and slack diagonals and the constraint-row
+    /// pivots are consumer-owned coefficients; assemble() never writes them.
+    /// Callers must set them before this call and reset them after, as they
+    /// always did.
+    /// @param request    One of the eight request shapes of the mapping table.
+    /// @param obj_scale  Objective scale factor applied by the objective pieces.
+    /// @param XSL        Current iterate, [primals | slacks | eq | iq].
+    /// @param val        Objective accumulator; written only if the request
+    ///                   names the objective value.
+    /// @param GX         Objective-gradient destination; its first
+    ///                   primal_vars_ rows are the arena.
+    /// @param AGXS_FX    Adjoint-gradient and residual destination, in the same
+    ///                   compound layout as @p XSL.
+    /// @param KKTmat     Assembly buffer; must be the matrix the current
+    ///                   sparsity analysis was run against.
     void assemble_dispatch(EvalRequest request, double obj_scale, ConstEigenRef<VectorXd> XSL,
                            double &val, EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
                            Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
 
-    // The primal block of a candidate point, in the DECLARATION space every
-    // contract-surface vector is indexed in.
-    //
-    // The solver iterates in its own primal space, which is narrower than the
-    // declared one whenever the fixed-variable treatment eliminated something;
-    // the contract's point is in declaration space, so the reduced iterate is
-    // expanded before it goes in. Returns a view of the caller's own vector on
-    // the identity path -- no buffer and no copy, which is every solve that
-    // eliminates nothing.
+    /// @brief Expand a solver-space primal block into declaration space.
+    ///
+    /// Every vector on the aggregate contract's surface is indexed by declared
+    /// variable identity, while the solver iterates in the reduced space the
+    /// fixed-variable treatment left. Returns a view of @p reduced itself when
+    /// no variable is eliminated; otherwise fills and returns internal scratch.
+    /// @param reduced  Primal block in the solver's own space.
+    /// @return A declaration-space view, valid until the next call.
     Eigen::Ref<const VectorXd> declaration_primals(ConstEigenRef<VectorXd> reduced);
 
-    // The consumer-owned right-hand-side destination, addressed by the engine's
-    // own published claim tables. Every arena is handed over on every call: a
-    // request writes only what it names, so an arena a request does not name is
-    // simply not written, and passing it costs one struct field.
+    /// @brief Build the right-hand-side scatter view over the solver's storage.
+    ///
+    /// All four arenas are supplied on every call; a request writes only the
+    /// arenas it names.
+    /// @param val      Objective out slot.
+    /// @param GX       Objective-gradient destination.
+    /// @param AGXS_FX  Adjoint-gradient and residual destination.
+    /// @return A view addressed by the engine's published claim tables.
     RhsScatterView rhs_scatter_view(double &val, EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX);
 
-    // The consumer-owned KKT destination: the assembly buffer's value array and
-    // the engine's KKT location table. The identity the entry checks against is
-    // the one the solve's own analyze_sparsity call bound at analysis time, so a
-    // re-analysis (a treatment reconfiguration, a fresh solve entry) re-binds
-    // and this view keeps naming the destination the tables describe.
+    /// @brief Build the KKT scatter view over the assembly buffer.
+    ///
+    /// The assemble entry checks the view against the destination the engine
+    /// bound at analysis time, so @p KKTmat must be the matrix the current
+    /// analyze_sparsity() call was run against. A re-analysis re-binds.
+    /// @param KKTmat  Assembly buffer.
+    /// @return A view of the buffer's value array plus the KKT location table.
     KktScatterView kkt_scatter_view(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
 
-    // Shape 1 of the mapping table, on its own: the objective value at a point,
-    // with no derivative and no constraint work. Used by the exit/report sites
-    // that need the true objective and nothing else.
+    /// @brief Accumulate the objective value at a point, with no derivative or
+    ///        constraint work.
+    ///
+    /// Issues the objective-value request of the mapping table. The caller owns
+    /// the accumulator and zeroes it.
+    /// @param obj_scale  Objective scale factor.
+    /// @param primals    Primal block in the solver's own space.
+    /// @param val        Accumulator the objective value is added into.
     void assemble_objective(double obj_scale, ConstEigenRef<VectorXd> primals, double &val);
 
     void eval_kkt(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
