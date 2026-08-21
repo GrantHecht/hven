@@ -381,6 +381,15 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //     summed an identically ZERO contribution into it -- no objective piece
 //     runs, and the arena is zeroed before the fan-out -- so declining to write
 //     it is observationally identical, not a behaviour change.
+//     SHAPE 5 LEAVES THE CONSTRAINT-ADJOINT-GRADIENT ARENA EMPTY ON EXACTLY THE
+//     SAME GROUND, and it is named here because the empty column is easy to
+//     read as an oversight where the objective half is not. eval_soe calls the
+//     constraints' JACOBIAN entry, which produces no adjoint gradient at all;
+//     the entry nevertheless zeroes that arena and passes it to its fill, so
+//     what the legacy shape summed in was identically zero, exactly as with the
+//     objective gradient. Shape 7 is not in this half of the sentence: it calls
+//     the adjoint entry and genuinely produces the constraint adjoint gradient,
+//     so its empty column names the objective-gradient arena alone.
 //   * kObjectiveValue is a flag of its own even though every shape that
 //     produces the objective gradient produces the value with it, in one call.
 //     Shape 1 produces the value alone, and the value's destination is a scalar

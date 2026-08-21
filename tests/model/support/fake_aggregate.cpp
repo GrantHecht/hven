@@ -1,7 +1,5 @@
 #include "support/fake_aggregate.h"
 
-#include <fmt/format.h>
-
 #include "hven/core/pattern_hash.h"
 #include "hven/model/structure_identity.h"
 
@@ -9,15 +7,10 @@ namespace hven::model_tests {
 
 namespace {
 
-/// A request named this arena, so its view must be present. An arena the
-/// request does NOT name may legally be empty; one it DOES name may not.
-void require_arena(const hven::solvers::RhsArenaView &view, const char *arena) {
-    if (view.empty()) {
-        throw std::invalid_argument(fmt::format(
-            "FakeAggregate: the request names the {0} arena, but its view is empty", arena));
-    }
-}
-
+/// Neither filler tests its view for presence, and that is the contract rather
+/// than an omission: the non-virtual entry has already refused a request that
+/// names a destination it was given nowhere to put. A hook only ever sees views
+/// that are there for everything its request names.
 void fill_arena(const hven::solvers::RhsArenaView &view) {
     for (int slot = 0; slot < view.locations_->size(); ++slot) {
         const int row = view.locations_->location(slot);
@@ -28,10 +21,6 @@ void fill_arena(const hven::solvers::RhsArenaView &view) {
 }
 
 void fill_kkt(const KktScatterView &kkt) {
-    if (kkt.empty()) {
-        throw std::invalid_argument("FakeAggregate: the request names a KKT arena, but its "
-                                    "scatter view is empty");
-    }
     for (int slot = 0; slot < kkt.locations_->size(); ++slot) {
         kkt.values_[kkt.locations_->location(slot)] += kFillMarker;
     }
@@ -50,30 +39,23 @@ void FakeAggregate::rekey() {
 void FakeAggregate::assemble_impl(const CandidatePoint &point, EvalRequest request,
                                   KktScatterView kkt, RhsScatterView rhs) {
     // Not one check of its own, deliberately: the public entry has already
-    // refused an unmapped request and a short-blocked point, and this fake is
-    // where "an implementation cannot skip that" is under test.
+    // refused an unmapped request, a short-blocked point and a request naming a
+    // destination it was handed nowhere to put -- and this fake is where "an
+    // implementation cannot skip that" is under test.
     (void)point;
     this->record_evaluation();
 
     if (hven::solvers::has_request(request, EvalRequest::kObjectiveValue)) {
-        if (rhs.objective_ == nullptr) {
-            throw std::invalid_argument("FakeAggregate: the request names the objective "
-                                        "value, but no out slot was supplied");
-        }
         *rhs.objective_ += kFillMarker;
     }
     if (hven::solvers::has_request(request, EvalRequest::kObjectiveGradient)) {
-        require_arena(rhs.objective_gradient_, "objective-gradient");
         fill_arena(rhs.objective_gradient_);
     }
     if (hven::solvers::has_request(request, EvalRequest::kConstraintValues)) {
-        require_arena(rhs.equality_residuals_, "equality-residual");
-        require_arena(rhs.inequality_residuals_, "inequality-residual");
         fill_arena(rhs.equality_residuals_);
         fill_arena(rhs.inequality_residuals_);
     }
     if (hven::solvers::has_request(request, EvalRequest::kConstraintAdjointGradient)) {
-        require_arena(rhs.constraint_adjoint_gradient_, "constraint-adjoint-gradient");
         fill_arena(rhs.constraint_adjoint_gradient_);
     }
     constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |

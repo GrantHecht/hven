@@ -511,6 +511,16 @@ using hven::model_tests::kUntouchedSentinel;
 /// Caller-owned destinations for one assemble call: every arena present, every
 /// slot pre-filled with the sentinel, so "written" and "left alone" are
 /// distinguishable per arena.
+///
+/// WARNING to anyone copying this fixture: `kkt_clashes` is sized at kKktSlots
+/// and published with that as its clash count, which reads as though the two
+/// were one number. They are not. A location array is indexed by CLAIM SLOT; a
+/// clash array is indexed by CANONICAL COLUMN of the assembled matrix. In a
+/// real provider those dimensions are unrelated -- a problem has far more
+/// claims than columns -- and sizing one from the other would publish a table
+/// whose clash lookups run off the end. They coincide here only because this
+/// fixture is small enough for a one-to-one slot/column toy layout, and the
+/// table's own constructor validates the pair rather than trusting it.
 struct ContractProbeDestinations {
     static constexpr int kKktSlots = 5;
 
@@ -648,6 +658,48 @@ TEST(AggregateAssembleContract, AnArenaTheRequestDoesNotNameMayBeLeftEmpty) {
                                        hven::solvers::kRequestObjectiveOnly, KktScatterView{},
                                        rhs));
     EXPECT_NE(out.objective, kUntouchedSentinel);
+}
+
+TEST(AggregateAssembleContract, AnArenaTheRequestDoesNameMayNotBeLeftEmpty) {
+    // The complement of the permission above, and the half that makes the
+    // type-level guarantee two-sided: a request the entry ACCEPTS has a
+    // destination for everything it names. The fake checks nothing of its own,
+    // so this refusal can only be the entry's -- and it arrives before the
+    // hook, so nothing is half-written.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    RhsScatterView rhs = out.rhs_view();
+    rhs.equality_residuals_ = hven::solvers::RhsArenaView{};
+
+    try {
+        aggregate.assemble(CandidatePoint{x, none, none},
+                           hven::solvers::kRequestObjectiveAndConstraints, out.kkt_view(), rhs);
+        FAIL() << "a request naming an arena whose view is empty must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("equality residuals"), std::string::npos) << message;
+    }
+    EXPECT_EQ(out.objective, kUntouchedSentinel);
+    EXPECT_TRUE(ContractProbeDestinations::untouched(out.inequality_residuals));
+}
+
+TEST(AggregateAssembleContract, AKktBearingRequestMayNotBeGivenAnEmptyKktView) {
+    // The three KKT-bearing flags share one destination, so any of them names
+    // the KKT view. The objective-only shape may leave it empty (above); this
+    // shape may not.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    ContractProbeMultipliers multipliers;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+
+    EXPECT_THROW(aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
+                                    hven::solvers::kRequestConstraintJacobianOnly, KktScatterView{},
+                                    out.rhs_view()),
+                 std::invalid_argument);
+    EXPECT_TRUE(ContractProbeDestinations::untouched(out.equality_residuals));
 }
 
 TEST(AggregateAssembleContract, RequestMaskingMovesNeitherLayoutNorDigestNorEpoch) {

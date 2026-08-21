@@ -137,9 +137,10 @@ class FakeAggregate final : public NlpAggregate {
     int values_calls() const { return values_calls_; }
 
   protected:
-    // The work hooks. No validation here: the public entries own it, and this
-    // fake is where "an implementation cannot skip it" gets tested -- it does
-    // not perform a single check of its own.
+    // The work hooks. No validation here -- not of the request, not of the
+    // point, and not of the scatter views: the public entries own all three,
+    // and this fake is where "an implementation cannot skip it" gets tested. It
+    // does not perform a single check of its own.
     void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                        RhsScatterView rhs) override;
     void evaluate_candidate_values_impl(const CandidatePoint &point, CandidateValues out) override;

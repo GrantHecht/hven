@@ -43,6 +43,9 @@
 // interior-point machinery.
 
 #include <cstdint>
+#include <stdexcept>
+
+#include <fmt/format.h>
 
 #include "hven/core/types.h"
 #include "hven/model/aggregate_declaration.h"
@@ -115,6 +118,80 @@ constexpr AggregateCapability &operator&=(AggregateCapability &left,
 /// `(declared & group) != AggregateCapability::kNone`.
 constexpr bool has_capability(AggregateCapability declared, AggregateCapability probe) noexcept {
     return (declared & probe) == probe;
+}
+
+namespace detail {
+
+/// One arena's presence check, written once so all four arena rows below refuse
+/// the same way.
+inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const char *arena) {
+    if (view.empty()) {
+        throw std::invalid_argument(
+            fmt::format("assemble: the request names the {0} (flag 0x{1:x}), but that arena's "
+                        "scatter view is empty. A request may leave empty only the arenas it "
+                        "does NOT name; see the mapping table in model/candidate_point.h",
+                        arena, static_cast<std::uint32_t>(flag)));
+    }
+}
+
+} // namespace detail
+
+/// Rejects an assemble call that names an output with nowhere to put it.
+///
+/// PRESENCE ONLY -- a null pointer, a zero size, a missing table -- and that
+/// bound is the point rather than an economy. The entry's budget is a fixed
+/// amount of work per call, so this asks whether a destination EXISTS and never
+/// whether its contents agree with the layout: a per-slot scan of a location
+/// table would re-derive at every evaluation what the claim pass established
+/// once.
+///
+/// What it buys is the other half of the type-level guarantee the non-virtual
+/// entry makes. "No output is written that the request did not name" was
+/// already structural; this adds its converse -- a request the entry ACCEPTS
+/// has a destination for everything it names -- so an implementation's hooks
+/// are born needing no view checks of their own, and a consumer that forgot an
+/// arena is told which one at the entry rather than discovering a silently
+/// unwritten block.
+///
+/// The empty-view permission is unchanged and is exactly its complement: an
+/// arena the request does not name may be empty, and shapes 5 and 7 of the
+/// mapping table rely on that.
+inline void validate_request_destinations(EvalRequest request, const KktScatterView &kkt,
+                                          const RhsScatterView &rhs) {
+    if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective_ == nullptr) {
+        throw std::invalid_argument(
+            fmt::format("assemble: the request names the objective value (flag 0x{0:x}), but no "
+                        "out slot was supplied for it",
+                        static_cast<std::uint32_t>(EvalRequest::kObjectiveValue)));
+    }
+    if (has_request(request, EvalRequest::kObjectiveGradient)) {
+        detail::require_arena_view(rhs.objective_gradient_, EvalRequest::kObjectiveGradient,
+                                   "objective gradient");
+    }
+    if (has_request(request, EvalRequest::kConstraintValues)) {
+        // One flag, two arenas: no evaluation shape produces one residual block
+        // without the other, so naming the flag names both destinations.
+        detail::require_arena_view(rhs.equality_residuals_, EvalRequest::kConstraintValues,
+                                   "equality residuals");
+        detail::require_arena_view(rhs.inequality_residuals_, EvalRequest::kConstraintValues,
+                                   "inequality residuals");
+    }
+    if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
+        detail::require_arena_view(rhs.constraint_adjoint_gradient_,
+                                   EvalRequest::kConstraintAdjointGradient,
+                                   "constraint adjoint gradient");
+    }
+    // The three KKT-bearing flags share one destination, so they are tested as
+    // a group: any of them names the KKT view.
+    constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |
+                                        EvalRequest::kConstraintJacobian |
+                                        EvalRequest::kConstraintAdjointHessian;
+    if ((request & kKktBearing) != EvalRequest::kNone && kkt.empty()) {
+        throw std::invalid_argument(fmt::format(
+            "assemble: the request names KKT-bearing output (flags 0x{0:x} of the request), but "
+            "the KKT scatter view is empty",
+            static_cast<std::uint32_t>(request & kKktBearing)));
+    }
 }
 
 /// The Level 2 provider interface: a partitioned collection of pieces plus its
@@ -246,16 +323,21 @@ class NlpAggregate {
     ///     constraint adjoint gradient or adjoint Hessian contracts a
     ///     derivative against the multipliers, so an empty multiplier block is
     ///     a missing input rather than a zero vector.
+    ///   * validate_request_destinations(request, kkt, rhs) -- every output the
+    ///     request names has somewhere to go. Presence only, O(1) per
+    ///     destination; an arena the request does not name stays legally empty.
     ///
     /// THE ENTRY IS NON-VIRTUAL AND THE HOOK BELOW IT IS THE VIRTUAL ONE, which
-    /// upgrades the guarantee at the top of this comment: "no output is written
-    /// that the request did not name" is a property of the TYPE, not a rule
-    /// each provider is asked to keep. An implementation cannot skip the
-    /// validation, forget it, or reorder it after its own work, because it
-    /// never sees an unvalidated call. That is strictly stronger than the
-    /// settled text required, and a consumer may rely on it: any NlpAggregate&,
-    /// whatever is behind it, has refused an unmapped request and a
-    /// short-blocked point before a single value moved.
+    /// upgrades the guarantee at the top of this comment in BOTH directions and
+    /// makes each half a property of the TYPE rather than a rule each provider
+    /// is asked to keep: no output is written that the request did not name,
+    /// and a request the entry accepts has a destination for everything it
+    /// does. An implementation cannot skip the validation, forget it, or
+    /// reorder it after its own work, because it never sees an unvalidated
+    /// call. That is strictly stronger than the settled text required, and a
+    /// consumer may rely on it: any NlpAggregate&, whatever is behind it, has
+    /// refused an unmapped request, a short-blocked point and a missing
+    /// destination before a single value moved.
     ///
     /// ACCUMULATION, NOT ASSIGNMENT. Every destination this call writes -- the
     /// KKT values through their location table, each named arena through
@@ -282,6 +364,7 @@ class NlpAggregate {
         if (request_consumes_multipliers(request)) {
             validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
         }
+        validate_request_destinations(request, kkt, rhs);
         this->assemble_impl(point, request, kkt, rhs);
     }
 
@@ -337,7 +420,9 @@ class NlpAggregate {
   protected:
     // THE EVALUATION HOOKS. Each public entry above validates and then forwards
     // to exactly one of these, so an implementation writes only the work and
-    // never the checks -- and cannot omit them.
+    // never the checks -- and cannot omit them. A hook is born needing no view
+    // checks of its own: by the time it runs, every destination its request
+    // names is known to be present.
     //
     // What the entries check is deliberately bounded: flag tests and dimension
     // comparisons, a fixed amount of work per call. The hot-path budget belongs

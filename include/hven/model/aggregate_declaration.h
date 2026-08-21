@@ -190,6 +190,15 @@ struct AggregateDeclaration {
     /// engine re-derives the same intersection from its own staged history and
     /// applies the same range, NaN and emptiness rules -- so these are one rule
     /// at two boundaries, not a rule and its only enforcement.
+    ///
+    /// One carve-out, stated rather than implied so nobody reads "two
+    /// boundaries" as "the same rule twice": the engine silently no-op-DROPS a
+    /// fully unbounded record -- (-inf, +inf) narrows nothing -- before it is
+    /// staged, and therefore never range-checks its index. A record naming a
+    /// variable the declaration does not have is refused here and accepted
+    /// there. The divergence is in the safe direction (this boundary is the
+    /// stricter of the two, and a record that changes no bound cannot change a
+    /// layout), so it is a difference to know about rather than one to close.
     void validate() const;
 };
 
