@@ -122,15 +122,79 @@ constexpr bool has_capability(AggregateCapability declared, AggregateCapability 
 
 namespace detail {
 
-/// One arena's presence check, written once so all four arena rows below refuse
-/// the same way.
+/// A gradient arena's presence check: storage and a table, both there.
+///
+/// Presence and NOT a size match, deliberately, and the asymmetry with the
+/// residual rows below is the contract rather than an omission. A residual
+/// arena has a DECLARED length -- the declaration's own row count, which is what
+/// the mapping table names it as. A gradient arena's length is the provider's
+/// own primal width, which this contract nowhere fixes: a provider that
+/// eliminates variables from the system it solves has a narrower one, which is
+/// exactly why RhsLocationTable carries a dropped-row sentinel. Checking a
+/// gradient arena against the declared variable count would reject that
+/// provider's own storage.
+///
+/// WHICH DIVIDES THE LABOUR RATHER THAN LEAVING A GAP, and the split is the
+/// principle: THE ENTRY VALIDATES CONTRACT-VISIBLE FACTS, AND AN IMPLEMENTATION
+/// VALIDATES LAID-WIDTH FACTS. A view shorter than the width a provider laid
+/// its arena over would scatter off the end, and no entry can catch that --
+/// the laid width is not a fact this contract can see, which is exactly why
+/// presence is the most that can be asked here. An implementation compares the
+/// view against its own laid width at its hook, and refuses the same way.
 inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const char *arena) {
-    if (view.empty()) {
+    if (view.values_ == nullptr || view.locations_ == nullptr) {
         throw std::invalid_argument(
             fmt::format("assemble: the request names the {0} (flag 0x{1:x}), but that arena's "
-                        "scatter view is empty. A request may leave empty only the arenas it "
-                        "does NOT name; see the mapping table in model/candidate_point.h",
-                        arena, static_cast<std::uint32_t>(flag)));
+                        "scatter view supplies no {2}. A request may leave empty only the arenas "
+                        "it does NOT name; see the mapping table in model/candidate_point.h",
+                        arena, static_cast<std::uint32_t>(flag),
+                        view.values_ == nullptr ? "storage" : "location table"));
+    }
+}
+
+/// A residual arena's check: the view's length MATCHES the declared row count.
+///
+/// A size match rather than a non-emptiness test, because a declared row count
+/// of zero is an ordinary problem and not a missing destination. An
+/// equality-only model declares no inequality rows; an inequality-only model
+/// declares no equality rows; both are legal, and both hand this a zero-length
+/// view for the block they do not have. Testing such a view for "empty" would
+/// lock those models out of every values-bearing request -- the residual flag
+/// names both arenas at once, so the block that does exist could never be
+/// evaluated either.
+///
+/// A zero declared row count therefore accepts any view, including a wholly
+/// default one: there is nothing to write, and demanding storage for it would
+/// be demanding a pointer to nothing.
+///
+/// WHAT THE STRICTNESS DEPENDS ON, stated so nobody "repairs" it into being
+/// wrong: this works ONLY because declaration() reports the row space AS LAID.
+/// A provider whose treatment configuration appends rows -- internal rows for
+/// fixed variables, say -- appends them after every row the transcription
+/// declared AND counts them in the declaration, so a residual view sized to the
+/// solver's actual row space still matches the declared count exactly. A reader
+/// who notices such rows exist and concludes the strict check must be loosened
+/// to tolerate them would be loosening it against a mismatch that cannot
+/// happen, and would give up the zero-length case in exchange. If a provider is
+/// ever allowed to hide rows from its own declaration, THAT is the change that
+/// breaks this, and it is the declaration's contract that would have to be
+/// re-settled first.
+inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declared_rows,
+                                   const char *arena) {
+    if (declared_rows == 0) {
+        return;
+    }
+    if (view.locations_ == nullptr || view.values_ == nullptr) {
+        throw std::invalid_argument(fmt::format(
+            "assemble: the request names the {0} arena, whose declared length is {1}, but the "
+            "view supplies no {2}",
+            arena, declared_rows, view.values_ == nullptr ? "storage" : "location table"));
+    }
+    if (view.size_ != declared_rows) {
+        throw std::invalid_argument(
+            fmt::format("assemble: the {0} arena's view is {1} rows, but the aggregate declares "
+                        "{2} {0} rows",
+                        arena, view.size_, declared_rows));
     }
 }
 
@@ -138,9 +202,9 @@ inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const
 
 /// Rejects an assemble call that names an output with nowhere to put it.
 ///
-/// PRESENCE ONLY -- a null pointer, a zero size, a missing table -- and that
-/// bound is the point rather than an economy. The entry's budget is a fixed
-/// amount of work per call, so this asks whether a destination EXISTS and never
+/// A FIXED AMOUNT OF WORK PER DESTINATION -- a null test, a size comparison --
+/// and that bound is the point rather than an economy. The entry's budget
+/// belongs to the fill, so this asks whether a destination EXISTS and never
 /// whether its contents agree with the layout: a per-slot scan of a location
 /// table would re-derive at every evaluation what the claim pass established
 /// once.
@@ -156,8 +220,14 @@ inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const
 /// The empty-view permission is unchanged and is exactly its complement: an
 /// arena the request does not name may be empty, and shapes 5 and 7 of the
 /// mapping table rely on that.
-inline void validate_request_destinations(EvalRequest request, const KktScatterView &kkt,
-                                          const RhsScatterView &rhs) {
+///
+/// The residual arenas are checked against the DECLARED row counts rather than
+/// for non-emptiness, so a model that declares no rows of one kind is not
+/// locked out of evaluating the kind it does declare -- see
+/// require_residual_arena for why that is the rule and require_arena_view for
+/// why the gradient arenas are not checked the same way.
+inline void validate_request_destinations(EvalRequest request, const AggregateDeclaration &declared,
+                                          const KktScatterView &kkt, const RhsScatterView &rhs) {
     if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective_ == nullptr) {
         throw std::invalid_argument(
             fmt::format("assemble: the request names the objective value (flag 0x{0:x}), but no "
@@ -171,10 +241,10 @@ inline void validate_request_destinations(EvalRequest request, const KktScatterV
     if (has_request(request, EvalRequest::kConstraintValues)) {
         // One flag, two arenas: no evaluation shape produces one residual block
         // without the other, so naming the flag names both destinations.
-        detail::require_arena_view(rhs.equality_residuals_, EvalRequest::kConstraintValues,
-                                   "equality residuals");
-        detail::require_arena_view(rhs.inequality_residuals_, EvalRequest::kConstraintValues,
-                                   "inequality residuals");
+        detail::require_residual_arena(rhs.equality_residuals_, declared.equality_rows_,
+                                       "equality residual");
+        detail::require_residual_arena(rhs.inequality_residuals_, declared.inequality_rows_,
+                                       "inequality residual");
     }
     if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
         detail::require_arena_view(rhs.constraint_adjoint_gradient_,
@@ -207,10 +277,22 @@ inline void validate_request_destinations(EvalRequest request, const KktScatterV
 /// A provider that binds nothing returns nullptr from
 /// NlpAggregate::bound_kkt_destination and is never checked here.
 ///
-/// IDENTITY ONLY, NEVER A LIFETIME PROMISE. This compares two pointers. It
-/// cannot tell a live destination from a freed one, and nothing here should be
-/// read as saying the bound destination is still valid -- storage lifetime is
-/// the consumer's, exactly as it is for every view in this contract.
+/// A CAPTURED VALUE, NOT A LIVE READING. What a provider returns from
+/// bound_kkt_destination must be the address it recorded AT ANALYSIS TIME, kept
+/// as a value. It must not be re-derived on each call from whatever object the
+/// analysis was handed. Re-deriving defeats the whole check twice over: a
+/// consumer that resized or re-patterned THE SAME container moves its value
+/// array, and a live reading moves with it, so both sides of the comparison
+/// agree while every recorded offset has gone stale -- the precise inversion of
+/// what this exists to catch. And a container destroyed since the analysis
+/// cannot be read at all, while this accessor is called on EVERY assemble,
+/// including ones that name no KKT output.
+///
+/// IDENTITY ONLY, NEVER A LIFETIME PROMISE. This compares two addresses as
+/// values. It cannot tell a live destination from a freed one, and nothing here
+/// should be read as saying the bound destination is still valid -- storage
+/// lifetime is the consumer's, exactly as it is for every view in this contract.
+/// Neither the captured address nor the view's is dereferenced here.
 ///
 /// What it DOES catch is the case worth catching: a consumer whose matrix was
 /// reallocated moves its value array, so the recorded offsets now describe
@@ -352,6 +434,13 @@ class NlpAggregate {
     /// and the assemble entry then refuses a view naming anything else -- see
     /// validate_bound_destination above for what that check is and, more
     /// importantly, what it is not.
+    ///
+    /// AN IMPLEMENTATION RETURNS THE ADDRESS IT CAPTURED AT ANALYSIS TIME, held
+    /// as a value, and dereferences nothing to produce it. Re-reading the
+    /// address out of the container the analysis was handed would make the
+    /// check vacuous against a resize of that container and unsafe against its
+    /// destruction; this entry is called on every assemble, including ones that
+    /// name no KKT output at all.
     virtual const double *bound_kkt_destination() const { return nullptr; }
 
     /// The hot path: fan out over the partitions, each piece scattering its own
@@ -380,9 +469,11 @@ class NlpAggregate {
     ///     constraint adjoint gradient or adjoint Hessian contracts a
     ///     derivative against the multipliers, so an empty multiplier block is
     ///     a missing input rather than a zero vector.
-    ///   * validate_request_destinations(request, kkt, rhs) -- every output the
-    ///     request names has somewhere to go. Presence only, O(1) per
-    ///     destination; an arena the request does not name stays legally empty.
+    ///   * validate_request_destinations(request, declaration(), kkt, rhs) -- every
+    ///     output the request names has somewhere to go: a fixed amount of
+    ///     work per destination, and an arena the request does not name stays
+    ///     legally empty. The residual arenas are matched against the declared
+    ///     row counts, so a model with rows of only one kind is not locked out.
     ///   * validate_bound_destination(bound_kkt_destination(), kkt) -- when this
     ///     provider bound its location tables to a destination at analysis
     ///     time, the view names that destination. One pointer comparison, and
@@ -425,7 +516,7 @@ class NlpAggregate {
         if (request_consumes_multipliers(request)) {
             validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
         }
-        validate_request_destinations(request, kkt, rhs);
+        validate_request_destinations(request, declared, kkt, rhs);
         validate_bound_destination(this->bound_kkt_destination(), kkt);
         this->assemble_impl(point, request, kkt, rhs);
     }
@@ -483,6 +574,25 @@ class NlpAggregate {
     /// evaluate_candidate_values above -- the two gradient blocks included, so
     /// they carry one row per DECLARED variable whatever the provider's own
     /// working space is.
+    ///
+    /// WHAT A SCORER OWES, and it is an obligation on the CONSUMER rather than
+    /// a defect in any provider: a variable whose declared bounds coincide
+    /// carries no degree of freedom, and its stationarity row is not a
+    /// stationarity condition -- the quantity that balances there is the bound
+    /// multiplier holding it at its value, which this surface does not carry.
+    /// A correct scorer therefore EXCLUDES the declared-fixed coordinates from
+    /// stationarity scoring rather than reading whatever the gradient blocks
+    /// hold for them.
+    ///
+    /// The exclusion set is computable FROM DECLARATION DATA ALONE: it is the
+    /// set of variables whose materialized bound record has lower == upper
+    /// (declaration().materialize_variable_bounds(), the same intersection the
+    /// structural key's bound conjunct is taken over). No engine state, no
+    /// provider internals, and no knowledge of which treatment a provider was
+    /// configured with is needed to compute it -- which is what keeps a scorer
+    /// written against this surface independent of the provider behind it.
+    /// Providers differ in what they leave in an excluded coordinate's row, and
+    /// a scorer that skips those rows is insensitive to the difference.
     void evaluate_candidate_first_order(const CandidatePoint &point, CandidateFirstOrder out) {
         const AggregateDeclaration &declared = this->declaration();
         validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,

@@ -914,6 +914,22 @@ struct NonLinearProgram : public NlpAggregate {
     /// layout through make_nlp -- which is exactly what "unchanging except
     /// across a structural mutation" asks for, and what keeps the structural
     /// key from moving under a consumer between two evaluations of one layout.
+    ///
+    /// THE ROW SPACE IS THE ROW SPACE AS LAID. The MakeConstraint treatment
+    /// installs one internal equality row per fixed variable, and those rows are
+    /// APPENDED AFTER EVERY ROW THE TRANSCRIPTION DECLARED. No row a
+    /// transcription named is ever renumbered, every declared global row
+    /// identity survives a treatment change, and the row space grows only at its
+    /// tail.
+    ///
+    /// TREATMENT CONFIGURATION IS A STRUCTURAL MUTATION and is treated as one
+    /// throughout: visible through declaration(), through model_structure_key()
+    /// and through structure_epoch(), exactly as any other structural mutation
+    /// is. What it is NOT is visible in vector INDEXING -- nothing a consumer
+    /// addresses by declared identity moves under it. There is deliberately no
+    /// user-rows/internal-rows split field on this surface: the counts a
+    /// consumer needs are the counts as laid, and a split gets added when a
+    /// consumer has a use for one, not before.
     const AggregateDeclaration &declaration() const override { return this->declaration_; }
 
     /// Adopts a partition count, re-lays over it, and returns what was ADOPTED.
@@ -923,6 +939,12 @@ struct NonLinearProgram : public NlpAggregate {
     /// work to offset dispatch, so the count comes down. A caller that assumed
     /// its request was honoured would mis-key the structural key, whose
     /// partition conjunct is this return value.
+    ///
+    /// A non-positive request is REFUSED, naming the value, rather than clamped
+    /// to one. Capping a request the work cannot support is this method's job
+    /// and is reported honestly through the return value; a request for zero or
+    /// fewer partitions is not a request this can serve at all, and silently
+    /// serving something else would hand the caller a count it never asked for.
     ///
     /// Re-lays unconditionally, including when the adopted count is the one
     /// already in force: re-partitioning hands the claims out in a different
@@ -971,9 +993,16 @@ struct NonLinearProgram : public NlpAggregate {
     /// and no other. Recorded there, cleared by every re-lay (which resets
     /// kkt_locations_ to -1 and so requires a fresh analysis anyway), and
     /// checked at the assemble entry.
-    const double *bound_kkt_destination() const override {
-        return this->analyzed_kkt_ == nullptr ? nullptr : this->analyzed_kkt_->valuePtr();
-    }
+    ///
+    /// A CAPTURED VALUE. This returns the address recorded at analysis time and
+    /// touches no matrix to produce it. Re-reading valuePtr() from the analysed
+    /// matrix would break the check in both directions: a caller that resized or
+    /// re-patterned THAT SAME MATRIX moves its value array, and a live reading
+    /// would move with it, so the comparison would agree while every recorded
+    /// offset had gone stale -- and a matrix destroyed since the analysis cannot
+    /// be read at all, while this accessor runs on every assemble, including
+    /// ones that name no KKT output.
+    const double *bound_kkt_destination() const override { return this->analyzed_kkt_values_; }
 
     IdentityProbe probe_identity(ConstVecRef x) override;
 
@@ -987,6 +1016,35 @@ struct NonLinearProgram : public NlpAggregate {
     const RhsLocationTable &inequality_residual_table() const { return this->icon_table_; }
 
   protected:
+    // WHAT THIS PROVIDER'S FIRST-ORDER CANDIDATE SURFACE DOES AND DOES NOT
+    // GIVE YOU. Two facts, both stated plainly because both are easy to read
+    // past and either one silently corrupts a residual score.
+    //
+    // 1. THE GRADIENT ROWS OF ELIMINATED COORDINATES ARE NOT PARTIAL
+    //    DERIVATIVES. They read ZERO. Under the MakeParameter treatment a
+    //    bound-fixed variable is removed from the solved system, and its
+    //    gradient row is marked -1 at claim time -- the layout's own way of
+    //    saying the row is not part of the reduced problem's residual -- so no
+    //    destination for it survives and this surface reports zero at that
+    //    declared coordinate. Zero is not the derivative there; it is the
+    //    absence of one.
+    //
+    // 2. THE FIRST-ORDER SURFACE DIFFERS BETWEEN THE TREATMENTS at exactly
+    //    those coordinates. MakeParameter eliminates the variable and yields
+    //    the zero above. MakeConstraint and RelaxBounds keep it in the solved
+    //    system, so its row carries a real value -- the objective's own partial
+    //    plus, under MakeConstraint, the internal fixing row's adjoint
+    //    contribution. Same declaration, same point, different rows: the
+    //    difference is the treatment, not the mathematics.
+    //
+    // THE CONSUMER-SIDE RULE that makes both facts harmless, stated at the
+    // contract in full (see evaluate_candidate_first_order in
+    // model/nlp_aggregate.h): a correct scorer EXCLUDES declared-fixed
+    // coordinates -- those whose materialized bound record has lower == upper --
+    // from stationarity scoring, and computes that exclusion set from
+    // DECLARATION DATA ALONE. A scorer that does so never reads either row and
+    // is insensitive to which treatment is configured.
+
     void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                        RhsScatterView rhs) override;
     void evaluate_candidate_values_impl(const CandidatePoint &point, CandidateValues out) override;
@@ -1062,12 +1120,27 @@ struct NonLinearProgram : public NlpAggregate {
 
     /// The bound-structure conjunct, CAPTURED at the end of the same re-lay.
     ///
-    /// Taken over declaration_, which is itself a lay-time snapshot, so the two
-    /// always agree. Capturing matters for the same reason as above:
-    /// clear_variable_bounds() drops the materialized bounds without re-laying
-    /// anything, so a digest computed on demand from the live staging state
-    /// would report a bound structure the structures on hand do not have.
+    /// Taken over declaration_, whose bound records are themselves a snapshot
+    /// (laid_variable_bounds_ below), so the digest describes the bounds the
+    /// structures were LAID WITH and never the staging state as it stands now.
     std::uint64_t bound_digest_ = 0;
+
+    /// The bound records the current layout was materialized from: a copy taken
+    /// by materialize_variable_bounds() at the point where those records have
+    /// just been range-checked and intersected successfully.
+    ///
+    /// The snapshot, rather than reading staged_variable_bounds_ when the
+    /// declaration is refreshed, is what keeps two separate promises. It keeps
+    /// the structural key describing the bounds AS LAID: a record staged after
+    /// the layout has no business moving the key of the structures on hand, and
+    /// a later re-lay for some unrelated reason -- a treatment configuration, a
+    /// partition renegotiation -- must not quietly fold it in. And it keeps the
+    /// bound digest from ever throwing part-way through a re-lay: the records
+    /// here have already passed materialization, so the digest cannot be the
+    /// thing that fails after the structures have been re-laid but before the
+    /// epoch has been bumped, which would leave the old epoch standing over new
+    /// tables.
+    std::vector<VariableBoundStage> laid_variable_bounds_;
 
     /// The partition count the structures were laid at -- the ADOPTED count,
     /// captured for the same reason: num_partitions_ is a public member and a
@@ -1075,9 +1148,25 @@ struct NonLinearProgram : public NlpAggregate {
     /// lay.
     int laid_partition_count_ = 0;
 
-    /// The matrix analyze_sparsity last walked; see bound_kkt_destination().
-    /// Non-owning, and cleared by every re-lay.
-    Eigen::SparseMatrix<double, Eigen::RowMajor> *analyzed_kkt_ = nullptr;
+    /// The VALUE of the value-array address analyze_sparsity last laid the
+    /// location table against. An identity token and nothing else: it is
+    /// compared, never dereferenced, and never re-derived. Cleared by every
+    /// re-lay. See bound_kkt_destination().
+    const double *analyzed_kkt_values_ = nullptr;
+
+    /// The matrix object analyze_sparsity last walked, kept for one purpose:
+    /// the piece surface takes a matrix reference, so a KKT-bearing assemble
+    /// has to hand the pieces one.
+    ///
+    /// Dereferenced ONLY on that path, and only after the entry has established
+    /// that the caller's scatter view names analyzed_kkt_values_ -- which is to
+    /// say only when the consumer is, at that moment, presenting the very array
+    /// this was analysed against. The identity check above deliberately does not
+    /// go through here, because the whole point of holding the address as a
+    /// value is that reading it back out of this object would be both vacuous
+    /// (a resize moves both sides together) and unsafe (a destroyed matrix
+    /// cannot be read).
+    Eigen::SparseMatrix<double, Eigen::RowMajor> *analyzed_kkt_matrix_ = nullptr;
 
     KktLocationTable kkt_table_;
     RhsLocationTable pgx_table_;

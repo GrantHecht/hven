@@ -107,7 +107,8 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // A re-lay resets kkt_locations_ to -1: only analyze_sparsity fills it, and
     // it has not run against this layout yet. The destination binding goes with
     // the offsets it described.
-    this->analyzed_kkt_ = nullptr;
+    this->analyzed_kkt_values_ = nullptr;
+    this->analyzed_kkt_matrix_ = nullptr;
 
     // LAST, and that program order is the substance of the ordering guarantee:
     // no evaluation of these structures is reachable under the previous epoch.
@@ -131,9 +132,16 @@ void hven::solvers::NonLinearProgram::refresh_declaration() {
     // identity survives -- which is the property the candidate surface and the
     // partition-invariance sentence both rest on.
 
+    // From the LAID snapshot, never from the live staging state. A record staged
+    // since the last materialization describes a problem these structures were
+    // not laid for: folding it in here would move the structural key of a layout
+    // nothing re-laid, and would put an unvalidated record in front of the bound
+    // digest -- which runs later in this same re-lay, and could then throw after
+    // the structures had been replaced but before the epoch was bumped, leaving
+    // the old epoch standing over new tables.
     this->declaration_.variable_bounds_.clear();
-    this->declaration_.variable_bounds_.reserve(this->staged_variable_bounds_.size());
-    for (const auto &stage : this->staged_variable_bounds_) {
+    this->declaration_.variable_bounds_.reserve(this->laid_variable_bounds_.size());
+    for (const auto &stage : this->laid_variable_bounds_) {
         this->declaration_.variable_bounds_.push_back(
             VariableBound{stage.index_, stage.lower_, stage.upper_});
     }
@@ -159,7 +167,18 @@ void hven::solvers::NonLinearProgram::publish_location_tables() {
 }
 
 int hven::solvers::NonLinearProgram::negotiate_partition_count(int requested) {
-    this->num_partitions_ = std::max(requested, 1);
+    // Refused, not clamped. Capping a request the work cannot support is this
+    // method's job and is reported honestly through the return value; a request
+    // for zero or fewer partitions names no partitioning at all, and quietly
+    // serving one instead would hand the caller a count it never asked for --
+    // which it would then key its structural key on.
+    if (requested < 1) {
+        throw std::invalid_argument(
+            fmt::format("negotiate_partition_count: a partition count must be at least 1 (got {0})",
+                        requested));
+    }
+
+    this->num_partitions_ = requested;
     if (this->num_partitions_ > 1) {
         const int max_parts = std::max(1, this->num_user_kkt_elems_ / kMinKktElementsPerPartition);
         this->num_partitions_ = std::min(this->num_partitions_, max_parts);
@@ -322,6 +341,16 @@ void hven::solvers::NonLinearProgram::materialize_variable_bounds() {
                             stage.index_, lower, upper));
         }
     }
+
+    // The records this layout is materialized from, snapshotted at the one point
+    // where they have just been proved to describe a problem: every index is in
+    // range and every intersection is non-empty. The declaration is refreshed
+    // from this copy rather than from the live staging list, so the structural
+    // key describes the bounds AS LAID and the bound digest can never be the
+    // thing that throws part-way through a later re-lay. Taken only on the
+    // success path, so a rejected materialization leaves the previous layout's
+    // snapshot -- and the previous layout -- describing each other.
+    this->laid_variable_bounds_ = this->staged_variable_bounds_;
 }
 
 void hven::solvers::NonLinearProgram::count_elems() {
@@ -703,12 +732,18 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
     /////////////////////////////////////////////////////////////
 
     // kkt_locations_ now holds offsets into THIS matrix's value array and no
-    // other's. Recorded after the resize and the compression above, which are
-    // what move that array. The assemble entry checks a caller's scatter view
-    // against it, so a consumer that reallocated its matrix and did not come
-    // back through here is told its location table is stale instead of writing
-    // through offsets into storage that has moved.
-    this->analyzed_kkt_ = &KKTmat;
+    // other's. The address of that array is captured HERE, as a VALUE, after
+    // the resize and the compression above -- which are exactly what move it.
+    //
+    // Capturing the address rather than re-reading it from the matrix later is
+    // what makes the check at the assemble entry mean anything. A consumer that
+    // resizes or re-patterns THIS SAME MATRIX moves its value array and leaves
+    // every offset here describing storage that is gone; a live re-read would
+    // move with it and agree, which is the failure inverted. And a matrix
+    // destroyed since this call cannot be read at all, while the entry's
+    // accessor runs on every assemble.
+    this->analyzed_kkt_values_ = KKTmat.valuePtr();
+    this->analyzed_kkt_matrix_ = &KKTmat;
 }
 
 bool hven::solvers::NonLinearProgram::configure_variable_treatment(
@@ -1470,6 +1505,30 @@ inline Eigen::Map<Eigen::VectorXd> arena_vector(const hven::solvers::RhsArenaVie
     return Eigen::Map<Eigen::VectorXd>(arena.values_, arena.size_);
 }
 
+/// The provider's half of the destination checks, for the arenas the entry can
+/// only test for presence.
+///
+/// The entry validates what the CONTRACT can see, and the width this engine
+/// laid its gradient arenas over is not among those things: a declaration
+/// reports the DECLARED variable count, while an elimination narrows the space
+/// these arenas are actually addressed in. So the entry cannot tell a correctly
+/// sized view from a short one -- and a short one is not a harmless mistake.
+/// The fill walks the published table and writes target[row] for every claim,
+/// so a view shorter than the laid width is written off its end.
+///
+/// One comparison per named arena, at this hook's entry, before anything is
+/// evaluated.
+void require_laid_width(const hven::solvers::RhsArenaView &view, int laid_width,
+                        const char *arena) {
+    if (view.size_ != laid_width) {
+        throw std::invalid_argument(fmt::format(
+            "assemble: the {0} arena's view is {1} rows, but this provider laid its {0} over {2} "
+            "rows. Claims scatter through the published table by row, so a view of any other "
+            "length is addressed off its end.",
+            arena, view.size_, laid_width));
+    }
+}
+
 } // namespace
 
 void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
@@ -1479,7 +1538,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
                                         EvalRequest::kConstraintJacobian |
                                         EvalRequest::kConstraintAdjointHessian;
     const bool needs_kkt = (request & kKktBearing) != EvalRequest::kNone;
-    if (needs_kkt && this->analyzed_kkt_ == nullptr) {
+    if (needs_kkt && this->analyzed_kkt_values_ == nullptr) {
         // The entry checked the view against the destination this provider is
         // BOUND to, and this provider is bound to none yet: the sparsity
         // analysis that computes the offsets has not run against the structures
@@ -1489,9 +1548,27 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
             "destination -- run the sparsity analysis on the matrix you intend to fill before "
             "requesting KKT-bearing output");
     }
-    // Bound above, and the entry has already established that the view names
-    // it, so the pieces and the consumer are addressing one array.
-    Eigen::SparseMatrix<double, Eigen::RowMajor> *mat = this->analyzed_kkt_;
+    // The only place the analysed matrix OBJECT is touched, and only on this
+    // path: the piece surface takes a matrix reference, so a KKT-bearing shape
+    // has to hand the pieces one. Reaching it here is safe on exactly the ground
+    // the entry established a moment ago -- the caller's view names
+    // analyzed_kkt_values_, so the consumer is presenting this very array right
+    // now. The identity check itself deliberately never comes through here.
+    Eigen::SparseMatrix<double, Eigen::RowMajor> *mat = this->analyzed_kkt_matrix_;
+
+    // The laid-width half of the destination checks, which is this provider's
+    // to make: the entry established that a named gradient arena HAS storage
+    // and a table, and could establish no more than that, because the width
+    // these arenas are laid over is the solver's primal block and not the
+    // declared variable count.
+    if (has_request(request, EvalRequest::kObjectiveGradient)) {
+        require_laid_width(rhs.objective_gradient_, this->reduced_primal_vars_count_,
+                           "objective gradient");
+    }
+    if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
+        require_laid_width(rhs.constraint_adjoint_gradient_, this->reduced_primal_vars_count_,
+                           "constraint adjoint gradient");
+    }
 
     const Eigen::Ref<const VectorXd> Xf = this->declaration_view(point.x_);
     const double scale = point.objective_scale_;

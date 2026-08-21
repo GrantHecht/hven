@@ -680,7 +680,7 @@ TEST(AggregateAssembleContract, AnArenaTheRequestDoesNameMayNotBeLeftEmpty) {
         FAIL() << "a request naming an arena whose view is empty must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
-        EXPECT_NE(message.find("equality residuals"), std::string::npos) << message;
+        EXPECT_NE(message.find("equality residual"), std::string::npos) << message;
     }
     EXPECT_EQ(out.objective, kUntouchedSentinel);
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.inequality_residuals));
