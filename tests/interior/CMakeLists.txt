@@ -24,6 +24,7 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_merit_rules.cpp
     test_monitored_governor.cpp
     test_nlp_adapter.cpp
+    test_nlp_aggregate_contract.cpp
     test_nlp_multiplier_seeding.cpp
     test_nlp_solver.cpp
     test_proximal_restoration.cpp

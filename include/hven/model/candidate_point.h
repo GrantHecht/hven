@@ -46,6 +46,11 @@ struct CandidatePoint {
 };
 
 /// Caller-owned storage for an aggregate's VALUES at a candidate point.
+///
+/// ASSIGNED by the evaluation, never accumulated into, and indexed by DECLARED
+/// global identities. Both rules -- and why the first is deliberately the
+/// opposite of what assemble does to an arena -- are stated at
+/// evaluate_candidate_values in model/nlp_aggregate.h.
 struct CandidateValues {
     double &objective_;
     Eigen::Ref<Vec> equality_residuals_;

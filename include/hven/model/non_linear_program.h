@@ -41,6 +41,7 @@
 #include "hven/detail/interior/objective_function.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/interior/utils/thread_pool.h"
+#include "hven/model/nlp_aggregate.h"
 
 namespace hven::solvers {
 
@@ -95,7 +96,54 @@ inline constexpr double kDefaultBoundRelaxFactor = 1.0e-8;
 /// any tolerance a caller would set.
 inline constexpr double kMaxBoundRelaxFactor = 1.0e-2;
 
-struct NonLinearProgram {
+/// Smallest per-partition KKT element count worth dispatching for. Below it the
+/// thread-dispatch overhead dominates the work, so the partition count is capped
+/// at num_user_kkt_elems_ / this. Empirically chosen via solver benchmarks;
+/// re-evaluate with the bench harness if dispatch overhead changes.
+inline constexpr int kMinKktElementsPerPartition = 1000;
+
+/// The partitioned evaluation engine, and a Level 2 provider.
+///
+/// WHAT THE CONTRACT SURFACE ADDS AND WHAT IT DOES NOT REPLACE. Every member
+/// and method this type had before it derived from NlpAggregate is still here
+/// and still behaves identically: the eight eval_ entry points, the public
+/// layout members, the solver-coefficient accessors. The contract methods are
+/// a second way in, over the same machinery -- assemble() reaches the same
+/// per-shape passes the eval_ entries do, call for call. Nothing was moved out
+/// to the consumer except the one thing the mapping table says transfers (the
+/// solver-coefficient scatter, which assemble deliberately does not do and the
+/// eval_ entries still do).
+///
+/// THE FILL PATH, both halves, because the capability declaration below turns
+/// on the difference:
+///
+///   * The KKT fill is DIRECT. Each piece writes the consumer's value array in
+///     place, at offsets its claim recorded (kkt_locations_), under the
+///     canonical-column lock protocol. There is no provider-owned matrix and no
+///     copy: this is the per-minor cost center and it is not paying for one.
+///   * The RIGHT-HAND-SIDE fill goes through a provider-owned intermediate --
+///     each piece accumulates into its own claim slots in rhs_coeffs_, and
+///     fill_pgx/fill_agx/fill_fxe/fill_fxi then fold those slots into the
+///     consumer's vectors through rhs_coeff_rows_.
+///
+/// THAT INTERMEDIATE IS REQUIRED, not merely tolerated, and the reason is
+/// determinism rather than convenience. Several pieces claim rows of one
+/// gradient, so an in-place scatter would have to lock per row, and the order
+/// in which contending threads won those locks would decide the order the
+/// floating-point additions happened in -- making the assembled right-hand
+/// side depend on scheduling, and therefore on the evaluation-thread count.
+/// Claim slots are contention-free by construction (one piece owns each), and
+/// the fold that follows walks them in claim order, so the accumulation order
+/// is a property of the layout alone: the same problem produces bit-identical
+/// right-hand sides at any thread count. This library's pins rest on that
+/// stability, and it outranks the no-copy property. Removing the intermediate
+/// would be a regression, not an optimization.
+///
+/// The two facts are per-major/per-minor consistent with how the same question
+/// is scoped for a Level 1 bridge: what is protected is the per-minor hot path,
+/// and an intermediate that sits outside it is a declared property rather than
+/// a defect.
+struct NonLinearProgram : public NlpAggregate {
     using VectorXi = Eigen::VectorXi;
     using VectorXd = Eigen::VectorXd;
     using MatrixXi = Eigen::MatrixXi;
@@ -853,6 +901,198 @@ struct NonLinearProgram {
 
     static void nlp_test(const Eigen::VectorXd &x, int n, std::shared_ptr<NonLinearProgram> nlp1,
                          std::shared_ptr<NonLinearProgram> nlp2);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // The Level 2 provider contract
+    ////////////////////////////////////////////////////////////////////////////
+
+    /// The declaration as of the last lay, and deliberately not as of now.
+    ///
+    /// Stored state, refreshed by rebuild_structures() and by nothing else, so
+    /// it describes the structures actually on hand. Staging a bound
+    /// declaration does not touch it -- staged declarations only reach the
+    /// layout through make_nlp -- which is exactly what "unchanging except
+    /// across a structural mutation" asks for, and what keeps the structural
+    /// key from moving under a consumer between two evaluations of one layout.
+    const AggregateDeclaration &declaration() const override { return this->declaration_; }
+
+    /// Adopts a partition count, re-lays over it, and returns what was ADOPTED.
+    ///
+    /// The request is capped the same way a transcription's is: below
+    /// kMinKktElementsPerPartition elements per partition there is not enough
+    /// work to offset dispatch, so the count comes down. A caller that assumed
+    /// its request was honoured would mis-key the structural key, whose
+    /// partition conjunct is this return value.
+    ///
+    /// Re-lays unconditionally, including when the adopted count is the one
+    /// already in force: re-partitioning hands the claims out in a different
+    /// order even when the claim STRUCTURE is identical, so any consumer state
+    /// indexed by claim slot is stale and the epoch must say so.
+    int negotiate_partition_count(int requested) override;
+
+    /// The evaluation thread budget, which in this provider is the shared pool
+    /// its partition fan-out dispatches to -- and that pool is PROCESS-GLOBAL.
+    /// Setting it through one aggregate sets it for every aggregate in the
+    /// process. Said plainly here because an aggregate-scoped setter otherwise
+    /// implies a per-aggregate budget this provider does not have.
+    int evaluation_threads() const override { return hven::utils::get_num_threads(); }
+    void set_evaluation_threads(int n) override { hven::utils::set_num_threads(n); }
+
+    /// The three conjuncts as captured at the last lay. Both digests are
+    /// CAPTURED rather than computed on demand, and each for its own reason --
+    /// see claim_digest_ and bound_digest_ below.
+    ModelStructureKey model_structure_key() const override {
+        return ModelStructureKey{this->claim_digest_, this->laid_partition_count_,
+                                 this->bound_digest_};
+    }
+
+    /// kValuesFastPath, and only that.
+    ///
+    /// The values path is genuine: evaluate_candidate_values runs the objective
+    /// and constraint VALUE evaluators and touches no derivative anywhere, so a
+    /// consumer pricing a probe at values cost is pricing it correctly.
+    ///
+    /// kDirectScatter is NOT declared, and the flag being per-aggregate is why
+    /// the KKT half cannot raise it. The declaration is the weakest claim over
+    /// the whole provider, so one fill path holding an intermediate settles it
+    /// for all of them -- and the right-hand-side path holds one by design (see
+    /// the determinism argument at the top of this class). Splitting the flag
+    /// per arena would be the wrong repair: it would hand a consumer two bits
+    /// where no consumer has two decisions to make, and every decision these
+    /// flags exist for is taken once per solve over the provider as a whole.
+    AggregateCapability capabilities() const override {
+        return AggregateCapability::kValuesFastPath;
+    }
+
+    /// The KKT value array this provider's location tables are bound to.
+    ///
+    /// kkt_locations_ holds offsets into ONE matrix's value array -- the one
+    /// analyze_sparsity walked -- so the tables are meaningful for that array
+    /// and no other. Recorded there, cleared by every re-lay (which resets
+    /// kkt_locations_ to -1 and so requires a fresh analysis anyway), and
+    /// checked at the assemble entry.
+    const double *bound_kkt_destination() const override {
+        return this->analyzed_kkt_ == nullptr ? nullptr : this->analyzed_kkt_->valuePtr();
+    }
+
+    IdentityProbe probe_identity(ConstVecRef x) override;
+
+    /// The published claim tables: the same arrays every scatter already
+    /// addresses, in the contract's own spelling. Views, not copies -- they
+    /// stop being valid at the next re-lay, which republishes them.
+    const KktLocationTable &kkt_location_table() const { return this->kkt_table_; }
+    const RhsLocationTable &objective_gradient_table() const { return this->pgx_table_; }
+    const RhsLocationTable &constraint_adjoint_gradient_table() const { return this->agx_table_; }
+    const RhsLocationTable &equality_residual_table() const { return this->econ_table_; }
+    const RhsLocationTable &inequality_residual_table() const { return this->icon_table_; }
+
+  protected:
+    void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
+                       RhsScatterView rhs) override;
+    void evaluate_candidate_values_impl(const CandidatePoint &point, CandidateValues out) override;
+    void evaluate_candidate_first_order_impl(const CandidatePoint &point,
+                                             CandidateFirstOrder out) override;
+
+  public:
+    ////////////////////////////////////////////////////////////////////////////
+    // The eight evaluation shapes, factored
+    //
+    // Each public eval_ entry above is now a pass plus its fills. The split is
+    // mechanical and the passes are the entries' own bodies verbatim: same
+    // calls, same order, same internal zeroing. What it buys is that assemble()
+    // can run one of these shapes and then fill DIFFERENT destinations --
+    // omitting the fills for arenas its request does not name, and omitting the
+    // solver-coefficient scatter, which the contract transfers to the consumer.
+    //
+    // Xf is the full-space primal buffer the pieces read, computed by the
+    // caller: primal_view() for an eval_ entry (whose X is the solver's reduced
+    // iterate) and declaration_view() for assemble (whose point is in
+    // declaration space).
+    ////////////////////////////////////////////////////////////////////////////
+
+    void objective_pass(double ObjScale, ConstEigenRef<VectorXd> Xf, double &val);
+    void objective_constraints_pass(double ObjScale, ConstEigenRef<VectorXd> Xf, double &val);
+    void objective_gradient_constraints_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                                             double &val);
+    void first_order_rhs_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                              ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI, double &val);
+    void constraint_jacobian_pass(ConstEigenRef<VectorXd> Xf,
+                                  Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
+    void first_order_kkt_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                              ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI, double &val,
+                              Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
+    void constraint_kkt_pass(ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
+                             ConstEigenRef<VectorXd> LI,
+                             Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
+    void full_kkt_pass(double ObjScale, ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
+                       ConstEigenRef<VectorXd> LI, double &val,
+                       Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
+
+    /// The full-space primal buffer for a point already in DECLARATION space.
+    ///
+    /// The counterpart of primal_view(), which starts from the solver's reduced
+    /// iterate. Here the caller's vector already has one entry per declared
+    /// variable, so on the identity path it IS the buffer and no copy happens.
+    /// Once variables are eliminated the eliminated coordinates are pinned at
+    /// their declared values rather than trusted from the caller -- the same
+    /// values scatter_full_x would have written, so the two entry paths hand
+    /// the pieces identical buffers.
+    Eigen::Ref<const VectorXd> declaration_view(ConstEigenRef<VectorXd> x);
+
+    /// Rebuilds declaration_ from the master lists, the laid dimensions, the
+    /// adopted partition count and the staged bound records. Called by
+    /// rebuild_structures() before anything reads the declaration.
+    void refresh_declaration();
+
+    /// Republishes the five location tables over the arrays as they now stand.
+    void publish_location_tables();
+
+    /// The declaration as of the last lay -- see declaration().
+    AggregateDeclaration declaration_;
+
+    /// The claim-structure conjunct, CAPTURED at the end of get_mat_space().
+    ///
+    /// It cannot be computed on demand from kkt_coeff_rows_/kkt_coeff_cols_,
+    /// because analyze_sparsity REWRITES those arrays: it canonicalizes every
+    /// claim whose column exceeds its row by swapping the endpoints in place.
+    /// A digest taken after that analysis would differ from one taken before it
+    /// with no structural event in between, which is precisely what a
+    /// structural key must not do.
+    std::uint64_t claim_digest_ = 0;
+
+    /// The bound-structure conjunct, CAPTURED at the end of the same re-lay.
+    ///
+    /// Taken over declaration_, which is itself a lay-time snapshot, so the two
+    /// always agree. Capturing matters for the same reason as above:
+    /// clear_variable_bounds() drops the materialized bounds without re-laying
+    /// anything, so a digest computed on demand from the live staging state
+    /// would report a bound structure the structures on hand do not have.
+    std::uint64_t bound_digest_ = 0;
+
+    /// The partition count the structures were laid at -- the ADOPTED count,
+    /// captured for the same reason: num_partitions_ is a public member and a
+    /// consumer writing it directly changes nothing structural until the next
+    /// lay.
+    int laid_partition_count_ = 0;
+
+    /// The matrix analyze_sparsity last walked; see bound_kkt_destination().
+    /// Non-owning, and cleared by every re-lay.
+    Eigen::SparseMatrix<double, Eigen::RowMajor> *analyzed_kkt_ = nullptr;
+
+    KktLocationTable kkt_table_;
+    RhsLocationTable pgx_table_;
+    RhsLocationTable agx_table_;
+    RhsLocationTable econ_table_;
+    RhsLocationTable icon_table_;
+
+    /// Scratch for the candidate surface, which is off the hot path and must
+    /// hand back DECLARATION-space vectors: the gradient fills land in the
+    /// solver's own (possibly narrower) space first and are expanded from here.
+    VectorXd candidate_gradient_scratch_;
+    /// Residual scratch for probe_identity, which needs storage that outlives
+    /// the CandidateValues view it builds.
+    VectorXd probe_equality_scratch_;
+    VectorXd probe_inequality_scratch_;
 };
 
 } // namespace hven::solvers

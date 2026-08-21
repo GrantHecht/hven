@@ -194,6 +194,52 @@ inline void validate_request_destinations(EvalRequest request, const KktScatterV
     }
 }
 
+/// Rejects a KKT view that does not name the destination the provider's
+/// location tables were bound to.
+///
+/// A PROVIDER MAY BIND ITS LOCATION TABLES TO A DESTINATION IDENTITY AT
+/// ANALYSIS TIME, and the entry validates that the view names that
+/// destination. Some providers compute their KKT locations as offsets into one
+/// particular value array -- they are handed the consumer's storage at an
+/// analysis step, walk its pattern, and record where each claim slot lands in
+/// it. Such a table is meaningful for that array and no other, so the binding
+/// is a fact about the tables rather than an extra obligation on the consumer.
+/// A provider that binds nothing returns nullptr from
+/// NlpAggregate::bound_kkt_destination and is never checked here.
+///
+/// IDENTITY ONLY, NEVER A LIFETIME PROMISE. This compares two pointers. It
+/// cannot tell a live destination from a freed one, and nothing here should be
+/// read as saying the bound destination is still valid -- storage lifetime is
+/// the consumer's, exactly as it is for every view in this contract.
+///
+/// What it DOES catch is the case worth catching: a consumer whose matrix was
+/// reallocated moves its value array, so the recorded offsets now describe
+/// storage that is gone. That is a STALE TABLE, and detecting it is this
+/// check working rather than a caller being scolded -- which is why the throw
+/// names the remedy (re-run the analysis) instead of only reporting the
+/// mismatch.
+///
+/// THE CONTRAST, stated here because the two surfaces are easy to conflate:
+/// the CANDIDATE surface stays UNBOUND. evaluate_candidate_values and
+/// evaluate_candidate_first_order take caller-owned storage afresh on every
+/// call and bind to nothing, so an independent scorer needs no analysis step
+/// and may evaluate into whatever buffers it happens to hold. Binding is a
+/// property of the hot path's location tables alone.
+inline void validate_bound_destination(const double *bound, const KktScatterView &kkt) {
+    if (bound == nullptr || kkt.empty()) {
+        return;
+    }
+    if (kkt.values_ != bound) {
+        throw std::invalid_argument(fmt::format(
+            "assemble: the KKT scatter view names value array {0}, but this provider's location "
+            "tables were bound at analysis time to {1}. The destination bound at analysis no "
+            "longer matches the view; re-run the analysis against the destination you intend to "
+            "fill. (A consumer matrix that was resized or reallocated moves its value array, so "
+            "this is a stale location table being caught rather than a rejected argument.)",
+            fmt::ptr(kkt.values_), fmt::ptr(bound)));
+    }
+}
+
 /// The Level 2 provider interface: a partitioned collection of pieces plus its
 /// layout.
 ///
@@ -297,6 +343,17 @@ class NlpAggregate {
     /// nothing is the default and is always a legal answer.
     virtual AggregateCapability capabilities() const { return AggregateCapability::kNone; }
 
+    /// The KKT value array this provider's location tables were bound to at
+    /// analysis time, or nullptr when it binds none.
+    ///
+    /// The default binds none, which is the right answer for any provider whose
+    /// tables are destination-independent. A provider that computes its
+    /// locations as offsets into one particular array returns that array here,
+    /// and the assemble entry then refuses a view naming anything else -- see
+    /// validate_bound_destination above for what that check is and, more
+    /// importantly, what it is not.
+    virtual const double *bound_kkt_destination() const { return nullptr; }
+
     /// The hot path: fan out over the partitions, each piece scattering its own
     /// claims into the consumer's storage through the tables the consumer
     /// published.
@@ -326,6 +383,10 @@ class NlpAggregate {
     ///   * validate_request_destinations(request, kkt, rhs) -- every output the
     ///     request names has somewhere to go. Presence only, O(1) per
     ///     destination; an arena the request does not name stays legally empty.
+    ///   * validate_bound_destination(bound_kkt_destination(), kkt) -- when this
+    ///     provider bound its location tables to a destination at analysis
+    ///     time, the view names that destination. One pointer comparison, and
+    ///     vacuous for a provider that binds nothing.
     ///
     /// THE ENTRY IS NON-VIRTUAL AND THE HOOK BELOW IT IS THE VIRTUAL ONE, which
     /// upgrades the guarantee at the top of this comment in BOTH directions and
@@ -365,6 +426,7 @@ class NlpAggregate {
             validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
         }
         validate_request_destinations(request, kkt, rhs);
+        validate_bound_destination(this->bound_kkt_destination(), kkt);
         this->assemble_impl(point, request, kkt, rhs);
     }
 
@@ -380,6 +442,30 @@ class NlpAggregate {
     /// A VALUES path, so the point's multiplier blocks are legally empty: it
     /// reads none of them. The storage blocks are checked against the
     /// declaration's dimensions here, before the hook runs.
+    ///
+    /// THE CANDIDATE ENTRIES ASSIGN. Every block this call and
+    /// evaluate_candidate_first_order write is ASSIGNED, not accumulated into,
+    /// and that is deliberately the opposite of assemble's discipline rather
+    /// than an inconsistency to tidy away. The two calls are doing different
+    /// things. Assemble is a MULTI-PIECE fan-out on the hot path: many pieces
+    /// sum into arenas the consumer zeroed once and reuses across a whole
+    /// minor, so accumulation is what lets partitions and successive requests
+    /// compose. A candidate evaluation is the WHOLE aggregate written once into
+    /// a caller's own buffer, off that path, and its caller is a scorer that
+    /// holds a scratch vector and wants the values at a point -- requiring it
+    /// to pre-zero would be an obligation with nothing to buy it, and a
+    /// forgotten zero would silently return the sum of two points.
+    ///
+    /// THE IDENTITY-SPACE PRINCIPLE, which binds every vector on this surface:
+    /// the point's blocks and the storage blocks are indexed by DECLARED global
+    /// (variable, row) identities -- the declaration's own space, the same one
+    /// partition invariance is stated in. No reduction, elimination or staging
+    /// state a provider keeps is visible here: a variable eliminated from
+    /// whatever system the provider solves still has its declared index on this
+    /// surface, and a provider that works in a narrower space maps into and out
+    /// of it internally. An independent scorer can then be written against the
+    /// declaration alone and needs to know nothing about the provider's
+    /// internals -- which is the whole point of the surface existing.
     void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) {
         const AggregateDeclaration &declared = this->declaration();
         validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
@@ -392,6 +478,11 @@ class NlpAggregate {
     /// gradient, so it always reads the multipliers: full-length blocks are
     /// required here, unconditionally, and an empty multiplier block is a
     /// missing input rather than a zero vector.
+    ///
+    /// Assigns, and is in declaration space, on both counts exactly as
+    /// evaluate_candidate_values above -- the two gradient blocks included, so
+    /// they carry one row per DECLARED variable whatever the provider's own
+    /// working space is.
     void evaluate_candidate_first_order(const CandidatePoint &point, CandidateFirstOrder out) {
         const AggregateDeclaration &declared = this->declaration();
         validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,

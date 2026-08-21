@@ -125,6 +125,13 @@ class FakeAggregate final : public NlpAggregate {
 
     void set_capabilities(AggregateCapability capabilities) { capabilities_ = capabilities; }
 
+    /// Binds this fake's location tables to a destination, the way a provider
+    /// that computes its offsets against one particular value array does.
+    /// nullptr -- the default -- is the unbound provider the rest of this suite
+    /// exercises, and the entry then checks nothing.
+    void bind_kkt_destination(const double *destination) { bound_destination_ = destination; }
+    const double *bound_kkt_destination() const override { return bound_destination_; }
+
     int layout_serial() const { return layout_serial_; }
     int adopted_partitions() const { return adopted_partitions_; }
 
@@ -168,6 +175,7 @@ class FakeAggregate final : public NlpAggregate {
     AggregateDeclaration declaration_;
     ModelStructureKey key_;
     AggregateCapability capabilities_ = AggregateCapability::kNone;
+    const double *bound_destination_ = nullptr;
     int adopted_partitions_ = 1;
     int threads_ = 1;
     int layout_serial_ = 0;

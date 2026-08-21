@@ -702,6 +702,91 @@ TEST(AggregateAssembleContract, AKktBearingRequestMayNotBeGivenAnEmptyKktView) {
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.equality_residuals));
 }
 
+TEST(AggregateAssembleContract, ABoundProviderRefusesAViewNamingAnotherDestination) {
+    // A provider whose location tables are offsets into one particular value
+    // array says so, and the entry then holds a view to that array. One pointer
+    // comparison, identity only -- it says nothing about whether either array
+    // is still alive -- and the refusal names the remedy, because the case it
+    // really catches is a consumer whose matrix moved.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    ContractProbeMultipliers multipliers;
+    std::vector<double> elsewhere(ContractProbeDestinations::kKktSlots, 0.0);
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+
+    aggregate.bind_kkt_destination(out.kkt_values.data());
+    EXPECT_NO_THROW(aggregate.assemble(
+        CandidatePoint{x, multipliers.equality, multipliers.inequality},
+        hven::solvers::kRequestConstraintJacobianOnly, out.kkt_view(), out.rhs_view()));
+
+    KktScatterView wrong = out.kkt_view();
+    wrong.values_ = elsewhere.data();
+    try {
+        aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
+                           hven::solvers::kRequestConstraintJacobianOnly, wrong, out.rhs_view());
+        FAIL() << "a bound provider must refuse a view naming a different destination";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("re-run the analysis"), std::string::npos) << message;
+    }
+    EXPECT_EQ(elsewhere[0], 0.0);
+}
+
+TEST(AggregateAssembleContract, AnUnboundProviderAcceptsWhateverDestinationItIsGiven) {
+    // The default, and what the candidate surface is always in: a provider that
+    // binds nothing is never checked here, so nothing in this contract imposes
+    // an analysis step on an implementation that does not need one.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    ContractProbeMultipliers multipliers;
+    std::vector<double> elsewhere(ContractProbeDestinations::kKktSlots, 0.0);
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+
+    KktScatterView anywhere = out.kkt_view();
+    anywhere.values_ = elsewhere.data();
+    EXPECT_NO_THROW(aggregate.assemble(
+        CandidatePoint{x, multipliers.equality, multipliers.inequality},
+        hven::solvers::kRequestConstraintJacobianOnly, anywhere, out.rhs_view()));
+    EXPECT_NE(elsewhere[0], 0.0);
+}
+
+TEST(AggregateCandidateContract, TheCandidateEntriesAssignRatherThanAccumulate) {
+    // Deliberately the opposite of what assemble does to an arena. Twice at one
+    // point returns the values AT that point, not twice them: the caller is a
+    // scorer holding a scratch buffer, and requiring it to pre-zero would be an
+    // obligation with nothing to buy it -- while a forgotten zero would quietly
+    // return the sum of two evaluations.
+    FakeAggregate aggregate;
+    ContractProbeMultipliers multipliers;
+    Vec x = Vec::Constant(FakeAggregate::kPrimalVars, 0.75);
+    Vec none;
+
+    double objective = 0.0;
+    Vec equality = Vec::Constant(FakeAggregate::kEqualityRows, 99.0);
+    Vec inequality = Vec::Constant(FakeAggregate::kInequalityRows, 99.0);
+    CandidateValues values{objective, equality, inequality};
+
+    aggregate.evaluate_candidate_values(CandidatePoint{x, none, none}, values);
+    const double first_objective = objective;
+    const Vec first_equality = equality;
+
+    aggregate.evaluate_candidate_values(CandidatePoint{x, none, none}, values);
+    EXPECT_DOUBLE_EQ(objective, first_objective);
+    EXPECT_EQ(equality, first_equality);
+
+    Vec objective_gradient = Vec::Constant(FakeAggregate::kPrimalVars, 99.0);
+    Vec adjoint_gradient = Vec::Constant(FakeAggregate::kPrimalVars, 99.0);
+    CandidateFirstOrder first_order{values, objective_gradient, adjoint_gradient};
+
+    aggregate.evaluate_candidate_first_order(
+        CandidatePoint{x, multipliers.equality, multipliers.inequality}, first_order);
+    const Vec first_gradient = objective_gradient;
+
+    aggregate.evaluate_candidate_first_order(
+        CandidatePoint{x, multipliers.equality, multipliers.inequality}, first_order);
+    EXPECT_EQ(objective_gradient, first_gradient);
+}
+
 TEST(AggregateAssembleContract, RequestMaskingMovesNeitherLayoutNorDigestNorEpoch) {
     FakeAggregate aggregate;
     ContractProbeDestinations out;

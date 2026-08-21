@@ -15,8 +15,8 @@
 #include <fmt/format.h>
 
 #include "hven/detail/interior/indexing_data.h"
-#include "hven/model/non_linear_program.h"
 #include "hven/detail/interior/utils/timer.h"
+#include "hven/model/non_linear_program.h"
 
 void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
     // A previous configuration's internal fixing rows describe the bounds as they
@@ -61,13 +61,14 @@ void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
 
     // Cap partitions so each has enough work to offset dispatch overhead.
     // num_user_kkt_elems_ counts Jacobian + Hessian NNZ across all functions —
-    // proportional to per-partition compute in eval_kkt/eval_aug. Below ~1000
-    // NNZ per partition, dispatch overhead dominates actual work.
+    // proportional to per-partition compute in eval_kkt/eval_aug. Below the
+    // per-partition threshold, dispatch overhead dominates actual work.
     // Threshold empirically chosen via solver benchmarks (bench_all);
-    // re-evaluate with bench/bench_track.sh if dispatch overhead changes.
+    // re-evaluate with the bench harness if dispatch overhead changes. The same
+    // cap is what negotiate_partition_count applies, which is what makes the
+    // count it reports as ADOPTED the count a transcription would have got.
     if (this->num_partitions_ > 1) {
-        static constexpr int MIN_NNZ_PER_PARTITION = 1000;
-        int max_parts = std::max(1, this->num_user_kkt_elems_ / MIN_NNZ_PER_PARTITION);
+        int max_parts = std::max(1, this->num_user_kkt_elems_ / kMinKktElementsPerPartition);
         this->num_partitions_ = std::min(this->num_partitions_, max_parts);
     }
 
@@ -76,12 +77,107 @@ void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
 }
 
 void hven::solvers::NonLinearProgram::rebuild_structures() {
+    // THE ONE ROUTINE THAT RE-LAYS, and therefore the one place a structural
+    // event is recorded. Every path that changes the assembled claim structure
+    // -- a (re)transcription, either treatment path that eliminates or restores
+    // variables, a MakeConstraint row-space change, a partition renegotiation,
+    // and the restore that runs when a reconfiguration is REJECTED after having
+    // re-laid -- reaches the layout through here. Nothing else does, so nothing
+    // else needs a bump of its own, and the one configure_variable_treatment
+    // exit that does not re-lay (the identity path, which changed nothing) and
+    // the one restore path that does not (a classification-stage rejection at
+    // an NLP that was never reduced) correctly do not bump.
+    this->refresh_declaration();
+
     this->set_mat_dimensions();
     this->set_rhs_dimensions();
 
     this->get_mat_space();
     this->get_rhs_space();
     this->finalize_data();
+
+    this->publish_location_tables();
+
+    // Both conjuncts captured HERE rather than computed on demand -- see the
+    // members' own comments for why each has to be. The partition count goes
+    // with them for the same reason.
+    this->bound_digest_ = materialized_bound_digest(this->declaration_);
+    this->laid_partition_count_ = this->num_partitions_;
+
+    // A re-lay resets kkt_locations_ to -1: only analyze_sparsity fills it, and
+    // it has not run against this layout yet. The destination binding goes with
+    // the offsets it described.
+    this->analyzed_kkt_ = nullptr;
+
+    // LAST, and that program order is the substance of the ordering guarantee:
+    // no evaluation of these structures is reachable under the previous epoch.
+    this->bump_structure_epoch();
+}
+
+void hven::solvers::NonLinearProgram::refresh_declaration() {
+    this->declaration_.objectives_ = this->objectives_;
+    this->declaration_.equality_constraints_ = this->equality_constraints_;
+    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+
+    this->declaration_.primal_vars_ = this->primal_vars_;
+    this->declaration_.equality_rows_ = this->equal_cons_;
+    this->declaration_.inequality_rows_ = this->inequal_cons_;
+    this->declaration_.partition_count_ = this->num_partitions_;
+
+    // The equality row count is the row space AS LAID, so it counts whatever
+    // internal fixing rows the MakeConstraint treatment currently has
+    // installed. Those rows are appended after every row the transcription
+    // declared, so no user row is ever renumbered and every declared global row
+    // identity survives -- which is the property the candidate surface and the
+    // partition-invariance sentence both rest on.
+
+    this->declaration_.variable_bounds_.clear();
+    this->declaration_.variable_bounds_.reserve(this->staged_variable_bounds_.size());
+    for (const auto &stage : this->staged_variable_bounds_) {
+        this->declaration_.variable_bounds_.push_back(
+            VariableBound{stage.index_, stage.lower_, stage.upper_});
+    }
+}
+
+void hven::solvers::NonLinearProgram::publish_location_tables() {
+    // Views over the arrays every scatter already addresses. The KKT table's
+    // clash marks are published over the whole kkt_clashes_ array: a slot's
+    // canonical column is min(row, col), which for a Jacobian element is its
+    // variable column and for a Hessian element is one of the two coupled
+    // variables, so the marks a scatter reads all sit below the primal width --
+    // but publishing the full array is what makes the table's own bounds check
+    // cover every column it describes.
+    this->kkt_table_ = KktLocationTable(
+        this->kkt_locations_.data(), this->num_user_kkt_elems_, this->kkt_clashes_.data(),
+        static_cast<int>(this->kkt_clashes_.size()), &this->kkt_locks_);
+
+    const int *rhs_rows = this->rhs_coeff_rows_.data();
+    this->pgx_table_ = RhsLocationTable(rhs_rows + this->pgx_data_start_, this->num_pgx_elems_);
+    this->agx_table_ = RhsLocationTable(rhs_rows + this->agx_data_start_, this->num_agx_elems_);
+    this->econ_table_ = RhsLocationTable(rhs_rows + this->econ_data_start_, this->num_econ_elems_);
+    this->icon_table_ = RhsLocationTable(rhs_rows + this->icon_data_start_, this->num_icon_elems_);
+}
+
+int hven::solvers::NonLinearProgram::negotiate_partition_count(int requested) {
+    this->num_partitions_ = std::max(requested, 1);
+    if (this->num_partitions_ > 1) {
+        const int max_parts = std::max(1, this->num_user_kkt_elems_ / kMinKktElementsPerPartition);
+        this->num_partitions_ = std::min(this->num_partitions_, max_parts);
+    }
+
+    // The order refresh_function_partitions' own contract requires:
+    // re-partitioning hands out fresh copies of the master functions and those
+    // copies carry the pristine input map, so a reduction in force has to
+    // reinstall its output maps before the structures are laid over them.
+    this->analyze_partitioning();
+    if (this->fixed_reduction_active_) {
+        this->install_function_output_maps();
+    } else {
+        this->clear_function_output_maps();
+    }
+    this->rebuild_structures();
+
+    return this->num_partitions_;
 }
 
 void hven::solvers::NonLinearProgram::refresh_function_partitions() {
@@ -328,30 +424,67 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
      * column can be claimed by more than one partition, so kkt_clashes_ is all -1).
      */
 
-    int KKTfreeloc = 0;
+    // THE CLAIM SEAM, in the contract's own spelling. The cursor a piece claims
+    // out of is a KktClaimSpace: the two index arrays, the next free slot, the
+    // row base for the kind being claimed, the domains being claimed, and the
+    // storage state the assembled matrix will be in. The domains replace the
+    // dojac/dohess boolean pair -- "which structures does this piece claim
+    // slots for?" is then a question with a named answer rather than one
+    // inferred from two positional flags -- and the storage state is resolved
+    // ONCE, here, which is what lets every later scatter write
+    // values[table.location(slot)] without ever branching on which triangle
+    // that offset names.
+    //
+    // The pieces are still handed the space's fields rather than the space
+    // itself: their claim method is the type-erased piece surface, and
+    // retiring its spelling is a change to the pieces, not to the layout that
+    // drives them.
+    KktClaimSpace space{this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
+                        this->kkt_coeff_cols_.head(this->num_user_kkt_elems_),
+                        0,
+                        0,
+                        ClaimDomainSet(),
+                        KktStorage::kUpperTriangle};
 
-    int eqoffset = this->reduced_primal_vars_count_ + this->slack_vars_;
-    int iqoffset = this->reduced_primal_vars_count_ + this->slack_vars_ + this->equal_cons_;
+    const ClaimDomainSet objective_domains = ClaimDomain::kHessian;
+    const ClaimDomainSet equality_domains = ClaimDomain::kHessian | ClaimDomain::kEqualityJacobian;
+    const ClaimDomainSet inequality_domains =
+        ClaimDomain::kHessian | ClaimDomain::kInequalityJacobian;
+
+    const int eqoffset = this->reduced_primal_vars_count_ + this->slack_vars_;
+    const int iqoffset = this->reduced_primal_vars_count_ + this->slack_vars_ + this->equal_cons_;
+
+    auto claim = [&](auto &pieces, ClaimDomainSet domains, int row_offset) {
+        space.domains_ = domains;
+        space.constraint_row_offset_ = row_offset;
+        const bool jacobian = domains.contains(ClaimDomain::kEqualityJacobian) ||
+                              domains.contains(ClaimDomain::kInequalityJacobian);
+        const bool hessian = domains.contains(ClaimDomain::kHessian);
+        for (auto &piece : pieces) {
+            piece.get_kkt_space(space.rows_, space.cols_, space.next_free_,
+                                space.constraint_row_offset_, jacobian, hessian);
+        }
+    };
+
     for (int i = 0; i < this->num_partitions_; i++) {
-        int kkstart = KKTfreeloc;
+        int kkstart = space.next_free_;
 
-        for (auto &obj : this->part_obj_[i])
-            obj.get_kkt_space(this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
-                              this->kkt_coeff_cols_.head(this->num_user_kkt_elems_), KKTfreeloc, 0,
-                              false, true);
-        for (auto &eq : this->part_eq_[i])
-            eq.get_kkt_space(this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
-                             this->kkt_coeff_cols_.head(this->num_user_kkt_elems_), KKTfreeloc,
-                             eqoffset, true, true);
-        for (auto &ineq : this->part_iq_[i])
-            ineq.get_kkt_space(this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
-                               this->kkt_coeff_cols_.head(this->num_user_kkt_elems_), KKTfreeloc,
-                               iqoffset, true, true);
+        claim(this->part_obj_[i], objective_domains, 0);
+        claim(this->part_eq_[i], equality_domains, eqoffset);
+        claim(this->part_iq_[i], inequality_domains, iqoffset);
 
-        int kklen = KKTfreeloc - kkstart;
+        int kklen = space.next_free_ - kkstart;
 
         this->kkt_coeff_part_ids_.segment(kkstart, kklen).setConstant(i);
     }
+
+    // CAPTURED HERE, before analyze_sparsity gets the chance to canonicalize
+    // the claim endpoints in place. This is the claim stream as the pieces
+    // handed it out, in claim order, which is what the structural key's claim
+    // conjunct is defined over.
+    this->claim_digest_ = claim_stream_digest(
+        this->declaration_, this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
+        this->kkt_coeff_cols_.head(this->num_user_kkt_elems_));
 
     // Mark a KKT column contested iff >= 2 partitions write a slot whose CANONICAL column
     // (kkt_canonical_lock_col(row, col), the smaller endpoint) is that column -- the same
@@ -568,6 +701,14 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
 
     hven::utils::parallel_blocks(this->num_kkt_elems_, FindOP, this->num_partitions_);
     /////////////////////////////////////////////////////////////
+
+    // kkt_locations_ now holds offsets into THIS matrix's value array and no
+    // other's. Recorded after the resize and the compression above, which are
+    // what move that array. The assemble entry checks a caller's scatter view
+    // against it, so a consumer that reallocated its matrix and did not come
+    // back through here is told its location table is stale instead of writing
+    // through offsets into storage that has moved.
+    this->analyzed_kkt_ = &KKTmat;
 }
 
 bool hven::solvers::NonLinearProgram::configure_variable_treatment(
@@ -962,7 +1103,7 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(
 }
 
 void hven::solvers::NonLinearProgram::gather_reduced_x(ConstEigenRef<VectorXd> x_full,
-                                                        EigenRef<VectorXd> x_reduced) const {
+                                                       EigenRef<VectorXd> x_reduced) const {
     if (x_full.size() != this->primal_vars_ ||
         x_reduced.size() != this->reduced_primal_vars_count_) {
         throw std::invalid_argument(fmt::format(
@@ -980,7 +1121,7 @@ void hven::solvers::NonLinearProgram::gather_reduced_x(ConstEigenRef<VectorXd> x
 }
 
 void hven::solvers::NonLinearProgram::scatter_full_x(ConstEigenRef<VectorXd> x_reduced,
-                                                      EigenRef<VectorXd> x_full) const {
+                                                     EigenRef<VectorXd> x_full) const {
     if (x_full.size() != this->primal_vars_ ||
         x_reduced.size() != this->reduced_primal_vars_count_) {
         throw std::invalid_argument(fmt::format(
@@ -1000,20 +1141,28 @@ void hven::solvers::NonLinearProgram::scatter_full_x(ConstEigenRef<VectorXd> x_r
     }
 }
 
-void hven::solvers::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X,
-                                                ConstEigenRef<VectorXd> LE,
-                                                ConstEigenRef<VectorXd> LI, double &val,
-                                                EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-                                                EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
+// ---------------------------------------------------------------------------
+// THE EIGHT EVALUATION SHAPES
+//
+// Each shape is a PASS (the partitioned fan-out plus the internal-scratch
+// zeroing it owns) and then its FILLS. The two public ways in compose them
+// differently, and only in the ways the contract says they differ:
+//
+//   * an eval_ entry starts from the solver's reduced iterate, fills all four
+//     right-hand-side blocks, and scatters the solver's own KKT coefficients;
+//   * assemble() starts from a declaration-space point, fills only the arenas
+//     its request names, and does NOT scatter the solver coefficients -- that
+//     step transfers to the consumer.
+//
+// The passes are the entries' former bodies verbatim: same calls, same order,
+// same zeroing. Nothing here evaluates anything an entry did not.
+// ---------------------------------------------------------------------------
 
+void hven::solvers::NonLinearProgram::first_order_rhs_pass(double ObjScale,
+                                                           ConstEigenRef<VectorXd> Xf,
+                                                           ConstEigenRef<VectorXd> LE,
+                                                           ConstEigenRef<VectorXd> LI,
+                                                           double &val) {
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_rhs_coeffs_zero();
 
@@ -1031,22 +1180,10 @@ void hven::solvers::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<Ve
     hven::utils::parallel_sequence(this->num_partitions_, RHSevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
-
-    this->fill_rhs(PGX, AGX, FXE, FXI);
 }
 
-void hven::solvers::NonLinearProgram::eval_ogc(double ObjScale, ConstEigenRef<VectorXd> X,
-                                                double &val, EigenRef<VectorXd> PGX,
-                                                EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
-
+void hven::solvers::NonLinearProgram::objective_gradient_constraints_pass(
+    double ObjScale, ConstEigenRef<VectorXd> Xf, double &val) {
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_rhs_coeffs_zero();
 
@@ -1064,26 +1201,14 @@ void hven::solvers::NonLinearProgram::eval_ogc(double ObjScale, ConstEigenRef<Ve
     hven::utils::parallel_sequence(this->num_partitions_, OGCevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
-
-    this->fill_pgx(PGX);
-    this->fill_fxe(FXE);
-    this->fill_fxi(FXI);
 }
 
-void hven::solvers::NonLinearProgram::eval_occ(double ObjScale, ConstEigenRef<VectorXd> X,
-                                                double &val, EigenRef<VectorXd> FXE,
-                                                EigenRef<VectorXd> FXI) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
-
+void hven::solvers::NonLinearProgram::objective_constraints_pass(double ObjScale,
+                                                                 ConstEigenRef<VectorXd> Xf,
+                                                                 double &val) {
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_con_coeffs_zero();
+
     auto OGCevalOP = [&](int thrnum) {
         double localVal = 0.0;
         for (auto &Obj : this->part_obj_[thrnum])
@@ -1098,22 +1223,10 @@ void hven::solvers::NonLinearProgram::eval_occ(double ObjScale, ConstEigenRef<Ve
     hven::utils::parallel_sequence(this->num_partitions_, OGCevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
-
-    this->fill_fxe(FXE);
-    this->fill_fxi(FXI);
 }
 
-void hven::solvers::NonLinearProgram::eval_obj(double ObjScale, ConstEigenRef<VectorXd> X,
-                                                double &val) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
-
+void hven::solvers::NonLinearProgram::objective_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                                                     double &val) {
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
 
     auto OGCevalOP = [&](int thrnum) {
@@ -1128,20 +1241,9 @@ void hven::solvers::NonLinearProgram::eval_obj(double ObjScale, ConstEigenRef<Ve
         val += this->vals_scratch_[i];
 }
 
-void hven::solvers::NonLinearProgram::eval_kkt(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
-
+void hven::solvers::NonLinearProgram::full_kkt_pass(
+    double ObjScale, ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
+    ConstEigenRef<VectorXd> LI, double &val, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
 
     this->set_rhs_coeffs_zero();
@@ -1166,36 +1268,11 @@ void hven::solvers::NonLinearProgram::eval_kkt(
     hven::utils::parallel_sequence(this->num_partitions_, KKTevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
-
-    // NOTE: fill_solver_coeffs internally calls parallel_blocks, creating a nested
-    // dispatch from the inline arm. Safe because: (1) the calling thread is the main
-    // thread (not a pool worker), so the pool absorbs all tasks without deadlock, and
-    // (2) fill_rhs and fill_solver_coeffs operate on disjoint data (RHS vectors vs. KKT
-    // matrix entries), so concurrent execution requires no synchronization.
-    hven::utils::parallel_task(
-        this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
-        [&] { this->fill_solver_coeffs(KKTmat); });
 }
 
-void hven::solvers::NonLinearProgram::eval_kkt_no(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+void hven::solvers::NonLinearProgram::constraint_kkt_pass(
+    ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
-
-    // No-objective mode: ObjScale and val are unused but kept in the signature
-    // for API consistency with eval_kkt/eval_aug (polymorphic dispatch via evalNLP).
-    (void)ObjScale;
-    (void)val;
-
     this->set_rhs_coeffs_zero();
 
     auto KKTevalOP = [&](int thrnum) {
@@ -1210,31 +1287,10 @@ void hven::solvers::NonLinearProgram::eval_kkt_no(
     };
 
     hven::utils::parallel_sequence(this->num_partitions_, KKTevalOP);
-
-    // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
-    hven::utils::parallel_task(
-        this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
-        [&] { this->fill_solver_coeffs(KKTmat); });
 }
-void hven::solvers::NonLinearProgram::eval_soe(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
 
-    // Constraint-only mode: ObjScale and val are unused but kept in the signature
-    // for API consistency with eval_kkt/eval_aug (polymorphic dispatch via evalNLP).
-    (void)ObjScale;
-    (void)val;
-
+void hven::solvers::NonLinearProgram::constraint_jacobian_pass(
+    ConstEigenRef<VectorXd> Xf, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->set_rhs_coeffs_zero();
 
     auto SOEevalOP = [&](int thrnum) {
@@ -1247,26 +1303,11 @@ void hven::solvers::NonLinearProgram::eval_soe(
     };
 
     hven::utils::parallel_sequence(this->num_partitions_, SOEevalOP);
-
-    // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
-    hven::utils::parallel_task(
-        this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
-        [&] { this->fill_solver_coeffs(KKTmat); });
 }
-void hven::solvers::NonLinearProgram::eval_aug(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    // The functions address the problem's own variable space. primal_view hands
-    // them a buffer in it: on the identity path a view of X itself, and once
-    // variables are eliminated the reduced iterate expanded back into its own
-    // coordinates with the pinned values in place. Nothing downstream of here
-    // can tell the difference, which is why eliminated variables' contributions
-    // to constraint values and to the surviving variables' derivatives need no
-    // handling of their own.
-    const Eigen::Ref<const VectorXd> Xf = this->primal_view(X);
 
+void hven::solvers::NonLinearProgram::first_order_kkt_pass(
+    double ObjScale, ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
+    ConstEigenRef<VectorXd> LI, double &val, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_rhs_coeffs_zero();
 
@@ -1288,6 +1329,79 @@ void hven::solvers::NonLinearProgram::eval_aug(
     hven::utils::parallel_sequence(this->num_partitions_, SOEevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
+}
+
+// ---------------------------------------------------------------------------
+// The eight entry points. Each is its pass plus its fills.
+//
+// Every one of them starts by turning the solver's iterate into the buffer the
+// functions read. primal_view hands them a buffer in the problem's own variable
+// space: on the identity path a view of X itself, and once variables are
+// eliminated the reduced iterate expanded back into its own coordinates with
+// the pinned values in place. Nothing downstream can tell the difference, which
+// is why eliminated variables' contributions to constraint values and to the
+// surviving variables' derivatives need no handling of their own.
+// ---------------------------------------------------------------------------
+
+void hven::solvers::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X,
+                                               ConstEigenRef<VectorXd> LE,
+                                               ConstEigenRef<VectorXd> LI, double &val,
+                                               EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+                                               EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
+    this->first_order_rhs_pass(ObjScale, this->primal_view(X), LE, LI, val);
+    this->fill_rhs(PGX, AGX, FXE, FXI);
+}
+
+void hven::solvers::NonLinearProgram::eval_ogc(double ObjScale, ConstEigenRef<VectorXd> X,
+                                               double &val, EigenRef<VectorXd> PGX,
+                                               EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
+    this->objective_gradient_constraints_pass(ObjScale, this->primal_view(X), val);
+    this->fill_pgx(PGX);
+    this->fill_fxe(FXE);
+    this->fill_fxi(FXI);
+}
+
+void hven::solvers::NonLinearProgram::eval_occ(double ObjScale, ConstEigenRef<VectorXd> X,
+                                               double &val, EigenRef<VectorXd> FXE,
+                                               EigenRef<VectorXd> FXI) {
+    this->objective_constraints_pass(ObjScale, this->primal_view(X), val);
+    this->fill_fxe(FXE);
+    this->fill_fxi(FXI);
+}
+
+void hven::solvers::NonLinearProgram::eval_obj(double ObjScale, ConstEigenRef<VectorXd> X,
+                                               double &val) {
+    this->objective_pass(ObjScale, this->primal_view(X), val);
+}
+
+void hven::solvers::NonLinearProgram::eval_kkt(
+    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
+    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    this->full_kkt_pass(ObjScale, this->primal_view(X), LE, LI, val, KKTmat);
+
+    // NOTE: fill_solver_coeffs internally calls parallel_blocks, creating a nested
+    // dispatch from the inline arm. Safe because: (1) the calling thread is the main
+    // thread (not a pool worker), so the pool absorbs all tasks without deadlock, and
+    // (2) fill_rhs and fill_solver_coeffs operate on disjoint data (RHS vectors vs. KKT
+    // matrix entries), so concurrent execution requires no synchronization.
+    hven::utils::parallel_task(
+        this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
+        [&] { this->fill_solver_coeffs(KKTmat); });
+}
+
+void hven::solvers::NonLinearProgram::eval_kkt_no(
+    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
+    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    // No-objective mode: ObjScale and val are unused but kept in the signature
+    // for API consistency with eval_kkt/eval_aug (polymorphic dispatch via evalNLP).
+    (void)ObjScale;
+    (void)val;
+
+    this->constraint_kkt_pass(this->primal_view(X), LE, LI, KKTmat);
 
     // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
     hven::utils::parallel_task(
@@ -1295,9 +1409,238 @@ void hven::solvers::NonLinearProgram::eval_aug(
         [&] { this->fill_solver_coeffs(KKTmat); });
 }
 
+void hven::solvers::NonLinearProgram::eval_soe(
+    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
+    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    // Constraint-only mode: ObjScale and val are unused but kept in the signature
+    // for API consistency with eval_kkt/eval_aug (polymorphic dispatch via evalNLP).
+    (void)ObjScale;
+    (void)val;
+
+    this->constraint_jacobian_pass(this->primal_view(X), KKTmat);
+
+    // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
+    hven::utils::parallel_task(
+        this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
+        [&] { this->fill_solver_coeffs(KKTmat); });
+}
+
+void hven::solvers::NonLinearProgram::eval_aug(
+    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
+    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    this->first_order_kkt_pass(ObjScale, this->primal_view(X), LE, LI, val, KKTmat);
+
+    // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
+    hven::utils::parallel_task(
+        this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
+        [&] { this->fill_solver_coeffs(KKTmat); });
+}
+
+// ---------------------------------------------------------------------------
+// The contract's evaluation hooks
+// ---------------------------------------------------------------------------
+
+Eigen::Ref<const hven::solvers::NonLinearProgram::VectorXd>
+hven::solvers::NonLinearProgram::declaration_view(ConstEigenRef<VectorXd> x) {
+    if (!this->fixed_reduction_active_) {
+        return x;
+    }
+    // Every retained coordinate straight through, every eliminated one pinned
+    // at its declared value -- byte for byte what gather_reduced_x followed by
+    // scatter_full_x would have produced, so both entry paths hand the pieces
+    // the same buffer.
+    this->full_x_scratch_ = x;
+    for (int j = 0; j < this->fixed_idx_.size(); j++) {
+        this->full_x_scratch_[this->fixed_idx_[j]] = this->fixed_vals_[j];
+    }
+    return this->full_x_scratch_;
+}
+
+namespace {
+
+/// The consumer's arena as a vector the existing fills can write. The arena's
+/// location table IS the engine's own row table for that arena, so this is the
+/// same fill the eval_ entries do, into storage the consumer published instead
+/// of a vector it passed.
+inline Eigen::Map<Eigen::VectorXd> arena_vector(const hven::solvers::RhsArenaView &arena) {
+    return Eigen::Map<Eigen::VectorXd>(arena.values_, arena.size_);
+}
+
+} // namespace
+
+void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
+                                                    EvalRequest request, KktScatterView kkt,
+                                                    RhsScatterView rhs) {
+    constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |
+                                        EvalRequest::kConstraintJacobian |
+                                        EvalRequest::kConstraintAdjointHessian;
+    const bool needs_kkt = (request & kKktBearing) != EvalRequest::kNone;
+    if (needs_kkt && this->analyzed_kkt_ == nullptr) {
+        // The entry checked the view against the destination this provider is
+        // BOUND to, and this provider is bound to none yet: the sparsity
+        // analysis that computes the offsets has not run against the structures
+        // on hand. The pieces cannot be pointed anywhere until it has.
+        throw std::invalid_argument(
+            "assemble: this provider's KKT location table has not been laid against any "
+            "destination -- run the sparsity analysis on the matrix you intend to fill before "
+            "requesting KKT-bearing output");
+    }
+    // Bound above, and the entry has already established that the view names
+    // it, so the pieces and the consumer are addressing one array.
+    Eigen::SparseMatrix<double, Eigen::RowMajor> *mat = this->analyzed_kkt_;
+
+    const Eigen::Ref<const VectorXd> Xf = this->declaration_view(point.x_);
+    const double scale = point.objective_scale_;
+
+    // The eight shapes, in the mapping table's order. Every arm runs exactly
+    // the pass its legacy counterpart ran and fills exactly the destinations
+    // the request names -- never the solver's own KKT coefficients, which are
+    // the consumer's to scatter.
+    if (request == kRequestObjectiveOnly) {
+        this->objective_pass(scale, Xf, *rhs.objective_);
+    } else if (request == kRequestObjectiveAndConstraints) {
+        this->objective_constraints_pass(scale, Xf, *rhs.objective_);
+        this->fill_fxe(arena_vector(rhs.equality_residuals_));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    } else if (request == kRequestObjectiveGradientAndConstraints) {
+        this->objective_gradient_constraints_pass(scale, Xf, *rhs.objective_);
+        this->fill_pgx(arena_vector(rhs.objective_gradient_));
+        this->fill_fxe(arena_vector(rhs.equality_residuals_));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    } else if (request == kRequestFirstOrderRhs) {
+        this->first_order_rhs_pass(scale, Xf, point.equality_multipliers_,
+                                   point.inequality_multipliers_, *rhs.objective_);
+        this->fill_pgx(arena_vector(rhs.objective_gradient_));
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
+        this->fill_fxe(arena_vector(rhs.equality_residuals_));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    } else if (request == kRequestConstraintJacobianOnly) {
+        this->constraint_jacobian_pass(Xf, *mat);
+        // Neither gradient arena is filled. The legacy shape passed both
+        // buffers in and summed an identically zero contribution into each --
+        // no objective piece runs, and the Jacobian entry produces no adjoint
+        // gradient at all -- so declining to write them is observationally
+        // identical, which is what lets the request leave them empty.
+        this->fill_fxe(arena_vector(rhs.equality_residuals_));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    } else if (request == kRequestFirstOrderKkt) {
+        this->first_order_kkt_pass(scale, Xf, point.equality_multipliers_,
+                                   point.inequality_multipliers_, *rhs.objective_, *mat);
+        this->fill_pgx(arena_vector(rhs.objective_gradient_));
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
+        this->fill_fxe(arena_vector(rhs.equality_residuals_));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    } else if (request == kRequestConstraintKkt) {
+        this->constraint_kkt_pass(Xf, point.equality_multipliers_, point.inequality_multipliers_,
+                                  *mat);
+        // The objective gradient arena is the identically-zero one here; the
+        // adjoint gradient this shape genuinely produces.
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
+        this->fill_fxe(arena_vector(rhs.equality_residuals_));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    } else {
+        this->full_kkt_pass(scale, Xf, point.equality_multipliers_, point.inequality_multipliers_,
+                            *rhs.objective_, *mat);
+        this->fill_pgx(arena_vector(rhs.objective_gradient_));
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
+        this->fill_fxe(arena_vector(rhs.equality_residuals_));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    }
+
+    static_cast<void>(kkt);
+}
+
+void hven::solvers::NonLinearProgram::evaluate_candidate_values_impl(const CandidatePoint &point,
+                                                                     CandidateValues out) {
+    // ASSIGNS, per the candidate surface's own discipline: the caller holds a
+    // scratch buffer and wants the values at a point, not a running sum. The
+    // pass accumulates into the provider's own claim slots, as it always does;
+    // the caller's blocks are zeroed here and then filled, so what they hold on
+    // return is this evaluation and nothing else.
+    double objective = 0.0;
+    this->objective_constraints_pass(point.objective_scale_, this->declaration_view(point.x_),
+                                     objective);
+    out.objective_ = objective;
+
+    out.equality_residuals_.setZero();
+    out.inequality_residuals_.setZero();
+    this->fill_fxe(out.equality_residuals_);
+    this->fill_fxi(out.inequality_residuals_);
+}
+
+void hven::solvers::NonLinearProgram::evaluate_candidate_first_order_impl(
+    const CandidatePoint &point, CandidateFirstOrder out) {
+    double objective = 0.0;
+    this->first_order_rhs_pass(point.objective_scale_, this->declaration_view(point.x_),
+                               point.equality_multipliers_, point.inequality_multipliers_,
+                               objective);
+    out.values_.objective_ = objective;
+
+    out.values_.equality_residuals_.setZero();
+    out.values_.inequality_residuals_.setZero();
+    this->fill_fxe(out.values_.equality_residuals_);
+    this->fill_fxi(out.values_.inequality_residuals_);
+
+    out.objective_gradient_.setZero();
+    out.constraint_adjoint_gradient_.setZero();
+    if (!this->fixed_reduction_active_) {
+        // The solver's primal space IS the declared one, so the fills write the
+        // caller's blocks directly.
+        this->fill_pgx(out.objective_gradient_);
+        this->fill_agx(out.constraint_adjoint_gradient_);
+        return;
+    }
+
+    // Under an active elimination the fills address the narrower space the
+    // solver iterates in, so they land in scratch and are expanded into the
+    // caller's declaration-space blocks -- the identity-space principle in one
+    // loop.
+    //
+    // AN ELIMINATED VARIABLE'S ROW COMES BACK ZERO, and that is a limit of the
+    // structures rather than a choice made here: the treatment marks its
+    // gradient row -1 at claim time, which is the layout's way of saying the
+    // row is not part of the reduced problem's residual, so the engine keeps no
+    // destination for it. Its value at a solution is the bound multiplier that
+    // holds the variable at its bound, which this surface does not carry.
+    const int reduced = this->reduced_primal_vars_count_;
+    this->candidate_gradient_scratch_.resize(reduced);
+
+    this->candidate_gradient_scratch_.setZero();
+    this->fill_pgx(this->candidate_gradient_scratch_);
+    for (int i = 0; i < reduced; i++) {
+        out.objective_gradient_[this->reduced_to_full_[i]] = this->candidate_gradient_scratch_[i];
+    }
+
+    this->candidate_gradient_scratch_.setZero();
+    this->fill_agx(this->candidate_gradient_scratch_);
+    for (int i = 0; i < reduced; i++) {
+        out.constraint_adjoint_gradient_[this->reduced_to_full_[i]] =
+            this->candidate_gradient_scratch_[i];
+    }
+}
+
+hven::solvers::IdentityProbe hven::solvers::NonLinearProgram::probe_identity(ConstVecRef x) {
+    // A values evaluation plus a hash, routed through the public entry so it
+    // inherits that entry's validation rather than repeating it.
+    this->probe_equality_scratch_.setZero(this->equal_cons_);
+    this->probe_inequality_scratch_.setZero(this->inequal_cons_);
+
+    double objective = 0.0;
+    CandidateValues values{objective, this->probe_equality_scratch_,
+                           this->probe_inequality_scratch_};
+    const Vec no_multipliers;
+    this->evaluate_candidate_values(CandidatePoint{x, no_multipliers, no_multipliers}, values);
+
+    return IdentityProbe{this->structure_epoch(), candidate_value_digest(values)};
+}
+
 void hven::solvers::NonLinearProgram::nlp_test(const Eigen::VectorXd &x, int n,
-                                                std::shared_ptr<NonLinearProgram> nlp1,
-                                                std::shared_ptr<NonLinearProgram> nlp2) {
+                                               std::shared_ptr<NonLinearProgram> nlp1,
+                                               std::shared_ptr<NonLinearProgram> nlp2) {
     using std::cout;
     using std::endl;
 
