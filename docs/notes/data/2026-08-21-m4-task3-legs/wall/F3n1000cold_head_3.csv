@@ -1,6 +1,6 @@
 family,n,arm,step,p,label,status,start_level,major_iters,qp_minor_iters,factorizations,factorizations_saved,full_step_majors,watchdog_restores,soc_steps,soc_applied,border_refine_steps,eqp_refine_steps,wall_seconds,peak_rss_mib
-F3,1000,cold,0,0.25,cold0_0,Optimal,Cold,8,23,8,0,0,0,0,0,23,0,0.017359785,11.777
-F3,1000,cold,1,0.375,cold1_0,Optimal,Cold,9,26,9,0,0,0,0,0,26,0,0.016857318,11.984
-F3,1000,cold,2,0.5,cold2_0,Optimal,Cold,9,26,9,0,0,0,0,0,26,0,0.016755588,12.004
-F3,1000,cold,3,0.625,cold3_0,Optimal,Cold,9,27,9,0,0,0,0,0,27,0,0.017350815,12.012
-F3,1000,cold,4,0.75,cold4_0,Optimal,Cold,9,27,9,0,0,0,0,0,27,0,0.017359015,12.031
+F3,1000,cold,0,0.25,cold0_0,Optimal,Cold,8,23,8,0,0,0,0,0,23,0,0.017459197,11.840
+F3,1000,cold,1,0.375,cold1_0,Optimal,Cold,9,26,9,0,0,0,0,0,26,0,0.016824239,12.047
+F3,1000,cold,2,0.5,cold2_0,Optimal,Cold,9,26,9,0,0,0,0,0,26,0,0.016720730,12.066
+F3,1000,cold,3,0.625,cold3_0,Optimal,Cold,9,27,9,0,0,0,0,0,27,0,0.017328447,12.074
+F3,1000,cold,4,0.75,cold4_0,Optimal,Cold,9,27,9,0,0,0,0,0,27,0,0.017338067,12.094
