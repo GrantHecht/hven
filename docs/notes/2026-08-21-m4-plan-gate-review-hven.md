@@ -163,3 +163,35 @@ begins at Task 0, with the amended §7 conventions in force from the
 first tree-token request.
 
 SIGNOFF: M4-PLAN-GATE-HVEN-FINAL
+
+---
+
+## Addendum (2026-08-21, same day) — fold inspection: GATE PASSED
+
+The drafting lane's amendment fold was inspected against the current
+plan text, item by item: RA-1 (the §7 gitlink-ownership bullet with
+feature-branch-only bumps and the standing `m4-branch-final` tag
+policy; Task 9's explicit close order with the no-unreachable-gitlink
+invariant and the owner's merge authority on both closing PRs), RA-2
+(the §3.2 scope block — native providers bound, the bridge's
+intermediate DECLARED mirroring R2.4, capability defined at Task 1,
+engine-side binding built at Task 5, one-design-element note), RA-3
+(the R2.2 layout-determinism pin in Task 1's test list,
+cross-referenced as acceptance criterion 4's owning test), RA-4 (the
+candidate-point aggregate-evaluation surface in Task 1 with the
+scorer bound to it), rulings (a) — Task 2a re-worded with the
+failed-move-not-downgrade language and the declared, extended P-SYM
+object set — (b) — all four token-convention amendments in §7, ledger
+at `docs/notes/2026-08-m4-ledger.md` (path accepted) — and (c) — the
+design-note checkpoint before the first Task 1 implementation commit —
+and MF-1 through MF-6 at their named locations. All folded faithfully;
+no residue.
+
+**The hven-surface gate is PASSED.** With the SQP plan-gate already
+passed, the plan is ratified; execution begins at Task 0. The
+hven-governing portion's naming-converted `docs/` commit follows under
+MF-3's ownership (drafter converts, hven lane verifies at commit
+inspection), exercising the §7 tree-token convention on its first real
+use.
+
+SIGNOFF: M4-PLAN-GATE-HVEN-PASSED
