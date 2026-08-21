@@ -39,6 +39,7 @@ of this class as OPEN.
 | 7 | run `32347392685` attempt 1 (**green on attempt 2, the `--failed` rerun of the same run**) | `222ed68` (docs-only, atop T6/T7/T8) | PINNED + `x86-64-v3` |
 | 8 | run `32363949523` attempt 1 (green on attempt 2) | `7ec864c` (test-only — compiles no SQP object) | PINNED + `x86-64-v3` |
 | 9 | run `32429045353` attempts 1 **and 2** (**green on attempt 3**) | `099cdda` (test/docs-only atop the final-review fix batch) | PINNED + `x86-64-v3` |
+| 10 | run `32432724478` attempts 1 **and 2** (**green on attempt 3**) | `cd33962` (docs-only — this register's own occurrence-8/9 fold) | PINNED + `x86-64-v3` |
 
 Occurrences 8 and 9 (2026-08-20/21, both the single surviving member
 `SsnEngineLocal.WeaklyActiveRowFinishesUncertain`, same assertion sites —
@@ -54,6 +55,22 @@ green; the failing commit's diff is one test fixture plus this register —
 it compiles no SQP object. The double-fail changes the estimated per-attempt
 flake rate and belongs to the promoted post-M3 rate-quantification task's
 inputs; it does not change the mechanism reading.
+
+Occurrence 10 (2026-08-21, same member, same assertion site): a second
+double-fail-then-green, one day after the first, on a DOCS-ONLY commit —
+this register's own occurrence-8/9 fold — which cannot be a code
+regression by construction. Two double-fails in consecutive pushes moves
+the per-attempt rate estimate enough that the rate-quantification task
+should treat the recent window separately from the early tally. A
+mechanism observation recorded with it (from the round-2 fix
+implementer): the fixture pins `EXPECT_EQ(ssn_bulk_flips, 1)` — an exact
+counter equality — on a deliberately degenerate tie (`c* = 0`,
+`lambda* = 0`) whose resolution the test file itself documents as
+backend-dependent (M3-4's Accelerate arm reads the same coin the other
+way). An exact pin on a tie-decided counter is a plausible root mechanism
+for a lane-silicon-specific flake; whether the fixture should pin a range
+or a stable invariant instead belongs to the post-M3 task, not to an M3
+change.
 
 Occurrence 4 (2026-08-15): same four tests, same assertion sites as
 occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60

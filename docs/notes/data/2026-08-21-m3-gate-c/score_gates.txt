@@ -1,0 +1,20 @@
+merged 57 row(s) into /home/ghecht/Projects/hven/.scratch/h3/census-run/walk_census.csv
+
+--score-gates.
+  rows = 57, DNF rows = 10 (SCORED as worst case, see corpus_cells.h's P3),
+  ENGINE-ERROR rows = 0 (the engine threw; charged as worst case),
+  KKT-gated rows = 43, WRONG-ANSWER rows = 0 (charged as worst case, W5),
+  G1/G2 population (path-interface, warm|activity, non-degenerate) = 8 cells
+  G1 median factorizations per QP = 1000000.000  (<=12)  fail
+  G2 p95 factorizations per QP    = 1000000.000  (<=25)  fail
+  G3 median growth 5000->20000    = 1000000.000  (<=0)   fail
+  G4 escape rate per QP           = 0.6369  (<0.02) fail
+  --- G1/G2 WITH kCorrupted admitted (population = 12 cells) ---
+  G1 median factorizations per QP = 1000000.000  (<=12)  fail
+  G2 p95 factorizations per QP    = 1000000.000  (<=25)  fail
+  G4 measured (finishing rows only) = 0 escapes / 57 QP subproblems = 0.0000
+  --- telemetry (reported, not gated) ---
+  dual sign: 0 row(s) carry a strictly negative inequality multiplier at the returned point (0 multipliers in total);
+             0 checked row(s) would ALSO fail a gate that included dual feasibility at the HS battery's 1e-9, relative
+  tier-3 refinement: 0 accepted / 0 refused, 0 factorization(s) of 225560 total (0.00%), 0 negative multiplier(s) adopted
+  certifying SSN exits (refined + refused) = 0, each paying ONE inertia-evidence factorization = 0.00% of total
