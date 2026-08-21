@@ -1,0 +1,33 @@
+=== F3n1000cold : --family F3 --n 1000 --arm cold --sweep 5
+  rep1 base 0.085981
+  rep1 head 0.085777
+  rep2 base 0.086204
+  rep2 head 0.085539
+  rep3 base 0.085923
+  rep3 head 0.085683
+  rep4 base 0.085550
+  rep4 head 0.085887
+  rep5 base 0.085596
+  rep5 head 0.085498
+=== F3n1000warm : --family F3 --n 1000 --arm warm --sweep 5
+  rep1 base 0.046350
+  rep1 head 0.045964
+  rep2 base 0.045992
+  rep2 head 0.046511
+  rep3 base 0.046063
+  rep3 head 0.046014
+  rep4 base 0.046071
+  rep4 head 0.046007
+  rep5 base 0.045967
+  rep5 head 0.045958
+=== F7n200cold : --family F7 --n 200 --arm cold --sweep 3
+  rep1 base 17.554526
+  rep1 head 17.499605
+  rep2 base 17.610784
+  rep2 head 17.497238
+  rep3 base 17.537894
+  rep3 head 17.510515
+  rep4 base 17.558082
+  rep4 head 17.500121
+  rep5 base 17.547193
+  rep5 head 17.497350
