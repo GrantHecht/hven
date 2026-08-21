@@ -2660,6 +2660,50 @@ class QpEngine {
     // refuse a call that is entirely well-formed in the radius it actually
     // uses.
     //
+    // THE REGULARIZATION MAGNITUDES GET THE SAME TREATMENT, on THEIR OWN
+    // domain (the tr_radius fix's own report, concern C-2). The domain is NOT
+    // tr_radius's copied over -- these three fields share only the shape of the
+    // defect, not the contract:
+    //
+    //   - tr_radius's sentinel is +inf and +inf DISABLES the feature;
+    //     primal_delta/dual_mu's sentinel is any NEGATIVE value and 0 is what
+    //     disables them (0 is a real, exercised setting meaning "no
+    //     regularization", not a sentinel -- see qp_types.h).
+    //   - So the domain enforced here is: NOT NaN, and >= 0. Which is exactly
+    //     what the override path ALREADY GUARANTEES about a resolved value,
+    //     and that equivalence is the whole point: the ternary below selects
+    //     the override only when `overrides.X >= 0.0`, so a value arriving
+    //     from an override is >= 0 by construction and cannot be NaN (rejected
+    //     just above). A NEGATIVE or NaN effective regularization is therefore
+    //     reachable ONLY through the stored path -- which is the asymmetry.
+    //
+    // WHAT THAT ASYMMETRY COST, measured on simple_box_qp (whose answer is
+    // x = (0,1), 3 minors, 1 factorization) before this check existed. None of
+    // these is a clean rejection and none is the same outcome class:
+    //
+    //   opts_.primal_delta = NaN    kMaxIter, x = (NaN, NaN), after burning
+    //                               the full 500-minor budget AND 500
+    //                               factorizations.
+    //   opts_.dual_mu     = NaN     ESCAPES as an exception from the dense
+    //                               factor -- "LAPACKE_dsytrf failed, info=-4
+    //                               (illegal argument value)" -- so a caller's
+    //                               option mistake surfaces as an internal
+    //                               LAPACK argument error.
+    //   opts_.primal_delta = -1e-8  spurious kNumericalError AT THE CORRECT
+    //                               POINT.
+    //   opts_.primal_delta = -1.0   kMaxIter at the WRONG point (0,0), 500
+    //                               minors, 500 factorizations.
+    //   opts_.dual_mu     = -1.0    spurious kInfeasible on a FEASIBLE QP, at
+    //                               x = (1,2), which violates its own row --
+    //                               the worst of the set inside a driver,
+    //                               which routes kInfeasible into restoration.
+    //   opts_.dual_mu     = -1e-8   silently absorbed: kOptimal, right answer.
+    //
+    // Unlike tr_radius's crossed box there is no silent-kOptimal-wrong-answer
+    // among them, but a confident kInfeasible on a feasible subproblem and a
+    // wrong point under kMaxIter are the same kind of unearned currency, and
+    // the budget burn is a real cost paid for an input that was never valid.
+    //
     // Every OTHER field of `opts` is carried through untouched (feas_tol,
     // opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra), which is what
     // makes the result safe to pass anywhere a whole QpOptions was passed.
@@ -2687,6 +2731,26 @@ class QpEngine {
             throw std::invalid_argument(
                 "QpEngine::solve: SolveOverrides.dual_mu must not be NaN (negative is the "
                 "documented sentinel for \"use opts_.dual_mu\" -- see qp_types.h)");
+        }
+        // The guard on each of these two is the EXACT NEGATION of the
+        // corresponding resolution ternary's condition below, so "checked" and
+        // "selected" cannot drift apart if a ternary is ever rewritten. (NaN
+        // overrides are already rejected above, so `!(x >= 0.0)` is here just
+        // the sentinel test `x < 0.0` spelled in the ternary's own terms.)
+        if (!(overrides.primal_delta >= 0.0) &&
+            (std::isnan(opts.primal_delta) || opts.primal_delta < 0.0)) {
+            throw std::invalid_argument(fmt::format(
+                "QpEngine::solve: QpOptions.primal_delta must be >= 0 (0 means no primal "
+                "regularization; negative is SolveOverrides' sentinel, never a stored value "
+                "-- qp_types.h) -- got {}",
+                opts.primal_delta));
+        }
+        if (!(overrides.dual_mu >= 0.0) && (std::isnan(opts.dual_mu) || opts.dual_mu < 0.0)) {
+            throw std::invalid_argument(fmt::format(
+                "QpEngine::solve: QpOptions.dual_mu must be >= 0 (0 means no dual "
+                "regularization; negative is SolveOverrides' sentinel, never a stored value "
+                "-- qp_types.h) -- got {}",
+                opts.dual_mu));
         }
         QpOptions eff = opts;
         eff.tr_radius = std::isfinite(overrides.tr_radius) ? overrides.tr_radius : opts.tr_radius;

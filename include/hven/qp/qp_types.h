@@ -116,6 +116,33 @@ enum class WorkingSetLinearAlgebra {
 
 // QP solver options
 struct QpOptions {
+    // PRIMAL/DUAL REGULARIZATION MAGNITUDES, both baked onto the regularized
+    // diagonal of K0 by assemble_kkt_core: primal_delta thickens the (1,1)
+    // block so the solved system is formally strictly convex, dual_mu the
+    // (2,2) block so an over-determined working set stays solvable. Both are
+    // magnitudes, so both are >= 0, and 0 is a REAL SETTING rather than a
+    // sentinel -- it means "no regularization on this block" and is exercised
+    // as such. They are not free: the price of each is a footprint on what the
+    // solve can claim (dual_mu*|lambda| on a row residual,
+    // ~|g|/primal_delta on how far a free variable can run before it reads as
+    // an unbounded artifact -- see qp_engine.h's row_tolerance and
+    // unbounded_artifact_threshold, both of which are written in terms of
+    // these two fields).
+    //
+    // PRECONDITION, VALIDATED AT SOLVE START: >= 0 and never NaN.
+    // QpEngine::solve throws std::invalid_argument otherwise, on every call
+    // whose SolveOverrides leaves the corresponding field at its negative
+    // sentinel and therefore RESOLVES TO THIS FIELD (which includes every call
+    // through the plain, non-override solve() overloads). Note the domain is
+    // the same one SolveOverrides' resolution already guarantees -- it selects
+    // an override only when that override is >= 0 -- so a negative or NaN
+    // EFFECTIVE regularization was only ever reachable by storing one here.
+    // What it did when it was: a NaN burned the entire minor budget and
+    // returned a NaN iterate (primal_delta) or escaped as a LAPACK argument
+    // error from the dense factor (dual_mu); a negative produced a spurious
+    // kNumericalError, a wrong point under kMaxIter, or -- worst inside a
+    // driver, which routes it to restoration -- a confident kInfeasible on a
+    // feasible subproblem.
     double primal_delta = 1e-8;
     double dual_mu = 1e-8;
     double feas_tol = 1e-9;

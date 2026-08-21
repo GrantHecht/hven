@@ -784,6 +784,151 @@ TEST(QpEngineTr, StoredRadiusValidationLeavesWellFormedRadiiUntouched) {
     }
 }
 
+// (j4) The tr_radius fix's own concern C-2, closed: primal_delta and dual_mu
+// took the SAME unvalidated sentinel path, and unlike tr_radius they are baked
+// onto K0's regularized diagonal, so a bad stored value reached the
+// FACTORIZATION rather than the bounds arithmetic. Their domain is NOT
+// tr_radius's: the sentinel is any NEGATIVE value (not +inf), and 0 is a real
+// setting meaning "no regularization" (not a sentinel) -- so the domain is
+// >= 0 and not NaN, which is precisely what the resolution ternary already
+// guarantees for a value arriving from an override.
+//
+// Measured on this fixture before the fix, none of these was a clean
+// rejection: NaN primal_delta -> kMaxIter at (NaN, NaN) after 500 minors and
+// 500 factorizations; NaN dual_mu -> a LAPACK "illegal argument value" throw
+// escaping from the dense factor; negative primal_delta -> spurious
+// kNumericalError, or a WRONG point (0,0) under kMaxIter; negative dual_mu ->
+// a confident kInfeasible at x = (1,2), on a feasible QP, at a point that
+// violates its own row.
+TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) {
+    const QpProblem qp = simple_box_qp();
+
+    for (const double bad : {-1e-8, -1.0, -1e6}) {
+        SCOPED_TRACE(bad);
+
+        QpOptions bad_delta;
+        bad_delta.primal_delta = bad;
+        QpEngine delta_eng{bad_delta};
+        EXPECT_THROW(delta_eng.solve(qp), std::invalid_argument);
+
+        QpOptions bad_mu;
+        bad_mu.dual_mu = bad;
+        QpEngine mu_eng{bad_mu};
+        EXPECT_THROW(mu_eng.solve(qp), std::invalid_argument);
+    }
+
+    // Each message names the field that is actually wrong, and names it on
+    // QpOptions -- a caller who passed no override must not be pointed at
+    // SolveOverrides, whose negative value is a legitimate sentinel.
+    QpOptions bad_delta;
+    bad_delta.primal_delta = -1.0;
+    QpEngine delta_eng{bad_delta};
+    try {
+        delta_eng.solve(qp);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("QpOptions.primal_delta"), std::string::npos);
+    }
+
+    QpOptions bad_mu;
+    bad_mu.dual_mu = -1.0;
+    QpEngine mu_eng{bad_mu};
+    try {
+        mu_eng.solve(qp);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("QpOptions.dual_mu"), std::string::npos);
+    }
+}
+
+TEST(QpEngineTr, StoredRegularizationValidationRejectsNaNOnPlainOverloads) {
+    const QpProblem qp = simple_box_qp();
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    QpOptions nan_delta;
+    nan_delta.primal_delta = nan;
+    QpEngine delta_eng{nan_delta};
+    EXPECT_THROW(delta_eng.solve(qp), std::invalid_argument);
+
+    QpOptions nan_mu;
+    nan_mu.dual_mu = nan;
+    QpEngine mu_eng{nan_mu};
+    EXPECT_THROW(mu_eng.solve(qp), std::invalid_argument);
+}
+
+// (j5) A stored value the sentinel does NOT select is not this engine's
+// business: an override that supersedes it is the value the solve actually
+// regularizes with, so a malformed stored field must not refuse a call that is
+// well-formed in what it uses. This is the property that keeps the check off
+// every legitimate path, and it is the same rule (j2) pins for tr_radius.
+TEST(QpEngineTr, StoredRegularizationIsNotCheckedWhenAnOverrideSupersedesIt) {
+    const QpProblem qp = simple_box_qp();
+
+    QpOptions bad_both;
+    bad_both.primal_delta = -1.0;
+    bad_both.dual_mu = std::numeric_limits<double>::quiet_NaN();
+    QpEngine eng{bad_both};
+
+    SolveOverrides good;
+    good.primal_delta = 1e-8;
+    good.dual_mu = 1e-8;
+
+    const QpSolution sol = eng.solve(qp, good);
+    EXPECT_EQ(sol.status, QpStatus::kOptimal);
+}
+
+// (j6) Counter-neutrality of (j4): a well-formed configuration carries valid
+// magnitudes, so the new checks are unreachable on every legitimate setting
+// and cannot move a counter. The shipped defaults and the boundary the domain
+// admits -- 0, which means "no regularization on this block" and is a real
+// setting rather than a sentinel -- all still solve, with the SAME counters.
+TEST(QpEngineTr, StoredRegularizationValidationLeavesWellFormedValuesUntouched) {
+    const QpProblem qp = simple_box_qp();
+
+    const QpSolution baseline = QpEngine{QpOptions{}}.solve(qp);
+    ASSERT_EQ(baseline.status, QpStatus::kOptimal);
+
+    for (const double good : {0.0, 1e-12, 1e-8, 1e-4}) {
+        SCOPED_TRACE(good);
+
+        QpOptions delta_opts;
+        delta_opts.primal_delta = good;
+        const QpSolution by_delta = QpEngine{delta_opts}.solve(qp);
+        EXPECT_EQ(by_delta.status, QpStatus::kOptimal);
+
+        QpOptions mu_opts;
+        mu_opts.dual_mu = good;
+        const QpSolution by_mu = QpEngine{mu_opts}.solve(qp);
+        EXPECT_EQ(by_mu.status, QpStatus::kOptimal);
+    }
+
+    // Zero specifically: the domain's admitted boundary. It solves, to the
+    // same status and the same COUNTERS as the shipped defaults, and to the
+    // same point within the regularization's own footprint.
+    //
+    // NOT BIT-IDENTICAL, AND MUST NOT BE ASSERTED AS SUCH. Changing either
+    // magnitude changes the regularized diagonal of the system actually
+    // solved, so the returned point moves at O(delta) -- that is the documented
+    // behaviour of these fields (see this header's note on the delta-flat
+    // optimal set, and qp_types.h on the footprint each buys), not a defect,
+    // and an earlier draft of this test asserted `.isZero(0.0)` here and
+    // rightly failed. Counters are what the neutrality claim is about and
+    // counters are what is pinned exactly.
+    QpOptions zero_opts;
+    zero_opts.primal_delta = 0.0;
+    zero_opts.dual_mu = 0.0;
+    const QpSolution zeroed = QpEngine{zero_opts}.solve(qp);
+    EXPECT_EQ(zeroed.status, baseline.status);
+    EXPECT_EQ(zeroed.counters.minor_iters, baseline.counters.minor_iters);
+    EXPECT_EQ(zeroed.counters.factorizations, baseline.counters.factorizations);
+    EXPECT_EQ(zeroed.counters.schur_updates, baseline.counters.schur_updates);
+    EXPECT_EQ(zeroed.bound_state, baseline.bound_state);
+    EXPECT_EQ(zeroed.ineq_active, baseline.ineq_active);
+    EXPECT_LT((zeroed.x - baseline.x).cwiseAbs().maxCoeff(), 1e-6);
+}
+
 // (k) Fix round 1 [M7]: the Task-6-shaped reuse case with a LIVE, non-empty
 // working set surviving a tr_radius override change -- companion to (f)
 // above, which deliberately kept the first solve's exit pin-free. Here the
