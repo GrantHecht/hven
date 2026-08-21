@@ -142,6 +142,15 @@ class NlpAggregate {
     NlpAggregate(const NlpAggregate &) = delete;
     NlpAggregate &operator=(const NlpAggregate &) = delete;
 
+    /// The declaration this aggregate was built from.
+    ///
+    /// The reference is to STORED STATE, and stays valid and unchanging for the
+    /// object's lifetime except across a structural mutation. An implementation
+    /// must not build a declaration per call and return a reference to it: the
+    /// non-virtual entries above read this on EVERY evaluation, to check the
+    /// caller's blocks against real dimensions, so a rebuilding implementation
+    /// would put that work on the evaluation path -- and returning a reference
+    /// to anything temporary would dangle.
     virtual const AggregateDeclaration &declaration() const = 0;
 
     /// Adopts a partition count and returns the count ACTUALLY adopted, which
