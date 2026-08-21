@@ -2312,13 +2312,43 @@ inline NlpEval eval_nlp_values(const NlpModel &model, const Vec &x) {
 // eval_ci. Used wherever solve_impl's own values-only trial or SOC-corrected
 // point turns out, after judging, to need its derivatives after all -- see
 // THE REJECTED-TRIAL FUNNEL EVALUATION's UPGRADE TO FULL sites.
+//
+// S-8 (M3 final review, round 2): THIS IS AN EVAL BOUNDARY TOO, and it takes
+// the same three returns eval_nlp takes -- so it checks them the same way, for
+// the same reason. S-1 closed eval_nlp and eval_nlp_values and left this one,
+// which is the THIRD door into the same NlpEval and the one an ACCEPTED trial
+// comes through: a values-only trial or SOC-corrected point that the funnel
+// judged worth keeping is upgraded here, and the resulting ev is what the NEXT
+// major linearizes from. A short grad reaches evaluate_kkt's grad_lag(i) and a
+// mis-shaped Je/Ji reaches build_subproblem's blocks, both unchecked, both
+// out-of-bounds in Release where Eigen's asserts are gone. The cE/cI half of
+// this bundle is already covered (it can only have come from a checked
+// eval_nlp_values), so exactly the three derivative returns are checked here.
 inline void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev) {
+    const Index n = model.n();
     ev.grad = model.eval_grad(x);
+    if (ev.grad.size() != n) {
+        throw std::invalid_argument(fmt::format(
+            "upgrade_to_full: model.eval_grad returned size {}, expected {} (= model.n())",
+            ev.grad.size(), n));
+    }
     if (model.me() > 0) {
         ev.Je = model.eval_jac_e(x);
+        if (ev.Je.rows() != model.me() || ev.Je.cols() != n) {
+            throw std::invalid_argument(fmt::format(
+                "upgrade_to_full: model.eval_jac_e returned a {}x{} matrix, expected {}x{} "
+                "(= model.me() x model.n())",
+                ev.Je.rows(), ev.Je.cols(), model.me(), n));
+        }
     }
     if (model.mi() > 0) {
         ev.Ji = model.eval_jac_i(x);
+        if (ev.Ji.rows() != model.mi() || ev.Ji.cols() != n) {
+            throw std::invalid_argument(fmt::format(
+                "upgrade_to_full: model.eval_jac_i returned a {}x{} matrix, expected {}x{} "
+                "(= model.mi() x model.n())",
+                ev.Ji.rows(), ev.Ji.cols(), model.mi(), n));
+        }
     }
     ev.all_finite = ev.all_finite && ev.grad.allFinite();
 }

@@ -1075,6 +1075,65 @@ TEST(SqpDriverContract, MisSizedCallbackReturnsAreRejectedByName) {
     EXPECT_NO_THROW((void)clean.solve(honest, honest.start_point()));
 }
 
+// M3 FINAL REVIEW, S-8 (round 2). THE THIRD DOOR INTO THE SAME BUNDLE.
+// upgrade_to_full is the eval boundary S-1 did not close: it takes
+// eval_grad/eval_jac_e/eval_jac_i exactly as eval_nlp does, and it is the one
+// an ACCEPTED trial comes through -- a values-only or SOC-corrected point the
+// funnel decided to keep is upgraded here, and the NlpEval that results is
+// what the NEXT major linearizes from. So a mis-sized return here is not a
+// diagnostic gap on a rare path; it is the same Release out-of-bounds read
+// S-1 closed, one function along.
+//
+// EXERCISED DIRECTLY, not through a solve. upgrade_to_full is a free inline
+// function with a documented precondition (its NlpEval must be
+// eval_nlp_values' output at THIS x), which this test can satisfy exactly --
+// and doing so pins the boundary itself rather than whichever solve happens to
+// route through it today.
+TEST(SqpDriverContract, MisSizedUpgradeReturnsAreRejectedByName) {
+    using Which = MisSizingModel::Which;
+
+    // HS7 (n=2, me=1, mi=0) for the gradient and equality-Jacobian arms, HS10
+    // (n=2, me=0, mi=1) for the inequality-Jacobian arm -- upgrade_to_full,
+    // like eval_nlp, only calls the block callbacks whose dimension is nonzero.
+    struct Arm {
+        int hs;
+        Which which;
+        const char *names;
+    };
+    for (const Arm &arm : {Arm{7, Which::kGrad, "eval_grad"}, Arm{7, Which::kJacE, "eval_jac_e"},
+                           Arm{10, Which::kJacI, "eval_jac_i"}}) {
+        SCOPED_TRACE(arm.names);
+        const MisSizingModel model(make_hs(arm.hs).model, arm.which);
+        const Vec x = model.start_point();
+
+        // The documented precondition: a values-only bundle at this same x.
+        // The decorator's eval_values is untouched on these arms, so this call
+        // succeeds and the throw below can only come from the upgrade.
+        NlpEval ev;
+        ASSERT_NO_THROW(ev = eval_nlp_values(model, x));
+
+        const std::string msg = message_of_throw([&] { upgrade_to_full(model, x, ev); });
+        EXPECT_NE(msg.find(arm.names), std::string::npos)
+            << "the throw must name the callback that misbehaved; got: " << msg;
+        EXPECT_NE(msg.find("upgrade_to_full"), std::string::npos)
+            << "and the boundary it was caught at; got: " << msg;
+    }
+
+    // THE CONTROL: an honest model upgrades cleanly, and the upgraded bundle is
+    // the one upgrade_to_full's contract promises -- byte-identical to a fresh
+    // eval_nlp at the same x. Without this the arms above could be passing on a
+    // boundary that rejects everything.
+    const MisSizingModel honest(make_hs(76).model, Which::kNone);
+    const Vec x = honest.start_point();
+    NlpEval upgraded = eval_nlp_values(honest, x);
+    EXPECT_NO_THROW(upgrade_to_full(honest, x, upgraded));
+
+    const NlpEval fresh = eval_nlp(honest, x);
+    EXPECT_EQ(upgraded.grad, fresh.grad);
+    EXPECT_EQ(upgraded.all_finite, fresh.all_finite);
+    EXPECT_EQ(Eigen::MatrixXd(upgraded.Ji), Eigen::MatrixXd(fresh.Ji));
+}
+
 // MODEL EVALUATION IS THE COST THAT MATTERS on tycho's target workloads, so
 // the per-major budget is a pinned contract and not an implementation
 // detail. The convergence test and the subproblem read the SAME five

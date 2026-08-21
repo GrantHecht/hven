@@ -334,7 +334,7 @@ TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     // ...so the no-objective assembly gets a pure-constraint Hessian.
     zero_kkt();
     nlp->eval_kkt_no(2.0, X, LE, LI, val, PGX, AGX, FXE, FXI, kkt);
-    EXPECT_NEAR(kkt.coeff(1, 1), 0.0, 1e-14); // the 2*sigma term is gone
+    EXPECT_NEAR(kkt.coeff(1, 1), 0.0, 1e-14);       // the 2*sigma term is gone
     // Widened: (0,0) is the same duplicate-slot accumulation as the dense
     // assembly test above.
     EXPECT_NEAR(kkt.coeff(0, 0), 2 * LI[0], 1e-12); // constraint curvature stays

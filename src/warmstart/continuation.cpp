@@ -202,33 +202,51 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         return out; // no path to follow from a p0 that did not solve
     }
 
-    // ENDPOINT EQUALITY IS DECIDED EXACTLY, and the arc length is measured
-    // stably (M3 final review, S-5). `segment.norm()` SQUARES before it sums,
-    // so a segment of all-subnormal entries (p1 - p0 = [1e-300]) underflows to
-    // 0.0 and the old `!(total > 0.0)` test then claimed "p1 == p0: the cold
-    // solve IS the sweep" and reported reached_p1 -- for a p1 that was never
-    // solved at, and never even proposed. Two separate questions were being
-    // answered by one number. The p1 == p0 CLAIM is now the exact
-    // componentwise equality it always asserted, and the arc length uses
-    // stableNorm(), which scales out the largest magnitude before summing and
-    // so returns 1e-300 rather than 0 for that segment -- letting a genuinely
-    // tiny sweep parameterize.
+    // ENDPOINT EQUALITY IS DECIDED EXACTLY (M3 final review, S-5). The old test
+    // asked ONE number -- `!(segment.norm() > 0.0)` -- two different questions:
+    // "is p1 the same point as p0" and "is there an arc to parameterize". Those
+    // come apart on a segment whose SQUARE underflows (p1 - p0 = [1e-300],
+    // whose square is 0), where the length reads 0 for a p1 that is genuinely a
+    // different point. The old code then claimed "p1 == p0: the cold solve IS
+    // the sweep" and reported reached_p1 -- for a p1 never proposed and never
+    // solved at. reached_p1 is the field a caller trusts to mean "the sweep
+    // arrived", so that was a wrong answer rather than a rounding nicety. The
+    // p1 == p0 claim is now the exact componentwise equality it always
+    // asserted, and nothing else.
+    //
+    // THE ARC LENGTH STAYS `norm()`, DELIBERATELY, and this is round 2
+    // correcting round 1. Round 1 also switched `total` to stableNorm() so the
+    // subnormal segment could parameterize. But `total` is not a diagnostic --
+    // it divides into `direction` and clamps every `s_next`, so it reaches
+    // every p_next of every sweep. stableNorm() computes scale * sqrt(ssq)
+    // where norm() computes sqrt(sum of squares), and for np > 1 those differ
+    // in the last bit on ORDINARY, well-scaled inputs. That is a rounding
+    // change on the success path of every multi-parameter sweep -- exactly what
+    // the counter-neutrality rule this batch is bound by forbids, and not
+    // something a passing suite can license, since it moves values the suite
+    // does not pin. norm() is restored, so the success path is bit-identical to
+    // its pre-S-5 form for every non-degenerate sweep.
+    //
+    // WHICH LEAVES THE DEGENERATE CASE, and it is now REPORTED rather than
+    // mis-answered. A segment that is nonzero but whose length underflows has
+    // no direction this routine can compute -- `segment / total` would be a
+    // division by zero, and the round-1 answer (silently parameterize it) is
+    // unavailable now that norm() is back. Refusing loudly is the honest
+    // remaining option: the caller learns their endpoints are too close to
+    // separate in binary64 and can rescale, which is a real answer, where
+    // `reached_p1 = true` was a false one.
     const Vec segment = p1 - p0;
     if ((p1.array() == p0.array()).all()) {
         out.reached_p1 = true; // p1 == p0: the cold solve IS the sweep
         return out;
     }
-    const double total = segment.stableNorm();
+    const double total = segment.norm();
     if (!(total > 0.0)) {
-        // Unreachable for the inputs validate() admits: p0 and p1 are finite
-        // and, past the equality test above, differ in at least one
-        // coordinate, so a scaled norm of their difference is strictly
-        // positive. Kept because the alternative to failing loudly here is
-        // dividing by it on the next line -- the silent wrong answer this item
-        // exists to remove, restored in a different place.
         throw std::invalid_argument(fmt::format(
-            "run_continuation: p1 differs from p0 but the segment length came out {}; the sweep "
-            "has no direction to follow",
+            "run_continuation: p1 differs from p0 in at least one coordinate, but the segment "
+            "length underflowed to {}; the endpoints are too close to separate in binary64 and "
+            "the sweep has no direction to follow (rescale the parameter, or pass p1 == p0 "
+            "exactly if the cold solve at p0 is what was wanted)",
             total));
     }
     const Vec direction = segment / total;

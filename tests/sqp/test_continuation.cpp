@@ -926,41 +926,57 @@ TEST(Continuation, ZeroLengthSweepIsJustTheColdSolve) {
     EXPECT_TRUE(res.final_warm.valid);
 }
 
-// M3 FINAL REVIEW, S-5. A SEGMENT WHOSE SQUARE UNDERFLOWS IS STILL A SEGMENT.
-// p0 = 0, p1 = 1e-300: `segment.norm()` squares before it sums, so 1e-300
-// becomes 0 and the old length test read that as "p1 == p0" -- returning
-// reached_p1 == true after a single cold solve at p0, having never proposed p1
-// at all. reached_p1 is the field a caller trusts to mean "the sweep arrived",
-// so that was a wrong answer rather than a rounding nicety. stableNorm() scales
-// the largest magnitude out before summing and returns 1e-300, and the p1 == p0
-// claim is now the exact componentwise equality it always asserted.
-TEST(Continuation, SubnormalSegmentIsParameterizedRatherThanCalledZeroLength) {
+// M3 FINAL REVIEW, S-5 (round 2). A SEGMENT WHOSE SQUARE UNDERFLOWS IS NOT
+// "p1 == p0", AND IS NOT SILENTLY SWEPT EITHER. p0 = 0, p1 = 1e-300:
+// `segment.norm()` squares before it sums, so 1e-300 becomes 0 and the old
+// length test read that as "p1 == p0" -- returning reached_p1 == true after a
+// single cold solve at p0, having never proposed p1 at all. reached_p1 is the
+// field a caller trusts to mean "the sweep arrived", so that was a wrong
+// answer rather than a rounding nicety.
+//
+// ROUND 1 FIXED IT BY SWITCHING THE ARC LENGTH TO stableNorm(), AND ROUND 2
+// TOOK THAT BACK: `total` divides into `direction` and clamps every `s_next`,
+// so it reaches every p_next of every sweep, and stableNorm() differs from
+// norm() in the last bit for np > 1 on ordinary well-scaled inputs -- a
+// success-path rounding change, which this batch's counter-neutrality rule
+// forbids. So the length arithmetic is byte-for-byte what it always was, and
+// the degenerate segment is REFUSED instead: no direction can be computed for
+// it, and refusing loudly is the honest answer where reached_p1 = true was a
+// false one. The two questions the old code asked with one number are now
+// asked separately -- exact equality for the p1 == p0 claim, the length only
+// for the arc.
+TEST(Continuation, SubnormalSegmentIsRefusedRatherThanCalledZeroLength) {
     constexpr double kTiny = 1e-300;
     ASSERT_EQ(kTiny * kTiny, 0.0)
         << "the fixture depends on the SQUARE underflowing, not the value";
+    ASSERT_NE(kTiny, 0.0) << "and on p1 being a genuinely different point from p0";
 
     F1BoxQp model(0.0);
     SqpDriver driver(sweep_options());
-    const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(kTiny), driver);
+    // Not a silent reached_p1, and not a division by zero: a named refusal.
+    EXPECT_THROW(run_continuation(model, p_vec(0.0), p_vec(kTiny), driver), std::invalid_argument);
 
-    EXPECT_TRUE(res.reached_p1) << trajectory(res);
-    // TWO steps, not one: the cold solve at p0 and a solve AT p1. One step
-    // with reached_p1 set is precisely the dishonest report this item removes.
-    ASSERT_EQ(res.steps.size(), 2u) << "p1 was never proposed:\n" << trajectory(res);
-    EXPECT_EQ(res.steps.back().p(0), kTiny) << trajectory(res);
-    EXPECT_EQ(res.steps.back().status, SqpStatus::kOptimal) << trajectory(res);
-    EXPECT_EQ(res.steps.back().dp, kTiny) << trajectory(res);
-
-    // AND THE EXACT-EQUALITY ARM STILL SHORT-CIRCUITS. ZeroLengthSweepIsJust
-    // TheColdSolve above pins the p0 == p1 case at 0.3; repeated here at 0.0
-    // so the two neighbouring behaviours are stated side by side, and so a
-    // regression that made the equality test approximate again would swallow
-    // the sweep above rather than fail only there.
+    // AND THE EXACT-EQUALITY ARM STILL SHORT-CIRCUITS -- the neighbouring case
+    // that must NOT throw. ZeroLengthSweepIsJustTheColdSolve above pins p0 ==
+    // p1 at 0.3; repeated here at 0.0 so the two behaviours are stated side by
+    // side, and so a regression that made the equality test approximate again
+    // would swallow the refusal above rather than fail only there.
     F1BoxQp same(0.0);
     SqpDriver same_driver(sweep_options());
     const ContinuationResult zero = run_continuation(same, p_vec(0.0), p_vec(0.0), same_driver);
     EXPECT_TRUE(zero.reached_p1) << trajectory(zero);
     EXPECT_EQ(zero.steps.size(), 1u) << trajectory(zero);
+
+    // THE COUNTER-NEUTRALITY ARM: an ordinary sweep is untouched by any of
+    // this. The exact-equality test cannot fire on it and the length is the
+    // same `norm()` it always was, so this sweep's trajectory is bit-identical
+    // to its pre-S-5 form.
+    F1BoxQp ordinary(0.3);
+    SqpDriver ordinary_driver(sweep_options());
+    const ContinuationResult ok =
+        run_continuation(ordinary, p_vec(0.3), p_vec(0.5), ordinary_driver);
+    EXPECT_TRUE(ok.reached_p1) << trajectory(ok);
+    EXPECT_EQ(ok.steps.back().p(0), 0.5) << trajectory(ok);
 }
 
 // M3 FINAL REVIEW, S-4. THE FAILED COLD SOLVE IS A FAILED ATTEMPT. The pair
