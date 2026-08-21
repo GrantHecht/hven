@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/non_linear_program.h"
+#include "hven/model/non_linear_program.h"
 
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();

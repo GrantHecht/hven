@@ -41,7 +41,7 @@
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/drivers/non_linear_program.h"
+#include "hven/model/non_linear_program.h"
 
 #ifdef USE_ACCELERATE_SPARSE
 #include <limits>

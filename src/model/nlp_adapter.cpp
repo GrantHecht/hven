@@ -10,7 +10,7 @@
 
 #include <fmt/format.h>
 
-#include "hven/drivers/non_linear_program.h"
+#include "hven/model/non_linear_program.h"
 
 namespace hven::solvers {
 

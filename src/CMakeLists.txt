@@ -48,12 +48,15 @@ endif()
 # Interior-point engine (ex-PSIOPT) — migrated as-is from the standalone
 # psiopt/ project the origin project previously hosted (hven M2
 # milestone, engine-move task). The split below —
-# drivers/ (the top-level InteriorPointSolver algorithm + NonLinearProgram),
-# model/ (the NLPProblem/NLPSolver contract + its adapter), and
+# drivers/ (the top-level InteriorPointSolver algorithm),
+# model/ (the NLPProblem/NLPSolver contract, its adapter, and the
+# partitioned-evaluation NonLinearProgram engine), and
 # interior/ + globalization/ under include/hven/detail/ (barrier /
 # interior-point machinery) — mirrors psiopt's own internal grouping: a
 # path map onto hven's directory conventions, not a reorganization. See
-# docs/dev notes for the migration's file-by-file record.
+# docs/dev notes for the migration's file-by-file record. NonLinearProgram
+# later moved from drivers/ into model/ as an as-is relocation, ahead of a
+# separately-proven step that carves a contract surface onto it.
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -62,7 +65,7 @@ target_sources(hven PRIVATE
     drivers/interior_point_solver_print.cpp
     drivers/interior_point_solver_settings.cpp
     drivers/solver_init.cpp
-    drivers/non_linear_program.cpp
+    model/non_linear_program.cpp
     model/nlp_adapter.cpp
     model/nlp_solver.cpp
     interior/kkt_factorization.cpp
@@ -411,7 +414,7 @@ set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
     drivers/interior_point_solver_settings.cpp
-    drivers/non_linear_program.cpp
+    model/non_linear_program.cpp
     model/nlp_adapter.cpp
     model/nlp_solver.cpp
 )

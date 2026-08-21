@@ -28,7 +28,7 @@
 #include "hven/detail/interior/utils/get_core_count.h"
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/drivers/interior_point_solver.h"
-#include "hven/drivers/non_linear_program.h"
+#include "hven/model/non_linear_program.h"
 
 namespace hven::solvers {
 

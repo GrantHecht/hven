@@ -15,7 +15,7 @@
 #include <fmt/format.h>
 
 #include "hven/detail/interior/indexing_data.h"
-#include "hven/drivers/non_linear_program.h"
+#include "hven/model/non_linear_program.h"
 #include "hven/detail/interior/utils/timer.h"
 
 void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
