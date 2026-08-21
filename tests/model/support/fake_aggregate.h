@@ -12,11 +12,12 @@
 
 #include <algorithm>
 #include <stdexcept>
-#include <string>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Core>
+
+#include <fmt/format.h>
 
 #include "hven/core/types.h"
 #include "hven/model/nlp_aggregate.h"
@@ -75,9 +76,8 @@ class FakeAggregate final : public NlpAggregate {
         // through the return value, while a non-positive request names no
         // partitioning at all.
         if (requested < 1) {
-            throw std::invalid_argument(
-                "FakeAggregate: a partition count must be at least 1 (got " +
-                std::to_string(requested) + ")");
+            throw std::invalid_argument(fmt::format(
+                "FakeAggregate: a partition count must be at least 1 (got {0})", requested));
         }
         const int adopted = std::min(requested, kMaxPartitions);
         adopted_partitions_ = adopted;

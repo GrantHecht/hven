@@ -388,6 +388,13 @@ Eigen::VectorXd agg_pin_kkt_values(const Eigen::SparseMatrix<double, Eigen::RowM
 /// "the legacy entry", which is exactly the statement the mapping table makes.
 TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) {
     auto nlp = agg_pin_build_small();
+    // CONSTRUCTION ORDER IS LOAD-BEARING, on the same ground the re-patterning
+    // test states: this fixture runs the sparsity analysis in its constructor,
+    // so each construction RE-BINDS the engine's location tables to that
+    // fixture's own matrix. `assembled` is built second, so the engine ends up
+    // bound to the destination the assemble side presents -- which is what lets
+    // the entry's destination check pass. Swapping these two lines leaves the
+    // engine bound to `legacy.kkt` and the assemble calls refused as stale.
     AggPinSolverStorage legacy(*nlp);
     AggPinSolverStorage assembled(*nlp);
 
