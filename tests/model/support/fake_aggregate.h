@@ -56,7 +56,12 @@ class FakeAggregate final : public NlpAggregate {
         declaration_.equality_rows_ = kEqualityRows;
         declaration_.inequality_rows_ = kInequalityRows;
         declaration_.partition_count_ = adopted_partitions_;
-        claims_ = {{0, 0}, {1, 0}, {1, 1}, {2, 2}};
+        // A claim stream in the shape a claim arena holds one: two index
+        // arrays, filled in claim order.
+        claim_rows_.resize(4);
+        claim_rows_ << 0, 1, 1, 2;
+        claim_cols_.resize(4);
+        claim_cols_ << 0, 0, 1, 2;
         // The first layout: a provider lays structures before it can be
         // evaluated, and that first lay is a structural event like any other.
         this->relay_structures();
@@ -81,13 +86,9 @@ class FakeAggregate final : public NlpAggregate {
     ModelStructureKey model_structure_key() const override { return key_; }
     AggregateCapability capabilities() const override { return capabilities_; }
 
-    void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
-                  RhsScatterView rhs) override;
-
-    void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) override;
-    void evaluate_candidate_first_order(const CandidatePoint &point,
-                                        CandidateFirstOrder out) override;
-
+    /// Routed through the public values entry, so it inherits that entry's
+    /// validation instead of repeating it -- which is what "a probe is a values
+    /// evaluation plus a hash" comes to once the entries are non-virtual.
     IdentityProbe probe_identity(ConstVecRef x) override;
 
     // ---- test hooks -------------------------------------------------------
@@ -135,18 +136,28 @@ class FakeAggregate final : public NlpAggregate {
 
     int values_calls() const { return values_calls_; }
 
+  protected:
+    // The work hooks. No validation here: the public entries own it, and this
+    // fake is where "an implementation cannot skip it" gets tested -- it does
+    // not perform a single check of its own.
+    void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
+                       RhsScatterView rhs) override;
+    void evaluate_candidate_values_impl(const CandidatePoint &point, CandidateValues out) override;
+    void evaluate_candidate_first_order_impl(const CandidatePoint &point,
+                                             CandidateFirstOrder out) override;
+
   private:
     void record_evaluation() {
         epoch_seen_ = this->structure_epoch();
         layout_serial_seen_ = layout_serial_;
     }
 
-    /// Recomputes the structural key from the declaration: the dimension
-    /// preamble, then the claim stream in claim order, then the adopted
-    /// partition count and the materialized bound structure.
+    /// Recomputes the structural key from the declaration, through the two
+    /// public conjunct builders plus the adopted partition count.
     void rekey();
 
-    std::vector<std::pair<int, int>> claims_;
+    Eigen::VectorXi claim_rows_;
+    Eigen::VectorXi claim_cols_;
 
     /// A named empty vector: the multiplier blocks of a values-only candidate
     /// point are legally empty, and a point's blocks must outlive the call that

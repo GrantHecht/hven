@@ -6,7 +6,12 @@
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
+#include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
+
+#include <Eigen/Core>
 
 #include <gtest/gtest.h>
 
@@ -16,12 +21,14 @@
 
 using hven::Fnv1a;
 using hven::solvers::AggregateDeclaration;
-using hven::solvers::feed_claim;
-using hven::solvers::feed_dimensions;
-using hven::solvers::feed_variable_bound;
+using hven::solvers::claim_stream_digest;
 using hven::solvers::materialized_bound_digest;
 using hven::solvers::ModelStructureKey;
 using hven::solvers::VariableBound;
+// The stream primitives are internal on purpose -- the builders above are the
+// public paths. These tests reach past that to keep the primitives themselves
+// under test; nothing outside this file should.
+using hven::solvers::detail::feed_variable_bound;
 
 namespace {
 
@@ -40,6 +47,32 @@ std::uint64_t digest_of(const VariableBound &bound) {
     feed_variable_bound(h, bound);
     return h.value();
 }
+
+/// A declaration at the given dimensions, with no bounds.
+AggregateDeclaration sized(int primal_vars, int equality_rows, int inequality_rows) {
+    AggregateDeclaration declaration;
+    declaration.primal_vars_ = primal_vars;
+    declaration.equality_rows_ = equality_rows;
+    declaration.inequality_rows_ = inequality_rows;
+    return declaration;
+}
+
+/// A claim stream in the shape a claim arena holds one.
+struct ClaimStream {
+    Eigen::VectorXi rows_;
+    Eigen::VectorXi cols_;
+
+    explicit ClaimStream(std::initializer_list<std::pair<int, int>> claims)
+        : rows_(static_cast<Eigen::Index>(claims.size())),
+          cols_(static_cast<Eigen::Index>(claims.size())) {
+        Eigen::Index slot = 0;
+        for (const auto &claim : claims) {
+            rows_[slot] = claim.first;
+            cols_[slot] = claim.second;
+            ++slot;
+        }
+    }
+};
 
 /// A declaration over `primal_vars` variables carrying the given bound records
 /// in declaration order.
@@ -96,61 +129,72 @@ TEST(ModelStructureKeyTest, TheFoldedDigestIsNotAnyOneConjunct) {
 }
 
 TEST(ClaimStreamDigest, OrderIsSignificant) {
-    Fnv1a forward;
-    feed_claim(forward, 0, 1);
-    feed_claim(forward, 2, 3);
-
-    Fnv1a reversed;
-    feed_claim(reversed, 2, 3);
-    feed_claim(reversed, 0, 1);
-
-    EXPECT_NE(forward.value(), reversed.value());
+    const AggregateDeclaration declaration = sized(4, 2, 3);
+    const ClaimStream forward({{0, 1}, {2, 3}});
+    const ClaimStream reversed({{2, 3}, {0, 1}});
+    EXPECT_NE(claim_stream_digest(declaration, forward.rows_, forward.cols_),
+              claim_stream_digest(declaration, reversed.rows_, reversed.cols_));
 }
 
 TEST(ClaimStreamDigest, DistinctClaimsHashDistinctly) {
-    Fnv1a a;
-    feed_claim(a, 4, 5);
-    Fnv1a b;
-    feed_claim(b, 5, 4);
-    EXPECT_NE(a.value(), b.value());
+    const AggregateDeclaration declaration = sized(6, 2, 3);
+    const ClaimStream a({{4, 5}});
+    const ClaimStream b({{5, 4}});
+    EXPECT_NE(claim_stream_digest(declaration, a.rows_, a.cols_),
+              claim_stream_digest(declaration, b.rows_, b.cols_));
 }
 
 TEST(ClaimStreamDigest, TheSameStreamHashesEqual) {
-    Fnv1a a;
-    Fnv1a b;
-    for (int i = 0; i < 16; ++i) {
-        feed_claim(a, i, i / 2);
-        feed_claim(b, i, i / 2);
-    }
-    EXPECT_EQ(a.value(), b.value());
+    const AggregateDeclaration declaration = sized(16, 2, 3);
+    const ClaimStream stream({{0, 0}, {1, 0}, {2, 1}, {3, 1}});
+    EXPECT_EQ(claim_stream_digest(declaration, stream.rows_, stream.cols_),
+              claim_stream_digest(declaration, stream.rows_, stream.cols_));
 }
 
 TEST(ClaimStreamDigest, TheDimensionPreambleIsPartOfTheStream) {
-    // Identical claims at different dimensions. A claim names rows and columns
-    // that exist, never the size of the space they live in, so without the
-    // preamble these two would key identically while laying different systems.
-    Fnv1a narrow;
-    feed_dimensions(narrow, 4, 2, 3);
-    Fnv1a wide;
-    feed_dimensions(wide, 5, 2, 3);
-    for (int i = 0; i < 8; ++i) {
-        feed_claim(narrow, i, i / 2);
-        feed_claim(wide, i, i / 2);
-    }
-    EXPECT_NE(narrow.value(), wide.value());
+    // The trailing-unclaimed case, through the builder: one declaration has a
+    // variable no claim mentions, and the claim streams are identical. A claim
+    // names rows and columns that exist, never the size of the space they live
+    // in, so without the preamble these two would key identically while laying
+    // different systems.
+    const ClaimStream stream({{0, 0}, {1, 0}, {1, 1}, {2, 2}});
+    EXPECT_NE(claim_stream_digest(sized(4, 2, 3), stream.rows_, stream.cols_),
+              claim_stream_digest(sized(5, 2, 3), stream.rows_, stream.cols_));
 }
 
 TEST(ClaimStreamDigest, EachDimensionOfThePreambleIsAConjunct) {
-    const auto stream = [](int n, int me, int mi) {
-        Fnv1a hash;
-        feed_dimensions(hash, n, me, mi);
-        feed_claim(hash, 0, 0);
-        return hash.value();
+    const ClaimStream stream({{0, 0}});
+    const auto digest = [&stream](int n, int me, int mi) {
+        return claim_stream_digest(sized(n, me, mi), stream.rows_, stream.cols_);
     };
-    EXPECT_NE(stream(4, 2, 3), stream(5, 2, 3));
-    EXPECT_NE(stream(4, 2, 3), stream(4, 1, 3));
-    EXPECT_NE(stream(4, 2, 3), stream(4, 2, 4));
-    EXPECT_EQ(stream(4, 2, 3), stream(4, 2, 3));
+    EXPECT_NE(digest(4, 2, 3), digest(5, 2, 3));
+    EXPECT_NE(digest(4, 2, 3), digest(4, 1, 3));
+    EXPECT_NE(digest(4, 2, 3), digest(4, 2, 4));
+    EXPECT_EQ(digest(4, 2, 3), digest(4, 2, 3));
+}
+
+TEST(ClaimStreamDigest, AnEmptyStreamStillCarriesItsDimensions) {
+    const Eigen::VectorXi none;
+    EXPECT_NE(claim_stream_digest(sized(4, 2, 3), none, none),
+              claim_stream_digest(sized(5, 2, 3), none, none));
+    EXPECT_EQ(claim_stream_digest(sized(4, 2, 3), none, none),
+              claim_stream_digest(sized(4, 2, 3), none, none));
+}
+
+TEST(ClaimStreamDigest, RejectsAHalfClaimStream) {
+    Eigen::VectorXi rows(3);
+    rows << 0, 1, 2;
+    Eigen::VectorXi cols(2);
+    cols << 0, 1;
+    try {
+        claim_stream_digest(sized(4, 2, 3), rows, cols);
+        FAIL() << "a stream whose two arrays disagree in length must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("claim_stream_digest"), std::string::npos) << message;
+        EXPECT_NE(message.find('3'), std::string::npos) << message;
+        EXPECT_NE(message.find('2'), std::string::npos) << message;
+    }
 }
 
 TEST(BoundStructureDigest, IsTakenOverTheMaterializedStructure) {

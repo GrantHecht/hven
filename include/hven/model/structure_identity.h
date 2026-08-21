@@ -25,6 +25,11 @@
 #include <atomic>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
+
+#include <Eigen/Core>
+
+#include <fmt/format.h>
 
 #include "hven/core/pattern_hash.h"
 #include "hven/model/aggregate_declaration.h"
@@ -40,6 +45,11 @@ namespace hven::solvers {
 /// redundancy is deliberate: an explicit field is inspectable in a diagnostic
 /// where an order-sensitivity is not, and a consumer comparing keys should not
 /// have to know that the count is implicitly folded in.
+/// Each conjunct has one public builder and no other way in:
+/// `claim_digest_` is computed by claim_stream_digest, `bound_digest_` by
+/// materialized_bound_digest, and `partition_count_` is the count
+/// NlpAggregate::negotiate_partition_count actually adopted. Filling a field
+/// from anything else is how a key stops answering the question it exists for.
 struct ModelStructureKey {
     std::uint64_t claim_digest_ = 0;
     int partition_count_ = 0;
@@ -58,6 +68,19 @@ struct ModelStructureKey {
         return hash.value();
     }
 };
+
+// THE STREAM PRIMITIVES ARE INTERNAL, and that placement is the contract
+// rather than an accident of organization. Each key component has exactly ONE
+// public way to compute it -- claim_stream_digest below for the claim
+// conjunct, materialized_bound_digest for the bound conjunct -- and no
+// assemble-it-yourself path beside it. The primitives are separable, and every
+// separation is a way to get the answer wrong: a stream built without the
+// dimension preamble keys two different problems identically, and a bound
+// stream built from the DECLARED records rather than their intersection keys
+// two different layouts identically. Both were real defects in this header's
+// first cut. Keeping the pieces reachable but not public is what makes the
+// safe path the only path a consumer can take.
+namespace detail {
 
 /// Opens a claim stream with the declared dimensions -- primal variables,
 /// equality rows, inequality rows -- before the first claim is fed.
@@ -133,8 +156,42 @@ constexpr void feed_variable_bound(Fnv1a &hash, const VariableBound &bound) noex
     hash.feed_index(structure);
 }
 
-/// The bound-structure conjunct of a declaration's structural key: the
-/// materialized per-variable structure, in variable order.
+} // namespace detail
+
+/// THE claim-structure conjunct of a declaration's structural key, and the only
+/// public way to compute one: the dimension preamble, then the claim stream in
+/// claim order.
+///
+/// The claims are taken as the two index arrays a claim arena already holds --
+/// the shape KktClaimSpace publishes, and the shape the arrays keep once a
+/// claim pass has filled them -- so no caller has to interleave them into
+/// something else first. Repacking would be exactly the assemble-it-yourself
+/// step this entry exists to remove.
+///
+/// Throws std::invalid_argument if the two arrays disagree in length: a claim
+/// is a (row, column) pair, and a stream missing half of one is not a stream.
+inline std::uint64_t claim_stream_digest(const AggregateDeclaration &declaration,
+                                         Eigen::Ref<const Eigen::VectorXi> claim_rows,
+                                         Eigen::Ref<const Eigen::VectorXi> claim_cols) {
+    if (claim_rows.size() != claim_cols.size()) {
+        throw std::invalid_argument(
+            fmt::format("claim_stream_digest: the claim stream has {0} rows and {1} columns; a "
+                        "claim is a (row, column) pair, so the two arrays must be the same length",
+                        claim_rows.size(), claim_cols.size()));
+    }
+
+    Fnv1a hash;
+    detail::feed_dimensions(hash, declaration.primal_vars_, declaration.equality_rows_,
+                            declaration.inequality_rows_);
+    for (Eigen::Index slot = 0; slot < claim_rows.size(); ++slot) {
+        detail::feed_claim(hash, claim_rows[slot], claim_cols[slot]);
+    }
+    return hash.value();
+}
+
+/// THE bound-structure conjunct of a declaration's structural key, and the only
+/// public way to compute one: the materialized per-variable structure, in
+/// variable order.
 ///
 /// Materializing here rather than hashing the declared records is the whole of
 /// the rule above. It throws whatever the materialization throws -- an
@@ -143,7 +200,7 @@ constexpr void feed_variable_bound(Fnv1a &hash, const VariableBound &bound) noex
 inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &declaration) {
     Fnv1a hash;
     for (const VariableBound &bound : declaration.materialize_variable_bounds()) {
-        feed_variable_bound(hash, bound);
+        detail::feed_variable_bound(hash, bound);
     }
     return hash.value();
 }

@@ -691,6 +691,108 @@ TEST(AggregateAssembleContract, SuccessiveCallsAccumulateIntoOneDestination) {
     EXPECT_NE(out.objective, after_one);
 }
 
+TEST(AggregateAssembleContract, AnRhsArenaIsAccumulatedIntoNotAssigned) {
+    // The same discipline one level in from the scalar slot: a claim landing in
+    // an RHS arena adds to whatever the consumer left there.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    aggregate.assemble(CandidatePoint{x, none, none},
+                       hven::solvers::kRequestObjectiveGradientAndConstraints, out.kkt_view(),
+                       out.rhs_view());
+    const Vec gradient_after_one = out.objective_gradient;
+    const Vec residuals_after_one = out.equality_residuals;
+    ASSERT_FALSE(ContractProbeDestinations::untouched(out.objective_gradient));
+
+    aggregate.assemble(CandidatePoint{x, none, none},
+                       hven::solvers::kRequestObjectiveGradientAndConstraints, out.kkt_view(),
+                       out.rhs_view());
+
+    // The second pass added the same increment again, entry for entry.
+    const Vec gradient_increment =
+        gradient_after_one - Vec::Constant(FakeAggregate::kPrimalVars, kUntouchedSentinel);
+    EXPECT_TRUE(out.objective_gradient.isApprox(gradient_after_one + gradient_increment));
+    const Vec residual_increment =
+        residuals_after_one - Vec::Constant(FakeAggregate::kEqualityRows, kUntouchedSentinel);
+    EXPECT_TRUE(out.equality_residuals.isApprox(residuals_after_one + residual_increment));
+    EXPECT_GT(gradient_increment.cwiseAbs().minCoeff(), 0.0);
+}
+
+TEST(AggregateAssembleContract, AKktArenaClaimIsAccumulatedIntoNotAssigned) {
+    // And through the KKT location table, which is the one that matters most:
+    // several pieces claim slots in one arena and each sums its own
+    // contribution in, so a fill that assigned would silently keep only the
+    // last writer's value.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    ContractProbeMultipliers multipliers;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+
+    aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
+                       hven::solvers::kRequestFullKkt, out.kkt_view(), out.rhs_view());
+    ASSERT_FALSE(out.kkt_untouched());
+    const std::vector<double> after_one = out.kkt_values;
+
+    aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
+                       hven::solvers::kRequestFullKkt, out.kkt_view(), out.rhs_view());
+
+    for (std::size_t slot = 0; slot < out.kkt_values.size(); ++slot) {
+        const double increment = after_one[slot] - kUntouchedSentinel;
+        EXPECT_NE(increment, 0.0) << "KKT slot " << slot << " was never written";
+        EXPECT_DOUBLE_EQ(out.kkt_values[slot], after_one[slot] + increment)
+            << "KKT slot " << slot << " was assigned rather than accumulated into";
+    }
+}
+
+TEST(AggregateNonVirtualEntryContract, ValidationIsAPropertyOfTheTypeNotOfTheImplementation) {
+    // The fake performs NO validation of its own -- its hooks are pure work.
+    // Every refusal below therefore comes from the entry, which is the
+    // guarantee the non-virtual split buys: a consumer holding any
+    // NlpAggregate& knows an unmapped request and a mis-sized point were
+    // refused before a value moved, whoever wrote the implementation.
+    FakeAggregate aggregate;
+    hven::solvers::NlpAggregate &surface = aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec short_x = Vec::Zero(FakeAggregate::kPrimalVars - 1);
+    Vec none;
+
+    EXPECT_THROW(surface.assemble(CandidatePoint{x, none, none},
+                                  EvalRequest::kConstraintJacobian | EvalRequest::kObjectiveHessian,
+                                  out.kkt_view(), out.rhs_view()),
+                 std::invalid_argument);
+    EXPECT_THROW(surface.assemble(CandidatePoint{short_x, none, none},
+                                  hven::solvers::kRequestObjectiveOnly, out.kkt_view(),
+                                  out.rhs_view()),
+                 std::invalid_argument);
+    EXPECT_TRUE(out.kkt_untouched());
+    EXPECT_EQ(out.objective, kUntouchedSentinel);
+
+    double objective = 0.0;
+    Vec equality(FakeAggregate::kEqualityRows);
+    Vec inequality(FakeAggregate::kInequalityRows);
+    Vec wrong_equality(FakeAggregate::kEqualityRows + 1);
+    EXPECT_THROW(
+        surface.evaluate_candidate_values(CandidatePoint{short_x, none, none},
+                                          CandidateValues{objective, equality, inequality}),
+        std::invalid_argument);
+    EXPECT_THROW(
+        surface.evaluate_candidate_values(CandidatePoint{x, none, none},
+                                          CandidateValues{objective, wrong_equality, inequality}),
+        std::invalid_argument);
+}
+
+TEST(AggregateNonVirtualEntryContract, TheProbeInheritsTheValuesEntrysValidation) {
+    // A probe is a values evaluation plus a hash, so routing it through the
+    // public entry is what gives it that entry's checks rather than a second
+    // copy of them.
+    FakeAggregate aggregate;
+    Vec short_x = Vec::Zero(FakeAggregate::kPrimalVars - 1);
+    EXPECT_THROW(aggregate.probe_identity(short_x), std::invalid_argument);
+}
+
 TEST(AggregateAssembleContract, AnUnmappedRequestIsRefusedBeforeAnythingIsWritten) {
     FakeAggregate aggregate;
     ContractProbeDestinations out;

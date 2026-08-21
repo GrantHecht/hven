@@ -226,15 +226,27 @@ class NlpAggregate {
     /// and every legal request subset carries the full path's determinism
     /// guarantee.
     ///
-    /// AN IMPLEMENTATION VALIDATES AT ENTRY, before evaluating anything:
+    /// VALIDATED HERE, NOT BY THE IMPLEMENTATION, before anything is evaluated:
     ///   * validate_eval_request(request) -- exactly the eight named shapes are
     ///     legal, and a composed-but-unmapped combination is refused rather
     ///     than approximated.
+    ///   * validate_candidate_point(point, ...) -- the primal block is sized to
+    ///     the declaration; the multiplier blocks are empty or exact.
     ///   * validate_full_multipliers(point, ...) when
     ///     request_consumes_multipliers(request) -- a request naming a
     ///     constraint adjoint gradient or adjoint Hessian contracts a
     ///     derivative against the multipliers, so an empty multiplier block is
     ///     a missing input rather than a zero vector.
+    ///
+    /// THE ENTRY IS NON-VIRTUAL AND THE HOOK BELOW IT IS THE VIRTUAL ONE, which
+    /// upgrades the guarantee at the top of this comment: "no output is written
+    /// that the request did not name" is a property of the TYPE, not a rule
+    /// each provider is asked to keep. An implementation cannot skip the
+    /// validation, forget it, or reorder it after its own work, because it
+    /// never sees an unvalidated call. That is strictly stronger than the
+    /// settled text required, and a consumer may rely on it: any NlpAggregate&,
+    /// whatever is behind it, has refused an unmapped request and a
+    /// short-blocked point before a single value moved.
     ///
     /// ACCUMULATION, NOT ASSIGNMENT. Every destination this call writes -- the
     /// KKT values through their location table, each named arena through
@@ -252,8 +264,17 @@ class NlpAggregate {
     /// them is a consumer-owned step outside provider evaluation. The mapping
     /// table records that transfer per row, because in the shapes this call
     /// replaces the two steps ran inside one entry.
-    virtual void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
-                          RhsScatterView rhs) = 0;
+    void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
+                  RhsScatterView rhs) {
+        const AggregateDeclaration &declared = this->declaration();
+        validate_eval_request(request);
+        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
+                                 declared.inequality_rows_);
+        if (request_consumes_multipliers(request)) {
+            validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
+        }
+        this->assemble_impl(point, request, kkt, rhs);
+    }
 
     /// Off the hot path, under the same discipline: an aggregate evaluation at
     /// an arbitrary candidate point, into caller-owned split storage. No engine
@@ -263,16 +284,31 @@ class NlpAggregate {
     /// name has its own pinned wording that this contract does not re-word, and
     /// a reader who sees two different spellings in one call stack is being
     /// told, correctly, that they are two different levels.
+    ///
     /// A VALUES path, so the point's multiplier blocks are legally empty: it
-    /// reads none of them.
-    virtual void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) = 0;
+    /// reads none of them. The storage blocks are checked against the
+    /// declaration's dimensions here, before the hook runs.
+    void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) {
+        const AggregateDeclaration &declared = this->declaration();
+        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
+                                 declared.inequality_rows_);
+        validate_candidate_values(out, declared.equality_rows_, declared.inequality_rows_);
+        this->evaluate_candidate_values_impl(point, out);
+    }
 
     /// The first-order evaluation ALWAYS produces the constraint adjoint
-    /// gradient, so it always reads the multipliers: an implementation calls
-    /// validate_full_multipliers at entry, unconditionally, and an empty
-    /// multiplier block is a missing input here rather than a zero vector.
-    virtual void evaluate_candidate_first_order(const CandidatePoint &point,
-                                                CandidateFirstOrder out) = 0;
+    /// gradient, so it always reads the multipliers: full-length blocks are
+    /// required here, unconditionally, and an empty multiplier block is a
+    /// missing input rather than a zero vector.
+    void evaluate_candidate_first_order(const CandidatePoint &point, CandidateFirstOrder out) {
+        const AggregateDeclaration &declared = this->declaration();
+        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
+                                 declared.inequality_rows_);
+        validate_candidate_first_order(out, declared.primal_vars_, declared.equality_rows_,
+                                       declared.inequality_rows_);
+        validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
+        this->evaluate_candidate_first_order_impl(point, out);
+    }
 
     /// The cheap identity probe: the current structure epoch paired with a
     /// digest of the candidate values at `x`.
@@ -280,9 +316,36 @@ class NlpAggregate {
     /// It performs no factorization and no full derivative evaluation: it is
     /// evaluate_candidate_values plus a hash, which is why a provider declaring
     /// kValuesFastPath gets a genuinely cheap probe for free.
+    ///
+    /// Virtual rather than split like the three entries above, because a probe
+    /// takes no caller-owned storage and no request: the only thing there would
+    /// be to check at a non-virtual entry is the primal block, and an
+    /// implementation that routes through evaluate_candidate_values -- which is
+    /// what "values plus a hash" means -- has that checked already, at the
+    /// entry it goes through.
     virtual IdentityProbe probe_identity(ConstVecRef x) = 0;
 
   protected:
+    // THE EVALUATION HOOKS. Each public entry above validates and then forwards
+    // to exactly one of these, so an implementation writes only the work and
+    // never the checks -- and cannot omit them.
+    //
+    // What the entries check is deliberately bounded: flag tests and dimension
+    // comparisons, a fixed amount of work per call. The hot-path budget belongs
+    // to the fill, and a per-element scan at the entry would spend it on
+    // re-deriving what the layout already established. A check that needs
+    // element work is not an entry check; it belongs where the elements are
+    // already being walked.
+
+    virtual void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
+                               RhsScatterView rhs) = 0;
+
+    virtual void evaluate_candidate_values_impl(const CandidatePoint &point,
+                                                CandidateValues out) = 0;
+
+    virtual void evaluate_candidate_first_order_impl(const CandidatePoint &point,
+                                                     CandidateFirstOrder out) = 0;
+
     /// Records a structural event. Called by an implementation from INSIDE the
     /// routine that re-lays structures, as the last thing that routine does --
     /// that program order is the substance of the ordering guarantee, and the

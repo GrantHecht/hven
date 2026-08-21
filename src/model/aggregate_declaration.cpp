@@ -127,7 +127,20 @@ void AggregateDeclaration::validate() const {
     // nonsense on its own terms, and saying so names the record the caller
     // wrote rather than an intersection several records away from it. An
     // inversion involving an infinity is caught by the emptiness test below,
-    // where max/min put it -- so the two checks together leave no gap.
+    // where max/min put it.
+    //
+    // ONE CASE PASSES BOTH CHECKS, and it is recorded here rather than closed:
+    // equal non-finite bounds (lower == upper == +inf, or both -inf) are not
+    // inverted and do not intersect to nothing, so they reach the bound digest
+    // and hash as fixed with no finite side. The engine's own bound
+    // materializer accepts them identically -- the two boundaries agree, which
+    // is the property this validation exists to keep -- and the engine refuses
+    // them one step later, when a treatment is configured over the materialized
+    // bounds ("equal but non-finite bounds; a fixed variable needs a finite
+    // value", non_linear_program.cpp's configure_variable_treatment). Refusing
+    // them here instead would put this boundary ahead of the materializer it
+    // mirrors without closing the digest case anyway, since the digest is taken
+    // over the materialization rather than over this check.
     constexpr double kInf = std::numeric_limits<double>::infinity();
     for (const VariableBound &bound : variable_bounds_) {
         const bool lower_finite = bound.lower_ > -kInf && bound.lower_ < kInf;
