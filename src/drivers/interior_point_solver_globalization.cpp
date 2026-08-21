@@ -15,8 +15,8 @@
 // helpers, apply_reset_slacks/barrier_objective/barrier_gradient forward to
 // the shared inline kernels in barrier_math.h (as do InteriorPointSolver's own
 // identically-named methods); eval_rhs has no shared counterpart and stays a
-// real body forwarding to ctx_.nlp_->eval_rhs (see merit_acceptance.h's
-// byte-identity design note).
+// real body, issuing the first-order right-hand-side request through the
+// aggregate contract (see merit_acceptance.h's byte-identity design note).
 //
 // This file also hosts BacktrackingLineSearch (the step-length
 // mechanism) — verbatim today's max_step_to_boundary / max_primal_dual_step,
@@ -43,6 +43,7 @@
 // the wiring overview.
 // =============================================================================
 
+#include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
@@ -132,21 +133,28 @@ bool ClassicMeritAcceptance::is_infeasibility_sufficiently_reduced(
 
 // ============================================================================
 // Barrier/eval helpers. apply_reset_slacks/barrier_objective/barrier_gradient
-// are one-line forwarders into the shared kernels in barrier_math.h;
-// eval_rhs has no shared counterpart and stays a real body forwarding to
-// ctx_.nlp_->eval_rhs (see merit_acceptance.h's byte-identity design note).
+// are one-line forwarders into the shared kernels in barrier_math.h; eval_rhs
+// has no shared counterpart and stays a real body, issuing the first-order
+// right-hand-side request through the aggregate contract (see
+// merit_acceptance.h's byte-identity design note).
 // ============================================================================
 
 void ClassicMeritAcceptance::eval_rhs(double obj_scale,
                                       const Eigen::Ref<const Eigen::VectorXd> &XSL, double &val,
                                       Eigen::Ref<Eigen::VectorXd> GX,
                                       Eigen::Ref<Eigen::VectorXd> AGXS_FX) {
-    ctx_.nlp_->eval_rhs(obj_scale, XSL.head(ctx_.primal_vars_),
-                        XSL.segment(ctx_.primal_vars_ + ctx_.slack_vars_, ctx_.equal_cons_),
-                        XSL.tail(ctx_.inequal_cons_), val, GX.head(ctx_.primal_vars_),
-                        AGXS_FX.head(ctx_.primal_vars_),
-                        AGXS_FX.segment(ctx_.primal_vars_ + ctx_.slack_vars_, ctx_.equal_cons_),
-                        AGXS_FX.tail(ctx_.inequal_cons_));
+    // The full first-order right-hand side. No KKT-bearing output, so no
+    // consumer coefficient scatter belongs beside it: the whole of what the
+    // legacy entry did is inside this call.
+    const CandidatePoint point{detail::declaration_primals(*ctx_.nlp_,
+                                                           ctx_.declaration_primals_scratch_,
+                                                           XSL.head(ctx_.primal_vars_)),
+                               XSL.segment(ctx_.primal_vars_ + ctx_.slack_vars_, ctx_.equal_cons_),
+                               XSL.tail(ctx_.inequal_cons_), obj_scale};
+    ctx_.nlp_->assemble(point, kRequestFirstOrderRhs, KktScatterView{},
+                        detail::compound_rhs_scatter_view(*ctx_.nlp_, val, GX, AGXS_FX,
+                                                          ctx_.primal_vars_, ctx_.slack_vars_,
+                                                          ctx_.equal_cons_, ctx_.inequal_cons_));
 }
 
 void ClassicMeritAcceptance::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
@@ -173,7 +181,14 @@ void ClassicMeritAcceptance::eval_trial_point_occ(double obj_scale, double mu, d
                                                   KKTVector &rhs2, double &ptest, double &btest) {
     xsl2.data() = xsl.data() + alpha * dxsl.data();
     rhs2.data().setZero();
-    ctx_.nlp_->eval_occ(obj_scale, xsl2.primals(), ptest, rhs2.eq_cons(), rhs2.iq_cons());
+    ctx_.nlp_->assemble(
+        CandidatePoint{detail::declaration_primals(*ctx_.nlp_, ctx_.declaration_primals_scratch_,
+                                                   xsl2.primals()),
+                       detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveAndConstraints, KktScatterView{},
+        detail::residual_rhs_scatter_view(*ctx_.nlp_, ptest, rhs2.eq_cons().data(),
+                                          rhs2.iq_cons().data(), ctx_.equal_cons_,
+                                          ctx_.inequal_cons_));
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx_.restoration_ is null). Shared by the L1 and AUGLANG variants. While
     // active, obj_scale is 0 (user objective contributes exactly 0.0) and the
@@ -744,7 +759,13 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
     XSL2 = XSL + alpha * DXSL;
     RHS2.setZero();
     ptest = 0.0;
-    ctx.nlp_->eval_occ(obj_scale, XSL2.head(pv), ptest, RHS2.segment(pv + sv, ec), RHS2.tail(ic));
+    ctx.nlp_->assemble(
+        CandidatePoint{
+            detail::declaration_primals(*ctx.nlp_, ctx.declaration_primals_scratch_, XSL2.head(pv)),
+            detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveAndConstraints, KktScatterView{},
+        detail::residual_rhs_scatter_view(*ctx.nlp_, ptest, RHS2.data() + pv + sv,
+                                          RHS2.data() + (RHS2.size() - ic), ec, ic));
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx.restoration_ is null). While active, obj_scale is 0 (user objective
     // contributes exactly 0.0) and the restoration objective at the trial primals
@@ -1317,7 +1338,13 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
 
     double val = 0.0;
     cons_out.setZero();
-    ctx.nlp_->eval_occ(obj_scale, xsl2_scratch.head(pv), val, cons_out.head(ec), cons_out.tail(ic));
+    ctx.nlp_->assemble(
+        CandidatePoint{detail::declaration_primals(*ctx.nlp_, ctx.declaration_primals_scratch_,
+                                                   xsl2_scratch.head(pv)),
+                       detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveAndConstraints, KktScatterView{},
+        detail::residual_rhs_scatter_view(*ctx.nlp_, val, cons_out.data(),
+                                          cons_out.data() + (cons_out.size() - ic), ec, ic));
 
     // Slack reset on the inequality block against the trial slacks — the same
     // convention ClassicMeritAcceptance::apply_reset_slacks / alg_impl's RHS

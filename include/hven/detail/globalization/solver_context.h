@@ -128,6 +128,15 @@ struct SolverContext {
     // construction site.
     Eigen::VectorXd &stli_scratch_;
 
+    // declaration_primals_scratch_: read+write by every component that evaluates
+    // a trial point through the aggregate contract, whose candidate point is in
+    // declaration space while the solver iterates in the reduced space (see
+    // detail/interior/aggregate_views.h). The same InteriorPointSolver-owned buffer
+    // InteriorPointSolver's own evaluation dispatch uses: one evaluation is in flight
+    // at a time and the view built from it is consumed before the call that
+    // built it returns. Stays empty when no variable is eliminated.
+    Eigen::VectorXd &declaration_primals_scratch_;
+
     // --- Feasibility restoration (optional; null when off) ---
     // Non-owning pointer to the active RestorationStrategy, or nullptr when
     // restoration is off (the default). Consulted by the classic and generic

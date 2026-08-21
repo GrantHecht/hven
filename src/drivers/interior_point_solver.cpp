@@ -36,6 +36,7 @@
 #include <limits>
 #include <stdexcept>
 
+#include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
 #include "hven/detail/interior/utils/timer.h"
@@ -626,46 +627,6 @@ double hven::solvers::InteriorPointSolver::dual_infeasibility_inf(
 // NLP eval dispatch methods
 // =============================================================================
 
-Eigen::Ref<const hven::solvers::InteriorPointSolver::VectorXd>
-hven::solvers::InteriorPointSolver::declaration_primals(ConstEigenRef<VectorXd> reduced) {
-    if (!this->nlp_->is_reduced()) {
-        // The solver's primal space is the declared one; the iterate goes in as
-        // it stands.
-        return reduced;
-    }
-    // Eliminated coordinates put back at their pinned values: the same buffer
-    // NonLinearProgram::primal_view() builds from the same reduced iterate.
-    this->declaration_primals_scratch_.resize(this->full_primal_vars_);
-    this->nlp_->scatter_full_x(reduced, this->declaration_primals_scratch_);
-    return this->declaration_primals_scratch_;
-}
-
-hven::solvers::RhsScatterView
-hven::solvers::InteriorPointSolver::rhs_scatter_view(double &val, EigenRef<VectorXd> GX,
-                                                     EigenRef<VectorXd> AGXS_FX) {
-    // The four blocks sliced out of the two compound vectors, as pointer and
-    // length. Each arena's location table is the engine's row table for it.
-    RhsScatterView rhs;
-    rhs.objective_ = &val;
-    rhs.objective_gradient_ =
-        RhsArenaView{GX.data(), this->primal_vars_, &this->nlp_->objective_gradient_table()};
-    rhs.constraint_adjoint_gradient_ = RhsArenaView{
-        AGXS_FX.data(), this->primal_vars_, &this->nlp_->constraint_adjoint_gradient_table()};
-    rhs.equality_residuals_ =
-        RhsArenaView{AGXS_FX.data() + this->primal_vars_ + this->slack_vars_, this->equal_cons_,
-                     &this->nlp_->equality_residual_table()};
-    rhs.inequality_residuals_ =
-        RhsArenaView{AGXS_FX.data() + (AGXS_FX.size() - this->inequal_cons_), this->inequal_cons_,
-                     &this->nlp_->inequality_residual_table()};
-    return rhs;
-}
-
-hven::solvers::KktScatterView hven::solvers::InteriorPointSolver::kkt_scatter_view(
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    return KktScatterView{KKTmat.valuePtr(), static_cast<int>(KKTmat.nonZeros()),
-                          &this->nlp_->kkt_location_table()};
-}
-
 void hven::solvers::InteriorPointSolver::assemble_dispatch(
     EvalRequest request, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
     EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
@@ -676,20 +637,33 @@ void hven::solvers::InteriorPointSolver::assemble_dispatch(
     const bool kkt_bearing = (request & kKktBearing) != EvalRequest::kNone;
 
     const CandidatePoint point{
-        this->declaration_primals(XSL.head(this->primal_vars_)),
+        detail::declaration_primals(*this->nlp_, this->declaration_primals_scratch_,
+                                    XSL.head(this->primal_vars_)),
         XSL.segment(this->primal_vars_ + this->slack_vars_, this->equal_cons_),
         XSL.tail(this->inequal_cons_), obj_scale};
+    const RhsScatterView rhs = detail::compound_rhs_scatter_view(
+        *this->nlp_, val, GX, AGXS_FX, this->primal_vars_, this->slack_vars_, this->equal_cons_,
+        this->inequal_cons_);
 
-    this->nlp_->assemble(point, request,
-                         kkt_bearing ? this->kkt_scatter_view(KKTmat) : KktScatterView{},
-                         this->rhs_scatter_view(val, GX, AGXS_FX));
-
-    if (kkt_bearing) {
-        // The consumer-owned coefficient scatter: the primal and slack
-        // diagonals, the constraint-row pivots and the slack Jacobian this
-        // solver set on its own storage. assemble() does not write them.
-        this->nlp_->fill_solver_coeffs(KKTmat);
+    if (!kkt_bearing) {
+        this->nlp_->assemble(point, request, KktScatterView{}, rhs);
+        return;
     }
+
+    this->nlp_->assemble(point, request, detail::kkt_scatter_view(*this->nlp_, KKTmat), rhs);
+
+    // The consumer-owned coefficient scatter: the primal and slack diagonals,
+    // the constraint-row pivots and the slack Jacobian this solver set on its
+    // own storage. assemble() does not write them.
+    //
+    // SEQUENCED AFTER THE EVALUATION, NOT CONCURRENT WITH IT. The contract
+    // permits a consumer to overlap its own coefficient steps with assemble()
+    // when the two write disjoint destinations, and these do not: a primal
+    // diagonal is added onto the Hessian (1,1) diagonal element, which a
+    // Hessian piece claims as well. The two therefore accumulate into the same
+    // doubles, and overlapping them would race. Pinned by
+    // SolverCoefficientBlocksAgainstPieceClaims in tests/interior.
+    this->nlp_->fill_solver_coeffs(KKTmat);
 }
 
 void hven::solvers::InteriorPointSolver::assemble_objective(double obj_scale,
@@ -698,9 +672,11 @@ void hven::solvers::InteriorPointSolver::assemble_objective(double obj_scale,
     RhsScatterView rhs;
     rhs.objective_ = &val;
     // A values-only request reads no multipliers, so both blocks are empty.
-    this->nlp_->assemble(CandidatePoint{this->declaration_primals(primals), this->no_multipliers_,
-                                        this->no_multipliers_, obj_scale},
-                         kRequestObjectiveOnly, KktScatterView{}, rhs);
+    this->nlp_->assemble(
+        CandidatePoint{
+            detail::declaration_primals(*this->nlp_, this->declaration_primals_scratch_, primals),
+            detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveOnly, KktScatterView{}, rhs);
 }
 
 void hven::solvers::InteriorPointSolver::eval_kkt(
@@ -917,11 +893,11 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
         filter->set_restoration_constraint_tol(this->settings_.econ_tol_);
         this->acceptance_ = std::move(filter);
     } else {
-        this->acceptance_ = std::make_unique<ClassicMeritAcceptance>(
-            SolverContext{this->nlp_.get(), this->kkt_sol_, this->settings_, this->primal_vars_,
-                          this->slack_vars_, this->equal_cons_, this->inequal_cons_, this->kkt_dim_,
-                          this->stli_scratch_, this->restoration_.get(), &this->eval_error_log_,
-                          this->bounds_, &this->bound_duals_});
+        this->acceptance_ = std::make_unique<ClassicMeritAcceptance>(SolverContext{
+            this->nlp_.get(), this->kkt_sol_, this->settings_, this->primal_vars_,
+            this->slack_vars_, this->equal_cons_, this->inequal_cons_, this->kkt_dim_,
+            this->stli_scratch_, this->declaration_primals_scratch_, this->restoration_.get(),
+            &this->eval_error_log_, this->bounds_, &this->bound_duals_});
     }
 
     // The step-length globalization mechanism. Stateless (holds
@@ -1901,10 +1877,19 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // step-length mechanism (mechanism_) at its call sites below. Built once
     // here (dims/settings/scratch are stable for the solve); it must not
     // outlive this alg_impl frame or the InteriorPointSolver members it references.
-    SolverContext ctx{this->nlp_.get(),         this->kkt_sol_,         this->settings_,
-                      this->primal_vars_,       this->slack_vars_,      this->equal_cons_,
-                      this->inequal_cons_,      this->kkt_dim_,         this->stli_scratch_,
-                      this->restoration_.get(), &this->eval_error_log_, this->bounds_,
+    SolverContext ctx{this->nlp_.get(),
+                      this->kkt_sol_,
+                      this->settings_,
+                      this->primal_vars_,
+                      this->slack_vars_,
+                      this->equal_cons_,
+                      this->inequal_cons_,
+                      this->kkt_dim_,
+                      this->stli_scratch_,
+                      this->declaration_primals_scratch_,
+                      this->restoration_.get(),
+                      &this->eval_error_log_,
+                      this->bounds_,
                       &this->bound_duals_};
 
     // Windowed sustained-worsening detector for the feasibility-only stage (see

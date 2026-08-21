@@ -1107,11 +1107,9 @@ class InteriorPointSolver {
 
     // declaration_primals_scratch_ backs the declaration-space primal block the
     // contract's evaluation entry is handed. Stays empty when no variable is
-    // eliminated, where declaration_primals() views the iterate directly.
-    // no_multipliers_ is the empty multiplier block a values-only candidate
-    // point carries; never written.
+    // eliminated, where the iterate is viewed directly. Shared with the
+    // globalization components through SolverContext.
     Eigen::VectorXd declaration_primals_scratch_;
-    Eigen::VectorXd no_multipliers_;
 
     // One-shot guard for the second-level elastic re-centering fallback (nested l1
     // restoration only, disclosure (f) in l1_restoration.h). Set true when an
@@ -1337,13 +1335,14 @@ class InteriorPointSolver {
     ///        contract, then scatter the solver's own KKT coefficients.
     ///
     /// Builds the candidate point and the scatter views from the compound
-    /// [primals | slacks | eq | iq] layout, calls
-    /// NlpAggregate::assemble(), and — for any request naming KKT-bearing
-    /// output — follows it with NonLinearProgram::fill_solver_coeffs(). The
-    /// slack Jacobian, the primal and slack diagonals and the constraint-row
-    /// pivots are consumer-owned coefficients; assemble() never writes them.
-    /// Callers must set them before this call and reset them after, as they
-    /// always did.
+    /// [primals | slacks | eq | iq] layout, calls NlpAggregate::assemble(), and
+    /// — for a request naming KKT-bearing output — follows it with
+    /// NonLinearProgram::fill_solver_coeffs(). The slack Jacobian, the primal
+    /// and slack diagonals and the constraint-row pivots are consumer-owned
+    /// coefficients that assemble() never writes. The two steps are sequenced
+    /// rather than overlapped because they share destinations; see the body.
+    /// Callers set those coefficients before this call and reset them after, as
+    /// they always did.
     /// @param request    One of the eight request shapes of the mapping table.
     /// @param obj_scale  Objective scale factor applied by the objective pieces.
     /// @param XSL        Current iterate, [primals | slacks | eq | iq].
@@ -1358,35 +1357,6 @@ class InteriorPointSolver {
     void assemble_dispatch(EvalRequest request, double obj_scale, ConstEigenRef<VectorXd> XSL,
                            double &val, EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
                            Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
-
-    /// @brief Expand a solver-space primal block into declaration space.
-    ///
-    /// Every vector on the aggregate contract's surface is indexed by declared
-    /// variable identity, while the solver iterates in the reduced space the
-    /// fixed-variable treatment left. Returns a view of @p reduced itself when
-    /// no variable is eliminated; otherwise fills and returns internal scratch.
-    /// @param reduced  Primal block in the solver's own space.
-    /// @return A declaration-space view, valid until the next call.
-    Eigen::Ref<const VectorXd> declaration_primals(ConstEigenRef<VectorXd> reduced);
-
-    /// @brief Build the right-hand-side scatter view over the solver's storage.
-    ///
-    /// All four arenas are supplied on every call; a request writes only the
-    /// arenas it names.
-    /// @param val      Objective out slot.
-    /// @param GX       Objective-gradient destination.
-    /// @param AGXS_FX  Adjoint-gradient and residual destination.
-    /// @return A view addressed by the engine's published claim tables.
-    RhsScatterView rhs_scatter_view(double &val, EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX);
-
-    /// @brief Build the KKT scatter view over the assembly buffer.
-    ///
-    /// The assemble entry checks the view against the destination the engine
-    /// bound at analysis time, so @p KKTmat must be the matrix the current
-    /// analyze_sparsity() call was run against. A re-analysis re-binds.
-    /// @param KKTmat  Assembly buffer.
-    /// @return A view of the buffer's value array plus the KKT location table.
-    KktScatterView kkt_scatter_view(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
 
     /// @brief Accumulate the objective value at a point, with no derivative or
     ///        constraint work.
