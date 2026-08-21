@@ -45,6 +45,19 @@ else()
 endif()
 
 ################################################################################
+# The provider-side model contract (include/hven/model/). Its own block rather
+# than part of the engine block below: the contract is what any provider
+# implements and any engine consumes, not one engine's implementation. Only the
+# declaration needs a TU -- it holds its piece lists by value while its header
+# only declares the piece handle types, so its special members and its boundary
+# validation are defined where those types are complete.
+################################################################################
+
+target_sources(hven PRIVATE
+    model/aggregate_declaration.cpp
+)
+
+################################################################################
 # Interior-point engine (ex-PSIOPT) — migrated as-is from the standalone
 # psiopt/ project the origin project previously hosted (hven M2
 # milestone, engine-move task). The split below —
@@ -447,7 +460,14 @@ endif()
 # moment where someone decides whether it belongs in the PCH, and a stale
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
-set(_hven_expected_source_count 28)
+#
+# 29 as of model/aggregate_declaration.cpp. That TU stays OUT of the opt-in
+# list: the list admits a source only on measured evidence (faster with the
+# PCH, and byte-identical object), and this one has neither measurement. Out is
+# the unmeasured default and costs nothing but its own compile time -- it is a
+# small TU that includes the two piece headers and fmt, not the shared block the
+# PCH prefixes.
+set(_hven_expected_source_count 29)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
