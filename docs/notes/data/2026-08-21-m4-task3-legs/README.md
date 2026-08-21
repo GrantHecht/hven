@@ -8,7 +8,8 @@ LP64, Release, `HVEN_FP_MODE=SAFER_FAST`.
 
 | file | leg |
 |---|---|
-| `trace_leg.sh`, `ab_probe.cpp`, `build_probe.sh`, `trace_base.txt` | solve-trace A/B: full IPM print for HS071 + Rosenbrock, wall-clock lines dropped and ANSI stripped, compared by md5 |
+| `trace_leg.sh`, `ab_probe.cpp`, `build_probe.sh`, `trace_base.txt` | solve-trace A/B, default settings: full IPM print for HS071 + Rosenbrock, wall-clock lines dropped and ANSI stripped, compared by md5 |
+| `ab_probe_modes.cpp`, `build_probe_modes.sh`, `modes_trace_base.txt`, `coverage.md` | the five mode cells, which reach the six call sites the default settings never do; `coverage.md` is the measured per-cell attribution |
 | `wall_leg.sh`, `wall/` | standing bench wall leg (`hven_sqp_bench`, F3/F7), carve protocol, 30 per-run CSVs |
 | `corpus_leg.sh`, `corpus/` | 17-cell `--engine ssn` corpus leg, 10 per-run CSVs, 36 asserted counter columns |
 
