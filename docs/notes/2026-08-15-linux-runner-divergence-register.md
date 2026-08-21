@@ -37,6 +37,23 @@ of this class as OPEN.
 | 5 | run `31985550447` attempts 1 **and 2** | `305e5a1` (U0) | PINNED, **and the lane ISA pinned to `x86-64-v3`** |
 | 6 | run `32277243150` attempt 1 (green on the next run of identical source, `32309301233`) | `772c25c` (docs-only, atop T5's `de97f5d`) | PINNED + `x86-64-v3` |
 | 7 | run `32347392685` attempt 1 (**green on attempt 2, the `--failed` rerun of the same run**) | `222ed68` (docs-only, atop T6/T7/T8) | PINNED + `x86-64-v3` |
+| 8 | run `32363949523` attempt 1 (green on attempt 2) | `7ec864c` (test-only — compiles no SQP object) | PINNED + `x86-64-v3` |
+| 9 | run `32429045353` attempts 1 **and 2** (**green on attempt 3**) | `099cdda` (test/docs-only atop the final-review fix batch) | PINNED + `x86-64-v3` |
+
+Occurrences 8 and 9 (2026-08-20/21, both the single surviving member
+`SsnEngineLocal.WeaklyActiveRowFinishesUncertain`, same assertion sites —
+`test_ssn_engine.cpp:2066/2096/2113`, the tie coin landing the other way
+with `ssn_bulk_flips` 3 against the pinned 1): occurrence 8 flaked on the
+attempt-1 Linux lane of a test-only commit and went green on the rerun.
+Occurrence 9 is the tally's first **double-fail-then-green** — attempts 1
+and 2 both failed, attempt 3 passed (occurrence 5 was the only prior
+multi-attempt failure, under the pre-narrowing posture). Exoneration for 9
+is topological: the directly preceding push (`9e54c88`) carried every
+engine-code change of the final-review fix batch and its Linux lane was
+green; the failing commit's diff is one test fixture plus this register —
+it compiles no SQP object. The double-fail changes the estimated per-attempt
+flake rate and belongs to the promoted post-M3 rate-quantification task's
+inputs; it does not change the mechanism reading.
 
 Occurrence 4 (2026-08-15): same four tests, same assertion sites as
 occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60
