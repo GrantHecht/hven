@@ -59,7 +59,26 @@ struct ModelStructureKey {
     }
 };
 
-/// Feeds ONE declared claim into a running accumulator, in claim order.
+/// Opens a claim stream with the declared dimensions -- primal variables,
+/// equality rows, inequality rows -- before the first claim is fed.
+///
+/// A PREAMBLE, on this library's own hashing precedent: a matrix's pattern
+/// stream opens with its rows/cols/nnz triple, and that leading triple is what
+/// makes a continued accumulation self-delimiting rather than needing a
+/// separator (docs/pattern-hash.md). The same shape applies here for a stronger
+/// reason than symmetry: two declarations can hand out an identical claim
+/// stream at different dimensions -- a claim names rows and columns that exist,
+/// never the size of the space they live in -- and without the preamble those
+/// would key identically while laying different systems.
+constexpr void feed_dimensions(Fnv1a &hash, int primal_vars, int equality_rows,
+                               int inequality_rows) noexcept {
+    hash.feed_index(primal_vars);
+    hash.feed_index(equality_rows);
+    hash.feed_index(inequality_rows);
+}
+
+/// Feeds ONE declared claim into a running accumulator, in claim order, after
+/// the dimension preamble.
 ///
 /// The claim-structure digest hashes the DECLARED (row, column) claim stream
 /// rather than the assembled pattern: the stream is available at layout time
@@ -73,18 +92,27 @@ constexpr void feed_claim(Fnv1a &hash, int row, int col) noexcept {
     hash.feed_index(col);
 }
 
-/// Feeds ONE variable bound's STRUCTURE into a running accumulator, in
-/// declaration order.
+/// Feeds ONE variable's MATERIALIZED bound structure into a running
+/// accumulator, in variable order.
 ///
-/// Structure, not value: which variable, which sides are finite, and whether
-/// the two sides coincide. Bound VALUES are deliberately not fed. A finite
-/// bound moving to another finite value does not move the layout -- the same
-/// variable is bounded on the same sides and the same system is factorized --
-/// so it must not move a key whose whole job is to say whether the layout can
-/// be reused. The one value change that DOES move the layout is a variable
-/// becoming fixed (its two bounds coinciding), because a fixed variable can be
-/// eliminated from the solved system entirely, and that is exactly what the
-/// third bit records.
+/// MATERIALIZED, and that is the substance of the rule rather than a detail of
+/// where the loop runs: a variable's bound is DECLARED as a history of records
+/// that are intersected tightest-wins, and it is the INTERSECTION that decides
+/// the layout. Two different declaration histories intersecting to the same
+/// per-variable structure lay the same system and must key the same; a history
+/// whose intersection fixes a variable lays a different system from one whose
+/// intersection does not, however similar the records look.
+///
+/// What is fed, per variable: which sides are finite, and whether the two sides
+/// coincide -- both read off the intersection result. Bound VALUES are not fed.
+/// The digest is value-independent GIVEN the materialized structure: values
+/// enter only through their structural consequences, so a value change that
+/// alters no variable's materialized finiteness or fixedness never re-keys the
+/// problem, and a bound-value nudge cannot kill warm reuse. The two changes
+/// that DO move the layout still move the key -- an intersection making a
+/// variable fixed (it can then be eliminated from the solved system entirely),
+/// and an intersection making a previously infinite side finite (it changes
+/// which barrier terms exist).
 ///
 /// A NaN bound is not finite by these comparisons and hashes as an unbounded
 /// side. It is rejected at the declaration's own boundary
@@ -103,6 +131,21 @@ constexpr void feed_variable_bound(Fnv1a &hash, const VariableBound &bound) noex
     }
     hash.feed_index(bound.index_);
     hash.feed_index(structure);
+}
+
+/// The bound-structure conjunct of a declaration's structural key: the
+/// materialized per-variable structure, in variable order.
+///
+/// Materializing here rather than hashing the declared records is the whole of
+/// the rule above. It throws whatever the materialization throws -- an
+/// out-of-range index, a NaN bound, an empty intersection -- so a key can never
+/// be taken over a bound set that does not describe a problem.
+inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &declaration) {
+    Fnv1a hash;
+    for (const VariableBound &bound : declaration.materialize_variable_bounds()) {
+        feed_variable_bound(hash, bound);
+    }
+    return hash.value();
 }
 
 /// How many times the structures behind an aggregate have been laid.
@@ -139,6 +182,13 @@ class StructureEpoch {
 /// the cross-thread half of the ordering guarantee; the program-order half is
 /// an obligation on the provider, which bumps INSIDE the routine that re-lays
 /// rather than at the next evaluation's entry.
+///
+/// The counter is 64-bit and DOES wrap, arithmetically, after 2^64 bumps -- at
+/// which point two different structures could compare equal. The guarantee
+/// rests on that being unreachable rather than on a check: a structural event
+/// is a re-layout, not an iteration, and a process would have to re-lay a
+/// problem's structures once a nanosecond for roughly six hundred years to get
+/// there. Stated rather than left implicit, so nobody re-derives it as a bug.
 class StructureEpochCounter {
   public:
     StructureEpochCounter() noexcept = default;

@@ -180,6 +180,17 @@ class KktLocationTable {
         const int lock_count = locks_ == nullptr ? 0 : static_cast<int>(locks_->size());
         for (int column = 0; column < clash_size_; ++column) {
             const int mark = clashes_[column];
+            // -1 is the ONLY legal negative -- it is the uncontested sentinel.
+            // Any other negative reaches lock() through a scatter that tested
+            // `mark != -1`, and indexing the mutex vector with it is undefined
+            // behaviour: exactly what this constructor exists to make
+            // unreachable, and what an upper-bound check alone lets through.
+            if (mark < -1) {
+                throw std::invalid_argument(fmt::format(
+                    "KktLocationTable: column {0} carries clash mark {1}; the only negative mark "
+                    "is -1, meaning uncontested",
+                    column, mark));
+            }
             if (mark >= lock_count) {
                 throw std::invalid_argument(fmt::format(
                     "KktLocationTable: column {0} is marked contested with lock index {1}, but "
@@ -268,6 +279,18 @@ class RhsLocationTable {
         if (size_ > 0 && rows_ == nullptr) {
             throw std::invalid_argument(fmt::format(
                 "RhsLocationTable: {0} claim slots were published with no row array", size_));
+        }
+        for (int slot = 0; slot < size_; ++slot) {
+            // Same sentinel discipline as the KKT table's clash marks: -1 is
+            // the only legal negative (the dropped-row sentinel), and any other
+            // negative would index the destination array out of bounds in a
+            // filler that tested `row >= 0`.
+            if (rows_[slot] < -1) {
+                throw std::invalid_argument(
+                    fmt::format("RhsLocationTable: claim slot {0} maps to row {1}; the only "
+                                "negative row is -1, meaning dropped",
+                                slot, rows_[slot]));
+            }
         }
     }
 

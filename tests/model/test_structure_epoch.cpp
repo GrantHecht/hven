@@ -62,6 +62,55 @@ TEST(StructureEpochCounterTest, CurrentDoesNotAdvanceTheCounter) {
     }
 }
 
+// THE PAIRING ITSELF, not merely the counter's own values: a re-lay publishes
+// structures through ordinary non-atomic memory and then bumps, and a reader
+// that has observed the new epoch must see those structures. This runs that
+// hand-off in lock step, so the reader provably takes at least one read AFTER
+// each bump and the payload it reads is the one published before that bump. A
+// bump that did not release -- or a counter that was not atomic at all -- makes
+// these reads a data race rather than an ordered hand-off, and the payload
+// assertion is what stands for that difference.
+TEST(StructureEpochCounterTest, StructuresPublishedBeforeABumpAreVisibleAfterIt) {
+    constexpr int kRounds = 500;
+    StructureEpochCounter counter;
+
+    // Deliberately NOT atomic: it stands for the laid structures, which are
+    // ordinary memory. The counter's release/acquire pairing is the only thing
+    // making this hand-off well defined.
+    int published_payload = 0;
+
+    std::atomic<int> reader_round{0};
+    std::vector<int> observed(kRounds, -1);
+    std::atomic<int> post_bump_reads{0};
+
+    std::thread reader([&] {
+        for (int round = 1; round <= kRounds; ++round) {
+            while (counter.current().value() < static_cast<std::uint64_t>(round)) {
+                // spin until this round's bump is observed
+            }
+            observed[static_cast<std::size_t>(round - 1)] = published_payload;
+            post_bump_reads.fetch_add(1, std::memory_order_relaxed);
+            reader_round.store(round, std::memory_order_release);
+        }
+    });
+
+    for (int round = 1; round <= kRounds; ++round) {
+        published_payload = round * 7 + 1; // publish, then
+        counter.bump();                    // release
+        while (reader_round.load(std::memory_order_acquire) < round) {
+            // wait for the reader to consume this round before publishing the
+            // next, so each observation is pinned to exactly one publication
+        }
+    }
+    reader.join();
+
+    EXPECT_EQ(post_bump_reads.load(std::memory_order_relaxed), kRounds);
+    for (int round = 1; round <= kRounds; ++round) {
+        EXPECT_EQ(observed[static_cast<std::size_t>(round - 1)], round * 7 + 1)
+            << "round " << round << " read a payload its bump had not published";
+    }
+}
+
 // The release/acquire pairing is what makes the program-order obligation hold
 // across threads as well. A reader can legally miss a bump; it may never
 // observe the counter going BACKWARDS, and it may never observe a value the
@@ -174,6 +223,41 @@ TEST(AggregateEpochContract, RestoredStructuresAreVisibleUnderTheNewEpoch) {
 
     evaluate_once(aggregate);
     EXPECT_EQ(aggregate.epoch_seen_at_last_evaluation(), after_restore);
+}
+
+TEST(AggregateEpochContract, ARematerializationFlippingFixednessBumpsTheEpoch) {
+    FakeAggregate aggregate;
+
+    // A two-sided, non-fixing bound on one variable.
+    aggregate.declare_variable_bound(1, 0.0, 1.0);
+    const StructureEpoch after_first_bound = aggregate.structure_epoch();
+    const auto key_before = aggregate.model_structure_key();
+
+    // A second record whose intersection with the first FIXES the variable.
+    // The re-materialization is a structural event -- the variable can now be
+    // eliminated from the solved system -- so the epoch moves, asserted rather
+    // than assumed, and the key's bound conjunct moves with it.
+    aggregate.declare_variable_bound(1, 1.0, 2.0);
+    EXPECT_NE(aggregate.structure_epoch(), after_first_bound);
+    EXPECT_NE(aggregate.model_structure_key().bound_digest_, key_before.bound_digest_);
+
+    evaluate_once(aggregate);
+    EXPECT_EQ(aggregate.epoch_seen_at_last_evaluation(), aggregate.structure_epoch());
+}
+
+TEST(AggregateEpochContract, ARematerializationInsideOneStructureStillBumpsButDoesNotRekey) {
+    FakeAggregate aggregate;
+    aggregate.declare_variable_bound(1, 0.0, 1.0);
+    const auto key_before = aggregate.model_structure_key();
+    const StructureEpoch epoch_before = aggregate.structure_epoch();
+
+    // Narrows the interval without changing the materialized structure. The
+    // re-lay is still a structural event -- the arenas were laid again -- but
+    // the key does not move, which is what keeps a bound-value nudge from
+    // looking like a different problem.
+    aggregate.declare_variable_bound(1, 0.5, 1.0);
+    EXPECT_NE(aggregate.structure_epoch(), epoch_before);
+    EXPECT_EQ(aggregate.model_structure_key(), key_before);
 }
 
 TEST(AggregateEpochContract, EveryStructuralEventAdvancesTheEpochOnceMore) {

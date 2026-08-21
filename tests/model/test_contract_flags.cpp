@@ -10,6 +10,9 @@
 // engine is retargeted onto this entry.
 
 #include <array>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
 
 #include <gtest/gtest.h>
 
@@ -122,6 +125,18 @@ TEST(AggregateCapabilityTest, IntersectionKeepsTheCommonBits) {
               AggregateCapability::kNone);
 }
 
+TEST(AggregateCapabilityTest, InPlaceUnionAndMaskingBothCompile) {
+    AggregateCapability widened = AggregateCapability::kDirectScatter;
+    widened |= AggregateCapability::kValuesFastPath;
+    EXPECT_TRUE(has_capability(widened, AggregateCapability::kValuesFastPath));
+
+    // Reducing a set to the weakest claim over several -- what a mixed provider
+    // does over its pieces -- is in-place masking, so it must compile as one.
+    widened &= AggregateCapability::kValuesFastPath;
+    EXPECT_EQ(widened, AggregateCapability::kValuesFastPath);
+    EXPECT_FALSE(has_capability(widened, AggregateCapability::kDirectScatter));
+}
+
 // ---------------------------------------------------------------------------
 // EvalRequest and the legacy mapping table
 // ---------------------------------------------------------------------------
@@ -144,6 +159,30 @@ TEST(EvalRequestTest, HasRequestRequiresEveryProbedFlag) {
     const EvalRequest set = EvalRequest::kObjectiveValue | EvalRequest::kConstraintValues;
     EXPECT_FALSE(has_request(set, set | EvalRequest::kObjectiveGradient));
     EXPECT_TRUE(has_request(set, set));
+}
+
+TEST(EvalRequestTest, InPlaceUnionAndMaskingBothCompile) {
+    EvalRequest widened = EvalRequest::kObjectiveValue;
+    widened |= EvalRequest::kConstraintValues;
+    EXPECT_EQ(widened, hven::solvers::kRequestObjectiveAndConstraints);
+
+    EvalRequest narrowed = hven::solvers::kRequestFullKkt;
+    narrowed &= hven::solvers::kRequestObjectiveAndConstraints;
+    EXPECT_EQ(narrowed, hven::solvers::kRequestObjectiveAndConstraints);
+}
+
+TEST(EvalRequestTest, TheAdjointRequestsAreTheOnesThatConsumeTheMultipliers) {
+    EXPECT_TRUE(
+        hven::solvers::request_consumes_multipliers(EvalRequest::kConstraintAdjointGradient));
+    EXPECT_TRUE(
+        hven::solvers::request_consumes_multipliers(EvalRequest::kConstraintAdjointHessian));
+    EXPECT_TRUE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestFullKkt));
+    EXPECT_TRUE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestConstraintKkt));
+    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestObjectiveOnly));
+    EXPECT_FALSE(
+        hven::solvers::request_consumes_multipliers(hven::solvers::kRequestConstraintJacobianOnly));
+    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(
+        hven::solvers::kRequestObjectiveGradientAndConstraints));
 }
 
 namespace {
@@ -226,4 +265,42 @@ TEST(EvalRequestMappingTable, TheFullKktShapeSubsumesEveryOtherMappedShape) {
     for (const EvalRequest set : kMappedRequestSets) {
         EXPECT_TRUE(has_request(hven::solvers::kRequestFullKkt, set));
     }
+}
+
+TEST(EvalRequestMappingTable, ExactlyTheEightMappedSetsAreLegal) {
+    for (const EvalRequest set : kMappedRequestSets) {
+        EXPECT_TRUE(hven::solvers::is_legal_request(set));
+        EXPECT_NO_THROW(hven::solvers::validate_eval_request(set));
+    }
+
+    // Every other combination over the seven flags -- and there are many -- is
+    // an evaluation shape no piece surface produces in one pass.
+    int legal = 0;
+    for (std::uint32_t bits = 0; bits < (1u << 7); ++bits) {
+        if (hven::solvers::is_legal_request(static_cast<EvalRequest>(bits))) {
+            ++legal;
+        }
+    }
+    EXPECT_EQ(legal, 8);
+}
+
+TEST(EvalRequestMappingTable, AnUnmappedCombinationIsRefusedByName) {
+    // Plausible-looking and still unmapped: a Jacobian without the residuals
+    // that every shape producing one also produces.
+    const EvalRequest composed = EvalRequest::kConstraintJacobian;
+    EXPECT_FALSE(hven::solvers::is_legal_request(composed));
+    try {
+        hven::solvers::validate_eval_request(composed);
+        FAIL() << "an unmapped request must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("EvalRequest"), std::string::npos) << message;
+        EXPECT_NE(message.find("kRequestFullKkt"), std::string::npos) << message;
+        EXPECT_NE(message.find("mapping table"), std::string::npos) << message;
+    }
+}
+
+TEST(EvalRequestMappingTable, TheEmptyRequestIsNotLegal) {
+    EXPECT_FALSE(hven::solvers::is_legal_request(EvalRequest::kNone));
+    EXPECT_THROW(hven::solvers::validate_eval_request(EvalRequest::kNone), std::invalid_argument);
 }

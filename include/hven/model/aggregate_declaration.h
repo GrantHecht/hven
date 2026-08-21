@@ -82,20 +82,19 @@ concept AggregatePiece =
         { piece.num_kkt_elements(flag, flag) } -> std::convertible_to<int>;
     };
 
-/// A piece of the objective kind: everything a piece must do, plus the scalar
-/// objective evaluations.
+/// The three scalar-objective members ONLY. Deliberately does not subsume the
+/// constraint surface, mirroring the type-erasure seam's own split: keeping the
+/// two groups independent is what lets a type missing exactly one of them be
+/// diagnosed for exactly that.
 template <class Piece, class IndexData>
-concept ObjectiveAggregatePiece =
-    AggregatePiece<Piece, IndexData> &&
-    requires(const Piece &piece, double scale, const Eigen::Ref<const Eigen::VectorXd> &x,
-             double &value, Eigen::Ref<Eigen::VectorXd> gradient,
-             Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt, Eigen::Ref<Eigen::VectorXi> indices,
-             std::vector<std::mutex> &locks, const IndexData &data) {
-        piece.objective(scale, x, value, data);
-        piece.objective_gradient(scale, x, value, gradient, data);
-        piece.objective_gradient_hessian(scale, x, value, gradient, kkt, indices, indices, locks,
-                                         data);
-    };
+concept ObjectiveAggregateSurface = requires(
+    const Piece &piece, double scale, const Eigen::Ref<const Eigen::VectorXd> &x, double &value,
+    Eigen::Ref<Eigen::VectorXd> gradient, Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt,
+    Eigen::Ref<Eigen::VectorXi> indices, std::vector<std::mutex> &locks, const IndexData &data) {
+    piece.objective(scale, x, value, data);
+    piece.objective_gradient(scale, x, value, gradient, data);
+    piece.objective_gradient_hessian(scale, x, value, gradient, kkt, indices, indices, locks, data);
+};
 
 /// A piece of the constraint kind: everything a piece must do, plus the five
 /// constraint evaluation shapes.
@@ -114,6 +113,21 @@ concept ConstraintAggregatePiece =
         piece.constraints_jacobian_adjointgradient_adjointhessian(x, x, values, values, kkt,
                                                                   indices, indices, locks, data);
     };
+
+/// A piece of the objective kind.
+///
+/// It requires the CONSTRAINT surface as well as the objective one, which is
+/// not an oversight to be tidied away: the type-erasure seam that stores an
+/// objective forwards both surfaces, so a type carrying only the three scalar
+/// methods is not storable as an objective however objective-shaped it looks.
+/// A concept weaker than the seam would accept a piece the seam then rejects,
+/// which is the one thing a concept over a storable surface must not do. The
+/// pieces that exist today all satisfy it -- an objective piece answers the
+/// constraint surface by refusing it at run time, which is a different question
+/// from whether the members are there to call.
+template <class Piece, class IndexData>
+concept ObjectiveAggregatePiece =
+    ConstraintAggregatePiece<Piece, IndexData> && ObjectiveAggregateSurface<Piece, IndexData>;
 
 /// The value a provider hands over: the three piece lists, the three
 /// dimensions, the partition count it wants, and the declared variable bounds.
@@ -142,13 +156,40 @@ struct AggregateDeclaration {
     /// count that is a conjunct of the structural key.
     int partition_count_ = 1;
 
+    /// The declared bound records, verbatim and unmerged, in declaration order.
+    /// Repeated records on one index are intersected tightest-wins when the
+    /// bounds are materialized -- see materialize_variable_bounds.
     std::vector<VariableBound> variable_bounds_;
+
+    /// The declared records intersected into one record per primal variable, in
+    /// variable order: length primal_vars_, starting from (-inf, +inf) and
+    /// narrowed by each record in declaration order (lower = max, upper = min).
+    ///
+    /// This is what decides the layout, and therefore what the structural key's
+    /// bound conjunct is taken over: two different declaration histories that
+    /// intersect to the same per-variable structure lay the same system.
+    ///
+    /// Throws std::invalid_argument for a record naming a variable the
+    /// declaration does not have, a NaN bound, or an intersection that is EMPTY
+    /// (lower above upper) -- the last applied at the same point, in the same
+    /// order, as the engine's own bound materializer applies it.
+    std::vector<VariableBound> materialize_variable_bounds() const;
 
     /// Rejects a declaration that cannot describe a problem: non-positive
     /// partition count, negative dimensions, piece row counts that do not sum
-    /// to the declared row counts, and bounds naming a variable the declaration
-    /// does not have. Throws std::invalid_argument naming what disagreed and
-    /// both numbers.
+    /// to the declared row counts, bounds naming a variable the declaration
+    /// does not have, NaN bounds, a single record whose two finite sides are
+    /// inverted, and a bound history whose intersection is empty. Throws
+    /// std::invalid_argument naming what disagreed and both numbers.
+    ///
+    /// OWNERSHIP SPLIT with the engine's own bound materializer, stated so
+    /// neither side is assumed to cover the other: this boundary validates the
+    /// declaration it is handed, and materializing here is what makes an empty
+    /// intersection detectable before any layout runs. A provider reaching the
+    /// engine without coming through here is not thereby unchecked -- the
+    /// engine re-derives the same intersection from its own staged history and
+    /// applies the same range, NaN and emptiness rules -- so these are one rule
+    /// at two boundaries, not a rule and its only enforcement.
     void validate() const;
 };
 

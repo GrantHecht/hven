@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include "hven/core/pattern_hash.h"
+#include "hven/model/structure_identity.h"
 
 namespace hven::model_tests {
 
@@ -39,9 +40,25 @@ void fill_kkt(const KktScatterView &kkt) {
 
 } // namespace
 
+void FakeAggregate::rekey() {
+    hven::Fnv1a hash;
+    hven::solvers::feed_dimensions(hash, declaration_.primal_vars_, declaration_.equality_rows_,
+                                   declaration_.inequality_rows_);
+    for (const auto &claim : claims_) {
+        hven::solvers::feed_claim(hash, claim.first, claim.second);
+    }
+    key_.claim_digest_ = hash.value();
+    key_.partition_count_ = adopted_partitions_;
+    key_.bound_digest_ = hven::solvers::materialized_bound_digest(declaration_);
+}
+
 void FakeAggregate::assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                              RhsScatterView rhs) {
-    (void)point;
+    // Both entry checks, in the order the contract states them.
+    hven::solvers::validate_eval_request(request);
+    if (hven::solvers::request_consumes_multipliers(request)) {
+        hven::solvers::validate_full_multipliers(point, kEqualityRows, kInequalityRows);
+    }
     this->record_evaluation();
 
     if (hven::solvers::has_request(request, EvalRequest::kObjectiveValue)) {
@@ -85,6 +102,9 @@ void FakeAggregate::evaluate_candidate_values(const CandidatePoint &point, Candi
 void FakeAggregate::evaluate_candidate_first_order(const CandidatePoint &point,
                                                    CandidateFirstOrder out) {
     hven::solvers::validate_candidate_first_order(out, kPrimalVars, kEqualityRows, kInequalityRows);
+    // A first-order evaluation always produces the constraint adjoint gradient,
+    // so it always reads the multipliers.
+    hven::solvers::validate_full_multipliers(point, kEqualityRows, kInequalityRows);
     this->evaluate_candidate_values(point, out.values_);
     out.objective_gradient_.setConstant(kFillMarker);
     out.constraint_adjoint_gradient_.setConstant(kFillMarker);

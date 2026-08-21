@@ -16,14 +16,28 @@
 // method, a base class or an obligation from anything in this header.
 //
 // CONCURRENCY POSTURE, stated here because it is part of the contract rather
-// than an implementation note: an aggregate is inside at most ONE evaluation at
-// a time. The evaluation entry points are non-const and share whatever
-// per-partition scratch a provider keeps; the concurrency a provider is
-// designed for is the fan-out WITHIN one call, over disjoint partitions, not
-// two calls at once. Calling any evaluation entry -- assemble, either candidate
-// evaluation, or probe_identity -- concurrently with another is a caller error.
-// A consumer that must evaluate alongside an in-flight solve holds its OWN
-// aggregate rather than sharing the solve's.
+// than an implementation note: an aggregate is inside at most ONE operation at
+// a time, and STRUCTURAL MUTATION IS AN OPERATION. Each of the following
+// overlapping any other is a caller error:
+//
+//   * two evaluations at once -- assemble, either candidate evaluation, or
+//     probe_identity. They are non-const and share whatever per-partition
+//     scratch a provider keeps; the concurrency a provider is designed for is
+//     the fan-out WITHIN one call, over disjoint partitions.
+//   * any structural mutation overlapping ANY evaluation, in either order, and
+//     including a mutation that changes nothing: negotiate_partition_count, a
+//     re-layout, or a mutation of the declaration the aggregate was built
+//     from. A re-lay moves the arenas an in-flight evaluation is scattering
+//     into and renumbers the claim slots it is addressing them by. The epoch's
+//     ordering guarantee does not soften this: it says a re-lay is visible
+//     before any evaluation OF THE NEW structures, which is a statement about
+//     successive operations and says nothing about one already running.
+//   * two structural mutations at once.
+//
+// The counter behind structure_epoch() is atomic, so reading the epoch is safe
+// from anywhere. That is the one exception, and deliberately the only thing a
+// consumer may do to a busy aggregate. A consumer that must evaluate alongside
+// an in-flight solve holds its OWN aggregate rather than sharing the solve's.
 //
 // Engine-independent by construction: nothing here includes from the
 // interior-point machinery.
@@ -85,8 +99,20 @@ constexpr AggregateCapability &operator|=(AggregateCapability &left,
     return left;
 }
 
-/// True iff EVERY capability in `probe` is declared by `declared`. Probing for
-/// kNone is vacuously true.
+/// In-place masking, so narrowing a declared set down to a subset compiles the
+/// same way widening one does.
+constexpr AggregateCapability &operator&=(AggregateCapability &left,
+                                          AggregateCapability right) noexcept {
+    left = left & right;
+    return left;
+}
+
+/// True iff EVERY capability in `probe` is declared by `declared` -- ALL-BITS
+/// semantics, not any-bit: `has_capability(set, a | b)` asks whether the set
+/// declares both, which is the reduction a consumer wants when it is deciding
+/// what it may assume. Probing for kNone is vacuously true. To ask whether a
+/// set declares ANY of a group, compare the intersection:
+/// `(declared & group) != AggregateCapability::kNone`.
 constexpr bool has_capability(AggregateCapability declared, AggregateCapability probe) noexcept {
     return (declared & probe) == probe;
 }
@@ -171,6 +197,14 @@ class NlpAggregate {
     /// Virtual so that a provider wrapping another aggregate can forward the
     /// inner one's epoch; the default is the counter this base owns, which is
     /// what keeps monotonicity out of each provider's discipline.
+    ///
+    /// AN OVERRIDE TAKES OVER THE FULL SET OF EPOCH OBLIGATIONS -- monotonicity,
+    /// the ordering guarantee, and the failure-restore rule -- and must justify
+    /// itself in its own contract text. The door is open for a delegating
+    /// aggregate that mirrors an inner aggregate's epoch, which is a genuine
+    /// case; it is not open for a provider that would rather compute an epoch
+    /// its own way, because the escape hatch must not erode the enforcement the
+    /// default exists to provide.
     virtual StructureEpoch structure_epoch() const { return structure_epoch_counter_.current(); }
 
     /// What this provider declares about how it does its work. Declaring
@@ -191,6 +225,33 @@ class NlpAggregate {
     /// Request masking never alters layout, structural key or structure epoch,
     /// and every legal request subset carries the full path's determinism
     /// guarantee.
+    ///
+    /// AN IMPLEMENTATION VALIDATES AT ENTRY, before evaluating anything:
+    ///   * validate_eval_request(request) -- exactly the eight named shapes are
+    ///     legal, and a composed-but-unmapped combination is refused rather
+    ///     than approximated.
+    ///   * validate_full_multipliers(point, ...) when
+    ///     request_consumes_multipliers(request) -- a request naming a
+    ///     constraint adjoint gradient or adjoint Hessian contracts a
+    ///     derivative against the multipliers, so an empty multiplier block is
+    ///     a missing input rather than a zero vector.
+    ///
+    /// ACCUMULATION, NOT ASSIGNMENT. Every destination this call writes -- the
+    /// KKT values through their location table, each named arena through
+    /// theirs, and the scalar objective out slot -- is ACCUMULATED into. An
+    /// implementation never assigns to one and never zeroes one: the consumer
+    /// owns its storage AND its initial state, and zeroes what it wants clean
+    /// before the call. That is what lets a fan-out over partitions, and
+    /// successive requests against one destination, compose the same way.
+    /// Provider-internal scratch is a separate matter and stays the provider's
+    /// own to zero.
+    ///
+    /// WHAT THIS CALL DOES NOT DO: fill the consumer's own KKT coefficients --
+    /// slack Jacobian, primal and slack diagonals, constraint-row pivots. Those
+    /// are values the consumer set on the consumer's own storage; scattering
+    /// them is a consumer-owned step outside provider evaluation. The mapping
+    /// table records that transfer per row, because in the shapes this call
+    /// replaces the two steps ran inside one entry.
     virtual void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                           RhsScatterView rhs) = 0;
 
@@ -202,8 +263,14 @@ class NlpAggregate {
     /// name has its own pinned wording that this contract does not re-word, and
     /// a reader who sees two different spellings in one call stack is being
     /// told, correctly, that they are two different levels.
+    /// A VALUES path, so the point's multiplier blocks are legally empty: it
+    /// reads none of them.
     virtual void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) = 0;
 
+    /// The first-order evaluation ALWAYS produces the constraint adjoint
+    /// gradient, so it always reads the multipliers: an implementation calls
+    /// validate_full_multipliers at entry, unconditionally, and an empty
+    /// multiplier block is a missing input here rather than a zero vector.
     virtual void evaluate_candidate_first_order(const CandidatePoint &point,
                                                 CandidateFirstOrder out) = 0;
 

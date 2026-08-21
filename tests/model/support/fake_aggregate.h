@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -55,6 +56,7 @@ class FakeAggregate final : public NlpAggregate {
         declaration_.equality_rows_ = kEqualityRows;
         declaration_.inequality_rows_ = kInequalityRows;
         declaration_.partition_count_ = adopted_partitions_;
+        claims_ = {{0, 0}, {1, 0}, {1, 1}, {2, 2}};
         // The first layout: a provider lays structures before it can be
         // evaluated, and that first lay is a structural event like any other.
         this->relay_structures();
@@ -90,12 +92,12 @@ class FakeAggregate final : public NlpAggregate {
 
     // ---- test hooks -------------------------------------------------------
 
-    /// Re-lays the structures. The bump is the LAST thing this does, so no
-    /// evaluation of the new structures is reachable under the old epoch.
+    /// Re-lays the structures and re-keys them from the declaration as it now
+    /// stands. The bump is the LAST thing this does, so no evaluation of the new
+    /// structures is reachable under the old epoch.
     void relay_structures() {
         layout_serial_++;
-        key_.claim_digest_ = static_cast<std::uint64_t>(layout_serial_) * 1099511628211ULL;
-        key_.partition_count_ = adopted_partitions_;
+        this->rekey();
         this->bump_structure_epoch();
     }
 
@@ -107,9 +109,17 @@ class FakeAggregate final : public NlpAggregate {
         const int restore_to = layout_serial_;
         layout_serial_++; // the rejected lay
         layout_serial_ = restore_to;
-        key_.claim_digest_ = static_cast<std::uint64_t>(restore_to) * 1099511628211ULL;
+        this->rekey();
         this->bump_structure_epoch();
         throw std::invalid_argument("FakeAggregate: reconfiguration rejected");
+    }
+
+    /// Declares one more bound record and re-materializes. Declaring a bound
+    /// changes what the layout will be -- possibly only through the
+    /// intersection, which is the case worth pinning -- so it re-lays.
+    void declare_variable_bound(int index, double lower, double upper) {
+        declaration_.variable_bounds_.push_back(hven::solvers::VariableBound{index, lower, upper});
+        this->relay_structures();
     }
 
     void set_capabilities(AggregateCapability capabilities) { capabilities_ = capabilities; }
@@ -130,6 +140,13 @@ class FakeAggregate final : public NlpAggregate {
         epoch_seen_ = this->structure_epoch();
         layout_serial_seen_ = layout_serial_;
     }
+
+    /// Recomputes the structural key from the declaration: the dimension
+    /// preamble, then the claim stream in claim order, then the adopted
+    /// partition count and the materialized bound structure.
+    void rekey();
+
+    std::vector<std::pair<int, int>> claims_;
 
     /// A named empty vector: the multiplier blocks of a values-only candidate
     /// point are legally empty, and a point's blocks must outlive the call that

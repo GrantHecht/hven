@@ -1,9 +1,13 @@
-// The rest of the contract surface: the piece concept, the declaration's
-// boundary validation, the published location tables, the scatter views, and
-// the two rules the request carries -- only what the request names is written,
-// and masking a request never moves layout, digest or epoch.
+// The rest of the contract surface: the piece concepts, the declaration's
+// boundary validation and bound materialization, the published location tables,
+// the scatter views, and the rules a request carries -- only the eight mapped
+// shapes are legal, only what the request names is written, destinations are
+// accumulated into, multipliers are required where they are read, and masking a
+// request never moves layout, digest or epoch.
 
+#include <limits>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -80,6 +84,46 @@ static_assert(
 static_assert(
     ConstraintAggregatePiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
 
+// The objective-kind concept is NOT weaker than the seam that stores an
+// objective: that seam forwards the constraint surface too, so a type carrying
+// only the three scalar methods is not storable however objective-shaped it
+// looks. A constraint piece has the constraint surface and not the objective
+// one, and must fail the objective-kind concept for that reason alone.
+static_assert(
+    !ObjectiveAggregatePiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
+static_assert(!hven::solvers::ObjectiveAggregateSurface<hven::solvers::NLPConstraintPiece,
+                                                        hven::solvers::SolverIndexingData>);
+static_assert(!ObjectiveAggregatePiece<ContractProbeMinimalPiece, ContractProbeIndexData>);
+
+/// The scalar objective surface alone, with no constraint surface behind it:
+/// objective-shaped, and still not storable as an objective.
+struct ContractProbeObjectiveSurfaceOnly {
+    std::string name() const { return "objective-surface-only"; }
+    int input_rows() const { return 2; }
+    int output_rows() const { return 1; }
+    bool thread_safe() const { return true; }
+
+    void get_kkt_space(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>, int &, int, bool,
+                       bool, ContractProbeIndexData &) {}
+    int num_kkt_elements(bool, bool) const { return 0; }
+
+    void objective(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
+                   const ContractProbeIndexData &) const {}
+    void objective_gradient(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
+                            Eigen::Ref<Eigen::VectorXd>, const ContractProbeIndexData &) const {}
+    void objective_gradient_hessian(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
+                                    Eigen::Ref<Eigen::VectorXd>,
+                                    Eigen::SparseMatrix<double, Eigen::RowMajor> &,
+                                    Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
+                                    std::vector<std::mutex> &,
+                                    const ContractProbeIndexData &) const {}
+};
+
+static_assert(hven::solvers::ObjectiveAggregateSurface<ContractProbeObjectiveSurfaceOnly,
+                                                       ContractProbeIndexData>);
+static_assert(!ObjectiveAggregatePiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
+              "the objective-kind concept must be no weaker than the seam that stores one");
+
 } // namespace
 
 TEST(AggregatePieceConcept, IsSatisfiedByAMinimalPieceAndByTheExistingPieces) {
@@ -91,6 +135,17 @@ TEST(AggregatePieceConcept, IsSatisfiedByAMinimalPieceAndByTheExistingPieces) {
         (AggregatePiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>));
     EXPECT_TRUE(
         (AggregatePiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>));
+}
+
+TEST(AggregatePieceConcept, TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne) {
+    EXPECT_TRUE((ObjectiveAggregatePiece<hven::solvers::NLPObjectivePiece,
+                                         hven::solvers::SolverIndexingData>));
+    EXPECT_TRUE((hven::solvers::ObjectiveAggregateSurface<ContractProbeObjectiveSurfaceOnly,
+                                                          ContractProbeIndexData>));
+    EXPECT_FALSE(
+        (ObjectiveAggregatePiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
+    EXPECT_FALSE((ObjectiveAggregatePiece<hven::solvers::NLPConstraintPiece,
+                                          hven::solvers::SolverIndexingData>));
 }
 
 // ---------------------------------------------------------------------------
@@ -177,6 +232,55 @@ TEST(AggregateDeclarationTest, AcceptsAnInRangeBound) {
     EXPECT_NO_THROW(declaration.validate());
 }
 
+TEST(AggregateDeclarationTest, RejectsAnInvertedBoundRecord) {
+    AggregateDeclaration declaration = consistent_declaration();
+    declaration.variable_bounds_.push_back(VariableBound{2, 4.0, 1.0});
+    const std::string message = invalid_argument_message(declaration);
+    EXPECT_NE(message.find("inverted"), std::string::npos) << message;
+    EXPECT_NE(message.find('4'), std::string::npos) << message;
+    EXPECT_NE(message.find('1'), std::string::npos) << message;
+}
+
+TEST(AggregateDeclarationTest, RejectsABoundHistoryWhoseIntersectionIsEmpty) {
+    // Each record is fine on its own; together they leave the variable nothing.
+    AggregateDeclaration declaration = consistent_declaration();
+    declaration.variable_bounds_.push_back(VariableBound{2, 0.0, 1.0});
+    declaration.variable_bounds_.push_back(VariableBound{2, 3.0, 4.0});
+    const std::string message = invalid_argument_message(declaration);
+    EXPECT_NE(message.find("empty"), std::string::npos) << message;
+    EXPECT_NE(message.find('2'), std::string::npos) << message;
+}
+
+TEST(AggregateDeclarationTest, AcceptsABoundHistoryThatMerelyNarrows) {
+    AggregateDeclaration declaration = consistent_declaration();
+    declaration.variable_bounds_.push_back(VariableBound{2, 0.0, 4.0});
+    declaration.variable_bounds_.push_back(VariableBound{2, 1.0, 3.0});
+    EXPECT_NO_THROW(declaration.validate());
+}
+
+TEST(AggregateDeclarationTest, MaterializesOneRecordPerVariableTightestWins) {
+    AggregateDeclaration declaration = consistent_declaration();
+    declaration.variable_bounds_.push_back(VariableBound{1, 0.0, 4.0});
+    declaration.variable_bounds_.push_back(VariableBound{1, 1.0, 3.0});
+
+    const std::vector<VariableBound> materialized = declaration.materialize_variable_bounds();
+    ASSERT_EQ(materialized.size(), static_cast<std::size_t>(declaration.primal_vars_));
+    for (std::size_t index = 0; index < materialized.size(); ++index) {
+        EXPECT_EQ(materialized[index].index_, static_cast<int>(index));
+    }
+    EXPECT_DOUBLE_EQ(materialized[1].lower_, 1.0);
+    EXPECT_DOUBLE_EQ(materialized[1].upper_, 3.0);
+    // An undeclared variable materializes unbounded on both sides.
+    EXPECT_EQ(materialized[0].lower_, -std::numeric_limits<double>::infinity());
+    EXPECT_EQ(materialized[0].upper_, std::numeric_limits<double>::infinity());
+}
+
+TEST(AggregateDeclarationTest, MaterializationRejectsWhatValidationRejects) {
+    AggregateDeclaration declaration = consistent_declaration();
+    declaration.variable_bounds_.push_back(VariableBound{9, 0.0, 1.0});
+    EXPECT_THROW(declaration.materialize_variable_bounds(), std::invalid_argument);
+}
+
 // ---------------------------------------------------------------------------
 // Candidate storage validation
 // ---------------------------------------------------------------------------
@@ -242,6 +346,42 @@ TEST(CandidateStorageValidation, ThePrimalBlockIsNeverOptional) {
     Vec none;
     EXPECT_THROW(hven::solvers::validate_candidate_point(CandidatePoint{x, none, none}, 4, 2, 3),
                  std::invalid_argument);
+}
+
+TEST(CandidateStorageValidation, MultipliersMustBeFullLengthWhereTheyAreRead) {
+    Vec x(4);
+    Vec none;
+    Vec equality(2);
+    Vec inequality(3);
+    Vec short_inequality(1);
+
+    EXPECT_NO_THROW(
+        hven::solvers::validate_full_multipliers(CandidatePoint{x, equality, inequality}, 2, 3));
+    // Empty is legal where they are NOT read, and a missing input where they
+    // are: this checker is only ever reached on the paths that read them.
+    EXPECT_THROW(
+        hven::solvers::validate_full_multipliers(CandidatePoint{x, none, inequality}, 2, 3),
+        std::invalid_argument);
+    EXPECT_THROW(hven::solvers::validate_full_multipliers(CandidatePoint{x, equality, none}, 2, 3),
+                 std::invalid_argument);
+    EXPECT_THROW(hven::solvers::validate_full_multipliers(
+                     CandidatePoint{x, equality, short_inequality}, 2, 3),
+                 std::invalid_argument);
+}
+
+TEST(CandidateStorageValidation, TheFullMultiplierMessageNamesTheBlockAndBothSizes) {
+    Vec x(4);
+    Vec none;
+    Vec inequality(3);
+    try {
+        hven::solvers::validate_full_multipliers(CandidatePoint{x, none, inequality}, 2, 3);
+        FAIL() << "an empty multiplier block must be rejected where the multipliers are read";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("equality-multiplier"), std::string::npos) << message;
+        EXPECT_NE(message.find('0'), std::string::npos) << message;
+        EXPECT_NE(message.find('2'), std::string::npos) << message;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +452,30 @@ TEST(RhsLocationTableTest, MapsClaimSlotsToArenaRows) {
     const RhsLocationTable table(rows.data(), static_cast<int>(rows.size()));
     EXPECT_EQ(table.size(), 3);
     EXPECT_EQ(table.location(1), 2);
+}
+
+TEST(KktLocationTableTest, RejectsAClashMarkBelowTheSentinel) {
+    // -1 is the only legal negative. A mark like -3 passes any upper-bound
+    // check, reaches lock() through a scatter that tested `mark != -1`, and
+    // indexes the mutex vector out of bounds -- which is exactly what this
+    // constructor exists to make unreachable.
+    std::vector<int> locations = {0, 1, 2};
+    std::vector<int> clashes = {-1, -3, -1};
+    std::vector<std::mutex> locks(1);
+    try {
+        KktLocationTable table(locations.data(), 3, clashes.data(), 3, &locks);
+        FAIL() << "a clash mark below the sentinel must be rejected";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("-3"), std::string::npos) << message;
+        EXPECT_NE(message.find("-1"), std::string::npos) << message;
+    }
+}
+
+TEST(RhsLocationTableTest, RejectsARowBelowTheSentinel) {
+    const std::vector<int> rows = {0, -2, 2};
+    EXPECT_THROW(RhsLocationTable(rows.data(), static_cast<int>(rows.size())),
+                 std::invalid_argument);
 }
 
 TEST(RhsLocationTableTest, ADroppedRowIsSpelledAsNegativeOne) {
@@ -426,6 +590,14 @@ struct ContractProbeDestinations {
     static bool untouched(const Vec &block) { return (block.array() == kUntouchedSentinel).all(); }
 };
 
+/// Named multiplier blocks at full length, for the requests that read them. A
+/// point's blocks must outlive the call, so these are named objects rather than
+/// temporaries at the call site.
+struct ContractProbeMultipliers {
+    Vec equality = Vec::Constant(FakeAggregate::kEqualityRows, 0.25);
+    Vec inequality = Vec::Constant(FakeAggregate::kInequalityRows, 0.5);
+};
+
 } // namespace
 
 TEST(AggregateAssembleContract, AnObjectiveOnlyRequestWritesOnlyTheObjectiveSlot) {
@@ -448,11 +620,11 @@ TEST(AggregateAssembleContract, AnObjectiveOnlyRequestWritesOnlyTheObjectiveSlot
 TEST(AggregateAssembleContract, TheConstraintKktShapeWritesNoObjectiveOutput) {
     FakeAggregate aggregate;
     ContractProbeDestinations out;
+    ContractProbeMultipliers multipliers;
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
-    Vec none;
 
-    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestConstraintKkt,
-                       out.kkt_view(), out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
+                       hven::solvers::kRequestConstraintKkt, out.kkt_view(), out.rhs_view());
 
     EXPECT_EQ(out.objective, kUntouchedSentinel);
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.objective_gradient));
@@ -481,6 +653,7 @@ TEST(AggregateAssembleContract, AnArenaTheRequestDoesNotNameMayBeLeftEmpty) {
 TEST(AggregateAssembleContract, RequestMaskingMovesNeitherLayoutNorDigestNorEpoch) {
     FakeAggregate aggregate;
     ContractProbeDestinations out;
+    ContractProbeMultipliers multipliers;
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
     Vec none;
 
@@ -490,12 +663,111 @@ TEST(AggregateAssembleContract, RequestMaskingMovesNeitherLayoutNorDigestNorEpoc
 
     aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestObjectiveOnly,
                        out.kkt_view(), out.rhs_view());
-    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestFullKkt,
-                       out.kkt_view(), out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
+                       hven::solvers::kRequestFullKkt, out.kkt_view(), out.rhs_view());
 
     EXPECT_EQ(aggregate.model_structure_key(), key_before);
     EXPECT_EQ(aggregate.structure_epoch(), epoch_before);
     EXPECT_EQ(aggregate.layout_serial(), layout_before);
+}
+
+TEST(AggregateAssembleContract, SuccessiveCallsAccumulateIntoOneDestination) {
+    // The provider accumulates and never assigns: the consumer owns its storage
+    // AND its initial state. Two identical calls against one destination must
+    // therefore land twice, which is also what makes a fan-out over partitions
+    // compose.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestObjectiveOnly,
+                       out.kkt_view(), out.rhs_view());
+    const double after_one = out.objective;
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestObjectiveOnly,
+                       out.kkt_view(), out.rhs_view());
+
+    EXPECT_DOUBLE_EQ(out.objective - after_one, after_one - kUntouchedSentinel);
+    EXPECT_NE(out.objective, after_one);
+}
+
+TEST(AggregateAssembleContract, AnUnmappedRequestIsRefusedBeforeAnythingIsWritten) {
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    const EvalRequest unmapped =
+        EvalRequest::kObjectiveValue | EvalRequest::kConstraintAdjointHessian;
+    EXPECT_THROW(
+        aggregate.assemble(CandidatePoint{x, none, none}, unmapped, out.kkt_view(), out.rhs_view()),
+        std::invalid_argument);
+
+    EXPECT_EQ(out.objective, kUntouchedSentinel);
+    EXPECT_TRUE(out.kkt_untouched());
+}
+
+TEST(AggregateAssembleContract, AnAdjointRequestWithEmptyMultipliersIsRefused) {
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    // Legal shape, missing input: the adjoint gradient contracts a derivative
+    // against the multipliers, so empty is a forgotten block rather than a zero
+    // vector, and serving it would return a wrong adjoint with no diagnostic.
+    EXPECT_THROW(aggregate.assemble(CandidatePoint{x, none, none},
+                                    hven::solvers::kRequestFirstOrderRhs, out.kkt_view(),
+                                    out.rhs_view()),
+                 std::invalid_argument);
+    EXPECT_TRUE(ContractProbeDestinations::untouched(out.adjoint_gradient));
+}
+
+TEST(AggregateAssembleContract, AValuesOnlyRequestStillAcceptsEmptyMultipliers) {
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    EXPECT_NO_THROW(aggregate.assemble(CandidatePoint{x, none, none},
+                                       hven::solvers::kRequestObjectiveAndConstraints,
+                                       out.kkt_view(), out.rhs_view()));
+    EXPECT_NO_THROW(aggregate.assemble(CandidatePoint{x, none, none},
+                                       hven::solvers::kRequestConstraintJacobianOnly,
+                                       out.kkt_view(), out.rhs_view()));
+}
+
+TEST(AggregateCandidateContract, FirstOrderAlwaysRequiresFullMultipliers) {
+    FakeAggregate aggregate;
+    ContractProbeMultipliers multipliers;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    double objective = 0.0;
+    Vec equality(FakeAggregate::kEqualityRows);
+    Vec inequality(FakeAggregate::kInequalityRows);
+    Vec objective_gradient(FakeAggregate::kPrimalVars);
+    Vec adjoint_gradient(FakeAggregate::kPrimalVars);
+    CandidateFirstOrder storage{CandidateValues{objective, equality, inequality},
+                                objective_gradient, adjoint_gradient};
+
+    EXPECT_THROW(aggregate.evaluate_candidate_first_order(CandidatePoint{x, none, none}, storage),
+                 std::invalid_argument);
+    EXPECT_NO_THROW(aggregate.evaluate_candidate_first_order(
+        CandidatePoint{x, multipliers.equality, multipliers.inequality}, storage));
+}
+
+TEST(AggregateCandidateContract, TheValuesPathStillAcceptsEmptyMultipliers) {
+    FakeAggregate aggregate;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    double objective = 0.0;
+    Vec equality(FakeAggregate::kEqualityRows);
+    Vec inequality(FakeAggregate::kInequalityRows);
+    CandidateValues storage{objective, equality, inequality};
+
+    EXPECT_NO_THROW(aggregate.evaluate_candidate_values(CandidatePoint{x, none, none}, storage));
 }
 
 TEST(AggregateCapabilityContract, AnAggregateDeclaresNothingUnlessItSaysOtherwise) {

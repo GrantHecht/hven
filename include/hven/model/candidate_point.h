@@ -168,7 +168,7 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
 /// evaluable but claims no structure, and conflating the two would blur exactly
 /// the statement ClaimDomain exists to make checkable.
 ///
-/// Two rules bind every request:
+/// Four rules bind every request:
 ///
 ///   * No output is written that the request did not name. A view for an arena
 ///     a request does not touch may be empty, and the scalar objective value
@@ -177,6 +177,19 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
 ///     structure epoch are functions of the declaration and the adopted
 ///     partition count alone, and every legal request subset carries the full
 ///     path's determinism guarantee.
+///   * EXACTLY THE EIGHT NAMED SETS BELOW ARE LEGAL. The flags are a vocabulary
+///     for reading a request, not a licence to compose one: a set outside the
+///     eight names an evaluation shape no piece surface can produce in one pass
+///     (the piece methods come in fixed combinations), so an implementation
+///     would have to either over-evaluate or run two passes -- and both break
+///     the call-for-call equivalence the eight-way mapping exists to give.
+///     assemble() validates its request and throws on anything else;
+///     validate_eval_request below is that check, so every provider spells the
+///     refusal the same way.
+///   * A request naming a constraint adjoint gradient or a constraint adjoint
+///     Hessian CONSUMES the multipliers, so the point's multiplier blocks must
+///     be present at full length rather than empty. See
+///     request_consumes_multipliers and validate_full_multipliers.
 enum class EvalRequest : std::uint32_t {
     kNone = 0,
 
@@ -214,8 +227,17 @@ constexpr EvalRequest &operator|=(EvalRequest &left, EvalRequest right) noexcept
     return left;
 }
 
-/// True iff EVERY flag in `probe` is named by `request`. Probing for kNone is
-/// vacuously true.
+/// In-place masking, so narrowing a request down to a subset compiles the same
+/// way widening one does.
+constexpr EvalRequest &operator&=(EvalRequest &left, EvalRequest right) noexcept {
+    left = left & right;
+    return left;
+}
+
+/// True iff EVERY flag in `probe` is named by `request` -- ALL-BITS semantics,
+/// not any-bit: `has_request(set, a | b)` asks whether the set names both.
+/// Probing for kNone is vacuously true. To ask whether a request names ANY of a
+/// group, compare the intersection: `(request & group) != EvalRequest::kNone`.
 constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
     return (request & probe) == probe;
 }
@@ -276,6 +298,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    flags   kConstraintValues | kConstraintJacobian
 //    writes  equality_residuals_, inequality_residuals_, kkt (Jacobian blocks)
 //    empty   objective, objective_gradient_, constraint_adjoint_gradient_
+//    caller  also scatters its own solver KKT coefficients, outside assemble
 //
 // 6. first-order KKT: objective value and
 //    gradient, residuals, adjoint gradient,
@@ -286,6 +309,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    writes  objective, objective_gradient_, constraint_adjoint_gradient_,
 //            equality_residuals_, inequality_residuals_, kkt (Jacobian blocks)
 //    empty   -
+//    caller  also scatters its own solver KKT coefficients, outside assemble
 //
 // 7. constraint-only KKT: residuals, adjoint
 //    gradient, Jacobian and adjoint Hessian,
@@ -296,6 +320,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    writes  constraint_adjoint_gradient_, equality_residuals_,
 //            inequality_residuals_, kkt (Jacobian + adjoint-Hessian blocks)
 //    empty   objective, objective_gradient_
+//    caller  also scatters its own solver KKT coefficients, outside assemble
 //
 // 8. the full KKT system                     -> kRequestFullKkt
 //    entry   eval_kkt
@@ -304,9 +329,52 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //            equality_residuals_, inequality_residuals_, kkt (objective
 //            Hessian + Jacobian + adjoint-Hessian blocks)
 //    empty   -
+//    caller  also scatters its own solver KKT coefficients, outside assemble
 //
 // ---------------------------------------------------------------------------
-// Three points the table is easy to misread on:
+// THE SOLVER-COEFFICIENT SCATTER: A RESPONSIBILITY THAT TRANSFERS.
+//
+// Every KKT-bearing shape above -- 5, 6, 7 and 8 -- does one more thing in its
+// legacy form than this table's "writes" column lists. Each of them, at the end
+// of the entry, also scatters the SOLVER's own KKT coefficients into the value
+// array: the slack Jacobian, the primal and slack diagonals, and the equality
+// and inequality pivot coefficients (non_linear_program.cpp, the
+// `fill_solver_coeffs` arm of the parallel_task at the end of eval_soe,
+// eval_aug, eval_kkt_no and eval_kkt).
+//
+// Those coefficients are not the provider's. They are values the consumer set
+// on the consumer's own storage -- regularization diagonals, pivots, the slack
+// block -- and under this contract filling them is a CONSUMER-owned step that
+// happens OUTSIDE provider evaluation, before or after assemble() as the
+// consumer's own assembly order requires. A provider neither knows them nor
+// has anywhere to read them from.
+//
+// Written down here, in the table, and not left to the retarget to notice:
+// these four rows are the only place where "what the entry did" is strictly
+// larger than "what the request names", and the difference is a step that has
+// to be re-attached on the consumer's side. A retarget that reads the table as
+// the whole of the entry's behaviour drops the slack Jacobian and the pivots
+// silently -- an assembled matrix missing its solver block factorizes, and
+// factorizes wrong.
+// ---------------------------------------------------------------------------
+// ACCUMULATE-VS-ZERO: the discipline every shape shares.
+//
+// A provider ACCUMULATES into every destination it writes -- the KKT values
+// through the location table, the four arenas through theirs, and the scalar
+// objective out slot -- and never assigns to one, never zeroes one. The
+// consumer owns its storage AND its initial state: it zeroes what it wants
+// clean before the call. That is what the legacy entries do (the caller zeroes
+// the KKT value array before dispatching, and its RHS blocks before the call;
+// every fill is `+=`), and it is what makes several requests against one
+// destination compose the way a single fan-out over partitions already does.
+//
+// Provider-internal coefficient scratch is a separate matter and stays the
+// provider's own: the legacy entries zero their internal arrays at entry
+// (all four for the shapes that fill gradients, the two constraint arrays for
+// shape 2) precisely because their pieces accumulate into them. None of that is
+// visible at this contract, and none of it is the consumer's to do.
+// ---------------------------------------------------------------------------
+// Three further points the table is easy to misread on:
 //
 //   * Shapes 5 and 7 legally leave the objective-gradient arena empty even
 //     though the shapes they replace passed a gradient buffer in. Those shapes
@@ -359,5 +427,72 @@ inline constexpr EvalRequest kRequestFullKkt =
     EvalRequest::kObjectiveHessian | EvalRequest::kConstraintValues |
     EvalRequest::kConstraintAdjointGradient | EvalRequest::kConstraintJacobian |
     EvalRequest::kConstraintAdjointHessian;
+
+/// True iff `request` is one of the eight shapes the mapping table names.
+constexpr bool is_legal_request(EvalRequest request) noexcept {
+    return request == kRequestObjectiveOnly || request == kRequestObjectiveAndConstraints ||
+           request == kRequestObjectiveGradientAndConstraints || request == kRequestFirstOrderRhs ||
+           request == kRequestConstraintJacobianOnly || request == kRequestFirstOrderKkt ||
+           request == kRequestConstraintKkt || request == kRequestFullKkt;
+}
+
+/// Rejects any request outside the eight named shapes. Every implementation of
+/// assemble() calls this at entry, so a composed-but-unmapped request is
+/// refused the same way everywhere rather than being served by whichever
+/// provider happened to tolerate it.
+inline void validate_eval_request(EvalRequest request) {
+    if (!is_legal_request(request)) {
+        throw std::invalid_argument(fmt::format(
+            "EvalRequest: the flag combination 0x{0:x} is not one of the eight evaluation shapes "
+            "this contract maps. The legal sets are kRequestObjectiveOnly (0x{1:x}), "
+            "kRequestObjectiveAndConstraints (0x{2:x}), "
+            "kRequestObjectiveGradientAndConstraints (0x{3:x}), kRequestFirstOrderRhs (0x{4:x}), "
+            "kRequestConstraintJacobianOnly (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
+            "kRequestConstraintKkt (0x{7:x}) and kRequestFullKkt (0x{8:x}); see the mapping table "
+            "in model/candidate_point.h",
+            static_cast<std::uint32_t>(request), static_cast<std::uint32_t>(kRequestObjectiveOnly),
+            static_cast<std::uint32_t>(kRequestObjectiveAndConstraints),
+            static_cast<std::uint32_t>(kRequestObjectiveGradientAndConstraints),
+            static_cast<std::uint32_t>(kRequestFirstOrderRhs),
+            static_cast<std::uint32_t>(kRequestConstraintJacobianOnly),
+            static_cast<std::uint32_t>(kRequestFirstOrderKkt),
+            static_cast<std::uint32_t>(kRequestConstraintKkt),
+            static_cast<std::uint32_t>(kRequestFullKkt)));
+    }
+}
+
+/// True iff `request` names an output the multipliers are an INPUT to: the
+/// constraint adjoint gradient and the constraint adjoint Hessian are both
+/// contractions of a constraint derivative against the multipliers, so a
+/// request naming either cannot be served from an empty multiplier block.
+constexpr bool request_consumes_multipliers(EvalRequest request) noexcept {
+    constexpr EvalRequest kMultiplierConsumers =
+        EvalRequest::kConstraintAdjointGradient | EvalRequest::kConstraintAdjointHessian;
+    return (request & kMultiplierConsumers) != EvalRequest::kNone;
+}
+
+/// Rejects a point whose multiplier blocks are not present at full length.
+///
+/// The may-be-empty rule on CandidatePoint is about the paths that do not READ
+/// the multipliers -- a values-only evaluation supplies neither, and empty
+/// there means "no multipliers" rather than "zeros". Where they are read, empty
+/// is not a legal spelling of a zero vector: it is a caller that forgot a block,
+/// and silently contracting against nothing would return a wrong adjoint with
+/// no diagnostic. Throws std::invalid_argument naming the block and both sizes.
+inline void validate_full_multipliers(const CandidatePoint &point, Eigen::Index equality_rows,
+                                      Eigen::Index inequality_rows) {
+    if (point.equality_multipliers_.size() != equality_rows) {
+        throw std::invalid_argument(fmt::format(
+            "CandidatePoint: this evaluation reads the multipliers, so the equality-multiplier "
+            "block must carry all {1} rows, but it has {0}",
+            point.equality_multipliers_.size(), equality_rows));
+    }
+    if (point.inequality_multipliers_.size() != inequality_rows) {
+        throw std::invalid_argument(fmt::format(
+            "CandidatePoint: this evaluation reads the multipliers, so the inequality-multiplier "
+            "block must carry all {1} rows, but it has {0}",
+            point.inequality_multipliers_.size(), inequality_rows));
+    }
+}
 
 } // namespace hven::solvers
