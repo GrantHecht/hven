@@ -1,0 +1,47 @@
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- The C compiler identification is GNU 16.1.1
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+CMake Warning at tests/golden_rig/CMakeLists.txt:242 (message):
+  golden rig: HVEN_RIG_PSIOPT_SEAM's checkout HEAD is
+  e19f9b87bec39cb1a5d8999d62940d030bad8803, not the commit
+  (5b5dc736c238b285915507c3677d7952227c0d1b) this rig's psiopt-old expected
+  tables were derived against.  Re-derive the psiopt-old rows in
+  tests/golden_rig/expected/ if the drift touches Pardiso/Accelerate
+  configuration or linear-algebra behavior
+  (psiopt/include/tycho/detail/solvers/linear/), then update
+  HVEN_RIG_PSIOPT_SEAM_COMMIT here to match.
+
+  Proceeding anyway because HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM=ON was set
+  explicitly.  NEVER set this for a run that derives new psiopt-old expected
+  tables.
+
+
+-- golden rig: interior-point old-seam arm enabled (/home/ghecht/Projects/tycho)
+-- golden rig: SQP old-seam arm pinned to phase-7-close (4faa1df116da53c9dc68f36635c118f52d39d2b9), tree state verified
+-- Configuring done (2.6s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/build-3seam

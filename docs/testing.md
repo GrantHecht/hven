@@ -40,8 +40,21 @@ production build nothing, and write down why the boundary could not carry it.
 ### The sanctioned deviations, in full
 
 **One, today.** `PardisoIparmObserver`'s did-the-write-execute fields, recorded
-at the two guarded parameter-array writes inside `FactorSession::analyze`
-(`src/linear/pardiso_session.cpp`).
+at the guarded parameter-array writes inside `FactorSession::analyze`
+(`src/linear/pardiso_session.cpp`) — originally the two `ordering` /
+`weighted_matching` sites, later extended knob-by-knob to every guarded write
+in that function, most recently the two writes the don't-write-state
+amendment (`docs/retarget-design-sqp.md` §2) turned conditional:
+`max_refinement_iters` (iparm[7]) and `pivot_perturb_exp` (iparm[9]). Those
+two invert the usual polarity — their DEFAULTS are written values (0 / 8), so
+the default-Options act pin asserts the flags TRUE with the exact legacy
+values (the byte-identity proof that the amendment changed nothing for
+existing consumers), and the `std::nullopt` case asserts them FALSE. They are
+also the original ambiguity in its strongest form: `pardisoinit`'s own
+defaults for both entries (2 / 8 on the linked MKL) are exactly what a
+skipped write leaves behind — for iparm[9] the skipped write and hven's own
+written default (8) even coincide in value — so no after-the-fact read can
+ever settle whether the write ran.
 
 *Why the boundary cannot carry it.* The claim under test is
 don't-write-by-default: at `Options::ordering == kBackendDefault`, hven must
@@ -73,16 +86,29 @@ The `notices/eigen-mpl2.txt` entry for that file records the modification.
 at one capture site inside `FactorSession::analyze`
 (`src/linear/pardiso_session.cpp`), immediately after the `pardisoinit()` call
 and before anything else in that function — including that same function's
-own phase-11 (symbolic analysis) backend call — touches the array.
+own phase-11 (symbolic analysis) backend call — touches the array. Originally
+the `iparm[10]`/`iparm[33]`/`iparm[18]` trio; the don't-write-state amendment
+(`docs/retarget-design-sqp.md` §2.4) extended the same capture site with
+`iparm[7]` and `iparm[9]` — the two entries whose new don't-write states
+inherit `pardisoinit`'s values — for the load-bearing
+`BackendDefaultPremise` canary that pins what those states actually inherit.
+Phase C added `iparm[17]` to the same site, for the mirror-image reason: that
+entry is written *unconditionally* by `analyze()`, and the §11 ledger row 7
+argument that the write is delta-free rests on `pardisoinit` already having
+put `-1` there.
 
 *Why the boundary cannot carry it.* The fact under test is what `pardisoinit`
-itself defaulted `iparm[10]`/`iparm[33]`/`iparm[18]` to, on this linked MKL.
+itself defaulted `iparm[10]`/`iparm[33]`/`iparm[18]` (and now
+`iparm[7]`/`iparm[9]`/`iparm[17]`) to, on this linked MKL.
 That fact is not stable to the end of the function: this session's own
 phase-11 call was observed, empirically, to overwrite `iparm[33]` and
 `iparm[18]` with its own output before `analyze()` returns, so a read taken at
 the adapter boundary afterward — the approach this project uses for
 `ordering_iparm()`/`weighted_matching_iparm()` just above — sees phase 11's
-output for those two entries, not `pardisoinit`'s value. There is no safe
+output for those two entries, not `pardisoinit`'s value. `iparm[17]` is
+unreachable from the boundary for a second, independent reason: `analyze()`
+writes it unconditionally, so a boundary read reports hven's own `-1` back to
+itself and would pass whatever `pardisoinit` had done. There is no safe
 unconditional `FactorSession` accessor that could answer this from outside
 the function either: by the time `analyze()` returns and any caller could
 ask, the fact the caller would be asking about is already gone (see
@@ -90,7 +116,9 @@ ask, the fact the caller would be asking about is already gone (see
 on why `ordering_iparm()`/`weighted_matching_iparm()` are not a model for
 these three).
 
-*What it costs.* Four `#ifdef HVEN_TESTING` lines at one capture site.
+*What it costs.* Seven `#ifdef HVEN_TESTING` lines at one capture site (four
+at the original extension, two more for `iparm[7]`/`iparm[9]`, one more for
+`iparm[17]`).
 Verified, not asserted: from a clean `ce423ec` checkout and from the working
 tree with this change applied, built with the identical build directory and
 toolchain (`git stash`/`git stash pop` to isolate the two source states
@@ -101,7 +129,16 @@ recompiled translation units come out byte-identical: `pardiso_session.cpp.o`
 only because it includes the touched headers), matching SHA-256 and `cmp`
 both ways. `nm --defined-only`'s full symbol listing of the resulting
 `libhven.a` is identical before and after, byte for byte — no symbol of any
-kind is added anywhere in the library.
+kind is added anywhere in the library. The `iparm[7]`/`iparm[9]` extension
+re-ran the identical proof shape against its own baseline: the shipped
+`pardiso_session.cpp` compiled with production flags (no `HVEN_TESTING`),
+with and without every newly added `#ifdef HVEN_TESTING` block stripped,
+yields a byte-identical object, and `nm --defined-only` on `libhven.a`
+still lists no observer symbol of any kind. The `iparm[17]` extension re-ran
+that same proof once more against its own baseline, with the same result:
+`pardiso_session.cpp.o` and `symmetric_factor_mkl.cpp.o` byte-identical
+(matching SHA-256) with and without the added line under production flags,
+and `libhven.a`'s `nm --defined-only` listing unchanged byte for byte.
 
 *What it buys.* `tests/linear/test_fault_injection.cpp`'s
 `BackendDefaultPremise.MklPardisoinitLeavesScalingAndCnrAtZero` asserts
@@ -127,7 +164,15 @@ guarded by `#ifdef HVEN_TESTING`:
   interior-point engine's zero-filling evidence projection on a failed
   factorization — needs it provoked deterministically and by specific status
   code. Same scope on both: faithful only on a session that has never
-  factorized successfully (see the declaration's own comment).
+  factorized successfully (see the declaration's own comment). Its consumers
+  now include the ORDERED failed-factorize evidence pin
+  (`docs/retarget-design-sqp.md` §7.2):
+  `FailedFactorizeEvidencePin.InertiaReportsNonObservedAfterAFailedFactorize`
+  (`tests/linear/test_fault_injection.cpp`, one backend-neutral body compiled
+  per platform) pins that `inertia()` reports non-`kObserved` after a FAILED
+  factorize — the contract clause the SQP reuse gate's usable-numerics
+  conjunct rests on — within exactly that faithful scope; the deeper
+  succeeded-then-fails scenario stays inspection-only as below.
 - `AnalyzeFaultInjector` (both backends) — `active`, `injected_backend_code`.
   Faithful in every scenario: the failure is raised before the freshly built
   session replaces the live one, so a failed analysis leaves the engine
@@ -139,9 +184,14 @@ guarded by `#ifdef HVEN_TESTING`:
   record-the-status-and-continue behavior on that path.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
-  `last_weighted_matching_iparm`, plus the unrelated `post_pardisoinit_*`
-  trio (`post_pardisoinit_matrix_scaling_iparm`, `post_pardisoinit_cnr_iparm`,
-  `post_pardisoinit_factor_mflops_request_iparm`) described under "A canary
+  `last_weighted_matching_iparm`, the per-knob did-the-write-execute pairs
+  (including `max_refinement_*`/`pivot_perturb_*` for the two don't-write
+  states), plus the unrelated `post_pardisoinit_*` fields
+  (`post_pardisoinit_matrix_scaling_iparm`, `post_pardisoinit_cnr_iparm`,
+  `post_pardisoinit_factor_mflops_request_iparm`,
+  `post_pardisoinit_refinement_cap_iparm`,
+  `post_pardisoinit_pivot_perturb_iparm`,
+  `post_pardisoinit_factor_nnz_request_iparm`) described under "A canary
   for a design decision's backend-default premise" below. NOT a fault
   injector — see "A read-only variant" below.
 - `ThreadCountObserver` (MKL) — `recorded`, `last_applied_num_threads`. Also
@@ -311,9 +361,13 @@ plain public-API coverage (`test_symmetric_factor.cpp`'s
 `ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics`: session id,
 epoch, analyze counter, and a working refactorize/solve after the setter).
 The first half has no public observable at all — a thread count is licensed
-to reassociate arithmetic, not to change a result; MKL exposes no query for
-the thread-local override in force; and nothing reports a live session's
-configuration — so without this it would rest on inspection.
+to reassociate arithmetic, not to change a result, and MKL exposes no query
+for the thread-local override in force. `SymmetricFactor::num_threads()` does
+read a live session's STORED count back (it reads through to the session, so
+a co-owner's `set_num_threads` is visible through it), but a count that is
+stored is not a count that was APPLIED: nothing outside reports what a backend
+call actually ran at, which is the whole of what this observer records. So
+without it the first half would rest on inspection.
 
 What it deliberately does NOT cover, and why that is acceptable: the final
 link, from the session's stored count to `mkl_set_num_threads_local`, is one
@@ -535,6 +589,212 @@ it durably reproduces a pardisoinit-default observation this project
 previously only made by hand (`Options::collect_factor_mflops`'s own doc
 comment, `include/hven/linear/symmetric_factor.h`), without pinning any
 decision to it.
+
+The don't-write-state amendment (`docs/retarget-design-sqp.md` §2.4) added a
+second, load-bearing canary on the same capture point:
+`BackendDefaultPremise.MklPardisoinitDefaultsTheRefinementCapAndPivotPerturbExponent`
+asserts `pardisoinit`'s own iparm[7] (full-solve refinement cap) and
+iparm[9] (pivot perturbation exponent) values on the linked MKL — the
+EFFECTIVE values `max_refinement_iters = std::nullopt` and
+`pivot_perturb_exp = std::nullopt` inherit, which the SQP retarget's census
+byte-identity depends on. An MKL default move must become a failing test,
+never a silent census break. The canary's own first run performed exactly
+its job for iparm[9]: the design note predicted 13 (Intel's documented
+default for NONSYMMETRIC matrices, mtype = 11), and the value observation —
+confirmed by a standalone `pardisoinit` probe outside hven's session code —
+shows 8 for mtype = -2 on the linked MKL, matching Intel's documented
+symmetric-indefinite default and `docs/retarget-design.md`'s own row for
+this entry. The canary pins the observed 8, and the note carries a declared
+amendment recording the correction and its evidence
+(`docs/retarget-design-sqp.md` §2.4) — a declared re-derivation, never a
+silent adaptation.
+
+Phase C added a third canary on the same capture point, closing the one
+`pardisoinit`-default premise that had none:
+`BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount`
+asserts `pardisoinit` leaves iparm[17] (the factor-nonzero-count request) at
+−1 for mtype = −2 on the linked MKL. That is the whole of the §11 ledger row
+7 argument (`docs/retarget-design-sqp.md`) for hven's **unconditional**
+`iparm[17] = -1` write — the one iparm write gated by no `Options` field, and
+one the dissolved seam never made in any phase. Row 7 calls the write
+delta-free rather than merely unobserved *because* the backend already
+defaults the entry to the same value; if a future MKL moves that default, the
+write becomes a live behavioural difference, and this test is what makes that
+loud. The pinned value is a two-source observation (hven's own session via
+this capture point, plus a standalone `pardisoinit()` probe outside hven's
+session code: −1 for mtype = −2 and for mtype = 11 alike, MKL 2026.0.1 build
+20260612) — the shape the iparm[9] correction established, applied before
+rather than after a prediction could go wrong. What it pins is the *backend's*
+default, not the act of hven's write: the two are indistinguishable by value
+precisely because they agree, and nothing rests on the act, because an
+unconditional write has no don't-write state to be told apart from (contrast
+the `was_written` flags `max_refinement_iters`/`pivot_perturb_exp` need).
+
+## Per-backend arms, and the divergence register
+
+The two sections above cover cross-backend *contract* coverage. This one
+covers the other case: a test whose subject genuinely reads a different
+number on Accelerate than on MKL Pardiso, where neither number is wrong.
+
+**The convention is a per-backend arm, never a widened tolerance.** A pin that
+diverges is split under `#ifdef USE_ACCELERATE_SPARSE` (the SQP suite's
+predicate; `#if defined(__APPLE__)` in `tests/linear/`, which has no such
+option), with each backend asserting *its own observed value*. The MKL
+assertion is never relaxed to accommodate the Apple one, and the pair is never
+replaced by an inequality or a loosened tolerance that both happen to satisfy
+— a range that admits both numbers stops detecting a regression in either. The
+`suspect_escalations` precedent is the standing example. Worked instances live
+in `tests/sqp/test_continuation.cpp` (303 / 304 factorizations),
+`test_hs_sweeps.cpp` (3719 / 3717 minors), `test_hs_battery.cpp` (862/859 vs
+861/858 minors) and `test_ssn_engine.cpp` (the weakly-active tie).
+
+**The register.** `docs/notes/2026-08-14-accelerate-divergence-register.md`
+records each such divergence: what was observed, where, on what evidence, and
+what the test was changed to assert as a result. An entry is not a bug report
+— most of them are a trajectory that forked without changing an answer — and
+an arm should not be committed without one, because the arm alone records
+*that* the numbers differ and never *why the difference is acceptable*.
+
+**Its evidence bar is asymmetric, and deliberately so** (the register states
+this in full; repeated here because it governs whether a new arm may be
+written at all):
+
+- **Counters, states and lists** carry no machine, thread or configuration
+  context, so a count that reproduces across macOS CI runs is committable as
+  an asserted per-backend value. A CI run on `github-macos26-arm64` *is* a
+  real observation — CLAUDE.md's rule bars invented values, not measured ones.
+- **Floats are not.** hven's Accelerate session stores `num_threads` without
+  applying it to any backend call, so nothing pins the reduction order on that
+  lane. A float row needs two-run byte agreement before it may be committed,
+  and a column that fails that bar is **reported, not asserted** on Accelerate
+  (register entry M3-3 is the worked case: five `{:.9e}` residual columns
+  asserted on MKL, reported on Apple). An unobserved Apple value stays
+  `UNOBSERVED` — never zero-filled, never interpolated from the MKL arm.
+
+**Origin entries `D14`–`D19`/`D22` are cited but not readable here.** The SQP
+suite arrived carrying citations to four origin notes
+(`2026-07-28-accelerate-audit-checklist.md`,
+`2026-07-29-accelerate-audit-results.md`,
+`2026-07-31-accelerate-second-pass-results.md`,
+`2026-08-01-accelerate-register-3.md`) that did not migrate into this
+repository. The register keeps its own `M3-n` numbering rather than continuing
+the `D`-series, for the reason it states: the origin's highest number is
+unknown from inside this tree, so a guessed `D20` could collide. Every
+`D`-series citation in the suite now either points at the register row that
+succeeds it (`D19` → `M3-2`) or carries an explicit not-migrated marker naming
+the comment itself as the citable record, because the observation is quoted
+there in full. **A new divergence gets an `M3-n` register row; it does not get
+a new `D` number.**
+
+## The migrated SQP suite
+
+`tests/sqp/` is the test suite that arrived with the SQP engine at M3 phase A,
+imported at its archived tag and then retargeted onto `hven::linear`. It is
+its own CMake target, `hven_sqp_tests` (`tests/sqp/CMakeLists.txt`), built
+under sandbox-matched flags so its pinned trajectories reproduce the numbers
+they were derived under; `tests/sqp/support/` carries the parametric problem
+families and scale fixtures the pins are built on, shared with `bench/`.
+
+What it asserts, in the currencies this project treats as binding:
+
+- **Counter pins** — majors, QP minors, factorizations, per-phase escalation
+  counts — asserted as exact values, per backend where they diverge (above).
+  Counters are the asserted currency (CLAUDE.md §7); wall-clock is
+  informational and is never asserted.
+- **Trajectory pins** — `{:.9e}`/binary64 constants for iterates, objectives
+  and multipliers, context-pinned three ways (machine, build configuration,
+  thread count) as the float rule below requires.
+- **Corpus and battery cells** — `test_corpus_cells.cpp`,
+  `test_hs_battery.cpp`, `test_warm_start_battery.cpp` compare against the
+  committed artifacts under `bench/baselines/`, byte-strict on every asserted
+  column, with any licensed exception named as a single cell rather than a
+  widened comparator.
+
+Two standing notes on running it. The suite is green under `ctest`, which
+runs **one process per test** — that is the asserted currency. Running the
+whole `hven_sqp_tests` binary as a single process fails
+`CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers`
+through cross-test in-process interaction; this is pre-existing, was verified
+present at the B4 base by stash-and-rerun, and is out-of-contract usage rather
+than a regression. And `MKL_NUM_THREADS=1` is the asserted configuration for
+every counter and float claim.
+
+**Owed, not yet written: this entry's translation-unit half.** The
+header/TU structure of the SQP layer — relocated out of the now-retired
+`include/hven/detail/sqp/` and `src/sqp/` by M3 phase C's R-batches, and
+today spread across `include/hven/{core,qp,model,drivers}/`,
+`include/hven/detail/{kkt,qp,warmstart,globalization}/` and `src/kkt/` — is
+still under active decision in that phase (task U0, the flag-regime ruling,
+and tasks T1–T9, the TU splits and the PCH-membership/source-count
+tripwire), and the entry that describes it is deliberately deferred to those
+tasks rather than pre-written against a structure that is not yet ruled.
+What is written above is the suite as it stands and does not depend on that
+outcome.
+
+## Amending a pinned artifact: sweep its consumers in the same commit
+
+CLAUDE.md §7's rule is that an intentional break of a pinned or reproduced
+value is **declared and re-derived explicitly, never silent**. This section
+adds the half that rule leaves implicit, and that this project has already
+paid for once: *declaring* an amendment is not the same as *landing* it.
+
+**The protocol.** A commit that amends a pinned artifact — a
+`bench/baselines/` CSV cell, a golden-rig expected-table row, a pinned counter
+or constant in a test — must, in that same commit, sweep every consumer of the
+artifact and update or except each one. Three consumer classes, all of which
+have to be searched for explicitly, because none of them is found by building:
+
+1. **Direct consumers** — tests that read the artifact and assert its content.
+2. **Scorers and derived figures** — anything that computes a summary *from*
+   the artifact (a rate, a count of rows in a class, a verdict). These are the
+   easiest to miss, because they never quote the amended cell: they quote a
+   number derived from it, which moves without ever mentioning why.
+3. **Cross-comparisons** — tests that compare the artifact against a *second*,
+   frozen artifact. These are the ones an amendment cannot simply propagate
+   into: a frozen resweep artifact is evidence and is never edited to match, so
+   the comparison takes a **named single-cell exception** that asserts the
+   licensed *shape* of the difference, never a widened or skipped comparator.
+
+The sweep is part of the amendment, not follow-up work. An amendment that
+declares itself in a commit message while leaving its consumers red has
+declared nothing to anyone who was not reading that message.
+
+**The episode this is the repair for.** `a1b42ca` amended
+`bench/baselines/2026-08-06-corpus/walk_baseline.csv`'s
+`f7_n10000_path_physics` row — a properly adjudicated, properly declared break,
+accepted by an execution review that re-derived all four of its grounds. It
+landed without the consumer sweep. Three tests consume that baseline, one from
+each class above:
+`CorpusBaseline.TheCommittedWalkBaselineScoresToItsDocumentedVerdict` (a scorer
+— two derived figures moved, DNF rows 11 → 10 and G4 escape rate per QP 0.6667
+→ 0.6369, neither of them the amended cell),
+`CorpusBaseline.TheReSweptWalkArmIsCounterIdenticalToTheCommittedBaseline` and
+`CorpusTask6bRepair.TheWalkArmIsCounterIdenticalAcrossTheD0Repair` (both
+cross-comparisons against frozen resweep artifacts that correctly still carry
+the pre-amendment content). All three went red **on Linux and macOS**, and
+stayed red across several commits until `31e57b0` swept them — updating the two
+derived figures by re-scoring the amended file, and giving the two
+cross-comparisons a `kGateBAmendedCells = {"f7_n10000_path_physics"}` exception
+that asserts the licensed shape (baseline `Optimal`, frozen `dnf_budget`) and
+asserts that exactly **one** comparison was excepted, so the exception cannot
+widen to cover a real regression. The other 56 cells stayed byte-strict.
+
+The cost of the miss was a multi-commit red window on two lanes for a change
+that was correct on its merits. Nothing about the amendment was wrong; only its
+reach was under-counted.
+
+**Post-U0 addendum (2026-08-16).** The names above are the ones the episode
+had. The flag-unification event re-derived the walk baseline into a new dated
+directory — `bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv` is the
+baseline of record now, the 2026-08-06 file is frozen evidence, and the sweep
+ran with the repoint rather than after it. Two of the three consumers above
+changed shape in the process: the first cross-comparison was renamed
+`CorpusBaseline.TheReSweptWalkArmIsCounterIdenticalToTheFrozenPreU0Baseline`
+and, with the D0-repair twin, converted to **frozen-vs-frozen** — both now read
+the pre-U0 baseline through a second define, because the continuity they assert
+is a historical claim about origin-era artifacts and the flag unification ended
+the live half of it. The scorer still reads the baseline of record, and its
+figures were re-derived (unchanged) at the event.
 
 ## The golden-numerics rig
 
@@ -779,6 +1039,72 @@ never copied from either sibling checkout and never read from a file. Each
 recipe's provenance string says what it does and does not reproduce from the
 fixture its authority names, and the report prints that string beside every
 observation.
+
+### The nine-trace reachability ratification
+
+Every recipe was written before either engine was in this repository, against a
+naming authority's *description* of a fixture the author could not read. Nine
+recipes name a fixture in a sibling checkout that way; the tenth
+(`perturbing_singular`) is hven's own and was never in question. Both engines
+are now migrated, so on **2026-08-15** each of the nine was compared against the
+fixture its authority names and the verdict written into the provenance string
+the report prints. Four upgraded; five did not, and *why* they did not is the
+more useful half of the result.
+
+| Recipe (traces) | Named fixture, per the authority | Verdict |
+|---|---|---|
+| `collocation_chain` (T1, T3, T4, T4b, T8) | the F7 corpus cell at ~10⁵ primal variables, first major, empty path window | **STRUCTURE VERIFIED** — `tests/sqp/support/scale_problems.h`'s `F7CollocationChain` + `bench/corpus_cells.h`. Trapezoidal defect row, state/control coupling, initial-condition block and empty window all match; the 1e-8 regularization matches the engine's own defaults, which had never been checked. Scale still not reproduced: the cell's K has no standalone builder even now. |
+| `barrier_chain` (P1, P4) | a brachistochrone KKT from the interior-point corpus at iterations {1, 2, k} | **NOT RATIFIABLE** — the fixture is not here and no migration brought it: its half stayed with the modelling library it needs, and the corpus is problem definitions with no KKT builder. The *mechanism* checks out against the migrated engine (σ = z/d condensed onto the primal diagonal, pattern fixed across rungs). |
+| `hs76` (T2) | HS76 with a walk trace and a known admission sequence | **VERIFIED** — `tests/sqp/support/hs_problems.h`'s `Hs76Model`, entry for entry. The disclaimer was re-checked too: no pinned HS76 minor/factorization counters exist in the migrated tests, so nothing was left unclaimed that could have been claimed. |
+| `saddle` (T5a) | the indefinite two-variable fixture from the solver fixture header | **VERIFIED** — `tests/sqp/support/ssn_fixtures.h`'s `indefinite_qp()`. Hessian and linear term match; the empty working set is the fixture's own shape. Nuance recorded: the fixture's box makes its minimizer a bound solution, so the configuration factorized here is the interior one — which is the ambiguity the inertia gate exists for. |
+| `semidefinite_boundary` (T5b) | "the semidefinite-boundary case from the review fixtures" | **NOT RATIFIABLE — the fixture never existed.** Confirmed on both sides; the phrase occurs only in the authority sentence. This is the T5(b) errata, now corrected at the source (below). |
+| `pd_on_face` (T5c) | a clean PD-on-face EQP from the on-face refinement path's accepted case | **NOT RATIFIABLE — the authority named a path, not a matrix.** The path migrated and its accepted arm is under test, but that arm builds its face by hand on a small box QP; there is no committed matrix to have been transcribed. The property (inertia exactly (n_free, m_face, 0)) does check out. |
+| `duplicated_equality` (T6, P2, P3) | the interior-point engine's singular-routing fixtures; and, for T6, a rank pre-screen fixture | **NOT RATIFIABLE, on both authorities.** The interior-point suite here reaches singular states by injection on a `diag(2, -3)` probe and has no duplicated-equality fixture; the migrated SQP pre-screen refuses an over-determined face *without factorizing*, so it never forms a KKT to compare against. |
+| `active_bound_curvature` (P3 control) | the interior-point engine's active-bound-curvature pin | **NOT RATIFIABLE** — same modelling-library-dependent half; the only `sigma` in the migrated interior-point tests is the objective factor, a different quantity with the same letter. The mechanism checks out against the migrated engine. |
+| `brutally_scaled` (T7, P6) | the brutally-scaled feasible fixture from the solver fixture header | **VERIFIED** — `tests/sqp/support/ssn_fixtures.h`'s `brutally_scaled_feasible_qp()`, coefficient for coefficient. Its ±3 box is active at the documented solution, so taking both inequality rows into the working set is a stated configuration choice, not the walk's. |
+
+**Tally: 4 verified (3 coefficient-level, 1 structural), 5 not ratifiable.**
+
+**What the five have in common, and what to do about it.** None is a case of a
+recipe getting a fixture wrong. Three name fixtures that depend on the modelling
+library neither engine migration brought here, one names a code path rather than
+a matrix, and one names a fixture that never existed. The recipes were right to
+say so at the time and are not changed now; what changed is that the claim
+"unverified" has become the sharper claim "unverifiable, for this stated
+reason". The three modelling-library cases become checkable only if that layer
+is ever migrated; if it is not, they are permanently structural reconstructions
+and should be declared so rather than left looking like outstanding debt. The
+other two are closed: a path has no matrix to check, and a nonexistent fixture
+has been corrected at its source.
+
+**Nothing was changed on either side to make a comparison come out even.** Where
+a recipe and a fixture differ, the difference is recorded in the recipe's
+provenance and above; no recipe was edited to match a fixture and no fixture was
+edited to match a recipe.
+
+#### T5(b) errata
+
+T5's naming authority — the M0 trace-selection note in the archived engine
+tree's `docs/notes/` — specifies case (b) as "the semidefinite-boundary case
+from the Task-4 review fixtures". **No such fixture exists**, and the
+ratification above confirmed it a second time: the phrase matches nothing in the
+migrated SQP tree and nothing in the archived tree either. It occurs exactly
+once anywhere, in the authority sentence itself.
+
+Disposition: the authority's own T5 entry has been **amended in place** with a
+dated erratum — it remains writable until M3 closes, and correcting the
+authority is the only fix that survives the note being read again later. That
+correction is reproduced here because hven's rig ships and runs without that
+checkout, so a reader with this repository and not that one must still be able
+to learn the fact from hven alone.
+
+What the trace actually does, unchanged by the errata: `semidefinite_boundary_kkt`
+implements the boundary the phrase *describes* — a positive-semidefinite Hessian
+with one exactly-zero eigenvalue, assembled with no regularization, so whether
+the factorization reports a zero class or perturbs past it is decided entirely
+by what the backend does. T5 case (b) records that outcome and asserts nothing
+about it, which is the correct treatment for a case whose authority could not be
+satisfied as written.
 
 ### Traces that fail by design
 

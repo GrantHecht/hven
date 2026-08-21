@@ -17,6 +17,7 @@ using adapter_fixture::StubAdapterMissingObjective;
 using adapter_fixture::StubConstraintOnly;
 using adapter_fixture::StubDefectFamily;
 using adapter_fixture::StubMixinConstraintOnly;
+using adapter_fixture::StubMixinObjectiveOnly;
 using adapter_fixture::StubPartialObjective;
 using adapter_fixture::StubScalarObjective;
 using adapter_fixture::StubUnregistered;
@@ -79,6 +80,20 @@ TEST(SolverInterfaceAdapter, MixinDeclaredConstraintOnlyTypeStillEntersTheConstr
     const StubMixinConstraintOnly f{};
     const ConstraintInterface ci(f);
     EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubMixinConstraintOnly>));
+}
+
+// The mirror half-policy, and the reason it needs its own case rather than
+// riding on the one above: `registered` is inherited from the mixin, so a
+// type could report registered while its supported route silently failed to
+// store directly. The typeid is what says the objective route really did the
+// one-erasure thing. The refusal on the other route is the constraint_unsupported_mixin
+// compile-fail probe's job -- it cannot be observed from here.
+TEST(SolverInterfaceAdapter, MixinDeclaredObjectiveOnlyTypeStillEntersTheObjectiveInterface) {
+    EXPECT_TRUE(SolverInterfaceAdapter<StubMixinObjectiveOnly>::registered);
+
+    const StubMixinObjectiveOnly f{};
+    const ObjectiveInterface oi(f);
+    EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubMixinObjectiveOnly>));
 }
 
 // Same for the adapter that merely omits install_objective: its constraint

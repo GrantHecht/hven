@@ -1,0 +1,7 @@
+self-check: F3 n=1000 arm=warm (full_step ON) vs tests/test_warm_start_battery.cpp kPins["F3n1000"].arm[kArmWarm]
+  reached_p1=true (want true)
+  steps=6 (want 6)  majors=30 (want 30)  minors=84 (want 84)
+  factorizations=25 (want 25)  fact_saved=0 (want 0)  full_step_majors=22 (want 22)
+  n_cold=1 (want 1)  n_seeded=0 (want 0)  n_warm=5 (want 5)  n_hot=0 (want 0)
+  predictor_calls=0 (want 0)  border_refine=84 (want 84)  elastic_activations=0 (want 0)
+SELF-CHECK PASSED

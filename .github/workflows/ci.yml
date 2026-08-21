@@ -48,10 +48,21 @@ jobs:
           echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
           echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"
 
+      # HVEN_SIMD_ARCH=x86-64-v3 pins this lane's ISA (phase-C U0 CI flag
+      # posture): under the unified flag regime the asserting binaries carry
+      # -ffast-math SIMD codegen, and `-march=native` on a heterogeneous
+      # runner pool would make the lane's arithmetic a per-runner lottery
+      # (the L-1 register's open question, answered at U0 — see
+      # docs/notes/2026-08-16-m3-u0-design.md §2). A fixed baseline makes any
+      # lane-vs-local pin divergence a stable, re-derivable finding.
       - name: Configure
-        run: cmake --preset linux-clang-release
+        run: cmake --preset linux-clang-release -DHVEN_SIMD_ARCH=x86-64-v3
 
+      # `id` so the post-Test steps below can condition on THIS step rather
+      # than on the default "nothing has failed yet" (M3 gate B, replicated
+      # from the macOS lane -- see its Build step's comment for why).
       - name: Build
+        id: build
         run: cmake --build build
 
       - name: Test
@@ -61,6 +72,39 @@ jobs:
         # runner as the derivation machine would make them assert against
         # hardware they were never observed on, which is the false claim the
         # context gate exists to prevent.
+        #
+        # GTEST_OUTPUT is GoogleTest's own env-var form of `--gtest_output`
+        # (identical to the CLI flag; ctest does not forward unrecognized CLI
+        # options through to the binaries `gtest_discover_tests` registers, so
+        # the flag has to arrive as an env var instead). It is pointed at a
+        # DIRECTORY (trailing slash), not a fixed file: `gtest_discover_tests`
+        # invokes hven_tests once per test case, and GoogleTest's directory-mode
+        # writer (`FilePath::GenerateUniqueFileName`, gtest-filepath.cc)
+        # generates a fresh, collision-free filename per invocation instead of
+        # overwriting -- a fixed-file path would leave only the last test's
+        # output behind. This is what makes `RecordProperty` observations (see
+        # tests/sqp/test_corpus_cells.cpp, test_ssn_engine.cpp) land somewhere
+        # durable instead of being formatted and discarded.
+        #
+        # MKL_NUM_THREADS pins Pardiso to one thread, matching CLAUDE.md §7's
+        # measurement discipline ("every local proof run in this phase" is
+        # MKL_NUM_THREADS=1, serialized) -- this lane was the one place that
+        # discipline was not applied. Its absence is the diagnosed root cause of
+        # three counter-/trajectory-pinned test flakes on this lane (all
+        # Linux-only, never local, objects byte-identical across the flake): see
+        # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md's R5
+        # report §7-8 (SqpDriverRadius, B1Gate, CorpusTask6bPhaseB,
+        # SsnEngineLocal on run 31893392460 attempt 1, with two earlier
+        # occurrences noted in docs/notes/2026-08-14-m3-gate-b-review-request.md
+        # and docs/notes/2026-08-15-m3-phase-c-plan.md's microarch-flake watch
+        # rule). A third occurrence (run 31907664085) happened WITH
+        # MKL_NUM_THREADS=1 pinned, so thread count is not a sufficient cause;
+        # the class is tracked in
+        # docs/notes/2026-08-15-linux-runner-divergence-register.md (L-1) —
+        # residual explanation: runner microarch / MKL kernel dispatch variance.
+        env:
+          GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
+          MKL_NUM_THREADS: "1"
         run: ctest --test-dir build --output-on-failure --timeout 300
 
       - name: Accelerate backend syntax check (Linux, stubbed)
@@ -93,7 +137,14 @@ jobs:
       # instead (see their own steps below), because a full neutrality run on
       # those lanes is Mac-leg territory. docs/build.md records that
       # disposition.
+      # M3 gate B: gated on `steps.build.outcome`, not default success-chaining
+      # -- same fix as the macOS lane's identically-commented steps, replicated
+      # here because this pattern (a step with no `if:` inherits `success()`,
+      # so a red Test silently skips every check below it even though none of
+      # them reads a test result) is not macOS-specific. See the macOS Build
+      # step's comment for the full rationale.
       - name: Assert PCH neutrality (Linux)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_PCH_NEUTRALITY_JOBS: "6"
         run: ./scripts/check_pch_neutrality.sh
@@ -110,12 +161,19 @@ jobs:
       # hvenTargets.cmake and the hven configure log; a plain local run of
       # the script (no env var set) still self-cleans as before.
       - name: Run hven install smoke (configure/build/install/consume)
+        id: install_smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
           HVEN_INSTALL_SMOKE_JOBS: "6"
         run: ./scripts/check_install_smoke.sh
 
+      # Gated on the smoke step specifically, not `!cancelled()` alone, same
+      # reason as the macOS lane: this step inspects the install tree the
+      # smoke step produces, so a bare `!cancelled()` would turn a skip into a
+      # second, derivative failure.
       - name: Assert installed export contract (Linux)
+        if: ${{ !cancelled() && steps.install_smoke.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
         run: |
@@ -131,6 +189,14 @@ jobs:
             exit 1
           fi
           ./scripts/check_export_contract.sh "${targets_file}" linux "${align}"
+
+      - name: Upload gtest XML (Linux)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtest-xml-linux
+          path: ${{ runner.temp }}/gtest-xml
+          if-no-files-found: warn
 
   macos-clang-release:
     # This job raised the milestone's Apple-hardware claim ceiling: the
@@ -197,16 +263,43 @@ jobs:
           echo "machine label for this job: $label"
           echo "HVEN_RIG_MACHINE=$label" >> "$GITHUB_ENV"
 
+      # HVEN_SIMD_ARCH=apple-m1 (-mcpu=apple-m1, the wheel path's own Apple
+      # baseline) pins this lane's ISA — same U0 CI flag posture as the Linux
+      # lane's Configure step; see docs/notes/2026-08-16-m3-u0-design.md §2.
       - name: Configure
-        run: cmake --preset macos-clang-release
+        run: cmake --preset macos-clang-release -DHVEN_SIMD_ARCH=apple-m1
 
+      # `id` so the post-Test steps below can condition on THIS step rather
+      # than on the default "nothing has failed yet": every one of them needs a
+      # build tree and none of them needs a test result.
       - name: Build
+        id: build
         run: cmake --build build-macos
 
       - name: Test
         # HVEN_RIG_MACHINE comes from the label step above (via $GITHUB_ENV),
         # which is what makes the committed Accelerate float rows genuinely
         # assert here rather than report CONTEXT-MISMATCH.
+        #
+        # GTEST_OUTPUT: see the Linux lane's Test step for the full rationale
+        # (env-var form of `--gtest_output`, directory-mode to avoid the
+        # per-test-case overwrite collision). This is what a `RecordProperty`
+        # observation -- the M3-4 register's open questions in
+        # tests/sqp/test_ssn_engine.cpp, tests/sqp/test_corpus_cells.cpp --
+        # needs to land in durably on the only Apple hardware this project
+        # reaches, instead of being formatted and discarded.
+        #
+        # No MKL_NUM_THREADS here, and that is a deliberately open question, not
+        # an oversight mirroring the Linux fix. The Linux lane's Test step now
+        # pins MKL_NUM_THREADS=1 (root-caused to three counter-pinned flakes,
+        # see .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md
+        # §7-8), but this lane is Accelerate, not MKL, and its committed float
+        # rows -- the divergence register's per-backend arms -- were recorded
+        # under this lane's current (unpinned) threading config. Changing it here
+        # would be a re-observation decision, not a mechanical port of the Linux
+        # fix, and is left to the gate reviewer.
+        env:
+          GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
         run: ctest --test-dir build-macos --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
@@ -218,7 +311,21 @@ jobs:
       # The full two-build byte-identity comparison runs on the Linux lane
       # only; doing it here would double this lane's build. docs/build.md
       # records that split and what it does and does not prove.
+      #
+      # WHY THIS AND THE THREE STEPS BELOW CARRY A CONDITION (M3 gate B). A
+      # step with no `if:` runs only while no earlier step has failed, so a red
+      # Test step silently skipped this gate, the install smoke, the export
+      # contract and the observation emit on EVERY m3 run -- four checks
+      # reported as "skipped" that nobody had decided to skip. None of them
+      # reads a test result: this one reads compile_commands.json, the two
+      # below build and consume an install tree, and the emit re-runs the rig
+      # in report mode. Each now names the step it genuinely depends on -- a
+      # successful Build -- so it runs on its own merits, while `!cancelled()`
+      # keeps a cancelled job quiet. The ORDER is unchanged and the
+      # dependencies that are real are still enforced; what is fixed is one
+      # step's failure suppressing three later checks that never read it.
       - name: Assert PCH engagement (macOS)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: ./scripts/check_pch_neutrality.sh --engagement-only build-macos
 
       # Install-verification: this is the job that closes the one gap the
@@ -232,12 +339,19 @@ jobs:
       # assertion script also run on the Linux and Windows lanes, below
       # and above) for what is actually checked.
       - name: Run hven install smoke (configure/build/install/consume)
+        id: install_smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
           HVEN_INSTALL_SMOKE_JOBS: "3"
         run: ./scripts/check_install_smoke.sh
 
+      # This one is gated on the smoke step specifically, not on `!cancelled()`
+      # alone: it inspects the install tree that step produces, so without a
+      # successful smoke there is nothing here to assert against and a bare
+      # `!cancelled()` would turn a skip into a second, derivative failure.
       - name: Assert installed export contract (macOS)
+        if: ${{ !cancelled() && steps.install_smoke.outcome == 'success' }}
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
         run: |
@@ -267,8 +381,26 @@ jobs:
       # finding rather than a reporting glitch -- but the same check already
       # ran in the step above, so this step failing on its own would mean
       # the two disagree, which is worth seeing rather than suppressing.
-      # No continue-on-error for that reason; the upload is if:always() so
-      # the artifact survives a failure and can be read.
+      # No continue-on-error for that reason; this step runs whenever the
+      # build produced something to run, so the artifact survives a red Test
+      # step and can be read.
+      #
+      # `!cancelled()` (M3 gate B): the upload was already if:always(), but
+      # this step was not, so a red Test step meant the upload ran, found no
+      # file, and failed on if-no-files-found -- the lane has never once
+      # produced this artifact on m3. The whole point of the artifact is to
+      # supply observations for adjudicating divergences, and a lane is red
+      # precisely when there are divergences to adjudicate: gating the
+      # evidence on the absence of the thing it explains is backwards.
+      #
+      # M3 FINAL REVIEW (FX-2): the UPLOAD below stopped being if:always() for
+      # the mirror-image reason. When THIS step is skipped or fails there is no
+      # file by construction, so an unconditional upload carrying
+      # if-no-files-found: error manufactured a SECOND red on a gate-relevant
+      # lane out of one real failure. It keys off this step's own outcome now
+      # (hence the `id:`), which keeps if-no-files-found: error meaningful -- a
+      # producer that ran green and still emitted nothing is a hard failure --
+      # without inventing a derivative red when the producer never ran.
       #
       # HVEN_RIG_MACHINE is NOT derived here. It comes from the label step
       # near the top of this job, so the rows this step emits and the rows the
@@ -277,6 +409,8 @@ jobs:
       # asserts against. See that step for how the label is built and why it
       # names the image class rather than the runner alias.
       - name: Emit the Accelerate observations for derivation
+        id: accelerate_report
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           HVEN_RIG_REPORT_OUT: rig-report-accelerate.txt
         # No MKL_NUM_THREADS here: it would be decoration on this lane.
@@ -293,12 +427,20 @@ jobs:
           ./build-macos/tests/golden_rig/hven_golden_rig_report
 
       - name: Upload the Accelerate observations
-        if: always()
+        if: ${{ !cancelled() && steps.accelerate_report.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: rig-report-accelerate
           path: rig-report-accelerate.txt
           if-no-files-found: error
+
+      - name: Upload gtest XML (macOS)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtest-xml-macos
+          path: ${{ runner.temp }}/gtest-xml
+          if-no-files-found: warn
 
   windows-clang-release:
     # Like the macOS job above, this was a first-contact lane: the
@@ -391,10 +533,17 @@ jobs:
           echo 'C:\Program Files (x86)\Intel\oneAPI\mkl\latest\bin' >> "$GITHUB_PATH"
           echo 'C:\Program Files (x86)\Intel\oneAPI\compiler\latest\bin' >> "$GITHUB_PATH"
 
+      # HVEN_SIMD_ARCH=x86-64-v3 — same U0 CI flag posture as the Linux lane's
+      # Configure step (this lane also asserts the MKL-backend suite); see
+      # docs/notes/2026-08-16-m3-u0-design.md §2.
       - name: Configure
-        run: cmake --preset windows-clang-release
+        run: cmake --preset windows-clang-release -DHVEN_SIMD_ARCH=x86-64-v3
 
+      # `id` so the post-Test steps below can condition on THIS step rather
+      # than on the default "nothing has failed yet" (M3 gate B, replicated
+      # from the macOS lane -- see its Build step's comment for why).
       - name: Build
+        id: build
         run: cmake --build build-windows
 
       - name: Test
@@ -402,6 +551,19 @@ jobs:
         # the committed float rows name the machine they were derived on, this
         # runner is not it, and labelling it as such would make those rows
         # assert against hardware they were never observed on.
+        #
+        # GTEST_OUTPUT: see the Linux lane's Test step for the full rationale
+        # (env-var form of `--gtest_output`, directory-mode to avoid the
+        # per-test-case overwrite collision).
+        #
+        # MKL_NUM_THREADS: this lane also links and runs against MKL Pardiso
+        # (same hven_tests binary, same counter-/trajectory-pinned suite), so it
+        # gets the same pin as the Linux lane's Test step, for the same reason --
+        # see that step's comment and
+        # .superpowers/sdd/2026-08-14-hven-m3-plan-revB/task-c-r5-report.md §7-8.
+        env:
+          GTEST_OUTPUT: "xml:${{ runner.temp }}/gtest-xml/"
+          MKL_NUM_THREADS: "1"
         run: ctest --test-dir build-windows --output-on-failure --timeout 300
 
       # Cheap half of the PCH check: assert the precompiled header is actually
@@ -413,7 +575,14 @@ jobs:
       # The full two-build byte-identity comparison runs on the Linux lane
       # only; doing it here would double this lane's build. docs/build.md
       # records that split and what it does and does not prove.
+      # M3 gate B: gated on `steps.build.outcome`, not default success-chaining
+      # -- same fix as the macOS lane's identically-commented steps, replicated
+      # here because this pattern (a step with no `if:` inherits `success()`,
+      # so a red Test silently skips every check below it even though none of
+      # them reads a test result) is not macOS-specific. See the macOS Build
+      # step's comment for the full rationale.
       - name: Assert PCH engagement (Windows)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: bash
         run: ./scripts/check_pch_neutrality.sh --engagement-only build-windows
 
@@ -429,6 +598,8 @@ jobs:
       # instead of clang-cl, and the consumer's link would not match how
       # hven itself (or MKL's import libraries) were built.
       - name: Run hven install smoke (configure/build/install/consume)
+        id: install_smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: bash
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
@@ -443,7 +614,12 @@ jobs:
             -DCMAKE_CXX_COMPILER_RANLIB="C:/Program Files/LLVM/bin/llvm-ranlib.exe" \
             -DCMAKE_LINKER="C:/Program Files/LLVM/bin/lld-link.exe"
 
+      # Gated on the smoke step specifically, not `!cancelled()` alone, same
+      # reason as the macOS lane: this step inspects the install tree the
+      # smoke step produces, so a bare `!cancelled()` would turn a skip into a
+      # second, derivative failure.
       - name: Assert installed export contract (Windows)
+        if: ${{ !cancelled() && steps.install_smoke.outcome == 'success' }}
         shell: bash
         env:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
@@ -460,6 +636,14 @@ jobs:
             exit 1
           fi
           ./scripts/check_export_contract.sh "${targets_file}" windows "${align}"
+
+      - name: Upload gtest XML (Windows)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtest-xml-windows
+          path: ${{ runner.temp }}/gtest-xml
+          if-no-files-found: warn
 
       - name: Save oneAPI install logs
         if: always() && steps.cache-oneapi-mkl.outputs.cache-hit != 'true'

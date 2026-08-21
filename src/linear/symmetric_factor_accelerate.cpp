@@ -406,14 +406,22 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         kind_name(opts_.kind)));
     }
     validate_num_threads(opts_.num_threads, "SymmetricFactor");
-    if (opts_.pivot_perturb_exp < 0) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: pivot_perturb_exp must be >= 0, got {}", opts_.pivot_perturb_exp));
-    }
-    if (opts_.max_refinement_iters < 0) {
+    // A present value is validated; std::nullopt is the don't-write state
+    // (on this backend: Apple's own documented defaults -- see the two
+    // options' doc comments) and needs no range check. Identical rule and
+    // message to the MKL adapter's, because the argument's validity is a
+    // property of the surface, not of the backend behind it.
+    if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
         throw std::invalid_argument(
-            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0, got {}",
-                        opts_.max_refinement_iters));
+            fmt::format("SymmetricFactor: pivot_perturb_exp must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.pivot_perturb_exp));
+    }
+    if (opts_.max_refinement_iters.has_value() && *opts_.max_refinement_iters < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.max_refinement_iters));
     }
     if (opts_.cnr_threads < 0) {
         throw std::invalid_argument(fmt::format(
@@ -534,6 +542,22 @@ void SymmetricFactor::set_num_threads(int num_threads) {
     if (session_) {
         session_->set_num_threads(num_threads);
     }
+}
+
+int SymmetricFactor::num_threads() const noexcept {
+    // The same read-through the MKL adapter does, and for the same reason:
+    // `opts_` is only THIS engine's copy, and a co-owner's set_num_threads()
+    // moves the session's without touching it. The mechanism is identical
+    // across backends because it is a statement about which copy is
+    // authoritative for the surface, not about what either backend does with
+    // the number.
+    //
+    // What differs here is only what the count then GOVERNS: nothing.
+    // Accelerate exposes no per-instance thread control, so the value is
+    // stored and applied to no backend call (Options::num_threads' own
+    // BEST-EFFORT-ABSENT contract). Reading it back faithfully is the whole of
+    // this backend's obligation to it, and is exactly what this preserves.
+    return session_ ? session_->config().num_threads : opts_.num_threads;
 }
 
 void SymmetricFactor::analyze(const SpMatRM &A) {

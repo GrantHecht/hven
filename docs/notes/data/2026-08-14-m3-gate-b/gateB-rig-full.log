@@ -1,0 +1,220 @@
+Running main() from /home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 83 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from FailByDesignControl
+[ RUN      ] FailByDesignControl.SqpSeamStillZeroFillsItsPreFactorizationInertia
+[       OK ] FailByDesignControl.SqpSeamStillZeroFillsItsPreFactorizationInertia (3 ms)
+[ RUN      ] FailByDesignControl.SqpSeamDeclaresTheInertiaSurfaceTheFailingTraceNeeds
+[       OK ] FailByDesignControl.SqpSeamDeclaresTheInertiaSurfaceTheFailingTraceNeeds (0 ms)
+[ RUN      ] FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas
+[       OK ] FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (0 ms)
+[----------] 3 tests from FailByDesignControl (3 ms total)
+
+[----------] 50 tests from Arms/SqpTrace
+[ RUN      ] Arms/SqpTrace.T1_PhaseSplitLifecycle/native
+[       OK ] Arms/SqpTrace.T1_PhaseSplitLifecycle/native (3 ms)
+[ RUN      ] Arms/SqpTrace.T1_PhaseSplitLifecycle/native_sqp_parity
+[       OK ] Arms/SqpTrace.T1_PhaseSplitLifecycle/native_sqp_parity (2 ms)
+[ RUN      ] Arms/SqpTrace.T1_PhaseSplitLifecycle/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T1_PhaseSplitLifecycle/native_psiopt_parity (2 ms)
+[ RUN      ] Arms/SqpTrace.T1_PhaseSplitLifecycle/psiopt_old
+[       OK ] Arms/SqpTrace.T1_PhaseSplitLifecycle/psiopt_old (2 ms)
+[ RUN      ] Arms/SqpTrace.T1_PhaseSplitLifecycle/sqp_old
+[       OK ] Arms/SqpTrace.T1_PhaseSplitLifecycle/sqp_old (2 ms)
+[ RUN      ] Arms/SqpTrace.T2_PersistentOracleInterleaving/native
+[       OK ] Arms/SqpTrace.T2_PersistentOracleInterleaving/native (0 ms)
+[ RUN      ] Arms/SqpTrace.T2_PersistentOracleInterleaving/native_sqp_parity
+[       OK ] Arms/SqpTrace.T2_PersistentOracleInterleaving/native_sqp_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T2_PersistentOracleInterleaving/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T2_PersistentOracleInterleaving/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T2_PersistentOracleInterleaving/psiopt_old
+[       OK ] Arms/SqpTrace.T2_PersistentOracleInterleaving/psiopt_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T2_PersistentOracleInterleaving/sqp_old
+[       OK ] Arms/SqpTrace.T2_PersistentOracleInterleaving/sqp_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native
+[       OK ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native (0 ms)
+[ RUN      ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native_sqp_parity
+[       OK ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native_sqp_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_sqp.cpp:174: Skipped
+psiopt-old@mkl does not have a partial-solve predicate -- trace T2b needs it
+
+[  SKIPPED ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/sqp_old
+[       OK ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/sqp_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T3_ValueOnlyRefactorization/native
+[       OK ] Arms/SqpTrace.T3_ValueOnlyRefactorization/native (2 ms)
+[ RUN      ] Arms/SqpTrace.T3_ValueOnlyRefactorization/native_sqp_parity
+[       OK ] Arms/SqpTrace.T3_ValueOnlyRefactorization/native_sqp_parity (3 ms)
+[ RUN      ] Arms/SqpTrace.T3_ValueOnlyRefactorization/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T3_ValueOnlyRefactorization/native_psiopt_parity (3 ms)
+[ RUN      ] Arms/SqpTrace.T3_ValueOnlyRefactorization/psiopt_old
+[       OK ] Arms/SqpTrace.T3_ValueOnlyRefactorization/psiopt_old (2 ms)
+[ RUN      ] Arms/SqpTrace.T3_ValueOnlyRefactorization/sqp_old
+[       OK ] Arms/SqpTrace.T3_ValueOnlyRefactorization/sqp_old (2 ms)
+[ RUN      ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native
+[       OK ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native (1 ms)
+[ RUN      ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native_sqp_parity
+[       OK ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native_sqp_parity (2 ms)
+[ RUN      ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/native_psiopt_parity (2 ms)
+[ RUN      ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_sqp.cpp:267: Skipped
+psiopt-old@mkl does not have a shared factorization handle -- trace T4 needs it
+
+[  SKIPPED ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_sqp.cpp:267: Skipped
+sqp-old@mkl does not have a shared factorization handle -- trace T4 needs it
+
+[  SKIPPED ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native
+[       OK ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native (2 ms)
+[ RUN      ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native_sqp_parity
+[       OK ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native_sqp_parity (3 ms)
+[ RUN      ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/native_psiopt_parity (3 ms)
+[ RUN      ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_sqp.cpp:311: Skipped
+psiopt-old@mkl does not have a shared handle with an epoch and an adopt path -- trace T4b needs it
+
+[  SKIPPED ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_sqp.cpp:311: Skipped
+sqp-old@mkl does not have a shared handle with an epoch and an adopt path -- trace T4b needs it
+
+[  SKIPPED ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T5_InertiaEvidence/native
+[       OK ] Arms/SqpTrace.T5_InertiaEvidence/native (0 ms)
+[ RUN      ] Arms/SqpTrace.T5_InertiaEvidence/native_sqp_parity
+[       OK ] Arms/SqpTrace.T5_InertiaEvidence/native_sqp_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T5_InertiaEvidence/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T5_InertiaEvidence/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T5_InertiaEvidence/psiopt_old
+[       OK ] Arms/SqpTrace.T5_InertiaEvidence/psiopt_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T5_InertiaEvidence/sqp_old
+[       OK ] Arms/SqpTrace.T5_InertiaEvidence/sqp_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native
+[       OK ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native (0 ms)
+[ RUN      ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native_sqp_parity
+[       OK ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native_sqp_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/psiopt_old
+[       OK ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/psiopt_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/sqp_old
+[       OK ] Arms/SqpTrace.T6_RankDeficientFaceReportsAState/sqp_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native
+[       OK ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native (0 ms)
+[ RUN      ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native_sqp_parity
+[       OK ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native_sqp_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/psiopt_old
+[       OK ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/psiopt_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/sqp_old
+[       OK ] Arms/SqpTrace.T7_BackendParameterSurfaceFloor/sqp_old (0 ms)
+[ RUN      ] Arms/SqpTrace.T8_ThreadCountControl/native
+[       OK ] Arms/SqpTrace.T8_ThreadCountControl/native (4 ms)
+[ RUN      ] Arms/SqpTrace.T8_ThreadCountControl/native_sqp_parity
+[       OK ] Arms/SqpTrace.T8_ThreadCountControl/native_sqp_parity (4 ms)
+[ RUN      ] Arms/SqpTrace.T8_ThreadCountControl/native_psiopt_parity
+[       OK ] Arms/SqpTrace.T8_ThreadCountControl/native_psiopt_parity (4 ms)
+[ RUN      ] Arms/SqpTrace.T8_ThreadCountControl/psiopt_old
+[       OK ] Arms/SqpTrace.T8_ThreadCountControl/psiopt_old (3 ms)
+[ RUN      ] Arms/SqpTrace.T8_ThreadCountControl/sqp_old
+[       OK ] Arms/SqpTrace.T8_ThreadCountControl/sqp_old (3 ms)
+[----------] 50 tests from Arms/SqpTrace (71 ms total)
+
+[----------] 30 tests from Arms/InteriorPointTrace
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native (3 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_sqp_parity (4 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_psiopt_parity (4 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/psiopt_old (4 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/sqp_old
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/sqp_old (4 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/sqp_old
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/sqp_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/sqp_old
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/sqp_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native (1 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_sqp_parity (1 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_psiopt_parity (2 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/psiopt_old (2 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/sqp_old
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/sqp_old (1 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_interior_point.cpp:266: Failure
+Expected: (e.state) != (hl::InertiaEvidence::State::kObserved), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+nothing has been factorized, so there is nothing to have observed
+
+/home/ghecht/Projects/hven/tests/golden_rig/traces_interior_point.cpp:268: Failure
+Value of: e.n_pos == 0 && e.n_neg == 0 && e.n_zero == 0
+  Actual: true
+Expected: false
+counts with nothing behind them must stay invalid, never be zero-filled -- a zero-filled triple reads exactly like a real one
+
+[  FAILED  ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old, where GetParam() = sqp-old@mkl (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_interior_point.cpp:288: Skipped
+sqp-old@mkl does not have a refinement-step readback -- trace P6 needs it
+
+[  SKIPPED ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp_old (0 ms)
+[----------] 30 tests from Arms/InteriorPointTrace (35 ms total)
+
+[----------] Global test environment tear-down
+[==========] 83 tests from 3 test suites ran. (110 ms total)
+[  PASSED  ] 76 tests.
+[  SKIPPED ] 6 tests, listed below:
+[  SKIPPED ] Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt_old
+[  SKIPPED ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt_old
+[  SKIPPED ] Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp_old
+[  SKIPPED ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt_old
+[  SKIPPED ] Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp_old
+[  SKIPPED ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp_old
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old, where GetParam() = sqp-old@mkl
+
+ 1 FAILED TEST

@@ -32,12 +32,26 @@ originated in tycho and a companion SQP engine originated in a sibling
 project, but both engines' identity in this repository is `hven` — their
 origin project names do not appear here.
 
-One bounded exception, for as long as it exists: the golden-numerics rig's two
+Two bounded exceptions.
+
+The first, for as long as it exists: the golden-numerics rig's two
 OLD-SEAM adapters (`tests/golden_rig/seam_psiopt.cpp`, `seam_sqp.cpp`) name
 those projects, because they compile against those checkouts and are pinned to
 them by path and by tag — a temporary test-only artifact cannot be
 origin-neutral about the tree it includes. They are deleted when the two engine
-migrations close, and the rule holds without exception everywhere else.
+migrations close.
+
+The second, permanent by construction: **frozen baseline and evidence CSVs
+retain their origin-naming provenance headers verbatim.** A provenance header
+records what actually ran — the binary, the invocation, the machine — and a
+pinned artifact's bytes are the pin. Rewriting one to satisfy a naming rule
+would be a silent pin mutation, which §7 forbids; the exception exists precisely
+to prevent a future cleanup pass from "fixing" a pin for cosmetic reasons. These
+headers are historical records, not statements about this repository's identity.
+Artifacts derived *after* the migrations close carry hven-native headers, so the
+exception does not grow.
+
+Outside these two, the rule holds without exception.
 
 ## 2. Repository structure
 
@@ -148,9 +162,14 @@ no exceptions:
 - **SNOPT source firewall (absolute).** No SNOPT source, headers, or
   decompiled material may be read or incorporated into this repository,
   by any agent or tool, under any circumstance.
-- **MKL iparm changes require human review.** Any change to the Pardiso
-  `iparm` surface must be flagged for explicit human review before it
-  merges.
+- **MKL iparm changes require labeling and validation evidence, not
+  blocking human review** (owner ruling, reiterated 2026-08-20; the
+  explicit-human-review form of this rule predated hven and the SQP
+  proof of concept and is retired). Any change to the Pardiso `iparm`
+  surface must carry an `IPARM-SURFACE` label on its commit, cite the
+  validation evidence that justifies it, and pass the tycho-lane review
+  when one is in scope. The owner spot-checks at their discretion; their
+  sign-off is not a merge gate.
 - **MKL redistribution terms are sensitive.** Flag any change touching
   MKL integration or redistribution for manual review.
 - **Math-only license discipline for GPL/LGPL-tainted references.**
@@ -164,6 +183,10 @@ no exceptions:
   zero-filled or interpolated. Absent evidence is reported as absent.
 - **`notices/` is protected.** Never modify or delete an existing entry
   in `notices/`; only add new entries when a new dependency is vendored.
+  The one exception: append-only deviation records inside a derived
+  file's own entry — the sanctioned test-seam deviation recording that
+  §6's instrumentation rule itself mandates — may be appended to;
+  existing text and prior records may never be altered or deleted.
 - **Instrument at the boundary by preference, not by prohibition.** Test
   hooks belong in the Apache-2.0 adapter file that owns the contract logic
   around a backend session, not inside the MPL-derived session file itself
@@ -183,13 +206,41 @@ no exceptions:
 - Counters are the asserted currency of correctness and performance
   claims; wall-clock timings are informational only.
 - Quoted wall-clock numbers are single-threaded unless stated otherwise.
-- Concurrent MKL solvers spin-wait catastrophically against each other,
-  so benchmark and sweep runners must serialize their suites rather than
-  running solves in parallel.
+- Concurrent MKL solvers spin-wait catastrophically against each other, so
+  any measurement that ASSERTS wall-clock — a benchmark, a timing baseline,
+  a throughput or build-time comparison — must serialize its suite: one
+  solve at a time, alone on the machine. Nothing produced any other way is
+  a quotable timing.
+- A replay asserting only deterministic per-process columns — counters,
+  statuses, and residuals computed at a fixed thread count — may co-run.
+  Such columns are scheduling-invariant at `MKL_NUM_THREADS=1`, and
+  contention can only push a cell toward a budget/deadline outcome, never
+  toward a false success or a false value. The terms are fixed: one
+  process per pinned PHYSICAL core (SMT siblings left idle),
+  `MKL_NUM_THREADS=1` in every process, and wall-clock from such a run
+  stays informational — it is never quoted as a measurement and never
+  compared against a serial timing. Wall-clock-DEPENDENT statuses —
+  deadline-truncated outcomes — are not scheduling-invariant and must run
+  solo, or co-run only with their full budget honored.
+- A deviation observed under a co-run is a candidate, not a regression.
+  Re-run the deviating cell ALONE, under the serial rule above, and
+  reproduce the deviation before calling it one.
+- A co-run protocol is declared in the evidence artifact it produces — the
+  tiering rule, the widths, and the pinning — so a reader knows the
+  conditions the counters were taken under.
 - Every benchmark artifact carries a provenance stamp (toolchain,
   hardware, date, commit).
 - Intentional breaks of a pinned/reproduced value are declared and
   re-derived explicitly — never silent.
+- The library, its tests, and its bench compile under **one uniform flag
+  regime** (owner ruling, 2026-08-15): TU boundaries are drawn for code
+  quality and build efficiency, not to preserve bit-identity against an
+  existing census baseline, and the runtime-neutrality bar above is
+  unchanged by that. The unification and the re-derivation of every
+  flag-sensitive pin, battery artifact, and census baseline it moves are
+  one **declared event** — phase C's task U0 — governed by the protocol
+  above, not an exception to it. See
+  `docs/notes/2026-08-15-m3-phase-c-plan.md` §0 and §6 U0.
 
 ## 8. Process rules for agents
 

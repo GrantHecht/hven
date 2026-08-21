@@ -108,7 +108,19 @@ set(HVEN_TEST_SOURCES
     core/test_version.cpp
     core/test_sparse_backend_link.cpp
     core/test_pattern_hash.cpp
+    # The include-graph regression net for CLAUDE.md section 2's tier order:
+    # scans include/hven/core/'s own headers and fails if any of them includes a
+    # header from a tier ABOVE core/. It reads source text rather than linking
+    # anything, so it belongs to no backend and is not platform-gated. See
+    # HVEN_CORE_INCLUDE_DIR below for the path it is given.
+    core/test_core_layering.cpp
     linear/test_dense_symmetric_factor.cpp
+    # The dense factor's phase-B growth (Triangle, try_factorize, block
+    # evidence), in its own file rather than appended to the suite above:
+    # that suite is the frozen witness that the pre-growth contract did not
+    # move, so it stays byte-for-byte untouched by the change that grew the
+    # surface.
+    linear/test_dense_symmetric_factor_growth.cpp
     # Evidence-honesty invariants written once against the public API and
     # checked on whichever backend this build targets -- see
     # docs/testing.md and the file's own header comment. Deliberately NOT
@@ -137,6 +149,17 @@ target_compile_options(hven_tests PRIVATE ${COMPILE_FLAGS})
 # Same single source of truth as the hven target itself (root CMakeLists.txt)
 # — see src/core/version.cpp and core/test_version.cpp.
 target_compile_definitions(hven_tests PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}")
+
+# The directory core/test_core_layering.cpp scans. Rooted at THIS directory
+# rather than at ${CMAKE_SOURCE_DIR}, for the same reason HVEN_SRC_DIR below is:
+# under add_subdirectory(hven) from a parent project, CMAKE_SOURCE_DIR is the
+# PARENT's top-level source directory and would point the scan somewhere that
+# does not exist. Passed as an absolute path so the test is independent of the
+# working directory ctest launches it from; the test asserts the directory exists
+# and contains the headers it expects, so a wrong path fails loudly instead of
+# scanning nothing and passing.
+target_compile_definitions(hven_tests
+    PRIVATE HVEN_CORE_INCLUDE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../include/hven/core")
 
 gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
@@ -242,3 +265,15 @@ add_subdirectory(golden_rig)
 ################################################################################
 
 add_subdirectory(interior)
+
+################################################################################
+# The SQP engine test suite, migrated at M3 (phase A). See
+# tests/sqp/CMakeLists.txt. UNIX-only for now: the suite's subprocess
+# wall-deadline tests drive the corpus runner, whose deadline enforcement is
+# fork/exec orchestration, and the suite has never been built or derived on
+# Windows — enabling it there is future work, not a migration step.
+################################################################################
+
+if(NOT WIN32)
+    add_subdirectory(sqp)
+endif()

@@ -1,0 +1,50 @@
+B1 direct cost attribution (plan step 2) -- arm S, one run per cell.
+Accumulators: hven::pattern_hash (calls, summed nnz, ns), the numeric
+factorization session_->factorize (calls, ns), and the SsnEngine major
+loop (iterations, ns). One process per cell; the figures below are the
+solving child's, and cover the cell's SETUP HOP as well as its reported
+solve -- see the CONTAM column.
+
+X = the ONE extra hash the retarget added, priced at the measured
+    per-call cost: X%maj = (hash_ns/hash_calls) / (major_ns/major_calls).
+
+cell                               maj  ssn  h/maj   nnz/h   ns/hash    ns/fact   ns/major hash%maj  X%maj  X%fact CONTAM
+-------------------------------------------------------------------------------------------------------------------------
+f7_n750_path_neutral_control        34   30   3.35   36550    476856    2372427    6500559    24.6%  7.34%   20.1% -
+f7_n800_path_neutral                39   35   3.31   39197    511861    2545866    6923611    24.5%  7.39%   20.1% -
+f7_n800_path_corrupted              56   22   3.38   38875    506924    2517605    6535733    26.2%  7.76%   20.1% setup
+f7_n800_path_warm                   53   20   3.34   39063    509818    2526581    6606900    25.8%  7.72%   20.2% setup
+f7_n800_path_physics                33   31   3.70   37161    482655    2487635    6893312    25.9%  7.00%   19.4% -
+f7_n800_path_activity               36   31   3.31   38840    506147    2539504    7064771    23.7%  7.16%   19.9% setup
+f7_n825_path_neutral_control        38   32   3.32   40383    526683    2618684    7195507    24.3%  7.32%   20.1% setup
+f7_n1000_path_neutral               29   25   3.41   48398    630791    3183221    8732157    24.7%  7.22%   19.8% -
+f7_n1000_path_corrupted             60   24   3.35   48740    635509    3198513    8248149    25.8%  7.70%   19.9% setup
+f7_n1000_path_warm                  62   27   3.29   49117    640648    3214259    8365218    25.2%  7.66%   19.9% setup
+f7_n1000_path_physics               32   30   3.56   47049    612196    3169281    8755551    24.9%  6.99%   19.3% -
+f7_n1000_path_activity              32   28   3.41   47913    623640    3208110    9002552    23.6%  6.93%   19.4% setup
+f7_n2000_path_corrupted             87   37 322.38   45745    573425    3385480   16143130  1145.1%  3.55%   16.9% setup
+f7_n2000_path_warm                  61   12 458.46   45587    571294    3376256   16203897  1616.4%  3.53%   16.9% setup
+f7_n5000_path_activity              22   20   3.27  246028   3209498   16324825   46899948    22.4%  6.84%   19.7% -
+f7_n10000_path_activity             16   14   3.38  485860   6333286   33439988   99263189    21.5%  6.38%   18.9% -
+f7_n20000_path_activity             17   15   3.35  973861  12695439   71094429  207474755    20.5%  6.12%   17.9% -
+
+CONTAM=setup: the cell's setup hop (a real cold solve at p0 for the
+kCorrupted/kFullWarm taxonomies) is inside the same process, so h/maj and
+hash%maj mix two solves.
+
+AMENDED, review fix round 1 (I-1). CONTAM is a FLAG, not the exclusion
+rule -- it says a setup hop shares the process, not that the cell is
+unusable, and five of the eleven cells behind report.md section 5's
+headline range carry it. The exclusion rule is stated in report.md
+section 5 and is applied to h/maj: a cell drops out of the per-call
+statistics when h/maj is implausible against the three-per-major the call
+sites predict. Exactly two rows fail it -- f7_n2000_path_corrupted (322)
+and f7_n2000_path_warm (458) against 3.27-3.70 everywhere else -- because
+their setup hop's walk-engine cold solve contributes ~8100 factorizations
+and ~28000 hashes against 87 and 61 SSN majors. Their A/B deltas (7.45%
+and 6.62%) are among the highest measured, so their exclusion lowers the
+reported range rather than flattering it.
+
+Probe arm (hven_sqp_ssn_safeguard_probe census 20000, one process):
+[B1PROBE] hash_calls=1726540 hash_nnz=42086886 hash_ns=668350760 fact_calls=572660 fact_ns=1698942988 major_calls=517301 major_ns=6173146011
+  hashes/major = 3.34; ns/hash = 387 (nnz/hash = 24); ns/major = 11933; X%maj = 3.24%

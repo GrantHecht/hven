@@ -1,0 +1,1 @@
+[B1PROBE] hash_calls=1726540 hash_nnz=42086886 hash_ns=668350760 fact_calls=572660 fact_ns=1698942988 major_calls=517301 major_ns=6173146011

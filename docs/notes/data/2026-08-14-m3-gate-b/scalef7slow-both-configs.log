@@ -1,0 +1,12 @@
+# ScaleF7Slow.* run explicitly for M3 gate B at commit 6535566, MKL_NUM_THREADS=1, both configs (build/ Release, build-debug/ Debug).
+# Ran post-battery and pre-census on the otherwise-idle battery host; captured as tails, so what follows is each config's gtest summary block.
+=== Release ===
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (54966 ms total)
+[  PASSED  ] 6 tests.
+=== Debug ===
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (1013000 ms total)
+[  PASSED  ] 6 tests.

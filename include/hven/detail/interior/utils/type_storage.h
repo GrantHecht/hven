@@ -5,7 +5,7 @@
 // General-purpose SBO container with value semantics. Replaces
 // rubber_types::TypeErasure as the storage behind this library's erased
 // function handles — ConstraintInterface and ObjectiveInterface (see
-// detail/interior/solver_interface_specs.h) — and available to any consumer
+// detail/solvers/solver_interface_specs.h) — and available to any consumer
 // handle built on the same clone_into convention below.
 //
 // Convention: the base class C must declare

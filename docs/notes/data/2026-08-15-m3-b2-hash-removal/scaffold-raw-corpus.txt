@@ -1,0 +1,35 @@
+start 2026-08-15T05:45:29-04:00
+### f7_n750_path_neutral_control
+[B1PROBE] hash_calls=81 hash_nnz=2904897 hash_ns=37874222 fact_calls=38 fact_ns=91006898 major_calls=34 major_ns=206197950
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n800_path_neutral
+[B1PROBE] hash_calls=91 hash_nnz=3506513 hash_ns=45676835 fact_calls=43 fact_ns=108704606 major_calls=39 major_ns=248968918
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n800_path_corrupted
+[B1PROBE] hash_calls=134 hash_nnz=5104114 hash_ns=66471758 fact_calls=63 fact_ns=158758475 major_calls=56 major_ns=336966881
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n800_path_warm
+[B1PROBE] hash_calls=125 hash_nnz=4793167 hash_ns=62447748 fact_calls=59 fact_ns=149069783 major_calls=53 major_ns=321990950
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n825_path_neutral_control
+[B1PROBE] hash_calls=89 hash_nnz=3532018 hash_ns=46044804 fact_calls=42 fact_ns=110617503 major_calls=38 major_ns=253057477
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n1000_path_neutral
+[B1PROBE] hash_calls=71 hash_nnz=3363721 hash_ns=43826174 fact_calls=33 fact_ns=106830925 major_calls=29 major_ns=236928000
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n1000_path_corrupted
+[B1PROBE] hash_calls=142 hash_nnz=6788498 hash_ns=88448289 fact_calls=67 fact_ns=214516338 major_calls=60 major_ns=455702955
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n1000_path_warm
+[B1PROBE] hash_calls=143 hash_nnz=6909697 hash_ns=90054833 fact_calls=68 fact_ns=219455189 major_calls=62 major_ns=479585743
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n5000_path_activity
+[B1PROBE] hash_calls=51 hash_nnz=12359313 hash_ns=161028865 fact_calls=24 fact_ns=393619256 major_calls=22 major_ns=965611960
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n10000_path_activity
+[B1PROBE] hash_calls=39 hash_nnz=18586617 hash_ns=241802095 fact_calls=18 fact_ns=596224589 major_calls=16 major_ns=1481484605
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+### f7_n20000_path_activity
+[B1PROBE] hash_calls=41 hash_nnz=39190279 hash_ns=510281851 fact_calls=19 fact_ns=1346616173 major_calls=17 major_ns=3307131132
+[B1PROBE] hash_calls=0 hash_nnz=0 hash_ns=0 fact_calls=0 fact_ns=0 major_calls=0 major_ns=0
+done 2026-08-15T05:45:40-04:00

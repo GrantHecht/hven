@@ -1,0 +1,65 @@
+# U0 old-vs-new walk-census per-cell delta (all 57 cells).
+# old = bench/baselines/2026-08-06-corpus/walk_baseline.csv (pre-U0 baseline of record).
+# new = bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv (= census run 1 rows).
+# run1_run2_asserted_agree compares run 1 and run 2 on the 13 asserted columns.
+# totals: status flips 0/57; cells with counter movement 0/57;
+#         cells with a kkt_residual string change 41/57.
+# wall_s is deliberately absent: it is co-run scheduling-dependent and asserts nothing.
+cell_id,status_old,status_new,status_flip,factorizations_old,factorizations_new,qp_minors_old,qp_minors_new,escapes_old,escapes_new,qp_subproblems_old,qp_subproblems_new,qp_fact_per_qp_old,qp_fact_per_qp_new,counter_delta,kkt_residual_old,kkt_residual_new,kkt_log10_ratio,run1_run2_asserted_agree
+f7_n10000_bound_activity,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.016558709e-15,1.016559106e-15,+1.696e-07,byte-agreed
+f7_n10000_bound_corrupted,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,9.189170502e-14,9.189172314e-14,+8.564e-08,byte-agreed
+f7_n10000_bound_neutral,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,6.300386632e-13,6.300386629e-13,-2.068e-10,byte-agreed
+f7_n10000_bound_physics,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.016558709e-15,1.016559106e-15,+1.696e-07,byte-agreed
+f7_n10000_bound_warm,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,4.196023677e-14,4.196022966e-14,-7.359e-08,byte-agreed
+f7_n10000_path_activity,dnf_budget,dnf_budget,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n10000_path_corrupted,dnf_setup,dnf_setup,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n10000_path_neutral,dnf_budget,dnf_budget,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n10000_path_physics,Optimal,Optimal,no,8798,8798,19311,19311,0,0,2,2,"8797;1","8797;1",unmoved,1.399679852e-10,1.399675305e-10,-1.411e-06,byte-agreed
+f7_n10000_path_warm,dnf_setup,dnf_setup,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n1000_bound_activity,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.167130933e-16,1.168049964e-16,+3.418e-04,byte-agreed
+f7_n1000_bound_corrupted,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,9.157896609e-15,9.157873527e-15,-1.095e-06,byte-agreed
+f7_n1000_bound_neutral,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,6.295816157e-14,6.295832335e-14,+1.116e-06,byte-agreed
+f7_n1000_bound_physics,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.167130933e-16,1.168049964e-16,+3.418e-04,byte-agreed
+f7_n1000_bound_warm,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,4.198645758e-15,4.198558725e-15,-9.003e-06,byte-agreed
+f7_n1000_path_activity,Optimal,Optimal,no,4,4,548,548,0,0,2,2,"3;1","3;1",unmoved,5.823990462e-09,5.823994991e-09,+3.377e-07,byte-agreed
+f7_n1000_path_corrupted,Optimal,Optimal,no,2976,2976,4049,4049,0,0,3,3,"2974;1;1","2974;1;1",unmoved,8.134198393e-12,8.134399458e-12,+1.073e-05,byte-agreed
+f7_n1000_path_neutral,Optimal,Optimal,no,9951,9951,11043,11043,0,0,4,4,"1;9948;1;1","1;9948;1;1",unmoved,1.875413158e-10,1.875412048e-10,-2.570e-07,byte-agreed
+f7_n1000_path_physics,Optimal,Optimal,no,5,5,623,623,0,0,2,2,"4;1","4;1",unmoved,4.067572955e-10,4.067571900e-10,-1.126e-07,byte-agreed
+f7_n1000_path_warm,Optimal,Optimal,no,2,2,12,12,0,0,2,2,"1;1","1;1",unmoved,3.364059716e-10,3.364060441e-10,+9.360e-08,byte-agreed
+f7_n20000_bound_activity,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,2.015851318e-15,2.015847636e-15,-7.932e-07,byte-agreed
+f7_n20000_bound_corrupted,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.838067080e-13,1.838068087e-13,+2.379e-07,byte-agreed
+f7_n20000_bound_neutral,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.259925400e-12,1.259925399e-12,-3.447e-10,byte-agreed
+f7_n20000_bound_physics,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,2.015851318e-15,2.015847636e-15,-7.932e-07,byte-agreed
+f7_n20000_bound_warm,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,8.390643321e-14,8.390643067e-14,-1.315e-08,byte-agreed
+f7_n20000_path_activity,dnf_budget,dnf_budget,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n20000_path_corrupted,dnf_setup,dnf_setup,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n20000_path_neutral,dnf_budget,dnf_budget,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n20000_path_physics,dnf_budget,dnf_budget,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n20000_path_warm,dnf_setup,dnf_setup,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n2000_bound_activity,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,2.168086708e-16,2.168216410e-16,+2.598e-05,byte-agreed
+f7_n2000_bound_corrupted,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.834299600e-14,1.834292390e-14,-1.707e-06,byte-agreed
+f7_n2000_bound_neutral,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,1.259764085e-13,1.259764344e-13,+8.929e-08,byte-agreed
+f7_n2000_bound_physics,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,2.168086708e-16,2.168216410e-16,+2.598e-05,byte-agreed
+f7_n2000_bound_warm,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,8.394888483e-15,8.394924906e-15,+1.884e-06,byte-agreed
+f7_n2000_path_activity,Optimal,Optimal,no,8,8,1505,1505,0,0,2,2,"7;1","7;1",unmoved,3.049823008e-09,3.049823215e-09,+2.948e-08,byte-agreed
+f7_n2000_path_corrupted,NumericalError,NumericalError,no,39783,39783,40000,40000,0,0,2,2,"19911;19872","19911;19872",unmoved,9.843817033e-02,9.843817033e-02,+0.000e+00,byte-agreed
+f7_n2000_path_neutral,NumericalError,NumericalError,no,39744,39744,40004,40004,0,0,3,3,"1;19871;19872","1;19871;19872",unmoved,3.889087297e-01,3.889087297e-01,+0.000e+00,byte-agreed
+f7_n2000_path_physics,Optimal,Optimal,no,9,9,1396,1396,0,0,2,2,"8;1","8;1",unmoved,2.290368834e-10,2.290368260e-10,-1.088e-07,byte-agreed
+f7_n2000_path_warm,Optimal,Optimal,no,7,7,1615,1615,0,0,3,3,"5;1;1","5;1;1",unmoved,4.904192017e-12,4.904145803e-12,-4.093e-06,byte-agreed
+f7_n5000_bound_activity,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,5.167993121e-16,5.167818090e-16,-1.471e-05,byte-agreed
+f7_n5000_bound_corrupted,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,4.592201604e-14,4.592198241e-14,-3.180e-07,byte-agreed
+f7_n5000_bound_neutral,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,3.150169372e-13,3.150169743e-13,+5.115e-08,byte-agreed
+f7_n5000_bound_physics,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,5.167993121e-16,5.167818090e-16,-1.471e-05,byte-agreed
+f7_n5000_bound_warm,Optimal,Optimal,no,1,1,2,2,0,0,1,1,"1","1",unmoved,2.098299057e-14,2.098298050e-14,-2.084e-07,byte-agreed
+f7_n5000_path_activity,Optimal,Optimal,no,24,24,5250,5250,0,0,2,2,"23;1","23;1",unmoved,1.890160860e-09,1.890156979e-09,-8.917e-07,byte-agreed
+f7_n5000_path_corrupted,dnf_budget,dnf_budget,no,-1,-1,-1,-1,-1,-1,-1,-1,"","",unmoved,-1.0,-1.0,n/a,byte-agreed
+f7_n5000_path_neutral,NumericalError,NumericalError,no,39744,39744,40004,40004,0,0,3,3,"1;19871;19872","1;19871;19872",unmoved,3.889087297e-01,3.889087297e-01,+0.000e+00,byte-agreed
+f7_n5000_path_physics,Optimal,Optimal,no,19,19,3656,3656,0,0,2,2,"18;1","18;1",unmoved,1.450679404e-10,1.450680211e-10,+2.416e-07,byte-agreed
+f7_n5000_path_warm,NumericalError,NumericalError,no,39744,39744,40000,40000,0,0,2,2,"19872;19872","19872;19872",unmoved,3.889087297e-01,3.889087297e-01,+0.000e+00,byte-agreed
+f7_n750_path_neutral_control,Optimal,Optimal,no,7865,7865,9297,9297,0,0,4,4,"1;7862;1;1","1;7862;1;1",unmoved,1.874009836e-10,1.874010946e-10,+2.572e-07,byte-agreed
+f7_n800_path_activity,Optimal,Optimal,no,3,3,385,385,0,0,2,2,"2;1","2;1",unmoved,6.914598890e-09,6.914595476e-09,-2.144e-07,byte-agreed
+f7_n800_path_corrupted,Optimal,Optimal,no,14,14,1795,1795,0,0,3,3,"12;1;1","12;1;1",unmoved,8.379326530e-12,8.379476637e-12,+7.780e-06,byte-agreed
+f7_n800_path_neutral,Optimal,Optimal,no,29222,29222,30165,30165,0,0,5,5,"1;19872;9347;1;1","1;19872;9347;1;1",unmoved,1.874362887e-10,1.874362887e-10,+0.000e+00,byte-agreed
+f7_n800_path_physics,Optimal,Optimal,no,6,6,481,481,0,0,2,2,"5;1","5;1",unmoved,4.777161948e-10,4.777161882e-10,-6.000e-09,byte-agreed
+f7_n800_path_warm,Optimal,Optimal,no,2,2,6,6,0,0,2,2,"1;1","1;1",unmoved,4.212497209e-10,4.212497650e-10,+4.547e-08,byte-agreed
+f7_n825_path_neutral_control,Optimal,Optimal,no,7605,7605,9561,9561,0,0,4,4,"1;7601;2;1","1;7601;2;1",unmoved,1.874508326e-10,1.874508326e-10,+0.000e+00,byte-agreed

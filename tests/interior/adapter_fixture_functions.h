@@ -18,7 +18,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/detail/interior/solver_interface_specs.h"
+#include "hven/detail/solvers/solver_interface_specs.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace adapter_fixture {
@@ -110,6 +110,17 @@ struct StubPartialObjective : StubConstraintSurface {
 /// one direction.
 struct StubMixinConstraintOnly : StubConstraintSurface {};
 
+/// Registered by a hand-written adapter that declares the type objective-only
+/// through the ConstraintUnsupported mixin -- the mirror image of
+/// StubMixinConstraintOnly, and the constraint-side half of the seam's
+/// half-policy coverage. It carries the scalar objective surface (inherited
+/// from StubScalarObjective) because the direction its adapter DOES support
+/// has to actually work; what makes it objective-only is the adapter's
+/// declaration, not a missing member. That distinction is the point: the
+/// refusal on the constraint route must be the mixin's authored answer, not a
+/// lookup failure that happens to look like one.
+struct StubMixinObjectiveOnly : StubScalarObjective {};
+
 /// Registered by a hand-written adapter that provides install_constraint and
 /// simply OMITS install_objective, without the mixin. Specialization lookup
 /// does not fall back to the primary template, so only the interface's own
@@ -154,6 +165,20 @@ struct SolverInterfaceAdapter<adapter_fixture::StubMixinConstraintOnly>
     static void install_constraint(const adapter_fixture::StubMixinConstraintOnly &t,
                                    ConstraintInterface &ci) {
         DirectFunctionModel<adapter_fixture::StubMixinConstraintOnly>::install_constraint(t, ci);
+    }
+};
+
+// The same composition pattern in the other direction: install_objective
+// written out, install_constraint inherited from the mixin that refuses it in
+// words. Multiple inheritance is unavailable here for the same reason as above
+// -- DirectFunctionModel supplies an install_constraint of its own, so
+// inheriting both would make the name ambiguous.
+template <>
+struct SolverInterfaceAdapter<adapter_fixture::StubMixinObjectiveOnly>
+    : ConstraintUnsupported<adapter_fixture::StubMixinObjectiveOnly> {
+    static void install_objective(const adapter_fixture::StubMixinObjectiveOnly &t,
+                                  ObjectiveInterface &oi) {
+        DirectFunctionModel<adapter_fixture::StubMixinObjectiveOnly>::install_objective(t, oi);
     }
 };
 

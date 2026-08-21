@@ -45,12 +45,10 @@ option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Tes
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
 
-# bench/ and bindings/ are empty scaffolding directories today (no
-# CMakeLists.txt yet) — fail loudly rather than silently no-op if someone
-# turns the option on before the subdirectory exists.
-if(HVEN_BUILD_BENCH)
-    message(FATAL_ERROR "HVEN_BUILD_BENCH=ON but bench/ has no CMakeLists.txt yet — not yet available.")
-endif()
+# bindings/ is an empty scaffolding directory today (no CMakeLists.txt yet)
+# — fail loudly rather than silently no-op if someone turns the option on
+# before the subdirectory exists. bench/ became real at M3 (the SQP engine's
+# bench harness) and is wired in below, next to the tests.
 if(HVEN_BUILD_BINDINGS)
     message(FATAL_ERROR "HVEN_BUILD_BINDINGS=ON but bindings/ has no CMakeLists.txt yet — not yet available.")
 endif()
@@ -469,9 +467,80 @@ target_compile_definitions(hven
 # Sources come from src/CMakeLists.txt via target_sources(hven PRIVATE ...).
 add_subdirectory(src)
 
+################################################################################
+# SNOPT — the SQP engine's third-party comparison oracle (migrated at M3;
+# foreign solvers are permitted in bench/analysis as comparison oracles by
+# standing ruling, never on the library surface).
+#
+# SNOPT is COMMERCIAL AND NOT VENDORED. Its binary and licence stay entirely
+# OUTSIDE this repository and are referenced by path; nothing SNOPT-derived is
+# committed here — see bench/snopt_f7_driver.h's banner for the full source
+# firewall.
+#
+# THE GUARD IS LOAD-BEARING, NOT A CONVENIENCE. The SQP suite's SNOPT gate
+# tests and the SNOPT bench target are built ONLY when an installation is
+# actually found; without one the suite registers its no-SNOPT count and no
+# target references SNOPT. Both configurations are proven at the M3 gate, by
+# configuring once with -DHVEN_SQP_SNOPT_DIR pointed at a nonexistent path.
+#
+# The detection lives HERE, above both add_subdirectory calls, because
+# tests/ is added before bench/ and both consume the single result — a cache
+# variable set inside bench/ would not exist yet when tests/ is configured.
+################################################################################
+set(HVEN_SQP_SNOPT_DIR "$ENV{HOME}/Software/snopt7" CACHE PATH
+    "Path to a SNOPT 7 installation (expects include/snoptProblem.hpp and lib/libsnopt7_cpp). \
+Set to a nonexistent path to build without SNOPT.")
+
+set(HVEN_SQP_HAVE_SNOPT OFF)
+if(NOT WIN32 AND EXISTS "${HVEN_SQP_SNOPT_DIR}/include/snoptProblem.hpp")
+    # The public C++ interface layer (libsnopt7_cpp) and the solver core
+    # (libsnopt7). Both are required: the wrapper classes live in the former
+    # and every f_sn* entry point in the latter. NO_DEFAULT_PATH keeps this
+    # from silently picking up some other SNOPT on the system.
+    find_library(HVEN_SQP_SNOPT_CPP_LIBRARY NAMES snopt7_cpp
+        HINTS "${HVEN_SQP_SNOPT_DIR}/lib" NO_DEFAULT_PATH)
+    find_library(HVEN_SQP_SNOPT_LIBRARY NAMES snopt7
+        HINTS "${HVEN_SQP_SNOPT_DIR}/lib" NO_DEFAULT_PATH)
+    if(HVEN_SQP_SNOPT_CPP_LIBRARY AND HVEN_SQP_SNOPT_LIBRARY)
+        set(HVEN_SQP_HAVE_SNOPT ON)
+        add_library(hven_sqp_snopt INTERFACE)
+        # SYSTEM so SNOPT's headers never contribute warnings to our build.
+        target_include_directories(hven_sqp_snopt SYSTEM INTERFACE
+            "${HVEN_SQP_SNOPT_DIR}/include")
+        # libsnopt7 is a Fortran library, so libgfortran is required at link
+        # time even though every caller here is C++. The Itanium C++ ABI is
+        # shared between the GCC build of the wrapper and this clang build,
+        # and no std:: type crosses the interface (the wrapper's ABI is raw
+        # pointers and PODs only), so mixing the two is safe.
+        target_link_libraries(hven_sqp_snopt INTERFACE
+            "${HVEN_SQP_SNOPT_CPP_LIBRARY}" "${HVEN_SQP_SNOPT_LIBRARY}" gfortran)
+        # Consumers compile against the same guard the sources test, so a
+        # translation unit compiled without SNOPT is inert rather than broken.
+        target_compile_definitions(hven_sqp_snopt INTERFACE HVEN_SQP_HAVE_SNOPT)
+        message(STATUS "SNOPT found at ${HVEN_SQP_SNOPT_DIR} "
+                       "(${HVEN_SQP_SNOPT_CPP_LIBRARY}); SNOPT bench + gate test enabled")
+    else()
+        message(STATUS "SNOPT headers found at ${HVEN_SQP_SNOPT_DIR} but libraries were not; "
+                       "building WITHOUT SNOPT")
+    endif()
+else()
+    message(STATUS "No SNOPT installation at HVEN_SQP_SNOPT_DIR=${HVEN_SQP_SNOPT_DIR}; "
+                   "building WITHOUT SNOPT (the SQP suite stays at its no-SNOPT size)")
+endif()
+
 if(HVEN_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+# The SQP engine's bench harness (bench/CMakeLists.txt). Built whenever the
+# SQP suite is, not only under HVEN_BUILD_BENCH: the suite's subprocess
+# wall-deadline tests invoke the corpus runner binary, and the probes ride
+# along because an uncompiled probe rots silently (the origin project's own
+# committed rationale). UNIX-only, matching tests/sqp — the corpus runner
+# enforces wall deadlines by fork/exec.
+if(NOT WIN32 AND (HVEN_BUILD_TESTS OR HVEN_BUILD_BENCH))
+    add_subdirectory(bench)
 endif()
 
 ################################################################################

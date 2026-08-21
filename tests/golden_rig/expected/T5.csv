@@ -40,6 +40,7 @@
 #   silent. Counters, states, presence and bool rows carry no such risk
 #   and are asserted under any context.
 # note: case b's fixture is IMPLEMENTED AGAINST A DESCRIPTION: the authority names a 'semidefinite-boundary case from the review fixtures' and no such fixture exists in that tree. See recipes.cpp for what was built instead.
+# note: the 2026-08-15 reachability ratification re-checked case b against the migrated tree and confirmed the finding: the phrase matches nothing on either side. The authority's T5 entry now carries a dated erratum, and docs/testing.md records the correction. In the same pass case a was upgraded to VERIFIED AGAINST FIXTURE; case c could not be, because its authority names a code path rather than a matrix.
 # accelerate-derivation: the native@accelerate rows carrying values were
 #   observed on real Apple Silicon, in the macOS CI lane's report-mode
 #   artifact -- workflow_dispatch runs 31295853190 and 31295971689

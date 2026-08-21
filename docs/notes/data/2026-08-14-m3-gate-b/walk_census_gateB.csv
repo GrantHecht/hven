@@ -1,0 +1,139 @@
+# gateB.protocol: parallel-tiered v1 (T1 6-wide pinned / T2 solo / T3 5-wide full-budget)
+# gateB.binary: /home/ghecht/Projects/hven/build/bench/hven_sqp_corpus
+# gateB.binary_stamp: hven_sqp_corpus provenance
+# gateB.binary_stamp: binary: 6535566ce749
+# gateB.binary_stamp: schema: 37
+# gateB.binary_stamp: budget_table_hash: 0x357aee91dee27391
+# gateB.generated: 2026-08-15T00:29:33Z
+# gateB.host: fedora
+# gateB.topology: 8 physical cores; representatives (one sibling each): 0,1,2,3,4,5,6,7
+# gateB.baseline: /home/ghecht/Projects/hven/bench/baselines/2026-08-06-corpus/walk_baseline.csv
+# gateB.tier assignment (from frozen baseline /home/ghecht/Projects/hven/bench/baselines/2026-08-06-corpus/walk_baseline.csv)
+# gateB.  T2 wall-sensitive SOLO : non-dnf cells with wall_s >= 1800s, plus f7_n10000_path_physics
+# gateB.  T3 deep-DNF 5-wide      : baseline status dnf_*, full 3600s budget each
+# gateB.  T1 remainder 6-wide     : everything else
+# gateB.  counts: T1=44  T2=3  T3=10  (total 57)
+# gateB.  tier cell                             base_status    base_wall_s
+# gateB.  T1   f7_n2000_path_corrupted          NumericalError 943.875
+# gateB.  T1   f7_n2000_path_neutral            NumericalError 930.013
+# gateB.  T1   f7_n5000_path_activity           Optimal        441.091
+# gateB.  T1   f7_n5000_path_physics            Optimal        357.049
+# gateB.  T1   f7_n800_path_neutral             Optimal        335.164
+# gateB.  T1   f7_n1000_path_neutral            Optimal        158.303
+# gateB.  T1   f7_n825_path_neutral_control     Optimal        128.561
+# gateB.  T1   f7_n750_path_neutral_control     Optimal        97.185
+# gateB.  T1   f7_n2000_path_warm               Optimal        78.665
+# gateB.  T1   f7_n1000_path_corrupted          Optimal        74.087
+# gateB.  T1   f7_n2000_path_physics            Optimal        54.986
+# gateB.  T1   f7_n2000_path_activity           Optimal        51.412
+# gateB.  T1   f7_n800_path_corrupted           Optimal        23.513
+# gateB.  T1   f7_n1000_path_physics            Optimal        11.782
+# gateB.  T1   f7_n800_path_physics             Optimal        8.320
+# gateB.  T1   f7_n1000_path_activity           Optimal        7.423
+# gateB.  T1   f7_n800_path_activity            Optimal        6.093
+# gateB.  T1   f7_n20000_bound_neutral          Optimal        0.966
+# gateB.  T1   f7_n20000_bound_activity         Optimal        0.964
+# gateB.  T1   f7_n20000_bound_physics          Optimal        0.960
+# gateB.  T1   f7_n20000_bound_corrupted        Optimal        0.926
+# gateB.  T1   f7_n20000_bound_warm             Optimal        0.924
+# gateB.  T1   f7_n10000_bound_neutral          Optimal        0.461
+# gateB.  T1   f7_n10000_bound_physics          Optimal        0.459
+# gateB.  T1   f7_n10000_bound_activity         Optimal        0.457
+# gateB.  T1   f7_n10000_bound_corrupted        Optimal        0.438
+# gateB.  T1   f7_n10000_bound_warm             Optimal        0.436
+# gateB.  T1   f7_n5000_bound_activity          Optimal        0.234
+# gateB.  T1   f7_n5000_bound_physics           Optimal        0.222
+# gateB.  T1   f7_n5000_bound_corrupted         Optimal        0.215
+# gateB.  T1   f7_n5000_bound_neutral           Optimal        0.213
+# gateB.  T1   f7_n1000_path_warm               Optimal        0.194
+# gateB.  T1   f7_n5000_bound_warm              Optimal        0.136
+# gateB.  T1   f7_n2000_bound_activity          Optimal        0.098
+# gateB.  T1   f7_n2000_bound_physics           Optimal        0.096
+# gateB.  T1   f7_n2000_bound_corrupted         Optimal        0.082
+# gateB.  T1   f7_n2000_bound_neutral           Optimal        0.070
+# gateB.  T1   f7_n2000_bound_warm              Optimal        0.053
+# gateB.  T1   f7_n800_path_warm                Optimal        0.053
+# gateB.  T1   f7_n1000_bound_neutral           Optimal        0.044
+# gateB.  T1   f7_n1000_bound_activity          Optimal        0.035
+# gateB.  T1   f7_n1000_bound_physics           Optimal        0.033
+# gateB.  T1   f7_n1000_bound_corrupted         Optimal        0.027
+# gateB.  T1   f7_n1000_bound_warm              Optimal        0.027
+# gateB.  T2   f7_n10000_path_physics           dnf_budget     3600.000
+# gateB.  T2   f7_n5000_path_neutral            NumericalError 2399.984
+# gateB.  T2   f7_n5000_path_warm               NumericalError 2231.393
+# gateB.  T3   f7_n10000_path_activity          dnf_budget     3600.000
+# gateB.  T3   f7_n10000_path_corrupted         dnf_setup      3600.000
+# gateB.  T3   f7_n10000_path_neutral           dnf_budget     3600.000
+# gateB.  T3   f7_n10000_path_warm              dnf_setup      3600.000
+# gateB.  T3   f7_n20000_path_activity          dnf_budget     3600.000
+# gateB.  T3   f7_n20000_path_corrupted         dnf_setup      3600.000
+# gateB.  T3   f7_n20000_path_neutral           dnf_budget     3600.000
+# gateB.  T3   f7_n20000_path_physics           dnf_budget     3600.000
+# gateB.  T3   f7_n20000_path_warm              dnf_setup      3600.000
+# gateB.  T3   f7_n5000_path_corrupted          dnf_budget     3600.000
+# hven_sqp_corpus provenance
+# binary: 6535566ce749
+# schema: 37
+# budget_table_hash: 0x357aee91dee27391
+# invocation: /home/ghecht/Projects/hven/build/bench/hven_sqp_corpus --from-csv /tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n10000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n1000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n20000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n2000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n5000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n750_path_neutral_control.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n800_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n800_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n800_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n800_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n800_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/rows/f7_n825_path_neutral_control.csv --csv /tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/censusB/walk_census_gateB.csv --score-gates
+# MKL_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-08-15T00:29:33Z
+cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual,wall_s,kkt_verdict,kkt_stationarity,kkt_primal,kkt_dual_sign,kkt_complementarity,dual_scale,x_scale,neg_ineq_duals,ssn_iters,ssn_bulk_flips,ssn_backtracks,ssn_prox_updates,ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,ssn_refine_facts,ssn_refine_neg_duals,esc_budget,esc_singular,esc_no_contraction,esc_infeasible_suspect,esc_indefinite,esc_gate_refused
+f7_n1000_bound_neutral,F7,1000,bound,neutral,0,Optimal,1,2,0,1,1,6.295816157e-14,0.029752691,ok,6.295816157e-14,1.937490966e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_physics,F7,1000,bound,physics,0,Optimal,1,2,0,1,1,1.167130933e-16,0.029485162,ok,1.167130933e-16,1.046255096e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_corrupted,F7,1000,bound,corrupted,0,Optimal,1,2,0,1,1,9.157896609e-15,0.027728430,ok,9.157896609e-15,2.738477847e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_activity,F7,1000,bound,activity,0,Optimal,1,2,0,1,1,1.167130933e-16,0.029476212,ok,1.167130933e-16,1.046255096e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_warm,F7,1000,bound,warm,0,Optimal,1,2,0,1,1,4.198645758e-15,0.026487757,ok,4.198645758e-15,2.737176805e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_neutral,F7,1000,path,neutral,0,Optimal,9951,11043,0,4,1;9948;1;1,1.875413158e-10,154.237034995,ok,9.945802520e-11,1.875413158e-10,0.000000000e+00,1.270348862e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_physics,F7,1000,path,physics,0,Optimal,5,623,0,2,4;1,4.067572955e-10,8.599312506,ok,4.067572955e-10,3.208544541e-13,0.000000000e+00,2.216922284e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,2976,4049,0,3,2974;1;1,8.134198393e-12,63.030638746,ok,8.134198393e-12,3.510525204e-13,0.000000000e+00,2.136576169e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_activity,F7,1000,path,activity,0,Optimal,4,548,0,2,3;1,5.823990462e-09,6.911168305,ok,5.823990462e-09,3.300670848e-11,0.000000000e+00,2.275495287e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_warm,F7,1000,path,warm,0,Optimal,2,12,0,2,1;1,3.364059716e-10,0.105458299,ok,3.364059716e-10,4.445666058e-11,0.000000000e+00,1.081513310e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_neutral,F7,2000,bound,neutral,0,Optimal,1,2,0,1,1,1.259764085e-13,0.058689995,ok,1.259764085e-13,3.876413079e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_physics,F7,2000,bound,physics,0,Optimal,1,2,0,1,1,2.168086708e-16,0.058784334,ok,2.168086708e-16,1.105344115e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_corrupted,F7,2000,bound,corrupted,0,Optimal,1,2,0,1,1,1.834299600e-14,0.054723404,ok,1.834299600e-14,5.433153927e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_activity,F7,2000,bound,activity,0,Optimal,1,2,0,1,1,2.168086708e-16,0.059079623,ok,2.168086708e-16,1.105344115e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_warm,F7,2000,bound,warm,0,Optimal,1,2,0,1,1,8.394888483e-15,0.054704534,ok,8.394888483e-15,5.413313027e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_neutral,F7,2000,path,neutral,1,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01,912.619006614,unchecked,5.085072728e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_physics,F7,2000,path,physics,1,Optimal,9,1396,0,2,8;1,2.290368834e-10,38.332234385,ok,2.290368834e-10,3.198552534e-13,0.000000000e+00,1.099753136e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_corrupted,F7,2000,path,corrupted,1,NumericalError,39783,40000,0,2,19911;19872,9.843817033e-02,994.073302549,unchecked,5.402058407e-03,9.843817033e-02,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_activity,F7,2000,path,activity,1,Optimal,8,1505,0,2,7;1,3.049823008e-09,36.918399545,ok,3.049823008e-09,3.083511224e-11,0.000000000e+00,1.062254726e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_warm,F7,2000,path,warm,1,Optimal,7,1615,0,3,5;1;1,4.904192017e-12,46.743941013,ok,4.904192017e-12,2.574829239e-12,0.000000000e+00,8.717616647e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_neutral,F7,5000,bound,neutral,0,Optimal,1,2,0,1,1,3.150169372e-13,0.145504768,ok,3.150169372e-13,9.692247005e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_physics,F7,5000,bound,physics,0,Optimal,1,2,0,1,1,5.167993121e-16,0.145761426,ok,5.167993121e-16,1.124182128e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_corrupted,F7,5000,bound,corrupted,0,Optimal,1,2,0,1,1,4.592201604e-14,0.138670692,ok,4.592201604e-14,1.352677735e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_activity,F7,5000,bound,activity,0,Optimal,1,2,0,1,1,5.167993121e-16,0.150699291,ok,5.167993121e-16,1.124182128e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_warm,F7,5000,bound,warm,0,Optimal,1,2,0,1,1,2.098299057e-14,0.139185020,ok,2.098299057e-14,1.351100221e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_neutral,F7,5000,path,neutral,0,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01,2380.993104837,unchecked,2.032099408e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_physics,F7,5000,path,physics,0,Optimal,19,3656,0,2,18;1,1.450679404e-10,275.920133649,ok,1.450679404e-10,3.049782649e-13,0.000000000e+00,4.251108679e-17,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_corrupted,F7,5000,path,corrupted,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n5000_path_activity,F7,5000,path,activity,0,Optimal,24,5250,0,2,23;1,1.890160860e-09,353.942522959,ok,1.890160860e-09,2.878031147e-11,0.000000000e+00,3.959485012e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_warm,F7,5000,path,warm,0,NumericalError,39744,40000,0,2,19872;19872,3.889087297e-01,2205.400159466,unchecked,2.032099408e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_neutral,F7,10000,bound,neutral,0,Optimal,1,2,0,1,1,6.300386632e-13,0.298372928,ok,6.300386632e-13,1.938268610e-13,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_physics,F7,10000,bound,physics,0,Optimal,1,2,0,1,1,1.016558709e-15,0.298030151,ok,1.016558709e-15,1.126316651e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_corrupted,F7,10000,bound,corrupted,0,Optimal,1,2,0,1,1,9.189170502e-14,0.287478723,ok,9.189170502e-14,2.698329841e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_activity,F7,10000,bound,activity,0,Optimal,1,2,0,1,1,1.016558709e-15,0.297981190,ok,1.016558709e-15,1.126316651e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_warm,F7,10000,bound,warm,0,Optimal,1,2,0,1,1,4.196023677e-14,0.287542153,ok,4.196023677e-14,2.696955615e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_path_neutral,F7,10000,path,neutral,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n10000_path_physics,F7,10000,path,physics,0,Optimal,8798,19311,0,2,8797;1,1.399679852e-10,2868.340825348,ok,1.399679852e-10,2.856603842e-13,0.000000000e+00,1.955494686e-17,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_path_corrupted,F7,10000,path,corrupted,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n10000_path_activity,F7,10000,path,activity,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n10000_path_warm,F7,10000,path,warm,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n20000_bound_neutral,F7,20000,bound,neutral,0,Optimal,1,2,0,1,1,1.259925400e-12,0.614592128,ok,1.259925400e-12,3.876253973e-13,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_physics,F7,20000,bound,physics,0,Optimal,1,2,0,1,1,2.015851318e-15,0.616497828,ok,2.015851318e-15,1.119235455e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_corrupted,F7,20000,bound,corrupted,0,Optimal,1,2,0,1,1,1.838067080e-13,0.595722633,ok,1.838067080e-13,5.392297123e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_activity,F7,20000,bound,activity,0,Optimal,1,2,0,1,1,2.015851318e-15,0.616716887,ok,2.015851318e-15,1.119235455e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_warm,F7,20000,bound,warm,0,Optimal,1,2,0,1,1,8.390643321e-14,0.594874607,ok,8.390643321e-14,5.392756554e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_path_neutral,F7,20000,path,neutral,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n20000_path_physics,F7,20000,path,physics,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n20000_path_corrupted,F7,20000,path,corrupted,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n20000_path_activity,F7,20000,path,activity,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n20000_path_warm,F7,20000,path,warm,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,29222,30165,0,5,1;19872;9347;1;1,1.874362887e-10,323.995362392,ok,1.061788069e-10,1.874362887e-10,0.000000000e+00,1.587439273e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_physics,F7,800,path,physics,1,Optimal,6,481,0,2,5;1,4.777161948e-10,4.977279504,ok,4.777161948e-10,3.246292124e-13,0.000000000e+00,2.824592275e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,14,1795,0,3,12;1;1,8.379326530e-12,20.428044435,ok,8.379326530e-12,2.697841950e-13,0.000000000e+00,2.335280406e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_activity,F7,800,path,activity,1,Optimal,3,385,0,2,2;1,6.914598890e-09,3.689318137,ok,6.914598890e-09,3.328171072e-11,0.000000000e+00,2.867421689e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_warm,F7,800,path,warm,1,Optimal,2,6,0,2,1;1,4.212497209e-10,0.054010008,ok,4.212497209e-10,4.285150013e-11,0.000000000e+00,1.295713926e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n750_path_neutral_control,F7,750,path,neutral,0,Optimal,7865,9297,0,4,1;7862;1;1,1.874009836e-10,91.633084842,ok,1.065823567e-10,1.874009836e-10,0.000000000e+00,1.693085940e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n825_path_neutral_control,F7,825,path,neutral,0,Optimal,7605,9561,0,4,1;7601;2;1,1.874508326e-10,129.881391697,ok,1.023066296e-10,1.874508326e-10,0.000000000e+00,1.539400579e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

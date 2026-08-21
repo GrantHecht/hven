@@ -14,25 +14,14 @@ std::uint64_t pattern_hash(const SpMatRM &A) {
             A.rows(), A.cols(), A.nonZeros()));
     }
 
-    const Index rows = static_cast<Index>(A.rows());
-    const Index cols = static_cast<Index>(A.cols());
-    const Index nnz = static_cast<Index>(A.nonZeros());
-
+    // One recipe, one implementation: this entry point's compressed-only
+    // contract is the guard above, and the ingredient stream below it is the
+    // same `feed_pattern` the multi-matrix key and the uncompressed-tolerant
+    // callers use. The digest is unchanged by that -- it is pinned by value
+    // in tests/core/test_pattern_hash.cpp, against a reference derived there
+    // without calling `Fnv1a` at all.
     Fnv1a h;
-    h.feed_index(rows);
-    h.feed_index(cols);
-    h.feed_index(nnz);
-
-    const auto *outer = A.outerIndexPtr();
-    for (Index i = 0; i <= rows; ++i) {
-        h.feed_index(static_cast<Index>(outer[i]));
-    }
-
-    const auto *inner = A.innerIndexPtr();
-    for (Index i = 0; i < nnz; ++i) {
-        h.feed_index(static_cast<Index>(inner[i]));
-    }
-
+    feed_pattern(h, A);
     return h.value();
 }
 

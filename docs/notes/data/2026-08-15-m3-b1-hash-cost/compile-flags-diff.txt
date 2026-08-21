@@ -1,0 +1,52 @@
+B1 compile-flags comparability proof
+Arms: A = 31e57b0 as-is; B = A + patch_B.py (one fewer per-major hash);
+      S = A + patch_S.py (the direct-attribution scaffold).
+Each arm configured identically: Ninja, Release, clang++, HVEN_BUILD_TESTS=OFF,
+HVEN_BUILD_BENCH=ON, same source worktree. Only each build's own output path
+is normalized to <BUILD> before comparison.
+
+translation units compared: A=26 B=26 S=26
+A vs B: 0 translation unit(s) with any flag difference -- IDENTICAL
+A vs S: 0 translation unit(s) with any flag difference -- IDENTICAL
+
+Representative command line (src/sqp/kkt_calls.cpp, arm A):
+    /usr/bin/clang++
+    -DEIGEN_DONT_PARALLELIZE
+    -DEIGEN_INITIALIZE_MATRICES_BY_ZERO
+    -DEIGEN_MAX_ALIGN_BYTES=32
+    -DFMT_HEADER_ONLY
+    -DFMT_USE_LOCALE=0
+    -DHVEN_DEFAULT_ARENA_SIZE=256
+    -DHVEN_DEFAULT_QP_THREADS=8
+    -DHVEN_VERSION_STRING=\"0.1.0\"
+    -I/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/b1-wt/include
+    -I/opt/intel/oneapi/mkl/latest/include
+    -I/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/b1-wt/src/interior/utils
+    -isystem
+    /tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/b1-wt/dep/eigen
+    -isystem
+    /tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/b1-wt/dep/fmt/include
+    -DMKL_LP64
+    -m64
+    -O3
+    -DNDEBUG
+    -std=c++20
+    -fPIC
+    -Wabsolute-value
+    -pthread
+    -mllvm
+    -inline-threshold=225
+    -O3
+    -fomit-frame-pointer
+    -fno-stack-protector
+    -fno-asynchronous-unwind-tables
+    -march=native
+    -mtune=native
+    -ffast-math
+    -fno-finite-math-only
+    -fopenmp=libiomp5
+    -Xclang
+    -fno-pch-timestamp
+    CMakeFiles/hven.dir/src/sqp/kkt_calls.cpp.o
+    -c
+    /tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/b1-wt/src/sqp/kkt_calls.cpp

@@ -1,0 +1,73 @@
+# census.protocol: parallel-tiered v1 (T1 6-wide pinned / T2 solo / T3 5-wide full-budget)
+# census.binary: /home/ghecht/Projects/hven/.scratch/h3/census-build/bench/hven_sqp_corpus
+# census.binary_stamp: hven_sqp_corpus provenance
+# census.binary_stamp: binary: fb45a000c095
+# census.binary_stamp: schema: 37
+# census.binary_stamp: budget_table_hash: 0x357aee91dee27391
+# census.generated: 2026-08-20T21:11:35Z
+# census.host: fedora
+# census.topology: 8 physical cores; representatives (one sibling each): 0,1,2,3,4,5,6,7
+# census.baseline: /home/ghecht/Projects/hven/bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv
+# census.tier assignment (from frozen baseline /home/ghecht/Projects/hven/bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv)
+# census.  T2 wall-sensitive SOLO : non-dnf cells with wall_s >= 1800s, plus f7_n10000_path_physics
+# census.  T3 deep-DNF 5-wide      : baseline status dnf_*, full budget each
+# census.  T1 remainder 6-wide     : everything else
+# census.  counts: T1=44  T2=3  T3=10  (total 57)
+# census.  tier cell                             base_status    base_wall_s
+# census.  T1   f7_n2000_path_corrupted          NumericalError 986.156
+# census.  T1   f7_n2000_path_neutral            NumericalError 903.486
+# census.  T1   f7_n5000_path_activity           Optimal        340.463
+# census.  T1   f7_n800_path_neutral             Optimal        320.806
+# census.  T1   f7_n5000_path_physics            Optimal        258.153
+# census.  T1   f7_n1000_path_neutral            Optimal        152.616
+# census.  T1   f7_n825_path_neutral_control     Optimal        127.107
+# census.  T1   f7_n750_path_neutral_control     Optimal        89.857
+# census.  T1   f7_n1000_path_corrupted          Optimal        62.391
+# census.  T1   f7_n2000_path_warm               Optimal        45.804
+# census.  T1   f7_n2000_path_physics            Optimal        37.157
+# census.  T1   f7_n2000_path_activity           Optimal        35.911
+# census.  T1   f7_n800_path_corrupted           Optimal        19.811
+# census.  T1   f7_n1000_path_physics            Optimal        8.327
+# census.  T1   f7_n1000_path_activity           Optimal        6.721
+# census.  T1   f7_n800_path_physics             Optimal        4.882
+# census.  T1   f7_n800_path_activity            Optimal        3.603
+# census.  T1   f7_n20000_bound_neutral          Optimal        0.625
+# census.  T1   f7_n20000_bound_activity         Optimal        0.623
+# census.  T1   f7_n20000_bound_physics          Optimal        0.621
+# census.  T1   f7_n20000_bound_corrupted        Optimal        0.602
+# census.  T1   f7_n20000_bound_warm             Optimal        0.600
+# census.  T1   f7_n10000_bound_activity         Optimal        0.302
+# census.  T1   f7_n10000_bound_neutral          Optimal        0.301
+# census.  T1   f7_n10000_bound_physics          Optimal        0.300
+# census.  T1   f7_n10000_bound_warm             Optimal        0.293
+# census.  T1   f7_n10000_bound_corrupted        Optimal        0.291
+# census.  T1   f7_n5000_bound_activity          Optimal        0.147
+# census.  T1   f7_n5000_bound_neutral           Optimal        0.147
+# census.  T1   f7_n5000_bound_physics           Optimal        0.146
+# census.  T1   f7_n5000_bound_corrupted         Optimal        0.141
+# census.  T1   f7_n5000_bound_warm              Optimal        0.141
+# census.  T1   f7_n1000_path_warm               Optimal        0.106
+# census.  T1   f7_n2000_bound_physics           Optimal        0.060
+# census.  T1   f7_n2000_bound_activity          Optimal        0.059
+# census.  T1   f7_n2000_bound_neutral           Optimal        0.059
+# census.  T1   f7_n2000_bound_corrupted         Optimal        0.055
+# census.  T1   f7_n2000_bound_warm              Optimal        0.055
+# census.  T1   f7_n800_path_warm                Optimal        0.054
+# census.  T1   f7_n1000_bound_activity          Optimal        0.030
+# census.  T1   f7_n1000_bound_neutral           Optimal        0.030
+# census.  T1   f7_n1000_bound_physics           Optimal        0.030
+# census.  T1   f7_n1000_bound_corrupted         Optimal        0.027
+# census.  T1   f7_n1000_bound_warm              Optimal        0.027
+# census.  T2   f7_n10000_path_physics           Optimal        2801.554
+# census.  T2   f7_n5000_path_neutral            NumericalError 2363.871
+# census.  T2   f7_n5000_path_warm               NumericalError 2188.322
+# census.  T3   f7_n10000_path_activity          dnf_budget     3600.000
+# census.  T3   f7_n10000_path_corrupted         dnf_setup      3600.000
+# census.  T3   f7_n10000_path_neutral           dnf_budget     3600.000
+# census.  T3   f7_n10000_path_warm              dnf_setup      3600.000
+# census.  T3   f7_n20000_path_activity          dnf_budget     3600.000
+# census.  T3   f7_n20000_path_corrupted         dnf_setup      3600.000
+# census.  T3   f7_n20000_path_neutral           dnf_budget     3600.000
+# census.  T3   f7_n20000_path_physics           dnf_budget     3600.000
+# census.  T3   f7_n20000_path_warm              dnf_setup      3600.000
+# census.  T3   f7_n5000_path_corrupted          dnf_budget     3600.000

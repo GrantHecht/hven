@@ -1,0 +1,24 @@
+start 2026-08-15T03:51:18-04:00
+corpus arm=A rep=1 total_s=424.509897018
+corpus arm=B rep=1 total_s=422.582129259
+corpus arm=A rep=2 total_s=424.282044483
+corpus arm=B rep=2 total_s=422.476174201
+corpus arm=A rep=3 total_s=424.374316477
+corpus arm=B rep=3 total_s=422.342117118
+corpus arm=A rep=4 total_s=424.174922624
+corpus arm=B rep=4 total_s=422.368781744
+probe arm=A rep=1 total_s=23.561387693
+probe arm=B rep=1 total_s=23.642516700
+probe arm=A rep=2 total_s=23.549307346
+probe arm=B rep=2 total_s=23.646312771
+probe arm=A rep=3 total_s=23.542423931
+probe arm=B rep=3 total_s=23.360710367
+probe arm=A rep=4 total_s=23.395915823
+probe arm=B rep=4 total_s=23.483757176
+probe arm=A rep=5 total_s=23.424850443
+probe arm=B rep=5 total_s=23.329221661
+probe arm=A rep=6 total_s=23.472292957
+probe arm=B rep=6 total_s=23.213444043
+probe arm=A rep=7 total_s=23.576310655
+probe arm=B rep=7 total_s=23.362609187
+done 2026-08-15T04:53:14-04:00

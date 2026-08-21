@@ -449,14 +449,19 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         kind_name(opts_.kind)));
     }
     validate_num_threads(opts_.num_threads, "SymmetricFactor");
-    if (opts_.pivot_perturb_exp < 0) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: pivot_perturb_exp must be >= 0, got {}", opts_.pivot_perturb_exp));
-    }
-    if (opts_.max_refinement_iters < 0) {
+    // A present value is validated; std::nullopt is the don't-write state
+    // (leave the backend's own default in force) and needs no range check.
+    if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
         throw std::invalid_argument(
-            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0, got {}",
-                        opts_.max_refinement_iters));
+            fmt::format("SymmetricFactor: pivot_perturb_exp must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.pivot_perturb_exp));
+    }
+    if (opts_.max_refinement_iters.has_value() && *opts_.max_refinement_iters < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.max_refinement_iters));
     }
     if (opts_.cnr_threads < 0) {
         throw std::invalid_argument(fmt::format(
@@ -576,6 +581,20 @@ void SymmetricFactor::set_num_threads(int num_threads) {
         // the two must not disagree.
         session_->set_num_threads(num_threads);
     }
+}
+
+int SymmetricFactor::num_threads() const noexcept {
+    // Read THROUGH to the session rather than reporting `opts_`, whose copy
+    // goes stale the moment a CO-OWNER of this session moves the count (the
+    // setter above writes both, but it writes only ITS OWN engine's `opts_`).
+    // The session's copy is the one Pardiso is handed at call scope, so it is
+    // the only one that answers the question this reader is asked. `opts_`
+    // remains the answer before the first analyze(), when there is no session
+    // to read and `opts_` is what the next one will be built from.
+    //
+    // Kept in the adapter, not the session header: this is contract logic
+    // about which of two copies is authoritative, not a Pardiso fact.
+    return session_ ? session_->config().num_threads : opts_.num_threads;
 }
 
 void SymmetricFactor::analyze(const SpMatRM &A) {

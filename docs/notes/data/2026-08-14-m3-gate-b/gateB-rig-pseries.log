@@ -1,0 +1,89 @@
+Running main() from /home/ghecht/Projects/hven/build-3seam/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = *InteriorPointTrace*
+[==========] Running 30 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 30 tests from Arms/InteriorPointTrace
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native (9 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_sqp_parity (4 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/native_psiopt_parity (4 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/psiopt_old (3 ms)
+[ RUN      ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/sqp_old
+[       OK ] Arms/InteriorPointTrace.P1_IterateLoopLifecycle/sqp_old (3 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/sqp_old
+[       OK ] Arms/InteriorPointTrace.P2_InertiaCorrectionLadderReplay/sqp_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/sqp_old
+[       OK ] Arms/InteriorPointTrace.P3_SingularVerdictAndControl/sqp_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native (1 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_sqp_parity (1 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/native_psiopt_parity (2 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/psiopt_old (2 ms)
+[ RUN      ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/sqp_old
+[       OK ] Arms/InteriorPointTrace.P4_PerturbationEvidencePresenceIsBackendHonest/sqp_old (1 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_interior_point.cpp:266: Failure
+Expected: (e.state) != (hl::InertiaEvidence::State::kObserved), actual: 4-byte object <00-00 00-00> vs 4-byte object <00-00 00-00>
+nothing has been factorized, so there is nothing to have observed
+
+/home/ghecht/Projects/hven/tests/golden_rig/traces_interior_point.cpp:268: Failure
+Value of: e.n_pos == 0 && e.n_neg == 0 && e.n_zero == 0
+  Actual: true
+Expected: false
+counts with nothing behind them must stay invalid, never be zero-filled -- a zero-filled triple reads exactly like a real one
+
+[  FAILED  ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old, where GetParam() = sqp-old@mkl (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_sqp_parity
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_sqp_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_psiopt_parity
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/native_psiopt_parity (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/psiopt_old
+[       OK ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/psiopt_old (0 ms)
+[ RUN      ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp_old
+/home/ghecht/Projects/hven/tests/golden_rig/traces_interior_point.cpp:288: Skipped
+sqp-old@mkl does not have a refinement-step readback -- trace P6 needs it
+
+[  SKIPPED ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp_old (0 ms)
+[----------] 30 tests from Arms/InteriorPointTrace (39 ms total)
+
+[----------] Global test environment tear-down
+[==========] 30 tests from 1 test suite ran. (39 ms total)
+[  PASSED  ] 28 tests.
+[  SKIPPED ] 1 test, listed below:
+[  SKIPPED ] Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp_old
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp_old, where GetParam() = sqp-old@mkl
+
+ 1 FAILED TEST

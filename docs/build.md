@@ -52,8 +52,18 @@ Bar 2 is the one that matters most. The translation-unit section of
 `CLAUDE.md` requires runtime neutrality to be proven rather than
 presumed for anything touching engine code, and a byte-identical object
 is the strongest available proof: identical bytes cannot move a
-golden-rig row or a counter. With the current list, all 18 object files
-*and* `libhven.a` itself are byte-identical with and without the PCH.
+golden-rig row or a counter. With the current list, every object file the
+Linux build produces (28 of them: 21 after M3 phase-C T1/T2 added
+`drivers/sqp_print.cpp` and `core/ledger.cpp` and brought the
+previously-unmeasured `kkt/kkt_calls.cpp` into the measurement table,
+then T3's `drivers/sqp_options.cpp` and `core/enum_names.cpp`, then
+T4's `globalization/sqp/funnel.cpp`, then T5's `drivers/sqp_driver.cpp`,
+then T6's `globalization/sqp/soc_elastic_restoration.cpp`, then
+T7's `warmstart/warm_start.cpp`, then T8's
+`warmstart/continuation.cpp`)
+*and* `libhven.a` itself
+are byte-identical with and without the PCH — which is what
+`scripts/check_pch_neutrality.sh` re-proves on demand and in CI.
 
 Several TUs get faster with the PCH but produce a *non*-byte-identical
 object, and are excluded for that reason alone. Their code is not wrong
