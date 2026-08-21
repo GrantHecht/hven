@@ -1538,11 +1538,15 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
                                         EvalRequest::kConstraintJacobian |
                                         EvalRequest::kConstraintAdjointHessian;
     const bool needs_kkt = (request & kKktBearing) != EvalRequest::kNone;
-    if (needs_kkt && this->analyzed_kkt_values_ == nullptr) {
-        // The entry checked the view against the destination this provider is
-        // BOUND to, and this provider is bound to none yet: the sparsity
-        // analysis that computes the offsets has not run against the structures
-        // on hand. The pieces cannot be pointed anywhere until it has.
+    if (needs_kkt && this->analyzed_kkt_matrix_ == nullptr) {
+        // WHICH MEMBER ANSWERS "HAS THE ANALYSIS RUN?", and it is not the one
+        // that answers "is this the right destination?". The captured ADDRESS
+        // is the identity token, and a legitimately analysed matrix can carry a
+        // null one: Eigen's value pointer is null for a matrix with no
+        // nonzeros, so a degenerate-but-analysed problem would report itself as
+        // never laid if the sentinel were read off the address. The matrix
+        // POINTER cannot be null once the analysis has run, so it is the
+        // sentinel; the captured address stays the comparand, and only that.
         throw std::invalid_argument(
             "assemble: this provider's KKT location table has not been laid against any "
             "destination -- run the sparsity analysis on the matrix you intend to fill before "

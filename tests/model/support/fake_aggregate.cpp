@@ -7,11 +7,19 @@ namespace hven::model_tests {
 
 namespace {
 
-/// Neither filler tests its view for presence, and that is the contract rather
+/// Neither filler tests its view for PRESENCE, and that is the contract rather
 /// than an omission: the non-virtual entry has already refused a request that
-/// names a destination it was given nowhere to put. A hook only ever sees views
-/// that are there for everything its request names.
+/// names a destination it was given nowhere to put.
+///
+/// The one thing a filler does test is the case the entry deliberately lets
+/// through: a residual arena whose declared row count is ZERO accepts any view,
+/// including a wholly default one, because there is nothing to write. This fake
+/// declares rows of both kinds so it never meets that case, but it is the
+/// reference implementation of this contract and a filler copied from it would.
 void fill_arena(const hven::solvers::RhsArenaView &view) {
+    if (view.locations_ == nullptr) {
+        return; // a legally empty arena: nothing declared, nothing to write
+    }
     for (int slot = 0; slot < view.locations_->size(); ++slot) {
         const int row = view.locations_->location(slot);
         if (row >= 0) {

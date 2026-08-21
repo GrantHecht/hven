@@ -141,8 +141,12 @@ struct AggPinProblem : NLPProblem {
 /// pairs is invariant under any renumbering of the columns, so an assertion on
 /// that set cannot fail however badly a re-lay renumbers -- it is blind to the
 /// thing it exists to catch. Each row here claims a wrapped band of kBand
-/// columns starting at its own index, so for every k in 1..kBand-1 the pair
-/// (r, r+k) is claimed while (r+k, r) is not, and a renumbering moves the set.
+/// columns starting at its own index, which makes the set asymmetric over part
+/// of that band: (r+k, r) is claimed only when the wrap brings it back inside
+/// the band, i.e. when kVars - k < kBand. So for k in 1..kVars-kBand -- here
+/// 1..20 -- the pair (r, r+k) is claimed while (r+k, r) is NOT, and a
+/// renumbering moves the set. (For k in 21..39 the wrap does claim both, which
+/// is why the quantifier is that range and not the whole band.)
 struct AggPinWideProblem : NLPProblem {
     static constexpr int kVars = 60;
     static constexpr int kCons = 60;

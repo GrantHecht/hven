@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -70,7 +71,15 @@ class FakeAggregate final : public NlpAggregate {
     const AggregateDeclaration &declaration() const override { return declaration_; }
 
     int negotiate_partition_count(int requested) override {
-        const int adopted = std::clamp(requested, 1, kMaxPartitions);
+        // Refused, not corrected: capping is this method's job and is reported
+        // through the return value, while a non-positive request names no
+        // partitioning at all.
+        if (requested < 1) {
+            throw std::invalid_argument(
+                "FakeAggregate: a partition count must be at least 1 (got " +
+                std::to_string(requested) + ")");
+        }
+        const int adopted = std::min(requested, kMaxPartitions);
         adopted_partitions_ = adopted;
         declaration_.partition_count_ = adopted;
         // A renegotiation re-lays the arenas even when the claim structure is

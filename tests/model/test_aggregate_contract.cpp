@@ -686,6 +686,35 @@ TEST(AggregateAssembleContract, AnArenaTheRequestDoesNameMayNotBeLeftEmpty) {
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.inequality_residuals));
 }
 
+TEST(AggregateAssembleContract, AZeroLengthGradientViewIsRefusedEvenWithStorage) {
+    // The case a size-match rule would have let through. A residual block may
+    // legitimately have zero declared rows, so a zero-length residual view is
+    // accepted; a gradient arena has no such case -- an aggregate with no
+    // primal variables is not a problem -- so a zero-length view under a
+    // request that NAMES the arena is incoherent, and a filler trusting its
+    // non-null storage would write past it.
+    FakeAggregate aggregate;
+    ContractProbeDestinations out;
+    Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
+    Vec none;
+
+    RhsScatterView rhs = out.rhs_view();
+    rhs.objective_gradient_ =
+        hven::solvers::RhsArenaView{out.objective_gradient.data(), 0, &out.gradient_table};
+
+    try {
+        aggregate.assemble(CandidatePoint{x, none, none},
+                           hven::solvers::kRequestObjectiveGradientAndConstraints, out.kkt_view(),
+                           rhs);
+        FAIL() << "a named gradient arena of zero length must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("objective gradient"), std::string::npos) << message;
+        EXPECT_NE(message.find("zero"), std::string::npos) << message;
+    }
+    EXPECT_TRUE(ContractProbeDestinations::untouched(out.objective_gradient));
+}
+
 TEST(AggregateAssembleContract, AKktBearingRequestMayNotBeGivenAnEmptyKktView) {
     // The three KKT-bearing flags share one destination, so any of them names
     // the KKT view. The objective-only shape may leave it empty (above); this

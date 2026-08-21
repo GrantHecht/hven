@@ -141,14 +141,25 @@ namespace detail {
 /// the laid width is not a fact this contract can see, which is exactly why
 /// presence is the most that can be asked here. An implementation compares the
 /// view against its own laid width at its hook, and refuses the same way.
+/// PRESENT MEANS NON-EMPTY, all three ways. A named gradient arena with no
+/// storage, with no table, or with a length of ZERO is refused. The last is
+/// worth spelling out because it is the one a size-match rule would have let
+/// through: unlike a residual block, a gradient arena has no legitimate empty
+/// case -- an aggregate with no primal variables is not a problem -- so a
+/// zero-length view under a naming request is incoherent rather than
+/// degenerate, and a filler that trusted its non-null storage would write past
+/// it. Rejecting it here is still a fixed amount of work and is still not a
+/// laid-width check.
 inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const char *arena) {
-    if (view.values_ == nullptr || view.locations_ == nullptr) {
+    if (view.empty()) {
+        const char *missing = view.values_ == nullptr      ? "storage"
+                              : view.locations_ == nullptr ? "location table"
+                                                           : "rows (its length is zero)";
         throw std::invalid_argument(
             fmt::format("assemble: the request names the {0} (flag 0x{1:x}), but that arena's "
                         "scatter view supplies no {2}. A request may leave empty only the arenas "
                         "it does NOT name; see the mapping table in model/candidate_point.h",
-                        arena, static_cast<std::uint32_t>(flag),
-                        view.values_ == nullptr ? "storage" : "location table"));
+                        arena, static_cast<std::uint32_t>(flag), missing));
     }
 }
 
@@ -212,10 +223,17 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
 /// What it buys is the other half of the type-level guarantee the non-virtual
 /// entry makes. "No output is written that the request did not name" was
 /// already structural; this adds its converse -- a request the entry ACCEPTS
-/// has a destination for everything it names -- so an implementation's hooks
-/// are born needing no view checks of their own, and a consumer that forgot an
+/// has a destination for everything it names -- so a consumer that forgot an
 /// arena is told which one at the entry rather than discovering a silently
 /// unwritten block.
+///
+/// It does NOT leave an implementation with nothing to check. The division is
+/// the two-boundary split stated at require_arena_view above: THE ENTRY
+/// VALIDATES CONTRACT-VISIBLE FACTS, AND AN IMPLEMENTATION VALIDATES
+/// LAID-WIDTH FACTS. What arrives at a hook is a destination that exists and,
+/// where the contract knows a length, one of the right length; whether it
+/// matches the width that provider actually laid its arena over is the
+/// provider's own question, asked at its own hook.
 ///
 /// The empty-view permission is unchanged and is exactly its complement: an
 /// arena the request does not name may be empty, and shapes 5 and 7 of the
@@ -369,6 +387,18 @@ class NlpAggregate {
     /// bumps the structure epoch -- even when it adopts the count already in
     /// force and leaves the claim structure identical. Claim order moved, and a
     /// consumer holding claim-slot-indexed state is stale.
+    ///
+    /// A NON-POSITIVE REQUEST IS REFUSED, with std::invalid_argument naming the
+    /// value, and is never silently corrected to one. The two are different
+    /// acts and only one of them is this method's job: CAPPING a request the
+    /// provider cannot support is honest work, and it is reported honestly
+    /// through the return value, which is the whole reason the adopted count is
+    /// returned at all. A request for zero or fewer partitions names no
+    /// partitioning, so there is nothing to cap and nothing to report -- and
+    /// serving one instead would hand back a count the caller never asked for,
+    /// which it would then key its structural key on. Refusing a nonsensical
+    /// request rather than correcting it is the rule; every implementation owes
+    /// it.
     ///
     /// Engine-side threading (a subproblem solver's own thread count) is not
     /// this interface's business and never routes through it.
@@ -620,10 +650,13 @@ class NlpAggregate {
 
   protected:
     // THE EVALUATION HOOKS. Each public entry above validates and then forwards
-    // to exactly one of these, so an implementation writes only the work and
-    // never the checks -- and cannot omit them. A hook is born needing no view
-    // checks of its own: by the time it runs, every destination its request
-    // names is known to be present.
+    // to exactly one of these, so an implementation never writes the
+    // contract's own checks and cannot omit them: by the time a hook runs,
+    // every destination its request names is known to be present, and every
+    // one whose length the contract knows is known to be right. What a hook
+    // still owns is the half the contract cannot see -- whether a destination
+    // matches the width THAT provider laid its arena over. See the
+    // two-boundary split at require_arena_view.
     //
     // What the entries check is deliberately bounded: flag tests and dimension
     // comparisons, a fixed amount of work per call. The hot-path budget belongs

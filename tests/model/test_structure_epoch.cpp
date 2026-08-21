@@ -203,6 +203,24 @@ TEST(AggregateEpochContract, NegotiationReportsTheAdoptedCountNotTheRequest) {
     EXPECT_EQ(aggregate.declaration().partition_count_, adopted);
 }
 
+TEST(AggregateEpochContract, ANonPositiveNegotiationIsRefusedNotCorrected) {
+    // Capping a request a provider cannot support is honest work and is
+    // reported through the return value. A request for zero or fewer
+    // partitions names no partitioning at all: there is nothing to cap, and
+    // serving one instead would hand back a count the caller never asked for
+    // and would then key its structural key on. The rule is the contract's,
+    // not any one provider's, so the fake owes it too.
+    FakeAggregate aggregate;
+    const StructureEpoch before = aggregate.structure_epoch();
+    const int adopted_before = aggregate.adopted_partitions();
+
+    EXPECT_THROW(aggregate.negotiate_partition_count(0), std::invalid_argument);
+    EXPECT_THROW(aggregate.negotiate_partition_count(-2), std::invalid_argument);
+
+    EXPECT_EQ(aggregate.structure_epoch(), before) << "a refused request must re-lay nothing";
+    EXPECT_EQ(aggregate.adopted_partitions(), adopted_before);
+}
+
 TEST(AggregateEpochContract, ARejectedReconfigurationBumpsTheEpoch) {
     FakeAggregate aggregate;
     const StructureEpoch before = aggregate.structure_epoch();
