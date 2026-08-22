@@ -51,7 +51,7 @@ using hven::solvers::has_capability;
 using hven::solvers::IdentityProbe;
 using hven::solvers::KktLocationTable;
 using hven::solvers::KktScatterView;
-using hven::solvers::kRequestConstraintJacobianOnly;
+using hven::solvers::kRequestConstraintResidualsAndJacobian;
 using hven::solvers::kRequestConstraintJacobiansOnly;
 using hven::solvers::kRequestConstraintKkt;
 using hven::solvers::kRequestFirstOrderKkt;
@@ -841,7 +841,7 @@ TEST(NlpModelAggregateEvaluatorSets, ConstraintJacobianOnlySkipsTheObjectiveEval
     expected.ci_ = 1;
     expected.jac_e_ = 1;
     expected.jac_i_ = 1;
-    EXPECT_EQ(counts_for(kRequestConstraintJacobianOnly, false), expected);
+    EXPECT_EQ(counts_for(kRequestConstraintResidualsAndJacobian, false), expected);
 }
 
 TEST(NlpModelAggregateEvaluatorSets, FirstOrderKktRunsTheSameSetAsTheFirstOrderRhs) {
@@ -1143,8 +1143,8 @@ TEST(NlpModelAggregateEquivalence, ConstraintJacobianOnlyWritesNoHessianSlot) {
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
-    aggregate.assemble(point.values_only(), kRequestConstraintJacobianOnly, destinations.kkt_view(),
-                       destinations.rhs_view());
+    aggregate.assemble(point.values_only(), kRequestConstraintResidualsAndJacobian,
+                       destinations.kkt_view(), destinations.rhs_view());
 
     const ClaimBlock hessian = aggregate.hessian_claims();
     for (int slot = hessian.start_; slot < hessian.start_ + hessian.count_; ++slot) {

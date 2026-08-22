@@ -322,7 +322,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    empty   kkt
 //
 // 5. constraint residuals + Jacobian, no
-//    objective and no adjoint gradient       -> kRequestConstraintJacobianOnly
+//    objective and no adjoint gradient       -> kRequestConstraintResidualsAndJacobian
 //    entry   eval_soe
 //    flags   kConstraintValues | kConstraintJacobian
 //    writes  equality_residuals_, inequality_residuals_, kkt (Jacobian blocks)
@@ -481,10 +481,9 @@ inline constexpr EvalRequest kRequestFirstOrderRhs =
     EvalRequest::kObjectiveValue | EvalRequest::kObjectiveGradient |
     EvalRequest::kConstraintValues | EvalRequest::kConstraintAdjointGradient;
 
-/// Shape 5. Not to be confused with kRequestConstraintJacobiansOnly (shape 11,
-/// one letter apart): this shape also carries kConstraintValues, so a
-/// provider additionally evaluates and writes the residual blocks.
-inline constexpr EvalRequest kRequestConstraintJacobianOnly =
+/// Shape 5. Unlike kRequestConstraintJacobiansOnly (shape 11), this shape also
+/// writes both residual blocks.
+inline constexpr EvalRequest kRequestConstraintResidualsAndJacobian =
     EvalRequest::kConstraintValues | EvalRequest::kConstraintJacobian;
 
 /// Shape 6.
@@ -514,17 +513,15 @@ inline constexpr EvalRequest kRequestLagrangianHessian =
 inline constexpr EvalRequest kRequestGradientAndJacobians =
     EvalRequest::kObjectiveGradient | EvalRequest::kConstraintJacobian;
 
-/// @brief Shape 11 (SQP-owned): constraint Jacobians alone. Not to be confused
-///        with kRequestConstraintJacobianOnly (shape 5, one letter apart):
-///        that shape also carries kConstraintValues and additionally
-///        evaluates and writes the residual blocks.
+/// @brief Shape 11 (SQP-owned): constraint Jacobians alone -- unlike
+///        kRequestConstraintResidualsAndJacobian (shape 5), no residual blocks.
 inline constexpr EvalRequest kRequestConstraintJacobiansOnly = EvalRequest::kConstraintJacobian;
 
 /// True iff `request` is one of the shapes the mapping table names.
 constexpr bool is_legal_request(EvalRequest request) noexcept {
     return request == kRequestObjectiveOnly || request == kRequestObjectiveAndConstraints ||
            request == kRequestObjectiveGradientAndConstraints || request == kRequestFirstOrderRhs ||
-           request == kRequestConstraintJacobianOnly || request == kRequestFirstOrderKkt ||
+           request == kRequestConstraintResidualsAndJacobian || request == kRequestFirstOrderKkt ||
            request == kRequestConstraintKkt || request == kRequestFullKkt ||
            request == kRequestLagrangianHessian || request == kRequestGradientAndJacobians ||
            request == kRequestConstraintJacobiansOnly;
@@ -541,7 +538,7 @@ inline void validate_eval_request(EvalRequest request) {
             "contract maps. The legal sets are kRequestObjectiveOnly (0x{1:x}), "
             "kRequestObjectiveAndConstraints (0x{2:x}), "
             "kRequestObjectiveGradientAndConstraints (0x{3:x}), kRequestFirstOrderRhs (0x{4:x}), "
-            "kRequestConstraintJacobianOnly (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
+            "kRequestConstraintResidualsAndJacobian (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
             "kRequestConstraintKkt (0x{7:x}), kRequestFullKkt (0x{8:x}), "
             "kRequestLagrangianHessian (0x{9:x}), kRequestGradientAndJacobians (0x{10:x}) and "
             "kRequestConstraintJacobiansOnly (0x{11:x}); see the mapping table in "
@@ -550,7 +547,7 @@ inline void validate_eval_request(EvalRequest request) {
             static_cast<std::uint32_t>(kRequestObjectiveAndConstraints),
             static_cast<std::uint32_t>(kRequestObjectiveGradientAndConstraints),
             static_cast<std::uint32_t>(kRequestFirstOrderRhs),
-            static_cast<std::uint32_t>(kRequestConstraintJacobianOnly),
+            static_cast<std::uint32_t>(kRequestConstraintResidualsAndJacobian),
             static_cast<std::uint32_t>(kRequestFirstOrderKkt),
             static_cast<std::uint32_t>(kRequestConstraintKkt),
             static_cast<std::uint32_t>(kRequestFullKkt),

@@ -722,8 +722,8 @@ TEST(AggregateAssembleContract, AKktBearingRequestMayNotBeGivenAnEmptyKktView) {
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
 
     EXPECT_THROW(aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                                    hven::solvers::kRequestConstraintJacobianOnly, KktScatterView{},
-                                    out.rhs_view()),
+                                    hven::solvers::kRequestConstraintResidualsAndJacobian,
+                                    KktScatterView{}, out.rhs_view()),
                  std::invalid_argument);
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.equality_residuals));
 }
@@ -743,13 +743,14 @@ TEST(AggregateAssembleContract, ABoundProviderRefusesAViewNamingAnotherDestinati
     aggregate.bind_kkt_destination(out.kkt_values.data());
     EXPECT_NO_THROW(aggregate.assemble(
         CandidatePoint{x, multipliers.equality, multipliers.inequality},
-        hven::solvers::kRequestConstraintJacobianOnly, out.kkt_view(), out.rhs_view()));
+        hven::solvers::kRequestConstraintResidualsAndJacobian, out.kkt_view(), out.rhs_view()));
 
     KktScatterView wrong = out.kkt_view();
     wrong.values_ = elsewhere.data();
     try {
         aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                           hven::solvers::kRequestConstraintJacobianOnly, wrong, out.rhs_view());
+                           hven::solvers::kRequestConstraintResidualsAndJacobian, wrong,
+                           out.rhs_view());
         FAIL() << "a bound provider must refuse a view naming a different destination";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -772,7 +773,7 @@ TEST(AggregateAssembleContract, AnUnboundProviderAcceptsWhateverDestinationItIsG
     anywhere.values_ = elsewhere.data();
     EXPECT_NO_THROW(aggregate.assemble(
         CandidatePoint{x, multipliers.equality, multipliers.inequality},
-        hven::solvers::kRequestConstraintJacobianOnly, anywhere, out.rhs_view()));
+        hven::solvers::kRequestConstraintResidualsAndJacobian, anywhere, out.rhs_view()));
     EXPECT_NE(elsewhere[0], 0.0);
 }
 
@@ -998,7 +999,7 @@ TEST(AggregateAssembleContract, AValuesOnlyRequestStillAcceptsEmptyMultipliers) 
                                        hven::solvers::kRequestObjectiveAndConstraints,
                                        out.kkt_view(), out.rhs_view()));
     EXPECT_NO_THROW(aggregate.assemble(CandidatePoint{x, none, none},
-                                       hven::solvers::kRequestConstraintJacobianOnly,
+                                       hven::solvers::kRequestConstraintResidualsAndJacobian,
                                        out.kkt_view(), out.rhs_view()));
 }
 

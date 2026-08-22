@@ -1558,8 +1558,8 @@ const char *refused_shape_name(hven::solvers::EvalRequest request) {
     if (request == kRequestFirstOrderRhs) {
         return "kRequestFirstOrderRhs";
     }
-    if (request == kRequestConstraintJacobianOnly) {
-        return "kRequestConstraintJacobianOnly";
+    if (request == kRequestConstraintResidualsAndJacobian) {
+        return "kRequestConstraintResidualsAndJacobian";
     }
     if (request == kRequestFirstOrderKkt) {
         return "kRequestFirstOrderKkt";
@@ -1660,7 +1660,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
         this->fill_fxe(arena_vector(rhs.equality_residuals_));
         this->fill_fxi(arena_vector(rhs.inequality_residuals_));
-    } else if (request == kRequestConstraintJacobianOnly) {
+    } else if (request == kRequestConstraintResidualsAndJacobian) {
         this->constraint_jacobian_pass(Xf, *mat);
         // Neither gradient arena is filled. The legacy shape passed both
         // buffers in and summed an identically zero contribution into each --
@@ -1705,7 +1705,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
             "these eight shapes: kRequestObjectiveOnly (0x{1:x}), "
             "kRequestObjectiveAndConstraints (0x{2:x}), "
             "kRequestObjectiveGradientAndConstraints (0x{3:x}), kRequestFirstOrderRhs (0x{4:x}), "
-            "kRequestConstraintJacobianOnly (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
+            "kRequestConstraintResidualsAndJacobian (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
             "kRequestConstraintKkt (0x{7:x}) and kRequestFullKkt (0x{8:x}); see the mapping "
             "table's per-provider support statement in model/candidate_point.h. Legal and "
             "supported-by-this-provider are distinct facts: this request cleared "
@@ -1714,7 +1714,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
             static_cast<std::uint32_t>(kRequestObjectiveAndConstraints),
             static_cast<std::uint32_t>(kRequestObjectiveGradientAndConstraints),
             static_cast<std::uint32_t>(kRequestFirstOrderRhs),
-            static_cast<std::uint32_t>(kRequestConstraintJacobianOnly),
+            static_cast<std::uint32_t>(kRequestConstraintResidualsAndJacobian),
             static_cast<std::uint32_t>(kRequestFirstOrderKkt),
             static_cast<std::uint32_t>(kRequestConstraintKkt),
             static_cast<std::uint32_t>(kRequestFullKkt), refused_shape_name(request)));

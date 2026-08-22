@@ -444,7 +444,7 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
         {"objective gradient and constraints",
          hven::solvers::kRequestObjectiveGradientAndConstraints, false},
         {"first-order right-hand side", hven::solvers::kRequestFirstOrderRhs, false},
-        {"constraint Jacobian only", hven::solvers::kRequestConstraintJacobianOnly, true},
+        {"constraint Jacobian only", hven::solvers::kRequestConstraintResidualsAndJacobian, true},
         {"first-order KKT", hven::solvers::kRequestFirstOrderKkt, true},
         {"constraint KKT", hven::solvers::kRequestConstraintKkt, true},
         {"full KKT", hven::solvers::kRequestFullKkt, true},
@@ -464,7 +464,7 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
         } else if (shape.request == hven::solvers::kRequestFirstOrderRhs) {
             nlp->eval_rhs(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                           legacy.fxi);
-        } else if (shape.request == hven::solvers::kRequestConstraintJacobianOnly) {
+        } else if (shape.request == hven::solvers::kRequestConstraintResidualsAndJacobian) {
             nlp->eval_soe(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                           legacy.fxi, legacy.kkt);
         } else if (shape.request == hven::solvers::kRequestFirstOrderKkt) {
@@ -1476,7 +1476,8 @@ void agg_pin_expect_supported_set_named(const std::string &message) {
         {"kRequestObjectiveGradientAndConstraints",
          hven::solvers::kRequestObjectiveGradientAndConstraints},
         {"kRequestFirstOrderRhs", hven::solvers::kRequestFirstOrderRhs},
-        {"kRequestConstraintJacobianOnly", hven::solvers::kRequestConstraintJacobianOnly},
+        {"kRequestConstraintResidualsAndJacobian",
+         hven::solvers::kRequestConstraintResidualsAndJacobian},
         {"kRequestFirstOrderKkt", hven::solvers::kRequestFirstOrderKkt},
         {"kRequestConstraintKkt", hven::solvers::kRequestConstraintKkt},
         {"kRequestFullKkt", hven::solvers::kRequestFullKkt},

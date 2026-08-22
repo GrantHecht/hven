@@ -705,8 +705,8 @@ void hven::solvers::InteriorPointSolver::eval_soe(
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     // Constraint-only mode, as eval_kkt_no above: neither obj_scale nor val is
     // read by this request.
-    this->assemble_dispatch(kRequestConstraintJacobianOnly, obj_scale, XSL, val, GX, AGXS_FX,
-                            KKTmat);
+    this->assemble_dispatch(kRequestConstraintResidualsAndJacobian, obj_scale, XSL, val, GX,
+                            AGXS_FX, KKTmat);
 }
 
 // =============================================================================
