@@ -554,3 +554,37 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     EXPECT_DOUBLE_EQ(captured_iq_mult, 1.0e6);
 }
+
+// The solver's multiplier vector is longer than the problem's own row count
+// whenever the fixed-variable treatment turns a fixed variable into an
+// equality row: the engine appends its row after the transcribed ones. Two
+// places depend on reading only the leading block -- the host, which hands the
+// model its own rows when the Hessian owner runs, and return_multipliers(),
+// which reports in the problem's declared row space. A solve that converges
+// exercises the first; the assertions below exercise the second.
+TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMultipliers) {
+    NLPSolver solver(std::make_shared<SeedFixedVarEqProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::MakeConstraint);
+    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+
+    Eigen::VectorXd x = solver.return_x();
+    EXPECT_NEAR(x[0], 1.0, 1e-6);
+    EXPECT_NEAR(x[1], 1.0, 1e-6);
+
+    // The engine really did add a row: the solver-space block is longer than
+    // the one row the problem declared, which is the branch under test.
+    ASSERT_EQ(solver.model_->me(), 1);
+    ASSERT_GT(solver.active_eq_lmults_.size(), solver.model_->me());
+
+    // ...and the report is in the problem's own row space, one entry, carrying
+    // the multiplier of the problem's own row and not the engine's.
+    Eigen::VectorXd lambda = solver.return_multipliers();
+    ASSERT_EQ(lambda.size(), 1);
+    // min x0^2 + x1^2 s.t. x0 + x1 = 2 with x1 fixed at 1: stationarity in the
+    // free variable gives 2*x0 + lambda = 0 at x0 = 1.
+    EXPECT_NEAR(lambda[0], -2.0, 1e-6);
+    EXPECT_NEAR(lambda[0], solver.active_eq_lmults_[0], 1e-12);
+}
