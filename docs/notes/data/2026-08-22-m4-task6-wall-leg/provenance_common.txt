@@ -1,0 +1,7 @@
+toolchain: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake preset: linux-clang-release (build/), -O3 -DNDEBUG -march=native -ffast-math -fno-finite-math-only
+MKL: 2026.1
+cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+ram: 31 GB
+kernel: 7.1.9-200.fc44.x86_64
+date: 2026-08-22

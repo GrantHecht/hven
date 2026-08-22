@@ -1,0 +1,6 @@
+serial    n=60    median 0.002227 -> 0.002343 (+5.209%) | minimum 0.002197 -> 0.002313 (+5.280%) | base rep-spread 1.21%
+serial    n=120   median 0.007262 -> 0.007799 (+7.395%) | minimum 0.007187 -> 0.007402 (+2.992%) | base rep-spread 1.02%
+serial    n=240   median 0.037067 -> 0.037069 (+0.005%) | minimum 0.036720 -> 0.036896 (+0.479%) | base rep-spread 1.31%
+threaded  n=60    median 0.002076 -> 0.002200 (+5.973%) | minimum 0.002050 -> 0.002165 (+5.610%) | base rep-spread 1.20%
+threaded  n=120   median 0.007087 -> 0.007618 (+7.493%) | minimum 0.007013 -> 0.007243 (+3.280%) | base rep-spread 12.42%
+threaded  n=240   median 0.034993 -> 0.035124 (+0.374%) | minimum 0.034609 -> 0.034850 (+0.696%) | base rep-spread 1.87%

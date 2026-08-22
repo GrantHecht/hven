@@ -1,0 +1,7 @@
+run: ab_6b5fc12_vs_46d6ff8
+HEAD binary commit: 46d6ff8 (BASE=6b5fc12 for this run only)
+BASE binary commit: 3208dcd (rig ipm_base) unless stated in HEAD line
+protocol: ipm_wall_leg.sh 9 reps x 15 inner solves, base/head alternated per rep; arms serial (MKL_NUM_THREADS=1, pinned) + threaded
+MKL_NUM_THREADS=1 exported for the whole run
+box state: quiet but noisy: base spread 1.9-5.6%
+date: 2026-08-22
