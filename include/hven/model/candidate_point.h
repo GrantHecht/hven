@@ -189,7 +189,8 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
 ///     OF CONSUMER-OWNED FAMILIES: each shape is owned by the consumer whose
 ///     legacy call bill it reproduces, added at that consumer's own
 ///     consumption task with a named call site and the counter evidence that
-///     a superset would break (M4 ledger, the 2026-08-21 amendment ruling).
+///     a superset would break (docs/notes/2026-08-m4-ledger.md, the
+///     amendment ruling, 2026-08-21).
 ///     A set outside the named ones is an evaluation shape no consumer has,
 ///     so an implementation would have to over-evaluate or run two passes --
 ///     both break the call-for-call counter equivalence the mapping exists to
@@ -262,8 +263,9 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // THE EVALUATION-SHAPE MAPPING TABLE
 // ---------------------------------------------------------------------------
 //
-// The named sets are a UNION OF CONSUMER-OWNED FAMILIES (M4 amendment ruling,
-// 2026-08-21). Rows 1-8 are the partitioned evaluation engine's: its eight
+// The named sets are a UNION OF CONSUMER-OWNED FAMILIES
+// (docs/notes/2026-08-m4-ledger.md, the amendment ruling, 2026-08-21).
+// Rows 1-8 are the partitioned evaluation engine's: its eight
 // evaluation entry points whose output shapes genuinely differ, replaced
 // BIJECTIVELY -- each entry is exactly one request set, the sets are distinct,
 // and no set names an output its shape did not produce. Rows 9-11 are the SQP
@@ -358,8 +360,8 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    caller  also scatters its own solver KKT coefficients, outside assemble
 //
 // Rows 9-11: owner = the SQP driver (added at its Level 2 consumption task;
-// call sites and counter evidence in the Task 5 design note and the ledger's
-// amendment ruling).
+// call sites and counter evidence in
+// docs/notes/2026-08-21-m4-task5-design.md + docs/notes/2026-08-m4-ledger.md).
 //
 // 9. the Lagrangian Hessian alone             -> kRequestLagrangianHessian
 //    moment  the per-accepted-iterate subproblem Hessian (one
