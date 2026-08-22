@@ -1,10 +1,10 @@
-# O12 Mac session — run-sheet DRAFT (settler-drafted, 2026-08-22)
+# O12 Mac session — run sheet (settler-drafted 2026-08-22; booking items RESOLVED 2026-08-22)
 
 The paper-only piece of the M3 O12 carry: everything Grant's
 one-hardware-session needs, compiled from the rulings so the session is
-executable without re-derivation. DRAFT — the flagged items get
-verified when the session is actually booked; this is not itself a
-booking. Sources: phase-C plan §10 O12 row + §12 Q5
+executable without re-derivation. The four booking items are RESOLVED
+in the final section; the executor works from this sheet as written
+and routes anything it names as a judgment call back to the lanes. Sources: phase-C plan §10 O12 row + §12 Q5
 (docs/notes/2026-08-15-m3-phase-c-plan.md), gate-C request §4
 (docs/notes/2026-08-21-m3-gate-c-review-request.md), the rig-pin ruling
 (carry doc §6).
@@ -13,7 +13,10 @@ booking. Sources: phase-C plan §10 O12 row + §12 Q5
 
 1. **H3's Accelerate arm** — the per-backend no-op proof of the hash
    re-key (§12 Q5): Accelerate-vs-Accelerate identity across the
-   re-key, captured as two passes.
+   re-key, captured as two passes. The claim, in H3's own words
+   (fb45a00): "HASH VALUES CHANGE; EVERY REUSE DECISION IS PRESERVED" —
+   the asserted evidence is reuse-DECISION counters and deterministic
+   census columns, never the hash values themselves.
 2. **Gate C item 3's rig Mac leg** — the golden rig's Mac legs, run
    under the rig-pin ruling (tree-hash identity, scope
    `psiopt/include/tycho/detail/solvers/linear/`, pin `bfb7d30c5cc8…`).
@@ -85,3 +88,52 @@ session record.
 4. Whether any M4-era addition should ride the same session (owner's
    call; M4 acceptance §7 keeps Mac values UNOBSERVED, so nothing M4
    REQUIRES it — but a second session is expensive to book).
+
+## RESOLVED at booking (settler, 2026-08-22; facts verified in-tree)
+
+1. **Pass-1 checkout = `bed76b2` exactly.** H3 is `fb45a00`; `bed76b2`
+   is its sole parent (`bed76b2..fb45a00` is one commit), so "H3's
+   parent commit" (phase-C O12 row) and the gate-C pair's "pre
+   `bed76b2`" name the same commit. Pass 2 = `fb45a00`.
+2. **Capture set, per pass (from H3's proof text):**
+   (a) the full hven suite, Release AND Debug, as ctest result tables
+       with the count chain (registered / executed / passed / skipped /
+       disabled) and the verbatim log files committed beside them;
+   (b) the corpus walk, all 57 cells, deterministic columns only
+       (counters, statuses, residuals) — one process, single-threaded,
+       machine otherwise idle; provenance header per §7 (toolchain,
+       hardware, date, commit, thread setting); wall-clock recorded as
+       informational only;
+   (c) the SQP reuse-decision counters the suite surfaces (SSN rebuild
+       counts, QP structural-rebuild counts) — these ARE the per-backend
+       no-op claim.
+   The session note's comparison table is pass-1 vs pass-2 on (a) counts
+   and dispositions, (b) every deterministic column byte-for-byte, and
+   (c) every counter exactly. Any difference is a FINDING: recorded,
+   never adjudicated by the executor, never re-run to make it pass.
+3. **Rig Mac leg runs ONCE, at a THIRD checkout: the `m3-branch-final`
+   tag** (the tree Gate C declared), independent of the H3 pair; the
+   rig's reported OBSERVED tree hash is recorded beside the pin (R1,
+   `2508b6a`). `HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM` stays OFF; an absent
+   or mismatched OLD-SEAM checkout is routed back, not worked around.
+   If gate-C request §4 binds the leg to a different tree, §4 governs —
+   the prompt drafter checks this once before dispatch.
+4. **No M4-era additions ride the session** (owner's call, pending at
+   the time of this amendment; M4 acceptance §7 keeps Mac values
+   UNOBSERVED). Candidate noted for the owner: the M4-head
+   zero-allocation pin's count half is glibc-only and self-skips on
+   macOS — it is UNOBSERVED there by construction and would need a
+   fourth checkout (M4 head) to even run its skip; the settler's
+   recommendation is NOT to ride.
+
+**Executor terms (evidence-only):** execute as written; a dedicated
+branch on the Mac clone, which must `git fetch origin tag
+m3-branch-final` first (`bed76b2`/`fb45a00` are not on main); commit
+artifacts only; NO source edits; NO push (the tree-token holder pushes
+after the artifacts are checked against the shapes above). Route back
+without improvising: a build failure at any of the three checkouts on
+the current Xcode/Accelerate; a rig pin mismatch or absent OLD-SEAM
+checkout; any pass-1 vs pass-2 difference; any value that cannot be
+captured (recorded `UNOBSERVED`, never filled). Governance binds the
+executor verbatim: never fabricate Accelerate values; the SNOPT source
+firewall; `notices/` untouched.
