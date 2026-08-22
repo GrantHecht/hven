@@ -143,9 +143,10 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     // --- Barrier/eval helpers ---
     //     apply_reset_slacks/barrier_objective/barrier_gradient forward to the
     //     shared inline kernels in barrier_math.h, as do InteriorPointSolver's own members
-    //     of the same name. eval_rhs stays a real body here (it forwards to
-    //     ctx_.nlp_->eval_rhs with the segment plumbing this component needs);
-    //     it has no shared-header counterpart.
+    //     of the same name. eval_rhs stays a real body here (it issues the
+    //     first-order right-hand-side request through the aggregate contract,
+    //     with the segment plumbing this component needs); it has no
+    //     shared-header counterpart.
     void eval_rhs(double obj_scale, const Eigen::Ref<const Eigen::VectorXd> &XSL, double &val,
                   Eigen::Ref<Eigen::VectorXd> GX, Eigen::Ref<Eigen::VectorXd> AGXS_FX);
     void apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> FXI) const;

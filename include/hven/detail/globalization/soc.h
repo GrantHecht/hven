@@ -231,9 +231,10 @@ class SocRecovery : public RecoveryChain {
 
   private:
     // Evaluate the constraint block c(x_k + alpha*dir) into `cons_out` (size
-    // equal_cons_ + inequal_cons_, layout [eq | iq]) using the same eval_occ +
-    // slack-reset convention the merit line search and alg_impl's RHS assembly
-    // use, so the value is directly comparable to RHS.all_cons(). Trial
+    // equal_cons_ + inequal_cons_, layout [eq | iq]) using the same
+    // objective-and-constraints request plus slack-reset convention the merit
+    // line search and alg_impl's RHS assembly use, so the value is directly
+    // comparable to RHS.all_cons(). Trial
     // primals/slacks are written into `xsl2_scratch`.
     void eval_trial_constraints(SolverContext &ctx, double obj_scale, const Eigen::VectorXd &XSL,
                                 const Eigen::VectorXd &dir, double alpha,

@@ -1,9 +1,9 @@
 # Which call site each trace cell exercises
 
 The counter-identity record for the eleven retargeted call sites rests on the
-solve traces. Six of the eleven are unreachable from the default settings the
+solve traces. Seven of the eleven are unreachable from the default settings the
 two original cells use, so five cells were added to reach them. This is the
-measured attribution, not an argument: the six sites were temporarily
+measured attribution, not an argument: the seven sites were temporarily
 instrumented with a stderr probe, a throwaway build was run cell by cell, and
 the probes were then removed. The counts are hits per cell.
 
