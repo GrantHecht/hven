@@ -121,6 +121,15 @@ setup_worktree() { # $1=path $2=commitish
     fi
     git -C "$REPO" worktree prune
     git -C "$REPO" worktree add --detach "$path" "$ref"
+    # Worktrees do not populate submodules; the vendored dep/ pins are
+    # verified identical across all four arm commits (git diff --stat
+    # 07d5ee1..HEAD -- dep/ is empty), so the main tree's checkouts are
+    # content-exact for every arm and are shared by symlink.
+    local sub
+    for sub in eigen fmt; do
+        rmdir "$path/dep/$sub" 2>/dev/null || rm -rf "$path/dep/$sub"
+        ln -s "$REPO/dep/$sub" "$path/dep/$sub"
+    done
 }
 
 echo "=== preparing BASE worktree ($BASE_COMMIT)"
