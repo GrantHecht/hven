@@ -1531,6 +1531,59 @@ void require_laid_width(const hven::solvers::RhsArenaView &view, int laid_width,
 
 } // namespace
 
+namespace {
+
+/// The spelling of a named evaluation shape, for a refusal that has to say
+/// WHICH shape it is refusing.
+///
+/// A refusal that reports only the flag combination makes the reader decode
+/// hex against the mapping table before they know what was asked for. Every
+/// shape assemble() lets through is one of the named ones -- validate_eval_request
+/// has already refused everything else -- so the fallback is unreachable in
+/// practice and exists only so this returns a total function.
+///
+/// @param request the shape to name.
+/// @return the enumerator's spelling.
+const char *refused_shape_name(hven::solvers::EvalRequest request) {
+    using namespace hven::solvers;
+    if (request == kRequestObjectiveOnly) {
+        return "kRequestObjectiveOnly";
+    }
+    if (request == kRequestObjectiveAndConstraints) {
+        return "kRequestObjectiveAndConstraints";
+    }
+    if (request == kRequestObjectiveGradientAndConstraints) {
+        return "kRequestObjectiveGradientAndConstraints";
+    }
+    if (request == kRequestFirstOrderRhs) {
+        return "kRequestFirstOrderRhs";
+    }
+    if (request == kRequestConstraintJacobianOnly) {
+        return "kRequestConstraintJacobianOnly";
+    }
+    if (request == kRequestFirstOrderKkt) {
+        return "kRequestFirstOrderKkt";
+    }
+    if (request == kRequestConstraintKkt) {
+        return "kRequestConstraintKkt";
+    }
+    if (request == kRequestFullKkt) {
+        return "kRequestFullKkt";
+    }
+    if (request == kRequestLagrangianHessian) {
+        return "kRequestLagrangianHessian";
+    }
+    if (request == kRequestGradientAndJacobians) {
+        return "kRequestGradientAndJacobians";
+    }
+    if (request == kRequestConstraintJacobiansOnly) {
+        return "kRequestConstraintJacobiansOnly";
+    }
+    return "an unnamed flag combination";
+}
+
+} // namespace
+
 void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
                                                     EvalRequest request, KktScatterView kkt,
                                                     RhsScatterView rhs) {
@@ -1647,7 +1700,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         // exactly as the mapping table's per-provider support statement
         // forbids.
         throw std::invalid_argument(fmt::format(
-            "assemble: the flag combination 0x{0:x} is a legal evaluation shape, but this "
+            "assemble: {9}, the flag combination 0x{0:x}, is a legal evaluation shape, but this "
             "provider does not support it. The partitioned evaluation engine serves exactly "
             "these eight shapes: kRequestObjectiveOnly (0x{1:x}), "
             "kRequestObjectiveAndConstraints (0x{2:x}), "
@@ -1664,7 +1717,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
             static_cast<std::uint32_t>(kRequestConstraintJacobianOnly),
             static_cast<std::uint32_t>(kRequestFirstOrderKkt),
             static_cast<std::uint32_t>(kRequestConstraintKkt),
-            static_cast<std::uint32_t>(kRequestFullKkt)));
+            static_cast<std::uint32_t>(kRequestFullKkt), refused_shape_name(request)));
     }
 
     // size_ is not validated on the engine path; identity and non-emptiness

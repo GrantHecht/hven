@@ -1513,6 +1513,10 @@ TEST(NlpAggregateEngineContract, ALegalLagrangianHessianRequestIsRefusedByName) 
                 "0x{0:x}", static_cast<std::uint32_t>(hven::solvers::kRequestLagrangianHessian))),
             std::string::npos)
             << message;
+        // The refusal names the shape it refused, not only its flag mask: a
+        // reader should not have to decode hex against the mapping table to
+        // learn what was asked for.
+        EXPECT_NE(message.find("kRequestLagrangianHessian"), std::string::npos) << message;
         agg_pin_expect_supported_set_named(message);
     }
     // Refused before anything ran: the objective slot never moved off zero.
@@ -1541,6 +1545,10 @@ TEST(NlpAggregateEngineContract, ALegalGradientAndJacobiansRequestIsRefusedByNam
                                                     hven::solvers::kRequestGradientAndJacobians))),
             std::string::npos)
             << message;
+        // The refusal names the shape it refused, not only its flag mask: a
+        // reader should not have to decode hex against the mapping table to
+        // learn what was asked for.
+        EXPECT_NE(message.find("kRequestGradientAndJacobians"), std::string::npos) << message;
         agg_pin_expect_supported_set_named(message);
     }
     // Refused before anything ran: the objective slot never moved off zero.
@@ -1567,6 +1575,10 @@ TEST(NlpAggregateEngineContract, ALegalConstraintJacobiansOnlyRequestIsRefusedBy
                       static_cast<std::uint32_t>(hven::solvers::kRequestConstraintJacobiansOnly))),
                   std::string::npos)
             << message;
+        // The refusal names the shape it refused, not only its flag mask: a
+        // reader should not have to decode hex against the mapping table to
+        // learn what was asked for.
+        EXPECT_NE(message.find("kRequestConstraintJacobiansOnly"), std::string::npos) << message;
         agg_pin_expect_supported_set_named(message);
     }
 }

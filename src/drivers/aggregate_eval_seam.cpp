@@ -129,6 +129,16 @@ DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
 /// slot for slot; the walk below compares the two element by element and
 /// refuses a mismatch. That check is the whole basis on which a per-evaluation
 /// contiguous segment copy is allowed to stand in for a scatter.
+///
+/// TWO CLAIMS ON ONE COORDINATE ARE REFUSED HERE, AND THAT IS THIS CONSUMER'S
+/// ARENA SPEAKING, NOT A LEVEL 2 PROHIBITION. This seam lays exactly one arena
+/// slot per stored pattern element and publishes a domain by copying that
+/// contiguous segment straight onto the pattern's value array (publish_matrix),
+/// so a coordinate named twice has one offset to hand to two claims and the
+/// segment copy has no way to represent the second. A consumer that publishes
+/// clash marks and a lock vector instead accepts colliding claims and
+/// accumulates them -- the interior engine does exactly that -- so the refusal
+/// below is a property of this destination, not of the contract.
 void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matrix_rows,
                   int matrix_cols, int arena_base, const char *domain, SpMatRM &pattern,
                   std::vector<int> &locations) {
@@ -161,8 +171,11 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
 
     if (static_cast<int>(pattern.nonZeros()) != count) {
         throw std::invalid_argument(fmt::format(
-            "AggregateEvalSeam: the {0} block's {1} claims collapsed to {2} stored elements. Two "
-            "claims naming one coordinate cannot be addressed by one arena offset each",
+            "AggregateEvalSeam: the {0} block's {1} claims name only {2} distinct coordinates. "
+            "This seam lays one arena slot per stored pattern element and publishes the domain by "
+            "copying that segment onto the pattern's value array, so a coordinate named twice has "
+            "one offset for two claims. A consumer publishing clash marks accepts such a stream; "
+            "this one does not",
             domain, count, pattern.nonZeros()));
     }
 
