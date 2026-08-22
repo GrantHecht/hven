@@ -106,6 +106,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -117,8 +118,10 @@
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
+#include <hven/model/nlp_model_aggregate.h>
 #include <hven/qp/qp_types.h>
 
+#include "model_surface_kkt.h"
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
 
@@ -128,6 +131,9 @@ using hven::Index;
 using hven::Vec;
 using hven::solvers::from_interior_point;
 using hven::solvers::IpCrossoverOptions;
+using hven::solvers::model_surface_kkt_residuals;
+using hven::solvers::ModelSurfaceKktResiduals;
+using hven::solvers::NlpModelAggregate;
 using hven::solvers::QpMode;
 using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
@@ -279,6 +285,30 @@ struct CorpusRow {
     // SqpCounters::ssn. All zero under `engine == "walk"` -- structurally, not
     // by convention: no SSN subproblem is ever solved there.
     SsnCounters ssn{};
+
+    // =========================================================================
+    // TASK 4 (M4-Task5 plan): THE MODEL-SURFACE CENSUS HOOK'S OWN COLUMNS.
+    // =========================================================================
+    //
+    // -1.0 SENTINEL, EXACTLY LIKE kkt_stationarity ABOVE: NOT COMPUTED, which
+    // is the default (EngineConfig::score_model_surface is false) and is also
+    // what a row that never claimed kOptimal, or an older row read back with
+    // no census, carries. Populated by record_model_surface_check ONLY when
+    // the flag is on, at the SAME point (sol.x/lambda_e/lambda_i/z) and the
+    // SAME solve `record_kkt_check` above already scored -- so a comparison
+    // between the two blocks is a comparison of two independent readings of
+    // one point, not two different points.
+    //
+    // THIS DOES NOT TOUCH bench_corpus.cpp's committed 31/37-column artifact
+    // format: these fields are read by the census hook alone (a SEPARATE
+    // wgate_scorer.csv, written only when the flag is on) and are never
+    // threaded through write_outcome/read_outcomes_csv, so the main corpus
+    // CSV's schema is byte-identical whether or not this hook ever ran.
+    double ms_stationarity = -1.0;
+    double ms_complementarity = -1.0;
+    double ms_primal = -1.0;
+    double ms_dual_scale = -1.0;
+    double ms_x_scale = -1.0;
 };
 
 // =============================================================================
@@ -1293,6 +1323,19 @@ struct EngineConfig {
     SsnSigmaRule ssn_sigma_rule = SsnSigmaRule::kLadder;         // R1
     SsnHintRule ssn_hint_rule = SsnHintRule::kIterationZeroFree; // R2
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms; // R4
+
+    // TASK 4 (M4-Task5 plan): the model-surface census hook's opt-in flag.
+    // UNLIKE every field above, this is NOT an SqpOptions/SsnOptions field --
+    // it never reaches options_for_cell below -- because it selects whether
+    // `timed_row` ALSO scores the model-surface KKT residuals
+    // (bench/model_surface_kkt.h) beside the ones self_check_kkt already
+    // records, not anything about how the solve itself runs. It rides this
+    // struct anyway because EngineConfig is already the one vehicle threaded
+    // through run_cell -> run_cell_engine -> timed_row and already forwarded
+    // across the --internal-run-one subprocess boundary (bench_corpus.cpp's
+    // run_cell_with_deadline), so a second threading mechanism would exist
+    // only to duplicate that plumbing.
+    bool score_model_surface = false;
 };
 
 inline SqpOptions options_for_cell(const CorpusCell &cell, const EngineConfig &cfg = {}) {
@@ -1430,6 +1473,31 @@ inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpSolu
     row.neg_ineq_duals = negatives;
 }
 
+// TASK 4 (M4-Task5 plan): THE MODEL-SURFACE CENSUS HOOK'S OWN CHECK, called
+// ONLY when EngineConfig::score_model_surface is set -- see `timed_row` below
+// for the guard. Scores the SAME point `record_kkt_check` above just scored,
+// through bench/model_surface_kkt.h's engine-independent scorer instead of
+// self_check_kkt, via a throwaway NlpModelAggregate bridge over `model`.
+//
+// A NON-OWNING BRIDGE, matching src/drivers/sqp_driver.cpp's own
+// `borrow_model` idiom exactly (shared_ptr's aliasing constructor over an
+// EMPTY owner: the stored pointer is `&model`, there is no control block, and
+// destruction does nothing) -- `model` is a stack-local F7CollocationChain
+// this function does not own and must not outlive.
+inline void record_model_surface_check(const hven::solvers::NlpModel &model, const SqpSolution &sol,
+                                       CorpusRow &row) {
+    const std::shared_ptr<const hven::solvers::NlpModel> borrowed(std::shared_ptr<const void>(),
+                                                                  &model);
+    NlpModelAggregate aggregate(borrowed);
+    const ModelSurfaceKktResiduals r =
+        model_surface_kkt_residuals(aggregate, sol.x, sol.lambda_e, sol.lambda_i, sol.z);
+    row.ms_stationarity = r.stationarity_;
+    row.ms_complementarity = r.complementarity_;
+    row.ms_primal = r.primal_;
+    row.ms_dual_scale = r.dual_scale_;
+    row.ms_x_scale = r.x_scale_;
+}
+
 inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpSolution &sol, double wall_s) {
     CorpusRow row{};
     row.cell_id = cell.id;
@@ -1498,15 +1566,25 @@ inline void notify_setup_complete(const SetupCompleteFn &fn) {
 // comparable to the walk baseline this task scores against, and that baseline
 // was measured by a binary with no such check in it. The check is charged to
 // nobody's wall.
+//
+// `score_model_surface` defaults to false and gates TASK 4's census hook the
+// same way: entirely OUTSIDE the timed window, and -- when false -- this
+// function performs the exact sequence it always did, with no extra branch
+// taken, no extra vector allocated and no extra evaluation run. Every call
+// site below passes `cfg.score_model_surface`.
 template <typename Fn>
 CorpusRow timed_row(const CorpusCell &cell, const hven::solvers::NlpModel &model,
-                    const SetupCompleteFn &on_setup_complete, Fn &&solve_target) {
+                    const SetupCompleteFn &on_setup_complete, Fn &&solve_target,
+                    bool score_model_surface = false) {
     notify_setup_complete(on_setup_complete);
     const auto t0 = std::chrono::steady_clock::now();
     const SqpSolution sol = solve_target();
     const auto t1 = std::chrono::steady_clock::now();
     CorpusRow row = row_from_solution(cell, sol, std::chrono::duration<double>(t1 - t0).count());
     record_kkt_check(model, sol, kFeasTol, row);
+    if (score_model_surface) {
+        record_model_surface_check(model, sol, row);
+    }
     return row;
 }
 
@@ -1525,15 +1603,17 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         SqpDriver driver(opts);
         model.set_parameters(Vec::Constant(1, cell.p));
         const Vec x0 = model.start_point();
-        return timed_row(cell, model, on_setup_complete,
-                         [&] { return budgeted_solve(driver, model, x0); });
+        return timed_row(
+            cell, model, on_setup_complete, [&] { return budgeted_solve(driver, model, x0); },
+            cfg.score_model_surface);
     }
     case StartTaxonomy::kPhysicsInformed: {
         SqpDriver driver(opts);
         model.set_parameters(Vec::Constant(1, cell.p));
         const Vec x0 = physics_informed_start(model, cell.p);
-        return timed_row(cell, model, on_setup_complete,
-                         [&] { return budgeted_solve(driver, model, x0); });
+        return timed_row(
+            cell, model, on_setup_complete, [&] { return budgeted_solve(driver, model, x0); },
+            cfg.score_model_surface);
     }
     case StartTaxonomy::kCorrupted: {
         SqpDriver driver(opts);
@@ -1550,8 +1630,10 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         const SqpSolution seed = budgeted_solve(driver, model, model.start_point());
         const WarmStart corrupted = corrupt_warm_start(seed.warm_start);
         model.set_parameters(Vec::Constant(1, cell.p));
-        return timed_row(cell, model, on_setup_complete,
-                         [&] { return budgeted_solve(driver, model, corrupted.x, corrupted); });
+        return timed_row(
+            cell, model, on_setup_complete,
+            [&] { return budgeted_solve(driver, model, corrupted.x, corrupted); },
+            cfg.score_model_surface);
     }
     case StartTaxonomy::kActivityOnly: {
         SqpDriver driver(opts);
@@ -1562,17 +1644,20 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         const WarmStart crossover =
             from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
                                 model.lower(), model.upper(), IpCrossoverOptions{});
-        return timed_row(cell, model, on_setup_complete,
-                         [&] { return budgeted_solve(driver, model, crossover.x, crossover); });
+        return timed_row(
+            cell, model, on_setup_complete,
+            [&] { return budgeted_solve(driver, model, crossover.x, crossover); },
+            cfg.score_model_surface);
     }
     case StartTaxonomy::kFullWarm: {
         SqpDriver driver(opts);
         model.set_parameters(Vec::Constant(1, cell.p0));
         const SqpSolution seed = budgeted_solve(driver, model, model.start_point());
         model.set_parameters(Vec::Constant(1, cell.p));
-        return timed_row(cell, model, on_setup_complete, [&] {
-            return budgeted_solve(driver, model, seed.warm_start.x, seed.warm_start);
-        });
+        return timed_row(
+            cell, model, on_setup_complete,
+            [&] { return budgeted_solve(driver, model, seed.warm_start.x, seed.warm_start); },
+            cfg.score_model_surface);
     }
     }
     throw std::invalid_argument(fmt::format(

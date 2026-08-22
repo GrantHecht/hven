@@ -229,6 +229,18 @@ constexpr const char *kUsage =
     "                    tests/test_scale_problems.cpp.\n"
     "  --list            print every census cell's id/tags and exit 0; touches\n"
     "                    neither --engine/--cells/--csv nor the solver.\n"
+    "  --score-model-surface   TASK 4 (M4-Task5 plan) census hook. DEFAULT OFF.\n"
+    "                    Requires --score-model-surface-out. Only meaningful with\n"
+    "                    --engine/--cells/--csv (a real sweep): for each row this\n"
+    "                    solve claimed kOptimal on, also scores the SAME returned\n"
+    "                    point through bench/model_surface_kkt.h's engine-\n"
+    "                    independent scorer and writes cell_id, the three recorded\n"
+    "                    residuals, the three scorer residuals, and a\n"
+    "                    verdict-equal boolean (both read through corpus_cells.h's\n"
+    "                    own kkt_gate_verdict) to --score-model-surface-out. Never\n"
+    "                    touches the main --csv artifact's own columns.\n"
+    "  --score-model-surface-out <path>   required with --score-model-surface;\n"
+    "                    the census-hook output path (e.g. wgate_scorer.csv).\n"
     "  --help            print this text and exit 0.\n"
     "\n"
     "CSV COLUMNS (one row per cell, in this order):\n"
@@ -335,6 +347,15 @@ struct Args {
     // SIGKILLs the child but returns its DNF outcome before ever inspecting a
     // signal status, so nothing else in the suite reaches the branch.
     bool internal_force_child_abort = false;
+    // TASK 4 (M4-Task5 plan): the model-surface census hook's opt-in flag and
+    // its output path. DEFAULT OFF, and off means genuinely off -- see
+    // corpus_cells.h's EngineConfig::score_model_surface and `timed_row` for
+    // where the guard actually lives; this flag only decides whether that
+    // guard is ever set to true. Paired with `--score-model-surface-out`
+    // exactly as `--dump-qp`/`--dump-qp-out` are: required together, checked
+    // in main() below.
+    bool score_model_surface = false;
+    std::optional<std::string> score_model_surface_out;
 };
 
 Args parse_args(int argc, char **argv) {
@@ -353,6 +374,10 @@ Args parse_args(int argc, char **argv) {
             a.list = true;
         } else if (arg == "--score-gates") {
             a.score_gates = true;
+        } else if (arg == "--score-model-surface") {
+            a.score_model_surface = true;
+        } else if (arg == "--score-model-surface-out") {
+            a.score_model_surface_out = next_value(arg);
         } else if (arg == "--engine") {
             const std::string v = next_value(arg);
             if (v != "walk" && v != "ssn") {
@@ -951,6 +976,49 @@ std::vector<CorpusOutcome> in_census_order(std::vector<CorpusOutcome> outcomes) 
 // `read_outcomes_csv`, so there is ONE writer and ONE reader for a corpus row,
 // and the reader's own consistency checks (qp_subproblems, and now the KKT
 // verdict) apply to the child's output too.
+
+// TASK 4 (M4-Task5 plan): the model-surface census hook's OWN small sidecar
+// format, entirely separate from write_outcome/read_outcomes_csv's 31/37-
+// column artifact contract -- see corpus_cells.h's CorpusRow::ms_* note for
+// why touching that contract is the wrong move here. One line, five
+// comma-separated values, in CorpusRow::ms_* declaration order. Written by
+// the CHILD (run_internal_one, only when EngineLevers::score_model_surface is
+// set) and read by the PARENT (run_cell_with_deadline) to carry the five
+// fields across the fork/exec boundary that write_outcome's own format does
+// not touch.
+void write_model_surface_sidecar(const std::string &path, const CorpusRow &row) {
+    std::ofstream out(path);
+    if (!out) {
+        throw std::invalid_argument(
+            fmt::format("--internal-run-one: could not open '{}' for writing", path));
+    }
+    out << fmt::format("{:.17g},{:.17g},{:.17g},{:.17g},{:.17g}\n", row.ms_stationarity,
+                       row.ms_complementarity, row.ms_primal, row.ms_dual_scale, row.ms_x_scale);
+}
+
+void read_model_surface_sidecar(const std::string &path, CorpusRow &row) {
+    std::ifstream in(path);
+    if (!in) {
+        throw std::invalid_argument(fmt::format(
+            "hven_sqp_corpus: --score-model-surface: could not read sidecar '{}' -- the child "
+            "was asked to score the model surface but did not write it",
+            path));
+    }
+    std::string line;
+    std::getline(in, line);
+    const std::vector<std::string> col = split_on(line, ',');
+    if (col.size() != 5) {
+        throw std::invalid_argument(fmt::format(
+            "hven_sqp_corpus: --score-model-surface: sidecar '{}' carries {} field(s), expected 5",
+            path, col.size()));
+    }
+    row.ms_stationarity = parse_double_field(path + " column ms_stationarity", col[0]);
+    row.ms_complementarity = parse_double_field(path + " column ms_complementarity", col[1]);
+    row.ms_primal = parse_double_field(path + " column ms_primal", col[2]);
+    row.ms_dual_scale = parse_double_field(path + " column ms_dual_scale", col[3]);
+    row.ms_x_scale = parse_double_field(path + " column ms_x_scale", col[4]);
+}
+
 void run_internal_one(const std::string &cell_id, const std::string &engine,
                       const std::string &out_path, const EngineLevers &levers, bool force_throw,
                       bool force_abort) {
@@ -998,6 +1066,9 @@ void run_internal_one(const std::string &cell_id, const std::string &engine,
             fmt::format("--internal-run-one: could not open '{}' for writing", out_path));
     }
     write_outcome(out, outcome);
+    if (levers.score_model_surface) {
+        write_model_surface_sidecar(out_path + ".ms", outcome.row);
+    }
 }
 
 CorpusRow read_internal_row(const std::string &path, const CorpusCell &cell) {
@@ -1039,8 +1110,15 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
         fmt::format("/tmp/hven_sqp_corpus_internal_{}_{}.row", ::getpid(), cell.id);
     const std::string setup_marker = out_path + ".setup";
     const std::string error_path = out_path + ".error";
+    // TASK 4 (M4-Task5 plan): the model-surface sidecar's own path, written by
+    // the child only when `levers.score_model_surface` is set (see
+    // write_model_surface_sidecar's own note) -- always removed at cleanup so
+    // a stale file from an earlier PID reuse can never be misread as this
+    // run's.
+    const std::string ms_path = out_path + ".ms";
     std::remove(setup_marker.c_str());
     std::remove(error_path.c_str());
+    std::remove(ms_path.c_str());
 
     const pid_t pid = fork();
     if (pid < 0) {
@@ -1075,6 +1153,9 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
             argv_own.emplace_back("--ssn-infeasibility-rule");
             argv_own.emplace_back("farkas");
         }
+        if (levers.score_model_surface) {
+            argv_own.emplace_back("--score-model-surface");
+        }
         if (force_child_throw) {
             argv_own.emplace_back("--internal-force-child-throw");
         }
@@ -1096,6 +1177,7 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
         std::remove(out_path.c_str());
         std::remove(setup_marker.c_str());
         std::remove(error_path.c_str());
+        std::remove(ms_path.c_str());
     };
     bool in_setup_phase = true;
     auto deadline =
@@ -1129,6 +1211,13 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
             CorpusOutcome out;
             out.cell = &cell;
             out.row = read_internal_row(out_path, cell);
+            if (levers.score_model_surface) {
+                // The child wrote this beside out_path -- see
+                // write_model_surface_sidecar's own note for why this is a
+                // separate small file rather than a fifth read_outcomes_csv
+                // tail.
+                read_model_surface_sidecar(ms_path, out.row);
+            }
             cleanup();
             return out;
         }
@@ -1292,6 +1381,43 @@ void print_gate_verdict(const std::vector<CorpusOutcome> &outcomes) {
                                       static_cast<double>(total_facts));
 }
 
+// TASK 4 (M4-Task5 plan): --score-model-surface's own artifact, written ONLY
+// when that flag is on -- main() below never calls this otherwise. One row
+// per outcome that actually produced an answer (o.no_answer() rows -- DNF and
+// engine_error -- are skipped: the census hook never ran for them, exactly as
+// record_kkt_check never did). `verdict_equal` re-derives BOTH verdicts
+// through corpus_cells.h's own `kkt_gate_verdict`, applied first to the row as
+// recorded and then to a copy whose three W2 residuals and two W3 scales are
+// swapped for the scorer's own reading -- so this is the SAME gate rule the
+// main CSV's `kkt_verdict` column already uses, read twice over two
+// independent measurements of one point.
+void write_model_surface_census(const std::string &path,
+                                const std::vector<CorpusOutcome> &outcomes) {
+    std::ofstream out(path);
+    if (!out) {
+        throw std::invalid_argument(
+            fmt::format("--score-model-surface-out: could not open '{}' for writing", path));
+    }
+    out << "cell_id,kkt_stationarity,kkt_complementarity,kkt_primal,"
+           "ms_stationarity,ms_complementarity,ms_primal,verdict_equal\n";
+    for (const CorpusOutcome &o : outcomes) {
+        if (o.no_answer()) {
+            continue;
+        }
+        CorpusRow scorer_view = o.row;
+        scorer_view.kkt_stationarity = o.row.ms_stationarity;
+        scorer_view.kkt_complementarity = o.row.ms_complementarity;
+        scorer_view.kkt_primal = o.row.ms_primal;
+        scorer_view.dual_scale = o.row.ms_dual_scale;
+        scorer_view.x_scale = o.row.ms_x_scale;
+        const bool verdict_equal = kkt_gate_verdict(o.row) == kkt_gate_verdict(scorer_view);
+        out << fmt::format("{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{}\n", o.row.cell_id,
+                           o.row.kkt_stationarity, o.row.kkt_complementarity, o.row.kkt_primal,
+                           o.row.ms_stationarity, o.row.ms_complementarity, o.row.ms_primal,
+                           verdict_equal ? 1 : 0);
+    }
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -1315,6 +1441,7 @@ int main(int argc, char **argv) {
             levers.ssn_sigma_rule = args.ssn_sigma_rule;
             levers.ssn_hint_rule = args.ssn_hint_rule;
             levers.ssn_infeasibility_rule = args.ssn_infeasibility_rule;
+            levers.score_model_surface = args.score_model_surface;
             run_internal_one(*args.internal_run_one, *args.engine, *args.internal_out, levers,
                              args.internal_force_child_throw, args.internal_force_child_abort);
             return 0;
@@ -1435,6 +1562,11 @@ int main(int argc, char **argv) {
             throw_usage("--engine, --cells and --csv are all required (or pass --help / --list / "
                         "--from-csv instead)");
         }
+        if (args.score_model_surface != args.score_model_surface_out.has_value()) {
+            throw_usage("--score-model-surface and --score-model-surface-out must be passed "
+                        "together (the first without the second has nowhere to write; the second "
+                        "without the first would never be written to)");
+        }
 
         const std::vector<const CorpusCell *> cells = resolve_cells(*args.cells);
 
@@ -1444,6 +1576,7 @@ int main(int argc, char **argv) {
         levers.ssn_sigma_rule = args.ssn_sigma_rule;
         levers.ssn_hint_rule = args.ssn_hint_rule;
         levers.ssn_infeasibility_rule = args.ssn_infeasibility_rule;
+        levers.score_model_surface = args.score_model_surface;
 
         // INCREMENTAL. One abnormally-exiting child used to abort a
         // multi-hour sweep with an empty file; every row that completed is
@@ -1491,6 +1624,10 @@ int main(int argc, char **argv) {
 
         if (args.score_gates) {
             print_gate_verdict(outcomes);
+        }
+        if (args.score_model_surface) {
+            write_model_surface_census(*args.score_model_surface_out, outcomes);
+            fmt::print("wrote the model-surface census to {}\n", *args.score_model_surface_out);
         }
         return 0;
     } catch (const std::exception &e) {

@@ -28,6 +28,7 @@ set(HVEN_MODEL_TEST_SOURCES
     test_contract_flags.cpp
     test_identity_probe.cpp
     test_model_structure_key.cpp
+    test_model_surface_kkt.cpp
     test_nlp_model_aggregate.cpp
     test_structure_epoch.cpp
 )

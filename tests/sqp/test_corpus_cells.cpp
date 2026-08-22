@@ -248,6 +248,43 @@ TEST(CorpusCellsRunner, EngineSsnSelectsTheSemismoothKernelAndNothingElse) {
     EXPECT_EQ(walk_row.escapes, 0);
 }
 
+// TASK 4 (M4-Task5 plan): the model-surface census hook is DEFAULT OFF and
+// its five ms_* columns stay at CorpusRow's own -1.0 "not computed" sentinel
+// -- the identical convention kkt_stationarity et al. already use -- unless
+// EngineConfig::score_model_surface is explicitly set.
+TEST(CorpusCellsRunner, ModelSurfaceCensusHookDefaultsOff) {
+    const CorpusCell cell = tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false);
+    const CorpusRow row = run_cell(cell, "walk");
+    EXPECT_DOUBLE_EQ(row.ms_stationarity, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_complementarity, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_primal, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_dual_scale, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_x_scale, -1.0);
+}
+
+// Behavioural half: with the flag on, the census hook's own independent
+// reading (bench/model_surface_kkt.h, off the Level 2 aggregate surface)
+// agrees with self_check_kkt's (bench/corpus_cells.h's record_kkt_check) at
+// the SAME returned point -- two different code paths over the same seam
+// stationarity convention, scoring the same solution.
+TEST(CorpusCellsRunner, ModelSurfaceCensusHookAgreesWithRecordedResidualsWhenOn) {
+    const CorpusCell cell = tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false);
+    detail::EngineConfig levers;
+    levers.score_model_surface = true;
+    const CorpusRow row = run_cell(cell, "walk", {}, levers);
+    ASSERT_EQ(row.status, hven::solvers::SqpStatus::kOptimal);
+    EXPECT_GE(row.ms_stationarity, 0.0);
+    EXPECT_GE(row.ms_complementarity, 0.0);
+    EXPECT_GE(row.ms_primal, 0.0);
+    constexpr double kAgreementTol = 1.0e-6;
+    EXPECT_NEAR(row.ms_stationarity, row.kkt_stationarity, kAgreementTol);
+    EXPECT_NEAR(row.ms_complementarity, row.kkt_complementarity, kAgreementTol);
+    EXPECT_NEAR(row.ms_primal, row.kkt_primal, kAgreementTol);
+    EXPECT_DOUBLE_EQ(row.ms_dual_scale, row.dual_scale);
+    EXPECT_DOUBLE_EQ(row.ms_x_scale, row.x_scale);
+    EXPECT_EQ(kkt_gate_verdict(row), KktVerdict::kOk);
+}
+
 TEST(CorpusCellsRunner, SsnEngineIsDeterministicOnEveryTaxonomy) {
     // The walk arm's own determinism test, applied to the second engine, and
     // for the same reason: five producers, five routes, five places a coupling
@@ -2346,8 +2383,7 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
     // test above). The D0-repair claim is a historical claim about those
     // artifacts and survives the flag unification untouched.
     for (const char *ref : {HVEN_SQP_PRE_U0_WALK_BASELINE_CSV, HVEN_SQP_WALK_RESWEPT_CSV}) {
-        const bool ref_is_amended_baseline =
-            std::string(ref) == HVEN_SQP_PRE_U0_WALK_BASELINE_CSV;
+        const bool ref_is_amended_baseline = std::string(ref) == HVEN_SQP_PRE_U0_WALK_BASELINE_CSV;
         const auto base = runner_test::data_rows(ref);
         ASSERT_EQ(base.size(), 57u) << ref;
         for (const std::string &r : base) {
@@ -2650,8 +2686,8 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             const double want = std::stod(derived);
             const double scale = std::max(std::abs(want), std::abs(observed));
             EXPECT_LE(std::abs(observed - want), kHostRelTol * scale)
-                << what << " on cell " << id << ": observed "
-                << fmt::format("{:.9e}", observed) << ", derivation machine " << derived;
+                << what << " on cell " << id << ": observed " << fmt::format("{:.9e}", observed)
+                << ", derivation machine " << derived;
         };
         close(row.kkt_residual, exp9.kkt, "kkt_residual");
         close(row.kkt_stationarity, exp9.stationarity, "kkt_stationarity");
