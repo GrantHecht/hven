@@ -143,14 +143,14 @@ TEST(NLPAdapterCoreTest, RejectsBadSizesAndStructures) {
         p.xu_[0] = 0.0;
     }); // inverted var bound
     bad([](AdapterValProblem &p) { p.xl_[0] = std::numeric_limits<double>::quiet_NaN(); });
-    // M3 FINAL REVIEW, S-2. A VARIABLE FIXED AT INFINITY, both signs. Neither
-    // preceding check catches it (inf is not NaN, and inf > inf is false), and
-    // the install loop asks isfinite() before installing either side -- so
-    // before this it passed construction and came out as a variable with NO
-    // bound at all: "fixed" declared, FREE installed. The constraint-row twin
+    // A variable fixed at an infinity, both signs. Neither preceding check
+    // catches it (an infinity is not NaN, and inf > inf is false), and the
+    // install loop asks isfinite() before installing either side -- so without
+    // its own check such a variable passes construction and comes out with no
+    // bound at all: "fixed" declared, free installed. The constraint-row twin
     // has rejected exactly this shape since it was written
     // (NLPRowClassificationTest.RejectsInvertedAndNaNAndInfiniteEqualityBounds
-    // above); the variable loop now matches it.
+    // above); the variable loop matches it.
     bad([](AdapterValProblem &p) {
         p.xl_[0] = kInf;
         p.xu_[0] = kInf;

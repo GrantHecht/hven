@@ -107,7 +107,7 @@ class NlpModel {
     virtual Vec eval_ce(const Vec &x) const = 0;   // size me()
     virtual Vec eval_ci(const Vec &x) const = 0;   // size mi()
 
-    // The three matrix returns below must be COMPRESSED: one contiguous value
+    // The three matrix returns below must be compressed: one contiguous value
     // array in canonical order, with sorted, duplicate-free inner indices --
     // what makeCompressed() leaves, and what setFromTriplets() produces. A
     // consumer pairing stored value k with the kth entry of a pattern it

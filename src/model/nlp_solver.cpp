@@ -53,6 +53,14 @@ void NLPSolver::transcribe() {
     auto model = std::make_shared<NlpProblemModel>(this->problem_);
     auto core = std::make_shared<NLPAdapterCore>(model, this->problem_->name());
     auto nlp = make_nlp_program(core);
+
+    // The one step that is not this function's to make atomic: set_nlp adopts
+    // the program and then does work of its own that can throw (it re-reads
+    // dimensions and applies the QP settings). A throw inside it leaves the
+    // optimizer holding the new program while the members below still name the
+    // old one. do_transcription_ is still true at that point, so the next
+    // solve re-transcribes and the pair is consistent again before anything
+    // runs; the window is between those two calls and nothing evaluates in it.
     this->optimizer_->set_nlp(nlp);
 
     this->model_ = std::move(model);

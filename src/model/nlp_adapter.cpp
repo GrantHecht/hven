@@ -59,6 +59,21 @@ std::vector<NLPCoordinate> record_coordinates(const SpMatRM &matrix) {
     return recorded;
 }
 
+/// Rejects a return whose storage is not compressed. Every consumer of these
+/// matrices pairs stored value k with the kth coordinate the claim pass
+/// recorded, and uncompressed storage leaves gaps in the value array, so a
+/// matrix naming every claimed coordinate would still hand back the wrong
+/// number for each. Checked at the claim walk and again at every evaluation.
+void require_compressed(const SpMatRM &matrix, const char *what, const std::string &name) {
+    if (!matrix.isCompressed()) {
+        throw std::invalid_argument(
+            fmt::format("{}: {} returned an uncompressed matrix. nlp_model.h states the three "
+                        "matrix returns as compressed: one contiguous value array in canonical "
+                        "order, which is what pairs a stored value with its claimed coordinate",
+                        name, what));
+    }
+}
+
 /// Rejects a Hessian return that is not the upper triangle the model's own
 /// contract promises. The claims record the triangle verbatim, so an entry
 /// below the diagonal would claim a slot in a triangle the assembled matrix
@@ -81,16 +96,8 @@ void require_upper_triangle(const SpMatRM &hessian, const std::string &name) {
 void nlp_require_claimed_pattern(const SpMatRM &matrix, const std::vector<NLPCoordinate> &recorded,
                                  const char *what, const std::string &name) {
     // Compressed first, because the pairing this function certifies is between
-    // stored value k and recorded coordinate k. Uncompressed storage leaves
-    // gaps in the value array, so a matrix that named every claimed coordinate
-    // would still hand every consumer the wrong number.
-    if (!matrix.isCompressed()) {
-        throw std::invalid_argument(
-            fmt::format("{}: {} returned an uncompressed matrix. nlp_model.h states the three "
-                        "matrix returns as compressed: one contiguous value array in canonical "
-                        "order, which is what pairs a stored value with its claimed coordinate",
-                        name, what));
-    }
+    // stored value k and recorded coordinate k.
+    require_compressed(matrix, what, name);
     if (static_cast<std::size_t>(matrix.nonZeros()) != recorded.size()) {
         throw std::invalid_argument(fmt::format(
             "{}: {} returned {} stored entries, but {} slots were claimed for it. The model's "
@@ -143,8 +150,8 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
         // both pass it: inf is not NaN, and inf > inf is false. The install
         // loop in make_nlp_program then asks `isfinite` before installing
         // either side, so such a variable ends up with no bound at all -- a
-        // "fixed" variable silently FREE, which is a wrong answer rather than
-        // a missing diagnostic. Equality at a FINITE value is untouched and
+        // "fixed" variable silently free, which is a wrong answer rather than
+        // a missing diagnostic. Equality at a finite value is untouched and
         // remains the ordinary way to fix a variable.
         if (x_lower_[i] == x_upper_[i] && !std::isfinite(x_lower_[i])) {
             throw std::invalid_argument(
@@ -176,6 +183,7 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
     // point is the one point every model is required to be able to produce.
     model_->eval_hess_in_place(x0, 1.0, le_scratch_, li_scratch_, hess_scratch_);
     require_dimensions(this->hessian(), n_, n_, "eval_hess", name_);
+    require_compressed(this->hessian(), "eval_hess", name_);
     require_upper_triangle(this->hessian(), name_);
     hess_ = record_coordinates(this->hessian());
 
@@ -183,12 +191,14 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
         model_->eval_jac_e_in_place(x0, jac_e_scratch_);
     }
     require_dimensions(this->equality_jacobian(), num_eq_, n_, "eval_jac_e", name_);
+    require_compressed(this->equality_jacobian(), "eval_jac_e", name_);
     eq_jac_ = record_coordinates(this->equality_jacobian());
 
     if (num_iq_ > 0) {
         model_->eval_jac_i_in_place(x0, jac_i_scratch_);
     }
     require_dimensions(this->inequality_jacobian(), num_iq_, n_, "eval_jac_i", name_);
+    require_compressed(this->inequality_jacobian(), "eval_jac_i", name_);
     iq_jac_ = record_coordinates(this->inequality_jacobian());
 
     hess_owner_ = (num_iq_ > 0)   ? HessOwner::IqPiece
@@ -252,6 +262,21 @@ void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
         nlp_require_claimed_pattern(this->inequality_jacobian(), iq_jac_, "eval_jac_i", name_);
     }
     jacobians_valid_ = true;
+}
+
+void NLPAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L) {
+    // Checked BEFORE the slice, not after it. The engine may hand down a block
+    // longer than this host's rows -- its own appended rows sit after them --
+    // so the head is what this host records; a block shorter than its rows has
+    // no head to take and would be read past its end.
+    if (L.size() < num_eq_) {
+        throw std::invalid_argument(
+            fmt::format("{}: {} equality multipliers reached the equality piece, which hosts {} "
+                        "equality rows",
+                        name_, L.size(), num_eq_));
+    }
+    le_record_ = L.head(num_eq_);
+    le_recorded_ = true;
 }
 
 void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,

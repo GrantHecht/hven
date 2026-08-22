@@ -626,11 +626,18 @@ TEST(NlpAdapterHostTest, AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint) 
         EXPECT_NO_THROW(core->eval_hessian_values(x, 1.0, le, li));
     }
 
-    // Each of the three entry points, one at a time. A model that is loose at
-    // transcription is refused there; the construction that survives is
-    // refused at the evaluation.
+    // Each of the three entry points, one at a time, and at both moments the
+    // host reads a matrix. Loose from the start: the claim walk refuses it, so
+    // the host is never built over a pattern it could not have recorded
+    // correctly. Loose only afterwards: the claim walk saw compressed storage,
+    // and the evaluation is what refuses.
     for (auto loose : {NpmUncompressedModel::Loose::JacE, NpmUncompressedModel::Loose::JacI,
                        NpmUncompressedModel::Loose::Hess}) {
+        auto from_the_start = std::make_shared<NpmUncompressedModel>();
+        from_the_start->loose_ = loose;
+        EXPECT_THROW(hven::solvers::NLPAdapterCore(from_the_start, "NpmUncompressedModel"),
+                     std::invalid_argument);
+
         auto model = std::make_shared<NpmUncompressedModel>();
         std::shared_ptr<hven::solvers::NLPAdapterCore> core;
         ASSERT_NO_THROW(
@@ -875,4 +882,98 @@ TEST(NlpAdapterHostTest, TranscriptionSpendsOneStartPointAndThreeDerivativeCalls
     EXPECT_EQ(model->n_jac_e_, 1);
     EXPECT_EQ(model->n_jac_i_, 1);
     EXPECT_EQ(model->n_hess_, 1);
+}
+
+namespace {
+
+/// A bare NlpModel whose gradient is one entry longer than it declares.
+/// Everything else is well formed, so it survives the host's claim pass and
+/// the refusal has to come from the evaluation.
+struct NpmWrongGradientModel : hven::solvers::NlpModel {
+    Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf}};
+    Eigen::VectorXd upper_{{kNpmInf, kNpmInf}};
+
+    hven::Index n() const override { return 2; }
+    hven::Index me() const override { return 0; }
+    hven::Index mi() const override { return 0; }
+
+    double eval_f(const Eigen::VectorXd &x) const override { return x.squaredNorm(); }
+    Eigen::VectorXd eval_grad(const Eigen::VectorXd &) const override {
+        return Eigen::VectorXd::Zero(3); // one too many
+    }
+    Eigen::VectorXd eval_ce(const Eigen::VectorXd &) const override {
+        return Eigen::VectorXd::Zero(0);
+    }
+    Eigen::VectorXd eval_ci(const Eigen::VectorXd &) const override {
+        return Eigen::VectorXd::Zero(0);
+    }
+    hven::SpMatRM eval_jac_e(const Eigen::VectorXd &) const override { return hven::SpMatRM(0, 2); }
+    hven::SpMatRM eval_jac_i(const Eigen::VectorXd &) const override { return hven::SpMatRM(0, 2); }
+    hven::SpMatRM eval_hess(const Eigen::VectorXd &, double obj_scale, const Eigen::VectorXd &,
+                            const Eigen::VectorXd &) const override {
+        hven::SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(1, 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    const Eigen::VectorXd &lower() const override { return lower_; }
+    const Eigen::VectorXd &upper() const override { return upper_; }
+    Eigen::VectorXd start_point() const override { return Eigen::VectorXd::Zero(2); }
+};
+
+} // namespace
+
+TEST(NlpAdapterHostTest, AWrongLengthGradientIsRefusedAndNamesBothCounts) {
+    // The gradient lands in a fixed segment of the solver's arena, so a return
+    // of any other length would be written past the rows laid for it. Every
+    // other by-value result on this host is length-checked; this one is too.
+    auto model = std::make_shared<NpmWrongGradientModel>();
+    hven::solvers::NLPAdapterCore core(model, "NpmWrongGradientModel");
+
+    Eigen::VectorXd x(2);
+    x << 0.5, -0.25;
+    try {
+        core.refresh_gradient(x);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("eval_grad"), std::string::npos) << message;
+        EXPECT_NE(message.find("3"), std::string::npos) << message; // what came back
+        EXPECT_NE(message.find("2"), std::string::npos) << message; // what n() declares
+        EXPECT_NE(message.find("NpmWrongGradientModel"), std::string::npos) << message;
+    }
+}
+
+TEST(NlpAdapterHostTest, AShortEqualityMultiplierBlockIsRefusedBeforeItIsSliced) {
+    // The engine's block may be longer than this host's rows -- its own
+    // appended rows sit after them, so the host takes the head. Shorter has no
+    // head to take, and the slice would read past the end, which under NDEBUG
+    // is silent. The refusal comes before the slice.
+    auto model = std::make_shared<NpmCountingModel>(); // one equality row
+    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    ASSERT_EQ(core.num_eq_, 1);
+
+    Eigen::VectorXd empty(0);
+    try {
+        core.record_equality_multipliers(empty);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("0"), std::string::npos) << message; // what arrived
+        EXPECT_NE(message.find("1"), std::string::npos) << message; // what is hosted
+        EXPECT_NE(message.find("NpmCountingModel"), std::string::npos) << message;
+    }
+    EXPECT_FALSE(core.le_recorded_);
+
+    // Exactly as long as, and longer than, this host's rows are both accepted,
+    // and the head is what lands in the record.
+    Eigen::VectorXd exact(1), longer(3);
+    exact << 0.25;
+    longer << 0.5, -7.0, 9.0;
+    EXPECT_NO_THROW(core.record_equality_multipliers(exact));
+    EXPECT_DOUBLE_EQ(core.le_record_[0], 0.25);
+    EXPECT_NO_THROW(core.record_equality_multipliers(longer));
+    EXPECT_DOUBLE_EQ(core.le_record_[0], 0.5);
+    EXPECT_TRUE(core.le_recorded_);
 }

@@ -155,6 +155,12 @@ struct NLPAdapterCore {
     /// @throws std::invalid_argument on a wrong shape or a shifted pattern.
     void refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x);
 
+    /// @brief Records this chain's equality multipliers for the Hessian owner.
+    /// @param L The solver's equality multiplier block; this host's rows are
+    ///          its leading entries, so it may be longer but not shorter.
+    /// @throws std::invalid_argument if @p L is shorter than this host's rows.
+    void record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L);
+
     /// @brief The one eval_hess call of an assembly, checked against the
     ///        coordinates the Hessian claims were laid over.
     /// @param x The solver's iterate.
@@ -441,8 +447,7 @@ struct NLPConstraintPiece {
             if (!is_inequality_ && !this->owns_hessian()) {
                 // The inequality piece runs after this one in every Hessian-bearing
                 // chain; leave it these multipliers.
-                core_->le_record_ = L.head(core_->num_eq_);
-                core_->le_recorded_ = true;
+                core_->record_equality_multipliers(L);
             }
             if (this->owns_hessian()) {
                 const double obj_factor = core_->pending_obj_scale_.value_or(0.0);

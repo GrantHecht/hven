@@ -613,7 +613,18 @@ TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     EXPECT_EQ(solver.nlp_, nlp_after);
     EXPECT_TRUE(solver.do_transcription_);
 
+    // The optimizer kept the standing transcription too, not just this
+    // solver's members: with the fault cleared and re-transcription
+    // suppressed, a solve still runs against the program the optimizer was
+    // given before the fault. Nothing reached set_nlp on the faulted attempt,
+    // so there was nothing there to replace.
     problem->armed_ = false;
+    solver.do_transcription_ = false;
+    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.model_, model_after);
+    EXPECT_EQ(solver.nlp_, nlp_after);
+
+    solver.do_transcription_ = true;
     EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 }
 
