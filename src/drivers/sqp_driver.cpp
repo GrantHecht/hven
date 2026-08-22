@@ -83,7 +83,7 @@ std::shared_ptr<const NlpModel> borrow_model(const NlpModel &model) {
 // therefore reads out of bounds in Release, where Eigen's own assert is
 // compiled out. Two O(1) comparisons per solve, against the model's own n().
 //
-// AT THE MODEL BOUNDARY FROM M4 ON, which is a move of one call site and not a
+// AT THE MODEL BOUNDARY NOW, which is a move of one call site and not a
 // change of rule. The check used to sit at the top of solve_impl, where a
 // `model` was still in scope; the loop now measures against the SEAM, whose
 // box is materialized from the bridge's declaration and is n-sized by

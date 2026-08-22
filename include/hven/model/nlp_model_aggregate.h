@@ -101,21 +101,16 @@ class NlpModelAggregate final : public NlpAggregate {
     ///         claim time. The triangle is checked where the pattern is walked and
     ///         nowhere else, so a later evaluation's triangle rests on the same
     ///         invariance precondition the per-call nonzero count rests on.
-    /// THE HANDLE IS CONST, AND WIDENING IT WAS THE WHOLE AMENDMENT. This
-    /// parameter used to read `std::shared_ptr<NlpModel>`; every call that
-    /// compiled against that spelling still compiles against this one, because
-    /// `shared_ptr<T>` converts implicitly to `shared_ptr<const T>` (and a
-    /// `shared_ptr<Derived>` reaches either in one user-defined conversion).
-    /// Widening rather than OVERLOADING is deliberate: two constructors
-    /// differing only in the handle's constness are AMBIGUOUS for every caller
-    /// holding a `shared_ptr<Derived>`, since both conversions rank equally --
-    /// which is not a hypothetical, it is what the model suite's own fixtures
-    /// hand this class. One parameter, widened, has no such tie to break.
-    ///
-    /// What it buys is a consumer that does not own its model: a
-    /// `const NlpModel &` can be bridged through shared_ptr's aliasing
-    /// constructor with a null owner, which is how drivers/sqp_driver.h's
-    /// model-taking solve() overloads reach this contract.
+    /// The handle is `std::shared_ptr<const NlpModel>`: widened from a
+    /// non-const handle by changing this one parameter, not by adding an
+    /// overload, because a constness-only overload pair is ambiguous for a
+    /// caller holding `shared_ptr<Derived>` (both conversions rank equally).
+    /// The widening is source-compatible -- every `shared_ptr<NlpModel>`
+    /// caller still converts implicitly. It also lets a consumer that does
+    /// not own its model bridge a `const NlpModel &` through shared_ptr's
+    /// aliasing constructor with a null owner, which is how
+    /// drivers/sqp_driver.h's model-taking solve() overloads reach this
+    /// contract. History: commit 9579e08; docs/notes/2026-08-m4-ledger.md:790.
     explicit NlpModelAggregate(std::shared_ptr<const NlpModel> model);
 
     /// @brief The declaration these structures were laid from.

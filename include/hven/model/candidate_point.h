@@ -369,8 +369,9 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //            superset would re-evaluate values, gradients and Jacobians the
 //            driver already holds)
 //    flags   kObjectiveHessian | kConstraintAdjointHessian
-//    writes  kkt (objective-Hessian + adjoint-Hessian blocks, one composed
-//            Lagrangian pass)
+//    writes  kkt (one composed Lagrangian-Hessian claim block: the
+//            objective-Hessian and adjoint-Hessian contributions summed into
+//            it by one eval_hess pass, not two separate blocks)
 //    empty   objective, every arena
 //    note    consumes the multipliers (the adjoint half contracts against
 //            them); obj_scale rides CandidatePoint::objective_scale_
@@ -479,7 +480,9 @@ inline constexpr EvalRequest kRequestFirstOrderRhs =
     EvalRequest::kObjectiveValue | EvalRequest::kObjectiveGradient |
     EvalRequest::kConstraintValues | EvalRequest::kConstraintAdjointGradient;
 
-/// Shape 5.
+/// Shape 5. Not to be confused with kRequestConstraintJacobiansOnly (shape 11,
+/// one letter apart): this shape also carries kConstraintValues, so a
+/// provider additionally evaluates and writes the residual blocks.
 inline constexpr EvalRequest kRequestConstraintJacobianOnly =
     EvalRequest::kConstraintValues | EvalRequest::kConstraintJacobian;
 
@@ -510,7 +513,10 @@ inline constexpr EvalRequest kRequestLagrangianHessian =
 inline constexpr EvalRequest kRequestGradientAndJacobians =
     EvalRequest::kObjectiveGradient | EvalRequest::kConstraintJacobian;
 
-/// @brief Shape 11 (SQP-owned): constraint Jacobians alone.
+/// @brief Shape 11 (SQP-owned): constraint Jacobians alone. Not to be confused
+///        with kRequestConstraintJacobianOnly (shape 5, one letter apart):
+///        that shape also carries kConstraintValues and additionally
+///        evaluates and writes the residual blocks.
 inline constexpr EvalRequest kRequestConstraintJacobiansOnly = EvalRequest::kConstraintJacobian;
 
 /// True iff `request` is one of the shapes the mapping table names.

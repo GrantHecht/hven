@@ -67,6 +67,8 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
+#include <vector>
 
 #include <Eigen/Core>
 
@@ -79,6 +81,9 @@
 
 namespace hven::solvers {
 
+/// @brief One point's KKT residuals plus scale denominators, as scored by
+///        model_surface_kkt_residuals below.
+///
 /// The three W2-gated residuals plus the two W3 scale denominators, all in
 /// bench/corpus_cells.h's own convention -- see this file's banner. Deliberately
 /// NOT `dual_sign`: the gate this struct feeds does not gate it either (W2).
@@ -115,6 +120,16 @@ struct ModelSurfaceKktResiduals {
 /// invocation and never caches it. A census hook calling this once per corpus
 /// cell is exactly the intended use; a per-minor caller is not.
 ///
+/// @param aggregate the problem to score against; its declaration() supplies
+///                   n/me/mi and the box.
+/// @param x         the candidate point, length n.
+/// @param lambda_e  the equality multipliers, length me.
+/// @param lambda_i  the inequality multipliers, length mi.
+/// @param z         the model-implied bound multiplier, length n; see above
+///                  for why a caller with none passes a zero vector rather
+///                  than an absent one.
+/// @return the three residuals and two scale denominators; see the non-finite
+///         note above for what a poisoned input scores.
 /// @throws std::invalid_argument if x/lambda_e/lambda_i/z are not sized to the
 ///         declaration (x and z at n; lambda_e at me; lambda_i at mi) --
 ///         x/lambda_e/lambda_i are checked by evaluate_candidate_first_order's

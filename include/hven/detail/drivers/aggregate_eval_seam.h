@@ -254,7 +254,7 @@ class AggregateEvalSeam {
     SpMatRM equality_pattern_;
     SpMatRM inequality_pattern_;
 
-    StructureEpoch epoch_at_lay_;
+    StructureEpoch epoch_at_lay_{};
 };
 
 } // namespace hven::solvers

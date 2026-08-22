@@ -3543,7 +3543,13 @@ class SqpDriver {
     ///         the declared me()/mi()/n(). A fifth-and-a-half, checked per
     ///         evaluation rather than at entry: a stored-element count that
     ///         moves with x, contradicting nlp_model.h's
-    ///         structural-pattern-invariance precondition. THE WIDENING IS
+    ///         structural-pattern-invariance precondition. A sixth, also
+    ///         checked per evaluation: a return presenting its stored elements
+    ///         at coordinates the claim pass did not record for that slot --
+    ///         the same count in a different order, or a different pattern at
+    ///         an unchanged count -- reported against the claim-time
+    ///         coordinates (src/model/nlp_model_aggregate.cpp's
+    ///         scatter_matrix). THE WIDENING IS
     ///         DELIBERATE -- each class is an out-of-contract model that
     ///         previously reached the major loop and produced an answer of no
     ///         defined meaning, and a crossed box in particular is not a
@@ -3551,7 +3557,7 @@ class SqpDriver {
     SqpSolution solve(const NlpModel &model, const Vec &x0);
 
     // THE PRIMARY PATH, of which every NlpModel-taking overload on this class
-    // is a wrapper (M4: the driver consumes the Level 2 contract, and a single
+    // is a wrapper (the driver consumes the Level 2 contract, and a single
     // model is one bridge over it -- model/nlp_model_aggregate.h). It builds
     // one AggregateEvalSeam over `bridge` and runs the major loop against that;
     // the model-taking overloads differ only in that they build the bridge
@@ -3569,6 +3575,14 @@ class SqpDriver {
     // n-sized by construction, with no model return left to disagree. The
     // model-taking overloads keep their own check, which runs BEFORE the bridge
     // exists; see solve_impl.
+    /// @brief Solves against an already-built bridge -- the primary path every
+    ///        NlpModel-taking overload wraps.
+    /// @param bridge the aggregate to solve over; caller-owned, per the notes
+    ///               above.
+    /// @param x0     the starting point.
+    /// @return the solution.
+    /// @throws std::invalid_argument only through `bridge` itself; this entry
+    ///         does not re-check the box (see above).
     SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0);
 
     // PHASE-4 TASK 3/4. Warm-start ingest, up to and including the HOT
@@ -3721,7 +3735,13 @@ class SqpDriver {
     ///         the declared me()/mi()/n(). A fifth-and-a-half, checked per
     ///         evaluation rather than at entry: a stored-element count that
     ///         moves with x, contradicting nlp_model.h's
-    ///         structural-pattern-invariance precondition. THE WIDENING IS
+    ///         structural-pattern-invariance precondition. A sixth, also
+    ///         checked per evaluation: a return presenting its stored elements
+    ///         at coordinates the claim pass did not record for that slot --
+    ///         the same count in a different order, or a different pattern at
+    ///         an unchanged count -- reported against the claim-time
+    ///         coordinates (src/model/nlp_model_aggregate.cpp's
+    ///         scatter_matrix). THE WIDENING IS
     ///         DELIBERATE -- each class is an out-of-contract model that
     ///         previously reached the major loop and produced an answer of no
     ///         defined meaning, and a crossed box in particular is not a
@@ -3735,6 +3755,19 @@ class SqpDriver {
     // 2-argument bridge overload above: same primary path, same seam, and the
     // whole of the ingest contract documented on the model-taking overload
     // just above this one.
+    /// @brief Warm-start ingest against an already-built bridge, on the same
+    ///        footing as the 2-argument bridge overload above.
+    /// @param bridge       the aggregate to solve over; caller-owned.
+    /// @param x0           the starting point; ignored per the ingest rule
+    ///                     above whenever `warm` resolves above kCold.
+    /// @param warm         the prior solve's warm-start object; see the
+    ///                     model-taking overload just above this one for the
+    ///                     whole ingest contract.
+    /// @param minor_budget the probe budget; 0 (default) = no budget, see
+    ///                     above.
+    /// @return the solution.
+    /// @throws std::invalid_argument only through `bridge` itself; this entry
+    ///         does not re-check the box (see the 2-argument overload above).
     SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
                       Index minor_budget = 0);
 

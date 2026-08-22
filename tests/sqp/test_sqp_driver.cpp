@@ -1017,7 +1017,7 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
 // not actionable on a model with six sized returns unless it says WHICH one,
 // so the name of the offending callback is part of the contract.
 //
-// WHICH BOUNDARY EACH ARM PINS, RESTATED AT M4, because "the eval boundary" is
+// WHICH BOUNDARY EACH ARM PINS, RESTATED HERE, because "the eval boundary" is
 // no longer one place. The driver's solve path evaluates through the Level 2
 // aggregate and does not call the free functions at all any more:
 //   (a) and (b) pin the FREE FUNCTIONS -- eval_nlp and eval_nlp_values, which
@@ -1188,11 +1188,12 @@ TEST(SqpDriverContract, MisSizedUpgradeReturnsAreRejectedByName) {
 // fixtures here converge through several majors, so none of them reaches it
 // and no count below moves.
 //
-// M4 ADDS THE BRIDGE LAY, WHICH IS WHY THE THREE DERIVATIVE IDENTITIES CARRY
-// AN EXPLICIT `+ 1` BELOW AND THE THREE VALUE ONES DO NOT. The driver's solve
-// path consumes the Level 2 aggregate (detail/drivers/aggregate_eval_seam.h),
-// and a model-taking solve() builds one bridge over the caller's model for the
-// duration of the call. Building it is a CLAIM PASS: it walks eval_hess,
+// THE DRIVER'S BRIDGE LAY ADDS ONE EXTRA CLAIM PASS, WHICH IS WHY THE THREE
+// DERIVATIVE IDENTITIES CARRY AN EXPLICIT `+ 1` BELOW AND THE THREE VALUE ONES
+// DO NOT. The driver's solve path consumes the Level 2 aggregate
+// (detail/drivers/aggregate_eval_seam.h), and a model-taking solve() builds
+// one bridge over the caller's model for the duration of the call. Building
+// it is a CLAIM PASS: it walks eval_hess,
 // eval_jac_e and eval_jac_i once each at the model's start point, because the
 // claims must exist before any evaluation can scatter into them. That is a
 // per-SOLVE constant, not a per-major one, and it is the whole of the change
