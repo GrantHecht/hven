@@ -402,7 +402,9 @@ class NlpAggregate {
     /// non-virtual entries above read this on EVERY evaluation, to check the
     /// caller's blocks against real dimensions, so a rebuilding implementation
     /// would put that work on the evaluation path -- and returning a reference
-    /// to anything temporary would dangle.
+    /// to anything temporary would dangle. An implementation MAY materialize
+    /// the stored state on the first read after a structural mutation, since
+    /// once-per-mutation is not per call.
     virtual const AggregateDeclaration &declaration() const = 0;
 
     /// Adopts a partition count and returns the count ACTUALLY adopted, which

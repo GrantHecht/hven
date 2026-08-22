@@ -12,6 +12,8 @@
 //   - Python binding methods moved to src/bindings/ (nanobind)
 // =============================================================================
 
+#include <algorithm>
+
 #include <fmt/format.h>
 
 #include "hven/detail/interior/indexing_data.h"
@@ -87,7 +89,7 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // exit that does not re-lay (the identity path, which changed nothing) and
     // the one restore path that does not (a classification-stage rejection at
     // an NLP that was never reduced) correctly do not bump.
-    this->refresh_declaration();
+    this->capture_laid_dimensions();
 
     this->set_mat_dimensions();
     this->set_rhs_dimensions();
@@ -98,10 +100,6 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
 
     this->publish_location_tables();
 
-    // Both conjuncts captured HERE rather than computed on demand -- see the
-    // members' own comments for why each has to be. The partition count goes
-    // with them for the same reason.
-    this->bound_digest_ = materialized_bound_digest(this->declaration_);
     this->laid_partition_count_ = this->num_partitions_;
 
     // A re-lay resets kkt_locations_ to -1: only analyze_sparsity fills it, and
@@ -110,16 +108,23 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     this->analyzed_kkt_values_ = nullptr;
     this->analyzed_kkt_matrix_ = nullptr;
 
+    // The parts of the laid state that are DERIVED -- the declaration's piece
+    // lists and bound records, and the two digests -- are dropped here rather
+    // than recomputed. Each is a pure function of state this routine has just
+    // replaced, each costs work proportional to the problem, and each has
+    // consumers that never read it: a solve that never asks about structural
+    // identity should not pay for a digest of one. Dropping them immediately
+    // before the epoch bump is what keeps the ordering guarantee intact for
+    // them too -- nothing can read one that describes the previous layout under
+    // the new epoch.
+    this->invalidate_laid_state();
+
     // LAST, and that program order is the substance of the ordering guarantee:
     // no evaluation of these structures is reachable under the previous epoch.
     this->bump_structure_epoch();
 }
 
-void hven::solvers::NonLinearProgram::refresh_declaration() {
-    this->declaration_.objectives_ = this->objectives_;
-    this->declaration_.equality_constraints_ = this->equality_constraints_;
-    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
-
+void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     this->declaration_.primal_vars_ = this->primal_vars_;
     this->declaration_.equality_rows_ = this->equal_cons_;
     this->declaration_.inequality_rows_ = this->inequal_cons_;
@@ -131,20 +136,68 @@ void hven::solvers::NonLinearProgram::refresh_declaration() {
     // declared, so no user row is ever renumbered and every declared global row
     // identity survives -- which is the property the candidate surface and the
     // partition-invariance sentence both rest on.
+}
+
+void hven::solvers::NonLinearProgram::invalidate_laid_state() {
+    this->declaration_bounds_pending_ = true;
+    this->declaration_pieces_pending_ = true;
+    this->claim_digest_pending_ = true;
+    this->bound_digest_pending_ = true;
+}
+
+void hven::solvers::NonLinearProgram::materialize_declaration_bounds() const {
+    if (!this->declaration_bounds_pending_) {
+        return;
+    }
 
     // From the LAID snapshot, never from the live staging state. A record staged
     // since the last materialization describes a problem these structures were
     // not laid for: folding it in here would move the structural key of a layout
-    // nothing re-laid, and would put an unvalidated record in front of the bound
-    // digest -- which runs later in this same re-lay, and could then throw after
-    // the structures had been replaced but before the epoch was bumped, leaving
-    // the old epoch standing over new tables.
+    // nothing re-laid.
     this->declaration_.variable_bounds_.clear();
     this->declaration_.variable_bounds_.reserve(this->laid_variable_bounds_.size());
     for (const auto &stage : this->laid_variable_bounds_) {
         this->declaration_.variable_bounds_.push_back(
             VariableBound{stage.index_, stage.lower_, stage.upper_});
     }
+
+    this->declaration_bounds_pending_ = false;
+}
+
+void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
+    if (!this->declaration_pieces_pending_) {
+        return;
+    }
+
+    this->declaration_.objectives_ = this->objectives_;
+    this->declaration_.equality_constraints_ = this->equality_constraints_;
+    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+
+    this->declaration_pieces_pending_ = false;
+}
+
+std::uint64_t hven::solvers::NonLinearProgram::claim_digest() const {
+    if (this->claim_digest_pending_) {
+        this->claim_digest_ = claim_stream_digest(
+            this->declaration_, this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
+            this->kkt_coeff_cols_.head(this->num_user_kkt_elems_));
+        this->claim_digest_pending_ = false;
+    }
+    return this->claim_digest_;
+}
+
+std::uint64_t hven::solvers::NonLinearProgram::bound_digest() const {
+    if (this->bound_digest_pending_) {
+        // The bound conjunct is taken over the declaration's records, so the
+        // one part of the declaration it needs is materialized first. The
+        // records are the laid snapshot and have already passed materialization
+        // once, so nothing here can throw over a bound set that does not
+        // describe a problem.
+        this->materialize_declaration_bounds();
+        this->bound_digest_ = materialized_bound_digest(this->declaration_);
+        this->bound_digest_pending_ = false;
+    }
+    return this->bound_digest_;
 }
 
 void hven::solvers::NonLinearProgram::publish_location_tables() {
@@ -507,14 +560,6 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
         this->kkt_coeff_part_ids_.segment(kkstart, kklen).setConstant(i);
     }
 
-    // CAPTURED HERE, before analyze_sparsity gets the chance to canonicalize
-    // the claim endpoints in place. This is the claim stream as the pieces
-    // handed it out, in claim order, which is what the structural key's claim
-    // conjunct is defined over.
-    this->claim_digest_ = claim_stream_digest(
-        this->declaration_, this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
-        this->kkt_coeff_cols_.head(this->num_user_kkt_elems_));
-
     // Mark a KKT column contested iff >= 2 partitions write a slot whose CANONICAL column
     // (kkt_canonical_lock_col(row, col), the smaller endpoint) is that column -- the same
     // shared keying function every scatter site locks with, so a contested slot's writers
@@ -658,12 +703,23 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
     /*
     Calculates Sparsity Pattern of NLP. InteriorPointSolver requires that only the upper triangular
     part of a CSR matrix be filled. get_mat_space calculates the non-zeros of the lower triangular
-    part. Therefore in this routine we transpose the the row-column indices when making the triplet
+    part. Therefore in this routine we transpose the row-column indices when making the triplet
     vector that Eigen uses to calculate the compressed sparsity pattern of the upper triangular CSR
-    matrix. Once this routine clculates the sparsity pattern of the KKT matrix it back calculates
+    matrix. Once this routine calculates the sparsity pattern of the KKT matrix it back calculates
     where every element specified by kkt_coeff_rows_[i],kkt_coeff_cols_[i], should be summed into
     the KKT matrix. This info is stored in kkt_locations_, and is passed back to all functions so
     that they know where to scatter their outputs.
+
+    THE CLAIM ARRAYS ARE READ, NEVER REWRITTEN. Each element's canonical
+    endpoint ordering -- smaller endpoint outer, larger inner -- is derived here,
+    per element, in both passes. It used to be written back into the claim
+    arrays instead, which left the layout with no readable record of the stream
+    the pieces actually handed out: a claim whose endpoints had been swapped is
+    indistinguishable afterwards from one that never needed swapping, so the
+    claim stream was destroyed by the very analysis that consumed it. Deriving
+    it costs a pair of compares per element in a loop that already branches on
+    the same two values, and it is what lets the structural key's claim conjunct
+    be taken on demand instead of during every layout.
 
     */
     KKTmat.resize(this->kkt_dim_, this->kkt_dim_);
@@ -688,13 +744,13 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
                 kktvec[i] = Eigen::Triplet<double>(0, 0, 0.0);
                 continue;
             }
-            if (col <= row) { //// only accept lower triangular part
-                kktvec[i] = Eigen::Triplet<double>(col, row, 1.0);
-            } else {
-                this->kkt_coeff_rows_[i] = col;
-                this->kkt_coeff_cols_[i] = row;
-                kktvec[i] = Eigen::Triplet<double>(row, col, 1.0);
-            }
+            // The stored triplet is (smaller endpoint, larger endpoint), which
+            // is the upper-triangular entry this element sums into. Derived per
+            // element and NOT written back: the claim arrays keep the stream
+            // the pieces handed out, in claim order, which is what the
+            // structural key's claim conjunct is defined over and what makes
+            // that conjunct derivable for as long as the layout stands.
+            kktvec[i] = Eigen::Triplet<double>(std::min(row, col), std::max(row, col), 1.0);
         }
     };
     hven::utils::parallel_blocks(this->num_kkt_elems_, TripFillOP, this->num_partitions_);
@@ -716,13 +772,14 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
             if (row < 0 || col < 0) {
                 continue; // eliminated element: its location stays -1
             }
-            if (col <= row) { //// only accept lower triangular part
-                for (int k = 0; k < innerKKTNNZ[col]; k++) {
-                    int trow = KKTmat.innerIndexPtr()[KKTmat.outerIndexPtr()[col] + k];
-                    if (trow == row) {
-                        this->kkt_locations_[i] = KKTmat.outerIndexPtr()[col] + k;
-                        break;
-                    }
+            // The same endpoint ordering the triplet above was stored under.
+            const int outer = std::min(row, col);
+            const int inner = std::max(row, col);
+            for (int k = 0; k < innerKKTNNZ[outer]; k++) {
+                int trow = KKTmat.innerIndexPtr()[KKTmat.outerIndexPtr()[outer] + k];
+                if (trow == inner) {
+                    this->kkt_locations_[i] = KKTmat.outerIndexPtr()[outer] + k;
+                    break;
                 }
             }
         }

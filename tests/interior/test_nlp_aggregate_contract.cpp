@@ -714,6 +714,33 @@ TEST(NlpAggregateEngineLayout, TheSameDeclarationLaysTheSameLayoutTwice) {
     EXPECT_EQ(first->kkt_locations_, second->kkt_locations_);
 }
 
+TEST(NlpAggregateEngineLayout, TheStructuralKeyIsTheSameBeforeAndAfterSparsityAnalysis) {
+    // Analysing the sparsity pattern is not a structural event: it derives
+    // scatter offsets for a layout that already stands. So the key must not
+    // move across it, and neither must the epoch -- whichever side of the
+    // analysis a consumer happens to read them from.
+    //
+    // Pinned on both orders, because the two are different assertions. Reading
+    // BEFORE and again after checks that the analysis does not disturb a key
+    // already taken; reading only AFTER checks that a key taken for the first
+    // time at that point is still the key of the claim stream the pieces handed
+    // out, which is only true while the analysis leaves that stream readable.
+    auto read_both_sides = agg_pin_build_small();
+    const auto key_before = read_both_sides->model_structure_key();
+    const auto epoch_before = read_both_sides->structure_epoch();
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt_both(read_both_sides->kkt_dim_,
+                                                          read_both_sides->kkt_dim_);
+    read_both_sides->analyze_sparsity(kkt_both);
+    EXPECT_EQ(read_both_sides->model_structure_key(), key_before);
+    EXPECT_EQ(read_both_sides->structure_epoch(), epoch_before);
+
+    auto read_after_only = agg_pin_build_small();
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt_after(read_after_only->kkt_dim_,
+                                                           read_after_only->kkt_dim_);
+    read_after_only->analyze_sparsity(kkt_after);
+    EXPECT_EQ(read_after_only->model_structure_key(), key_before);
+}
+
 TEST(NlpAggregateEngineLayout, TheEvaluationThreadCountDecidesNoPartOfTheLayout) {
     // Layout is a function of the declaration and the adopted partition count
     // alone. The evaluation thread budget is neither, so moving it must leave
