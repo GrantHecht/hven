@@ -47,14 +47,19 @@ endif()
 ################################################################################
 # The provider-side model contract (include/hven/model/). Its own block rather
 # than part of the engine block below: the contract is what any provider
-# implements and any engine consumes, not one engine's implementation. Only the
-# declaration needs a TU -- it holds its piece lists by value while its header
-# only declares the piece handle types, so its special members and its boundary
-# validation are defined where those types are complete.
+# implements and any engine consumes, not one engine's implementation.
+#
+# The declaration needs a TU because it holds its piece lists by value while its
+# header only declares the piece handle types, so its special members and its
+# boundary validation are defined where those types are complete. The NlpModel
+# bridge needs one because it is an implementation rather than a contract
+# surface, and it sits in this block rather than the engine block below because
+# it is a second provider of the contract and names no engine type.
 ################################################################################
 
 target_sources(hven PRIVATE
     model/aggregate_declaration.cpp
+    model/nlp_model_aggregate.cpp
 )
 
 ################################################################################
@@ -467,7 +472,13 @@ endif()
 # the unmeasured default and costs nothing but its own compile time -- it is a
 # small TU that includes the two piece headers and fmt, not the shared block the
 # PCH prefixes.
-set(_hven_expected_source_count 29)
+#
+# 30 as of model/nlp_model_aggregate.cpp, and it stays out on the same footing:
+# no measurement exists for it, and out is the unmeasured default. It includes
+# the model contract, the model interface, Eigen sparse and fmt -- a different
+# header set from the one src/hven_pch.h prefixes, which is the property that
+# has failed bar 2 for every TU measured so far.
+set(_hven_expected_source_count 30)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

@@ -4,7 +4,8 @@
 # -- the claim arenas and their published tables, the declaration and its
 # boundary validation, the structural key, the structure epoch's ordering and
 # failure-restore rules, the identity probe, and the request flags that select
-# what one evaluation call produces.
+# what one evaluation call produces. It also carries the NlpModel bridge, the
+# contract's second provider, which is engine-free in the same sense.
 #
 # A separate executable rather than sources appended to hven_tests: it keeps
 # this suite's own support fixture (a fake aggregate implemented against the
@@ -27,6 +28,7 @@ set(HVEN_MODEL_TEST_SOURCES
     test_contract_flags.cpp
     test_identity_probe.cpp
     test_model_structure_key.cpp
+    test_nlp_model_aggregate.cpp
     test_structure_epoch.cpp
 )
 
