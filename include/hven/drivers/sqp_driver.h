@@ -2499,7 +2499,18 @@ inline SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, cons
         const double g = out.grad_lag(i);
         double s = 0.0;
         if (at_lower && at_upper) {
-            s = 0.0; // fixed (or a degenerate/crossed box): nothing to certify
+            // A FIXED variable: both sides active at once, so there is no
+            // direction to certify stationarity along and z absorbs the whole
+            // gradient. This arm used to name a crossed box (lower > upper) as
+            // its other reader, and on the SOLVE path it no longer has one:
+            // wrapping a model in a bridge rejects a crossed box at entry
+            // (model/aggregate_declaration.h; see the model-taking solve()
+            // overloads' own @throws). This function stays TOLERANT of one
+            // anyway, deliberately -- it remains callable with a raw NlpModel
+            // by tests and by callers measuring a single point, which never go
+            // near a bridge, and refusing here would put a solve-path rule on a
+            // measurement that has no solve behind it.
+            s = 0.0;
             out.z(i) = g;
         } else if (at_lower) {
             s = std::max(0.0, -g); // z(i) = g must be >= 0
@@ -3519,6 +3530,24 @@ class SqpDriver {
     // are dozens across this project's tests -- is unaffected: the return
     // value and every side effect solve_impl had are identical to before this
     // task, whether or not a ledger is attached.
+    //
+    /// @throws std::invalid_argument on a model that cannot describe a problem.
+    ///         Wrapping the model in a bridge runs the aggregate declaration's
+    ///         own validation (model/aggregate_declaration.h) before the loop
+    ///         starts, and that boundary refuses five classes this entry used to
+    ///         accept in silence: a CROSSED BOX (lower(i) > upper(i) on two
+    ///         finite sides, or an intersection that is empty); a NaN on either
+    ///         side of a bound; a start_point() whose size is not n(); an
+    ///         eval_hess entry BELOW THE DIAGONAL, which nlp_model.h already
+    ///         forbids; and a Jacobian or Hessian whose dimensions contradict
+    ///         the declared me()/mi()/n(). A fifth-and-a-half, checked per
+    ///         evaluation rather than at entry: a stored-element count that
+    ///         moves with x, contradicting nlp_model.h's
+    ///         structural-pattern-invariance precondition. THE WIDENING IS
+    ///         DELIBERATE -- each class is an out-of-contract model that
+    ///         previously reached the major loop and produced an answer of no
+    ///         defined meaning, and a crossed box in particular is not a
+    ///         feasible region a solver can be asked about.
     SqpSolution solve(const NlpModel &model, const Vec &x0);
 
     // THE PRIMARY PATH, of which every NlpModel-taking overload on this class
@@ -3680,6 +3709,25 @@ class SqpDriver {
     //      repository moves. It DOES mean a kSsn budget and a kWalk budget of
     //      the same numeric value are not the same amount of work, which is the
     //      honest consequence of two kernels that do not share a minor.
+    /// @throws std::invalid_argument on a model that cannot describe a problem.
+    ///         Wrapping the model in a bridge runs the aggregate declaration's
+    ///         own validation (model/aggregate_declaration.h) before the loop
+    ///         starts, and that boundary refuses five classes this entry used to
+    ///         accept in silence: a CROSSED BOX (lower(i) > upper(i) on two
+    ///         finite sides, or an intersection that is empty); a NaN on either
+    ///         side of a bound; a start_point() whose size is not n(); an
+    ///         eval_hess entry BELOW THE DIAGONAL, which nlp_model.h already
+    ///         forbids; and a Jacobian or Hessian whose dimensions contradict
+    ///         the declared me()/mi()/n(). A fifth-and-a-half, checked per
+    ///         evaluation rather than at entry: a stored-element count that
+    ///         moves with x, contradicting nlp_model.h's
+    ///         structural-pattern-invariance precondition. THE WIDENING IS
+    ///         DELIBERATE -- each class is an out-of-contract model that
+    ///         previously reached the major loop and produced an answer of no
+    ///         defined meaning, and a crossed box in particular is not a
+    ///         feasible region a solver can be asked about. NOTE that this
+    ///         happens BEFORE `warm` is looked at, so a malformed model is
+    ///         reported as such rather than as a failed ingest.
     SqpSolution solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
                       Index minor_budget = 0);
 

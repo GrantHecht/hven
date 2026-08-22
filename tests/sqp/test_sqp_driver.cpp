@@ -1016,6 +1016,26 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
 // EVERY ARM ASSERTS THE MESSAGE, not just the throw. "size 0, expected 1" is
 // not actionable on a model with six sized returns unless it says WHICH one,
 // so the name of the offending callback is part of the contract.
+//
+// WHICH BOUNDARY EACH ARM PINS, RESTATED AT M4, because "the eval boundary" is
+// no longer one place. The driver's solve path evaluates through the Level 2
+// aggregate and does not call the free functions at all any more:
+//   (a) and (b) pin the FREE FUNCTIONS -- eval_nlp and eval_nlp_values, which
+//       remain in drivers/sqp_driver.h as a supported direct-use surface for
+//       tests and for callers measuring a single point. They are called
+//       directly here, never through solve(), so they pin exactly that
+//       retained surface and nothing about the loop.
+//   (c) is THE LIVE-PATH ARM. It goes through driver.solve(), and the box is
+//       the one mis-sized return that still reaches a driver-owned check
+//       there: require_declared_box, at the model-taking entries in
+//       src/drivers/sqp_driver.cpp, which runs before the model is wrapped in
+//       a bridge so that this two-block message is the one that fires.
+//   (d) is the control for all of the above.
+// The solve path's rejection of the OTHER mis-sized returns has moved to the
+// bridge's own entries (src/model/nlp_model_aggregate.cpp), which name each
+// offending callback in their own messages -- the same contract as here, in a
+// different voice, and covered by that file's own suite rather than restated
+// through a solve() here.
 TEST(SqpDriverContract, MisSizedCallbackReturnsAreRejectedByName) {
     using Which = MisSizingModel::Which;
     const Vec x7 = make_hs(7).model->start_point();
