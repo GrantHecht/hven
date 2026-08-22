@@ -93,7 +93,22 @@ class NlpModelAggregate final : public NlpAggregate {
     ///         claim time. The triangle is checked where the pattern is walked and
     ///         nowhere else, so a later evaluation's triangle rests on the same
     ///         invariance precondition the per-call nonzero count rests on.
-    explicit NlpModelAggregate(std::shared_ptr<NlpModel> model);
+    /// THE HANDLE IS CONST, AND WIDENING IT WAS THE WHOLE AMENDMENT. This
+    /// parameter used to read `std::shared_ptr<NlpModel>`; every call that
+    /// compiled against that spelling still compiles against this one, because
+    /// `shared_ptr<T>` converts implicitly to `shared_ptr<const T>` (and a
+    /// `shared_ptr<Derived>` reaches either in one user-defined conversion).
+    /// Widening rather than OVERLOADING is deliberate: two constructors
+    /// differing only in the handle's constness are AMBIGUOUS for every caller
+    /// holding a `shared_ptr<Derived>`, since both conversions rank equally --
+    /// which is not a hypothetical, it is what the model suite's own fixtures
+    /// hand this class. One parameter, widened, has no such tie to break.
+    ///
+    /// What it buys is a consumer that does not own its model: a
+    /// `const NlpModel &` can be bridged through shared_ptr's aliasing
+    /// constructor with a null owner, which is how drivers/sqp_driver.h's
+    /// model-taking solve() overloads reach this contract.
+    explicit NlpModelAggregate(std::shared_ptr<const NlpModel> model);
 
     /// @brief The declaration these structures were laid from.
     ///
@@ -322,7 +337,12 @@ class NlpModelAggregate final : public NlpAggregate {
     /// Writes Je^T lambda_e + Ji^T lambda_i into adjoint_scratch_.
     void compose_adjoint_gradient();
 
-    std::shared_ptr<NlpModel> model_;
+    // HELD CONST. The bridge reads the model and never mutates it, so the
+    // storage says so and the compiler enforces it -- which is also what lets a
+    // consumer bind a bridge over a `const NlpModel &` it does not own, through
+    // shared_ptr's aliasing constructor (see drivers/sqp_driver.h's own
+    // model-taking solve() overloads).
+    std::shared_ptr<const NlpModel> model_;
     int primal_vars_ = 0;
     int equality_rows_ = 0;
     int inequality_rows_ = 0;

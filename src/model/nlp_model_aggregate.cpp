@@ -201,7 +201,8 @@ void accumulate_adjoint(const SpMatRM &jacobian, const Vec &multipliers, Vec &ou
 // Construction and layout
 // ---------------------------------------------------------------------------
 
-NlpModelAggregate::NlpModelAggregate(std::shared_ptr<NlpModel> model) : model_(std::move(model)) {
+NlpModelAggregate::NlpModelAggregate(std::shared_ptr<const NlpModel> model)
+    : model_(std::move(model)) {
     if (model_ == nullptr) {
         throw std::invalid_argument("NlpModelAggregate: the model is null");
     }
