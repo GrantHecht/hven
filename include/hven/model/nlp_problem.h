@@ -30,6 +30,23 @@ namespace hven::solvers {
 /// cached per iterate. Duplicate (row, col) entries in a structure are legal;
 /// their values are summed.
 ///
+/// Where the callbacks are first called. Setup does not only read the
+/// structures: NLPSolver's transcription, before any solve iterate exists,
+/// calls eval_jac once and eval_hess once at a point it chooses -- the origin
+/// projected onto the declared variable bounds. Their values are discarded;
+/// what setup takes from them is the sparsity pattern, which is the only way
+/// the solver can learn it once the problem has been converted, and which the
+/// structures alone cannot supply after duplicate entries have been summed.
+/// eval_f, eval_grad_f and eval_g are not called at that point.
+///
+/// So eval_jac and eval_hess must be defined at that point, not only at
+/// iterates the caller supplies. A callback that divides by a coordinate, or
+/// takes a root or a logarithm of one, may not be -- the projected origin can
+/// sit on a singularity a solve would never visit. Two ways out: make those
+/// two callbacks total (they need only produce finite numbers there, since the
+/// values are thrown away), or declare variable bounds that exclude the
+/// singularity, which moves the projected point with them.
+///
 /// Migration note, bounds. The bounds declared here reach the solver verbatim:
 /// no value is rescaled, clipped, or reinterpreted on the way in or on the way
 /// back out. Unboundedness on a side is written -inf / +inf, and every finite

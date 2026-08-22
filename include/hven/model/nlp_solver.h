@@ -25,6 +25,15 @@ namespace hven::solvers {
 /// triplet declaration to the native model contract, and then through the
 /// piece host that carries a model onto NonLinearProgram. The problem reaches
 /// the engine no other way.
+///
+/// Transcription EVALUATES the problem, once, before any solve iterate exists:
+/// the host calls the converted model's Jacobian and Hessian at the model's
+/// start point -- the origin projected onto the declared variable bounds --
+/// and records the sparsity pattern each returns, which is what its KKT claims
+/// are laid over. The values are discarded. NLPProblem::eval_jac and
+/// eval_hess must therefore be defined at that point; see NLPProblem's own
+/// note for what to do when they are not. A transcription that faults there
+/// commits nothing and leaves the solver retriable.
 struct NLPSolver : OptimizationProblemBase {
     std::shared_ptr<NLPProblem> problem_;
     std::shared_ptr<NlpProblemModel> model_;
