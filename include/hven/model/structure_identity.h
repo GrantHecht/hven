@@ -23,6 +23,7 @@
 // interior-point machinery.
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -100,8 +101,9 @@ constexpr void feed_dimensions(Fnv1a &hash, int primal_vars, int equality_rows,
     hash.feed_index(inequality_rows);
 }
 
-/// Feeds ONE declared claim into a running accumulator, in claim order, after
-/// the dimension preamble.
+/// Feeds THE WHOLE CLAIM STREAM into a running accumulator, in claim order,
+/// after the dimension preamble: claim i is the pair (rows[i], cols[i]), and
+/// the pairs are fed interleaved.
 ///
 /// The claim-structure digest hashes the DECLARED (row, column) claim stream
 /// rather than the assembled pattern: the stream is available at layout time
@@ -110,9 +112,12 @@ constexpr void feed_dimensions(Fnv1a &hash, int primal_vars, int equality_rows,
 /// taken over assembled matrices. Order is significant -- a re-partitioned
 /// declaration hands its claims out in a different order and hashes
 /// differently, which is the point.
-constexpr void feed_claim(Fnv1a &hash, int row, int col) noexcept {
-    hash.feed_index(row);
-    hash.feed_index(col);
+///
+/// Fed as ONE PASS OVER THE TWO CONTIGUOUS ARRAYS rather than a call per claim:
+/// the stream is the same stream, so the value is the same value, and the
+/// arrays a claim arena already holds are read as arrays.
+inline void feed_claims(Fnv1a &hash, const int *rows, const int *cols, std::size_t count) noexcept {
+    hash.feed_index_pairs(rows, cols, count);
 }
 
 /// Feeds ONE variable's MATERIALIZED bound structure into a running
@@ -183,9 +188,8 @@ inline std::uint64_t claim_stream_digest(const AggregateDeclaration &declaration
     Fnv1a hash;
     detail::feed_dimensions(hash, declaration.primal_vars_, declaration.equality_rows_,
                             declaration.inequality_rows_);
-    for (Eigen::Index slot = 0; slot < claim_rows.size(); ++slot) {
-        detail::feed_claim(hash, claim_rows[slot], claim_cols[slot]);
-    }
+    detail::feed_claims(hash, claim_rows.data(), claim_cols.data(),
+                        static_cast<std::size_t>(claim_rows.size()));
     return hash.value();
 }
 
