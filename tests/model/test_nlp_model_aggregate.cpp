@@ -21,6 +21,7 @@
 #include <mutex>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>
@@ -257,6 +258,21 @@ class BridgePatternDriftModel : public BridgeCountingModel {
   public:
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
         if (x(0) == 0.0) {
+            return hven::solvers::test_support::detail::make_jac(1, 2, {{0, 1, 1.0}});
+        }
+        return BridgeCountingModel::eval_jac_i(x);
+    }
+};
+
+/// A model whose Jacobian pattern grows after the claim pass: it emits one entry
+/// at the start point, where the claim pass reads it, and two everywhere else.
+/// The other direction of the same violation the drift model exercises, and the
+/// one a collapse-only pin would miss.
+class BridgePatternGrowthModel : public BridgeCountingModel {
+  public:
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
+        if (x(0) == 0.5) { // the start point: one entry claimed
+            counts_.jac_i_++;
             return hven::solvers::test_support::detail::make_jac(1, 2, {{0, 1, 1.0}});
         }
         return BridgeCountingModel::eval_jac_i(x);
@@ -1171,6 +1187,116 @@ TEST(NlpModelAggregateBoundary, RefusesAModelWhoseSparsityPatternCollapses) {
     EXPECT_THROW(aggregate.assemble(CandidatePoint{x, le, li}, kRequestFullKkt,
                                     destinations.kkt_view(), destinations.rhs_view()),
                  std::invalid_argument);
+}
+
+namespace {
+
+/// The message of the std::invalid_argument a bridge construction must throw, so
+/// a test can assert it names the callback and both dimensions.
+std::string bridge_construction_message(std::shared_ptr<NlpModel> model) {
+    try {
+        NlpModelAggregate bridge(std::move(model));
+    } catch (const std::invalid_argument &error) {
+        return error.what();
+    }
+    return {};
+}
+
+} // namespace
+
+TEST(NlpModelAggregateBoundary, RefusesAModelWhoseSparseBlockIsNotTheShapeItDeclares) {
+    // Eigen's own asserts are compiled out under NDEBUG, so nothing but this
+    // check stands between a dimension-lying model and claims laid outside the
+    // assembled space. One case per callback, and each message must name the
+    // callback and both the returned and the declared shape.
+    class WideHessianModel : public BridgeCountingModel {
+      public:
+        SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+            return hven::solvers::test_support::detail::make_upper(3, {{0, 0, 1.0}});
+        }
+    };
+    class TallEqualityJacobianModel : public BridgeCountingModel {
+      public:
+        Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+            return hven::solvers::test_support::detail::make_jac(4, 2, {{0, 0, 1.0}});
+        }
+    };
+    class NarrowInequalityJacobianModel : public BridgeCountingModel {
+      public:
+        Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+            return hven::solvers::test_support::detail::make_jac(1, 5, {{0, 0, 1.0}});
+        }
+    };
+
+    const std::string hessian = bridge_construction_message(std::make_shared<WideHessianModel>());
+    EXPECT_NE(hessian.find("eval_hess"), std::string::npos) << hessian;
+    EXPECT_NE(hessian.find('3'), std::string::npos) << hessian;
+    EXPECT_NE(hessian.find('2'), std::string::npos) << hessian;
+
+    const std::string equality =
+        bridge_construction_message(std::make_shared<TallEqualityJacobianModel>());
+    EXPECT_NE(equality.find("eval_jac_e"), std::string::npos) << equality;
+    EXPECT_NE(equality.find('4'), std::string::npos) << equality;
+    EXPECT_NE(equality.find('1'), std::string::npos) << equality;
+
+    const std::string inequality =
+        bridge_construction_message(std::make_shared<NarrowInequalityJacobianModel>());
+    EXPECT_NE(inequality.find("eval_jac_i"), std::string::npos) << inequality;
+    EXPECT_NE(inequality.find('5'), std::string::npos) << inequality;
+    EXPECT_NE(inequality.find('2'), std::string::npos) << inequality;
+}
+
+TEST(NlpModelAggregateBoundary, RefusesADimensionThatChangesAfterTheClaimPass) {
+    // The per-call half of the same check. This model is honest at the start
+    // point, where the claim pass reads it, and lies everywhere else -- so the
+    // claim-time check cannot catch it and the per-call one must.
+    class LateWideJacobianModel : public BridgeCountingModel {
+      public:
+        Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
+            if (x(0) == 0.5) {
+                return BridgeCountingModel::eval_jac_i(x);
+            }
+            return hven::solvers::test_support::detail::make_jac(1, 7, {{0, 0, 1.0}, {0, 1, 1.0}});
+        }
+    };
+
+    auto model = std::make_shared<LateWideJacobianModel>();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    try {
+        aggregate.assemble(point.full(), kRequestFullKkt, destinations.kkt_view(),
+                           destinations.rhs_view());
+        FAIL() << "a Jacobian whose width contradicts the declaration must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("eval_jac_i"), std::string::npos) << message;
+        EXPECT_NE(message.find('7'), std::string::npos) << message;
+    }
+}
+
+TEST(NlpModelAggregateBoundary, RefusesASparsityPatternThatGrowsAfterTheClaimPass) {
+    // The companion of the collapse pin above. The claim pass reads one entry at
+    // the start point; a later evaluation returns two, so the extra value has no
+    // slot to land in and the count check says so.
+    auto model = std::make_shared<BridgePatternGrowthModel>();
+    NlpModelAggregate aggregate(model);
+    ASSERT_EQ(aggregate.inequality_jacobian_claims().count_, 1)
+        << "the fixture must claim one slot at the start point";
+
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+    try {
+        aggregate.assemble(point.full(), kRequestFullKkt, destinations.kkt_view(),
+                           destinations.rhs_view());
+        FAIL() << "a sparsity pattern that grew after the claim pass must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("eval_jac_i"), std::string::npos) << message;
+        EXPECT_NE(message.find('2'), std::string::npos) << message;
+        EXPECT_NE(message.find('1'), std::string::npos) << message;
+    }
 }
 
 TEST(NlpModelAggregateBoundary, RefusesAHessianEntryBelowTheDiagonal) {

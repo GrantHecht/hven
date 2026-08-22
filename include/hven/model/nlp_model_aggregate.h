@@ -88,8 +88,9 @@ class NlpModelAggregate final : public NlpAggregate {
     /// @param model the model to bridge; must be non-null.
     /// @throws std::invalid_argument if the model is null, reports dimensions
     ///         that cannot describe a problem, declares bounds that do not
-    ///         intersect, or returns a Hessian entry below the diagonal at claim
-    ///         time. The triangle is checked where the pattern is walked and
+    ///         intersect, returns a sparse block whose dimensions are not the
+    ///         ones it declares, or returns a Hessian entry below the diagonal at
+    ///         claim time. The triangle is checked where the pattern is walked and
     ///         nowhere else, so a later evaluation's triangle rests on the same
     ///         invariance precondition the per-call nonzero count rests on.
     explicit NlpModelAggregate(std::shared_ptr<NlpModel> model);
@@ -242,8 +243,8 @@ class NlpModelAggregate final : public NlpAggregate {
     /// @throws std::invalid_argument if a named arena's view does not match the
     ///         width this provider laid it over, if a location table does not
     ///         describe this provider's claim stream, or if the model returns a
-    ///         block whose size or nonzero count contradicts what the claim pass
-    ///         recorded.
+    ///         block whose size, dimensions or nonzero count contradicts what it
+    ///         declares or what the claim pass recorded.
     void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                        RhsScatterView rhs) override;
 
@@ -267,8 +268,9 @@ class NlpModelAggregate final : public NlpAggregate {
     /// @param point the point, in declaration space, with full multiplier
     ///              blocks.
     /// @param out   caller-owned storage, assigned.
-    /// @throws std::invalid_argument if the model returns a block whose size or
-    ///         nonzero count contradicts what the claim pass recorded.
+    /// @throws std::invalid_argument if the model returns a block whose size,
+    ///         dimensions or nonzero count contradicts what it declares or what
+    ///         the claim pass recorded.
     void evaluate_candidate_first_order_impl(const CandidatePoint &point,
                                              CandidateFirstOrder out) override;
 

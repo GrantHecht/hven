@@ -132,6 +132,28 @@ void require_claimed_nonzeros(const SpMatRM &matrix, int claims, const char *wha
     }
 }
 
+/// Rejects a sparse return whose dimensions are not the ones the model declares.
+///
+/// The claim pass records each stored element at the coordinates its matrix
+/// names, so a matrix wider or taller than the model says addresses rows or
+/// columns the assembled space does not have -- claims laid out of bounds, and
+/// then a scatter and an adjoint contraction indexing on them. Eigen's own
+/// asserts are compiled out under NDEBUG, so this is the only thing standing
+/// between a dimension-lying model and silent corruption.
+///
+/// Checked where the matrix is first read, at both boundaries that read one: the
+/// claim pass, whose layout depends on it, and each per-call re-read, since the
+/// model is free to return a different object every time.
+void require_matrix_dimensions(const SpMatRM &matrix, int rows, int cols, const char *callback) {
+    if (matrix.rows() != rows || matrix.cols() != cols) {
+        throw std::invalid_argument(fmt::format(
+            "NlpModelAggregate: {0} returned a {1} x {2} matrix, but this model declares that "
+            "block as {3} x {4}. Claims name the coordinates the returned matrix carries, so a "
+            "dimension the model does not declare lays claims outside the assembled space",
+            callback, matrix.rows(), matrix.cols(), rows, cols));
+    }
+}
+
 /// Rejects a value block the model sized differently from what it declares.
 void require_block_size(Eigen::Index actual, int declared, const char *what) {
     if (actual != declared) {
@@ -237,6 +259,14 @@ NlpModelAggregate::LaidStructures NlpModelAggregate::lay(int partition_count) co
         equality_rows_ > 0 ? model_->eval_jac_e(x) : SpMatRM(0, primal_vars_);
     const SpMatRM inequality_jacobian =
         inequality_rows_ > 0 ? model_->eval_jac_i(x) : SpMatRM(0, primal_vars_);
+
+    // Dimensions before anything is read out of these three. Every claim below
+    // takes its coordinates from the matrix it walks, so a block the model sized
+    // differently from what it declares would lay claims outside the assembled
+    // space -- and every later scatter and contraction would index on them.
+    require_matrix_dimensions(hessian, primal_vars_, primal_vars_, "eval_hess");
+    require_matrix_dimensions(equality_jacobian, equality_rows_, primal_vars_, "eval_jac_e");
+    require_matrix_dimensions(inequality_jacobian, inequality_rows_, primal_vars_, "eval_jac_i");
 
     const int hessian_claims = static_cast<int>(hessian.nonZeros());
     const int equality_claims = static_cast<int>(equality_jacobian.nonZeros());
@@ -366,13 +396,20 @@ void NlpModelAggregate::evaluate_jacobians(const Vec &x) {
     // constant constraint -- claims nothing, and gating on claims would silently
     // skip a callback the request named. The block is evaluated because it has
     // rows; the fill then writes nothing because it claimed nothing.
+    // Dimensions first, then the claim count: a matrix of the wrong shape is not
+    // this model's block at all, and saying so names a plainer fault than a
+    // nonzero count that happens to disagree.
     if (equality_rows_ > 0) {
         equality_jacobian_scratch_ = model_->eval_jac_e(x);
+        require_matrix_dimensions(equality_jacobian_scratch_, equality_rows_, primal_vars_,
+                                  "eval_jac_e");
         require_claimed_nonzeros(equality_jacobian_scratch_, laid_.equality_jacobian_.count_,
                                  "eval_jac_e");
     }
     if (inequality_rows_ > 0) {
         inequality_jacobian_scratch_ = model_->eval_jac_i(x);
+        require_matrix_dimensions(inequality_jacobian_scratch_, inequality_rows_, primal_vars_,
+                                  "eval_jac_i");
         require_claimed_nonzeros(inequality_jacobian_scratch_, laid_.inequality_jacobian_.count_,
                                  "eval_jac_i");
     }
@@ -458,6 +495,7 @@ void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest r
         hessian_scratch_ =
             model_->eval_hess(x, want_objective_hessian ? scale : 0.0, equality_multiplier_scratch_,
                               inequality_multiplier_scratch_);
+        require_matrix_dimensions(hessian_scratch_, primal_vars_, primal_vars_, "eval_hess");
         require_claimed_nonzeros(hessian_scratch_, laid_.hessian_.count_, "eval_hess");
     }
 

@@ -1012,6 +1012,27 @@ TEST(NlpAggregateEngineDeclaration, ItDescribesTheStructuresOnHandAndIsStoredSta
     EXPECT_NO_THROW(first.validate());
 }
 
+TEST(NlpAggregateEngineDeclaration, ObjectivePiecesAloneMakeADeclarationPieceSourced) {
+    // The corner the vacuity rule turns on: "no pieces" is a property of all
+    // three lists together. A declaration that kept its objective pieces, lost
+    // its constraint pieces and still declares constraint rows is piece-sourced,
+    // so the sum conjunct applies and finds nothing claiming those rows.
+    auto nlp = agg_pin_build_small();
+    ASSERT_FALSE(nlp->declaration().objectives_.empty());
+    ASSERT_GT(nlp->declaration().equality_rows_, 0);
+
+    hven::solvers::AggregateDeclaration declared = nlp->declaration();
+    declared.equality_constraints_.clear();
+    declared.inequality_constraints_.clear();
+    EXPECT_THROW(declared.validate(), std::invalid_argument);
+
+    // The complement, so the pin is about the rule rather than about clearing
+    // lists: drop the objective pieces too and the same declaration carries no
+    // pieces at all, which is the vacuous case.
+    declared.objectives_.clear();
+    EXPECT_NO_THROW(declared.validate());
+}
+
 TEST(NlpAggregateEngineDeclaration, APieceSourcedDeclarationStillFailsOnABadRowSum) {
     // The piece-sum conjunct is skipped only where there are no pieces to sum.
     // Here they exist, so a row count that disagrees with what they claim is
