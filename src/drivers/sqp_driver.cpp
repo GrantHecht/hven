@@ -56,6 +56,55 @@
 
 namespace hven::solvers {
 
+namespace {
+
+// A shared_ptr that OWNS NOTHING, aimed at a model the CALLER owns.
+//
+// shared_ptr's aliasing constructor over an EMPTY owner: the stored pointer is
+// `&model`, there is no control block, and destruction does nothing at all.
+// That is exactly the shape a bridge built for the duration of one solve()
+// call needs. This class's model-taking overloads have always taken a
+// `const NlpModel &` whose lifetime is the caller's business and which
+// outlives the call by their own precondition; wrapping it in an OWNING handle
+// would be a claim on that lifetime none of them is entitled to make, and
+// copying the model is not on the table (NlpModel is an interface).
+//
+// The bridge's own null check reads the STORED pointer, not the owner, so a
+// borrowed handle is a legal argument -- and `&model` is never null.
+std::shared_ptr<const NlpModel> borrow_model(const NlpModel &model) {
+    return std::shared_ptr<const NlpModel>(std::shared_ptr<const void>(), &model);
+}
+
+// THE BOX IS THE MODEL'S OTHER SIZED RETURN (M3 final review, S-1), and it is
+// checked ONCE, here, rather than at each of the several sites that index it.
+// lower()/upper() are read coordinate-wise by evaluate_kkt's activity test and
+// by the subproblem's l - x .. u - x window, both of which loop i = 0..n-1 with
+// no size of their own to compare against; a model returning a short box
+// therefore reads out of bounds in Release, where Eigen's own assert is
+// compiled out. Two O(1) comparisons per solve, against the model's own n().
+//
+// AT THE MODEL BOUNDARY FROM M4 ON, which is a move of one call site and not a
+// change of rule. The check used to sit at the top of solve_impl, where a
+// `model` was still in scope; the loop now measures against the SEAM, whose
+// box is materialized from the bridge's declaration and is n-sized by
+// construction, so there is no model return left there to disagree with
+// anything. What is being validated is what the MODEL returned, so it is
+// validated where a model is handed in -- and BEFORE the bridge is built, so
+// that this diagnostic (which names both blocks, both sizes and the driver
+// entry the caller actually called) is the one that fires rather than the
+// bridge's own single-block message.
+void require_declared_box(const NlpModel &model) {
+    const Index n = model.n();
+    if (model.lower().size() != n || model.upper().size() != n) {
+        throw std::invalid_argument(
+            fmt::format("SqpDriver::solve: model.lower()/model.upper() are sized ({}, {}), "
+                        "expected ({}, {}) (= model.n())",
+                        model.lower().size(), model.upper().size(), n, n));
+    }
+}
+
+} // namespace
+
 SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
 
 void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
@@ -65,22 +114,51 @@ void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     engine_.attach_ledger(ledger, label_prefix_ + "_qp");
 }
 
+// THE TWO MODEL-TAKING OVERLOADS ARE WRAPPERS (M4). Each validates the model's
+// box, borrows it into a bridge that lives exactly as long as the call, and
+// delegates to its bridge-taking twin. Nothing about their contract moved: the
+// same argument checks fire in the same order with the same messages, and the
+// solve they run is the same solve.
+//
+// THE BRIDGE IS BUILT PER CALL, deliberately. Laying it walks the model's three
+// derivative patterns once (model/nlp_model_aggregate.h) -- real work, outside
+// the timed region below because it is setup, and paid per solve rather than
+// per major. A caller who solves the same model repeatedly and does not want
+// to pay it can hold its own NlpModelAggregate and call the bridge-taking
+// overload directly, which is the whole reason that overload is public.
 SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0) {
+    require_declared_box(model);
+    NlpModelAggregate bridge{borrow_model(model)};
+    return solve(bridge, x0);
+}
+
+SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
+                             Index minor_budget) {
+    require_declared_box(model);
+    NlpModelAggregate bridge{borrow_model(model)};
+    return solve(bridge, x0, warm, minor_budget);
+}
+
+SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
+    // The seam is laid ONCE per solve, before the clock starts, for the same
+    // reason the bridge is: it is setup, not iteration.
+    AggregateEvalSeam seam{bridge};
     // PHASE-5 TASK 2. Timed around solve_impl ALONE -- never around
     // model construction, x0/warm setup above, or record_solve's own
     // ledger bookkeeping below -- per ledger.h's SqpSolveRecord::
     // wall_seconds note (informational, never asserted).
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(model, x0, WarmStart{}, /*minor_budget=*/0);
+    SqpSolution out = solve_impl(seam, x0, WarmStart{}, /*minor_budget=*/0);
     const auto t1 = std::chrono::steady_clock::now();
     return record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
 }
 
-SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
+SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
                              Index minor_budget) {
+    AggregateEvalSeam seam{bridge};
     // PHASE-5 TASK 2. Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(model, x0, warm, minor_budget);
+    SqpSolution out = solve_impl(seam, x0, warm, minor_budget);
     const auto t1 = std::chrono::steady_clock::now();
     return record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
 }
@@ -149,9 +227,9 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
     return out;
 }
 
-SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const WarmStart &warm,
+SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, const Vec &x0, const WarmStart &warm,
                                   Index minor_budget) {
-    const Index n = model.n();
+    const Index n = seam.n();
     if (x0.size() != n) {
         throw std::invalid_argument(fmt::format(
             "SqpDriver::solve: x0 has size {}, expected {} (= model.n())", x0.size(), n));
@@ -169,20 +247,14 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             "SqpDriver::solve: x0 contains a NaN or infinite entry; the start point must be "
             "finite in every coordinate");
     }
-    // THE BOX IS THE MODEL'S OTHER SIZED RETURN (M3 final review, S-1), and it
-    // is checked ONCE, here, rather than at each of the several sites that
-    // index it. lower()/upper() are read coordinate-wise by evaluate_kkt's
-    // activity test and by build_subproblem's l - x .. u - x window, both of
-    // which loop i = 0..n-1 with no size of their own to compare against; a
-    // model returning a short box therefore reads out of bounds in Release,
-    // where Eigen's own assert is compiled out. Two O(1) comparisons per
-    // solve, against the same n() the start point is already checked against.
-    if (model.lower().size() != n || model.upper().size() != n) {
-        throw std::invalid_argument(
-            fmt::format("SqpDriver::solve: model.lower()/model.upper() are sized ({}, {}), "
-                        "expected ({}, {}) (= model.n())",
-                        model.lower().size(), model.upper().size(), n, n));
-    }
+    // THE BOX IS CHECKED AT THE MODEL BOUNDARY, not here (M4). See
+    // require_declared_box at the top of this file for the S-1 argument and for
+    // why the check moved rather than changed: the box this loop reads is
+    // `seam.lower()`/`seam.upper()`, materialized from the bridge's declaration
+    // and n-sized by construction, so there is nothing left to compare at this
+    // point. The model-taking solve() overloads validate the model's own two
+    // returns before a bridge is built over them, and a caller who supplies a
+    // bridge directly had its box validated when the bridge laid.
 
     // ONE strategy per solve() call, so funnel state never leaks between
     // solves and solve() stays repeatable. See SqpOptions::make_strategy.
@@ -363,9 +435,9 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
     // probe for exactly the reason a kCold-capped one does -- the probe's
     // only possible product is a level the ceiling is about to discard.
     const bool warm_dims_plausible =
-        warm.valid && warm.x.size() == n && warm.lambda_e.size() == model.me() &&
-        warm.lambda_i.size() == model.mi() && warm.qp_working_set.n() == n &&
-        warm.qp_working_set.mi() == model.mi();
+        warm.valid && warm.x.size() == n && warm.lambda_e.size() == seam.me() &&
+        warm.lambda_i.size() == seam.mi() && warm.qp_working_set.n() == n &&
+        warm.qp_working_set.mi() == seam.mi();
     // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one (M3 final
     // review, S-3). It used to sit on the kSeeded resolution alone, on the
     // argument that a hash-matching object "came from a solve whose own exits
@@ -404,16 +476,15 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
         // me()/mi() > 0: they become Ae/Ai, and Ae/Ai's PATTERN is
         // exactly what gets hashed, so those two calls are not the waste
         // this task removes -- only the values were.
-        NlpEval probe_ev = eval_nlp_values(model, x0);
+        NlpEval probe_ev = seam.eval_nlp_values(x0);
         ++out.counters.evals_values;
-        if (model.me() > 0) {
-            probe_ev.Je = model.eval_jac_e(x0);
-        }
-        if (model.mi() > 0) {
-            probe_ev.Ji = model.eval_jac_i(x0);
-        }
-        const QpProblem probe = build_subproblem(model, probe_ev, x0, Vec::Zero(model.me()),
-                                                 Vec::Zero(model.mi()), 1.0);
+        // The Jacobians-alone moment: the two calls this block used to make
+        // itself, in one request that names exactly them (see the seam's
+        // jacobians_only, which leaves a block the declaration gives no rows
+        // alone, precisely as the me()/mi() guards here did).
+        seam.jacobians_only(probe_ev, x0);
+        const QpProblem probe =
+            seam.build_subproblem(probe_ev, x0, Vec::Zero(seam.me()), Vec::Zero(seam.mi()), 1.0);
         if (detail::structural_hash(probe) == warm.structure_hash) {
             resolved_level = warm.hot != nullptr ? StartLevel::kHot : StartLevel::kWarm;
         }
@@ -438,8 +509,8 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
     out.counters.n_seeded = resolved_level == StartLevel::kSeeded ? 1 : 0;
 
     Vec x = warm_ingest ? warm.x : x0;
-    Vec lambda_e = warm_ingest ? warm.lambda_e : Vec::Zero(model.me());
-    Vec lambda_i = warm_ingest ? warm.lambda_i : Vec::Zero(model.mi());
+    Vec lambda_e = warm_ingest ? warm.lambda_e : Vec::Zero(seam.me());
+    Vec lambda_i = warm_ingest ? warm.lambda_i : Vec::Zero(seam.mi());
 
     // AN INGEST SEEDS THE ENGINE'S WORKING SET from warm.qp_working_set,
     // through the SAME seed path every other major uses
@@ -481,7 +552,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
         if (!hint_is_empty) {
             seed.x = Vec::Zero(n);
             seed.bound_state = warm.qp_working_set.bound_state();
-            seed.ineq_active.assign(static_cast<std::size_t>(model.mi()), false);
+            seed.ineq_active.assign(static_cast<std::size_t>(seam.mi()), false);
             for (Index row : warm.qp_working_set.active_ineq()) {
                 seed.ineq_active[static_cast<std::size_t>(row)] = true;
             }
@@ -691,7 +762,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
     // stationarity computation below (which needs Je/Ji), the first
     // convergence test (same), and the first subproblem (H/Je/Ji) --
     // none of Task 8's three call sites, per this phase's brief.
-    NlpEval ev = eval_nlp(model, x);
+    NlpEval ev = seam.eval_nlp(x, lambda_e, lambda_i);
     ++out.counters.evals_full;
 
     // B-1 REPAIR (Phase-5 Task 7b). Clear every ingested lambda_i whose
@@ -709,7 +780,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
     // dropping it -- the same discipline constraint_violation_l1 states
     // for its own max().
     if (warm_ingest) {
-        for (Index j = 0; j < model.mi(); ++j) {
+        for (Index j = 0; j < seam.mi(); ++j) {
             if (ev.ci(j) < -opts_.feas_tol) {
                 lambda_i(j) = 0.0;
             }
@@ -729,7 +800,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
     // partition every value this loop can see.
     if (resolved_level == StartLevel::kSeeded) {
         bool degrade_to_cold = false;
-        for (Index j = 0; j < model.mi(); ++j) {
+        for (Index j = 0; j < seam.mi(); ++j) {
             if (lambda_i(j) >= 0.0) {
                 continue;
             }
@@ -762,11 +833,11 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             out.counters.ip_activity_inferred = 0;
             warm_ingest = false;
             x = x0;
-            lambda_e = Vec::Zero(model.me());
-            lambda_i = Vec::Zero(model.mi());
+            lambda_e = Vec::Zero(seam.me());
+            lambda_i = Vec::Zero(seam.mi());
             have_seed = false;
             crash_pending = opts_.crash_basis;
-            ev = eval_nlp(model, x);
+            ev = seam.eval_nlp(x, lambda_e, lambda_i);
             ++out.counters.evals_full;
         }
     }
@@ -792,7 +863,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
         // point the driver is actually standing on. Re-measuring is free
         // -- this overload of evaluate_kkt reads an NlpEval already in
         // hand and calls the model not at all.
-        SqpKkt kkt = evaluate_kkt(model, ev, x, lambda_e, lambda_i, opts_.feas_tol);
+        SqpKkt kkt = evaluate_kkt(seam, ev, x, lambda_e, lambda_i, opts_.feas_tol);
 
         SqpIterate row;
         row.trial = iter;
@@ -831,8 +902,8 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             out.history.push_back(row);
             out.status = SqpStatus::kNumericalError;
             out.x = x;
-            out.lambda_e = Vec::Zero(model.me());
-            out.lambda_i = Vec::Zero(model.mi());
+            out.lambda_e = Vec::Zero(seam.me());
+            out.lambda_i = Vec::Zero(seam.mi());
             out.z = Vec::Zero(n);
             out.f = ev.f;
             // No subproblem has ever been built here (this is a
@@ -848,7 +919,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             // overwritten below are still populated, for a caller that
             // wants to inspect what the failed solve stood on.
             out.warm_start =
-                make_warm_start(model, /*activity=*/nullptr, qp,
+                make_warm_start(seam, /*activity=*/nullptr, qp,
                                 /*qp_built=*/qp_built, /*probe_ev=*/nullptr,
                                 /*probe_x=*/nullptr, delta, last_dual_mu, opts_.qp.primal_delta,
                                 strategy.get(), engine_.hot_state());
@@ -968,7 +1039,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
                 lambda_i = std::move(fs_best_lambda_i);
                 duals_ingested = fs_best_duals_ingested; // W1; see its note
                 ev = std::move(fs_best_ev);
-                kkt = evaluate_kkt(model, ev, x, lambda_e, lambda_i, opts_.feas_tol);
+                kkt = evaluate_kkt(seam, ev, x, lambda_e, lambda_i, opts_.feas_tol);
                 measure_iterate();
                 // KLV Eq. (13) re-basing, which ALSO clears the strategy's
                 // own mode flag (globalization.h). Both flags fall
@@ -1128,7 +1199,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
                 return finish(
                     std::move(out), SqpStatus::kBudgetExhausted, mb_best_x, mb_best_lambda_e,
                     mb_best_lambda_i, mb_best_kkt, mb_best_f,
-                    make_warm_start(model, (best_is_current && have_seed) ? &seed : nullptr, qp,
+                    make_warm_start(seam, (best_is_current && have_seed) ? &seed : nullptr, qp,
                                     qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
                                     strategy.get(), engine_.hot_state()));
             }
@@ -1139,7 +1210,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             // this x rather than some earlier one.
             return finish(std::move(out), converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter, x,
                           lambda_e, lambda_i, kkt, row.f,
-                          make_warm_start(model, have_seed ? &seed : nullptr, qp, qp_built, &ev, &x,
+                          make_warm_start(seam, have_seed ? &seed : nullptr, qp, qp_built, &ev, &x,
                                           delta, last_dual_mu, opts_.qp.primal_delta,
                                           strategy.get(), engine_.hot_state()));
         }
@@ -1192,7 +1263,17 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             }
             restoration_used = true;
 
-            const RestorationModel feasibility(model, x, ev);
+            // THE ONE MODEL IDENTITY READ ON THIS PATH, and it is not an
+            // evaluation. RestorationModel is a Level 1 WRAPPER in the
+            // variables (x, sp, sm, si) built AROUND the problem being solved
+            // -- a different NlpModel, with no aggregate form of its own -- so
+            // it is constructed from the model behind the bridge. The nested
+            // sub-solve below then goes through the model-taking solve()
+            // overload, which builds the wrapper its OWN bridge and seam for
+            // the duration of that call, exactly as this solve's entry point
+            // did. `feasibility` outlives that call: it is this scope's local
+            // and the sub-solve returns before the scope ends.
+            const RestorationModel feasibility(seam.aggregate().model(), x, ev);
             SqpOptions ropts = opts_;
             // The caller's strategy factory is NOT carried; the radius is.
             // See the header note's WHAT IS CARRIED IN.
@@ -1336,11 +1417,12 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             // zero would only suggest it might not be one.
 
             const Vec x_r = feasibility.original_x(rs.x);
-            NlpEval ev_r = x_r.allFinite() ? eval_nlp(model, x_r) : NlpEval{};
+            NlpEval ev_r =
+                x_r.allFinite() ? seam.eval_nlp(x_r, rs.lambda_e, rs.lambda_i) : NlpEval{};
             if (x_r.allFinite()) {
                 ++out.counters.evals_full;
             }
-            const SqpKkt kkt_r = x_r.allFinite() ? evaluate_kkt(model, ev_r, x_r, rs.lambda_e,
+            const SqpKkt kkt_r = x_r.allFinite() ? evaluate_kkt(seam, ev_r, x_r, rs.lambda_e,
                                                                 rs.lambda_i, opts_.feas_tol)
                                                  : SqpKkt{};
             if (!x_r.allFinite() || !kkt_r.finite) {
@@ -1479,7 +1561,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
         // key survives the retry (see WARM SEEDING) and no eval_hess is
         // paid for it.
         if (subproblem_is_stale) {
-            qp = build_subproblem(model, ev, x, lambda_e, lambda_i, 1.0);
+            qp = seam.build_subproblem(ev, x, lambda_e, lambda_i, 1.0);
             subproblem_is_stale = false;
             qp_built = true;
         }
@@ -1976,9 +2058,9 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
                 return finish(
                     std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                     restoration_exit_kkt, restoration_exit_f,
-                    make_warm_start(model, (!restoration_moved_x && have_seed) ? &seed : nullptr,
-                                    qp, qp_built, &ev, &x, delta, last_dual_mu,
-                                    opts_.qp.primal_delta, strategy.get(), engine_.hot_state()));
+                    make_warm_start(seam, (!restoration_moved_x && have_seed) ? &seed : nullptr, qp,
+                                    qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
+                                    strategy.get(), engine_.hot_state()));
             }
 
             qs = elastic_project(elastic, qp, qs_e, /*carry_multipliers=*/closed);
@@ -2025,7 +2107,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
                     // if restoration moved x away from it.
                     return finish(std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                                   restoration_exit_kkt, restoration_exit_f,
-                                  make_warm_start(model, restoration_moved_x ? nullptr : &qs, qp,
+                                  make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
                                                   qp_built, &ev, &x, delta, last_dual_mu,
                                                   opts_.qp.primal_delta, strategy.get(),
                                                   engine_.hot_state()));
@@ -2050,7 +2132,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
             return finish(std::move(out), map_status(qs.status), x, lambda_e, lambda_i, kkt, row.f,
-                          make_warm_start(model, &qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
+                          make_warm_start(seam, &qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
                                           opts_.qp.primal_delta, strategy.get(),
                                           engine_.hot_state()));
         }
@@ -2079,7 +2161,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
         // upgraded at all, because nothing downstream ever reads it
         // again.
         const Vec x_trial = x + qs.x;
-        NlpEval ev_trial = eval_nlp_values(model, x_trial);
+        NlpEval ev_trial = seam.eval_nlp_values(x_trial);
 
         StepContext ctx;
         ctx.f_old = ev.f;
@@ -2144,7 +2226,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
                 // VALUES ONLY FIRST, same reasoning as x_trial above:
                 // soc_ctx below reads only f/h, so judge() never needs a
                 // derivative at x_soc either.
-                ev_soc = eval_nlp_values(model, x_soc);
+                ev_soc = seam.eval_nlp_values(x_soc);
 
                 StepContext soc_ctx;
                 soc_ctx.f_old = ev.f;
@@ -2167,7 +2249,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
                     // derivatives the values-only evaluation above
                     // skipped -- in place, not a second eval_f/eval_ce/
                     // eval_ci (see upgrade_to_full's own note).
-                    upgrade_to_full(model, x_soc, ev_soc);
+                    seam.refresh_derivatives(ev_soc, x_soc);
                     ++out.counters.evals_full;
                 } else {
                     // The corrected point is ALSO not accepted (a
@@ -2226,7 +2308,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
                 // restoration_moved_x's own note).
                 return finish(std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                               restoration_exit_kkt, restoration_exit_f,
-                              make_warm_start(model, restoration_moved_x ? nullptr : &qs, qp,
+                              make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
                                               qp_built, &ev, &x, delta, last_dual_mu,
                                               opts_.qp.primal_delta, strategy.get(),
                                               engine_.hot_state()));
@@ -2249,7 +2331,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             // still describes x unless restoration moved it.
             return finish(std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                           restoration_exit_kkt, restoration_exit_f,
-                          make_warm_start(model, restoration_moved_x ? nullptr : &qs, qp, qp_built,
+                          make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp, qp_built,
                                           &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
                                           strategy.get(), engine_.hot_state()));
         }
@@ -2292,7 +2374,7 @@ SqpSolution SqpDriver::solve_impl(const NlpModel &model, const Vec &x0, const Wa
             // fixture), because nlp_model.h deliberately adds no third
             // "derivatives only, values already known" entry point.
             x = x_trial;
-            upgrade_to_full(model, x_trial, ev_trial);
+            seam.refresh_derivatives(ev_trial, x_trial);
             ++out.counters.evals_full;
             ev = std::move(ev_trial);
             lambda_e = qs.lambda_e;
@@ -2357,7 +2439,7 @@ SsnOptions SqpDriver::ssn_options(double prox_sigma_init) const {
     return sopts;
 }
 
-WarmStart SqpDriver::make_warm_start(const NlpModel &model, const QpSolution *activity,
+WarmStart SqpDriver::make_warm_start(AggregateEvalSeam &seam, const QpSolution *activity,
                                      const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
                                      const Vec *probe_x, double delta, double dual_mu_eff,
                                      double primal_delta_eff, const GlobalizationStrategy *strategy,
@@ -2370,8 +2452,8 @@ WarmStart SqpDriver::make_warm_start(const NlpModel &model, const QpSolution *ac
     w.valid = probe_ev != nullptr;
     w.hot = std::move(hot);
 
-    const Index n = model.n();
-    const Index mi = model.mi();
+    const Index n = seam.n();
+    const Index mi = seam.mi();
     w.qp_working_set = WorkingSet(n, mi);
     w.ineq_active.assign(static_cast<std::size_t>(mi), 0);
     w.bound_active.assign(static_cast<std::size_t>(n), 0);
@@ -2418,8 +2500,8 @@ WarmStart SqpDriver::make_warm_start(const NlpModel &model, const QpSolution *ac
     if (qp_built) {
         w.structure_hash = detail::structural_hash(qp);
     } else if (probe_ev != nullptr) {
-        const QpProblem probe = build_subproblem(model, *probe_ev, *probe_x, Vec::Zero(model.me()),
-                                                 Vec::Zero(model.mi()), /*obj_scale=*/1.0);
+        const QpProblem probe = seam.build_subproblem(*probe_ev, *probe_x, Vec::Zero(seam.me()),
+                                                      Vec::Zero(seam.mi()), /*obj_scale=*/1.0);
         w.structure_hash = detail::structural_hash(probe);
     }
     return w;

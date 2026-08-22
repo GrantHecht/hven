@@ -2438,25 +2438,48 @@ struct SqpKkt {
 // yields finite == false with every residual set to NaN -- NaN specifically,
 // so that any `<= tol` gate written by any caller is false rather than
 // accidentally true. SqpDriver routes this to kNumericalError.
-inline SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x,
-                           const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
-    const Index n = model.n();
+//
+// TWO ENTRIES, ONE BODY. The note above describes both the NlpModel-taking
+// entry just below and the seam-taking one further down (past this header's
+// positional include of detail/drivers/aggregate_eval_seam.h, which is where
+// AggregateEvalSeam becomes a name). The arithmetic itself is
+// detail::evaluate_kkt_over.
+namespace detail {
+
+// THE ARITHMETIC OF evaluate_kkt, over the five quantities it actually reads
+// off its first argument: the three dimensions and the two bound vectors. It
+// evaluates NOTHING -- every model quantity it uses arrives in `ev`.
+//
+// Factored out where the SQP driver's solve path moved onto the Level 2
+// aggregate contract (detail/drivers/aggregate_eval_seam.h): the loop no longer
+// holds an NlpModel, and the seam publishes exactly these five. Both public
+// entries below forward here, so there is ONE body rather than two copies that
+// could drift -- and the driver's own measurement is the same arithmetic, in
+// the same order, on the same values as before the move (the seam's bounds are
+// the model's own, materialized record by record).
+//
+// The diagnostics still name `model.n()`/`model.me()`/`model.mi()` because that
+// is where the numbers come from in either direction, and because the messages
+// are what callers read.
+inline SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
+                                const NlpEval &ev, const Vec &x, const Vec &lambda_e,
+                                const Vec &lambda_i, double bound_tol) {
     if (x.size() != n) {
         throw std::invalid_argument(
             fmt::format("evaluate_kkt: x has size {}, expected {} (= model.n())", x.size(), n));
     }
-    if (lambda_e.size() != model.me() || lambda_i.size() != model.mi()) {
+    if (lambda_e.size() != me || lambda_i.size() != mi) {
         throw std::invalid_argument(
             fmt::format("evaluate_kkt: multipliers sized ({}, {}), expected ({}, {})",
-                        lambda_e.size(), lambda_i.size(), model.me(), model.mi()));
+                        lambda_e.size(), lambda_i.size(), me, mi));
     }
 
     SqpKkt out;
     out.grad_lag = ev.grad;
-    if (model.me() > 0) {
+    if (me > 0) {
         out.grad_lag += ev.Je.transpose() * lambda_e;
     }
-    if (model.mi() > 0) {
+    if (mi > 0) {
         out.grad_lag += ev.Ji.transpose() * lambda_i;
     }
     out.z = Vec::Zero(n);
@@ -2469,9 +2492,6 @@ inline SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &
         out.complementarity = nan;
         return out;
     }
-
-    const Vec &lo = model.lower();
-    const Vec &up = model.upper();
 
     for (Index i = 0; i < n; ++i) {
         const bool at_lower = (x(i) - lo(i)) <= bound_tol;
@@ -2493,10 +2513,10 @@ inline SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &
         out.stationarity = std::max(out.stationarity, s);
     }
 
-    if (model.me() > 0) {
+    if (me > 0) {
         out.feasibility = std::max(out.feasibility, ev.ce.lpNorm<Eigen::Infinity>());
     }
-    for (Index j = 0; j < model.mi(); ++j) {
+    for (Index j = 0; j < mi; ++j) {
         out.feasibility = std::max(out.feasibility, std::max(0.0, ev.ci(j)));
         out.complementarity = std::max(out.complementarity, std::abs(lambda_i(j) * ev.ci(j)));
     }
@@ -2505,6 +2525,14 @@ inline SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &
         out.feasibility = std::max(out.feasibility, std::max(0.0, x(i) - up(i)));
     }
     return out;
+}
+
+} // namespace detail
+
+inline SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x,
+                           const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
+    return detail::evaluate_kkt_over(model.n(), model.me(), model.mi(), model.lower(),
+                                     model.upper(), ev, x, lambda_e, lambda_i, bound_tol);
 }
 
 // Convenience overload that takes the evaluation itself. Costs one extra
@@ -2705,11 +2733,34 @@ inline bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &s
 // no header cycle. The top-of-file notes those constructions cite
 // (SECOND-ORDER CORRECTION, ELASTIC TIER, RESTORATION PHASE) remain in this
 // header, where the carved comments still point.
+//
+// THE EVALUATION SEAM JOINS THEM ON THE SAME FOOTING, and for the same reason:
+// detail/drivers/aggregate_eval_seam.h reproduces the evaluation moments
+// declared above against an NlpAggregate, so it consumes NlpEval and states in
+// its own banner that it is deliberately not self-contained. It is what the
+// driver's solve path evaluates through.
+#include <hven/detail/drivers/aggregate_eval_seam.h>
 #include <hven/detail/globalization/sqp/elastic.h>
 #include <hven/detail/globalization/sqp/restoration.h>
 #include <hven/detail/globalization/sqp/soc.h>
 
 namespace hven::solvers {
+
+// evaluate_kkt over the SEAM's dimensions and materialized box, which are the
+// model's own (model/nlp_model_aggregate.h lays one bound record per variable
+// verbatim, and model/aggregate_declaration.h's materialization intersects a
+// single record with (-inf, +inf), returning it). This is the entry the
+// driver's major loop uses; the NlpModel-taking one above is for every caller
+// measuring a single point from a model in hand. See that entry's note -- it
+// documents both.
+//
+// The seam is taken by CONST reference: this measurement evaluates nothing, so
+// it neither re-lays nor scatters.
+inline SqpKkt evaluate_kkt(const AggregateEvalSeam &seam, const NlpEval &ev, const Vec &x,
+                           const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
+    return detail::evaluate_kkt_over(seam.n(), seam.me(), seam.mi(), seam.lower(), seam.upper(), ev,
+                                     x, lambda_e, lambda_i, bound_tol);
+}
 
 // Is a FAILED subproblem's result usable as a rejected trial, i.e. may the
 // driver shrink the radius and re-solve instead of giving up? See this
@@ -3462,6 +3513,27 @@ class SqpDriver {
     // task, whether or not a ledger is attached.
     SqpSolution solve(const NlpModel &model, const Vec &x0);
 
+    // THE PRIMARY PATH, of which every NlpModel-taking overload on this class
+    // is a wrapper (M4: the driver consumes the Level 2 contract, and a single
+    // model is one bridge over it -- model/nlp_model_aggregate.h). It builds
+    // one AggregateEvalSeam over `bridge` and runs the major loop against that;
+    // the model-taking overloads differ only in that they build the bridge
+    // themselves, from a `const NlpModel &` they do not own.
+    //
+    // WHAT `bridge` OWES, and it is the contract's own posture rather than
+    // anything new: one operation at a time, structural mutation included. The
+    // seam re-lays whenever the aggregate's structure epoch has moved, so a
+    // renegotiation between solves is handled; a mutation DURING a solve is
+    // not a thing this class defends against.
+    //
+    // THE BOX IS NOT RE-CHECKED HERE. The bridge validated the model's two
+    // bound returns against its own declared n() when it laid its structures,
+    // and the seam's lower()/upper() are materialized from that declaration --
+    // n-sized by construction, with no model return left to disagree. The
+    // model-taking overloads keep their own check, which runs BEFORE the bridge
+    // exists; see solve_impl.
+    SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0);
+
     // PHASE-4 TASK 3/4. Warm-start ingest, up to and including the HOT
     // level. `warm` is typically a PRIOR solve's own
     // SqpSolution::warm_start (warm_start.h), on a problem the caller
@@ -3603,6 +3675,13 @@ class SqpDriver {
     SqpSolution solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
                       Index minor_budget = 0);
 
+    // The warm-start ingest against a bridge, on the same footing as the
+    // 2-argument bridge overload above: same primary path, same seam, and the
+    // whole of the ingest contract documented on the model-taking overload
+    // just above this one.
+    SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
+                      Index minor_budget = 0);
+
   private:
     // The ledger-recording tail every public solve() overload shares:
     // record exactly one SqpSolveRecord (if a ledger is attached) and
@@ -3616,7 +3695,23 @@ class SqpDriver {
 
     // `minor_budget` <= 0 means NO BUDGET -- see the 4-argument solve()'s own
     // THE PROBE BUDGET note for the whole contract.
-    SqpSolution solve_impl(const NlpModel &model, const Vec &x0, const WarmStart &warm,
+    //
+    // EVERY MODEL QUANTITY THIS LOOP READS ARRIVES THROUGH `seam` (M4), which
+    // is the whole of the change: the dimensions, the box, the six evaluation
+    // moments and the subproblem. There is no NlpModel in scope here and no
+    // `model.eval_*` call anywhere below -- the free functions over NlpModel
+    // declared in this header remain for callers measuring a point of their
+    // own, and the solve path does not use them.
+    //
+    // THE ONE PLACE A MODEL IS STILL NAMED is the restoration phase, which
+    // builds a DIFFERENT NlpModel (RestorationModel, a wrapper in the
+    // variables (x, sp, sm, si)) around the one behind the bridge and solves it
+    // with a nested driver. That wrapper is a Level 1 construction with no
+    // aggregate form of its own, so the entry point reaches the model through
+    // the bridge -- an identity read, never an evaluation -- and the nested
+    // solve then wraps the wrapper in its own bridge and seam through the
+    // model-taking overload, exactly as the outer call did.
+    SqpSolution solve_impl(AggregateEvalSeam &seam, const Vec &x0, const WarmStart &warm,
                            Index minor_budget);
 
     // See this header's SUBPROBLEM FAILURE ROUTING note. Reached only after the
@@ -3788,7 +3883,12 @@ class SqpDriver {
     // calling in, since only the driver's own engine_ instance can produce
     // it; this function itself stays static and merely stores what it is
     // handed, exactly as it does for every other already-computed value.
-    static WarmStart make_warm_start(const NlpModel &model, const QpSolution *activity,
+    //
+    // TAKES THE SEAM (M4), non-const, because the zero-major probe below builds
+    // a subproblem through it -- an evaluation, which re-lays if the aggregate's
+    // epoch has moved and scatters into the seam's own arena. Everything else it
+    // reads off the seam is a dimension.
+    static WarmStart make_warm_start(AggregateEvalSeam &seam, const QpSolution *activity,
                                      const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
                                      const Vec *probe_x, double delta, double dual_mu_eff,
                                      double primal_delta_eff, const GlobalizationStrategy *strategy,
