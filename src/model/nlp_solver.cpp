@@ -42,10 +42,22 @@ NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(p
 }
 
 void NLPSolver::transcribe() {
-    this->model_ = std::make_shared<NlpProblemModel>(this->problem_);
-    this->core_ = std::make_shared<NLPAdapterCore>(this->model_, this->problem_->name());
-    this->nlp_ = make_nlp_program(this->core_);
-    this->optimizer_->set_nlp(this->nlp_);
+    // Built whole, then committed. Every step below can throw -- the
+    // conversion validates the declaration, the host runs the model's
+    // derivative callbacks at its start point, the layout sizes the program --
+    // so nothing is written to a member until all of them have succeeded. A
+    // transcription that faults therefore leaves this solver exactly as it
+    // was: the previous transcription still whole, or none at all, and
+    // do_transcription_ still true so the next solve retries rather than
+    // running against a half-replaced state.
+    auto model = std::make_shared<NlpProblemModel>(this->problem_);
+    auto core = std::make_shared<NLPAdapterCore>(model, this->problem_->name());
+    auto nlp = make_nlp_program(core);
+    this->optimizer_->set_nlp(nlp);
+
+    this->model_ = std::move(model);
+    this->core_ = std::move(core);
+    this->nlp_ = std::move(nlp);
     this->do_transcription_ = false;
 }
 

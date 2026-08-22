@@ -561,3 +561,58 @@ TEST(NLPSolverTest, PartitionCountAndQpThreadCountAreSetIndependently) {
     EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
     solver.optimizer_->set_print_level(10); // jet_release() resets the print level
 }
+
+// A problem whose Hessian callback throws while armed. Transcription runs that
+// callback at the model's start point, so arming it makes transcribe() fault
+// partway through.
+struct FaultingSetupProblem : EqOnlyProblem {
+    bool armed_ = true;
+
+    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd> lambda,
+                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        if (armed_) {
+            throw std::runtime_error("FaultingSetupProblem: eval_hess armed to throw");
+        }
+        EqOnlyProblem::eval_hess(x, obj_factor, lambda, v);
+    }
+    std::string name() const override { return "FaultingSetupProblem"; }
+};
+
+TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
+    auto problem = std::make_shared<FaultingSetupProblem>();
+    NLPSolver solver(problem);
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+
+    // A fault on the very first transcription commits nothing at all.
+    EXPECT_THROW(solver.optimize(x0), std::runtime_error);
+    EXPECT_EQ(solver.model_, nullptr);
+    EXPECT_EQ(solver.core_, nullptr);
+    EXPECT_EQ(solver.nlp_, nullptr);
+    EXPECT_TRUE(solver.do_transcription_);
+    EXPECT_THROW(solver.return_multipliers(), std::runtime_error); // nothing was solved
+
+    // Clearing the fault and retrying succeeds; nothing had to be reset by hand.
+    problem->armed_ = false;
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_FALSE(solver.do_transcription_);
+    const auto model_after = solver.model_;
+    const auto core_after = solver.core_;
+    const auto nlp_after = solver.nlp_;
+    ASSERT_NE(model_after, nullptr);
+
+    // A fault on a LATER transcription leaves the standing one whole -- same
+    // three objects, still consistent with each other -- and leaves the retry
+    // flag set rather than half-replacing the solver.
+    problem->armed_ = true;
+    solver.do_transcription_ = true;
+    EXPECT_THROW(solver.optimize(x0), std::runtime_error);
+    EXPECT_EQ(solver.model_, model_after);
+    EXPECT_EQ(solver.core_, core_after);
+    EXPECT_EQ(solver.nlp_, nlp_after);
+    EXPECT_TRUE(solver.do_transcription_);
+
+    problem->armed_ = false;
+    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+}
