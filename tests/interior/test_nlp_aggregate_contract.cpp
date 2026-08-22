@@ -1740,3 +1740,52 @@ TEST(NlpAggregateEngineContract, AShortGradientViewIsRefusedByTheProvider) {
                                KktScatterView{}, short_adjoint),
                  std::invalid_argument);
 }
+
+// The declared exception order on a doubly-invalid call: a short objective
+// gradient arena AND a KKT-bearing request against a location table that was
+// never laid against a destination. Both are refusals this provider makes, and
+// the destination checks run first, so the laid-width one is the one that
+// propagates.
+TEST(NlpAggregateEngineContract, ADoublyInvalidCallReportsTheLaidWidthFirst) {
+    auto nlp = agg_pin_build_small();
+    ASSERT_GT(nlp->reduced_primal_vars_count_, 1);
+
+    // No analyze_sparsity: the KKT location table has never been laid against
+    // any destination, which is the second fault.
+    std::vector<double> kkt_values(static_cast<std::size_t>(nlp->kkt_location_table().size()), 0.0);
+    KktScatterView kkt{kkt_values.data(), static_cast<int>(kkt_values.size()),
+                       &nlp->kkt_location_table()};
+
+    // ...and a gradient arena one row short of the width this provider laid,
+    // which is the first.
+    Eigen::VectorXd pgx = Eigen::VectorXd::Zero(nlp->reduced_primal_vars_count_ - 1);
+    Eigen::VectorXd agx = Eigen::VectorXd::Zero(nlp->reduced_primal_vars_count_);
+    Eigen::VectorXd fxe = Eigen::VectorXd::Zero(nlp->equal_cons_);
+    Eigen::VectorXd fxi = Eigen::VectorXd::Zero(nlp->inequal_cons_);
+    double objective = 0.0;
+    RhsScatterView rhs;
+    rhs.objective_ = &objective;
+    rhs.objective_gradient_ =
+        RhsArenaView{pgx.data(), static_cast<int>(pgx.size()), &nlp->objective_gradient_table()};
+    rhs.constraint_adjoint_gradient_ = RhsArenaView{agx.data(), static_cast<int>(agx.size()),
+                                                    &nlp->constraint_adjoint_gradient_table()};
+    rhs.equality_residuals_ =
+        RhsArenaView{fxe.data(), static_cast<int>(fxe.size()), &nlp->equality_residual_table()};
+    rhs.inequality_residuals_ =
+        RhsArenaView{fxi.data(), static_cast<int>(fxi.size()), &nlp->inequality_residual_table()};
+
+    const Eigen::VectorXd x = agg_pin_x();
+    const Eigen::VectorXd le = Eigen::VectorXd::Zero(nlp->equal_cons_);
+    const Eigen::VectorXd li = Eigen::VectorXd::Zero(nlp->inequal_cons_);
+
+    try {
+        nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFullKkt, kkt, rhs);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("objective gradient"), std::string::npos) << message;
+        EXPECT_NE(message.find("rows"), std::string::npos) << message;
+        EXPECT_EQ(message.find("has not been laid"), std::string::npos)
+            << "the unlaid-table refusal won the race: " << message;
+    }
+}
