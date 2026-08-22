@@ -179,7 +179,10 @@ class AggregateEvalSeam {
     /// comes from @p ev or from the materialized bounds. No trust region is
     /// baked in.
     ///
-    /// @param ev        the bundle at @p x.
+    /// @param ev        the bundle at @p x. Row counts are frozen across a
+    ///                  solve, so a bundle whose blocks do not match the
+    ///                  structures now laid predates a re-lay that changed one
+    ///                  and is refused rather than paired with them.
     /// @param x         the point, in declaration space.
     /// @param lambda_e  the equality multipliers, full length.
     /// @param lambda_i  the inequality multipliers, full length.
@@ -202,6 +205,20 @@ class AggregateEvalSeam {
     /// first by every evaluation moment; a re-lay invalidates the cached
     /// patterns, so outputs produced after one carry the NEW structure.
     void relay_if_stale();
+
+    /// Refuses a bundle whose block sizes are not the ones the structures now
+    /// declare.
+    ///
+    /// Row counts are FROZEN ACROSS A SOLVE. A caller holds an NlpEval across
+    /// several moments, and each of those moments may re-lay first, so a re-lay
+    /// that changed a row count leaves the held bundle describing a problem
+    /// these structures are no longer for. Fixed work, once per moment.
+    ///
+    /// @param ev     the bundle the caller handed in.
+    /// @param moment the entry point's name, for the refusal message.
+    /// @throws std::invalid_argument naming the block, the size held and the
+    ///         size now declared.
+    void require_bundle_matches_layout(const NlpEval &ev, const char *moment) const;
 
     /// Seeds one KKT arena segment with negative zero -- see the header note
     /// on why the seed is not +0.0.

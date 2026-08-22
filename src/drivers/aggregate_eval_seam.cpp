@@ -284,6 +284,37 @@ void AggregateEvalSeam::lay() {
     epoch_at_lay_ = epoch_read_before_structures;
 }
 
+void AggregateEvalSeam::require_bundle_matches_layout(const NlpEval &ev,
+                                                      const char *moment) const {
+    auto refuse = [&](const char *block, const std::string &held, const std::string &declared) {
+        throw std::invalid_argument(
+            fmt::format("AggregateEvalSeam::{0}: the bundle's {1} is {2}, but these structures "
+                        "declare {3}. Row counts are frozen across a solve, so this bundle was "
+                        "taken before a re-lay that changed one and must be re-taken",
+                        moment, block, held, declared));
+    };
+    if (ev.ce.size() != equality_rows_) {
+        refuse("equality residual block", fmt::format("{0} rows", ev.ce.size()),
+               fmt::format("{0} rows", equality_rows_));
+    }
+    if (ev.ci.size() != inequality_rows_) {
+        refuse("inequality residual block", fmt::format("{0} rows", ev.ci.size()),
+               fmt::format("{0} rows", inequality_rows_));
+    }
+    if (ev.grad.size() != primal_vars_) {
+        refuse("objective gradient", fmt::format("{0} rows", ev.grad.size()),
+               fmt::format("{0} rows", primal_vars_));
+    }
+    if (ev.Je.rows() != equality_rows_ || ev.Je.cols() != primal_vars_) {
+        refuse("equality Jacobian", fmt::format("{0} x {1}", ev.Je.rows(), ev.Je.cols()),
+               fmt::format("{0} x {1}", equality_rows_, primal_vars_));
+    }
+    if (ev.Ji.rows() != inequality_rows_ || ev.Ji.cols() != primal_vars_) {
+        refuse("inequality Jacobian", fmt::format("{0} x {1}", ev.Ji.rows(), ev.Ji.cols()),
+               fmt::format("{0} x {1}", inequality_rows_, primal_vars_));
+    }
+}
+
 void AggregateEvalSeam::relay_if_stale() {
     if (aggregate_->structure_epoch() != epoch_at_lay_) {
         this->lay();
@@ -411,6 +442,7 @@ NlpEval AggregateEvalSeam::eval_nlp_values(const Vec &x) {
 
 void AggregateEvalSeam::refresh_derivatives(NlpEval &ev, const Vec &x) {
     this->relay_if_stale();
+    this->require_bundle_matches_layout(ev, "refresh_derivatives");
 
     this->assemble_gradient_and_jacobians(x);
     ev.grad = gradient_arena_;
@@ -425,6 +457,7 @@ void AggregateEvalSeam::refresh_derivatives(NlpEval &ev, const Vec &x) {
 
 void AggregateEvalSeam::jacobians_only(NlpEval &ev, const Vec &x) {
     this->relay_if_stale();
+    this->require_bundle_matches_layout(ev, "jacobians_only");
 
     this->assemble_jacobians(x);
     if (equality_rows_ > 0) {
@@ -438,6 +471,7 @@ void AggregateEvalSeam::jacobians_only(NlpEval &ev, const Vec &x) {
 QpProblem AggregateEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, const Vec &lambda_e,
                                               const Vec &lambda_i, double obj_scale) {
     this->relay_if_stale();
+    this->require_bundle_matches_layout(ev, "build_subproblem");
 
     this->assemble_hessian(x, lambda_e, lambda_i, obj_scale);
 
