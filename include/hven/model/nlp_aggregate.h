@@ -362,6 +362,30 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
 /// piece and in what order claims are handed out within the arenas; they never
 /// decide what a claim NAMES. Claim ORDER being partition-dependent is exactly
 /// why the adopted partition count is a conjunct of the structural key.
+///
+/// CLAIM-ORDER DETERMINISM: claim order is a pure function of the declaration
+/// and the adopted partition count. First-come-first-served issuance from
+/// worker threads is not a legal implementation. Two separate constructions
+/// from equal declarations at one adopted count produce the same claim stream,
+/// element for element, and every implementation pins that alongside the
+/// standing thread-count invariance pin.
+///
+/// CLAIM EXCLUSIVITY, the second contract sentence every implementation owes:
+/// **a claim slot belongs to exactly one partition. An arena row may receive
+/// several partitions' slots; the provider folds them into the row serially,
+/// after the join, in claim order (partition-index order), so each row has one
+/// writer. Physical KKT destination clashes are the consumer's, resolved
+/// through the clash marks and lock vector of the location table it
+/// published (model/claim_space.h); a provider scatters through the table
+/// honoring the marks and never pre-reduces contested KKT coordinates.**
+///
+/// CLAIM-PASS SHAPE: claims are issued serially by the provider, in
+/// partition-index order, never from worker threads. Pre-reserving slot ranges
+/// is a permitted implementation detail; the OBSERVABLE stream is the ordered
+/// one, which is what lets a claim-space cursor stay a bare serial counter.
+/// Whether each domain's claims additionally occupy one contiguous slot range
+/// is a property of the claim-stream interface, not of this base, and is stated
+/// there (model/claim_stream_source.h).
 class NlpAggregate {
   public:
     virtual ~NlpAggregate() = default;
@@ -411,7 +435,14 @@ class NlpAggregate {
 
     /// @brief The evaluation thread budget.
     ///
-    /// evaluation_threads() reports the count evaluation will actually use.
+    /// Reports the count evaluation actually uses.
+    ///
+    /// NO NUMERIC RELATIONSHIP between this count and the adopted partition
+    /// count is contracted. One thread may serve more than one partition, and
+    /// the deterministic path is bit-identical at every reported count. A
+    /// provider documents its own occupancy policy in its own docstring.
+    ///
+    /// @return the count evaluation will actually use.
     virtual int evaluation_threads() const = 0;
 
     /// @brief Requests an evaluation thread budget.
@@ -500,7 +531,9 @@ class NlpAggregate {
     /// consumer's legacy call bills bijectively and with no over-evaluation;
     /// the mapping table in model/candidate_point.h is the contract text,
     /// including each provider's SUPPORT statement (a provider handed a
-    /// legal shape outside the families it serves refuses it by name). Views
+    /// legal shape outside the families it serves refuses it by name). A
+    /// provider refuses a mapped shape it does not serve with
+    /// std::invalid_argument, naming the shape. Views
     /// for arenas a request does not name may be empty, and the scalar
     /// objective value has an out slot of its own.
     ///
@@ -554,6 +587,10 @@ class NlpAggregate {
     /// the seed choice is the consumer's and is byte-identity-relevant
     /// (docs/notes/2026-08-m4-ledger.md:760-763; the mechanism is
     /// detail/drivers/aggregate_eval_seam.h's, not restated here).
+    ///
+    /// IF assemble THROWS, the destinations hold an unspecified prefix of the
+    /// fill. This call is not scratch-then-commit: a caller that retries
+    /// re-seeds its destinations first.
     ///
     /// WHAT THIS CALL DOES NOT DO: fill the consumer's own KKT coefficients --
     /// slack Jacobian, primal and slack diagonals, constraint-row pivots. Those

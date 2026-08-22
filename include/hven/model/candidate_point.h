@@ -279,7 +279,8 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // engine SERVES rows 1-8 and REFUSES rows 9-11 by name at its assemble hook;
 // the NlpModelAggregate bridge serves ALL named rows (its dispatch is
 // per-flag). A provider handed a legal-but-unsupported shape refuses it
-// rather than serving a superset.
+// rather than serving a superset. A provider refuses a mapped shape it does
+// not serve with std::invalid_argument, naming the shape.
 //
 // Reading the table: "owner" names the consumer family a row belongs to;
 // "entry"/"moment" is the legacy entry point or driver moment the row
