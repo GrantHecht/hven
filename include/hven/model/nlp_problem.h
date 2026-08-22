@@ -29,6 +29,18 @@ namespace hven::solvers {
 /// Evaluation callbacks must be pure (same x -> same values): results are
 /// cached per iterate. Duplicate (row, col) entries in a structure are legal;
 /// their values are summed.
+///
+/// Migration note, bounds. The bounds declared here reach the solver verbatim:
+/// no value is rescaled, clipped, or reinterpreted on the way in or on the way
+/// back out. Unboundedness on a side is written -inf / +inf, and every finite
+/// value is a real bound, however large. This is where hven parts company with
+/// Ipopt, whose `nlp_lower_bound_inf` / `nlp_upper_bound_inf` cutoff (default
+/// magnitude 1e19) makes any bound past the cutoff mean "unbounded". A problem
+/// carried over from Ipopt that spells unboundedness as +/-1e20 therefore
+/// changes meaning here: those rows and variables arrive as genuine bounds at
+/// +/-1e20 rather than free, and an equality row declared at +/-1e20 on both
+/// sides becomes an equality at 1e20 rather than a dropped free row. Rewrite
+/// such declarations to use the infinities.
 class NLPProblem {
   public:
     virtual ~NLPProblem() = default;
@@ -39,7 +51,8 @@ class NLPProblem {
     virtual int num_jac_nonzeros() const = 0;  // must be 0 when num_cons() == 0
     virtual int num_hess_nonzeros() const = 0; // lower triangle of the Lagrangian Hessian
 
-    // --- Bounds (required; +/-infinity = unbounded) ---
+    // --- Bounds (required; -inf / +inf = unbounded on that side, every finite
+    //     value a real bound -- see this class's migration note) ---
     virtual void bounds(Eigen::Ref<Eigen::VectorXd> x_lower, Eigen::Ref<Eigen::VectorXd> x_upper,
                         Eigen::Ref<Eigen::VectorXd> g_lower,
                         Eigen::Ref<Eigen::VectorXd> g_upper) const = 0;
