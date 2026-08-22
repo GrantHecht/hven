@@ -960,9 +960,12 @@ TEST(NlpAdapterHostTest, AShortEqualityMultiplierBlockIsRefusedBeforeItIsSliced)
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         const std::string message(e.what());
-        EXPECT_NE(message.find("0"), std::string::npos) << message; // what arrived
-        EXPECT_NE(message.find("1"), std::string::npos) << message; // what is hosted
+        EXPECT_NE(message.find("0 equality multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("hosts 1 equality rows"), std::string::npos) << message;
         EXPECT_NE(message.find("NpmCountingModel"), std::string::npos) << message;
+        // Named site: this is the record's own refusal, not the piece's first
+        // read of the same block.
+        EXPECT_NE(message.find("at the record"), std::string::npos) << message;
     }
     EXPECT_FALSE(core.le_recorded_);
 
@@ -976,4 +979,48 @@ TEST(NlpAdapterHostTest, AShortEqualityMultiplierBlockIsRefusedBeforeItIsSliced)
     EXPECT_NO_THROW(core.record_equality_multipliers(longer));
     EXPECT_DOUBLE_EQ(core.le_record_[0], 0.5);
     EXPECT_TRUE(core.le_recorded_);
+}
+
+TEST(NlpAdapterHostTest, AnEmptyMultiplierBlockIsNotReadAsAllZeroAtTheHessianOwner) {
+    // One rule for every block this host reads: shorter than the rows it is
+    // checked against is refused, and an empty block is not a shape that means
+    // all-zero. The engine hands down full-length blocks on every path, so a
+    // block that arrives empty where rows are hosted is a defect in the chain.
+    auto model = std::make_shared<NpmCountingModel>(); // one equality, one inequality row
+    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    ASSERT_EQ(core.num_eq_, 1);
+    ASSERT_EQ(core.num_iq_, 1);
+
+    Eigen::VectorXd x(3);
+    x << 0.5, -0.25, 1.5;
+    Eigen::VectorXd le(1), li(1);
+    le << 0.75;
+    li << -0.5;
+
+    try {
+        core.eval_hessian_values(x, 1.0, Eigen::VectorXd(), li);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("0 equality multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("hosts 1 equality rows"), std::string::npos) << message;
+        EXPECT_NE(message.find("at the Hessian owner"), std::string::npos) << message;
+    }
+    try {
+        core.eval_hessian_values(x, 1.0, le, Eigen::VectorXd());
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("0 inequality multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("hosts 1 inequality rows"), std::string::npos) << message;
+        EXPECT_NE(message.find("at the Hessian owner"), std::string::npos) << message;
+    }
+
+    // Full-length blocks, and blocks longer than this host's rows, both stand:
+    // the host takes the head.
+    EXPECT_NO_THROW(core.eval_hessian_values(x, 1.0, le, li));
+    Eigen::VectorXd longer_e(3), longer_i(2);
+    longer_e << 0.75, 4.0, -4.0;
+    longer_i << -0.5, 8.0;
+    EXPECT_NO_THROW(core.eval_hessian_values(x, 1.0, longer_e, longer_i));
 }

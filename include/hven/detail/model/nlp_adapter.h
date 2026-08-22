@@ -160,19 +160,31 @@ struct NLPAdapterCore {
     ///          its leading entries, so it may be longer but not shorter.
     /// @throws std::invalid_argument if @p L is shorter than this host's rows.
     void record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L);
-    /// Throws the refusal for a multiplier block shorter than a piece's rows.
+    /// Throws the refusal for a multiplier block shorter than a piece's rows,
+    /// naming @p site so the three places that check are told apart in the
+    /// message.
+    ///
+    /// This is the one rule for every multiplier block the host reads: a block
+    /// may be longer than the rows it is checked against -- the engine appends
+    /// rows of its own after the pieces' (a fixed variable turned into an
+    /// equality row) and hands the whole vector down, and this host's rows are
+    /// the first ones laid, so its own block is the head -- but never shorter.
+    /// An empty block is not a shape that means all-zero; it is only the right
+    /// length where the host has no rows of that kind to take a head from.
+    ///
     /// Never inlined: it carries the message formatting, which must not sit
     /// in the pieces' value fills.
-    [[noreturn]] void refuse_short_multiplier_block(Index actual, int rows,
-                                                    bool inequality) const;
+    [[noreturn]] void refuse_short_multiplier_block(Index actual, int rows, bool inequality,
+                                                    const char *site) const;
 
     /// @brief The one eval_hess call of an assembly, checked against the
     ///        coordinates the Hessian claims were laid over.
     /// @param x The solver's iterate.
     /// @param obj_factor The objective scale this chain carried.
-    /// @param le Equality multipliers; empty means all-zero, longer than this
-    ///           host's rows means its block is the head.
-    /// @param li Inequality multipliers, same convention.
+    /// @param le Equality multipliers, under the block rule stated on
+    ///           refuse_short_multiplier_block: longer than this host's rows
+    ///           means its block is the head, shorter is refused.
+    /// @param li Inequality multipliers, same rule.
     /// @throws std::invalid_argument on a multiplier block shorter than this
     ///         host's rows, a wrong shape, or a shifted pattern.
     void eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
@@ -514,15 +526,16 @@ struct NLPConstraintPiece {
     void write_adjoint_gradient(ConstEigenRef<Eigen::VectorXd> L, EigenRef<Eigen::VectorXd> AGX,
                                 const SolverIndexingData &data) const {
         // Checked before L is read at all, not only at the slice further down
-        // this file (record_equality_multipliers). This piece's rows are laid
-        // at the head of L -- the engine's own appended rows sit after them --
-        // so a block shorter than this piece's rows has no head to take, and
-        // indexing into it below would read past its end.
-        // The refusal itself is out of line so this fill stays inlinable into
-        // the piece methods; the formatting and the throw are cold.
+        // this file (record_equality_multipliers), under the block rule stated
+        // on refuse_short_multiplier_block: a block shorter than this piece's
+        // rows has no head to take, and indexing into it below would read past
+        // its end. The refusal itself is out of line so this fill stays
+        // inlinable into the piece methods; the formatting and the throw are
+        // cold, and the site it names tells this read apart from the record.
         const int rows = this->output_rows();
         if (L.size() < rows) {
-            core_->refuse_short_multiplier_block(L.size(), rows, is_inequality_);
+            core_->refuse_short_multiplier_block(L.size(), rows, is_inequality_,
+                                                 "at the piece's first read");
         }
         const std::vector<NLPCoordinate> &coords = this->jac_coords();
         const double *values = this->jacobian().valuePtr();
@@ -569,7 +582,7 @@ struct SolverInterfaceAdapter<NLPConstraintPiece> : DirectFunctionModel<NLPConst
 /// @return The program: the objective piece, the constraint pieces the row
 ///         counts call for, the staged variable bounds, and the layout.
 ///
-/// The one production path AND the one the tests assemble through.
+/// The one production path, and the one the tests assemble through.
 std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core);
 
 } // namespace hven::solvers

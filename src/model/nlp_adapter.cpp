@@ -261,24 +261,20 @@ void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
     jacobians_valid_ = true;
 }
 
-void NLPAdapterCore::refuse_short_multiplier_block(Index actual, int rows,
-                                                   bool inequality) const {
+void NLPAdapterCore::refuse_short_multiplier_block(Index actual, int rows, bool inequality,
+                                                   const char *site) const {
     const char *kind = inequality ? "inequality" : "equality";
-    throw std::invalid_argument(
-        fmt::format("{}: {} {} multipliers reached the {} piece, which hosts {} {} rows", name_,
-                    actual, kind, kind, rows, kind));
+    throw std::invalid_argument(fmt::format(
+        "{}: {} {} multipliers reached the {} piece, which hosts {} {} rows (refused {})", name_,
+        actual, kind, kind, rows, kind, site));
 }
 
 void NLPAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L) {
-    // Checked BEFORE the slice, not after it. The engine may hand down a block
-    // longer than this host's rows -- its own appended rows sit after them --
-    // so the head is what this host records; a block shorter than its rows has
-    // no head to take and would be read past its end.
+    // Checked before the slice, not after it, under the block rule stated on
+    // refuse_short_multiplier_block: the head is what this host records, and a
+    // block shorter than its rows has none to take.
     if (L.size() < num_eq_) {
-        throw std::invalid_argument(
-            fmt::format("{}: {} equality multipliers reached the equality piece, which hosts {} "
-                        "equality rows",
-                        name_, L.size(), num_eq_));
+        refuse_short_multiplier_block(L.size(), num_eq_, false, "at the record");
     }
     le_record_ = L.head(num_eq_);
     le_recorded_ = true;
@@ -288,34 +284,21 @@ void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, doubl
                                          ConstEigenRef<Eigen::VectorXd> le,
                                          ConstEigenRef<Eigen::VectorXd> li) {
     this->sync_x(x);
-    // A block the chain never produced arrives empty and means all-zero. A
-    // block that arrives can be longer than this host's own rows: the engine
-    // appends rows of its own after the pieces' (a fixed variable turned into
-    // an equality row), and hands the whole vector down. This host's rows are
-    // the first ones laid, so its own block is the head. Anything shorter than
-    // its rows is a defect in the chain, not a shape to interpret.
-    if (le.size() != 0 && le.size() < num_eq_) {
-        throw std::invalid_argument(
-            fmt::format("{}: {} equality multipliers reached the Hessian owner, which hosts {} "
-                        "equality rows",
-                        name_, le.size(), num_eq_));
+    // The same block rule the pieces read under, stated on
+    // refuse_short_multiplier_block: this host's rows are the first ones laid,
+    // so its own block is the head of what the engine hands down, and anything
+    // shorter than its rows -- an empty block included -- is a defect in the
+    // chain rather than a shape to interpret. A host with no rows of a kind
+    // has no head to take, so an empty block of that kind is the right length
+    // and the head below is empty.
+    if (le.size() < num_eq_) {
+        refuse_short_multiplier_block(le.size(), num_eq_, false, "at the Hessian owner");
     }
-    if (li.size() != 0 && li.size() < num_iq_) {
-        throw std::invalid_argument(
-            fmt::format("{}: {} inequality multipliers reached the Hessian owner, which hosts {} "
-                        "inequality rows",
-                        name_, li.size(), num_iq_));
+    if (li.size() < num_iq_) {
+        refuse_short_multiplier_block(li.size(), num_iq_, true, "at the Hessian owner");
     }
-    if (le.size() >= num_eq_ && num_eq_ > 0) {
-        le_scratch_ = le.head(num_eq_);
-    } else {
-        le_scratch_.setZero();
-    }
-    if (li.size() >= num_iq_ && num_iq_ > 0) {
-        li_scratch_ = li.head(num_iq_);
-    } else {
-        li_scratch_.setZero();
-    }
+    le_scratch_ = le.head(num_eq_);
+    li_scratch_ = li.head(num_iq_);
     model_->eval_hess_in_place(x_cache_, obj_factor, le_scratch_, li_scratch_, hess_scratch_);
     require_dimensions(this->hessian(), n_, n_, "eval_hess", name_);
     nlp_require_claimed_pattern(this->hessian(), hess_, "eval_hess", name_);

@@ -368,9 +368,73 @@ TEST(NLPAdapterAssemblyTest, ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         const std::string message(e.what());
-        EXPECT_NE(message.find("0"), std::string::npos) << message; // what arrived
-        EXPECT_NE(message.find("1"), std::string::npos) << message; // what is hosted
+        // Both counts as whole phrases, not as bare digits any message with a
+        // number in it would satisfy.
+        EXPECT_NE(message.find("0 equality multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("hosts 1 equality rows"), std::string::npos) << message;
         EXPECT_NE(message.find("NLPProblem"), std::string::npos) << message; // default name()
+        // The site is what makes this pin discriminate: the refusal has to come
+        // from the piece's first read of the block. Reaching the later record
+        // means the fill already indexed a block too short for it, which under
+        // NDEBUG is silent.
+        EXPECT_NE(message.find("at the piece's first read"), std::string::npos) << message;
+        EXPECT_EQ(message.find("at the record"), std::string::npos) << message;
+    }
+}
+
+namespace {
+
+/// AsmTestProblem with its middle row turned into a second equality, so the
+/// equality piece hosts two rows and a block too short for it can still be
+/// non-empty. Everything else -- variables, structure, values -- is the same.
+struct AsmTwoEqualityProblem : AsmTestProblem {
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << -kInf, -kInf;
+        xu << kInf, kInf;
+        gl << 4.0, 2.0, 1.0;
+        gu << 4.0, 2.0, kInf;
+    }
+};
+
+} // namespace
+
+TEST(NLPAdapterAssemblyTest, ShortNonEmptyEqualityMultiplierBlockIsRefusedBeforeItIsRead) {
+    // The companion to the pin above, with a block that is short but not
+    // empty. Without the check at the first read the fill would index the
+    // second row's multiplier out of a one-element block -- an over-read that
+    // does not even fault, and that the later record's refusal would mask.
+    auto prob = std::make_shared<AsmTwoEqualityProblem>();
+    auto core = adapter_host(prob);
+    ASSERT_EQ(core->num_eq_, 2);
+    ASSERT_EQ(core->num_iq_, 1);
+    auto nlp = hven::solvers::make_nlp_program(core);
+
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
+    nlp->analyze_sparsity(kkt);
+    Eigen::Map<Eigen::VectorXd>(kkt.valuePtr(), kkt.nonZeros()).setZero();
+
+    Eigen::VectorXd X(2);
+    X << 1.3, 0.7;
+    Eigen::VectorXd LE(1), LI(1); // two equality rows hosted, one multiplier offered
+    LE << 0.4;
+    LI << 0.9;
+
+    double val = 0.0;
+    Eigen::VectorXd PGX = Eigen::VectorXd::Zero(nlp->primal_vars_);
+    Eigen::VectorXd AGX = Eigen::VectorXd::Zero(nlp->primal_vars_);
+    Eigen::VectorXd FXE = Eigen::VectorXd::Zero(nlp->equal_cons_);
+    Eigen::VectorXd FXI = Eigen::VectorXd::Zero(nlp->inequal_cons_);
+
+    try {
+        nlp->eval_kkt(2.0, X, LE, LI, val, PGX, AGX, FXE, FXI, kkt);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("1 equality multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("hosts 2 equality rows"), std::string::npos) << message;
+        EXPECT_NE(message.find("at the piece's first read"), std::string::npos) << message;
+        EXPECT_EQ(message.find("at the record"), std::string::npos) << message;
     }
 }
 
