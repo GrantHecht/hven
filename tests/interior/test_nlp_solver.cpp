@@ -515,3 +515,49 @@ TEST(NLPSolverTest, NonFiniteStartingMultipliersThrow) {
         EXPECT_NE(std::string(e.what()).find("non-finite"), std::string::npos);
     }
 }
+
+// Partition count and QP thread count are independent settings, each reached
+// through its own setter, and neither setter touches the other's state. The
+// concepts below pin that surface: the only partition setter takes the
+// partition count alone, so no call site can silently reset the QP thread
+// count while asking for a partition count.
+template <class T>
+concept SetsPartitionsAlone = requires(T &t) { t.set_num_partitions(1); };
+template <class T>
+concept SetsPartitionsAndQpThreads = requires(T &t) { t.set_num_partitions(1, 1); };
+
+static_assert(SetsPartitionsAlone<hven::solvers::OptimizationProblemBase>);
+static_assert(!SetsPartitionsAndQpThreads<hven::solvers::OptimizationProblemBase>);
+static_assert(SetsPartitionsAlone<NLPSolver>);
+static_assert(!SetsPartitionsAndQpThreads<NLPSolver>);
+
+TEST(NLPSolverTest, PartitionCountAndQpThreadCountAreSetIndependently) {
+    NLPSolver solver(std::make_shared<EqOnlyProblem>());
+    solver.optimizer_->set_print_level(10);
+
+    solver.optimizer_->set_qp_threads(3);
+    solver.set_num_partitions(2);
+    EXPECT_EQ(solver.num_partitions_, 2);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 3); // partitions left it alone
+
+    solver.optimizer_->set_qp_threads(1);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+    EXPECT_EQ(solver.num_partitions_, 2); // and the QP setter left partitions alone
+
+    EXPECT_THROW(solver.set_num_partitions(0), std::invalid_argument);
+    EXPECT_THROW(solver.optimizer_->set_qp_threads(0), std::invalid_argument);
+
+    // Both jet entry points put the solver on one partition and one QP thread.
+    solver.set_num_partitions(4);
+    solver.optimizer_->set_qp_threads(4);
+    solver.jet_initialize();
+    EXPECT_EQ(solver.num_partitions_, 1);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+
+    solver.set_num_partitions(4);
+    solver.optimizer_->set_qp_threads(4);
+    solver.jet_release();
+    EXPECT_EQ(solver.num_partitions_, 1);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+    solver.optimizer_->set_print_level(10); // jet_release() resets the print level
+}

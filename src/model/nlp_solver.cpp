@@ -76,14 +76,19 @@ hven::ConvergenceFlags NLPSolver::optimize_solve() {
 }
 
 void NLPSolver::jet_initialize() {
-    this->set_num_partitions(1, 1);
+    // Single-partition evaluation on the calling thread, and a single QP
+    // thread: two independent settings, set independently. set_qp_threads
+    // goes first because it validates and can throw.
+    this->optimizer_->set_qp_threads(1);
+    this->set_num_partitions(1);
     this->optimizer_->set_print_level(10);
     this->transcribe();
 }
 
 void NLPSolver::jet_release() {
     this->optimizer_->release();
-    this->set_num_partitions(1, 1);
+    this->optimizer_->set_qp_threads(1);
+    this->set_num_partitions(1);
     this->optimizer_->set_print_level(0);
     this->nlp_ = std::shared_ptr<NonLinearProgram>();
     this->do_transcription_ = true;

@@ -80,13 +80,12 @@ struct OptimizationProblemBase {
             std::min(HVEN_DEFAULT_QP_THREADS, utils::get_core_count()));
     }
 
-    virtual void set_num_partitions(int num_partitions, int qp_threads) {
-        if (num_partitions < 1) {
-            throw std::invalid_argument("Number of partitions must be positive");
-        }
-        this->optimizer_->set_qp_threads(qp_threads); // may throw — do before mutating
-        this->num_partitions_ = num_partitions;
-    }
+    /// @brief Sets the number of evaluation partitions the problem is split over.
+    /// @param num_partitions Partition count; must be positive.
+    ///
+    /// Partition count and QP thread count are independent settings and are set
+    /// independently: the solver's own QP thread count is
+    /// `optimizer_->set_qp_threads(n)`.
     virtual void set_num_partitions(int num_partitions) {
         if (num_partitions < 1) {
             throw std::invalid_argument("Number of partitions must be positive");
