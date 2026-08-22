@@ -90,10 +90,32 @@ made to.
 
 ## Protocol (adjudicated, verbatim)
 
-n = 240 IPM cells, both estimators (median-of-per-rep-medians,
-minimum-of-per-rep-minimums) + the base arm's rep-spread, two repetitions,
-quiet machine, eight cells (4 arms × {serial, threaded}), four-way read BASE
-vs ARM-H vs LANDED vs FIXED. This mirrors `docs/notes/data/m4-ipm-wall-leg/ipm_wall_leg.sh`'s
+n = 240 IPM cells, quiet machine, eight cells (4 arms × {serial, threaded}),
+four-way read BASE vs ARM-H vs LANDED vs FIXED. Three terms of it are
+pre-declared session decisions rather than inherited defaults — see the SDD
+ledger's pre-declaration for this session
+(`.superpowers/sdd/2026-08-21-m4-task5-sqp-level2-consumption/`, recorded
+before launch):
+
+1. **THREE repetitions per arm** — three independent invocations, three log
+   files, three quiet checks. Not the two this directory was first written
+   with: the sticky-vs-scattered read lives at the 1–2% scale, which is exactly
+   where a two-rep spread is the weakest term in the comparison.
+2. **The spread term is MAX-OF-REP-SPREADS, per arm.** Each arm's spread is the
+   max over its own reps' spreads (taken over both estimators as one number),
+   reported per arm; the within-spread test for a delta uses the max of the two
+   arms it compares, since no arm can be said to differ from another by less
+   than either differs from itself. This replaces the base-arm-only rep-spread,
+   which described one arm's stability and was then applied to comparisons
+   involving three other arms. `aggregate_armh.py` prints all four per-arm
+   values and marks every delta `[within]` or `[outside]`.
+3. **The minimum estimator governs; the median is reported beside it.** Every
+   delta is read off minimum-of-per-rep-minimums and every classification
+   comparison is made on those deltas; the median-of-per-rep-medians is printed
+   as the second estimator and never drives a verdict. This was already the
+   behaviour of both the runner and the aggregator and is now stated in both.
+
+This mirrors `docs/notes/data/m4-ipm-wall-leg/ipm_wall_leg.sh`'s
 own protocol exactly, extended from two sides to four; the probe binary
 (`ipm_time.cpp`) is reused unmodified, so `n = 60` and `n = 120` rows print
 alongside `n = 240` as a free consistency check but are not part of the eight
@@ -129,29 +151,39 @@ What that makes this session:
 Open for Task 9 planning (owner choice, not ruled): whether one LTO-on bench
 leg runs as product-truth context — never a gate.
 
-Nothing else in this harness changes: the per-arm layout classification, the
-repetition protocol, the minimum estimator and the rep-spread rules, and the
-four arms all stand exactly as amended. Only the interpretation of the numbers
-does.
+Nothing else in this harness changes with the ruling: the per-arm layout
+classification, the repetition protocol, the estimator rules and the four arms
+all stand as the Protocol section above states them. The ruling changes only
+the interpretation of the numbers.
 
 ## Four-way read (BASE / ARM-H / LANDED / FIXED) — TO BE FILLED IN AFTER EXECUTION
 
-Fill from `armh_wall_1_aggregate.txt` / `armh_wall_2_aggregate.txt` (produced
-by `run_arm_h.sh` via `aggregate_armh.py`), reading the **minimum** estimator
-per the standing leg's own convention (the median's rep-to-rep noise on
-these problem sizes, 0.5–0.8%, is comparable to the effects being looked
-for).
+Fill from `armh_wall_1_aggregate.txt` / `armh_wall_2_aggregate.txt` /
+`armh_wall_3_aggregate.txt` (produced by `run_arm_h.sh` via
+`aggregate_armh.py`), reading the **minimum** estimator per the standing leg's
+own convention — the median's rep-to-rep noise on these problem sizes,
+0.5–0.8%, is comparable to the effects being looked for, so it is reported
+beside the minimum and never read for a verdict.
+
+Each delta comes out of the aggregator already marked `[within]` or
+`[outside]` against the max of the two compared arms' own max-of-rep-spreads;
+copy that marker across with the number.
 
 ```
 repetition 1
-mode      n     min(base)  min(armh)  min(landed)  min(fixed)  armh_vs_base  landed_vs_base  armh_vs_landed  fixed_vs_base  fixed_vs_landed  base rep-spread
-serial    240   TBD        TBD        TBD          TBD         TBD%          TBD%            TBD%            TBD%           TBD%             TBD%
-threaded  240   TBD        TBD        TBD          TBD         TBD%          TBD%            TBD%            TBD%           TBD%             TBD%
+mode      n     min(base)  min(armh)  min(landed)  min(fixed)  armh_vs_base  landed_vs_base  armh_vs_landed  fixed_vs_base  fixed_vs_landed  max-of-rep-spreads (base/armh/landed/fixed)
+serial    240   TBD        TBD        TBD          TBD         TBD% [TBD]    TBD% [TBD]      TBD% [TBD]      TBD% [TBD]     TBD% [TBD]       TBD% / TBD% / TBD% / TBD%
+threaded  240   TBD        TBD        TBD          TBD         TBD% [TBD]    TBD% [TBD]      TBD% [TBD]      TBD% [TBD]     TBD% [TBD]       TBD% / TBD% / TBD% / TBD%
 
 repetition 2
-mode      n     min(base)  min(armh)  min(landed)  min(fixed)  armh_vs_base  landed_vs_base  armh_vs_landed  fixed_vs_base  fixed_vs_landed  base rep-spread
-serial    240   TBD        TBD        TBD          TBD         TBD%          TBD%            TBD%            TBD%           TBD%             TBD%
-threaded  240   TBD        TBD        TBD          TBD         TBD%          TBD%            TBD%            TBD%           TBD%             TBD%
+mode      n     min(base)  min(armh)  min(landed)  min(fixed)  armh_vs_base  landed_vs_base  armh_vs_landed  fixed_vs_base  fixed_vs_landed  max-of-rep-spreads (base/armh/landed/fixed)
+serial    240   TBD        TBD        TBD          TBD         TBD% [TBD]    TBD% [TBD]      TBD% [TBD]      TBD% [TBD]     TBD% [TBD]       TBD% / TBD% / TBD% / TBD%
+threaded  240   TBD        TBD        TBD          TBD         TBD% [TBD]    TBD% [TBD]      TBD% [TBD]      TBD% [TBD]     TBD% [TBD]       TBD% / TBD% / TBD% / TBD%
+
+repetition 3
+mode      n     min(base)  min(armh)  min(landed)  min(fixed)  armh_vs_base  landed_vs_base  armh_vs_landed  fixed_vs_base  fixed_vs_landed  max-of-rep-spreads (base/armh/landed/fixed)
+serial    240   TBD        TBD        TBD          TBD         TBD% [TBD]    TBD% [TBD]      TBD% [TBD]      TBD% [TBD]     TBD% [TBD]       TBD% / TBD% / TBD% / TBD%
+threaded  240   TBD        TBD        TBD          TBD         TBD% [TBD]    TBD% [TBD]      TBD% [TBD]      TBD% [TBD]     TBD% [TBD]       TBD% / TBD% / TBD% / TBD%
 ```
 
 `fixed_vs_base` is the row the shipping state is judged on; `landed_vs_base`
@@ -192,7 +224,9 @@ result that decides whether the standing trip auto-closes under the ruling
 # armh.quiet_check.pre_build: <contents of pgrep-before-build.txt>
 # armh.quiet_check.pre_rep1: <contents of pgrep-before-armh-1.txt>
 # armh.quiet_check.pre_rep2: <contents of pgrep-before-armh-2.txt>
-# armh.reps: 9
+# armh.quiet_check.pre_rep3: <contents of pgrep-before-armh-3.txt>
+# armh.repetitions: 3   (independent invocations; pre-declared for this session)
+# armh.reps: 9          (inner reps per invocation, the probe's own loop)
 # armh.inner: 15
 ```
 
@@ -201,8 +235,8 @@ result that decides whether the standing trip auto-closes under the ruling
 | file | role |
 |---|---|
 | `arm_h.patch` | reverts only the dispatch tail of `src/model/non_linear_program.cpp` to its pre-task bare-else form; `git apply --check` clean against `8503f39`, and deliberately NOT against the current HEAD (the fix batch rewrote the text it removes) |
-| `run_arm_h.sh` | builds BASE/ARM-H/LANDED/FIXED, builds the four IPM probes, runs the four-arm wall leg (2 repetitions), aggregates. Refuses to start while `HOLD` exists, and refuses if the main tree has uncommitted changes under `include/ src/ bench/ tests/` — the FIXED arm measures a commit, not a working state. |
+| `run_arm_h.sh` | builds BASE/ARM-H/LANDED/FIXED, builds the four IPM probes, runs the four-arm wall leg (3 repetitions), aggregates. Refuses to start while `HOLD` exists, and refuses if the main tree has uncommitted changes under `include/ src/ bench/ tests/` — the FIXED arm measures a commit, not a working state. |
 | `bit_identity_check.sh` | falsification harness: diffs ARM-H's vs LANDED's `flag`/`xnorm2` fields (the probe's only per-cell answer output — there is no separate captured-answer file in this instrument's standing convention, unlike the bench CSV leg; see the script's own header) |
 | `quiet_check.sh` | machine-quiet pre-check, copied convention from `docs/notes/data/2026-08-21-m4-task5-wall/quiet_check.sh` |
-| `aggregate_armh.py` | four-arm adaptation of `docs/notes/data/m4-ipm-wall-leg/aggregate.py` |
+| `aggregate_armh.py` | four-arm adaptation of `docs/notes/data/m4-ipm-wall-leg/aggregate.py`; deltas on the minimum estimator with a `[within]`/`[outside]` marker against per-arm max-of-rep-spreads, median reported beside |
 | `HOLD` | the interlock; removed by the controller at the window's end mark |

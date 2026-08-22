@@ -45,11 +45,21 @@
 #   - sides alternated per rep (base/armh/landed/fixed, in that order) each
 #     rep, so machine drift lands on all four sides equally.
 #   - both estimators (median-of-per-rep-medians, minimum-of-per-rep-minimums)
-#     plus the base arm's own rep-spread are reported; the minimum estimator
-#     is the one a delta is read off (see aggregate_armh.py's own header).
-#   - two repetitions (two independent invocations, two log files), because
-#     the standing leg's own precedent (../m4-ipm-wall-leg/README.md, task5
-#     rows) reran once to confirm a shared sign before calling a band trip.
+#     are reported. THE MINIMUM ESTIMATOR GOVERNS every classification
+#     comparison -- each delta is read off it; the median is reported beside
+#     it as the second estimator and never drives a verdict (the standing
+#     leg's own convention: the median's rep-to-rep noise at these problem
+#     sizes is comparable to the effects being looked for).
+#   - THE SPREAD TERM IS MAX-OF-REP-SPREADS, PER ARM. Each arm's spread is
+#     the max over its own reps' spreads, reported per arm; the within-spread
+#     test for a delta uses the max of the two arms it compares. This
+#     replaces the earlier base-arm-only rep-spread, which described one
+#     arm's stability and was then applied to comparisons involving three
+#     others.
+#   - THREE repetitions (three independent invocations, three log files),
+#     pre-declared for this session: the sticky-vs-scattered read lives at
+#     the 1-2% scale, where a two-rep spread is the weakest term in the
+#     comparison. See the SDD ledger's pre-declaration.
 #   - quiet-machine pre-check (quiet_check.sh, the task5-wall convention)
 #     recorded before the build and before each repetition.
 #
@@ -196,19 +206,21 @@ run_leg() { # $1 = output log path
     done
 }
 
-echo "=== quiet check before repetition 1"
-"$HERE/quiet_check.sh" | tee "$HERE/pgrep-before-armh-1.txt"
-run_leg "$HERE/runs/armh_wall_1.log"
+# Three repetitions, each its own invocation, its own log file and its own
+# quiet check. Pre-declared for this session; see the header's protocol block.
+for rep in 1 2 3; do
+    echo "=== quiet check before repetition $rep"
+    "$HERE/quiet_check.sh" | tee "$HERE/pgrep-before-armh-$rep.txt"
+    run_leg "$HERE/runs/armh_wall_$rep.log"
+done
 
-echo "=== quiet check before repetition 2"
-"$HERE/quiet_check.sh" | tee "$HERE/pgrep-before-armh-2.txt"
-run_leg "$HERE/runs/armh_wall_2.log"
-
-python3 "$HERE/aggregate_armh.py" "$HERE/runs/armh_wall_1.log" | tee "$HERE/armh_wall_1_aggregate.txt"
-python3 "$HERE/aggregate_armh.py" "$HERE/runs/armh_wall_2.log" | tee "$HERE/armh_wall_2_aggregate.txt"
+for rep in 1 2 3; do
+    python3 "$HERE/aggregate_armh.py" "$HERE/runs/armh_wall_$rep.log" |
+        tee "$HERE/armh_wall_${rep}_aggregate.txt"
+done
 
 echo "=== ARM-H wall leg complete."
 echo "=== Run bit_identity_check.sh next, then fill README.md's four-way read"
-echo "=== table and calibration output from these two aggregate files. The"
+echo "=== table and calibration output from these three aggregate files. The"
 echo "=== accept-vs-mitigate decision tree is SUPERSEDED: this session is a"
 echo "=== noise-floor calibration (docs/notes/2026-08-m4-ledger.md, 2026-08-22)."
