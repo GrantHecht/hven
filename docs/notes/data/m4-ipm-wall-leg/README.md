@@ -1,9 +1,16 @@
-# The standing IPM wall leg
+# The standing wall legs
 
-A per-task leg for the remainder of M4: every task touching the interior-point
-consumption path re-runs this instrument and records its delta in
+Two per-task legs for the remainder of M4: every task touching the
+interior-point consumption path re-runs them and records the deltas in
 `docs/notes/2026-08-m4-ledger.md`, so contract-cost accretion is a visible
 running total rather than a per-task judgement.
+
+- **The IPM leg** (`ipm_time.cpp`, `ipm_wall_leg.sh`) times whole solves. It is
+  the original leg; everything below headed "Running it" and "Runs" is its.
+- **The layout leg** (`layout_time.cpp`, `layout_wall_leg.sh`) times
+  TRANSCRIPTION -- see "The layout leg" at the bottom.
+
+Both are read by one aggregator, `aggregate.py`.
 
 ## Why this instrument and not the standing bench
 
@@ -54,3 +61,58 @@ every symbol after them in the archive — and not evaluation cost. `xnorm2` and
 
 Conditions: Fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux 7.1.5-201.fc44,
 `/usr/bin/clang++` 22.1.8, MKL LP64, Release, `HVEN_FP_MODE=SAFER_FAST`.
+
+## The layout leg
+
+The IPM leg's problem has three pieces and one application each, so per-claim
+and per-piece LAYOUT work is a rounding error inside its cells: a change to
+what a transcription costs is invisible in it. That is not hypothetical -- the
+first Level 2 layout implementation moved the front end's transcription cells
+by more than half while every whole-solve cell stayed at parity, and no
+instrument in this repository could see it.
+
+`layout_time.cpp` is that instrument. It builds a problem shaped like a
+collocation transcription -- four constraint pieces plus an objective piece,
+`n` applications over four-variable windows that overlap by two (so consecutive
+applications share KKT columns, and columns are contested across partitions),
+four partitions, bounds on every variable -- and times five cells at three
+sizes:
+
+| cell | what it times |
+|---|---|
+| `construct` | building the pieces and the program, first layout included |
+| `transcribe` | re-laying an existing program (`make_nlp` again), layout only |
+| `transcribe+key` | the same re-lay plus ONE `model_structure_key()` read |
+| `solve` | one partitioned whole solve |
+| `solve1` | the same solve at one partition |
+
+`transcribe+key` is INFORMATIONAL and exists so that one number is not hidden.
+The structural key's two digests are taken on first read rather than during the
+lay, so a consumer that never asks about structural identity pays `transcribe`
+and one that asks once per lay pays `transcribe+key`. Recording only the
+cheaper of the two would report a saving that some consumer still pays.
+
+Every cell prints an identity column -- the structural key's folded digest and
+the claim count for the layout cells, the objective, iteration count and
+convergence flag for the solve cells. Those must be EQUAL between arms; a
+difference in one is a correctness finding, not a timing one.
+
+With ONE exception, and it is why `solve1` exists. Above one partition the
+contested-slot accumulation order is decided by the thread schedule -- two
+partitions summing into one KKT column can land in either order -- so `solve`'s
+objective moves in its low bits between runs of the same binary. That is a
+property of the partitioned scatter and predates the contract layer. `solve`'s
+gate is therefore its iteration count and its flag; `solve1` runs the same
+problem at one partition, where the fold order is fixed, and ITS objective is
+the bit-identity column.
+
+```
+build_layout_time.sh <base source root> <base build dir> ./layout_base
+build_layout_time.sh <head source root> <head build dir> ./layout_head
+./layout_wall_leg.sh 9 15 > runs/<date>-<task>-layout.log
+./aggregate.py runs/<date>-<task>-layout.log
+```
+
+The probe source compiled into BOTH arms is this directory's copy -- only the
+headers and the archive come from the arm -- because two arms running different
+programs are not comparable.
