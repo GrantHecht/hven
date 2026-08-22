@@ -26,6 +26,7 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_nlp_adapter.cpp
     test_nlp_aggregate_contract.cpp
     test_nlp_multiplier_seeding.cpp
+    test_nlp_problem_model.cpp
     test_nlp_solver.cpp
     test_proximal_restoration.cpp
     test_recovery_dispatch_gate.cpp
