@@ -1,0 +1,2 @@
+cell_id,kkt_stationarity,kkt_complementarity,kkt_primal,ms_stationarity,ms_complementarity,ms_primal,verdict_equal
+f7_n10000_bound_activity,1.016559106e-15,0.000000000e+00,1.151644575e-16,1.016559106e-15,0.000000000e+00,1.151644575e-16,1

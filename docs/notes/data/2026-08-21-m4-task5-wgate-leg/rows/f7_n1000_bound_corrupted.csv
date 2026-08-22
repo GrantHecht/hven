@@ -1,0 +1,10 @@
+# hven_sqp_corpus provenance
+# binary: d9cc35eca3ac
+# schema: 37
+# budget_table_hash: 0x357aee91dee27391
+# invocation: /home/ghecht/Projects/hven/.scratch/task-5/build/bench/hven_sqp_corpus --engine walk --cells f7_n1000_bound_corrupted --csv /home/ghecht/Projects/hven/docs/notes/data/2026-08-21-m4-task5-wgate-leg/rows/f7_n1000_bound_corrupted.csv.part --score-model-surface --score-model-surface-out /home/ghecht/Projects/hven/docs/notes/data/2026-08-21-m4-task5-wgate-leg/scorer_rows/f7_n1000_bound_corrupted.wgate.csv
+# MKL_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-08-22T08:05:24Z
+cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual,wall_s,kkt_verdict,kkt_stationarity,kkt_primal,kkt_dual_sign,kkt_complementarity,dual_scale,x_scale,neg_ineq_duals,ssn_iters,ssn_bulk_flips,ssn_backtracks,ssn_prox_updates,ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,ssn_refine_facts,ssn_refine_neg_duals,esc_budget,esc_singular,esc_no_contraction,esc_infeasible_suspect,esc_indefinite,esc_gate_refused
+f7_n1000_bound_corrupted,F7,1000,bound,corrupted,0,Optimal,1,2,0,1,1,9.157873527e-15,0.029155281,ok,9.157873527e-15,2.734932492e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

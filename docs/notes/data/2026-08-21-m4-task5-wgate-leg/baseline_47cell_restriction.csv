@@ -1,0 +1,173 @@
+# DERIVED ARTIFACT -- the U0 baseline of record
+# (bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv) restricted to the 47
+# cells the owner-truncated scorer-leg run actually completed. A ROW FILTER AND
+# NOTHING ELSE: no value is altered, no column is dropped, the header and the
+# baseline's own provenance comments are carried verbatim below. It exists so
+# the value co-assertion can be read without the ten UNOBSERVED tier-3 cells
+# showing up as a roster problem; the compare against the FULL 57-cell baseline
+# of record is kept beside it in compare.txt. This file is NOT a baseline and
+# must never be cited as one.
+# derived: 2026-08-22, M4 Task 5 STAGE B harvest
+# hven walk-corpus baseline of record -- the U0 re-derivation (2026-08-16).
+#
+# WHAT THIS FILE IS. The 57-cell walk census re-derived at phase-C task U0, the
+# declared flag-unification event (docs/notes/2026-08-15-m3-phase-c-plan.md
+# section 6 U0; design note docs/notes/2026-08-16-m3-u0-design.md; delta report
+# docs/notes/data/2026-08-16-m3-u0-rederivation/delta-report.md). It REPLACES
+# bench/baselines/2026-08-06-corpus/walk_baseline.csv as the baseline of record.
+# That file is NOT edited and NOT retired: it stays frozen as the evidence the
+# gate-A and gate-B records cite by content, and the frozen-vs-frozen continuity
+# tests still read it.
+#
+# HOW IT WAS DERIVED (CLAUDE.md section 7). TWO independent full-57 census runs
+# under scripts/run_walk_census.sh's ratified parallel-tiered protocol, back to
+# back, each ALONE on the machine, MKL_NUM_THREADS=1 in every process, SMT
+# siblings idle. Both runs were tiered from the pre-U0 baseline so they shared
+# one fixed schedule. The two runs BYTE-AGREE on every column of the schema-37
+# row except wall_s -- including all 13 asserted columns -- and this file carries
+# run 1's rows verbatim.
+#   run 1: 2026-08-16T08:25:53-04:00 -> 14:24:35-04:00, 57/57, rc=0
+#   run 2: 2026-08-16T14:26:22-04:00 -> 20:25:21-04:00, 57/57, rc=0
+#
+# WALL_S IS INFORMATIONAL, NOT A MEASUREMENT. Both runs were produced under the
+# co-run protocol declared in the census header below, so wall_s is scheduling-
+# dependent by construction: it is never quoted as a timing and is read only to
+# assign tiers for a later census. The 13 asserted columns are deterministic
+# per-process at MKL_NUM_THREADS=1 and are what this file pins.
+#
+# THE OLD-VS-NEW DELTA, IN ONE LINE. Against the pre-U0 baseline: ZERO status
+# flips, ZERO counter movement on any of the 57 cells; 41 cells moved only in
+# kkt_residual's 6th-10th significant digit. Full characterization and the
+# per-pin review live in the delta report cited above.
+#
+# co-run protocol declaration (tiering rule, widths, pinning) follows verbatim
+# from the run that produced these rows:
+# census.protocol: parallel-tiered v1 (T1 6-wide pinned / T2 solo / T3 5-wide full-budget)
+# census.binary: /home/ghecht/Projects/hven/build-u0-census/bench/hven_sqp_corpus
+# census.binary_stamp: hven_sqp_corpus provenance
+# census.binary_stamp: binary: cc973157cea8
+# census.binary_stamp: schema: 37
+# census.binary_stamp: budget_table_hash: 0x357aee91dee27391
+# census.generated: 2026-08-16T18:24:35Z
+# census.host: fedora
+# census.topology: 8 physical cores; representatives (one sibling each): 0,1,2,3,4,5,6,7
+# census.baseline: /home/ghecht/Projects/hven/bench/baselines/2026-08-06-corpus/walk_baseline.csv
+# census.tier assignment (from frozen baseline /home/ghecht/Projects/hven/bench/baselines/2026-08-06-corpus/walk_baseline.csv)
+# census.  T2 wall-sensitive SOLO : non-dnf cells with wall_s >= 1800s, plus f7_n10000_path_physics
+# census.  T3 deep-DNF 5-wide      : baseline status dnf_*, full budget each
+# census.  T1 remainder 6-wide     : everything else
+# census.  counts: T1=44  T2=3  T3=10  (total 57)
+# census.  tier cell                             base_status    base_wall_s
+# census.  T1   f7_n2000_path_corrupted          NumericalError 943.875
+# census.  T1   f7_n2000_path_neutral            NumericalError 930.013
+# census.  T1   f7_n5000_path_activity           Optimal        441.091
+# census.  T1   f7_n5000_path_physics            Optimal        357.049
+# census.  T1   f7_n800_path_neutral             Optimal        335.164
+# census.  T1   f7_n1000_path_neutral            Optimal        158.303
+# census.  T1   f7_n825_path_neutral_control     Optimal        128.561
+# census.  T1   f7_n750_path_neutral_control     Optimal        97.185
+# census.  T1   f7_n2000_path_warm               Optimal        78.665
+# census.  T1   f7_n1000_path_corrupted          Optimal        74.087
+# census.  T1   f7_n2000_path_physics            Optimal        54.986
+# census.  T1   f7_n2000_path_activity           Optimal        51.412
+# census.  T1   f7_n800_path_corrupted           Optimal        23.513
+# census.  T1   f7_n1000_path_physics            Optimal        11.782
+# census.  T1   f7_n800_path_physics             Optimal        8.320
+# census.  T1   f7_n1000_path_activity           Optimal        7.423
+# census.  T1   f7_n800_path_activity            Optimal        6.093
+# census.  T1   f7_n20000_bound_neutral          Optimal        0.966
+# census.  T1   f7_n20000_bound_activity         Optimal        0.964
+# census.  T1   f7_n20000_bound_physics          Optimal        0.960
+# census.  T1   f7_n20000_bound_corrupted        Optimal        0.926
+# census.  T1   f7_n20000_bound_warm             Optimal        0.924
+# census.  T1   f7_n10000_bound_neutral          Optimal        0.461
+# census.  T1   f7_n10000_bound_physics          Optimal        0.459
+# census.  T1   f7_n10000_bound_activity         Optimal        0.457
+# census.  T1   f7_n10000_bound_corrupted        Optimal        0.438
+# census.  T1   f7_n10000_bound_warm             Optimal        0.436
+# census.  T1   f7_n5000_bound_activity          Optimal        0.234
+# census.  T1   f7_n5000_bound_physics           Optimal        0.222
+# census.  T1   f7_n5000_bound_corrupted         Optimal        0.215
+# census.  T1   f7_n5000_bound_neutral           Optimal        0.213
+# census.  T1   f7_n1000_path_warm               Optimal        0.194
+# census.  T1   f7_n5000_bound_warm              Optimal        0.136
+# census.  T1   f7_n2000_bound_activity          Optimal        0.098
+# census.  T1   f7_n2000_bound_physics           Optimal        0.096
+# census.  T1   f7_n2000_bound_corrupted         Optimal        0.082
+# census.  T1   f7_n2000_bound_neutral           Optimal        0.070
+# census.  T1   f7_n2000_bound_warm              Optimal        0.053
+# census.  T1   f7_n800_path_warm                Optimal        0.053
+# census.  T1   f7_n1000_bound_neutral           Optimal        0.044
+# census.  T1   f7_n1000_bound_activity          Optimal        0.035
+# census.  T1   f7_n1000_bound_physics           Optimal        0.033
+# census.  T1   f7_n1000_bound_corrupted         Optimal        0.027
+# census.  T1   f7_n1000_bound_warm              Optimal        0.027
+# census.  T2   f7_n10000_path_physics           Optimal        2868.341
+# census.  T2   f7_n5000_path_neutral            NumericalError 2399.984
+# census.  T2   f7_n5000_path_warm               NumericalError 2231.393
+# census.  T3   f7_n10000_path_activity          dnf_budget     3600.000
+# census.  T3   f7_n10000_path_corrupted         dnf_setup      3600.000
+# census.  T3   f7_n10000_path_neutral           dnf_budget     3600.000
+# census.  T3   f7_n10000_path_warm              dnf_setup      3600.000
+# census.  T3   f7_n20000_path_activity          dnf_budget     3600.000
+# census.  T3   f7_n20000_path_corrupted         dnf_setup      3600.000
+# census.  T3   f7_n20000_path_neutral           dnf_budget     3600.000
+# census.  T3   f7_n20000_path_physics           dnf_budget     3600.000
+# census.  T3   f7_n20000_path_warm              dnf_setup      3600.000
+# census.  T3   f7_n5000_path_corrupted          dnf_budget     3600.000
+# hven_sqp_corpus provenance
+# binary: cc973157cea8
+# schema: 37
+# budget_table_hash: 0x357aee91dee27391
+# invocation: /home/ghecht/Projects/hven/build-u0-census/bench/hven_sqp_corpus --from-csv /tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n10000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n1000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n20000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n2000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_bound_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_bound_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_bound_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_bound_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_bound_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n5000_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n750_path_neutral_control.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n800_path_activity.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n800_path_corrupted.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n800_path_neutral.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n800_path_physics.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n800_path_warm.csv,/tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/rows/f7_n825_path_neutral_control.csv --csv /tmp/claude-1000/-home-ghecht-Projects-hven/befb7a32-f021-43a2-b05c-b078913d7b67/scratchpad/u0/census-run1/walk_census.csv --score-gates
+# MKL_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-08-16T18:24:35Z
+cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual,wall_s,kkt_verdict,kkt_stationarity,kkt_primal,kkt_dual_sign,kkt_complementarity,dual_scale,x_scale,neg_ineq_duals,ssn_iters,ssn_bulk_flips,ssn_backtracks,ssn_prox_updates,ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,ssn_refine_facts,ssn_refine_neg_duals,esc_budget,esc_singular,esc_no_contraction,esc_infeasible_suspect,esc_indefinite,esc_gate_refused
+f7_n1000_bound_neutral,F7,1000,bound,neutral,0,Optimal,1,2,0,1,1,6.295832335e-14,0.030213503,ok,6.295832335e-14,1.937883159e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_physics,F7,1000,bound,physics,0,Optimal,1,2,0,1,1,1.168049964e-16,0.029690416,ok,1.168049964e-16,1.079633839e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_corrupted,F7,1000,bound,corrupted,0,Optimal,1,2,0,1,1,9.157873527e-15,0.026986521,ok,9.157873527e-15,2.734932492e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_activity,F7,1000,bound,activity,0,Optimal,1,2,0,1,1,1.168049964e-16,0.029766916,ok,1.168049964e-16,1.079633839e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_warm,F7,1000,bound,warm,0,Optimal,1,2,0,1,1,4.198558725e-15,0.026605782,ok,4.198558725e-15,2.759659681e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_neutral,F7,1000,path,neutral,0,Optimal,9951,11043,0,4,1;9948;1;1,1.875412048e-10,152.616477166,ok,9.945804538e-11,1.875412048e-10,0.000000000e+00,1.270349276e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_physics,F7,1000,path,physics,0,Optimal,5,623,0,2,4;1,4.067571900e-10,8.327263142,ok,4.067571900e-10,3.210764987e-13,0.000000000e+00,2.216922906e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,2976,4049,0,3,2974;1;1,8.134399458e-12,62.391363590,ok,8.134399458e-12,3.509414981e-13,0.000000000e+00,2.135826378e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_activity,F7,1000,path,activity,0,Optimal,4,548,0,2,3;1,5.823994991e-09,6.721259795,ok,5.823994991e-09,3.300670848e-11,0.000000000e+00,2.275489574e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_warm,F7,1000,path,warm,0,Optimal,2,12,0,2,1;1,3.364060441e-10,0.105854101,ok,3.364060441e-10,4.445677160e-11,0.000000000e+00,1.081515277e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_neutral,F7,2000,bound,neutral,0,Optimal,1,2,0,1,1,1.259764344e-13,0.059181833,ok,1.259764344e-13,3.878155499e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_physics,F7,2000,bound,physics,0,Optimal,1,2,0,1,1,2.168216410e-16,0.059942010,ok,2.168216410e-16,1.105729050e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_corrupted,F7,2000,bound,corrupted,0,Optimal,1,2,0,1,1,1.834292390e-14,0.055337923,ok,1.834292390e-14,5.425851090e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_activity,F7,2000,bound,activity,0,Optimal,1,2,0,1,1,2.168216410e-16,0.059353183,ok,2.168216410e-16,1.105729050e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_warm,F7,2000,bound,warm,0,Optimal,1,2,0,1,1,8.394924906e-15,0.055365533,ok,8.394924906e-15,5.419408507e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_neutral,F7,2000,path,neutral,1,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01,903.485876827,unchecked,5.085072728e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_physics,F7,2000,path,physics,1,Optimal,9,1396,0,2,8;1,2.290368260e-10,37.157430072,ok,2.290368260e-10,3.198552534e-13,0.000000000e+00,1.099753487e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_corrupted,F7,2000,path,corrupted,1,NumericalError,39783,40000,0,2,19911;19872,9.843817033e-02,986.156289394,unchecked,5.402058407e-03,9.843817033e-02,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_activity,F7,2000,path,activity,1,Optimal,8,1505,0,2,7;1,3.049823215e-09,35.910786932,ok,3.049823215e-09,3.083522326e-11,0.000000000e+00,1.062254363e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_warm,F7,2000,path,warm,1,Optimal,7,1615,0,3,5;1;1,4.904145803e-12,45.804494481,ok,4.904145803e-12,2.574829239e-12,0.000000000e+00,8.717603738e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_neutral,F7,5000,bound,neutral,0,Optimal,1,2,0,1,1,3.150169743e-13,0.146889189,ok,3.150169743e-13,9.692247005e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_physics,F7,5000,bound,physics,0,Optimal,1,2,0,1,1,5.167818090e-16,0.146024063,ok,5.167818090e-16,1.110891234e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_corrupted,F7,5000,bound,corrupted,0,Optimal,1,2,0,1,1,4.592198241e-14,0.140528752,ok,4.592198241e-14,1.351772635e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_activity,F7,5000,bound,activity,0,Optimal,1,2,0,1,1,5.167818090e-16,0.146645790,ok,5.167818090e-16,1.110891234e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_warm,F7,5000,bound,warm,0,Optimal,1,2,0,1,1,2.098298050e-14,0.140509822,ok,2.098298050e-14,1.353613753e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_neutral,F7,5000,path,neutral,0,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01,2363.870988183,unchecked,2.032099408e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_physics,F7,5000,path,physics,0,Optimal,19,3656,0,2,18;1,1.450680211e-10,258.153454755,ok,1.450680211e-10,3.049782649e-13,0.000000000e+00,4.249546468e-17,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_activity,F7,5000,path,activity,0,Optimal,24,5250,0,2,23;1,1.890156979e-09,340.462808383,ok,1.890156979e-09,2.878008942e-11,0.000000000e+00,3.959509908e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_warm,F7,5000,path,warm,0,NumericalError,39744,40000,0,2,19872;19872,3.889087297e-01,2188.321811089,unchecked,2.032099408e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_neutral,F7,10000,bound,neutral,0,Optimal,1,2,0,1,1,6.300386629e-13,0.300873070,ok,6.300386629e-13,1.938683814e-13,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_physics,F7,10000,bound,physics,0,Optimal,1,2,0,1,1,1.016559106e-15,0.300498133,ok,1.016559106e-15,1.151644575e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_corrupted,F7,10000,bound,corrupted,0,Optimal,1,2,0,1,1,9.189172314e-14,0.290903233,ok,9.189172314e-14,2.698456180e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_activity,F7,10000,bound,activity,0,Optimal,1,2,0,1,1,1.016559106e-15,0.301625907,ok,1.016559106e-15,1.151644575e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_warm,F7,10000,bound,warm,0,Optimal,1,2,0,1,1,4.196022966e-14,0.292910602,ok,4.196022966e-14,2.701549016e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_path_physics,F7,10000,path,physics,0,Optimal,8798,19311,0,2,8797;1,1.399675305e-10,2801.553656444,ok,1.399675305e-10,2.856603842e-13,0.000000000e+00,1.955907544e-17,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_neutral,F7,20000,bound,neutral,0,Optimal,1,2,0,1,1,1.259925399e-12,0.624840751,ok,1.259925399e-12,3.876288913e-13,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_physics,F7,20000,bound,physics,0,Optimal,1,2,0,1,1,2.015847636e-15,0.620815843,ok,2.015847636e-15,1.365272909e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_corrupted,F7,20000,bound,corrupted,0,Optimal,1,2,0,1,1,1.838068087e-13,0.602089099,ok,1.838068087e-13,5.392944711e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_activity,F7,20000,bound,activity,0,Optimal,1,2,0,1,1,2.015847636e-15,0.622512503,ok,2.015847636e-15,1.365272909e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_warm,F7,20000,bound,warm,0,Optimal,1,2,0,1,1,8.390643067e-14,0.600398308,ok,8.390643067e-14,5.394909349e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,29222,30165,0,5,1;19872;9347;1;1,1.874362887e-10,320.806025479,ok,1.061788210e-10,1.874362887e-10,0.000000000e+00,1.587440445e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_physics,F7,800,path,physics,1,Optimal,6,481,0,2,5;1,4.777161882e-10,4.881589449,ok,4.777161882e-10,3.245181901e-13,0.000000000e+00,2.823620398e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,14,1795,0,3,12;1;1,8.379476637e-12,19.811382172,ok,8.379476637e-12,2.696731727e-13,0.000000000e+00,2.336241365e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_activity,F7,800,path,activity,1,Optimal,3,385,0,2,2;1,6.914595476e-09,3.603274395,ok,6.914595476e-09,3.328159970e-11,0.000000000e+00,2.867429594e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_warm,F7,800,path,warm,1,Optimal,2,6,0,2,1;1,4.212497650e-10,0.054281989,ok,4.212497650e-10,4.285150013e-11,0.000000000e+00,1.295715293e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n750_path_neutral_control,F7,750,path,neutral,0,Optimal,7865,9297,0,4,1;7862;1;1,1.874010946e-10,89.857473534,ok,1.065823448e-10,1.874010946e-10,0.000000000e+00,1.693085346e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n825_path_neutral_control,F7,825,path,neutral,0,Optimal,7605,9561,0,4,1;7601;2;1,1.874508326e-10,127.106679038,ok,1.023066238e-10,1.874508326e-10,0.000000000e+00,1.539399008e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
