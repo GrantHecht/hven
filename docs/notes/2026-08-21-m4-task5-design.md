@@ -170,6 +170,20 @@ the scorer's stationarity sum and the driver's disagree in float
 order; the leg's report will quantify the agreement margin against the
 1e-6 gate so Task 9 decides on evidence.)
 
+**PRE-REGISTERED ACCEPTANCE THRESHOLD (settler rider, declared here
+BEFORE the leg runs, 2026-08-21):** the leg PASSES iff **zero cells
+flip any W1–W3 verdict** between the recorded residuals and the
+scorer's — on every KKT-gated cell, `kkt_gate_verdict` computed over
+the scorer's three residuals (same thresholds, same scales) must
+equal the verdict computed over the recorded ones; one flip anywhere
+fails the leg and blocks task close. The maximum relative
+disagreement per residual (`|scorer − recorded| / max(1, recorded)`)
+is REPORTED as data in the leg's artifact — quantified for Task 9,
+never converted into the acceptance test after the fact. The artifact
+lands under `docs/notes/data/2026-08-21-m4-task5-wgate-leg/` with the
+standard provenance stamp (`MKL_NUM_THREADS=1`, serialized,
+machine-idle, commit + stamp).
+
 ## 6. The mint-epoch option: DEFERRED to M5, with the reason on record
 
 Wiring the model epoch into the existing `HotState` at M4 would add a
