@@ -44,6 +44,7 @@
 #include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/model/nlp_model.h"
+#include "hven/model/nlp_model_in_place.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace hven::solvers {
@@ -56,43 +57,22 @@ struct NLPCoordinate {
     int col_;
 };
 
-/// @brief Walks a matrix's stored entries against the coordinates the claim
-///        pass recorded for it.
-/// @tparam Fn Callable as fn(row, col, value).
+/// @brief Refuses a matrix whose stored coordinates are not the ones the claim
+///        pass recorded for it, in the same order.
 /// @param matrix The freshly evaluated matrix.
 /// @param recorded The coordinates recorded at claim time, in claim order.
 /// @param what The model method that produced @p matrix, for diagnostics.
-/// @param fn Invoked once per stored entry, in claim order.
+/// @param name Names the model, for diagnostics.
 /// @throws std::invalid_argument if the entry count or any coordinate differs
 ///         from what was claimed.
-template <class Fn>
-inline void nlp_walk_recorded(const Eigen::SparseMatrix<double, Eigen::RowMajor> &matrix,
-                              const std::vector<NLPCoordinate> &recorded, const char *what,
-                              Fn &&fn) {
-    if (static_cast<std::size_t>(matrix.nonZeros()) != recorded.size()) {
-        throw std::invalid_argument(fmt::format(
-            "NLP adapter: {} returned {} stored entries, but {} slots were claimed for it. The "
-            "model's sparsity pattern must not vary between evaluations",
-            what, matrix.nonZeros(), recorded.size()));
-    }
-    std::size_t slot = 0;
-    for (int outer = 0; outer < static_cast<int>(matrix.outerSize()); outer++) {
-        for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(matrix, outer); it;
-             ++it) {
-            const int row = static_cast<int>(it.row());
-            const int col = static_cast<int>(it.col());
-            if (recorded[slot].row_ != row || recorded[slot].col_ != col) {
-                throw std::invalid_argument(
-                    fmt::format("NLP adapter: {} presented ({}, {}) at slot {}, which was claimed "
-                                "for ({}, {}). "
-                                "The model's sparsity pattern must not vary between evaluations",
-                                what, row, col, slot, recorded[slot].row_, recorded[slot].col_));
-            }
-            fn(row, col, it.value());
-            slot++;
-        }
-    }
-}
+///
+/// Called once per evaluated matrix, before any of its values are read. Every
+/// consumer then pairs stored value k with recorded coordinate k by index,
+/// which is what this check makes meaningful -- and, because it runs first,
+/// nothing has been summed anywhere when it refuses.
+void nlp_require_claimed_pattern(const Eigen::SparseMatrix<double, Eigen::RowMajor> &matrix,
+                                 const std::vector<NLPCoordinate> &recorded, const char *what,
+                                 const std::string &name);
 
 /// Shared state behind the adapter pieces: the model, the coordinates its three
 /// matrices were claimed at, the staged variable bounds, the per-iterate
@@ -101,6 +81,9 @@ inline void nlp_walk_recorded(const Eigen::SparseMatrix<double, Eigen::RowMajor>
 /// runs single-partition, so every access is serial.
 struct NLPAdapterCore {
     std::shared_ptr<NlpModel> model_;
+    /// The model's in-place surface, when it publishes one; null otherwise.
+    /// Resolved once at construction, so no evaluation pays for the question.
+    const NlpModelInPlace *in_place_ = nullptr;
     std::string name_; ///< names the model in diagnostics and in the piece names
     int n_ = 0, num_eq_ = 0, num_iq_ = 0;
 
@@ -115,22 +98,40 @@ struct NLPAdapterCore {
     enum class HessOwner { Objective, EqPiece, IqPiece };
     HessOwner hess_owner_ = HessOwner::Objective;
 
-    // --- Per-iterate cache (the model's callbacks are pure; keyed on the
-    // iterate value). x_cache_ is also the plain vector every model call is
+    // --- Per-iterate cache. The model's callbacks are pure, so it keys on the
+    // iterate value. x_cache_ is also the plain vector every model call is
     // handed, so one assembly copies the solver's iterate once. ---
     Eigen::VectorXd x_cache_;
+    bool gradient_valid_ = false;
     bool residuals_valid_ = false;
     bool jacobians_valid_ = false;
-    Eigen::VectorXd ce_cache_, ci_cache_;
-    SpMatRM jac_e_cache_, jac_i_cache_, hess_cache_;
+
+    /// Where each evaluation's values currently are: the model's own storage
+    /// when it publishes the in-place surface, this host's scratch otherwise.
+    /// Every consumer reads through these, so there is one code path however
+    /// the values got there.
+    const Eigen::VectorXd *grad_view_ = nullptr;
+    const Eigen::VectorXd *ce_view_ = nullptr;
+    const Eigen::VectorXd *ci_view_ = nullptr;
+    const SpMatRM *jac_e_view_ = nullptr;
+    const SpMatRM *jac_i_view_ = nullptr;
+    const SpMatRM *hess_view_ = nullptr;
+
+    /// Scratch for a model without the in-place surface, sized and patterned
+    /// once at construction. Its by-value returns land here by assignment.
+    Eigen::VectorXd grad_scratch_, ce_scratch_, ci_scratch_;
+    SpMatRM jac_e_scratch_, jac_i_scratch_, hess_scratch_;
 
     // --- Per-assembly consume-once records. The objective piece records the
     // objective scale when its Hessian-bearing method runs; the equality piece
     // records its multipliers likewise; the Hessian owner consumes both. A
     // chain that skips the objective (the solver's no-objective KKT mode)
-    // leaves no record, and the owner correctly uses scale 0. ---
+    // leaves no record, and the owner correctly uses scale 0. The multiplier
+    // record is a sized member rather than an optional vector so that setting
+    // it allocates nothing. ---
     std::optional<double> pending_obj_scale_;
-    std::optional<Eigen::VectorXd> pending_le_;
+    bool le_recorded_ = false;
+    Eigen::VectorXd le_record_;
 
     /// Multiplier scratch, sized once at setup: the pieces hand their solver-
     /// space blocks in as references, and the model takes vectors.
@@ -148,12 +149,26 @@ struct NLPAdapterCore {
     /// Copies @p x into the cache, invalidating the evaluations keyed on it.
     void sync_x(ConstEigenRef<Eigen::VectorXd> x);
 
+    void refresh_gradient(ConstEigenRef<Eigen::VectorXd> x);
     void refresh_residuals(ConstEigenRef<Eigen::VectorXd> x);
     void refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x);
 
-    /// The single eval_hess call, into hess_cache_.
+    /// The single eval_hess call.
     void eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
                              ConstEigenRef<Eigen::VectorXd> le, ConstEigenRef<Eigen::VectorXd> li);
+
+    /// @brief The objective gradient from the last refresh_gradient.
+    const Eigen::VectorXd &gradient() const { return *grad_view_; }
+    /// @brief The equality residuals from the last refresh_residuals.
+    const Eigen::VectorXd &equality_residuals() const { return *ce_view_; }
+    /// @brief The inequality residuals from the last refresh_residuals.
+    const Eigen::VectorXd &inequality_residuals() const { return *ci_view_; }
+    /// @brief The equality Jacobian from the last refresh_jacobians.
+    const SpMatRM &equality_jacobian() const { return *jac_e_view_; }
+    /// @brief The inequality Jacobian from the last refresh_jacobians.
+    const SpMatRM &inequality_jacobian() const { return *jac_i_view_; }
+    /// @brief The Lagrangian Hessian from the last eval_hessian_values.
+    const SpMatRM &hessian() const { return *hess_view_; }
 };
 
 /// Claims the Lagrangian-Hessian block: one KKT slot per stored Hessian entry,
@@ -190,26 +205,27 @@ inline void nlp_scatter_hessian_block(const NLPAdapterCore &core, int claim_star
     if (claim_start < 0) {
         throw std::logic_error("NLP adapter: Hessian scatter before its KKT space was claimed");
     }
+    // Stored value k is recorded coordinate k: the pattern was checked against
+    // the claim order when the matrix was evaluated, so this indexes rather
+    // than walks.
+    const double *values = core.hessian().valuePtr();
     int cursor = claim_start;
-    nlp_walk_recorded(core.hess_cache_, core.hess_, "eval_hess",
-                      [&](int row, int col, double value) {
-                          const int r = data.v_scatter_loc(row, 0);
-                          const int c = data.v_scatter_loc(col, 0);
-                          if (r < 0 || c < 0) {
-                              cursor++;
-                              return;
-                          }
-                          const int lockcol = kkt_canonical_lock_col(r, c);
-                          const bool lock_column = (VarClashes[lockcol] != -1);
-                          if (lock_column) {
-                              ClashLocks[VarClashes[lockcol]].lock();
-                          }
-                          KKTmat.valuePtr()[KKTLocs.data()[cursor]] += value;
-                          if (lock_column) {
-                              ClashLocks[VarClashes[lockcol]].unlock();
-                          }
-                          cursor++;
-                      });
+    for (std::size_t k = 0; k < core.hess_.size(); k++, cursor++) {
+        const int r = data.v_scatter_loc(core.hess_[k].row_, 0);
+        const int c = data.v_scatter_loc(core.hess_[k].col_, 0);
+        if (r < 0 || c < 0) {
+            continue;
+        }
+        const int lockcol = kkt_canonical_lock_col(r, c);
+        const bool lock_column = (VarClashes[lockcol] != -1);
+        if (lock_column) {
+            ClashLocks[VarClashes[lockcol]].lock();
+        }
+        KKTmat.valuePtr()[KKTLocs.data()[cursor]] += values[k];
+        if (lock_column) {
+            ClashLocks[VarClashes[lockcol]].unlock();
+        }
+    }
 }
 
 /// The model's objective, as a solver objective. Also the Hessian owner when
@@ -237,8 +253,8 @@ struct NLPObjectivePiece {
     void objective_gradient(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
                             EigenRef<Eigen::VectorXd> GX, const SolverIndexingData &data) const {
         this->objective(ObjScale, X, Val, data);
-        GX.segment(data.inner_gradient_starts_[0], core_->n_) =
-            ObjScale * core_->model_->eval_grad(core_->x_cache_);
+        core_->refresh_gradient(X);
+        GX.segment(data.inner_gradient_starts_[0], core_->n_) = ObjScale * core_->gradient();
     }
 
     void objective_gradient_hessian(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
@@ -268,7 +284,7 @@ struct NLPObjectivePiece {
             }
         } catch (...) {
             core_->pending_obj_scale_.reset();
-            core_->pending_le_.reset();
+            core_->le_recorded_ = false;
             throw;
         }
     }
@@ -354,7 +370,7 @@ struct NLPConstraintPiece {
     }
     /// This block's most recently evaluated Jacobian.
     const SpMatRM &jacobian() const {
-        return is_inequality_ ? core_->jac_i_cache_ : core_->jac_e_cache_;
+        return is_inequality_ ? core_->inequality_jacobian() : core_->equality_jacobian();
     }
     /// The model method that produces this block's Jacobian, for diagnostics.
     const char *jacobian_method() const { return is_inequality_ ? "eval_jac_i" : "eval_jac_e"; }
@@ -404,7 +420,7 @@ struct NLPConstraintPiece {
         std::vector<std::mutex> &KKTLocks, const SolverIndexingData &data) const {
         // Same exception-safety concern as NLPObjectivePiece::objective_gradient_hessian
         // above: this piece's own model calls can throw either before or after
-        // it has recorded pending_le_, and the owner (this piece or the one
+        // it has recorded its multipliers, and the owner (this piece or the one
         // after it) may never run to consume a record either piece left behind.
         // Clear both consume-once records on the way out through any exception
         // so an aborted assembly can never leak a stale objective scale or
@@ -415,16 +431,20 @@ struct NLPConstraintPiece {
             if (!is_inequality_ && !this->owns_hessian()) {
                 // The inequality piece runs after this one in every Hessian-bearing
                 // chain; leave it these multipliers.
-                core_->pending_le_ = Eigen::VectorXd(L);
+                core_->le_record_ = L.head(core_->num_eq_);
+                core_->le_recorded_ = true;
             }
             if (this->owns_hessian()) {
                 const double obj_factor = core_->pending_obj_scale_.value_or(0.0);
                 core_->pending_obj_scale_.reset();
                 if (is_inequality_) {
-                    const Eigen::VectorXd le =
-                        core_->pending_le_ ? *core_->pending_le_ : Eigen::VectorXd();
-                    core_->pending_le_.reset();
-                    core_->eval_hessian_values(X, obj_factor, le, L);
+                    // No record means the equality piece never ran, and its
+                    // multipliers are zero.
+                    if (!core_->le_recorded_) {
+                        core_->le_record_.setZero();
+                    }
+                    core_->le_recorded_ = false;
+                    core_->eval_hessian_values(X, obj_factor, core_->le_record_, L);
                 } else {
                     core_->eval_hessian_values(X, obj_factor, L, Eigen::VectorXd());
                 }
@@ -433,7 +453,7 @@ struct NLPConstraintPiece {
             }
         } catch (...) {
             core_->pending_obj_scale_.reset();
-            core_->pending_le_.reset();
+            core_->le_recorded_ = false;
             throw;
         }
     }
@@ -463,40 +483,44 @@ struct NLPConstraintPiece {
 
   private:
     void write_residuals(EigenRef<Eigen::VectorXd> FX, const SolverIndexingData &data) const {
-        const Eigen::VectorXd &residuals = is_inequality_ ? core_->ci_cache_ : core_->ce_cache_;
+        const Eigen::VectorXd &residuals =
+            is_inequality_ ? core_->inequality_residuals() : core_->equality_residuals();
         FX.segment(data.inner_constraint_starts_[0], residuals.size()) = residuals;
     }
+    // Both fills below index stored value k by recorded coordinate k. The
+    // pattern was checked against the claim order once, when the Jacobian was
+    // evaluated, so a chain that fills both destinations reads the matrix once
+    // rather than walking it per destination.
     void write_adjoint_gradient(ConstEigenRef<Eigen::VectorXd> L, EigenRef<Eigen::VectorXd> AGX,
                                 const SolverIndexingData &data) const {
+        const std::vector<NLPCoordinate> &coords = this->jac_coords();
+        const double *values = this->jacobian().valuePtr();
         const int gstart = data.inner_gradient_starts_[0];
-        nlp_walk_recorded(this->jacobian(), this->jac_coords(), this->jacobian_method(),
-                          [&](int row, int col, double value) {
-                              AGX[gstart + col] += value * L[data.c_loc(row, 0)];
-                          });
+        for (std::size_t k = 0; k < coords.size(); k++) {
+            AGX[gstart + coords[k].col_] += values[k] * L[data.c_loc(coords[k].row_, 0)];
+        }
     }
     void scatter_jacobian(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
                           EigenRef<Eigen::VectorXi> KKTLocs, EigenRef<Eigen::VectorXi> VarClashes,
                           std::vector<std::mutex> &ClashLocks,
                           const SolverIndexingData &data) const {
+        const std::vector<NLPCoordinate> &coords = this->jac_coords();
+        const double *values = this->jacobian().valuePtr();
         int cursor = data.inner_kkt_starts_[0];
-        nlp_walk_recorded(this->jacobian(), this->jac_coords(), this->jacobian_method(),
-                          [&](int, int col, double value) {
-                              const int vcol = data.v_scatter_loc(col, 0);
-                              if (vcol < 0) {
-                                  cursor++;
-                                  return;
-                              }
-                              const bool lock_column =
-                                  !data.unique_constraints_ && (VarClashes[vcol] != -1);
-                              if (lock_column) {
-                                  ClashLocks[VarClashes[vcol]].lock();
-                              }
-                              KKTmat.valuePtr()[KKTLocs.data()[cursor]] += value;
-                              if (lock_column) {
-                                  ClashLocks[VarClashes[vcol]].unlock();
-                              }
-                              cursor++;
-                          });
+        for (std::size_t k = 0; k < coords.size(); k++, cursor++) {
+            const int vcol = data.v_scatter_loc(coords[k].col_, 0);
+            if (vcol < 0) {
+                continue;
+            }
+            const bool lock_column = !data.unique_constraints_ && (VarClashes[vcol] != -1);
+            if (lock_column) {
+                ClashLocks[VarClashes[vcol]].lock();
+            }
+            KKTmat.valuePtr()[KKTLocs.data()[cursor]] += values[k];
+            if (lock_column) {
+                ClashLocks[VarClashes[vcol]].unlock();
+            }
+        }
     }
 };
 

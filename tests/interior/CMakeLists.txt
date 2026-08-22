@@ -15,6 +15,7 @@
 
 set(HVEN_INTERIOR_TEST_SOURCES
     test_acceptance_diagnostics.cpp
+    test_assembly_allocation.cpp
     test_classic_merit_restoration.cpp
     test_filter_acceptance.cpp
     test_funnel_acceptance.cpp

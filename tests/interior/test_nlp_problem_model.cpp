@@ -370,27 +370,24 @@ TEST(NlpAdapterHostTest, APatternThatShiftsBetweenEvaluationsIsRefusedByName) {
     claimed.insert(0, 0) = 1.0;
     claimed.insert(1, 1) = 1.0;
     claimed.makeCompressed();
-
-    std::vector<NLPCoordinate> recorded;
-    hven::solvers::nlp_walk_recorded(
-        claimed, {{0, 0}, {1, 1}}, "eval_jac_e",
-        [&](int row, int col, double) { recorded.push_back(NLPCoordinate{row, col}); });
-    ASSERT_EQ(recorded.size(), 2u);
+    const std::vector<NLPCoordinate> recorded{{0, 0}, {1, 1}};
+    EXPECT_NO_THROW(
+        hven::solvers::nlp_require_claimed_pattern(claimed, recorded, "eval_jac_e", "NpmProbe"));
 
     // Same entry count, one coordinate moved.
     Eigen::SparseMatrix<double, Eigen::RowMajor> moved(2, 2);
     moved.insert(0, 1) = 1.0;
     moved.insert(1, 1) = 1.0;
     moved.makeCompressed();
-    EXPECT_THROW(hven::solvers::nlp_walk_recorded(moved, {{0, 0}, {1, 1}}, "eval_jac_e",
-                                                  [](int, int, double) {}),
-                 std::invalid_argument);
+    EXPECT_THROW(
+        hven::solvers::nlp_require_claimed_pattern(moved, recorded, "eval_jac_e", "NpmProbe"),
+        std::invalid_argument);
 
     // A different entry count is refused before any coordinate is compared.
     Eigen::SparseMatrix<double, Eigen::RowMajor> shrunk(2, 2);
     shrunk.insert(0, 0) = 1.0;
     shrunk.makeCompressed();
-    EXPECT_THROW(hven::solvers::nlp_walk_recorded(shrunk, {{0, 0}, {1, 1}}, "eval_jac_e",
-                                                  [](int, int, double) {}),
-                 std::invalid_argument);
+    EXPECT_THROW(
+        hven::solvers::nlp_require_claimed_pattern(shrunk, recorded, "eval_jac_e", "NpmProbe"),
+        std::invalid_argument);
 }

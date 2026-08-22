@@ -33,6 +33,7 @@
 #include "hven/core/types.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/model/nlp_model.h"
+#include "hven/model/nlp_model_in_place.h"
 #include "hven/model/nlp_problem.h"
 
 namespace hven::solvers {
@@ -109,7 +110,14 @@ struct NLPRowClassification {
 /// Evaluation callbacks are pure, so g(x) and the Jacobian values are cached
 /// per iterate: eval_ce and eval_ci share one NLPProblem::eval_g call, and
 /// eval_jac_e and eval_jac_i share one NLPProblem::eval_jac call.
-class NlpProblemModel final : public NlpModel {
+///
+/// Storage. The native residuals, Jacobians and Hessian live in members whose
+/// patterns are laid once at construction and whose values are rewritten in
+/// place on every evaluation, so an evaluation after the first allocates
+/// nothing. NlpModel's by-value methods hand back a copy of that storage, as
+/// their signatures require; the NlpModelInPlace methods hand back a reference
+/// to it, valid until the next call that refreshes it.
+class NlpProblemModel final : public NlpModel, public NlpModelInPlace {
   public:
     /// @brief Converts a declared problem, validating its declaration.
     /// @param problem The problem to convert; must not be null.
@@ -142,6 +150,17 @@ class NlpProblemModel final : public NlpModel {
 
     SpMatRM eval_jac_e(const Vec &x) const override;
     SpMatRM eval_jac_i(const Vec &x) const override;
+
+    // --- NlpModelInPlace: the same evaluations, as references into the
+    //     storage above. Each returns exactly what its by-value counterpart
+    //     returns; the by-value methods are implemented as a copy of these. ---
+    const Vec &grad_in_place(const Vec &x) const override;
+    const Vec &ce_in_place(const Vec &x) const override;
+    const Vec &ci_in_place(const Vec &x) const override;
+    const SpMatRM &jac_e_in_place(const Vec &x) const override;
+    const SpMatRM &jac_i_in_place(const Vec &x) const override;
+    const SpMatRM &hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
+                                 const Vec &lambda_i) const override;
 
     /// @brief Declared variable lower bounds, verbatim.
     const Vec &lower() const override { return x_lower_; }
@@ -228,6 +247,9 @@ class NlpProblemModel final : public NlpModel {
     mutable bool jac_valid_ = false;
     mutable Vec g_cache_, jac_cache_;
     mutable Vec lambda_user_, hess_vals_;
+
+    /// The native returns, laid once and rewritten in place.
+    mutable Vec grad_, ce_, ci_;
 };
 
 } // namespace hven::solvers
