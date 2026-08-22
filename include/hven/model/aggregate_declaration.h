@@ -151,10 +151,6 @@ struct AggregateDeclaration {
     int equality_rows_ = 0;
     int inequality_rows_ = 0;
 
-    /// The partition count REQUESTED. What is adopted is what
-    /// NlpAggregate::negotiate_partition_count returns, and it is the adopted
-    /// count that is a conjunct of the structural key.
-    ///
     /// Requested partition count; the adopted count is returned by
     /// negotiate_partition_count() and governs layout and the structural key.
     int partition_count_ = 1;
@@ -187,6 +183,10 @@ struct AggregateDeclaration {
     ///
     /// A provider validates its declaration with validate() before its first
     /// layout; empty piece lists satisfy the piece-sum checks vacuously.
+    ///
+    /// "No pieces" is a property of all three lists together: a declaration
+    /// carrying objective pieces but no constraint pieces, while declaring
+    /// constraint rows, is piece-sourced and trips the sum conjunct.
     ///
     /// OWNERSHIP SPLIT with the engine's own bound materializer, stated so
     /// neither side is assumed to cover the other: this boundary validates the

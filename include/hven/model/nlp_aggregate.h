@@ -416,7 +416,13 @@ class NlpAggregate {
 
     /// @brief Requests an evaluation thread budget.
     ///
+    /// An implementation refuses n < 1 with std::invalid_argument naming the
+    /// value, rather than correcting it. What a provider then does with a
+    /// legal request is its own business; what it reports is not, and
+    /// evaluation_threads() above binds that.
+    ///
     /// @param n the requested count.
+    /// @throws std::invalid_argument if @p n is below 1.
     virtual void set_evaluation_threads(int n) = 0;
 
     /// The structural key of the declared model as currently laid.

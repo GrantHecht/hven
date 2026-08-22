@@ -22,6 +22,7 @@
 #include <memory>
 #include <set>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "hven/detail/interior/aggregate_views.h"
@@ -1016,16 +1017,41 @@ TEST(NlpAggregateEngineDeclaration, APieceSourcedDeclarationStillFailsOnABadRowS
     // Here they exist, so a row count that disagrees with what they claim is
     // refused exactly as before -- the conditional made the boundary universal,
     // it did not weaken it for the providers it was written for.
+    //
+    // The message content is asserted rather than the throw alone: this tree's
+    // rule is that a refusal names the offender and both numbers, and that is
+    // what a caller reads when a sum is wrong.
     auto nlp = agg_pin_build_small();
     ASSERT_FALSE(nlp->declaration().equality_constraints_.empty());
 
+    const int equality_claimed = nlp->declaration().equality_rows_;
     hven::solvers::AggregateDeclaration declared = nlp->declaration();
     declared.equality_rows_ += 1;
-    EXPECT_THROW(declared.validate(), std::invalid_argument);
+    try {
+        declared.validate();
+        FAIL() << "a piece-sourced declaration whose equality rows exceed what its pieces claim "
+                  "must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("equality"), std::string::npos) << message;
+        EXPECT_NE(message.find(std::to_string(equality_claimed)), std::string::npos) << message;
+        EXPECT_NE(message.find(std::to_string(equality_claimed + 1)), std::string::npos) << message;
+    }
 
+    const int inequality_claimed = nlp->declaration().inequality_rows_;
     declared = nlp->declaration();
     declared.inequality_rows_ += 1;
-    EXPECT_THROW(declared.validate(), std::invalid_argument);
+    try {
+        declared.validate();
+        FAIL() << "a piece-sourced declaration whose inequality rows exceed what its pieces claim "
+                  "must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("inequality"), std::string::npos) << message;
+        EXPECT_NE(message.find(std::to_string(inequality_claimed)), std::string::npos) << message;
+        EXPECT_NE(message.find(std::to_string(inequality_claimed + 1)), std::string::npos)
+            << message;
+    }
 }
 
 TEST(NlpAggregateEngineDeclaration, StagingABoundChangesNothingUntilItIsMaterialized) {

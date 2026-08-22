@@ -88,7 +88,10 @@ class NlpModelAggregate final : public NlpAggregate {
     /// @param model the model to bridge; must be non-null.
     /// @throws std::invalid_argument if the model is null, reports dimensions
     ///         that cannot describe a problem, declares bounds that do not
-    ///         intersect, or returns a Hessian entry below the diagonal.
+    ///         intersect, or returns a Hessian entry below the diagonal at claim
+    ///         time. The triangle is checked where the pattern is walked and
+    ///         nowhere else, so a later evaluation's triangle rests on the same
+    ///         invariance precondition the per-call nonzero count rests on.
     explicit NlpModelAggregate(std::shared_ptr<NlpModel> model);
 
     /// @brief The declaration these structures were laid from.
