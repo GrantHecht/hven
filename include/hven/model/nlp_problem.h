@@ -57,7 +57,10 @@ namespace hven::solvers {
 /// changes meaning here: those rows and variables arrive as genuine bounds at
 /// +/-1e20 rather than free, and an equality row declared at +/-1e20 on both
 /// sides becomes an equality at 1e20 rather than a dropped free row. Rewrite
-/// such declarations to use the infinities.
+/// such declarations to use the infinities. One route does apply a cutoff: the
+/// SSN/QP engine treats a bound of magnitude kSsnInfBound (1e20) or larger as
+/// absent, so a genuine bound in [1e20, inf) is honored by the interior-point
+/// route and not by that one.
 class NLPProblem {
   public:
     virtual ~NLPProblem() = default;
