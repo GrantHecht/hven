@@ -27,12 +27,12 @@
 //
 // What the path costs. Each evaluation moment runs model scratch -> arena
 // scatter -> segment publish, where the free functions it replaces assigned
-// into the driver's objects directly: the bridge materializes the model's
-// return-by-value results, the provider scatters them into this seam's arena,
-// and the seam copies the three contiguous segments out. Those transfers are
-// per major, not per minor -- the QP engine's working-set iterations gain no
-// copy, no branch and no indirection from any of it, which is the ground the
-// R2.3 rider's scope stands on (docs/notes/2026-08-21-m4-task5-design.md §7).
+// into the driver's objects directly: the provider materializes its own
+// results, scatters them into this seam's arena, and the seam copies the three
+// contiguous segments out. Those transfers are per major, not per minor -- the
+// QP engine's working-set iterations gain no copy, no branch and no
+// indirection from any of it, which is the ground the R2.3 rider's scope
+// stands on (docs/notes/2026-08-21-m4-task5-design.md §7).
 //
 // WHY THE SEED IS NEGATIVE ZERO. The contract's assemble ACCUMULATES (see
 // model/nlp_aggregate.h) and the consumer owns the initial state, so every
@@ -153,10 +153,15 @@ class AggregateEvalSeam {
     NlpEval eval_nlp_values(const Vec &x);
 
     /// @brief Upgrades a values-only bundle at @p x to a full one in place:
-    ///        grad, Je, Ji, and their finiteness folded into `all_finite`.
+    ///        grad, Je, Ji, with the GRADIENT's finiteness folded into
+    ///        `all_finite`.
     ///
     /// The accepted-trial moment. Reproduces upgrade_to_full
     /// (drivers/sqp_driver.h), values deliberately not re-evaluated.
+    ///
+    /// Jacobian finiteness is NOT screened here. `all_finite` carries the
+    /// objective, the gradient and the two residual blocks and nothing else,
+    /// which is legacy parity with the free function this replaces.
     ///
     /// @param ev the bundle to upgrade, taken at THIS x.
     /// @param x  the point, in declaration space.
