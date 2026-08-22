@@ -261,6 +261,14 @@ void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
     jacobians_valid_ = true;
 }
 
+void NLPAdapterCore::refuse_short_multiplier_block(Index actual, int rows,
+                                                   bool inequality) const {
+    const char *kind = inequality ? "inequality" : "equality";
+    throw std::invalid_argument(
+        fmt::format("{}: {} {} multipliers reached the {} piece, which hosts {} {} rows", name_,
+                    actual, kind, kind, rows, kind));
+}
+
 void NLPAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L) {
     // Checked BEFORE the slice, not after it. The engine may hand down a block
     // longer than this host's rows -- its own appended rows sit after them --

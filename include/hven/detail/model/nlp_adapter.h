@@ -160,6 +160,11 @@ struct NLPAdapterCore {
     ///          its leading entries, so it may be longer but not shorter.
     /// @throws std::invalid_argument if @p L is shorter than this host's rows.
     void record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L);
+    /// Throws the refusal for a multiplier block shorter than a piece's rows.
+    /// Never inlined: it carries the message formatting, which must not sit
+    /// in the pieces' value fills.
+    [[noreturn]] void refuse_short_multiplier_block(Index actual, int rows,
+                                                    bool inequality) const;
 
     /// @brief The one eval_hess call of an assembly, checked against the
     ///        coordinates the Hessian claims were laid over.
@@ -513,12 +518,11 @@ struct NLPConstraintPiece {
         // at the head of L -- the engine's own appended rows sit after them --
         // so a block shorter than this piece's rows has no head to take, and
         // indexing into it below would read past its end.
+        // The refusal itself is out of line so this fill stays inlinable into
+        // the piece methods; the formatting and the throw are cold.
         const int rows = this->output_rows();
         if (L.size() < rows) {
-            const char *kind = is_inequality_ ? "inequality" : "equality";
-            throw std::invalid_argument(
-                fmt::format("{}: {} {} multipliers reached the {} piece, which hosts {} {} rows",
-                            core_->name_, L.size(), kind, kind, rows, kind));
+            core_->refuse_short_multiplier_block(L.size(), rows, is_inequality_);
         }
         const std::vector<NLPCoordinate> &coords = this->jac_coords();
         const double *values = this->jacobian().valuePtr();
