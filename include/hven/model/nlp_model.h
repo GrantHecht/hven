@@ -122,6 +122,78 @@ class NlpModel {
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const = 0;
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const = 0;
 
+    // THE IN-PLACE FORMS OF THE SIX EVALUATIONS ABOVE, and the same opt-in
+    // contract eval_values carries: each has a default implementation, so no
+    // model has to write one and no existing model changes at all. The default
+    // calls this same model's by-value counterpart and assigns the result into
+    // the caller's storage, so it returns exactly what the by-value method
+    // returns, at exactly that method's cost.
+    //
+    // An override exists only to be cheaper than that baseline, never to
+    // return a different number. What it buys is the allocation: the by-value
+    // signatures hand back whole objects, so a consumer evaluating once per
+    // iteration pays one allocation per call however it stores the result,
+    // whereas a model that fills the caller's storage directly lets that
+    // consumer, once warm, allocate nothing. A consumer therefore calls these
+    // unconditionally and asks nothing about the model it holds.
+    //
+    // The caller owns the destination and may reuse it across calls. An
+    // override must leave it holding exactly the value the by-value
+    // counterpart would have returned -- for the two matrix forms, that
+    // includes leaving it COMPRESSED, per the note above.
+
+    /// @brief eval_grad into caller-owned storage.
+    /// @param x The iterate.
+    /// @param out Receives the gradient, size n().
+    /// An override returns exactly what the by-value counterpart returns; the
+    /// default delegates to it.
+    virtual void eval_grad_in_place(const Vec &x, Vec &out) const { out = this->eval_grad(x); }
+
+    /// @brief eval_ce into caller-owned storage.
+    /// @param x The iterate.
+    /// @param out Receives the equality residuals, size me().
+    /// An override returns exactly what the by-value counterpart returns; the
+    /// default delegates to it.
+    virtual void eval_ce_in_place(const Vec &x, Vec &out) const { out = this->eval_ce(x); }
+
+    /// @brief eval_ci into caller-owned storage.
+    /// @param x The iterate.
+    /// @param out Receives the inequality residuals, size mi().
+    /// An override returns exactly what the by-value counterpart returns; the
+    /// default delegates to it.
+    virtual void eval_ci_in_place(const Vec &x, Vec &out) const { out = this->eval_ci(x); }
+
+    /// @brief eval_jac_e into caller-owned storage.
+    /// @param x The iterate.
+    /// @param out Receives the equality Jacobian, me() by n().
+    /// An override returns exactly what the by-value counterpart returns; the
+    /// default delegates to it.
+    virtual void eval_jac_e_in_place(const Vec &x, SpMatRM &out) const {
+        out = this->eval_jac_e(x);
+    }
+
+    /// @brief eval_jac_i into caller-owned storage.
+    /// @param x The iterate.
+    /// @param out Receives the inequality Jacobian, mi() by n().
+    /// An override returns exactly what the by-value counterpart returns; the
+    /// default delegates to it.
+    virtual void eval_jac_i_in_place(const Vec &x, SpMatRM &out) const {
+        out = this->eval_jac_i(x);
+    }
+
+    /// @brief eval_hess into caller-owned storage.
+    /// @param x The iterate.
+    /// @param obj_scale The objective scale.
+    /// @param lambda_e Equality multipliers, size me().
+    /// @param lambda_i Inequality multipliers, size mi().
+    /// @param out Receives the Lagrangian Hessian, upper triangle, n() by n().
+    /// An override returns exactly what the by-value counterpart returns; the
+    /// default delegates to it.
+    virtual void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
+                                    const Vec &lambda_i, SpMatRM &out) const {
+        out = this->eval_hess(x, obj_scale, lambda_e, lambda_i);
+    }
+
     // Variable bounds. Unboundedness on a side is written -inf / +inf; every
     // finite value is a real bound, however large. Nothing in this layer
     // treats a finite magnitude as a stand-in for infinity, so a bound of

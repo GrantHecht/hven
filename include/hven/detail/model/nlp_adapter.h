@@ -44,7 +44,6 @@
 #include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_in_place.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace hven::solvers {
@@ -81,9 +80,6 @@ void nlp_require_claimed_pattern(const Eigen::SparseMatrix<double, Eigen::RowMaj
 /// runs single-partition, so every access is serial.
 struct NLPAdapterCore {
     std::shared_ptr<NlpModel> model_;
-    /// The model's in-place surface, when it publishes one; null otherwise.
-    /// Resolved once at construction, so no evaluation pays for the question.
-    const NlpModelInPlace *in_place_ = nullptr;
     std::string name_; ///< names the model in diagnostics and in the piece names
     int n_ = 0, num_eq_ = 0, num_iq_ = 0;
 
@@ -106,19 +102,11 @@ struct NLPAdapterCore {
     bool residuals_valid_ = false;
     bool jacobians_valid_ = false;
 
-    /// Where each evaluation's values currently are: the model's own storage
-    /// when it publishes the in-place surface, this host's scratch otherwise.
-    /// Every consumer reads through these, so there is one code path however
-    /// the values got there.
-    const Eigen::VectorXd *grad_view_ = nullptr;
-    const Eigen::VectorXd *ce_view_ = nullptr;
-    const Eigen::VectorXd *ci_view_ = nullptr;
-    const SpMatRM *jac_e_view_ = nullptr;
-    const SpMatRM *jac_i_view_ = nullptr;
-    const SpMatRM *hess_view_ = nullptr;
-
-    /// Scratch for a model without the in-place surface, sized and patterned
-    /// once at construction. Its by-value returns land here by assignment.
+    /// Every destination an evaluation writes, owned by this host and sized
+    /// once at construction. The model is asked to fill them in place, so a
+    /// model that overrides those methods writes here directly and one that
+    /// does not gets the base class's delegation to its by-value methods --
+    /// the same values either way, and one code path for the consumers.
     Eigen::VectorXd grad_scratch_, ce_scratch_, ci_scratch_;
     SpMatRM jac_e_scratch_, jac_i_scratch_, hess_scratch_;
 
@@ -180,17 +168,17 @@ struct NLPAdapterCore {
                              ConstEigenRef<Eigen::VectorXd> le, ConstEigenRef<Eigen::VectorXd> li);
 
     /// @brief The objective gradient from the last refresh_gradient.
-    const Eigen::VectorXd &gradient() const { return *grad_view_; }
+    const Eigen::VectorXd &gradient() const { return grad_scratch_; }
     /// @brief The equality residuals from the last refresh_residuals.
-    const Eigen::VectorXd &equality_residuals() const { return *ce_view_; }
+    const Eigen::VectorXd &equality_residuals() const { return ce_scratch_; }
     /// @brief The inequality residuals from the last refresh_residuals.
-    const Eigen::VectorXd &inequality_residuals() const { return *ci_view_; }
+    const Eigen::VectorXd &inequality_residuals() const { return ci_scratch_; }
     /// @brief The equality Jacobian from the last refresh_jacobians.
-    const SpMatRM &equality_jacobian() const { return *jac_e_view_; }
+    const SpMatRM &equality_jacobian() const { return jac_e_scratch_; }
     /// @brief The inequality Jacobian from the last refresh_jacobians.
-    const SpMatRM &inequality_jacobian() const { return *jac_i_view_; }
+    const SpMatRM &inequality_jacobian() const { return jac_i_scratch_; }
     /// @brief The Lagrangian Hessian from the last eval_hessian_values.
-    const SpMatRM &hessian() const { return *hess_view_; }
+    const SpMatRM &hessian() const { return hess_scratch_; }
 };
 
 /// Claims the Lagrangian-Hessian block: one KKT slot per stored Hessian entry,

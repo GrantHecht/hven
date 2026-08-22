@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -35,6 +36,36 @@ int compressed_value_index(const SpMatRM &m, int row, int col) {
                         row, col));
     }
     return static_cast<int>(hit - inner);
+}
+
+/// Whether @p out already carries exactly @p pattern's stored coordinates.
+bool same_pattern(const SpMatRM &out, const SpMatRM &pattern) {
+    if (out.rows() != pattern.rows() || out.cols() != pattern.cols() || !out.isCompressed() ||
+        out.nonZeros() != pattern.nonZeros()) {
+        return false;
+    }
+    const std::size_t outer_bytes =
+        static_cast<std::size_t>(out.outerSize() + 1) * sizeof(SpMatRM::StorageIndex);
+    const std::size_t inner_bytes =
+        static_cast<std::size_t>(out.nonZeros()) * sizeof(SpMatRM::StorageIndex);
+    return std::memcmp(out.outerIndexPtr(), pattern.outerIndexPtr(), outer_bytes) == 0 &&
+           std::memcmp(out.innerIndexPtr(), pattern.innerIndexPtr(), inner_bytes) == 0;
+}
+
+/// Gives @p out the laid pattern if it does not already carry it. A caller
+/// reusing one destination pays the copy once and a comparison every call
+/// after, which is what lets the value fill below run without allocating.
+void adopt_pattern(SpMatRM &out, const SpMatRM &pattern) {
+    if (!same_pattern(out, pattern)) {
+        out = pattern;
+    }
+}
+
+/// Zeroes a compressed matrix's value array.
+void zero_values(SpMatRM &m) {
+    if (m.nonZeros() > 0) {
+        Eigen::Map<Vec>(m.valuePtr(), m.nonZeros()).setZero();
+    }
 }
 
 /// Lays a compressed pattern over the given coordinates, summing duplicates
@@ -342,77 +373,88 @@ double NlpProblemModel::eval_f(const Vec &x) const {
     return f;
 }
 
-const Vec &NlpProblemModel::grad_in_place(const Vec &x) const {
+void NlpProblemModel::eval_grad_in_place(const Vec &x, Vec &out) const {
     this->sync_x(x);
-    problem_->eval_grad_f(x_cache_, grad_);
-    return grad_;
+    out.resize(n_);
+    problem_->eval_grad_f(x_cache_, out);
 }
 
-const Vec &NlpProblemModel::ce_in_place(const Vec &x) const {
+void NlpProblemModel::eval_ce_in_place(const Vec &x, Vec &out) const {
     this->refresh_g(x);
+    out.resize(rows_.num_eq_);
     for (std::size_t k = 0; k < eq_res_.size(); k++) {
         const ResTarget &t = eq_res_[k];
-        ce_[static_cast<Index>(k)] = t.sign_ * (g_cache_[t.row_] - t.shift_);
+        out[static_cast<Index>(k)] = t.sign_ * (g_cache_[t.row_] - t.shift_);
     }
-    return ce_;
 }
 
-const Vec &NlpProblemModel::ci_in_place(const Vec &x) const {
+void NlpProblemModel::eval_ci_in_place(const Vec &x, Vec &out) const {
     this->refresh_g(x);
+    out.resize(rows_.num_iq_);
     for (std::size_t k = 0; k < iq_res_.size(); k++) {
         const ResTarget &t = iq_res_[k];
-        ci_[static_cast<Index>(k)] = t.sign_ * (g_cache_[t.row_] - t.shift_);
+        out[static_cast<Index>(k)] = t.sign_ * (g_cache_[t.row_] - t.shift_);
     }
-    return ci_;
 }
 
-const SpMatRM &NlpProblemModel::jac_e_in_place(const Vec &x) const {
+void NlpProblemModel::eval_jac_e_in_place(const Vec &x, SpMatRM &out) const {
     this->refresh_jac(x);
-    if (jac_e_.nonZeros() > 0) {
-        Eigen::Map<Vec>(jac_e_.valuePtr(), jac_e_.nonZeros()).setZero();
-    }
+    adopt_pattern(out, jac_e_);
+    zero_values(out);
     for (const JacTarget &t : eq_jac_) {
-        jac_e_.valuePtr()[t.value_index_] += t.sign_ * jac_cache_[t.slot_];
+        out.valuePtr()[t.value_index_] += t.sign_ * jac_cache_[t.slot_];
     }
-    return jac_e_;
 }
 
-const SpMatRM &NlpProblemModel::jac_i_in_place(const Vec &x) const {
+void NlpProblemModel::eval_jac_i_in_place(const Vec &x, SpMatRM &out) const {
     this->refresh_jac(x);
-    if (jac_i_.nonZeros() > 0) {
-        Eigen::Map<Vec>(jac_i_.valuePtr(), jac_i_.nonZeros()).setZero();
-    }
+    adopt_pattern(out, jac_i_);
+    zero_values(out);
     for (const JacTarget &t : iq_jac_) {
-        jac_i_.valuePtr()[t.value_index_] += t.sign_ * jac_cache_[t.slot_];
+        out.valuePtr()[t.value_index_] += t.sign_ * jac_cache_[t.slot_];
     }
-    return jac_i_;
 }
 
-const SpMatRM &NlpProblemModel::hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
-                                              const Vec &lambda_i) const {
+void NlpProblemModel::eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
+                                         const Vec &lambda_i, SpMatRM &out) const {
     this->sync_x(x);
     this->compose_into(lambda_user_, lambda_e, lambda_i);
     if (hess_nnz_ > 0) {
         problem_->eval_hess(x_cache_, obj_scale, lambda_user_, hess_vals_);
     }
-    if (hess_.nonZeros() > 0) {
-        Eigen::Map<Vec>(hess_.valuePtr(), hess_.nonZeros()).setZero();
-    }
+    adopt_pattern(out, hess_);
+    zero_values(out);
     for (int k = 0; k < hess_nnz_; k++) {
-        hess_.valuePtr()[hess_value_index_[static_cast<std::size_t>(k)]] += hess_vals_[k];
+        out.valuePtr()[hess_value_index_[static_cast<std::size_t>(k)]] += hess_vals_[k];
     }
-    return hess_;
 }
 
-// The by-value contract, one copy of the storage above each.
-Vec NlpProblemModel::eval_grad(const Vec &x) const { return this->grad_in_place(x); }
-Vec NlpProblemModel::eval_ce(const Vec &x) const { return this->ce_in_place(x); }
-Vec NlpProblemModel::eval_ci(const Vec &x) const { return this->ci_in_place(x); }
-SpMatRM NlpProblemModel::eval_jac_e(const Vec &x) const { return this->jac_e_in_place(x); }
-SpMatRM NlpProblemModel::eval_jac_i(const Vec &x) const { return this->jac_i_in_place(x); }
+// The by-value contract: the same fill into a member of this model, then one
+// copy of it.
+Vec NlpProblemModel::eval_grad(const Vec &x) const {
+    this->eval_grad_in_place(x, grad_);
+    return grad_;
+}
+Vec NlpProblemModel::eval_ce(const Vec &x) const {
+    this->eval_ce_in_place(x, ce_);
+    return ce_;
+}
+Vec NlpProblemModel::eval_ci(const Vec &x) const {
+    this->eval_ci_in_place(x, ci_);
+    return ci_;
+}
+SpMatRM NlpProblemModel::eval_jac_e(const Vec &x) const {
+    this->eval_jac_e_in_place(x, jac_e_values_);
+    return jac_e_values_;
+}
+SpMatRM NlpProblemModel::eval_jac_i(const Vec &x) const {
+    this->eval_jac_i_in_place(x, jac_i_values_);
+    return jac_i_values_;
+}
 SpMatRM NlpProblemModel::eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
                                    const Vec &lambda_i) const {
-    return this->hess_in_place(x, obj_scale, lambda_e, lambda_i);
+    this->eval_hess_in_place(x, obj_scale, lambda_e, lambda_i, hess_values_);
+    return hess_values_;
 }
 
 Vec NlpProblemModel::start_point() const {

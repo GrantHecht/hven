@@ -643,3 +643,122 @@ TEST(NlpAdapterHostTest, AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint) 
         }
     }
 }
+
+namespace {
+
+/// The same model reached through the base class's DEFAULT in-place
+/// implementations: it forwards only the by-value methods and overrides none
+/// of the in-place ones, so every in-place call on it takes NlpModel's
+/// delegation.
+struct NpmByValueOnlyModel : hven::solvers::NlpModel {
+    std::shared_ptr<NlpProblemModel> inner_;
+
+    explicit NpmByValueOnlyModel(std::shared_ptr<NlpProblemModel> inner)
+        : inner_(std::move(inner)) {}
+
+    hven::Index n() const override { return inner_->n(); }
+    hven::Index me() const override { return inner_->me(); }
+    hven::Index mi() const override { return inner_->mi(); }
+    double eval_f(const Eigen::VectorXd &x) const override { return inner_->eval_f(x); }
+    Eigen::VectorXd eval_grad(const Eigen::VectorXd &x) const override {
+        return inner_->eval_grad(x);
+    }
+    Eigen::VectorXd eval_ce(const Eigen::VectorXd &x) const override { return inner_->eval_ce(x); }
+    Eigen::VectorXd eval_ci(const Eigen::VectorXd &x) const override { return inner_->eval_ci(x); }
+    hven::SpMatRM eval_hess(const Eigen::VectorXd &x, double obj_scale, const Eigen::VectorXd &le,
+                            const Eigen::VectorXd &li) const override {
+        return inner_->eval_hess(x, obj_scale, le, li);
+    }
+    hven::SpMatRM eval_jac_e(const Eigen::VectorXd &x) const override {
+        return inner_->eval_jac_e(x);
+    }
+    hven::SpMatRM eval_jac_i(const Eigen::VectorXd &x) const override {
+        return inner_->eval_jac_i(x);
+    }
+    const Eigen::VectorXd &lower() const override { return inner_->lower(); }
+    const Eigen::VectorXd &upper() const override { return inner_->upper(); }
+    Eigen::VectorXd start_point() const override { return inner_->start_point(); }
+};
+
+/// Bit-for-bit, not near: the two paths must agree exactly.
+void npm_expect_identical(const Eigen::VectorXd &a, const Eigen::VectorXd &b, const char *what) {
+    ASSERT_EQ(a.size(), b.size()) << what;
+    for (Eigen::Index k = 0; k < a.size(); k++) {
+        EXPECT_EQ(a[k], b[k]) << what << " entry " << k;
+    }
+}
+
+void npm_expect_identical(const hven::SpMatRM &a, const hven::SpMatRM &b, const char *what) {
+    ASSERT_EQ(a.rows(), b.rows()) << what;
+    ASSERT_EQ(a.cols(), b.cols()) << what;
+    ASSERT_EQ(a.nonZeros(), b.nonZeros()) << what;
+    ASSERT_EQ(a.isCompressed(), b.isCompressed()) << what;
+    for (Eigen::Index k = 0; k <= a.outerSize(); k++) {
+        EXPECT_EQ(a.outerIndexPtr()[k], b.outerIndexPtr()[k]) << what << " outer " << k;
+    }
+    for (Eigen::Index k = 0; k < a.nonZeros(); k++) {
+        EXPECT_EQ(a.innerIndexPtr()[k], b.innerIndexPtr()[k]) << what << " inner " << k;
+        EXPECT_EQ(a.valuePtr()[k], b.valuePtr()[k]) << what << " value " << k;
+    }
+}
+
+} // namespace
+
+// An override and the base class's default must be interchangeable. The
+// default calls the by-value counterpart and assigns; an override fills the
+// destination directly. Every consumer calls the in-place form
+// unconditionally, so the two have to produce the same numbers -- exactly,
+// not nearly.
+TEST(NlpProblemModelTest, TheInPlaceOverrideAndTheDefaultDelegationAgreeExactly) {
+    auto problem = std::make_shared<NpmKindsProblem>();
+    auto overriding = std::make_shared<NlpProblemModel>(problem);
+    NpmByValueOnlyModel defaulting(std::make_shared<NlpProblemModel>(problem));
+
+    Eigen::VectorXd le(1), li(4);
+    le << 0.5;
+    li << 1.0, 2.0, 3.0, 4.0;
+
+    Eigen::VectorXd grad_a, grad_b, ce_a, ce_b, ci_a, ci_b;
+    hven::SpMatRM je_a, je_b, ji_a, ji_b, h_a, h_b;
+
+    // Three iterates through one pair of destinations, so both the first call
+    // (which lays the destination's pattern) and every steady-state call after
+    // it are covered.
+    for (double t : {0.0, 1.5, -2.25}) {
+        Eigen::VectorXd x(2);
+        x << t, 0.5 * t - 1.0;
+
+        overriding->eval_grad_in_place(x, grad_a);
+        defaulting.eval_grad_in_place(x, grad_b);
+        npm_expect_identical(grad_a, grad_b, "eval_grad_in_place");
+
+        overriding->eval_ce_in_place(x, ce_a);
+        defaulting.eval_ce_in_place(x, ce_b);
+        npm_expect_identical(ce_a, ce_b, "eval_ce_in_place");
+
+        overriding->eval_ci_in_place(x, ci_a);
+        defaulting.eval_ci_in_place(x, ci_b);
+        npm_expect_identical(ci_a, ci_b, "eval_ci_in_place");
+
+        overriding->eval_jac_e_in_place(x, je_a);
+        defaulting.eval_jac_e_in_place(x, je_b);
+        npm_expect_identical(je_a, je_b, "eval_jac_e_in_place");
+
+        overriding->eval_jac_i_in_place(x, ji_a);
+        defaulting.eval_jac_i_in_place(x, ji_b);
+        npm_expect_identical(ji_a, ji_b, "eval_jac_i_in_place");
+
+        overriding->eval_hess_in_place(x, 2.0, le, li, h_a);
+        defaulting.eval_hess_in_place(x, 2.0, le, li, h_b);
+        npm_expect_identical(h_a, h_b, "eval_hess_in_place");
+
+        // ...and each agrees with its own by-value counterpart, which is what
+        // the defaults are defined in terms of.
+        npm_expect_identical(overriding->eval_grad(x), grad_a, "eval_grad");
+        npm_expect_identical(overriding->eval_ce(x), ce_a, "eval_ce");
+        npm_expect_identical(overriding->eval_ci(x), ci_a, "eval_ci");
+        npm_expect_identical(overriding->eval_jac_e(x), je_a, "eval_jac_e");
+        npm_expect_identical(overriding->eval_jac_i(x), ji_a, "eval_jac_i");
+        npm_expect_identical(overriding->eval_hess(x, 2.0, le, li), h_a, "eval_hess");
+    }
+}

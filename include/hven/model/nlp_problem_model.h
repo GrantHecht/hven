@@ -33,7 +33,6 @@
 #include "hven/core/types.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_in_place.h"
 #include "hven/model/nlp_problem.h"
 
 namespace hven::solvers {
@@ -124,13 +123,13 @@ struct NLPRowClassification {
 /// exception -- the mutation is behind `mutable`, which is what makes the
 /// caching possible at all.
 ///
-/// Storage. The native residuals, Jacobians and Hessian live in members whose
-/// patterns are laid once at construction and whose values are rewritten in
-/// place on every evaluation, so an evaluation after the first allocates
-/// nothing. NlpModel's by-value methods hand back a copy of that storage, as
-/// their signatures require; the NlpModelInPlace methods hand back a reference
-/// to it, valid until the next call that refreshes it.
-class NlpProblemModel final : public NlpModel, public NlpModelInPlace {
+/// Storage. The native patterns are laid once at construction and only values
+/// are written afterwards, so an evaluation after the first allocates nothing.
+/// The in-place methods write straight into the caller's destination, giving it
+/// the laid pattern the first time they see it and filling its value array on
+/// every call after; the by-value methods do the same into a member of this
+/// model and hand back a copy of it, as their signatures require.
+class NlpProblemModel final : public NlpModel {
   public:
     /// @brief Converts a declared problem, validating its declaration.
     /// @param problem The problem to convert; must not be null.
@@ -166,16 +165,17 @@ class NlpProblemModel final : public NlpModel, public NlpModelInPlace {
     SpMatRM eval_jac_e(const Vec &x) const override;
     SpMatRM eval_jac_i(const Vec &x) const override;
 
-    // --- NlpModelInPlace: the same evaluations, as references into the
-    //     storage above. Each returns exactly what its by-value counterpart
-    //     returns; the by-value methods are implemented as a copy of these. ---
-    const Vec &grad_in_place(const Vec &x) const override;
-    const Vec &ce_in_place(const Vec &x) const override;
-    const Vec &ci_in_place(const Vec &x) const override;
-    const SpMatRM &jac_e_in_place(const Vec &x) const override;
-    const SpMatRM &jac_i_in_place(const Vec &x) const override;
-    const SpMatRM &hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
-                                 const Vec &lambda_i) const override;
+    // --- The in-place forms, overridden so a consumer's own storage is filled
+    //     directly. Each leaves the destination holding exactly what its
+    //     by-value counterpart returns; the by-value methods are implemented
+    //     as a copy of these. ---
+    void eval_grad_in_place(const Vec &x, Vec &out) const override;
+    void eval_ce_in_place(const Vec &x, Vec &out) const override;
+    void eval_ci_in_place(const Vec &x, Vec &out) const override;
+    void eval_jac_e_in_place(const Vec &x, SpMatRM &out) const override;
+    void eval_jac_i_in_place(const Vec &x, SpMatRM &out) const override;
+    void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
+                            const Vec &lambda_i, SpMatRM &out) const override;
 
     /// @brief Declared variable lower bounds, verbatim.
     const Vec &lower() const override { return x_lower_; }
@@ -253,9 +253,15 @@ class NlpProblemModel final : public NlpModel, public NlpModelInPlace {
     std::vector<JacTarget> eq_jac_, iq_jac_;
     std::vector<int> hess_value_index_; ///< declared Hessian slot -> native value index
 
-    /// The native patterns, laid once and refilled in place. Held here so a
-    /// per-iterate evaluation costs one value pass rather than a rebuild.
-    mutable SpMatRM jac_e_, jac_i_, hess_;
+    /// The native patterns, laid once at construction. Only their index arrays
+    /// are read after that: an in-place evaluation gives its destination this
+    /// pattern the first time it sees it, then fills that destination's value
+    /// array.
+    SpMatRM jac_e_, jac_i_, hess_;
+
+    /// The by-value methods' own destinations, filled by the in-place methods
+    /// and copied out.
+    mutable SpMatRM jac_e_values_, jac_i_values_, hess_values_;
 
     // --- Per-iterate cache; the callbacks are pure, so it keys on the iterate.
     mutable Vec x_cache_;
@@ -264,7 +270,7 @@ class NlpProblemModel final : public NlpModel, public NlpModelInPlace {
     mutable Vec g_cache_, jac_cache_;
     mutable Vec lambda_user_, hess_vals_;
 
-    /// The native returns, laid once and rewritten in place.
+    /// The by-value methods' own destinations for the dense returns.
     mutable Vec grad_, ce_, ci_;
 };
 

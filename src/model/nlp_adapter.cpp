@@ -118,11 +118,6 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
     if (!model_) {
         throw std::invalid_argument("NLPAdapterCore: the model pointer is null");
     }
-    // Asked once, here. A model that publishes the in-place surface is read
-    // through it on every later evaluation, which is what lets a warm assembly
-    // allocate nothing; one that does not is evaluated by value into the
-    // scratch below.
-    in_place_ = dynamic_cast<const NlpModelInPlace *>(model_.get());
     n_ = to_host_count(model_->n(), "n()", name_);
     num_eq_ = to_host_count(model_->me(), "me()", name_);
     num_iq_ = to_host_count(model_->mi(), "mi()", name_);
@@ -168,49 +163,30 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
     le_record_ = Eigen::VectorXd::Zero(num_eq_);
 
     // Everything a later evaluation writes into, sized here so that nothing
-    // after this point resizes: the fallback scratch, and the views that name
-    // whichever storage the values currently live in.
+    // after this point resizes.
     grad_scratch_ = Eigen::VectorXd::Zero(n_);
     ce_scratch_ = Eigen::VectorXd::Zero(num_eq_);
     ci_scratch_ = Eigen::VectorXd::Zero(num_iq_);
     jac_e_scratch_ = SpMatRM(num_eq_, n_);
     jac_i_scratch_ = SpMatRM(num_iq_, n_);
     hess_scratch_ = SpMatRM(n_, n_);
-    grad_view_ = &grad_scratch_;
-    ce_view_ = &ce_scratch_;
-    ci_view_ = &ci_scratch_;
-    jac_e_view_ = &jac_e_scratch_;
-    jac_i_view_ = &jac_i_scratch_;
-    hess_view_ = &hess_scratch_;
 
     // The three patterns, walked once at the model's own start point. Which
     // point is immaterial by the model's invariance precondition; the start
     // point is the one point every model is required to be able to produce.
-    if (in_place_) {
-        hess_view_ = &in_place_->hess_in_place(x0, 1.0, le_scratch_, li_scratch_);
-    } else {
-        hess_scratch_ = model_->eval_hess(x0, 1.0, le_scratch_, li_scratch_);
-    }
+    model_->eval_hess_in_place(x0, 1.0, le_scratch_, li_scratch_, hess_scratch_);
     require_dimensions(this->hessian(), n_, n_, "eval_hess", name_);
     require_upper_triangle(this->hessian(), name_);
     hess_ = record_coordinates(this->hessian());
 
     if (num_eq_ > 0) {
-        if (in_place_) {
-            jac_e_view_ = &in_place_->jac_e_in_place(x0);
-        } else {
-            jac_e_scratch_ = model_->eval_jac_e(x0);
-        }
+        model_->eval_jac_e_in_place(x0, jac_e_scratch_);
     }
     require_dimensions(this->equality_jacobian(), num_eq_, n_, "eval_jac_e", name_);
     eq_jac_ = record_coordinates(this->equality_jacobian());
 
     if (num_iq_ > 0) {
-        if (in_place_) {
-            jac_i_view_ = &in_place_->jac_i_in_place(x0);
-        } else {
-            jac_i_scratch_ = model_->eval_jac_i(x0);
-        }
+        model_->eval_jac_i_in_place(x0, jac_i_scratch_);
     }
     require_dimensions(this->inequality_jacobian(), num_iq_, n_, "eval_jac_i", name_);
     iq_jac_ = record_coordinates(this->inequality_jacobian());
@@ -239,12 +215,7 @@ void NLPAdapterCore::refresh_gradient(ConstEigenRef<Eigen::VectorXd> x) {
     if (gradient_valid_) {
         return;
     }
-    if (in_place_) {
-        grad_view_ = &in_place_->grad_in_place(x_cache_);
-    } else {
-        grad_scratch_ = model_->eval_grad(x_cache_);
-        grad_view_ = &grad_scratch_;
-    }
+    model_->eval_grad_in_place(x_cache_, grad_scratch_);
     require_length(this->gradient().size(), n_, "eval_grad", name_);
     gradient_valid_ = true;
 }
@@ -255,21 +226,11 @@ void NLPAdapterCore::refresh_residuals(ConstEigenRef<Eigen::VectorXd> x) {
         return;
     }
     if (num_eq_ > 0) {
-        if (in_place_) {
-            ce_view_ = &in_place_->ce_in_place(x_cache_);
-        } else {
-            ce_scratch_ = model_->eval_ce(x_cache_);
-            ce_view_ = &ce_scratch_;
-        }
+        model_->eval_ce_in_place(x_cache_, ce_scratch_);
         require_length(this->equality_residuals().size(), num_eq_, "eval_ce", name_);
     }
     if (num_iq_ > 0) {
-        if (in_place_) {
-            ci_view_ = &in_place_->ci_in_place(x_cache_);
-        } else {
-            ci_scratch_ = model_->eval_ci(x_cache_);
-            ci_view_ = &ci_scratch_;
-        }
+        model_->eval_ci_in_place(x_cache_, ci_scratch_);
         require_length(this->inequality_residuals().size(), num_iq_, "eval_ci", name_);
     }
     residuals_valid_ = true;
@@ -281,22 +242,12 @@ void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
         return;
     }
     if (num_eq_ > 0) {
-        if (in_place_) {
-            jac_e_view_ = &in_place_->jac_e_in_place(x_cache_);
-        } else {
-            jac_e_scratch_ = model_->eval_jac_e(x_cache_);
-            jac_e_view_ = &jac_e_scratch_;
-        }
+        model_->eval_jac_e_in_place(x_cache_, jac_e_scratch_);
         require_dimensions(this->equality_jacobian(), num_eq_, n_, "eval_jac_e", name_);
         nlp_require_claimed_pattern(this->equality_jacobian(), eq_jac_, "eval_jac_e", name_);
     }
     if (num_iq_ > 0) {
-        if (in_place_) {
-            jac_i_view_ = &in_place_->jac_i_in_place(x_cache_);
-        } else {
-            jac_i_scratch_ = model_->eval_jac_i(x_cache_);
-            jac_i_view_ = &jac_i_scratch_;
-        }
+        model_->eval_jac_i_in_place(x_cache_, jac_i_scratch_);
         require_dimensions(this->inequality_jacobian(), num_iq_, n_, "eval_jac_i", name_);
         nlp_require_claimed_pattern(this->inequality_jacobian(), iq_jac_, "eval_jac_i", name_);
     }
@@ -335,12 +286,7 @@ void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, doubl
     } else {
         li_scratch_.setZero();
     }
-    if (in_place_) {
-        hess_view_ = &in_place_->hess_in_place(x_cache_, obj_factor, le_scratch_, li_scratch_);
-    } else {
-        hess_scratch_ = model_->eval_hess(x_cache_, obj_factor, le_scratch_, li_scratch_);
-        hess_view_ = &hess_scratch_;
-    }
+    model_->eval_hess_in_place(x_cache_, obj_factor, le_scratch_, li_scratch_, hess_scratch_);
     require_dimensions(this->hessian(), n_, n_, "eval_hess", name_);
     nlp_require_claimed_pattern(this->hessian(), hess_, "eval_hess", name_);
 }
