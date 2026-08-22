@@ -495,21 +495,24 @@ class NlpAggregate {
     /// claims into the consumer's storage through the tables the consumer
     /// published.
     ///
-    /// `request` selects what is EVALUATED this call. It replaces the eight
-    /// evaluation shapes the partitioned engine grew, bijectively and with no
-    /// over-evaluation -- see the mapping table in model/candidate_point.h,
-    /// which is the contract text for that replacement. Views for arenas a
-    /// request does not name may be empty, and the scalar objective value has
-    /// an out slot of its own.
+    /// `request` selects what is EVALUATED this call. The named shapes are a
+    /// union of consumer-owned families -- each family replaces its own
+    /// consumer's legacy call bills bijectively and with no over-evaluation;
+    /// the mapping table in model/candidate_point.h is the contract text,
+    /// including each provider's SUPPORT statement (a provider handed a
+    /// legal shape outside the families it serves refuses it by name). Views
+    /// for arenas a request does not name may be empty, and the scalar
+    /// objective value has an out slot of its own.
     ///
     /// Request masking never alters layout, structural key or structure epoch,
     /// and every legal request subset carries the full path's determinism
     /// guarantee.
     ///
     /// VALIDATED HERE, NOT BY THE IMPLEMENTATION, before anything is evaluated:
-    ///   * validate_eval_request(request) -- exactly the eight named shapes are
+    ///   * validate_eval_request(request) -- exactly the named shapes are
     ///     legal, and a composed-but-unmapped combination is refused rather
-    ///     than approximated.
+    ///     than approximated. Provider SUPPORT within the legal set is the
+    ///     implementation's own refusal, at its hook.
     ///   * validate_candidate_point(point, ...) -- the primal block is sized to
     ///     the declaration; the multiplier blocks are empty or exact.
     ///   * validate_full_multipliers(point, ...) when

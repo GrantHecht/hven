@@ -1577,10 +1577,14 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
     const Eigen::Ref<const VectorXd> Xf = this->declaration_view(point.x_);
     const double scale = point.objective_scale_;
 
-    // The eight shapes, in the mapping table's order. Every arm runs exactly
-    // the pass its legacy counterpart ran and fills exactly the destinations
-    // the request names -- never the solver's own KKT coefficients, which are
-    // the consumer's to scatter.
+    // The eight interior-owned shapes, in the mapping table's order. Every arm
+    // runs exactly the pass its legacy counterpart ran and fills exactly the
+    // destinations the request names -- never the solver's own KKT
+    // coefficients, which are the consumer's to scatter. The terminal arm
+    // REFUSES a legal shape outside this provider's support (the mapping
+    // table's per-provider support statement): a bare-else fallback here
+    // served the full-KKT pass for any legal-but-unsupported shape -- silent
+    // over-evaluation, the defect class the refusal exists to prevent.
     if (request == kRequestObjectiveOnly) {
         this->objective_pass(scale, Xf, *rhs.objective_);
     } else if (request == kRequestObjectiveAndConstraints) {
@@ -1623,13 +1627,29 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
         this->fill_fxe(arena_vector(rhs.equality_residuals_));
         this->fill_fxi(arena_vector(rhs.inequality_residuals_));
-    } else {
+    } else if (request == kRequestFullKkt) {
         this->full_kkt_pass(scale, Xf, point.equality_multipliers_, point.inequality_multipliers_,
                             *rhs.objective_, *mat);
         this->fill_pgx(arena_vector(rhs.objective_gradient_));
         this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
         this->fill_fxe(arena_vector(rhs.equality_residuals_));
         this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+    } else {
+        // request is legal (assemble() validated it) but not one of this
+        // provider's eight shapes -- rows 9-11 are the SQP driver's, served by
+        // the NlpModelAggregate bridge, never by this engine. Refusing by name
+        // is the point: a bare-else fallback here would silently run the
+        // full-KKT pass for a shape that asked for far less, over-evaluating
+        // exactly as the mapping table's per-provider support statement
+        // forbids.
+        throw std::invalid_argument(fmt::format(
+            "assemble: the flag combination 0x{0:x} is a legal evaluation shape, but this "
+            "provider does not support it. The partitioned evaluation engine serves the eight "
+            "shapes it grew; see the mapping table's per-provider support statement in "
+            "model/candidate_point.h. Legal and supported-by-this-provider are distinct facts: "
+            "this request cleared validate_eval_request but names no shape among this engine's "
+            "own eight.",
+            static_cast<std::uint32_t>(request)));
     }
 
     // size_ is not validated on the engine path; identity and non-emptiness

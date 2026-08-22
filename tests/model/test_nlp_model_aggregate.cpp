@@ -51,10 +51,13 @@ using hven::solvers::IdentityProbe;
 using hven::solvers::KktLocationTable;
 using hven::solvers::KktScatterView;
 using hven::solvers::kRequestConstraintJacobianOnly;
+using hven::solvers::kRequestConstraintJacobiansOnly;
 using hven::solvers::kRequestConstraintKkt;
 using hven::solvers::kRequestFirstOrderKkt;
 using hven::solvers::kRequestFirstOrderRhs;
 using hven::solvers::kRequestFullKkt;
+using hven::solvers::kRequestGradientAndJacobians;
+using hven::solvers::kRequestLagrangianHessian;
 using hven::solvers::kRequestObjectiveAndConstraints;
 using hven::solvers::kRequestObjectiveGradientAndConstraints;
 using hven::solvers::kRequestObjectiveOnly;
@@ -869,6 +872,65 @@ TEST(NlpModelAggregateEvaluatorSets, FullKktRunsEveryEvaluatorExactlyOnce) {
     EXPECT_EQ(counts_for(kRequestFullKkt, true), expected);
 }
 
+// The three SQP-owned shapes (rows 9-11): the model-call bill each one
+// reproduces, pinned exactly rather than at-most. Full struct equality on
+// BridgeEvalCounts is itself the falsification device -- if shape 9 also
+// called eval_f, expected.f_ (0) would disagree with the real count and the
+// EXPECT_EQ below would fail; the explicit zero checks make that property
+// visible without relying on the reader to notice what the struct omits.
+
+TEST(NlpModelAggregateEvaluatorSets, LagrangianHessianRunsEvalHessAloneAndNothingElse) {
+    auto model = counting_model();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    model->reset_counts();
+    aggregate.assemble(point.full(), kRequestLagrangianHessian, destinations.kkt_view(),
+                       destinations.rhs_view());
+
+    BridgeEvalCounts expected;
+    expected.hess_ = 1;
+    EXPECT_EQ(model->counts(), expected);
+    EXPECT_EQ(model->counts().f_, 0) << "shape 9 must not evaluate the objective";
+}
+
+TEST(NlpModelAggregateEvaluatorSets, GradientAndJacobiansRunsGradPlusBothJacobiansAndNoValues) {
+    auto model = counting_model();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    model->reset_counts();
+    aggregate.assemble(point.values_only(), kRequestGradientAndJacobians, destinations.kkt_view(),
+                       destinations.rhs_view());
+
+    BridgeEvalCounts expected;
+    expected.grad_ = 1;
+    expected.jac_e_ = 1;
+    expected.jac_i_ = 1;
+    EXPECT_EQ(model->counts(), expected);
+    EXPECT_EQ(model->counts().values_, 0)
+        << "shape 10 must not re-evaluate the values its consumer already holds";
+}
+
+TEST(NlpModelAggregateEvaluatorSets, ConstraintJacobiansOnlyRunsBothJacobiansAloneAndNoGradient) {
+    auto model = counting_model();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    model->reset_counts();
+    aggregate.assemble(point.values_only(), kRequestConstraintJacobiansOnly,
+                       destinations.kkt_view(), destinations.rhs_view());
+
+    BridgeEvalCounts expected;
+    expected.jac_e_ = 1;
+    expected.jac_i_ = 1;
+    EXPECT_EQ(model->counts(), expected);
+    EXPECT_EQ(model->counts().grad_, 0) << "shape 11 names no objective output at all";
+}
+
 TEST(NlpModelAggregateEvaluatorSets, AConstantConstraintBlockStillReachesItsJacobianEvaluator) {
     // The equality row is a constant, so its Jacobian is all structural zeros
     // and the claim pass lays no claim for it. The row count is what decides
@@ -1091,6 +1153,100 @@ TEST(NlpModelAggregateEquivalence, ConstraintJacobianOnlyWritesNoHessianSlot) {
     }
     EXPECT_TRUE(destinations.dense_kkt(aggregate).isApprox(
         hand_composed_kkt(*model, point.x_, 0.0, point.equality_, point.inequality_, false)));
+}
+
+// The three SQP-owned shapes (rows 9-11), served by the bridge without throw
+// and checked against the same hand compositions the interior-owned shapes
+// use above.
+
+TEST(NlpModelAggregateEquivalence, LagrangianHessianAloneMatchesEvalHessComposedLagrangian) {
+    auto model = counting_model();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+    const double scale = 2.0;
+
+    EXPECT_NO_THROW(aggregate.assemble(point.full(scale), kRequestLagrangianHessian,
+                                       destinations.kkt_view(), destinations.rhs_view()));
+
+    // The composed Lagrangian Hessian, by hand: the model's own eval_hess at
+    // this point's scale and multipliers, scattered through no Jacobian claim
+    // at all -- shape 9 names the Hessian alone.
+    Eigen::MatrixXd expected =
+        Eigen::MatrixXd::Zero(aggregate.kkt_dimension(), aggregate.kkt_dimension());
+    const SpMatRM hessian = model->eval_hess(point.x_, scale, point.equality_, point.inequality_);
+    for (int outer = 0; outer < static_cast<int>(hessian.outerSize()); ++outer) {
+        for (SpMatRM::InnerIterator it(hessian, outer); it; ++it) {
+            expected(it.row(), it.col()) += it.value();
+        }
+    }
+    EXPECT_TRUE(destinations.dense_kkt(aggregate).isApprox(expected))
+        << "shape 9's assembled KKT block must equal the composed Lagrangian Hessian alone";
+
+    // Neither value kind, and no gradient of either kind: this shape names
+    // none of them.
+    EXPECT_DOUBLE_EQ(destinations.objective_, 0.0);
+    for (double value : destinations.objective_gradient_.values()) {
+        EXPECT_DOUBLE_EQ(value, 0.0);
+    }
+    for (double value : destinations.equality_residuals_.values()) {
+        EXPECT_DOUBLE_EQ(value, 0.0);
+    }
+    for (double value : destinations.inequality_residuals_.values()) {
+        EXPECT_DOUBLE_EQ(value, 0.0);
+    }
+}
+
+TEST(NlpModelAggregateEquivalence, GradientAndJacobiansFillsTheGradientArenaAndBothJacobianClaims) {
+    auto model = counting_model();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    EXPECT_NO_THROW(aggregate.assemble(point.values_only(), kRequestGradientAndJacobians,
+                                       destinations.kkt_view(), destinations.rhs_view()));
+
+    const Vec gradient = model->eval_grad(point.x_);
+    for (int row = 0; row < gradient.size(); ++row) {
+        EXPECT_DOUBLE_EQ(destinations.objective_gradient_.values()[static_cast<std::size_t>(row)],
+                         gradient[row]);
+    }
+    EXPECT_TRUE(destinations.dense_kkt(aggregate).isApprox(
+        hand_composed_kkt(*model, point.x_, 0.0, point.equality_, point.inequality_, false)))
+        << "shape 10's assembled KKT block must be the Jacobian pair alone";
+
+    // Values not re-evaluated, and no adjoint gradient: this shape names
+    // neither value kind and no constraint adjoint.
+    EXPECT_DOUBLE_EQ(destinations.objective_, 0.0);
+    for (double value : destinations.adjoint_gradient_.values()) {
+        EXPECT_DOUBLE_EQ(value, 0.0);
+    }
+    for (double value : destinations.equality_residuals_.values()) {
+        EXPECT_DOUBLE_EQ(value, 0.0);
+    }
+    for (double value : destinations.inequality_residuals_.values()) {
+        EXPECT_DOUBLE_EQ(value, 0.0);
+    }
+}
+
+TEST(NlpModelAggregateEquivalence,
+     ConstraintJacobiansOnlyFillsTheJacobianClaimsAndLeavesTheGradientArenaUntouched) {
+    auto model = counting_model();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    EXPECT_NO_THROW(aggregate.assemble(point.values_only(), kRequestConstraintJacobiansOnly,
+                                       destinations.kkt_view(), destinations.rhs_view()));
+
+    EXPECT_TRUE(destinations.dense_kkt(aggregate).isApprox(
+        hand_composed_kkt(*model, point.x_, 0.0, point.equality_, point.inequality_, false)))
+        << "shape 11's assembled KKT block must be the Jacobian pair alone";
+
+    for (double value : destinations.objective_gradient_.values()) {
+        EXPECT_DOUBLE_EQ(value, 0.0) << "shape 11 names no objective gradient";
+    }
+    EXPECT_DOUBLE_EQ(destinations.objective_, 0.0);
 }
 
 TEST(NlpModelAggregateEquivalence, ClaimsLandWhereTheTableSendsThemUnderEitherOrder) {

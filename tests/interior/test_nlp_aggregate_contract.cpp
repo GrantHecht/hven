@@ -18,12 +18,15 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#include <fmt/format.h>
 
 #include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/model/nlp_adapter.h"
@@ -1448,6 +1451,77 @@ TEST(NlpAggregateEngineContract, AnUnmappedRequestIsRefusedAtTheEngineEntry) {
     EXPECT_THROW(nlp->assemble(CandidatePoint{x, none, none}, EvalRequest::kObjectiveGradient,
                                storage.kkt_view(*nlp), storage.rhs_view(*nlp)),
                  std::invalid_argument);
+}
+
+// ---------------------------------------------------------------------------
+// Legal-but-unsupported shapes (rows 9-11): refused by name, not approximated
+// ---------------------------------------------------------------------------
+
+TEST(NlpAggregateEngineContract, ALegalLagrangianHessianRequestIsRefusedByName) {
+    // Shape 9 clears validate_eval_request -- it is one of the named sets --
+    // but it is the SQP driver's own shape, not one of the eight this engine
+    // grew. The terminal dispatch arm refuses it by name instead of silently
+    // running the full-KKT pass, which is what a bare-else fallback used to do.
+    auto nlp = agg_pin_build_small();
+    AggPinSolverStorage storage(*nlp);
+    const Eigen::VectorXd x = agg_pin_x();
+    const Eigen::VectorXd le = agg_pin_le();
+    const Eigen::VectorXd li = agg_pin_li();
+
+    try {
+        nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestLagrangianHessian,
+                      storage.kkt_view(*nlp), storage.rhs_view(*nlp));
+        FAIL() << "a legal-but-unsupported shape must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("support"), std::string::npos) << message;
+        EXPECT_NE(
+            message.find(fmt::format(
+                "0x{0:x}", static_cast<std::uint32_t>(hven::solvers::kRequestLagrangianHessian))),
+            std::string::npos)
+            << message;
+    }
+    // Refused before anything ran: the objective slot never moved off zero.
+    EXPECT_EQ(storage.objective, 0.0);
+}
+
+TEST(NlpAggregateEngineContract, ALegalConstraintJacobiansOnlyRequestIsRefusedByName) {
+    // The companion pin over shape 11, the narrowest of the three SQP-owned
+    // shapes: no multipliers, no objective output at all.
+    auto nlp = agg_pin_build_small();
+    AggPinSolverStorage storage(*nlp);
+    const Eigen::VectorXd x = agg_pin_x();
+    const Eigen::VectorXd none;
+
+    try {
+        nlp->assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestConstraintJacobiansOnly,
+                      storage.kkt_view(*nlp), storage.rhs_view(*nlp));
+        FAIL() << "a legal-but-unsupported shape must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("support"), std::string::npos) << message;
+        EXPECT_NE(message.find(fmt::format(
+                      "0x{0:x}",
+                      static_cast<std::uint32_t>(hven::solvers::kRequestConstraintJacobiansOnly))),
+                  std::string::npos)
+            << message;
+    }
+}
+
+TEST(NlpAggregateEngineContract, TheFullKktShapeStillRunsAfterTheExplicitArm) {
+    // Rows 9-11's refusal turned the dispatch's bare `else` into an explicit
+    // `else if (request == kRequestFullKkt)` plus a terminal refuse. This is
+    // the check that the rewrite did not silently drop shape 8's own body.
+    auto nlp = agg_pin_build_small();
+    AggPinSolverStorage storage(*nlp);
+    const Eigen::VectorXd x = agg_pin_x();
+    const Eigen::VectorXd le = agg_pin_le();
+    const Eigen::VectorXd li = agg_pin_li();
+
+    EXPECT_NO_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFullKkt,
+                                  storage.kkt_view(*nlp), storage.rhs_view(*nlp)));
+    EXPECT_NE(storage.objective, 0.0);
+    EXPECT_GT(agg_pin_kkt_values(storage.kkt).cwiseAbs().sum(), 0.0);
 }
 
 // ---------------------------------------------------------------------------

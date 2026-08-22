@@ -176,7 +176,7 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
 /// evaluable but claims no structure, and conflating the two would blur exactly
 /// the statement ClaimDomain exists to make checkable.
 ///
-/// Four rules bind every request:
+/// Five rules bind every request:
 ///
 ///   * No output is written that the request did not name. A view for an arena
 ///     a request does not touch may be empty, and the scalar objective value
@@ -185,15 +185,23 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
 ///     structure epoch are functions of the declaration and the adopted
 ///     partition count alone, and every legal request subset carries the full
 ///     path's determinism guarantee.
-///   * EXACTLY THE EIGHT NAMED SETS BELOW ARE LEGAL. The flags are a vocabulary
-///     for reading a request, not a licence to compose one: a set outside the
-///     eight names an evaluation shape no piece surface can produce in one pass
-///     (the piece methods come in fixed combinations), so an implementation
-///     would have to either over-evaluate or run two passes -- and both break
-///     the call-for-call equivalence the eight-way mapping exists to give.
-///     assemble() validates its request and throws on anything else;
-///     validate_eval_request below is that check, so every provider spells the
-///     refusal the same way.
+///   * EXACTLY THE NAMED SETS BELOW ARE LEGAL, and the named sets are a UNION
+///     OF CONSUMER-OWNED FAMILIES: each shape is owned by the consumer whose
+///     legacy call bill it reproduces, added at that consumer's own
+///     consumption task with a named call site and the counter evidence that
+///     a superset would break (M4 ledger, the 2026-08-21 amendment ruling).
+///     A set outside the named ones is an evaluation shape no consumer has,
+///     so an implementation would have to over-evaluate or run two passes --
+///     both break the call-for-call counter equivalence the mapping exists to
+///     give. assemble() validates its request and throws on anything else;
+///     validate_eval_request below is that check, so every provider spells
+///     the refusal the same way.
+///   * LEGAL AND SUPPORTED-BY-THIS-PROVIDER ARE DISTINCT FACTS. Every
+///     provider refuses an unmapped set identically (above); a provider
+///     handed a mapped set outside the families it serves REFUSES it by name
+///     rather than approximating it. The mapping table states each
+///     provider's support; a silent nearest-superset fallback is the defect
+///     class this refusal exists to prevent.
 ///   * A request naming a constraint adjoint gradient or a constraint adjoint
 ///     Hessian CONSUMES the multipliers, so the point's multiplier blocks must
 ///     be present at full length rather than empty. See
@@ -254,20 +262,30 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // THE EVALUATION-SHAPE MAPPING TABLE
 // ---------------------------------------------------------------------------
 //
-// The partitioned evaluation engine has eight evaluation entry points whose
-// output shapes genuinely differ. One assemble entry carrying a request replaces
-// all eight, and the replacement is BIJECTIVE: each of the eight is exactly one
-// request set, the eight sets are distinct, and no set names an output its
-// shape did not produce. Nothing over-evaluates -- a later proof of call-for-
-// call counter identity depends on that, since an entry that quietly computed
-// more would move counters even where the numerics agreed.
+// The named sets are a UNION OF CONSUMER-OWNED FAMILIES (M4 amendment ruling,
+// 2026-08-21). Rows 1-8 are the partitioned evaluation engine's: its eight
+// evaluation entry points whose output shapes genuinely differ, replaced
+// BIJECTIVELY -- each entry is exactly one request set, the sets are distinct,
+// and no set names an output its shape did not produce. Rows 9-11 are the SQP
+// driver's: its evaluation moments, each reproducing that consumer's exact
+// model-call bill. Nothing over-evaluates in either family -- the proofs of
+// call-for-call counter identity on both sides depend on that, since an entry
+// that quietly computed more would move counters even where the numerics
+// agreed.
 //
-// Reading the table: "entry" is the evaluation entry point of
-// model/non_linear_program.h the row replaces; "writes" lists the destinations
-// the shape fills; "empty" lists the destinations the request does not name,
-// which may therefore be left empty by the caller. `objective` is
-// RhsScatterView::objective_ (the scalar out slot); the four arena names are
-// RhsScatterView's four members; `kkt` is the KktScatterView.
+// PER-PROVIDER SUPPORT (a distinct fact from legality): the partitioned
+// engine SERVES rows 1-8 and REFUSES rows 9-11 by name at its assemble hook;
+// the NlpModelAggregate bridge serves ALL named rows (its dispatch is
+// per-flag). A provider handed a legal-but-unsupported shape refuses it
+// rather than serving a superset.
+//
+// Reading the table: "owner" names the consumer family a row belongs to;
+// "entry"/"moment" is the legacy entry point or driver moment the row
+// replaces; "writes" lists the destinations the shape fills; "empty" lists
+// the destinations the request does not name, which may therefore be left
+// empty by the caller. `objective` is RhsScatterView::objective_ (the scalar
+// out slot); the four arena names are RhsScatterView's four members; `kkt` is
+// the KktScatterView. Rows 1-8: owner = the partitioned evaluation engine.
 //
 // ---------------------------------------------------------------------------
 // 1. objective value only                    -> kRequestObjectiveOnly
@@ -339,6 +357,39 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    empty   -
 //    caller  also scatters its own solver KKT coefficients, outside assemble
 //
+// Rows 9-11: owner = the SQP driver (added at its Level 2 consumption task;
+// call sites and counter evidence in the Task 5 design note and the ledger's
+// amendment ruling).
+//
+// 9. the Lagrangian Hessian alone             -> kRequestLagrangianHessian
+//    moment  the per-accepted-iterate subproblem Hessian (one
+//            eval_hess(x, obj_scale, lambda) and nothing else; shape 8's
+//            superset would re-evaluate values, gradients and Jacobians the
+//            driver already holds)
+//    flags   kObjectiveHessian | kConstraintAdjointHessian
+//    writes  kkt (objective-Hessian + adjoint-Hessian blocks, one composed
+//            Lagrangian pass)
+//    empty   objective, every arena
+//    note    consumes the multipliers (the adjoint half contracts against
+//            them); obj_scale rides CandidatePoint::objective_scale_
+//
+// 10. objective gradient + constraint
+//     Jacobians, values not re-evaluated      -> kRequestGradientAndJacobians
+//    moment  the accepted-trial derivative refresh (the trial's values were
+//            evaluated on the values-only path and are deliberately not
+//            re-evaluated on acceptance)
+//    flags   kObjectiveGradient | kConstraintJacobian
+//    writes  objective_gradient_, kkt (Jacobian blocks)
+//    empty   objective, constraint_adjoint_gradient_, equality_residuals_,
+//            inequality_residuals_
+//
+// 11. constraint Jacobians alone              -> kRequestConstraintJacobiansOnly
+//    moment  the zero-major ingest probe's Jacobian fetch (its values arrive
+//            on the values-only path; nothing downstream reads a gradient)
+//    flags   kConstraintJacobian
+//    writes  kkt (Jacobian blocks)
+//    empty   objective, every arena
+//
 // ---------------------------------------------------------------------------
 // THE SOLVER-COEFFICIENT SCATTER: A RESPONSIBILITY THAT TRANSFERS.
 //
@@ -398,10 +449,13 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //     objective gradient. Shape 7 is not in this half of the sentence: it calls
 //     the adjoint entry and genuinely produces the constraint adjoint gradient,
 //     so its empty column names the objective-gradient arena alone.
-//   * kObjectiveValue is a flag of its own even though every shape that
-//     produces the objective gradient produces the value with it, in one call.
-//     Shape 1 produces the value alone, and the value's destination is a scalar
-//     out slot rather than an arena, so it is separately nameable.
+//   * kObjectiveValue is a flag of its own even though every INTERIOR-owned
+//     shape that produces the objective gradient produces the value with it,
+//     in one call. Shape 1 produces the value alone, and the value's
+//     destination is a scalar out slot rather than an arena, so it is
+//     separately nameable. The SQP-owned shape 10 names the gradient WITHOUT
+//     the value -- the model surface behind that family prices them as
+//     separate calls, and its consumer already holds the value.
 //   * kConstraintValues covers BOTH residual blocks. No shape splits them, and
 //     splitting the flag would introduce request sets no evaluation shape has,
 //     which is exactly what bijectivity rules out.
@@ -445,28 +499,44 @@ inline constexpr EvalRequest kRequestFullKkt =
     EvalRequest::kConstraintAdjointGradient | EvalRequest::kConstraintJacobian |
     EvalRequest::kConstraintAdjointHessian;
 
-/// True iff `request` is one of the eight shapes the mapping table names.
+/// @brief Shape 9 (SQP-owned): the Lagrangian Hessian alone.
+inline constexpr EvalRequest kRequestLagrangianHessian =
+    EvalRequest::kObjectiveHessian | EvalRequest::kConstraintAdjointHessian;
+
+/// @brief Shape 10 (SQP-owned): objective gradient + constraint Jacobians,
+///        values not re-evaluated.
+inline constexpr EvalRequest kRequestGradientAndJacobians =
+    EvalRequest::kObjectiveGradient | EvalRequest::kConstraintJacobian;
+
+/// @brief Shape 11 (SQP-owned): constraint Jacobians alone.
+inline constexpr EvalRequest kRequestConstraintJacobiansOnly = EvalRequest::kConstraintJacobian;
+
+/// True iff `request` is one of the shapes the mapping table names.
 constexpr bool is_legal_request(EvalRequest request) noexcept {
     return request == kRequestObjectiveOnly || request == kRequestObjectiveAndConstraints ||
            request == kRequestObjectiveGradientAndConstraints || request == kRequestFirstOrderRhs ||
            request == kRequestConstraintJacobianOnly || request == kRequestFirstOrderKkt ||
-           request == kRequestConstraintKkt || request == kRequestFullKkt;
+           request == kRequestConstraintKkt || request == kRequestFullKkt ||
+           request == kRequestLagrangianHessian || request == kRequestGradientAndJacobians ||
+           request == kRequestConstraintJacobiansOnly;
 }
 
-/// Rejects any request outside the eight named shapes. Every implementation of
+/// Rejects any request outside the named shapes. Every implementation of
 /// assemble() calls this at entry, so a composed-but-unmapped request is
 /// refused the same way everywhere rather than being served by whichever
 /// provider happened to tolerate it.
 inline void validate_eval_request(EvalRequest request) {
     if (!is_legal_request(request)) {
         throw std::invalid_argument(fmt::format(
-            "EvalRequest: the flag combination 0x{0:x} is not one of the eight evaluation shapes "
-            "this contract maps. The legal sets are kRequestObjectiveOnly (0x{1:x}), "
+            "EvalRequest: the flag combination 0x{0:x} is not one of the evaluation shapes this "
+            "contract maps. The legal sets are kRequestObjectiveOnly (0x{1:x}), "
             "kRequestObjectiveAndConstraints (0x{2:x}), "
             "kRequestObjectiveGradientAndConstraints (0x{3:x}), kRequestFirstOrderRhs (0x{4:x}), "
             "kRequestConstraintJacobianOnly (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
-            "kRequestConstraintKkt (0x{7:x}) and kRequestFullKkt (0x{8:x}); see the mapping table "
-            "in model/candidate_point.h",
+            "kRequestConstraintKkt (0x{7:x}), kRequestFullKkt (0x{8:x}), "
+            "kRequestLagrangianHessian (0x{9:x}), kRequestGradientAndJacobians (0x{10:x}) and "
+            "kRequestConstraintJacobiansOnly (0x{11:x}); see the mapping table in "
+            "model/candidate_point.h",
             static_cast<std::uint32_t>(request), static_cast<std::uint32_t>(kRequestObjectiveOnly),
             static_cast<std::uint32_t>(kRequestObjectiveAndConstraints),
             static_cast<std::uint32_t>(kRequestObjectiveGradientAndConstraints),
@@ -474,7 +544,10 @@ inline void validate_eval_request(EvalRequest request) {
             static_cast<std::uint32_t>(kRequestConstraintJacobianOnly),
             static_cast<std::uint32_t>(kRequestFirstOrderKkt),
             static_cast<std::uint32_t>(kRequestConstraintKkt),
-            static_cast<std::uint32_t>(kRequestFullKkt)));
+            static_cast<std::uint32_t>(kRequestFullKkt),
+            static_cast<std::uint32_t>(kRequestLagrangianHessian),
+            static_cast<std::uint32_t>(kRequestGradientAndJacobians),
+            static_cast<std::uint32_t>(kRequestConstraintJacobiansOnly)));
     }
 }
 
