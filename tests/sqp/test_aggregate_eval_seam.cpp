@@ -11,7 +11,7 @@
 // objects and nothing else, so their bit-identity is the whole preservation
 // argument.
 //
-// FOUR BATTERIES:
+// FIVE BATTERIES:
 //   AggregateEvalSeamIdentity.*    -- the five moments against the five free
 //                                     functions, over four fixtures and every
 //                                     point in each.
@@ -26,6 +26,10 @@
 //                                     evaluation re-lays and still agrees.
 //   AggregateEvalSeamArena.*       -- consecutive evaluations at different
 //                                     points do not accumulate into each other.
+//   SqpDriverEntryEquivalence.*    -- one level up: the driver's aggregate-taking
+//                                     solve() and its model-taking wrapper run
+//                                     the same solve, counters and hand-off
+//                                     included, cold and warm.
 //
 // THE NEGATIVE-ZERO FIXTURE IS THE POINT OF SeamCouplingModel. The provider's
 // assemble ACCUMULATES, so the seam seeds its arena before every call, and a
@@ -49,6 +53,7 @@
 #include <hven/model/nlp_model_aggregate.h>
 
 #include "support/hs_problems.h"
+#include "support/parametric_families.h"
 
 namespace hven::solvers {
 
@@ -89,6 +94,14 @@ using hven::solvers::NlpModel;
 using hven::solvers::NlpModelAggregate;
 using hven::solvers::QpProblem;
 using hven::solvers::upgrade_to_full;
+// The driver-entry battery at the end of this file.
+using hven::solvers::SqpCounters;
+using hven::solvers::SqpDriver;
+using hven::solvers::SqpOptions;
+using hven::solvers::SqpSolution;
+using hven::solvers::SqpStatus;
+using hven::solvers::StartLevel;
+using hven::solvers::WarmStart;
 using hven::solvers::test_support::detail::kInf;
 using hven::solvers::test_support::detail::make_jac;
 using hven::solvers::test_support::detail::make_upper;
@@ -558,4 +571,210 @@ TEST(AggregateEvalSeamArena, ConsecutiveEvaluationsDoNotAccumulate) {
         expect_same_qp(seam.build_subproblem(seam_ev, first, lambda_e, lambda_i, 1.0),
                        build_subproblem(*fixture.model_, free_ev, first, lambda_e, lambda_i, 1.0));
     }
+}
+
+// ---------------------------------------------------------------------------
+// SqpDriverEntryEquivalence -- the two doors into one solve
+// ---------------------------------------------------------------------------
+//
+// WHAT IS BEING PINNED, and why it is a different claim from the four batteries
+// above. Those pin that the SEAM reproduces the free functions bit for bit at
+// one point. This one pins the consequence at the level a caller sees: that
+// SqpDriver::solve(NlpModelAggregate &, ...) -- the primary path -- and
+// SqpDriver::solve(const NlpModel &, ...) -- the convenience wrapper, which
+// borrows the model into a bridge of its own for the duration of the call --
+// run THE SAME SOLVE. Same status, bit-equal iterate, every counter equal,
+// and a WarmStart whose emitted fields agree field by field, on both a cold
+// and a warm arm of two battery families.
+//
+// THE ASYMMETRY IS DELIBERATE AND IS THE INTERESTING PART. The bridge arm
+// builds ONE NlpModelAggregate outside both of its solves; the model arm
+// builds one PER CALL. So on the warm arm the two sides do not perform the
+// same number of bridge lays -- two against one -- and the driver's counters
+// must still agree to the integer, because a lay is a structural walk of the
+// model's three derivative patterns and is invisible to every counter the
+// driver keeps (include/hven/model/nlp_model_aggregate.h's constructor doc;
+// SqpDriverContract.CallCountPerMajorIsBounded is where that cost IS pinned,
+// against a counting model). PLAIN MODELS ARE USED HERE FOR EXACTLY THAT
+// REASON: a CountingModel would make the two arms differ by one lay's worth of
+// derivative calls, which is a fact about the entry points rather than about
+// the solve, and pinning it here would only restate what that other test
+// already says.
+//
+// F1 AND F3n50 ARE THE BATTERY'S OWN TWO SMALL FAMILIES (tests/sqp/
+// test_warm_start_battery.cpp builds its table from these constructors): F1 is
+// a 2-variable box QP whose single subproblem is the whole answer, F3n50 a
+// 50-variable spring chain that takes several majors and activates a real
+// constraint. Between them the arms cover a solve that converges immediately
+// and one that iterates.
+namespace {
+
+/// Every field of SqpCounters, including the nested SSN block. Written out
+/// rather than looped because there is no reflection here and a missed field is
+/// a silent hole: this is the assertion the whole equivalence claim rests on.
+void expect_same_counters(const SqpCounters &bridge, const SqpCounters &model,
+                          const std::string &tag) {
+    SCOPED_TRACE(tag);
+    EXPECT_EQ(bridge.major_iters, model.major_iters);
+    EXPECT_EQ(bridge.qp_minor_iters, model.qp_minor_iters);
+    EXPECT_EQ(bridge.factorizations, model.factorizations);
+    EXPECT_EQ(bridge.steps_accepted, model.steps_accepted);
+    EXPECT_EQ(bridge.rejected_steps, model.rejected_steps);
+    EXPECT_EQ(bridge.soc_steps, model.soc_steps);
+    EXPECT_EQ(bridge.soc_applied, model.soc_applied);
+    EXPECT_EQ(bridge.soc_qp_infeasible, model.soc_qp_infeasible);
+    EXPECT_EQ(bridge.soc_rejected, model.soc_rejected);
+    EXPECT_EQ(bridge.elastic_activations, model.elastic_activations);
+    EXPECT_EQ(bridge.elastic_escalations, model.elastic_escalations);
+    EXPECT_EQ(bridge.restoration_iters, model.restoration_iters);
+    EXPECT_EQ(bridge.eqp_refine_steps, model.eqp_refine_steps);
+    EXPECT_EQ(bridge.border_refine_steps, model.border_refine_steps);
+    EXPECT_EQ(bridge.suspect_escalations, model.suspect_escalations);
+    EXPECT_EQ(bridge.symbolic_analyses, model.symbolic_analyses);
+    EXPECT_EQ(bridge.start_level_used, model.start_level_used);
+    EXPECT_EQ(bridge.full_step_majors, model.full_step_majors);
+    EXPECT_EQ(bridge.watchdog_restores, model.watchdog_restores);
+    EXPECT_EQ(bridge.evals_full, model.evals_full);
+    EXPECT_EQ(bridge.evals_values, model.evals_values);
+    EXPECT_EQ(bridge.probe_budget_stops, model.probe_budget_stops);
+    EXPECT_EQ(bridge.crash_seeded_rows, model.crash_seeded_rows);
+    EXPECT_EQ(bridge.crash_seeded_bounds, model.crash_seeded_bounds);
+    EXPECT_EQ(bridge.n_seeded, model.n_seeded);
+    EXPECT_EQ(bridge.seeded_clamped, model.seeded_clamped);
+    EXPECT_EQ(bridge.ip_activity_inferred, model.ip_activity_inferred);
+    EXPECT_EQ(bridge.ssn.ssn_iters, model.ssn.ssn_iters);
+    EXPECT_EQ(bridge.ssn.ssn_bulk_flips, model.ssn.ssn_bulk_flips);
+    EXPECT_EQ(bridge.ssn.ssn_backtracks, model.ssn.ssn_backtracks);
+    EXPECT_EQ(bridge.ssn.ssn_prox_updates, model.ssn.ssn_prox_updates);
+    EXPECT_EQ(bridge.ssn.ssn_escapes, model.ssn.ssn_escapes);
+    EXPECT_EQ(bridge.ssn.ssn_uncertain_peak, model.ssn.ssn_uncertain_peak);
+}
+
+/// Bit-equality, not near-equality: two vectors of the same length whose
+/// doubles compare bitwise identical. NaN would compare unequal under ==, and
+/// -0.0 == +0.0 would compare EQUAL under it, so neither is left to chance.
+void expect_bit_equal(const Vec &bridge, const Vec &model, const std::string &what) {
+    SCOPED_TRACE(what);
+    ASSERT_EQ(bridge.size(), model.size());
+    for (Index i = 0; i < bridge.size(); ++i) {
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(bridge(i)), std::bit_cast<std::uint64_t>(model(i)))
+            << "entry " << i << ": " << bridge(i) << " vs " << model(i);
+    }
+}
+
+/// The emitted hand-off, field by field. `hot` is compared by PRESENCE rather
+/// than by address: it is a handle onto one driver's own engine state, so two
+/// drivers cannot share one and equality of the pointers is not the claim.
+void expect_same_warm_start(const WarmStart &bridge, const WarmStart &model,
+                            const std::string &tag) {
+    SCOPED_TRACE(tag);
+    EXPECT_EQ(bridge.valid, model.valid);
+    EXPECT_EQ(bridge.structure_hash, model.structure_hash);
+    expect_bit_equal(bridge.x, model.x, "warm.x");
+    expect_bit_equal(bridge.lambda_e, model.lambda_e, "warm.lambda_e");
+    expect_bit_equal(bridge.lambda_i, model.lambda_i, "warm.lambda_i");
+    expect_bit_equal(bridge.z, model.z, "warm.z");
+    EXPECT_EQ(bridge.ineq_active, model.ineq_active);
+    EXPECT_EQ(bridge.bound_active, model.bound_active);
+    EXPECT_EQ(bridge.qp_working_set.n(), model.qp_working_set.n());
+    EXPECT_EQ(bridge.qp_working_set.mi(), model.qp_working_set.mi());
+    EXPECT_EQ(bridge.qp_working_set.active_ineq(), model.qp_working_set.active_ineq());
+    EXPECT_EQ(bridge.qp_working_set.bound_state(), model.qp_working_set.bound_state());
+    EXPECT_EQ(bridge.funnel_width, model.funnel_width);
+    EXPECT_EQ(bridge.tr_radius, model.tr_radius);
+    EXPECT_EQ(bridge.primal_delta, model.primal_delta);
+    EXPECT_EQ(bridge.dual_mu, model.dual_mu);
+    EXPECT_EQ(bridge.has_prox_center, model.has_prox_center);
+    EXPECT_EQ(bridge.prox_sigma, model.prox_sigma);
+    expect_bit_equal(bridge.prox_center_x, model.prox_center_x, "warm.prox_center_x");
+    expect_bit_equal(bridge.prox_center_lambda, model.prox_center_lambda,
+                     "warm.prox_center_lambda");
+    EXPECT_EQ(bridge.hot != nullptr, model.hot != nullptr);
+}
+
+/// The whole comparison for one solve pair.
+void expect_same_solution(const SqpSolution &bridge, const SqpSolution &model,
+                          const std::string &tag) {
+    SCOPED_TRACE(tag);
+    ASSERT_EQ(bridge.status, model.status);
+    EXPECT_EQ(bridge.infeasibility_certified, model.infeasibility_certified);
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(bridge.f), std::bit_cast<std::uint64_t>(model.f));
+    expect_bit_equal(bridge.x, model.x, "x");
+    expect_bit_equal(bridge.lambda_e, model.lambda_e, "lambda_e");
+    expect_bit_equal(bridge.lambda_i, model.lambda_i, "lambda_i");
+    expect_bit_equal(bridge.z, model.z, "z");
+    EXPECT_EQ(bridge.history.size(), model.history.size());
+    expect_same_counters(bridge.counters, model.counters, tag + " counters");
+    expect_same_warm_start(bridge.warm_start, model.warm_start, tag + " warm_start");
+}
+
+/// One family, both entries, cold arm. The two models are separate instances of
+/// the same family at the same parameter, so neither solve can see the other's
+/// state.
+template <typename Make> void check_cold_arm(Make make, const std::string &tag) {
+    const auto model_side = std::make_shared<decltype(make())>(make());
+    const auto bridge_side = std::make_shared<decltype(make())>(make());
+    const Vec x0 = model_side->start_point();
+
+    SqpOptions opts;
+    SqpDriver model_driver{opts};
+    const SqpSolution via_model = model_driver.solve(*model_side, x0);
+
+    // ONE bridge, built outside the solve -- the hot-loop shape the driver
+    // header's model-taking overloads point callers at.
+    NlpModelAggregate bridge{bridge_side};
+    SqpDriver bridge_driver{opts};
+    const SqpSolution via_bridge = bridge_driver.solve(bridge, x0);
+
+    ASSERT_EQ(via_model.status, SqpStatus::kOptimal) << tag;
+    expect_same_solution(via_bridge, via_model, tag + " cold");
+}
+
+/// One family, both entries, warm arm: each side seeds itself from its OWN cold
+/// solve on its own driver, then re-solves through the same entry with that
+/// hand-off. The bridge side reuses its single aggregate across both solves,
+/// which is the asymmetry this battery exists to license.
+template <typename Make> void check_warm_arm(Make make, const std::string &tag) {
+    const auto model_side = std::make_shared<decltype(make())>(make());
+    const auto bridge_side = std::make_shared<decltype(make())>(make());
+    const Vec x0 = model_side->start_point();
+
+    SqpOptions opts;
+    SqpDriver model_driver{opts};
+    const SqpSolution model_seed = model_driver.solve(*model_side, x0);
+    ASSERT_TRUE(model_seed.warm_start.valid) << tag;
+    const SqpSolution via_model = model_driver.solve(*model_side, x0, model_seed.warm_start);
+
+    NlpModelAggregate bridge{bridge_side};
+    SqpDriver bridge_driver{opts};
+    const SqpSolution bridge_seed = bridge_driver.solve(bridge, x0);
+    ASSERT_TRUE(bridge_seed.warm_start.valid) << tag;
+    const SqpSolution via_bridge = bridge_driver.solve(bridge, x0, bridge_seed.warm_start);
+
+    // THE SEEDING SOLVES ARE COMPARED IN FULL, not just their hand-offs, and
+    // that is not redundant with the cold battery: those two solves are what
+    // put each driver's ENGINE into the state the warm solve then ingests
+    // from, so a divergence confined to them would otherwise be invisible here
+    // -- the warm solves would agree with each other while having been reached
+    // from different places, and the hot handle each offers would be the only
+    // trace, compared here by presence rather than by content.
+    expect_same_solution(bridge_seed, model_seed, tag + " seed solve");
+    expect_same_warm_start(bridge_seed.warm_start, model_seed.warm_start, tag + " seed hand-off");
+    // AND THE WARM ARM MUST ACTUALLY INGEST, or this is a second cold pin.
+    ASSERT_NE(via_model.counters.start_level_used, StartLevel::kCold) << tag;
+    expect_same_solution(via_bridge, via_model, tag + " warm");
+}
+
+} // namespace
+
+TEST(SqpDriverEntryEquivalence, ColdArmAgreesOnF1AndF3n50) {
+    check_cold_arm([] { return hven::solvers::test_support::F1BoxQp(0.0); }, "F1");
+    check_cold_arm([] { return hven::solvers::test_support::F3SpringChain(50, 0.5, 0.25); },
+                   "F3n50");
+}
+
+TEST(SqpDriverEntryEquivalence, WarmArmAgreesOnF1AndF3n50) {
+    check_warm_arm([] { return hven::solvers::test_support::F1BoxQp(0.0); }, "F1");
+    check_warm_arm([] { return hven::solvers::test_support::F3SpringChain(50, 0.5, 0.25); },
+                   "F3n50");
 }
