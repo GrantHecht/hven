@@ -154,6 +154,9 @@ struct AggregateDeclaration {
     /// The partition count REQUESTED. What is adopted is what
     /// NlpAggregate::negotiate_partition_count returns, and it is the adopted
     /// count that is a conjunct of the structural key.
+    ///
+    /// Requested partition count; the adopted count is returned by
+    /// negotiate_partition_count() and governs layout and the structural key.
     int partition_count_ = 1;
 
     /// The declared bound records, verbatim and unmerged, in declaration order.
@@ -181,6 +184,9 @@ struct AggregateDeclaration {
     /// does not have, NaN bounds, a single record whose two finite sides are
     /// inverted, and a bound history whose intersection is empty. Throws
     /// std::invalid_argument naming what disagreed and both numbers.
+    ///
+    /// A provider validates its declaration with validate() before its first
+    /// layout; empty piece lists satisfy the piece-sum checks vacuously.
     ///
     /// OWNERSHIP SPLIT with the engine's own bound materializer, stated so
     /// neither side is assumed to cover the other: this boundary validates the

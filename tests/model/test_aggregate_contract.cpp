@@ -180,21 +180,18 @@ TEST(AggregateDeclarationTest, AcceptsAConsistentDeclaration) {
     EXPECT_NO_THROW(consistent_declaration().validate());
 }
 
-TEST(AggregateDeclarationTest, RejectsAnEqualityRowCountNoPieceClaims) {
+TEST(AggregateDeclarationTest, AcceptsRowCountsWhenNoPiecesAreDeclared) {
+    // The piece-sum conjunct is the one conditional check, and it is conditional
+    // on there being pieces. A provider that is not a piece collection -- a
+    // bridge over a single model -- declares rows and no pieces, and there is
+    // then no sum for the row counts to disagree with. Every other check still
+    // applies to such a declaration. The counterpart, where the pieces exist and
+    // the sum is wrong, is pinned against a real piece-sourced declaration in the
+    // engine's own aggregate suite.
     AggregateDeclaration declaration = consistent_declaration();
     declaration.equality_rows_ = 3;
-    const std::string message = invalid_argument_message(declaration);
-    EXPECT_NE(message.find("equality"), std::string::npos) << message;
-    EXPECT_NE(message.find('3'), std::string::npos) << message;
-    EXPECT_NE(message.find('0'), std::string::npos) << message;
-}
-
-TEST(AggregateDeclarationTest, RejectsAnInequalityRowCountNoPieceClaims) {
-    AggregateDeclaration declaration = consistent_declaration();
     declaration.inequality_rows_ = 5;
-    const std::string message = invalid_argument_message(declaration);
-    EXPECT_NE(message.find("inequality"), std::string::npos) << message;
-    EXPECT_NE(message.find('5'), std::string::npos) << message;
+    EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationTest, RejectsANonPositivePartitionCount) {

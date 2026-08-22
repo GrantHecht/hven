@@ -81,14 +81,14 @@ class NlpModelAggregate final : public NlpAggregate {
   public:
     /// @brief Builds the bridge and lays its structures for the first time.
     ///
-    /// The lay walks the model's three derivative patterns once, at the model's
-    /// own start point, and is a structural event like any other: the epoch is
-    /// 1 on return.
+    /// The lay validates the declaration at the contract's own boundary, then
+    /// walks the model's three derivative patterns once at the model's own start
+    /// point. It is a structural event like any other: the epoch is 1 on return.
     ///
     /// @param model the model to bridge; must be non-null.
     /// @throws std::invalid_argument if the model is null, reports dimensions
-    ///         that cannot describe a problem, or declares bounds that do not
-    ///         intersect.
+    ///         that cannot describe a problem, declares bounds that do not
+    ///         intersect, or returns a Hessian entry below the diagonal.
     explicit NlpModelAggregate(std::shared_ptr<NlpModel> model);
 
     /// @brief The declaration these structures were laid from.
@@ -117,14 +117,15 @@ class NlpModelAggregate final : public NlpAggregate {
     /// @brief The evaluation thread budget, which is 1.
     ///
     /// The bridge evaluates on the calling thread and has no pool to spend a
-    /// budget on.
+    /// budget on, so 1 is the count evaluation will actually use, whatever was
+    /// requested.
     int evaluation_threads() const override { return 1; }
 
     /// @brief Accepts a thread request and changes nothing.
     ///
-    /// A serial provider has one thread whatever is asked of it, so this reports
-    /// the truth by leaving evaluation_threads() at 1 rather than storing a
-    /// number it does not honour.
+    /// A serial provider has one thread whatever is asked of it, so nothing is
+    /// stored and evaluation_threads() keeps reporting the count evaluation will
+    /// actually use.
     ///
     /// @param n the requested thread count.
     /// @throws std::invalid_argument if @p n is below 1.
@@ -223,9 +224,12 @@ class NlpModelAggregate final : public NlpAggregate {
     /// a structural zero. eval_ce and eval_ci are skipped where the model
     /// declares no rows of that kind, matching eval_values' own skip.
     ///
-    /// A model with no general constraints still reaches eval_jac_e/eval_jac_i
-    /// for a Jacobian-bearing request only if it claimed slots for one; a
-    /// zero-row block claims none and is not evaluated.
+    /// Whether a constraint block's Jacobian evaluator runs is decided by the
+    /// block's declared row count, never by how many slots it claimed. A
+    /// constant constraint has rows and an all-structural-zeros Jacobian: it
+    /// claims nothing, and the request that names a Jacobian still calls its
+    /// evaluator, which then scatters nothing. Only a block with no rows at all
+    /// is skipped.
     ///
     /// @param point   the point, in declaration space.
     /// @param request the evaluation shape, already validated by the entry.

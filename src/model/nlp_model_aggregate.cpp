@@ -45,6 +45,27 @@ void claim_matrix(const SpMatRM &matrix, KktClaimSpace &space) {
     }
 }
 
+/// Rejects a Hessian return that is not the upper triangle the model's own
+/// contract promises.
+///
+/// One comparison per stored element, at claim time only. The claims record the
+/// triangle verbatim and the storage state is resolved once from it, so an entry
+/// below the diagonal would put a claim in a triangle the assembled matrix does
+/// not hold -- checked here rather than trusted.
+void require_upper_triangle(const SpMatRM &hessian) {
+    for (int outer = 0; outer < static_cast<int>(hessian.outerSize()); ++outer) {
+        for (SpMatRM::InnerIterator it(hessian, outer); it; ++it) {
+            if (it.row() > it.col()) {
+                throw std::invalid_argument(fmt::format(
+                    "NlpModelAggregate: eval_hess stored an entry at (row {0}, column {1}), below "
+                    "the diagonal. nlp_model.h states the Hessian return as the upper triangle "
+                    "only",
+                    it.row(), it.col()));
+            }
+        }
+    }
+}
+
 /// Claims one slot per row of an arena, in row order.
 void claim_arena_rows(RhsClaimSpace &space, int rows) {
     for (int row = 0; row < rows; ++row) {
@@ -96,8 +117,11 @@ void require_kkt_table(const KktScatterView &kkt, int claims) {
 ///
 /// A model owes an invariant sparsity pattern (nlp_model.h). The full pattern is
 /// not re-derived per evaluation -- that would spend the fill's own budget on
-/// re-checking a precondition -- but the count is one comparison and catches the
-/// violation that would otherwise scatter through the wrong slots.
+/// re-checking a precondition -- so this one comparison is scoped accordingly:
+/// it catches a pattern that collapsed or grew between the claim pass and this
+/// call, and it does not catch a same-count permutation of the same entries.
+/// That residual is the storage-order stability the model's own invariance
+/// precondition already binds, not a gap this check leaves open.
 void require_claimed_nonzeros(const SpMatRM &matrix, int claims, const char *what) {
     if (static_cast<int>(matrix.nonZeros()) != claims) {
         throw std::invalid_argument(fmt::format(
@@ -195,6 +219,11 @@ NlpModelAggregate::LaidStructures NlpModelAggregate::lay(int partition_count) co
             VariableBound{index, lower[index], upper[index]});
     }
 
+    // Validated at the contract's own boundary before anything is laid over it,
+    // exactly as every provider does. The bridge declares no pieces, so the
+    // piece-sum conjunct is vacuous here and every other check applies.
+    laid.declaration_.validate();
+
     // The patterns, walked once at the model's own start point. Which point is
     // immaterial by the model's invariance precondition; the start point is the
     // one point every model is required to be able to produce.
@@ -228,6 +257,7 @@ NlpModelAggregate::LaidStructures NlpModelAggregate::lay(int partition_count) co
     space.domains_ = ClaimDomain::kHessian;
     space.constraint_row_offset_ = 0;
     laid.hessian_ = ClaimBlock{space.next_free_, hessian_claims};
+    require_upper_triangle(hessian);
     claim_matrix(hessian, space);
 
     space.domains_ = ClaimDomain::kEqualityJacobian;
@@ -331,12 +361,17 @@ void NlpModelAggregate::evaluate_constraint_values(const Vec &x) {
 }
 
 void NlpModelAggregate::evaluate_jacobians(const Vec &x) {
-    if (laid_.equality_jacobian_.count_ > 0) {
+    // Gated on the declared row counts, never on the claim counts. A constraint
+    // block that has rows but whose Jacobian is all structural zeros -- a
+    // constant constraint -- claims nothing, and gating on claims would silently
+    // skip a callback the request named. The block is evaluated because it has
+    // rows; the fill then writes nothing because it claimed nothing.
+    if (equality_rows_ > 0) {
         equality_jacobian_scratch_ = model_->eval_jac_e(x);
         require_claimed_nonzeros(equality_jacobian_scratch_, laid_.equality_jacobian_.count_,
                                  "eval_jac_e");
     }
-    if (laid_.inequality_jacobian_.count_ > 0) {
+    if (inequality_rows_ > 0) {
         inequality_jacobian_scratch_ = model_->eval_jac_i(x);
         require_claimed_nonzeros(inequality_jacobian_scratch_, laid_.inequality_jacobian_.count_,
                                  "eval_jac_i");
@@ -345,11 +380,11 @@ void NlpModelAggregate::evaluate_jacobians(const Vec &x) {
 
 void NlpModelAggregate::compose_adjoint_gradient() {
     adjoint_scratch_.setZero(primal_vars_);
-    if (laid_.equality_jacobian_.count_ > 0) {
+    if (equality_rows_ > 0) {
         accumulate_adjoint(equality_jacobian_scratch_, equality_multiplier_scratch_,
                            adjoint_scratch_);
     }
-    if (laid_.inequality_jacobian_.count_ > 0) {
+    if (inequality_rows_ > 0) {
         accumulate_adjoint(inequality_jacobian_scratch_, inequality_multiplier_scratch_,
                            adjoint_scratch_);
     }
@@ -448,10 +483,13 @@ void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest r
         scatter_arena(rhs.constraint_adjoint_gradient_, adjoint_scratch_);
     }
     if (want_jacobian) {
-        if (laid_.equality_jacobian_.count_ > 0) {
+        // Row-gated for the same reason the evaluation is: a block with rows and
+        // no claims scatters nothing, and a scatter over its empty pattern is
+        // the loop that writes nothing.
+        if (equality_rows_ > 0) {
             scatter_matrix(equality_jacobian_scratch_, laid_.equality_jacobian_, kkt);
         }
-        if (laid_.inequality_jacobian_.count_ > 0) {
+        if (inequality_rows_ > 0) {
             scatter_matrix(inequality_jacobian_scratch_, laid_.inequality_jacobian_, kkt);
         }
     }

@@ -21,6 +21,7 @@
 #include <limits>
 #include <memory>
 #include <set>
+#include <stdexcept>
 #include <vector>
 
 #include "hven/detail/interior/aggregate_views.h"
@@ -1008,6 +1009,23 @@ TEST(NlpAggregateEngineDeclaration, ItDescribesTheStructuresOnHandAndIsStoredSta
     EXPECT_EQ(first.objectives_.size(), nlp->objectives_.size());
     EXPECT_EQ(first.equality_constraints_.size(), nlp->equality_constraints_.size());
     EXPECT_NO_THROW(first.validate());
+}
+
+TEST(NlpAggregateEngineDeclaration, APieceSourcedDeclarationStillFailsOnABadRowSum) {
+    // The piece-sum conjunct is skipped only where there are no pieces to sum.
+    // Here they exist, so a row count that disagrees with what they claim is
+    // refused exactly as before -- the conditional made the boundary universal,
+    // it did not weaken it for the providers it was written for.
+    auto nlp = agg_pin_build_small();
+    ASSERT_FALSE(nlp->declaration().equality_constraints_.empty());
+
+    hven::solvers::AggregateDeclaration declared = nlp->declaration();
+    declared.equality_rows_ += 1;
+    EXPECT_THROW(declared.validate(), std::invalid_argument);
+
+    declared = nlp->declaration();
+    declared.inequality_rows_ += 1;
+    EXPECT_THROW(declared.validate(), std::invalid_argument);
 }
 
 TEST(NlpAggregateEngineDeclaration, StagingABoundChangesNothingUntilItIsMaterialized) {

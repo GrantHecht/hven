@@ -12,8 +12,8 @@
 // The equivalence pins run against an HS transcription rather than a synthetic
 // model, so what they compare is the bridge's decomposition of a model somebody
 // else wrote. hs_problems.h is header-only test support (nlp_model.h plus Eigen
-// and fmt), reached here by relative path because it lives beside the SQP suite
-// that first needed it.
+// and fmt); it is named rooted at the tests tree, which this target carries on
+// its include path.
 
 #include <cstddef>
 #include <limits>
@@ -34,7 +34,7 @@
 #include "hven/model/nlp_model_aggregate.h"
 #include "hven/model/structure_identity.h"
 
-#include "../sqp/support/hs_problems.h"
+#include "sqp/support/hs_problems.h"
 
 using hven::Index;
 using hven::SpMatRM;
@@ -204,14 +204,49 @@ class BridgeCountingModel : public NlpModel {
         return c;
     }
 
+  protected:
+    /// Derived fixtures override an evaluator and count it the same way.
+    mutable BridgeEvalCounts counts_;
+
   private:
     Vec lower_ = (Vec(2) << 0.0, -1.0).finished();
     Vec upper_ = (Vec(2) << 10.0, 10.0).finished();
 
-    mutable BridgeEvalCounts counts_;
     mutable double last_hess_scale_ = -1.0;
     mutable Vec last_hess_lambda_e_;
     mutable Vec last_hess_lambda_i_;
+};
+
+/// A model whose equality row is a constant: it has one row, and its Jacobian is
+/// all structural zeros, so the claim pass lays no claim for it. The evaluator
+/// must still be called on a Jacobian-bearing request -- the row count decides
+/// that, not the claim count.
+///
+///   cE(x) = 0.5, Je = the 1 x 2 empty pattern
+class BridgeConstantEqualityModel : public BridgeCountingModel {
+  public:
+    Vec eval_ce(const Vec &) const override {
+        counts_.ce_++;
+        return constant_equality();
+    }
+
+    void eval_values(const Vec &x, double &f, Vec &cE, Vec &cI) const override {
+        counts_.values_++;
+        f = objective_of(x);
+        cE = constant_equality();
+        cI = inequality_of(x);
+    }
+
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        counts_.jac_e_++;
+        return hven::solvers::test_support::detail::no_jac(1, 2);
+    }
+
+    static Vec constant_equality() {
+        Vec c(1);
+        c(0) = 0.5;
+        return c;
+    }
 };
 
 /// A model whose Jacobian pattern collapses at one point: the entry that
@@ -278,16 +313,27 @@ class BridgeArena {
     RhsLocationTable table_;
 };
 
+/// Which order a consumer's KKT location table puts the claims in.
+///
+/// The default is a genuine permutation, deliberately: with an identity table a
+/// scatter that ignored the table and wrote its own slot index would be
+/// indistinguishable from one that honoured it. Reversal is bijective, so no two
+/// claims collide, and every assertion below reads a value back through the same
+/// table the provider wrote it through.
+enum class BridgeTableOrder { kPermuted, kIdentity };
+
 /// Everything a consumer publishes for one assemble call against the bridge: the
-/// KKT value array with an identity location table over the provider's claim
-/// stream, the four arenas, and the scalar objective slot.
+/// KKT value array with its location table over the provider's claim stream, the
+/// four arenas, and the scalar objective slot.
 class BridgeDestinations {
   public:
-    explicit BridgeDestinations(const NlpModelAggregate &aggregate) {
+    explicit BridgeDestinations(const NlpModelAggregate &aggregate,
+                                BridgeTableOrder order = BridgeTableOrder::kPermuted) {
         const int claims = static_cast<int>(aggregate.kkt_claim_rows().size());
         kkt_locations_.resize(static_cast<std::size_t>(claims));
         for (int slot = 0; slot < claims; ++slot) {
-            kkt_locations_[static_cast<std::size_t>(slot)] = slot;
+            kkt_locations_[static_cast<std::size_t>(slot)] =
+                order == BridgeTableOrder::kIdentity ? slot : claims - 1 - slot;
         }
         kkt_values_.assign(static_cast<std::size_t>(claims), 0.0);
         kkt_clashes_.assign(static_cast<std::size_t>(aggregate.kkt_dimension()), -1);
@@ -335,7 +381,11 @@ class BridgeDestinations {
         const auto rows = aggregate.kkt_claim_rows();
         const auto cols = aggregate.kkt_claim_cols();
         for (Eigen::Index slot = 0; slot < rows.size(); ++slot) {
-            dense(rows[slot], cols[slot]) += kkt_values_[static_cast<std::size_t>(slot)];
+            // Read back through the table the provider wrote through, so the
+            // assertion is blind to which order the consumer chose.
+            const std::size_t offset =
+                static_cast<std::size_t>(kkt_locations_[static_cast<std::size_t>(slot)]);
+            dense(rows[slot], cols[slot]) += kkt_values_[offset];
         }
         return dense;
     }
@@ -346,6 +396,9 @@ class BridgeDestinations {
     BridgeArena equality_residuals_;
     BridgeArena inequality_residuals_;
     std::vector<double> kkt_values_;
+
+    /// Where claim slot @p slot was told to land.
+    int kkt_location(int slot) const { return kkt_locations_[static_cast<std::size_t>(slot)]; }
 
   private:
     std::vector<int> kkt_locations_;
@@ -410,6 +463,16 @@ TEST(NlpModelAggregateDeclaration, CarriesNoEnginePieces) {
     EXPECT_TRUE(aggregate.declaration().objectives_.empty());
     EXPECT_TRUE(aggregate.declaration().equality_constraints_.empty());
     EXPECT_TRUE(aggregate.declaration().inequality_constraints_.empty());
+}
+
+TEST(NlpModelAggregateDeclaration, PassesTheContractsOwnValidation) {
+    // A constrained bridge declares rows of both kinds and no pieces. The
+    // boundary is universal: the piece-sum conjunct is vacuous with empty piece
+    // lists, and every other check applies to this declaration as to any other.
+    NlpModelAggregate aggregate(counting_model());
+    EXPECT_GT(aggregate.declaration().equality_rows_, 0);
+    EXPECT_GT(aggregate.declaration().inequality_rows_, 0);
+    EXPECT_NO_THROW(aggregate.declaration().validate());
 }
 
 TEST(NlpModelAggregateDeclaration, RefusesANullModel) {
@@ -790,6 +853,36 @@ TEST(NlpModelAggregateEvaluatorSets, FullKktRunsEveryEvaluatorExactlyOnce) {
     EXPECT_EQ(counts_for(kRequestFullKkt, true), expected);
 }
 
+TEST(NlpModelAggregateEvaluatorSets, AConstantConstraintBlockStillReachesItsJacobianEvaluator) {
+    // The equality row is a constant, so its Jacobian is all structural zeros
+    // and the claim pass lays no claim for it. The row count is what decides
+    // whether the callback runs, and it must: the request named a Jacobian.
+    auto model = std::make_shared<BridgeConstantEqualityModel>();
+    NlpModelAggregate aggregate(model);
+    ASSERT_EQ(aggregate.equality_jacobian_claims().count_, 0)
+        << "the fixture must claim nothing for its constant block";
+    ASSERT_EQ(aggregate.declaration().equality_rows_, 1);
+
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+    model->reset_counts();
+    aggregate.assemble(point.full(), kRequestFullKkt, destinations.kkt_view(),
+                       destinations.rhs_view());
+
+    BridgeEvalCounts expected;
+    expected.values_ = 1;
+    expected.grad_ = 1;
+    expected.jac_e_ = 1;
+    expected.jac_i_ = 1;
+    expected.hess_ = 1;
+    EXPECT_EQ(model->counts(), expected);
+
+    // The block that claimed nothing scatters nothing, and its residual row is
+    // still filled: claiming no Jacobian slot is not the same as having no row.
+    EXPECT_DOUBLE_EQ(destinations.equality_residuals_.values()[0],
+                     BridgeConstantEqualityModel::constant_equality()(0));
+}
+
 TEST(NlpModelAggregateEvaluatorSets, TheConstraintOnlyKktAsksForTheHessianAtZeroObjectiveScale) {
     auto model = counting_model();
     NlpModelAggregate aggregate(model);
@@ -976,10 +1069,39 @@ TEST(NlpModelAggregateEquivalence, ConstraintJacobianOnlyWritesNoHessianSlot) {
 
     const ClaimBlock hessian = aggregate.hessian_claims();
     for (int slot = hessian.start_; slot < hessian.start_ + hessian.count_; ++slot) {
-        EXPECT_DOUBLE_EQ(destinations.kkt_values_[static_cast<std::size_t>(slot)], 0.0);
+        EXPECT_DOUBLE_EQ(
+            destinations.kkt_values_[static_cast<std::size_t>(destinations.kkt_location(slot))],
+            0.0);
     }
     EXPECT_TRUE(destinations.dense_kkt(aggregate).isApprox(
         hand_composed_kkt(*model, point.x_, 0.0, point.equality_, point.inequality_, false)));
+}
+
+TEST(NlpModelAggregateEquivalence, ClaimsLandWhereTheTableSendsThemUnderEitherOrder) {
+    // The companion of every pin above, which runs under a permuted table: with
+    // an identity table each claim's value lands at its own slot index, so the
+    // two orders together separate "wrote through the table" from "wrote its own
+    // slot index".
+    auto model = counting_model();
+    NlpModelAggregate aggregate(model);
+    const BridgePoint point;
+
+    BridgeDestinations identity(aggregate, BridgeTableOrder::kIdentity);
+    aggregate.assemble(point.full(), kRequestFullKkt, identity.kkt_view(), identity.rhs_view());
+
+    BridgeDestinations permuted(aggregate, BridgeTableOrder::kPermuted);
+    aggregate.assemble(point.full(), kRequestFullKkt, permuted.kkt_view(), permuted.rhs_view());
+
+    const int claims = static_cast<int>(aggregate.kkt_claim_rows().size());
+    ASSERT_GT(claims, 1);
+    for (int slot = 0; slot < claims; ++slot) {
+        EXPECT_EQ(identity.kkt_location(slot), slot);
+        EXPECT_EQ(permuted.kkt_location(slot), claims - 1 - slot);
+        EXPECT_DOUBLE_EQ(
+            permuted.kkt_values_[static_cast<std::size_t>(permuted.kkt_location(slot))],
+            identity.kkt_values_[static_cast<std::size_t>(slot)]);
+    }
+    EXPECT_TRUE(permuted.dense_kkt(aggregate).isApprox(identity.dense_kkt(aggregate)));
 }
 
 TEST(NlpModelAggregateEquivalence, AssembleAccumulatesRatherThanAssigns) {
@@ -1049,6 +1171,23 @@ TEST(NlpModelAggregateBoundary, RefusesAModelWhoseSparsityPatternCollapses) {
     EXPECT_THROW(aggregate.assemble(CandidatePoint{x, le, li}, kRequestFullKkt,
                                     destinations.kkt_view(), destinations.rhs_view()),
                  std::invalid_argument);
+}
+
+TEST(NlpModelAggregateBoundary, RefusesAHessianEntryBelowTheDiagonal) {
+    class LowerTriangleHessianModel : public BridgeCountingModel {
+      public:
+        SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+            // (1, 0) is below the diagonal, which nlp_model.h's upper-triangle
+            // return convention does not admit. The claims record the triangle
+            // verbatim, so this is caught at claim time rather than trusted.
+            return hven::solvers::test_support::detail::make_upper(
+                2, {{0, 0, 2.0}, {1, 0, 1.0}, {1, 1, 4.0}});
+        }
+    };
+
+    EXPECT_THROW(
+        { NlpModelAggregate bridge(std::make_shared<LowerTriangleHessianModel>()); },
+        std::invalid_argument);
 }
 
 TEST(NlpModelAggregateBoundary, RefusesADeclarationWhoseBoundsIntersectToNothing) {

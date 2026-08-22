@@ -409,7 +409,14 @@ class NlpAggregate {
     /// this interface's business and never routes through it.
     virtual int negotiate_partition_count(int requested) = 0;
 
+    /// @brief The evaluation thread budget.
+    ///
+    /// evaluation_threads() reports the count evaluation will actually use.
     virtual int evaluation_threads() const = 0;
+
+    /// @brief Requests an evaluation thread budget.
+    ///
+    /// @param n the requested count.
     virtual void set_evaluation_threads(int n) = 0;
 
     /// The structural key of the declared model as currently laid.

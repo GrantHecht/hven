@@ -33,7 +33,18 @@ set(HVEN_MODEL_TEST_SOURCES
 )
 
 add_executable(hven_model_tests ${HVEN_MODEL_TEST_SOURCES})
-target_include_directories(hven_model_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Two roots on the include path, and the second one is why: the bridge's
+# equivalence pins consume the HS transcriptions that live beside the SQP suite
+# (tests/sqp/support/hs_problems.h, header-only test support). The tests tree
+# root joins the path so that fixture is named rooted -- "sqp/support/..." --
+# rather than reached by a ../ traversal from a source file. This directory
+# itself stays first, so a quoted include of this suite's own support/ headers
+# resolves here.
+target_include_directories(hven_model_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
 target_link_libraries(hven_model_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_model_tests PRIVATE ${COMPILE_FLAGS})
 

@@ -12,6 +12,9 @@
 // Split storage is the contract, in both directions: never a monolith the
 // caller has to slice, and never storage the provider allocated.
 //
+// Multiplier and adjoint-gradient signs follow the seam stationarity
+// convention: grad f + Je^T lambda_e + Ji^T lambda_i - z = 0.
+//
 // Engine-independent by construction: nothing here includes from the
 // interior-point machinery.
 

@@ -107,20 +107,32 @@ void AggregateDeclaration::validate() const {
             partition_count_));
     }
 
-    const int equality_claimed = declared_rows(equality_constraints_);
-    if (equality_claimed != equality_rows_) {
-        throw std::invalid_argument(
-            fmt::format("AggregateDeclaration: the equality pieces claim {0} rows in total, but "
-                        "the declaration states {1} equality rows",
-                        equality_claimed, equality_rows_));
-    }
+    // The piece-sum conjunct is the one conditional check here, and it is
+    // conditional on the declaration having pieces at all. A provider that is
+    // not a piece collection -- a bridge over a single model, say -- declares
+    // none, and there is then no sum for the row counts to disagree with. Every
+    // other check in this routine always runs, which is what makes this boundary
+    // universal rather than one engine's description of itself. Coverage of a
+    // provider that should have declared pieces and did not is owned downstream,
+    // by its own claim pass.
+    const bool has_pieces = !objectives_.empty() || !equality_constraints_.empty() ||
+                            !inequality_constraints_.empty();
+    if (has_pieces) {
+        const int equality_claimed = declared_rows(equality_constraints_);
+        if (equality_claimed != equality_rows_) {
+            throw std::invalid_argument(fmt::format(
+                "AggregateDeclaration: the equality pieces claim {0} rows in total, but the "
+                "declaration states {1} equality rows",
+                equality_claimed, equality_rows_));
+        }
 
-    const int inequality_claimed = declared_rows(inequality_constraints_);
-    if (inequality_claimed != inequality_rows_) {
-        throw std::invalid_argument(
-            fmt::format("AggregateDeclaration: the inequality pieces claim {0} rows in total, but "
-                        "the declaration states {1} inequality rows",
-                        inequality_claimed, inequality_rows_));
+        const int inequality_claimed = declared_rows(inequality_constraints_);
+        if (inequality_claimed != inequality_rows_) {
+            throw std::invalid_argument(fmt::format(
+                "AggregateDeclaration: the inequality pieces claim {0} rows in total, but the "
+                "declaration states {1} inequality rows",
+                inequality_claimed, inequality_rows_));
+        }
     }
 
     // Per RECORD: a single declaration whose two finite sides are inverted is
