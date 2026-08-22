@@ -81,7 +81,7 @@ struct NLPRowClassification {
 ///   Range         (both finite)       -> two inequality rows, g(x) - gu then gl - g(x)
 ///   Free          (both infinite)     -> no row
 ///
-/// Multiplier shapes. NLPProblem carries ONE multiplier per declared row, in
+/// Multiplier shapes. NLPProblem carries one multiplier per declared row, in
 /// Ipopt's sign convention (L = obj_factor*f + lambda^T g). NlpModel carries a
 /// lambda_e per equality row and a lambda_i >= 0 per inequality row, in the
 /// convention nlp_model.h states. The two correspond row by row, by kind:
@@ -102,7 +102,7 @@ struct NLPRowClassification {
 /// undone by its compose, and a Free row is the only place a declared value
 /// has no native image to come back from.
 ///
-/// The other order is NOT an identity. compose is not injective on the native
+/// The other order is not an identity. compose is not injective on the native
 /// pairs -- a Range row's two multipliers reach the declared space only as
 /// their difference -- so split_user_multipliers(compose_user_multipliers(le,
 /// li)) generally differs from (le, li): a Range row carrying
@@ -117,6 +117,13 @@ struct NLPRowClassification {
 /// per iterate: eval_ce and eval_ci share one NLPProblem::eval_g call, and
 /// eval_jac_e and eval_jac_i share one NLPProblem::eval_jac call.
 ///
+/// Thread safety. None: the caches above and the storage below are mutable
+/// members this model rewrites on every evaluation, so two threads evaluating
+/// one instance race each other. One instance per evaluating thread, or one
+/// evaluating thread per instance. Const-qualified methods are not an
+/// exception -- the mutation is behind `mutable`, which is what makes the
+/// caching possible at all.
+///
 /// Storage. The native residuals, Jacobians and Hessian live in members whose
 /// patterns are laid once at construction and whose values are rewritten in
 /// place on every evaluation, so an evaluation after the first allocates
@@ -129,9 +136,11 @@ class NlpProblemModel final : public NlpModel, public NlpModelInPlace {
     /// @param problem The problem to convert; must not be null.
     /// @throws std::invalid_argument on a null problem, a non-positive
     ///         variable count, a negative or inconsistent nonzero count, a
-    ///         constraint-row bound pair that is NaN, inverted, or an equality
-    ///         at infinity, or a structure entry outside its matrix (a Hessian
-    ///         entry above the diagonal included).
+    ///         variable bound pair that is NaN, inverted, or fixes the variable
+    ///         at an infinity, a constraint-row bound pair that is NaN,
+    ///         inverted, or an equality at infinity, or a structure entry
+    ///         outside its matrix (a Hessian entry above the diagonal
+    ///         included).
     explicit NlpProblemModel(std::shared_ptr<NLPProblem> problem);
 
     Index n() const override { return n_; }
@@ -219,6 +228,7 @@ class NlpProblemModel final : public NlpModel, public NlpModelInPlace {
     };
 
     void validate_sizes() const;
+    void validate_variable_bounds() const;
     void build_row_tables(ConstEigenRef<Eigen::VectorXd> gl, ConstEigenRef<Eigen::VectorXd> gu);
     void read_structures();
     void build_jacobian_pattern();

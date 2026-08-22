@@ -26,7 +26,7 @@ namespace hven::solvers {
 /// piece host that carries a model onto NonLinearProgram. The problem reaches
 /// the engine no other way.
 ///
-/// Transcription EVALUATES the problem, once, before any solve iterate exists:
+/// Transcription evaluates the problem, once, before any solve iterate exists:
 /// the host calls the converted model's Jacobian and Hessian at the model's
 /// start point -- the origin projected onto the declared variable bounds --
 /// and records the sparsity pattern each returns, which is what its KKT claims

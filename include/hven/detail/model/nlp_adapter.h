@@ -146,14 +146,36 @@ struct NLPAdapterCore {
     ///         a Hessian return carrying an entry below the diagonal.
     explicit NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name = "NLP model");
 
-    /// Copies @p x into the cache, invalidating the evaluations keyed on it.
+    /// @brief Copies @p x into the cache, invalidating what is keyed on it.
+    /// @param x The solver's iterate.
+    /// @throws std::invalid_argument if @p x is not n() elements.
     void sync_x(ConstEigenRef<Eigen::VectorXd> x);
 
+    /// @brief Brings the objective gradient up to date at @p x.
+    /// @param x The solver's iterate.
+    /// @throws std::invalid_argument if the model returns the wrong length.
     void refresh_gradient(ConstEigenRef<Eigen::VectorXd> x);
+
+    /// @brief Brings both residual blocks up to date at @p x.
+    /// @param x The solver's iterate.
+    /// @throws std::invalid_argument if either block is the wrong length.
     void refresh_residuals(ConstEigenRef<Eigen::VectorXd> x);
+
+    /// @brief Brings both Jacobians up to date at @p x, checking each against
+    ///        the coordinates its claims were laid over.
+    /// @param x The solver's iterate.
+    /// @throws std::invalid_argument on a wrong shape or a shifted pattern.
     void refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x);
 
-    /// The single eval_hess call.
+    /// @brief The one eval_hess call of an assembly, checked against the
+    ///        coordinates the Hessian claims were laid over.
+    /// @param x The solver's iterate.
+    /// @param obj_factor The objective scale this chain carried.
+    /// @param le Equality multipliers; empty means all-zero, longer than this
+    ///           host's rows means its block is the head.
+    /// @param li Inequality multipliers, same convention.
+    /// @throws std::invalid_argument on a multiplier block shorter than this
+    ///         host's rows, a wrong shape, or a shifted pattern.
     void eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
                              ConstEigenRef<Eigen::VectorXd> le, ConstEigenRef<Eigen::VectorXd> li);
 

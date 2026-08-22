@@ -115,7 +115,7 @@ class NlpModel {
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const = 0;
 
     // Variable bounds. Unboundedness on a side is written -inf / +inf; every
-    // FINITE value is a real bound, however large. Nothing in this layer
+    // finite value is a real bound, however large. Nothing in this layer
     // treats a finite magnitude as a stand-in for infinity, so a bound of
     // 1e20 constrains the variable to 1e20 and is not a spelling of "free".
     virtual const Vec &lower() const = 0; // size n

@@ -133,10 +133,10 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
                 fmt::format("{}: variable {} lower bound {} exceeds upper bound {}", name_, i,
                             x_lower_[i], x_upper_[i]));
         }
-        // A VARIABLE FIXED AT INFINITY IS REJECTED. The two preceding checks
+        // A variable fixed at infinity is rejected. The two preceding checks
         // both pass it: inf is not NaN, and inf > inf is false. The install
         // loop in make_nlp_program then asks `isfinite` before installing
-        // either side, so such a variable ends up with NO bound at all -- a
+        // either side, so such a variable ends up with no bound at all -- a
         // "fixed" variable silently FREE, which is a wrong answer rather than
         // a missing diagnostic. Equality at a FINITE value is untouched and
         // remains the ordinary way to fix a variable.

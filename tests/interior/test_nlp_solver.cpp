@@ -602,7 +602,7 @@ TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     const auto nlp_after = solver.nlp_;
     ASSERT_NE(model_after, nullptr);
 
-    // A fault on a LATER transcription leaves the standing one whole -- same
+    // A fault on a later transcription leaves the standing one whole -- same
     // three objects, still consistent with each other -- and leaves the retry
     // flag set rather than half-replacing the solver.
     problem->armed_ = true;

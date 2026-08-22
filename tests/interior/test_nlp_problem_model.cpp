@@ -113,6 +113,8 @@ struct NpmHessProblem : NLPProblem {
 /// 0 is bounded at +/-1e20, variable 1 is genuinely free, row 0 is an equality
 /// at 1e20 and row 1 is a range between -1e20 and 1e20.
 struct NpmLargeBoundProblem : NLPProblem {
+    Eigen::VectorXd xl_{{-1e20, -kNpmInf}}, xu_{{1e20, kNpmInf}};
+
     int num_vars() const override { return 2; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 2; }
@@ -120,8 +122,8 @@ struct NpmLargeBoundProblem : NLPProblem {
 
     void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
                 Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
-        xl << -1e20, -kNpmInf;
-        xu << 1e20, kNpmInf;
+        xl = xl_;
+        xu = xu_;
         gl << 1e20, -1e20;
         gu << 1e20, 1e20;
     }
@@ -413,4 +415,126 @@ TEST(NlpAdapterHostTest, APatternThatShiftsBetweenEvaluationsIsRefusedByName) {
     EXPECT_THROW(
         hven::solvers::nlp_require_claimed_pattern(shrunk, recorded, "eval_jac_e", "NpmProbe"),
         std::invalid_argument);
+}
+
+namespace {
+
+/// A bare NlpModel -- not the triplet conversion -- whose inequality Jacobian
+/// and Hessian patterns move once armed. n = 3, no equality rows, one
+/// inequality row.
+struct NpmDriftingModel : hven::solvers::NlpModel {
+    mutable bool drifted_ = false;
+    Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf, -kNpmInf}};
+    Eigen::VectorXd upper_{{kNpmInf, kNpmInf, kNpmInf}};
+
+    hven::Index n() const override { return 3; }
+    hven::Index me() const override { return 0; }
+    hven::Index mi() const override { return 1; }
+
+    double eval_f(const Eigen::VectorXd &x) const override { return x.squaredNorm(); }
+    Eigen::VectorXd eval_grad(const Eigen::VectorXd &x) const override { return 2.0 * x; }
+    Eigen::VectorXd eval_ce(const Eigen::VectorXd &) const override {
+        return Eigen::VectorXd::Zero(0);
+    }
+    Eigen::VectorXd eval_ci(const Eigen::VectorXd &x) const override {
+        Eigen::VectorXd ci(1);
+        ci[0] = x[0] + x[2] - 1.0;
+        return ci;
+    }
+    hven::SpMatRM eval_jac_e(const Eigen::VectorXd &) const override { return hven::SpMatRM(0, 3); }
+    hven::SpMatRM eval_jac_i(const Eigen::VectorXd &) const override {
+        hven::SpMatRM j(1, 3);
+        j.insert(0, drifted_ ? 1 : 0) = 1.0;
+        j.insert(0, 2) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    hven::SpMatRM eval_hess(const Eigen::VectorXd &, double obj_scale, const Eigen::VectorXd &,
+                            const Eigen::VectorXd &) const override {
+        hven::SpMatRM h(3, 3);
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(drifted_ ? 2 : 1, drifted_ ? 2 : 1) = 2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    const Eigen::VectorXd &lower() const override { return lower_; }
+    const Eigen::VectorXd &upper() const override { return upper_; }
+    Eigen::VectorXd start_point() const override { return Eigen::VectorXd::Zero(3); }
+};
+
+} // namespace
+
+TEST(NlpAdapterHostTest, AModelWhosePatternDriftsAfterTranscriptionIsRefused) {
+    // The host's claims were laid over the pattern it saw at transcription. A
+    // model that presents a different one afterwards must be refused on the
+    // host's own path, not merely by the guard called in isolation.
+    auto model = std::make_shared<NpmDriftingModel>();
+    hven::solvers::NLPAdapterCore core(model, "NpmDriftingModel");
+
+    Eigen::VectorXd x(3);
+    x << 0.5, -0.25, 1.5;
+    ASSERT_NO_THROW(core.refresh_jacobians(x));
+    ASSERT_NO_THROW(core.eval_hessian_values(x, 1.0, Eigen::VectorXd(), Eigen::VectorXd(1)));
+
+    model->drifted_ = true;
+    Eigen::VectorXd x2(3);
+    x2 << 0.6, -0.35, 1.4;
+    EXPECT_THROW(core.refresh_jacobians(x2), std::invalid_argument);
+
+    Eigen::VectorXd x3(3);
+    x3 << 0.7, -0.45, 1.3;
+    Eigen::VectorXd li(1);
+    li << 0.0;
+    EXPECT_THROW(core.eval_hessian_values(x3, 1.0, Eigen::VectorXd(), li), std::invalid_argument);
+
+    // And through a full assembly, which is the path a solve takes.
+    auto fresh = std::make_shared<NpmDriftingModel>();
+    auto fresh_core = std::make_shared<hven::solvers::NLPAdapterCore>(fresh, "NpmDriftingModel");
+    auto nlp = hven::solvers::make_nlp_program(fresh_core);
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
+    nlp->analyze_sparsity(kkt);
+    Eigen::Map<Eigen::VectorXd>(kkt.valuePtr(), kkt.nonZeros()).setZero();
+    double val = 0.0;
+    Eigen::VectorXd PGX = Eigen::VectorXd::Zero(nlp->primal_vars_);
+    Eigen::VectorXd AGX = Eigen::VectorXd::Zero(nlp->primal_vars_);
+    Eigen::VectorXd FXE = Eigen::VectorXd::Zero(nlp->equal_cons_);
+    Eigen::VectorXd FXI = Eigen::VectorXd::Zero(nlp->inequal_cons_);
+    Eigen::VectorXd LE(0), LI = Eigen::VectorXd::Zero(nlp->inequal_cons_);
+    ASSERT_NO_THROW(nlp->eval_kkt(1.0, x, LE, LI, val, PGX, AGX, FXE, FXI, kkt));
+    fresh->drifted_ = true;
+    EXPECT_THROW(nlp->eval_kkt(1.0, x2, LE, LI, val, PGX, AGX, FXE, FXI, kkt),
+                 std::invalid_argument);
+}
+
+TEST(NlpProblemModelTest, VariableBoundsAreValidatedAtConstruction) {
+    // All three refusals belong here rather than only in a consumer: every
+    // consumer reads the bounds through this model, and start_point() projects
+    // onto them.
+    auto bad = [](auto mutate) {
+        auto problem = std::make_shared<NpmLargeBoundProblem>();
+        mutate(*problem);
+        EXPECT_THROW(NlpProblemModel{problem}, std::invalid_argument);
+    };
+    bad([](NpmLargeBoundProblem &p) { p.xl_[0] = std::numeric_limits<double>::quiet_NaN(); });
+    bad([](NpmLargeBoundProblem &p) { p.xu_[1] = std::numeric_limits<double>::quiet_NaN(); });
+    bad([](NpmLargeBoundProblem &p) {
+        p.xl_[0] = 1.0;
+        p.xu_[0] = 0.0;
+    });
+    bad([](NpmLargeBoundProblem &p) {
+        p.xl_[1] = kNpmInf;
+        p.xu_[1] = kNpmInf;
+    });
+    bad([](NpmLargeBoundProblem &p) {
+        p.xl_[1] = -kNpmInf;
+        p.xu_[1] = -kNpmInf;
+    });
+
+    // The controls: a variable fixed at a finite value is the ordinary way to
+    // fix one, and an ordinary free variable has two different infinities.
+    auto fixed_finite = std::make_shared<NpmLargeBoundProblem>();
+    fixed_finite->xl_[0] = 2.0;
+    fixed_finite->xu_[0] = 2.0;
+    EXPECT_NO_THROW(NlpProblemModel{fixed_finite});
+    EXPECT_NO_THROW(NlpProblemModel{std::make_shared<NpmLargeBoundProblem>()});
 }

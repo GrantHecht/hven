@@ -110,6 +110,7 @@ NlpProblemModel::NlpProblemModel(std::shared_ptr<NLPProblem> problem)
     x_upper_.resize(n_);
     Eigen::VectorXd gl(m_), gu(m_);
     problem_->bounds(x_lower_, x_upper_, gl, gu);
+    this->validate_variable_bounds();
 
     rows_ = NLPRowClassification::classify(gl, gu);
     this->build_row_tables(gl, gu);
@@ -141,6 +142,37 @@ void NlpProblemModel::validate_sizes() const {
         throw std::invalid_argument(
             fmt::format("{}: {} Jacobian nonzeros declared for a problem with no constraints",
                         problem_->name(), jac_nnz_));
+    }
+}
+
+void NlpProblemModel::validate_variable_bounds() const {
+    // The declared variable bounds, checked here because this is where they
+    // enter the library: every consumer of this model reads them through
+    // lower()/upper(), and start_point() projects the origin onto them, so a
+    // pair that describes no interval has to be refused before either.
+    for (int i = 0; i < n_; i++) {
+        const double lo = x_lower_[i], up = x_upper_[i];
+        if (std::isnan(lo) || std::isnan(up)) {
+            throw std::invalid_argument(fmt::format(
+                "{}: variable {} bound is NaN (lower={}, upper={})", problem_->name(), i, lo, up));
+        }
+        if (lo > up) {
+            throw std::invalid_argument(
+                fmt::format("{}: variable {} lower bound {} exceeds upper bound {}",
+                            problem_->name(), i, lo, up));
+        }
+        // A variable fixed at an infinity describes no value at all, and every
+        // check that could catch it lets it through: an infinity is not NaN,
+        // and inf > inf is false. Consumers then install a bound only where
+        // isfinite holds, so such a variable arrives free -- declared fixed,
+        // installed unbounded, which is a wrong answer rather than a missing
+        // diagnostic. Fixing a variable at a finite value is untouched and
+        // remains the ordinary way to fix one.
+        if (lo == up && !std::isfinite(lo)) {
+            throw std::invalid_argument(
+                fmt::format("{}: variable {}: both bounds are {} — a variable fixed at infinity",
+                            problem_->name(), i, lo));
+        }
     }
 }
 
