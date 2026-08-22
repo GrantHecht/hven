@@ -54,12 +54,15 @@ endif()
 # boundary validation are defined where those types are complete. The NlpModel
 # bridge needs one because it is an implementation rather than a contract
 # surface, and it sits in this block rather than the engine block below because
-# it is a second provider of the contract and names no engine type.
+# it is a second provider of the contract and names no engine type. The
+# triplet-to-native conversion sits here on the same footing: it is a provider
+# of the model contract and names no engine type either.
 ################################################################################
 
 target_sources(hven PRIVATE
     model/aggregate_declaration.cpp
     model/nlp_model_aggregate.cpp
+    model/nlp_problem_model.cpp
 )
 
 ################################################################################
@@ -488,7 +491,13 @@ endif()
 # different header set in a different order from the one src/hven_pch.h
 # prefixes, and that property has failed bar 2 for all eight SQP-side TUs
 # measured so far.
-set(_hven_expected_source_count 31)
+#
+# 32 as of model/nlp_problem_model.cpp, the triplet-to-native conversion. It
+# stays OUT on the same footing as the three above -- no measurement exists for
+# it, and out is the unmeasured default. It includes the model contract, the
+# triplet problem surface, Eigen sparse and fmt: again a different header set
+# in a different order from the one src/hven_pch.h prefixes.
+set(_hven_expected_source_count 32)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

@@ -6,10 +6,34 @@
 #include "hven/model/nlp_solver.h"
 
 #include <cmath>
+#include <string>
 
 #include <fmt/format.h>
 
 namespace hven::solvers {
+
+namespace {
+
+/// The model's own block of a solver-space multiplier vector.
+///
+/// The solver's vector carries the engine's own rows after the model's when a
+/// fixed variable was turned into an equality row, and is empty when no solve
+/// has run yet; either way the model's block is the leading @p rows entries.
+Eigen::VectorXd model_multiplier_block(const Eigen::VectorXd &solver_block, Index rows,
+                                       const char *which, const std::string &name) {
+    if (solver_block.size() == 0) {
+        return Eigen::VectorXd::Zero(rows);
+    }
+    if (solver_block.size() < rows) {
+        throw std::runtime_error(
+            fmt::format("{}: the solver reported {} {} multipliers for a problem transcribed with "
+                        "{} {} rows",
+                        name, solver_block.size(), which, rows, which));
+    }
+    return solver_block.head(rows);
+}
+
+} // namespace
 
 NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(problem)) {
     if (!this->problem_) {
@@ -18,7 +42,8 @@ NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(p
 }
 
 void NLPSolver::transcribe() {
-    this->core_ = std::make_shared<NLPAdapterCore>(this->problem_);
+    this->model_ = std::make_shared<NlpProblemModel>(this->problem_);
+    this->core_ = std::make_shared<NLPAdapterCore>(this->model_, this->problem_->name());
     this->nlp_ = make_nlp_program(this->core_);
     this->optimizer_->set_nlp(this->nlp_);
     this->do_transcription_ = false;
@@ -95,18 +120,17 @@ void NLPSolver::jet_release() {
 }
 
 Eigen::VectorXd NLPSolver::return_multipliers() const {
-    if (!this->core_) {
+    if (!this->model_) {
         throw std::runtime_error("NLPSolver::return_multipliers: nothing has been solved yet");
     }
-    // compose_user_lambda tolerates empty vectors (all-zero result), so this is
-    // safe even if a solve never ran or the problem has no constraints.
-    const_cast<NLPAdapterCore &>(*this->core_)
-        .compose_user_lambda(this->active_eq_lmults_, this->active_iq_lmults_);
-    return this->core_->lambda_user_;
+    const std::string &name = this->problem_->name();
+    return this->model_->compose_user_multipliers(
+        model_multiplier_block(this->active_eq_lmults_, this->model_->me(), "equality", name),
+        model_multiplier_block(this->active_iq_lmults_, this->model_->mi(), "inequality", name));
 }
 
 void NLPSolver::apply_starting_multipliers() {
-    Eigen::VectorXd lam = Eigen::VectorXd::Zero(this->core_->m_);
+    Eigen::VectorXd lam = Eigen::VectorXd::Zero(this->model_->num_declared_rows());
     if (!this->problem_->starting_multipliers(lam)) {
         // No seed requested for THIS call. Any staging already armed on the
         // optimizer -- e.g. a direct optimizer_->set_initial_multipliers()
@@ -118,28 +142,8 @@ void NLPSolver::apply_starting_multipliers() {
         throw std::invalid_argument(fmt::format(
             "{}: starting_multipliers returned a non-finite value", this->problem_->name()));
     }
-    const auto &rc = this->core_->rows_;
-    Eigen::VectorXd eqm = Eigen::VectorXd::Zero(rc.num_eq_);
-    Eigen::VectorXd iqm = Eigen::VectorXd::Zero(rc.num_iq_);
-    for (int r = 0; r < this->core_->m_; r++) {
-        switch (rc.kinds_[r]) {
-        case NLPRowKind::Equality:
-            eqm[rc.eq_row_[r]] = lam[r];
-            break;
-        case NLPRowKind::UpperBounded:
-            iqm[rc.iq_upper_row_[r]] = lam[r];
-            break;
-        case NLPRowKind::LowerBounded:
-            iqm[rc.iq_lower_row_[r]] = -lam[r];
-            break;
-        case NLPRowKind::Range:
-            iqm[rc.iq_upper_row_[r]] = std::max(lam[r], 0.0);
-            iqm[rc.iq_lower_row_[r]] = std::max(-lam[r], 0.0);
-            break;
-        case NLPRowKind::Free:
-            break;
-        }
-    }
+    Eigen::VectorXd eqm, iqm;
+    this->model_->split_user_multipliers(lam, eqm, iqm);
     this->optimizer_->set_initial_multipliers(eqm, iqm);
 }
 

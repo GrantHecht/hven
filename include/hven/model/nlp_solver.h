@@ -12,6 +12,7 @@
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/drivers/optimization_problem_base.h"
 #include "hven/model/nlp_problem.h"
+#include "hven/model/nlp_problem_model.h"
 
 namespace hven::solvers {
 
@@ -19,8 +20,14 @@ namespace hven::solvers {
 /// (via OptimizationProblemBase); transcription happens lazily on the first
 /// solve call. The problem is evaluated single-partition on the calling
 /// thread, which is what a subclass implemented in Python requires anyway.
+///
+/// Transcription runs the problem through NlpProblemModel, which converts the
+/// triplet declaration to the native model contract, and then through the
+/// piece host that carries a model onto NonLinearProgram. The problem reaches
+/// the engine no other way.
 struct NLPSolver : OptimizationProblemBase {
     std::shared_ptr<NLPProblem> problem_;
+    std::shared_ptr<NlpProblemModel> model_;
     std::shared_ptr<NLPAdapterCore> core_;
 
     Eigen::VectorXd active_variables_;

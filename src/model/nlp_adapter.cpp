@@ -15,98 +15,98 @@
 namespace hven::solvers {
 
 namespace {
-constexpr double kInf = std::numeric_limits<double>::infinity();
-} // namespace
 
-NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorXd> gl,
-                                                    ConstEigenRef<Eigen::VectorXd> gu) {
-    if (gl.size() != gu.size()) {
+/// Narrows one of the model's dimensions to the int this host indexes with.
+int to_host_count(Index value, const char *what, const std::string &name) {
+    if (value < 0 || value > static_cast<Index>(std::numeric_limits<int>::max())) {
         throw std::invalid_argument(
-            fmt::format("NLP row classification: g_lower has {} rows but g_upper has {}", gl.size(),
-                        gu.size()));
+            fmt::format("{}: the model reports {} = {}, which is not a count this host can carry "
+                        "(0 to {})",
+                        name, what, value, std::numeric_limits<int>::max()));
     }
-    const int m = static_cast<int>(gl.size());
-    NLPRowClassification rc;
-    rc.kinds_.resize(m);
-    rc.eq_row_ = Eigen::VectorXi::Constant(m, -1);
-    rc.iq_upper_row_ = Eigen::VectorXi::Constant(m, -1);
-    rc.iq_lower_row_ = Eigen::VectorXi::Constant(m, -1);
-    for (int r = 0; r < m; r++) {
-        const double lo = gl[r], up = gu[r];
-        if (std::isnan(lo) || std::isnan(up)) {
-            throw std::invalid_argument(
-                fmt::format("constraint row {}: bound is NaN (lower={}, upper={})", r, lo, up));
-        }
-        if (lo > up) {
-            throw std::invalid_argument(
-                fmt::format("constraint row {}: lower bound {} exceeds upper bound {}", r, lo, up));
-        }
-        if (lo == up) {
-            if (!std::isfinite(lo)) {
-                throw std::invalid_argument(fmt::format(
-                    "constraint row {}: both bounds are {} — an equality at infinity", r, lo));
-            }
-            rc.kinds_[r] = NLPRowKind::Equality;
-            rc.eq_row_[r] = rc.num_eq_++;
-        } else if (lo == -kInf && up == kInf) {
-            rc.kinds_[r] = NLPRowKind::Free;
-        } else if (lo == -kInf) {
-            rc.kinds_[r] = NLPRowKind::UpperBounded;
-            rc.iq_upper_row_[r] = rc.num_iq_++;
-        } else if (up == kInf) {
-            rc.kinds_[r] = NLPRowKind::LowerBounded;
-            rc.iq_lower_row_[r] = rc.num_iq_++;
-        } else {
-            rc.kinds_[r] = NLPRowKind::Range;
-            rc.iq_upper_row_[r] = rc.num_iq_++;
-            rc.iq_lower_row_[r] = rc.num_iq_++;
-        }
-    }
-    return rc;
+    return static_cast<int>(value);
 }
 
-NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NLPProblem> problem) : problem_(std::move(problem)) {
-    if (!problem_) {
-        throw std::invalid_argument("NLPAdapterCore: the problem pointer is null");
+/// Rejects a return whose shape is not the one the model declared.
+void require_dimensions(const SpMatRM &matrix, int rows, int cols, const char *what,
+                        const std::string &name) {
+    if (matrix.rows() != rows || matrix.cols() != cols) {
+        throw std::invalid_argument(
+            fmt::format("{}: {} returned a {}x{} matrix, but the model declares it {}x{}", name,
+                        what, matrix.rows(), matrix.cols(), rows, cols));
     }
-    n_ = problem_->num_vars();
-    m_ = problem_->num_cons();
-    jac_nnz_ = problem_->num_jac_nonzeros();
-    hess_nnz_ = problem_->num_hess_nonzeros();
+}
+
+/// Rejects a vector return whose length is not the one the model declared.
+void require_length(Index actual, int expected, const char *what, const std::string &name) {
+    if (actual != expected) {
+        throw std::invalid_argument(fmt::format(
+            "{}: {} returned {} rows, but the model declares {}", name, what, actual, expected));
+    }
+}
+
+/// Records a matrix's stored coordinates, in storage order, as the claim order
+/// every later evaluation of that matrix is checked against.
+std::vector<NLPCoordinate> record_coordinates(const SpMatRM &matrix) {
+    std::vector<NLPCoordinate> recorded;
+    recorded.reserve(static_cast<std::size_t>(matrix.nonZeros()));
+    for (int outer = 0; outer < static_cast<int>(matrix.outerSize()); outer++) {
+        for (SpMatRM::InnerIterator it(matrix, outer); it; ++it) {
+            recorded.push_back(
+                NLPCoordinate{static_cast<int>(it.row()), static_cast<int>(it.col())});
+        }
+    }
+    return recorded;
+}
+
+/// Rejects a Hessian return that is not the upper triangle the model's own
+/// contract promises. The claims record the triangle verbatim, so an entry
+/// below the diagonal would claim a slot in a triangle the assembled matrix
+/// does not hold.
+void require_upper_triangle(const SpMatRM &hessian, const std::string &name) {
+    for (int outer = 0; outer < static_cast<int>(hessian.outerSize()); outer++) {
+        for (SpMatRM::InnerIterator it(hessian, outer); it; ++it) {
+            if (it.row() > it.col()) {
+                throw std::invalid_argument(fmt::format(
+                    "{}: eval_hess stored an entry at (row {}, column {}), below the diagonal. "
+                    "nlp_model.h states the Hessian return as the upper triangle only",
+                    name, it.row(), it.col()));
+            }
+        }
+    }
+}
+
+} // namespace
+
+NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name)
+    : model_(std::move(model)), name_(std::move(name)) {
+    if (!model_) {
+        throw std::invalid_argument("NLPAdapterCore: the model pointer is null");
+    }
+    n_ = to_host_count(model_->n(), "n()", name_);
+    num_eq_ = to_host_count(model_->me(), "me()", name_);
+    num_iq_ = to_host_count(model_->mi(), "mi()", name_);
     if (n_ <= 0) {
         throw std::invalid_argument(
-            fmt::format("{}: num_vars() must be positive, got {}", problem_->name(), n_));
-    }
-    if (m_ < 0 || jac_nnz_ < 0 || hess_nnz_ < 0) {
-        throw std::invalid_argument(fmt::format(
-            "{}: num_cons()={}, num_jac_nonzeros()={}, num_hess_nonzeros()={} — all must be "
-            "non-negative",
-            problem_->name(), m_, jac_nnz_, hess_nnz_));
-    }
-    if (m_ == 0 && jac_nnz_ != 0) {
-        throw std::invalid_argument(
-            fmt::format("{}: {} Jacobian nonzeros declared for a problem with no constraints",
-                        problem_->name(), jac_nnz_));
+            fmt::format("{}: n() must be positive, got {}", name_, model_->n()));
     }
 
-    x_lower_.resize(n_);
-    x_upper_.resize(n_);
-    Eigen::VectorXd gl(m_), gu(m_);
-    problem_->bounds(x_lower_, x_upper_, gl, gu);
+    x_lower_ = model_->lower();
+    x_upper_ = model_->upper();
+    require_length(x_lower_.size(), n_, "lower()", name_);
+    require_length(x_upper_.size(), n_, "upper()", name_);
     for (int i = 0; i < n_; i++) {
         if (std::isnan(x_lower_[i]) || std::isnan(x_upper_[i])) {
-            throw std::invalid_argument(
-                fmt::format("{}: variable {} bound is NaN", problem_->name(), i));
+            throw std::invalid_argument(fmt::format("{}: variable {} bound is NaN", name_, i));
         }
         if (x_lower_[i] > x_upper_[i]) {
             throw std::invalid_argument(
-                fmt::format("{}: variable {} lower bound {} exceeds upper bound {}",
-                            problem_->name(), i, x_lower_[i], x_upper_[i]));
+                fmt::format("{}: variable {} lower bound {} exceeds upper bound {}", name_, i,
+                            x_lower_[i], x_upper_[i]));
         }
-        // A VARIABLE FIXED AT INFINITY IS REJECTED, exactly as its
-        // constraint-row twin is (NLPRowClassification::classify above). The
-        // two preceding checks both pass it: inf is not NaN, and inf > inf is
-        // false. The install loop then asks `isfinite` before installing
+        // A VARIABLE FIXED AT INFINITY IS REJECTED. The two preceding checks
+        // both pass it: inf is not NaN, and inf > inf is false. The install
+        // loop in make_nlp_program then asks `isfinite` before installing
         // either side, so such a variable ends up with NO bound at all -- a
         // "fixed" variable silently FREE, which is a wrong answer rather than
         // a missing diagnostic. Equality at a FINITE value is untouched and
@@ -114,163 +114,118 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NLPProblem> problem) : problem_(s
         if (x_lower_[i] == x_upper_[i] && !std::isfinite(x_lower_[i])) {
             throw std::invalid_argument(
                 fmt::format("{}: variable {}: both bounds are {} — a variable fixed at infinity",
-                            problem_->name(), i, x_lower_[i]));
-        }
-    }
-    rows_ = NLPRowClassification::classify(gl, gu);
-
-    jac_rows_.resize(jac_nnz_);
-    jac_cols_.resize(jac_nnz_);
-    if (jac_nnz_ > 0) {
-        problem_->jac_structure(jac_rows_, jac_cols_);
-    }
-    for (int s = 0; s < jac_nnz_; s++) {
-        if (jac_rows_[s] < 0 || jac_rows_[s] >= m_ || jac_cols_[s] < 0 || jac_cols_[s] >= n_) {
-            throw std::invalid_argument(
-                fmt::format("{}: Jacobian slot {} is ({}, {}), outside the {}x{} constraint "
-                            "Jacobian",
-                            problem_->name(), s, jac_rows_[s], jac_cols_[s], m_, n_));
-        }
-    }
-    hess_rows_.resize(hess_nnz_);
-    hess_cols_.resize(hess_nnz_);
-    if (hess_nnz_ > 0) {
-        problem_->hess_structure(hess_rows_, hess_cols_);
-    }
-    for (int s = 0; s < hess_nnz_; s++) {
-        if (hess_rows_[s] < 0 || hess_rows_[s] >= n_ || hess_cols_[s] < 0 || hess_cols_[s] >= n_) {
-            throw std::invalid_argument(
-                fmt::format("{}: Hessian slot {} is ({}, {}), outside the {}x{} Hessian",
-                            problem_->name(), s, hess_rows_[s], hess_cols_[s], n_, n_));
-        }
-        if (hess_rows_[s] < hess_cols_[s]) {
-            throw std::invalid_argument(fmt::format(
-                "{}: Hessian slot {} is ({}, {}) — above the diagonal. Declare the LOWER "
-                "triangle of the Lagrangian Hessian (row >= col)",
-                problem_->name(), s, hess_rows_[s], hess_cols_[s]));
+                            name_, i, x_lower_[i]));
         }
     }
 
-    // Residual tables, in solver-row order. Classification assigned solver rows
-    // in user-row order (a range row's upper part before its lower part), and
-    // the loops here follow the same order, so entry k of each table IS local
-    // solver row k of its piece.
-    for (int r = 0; r < m_; r++) {
-        switch (rows_.kinds_[r]) {
-        case NLPRowKind::Equality:
-            eq_res_.push_back({r, 1.0, gl[r]});
-            break;
-        case NLPRowKind::UpperBounded:
-            iq_res_.push_back({r, 1.0, gu[r]});
-            break;
-        case NLPRowKind::LowerBounded:
-            iq_res_.push_back({r, -1.0, gl[r]});
-            break;
-        case NLPRowKind::Range:
-            iq_res_.push_back({r, 1.0, gu[r]});
-            iq_res_.push_back({r, -1.0, gl[r]});
-            break;
-        case NLPRowKind::Free:
-            break;
-        }
-    }
+    // The three patterns, walked once at the model's own start point. Which
+    // point is immaterial by the model's invariance precondition; the start
+    // point is the one point every model is required to be able to produce.
+    const Eigen::VectorXd x0 = model_->start_point();
+    require_length(x0.size(), n_, "start_point()", name_);
+    le_scratch_ = Eigen::VectorXd::Zero(num_eq_);
+    li_scratch_ = Eigen::VectorXd::Zero(num_iq_);
 
-    for (int s = 0; s < jac_nnz_; s++) {
-        const int r = jac_rows_[s];
-        switch (rows_.kinds_[r]) {
-        case NLPRowKind::Equality:
-            eq_jac_.push_back({s, rows_.eq_row_[r], 1.0});
-            break;
-        case NLPRowKind::UpperBounded:
-            iq_jac_.push_back({s, rows_.iq_upper_row_[r], 1.0});
-            break;
-        case NLPRowKind::LowerBounded:
-            iq_jac_.push_back({s, rows_.iq_lower_row_[r], -1.0});
-            break;
-        case NLPRowKind::Range:
-            iq_jac_.push_back({s, rows_.iq_upper_row_[r], 1.0});
-            iq_jac_.push_back({s, rows_.iq_lower_row_[r], -1.0});
-            break;
-        case NLPRowKind::Free:
-            break;
-        }
-    }
+    hess_cache_ = model_->eval_hess(x0, 1.0, le_scratch_, li_scratch_);
+    require_dimensions(hess_cache_, n_, n_, "eval_hess", name_);
+    require_upper_triangle(hess_cache_, name_);
+    hess_ = record_coordinates(hess_cache_);
 
-    hess_owner_ = (rows_.num_iq_ > 0)   ? HessOwner::IqPiece
-                  : (rows_.num_eq_ > 0) ? HessOwner::EqPiece
-                                        : HessOwner::Objective;
+    jac_e_cache_ = (num_eq_ > 0) ? model_->eval_jac_e(x0) : SpMatRM(0, n_);
+    require_dimensions(jac_e_cache_, num_eq_, n_, "eval_jac_e", name_);
+    eq_jac_ = record_coordinates(jac_e_cache_);
 
-    g_cache_.resize(m_);
-    jac_cache_.resize(jac_nnz_);
-    grad_scratch_.resize(n_);
-    lambda_user_.resize(m_);
-    hess_vals_.resize(hess_nnz_);
+    jac_i_cache_ = (num_iq_ > 0) ? model_->eval_jac_i(x0) : SpMatRM(0, n_);
+    require_dimensions(jac_i_cache_, num_iq_, n_, "eval_jac_i", name_);
+    iq_jac_ = record_coordinates(jac_i_cache_);
+
+    hess_owner_ = (num_iq_ > 0)   ? HessOwner::IqPiece
+                  : (num_eq_ > 0) ? HessOwner::EqPiece
+                                  : HessOwner::Objective;
+
+    ce_cache_ = Eigen::VectorXd::Zero(num_eq_);
+    ci_cache_ = Eigen::VectorXd::Zero(num_iq_);
 }
 
 void NLPAdapterCore::sync_x(ConstEigenRef<Eigen::VectorXd> x) {
     if (x.size() != n_) {
         throw std::invalid_argument(
-            fmt::format("{}: the solver handed a {}-element iterate to a {}-variable problem",
-                        problem_->name(), x.size(), n_));
+            fmt::format("{}: the solver handed a {}-element iterate to a {}-variable model", name_,
+                        x.size(), n_));
     }
     if (x_cache_.size() != n_ || x_cache_ != x) {
         x_cache_ = x;
-        g_valid_ = false;
-        jac_valid_ = false;
+        residuals_valid_ = false;
+        jacobians_valid_ = false;
     }
 }
 
-void NLPAdapterCore::refresh_g(ConstEigenRef<Eigen::VectorXd> x) {
-    sync_x(x);
-    if (!g_valid_) {
-        if (m_ > 0) {
-            problem_->eval_g(x, g_cache_);
-        }
-        g_valid_ = true;
+void NLPAdapterCore::refresh_residuals(ConstEigenRef<Eigen::VectorXd> x) {
+    this->sync_x(x);
+    if (residuals_valid_) {
+        return;
     }
+    if (num_eq_ > 0) {
+        ce_cache_ = model_->eval_ce(x_cache_);
+        require_length(ce_cache_.size(), num_eq_, "eval_ce", name_);
+    }
+    if (num_iq_ > 0) {
+        ci_cache_ = model_->eval_ci(x_cache_);
+        require_length(ci_cache_.size(), num_iq_, "eval_ci", name_);
+    }
+    residuals_valid_ = true;
 }
 
-void NLPAdapterCore::refresh_jac(ConstEigenRef<Eigen::VectorXd> x) {
-    sync_x(x);
-    if (!jac_valid_) {
-        if (jac_nnz_ > 0) {
-            problem_->eval_jac(x, jac_cache_);
-        }
-        jac_valid_ = true;
+void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
+    this->sync_x(x);
+    if (jacobians_valid_) {
+        return;
     }
-}
-
-void NLPAdapterCore::compose_user_lambda(ConstEigenRef<Eigen::VectorXd> le,
-                                         ConstEigenRef<Eigen::VectorXd> li) {
-    for (int r = 0; r < m_; r++) {
-        switch (rows_.kinds_[r]) {
-        case NLPRowKind::Equality:
-            lambda_user_[r] = (le.size() > 0) ? le[rows_.eq_row_[r]] : 0.0;
-            break;
-        case NLPRowKind::UpperBounded:
-            lambda_user_[r] = (li.size() > 0) ? li[rows_.iq_upper_row_[r]] : 0.0;
-            break;
-        case NLPRowKind::LowerBounded:
-            lambda_user_[r] = (li.size() > 0) ? -li[rows_.iq_lower_row_[r]] : 0.0;
-            break;
-        case NLPRowKind::Range:
-            lambda_user_[r] =
-                (li.size() > 0) ? li[rows_.iq_upper_row_[r]] - li[rows_.iq_lower_row_[r]] : 0.0;
-            break;
-        case NLPRowKind::Free:
-            lambda_user_[r] = 0.0;
-            break;
-        }
+    if (num_eq_ > 0) {
+        jac_e_cache_ = model_->eval_jac_e(x_cache_);
+        require_dimensions(jac_e_cache_, num_eq_, n_, "eval_jac_e", name_);
     }
+    if (num_iq_ > 0) {
+        jac_i_cache_ = model_->eval_jac_i(x_cache_);
+        require_dimensions(jac_i_cache_, num_iq_, n_, "eval_jac_i", name_);
+    }
+    jacobians_valid_ = true;
 }
 
 void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
                                          ConstEigenRef<Eigen::VectorXd> le,
                                          ConstEigenRef<Eigen::VectorXd> li) {
-    compose_user_lambda(le, li);
-    if (hess_nnz_ > 0) {
-        problem_->eval_hess(x, obj_factor, lambda_user_, hess_vals_);
+    this->sync_x(x);
+    // A block the chain never produced arrives empty and means all-zero. A
+    // block that arrives can be LONGER than this host's own rows: the engine
+    // appends rows of its own after the pieces' (a fixed variable turned into
+    // an equality row), and hands the whole vector down. This host's rows are
+    // the first ones laid, so its own block is the head. Anything shorter than
+    // its rows is a defect in the chain, not a shape to interpret.
+    if (le.size() != 0 && le.size() < num_eq_) {
+        throw std::invalid_argument(
+            fmt::format("{}: {} equality multipliers reached the Hessian owner, which hosts {} "
+                        "equality rows",
+                        name_, le.size(), num_eq_));
     }
+    if (li.size() != 0 && li.size() < num_iq_) {
+        throw std::invalid_argument(
+            fmt::format("{}: {} inequality multipliers reached the Hessian owner, which hosts {} "
+                        "inequality rows",
+                        name_, li.size(), num_iq_));
+    }
+    if (le.size() >= num_eq_ && num_eq_ > 0) {
+        le_scratch_ = le.head(num_eq_);
+    } else {
+        le_scratch_.setZero(num_eq_);
+    }
+    if (li.size() >= num_iq_ && num_iq_ > 0) {
+        li_scratch_ = li.head(num_iq_);
+    } else {
+        li_scratch_.setZero(num_iq_);
+    }
+    hess_cache_ = model_->eval_hess(x_cache_, obj_factor, le_scratch_, li_scratch_);
+    require_dimensions(hess_cache_, n_, n_, "eval_hess", name_);
 }
 
 std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core) {
@@ -286,18 +241,18 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
     obj.thread_mode_ = ThreadingFlags::MainThread;
     nlp->objectives_.push_back(obj);
 
-    if (core->rows_.num_eq_ > 0) {
-        Eigen::MatrixXi cindex(core->rows_.num_eq_, 1);
-        for (int k = 0; k < core->rows_.num_eq_; k++) {
+    if (core->num_eq_ > 0) {
+        Eigen::MatrixXi cindex(core->num_eq_, 1);
+        for (int k = 0; k < core->num_eq_; k++) {
             cindex(k, 0) = k;
         }
         ConstraintFunction eq(ConstraintInterface(NLPConstraintPiece(core, false)), vindex, cindex);
         eq.thread_mode_ = ThreadingFlags::MainThread;
         nlp->equality_constraints_.push_back(eq);
     }
-    if (core->rows_.num_iq_ > 0) {
-        Eigen::MatrixXi cindex(core->rows_.num_iq_, 1);
-        for (int k = 0; k < core->rows_.num_iq_; k++) {
+    if (core->num_iq_ > 0) {
+        Eigen::MatrixXi cindex(core->num_iq_, 1);
+        for (int k = 0; k < core->num_iq_; k++) {
             cindex(k, 0) = k;
         }
         ConstraintFunction iq(ConstraintInterface(NLPConstraintPiece(core, true)), vindex, cindex);
@@ -311,7 +266,7 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
         }
     }
 
-    nlp->make_nlp(n, core->rows_.num_eq_, core->rows_.num_iq_);
+    nlp->make_nlp(n, core->num_eq_, core->num_iq_);
     return nlp;
 }
 

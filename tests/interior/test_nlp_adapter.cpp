@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/model/nlp_problem_model.h"
 #include "hven/model/non_linear_program.h"
 
 namespace {
@@ -13,8 +14,21 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 using hven::ConstEigenRef;
 using hven::solvers::NLPAdapterCore;
 using hven::solvers::NLPProblem;
+using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPRowClassification;
 using hven::solvers::NLPRowKind;
+
+namespace {
+
+/// The whole route a declared problem takes to the engine: the triplet-to-
+/// native conversion, then the piece host over the model it produced. Every
+/// test below builds through this, because nothing else builds at all.
+std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<NLPProblem> &problem) {
+    auto model = std::make_shared<NlpProblemModel>(problem);
+    return std::make_shared<NLPAdapterCore>(model, problem->name());
+}
+
+} // namespace
 
 // Minimal configurable problem for validation tests. Field defaults describe a
 // valid 2-var, 2-con problem; individual tests break one field at a time.
@@ -97,20 +111,22 @@ TEST(NLPRowClassificationTest, RejectsInvertedAndNaNAndInfiniteEqualityBounds) {
 }
 
 TEST(NLPAdapterCoreTest, ValidSetupPopulatesTables) {
-    auto core = std::make_shared<NLPAdapterCore>(std::make_shared<AdapterValProblem>());
+    auto core = adapter_host(std::make_shared<AdapterValProblem>());
     EXPECT_EQ(core->n_, 2);
-    EXPECT_EQ(core->rows_.num_eq_, 1);
-    EXPECT_EQ(core->rows_.num_iq_, 1);
+    EXPECT_EQ(core->num_eq_, 1);
+    EXPECT_EQ(core->num_iq_, 1);
     EXPECT_EQ(core->eq_jac_.size(), 2u); // row 0 slots
     EXPECT_EQ(core->iq_jac_.size(), 2u); // row 1 slots
     EXPECT_EQ(core->hess_owner_, NLPAdapterCore::HessOwner::IqPiece);
 }
 
 TEST(NLPAdapterCoreTest, RejectsBadSizesAndStructures) {
+    // Either layer may be the one that refuses: the conversion validates the
+    // declaration it is handed, the host validates the model it is given.
     auto bad = [](auto mutate) {
         auto p = std::make_shared<AdapterValProblem>();
         mutate(*p);
-        EXPECT_THROW(NLPAdapterCore{p}, std::invalid_argument);
+        EXPECT_THROW(adapter_host(p), std::invalid_argument);
     };
     bad([](AdapterValProblem &p) { p.n_ = 0; });
     bad([](AdapterValProblem &p) { p.m_ = -1; });
@@ -143,6 +159,7 @@ TEST(NLPAdapterCoreTest, RejectsBadSizesAndStructures) {
         p.xl_[1] = -kInf;
         p.xu_[1] = -kInf;
     });
+    EXPECT_THROW(NlpProblemModel{nullptr}, std::invalid_argument);
     EXPECT_THROW(NLPAdapterCore{nullptr}, std::invalid_argument);
 
     // THE CONTROL, and the reason the check is `lo == up && !isfinite(lo)`
@@ -151,17 +168,17 @@ TEST(NLPAdapterCoreTest, RejectsBadSizesAndStructures) {
     auto fixed_finite = std::make_shared<AdapterValProblem>();
     fixed_finite->xl_[0] = 2.0;
     fixed_finite->xu_[0] = 2.0;
-    EXPECT_NO_THROW(NLPAdapterCore{fixed_finite});
+    EXPECT_NO_THROW(adapter_host(fixed_finite));
     // And an ordinary free variable (-inf, +inf) is untouched -- the two
     // infinities differ, so the new check never sees it.
-    EXPECT_NO_THROW(NLPAdapterCore{std::make_shared<AdapterValProblem>()});
+    EXPECT_NO_THROW(adapter_host(std::make_shared<AdapterValProblem>()));
 }
 
 TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
     auto p = std::make_shared<AdapterValProblem>();
     p->gl_ << 0.0, 0.0;
     p->gu_ << 0.0, 0.0; // both rows equality
-    EXPECT_EQ(NLPAdapterCore{p}.hess_owner_, NLPAdapterCore::HessOwner::EqPiece);
+    EXPECT_EQ(adapter_host(p)->hess_owner_, NLPAdapterCore::HessOwner::EqPiece);
     auto q = std::make_shared<AdapterValProblem>();
     q->m_ = 0;
     q->jnnz_ = 0;
@@ -169,7 +186,7 @@ TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
     q->gu_.resize(0);
     q->jr_.resize(0);
     q->jc_.resize(0);
-    EXPECT_EQ(NLPAdapterCore{q}.hess_owner_, NLPAdapterCore::HessOwner::Objective);
+    EXPECT_EQ(adapter_host(q)->hess_owner_, NLPAdapterCore::HessOwner::Objective);
 }
 
 // Assembly test problem (n=2): f = x0^2 + x1^2; rows: x0 + 2*x1 = 4 (equality),
@@ -237,7 +254,17 @@ struct AsmTestProblem : NLPProblem {
 
 TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     auto prob = std::make_shared<AsmTestProblem>();
-    auto core = std::make_shared<NLPAdapterCore>(prob);
+    auto core = adapter_host(prob);
+
+    // Setup walks the model's three patterns once, at its start point, so a
+    // derivative callback each is spent before any assembly runs; the residual
+    // callback is not needed for a pattern and is not spent.
+    EXPECT_EQ(prob->n_eval_g_, 0);
+    EXPECT_EQ(prob->n_eval_jac_, 1);
+    EXPECT_EQ(prob->n_eval_hess_, 1);
+    prob->n_eval_jac_ = 0;
+    prob->n_eval_hess_ = 0;
+
     auto nlp = hven::solvers::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
@@ -313,7 +340,7 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
 
 TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     auto prob = std::make_shared<AsmTestProblem>();
-    auto core = std::make_shared<NLPAdapterCore>(prob);
+    auto core = adapter_host(prob);
     auto nlp = hven::solvers::make_nlp_program(core);
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -334,7 +361,7 @@ TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     // ...so the no-objective assembly gets a pure-constraint Hessian.
     zero_kkt();
     nlp->eval_kkt_no(2.0, X, LE, LI, val, PGX, AGX, FXE, FXI, kkt);
-    EXPECT_NEAR(kkt.coeff(1, 1), 0.0, 1e-14);       // the 2*sigma term is gone
+    EXPECT_NEAR(kkt.coeff(1, 1), 0.0, 1e-14); // the 2*sigma term is gone
     // Widened: (0,0) is the same duplicate-slot accumulation as the dense
     // assembly test above.
     EXPECT_NEAR(kkt.coeff(0, 0), 2 * LI[0], 1e-12); // constraint curvature stays
@@ -362,7 +389,7 @@ struct ThrowingJacAsmTestProblem : AsmTestProblem {
 
 TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
     auto prob = std::make_shared<ThrowingJacAsmTestProblem>();
-    auto core = std::make_shared<NLPAdapterCore>(prob);
+    auto core = adapter_host(prob);
     auto nlp = hven::solvers::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
@@ -449,8 +476,9 @@ struct RangeAsmTestProblem : NLPProblem {
 
 TEST(NLPAdapterAssemblyTest, RangeRowScattersDuplicatedJacobianAndComposedLambdaHessian) {
     auto prob = std::make_shared<RangeAsmTestProblem>();
-    auto core = std::make_shared<NLPAdapterCore>(prob);
-    ASSERT_EQ(core->rows_.kinds_[0], NLPRowKind::Range);
+    auto model = std::make_shared<NlpProblemModel>(prob);
+    ASSERT_EQ(model->rows().kinds_[0], NLPRowKind::Range);
+    auto core = std::make_shared<NLPAdapterCore>(model, prob->name());
     auto nlp = hven::solvers::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);

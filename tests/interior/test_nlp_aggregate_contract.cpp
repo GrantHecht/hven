@@ -31,6 +31,7 @@
 
 #include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/model/nlp_problem_model.h"
 #include "hven/model/non_linear_program.h"
 
 using hven::ConstEigenRef;
@@ -279,7 +280,8 @@ struct AggPinOneKindProblem : NLPProblem {
 };
 
 std::shared_ptr<NonLinearProgram> agg_pin_build(const std::shared_ptr<NLPProblem> &problem) {
-    auto core = std::make_shared<NLPAdapterCore>(problem);
+    auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
+    auto core = std::make_shared<NLPAdapterCore>(model, problem->name());
     return hven::solvers::make_nlp_program(core);
 }
 
