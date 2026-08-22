@@ -259,10 +259,11 @@ NlpModelAggregate::LaidStructures NlpModelAggregate::lay(int partition_count) co
     laid.declaration_.inequality_rows_ = inequality_rows_;
     laid.declaration_.partition_count_ = partition_count;
 
-    // The model's bounds, one record per variable, verbatim. The model's own
-    // "effectively infinite" spelling (nlp_model.h names +/-1e20) is a numeric
-    // convention of the model's, and reinterpreting it here would put a
-    // threshold of this bridge's invention into a declared structure.
+    // The model's bounds, one record per variable, verbatim. The model layer's
+    // convention (nlp_model.h) is that unboundedness is written -inf / +inf and
+    // every finite value is a real bound, so there is nothing here to
+    // reinterpret: applying a magnitude threshold of this bridge's invention
+    // would put a bound the model never declared into a declared structure.
     const Vec &lower = model_->lower();
     const Vec &upper = model_->upper();
     require_block_size(lower.size(), primal_vars_, "lower()");
