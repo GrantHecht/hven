@@ -40,7 +40,7 @@ struct DomainClaims {
 /// into the matrix-local coordinates that block's own matrix carries.
 ///
 /// The assembled space is square, n + me + mi, laid [primal | equality rows |
-/// inequality rows] (model/nlp_model_aggregate.h): a Hessian claim names
+/// inequality rows] (model/claim_stream_source.h): a Hessian claim names
 /// (i, j) with i <= j, an equality Jacobian claim (n + r, c), an inequality
 /// Jacobian claim (n + me + r, c). The row offset undoes the second and third.
 ///
@@ -52,11 +52,13 @@ struct DomainClaims {
 ///
 /// The claim scope is exactly that -- KKT claims. The right-hand-side rows the
 /// seam also copies in (objective_gradient_claim_rows) get no equivalent check
-/// because they are not a permutation to validate: the bridge claims each RHS
-/// arena whole and in row order, so slot and row are the same number
-/// (model/nlp_model_aggregate.h's lay), and the arena the seam lays for them is
-/// primal_vars_ long by the same declaration those rows are counted from. There
-/// is no coordinate there that could name a place the arena does not have.
+/// because they are not a permutation to validate: the provider on this path
+/// claims each RHS arena whole and in row order, so slot and row are the same
+/// number (model/nlp_model_aggregate.h's lay), and the arena the seam lays for
+/// them is primal_vars_ long by the same declaration those rows are counted
+/// from. There is no coordinate there that could name a place the arena does
+/// not have. That justification is the provider's rather than the claim-stream
+/// interface's, and it narrows to whatever provider is bound.
 DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
                          Eigen::Ref<const Eigen::VectorXi> stream_cols, const ClaimBlock &block,
                          int row_offset, int matrix_rows, int matrix_cols, bool upper_triangle,
@@ -165,7 +167,7 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
 // Construction and layout
 // ---------------------------------------------------------------------------
 
-AggregateEvalSeam::AggregateEvalSeam(NlpModelAggregate &aggregate) : aggregate_(&aggregate) {
+AggregateEvalSeam::AggregateEvalSeam(ClaimStreamSource &aggregate) : aggregate_(&aggregate) {
     this->lay();
 }
 
@@ -195,9 +197,10 @@ void AggregateEvalSeam::lay() {
 
     // The declaration's own intersection, in variable order, which is the
     // record the layout and the structural key's bound conjunct are both taken
-    // over. It replaces the model's lower()/upper() and is the same pair of
-    // vectors by construction: the bridge lays one record per variable
-    // verbatim, and intersecting a single record with (-inf, +inf) returns it.
+    // over. Where the provider is the NlpModel bridge this is the model's own
+    // lower()/upper() back again, and the same pair of vectors by
+    // construction: that bridge lays one record per variable verbatim, and
+    // intersecting a single record with (-inf, +inf) returns it.
     const std::vector<VariableBound> bounds = declared.materialize_variable_bounds();
     lower_.resize(primal_vars_);
     upper_.resize(primal_vars_);
@@ -234,7 +237,7 @@ void AggregateEvalSeam::lay() {
     // base seed_kkt_segment and publish_matrix address the segment by. Deriving
     // it here instead -- 0, then the Hessian count, then the Hessian plus
     // equality counts -- would give the same three numbers only for as long as
-    // the bridge keeps laying the stream H, Ae, Ai in that order with no gaps.
+    // the provider keeps laying the stream H, Ae, Ai in that order with no gaps.
     // Reading `start_` at both ends makes them one number by construction, so a
     // later lay order cannot leave the permutation and the segment copies
     // pointing at different places.
@@ -251,10 +254,12 @@ void AggregateEvalSeam::lay() {
                  inequality_jacobian_, inequality, primal, inequality_jacobian_.start_,
                  "inequality Jacobian", inequality_pattern_, kkt_locations_);
 
-    // Uncontested: one serial bridge scatters this arena, so there is no clash
-    // mark to publish and no mutex vector to key one against. The table's
-    // constructor accepts that form and every scatter site reads only
-    // location().
+    // Uncontested by construction: this seam lays one arena slot per distinct
+    // claimed coordinate and refuses a stream that names one twice within a
+    // domain (the collapse refusal above), so no two slots it publishes address
+    // one offset. There is therefore no clash mark to publish and no mutex
+    // vector to key one against. The table's constructor accepts that form and
+    // every scatter site reads only location().
     kkt_table_ = KktLocationTable(kkt_locations_.data(), total_claims, nullptr, 0, nullptr);
 
     // One padding slot when a model claims nothing at all -- an aggregate whose
@@ -264,8 +269,8 @@ void AggregateEvalSeam::lay() {
     // KKT-bearing request is refused for.
     arena_.setConstant(std::max(total_claims, 1), kArenaSeed);
 
-    // The bridge's own published rows, copied rather than referenced: the
-    // table is a non-owning view, and the bridge's storage moves under a
+    // The provider's own published rows, copied rather than referenced: the
+    // table is a non-owning view, and the provider's storage moves under a
     // re-lay. Copying also carries a dropped-row sentinel through verbatim if
     // a provider ever publishes one.
     Eigen::Ref<const Eigen::VectorXi> gradient_rows = aggregate_->objective_gradient_claim_rows();

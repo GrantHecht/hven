@@ -21,12 +21,12 @@
 // and residual returns into the contract's claims and arenas -- and declaring
 // honestly what it does.
 //
-// The claims are stated in a square assembled space of n + me + mi, laid
-// [primal | equality rows | inequality rows]. A Hessian claim names (i, j) with
-// i <= j, the upper triangle the model itself returns; an equality Jacobian
-// claim names (n + r, c); an inequality Jacobian claim names (n + me + r, c).
-// No slack block and no solver coefficients: those are the consumer's own
-// storage and the consumer's own step, per the mapping table in
+// The claims are stated in the assembled space model/claim_stream_source.h
+// fixes -- square, n + me + mi, laid [primal | equality rows | inequality rows],
+// with the Hessian on the upper triangle the model itself returns. The bridge
+// publishes them through that interface, which is the base it derives from. No
+// slack block and no solver coefficients: those are the consumer's own storage
+// and the consumer's own step, per the mapping table in
 // model/candidate_point.h.
 //
 // The bridge relies on a precondition the model already carries rather than a
@@ -51,18 +51,11 @@
 #include <Eigen/SparseCore>
 
 #include "hven/core/types.h"
+#include "hven/model/claim_stream_source.h"
 #include "hven/model/nlp_aggregate.h"
 #include "hven/model/nlp_model.h"
 
 namespace hven::solvers {
-
-/// @brief One contiguous run of claim slots, as [start, start + count).
-struct ClaimBlock {
-    int start_ = 0;
-    int count_ = 0;
-
-    friend bool operator==(const ClaimBlock &, const ClaimBlock &) = default;
-};
 
 /// @brief An NlpAggregate over one NlpModel: a single serial piece at partition
 ///        count 1.
@@ -85,7 +78,7 @@ struct ClaimBlock {
 /// Concurrency: the contract's posture applies unchanged -- one operation at a
 /// time, structural mutation included. Nothing in this class is thread-safe
 /// beyond the epoch counter the base owns.
-class NlpModelAggregate final : public NlpAggregate {
+class NlpModelAggregate final : public ClaimStreamSource {
   public:
     /// @brief Builds the bridge and lays its structures for the first time.
     ///
@@ -183,22 +176,26 @@ class NlpModelAggregate final : public NlpAggregate {
     int kkt_dimension() const { return laid_.kkt_dimension_; }
 
     /// @brief Claim slot to assembled KKT row, in claim order.
-    Eigen::Ref<const Eigen::VectorXi> kkt_claim_rows() const { return laid_.kkt_claim_rows_; }
+    Eigen::Ref<const Eigen::VectorXi> kkt_claim_rows() const override {
+        return laid_.kkt_claim_rows_;
+    }
 
     /// @brief Claim slot to assembled KKT column, in claim order.
-    Eigen::Ref<const Eigen::VectorXi> kkt_claim_cols() const { return laid_.kkt_claim_cols_; }
+    Eigen::Ref<const Eigen::VectorXi> kkt_claim_cols() const override {
+        return laid_.kkt_claim_cols_;
+    }
 
     /// @brief The KKT claim slots the Lagrangian Hessian scatters through.
-    ClaimBlock hessian_claims() const { return laid_.hessian_; }
+    ClaimBlock hessian_claims() const override { return laid_.hessian_; }
 
     /// @brief The KKT claim slots the equality Jacobian scatters through.
-    ClaimBlock equality_jacobian_claims() const { return laid_.equality_jacobian_; }
+    ClaimBlock equality_jacobian_claims() const override { return laid_.equality_jacobian_; }
 
     /// @brief The KKT claim slots the inequality Jacobian scatters through.
-    ClaimBlock inequality_jacobian_claims() const { return laid_.inequality_jacobian_; }
+    ClaimBlock inequality_jacobian_claims() const override { return laid_.inequality_jacobian_; }
 
     /// @brief Claim slot to row of the objective-gradient arena.
-    Eigen::Ref<const Eigen::VectorXi> objective_gradient_claim_rows() const {
+    Eigen::Ref<const Eigen::VectorXi> objective_gradient_claim_rows() const override {
         return laid_.objective_gradient_rows_;
     }
 

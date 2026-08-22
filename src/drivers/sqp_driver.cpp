@@ -141,14 +141,17 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmSta
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
     // The seam is laid ONCE per solve, before the clock starts, for the same
-    // reason the bridge is: it is setup, not iteration.
+    // reason the bridge is: it is setup, not iteration. The seam binds the
+    // claim-stream interface the bridge derives from; the bridge itself stays
+    // in this frame and rides into solve_impl for the restoration phase's one
+    // Level 1 read.
     AggregateEvalSeam seam{bridge};
     // PHASE-5 TASK 2. Timed around solve_impl ALONE -- never around
     // model construction, x0/warm setup above, or record_solve's own
     // ledger bookkeeping below -- per ledger.h's SqpSolveRecord::
     // wall_seconds note (informational, never asserted).
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, x0, WarmStart{}, /*minor_budget=*/0);
+    SqpSolution out = solve_impl(seam, bridge, x0, WarmStart{}, /*minor_budget=*/0);
     const auto t1 = std::chrono::steady_clock::now();
     return record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
 }
@@ -158,7 +161,7 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const War
     AggregateEvalSeam seam{bridge};
     // PHASE-5 TASK 2. Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, x0, warm, minor_budget);
+    SqpSolution out = solve_impl(seam, bridge, x0, warm, minor_budget);
     const auto t1 = std::chrono::steady_clock::now();
     return record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
 }
@@ -227,8 +230,8 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
     return out;
 }
 
-SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, const Vec &x0, const WarmStart &warm,
-                                  Index minor_budget) {
+SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
+                                  const WarmStart &warm, Index minor_budget) {
     const Index n = seam.n();
     if (x0.size() != n) {
         throw std::invalid_argument(fmt::format(
@@ -1267,13 +1270,15 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, const Vec &x0, const 
             // evaluation. RestorationModel is a Level 1 WRAPPER in the
             // variables (x, sp, sm, si) built AROUND the problem being solved
             // -- a different NlpModel, with no aggregate form of its own -- so
-            // it is constructed from the model behind the bridge. The nested
-            // sub-solve below then goes through the model-taking solve()
-            // overload, which builds the wrapper its OWN bridge and seam for
-            // the duration of that call, exactly as this solve's entry point
-            // did. `feasibility` outlives that call: it is this scope's local
-            // and the sub-solve returns before the scope ends.
-            const RestorationModel feasibility(seam.aggregate().model(), x, ev);
+            // it is constructed from the model behind the bridge, taken from
+            // the caller's own handle rather than back out of the seam -- the
+            // seam binds the claim-stream interface, which carries no model.
+            // The nested sub-solve below then goes through the model-taking
+            // solve() overload, which builds the wrapper its OWN bridge and
+            // seam for the duration of that call, exactly as this solve's entry
+            // point did. `feasibility` outlives that call: it is this scope's
+            // local and the sub-solve returns before the scope ends.
+            const RestorationModel feasibility(bridge.model(), x, ev);
             SqpOptions ropts = opts_;
             // The caller's strategy factory is NOT carried; the radius is.
             // See the header note's WHAT IS CARRIED IN.

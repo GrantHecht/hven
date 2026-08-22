@@ -2132,6 +2132,7 @@
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/model/nlp_model.h>
+#include <hven/model/nlp_model_aggregate.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
@@ -3563,6 +3564,12 @@ class SqpDriver {
     // the model-taking overloads differ only in that they build the bridge
     // themselves, from a `const NlpModel &` they do not own.
     //
+    // THE PARAMETER IS THE CONCRETE BRIDGE, not the claim-stream interface the
+    // seam itself binds (model/claim_stream_source.h). The driver keeps the
+    // bridge because the restoration phase needs the Level 1 model behind it,
+    // and hands the seam a base reference on the way past. Taking the interface
+    // here waits for a consumer that needs driver consumption without a bridge.
+    //
     // WHAT `bridge` OWES, and it is the contract's own posture rather than
     // anything new: one operation at a time, structural mutation included. The
     // seam re-lays whenever the aggregate's structure epoch has moved, so a
@@ -3801,8 +3808,14 @@ class SqpDriver {
     // the bridge -- an identity read, never an evaluation -- and the nested
     // solve then wraps the wrapper in its own bridge and seam through the
     // model-taking overload, exactly as the outer call did.
-    SqpSolution solve_impl(AggregateEvalSeam &seam, const Vec &x0, const WarmStart &warm,
-                           Index minor_budget);
+    //
+    // WHICH IS WHY `bridge` RIDES ALONGSIDE `seam`. The seam binds the
+    // claim-stream interface (model/claim_stream_source.h), which carries no
+    // model, so the one Level 1 read is taken from the caller's own bridge
+    // handle rather than back out of the seam. Both name the same object; only
+    // the restoration phase reads the second.
+    SqpSolution solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
+                           const WarmStart &warm, Index minor_budget);
 
     // See this header's SUBPROBLEM FAILURE ROUTING note. Reached only after the
     // one-shot retry has already been spent -- and, from Task 8, never with

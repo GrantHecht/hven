@@ -6,8 +6,8 @@
 #pragma once
 
 // aggregate_eval_seam.h — the SQP driver's consumer-side binding onto the
-// provider contract (model/nlp_aggregate.h), through the NlpModel bridge
-// (model/nlp_model_aggregate.h).
+// provider contract (model/nlp_aggregate.h), through the claim-stream
+// interface (model/claim_stream_source.h).
 //
 // WHAT IT IS. One object that reproduces the driver's evaluation moments —
 // today's free functions in drivers/sqp_driver.h — against an aggregate
@@ -16,7 +16,7 @@
 // driver's own arithmetic is untouched by construction, because the objects it
 // reads are the same objects.
 //
-// THE BINDING IN ONE PARAGRAPH. At lay time the seam reads the bridge's claim
+// THE BINDING IN ONE PARAGRAPH. At lay time the seam reads the provider's claim
 // stream — one (assembled row, assembled column) pair per stored element the
 // provider will scatter — and turns it into (a) a sorted row-major pattern per
 // matrix, identical to the pattern the model's own return carries, (b) ONE
@@ -58,34 +58,36 @@
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/model/claim_space.h>
-#include <hven/model/nlp_model_aggregate.h>
+#include <hven/model/claim_stream_source.h>
 #include <hven/model/structure_identity.h>
 
 namespace hven::solvers {
 
 /// @brief The driver's evaluation moments, served from an NlpAggregate.
 ///
-/// Constructed from the NlpModel bridge rather than from the NlpAggregate base
-/// because the CLAIM STREAM lives on the bridge: the base publishes a
-/// declaration, an epoch and the evaluation entries, but not the per-slot
-/// (row, column) pairs a consumer needs in order to lay a destination the
-/// provider can scatter into. A claim-stream-bearing base interface is a later
-/// question and is deliberately not opened here.
+/// Constructed from the claim-stream interface (model/claim_stream_source.h)
+/// rather than from a concrete provider: this seam binds an interface, and any
+/// provider that publishes a claim stream is a subject of it. The NlpAggregate
+/// base publishes a declaration, an epoch and the evaluation entries -- what a
+/// consumer needs in order to ASK for a fill -- and the claim stream is what a
+/// consumer additionally needs in order to lay a destination it can be
+/// scattered into. This seam lays its own destination, so it binds the half
+/// that carries both.
 ///
 /// CONCURRENCY: none of its own. The contract's posture applies unchanged —
 /// one operation at a time on the aggregate, structural mutation included —
 /// and this class adds no thread safety on top.
 class AggregateEvalSeam {
   public:
-    /// @brief Binds to a bridge and lays the destinations its claim stream
+    /// @brief Binds to a provider and lays the destinations its claim stream
     ///        describes.
     ///
-    /// @param aggregate the bridge, which must outlive this object.
+    /// @param aggregate the provider, which must outlive this object.
     /// @throws std::invalid_argument if the claim stream names a coordinate
     ///         outside the assembled space the declaration describes, if a
     ///         Hessian claim is below the diagonal, or if the sorted claim
     ///         order does not reproduce the pattern it was built from.
-    explicit AggregateEvalSeam(NlpModelAggregate &aggregate);
+    explicit AggregateEvalSeam(ClaimStreamSource &aggregate);
 
     /// Neither copied nor moved: the two location tables are non-owning views
     /// over THIS object's own index vectors, so a copy would publish tables
@@ -113,8 +115,8 @@ class AggregateEvalSeam {
     ///        current destinations were laid against.
     StructureEpoch epoch() const noexcept { return epoch_at_lay_; }
 
-    /// @brief The bridge this seam is bound to.
-    NlpModelAggregate &aggregate() const noexcept { return *aggregate_; }
+    /// @brief The provider this seam is bound to.
+    ClaimStreamSource &aggregate() const noexcept { return *aggregate_; }
 
     // ---- the evaluation moments -------------------------------------------
 
@@ -223,7 +225,7 @@ class AggregateEvalSeam {
     /// The Jacobians-alone shape: the probe's derivative bill.
     void assemble_jacobians(const Vec &x);
 
-    NlpModelAggregate *aggregate_ = nullptr;
+    ClaimStreamSource *aggregate_ = nullptr;
 
     Index primal_vars_ = 0;
     Index equality_rows_ = 0;
@@ -243,7 +245,7 @@ class AggregateEvalSeam {
     ClaimBlock equality_jacobian_;
     ClaimBlock inequality_jacobian_;
 
-    // The objective-gradient arena and the rows the bridge published for it.
+    // The objective-gradient arena and the rows the provider published for it.
     Vec gradient_arena_;
     std::vector<int> gradient_rows_;
     RhsLocationTable gradient_table_;
