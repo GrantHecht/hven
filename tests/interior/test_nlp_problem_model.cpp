@@ -762,3 +762,117 @@ TEST(NlpProblemModelTest, TheInPlaceOverrideAndTheDefaultDelegationAgreeExactly)
         npm_expect_identical(overriding->eval_hess(x, 2.0, le, li), h_a, "eval_hess");
     }
 }
+
+namespace {
+
+/// Counts every evaluation the host asks of it. Implements only the by-value
+/// methods, so the in-place calls the host makes arrive here through
+/// NlpModel's defaults and one host call is one count. n = 3, one equality
+/// row, one inequality row.
+struct NpmCountingModel : hven::solvers::NlpModel {
+    mutable int n_f_ = 0, n_grad_ = 0, n_ce_ = 0, n_ci_ = 0;
+    mutable int n_jac_e_ = 0, n_jac_i_ = 0, n_hess_ = 0, n_start_point_ = 0;
+    Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf, -kNpmInf}};
+    Eigen::VectorXd upper_{{kNpmInf, kNpmInf, kNpmInf}};
+
+    void reset() {
+        n_f_ = n_grad_ = n_ce_ = n_ci_ = 0;
+        n_jac_e_ = n_jac_i_ = n_hess_ = n_start_point_ = 0;
+    }
+
+    hven::Index n() const override { return 3; }
+    hven::Index me() const override { return 1; }
+    hven::Index mi() const override { return 1; }
+
+    double eval_f(const Eigen::VectorXd &x) const override {
+        n_f_++;
+        return x.squaredNorm();
+    }
+    Eigen::VectorXd eval_grad(const Eigen::VectorXd &x) const override {
+        n_grad_++;
+        return 2.0 * x;
+    }
+    Eigen::VectorXd eval_ce(const Eigen::VectorXd &x) const override {
+        n_ce_++;
+        Eigen::VectorXd ce(1);
+        ce[0] = x[0] + x[1] - 1.0;
+        return ce;
+    }
+    Eigen::VectorXd eval_ci(const Eigen::VectorXd &x) const override {
+        n_ci_++;
+        Eigen::VectorXd ci(1);
+        ci[0] = x[2] - 2.0;
+        return ci;
+    }
+    hven::SpMatRM eval_jac_e(const Eigen::VectorXd &) const override {
+        n_jac_e_++;
+        hven::SpMatRM j(1, 3);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    hven::SpMatRM eval_jac_i(const Eigen::VectorXd &) const override {
+        n_jac_i_++;
+        hven::SpMatRM j(1, 3);
+        j.insert(0, 2) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    hven::SpMatRM eval_hess(const Eigen::VectorXd &, double obj_scale, const Eigen::VectorXd &,
+                            const Eigen::VectorXd &) const override {
+        n_hess_++;
+        hven::SpMatRM h(3, 3);
+        for (int i = 0; i < 3; i++) {
+            h.insert(i, i) = 2.0 * obj_scale;
+        }
+        h.makeCompressed();
+        return h;
+    }
+    const Eigen::VectorXd &lower() const override { return lower_; }
+    const Eigen::VectorXd &upper() const override { return upper_; }
+    Eigen::VectorXd start_point() const override {
+        n_start_point_++;
+        return Eigen::VectorXd::Zero(3);
+    }
+};
+
+} // namespace
+
+// Transcription's exact evaluation bill, once and for all: one start_point,
+// one eval_hess, one eval_jac_e, one eval_jac_i, and nothing else -- no
+// eval_f, no eval_grad, no eval_ce, no eval_ci. The three derivative calls are
+// what the sparsity patterns are read from; the value-only methods have
+// nothing setup needs.
+TEST(NlpAdapterHostTest, TranscriptionSpendsOneStartPointAndThreeDerivativeCalls) {
+    auto model = std::make_shared<NpmCountingModel>();
+    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+
+    EXPECT_EQ(model->n_start_point_, 1);
+    EXPECT_EQ(model->n_hess_, 1);
+    EXPECT_EQ(model->n_jac_e_, 1);
+    EXPECT_EQ(model->n_jac_i_, 1);
+    EXPECT_EQ(model->n_f_, 0);
+    EXPECT_EQ(model->n_grad_, 0);
+    EXPECT_EQ(model->n_ce_, 0);
+    EXPECT_EQ(model->n_ci_, 0);
+
+    // ...and a later evaluation adds no setup work of its own: it spends one
+    // call of each kind it needs and never asks for the start point again.
+    model->reset();
+    Eigen::VectorXd x(3), le(1), li(1);
+    x << 0.25, -0.5, 1.75;
+    le << 0.3;
+    li << 0.7;
+    core.refresh_gradient(x);
+    core.refresh_residuals(x);
+    core.refresh_jacobians(x);
+    core.eval_hessian_values(x, 1.0, le, li);
+    EXPECT_EQ(model->n_start_point_, 0);
+    EXPECT_EQ(model->n_grad_, 1);
+    EXPECT_EQ(model->n_ce_, 1);
+    EXPECT_EQ(model->n_ci_, 1);
+    EXPECT_EQ(model->n_jac_e_, 1);
+    EXPECT_EQ(model->n_jac_i_, 1);
+    EXPECT_EQ(model->n_hess_, 1);
+}

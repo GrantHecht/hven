@@ -616,3 +616,73 @@ TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     problem->armed_ = false;
     EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 }
+
+// Counts the setup-only queries a transcription makes of the problem. bounds,
+// jac_structure and hess_structure are asked exactly once per transcription
+// and never during a solve, so their totals are a direct count of how many
+// transcriptions have happened.
+struct TranscriptionCountingProblem : EqOnlyProblem {
+    mutable int n_bounds_ = 0, n_jac_structure_ = 0, n_hess_structure_ = 0;
+    mutable int n_eval_jac_ = 0, n_eval_hess_ = 0;
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        n_bounds_++;
+        EqOnlyProblem::bounds(xl, xu, gl, gu);
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        n_jac_structure_++;
+        EqOnlyProblem::jac_structure(r, c);
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        n_hess_structure_++;
+        EqOnlyProblem::hess_structure(r, c);
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+        n_eval_jac_++;
+        EqOnlyProblem::eval_jac(x, v);
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd> lambda,
+                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        n_eval_hess_++;
+        EqOnlyProblem::eval_hess(x, obj_factor, lambda, v);
+    }
+    std::string name() const override { return "TranscriptionCountingProblem"; }
+};
+
+TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation) {
+    auto problem = std::make_shared<TranscriptionCountingProblem>();
+    NLPSolver solver(problem);
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    // Exactly one transcription: one bounds query, one of each structure.
+    EXPECT_EQ(problem->n_bounds_, 1);
+    EXPECT_EQ(problem->n_jac_structure_, 1);
+    EXPECT_EQ(problem->n_hess_structure_, 1);
+    EXPECT_FALSE(solver.do_transcription_);
+    const auto model_after_first = solver.model_;
+    const auto nlp_after_first = solver.nlp_;
+
+    const int jac_after_first = problem->n_eval_jac_;
+    const int hess_after_first = problem->n_eval_hess_;
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    // Nothing was transcribed a second time, so no setup evaluation happened a
+    // second time either: the counts that a transcription and only a
+    // transcription moves are unchanged, and the model and program are the
+    // same objects.
+    EXPECT_EQ(problem->n_bounds_, 1);
+    EXPECT_EQ(problem->n_jac_structure_, 1);
+    EXPECT_EQ(problem->n_hess_structure_, 1);
+    EXPECT_EQ(solver.model_, model_after_first);
+    EXPECT_EQ(solver.nlp_, nlp_after_first);
+    // The second solve did evaluate -- it is a solve -- so the derivative
+    // counts moved; the point is that none of that movement was setup.
+    EXPECT_GT(problem->n_eval_jac_, jac_after_first);
+    EXPECT_GT(problem->n_eval_hess_, hess_after_first);
+}
