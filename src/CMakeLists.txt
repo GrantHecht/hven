@@ -180,6 +180,7 @@ target_include_directories(hven PRIVATE
 ################################################################################
 
 target_sources(hven PRIVATE
+    drivers/aggregate_eval_seam.cpp
     drivers/sqp_driver.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
@@ -478,7 +479,16 @@ endif()
 # the model contract, the model interface, Eigen sparse and fmt -- a different
 # header set from the one src/hven_pch.h prefixes, which is the property that
 # has failed bar 2 for every TU measured so far.
-set(_hven_expected_source_count 30)
+#
+# 31 as of drivers/aggregate_eval_seam.cpp, the SQP driver's consumer-side
+# binding onto the provider contract. It stays OUT on the same footing as the
+# two above -- no measurement exists for it, and out is the unmeasured default
+# -- and on the stronger prior the SQP-side carves established: it includes
+# drivers/sqp_driver.h (for NlpEval) plus the model contract, which is a
+# different header set in a different order from the one src/hven_pch.h
+# prefixes, and that property has failed bar 2 for all eight SQP-side TUs
+# measured so far.
+set(_hven_expected_source_count 31)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
