@@ -1,9 +1,8 @@
 #pragma once
 
-// bench/model_surface_kkt.h — Task 4 (M4-Task5 plan, "the SQP driver's
-// consumption of the Level 2 aggregate contract" --
-// .superpowers/sdd/2026-08-21-m4-task5-sqp-level2-consumption/task-4-brief.md).
-// An ENGINE-INDEPENDENT KKT residual scorer, computed ONLY off
+// bench/model_surface_kkt.h — the model-surface scorer
+// (docs/notes/2026-08-21-m4-task5-design.md). An ENGINE-INDEPENDENT KKT
+// residual scorer, computed ONLY off
 // NlpAggregate::evaluate_candidate_first_order and AggregateDeclaration's own
 // bound record -- no engine, no driver, no QP, no linear-algebra backend
 // anywhere in the picture.

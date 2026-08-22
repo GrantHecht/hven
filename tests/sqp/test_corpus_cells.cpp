@@ -248,8 +248,8 @@ TEST(CorpusCellsRunner, EngineSsnSelectsTheSemismoothKernelAndNothingElse) {
     EXPECT_EQ(walk_row.escapes, 0);
 }
 
-// TASK 4 (M4-Task5 plan): the model-surface census hook is DEFAULT OFF and
-// its five ms_* columns stay at CorpusRow's own -1.0 "not computed" sentinel
+// The model-surface census hook is DEFAULT OFF and its five ms_* columns
+// stay at CorpusRow's own -1.0 "not computed" sentinel
 // -- the identical convention kkt_stationarity et al. already use -- unless
 // EngineConfig::score_model_surface is explicitly set.
 TEST(CorpusCellsRunner, ModelSurfaceCensusHookDefaultsOff) {
@@ -1042,6 +1042,63 @@ TEST(CorpusRunnerProcess, AForcedTestBudgetIsStampedIntoTheProvenanceHeader) {
     std::remove(log.c_str());
 }
 
+// The model-surface census hook's own end-to-end process test: --score-
+// model-surface/--score-model-surface-out have to cross the fork/exec
+// subprocess boundary via the sidecar file (write_model_surface_sidecar /
+// read_model_surface_sidecar in bench_corpus.cpp), which nothing above
+// exercises -- the file's own manual smoke test covered this once, by hand;
+// this is the automated version of that same claim. f7_n1000_bound_neutral
+// is the same fast, well-exercised cell WallDeadlineDoesNotFireAtTheReal
+// BudgetOnAFastCell above already relies on.
+TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMainCsvUnchanged) {
+    const std::string csv_on = runner_test::temp_path("corpus_ms_on.csv");
+    const std::string csv_off = runner_test::temp_path("corpus_ms_off.csv");
+    const std::string wgate = runner_test::temp_path("corpus_ms.wgate.csv");
+    ASSERT_EQ(
+        runner_test::run_binary(fmt::format("--engine walk --cells f7_n1000_bound_neutral --csv {} "
+                                            "--score-model-surface --score-model-surface-out {}",
+                                            csv_on, wgate)),
+        0);
+    ASSERT_EQ(runner_test::run_binary(
+                  fmt::format("--engine walk --cells f7_n1000_bound_neutral --csv {}", csv_off)),
+              0);
+
+    // The census artifact: header schema, one data row, and a genuine
+    // verdict-equal reading on a converged cell -- both scorers agree.
+    const std::vector<std::string> wgate_lines = runner_test::read_lines(wgate);
+    ASSERT_EQ(wgate_lines.size(), 2u) << runner_test::slurp(wgate);
+    EXPECT_EQ(wgate_lines[0], "cell_id,kkt_stationarity,kkt_complementarity,kkt_primal,"
+                              "ms_stationarity,ms_complementarity,ms_primal,verdict_equal");
+    const std::vector<std::string> wgate_cols = runner_test::split_all(wgate_lines[1]);
+    ASSERT_EQ(wgate_cols.size(), 8u) << wgate_lines[1];
+    EXPECT_EQ(wgate_cols[0], "f7_n1000_bound_neutral");
+    EXPECT_EQ(wgate_cols[7], "1") << "both scorers must agree on a converged cell: "
+                                  << wgate_lines[1];
+
+    // THE CLI-LEVEL INERTNESS CLAIM, automated: the main --csv is unaffected
+    // by the flag, column for column, except `wall_s` (index 13 -- timing
+    // noise, never a regression contract per this file's own banner).
+    const std::vector<std::string> rows_on = runner_test::data_rows(csv_on);
+    const std::vector<std::string> rows_off = runner_test::data_rows(csv_off);
+    ASSERT_EQ(rows_on.size(), 1u);
+    ASSERT_EQ(rows_off.size(), 1u);
+    const std::vector<std::string> cols_on = runner_test::split_all(rows_on[0]);
+    const std::vector<std::string> cols_off = runner_test::split_all(rows_off[0]);
+    ASSERT_EQ(cols_on.size(), cols_off.size());
+    ASSERT_EQ(cols_on.size(), 37u) << rows_on[0];
+    for (std::size_t i = 0; i < cols_on.size(); ++i) {
+        if (i == 13) {
+            continue; // wall_s
+        }
+        EXPECT_EQ(cols_on[i], cols_off[i])
+            << "column " << i << " diverged: on=" << rows_on[0] << " off=" << rows_off[0];
+    }
+
+    std::remove(csv_on.c_str());
+    std::remove(csv_off.c_str());
+    std::remove(wgate.c_str());
+}
+
 TEST(CorpusRunnerProcess, ScoreGatesRunsEndToEndOnRealCells) {
     // I5's live arm: the whole --score-gates path (run, write, filter, pair,
     // score, print) over two cheap bound-arc cells. The verdict itself is
@@ -1383,6 +1440,18 @@ TEST(CorpusRunnerProcess, FromCsvRefusesToBeCombinedWithARunRequest) {
     const std::string csv = runner_test::temp_path("corpus_conflict.csv");
     EXPECT_NE(runner_test::run_binary(
                   fmt::format("--from-csv {} --engine walk --cells f7_n1000_bound_neutral", csv)),
+              0);
+}
+
+// The census hook's own arm of the same refusal: a committed CSV row carries
+// no (x, lambda, z), so --score-model-surface has nothing to score there --
+// --from-csv must refuse it exactly as it refuses --engine/--cells above,
+// rather than silently doing nothing.
+TEST(CorpusRunnerProcess, FromCsvRefusesToBeCombinedWithScoreModelSurface) {
+    const std::string csv = runner_test::temp_path("corpus_conflict_ms.csv");
+    const std::string ms = runner_test::temp_path("corpus_conflict_ms.wgate.csv");
+    EXPECT_NE(runner_test::run_binary(fmt::format(
+                  "--from-csv {} --score-model-surface --score-model-surface-out {}", csv, ms)),
               0);
 }
 

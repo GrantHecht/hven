@@ -287,7 +287,8 @@ struct CorpusRow {
     SsnCounters ssn{};
 
     // =========================================================================
-    // TASK 4 (M4-Task5 plan): THE MODEL-SURFACE CENSUS HOOK'S OWN COLUMNS.
+    // THE MODEL-SURFACE CENSUS HOOK'S OWN COLUMNS (docs/notes/2026-08-21-m4-
+    // task5-design.md).
     // =========================================================================
     //
     // -1.0 SENTINEL, EXACTLY LIKE kkt_stationarity ABOVE: NOT COMPUTED, which
@@ -1324,7 +1325,7 @@ struct EngineConfig {
     SsnHintRule ssn_hint_rule = SsnHintRule::kIterationZeroFree; // R2
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms; // R4
 
-    // TASK 4 (M4-Task5 plan): the model-surface census hook's opt-in flag.
+    // The model-surface census hook's opt-in flag.
     // UNLIKE every field above, this is NOT an SqpOptions/SsnOptions field --
     // it never reaches options_for_cell below -- because it selects whether
     // `timed_row` ALSO scores the model-surface KKT residuals
@@ -1473,8 +1474,8 @@ inline void record_kkt_check(const hven::solvers::NlpModel &model, const SqpSolu
     row.neg_ineq_duals = negatives;
 }
 
-// TASK 4 (M4-Task5 plan): THE MODEL-SURFACE CENSUS HOOK'S OWN CHECK, called
-// ONLY when EngineConfig::score_model_surface is set -- see `timed_row` below
+// THE MODEL-SURFACE CENSUS HOOK'S OWN CHECK, called ONLY when
+// EngineConfig::score_model_surface is set -- see `timed_row` below
 // for the guard. Scores the SAME point `record_kkt_check` above just scored,
 // through bench/model_surface_kkt.h's engine-independent scorer instead of
 // self_check_kkt, via a throwaway NlpModelAggregate bridge over `model`.
@@ -1567,8 +1568,8 @@ inline void notify_setup_complete(const SetupCompleteFn &fn) {
 // was measured by a binary with no such check in it. The check is charged to
 // nobody's wall.
 //
-// `score_model_surface` defaults to false and gates TASK 4's census hook the
-// same way: entirely OUTSIDE the timed window, and -- when false -- this
+// `score_model_surface` defaults to false and gates the model-surface census
+// hook the same way: entirely OUTSIDE the timed window, and -- when false -- this
 // function performs the exact sequence it always did, with no extra branch
 // taken, no extra vector allocated and no extra evaluation run. Every call
 // site below passes `cfg.score_model_surface`.

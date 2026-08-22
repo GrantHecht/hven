@@ -1,8 +1,8 @@
-// Task 4 (M4-Task5 plan): bench/model_surface_kkt.h's engine-independent KKT
-// residual scorer.
+// bench/model_surface_kkt.h's engine-independent KKT residual scorer
+// (docs/notes/2026-08-21-m4-task5-design.md).
 //
-// THE INCLUDE LIST BELOW IS ITSELF A CLAIM, per brief item (d): no driver/,
-// qp/, or kkt/ header appears anywhere in this translation unit. Every fixture
+// THE INCLUDE LIST BELOW IS ITSELF A CLAIM: no driver/, qp/, or kkt/ header
+// appears anywhere in this translation unit. Every fixture
 // here is a plain NlpModel transcription (nlp_model.h), reached through the
 // NlpModelAggregate bridge (nlp_model_aggregate.h) -- both model/ headers, the
 // same standing bench/model_surface_kkt.h's own banner claims for itself. If a

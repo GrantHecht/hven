@@ -229,7 +229,7 @@ constexpr const char *kUsage =
     "                    tests/test_scale_problems.cpp.\n"
     "  --list            print every census cell's id/tags and exit 0; touches\n"
     "                    neither --engine/--cells/--csv nor the solver.\n"
-    "  --score-model-surface   TASK 4 (M4-Task5 plan) census hook. DEFAULT OFF.\n"
+    "  --score-model-surface   the model-surface census hook. DEFAULT OFF.\n"
     "                    Requires --score-model-surface-out. Only meaningful with\n"
     "                    --engine/--cells/--csv (a real sweep): for each row this\n"
     "                    solve claimed kOptimal on, also scores the SAME returned\n"
@@ -347,8 +347,9 @@ struct Args {
     // SIGKILLs the child but returns its DNF outcome before ever inspecting a
     // signal status, so nothing else in the suite reaches the branch.
     bool internal_force_child_abort = false;
-    // TASK 4 (M4-Task5 plan): the model-surface census hook's opt-in flag and
-    // its output path. DEFAULT OFF, and off means genuinely off -- see
+    // The model-surface census hook's opt-in flag and its output path
+    // (docs/notes/2026-08-21-m4-task5-design.md). DEFAULT OFF, and off means
+    // genuinely off -- see
     // corpus_cells.h's EngineConfig::score_model_surface and `timed_row` for
     // where the guard actually lives; this flag only decides whether that
     // guard is ever set to true. Paired with `--score-model-surface-out`
@@ -977,9 +978,10 @@ std::vector<CorpusOutcome> in_census_order(std::vector<CorpusOutcome> outcomes) 
 // and the reader's own consistency checks (qp_subproblems, and now the KKT
 // verdict) apply to the child's output too.
 
-// TASK 4 (M4-Task5 plan): the model-surface census hook's OWN small sidecar
-// format, entirely separate from write_outcome/read_outcomes_csv's 31/37-
-// column artifact contract -- see corpus_cells.h's CorpusRow::ms_* note for
+// The model-surface census hook's OWN small sidecar format
+// (docs/notes/2026-08-21-m4-task5-design.md), entirely separate from
+// write_outcome/read_outcomes_csv's 31/37-column artifact contract -- see
+// corpus_cells.h's CorpusRow::ms_* note for
 // why touching that contract is the wrong move here. One line, five
 // comma-separated values, in CorpusRow::ms_* declaration order. Written by
 // the CHILD (run_internal_one, only when EngineLevers::score_model_surface is
@@ -1110,8 +1112,8 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
         fmt::format("/tmp/hven_sqp_corpus_internal_{}_{}.row", ::getpid(), cell.id);
     const std::string setup_marker = out_path + ".setup";
     const std::string error_path = out_path + ".error";
-    // TASK 4 (M4-Task5 plan): the model-surface sidecar's own path, written by
-    // the child only when `levers.score_model_surface` is set (see
+    // The model-surface sidecar's own path, written by the child only when
+    // `levers.score_model_surface` is set (see
     // write_model_surface_sidecar's own note) -- always removed at cleanup so
     // a stale file from an earlier PID reuse can never be misread as this
     // run's.
@@ -1381,8 +1383,9 @@ void print_gate_verdict(const std::vector<CorpusOutcome> &outcomes) {
                                       static_cast<double>(total_facts));
 }
 
-// TASK 4 (M4-Task5 plan): --score-model-surface's own artifact, written ONLY
-// when that flag is on -- main() below never calls this otherwise. One row
+// --score-model-surface's own artifact (docs/notes/2026-08-21-m4-task5-design.md),
+// written ONLY when that flag is on -- main() below never calls this
+// otherwise. One row
 // per outcome that actually produced an answer (o.no_answer() rows -- DNF and
 // engine_error -- are skipped: the census hook never ran for them, exactly as
 // record_kkt_check never did). `verdict_equal` re-derives BOTH verdicts
@@ -1514,9 +1517,13 @@ int main(int argc, char **argv) {
         // score. Solves nothing.
         // --------------------------------------------------------------
         if (args.from_csv) {
-            if (args.engine || args.cells) {
+            if (args.engine || args.cells || args.score_model_surface ||
+                args.score_model_surface_out) {
                 throw_usage("--from-csv reads committed rows and runs nothing: it cannot be "
-                            "combined with --engine/--cells");
+                            "combined with --engine/--cells/--score-model-surface/"
+                            "--score-model-surface-out -- the census hook needs the solve's own "
+                            "(x, lambda, z), which a committed CSV row does not carry, so scoring "
+                            "it here would be silent nonsense rather than a genuine re-score");
             }
             std::vector<CorpusOutcome> outcomes;
             for (const std::string &path : split_on(*args.from_csv, ',')) {
