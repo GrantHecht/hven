@@ -3475,6 +3475,14 @@ class SqpDriver {
     }
 
   public:
+    // THE MODEL-TAKING OVERLOADS ARE THE CONVENIENCE PATH, and every one of
+    // them pays one derivative-pattern walk -- the bridge lay, which is one
+    // eval_hess plus one eval_jac_e/eval_jac_i per declared block, taken at
+    // the model's start point (model/nlp_model_aggregate.h) -- on EVERY call;
+    // a caller solving the same model in a hot loop holds one
+    // NlpModelAggregate of its own and uses the aggregate-taking entries
+    // below, which build no bridge.
+    //
     // Both overloads route through the same validation, so a model whose
     // start_point() is malformed is rejected exactly like a caller-supplied
     // x0 that is.
