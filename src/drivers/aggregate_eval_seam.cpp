@@ -36,6 +36,36 @@ struct DomainClaims {
     std::vector<int> cols_; ///< matrix-local column per claim, in walk order
 };
 
+/// Refuses a published location table whose largest location is past the end of
+/// the destination it addresses.
+///
+/// Run wherever a table is BOUND -- which for this seam is the one lay() that
+/// rebuilds every table and its destination together -- and never on an
+/// evaluation. A table's own constructor validates the array's sentinels, but
+/// it is handed no destination length and so cannot check the upper bound; this
+/// is the only place both are in scope. It matters most for the rows a provider
+/// publishes and this seam copies verbatim: unlike the KKT offsets, which this
+/// seam computes itself, those arrive from outside, and one past the end is a
+/// heap write during the provider's own scatter in a build with the asserts
+/// compiled out.
+///
+/// @param locations          the published table's array.
+/// @param destination_length the length of the array those locations index.
+/// @param table              the table's name, for the refusal message.
+/// @throws std::invalid_argument naming the table, the offending slot, its
+///         location and the destination length.
+void require_locations_within(const std::vector<int> &locations, Eigen::Index destination_length,
+                              const char *table) {
+    for (std::size_t slot = 0; slot < locations.size(); ++slot) {
+        if (locations[slot] >= destination_length) {
+            throw std::invalid_argument(
+                fmt::format("AggregateEvalSeam: the {0}'s slot {1} names location {2}, but the "
+                            "destination it is bound to is {3} long",
+                            table, slot, locations[slot], destination_length));
+        }
+    }
+}
+
 /// Reads one claim block out of the assembled claim stream and translates it
 /// into the matrix-local coordinates that block's own matrix carries.
 ///
@@ -51,14 +81,10 @@ struct DomainClaims {
 /// write past the end of a pattern the consumer built.
 ///
 /// The claim scope is exactly that -- KKT claims. The right-hand-side rows the
-/// seam also copies in (objective_gradient_claim_rows) get no equivalent check
-/// because they are not a permutation to validate: the provider on this path
-/// claims each RHS arena whole and in row order, so slot and row are the same
-/// number (model/nlp_model_aggregate.h's lay), and the arena the seam lays for
-/// them is primal_vars_ long by the same declaration those rows are counted
-/// from. There is no coordinate there that could name a place the arena does
-/// not have. That justification is the provider's rather than the claim-stream
-/// interface's, and it narrows to whatever provider is bound.
+/// seam also copies in (objective_gradient_claim_rows) are not a permutation
+/// and get no coordinate check here; what they get instead is the bound check
+/// every published table gets, against the destination it addresses, where the
+/// table is bound (require_locations_within below).
 DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
                          Eigen::Ref<const Eigen::VectorXi> stream_cols, const ClaimBlock &block,
                          int row_offset, int matrix_rows, int matrix_cols, bool upper_triangle,
@@ -268,6 +294,7 @@ void AggregateEvalSeam::lay() {
     // arena's own length exists only so the view is not the empty one a
     // KKT-bearing request is refused for.
     arena_.setConstant(std::max(total_claims, 1), kArenaSeed);
+    require_locations_within(kkt_locations_, arena_.size(), "KKT location table");
 
     // The provider's own published rows, copied rather than referenced: the
     // table is a non-owning view, and the provider's storage moves under a
@@ -278,6 +305,8 @@ void AggregateEvalSeam::lay() {
     gradient_table_ =
         RhsLocationTable(gradient_rows_.data(), static_cast<int>(gradient_rows_.size()));
     gradient_arena_.setConstant(primal_vars_, kArenaSeed);
+    require_locations_within(gradient_rows_, gradient_arena_.size(),
+                             "objective-gradient location table");
 
     // The commit, and the last statement for the reason the read comment above
     // states: nothing after this point can throw, and everything before it can.
