@@ -115,13 +115,12 @@ void require_kkt_table(const KktScatterView &kkt, int claims) {
 
 /// Rejects a sparse return whose nonzero count contradicts the claim pass.
 ///
-/// A model owes an invariant sparsity pattern (nlp_model.h). The full pattern is
-/// not re-derived per evaluation -- that would spend the fill's own budget on
-/// re-checking a precondition -- so this one comparison is scoped accordingly:
-/// it catches a pattern that collapsed or grew between the claim pass and this
-/// call, and it does not catch a same-count permutation of the same entries.
-/// That residual is the storage-order stability the model's own invariance
-/// precondition already binds, not a gap this check leaves open.
+/// A model owes an invariant sparsity pattern (nlp_model.h). This comparison
+/// catches a pattern that collapsed or grew between the claim pass and this
+/// call. It cannot see a same-count change -- a permutation of the same
+/// entries, or one entry moved to a coordinate the claim pass never saw --
+/// because a count says nothing about coordinates. scatter_matrix below checks
+/// those, entry by entry, against the coordinates the claim pass recorded.
 void require_claimed_nonzeros(const SpMatRM &matrix, int claims, const char *what) {
     if (static_cast<int>(matrix.nonZeros()) != claims) {
         throw std::invalid_argument(fmt::format(
@@ -165,11 +164,43 @@ void require_block_size(Eigen::Index actual, int declared, const char *what) {
 }
 
 /// Sums a matrix's stored values into the KKT destination through the claim
-/// block laid for it, in the same storage order the claim pass walked.
-void scatter_matrix(const SpMatRM &matrix, const ClaimBlock &block, const KktScatterView &kkt) {
+/// block laid for it, checking each entry against the coordinates its slot was
+/// claimed at.
+///
+/// The pairing is positional: the nth stored element this return iterates goes
+/// to the nth slot of the block. That is correct exactly while the return
+/// presents the same coordinates in the same order the claim pass recorded, and
+/// nothing else in this bridge establishes it -- a nonzero count cannot, and
+/// the model's invariance precondition is a statement about the coordinates a
+/// return carries. Two ways a conforming-looking return breaks the pairing, both
+/// caught here and neither visible to any other check: a return that iterates
+/// the same entries in a different order than the claim pass saw, and a pattern
+/// that moved one entry without changing the count. Unchecked, either sums a
+/// value into a location laid for a different coordinate, silently.
+///
+/// The comparison is against the claim-time coordinates themselves, held per
+/// slot in the claim stream this bridge already publishes, so it costs the two
+/// integer loads per entry and no new storage. It reports the first offending
+/// entry and stops: the destination is already wrong at that point, and the
+/// remaining entries would report the same fault shifted.
+void scatter_matrix(const SpMatRM &matrix, const ClaimBlock &block, int row_offset,
+                    const Eigen::VectorXi &claim_rows, const Eigen::VectorXi &claim_cols,
+                    const char *callback, const KktScatterView &kkt) {
     int slot = block.start_;
     for (int outer = 0; outer < static_cast<int>(matrix.outerSize()); ++outer) {
         for (SpMatRM::InnerIterator it(matrix, outer); it; ++it, ++slot) {
+            const int claimed_row = claim_rows[slot] - row_offset;
+            const int claimed_col = claim_cols[slot];
+            if (static_cast<int>(it.row()) != claimed_row ||
+                static_cast<int>(it.col()) != claimed_col) {
+                throw std::invalid_argument(fmt::format(
+                    "NlpModelAggregate: {0} presented ({1}, {2}) at claim slot {3}, which was "
+                    "laid at ({4}, {5}). Stored elements are paired with claim slots in the order "
+                    "the return presents them, so this value would be summed into a location laid "
+                    "for another coordinate. Every evaluation must present the same stored "
+                    "coordinates, in the same order, as the claim pass recorded",
+                    callback, it.row(), it.col(), slot, claimed_row, claimed_col));
+            }
             kkt.values_[kkt.locations_->location(slot)] += it.value();
         }
     }
@@ -526,14 +557,18 @@ void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest r
         // no claims scatters nothing, and a scatter over its empty pattern is
         // the loop that writes nothing.
         if (equality_rows_ > 0) {
-            scatter_matrix(equality_jacobian_scratch_, laid_.equality_jacobian_, kkt);
+            scatter_matrix(equality_jacobian_scratch_, laid_.equality_jacobian_, primal_vars_,
+                           laid_.kkt_claim_rows_, laid_.kkt_claim_cols_, "eval_jac_e", kkt);
         }
         if (inequality_rows_ > 0) {
-            scatter_matrix(inequality_jacobian_scratch_, laid_.inequality_jacobian_, kkt);
+            scatter_matrix(inequality_jacobian_scratch_, laid_.inequality_jacobian_,
+                           primal_vars_ + equality_rows_, laid_.kkt_claim_rows_,
+                           laid_.kkt_claim_cols_, "eval_jac_i", kkt);
         }
     }
     if (want_hessian) {
-        scatter_matrix(hessian_scratch_, laid_.hessian_, kkt);
+        scatter_matrix(hessian_scratch_, laid_.hessian_, 0, laid_.kkt_claim_rows_,
+                       laid_.kkt_claim_cols_, "eval_hess", kkt);
     }
 }
 

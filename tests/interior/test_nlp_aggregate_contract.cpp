@@ -24,6 +24,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
@@ -1457,6 +1458,36 @@ TEST(NlpAggregateEngineContract, AnUnmappedRequestIsRefusedAtTheEngineEntry) {
 // Legal-but-unsupported shapes (rows 9-11): refused by name, not approximated
 // ---------------------------------------------------------------------------
 
+// The refusal must NAME the supported set, not characterize it: a reader who
+// hits this message has to learn which eight shapes the engine serves without
+// leaving the message. Each of the eight is asserted as the message renders it,
+// name and hex value together, in the style validate_eval_request established
+// for the legal set. Checking the pair as one substring is what makes this a
+// pin on the enumeration rather than on eight loose tokens that happen to
+// appear somewhere.
+namespace {
+
+void agg_pin_expect_supported_set_named(const std::string &message) {
+    const std::pair<const char *, hven::solvers::EvalRequest> supported[] = {
+        {"kRequestObjectiveOnly", hven::solvers::kRequestObjectiveOnly},
+        {"kRequestObjectiveAndConstraints", hven::solvers::kRequestObjectiveAndConstraints},
+        {"kRequestObjectiveGradientAndConstraints",
+         hven::solvers::kRequestObjectiveGradientAndConstraints},
+        {"kRequestFirstOrderRhs", hven::solvers::kRequestFirstOrderRhs},
+        {"kRequestConstraintJacobianOnly", hven::solvers::kRequestConstraintJacobianOnly},
+        {"kRequestFirstOrderKkt", hven::solvers::kRequestFirstOrderKkt},
+        {"kRequestConstraintKkt", hven::solvers::kRequestConstraintKkt},
+        {"kRequestFullKkt", hven::solvers::kRequestFullKkt},
+    };
+    for (const auto &shape : supported) {
+        const std::string rendered =
+            fmt::format("{0} (0x{1:x})", shape.first, static_cast<std::uint32_t>(shape.second));
+        EXPECT_NE(message.find(rendered), std::string::npos) << rendered << " -- " << message;
+    }
+}
+
+} // namespace
+
 TEST(NlpAggregateEngineContract, ALegalLagrangianHessianRequestIsRefusedByName) {
     // Shape 9 clears validate_eval_request -- it is one of the named sets --
     // but it is the SQP driver's own shape, not one of the eight this engine
@@ -1480,6 +1511,35 @@ TEST(NlpAggregateEngineContract, ALegalLagrangianHessianRequestIsRefusedByName) 
                 "0x{0:x}", static_cast<std::uint32_t>(hven::solvers::kRequestLagrangianHessian))),
             std::string::npos)
             << message;
+        agg_pin_expect_supported_set_named(message);
+    }
+    // Refused before anything ran: the objective slot never moved off zero.
+    EXPECT_EQ(storage.objective, 0.0);
+}
+
+TEST(NlpAggregateEngineContract, ALegalGradientAndJacobiansRequestIsRefusedByName) {
+    // Shape 10, the third of the SQP-owned rows and the one the pair above left
+    // uncovered: the bridge serves it, this engine does not. Same shape of pin
+    // as its two siblings -- refused by name, request mask echoed, supported
+    // set enumerated.
+    auto nlp = agg_pin_build_small();
+    AggPinSolverStorage storage(*nlp);
+    const Eigen::VectorXd x = agg_pin_x();
+    const Eigen::VectorXd none;
+
+    try {
+        nlp->assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestGradientAndJacobians,
+                      storage.kkt_view(*nlp), storage.rhs_view(*nlp));
+        FAIL() << "a legal-but-unsupported shape must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("support"), std::string::npos) << message;
+        EXPECT_NE(
+            message.find(fmt::format("0x{0:x}", static_cast<std::uint32_t>(
+                                                    hven::solvers::kRequestGradientAndJacobians))),
+            std::string::npos)
+            << message;
+        agg_pin_expect_supported_set_named(message);
     }
     // Refused before anything ran: the objective slot never moved off zero.
     EXPECT_EQ(storage.objective, 0.0);
@@ -1505,6 +1565,7 @@ TEST(NlpAggregateEngineContract, ALegalConstraintJacobiansOnlyRequestIsRefusedBy
                       static_cast<std::uint32_t>(hven::solvers::kRequestConstraintJacobiansOnly))),
                   std::string::npos)
             << message;
+        agg_pin_expect_supported_set_named(message);
     }
 }
 

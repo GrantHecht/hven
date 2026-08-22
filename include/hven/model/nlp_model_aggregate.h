@@ -35,6 +35,14 @@
 // multiplier values as well (nlp_model.h's structural-pattern-invariance note).
 // The claim pass walks those three patterns once and every later evaluation
 // scatters through the slots that walk assigned.
+//
+// What the bridge requires of a return, stated at the door: every evaluation
+// must present the same stored coordinates, in the same order, as the claim
+// pass recorded at those slots. The scatter pairs the nth stored element with
+// the nth claim slot, so this is the condition that makes the pairing mean
+// anything -- and the bridge validates it per entry rather than trusting it. A
+// return presenting a coordinate its slot was not claimed at is refused by
+// name, never summed into the location laid for another coordinate.
 
 #include <memory>
 #include <vector>

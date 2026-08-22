@@ -18,9 +18,9 @@
 // engine header in here breaks that proof the moment it is added, and no
 // runtime check could catch what a missing #include already prevents.
 //
-// WHY THIS EXISTS. bench/corpus_cells.h's model-level KKT gate (W1-W5,
-// Task 6 of the Phase-7 corpus work) already recomputes stationarity,
-// primal feasibility and complementarity from the model at the returned
+// Why this exists. bench/corpus_cells.h's model-level KKT gate (W1-W5, see
+// that header's kkt_gate_verdict) already recomputes stationarity, primal
+// feasibility and complementarity from the model at the returned
 // point -- but it does so through tests/sqp/support/nlp_kkt_check.h's
 // `self_check_kkt`, which reads a raw NlpModel. This header answers the same
 // three questions from the Level 2 aggregate surface instead, so a consumer
@@ -66,6 +66,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include <Eigen/Core>
 
@@ -103,6 +104,11 @@ struct ModelSurfaceKktResiduals {
 /// scoring the raw Lagrangian gradient's norm rather than a stationarity
 /// residual, and silently reinterpreting the request that way is exactly the
 /// kind of substitution this project's error rules refuse to make silently.
+///
+/// Non-finite input is scored, not thrown on: if any quantity this scorer
+/// consumes is non-finite (a NaN bound included; an infinite bound is legal and
+/// ordinary), all three residuals come back +inf, which is a gate failure. See
+/// the sweep in the body for why it is a direct test and not a max.
 ///
 /// OFF THE HOT PATH BY DESIGN: this call allocates its own CandidateFirstOrder
 /// storage (five vectors/one scalar sized off the declaration) on every
@@ -151,6 +157,44 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAggregate &aggreg
     const std::vector<VariableBound> bounds = declared.materialize_variable_bounds();
 
     ModelSurfaceKktResiduals out;
+
+    // The non-finite sweep, and it is explicit rather than folded into the
+    // maxima below for a reason worth stating: every accumulation here is
+    // std::max(current, term), and std::max(finite, NaN) returns the finite
+    // argument. A NaN gradient, multiplier or residual therefore leaves the
+    // three residuals sitting at 0.0 and the two scales at 1.0 -- a perfect
+    // score computed from garbage, on a row that claimed kOptimal. Max-based
+    // logic cannot detect this; only a direct test can.
+    //
+    // Every input this scorer consumes is swept: the point and the multipliers
+    // it was handed, the four blocks the candidate call wrote, and the declared
+    // bounds. An infinite BOUND is ordinary and legal (a variable free on one
+    // side), so bounds are tested for NaN alone; everything else must be finite.
+    //
+    // Any non-finite input makes all three residuals +inf. That is a gate
+    // FAILURE, deliberately: the row claimed a point, the data behind the claim
+    // cannot be scored, and +inf is what makes W3 read it as wrong rather than
+    // as unchecked (which belongs to rows that claim nothing) or as ok. The two
+    // scale denominators are left at their neutral defaults -- they would be
+    // maxima over the same poisoned data, and the verdict does not depend on
+    // them once the numerators are infinite.
+    bool bounds_are_finite = true;
+    for (const VariableBound &bound : bounds) {
+        if (std::isnan(bound.lower_) || std::isnan(bound.upper_)) {
+            bounds_are_finite = false;
+            break;
+        }
+    }
+    if (!bounds_are_finite || !x.allFinite() || !z.allFinite() || !lambda_e.allFinite() ||
+        !lambda_i.allFinite() || !objective_gradient.allFinite() ||
+        !constraint_adjoint_gradient.allFinite() || !equality_residuals.allFinite() ||
+        !inequality_residuals.allFinite()) {
+        const double infinite = std::numeric_limits<double>::infinity();
+        out.stationarity_ = infinite;
+        out.complementarity_ = infinite;
+        out.primal_ = infinite;
+        return out;
+    }
 
     // stationarity: max_i |grad f + adjoint_grad - z|_i, over non-fixed i.
     for (Eigen::Index i = 0; i < n; ++i) {

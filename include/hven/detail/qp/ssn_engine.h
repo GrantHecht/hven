@@ -2471,15 +2471,15 @@ class SsnEngine {
         }
         out->prox_sigma = prox_sigma_;
         out->z = recombine_bound_multipliers(lambda_b, n);
-        // The activity export (M4) reads slack_i/slack_b, which must describe
-        // the RETURNED point. Task 3 could rely on the loop for that (every
-        // exit broke immediately after residual()); Task 4 cannot, because the
-        // LINE SEARCH evaluates trial points into these same blocks -- see the
+        // The activity export reads slack_i/slack_b, which must describe the
+        // returned point. An earlier form could rely on the loop for that (every
+        // exit broke immediately after residual()); this one cannot, because the
+        // line search evaluates trial points into these same blocks -- see the
         // scratch declaration for why it does and what that buys. One
         // unconditional re-evaluation here is the whole cost, and it makes the
-        // export's precondition a LOCAL fact rather than an invariant spread
-        // over six exit routes. `out->fb_residual` is deliberately NOT
-        // overwritten: it is the norm the exit DECISION was taken on, and
+        // export's precondition a local fact rather than an invariant spread
+        // over six exit routes. `out->fb_residual` is deliberately not
+        // overwritten: it is the norm the exit decision was taken on, and
         // recomputing it at the same point can only reproduce it anyway.
         residual(qp, out->x, out->lambda_e, out->lambda_i, lambda_b, resid_x, resid_e, slack_i,
                  slack_b, phi_i, phi_b);
@@ -3130,10 +3130,10 @@ class SsnEngine {
     }
 
     // -----------------------------------------------------------------------
-    // The activity export (M4)
+    // The activity export
     // -----------------------------------------------------------------------
     //
-    // The engine's own partition rule, applied to the RETURNED iterate: a row
+    // The engine's own partition rule, applied to the returned iterate: a row
     // is active iff its multiplier exceeds its slack (equivalently alpha >
     // beta, header section 2). Written, never read.
     void export_activity(SsnResult *out, const Vec &slack_i, const Vec &slack_b,

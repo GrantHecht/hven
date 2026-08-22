@@ -44,11 +44,19 @@ struct DomainClaims {
 /// (i, j) with i <= j, an equality Jacobian claim (n + r, c), an inequality
 /// Jacobian claim (n + me + r, c). The row offset undoes the second and third.
 ///
-/// EVERY COORDINATE IS RANGE-CHECKED, once per claim at lay time and never on
-/// an evaluation. This is the seam's own boundary rather than a duplicate of
-/// the aggregate's: nothing else compares a claim against the destination the
-/// consumer is about to lay, and an out-of-range one would be a write past the
-/// end of a pattern the consumer built.
+/// Every KKT claim coordinate is range-checked, once per claim at lay time and
+/// never on an evaluation. This is the seam's own boundary rather than a
+/// duplicate of the aggregate's: nothing else compares a KKT claim against the
+/// destination the consumer is about to lay, and an out-of-range one would be a
+/// write past the end of a pattern the consumer built.
+///
+/// The claim scope is exactly that -- KKT claims. The right-hand-side rows the
+/// seam also copies in (objective_gradient_claim_rows) get no equivalent check
+/// because they are not a permutation to validate: the bridge claims each RHS
+/// arena whole and in row order, so slot and row are the same number
+/// (model/nlp_model_aggregate.h's lay), and the arena the seam lays for them is
+/// primal_vars_ long by the same declaration those rows are counted from. There
+/// is no coordinate there that could name a place the arena does not have.
 DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
                          Eigen::Ref<const Eigen::VectorXi> stream_cols, const ClaimBlock &block,
                          int row_offset, int matrix_rows, int matrix_cols, bool upper_triangle,
@@ -169,7 +177,16 @@ void AggregateEvalSeam::lay() {
     // landing in between would pair NEW structures with a NEW epoch that this
     // seam never actually laid against, and the staleness would never be
     // detected again.
-    epoch_at_lay_ = aggregate_->structure_epoch();
+    //
+    // Read here, COMMITTED LAST. The read order is the argument above; the
+    // commit point is a separate question, and it is the end of this function
+    // because everything between can throw -- a declaration that refuses to
+    // materialize its bounds, a claim stream this seam rejects, an allocation.
+    // Committed here, such a throw would leave the new epoch standing over
+    // half-rebuilt structures and relay_if_stale would never re-lay them again.
+    // Committed last, a failed re-lay leaves the stale epoch, so the next
+    // evaluation moment tries again.
+    const StructureEpoch epoch_read_before_structures = aggregate_->structure_epoch();
 
     const AggregateDeclaration &declared = aggregate_->declaration();
     primal_vars_ = declared.primal_vars_;
@@ -213,19 +230,26 @@ void AggregateEvalSeam::lay() {
     const int equality = static_cast<int>(equality_rows_);
     const int inequality = static_cast<int>(inequality_rows_);
 
+    // Each domain's arena base is its own block's `start_`, which is also the
+    // base seed_kkt_segment and publish_matrix address the segment by. Deriving
+    // it here instead -- 0, then the Hessian count, then the Hessian plus
+    // equality counts -- would give the same three numbers only for as long as
+    // the bridge keeps laying the stream H, Ae, Ai in that order with no gaps.
+    // Reading `start_` at both ends makes them one number by construction, so a
+    // later lay order cannot leave the permutation and the segment copies
+    // pointing at different places.
     kkt_locations_.assign(static_cast<std::size_t>(total_claims), 0);
     build_domain(
         read_claims(stream_rows, stream_cols, hessian_, 0, primal, primal, true, "Hessian"),
-        hessian_, primal, primal, 0, "Hessian", hessian_pattern_, kkt_locations_);
+        hessian_, primal, primal, hessian_.start_, "Hessian", hessian_pattern_, kkt_locations_);
     build_domain(read_claims(stream_rows, stream_cols, equality_jacobian_, primal, equality, primal,
                              false, "equality Jacobian"),
-                 equality_jacobian_, equality, primal, hessian_.count_, "equality Jacobian",
-                 equality_pattern_, kkt_locations_);
+                 equality_jacobian_, equality, primal, equality_jacobian_.start_,
+                 "equality Jacobian", equality_pattern_, kkt_locations_);
     build_domain(read_claims(stream_rows, stream_cols, inequality_jacobian_, primal + equality,
                              inequality, primal, false, "inequality Jacobian"),
-                 inequality_jacobian_, inequality, primal,
-                 hessian_.count_ + equality_jacobian_.count_, "inequality Jacobian",
-                 inequality_pattern_, kkt_locations_);
+                 inequality_jacobian_, inequality, primal, inequality_jacobian_.start_,
+                 "inequality Jacobian", inequality_pattern_, kkt_locations_);
 
     // Uncontested: one serial bridge scatters this arena, so there is no clash
     // mark to publish and no mutex vector to key one against. The table's
@@ -249,6 +273,10 @@ void AggregateEvalSeam::lay() {
     gradient_table_ =
         RhsLocationTable(gradient_rows_.data(), static_cast<int>(gradient_rows_.size()));
     gradient_arena_.setConstant(primal_vars_, kArenaSeed);
+
+    // The commit, and the last statement for the reason the read comment above
+    // states: nothing after this point can throw, and everything before it can.
+    epoch_at_lay_ = epoch_read_before_structures;
 }
 
 void AggregateEvalSeam::relay_if_stale() {

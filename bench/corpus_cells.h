@@ -293,12 +293,15 @@ struct CorpusRow {
     //
     // -1.0 SENTINEL, EXACTLY LIKE kkt_stationarity ABOVE: NOT COMPUTED, which
     // is the default (EngineConfig::score_model_surface is false) and is also
-    // what a row that never claimed kOptimal, or an older row read back with
-    // no census, carries. Populated by record_model_surface_check ONLY when
-    // the flag is on, at the SAME point (sol.x/lambda_e/lambda_i/z) and the
-    // SAME solve `record_kkt_check` above already scored -- so a comparison
-    // between the two blocks is a comparison of two independent readings of
-    // one point, not two different points.
+    // what an older row read back with no census carries. Status is not part
+    // of it: with the flag on, record_model_surface_check scores EVERY row the
+    // sweep produces, whatever it exited with, exactly as record_kkt_check
+    // does. W1's claims-kOptimal filter is the gate verdict's, applied
+    // downstream over these columns, and never this hook's. Populated at the
+    // SAME point (sol.x/lambda_e/lambda_i/z) and on the SAME solve
+    // `record_kkt_check` above already scored -- so a comparison between the
+    // two blocks is a comparison of two independent readings of one point, not
+    // two different points.
     //
     // THIS DOES NOT TOUCH bench_corpus.cpp's committed 31/37-column artifact
     // format: these fields are read by the census hook alone (a SEPARATE

@@ -1644,12 +1644,23 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         // forbids.
         throw std::invalid_argument(fmt::format(
             "assemble: the flag combination 0x{0:x} is a legal evaluation shape, but this "
-            "provider does not support it. The partitioned evaluation engine serves the eight "
-            "shapes it grew; see the mapping table's per-provider support statement in "
-            "model/candidate_point.h. Legal and supported-by-this-provider are distinct facts: "
-            "this request cleared validate_eval_request but names no shape among this engine's "
-            "own eight.",
-            static_cast<std::uint32_t>(request)));
+            "provider does not support it. The partitioned evaluation engine serves exactly "
+            "these eight shapes: kRequestObjectiveOnly (0x{1:x}), "
+            "kRequestObjectiveAndConstraints (0x{2:x}), "
+            "kRequestObjectiveGradientAndConstraints (0x{3:x}), kRequestFirstOrderRhs (0x{4:x}), "
+            "kRequestConstraintJacobianOnly (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
+            "kRequestConstraintKkt (0x{7:x}) and kRequestFullKkt (0x{8:x}); see the mapping "
+            "table's per-provider support statement in model/candidate_point.h. Legal and "
+            "supported-by-this-provider are distinct facts: this request cleared "
+            "validate_eval_request but names no shape among the eight listed above.",
+            static_cast<std::uint32_t>(request), static_cast<std::uint32_t>(kRequestObjectiveOnly),
+            static_cast<std::uint32_t>(kRequestObjectiveAndConstraints),
+            static_cast<std::uint32_t>(kRequestObjectiveGradientAndConstraints),
+            static_cast<std::uint32_t>(kRequestFirstOrderRhs),
+            static_cast<std::uint32_t>(kRequestConstraintJacobianOnly),
+            static_cast<std::uint32_t>(kRequestFirstOrderKkt),
+            static_cast<std::uint32_t>(kRequestConstraintKkt),
+            static_cast<std::uint32_t>(kRequestFullKkt)));
     }
 
     // size_ is not validated on the engine path; identity and non-emptiness

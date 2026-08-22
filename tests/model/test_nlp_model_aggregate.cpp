@@ -22,6 +22,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -1343,6 +1344,112 @@ TEST(NlpModelAggregateBoundary, RefusesAModelWhoseSparsityPatternCollapses) {
     EXPECT_THROW(aggregate.assemble(CandidatePoint{x, le, li}, kRequestFullKkt,
                                     destinations.kkt_view(), destinations.rhs_view()),
                  std::invalid_argument);
+}
+
+namespace {
+
+/// A model whose inequality Jacobian keeps its nonzero COUNT and moves the
+/// coordinate: one stored element, at (0, 0) until `drift()` is called and at
+/// (0, 1) after. The count check cannot see this -- one entry before, one
+/// entry after -- so it is the coordinate comparison in the scatter or nothing.
+class BridgeSameCountDriftModel : public BridgeCountingModel {
+  public:
+    void drift() { drifted_ = true; }
+
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        counts_.jac_i_++;
+        return hven::solvers::test_support::detail::make_jac(1, 2, {{0, drifted_ ? 1 : 0, 3.0}});
+    }
+
+  private:
+    bool drifted_ = false;
+};
+
+/// A model that presents the same two stored elements in the other order once
+/// `reverse()` is called. The set is invariant, the count is invariant, and the
+/// pairing of the nth element with the nth claim slot is not: entry 0 of row 0
+/// now carries the coordinate slot 1 was claimed at. Built by exchanging the
+/// two stored entries in place, which is how a return assembled outside
+/// setFromTriplets can legally reach this state.
+class BridgeStorageOrderModel : public BridgeCountingModel {
+  public:
+    void reverse() { reversed_ = true; }
+
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> jacobian = BridgeCountingModel::eval_jac_i(x);
+        if (reversed_) {
+            jacobian.makeCompressed();
+            std::swap(jacobian.innerIndexPtr()[0], jacobian.innerIndexPtr()[1]);
+            std::swap(jacobian.valuePtr()[0], jacobian.valuePtr()[1]);
+        }
+        return jacobian;
+    }
+
+  private:
+    bool reversed_ = false;
+};
+
+} // namespace
+
+// ---------------------------------------------------------------------------
+// The scatter's own precondition: the nth stored element is the nth claim slot
+// ---------------------------------------------------------------------------
+//
+// Both pins below are bidirectional. The conforming state is asserted to be
+// SERVED first -- otherwise a scatter that refused everything would pass them --
+// and the violating state is then asserted to be refused by name. Neither
+// failure moves a nonzero count, so require_claimed_nonzeros sees nothing in
+// either case; the coordinate comparison in scatter_matrix is the only thing
+// standing between these returns and a value summed into a location laid for a
+// different coordinate.
+
+TEST(NlpModelAggregateBoundary, RefusesAReturnWhosePatternMovesAtTheSameCount) {
+    auto model = std::make_shared<BridgeSameCountDriftModel>();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    // Conforming: the coordinate the claim pass recorded is the one presented.
+    EXPECT_NO_THROW(aggregate.assemble(point.full(), kRequestFullKkt, destinations.kkt_view(),
+                                       destinations.rhs_view()));
+
+    model->drift();
+    destinations.zero();
+    try {
+        aggregate.assemble(point.full(), kRequestFullKkt, destinations.kkt_view(),
+                           destinations.rhs_view());
+        FAIL() << "a moved coordinate at an unchanged count must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("eval_jac_i"), std::string::npos) << message;
+        EXPECT_NE(message.find("presented (0, 1)"), std::string::npos) << message;
+        EXPECT_NE(message.find("laid at (0, 0)"), std::string::npos) << message;
+    }
+}
+
+TEST(NlpModelAggregateBoundary, RefusesAReturnThatPresentsItsElementsInAnotherOrder) {
+    auto model = std::make_shared<BridgeStorageOrderModel>();
+    NlpModelAggregate aggregate(model);
+    BridgeDestinations destinations(aggregate);
+    const BridgePoint point;
+
+    EXPECT_NO_THROW(aggregate.assemble(point.full(), kRequestFullKkt, destinations.kkt_view(),
+                                       destinations.rhs_view()));
+
+    model->reverse();
+    destinations.zero();
+    try {
+        aggregate.assemble(point.full(), kRequestFullKkt, destinations.kkt_view(),
+                           destinations.rhs_view());
+        FAIL() << "a reordered return must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("eval_jac_i"), std::string::npos) << message;
+        // The FIRST offending entry, which is the leading one of the exchanged
+        // pair: it carries the coordinate its neighbour's slot was claimed at.
+        EXPECT_NE(message.find("presented (0, 1)"), std::string::npos) << message;
+        EXPECT_NE(message.find("laid at (0, 0)"), std::string::npos) << message;
+    }
 }
 
 namespace {

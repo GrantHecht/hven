@@ -75,6 +75,14 @@ struct AggregateEvalSeamTestAccess {
         std::swap(seam.kkt_locations_[static_cast<std::size_t>(left_slot)],
                   seam.kkt_locations_[static_cast<std::size_t>(right_slot)]);
     }
+
+    /// Overwrites the epoch the seam believes it laid against, WITHOUT touching
+    /// the structures. Used to construct the two states a lay that throws could
+    /// leave behind -- structures partial, epoch either committed or stale --
+    /// so the recovery rule can be pinned in both directions.
+    static void adopt_epoch(AggregateEvalSeam &seam, hven::solvers::StructureEpoch epoch) {
+        seam.epoch_at_lay_ = epoch;
+    }
 };
 
 } // namespace hven::solvers
@@ -97,6 +105,7 @@ using hven::solvers::upgrade_to_full;
 // The driver-entry battery at the end of this file.
 using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
+using hven::solvers::SqpIterate;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
 using hven::solvers::SqpStatus;
@@ -541,6 +550,111 @@ TEST(AggregateEvalSeamEpoch, ARenegotiationForcesARelayAndTheOutputsStillAgree) 
                    build_subproblem(*model, eval_nlp(*model, x), x, lambda_e, lambda_i, 1.0));
 }
 
+namespace {
+
+/// SeamCouplingModel with one structural zero it can drop: (0, 2) of the
+/// inequality Jacobian, emitted every call until `drop_structural_zero()` is
+/// called and never after. Dropping it is a genuine structural change -- the
+/// claim stream is one slot shorter and every claim after it moves -- so a
+/// re-lay that did nothing would be caught rather than papered over. The model
+/// stays pattern-invariant on either side of the flip, which is what keeps this
+/// a re-lay test rather than a violation test.
+class SeamShrinkingJacobianModel : public SeamCouplingModel {
+  public:
+    void drop_structural_zero() { dropped_ = true; }
+
+    SpMatRM eval_jac_i(const Vec &x) const override {
+        if (!dropped_) {
+            return SeamCouplingModel::eval_jac_i(x);
+        }
+        return make_jac(
+            2, 3, {{0, 0, 2.0 * x(0)}, {0, 1, 1.0}, {1, 0, 0.0}, {1, 1, 1.0}, {1, 2, -4.0 * x(2)}});
+    }
+
+  private:
+    bool dropped_ = false;
+};
+
+} // namespace
+
+TEST(AggregateEvalSeamEpoch, ARelayPicksUpAClaimStreamThatActuallyChanged) {
+    // The companion to the test above, and the one a no-op re-lay could not
+    // pass: there the model's claims are identical before and after, so a seam
+    // that merely re-read the epoch and rebuilt nothing would still agree with
+    // the free functions. Here the claim stream genuinely moves.
+    const auto model = std::make_shared<SeamShrinkingJacobianModel>();
+    NlpModelAggregate aggregate(model);
+    AggregateEvalSeam seam(aggregate);
+
+    const Vec x = (Vec(3) << 0.7, -0.3, 1.25).finished();
+    const Vec lambda_e = multipliers(1, 0.5);
+    const Vec lambda_i = multipliers(2, 0.25);
+
+    const NlpEval before = seam.eval_nlp(x, lambda_e, lambda_i);
+    ASSERT_EQ(before.Ji.nonZeros(), 6);
+    const Eigen::Index claims_before = aggregate.kkt_claim_rows().size();
+
+    model->drop_structural_zero();
+    ASSERT_EQ(aggregate.negotiate_partition_count(1), 1);
+    ASSERT_EQ(aggregate.kkt_claim_rows().size(), claims_before - 1)
+        << "the fixture must actually move the claim stream";
+
+    const NlpEval after = seam.eval_nlp(x, lambda_e, lambda_i);
+    EXPECT_EQ(seam.epoch(), aggregate.structure_epoch());
+    EXPECT_EQ(after.Ji.nonZeros(), 5) << "the seam is still publishing the old pattern";
+    expect_same_eval(after, eval_nlp(*model, x));
+    expect_same_qp(seam.build_subproblem(after, x, lambda_e, lambda_i, 1.0),
+                   build_subproblem(*model, eval_nlp(*model, x), x, lambda_e, lambda_i, 1.0));
+}
+
+TEST(AggregateEvalSeamEpoch, AStaleEpochOverBrokenStructuresHealsAtTheNextMoment) {
+    // The commit point, pinned through the state it decides. A lay that throws
+    // part-way leaves this seam's structures partial -- they are rebuilt in
+    // place, not built-then-committed -- so the only thing standing between that
+    // and a permanently wrong seam is WHEN the epoch is written. Committed last,
+    // a failed lay leaves the epoch stale and the next moment re-lays; committed
+    // first, the epoch would already say "current" and the partial structures
+    // would never be rebuilt.
+    //
+    // The broken state is CONSTRUCTED rather than injected: no live
+    // NlpModelAggregate can make this seam's lay throw (every refusal in it is
+    // one the bridge has already made against its own claims), so the pin
+    // reproduces the two states a throw would leave and asserts what each does
+    // next.
+    const auto model = std::make_shared<SeamCouplingModel>();
+    NlpModelAggregate aggregate(model);
+    AggregateEvalSeam seam(aggregate);
+
+    const Vec x = (Vec(3) << 0.7, -0.3, 1.25).finished();
+    const Vec lambda_e = multipliers(1, 0.5);
+    const Vec lambda_i = multipliers(2, 0.25);
+    const NlpEval free_ev = eval_nlp(*model, x);
+    const QpProblem reference = build_subproblem(*model, free_ev, x, lambda_e, lambda_i, 1.0);
+    const hven::solvers::StructureEpoch current = seam.epoch();
+
+    // A seam whose structures are wrong, standing at the current epoch: this is
+    // what a commit-first ordering would leave, and it stays wrong.
+    ASSERT_GE(AggregateEvalSeamTestAccess::hessian_claim_count(seam), 2);
+    AggregateEvalSeamTestAccess::swap_locations(seam, 0, 1);
+    {
+        const NlpEval broken = seam.eval_nlp(x, lambda_e, lambda_i);
+        ASSERT_EQ(seam.epoch(), current);
+        EXPECT_TRUE(hessians_differ(seam.build_subproblem(broken, x, lambda_e, lambda_i, 1.0).H,
+                                    reference.H))
+            << "the fixture must actually be broken for the recovery arm to mean anything";
+    }
+
+    // The same broken structures, standing at a STALE epoch: this is what the
+    // commit-last ordering leaves, and the next moment repairs it.
+    AggregateEvalSeamTestAccess::adopt_epoch(seam, hven::solvers::StructureEpoch{});
+    ASSERT_NE(seam.epoch(), aggregate.structure_epoch());
+
+    const NlpEval healed = seam.eval_nlp(x, lambda_e, lambda_i);
+    EXPECT_EQ(seam.epoch(), aggregate.structure_epoch());
+    expect_same_eval(healed, free_ev);
+    expect_same_qp(seam.build_subproblem(healed, x, lambda_e, lambda_i, 1.0), reference);
+}
+
 // ---------------------------------------------------------------------------
 // Battery 4: the arena carries nothing between calls
 // ---------------------------------------------------------------------------
@@ -692,6 +806,51 @@ void expect_same_warm_start(const WarmStart &bridge, const WarmStart &model,
     EXPECT_EQ(bridge.hot != nullptr, model.hot != nullptr);
 }
 
+/// Every field of every history row, floats compared bit for bit.
+///
+/// Length alone is not the claim. Two solves can take the same number of majors
+/// down different paths -- a different trust-region trajectory, a rejected step
+/// where the other accepted, an SOC that fired on one side only -- and a
+/// length-only comparison would call those equal. The rows carry exactly the
+/// per-major record the diagnostics contract publishes, so comparing them is
+/// comparing the two paths and not just their endpoints.
+void expect_same_history(const std::vector<SqpIterate> &bridge,
+                         const std::vector<SqpIterate> &model, const std::string &tag) {
+    SCOPED_TRACE(tag);
+    ASSERT_EQ(bridge.size(), model.size());
+    for (std::size_t k = 0; k < model.size(); ++k) {
+        SCOPED_TRACE("history row " + std::to_string(k));
+        const SqpIterate &b = bridge[k];
+        const SqpIterate &m = model[k];
+        EXPECT_EQ(b.trial, m.trial);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.f), std::bit_cast<std::uint64_t>(m.f));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.stationarity),
+                  std::bit_cast<std::uint64_t>(m.stationarity));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.feasibility),
+                  std::bit_cast<std::uint64_t>(m.feasibility));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.complementarity),
+                  std::bit_cast<std::uint64_t>(m.complementarity));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.kkt_residual),
+                  std::bit_cast<std::uint64_t>(m.kkt_residual));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.violation_l1),
+                  std::bit_cast<std::uint64_t>(m.violation_l1));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.tr_radius),
+                  std::bit_cast<std::uint64_t>(m.tr_radius));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.mu), std::bit_cast<std::uint64_t>(m.mu));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(b.step_norm),
+                  std::bit_cast<std::uint64_t>(m.step_norm));
+        EXPECT_EQ(b.qp_solved, m.qp_solved);
+        EXPECT_EQ(b.qp_status, m.qp_status);
+        EXPECT_EQ(b.qp_minor_iters, m.qp_minor_iters);
+        EXPECT_EQ(b.qp_factorizations, m.qp_factorizations);
+        EXPECT_EQ(b.tr_binding, m.tr_binding);
+        EXPECT_EQ(b.verdict, m.verdict);
+        EXPECT_EQ(b.soc_applied, m.soc_applied);
+        EXPECT_EQ(b.elastic_applied, m.elastic_applied);
+        EXPECT_EQ(b.watchdog_restored, m.watchdog_restored);
+    }
+}
+
 /// The whole comparison for one solve pair.
 void expect_same_solution(const SqpSolution &bridge, const SqpSolution &model,
                           const std::string &tag) {
@@ -703,7 +862,7 @@ void expect_same_solution(const SqpSolution &bridge, const SqpSolution &model,
     expect_bit_equal(bridge.lambda_e, model.lambda_e, "lambda_e");
     expect_bit_equal(bridge.lambda_i, model.lambda_i, "lambda_i");
     expect_bit_equal(bridge.z, model.z, "z");
-    EXPECT_EQ(bridge.history.size(), model.history.size());
+    expect_same_history(bridge.history, model.history, tag + " history");
     expect_same_counters(bridge.counters, model.counters, tag + " counters");
     expect_same_warm_start(bridge.warm_start, model.warm_start, tag + " warm_start");
 }

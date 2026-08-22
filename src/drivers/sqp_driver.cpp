@@ -114,13 +114,13 @@ void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     engine_.attach_ledger(ledger, label_prefix_ + "_qp");
 }
 
-// THE TWO MODEL-TAKING OVERLOADS ARE WRAPPERS (M4). Each validates the model's
-// box, borrows it into a bridge that lives exactly as long as the call, and
-// delegates to its bridge-taking twin. Nothing about their contract moved: the
-// same argument checks fire in the same order with the same messages, and the
-// solve they run is the same solve.
+// The two model-taking overloads are wrappers. Each validates the model's box,
+// borrows it into a bridge that lives exactly as long as the call, and delegates
+// to its bridge-taking twin. Nothing about their contract moved: the same
+// argument checks fire in the same order with the same messages, and the solve
+// they run is the same solve. See docs/notes/2026-08-21-m4-task5-design.md.
 //
-// THE BRIDGE IS BUILT PER CALL, deliberately. Laying it walks the model's three
+// The bridge is built per call, deliberately. Laying it walks the model's three
 // derivative patterns once (model/nlp_model_aggregate.h) -- real work, outside
 // the timed region below because it is setup, and paid per solve rather than
 // per major. A caller who solves the same model repeatedly and does not want
@@ -247,7 +247,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, const Vec &x0, const 
             "SqpDriver::solve: x0 contains a NaN or infinite entry; the start point must be "
             "finite in every coordinate");
     }
-    // THE BOX IS CHECKED AT THE MODEL BOUNDARY, not here (M4). See
+    // The box is checked at the model boundary, not here. See
     // require_declared_box at the top of this file for the S-1 argument and for
     // why the check moved rather than changed: the box this loop reads is
     // `seam.lower()`/`seam.upper()`, materialized from the bridge's declaration

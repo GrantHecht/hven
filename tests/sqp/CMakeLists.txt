@@ -16,44 +16,48 @@
 # frozen history. See docs/notes/2026-08-16-m3-u0-design.md.
 ################################################################################
 
+# Sorted, like every other source list in this tree (tests/interior,
+# tests/model, and src/'s own SQP group). The migration order this list once
+# carried gave a new entry no defined home, and the last one was appended for
+# want of one.
 set(HVEN_SQP_TEST_SOURCES
-    test_scaffold.cpp
-    test_types.cpp
+    test_accelerate_probes.cpp
+    test_aggregate_eval_seam.cpp
+    test_b1_gate.cpp
+    test_bench_dump.cpp
+    test_border_ops.cpp
+    test_continuation.cpp
+    test_corpus_cells.cpp
+    test_dense_oracle.cpp
+    test_eqp_refine_ab.cpp
+    test_eqp_solve.cpp
+    test_funnel.cpp
+    test_hs_battery.cpp
+    test_hs_sweeps.cpp
+    test_kkt_assembly.cpp
     test_kkt_calls.cpp
     test_kkt_inertia_probe.cpp
     test_kkt_partial_solve.cpp
-    test_dense_oracle.cpp
-    test_kkt_assembly.cpp
-    test_eqp_solve.cpp
-    test_schur.cpp
-    test_border_ops.cpp
+    test_ledger.cpp
+    test_mesh_transfer.cpp
+    test_nlp_model.cpp
+    test_parametric_families.cpp
+    test_predictor.cpp
     test_qp_engine.cpp
     test_qp_engine_border.cpp
     test_qp_engine_indefinite.cpp
     test_qp_engine_tr.cpp
     test_qp_warm_start.cpp
-    test_ledger.cpp
+    test_scaffold.cpp
+    test_scale_problems.cpp
     test_scale_smoke.cpp
-    test_nlp_model.cpp
+    test_schur.cpp
     test_sqp_driver.cpp
     test_sqp_restoration.cpp
-    test_hs_battery.cpp
-    test_hs_sweeps.cpp
-    test_b1_gate.cpp
-    test_eqp_refine_ab.cpp
-    test_funnel.cpp
-    test_warm_start.cpp
-    test_parametric_families.cpp
-    test_predictor.cpp
-    test_continuation.cpp
-    test_mesh_transfer.cpp
-    test_warm_start_battery.cpp
-    test_scale_problems.cpp
-    test_accelerate_probes.cpp
-    test_bench_dump.cpp
-    test_corpus_cells.cpp
     test_ssn_engine.cpp
-    test_aggregate_eval_seam.cpp
+    test_types.cpp
+    test_warm_start.cpp
+    test_warm_start_battery.cpp
 )
 
 add_executable(hven_sqp_tests ${HVEN_SQP_TEST_SOURCES})

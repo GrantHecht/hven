@@ -25,6 +25,15 @@
 // KktLocationTable. Each later evaluation is then `values[location(slot)] +=
 // v` on the provider's side and a contiguous segment copy on this one.
 //
+// What the path costs. Each evaluation moment runs model scratch -> arena
+// scatter -> segment publish, where the free functions it replaces assigned
+// into the driver's objects directly: the bridge materializes the model's
+// return-by-value results, the provider scatters them into this seam's arena,
+// and the seam copies the three contiguous segments out. Those transfers are
+// per major, not per minor -- the QP engine's working-set iterations gain no
+// copy, no branch and no indirection from any of it, which is the ground the
+// R2.3 rider's scope stands on (docs/notes/2026-08-21-m4-task5-design.md §7).
+//
 // WHY THE SEED IS NEGATIVE ZERO. The contract's assemble ACCUMULATES (see
 // model/nlp_aggregate.h) and the consumer owns the initial state, so every
 // destination is seeded before the call. Seeding with -0.0 rather than +0.0 is

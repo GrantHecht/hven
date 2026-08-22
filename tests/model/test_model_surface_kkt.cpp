@@ -30,6 +30,7 @@
 //                        OWES") rather than reading whatever a provider
 //                        leaves there.
 
+#include <cmath>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -170,7 +171,33 @@ class ToyModelWithFixedVar : public NlpModel {
                      .finished();
 };
 
+/// ToyModel with a NaN in the objective gradient, at a FREE coordinate: no
+/// declared-fixed exclusion applies to row 0, so nothing legitimately drops it
+/// and the NaN reaches the stationarity accumulation. Every accumulation in the
+/// scorer is a std::max, and std::max(finite, NaN) returns the finite argument,
+/// so a scorer without an explicit non-finite sweep reports this point as
+/// perfect.
+class ToyModelWithNanGradient : public ToyModel {
+  public:
+    Vec eval_grad(const Vec &x) const override {
+        Vec g = ToyModel::eval_grad(x);
+        g(0) = std::numeric_limits<double>::quiet_NaN();
+        return g;
+    }
+};
+
 constexpr double kUlpTol = 1.0e-11;
+
+/// All three gated residuals are +inf, which is what makes a poisoned row score
+/// as wrong rather than as ok.
+void expect_all_residuals_infinite(const ModelSurfaceKktResiduals &r) {
+    EXPECT_TRUE(std::isinf(r.stationarity_)) << r.stationarity_;
+    EXPECT_GT(r.stationarity_, 0.0);
+    EXPECT_TRUE(std::isinf(r.complementarity_)) << r.complementarity_;
+    EXPECT_GT(r.complementarity_, 0.0);
+    EXPECT_TRUE(std::isinf(r.primal_)) << r.primal_;
+    EXPECT_GT(r.primal_, 0.0);
+}
 
 } // namespace
 
@@ -276,4 +303,71 @@ TEST(ModelSurfaceKkt, MismatchedZSizeThrows) {
 
     EXPECT_THROW(model_surface_kkt_residuals(aggregate, x, lambda_e, lambda_i, bad_z),
                  std::invalid_argument);
+}
+
+// (f) A NaN reaching the scorer from the MODEL. At the same point the first
+// test scores at near-ulp zero, one NaN gradient row must produce +inf on all
+// three residuals -- not the zero a max-based accumulation would report, and
+// not an exception either: a row that claimed a point and cannot be scored is a
+// gate FAILURE, and +inf is what spells that.
+TEST(ModelSurfaceKkt, ANanGradientRowScoresInfiniteRatherThanPerfect) {
+    NlpModelAggregate aggregate(std::make_shared<ToyModelWithNanGradient>());
+
+    Vec x(2);
+    x << 2.0, 3.0; // the KKT point of the underlying ToyModel
+    Vec lambda_e(1);
+    lambda_e << 1.0;
+    Vec lambda_i(1);
+    lambda_i << 0.0;
+    const Vec z = Vec::Zero(2);
+
+    const ModelSurfaceKktResiduals r =
+        model_surface_kkt_residuals(aggregate, x, lambda_e, lambda_i, z);
+
+    expect_all_residuals_infinite(r);
+    // The two denominators are left at their neutral defaults rather than taken
+    // as maxima over the same poisoned data; the verdict does not depend on them
+    // once the numerators are infinite.
+    EXPECT_DOUBLE_EQ(r.dual_scale_, 1.0);
+    EXPECT_DOUBLE_EQ(r.x_scale_, 1.0);
+}
+
+// (g) The same rule for a non-finite quantity the CALLER supplies. z is not
+// produced by the model at all, so this is the other half of the sweep's scope.
+TEST(ModelSurfaceKkt, ANanInACallerSuppliedBlockScoresInfinite) {
+    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+
+    Vec x(2);
+    x << 2.0, 3.0;
+    Vec lambda_e(1);
+    lambda_e << 1.0;
+    Vec lambda_i(1);
+    lambda_i << 0.0;
+    Vec z(2);
+    z << std::numeric_limits<double>::quiet_NaN(), 0.0;
+
+    expect_all_residuals_infinite(model_surface_kkt_residuals(aggregate, x, lambda_e, lambda_i, z));
+}
+
+// (h) An INFINITE BOUND is ordinary and must not trip the sweep: ToyModel
+// declares two of them, and the first test's near-ulp zero already depends on
+// that. Stated as its own pin so a later tightening of the sweep to "allFinite
+// over the bounds" fails here rather than silently turning every unbounded
+// model's row into a wrong answer.
+TEST(ModelSurfaceKkt, AnInfiniteBoundIsNotPoison) {
+    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+
+    Vec x(2);
+    x << 2.0, 3.0;
+    Vec lambda_e(1);
+    lambda_e << 1.0;
+    Vec lambda_i(1);
+    lambda_i << 0.0;
+    const Vec z = Vec::Zero(2);
+
+    const ModelSurfaceKktResiduals r =
+        model_surface_kkt_residuals(aggregate, x, lambda_e, lambda_i, z);
+
+    EXPECT_TRUE(std::isfinite(r.stationarity_));
+    EXPECT_NEAR(r.stationarity_, 0.0, kUlpTol);
 }

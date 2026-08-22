@@ -3752,15 +3752,16 @@ class SqpDriver {
     // `minor_budget` <= 0 means NO BUDGET -- see the 4-argument solve()'s own
     // THE PROBE BUDGET note for the whole contract.
     //
-    // EVERY MODEL QUANTITY THIS LOOP READS ARRIVES THROUGH `seam` (M4), which
-    // is the whole of the change: the dimensions, the box, the six evaluation
-    // moments and the subproblem. There is no NlpModel in scope here and no
-    // `model.eval_*` call anywhere below -- the free functions over NlpModel
-    // declared in this header remain for callers measuring a point of their
-    // own, and the solve path does not use them.
+    // Every model quantity this loop reads arrives through `seam`: the
+    // dimensions, the box, the six evaluation moments and the subproblem. There
+    // is no NlpModel in scope here and no `model.eval_*` call anywhere below --
+    // the free functions over NlpModel declared in this header remain for
+    // callers measuring a point of their own, and the solve path does not use
+    // them. Rationale and staging in
+    // docs/notes/2026-08-21-m4-task5-design.md.
     //
-    // THE ONE PLACE A MODEL IS STILL NAMED is the restoration phase, which
-    // builds a DIFFERENT NlpModel (RestorationModel, a wrapper in the
+    // The one place a model is still named is the restoration phase, which
+    // builds a different NlpModel (RestorationModel, a wrapper in the
     // variables (x, sp, sm, si)) around the one behind the bridge and solves it
     // with a nested driver. That wrapper is a Level 1 construction with no
     // aggregate form of its own, so the entry point reaches the model through
@@ -3940,10 +3941,11 @@ class SqpDriver {
     // it; this function itself stays static and merely stores what it is
     // handed, exactly as it does for every other already-computed value.
     //
-    // TAKES THE SEAM (M4), non-const, because the zero-major probe below builds
-    // a subproblem through it -- an evaluation, which re-lays if the aggregate's
+    // Takes the seam non-const because the zero-major probe below builds a
+    // subproblem through it -- an evaluation, which re-lays if the aggregate's
     // epoch has moved and scatters into the seam's own arena. Everything else it
-    // reads off the seam is a dimension.
+    // reads off the seam is a dimension. See
+    // docs/notes/2026-08-21-m4-task5-design.md.
     static WarmStart make_warm_start(AggregateEvalSeam &seam, const QpSolution *activity,
                                      const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
                                      const Vec *probe_x, double delta, double dual_mu_eff,
