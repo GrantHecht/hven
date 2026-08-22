@@ -240,3 +240,42 @@ result that decides whether the standing trip auto-closes under the ruling
 | `quiet_check.sh` | machine-quiet pre-check, copied convention from `docs/notes/data/2026-08-21-m4-task5-wall/quiet_check.sh` |
 | `aggregate_armh.py` | four-arm adaptation of `docs/notes/data/m4-ipm-wall-leg/aggregate.py`; deltas on the minimum estimator with a `[within]`/`[outside]` marker against per-arm max-of-rep-spreads, median reported beside |
 | `HOLD` | the interlock; removed by the controller at the window's end mark |
+
+## RESULTS (session of 2026-08-22, three reps, minimum estimator governing)
+
+Layout classification (nm --defined-only vs BASE, post-hoc — static
+property of the binaries; the classification step was omitted from the
+runner and executed after the measurement legs, recorded in
+layout_classification.txt): ALL THREE arms are GROWN-LAYOUT
+(ARM-H 20,193 symbol lines moved; LANDED and FIXED 35,964 each). No
+layout-identical control arose; instead the session delivers three
+independent placement rolls.
+
+Four-way read at the adjudicated size (n=240, serial, minimum
+estimator, three reps):
+
+| arm vs BASE | rep 1 | rep 2 | rep 3 | verdict |
+| --- | --- | --- | --- | --- |
+| ARM-H  (+36 B header only)   | +0.12% | +0.16% | +0.08% | within |
+| LANDED (+213 B, the trip)    | +2.27% | +2.29% | +2.31% | outside |
+| FIXED  (all fixes, larger)   | +0.40% | +0.40% | +0.19% | within |
+
+Threaded n=240 concurs (LANDED +2.34..+2.53% outside; ARM-H and FIXED
+within). Bit-identity: PASS — ARM-H == LANDED == FIXED answers on all
+probed sizes, both modes (bit_identity_check output).
+
+READING, under the owner ruling (docs/notes/2026-08-m4-ledger.md,
+2026-08-22): three independent grown layouts scatter across
+≈[0%, +2.5%] — layout-luck variance at the percent scale is
+DEMONSTRATED, the LANDED trip was one unlucky roll, and no arm shows
+hot-path work (the two symbols that grew are cold; every answer
+bit-identical). NOISE-FLOOR CALIBRATION OUTPUT: measured layout-luck
+envelope at this leg ≈ 2.5% (max observed +2.53%); rep spreads
+0.4-2.2% serial (threaded small-n spreads reach ~30% and are unfit for
+banding). PROPOSED RE-DERIVED BAND (declared event; owner ruling
+cited; blessing by the instrument's lane + settler): one-sided +3.0%
+ceiling at the n=240 IPM leg (envelope + headroom), with the nm
+mechanism check dispositive for any trip — layout class auto-closes,
+hot-path symbol growth investigates at any size. The old +0.97%
+precedent ceiling is RETIRED as below the instrument's own measured
+noise floor.

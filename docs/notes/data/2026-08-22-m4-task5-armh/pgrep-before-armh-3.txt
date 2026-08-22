@@ -1,0 +1,5 @@
+# quiet check 2026-08-22T13:20:24Z
+934 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+793549 clangd --background-index
+815433 /usr/bin/clangd
+# loadavg: 7.96 4.60 2.41
