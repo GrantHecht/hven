@@ -550,7 +550,10 @@ class NlpAggregate {
     /// before the call. That is what lets a fan-out over partitions, and
     /// successive requests against one destination, compose the same way.
     /// Provider-internal scratch is a separate matter and stays the provider's
-    /// own to zero.
+    /// own to zero. Accumulation is exact only against a -0.0-seeded arena:
+    /// +0.0 + (-0.0) == +0.0, so a +0.0 seed silently flushes negative zeros
+    /// a model legitimately produces; the seed choice is the consumer's and
+    /// is byte-identity-relevant.
     ///
     /// WHAT THIS CALL DOES NOT DO: fill the consumer's own KKT coefficients --
     /// slack Jacobian, primal and slack diagonals, constraint-row pivots. Those
