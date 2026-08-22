@@ -80,6 +80,17 @@ void require_upper_triangle(const SpMatRM &hessian, const std::string &name) {
 
 void nlp_require_claimed_pattern(const SpMatRM &matrix, const std::vector<NLPCoordinate> &recorded,
                                  const char *what, const std::string &name) {
+    // Compressed first, because the pairing this function certifies is between
+    // stored value k and recorded coordinate k. Uncompressed storage leaves
+    // gaps in the value array, so a matrix that named every claimed coordinate
+    // would still hand every consumer the wrong number.
+    if (!matrix.isCompressed()) {
+        throw std::invalid_argument(
+            fmt::format("{}: {} returned an uncompressed matrix. nlp_model.h states the three "
+                        "matrix returns as compressed: one contiguous value array in canonical "
+                        "order, which is what pairs a stored value with its claimed coordinate",
+                        name, what));
+    }
     if (static_cast<std::size_t>(matrix.nonZeros()) != recorded.size()) {
         throw std::invalid_argument(fmt::format(
             "{}: {} returned {} stored entries, but {} slots were claimed for it. The model's "

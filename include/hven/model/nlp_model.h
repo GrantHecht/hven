@@ -107,6 +107,14 @@ class NlpModel {
     virtual Vec eval_ce(const Vec &x) const = 0;   // size me()
     virtual Vec eval_ci(const Vec &x) const = 0;   // size mi()
 
+    // The three matrix returns below must be COMPRESSED: one contiguous value
+    // array in canonical order, with sorted, duplicate-free inner indices --
+    // what makeCompressed() leaves, and what setFromTriplets() produces. A
+    // consumer pairing stored value k with the kth entry of a pattern it
+    // recorded earlier is reading a different element in uncompressed storage,
+    // where the value array carries gaps. An uncompressed return is refused by
+    // name at nlp_require_claimed_pattern (detail/model/nlp_adapter.h).
+
     // Exact Lagrangian Hessian, upper triangle only. See header comment.
     virtual SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
                               const Vec &lambda_i) const = 0;

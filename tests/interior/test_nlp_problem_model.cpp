@@ -538,3 +538,108 @@ TEST(NlpProblemModelTest, VariableBoundsAreValidatedAtConstruction) {
     EXPECT_NO_THROW(NlpProblemModel{fixed_finite});
     EXPECT_NO_THROW(NlpProblemModel{std::make_shared<NpmLargeBoundProblem>()});
 }
+
+namespace {
+
+/// A bare NlpModel that can return an uncompressed matrix from whichever of
+/// the three matrix entry points is selected. n = 2, one equality row, one
+/// inequality row.
+struct NpmUncompressedModel : hven::solvers::NlpModel {
+    enum class Loose { None, JacE, JacI, Hess };
+    mutable Loose loose_ = Loose::None;
+    Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf}};
+    Eigen::VectorXd upper_{{kNpmInf, kNpmInf}};
+
+    hven::Index n() const override { return 2; }
+    hven::Index me() const override { return 1; }
+    hven::Index mi() const override { return 1; }
+
+    double eval_f(const Eigen::VectorXd &x) const override { return x.squaredNorm(); }
+    Eigen::VectorXd eval_grad(const Eigen::VectorXd &x) const override { return 2.0 * x; }
+    Eigen::VectorXd eval_ce(const Eigen::VectorXd &x) const override {
+        Eigen::VectorXd ce(1);
+        ce[0] = x[0] + x[1] - 1.0;
+        return ce;
+    }
+    Eigen::VectorXd eval_ci(const Eigen::VectorXd &x) const override {
+        Eigen::VectorXd ci(1);
+        ci[0] = x[0] - x[1];
+        return ci;
+    }
+
+    /// Two entries in row 0, left uncompressed when @p loose is selected.
+    static hven::SpMatRM row_matrix(double a, double b, bool loose) {
+        hven::SpMatRM m(1, 2);
+        m.reserve(Eigen::VectorXi::Constant(1, 4)); // room to spare, so gaps remain
+        m.insert(0, 0) = a;
+        m.insert(0, 1) = b;
+        if (!loose) {
+            m.makeCompressed();
+        }
+        return m;
+    }
+    hven::SpMatRM eval_jac_e(const Eigen::VectorXd &) const override {
+        return row_matrix(1.0, 1.0, loose_ == Loose::JacE);
+    }
+    hven::SpMatRM eval_jac_i(const Eigen::VectorXd &) const override {
+        return row_matrix(1.0, -1.0, loose_ == Loose::JacI);
+    }
+    hven::SpMatRM eval_hess(const Eigen::VectorXd &, double obj_scale, const Eigen::VectorXd &,
+                            const Eigen::VectorXd &) const override {
+        hven::SpMatRM h(2, 2);
+        h.reserve(Eigen::VectorXi::Constant(2, 4));
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(1, 1) = 2.0 * obj_scale;
+        if (loose_ != Loose::Hess) {
+            h.makeCompressed();
+        }
+        return h;
+    }
+    const Eigen::VectorXd &lower() const override { return lower_; }
+    const Eigen::VectorXd &upper() const override { return upper_; }
+    Eigen::VectorXd start_point() const override { return Eigen::VectorXd::Zero(2); }
+};
+
+} // namespace
+
+TEST(NlpAdapterHostTest, AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint) {
+    // Uncompressed storage names every claimed coordinate and still hands the
+    // wrong value for each: the value array carries gaps, so pairing stored
+    // value k with recorded coordinate k reads a different element. The guard
+    // refuses it before any value is read.
+    Eigen::VectorXd x(2), le(1), li(1);
+    x << 0.4, 0.6;
+    le << 0.0;
+    li << 0.0;
+
+    auto host_for = [](NpmUncompressedModel::Loose loose) {
+        auto model = std::make_shared<NpmUncompressedModel>();
+        model->loose_ = loose;
+        return std::make_pair(
+            model, std::make_shared<hven::solvers::NLPAdapterCore>(model, "NpmUncompressedModel"));
+    };
+
+    // The control: compressed throughout, nothing refused.
+    {
+        auto [model, core] = host_for(NpmUncompressedModel::Loose::None);
+        EXPECT_NO_THROW(core->refresh_jacobians(x));
+        EXPECT_NO_THROW(core->eval_hessian_values(x, 1.0, le, li));
+    }
+
+    // Each of the three entry points, one at a time. A model that is loose at
+    // transcription is refused there; the construction that survives is
+    // refused at the evaluation.
+    for (auto loose : {NpmUncompressedModel::Loose::JacE, NpmUncompressedModel::Loose::JacI,
+                       NpmUncompressedModel::Loose::Hess}) {
+        auto model = std::make_shared<NpmUncompressedModel>();
+        std::shared_ptr<hven::solvers::NLPAdapterCore> core;
+        ASSERT_NO_THROW(
+            core = std::make_shared<hven::solvers::NLPAdapterCore>(model, "NpmUncompressedModel"));
+        model->loose_ = loose;
+        if (loose == NpmUncompressedModel::Loose::Hess) {
+            EXPECT_THROW(core->eval_hessian_values(x, 1.0, le, li), std::invalid_argument);
+        } else {
+            EXPECT_THROW(core->refresh_jacobians(x), std::invalid_argument);
+        }
+    }
+}
