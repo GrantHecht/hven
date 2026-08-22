@@ -33,6 +33,7 @@ for.
 |---|---|---|
 | `runs/2026-08-21-task3.log` | base `f07184b` vs the Task 3 consumption switch | minimum estimator −0.23% … +0.34%, largest cells +0.03% / +0.06%; median estimator inside its own spread |
 | `runs/2026-08-21-task4-1.log`, `runs/2026-08-21-task4-2.log` | base `a0dcec2` vs the NlpModel bridge's review fix round | minimum estimator +0.01% … +0.97% over two repetitions, every cell inside the base arm's own rep-spread; largest cells reproducible at +0.378% / +0.380% (serial n=240) |
+| `runs/2026-08-22-task5-1.log`, `runs/2026-08-22-task5-2.log` | base `07d5ee1` vs the SQP driver's Level 2 consumption switch | **BAND TRIP**: minimum estimator +0.44% … +2.44% over two repetitions; the `n = 240` cells (+2.44%/+2.20% serial, +2.37%/+2.34% threaded) clear their own base rep-spread and the precedent's +0.97% upper end. Answers identical (`flag`/`xnorm2` bit-equal on every cell of both runs). Mechanism in `../2026-08-21-m4-task5-wall/README.md`: two timed-path objects recompile because `candidate_point.h` grew, but the added work is three integer compares per `assemble()` — layout, not evaluation cost |
 
 Two repetitions rather than one, because every cell of the first came out
 positive and a shared sign is worth a second look. The second reproduced the

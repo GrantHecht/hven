@@ -1,0 +1,3 @@
+F3n1000cold    median 0.085540 -> 0.086096 (+0.650%) | minimum 0.085360 -> 0.085953 (+0.695%) | base rep-spread 0.83%
+F3n1000warm    median 0.045894 -> 0.046238 (+0.750%) | minimum 0.045824 -> 0.046177 (+0.770%) | base rep-spread 0.33%
+F7n200cold     median 17.478507 -> 17.390596 (-0.503%) | minimum 17.476098 -> 17.378185 (-0.560%) | base rep-spread 0.28%
