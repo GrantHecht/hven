@@ -48,8 +48,12 @@ bool same_pattern(const SpMatRM &out, const SpMatRM &pattern) {
         static_cast<std::size_t>(out.outerSize() + 1) * sizeof(SpMatRM::StorageIndex);
     const std::size_t inner_bytes =
         static_cast<std::size_t>(out.nonZeros()) * sizeof(SpMatRM::StorageIndex);
+    // A zero-nonzero pattern can leave both inner index pointers null; memcmp
+    // on a null pointer is undefined even with a zero length, so that case is
+    // taken as equal without calling it.
     return std::memcmp(out.outerIndexPtr(), pattern.outerIndexPtr(), outer_bytes) == 0 &&
-           std::memcmp(out.innerIndexPtr(), pattern.innerIndexPtr(), inner_bytes) == 0;
+           (inner_bytes == 0 ||
+            std::memcmp(out.innerIndexPtr(), pattern.innerIndexPtr(), inner_bytes) == 0);
 }
 
 /// Gives @p out the laid pattern if it does not already carry it. A caller

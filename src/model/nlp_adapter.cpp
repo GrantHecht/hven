@@ -178,9 +178,6 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
     jac_i_scratch_ = SpMatRM(num_iq_, n_);
     hess_scratch_ = SpMatRM(n_, n_);
 
-    // The three patterns, walked once at the model's own start point. Which
-    // point is immaterial by the model's invariance precondition; the start
-    // point is the one point every model is required to be able to produce.
     model_->eval_hess_in_place(x0, 1.0, le_scratch_, li_scratch_, hess_scratch_);
     require_dimensions(this->hessian(), n_, n_, "eval_hess", name_);
     require_compressed(this->hessian(), "eval_hess", name_);

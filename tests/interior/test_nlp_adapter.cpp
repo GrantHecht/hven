@@ -338,6 +338,42 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     EXPECT_EQ(prob->n_eval_hess_, 1);
 }
 
+TEST(NLPAdapterAssemblyTest, ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead) {
+    // full_kkt_pass hands the equality piece its multiplier block directly,
+    // and the piece reads it (write_adjoint_gradient) before it ever reaches
+    // record_equality_multipliers further down the same call. A block too
+    // short for this piece's own rows must be refused at that first read, not
+    // only at the later record.
+    auto prob = std::make_shared<AsmTestProblem>();
+    auto core = adapter_host(prob);
+    auto nlp = hven::solvers::make_nlp_program(core);
+
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
+    nlp->analyze_sparsity(kkt);
+    Eigen::Map<Eigen::VectorXd>(kkt.valuePtr(), kkt.nonZeros()).setZero();
+
+    Eigen::VectorXd X(2);
+    X << 1.3, 0.7;
+    Eigen::VectorXd LE(0), LI(2); // one equality row hosted, zero multipliers offered
+    LI << 0.9, 0.2;
+
+    double val = 0.0;
+    Eigen::VectorXd PGX = Eigen::VectorXd::Zero(nlp->primal_vars_);
+    Eigen::VectorXd AGX = Eigen::VectorXd::Zero(nlp->primal_vars_);
+    Eigen::VectorXd FXE = Eigen::VectorXd::Zero(nlp->equal_cons_);
+    Eigen::VectorXd FXI = Eigen::VectorXd::Zero(nlp->inequal_cons_);
+
+    try {
+        nlp->eval_kkt(2.0, X, LE, LI, val, PGX, AGX, FXE, FXI, kkt);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("0"), std::string::npos) << message; // what arrived
+        EXPECT_NE(message.find("1"), std::string::npos) << message; // what is hosted
+        EXPECT_NE(message.find("NLPProblem"), std::string::npos) << message; // default name()
+    }
+}
+
 TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     auto prob = std::make_shared<AsmTestProblem>();
     auto core = adapter_host(prob);

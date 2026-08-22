@@ -508,6 +508,18 @@ struct NLPConstraintPiece {
     // rather than walking it per destination.
     void write_adjoint_gradient(ConstEigenRef<Eigen::VectorXd> L, EigenRef<Eigen::VectorXd> AGX,
                                 const SolverIndexingData &data) const {
+        // Checked before L is read at all, not only at the slice further down
+        // this file (record_equality_multipliers). This piece's rows are laid
+        // at the head of L -- the engine's own appended rows sit after them --
+        // so a block shorter than this piece's rows has no head to take, and
+        // indexing into it below would read past its end.
+        const int rows = this->output_rows();
+        if (L.size() < rows) {
+            const char *kind = is_inequality_ ? "inequality" : "equality";
+            throw std::invalid_argument(
+                fmt::format("{}: {} {} multipliers reached the {} piece, which hosts {} {} rows",
+                            core_->name_, L.size(), kind, kind, rows, kind));
+        }
         const std::vector<NLPCoordinate> &coords = this->jac_coords();
         const double *values = this->jacobian().valuePtr();
         const int gstart = data.inner_gradient_starts_[0];
