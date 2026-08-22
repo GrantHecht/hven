@@ -1167,6 +1167,20 @@ TEST(SqpDriverContract, MisSizedUpgradeReturnsAreRejectedByName) {
 // steps_accepted == 0 (sqp_types.h's steps_accepted note). All three
 // fixtures here converge through several majors, so none of them reaches it
 // and no count below moves.
+//
+// M4 ADDS THE BRIDGE LAY, WHICH IS WHY THE THREE DERIVATIVE IDENTITIES CARRY
+// AN EXPLICIT `+ 1` BELOW AND THE THREE VALUE ONES DO NOT. The driver's solve
+// path consumes the Level 2 aggregate (detail/drivers/aggregate_eval_seam.h),
+// and a model-taking solve() builds one bridge over the caller's model for the
+// duration of the call. Building it is a CLAIM PASS: it walks eval_hess,
+// eval_jac_e and eval_jac_i once each at the model's start point, because the
+// claims must exist before any evaluation can scatter into them. That is a
+// per-SOLVE constant, not a per-major one, and it is the whole of the change
+// to this test -- the DRIVER's own economy (one evaluation per trial, one
+// Hessian per accepted major) is exactly what it was, and every right-hand
+// side below is still the same driver counter it always was. A caller who
+// does not want to pay it per solve holds an NlpModelAggregate and uses
+// SqpDriver's aggregate-taking entry, which builds no bridge of its own.
 TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
     for (const int number : {6, 76, 5}) {
         CountingModel model(make_hs(number).model);
@@ -1181,21 +1195,37 @@ TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
         const Index accepted = sol.counters.steps_accepted;
         const std::string tag = fmt::format("HS{}", number);
 
+        // THE BRIDGE LAY IS THE `lay` TERM BELOW, and it is a per-BRIDGE cost
+        // rather than a per-major one: constructing an NlpModelAggregate walks
+        // the model's three derivative patterns ONCE, at the model's own start
+        // point -- one eval_hess unconditionally, one eval_jac_e iff me() > 0,
+        // one eval_jac_i iff mi() > 0 (the claim pass, stated in the
+        // constructor's own doc at include/hven/model/nlp_model_aggregate.h).
+        // Each fixture here makes exactly ONE solve(model, ...) call and enters
+        // no restoration, so exactly ONE bridge is built over it and the term
+        // is counted once. The VALUE half of the economy is untouched, which is
+        // why n_f/n_grad/n_ce/n_ci below carry no such term: a lay reads no
+        // value callback at all.
+        const Index lay = 1 + (model.me() > 0 ? 1 : 0) + (model.mi() > 0 ? 1 : 0);
+
         EXPECT_EQ(model.n_f, rows) << tag;
         EXPECT_EQ(model.n_grad, rows) << tag;
-        EXPECT_EQ(model.n_hess, accepted) << tag;
+        // + 1 is the lay's own eval_hess; see `lay` above.
+        EXPECT_EQ(model.n_hess, accepted + 1) << tag;
         EXPECT_EQ(model.n_ce, model.me() > 0 ? rows : 0) << tag;
-        EXPECT_EQ(model.n_jac_e, model.me() > 0 ? rows : 0) << tag;
+        // + 1 is the lay's own eval_jac_e, paid because this model has rows.
+        EXPECT_EQ(model.n_jac_e, model.me() > 0 ? rows + 1 : 0) << tag;
         EXPECT_EQ(model.n_ci, model.mi() > 0 ? rows : 0) << tag;
-        EXPECT_EQ(model.n_jac_i, model.mi() > 0 ? rows : 0) << tag;
+        // + 1 is the lay's own eval_jac_i, paid because this model has rows.
+        EXPECT_EQ(model.n_jac_i, model.mi() > 0 ? rows + 1 : 0) << tag;
 
         // Stated as a total too, because that is the number a future reader
         // will actually compare against: 2 + 2*[me>0] + 2*[mi>0] per row, plus
-        // one Hessian per ACCEPTED major.
+        // one Hessian per ACCEPTED major, plus the one bridge lay.
         const Index per_row = 2 + (model.me() > 0 ? 2 : 0) + (model.mi() > 0 ? 2 : 0);
         const Index total = model.n_f + model.n_grad + model.n_ce + model.n_ci + model.n_jac_e +
                             model.n_jac_i + model.n_hess;
-        EXPECT_EQ(total, per_row * rows + accepted) << tag;
+        EXPECT_EQ(total, per_row * rows + accepted + lay) << tag;
         ::testing::Test::RecordProperty(fmt::format("hs{}_model_calls", number),
                                         fmt::format("{} over {} rows / {} majors ({} rejected)",
                                                     total, rows, majors,
@@ -2819,8 +2849,16 @@ TEST(SqpDriverTrustRegion, RejectedTrialsPayNoHessian) {
     EXPECT_EQ(model.n_grad, 1 + sol.counters.steps_accepted);
     EXPECT_EQ(model.n_grad, 2);
     // ONE Hessian for three subproblem solves: the two retries re-solved it.
-    EXPECT_EQ(model.n_hess, sol.counters.steps_accepted);
-    EXPECT_EQ(model.n_hess, 1);
+    // The + 1 is the bridge's claim pass, not a fourth subproblem: this
+    // fixture makes ONE solve(model, ...) call, which builds ONE
+    // NlpModelAggregate over it, and laying one walks eval_hess once at the
+    // start point (include/hven/model/nlp_model_aggregate.h's constructor
+    // doc). FlatQuarticModel declares no rows of either kind, so no Jacobian
+    // callback joins it. THE LOAD-BEARING HALF IS UNCHANGED: a rejection still
+    // pays no Hessian, which is what `steps_accepted` on the right measures --
+    // a subproblem rebuilt on rejection would make this read 3 + 1, not 1 + 1.
+    EXPECT_EQ(model.n_hess, sol.counters.steps_accepted + 1);
+    EXPECT_EQ(model.n_hess, 2);
     // The counter identity, on a shape where it DOES hold (stopped at an
     // iterate). SqpCounters documents why it is not general.
     EXPECT_EQ(sol.counters.steps_accepted, sol.counters.major_iters - sol.counters.rejected_steps);
@@ -4420,11 +4458,21 @@ TEST(SqpDriverSoc, SocRescuePaysNoExtraHessian) {
     const Index rows = static_cast<Index>(sol.history.size());
     const Index accepted = sol.counters.steps_accepted;
 
-    EXPECT_EQ(model.n_hess, accepted) << "SOC must add NO extra Hessian evaluation";
+    // THE + 1 ON THE TWO DERIVATIVE COUNTS IS THE BRIDGE'S CLAIM PASS, and it
+    // is emphatically NOT the thing this test guards. One solve(model, ...)
+    // call builds one NlpModelAggregate, and laying one walks eval_hess and --
+    // because MaratosModel declares equality rows -- eval_jac_e once each at
+    // the start point (include/hven/model/nlp_model_aggregate.h's constructor
+    // doc). What is still being asserted is that SOC adds NOTHING on top: a
+    // SOC path that rebuilt the subproblem would read accepted + 2 here.
+    EXPECT_EQ(model.n_hess, accepted + 1) << "SOC must add NO extra Hessian evaluation";
     EXPECT_EQ(model.n_f, rows + 1) << "the one successful SOC re-solve pays one extra values fetch";
     EXPECT_EQ(model.n_ce, rows + 1);
     EXPECT_EQ(model.n_grad, 1 + accepted);
-    EXPECT_EQ(model.n_jac_e, 1 + accepted);
+    EXPECT_EQ(model.n_jac_e, 1 + accepted + 1);
+    // NO LAY TERM ON THE INEQUALITY SIDE, and that is the claim pass's own
+    // row-gating showing through rather than an omission: a model with mi() ==
+    // 0 has its eval_jac_i skipped by the lay exactly as the solve skips it.
     EXPECT_EQ(model.n_ci, 0) << "MaratosModel has no inequalities";
     EXPECT_EQ(model.n_jac_i, 0);
 }
@@ -5996,10 +6044,24 @@ TEST(SqpDriverEvalEconomics, RejectionHeavyHs40PoisonedFixtureCutsFullEvals) {
     // could never produce -- the two always match there), and both match
     // evals_full exactly (the loop-top evaluation plus one per
     // upgrade-to-full site, whether direct or SOC-promoted).
+    //
+    // THE ONE `+ 1` IS THE BRIDGE'S CLAIM PASS AND IT DOES NOT BLUNT THIS
+    // GUARD. One solve(model, ...) call builds one NlpModelAggregate, whose lay
+    // walks eval_jac_e once at the start point because HS40 declares equality
+    // rows (include/hven/model/nlp_model_aggregate.h's constructor doc); it
+    // walks no VALUE callback, which is why n_grad, n_f and n_ce carry no such
+    // term and why the split's saving is still read off the same numbers. The
+    // margin the strict inequality below measures narrows from 6 to 5 and stays
+    // live in the direction that matters: under this file's own named mutation
+    // -- routing the rejected-trial evaluation back through the full eval_nlp
+    // -- every one of the 23 queries would fetch a Jacobian, so n_jac_e would
+    // read 23 + 1 = 24 against an n_ce of 23 and `EXPECT_LT` would FAIL, as
+    // would after_full (17 -> 23), evals_values (6 -> 0) and the equality just
+    // below. The lay term makes that mutant MORE visible, not less.
     EXPECT_LT(model.n_grad, model.n_f);
     EXPECT_LT(model.n_jac_e, model.n_ce);
     EXPECT_EQ(model.n_grad, after_full);
-    EXPECT_EQ(model.n_jac_e, after_full);
+    EXPECT_EQ(model.n_jac_e, after_full + 1);
     EXPECT_EQ(model.n_f, model.n_ce) << "HS40 has no inequalities; f/cE are read together always";
 }
 
