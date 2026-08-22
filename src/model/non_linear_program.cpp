@@ -1534,6 +1534,24 @@ void require_laid_width(const hven::solvers::RhsArenaView &view, int laid_width,
 void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
                                                     EvalRequest request, KktScatterView kkt,
                                                     RhsScatterView rhs) {
+    // The laid-width half of the destination checks, which is this provider's
+    // to make: the entry established that a named gradient arena HAS storage
+    // and a table, and could establish no more than that, because the width
+    // these arenas are laid over is the solver's primal block and not the
+    // declared variable count.
+    //
+    // Every destination check the hook makes comes first, before any state of
+    // this provider's is read -- which is what require_laid_width's own
+    // contract says it is for.
+    if (has_request(request, EvalRequest::kObjectiveGradient)) {
+        require_laid_width(rhs.objective_gradient_, this->reduced_primal_vars_count_,
+                           "objective gradient");
+    }
+    if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
+        require_laid_width(rhs.constraint_adjoint_gradient_, this->reduced_primal_vars_count_,
+                           "constraint adjoint gradient");
+    }
+
     constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |
                                         EvalRequest::kConstraintJacobian |
                                         EvalRequest::kConstraintAdjointHessian;
@@ -1559,20 +1577,6 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
     // analyzed_kkt_values_, so the consumer is presenting this very array right
     // now. The identity check itself deliberately never comes through here.
     Eigen::SparseMatrix<double, Eigen::RowMajor> *mat = this->analyzed_kkt_matrix_;
-
-    // The laid-width half of the destination checks, which is this provider's
-    // to make: the entry established that a named gradient arena HAS storage
-    // and a table, and could establish no more than that, because the width
-    // these arenas are laid over is the solver's primal block and not the
-    // declared variable count.
-    if (has_request(request, EvalRequest::kObjectiveGradient)) {
-        require_laid_width(rhs.objective_gradient_, this->reduced_primal_vars_count_,
-                           "objective gradient");
-    }
-    if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
-        require_laid_width(rhs.constraint_adjoint_gradient_, this->reduced_primal_vars_count_,
-                           "constraint adjoint gradient");
-    }
 
     const Eigen::Ref<const VectorXd> Xf = this->declaration_view(point.x_);
     const double scale = point.objective_scale_;
