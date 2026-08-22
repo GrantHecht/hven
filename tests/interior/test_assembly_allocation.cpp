@@ -23,10 +23,12 @@
 // replaced global operator new cannot see a matrix or a vector allocation at
 // all. The counter therefore interposes the allocator entry points themselves
 // and forwards to the C library's, which are available wherever the __libc_
-// aliases are. Every entry point is covered, not just malloc, so an allocation
-// through any of them is counted rather than silently missed. The counter is
-// thread-local and does nothing but return while disarmed, so no code outside
-// the measured window is affected by its presence.
+// aliases are. Every entry point Eigen and operator new can reach is covered,
+// not just malloc, so an allocation through any of them is counted rather than
+// silently missed. glibc's remaining allocators (memalign, valloc, pvalloc,
+// reallocarray) are left alone; nothing on the measured path calls them. The
+// counter is thread-local and does nothing but return while disarmed, so no
+// code outside the measured window is affected by its presence.
 #if defined(__GLIBC__)
 #define HVEN_TEST_HAS_ALLOC_COUNTER 1
 extern "C" void *__libc_malloc(std::size_t);

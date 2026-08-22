@@ -159,6 +159,9 @@ class NlpProblemModel final : public NlpModel {
     /// @param lambda_i Inequality multipliers, or empty for all-zero.
     /// @return The upper triangle, over the pattern the declared structure
     ///         defines, mirrored across the diagonal.
+    /// @throws std::invalid_argument if @p x is not n() long, or if a
+    ///         multiplier block is neither empty nor as long as the row count
+    ///         it stands for.
     SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
                       const Vec &lambda_i) const override;
 
@@ -169,11 +172,45 @@ class NlpProblemModel final : public NlpModel {
     //     directly. Each leaves the destination holding exactly what its
     //     by-value counterpart returns; the by-value methods are implemented
     //     as a copy of these. ---
+
+    /// @brief The objective gradient at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled with n() entries.
+    /// @throws std::invalid_argument if @p x is not n() long.
     void eval_grad_in_place(const Vec &x, Vec &out) const override;
+    /// @brief The equality residuals at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled with me() entries.
+    /// @throws std::invalid_argument if @p x is not n() long.
     void eval_ce_in_place(const Vec &x, Vec &out) const override;
+    /// @brief The inequality residuals at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled with mi() entries.
+    /// @throws std::invalid_argument if @p x is not n() long.
     void eval_ci_in_place(const Vec &x, Vec &out) const override;
+    /// @brief The equality Jacobian at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled over the pattern the declared structure defines,
+    ///            compressed.
+    /// @throws std::invalid_argument if @p x is not n() long.
     void eval_jac_e_in_place(const Vec &x, SpMatRM &out) const override;
+    /// @brief The inequality Jacobian at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled over the pattern the declared structure defines,
+    ///            compressed.
+    /// @throws std::invalid_argument if @p x is not n() long.
     void eval_jac_i_in_place(const Vec &x, SpMatRM &out) const override;
+    /// @brief The exact Lagrangian Hessian, upper triangle, written into
+    ///        @p out.
+    /// @param x The iterate.
+    /// @param obj_scale The objective scale, passed through as obj_factor.
+    /// @param lambda_e Equality multipliers, or empty for all-zero.
+    /// @param lambda_i Inequality multipliers, or empty for all-zero.
+    /// @param out Filled over the pattern the declared structure defines,
+    ///            compressed, mirrored across the diagonal.
+    /// @throws std::invalid_argument if @p x is not n() long, or if a
+    ///         multiplier block is neither empty nor as long as the row count
+    ///         it stands for.
     void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                             const Vec &lambda_i, SpMatRM &out) const override;
 

@@ -122,7 +122,7 @@ class NlpModel {
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const = 0;
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const = 0;
 
-    // THE IN-PLACE FORMS OF THE SIX EVALUATIONS ABOVE, and the same opt-in
+    // The in-place forms of the six evaluations above, under the same opt-in
     // contract eval_values carries: each has a default implementation, so no
     // model has to write one and no existing model changes at all. The default
     // calls this same model's by-value counterpart and assigns the result into
