@@ -457,6 +457,9 @@ void NlpProblemModel::split_user_multipliers(ConstEigenRef<Vec> lambda_user, Vec
         case NLPRowKind::Range:
             // The two native rows are one-sided, so the signed declared value
             // goes to whichever side it names and the other side takes zero.
+            // Composing this undoes it exactly; the reverse order does not,
+            // since a pair with both sides nonzero composes to their
+            // difference and cannot be recovered from it.
             lambda_i[rows_.iq_upper_row_[r]] = std::max(lambda_user[r], 0.0);
             lambda_i[rows_.iq_lower_row_[r]] = std::max(-lambda_user[r], 0.0);
             break;

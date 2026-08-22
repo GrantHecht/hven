@@ -93,15 +93,21 @@ struct NLPRowClassification {
 ///   Free          lambda(r) =  0
 ///
 /// compose_user_multipliers applies that map; split_user_multipliers sends a
-/// declared multiplier back the other way, a Range row's signed value
-/// splitting into its two non-negative parts (positive to the upper row, the
-/// negated negative part to the lower row) and a Free row's value being
-/// dropped. The map is not injective -- a Range row's two multipliers reach
-/// the declared space only as their difference, and a Free row's declared
-/// value has no native image at all -- so composing after splitting is the
-/// identity on native multipliers that satisfy the sign convention, while
-/// splitting after composing is the identity only on declared multipliers that
-/// carry no value on a Free row.
+/// declared multiplier back the other way, a Range row's signed value going to
+/// whichever of its two rows that sign names (the other taking zero) and a
+/// Free row's value being dropped.
+///
+/// Round trips, exactly. compose_user_multipliers(split_user_multipliers(l))
+/// == l for every declared l whose Free rows are zero: each kind's split is
+/// undone by its compose, and a Free row is the only place a declared value
+/// has no native image to come back from.
+///
+/// The other order is NOT an identity. compose is not injective on the native
+/// pairs -- a Range row's two multipliers reach the declared space only as
+/// their difference -- so split_user_multipliers(compose_user_multipliers(le,
+/// li)) generally differs from (le, li): a Range row carrying
+/// (upper, lower) = (3, 4) composes to -1 and splits back to (0, 1). It is an
+/// identity only where every Range row has at most one nonzero side.
 ///
 /// Duplicate (row, col) entries in either declared structure are legal and
 /// their values are summed, which is where they are summed: the native

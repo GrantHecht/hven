@@ -254,12 +254,35 @@ TEST(NlpProblemModelTest, MultiplierShapesMapBothWays) {
     EXPECT_DOUBLE_EQ(back_i[2], 0.0);
     EXPECT_DOUBLE_EQ(back_i[3], 1.0);
 
-    // Composing after splitting returns the declared multipliers, on the rows
-    // that have a native image at all.
+    // compose(split(l)) == l for every declared l whose Free rows are zero.
     declared[4] = 0.0;
     model.split_user_multipliers(declared, back_e, back_i);
     const Eigen::VectorXd round_trip = model.compose_user_multipliers(back_e, back_i);
     EXPECT_TRUE(round_trip.isApprox(declared));
+
+    // ...and a nonzero Free-row value is the one thing that does not survive:
+    // it has no native image to come back from.
+    declared[4] = 7.0;
+    model.split_user_multipliers(declared, back_e, back_i);
+    EXPECT_DOUBLE_EQ(model.compose_user_multipliers(back_e, back_i)[4], 0.0);
+
+    // The other order is NOT an identity. compose is not injective on native
+    // pairs: a Range row carrying (upper, lower) = (3, 4) composes to -1 and
+    // splits back to (0, 1), which is a different pair with the same image.
+    Eigen::VectorXd native_e(1), native_i(4), again_e, again_i;
+    native_e << 0.0;
+    native_i << 0.0, 0.0, 3.0, 4.0;
+    const Eigen::VectorXd composed = model.compose_user_multipliers(native_e, native_i);
+    EXPECT_DOUBLE_EQ(composed[3], -1.0);
+    model.split_user_multipliers(composed, again_e, again_i);
+    EXPECT_DOUBLE_EQ(again_i[2], 0.0);
+    EXPECT_DOUBLE_EQ(again_i[3], 1.0);
+    EXPECT_FALSE(again_i.isApprox(native_i));
+    // It does come back where a Range row has at most one nonzero side.
+    native_i << 0.0, 0.0, 3.0, 0.0;
+    model.split_user_multipliers(model.compose_user_multipliers(native_e, native_i), again_e,
+                                 again_i);
+    EXPECT_TRUE(again_i.isApprox(native_i));
 
     Eigen::VectorXd wrong(4);
     wrong.setZero();
