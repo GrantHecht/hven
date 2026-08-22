@@ -26,8 +26,11 @@
 # diffs those two fields extracted from that line, and says so here rather
 # than inventing a file convention the standing legs never used.
 #
-# This is the same probe binaries run_arm_h.sh builds (ipm_armh, ipm_landed
-# under .scratch/task5-armh/ab/); run run_arm_h.sh first.
+# This is the same probe binaries run_arm_h.sh builds (ipm_armh, ipm_landed,
+# ipm_fixed under .scratch/task5-armh/ab/); run run_arm_h.sh first. FIXED is
+# checked against LANDED on the same terms: the fix batch's two changes on
+# these paths are a refusal message and a refusal check, so a moved answer
+# there would be a finding in its own right.
 #
 # USAGE: ./bit_identity_check.sh [INNER]   (default 3 -- answer identity does
 #   not depend on repetition count, since the probe's flag/xnorm2 come from
@@ -48,12 +51,13 @@ fi
 ROOT=/home/ghecht/Projects/hven/.scratch/task5-armh
 ARMH_BIN=$ROOT/ab/ipm_armh
 LANDED_BIN=$ROOT/ab/ipm_landed
+FIXED_BIN=$ROOT/ab/ipm_fixed
 INNER=${1:-3}
 
-for bin in "$ARMH_BIN" "$LANDED_BIN"; do
+for bin in "$ARMH_BIN" "$LANDED_BIN" "$FIXED_BIN"; do
     if [ ! -x "$bin" ]; then
-        echo "FATAL: $bin not found. Run run_arm_h.sh first -- it builds both" >&2
-        echo "ARM-H and LANDED (and BASE) before this harness has anything to compare." >&2
+        echo "FATAL: $bin not found. Run run_arm_h.sh first -- it builds all four" >&2
+        echo "arms before this harness has anything to compare." >&2
         exit 1
     fi
 done
@@ -77,24 +81,38 @@ for mode in serial threaded; do
     if [ "$mode" = serial ]; then
         a_out=$(MKL_NUM_THREADS=1 taskset -c 2 "$ARMH_BIN" "$INNER")
         l_out=$(MKL_NUM_THREADS=1 taskset -c 2 "$LANDED_BIN" "$INNER")
+        f_out=$(MKL_NUM_THREADS=1 taskset -c 2 "$FIXED_BIN" "$INNER")
     else
         a_out=$("$ARMH_BIN" "$INNER")
         l_out=$("$LANDED_BIN" "$INNER")
+        f_out=$("$FIXED_BIN" "$INNER")
     fi
     a_ans=$(extract "$a_out")
     l_ans=$(extract "$l_out")
+    f_ans=$(extract "$f_out")
     echo "ARM-H   : $a_ans"
     echo "LANDED  : $l_ans"
+    echo "FIXED   : $f_ans"
     if [ "$a_ans" = "$l_ans" ]; then
-        echo "RESULT ($mode): byte-identical across all probed sizes (n=60,120,240)."
+        echo "RESULT ($mode, ARM-H): byte-identical across all probed sizes (n=60,120,240)."
     else
-        echo "RESULT ($mode): MISMATCH -- ARM-H's semantic-inertness premise is FALSIFIED." >&2
+        echo "RESULT ($mode, ARM-H): MISMATCH -- the semantic-inertness premise is FALSIFIED." >&2
+        overall=1
+    fi
+    # The fix batch's own inertness claim, asked the same way: its dispatch
+    # message and its new scatter check are both refusal paths, so no answer on
+    # any timed cell may move.
+    if [ "$f_ans" = "$l_ans" ]; then
+        echo "RESULT ($mode, FIXED): byte-identical to LANDED across all probed sizes."
+    else
+        echo "RESULT ($mode, FIXED): MISMATCH -- the fix batch moved an answer." >&2
         overall=1
     fi
 done
 
 if [ "$overall" -eq 0 ]; then
-    echo "=== bit_identity_check: PASS (ARM-H == LANDED, answers only, both modes)"
+    echo "=== bit_identity_check: PASS (ARM-H == LANDED and FIXED == LANDED, answers only,"
+    echo "=== both modes)"
 else
     echo "=== bit_identity_check: FAIL -- see mismatches above; ARM-H's wall delta cannot" >&2
     echo "=== be read as inert-in-answer until this is explained." >&2

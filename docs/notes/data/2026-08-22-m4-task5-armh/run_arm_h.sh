@@ -20,17 +20,30 @@
 # dispatch code (with the header left exactly as landed) brings the number
 # back in-band, the dispatch edit -- not the header -- was responsible.
 #
-# THREE ARMS, not two:
+# FOUR ARMS:
 #   BASE    07d5ee1  (pre-task: neither the header nor the dispatch changed)
-#   ARM-H   HEAD + arm_h.patch (header exactly as landed; dispatch reverted)
-#   LANDED  HEAD, unmodified (both landed as-is)
+#   ARM-H   8503f39 + arm_h.patch (header exactly as landed; dispatch reverted)
+#   LANDED  8503f39, unmodified (both landed as-is) -- the adjudicated state
+#   FIXED   main-tree HEAD, unmodified: the post-fix-batch state, which is what
+#           actually ships. The fix batch rewrote the dispatch tail's refuse
+#           message (it now enumerates the eight supported shapes inline) and
+#           added a per-entry coordinate check to the bridge's scatter, so the
+#           question LANDED answered has to be re-asked of the state that
+#           replaces it: the leg reports FIXED against BASE on the same
+#           occasion and by the same estimator as the other three.
+#
+# WHY LANDED AND ARM-H ARE NOW PINNED WORKTREES. Both were built from the main
+# tree when the tree still sat at the landed commit. It no longer does, and
+# arm_h.patch reverts the exact text the fix batch rewrote -- it does not apply
+# at the new HEAD and must not be made to. LANDED is 8503f39 by commit, ARM-H
+# is 8503f39 plus the patch, and the main tree supplies the FIXED arm alone.
 #
 # PROTOCOL, mirroring docs/notes/data/m4-ipm-wall-leg/ipm_wall_leg.sh and
 # docs/notes/data/2026-08-21-m4-task5-wall/wall_leg.sh conventions:
 #   - serial   MKL_NUM_THREADS=1, pinned to one physical core (taskset -c 2).
 #   - threaded default thread count, unpinned, machine otherwise idle.
-#   - sides alternated per rep (base/armh/landed, in that order) each rep, so
-#     machine drift lands on all three sides equally.
+#   - sides alternated per rep (base/armh/landed/fixed, in that order) each
+#     rep, so machine drift lands on all four sides equally.
 #   - both estimators (median-of-per-rep-medians, minimum-of-per-rep-minimums)
 #     plus the base arm's own rep-spread are reported; the minimum estimator
 #     is the one a delta is read off (see aggregate_armh.py's own header).
@@ -41,17 +54,17 @@
 #     recorded before the build and before each repetition.
 #
 # ADJUSTED SCOPE vs the standing leg: the standing probe (ipm_time.cpp) times
-# n=60/120/240 every invocation; ARM-H's adjudicated cell count is SIX
-# (3 arms x 2 modes) at n=240, the only size that cleared the standing
+# n=60/120/240 every invocation; ARM-H's adjudicated cell count is EIGHT
+# (4 arms x 2 modes) at n=240, the only size that cleared the standing
 # precedent. The n=60/120 rows still print (the probe is reused verbatim,
 # unmodified, per the "match its conventions" brief) and are a free
 # consistency check, but are not part of the six adjudicated cells.
 #
-# SAFETY. BASE and ARM-H are built in throwaway `git worktree` checkouts
-# under .scratch/task5-armh/ (the same shape the standing legs use for their
-# base arm) -- the patch never touches the main tree. LANDED builds directly
-# from the main tree (HEAD, unmodified), the same shape the standing legs use
-# for their head/landed arm, since the main tree already sits at the wanted
+# SAFETY. BASE, ARM-H and LANDED are built in throwaway `git worktree`
+# checkouts under .scratch/task5-armh/ (the same shape the standing legs use
+# for their base arm) -- the patch never touches the main tree. FIXED builds
+# directly from the main tree (HEAD, unmodified), the same shape the standing
+# legs use for their head arm, since the main tree already sits at the wanted
 # commit. Nothing here pushes, commits, or mutates the main tree's working
 # state.
 #
@@ -78,6 +91,7 @@ fi
 REPO=/home/ghecht/Projects/hven
 ROOT=$REPO/.scratch/task5-armh
 BASE_COMMIT=07d5ee1
+LANDED_COMMIT=8503f39
 PATCH="$HERE/arm_h.patch"
 IPM_SRC_CANON=$REPO/docs/notes/data/m4-ipm-wall-leg/ipm_time.cpp
 REPS=${1:-9}
@@ -102,14 +116,26 @@ setup_worktree() { # $1=path $2=commitish
 echo "=== preparing BASE worktree ($BASE_COMMIT)"
 setup_worktree "$ROOT/basesrc" "$BASE_COMMIT"
 
-HEAD_SHA=$(git -C "$REPO" rev-parse HEAD)
-echo "=== preparing ARM-H worktree (HEAD $HEAD_SHA + arm_h.patch)"
-setup_worktree "$ROOT/armhsrc" "$HEAD_SHA"
+echo "=== preparing LANDED worktree ($LANDED_COMMIT)"
+setup_worktree "$ROOT/landedsrc" "$LANDED_COMMIT"
+
+echo "=== preparing ARM-H worktree ($LANDED_COMMIT + arm_h.patch)"
+setup_worktree "$ROOT/armhsrc" "$LANDED_COMMIT"
 if ! git -C "$ROOT/armhsrc" apply --check "$PATCH"; then
-    echo "FATAL: arm_h.patch does not apply cleanly to the ARM-H worktree ($HEAD_SHA)." >&2
+    echo "FATAL: arm_h.patch does not apply cleanly to the ARM-H worktree" >&2
+    echo "($LANDED_COMMIT). The patch reverts the landed dispatch tail verbatim and is" >&2
+    echo "pinned to that commit; it is NOT expected to apply at the current HEAD." >&2
     exit 1
 fi
 git -C "$ROOT/armhsrc" apply "$PATCH"
+
+HEAD_SHA=$(git -C "$REPO" rev-parse HEAD)
+echo "=== FIXED arm builds the main tree at HEAD $HEAD_SHA (unmodified)"
+if [ -n "$(git -C "$REPO" status --porcelain -- include src bench tests)" ]; then
+    echo "FATAL: the main tree has uncommitted changes under include/src/bench/tests." >&2
+    echo "The FIXED arm must measure a commit, not a working state." >&2
+    exit 1
+fi
 
 build_one() { # $1=src $2=build $3=label
     local src=$1 bld=$2 label=$3
@@ -122,11 +148,12 @@ build_one() { # $1=src $2=build $3=label
     cmake --build "$bld" --target hven -- "-j${JOBS}"
 }
 
-build_one "$ROOT/basesrc"  "$ROOT/basebuild"   "BASE ($BASE_COMMIT)"
-build_one "$ROOT/armhsrc"  "$ROOT/armhbuild"   "ARM-H (HEAD $HEAD_SHA + arm_h.patch)"
-build_one "$REPO"          "$ROOT/landedbuild" "LANDED (HEAD $HEAD_SHA, main tree, unpatched)"
+build_one "$ROOT/basesrc"   "$ROOT/basebuild"   "BASE ($BASE_COMMIT)"
+build_one "$ROOT/armhsrc"   "$ROOT/armhbuild"   "ARM-H ($LANDED_COMMIT + arm_h.patch)"
+build_one "$ROOT/landedsrc" "$ROOT/landedbuild" "LANDED ($LANDED_COMMIT, unpatched)"
+build_one "$REPO"           "$ROOT/fixedbuild"  "FIXED (HEAD $HEAD_SHA, main tree, unpatched)"
 
-echo "=== building the three IPM probes (standing instrument, unmodified)"
+echo "=== building the four IPM probes (standing instrument, unmodified)"
 cp -f "$IPM_SRC_CANON" "$ROOT/ab/ipm_time.cpp"
 build_ipm() { # $1=srcroot $2=blddir(with libhven.a) $3=outbin
     /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO \
@@ -145,9 +172,10 @@ build_ipm() { # $1=srcroot $2=blddir(with libhven.a) $3=outbin
         /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a \
         /opt/intel/oneapi/compiler/latest/lib/libiomp5.so -Wl,--end-group -ldl -lm
 }
-build_ipm "$ROOT/basesrc" "$ROOT/basebuild"   "$ROOT/ab/ipm_base"
-build_ipm "$ROOT/armhsrc" "$ROOT/armhbuild"   "$ROOT/ab/ipm_armh"
-build_ipm "$REPO"         "$ROOT/landedbuild" "$ROOT/ab/ipm_landed"
+build_ipm "$ROOT/basesrc"   "$ROOT/basebuild"   "$ROOT/ab/ipm_base"
+build_ipm "$ROOT/armhsrc"   "$ROOT/armhbuild"   "$ROOT/ab/ipm_armh"
+build_ipm "$ROOT/landedsrc" "$ROOT/landedbuild" "$ROOT/ab/ipm_landed"
+build_ipm "$REPO"           "$ROOT/fixedbuild"  "$ROOT/ab/ipm_fixed"
 
 run_leg() { # $1 = output log path
     local out=$1
@@ -155,7 +183,7 @@ run_leg() { # $1 = output log path
     for mode in serial threaded; do
         echo "=== arm: $mode" >> "$out"
         for r in $(seq 1 "$REPS"); do
-            for side in base armh landed; do
+            for side in base armh landed fixed; do
                 bin="$ROOT/ab/ipm_$side"
                 if [ "$mode" = serial ]; then
                     o=$(MKL_NUM_THREADS=1 taskset -c 2 "$bin" "$INNER")
@@ -180,5 +208,7 @@ python3 "$HERE/aggregate_armh.py" "$HERE/runs/armh_wall_1.log" | tee "$HERE/armh
 python3 "$HERE/aggregate_armh.py" "$HERE/runs/armh_wall_2.log" | tee "$HERE/armh_wall_2_aggregate.txt"
 
 echo "=== ARM-H wall leg complete."
-echo "=== Run bit_identity_check.sh next, then fill README.md's three-way read"
-echo "=== table and decision-tree verdict from these two aggregate files."
+echo "=== Run bit_identity_check.sh next, then fill README.md's four-way read"
+echo "=== table and calibration output from these two aggregate files. The"
+echo "=== accept-vs-mitigate decision tree is SUPERSEDED: this session is a"
+echo "=== noise-floor calibration (docs/notes/2026-08-m4-ledger.md, 2026-08-22)."
