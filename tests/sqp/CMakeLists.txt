@@ -53,6 +53,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_bench_dump.cpp
     test_corpus_cells.cpp
     test_ssn_engine.cpp
+    test_aggregate_eval_seam.cpp
 )
 
 add_executable(hven_sqp_tests ${HVEN_SQP_TEST_SOURCES})
