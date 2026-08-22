@@ -13,6 +13,7 @@
 #include "hven/detail/drivers/aggregate_eval_seam.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <numeric>
 #include <stdexcept>
@@ -253,6 +254,42 @@ void AggregateEvalSeam::lay() {
             "AggregateEvalSeam: the three claim blocks cover {0} of the stream's {1} slots",
             hessian_.count_ + equality_jacobian_.count_ + inequality_jacobian_.count_,
             total_claims));
+    }
+
+    // The counts summing to the stream length does NOT make the three ranges a
+    // partition of it: overlapping blocks sum correctly and then hand two
+    // domains the same slots, which corrupts the permutation kkt_locations_
+    // carries and the arena segments publish_matrix copies out of. Both are
+    // silent -- wrong values, no diagnostic -- so the ranges are checked here,
+    // once per lay, for what the arena layout actually requires: in bounds,
+    // pairwise disjoint, and in the order the arena is laid, Hessian then
+    // equality Jacobian then inequality Jacobian.
+    {
+        const std::array<std::pair<const char *, const ClaimBlock *>, 3> ordered_blocks{
+            {{"Hessian", &hessian_},
+             {"equality Jacobian", &equality_jacobian_},
+             {"inequality Jacobian", &inequality_jacobian_}}};
+        int previous_end = 0;
+        const char *previous_domain = "the start of the stream";
+        for (const auto &[domain, block] : ordered_blocks) {
+            if (block->start_ < 0 || block->count_ < 0 ||
+                block->start_ + block->count_ > total_claims) {
+                throw std::invalid_argument(
+                    fmt::format("AggregateEvalSeam: the {0} block names slots [{1}, {2}) of a "
+                                "claim stream {3} slots long",
+                                domain, block->start_, block->start_ + block->count_,
+                                total_claims));
+            }
+            if (block->start_ < previous_end) {
+                throw std::invalid_argument(
+                    fmt::format("AggregateEvalSeam: the {0} block starts at slot {1}, before {2} "
+                                "ends at slot {3}; the three blocks must be disjoint and laid in "
+                                "the order Hessian, equality Jacobian, inequality Jacobian",
+                                domain, block->start_, previous_domain, previous_end));
+            }
+            previous_end = block->start_ + block->count_;
+            previous_domain = domain;
+        }
     }
 
     const int primal = static_cast<int>(primal_vars_);
