@@ -279,12 +279,12 @@ class SymmetricFactor {
         //                 Accelerate: zeroTolerance = 10^-k * eps (see
         //                 accelerate_zero_tolerance below for the override
         //                 that bypasses this formula entirely).
-        //   std::nullopt  MKL: iparm[9] is never touched -- pardisoinit's
+        //         std::nullopt  MKL: iparm[9] is never touched -- pardisoinit's
         //                 own value survives exactly (8 on the MKL this
-        //                 was verified against; the fault-injection
-        //                 suite's BackendDefaultPremise canary pins that
-        //                 value, so an MKL default move fails a test
-        //                 rather than silently moving behavior).
+        //                 was verified against; the fault-injection suite's
+        //                 BackendDefaultPremise canary pins that value, so an
+        //                 MKL default move fails a test rather than silently
+        //                 moving behavior).
         //                 Accelerate: zeroTolerance = 1e-4 * eps, Apple's
         //                 OWN documented default (the formula above at
         //                 k = 4). That backend is configured by a struct
@@ -292,8 +292,8 @@ class SymmetricFactor {
         //                 value is always passed -- so "don't write" there
         //                 MEANS "pass the backend's documented default
         //                 value": the closest expressible act, and a value
-        //                 citable from Apple's own documentation rather
-        //                 than an observation.
+        //                 citable from Apple's documentation rather than an
+        //                 observation.
         std::optional<int> pivot_perturb_exp = 8;
 
         // Maximum iterative-refinement steps for a full solve (Pardiso
@@ -417,11 +417,10 @@ class SymmetricFactor {
         //   kOneByOne              iparm[20] = 0  "Apply 1x1 diagonal
         //                          pivoting during the factorization
         //                          process."
-        //   kTwoByTwo              iparm[20] = 1  "Apply 1x1 and 2x2
+        //         kTwoByTwo              iparm[20] = 1  "Apply 1x1 and 2x2
         //                          Bunch-Kaufman pivoting during the
         //                          factorization process." (Pardiso's own
-        //                          documented default, and the value
-        //                          the interior-point engine writes today.)
+        //                          documented default.)
         //   kOneByOneNoAutoRefine  iparm[20] = 2  Same as kOneByOne,
         //                          "except that the solve step does not
         //                          automatically make iterative
@@ -475,7 +474,7 @@ class SymmetricFactor {
         // untouched. Every other value WRITES iparm[24] explicitly --
         // including kAdaptivePartitioning, which pins Pardiso's own
         // default strategy against version drift the same way `ordering`'s
-        // non-default values do, and is the value the interior-point engine writes today.
+        // non-default values do.
         //
         // The three non-default values are EXACTLY Pardiso's own documented
         // iparm[24] codes (Intel's oneMKL Developer Reference, "pardiso
@@ -497,13 +496,10 @@ class SymmetricFactor {
         //                               the parallel algorithm based on
         //                               the matrix partitioning."
         //
-        // NAMING NOTE: an earlier revision of this option was a bare
-        // `bool parallel_solve` that wrote iparm[24] = 1 for `true` --
-        // exactly backwards, since 1 is the SEQUENTIAL code and 0 (the
-        // default) is Pardiso's own parallel strategy. This enum exists
-        // instead of a corrected bool specifically so the value names say
-        // what they do rather than relying on a reader to remember which
-        // way a boolean points.
+        // An enum rather than a bool so the value names say what they do:
+        // a naive true-means-parallel spelling would point at the wrong
+        // code, since 1 is the SEQUENTIAL value and 0 is Pardiso's parallel
+        // strategy.
         //
         // Pardiso-only: any non-default value THROWS std::invalid_argument
         // at construction on Accelerate, which has no per-instance thread
@@ -582,12 +578,10 @@ class SymmetricFactor {
         // already sets iparm[18] = -1 for mtype = -2 -- the identical value
         // this option would write for `true` -- even though Intel's own
         // iparm[18] table marks ">= 0" (disabled) as the documented
-        // default. This is the same kind of pardisoinit-vs-documented-
-        // default divergence `ordering` and `factorization_algorithm`
-        // already document for their own entries. hven does NOT force-
-        // write a canceling value at `false` to try to guarantee the
-        // backend skips the counting work: doing so would introduce an
-        // ACTIVE default write, contrary to this option's own
+        // default; the same pardisoinit-vs-documented-default divergence
+        // `ordering` and `factorization_algorithm` document for their own
+        // entries. hven does NOT force-write a canceling value at `false`:
+        // that would be an ACTIVE default write, contrary to this option's
         // don't-write-by-default shape and every sibling option in this
         // struct. `false` is honestly "hven does not ask for or report
         // this," not "the backend is guaranteed not to compute it."

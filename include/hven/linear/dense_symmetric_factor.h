@@ -5,11 +5,10 @@
 
 // Dense symmetric-indefinite factor/solve: LAPACK dsytrf (Bunch-Kaufman,
 // either triangle) to factorize, LAPACK dsytrs to solve against the cached
-// factorization. This is the small dense factor/solve primitive the
-// sparse layer's border-stack consumers (a dense Schur complement
-// bordering a fixed sparse factorization) layer on -- deliberately small
-// and self-contained: no counters (added only when a consumer reads
-// them), and the one evidence surface it does carry
+// factorization. The small dense primitive the sparse layer's border-stack
+// consumers (a dense Schur complement bordering a fixed sparse
+// factorization) layer on -- deliberately small and self-contained: no
+// counters, and the one evidence surface it does carry
 // (BunchKaufmanBlockEvidence) reports facts about the factored blocks
 // only, never a verdict about what those facts mean.
 //

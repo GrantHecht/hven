@@ -48,7 +48,7 @@ namespace hven::solvers {
 // Import cross-namespace types used throughout the solver layer.
 using utils::TypeStorage;
 
-// ---- Function-surface probes ----
+// Function-surface probes
 //
 // These mirror, expression for expression, what ConstraintModel<T> and
 // ObjectiveModel<T> below actually call on their stored T. That correspondence
@@ -107,9 +107,9 @@ concept SolverObjectiveSurface =
 template <class T>
 concept SolverObjectiveFunction = SolverConstraintFunction<T> && SolverObjectiveSurface<T>;
 
-/*
- * Spec for vector function that can be used as a constraint inside of InteriorPointSolver.
- */
+/// @brief Type-erasure spec for a vector function usable as a constraint
+/// inside InteriorPointSolver: the pure-virtual Concept the stored model
+/// implements.
 struct SolverConstraintSpec {
     struct Concept {
         virtual ~Concept() = default;
@@ -154,9 +154,9 @@ struct SolverConstraintSpec {
     };
 };
 
-/*
- * Spec for scalar vector functions that can be used as an objective inside of InteriorPointSolver.
- */
+/// @brief Type-erasure spec for a scalar function usable as an objective
+/// inside InteriorPointSolver: the pure-virtual Concept the stored model
+/// implements.
 struct SolverObjectiveSpec {
     struct Concept {
         virtual ~Concept() = default;
@@ -176,9 +176,7 @@ struct SolverObjectiveSpec {
     };
 };
 
-// ==========================================================================
 // ConstraintBase / ConstraintModel<T> / ConstraintInterface
-// ==========================================================================
 
 struct ConstraintBase : SolverConstraintSpec::Concept, SizableSpec::Concept {
     virtual void clone_into(TypeStorage<ConstraintBase> &) const = 0;
@@ -188,13 +186,13 @@ template <typename T> struct ConstraintModel final : ConstraintBase {
     T data_;
     explicit ConstraintModel(T t) : data_(std::move(t)) {}
 
-    // ---- SizableSpec::Concept ----
+    // SizableSpec::Concept
     std::string name() const override { return data_.name(); }
     int input_rows() const override { return data_.input_rows(); }
     int output_rows() const override { return data_.output_rows(); }
     bool thread_safe() const override { return data_.thread_safe(); }
 
-    // ---- SolverConstraintSpec::Concept ----
+    // SolverConstraintSpec::Concept
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &X, Eigen::Ref<Eigen::VectorXd> FX,
                      const SolverIndexingData &data) const override {
         data_.constraints(X, FX, data);
@@ -281,7 +279,7 @@ struct ConstraintInterface {
         }
     }
 
-    // ---- Forwarding methods ----
+    // Forwarding methods
     std::string name() const { return storage_.get().name(); }
     int input_rows() const { return storage_.get().input_rows(); }
     int output_rows() const { return storage_.get().output_rows(); }
@@ -336,9 +334,7 @@ struct ConstraintInterface {
     }
 };
 
-// ==========================================================================
 // ObjectiveBase / ObjectiveModel<T> / ObjectiveInterface
-// ==========================================================================
 
 struct ObjectiveBase : SolverConstraintSpec::Concept,
                        SolverObjectiveSpec::Concept,
@@ -350,13 +346,13 @@ template <typename T> struct ObjectiveModel final : ObjectiveBase {
     T data_;
     explicit ObjectiveModel(T t) : data_(std::move(t)) {}
 
-    // ---- SizableSpec::Concept ----
+    // SizableSpec::Concept
     std::string name() const override { return data_.name(); }
     int input_rows() const override { return data_.input_rows(); }
     int output_rows() const override { return data_.output_rows(); }
     bool thread_safe() const override { return data_.thread_safe(); }
 
-    // ---- SolverConstraintSpec::Concept ----
+    // SolverConstraintSpec::Concept
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &X, Eigen::Ref<Eigen::VectorXd> FX,
                      const SolverIndexingData &data) const override {
         data_.constraints(X, FX, data);
@@ -404,7 +400,7 @@ template <typename T> struct ObjectiveModel final : ObjectiveBase {
         return data_.num_kkt_elements(dojac, dohess);
     }
 
-    // ---- SolverObjectiveSpec::Concept ----
+    // SolverObjectiveSpec::Concept
     void objective(double ObjScale, const Eigen::Ref<const Eigen::VectorXd> &X, double &Val,
                    const SolverIndexingData &data) const override {
         data_.objective(ObjScale, X, Val, data);
@@ -458,7 +454,7 @@ struct ObjectiveInterface {
         }
     }
 
-    // ---- Forwarding methods ----
+    // Forwarding methods
     std::string name() const { return storage_.get().name(); }
     int input_rows() const { return storage_.get().input_rows(); }
     int output_rows() const { return storage_.get().output_rows(); }

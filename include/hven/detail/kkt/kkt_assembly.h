@@ -27,9 +27,7 @@
 // consumes -- the K assembled here, qp_problem.h's H, and what the KKT factor
 // is handed -- holds the UPPER triangle only, and the sparse backends are
 // driven on that assumption. A caller that fills both triangles, or the lower
-// one, is silently wrong. (Until M3 phase-C S2b the SQP layer spelled this type
-// `SpMatU` and let the `U` carry the convention; the vocabulary is now the
-// library's, so the convention is recorded here, at the fill site, instead.)
+// one, is silently wrong.
 //
 // --- rhs_shift semantics ---
 //
@@ -52,10 +50,9 @@
 //
 // rhs_shift is defined with a "+" sign, i.e. "the value the substituted
 // variables contribute to the LHS of that row's equation" (Hx + ... for
-// Hessian rows, Ax for constraint rows). Task 7 assembles the actual solve
-// right-hand side from g, be, bi (and the working-set's bi-Ai*x terms) and
-// is expected to SUBTRACT rhs_shift from it before solving through the
-// KKT factor,
+// Hessian rows, Ax for constraint rows). The QP engine assembles the actual
+// solve right-hand side from g, be, bi (and the working-set's bi-Ai*x terms)
+// and SUBTRACTS rhs_shift from it before solving through the KKT factor,
 // since the reduced system is K y = b - rhs_shift.
 //
 // --- assemble_kkt_full: the GMSW (Gill-Murray-Saunders-Wright) border form
@@ -120,26 +117,19 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
             fmt::format("{}: WorkingSet has {} inequality rows, expected {} (= qp.mi())", who,
                         ws.mi(), qp.mi()));
     }
-    // THE BOX IS CHECKED TOO (M3 final review, S-6). The two checks above
-    // measure the WorkingSet against the QP; these measure the QP against
-    // ITSELF, because the bound-elimination path below reads qp.lower(i) /
-    // qp.upper(i) at every variable the working set pins -- indices that come
-    // from ws.bound_state(), whose size is n by the first check, and NOT from
-    // lower/upper's own length. A QP carrying a short box (n == 2 with
-    // lower.size() == 1, variable 1 kAtLower) is an assert-only read past the
-    // end in Debug and an unguarded one in Release.
+    // THE BOX IS CHECKED TOO. The two checks above measure the WorkingSet
+    // against the QP; these measure the QP against ITSELF, because the
+    // bound-elimination path below reads qp.lower(i) / qp.upper(i) at every
+    // variable the working set pins -- indices that come from
+    // ws.bound_state(), whose size is n by the first check, and NOT from
+    // lower/upper's own length. A QP carrying a short box is an assert-only
+    // read past the end in Debug and an unguarded one in Release.
     //
-    // TWO SIZE COMPARISONS, NOT qp.validate(). The full validation is O(nnz)
-    // in H/Ae/Ai and this function runs once per working-set change on the
-    // refactorize path, so calling it here would put a pattern-sized scan
-    // inside a hot loop -- and would re-validate, on every driver path, a QP
-    // the driver already validated once. The two O(1) checks close the actual
-    // out-of-bounds read at no measurable cost.
-    //
-    // REACHABILITY: every in-tree driver validates its QP upstream of this
-    // call, so the throws are dead on all of them. The consumer that reaches
-    // them is a direct user of this detail header, which is the same class of
-    // caller the assembly's existing WorkingSet checks are written for.
+    // TWO O(1) SIZE COMPARISONS, NOT qp.validate(): the full validation is
+    // O(nnz) and this function runs once per working-set change on the hot
+    // path. Every in-tree driver validates its QP upstream of this call;
+    // these guards protect the direct user of this detail header, the same
+    // class of caller the WorkingSet checks above are written for.
     if (qp.lower.size() != n) {
         throw std::invalid_argument(fmt::format("{}: qp.lower has size {}, expected {} (= qp.n())",
                                                 who, qp.lower.size(), n));
@@ -275,8 +265,8 @@ inline KktAssembly assemble_kkt(const QpProblem &qp, const WorkingSet &ws, const
     return detail::assemble_kkt_core(qp, ws, opts, /*eliminate_bounds=*/true, "assemble_kkt");
 }
 
-// Full-variable (GMSW border) assembly: see the header comment block above
-// for the K0/border layout this produces. `ws` still supplies the working
+// Full-variable (GMSW border) assembly: see the header comment above for the
+// K0/border layout this produces. `ws` still supplies the working
 // inequality rows (Ai's rows to include, via ws.active_ineq()) and the me
 // equality rows come from qp unconditionally, exactly as in assemble_kkt;
 // only bound elimination is skipped. free_of_full is the identity map and

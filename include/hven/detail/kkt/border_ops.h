@@ -32,8 +32,8 @@
 
 namespace hven::solvers {
 
-// Bookkeeping tag for one currently-live border, kept by the engine (Task 3)
-// in SchurComplement::add_border call order (so its position in this list
+// Bookkeeping tag for one currently-live border, kept by the engine in
+// SchurComplement::add_border call order (so its position in this list
 // matches the index SchurComplement::drop_border expects). `target` records
 // what the border is ABOUT in problem terms -- a row index into qp.Ai for
 // kIneqRow, the K0 constraint-row index k for kRowDelete, or a variable
@@ -60,12 +60,9 @@ struct BorderOps {
     //    column kkt_assembly.h's "Working-inequality rows" loop would have
     //    placed for this row had it been part of the initial working set.
     //
-    //    The caller pairs this with d = -opts.dual_mu
-    //    (SchurComplement::add_border(v, -mu)), matching every other
+    //    The caller pairs this with d = -opts.dual_mu, matching every other
     //    constraint row's diagonal in K0 (kkt_assembly.h's -mu*I), and with
-    //    a border rhs entry of qp.bi(j) (the same rhs a working row for this
-    //    constraint would carry under assemble_kkt_full's all-zero
-    //    rhs_shift).
+    //    a border rhs entry of qp.bi(j).
     static Vec add_ineq_row(const QpProblem &qp, Index j, Index k0_rows) {
         if (j < 0 || j >= qp.mi()) {
             throw std::invalid_argument(
@@ -87,43 +84,22 @@ struct BorderOps {
     //    (0-indexed among K0's me + n_w0 constraint rows; that row lives at
     //    absolute position var_count + k in the k0_rows-sized system, per
     //    assemble_kkt_full's [n vars | me eq | n_w0 working] layout):
-    //    v = e_{var_count + k}. The caller pairs this with d = 0 (NOT -mu;
-    //    see below) and a border rhs entry of 0.
+    //    v = e_{var_count + k}. The caller pairs this with d = 0 and a
+    //    border rhs entry of 0.
     //
-    //    Why this deactivates the row rather than pinning it to an equality:
-    //    a border contributes its column v to EVERY row of the augmented
-    //    system, not just its own. With v = e_{var_count+k}, K0's OTHER rows
-    //    are untouched (v is zero there), but K0's OWN row var_count+k
-    //    gains a +1*y term, and the border's own new equation is
-    //    e_{var_count+k}^T [x0;y] + d*y = 0, i.e. (with d = 0)
-    //    x0(var_count+k) = 0 -- the row's ORIGINAL dual is forced to exactly
-    //    zero. Substituting that back into K0's row var_count+k equation
-    //    (Ai_row.x - mu*0 + y = rhs_entry) turns it into a pure "solve for
-    //    y" equation that does not constrain x0's other entries at all
-    //    (y absorbs whatever rhs_entry was, inertly) -- so the REST of the
-    //    system reduces to exactly K0 with that row (and its dual) removed,
-    //    which is what "deactivate" means. This is why the border's rhs
-    //    entry is 0 (see DeleteK0RowMatchesDirect): it pins the dual to
-    //    zero, not to some nonzero target value.
-    //
-    //    Why d = 0 and not d = -mu: -mu on every OTHER border/constraint row
-    //    is a Tikhonov-style regularizer of an otherwise-exact constraint
-    //    equation (kkt_assembly.h's -mu*I), which relaxes "dual solves for
-    //    itself exactly" into "dual solves approximately, well-posed even
-    //    when near-degenerate". Here the goal is the opposite: to pin the
-    //    EXISTING row's dual to EXACTLY 0, so that row's contribution to the
-    //    rest of the system vanishes exactly rather than approximately. A
-    //    -mu diagonal on this border would instead add its own relaxation
-    //    term (-mu*y) to the pinning equation, leaving x0(var_count+k) off
-    //    from zero by O(mu) and the "deactivation" only approximate -- which
-    //    would defeat the point (an inactive constraint's row must
-    //    contribute NOTHING, not O(mu), to the solve).
+    //    WHY d = 0 AND rhs = 0, NOT -mu: with v = e_{var_count+k}, the
+    //    border's own equation pins x0(var_count+k) -- the row's ORIGINAL
+    //    dual -- to exactly zero, which makes the rest of the system reduce
+    //    to exactly K0 with that row removed. A -mu diagonal would relax the
+    //    pinning equation by O(mu), leaving a deactivation that is only
+    //    approximate; an inactive constraint's row must contribute NOTHING,
+    //    not O(mu). The zero rhs is what pins the dual to zero rather than
+    //    to some nonzero target value.
     //
     //    Equalities are never deactivated this way: only rows that were
     //    part of K0's INITIAL working set (the n_w0 rows at constraint
     //    indices [me, me + n_w0)) may be deleted. `me` and `var_count` are
-    //    both required (beyond the k0_rows implied by SchurComplement's
-    //    contract) so this precondition can be enforced here rather than
+    //    both required so this precondition can be enforced here rather than
     //    left to the caller: passing a k in the equality block (k < me) or
     //    past K0's last constraint row (k >= k0_rows - var_count) throws
     //    std::invalid_argument.
@@ -152,17 +128,14 @@ struct BorderOps {
     //    the bound VALUE (qp.lower(i) or qp.upper(i)) in the border's rhs
     //    entry directly -- NOT through rhs_shift, which stays all-zero in
     //    full mode. See kkt_assembly.h's assemble_kkt_full header comment
-    //    and QpEngineBorder.BorderPinEquivalence
-    //    (test_qp_engine_border.cpp) for the pin-by-border vs.
-    //    pin-by-elimination equivalence this relies on.
+    //    for the pin-by-border vs. pin-by-elimination equivalence this
+    //    relies on.
     //
-    //    Note this method only knows k0_rows, not where the variable block
-    //    ends (var_count) -- unlike delete_k0_row, whose validity genuinely
-    //    depends on distinguishing equality from working rows, a caller
-    //    passing an i that is technically in-range but not actually a
-    //    variable index (i.e. i >= var_count) is a caller bug this
-    //    constructor has no way to detect from i and k0_rows alone; it only
-    //    guards the vector's own bounds.
+    //    This method only knows k0_rows, not where the variable block ends:
+    //    unlike delete_k0_row, whose validity depends on distinguishing
+    //    equality from working rows, an out-of-variable-range i is a caller
+    //    bug this constructor cannot detect from i and k0_rows alone; it
+    //    only guards the vector's own bounds.
     //
     //    Freeing a variable pinned this way is NOT a builder here: full
     //    mode never eliminates a variable from K0 (var_count == qp.n()
@@ -170,7 +143,7 @@ struct BorderOps {
     //    SchurComplement::drop_border(k) for that pin's Schur-complement
     //    index -- there is no vector to build, only an existing border to
     //    remove. BorderLedgerEntry::kVarPin's `target` (the variable index)
-    //    is how the engine (Task 3) is expected to find that index.
+    //    is how the engine finds that index.
     static Vec pin_variable(Index i, Index k0_rows) {
         if (i < 0 || i >= k0_rows) {
             throw std::invalid_argument(
