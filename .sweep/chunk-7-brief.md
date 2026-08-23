@@ -6,7 +6,7 @@ and differ from main.
 
 Scope: every `.h`/`.cpp` under `include/hven/model/`, `include/hven/detail/model/`,
 `include/hven/detail/drivers/`, `src/model/`, `src/drivers/`; plus `src/CMakeLists.txt` (see
-below). Nothing outside.
+below). Nothing outside — except one addition: tests/sqp/support/claim_stream_double.h (a new file that never received the provenance-header pass; give it the hven-original two-line header and sweep its comments).
 
 Apply `.sweep/comment-rules.md`. Rubric for this chunk (settler's, binding): a Doxygen block is
 a CONSTRAINT ON THE CALLER — what it takes, returns, throws, and the invariant it keeps — never
