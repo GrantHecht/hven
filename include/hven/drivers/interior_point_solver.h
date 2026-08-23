@@ -981,11 +981,13 @@ class InteriorPointSolver {
 
     /// @brief Sets Settings::bound_fraction_, the fraction-to-boundary factor.
     /// @param bound_fraction Dimensionless fraction, in the open interval (0, 1).
-    /// @throws std::invalid_argument if bound_fraction <= 0 or bound_fraction >= 1.
+    /// @throws std::invalid_argument unless 0 < bound_fraction < 1; a NaN fails
+    ///         that test and is rejected.
     void set_bound_fraction(double bound_fraction);
     /// @brief Sets Settings::bound_push_, the absolute interior-push component.
     /// @param bound_push Dimensionless coefficient; must be positive.
-    /// @throws std::invalid_argument if bound_push <= 0.
+    /// @throws std::invalid_argument unless bound_push > 0; a NaN fails that
+    ///         test and is rejected.
     void set_bound_push(double bound_push);
     /// @brief Sets Settings::bound_interval_push_, the relative (two-sided)
     ///        interior-push component.
@@ -1008,22 +1010,26 @@ class InteriorPointSolver {
     void set_fixed_variable_treatment(FixedVariableTreatments treatment);
     /// @brief Sets Settings::alpha_red_, the backtracking step-reduction divisor.
     /// @param ared Divisor; must exceed 1 for the step to actually shrink.
-    /// @throws std::invalid_argument if ared <= 1.
+    /// @throws std::invalid_argument unless ared > 1; a NaN fails that test and
+    ///         is rejected.
     void set_alpha_red(double ared);
 
     /// @brief Sets Settings::delta_h_, the first Hessian-perturbation magnitude.
     /// @param delta_h Perturbation added to the Hessian diagonal; must be positive.
-    /// @throws std::invalid_argument if delta_h <= 0.
+    /// @throws std::invalid_argument unless delta_h > 0; a NaN fails that test
+    ///         and is rejected.
     void set_delta_h(double delta_h);
     /// @brief Sets Settings::incr_h_, the Hessian-perturbation growth factor.
     /// @param incr_h Multiplier applied on each further perturbation; must
     ///        exceed 1.
-    /// @throws std::invalid_argument if incr_h <= 1.
+    /// @throws std::invalid_argument unless incr_h > 1; a NaN fails that test
+    ///         and is rejected.
     void set_incr_h(double incr_h);
     /// @brief Sets Settings::decr_h_, the Hessian-perturbation decay factor.
     /// @param decr_h Multiplier applied when the perturbation is relaxed, in the
     ///        open interval (0, 1).
-    /// @throws std::invalid_argument if decr_h <= 0 or decr_h >= 1.
+    /// @throws std::invalid_argument unless 0 < decr_h < 1; a NaN fails that
+    ///         test and is rejected.
     void set_decr_h(double decr_h);
     /// @brief Sets all three Hessian-perturbation parameters in one call.
     /// @param delta_h First perturbation magnitude.

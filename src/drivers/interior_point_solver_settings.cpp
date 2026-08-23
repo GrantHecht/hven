@@ -59,13 +59,15 @@ void pos_int(int v, const char *name) {
         throw std::invalid_argument(fmt::format("{} must be >= 1, got {}", name, v));
 }
 
+// Written as negated comparisons so that a NaN, which compares false against
+// everything, is rejected rather than let through.
 void in_open_unit(double v, const char *name) {
-    if (v <= 0.0 || v >= 1.0)
+    if (!(v > 0.0 && v < 1.0))
         throw std::invalid_argument(fmt::format("{} must be in (0, 1), got {}", name, v));
 }
 
 void greater_than(double v, double bound, const char *name) {
-    if (v <= bound)
+    if (!(v > bound))
         throw std::invalid_argument(
             fmt::format("{} must be greater than {}, got {}", name, bound, v));
 }

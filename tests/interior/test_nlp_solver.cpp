@@ -7,6 +7,7 @@
 #include <limits>
 #include <memory>
 
+#include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
 
 namespace {
@@ -563,6 +564,52 @@ TEST(NLPSolverTest, PartitionCountAndQpThreadCountAreSetIndependently) {
     EXPECT_EQ(solver.num_partitions_, 1);
     EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
     solver.optimizer_->set_print_level(10); // jet_release() resets the print level
+}
+
+// The set_*() validators for bound_push, alpha_red, delta_h, incr_h,
+// bound_fraction and decr_h are written as negated comparisons so that a NaN,
+// which compares false against every ordinary relational operator, is
+// refused rather than silently accepted and stored.
+TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
+    hven::solvers::InteriorPointSolver solver;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    try {
+        solver.set_bound_push(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
+    }
+    try {
+        solver.set_alpha_red(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
+    }
+    try {
+        solver.set_delta_h(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+    }
+    try {
+        solver.set_incr_h(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+    }
+    try {
+        solver.set_bound_fraction(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
+    }
+    try {
+        solver.set_decr_h(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
+    }
 }
 
 // A problem whose Hessian callback throws while armed. Transcription runs that
