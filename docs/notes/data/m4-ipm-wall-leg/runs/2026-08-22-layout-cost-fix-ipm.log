@@ -1,62 +1,62 @@
 === arm: serial
-rep1 base wide n=60 reps=10 median_s=0.002344 min_s=0.002324 flag=0 xnorm2=1.3750963021836506
-rep1 base wide n=120 reps=10 median_s=0.007626 min_s=0.007495 flag=0 xnorm2=2.7501926043856093
-rep1 base wide n=240 reps=10 median_s=0.037043 min_s=0.036856 flag=0 xnorm2=5.5003852082409646
-rep1 head wide n=60 reps=10 median_s=0.001984 min_s=0.001976 flag=0 xnorm2=1.3750963021836506
-rep1 head wide n=120 reps=10 median_s=0.006688 min_s=0.006132 flag=0 xnorm2=2.7501926043856093
-rep1 head wide n=240 reps=10 median_s=0.031409 min_s=0.031254 flag=0 xnorm2=5.5003852082409646
-rep2 base wide n=60 reps=10 median_s=0.002356 min_s=0.002336 flag=0 xnorm2=1.3750963021836506
-rep2 base wide n=120 reps=10 median_s=0.007627 min_s=0.007515 flag=0 xnorm2=2.7501926043856093
-rep2 base wide n=240 reps=10 median_s=0.037011 min_s=0.036898 flag=0 xnorm2=5.5003852082409646
-rep2 head wide n=60 reps=10 median_s=0.001998 min_s=0.001965 flag=0 xnorm2=1.3750963021836506
-rep2 head wide n=120 reps=10 median_s=0.006696 min_s=0.006139 flag=0 xnorm2=2.7501926043856093
-rep2 head wide n=240 reps=10 median_s=0.031316 min_s=0.031221 flag=0 xnorm2=5.5003852082409646
-rep3 base wide n=60 reps=10 median_s=0.002362 min_s=0.002339 flag=0 xnorm2=1.3750963021836506
-rep3 base wide n=120 reps=10 median_s=0.007644 min_s=0.007517 flag=0 xnorm2=2.7501926043856093
-rep3 base wide n=240 reps=10 median_s=0.036974 min_s=0.036884 flag=0 xnorm2=5.5003852082409646
-rep3 head wide n=60 reps=10 median_s=0.001990 min_s=0.001967 flag=0 xnorm2=1.3750963021836506
-rep3 head wide n=120 reps=10 median_s=0.006687 min_s=0.006161 flag=0 xnorm2=2.7501926043856093
-rep3 head wide n=240 reps=10 median_s=0.031606 min_s=0.031233 flag=0 xnorm2=5.5003852082409646
-rep4 base wide n=60 reps=10 median_s=0.002356 min_s=0.002322 flag=0 xnorm2=1.3750963021836506
-rep4 base wide n=120 reps=10 median_s=0.007635 min_s=0.007482 flag=0 xnorm2=2.7501926043856093
-rep4 base wide n=240 reps=10 median_s=0.037045 min_s=0.036897 flag=0 xnorm2=5.5003852082409646
-rep4 head wide n=60 reps=10 median_s=0.001978 min_s=0.001968 flag=0 xnorm2=1.3750963021836506
-rep4 head wide n=120 reps=10 median_s=0.006704 min_s=0.006161 flag=0 xnorm2=2.7501926043856093
-rep4 head wide n=240 reps=10 median_s=0.031814 min_s=0.031243 flag=0 xnorm2=5.5003852082409646
-rep5 base wide n=60 reps=10 median_s=0.002408 min_s=0.002332 flag=0 xnorm2=1.3750963021836506
-rep5 base wide n=120 reps=10 median_s=0.007625 min_s=0.007502 flag=0 xnorm2=2.7501926043856093
-rep5 base wide n=240 reps=10 median_s=0.037056 min_s=0.036885 flag=0 xnorm2=5.5003852082409646
-rep5 head wide n=60 reps=10 median_s=0.001988 min_s=0.001970 flag=0 xnorm2=1.3750963021836506
-rep5 head wide n=120 reps=10 median_s=0.006751 min_s=0.006131 flag=0 xnorm2=2.7501926043856093
-rep5 head wide n=240 reps=10 median_s=0.031600 min_s=0.031401 flag=0 xnorm2=5.5003852082409646
+rep1 base wide n=60 reps=10 median_s=0.002359 min_s=0.002323 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 base wide n=120 reps=10 median_s=0.007652 min_s=0.007531 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 base wide n=240 reps=10 median_s=0.037017 min_s=0.036949 iters=8 flag=0 xnorm2=5.5003852082409646
+rep1 head wide n=60 reps=10 median_s=0.002020 min_s=0.001980 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 head wide n=120 reps=10 median_s=0.006496 min_s=0.006407 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 head wide n=240 reps=10 median_s=0.032936 min_s=0.032239 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 base wide n=60 reps=10 median_s=0.002344 min_s=0.002325 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 base wide n=120 reps=10 median_s=0.007672 min_s=0.007485 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 base wide n=240 reps=10 median_s=0.037051 min_s=0.036923 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 head wide n=60 reps=10 median_s=0.002015 min_s=0.001981 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 head wide n=120 reps=10 median_s=0.006455 min_s=0.006402 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 head wide n=240 reps=10 median_s=0.032368 min_s=0.032057 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 base wide n=60 reps=10 median_s=0.002366 min_s=0.002340 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 base wide n=120 reps=10 median_s=0.007670 min_s=0.007507 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 base wide n=240 reps=10 median_s=0.037086 min_s=0.036941 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 head wide n=60 reps=10 median_s=0.002009 min_s=0.001985 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 head wide n=120 reps=10 median_s=0.006488 min_s=0.006410 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 head wide n=240 reps=10 median_s=0.032353 min_s=0.032200 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 base wide n=60 reps=10 median_s=0.002353 min_s=0.002322 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 base wide n=120 reps=10 median_s=0.007655 min_s=0.007502 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 base wide n=240 reps=10 median_s=0.037022 min_s=0.036888 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 head wide n=60 reps=10 median_s=0.002005 min_s=0.001982 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 head wide n=120 reps=10 median_s=0.006467 min_s=0.006443 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 head wide n=240 reps=10 median_s=0.032295 min_s=0.032095 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 base wide n=60 reps=10 median_s=0.002352 min_s=0.002333 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 base wide n=120 reps=10 median_s=0.007652 min_s=0.007525 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 base wide n=240 reps=10 median_s=0.037115 min_s=0.037025 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 head wide n=60 reps=10 median_s=0.002014 min_s=0.001980 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 head wide n=120 reps=10 median_s=0.006478 min_s=0.006398 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 head wide n=240 reps=10 median_s=0.032678 min_s=0.032298 iters=8 flag=0 xnorm2=5.5003852082409646
 === arm: threaded
-rep1 base wide n=60 reps=10 median_s=0.002207 min_s=0.002179 flag=0 xnorm2=1.3750963021836506
-rep1 base wide n=120 reps=10 median_s=0.007421 min_s=0.007343 flag=0 xnorm2=2.7501926043856093
-rep1 base wide n=240 reps=10 median_s=0.041490 min_s=0.035003 flag=0 xnorm2=5.5003852082409646
-rep1 head wide n=60 reps=10 median_s=0.001886 min_s=0.001842 flag=0 xnorm2=1.3750963021836506
-rep1 head wide n=120 reps=10 median_s=0.006437 min_s=0.005909 flag=0 xnorm2=2.7501926043856093
-rep1 head wide n=240 reps=10 median_s=0.029725 min_s=0.029409 flag=0 xnorm2=5.5003852082409646
-rep2 base wide n=60 reps=10 median_s=0.002876 min_s=0.002868 flag=0 xnorm2=1.3750963021836506
-rep2 base wide n=120 reps=10 median_s=0.009811 min_s=0.007308 flag=0 xnorm2=2.7501926043856093
-rep2 base wide n=240 reps=10 median_s=0.035189 min_s=0.034843 flag=0 xnorm2=5.5003852082409646
-rep2 head wide n=60 reps=10 median_s=0.001864 min_s=0.001852 flag=0 xnorm2=1.3750963021836506
-rep2 head wide n=120 reps=10 median_s=0.006455 min_s=0.005941 flag=0 xnorm2=2.7501926043856093
-rep2 head wide n=240 reps=10 median_s=0.029574 min_s=0.029234 flag=0 xnorm2=5.5003852082409646
-rep3 base wide n=60 reps=10 median_s=0.002202 min_s=0.002184 flag=0 xnorm2=1.3750963021836506
-rep3 base wide n=120 reps=10 median_s=0.007455 min_s=0.007323 flag=0 xnorm2=2.7501926043856093
-rep3 base wide n=240 reps=10 median_s=0.035326 min_s=0.034900 flag=0 xnorm2=5.5003852082409646
-rep3 head wide n=60 reps=10 median_s=0.002526 min_s=0.002505 flag=0 xnorm2=1.3750963021836506
-rep3 head wide n=120 reps=10 median_s=0.006479 min_s=0.005938 flag=0 xnorm2=2.7501926043856093
-rep3 head wide n=240 reps=10 median_s=0.030048 min_s=0.029182 flag=0 xnorm2=5.5003852082409646
-rep4 base wide n=60 reps=10 median_s=0.002203 min_s=0.002185 flag=0 xnorm2=1.3750963021836506
-rep4 base wide n=120 reps=10 median_s=0.007445 min_s=0.007306 flag=0 xnorm2=2.7501926043856093
-rep4 base wide n=240 reps=10 median_s=0.035026 min_s=0.034896 flag=0 xnorm2=5.5003852082409646
-rep4 head wide n=60 reps=10 median_s=0.001861 min_s=0.001837 flag=0 xnorm2=1.3750963021836506
-rep4 head wide n=120 reps=10 median_s=0.006445 min_s=0.005947 flag=0 xnorm2=2.7501926043856093
-rep4 head wide n=240 reps=10 median_s=0.029383 min_s=0.029211 flag=0 xnorm2=5.5003852082409646
-rep5 base wide n=60 reps=10 median_s=0.002198 min_s=0.002178 flag=0 xnorm2=1.3750963021836506
-rep5 base wide n=120 reps=10 median_s=0.007428 min_s=0.007293 flag=0 xnorm2=2.7501926043856093
-rep5 base wide n=240 reps=10 median_s=0.034905 min_s=0.034843 flag=0 xnorm2=5.5003852082409646
-rep5 head wide n=60 reps=10 median_s=0.001863 min_s=0.001849 flag=0 xnorm2=1.3750963021836506
-rep5 head wide n=120 reps=10 median_s=0.006464 min_s=0.005945 flag=0 xnorm2=2.7501926043856093
-rep5 head wide n=240 reps=10 median_s=0.029408 min_s=0.029202 flag=0 xnorm2=5.5003852082409646
+rep1 base wide n=60 reps=10 median_s=0.002198 min_s=0.002171 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 base wide n=120 reps=10 median_s=0.007473 min_s=0.007409 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 base wide n=240 reps=10 median_s=0.035044 min_s=0.034856 iters=8 flag=0 xnorm2=5.5003852082409646
+rep1 head wide n=60 reps=10 median_s=0.002544 min_s=0.001864 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 head wide n=120 reps=10 median_s=0.006245 min_s=0.006185 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 head wide n=240 reps=10 median_s=0.030307 min_s=0.030068 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 base wide n=60 reps=10 median_s=0.002190 min_s=0.002172 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 base wide n=120 reps=10 median_s=0.007440 min_s=0.007310 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 base wide n=240 reps=10 median_s=0.035165 min_s=0.034907 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 head wide n=60 reps=10 median_s=0.001879 min_s=0.001855 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 head wide n=120 reps=10 median_s=0.006260 min_s=0.006186 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 head wide n=240 reps=10 median_s=0.038760 min_s=0.030592 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 base wide n=60 reps=10 median_s=0.002186 min_s=0.002175 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 base wide n=120 reps=10 median_s=0.007471 min_s=0.007285 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 base wide n=240 reps=10 median_s=0.035226 min_s=0.034872 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 head wide n=60 reps=10 median_s=0.001872 min_s=0.001857 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 head wide n=120 reps=10 median_s=0.006320 min_s=0.006213 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 head wide n=240 reps=10 median_s=0.031025 min_s=0.030240 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 base wide n=60 reps=10 median_s=0.002217 min_s=0.002186 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 base wide n=120 reps=10 median_s=0.007431 min_s=0.007307 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 base wide n=240 reps=10 median_s=0.035085 min_s=0.034901 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 head wide n=60 reps=10 median_s=0.001884 min_s=0.001858 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 head wide n=120 reps=10 median_s=0.006217 min_s=0.006178 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 head wide n=240 reps=10 median_s=0.030411 min_s=0.030193 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 base wide n=60 reps=10 median_s=0.002870 min_s=0.002862 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 base wide n=120 reps=10 median_s=0.009807 min_s=0.007393 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 base wide n=240 reps=10 median_s=0.035205 min_s=0.035094 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 head wide n=60 reps=10 median_s=0.001910 min_s=0.001857 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 head wide n=120 reps=10 median_s=0.006207 min_s=0.006187 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 head wide n=240 reps=10 median_s=0.030537 min_s=0.030203 iters=8 flag=0 xnorm2=5.5003852082409646
