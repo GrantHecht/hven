@@ -79,7 +79,7 @@ namespace hven::solvers {
 ///   result, so a caller that never wants kHot pinned can clamp it there.
 enum class StartLevel { kCold, kSeeded, kWarm, kHot };
 
-/// Maps StartLevel to a short display string; defined in a library TU.
+/// @brief Maps StartLevel to a short display string; defined in a library TU.
 const char *to_string(StartLevel level);
 
 /// How many of a ledger's whole-driver solves resolved at each StartLevel --
@@ -92,13 +92,13 @@ const char *to_string(StartLevel level);
 /// anything indexed by them would silently re-bind its columns on such an
 /// insertion; named fields cannot.
 struct StartLevelHistogram {
-    /// Solves that resolved to kCold.
+    /// @brief Solves that resolved to kCold.
     Index cold = 0;
-    /// Solves that resolved to kSeeded.
+    /// @brief Solves that resolved to kSeeded.
     Index seeded = 0;
-    /// Solves that resolved to kWarm.
+    /// @brief Solves that resolved to kWarm.
     Index warm = 0;
-    /// Solves that resolved to kHot.
+    /// @brief Solves that resolved to kHot.
     Index hot = 0;
 
     /// The number of SqpSolveRecords the histogram was built from: the four

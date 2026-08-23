@@ -32,9 +32,9 @@ namespace hven {
 /// `value()` reads the current hash without consuming it, so a caller may
 /// keep feeding after reading an intermediate value.
 struct Fnv1a {
-    /// Standard FNV-1a 64-bit offset basis.
+    /// @brief Standard FNV-1a 64-bit offset basis.
     static constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
-    /// Standard FNV-1a 64-bit prime.
+    /// @brief Standard FNV-1a 64-bit prime.
     static constexpr std::uint64_t kPrime = 1099511628211ULL;
 
     constexpr Fnv1a() noexcept : hash_(kOffsetBasis) {}
@@ -79,7 +79,7 @@ struct Fnv1a {
         }
     }
 
-    /// The current hash value, without consuming it.
+    /// @brief The current hash value, without consuming it.
     constexpr std::uint64_t value() const noexcept { return hash_; }
 
   private:

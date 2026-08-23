@@ -664,7 +664,11 @@ struct SqpOptions {
     /// `qp_mode == QpMode::kWalk`, and each defaults to the shipped
     /// iteration's own setting.
     SsnSigmaRule ssn_sigma_rule = SsnSigmaRule::kLadder;
+    /// How the hinted first SSN step is protected; see SsnHintRule. Same
+    /// forwarding and same kWalk inertness as ssn_sigma_rule above.
     SsnHintRule ssn_hint_rule = SsnHintRule::kIterationZeroFree;
+    /// What turns an SSN infeasibility suspicion into an exit; see
+    /// SsnInfeasibilityRule. Same forwarding and same kWalk inertness.
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms;
 };
 
@@ -732,14 +736,14 @@ void validate_sqp_options(const SqpOptions &opts);
 /// would also drop the final stopped-AT-iterate row, whose verdict field is
 /// meaningless and sits at its kReject default.
 struct SqpIterate {
-    /// 0-based index of THIS ROW (== subproblem index).
+    /// @brief 0-based index of THIS ROW (== subproblem index).
     Index trial = 0;
 
-    /// Objective at the iterate.
+    /// @brief Objective at the iterate.
     double f = 0.0;
-    /// Reduced/projected ||grad L||inf; see sqp_driver.h's CONVERGENCE TEST.
+    /// @brief Reduced/projected ||grad L||inf; see sqp_driver.h's CONVERGENCE TEST.
     double stationarity = 0.0;
-    /// max(||cE||inf, max(cI)+, bound violation).
+    /// @brief max(||cE||inf, max(cI)+, bound violation).
     double feasibility = 0.0;
     /// max_j |lambda_i(j) * cI_j(x)|. RECORDED, NOT GATED -- see
     /// sqp_driver.h's CONVERGENCE TEST note for the argument, and its THE
@@ -789,15 +793,15 @@ struct SqpIterate {
     /// tr_radius on its own, but that is not what this field reports on
     /// such a row.
     double step_norm = 0.0;
-    /// False on a stopped-AT-iterate row (see above).
+    /// @brief False on a stopped-AT-iterate row (see above).
     bool qp_solved = false;
-    /// Meaningful iff qp_solved.
+    /// @brief Meaningful iff qp_solved.
     QpStatus qp_status = QpStatus::kOptimal;
-    /// Meaningful iff qp_solved.
+    /// @brief Meaningful iff qp_solved.
     Index qp_minor_iters = 0;
-    /// Meaningful iff qp_solved.
+    /// @brief Meaningful iff qp_solved.
     Index qp_factorizations = 0;
-    /// Any QpSolution::tr_active entry set (radius bit).
+    /// @brief Any QpSolution::tr_active entry set (radius bit).
     bool tr_binding = false;
     /// The globalization strategy's verdict on this trial. It is the
     /// STRATEGY'S OWN verdict iff `qp_solved && qp_status ==
@@ -929,10 +933,19 @@ struct SqpIterate {
 /// iterate row or a failing-subproblem row depends on the exit -- see
 /// SqpCounters.
 struct SqpSolution {
+    /// @brief How the solve ended.
     SqpStatus status = SqpStatus::kOptimal;
+    /// The returned point and its prices: primal variables, equality
+    /// multipliers, inequality multipliers, and bound multipliers -- read
+    /// under the exit-dependent contract above.
     Vec x, lambda_e, lambda_i, z;
+    /// Objective value at `x`, exactly as the model returned it (possibly NaN
+    /// on a kNumericalError exit).
     double f = std::numeric_limits<double>::quiet_NaN();
+    /// @brief Work spent by this solve, restoration folded in.
     SqpCounters counters;
+    /// One row per iterate visited; whether the last row is an iterate row or a
+    /// failing-subproblem row depends on the exit -- see SqpCounters.
     std::vector<SqpIterate> history;
 
     /// TRUE ONLY ON THE CERTIFIED INFEASIBILITY EXIT: the restoration phase

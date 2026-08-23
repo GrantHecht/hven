@@ -51,10 +51,10 @@ static_assert(std::is_same_v<Index, Eigen::Index>,
               "std::int64_t (long long) and std::ptrdiff_t (long) are distinct types, and "
               "hven commits to one index vocabulary across every supported platform.");
 
-/// Dense vector alias (column vector of double).
+/// @brief Dense vector alias (column vector of double).
 using Vec = Eigen::VectorXd;
 
-/// Dense matrix alias (dense matrix of double).
+/// @brief Dense matrix alias (dense matrix of double).
 using Mat = Eigen::MatrixXd;
 
 /// The sparse matrix type used throughout hven: row-major double, matching

@@ -199,3 +199,58 @@ commit): N10 (`upgrade_to_full`, `eval_nlp_values`, `evaluate_kkt` carry no
   capped form.
 - `sqp_driver.h` parent `bbbe4c8:1104-1115` — the filterSQP magnitude-gate
   candidate for SOC, and why it was not taken.
+
+---
+
+## Documentation round — the public solver and driver surface
+
+Second commit of the fix round. Adds a Doxygen block to every public
+declaration the review's §D listed as undocumented, and normalises autobrief
+one-liners on public declarations to explicit `/// @brief`. Comment-only; the
+strip-compare gate reports 0 violations.
+
+### Declarations documented: 117
+
+| File | Count | What |
+|---|---|---|
+| `drivers/interior_point_solver.h` | **72** | the 58 validated setters; `apply_preset`; the two constructors and the destructor; the four deleted copy/move members; `struct Settings` and `struct SolveResult` (banner comments replaced by docstrings); `using VectorXd`; `last_prox_reg_dual_`, `staged_iq_mults_`, `mults_staged_` |
+| `drivers/sqp_driver.h` | **38** | `struct NlpEval` + its three field lines; `eval_nlp_values`; `upgrade_to_full`; `constraint_violation_l1`; `struct SqpKkt` + its five fields and `residual()`; `evaluate_kkt` ×3; `build_subproblem` ×2; `predicted_decrease`; `crash_basis_seed`; `qp_failure_is_retryable`; `kSsnTrViolationFactor`; `ssn_exit_is_a_usable_step`; `ssn_result_to_qp_solution`; `ssn_start_from_qp_seed`; `ssn_fb_tol_for`; `charge_ssn_subproblem_cost`; `charge_refused_face_refinement`; `accumulate_ssn_counters`; `kAdaptiveMuKappa`/`kAdaptiveMuMin`/`kAdaptiveMuMax`; `kSeededDualClampTol`; `class SqpDriver`; `solve(const NlpModel &)`; `to_string(StepVerdict)`; `format_iteration_table` |
+| `drivers/sqp_types.h` | **7** | `ssn_hint_rule`, `ssn_infeasibility_rule`; `SqpSolution`'s `status`, `x/lambda_e/lambda_i/z`, `f`, `counters`, `history` |
+
+One more than §D's 116: `kAdaptiveMuMax` carried a trailing `//` comment
+rather than none, so §D did not count it, but it sits between the two
+constants that were counted and is documented with them.
+
+Every setter's `@throws` states the exact predicate its body checks, read off
+`src/drivers/interior_point_solver_settings.cpp` — `pos_int` (`< 1`),
+`pos_finite` / the inline `isfinite` guards (not finite, or `<= 0`),
+`in_open_unit` (`<= 0` or `>= 1`), `greater_than` (`<= bound`),
+`in_open_interval` / `in_closed_interval` (negated comparisons, so a NaN is
+rejected), the explicit `< 0` and `!= 0 && != 1` guards, and
+`check_fixed_variable_treatment`'s enum-set check. Where a helper's form does
+NOT reject a NaN (`greater_than`, `in_open_unit`), the docstring states the
+comparison rather than claiming NaN rejection.
+
+Three setters take no validation at all and are documented with no `@throws`:
+the three enum-taking mode setters (`set_qp_ordering_mode`, `set_opt_bar_mode`
+/ `set_soe_bar_mode`, `set_opt_ls_mode` / `set_soe_ls_mode`,
+`set_best_criteria` — the enum overloads assign directly). Their
+string-taking siblings throw through the `strto_*` converters and say so.
+
+### Autobrief → `@brief` conversions: 140
+
+Single-line `///` blocks on a declaration, converted mechanically with the
+text unchanged. Multi-line blocks were left on autobrief.
+
+| File | Count |
+|---|---|
+| `core/ledger.h` | 18 |
+| `core/pattern_hash.h` | 3 |
+| `core/solver_status.h` | 2 |
+| `core/start_level.h` | 5 |
+| `core/types.h` | 2 |
+| `drivers/interior_point_solver.h` | 75 |
+| `drivers/optimization_problem_base.h` | 17 |
+| `drivers/sqp_driver.h` | 7 |
+| `drivers/sqp_types.h` | 11 |
+| **Total** | **140** |

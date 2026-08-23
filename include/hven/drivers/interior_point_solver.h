@@ -154,10 +154,10 @@ class InteriorPointSolver {
     /// Line-search-mode selector (Settings::opt_ls_mode_/soe_ls_mode_; parsed
     /// by strto_LineSearchMode from "AUGLANG", "LANG", "L1", "NOLS").
     enum class LineSearchModes { AUGLANG, LANG, L1, NOLS };
-    /// Algorithm mode of one solve phase.
+    /// @brief Algorithm mode of one solve phase.
     enum class AlgorithmModes { OPT, OPTNO, SOE, INIT };
 
-    /// QP factorization algorithm variant.
+    /// @brief QP factorization algorithm variant.
     enum class QPAlgModes {
         Classic = 0,
         TwoLevel = 1,
@@ -171,7 +171,7 @@ class InteriorPointSolver {
     /// "Obj"/"Prim Obj").
     enum class BestCriteriaModes { ECONS, ICONS, KKT, OBJ };
 
-    /// QP pivot strategy code passed through to the sparse backend.
+    /// @brief QP pivot strategy code passed through to the sparse backend.
     enum class QPPivotModes {
         OneByOne = 0,
         TwoByTwo = 1,
@@ -180,7 +180,7 @@ class InteriorPointSolver {
         E8 = 8,
         E13 = 13,
     };
-    /// Primal-dual step computation strategy for the QP subproblem.
+    /// @brief Primal-dual step computation strategy for the QP subproblem.
     enum class PDStepStrategies { PrimSlackEq_Iq, AllMinimum, PrimSlack_EqIq, MaxEq };
 
     // --- Static string-to-enum converters (defined in interior_point_solver.cpp) ---
@@ -198,21 +198,23 @@ class InteriorPointSolver {
     /// @throws std::invalid_argument on any other spelling.
     static BestCriteriaModes strto_BestCriteriaMode(const std::string &str);
 
-    // =========================================================================
-    // Settings — all user-configurable parameters grouped in one place
-    // =========================================================================
+    /// @brief Every user-configurable solver parameter, grouped in one place.
+    ///
+    /// Each field is writable directly through settings() or through the
+    /// matching validated set_*() method; validate() re-checks the whole struct
+    /// at run_phase_sequence() entry either way.
     struct Settings {
         // --- Iteration limits ---
-        /// Main iteration cap per phase. Default 500.
+        /// @brief Main iteration cap per phase. Default 500.
         int max_iters_ = 500;
-        /// Classic backtracking ladder cap per rejected trial. Default 2.
+        /// @brief Classic backtracking ladder cap per rejected trial. Default 2.
         int max_ls_iters_ = 2;
         /// Number of consecutive trailing iterates that must ALL sit inside the
         /// acceptable tolerances before converge_check() reports
         /// ConvergenceFlags::ACCEPTABLE. Raising it makes ACCEPTABLE harder to
         /// reach, not easier. Default 50. Must be > 0.
         int max_acc_iters_ = 50;
-        /// Refactorization attempt cap. Default 15.
+        /// @brief Refactorization attempt cap. Default 15.
         int max_refac_ = 15;
         /// Maximum second-order corrections attempted after a first-trial
         /// rejection (Wächter & Biegler 2006, §2.4). Default 0 = off: the
@@ -252,45 +254,45 @@ class InteriorPointSolver {
         int max_feas_rest_ = 2;
 
         // --- Convergence tolerances ---
-        /// KKT stationarity convergence tolerance. Default 1e-6.
+        /// @brief KKT stationarity convergence tolerance. Default 1e-6.
         double kkt_tol_ = 1.0e-6;
-        /// Equality-constraint feasibility convergence tolerance. Default 1e-6.
+        /// @brief Equality-constraint feasibility convergence tolerance. Default 1e-6.
         double econ_tol_ = 1.0e-6;
-        /// Inequality-constraint feasibility convergence tolerance. Default 1e-6.
+        /// @brief Inequality-constraint feasibility convergence tolerance. Default 1e-6.
         double icon_tol_ = 1.0e-6;
-        /// Barrier (complementarity) convergence tolerance. Default 1e-6.
+        /// @brief Barrier (complementarity) convergence tolerance. Default 1e-6.
         double bar_tol_ = 1.0e-6;
 
         // --- Acceptable tolerances ---
-        /// Acceptable-level KKT tolerance. Default 1e-2.
+        /// @brief Acceptable-level KKT tolerance. Default 1e-2.
         double acc_kkt_tol_ = 1.0e-2;
-        /// Acceptable-level equality-constraint tolerance. Default 1e-3.
+        /// @brief Acceptable-level equality-constraint tolerance. Default 1e-3.
         double acc_econ_tol_ = 1.0e-3;
-        /// Acceptable-level inequality-constraint tolerance. Default 1e-3.
+        /// @brief Acceptable-level inequality-constraint tolerance. Default 1e-3.
         double acc_icon_tol_ = 1.0e-3;
-        /// Acceptable-level barrier tolerance. Default 1e-3.
+        /// @brief Acceptable-level barrier tolerance. Default 1e-3.
         double acc_bar_tol_ = 1.0e-3;
 
         // --- Divergence tolerances ---
-        /// Divergence threshold on the KKT measure. Default 1e15.
+        /// @brief Divergence threshold on the KKT measure. Default 1e15.
         double div_kkt_tol_ = 1.0e15;
-        /// Divergence threshold on equality feasibility. Default 1e15.
+        /// @brief Divergence threshold on equality feasibility. Default 1e15.
         double div_econ_tol_ = 1.0e15;
-        /// Divergence threshold on inequality feasibility. Default 1e15.
+        /// @brief Divergence threshold on inequality feasibility. Default 1e15.
         double div_icon_tol_ = 1.0e15;
-        /// Divergence threshold on the barrier measure. Default 1e15.
+        /// @brief Divergence threshold on the barrier measure. Default 1e15.
         double div_bar_tol_ = 1.0e15;
 
         // --- Algorithm modes ---
-        /// Phase algorithm mode. Default SOE.
+        /// @brief Phase algorithm mode. Default SOE.
         AlgorithmModes soe_mode_ = AlgorithmModes::SOE;
-        /// OPT-phase barrier mode. Default LOQO.
+        /// @brief OPT-phase barrier mode. Default LOQO.
         BarrierModes opt_bar_mode_ = BarrierModes::LOQO;
-        /// SOE-phase barrier mode. Default LOQO.
+        /// @brief SOE-phase barrier mode. Default LOQO.
         BarrierModes soe_bar_mode_ = BarrierModes::LOQO;
-        /// OPT-phase line-search mode. Default AUGLANG.
+        /// @brief OPT-phase line-search mode. Default AUGLANG.
         LineSearchModes opt_ls_mode_ = LineSearchModes::AUGLANG;
-        /// SOE-phase line-search mode. Default NOLS.
+        /// @brief SOE-phase line-search mode. Default NOLS.
         LineSearchModes soe_ls_mode_ = LineSearchModes::NOLS;
         /// Primal-dual step strategy for the QP subproblem.
         /// Default PrimSlackEq_Iq.
@@ -348,15 +350,15 @@ class InteriorPointSolver {
         RestorationModes restoration_mode_ = RestorationModes::off;
 
         // --- Barrier parameters ---
-        /// Initial barrier parameter. Default 1e-3.
+        /// @brief Initial barrier parameter. Default 1e-3.
         double init_mu_ = 0.001;
-        /// Maximum barrier parameter. Default 100.
+        /// @brief Maximum barrier parameter. Default 100.
         double max_mu_ = 100.0;
-        /// Minimum barrier parameter. Default 1e-12.
+        /// @brief Minimum barrier parameter. Default 1e-12.
         double min_mu_ = 1.0e-12;
 
         // --- Step parameters ---
-        /// Fraction-to-boundary factor. Default 0.99.
+        /// @brief Fraction-to-boundary factor. Default 0.99.
         double bound_fraction_ = 0.99;
         /// Absolute component of the interior push applied to a bounded primal
         /// variable at solve entry: the push away from a bound is
@@ -373,9 +375,9 @@ class InteriorPointSolver {
         /// Must lie in the open interval (0, 0.5), so the lower and upper
         /// projections of one variable cannot cross. Default 1e-2.
         double bound_interval_push_ = 1.0e-2;
-        /// Reset threshold for negative slack values. Default 1e-12.
+        /// @brief Reset threshold for negative slack values. Default 1e-12.
         double neg_slack_reset_ = 1.0e-12;
-        /// Backtracking step reduction divisor. Default 2.0.
+        /// @brief Backtracking step reduction divisor. Default 2.0.
         double alpha_red_ = 2.0;
 
         // --- Fixed-variable treatment ---
@@ -407,11 +409,11 @@ class InteriorPointSolver {
         double bound_relax_factor_ = kDefaultBoundRelaxFactor;
 
         // --- Hessian perturbation ---
-        /// Initial Hessian perturbation delta. Default 1e-5.
+        /// @brief Initial Hessian perturbation delta. Default 1e-5.
         double delta_h_ = 1.0e-5;
-        /// Perturbation growth multiplier. Default 8.0.
+        /// @brief Perturbation growth multiplier. Default 8.0.
         double incr_h_ = 8.0;
-        /// Perturbation decay multiplier. Default 0.333333.
+        /// @brief Perturbation decay multiplier. Default 0.333333.
         double decr_h_ = 0.333333;
 
         /// KKT inertia-correction / regularization mode. classic (default) runs
@@ -431,15 +433,15 @@ class InteriorPointSolver {
         InertiaModes inertia_mode_ = InertiaModes::classic;
 
         // --- QP solver ---
-        /// QP thread count. Default HVEN_DEFAULT_QP_THREADS.
+        /// @brief QP thread count. Default HVEN_DEFAULT_QP_THREADS.
         int qp_threads_ = HVEN_DEFAULT_QP_THREADS;
-        /// QP factorization algorithm variant. Default Classic.
+        /// @brief QP factorization algorithm variant. Default Classic.
         QPAlgModes qp_alg_ = QPAlgModes::Classic;
-        /// QP fill-reducing ordering. Default METIS.
+        /// @brief QP fill-reducing ordering. Default METIS.
         QPOrderingModes qp_ord_ = QPOrderingModes::METIS;
-        /// QP pivot strategy. Default TwoByTwo.
+        /// @brief QP pivot strategy. Default TwoByTwo.
         QPPivotModes qp_pivot_strategy_ = QPPivotModes::TwoByTwo;
-        /// MKL Pardiso weighted matching (iparm[12]) flag, 0/1. ON by default.
+        /// @brief MKL Pardiso weighted matching (iparm[12]) flag, 0/1. ON by default.
         int qp_matching_ = 1;
         /// MKL Pardiso MPS scaling (iparm[10]) flag, 0/1. OFF by default:
         /// enabling it measured -16% wall on PolarLT-class collocation problems
@@ -448,16 +450,16 @@ class InteriorPointSolver {
         /// (Delta3Launch CONVERGED->ACCEPTABLE, TopputtoLowThrust 5.4x
         /// iterations, intermittent MultiSpacecraft divergence).
         int qp_scaling_ = 0;
-        /// Pivot perturbation level handed to the backend. Default 8.
+        /// @brief Pivot perturbation level handed to the backend. Default 8.
         int qp_pivot_perturb_ = 8;
-        /// Iterative-refinement steps handed to the backend. Default 0.
+        /// @brief Iterative-refinement steps handed to the backend. Default 0.
         int qp_ref_steps_ = 0;
-        /// Parallel-solve flag handed to the backend. Default 0.
+        /// @brief Parallel-solve flag handed to the backend. Default 0.
         int qp_par_solve_ = 0;
-        /// Backend-side QP printout toggle. Default false.
+        /// @brief Backend-side QP printout toggle. Default false.
         bool qp_print_ = false;
 #ifdef USE_ACCELERATE_SPARSE
-        /// Apple Accelerate sparse pivot tolerance. Default 0.01.
+        /// @brief Apple Accelerate sparse pivot tolerance. Default 0.01.
         double accel_pivot_tolerance_ = 0.01;
         /// Apple Accelerate sparse zero (drop) tolerance.
         /// Default 1e-4 * epsilon.
@@ -465,7 +467,7 @@ class InteriorPointSolver {
 #endif
 
         // --- Objective ---
-        /// Objective scale factor applied at evaluation. Default 1.0.
+        /// @brief Objective scale factor applied at evaluation. Default 1.0.
         double obj_scale_ = 1.0;
 
         // --- Output/behavior ---
@@ -475,7 +477,7 @@ class InteriorPointSolver {
         ///   2 — exit status and warnings only
         ///   3+ — fully silent
         int print_level_ = 0;
-        /// Wide console layout for tables. Default false.
+        /// @brief Wide console layout for tables. Default false.
         bool wide_console_ = false;
         /// Conditional Numerical Reproducibility mode. When true the sparse
         /// backend is pinned to qp_threads_ CNR threads (opts.cnr_threads),
@@ -501,7 +503,7 @@ class InteriorPointSolver {
         /// Return the best-scoring iterate seen instead of the last (scored
         /// under best_criteria_). Default false.
         bool return_best_ = false;
-        /// Scoring criterion for the return_best_ path. Default ECONS.
+        /// @brief Scoring criterion for the return_best_ path. Default ECONS.
         BestCriteriaModes best_criteria_ = BestCriteriaModes::ECONS;
 
         /// Validate all settings, throwing std::invalid_argument on the first
@@ -518,44 +520,45 @@ class InteriorPointSolver {
         void validate() const;
     };
 
-    // =========================================================================
-    // SolveResult — accumulated outputs from the most recent solve/optimize call
-    // =========================================================================
+    /// @brief Accumulated outputs of the most recent solve/optimize call.
+    ///
+    /// Reset per call by reset_accumulators(); the timing and iteration
+    /// counters accumulate across the phases of one call.
     struct SolveResult {
         // --- Solve outcome ---
-        /// Iterations taken by the most recent call.
+        /// @brief Iterations taken by the most recent call.
         int iter_num_ = 0;
-        /// Objective value at the returned point.
+        /// @brief Objective value at the returned point.
         double obj_val_ = 0;
-        /// Convergence verdict of the most recent call.
+        /// @brief Convergence verdict of the most recent call.
         ConvergenceFlags converge_flag_ = ConvergenceFlags::NOTCONVERGED;
 
         // --- Solution ---
-        /// Returned primal variables, in the caller's (full) space.
+        /// @brief Returned primal variables, in the caller's (full) space.
         Eigen::VectorXd primals_;
 
         // --- Multipliers and constraints ---
-        /// Equality-constraint multipliers at the returned point.
+        /// @brief Equality-constraint multipliers at the returned point.
         Eigen::VectorXd eq_lmults_;
-        /// Inequality-constraint multipliers at the returned point.
+        /// @brief Inequality-constraint multipliers at the returned point.
         Eigen::VectorXd iq_lmults_;
-        /// Equality-constraint residuals at the returned point.
+        /// @brief Equality-constraint residuals at the returned point.
         Eigen::VectorXd eq_cons_;
-        /// Inequality-constraint residuals at the returned point.
+        /// @brief Inequality-constraint residuals at the returned point.
         Eigen::VectorXd iq_cons_;
 
         // --- Timing (seconds) ---
-        /// Total wall-clock time of the most recent call.
+        /// @brief Total wall-clock time of the most recent call.
         double total_time_ = 0;
-        /// Setup/preprocessing time.
+        /// @brief Setup/preprocessing time.
         double pre_time_ = 0;
-        /// NLP evaluation callback time.
+        /// @brief NLP evaluation callback time.
         double func_time_ = 0;
-        /// KKT assembly/factorization/solve time.
+        /// @brief KKT assembly/factorization/solve time.
         double kkt_time_ = 0;
-        /// Printing time.
+        /// @brief Printing time.
         double print_time_ = 0;
-        /// Solver-initialization time (measured before the main timer starts).
+        /// @brief Solver-initialization time (measured before the main timer starts).
         double solver_init_time_ = 0;
 
         /// Derived timing — total wall-clock minus all categorized components.
@@ -566,9 +569,9 @@ class InteriorPointSolver {
         }
 
         // --- Factorization stats ---
-        /// Memory reported by the last factorization.
+        /// @brief Memory reported by the last factorization.
         int factor_mem_ = 0;
-        /// Flops reported by the last factorization.
+        /// @brief Flops reported by the last factorization.
         int factor_flops_ = 0;
 
         /// Number of second-order correction back-substitutions performed
@@ -700,6 +703,8 @@ class InteriorPointSolver {
         /// and when a mode-on phase converged before its first factorization.
         /// Same last-phase-wins semantics as the fields above.
         double last_prox_reg_primal_ = -1.0;
+        /// The dual half of the pair documented just above: the barrier-scaled
+        /// dual shift δ_c, on the same sentinel and last-phase-wins rules.
         double last_prox_reg_dual_ = -1.0;
 
         /// Message of the most recent trial-evaluation exception absorbed by
@@ -753,6 +758,8 @@ class InteriorPointSolver {
         }
     };
 
+    /// @brief Shorthand for Eigen::VectorXd, used by this class's callback
+    ///        signatures and entry points.
     using VectorXd = Eigen::VectorXd;
 
     /// Type of the per-iteration early callback.
@@ -782,24 +789,34 @@ class InteriorPointSolver {
         std::function<int(const IterateInfo &, ConstEigenRef<VectorXd>, ConstEigenRef<VectorXd>)>;
 
     // --- Constructors / destructor ---
-    // Defined out-of-line in interior_point_solver.cpp: the unique_ptr members
-    // with incomplete element types force even the constructors'
-    // exception-cleanup paths (and the destructor) to see the complete types,
-    // which are only available in the .cpp.
+    // All three are defined out-of-line in interior_point_solver.cpp: the
+    // unique_ptr members with incomplete element types force even the
+    // constructors' exception-cleanup paths (and the destructor) to see the
+    // complete types, which are only available in the .cpp.
+
+    /// @brief Constructs a solver with default settings and no program
+    ///        attached; set_nlp() must run before any entry point.
     InteriorPointSolver();
+    /// @brief Constructs a solver over `np` and runs QP parameter setup, as
+    ///        set_nlp() does.
+    /// @param np The program to solve.
     InteriorPointSolver(std::shared_ptr<NonLinearProgram> np);
+    /// @brief Releases the factorization and the globalization components.
     ~InteriorPointSolver();
 
-    // Neither copyable nor movable: the out-of-line destructor above (needed
-    // for the incomplete-type unique_ptr members) already silently suppresses
-    // the implicit move members, and InteriorPointSolver's kkt_sol_
-    // factorization plus its unique_ptr<...> globalization components have no
-    // defined transfer semantics today. Explicit rather than relying on that
-    // suppression, so the constraint is visible at the declaration instead of
-    // discovered at a failed call site.
+    // Neither copyable nor movable: the kkt_sol_ factorization and the
+    // unique_ptr<...> globalization components have no defined transfer
+    // semantics. The out-of-line destructor above already suppresses the
+    // implicit move members; deleting all four explicitly puts the constraint
+    // at the declaration rather than at a failed call site.
+
+    /// @brief Deleted: a solver is not copy-constructible.
     InteriorPointSolver(const InteriorPointSolver &) = delete;
+    /// @brief Deleted: a solver is not copy-assignable.
     InteriorPointSolver &operator=(const InteriorPointSolver &) = delete;
+    /// @brief Deleted: a solver is not move-constructible.
     InteriorPointSolver(InteriorPointSolver &&) = delete;
+    /// @brief Deleted: a solver is not move-assignable.
     InteriorPointSolver &operator=(InteriorPointSolver &&) = delete;
 
     // --- Accessors ---
@@ -807,26 +824,26 @@ class InteriorPointSolver {
     /// per-field validation in the set_*() methods. All settings are re-validated
     /// at run_phase_sequence() entry via Settings::validate().
     Settings &settings() { return settings_; }
-    /// Returns the settings struct.
+    /// @brief Returns the settings struct.
     const Settings &settings() const { return settings_; }
-    /// Returns the accumulated outputs of the most recent solve/optimize call.
+    /// @brief Returns the accumulated outputs of the most recent solve/optimize call.
     const SolveResult &result() const { return result_; }
-    /// Returns the log of absorbed NLP evaluation errors.
+    /// @brief Returns the log of absorbed NLP evaluation errors.
     const EvalErrorLog &eval_error_log() const { return eval_error_log_; }
 
     // --- NLP management ---
     /// Sets (or replaces) the program this solver works on; also runs QP
     /// parameter setup.
     void set_nlp(std::shared_ptr<NonLinearProgram> np);
-    /// Releases the current program.
+    /// @brief Releases the current program.
     void release();
 
     // --- Entry points ---
-    /// Runs the OPTIMIZE phase sequence from `x`.
+    /// @brief Runs the OPTIMIZE phase sequence from `x`.
     Eigen::VectorXd optimize(const Eigen::VectorXd &x);
-    /// Runs the SOLVE phase sequence from `x`.
+    /// @brief Runs the SOLVE phase sequence from `x`.
     Eigen::VectorXd solve(const Eigen::VectorXd &x);
-    /// Runs SOLVE then OPTIMIZE from `x`. Both phases always run.
+    /// @brief Runs SOLVE then OPTIMIZE from `x`. Both phases always run.
     Eigen::VectorXd solve_optimize(const Eigen::VectorXd &x);
     /// Runs OPTIMIZE then SOLVE from `x`. The trailing SOLVE is conditional:
     /// it is skipped when OPTIMIZE reported ConvergenceFlags::CONVERGED.
@@ -837,94 +854,323 @@ class InteriorPointSolver {
     Eigen::VectorXd solve_optimize_solve(const Eigen::VectorXd &x);
 
     // --- Validated setter methods (defined in interior_point_solver.cpp) ---
+    // Each writes one Settings field after checking it; the same check runs
+    // again over the whole struct at run_phase_sequence() entry, so a field
+    // written through settings() rather than through a setter is caught there.
+
+    /// @brief Sets Settings::max_iters_, the main iteration cap per phase.
+    /// @param max_iters Iteration count.
+    /// @throws std::invalid_argument if max_iters < 1.
     void set_max_iters(int max_iters);
+    /// @brief Sets Settings::max_acc_iters_, the consecutive-acceptable-iterate
+    ///        run length ACCEPTABLE requires.
+    /// @param max_acc_iters Iterate count.
+    /// @throws std::invalid_argument if max_acc_iters < 1.
     void set_max_acc_iters(int max_acc_iters);
+    /// @brief Sets Settings::max_ls_iters_, the classic backtracking ladder cap
+    ///        per rejected trial.
+    /// @param max_ls_iters Backtracking step count; 0 disables backtracking.
+    /// @throws std::invalid_argument if max_ls_iters < 0.
     void set_max_ls_iters(int max_ls_iters);
+    /// @brief Sets max_iters_ and max_acc_iters_ in one call.
+    /// @param m1 Main iteration cap.
+    /// @param m2 Consecutive-acceptable-iterate run length.
+    /// @throws std::invalid_argument if m1 < 1 or m2 < 1.
     void set_all_max_iters(int m1, int m2);
+    /// @brief Sets Settings::max_soc_, the second-order-correction cap per
+    ///        rejected first trial.
+    /// @param max_soc Correction count; 0 (the default) turns SOC off.
+    /// @throws std::invalid_argument if max_soc < 0.
     void set_max_soc(int max_soc);
+    /// @brief Sets Settings::ls_extended_iters_, the extended-backtracking
+    ///        allowance beyond the classic ladder.
+    /// @param ls_extended_iters Extra backtracking step count; 0 = off.
+    /// @throws std::invalid_argument if ls_extended_iters < 0.
     void set_ls_extended_iters(int ls_extended_iters);
+    /// @brief Sets Settings::max_feas_rest_, the number of times restoration
+    ///        mode may be entered within a single phase.
+    /// @param max_feas_rest Entry budget; 0 refuses restoration entirely.
+    ///        Ignored when restoration_mode_ == off.
+    /// @throws std::invalid_argument if max_feas_rest < 0.
     void set_max_feas_rest(int max_feas_rest);
 
+    /// @brief Sets Settings::kkt_tol_, the KKT-residual convergence tolerance.
+    /// @param kkt_tol Residual tolerance in the residual's own units.
+    /// @throws std::invalid_argument if kkt_tol is not finite, or kkt_tol <= 0.
     void set_kkt_tol(double kkt_tol);
+    /// @brief Sets Settings::bar_tol_, the barrier-complementarity convergence
+    ///        tolerance.
+    /// @param bar_tol Complementarity tolerance.
+    /// @throws std::invalid_argument if bar_tol is not finite, or bar_tol <= 0.
     void set_bar_tol(double bar_tol);
+    /// @brief Sets Settings::econ_tol_, the equality-constraint convergence
+    ///        tolerance.
+    /// @param econ_tol Constraint-violation tolerance.
+    /// @throws std::invalid_argument if econ_tol is not finite, or econ_tol <= 0.
     void set_econ_tol(double econ_tol);
+    /// @brief Sets Settings::icon_tol_, the inequality-constraint convergence
+    ///        tolerance.
+    /// @param icon_tol Constraint-violation tolerance.
+    /// @throws std::invalid_argument if icon_tol is not finite, or icon_tol <= 0.
     void set_icon_tol(double icon_tol);
+    /// @brief Sets all four convergence tolerances in one call.
+    /// @param kkt_tol  KKT-residual tolerance.
+    /// @param econ_tol Equality-constraint tolerance.
+    /// @param icon_tol Inequality-constraint tolerance.
+    /// @param bar_tol  Barrier-complementarity tolerance.
+    /// @throws std::invalid_argument if any argument is not finite or is <= 0.
     void set_tols(double kkt_tol, double econ_tol, double icon_tol, double bar_tol);
 
+    /// @brief Sets Settings::acc_kkt_tol_, the KKT-residual tolerance of the
+    ///        ACCEPTABLE tier.
+    /// @param acc_kkt_tol Residual tolerance; normally looser than kkt_tol_.
+    /// @throws std::invalid_argument if acc_kkt_tol is not finite, or is <= 0.
     void set_acc_kkt_tol(double acc_kkt_tol);
+    /// @brief Sets Settings::acc_bar_tol_, the barrier-complementarity tolerance
+    ///        of the ACCEPTABLE tier.
+    /// @param acc_bar_tol Complementarity tolerance.
+    /// @throws std::invalid_argument if acc_bar_tol is not finite, or is <= 0.
     void set_acc_bar_tol(double acc_bar_tol);
+    /// @brief Sets Settings::acc_econ_tol_, the equality-constraint tolerance of
+    ///        the ACCEPTABLE tier.
+    /// @param acc_econ_tol Constraint-violation tolerance.
+    /// @throws std::invalid_argument if acc_econ_tol is not finite, or is <= 0.
     void set_acc_econ_tol(double acc_econ_tol);
+    /// @brief Sets Settings::acc_icon_tol_, the inequality-constraint tolerance
+    ///        of the ACCEPTABLE tier.
+    /// @param acc_icon_tol Constraint-violation tolerance.
+    /// @throws std::invalid_argument if acc_icon_tol is not finite, or is <= 0.
     void set_acc_icon_tol(double acc_icon_tol);
+    /// @brief Sets all four ACCEPTABLE-tier tolerances in one call.
+    /// @param acc_kkt_tol  KKT-residual tolerance.
+    /// @param acc_econ_tol Equality-constraint tolerance.
+    /// @param acc_icon_tol Inequality-constraint tolerance.
+    /// @param acc_bar_tol  Barrier-complementarity tolerance.
+    /// @throws std::invalid_argument if any argument is not finite or is <= 0.
     void set_acc_tols(double acc_kkt_tol, double acc_econ_tol, double acc_icon_tol,
                       double acc_bar_tol);
 
+    /// @brief Sets Settings::div_kkt_tol_, the KKT-residual divergence
+    ///        threshold.
+    /// @param div_kkt_tol Residual threshold; above it the solve is diverging.
+    /// @throws std::invalid_argument if div_kkt_tol is not finite, or is <= 0.
     void set_div_kkt_tol(double div_kkt_tol);
+    /// @brief Sets Settings::div_bar_tol_, the barrier-complementarity
+    ///        divergence threshold.
+    /// @param div_bar_tol Complementarity threshold.
+    /// @throws std::invalid_argument if div_bar_tol is not finite, or is <= 0.
     void set_div_bar_tol(double div_bar_tol);
+    /// @brief Sets Settings::div_econ_tol_, the equality-constraint divergence
+    ///        threshold.
+    /// @param div_econ_tol Constraint-violation threshold.
+    /// @throws std::invalid_argument if div_econ_tol is not finite, or is <= 0.
     void set_div_econ_tol(double div_econ_tol);
+    /// @brief Sets Settings::div_icon_tol_, the inequality-constraint divergence
+    ///        threshold.
+    /// @param div_icon_tol Constraint-violation threshold.
+    /// @throws std::invalid_argument if div_icon_tol is not finite, or is <= 0.
     void set_div_icon_tol(double div_icon_tol);
+    /// @brief Sets all four divergence thresholds in one call.
+    /// @param div_kkt_tol  KKT-residual threshold.
+    /// @param div_econ_tol Equality-constraint threshold.
+    /// @param div_icon_tol Inequality-constraint threshold.
+    /// @param div_bar_tol  Barrier-complementarity threshold.
+    /// @throws std::invalid_argument if any argument is not finite or is <= 0.
     void set_div_tols(double div_kkt_tol, double div_econ_tol, double div_icon_tol,
                       double div_bar_tol);
 
+    /// @brief Sets Settings::bound_fraction_, the fraction-to-boundary factor.
+    /// @param bound_fraction Dimensionless fraction, in the open interval (0, 1).
+    /// @throws std::invalid_argument if bound_fraction <= 0 or bound_fraction >= 1.
     void set_bound_fraction(double bound_fraction);
+    /// @brief Sets Settings::bound_push_, the absolute interior-push component.
+    /// @param bound_push Dimensionless coefficient; must be positive.
+    /// @throws std::invalid_argument if bound_push <= 0.
     void set_bound_push(double bound_push);
+    /// @brief Sets Settings::bound_interval_push_, the relative (two-sided)
+    ///        interior-push component.
+    /// @param bound_interval_push Fraction of the bound interval, in (0, 0.5).
+    /// @throws std::invalid_argument unless 0 < bound_interval_push < 0.5; a NaN
+    ///         fails that test and is rejected.
     void set_bound_interval_push(double bound_interval_push);
+    /// @brief Sets Settings::bound_relax_factor_, the relaxation applied to
+    ///        declared variable bounds.
+    /// @param bound_relax_factor Dimensionless factor, in
+    ///        [0, hven::kMaxBoundRelaxFactor] (non_linear_program.h; 1e-2).
+    /// @throws std::invalid_argument unless
+    ///         0 <= bound_relax_factor <= hven::kMaxBoundRelaxFactor; a NaN fails that
+    ///         test and is rejected.
     void set_bound_relax_factor(double bound_relax_factor);
+    /// @brief Sets Settings::fixed_variable_treatment_, how a variable whose
+    ///        lower and upper bounds coincide is handed to the solver.
+    /// @param treatment MakeParameter, MakeConstraint or RelaxBounds.
+    /// @throws std::invalid_argument if treatment is none of those three.
     void set_fixed_variable_treatment(FixedVariableTreatments treatment);
+    /// @brief Sets Settings::alpha_red_, the backtracking step-reduction divisor.
+    /// @param ared Divisor; must exceed 1 for the step to actually shrink.
+    /// @throws std::invalid_argument if ared <= 1.
     void set_alpha_red(double ared);
 
+    /// @brief Sets Settings::delta_h_, the first Hessian-perturbation magnitude.
+    /// @param delta_h Perturbation added to the Hessian diagonal; must be positive.
+    /// @throws std::invalid_argument if delta_h <= 0.
     void set_delta_h(double delta_h);
+    /// @brief Sets Settings::incr_h_, the Hessian-perturbation growth factor.
+    /// @param incr_h Multiplier applied on each further perturbation; must
+    ///        exceed 1.
+    /// @throws std::invalid_argument if incr_h <= 1.
     void set_incr_h(double incr_h);
+    /// @brief Sets Settings::decr_h_, the Hessian-perturbation decay factor.
+    /// @param decr_h Multiplier applied when the perturbation is relaxed, in the
+    ///        open interval (0, 1).
+    /// @throws std::invalid_argument if decr_h <= 0 or decr_h >= 1.
     void set_decr_h(double decr_h);
+    /// @brief Sets all three Hessian-perturbation parameters in one call.
+    /// @param delta_h First perturbation magnitude.
+    /// @param incr_h  Growth factor.
+    /// @param decr_h  Decay factor.
+    /// @throws std::invalid_argument if delta_h <= 0, incr_h <= 1, or decr_h is
+    ///         outside the open interval (0, 1).
     void set_hpert_params(double delta_h, double incr_h, double decr_h);
 
+    /// @brief Sets Settings::print_level_, the console verbosity.
+    /// @param plevel 0 = full output, 1 = no iteration table, 2 = exit and
+    ///        warnings only, 3 and above = silent.
+    /// @throws std::invalid_argument if plevel < 0.
     void set_print_level(int plevel);
 
+    /// @brief Sets Settings::init_mu_, the barrier parameter each phase starts at.
+    /// @param mu Barrier parameter.
+    /// @throws std::invalid_argument if mu is not finite, or mu <= 0.
     void set_init_mu(double mu);
+    /// @brief Sets Settings::min_mu_, the barrier-parameter floor.
+    /// @param mu Barrier parameter.
+    /// @throws std::invalid_argument if mu is not finite, or mu <= 0.
     void set_min_mu(double mu);
+    /// @brief Sets Settings::max_mu_, the barrier-parameter ceiling.
+    /// @param mu Barrier parameter.
+    /// @throws std::invalid_argument if mu is not finite, or mu <= 0.
     void set_max_mu(double mu);
+    /// @brief Sets Settings::neg_slack_reset_, the value a slack that has gone
+    ///        non-positive is reset to.
+    /// @param val Slack value; must be strictly inside the interior.
+    /// @throws std::invalid_argument if val is not finite, or val <= 0.
     void set_neg_slack_reset(double val);
+    /// @brief Sets Settings::qp_threads_, the thread count handed to the sparse
+    ///        backend (and, under cnr_mode_, its CNR thread count).
+    /// @param n Thread count.
+    /// @throws std::invalid_argument if n < 1.
     void set_qp_threads(int n);
+    /// @brief Sets Settings::qp_pivot_perturb_, the backend's pivot-perturbation
+    ///        level.
+    /// @param v Perturbation level as the backend defines it.
+    /// @throws std::invalid_argument if v < 0.
     void set_qp_pivot_perturb(int v);
+    /// @brief Sets Settings::qp_matching_, the backend's weighted-matching flag.
+    /// @param v 0 (off) or 1 (on).
+    /// @throws std::invalid_argument if v is neither 0 nor 1.
     void set_qp_matching(int v);
+    /// @brief Sets Settings::qp_scaling_, the backend's matrix-scaling flag.
+    /// @param v 0 (off, the default) or 1 (on).
+    /// @throws std::invalid_argument if v is neither 0 nor 1.
     void set_qp_scaling(int v);
+    /// @brief Sets Settings::qp_ref_steps_, the backend's iterative-refinement
+    ///        step cap.
+    /// @param v Step count.
+    /// @throws std::invalid_argument if v < 0. A nonzero value is additionally
+    ///         rejected at transcribe time on the Accelerate backend, which
+    ///         performs no iterative refinement.
     void set_qp_ref_steps(int v);
+    /// @brief Sets Settings::qp_par_solve_, the backend's parallel-solve flag.
+    /// @param v 0 (off) or 1 (on).
+    /// @throws std::invalid_argument if v is neither 0 nor 1.
     void set_qp_par_solve(int v);
+    /// @brief Sets Settings::obj_scale_, the factor the objective is multiplied
+    ///        by at evaluation.
+    /// @param scale Dimensionless scale; any finite nonzero value is accepted.
+    /// @throws std::invalid_argument if scale is not finite, or scale == 0.
     void set_obj_scale(double scale);
 
+    /// @brief Sets Settings::qp_ord_, the backend's fill-reducing ordering.
+    /// @param mode MINDEG, METIS or PARMETIS.
     void set_qp_ordering_mode(QPOrderingModes mode);
+    /// @brief Sets Settings::qp_ord_ from its name.
+    /// @param str "MINDEG", "METIS", or "PARMETIS" (alias "MTMETIS").
+    /// @throws std::invalid_argument on any other spelling.
     void set_qp_ordering_mode(const std::string &str);
 
+    /// @brief Sets Settings::opt_bar_mode_, the barrier update rule the OPTIMIZE
+    ///        phase runs.
+    /// @param mode LOQO or PROBE.
     void set_opt_bar_mode(BarrierModes mode);
+    /// @brief Sets Settings::opt_bar_mode_ from its name.
+    /// @param str "LOQO" or "PROBE".
+    /// @throws std::invalid_argument on any other spelling.
     void set_opt_bar_mode(const std::string &str);
+    /// @brief Sets Settings::soe_bar_mode_, the barrier update rule the SOLVE
+    ///        phase runs.
+    /// @param mode LOQO or PROBE.
     void set_soe_bar_mode(BarrierModes mode);
+    /// @brief Sets Settings::soe_bar_mode_ from its name.
+    /// @param str "LOQO" or "PROBE".
+    /// @throws std::invalid_argument on any other spelling.
     void set_soe_bar_mode(const std::string &str);
 
+    /// @brief Sets Settings::opt_ls_mode_, the line search the OPTIMIZE phase
+    ///        runs.
+    /// @param mode AUGLANG, LANG, L1 or NOLS.
     void set_opt_ls_mode(LineSearchModes mode);
+    /// @brief Sets Settings::opt_ls_mode_ from its name.
+    /// @param str "AUGLANG", "LANG", "L1" or "NOLS".
+    /// @throws std::invalid_argument on any other spelling.
     void set_opt_ls_mode(const std::string &str);
+    /// @brief Sets Settings::soe_ls_mode_, the line search the SOLVE phase runs.
+    /// @param mode AUGLANG, LANG, L1 or NOLS.
     void set_soe_ls_mode(LineSearchModes mode);
+    /// @brief Sets Settings::soe_ls_mode_ from its name.
+    /// @param str "AUGLANG", "LANG", "L1" or "NOLS".
+    /// @throws std::invalid_argument on any other spelling.
     void set_soe_ls_mode(const std::string &str);
 
+    /// @brief Sets Settings::best_criteria_, the score the return_best_ path
+    ///        ranks iterates by.
+    /// @param mode ECONS, ICONS, KKT or OBJ.
     void set_best_criteria(BestCriteriaModes mode);
+    /// @brief Sets Settings::best_criteria_ from its name.
+    /// @param str "ECons"/"ECon", "ICons"/"ICon", "KKT", or "Obj"/"Prim Obj".
+    /// @throws std::invalid_argument on any other spelling.
     void set_best_criteria(const std::string &str);
 
 #ifdef USE_ACCELERATE_SPARSE
+    /// @brief Sets Settings::accel_pivot_tolerance_, Apple Accelerate's sparse
+    ///        pivot tolerance.
+    /// @param tol Pivot tolerance.
+    /// @throws std::invalid_argument if tol is not finite, or tol <= 0.
     void set_accel_pivot_tolerance(double tol);
+    /// @brief Sets Settings::accel_zero_tolerance_, Apple Accelerate's sparse
+    ///        drop tolerance.
+    /// @param tol Drop tolerance below which an entry is treated as zero.
+    /// @throws std::invalid_argument if tol is not finite, or tol <= 0.
     void set_accel_zero_tolerance(double tol);
 #endif
 
     // --- Named configuration presets ---
-    // Assigns exactly the nine globalization fields (acceptance_strategy_,
-    // merit_penalty_rule_, barrier_governor_, never_monotone_,
-    // restoration_mode_, inertia_mode_, max_soc_, ls_extended_iters_,
-    // watchdog_) per the named preset; every other Settings field (tolerances,
-    // iteration caps, QP parameters, ...) is left untouched. Throws
-    // std::invalid_argument (listing every valid name) for an unrecognized
-    // name. The preset table -- field values, evidence-of-record citations,
-    // and the name list this error message dispatches against -- lives in
-    // detail/drivers/interior_point_solver_presets.h. The Python binding's
-    // docstring repeats the preset names by hand; a Python test pins it
-    // against this table. Defined in interior_point_solver_settings.cpp
-    // alongside the other Settings-only logic.
+    /// @brief Applies a named globalization preset.
+    ///
+    /// Assigns exactly nine Settings fields (acceptance_strategy_,
+    /// merit_penalty_rule_, barrier_governor_, never_monotone_,
+    /// restoration_mode_, inertia_mode_, max_soc_, ls_extended_iters_,
+    /// watchdog_); every other field (tolerances, iteration caps, QP
+    /// parameters, ...) is left untouched. The preset table -- field values,
+    /// evidence-of-record citations, and the name list the error message
+    /// dispatches against -- lives in
+    /// detail/drivers/interior_point_solver_presets.h. The Python binding's
+    /// docstring repeats the preset names by hand; a Python test pins it
+    /// against this table.
+    ///
+    /// @param name A name from the preset table.
+    /// @throws std::invalid_argument, listing every valid name, if `name` is
+    ///         not in the table.
     void apply_preset(std::string_view name);
 
     // --- Callback methods ---
@@ -936,7 +1182,7 @@ class InteriorPointSolver {
         this->early_callback_enabled_ = true;
         this->early_callback_ = f;
     }
-    /// Disables the early callback.
+    /// @brief Disables the early callback.
     void disable_early_callback() { this->early_callback_enabled_ = false; }
     /// Installs the per-iteration late callback. Same variable-space caveat as
     /// set_early_callback -- see the note on LateCallBackType above.
@@ -944,7 +1190,7 @@ class InteriorPointSolver {
         this->late_callback_enabled_ = true;
         this->late_callback_ = f;
     }
-    /// Disables the late callback.
+    /// @brief Disables the late callback.
     void disable_late_callback() { this->late_callback_enabled_ = false; }
 
     // --- Constraint-multiplier seeding ---
@@ -976,7 +1222,10 @@ class InteriorPointSolver {
     /// never applied at all when the sequence has no such phase (e.g. a bare
     /// solve()). An unseeded solve does not touch any of this.
     Eigen::VectorXd staged_eq_mults_;
+    /// @brief The inequality half of the staged seed, under the same contract.
     Eigen::VectorXd staged_iq_mults_;
+    /// True while a staged seed is waiting to be applied; cleared once applied
+    /// and by clear_initial_multipliers().
     bool mults_staged_ = false;
 
     /// Stages equality/inequality multiplier seeds for the next solve call
@@ -986,7 +1235,7 @@ class InteriorPointSolver {
         this->staged_iq_mults_ = iq_mults;
         this->mults_staged_ = true;
     }
-    /// Discards any staged multiplier seeds.
+    /// @brief Discards any staged multiplier seeds.
     void clear_initial_multipliers() {
         this->staged_eq_mults_.resize(0);
         this->staged_iq_mults_.resize(0);
@@ -994,7 +1243,7 @@ class InteriorPointSolver {
     }
 
     // --- Printing ---
-    /// Prints the console output banner ruler.
+    /// @brief Prints the console output banner ruler.
     static void print_header() { fmt::print(fmt::fg(fmt::color::white), "{0:=^{1}}\n", "", 65); }
 
   private:
@@ -1254,7 +1503,7 @@ class InteriorPointSolver {
     // detail/interior/kkt_vector.h as hven::solvers::KKTVector, shared with
     // the globalization components (which are non-member, non-friend).
 
-    /// Create a KKTVector view over a VectorXd using this solver's dimensions.
+    /// @brief Create a KKTVector view over a VectorXd using this solver's dimensions.
     KKTVector kkt_view(Eigen::VectorXd &v) {
         return KKTVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
     }

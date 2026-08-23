@@ -1614,9 +1614,15 @@ namespace hven::solvers {
 // "final iterate where no subproblem is ever built" case above -- so the
 // exception costs exactly one Hessian on solves that would otherwise have
 // evaluated none, and zero on every other solve.
+/// @brief One model evaluation at one point: the five quantities a major
+///        iteration reads, taken together so nothing is evaluated twice.
 struct NlpEval {
+    /// @brief Objective value at the evaluation point.
     double f = 0.0;
+    /// Objective gradient, equality-constraint values, inequality-constraint
+    /// values; sizes n(), me(), mi() respectively.
     Vec grad, ce, ci;
+    /// @brief Equality and inequality constraint Jacobians; me() x n() and mi() x n().
     Eigen::SparseMatrix<double, Eigen::RowMajor> Je, Ji;
 
     /// False if any of f/grad/cE/cI is NaN or infinite. See evaluate_kkt's
@@ -1717,6 +1723,13 @@ inline NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
 // the warm-resolution probe are the two places that holds), and upgrade to a
 // real eval_nlp the moment a caller decides it needs more -- see solve_impl's
 // own upgrade-on-accept sites.
+/// @brief Evaluates f, cE and cI at `x` only -- no derivatives.
+/// @param model The problem.
+/// @param x     The point; must have size model.n().
+/// @return An NlpEval whose grad/Je/Ji are left empty and whose `all_finite`
+///         covers f/cE/cI only.
+/// @throws std::invalid_argument if `x` is mis-sized, or if eval_values
+///         returns a cE or cI whose size contradicts model.me()/model.mi().
 inline NlpEval eval_nlp_values(const NlpModel &model, const Vec &x) {
     const Index n = model.n();
     if (x.size() != n) {
@@ -1769,6 +1782,14 @@ inline NlpEval eval_nlp_values(const NlpModel &model, const Vec &x) {
 // Release where Eigen's asserts are gone. The cE/cI half of this bundle is
 // already covered (it can only have come from a checked eval_nlp_values), so
 // exactly the three derivative returns are checked here.
+/// @brief Fills in the derivatives an eval_nlp_values() bundle is missing,
+///        leaving its f/cE/cI untouched.
+/// @param model The problem.
+/// @param x     The point `ev` was taken at.
+/// @param ev    The bundle to complete, in place.
+/// @throws std::invalid_argument if eval_grad returns a size other than
+///         model.n(), or eval_jac_e/eval_jac_i return a matrix whose shape
+///         contradicts model.me()/model.mi() x model.n().
 inline void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev) {
     const Index n = model.n();
     ev.grad = model.eval_grad(x);
@@ -1822,6 +1843,11 @@ inline void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev) {
 // propagates into the sum and out to the caller, where FunnelStrategy::judge
 // rejects the trial outright. Swallowing it here would hand the funnel a
 // finite h at a point where nothing was measured.
+/// @brief The globalization violation measure h(x): the l1 norm of the
+///        equality residuals plus the positive parts of the inequality rows.
+/// @param ev An evaluation at the point of interest; bounds are NOT included.
+/// @return h >= 0, or NaN if any constraint value is NaN -- non-finite values
+///         propagate deliberately (see the note above).
 inline double constraint_violation_l1(const NlpEval &ev) {
     double h = 0.0;
     for (Index i = 0; i < ev.ce.size(); ++i) {
@@ -1844,18 +1870,26 @@ inline double constraint_violation_l1(const NlpEval &ev) {
 //
 // When `finite` is false, stationarity/feasibility/complementarity/residual()
 // are all NaN by construction -- see evaluate_kkt.
+/// @brief The KKT measurement of one NLP iterate.
 struct SqpKkt {
+    /// @brief inf-norm stationarity residual.
     double stationarity = 0.0;
+    /// @brief inf-norm constraint violation, bounds included.
     double feasibility = 0.0;
+    /// @brief inf-norm complementarity residual.
     double complementarity = 0.0;
-    Vec grad_lag; // grad f + Je^T lambda_e + Ji^T lambda_i (bound term NOT subtracted)
-    Vec z;        // model-implied bound multipliers: grad_lag at an active bound, else 0
+    /// @brief grad f + Je^T lambda_e + Ji^T lambda_i (bound term NOT subtracted).
+    Vec grad_lag;
+    /// @brief Model-implied bound multipliers: grad_lag at an active bound, else 0.
+    Vec z;
 
     /// False if x, or anything the model returned at x, or the resulting
     /// grad_lag, is NaN or infinite. A caller MUST branch on this before
     /// reading the residuals as numbers.
     bool finite = true;
 
+    /// @brief The single scalar the convergence and contraction tests read.
+    /// @return max(stationarity, feasibility); NaN when `finite` is false.
     double residual() const { return std::max(stationarity, feasibility); }
 };
 
@@ -1970,6 +2004,16 @@ inline SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, cons
 
 } // namespace detail
 
+/// @brief Measures (x, lambda_e, lambda_i) against the model, reusing an
+///        evaluation already taken at the SAME x.
+/// @param model     The problem.
+/// @param ev        An evaluation at `x`.
+/// @param x         The iterate.
+/// @param lambda_e  Equality multipliers, size model.me().
+/// @param lambda_i  Inequality multipliers, size model.mi().
+/// @param bound_tol Geometric bound-activity tolerance (the driver passes
+///                  SqpOptions::feas_tol).
+/// @return The measurement; every residual is NaN when SqpKkt::finite is false.
 inline SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x,
                            const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
     return detail::evaluate_kkt_over(model.n(), model.me(), model.mi(), model.lower(),
@@ -1979,6 +2023,15 @@ inline SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &
 // Convenience overload that takes the evaluation itself. Costs one extra
 // model evaluation over the bundle-taking form above, so the DRIVER never
 // uses it -- it is for callers measuring a single point (tests, diagnostics).
+/// @brief Convenience overload that evaluates the model itself.
+/// @param model     The problem.
+/// @param x         The iterate.
+/// @param lambda_e  Equality multipliers.
+/// @param lambda_i  Inequality multipliers.
+/// @param bound_tol Geometric bound-activity tolerance.
+/// @return The measurement.
+/// @throws std::invalid_argument through eval_nlp, on a mis-sized `x` or a
+///         callback return whose shape contradicts the declared dimensions.
 inline SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e,
                            const Vec &lambda_i, double bound_tol) {
     return evaluate_kkt(model, eval_nlp(model, x), x, lambda_e, lambda_i, bound_tol);
@@ -2017,6 +2070,16 @@ inline SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambd
 // whose `ev` can be non-finite -- the unevaluable start point -- so every
 // subproblem this function is asked to build, hashed or solved, still comes
 // from an evaluation SqpDriver already found finite.
+/// @brief Builds the SQP subproblem at `x`, in the step variable p, from an
+///        evaluation already taken at that x.
+/// @param model     The problem.
+/// @param ev        An evaluation at `x`; must be finite (the caller's
+///                  obligation, not checked here).
+/// @param x         The linearization point.
+/// @param lambda_e  Equality multipliers the Hessian is formed at.
+/// @param lambda_i  Inequality multipliers the Hessian is formed at.
+/// @param obj_scale Objective scale applied to the gradient and the Hessian.
+/// @return The pure linearization; no trust region is folded into the box.
 inline QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &x,
                                   const Vec &lambda_e, const Vec &lambda_i,
                                   double obj_scale = 1.0) {
@@ -2040,6 +2103,15 @@ inline QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, cons
 
 // Convenience overload that evaluates the model itself. Costs one extra model
 // evaluation over the bundle-taking form, so the DRIVER never uses it.
+/// @brief Convenience overload that evaluates the model itself.
+/// @param model     The problem.
+/// @param x         The linearization point.
+/// @param lambda_e  Equality multipliers.
+/// @param lambda_i  Inequality multipliers.
+/// @param obj_scale Objective scale.
+/// @return The subproblem.
+/// @throws std::invalid_argument through eval_nlp, on a mis-sized `x` or a
+///         callback return whose shape contradicts the declared dimensions.
 inline QpProblem build_subproblem(const NlpModel &model, const Vec &x, const Vec &lambda_e,
                                   const Vec &lambda_i, double obj_scale = 1.0) {
     return build_subproblem(model, eval_nlp(model, x), x, lambda_e, lambda_i, obj_scale);
@@ -2066,6 +2138,11 @@ inline QpProblem build_subproblem(const NlpModel &model, const Vec &x, const Vec
 //
 // Sign convention check, for the reader: for an unconstrained convex model the
 // QP's own solution p* = -W^{-1} g gives pred_df = 1/2 g^T W^{-1} g >= 0.
+/// @brief The QP model's predicted objective decrease along a step.
+/// @param qp The subproblem the step came from.
+/// @param p  The step; must have size qp.n().
+/// @return delta_m_f(p), positive on a model that promises progress.
+/// @throws std::invalid_argument if `p` is mis-sized.
 inline double predicted_decrease(const QpProblem &qp, const Vec &p) {
     if (p.size() != qp.n()) {
         throw std::invalid_argument(fmt::format(
@@ -2120,6 +2197,15 @@ inline double predicted_decrease(const QpProblem &qp, const Vec &p) {
 // offering it keeps the cold path's `engine_.solve(qp, overrides)` call
 // literally unchanged wherever the lever finds nothing, which is what makes
 // the off-default byte-identity claim cheap to believe.
+/// @brief Builds a cold-start active-set seed from the subproblem's own
+///        geometry, naming the rows and bounds that are already tight at x0.
+/// @param qp       The first subproblem of a cold solve.
+/// @param feas_tol Activity tolerance; a row or bound within it counts as tight.
+/// @param seed     Receives the seed, populated in place.
+/// @param rows     Receives the count of seeded inequality rows.
+/// @param bounds   Receives the count of seeded bounds.
+/// @return True iff the seed names anything at all; a seed naming nothing is
+///         not offered to the engine.
 inline bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, Index &rows,
                              Index &bounds) {
     const Index n = qp.n();
@@ -2182,6 +2268,16 @@ namespace hven::solvers {
 //
 // The seam is taken by CONST reference: this measurement evaluates nothing,
 // so it neither re-lays nor scatters.
+/// @brief evaluate_kkt over a SEAM's dimensions and materialized box -- the
+///        entry the driver's major loop uses.
+/// @param seam      The aggregate seam; taken by const reference because this
+///                  measurement evaluates nothing.
+/// @param ev        An evaluation at `x`.
+/// @param x         The iterate.
+/// @param lambda_e  Equality multipliers.
+/// @param lambda_i  Inequality multipliers.
+/// @param bound_tol Geometric bound-activity tolerance.
+/// @return The measurement, under the model-taking overload's contract.
 inline SqpKkt evaluate_kkt(const AggregateEvalSeam &seam, const NlpEval &ev, const Vec &x,
                            const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
     return detail::evaluate_kkt_over(seam.n(), seam.me(), seam.mi(), seam.lower(), seam.upper(), ev,
@@ -2218,6 +2314,15 @@ inline SqpKkt evaluate_kkt(const AggregateEvalSeam &seam, const NlpEval &ev, con
 // `bound_tol` is the caller's bound-activity tolerance (SqpDriver passes
 // SqpOptions::feas_tol), applied as a band OUTSIDE each bound so that an
 // iterate sitting exactly on one, or a rounding step past it, still counts.
+/// @brief May the driver shrink the radius and re-solve after a failed
+///        subproblem, rather than giving up?
+/// @param qp        The subproblem that failed.
+/// @param qs        Its result.
+/// @param bound_tol Bound-activity tolerance, applied as a band OUTSIDE each
+///                  bound (the driver passes SqpOptions::feas_tol).
+/// @return True only for a kNumericalError or kMaxIter exit whose `x` is
+///         correctly sized, finite and inside the box; false for kOptimal and
+///         kInfeasible, which are answers rather than failures.
 inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, double bound_tol) {
     switch (qs.status) {
     case QpStatus::kNumericalError:
@@ -2385,6 +2490,9 @@ inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, d
 // SsnResult. DERIVED FROM ssn_engine.h's OWN CONSTANT, never restated as a
 // literal (`const double` rather than `constexpr` because the constant it is
 // built from is itself a runtime-initialized `std::sqrt` expression).
+/// @brief Trust-region slack the SSN certifying exit is allowed, as a multiple
+///        of `fb_tol`; derived from ssn_engine.h's own constant rather than
+///        restated as a literal.
 inline const double kSsnTrViolationFactor = 2.0 * detail::kSsnComplementarityFactor;
 
 // Does this SSN exit hand back something the funnel may use as a trial step?
@@ -2400,6 +2508,13 @@ inline const double kSsnTrViolationFactor = 2.0 * detail::kSsnComplementarityFac
 //
 // `fb_tol` is the `SsnOptions::fb_tol` the solve ran at, which is what the
 // bound in (c) is stated relative to.
+/// @brief Does this SSN exit hand back something the funnel may use as a
+///        trial step?
+/// @param res    The kernel's result.
+/// @param fb_tol The SsnOptions::fb_tol the solve ran at.
+/// @return True only when the escape reason is kNone, the status is kOptimal,
+///         and the point is finite and inside the trust region to within
+///         kSsnTrViolationFactor * fb_tol.
 inline bool ssn_exit_is_a_usable_step(const SsnResult &res, double fb_tol) {
     if (res.escape_reason != SsnEscape::kNone || res.status != QpStatus::kOptimal) {
         return false;
@@ -2442,6 +2557,11 @@ inline bool ssn_exit_is_a_usable_step(const SsnResult &res, double fb_tol) {
 // variable reports kFree in `bound_state` with z = 0 and is flagged in
 // `tr_active` (so a radius artefact can never be re-ingested as a genuine
 // active bound), and a variable at a real lower == upper reports kFixed.
+/// @brief Re-presents an SSN result as the QpSolution the driver's step and
+///        warm-start paths consume.
+/// @param res A usable SSN exit (see ssn_exit_is_a_usable_step).
+/// @return The equivalent QpSolution, status kOptimal, with the activity
+///         export carried across verbatim.
 inline QpSolution ssn_result_to_qp_solution(const SsnResult &res) {
     QpSolution qs;
     qs.status = QpStatus::kOptimal;
@@ -2485,6 +2605,10 @@ inline QpSolution ssn_result_to_qp_solution(const SsnResult &res) {
 // (this header's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY and THE
 // SEEDED DUAL CLAMP notes; the ordering is normative). This function is
 // downstream of both and re-does neither.
+/// @brief Builds the SSN kernel's start object from the previous
+///        subproblem's solution.
+/// @param seed The prior QpSolution, or nullptr for no seed.
+/// @return The start object; an empty one when `seed` is nullptr.
 inline SsnStart ssn_start_from_qp_seed(const QpSolution *seed) {
     SsnStart start;
     if (seed == nullptr) {
@@ -2511,6 +2635,12 @@ inline SsnStart ssn_start_from_qp_seed(const QpSolution *seed) {
 // changed: `feas_tol > kkt_tol` leaves the min at kkt_tol.
 //
 // A FREE FUNCTION, so the rule is testable without a driver.
+/// @brief The SSN kernel's `fb_tol` for a driver configured at these two
+///        tolerances.
+/// @param kkt_tol  SqpOptions::kkt_tol.
+/// @param feas_tol SqpOptions::feas_tol.
+/// @return The kernel tolerance derived from min(kkt_tol, feas_tol), so a
+///         feas_tol tighter than kkt_tol is honoured.
 inline double ssn_fb_tol_for(double kkt_tol, double feas_tol) {
     return ssn_fb_tol_from_kkt_tol(std::min(kkt_tol, feas_tol));
 }
@@ -2531,6 +2661,10 @@ inline double ssn_fb_tol_for(double kkt_tol, double feas_tol) {
 // `factorizations` far more sharply than `symbolic_analyses`. Stating the rule
 // once here makes BOTH fields directly assertable
 // (SqpDriverSsnMode.TheEscapedSubproblemsCostIsChargedInBothFields).
+/// @brief Charges one SSN subproblem's cost to a solve's running totals.
+/// @param total The solve's counters, updated in place.
+/// @param res   The subproblem's result. Only factorizations and symbolic
+///              analyses are folded -- `minor_iters` deliberately is not.
 inline void charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res) {
     total.factorizations += res.factorizations;
     total.symbolic_analyses += res.symbolic_analyses;
@@ -2564,6 +2698,11 @@ inline void charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res)
 // the reference for the same reason: an escape's factorizations were spent
 // either way. A FREE FUNCTION, so the rule itself is falsifiable without
 // reproducing the rare dynamic that reaches it.
+/// @brief Charges a face refinement that was paid for and then refused.
+/// @param total             The solve's counters, updated in place.
+/// @param refined           The refinement's result.
+/// @param ssn_budget_charge The probe budget, charged by the same
+///                          factorization count.
 inline void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refined,
                                            Index &ssn_budget_charge) {
     total.factorizations += refined.counters.factorizations;
@@ -2591,6 +2730,10 @@ inline void charge_refused_face_refinement(SqpCounters &total, const QpSolution 
 // after the kernel returned), so summing them here is inert on the
 // per-subproblem call. They are summed anyway because this same function folds
 // the RESTORATION sub-solve's totals, where they could be nonzero in principle.
+/// @brief Folds one subproblem's SSN counters into a solve's running total.
+/// @param total The running total, updated in place.
+/// @param one   The subproblem's counters. Seven fields sum;
+///              `ssn_uncertain_peak` aggregates by max.
 inline void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) {
     total.ssn_iters += one.ssn_iters;
     total.ssn_bulk_flips += one.ssn_bulk_flips;
@@ -2680,9 +2823,14 @@ inline void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) 
 
 // kappa_mu in the schedule above; 1.0, named so a future re-derivation has
 // somewhere to change it.
+/// @brief kappa_mu in the adaptive dual-regularization schedule above; named
+///        so a future re-derivation has somewhere to change it.
 inline constexpr double kAdaptiveMuKappa = 1.0;
+/// @brief Floor of the schedule's dual regularization.
 inline constexpr double kAdaptiveMuMin = 1e-12;
-inline constexpr double kAdaptiveMuMax = 1e-8; // == QpOptions::dual_mu's own default
+/// @brief Ceiling of the schedule's dual regularization; equals
+///        QpOptions::dual_mu's own default.
+inline constexpr double kAdaptiveMuMax = 1e-8;
 
 // =============================================================================
 // THE SEEDED DUAL CLAMP -- the `lambda_i >= 0` enforcement that makes
@@ -2752,6 +2900,10 @@ inline constexpr double kAdaptiveMuMax = 1e-8; // == QpOptions::dual_mu's own de
 // of error are safe (a too-wide band drops a price the QP re-derives; a
 // too-narrow one degrades to a cold solve), which makes a fixed, documented
 // band preferable to a coupled one.
+/// @brief Width of the seeded-dual clamp band: an ingested lambda_i in
+///        [-kSeededDualClampTol, 0) is clamped to 0, anything more negative
+///        degrades the whole object to kCold. Fixed by design -- it does not
+///        track opts_.kkt_tol at runtime.
 inline constexpr double kSeededDualClampTol = 1e-6;
 
 // WHERE THE MEMBER DEFINITIONS LIVE. Every member function of SqpDriver below
@@ -2769,6 +2921,11 @@ inline constexpr double kSeededDualClampTol = 1e-6;
 // THE CONSTRUCTORS STAY INLINE, deliberately: their one piece of real work
 // (the option validation) lives in src/drivers/sqp_options.cpp, and what is
 // left is a member-initializer list and one call.
+/// @brief The SQP driver: a trust-region SQP major loop over one QpEngine.
+///
+/// Every member below EXCEPT THE TWO CONSTRUCTORS is defined in
+/// src/drivers/sqp_driver.cpp; read that file's banner before changing this
+/// class's structure.
 class SqpDriver {
   public:
     /// Constructs a driver over the given options.
@@ -2821,6 +2978,13 @@ class SqpDriver {
     // Both overloads route through the same validation, so a model whose
     // start_point() is malformed is rejected exactly like a caller-supplied
     // x0 that is.
+    /// @brief Solves from the model's own start_point().
+    /// @param model The problem; wrapped in a bridge built here.
+    /// @return The solution.
+    /// @throws std::invalid_argument on a model that cannot describe a
+    ///         problem, through the same aggregate-declaration validation the
+    ///         explicit-start-point overload below documents -- a malformed
+    ///         start_point() included.
     SqpSolution solve(const NlpModel &model);
 
     /// Attach a ledger for instrumentation (nullptr = off, default off) --
@@ -3285,6 +3449,9 @@ class SqpDriver {
 // Human-readable names for the iteration printer below. Used only there --
 // nothing in the driver itself branches on a printable string; defined in
 // src/drivers/sqp_print.cpp alongside format_iteration_table.
+/// @brief Human-readable name of a step verdict, for the iteration printer.
+/// @param v The verdict.
+/// @return A static string; nothing in the driver branches on it.
 const char *to_string(StepVerdict v);
 
 // THE ITERATION PRINTER: an fmt-based table rendering of sol.history (one row
@@ -3305,6 +3472,10 @@ const char *to_string(StepVerdict v);
 // regardless of qp_solved, since a restore and a stopped-AT-iterate exit can
 // coincide on the same row (the restored point can itself already satisfy the
 // convergence test).
+/// @brief Renders `sol.history` as an fmt-based iteration table, one row per
+///        SqpIterate.
+/// @param sol A finished solve.
+/// @return The table, ready to print.
 std::string format_iteration_table(const SqpSolution &sol);
 
 } // namespace hven::solvers

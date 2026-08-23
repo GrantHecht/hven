@@ -31,38 +31,38 @@ namespace hven::solvers {
 /// leaves the five solve-mode entry points to the derived problem.
 struct OptimizationProblemBase {
 
-    /// Which solve-mode entry point jet_run() dispatches to.
+    /// @brief Which solve-mode entry point jet_run() dispatches to.
     enum class JetJobModes {
         NotSet,
         /// Parsed by strto_jet_job_mode, but dispatched by nothing: both
         /// jet_run() and run_nlp_solver() reject it with
         /// std::invalid_argument.
         DoNothing,
-        /// Dispatches solve().
+        /// @brief Dispatches solve().
         Solve,
-        /// Dispatches optimize().
+        /// @brief Dispatches optimize().
         Optimize,
-        /// Dispatches solve_optimize().
+        /// @brief Dispatches solve_optimize().
         SolveOptimize,
-        /// Dispatches solve_optimize_solve().
+        /// @brief Dispatches solve_optimize_solve().
         SolveOptimizeSolve,
-        /// Dispatches optimize_solve().
+        /// @brief Dispatches optimize_solve().
         OptimizeSolve
     };
 
-    /// Number of evaluation partitions the NLP is split over.
+    /// @brief Number of evaluation partitions the NLP is split over.
     int num_partitions_ = 1;
-    /// The mode jet_run() dispatches on.
+    /// @brief The mode jet_run() dispatches on.
     JetJobModes jet_job_mode_ = JetJobModes::NotSet;
 
-    /// The problem's program (built by the derived class's make_nlp()).
+    /// @brief The problem's program (built by the derived class's make_nlp()).
     std::shared_ptr<NonLinearProgram> nlp_;
-    /// The shared interior-point solver instance.
+    /// @brief The shared interior-point solver instance.
     std::shared_ptr<InteriorPointSolver> optimizer_;
 
     virtual ~OptimizationProblemBase() = default;
 
-    /// Constructs the solver and applies the default partitioning.
+    /// @brief Constructs the solver and applies the default partitioning.
     OptimizationProblemBase() {
         this->optimizer_ = std::make_shared<InteriorPointSolver>();
         this->init_partitions();
@@ -126,7 +126,7 @@ struct OptimizationProblemBase {
     /// jet_run(); must leave num_partitions_ == 1.
     virtual void jet_initialize() = 0;
 
-    /// Releases whatever jet_initialize() acquired.
+    /// @brief Releases whatever jet_initialize() acquired.
     virtual void jet_release() = 0;
 
     /// Runs the configured job mode between jet_initialize()/jet_release(),
@@ -181,13 +181,13 @@ struct OptimizationProblemBase {
     /// Uniform output of one solve: the updated variable vector, the
     /// constraint multipliers, and the convergence flag.
     struct NlpSolveOutput {
-        /// Updated variable vector from the solve.
+        /// @brief Updated variable vector from the solve.
         Eigen::VectorXd variables_;
-        /// Equality-constraint multipliers from the final result.
+        /// @brief Equality-constraint multipliers from the final result.
         Eigen::VectorXd eq_lmults_;
-        /// Inequality-constraint multipliers from the final result.
+        /// @brief Inequality-constraint multipliers from the final result.
         Eigen::VectorXd iq_lmults_;
-        /// Convergence flag from the final result.
+        /// @brief Convergence flag from the final result.
         ConvergenceFlags flag_ = ConvergenceFlags::NOTCONVERGED;
     };
 
@@ -228,7 +228,7 @@ struct OptimizationProblemBase {
         }
     }
 
-    /// Sets the mode jet_run() dispatches on (enum overload).
+    /// @brief Sets the mode jet_run() dispatches on (enum overload).
     void set_jet_job_mode(JetJobModes m) { this->jet_job_mode_ = m; }
 
     /// Sets the mode jet_run() dispatches on, parsing the same spellings

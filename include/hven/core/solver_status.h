@@ -9,7 +9,7 @@
 
 namespace hven::solvers {
 
-/// The verdict on ONE QP subproblem solve.
+/// @brief The verdict on ONE QP subproblem solve.
 enum class QpStatus {
     kOptimal = 0,
     kMaxIter = 1,
@@ -66,7 +66,7 @@ enum class SqpStatus {
     kBudgetExhausted = 4,
 };
 
-/// Maps SqpStatus to a short display string; defined in a library TU.
+/// @brief Maps SqpStatus to a short display string; defined in a library TU.
 const char *to_string(SqpStatus status);
 
 } // namespace hven::solvers

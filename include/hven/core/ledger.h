@@ -23,13 +23,13 @@ namespace hven::solvers {
 /// A single QP-engine solve event: label, warm-start flag, status, and
 /// performance counters.
 struct SolveRecord {
-    /// Caller-chosen label for the solve.
+    /// @brief Caller-chosen label for the solve.
     std::string label;
-    /// Whether the solve was warm-started.
+    /// @brief Whether the solve was warm-started.
     bool warm;
-    /// The QP subproblem solver's outcome verdict.
+    /// @brief The QP subproblem solver's outcome verdict.
     QpStatus status;
-    /// Performance counters for the solve.
+    /// @brief Performance counters for the solve.
     QpCounters counters;
 };
 
@@ -55,9 +55,9 @@ struct SolveRecord {
 /// single source of truth and these are a read-only-shaped copy of part of
 /// it, never an independent measurement.
 struct SqpSolveRecord {
-    /// Caller-chosen label for the solve.
+    /// @brief Caller-chosen label for the solve.
     std::string label;
-    /// The SQP driver's outcome verdict.
+    /// @brief The SQP driver's outcome verdict.
     SqpStatus status;
     /// Aggregate counters for the whole solve (single source of truth for
     /// every value below).
@@ -67,19 +67,19 @@ struct SqpSolveRecord {
     /// observed to happen, never what a caller offered. The column a
     /// cold-vs-warm benchmark groups rows by.
     StartLevel start_level_used = StartLevel::kCold;
-    /// Duplicate of SqpCounters::full_step_majors.
+    /// @brief Duplicate of SqpCounters::full_step_majors.
     Index full_step_majors = 0;
-    /// Duplicate of SqpCounters::watchdog_restores.
+    /// @brief Duplicate of SqpCounters::watchdog_restores.
     Index watchdog_restores = 0;
-    /// Duplicate of SqpCounters::soc_steps (which IS the attempts count).
+    /// @brief Duplicate of SqpCounters::soc_steps (which IS the attempts count).
     Index soc_steps = 0;
     /// Duplicate of SqpCounters::soc_applied (see soc_steps' note in
     /// solver_counters.h for the three-way outcome breakdown this is one
     /// third of).
     Index soc_applied = 0;
-    /// Duplicate of SqpCounters::border_refine_steps.
+    /// @brief Duplicate of SqpCounters::border_refine_steps.
     Index border_refine_steps = 0;
-    /// Duplicate of SqpCounters::eqp_refine_steps.
+    /// @brief Duplicate of SqpCounters::eqp_refine_steps.
     Index eqp_refine_steps = 0;
 
     /// 1 iff this solve's FIRST subproblem actually skipped its own
@@ -119,9 +119,9 @@ struct SqpSolveRecord {
     /// (`SqpOptions::qp_mode == QpMode::kWalk`), because no SSN subproblem
     /// is solved there -- adding them moves no existing ledger row.
     Index ssn_iters = 0;
-    /// See ssn_iters' note.
+    /// @brief See ssn_iters' note.
     Index ssn_bulk_flips = 0;
-    /// See ssn_iters' note.
+    /// @brief See ssn_iters' note.
     Index ssn_escapes = 0;
 
     /// Wall-clock time this ONE public solve() call spent inside solve_impl
@@ -148,16 +148,16 @@ class Ledger {
   public:
     Ledger() = default;
 
-    /// Records a single QP-engine solve event.
+    /// @brief Records a single QP-engine solve event.
     void record(SolveRecord r) { records_.push_back(std::move(r)); }
 
-    /// Records a single whole-driver solve event.
+    /// @brief Records a single whole-driver solve event.
     void record(SqpSolveRecord r) { sqp_records_.push_back(std::move(r)); }
 
-    /// All recorded QP-engine solve events.
+    /// @brief All recorded QP-engine solve events.
     const std::vector<SolveRecord> &records() const { return records_; }
 
-    /// All recorded whole-driver solve events.
+    /// @brief All recorded whole-driver solve events.
     const std::vector<SqpSolveRecord> &sqp_records() const { return sqp_records_; }
 
     // The three reporting functions below are defined in src/core/ledger.cpp:
@@ -173,7 +173,7 @@ class Ledger {
     /// to happen, never what a caller offered (solver_counters.h).
     StartLevelHistogram level_histogram() const;
 
-    /// Formatted table: label, warm?, iters, factorizations, schur updates.
+    /// @brief Formatted table: label, warm?, iters, factorizations, schur updates.
     std::string summary_table() const;
 
     /// Formatted table: label, status, Level, major/QP-minor/factorization
