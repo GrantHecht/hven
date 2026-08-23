@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #pragma once
 
 // bordered_eqp.h — the equality-QP solve over a working set represented as a
@@ -39,9 +42,8 @@
 //             border, its dual is that K0 row's; otherwise the row is live
 //             only through its kIneqRow border and its dual is that border's
 //             y entry. A DELETED K0 row is not in ws.active_ineq() at all
-//             (the delete border pins its dual to exactly zero, which is what
-//             "deactivated" means -- see border_ops.h), so it never reaches
-//             this loop.
+//             (the delete border pins its dual to exactly zero -- see
+//             border_ops.h), so it never reaches this loop.
 //   z         NOT computed here, exactly as in eqp_solve.h: the engine prices
 //             bound multipliers from the stationarity residual. (The pin
 //             borders' own duals are that residual up to sign, but they are
@@ -51,21 +53,16 @@
 // --- Pinned variables are scattered, not read back ---
 //
 // x's pinned entries are overwritten with their exact bound values rather
-// than taken from the solve, matching solve_eqp's scatter (which starts from
-// x_fixed and only fills the free positions). A pin border carries
-// d = -dual_mu, so the solve itself only satisfies x(i) - mu*y_i = bound,
-// leaving x(i) off the bound by mu*|y_i| -- and on the over-determined
-// working sets the loop legitimately visits mid-run (every variable pinned
-// AND a working row still demanding something of them) a pin's dual is a
-// regularization artifact of size ~1/mu, which makes that gap O(1) rather
-// than O(1e-8). The refinement below (refine_bordered_solve_iterated) turns
-// out to close it on every fixture in the equivalence battery -- removing
-// this overwrite does not break BorderModeMatchesRefactorizeMode, verified
-// by mutation -- so this is
-// belt-and-braces rather than the load-bearing part. It is kept because the
-// bound value is KNOWN exactly and there is no reason to prefer a solved
-// approximation of it, and because it makes the two paths agree on pinned
-// components by construction rather than by the refinement's good behavior.
+// than taken from the solve, matching solve_eqp's scatter. A pin border
+// carries d = -dual_mu, so the solve itself only satisfies x(i) to
+// O(dual_mu * |y_i|) of the bound -- and on the over-determined working sets
+// the loop legitimately visits mid-run (every variable pinned AND a working
+// row still demanding something of them) a pin's dual is a regularization
+// artifact of order 1/dual_mu, so that gap is O(1) rather than O(dual_mu).
+// The refinement below happens to close it on every fixture in the
+// equivalence battery, but the overwrite is kept because the bound value is
+// KNOWN exactly and it makes the two paths agree on pinned components by
+// construction rather than by the refinement's good behavior.
 
 #include <algorithm>
 #include <utility>
@@ -85,12 +82,7 @@ namespace hven::solvers {
 
 // detail::kMaxBorderRefineSteps and detail::kBorderRefineRelFloor -- the
 // budget and floor this file's refinement loop runs on -- live in eqp_solve.h
-// (which this header includes). They were moved there when solve_eqp briefly
-// carried the same loop behind a flag; that loop was deleted once both shipped
-// backends measured it inert (see eqp_solve.h's header note), and the
-// constants deliberately did NOT move back, so this file's loop remains the
-// ONE definition of the rule and no diff conflates "where the constants live"
-// with "who runs them".
+// (which this header includes). This loop is their one consumer.
 
 // The regularization this bordered system carries on its diagonal:
 // +primal_delta on K0's first `var_count` (Hessian) rows, -dual_mu on every
@@ -157,73 +149,55 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 // One mandatory refinement step, then further steps for as long as the first
 // one demonstrably failed to do its job.
 //
-// WHY ONE STEP IS NOT ALWAYS ENOUGH -- LOAD-BEARING BORDERS (Task 11b). The
-// two-solve Schur form computes K0^-1 rhs and K0^-1 V and then CANCELS them
-// against each other, so the accuracy of the bordered answer is set by how
-// large those intermediates are relative to the answer. K0 is assembled from
-// the SEED working set, and nothing forces it to be well conditioned on its
-// own: a bound pin is a border against every possible K0 (border_ops.h), so on
-// a problem whose curvature only becomes definite ONCE the pins are applied,
-// K0 is EXACTLY SINGULAR in exact arithmetic and it is primal_delta alone that
-// makes it invertible. Then ||K0^-1|| ~ 1/primal_delta ~ 1e8, the Schur
-// complement's condition estimate is ~1e8 -- still inside schur_cond_max, so
-// nothing upstream objects -- and the raw two-solve answer is wrong in the
-// FIRST digit. Refinement does converge (the system it targets is well
-// conditioned: cond ~1.5e2 in the reproduction) but only GEOMETRICALLY, at a
-// rate set by that same cancellation, so ONE step leaves ~1e-3 of error where
-// the eliminated path (eqp_solve.h, whose K has the pins substituted out and
-// never forms those intermediates) is exact to machine precision.
+// WHY ONE STEP IS NOT ALWAYS ENOUGH. The two-solve Schur form computes K0^-1
+// rhs and K0^-1 V and then CANCELS them against each other, so the accuracy
+// of the bordered answer is set by how large those intermediates are
+// relative to the answer. K0 is assembled from the SEED working set, and a
+// bound pin is a border against every possible K0 (border_ops.h), so on a
+// problem whose curvature only becomes definite ONCE the pins are applied,
+// K0 is exactly singular in exact arithmetic and primal_delta alone makes it
+// invertible; ||K0^-1|| ~ 1/primal_delta then leaves the raw two-solve
+// answer wrong in its first digit, while refinement -- whose target system
+// was well conditioned in the reproduction (cond ~1.5e2) -- converges only
+// geometrically.
+// The eliminated path (eqp_solve.h) never forms those intermediates and does
+// not need this loop.
 //
-// That is not hypothetical: it is HS26's first subproblem, where the single
-// step left the equality row violated by 8.7e-3 and QpEngine classified the
-// resulting point as structurally infeasible on a QP that p = 0 satisfies.
-// See HsBattery.BorderModeFalseInfeasible.
-//
-// THE STOPPING RULE IS THE REGULARIZATION FOOTPRINT, and that choice is what
-// keeps this fix confined to the error BORDERING introduces. The one step's
-// job is to remove the O(primal_delta) bias of the regularized solve, whose
-// size on the current iterate is exactly ||diag(reg)*sol||inf. So:
+// THE STOPPING RULE IS THE REGULARIZATION FOOTPRINT, which keeps the extra
+// steps confined to the error BORDERING introduces. The mandatory step's job
+// is to remove the O(primal_delta) bias of the regularized solve, whose size
+// on the current iterate is exactly ||diag(reg)*sol||inf:
 //
 //   - residual now BELOW the footprint => the step did its job; everything
 //     left is the conditioning of the problem itself, which the eliminated
 //     path carries identically and which is not this seam's to remove.
-//   - residual still ABOVE the footprint => the step did NOT do its job; the
-//     bordered form lost digits that the eliminated form never loses, and the
-//     extra steps recover exactly those.
+//   - residual still ABOVE the footprint => the bordered form lost digits
+//     that the eliminated form never loses, and the extra steps recover
+//     exactly those.
 //
-// Measured, this separates the two populations by four orders with nothing in
-// between: residual/footprint after the first step is 5e-5 .. 5e-1 across the
-// shipped ill-scaled and inflated-multiplier fixtures (where border and
-// refactorize carry the SAME error and MUST keep agreeing -- see
-// QpEngineBorder.BorderModeMatchesRefactorizeMode) and 1.6e4 on the HS26
-// reproduction. Refining past the footprint on the first population would make
-// border mode strictly more accurate than its own equivalence oracle; whether
-// the SHARED single step should also be iterated is a real and open question,
-// but it is a question about solve_eqp, it applies to both modes identically,
-// and it is deliberately not answered here (task-11b-report.md, "Alternatives
-// rejected").
+// Refining past the footprint where border and refactorize already agree
+// would make border mode strictly more accurate than its own equivalence
+// oracle (qp_engine.h's cross-mode batteries), so the rule stops at it.
 //
-// At schur.dim() == 0 the loop is skipped outright: there is no border stack,
-// schur.solve degenerates to a plain K0 solve, and the computation IS
+// At schur.dim() == 0 the loop is skipped outright: there is no border
+// stack, schur.solve degenerates to a plain K0 solve, and the computation IS
 // solve_eqp's on an all-free working set -- so it gets solve_eqp's budget by
-// CONSTRUCTION rather than by the rule above happening to agree. That guard is
-// belt-and-braces and is recorded as such: deleting it leaves the whole suite
-// green (measured, Task 11b), because the footprint rule already stops every
-// shipped dim()==0 fixture after the first step. It is kept because "an
-// unbordered solve gets exactly what the unbordered path gets" should not
-// depend on a threshold holding.
+// CONSTRUCTION rather than by the rule above happening to agree. That guard
+// is belt-and-braces (the footprint rule already stops every shipped dim()==0
+// case after the first step); it is kept because "an unbordered solve gets
+// exactly what the unbordered path gets" should not depend on a threshold
+// holding.
 //
-// Every extra step is also safeguarded: it is kept only if it STRICTLY reduces
-// the residual's inf-norm, so a stack too ill-conditioned for refinement to
-// help can never end up worse than the single step this engine has always
-// taken.
+// Every extra step is also safeguarded: it is kept only if it STRICTLY
+// reduces the residual's inf-norm, so a stack too ill-conditioned for
+// refinement to help can never end up worse than the single step this engine
+// has always taken.
 //
 // `steps_out`, when non-null, receives the TOTAL number of steps KEPT --
-// including the mandatory first one, so it is never less than 1, and matching
+// including the mandatory first one, so it is never less than 1, matching
 // the accounting kMaxBorderRefineSteps itself uses. A candidate rejected by
-// the strict-decrease rule is discarded and not counted. This is what feeds
-// QpCounters::border_refine_steps; the Accelerate audit checklist (§(f)) asks
-// auditors to compare exactly this number between backends.
+// the strict-decrease rule is discarded and not counted. This feeds
+// QpCounters::border_refine_steps.
 inline Vec refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count,
                                           const std::vector<Vec> &border_v,
                                           const std::vector<double> &border_d,
@@ -235,12 +209,9 @@ inline Vec refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count,
     };
     Index steps = 1; // the mandatory step below
 
-    // Step 1, unconditional and unchanged: the step that backs the
-    // regularization out of the answer. Calls the single-step primitive
-    // itself (refine_bordered_solve) rather than re-deriving its expression,
-    // so that function's doc comment ("the primitive this one and the
-    // border equivalence tests are both written against") stays true of the
-    // actual call graph, not just of the arithmetic.
+    // Step 1, unconditional: the step that backs the regularization out of
+    // the answer, taken through the single-step primitive so that function
+    // remains what the border equivalence tests are written against.
     Vec best = refine_bordered_solve(K0, var_count, border_v, border_d, schur, rhs, sol, opts);
     if (schur.dim() == 0) {
         if (steps_out != nullptr) {

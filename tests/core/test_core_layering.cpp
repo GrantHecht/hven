@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // test_core_layering.cpp -- the regression net for CLAUDE.md section 2's tier
 // order, checked where it is cheapest to check: the include directives of the
 // public headers in include/hven/core/.

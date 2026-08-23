@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The interior-point half of the trace set: P1-P6, each pinning a seam
 // behaviour the interior-point engine depends on.
 //

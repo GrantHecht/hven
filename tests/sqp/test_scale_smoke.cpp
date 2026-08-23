@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_scale_smoke.cpp — Task 10: moderate-scale smoke test.
 //
 // Every other test in this suite runs at toy sizes (n <= ~10 in the dense-

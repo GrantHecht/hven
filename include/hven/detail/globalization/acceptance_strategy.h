@@ -1,40 +1,5 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
-// Part of the globalization component extraction: this is the acceptance-
-// strategy component (line search & merit), whose interface shape is adapted
-// from Uno (source-verified).
-//
-// This file: the interface plus a handful of small defaulted hooks —
-// notify_switch_to_feasibility()/notify_switch_to_optimality()/
-// append_diagnostics() (no-op defaults) and classic_line_search() (a
-// throwing default, not real behavior). The generic
-// is_iterate_acceptable()/is_infeasibility_sufficiently_reduced() surface is
-// implemented for real by ModernMeritAcceptance, FunnelAcceptance, and
-// FilterAcceptance; ClassicMeritAcceptance (a separate merit_acceptance.h)
-// stubs those two methods with "unused on classic path" bodies and
-// implements classic_line_search verbatim from the former
-// ls_impl/ls_lang/ls_l1/ls_auglang.
-//
-// Ownership rule: an AcceptanceStrategy instance holds no SOLVER-owned state
-// (no XSL/DXSL/mu/iterate history members — those are always passed as
-// explicit per-call parameters, or reached through a SolverContext reference
-// passed to the call: settings_, dims, nlp_). Strategy-internal state is a
-// different matter and is explicitly permitted: ModernMeritAcceptance holds
-// per-solve penalty state (nu_/pi_l_/pi_u_/smallest_known_infeasibility_,
-// modern_merit.h), and FilterAcceptance holds its filter plus reset-heuristic
-// counters (filter_acceptance.h) — both cleared in reset(), with one
-// phase-aware exception: while in_feasibility_phase_ is true, reset() treats
-// the call as a μ-event and deliberately lets the stashed (frozen
-// optimality-phase) copy of that state survive, since the restoration-exit
-// test reduces against it. reset() is the μ-event/phase-change hook: called
-// whenever InteriorPointSolver starts a new phase (run_phase_sequence) or the barrier parameter is
-// reset, so a stateful strategy (e.g. the filter clearing its (θ,f) pairs)
-// has a defined place to do it. The ClassicMeritAcceptance implementation of
-// reset() is a no-op (the classic merit test carries no persistent state
-// across iterations).
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
 
 #pragma once
 
@@ -45,152 +10,110 @@
 
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/interior/iterate_info.h"
-// AcceptanceStrategy::classic_line_search takes InteriorPointSolver::LineSearchModes by
-// value, which requires the complete InteriorPointSolver class (a nested enum cannot be
-// forward-declared independently of its enclosing class). interior_point_solver.h does NOT
-// include this directory back (see solver_context.h's include-discipline
-// note) so this is a plain, one-directional, non-circular include — exactly
-// like include/hven/drivers/optimization_problem_base.h already does.
+// The complete InteriorPointSolver class is required here (classic_line_search
+// takes its nested LineSearchModes by value, and a nested enum cannot be
+// forward-declared independently of its enclosing class). This include is
+// deliberately one-directional: interior_point_solver.h does not include back
+// into this directory.
 #include "hven/drivers/interior_point_solver.h"
 
 namespace hven::solvers {
 
-// =============================================================================
-// Restoration-exit constant shared by the two acceptance strategies whose exit
-// test uses the Ipopt-style relative θ-reduction floor: ClassicMeritAcceptance
-// (merit_acceptance.h) and FilterAcceptance (filter_acceptance.h). It lives on
-// the shared base header because both strategies compile into the same
-// translation unit and a single definition is required; ModernMeritAcceptance
-// and FunnelAcceptance use their own source-specific exit criteria and never
-// read it.
-// =============================================================================
-
-// Required infeasibility reduction to leave feasibility restoration: a trial's
-// constraint violation must fall to kKappaResto·θ_ref before the point is
-// eligible to exit (subject to the constraint-tolerance floor the two consumers
-// apply on top). Ipopt option "required_infeasibility_reduction", shipped
-// default 0.9 (coin-or/Ipopt 72a29c9, src/Algorithm/IpRestoConvCheck.cpp,
-// kappa_resto_).
+/// @brief Relative infeasibility-reduction floor for leaving feasibility
+/// restoration: a trial's constraint violation must fall to
+/// kKappaResto * theta_ref to be eligible to exit (consumers may apply a
+/// tolerance floor on top). Ipopt option "required_infeasibility_reduction",
+/// shipped default 0.9. Shared by the strategies whose exit test uses it;
+/// both compile into the same translation unit, so exactly one definition
+/// must exist.
 inline constexpr double kKappaResto = 0.9;
 
-// =============================================================================
-// AcceptanceStrategy — decides whether a trial step is accepted.
-// =============================================================================
+/// @brief Decides whether a trial step is accepted.
+///
+/// An instance holds no solver-owned state (iterate vectors, barriers,
+/// histories): those are passed per call or reached through SolverContext.
+/// Strategy-internal state is permitted but must be cleared in reset().
 class AcceptanceStrategy {
   public:
     virtual ~AcceptanceStrategy() = default;
 
-    // --- Generic interface (future strategies implement these for real) ---
-    // Filter/funnel/WMNO acceptance tests: is the trial point's (θ, f)
-    // pair acceptable relative to the current iterate, given what the step
-    // model predicted? ClassicMeritAcceptance stubs this with a documented
-    // "unused on classic path" body (today's classic acceptance is entirely
-    // inside classic_line_search's fused loop+test); ModernMeritAcceptance,
-    // FunnelAcceptance, and FilterAcceptance all implement it for real and are
-    // selectable via Settings::acceptance_strategy_. The generic surface is
-    // driven whenever any non-classic_merit strategy is selected.
-    //
-    // step_length is the trial's alpha, in (0, 1] — the live ladder value
-    // from the generic backtracking loop that produced `trial`.
-    // predicted_reduction stays alpha-scaled (as documented on
-    // ProgressMeasures/modern_merit.h); a strategy that needs the raw,
-    // unscaled directional derivative recovers it as
-    // predicted_reduction.objective / step_length.
+    /// @brief Acceptance test for the generic driving path: is the trial
+    /// point's (theta, f) pair acceptable relative to the current iterate?
+    /// Driven whenever a non-classic strategy is selected.
+    /// @param step_length Trial alpha in (0, 1], the live ladder value from
+    ///   the backtracking loop that produced @p trial.
+    /// @param predicted_reduction Stays alpha-scaled; recover the raw
+    ///   directional derivative as predicted_reduction.objective / step_length.
     virtual bool is_iterate_acceptable(const ProgressMeasures &current,
                                         const ProgressMeasures &trial,
                                         const ProgressMeasures &predicted_reduction,
                                         double objective_multiplier, double step_length) = 0;
 
-    // Restoration-exit test: has infeasibility been reduced enough (relative
-    // to `reference`, the point restoration was entered from) to leave
-    // restoration mode? Driven by alg_impl's two exit-test call sites, one
-    // per restoration mode: the nested l1 phase's κ_resto-ratchet exit and
-    // the proximal phase's relative-θ-reduction exit (interior_point_solver.cpp). The
-    // near-feasible exits are plain threshold tests that never consult this
-    // strategy.
+    /// @brief Restoration-exit test: has infeasibility been reduced enough,
+    /// relative to @p reference (the point restoration was entered from), to
+    /// leave restoration mode? Driven once per restoration mode by the exit
+    /// test call sites; near-feasible exits are plain threshold tests and do
+    /// not consult the strategy.
     virtual bool is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
                                                         const ProgressMeasures &trial) const = 0;
 
-    // μ-event / phase-change reset hook — see the ownership-rule note above.
+    /// @brief mu-event / phase-change hook: called whenever the solver starts
+    /// a new phase or resets the barrier parameter. Stateful strategies clear
+    /// their persistent state here. One deliberate exception: while a strategy
+    /// is in the feasibility phase, reset() may let stashed optimality-phase
+    /// state survive, because the restoration-exit test reduces against it.
     virtual void reset() = 0;
 
-    // Selects which driving path GlobalizationMechanism::compute_step uses.
-    //   true  — the FUSED classic path: compute_step forwards straight to
-    //           classic_line_search (below), whose own backtracking loop hosts
-    //           the merit test. This is the bit-identical classic behavior;
-    //           only ClassicMeritAcceptance returns it.
-    //   false — the GENERIC path: compute_step runs the loop itself (trial
-    //           eval -> ProgressMeasures -> is_iterate_acceptable -> backtrack)
-    //           and never calls classic_line_search. ModernMeritAcceptance
-    //           overrides this to false — it is the loop-in-mechanism /
-    //           judgment-in-strategy split the generic surface was designed for.
-    // Pure virtual on purpose: every strategy must declare its driving path at
-    // compile time. A defaulted answer here would let a new strategy silently
-    // inherit the classic path and hit classic_line_search's throwing default
-    // at solve time instead of failing to compile.
+    /// @brief Selects which driving path GlobalizationMechanism::compute_step
+    /// uses.
+    /// @retval true Fused classic path: compute_step forwards straight to
+    ///   classic_line_search, whose own backtracking loop hosts the merit test.
+    /// @retval false Generic path: compute_step runs the loop itself (trial
+    ///   evaluation -> ProgressMeasures -> is_iterate_acceptable -> backtrack)
+    ///   and never calls classic_line_search.
+    /// Pure virtual on purpose: a defaulted answer would let a new strategy
+    /// silently inherit the classic path and hit classic_line_search's
+    /// throwing default at solve time instead of failing to compile.
     virtual bool drives_classic_path() const = 0;
 
-    // Mode-switch notifications (restoration handoff), called by the solver
-    // seam when it enters / leaves feasibility restoration. `current` is the
-    // ProgressMeasures at the switch point (the entry point on the way in, the
-    // exit point on the way out). Default no-op: the classic and modern merit
-    // strategies keep it (their acceptance state is not invalidated by the
-    // objective swap — matching Uno's MeritFunction, which defines no switch
-    // hooks). FunnelAcceptance overrides only the optimality (exit) hook to
-    // re-base its width; FilterAcceptance overrides both to augment/stash/restore
-    // its filter (see funnel_acceptance.h / filter_acceptance.h).
+    /// @brief Mode-switch notification, called when the solver enters
+    /// feasibility restoration; the argument is the ProgressMeasures at the
+    /// switch point (the entry point on the way in).
+    /// Default no-op: strategies whose acceptance state survives the objective
+    /// swap need no action.
     virtual void notify_switch_to_feasibility(const ProgressMeasures &) {}
+
+    /// @brief Mode-switch notification, called when the solver leaves
+    /// feasibility restoration; the argument is the ProgressMeasures at the
+    /// switch point (the exit point on the way out).
+    /// Default no-op.
     virtual void notify_switch_to_optimality(const ProgressMeasures &) {}
 
-    // Solver-level observability hook: writes this strategy's diagnostic
-    // state (if any) into `result`. Called by run_phase_sequence() once per
-    // phase, right after that phase's alg_impl() returns and before the NEXT
-    // phase's reset() (see the call site's comment in interior_point_solver.cpp) — so a
-    // multi-phase solve (e.g. solve_optimize()) ends up with the LAST
-    // phase's values, overwritten in phase order like every other SolveResult
-    // field. WRITE-ONLY on purpose: this hook never reads `result` or any
-    // other solver state, so it cannot influence control flow — a strategy
-    // that changed behavior based on prior diagnostics would need a real
-    // feedback path, not this one. The default body is a no-op, which is
-    // exactly right for ClassicMeritAcceptance and ModernMeritAcceptance
-    // (neither has funnel/filter-style state to report): the classic path
-    // stays bit-identical because this hook never touches `result` unless a
-    // strategy overrides it. FunnelAcceptance and FilterAcceptance override
-    // this to report their width/size (+ reset count for the filter) — see
-    // funnel_acceptance.h / filter_acceptance.h and the corresponding
-    // SolveResult fields in interior_point_solver.h.
+    /// @brief Writes this strategy's diagnostic state (if any) into
+    /// @p result. Called once per phase, right after that phase's solve
+    /// returns, so a multi-phase solve ends up with the last phase's values.
+    ///
+    /// Invariant: WRITE-ONLY by design. This hook never reads @p result or any
+    /// other solver state, so it cannot influence control flow; a strategy
+    /// that changed behavior based on prior diagnostics would need a real
+    /// feedback path. The default body is a no-op.
     virtual void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
         (void)result;
     }
 
-    // --- Classic fused entry point ---
-    // Signature mirrors the former private InteriorPointSolver::ls_impl dispatcher exactly
-    // (the symbol no longer exists — its body was extracted into
-    // ClassicMeritAcceptance; see the note beside InteriorPointSolver::alg_impl in
-    // interior_point_solver.h) — NOT the private per-variant
-    // ls_lang/ls_l1/ls_auglang signatures, which take hven::solvers::KKTVector
-    // views (include/hven/detail/interior/kkt_vector.h). ls_impl's own
-    // public-facing signature already operates on the raw Eigen::VectorXd
-    // blocks, so mirroring IT (rather than the KKTVector-typed private
-    // helpers) is what lets this interface host the existing calls without
-    // adapting any FP-relevant argument. A future implementation reconstructs
-    // KKTVector views internally from SolverContext's dims if/when it needs
-    // the named-segment accessors ls_lang/ls_l1/ls_auglang use today.
-    //
-    // Loop + merit test fused together (not split into separate "step" and
-    // "accept" calls) because today's ls_lang/ls_l1/ls_auglang each run their
-    // own backtracking loop with the merit test as the loop's own exit
-    // condition — splitting them would require re-deriving the per-variant
-    // trial-point evaluation (eval_rhs for LANG vs. eval_trial_point_occ for
-    // L1/AUGLANG) at a new seam, which risks reordering the FP operations the
-    // CBWR gate depends on. Returns the accepted step-length alpha.
-    //
-    // NOT pure: only the ClassicMeritAcceptance implementation (defined in
-    // merit_acceptance.h) overrides this. The generic acceptance strategies
-    // (ModernMeritAcceptance, FunnelAcceptance, FilterAcceptance) are driven
-    // purely through is_iterate_acceptable() and never call this entry
-    // point, so the default body is a T6-style logic error, not a silent
-    // fallback.
+    /// @brief Classic fused entry point: loop and merit test in one call.
+    /// Operates on raw Eigen::VectorXd blocks (no named-segment views); a
+    /// future implementation reconstructs any view types internally if
+    /// needed. Only the classic-path implementation overrides this; generic
+    /// strategies never call it.
+    ///
+    /// Deliberately NOT split into separate "step" and "accept" calls: the
+    /// per-variant loops host the merit test as their own exit condition, and
+    /// splitting them would re-derive trial-point evaluation at a new seam,
+    /// risking reordering of floating-point operations downstream gates pin.
+    /// Returns the accepted step-length alpha.
+    /// @throws std::logic_error Always, in the default body: reaching it means
+    ///   a non-classic strategy was driven through the classic path.
     virtual double classic_line_search(InteriorPointSolver::LineSearchModes lsmode,
                                        double obj_scale, double mu, double prim_obj,
                                        double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,

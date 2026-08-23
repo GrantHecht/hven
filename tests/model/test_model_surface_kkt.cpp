@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // bench/model_surface_kkt.h's engine-independent KKT residual scorer
 // (docs/notes/2026-08-21-m4-task5-design.md).
 //

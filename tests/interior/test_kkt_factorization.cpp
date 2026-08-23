@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The engine-side KKT factorization: lifecycle, and the evidence projection
 // the inertia machinery reads. The projection is the interesting half -- it is
 // where the linear layer's honest, optional evidence becomes the plain

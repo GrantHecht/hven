@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_warm_start.cpp — Phase-4 Task 2: the WarmStart value object
 // (warm_start.h) SqpDriver::solve() emits on SqpSolution::warm_start.
 //

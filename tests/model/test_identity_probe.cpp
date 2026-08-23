@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // IdentityProbe: the pair a consumer compares to answer "same structure?" and
 // "same point?" in one step, and the candidate-value digest that forms its
 // second half.

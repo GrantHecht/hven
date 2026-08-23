@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // A minimal NlpAggregate implementation, written against the Level 2 contract
 // surface alone. It exists so the contract's own semantics -- the structure
 // epoch's ordering guarantee, the failure-restore rule, and the request

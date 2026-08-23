@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // bench/bench_corpus.cpp — PHASE-7 TASK 1: the replay corpus runner. Thin CLI
 // glue over bench/corpus_cells.h's engine interface -- every actual cell
 // spec, tag, the gate evaluator and the walk engine's implementation live

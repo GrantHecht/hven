@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // sqp_options.cpp -- the SqpOptions boundary validation SqpDriver's
 // constructor runs, carved out of the class body in sqp_driver.h.
 //

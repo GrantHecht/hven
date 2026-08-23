@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // test_qp_engine_tr.cpp — Task 9: the l-infinity trust-region soft-bound
 // block (qp_engine.h "Section 6"), the interface the Phase-3 SQP driver needs
 // from this QP engine.

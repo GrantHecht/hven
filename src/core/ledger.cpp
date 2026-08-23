@@ -1,22 +1,10 @@
-// ledger.cpp -- the instrumentation ledger's three REPORTING functions,
-// carved out of hven/core/ledger.h.
-//
-// M3 PHASE-C T2. CLAUDE.md section 5 names ledger code explicitly as code that
-// belongs in a .cpp translation unit. These three run once per report -- a
-// histogram tally over the recorded solves and two fmt-formatted tables -- so
-// nothing about them depends on inlining, and as header `inline` definitions
-// they were parsed and code-generated in every TU that included ledger.h,
-// which on this library is nearly every SQP TU (sqp_driver.h includes it).
-//
-// FP-ARITHMETIC-FREE, which is what let this land as an early phase-C split:
-// integer counters, enum-to-string lookups and string formatting. `fmt` reads
-// the recorded values and formats them; it computes nothing with them.
-//
-// WHAT DELIBERATELY DID NOT MOVE: `Ledger::record()` and the two accessors.
-// record() is one `push_back` per solve and the accessors return a reference;
-// out-of-lining them would add a call to the recording path and buy no build
-// time worth measuring. They stay inline in the header, as the phase-C plan
-// (section 6, T2) directs.
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// The instrumentation ledger's three reporting functions: a histogram tally
+// over the recorded solves and two fmt-formatted tables. FP-arithmetic-free:
+// integer counters, enum-to-string lookups and string formatting only; `fmt`
+// reads the recorded values and formats them, it computes nothing with them.
 
 #include <hven/core/ledger.h>
 
@@ -52,7 +40,6 @@ std::string Ledger::summary_table() const {
         return "";
     }
 
-    // Build the table with header
     std::string result;
     const std::string header = fmt::format("{:<30} {:<10} {:<8} {:<16} {:<14}", "Label", "Warm?",
                                            "Iters", "Factorizations", "Schur Updates");

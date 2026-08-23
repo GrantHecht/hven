@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // TEMPORARY, TEST-ONLY: the rig's arm over the SQP engine's OLD linear seam --
 // tycho::sqp::KktSystem (MKL Pardiso, phase-numbered) from the sibling
 // checkout named by the CMake option HVEN_RIG_SQP_SEAM, pinned to that

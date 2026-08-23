@@ -1,31 +1,5 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
-// Part of the globalization component extraction: BarrierGovernor is the
-// free<->monotone barrier-update state machine interface. Two
-// implementations ship: ClassicAdaptiveGovernor (verbatim today's
-// PROBE/LOQO free-mode oracles; always reports in_monotone_mode() ==
-// false) and MonitoredBarrierGovernor (monitored_governor.h — the
-// free<->monotone state machine: KKT-error monitor, monotone
-// Fiacco-McCormick fallback, re-entry), selected via
-// Settings::barrier_governor_.
-//
-// This file: the BarrierGovernor interface (pure virtual except
-// in_monotone_mode()/provides_restoration_barrier_safeguard()/
-// append_diagnostics()'s free-mode-correct defaults), plus one shared
-// non-virtual method with a real body — update_barrier_monotone() below, the
-// monotone in-phase restoration schedule every governor uses identically.
-//
-// Ownership rule: the interface itself defines no persistent state — mu is
-// always passed in (mu_in) and returned, never cached by
-// ClassicAdaptiveGovernor. MonitoredBarrierGovernor is the exception: it
-// holds a real monotone_mu_ member (monitored_governor.h) across calls while
-// its state machine is in monotone mode. reset() is the μ-event/phase-change
-// hook (mirrors AcceptanceStrategy / GlobalizationMechanism);
-// MonitoredBarrierGovernor's reset() clears exactly that monotone-mode
-// bookkeeping (the KKT-error sufficient-decrease window plus monotone_mu_).
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
 
 #pragma once
 
@@ -42,82 +16,56 @@ namespace hven::solvers {
 
 // Forward declaration only: update_barrier takes a GlobalizationMechanism by
 // reference so PROBE's predictor can drive the SAME fraction-to-boundary
-// step-scaling (GlobalizationMechanism::max_primal_dual_step) that alg_impl's
-// main-path step uses — this is the "second caller of that entry point"
-// globalization_mechanism.h anticipates. A reference parameter needs only the
-// incomplete type here; the concrete BacktrackingLineSearch is visible at the
-// interior_point_solver_globalization.cpp definition site.
+// step-scaling as the main-path step. A reference parameter needs only the
+// incomplete type here; the concrete implementation is visible at the
+// definition site.
 class GlobalizationMechanism;
 
-// =============================================================================
-// BarrierGovernor — computes the next barrier parameter mu and its
-// contribution to the objective/gradient.
-// =============================================================================
+/// @brief Computes the next barrier parameter mu and its contribution to the
+/// objective/gradient — the free<->monotone barrier-update state machine
+/// interface.
+///
+/// The interface defines no persistent state: mu is always passed in and
+/// returned, never cached. A stateful governor holds its bookkeeping behind
+/// reset().
 class BarrierGovernor {
   public:
     virtual ~BarrierGovernor() = default;
 
-    // Mirrors ClassicAdaptiveGovernor::update_barrier's PROBE/LOQO body (the
-    // free-mode oracles extracted verbatim from the original inline
-    // pre-extraction block). avgcomp/mincomp are the
-    // complementarity measures InteriorPointSolver::complementarity() already computed
-    // this iteration (computed once per iteration, before factorization —
-    // NOT recomputed here). barmode selects PROBE (Mehrotra
-    // predictor-corrector) vs. LOQO exactly as today's switch does.
-    //
-    // PROBE is NOT a pure function of (mu_in, avgcomp, mincomp): its
-    // predictor step needs a fresh KKT solve (DXSL = -kkt_sol_.solve(RHS),
-    // using the already-factored system) and reuses the fraction-to-boundary
-    // scaling (calls mechanism.max_primal_dual_step on the predictor DXSL) to
-    // form the predictor point Temp = XSL + DXSL before computing
-    // mpc_mu(Temp.slacks(), Temp.iq_lmults(), avgcomp, mincomp) — hence this
-    // signature takes the live KKT solver and dims (via SolverContext), the
-    // GlobalizationMechanism (to reuse its step-scaling), plus explicit
-    // RHS/DXSL/Temp work vectors rather than being a free function
-    // of scalars. The predictor's alphap/alphad out-values are NOT surfaced
-    // here — they are computed into locals and discarded, because on the
-    // classic (GoodStep) path the main-path step overwrites them before they
-    // are recorded (see the divergence-path note in the classic implementation
-    // header). XSL is needed for LOQO's mu = loqo_mu(slacks, iq_lmults,
-    // avgcomp, mincomp) and for the final barrier_objective(slacks, mu) /
-    // barrier_gradient(slacks, iq_lmults, mu, dual_grad) common tail that
-    // runs after either branch. barrier_objective/barrier_gradient are
-    // one-line forwarders into the shared kernels in barrier_math.h. XSL/RHS/
-    // DXSL/Temp are the same raw Eigen::VectorXd blocks the current code
-    // operates on via hven::solvers::KKTVector views (kkt_vector.h)
-    // constructed from SolverContext's dims.
-    //
-    // mu_in is unused by the free-mode oracles themselves — both
-    // ClassicAdaptiveGovernor's and MonitoredBarrierGovernor's PROBE/LOQO
-    // paths compute an entirely new mu from avgcomp/mincomp, then the common
-    // tail clamps it against ctx.settings_.min_mu_/max_mu_. The genuinely
-    // load-bearing consumer of mu_in is the separate, non-virtual
-    // update_barrier_monotone() below: it seeds mu from mu_in and both gates
-    // (sub_err <= kBarrierTolFactor * mu_in) and advances
-    // (fiacco_mccormick_mu(mu_in, ...)) off it directly, whenever a governor
-    // without its own restoration safeguard (ClassicAdaptiveGovernor) is
-    // driving a nested restoration phase (interior_point_solver.cpp).
-    //
-    // Returns the new (already-clamped) mu; barr_obj is an out-parameter
-    // (today's barr_obj local, set by the common tail's barrier_objective()
-    // call).
-    //
-    // `current` is the in-progress iteration's IterateInfo whose residual
-    // fields (kkt_inf_/econ_inf_/icon_inf_/barr_inf_) were filled by this
-    // iteration's convergence check — it is NOT yet in the solver's iteration
-    // history at this point in the loop (it is re-appended after the line
-    // search), which is exactly why it is passed explicitly. A monitored
-    // free<->monotone governor reads these residuals to decide the
-    // free<->monotone switch; the classic free-mode oracles ignore it
-    // entirely.
-    //
-    // `mu_event` is an out-signal (the caller passes it initialized to false):
-    // an implementation sets it true when its monotone mode begins a new barrier
-    // subproblem with a fresh barrier parameter, which is the acceptance
-    // strategy's per-barrier-subproblem reset trigger (the caller clears the
-    // acceptance filter/funnel before the iteration's line search runs). The
-    // classic free-mode oracles never set it, so on the default path the
-    // caller's reset branch is dead and the solve stays bit-identical.
+    /// @brief Free-mode barrier update (Mehrotra PROBE predictor-corrector or
+    /// LOQO), selected by @p barmode.
+    ///
+    /// Callout: PROBE is NOT a pure function of (mu_in, avgcomp, mincomp). Its
+    /// predictor step needs a fresh KKT solve against the already-factored
+    /// system and reuses the fraction-to-boundary scaling via @p mechanism to
+    /// form the predictor point Temp before computing the new mu — hence this
+    /// signature takes the live KKT solver and dims (via SolverContext), the
+    /// mechanism, and explicit RHS/DXSL/Temp work vectors rather than being a
+    /// free function of scalars. The predictor's alphap/alphad are computed
+    /// into locals and deliberately discarded: on the classic path the
+    /// main-path step overwrites them before they are recorded.
+    ///
+    /// @param avgcomp,mincomp Complementarity measures already computed this
+    ///   iteration (once per iteration, before factorization — NOT recomputed here).
+    /// @param mu_in Unused by the free-mode oracles themselves (they compute an
+    ///   entirely new mu from avgcomp/mincomp, then clamp against
+    ///   ctx.settings_.min_mu_/max_mu_); the load-bearing consumer is
+    ///   update_barrier_monotone(), which seeds and gates off it directly.
+    /// @param XSL Read by LOQO's mu rule and by the common tail (barrier
+    ///   objective/dual-gradient at the resulting mu); raw blocks viewed via
+    ///   KKTVector built from SolverContext's dims internally.
+    /// @param current This iteration's in-progress IterateInfo whose residual
+    ///   fields were just filled by the convergence check — passed explicitly
+    ///   because it is NOT yet in the solver's iteration history at this point
+    ///   in the loop. Monitored governors read these residuals to decide the
+    ///   free<->monotone switch; free-mode oracles ignore it entirely.
+    /// @param barr_obj Out: barrier objective set by the common tail.
+    /// @param mu_event Out-signal (caller passes false): set true when a
+    ///   governor's monotone mode begins a new barrier subproblem with a fresh
+    ///   parameter — the acceptance strategy's per-subproblem reset trigger.
+    ///   Free-mode oracles never set it, so the caller's reset branch stays
+    ///   dead and the default path remains bit-identical.
+    /// @return The new (already-clamped) mu.
     virtual double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in,
                                   double avgcomp, double mincomp, Eigen::VectorXd &XSL,
                                   Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
@@ -125,84 +73,62 @@ class BarrierGovernor {
                                   SolverContext &ctx, double &barr_obj, const IterateInfo &current,
                                   bool &mu_event) = 0;
 
-    // Barrier update while a nested l1 feasibility-restoration phase is active,
-    // used for governors that do NOT supply their own monotone safeguard (see
-    // provides_restoration_barrier_safeguard() below — the free-mode
-    // ClassicAdaptiveGovernor is the case). This transcribes Ipopt's default
-    // restoration mu_strategy, which is MONOTONE: the restoration phase runs the
-    // safeguarded Fiacco-McCormick ladder anchored at the entry resto_mu, never a
-    // free-mode oracle. It is NON-VIRTUAL and identical for every governor — the
-    // configured governor/barmode (its free-mode LOQO/PROBE oracles) is bypassed
-    // for the duration of the phase and resumes at exit, so those free oracles
-    // are UNREACHABLE while nested-active under a free governor.
-    //
-    // Why the free oracle cannot be used here: under a free oracle the barrier
-    // machinery drives EVERY complementarity product — including the elastic
-    // (n,p,z) bound pairs of the restoration subproblem — toward whatever mu it
-    // proposes, so any mu is self-consistent. The oracle then collapses mu to
-    // its floor within a handful of iterations, before the elastics shrink; the
-    // condensed elastic pivot (n²+p²)/mu explodes, the constraint rows decouple,
-    // and the phase freezes on a wrong-basin l1 minimizer (p>0) until the
-    // iteration cap. The monotone schedule instead decreases mu only when the
-    // restoration barrier subproblem is sufficiently solved — the same
-    // Fiacco-McCormick gate MonitoredBarrierGovernor implements: advance iff
-    // barrier_subproblem_error <= barrier_tol_factor · mu, where the subproblem
-    // error reads barr_inf_ (into which the elastic complementarity is folded
-    // while nested-active), so mu stays anchored at resto scale until the
-    // elastics actually shrink.
-    //
-    // mu_in is the current (held) monotone parameter carried across phase
-    // iterations; the returned mu is the possibly-advanced one. mu_event is set
-    // true on a strict decrease (a new barrier subproblem — the acceptance
-    // per-subproblem reset trigger). The log-barrier objective/dual-gradient
-    // tail is written at the resulting mu, exactly as the free-mode common tail
-    // does (slacks/iq_lmults on XSL, dual_grad on RHS). Never reached off the
-    // nested path — the alg_impl call site gates it on nested-active.
+    /// @brief Barrier update while a nested l1 feasibility-restoration phase is
+    /// active, for governors WITHOUT their own monotone safeguard. Shared,
+    /// NON-VIRTUAL: every governor uses it identically; the configured
+    /// governor/barmode is bypassed for the phase duration and resumes at exit.
+    ///
+    /// Numerical callout: transcribes the safeguarded MONOTONE restoration
+    /// schedule (Fiacco-McCormick ladder anchored at the entry parameter;
+    /// advance iff barrier_subproblem_error <= tol_factor * mu, reading
+    /// barr_inf_, into which elastic complementarity folds while nested-active)
+    /// because a free oracle cannot drive this phase: it drives EVERY
+    /// complementarity product toward its proposed mu — including the elastic
+    /// bound pairs of the restoration subproblem, so any mu is self-consistent —
+    /// then collapses mu to its floor within a few iterations, before the
+    /// elastics shrink. The condensed elastic pivot explodes, constraint rows
+    /// decouple, and the phase freezes on a wrong-basin minimizer until the
+    /// iteration cap. The monotone gate keeps mu anchored until the elastics
+    /// actually shrink.
+    ///
+    /// @param mu_in Current held monotone parameter carried across phase iterations.
+    /// @param barr_obj Out: barrier objective written by the log-barrier tail at
+    ///   the resulting mu (slacks/iq_lmults on XSL, dual gradient on RHS), as
+    ///   the free-mode common tail does.
+    /// @param mu_event Set true on a strict decrease (a new barrier subproblem
+    ///   — the acceptance per-subproblem reset trigger).
+    /// @return The possibly-advanced mu. Never reached off the nested path.
     double update_barrier_monotone(double mu_in, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
                                    SolverContext &ctx, double &barr_obj, const IterateInfo &current,
                                    bool &mu_event);
 
-    // Whether this governor supplies its OWN safeguarded (monotone) barrier
-    // schedule while a nested l1 restoration phase is active. When false (the
-    // default — the free-mode ClassicAdaptiveGovernor, which has no monotone
-    // safeguard), the alg_impl seam routes the in-phase barrier update through
-    // update_barrier_monotone above, transcribing Ipopt's default restoration
-    // mu_strategy so the free-oracle μ-race cannot freeze the phase. When true
-    // (MonitoredBarrierGovernor), the governor's own free<->monotone monitor
-    // forces the safeguarded Fiacco-McCormick decrease in-phase, so the seam
-    // leaves it to drive its own update: overlaying a second (differently
-    // anchored) monotone schedule would only perturb its established
-    // convergence. Note the scope this places on the "free oracle unreachable
-    // in-phase" guarantee: it holds unconditionally under a free governor;
-    // under the monitored governor the free oracle is reached only inside the
-    // monitor's own guarded free mode. How complete that guard is depends on
-    // the oracle — the LOQO update consumes the elastic-augmented
-    // complementarity directly, while the PROBE predictor does not (see the
-    // per-oracle scope note on the monitored governor's override).
+    /// @brief Whether this governor supplies its OWN safeguarded (monotone)
+    /// barrier schedule during a nested l1 restoration phase.
+    ///
+    /// Default false: the seam routes the in-phase update through
+    /// update_barrier_monotone so the free-oracle failure mode above cannot
+    /// occur. When true, the governor's own monitor forces the safeguarded
+    /// decrease in-phase and the seam leaves it to drive its own update —
+    /// overlaying a second differently-anchored monotone schedule would only
+    /// perturb its established convergence. Scope note on the resulting
+    /// guarantee: under a free governor the free oracle is unconditionally
+    /// unreachable in-phase; under a monitored governor it is reached only
+    /// inside the monitor's own guarded free mode, whose completeness depends
+    /// on the oracle (LOQO consumes the elastic-augmented complementarity
+    /// directly; PROBE does not).
     virtual bool provides_restoration_barrier_safeguard() const { return false; }
 
-    // Free vs. monotone mode query. ClassicAdaptiveGovernor keeps this
-    // default (always free); MonitoredBarrierGovernor overrides it to report
-    // its live state-machine mode.
+    /// @brief Free vs. monotone mode query; the default reports always-free.
     virtual bool in_monotone_mode() const { return false; }
 
-    // μ-event / phase-change reset hook — see the ownership-rule note above.
+    /// @brief mu-event / phase-change hook; stateful governors clear their
+    /// monotone-mode bookkeeping here.
     virtual void reset() = 0;
 
-    // Solver-level observability hook: writes this governor's diagnostic
-    // state (if any) into `result`. Mirrors AcceptanceStrategy::
-    // append_diagnostics() (acceptance_strategy.h) — same call site
-    // (run_phase_sequence(), once per phase, right after that phase's
-    // alg_impl() returns and before the NEXT phase's reset()), same
-    // write-only contract, same last-phase-wins semantics for a multi-phase
-    // solve. The default body is a no-op, which is exactly right for
-    // ClassicAdaptiveGovernor (it has no monotone-mode bookkeeping to
-    // report): the classic path stays bit-identical because this hook never
-    // touches `result` unless an implementation overrides it.
-    // MonitoredBarrierGovernor overrides this to report its
-    // last_monotone_switches_/last_monotone_iters_ counters — see
-    // monitored_governor.h and the corresponding SolveResult fields in
-    // interior_point_solver.h.
+    /// @brief Writes this governor's diagnostic state (if any) into result.
+    /// Same write-only contract and last-phase-wins semantics as
+    /// AcceptanceStrategy::append_diagnostics; the no-op default keeps the
+    /// classic path bit-identical.
     virtual void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
         (void)result;
     }

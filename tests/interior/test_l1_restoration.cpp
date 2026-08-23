@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 ///////////////////////////////////////////////////////////////////////////////
 // Unit tests for NestedL1Restoration — the nested l1 proximal feasibility
 // restoration (second of the feasibility-restoration trio), with elastic-slack

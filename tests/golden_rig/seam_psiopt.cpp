@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // TEMPORARY, TEST-ONLY: the rig's arm over the interior-point engine's OLD
 // linear seam -- Eigen::PardisoLDLT on MKL platforms, Eigen::AccelerateLDLTTPP
 // on Apple, both from the sibling checkout named by the CMake option

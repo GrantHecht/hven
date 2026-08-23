@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #pragma once
 
 // tests/sqp/support/scale_problems.h — test-support only, NOT part of the public

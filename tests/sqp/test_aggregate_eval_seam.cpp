@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_aggregate_eval_seam.cpp — the consumer-side binding's pins.
 //
 // WHAT IS BEING PINNED. AggregateEvalSeam

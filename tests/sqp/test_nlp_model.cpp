@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_nlp_model.cpp — Task 3: NlpModel interface, derivative checker,
 // and the first six Hock-Schittkowski problems.
 //

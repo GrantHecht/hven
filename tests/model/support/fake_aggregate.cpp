@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #include "support/fake_aggregate.h"
 
 #include "hven/core/pattern_hash.h"

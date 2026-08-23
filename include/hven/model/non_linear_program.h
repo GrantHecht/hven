@@ -1,22 +1,16 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
 // This file defines the default composite non-linear program class
 // for interfacing with InteriorPointSolver. This class is responsible for combining many different
 // dense or sparse objective or constraints into a single optimization problem and
 // manages all memory allocation, sparsity pattern computation, work partitioning, and function
 // evaluation.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 

@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The three flag vocabularies of the contract surface, and the one place they
 // must not be confused: ClaimDomainSet names what is CLAIMED at layout time,
 // EvalRequest names what is EVALUATED per call, AggregateCapability names what

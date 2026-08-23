@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_bench_dump.cpp — PHASE-5 TASK 9. The asserting cover for
 // bench/bench_cli.h's two --dump-solution helpers.
 //

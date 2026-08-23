@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #include "hven/detail/interior/utils/thread_pool.h"
 #include <atomic>
 #include <mutex>
@@ -31,25 +34,22 @@ void set_num_threads(int n) {
     std::lock_guard lock(g_set_threads_mutex);
     if (n <= 1) {
         g_num_threads.store(1, std::memory_order_relaxed);
-        // Pool stays alive but parallel_* helpers bypass it via use_thread_pool().
-        // Idle workers block on their empty queues, consuming no CPU.
-        // set_num_threads is startup-only.
+        // Pool stays alive but parallel_* helpers bypass it via
+        // use_thread_pool(); idle workers block on their empty queues,
+        // consuming no CPU.
         //
-        // Deliberately does NOT touch ThreadPool::requested_thread_count() or the
-        // pool itself: with num_threads <= 1, dispatch is bypassed entirely
-        // (use_thread_pool() is false), so the pool's actual worker count is
-        // irrelevant until a later set_num_threads(n>1) call sizes it explicitly.
-        // This mirrors pre-existing behavior — this branch never called reset()
-        // either, so there is no size for the stash to mirror here.
+        // Deliberately does NOT touch ThreadPool::requested_thread_count() or
+        // the pool itself: with num_threads <= 1, dispatch is bypassed
+        // entirely, so the pool's actual worker count is irrelevant until a
+        // later set_num_threads(n > 1) sizes it explicitly.
     } else {
-        // Stash the desired count BEFORE touching the pool singleton. If this is
-        // the pool's first construction (thread_pool() below triggers it), the
-        // ctor's default argument reads this stash and the pool is born at n
-        // directly instead of spawning hardware_concurrency() threads and
-        // immediately joining/respawning to n — see
-        // ThreadPool::requested_thread_count() for the construction-order race
-        // note. On an already-constructed pool the stash is inert (only the
-        // ctor reads it); resizing then happens via reset(n) below, which
+        // Stash the desired count BEFORE touching the pool singleton. If this
+        // is the pool's first construction (thread_pool() below triggers it),
+        // the ctor reads this stash and the pool is born at n directly instead
+        // of spawning hardware_concurrency() threads and immediately
+        // joining/respawning to n -- see ThreadPool::requested_thread_count().
+        // On an already-constructed pool the stash is inert (only the ctor
+        // reads it); resizing then happens via reset(n) below, which
         // independently early-returns when the pool is already at size n.
         ThreadPool::requested_thread_count().store(static_cast<unsigned>(n),
                                                    std::memory_order_release);

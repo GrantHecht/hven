@@ -1,21 +1,10 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-//   - Configuration fields grouped into Settings struct
-//   - Phase dispatch refactored into run_phase_sequence
-//   - Line search methods extracted (ls_lang, ls_l1, ls_auglang)
-//   - Printing extracted to psiopt_print.cpp
-//   - Settings converters/setters/validation extracted to psiopt_settings.cpp
-// =============================================================================
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
 
 // clang-format off
 //

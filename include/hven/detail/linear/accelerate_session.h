@@ -53,10 +53,9 @@ namespace hven::linear::detail {
 // (kForward, kDiagonal, kBackward). The adapter
 // (symmetric_factor_accelerate.cpp's accelerate_phase_of) maps SolvePhase to
 // this enum via an explicit, exhaustive switch -- not a bare cast -- so a
-// future reordering of either enum fails to COMPILE there (a missing switch
-// case) rather than silently swapping which subfactor a phase solves
-// against. That switch is the enforcement point; no static_assert is needed
-// or present.
+// future reordering of either enum fails to COMPILE there rather than
+// silently swapping which subfactor a phase solves against. That switch is
+// the enforcement point; no static_assert is needed or present.
 enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 
 // The backend knobs one session is created with. Fixed for the session's
@@ -65,55 +64,48 @@ enum class SubfactorPhase : int { kForward = 0, kDiagonal = 1, kBackward = 2 };
 // adopts a session inherits them rather than reinterpreting them.
 //
 // THE EXCEPTION IS num_threads, the same one the MKL twin carries:
-// FactorSession::set_num_threads moves it in place, which is what keeps the
-// stored value -- and therefore SymmetricFactor::adopt()'s Options round
-// trip -- honest after a live SymmetricFactor::set_num_threads. It applies
-// nothing to a backend that has nothing to apply it to. Documented here
-// rather than on the field so the field list stays character-for-character
-// what it was.
+// FactorSession::set_num_threads moves it in place, which keeps the stored
+// value -- and therefore SymmetricFactor::adopt()'s Options round trip --
+// honest after a live SymmetricFactor::set_num_threads.
 //
-// num_threads and max_refinement_iters are stored here (so SymmetricFactor::
-// adopt() can round-trip Options faithfully) but NOT applied to any backend
-// call: Accelerate exposes no per-instance thread control -- the contract
-// records that control as best-effort-absent on this backend rather than
-// fabricating one -- and no
-// native iterative-refinement counter this session can honestly report (a
-// hand-rolled refinement loop, as the origin project's AccelerateImpl
-// implements via vDSP,
-// is deliberately NOT ported here: adding an unverified numerical loop
-// without dedicated numerical validation would be a correctness risk).
+// num_threads and max_refinement_iters are stored here but NOT applied to
+// any backend call: Accelerate exposes no per-instance thread control (the
+// contract records that control as best-effort-absent on this backend
+// rather than fabricating one) and no native iterative-refinement counter
+// this session can honestly report. A hand-rolled refinement loop is
+// deliberately NOT ported here: adding an unverified numerical loop without
+// dedicated numerical validation would be a correctness risk.
 struct AccelerateConfig {
     int num_threads = 0; // stored only; no per-instance backend control exists
 
-    // pivot_perturb_exp -> zeroTolerance (see FactorSession::factorize);
-    // std::nullopt is the don't-write state, which on this struct-configured
-    // backend means Apple's OWN documented default 1e-4 * eps is passed --
-    // the formula at k = 4. max_refinement_iters is stored only in either
-    // state (Accelerate has no refinement mechanism and reports no
-    // refinement count); the optional exists so SymmetricFactor::adopt()'s
-    // Options round trip is exact. Defaults stay the written 8 / 0,
-    // mirroring PardisoConfig -- see SymmetricFactor::Options' own doc
-    // comments for both states' per-backend semantics.
+    // pivot_perturb_exp -> zeroTolerance; std::nullopt is the don't-write
+    // state, which on this struct-configured backend means Apple's OWN
+    // documented default 1e-4 * eps is passed -- the formula at k = 4.
+    // max_refinement_iters is stored only in either state (Accelerate has
+    // no refinement mechanism and reports no refinement count); the
+    // optional exists so SymmetricFactor::adopt()'s Options round trip is
+    // exact. Defaults stay the written 8 / 0, mirroring PardisoConfig --
+    // see SymmetricFactor::Options' own doc comments for both states'
+    // per-backend semantics.
     std::optional<int> pivot_perturb_exp = 8;
     std::optional<int> max_refinement_iters = 0;
 
     // Fill-in reordering method for the symbolic analysis, ALREADY resolved
-    // to Accelerate's own SparseOrder_t vocabulary (SymmetricFactor::
-    // Options::Ordering -> SparseOrder_t, including the kParallelNestedDissection
-    // -> SparseOrderMTMetis OS-availability downgrade) by the adapter's
-    // accelerate_ordering_code() (symmetric_factor_accelerate.cpp) --
-    // exactly the same division of labor as PardisoConfig::ordering on the
-    // MKL twin: the adapter translates hven's own Options vocabulary into
-    // the backend's, and this session file only carries the already-decided
-    // value through to SparseSymbolicFactorOptions::orderMethod. Defaults to
+    // to Accelerate's own SparseOrder_t vocabulary (including the
+    // kParallelNestedDissection -> SparseOrderMTMetis OS-availability
+    // downgrade) by the adapter -- exactly the same division of labor as
+    // PardisoConfig::ordering on the MKL twin: the adapter translates
+    // hven's own Options vocabulary into the backend's, and this session
+    // file only carries the already-decided value through to
+    // SparseSymbolicFactorOptions::orderMethod. Defaults to
     // SparseOrderDefault, matching Options::Ordering::kBackendDefault.
     SparseOrder_t ordering = SparseOrderDefault;
 
     // An explicit override for zeroTolerance, bypassing the
     // pivot_perturb_exp-derived formula above entirely when present.
     // std::nullopt (default) means "use that formula" -- the only state
-    // this field takes at Options::accelerate_zero_tolerance == std::nullopt.
-    // See that option's own doc comment.
+    // this field takes at Options::accelerate_zero_tolerance ==
+    // std::nullopt.
     std::optional<double> zero_tolerance_override;
 };
 
@@ -122,11 +114,10 @@ struct AccelerateConfig {
 // Accelerate's SparseMatrixStructure needs in `long` width.
 //
 // The session is the unit of SHARING -- see the identical note on the MKL
-// FactorSession (hven/detail/linear/pardiso_session.h) for the full
-// rationale; it applies verbatim here. Both backends define a class with
-// this exact name because hven/linear/symmetric_factor.h forward-declares
-// and holds it by that name; only one of the two definitions is ever
-// compiled into a given build (src/CMakeLists.txt selects by platform).
+// FactorSession (hven/detail/linear/pardiso_session.h); it applies verbatim
+// here. Both backends define a class with this exact name because
+// hven/linear/symmetric_factor.h forward-declares and holds it by that name;
+// only one of the two definitions is ever compiled into a given build.
 //
 // Errors are surfaced the same two ways as the MKL session: analyze() throws
 // (nowhere to report a numeric outcome), factorize() RETURNS a nonzero status
@@ -143,8 +134,8 @@ class FactorSession {
     FactorSession &operator=(const FactorSession &) = delete;
 
     // Accelerate symbolic factorization (SparseFactor with no matrix data,
-    // LDLTTPP -- see the class-level notes on why TPP specifically). Throws
-    // std::runtime_error carrying Accelerate's status code on failure.
+    // LDLTTPP). Throws std::runtime_error carrying Accelerate's status code
+    // on failure.
     void analyze(const SpMatRM &A);
 
     // Numeric factorization against the existing symbolic. RETURNS
@@ -158,19 +149,17 @@ class FactorSession {
     // count. Throws std::invalid_argument if it does not.
     //
     // UNLIKE Pardiso, Accelerate is documented (and was measured on real
-    // hardware by the SQP engine's audit) to genuinely REFUSE a numeric
-    // factorization on singular/indefinite-beyond-repair input
-    // (SparseMatrixIsSingular / SparseFactorizationFailed) rather than
-    // perturbing through it -- so this path, unlike the MKL twin's, is not
-    // expected to be unreachable by ordinary fixtures. Native macOS CI now
-    // runs this backend, but no contract test pins a particular fixture to a
-    // nonzero numeric-factorization status. See docs/testing.md for the seam
-    // that covers the reachable slice of this backend's fault paths.
+    // hardware) to genuinely REFUSE a numeric factorization on singular or
+    // indefinite-beyond-repair input (SparseMatrixIsSingular /
+    // SparseFactorizationFailed) rather than perturbing through it -- so
+    // this path is not expected to be unreachable by ordinary fixtures. No
+    // contract test pins a particular fixture to a nonzero numeric-
+    // factorization status; docs/testing.md records the seam covering the
+    // reachable slice of this backend's fault paths.
     int factorize(const SpMatRM &A);
 
     // Full solve, one right-hand side at a time via Accelerate's
-    // DenseVector_Double SparseSolve overload (the exact call shape
-    // KktSystem::solve uses on real hardware). `nrhs` columns are solved in
+    // DenseVector_Double SparseSolve overload. `nrhs` columns are solved in
     // a loop rather than through a batched DenseMatrix_Double call:
     // deliberately conservative (unverified on hardware). `b` and `x`
     // are contiguous column-major buffers of dim() * nrhs doubles and must
@@ -179,19 +168,18 @@ class FactorSession {
 
     // Partial solve via SparseCreateSubfactor: forward = SubfactorL,
     // diagonal = SubfactorD, backward = SubfactorL with the transpose
-    // attribute set -- exactly KktSystem::solve_forward/diagonal/backward's
-    // call shape. Throws std::runtime_error on any Accelerate error.
+    // attribute set. Throws std::runtime_error on any Accelerate error.
     void solve_partial(SubfactorPhase phase, const double *b, double *x) const;
 
     const AccelerateConfig &config() const noexcept { return cfg_; }
 
     // Repoint the stored thread count. INERT on this backend by contract --
-    // there is no per-instance thread control here for it to reach (see
-    // AccelerateConfig::num_threads) -- so this only keeps the stored value,
-    // and therefore SymmetricFactor::adopt()'s Options round trip, honest
-    // after a live SymmetricFactor::set_num_threads. Nothing about the
-    // symbolic or numeric factorization is touched, which is the same
-    // guarantee the MKL twin makes for a reason that is real there.
+    // there is no per-instance thread control here for it to reach -- so
+    // this only keeps the stored value, and therefore
+    // SymmetricFactor::adopt()'s Options round trip, honest after a live
+    // SymmetricFactor::set_num_threads. Nothing about the symbolic or
+    // numeric factorization is touched, which is the same guarantee the MKL
+    // twin makes for a reason that is real there.
     void set_num_threads(int num_threads) noexcept { cfg_.num_threads = num_threads; }
 
     Index dim() const noexcept { return static_cast<Index>(n_); }
@@ -209,20 +197,19 @@ class FactorSession {
     // This session's process-unique identity, fixed at construction. Re-
     // analysis builds a NEW session (a fork) whose epoch sequence continues
     // the old one's, so the epoch alone cannot tell the two branches apart;
-    // this id can. See hven/detail/linear/session_id.h. Identical in role and
-    // semantics to the MKL twin's.
+    // this id can. See hven/detail/linear/session_id.h. Identical in role
+    // and semantics to the MKL twin's.
     std::uint64_t session_id() const noexcept { return session_id_; }
 
     // The native factorization handle, exposed so the ADAPTER
     // (symmetric_factor_accelerate.cpp, Apache-licensed, not MPL-derived)
     // can call SparseGetInertia against it directly. This is a deliberate
     // architectural choice, not a leak: unlike Pardiso's inertia counters
-    // (cheap fields read back from iparm_, cached at factorize() time),
-    // SparseGetInertia is a genuine, independently-fallible API call --
-    // keeping the call site in the adapter is what lets the test-seam
-    // convention (docs/testing.md) inject its failure without adding a hook
-    // to this MPL-derived file. Only meaningful while has_numerics() is
-    // true.
+    // (cheap fields cached from iparm_), SparseGetInertia is a genuine,
+    // independently-fallible API call -- keeping the call site in the
+    // adapter is what lets the test-seam convention (docs/testing.md)
+    // inject its failure without adding a hook to this MPL-derived file.
+    // Only meaningful while has_numerics() is true.
     const SparseOpaqueFactorization_Double &native_factorization() const noexcept {
         return numeric_;
     }
@@ -231,9 +218,8 @@ class FactorSession {
     // General-purpose and UNCONDITIONAL -- no gate, no Options field: this
     // is a real Accelerate output computed as part of SparseFactor()
     // regardless of hven configuration, mirroring how factor_nonzeros() is
-    // unconditional on the MKL twin (see that accessor's own doc comment).
-    // Only meaningful while has_numerics() is true, matching
-    // native_factorization() above.
+    // unconditional on the MKL twin. Only meaningful while has_numerics()
+    // is true, matching native_factorization() above.
     long factor_size_bytes() const noexcept {
         return static_cast<long>(symbolic_.factorSize_Double);
     }
@@ -249,8 +235,7 @@ class FactorSession {
     // Release the numeric / all factorization state. Never throws -- must be
     // safe from the destructor and from re-analysis paths. Accelerate
     // requires SparseCleanup even for a FAILED factorization, so the
-    // have_*_ flags are set before any status check, exactly like the
-    // KktSystem precedent.
+    // have_*_ flags are set before any status check.
     void release_numeric() noexcept;
     void release() noexcept;
 

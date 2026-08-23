@@ -59,19 +59,17 @@ namespace {
 
 // Applies a per-instance thread count for the duration of one backend call.
 //
-// mkl_set_num_threads_local sets a THREAD-LOCAL override; that is the whole
-// point of using it: an hven instance configured for two threads must not
-// reach out and change the thread count of every other MKL user in the
-// process, and it must not depend on the environment to undo what it did.
+// mkl_set_num_threads_local sets a THREAD-LOCAL override: an hven instance
+// configured for two threads must not reach out and change the thread count of
+// every other MKL user in the process.
 //
-// SAVE AND RESTORE, not restore-to-zero. The setter RETURNS the override
-// that was in force on this thread (0 when there was none, meaning "follow
-// MKL's global setting"), and that returned value is what the destructor
-// puts back. Restoring a hardcoded 0 instead would be correct only when hven
-// is the sole MKL user on the thread: a caller that had set its own local
-// override before calling in would silently lose it here, and the loss would
-// surface far away, as somebody else's solve running at the wrong width.
-// Undoing exactly what was done is the contract this scope exists to keep.
+// SAVE AND RESTORE, not restore-to-zero. The setter RETURNS the override that
+// was in force on this thread (0 when there was none, meaning "follow MKL's
+// global setting"), and that returned value is what the destructor puts back.
+// Restoring a hardcoded 0 instead would silently lose a caller's own
+// pre-existing local override -- surfacing far away, as somebody else's solve
+// running at the wrong width. Undoing exactly what was done is the contract
+// this scope exists to keep.
 class MklThreadScope {
   public:
     explicit MklThreadScope(int num_threads) : engaged_(num_threads > 0) {
@@ -201,17 +199,12 @@ void FactorSession::analyze(const SpMatRM &A) {
     // did-the-write-execute flags further down -- same file, same guard,
     // same underlying reason (a fact that leaves no trace anywhere outside
     // this function), captured at a different line because it is a
-    // different kind of fact. This one is the RAW array state exactly as
-    // pardisoinit left it, before anything else -- including this
-    // function's own upcoming phase-11 (symbolic analysis) backend call --
-    // touches it. That call is not a no-op on these entries: phase 11 was
-    // observed, empirically, to overwrite iparm[33] (and iparm[18]) with
-    // its own output by the time this function returns, so a read taken at
-    // the adapter boundary AFTER analyze() completes -- the normal
-    // boundary-preferred approach, and the one this project uses for
-    // iparm[1]/iparm[12] just below -- does not see pardisoinit's value for
-    // those two entries at all; it sees whatever phase 11 left there
-    // instead. Only a read taken at exactly this line, before phase 11
+    // different kind of fact. Phase 11 was observed, empirically, to
+    // overwrite iparm[33] (and iparm[18]) with its own output by the time
+    // this function returns, so a read taken at the adapter boundary AFTER
+    // analyze() completes -- the boundary-preferred approach used for
+    // iparm[1]/iparm[12] below -- does not see pardisoinit's value for those
+    // entries at all. Only a read taken at exactly this line, before phase 11
     // runs, answers "what did pardisoinit actually default this to."
     // Compiles to nothing outside the fault-injection test target, same as
     // every other HVEN_TESTING-gated line in this file; the deviation is
@@ -225,8 +218,8 @@ void FactorSession::analyze(const SpMatRM &A) {
         static_cast<int>(iparm_[18]);
     // iparm[7] / iparm[9]: the two entries whose don't-write states inherit
     // pardisoinit's own values -- captured at this same only-valid line for
-    // the same reason as the three above, for the load-bearing
-    // BackendDefaultPremise canary the don't-write parity rests on.
+    // the load-bearing BackendDefaultPremise canary the don't-write parity
+    // rests on.
     testing::PardisoIparmObserver::post_pardisoinit_refinement_cap_iparm =
         static_cast<int>(iparm_[7]);
     testing::PardisoIparmObserver::post_pardisoinit_pivot_perturb_iparm =
@@ -234,8 +227,8 @@ void FactorSession::analyze(const SpMatRM &A) {
     // iparm[17]: the mirror image of the two above. This function writes it
     // UNCONDITIONALLY a few lines further down, and the ledger's claim that
     // the write is delta-free rests on pardisoinit having already put the
-    // same value there -- so the premise is only checkable from a read taken
-    // BEFORE that write, i.e. from exactly this line.
+    // same value there -- checkable only from a read taken BEFORE that write,
+    // i.e. from exactly this line.
     testing::PardisoIparmObserver::post_pardisoinit_factor_nnz_request_iparm =
         static_cast<int>(iparm_[17]);
 #endif
@@ -275,19 +268,17 @@ void FactorSession::analyze(const SpMatRM &A) {
     // parallel variant) overrides it -- see
     // SymmetricFactor::Options::Ordering.
     //
-    // THE OTHER TEST-ONLY RECORD IN THIS FILE (the first is just above, the
-    // post-pardisoinit snapshot), and why it is here rather than at the
-    // adapter boundary where this project prefers to instrument: the fact
-    // under test is whether the assignment below EXECUTES, and a skipped
-    // assignment leaves no trace anywhere outside this function. On an MKL
-    // whose pardisoinit default for this entry happens to equal one of the
-    // values Ordering can request -- which is the case on the toolchain this
-    // was written against -- reading the array afterwards cannot tell "left it
-    // alone" from "wrote exactly that value", so the boundary has nothing to
-    // observe and the rule would rest on inspecting this `if`. The record goes
-    // where the fact is. It compiles to nothing outside the fault-injection
-    // test target (fault_injection.h is empty without HVEN_TESTING), and the
-    // deviation is argued in docs/testing.md.
+    // THE OTHER TEST-ONLY RECORD IN THIS FILE (the post-pardisoinit snapshot
+    // above), and why it is here rather than at the adapter boundary where
+    // instrumentation prefers to live: the fact under test is whether the
+    // assignment below EXECUTES, and a skipped assignment leaves no trace
+    // anywhere outside this function. On an MKL whose pardisoinit default for
+    // this entry happens to equal one of the values Ordering can request,
+    // reading the array afterwards cannot tell "left it alone" from "wrote
+    // exactly that value", so the boundary has nothing to observe. Compiles
+    // to nothing outside the fault-injection test target (fault_injection.h
+    // is empty without HVEN_TESTING); the deviation is argued in
+    // docs/testing.md.
     if (cfg_.ordering.has_value()) {
         iparm_[1] = static_cast<MKL_INT>(*cfg_.ordering);
 #ifdef HVEN_TESTING
@@ -376,9 +367,8 @@ void FactorSession::analyze(const SpMatRM &A) {
     // longer a belief: it is pinned by
     // BackendDefaultPremise.MklPardisoinitAlreadyRequestsTheFactorNonzeroCount
     // (tests/linear/test_fault_injection.cpp), fed from the post-pardisoinit
-    // capture above -- if a future MKL moves the default, that test fails
-    // instead of the ledger's delta-free row going quietly stale. See
-    // SymmetricFactor::FactorEvidence::factor_nonzeros's own doc comment.
+    // capture above. See SymmetricFactor::FactorEvidence::factor_nonzeros's
+    // own doc comment.
     iparm_[17] = -1;
     // iparm[18]: request the Mflop-cost estimate. Left untouched unless
     // requested -- Intel documents a real time cost for this one (unlike
@@ -439,10 +429,8 @@ int FactorSession::factorize(const SpMatRM &A) {
     // makes the three properties below guaranteed by inspection of this one
     // function -- keep them that way: the invalidation stays ahead of the
     // call, the epoch is incremented in exactly one place after the error
-    // check, and the only other writes to either are unconditional teardown or
-    // replacement (release() and analyze() set has_numerics_ = false; the
-    // constructor seeds epoch_ forward) -- none of which can make a failed
-    // factorization look usable.
+    // check, and the only other writes to either are release()/analyze()'s
+    // has_numerics_ = false and the constructor's forward epoch seed.
     has_numerics_ = false;
 
     const MKL_INT error =

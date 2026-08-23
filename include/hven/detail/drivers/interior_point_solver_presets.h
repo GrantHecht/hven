@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Named InteriorPointSolver configuration presets: five mechanism-named globalization
 // configurations, each a pure Settings field assignment (no algorithm code is
 // touched). Evidence of record for the non-classic presets is the globalization

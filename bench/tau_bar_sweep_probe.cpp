@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // hven_sqp_tau_bar_sweep_probe -- reproducible artifact for
 // docs/notes/2026-08-01-tuning-elastic-tau.md §4.4 (Phase-5 Task 10, fix
 // round 1, finding I-5).

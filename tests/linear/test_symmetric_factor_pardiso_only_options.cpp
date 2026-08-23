@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Throw-path coverage for SymmetricFactor's Pardiso-only options:
 // weighted_matching, matrix_scaling, pivot_strategy, factorization_algorithm,
 // solve_parallelism, cnr_threads and collect_factor_mflops all THROW

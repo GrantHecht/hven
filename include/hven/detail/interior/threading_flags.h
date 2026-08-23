@@ -1,25 +1,14 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// The thread assignment policy a solver function carries. Owned by the solver
-// layer: SolverFunctionBase stores one per function and NonLinearProgram's
-// partitioner is the only thing that reads it. It used to live with the
-// VectorFunction flags, which made the solver headers include a VectorFunction
-// header for an enum the VectorFunction layer only forwards; the enum now lives
-// here and vf/core/functional_flags.h re-exports it, so every existing
-// ThreadingFlags reference in the consuming VectorFunction layer keeps working
-// unchanged.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
+// The thread assignment policy a solver function carries: SolverFunctionBase
+// stores one per function and NonLinearProgram's partitioner is the only
+// reader.
 
 #pragma once
 

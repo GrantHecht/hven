@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 ///////////////////////////////////////////////////////////////////////////////
 // Unit tests for ProximalSwitchRestoration — the proximal feasibility
 // mode-switch (first of the feasibility-restoration trio).

@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // hven_golden_rig_report -- runs every trace in REPORT mode and dumps the
 // observed-vs-expected table.
 //

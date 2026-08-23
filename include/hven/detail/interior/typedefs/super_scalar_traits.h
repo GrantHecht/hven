@@ -1,5 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven — Copyright 2026-present Grant R. Hecht. Apache 2.0.
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // SuperScalar (Eigen::Array<double, W, 1>) trait registrations needed for
 // Eigen 5 to accept it as a Matrix Scalar.
 //
@@ -23,7 +24,6 @@
 // The header is included from eigen_types.h after <Eigen/Core>, so by the
 // time this library's code instantiates an Eigen::Matrix<Array<...>, ...>, these
 // overloads are already in scope.
-// =============================================================================
 #pragma once
 
 #include <Eigen/Core>

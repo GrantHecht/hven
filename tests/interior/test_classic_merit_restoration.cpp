@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 ///////////////////////////////////////////////////////////////////////////////
 // Unit tests for ClassicMeritAcceptance::is_infeasibility_sufficiently_reduced
 // — the restoration-exit test for the classic merit line search.

@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 ///////////////////////////////////////////////////////////////////////////////
 // InertSolverContext -- an owning stand-in for globalization-component unit
 // tests that only need a SolverContext-satisfying signature, not a live solve.

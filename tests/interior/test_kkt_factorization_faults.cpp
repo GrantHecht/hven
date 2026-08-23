@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Fault-injected coverage for the interior-point engine's KKT factorization on
 // the paths a real backend cannot be made to take from any fixture: a numeric
 // factorization that fails, and a symbolic analysis that fails. Those are the

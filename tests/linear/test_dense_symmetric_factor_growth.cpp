@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Phase-B growth of DenseSymmetricFactor: Triangle selection,
 // try_factorize()'s outcome-returning entry, and BunchKaufmanBlockEvidence.
 //
