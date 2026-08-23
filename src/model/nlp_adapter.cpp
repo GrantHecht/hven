@@ -262,9 +262,15 @@ void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
 void NLPAdapterCore::refuse_short_multiplier_block(Index actual, int rows, bool inequality,
                                                    const char *site) const {
     const char *kind = inequality ? "inequality" : "equality";
+    // "this host", not "the {kind} piece": the caller (site) may be the
+    // Hessian owner, which is not always the equality piece -- HessOwner can
+    // land on Objective, EqPiece or IqPiece, and a mixed host can carry both
+    // an equality and an inequality block. Naming the piece after the kind of
+    // the SHORT block, rather than after this host's actual role, would claim
+    // an identity the host may not have.
     throw std::invalid_argument(fmt::format(
-        "{}: {} {} multipliers reached the {} piece, which hosts {} {} rows (refused {})", name_,
-        actual, kind, kind, rows, kind, site));
+        "{}: {} {} multipliers reached this host, which hosts {} {} rows (refused {})", name_,
+        actual, kind, rows, kind, site));
 }
 
 void NLPAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L) {

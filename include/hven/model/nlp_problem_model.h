@@ -237,6 +237,11 @@ class NlpProblemModel final : public NlpModel {
     /// @param lambda_e Equality multipliers, or empty for all-zero.
     /// @param lambda_i Inequality multipliers, or empty for all-zero.
     /// @return One multiplier per declared row, Ipopt sign convention.
+    /// @throws std::invalid_argument if either multiplier block is neither
+    ///         empty nor exactly as long as the row count it stands for
+    ///         (me() for @p lambda_e, mi() for @p lambda_i) -- a block that is
+    ///         merely at least that long is not accepted; the two accepted
+    ///         sizes are 0 and exactly that count.
     Vec compose_user_multipliers(ConstEigenRef<Vec> lambda_e, ConstEigenRef<Vec> lambda_i) const;
 
     /// @brief Maps declared multipliers onto the native row spaces.
