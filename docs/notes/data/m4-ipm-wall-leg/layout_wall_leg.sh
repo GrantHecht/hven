@@ -36,6 +36,24 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPS=${1:-9}
 INNER=${2:-15}
+
+# BUILD HEADER. Which binaries produced the rows below, byte for byte, and
+# which source they were built from. A log without this cannot be told apart
+# from one produced by a stale probe -- which is exactly how a probe that
+# printed the convergence flag under the name `iters` outlived the source
+# beside it.
+echo "# leg: layout leg"
+echo "# date: $(date -Is)   host: $(uname -sr)"
+echo "# probe source: $HERE/layout_time.cpp  sha256=$(sha256sum "$HERE/layout_time.cpp" | cut -d' ' -f1)"
+for side in base head; do
+  b="$HERE/layout_$side"
+  if [ -f "$b" ]; then
+    echo "# binary $side: $b  sha256=$(sha256sum "$b" | cut -d' ' -f1)  mtime=$(date -Ir -r "$b")"
+  else
+    echo "# binary $side: $b  MISSING"
+  fi
+done
+echo "# reps=$REPS inner=$INNER  loadavg=$(cut -d' ' -f1-3 /proc/loadavg)"
 for arm in serial threaded; do
   echo "=== arm: $arm"
   for r in $(seq 1 "$REPS"); do

@@ -8,16 +8,23 @@ comparable. `build_ipm_time.sh` and `build_layout_time.sh` both take
 `<source root> <build dir> <output binary>` and take the probe source from
 their own directory.
 
-One wrinkle worth stating rather than leaving to be rediscovered: the IPM leg's
-committed `build_ipm_time.sh` compiles
-`/home/ghecht/Projects/hven/.scratch/task-3/ab/ipm_time.cpp` -- an OUT-OF-TREE
-path in a different checkout, left over from the run the script was first
-written for. The copy beside it in this directory is the one under version
-control and the one this file's runs used. A run that wants the committed
-source must point the script at it (or use `build_layout_time.sh`'s shape,
-which resolves the source relative to the script).
+That is true of both scripts as they now stand, and it was NOT true of
+`build_ipm_time.sh` until this branch: it compiled
+`/home/ghecht/Projects/hven/.scratch/task-3/ab/ipm_time.cpp`, an out-of-tree
+path in a different checkout, left over from the run it was first written for.
+That stale copy is the pre-fix probe -- it prints the convergence flag under
+the name `iters` -- so any IPM leg log produced before this branch carries no
+real iteration count whatever the source beside it says. The script now
+resolves its source relative to itself, as the layout script always did.
+
+Every log also opens with a BUILD HEADER: the probe source and its sha256, and
+each arm's binary with its sha256 and mtime. A log without that header cannot
+be told apart from one a stale probe produced, which is the failure above.
 
 ## `runs/2026-08-22-layout-cost-fix-ipm.log` and `runs/2026-08-22-layout-cost-fix-layout.log`
+
+The header at the top of each log is authoritative for that run; what follows
+is the standing description of how the two arms are constructed.
 
 | arm | hven source | `libhven.a` |
 |---|---|---|
