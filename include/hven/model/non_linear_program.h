@@ -276,8 +276,9 @@ struct NonLinearProgram : public NlpAggregate {
     ///        fixing rows included, and lays the problem out from it.
     ///
     /// equality_rows_ is the AS-LAID count, fixing rows included; this entry
-    /// subtracts declaration.fixing_rows_ before make_nlp, which takes the user
-    /// count.
+    /// lifts the declared fixing rows off the equality tail, lays from the user
+    /// count that leaves, and appends them again over the same chain the
+    /// treatment that produced them uses.
     ///
     /// The order of operations, which is observable through the bound merge:
     ///   1. @p declaration.validate() -- nothing is touched until it passes.
@@ -289,15 +290,23 @@ struct NonLinearProgram : public NlpAggregate {
     ///      cap may reduce; declaration() reports the adopted count.
     ///   5. the layout runs, from the declared counts less
     ///      @p declaration.fixing_rows_.
+    ///   6. the lifted fixing rows are appended again and the layout is re-laid
+    ///      over them.
     ///
-    /// The declared fixing rows are lifted off the tail of the equality list
-    /// before step 5 and appended again after it, over the same
-    /// refresh_function_partitions / rebuild_structures chain the treatment
-    /// that produced them uses. The adopting problem therefore repeats the
-    /// history the source layout was laid by -- a user-row lay, then the
-    /// internal rows -- so its claim stream, its row space and its own
-    /// fixing-row count all come back the same, which is what makes the round
-    /// trip exact with fixing rows present.
+    /// Steps 5 and 6 are the history the source layout was laid by -- a
+    /// user-row lay, then the internal rows -- which is what makes the round
+    /// trip exact with fixing rows present: the claim stream, the row space and
+    /// the adopting problem's own fixing-row count all come back the same.
+    ///
+    /// What does NOT come back is the CLASSIFICATION those rows were derived
+    /// from: the adopting problem reports the fixing rows through
+    /// internal_fixed_constraints() while fixed_variable_indices() is still
+    /// empty, until the next configure_variable_treatment discards them and
+    /// re-derives its own from the replayed bounds.
+    ///
+    /// EVERY REFUSAL IS THE DECLARATION'S OWN, and is made before anything
+    /// moves: a refused adoption leaves the problem on hand exactly as it was,
+    /// down to its layout, its stored declaration and its structure epoch.
     ///
     /// @param declaration the pieces, thread modes, dimensions, bounds and
     ///                    requested partition count to lay from; moved out of.
@@ -305,12 +314,9 @@ struct NonLinearProgram : public NlpAggregate {
     ///         non-positive partition count, negative dimensions, piece row
     ///         counts that do not sum to the declared row counts, an
     ///         out-of-range bound index, a NaN bound, an inverted single record
-    ///         or an empty bound intersection.
-    /// @throws std::invalid_argument if the last @p declaration.fixing_rows_
-    ///         equality pieces do not claim exactly that many rows, naming both
-    ///         counts: the internal rows are one piece per row where a
-    ///         treatment appends them, and a tail that does not split there is
-    ///         not the row space the count describes.
+    ///         or an empty bound intersection; and a fixing-row count the tail
+    ///         of the equality list does not have one single-row piece each
+    ///         for.
     void adopt_declaration(AggregateDeclaration declaration);
 
     /// <summary>
@@ -666,6 +672,20 @@ struct NonLinearProgram : public NlpAggregate {
     /// grows equal_cons_ by that many. The layout is NOT re-laid here; the caller
     /// owns that (see refresh_function_partitions).
     void install_fixed_variable_rows();
+
+    /// @brief Splices already-built internal fixing rows onto the tail of the
+    ///        equality list and records them.
+    /// @param rows the rows to append, moved out of; one row each.
+    ///
+    /// The ONE place the internal_fixed_cons_ / equal_cons_ pair is written by
+    /// an install, so the two callers that install rows -- the treatment, which
+    /// builds its rows from the classification, and the adoption entry, which
+    /// carries the declared ones across its lay -- cannot drift apart on the
+    /// bookkeeping the make_nlp invariant checks. All or nothing: a throw
+    /// part-way through leaves the list and the count agreeing.
+    ///
+    /// The layout is NOT re-laid here; the caller owns that.
+    void splice_fixed_variable_rows(std::vector<ConstraintFunction> rows);
 
     /// Truncates the internal fixing rows off equality_constraints_ and returns
     /// equal_cons_ to user_equal_cons_. A no-op when none are installed. The

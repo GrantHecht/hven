@@ -113,6 +113,36 @@ void AggregateDeclaration::validate() const {
                         fixing_rows_, equality_rows_));
     }
 
+    // The tail SHAPE, checked here rather than by whoever adopts this
+    // declaration: a fixing row is one piece claiming one row, at the tail of
+    // the equality list, which is what a fixed-variable treatment appends. A
+    // consumer that lifts those pieces off before it lays can then split by
+    // piece count alone, and a declaration that does not describe that shape is
+    // refused at this boundary -- before anything has been moved anywhere.
+    //
+    // Per PIECE rather than over the tail sum: a tail of a zero-row piece
+    // beside a two-row piece sums correctly and is still not the shape.
+    if (fixing_rows_ > 0) {
+        const int pieces = static_cast<int>(equality_constraints_.size());
+        if (pieces < fixing_rows_) {
+            throw std::invalid_argument(fmt::format(
+                "AggregateDeclaration: {0} of the declared equality rows are internal fixing "
+                "rows, but the equality list holds only {1} pieces; a fixing row is one piece "
+                "claiming one row, at the tail of that list",
+                fixing_rows_, pieces));
+        }
+        for (int k = pieces - fixing_rows_; k < pieces; k++) {
+            const int claimed = equality_constraints_[static_cast<std::size_t>(k)].num_con_eles();
+            if (claimed != 1) {
+                throw std::invalid_argument(fmt::format(
+                    "AggregateDeclaration: equality piece {0} is one of the {1} declared internal "
+                    "fixing rows but claims {2} rows; a fixing row is one piece claiming one row, "
+                    "at the tail of that list",
+                    k, fixing_rows_, claimed));
+            }
+        }
+    }
+
     if (partition_count_ < 1) {
         throw std::invalid_argument(fmt::format(
             "AggregateDeclaration: the partition count is {0}; it must be at least 1 (what a "

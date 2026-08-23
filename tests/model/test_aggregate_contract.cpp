@@ -1133,6 +1133,31 @@ std::vector<ThreadingFlags> adopt_default_modes() {
     return {ThreadingFlags::Thread0, ThreadingFlags::Thread1, ThreadingFlags::MainThread};
 }
 
+/// Every field of a declaration a round trip has to reproduce: the dimensions,
+/// the fixing-row count, the adopted partition count, the bound records
+/// verbatim, and the three piece lists with each piece's thread mode.
+void adopt_expect_same_declaration(const AggregateDeclaration &adopted,
+                                   const AggregateDeclaration &source) {
+    EXPECT_EQ(adopted.primal_vars_, source.primal_vars_);
+    EXPECT_EQ(adopted.equality_rows_, source.equality_rows_);
+    EXPECT_EQ(adopted.inequality_rows_, source.inequality_rows_);
+    EXPECT_EQ(adopted.fixing_rows_, source.fixing_rows_);
+    EXPECT_EQ(adopted.partition_count_, source.partition_count_);
+    EXPECT_EQ(adopted.variable_bounds_, source.variable_bounds_);
+    ASSERT_EQ(adopted.objectives_.size(), source.objectives_.size());
+    ASSERT_EQ(adopted.equality_constraints_.size(), source.equality_constraints_.size());
+    ASSERT_EQ(adopted.inequality_constraints_.size(), source.inequality_constraints_.size());
+    for (std::size_t k = 0; k < source.equality_constraints_.size(); k++) {
+        EXPECT_EQ(adopted.equality_constraints_[k].get_thread_mode(),
+                  source.equality_constraints_[k].get_thread_mode())
+            << "equality piece " << k;
+    }
+    for (std::size_t k = 0; k < source.objectives_.size(); k++) {
+        EXPECT_EQ(adopted.objectives_[k].get_thread_mode(), source.objectives_[k].get_thread_mode())
+            << "objective piece " << k;
+    }
+}
+
 /// The claim stream as laid: the two index arrays over the user elements, in
 /// claim order.
 std::vector<int> adopt_claim_stream(const NonLinearProgram &nlp) {
@@ -1158,22 +1183,7 @@ TEST(AdoptDeclaration, LaysWhatAHandAssembledProblemLays) {
     EXPECT_EQ(adopted.num_partitions_, assembled->num_partitions_);
     EXPECT_EQ(adopt_claim_stream(adopted), adopt_claim_stream(*assembled));
 
-    const AggregateDeclaration &adopted_declaration = adopted.declaration();
-    EXPECT_EQ(adopted_declaration.primal_vars_, declaration.primal_vars_);
-    EXPECT_EQ(adopted_declaration.equality_rows_, declaration.equality_rows_);
-    EXPECT_EQ(adopted_declaration.inequality_rows_, declaration.inequality_rows_);
-    EXPECT_EQ(adopted_declaration.fixing_rows_, declaration.fixing_rows_);
-    EXPECT_EQ(adopted_declaration.partition_count_, declaration.partition_count_);
-    EXPECT_EQ(adopted_declaration.variable_bounds_, declaration.variable_bounds_);
-    EXPECT_EQ(adopted_declaration.objectives_.size(), declaration.objectives_.size());
-    EXPECT_EQ(adopted_declaration.equality_constraints_.size(),
-              declaration.equality_constraints_.size());
-    EXPECT_EQ(adopted_declaration.inequality_constraints_.size(),
-              declaration.inequality_constraints_.size());
-    for (std::size_t k = 0; k < declaration.equality_constraints_.size(); k++) {
-        EXPECT_EQ(adopted_declaration.equality_constraints_[k].get_thread_mode(),
-                  declaration.equality_constraints_[k].get_thread_mode());
-    }
+    adopt_expect_same_declaration(adopted.declaration(), declaration);
 }
 
 TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
@@ -1194,7 +1204,7 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     EXPECT_EQ(adopt_claim_stream(adopted), adopt_claim_stream(*source));
     EXPECT_EQ(adopted.equal_cons_, source->equal_cons_);
     EXPECT_EQ(adopted.internal_fixed_constraints(), source->internal_fixed_constraints());
-    EXPECT_EQ(adopted.declaration().fixing_rows_, 1);
+    adopt_expect_same_declaration(adopted.declaration(), declaration);
 }
 
 TEST(AdoptDeclaration, ReportsTheAdoptedPartitionCountNotTheRequestedOne) {
@@ -1235,8 +1245,25 @@ TEST(AdoptDeclaration, ClaimOrderIsAFunctionOfTheDeclaredThreadModes) {
     const hven::solvers::StructureEpoch before = second.structure_epoch();
     second.adopt_declaration(std::move(moved));
     EXPECT_FALSE(second.structure_epoch() == before);
-    EXPECT_NE(adopt_claim_stream(second), adopt_claim_stream(first));
     EXPECT_FALSE(second.model_structure_key() == first.model_structure_key());
+
+    // WHICH claims moved, and not merely that some did. Each piece claims one
+    // slot per application, so the stream is three equal blocks in partition
+    // order: the piece whose mode did not change claims where it did, and the
+    // one that moved claims where the piece between them used to.
+    const std::vector<int> unchanged = adopt_claim_stream(first);
+    const std::vector<int> reordered = adopt_claim_stream(second);
+    ASSERT_EQ(reordered.size(), unchanged.size());
+    const std::size_t block_size = 2 * static_cast<std::size_t>(kAdoptApplications);
+    ASSERT_EQ(unchanged.size(), block_size * kAdoptPieces);
+    auto block = [&](const std::vector<int> &stream, std::size_t index) {
+        return std::vector<int>(stream.begin() + static_cast<std::ptrdiff_t>(index * block_size),
+                                stream.begin() +
+                                    static_cast<std::ptrdiff_t>((index + 1) * block_size));
+    };
+    EXPECT_EQ(block(reordered, 0), block(unchanged, 0));
+    EXPECT_EQ(block(reordered, 1), block(unchanged, 2));
+    EXPECT_EQ(block(reordered, 2), block(unchanged, 1));
 }
 
 TEST(AdoptDeclaration, AThreadModeWriteAfterTheLayIsRefused) {
@@ -1258,6 +1285,64 @@ TEST(AdoptDeclaration, AThreadModeWriteAfterTheLayIsRefused) {
         declaration.equality_constraints_[0].set_thread_mode(ThreadingFlags::RoundRobin));
 }
 
+TEST(AdoptDeclaration, ARefusedAdoptionLeavesTheProblemUnchanged) {
+    auto target = adopt_build(adopt_default_modes(), 8, false);
+    const AggregateDeclaration before_declaration = target->declaration();
+    const ModelStructureKey before_key = target->model_structure_key();
+    const std::vector<int> before_stream = adopt_claim_stream(*target);
+    const hven::solvers::StructureEpoch before_epoch = target->structure_epoch();
+    const int before_equality_rows = target->equal_cons_;
+    const int before_internal = target->internal_fixed_constraints();
+    const int before_partitions = target->num_partitions_;
+
+    // A fixing-row count the equality tail cannot supply: a fixing row is one
+    // piece claiming one row, and this declaration's last piece claims every
+    // one of its many.
+    AggregateDeclaration malformed = before_declaration;
+    malformed.fixing_rows_ = 1;
+    try {
+        target->adopt_declaration(malformed);
+        FAIL() << "a fixing-row count the equality tail cannot supply must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("fixing row"), std::string::npos) << message;
+        EXPECT_NE(message.find(std::to_string(kAdoptApplications)), std::string::npos) << message;
+    }
+
+    // The refusal is the DECLARATION's, made before anything moved, so the
+    // problem on hand is what it was -- down to its layout and its epoch.
+    adopt_expect_same_declaration(target->declaration(), before_declaration);
+    EXPECT_EQ(target->model_structure_key(), before_key);
+    EXPECT_EQ(adopt_claim_stream(*target), before_stream);
+    EXPECT_TRUE(target->structure_epoch() == before_epoch);
+    EXPECT_EQ(target->equal_cons_, before_equality_rows);
+    EXPECT_EQ(target->internal_fixed_constraints(), before_internal);
+    EXPECT_EQ(target->num_partitions_, before_partitions);
+}
+
+TEST(AdoptDeclaration, AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain) {
+    auto provider = adopt_build(adopt_default_modes(), 8, false);
+
+    // Read the declaration, write a mode on its copy -- which is the one route
+    // to changing one -- and adopt it back.
+    AggregateDeclaration redeclared = provider->declaration();
+    ASSERT_EQ(redeclared.equality_constraints_[0].get_thread_mode(), ThreadingFlags::Thread0);
+    redeclared.equality_constraints_[0].set_thread_mode(ThreadingFlags::Thread1);
+    provider->adopt_declaration(std::move(redeclared));
+
+    // The lay carries the declared mode, and reports it back.
+    EXPECT_EQ(provider->equality_constraints_[0].get_thread_mode(), ThreadingFlags::Thread1);
+    EXPECT_EQ(provider->declaration().equality_constraints_[0].get_thread_mode(),
+              ThreadingFlags::Thread1);
+
+    // And freezes it again: the piece the layout holds refuses a write, while
+    // the copy the declaration hands out still takes one.
+    EXPECT_THROW(provider->equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread),
+                 std::invalid_argument);
+    AggregateDeclaration again = provider->declaration();
+    EXPECT_NO_THROW(again.equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread));
+}
+
 TEST(AggregateDeclarationValidation, RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows) {
     AggregateDeclaration declaration;
     declaration.primal_vars_ = 2;
@@ -1268,6 +1353,12 @@ TEST(AggregateDeclarationValidation, RefusesAFixingRowCountThatIsNotPartOfTheEqu
     declaration.fixing_rows_ = -1;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 
+    // In range and still refused: a positive count says there are specific
+    // pieces at the equality tail to be lifted off, and this declaration
+    // carries none.
     declaration.fixing_rows_ = 3;
+    EXPECT_THROW(declaration.validate(), std::invalid_argument);
+
+    declaration.fixing_rows_ = 0;
     EXPECT_NO_THROW(declaration.validate());
 }
