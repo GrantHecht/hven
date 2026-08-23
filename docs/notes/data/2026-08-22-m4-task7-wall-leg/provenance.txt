@@ -1,7 +1,15 @@
+toolchain: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake preset: linux-clang-release, -O3 -DNDEBUG -march=native -ffast-math -fno-finite-math-only
+MKL: 2026.1
+cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+ram: 31 GB
+kernel: 7.1.9-200.fc44.x86_64
+date: 2026-08-22
+
+leg: IPM wall leg (whole solves through NLPSolver), 9 reps x 15 inner
 BASE a062fcc  HEAD 1939a3d
-built by build_ipm_time.sh against each worktree's libhven.a (linux-clang-release preset)
+binaries built by build_ipm_time.sh against each worktree's libhven.a
 md5 ipm_base 3484f17df72c24f09266652ead199368
 md5 ipm_head e37834179f5578431a4ee8a71de16d4d
-clang clang version 22.1.8 (Fedora 22.1.8-4.fc44)
 box at leg start: loadavg 0.49 1.81 2.20, nothing else compiling
 box at leg end:   loadavg 3.89 2.51 2.42

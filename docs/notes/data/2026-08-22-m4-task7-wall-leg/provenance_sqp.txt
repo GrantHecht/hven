@@ -1,0 +1,19 @@
+toolchain: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake preset: linux-clang-release -DHVEN_BUILD_BENCH=ON
+MKL: 2026.1
+cpu: AMD Ryzen 7 5800X3D 8-Core Processor
+ram: 31 GB
+kernel: 7.1.9-200.fc44.x86_64
+date: 2026-08-23
+
+leg: SQP-side wall leg (hven_sqp_bench), 3 cells, 7 reps, base/head alternated
+     per rep, each run pinned to one core under MKL_NUM_THREADS=1
+BASE 5cd8ae9  HEAD b1b2c4d
+md5 hven_sqp_bench base 4a65c6122c37add5960e4b6264404f2f
+md5 hven_sqp_bench head 9c021305a9885d26b8ff3d10492b8012
+box at leg start: loadavg 0.49, nothing else compiling
+lock: every build and every leg ran under flock /tmp/box-build.lock
+
+An earlier run of this leg at head 15147eb (before the library sort was replaced
+by an explicit one) is superseded by the numbers recorded here; its nm diff is
+what prompted that replacement.

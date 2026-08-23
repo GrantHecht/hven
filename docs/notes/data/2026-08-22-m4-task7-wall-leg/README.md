@@ -74,3 +74,35 @@ element.
 
 Raw rows in `sqp_leg_per_rep.txt` (rep, side, cell, wall seconds); harness in
 `run_sqp_leg.sh`.
+
+## Cross-lane fold — SQP-side leg re-run at the fold HEAD
+
+The fold changed the seam TU (the claim-block scan became disjointness-only),
+so the SQP-side leg was re-run. BASE `5cd8ae9`, **HEAD `b1b2c4d`**, same
+protocol as above, box quiet at the gate (loadavg 0.49).
+
+| cell | median | minimum | base rep-spread |
+|---|---|---|---|
+| F3 n=1000 cold | −0.11% | −0.32% | 0.97% |
+| F3 n=1000 warm | +0.19% | +0.00% | 0.96% |
+| F7 n=200 cold | +0.26% | +0.17% | 0.31% |
+
+Every reading is inside its own cell's base rep-spread.
+
+**`nm`, and what it caught.** The first fold head (`15147eb`) ordered the three
+blocks with `std::stable_partition` + `std::stable_sort`. The symbol diff showed
+that costing **eight new out-of-line merge-sort and stable-partition
+instantiations** in the seam TU, with `lay()` growing `0x1007 → 0x13ff` — about
+a kilobyte of machinery to put three pairs in order by one integer. That is code
+growth, not layout, so it was not accepted on the wall reading: `b1b2c4d`
+replaces the library sort with an insertion sort written out over the same fixed
+array. At the recorded HEAD the seam symbol set is **identical to base, 22 for
+22, with no new instantiations**, and the only delta is `lay()` itself,
+`0x1007 → 0x11e7` (+480 bytes) — the non-negativity pass, the widened coverage
+sum, the length check ahead of the narrowing, the hand sort and the fuller
+refusal messages, all in a per-lay routine.
+
+Provenance for this leg (hardware, toolchain, date, binary checksums, box state)
+is in `provenance_sqp.txt`; the IPM leg's is in `provenance.txt`. Raw rows in
+`sqp_leg_fold_per_rep.txt`, aggregate in `sqp_leg_fold_aggregate.txt`, symbol
+dumps in `nm_fold_base_5cd8ae9.txt` / `nm_fold_head_b1b2c4d.txt`.
