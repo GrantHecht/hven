@@ -33,11 +33,10 @@ namespace hven::solvers {
 ///   algebra modes plus 13 adversarial probes, on MKL and on Accelerate
 ///   independently, with a structural identity (r_k = diag(reg)*c) explaining
 ///   why a path whose first solve is a genuine regularized solve cannot fire
-///   the shared stopping rule. See docs/notes/
-///   2026-07-29-eqp-refinement-ab.md's DISPOSITION section. A nonzero reading
-///   here would mean solve_eqp grew a second refinement step, which is a
-///   change, not a measurement -- which is exactly why the counter and its
-///   assertions stayed behind when the loop went.
+///   the shared stopping rule. A nonzero reading here would mean solve_eqp
+///   grew a second refinement step, which is a change, not a measurement --
+///   which is exactly why the counter and its assertions stayed behind when
+///   the loop went.
 ///
 /// "KEPT" is the operative word in both: a candidate step rejected by the
 /// strict-decrease acceptance rule is discarded and NOT counted, so these
@@ -414,10 +413,9 @@ struct SsnCounters {
     //
     // WHY: bare `ssn_escapes` counts hand-offs and says nothing about WHY,
     // which left the false-`kInfeasible` rate under combined extreme scaling
-    // (docs/notes/2026-08-07-ssn-safeguards.md section 13.6) and the
-    // infeasible-trust-region-fixture mislabel (section 13.7) untestable on
-    // anything but hand-built fixtures -- both are statements about the
-    // DISTRIBUTION of escape reasons.
+    // and the infeasible-trust-region-fixture mislabel untestable on anything
+    // but hand-built fixtures -- both are statements about the DISTRIBUTION of
+    // escape reasons.
     //
     // A COUNT PER REASON, not a "last reason": an SQP solve escapes on many
     // subproblems and a single label would lose every one but one.
@@ -842,7 +840,7 @@ struct SqpCounters {
     // leaving the counter logic untouched left both fields UNCHANGED on
     // every fixture; the regression was caught only by an independent
     // model-call-count cross-check -- a CountingModel decorator counting
-    // eval_grad/eval_jac_e/eval_jac_i directly; tests/test_sqp_driver.cpp's
+    // eval_grad/eval_jac_e/eval_jac_i directly; tests/sqp/test_sqp_driver.cpp's
     // SqpDriverEvalEconomics battery pairs exactly this kind of cross-check
     // with every assertion made against these two fields). A results note or
     // benchmark claim built on them should keep doing the same --

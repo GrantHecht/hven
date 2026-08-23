@@ -34,7 +34,9 @@ struct OptimizationProblemBase {
     /// Which solve-mode entry point jet_run() dispatches to.
     enum class JetJobModes {
         NotSet,
-        /// No solve; run nothing (accepted by strto_jet_job_mode only).
+        /// Parsed by strto_jet_job_mode, but dispatched by nothing: both
+        /// jet_run() and run_nlp_solver() reject it with
+        /// std::invalid_argument.
         DoNothing,
         /// Dispatches solve().
         Solve,
@@ -66,21 +68,27 @@ struct OptimizationProblemBase {
         this->init_partitions();
     }
 
-    /// Solve the NLP's dynamics/constraints once at the current variables.
+    /// Runs the feasibility (SOE-mode) phase sequence for the derived
+    /// problem's NLP.
     virtual hven::ConvergenceFlags solve() = 0;
-    /// Optimize the current phase's cost over the current variables.
+    /// Runs the optimality (OPT-mode) phase sequence for the derived
+    /// problem's NLP.
     virtual hven::ConvergenceFlags optimize() = 0;
-    /// Solve, then optimize.
+    /// Runs the SOE-mode phase sequence, then the OPT-mode one. Both always
+    /// run.
     virtual hven::ConvergenceFlags solve_optimize() = 0;
-    /// Solve, optimize, then solve again.
+    /// Runs SOE, then OPT, then SOE again. The trailing SOE phase is
+    /// conditional: it is skipped when OPT reported
+    /// ConvergenceFlags::CONVERGED.
     virtual hven::ConvergenceFlags solve_optimize_solve() = 0;
-    /// Optimize, then solve.
+    /// Runs the OPT-mode phase sequence, then the SOE-mode one. The trailing
+    /// SOE phase is conditional: it is skipped when OPT reported
+    /// ConvergenceFlags::CONVERGED.
     virtual hven::ConvergenceFlags optimize_solve() = 0;
 
     /// Compute default partition count from the global thread budget.
     /// Over-partitions by 4x so the work-stealing pool can smooth out
-    /// unequal partition costs. make_nlp() further caps this via
-    /// MIN_NNZ_PER_PARTITION on small problems.
+    /// unequal partition costs.
     ///
     /// @return 1 on a single-thread budget, else 4x the thread count.
     static int default_num_partitions() {
@@ -186,6 +194,9 @@ struct OptimizationProblemBase {
     /// Single dispatch point for the five solve modes, mapping each onto the
     /// matching InteriorPointSolver entry point and collecting the uniform result above.
     /// Defined out of line below.
+    ///
+    /// @throws std::invalid_argument if `mode` is NotSet, DoNothing, or any
+    /// other value with no entry point.
     NlpSolveOutput run_nlp_solver(JetJobModes mode, const Eigen::VectorXd &input);
 
     /// Parses a job-mode name into its enum value. Accepted spellings:

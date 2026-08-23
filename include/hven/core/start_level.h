@@ -43,7 +43,7 @@ namespace hven::solvers {
 ///   WHAT IT NEVER TAKES, each exclusion because the object cannot justify
 ///   it without provenance:
 ///     * THE FACTORIZATION (`hot`): the hash exists precisely to protect
-///       factorization reuse, so no hash may never reach kHot
+///       factorization reuse, so an object with no hash can never reach kHot
 ///       (kSeeded < kWarm < kHot).
 ///     * THE FUNNEL WIDTH and THE TRUST-REGION RADIUS: both are measured in
 ///       the units of a DIFFERENT problem's violation measure and step scale

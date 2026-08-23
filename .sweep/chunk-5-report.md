@@ -149,3 +149,53 @@ locations are pre-sweep line numbers of this chunk's parent commit):
   reading the corresponding code in this repo or the cited sibling headers;
   @throws on validate_sqp_options/pattern_hash/set_num_partitions/eval_nlp/
   upgrade_to_full/strto_* were each checked against the throwing body.
+
+---
+
+## Fix round — accuracy review response
+
+Applied against `.sweep/chunk-5-review.md`. Every fix re-verified at the
+implementation (`src/drivers/interior_point_solver.cpp`,
+`interior_point_solver_settings.cpp`, `sqp_options.cpp`, `sqp_driver.cpp`).
+Comment-only: the strip-compare gate reports 0 violations against the fix
+round's start commit.
+
+| Finding | File:decl | What changed | Verified at |
+|---|---|---|---|
+| B1 | `interior_point_solver.h` `Settings::cnr_mode_` | Was "colorize console output". Now: MKL Conditional Numerical Reproducibility — true pins the sparse backend to `qp_threads_` CNR threads; read once at `set_qp_params()` transcribe time | `interior_point_solver.cpp:230`; `detail/interior/kkt_factorization.h`'s refresh-cadence note |
+| B2 | `interior_point_solver.h` `Settings::max_acc_iters_` | Was "acceptable-iterate iteration cap". Now: the count of consecutive trailing iterates that must ALL be acceptable before ACCEPTABLE fires; raising it makes ACCEPTABLE harder | `interior_point_solver.cpp:1598-1607`, `:74-76` |
+| B3 | `interior_point_solver.h` `bound_push_` / `bound_interval_push_` | Block split: paragraph 1 (formula + INIT slack) moved onto `bound_push_`, paragraph 2 stays on `bound_interval_push_`; each now carries its own domain | `interior_point_solver.cpp:427-447`, `:3279-3287`; `interior_point_solver_settings.cpp:657,664` |
+| B4 | `interior_point_solver.h` `force_qp_analysis_` | Was "each factorization". Now: defeats the once-per-solver-instance `claim_kkt_analysis()` latch, i.e. forces a fresh SYMBOLIC analysis every solve; numeric refactorizations never consult it | `interior_point_solver.cpp:253-260`, `:3570` |
+| B5 | `interior_point_solver.h` `fast_factor_alg_` | Was "fast factorization algorithm toggle" (collided with `qp_alg_`). Now: the zero-perturbation-attempt cycling heuristic (past iter 6, 3 of 4 iterations, skip when the last four all perturbed) | `interior_point_solver.cpp:2451-2467` |
+| B6 | `interior_point_solver.h` `optimize_solve` / `solve_optimize_solve`; same two on `optimization_problem_base.h` | Trailing phase documented as conditional — skipped when the preceding phase reported CONVERGED | `interior_point_solver.cpp:3763-3779`, `:3600` |
+| B7 | `core/start_level.h:46` | Subject restored: "an object with no hash can never reach kHot" | parent text `bbbe4c8` |
+| B8 | `optimization_problem_base.h` `JetJobModes::DoNothing` | Was "run nothing". Now: parsed by `strto_jet_job_mode` but dispatched by nothing — `jet_run()` and `run_nlp_solver()` both throw `std::invalid_argument` | `optimization_problem_base.h:141-167, 249` |
+| B9 | `optimization_problem_base.h` `solve()` / `optimize()` | Rewritten in hven terms: SOE-mode / OPT-mode phase sequences. Tycho's "phase" vocabulary removed | `interior_point_solver.cpp:3746-3757` |
+| N1 | `interior_point_solver.h:69, :76` | Dropped the two citations of test files absent from this checkout (`test_soc_generic_acceptance.cpp`, `test_inertia_regularization.cpp`). Friend declarations untouched — they are code | `tests/` listing |
+| N2 | 5 sites | Dropped 5 dangling `docs/` references (2× `2026-08-07-ssn-safeguards.md`, `2026-07-29-eqp-refinement-ab.md`, `2026-08-02-controller-retry-economics.md`, `2026-08-03-crash-basis.md`) and the tycho-only `docs/dev/analysis/2026-07-pr9-pardiso-options.md`. Surrounding facts kept | `ls docs/notes/` |
+| N3 | 16 sites | `tests/test_*.cpp` → `tests/sqp/test_*.cpp` across `solver_counters.h`, `solver_status.h`, `sqp_driver.h`, `sqp_types.h`. All 5 filenames exist there | `ls tests/sqp/` |
+| N4 | `optimization_problem_base.h:82` | Dropped the `MIN_NNZ_PER_PARTITION` sentence — the identifier exists nowhere and `make_nlp` does no partition capping | `model/non_linear_program.h:267` |
+| N5 | `interior_point_solver.h` `Settings::validate()` | `@throws` domain widened with the two combination guards (funnel/filter + classic_adaptive + !never_monotone; never_monotone + monitored) | `interior_point_solver_settings.cpp:581-598` |
+| N6 | `sqp_types.h` `validate_sqp_options` | `@throws` now states the `+inf tr_init` exemption from the `tr_max >= tr_init` check | `sqp_options.cpp:106` |
+| N7 | `sqp_driver.h` `SqpDriver(const SqpOptions &)` | `@throws` widened to the full `validate_sqp_options` domain (tr_max/tr_min cases added) | `sqp_options.cpp:76-132` |
+| N8 | `interior_point_solver.h` `SolveResult::reset_accumulators()` | "only the … counters and the convergence flag" corrected: also `last_kkt_info_`, SOC/watchdog/recovery counters, all `last_*` diagnostics, `last_eval_exception_` | body at the declaration |
+| N9 | `sqp_driver.h:39` ONE TRIAL step 2 | max_iter now stated as bounding `major_iters + restoration_iters`, agreeing with `SqpOptions::max_iter` | `sqp_driver.cpp:1184, 1260, 1336` |
+| N11 | 13 sites | Labels stripped, facts kept: `B-1` → "the geometric complementarity clear" (6 sites); `R1/R2/R4/R5` → descriptive headings (6 sites); `sqp_types.h:603` sweep self-reference → "the remaining 21 rows are an un-committed probe" | `sqp_driver.cpp:774` (label origin) |
+| N12 | `sqp_driver.h` 4-arg `solve(model, x0, warm, minor_budget)` | Given `@brief`/`@param`×4/`@return`; its `@throws` no longer duplicates the 2-arg overload's 20-line enumeration verbatim, it cites it and keeps the ingest-order NOTE | the sibling overload at `:2875` |
+
+Deliberate deviation from the review's suggested wording, one place: B3's
+"INIT-slack cap". The INIT pass sets `slack = max(-c_i(x), bound_push_)`
+(`interior_point_solver.cpp:3279-3287`), so `bound_push_` is a FLOOR on that
+slack, not a cap. The restored sentence says floor.
+
+Not in this round (coverage, not accuracy — they land in the documentation
+commit): N10 (`upgrade_to_full`, `eval_nlp_values`, `evaluate_kkt` carry no
+`///` block at all) and §D's 116 undocumented public declarations.
+
+### Additional rationale candidates for docs/notes (N13)
+
+- `sqp_driver.h` parent `bbbe4c8:600-605` — why every `||lambda_i||`-relative
+  complementarity threshold was rejected, including the measured IPOPT-style
+  capped form.
+- `sqp_driver.h` parent `bbbe4c8:1104-1115` — the filterSQP magnitude-gate
+  candidate for SOC, and why it was not taken.

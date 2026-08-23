@@ -37,7 +37,9 @@
 //      why that check must be explicit rather than left to the residual
 //      arithmetic.
 //   2. MAX-ITER TEST. opts.max_iter bounds SUBPROBLEMS SOLVED (a rejected
-//      trial costs one), i.e. exactly counters.major_iters.
+//      trial costs one). The budget is SHARED with the restoration phase, so
+//      the bounded quantity is counters.major_iters +
+//      counters.restoration_iters.
 //   3. BUILD the subproblem (build_subproblem below) by linearizing at x --
 //      but ONLY if the iterate moved since the last trial. A rejection
 //      re-solves the SAME QpProblem object; see RADIUS MANAGEMENT.
@@ -139,7 +141,7 @@
 // unchanged; only the three call sites that judge or hash a point without ever
 // building a subproblem from it switched. SqpCounters::evals_full/evals_values
 // is the ledger of which happened; see that struct's own note and
-// tests/test_sqp_driver.cpp's SqpDriverEvalEconomics battery for the measured
+// tests/sqp/test_sqp_driver.cpp's SqpDriverEvalEconomics battery for the measured
 // reduction on a rejection-heavy fixture.
 //
 // THE ONE eval_hess THIS ACCOUNTING DOES NOT COVER: a solve that exits WITHOUT
@@ -262,7 +264,7 @@
 //     answer satisfies the identity by construction because that solve IS the
 //     active-set solve this paragraph is written about. On the fixture above
 //     the refined arm reads 1.0000e-04 -- the walk's own value to five figures
-//     (tests/test_b1_gate.cpp,
+//     (tests/sqp/test_b1_gate.cpp,
 //     KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined).
 //
 //     THE HONEST RESIDUE, stated rather than elided: the refinement can be
@@ -361,7 +363,7 @@
 //         ineq_active/qp_working_set, and its PRICE is carried into the
 //         object unchanged. So a crossover from an interior-point solve that
 //         has not fully converged is a LIVE PRODUCER of a negative price, and
-//         tests/test_warm_start.cpp's WarmStart.CrossoverWrongSignDualLeaves-
+//         tests/sqp/test_warm_start.cpp's WarmStart.CrossoverWrongSignDualLeaves-
 //         RowFree constructs exactly one (lambda_i = -1e-8 against a slack of
 //         -1e-9, i.e. GEOMETRICALLY ACTIVE -- so the clear does not touch it).
 //       * the predictor's ratio test admits a negative lambda_i only within
@@ -462,7 +464,7 @@
 // into an arbitrarily large complementarity residual -- and, because that
 // residual is (to first order) the objective the solve gives up by not moving
 // onto the row, into an arbitrarily large OBJECTIVE ERROR under a kOptimal
-// certificate. Reproduced (tests/test_b1_gate.cpp's
+// certificate. Reproduced (tests/sqp/test_b1_gate.cpp's
 // B1Gate.AScaledStalePriceIsRefusedAtIngest):
 //
 //     min -1e12 x + 1/2 x^2   s.t.  cI = x - 5e-7 <= 0,  x in [-1, 1]
@@ -530,9 +532,10 @@
 //
 // COLD SOLVES ARE UNTOUCHED BY CONSTRUCTION: lambda is zero there, so
 // complementarity is 0 and `duals_ingested` is false from the start. A benign
-// warm/hot hand-off is untouched for the same reason the B-1 clear is -- an
-// ingest that certifies has its slack rows zeroed by the clear and its active
-// rows at |c_j| ~ 1e-12, so the product is orders below kkt_tol.
+// warm/hot hand-off is untouched for the same reason the geometric
+// complementarity clear is -- an ingest that certifies has its slack rows
+// zeroed by the clear and its active rows at |c_j| ~ 1e-12, so the product is
+// orders below kkt_tol.
 //
 // **THE EXPOSURE IS NAMED RATHER THAN WAVED AT**: the gate DOES refuse a
 // zero-major certificate whenever ||lambda_i||inf is much larger than
@@ -2263,9 +2266,9 @@ inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, d
 //       traded infeasibility RECALL for precision (99.74% -> 56.47%), so
 //       genuinely infeasible subproblems now escape `kNoContraction` or
 //       `kBudget` more often than `kInfeasibleSuspect`: 4 of 5 infeasible
-//       fixtures do (docs/notes/2026-08-07-ssn-safeguards.md 13.7). A rule
-//       keyed on `kInfeasibleSuspect` would MISS most infeasible subproblems
-//       while ALSO mis-routing the 0.55% false positives.
+//       fixtures do. A rule keyed on `kInfeasibleSuspect` would MISS most
+//       infeasible subproblems while ALSO mis-routing the 0.55% false
+//       positives.
 //   (3) UNIFORM ROUTING STILL REACHES THE ELASTIC TIER, and reaches it with
 //       better evidence. An infeasible linearization handed to the walk comes
 //       back `QpStatus::kInfeasible` -- the walk's own certificate -- and the
@@ -2378,7 +2381,7 @@ inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, d
 // fixture can drive it. It is kept because it is the single point at which a
 // step whose norm the funnel has not been told about could enter the
 // acceptance test. It is made FIXTURABLE through the free predicate below,
-// which tests/test_sqp_driver.cpp drives in both polarities on a hand-built
+// which tests/sqp/test_sqp_driver.cpp drives in both polarities on a hand-built
 // SsnResult. DERIVED FROM ssn_engine.h's OWN CONSTANT, never restated as a
 // literal (`const double` rather than `constexpr` because the constant it is
 // built from is itself a runtime-initialized `std::sqrt` expression).
@@ -2477,11 +2480,11 @@ inline QpSolution ssn_result_to_qp_solution(const SsnResult &res) {
 //
 // THE MULTIPLIERS come from the seed unchanged. Note what has ALREADY happened
 // to them by the time any of this runs: on the FIRST subproblem the seed's
-// duals are the solve's ingested duals, which the B-1 geometric clear and then
-// the seeded dual clamp have already corrected, IN THAT ORDER (this header's
-// THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY and THE SEEDED DUAL CLAMP
-// notes; the ordering is normative). This function is downstream of both
-// and re-does neither.
+// duals are the solve's ingested duals, which the geometric complementarity
+// clear and then the seeded dual clamp have already corrected, IN THAT ORDER
+// (this header's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY and THE
+// SEEDED DUAL CLAMP notes; the ordering is normative). This function is
+// downstream of both and re-does neither.
 inline SsnStart ssn_start_from_qp_seed(const QpSolution *seed) {
     SsnStart start;
     if (seed == nullptr) {
@@ -2533,9 +2536,10 @@ inline void charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res)
     total.symbolic_analyses += res.symbolic_analyses;
 }
 
-// R5's REFUSED-AND-THEN-WITHDRAWN face refinement, charged to the solve's own
-// totals. THE SAME VANISHING-WORK CLASS as the function above, on the one path
-// the certifying branch cannot reach.
+// The REFUSED-AND-THEN-WITHDRAWN face refinement under
+// SqpOptions::ssn_certify_from_face, charged to the solve's own totals. THE
+// SAME VANISHING-WORK CLASS as the function above, on the one path the
+// certifying branch cannot reach.
 //
 // WHY A SECOND SITE IS NEEDED AT ALL. Under
 // SqpOptions::ssn_certify_from_face the tier-3 face solve is HOISTED ahead of
@@ -2686,17 +2690,17 @@ inline constexpr double kAdaptiveMuMax = 1e-8; // == QpOptions::dual_mu's own de
 // =============================================================================
 //
 // WHAT IT IS. On a kSeeded ingest, and ONLY there, every ingested lambda_i(j)
-// that is still NEGATIVE after the B-1 geometric clear is judged:
+// that is still NEGATIVE after the geometric complementarity clear is judged:
 //
 //     -kSeededDualClampTol <= lambda_i(j) < 0   ->  set to 0, count it
 //                                                   (SqpCounters::seeded_clamped)
 //     lambda_i(j) < -kSeededDualClampTol        ->  DEGRADE THE WHOLE OBJECT
 //                                                   to kCold
 //
-// THE ORDER -- B-1 CLEAR FIRST, CLAMP SECOND -- IS NORMATIVE, NOT INCIDENTAL,
-// and reversing it would change answers. The B-1 clear zeroes the price on
-// every row the destination model reports STRICTLY SLACK; only after it has
-// run is a surviving negative price a statement about a row that is
+// THE ORDER -- GEOMETRIC CLEAR FIRST, CLAMP SECOND -- IS NORMATIVE, NOT
+// INCIDENTAL, and reversing it would change answers. The clear zeroes the
+// price on every row the destination model reports STRICTLY SLACK; only after
+// it has run is a surviving negative price a statement about a row that is
 // GEOMETRICALLY ACTIVE, which is the one configuration a sign violation can
 // actually do damage in (a negative price on a slack row is stale bookkeeping
 // the clear was always going to drop, and degrading an otherwise-good object
@@ -2769,10 +2773,13 @@ class SqpDriver {
   public:
     /// Constructs a driver over the given options.
     ///
-    /// @throws std::invalid_argument on an option that cannot be honoured
-    ///         (non-positive tolerance, negative max_iter, non-positive/NaN
-    ///         radius). The radius is additionally re-validated per solve by
-    ///         the engine (qp_types.h's SolveOverrides PRECONDITION); it is
+    /// @throws std::invalid_argument on an option that cannot be honoured --
+    ///         everything validate_sqp_options rejects: a non-positive or NaN
+    ///         kkt_tol/feas_tol, a negative max_iter, a non-positive or NaN
+    ///         tr_init, a tr_max below tr_init (unless tr_init is +inf), or a
+    ///         tr_min that is non-positive or above tr_init or tr_max. The
+    ///         radius is additionally re-validated per solve by the engine
+    ///         (qp_types.h's SolveOverrides PRECONDITION); it is
     ///         checked here too so the message names the driver option the
     ///         caller actually set.
     ///
@@ -2968,8 +2975,6 @@ class SqpDriver {
     // a driver of solves (continuation.h) that can tell, from the cost of
     // the solves it has already paid for, that THIS one has stopped looking
     // like them, and would rather re-pose the problem than finish paying.
-    // What it buys is measured in
-    // docs/notes/2026-08-02-controller-retry-economics.md.
     //
     // THE CONTRACT, in the five parts a caller has to know:
     //
@@ -3012,31 +3017,19 @@ class SqpDriver {
     //      and nothing else, in both modes. It DOES mean a kSsn budget and a
     //      kWalk budget of the same numeric value are not the same amount of
     //      work.
-    /// @throws std::invalid_argument on a model that cannot describe a problem.
-    ///         Wrapping the model in a bridge runs the aggregate declaration's
-    ///         own validation (model/aggregate_declaration.h) before the loop
-    ///         starts, and that boundary refuses five classes this entry used to
-    ///         accept in silence: a CROSSED BOX (lower(i) > upper(i) on two
-    ///         finite sides, or an intersection that is empty); a NaN on either
-    ///         side of a bound; a start_point() whose size is not n(); an
-    ///         eval_hess entry BELOW THE DIAGONAL, which nlp_model.h already
-    ///         forbids; and a Jacobian or Hessian whose dimensions contradict
-    ///         the declared me()/mi()/n(). A fifth-and-a-half, checked per
-    ///         evaluation rather than at entry: a stored-element count that
-    ///         moves with x, contradicting nlp_model.h's
-    ///         structural-pattern-invariance precondition. A sixth, also
-    ///         checked per evaluation: a return presenting its stored elements
-    ///         at coordinates the claim pass did not record for that slot --
-    ///         the same count in a different order, or a different pattern at
-    ///         an unchanged count -- reported against the claim-time
-    ///         coordinates (src/model/nlp_model_aggregate.cpp's
-    ///         scatter_matrix). THE WIDENING IS
-    ///         DELIBERATE -- each class is an out-of-contract model that
-    ///         previously reached the major loop and produced an answer of no
-    ///         defined meaning, and a crossed box in particular is not a
-    ///         feasible region a solver can be asked about. NOTE that this
-    ///         happens BEFORE `warm` is looked at, so a malformed model is
-    ///         reported as such rather than as a failed ingest.
+    /// @brief Warm-start ingest against a model, wrapped in a bridge built here.
+    /// @param model        the problem to solve.
+    /// @param x0           the starting point; ignored per the ingest rule above
+    ///                     whenever `warm` resolves above kCold.
+    /// @param warm         the prior solve's warm-start object; the whole ingest
+    ///                     contract is in the notes above.
+    /// @param minor_budget the probe budget; 0 (default) = no budget, see above.
+    /// @return the solution.
+    /// @throws std::invalid_argument on a model that cannot describe a problem --
+    ///         the same classes the 2-argument model-taking overload above
+    ///         enumerates, refused by the same aggregate-declaration boundary.
+    ///         NOTE that this happens BEFORE `warm` is looked at, so a malformed
+    ///         model is reported as such rather than as a failed ingest.
     SqpSolution solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
                       Index minor_budget = 0);
 

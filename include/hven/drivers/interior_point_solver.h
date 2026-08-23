@@ -66,14 +66,14 @@ class DivergencePersistenceHarness;
 // generic-path acceptance strategies: reaches the private nlp_ / kkt_sol_ /
 // dims / scratch / restoration_ / acceptance_ / recovery_ so it can build a
 // live SolverContext and drive the mechanism's acceptance-backtrack seam with a
-// generic acceptance strategy (see test_soc_generic_acceptance.cpp).
+// generic acceptance strategy.
 class SocGenericHarness;
 class InertiaRegularizationSolve_ClassicDegeneracyLatchTracksSingularity_Test;
 // Composition sentinels for native variable bounds against the inertia
 // machinery: a solution sitting ON a bound drives the condensed bound curvature
 // on the primal diagonal very large, and these read dc_latched_ / bounds_ /
 // bound_duals_ to check that a healthy system's factorization is still accepted
-// on its own inertia (see test_inertia_regularization.cpp).
+// on its own inertia.
 class InertiaRegularizationSolve_ActiveBoundCurvatureNeverTripsSingularitySignal_Test;
 class InertiaRegularizationSolve_NarrowBoxCurvatureNeverTripsSingularitySignal_Test;
 // Test harness for the native variable-bound machinery: reaches the private
@@ -207,7 +207,10 @@ class InteriorPointSolver {
         int max_iters_ = 500;
         /// Classic backtracking ladder cap per rejected trial. Default 2.
         int max_ls_iters_ = 2;
-        /// Acceptable-iterate iteration cap. Default 50.
+        /// Number of consecutive trailing iterates that must ALL sit inside the
+        /// acceptable tolerances before converge_check() reports
+        /// ConvergenceFlags::ACCEPTABLE. Raising it makes ACCEPTABLE harder to
+        /// reach, not easier. Default 50. Must be > 0.
         int max_acc_iters_ = 50;
         /// Refactorization attempt cap. Default 15.
         int max_refac_ = 15;
@@ -355,19 +358,20 @@ class InteriorPointSolver {
         // --- Step parameters ---
         /// Fraction-to-boundary factor. Default 0.99.
         double bound_fraction_ = 0.99;
-        /// Absolute interior-push coefficient. Default 1e-3.
-        double bound_push_ = 1.0e-3;
         /// Absolute component of the interior push applied to a bounded primal
-        /// variable at solve entry: the push away from a bound is at least
-        /// bound_push_ * max(1, |bound|) (Ipopt's bound_push). It also caps the
-        /// initial slack the INIT multiplier pass hands an inequality row.
-        ///
+        /// variable at solve entry: the push away from a bound is
+        /// bound_push_ * max(1, |bound|), before the two-sided cap below
+        /// (Ipopt's bound_push). It is also the floor on the initial slack the
+        /// INIT multiplier pass hands an inequality row: that slack is
+        /// max(-c_i(x), bound_push_). Must be > 0. Default 1e-3.
+        double bound_push_ = 1.0e-3;
         /// Relative component of that same push, applied only to a TWO-SIDED
         /// variable: the push is additionally capped at
         /// bound_interval_push_ * (upper - lower), so a narrow interval is never
         /// pushed past its own midpoint (Ipopt's bound_frac, same default).
         /// Read only when the problem declares native variable bounds.
-        /// Default 1e-2.
+        /// Must lie in the open interval (0, 0.5), so the lower and upper
+        /// projections of one variable cannot cross. Default 1e-2.
         double bound_interval_push_ = 1.0e-2;
         /// Reset threshold for negative slack values. Default 1e-12.
         double neg_slack_reset_ = 1.0e-12;
@@ -442,8 +446,7 @@ class InteriorPointSolver {
         /// and dropped perturbed pivots 95/120 -> ~0, but on the full example
         /// suite it deterministically degraded convergence elsewhere
         /// (Delta3Launch CONVERGED->ACCEPTABLE, TopputtoLowThrust 5.4x
-        /// iterations, intermittent MultiSpacecraft divergence) — see
-        /// docs/dev/analysis/2026-07-pr9-pardiso-options.md.
+        /// iterations, intermittent MultiSpacecraft divergence).
         int qp_scaling_ = 0;
         /// Pivot perturbation level handed to the backend. Default 8.
         int qp_pivot_perturb_ = 8;
@@ -474,11 +477,26 @@ class InteriorPointSolver {
         int print_level_ = 0;
         /// Wide console layout for tables. Default false.
         bool wide_console_ = false;
-        /// Colorize console output. Default false.
+        /// Conditional Numerical Reproducibility mode. When true the sparse
+        /// backend is pinned to qp_threads_ CNR threads (opts.cnr_threads),
+        /// which makes the factorization bit-reproducible across thread counts;
+        /// false leaves cnr_threads at 0 (off). Read once, at set_qp_params()
+        /// transcribe time -- a later qp_threads_ change does not move it (see
+        /// the refresh-cadence note on KktFactorization::set_num_threads).
+        /// Default false.
         bool cnr_mode_ = false;
-        /// Fast factorization algorithm toggle. Default true.
+        /// Zero-perturbation-attempt cycling heuristic. When true, past
+        /// iteration 6 and on 3 of every 4 iterations, the unperturbed
+        /// factorization attempt is skipped if the last four iterations all
+        /// needed Hessian perturbation -- saving a factorization known to fail
+        /// on a persistently near-singular problem, while the remaining 1 in 4
+        /// iterations re-probes for recovered inertia. Default true.
         bool fast_factor_alg_ = true;
-        /// Force a fresh sparsity analysis each factorization. Default false.
+        /// Force a fresh symbolic sparsity analysis on every solve. The
+        /// analysis normally runs once per solver instance and is latched
+        /// (claim_kkt_analysis()); this defeats that latch. Numeric
+        /// refactorizations are unaffected -- they never consult this field.
+        /// Default false.
         bool force_qp_analysis_ = false;
         /// Return the best-scoring iterate seen instead of the last (scored
         /// under best_criteria_). Default false.
@@ -488,11 +506,15 @@ class InteriorPointSolver {
 
         /// Validate all settings, throwing std::invalid_argument on the first
         /// violation. Checks per-field conditions (matching the individual
-        /// set_*() methods) plus cross-field invariants (min_mu <= init_mu <=
-        /// max_mu, convergence tols <= their respective acceptable tols <=
-        /// their respective divergence tols).
+        /// set_*() methods), the cross-field ordering invariants (min_mu <=
+        /// init_mu <= max_mu, convergence tols <= their respective acceptable
+        /// tols <= their respective divergence tols), and two combination
+        /// guards: acceptance_strategy_ funnel or filter with
+        /// barrier_governor_ == classic_adaptive and !never_monotone_, and
+        /// never_monotone_ with barrier_governor_ == monitored.
         ///
-        /// @throws std::invalid_argument naming the first violated setting.
+        /// @throws std::invalid_argument naming the first violated setting or
+        /// the rejected combination.
         void validate() const;
     };
 
@@ -697,13 +719,14 @@ class InteriorPointSolver {
         /// control-flow decision in factor_impl.
         Eigen::ComputationInfo last_kkt_info_ = Eigen::Success;
 
-        /// Resets only the accumulated timing/iteration counters and the
-        /// convergence flag. primals_ and obj_val_ are overwritten
-        /// unconditionally by alg_impl each phase. eq_lmults_ and eq_cons_ are
-        /// overwritten when equal_cons_ > 0; iq_lmults_ and iq_cons_ are
-        /// overwritten when inequal_cons_ > 0. factor_mem_ and factor_flops_
-        /// reflect the last factorization's stats (set by init_impl) and are
-        /// not accumulated across phases.
+        /// Resets the accumulated timing/iteration counters, the convergence
+        /// flag, last_kkt_info_, the SOC/watchdog/recovery counters and every
+        /// last_* diagnostic (including last_eval_exception_). primals_ and
+        /// obj_val_ are overwritten unconditionally by alg_impl each phase.
+        /// eq_lmults_ and eq_cons_ are overwritten when equal_cons_ > 0;
+        /// iq_lmults_ and iq_cons_ are overwritten when inequal_cons_ > 0.
+        /// factor_mem_ and factor_flops_ reflect the last factorization's stats
+        /// (set by init_impl) and are not accumulated across phases.
         void reset_accumulators() {
             converge_flag_ = ConvergenceFlags::NOTCONVERGED;
             total_time_ = 0;
@@ -803,11 +826,14 @@ class InteriorPointSolver {
     Eigen::VectorXd optimize(const Eigen::VectorXd &x);
     /// Runs the SOLVE phase sequence from `x`.
     Eigen::VectorXd solve(const Eigen::VectorXd &x);
-    /// Runs SOLVE then OPTIMIZE from `x`.
+    /// Runs SOLVE then OPTIMIZE from `x`. Both phases always run.
     Eigen::VectorXd solve_optimize(const Eigen::VectorXd &x);
-    /// Runs OPTIMIZE then SOLVE from `x`.
+    /// Runs OPTIMIZE then SOLVE from `x`. The trailing SOLVE is conditional:
+    /// it is skipped when OPTIMIZE reported ConvergenceFlags::CONVERGED.
     Eigen::VectorXd optimize_solve(const Eigen::VectorXd &x);
-    /// Runs SOLVE, OPTIMIZE, then SOLVE from `x`.
+    /// Runs SOLVE, OPTIMIZE, then SOLVE from `x`. The trailing SOLVE is
+    /// conditional: it is skipped when OPTIMIZE reported
+    /// ConvergenceFlags::CONVERGED.
     Eigen::VectorXd solve_optimize_solve(const Eigen::VectorXd &x);
 
     // --- Validated setter methods (defined in interior_point_solver.cpp) ---
@@ -1099,7 +1125,7 @@ class InteriorPointSolver {
     // NLP eval calls). Sized to inequal_cons_/slack_vars_ (resize-in-place;
     // a no-op once the size matches, which it does for the lifetime of a solve).
     mutable Eigen::VectorXd stli_scratch_; ///< @internal complementarity() S*LI buffer.
-    Eigen::VectorXd hp_scratch_;           ///< @internal barrier_hessian() LI.cwiseQuotient(S) buffer.
+    Eigen::VectorXd hp_scratch_;           ///< @internal barrier_hessian() LI/S buffer.
 
     // alg_impl's return_best_ path (off by default, settings_.return_best_)
     // copies the full XSL/RHS iterate on every improving iteration. Hoisted so

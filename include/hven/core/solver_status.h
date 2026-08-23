@@ -45,7 +45,7 @@ enum class QpStatus {
 /// the elastic tier's exhaustion leave kRestore; the radius floor leaves
 /// kReject, told apart by tr_radius sitting at the floor), not on which exit
 /// was reached -- sqp_driver.h's RESTORATION PHASE has the decision table.
-/// tests/test_sqp_restoration.cpp shows how to re-derive the certificate from
+/// tests/sqp/test_sqp_restoration.cpp shows how to re-derive the certificate from
 /// the model if a caller wants to check the driver's claim.
 ///
 /// kBudgetExhausted is a THIRD shape of "ran out of majors", distinct from

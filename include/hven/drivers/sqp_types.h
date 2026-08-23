@@ -48,7 +48,7 @@ enum class QpMode {
 // **EVERY DEFAULT BELOW IS THE SHIPPED ITERATION, BIT FOR BIT**, and no
 // default is flipped by the change that adds its lever.
 
-/// R1 -- HOW THE PROXIMAL/LEVENBERG-MARQUARDT SHIFT sigma IS SIZED.
+/// HOW THE PROXIMAL/LEVENBERG-MARQUARDT SHIFT sigma IS SIZED.
 ///
 /// - kLadder: the shipped failure-reactive ladder -- arm at 1e-6, x100 per
 ///   escalation trigger, cap 1e6 (ssn_engine.h's
@@ -71,7 +71,7 @@ enum class SsnSigmaRule {
     kResidualAlways = 2,
 };
 
-/// R2 -- WHAT PROTECTS THE HINTED FIRST STEP.
+/// WHAT PROTECTS THE HINTED FIRST STEP.
 ///
 /// - kIterationZeroFree: the shipped rule -- iteration 0 is exempt from the
 ///   Armijo test when a hint governed it, with no safety net.
@@ -86,7 +86,7 @@ enum class SsnHintRule {
     kWatchdog = 1,
 };
 
-/// R4 -- WHAT TURNS AN INFEASIBILITY SUSPICION INTO AN EXIT.
+/// WHAT TURNS AN INFEASIBILITY SUSPICION INTO AN EXIT.
 ///
 /// - kSymptoms: the shipped conjuncts -- a stalled residual window plus
 ///   diverging multipliers (ssn_engine.h's kSsnStallWindow block).
@@ -113,7 +113,7 @@ enum class SsnInfeasibilityRule {
 // kWarmResidualGrowthMax = 2 (CONSECUTIVE majors with a GROWING ||KKT||inf).
 // One growth is not evidence: a warm SQP step routinely overshoots once and
 // then contracts quadratically. MEASURED on the perturbed-HS7 family of
-// tests/test_warm_start.cpp, warm from HS7's own solution: at eps = 1 the
+// tests/sqp/test_warm_start.cpp, warm from HS7's own solution: at eps = 1 the
 // residual sequence 1.0 -> 2.1e-1 -> 3.8e-3 -> 1.3e-6 is monotone, while at
 // eps = 10 the same family goes 1.0e1 -> 6.7 -> 7.1 (a rise) -> 2.1 -> ...
 // and still converges in 7 majors. A single-growth threshold would abort that
@@ -131,7 +131,7 @@ enum class SsnInfeasibilityRule {
 // mode's own premise has already failed for.
 //
 // CHANGING EITHER IS A BEHAVIOUR CHANGE ON EVERY WARM SOLVE, not a tuning
-// detail: tests/test_warm_start.cpp pins the majors of both a converging and
+// detail: tests/sqp/test_warm_start.cpp pins the majors of both a converging and
 // a watchdog-restored run against these exact values.
 
 /// Watchdog threshold: consecutive majors with growing ||KKT||inf tolerated
@@ -235,7 +235,7 @@ inline constexpr Index kWarmFullStepWindow = 5;
 /// dual_mu down with the KKT residual, closing the accuracy ceiling a fixed
 /// engine dual_mu leaves on a badly-scaled active set (iterative refinement
 /// alone leaves measured relative error ~1e-4 -- see sqp_driver.h's ADAPTIVE
-/// DUAL REGULARIZATION note and tests/test_sqp_driver.cpp's
+/// DUAL REGULARIZATION note and tests/sqp/test_sqp_driver.cpp's
 /// AdaptiveMuRecoversTailAccuracy). primal_delta is NOT scheduled by this
 /// lever or by anything else in the driver; see that same header note for why
 /// the schedule is deliberately dual_mu-only.
@@ -394,7 +394,7 @@ struct SqpOptions {
     /// mediocre objective: it is exactly the feasible-ish starting position
     /// a warm start exists to provide. A min-KKT choice can therefore hand
     /// back a point the funnel itself would refuse to accept a step from --
-    /// tests/test_warm_start.cpp's BudgetReturnsUsableIterate is built on a
+    /// tests/sqp/test_warm_start.cpp's BudgetReturnsUsableIterate is built on a
     /// fixture where the two orderings disagree for exactly this reason.
     ///
     /// DEFAULT FALSE: off reproduces plain kMaxIter-at-the-last-iterate
@@ -441,7 +441,7 @@ struct SqpOptions {
     /// of it.
     ///
     /// It is UNSAFE in general, with a concrete counter-example in this
-    /// project's own suite: tests/test_sqp_restoration.cpp's
+    /// project's own suite: tests/sqp/test_sqp_restoration.cpp's
     /// InfeasibleCircleLineModel, whose elastic relaxation's augmented
     /// objective is EXACTLY CONSTANT on the ENTIRE feasible set at every rho
     /// (Lagrangian Hessian identically zero, and the unrelaxed row forces
@@ -511,7 +511,7 @@ struct SqpOptions {
     /// (SqpOptions::feas_tol), reused verbatim rather than re-derived:
     ///
     ///     row j seeded      :=  cI_j(x0) >= -feas_tol
-    ///                           (evaluate_kkt's B-1 geometric-activity test,
+    ///                           (evaluate_kkt's geometric-activity test,
     ///                            sqp_driver.h's INGESTED MULTIPLIERS ARE MADE
     ///                            COMPLEMENTARY note)
     ///     var i at lower    :=  x0(i) - l(i) <= feas_tol,  l(i) finite
@@ -542,7 +542,7 @@ struct SqpOptions {
     /// of a solve whose resolved start level is kCold, and only when no warm
     /// seed exists; a kWarm/kHot ingest already seeds that same working set
     /// from WarmStart::qp_working_set and this lever cannot touch it.
-    /// tests/test_sqp_driver.cpp's CrashBasisIsInertOnAWarmIngest pins that
+    /// tests/sqp/test_sqp_driver.cpp's CrashBasisIsInertOnAWarmIngest pins that
     /// a warm solve is bit-identical with the lever on and off.
     ///
     /// NO EXTRA MODEL EVALUATION. Both predicates are read off the FIRST
@@ -552,8 +552,7 @@ struct SqpOptions {
     /// `qp.lower(i) >= -feas_tol` / `qp.upper(i) <= feas_tol` -- never from
     /// a fresh eval_ci call. See sqp_driver.h's crash_basis_seed().
     ///
-    /// MEASURED OUTCOME, AND WHY THE DEFAULT IS OFF: see
-    /// docs/notes/2026-08-03-crash-basis.md. On this project's two cold
+    /// MEASURED OUTCOME, AND WHY THE DEFAULT IS OFF. On this project's two cold
     /// corpora the lever is close to inert, for a reason that is a MECHANISM
     /// rather than a tuning miss -- on F7 the first subproblem costs 2
     /// minors of 850 (all the identification happens on the SECOND major,
@@ -567,7 +566,7 @@ struct SqpOptions {
     /// published start point satisfies the bound predicate too, but it
     /// converges in ZERO majors, so no subproblem is ever built for a seed
     /// to be offered to and its counter reads 0;
-    /// tests/test_hs_battery.cpp's corpus A/B asserts the 5, and exercises
+    /// tests/sqp/test_hs_battery.cpp's corpus A/B asserts the 5, and exercises
     /// HS25 as the "never builds a subproblem" case.)
     bool crash_basis = false;
 
@@ -597,11 +596,10 @@ struct SqpOptions {
     /// -> 5), UP on 1 (HS15 7 -> 13), unchanged on 20; `ssn_escapes` UP on
     /// 17 of 23 rows and DOWN ON NONE; total factorizations UP on 13 rows,
     /// down on 5, unchanged on 5. TWO of the 23 rows are committed as tests
-    /// (tests/test_sqp_driver.cpp's TheProximalCarryLeverMovesTheLadderAndIsOff-
+    /// (tests/sqp/test_sqp_driver.cpp's TheProximalCarryLeverMovesTheLadderAndIsOff-
     /// ByDefault (HS27) and TheProximalCarryHasACommittedCounterExample
     /// (HS15)), deliberately the row that moves and the row that moves the
-    /// wrong way; the remaining 21 are a probe tabulated in the chunk report
-    /// that introduced the lever.
+    /// wrong way; the remaining 21 rows are an un-committed probe.
     ///
     /// THE FACTORIZATION COLUMN'S SIGN WAS CORRECTED BY A COUNTER FIX, worth
     /// stating rather than quietly replacing: an original narrower read of
@@ -627,7 +625,7 @@ struct SqpOptions {
     /// 3 that survive it costs 1-2 factorizations rather than saving any.
     bool ssn_prox_carry = false;
 
-    /// R5 (Gould's lemma). READ THE CERTIFYING EXIT'S SECOND-ORDER EVIDENCE
+    /// GOULD'S LEMMA: READ THE CERTIFYING EXIT'S SECOND-ORDER EVIDENCE
     /// OFF THE FACE-EQP FACTORIZATION THE TIER-3 REFINEMENT ALREADY PAYS
     /// FOR.
     ///
@@ -660,9 +658,9 @@ struct SqpOptions {
     /// deferred.
     bool ssn_certify_from_face = false;
 
-    /// R1/R2/R4. Forwarded verbatim onto the SsnOptions every subproblem is
-    /// solved with (sqp_driver.h's `ssn_options`), where each one's
-    /// mechanism is derived. All three are inert at
+    /// The three SSN rule levers. Forwarded verbatim onto the SsnOptions every
+    /// subproblem is solved with (sqp_driver.h's `ssn_options`), where each
+    /// one's mechanism is derived. All three are inert at
     /// `qp_mode == QpMode::kWalk`, and each defaults to the shipped
     /// iteration's own setting.
     SsnSigmaRule ssn_sigma_rule = SsnSigmaRule::kLadder;
@@ -687,8 +685,8 @@ struct SqpOptions {
 /// @throws std::invalid_argument, with a message naming the option and the
 /// value it had, on any option the driver cannot honour: a non-positive or
 /// NaN kkt_tol/feas_tol, a negative max_iter, a non-positive or NaN tr_init,
-/// a tr_max below tr_init, or a tr_min that is non-positive or above either
-/// end of the range it floors.
+/// a tr_max below tr_init (a +inf tr_init is exempt from that one check), or a
+/// tr_min that is non-positive or above either end of the range it floors.
 void validate_sqp_options(const SqpOptions &opts);
 
 /// One row of the per-major history -- the record of ONE ITERATE and of the
@@ -917,7 +915,7 @@ struct SqpIterate {
 /// infeasible stationary point that sits ON a bound -- measured at a
 /// residual of 1 on the box-blocked fixture, where the certificate calls for
 /// z = -1 and the ordinary measure reports 0. See sqp_driver.h's
-/// RESTORATION PHASE note. tests/test_sqp_restoration.cpp's
+/// RESTORATION PHASE note. tests/sqp/test_sqp_restoration.cpp's
 /// InfeasibleNlpCertifies re-derives this from the model at the returned
 /// point rather than trusting the driver's own measurement.
 ///
