@@ -7,9 +7,9 @@
 // over a matrix's SHAPE AND SPARSITY PATTERN ONLY (its dimensions plus its
 // index arrays) -- never its stored values. The linear-algebra layer uses
 // this to key a cached factorization (does the matrix's structure still
-// match what it was factorized from?), and it is the same key the
-// warm-start currency will use later to decide whether a hand-off's own
-// structural fingerprint still matches the model being solved.
+// match what it was factorized from?), and it is the same key the warm-start
+// currency uses to decide whether a hand-off's own structural fingerprint
+// still matches the model being solved.
 //
 // The SQP engine keeps two structural keys of its own
 // (`hven/detail/qp/qp_engine.h`, `hven/detail/qp/ssn_engine.h`); both are
@@ -27,24 +27,26 @@
 
 namespace hven {
 
-// A small, composable FNV-1a accumulator. Default-constructs at the FNV-1a
-// 64-bit offset basis; `feed`/`feed_index` mix data in one call at a time;
-// `value()` reads the current hash without consuming it, so a caller may
-// keep feeding after reading an intermediate value.
+/// A small, composable FNV-1a accumulator. Default-constructs at the FNV-1a
+/// 64-bit offset basis; `feed`/`feed_index` mix data in one call at a time;
+/// `value()` reads the current hash without consuming it, so a caller may
+/// keep feeding after reading an intermediate value.
 struct Fnv1a {
+    /// Standard FNV-1a 64-bit offset basis.
     static constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
+    /// Standard FNV-1a 64-bit prime.
     static constexpr std::uint64_t kPrime = 1099511628211ULL;
 
     constexpr Fnv1a() noexcept : hash_(kOffsetBasis) {}
 
-    // Feeds `len` bytes starting at `data` through the standard byte-at-a-
-    // time FNV-1a mixing step (XOR the byte in, then multiply by the
-    // prime). Runtime-only: reading through a `static_cast<const unsigned
-    // char *>` from `const void *` is not usable in a constant expression
-    // before C++26 ([expr.const]), so this member is deliberately not
-    // marked `constexpr` -- doing so would be an inert, technically
-    // ill-formed-no-diagnostic-required claim (see feed_index's own note
-    // for the member that actually is constexpr).
+    /// Feeds `len` bytes starting at `data` through the standard byte-at-a-
+    /// time FNV-1a mixing step (XOR the byte in, then multiply by the prime).
+    ///
+    /// Deliberately NOT `constexpr`: reading through a
+    /// `static_cast<const unsigned char *>` from `const void *` is not usable
+    /// in a constant expression before C++26 ([expr.const]), so marking it
+    /// constexpr would be an inert, technically
+    /// ill-formed-no-diagnostic-required claim.
     void feed(const void *data, std::size_t len) noexcept {
         const auto *bytes = static_cast<const unsigned char *>(data);
         for (std::size_t i = 0; i < len; ++i) {
@@ -53,23 +55,22 @@ struct Fnv1a {
         }
     }
 
-    // Feeds one index value's eight bytes, least-significant byte first, via
-    // explicit shift-and-mask rather than by reading `value`'s object
-    // representation through `feed()`. Two consequences: this member is
-    // genuinely `constexpr` (no pointer-punning cast, so it is usable in a
-    // constant expression), and the byte order fed is fixed by the shift
-    // direction rather than by host endianness, so the hash is
-    // byte-order-independent on top of being independent of Eigen's sparse
-    // storage-index width (see docs/pattern-hash.md). Every ingredient
-    // pattern_hash() mixes in (dimensions, nnz, index-array entries) goes
-    // through this one call.
-    //
-    // THE PARAMETER IS LITERALLY `std::int64_t`, NOT `hven::Index`, and that
-    // is the width contract rather than a spelling preference: the hash's
-    // stability claim is "evaluated at a fixed 64-bit width", so it must not
-    // ride an alias that a future retypedef could move. `Index` converts to
-    // it exactly on every supported target (both are signed 64-bit), so no
-    // hash value depends on which of the two a caller passes.
+    /// Feeds one index value's eight bytes, least-significant byte first, via
+    /// explicit shift-and-mask rather than by reading `value`'s object
+    /// representation through `feed()`. Two consequences: this member is
+    /// genuinely `constexpr` (no pointer-punning cast), and the byte order
+    /// fed is fixed by the shift direction rather than by host endianness, so
+    /// the hash is byte-order-independent on top of being independent of
+    /// Eigen's sparse storage-index width (docs/pattern-hash.md). Every
+    /// ingredient pattern_hash() mixes in (dimensions, nnz, index-array
+    /// entries) goes through this one call.
+    ///
+    /// THE PARAMETER IS LITERALLY `std::int64_t`, NOT `hven::Index`, and that
+    /// is the width contract rather than a spelling preference: the hash's
+    /// stability claim is "evaluated at a fixed 64-bit width", so it must not
+    /// ride an alias that a future retypedef could move. `Index` converts to
+    /// it exactly on every supported target (both are signed 64-bit), so no
+    /// hash value depends on which of the two a caller passes.
     constexpr void feed_index(std::int64_t value) noexcept {
         const auto u = static_cast<std::uint64_t>(value);
         for (int i = 0; i < 8; ++i) {
@@ -78,47 +79,48 @@ struct Fnv1a {
         }
     }
 
+    /// The current hash value, without consuming it.
     constexpr std::uint64_t value() const noexcept { return hash_; }
 
   private:
     std::uint64_t hash_;
 };
 
-// Feeds ONE matrix's shape and sparsity pattern into an accumulator that is
-// already running: rows, cols, nnz, the outer offset array, then the inner
-// index array -- in that order, every ingredient through `feed_index`, so
-// every ingredient is 64-bit widened and byte-order-fixed. This is the whole
-// recipe: `pattern_hash(A)` below is exactly `Fnv1a h; feed_pattern(h, A);
-// h.value()`, and the multi-matrix key is this call repeated on one
-// accumulator. It is the surface a caller reaches for to interleave a
-// matrix's pattern with ingredients of its own (sizes, flags, a bound-row
-// list) in one digest.
-//
-// UNCOMPRESSED-TOLERANT, AND THAT IS A CONTRACT RATHER THAN A CONVENIENCE:
-// the digest of a matrix in Eigen's uncompressed state is bit-identical to
-// the digest of that same matrix after `makeCompressed()`. Equal structures
-// hash equal whatever storage state they are in, so a hash-keyed reuse
-// decision cannot be flipped by a caller's compression bookkeeping.
-//
-// The equality is not maintained by comparing the two states; there is one
-// stream and both states produce it. The outer offsets fed are DERIVED, not
-// read: a running total of stored entries per outer vector, starting at
-// zero. Compressed, that derivation reproduces `outerIndexPtr()[0..rows]`
-// element for element -- reproducing it is what "compressed" means.
-// Uncompressed, it reproduces what `makeCompressed()` would write there,
-// because Eigen builds that array by the same prefix sum
-// (`SparseMatrix::makeCompressed`). The inner indices then follow in stored
-// order, walked with `InnerIterator`, which is exact in both states.
-//
-// The one thing the two states genuinely spell differently is where a vector
-// keeps its stored count -- `innerNonZeroPtr()` when the matrix carries
-// per-vector free space, the difference of two outer offsets when it does
-// not. That is the same pair of accessors Eigen's own `InnerIterator` uses
-// to bound a vector, and asking it is a storage question, not a digest
-// adjustment: no ingredient's VALUE depends on which arm answers.
-//
-// Row-major only, and enforced: the stream's "outer" is rows. Hashing a
-// column-major matrix through it would silently key a transpose.
+/// Feeds ONE matrix's shape and sparsity pattern into an accumulator that is
+/// already running: rows, cols, nnz, the outer offset array, then the inner
+/// index array -- in that order, every ingredient through `feed_index`, so
+/// every ingredient is 64-bit widened and byte-order-fixed. This is the whole
+/// recipe: `pattern_hash(A)` below is exactly `Fnv1a h; feed_pattern(h, A);
+/// h.value()`, and the multi-matrix key is this call repeated on one
+/// accumulator. It is the surface a caller reaches for to interleave a
+/// matrix's pattern with ingredients of its own (sizes, flags, a bound-row
+/// list) in one digest.
+///
+/// UNCOMPRESSED-TOLERANT, AND THAT IS A CONTRACT RATHER THAN A CONVENIENCE:
+/// the digest of a matrix in Eigen's uncompressed state is bit-identical to
+/// the digest of that same matrix after `makeCompressed()`. Equal structures
+/// hash equal whatever storage state they are in, so a hash-keyed reuse
+/// decision cannot be flipped by a caller's compression bookkeeping.
+///
+/// The equality is not maintained by comparing the two states; there is one
+/// stream and both states produce it. The outer offsets fed are DERIVED, not
+/// read: a running total of stored entries per outer vector, starting at
+/// zero. Compressed, that derivation reproduces `outerIndexPtr()[0..rows]`
+/// element for element -- reproducing it is what "compressed" means.
+/// Uncompressed, it reproduces what `makeCompressed()` would write there,
+/// because Eigen builds that array by the same prefix sum
+/// (`SparseMatrix::makeCompressed`). The inner indices then follow in stored
+/// order, walked with `InnerIterator`, which is exact in both states.
+///
+/// The one thing the two states genuinely spell differently is where a vector
+/// keeps its stored count -- `innerNonZeroPtr()` when the matrix carries
+/// per-vector free space, the difference of two outer offsets when it does
+/// not. That is the same pair of accessors Eigen's own `InnerIterator` uses
+/// to bound a vector, and asking it is a storage question, not a digest
+/// adjustment: no ingredient's VALUE depends on which arm answers.
+///
+/// Row-major only, and enforced: the stream's "outer" is rows. Hashing a
+/// column-major matrix through it would silently key a transpose.
 template <class Scalar, int Options, class StorageIndex>
 void feed_pattern(Fnv1a &h, const Eigen::SparseMatrix<Scalar, Options, StorageIndex> &A) {
     static_assert((Options & Eigen::RowMajor) != 0,
@@ -156,46 +158,46 @@ void feed_pattern(Fnv1a &h, const Eigen::SparseMatrix<Scalar, Options, StorageIn
     }
 }
 
-// The structural key for one sparse matrix's shape and sparsity pattern:
-// FNV-1a over rows, cols, nnz, the outer index array, then the inner index
-// array, per `feed_pattern` above (docs/pattern-hash.md states the exact
-// ingredient order and how the SQP engine's own fingerprints relate to it).
-// Two matrices with the same shape and the same sparsity pattern hash
-// identically, REGARDLESS of their stored values; two matrices differing in
-// shape or pattern are not expected to collide. The result is stable across
-// Eigen sparse storage-index widths and across host byte order (both due to
-// `Fnv1a::feed_index`'s shift-based extraction) -- it is not claimed to be
-// "portable" in any broader sense.
-//
-// Requires `A.isCompressed()` -- throws std::invalid_argument otherwise.
-// The requirement is this ENTRY POINT's, not the recipe's: `feed_pattern`
-// hashes either storage state to the same value, and a caller who wants that
-// tolerance calls it (or `combined_pattern_hash`) directly. What this
-// signature keeps is a boundary check for the tier it serves -- the KKT and
-// linear layers, whose backends read a compressed CSR and reject anything
-// else (`SymmetricFactor::analyze`/`factorize`) -- so a caller who forgot
-// `makeCompressed()` fails here, at the first call that touches the matrix,
-// instead of one call later.
+/// The structural key for one sparse matrix's shape and sparsity pattern:
+/// FNV-1a over rows, cols, nnz, the outer index array, then the inner index
+/// array, per `feed_pattern` above (docs/pattern-hash.md states the exact
+/// ingredient order and how the SQP engine's own fingerprints relate to it).
+/// Two matrices with the same shape and the same sparsity pattern hash
+/// identically, REGARDLESS of their stored values; two matrices differing in
+/// shape or pattern are not expected to collide. The result is stable across
+/// Eigen sparse storage-index widths and across host byte order (both due to
+/// `Fnv1a::feed_index`'s shift-based extraction) -- it is not claimed to be
+/// "portable" in any broader sense.
+///
+/// Requires `A.isCompressed()`.
+/// @throws std::invalid_argument if `A` is not compressed. The requirement
+/// is this ENTRY POINT's, not the recipe's: `feed_pattern` hashes either
+/// storage state to the same value, and a caller who wants that tolerance
+/// calls it (or `combined_pattern_hash`) directly. What this signature keeps
+/// is a boundary check for the tier it serves -- the KKT and linear layers,
+/// whose backends read a compressed CSR and reject anything else
+/// (`SymmetricFactor::analyze`/`factorize`) -- so a caller who forgot
+/// `makeCompressed()` fails here, at the first call that touches the matrix,
+/// instead of one call later.
 std::uint64_t pattern_hash(const SpMatRM &A);
 
-// The combined structural key over SEVERAL matrices, in argument order: ONE
-// `Fnv1a` threaded through them by `feed_pattern`, each matrix appending its
-// own ingredients to the accumulation the previous ones left running. This
-// is append-style continued accumulation and NOT a fold over per-matrix
-// digests -- the two are different functions of the same inputs (a fold
-// mixes eight bytes per matrix; this mixes every index-array entry), and the
-// tests pin them apart. docs/pattern-hash.md records why the continuation is
-// the recipe hven adopted.
-//
-// No separator is inserted between matrices: each one's leading rows/cols/nnz
-// triple is the separator, which is what makes the serialization
-// self-delimiting -- a re-partitioned sequence feeds a DIFFERENT stream than
-// the original, so the two can collide only at the ordinary 64-bit-digest
-// level, never structurally. Order is significant.
-//
-// The one-matrix case is the tolerant single-matrix digest:
-// `combined_pattern_hash(A) == pattern_hash(A)` for every compressed `A`,
-// and for an uncompressed `A` it is the digest `A` would have compressed.
+/// The combined structural key over SEVERAL matrices, in argument order: ONE
+/// `Fnv1a` threaded through them by `feed_pattern`, each matrix appending its
+/// own ingredients to the accumulation the previous ones left running. This
+/// is append-style continued accumulation and NOT a fold over per-matrix
+/// digests -- the two are different functions of the same inputs (a fold
+/// mixes eight bytes per matrix; this mixes every index-array entry), and the
+/// tests pin them apart.
+///
+/// No separator is inserted between matrices: each one's leading rows/cols/nnz
+/// triple is the separator, which makes the serialization self-delimiting --
+/// a re-partitioned sequence feeds a DIFFERENT stream than the original, so
+/// the two can collide only at the ordinary 64-bit-digest level, never
+/// structurally. Order is significant.
+///
+/// The one-matrix case is the tolerant single-matrix digest:
+/// `combined_pattern_hash(A) == pattern_hash(A)` for every compressed `A`,
+/// and for an uncompressed `A` it is the digest `A` would have compressed.
 template <class... Matrices> std::uint64_t combined_pattern_hash(const Matrices &...matrices) {
     static_assert(sizeof...(Matrices) >= 1,
                   "hven::combined_pattern_hash: a key over no matrices is the bare FNV-1a offset "

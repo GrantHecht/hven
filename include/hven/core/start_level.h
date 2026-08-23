@@ -6,156 +6,103 @@
 // start_level.h -- StartLevel, the warm-start ingest level a solve resolves to,
 // its display-string helper, and the per-level histogram a Ledger reports over
 // whole-driver solves.
-//
-// M3 PHASE-C S2 MOVED ALL THREE HERE UNCHANGED: the enum and its `to_string`
-// from `hven/detail/warmstart/warm_start.h`, the histogram from
-// `hven/core/ledger.h`. The reason is layering, not taste -- `core/ledger.h`
-// and `core/solver_counters.h` both consume `StartLevel`, and a `core/` header
-// may not reach up into `detail/warmstart/` for it (CLAUDE.md section 2's tier
-// order). `warm_start.h` includes this header, so every call site that reached
-// `StartLevel` through it still does.
 
 #include <hven/core/types.h>
 
 namespace hven::solvers {
 
-// `Index` BELOW IS `hven::Index`, reached by ordinary enclosing-namespace
-// lookup out of `hven::solvers` -- there is no SQP-side index alias any more.
-// This header used to re-declare one (`using Index = Eigen::Index;`), because
-// M3 phase-C S1 had found `hven::Index` and `Eigen::Index` to be DISTINCT types
-// on Apple arm64 and the SQP layer needed Eigen's; `qp/qp_types.h` carried the
-// normative block and the pins, and this was a copy of the alias rather than an
-// include of that header, since `core/` may not depend upward on `qp/`. Phase-C
-// S2c redefined `hven::Index` onto `Eigen::Index`, which made both the alias
-// and the copy redundant; `qp_types.h` keeps the historical record and the
-// identity pin. The upward-dependency argument is untouched: this header
-// includes `core/types.h`, a `core/` sibling.
+// `Index` below is `hven::Index`, reached by ordinary enclosing-namespace
+// lookup out of `hven::solvers`; there is no SQP-side index alias.
 
-// How much of a previous solve's state a caller intends to feed into the
-// next one: kCold ignores it entirely (an ordinary cold solve), kSeeded
-// takes the VALUES (x, the duals, the activity hint) without any claim
-// about where they came from, kWarm additionally trusts the object's
-// provenance -- a structural-hash MATCH against this model -- and with it
-// the globalization/regularization state, and kHot additionally offers
-// `hot` (above) for the engine to reuse a cached factorization keyed on
-// that same `structure_hash`. kHot is Task 4's: sqp_driver.h's level
-// resolution now produces and reads it (see solve_impl's WARM-START INGEST
-// note there), gated the same way kWarm always was -- a caller does
-// nothing different to opt in beyond having received a `hot` handle from a
-// prior solve; SqpOptions::start_level still CAPS the result, so a caller
-// that never wants kHot pinned can clamp it there.
-//
-// THE ORDER IS LOAD-BEARING AND THE ENUM IS COMPARED BY IT. sqp_driver.h's
-// ceiling test compares `static_cast<int>`, and the suite's own
-// `EXPECT_GE(step.level, kWarm)`-style reads (tests/test_continuation.cpp)
-// compare the enumerators directly, so kSeeded had to be inserted BETWEEN
-// kCold and kWarm rather than appended: it is strictly less than kWarm in
-// everything it asks the driver to believe.
-//
-// PHASE-6 TASK 5 ADDS kSeeded -- "TRUSTS VALUES, NOT PROVENANCE". It is the
-// ingest level the two hash-less producers in this project have been waiting
-// for since Phase 4: `from_interior_point` below and mesh_transfer.h's
-// MeshTransfer both emit `structure_hash == 0` BY CONSTRUCTION (neither has a
-// model of the DESTINATION solve to hash), and through Phase 5 that sentinel
-// resolved every such object to kCold, so nothing but `x` -- passed explicitly
-// as the caller's own x0 -- could reach a solve. The gap was written up twice,
-// independently, as warm_start.h's THE CROSSOVER'S VALUE TODAY and
-// mesh_transfer.h's THE PHASE-6 INGEST GAP; kSeeded is the driver-side change
-// both of those notes named ("option (i)", equivalently the battery note's
-// repair C) and both are now RESOLVED rather than deferred.
-//
-// WHAT kSeeded TAKES, exactly, and it is the whole list:
-//   - `x`, `lambda_e`, `lambda_i` -- fed into the FIRST convergence test, so a
-//     seeded object that genuinely IS a KKT point of the posed problem can be
-//     certified in zero majors, under the post-B-1 rules below;
-//   - the ACTIVITY HINT (`qp_working_set`) -- seeded into the first QP
-//     subproblem's working set as a GUESS, through the same seed path every
-//     other major uses, so the engine's own WINDOW-CONSISTENCY RULE may drop
-//     any part of it that does not fit the first trust-region window.
-//     **AT THIS LEVEL AN EMPTY HINT IS NO HINT** -- an all-free working set
-//     means "no activity was attributed" and not "nothing is active"
-//     (`ineq_active`/`bound_active`'s own field notes below say so, and the
-//     two producers above can both emit exactly that), so a hint-less seeded
-//     object leaves the first subproblem unseeded and thereby RE-ARMS
-//     SqpOptions::crash_basis if it is on. A hint-CARRYING one suppresses the
-//     crash basis exactly as a kWarm object does. That reading is a Phase-6
-//     Task 5 ruling; sqp_driver.h's seed-building block carries the full
-//     argument and states that kCold/kWarm/kHot behaviour is unchanged by it.
-//
-// WHAT IT NEVER TAKES, and each exclusion has the same one-line reason -- the
-// object cannot justify it without provenance:
-//   - THE FACTORIZATION (`hot`). The hash exists precisely to protect
-//     factorization reuse; an object that cannot produce a hash may never
-//     reach kHot, by construction (kSeeded < kWarm < kHot).
-//   - THE FUNNEL WIDTH and THE TRUST-REGION RADIUS. Both are measured in the
-//     units of a DIFFERENT problem's own violation measure and step scale
-//     (mesh_transfer.h's section 4 makes exactly this argument for
-//     funnel_width and declines to transfer it; kSeeded extends the same
-//     refusal to tr_radius, which MeshTransfer does carry). The destination
-//     solve seeds its funnel from Eq. (9) at its own first measured h0 and
-//     starts at SqpOptions::tr_init, exactly as a cold solve does.
-//   - THE KUNGURTSEV-DIEHL FULL-STEP WINDOW (SqpOptions::warm_full_step). The
-//     full-step-first rule's justification is local convergence of a warm
-//     start ON THE SAME PROBLEM; a seeded object makes no such claim.
-//
-// THE INGEST GATE IS DIMENSIONS AND FINITENESS, NOTHING ELSE. `valid`, then
-// `x`/`lambda_e`/`lambda_i`/`qp_working_set` sized against (n, me, mi), then
-// every one of those three vectors finite. NO HASH IS REQUIRED and none is
-// computed -- a solve whose ceiling is kSeeded pays no resolution probe at
-// all. An object failing the gate resolves kCold exactly as before.
-//
-// AND ONE THING kSeeded ADDS THAT NO OTHER LEVEL HAS: `lambda_i >= 0` IS
-// ENFORCED AT INGEST (sqp_driver.h's THE SEEDED DUAL CLAMP). That is not
-// decoration -- it is the reason this level is safe to open. Every other
-// route into the ingest is hash-gated, and the producers that can clear a
-// hash gate are non-negative by construction; kSeeded admits objects a
-// FOREIGN solver or a caller's own hand assembled, which is exactly the
-// input class warm_start.h's SIGN CONVENTIONS paragraph states as a
-// PRECONDITION and which sqp_driver.h's THE INGESTED MULTIPLIERS ARE MADE
-// COMPLEMENTARY note itemizes as ungated (O-B1-4). At the seeded level it is
-// no longer ungated: a small negative price is CLAMPED to zero and counted,
-// and a large one degrades the whole object to kCold.
+/// How much of a previous solve's state a caller intends to feed into the
+/// next one. THE ORDER IS LOAD-BEARING AND THE ENUM IS COMPARED BY IT:
+/// sqp_driver.h's ceiling test compares `static_cast<int>` and tests read the
+/// enumerators directly (`EXPECT_GE(step.level, kWarm)`-style), so inserting
+/// a new level means placing it between its neighbours, not appending.
+///
+/// Per level, each strictly more trusting than the last:
+/// - kCold ignores the previous state entirely (an ordinary cold solve).
+/// - kSeeded TRUSTS VALUES, NOT PROVENANCE. Takes exactly:
+///     * `x`, `lambda_e`, `lambda_i` -- fed into the FIRST convergence test,
+///       so a seeded object that genuinely IS a KKT point of the posed
+///       problem can be certified in zero majors;
+///     * the ACTIVITY HINT (`qp_working_set`) -- seeded into the first QP
+///       subproblem's working set as a GUESS, through the same seed path
+///       every other major uses, so the engine's own WINDOW-CONSISTENCY RULE
+///       may drop any part that does not fit the first trust-region window.
+///       AT THIS LEVEL AN EMPTY HINT IS NO HINT: an all-free working set
+///       means "no activity was attributed", not "nothing is active"
+///       (ineq_active/bound_active's field notes say so), so a hint-less
+///       seeded object leaves the first subproblem unseeded and thereby
+///       RE-ARMS SqpOptions::crash_basis if it is on; a hint-CARRYING one
+///       suppresses the crash basis exactly as a kWarm object does.
+///   The two hash-less producers -- from_interior_point below and
+///   mesh_transfer.h's MeshTransfer -- emit `structure_hash == 0` BY
+///   CONSTRUCTION (neither has a model of the DESTINATION solve to hash),
+///   and kSeeded is the ingest level built for exactly such objects.
+///   WHAT IT NEVER TAKES, each exclusion because the object cannot justify
+///   it without provenance:
+///     * THE FACTORIZATION (`hot`): the hash exists precisely to protect
+///       factorization reuse, so no hash may never reach kHot
+///       (kSeeded < kWarm < kHot).
+///     * THE FUNNEL WIDTH and THE TRUST-REGION RADIUS: both are measured in
+///       the units of a DIFFERENT problem's violation measure and step scale
+///       (mesh_transfer.h section 4 declines to transfer funnel_width;
+///       kSeeded extends the refusal to tr_radius, which MeshTransfer does
+///       carry). The destination solve seeds its funnel from Eq. (9) at its
+///       own first measured h0 and starts at SqpOptions::tr_init, exactly as
+///       a cold solve does.
+///     * THE KUNGURTSEV-DIEHL FULL-STEP WINDOW (SqpOptions::warm_full_step):
+///       the full-step-first rule presumes local convergence of a warm start
+///       ON THE SAME PROBLEM; a seeded object makes no such claim.
+///   AND ONE THING NO OTHER LEVEL HAS: `lambda_i >= 0` IS ENFORCED AT INGEST
+///   (sqp_driver.h's THE SEEDED DUAL CLAMP). Every other route into the
+///   ingest is hash-gated and the producers that clear a hash gate are
+///   non-negative by construction; kSeeded admits objects a FOREIGN solver
+///   or a caller's own hand assembled -- the input class warm_start.h's SIGN
+///   CONVENTIONS paragraph states as a PRECONDITION and sqp_driver.h's THE
+///   INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY note itemizes as ungated.
+///   At the seeded level a small negative price is CLAMPED to zero and
+///   counted; a large one degrades the whole object to kCold.
+///   The ingest gate is DIMENSIONS AND FINITENESS, NOTHING ELSE: `valid`,
+///   then x/lambda_e/lambda_i/qp_working_set sized against (n, me, mi), then
+///   those vectors finite. NO HASH IS REQUIRED and none is computed -- a
+///   solve whose ceiling is kSeeded pays no resolution probe at all. An
+///   object failing the gate resolves kCold.
+/// - kWarm additionally trusts the object's provenance -- a structural-hash
+///   MATCH against this model -- and with it the
+///   globalization/regularization state.
+/// - kHot additionally offers `hot` for the engine to reuse a cached
+///   factorization keyed on that same `structure_hash`, gated the same way
+///   kWarm always was: a caller opts in only by having received a `hot`
+///   handle from a prior solve; SqpOptions::start_level still CAPS the
+///   result, so a caller that never wants kHot pinned can clamp it there.
 enum class StartLevel { kCold, kSeeded, kWarm, kHot };
 
-// StartLevel -> a short display string. PHASE-4 TASK 7: the cold-vs-warm
-// ledger instrumentation and sqp_driver.h's iteration-table printer both need
-// to render `SqpCounters::start_level_used` (solver_counters.h) for a human,
-// so the switch exists once, declared here, rather than being hand-copied at
-// each call site -- the same rationale solver_status.h's to_string gives.
-//
-// M3 PHASE-C T1 MOVED THE DEFINITION out of this header into a library TU
-// (CLAUDE.md section 5 homes printing in a .cpp TU). The DECLARATION stays
-// here, on the header that owns the enum, so every existing call site compiles
-// unchanged; only the switch itself is now compiled once instead of once per
-// including TU.
-//
-// T1 put it in `src/drivers/sqp_print.cpp` with the other four printers, which
-// left `src/core/ledger.cpp` resolving a symbol out of a `drivers/` object -- a
-// link-time edge up CLAUDE.md section 2's tier order, invisible to
-// tests/core/test_core_layering.cpp, which scans include DIRECTIVES. T3's
-// follow-up moved this switch and SqpStatus's into `src/core/enum_names.cpp`.
+/// Maps StartLevel to a short display string; defined in a library TU.
 const char *to_string(StartLevel level);
 
-// PHASE-6 TASK 5. How many of a ledger's whole-driver solves resolved at each
-// StartLevel -- the aggregate the kSeeded level made worth having, since a
-// crossover or mesh-refinement loop's headline question is "how many of my
-// hand-offs were actually ingested, and at what level".
-//
-// ONE FIELD PER ENUMERATOR, NOT A MAP OR AN ARRAY INDEXED BY THE ENUM. The
-// enum's integer values are load-bearing for ORDERING (the ORDER IS LOAD-BEARING
-// note above: kSeeded had to be inserted BETWEEN kCold and kWarm, which
-// renumbered kWarm and kHot), so anything that indexes by them would silently
-// re-bind its columns the next time a level is inserted. Named fields cannot.
-//
-// `total()` is the number of SqpSolveRecords the histogram was built from, so a
-// caller can assert the four columns account for every solve rather than
-// assuming they do.
+/// How many of a ledger's whole-driver solves resolved at each StartLevel --
+/// the aggregate for a crossover or mesh-refinement loop's headline question:
+/// how many of its hand-offs were actually ingested, and at what level.
+///
+/// ONE FIELD PER ENUMERATOR, NOT A MAP OR AN ARRAY INDEXED BY THE ENUM: the
+/// integer values are load-bearing for ORDERING (kSeeded sits BETWEEN kCold
+/// and kWarm, and inserting a level renumbers everything after it), so
+/// anything indexed by them would silently re-bind its columns on such an
+/// insertion; named fields cannot.
 struct StartLevelHistogram {
+    /// Solves that resolved to kCold.
     Index cold = 0;
+    /// Solves that resolved to kSeeded.
     Index seeded = 0;
+    /// Solves that resolved to kWarm.
     Index warm = 0;
+    /// Solves that resolved to kHot.
     Index hot = 0;
 
+    /// The number of SqpSolveRecords the histogram was built from: the four
+    /// columns account for every solve iff this equals their sum.
     Index total() const { return cold + seeded + warm + hot; }
 };
 
