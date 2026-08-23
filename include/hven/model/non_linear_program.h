@@ -11,12 +11,6 @@
 // dense or sparse objective or constraints into a single optimization problem and
 // manages all memory allocation, sparsity pattern computation, work partitioning, and function
 // evaluation.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 

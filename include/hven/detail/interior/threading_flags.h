@@ -14,12 +14,6 @@
 // here and vf/core/functional_flags.h re-exports it, so every existing
 // ThreadingFlags reference in the consuming VectorFunction layer keeps working
 // unchanged.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 

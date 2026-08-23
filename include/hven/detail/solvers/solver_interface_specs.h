@@ -9,19 +9,6 @@
 // Defines the type erasure specs (SolverConstraintSpec, SolverObjectiveSpec)
 // and concrete type erasure (ConstraintInterface, ObjectiveInterface) that
 // enable vector functions to interface with InteriorPointSolver and NonLinearProgram.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-//   - PR 9: Replaced rubber_types with TypeStorage; deleted dead
-//     Model<>/ExternalInterface<> boilerplate and SolverInterfaceSelector.
-//   - Function entry routed through hven/solver_interface_adapter.h: the
-//     consumer-type forward declaration and its preferred constructors are
-//     gone; both interfaces now delegate to SolverInterfaceAdapter<T>, so
-//     what gets stored is declared by the type's owner rather than inferred
-//     here.
-// =============================================================================
 
 #pragma once
 

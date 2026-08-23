@@ -10,12 +10,6 @@
 // necessary for an asset vector function to be used as a constraint or objective inside of hven's
 // interior-point engine. It is coupled with a function by the interface classes ConstraintFunction
 // and ObjectiveFunction.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 #include "hven/detail/interior/parsed_io_flags.h"

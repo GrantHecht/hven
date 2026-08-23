@@ -8,13 +8,6 @@
 
 // Defines this library's memory manager for allocation of temporary
 // matrices in expression evaluation
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-//   - Full rewrite: BumpStack with save/restore, SIMD alignment, learning
-// =============================================================================
 
 #pragma once
 #include <algorithm>

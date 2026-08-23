@@ -9,12 +9,6 @@
 // Implements the ObjectiveFunction class.
 // Holds an ObjectiveInterface type erasure class and SolverIndexingData struct.
 // Interfaces directly with NonLinearProgram and InteriorPointSolver.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 

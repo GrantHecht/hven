@@ -84,10 +84,10 @@ include/hven/detail/kkt/bordered_eqp.h,original
 include/hven/detail/kkt/kkt_assembly.h,original
 include/hven/detail/kkt/kkt_calls.h,original
 include/hven/detail/kkt/schur_complement.h,original
-include/hven/detail/linear/accelerate_session.h,original
+include/hven/detail/linear/accelerate_session.h,third-party-mpl
 include/hven/detail/linear/fault_injection.h,original
 include/hven/detail/linear/lapacke_shim.h,original
-include/hven/detail/linear/pardiso_session.h,original
+include/hven/detail/linear/pardiso_session.h,third-party-mpl
 include/hven/detail/linear/session_id.h,original
 include/hven/detail/model/nlp_adapter.h,original
 include/hven/detail/qp/eqp_solve.h,original
@@ -145,9 +145,9 @@ src/interior/utils/get_core_count.cpp,third-party-boost
 src/interior/utils/memory_management.cpp,derived
 src/interior/utils/thread_pool.cpp,original
 src/kkt/kkt_calls.cpp,original
-src/linear/accelerate_session.cpp,original
+src/linear/accelerate_session.cpp,third-party-mpl
 src/linear/dense_symmetric_factor.cpp,original
-src/linear/pardiso_session.cpp,original
+src/linear/pardiso_session.cpp,third-party-mpl
 src/linear/symmetric_factor_accelerate.cpp,original
 src/linear/symmetric_factor_mkl.cpp,original
 src/model/aggregate_declaration.cpp,original

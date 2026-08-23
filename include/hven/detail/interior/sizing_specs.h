@@ -9,13 +9,6 @@
 // Defines the type erasure spec SizableSpec defining the ability to query
 // the Input/Output rows of a type-erased vectorfunction as well as its name
 // and thread safety.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-//   - PR 9: Removed dead Model<>/ExternalInterface<> boilerplate
-// =============================================================================
 
 #pragma once
 

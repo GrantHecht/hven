@@ -12,12 +12,6 @@
 // and RHS space from the solver, and passes relevant arguments to the underlying type erased
 // function or index data structure. The two Derived classes ( Constraint/ObjectiveInterface) then
 // define the rest of the interface to the type-erased functions constraints and objective methods.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 
