@@ -24,6 +24,10 @@
 //               of a transcription, timed apart because it moved the other
 //               way from the layout.
 //   transcribe+key   the same re-lay, plus ONE model_structure_key() read.
+//   transcribe+decl  the same re-lay, plus ONE declaration() read -- the cell
+//               that prices the deferred PIECE COPY, which is what the first
+//               assemble() after a lay pays and what the two cells above
+//               never discharge.
 //               INFORMATIONAL: the structural key's two digests are taken on
 //               first read rather than during the lay, so this cell is where
 //               that deferred cost is visible. transcribe is what a consumer
@@ -584,6 +588,55 @@ void arm(int applications, int reps) {
         }
         report("transcribe+key", applications, reps, s,
                "key=" + std::to_string(digest) +
+                   " claims=" + std::to_string(p.nlp->num_user_kkt_elems_));
+    }
+
+    // transcribe+decl: the same re-lay plus ONE declaration() read, which is
+    // where the deferred PIECE COPY is paid -- the deep clone of the three
+    // master piece lists, type-erased payloads and per-piece index maps and all.
+    //
+    // THIS IS THE CELL THAT PRICES WHAT EVERY EVALUATING CONSUMER PAYS.
+    // NlpAggregate::assemble() reads declaration() as its first statement, so
+    // the first assemble after a lay pays exactly this on top of a bare
+    // transcribe; everything else assemble does is evaluation, not layout, and
+    // timing that here would bury the number this cell exists to show. The
+    // `transcribe` and `transcribe+key` cells never call declaration(), so
+    // neither of them discharges the copy -- on the head arm they measure a lay
+    // that still owes it, while the base arm paid it eagerly inside every
+    // make_nlp. Their deltas are therefore NOT the whole story, and this cell is
+    // the rest of it.
+    //
+    // ASSERTED, because a cell that silently failed to discharge the copy would
+    // report a saving nobody gets: the read must come back with all three lists
+    // populated to the master lists' sizes, or the probe aborts rather than
+    // printing a row.
+    {
+        Program p = build(applications, kPartitions);
+        std::vector<double> s;
+        std::size_t pieces = 0;
+        for (int r = 0; r < reps; r++) {
+            auto t0 = std::chrono::steady_clock::now();
+            p.nlp->make_nlp(p.variables, p.equality_rows, 0);
+            const auto &declared = p.nlp->declaration();
+            const std::size_t copied = declared.objectives_.size() +
+                                       declared.equality_constraints_.size() +
+                                       declared.inequality_constraints_.size();
+            s.push_back(seconds_since(t0));
+            pieces = copied;
+            const std::size_t expected = p.nlp->objectives_.size() +
+                                         p.nlp->equality_constraints_.size() +
+                                         p.nlp->inequality_constraints_.size();
+            if (copied != expected || copied == 0) {
+                std::fprintf(
+                    stderr,
+                    "transcribe+decl: the declaration read returned %zu pieces, expected "
+                    "%zu -- the deferred copy was not discharged inside the timed region\n",
+                    copied, expected);
+                std::abort();
+            }
+        }
+        report("transcribe+decl", applications, reps, s,
+               "pieces=" + std::to_string(pieces) +
                    " claims=" + std::to_string(p.nlp->num_user_kkt_elems_));
     }
 

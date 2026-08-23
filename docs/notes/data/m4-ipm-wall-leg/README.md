@@ -78,7 +78,7 @@ instrument in this repository could see it.
 collocation transcription -- four constraint pieces plus an objective piece,
 `n` applications over four-variable windows that overlap by two (so consecutive
 applications share KKT columns, and columns are contested across partitions),
-four partitions, bounds on every variable -- and times six cells at three
+four partitions, bounds on every variable -- and times seven cells at three
 sizes:
 
 | cell | what it times |
@@ -86,9 +86,23 @@ sizes:
 | `construct` | building the pieces and the program, first layout included |
 | `transcribe` | re-laying an existing program (`make_nlp` again), layout only |
 | `transcribe+key` | the same re-lay plus ONE `model_structure_key()` read |
+| `transcribe+decl` | the same re-lay plus ONE `declaration()` read |
 | `analyze` | the sparsity analysis over a laid program |
 | `solve` | one partitioned whole solve |
 | `solve1` | the same solve at one partition and one factorization thread |
+
+`transcribe+decl` is the cell that prices what every EVALUATING consumer pays, and
+without it the other two overstate the saving. The deferred state has three parts;
+`transcribe` discharges none of them and `transcribe+key` discharges only the two
+digests and the bound records. Neither calls `declaration()`, so neither pays the
+deep clone of the three master piece lists -- the largest of the three -- while the
+base arm paid it eagerly inside every `make_nlp`. `NlpAggregate::assemble()` reads
+`declaration()` as its first statement, so the first assemble after a lay pays exactly
+that clone on top of a bare transcribe. **Read `transcribe+decl` as the headline for
+any consumer that evaluates; read `transcribe` only for one that lays and never
+evaluates.** The cell asserts the copy really happened inside the timed region -- all
+three lists populated to the master lists' sizes -- and aborts rather than printing a
+row if it did not.
 
 `transcribe+key` is INFORMATIONAL and exists so that one number is not hidden.
 The structural key's two digests are taken on first read rather than during the
@@ -134,6 +148,7 @@ programs are not comparable.
 
 | run | arms | headline |
 |---|---|---|
+| `runs/2026-08-23-layout-cost-closefold-layout.log` | base `777e1a7` vs the layout-cost fix at its close fold | **`transcribe+decl` −66.7% … −70.0%** -- the headline for any consumer that evaluates, since it is the cell that discharges the deferred piece copy. `transcribe` −67.6% … −70.8% (lay-only consumers), `transcribe+key` −50.0% … −52.4%. The piece copy itself costs ~1 µs at n=64/256 and ~5 µs at n=1024 against a 650 µs base lay, so on this 5-piece problem it moves the headline by under half a point; a front end with many more pieces pays proportionally more per lay, which is what the tycho-shaped acceptance covers |
 | `runs/2026-08-22-layout-cost-fix-layout.log` | base `777e1a7` vs the layout-cost fix | `transcribe` −67% … −70%, `construct` −55% … −65%, `analyze` neutral, `solve1` −9%; both arms, all three sizes. Identity: the structural key digest is equal across arms on every rep of every size, and `solve1`'s objective/iterations/flag are bit-identical. This is the leg that carries the LAYOUT saving; the whole-solve saving belongs to the hash change and is on the IPM leg's row above |
 
 `analyze` is the cell that answers "did deferring the claim digest cost anything

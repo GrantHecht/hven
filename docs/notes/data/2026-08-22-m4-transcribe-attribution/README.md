@@ -51,9 +51,12 @@ against that base explicitly (not pooled). Drift out of band against that base â
 investigate.
 
 ## Defects of record
-- The hven IPM wall leg (bench/ipm_time.cpp) printed the convergence flag in its `iters`
-  column until the fix's round 1 (68e66f3); earlier IPM-leg records carry no real
-  iteration counts. This session's identity comes from the probe, not that leg.
+- The hven IPM wall leg (`docs/notes/data/m4-ipm-wall-leg/ipm_time.cpp`) printed the
+  convergence flag in its `iters` column until the layout-cost fix corrected it; earlier
+  IPM-leg records carry no real iteration counts. This session's identity comes from the
+  probe, not that leg. (No commit hash is cited here on purpose: the fix was rebased, so
+  the pre-rebase hash this line used to name is reachable from no branch and a `git gc`
+  can remove it. The reachable commit is on `m4`, in the layout-cost range.)
 - attr-results/bench-72baafd.json was overwritten at 20:02 by a re-running ladder leg; it
   is consistent with baselines/baseline-72baafd-quiet3.json (IPM medians ratio
   0.995â€“1.019), which is the authoritative 72baafd record.

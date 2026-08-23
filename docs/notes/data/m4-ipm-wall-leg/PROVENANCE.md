@@ -28,8 +28,21 @@ is the standing description of how the two arms are constructed.
 
 | arm | hven source | `libhven.a` |
 |---|---|---|
-| `base` | `777e1a7` (the branch point) | built from that source, preset `linux-clang-release` |
-| `head` | `777e1a7` + the layout-cost branch | `hven-fix/build`, same preset |
+| `base` | `777e1a7` | built from that source, preset `linux-clang-release` |
+| `head` | the layout-cost branch, rebased onto `24f3258` | `hven-fix/build`, same preset |
+
+**THE BASE ARM IS NOT THIS BRANCH'S BASE, and these two rows therefore report more
+than this branch.** The branch's parent is `24f3258`; `777e1a7` is 22 commits earlier.
+The arms were built before the rebase, when `777e1a7` was the branch point, and were
+not rebuilt after it. The 22 commits in between touch
+`src/drivers/aggregate_eval_seam.cpp` and `src/model/non_linear_program.cpp` and
+include a performance commit (`b1b2c4d`, hand-ordering the three claim blocks in place
+of a library sort) and two fixes (`15147eb`, `53fad01`), so their effect is inside
+these deltas too. The span is covered separately by
+`docs/notes/data/2026-08-22-m4-task6-wall-leg/` and `…-task7-wall-leg/`; the clean
+per-branch acceptance is the tycho-shaped one recorded in
+`docs/notes/data/2026-08-22-m4-transcribe-attribution/`, whose arms are built at the
+rebased head.
 
 **No `777e1a7` checkout survives on this box**, and the base arm was not built
 from one. It was built from a source tree extracted with
