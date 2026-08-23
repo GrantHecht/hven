@@ -297,11 +297,8 @@ void AggregateEvalSeam::lay() {
                                 domain, block->start_, block->start_ + block->count_,
                                 total_claims));
             }
-            // An EMPTY block claims nothing, is disjoint from every other range
-            // by definition, and is not obliged to carry the cursor: a provider
-            // reporting an unused domain as a default-constructed block is
-            // stating that the domain has no slots, not that it owns slot 0.
-            // Its position is therefore not checked, and it advances nothing.
+            // An empty block claims nothing and need not carry the cursor, so its
+            // position is not checked and it advances nothing.
             if (block->count_ == 0) {
                 continue;
             }
