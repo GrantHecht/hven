@@ -19,6 +19,13 @@ is genuinely worth keeping is NOT rewritten into the file — list it in the rep
 "rationale candidates for docs/notes" with file:line and a one-line summary; the controller
 moves it.
 
+Accuracy (learned from chunk 1)
+- A condensed sentence must stay TRUE of the code. Re-read the code before shortening a
+  formula or a condition; keep clamps, branches and units (e.g. a `basval` guard is part of
+  the formula). If the original attributed a behaviour to another solver (Ipopt, Uno, SNOPT),
+  keep the attribution explicit or drop the sentence — never let it become a claim about hven.
+- One `@brief` per block; never promise a tag that is not there; no floating `///` blocks.
+
 Hard constraints
 - Zero code-token change. The gate is a comment-stripped diff of before vs after: it must
   be empty. Whitespace inside code lines, includes, macros, string literals — untouched.
