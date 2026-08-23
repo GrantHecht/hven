@@ -343,30 +343,41 @@ void AggregateEvalSeam::lay() {
     {
         // An empty block claims nothing, overlaps nothing, and its start_ says
         // nothing about ownership, so only the blocks that actually hold slots
-        // take part. Sorting by start_ is what makes the check order-agnostic:
-        // a neighbouring pair in this order is the only pair that can overlap.
-        std::array<std::pair<const char *, const ClaimBlock *>, 3> occupied = ordered_blocks;
-        const auto end =
-            std::stable_partition(occupied.begin(), occupied.end(),
-                                  [](const auto &entry) { return entry.second->count_ > 0; });
-        std::stable_sort(occupied.begin(), end, [](const auto &left, const auto &right) {
-            return left.second->start_ < right.second->start_;
-        });
-        for (auto current = occupied.begin(); current != end; ++current) {
-            const auto following = std::next(current);
-            if (following == end) {
-                break;
+        // take part. Taking those in start_ order is what makes the check
+        // order-agnostic: a neighbouring pair in that order is the only pair
+        // that can overlap, so one pass over at most three entries decides it.
+        //
+        // Ordered by hand rather than through a library sort. There are three
+        // entries and the comparison is one integer; a generic stable sort over
+        // them costs a kilobyte of merge machinery instantiated into this
+        // function for no benefit an insertion sort of three does not give.
+        std::array<std::pair<const char *, const ClaimBlock *>, 3> occupied{};
+        int occupied_count = 0;
+        for (const auto &entry : ordered_blocks) {
+            if (entry.second->count_ == 0) {
+                continue;
             }
+            int position = occupied_count;
+            while (position > 0 && occupied[position - 1].second->start_ > entry.second->start_) {
+                occupied[position] = occupied[position - 1];
+                --position;
+            }
+            occupied[position] = entry;
+            ++occupied_count;
+        }
+
+        for (int index = 0; index + 1 < occupied_count; ++index) {
+            const auto &current = occupied[index];
+            const auto &following = occupied[index + 1];
             // Both ends are representable: the bound pass above proved each
             // start_ + count_ no larger than total_claims, which is an int.
-            const int current_end = current->second->start_ + current->second->count_;
-            if (following->second->start_ < current_end) {
+            const int current_end = current.second->start_ + current.second->count_;
+            if (following.second->start_ < current_end) {
                 throw std::invalid_argument(fmt::format(
                     "AggregateEvalSeam: the {0} block names slots [{1}, {2}) and the {3} block "
                     "names [{4}, {5}); the three blocks must be pairwise disjoint",
-                    current->first, current->second->start_, current_end, following->first,
-                    following->second->start_,
-                    following->second->start_ + following->second->count_));
+                    current.first, current.second->start_, current_end, following.first,
+                    following.second->start_, following.second->start_ + following.second->count_));
             }
         }
     }
