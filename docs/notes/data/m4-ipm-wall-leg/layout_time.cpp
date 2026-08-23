@@ -496,15 +496,20 @@ void report(const char *cell, int applications, int reps, std::vector<double> &s
 
 /// One whole-solve cell at a given partition count.
 ///
-/// TWO ARE RUN, and the second is not redundant. Above one partition the
-/// contested-slot accumulation order is decided by the thread schedule -- two
-/// partitions summing into one KKT column can land in either order -- so the
-/// objective's low bits move between runs of the SAME binary. That is a
-/// property of the partitioned scatter and predates the contract layer; it is
-/// not something an arm comparison can be gated on. `solve1` runs the same
-/// problem at one partition, where the fold order is fixed and the objective IS
-/// bit-reproducible, and that is the cell whose obj column is an identity gate.
-/// The partitioned cell's gate is its iteration count and its flag.
+/// TWO ARE RUN, and the second is not redundant. THE PARTITIONED CELL'S
+/// OBJECTIVE IS NOT AN IDENTITY COLUMN: the contested-slot accumulation order
+/// is decided by the thread schedule -- two partitions summing into one KKT
+/// column can land in either order -- and the sparse factorization behind it
+/// runs multi-threaded, which reorders its own reductions too. Both were
+/// measured to move the objective's low bits between runs of the SAME binary,
+/// and neither predates the contract layer, so neither is something an arm
+/// comparison can be gated on. Its gate is the iteration count and the flag.
+///
+/// `solve1` closes both: ONE partition, so the scatter fold order is fixed, and
+/// ONE factorization thread, so the factorization's is too. Its objective is
+/// bit-reproducible and is the identity column. It costs a second solve per
+/// rep, which is the price of having one number that a comparison can be gated
+/// on rather than two that cannot.
 void solve_cell(const char *label, int applications, int reps, int partitions) {
     std::vector<double> s;
     double obj = 0.0;
@@ -514,6 +519,9 @@ void solve_cell(const char *label, int applications, int reps, int partitions) {
         Program p = build(applications, partitions);
         hven::solvers::InteriorPointSolver solver(p.nlp);
         solver.set_print_level(3);
+        if (partitions == 1) {
+            solver.set_qp_threads(1);
+        }
         Eigen::VectorXd x0 = start_point(p.variables);
         auto t0 = std::chrono::steady_clock::now();
         solver.optimize(x0);

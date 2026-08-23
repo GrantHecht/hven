@@ -40,6 +40,7 @@ for.
 |---|---|---|
 | `runs/2026-08-21-task3.log` | base `f07184b` vs the Task 3 consumption switch | minimum estimator −0.23% … +0.34%, largest cells +0.03% / +0.06%; median estimator inside its own spread |
 | `runs/2026-08-21-task4-1.log`, `runs/2026-08-21-task4-2.log` | base `a0dcec2` vs the NlpModel bridge's review fix round | minimum estimator +0.01% … +0.97% over two repetitions, every cell inside the base arm's own rep-spread; largest cells reproducible at +0.378% / +0.380% (serial n=240) |
+| `runs/2026-08-22-layout-cost-fix-ipm.log` | base `777e1a7` vs the layout-cost fix | minimum estimator −15.4% … −19.0%, every cell and both arms. Answers bit-identical (`flag`/`xnorm2` equal on every rep of both arms). Whole solves here include the transcription they run against, so removing per-layout work shows in them directly |
 | `runs/2026-08-22-task5-1.log`, `runs/2026-08-22-task5-2.log` | base `07d5ee1` vs the SQP driver's Level 2 consumption switch | **BAND TRIP**: minimum estimator +0.44% … +2.44% over two repetitions; the `n = 240` cells (+2.44%/+2.20% serial, +2.37%/+2.34% threaded) clear their own base rep-spread and the precedent's +0.97% upper end. Answers identical (`flag`/`xnorm2` bit-equal on every cell of both runs). Mechanism in `../2026-08-21-m4-task5-wall/README.md`: two timed-path objects recompile because `candidate_point.h` grew, but the added work is three integer compares per `assemble()` — layout, not evaluation cost |
 
 Two repetitions rather than one, because every cell of the first came out
@@ -84,7 +85,7 @@ sizes:
 | `transcribe` | re-laying an existing program (`make_nlp` again), layout only |
 | `transcribe+key` | the same re-lay plus ONE `model_structure_key()` read |
 | `solve` | one partitioned whole solve |
-| `solve1` | the same solve at one partition |
+| `solve1` | the same solve at one partition and one factorization thread |
 
 `transcribe+key` is INFORMATIONAL and exists so that one number is not hidden.
 The structural key's two digests are taken on first read rather than during the
@@ -97,14 +98,17 @@ the claim count for the layout cells, the objective, iteration count and
 convergence flag for the solve cells. Those must be EQUAL between arms; a
 difference in one is a correctness finding, not a timing one.
 
-With ONE exception, and it is why `solve1` exists. Above one partition the
-contested-slot accumulation order is decided by the thread schedule -- two
-partitions summing into one KKT column can land in either order -- so `solve`'s
-objective moves in its low bits between runs of the same binary. That is a
-property of the partitioned scatter and predates the contract layer. `solve`'s
-gate is therefore its iteration count and its flag; `solve1` runs the same
-problem at one partition, where the fold order is fixed, and ITS objective is
-the bit-identity column.
+With ONE exception, and it is why `solve1` exists. `solve`'s objective moves in
+its low bits between runs of the SAME binary, from two independent schedule
+dependences: the contested-slot accumulation order (two partitions summing into
+one KKT column can land in either order) and the multi-threaded sparse
+factorization, which reorders its own reductions. Both were measured, not
+assumed. `solve`'s gate is therefore its iteration count and its flag.
+
+`solve1` closes both -- one partition and one factorization thread -- and ITS
+objective is the bit-identity column. It costs a second solve per rep, which is
+the price of having one number a comparison can be gated on instead of two that
+cannot.
 
 ```
 build_layout_time.sh <base source root> <base build dir> ./layout_base
@@ -116,3 +120,9 @@ build_layout_time.sh <head source root> <head build dir> ./layout_head
 The probe source compiled into BOTH arms is this directory's copy -- only the
 headers and the archive come from the arm -- because two arms running different
 programs are not comparable.
+
+### Layout leg runs
+
+| run | arms | headline |
+|---|---|---|
+| `runs/2026-08-22-layout-cost-fix-layout.log` | base `777e1a7` vs the layout-cost fix | `transcribe` −67% … −70%, `construct` −62% … −65%, `transcribe+key` −50% … −52%, `solve1` −8.8% … −9.5%; both arms, all three sizes. Identity: the structural key digest is equal across arms on every rep of every size, and `solve1`'s objective/iterations/flag are bit-identical |
