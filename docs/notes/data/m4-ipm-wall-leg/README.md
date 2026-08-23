@@ -76,7 +76,7 @@ instrument in this repository could see it.
 collocation transcription -- four constraint pieces plus an objective piece,
 `n` applications over four-variable windows that overlap by two (so consecutive
 applications share KKT columns, and columns are contested across partitions),
-four partitions, bounds on every variable -- and times five cells at three
+four partitions, bounds on every variable -- and times six cells at three
 sizes:
 
 | cell | what it times |
@@ -84,6 +84,7 @@ sizes:
 | `construct` | building the pieces and the program, first layout included |
 | `transcribe` | re-laying an existing program (`make_nlp` again), layout only |
 | `transcribe+key` | the same re-lay plus ONE `model_structure_key()` read |
+| `analyze` | the sparsity analysis over a laid program |
 | `solve` | one partitioned whole solve |
 | `solve1` | the same solve at one partition and one factorization thread |
 
@@ -125,4 +126,10 @@ programs are not comparable.
 
 | run | arms | headline |
 |---|---|---|
-| `runs/2026-08-22-layout-cost-fix-layout.log` | base `777e1a7` vs the layout-cost fix | `transcribe` −67% … −70%, `construct` −62% … −65%, `transcribe+key` −50% … −52%, `solve1` −8.8% … −9.5%; both arms, all three sizes. Identity: the structural key digest is equal across arms on every rep of every size, and `solve1`'s objective/iterations/flag are bit-identical |
+| `runs/2026-08-22-layout-cost-fix-layout.log` | base `777e1a7` vs the layout-cost fix | `transcribe` −68% … −71%, `construct` −62% … −65%, `transcribe+key` −49% … −52%, `analyze` −5.3% … +0.3%, `solve1` −8.8% … −9.5%; both arms, all three sizes. Identity: the structural key digest is equal across arms on every rep of every size, and `solve1`'s objective/iterations/flag are bit-identical |
+
+`analyze` is the cell that answers "did deferring the claim digest cost anything
+where it was paid for?". Deferring it required `analyze_sparsity` to stop
+canonicalising the claim endpoints in place and derive that ordering per element
+instead, which trades two stores and a branch for two compares. The cell says
+the trade is free or better: neutral to −5%, never a regression.

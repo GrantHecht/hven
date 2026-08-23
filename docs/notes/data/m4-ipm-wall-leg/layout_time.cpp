@@ -20,6 +20,9 @@
 //   construct   build the pieces and the program, layout included -- what a
 //               front end pays to go from nothing to a laid problem.
 //   transcribe  re-lay an already built program (make_nlp again). Layout only.
+//   analyze     the sparsity analysis over a laid program -- the other half
+//               of a transcription, timed apart because it moved the other
+//               way from the layout.
 //   transcribe+key   the same re-lay, plus ONE model_structure_key() read.
 //               INFORMATIONAL: the structural key's two digests are taken on
 //               first read rather than during the lay, so this cell is where
@@ -581,6 +584,26 @@ void arm(int applications, int reps) {
         }
         report("transcribe+key", applications, reps, s,
                "key=" + std::to_string(digest) +
+                   " claims=" + std::to_string(p.nlp->num_user_kkt_elems_));
+    }
+
+    // analyze: the sparsity analysis that runs against a laid program. It is
+    // the other half of what a front end calls a transcription -- the layout
+    // lays the claims, this derives the scatter offsets for them -- and it is
+    // timed apart from the layout because the two moved in opposite
+    // directions: the layout got cheaper, and this pays a pair of compares per
+    // element for the claim stream the layout no longer destroys.
+    {
+        Program p = build(applications, kPartitions);
+        Eigen::SparseMatrix<double, Eigen::RowMajor> kkt;
+        std::vector<double> s;
+        for (int r = 0; r < reps; r++) {
+            auto t0 = std::chrono::steady_clock::now();
+            p.nlp->analyze_sparsity(kkt);
+            s.push_back(seconds_since(t0));
+        }
+        report("analyze", applications, reps, s,
+               "key=" + std::to_string(p.nlp->model_structure_key().digest()) +
                    " claims=" + std::to_string(p.nlp->num_user_kkt_elems_));
     }
 
