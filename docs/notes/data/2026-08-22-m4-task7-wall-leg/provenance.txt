@@ -1,0 +1,7 @@
+BASE a062fcc  HEAD 1939a3d
+built by build_ipm_time.sh against each worktree's libhven.a (linux-clang-release preset)
+md5 ipm_base 3484f17df72c24f09266652ead199368
+md5 ipm_head e37834179f5578431a4ee8a71de16d4d
+clang clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+box at leg start: loadavg 0.49 1.81 2.20, nothing else compiling
+box at leg end:   loadavg 3.89 2.51 2.42
