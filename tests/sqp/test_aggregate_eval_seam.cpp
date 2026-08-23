@@ -40,6 +40,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -810,6 +811,51 @@ TEST(AggregateEvalSeamBoundary, AnEmptyBlockNeedNotCarryTheCursorButANonEmptyOne
     }
 }
 
+TEST(AggregateEvalSeamBoundary, BlockMetadataNearTheTopOfTheTypeIsRefusedRatherThanWrapped) {
+    // The block scan adds and subtracts numbers the provider supplied. Counts
+    // near the top of the type would carry past it if the three were summed in
+    // the same width, and a block whose start sits there would do the same when
+    // its end was formed -- including when the end is formed only to be printed
+    // in the refusal. Both cases must come out as a refusal that names the
+    // offending numbers.
+    SettableClaimStreamSource huge_counts(2, 0, 0);
+    huge_counts.set_kkt_stream({}, {}, {0, std::numeric_limits<int>::max()},
+                               {0, std::numeric_limits<int>::max()}, {0, 2});
+    try {
+        AggregateEvalSeam seam(huge_counts);
+        FAIL() << "counts that cannot cover the stream must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        // The true sum, taken in a width that holds it -- not a wrapped one.
+        const std::int64_t expected = 2ll * std::numeric_limits<int>::max() + 2;
+        EXPECT_NE(message.find(std::to_string(expected)), std::string::npos) << message;
+    }
+
+    SettableClaimStreamSource huge_start(2, 0, 0);
+    huge_start.set_kkt_stream({0, 1}, {0, 1}, {std::numeric_limits<int>::max(), 2}, {0, 0},
+                              {0, 0});
+    try {
+        AggregateEvalSeam seam(huge_start);
+        FAIL() << "a block starting past the end of the stream must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("Hessian"), std::string::npos) << message;
+        // The end printed without wrapping: max + 2 does not fit in an int.
+        const std::int64_t end = static_cast<std::int64_t>(std::numeric_limits<int>::max()) + 2;
+        EXPECT_NE(message.find(std::to_string(end)), std::string::npos) << message;
+    }
+
+    SettableClaimStreamSource negative(2, 0, 0);
+    negative.set_kkt_stream({0, 1}, {0, 1}, {-1, 2}, {0, 0}, {0, 0});
+    try {
+        AggregateEvalSeam seam(negative);
+        FAIL() << "a negative start must be refused before anything is summed";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("neither may be negative"), std::string::npos) << message;
+    }
+}
+
 TEST(AggregateEvalSeamBoundary, AGradientRowPastItsArenaIsRefusedWhereTheTableIsBound) {
     // The right-hand-side rows are copied from the provider verbatim, so unlike
     // the KKT offsets -- which this seam computes itself -- a wrong one arrives
@@ -839,6 +885,20 @@ TEST(AggregateEvalSeamBoundary, AGradientRowPastItsArenaIsRefusedWhereTheTableIs
         EXPECT_NE(message.find("location 5"), std::string::npos) << message;
         EXPECT_NE(message.find("2 long"), std::string::npos) << message;
     }
+
+    // THE BOUNDARY ITSELF, both sides, so the comparison cannot be relaxed from
+    // "past the end" to "well past it" without a failure: against a two-slot
+    // arena, location 2 is the first illegal one and location 1 the last legal
+    // one.
+    SettableClaimStreamSource one_past(2, 0, 0);
+    one_past.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+    one_past.set_objective_gradient_rows({0, 2});
+    EXPECT_THROW({ AggregateEvalSeam seam(one_past); }, std::invalid_argument);
+
+    SettableClaimStreamSource last_legal(2, 0, 0);
+    last_legal.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+    last_legal.set_objective_gradient_rows({0, 1});
+    EXPECT_NO_THROW({ AggregateEvalSeam seam(last_legal); });
 }
 
 TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {

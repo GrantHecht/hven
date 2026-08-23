@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <numeric>
 #include <stdexcept>
 
@@ -262,11 +263,35 @@ void AggregateEvalSeam::lay() {
             fmt::format("AggregateEvalSeam: the claim stream publishes {0} rows and {1} columns",
                         total_claims, stream_cols.size()));
     }
-    if (hessian_.count_ + equality_jacobian_.count_ + inequality_jacobian_.count_ != total_claims) {
+    // THE WHOLE BLOCK SCAN IS ARITHMETIC ON PROVIDER-SUPPLIED INTS, so it is
+    // ordered to keep every intermediate representable. Non-negativity is
+    // established for all three blocks BEFORE anything is summed or subtracted;
+    // the coverage sum is then taken in a wider type, because three int counts
+    // can carry past an int between them; and no block's end is ever formed in
+    // int, not even to print one, since the value being reported may be exactly
+    // the one that would not fit. A provider that hands over nonsense gets a
+    // refusal naming it, rather than undefined behaviour on the way to one.
+    const std::array<std::pair<const char *, const ClaimBlock *>, 3> ordered_blocks{
+        {{"Hessian", &hessian_},
+         {"equality Jacobian", &equality_jacobian_},
+         {"inequality Jacobian", &inequality_jacobian_}}};
+
+    for (const auto &[domain, block] : ordered_blocks) {
+        if (block->start_ < 0 || block->count_ < 0) {
+            throw std::invalid_argument(
+                fmt::format("AggregateEvalSeam: the {0} block reports start {1} and count {2}; "
+                            "neither may be negative",
+                            domain, block->start_, block->count_));
+        }
+    }
+
+    const std::int64_t covered = static_cast<std::int64_t>(hessian_.count_) +
+                                 static_cast<std::int64_t>(equality_jacobian_.count_) +
+                                 static_cast<std::int64_t>(inequality_jacobian_.count_);
+    if (covered != static_cast<std::int64_t>(total_claims)) {
         throw std::invalid_argument(fmt::format(
             "AggregateEvalSeam: the three claim blocks cover {0} of the stream's {1} slots",
-            hessian_.count_ + equality_jacobian_.count_ + inequality_jacobian_.count_,
-            total_claims));
+            covered, total_claims));
     }
 
     // The counts summing to the stream length does NOT make the three ranges a
@@ -278,23 +303,20 @@ void AggregateEvalSeam::lay() {
     // pairwise disjoint, and in the order the arena is laid, Hessian then
     // equality Jacobian then inequality Jacobian.
     {
-        const std::array<std::pair<const char *, const ClaimBlock *>, 3> ordered_blocks{
-            {{"Hessian", &hessian_},
-             {"equality Jacobian", &equality_jacobian_},
-             {"inequality Jacobian", &inequality_jacobian_}}};
+        int previous_start = 0;
         int previous_end = 0;
         const char *previous_domain = "the start of the stream";
         for (const auto &[domain, block] : ordered_blocks) {
-            // The end is compared as start_ > total_claims - count_ rather than
-            // start_ + count_ > total_claims: both operands are already known
-            // non-negative here, so the subtraction cannot wrap, while the sum
-            // could for a start_ near the top of the type.
-            if (block->start_ < 0 || block->count_ < 0 ||
-                block->start_ > total_claims - block->count_) {
+            // Compared as start_ > total_claims - count_ rather than
+            // start_ + count_ > total_claims: both operands are non-negative by
+            // the pass above and total_claims is non-negative, so the
+            // subtraction is representable, while the sum need not be.
+            if (block->start_ > total_claims - block->count_) {
                 throw std::invalid_argument(
                     fmt::format("AggregateEvalSeam: the {0} block names slots [{1}, {2}) of a "
                                 "claim stream {3} slots long",
-                                domain, block->start_, block->start_ + block->count_,
+                                domain, block->start_,
+                                static_cast<std::int64_t>(block->start_) + block->count_,
                                 total_claims));
             }
             // An empty block claims nothing and need not carry the cursor, so its
@@ -303,12 +325,16 @@ void AggregateEvalSeam::lay() {
                 continue;
             }
             if (block->start_ < previous_end) {
-                throw std::invalid_argument(
-                    fmt::format("AggregateEvalSeam: the {0} block starts at slot {1}, before {2} "
-                                "ends at slot {3}; the three blocks must be disjoint and laid in "
-                                "the order Hessian, equality Jacobian, inequality Jacobian",
-                                domain, block->start_, previous_domain, previous_end));
+                throw std::invalid_argument(fmt::format(
+                    "AggregateEvalSeam: the {0} block names slots [{1}, {2}) and {3} names "
+                    "[{4}, {5}); the three blocks must be disjoint and laid in the order "
+                    "Hessian, equality Jacobian, inequality Jacobian",
+                    domain, block->start_, block->start_ + block->count_, previous_domain,
+                    previous_start, previous_end));
             }
+            // Representable in int: the bound check above proved
+            // start_ + count_ <= total_claims, which is itself an int.
+            previous_start = block->start_;
             previous_end = block->start_ + block->count_;
             previous_domain = domain;
         }

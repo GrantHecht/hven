@@ -833,7 +833,7 @@ TEST(NlpModelAggregateEvaluatorSets, FirstOrderRhsAddsBothJacobiansAndNoHessian)
     EXPECT_EQ(counts_for(kRequestFirstOrderRhs, true), expected);
 }
 
-TEST(NlpModelAggregateEvaluatorSets, ConstraintJacobianOnlySkipsTheObjectiveEvaluators) {
+TEST(NlpModelAggregateEvaluatorSets, ConstraintResidualsAndJacobianSkipsTheObjectiveEvaluators) {
     // The shape names no objective output, so eval_values is the wrong call: it
     // would compute f for a request that never asked for it.
     BridgeEvalCounts expected;
@@ -1137,7 +1137,7 @@ TEST(NlpModelAggregateEquivalence, ConstraintKktAssemblesTheAdjointHessianAlone)
     }
 }
 
-TEST(NlpModelAggregateEquivalence, ConstraintJacobianOnlyWritesNoHessianSlot) {
+TEST(NlpModelAggregateEquivalence, ConstraintResidualsAndJacobianWritesNoHessianSlot) {
     auto model = counting_model();
     NlpModelAggregate aggregate(model);
     BridgeDestinations destinations(aggregate);
