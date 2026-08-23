@@ -17,3 +17,26 @@ lock: every build and every leg ran under flock /tmp/box-build.lock
 An earlier run of this leg at head 15147eb (before the library sort was replaced
 by an explicit one) is superseded by the numbers recorded here; its nm diff is
 what prompted that replacement.
+
+-----------------------------------------------------------------------------
+THE ORIGINAL SQP LEG -- the cells in README.md's "SQP-side leg" section
+-----------------------------------------------------------------------------
+Same hardware, toolchain, kernel and MKL as above.
+
+date: 2026-08-22
+BASE a062fcc  HEAD 1939a3d
+leg: hven_sqp_bench, 3 cells, 7 reps, base/head alternated per rep, each run
+     pinned to one core under MKL_NUM_THREADS=1
+box at leg start: loadavg 0.52, nothing else compiling (the leg holds
+     flock /tmp/box-build.lock and waits for loadavg[1] < 0.6 before starting)
+raw rows: sqp_leg_per_rep.txt (recorded, complete)
+
+PROVENANCE PARTIAL, and this is the gap: the two bench binaries that produced
+those cells were NOT checksummed at the time, and they no longer exist -- the
+worktrees they were built in were removed and rebuilt for the fold runs, so the
+images cannot be recovered and no md5 can be supplied after the fact. The
+commits, protocol, box state and raw per-rep rows above are complete and were
+recorded during the run; only the binary identity is unverifiable. The cells in
+README.md's "SQP-side leg" table are marked PROVENANCE PARTIAL for that reason.
+
+Every later leg in this directory records its binaries' checksums at run time.

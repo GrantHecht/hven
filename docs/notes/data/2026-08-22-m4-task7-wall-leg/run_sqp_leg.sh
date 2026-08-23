@@ -32,6 +32,14 @@ flock -w 14400 /tmp/box-build.lock bash -c "
     done
   done
   echo \"leg_rc=\$?\" >> '$D/sqpleg.meta'
+  # The images that produced the numbers, identified and dumped in the same
+  # breath as the timings: an unfiltered nm of each side, so a later reader can
+  # see instantiations the seam's own name does not appear in.
+  for side in base head; do
+    md5sum '$D/wt-'\$side'/build/bench/hven_sqp_bench' >> '$D/sqpleg.meta'
+    nm -C --print-size --size-sort '$D/wt-'\$side'/build/bench/hven_sqp_bench' \
+      > '$AB/nm_full_'\$side'.txt' 2>/dev/null
+  done
   echo '=== loadavg-at-leg-end: '\$(cat /proc/loadavg) >> '$D/sqpleg.meta'
 "
 echo "=== outer_rc=$? $(date -Is)" >> "$D/sqpleg.meta"

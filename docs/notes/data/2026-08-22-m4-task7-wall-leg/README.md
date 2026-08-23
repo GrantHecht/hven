@@ -66,6 +66,13 @@ This is where A3's per-major bundle check and A4/A5's per-lay checks would show.
 | F3 n=1000 warm | +0.77% | +0.38% | 0.96% |
 | F7 n=200 cold | −0.23% | −0.34% | 0.81% |
 
+**PROVENANCE PARTIAL for these three cells.** Commits, protocol, box state and
+the raw per-rep rows were all recorded during the run and are complete; the two
+bench binaries were not checksummed at the time and no longer exist, so their
+identity cannot be verified after the fact. See `provenance_sqp.txt`. Every
+later leg here records its binaries' checksums at run time, and the harness now
+dumps an unfiltered `nm` of each side alongside them.
+
 Every reading is at or inside its own cell's base rep-spread, and the sizes match
 the standing precedent for this instrument (the Task 6 leg read +0.13% / +0.08% /
 +0.17% on the same three cells). This is the expected shape for adding fixed work
@@ -102,6 +109,19 @@ array. At the recorded HEAD the seam symbol set is **identical to base, 22 for
 `0x1007 → 0x11e7` (+480 bytes) — the non-negativity pass, the widened coverage
 sum, the length check ahead of the narrowing, the hand sort and the fuller
 refusal messages, all in a per-lay routine.
+
+**Unfiltered `nm`, because the filtered dump could not have shown this.** The
+per-symbol evidence above was originally filtered to `AggregateEvalSeam::*`,
+which cannot contain a library-template instantiation -- those are named after
+the std algorithm, not after the seam. `nm_full_base.txt` / `nm_full_mid.txt` /
+`nm_full_head.txt` are the complete dumps at `5cd8ae9`, `15147eb` and
+`d8fd3e1`, with `nm_full_summary.txt` reading them: **35981 / 35991 /
+35981** symbols, and the merge-sort and stable-partition instantiations naming
+`ClaimBlock` present **8 at the middle commit and 0 at either end**. The sorted
+symbol-NAME lists at base and head are identical. `lay()` is 0x1007 at base,
+0x13ff at the middle commit (+1016, the library sort) and 0x1286 at head (+639
+over base -- the non-negativity pass, the widened coverage sum, the two length
+checks ahead of the narrowings, the hand sort and the fuller messages).
 
 Provenance for this leg (hardware, toolchain, date, binary checksums, box state)
 is in `provenance_sqp.txt`; the IPM leg's is in `provenance.txt`. Raw rows in
