@@ -137,8 +137,8 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         // A FAILED INITIAL POINT IS A FAILED ATTEMPT, classified here EXACTLY
         // as the loop classifies its own below: caught by the probe budget,
         // or paid in full. ContinuationResult's own invariant -- the two
-        // counters sum to the number of failed attempts -- holds on the one
-        // case where `steps` is entirely failures. Both ways of arriving here
+        // counters sum to the number of failed attempts -- holds here too, the
+        // one case where `steps` is entirely failures. Both ways of arriving here
         // are covered by the one classification: the direct failure, and a
         // budget chain that ran past kBudgetContinuationsMax (which leaves the
         // loop above with a non-kOptimal status and falls through to exactly

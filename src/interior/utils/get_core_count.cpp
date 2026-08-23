@@ -87,9 +87,9 @@ int hven::utils::get_core_count() {
 #elif defined(__linux__)
 
     auto Run = [tcount]() {
-        /// Adapted from boost::thread::physical_concurrency
-        /// (boostorg/thread, pthread/thread.cpp), modified to work without
-        /// boost.
+        // Adapted from boost::thread::physical_concurrency
+        // (boostorg/thread, pthread/thread.cpp), modified to work without
+        // boost.
 
         auto trim = [](std::string &s) {
             s.erase(s.begin(), std::find_if(s.begin(), s.end(),

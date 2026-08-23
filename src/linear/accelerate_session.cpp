@@ -169,7 +169,8 @@ int FactorSession::factorize(const SpMatRM &A) {
     // uses (1e-4 * eps is exactly this formula at k = 4).
     //
     // hven's own k = 8 default (~2.2e-24) is FOUR ORDERS OF MAGNITUDE TIGHTER
-    // than the k = 4 real-hardware precedent it replaced. "Tighter" is NOT
+    // than k = 4 -- Apple's own documented default, and the only value with
+    // real-hardware precedent when this was written. "Tighter" is NOT
     // straightforwardly "safer": a smaller zeroTolerance means a
     // tiny-but-nonzero pivot is more likely to be USED by threshold partial
     // pivoting rather than caught by the zero check, which on a near-singular

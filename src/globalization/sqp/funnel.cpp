@@ -33,17 +33,17 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
     }
 
     // Wrong-answer guard, not a robustness nicety: every comparison against a
-    // NaN is false, so an unguarded non-finite value would be classified by
-    // accident of how each test is written. Nothing has been measured here, so
-    // nothing is accepted; the driver shrinks the radius as for any other
-    // rejection.
+    // NaN is false, so an unguarded NaN would be classified by accident of
+    // how each test is written (the guard rejects infinities too). Nothing
+    // has been measured here, so nothing is accepted; the driver shrinks the
+    // radius as for any other rejection.
     if (!std::isfinite(ctx.f_old) || !std::isfinite(ctx.f_new) || !std::isfinite(ctx.h_old) ||
         !std::isfinite(ctx.h_new) || !std::isfinite(ctx.pred_df)) {
         return StepVerdict::kReject;
     }
 
     // Full-step mode: placed deliberately AFTER the non-finite guard and
-    // BEFORE every one of Algorithm 2's tests -- see the class's THE FULL-STEP
+    // BEFORE every one of Algorithm 2's tests -- see the class's FULL-STEP
     // MODE note for both placements. The width is not touched, so the mode is
     // exactly "Algorithm 2 is not consulted", not "consulted with different
     // constants".
@@ -82,8 +82,8 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
 
     // h-TYPE. Eq. (12): the funnel sufficient decrease condition.
     if (ctx.h_new <= detail::kFunnelBeta * width_) {
-        // Eq. (13), written in the paper's own term order -- reordering would
-        // change the arithmetic the tests hand-derive. A testing blind spot,
+        // Eq. (13), written in the paper's own term order so the arithmetic is
+        // the arithmetic the tests hand-derive. A testing blind spot,
         // recorded rather than papered over: at Table 1's kappa = 0.5 this
         // expression is SYMMETRIC in its two arguments, so no black-box test
         // can distinguish the roles of h_new and tau here. The roles are

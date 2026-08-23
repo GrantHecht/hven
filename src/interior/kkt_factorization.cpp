@@ -20,8 +20,8 @@ namespace hven::solvers {
 namespace {
 
 // Reporting-only status categories: which warnings the ladder prints depends
-// on them, so each branch transcribes its backend's established outcome
-// semantics verbatim.
+// on them, so each branch reproduces, verbatim, the categorization the engine
+// has always recorded for that backend's outcome codes.
 #ifdef USE_ACCELERATE_SPARSE
 Eigen::ComputationInfo computation_info_of(int backend_code) {
     switch (static_cast<SparseStatus_t>(backend_code)) {
@@ -176,10 +176,10 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
 void KktFactorization::record_failed_factorization(
     [[maybe_unused]] const hven::linear::FactorizeOutcome &outcome) {
 #ifdef USE_ACCELERATE_SPARSE
-    // On this backend a failed factorization RESETS the inertia counts and
-    // both factor metrics to zero -- DEFINED values the engine goes on to
-    // read, so they are reproduced here rather than replaced by the linear
-    // layer's honest invalid counts.
+    // This projection ZEROES the inertia counts and both factor metrics on a
+    // failed factorization: the engine reads them as DEFINED values, so the zeros
+    // are written here rather than passing through the linear layer's honest
+    // invalid counts.
     n_pos_ = 0;
     n_neg_ = 0;
     perturbed_pivots_ = 0;

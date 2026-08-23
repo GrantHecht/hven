@@ -135,8 +135,8 @@ SymmetricFactor::Options::PivotStrategy pardiso_pivot_strategy_of(std::optional<
 // override PardisoConfig carries (std::nullopt = don't write, matching
 // kBackendDefault exactly). The three non-default codes are EXACTLY
 // Intel's own documented iparm[24] values -- see SolveParallelism's own
-// doc comment in symmetric_factor.h for the citation and the naming
-// history it corrects.
+// doc comment in symmetric_factor.h for the citation and for why this is
+// an enum rather than a bool.
 std::optional<int> pardiso_solve_parallelism_code(SymmetricFactor::Options::SolveParallelism mode) {
     using SolveParallelism = SymmetricFactor::Options::SolveParallelism;
     switch (mode) {
