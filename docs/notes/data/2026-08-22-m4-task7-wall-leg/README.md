@@ -1,7 +1,8 @@
 # Two-level model contract, stage 2 — wall-leg record (M4, hven side)
 
-BASE `a062fcc` (stage-2 parent) vs HEAD `1939a3d` (stage-2 tip, before the
-ledger commit). Instrument: the standing IPM wall leg — whole solves of a
+BASE `a062fcc` (stage-2 parent) vs HEAD `1939a3d` (the stage-2 tip as first
+measured; the chain now closes at `b1b2c4d` -- see the fold section below).
+Instrument: the standing IPM wall leg — whole solves of a
 dense-Jacobian NLP through NLPSolver, 9 reps x 15 inner solves, base/head
 alternated per rep, serial arm pinned under `MKL_NUM_THREADS=1` and threaded
 arm, n in {60, 120, 240}. `aggregate.py` prints median and minimum estimators
