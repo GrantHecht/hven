@@ -24,6 +24,11 @@ Accuracy (learned from chunk 1)
   formula or a condition; keep clamps, branches and units (e.g. a `basval` guard is part of
   the formula). If the original attributed a behaviour to another solver (Ipopt, Uno, SNOPT),
   keep the attribution explicit or drop the sentence — never let it become a claim about hven.
+- When you replace a block, delete the old block entirely; diff the file against its parent
+  before committing and look for duplicated or dangling sentences.
+- Every sentence that names an ACTOR (which function selects, which caller decides, which lock
+  is taken and when) must be checked at the cited code; an unverifiable actor means drop the
+  sentence. `@throws` goes on the declaration that throws, never on a neighbour.
 - One `@brief` per block; never promise a tag that is not there; no floating `///` blocks.
 
 Hard constraints
