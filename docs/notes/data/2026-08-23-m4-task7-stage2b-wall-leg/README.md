@@ -108,7 +108,10 @@ Three groups, none on an evaluation path:
   `NonLinearProgram::adopt_declaration` (0x60c),
   `NonLinearProgram::freeze_laid_thread_modes` (0x146),
   `NonLinearProgram::splice_fixed_variable_rows` (0xf3),
-  `SolverFunctionBase<...>::set_thread_mode` (0x150 each).
+  `SolverFunctionBase<...>::set_thread_mode` (0x150 each),
+  `NonLinearProgram::set_variable_bound` (0x222; an inline member the adoption
+  path now calls from a second translation unit, so it is emitted out of line —
+  not a new routine and not evaluation-path).
 - **Lay-time routines**: `AggregateDeclaration::validate` 0x38b -> 0x56b (the
   range conjunct and the per-piece tail-shape check),
   `declaration()` 0x5d -> 0xf5 and `materialize_declaration_pieces`
