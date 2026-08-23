@@ -18,19 +18,22 @@
 // stream — one (assembled row, assembled column) pair per stored element the
 // provider will scatter — and turns it into (a) a sorted row-major pattern per
 // matrix, identical to the pattern the model's own return carries, (b) ONE
-// owned value arena laid [H | Ae | Ai] in exactly those patterns' CSR order,
-// and (c) the claim-slot -> arena-offset permutation, published as a
-// KktLocationTable. Each later evaluation is then `values[location(slot)] +=
-// v` on the provider's side and a contiguous segment copy on this one.
+// owned value arena, holding each domain's values in that domain's own pattern's
+// CSR order, and (c) the claim-slot -> arena-offset permutation, published as a
+// KktLocationTable. The arena is one slot per claim, divided into three disjoint
+// blocks that together partition [0, total_claims); each domain's block is the
+// range its own ClaimBlock names, so the provider decides where a domain sits
+// and this seam reads it rather than assuming it. Each later evaluation is then
+// `values[location(slot)] += v` on the provider's side and a contiguous segment copy on this one.
 //
 // What the path costs. Each evaluation moment runs model scratch -> arena
 // scatter -> segment publish, where the free functions it replaces assigned
-// into the driver's objects directly: the bridge materializes the model's
-// return-by-value results, the provider scatters them into this seam's arena,
-// and the seam copies the three contiguous segments out. Those transfers are
-// per major, not per minor -- the QP engine's working-set iterations gain no
-// copy, no branch and no indirection from any of it, which is the ground the
-// R2.3 rider's scope stands on (docs/notes/2026-08-21-m4-task5-design.md §7).
+// into the driver's objects directly: the provider materializes its own
+// results, scatters them into this seam's arena, and the seam copies the three
+// contiguous segments out. Those transfers are per major, not per minor -- the
+// QP engine's working-set iterations gain no copy, no branch and no
+// indirection from any of it, which is the ground the per-minor scope stands on
+// (see docs/notes/2026-08-21-m4-task5-design.md §7).
 //
 // WHY THE SEED IS NEGATIVE ZERO. The contract's assemble ACCUMULATES (see
 // model/nlp_aggregate.h) and the consumer owns the initial state, so every
@@ -151,10 +154,15 @@ class AggregateEvalSeam {
     NlpEval eval_nlp_values(const Vec &x);
 
     /// @brief Upgrades a values-only bundle at @p x to a full one in place:
-    ///        grad, Je, Ji, and their finiteness folded into `all_finite`.
+    ///        grad, Je, Ji, with the GRADIENT's finiteness folded into
+    ///        `all_finite`.
     ///
     /// The accepted-trial moment. Reproduces upgrade_to_full
     /// (drivers/sqp_driver.h), values deliberately not re-evaluated.
+    ///
+    /// Jacobian finiteness is NOT screened here. `all_finite` carries the
+    /// objective, the gradient and the two residual blocks and nothing else,
+    /// which is legacy parity with the free function this replaces.
     ///
     /// @param ev the bundle to upgrade, taken at THIS x.
     /// @param x  the point, in declaration space.
@@ -177,7 +185,10 @@ class AggregateEvalSeam {
     /// comes from @p ev or from the materialized bounds. No trust region is
     /// baked in.
     ///
-    /// @param ev        the bundle at @p x.
+    /// @param ev        the bundle at @p x. Row counts are frozen across a
+    ///                  solve, so a bundle whose blocks do not match the
+    ///                  structures now laid predates a re-lay that changed one
+    ///                  and is refused rather than paired with them.
     /// @param x         the point, in declaration space.
     /// @param lambda_e  the equality multipliers, full length.
     /// @param lambda_i  the inequality multipliers, full length.
@@ -200,6 +211,20 @@ class AggregateEvalSeam {
     /// first by every evaluation moment; a re-lay invalidates the cached
     /// patterns, so outputs produced after one carry the NEW structure.
     void relay_if_stale();
+
+    /// @brief Refuses a bundle whose block sizes are not the ones the structures
+    ///        now declare.
+    ///
+    /// Row counts are FROZEN ACROSS A SOLVE. A caller holds an NlpEval across
+    /// several moments, and each of those moments may re-lay first, so a re-lay
+    /// that changed a row count leaves the held bundle describing a problem
+    /// these structures are no longer for. Fixed work, once per moment.
+    ///
+    /// @param ev     the bundle the caller handed in.
+    /// @param moment the entry point's name, for the refusal message.
+    /// @throws std::invalid_argument naming the block, the size held and the
+    ///         size now declared.
+    void require_bundle_matches_layout(const NlpEval &ev, const char *moment) const;
 
     /// Seeds one KKT arena segment with negative zero -- see the header note
     /// on why the seed is not +0.0.
@@ -232,8 +257,11 @@ class AggregateEvalSeam {
     Vec lower_;
     Vec upper_;
 
-    // The KKT arena, laid [H | Ae | Ai], and the claim-slot -> offset
-    // permutation addressing it. The table is a non-owning view over
+    // The KKT arena -- one slot per claim, divided into the three disjoint
+    // blocks the provider's ClaimBlocks name, which together partition it --
+    // and the claim-slot -> offset permutation addressing it. Each domain is
+    // seeded and published through its OWN block's start_, so no order between
+    // the three is assumed. The table is a non-owning view over
     // kkt_locations_, so both are rebuilt together at every lay.
     Vec arena_;
     std::vector<int> kkt_locations_;

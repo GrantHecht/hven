@@ -266,6 +266,58 @@ struct NonLinearProgram : public NlpAggregate {
     /// </summary>
     void make_nlp(int PV, int EQ, int IQ);
 
+    /// @brief Adopts a declaration whose row counts are the row space AS LAID,
+    ///        fixing rows included, and lays the problem out from it.
+    ///
+    /// equality_rows_ is the AS-LAID count, fixing rows included; this entry
+    /// lifts the declared fixing rows off the equality tail, lays from the user
+    /// count that leaves, and appends them again over the same chain the
+    /// treatment that produced them uses.
+    ///
+    /// The order of operations, which is observable through the bound merge:
+    ///   1. @p declaration.validate() -- nothing is touched until it passes.
+    ///   2. the three piece lists move in, each piece taking its declared
+    ///      thread mode.
+    ///   3. the staged bounds are cleared, then the declared records are
+    ///      replayed through set_variable_bound() in DECLARATION ORDER. A record
+    ///      that is unbounded on both sides narrows nothing and is dropped
+    ///      there, so the replayed list is the declared one less those; the
+    ///      merged bounds, and therefore the key, are the same either way.
+    ///   4. the partition count becomes the declared one -- a request the lay's
+    ///      cap may reduce; declaration() reports the adopted count.
+    ///   5. the layout runs, from the declared counts less
+    ///      @p declaration.fixing_rows_.
+    ///   6. the lifted fixing rows are appended again and the layout is re-laid
+    ///      over them.
+    ///
+    /// Steps 5 and 6 are the history the source layout was laid by -- a
+    /// user-row lay, then the internal rows -- which is what makes the round
+    /// trip exact with fixing rows present: the claim stream, the row space and
+    /// the adopting problem's own fixing-row count all come back the same.
+    ///
+    /// What does NOT come back is the CLASSIFICATION those rows were derived
+    /// from: the adopting problem reports the fixing rows through
+    /// internal_fixed_constraints() while fixed_variable_indices() is
+    /// UNCHANGED -- empty on a target that never configured a treatment, and
+    /// otherwise still whatever its last one recorded -- until the next
+    /// configure_variable_treatment discards the rows and re-derives both from
+    /// the replayed bounds.
+    ///
+    /// EVERY REFUSAL IS THE DECLARATION'S OWN, and is made before anything
+    /// moves: a refused adoption leaves the problem on hand exactly as it was,
+    /// down to its layout, its stored declaration and its structure epoch.
+    ///
+    /// @param declaration the pieces, thread modes, dimensions, bounds and
+    ///                    requested partition count to lay from; moved out of.
+    /// @throws std::invalid_argument through @p declaration.validate() -- a
+    ///         non-positive partition count, negative dimensions, piece row
+    ///         counts that do not sum to the declared row counts, an
+    ///         out-of-range bound index, a NaN bound, an inverted single record
+    ///         or an empty bound intersection; and a fixing-row count the tail
+    ///         of the equality list does not have one single-row piece each
+    ///         for.
+    void adopt_declaration(AggregateDeclaration declaration);
+
     /// <summary>
     /// One staged variable-bound declaration, as handed to set_variable_bound.
     /// Recorded verbatim (no merging at declaration time) so that repeated
@@ -620,6 +672,20 @@ struct NonLinearProgram : public NlpAggregate {
     /// owns that (see refresh_function_partitions).
     void install_fixed_variable_rows();
 
+    /// @brief Splices already-built internal fixing rows onto the tail of the
+    ///        equality list and records them.
+    /// @param rows the rows to append, moved out of; one row each.
+    ///
+    /// The ONE place the internal_fixed_cons_ / equal_cons_ pair is written by
+    /// an install, so the two callers that install rows -- the treatment, which
+    /// builds its rows from the classification, and the adoption entry, which
+    /// carries the declared ones across its lay -- cannot drift apart on the
+    /// bookkeeping the make_nlp invariant checks. All or nothing: a throw
+    /// part-way through leaves the list and the count agreeing.
+    ///
+    /// The layout is NOT re-laid here; the caller owns that.
+    void splice_fixed_variable_rows(std::vector<ConstraintFunction> rows);
+
     /// Truncates the internal fixing rows off equality_constraints_ and returns
     /// equal_cons_ to user_equal_cons_. A no-op when none are installed. The
     /// layout is NOT re-laid here either: every caller either re-lays it or is
@@ -635,6 +701,11 @@ struct NonLinearProgram : public NlpAggregate {
 
     void analyze_sparsity(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat);
     void make_compressed() {
+        // The claim digest is taken over the two arrays this drops, and it is
+        // deferred, so it is digested HERE before its source goes away -- the
+        // one place a laid layout's claim stream stops being readable without
+        // a re-lay having replaced it.
+        (void)this->claim_digest();
         this->kkt_coeff_part_ids_.resize(0);
         this->kkt_coeff_rows_.resize(0);
         this->kkt_coeff_cols_.resize(0);
@@ -934,7 +1005,47 @@ struct NonLinearProgram : public NlpAggregate {
     /// user-rows/internal-rows split field on this surface: the counts a
     /// consumer needs are the counts as laid, and a split gets added when a
     /// consumer has a use for one, not before.
-    const AggregateDeclaration &declaration() const override { return this->declaration_; }
+    ///
+    /// MATERIALIZED ON FIRST READ AFTER A LAY, then held. The reference is to
+    /// stored state and stays valid and unchanging until the next structural
+    /// mutation, exactly as the contract requires; what a re-lay leaves behind
+    /// is the OBLIGATION to refill the piece lists and bound records, which the
+    /// first read after it discharges once. A consumer that never reads the
+    /// declaration never pays for one, and no consumer pays per call.
+    ///
+    /// A REFERENCE DOES NOT SURVIVE A LAY, which is what the contract's own
+    /// "unchanging except across a structural mutation" already says, and the
+    /// structure epoch is the proof. A re-lay empties this object's piece lists
+    /// before it writes anything else, so a reference held across one reads as
+    /// empty UNTIL the next read refills the same stored object -- after which
+    /// it reads the new layout. Neither state is the old declaration; the
+    /// reference is stale from the lay onward, and emptiness is a courtesy in
+    /// the window before the refill, not a guarantee that outlives it.
+    ///
+    /// Not reentrant against itself: the first read after a lay writes the
+    /// stored state, so two threads reading a freshly laid declaration
+    /// concurrently race. The contract forbids overlapping operations on one
+    /// aggregate (see the threading sentence on NlpAggregate), so this asks for
+    /// nothing new -- one thread drives the provider, and its fan-out is
+    /// internal.
+    ///
+    /// @return The declaration the current layout was laid from.
+    /// @throws std::invalid_argument if the master piece lists have been
+    ///         mutated since the last lay -- see
+    ///         require_master_lists_unmoved().
+    /// @throws std::bad_alloc from the first read after a lay, which allocates:
+    ///         it is the read that takes the deferred piece and bound copies.
+    ///         Worth naming because assemble() calls this on every evaluation
+    ///         and so inherits it, where an eager copy put the allocation in
+    ///         make_nlp instead. The materializers are restartable -- each
+    ///         clears its pending flag only after it has finished -- so a throw
+    ///         here leaves the state owing and the next read re-derives it.
+    const AggregateDeclaration &declaration() const override {
+        this->require_master_lists_unmoved();
+        this->materialize_declaration_bounds();
+        this->materialize_declaration_pieces();
+        return this->declaration_;
+    }
 
     /// Adopts a partition count, re-lays over it, and returns what was ADOPTED.
     ///
@@ -964,12 +1075,26 @@ struct NonLinearProgram : public NlpAggregate {
     int evaluation_threads() const override { return hven::utils::get_num_threads(); }
     void set_evaluation_threads(int n) override { hven::utils::set_num_threads(n); }
 
-    /// The three conjuncts as captured at the last lay. Both digests are
-    /// CAPTURED rather than computed on demand, and each for its own reason --
-    /// see claim_digest_ and bound_digest_ below.
+    /// @brief The three conjuncts of the LAST LAY: the claim digest, the
+    ///        adopted partition count, and the bound digest.
+    /// @return The structural key of the layout on hand.
+    /// @throws std::invalid_argument if the master piece lists have been
+    ///         mutated since the last lay -- the same guard declaration()
+    ///         carries, for the same reason.
+    ///
+    /// Both digests are taken on FIRST READ after a lay and then held -- see
+    /// claim_digest() and bound_digest() for what each is taken over, and
+    /// materialize_declaration_bounds() for the one piece of declaration state
+    /// a key read needs.
+    ///
+    /// Deferred rather than taken during the lay because both digests are
+    /// O(claims) and O(variables) work that a consumer which never asks about
+    /// structural identity has no use for -- and every consumer pays a layout,
+    /// while only some ask. A consumer that does ask pays once per lay.
     ModelStructureKey model_structure_key() const override {
-        return ModelStructureKey{this->claim_digest_, this->laid_partition_count_,
-                                 this->bound_digest_};
+        this->require_master_lists_unmoved();
+        return ModelStructureKey{this->claim_digest(), this->laid_partition_count_,
+                                 this->bound_digest()};
     }
 
     /// kValuesFastPath, and only that.
@@ -1101,33 +1226,8 @@ struct NonLinearProgram : public NlpAggregate {
     /// the pieces identical buffers.
     Eigen::Ref<const VectorXd> declaration_view(ConstEigenRef<VectorXd> x);
 
-    /// Rebuilds declaration_ from the master lists, the laid dimensions, the
-    /// adopted partition count and the staged bound records. Called by
-    /// rebuild_structures() before anything reads the declaration.
-    void refresh_declaration();
-
     /// Republishes the five location tables over the arrays as they now stand.
     void publish_location_tables();
-
-    /// The declaration as of the last lay -- see declaration().
-    AggregateDeclaration declaration_;
-
-    /// The claim-structure conjunct, CAPTURED at the end of get_mat_space().
-    ///
-    /// It cannot be computed on demand from kkt_coeff_rows_/kkt_coeff_cols_,
-    /// because analyze_sparsity REWRITES those arrays: it canonicalizes every
-    /// claim whose column exceeds its row by swapping the endpoints in place.
-    /// A digest taken after that analysis would differ from one taken before it
-    /// with no structural event in between, which is precisely what a
-    /// structural key must not do.
-    std::uint64_t claim_digest_ = 0;
-
-    /// The bound-structure conjunct, CAPTURED at the end of the same re-lay.
-    ///
-    /// Taken over declaration_, whose bound records are themselves a snapshot
-    /// (laid_variable_bounds_ below), so the digest describes the bounds the
-    /// structures were LAID WITH and never the staging state as it stands now.
-    std::uint64_t bound_digest_ = 0;
 
     /// The bound records the current layout was materialized from: a copy taken
     /// by materialize_variable_bounds() at the point where those records have
@@ -1186,6 +1286,181 @@ struct NonLinearProgram : public NlpAggregate {
     /// the CandidateValues view it builds.
     VectorXd probe_equality_scratch_;
     VectorXd probe_inequality_scratch_;
+
+  private:
+    ////////////////////////////////////////////////////////////////////////////
+    // The deferred half of the laid state, and the only paths that read it.
+    //
+    // PRIVATE, and that is the point rather than tidiness: between a lay and
+    // the first read of each part, this state is HALF-DERIVED -- the scalar
+    // conjuncts are written, the piece lists and the digests are not -- and a
+    // half-derived declaration is not a declaration. The accessors above are
+    // the only read path, and each one returns whole state or throws.
+    ////////////////////////////////////////////////////////////////////////////
+
+    /// @brief Freezes the thread modes of every piece in @p pieces.
+    /// @tparam Pieces a range of ObjectiveFunction or ConstraintFunction.
+    /// @param pieces the pieces to freeze.
+    ///
+    /// A member of this class because the piece entry it calls is private to
+    /// the piece types and reachable only from here -- which is what keeps a
+    /// laid piece's mode from being moved without a re-lay.
+    template <class Pieces> static void freeze_thread_modes(Pieces &pieces) {
+        for (auto &piece : pieces) {
+            piece.mark_thread_mode_laid();
+        }
+    }
+
+    /// @brief Thaws the thread modes of every piece in @p pieces.
+    /// @tparam Pieces a range of ObjectiveFunction or ConstraintFunction.
+    /// @param pieces the pieces to thaw.
+    ///
+    /// For the copies handed out as declaration data, and for nothing else.
+    template <class Pieces> static void thaw_thread_modes(Pieces &pieces) {
+        for (auto &piece : pieces) {
+            piece.clear_thread_mode_laid();
+        }
+    }
+
+    /// @brief Freezes the thread mode of every piece THIS LAYOUT HOLDS: the
+    ///        three master lists and the partition copies taken from them.
+    ///
+    /// Both halves, and after the partitioning rather than before it, so the
+    /// invariant is uniform -- a partition copy is a piece of a laid layout
+    /// exactly as its master is, and a copy taken before the freeze would
+    /// carry whatever marker its master happened to have at the time.
+    void freeze_laid_thread_modes();
+
+    /// @brief Writes the laid DIMENSIONS into the stored declaration: the three
+    ///        declared sizes, the adopted partition count and the three piece
+    ///        counts the size guard checks against.
+    ///
+    /// Eager, while the piece lists and the bound records are not, and the
+    /// split is the point rather than an inconsistency: these are scalars, so
+    /// capturing them costs nothing, and three of them are read on EVERY
+    /// evaluation (the assemble entry checks the caller's blocks against them).
+    /// The partition count has to be captured because num_partitions_ is a
+    /// public member a consumer may write, and writing it changes nothing
+    /// structural until the next lay.
+    ///
+    /// Called by rebuild_structures(), AFTER invalidate_laid_state() and never
+    /// before it -- see that member for why the order is load-bearing.
+    void capture_laid_dimensions();
+
+    /// @brief Fills the stored declaration's bound records from the laid bound
+    ///        snapshot, if a lay has left that owing.
+    ///
+    /// Idempotent, and a no-op once discharged. Taken from the LAID snapshot
+    /// and never from the live staging state: a record staged since the last
+    /// materialization describes a problem these structures were not laid for.
+    void materialize_declaration_bounds() const;
+
+    /// @brief Fills the stored declaration's three piece lists from the master
+    ///        lists, if a lay has left that owing.
+    ///
+    /// Idempotent, and a no-op once discharged.
+    ///
+    /// The lists are COPIES rather than views over the master lists, and that
+    /// is the declaration type's own decision rather than this provider's: an
+    /// AggregateDeclaration is a value over its pieces -- which is what makes a
+    /// layout a pure function of the declaration, and what lets a consumer MOVE
+    /// one in -- so a piece list of handles into somebody else's storage would
+    /// give that up for every consumer of the type. What this defers is WHEN
+    /// the copy is taken, not that it is taken: once per lay, on the first read
+    /// that needs it, instead of once per lay unconditionally.
+    ///
+    /// The mutated-master-list case is refused before this runs -- see
+    /// require_master_lists_unmoved(), which both public readers call first.
+    void materialize_declaration_pieces() const;
+
+    /// @brief Refuses a read whose master piece lists are no longer the lists
+    ///        the layout was laid over.
+    /// @throws std::invalid_argument if any of the three master lists has a
+    ///         different size from the count captured at the last lay, naming
+    ///         the list, both counts and the remedy.
+    ///
+    /// MUTATING THE MASTER LISTS AFTER A LAY, WITHOUT RE-LAYING, IS A CONTRACT
+    /// VIOLATION. The three lists are public members and a front end writes
+    /// them directly; the claim arrays, the claim digest and the row counts all
+    /// describe the lists AS LAID, so a list that has grown or shrunk since
+    /// then no longer describes the layout on hand.
+    ///
+    /// CALLED ON EVERY READ of declaration() and model_structure_key(),
+    /// independently of whether the deferred copy is still owing, so the answer
+    /// does not depend on whether the caller has read since the lay. Three
+    /// integer compares.
+    ///
+    /// Catches a SIZE change and nothing finer: a list mutated in place at
+    /// constant length is not detectable here and remains the caller's
+    /// obligation. An aggregate that has never been laid is not checked -- there
+    /// is no layout for the lists to disagree with.
+    void require_master_lists_unmoved() const;
+
+    /// @brief Drops every deferred part of the laid state: the cached piece
+    ///        copies and bound records, both digests, and the four flags that
+    ///        say they are owing.
+    ///
+    /// RUNS FIRST, at the top of make_nlp() and at the top of
+    /// rebuild_structures(), before any master list is touched and before any
+    /// eager scalar is written. Two invariants rest on that position:
+    ///
+    ///   * No reader ever sees new scalar dimensions beside old piece lists.
+    ///     Between this call and the epoch bump the lists are EMPTY.
+    ///   * A lay that throws part-way leaves the deferred state owing rather
+    ///     than leaving the previous lay's digests cached over half-replaced
+    ///     arrays. The next read re-derives it, and require_master_lists_unmoved()
+    ///     refuses the read if the master lists moved in the meantime.
+    void invalidate_laid_state();
+
+    /// @brief The claim-structure conjunct of the structural key, digested on
+    ///        first read after a lay and then held.
+    /// @return The digest of the claim stream as the pieces handed it out.
+    ///
+    /// Taken over the two index arrays in claim order, UN-CANONICALIZED.
+    /// analyze_sparsity derives the canonical endpoint ordering it needs per
+    /// element as it goes and leaves these arrays alone, which is what keeps
+    /// the stream readable for as long as the layout stands -- and therefore
+    /// what lets this be deferred at all.
+    std::uint64_t claim_digest() const;
+
+    /// @brief The bound-structure conjunct of the structural key, digested on
+    ///        the same terms.
+    /// @return The digest of the materialized bound structure AS LAID.
+    ///
+    /// Taken over the stored declaration, whose bound records are themselves a
+    /// snapshot (laid_variable_bounds_), so the digest describes the bounds the
+    /// structures were LAID WITH and never the staging state as it stands now.
+    std::uint64_t bound_digest() const;
+
+    /// The declaration as of the last lay -- see declaration().
+    mutable AggregateDeclaration declaration_;
+
+    /// What the last lay left owing. Each is set by invalidate_laid_state() and
+    /// cleared by the one read that discharges it; all four start FALSE, so an
+    /// aggregate that has NEVER BEEN LAID reports the default-constructed
+    /// declaration and the zero key rather than digesting a layout that does
+    /// not exist. That is the prior behaviour and is deliberate: there is no
+    /// layout to describe, and refusing would give a caller no more than the
+    /// empty answer already tells it.
+    mutable bool declaration_bounds_pending_ = false;
+    mutable bool declaration_pieces_pending_ = false;
+    mutable bool claim_digest_pending_ = false;
+    mutable bool bound_digest_pending_ = false;
+
+    mutable std::uint64_t claim_digest_ = 0;
+    mutable std::uint64_t bound_digest_ = 0;
+
+    /// The sizes of the three master piece lists as of the last lay, which is
+    /// what every read is checked against. See require_master_lists_unmoved().
+    int laid_objective_pieces_ = 0;
+    int laid_equality_pieces_ = 0;
+    int laid_inequality_pieces_ = 0;
+
+    /// Whether a layout exists at all. False until the first lay, and what
+    /// keeps the size guard off an aggregate whose pieces have been pushed but
+    /// which has never been laid: there is no layout for the lists to disagree
+    /// with, and declaration() correctly reports the empty declaration there.
+    bool ever_laid_ = false;
 };
 
 } // namespace hven::solvers

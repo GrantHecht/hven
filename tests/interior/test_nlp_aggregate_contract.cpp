@@ -447,7 +447,8 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
         {"objective gradient and constraints",
          hven::solvers::kRequestObjectiveGradientAndConstraints, false},
         {"first-order right-hand side", hven::solvers::kRequestFirstOrderRhs, false},
-        {"constraint Jacobian only", hven::solvers::kRequestConstraintJacobianOnly, true},
+        {"constraint residuals and Jacobian", hven::solvers::kRequestConstraintResidualsAndJacobian,
+         true},
         {"first-order KKT", hven::solvers::kRequestFirstOrderKkt, true},
         {"constraint KKT", hven::solvers::kRequestConstraintKkt, true},
         {"full KKT", hven::solvers::kRequestFullKkt, true},
@@ -467,7 +468,7 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
         } else if (shape.request == hven::solvers::kRequestFirstOrderRhs) {
             nlp->eval_rhs(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                           legacy.fxi);
-        } else if (shape.request == hven::solvers::kRequestConstraintJacobianOnly) {
+        } else if (shape.request == hven::solvers::kRequestConstraintResidualsAndJacobian) {
             nlp->eval_soe(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                           legacy.fxi, legacy.kkt);
         } else if (shape.request == hven::solvers::kRequestFirstOrderKkt) {
@@ -714,6 +715,200 @@ TEST(NlpAggregateEngineLayout, TheSameDeclarationLaysTheSameLayoutTwice) {
     first->analyze_sparsity(kkt_first);
     second->analyze_sparsity(kkt_second);
     EXPECT_EQ(first->kkt_locations_, second->kkt_locations_);
+}
+
+TEST(NlpAggregateEngineLayout, TheStructuralKeyIsTheSameBeforeAndAfterSparsityAnalysis) {
+    // Analysing the sparsity pattern is not a structural event: it derives
+    // scatter offsets for a layout that already stands. So the key must not
+    // move across it, and neither must the epoch -- whichever side of the
+    // analysis a consumer happens to read them from.
+    //
+    // Pinned on both orders, because the two are different assertions. Reading
+    // BEFORE and again after checks that the analysis does not disturb a key
+    // already taken; reading only AFTER checks that a key taken for the first
+    // time at that point is still the key of the claim stream the pieces handed
+    // out, which is only true while the analysis leaves that stream readable.
+    auto read_both_sides = agg_pin_build_small();
+    const auto key_before = read_both_sides->model_structure_key();
+    const auto epoch_before = read_both_sides->structure_epoch();
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt_both(read_both_sides->kkt_dim_,
+                                                          read_both_sides->kkt_dim_);
+    read_both_sides->analyze_sparsity(kkt_both);
+    EXPECT_EQ(read_both_sides->model_structure_key(), key_before);
+    EXPECT_EQ(read_both_sides->structure_epoch(), epoch_before);
+
+    auto read_after_only = agg_pin_build_small();
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt_after(read_after_only->kkt_dim_,
+                                                           read_after_only->kkt_dim_);
+    read_after_only->analyze_sparsity(kkt_after);
+    EXPECT_EQ(read_after_only->model_structure_key(), key_before);
+}
+
+TEST(NlpAggregateEngineLayout, ARelayIsFullyVisibleThroughASecondDeclarationRead) {
+    // The deferred state is dropped at the TOP of a re-lay, before any eager
+    // scalar is written, so there is no window in which the declaration carries
+    // new dimensions beside the previous lay's piece lists. Read it, change the
+    // pieces, re-lay, read it again: the second read agrees with the master
+    // lists AND with the laid scalars, and the key moved because the claim
+    // stream did.
+    auto nlp = agg_pin_build_small();
+
+    const hven::solvers::AggregateDeclaration &before = nlp->declaration();
+    const std::size_t equalities_before = before.equality_constraints_.size();
+    const auto key_before = nlp->model_structure_key();
+    ASSERT_GT(equalities_before, 0u);
+
+    nlp->equality_constraints_.push_back(nlp->equality_constraints_.front());
+    nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
+
+    const hven::solvers::AggregateDeclaration &after = nlp->declaration();
+    EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
+    EXPECT_EQ(after.equality_constraints_.size(), equalities_before + 1);
+    EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
+    EXPECT_EQ(after.inequality_constraints_.size(), nlp->inequality_constraints_.size());
+    EXPECT_EQ(after.primal_vars_, nlp->primal_vars_);
+    EXPECT_EQ(after.equality_rows_, nlp->equal_cons_);
+    EXPECT_NE(nlp->model_structure_key(), key_before);
+}
+
+TEST(NlpAggregateEngineLayout, MutatingTheMasterListsAfterALayIsRefusedByName) {
+    // The piece lists are copied at the first read after a lay rather than at
+    // the lay, so they have to still be the lists that were laid. A front end
+    // writes these members directly, so that is not automatic -- and the
+    // deferred copy is what makes the violation detectable at all.
+    auto nlp = agg_pin_build_small();
+    nlp->equality_constraints_.push_back(nlp->equality_constraints_.front());
+
+    EXPECT_THROW({ (void)nlp->declaration(); }, std::invalid_argument);
+
+    // And the refusal names the list and both counts rather than being a bare
+    // failure.
+    try {
+        (void)nlp->declaration();
+        FAIL() << "expected the mutated master list to be refused";
+    } catch (const std::invalid_argument &e) {
+        const std::string message = e.what();
+        EXPECT_NE(message.find("equality constraint"), std::string::npos) << message;
+        EXPECT_NE(message.find("make_nlp"), std::string::npos) << message;
+    }
+}
+
+TEST(NlpAggregateEngineLayout, AFailedRelayNeverLeavesAMixedDeclaration) {
+    // make_nlp mutates master state and can throw part-way -- here from a bound
+    // history whose intersection is empty, which the materializer refuses after
+    // the row discard has already run. Whatever it leaves behind, a later read
+    // must not be a declaration whose piece lists and whose laid counts
+    // disagree: either the read is refused, or it is whole.
+    auto nlp = agg_pin_build_small();
+    const auto key_before = nlp->model_structure_key();
+    const std::size_t equalities = nlp->equality_constraints_.size();
+
+    nlp->set_variable_bound(0, 0.0, 1.0);
+    nlp->set_variable_bound(0, 2.0, 3.0);
+    EXPECT_THROW(nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_),
+                 std::invalid_argument);
+
+    // NOT a disjunction. This program has no internal fixing rows, so the
+    // fixing-row discard at the top of make_nlp is a no-op and NOTHING moved
+    // before the throw -- so the read is served, and served with exactly the
+    // pre-call state. (The other branch, where the discard does move the
+    // equality list and the read is refused, is pinned by
+    // AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed.) Asserting the
+    // one outcome this setup can produce is what makes the pin catch a change
+    // in it; a disjunction would pass either way.
+    ASSERT_EQ(nlp->internal_fixed_constraints(), 0);
+    const hven::solvers::AggregateDeclaration &after = nlp->declaration();
+    EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
+    EXPECT_EQ(after.equality_constraints_.size(), equalities);
+    EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
+
+    // And the key is not a value invented by the failure: it is the pre-failure
+    // key, because nothing re-laid.
+    EXPECT_EQ(nlp->model_structure_key(), key_before);
+}
+
+TEST(NlpAggregateEngineLayout, AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed) {
+    // The other half of the failed-lay property, and the half the pin above
+    // cannot reach: a make_nlp that throws AFTER the master lists have already
+    // moved. A MakeConstraint treatment installs its internal fixing row as a
+    // real piece on the equality list, so the fixing-row discard at the top of
+    // make_nlp actually truncates that list before the bound materialization
+    // further down refuses the conflicting record.
+    auto problem = std::make_shared<AggPinProblem>();
+    problem->fix_ = 2;
+    problem->fix_at_ = 0.4;
+    auto nlp = agg_pin_build(problem);
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 1.0e-8));
+    ASSERT_EQ(nlp->internal_fixed_constraints(), 1);
+    const std::size_t equalities_as_laid = nlp->equality_constraints_.size();
+
+    // A bound history whose intersection is empty, refused by the materializer
+    // -- which runs after the discard has already truncated the list.
+    nlp->set_variable_bound(0, 0.0, 1.0);
+    nlp->set_variable_bound(0, 2.0, 3.0);
+    EXPECT_THROW(nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_),
+                 std::invalid_argument);
+    ASSERT_LT(nlp->equality_constraints_.size(), equalities_as_laid);
+
+    // The list moved, so the layout on hand no longer describes it. Both
+    // readers REFUSE rather than serve a declaration whose piece lists and laid
+    // counts disagree -- the invalidated branch, which is what makes "never
+    // mixed" a property rather than a hope.
+    EXPECT_THROW({ (void)nlp->declaration(); }, std::invalid_argument);
+    EXPECT_THROW({ (void)nlp->model_structure_key(); }, std::invalid_argument);
+}
+
+TEST(NlpAggregateEngineLayout, TheMasterListGuardFiresAfterTheCopyIsAlreadyDischarged) {
+    // The guard runs on EVERY read, not only while the deferred copy is still
+    // owing. Discharge it first -- which is the common state, since the
+    // assemble entry reads the declaration on every evaluation -- then mutate a
+    // master list and read again. A guard that only checked the owing path
+    // would serve the cached copy here and the violation would go unseen.
+    auto nlp = agg_pin_build_small();
+    const std::size_t objectives = nlp->declaration().objectives_.size();
+    ASSERT_GT(objectives, 0u);
+    (void)nlp->model_structure_key();
+
+    nlp->objectives_.push_back(nlp->objectives_.front());
+
+    EXPECT_THROW({ (void)nlp->model_structure_key(); }, std::invalid_argument);
+    try {
+        (void)nlp->declaration();
+        FAIL() << "expected the mutated master list to be refused after the copy was discharged";
+    } catch (const std::invalid_argument &e) {
+        const std::string message = e.what();
+        EXPECT_NE(message.find("objective"), std::string::npos) << message;
+        EXPECT_NE(message.find("make_nlp"), std::string::npos) << message;
+    }
+}
+
+TEST(NlpAggregateEngineLayout, AnAggregateThatWasNeverLaidIsNotCheckedAgainstALayout) {
+    // The guard's other branch, and the one nothing else reaches: an aggregate
+    // that has never been laid. The laid piece counts default to zero, so a
+    // program carrying pushed pieces would be REFUSED if the guard ran there --
+    // and pushing pieces before the first make_nlp is exactly how a front end
+    // builds one. There is no layout for the lists to disagree with, so the
+    // guard steps aside and the empty declaration and zero key stand, which is
+    // the answer this surface gave before any of the deferral existed.
+    auto laid = agg_pin_build_small();
+    NonLinearProgram fresh(1);
+    fresh.objectives_ = laid->objectives_;
+    fresh.equality_constraints_ = laid->equality_constraints_;
+    fresh.inequality_constraints_ = laid->inequality_constraints_;
+    ASSERT_FALSE(fresh.objectives_.empty());
+
+    const hven::solvers::AggregateDeclaration *declared = nullptr;
+    EXPECT_NO_THROW({ declared = &fresh.declaration(); });
+    ASSERT_NE(declared, nullptr);
+    EXPECT_TRUE(declared->objectives_.empty());
+    EXPECT_TRUE(declared->equality_constraints_.empty());
+    EXPECT_TRUE(declared->inequality_constraints_.empty());
+    EXPECT_EQ(declared->primal_vars_, 0);
+
+    hven::solvers::ModelStructureKey key{};
+    EXPECT_NO_THROW({ key = fresh.model_structure_key(); });
+    EXPECT_EQ(key, (hven::solvers::ModelStructureKey{0, 0, 0}));
+    EXPECT_EQ(fresh.structure_epoch(), hven::solvers::StructureEpoch{});
 }
 
 TEST(NlpAggregateEngineLayout, TheEvaluationThreadCountDecidesNoPartOfTheLayout) {
@@ -1479,7 +1674,8 @@ void agg_pin_expect_supported_set_named(const std::string &message) {
         {"kRequestObjectiveGradientAndConstraints",
          hven::solvers::kRequestObjectiveGradientAndConstraints},
         {"kRequestFirstOrderRhs", hven::solvers::kRequestFirstOrderRhs},
-        {"kRequestConstraintJacobianOnly", hven::solvers::kRequestConstraintJacobianOnly},
+        {"kRequestConstraintResidualsAndJacobian",
+         hven::solvers::kRequestConstraintResidualsAndJacobian},
         {"kRequestFirstOrderKkt", hven::solvers::kRequestFirstOrderKkt},
         {"kRequestConstraintKkt", hven::solvers::kRequestConstraintKkt},
         {"kRequestFullKkt", hven::solvers::kRequestFullKkt},
@@ -1516,6 +1712,10 @@ TEST(NlpAggregateEngineContract, ALegalLagrangianHessianRequestIsRefusedByName) 
                 "0x{0:x}", static_cast<std::uint32_t>(hven::solvers::kRequestLagrangianHessian))),
             std::string::npos)
             << message;
+        // The refusal names the shape it refused, not only its flag mask: a
+        // reader should not have to decode hex against the mapping table to
+        // learn what was asked for.
+        EXPECT_NE(message.find("kRequestLagrangianHessian"), std::string::npos) << message;
         agg_pin_expect_supported_set_named(message);
     }
     // Refused before anything ran: the objective slot never moved off zero.
@@ -1544,6 +1744,10 @@ TEST(NlpAggregateEngineContract, ALegalGradientAndJacobiansRequestIsRefusedByNam
                                                     hven::solvers::kRequestGradientAndJacobians))),
             std::string::npos)
             << message;
+        // The refusal names the shape it refused, not only its flag mask: a
+        // reader should not have to decode hex against the mapping table to
+        // learn what was asked for.
+        EXPECT_NE(message.find("kRequestGradientAndJacobians"), std::string::npos) << message;
         agg_pin_expect_supported_set_named(message);
     }
     // Refused before anything ran: the objective slot never moved off zero.
@@ -1570,6 +1774,10 @@ TEST(NlpAggregateEngineContract, ALegalConstraintJacobiansOnlyRequestIsRefusedBy
                       static_cast<std::uint32_t>(hven::solvers::kRequestConstraintJacobiansOnly))),
                   std::string::npos)
             << message;
+        // The refusal names the shape it refused, not only its flag mask: a
+        // reader should not have to decode hex against the mapping table to
+        // learn what was asked for.
+        EXPECT_NE(message.find("kRequestConstraintJacobiansOnly"), std::string::npos) << message;
         agg_pin_expect_supported_set_named(message);
     }
 }

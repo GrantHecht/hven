@@ -149,6 +149,22 @@ struct AggregateDeclaration {
     int equality_rows_ = 0;
     int inequality_rows_ = 0;
 
+    /// The internal fixing rows included in equality_rows_. equality_rows_ is
+    /// the AS-LAID count; subtracting this yields the user count the sizing
+    /// entry takes.
+    ///
+    /// A FIXING ROW IS ONE SINGLE-ROW PIECE AT THE TAIL of
+    /// equality_constraints_ -- the shape a fixed-variable treatment appends,
+    /// and the shape validate() holds this count to, so a consumer may split
+    /// the tail off by piece count alone.
+    ///
+    /// TRUSTED. The count is the treatment's own bookkeeping and is not
+    /// derivable from the tail: the piece type is erased, and a user constraint
+    /// over a single application has the shape validate() checks for. A
+    /// declaration that labels user pieces as fixing rows is accepted here and
+    /// loses them at the next treatment, which discards what this count claims.
+    int fixing_rows_ = 0;
+
     /// Requested partition count; the adopted count is returned by
     /// negotiate_partition_count() and governs layout and the structural key.
     int partition_count_ = 1;
@@ -174,10 +190,13 @@ struct AggregateDeclaration {
 
     /// Rejects a declaration that cannot describe a problem: non-positive
     /// partition count, negative dimensions, piece row counts that do not sum
-    /// to the declared row counts, bounds naming a variable the declaration
-    /// does not have, NaN bounds, a single record whose two finite sides are
-    /// inverted, and a bound history whose intersection is empty. Throws
-    /// std::invalid_argument naming what disagreed and both numbers.
+    /// to the declared row counts, a fixing-row count outside
+    /// [0, equality_rows_], a fixing-row count the tail of the equality list
+    /// does not have one single-row piece each for, bounds naming a variable
+    /// the declaration does not have, NaN bounds, a single record whose two
+    /// finite sides are inverted, and a bound history whose intersection is
+    /// empty. Throws std::invalid_argument naming what disagreed and both
+    /// numbers.
     ///
     /// A provider validates its declaration with validate() before its first
     /// layout; empty piece lists satisfy the piece-sum checks vacuously.

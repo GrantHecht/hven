@@ -18,6 +18,7 @@
 // `feed_pattern` through one accumulator and pairs the digest with a
 // non-hashed conjunct of its own. docs/pattern-hash.md states the recipe for
 // the combined key over several matrices and how those two keys sit on it.
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -27,6 +28,57 @@
 
 namespace hven {
 
+namespace detail {
+
+/// @brief The FNV-1a 64-bit prime.
+///
+/// Spelled once here and referred to by Fnv1a::kPrime, so the accumulator and
+/// the power table below cannot drift apart.
+inline constexpr std::uint64_t kFnv1aPrime = 1099511628211ULL;
+
+/// @brief Builds the prime raised to 0..8.
+/// @return powers[k] == kFnv1aPrime^k, evaluated modulo 2^64.
+///
+/// The powers exist so that a RUN OF ZERO BYTES can be mixed in one multiply
+/// instead of one per byte: feeding a zero byte is exactly `h *= prime` (the
+/// XOR contributes nothing), and multiplication modulo 2^64 is associative, so
+/// folding k of them into one multiply by prime^k is an identity rather than an
+/// approximation. Every value the accumulator produces is bit-for-bit what the
+/// byte-at-a-time form produces.
+constexpr std::array<std::uint64_t, 9> fnv1a_prime_powers() noexcept {
+    std::array<std::uint64_t, 9> powers{};
+    powers[0] = 1;
+    for (std::size_t i = 1; i < powers.size(); ++i) {
+        powers[i] = powers[i - 1] * kFnv1aPrime;
+    }
+    return powers;
+}
+
+/// @brief kFnv1aPrime raised to 0..8, per fnv1a_prime_powers().
+inline constexpr std::array<std::uint64_t, 9> kFnv1aPrimePowers = fnv1a_prime_powers();
+
+/// @brief Mixes one 64-bit value into a running hash: the low `Count` bytes
+///        byte-at-a-time, then the 8 - Count high bytes -- all of them zero at
+///        every call site that reaches this -- as one multiply.
+/// @tparam Count  How many low bytes are fed explicitly; 8 - Count high bytes
+///                are folded into a single multiply and MUST be zero.
+/// @param hash    The running hash, updated in place.
+/// @param u       The value whose low `Count` bytes are fed, least-significant
+///                byte first.
+///
+/// A free function rather than a member so it is DEFINED before the accumulator
+/// uses it, which is what keeps feed_index usable in a constant expression.
+template <int Count>
+constexpr void fnv1a_feed_low_bytes(std::uint64_t &hash, std::uint64_t u) noexcept {
+    for (int i = 0; i < Count; ++i) {
+        hash ^= static_cast<unsigned char>(u >> (8 * i));
+        hash *= kFnv1aPrime;
+    }
+    hash *= kFnv1aPrimePowers[8 - Count];
+}
+
+} // namespace detail
+
 /// A small, composable FNV-1a accumulator. Default-constructs at the FNV-1a
 /// 64-bit offset basis; `feed`/`feed_index` mix data in one call at a time;
 /// `value()` reads the current hash without consuming it, so a caller may
@@ -35,7 +87,7 @@ struct Fnv1a {
     /// @brief Standard FNV-1a 64-bit offset basis.
     static constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
     /// @brief Standard FNV-1a 64-bit prime.
-    static constexpr std::uint64_t kPrime = 1099511628211ULL;
+    static constexpr std::uint64_t kPrime = detail::kFnv1aPrime;
 
     constexpr Fnv1a() noexcept : hash_(kOffsetBasis) {}
 
@@ -73,9 +125,40 @@ struct Fnv1a {
     /// hash value depends on which of the two a caller passes.
     constexpr void feed_index(std::int64_t value) noexcept {
         const auto u = static_cast<std::uint64_t>(value);
-        for (int i = 0; i < 8; ++i) {
-            hash_ ^= static_cast<unsigned char>(u >> (8 * i));
-            hash_ *= kPrime;
+        // ALL EIGHT BYTES ARE STILL FED, in the same order, to the same
+        // mixing step: the three arms differ only in how many of the HIGH
+        // bytes are known to be zero, and a run of zero bytes is one multiply
+        // by a power of the prime rather than one multiply each (see
+        // detail::kFnv1aPrimePowers). Index streams are dominated by small
+        // non-negative values, so the two-byte arm is the one taken, and the
+        // branch predicts on a stream whose magnitudes barely vary.
+        if ((u >> 16) == 0) {
+            detail::fnv1a_feed_low_bytes<2>(hash_, u);
+        } else if ((u >> 32) == 0) {
+            detail::fnv1a_feed_low_bytes<4>(hash_, u);
+        } else {
+            detail::fnv1a_feed_low_bytes<8>(hash_, u);
+        }
+    }
+
+    /// @brief Feeds a stream of index PAIRS -- first[i] then second[i], for
+    ///        each i in order -- from two CONTIGUOUS arrays in one pass.
+    /// @param first   The first half of each pair, `count` entries.
+    /// @param second  The second half of each pair, `count` entries.
+    /// @param count   How many pairs to feed.
+    ///
+    /// Exactly the stream `feed_index(first[i]); feed_index(second[i]);` would
+    /// produce, and the same value; what it removes is the per-element call
+    /// through whatever accessor the caller holds the two halves in. A digest
+    /// over an interleaved pair stream is otherwise the one shape a caller
+    /// cannot express as two bulk feeds -- feeding one whole array and then the
+    /// other is a DIFFERENT stream -- so it gets an entry of its own rather than
+    /// an assemble-it-yourself loop at each call site.
+    constexpr void feed_index_pairs(const int *first, const int *second,
+                                    std::size_t count) noexcept {
+        for (std::size_t i = 0; i < count; ++i) {
+            feed_index(first[i]);
+            feed_index(second[i]);
         }
     }
 

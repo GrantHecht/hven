@@ -159,6 +159,21 @@ the two a caller passes.
 Neither property is a claim of portability in any broader sense. The digest
 is not a wire format and nothing serializes it across builds.
 
+`feed_index` mixes all eight bytes on every call, but it does not spend a
+multiply on each of the high ones when they are known to be zero. Feeding a
+zero byte is exactly `hash *= prime` -- the XOR contributes nothing -- and
+multiplication modulo 2^64 is associative, so a run of `k` zero bytes is one
+multiply by `prime^k`. The three arms (two, four or eight explicit bytes,
+chosen by how far the value's magnitude reaches) are therefore an identity on
+the digest and not a variant algorithm: every value is bit-for-bit what the
+byte-at-a-time form produces, which the cross-check test asserts against an
+independent reference implementation of the byte-at-a-time form.
+
+`feed_index_pairs` is the same stream over an INTERLEAVED pair of contiguous
+index arrays -- `first[i]`, then `second[i]`, for each `i` -- in one pass. It
+exists because that shape is the one a caller cannot express as two bulk
+feeds: feeding one whole array and then the other is a different stream.
+
 ## The pinned value
 
 `tests/core/test_pattern_hash.cpp` pins one exact digest for one fixed

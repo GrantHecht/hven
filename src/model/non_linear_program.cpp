@@ -6,6 +6,11 @@
 // Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
 
+#include <algorithm>
+#include <limits>
+#include <utility>
+#include <vector>
+
 #include <fmt/format.h>
 
 #include "hven/detail/interior/indexing_data.h"
@@ -13,6 +18,17 @@
 #include "hven/model/non_linear_program.h"
 
 void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
+    // FIRST, before anything below mutates a master list or can throw. The
+    // discard just below truncates equality_constraints_, the invariant check
+    // after it throws, and the bound materialization further down throws on an
+    // empty intersection -- so every one of those can leave this call part-way
+    // through with the master lists already moved. Invalidating here is what
+    // makes that survivable: whatever a failed transcription leaves behind, the
+    // deferred state is marked owing rather than describing a layout that no
+    // longer exists, and the size guard in require_master_lists_unmoved()
+    // catches the case where the lists moved under it.
+    this->invalidate_laid_state();
+
     // A previous configuration's internal fixing rows describe the bounds as they
     // were then, and this call re-materializes those bounds from scratch -- so the
     // rows go first, and the next configure_variable_treatment call derives its
@@ -70,6 +86,120 @@ void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
     this->rebuild_structures();
 }
 
+void hven::solvers::NonLinearProgram::adopt_declaration(AggregateDeclaration declaration) {
+    // FIRST, and before a single member of this problem is written. Every
+    // refusal this entry can make is the declaration's own -- the dimensions,
+    // the piece sums, the bounds, and the shape of the fixing-row tail this
+    // entry is about to split -- so a refused adoption leaves the problem on
+    // hand exactly as it was: master lists, layout, stored declaration and
+    // epoch all untouched, with nothing owing.
+    declaration.validate();
+
+    // The declaration type's piece-sum conjunct is conditional on there being
+    // pieces at all -- a provider that is not a piece collection declares none,
+    // and there is then no sum for its row counts to disagree with. THIS ENTRY
+    // is a piece-laying one: it takes the declared counts straight into the
+    // layout, so a declaration with rows and no pieces would lay a row space
+    // nothing claims, and the defect would surface much later as a structurally
+    // singular factorization with nothing pointing back here. Refused before
+    // anything moves.
+    const bool has_pieces = !declaration.objectives_.empty() ||
+                            !declaration.equality_constraints_.empty() ||
+                            !declaration.inequality_constraints_.empty();
+    if (!has_pieces && (declaration.equality_rows_ != 0 || declaration.inequality_rows_ != 0)) {
+        throw std::invalid_argument(fmt::format(
+            "NonLinearProgram::adopt_declaration: the declaration carries no pieces but declares "
+            "{0} equality and {1} inequality rows; this entry lays a problem out of its pieces, so "
+            "those rows would be laid with nothing to claim or evaluate them. A declaration from a "
+            "provider that is not a piece collection is not adoptable here",
+            declaration.equality_rows_, declaration.inequality_rows_));
+    }
+
+    const int fixing_rows = declaration.fixing_rows_;
+    const int user_equality_rows = declaration.equality_rows_ - fixing_rows;
+
+    // The split runs on the DECLARATION, which is this call's own copy, and so
+    // still touches nothing of the problem's. The declared internal fixing rows
+    // sit at the tail of the equality list, one piece per row, where the
+    // treatment that produced them appended them -- a shape validate() has just
+    // established, which is why splitting by piece count alone is sound here.
+    // Lifting them off before the lay and putting them back after it is what
+    // makes the adopting problem repeat the source's own history rather than
+    // lay a row space nothing declared.
+    std::vector<ConstraintFunction> internal_rows;
+    if (fixing_rows > 0) {
+        auto &declared = declaration.equality_constraints_;
+        const std::size_t first = declared.size() - static_cast<std::size_t>(fixing_rows);
+        internal_rows.reserve(static_cast<std::size_t>(fixing_rows));
+        for (std::size_t k = first; k < declared.size(); k++) {
+            // WHERE each lifted row writes, checked against the band the
+            // internal rows occupy. The count itself is trusted (see the field's
+            // own note), but the rows it names are not: a declaration whose
+            // dimensions were edited would otherwise splice these pieces back
+            // over user rows, or past the end of the row space, and scatter into
+            // constraint rows that belong to something else.
+            const auto &constraint_index = declared[k].index_data_.get_c_index();
+            if (constraint_index.size() != 1) {
+                throw std::invalid_argument(fmt::format(
+                    "NonLinearProgram::adopt_declaration: declared internal fixing row {0} names "
+                    "{1} constraint rows; a fixing row writes exactly one",
+                    k, constraint_index.size()));
+            }
+            const int constraint_row = constraint_index(0, 0);
+            if (constraint_row < user_equality_rows ||
+                constraint_row >= declaration.equality_rows_) {
+                throw std::invalid_argument(fmt::format(
+                    "NonLinearProgram::adopt_declaration: declared internal fixing row {0} writes "
+                    "equality row {1}, outside the [{2}, {3}) band the declaration's {4} fixing "
+                    "rows occupy; a treatment appends its rows after every row a transcription "
+                    "declared",
+                    k, constraint_row, user_equality_rows, declaration.equality_rows_,
+                    fixing_rows));
+            }
+            internal_rows.push_back(std::move(declared[k]));
+        }
+        declared.resize(first);
+    }
+
+    // Nothing below throws before make_nlp, whose own first statement is the
+    // invalidation: the bound replay cannot refuse a record validate() has
+    // already accepted, and the three moves and three counter writes cannot
+    // refuse anything. The three lists are replaced wholesale, so whatever
+    // internal rows the previous layout counted went with them; the pair is
+    // cleared here so make_nlp's discard has nothing stale to truncate and its
+    // bookkeeping check reads a consistent pair.
+    this->objectives_ = std::move(declaration.objectives_);
+    this->equality_constraints_ = std::move(declaration.equality_constraints_);
+    this->inequality_constraints_ = std::move(declaration.inequality_constraints_);
+    this->internal_fixed_cons_ = 0;
+    this->user_equal_cons_ = 0;
+    this->equal_cons_ = 0;
+
+    // Cleared and replayed in DECLARATION ORDER, so the tightest-wins merge is
+    // re-derived from the same history rather than from a merged result -- which
+    // is what keeps the bound conjunct of the structural key equal across the
+    // round trip.
+    this->clear_variable_bounds();
+    for (const VariableBound &bound : declaration.variable_bounds_) {
+        this->set_variable_bound(bound.index_, bound.lower_, bound.upper_);
+    }
+
+    // A REQUEST. make_nlp's cap may bring it down, and declaration() then
+    // reports the count that was adopted.
+    this->num_partitions_ = declaration.partition_count_;
+
+    this->make_nlp(declaration.primal_vars_, user_equality_rows, declaration.inequality_rows_);
+
+    if (fixing_rows > 0) {
+        // The same chain the treatment runs after its own install: the set of
+        // functions changed, so the element counts and the work partitioning are
+        // re-derived before the layout is laid over them.
+        this->splice_fixed_variable_rows(std::move(internal_rows));
+        this->refresh_function_partitions();
+        this->rebuild_structures();
+    }
+}
+
 void hven::solvers::NonLinearProgram::rebuild_structures() {
     // THE ONE ROUTINE THAT RE-LAYS, and therefore the one place a structural
     // event is recorded. Every path that changes the assembled claim structure
@@ -81,7 +211,15 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // exit that does not re-lay (the identity path, which changed nothing) and
     // the one restore path that does not (a classification-stage rejection at
     // an NLP that was never reduced) correctly do not bump.
-    this->refresh_declaration();
+    //
+    // INVALIDATION FIRST, before the eager scalars are written and before a
+    // single array is touched -- see invalidate_laid_state() for the two
+    // failure modes that ordering shuts. It is idempotent, so the make_nlp
+    // path calling it once more here costs four flag writes and three clears
+    // of already-empty vectors.
+    this->invalidate_laid_state();
+
+    this->capture_laid_dimensions();
 
     this->set_mat_dimensions();
     this->set_rhs_dimensions();
@@ -92,10 +230,6 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
 
     this->publish_location_tables();
 
-    // Both conjuncts captured HERE rather than computed on demand -- see the
-    // members' own comments for why each has to be. The partition count goes
-    // with them for the same reason.
-    this->bound_digest_ = materialized_bound_digest(this->declaration_);
     this->laid_partition_count_ = this->num_partitions_;
 
     // A re-lay resets kkt_locations_ to -1: only analyze_sparsity fills it, and
@@ -109,15 +243,71 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     this->bump_structure_epoch();
 }
 
-void hven::solvers::NonLinearProgram::refresh_declaration() {
-    this->declaration_.objectives_ = this->objectives_;
-    this->declaration_.equality_constraints_ = this->equality_constraints_;
-    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+void hven::solvers::NonLinearProgram::freeze_laid_thread_modes() {
+    freeze_thread_modes(this->objectives_);
+    freeze_thread_modes(this->equality_constraints_);
+    freeze_thread_modes(this->inequality_constraints_);
 
+    // The partition copies too, and that is the point of doing this after the
+    // partitioning rather than inside it: a copy is taken from a master whose
+    // marker says whatever the PREVIOUS lay left, so freezing only the masters
+    // would leave the partition lists frozen on a re-lay and thawed on a first
+    // lay. Every piece this layout holds carries the same answer.
+    for (auto &partition : this->part_obj_) {
+        freeze_thread_modes(partition);
+    }
+    for (auto &partition : this->part_eq_) {
+        freeze_thread_modes(partition);
+    }
+    for (auto &partition : this->part_iq_) {
+        freeze_thread_modes(partition);
+    }
+}
+
+void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     this->declaration_.primal_vars_ = this->primal_vars_;
     this->declaration_.equality_rows_ = this->equal_cons_;
     this->declaration_.inequality_rows_ = this->inequal_cons_;
     this->declaration_.partition_count_ = this->num_partitions_;
+
+    // How many of those equality rows are the internal ones a fixed-variable
+    // treatment appended. Written HERE and nowhere else: a declaration that
+    // carries its own fixing-row count is self-describing, so the adoption
+    // entry subtracts a property of the declaration rather than of whichever
+    // problem happens to receive it.
+    this->declaration_.fixing_rows_ = this->equal_cons_ - this->user_equal_cons_;
+
+    // The sizes the deferred piece copy will be checked against. Captured here,
+    // with the other scalars, because here is where "as laid" is decided.
+    //
+    // The narrowing to int is checked rather than assumed. A piece count past
+    // INT_MAX is unreachable in any problem this engine can lay, but an
+    // unchecked narrowing here would wrap into a laid count that the guard then
+    // compares against and silently accepts -- turning an impossible input into
+    // a wrong answer instead of a refusal.
+    const auto laid_count = [](const char *which, std::size_t count) {
+        if (count > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+            throw std::invalid_argument(
+                fmt::format("NonLinearProgram::make_nlp: the {0} list holds {1} pieces, past the "
+                            "{2} this layout can index",
+                            which, count, std::numeric_limits<int>::max()));
+        }
+        return static_cast<int>(count);
+    };
+    this->laid_objective_pieces_ = laid_count("objective", this->objectives_.size());
+    this->laid_equality_pieces_ =
+        laid_count("equality constraint", this->equality_constraints_.size());
+    this->laid_inequality_pieces_ =
+        laid_count("inequality constraint", this->inequality_constraints_.size());
+    this->ever_laid_ = true;
+
+    // The thread modes are frozen here, with the other "as laid" facts. The
+    // partitioner has already read them, and the claim order they produced is
+    // what the claim arrays and the claim digest now describe -- so a write
+    // that moved a piece to another partition would describe a layout nobody
+    // laid. Changing one is a re-lay from a declaration that carries the new
+    // mode.
+    this->freeze_laid_thread_modes();
 
     // The equality row count is the row space AS LAID, so it counts whatever
     // internal fixing rows the MakeConstraint treatment currently has
@@ -125,20 +315,118 @@ void hven::solvers::NonLinearProgram::refresh_declaration() {
     // declared, so no user row is ever renumbered and every declared global row
     // identity survives -- which is the property the candidate surface and the
     // partition-invariance sentence both rest on.
+}
+
+void hven::solvers::NonLinearProgram::invalidate_laid_state() {
+    this->declaration_bounds_pending_ = true;
+    this->declaration_pieces_pending_ = true;
+    this->claim_digest_pending_ = true;
+    this->bound_digest_pending_ = true;
+
+    // DROPPED, not merely marked. The flags alone would be enough for every
+    // read that goes through an accessor, which is every read the interface
+    // offers; clearing is what makes the state a consumer could still be
+    // holding a reference to EMPTY rather than stale, so a retained reference
+    // cannot be mistaken for a live one. clear() keeps the capacity, so the
+    // next materialization refills the same buffers.
+    this->declaration_.objectives_.clear();
+    this->declaration_.equality_constraints_.clear();
+    this->declaration_.inequality_constraints_.clear();
+    this->declaration_.variable_bounds_.clear();
+    this->claim_digest_ = 0;
+    this->bound_digest_ = 0;
+}
+
+void hven::solvers::NonLinearProgram::materialize_declaration_bounds() const {
+    if (!this->declaration_bounds_pending_) {
+        return;
+    }
 
     // From the LAID snapshot, never from the live staging state. A record staged
     // since the last materialization describes a problem these structures were
     // not laid for: folding it in here would move the structural key of a layout
-    // nothing re-laid, and would put an unvalidated record in front of the bound
-    // digest -- which runs later in this same re-lay, and could then throw after
-    // the structures had been replaced but before the epoch was bumped, leaving
-    // the old epoch standing over new tables.
+    // nothing re-laid.
     this->declaration_.variable_bounds_.clear();
     this->declaration_.variable_bounds_.reserve(this->laid_variable_bounds_.size());
     for (const auto &stage : this->laid_variable_bounds_) {
         this->declaration_.variable_bounds_.push_back(
             VariableBound{stage.index_, stage.lower_, stage.upper_});
     }
+
+    this->declaration_bounds_pending_ = false;
+}
+
+void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
+    if (!this->declaration_pieces_pending_) {
+        return;
+    }
+
+    this->declaration_.objectives_ = this->objectives_;
+    this->declaration_.equality_constraints_ = this->equality_constraints_;
+    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+
+    // The copies are DECLARATION data, and a thread mode is settable in a
+    // declaration: that is the one route a consumer has to change one, by
+    // re-declaring and adopting. The pieces the layout itself holds stay
+    // frozen; only these copies are thawed.
+    thaw_thread_modes(this->declaration_.objectives_);
+    thaw_thread_modes(this->declaration_.equality_constraints_);
+    thaw_thread_modes(this->declaration_.inequality_constraints_);
+
+    this->declaration_pieces_pending_ = false;
+}
+
+void hven::solvers::NonLinearProgram::require_master_lists_unmoved() const {
+    // Nothing to disagree with before the first lay: the pieces a front end has
+    // pushed have not been laid over yet, and declaration() reports the empty
+    // declaration there by design.
+    if (!this->ever_laid_) {
+        return;
+    }
+
+    // EVERY read, not only the one that still owes a copy. The lists are read
+    // after the lay rather than at it, and a front end writes these three
+    // members directly, so "still the lists that were laid" is not automatic: a
+    // piece added or dropped since the lay no longer matches the claim arrays,
+    // the digest or the row counts. Refused by name rather than served.
+    const auto check = [](const char *which, std::size_t have, int laid) {
+        if (static_cast<std::size_t>(laid) != have) {
+            throw std::invalid_argument(fmt::format(
+                "NonLinearProgram::declaration: the {0} list holds {1} pieces but the layout was "
+                "laid over {2} -- the master lists were mutated after the last lay, and the claim "
+                "arrays, the claim digest and the row counts all describe the list as it was laid; "
+                "re-lay (make_nlp) before reading the declaration",
+                which, have, laid));
+        }
+    };
+    check("objective", this->objectives_.size(), this->laid_objective_pieces_);
+    check("equality constraint", this->equality_constraints_.size(), this->laid_equality_pieces_);
+    check("inequality constraint", this->inequality_constraints_.size(),
+          this->laid_inequality_pieces_);
+}
+
+std::uint64_t hven::solvers::NonLinearProgram::claim_digest() const {
+    if (this->claim_digest_pending_) {
+        this->claim_digest_ = claim_stream_digest(
+            this->declaration_, this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
+            this->kkt_coeff_cols_.head(this->num_user_kkt_elems_));
+        this->claim_digest_pending_ = false;
+    }
+    return this->claim_digest_;
+}
+
+std::uint64_t hven::solvers::NonLinearProgram::bound_digest() const {
+    if (this->bound_digest_pending_) {
+        // The bound conjunct is taken over the declaration's records, so the
+        // one part of the declaration it needs is materialized first. The
+        // records are the laid snapshot and have already passed materialization
+        // once, so nothing here can throw over a bound set that does not
+        // describe a problem.
+        this->materialize_declaration_bounds();
+        this->bound_digest_ = materialized_bound_digest(this->declaration_);
+        this->bound_digest_pending_ = false;
+    }
+    return this->bound_digest_;
 }
 
 void hven::solvers::NonLinearProgram::publish_location_tables() {
@@ -222,6 +510,12 @@ void hven::solvers::NonLinearProgram::install_fixed_variable_rows() {
                                                this->user_equal_cons_ + k));
     }
 
+    this->splice_fixed_variable_rows(std::move(rows));
+}
+
+void hven::solvers::NonLinearProgram::splice_fixed_variable_rows(
+    std::vector<ConstraintFunction> rows) {
+    const int count = static_cast<int>(rows.size());
     const std::size_t before = this->equality_constraints_.size();
     try {
         this->equality_constraints_.reserve(before + rows.size());
@@ -501,14 +795,6 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
         this->kkt_coeff_part_ids_.segment(kkstart, kklen).setConstant(i);
     }
 
-    // CAPTURED HERE, before analyze_sparsity gets the chance to canonicalize
-    // the claim endpoints in place. This is the claim stream as the pieces
-    // handed it out, in claim order, which is what the structural key's claim
-    // conjunct is defined over.
-    this->claim_digest_ = claim_stream_digest(
-        this->declaration_, this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
-        this->kkt_coeff_cols_.head(this->num_user_kkt_elems_));
-
     // Mark a KKT column contested iff >= 2 partitions write a slot whose CANONICAL column
     // (kkt_canonical_lock_col(row, col), the smaller endpoint) is that column -- the same
     // shared keying function every scatter site locks with, so a contested slot's writers
@@ -652,12 +938,23 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
     /*
     Calculates Sparsity Pattern of NLP. InteriorPointSolver requires that only the upper triangular
     part of a CSR matrix be filled. get_mat_space calculates the non-zeros of the lower triangular
-    part. Therefore in this routine we transpose the the row-column indices when making the triplet
+    part. Therefore in this routine we transpose the row-column indices when making the triplet
     vector that Eigen uses to calculate the compressed sparsity pattern of the upper triangular CSR
-    matrix. Once this routine clculates the sparsity pattern of the KKT matrix it back calculates
+    matrix. Once this routine calculates the sparsity pattern of the KKT matrix it back calculates
     where every element specified by kkt_coeff_rows_[i],kkt_coeff_cols_[i], should be summed into
     the KKT matrix. This info is stored in kkt_locations_, and is passed back to all functions so
     that they know where to scatter their outputs.
+
+    THE CLAIM ARRAYS ARE READ, NEVER REWRITTEN. Each element's canonical
+    endpoint ordering -- smaller endpoint outer, larger inner -- is derived here,
+    per element, in both passes. It used to be written back into the claim
+    arrays instead, which left the layout with no readable record of the stream
+    the pieces actually handed out: a claim whose endpoints had been swapped is
+    indistinguishable afterwards from one that never needed swapping, so the
+    claim stream was destroyed by the very analysis that consumed it. Deriving
+    it costs a pair of compares per element in a loop that already branches on
+    the same two values, and it is what lets the structural key's claim conjunct
+    be taken on demand instead of during every layout.
 
     */
     KKTmat.resize(this->kkt_dim_, this->kkt_dim_);
@@ -682,13 +979,13 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
                 kktvec[i] = Eigen::Triplet<double>(0, 0, 0.0);
                 continue;
             }
-            if (col <= row) { //// only accept lower triangular part
-                kktvec[i] = Eigen::Triplet<double>(col, row, 1.0);
-            } else {
-                this->kkt_coeff_rows_[i] = col;
-                this->kkt_coeff_cols_[i] = row;
-                kktvec[i] = Eigen::Triplet<double>(row, col, 1.0);
-            }
+            // The stored triplet is (smaller endpoint, larger endpoint), which
+            // is the upper-triangular entry this element sums into. Derived per
+            // element and NOT written back: the claim arrays keep the stream
+            // the pieces handed out, in claim order, which is what the
+            // structural key's claim conjunct is defined over and what makes
+            // that conjunct derivable for as long as the layout stands.
+            kktvec[i] = Eigen::Triplet<double>(std::min(row, col), std::max(row, col), 1.0);
         }
     };
     hven::utils::parallel_blocks(this->num_kkt_elems_, TripFillOP, this->num_partitions_);
@@ -710,13 +1007,14 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
             if (row < 0 || col < 0) {
                 continue; // eliminated element: its location stays -1
             }
-            if (col <= row) { //// only accept lower triangular part
-                for (int k = 0; k < innerKKTNNZ[col]; k++) {
-                    int trow = KKTmat.innerIndexPtr()[KKTmat.outerIndexPtr()[col] + k];
-                    if (trow == row) {
-                        this->kkt_locations_[i] = KKTmat.outerIndexPtr()[col] + k;
-                        break;
-                    }
+            // The same endpoint ordering the triplet above was stored under.
+            const int outer = std::min(row, col);
+            const int inner = std::max(row, col);
+            for (int k = 0; k < innerKKTNNZ[outer]; k++) {
+                int trow = KKTmat.innerIndexPtr()[KKTmat.outerIndexPtr()[outer] + k];
+                if (trow == inner) {
+                    this->kkt_locations_[i] = KKTmat.outerIndexPtr()[outer] + k;
+                    break;
                 }
             }
         }
@@ -1525,6 +1823,65 @@ void require_laid_width(const hven::solvers::RhsArenaView &view, int laid_width,
 
 } // namespace
 
+namespace {
+
+/// @brief The spelling of a named evaluation shape, for a refusal that has to
+///        say WHICH shape it is refusing.
+///
+/// A refusal that reports only the flag combination makes the reader decode
+/// hex against the mapping table before they know what was asked for. Every
+/// shape assemble() lets through is one of the named ones -- validate_eval_request
+/// has already refused everything else -- so the fallback is unreachable in
+/// practice and exists only so this returns a total function.
+///
+/// KEEP THIS LIST IN STEP with the named shapes in model/candidate_point.h. It
+/// is a second enumeration of them, and a shape added there but not here does
+/// not fail to build: it falls through to the fallback, and the refusal then
+/// reads "an unnamed flag combination, the flag combination 0x..." for a shape
+/// that does have a name.
+///
+/// @param request the shape to name.
+/// @return the enumerator's spelling.
+const char *refused_shape_name(hven::solvers::EvalRequest request) {
+    using namespace hven::solvers;
+    if (request == kRequestObjectiveOnly) {
+        return "kRequestObjectiveOnly";
+    }
+    if (request == kRequestObjectiveAndConstraints) {
+        return "kRequestObjectiveAndConstraints";
+    }
+    if (request == kRequestObjectiveGradientAndConstraints) {
+        return "kRequestObjectiveGradientAndConstraints";
+    }
+    if (request == kRequestFirstOrderRhs) {
+        return "kRequestFirstOrderRhs";
+    }
+    if (request == kRequestConstraintResidualsAndJacobian) {
+        return "kRequestConstraintResidualsAndJacobian";
+    }
+    if (request == kRequestFirstOrderKkt) {
+        return "kRequestFirstOrderKkt";
+    }
+    if (request == kRequestConstraintKkt) {
+        return "kRequestConstraintKkt";
+    }
+    if (request == kRequestFullKkt) {
+        return "kRequestFullKkt";
+    }
+    if (request == kRequestLagrangianHessian) {
+        return "kRequestLagrangianHessian";
+    }
+    if (request == kRequestGradientAndJacobians) {
+        return "kRequestGradientAndJacobians";
+    }
+    if (request == kRequestConstraintJacobiansOnly) {
+        return "kRequestConstraintJacobiansOnly";
+    }
+    return "an unnamed flag combination";
+}
+
+} // namespace
+
 void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
                                                     EvalRequest request, KktScatterView kkt,
                                                     RhsScatterView rhs) {
@@ -1601,7 +1958,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
         this->fill_fxe(arena_vector(rhs.equality_residuals_));
         this->fill_fxi(arena_vector(rhs.inequality_residuals_));
-    } else if (request == kRequestConstraintJacobianOnly) {
+    } else if (request == kRequestConstraintResidualsAndJacobian) {
         this->constraint_jacobian_pass(Xf, *mat);
         // Neither gradient arena is filled. The legacy shape passed both
         // buffers in and summed an identically zero contribution into each --
@@ -1641,12 +1998,12 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         // exactly as the mapping table's per-provider support statement
         // forbids.
         throw std::invalid_argument(fmt::format(
-            "assemble: the flag combination 0x{0:x} is a legal evaluation shape, but this "
+            "assemble: {9}, the flag combination 0x{0:x}, is a legal evaluation shape, but this "
             "provider does not support it. The partitioned evaluation engine serves exactly "
             "these eight shapes: kRequestObjectiveOnly (0x{1:x}), "
             "kRequestObjectiveAndConstraints (0x{2:x}), "
             "kRequestObjectiveGradientAndConstraints (0x{3:x}), kRequestFirstOrderRhs (0x{4:x}), "
-            "kRequestConstraintJacobianOnly (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
+            "kRequestConstraintResidualsAndJacobian (0x{5:x}), kRequestFirstOrderKkt (0x{6:x}), "
             "kRequestConstraintKkt (0x{7:x}) and kRequestFullKkt (0x{8:x}); see the mapping "
             "table's per-provider support statement in model/candidate_point.h. Legal and "
             "supported-by-this-provider are distinct facts: this request cleared "
@@ -1655,10 +2012,10 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
             static_cast<std::uint32_t>(kRequestObjectiveAndConstraints),
             static_cast<std::uint32_t>(kRequestObjectiveGradientAndConstraints),
             static_cast<std::uint32_t>(kRequestFirstOrderRhs),
-            static_cast<std::uint32_t>(kRequestConstraintJacobianOnly),
+            static_cast<std::uint32_t>(kRequestConstraintResidualsAndJacobian),
             static_cast<std::uint32_t>(kRequestFirstOrderKkt),
             static_cast<std::uint32_t>(kRequestConstraintKkt),
-            static_cast<std::uint32_t>(kRequestFullKkt)));
+            static_cast<std::uint32_t>(kRequestFullKkt), refused_shape_name(request)));
     }
 
     // size_ is not validated on the engine path; identity and non-emptiness

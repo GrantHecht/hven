@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 
@@ -33,12 +34,24 @@ AggregateDeclaration &AggregateDeclaration::operator=(AggregateDeclaration &&) n
 namespace {
 
 /// Rows the pieces of one block claim, summed over the block.
-int declared_rows(const std::vector<ConstraintFunction> &pieces) {
-    int rows = 0;
+///
+/// Accumulated at 64 bits and narrowed once, checked. Unreachable in any
+/// problem this engine can lay, and checked for the reason the laid piece
+/// counts are: an unchecked narrowing would wrap into a total that the
+/// row-count comparison below then accepts, turning an impossible input into a
+/// wrong answer instead of a refusal.
+int declared_rows(const std::vector<ConstraintFunction> &pieces, const char *which) {
+    std::int64_t rows = 0;
     for (const auto &piece : pieces) {
         rows += piece.num_con_eles();
     }
-    return rows;
+    if (rows > static_cast<std::int64_t>(std::numeric_limits<int>::max())) {
+        throw std::invalid_argument(
+            fmt::format("AggregateDeclaration: the {0} pieces claim {1} rows in total, past the "
+                        "{2} a declaration can state",
+                        which, rows, std::numeric_limits<int>::max()));
+    }
+    return static_cast<int>(rows);
 }
 
 void require_non_negative(int value, const char *what) {
@@ -98,6 +111,56 @@ void AggregateDeclaration::validate() const {
     require_non_negative(equality_rows_, "the equality-row count");
     require_non_negative(inequality_rows_, "the inequality-row count");
 
+    // The fixing rows are a SUBSET of the declared equality rows: equality_rows_
+    // is the row space as laid, and this says how many of those rows are the
+    // internal ones a fixed-variable treatment appended. A count outside
+    // [0, equality_rows_] describes no row space, and the subtraction the
+    // adoption entry takes would leave a negative user count.
+    if (fixing_rows_ < 0 || fixing_rows_ > equality_rows_) {
+        throw std::invalid_argument(
+            fmt::format("AggregateDeclaration: {0} of the {1} declared equality rows are internal "
+                        "fixing rows; that count must be at least 0 and no greater than the "
+                        "equality-row count",
+                        fixing_rows_, equality_rows_));
+    }
+
+    // The tail SHAPE, checked here rather than by whoever adopts this
+    // declaration: a fixing row is one piece claiming one row, at the tail of
+    // the equality list, which is what a fixed-variable treatment appends. A
+    // consumer that lifts those pieces off before it lays can then split by
+    // piece count alone, and a declaration that does not describe that shape is
+    // refused at this boundary -- before anything has been moved anywhere.
+    //
+    // Per PIECE rather than over the tail sum: a tail of a zero-row piece
+    // beside a two-row piece sums correctly and is still not the shape.
+    if (fixing_rows_ > 0) {
+        const std::size_t piece_count = equality_constraints_.size();
+        if (piece_count > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+            throw std::invalid_argument(
+                fmt::format("AggregateDeclaration: the equality list holds {0} pieces, past the "
+                            "{1} a declaration can index",
+                            piece_count, std::numeric_limits<int>::max()));
+        }
+        const int pieces = static_cast<int>(piece_count);
+        if (pieces < fixing_rows_) {
+            throw std::invalid_argument(fmt::format(
+                "AggregateDeclaration: {0} of the declared equality rows are internal fixing "
+                "rows, but the equality list holds only {1} pieces; a fixing row is one piece "
+                "claiming one row, at the tail of that list",
+                fixing_rows_, pieces));
+        }
+        for (int k = pieces - fixing_rows_; k < pieces; k++) {
+            const int claimed = equality_constraints_[static_cast<std::size_t>(k)].num_con_eles();
+            if (claimed != 1) {
+                throw std::invalid_argument(fmt::format(
+                    "AggregateDeclaration: equality piece {0} is one of the {1} declared internal "
+                    "fixing rows but claims {2} rows; a fixing row is one piece claiming one row, "
+                    "at the tail of that list",
+                    k, fixing_rows_, claimed));
+            }
+        }
+    }
+
     if (partition_count_ < 1) {
         throw std::invalid_argument(fmt::format(
             "AggregateDeclaration: the partition count is {0}; it must be at least 1 (what a "
@@ -113,10 +176,10 @@ void AggregateDeclaration::validate() const {
     // universal rather than one engine's description of itself. Coverage of a
     // provider that should have declared pieces and did not is owned downstream,
     // by its own claim pass.
-    const bool has_pieces = !objectives_.empty() || !equality_constraints_.empty() ||
-                            !inequality_constraints_.empty();
+    const bool has_pieces =
+        !objectives_.empty() || !equality_constraints_.empty() || !inequality_constraints_.empty();
     if (has_pieces) {
-        const int equality_claimed = declared_rows(equality_constraints_);
+        const int equality_claimed = declared_rows(equality_constraints_, "equality");
         if (equality_claimed != equality_rows_) {
             throw std::invalid_argument(fmt::format(
                 "AggregateDeclaration: the equality pieces claim {0} rows in total, but the "
@@ -124,7 +187,7 @@ void AggregateDeclaration::validate() const {
                 equality_claimed, equality_rows_));
         }
 
-        const int inequality_claimed = declared_rows(inequality_constraints_);
+        const int inequality_claimed = declared_rows(inequality_constraints_, "inequality");
         if (inequality_claimed != inequality_rows_) {
             throw std::invalid_argument(fmt::format(
                 "AggregateDeclaration: the inequality pieces claim {0} rows in total, but the "

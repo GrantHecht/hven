@@ -217,7 +217,7 @@ inline ConstraintFunction make_fixed_variable_row(int index, double value, int r
     // The policy the transcription gives a thread-safe single-application
     // function, so these rows spread over the work partitions the same way the
     // user's own single-application constraints do.
-    fix_row.thread_mode_ = ThreadingFlags::RoundRobin;
+    fix_row.set_thread_mode(ThreadingFlags::RoundRobin);
     return fix_row;
 }
 

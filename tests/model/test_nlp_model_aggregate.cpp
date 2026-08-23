@@ -54,9 +54,9 @@ using hven::solvers::has_capability;
 using hven::solvers::IdentityProbe;
 using hven::solvers::KktLocationTable;
 using hven::solvers::KktScatterView;
-using hven::solvers::kRequestConstraintJacobianOnly;
 using hven::solvers::kRequestConstraintJacobiansOnly;
 using hven::solvers::kRequestConstraintKkt;
+using hven::solvers::kRequestConstraintResidualsAndJacobian;
 using hven::solvers::kRequestFirstOrderKkt;
 using hven::solvers::kRequestFirstOrderRhs;
 using hven::solvers::kRequestFullKkt;
@@ -836,7 +836,7 @@ TEST(NlpModelAggregateEvaluatorSets, FirstOrderRhsAddsBothJacobiansAndNoHessian)
     EXPECT_EQ(counts_for(kRequestFirstOrderRhs, true), expected);
 }
 
-TEST(NlpModelAggregateEvaluatorSets, ConstraintJacobianOnlySkipsTheObjectiveEvaluators) {
+TEST(NlpModelAggregateEvaluatorSets, ConstraintResidualsAndJacobianSkipsTheObjectiveEvaluators) {
     // The shape names no objective output, so eval_values is the wrong call: it
     // would compute f for a request that never asked for it.
     BridgeEvalCounts expected;
@@ -844,7 +844,7 @@ TEST(NlpModelAggregateEvaluatorSets, ConstraintJacobianOnlySkipsTheObjectiveEval
     expected.ci_ = 1;
     expected.jac_e_ = 1;
     expected.jac_i_ = 1;
-    EXPECT_EQ(counts_for(kRequestConstraintJacobianOnly, false), expected);
+    EXPECT_EQ(counts_for(kRequestConstraintResidualsAndJacobian, false), expected);
 }
 
 TEST(NlpModelAggregateEvaluatorSets, FirstOrderKktRunsTheSameSetAsTheFirstOrderRhs) {
@@ -1140,14 +1140,14 @@ TEST(NlpModelAggregateEquivalence, ConstraintKktAssemblesTheAdjointHessianAlone)
     }
 }
 
-TEST(NlpModelAggregateEquivalence, ConstraintJacobianOnlyWritesNoHessianSlot) {
+TEST(NlpModelAggregateEquivalence, ConstraintResidualsAndJacobianWritesNoHessianSlot) {
     auto model = counting_model();
     NlpModelAggregate aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
-    aggregate.assemble(point.values_only(), kRequestConstraintJacobianOnly, destinations.kkt_view(),
-                       destinations.rhs_view());
+    aggregate.assemble(point.values_only(), kRequestConstraintResidualsAndJacobian,
+                       destinations.kkt_view(), destinations.rhs_view());
 
     const ClaimBlock hessian = aggregate.hessian_claims();
     for (int slot = hessian.start_; slot < hessian.start_ + hessian.count_; ++slot) {

@@ -170,6 +170,113 @@ TEST(PatternHash, CrossCheckAgainstIndependentFnv1aReference) {
     EXPECT_EQ(h, pattern_hash(A));
 }
 
+// The magnitude arms of feed_index produce the byte-at-a-time value, for every
+// magnitude and for both signs.
+//
+// feed_index mixes all eight bytes of every value, but spends a multiply per
+// byte only on the ones whose magnitude reaches them: a run of high zero bytes
+// is folded into one multiply by a power of the prime. That folding is an
+// identity, so this pins it as one -- against a reference written here, in the
+// byte-at-a-time form, that does not call hven::Fnv1a. The spread crosses
+// every arm boundary (2, 4 and 8 explicit bytes) in both directions, and
+// includes the negative values a claim stream carries for an eliminated
+// element, whose two's-complement representation reaches the top byte.
+TEST(PatternHash, Fnv1aFeedIndexMatchesTheByteAtATimeFormAtEveryMagnitude) {
+    constexpr std::uint64_t kOffsetBasis = 14695981039346656037ULL;
+    constexpr std::uint64_t kPrime = 1099511628211ULL;
+
+    auto ref_feed_index = [](std::uint64_t &h, std::int64_t v) {
+        const auto u = static_cast<std::uint64_t>(v);
+        for (std::size_t i = 0; i < sizeof(u); ++i) {
+            h ^= (u >> (8 * i)) & 0xFFu;
+            h *= kPrime;
+        }
+    };
+
+    const std::vector<std::int64_t> values = {0,
+                                              1,
+                                              -1,
+                                              255,
+                                              256,
+                                              65535,
+                                              65536,
+                                              1 << 20,
+                                              2147483647LL,
+                                              -2147483648LL,
+                                              4294967295LL,
+                                              4294967296LL,
+                                              -123456789LL,
+                                              9223372036854775807LL,
+                                              -9223372036854775807LL - 1};
+
+    // Each value on its own, so a failure names the magnitude that broke.
+    for (std::int64_t v : values) {
+        std::uint64_t expected = kOffsetBasis;
+        ref_feed_index(expected, v);
+        Fnv1a h;
+        h.feed_index(v);
+        EXPECT_EQ(h.value(), expected) << "value " << v;
+    }
+
+    // And as one continued accumulation, which is how the digests use it.
+    std::uint64_t expected = kOffsetBasis;
+    Fnv1a running;
+    for (std::int64_t v : values) {
+        ref_feed_index(expected, v);
+        running.feed_index(v);
+    }
+    EXPECT_EQ(running.value(), expected);
+}
+
+// feed_index_pairs is the interleaved pair stream and nothing else: the same
+// value a call per element produces. The -1 entries are the claim stream's own
+// spelling for an element of an eliminated variable.
+TEST(PatternHash, Fnv1aFeedIndexPairsIsTheInterleavedPerElementStream) {
+    const std::vector<int> first = {0, 3, 17, 4095, 65536, -1, 7};
+    const std::vector<int> second = {1, 3, 2, 300000, 0, -1, 65535};
+
+    Fnv1a per_element;
+    for (std::size_t i = 0; i < first.size(); ++i) {
+        per_element.feed_index(first[i]);
+        per_element.feed_index(second[i]);
+    }
+
+    Fnv1a bulk;
+    bulk.feed_index_pairs(first.data(), second.data(), first.size());
+
+    EXPECT_EQ(bulk.value(), per_element.value());
+
+    // Feeding one whole array and then the other is a DIFFERENT stream, which
+    // is why the pair feed exists rather than two bulk feeds.
+    Fnv1a concatenated;
+    for (int v : first) {
+        concatenated.feed_index(v);
+    }
+    for (int v : second) {
+        concatenated.feed_index(v);
+    }
+    EXPECT_NE(concatenated.value(), per_element.value());
+}
+
+// feed_index stays usable in a constant expression -- the property its own
+// comment claims, and the reason the byte extraction is shift-based rather
+// than a read through the object representation.
+TEST(PatternHash, Fnv1aFeedIndexRemainsAConstantExpression) {
+    constexpr std::uint64_t folded = [] {
+        Fnv1a h;
+        h.feed_index(7);
+        h.feed_index(-3);
+        h.feed_index(70000);
+        return h.value();
+    }();
+
+    Fnv1a runtime;
+    runtime.feed_index(7);
+    runtime.feed_index(-3);
+    runtime.feed_index(70000);
+    EXPECT_EQ(folded, runtime.value());
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // The multi-matrix continuation surface, the uncompressed-tolerant path, and
 // the cross-width claim.

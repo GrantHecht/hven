@@ -1,0 +1,24 @@
+MKL init: 996.911 ms
+2026-08-23T02:01:45-04:00
+Running ./bench_all-fixhead
+Run on (16 X 3401 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x8)
+  L1 Instruction 32 KiB (x8)
+  L2 Unified 512 KiB (x8)
+  L3 Unified 98304 KiB (x1)
+Load Average: 2.81, 1.90, 1.67
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+----------------------------------------------------------------------------------------
+Benchmark                                              Time             CPU   Iterations
+----------------------------------------------------------------------------------------
+BM_Phase_Construct_16seg                          837299 ns       831953 ns          839
+BM_Phase_Construct_64seg                         1070810 ns      1063864 ns          655
+BM_Phase_Transcribe_16seg                          57399 ns        56976 ns        12108
+BM_Phase_Transcribe_64seg                         254531 ns       252738 ns         2755
+BM_InteriorPointSolver_Brach_16seg                  2.53 ms         2.52 ms          268
+BM_InteriorPointSolver_Brach_32seg                  4.60 ms         4.39 ms          159
+BM_InteriorPointSolver_PolarLT_128seg               87.2 ms         86.6 ms            7
+BM_InteriorPointSolver_PolarLT_256seg                162 ms          160 ms            4
+BM_InteriorPointSolver_Brach_32seg_MTMetis          4.54 ms         4.34 ms          162
+BM_InteriorPointSolver_PolarLT_128seg_MTMetis       86.7 ms         86.1 ms            8

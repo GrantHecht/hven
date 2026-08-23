@@ -1,0 +1,28 @@
+Unfiltered nm dumps (nm -C --print-size --size-sort) of hven_sqp_bench, the
+image the seam is actually linked into. Recorded because an earlier, filtered
+dump (AggregateEvalSeam::* only) could not show the library-template
+instantiations that a generic sort pulls in -- they are named after std
+algorithms, not after the seam.
+
+  nm_full_base.txt  5cd8ae9  35981 symbols
+  nm_full_mid.txt   15147eb  35991 symbols   (+10)
+  nm_full_head.txt  d8fd3e1  35981 symbols
+
+merge-sort / stable-partition family instantiations naming ClaimBlock:
+  base 0    mid 8    head 0
+
+Symbol NAME sets: base and head are IDENTICAL (diff of the sorted name lists is
+empty). mid adds 21 names, of which 8 are the stable_sort / stable_partition /
+merge instantiations over pair<const char*, const ClaimBlock*> and the rest are
+their exception tables.
+
+AggregateEvalSeam::lay() size:
+  base 0x1007 (4103)
+  mid  0x13ff (5119)   +1016 over base -- the library sort inlined into it
+  head 0x1286 (4742)   +639  over base -- the non-negativity pass, the widened
+                       coverage sum, the two length checks ahead of the
+                       narrowings, the hand-written insertion sort, and the
+                       fuller refusal messages
+
+This is the evidence for the fold's decision: the +1016 at mid was code growth,
+not layout, so it was replaced rather than closed on the wall reading.

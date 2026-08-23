@@ -182,8 +182,8 @@ TEST(EvalRequestTest, TheAdjointRequestsAreTheOnesThatConsumeTheMultipliers) {
     EXPECT_TRUE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestFullKkt));
     EXPECT_TRUE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestConstraintKkt));
     EXPECT_FALSE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestObjectiveOnly));
-    EXPECT_FALSE(
-        hven::solvers::request_consumes_multipliers(hven::solvers::kRequestConstraintJacobianOnly));
+    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(
+        hven::solvers::kRequestConstraintResidualsAndJacobian));
     EXPECT_FALSE(hven::solvers::request_consumes_multipliers(
         hven::solvers::kRequestObjectiveGradientAndConstraints));
 }
@@ -197,7 +197,7 @@ constexpr std::array<EvalRequest, 8> kInteriorOwnedRequestSets = {
     hven::solvers::kRequestObjectiveAndConstraints,
     hven::solvers::kRequestObjectiveGradientAndConstraints,
     hven::solvers::kRequestFirstOrderRhs,
-    hven::solvers::kRequestConstraintJacobianOnly,
+    hven::solvers::kRequestConstraintResidualsAndJacobian,
     hven::solvers::kRequestFirstOrderKkt,
     hven::solvers::kRequestConstraintKkt,
     hven::solvers::kRequestFullKkt,
@@ -218,7 +218,7 @@ constexpr std::array<EvalRequest, 11> kAllMappedRequestSets = {
     hven::solvers::kRequestObjectiveAndConstraints,
     hven::solvers::kRequestObjectiveGradientAndConstraints,
     hven::solvers::kRequestFirstOrderRhs,
-    hven::solvers::kRequestConstraintJacobianOnly,
+    hven::solvers::kRequestConstraintResidualsAndJacobian,
     hven::solvers::kRequestFirstOrderKkt,
     hven::solvers::kRequestConstraintKkt,
     hven::solvers::kRequestFullKkt,
@@ -252,7 +252,7 @@ TEST(EvalRequestMappingTable, TheConstraintOnlyShapesNameNoObjectiveOutput) {
     constexpr EvalRequest kObjectiveOutputs = EvalRequest::kObjectiveValue |
                                               EvalRequest::kObjectiveGradient |
                                               EvalRequest::kObjectiveHessian;
-    EXPECT_EQ(hven::solvers::kRequestConstraintJacobianOnly & kObjectiveOutputs,
+    EXPECT_EQ(hven::solvers::kRequestConstraintResidualsAndJacobian & kObjectiveOutputs,
               EvalRequest::kNone);
     EXPECT_EQ(hven::solvers::kRequestConstraintKkt & kObjectiveOutputs, EvalRequest::kNone);
 }

@@ -1,0 +1,10 @@
+# The legs' BUILT ARMS. Each is over 100 MB and none of them is a record: an
+# arm is rebuilt from a source tree by build_ipm_time.sh / build_layout_time.sh,
+# and PROVENANCE.md says how each recorded run's arms were produced. What the
+# repository keeps is the logs, the probe sources and the provenance -- every
+# log's build header carries the arm binaries' sha256 and mtime, which is what
+# ties a row to the image that produced it.
+ipm_base
+ipm_head
+layout_base
+layout_head

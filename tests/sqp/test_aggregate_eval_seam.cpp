@@ -43,6 +43,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -55,6 +56,7 @@
 #include <hven/model/nlp_model.h>
 #include <hven/model/nlp_model_aggregate.h>
 
+#include "support/claim_stream_double.h"
 #include "support/hs_problems.h"
 #include "support/parametric_families.h"
 
@@ -687,6 +689,268 @@ TEST(AggregateEvalSeamArena, ConsecutiveEvaluationsDoNotAccumulate) {
         expect_same_eval(seam_ev, free_ev);
         expect_same_qp(seam.build_subproblem(seam_ev, first, lambda_e, lambda_i, 1.0),
                        build_subproblem(*fixture.model_, free_ev, first, lambda_e, lambda_i, 1.0));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// AggregateEvalSeamBoundary -- the refusals a well-formed provider cannot reach
+// ---------------------------------------------------------------------------
+//
+// Every case below is a malformed claim stream or a stale bundle. No in-tree
+// provider produces one, which is exactly why they need a source whose stream
+// the test writes (support/claim_stream_double.h): the checks guard the seam
+// against a provider that is wrong, and a provider that is right cannot
+// demonstrate them.
+
+using hven::sqp_tests::SettableClaimStreamSource;
+
+TEST(AggregateEvalSeamBoundary, TwoClaimsOnOneCoordinateInADomainAreRefusedByName) {
+    // The arena has one slot per stored pattern element, so a coordinate named
+    // twice has one offset for two claims. The message must name the domain and
+    // both counts, because those are what tell a provider author which block to
+    // look at and by how much it over-claimed.
+    SettableClaimStreamSource source(3, 1, 0);
+    source.set_kkt_stream({0, 0}, {0, 0}, {0, 2}, {2, 0}, {2, 0});
+
+    try {
+        AggregateEvalSeam seam(source);
+        FAIL() << "a domain naming one coordinate twice must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("Hessian"), std::string::npos) << message;
+        EXPECT_NE(message.find("2 claims"), std::string::npos) << message;
+        EXPECT_NE(message.find("1 distinct"), std::string::npos) << message;
+    }
+}
+
+TEST(AggregateEvalSeamBoundary, AProviderThatClaimsNothingLaysAndPublishesEmptyBlocks) {
+    // A structurally empty Hessian and two empty Jacobians. The seam pads its
+    // arena to one slot so the KKT view is not the empty one a KKT-bearing
+    // request is refused for, while the table still describes zero claims --
+    // and the three published matrices come out empty at the declared shapes.
+    SettableClaimStreamSource source(2, 1, 1);
+    source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+
+    AggregateEvalSeam seam(source);
+    const Vec x = (Vec(2) << 0.5, -0.25).finished();
+    const Vec lambda_e = Vec::Zero(1);
+    const Vec lambda_i = Vec::Zero(1);
+
+    NlpEval ev;
+    ASSERT_NO_THROW(ev = seam.eval_nlp(x, lambda_e, lambda_i));
+    EXPECT_EQ(ev.Je.rows(), 1);
+    EXPECT_EQ(ev.Je.cols(), 2);
+    EXPECT_EQ(ev.Je.nonZeros(), 0);
+    EXPECT_EQ(ev.Ji.rows(), 1);
+    EXPECT_EQ(ev.Ji.cols(), 2);
+    EXPECT_EQ(ev.Ji.nonZeros(), 0);
+
+    QpProblem qp;
+    ASSERT_NO_THROW(qp = seam.build_subproblem(ev, x, lambda_e, lambda_i, 1.0));
+    EXPECT_EQ(qp.H.rows(), 2);
+    EXPECT_EQ(qp.H.cols(), 2);
+    EXPECT_EQ(qp.H.nonZeros(), 0);
+}
+
+TEST(AggregateEvalSeamBoundary, OverlappingClaimBlocksAreRefused) {
+    // The counts still sum to the stream length, which is the only thing the
+    // sum check can see. Two domains then own the same slots, and both the
+    // permutation and the segment copies would be wrong with no diagnostic.
+    SettableClaimStreamSource source(4, 1, 1);
+    source.set_kkt_stream({0, 1, 4, 5}, {0, 1, 0, 1}, {0, 2}, {1, 2}, {3, 0});
+
+    try {
+        AggregateEvalSeam seam(source);
+        FAIL() << "overlapping claim blocks must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("equality Jacobian"), std::string::npos) << message;
+        EXPECT_NE(message.find("Hessian"), std::string::npos) << message;
+        EXPECT_NE(message.find("disjoint"), std::string::npos) << message;
+        // Both complete ranges, not one endpoint from each.
+        EXPECT_NE(message.find("[0, 2)"), std::string::npos) << message;
+        EXPECT_NE(message.find("[1, 3)"), std::string::npos) << message;
+    }
+}
+
+TEST(AggregateEvalSeamBoundary, ClaimBlocksInAnyOrderAreServedFromTheirOwnStarts) {
+    // Disjoint, covering, and NOT in the order the arena's three segments are
+    // named -- the equality Jacobian occupies the first slots and the Hessian
+    // the last. That is legal: the interface fixes contiguity WITHIN a domain,
+    // not an order BETWEEN domains, and nothing in the seam derives one
+    // domain's arena base from another's count. Each is seeded and published
+    // through its own block's start_, so the layout is order-agnostic.
+    //
+    // Slots 0-1 are equality Jacobian claims (assembled rows at primal = 4);
+    // slots 2-3 are Hessian coordinates.
+    SettableClaimStreamSource source(4, 1, 1);
+    source.set_kkt_stream({4, 4, 0, 1}, {0, 1, 0, 1}, {2, 2}, {0, 2}, {0, 0});
+
+    AggregateEvalSeam seam(source);
+
+    // The property that makes it order-agnostic, asserted directly: every
+    // claim's arena offset lies inside ITS OWN block's range. A base derived
+    // from a preceding domain's count instead would put the Hessian's slots at
+    // offsets 0-1 and the equality Jacobian's at 2-3, i.e. exactly swapped.
+    for (int slot = 2; slot < 4; ++slot) {
+        const int location = AggregateEvalSeamTestAccess::location(seam, slot);
+        EXPECT_GE(location, 2) << "Hessian slot " << slot;
+        EXPECT_LT(location, 4) << "Hessian slot " << slot;
+    }
+    for (int slot = 0; slot < 2; ++slot) {
+        const int location = AggregateEvalSeamTestAccess::location(seam, slot);
+        EXPECT_GE(location, 0) << "equality Jacobian slot " << slot;
+        EXPECT_LT(location, 2) << "equality Jacobian slot " << slot;
+    }
+
+    // And it evaluates, at the declared shapes.
+    const Vec x = (Vec(4) << 0.5, -0.25, 1.0, 0.125).finished();
+    const NlpEval ev = seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(ev.Je.rows(), 1);
+    EXPECT_EQ(ev.Je.cols(), 4);
+    EXPECT_EQ(ev.Je.nonZeros(), 2);
+    EXPECT_EQ(ev.Ji.rows(), 1);
+    EXPECT_EQ(ev.Ji.nonZeros(), 0);
+}
+
+TEST(AggregateEvalSeamBoundary, AnEmptyBlockNeedNotCarryTheCursorButANonEmptyOneStillMust) {
+    // An empty block claims nothing and is disjoint from everything, so its
+    // start_ says nothing about ownership: a provider reporting an unused
+    // domain as a default-constructed block is stating that the domain has no
+    // slots, not that it owns slot 0. The order check therefore skips it.
+    //
+    // The second half is what keeps that skip from being a hole: the SAME
+    // stream with the middle block given a non-zero count is still refused, so
+    // the exemption is about emptiness and not about position.
+    SettableClaimStreamSource permitted(4, 1, 1);
+    // Slots 0-1 are Hessian coordinates; slots 2-3 are inequality Jacobian
+    // claims, whose assembled rows sit at primal + equality rows = 5.
+    permitted.set_kkt_stream({0, 1, 5, 5}, {0, 1, 0, 1}, {0, 2}, {0, 0}, {2, 2});
+    EXPECT_NO_THROW({ AggregateEvalSeam seam(permitted); });
+
+    SettableClaimStreamSource refused(4, 1, 1);
+    refused.set_kkt_stream({0, 1, 4, 4}, {0, 1, 0, 1}, {0, 2}, {0, 2}, {4, 0});
+    try {
+        AggregateEvalSeam seam(refused);
+        FAIL() << "a non-empty block starting before the previous one ended must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("equality Jacobian"), std::string::npos) << message;
+        EXPECT_NE(message.find("disjoint"), std::string::npos) << message;
+    }
+}
+
+TEST(AggregateEvalSeamBoundary, BlockMetadataNearTheTopOfTheTypeIsRefusedRatherThanWrapped) {
+    // The block scan adds and subtracts numbers the provider supplied. Counts
+    // near the top of the type would carry past it if the three were summed in
+    // the same width, and a block whose start sits there would do the same when
+    // its end was formed -- including when the end is formed only to be printed
+    // in the refusal. Both cases must come out as a refusal that names the
+    // offending numbers.
+    SettableClaimStreamSource huge_counts(2, 0, 0);
+    huge_counts.set_kkt_stream({}, {}, {0, std::numeric_limits<int>::max()},
+                               {0, std::numeric_limits<int>::max()}, {0, 2});
+    try {
+        AggregateEvalSeam seam(huge_counts);
+        FAIL() << "counts that cannot cover the stream must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        // The true sum, taken in a width that holds it -- not a wrapped one.
+        const std::int64_t expected = 2ll * std::numeric_limits<int>::max() + 2;
+        EXPECT_NE(message.find(std::to_string(expected)), std::string::npos) << message;
+    }
+
+    SettableClaimStreamSource huge_start(2, 0, 0);
+    huge_start.set_kkt_stream({0, 1}, {0, 1}, {std::numeric_limits<int>::max(), 2}, {0, 0}, {0, 0});
+    try {
+        AggregateEvalSeam seam(huge_start);
+        FAIL() << "a block starting past the end of the stream must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("Hessian"), std::string::npos) << message;
+        // The end printed without wrapping: max + 2 does not fit in an int.
+        const std::int64_t end = static_cast<std::int64_t>(std::numeric_limits<int>::max()) + 2;
+        EXPECT_NE(message.find(std::to_string(end)), std::string::npos) << message;
+    }
+
+    SettableClaimStreamSource negative(2, 0, 0);
+    negative.set_kkt_stream({0, 1}, {0, 1}, {-1, 2}, {0, 0}, {0, 0});
+    try {
+        AggregateEvalSeam seam(negative);
+        FAIL() << "a negative start must be refused before anything is summed";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("neither may be negative"), std::string::npos) << message;
+    }
+}
+
+TEST(AggregateEvalSeamBoundary, AGradientRowPastItsArenaIsRefusedWhereTheTableIsBound) {
+    // The right-hand-side rows are copied from the provider verbatim, so unlike
+    // the KKT offsets -- which this seam computes itself -- a wrong one arrives
+    // from outside. Unchecked it is a heap write during the provider's own
+    // scatter, in a build with the asserts compiled out.
+    //
+    // THE CONSUMER HERE IS AggregateEvalSeam, and this pin exercises the
+    // LAY-TIME scan. The scan is contracted to run at every table BIND, which
+    // includes a re-bind without a re-lay -- but for this consumer that second
+    // leg is COVERED BY CONSTRUCTION and cannot be exercised: lay() rebuilds
+    // both tables together with the two destinations they address (arena_ with
+    // kkt_table_, gradient_arena_ with gradient_table_) and there is no public
+    // re-bind path, so a table here can never outlive the destination it was
+    // scanned against. A future consumer that DOES re-bind owes the second leg
+    // at its own bind point.
+    SettableClaimStreamSource source(2, 0, 0);
+    source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+    source.set_objective_gradient_rows({0, 5});
+
+    try {
+        AggregateEvalSeam seam(source);
+        FAIL() << "a published row past the end of its arena must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("objective-gradient location table"), std::string::npos) << message;
+        EXPECT_NE(message.find("slot 1"), std::string::npos) << message;
+        EXPECT_NE(message.find("location 5"), std::string::npos) << message;
+        EXPECT_NE(message.find("2 long"), std::string::npos) << message;
+    }
+
+    // THE BOUNDARY ITSELF, both sides, so the comparison cannot be relaxed from
+    // "past the end" to "well past it" without a failure: against a two-slot
+    // arena, location 2 is the first illegal one and location 1 the last legal
+    // one.
+    SettableClaimStreamSource one_past(2, 0, 0);
+    one_past.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+    one_past.set_objective_gradient_rows({0, 2});
+    EXPECT_THROW({ AggregateEvalSeam seam(one_past); }, std::invalid_argument);
+
+    SettableClaimStreamSource last_legal(2, 0, 0);
+    last_legal.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+    last_legal.set_objective_gradient_rows({0, 1});
+    EXPECT_NO_THROW({ AggregateEvalSeam seam(last_legal); });
+}
+
+TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
+    // Row counts are frozen across a solve. A caller holds one bundle across
+    // several moments and each of those re-lays first, so a re-lay that widened
+    // the row space leaves the held blocks describing a different problem --
+    // which would otherwise be paired with the new structures silently.
+    SettableClaimStreamSource source(2, 1, 1);
+    source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+
+    AggregateEvalSeam seam(source);
+    const Vec x = (Vec(2) << 0.25, 0.75).finished();
+    const NlpEval ev = seam.eval_nlp_values(x);
+
+    source.set_row_counts(2, 1);
+    try {
+        seam.build_subproblem(ev, x, Vec::Zero(2), Vec::Zero(1), 1.0);
+        FAIL() << "a bundle that predates a row-count change must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("equality residual block"), std::string::npos) << message;
+        EXPECT_NE(message.find("1 rows"), std::string::npos) << message;
+        EXPECT_NE(message.find("2 rows"), std::string::npos) << message;
+        EXPECT_NE(message.find("re-taken"), std::string::npos) << message;
     }
 }
 

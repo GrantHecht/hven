@@ -236,6 +236,17 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
 SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                                   const WarmStart &warm, Index minor_budget) {
     const Index n = seam.n();
+    // The seam and the bridge must name ONE provider. Restoration builds its
+    // feasibility model from the bridge while every evaluation goes through the
+    // seam, so two different providers here would solve one problem and
+    // linearize another -- silently, with no crash and no bad status, surfacing
+    // only as convergence that makes no sense. One pointer compare per solve.
+    if (&seam.aggregate() != &bridge) {
+        throw std::invalid_argument(
+            "SqpDriver::solve: the evaluation seam and the bridge name different providers; "
+            "restoration reads the bridge while every evaluation goes through the seam, so the "
+            "two must be laid over one aggregate");
+    }
     if (x0.size() != n) {
         throw std::invalid_argument(fmt::format(
             "SqpDriver::solve: x0 has size {}, expected {} (= model.n())", x0.size(), n));

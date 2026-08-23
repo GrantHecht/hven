@@ -1,0 +1,68 @@
+# leg: ipm wall leg
+# date: 2026-08-23T00:53:52-04:00   host: Linux 7.1.9-200.fc44.x86_64
+# probe source: /home/ghecht/Projects/hven-fix/docs/notes/data/m4-ipm-wall-leg/ipm_time.cpp  sha256=9927f6852ad464604111cfb7d2a93ecea64acce8803ee2fe4591d13e3ea010c3
+# binary base: /home/ghecht/Projects/hven-fix/docs/notes/data/m4-ipm-wall-leg/ipm_base  sha256=894902db668ee6eae82bf351ef1a070e100529ae8d172824b1ad31e6a8a3b1ab  mtime=2026-08-23T00:23:53-04:00
+# binary head: /home/ghecht/Projects/hven-fix/docs/notes/data/m4-ipm-wall-leg/ipm_head  sha256=84512e39759f072d8b8f40448ead8d67b3730c3598b5c8d9a813a88cd463f23f  mtime=2026-08-23T00:23:48-04:00
+# reps=5 inner=10  loadavg=0.41 2.38 2.96
+=== arm: serial
+rep1 base wide n=60 reps=10 median_s=0.002426 min_s=0.002337 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 base wide n=120 reps=10 median_s=0.007652 min_s=0.007481 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 base wide n=240 reps=10 median_s=0.037034 min_s=0.036905 iters=8 flag=0 xnorm2=5.5003852082409646
+rep1 head wide n=60 reps=10 median_s=0.001996 min_s=0.001968 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 head wide n=120 reps=10 median_s=0.006376 min_s=0.006309 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 head wide n=240 reps=10 median_s=0.031718 min_s=0.031109 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 base wide n=60 reps=10 median_s=0.002355 min_s=0.002329 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 base wide n=120 reps=10 median_s=0.007659 min_s=0.007499 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 base wide n=240 reps=10 median_s=0.037038 min_s=0.036890 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 head wide n=60 reps=10 median_s=0.002006 min_s=0.001980 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 head wide n=120 reps=10 median_s=0.006367 min_s=0.006312 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 head wide n=240 reps=10 median_s=0.031924 min_s=0.031363 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 base wide n=60 reps=10 median_s=0.002342 min_s=0.002319 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 base wide n=120 reps=10 median_s=0.007634 min_s=0.007516 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 base wide n=240 reps=10 median_s=0.037010 min_s=0.036877 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 head wide n=60 reps=10 median_s=0.002006 min_s=0.001970 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 head wide n=120 reps=10 median_s=0.006374 min_s=0.006340 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 head wide n=240 reps=10 median_s=0.031730 min_s=0.031155 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 base wide n=60 reps=10 median_s=0.002346 min_s=0.002323 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 base wide n=120 reps=10 median_s=0.007679 min_s=0.007553 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 base wide n=240 reps=10 median_s=0.037063 min_s=0.036995 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 head wide n=60 reps=10 median_s=0.002018 min_s=0.001976 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 head wide n=120 reps=10 median_s=0.006394 min_s=0.006310 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 head wide n=240 reps=10 median_s=0.031543 min_s=0.031358 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 base wide n=60 reps=10 median_s=0.002343 min_s=0.002317 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 base wide n=120 reps=10 median_s=0.007630 min_s=0.007498 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 base wide n=240 reps=10 median_s=0.036996 min_s=0.036891 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 head wide n=60 reps=10 median_s=0.002007 min_s=0.001975 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 head wide n=120 reps=10 median_s=0.006364 min_s=0.006276 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 head wide n=240 reps=10 median_s=0.031626 min_s=0.031158 iters=8 flag=0 xnorm2=5.5003852082409646
+=== arm: threaded
+rep1 base wide n=60 reps=10 median_s=0.002259 min_s=0.002193 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 base wide n=120 reps=10 median_s=0.007555 min_s=0.007312 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 base wide n=240 reps=10 median_s=0.035095 min_s=0.034886 iters=8 flag=0 xnorm2=5.5003852082409646
+rep1 head wide n=60 reps=10 median_s=0.001871 min_s=0.001844 iters=7 flag=0 xnorm2=1.3750963021836506
+rep1 head wide n=120 reps=10 median_s=0.006191 min_s=0.006101 iters=7 flag=0 xnorm2=2.7501926043856093
+rep1 head wide n=240 reps=10 median_s=0.031450 min_s=0.029350 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 base wide n=60 reps=10 median_s=0.002216 min_s=0.002196 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 base wide n=120 reps=10 median_s=0.007509 min_s=0.007356 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 base wide n=240 reps=10 median_s=0.035813 min_s=0.034950 iters=8 flag=0 xnorm2=5.5003852082409646
+rep2 head wide n=60 reps=10 median_s=0.001872 min_s=0.001838 iters=7 flag=0 xnorm2=1.3750963021836506
+rep2 head wide n=120 reps=10 median_s=0.006169 min_s=0.006093 iters=7 flag=0 xnorm2=2.7501926043856093
+rep2 head wide n=240 reps=10 median_s=0.030184 min_s=0.029274 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 base wide n=60 reps=10 median_s=0.002198 min_s=0.002170 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 base wide n=120 reps=10 median_s=0.007428 min_s=0.007308 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 base wide n=240 reps=10 median_s=0.035290 min_s=0.034946 iters=8 flag=0 xnorm2=5.5003852082409646
+rep3 head wide n=60 reps=10 median_s=0.001880 min_s=0.001849 iters=7 flag=0 xnorm2=1.3750963021836506
+rep3 head wide n=120 reps=10 median_s=0.006204 min_s=0.006078 iters=7 flag=0 xnorm2=2.7501926043856093
+rep3 head wide n=240 reps=10 median_s=0.029453 min_s=0.029241 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 base wide n=60 reps=10 median_s=0.002871 min_s=0.002862 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 base wide n=120 reps=10 median_s=0.007501 min_s=0.007319 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 base wide n=240 reps=10 median_s=0.035017 min_s=0.034889 iters=8 flag=0 xnorm2=5.5003852082409646
+rep4 head wide n=60 reps=10 median_s=0.001853 min_s=0.001840 iters=7 flag=0 xnorm2=1.3750963021836506
+rep4 head wide n=120 reps=10 median_s=0.006204 min_s=0.006088 iters=7 flag=0 xnorm2=2.7501926043856093
+rep4 head wide n=240 reps=10 median_s=0.029826 min_s=0.029232 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 base wide n=60 reps=10 median_s=0.002192 min_s=0.002168 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 base wide n=120 reps=10 median_s=0.007436 min_s=0.007377 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 base wide n=240 reps=10 median_s=0.035026 min_s=0.034845 iters=8 flag=0 xnorm2=5.5003852082409646
+rep5 head wide n=60 reps=10 median_s=0.001883 min_s=0.001849 iters=7 flag=0 xnorm2=1.3750963021836506
+rep5 head wide n=120 reps=10 median_s=0.006133 min_s=0.006078 iters=7 flag=0 xnorm2=2.7501926043856093
+rep5 head wide n=240 reps=10 median_s=0.030094 min_s=0.029562 iters=8 flag=0 xnorm2=5.5003852082409646
