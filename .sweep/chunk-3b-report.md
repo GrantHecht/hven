@@ -238,3 +238,30 @@ and per-attempt bookkeeping bodies) within this session's remaining budget.
 A follow-up pass focused specifically on `ssn_engine.h`'s body (past the
 header, which this pass did fully condense) is the natural next chunk if
 deeper reduction is still wanted.
+
+## Fix round (chunk-3b-review.md, applied at b2c10ff over aafc053)
+
+| # | Severity | Location | Applied | Disposition |
+|---|----------|----------|---------|-------------|
+| 1 | Blocking | `qp_engine.h:1669-1682` `resolve_effective_options` `@throws` | yes | Restated the throw domain against the body at `:1706-1720` exactly: NaN/negative on `overrides.tr_radius` directly, or on the stored field at the +inf/negative sentinel; NaN on `overrides.primal_delta`/`dual_mu` directly, or NaN/negative on the stored field at the negative sentinel. Dropped the false "only the value actually SELECTED is validated" claim. |
+| 2 | Blocking | `qp_engine.h:150-155` COUNTER SEMANTICS | yes | Split 4c's ride (one minor_iter, invisible to factorizations/schur_updates) from 4b's repair (one EXTRA minor_iter — the kWrong iteration counted then retried — plus schur_updates under kSchurBorder or one factorization under kRefactorize per pin/release probe, verified against `probe_inertia` → `eqp_candidate` at `:3162-3168`/`:3374-3430`). |
+| 3 | Should-fix | `ssn_engine.h:1069` dangling "identification-stall note" reference | yes | Dropped the parenthetical citation; kept the fact standalone ("...this project recognises: provably inert on every one of them"). |
+| 4 | Should-fix | `ssn_engine.h:735` "far below the overflow escape" | yes | Restored `1e150` and replaced the nonexistent "overflow escape" (no such `SsnEscape` state exists — checked `:940-947`) with what the code actually has: the two growth checks catching a diverging dual before IEEE double arithmetic itself would break down. |
+| 5 | Should-fix | `ssn_engine.h:687` "THREE CONJUNCTS" | yes | Retitled to "THREE DESIGN CHOICES IN THE STALL TEST", consistent with "Both halves are required" six lines above (the test has two conjuncts: stall, growth; the three items are window-advance/aggregation/growth-route design choices, not additional conjuncts). |
+| 6 | Should-fix | Residual plan/review labels: `eqp_solve.h:47,49` "Task 9"; `ssn_engine.h:1424,1791` "tycho rule T6"; `ssn_engine.h:1664` "(C1)"; `ssn_engine.h:1062,1460` "the brief"; `qp_engine.h:2346` "audit finding D9"; `qp_engine.h:2218` "findings-doc policy" | yes | All nine removed; each fact restated standalone (T6 spelled out as "diagnostics fold into what the caller receives, never printed"; the rest simply dropped the label with no loss of content). |
+| 7 | Should-fix | Four ruler lines, `ssn_engine.h:1434/1436, 2354/2356` | yes | Removed; both files now at zero `// ====` rulers. |
+| 8 | Nit | `qp_engine.h:1666-1667` `@param overrides` "disable at any negative value" ambiguity | yes | Reworded to state the actual asymmetry: 0 disables the regularization, a negative override means "use the stored field". |
+| 9 | Nit | `qp_engine.h:1654` `///` vs `//` choice | not applied | Review found it already correct as written; no change needed. |
+| 10 | Nit | Ragged reflow: `ssn_engine.h:1362,1668,1234`; `qp_engine.h:1896-1897`; `ssn_engine.h:3123` | partial | Reflowed the four comment blocks at `ssn_engine.h:1362-1364, 1666-1670, 1236-1245` and `qp_engine.h:1899-1904`. Left `ssn_engine.h:3123`'s "reads redundantly" observation alone — flagged by the review as a style note, not a required fix, and no single-line change addresses it without further restructuring. |
+| 11 | Nit | `qp_engine.h:1136-1137` `mix_values` "collision-resistant on its own" | yes | Restored the pre-image's scoping qualifier: "collision-resistant across a shape change". |
+| 12 | Nit | Uneven live-test evidence pointer removal | not applied | Review states either policy is fine; left as-is (no specific correction requested). |
+| 13 | Nit | `qp_engine.h:1071` brittle line-number-pinned citation | not applied | Explicitly out of scope for this chunk per the review; noted for a follow-up. |
+| 14 | Nit | `qp_engine.h:556` "kMaxIter once opts.max_iter" vs actual `eff_max_iter` | yes | Pre-existing inaccuracy (not a regression) fixed while the surrounding text was already being touched, per the review's suggestion. |
+
+Applied: 12 of 14 findings (2/2 blocking, 5/5 should-fix, 5/7 nits).
+Not applied: 2 nits (9: no change needed; 12: either policy acceptable per
+review; 13 explicitly deferred as out of scope — counted separately since
+it's a non-finding).
+
+Gate: `strip_compare.py . aafc053 HEAD` → `files checked: 3 violations: 0`.
+Commit: `b2c10ff` "docs: comment sweep — QP and SSN engine accuracy fixes".
