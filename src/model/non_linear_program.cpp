@@ -1533,8 +1533,8 @@ void require_laid_width(const hven::solvers::RhsArenaView &view, int laid_width,
 
 namespace {
 
-/// The spelling of a named evaluation shape, for a refusal that has to say
-/// WHICH shape it is refusing.
+/// @brief The spelling of a named evaluation shape, for a refusal that has to
+///        say WHICH shape it is refusing.
 ///
 /// A refusal that reports only the flag combination makes the reader decode
 /// hex against the mapping table before they know what was asked for. Every

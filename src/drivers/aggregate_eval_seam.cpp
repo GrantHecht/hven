@@ -37,8 +37,8 @@ struct DomainClaims {
     std::vector<int> cols_; ///< matrix-local column per claim, in walk order
 };
 
-/// Refuses a published location table whose largest location is past the end of
-/// the destination it addresses.
+/// @brief Refuses a published location table whose largest location is past the
+///        end of the destination it addresses.
 ///
 /// Run wherever a table is BOUND -- which for this seam is the one lay() that
 /// rebuilds every table and its destination together -- and never on an
@@ -285,13 +285,25 @@ void AggregateEvalSeam::lay() {
         int previous_end = 0;
         const char *previous_domain = "the start of the stream";
         for (const auto &[domain, block] : ordered_blocks) {
+            // The end is compared as start_ > total_claims - count_ rather than
+            // start_ + count_ > total_claims: both operands are already known
+            // non-negative here, so the subtraction cannot wrap, while the sum
+            // could for a start_ near the top of the type.
             if (block->start_ < 0 || block->count_ < 0 ||
-                block->start_ + block->count_ > total_claims) {
+                block->start_ > total_claims - block->count_) {
                 throw std::invalid_argument(
                     fmt::format("AggregateEvalSeam: the {0} block names slots [{1}, {2}) of a "
                                 "claim stream {3} slots long",
                                 domain, block->start_, block->start_ + block->count_,
                                 total_claims));
+            }
+            // An EMPTY block claims nothing, is disjoint from every other range
+            // by definition, and is not obliged to carry the cursor: a provider
+            // reporting an unused domain as a default-constructed block is
+            // stating that the domain has no slots, not that it owns slot 0.
+            // Its position is therefore not checked, and it advances nothing.
+            if (block->count_ == 0) {
+                continue;
             }
             if (block->start_ < previous_end) {
                 throw std::invalid_argument(

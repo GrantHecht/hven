@@ -31,8 +31,8 @@
 // results, scatters them into this seam's arena, and the seam copies the three
 // contiguous segments out. Those transfers are per major, not per minor -- the
 // QP engine's working-set iterations gain no copy, no branch and no
-// indirection from any of it, which is the ground the R2.3 rider's scope
-// stands on (docs/notes/2026-08-21-m4-task5-design.md §7).
+// indirection from any of it, which is the ground the per-minor scope stands on
+// (see docs/notes/2026-08-21-m4-task5-design.md §7).
 //
 // WHY THE SEED IS NEGATIVE ZERO. The contract's assemble ACCUMULATES (see
 // model/nlp_aggregate.h) and the consumer owns the initial state, so every
@@ -211,8 +211,8 @@ class AggregateEvalSeam {
     /// patterns, so outputs produced after one carry the NEW structure.
     void relay_if_stale();
 
-    /// Refuses a bundle whose block sizes are not the ones the structures now
-    /// declare.
+    /// @brief Refuses a bundle whose block sizes are not the ones the structures
+    ///        now declare.
     ///
     /// Row counts are FROZEN ACROSS A SOLVE. A caller holds an NlpEval across
     /// several moments, and each of those moments may re-lay first, so a re-lay

@@ -783,11 +783,48 @@ TEST(AggregateEvalSeamBoundary, ClaimBlocksOutOfArenaOrderAreRefused) {
     }
 }
 
+TEST(AggregateEvalSeamBoundary, AnEmptyBlockNeedNotCarryTheCursorButANonEmptyOneStillMust) {
+    // An empty block claims nothing and is disjoint from everything, so its
+    // start_ says nothing about ownership: a provider reporting an unused
+    // domain as a default-constructed block is stating that the domain has no
+    // slots, not that it owns slot 0. The order check therefore skips it.
+    //
+    // The second half is what keeps that skip from being a hole: the SAME
+    // stream with the middle block given a non-zero count is still refused, so
+    // the exemption is about emptiness and not about position.
+    SettableClaimStreamSource permitted(4, 1, 1);
+    // Slots 0-1 are Hessian coordinates; slots 2-3 are inequality Jacobian
+    // claims, whose assembled rows sit at primal + equality rows = 5.
+    permitted.set_kkt_stream({0, 1, 5, 5}, {0, 1, 0, 1}, {0, 2}, {0, 0}, {2, 2});
+    EXPECT_NO_THROW({ AggregateEvalSeam seam(permitted); });
+
+    SettableClaimStreamSource refused(4, 1, 1);
+    refused.set_kkt_stream({0, 1, 4, 4}, {0, 1, 0, 1}, {0, 2}, {0, 2}, {4, 0});
+    try {
+        AggregateEvalSeam seam(refused);
+        FAIL() << "a non-empty block starting before the previous one ended must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("equality Jacobian"), std::string::npos) << message;
+        EXPECT_NE(message.find("disjoint"), std::string::npos) << message;
+    }
+}
+
 TEST(AggregateEvalSeamBoundary, AGradientRowPastItsArenaIsRefusedWhereTheTableIsBound) {
     // The right-hand-side rows are copied from the provider verbatim, so unlike
     // the KKT offsets -- which this seam computes itself -- a wrong one arrives
     // from outside. Unchecked it is a heap write during the provider's own
     // scatter, in a build with the asserts compiled out.
+    //
+    // THE CONSUMER HERE IS AggregateEvalSeam, and this pin exercises the
+    // LAY-TIME scan. The scan is contracted to run at every table BIND, which
+    // includes a re-bind without a re-lay -- but for this consumer that second
+    // leg is COVERED BY CONSTRUCTION and cannot be exercised: lay() rebuilds
+    // both tables together with the two destinations they address (arena_ with
+    // kkt_table_, gradient_arena_ with gradient_table_) and there is no public
+    // re-bind path, so a table here can never outlive the destination it was
+    // scanned against. A future consumer that DOES re-bind owes the second leg
+    // at its own bind point.
     SettableClaimStreamSource source(2, 0, 0);
     source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
     source.set_objective_gradient_rows({0, 5});
