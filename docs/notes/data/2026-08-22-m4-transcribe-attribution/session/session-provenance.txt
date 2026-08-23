@@ -1,0 +1,9 @@
+session start 2026-08-22T22:34:53-04:00 load=0.43 1.32 2.17 top= 5.9 htop, 2.8 claude, 2.6 Isolated Web Co,
+arms (bench_all-<hven>, probe-<hven>): built in worktree /home/ghecht/Projects/tycho/.scratch/attr-wt, preset linux-clang-conda, BUILD_CPP_BENCHMARKS=ON BUILD_CPP_TESTS=OFF TYCHO_HEAVY_COMPILE_JOBS=2, conda clang 22.1.0, -O3 -DNDEBUG -march=native -ffast-math -fno-finite-math-only, MKL 2026.1 static (lp64, intel_thread, iomp5), HVEN_DEFAULT_QP_THREADS=8
+  72baafd : hven 72baafd (pre-M4)       on tycho cec58e8a (main; two-arg set_num_partitions; old include path)
+  f07184b : hven f07184b (Phase 1 close) on tycho attr-mid = f599d9c9 (cec58e8a + the seven include retargets; two-arg API)
+  d3d4ec2 : hven d3d4ec2 (Task 3 close)  on tycho attr-mid
+  3f04c0b : hven 3f04c0b (Task 6 close)  on tycho 22a91465 (m4-task6-consume; one-arg API + set_qp_threads at every former two-arg site)
+settings identical across arms: qp_threads = min(8, cores) default (benches never call set_num_partitions except bench_phases.h:282 (8,8) ≡ (8)+set_qp_threads(8)); MKL_NUM_THREADS/OMP_NUM_THREADS/MKL_DYNAMIC unset; nproc 16; kernel 7.1.9-200.fc44; libstdc++ 6.0.34
+d0dee833 record env: UNKNOWN (owner statement)
+session end 2026-08-22T22:42:05-04:00 load=3.20 2.88 2.63

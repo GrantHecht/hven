@@ -1,0 +1,16 @@
+arm=72baafd p=1 Brach_32seg partitions=1 obj=1.801295490750852 iter=16 flag=0 status=0 median_ms=4.9153 min_ms=4.8349 reps=3
+arm=72baafd p=1 PolarLT_128seg partitions=1 obj=1.9965718790765201 iter=110 flag=1 status=1 median_ms=108.4983 min_ms=108.2334 reps=3
+arm=72baafd p=0 Brach_32seg partitions=0 obj=1.8012954907508523 iter=16 flag=0 status=0 median_ms=4.3109 min_ms=4.2056 reps=3
+arm=72baafd p=0 PolarLT_128seg partitions=0 obj=1.9965718790775508 iter=110 flag=1 status=1 median_ms=113.1767 min_ms=112.4002 reps=3
+arm=f07184b p=1 Brach_32seg partitions=1 obj=1.801295490750852 iter=16 flag=0 status=0 median_ms=4.9433 min_ms=4.8557 reps=3
+arm=f07184b p=1 PolarLT_128seg partitions=1 obj=1.9965718790765201 iter=110 flag=1 status=1 median_ms=109.1351 min_ms=108.9113 reps=3
+arm=f07184b p=0 Brach_32seg partitions=0 obj=1.8012954907508523 iter=16 flag=0 status=0 median_ms=4.3707 min_ms=4.1437 reps=3
+arm=f07184b p=0 PolarLT_128seg partitions=0 obj=1.9965718790775508 iter=110 flag=1 status=1 median_ms=119.5022 min_ms=112.3995 reps=3
+arm=d3d4ec2 p=1 Brach_32seg partitions=1 obj=1.801295490750852 iter=16 flag=0 status=0 median_ms=4.9139 min_ms=4.8375 reps=3
+arm=d3d4ec2 p=1 PolarLT_128seg partitions=1 obj=1.9965718790765201 iter=110 flag=1 status=1 median_ms=111.4453 min_ms=110.0918 reps=3
+arm=d3d4ec2 p=0 Brach_32seg partitions=0 obj=1.8012954907508523 iter=16 flag=0 status=0 median_ms=4.3169 min_ms=4.2766 reps=3
+arm=d3d4ec2 p=0 PolarLT_128seg partitions=0 obj=1.9965718790775508 iter=110 flag=1 status=1 median_ms=114.9124 min_ms=113.7073 reps=3
+arm=3f04c0b p=1 Brach_32seg partitions=1 obj=1.801295490750852 iter=16 flag=0 status=0 median_ms=3.5329 min_ms=3.4862 reps=3
+arm=3f04c0b p=1 PolarLT_128seg partitions=1 obj=1.9965718790765201 iter=110 flag=1 status=1 median_ms=111.9925 min_ms=109.5719 reps=3
+arm=3f04c0b p=0 Brach_32seg partitions=0 obj=1.8012954907508523 iter=16 flag=0 status=0 median_ms=5.4058 min_ms=4.8821 reps=3
+arm=3f04c0b p=0 PolarLT_128seg partitions=0 obj=1.9965718790775508 iter=110 flag=1 status=1 median_ms=114.2743 min_ms=113.4272 reps=3

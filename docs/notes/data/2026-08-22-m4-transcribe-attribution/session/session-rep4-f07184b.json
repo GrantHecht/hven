@@ -1,0 +1,183 @@
+{
+  "context": {
+    "date": "2026-08-22T22:39:54-04:00",
+    "host_name": "fedora",
+    "executable": "./bench_all-f07184b",
+    "num_cpus": 16,
+    "mhz_per_cpu": 3401,
+    "cpu_scaling_enabled": true,
+    "aslr_enabled": false,
+    "caches": [
+      {
+        "type": "Data",
+        "level": 1,
+        "size": 32768,
+        "num_sharing": 2
+      },
+      {
+        "type": "Instruction",
+        "level": 1,
+        "size": 32768,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 2,
+        "size": 524288,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 3,
+        "size": 100663296,
+        "num_sharing": 16
+      }
+    ],
+    "load_avg": [3.23535,2.73242,2.55664],
+    "library_version": "v1.9.5",
+    "library_build_type": "release",
+    "json_schema_version": 1
+  },
+  "benchmarks": [
+    {
+      "name": "BM_Phase_Construct_16seg",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_Phase_Construct_16seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 806,
+      "real_time": 8.8182198262399936e+05,
+      "cpu_time": 8.7604080397022329e+05,
+      "time_unit": "ns"
+    },
+    {
+      "name": "BM_Phase_Construct_64seg",
+      "family_index": 1,
+      "per_family_instance_index": 0,
+      "run_name": "BM_Phase_Construct_64seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 582,
+      "real_time": 1.1907530412399147e+06,
+      "cpu_time": 1.1821776855670102e+06,
+      "time_unit": "ns"
+    },
+    {
+      "name": "BM_Phase_Transcribe_16seg",
+      "family_index": 2,
+      "per_family_instance_index": 0,
+      "run_name": "BM_Phase_Transcribe_16seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 7698,
+      "real_time": 9.1775383553206964e+04,
+      "cpu_time": 9.1185090802818915e+04,
+      "time_unit": "ns"
+    },
+    {
+      "name": "BM_Phase_Transcribe_64seg",
+      "family_index": 3,
+      "per_family_instance_index": 0,
+      "run_name": "BM_Phase_Transcribe_64seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 1893,
+      "real_time": 3.7379420708384138e+05,
+      "cpu_time": 3.7119330850501847e+05,
+      "time_unit": "ns"
+    },
+    {
+      "name": "BM_InteriorPointSolver_Brach_16seg",
+      "family_index": 4,
+      "per_family_instance_index": 0,
+      "run_name": "BM_InteriorPointSolver_Brach_16seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 256,
+      "real_time": 2.7591995429645522e+00,
+      "cpu_time": 2.7442661601562515e+00,
+      "time_unit": "ms"
+    },
+    {
+      "name": "BM_InteriorPointSolver_Brach_32seg",
+      "family_index": 5,
+      "per_family_instance_index": 0,
+      "run_name": "BM_InteriorPointSolver_Brach_32seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 146,
+      "real_time": 4.9661088698784415e+00,
+      "cpu_time": 4.7748157876712396e+00,
+      "time_unit": "ms"
+    },
+    {
+      "name": "BM_InteriorPointSolver_PolarLT_128seg",
+      "family_index": 6,
+      "per_family_instance_index": 0,
+      "run_name": "BM_InteriorPointSolver_PolarLT_128seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 6,
+      "real_time": 1.1434547850027836e+02,
+      "cpu_time": 1.1362532499999982e+02,
+      "time_unit": "ms"
+    },
+    {
+      "name": "BM_InteriorPointSolver_PolarLT_256seg",
+      "family_index": 7,
+      "per_family_instance_index": 0,
+      "run_name": "BM_InteriorPointSolver_PolarLT_256seg",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 3,
+      "real_time": 2.2862372433398073e+02,
+      "cpu_time": 2.2689581033333300e+02,
+      "time_unit": "ms"
+    },
+    {
+      "name": "BM_InteriorPointSolver_Brach_32seg_MTMetis",
+      "family_index": 8,
+      "per_family_instance_index": 0,
+      "run_name": "BM_InteriorPointSolver_Brach_32seg_MTMetis",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 148,
+      "real_time": 4.9321537567880727e+00,
+      "cpu_time": 4.7432075472972839e+00,
+      "time_unit": "ms"
+    },
+    {
+      "name": "BM_InteriorPointSolver_PolarLT_128seg_MTMetis",
+      "family_index": 9,
+      "per_family_instance_index": 0,
+      "run_name": "BM_InteriorPointSolver_PolarLT_128seg_MTMetis",
+      "run_type": "iteration",
+      "repetitions": 1,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 6,
+      "real_time": 1.1365290583368430e+02,
+      "cpu_time": 1.1295728150000055e+02,
+      "time_unit": "ms"
+    }
+  ]
+}

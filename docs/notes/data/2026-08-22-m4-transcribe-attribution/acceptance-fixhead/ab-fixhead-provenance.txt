@@ -1,0 +1,8 @@
+fixhead session start 2026-08-23T01:58:03-04:00 load=0.48 1.02 1.41 top= 5.8 htop, 3.1 Isolated Web Co, 2.7 claude,
+arms: bench_all-72baafd (hven 72baafd on tycho cec58e8a) vs bench_all-fixhead (hven b8e66d7 on tycho 22a91465)
+hven-fix HEAD: 
+sha256 72baafd: 3e4684c4fb6e13c2fd8279db91c26dbb6212f2f56d8b9d56d7c89f30b6feaf02
+sha256 fixhead: 8773c6cfd2ebc7b444018ffc83032d332d021f74872ef11825f84199bd3ac408
+fixhead session end 2026-08-23T02:03:47-04:00 load=2.89 2.26 1.83
+hven-fix HEAD: b8e66d747d553d2765ccd15e45e38ffd43e6df9d  (b8e66d7, the pre-F-1/F-4/F-5 head this session measured)
+note: the provenance line above was appended after the run; the in-run 'git -C "$HV"' call was mis-quoted and emitted a fatal instead of the sha

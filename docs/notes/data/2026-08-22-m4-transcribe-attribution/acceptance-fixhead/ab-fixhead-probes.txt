@@ -1,0 +1,8 @@
+arm=72baafd partarg=1 Brach_32seg partitions=1 obj=1.801295490750852 iter=16 flag=0 status=0 median_ms=3.5098 min_ms=3.3923 reps=3
+arm=72baafd partarg=1 PolarLT_128seg partitions=1 obj=1.9965718790765201 iter=110 flag=1 status=1 median_ms=110.6240 min_ms=110.0930 reps=3
+arm=72baafd partarg=0 Brach_32seg partitions=0 obj=1.8012954907508523 iter=16 flag=0 status=0 median_ms=5.3581 min_ms=4.7755 reps=3
+arm=72baafd partarg=0 PolarLT_128seg partitions=0 obj=1.9965718790775508 iter=110 flag=1 status=1 median_ms=116.1485 min_ms=113.1228 reps=3
+arm=fixhead partarg=1 Brach_32seg partitions=1 obj=1.801295490750852 iter=16 flag=0 status=0 median_ms=3.1039 min_ms=3.0558 reps=3
+arm=fixhead partarg=1 PolarLT_128seg partitions=1 obj=1.9965718790765201 iter=110 flag=1 status=1 median_ms=80.7966 min_ms=80.6886 reps=3
+arm=fixhead partarg=0 Brach_32seg partitions=0 obj=1.8012954907508523 iter=16 flag=0 status=0 median_ms=3.9054 min_ms=3.8559 reps=3
+arm=fixhead partarg=0 PolarLT_128seg partitions=0 obj=1.9965718790775508 iter=110 flag=1 status=1 median_ms=84.6939 min_ms=84.4018 reps=3
