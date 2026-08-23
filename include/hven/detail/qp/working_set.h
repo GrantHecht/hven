@@ -5,11 +5,11 @@
 
 // working_set.h — the QP engine's mutable "current guess" of which
 // inequality rows are active (in the working set) and which variables are
-// pinned at a bound (kAtLower/kAtUpper/kFixed) versus free. Tasks 7-9
-// (active-set updates, Schur-complement warm starts, the outer QP loop)
-// mutate this via bound_state()/add_ineq()/drop_ineq() as the algorithm
-// walks between active sets; assemble_kkt() (kkt_assembly.h) reads it to
-// build the reduced KKT system for the CURRENT working set.
+// pinned at a bound (kAtLower/kAtUpper/kFixed) versus free. The active-set
+// updates, Schur-complement warm starts and the outer QP loop mutate this via
+// bound_state()/add_ineq()/drop_ineq() as the algorithm walks between active
+// sets; assemble_kkt() (kkt_assembly.h) reads it to build the reduced KKT
+// system for the CURRENT working set.
 
 #include <algorithm>
 #include <cstddef>
@@ -30,11 +30,11 @@ class WorkingSet {
     std::vector<BoundState> &bound_state() { return bound_state_; }
     const std::vector<BoundState> &bound_state() const { return bound_state_; }
 
-    // Sorted, unique row indices into Ai currently in the working set.
+    /// Sorted, unique row indices into Ai currently in the working set.
     const std::vector<Index> &active_ineq() const { return active_ineq_; }
 
-    // Throws std::invalid_argument if `row` is out of range or already in
-    // the working set.
+    /// @brief Adds @p row to the working set.
+    /// @throws std::invalid_argument If out of range or already present.
     void add_ineq(Index row) {
         check_row(row, "add_ineq");
         auto it = std::lower_bound(active_ineq_.begin(), active_ineq_.end(), row);
@@ -45,8 +45,8 @@ class WorkingSet {
         active_ineq_.insert(it, row);
     }
 
-    // Throws std::invalid_argument if `row` is out of range or not currently
-    // in the working set.
+    /// @brief Removes @p row from the working set.
+    /// @throws std::invalid_argument If out of range or not present.
     void drop_ineq(Index row) {
         check_row(row, "drop_ineq");
         auto it = std::lower_bound(active_ineq_.begin(), active_ineq_.end(), row);
@@ -57,7 +57,7 @@ class WorkingSet {
         active_ineq_.erase(it);
     }
 
-    // Number of variables currently marked BoundState::kFree.
+    /// Number of variables currently marked BoundState::kFree.
     Index num_free() const {
         return static_cast<Index>(
             std::count(bound_state_.begin(), bound_state_.end(), BoundState::kFree));

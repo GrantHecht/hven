@@ -174,9 +174,9 @@
 //    point one rebuild_k0 from the current working set restarts normal border
 //    operation; the stale stack is discarded rather than repaired, since it
 //    was never kept current. A change in the working ROWS does NOT release it:
-//    that condition existed through Phase 4 and was measured (Phase-5 Task 4)
-//    to thrash the latch once per row change on any working set whose rows
-//    move, for rebuilds that are futile by construction. See
+//    that condition was measured to thrash the latch once per row change on
+//    any working set whose rows move, for rebuilds that are futile by
+//    construction. See
 //    latch_still_holds for the measurement and for why the pin-count rule
 //    cannot oscillate.
 //
@@ -195,9 +195,9 @@
 //    88 status mismatches in 4000 adversarial indefinite-H cases. That is a
 //    property of the mathematics, not a bug in either path, and it is why
 //    indefinite-H correctness is validated against the LOCAL-MINIMIZER
-//    oracle (Task 8) rather than by cross-mode equality.
+//    oracle rather than by cross-mode equality.
 //
-//    COUNTER SEMANTICS (relied on downstream, e.g. Task 10's warm-start
+//    COUNTER SEMANTICS (relied on downstream, e.g. the warm-start
 //    assertions): QpCounters::minor_iters is incremented exactly ONCE per
 //    major iteration of the loop below — one EQP solve plus either a drop or
 //    a ratio-test step — so it counts major iterations, and a run that stops
@@ -297,8 +297,7 @@
 //          the pre-loop refresh_shifts() call, i.e. exactly what the first
 //          border_candidate() call will see -- equals the EXIT working set
 //          of that same previous solve.
-//      (e) FIX ROUND 1 (Phase-4 Task 4; M3 phase B retargeted it onto the
-//          factor's identity). border_'s factor's own live (session_id,
+//      (e) THE FACTOR-IDENTITY CONJUNCT. border_'s factor's own live (session_id,
 //          epoch) pair -- the session id moved by analyze() and the epoch
 //          advanced by every successful factorize() inside rebuild_k0(),
 //          the sole site that reassigns K0 or refactorizes it, BY WHICHEVER
@@ -307,9 +306,8 @@
 //          committed alongside the other fingerprints and adopted alongside
 //          them from a HotState handle), AND the factor's current numerics
 //          are USABLE (`inertia().state == kObserved` -- false precisely
-//          when the last factorize failed or none happened, the SS7.2
-//          conjunct that covers what generation's bump-before-mutate used
-//          to). Conditions (a)-(d) alone describe
+//          when the last factorize failed or none happened).
+//          Conditions (a)-(d) alone describe
 //          the PROBLEM being solved and are necessarily silent about WHICH
 //          OBJECT border_ currently names: a WarmStart's `hot` handle can be
 //          fed to a second QpEngine instance (see HotState below) while the
@@ -429,8 +427,8 @@
 //    QpEngine race on that state.
 //
 //    "USE A SEPARATE QpEngine PER THREAD" IS NO LONGER THE WHOLE RULE, as of
-//    Phase-4 Task 4's hot-start handle (WarmStart::hot / HotState, this
-//    file). Two DIFFERENT QpEngine instances -- even on two different
+//    the hot-start handle (WarmStart::hot / HotState, this file). Two
+//    DIFFERENT QpEngine instances -- even on two different
 //    threads, even never sharing so much as a variable of their caller's --
 //    can end up sharing the SAME BorderState object (Pardiso pt_ array
 //    included) if one adopts a hot handle the other produced. That sharing
@@ -539,8 +537,9 @@
 //
 //    TEMPORARY-VERTEX START REPAIR. On kWrong at the FIRST major iteration
 //    (a wrong inertia later in the run is a negative-curvature event mid-solve,
-//    which Task 7's ride handles -- with ONE exception, the POST-PROBE RESTART
-//    below, which is the dead end the ride is structurally unable to serve),
+//    which section 4c's ride handles -- with ONE exception, the POST-PROBE
+//    RESTART below, which is the dead end the ride is structurally unable to
+//    serve),
 //    repair_temporary_vertex
 //    walks the free variables in order of MOST NEGATIVE H diagonal -- that is
 //    where the negative curvature lives -- and pins them one at a time until
@@ -597,8 +596,8 @@
 //    larger than what the gate examines. When the missing negative curvature
 //    lives only in the direction that constraint alone excludes, the
 //    full-labeling reduced Hessian still reads positive (semi)definite, the
-//    gate returns kOk, and -- before Phase 3's Task 1 -- kOptimal was certified
-//    at a point that is a STRICT non-minimizer.
+//    gate returns kOk, and kOptimal was certified at a point that is a STRICT
+//    non-minimizer.
 //
 //    THE PROBE (probe_zero_multiplier_drops), run at the would-be-kOptimal
 //    exit and only there, after the infeasibility, runaway and full-labeling
@@ -640,8 +639,8 @@
 //    active constraint whose reduced system is unreadable can still carry a
 //    false certificate out. It is not silently swallowed in the sense that
 //    matters: the loop's own refactorization machinery rebuilds on perturbed
-//    pivots (step 4), and -- since Task 3b -- the SUSPECT-STALL GATE below
-//    refuses to certify a point that a suspect factorization left
+//    pivots (step 4), and the SUSPECT-STALL GATE below refuses to certify a
+//    point that a suspect factorization left
 //    non-stationary at all, whether the suspicion came from the full labeling
 //    or from a probe's reduced one. What remains uncovered is narrower than it
 //    was: a weakly active constraint whose reduced system is unreadable but
@@ -649,10 +648,9 @@
 //    made on unreadable evidence, not a first-order one made against readable
 //    evidence.
 //
-//    THE SUSPECT-STALL GATE (Task 3b) IS WHAT CLOSES THE HOLE THE PARAGRAPH
-//    ABOVE LEAVES OPEN, and it is the reason that paragraph's "deliberately
-//    silent" is no longer the last word. Audit finding D9
-//    (docs/notes/2026-07-29-accelerate-audit-results.md) showed the failure
+//    THE SUSPECT-STALL GATE IS WHAT CLOSES THE HOLE THE PARAGRAPH ABOVE
+//    LEAVES OPEN, and it is the reason that paragraph's "deliberately silent"
+//    is no longer the last word. Audit finding D9 showed the failure
 //    the refactorization machinery was assumed to cover: rebuilding K0 "while
 //    the evidence reports perturbed pivots" can make ZERO PROGRESS -- the rebuild
 //    re-derives the same exactly-singular K0 -- and the loop then reaches a
@@ -682,8 +680,8 @@
 //           "did the linear algebra that produced this point actually solve
 //           anything", and a point can fail either independently.
 //
-//           CAVEAT, KNOWN AND UNMEASURED (reviewer finding, Task 3b fix round
-//           1): r is built from the multipliers `price` computed at the TOP of
+//           CAVEAT, KNOWN AND UNMEASURED: r is built from the multipliers
+//           `price` computed at the TOP of
 //           this iteration, but the refresh_shifts() call between there and
 //           here can ADD inequality rows to the working set. A row added that
 //           way carries lambda_i == 0, so its Ai^T lambda_i contribution is
@@ -743,9 +741,8 @@
 //    fixtures, plus RandomizedIndefiniteBatteryLandsOnLocalMinimizers), which
 //    verifies every kOptimal answer against an independently enumerated set of
 //    local minimizers rather than against this machinery's own reasoning.
-//    Measured across Task 1: both batteries unchanged (the randomized one at
-//    0 of 50 blocks non-kOptimal and 0 invalid kOptimal exits, before and
-//    after).
+//    Measured: both batteries unchanged (the randomized one at 0 of 50 blocks
+//    non-kOptimal and 0 invalid kOptimal exits, before and after).
 //
 //    WHY THE PROBE ALONE REMOVED THE FALSE CERTIFICATE BUT NOT THE WRONG
 //    POINT. Section 4c's ride cannot be armed off a zero-multiplier drop: its
@@ -756,20 +753,19 @@
 //    negligible p, takes the loop's KKT-point branch, and lands back in this
 //    classification with the REDUCED set's trusted kWrong. Measured on the
 //    pinned fixture: |p|_inf = 4.4e-16 (border) / 6.7e-16 (refactorize)
-//    against a step_tol of 2e-9. Through Task 1 the two pinned cases -- the
-//    weakly active BOUND (WeaklyActiveBoundIsNotCertifiedOptimal) and the same
-//    geometry through a general ROW (WeaklyActiveGeneralRowIsNotCertifiedEither)
-//    -- therefore went from kOptimal at the saddle to kNumericalError at the
-//    saddle: an honest refusal at a point 1.5 units from the answer.
+//    against a step_tol of 2e-9. Before the restart below, the two pinned
+//    cases -- the weakly active BOUND and the same geometry through a general
+//    ROW -- therefore went from kOptimal at the saddle to kNumericalError at
+//    the saddle: an honest refusal at a point 1.5 units from the answer.
 //
-//    THE POST-PROBE RESTART (Task 6b) IS WHAT COLLECTS IT, and it is a
-//    ONE-SHOT lift of the iter == 0 gate rather than new machinery. Task 1's
-//    review measured that feeding that kNumericalError result straight back in
-//    as a WARM SEED recovers the minimizer -- both fixtures, both algebra
-//    modes, kOptimal at (0, -2, 0.5), objective -0.375 -- and identified the
-//    mechanism as the temporary-vertex START repair, which fires on the fresh
-//    solve but never on the iteration a probe's drop resumes into. So the
-//    engine now spends that repair itself, at exactly one place:
+//    THE POST-PROBE RESTART IS WHAT COLLECTS IT, and it is a ONE-SHOT lift of
+//    the iter == 0 gate rather than new machinery. Feeding that
+//    kNumericalError result straight back in as a WARM SEED measurably
+//    recovers the minimizer -- both fixtures, both algebra modes, kOptimal at
+//    (0, -2, 0.5), objective -0.375 -- and the mechanism is the
+//    temporary-vertex START repair, which fires on the fresh solve but never
+//    on the iteration a probe's drop resumes into. So the engine now spends
+//    that repair itself, at exactly one place:
 //
 //      TRIGGER   the certification branch's TRUSTED kWrong arm, i.e. a KKT
 //                point of the post-drop working set that the loop can neither
@@ -792,7 +788,7 @@
 //                restores ws/x itself), the original kNumericalError stands.
 //                The budget is spent only on a repair that succeeded.
 //
-//    MEASURED (Task 6b): both pinned fixtures now reach kOptimal at
+//    MEASURED: both pinned fixtures now reach kOptimal at
 //    (0, -2, 0.5), objective -0.375, in both modes, with lambda_e = 0.5,
 //    lambda_i = 1.5 and z_1 = 1.5 at x1's lower bound. Cost on the bound
 //    fixture: minor_iters 7 -> 12 (border) / 6 -> 11 (refactorize), which is
@@ -838,8 +834,8 @@
 //    THE CERTIFICATION BRANCH is also where a genuinely unbounded indefinite
 //    QP lands today: with no finite bound to ride to, the loop stops at a
 //    stationary point of an indefinite system and that branch reports
-//    kNumericalError -- the same verdict Task 7's ride is specified to produce
-//    when it finds no blocking constraint.
+//    kNumericalError -- the same verdict section 4c's ride is specified to
+//    produce when it finds no blocking constraint.
 //
 //    WHY LATER WORKING-SET GROWTH CANNOT INVALIDATE THE REPAIR. After the
 //    repair, refresh_shifts() may add general rows to the working set (the
@@ -851,8 +847,8 @@
 //    eigenvalue on the enclosing space -- so a reduced Hessian that is
 //    positive definite stays positive definite under any further restriction.
 //    Only a DROP can reintroduce negative curvature, which is exactly the
-//    event Task 7's ride is about (and, until then, the classification branch
-//    above refuses to certify).
+//    event section 4c's ride is about (and, until then, the classification
+//    branch above refuses to certify).
 //
 //    THAT MOVES x, and deliberately so: "temporary VERTEX" means a point with
 //    enough bounds active to make the reduced Hessian positive definite, and
@@ -999,7 +995,7 @@
 //    the direction. A probe-driven drop therefore falls through to section 4b's
 //    certification branch on the following iteration -- which is the SAME
 //    fallback the declined-ride case above lands in, but NO LONGER with the
-//    same limitation: section 4b's POST-PROBE RESTART (Task 6b) intercepts that
+//    same limitation: section 4b's POST-PROBE RESTART intercepts that
 //    branch and spends one temporary-vertex repair there, recovering the
 //    minimizer on both pinned fixtures. Arming THIS section off a
 //    zero-multiplier drop would still need an explicitly constructed direction
@@ -1217,9 +1213,9 @@
 //    to legitimately settle at very large values should tune primal_delta
 //    rather than treat kNumericalError here as unconditionally load-bearing.
 //
-// 6. TRUST-REGION SOFT BOUNDS (Task 9) -- the interface Phase 3's SQP driver
-//    needs from this engine: an l-infinity trust region around the current
-//    SQP iterate, expressed the same way every other bound is.
+// 6. TRUST-REGION SOFT BOUNDS -- the interface the SQP driver needs from
+//    this engine: an l-infinity trust region around the current SQP iterate,
+//    expressed the same way every other bound is.
 //
 //    EFFECTIVE BOUNDS, COMPUTED ONCE, ABOUT THE CLAMPED SEED PRIMAL. The
 //    center is start_center()'s x0 -- cold clamp(0, l, u), or warm
@@ -1283,19 +1279,19 @@
 //          the loop runs (a TR bound participates in the ratio test and the
 //          drop rule exactly like a real one, per the interface contract),
 //          but that internal number is never exposed: TR duals are not
-//          prices a Phase-3 driver should read;
+//          prices a driver should read;
 //      (c) nothing above changes what the loop DID -- only how the already-
 //          final ws/z are reported. In particular this is why the exclusion
 //          is applied after the loop, not by skipping pins/pricing for
 //          TR-tight bounds during it.
 //
-//    THE WINDOW-CONSISTENCY RULE (fix round 1). The window above is computed
+//    THE WINDOW-CONSISTENCY RULE. The window above is computed
 //    about the clamped seed PRIMAL; a seeded bound-state HINT is then applied
 //    against that window, and a hint whose bound falls outside
 //    [lo_eff(i), up_eff(i)] is DROPPED -- index i arrives kFree and the loop
 //    re-derives its activity from the effective bounds like any other
 //    variable. Both halves are necessary:
-//      - Applying hints FIRST (what this engine used to do) let a hint at a
+//      - Applying hints FIRST let a hint at a
 //        far bound become the window's own center, so the solve returned a
 //        point up to |bound - intended center| away from the caller's x0 at
 //        a radius of Delta. Measured on H = I, g = (-100,-100) over [0,6]^2,
@@ -1338,12 +1334,8 @@
 //    not depend on the bound value at all; only the border's RHS entry
 //    (pinned_value(qp, state, i)) carries the bound value, and that RHS is
 //    rebuilt from the CURRENT `qp` (so the current effective bounds) on
-//    every solve_bordered_eqp call -- never cached across solves. What Task
-//    5's review actually verified (tr_radius did not exist yet, and
-//    QpOptions is fixed per QpEngine instance -- see the PHASE-3 DESIGN
-//    FRICTION note just below -- so it could not have been "perturbed
-//    between calls on one instance" as an earlier draft of this note
-//    claimed): 4000 randomized warm re-solves that perturb the RAW
+//    every solve_bordered_eqp call -- never cached across solves. Verified
+//    with 4000 randomized warm re-solves that perturb the RAW
 //    lower/upper bounds between two solve() calls on the same engine
 //    instance, zero divergence from the equivalent cold solves, by exactly
 //    the e_i/rebuilt-rhs mechanism above. tr_radius changing (lo_eff/up_eff
@@ -1362,25 +1354,21 @@
 //    not a gap, and is exercised on a single engine instance by
 //    tests/test_qp_engine_tr.cpp's SameInstanceWarmSolveWithShiftedTrWindow.
 //
-//    PHASE-3 DESIGN FRICTION -- RESOLVED (Phase 3 Task 2). tr_radius still
-//    LIVES ON QpOptions, which is still PER-INSTANCE CONST (`explicit
-//    QpEngine(const QpOptions &opts) : opts_(opts), ...`, never reassigned):
-//    that field itself is exactly what it was and cannot vary across solve()
-//    calls on one instance. What changed is that it no longer has to -- every
-//    solve() overload now also takes a `const SolveOverrides &` (qp_types.h),
-//    resolved ONCE at the very top of run() into effective tr_radius/
-//    primal_delta/dual_mu values (a field at its sentinel resolves to the
-//    corresponding opts_ value, so a default-constructed SolveOverrides
-//    reproduces opts_ exactly -- see qp_types.h's SolveOverrides for the
-//    sentinel convention). Those effective values, not opts_'s own fields,
-//    are what every read site in this file below actually consults from that
-//    point on (the two-argument/three-argument overloads without a
-//    SolveOverrides forward a default-constructed one, which is why they are
-//    byte-identical to the pre-Task-2 engine -- see
-//    tests/test_qp_engine_tr.cpp/test_qp_warm_start.cpp's forwarding guard).
-//    A Phase-3 SHRINK-RADIUS RETRY LOOP (a rejected SQP step re-solved at a
-//    smaller Delta) therefore now shares ONE QpEngine instance across every
-//    retry radius, and keeps that engine's hot-start K0/border reuse across
+//    PER-SOLVE RADIUS VARIATION. tr_radius LIVES ON QpOptions, which is
+//    PER-INSTANCE CONST (`explicit QpEngine(const QpOptions &opts) :
+//    opts_(opts), ...`, never reassigned): that field cannot vary across
+//    solve() calls on one instance. It does not have to -- every solve()
+//    overload also takes a `const SolveOverrides &` (qp_types.h), resolved
+//    ONCE at the very top of run() into effective tr_radius/primal_delta/
+//    dual_mu values (a field at its sentinel resolves to the corresponding
+//    opts_ value, so a default-constructed SolveOverrides reproduces opts_
+//    exactly -- see qp_types.h's SolveOverrides for the sentinel convention).
+//    Those effective values, not opts_'s own fields, are what every read site
+//    in this file below consults from that point on (the overloads without a
+//    SolveOverrides forward a default-constructed one).
+//    A SHRINK-RADIUS RETRY LOOP (a rejected SQP step re-solved at a smaller
+//    Delta) therefore shares ONE QpEngine instance across every retry radius,
+//    and keeps that engine's hot-start K0/border reuse across
 //    the loop wherever the ordinary reuse-eligibility conditions otherwise
 //    allow it (tr_radius itself never has to join the reuse key -- see the
 //    HOT-START REUSE note's condition (d) and the HOT-START REUSE INTERACTION
@@ -1425,9 +1413,9 @@
 //    UNBOUNDED-ARTIFACT GUARD AND REPAIR SYNERGY. is_runaway() and
 //    repair_temporary_vertex() (section 4b) both read bounds through the
 //    same shadowed `qp`, so with a finite tr_radius every variable has a
-//    finite effective bound on both sides. Two consequences noted in the
-//    header contract's own sections above, restated here because Task 9 is
-//    what makes them reachable in the first place: is_runaway() can never
+//    finite effective bound on both sides. Two consequences from the sections
+//    above, restated here because the trust region is what makes them
+//    reachable: is_runaway() can never
 //    fire for a TR-bounded variable (its effective bound is always within
 //    Delta of x0, far inside unbounded_artifact_scale() for any reasonable
 //    Delta), and repair_temporary_vertex()'s "no finite bound to pin" failure
@@ -1447,13 +1435,12 @@
 //    QpSolution::tr_active itself (a size-n vector<bool>, all false) is
 //    still allocated unconditionally on every solve, same as bound_state and
 //    ineq_active always are -- it is part of QpSolution's contract, not
-//    something the off path skips. With that scoping, every one of the 109
-//    pre-Task-9 tests, and every counter/status/iterate they check, is
-//    unchanged bit-for-bit. tests/test_qp_engine_tr.cpp's
-//    TrOffIsBitIdenticalDefault is the guard for this claim.
+//    something the off path skips. With that scoping, every test that predates
+//    this section, and every counter/status/iterate they check, is unchanged
+//    bit-for-bit; TrOffIsBitIdenticalDefault is the guard for this claim.
 //
-// 6b. THE EXPORT INVARIANT ON z: A FREE VARIABLE CARRIES NO BOUND PRICE
-//    (Phase-7 Task 6b, docket D0). For every index i, the returned pair
+// 6b. THE EXPORT INVARIANT ON z: A FREE VARIABLE CARRIES NO BOUND PRICE.
+//    For every index i, the returned pair
 //    satisfies
 //        bound_state[i] == kFree  =>  z(i) == 0.0
 //    on EVERY status this engine can return -- kOptimal, kMaxIter,
@@ -1465,8 +1452,8 @@
 //    leaves the loop after later mutations without re-pricing. See the
 //    enforcement site at the bottom of run() for the mechanism, the direction
 //    argument, and why it is a no-op on the other three statuses. **THE
-//    ENFORCEMENT SITE ITSELF LIVES IN `run()` ONLY** (final branch review
-//    WAVE #14, T6b m4): `refine_on_face` -- the engine's other public
+//    ENFORCEMENT SITE ITSELF LIVES IN `run()` ONLY**: `refine_on_face` -- the
+//    engine's other public
 //    `QpSolution` producer -- satisfies this same invariant by a DIFFERENT
 //    route (`price()`'s own postcondition plus its own TR-exclusion pass,
 //    verified), not by calling into this loop; a reader adding a third
@@ -1479,9 +1466,9 @@
 //    exit point, which a capped solve has by definition run out of budget
 //    for. A caller that needs fresh prices needs a converged solve.
 //
-//    `kFixed` (lower == upper) IS SILENTLY OUTSIDE THIS INVARIANT (final
-//    branch review WAVE #14, T6b m6): it is stated over `bound_state ==
-//    kFree`, and a fixed variable can neither be freed nor trip the
+//    `kFixed` (lower == upper) IS SILENTLY OUTSIDE THIS INVARIANT: it is
+//    stated over `bound_state == kFree`, and a fixed variable can neither be
+//    freed nor trip the
 //    absent-bound check (`drop_worst` notes explicitly that it is "not
 //    sign-constrained"), so it never enters either side of the implication.
 //
@@ -1529,9 +1516,9 @@ namespace detail {
 constexpr double kEngineInfBound = 1e20;
 
 // ---------------------------------------------------------------------
-// PHASE-6 TASK 4 (M6) -- THE SIZE-DERIVED QP ITERATION CAP.
+// THE SIZE-DERIVED QP ITERATION CAP.
 //
-// QpOptions::max_iter (qp_types.h) now defaults to the sentinel 0, meaning
+// QpOptions::max_iter (qp_types.h) defaults to the sentinel 0, meaning
 // "derive the cap from this subproblem's size"; a positive value is an
 // explicit absolute cap and wins outright. These three helpers are the whole
 // of the derivation, factored out of run() so they can be tested (and quoted
@@ -1587,7 +1574,8 @@ constexpr double kEngineInfBound = 1e20;
 // proportionally tiny (HS10 spends 218 minors over 14 majors at n = 2), so a
 // pure multiple of `base` would cap small problems FAR below their demand and
 // break solves that work today. Every cap-related pin in this suite that does
-// NOT move under M6 is a solve sitting under this floor.
+// not move with the size-derived default is a solve sitting under this
+// floor.
 constexpr Index kQpMaxIterFloor = 500;
 constexpr Index kQpMaxIterCoeff = 5;
 
@@ -1785,8 +1773,8 @@ constexpr Index kMaxSuspectEscalations = 3;
 // NaN IS A FAILURE, NOT A PASS. std::max(worst, NaN) returns `worst`, so a
 // naive accumulation would make a NaN residual component VANISH and the gate
 // would then certify kOptimal on a factorization that produced NaN -- the
-// exact Phase-3 defect class this gate exists to close, arrived at from the
-// other side. The accumulation below is therefore NaN-STICKY (see its own
+// exact defect class this gate exists to close, arrived at from the other
+// side. The accumulation below is therefore NaN-STICKY (see its own
 // comment: the obvious negated-comparison fix is ALSO wrong, in the opposite
 // direction), and the VERDICT is taken by free_block_is_stationary below
 // rather than by a bare comparison at the call site -- so both halves of the
@@ -1942,10 +1930,9 @@ inline double hessian_scale(const QpProblem &qp) {
 // core) never reads them, so a solve that only perturbs g/b cannot change
 // either fingerprint.
 
-// FNV-1a mixing step, identical constants to the dissolved seam's
-// hash_pattern (and the same FNV-1a family hven::pattern_hash uses).
-// Since phase-C H3 this feeds only `values_hash` below: the STRUCTURAL
-// fingerprint is hven's combined pattern key and no longer mixes raw bytes.
+// FNV-1a mixing step (same FNV-1a family hven::pattern_hash uses). Feeds
+// only `values_hash` below: the STRUCTURAL fingerprint is hven's combined
+// pattern key and no longer mixes raw bytes.
 inline void fnv1a_mix(std::uint64_t &h, const void *data, std::size_t len) {
     constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
     const auto *bytes = static_cast<const unsigned char *>(data);
@@ -2003,19 +1990,18 @@ constexpr std::uint64_t kFnvOffsetBasis = 14695981039346656037ULL;
 // regardless), so hashing the three raw patterns is equivalent to hashing an
 // assembled K0's pattern -- without ever assembling one.
 //
-// Since phase-C H3 the digest is hven's combined pattern key -- one Fnv1a
-// threaded across the three matrices by feed_pattern (docs/pattern-hash.md)
-// -- not a raw-byte FNV over the index arrays. Same ingredient set (each
-// matrix's shape and sparsity pattern, nothing else), three properties
-// gained: the value no longer depends on host byte order or on
-// SpMatRM::StorageIndex's width (every ingredient is fed 64-bit widened,
-// LSB-first), and an uncompressed caller-supplied matrix is hashed IN PLACE
-// -- feed_pattern's derived-offset stream produces the compressed digest in
-// either storage state, so the compressed copy the old mix_pattern paid for
-// on that path is gone. The digest's VALUE changed with the re-key (declared
-// in the H3 commit): no consumer compares it against anything but another
-// computation of this same function in the same process, and 0 stays
-// meaningful only as WarmStart::structure_hash's "no claim made" sentinel,
+// The digest is hven's combined pattern key -- one Fnv1a threaded across the
+// three matrices by feed_pattern (docs/pattern-hash.md) -- not a raw-byte FNV
+// over the index arrays. Same ingredient set (each matrix's shape and
+// sparsity pattern, nothing else), three properties gained: the value does
+// not depend on host byte order or on SpMatRM::StorageIndex's width (every
+// ingredient is fed 64-bit widened, LSB-first), and an uncompressed
+// caller-supplied matrix is hashed IN PLACE -- feed_pattern's derived-offset
+// stream produces the compressed digest in either storage state. The digest's
+// VALUE changed with that re-key (declared at the change): no consumer
+// compares it against anything but another computation of this same function
+// in the same process, and 0 stays meaningful only as
+// WarmStart::structure_hash's "no claim made" sentinel,
 // which no computed digest is expected to hit.
 inline std::uint64_t structural_hash(const QpProblem &qp) {
     return combined_pattern_hash(qp.H, qp.Ae, qp.Ai);
@@ -2089,21 +2075,15 @@ struct BorderState {
     std::optional<SchurComplement> schur;
     bool latched = false;
 
-    // M3 PHASE B (docs/retarget-design-sqp.md SS7): the FIX ROUND 1
-    // `generation` counter this struct used to carry is DELETED. Its job --
-    // letting a SECOND engine instance that adopted this object via a
-    // HotState handle detect that the object has moved on since the handle
-    // was taken, even though every problem-shaped fingerprint still matches
-    // -- is carried by the backend factor's own identity: `analyze()` moves
-    // `kkt.factor.session_id()` and every successful `factorize()` advances
-    // `kkt.factor.epoch()`, so rebuild_k0() no longer stamps anything (the
-    // factorize IS the stamp). See QpEngine::reuse_eligible's condition (e)
-    // and HotState's kkt_session_id/kkt_epoch pair; the failed-rebuild case
-    // generation's bump-before-mutate used to cover is closed by the
-    // usable-numerics conjunct there (SS7.2).
+    // Stale-handle detection lives in the backend factor's own identity:
+    // `analyze()` moves `kkt.factor.session_id()` and every successful
+    // `factorize()` advances `kkt.factor.epoch()`, so rebuild_k0() stamps
+    // nothing (the factorize IS the stamp). See QpEngine::reuse_eligible's
+    // condition (e) and HotState's kkt_session_id/kkt_epoch pair; the
+    // usable-numerics conjunct there closes the failed-rebuild case.
 };
 
-// PHASE-4 TASK 4: HOT-START LEVEL. The opaque handle behind
+// HOT-START LEVEL. The opaque handle behind
 // warm_start.h's WarmStart::hot -- forward-declared there
 // (`struct HotState;`) and DEFINED here, where the machinery it snapshots
 // actually lives. A HotState is a frozen copy of the fingerprint/exit-state
@@ -2113,8 +2093,7 @@ struct BorderState {
 // the K0 symbolic analysis and last numeric factorization, Pardiso pt
 // handle included.
 //
-// OWNERSHIP AND THE PARDISO-HANDLE SAFETY ARGUMENT (the design this task's
-// brief asked to be stated explicitly). hven::linear::SymmetricFactor (the
+// OWNERSHIP AND THE PARDISO-HANDLE SAFETY ARGUMENT. hven::linear::SymmetricFactor (the
 // factor inside KktFactor) is move-only with a non-throwing destructor that
 // releases its backend session (Pardiso pt handle included) exactly once;
 // BorderState wraps one BY VALUE and is
@@ -2143,13 +2122,11 @@ struct BorderState {
 //     factorize()/solve() against it with no lifetime hazard whatsoever,
 //     even though the ORIGINAL engine that built it may since have been
 //     destroyed.
-// WHAT SHARED LIFETIME ALONE DOES NOT MAKE SAFE, WHAT FIX ROUND 1 FOUND, AND
-// WHAT FIX ROUND 2's RE-REVIEW ADJUDICATED ABOUT WHICH PART OF THE FIX
-// ACTUALLY CLOSES IT. Shared ownership answers LIFETIME (no dangling, no
-// double free) but, ON ITS OWN, says nothing about whether the shared
-// object's CONTENTS still mean what a holder's frozen fingerprint claims
-// they mean. Fix Round 1's review demonstrated exactly that gap, WITHIN the
-// sequential, one-handle-at-a-time usage this note used to call sufficient:
+// WHAT SHARED LIFETIME ALONE DOES NOT MAKE SAFE. Shared ownership answers
+// LIFETIME (no dangling, no double free) but, ON ITS OWN, says nothing about
+// whether the shared object's CONTENTS still mean what a holder's frozen
+// fingerprint claims they mean. The gap is real WITHIN the sequential,
+// one-handle-at-a-time usage:
 // producer P emits a handle, THEN SOLVES AGAIN on its own engine (an
 // ordinary, unremarkable thing to do with a `WarmStart` that is a plain
 // copyable value the caller is invited to store), which -- under the
@@ -2163,8 +2140,7 @@ struct BorderState {
 // no degradation: the frozen snapshot and the shared object had quietly
 // gone separate ways, and nothing compared them.
 //
-// TWO INDEPENDENT MECHANISMS WENT IN TO CLOSE THIS, and FIX ROUND 2's
-// re-review is explicit about which one actually does the work:
+// TWO MECHANISMS CLOSE THIS, one load-bearing and one defense-in-depth:
 //   - DETACH (`border_ = std::make_shared<BorderState>()` at every
 //     `!reuse_eligible` site, rather than wiping the existing object's
 //     fields in place) is THE LOAD-BEARING FIX. Once a refused reuse
@@ -2177,16 +2153,15 @@ struct BorderState {
 //     K0 versus carried as live borders) is exactly what sync_borders()
 //     reconciles UNCONDITIONALLY on every call regardless (the HOT-START
 //     REUSE note's own "WHY THIS IS SAFE EVEN THOUGH (b) IS ONLY
-//     APPROXIMATE" argument, undisturbed by any of this). No fixture built
-//     for this fix round -- including one deliberately constructed so a
-//     producer's own top-level conditions (a)-(d) keep passing across
-//     several of its own further solves, forcing genuine schur_cap-driven
-//     mid-solve rebuilds on the shared object without ever detaching --
-//     has produced a wrong ANSWER once detach is in place; every regression
+//     APPROXIMATE" argument, undisturbed by any of this). No regression
+//     fixture -- including one deliberately constructed so a producer's own
+//     top-level conditions (a)-(d) keep passing across several of its own
+//     further solves, forcing genuine schur_cap-driven mid-solve rebuilds on
+//     the shared object without ever detaching -- has produced a wrong ANSWER
+//     once detach is in place; every regression
 //     it catches is a factorization-count / start_level_used assertion, the
 //     answer itself matching a clean control exactly.
-//   - The factor's IDENTITY pair -- `kkt.factor.session_id()` / `epoch()`,
-//     M3 phase B's replacement for the deleted `BorderState::generation` --
+//   - The factor's IDENTITY pair -- `kkt.factor.session_id()` / `epoch()` --
 //     plus this engine's own committed copies (below) are DEFENSE-IN-DEPTH,
 //     not the mechanism that makes the sharing safe. Every rebuild_k0()
 //     call advances the epoch on the object itself (factorize() IS the
@@ -2202,9 +2177,9 @@ struct BorderState {
 //     notices. (The one case the old counter caught that the epoch does not
 //     -- a FAILED rebuild, which bumped generation before the mutation that
 //     threw but does NOT advance an epoch -- is closed by condition (e)'s
-//     usable-numerics conjunct, docs/retarget-design-sqp.md SS7.2: a failed
-//     factorize leaves `inertia().state != kObserved`, so reuse is refused
-//     on that ground instead.) A mismatch degrades to kWarm exactly like
+//     usable-numerics conjunct: a failed factorize leaves `inertia().state
+//     != kObserved`, so reuse is refused on that ground instead.) A mismatch
+//     degrades to kWarm exactly like
 //     any other reuse_eligible failure -- silent, never a throw -- and
 //     forces a rebuild in a case that, by the argument above, was already
 //     value-consistent and so was never going to compute a wrong answer
@@ -2255,17 +2230,15 @@ struct HotState {
     double effective_mu = 0.0;
     std::vector<BoundState> exit_bound_state;
     std::vector<Index> exit_active_ineq;
-    // M3 PHASE B (docs/retarget-design-sqp.md SS7): the COMMITTED
-    // (session_id, epoch) identity of `border`'s factor at emission --
-    // hot_state() emits this engine's own last-committed pair, never a live
-    // re-read off the possibly-shared object (see hot_state()'s FIX ROUND 2
-    // note). Replaces FIX ROUND 1's `generation` stamp: analyze() moving
-    // the session id covers the pattern-rebuild case, factorize()
-    // advancing the epoch covers every numeric rebuild, and the two
-    // together are exactly the object-identity half of hven's
-    // (pattern_hash, session_id, epoch) naming triple (the pattern member
-    // is carried by `structural_hash`, condition (a)). Condition (e) --
-    // see QpEngine::run()'s reuse_eligible and the OWNERSHIP note above.
+    // The COMMITTED (session_id, epoch) identity of `border`'s factor at
+    // emission -- hot_state() emits this engine's own last-committed pair,
+    // never a live re-read off the possibly-shared object. analyze() moving
+    // the session id covers the pattern-rebuild case; factorize() advancing
+    // the epoch covers every numeric rebuild; together they are the
+    // object-identity half of hven's (pattern_hash, session_id, epoch)
+    // naming triple (the pattern member is carried by `structural_hash`,
+    // condition (a)). Condition (e) -- see QpEngine::run()'s
+    // reuse_eligible and the OWNERSHIP note above.
     std::uint64_t kkt_session_id = 0;
     std::uint64_t kkt_epoch = 0;
 };
@@ -2297,9 +2270,8 @@ class QpEngine {
         return run(qp, nullptr, false, SolveOverrides{});
     }
 
-    // Warm start from `seed`'s point and working set (Task 10 tunes this;
-    // the loop itself is identical). Same default-overrides forwarding as
-    // above.
+    // Warm start from `seed`'s point and working set. Same
+    // default-overrides forwarding as above.
     QpSolution solve(const QpProblem &qp, const QpSolution &seed) const {
         return run(qp, &seed, true, SolveOverrides{});
     }
@@ -2318,7 +2290,7 @@ class QpEngine {
         return run(qp, &seed, true, overrides);
     }
 
-    // PHASE-4 TASK 4: warm start with a per-solve override AND a Task-4 hot
+    // Warm start with a per-solve override AND a hot
     // handle (WarmStart::hot) from a PRIOR solve -- typically on a DIFFERENT
     // QpEngine instance (a fresh driver's engine_, per sqp_driver.h's own
     // START LEVEL RESOLUTION), offered for THIS engine to adopt as its own
@@ -2345,11 +2317,9 @@ class QpEngine {
     // above BorderState, for what sharing the returned pointer does and does
     // not make safe.
     //
-    // FIX ROUND 2 (re-review finding 2b), re-derived for M3 phase B's
-    // session/epoch identity: emits `border_kkt_session_id_`/
-    // `border_kkt_epoch_` (this engine's own COMMITTED pair, from its own
-    // last successful run()), NEVER a LIVE `border_->kkt.factor` read off
-    // the possibly-shared object. The two are equal at every ordinary call
+    // Emits `border_kkt_session_id_`/`border_kkt_epoch_` (this engine's own
+    // COMMITTED pair, from its own last successful run()), NEVER a LIVE
+    // `border_->kkt.factor` read off the possibly-shared object. The two are equal at every ordinary call
     // site -- this engine's last commit captured the live pair and nothing
     // between then and now can have changed either -- EXCEPT when a
     // DIFFERENT engine sharing `border_` has since rebuilt it (exactly the
@@ -2359,8 +2329,8 @@ class QpEngine {
     // but whose identity matches the object's CURRENT, foreign-mutated
     // state (wrong) -- so a later adopter's condition (e) would pass on an
     // object this engine itself never certified as representing that
-    // identity. Demonstrated at this API directly (re-review's R3 probe,
-    // retargeted in tests/sqp/test_qp_warm_start.cpp): P emits h1 (epoch
+    // identity. Demonstrated at this API directly (the regression probe in
+    // tests/sqp/test_qp_warm_start.cpp): P emits h1 (epoch
     // E); a second engine C adopts h1 against a value-consistent problem
     // (its own conditions (a)-(d) pass, so it is not detached -- see
     // HotState's OWNERSHIP note for why that is the only way a shared
@@ -2385,7 +2355,6 @@ class QpEngine {
 
     // =====================================================================
     // TIER 3: EXACT REFINEMENT ON AN EXTERNALLY IDENTIFIED FACE
-    // (Phase-7 Task 5, fix round 1)
     // =====================================================================
     //
     // ONE exact equality-constrained solve on the face `face` names, plus this
@@ -2447,7 +2416,7 @@ class QpEngine {
     // way: on refusal it is `face` verbatim (with this call's own cost), so a
     // caller may use it unconditionally.
     //
-    // **PUBLIC-API PRECONDITION** (final branch review WAVE #16, T5 NF-6):
+                  // **PUBLIC-API PRECONDITION**:
     // the trust-region gate below assumes its window is centred at
     // `clamp(0, l, u)` -- true today only because every seeding site zeroes
     // `seed.x` before it reaches this function, so `start_center()`'s own
@@ -2617,8 +2586,8 @@ class QpEngine {
     // Resolve one call's SolveOverrides against an engine's QpOptions, into
     // the effective values every tr_radius/primal_delta/dual_mu read site
     // consults from there on (qp_types.h's SolveOverrides; the header contract's
-    // PHASE-3 DESIGN FRICTION note). Extracted from run() in Phase-7 Task 5's
-    // fix round 1 so that refine_on_face() cannot resolve them differently.
+    // PHASE-3 DESIGN FRICTION note). Shared with run() so refine_on_face()
+    // cannot resolve them differently.
     //
     // VALIDATE FIRST. tr_radius must be the +inf sentinel or >= 0: a negative,
     // non-sentinel Delta silently crosses lo_eff/up_eff -- section 6's CROSSED
@@ -2636,8 +2605,8 @@ class QpEngine {
     // NaN is not a value either field's resolution ternary (or any downstream
     // arithmetic) can absorb.
     //
-    // THE SENTINEL PATH IS VALIDATED TOO, on the SAME domain (PR #5 codex
-    // inline review). When `overrides.tr_radius` is the +inf sentinel the
+    // THE SENTINEL PATH IS VALIDATED TOO, on the SAME domain. When
+    // `overrides.tr_radius` is the +inf sentinel the
     // resolution below copies `opts.tr_radius` straight into `eff.tr_radius`,
     // and from that point on NOTHING downstream can tell the two paths apart:
     // both feed the identical `eff_opts.tr_radius` read sites (run()'s section
@@ -2879,8 +2848,7 @@ class QpEngine {
         // pessimistic-invalidation snapshot immediately below
         // (prev_border_valid etc.) reads them right back out, so the
         // reuse-eligibility check below (conditions (a)-(e) -- (e), the
-        // identity conjunct, is this fix round's own addition, retargeted
-        // by M3 phase B onto session/epoch + usable numerics; (a)-(d)
+        // identity conjunct over session/epoch + usable numerics; (a)-(d)
         // predate it and are unchanged) is the only thing that decides
         // whether adopting it actually skips a factorization on THIS call --
         // this block adds no new invalidation logic of its own. ws_algebra ==
@@ -2888,10 +2856,10 @@ class QpEngine {
         // in that mode, hot_state() never emits a non-null handle built
         // from it, and a handle from elsewhere is meaningless here.
         //
-        // FIX ROUND 1 (retargeted onto the session/epoch identity, M3 phase
-        // B) also copies `hot->kkt_session_id`/`hot->kkt_epoch` into the
-        // committed members here, alongside the four pre-existing fields --
-        // the pair is adopted exactly like they are, and is what lets the
+        // The identity pair (`hot->kkt_session_id`/`hot->kkt_epoch`) is also
+        // copied into the committed members here, alongside the four
+        // pre-existing fields -- the pair is adopted exactly like they are,
+        // and is what lets the
         // reuse gate below (its condition (e)) tell whether the OBJECT
         // `border_` now points at still carries the numerics this identity
         // describes, not merely whether the PROBLEM still looks the same.
@@ -2925,8 +2893,8 @@ class QpEngine {
         const std::uint64_t prev_border_values_hash = border_values_hash_;
         const double prev_border_effective_delta = border_effective_delta_;
         const double prev_border_effective_mu = border_effective_mu_;
-        // FIX ROUND 1 (retargeted, M3 phase B): this engine's own
-        // last-trusted (session_id, epoch) pair for whatever object
+        // This engine's own last-trusted (session_id, epoch) pair for
+        // whatever object
         // `border_` currently names (possibly just adopted above).
         // Compared, at the reuse gate below, against that object's OWN live
         // identity -- not against each other's frozen copies -- so a
@@ -2951,8 +2919,8 @@ class QpEngine {
         // section 6's CROSSED EFFECTIVE BOUNDS CANNOT HAPPEN proof assumes
         // Delta >= 0, an assumption that was closed while tr_radius lived
         // only on the per-instance-const opts_ but is now a LIVE hazard,
-        // since Delta is per-solve driver input (a Task-6 shrink loop can
-        // pass one straight through from its own arithmetic). The `assert`
+        // since Delta is per-solve driver input (a shrink loop can pass one
+        // straight through from its own arithmetic). The `assert`
         // guarding that proof below is compiled OUT under NDEBUG, so without
         // this check a negative override degrades silently into a crossed
         // effective box in a Release build rather than failing loudly:
@@ -2965,13 +2933,9 @@ class QpEngine {
         // SAME domain is enforced on opts_.tr_radius whenever the +inf sentinel
         // selects it -- which includes every call through the PLAIN solve()
         // overloads -- since the resolved value is what section 6 below reads
-        // either way (PR #5 codex inline review; see
-        // resolve_effective_options).
-        // EXTRACTED, FIX ROUND 1 of Phase-7 Task 5, so that refine_on_face()
-        // resolves the SAME per-solve overrides through the SAME code rather
-        // than a second copy that could drift. The body below is the original
-        // three checks and three ternaries verbatim, in the original order,
-        // plus the sentinel-path radius check that fix added.
+        // either way (see resolve_effective_options). Shared by run() and
+        // refine_on_face() so both resolve per-solve overrides through the
+        // SAME code rather than copies that could drift.
         QpOptions eff_opts = resolve_effective_options(opts_, overrides);
 
         qp_in.validate();
@@ -3089,8 +3053,8 @@ class QpEngine {
         Vec Aix = Vec::Zero(mi);
 
         // `counters` is declared BEFORE the seeding refresh_shifts() below
-        // rather than after it (its position until Phase-6 Task 3) for one
-        // reason: that call is itself a source of counters.shift_adds -- the
+        // for one reason: that call is itself a source of
+        // counters.shift_adds -- the
         // seed's own homotopy admission -- and QpCounters documents that the
         // pre-loop call is included. Nothing else reads it this early.
         detail::KktFactor kkt;
@@ -3102,8 +3066,7 @@ class QpEngine {
 
         // Decide whether border_ (the engine-instance persistent K0/border
         // state) may be trusted for THIS solve, per the header contract's
-        // HOT-START REUSE conditions (a)/(b)/(c)/(d) PLUS FIX ROUND 1's (e)
-        // below. `ws` here is exactly the seed working set condition (b) is
+        // HOT-START REUSE conditions (a)/(b)/(c)/(d) PLUS (e) below. `ws` here is exactly the seed working set condition (b) is
         // stated over: start_center() plus ingest_seed_working_set() plus
         // the refresh_shifts() call just above -- so a hint the
         // WINDOW-CONSISTENCY RULE dropped is absent here too, and reuse
@@ -3113,8 +3076,8 @@ class QpEngine {
         // BorderState of this engine's own -- as if this were the engine's
         // first solve ever -- rather than the previous object being patched
         // in place, so the ordinary rebuild/sync machinery below runs
-        // unmodified AND (FIX ROUND 1) so a refused adoption never mutates
-        // an object some other holder may still be relying on; see the
+        // unmodified AND so a refused adoption never mutates an object some
+        // other holder may still be relying on; see the
         // detach comment just below for why patch-in-place was the bug.
         //
         // current_structural_hash/current_values_hash are computed at most
@@ -3135,8 +3098,7 @@ class QpEngine {
             // needed no entry here; now it can, and K0's values depend on it
             // exactly as they depend on H/Ae/Ai.
             //
-            // Condition (e), FIX ROUND 1 retargeted onto the factor's own
-            // identity (M3 phase B, docs/retarget-design-sqp.md SS7):
+            // Condition (e), the factor-identity conjunct:
             // `border_`'s factor's OWN live (session_id, epoch) -- the
             // session id moved by analyze() at a pattern rebuild, the epoch
             // advanced by every successful factorize(), whichever engine
@@ -3151,8 +3113,8 @@ class QpEngine {
             // this engine's own four problem-shaped fields never changed,
             // but the object did, and only a live read of the object's own
             // identity, on EVERY solve() call rather than only at adoption,
-            // sees that. FIX ROUND 2's adjudication (HotState's own
-            // OWNERSHIP note): whether this conjunct alone ever prevents a
+            // sees that. Adjudication (HotState's OWNERSHIP note): whether
+            // this conjunct alone ever prevents a
             // WRONG ANSWER, as opposed to an unnecessary-but-harmless
             // rebuild, is not demonstrated by this file's own fixtures --
             // DETACH (below) is what the evidence shows is load-bearing;
@@ -3181,35 +3143,32 @@ class QpEngine {
                 border_->kkt.factor.epoch() == prev_border_kkt_epoch &&
                 border_->kkt.factor.inertia().state ==
                     hven::linear::InertiaEvidence::State::kObserved;
-            // FIX ROUND 1 (Q5): the direct "did the gate pass" signal --
-            // see QpCounters::k0_reused's own note for why a caller must
-            // read THIS rather than infer reuse from `factorizations == 0`.
+            // The direct "did the gate pass" signal -- see
+            // QpCounters::k0_reused's own note for why a caller must read THIS
+            // rather than infer reuse from `factorizations == 0`.
             counters.k0_reused = reuse_eligible;
             if (!reuse_eligible) {
-                // FIX ROUND 1 (Q3): DETACH rather than wipe in place --
-                // `border_` may be the SAME shared object another engine
-                // still holds (via its own copy of a HotState); clearing
-                // schur/latched/k0_rows/ledger on it -- the pre-Task-4 code
-                // -- still leaves `k0`/`kkt` stale until the next
+                // DETACH rather than wipe in place: `border_` may be the
+                // SAME shared object another engine still holds (via its own
+                // copy of a HotState); clearing schur/latched/k0_rows/ledger
+                // on it still leaves `k0`/`kkt` stale until the next
                 // rebuild_k0() call, which then refactorizes THAT SHARED
                 // OBJECT for THIS engine's problem, silently destroying
                 // whatever the other holder was relying on.
                 //
-                // FIX ROUND 2 (re-review 2c): DETACH ONLY WHEN ACTUALLY
-                // SHARED. Round 1's report claimed detaching unconditionally
-                // was "behaviourally identical to the old wipe for the
-                // never-shared case, since nothing else could ever have
-                // observed the difference there" -- MARKED AS FALSE by the
-                // re-review, and measured: factorize_checked() (kkt_calls.h)
+                // DETACH ONLY WHEN ACTUALLY SHARED. Detaching
+                // unconditionally would NOT be behaviourally identical to the
+                // old wipe even in the never-shared case, and it is measured:
+                // factorize_checked() (kkt_calls.h)
                 // skips the backend's symbolic analysis only when
                 // needs_analysis(K) is false on the SAME KktFactor object,
                 // so a fresh BorderState -- a fresh KktFactor, analyzed ==
                 // false -- pays a FULL symbolic re-analysis
-                // on every value-changing major of an ORDINARY,
-                // NEVER-SHARED solve, which is most majors of a real SQP run
-                // (H changes almost every major). Measured before this
-                // guard existed: HS38 48 phase-11 analyses per solve vs 1
-                // pre-Task-4, HS26 17 vs 1, HS77 10 vs 1 -- invisible on
+                // on every value-changing major of an ORDINARY, NEVER-SHARED
+                // solve, which is most majors of a real SQP run (H changes
+                // almost every major). Measured: HS38 48 symbolic analyses
+                // per solve vs 1 with the wipe, HS26 17 vs 1, HS77 10 vs 1 --
+                // invisible on
                 // this project's toy KKT systems, squarely material at
                 // tycho scale where the symbolic analysis is the whole
                 // reason the pattern cache exists.
@@ -3221,11 +3180,11 @@ class QpEngine {
                 // object may only ever be safely mutated by an engine whose
                 // OWN gate just passed for it (never true in this branch),
                 // so `use_count() > 1` here means some OTHER holder is
-                // relying on this object unchanged and it must be detached,
-                // exactly as Round 1 shipped. `use_count() == 1` means this
-                // engine is the ONLY owner -- nothing else can ever have
-                // observed a difference here, the case Round 1's claim
-                // should have been scoped to -- so the SAME object's
+                // relying on this object unchanged and it must be detached.
+                // `use_count() == 1` means this engine is the ONLY owner --
+                // nothing else can ever have observed a difference here, the
+                // case the unconditional-detach claim should have been scoped
+                // to -- so the SAME object's
                 // border-stack fields are wiped in place instead, letting
                 // the next rebuild_k0() reuse this KktFactor's still-live
                 // symbolic analysis when the sparsity pattern has not
@@ -3280,7 +3239,7 @@ class QpEngine {
         // iterate did not move and a run that spans them is still one stall.
         Index degenerate_run = 0;
 
-        // PHASE-6 TASK 4 (M6). The cap this solve runs at: an explicitly set
+        // The cap this solve runs at: an explicitly set
         // QpOptions::max_iter, or -- at its default sentinel -- one derived
         // from the subproblem's own size. See detail::effective_qp_max_iter
         // for the derivation, the calibration and the precedence rule.
@@ -3309,8 +3268,8 @@ class QpEngine {
             // discarded and the iteration is retried from the repaired
             // vertex. A kSuspect verdict is deliberately NOT a repair
             // trigger (findings-doc policy) and a wrong inertia LATER in the
-            // run is a mid-solve negative-curvature event, which Task 7's
-            // ride handles.
+            // run is a mid-solve negative-curvature event, which section
+            // 4c's ride handles.
             if (iter == 0 && verdict == detail::InertiaVerdict::kWrong &&
                 repair_temporary_vertex(qp, ws, x, kkt, *border_, counters, eff_opts)) {
                 degenerate_run = 0; // observation only -- x moved onto bounds
@@ -3352,7 +3311,7 @@ class QpEngine {
                     // (see section 4b's SECOND-ORDER CERTIFICATION note).
                     //
                     // ORDERING CAVEAT ON `verdict`, pre-existing and unchanged
-                    // by Task 6b's restart: it was computed by eqp_candidate at
+                    // by the restart below: it was computed by eqp_candidate at
                     // the TOP of this iteration, i.e. against the working set
                     // BEFORE the refresh_shifts above -- which can ADD rows the
                     // homotopy is now driving. So a kWrong read here describes
@@ -3370,13 +3329,13 @@ class QpEngine {
                         status = QpStatus::kNumericalError;
                     } else if (verdict == detail::InertiaVerdict::kWrong) {
                         // THE POST-PROBE RESTART (section 4b). Reaching here
-                        // after a probe-driven drop is the dead end Task 1
-                        // measured and could not leave: the drop exposed real
-                        // negative curvature, but its multiplier was zero, so
-                        // section 4c's arming direction p is identically zero
-                        // and the ride is never offered anything to ride. What
-                        // DOES work -- measured in Task 1's review, by feeding
-                        // this very exit back in as a warm seed -- is the
+                        // after a probe-driven drop is a measured dead end: the
+                        // drop exposed real negative curvature, but its
+                        // multiplier was zero, so section 4c's arming direction
+                        // p is identically zero and the ride is never offered
+                        // anything to ride. What DOES work -- measured by
+                        // feeding this very exit back in as a warm seed -- is
+                        // the
                         // temporary-vertex repair, which is gated on iter == 0
                         // and so cannot be reached from the iteration a probe's
                         // drop resumes into. This spends ONE such repair
@@ -3389,7 +3348,7 @@ class QpEngine {
                         // `probe_drop_made` IS SCOPING, NOT A MEASURED
                         // NECESSITY, and that is recorded rather than implied:
                         // deleting that conjunct leaves the whole suite green
-                        // (measured, Task 6b), because every OTHER shipped
+                        // (measured), because every OTHER shipped
                         // fixture that reaches this branch does so with an
                         // UNPINNABLE free variable, where repair_temporary_vertex
                         // declines anyway. It is kept because the case this
@@ -3491,7 +3450,7 @@ class QpEngine {
                                 // THE RESET IS NOT DISTINGUISHED BY ANY SHIPPED
                                 // FIXTURE, and that is recorded rather than
                                 // implied: deleting it leaves the whole suite
-                                // green (measured, Task 3b), because on every
+                                // green (measured), because on every
                                 // fixture that reaches here the suspect signal
                                 // is a perturbed pivot, which border_candidate
                                 // ALREADY rebuilds on. It is kept because
@@ -3625,8 +3584,8 @@ class QpEngine {
             border_effective_mu_ = eff_opts.dual_mu;
             border_exit_bound_state_ = ws.bound_state();
             border_exit_active_ineq_ = ws.active_ineq();
-            // Condition (e), FIX ROUND 1 retargeted (M3 phase B): commit
-            // `border_`'s factor's OWN live (session_id, epoch) identity as
+            // Condition (e): commit `border_`'s factor's OWN live
+            // (session_id, epoch) identity as
             // of THIS solve's exit -- whatever it ended at, whether that is
             // unchanged (reuse was granted, nothing rebuilt) or freshly
             // advanced (a rebuild_k0 ran during this solve, on this object
@@ -3650,8 +3609,7 @@ class QpEngine {
             z.setZero();
         }
 
-        // THE EXPORT INVARIANT: A FREE VARIABLE CARRIES NO BOUND PRICE
-        // (Phase-7 Task 6b, docket D0 option 3 -- Grant-ruled).
+        // THE EXPORT INVARIANT: A FREE VARIABLE CARRIES NO BOUND PRICE.
         //
         // WHAT WAS WRONG. `price()` is the sole producer of `z`, and it
         // already imposes exactly this rule -- z(i) is written only where
@@ -3765,7 +3723,7 @@ class QpEngine {
     // detection. NO seeded bound-state hint is materialized here; that is
     // step 1b (ingest_seed_working_set), and the SPLIT IS LOAD-BEARING.
     //
-    // WHY THE SPLIT EXISTS (fix round 1, C1). Section 6 computes the
+    // WHY THE SPLIT EXISTS. Section 6 computes the
     // trust-region window about this x. When the two steps were one function,
     // a seeded kAtLower/kAtUpper hint overwrote x with its BOUND before the
     // window was computed, so the window came out centered on that bound
@@ -3811,10 +3769,10 @@ class QpEngine {
     // (not zeroed), the window is centered on that x, so a bound the previous
     // solve was sitting at is at distance 0 from the center and is always
     // inside. ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses is the
-    // regression guard for that path, and the whole Phase-2 warm-start
-    // battery is the guard for the Delta == +inf path, where the effective
-    // bounds ARE the real bounds and this function is bit-identical to the
-    // pre-split code.
+    // regression guard for that path, and the whole warm-start battery is
+    // the guard for the Delta == +inf path, where the effective bounds ARE
+    // the real bounds and this function is bit-identical to the pre-split
+    // code.
     //
     // The pin materializes the REAL bound value (qp_real), not the effective
     // one -- which are the same number whenever the test above passes, since
@@ -3887,10 +3845,10 @@ class QpEngine {
     // `opts` is the EFFECTIVE options this solve resolved (see run()'s
     // `eff_opts`) -- feas_tol/dual_mu below must be the resolved values, not
     // opts_'s own, since dual_mu can vary per solve via SolveOverrides.
-    // PHASE-6 TASK 3 FIX ROUND 1, OBSERVATION ONLY. Which constraints this
-    // solve has EVER admitted, so QpCounters::distinct_{ineq,bound}_added can
+    // OBSERVATION ONLY. Which constraints this solve has EVER admitted, so
+    // QpCounters::distinct_{ineq,bound}_added can
     // report re-discovery directly instead of leaving it to a pigeonhole
-    // argument that (the review found) does not close. Two byte vectors, sized
+    // argument that does not close. Two byte vectors, sized
     // mi and n, written once per FIRST admission of each constraint and read
     // by nothing.
     struct WalkSeen {
@@ -4661,16 +4619,14 @@ class QpEngine {
     // set and restart the border stack empty. Counted in
     // QpCounters::factorizations. `opts` is the effective options this solve
     // resolved (see run()'s `eff_opts`) -- K0's regularized diagonal is built
-    // from opts.primal_delta/opts.dual_mu, which is exactly what this task's
-    // reuse-key extension (condition (d)) tracks.
+    // from opts.primal_delta/opts.dual_mu, which is exactly what reuse-key
+    // condition (d) tracks.
     //
     // THIS IS THE SOLE SITE that reassigns `border.k0` or factorizes
     // `border.kkt` -- i.e. the sole site that changes what K0 actually IS.
-    // M3 phase B: it no longer stamps anything -- the FIX ROUND 2
-    // bump-before-mutate `++border.generation` that used to open this
-    // function is deleted, because `factorize_checked()` advancing the
-    // factor's epoch (and `analyze()` moving its session id at a pattern
-    // change) IS the stamp, for EVERY caller, engine-own or shared.
+    // It stamps nothing itself: `factorize_checked()` advancing the factor's
+    // epoch (and `analyze()` moving its session id at a pattern change) IS
+    // the stamp, for EVERY caller, engine-own or shared.
     // sync_borders() below only ever adds/drops BORDERS around whatever K0
     // this call last built, it never touches `k0`/`kkt`, so it correctly
     // moves neither. The defensive role generation's early bump played on a
@@ -4678,11 +4634,11 @@ class QpEngine {
     // stamp already moved) is carried by TWO things now. Condition (e)'s
     // usable-numerics conjunct is one: a failed NUMERIC factorize leaves
     // `inertia().state != kObserved`, so every stale holder refuses reuse on
-    // that ground (see run()'s reuse gate and docs/retarget-design-sqp.md
-    // SS7.2). The other is this function's COMMIT-LAST ordering, below, which
-    // covers the case that conjunct cannot see.
+    // that ground (see run()'s reuse gate). The other is this function's
+    // COMMIT-LAST ordering, below, which covers the case that conjunct cannot
+    // see.
     //
-    // COMMIT-LAST (M3 final review, FX-6). Nothing this function publishes on
+    // COMMIT-LAST. Nothing this function publishes on
     // `border` is published until the factorization has SUCCEEDED. The case
     // that forces it is a throw out of the SYMBOLIC analysis, not the numeric
     // factorization: SymmetricFactor::analyze() has the strong guarantee (a
@@ -4702,14 +4658,13 @@ class QpEngine {
                     QpCounters &counters, const QpOptions &opts) const {
         KktAssembly k0 = assemble_kkt_full(qp, ws, opts);
         std::vector<Index> k0_rows = ws.active_ineq();
-        // FIX ROUND 2 (QpCounters::symbolic_analyses' own note): decided
-        // BEFORE the factorize, which is the only way to know whether THIS
-        // call is about to pay the backend's symbolic analysis --
+        // The analysis decision (QpCounters::symbolic_analyses' own note):
+        // decided BEFORE the factorize, which is the only way to know whether
+        // THIS call is about to pay the backend's symbolic analysis --
         // factorize_checked() acts on the decision but does not report it
-        // back. M3 phase C (B2): the decision is TAKEN here and HANDED to
-        // factorize_checked(), rather than taken here and taken again in
-        // there, so one factorization costs one pattern hash at this layer
-        // and not two (kkt_calls.h's AnalysisDecision).
+        // back. The decision is TAKEN here and HANDED to factorize_checked(),
+        // rather than taken twice, so one factorization costs one pattern hash
+        // at this layer and not two (kkt_calls.h's AnalysisDecision).
         const detail::AnalysisDecision analysis = detail::analysis_decision(border.kkt, k0.K);
         if (analysis.needed) {
             ++counters.symbolic_analyses;
@@ -4786,8 +4741,7 @@ class QpEngine {
                 has_border(ledger, BorderLedgerEntry::Kind::kVarPin, i)) {
                 continue;
             }
-            // RESERVE BEFORE THE SCHUR MUTATION (M3 final review, FX-8), in
-            // all three add loops. The ledger and the border stack are one
+            // RESERVE BEFORE THE SCHUR MUTATION, in all three add loops. The ledger and the border stack are one
             // structure kept in two places, matched by add-order POSITION:
             // the drop loop above walks the ledger and drops the border at
             // the same index. So an add_border() that succeeds followed by a

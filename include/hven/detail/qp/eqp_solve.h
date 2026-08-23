@@ -56,43 +56,25 @@
 //
 // With delta = mu = 1e-8 (QpOptions defaults) the regularized solve above
 // differs from the exact (unregularized) equality-QP solution at O(1e-8).
-// K0 (the unregularized system) equals K with its regularization diagonal
-// removed, i.e. K0 = K - diag(reg) with reg(k) = delta for Hessian rows and
-// -mu for constraint rows, so the unregularized residual at y is exactly
+// K0 (the unregularized system) equals K minus its regularization diagonal,
+// K0 = K - diag(reg), so the unregularized residual at y is exactly
 //     r = rhs - K0*y = (rhs - K*y) + diag(reg)*y
 // computable WITHOUT ever forming K0. Solving K*correction = r against the
-// SAME (already-factorized) regularized system and adding the correction to
-// y is one step of iterative refinement; per the task brief this brings
-// accuracy from ~1e-8 to ~1e-10..1e-12 and is load-bearing for later
-// tolerances.
+// SAME (already-factorized) regularized system and adding the correction to y
+// is one step of iterative refinement, bringing accuracy from ~1e-8 to
+// ~1e-10..1e-12 — load-bearing for later tolerances.
 //
-// ONE step is all this path takes, and the alternative was measured and
-// REMOVED rather than left unexplored. A flag-gated iterated loop
-// (QpOptions::eqp_refine) ran here for one phase, stepping under exactly the
-// rule bordered_eqp.h's refine_bordered_solve_iterated uses. It never fired:
-// 0 extra steps across 27 Hock-Schittkowski problems x 2 tolerance regimes x 2
-// algebra modes plus 13 deliberately adversarial QP-level probes, measured
-// independently on MKL/Pardiso and on Apple Accelerate, with bit-identical
-// answers in every cell.
-//
-// The reason is structural, not a property of those fixtures, and it is worth
-// stating here because it is what licenses the single step. The shared
+// ONE step is all this path takes, and the reason is structural: the shared
 // stopping test compares the unregularized residual against the
-// regularization footprint ||diag(reg)*y||inf, and the residual after any step
-// equals diag(reg) times the LAST CORRECTION -- so the test reads "the last
-// correction is larger than the iterate itself". On THIS path the first solve
-// is a genuine regularized solve, so the correction is a small fraction of the
-// iterate and the test cannot fire. The cancellation that makes it fire on the
+// regularization footprint ||diag(reg)*y||inf, and after any step the residual
+// equals diag(reg) times the LAST CORRECTION — the test reads "the last
+// correction is larger than the iterate itself". Here the first solve is a
+// genuine regularized solve, so the correction is a small fraction of the
+// iterate and the test cannot fire; the cancellation that makes it fire on the
 // BORDERED path (bordered_eqp.h's LOAD-BEARING BORDERS note) has no
 // counterpart here, which is why that path's loop is unconditional and this
-// one has none. The shared constants detail::kMaxBorderRefineSteps /
-// detail::kBorderRefineRelFloor still live in THIS header, below: the bordered
-// path includes it, and they stayed put so the move is not conflated with the
-// deletion.
-//
-// docs/notes/2026-07-29-eqp-refinement-ab.md (DISPOSITION section) and
-// docs/notes/2026-07-29-accelerate-audit-results.md (Phase C) carry the
-// measurement and the ruling.
+// one has none. (A flag-gated iterated loop previously stood here and never
+// fired across the full A/B corpus; see the report for the measurement.)
 
 #include <algorithm>
 #include <cmath>
@@ -112,27 +94,19 @@ namespace hven::solvers {
 namespace detail {
 
 // THE SHARED REFINEMENT BUDGET AND FLOOR. Both EQP paths refine under one
-// rule, so both read one pair of constants; they live here, in the header
-// bordered_eqp.h includes, rather than the other way round (bordered_eqp.h
-// includes this file, so the reverse would be circular). The names keep the
-// "Border" they were introduced with (Task 11b, where the bordered path was
-// the only iterated one) so that the Task-11b analysis, the tests, and the
-// notes that cite them by name all still refer to the same symbols.
+// rule, so both read one pair of constants; they live in the header
+// bordered_eqp.h includes (the reverse would be circular).
 //
 // kMaxBorderRefineSteps is the TOTAL number of refinement steps a solve may
 // take INCLUDING the mandatory first one -- not a count of EXTRA steps on top
-// of it. The first step is the one every solve has always taken; each path's
-// loop (`for (step = 1; step < kMaxBorderRefineSteps; ...)`) can therefore
-// earn at most kMaxBorderRefineSteps - 1 == 9 EXTRA steps beyond it, so a
-// system that refuses to converge costs a fixed handful of triangular solves
-// rather than an open-ended number.
+// of it. Each path's loop can therefore earn at most nine extra steps beyond
+// the first, so a system that refuses to converge costs a fixed handful of
+// triangular solves rather than an open-ended number.
 //
-// Ten total is enough with a decent margin for the worst contraction this
-// project has measured: the Task 11b reproduction contracts by ~0.018 per
-// step and crosses its stopping rule at total step 4 of 10. A system whose
-// contraction is so slow that ten total steps do not suffice is one where
-// refinement is barely reducing the residual at all, and the stagnation gate
-// stops the loop long before this count does.
+// Ten total suffices with margin for the worst contraction measured (~0.018
+// per step, crossing its stopping rule at total step 4 of 10); anything slower
+// is barely reducing the residual at all, and the stagnation gate stops the
+// loop long before this count does.
 constexpr Index kMaxBorderRefineSteps = 10;
 
 // Hard floor beneath the stopping rule, relative to max(1, ||rhs||inf): a
@@ -147,16 +121,12 @@ constexpr double kBorderRefineRelFloor = 1e-14;
 struct EqpResult {
     Vec x, lambda_e, lambda_w;
 
-    // Refinement steps this ONE solve kept. Its meaning depends on which
-    // function produced the result, and the difference is deliberate -- see
-    // QpCounters (core/solver_counters.h), whose two fields these feed:
-    //   solve_eqp           EXTRA steps beyond the mandatory first. That path
-    //                       has no iterated loop (see the header note), so
-    //                       this is identically 0 and is left set that way
-    //                       rather than removed: QpCounters::eqp_refine_steps
-    //                       is the invariant it feeds.
-    //   solve_bordered_eqp  TOTAL steps including the mandatory first (so
-    //                       always >= 1).
+    /// Refinement steps this ONE solve kept — deliberately two different
+    /// meanings by producer, feeding QpCounters' two fields:
+    /// solve_eqp reports EXTRA steps beyond the mandatory first (identically 0
+    /// on this loop-free path; kept because QpCounters::eqp_refine_steps is
+    /// the invariant it feeds), while solve_bordered_eqp reports TOTAL steps
+    /// including the mandatory first (always >= 1).
     Index refine_steps = 0;
 };
 
