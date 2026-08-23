@@ -57,7 +57,8 @@
 // With delta = mu = 1e-8 (QpOptions defaults) the regularized solve above
 // differs from the exact (unregularized) equality-QP solution at O(1e-8).
 // K0 (the unregularized system) equals K minus its regularization diagonal,
-// K0 = K - diag(reg), so the unregularized residual at y is exactly
+// K0 = K - diag(reg) with reg(k) = delta for Hessian rows and -mu for
+// constraint rows, so the unregularized residual at y is exactly
 //     r = rhs - K0*y = (rhs - K*y) + diag(reg)*y
 // computable WITHOUT ever forming K0. Solving K*correction = r against the
 // SAME (already-factorized) regularized system and adding the correction to y
@@ -73,8 +74,7 @@
 // iterate and the test cannot fire; the cancellation that makes it fire on the
 // BORDERED path (bordered_eqp.h's LOAD-BEARING BORDERS note) has no
 // counterpart here, which is why that path's loop is unconditional and this
-// one has none. (A flag-gated iterated loop previously stood here and never
-// fired across the full A/B corpus; see the report for the measurement.)
+// one has none.
 
 #include <algorithm>
 #include <cmath>
