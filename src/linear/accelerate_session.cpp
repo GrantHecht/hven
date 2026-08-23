@@ -33,15 +33,13 @@ static_assert(std::is_same_v<SpMatRM::StorageIndex, int>,
 
 namespace {
 
-// Capture target for Accelerate's reportError callback, exactly the
-// KktSystem precedent's pattern (the SQP engine's
-// kkt_system_accelerate.h): a NULL callback makes Accelerate log via os_log
-// and __builtin_trap() on parameter errors, which library code must never do
-// (hven's T5/T6 rules -- CLAUDE.md Sec. 4), and printing from the callback
-// would be a diagnostic outside the thrown exception's message. The callback
-// only records the message; the calling method folds it into whatever it
-// throws. Thread-local for the same documented-residual-risk reason as the
-// precedent: the callback carries no user context pointer.
+// Capture target for Accelerate's reportError callback: a NULL callback makes
+// Accelerate log via os_log and __builtin_trap() on parameter errors, which
+// library code must never do, and printing from the callback would be a
+// diagnostic outside the thrown exception's message. The callback only
+// records the message; the calling method folds it into whatever it throws.
+// Thread-local because the callback carries no user context pointer (a
+// documented residual risk).
 thread_local std::string g_last_error;
 
 void capture_error(const char *message) {
@@ -78,8 +76,7 @@ SparseMatrixStructure FactorSession::structure() const {
     // A's upper-triangle CSR, read column-wise, is exactly the lower
     // triangle of A^T = A (A is symmetric): row starts become column starts,
     // column indices within a row become row indices within a column, and no
-    // transpose attribute or value reordering is needed. Identical
-    // correspondence to the one KktSystem::structure() uses.
+    // transpose attribute or value reordering is needed.
     SparseMatrixStructure s{};
     s.rowCount = n_;
     s.columnCount = n_;
@@ -109,27 +106,19 @@ void FactorSession::analyze(const SpMatRM &A) {
     // Explicit LDLTTPP, not the SparseFactorizationLDLT alias: SparseGetInertia
     // is documented supported for LDLTTPP-typed factorizations specifically,
     // and the alias records a different type tag even though it is currently
-    // implemented as TPP (both precedents make this same choice explicitly).
+    // implemented as TPP.
     SparseSymbolicFactorOptions fopts{};
     fopts.control = SparseDefaultControl;
     // Already resolved to Accelerate's own vocabulary (including the
     // kParallelNestedDissection -> SparseOrderMTMetis OS-availability
     // downgrade) by the adapter's accelerate_ordering_code() -- see
     // AccelerateConfig::ordering's own doc comment. Defaults to
-    // SparseOrderDefault, the prior hardcoded value, when Options::ordering
-    // is kBackendDefault.
+    // SparseOrderDefault when Options::ordering is kBackendDefault.
     fopts.orderMethod = cfg_.ordering;
-    // `order = nullptr`: a deliberate, noted divergence from
-    // KktSystem::analyze, which passes a non-null buffer here to receive
-    // Accelerate's computed fill-reducing permutation back (its own audit
-    // instrument for inspecting the ordering -- see
-    // kkt_system_accelerate.h's perm_ field and its §(c) comment). hven's
-    // FactorSession has no consumer for that permutation, and Eigen's
-    // AccelerateSupport module (the upstream both ports derive from) also
-    // passes null here by default -- the write-back is documented as
-    // optional. Flagged rather than silently omitted: the review record's
-    // Accelerate-API precedent table lists this as a stated difference from
-    // KktSystem::analyze, not an unstated one.
+    // `order = nullptr` is deliberate: hven has no consumer for Accelerate's
+    // computed fill-reducing permutation, and Eigen's AccelerateSupport module
+    // (the upstream this file derives from) also passes null here by default --
+    // the write-back is documented as optional.
     fopts.order = nullptr;
     fopts.ignoreRowsAndColumns = nullptr;
     fopts.malloc = std::malloc;
@@ -165,37 +154,32 @@ int FactorSession::factorize(const SpMatRM &A) {
 
     std::copy(A.valuePtr(), A.valuePtr() + A.nonZeros(), matrix_.valuePtr());
 
-    // A factorization attempt invalidates the previous numerics up front,
-    // same invariant the MKL session guarantees -- see the identical note
-    // there. release_numeric() also handles the required SparseCleanup of
-    // whatever numeric factorization this session previously held.
+    // A factorization attempt invalidates the previous numerics up front, the
+    // same invariant every backend session guarantees. release_numeric() also
+    // handles the required SparseCleanup of whatever numeric factorization
+    // this session previously held.
     release_numeric();
 
-    // Apple's own documented double defaults (SolveImplementation.h, restated
-    // by the KktSystem precedent): default scaling for LDLT is inf-norm
-    // equilibration; pivotTolerance 0.01 is "the recommended value for
-    // difficult matrices in double" and is left at that default -- there is
-    // no hven Options field asking for a different one. zeroTolerance is
-    // driven by pivot_perturb_exp via zeroTolerance = 10^-k * eps -- the same
-    // functional SHAPE Apple's own default already uses (1e-4 * eps is
-    // exactly this formula at k = 4).
+    // Apple's documented double defaults (SolveImplementation.h): default
+    // scaling for LDLT is inf-norm equilibration; pivotTolerance 0.01 is
+    // "the recommended value for difficult matrices in double" and is left at
+    // that default -- no hven Options field asks for a different one.
+    // zeroTolerance is driven by pivot_perturb_exp via zeroTolerance =
+    // 10^-k * eps -- the same functional SHAPE Apple's own default already
+    // uses (1e-4 * eps is exactly this formula at k = 4).
     //
-    // When this implementation was written, the only real-hardware precedent
-    // was k = 4 (~= 2.2e-20; kkt_system_accelerate.h:393, hardcoded, part of
-    // the audited KktSystem precedent). hven's own k = 8 default makes
-    // zeroTolerance ~= 2.2e-24 -- FOUR ORDERS OF MAGNITUDE TIGHTER -- and
-    // therefore diverges from that precedent. "Tighter" is NOT
+    // hven's own k = 8 default (~2.2e-24) is FOUR ORDERS OF MAGNITUDE TIGHTER
+    // than the k = 4 real-hardware precedent it replaced. "Tighter" is NOT
     // straightforwardly "safer": a smaller zeroTolerance means a
     // tiny-but-nonzero pivot is more likely to be USED by threshold partial
-    // pivoting rather than caught by the zero check, which on a
-    // near-singular fixture could degrade the factorization rather than
-    // improve it -- "directionally conservative" is true only for evidence
-    // honesty (less eager to declare a zero pivot that isn't observed), not
-    // obviously conservative numerically. This is a documented engineering
-    // choice, not a claimed equivalence to Pardiso's perturbation semantics.
-    // The shipped k=8 default now runs green on real Apple Silicon in native
-    // macOS CI; what remains UNOBSERVED is the Mac A/B of k=8 against k=4 on
-    // the golden-rig fixtures, not merely "confirm no surprising effect."
+    // pivoting rather than caught by the zero check, which on a near-singular
+    // fixture could degrade the factorization rather than improve it --
+    // "directionally conservative" holds only for evidence honesty (less
+    // eager to declare a zero pivot that isn't observed), not numerically.
+    // This is a documented engineering choice, not a claimed equivalence to
+    // Pardiso's perturbation semantics. The shipped k=8 default runs green in
+    // native macOS CI on real Apple Silicon; what remains UNOBSERVED is the
+    // Mac A/B of k = 8 against k = 4 on the golden-rig fixtures.
     SparseNumericFactorOptions nopts{};
     nopts.control = SparseDefaultControl;
     nopts.scalingMethod = SparseScalingDefault;
@@ -236,8 +220,7 @@ int FactorSession::factorize(const SpMatRM &A) {
         // Message is discarded here (unlike analyze()'s throw): factorize()
         // RETURNS a status code for the caller to fold into FactorizeOutcome,
         // matching the MKL session's contract of returning rather than
-        // throwing on a numeric failure. g_last_error is cleared above and
-        // read fresh by whichever call captures it next.
+        // throwing on a numeric failure.
         return status;
     }
 
@@ -249,13 +232,10 @@ void FactorSession::solve(const double *b, double *x, Index nrhs) const {
     if (!have_numeric_) {
         throw std::runtime_error("SymmetricFactor::solve: called before a successful factorize()");
     }
-    // One column at a time via the DenseVector_Double overload -- the exact
-    // call shape KktSystem::solve uses on real hardware. Deliberately not
-    // batched through a DenseMatrix_Double call (see the header comment and
-    // the review record): this keeps every Accelerate call this session
-    // makes traceable to a call shape that has actually run on Apple
-    // hardware, at the cost of nrhs separate SparseSolve calls instead of
-    // one.
+    // One column at a time via the DenseVector_Double overload: every
+    // Accelerate call this session makes stays traceable to a call shape
+    // that has actually run on Apple hardware, at the cost of nrhs separate
+    // SparseSolve calls instead of one.
     for (Index col = 0; col < nrhs; ++col) {
         DenseVector_Double bv{n_, const_cast<double *>(b + col * n_)};
         DenseVector_Double xv{n_, x + col * n_};
@@ -278,8 +258,7 @@ void FactorSession::solve_partial(SubfactorPhase phase, const double *b, double 
         (phase == SubfactorPhase::kDiagonal) ? SparseSubfactorD : SparseSubfactorL;
     const bool transpose = (phase == SubfactorPhase::kBackward);
 
-    // RAII so the subfactor is cleaned up on the throw path too, exactly the
-    // KktSystem precedent's SubfactorGuard.
+    // RAII so the subfactor is cleaned up on the throw path too.
     struct SubfactorGuard {
         SparseOpaqueSubfactor_Double sub;
         ~SubfactorGuard() { SparseCleanup(sub); }
@@ -293,9 +272,8 @@ void FactorSession::solve_partial(SubfactorPhase phase, const double *b, double 
     }
     guard.sub.attributes.transpose = transpose;
 
-    // In-place subfactor solve: copy b into x first, exactly like the
-    // MKL twin's caller (the adapter) already hands this a scratch buffer
-    // that is not the caller's own rhs storage.
+    // In-place subfactor solve: copy b into x first. The adapter hands this
+    // a scratch buffer that is not the caller's own rhs storage.
     std::copy(b, b + n_, x);
     DenseVector_Double xv{n_, x};
     g_last_error.clear();

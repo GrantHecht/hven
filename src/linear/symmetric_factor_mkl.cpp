@@ -136,8 +136,7 @@ SymmetricFactor::Options::PivotStrategy pardiso_pivot_strategy_of(std::optional<
 // kBackendDefault exactly). The three non-default codes are EXACTLY
 // Intel's own documented iparm[24] values -- see SolveParallelism's own
 // doc comment in symmetric_factor.h for the citation and the naming
-// history (an earlier bool wrote iparm[24] = 1 for "true", backwards from
-// what that code means).
+// history it corrects.
 std::optional<int> pardiso_solve_parallelism_code(SymmetricFactor::Options::SolveParallelism mode) {
     using SolveParallelism = SymmetricFactor::Options::SolveParallelism;
     switch (mode) {
@@ -440,9 +439,7 @@ int pardiso_phase_of(SymmetricFactor::SolvePhase phase) {
 
 } // namespace
 
-// =============================================================================
 // SymmetricFactor
-// =============================================================================
 
 SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     if (opts_.kind != FactorKind::kLDLT) {
@@ -474,9 +471,8 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
 
     // accelerate_zero_tolerance is Accelerate's own knob (it overrides
     // Accelerate's zeroTolerance directly); MKL has no zeroTolerance
-    // concept for it to override. A present value here would otherwise be
-    // silently ignored on this backend, exactly the situation
-    // weighted_matching's own throw exists to prevent.
+    // concept for it to override, so a present value here would otherwise be
+    // silently ignored on this backend.
     if (opts_.accelerate_zero_tolerance.has_value()) {
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor: Options::accelerate_zero_tolerance is an Accelerate-only option and "
@@ -490,17 +486,13 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // Matrix scaling requires weighted matching on this backend's matrix
     // type. Intel (oneMKL Developer Reference, "pardiso iparm Parameter",
     // the iparm[10] entry) states a CAPABILITY condition for symmetric
-    // indefinite matrices, distinct from the separate advisory
+    // indefinite matrices -- distinct from the separate advisory
     // recommendation two sentences later: "The scaling can also be used
     // for symmetric indefinite matrices (mtype = -2, mtype = -4, mtype =
     // 6) when the symmetric weighted matchings are applied (iparm[12] =
     // 1)." This class (mtype = -2) is the ONLY one this session ever
     // builds (see config_from() above), so the capability condition
-    // applies unconditionally here: `matrix_scaling == true` without
-    // `weighted_matching == true` requests a capability Intel documents as
-    // usable only alongside matching on this matrix type, and throws
-    // rather than being silently accepted and doing something
-    // undocumented.
+    // applies unconditionally here.
     if (opts_.matrix_scaling && !opts_.weighted_matching) {
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor: matrix_scaling == true requires weighted_matching == true -- Intel "
@@ -520,9 +512,7 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // literally, the positive requirement names nested dissection
     // specifically (iparm[1] = 2) -- not minimum degree -- so the
     // compatible set is exactly {kNestedDissection}; every other Ordering
-    // value, INCLUDING kBackendDefault (which floats with the linked MKL --
-    // see Ordering's own doc comment -- and is 3, the documented-
-    // incompatible value, on the MKL this was verified against) throws.
+    // value, INCLUDING kBackendDefault, throws.
     if (opts_.cnr_threads > 0 && opts_.ordering != Options::Ordering::kNestedDissection) {
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor: cnr_threads > 0 (CNR mode) requires ordering == "
@@ -594,9 +584,6 @@ int SymmetricFactor::num_threads() const noexcept {
     // the only one that answers the question this reader is asked. `opts_`
     // remains the answer before the first analyze(), when there is no session
     // to read and `opts_` is what the next one will be built from.
-    //
-    // Kept in the adapter, not the session header: this is contract logic
-    // about which of two copies is authoritative, not a Pardiso fact.
     return session_ ? session_->config().num_threads : opts_.num_threads;
 }
 
@@ -761,9 +748,8 @@ bool SymmetricFactor::supports_partial_solve() const {
     // all. The predicate's design law is conservative-never-fabricated-true
     // (see its doc comment in symmetric_factor.h), so until composition
     // under matching has evidence behind it, matching being on forces this
-    // predicate false. A future tuning program may relax this conjunct, but
-    // only with bench/correctness evidence backing that decision -- not by
-    // quietly dropping it.
+    // predicate false -- and relaxing it later requires bench/correctness
+    // evidence, not a quiet drop.
     return has_usable_numerics() && session_->num_perturbed_pivots() == 0 &&
            !opts_.weighted_matching;
 }
@@ -826,9 +812,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     //
     // The session conjunct is written out although it cannot fail from here:
     // `session` IS `handle->session_`, so the two ids are the same id today.
-    // It is the identity rule, not a redundancy -- the rule is "same session
-    // AND same epoch", and stating it here is what makes this the one place
-    // to look if a handle ever comes to name a session it does not co-own.
+    // It is the identity rule, not a redundancy.
     if (handle->session_id() != session->session_id() || handle->epoch() != session->epoch()) {
         adopted.numerics_refused_ = true;
         adopted.refused_epoch_ = handle->epoch();
@@ -855,9 +839,7 @@ void SymmetricFactor::require_solvable(const char *what) const {
     }
 }
 
-// =============================================================================
 // Factorization
-// =============================================================================
 
 Factorization::Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
                              std::uint64_t pattern_hash, std::uint64_t epoch)

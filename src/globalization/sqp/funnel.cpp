@@ -1,66 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// funnel.cpp -- FunnelStrategy's state machine (KLV Algorithm 2, optimality
-// phase), carved out of the class body in
-// include/hven/detail/globalization/sqp/globalization.h.
-//
-// M3 PHASE-C T4, and the FIRST carve of the T-series that moves FLOATING-POINT
-// arithmetic across a translation-unit boundary. Both halves of how it is
-// argued follow from that.
-//
-// ---------------------------------------------------------------------------
-// WHY IT COSTS NOTHING: THE CALLS WERE ALREADY OUT-OF-LINE, AND THAT WAS READ
-// OUT OF THE OBJECT FILES, NOT ASSUMED.
-//
-// The plan's premise is that FunnelStrategy is "already virtual-dispatched
-// through GlobalizationStrategy, so out-of-lining costs nothing the vtable was
-// not already costing". At the base commit, in every object of a clean Release
-// build:
-//
-//   * `reset` and `judge` -- the two the driver's major loop calls -- were
-//     referenced from exactly ONE place, the FunnelStrategy vtable
-//     (a `.data.rel.ro._ZTVN4hven7solvers14FunnelStrategyE` relocation). Not a
-//     single call site held a direct relocation to either, so every call
-//     really did go through the vtable slot and this carve cannot remove an
-//     inlining that never happened.
-//   * `resume_from_restoration` held exactly one DIRECT (R_X86_64_PLT32)
-//     reference per driver-carrying object, from `SqpDriver::solve_impl`: the
-//     concrete-typed `dynamic_cast<FunnelStrategy *>` warm-ingest re-base in
-//     sqp_driver.h. The class is `final`, so clang devirtualized that one site
-//     -- and then emitted a CALL rather than an inline expansion. The carve
-//     therefore changes the callee's address from a local weak symbol to a
-//     library symbol and changes nothing else about that site, which in any
-//     case runs at most once per solve.
-//   * the four members that ARE inlined at every use -- `begin_full_step`,
-//     `width`, `initialized`, `in_full_step` -- emit no symbol in any object in
-//     the build, which is what full inlining looks like. They therefore STAY
-//     INLINE IN THE HEADER. Moving them is the one thing that would falsify
-//     the premise, so it is deliberately not done, and the header says so.
-//
-// ---------------------------------------------------------------------------
-// THE FP, AND WHAT CARRIES THE PROOF.
-//
-// Unlike the printing/options carves that preceded it, this file COMPUTES with
-// doubles: Eq. (9)'s max(tau_bar, kappa_bar*h0), Eq. (10)'s delta*h_old*h_old,
-// Eq. (11)'s sigma*pred_df, Eq. (12)'s beta*width_, and Eq. (13)'s convex
-// combination. Under -ffast-math those are re-associable and contractible, so a
-// boundary that put different flags on the two sides could change a verdict and
-// therefore an iterate.
-//
-// Since M3 phase-C U0 there is ONE uniform flag regime: this TU, the header it
-// was carved from, and every consumer compile with the same options, so these
-// expressions are compiled exactly as they were compiled inline. That claim
-// comes with its falsifier: the proof of this carve is BIT-IDENTITY -- the
-// 57-cell walk census and the 17-cell bench must reproduce every asserted
-// counter column byte-for-byte across it. Any counter movement whatsoever means
-// the arithmetic moved, and the carve is reverted rather than re-derived.
-//
-// ---------------------------------------------------------------------------
-// The class contract, the KLV transcription, the six recorded divergences from
-// the interior-point port, and every "why" behind the constants live in
-// globalization.h and stay there. This file carries the executable form and the
-// equation-by-equation comments that belong to the code itself.
+// FunnelStrategy's state machine -- KLV Algorithm 2, optimality phase. The
+// class contract, the KLV transcription and every "why" behind the constants
+// live in globalization.h.
 
 #include <algorithm>
 #include <cmath>
@@ -89,24 +32,21 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
                                "width is undefined until a solve has been started");
     }
 
-    // NON-FINITE TRIALS ARE NOT SILENTLY CLEAN -- sqp_driver.h's discipline,
-    // and here it is a wrong-ANSWER guard rather than a robustness nicety:
-    // every comparison against NaN is false, so an unguarded NaN h_new
-    // would pass Eq. (8) (`h_new > tau` false), fail Eq. (10) (`>=` false),
-    // and then pass Eq. (12) (`<=` false -> ... ) only by accident of which
-    // way each test is written. Rejecting up front is the only defensible
-    // reading: nothing has been measured, so nothing can be accepted. The
-    // driver then shrinks the radius, exactly as for any other rejection.
+    // Wrong-answer guard, not a robustness nicety: every comparison against a
+    // NaN is false, so an unguarded non-finite value would be classified by
+    // accident of how each test is written. Nothing has been measured here, so
+    // nothing is accepted; the driver shrinks the radius as for any other
+    // rejection.
     if (!std::isfinite(ctx.f_old) || !std::isfinite(ctx.f_new) || !std::isfinite(ctx.h_old) ||
         !std::isfinite(ctx.h_new) || !std::isfinite(ctx.pred_df)) {
         return StepVerdict::kReject;
     }
 
-    // THE FULL-STEP MODE (Task 5). Deliberately AFTER the non-finite guard
-    // above and BEFORE every one of Algorithm 2's tests -- see the class's
-    // THE FULL-STEP MODE note for both placements. The width is not
-    // touched, so the mode is exactly "Algorithm 2 is not consulted", not
-    // "Algorithm 2 is consulted with different constants".
+    // Full-step mode: placed deliberately AFTER the non-finite guard and
+    // BEFORE every one of Algorithm 2's tests -- see the class's THE FULL-STEP
+    // MODE note for both placements. The width is not touched, so the mode is
+    // exactly "Algorithm 2 is not consulted", not "consulted with different
+    // constants".
     if (full_step_) {
         return StepVerdict::kAcceptF;
     }
@@ -128,11 +68,10 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
     // asks whether the model promises enough decrease to justify ignoring
     // the infeasibility WE ARE AT.
     //
-    // h_old*h_old overflows to +inf for h_old > ~1.34e154. Benign, and
-    // benign in the safe direction: pred_df is finite (guarded above), so
-    // `pred_df >= inf` is false, the trial is classified h-type, and Eq.
-    // (12) then judges it against the finite width -- which is the correct
-    // treatment of an iterate that infeasible anyway.
+    // h_old*h_old overflows to +inf for h_old > ~1.34e154. Benign, and in the
+    // safe direction: pred_df is finite (guarded above), so `pred_df >= inf`
+    // is false, the trial is classified h-type, and Eq. (12) then judges it
+    // against the finite width.
     if (ctx.pred_df >= kFunnelDelta * ctx.h_old * ctx.h_old) {
         // f-TYPE. Eq. (11): the Armijo-type sufficient decrease on f.
         // Accepted or not, the width does not move (KLV Thm. 1, Eq. (17)).
@@ -143,20 +82,16 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
 
     // h-TYPE. Eq. (12): the funnel sufficient decrease condition.
     if (ctx.h_new <= detail::kFunnelBeta * width_) {
-        // Eq. (13). Written in the paper's own term order so the arithmetic
-        // is the arithmetic the tests hand-derive.
-        //
-        // A TESTING BLIND SPOT, acknowledged rather than papered over: at
-        // Table 1's kappa = 0.5 this expression is SYMMETRIC in its two
-        // arguments, so (1-kappa)*width + kappa*h_new computes the same
-        // number and no black-box test can distinguish the roles of h_new
-        // and tau here. What pins the roles is (i) kappa's exact value,
-        // asserted in FunnelConstants.MatchKlvTableOne, and (ii) the fact
-        // that the two orderings coincide identically at 0.5, asserted in
-        // FunnelHType.KappaRoleIsUnobservableAtOneHalf so that the blind
-        // spot is recorded in the suite. Should kappa ever move off 0.5,
-        // that test fails and the existing Eq. (13) arithmetic assertions
-        // become role-sensitive automatically.
+        // Eq. (13), written in the paper's own term order -- reordering would
+        // change the arithmetic the tests hand-derive. A testing blind spot,
+        // recorded rather than papered over: at Table 1's kappa = 0.5 this
+        // expression is SYMMETRIC in its two arguments, so no black-box test
+        // can distinguish the roles of h_new and tau here. The roles are
+        // pinned by (i) kappa's exact value (FunnelConstants.MatchKlvTableOne)
+        // and (ii) the symmetry being asserted explicitly
+        // (FunnelHType.KappaRoleIsUnobservableAtOneHalf); moving kappa off 0.5
+        // makes the existing Eq. (13) arithmetic assertions role-sensitive
+        // automatically.
         width_ = (1.0 - detail::kFunnelKappa) * ctx.h_new + detail::kFunnelKappa * width_;
         return StepVerdict::kAcceptH;
     }

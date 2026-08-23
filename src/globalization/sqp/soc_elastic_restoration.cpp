@@ -1,100 +1,20 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// soc_elastic_restoration.cpp -- the executable form of the SQP driver's three
-// step-recovery tiers: the second-order correction
-// (detail/globalization/sqp/soc.h), the elastic l1 exact-penalty tier
-// (elastic.h), and the restoration phase's feasibility-model wrapper
-// (restoration.h).
-//
-// M3 PHASE-C T6.
-//
-// ---------------------------------------------------------------------------
-// WHY ONE TU FOR THREE HEADERS.
-//
-// soc.h and restoration.h both declare themselves NOT SELF-CONTAINED BY DESIGN
-// (their own banners): they need `NlpEval`, which is defined at
-// drivers/sqp_driver.h:2165 and nowhere else, and they are included by that
-// header at exactly the point after NlpEval where phase-C S3 found them. So a
-// TU implementing them has to include the driver header. Three TUs would parse
-// that ~3 800-line header three times and buy nothing: the three tiers are
-// entered from one place in SqpDriver::solve_impl and are one recovery path.
-//
-// The include is a layering inversion -- a globalization/ TU reaching into
-// drivers/ -- and it is FORCED by those headers' declared non-self-containment
-// rather than chosen here. Removing it means giving NlpEval a home of its own,
-// which is a restructure; CLAUDE.md 5 says not to fold a restructure into a
-// move. Recorded, not done.
-//
-// ---------------------------------------------------------------------------
-// WHY IT COSTS NOTHING, READ OUT OF THE OBJECT FILES RATHER THAN ASSUMED.
-//
-// At the base commit, over all 68 objects of a clean Release build, EVERY
-// definition moved here already had an out-of-line copy and was already called
-// through a direct relocation. Counting over the section set stated below
-// (T5 review F1), the relocations out of SqpDriver::solve_impl were:
-//
-//   build_soc_subproblem 1   build_elastic_subproblem 1   elastic_seed 1
-//   elastic_project 1        ElasticQp::slack_violations 2
-//   RestorationModel::RestorationModel 1   ::original_x 2   ::start_point 1
-//   ::~RestorationModel 1
-//
-// -- one per source call site, every one of them already a CALL. So this carve
-// changes each callee's address from a weak local symbol to a library symbol
-// and changes nothing else about any site. THE SECTION SET those counts are
-// taken over is every FUNC symbol whose mangled name contains `solve_impl`,
-// over its own [value, value+size) range, UNION every section so named: for a
-// strong out-of-line definition (which solve_impl has been since T5) the
-// lambdas are extra local FUNC symbols inside a shared .text rather than their
-// own COMDAT sections, and counting `.text` alone would undercount either way.
-//
-// RestorationModel's seventeen members are all virtual overrides or are called
-// on a concrete object across a TU boundary; every one of them emitted a weak
-// copy in exactly two objects at base, and none was inlined away. Moving them
-// also makes n() the class's KEY FUNCTION, so the vtable, typeinfo and
-// typeinfo-name emit here alone instead of weakly in every TU that touches the
-// class. That consolidation is the largest part of what this carve removes
-// from the build.
-//
-// ONE FUNCTION THE PLAN NAMED IS DELIBERATELY NOT HERE: set_elastic_penalty
-// stays inline in elastic.h. It emits no symbol in any of the 68 objects and
-// has zero direct call sites anywhere, which is T4's exact test for "fully
-// inlined at every use" -- and T4's precedent is that such a function stays
-// put, because moving it is the one edit that would falsify the premise above.
-// elastic.h says so at the definition.
-//
-// ---------------------------------------------------------------------------
-// THE FP, AND WHAT CARRIES THE PROOF.
-//
-// This file computes with doubles throughout -- the SOC rhs shift, the elastic
-// residuals, scales and slack ceiling, the restoration sigmas and the four
-// derivative blocks. Under -ffast-math those are re-associable and
-// contractible, so a boundary with different flags on its two sides could
-// change an iterate.
-//
-// Since M3 phase-C U0 there is ONE uniform flag regime: this TU, the three
-// headers it was carved from, and every consumer compile with the same
-// options, so these expressions are compiled exactly as they were compiled
-// inline. The falsifier is the same one T4 and T5 accepted: the proof of this
-// carve is BIT-IDENTITY -- the 57-cell walk census and the 17-cell bench must
-// reproduce every asserted counter column byte for byte. Any counter movement
-// whatsoever means the arithmetic moved, and the carve is reverted rather than
-// re-derived.
-//
-// ---------------------------------------------------------------------------
-// Every contract, derivation and "why" stays in the three headers. This file
-// carries the executable form and the comments that belong to the code itself.
+// The executable form of the SQP driver's three step-recovery tiers: the
+// second-order correction (detail/globalization/sqp/soc.h), the elastic l1
+// exact-penalty tier (elastic.h), and the restoration phase's
+// feasibility-model wrapper (restoration.h). Every contract, derivation and
+// "why" stays in those headers.
 
-// ONE INCLUDE, AND IT IS NOT THE THREE OBVIOUS ONES. soc.h and restoration.h
-// declare in their own banners that they are not self-contained -- their
-// declarations name `NlpEval`, which only drivers/sqp_driver.h defines -- and
-// that header includes all three at exactly the point after NlpEval where they
-// belong. Including them here directly does not work and must not be
-// "restored" by a tidying pass or an include-what-you-use run: clang-format
-// sorts `detail/globalization/...` ahead of `drivers/...`, which puts the
-// three headers BEFORE the definition they depend on and fails to compile.
-// Taking them through sqp_driver.h is what preserves the definition order S3
-// established.
+// One include, deliberately not the three obvious ones: soc.h and restoration.h
+// are NOT self-contained -- their declarations name `NlpEval`, which only
+// drivers/sqp_driver.h defines -- and that header includes all three at exactly
+// the point after NlpEval where they belong. Including them here directly does
+// not work and must not be "restored" by a tidying pass or an
+// include-what-you-use run: clang-format sorts `detail/globalization/...`
+// ahead of `drivers/...`, which would put the three headers BEFORE the
+// definition they depend on and fail to compile.
 #include <hven/drivers/sqp_driver.h>
 
 namespace hven::solvers {
@@ -113,7 +33,7 @@ QpProblem build_soc_subproblem(const QpProblem &qp, const NlpEval &ev, const Nlp
                 ineq_active.size(), qp.mi()));
         }
         const Vec Ai_p = qp.Ai * p;
-        Vec bi_soc = qp.bi; // UNCHANGED on inactive rows -- see the note above
+        Vec bi_soc = qp.bi; // inactive rows keep their rhs; only active rows get the correction
         for (Index j = 0; j < qp.mi(); ++j) {
             if (ineq_active[j]) {
                 const double residual_i = ev_trial.ci(j) - ev.ci(j) - Ai_p(j);
@@ -227,14 +147,13 @@ ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double
     e.qp.upper = Vec::Zero(n2);
     e.qp.lower.head(n) = lo;
     e.qp.upper.head(n) = up;
-    // THE SLACK CEILING (fix round 1): violation_l1 IN ACTUAL UNITS, i.e.
-    // violation_l1 / sigma_j in the scaled variable, rather than +inf. It
-    // says the relaxation may not leave the linearization MORE violated in
-    // total than it already is at p_ref, and it cannot cut off the witness
-    // point, whose actual violation |r_j| is at most sum_k |r_k| =
-    // violation_l1 by construction. A slack that saturates it is reported
-    // kAtUpper, which qp_engine.h's is_runaway skips outright ("pinned at a
-    // bound: it did not run away").
+    // THE SLACK CEILING: violation_l1 IN ACTUAL UNITS, i.e. violation_l1 /
+    // sigma_j in the scaled variable, rather than +inf. The relaxation may not
+    // leave the linearization MORE violated in total than it already is at
+    // p_ref, and it cannot cut off the witness point, whose actual violation
+    // |r_j| is at most sum_k |r_k| = violation_l1 by construction. A slack
+    // that saturates it reports kAtUpper, which qp_engine.h's is_runaway skips
+    // outright ("pinned at a bound: it did not run away").
     for (Index k = 0; k < ns; ++k) {
         e.qp.upper(n + k) = e.violation_l1 / e.slack_scale(k);
     }
@@ -266,13 +185,13 @@ QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolu
     out.status = aug.status;
     out.counters = aug.counters;
     out.x = aug.x.size() >= n ? Vec(aug.x.head(n)) : Vec::Zero(n);
-    // z IS QUARANTINED WITH THE MULTIPLIERS (fix round 1), not carried
-    // independently: a bound price at index i is the stationarity residual
-    // there, so it is contaminated by exactly the same rho the row
-    // multipliers are (see carry_multipliers below). SqpDriver itself never
+    // z IS QUARANTINED WITH THE MULTIPLIERS, not carried independently: a
+    // bound price at index i is the stationarity residual there, so it is
+    // contaminated by exactly the same rho the row multipliers are (see the
+    // carry_multipliers handling of lambda_e/lambda_i below). SqpDriver never
     // reads QpSolution::z -- it reports the MODEL-implied bound multiplier
-    // instead (this header's REPORTED BOUND MULTIPLIER note) -- so this
-    // changes nothing today; it removes a trap for the next reader.
+    // instead -- so this changes nothing today; it removes a trap for the
+    // next reader.
     out.z = carry_multipliers && aug.z.size() >= n ? Vec(aug.z.head(n)) : Vec::Zero(n);
     out.lambda_e =
         carry_multipliers && aug.lambda_e.size() == qp.me() ? aug.lambda_e : Vec::Zero(qp.me());

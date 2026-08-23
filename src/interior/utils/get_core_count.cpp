@@ -54,12 +54,6 @@ static inline void rtrim(std::string &s) {
             s.end());
 }
 
-// // trim from both ends (in place)
-// static inline void trim(std::string &s) {
-//     ltrim(s);
-//     rtrim(s);
-// }
-
 int hven::utils::get_core_count() {
 
     int tcount = std::thread::hardware_concurrency();
@@ -93,9 +87,9 @@ int hven::utils::get_core_count() {
 #elif defined(__linux__)
 
     auto Run = [tcount]() {
-        /// I took this from boost threads and modified it to work without boost
-        /// https://github.com/boostorg/thread/blob/develop/src/pthread/thread.cpp
-        /// boost::thread::physical_concurrency
+        /// Adapted from boost::thread::physical_concurrency
+        /// (boostorg/thread, pthread/thread.cpp), modified to work without
+        /// boost.
 
         auto trim = [](std::string &s) {
             s.erase(s.begin(), std::find_if(s.begin(), s.end(),
