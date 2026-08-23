@@ -3,21 +3,21 @@
 
 #pragma once
 
-/// @brief The interior-point engine's KKT factorization: the assembly buffer
-/// the engine writes its Newton system into, the SymmetricFactor consuming it,
-/// and the small evidence cache read back after every numeric factorization.
-///
-/// The engine assembles directly into a matrix held by reference (hven::linear
-/// takes the matrix BY REFERENCE at analyze()/factorize()), and consumes plain
-/// integers plus an Eigen::ComputationInfo status while the linear layer
-/// reports what a factorization OBSERVED (inertia, optional perturbed-pivot
-/// count, factor size in backend-specific units) and never a verdict. This
-/// class projects one onto the other at a single point, deliberately faithful
-/// to pre-linear-layer shapes (absent pivot count reads 0; both factor-size
-/// observables land in one integer) so swapping backends is not an
-/// algorithm-policy change. Fidelity extends to the FAILURE paths, which are
-/// BACKEND-SPECIFIC: the replaced interfaces categorized their error codes
-/// differently, so the failed-factorization projection is written per backend.
+// The interior-point engine's KKT factorization: the assembly buffer
+// the engine writes its Newton system into, the SymmetricFactor consuming it,
+// and the small evidence cache read back after every numeric factorization.
+//
+// The engine assembles directly into a matrix held by reference (hven::linear
+// takes the matrix BY REFERENCE at analyze()/factorize()), and consumes plain
+// integers plus an Eigen::ComputationInfo status while the linear layer
+// reports what a factorization OBSERVED (inertia, optional perturbed-pivot
+// count, factor size in backend-specific units) and never a verdict. This
+// class projects one onto the other at a single point, deliberately faithful
+// to pre-linear-layer shapes (absent pivot count reads 0; both factor-size
+// observables land in one integer) so swapping backends is not an
+// algorithm-policy change. Fidelity extends to the FAILURE paths, which are
+// BACKEND-SPECIFIC: the replaced interfaces categorized their error codes
+// differently, so the failed-factorization projection is written per backend.
 
 #include <Eigen/Core>
 

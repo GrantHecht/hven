@@ -69,8 +69,7 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
     }
 
     /// @brief Calls the type-erased function's .constraints_jacobian method,
-    /// scattering into the KKT matrix through the location/clash tables under
-    /// per-row locks, and passing through the indexing data.
+    /// passing through the solver's arguments and the indexing data.
     void constraints_jacobian(ConstEigenRef<Eigen::VectorXd> X, EigenRef<Eigen::VectorXd> FX,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
                               EigenRef<Eigen::VectorXi> KKTLocations,

@@ -100,7 +100,6 @@ struct SolverIndexingData {
     /// table is built and no copy is made. Derived state -- always regenerated
     /// from v_index_, never edited in place, so repeated configuration cannot
     /// compound.
-    /// </summary>
     MatrixXi v_out_index_;
 
     /// True while v_out_index_ is live, i.e. the output map differs from the

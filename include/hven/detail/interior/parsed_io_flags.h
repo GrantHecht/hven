@@ -11,6 +11,9 @@
 namespace hven::solvers {
 
 /// @brief Classifies how a parsed input/output slot maps into a VF's storage.
+/// SolverIndexingData tags every column of its variable and constraint index
+/// maps with one of these, and the consuming gather routines read the tag to
+/// choose between a segment copy and an element-by-element gather.
 /// @ingroup vf
 enum class ParsedIOFlags {
     HiddenInput = -2,  ///< @brief Slot is an input not exposed to the caller.

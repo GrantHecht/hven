@@ -103,13 +103,13 @@ inline constexpr double kSufficientInfeasibilityDecreaseRatio = 0.9;
 class ModernMeritAcceptance : public AcceptanceStrategy {
   public:
     /// @brief Constructs with the penalty rule and a fresh state.
-    /// @throws std::logic_error On an unknown MeritPenaltyRules value.
     explicit ModernMeritAcceptance(MeritPenaltyRules rule) : rule_(rule) { reset(); }
 
     /// @brief The generic acceptance test (formulation above). Pure in its
     /// ProgressMeasures arguments plus the penalty state; may mutate the
     /// penalty state per the update rules. step_length is accepted and
     /// ignored: the penalty math is steplength-independent.
+    /// @throws std::logic_error On an unknown MeritPenaltyRules value.
     bool is_iterate_acceptable(const ProgressMeasures &current, const ProgressMeasures &trial,
                                const ProgressMeasures &predicted_reduction,
                                double objective_multiplier, double step_length) override;

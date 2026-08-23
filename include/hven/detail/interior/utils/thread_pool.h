@@ -317,14 +317,6 @@ class WorkStealingQueue {
     }
 };
 
-// =============================================================================
-// ThreadPool — work-stealing thread pool
-//
-// Each worker has its own queue. Tasks are distributed round-robin on enqueue.
-// Workers try their own queue first, then steal from others. Cache-line
-// padding on m_tasks_pending prevents false sharing.
-// =============================================================================
-
 struct ThreadPoolTestAccess; // forward-declared for friend access from tests
 
 /// @internal
@@ -349,6 +341,7 @@ class ThreadPool {
         64;
 #endif
 
+    // Cache-line padded (via CL) to prevent false sharing with neighboring fields.
     alignas(CL) std::atomic<int> m_tasks_pending{0};
 
     // TLS enqueue index — eliminates atomic contention on burst dispatch.
@@ -581,13 +574,11 @@ class ThreadPool {
     unsigned get_thread_count() const noexcept { return m_count; }
 };
 
-// ---------------------------------------------------------------------------
 // Global thread budget
 //
 // set_num_threads() is the process-global execution budget. It is meant to be
 // called once at startup (or from a top-level Python script), NOT from deep
 // inside algorithms. Algorithms should never change it.
-// ---------------------------------------------------------------------------
 
 /// @brief Return the process-global thread pool (Meyers singleton, fixed address).
 ///
@@ -627,7 +618,6 @@ inline bool use_thread_pool() { return get_num_threads() > 1; }
 /// while `set_num_threads()` is resizing the pool.
 bool pool_configuring();
 
-// ---------------------------------------------------------------------------
 // Safe parallel dispatch helpers
 //
 // These wrap ThreadPool's enqueue_work API with:
@@ -638,7 +628,6 @@ bool pool_configuring();
 //
 // Per-dispatch latches make concurrent dispatches from separate threads
 // inherently safe — each dispatch waits only on its own latch.
-// ---------------------------------------------------------------------------
 
 /// @brief Partition `[0, count)` into @p nparts blocks and run `func(start, stop)` in parallel.
 ///

@@ -60,9 +60,7 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
     }
 
     /// @brief Calls the type-erased function's .objective_gradient_hessian
-    /// method, scattering the Hessian into the KKT matrix through the
-    /// location/clash tables under per-row locks, and passing through the
-    /// indexing data.
+    /// method, passing through the solver's arguments and the indexing data.
     void objective_gradient_hessian(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
                                     EigenRef<Eigen::VectorXd> GX,
                                     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,

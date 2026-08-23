@@ -32,9 +32,10 @@
 
 namespace hven::solvers::detail {
 
-/// @brief Completes the raw inequality residual g(x) into g(x) + s and repairs
-/// non-positive slacks in place: a slack below neg_slack_reset is treated as
-/// neg_slack_reset; a negative residual resets the pair instead of adding.
+/// @brief Completes the raw inequality residual g(x) into g(x) + s: a slack
+/// below neg_slack_reset is clamped to that floor for the purpose of the sum
+/// (S[i] itself is left untouched on this branch); a negative residual
+/// instead zeroes the residual and resets S[i] to max(|fx|, neg_slack_reset).
 inline void apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> FXI,
                                int slack_vars, double neg_slack_reset) {
     for (int i = 0; i < slack_vars; i++) {
@@ -87,13 +88,13 @@ inline void barrier_gradient(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::Ve
     AGS = LI - mu * (S.cwiseInverse());
 }
 
-/// Primal variable-bound barrier kernels: for the bounds recorded in b
-/// (reduced-space indices; a two-sided variable appears in both lists) the
-/// barrier objective is phi_mu(x) = f(x) - mu*sum ln(x_i-l_i) -
-/// mu*sum ln(u_i-x_i). Invariant: every caller keeps x STRICTLY inside the
-/// recorded bounds (the solve-entry interior push and the fraction-to-boundary
-/// rule guarantee it); none of these kernels re-checks.
-///
+// Primal variable-bound barrier kernels: for the bounds recorded in b
+// (reduced-space indices; a two-sided variable appears in both lists) the
+// barrier objective is phi_mu(x) = f(x) - mu*sum ln(x_i-l_i) -
+// mu*sum ln(u_i-x_i). Invariant: every caller keeps x STRICTLY inside the
+// recorded bounds (the solve-entry interior push and the fraction-to-boundary
+// rule guarantee it); none of these kernels re-checks.
+
 /// @brief Bound-set log-barrier objective: -mu * [sum ln(x_i-l_i) +
 /// sum ln(u_i-x_i)], plus the one-sided damping term kappa_d * mu *
 /// sum(distance) over entries whose variable is bounded on that side only.
@@ -104,15 +105,6 @@ inline void barrier_gradient(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::Ve
 /// drive it arbitrarily far out. It belongs to the barrier OBJECTIVE and its
 /// mu-form gradient only -- see kKappaD's note in bound_set.h for the seams it
 /// must stay out of.
-// one-sided damping term kappa_d * mu * sum(distance) over the entries whose
-// variable is bounded on that side only.
-//
-// The damping is Ipopt's (IpIpoptCalculatedQuantities::CalcBarrierTerm adds
-// `kappa_d * mu * slack.Dot(dampind)` per side). Without it the log barrier
-// gives a variable with only one finite bound nothing to push back against in
-// its unbounded direction, and a barrier subproblem can drive it arbitrarily
-// far out. It belongs to the barrier OBJECTIVE and its mu-form gradient only --
-// see kKappaD's note in bound_set.h for the seams it must stay out of.
 inline double bound_barrier_objective(ConstEigenRef<Eigen::VectorXd> x, const BoundSet &b,
                                       double mu) {
     const int nl = static_cast<int>(b.lower_idx_.size());
@@ -134,9 +126,9 @@ inline double bound_barrier_objective(ConstEigenRef<Eigen::VectorXd> x, const Bo
 /// entries). This is the gradient of the barrier objective above and what the
 /// CONDENSED NEWTON RIGHT-HAND SIDE carries: eliminating the bound-multiplier
 /// rows turns the primal RHS into grad phi_mu + J'lambda (the -z_L+z_U cancels
-/// against the substituted multiplier steps). The reference implementation
-/// makes the same split, damping and all. Never use this form for a residual a
-/// convergence test consumes.
+/// against the substituted multiplier steps). Ipopt keeps the same split,
+/// damping and all. Never use this form for a residual a convergence test
+/// consumes.
 inline void accumulate_bound_barrier_gradient(ConstEigenRef<Eigen::VectorXd> x, const BoundSet &b,
                                               double mu, EigenRef<Eigen::VectorXd> gx) {
     const int nl = static_cast<int>(b.lower_idx_.size());

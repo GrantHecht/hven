@@ -42,6 +42,16 @@ were removed, byte-identical).
 (Comment counts include `///` docstring lines; regenerated programmatically at the
 fix round — the originally published table's after-values were wrong.)
 
+(Chunk-2 review nit B-b: the total-lines column above is confirmed correct, but
+several before-values in the comments column disagree by 1-9 lines with the
+review's own independent count — e.g. `filter_acceptance.h` 353 here vs 357,
+`acceptance_strategy.h` 150 vs 151, `sqp/globalization.h` 647 vs 656. This is a
+counting-convention difference (most likely how block-comment interior lines
+are tallied), not a factual error about what the sweep changed; the after-side
+counts and the total-lines column are unaffected and were independently
+re-derived at the chunk-2 fix round using a documented per-line convention —
+see `.sweep/chunk-2-report.md`.)
+
 ## Rationale candidates for docs/notes (deleted from files per the rules)
 
 - globalization_mechanism.h:4-10 — a trust-region mechanism was investigated as
@@ -121,12 +131,12 @@ Condensed from longer originals without (intended) change of stated behavior:
 | 4 report: six-divergence block missing | APPLIED — added to rationale candidates |
 | 5 report: table after-values wrong | APPLIED — table regenerated programmatically (comment counts now include /// lines) |
 | 6 double @brief on GlobalizationStrategy | APPLIED — generalization note demoted to `//`; single @brief remains |
-| 7 floating /// narration | APPLIED — sqp/globalization.h algorithm/parameters blocks and inertia_regularization.h caveats block demoted to `//` |
+| 7 floating /// narration | PARTIAL (see B-1 below) — sqp/globalization.h algorithm/parameters blocks demoted to `//` correctly; inertia_regularization.h caveats block was only half-demoted (paragraph-opening lines `//`, continuation lines still `///`), re-attaching to `kProxRegFloor`. Fully fixed at the chunk-2 fix round (B-1). |
 | 8 BarrierDecision.mu qualifier | APPLIED — `///<` restored with the free-mode caveat |
 | 9 elastic contamination premise | APPLIED — "with z_j = 0 when s_j is off its bound" restored |
 | 10 ownership sentences (filter/funnel/l1) | APPLIED — one ownership sentence each restored to the class docstrings |
 | 11 trailing whitespace (20 lines) | NOT APPLIED here — byte-preserving gate artifact; belongs to a follow-up formatting pass (still code-token-neutral), as the review itself suggests |
-| 12 missing @throws | APPLIED — filter_acceptance (both hooks), funnel_acceptance (both hooks), modern_merit (ctor + both hooks), sqp/globalization judge() |
+| 12 missing @throws | PARTIAL + REGRESSED (see B-2 below) — filter_acceptance (both hooks), funnel_acceptance (both hooks), and sqp/globalization judge() correctly documented; the sixth site attached `@throws std::logic_error` to `ModernMeritAcceptance`'s constructor, which does not throw, instead of `is_iterate_acceptable`, which does (`interior_point_solver_globalization.cpp:666-667`). Fixed at the chunk-2 fix round (B-2). |
 | 13 unnamed @param current | APPLIED — folded into the descriptions |
 | 14 l1_restoration docstring on wrong declaration | APPLIED — swapped; l1_elastic_slack_init has the @brief |
 | 15 kKappaResto citation | APPLIED — Ipopt option name + default restored |
@@ -136,3 +146,18 @@ Condensed from longer originals without (intended) change of stated behavior:
 
 Gate re-run after the fix round: comment-stripped diff vs HEAD is EMPTY on all
 12 touched files.
+
+## Fix round, residuals (per .sweep/chunk-2-fix-brief.md Section B; review at
+.sweep/chunk-2-review.md Section B)
+
+The chunk-1 fix round above (finding 7, finding 12) left two blocking defects
+in place; both are closed here.
+
+| finding | disposition |
+|---------|-------------|
+| B-1 (blocking) inertia_regularization.h:11-41 half-demoted `///`/`//` interleave | APPLIED — every line of the block (including the bare `///` paragraph separators) demoted to `//`; no `///` remains between the block and `kProxRegFloor`'s own `@brief` |
+| B-2 (blocking) modern_merit.h `@throws` on the wrong declaration | APPLIED — `@throws std::logic_error` moved from the constructor (`ModernMeritAcceptance::ModernMeritAcceptance`, which cannot throw) to `is_iterate_acceptable` (:113 in the current header), where the `default:` arm of the `switch (rule_)` actually throws (verified at `interior_point_solver_globalization.cpp:666-667`) |
+| B-3 should-fix: this table's rows 7 and 12 overstated as flat APPLIED | APPLIED — both rows above corrected to record the partial/regressed history and point to B-1/B-2 |
+
+Gate re-run after this residual fix round: comment-stripped diff vs the fix
+round's parent commit is EMPTY on both files.

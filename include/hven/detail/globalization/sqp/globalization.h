@@ -17,7 +17,7 @@
 // every equation number below is KLV's. Where the interior-point port of the
 // same paper (funnel_acceptance.h) and [KLV] disagree, [KLV] WINS; the two
 // deliberate deviations from that port a reader might otherwise "fix" are
-// recorded at the constants below. The port's barrier adaptations are
+// recorded in the deviations note below. The port's barrier adaptations are
 // precisely what must NOT be inherited: they exist because an IPM judges a
 // BARRIER objective phi = f + auxiliary along a line search with a step length
 // alpha, and neither is true here -- this is a trust-region SQP judging f

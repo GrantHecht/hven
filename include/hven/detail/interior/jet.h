@@ -134,9 +134,10 @@ struct Jet {
     /// shared thread pool when enabled, sequentially otherwise -- collecting
     /// each job's ConvergenceFlags and printing progress when verbose.
     ///
-    /// Each job pins its thread's BLAS to single-threaded mode for its
-    /// duration (see the per-thread note inside); the solver re-applies its own
-    /// threading at every solve entry.
+    /// Each job runs with its thread's BLAS pinned to single-threaded mode
+    /// (scope-guarded under MKL; set-and-leak under Accelerate, which the
+    /// solver heals by re-applying its threading at every solve entry -- see
+    /// the per-thread note inside).
     template <class T, class Args1, class Args2>
     static std::vector<std::shared_ptr<T>>
     map(const std::vector<std::function<std::shared_ptr<T>(Args1)>> &genfuncs,
