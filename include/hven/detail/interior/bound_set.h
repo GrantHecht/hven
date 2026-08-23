@@ -2,9 +2,7 @@
 // (see LICENSE).
 
 // Classification products for primal variable bounds: the set of finite bounds
-// the solver must keep barrier terms for, and the dual state that will be
-// attached to them.
-// =============================================================================
+// the solver must keep barrier terms for, and the dual state attached to them.
 
 #pragma once
 
@@ -12,8 +10,7 @@
 
 namespace hven::solvers {
 
-/// <summary>
-/// The finite variable bounds a solve has to honor, split into a lower-bound
+/// @brief The finite variable bounds a solve has to honor, split into a lower-bound
 /// list and an upper-bound list and stored as index/value pairs rather than as
 /// dense per-variable vectors: the barrier and fraction-to-boundary loops walk
 /// only the bounded variables, and on a problem with no variable bounds both
@@ -36,7 +33,6 @@ namespace hven::solvers {
 /// finite bound by bound_relax_factor * max(1, |bound|) before recording it, so
 /// consumers do not have to re-apply the relaxation. A relax factor of 0.0
 /// records the declared bounds verbatim.
-/// </summary>
 struct BoundSet {
     Eigen::VectorXi lower_idx_; ///< Variable indices carrying a finite lower bound.
     Eigen::VectorXd lower_val_; ///< Relaxed lower bound, parallel to lower_idx_.
@@ -75,8 +71,7 @@ struct BoundSet {
     }
 };
 
-/// <summary>
-/// Bound-multiplier state for the variables in a BoundSet: the multipliers
+/// @brief Bound-multiplier state for the variables in a BoundSet: the multipliers
 /// themselves and the Newton step computed for them each iteration. Parallel to
 /// the corresponding BoundSet list (z_lower_ / dz_lower_ index-align with
 /// BoundSet::lower_idx_, z_upper_ / dz_upper_ with BoundSet::upper_idx_).
@@ -86,7 +81,6 @@ struct BoundSet {
 /// solve is running. InteriorPointSolver sizes and seeds them at solve entry (the interior
 /// push), fills the step vectors from each Newton solve, and commits the
 /// multipliers once per accepted iterate.
-/// </summary>
 struct BoundDualState {
     Eigen::VectorXd z_lower_;  ///< Lower-bound multipliers, parallel to BoundSet::lower_idx_.
     Eigen::VectorXd z_upper_;  ///< Upper-bound multipliers, parallel to BoundSet::upper_idx_.

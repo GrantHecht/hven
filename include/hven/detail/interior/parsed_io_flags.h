@@ -6,15 +6,6 @@
 // Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
 
-// How one parsed input/output slot maps into storage. SolverIndexingData tags
-// every column of its variable and constraint index maps with one of these, and
-// the gather routines read the tag to choose between a segment copy and an
-// element-by-element gather. It used to live with the VectorFunction flags,
-// which made the solver's own indexing header include a VectorFunction header
-// for an enum the two layers merely share; the enum now lives here and
-// vf/core/functional_flags.h re-exports it, so every existing ParsedIOFlags
-// reference in the consuming VectorFunction layer keeps working unchanged.
-
 #pragma once
 
 namespace hven::solvers {

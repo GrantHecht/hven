@@ -35,10 +35,8 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
         this->index_data_ = data;
     }
 
-    /*
-    Partitions multiple calls to this function into seperate ObjectiveFunction instances that
-    will be called on multiple threads.
-    */
+    /// @brief Partitions multiple calls to this function into separate
+    /// ObjectiveFunction instances that will be called on multiple threads.
     std::vector<ObjectiveFunction> thread_split(int Thr) const {
         std::vector<SolverIndexingData> idat = this->index_data_.thread_split(Thr);
         std::vector<ObjectiveFunction> split(idat.size());
@@ -48,30 +46,23 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
         return split;
     }
 
-    /*
-    Interface for calling the underlying type erased function's .objective method.
-    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
-    struct to the underlying vector function.
-    */
+    /// @brief Calls the type-erased function's .objective method, passing
+    /// through the solver's arguments and the indexing data.
     void objective(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val) const {
         this->function_.objective(ObjScale, X, Val, this->index_data_);
     }
 
-    /*
-    Interface for calling the underlying type erased function's .objective_gradient method.
-    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
-    struct to the underlying vector function.
-    */
+    /// @brief Calls the type-erased function's .objective_gradient method,
+    /// passing through the solver's arguments and the indexing data.
     void objective_gradient(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
                             EigenRef<Eigen::VectorXd> GX) const {
         this->function_.objective_gradient(ObjScale, X, Val, GX, this->index_data_);
     }
 
-    /*
-    Interface for calling the underlying type erased function's .objective_gradient_hessian method.
-    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
-    struct to the underlying vector function.
-    */
+    /// @brief Calls the type-erased function's .objective_gradient_hessian
+    /// method, scattering the Hessian into the KKT matrix through the
+    /// location/clash tables under per-row locks, and passing through the
+    /// indexing data.
     void objective_gradient_hessian(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
                                     EigenRef<Eigen::VectorXd> GX,
                                     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,

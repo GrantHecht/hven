@@ -130,9 +130,13 @@ struct Jet {
         fmt::print(fmt::fg(fmt::color::white), "{0:=^{1}}\n", "", 79);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////// Map///////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////
+    /// @brief Runs genfuncs[genfidxes[i]](args[i]) for every i -- on the
+    /// shared thread pool when enabled, sequentially otherwise -- collecting
+    /// each job's ConvergenceFlags and printing progress when verbose.
+    ///
+    /// Each job pins its thread's BLAS to single-threaded mode for its
+    /// duration (see the per-thread note inside); the solver re-applies its own
+    /// threading at every solve entry.
     template <class T, class Args1, class Args2>
     static std::vector<std::shared_ptr<T>>
     map(const std::vector<std::function<std::shared_ptr<T>(Args1)>> &genfuncs,
@@ -248,6 +252,8 @@ struct Jet {
         return optprobs;
     }
 
+    /// @brief Single-generator overload: applies @p genfunc to every element
+    /// of @p args.
     template <class T, class Args1, class Args2>
     static std::vector<std::shared_ptr<T>> map(std::function<std::shared_ptr<T>(Args1)> genfunc,
                                                const std::vector<Args2> &args, bool verbose) {
@@ -261,6 +267,8 @@ struct Jet {
         return Jet::map(genfuncs, args, genfidxes, verbose);
     }
 
+    /// @brief Identity-generator overload: runs the already-constructed
+    /// problems' jet_run() in parallel.
     template <class T>
     static std::vector<std::shared_ptr<T>> map(const std::vector<std::shared_ptr<T>> &optprobs,
                                                bool verbose) {
@@ -270,7 +278,6 @@ struct Jet {
 
         return Jet::map(genfunc, optprobs, verbose);
     }
-    ////////////////////////////////////////////////////////////////////////////////////
 };
 
 } // namespace hven::solvers

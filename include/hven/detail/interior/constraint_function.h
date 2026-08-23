@@ -43,10 +43,8 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
         this->index_data_ = data;
     }
 
-    /*
-    Partitions multiple calls to this function into seperate ConstraintFunction instances that
-    will be called on multiple threads.
-    */
+    /// @brief Partitions multiple calls to this function into separate
+    /// ConstraintFunction instances that will be called on multiple threads.
     std::vector<ConstraintFunction> thread_split(int Thr) const {
         std::vector<SolverIndexingData> idat = this->index_data_.thread_split(Thr);
         std::vector<ConstraintFunction> split(idat.size());
@@ -56,31 +54,23 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
         return split;
     }
 
-    /*
-    Interface for calling the underlying type erased function's .constraints method.
-    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
-    struct to the underlying vector function.
-    */
+    /// @brief Calls the type-erased function's .constraints method, passing
+    /// through the solver's arguments and the indexing data.
     void constraints(ConstEigenRef<Eigen::VectorXd> X, Eigen::Ref<Eigen::VectorXd> FX) const {
         this->function_.constraints(X, FX, this->index_data_);
     }
 
-    /*
-    Interface for calling the underlying type erased function's .constraints_adjointgradient method.
-    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
-    struct to the underlying vector function.
-    */
+    /// @brief Calls the type-erased function's .constraints_adjointgradient
+    /// method, passing through the solver's arguments and the indexing data.
     void constraints_adjointgradient(ConstEigenRef<Eigen::VectorXd> X,
                                      ConstEigenRef<Eigen::VectorXd> L, EigenRef<Eigen::VectorXd> FX,
                                      EigenRef<Eigen::VectorXd> AGX) const {
         this->function_.constraints_adjointgradient(X, L, FX, AGX, this->index_data_);
     }
 
-    /*
-    Interface for calling the underlying type erased function's .constraints_jacobian method.
-    Passes the arguments from InteriorPointSolver and NonLinearProgram as well as the indexing data
-    struct to the underlying vector function.
-    */
+    /// @brief Calls the type-erased function's .constraints_jacobian method,
+    /// scattering into the KKT matrix through the location/clash tables under
+    /// per-row locks, and passing through the indexing data.
     void constraints_jacobian(ConstEigenRef<Eigen::VectorXd> X, EigenRef<Eigen::VectorXd> FX,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
                               EigenRef<Eigen::VectorXi> KKTLocations,
@@ -90,11 +80,9 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
                                              this->index_data_);
     }
 
-    /*
-    Interface for calling the underlying type erased function's
-    .constraints_jacobian_adjointgradient method. Passes the arguments from InteriorPointSolver and
-    NonLinearProgram as well as the indexing data struct to the underlying vector function.
-    */
+    /// @brief Calls the type-erased function's
+    /// .constraints_jacobian_adjointgradient method, passing through the
+    /// solver's arguments and the indexing data.
     void constraints_jacobian_adjointgradient(ConstEigenRef<Eigen::VectorXd> X,
                                               ConstEigenRef<Eigen::VectorXd> L,
                                               EigenRef<Eigen::VectorXd> FX,
@@ -107,12 +95,9 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
             X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, this->index_data_);
     }
 
-    /*
-    Interface for calling the underlying type erased function's
-    .constraints_jacobian_adjointgradient_adjointhessian method. Passes the arguments from
-    InteriorPointSolver and NonLinearProgram as well as the indexing data struct to the underlying
-    vector function.
-    */
+    /// @brief Calls the type-erased function's
+    /// .constraints_jacobian_adjointgradient_adjointhessian method, passing
+    /// through the solver's arguments and the indexing data.
     void constraints_jacobian_adjointgradient_adjointhessian(
         ConstEigenRef<Eigen::VectorXd> X, ConstEigenRef<Eigen::VectorXd> L,
         EigenRef<Eigen::VectorXd> FX, EigenRef<Eigen::VectorXd> AGX,

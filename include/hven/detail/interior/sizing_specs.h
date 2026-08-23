@@ -41,18 +41,17 @@
 
 namespace hven::solvers {
 
+/// @brief Type-erasure spec: query the Input/Output rows of a type-erased
+/// vector function, plus its name and thread safety.
 struct SizableSpec {
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    struct Concept { // abstract base class for model.
+    struct Concept { 
         virtual ~Concept() = default;
-        // Your (internal) interface goes here.
         virtual std::string name() const = 0;
 
         virtual int input_rows() const = 0;
         virtual int output_rows() const = 0;
         virtual bool thread_safe() const = 0;
     };
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
 } // namespace hven::solvers

@@ -1,16 +1,10 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// General-purpose SBO container with value semantics. Replaces
-// rubber_types::TypeErasure as the storage behind this library's erased
-// function handles — ConstraintInterface and ObjectiveInterface (see
-// detail/solvers/solver_interface_specs.h) — and available to any consumer
-// handle built on the same clone_into convention below.
-//
-// Convention: the base class C must declare
-//   virtual void clone_into(TypeStorage<C, SBO_CAP>&) const = 0.
-// Each concrete Model implements this as s.emplace<Model>(data_).
-// =============================================================================
+// General-purpose SBO container with value semantics: the storage behind this
+// library's erased function handles (ConstraintInterface / ObjectiveInterface,
+// see detail/solvers/solver_interface_specs.h), available to any consumer
+// handle built on the same clone_into convention.
 
 #pragma once
 

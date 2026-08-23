@@ -14,8 +14,6 @@
 
 namespace hven::utils {
 
-//////////////////////////////////////////////////////////////////////////////////
-
 /// @internal
 /// @brief Apply a function to every element of a tuple in forward order.
 /// @tparam TupleType  The tuple type.

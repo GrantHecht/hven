@@ -6,14 +6,9 @@
 // Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
 
-// The thread assignment policy a solver function carries. Owned by the solver
-// layer: SolverFunctionBase stores one per function and NonLinearProgram's
-// partitioner is the only thing that reads it. It used to live with the
-// VectorFunction flags, which made the solver headers include a VectorFunction
-// header for an enum the VectorFunction layer only forwards; the enum now lives
-// here and vf/core/functional_flags.h re-exports it, so every existing
-// ThreadingFlags reference in the consuming VectorFunction layer keeps working
-// unchanged.
+// The thread assignment policy a solver function carries: SolverFunctionBase
+// stores one per function and NonLinearProgram's partitioner is the only
+// reader.
 
 #pragma once
 

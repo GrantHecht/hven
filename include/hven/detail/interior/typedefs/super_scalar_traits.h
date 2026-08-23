@@ -24,7 +24,6 @@
 // The header is included from eigen_types.h after <Eigen/Core>, so by the
 // time this library's code instantiates an Eigen::Matrix<Array<...>, ...>, these
 // overloads are already in scope.
-// =============================================================================
 #pragma once
 
 #include <Eigen/Core>

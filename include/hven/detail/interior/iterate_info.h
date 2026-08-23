@@ -10,6 +10,9 @@
 
 namespace hven::solvers {
 
+/// @brief Per-iteration record: one instance per solver iteration, carrying
+/// the residuals, barrier quantities, line-search outcome, and diagnostic
+/// signals that iteration produced.
 struct IterateInfo {
 
     int iter_ = 0;
@@ -33,23 +36,18 @@ struct IterateInfo {
     double h_pert_ = 0;
     int h_facs_ = 0;
 
-    // InteriorPointSolver 2.4 (display-only carve-out): the running total of every inertia-
-    // perturbation delta applied to the KKT diagonal during this iteration's
-    // factor_impl() call (i.e. the actual cumulative perturbation, as opposed to
-    // h_pert_ above, which is only the LAST delta). Split into its own field so the
-    // HPert table column can show the cumulative total without touching h_pert_'s
-    // existing meaning or its Hpert0 warm-start producer/consumer in alg_impl().
+    /// Running total of every inertia-perturbation delta applied to the KKT
+    /// diagonal during this iteration's factorization — the CUMULATIVE value,
+    /// where h_pert_ above is only the LAST delta.
     double h_pert_cum_ = 0;
 
-    // Proximal primal-dual regularization shifts applied this iteration (written
-    // only when Settings::inertia_mode_ == proximal_regularization; sentinel -1
-    // on the classic path, which applies neither). prox_reg_primal_ is the
-    // persistent primal base shift ρ_k added to the Hessian diagonal;
-    // prox_reg_dual_ is the barrier-scaled dual shift δ_c subtracted from the
-    // constraint-row diagonals (0 when suppressed inside a nested l1 restoration
-    // phase). Both are >= 0 when active; a negative value means "mode off". Not
-    // printed (the iteration table formats an explicit field list), so adding
-    // them leaves console output byte-identical.
+    /// Proximal primal-dual regularization shifts applied this iteration
+    /// (written only under inertia_mode_ == proximal_regularization; sentinel
+    /// -1 on the classic path). prox_reg_primal_: persistent primal base shift
+    /// rho_k on the Hessian diagonal; prox_reg_dual_: barrier-scaled dual shift
+    /// delta_c on the constraint-row diagonals (0 when suppressed inside a
+    /// nested l1 restoration phase). Both >= 0 when active; negative means
+    /// "mode off". Not printed — console output stays byte-identical.
     double prox_reg_primal_ = -1.0;
     double prox_reg_dual_ = -1.0;
 
@@ -58,63 +56,34 @@ struct IterateInfo {
     double max_i_mult_ = 0;
     double merit_val_ = 0.0;
 
-    // Line-search acceptance outcome. Write-only diagnostic signal recorded by
-    // the merit line search at the point it decides accept vs. reject; not
-    // consumed on the classic solve path except by the recovery-dispatch gate
-    // in alg_impl (which reads accepted_). These fields are NOT printed — the
-    // iteration table formats an explicit field list (see interior_point_solver_print.cpp) —
-    // so adding them leaves console output byte-identical.
-    //   accepted_               — did the merit test accept a step this line
-    //                             search (false if every backtrack was
-    //                             rejected, i.e. the search exhausted).
-    //   first_rejection_iter_   — backtracking index of the first rejected
-    //                             trial (-1 if the step was accepted with no
-    //                             rejection).
-    //   theta_at_first_rejection_ — constraint infeasibility at that first
-    //                             rejected trial. The NORM CONVENTION differs
-    //                             by acceptance path: the classic merit
-    //                             variants (ls_l1/ls_auglang) store the
-    //                             SQUARED L2 norm of the full constraint
-    //                             block (all_cons().squaredNorm()), while the
-    //                             modern merit path (modern_merit.h) stores
-    //                             the L1 norm (all_cons().lpNorm<1>()).
-    //                             Consumers must NOT assume a specific norm
-    //                             across strategies — compare this field only
-    //                             against another reading taken under the
-    //                             SAME acceptance path. The one live consumer
-    //                             today, soc_should_trigger() (globalization/
-    //                             soc.h), still compares like-with-like even
-    //                             though SocRecovery composes with every
-    //                             acceptance strategy (the recovery hook in
-    //                             alg_impl dispatches to it regardless of
-    //                             which strategy is active): its caller
-    //                             (SocRecovery::on_step_rejected) selects the
-    //                             comparison norm via
-    //                             AcceptanceStrategy::drives_classic_path() —
-    //                             squared-L2 when true (ClassicMeritAcceptance),
-    //                             L1 when false (the generic path: modern
-    //                             merit, filter, funnel) — so the two
-    //                             readings it compares are always the same
-    //                             norm, just not always squared-L2. -1.0
-    //                             means UNAVAILABLE: no rejection was
-    //                             recorded, or the LANG variant ran (it
-    //                             materializes no infeasibility scalar). A
-    //                             real infeasibility is always >= 0, so
-    //                             consumers (e.g. a second-order correction
-    //                             trigger) must treat any negative value as
-    //                             "skip theta-based logic" rather than as a
-    //                             feasible reading.
+    /// Line-search acceptance outcome, recorded by the merit line search at
+    /// the point it decides accept vs. reject. Write-only diagnostics except
+    /// for the recovery-dispatch gate's read of accepted_; never printed
+    /// (console output stays byte-identical).
+    ///  - accepted_: did the merit test accept a step this line search (false
+    ///    if every backtrack was rejected).
+    ///  - first_rejection_iter_: backtracking index of the first rejected
+    ///    trial (-1 if the step was accepted with no rejection).
+    ///  - theta_at_first_rejection_: constraint infeasibility at that first
+    ///    rejected trial. NORM-CONVENTION CALLOUT: the convention DIFFERS by
+    ///    acceptance path — the classic variants store the SQUARED L2 norm of
+    ///    the full constraint block; the generic path stores the L1 norm.
+    ///    Never compare across strategies; compare only against another
+    ///    reading taken under the SAME acceptance path (the live consumer,
+    ///    soc_should_trigger(), selects the norm via
+    ///    drives_classic_path() so its two readings always match). -1.0 means
+    ///    UNAVAILABLE (no rejection recorded, or the LANG variant ran); a real
+    ///    infeasibility is always >= 0, so treat any negative value as "skip
+    ///    theta-based logic", not as a feasible reading.
     bool accepted_ = false;
     int first_rejection_iter_ = -1;
     double theta_at_first_rejection_ = -1.0;
 
-    // Number of trial-point evaluations that threw during this iteration's
-    // acceptance attempts (line-search rungs, SOC/extended-backtrack trials,
-    // soft-feasibility trial). 0 on the overwhelmingly common no-exception
-    // path. Not printed in the iteration table. The `iters` vector alg_impl
-    // accumulates is solve-local, but InteriorPointSolver::LateCallBackType hands each
-    // completed IterateInfo (iters.back()) to a registered C++ callback once
-    // per iteration; no Python surface exposes it.
+    /// Trial-point evaluations that threw during this iteration's acceptance
+    /// attempts (line-search rungs, SOC/extended-backtrack trials,
+    /// soft-feasibility trial); 0 on the no-exception path. Not printed. Each
+    /// completed record is also handed once per iteration to a registered
+    /// late callback; no Python surface exposes it.
     int eval_exceptions_ = 0;
 };
 

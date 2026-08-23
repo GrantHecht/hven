@@ -28,9 +28,7 @@
 
 namespace hven::utils {
 
-// =============================================================================
-// Worker thread identification + per-dispatch synchronization
-// =============================================================================
+// Worker thread identification + per-dispatch synchronization.
 
 namespace detail {
 
@@ -129,10 +127,8 @@ struct DispatchContext {
 /// Returns true if the calling thread is a pool worker.
 inline bool is_pool_worker() noexcept { return detail::g_is_pool_worker; }
 
-// =============================================================================
-// task — SBO callable wrapper (move-only, 64-byte inline buffer)
-//
-// Replaces std::function<void()> as the task unit. Zero heap allocation for
+// task — SBO callable wrapper (move-only, 64-byte inline buffer), this
+// library's std::function<void()> replacement as the task unit. Zero heap allocation for
 // all of this library's dispatch closures (verified <= 64 bytes). The static_assert
 // fires at compile time if a closure exceeds the buffer.
 //
@@ -140,9 +136,8 @@ inline bool is_pool_worker() noexcept { return detail::g_is_pool_worker; }
 //   parallel_sequence wrapper: ~20 bytes (&func, &ctx, int i)
 //   parallel_blocks wrapper:   ~28 bytes (&func, &ctx, int start, int end)
 //   parallel_task wrapper:     ~24 bytes (captured lambda, &ctx)
-// Headroom: ~36 bytes. Sizes are compiler/ABI-dependent; the static_assert
-// in the constructor (line ~95) is the actual enforcement mechanism.
-// =============================================================================
+// Headroom: ~36 bytes. Sizes are compiler/ABI-dependent; the constructor's
+// static_assert is the actual enforcement mechanism.
 
 /// @internal
 /// @brief Move-only SBO callable wrapper used as the pool task unit.
@@ -231,8 +226,7 @@ class task {
     task &operator=(const task &) = delete;
 };
 
-// =============================================================================
-// WorkStealingQueue — per-worker task queue
+// WorkStealingQueue — per-worker task queue.
 //
 // Mutex-based work-stealing queue. Not lock-free — this library dispatches O(NumPartitions)
 // tasks per InteriorPointSolver iteration with ms-scale durations, so lock contention is negligible
@@ -240,9 +234,8 @@ class task {
 // were sub-microsecond, but would add complexity for no measurable benefit
 // at this library's task granularity.
 //
-// Owner pushes/pops from front (LIFO — cache locality).
-// Thieves steal from back (FIFO — older tasks, reduces contention with owner's LIFO pops).
-// =============================================================================
+// Owner pushes/pops from front (LIFO — cache locality);
+// thieves steal from back (FIFO — reduces contention with the owner's LIFO pops).
 
 /// @internal
 /// @brief Per-worker mutex-based work-stealing task queue used by `ThreadPool`.
