@@ -741,6 +741,87 @@ TEST(NlpAggregateEngineLayout, TheStructuralKeyIsTheSameBeforeAndAfterSparsityAn
     EXPECT_EQ(read_after_only->model_structure_key(), key_before);
 }
 
+TEST(NlpAggregateEngineLayout, ARelayIsFullyVisibleThroughASecondDeclarationRead) {
+    // The deferred state is dropped at the TOP of a re-lay, before any eager
+    // scalar is written, so there is no window in which the declaration carries
+    // new dimensions beside the previous lay's piece lists. Read it, change the
+    // pieces, re-lay, read it again: the second read agrees with the master
+    // lists AND with the laid scalars, and the key moved because the claim
+    // stream did.
+    auto nlp = agg_pin_build_small();
+
+    const hven::solvers::AggregateDeclaration &before = nlp->declaration();
+    const std::size_t equalities_before = before.equality_constraints_.size();
+    const auto key_before = nlp->model_structure_key();
+    ASSERT_GT(equalities_before, 0u);
+
+    nlp->equality_constraints_.push_back(nlp->equality_constraints_.front());
+    nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
+
+    const hven::solvers::AggregateDeclaration &after = nlp->declaration();
+    EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
+    EXPECT_EQ(after.equality_constraints_.size(), equalities_before + 1);
+    EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
+    EXPECT_EQ(after.inequality_constraints_.size(), nlp->inequality_constraints_.size());
+    EXPECT_EQ(after.primal_vars_, nlp->primal_vars_);
+    EXPECT_EQ(after.equality_rows_, nlp->equal_cons_);
+    EXPECT_NE(nlp->model_structure_key(), key_before);
+}
+
+TEST(NlpAggregateEngineLayout, MutatingTheMasterListsAfterALayIsRefusedByName) {
+    // The piece lists are copied at the first read after a lay rather than at
+    // the lay, so they have to still be the lists that were laid. A front end
+    // writes these members directly, so that is not automatic -- and the
+    // deferred copy is what makes the violation detectable at all.
+    auto nlp = agg_pin_build_small();
+    nlp->equality_constraints_.push_back(nlp->equality_constraints_.front());
+
+    EXPECT_THROW({ (void)nlp->declaration(); }, std::invalid_argument);
+
+    // And the refusal names the list and both counts rather than being a bare
+    // failure.
+    try {
+        (void)nlp->declaration();
+        FAIL() << "expected the mutated master list to be refused";
+    } catch (const std::invalid_argument &e) {
+        const std::string message = e.what();
+        EXPECT_NE(message.find("equality constraint"), std::string::npos) << message;
+        EXPECT_NE(message.find("make_nlp"), std::string::npos) << message;
+    }
+}
+
+TEST(NlpAggregateEngineLayout, AFailedRelayNeverLeavesAMixedDeclaration) {
+    // make_nlp mutates master state and can throw part-way -- here from a bound
+    // history whose intersection is empty, which the materializer refuses after
+    // the row discard has already run. Whatever it leaves behind, a later read
+    // must not be a declaration whose piece lists and whose laid counts
+    // disagree: either the read is refused, or it is whole.
+    auto nlp = agg_pin_build_small();
+    const auto key_before = nlp->model_structure_key();
+    const std::size_t equalities = nlp->equality_constraints_.size();
+
+    nlp->set_variable_bound(0, 0.0, 1.0);
+    nlp->set_variable_bound(0, 2.0, 3.0);
+    EXPECT_THROW(nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_),
+                 std::invalid_argument);
+
+    bool refused = false;
+    try {
+        const hven::solvers::AggregateDeclaration &after = nlp->declaration();
+        EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
+        EXPECT_EQ(after.equality_constraints_.size(), equalities);
+        EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
+    } catch (const std::invalid_argument &) {
+        refused = true;
+    }
+
+    // The key is readable either way, and is not a value invented by the
+    // failure: it is the pre-failure key, because nothing re-laid.
+    if (!refused) {
+        EXPECT_EQ(nlp->model_structure_key(), key_before);
+    }
+}
+
 TEST(NlpAggregateEngineLayout, TheEvaluationThreadCountDecidesNoPartOfTheLayout) {
     // Layout is a function of the declaration and the adopted partition count
     // alone. The evaluation thread budget is neither, so moving it must leave

@@ -101,9 +101,13 @@ constexpr void feed_dimensions(Fnv1a &hash, int primal_vars, int equality_rows,
     hash.feed_index(inequality_rows);
 }
 
-/// Feeds THE WHOLE CLAIM STREAM into a running accumulator, in claim order,
-/// after the dimension preamble: claim i is the pair (rows[i], cols[i]), and
-/// the pairs are fed interleaved.
+/// @brief Feeds THE WHOLE CLAIM STREAM into a running accumulator, in claim
+///        order, after the dimension preamble: claim i is the pair
+///        (rows[i], cols[i]), and the pairs are fed interleaved.
+/// @param hash   The accumulator, already carrying the dimension preamble.
+/// @param rows   The claim rows, in claim order.
+/// @param cols   The claim columns, in claim order.
+/// @param count  How many claims the stream carries.
 ///
 /// The claim-structure digest hashes the DECLARED (row, column) claim stream
 /// rather than the assembled pattern: the stream is available at layout time
@@ -116,7 +120,8 @@ constexpr void feed_dimensions(Fnv1a &hash, int primal_vars, int equality_rows,
 /// Fed as ONE PASS OVER THE TWO CONTIGUOUS ARRAYS rather than a call per claim:
 /// the stream is the same stream, so the value is the same value, and the
 /// arrays a claim arena already holds are read as arrays.
-inline void feed_claims(Fnv1a &hash, const int *rows, const int *cols, std::size_t count) noexcept {
+constexpr void feed_claims(Fnv1a &hash, const int *rows, const int *cols,
+                           std::size_t count) noexcept {
     hash.feed_index_pairs(rows, cols, count);
 }
 

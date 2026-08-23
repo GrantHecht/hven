@@ -124,17 +124,21 @@ struct Fnv1a {
         }
     }
 
-    // Feeds a stream of index PAIRS -- first[i] then second[i], for each i in
-    // order -- from two CONTIGUOUS arrays in one pass.
-    //
-    // Exactly the stream `feed_index(first[i]); feed_index(second[i]);` would
-    // produce, and the same value; what it removes is the per-element call
-    // through whatever accessor the caller holds the two halves in. A digest
-    // over an interleaved pair stream is otherwise the one shape a caller
-    // cannot express as two bulk feeds -- feeding one whole array and then the
-    // other is a DIFFERENT stream -- so it gets an entry of its own rather than
-    // an assemble-it-yourself loop at each call site.
-    void feed_index_pairs(const int *first, const int *second, std::size_t count) noexcept {
+    /// @brief Feeds a stream of index PAIRS -- first[i] then second[i], for
+    ///        each i in order -- from two CONTIGUOUS arrays in one pass.
+    /// @param first   The first half of each pair, `count` entries.
+    /// @param second  The second half of each pair, `count` entries.
+    /// @param count   How many pairs to feed.
+    ///
+    /// Exactly the stream `feed_index(first[i]); feed_index(second[i]);` would
+    /// produce, and the same value; what it removes is the per-element call
+    /// through whatever accessor the caller holds the two halves in. A digest
+    /// over an interleaved pair stream is otherwise the one shape a caller
+    /// cannot express as two bulk feeds -- feeding one whole array and then the
+    /// other is a DIFFERENT stream -- so it gets an entry of its own rather than
+    /// an assemble-it-yourself loop at each call site.
+    constexpr void feed_index_pairs(const int *first, const int *second,
+                                    std::size_t count) noexcept {
         for (std::size_t i = 0; i < count; ++i) {
             feed_index(first[i]);
             feed_index(second[i]);

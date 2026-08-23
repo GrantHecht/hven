@@ -21,6 +21,17 @@
 #include "hven/model/non_linear_program.h"
 
 void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
+    // FIRST, before anything below mutates a master list or can throw. The
+    // discard just below truncates equality_constraints_, the invariant check
+    // after it throws, and the bound materialization further down throws on an
+    // empty intersection -- so every one of those can leave this call part-way
+    // through with the master lists already moved. Invalidating here is what
+    // makes that survivable: whatever a failed transcription leaves behind, the
+    // deferred state is marked owing rather than describing a layout that no
+    // longer exists, and the size guard in materialize_declaration_pieces()
+    // catches the case where the lists moved under it.
+    this->invalidate_laid_state();
+
     // A previous configuration's internal fixing rows describe the bounds as they
     // were then, and this call re-materializes those bounds from scratch -- so the
     // rows go first, and the next configure_variable_treatment call derives its
@@ -89,6 +100,14 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // exit that does not re-lay (the identity path, which changed nothing) and
     // the one restore path that does not (a classification-stage rejection at
     // an NLP that was never reduced) correctly do not bump.
+    //
+    // INVALIDATION FIRST, before the eager scalars are written and before a
+    // single array is touched -- see invalidate_laid_state() for the two
+    // failure modes that ordering shuts. It is idempotent, so the make_nlp
+    // path calling it once more here costs four flag writes and three clears
+    // of already-empty vectors.
+    this->invalidate_laid_state();
+
     this->capture_laid_dimensions();
 
     this->set_mat_dimensions();
@@ -108,17 +127,6 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     this->analyzed_kkt_values_ = nullptr;
     this->analyzed_kkt_matrix_ = nullptr;
 
-    // The parts of the laid state that are DERIVED -- the declaration's piece
-    // lists and bound records, and the two digests -- are dropped here rather
-    // than recomputed. Each is a pure function of state this routine has just
-    // replaced, each costs work proportional to the problem, and each has
-    // consumers that never read it: a solve that never asks about structural
-    // identity should not pay for a digest of one. Dropping them immediately
-    // before the epoch bump is what keeps the ordering guarantee intact for
-    // them too -- nothing can read one that describes the previous layout under
-    // the new epoch.
-    this->invalidate_laid_state();
-
     // LAST, and that program order is the substance of the ordering guarantee:
     // no evaluation of these structures is reachable under the previous epoch.
     this->bump_structure_epoch();
@@ -129,6 +137,12 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     this->declaration_.equality_rows_ = this->equal_cons_;
     this->declaration_.inequality_rows_ = this->inequal_cons_;
     this->declaration_.partition_count_ = this->num_partitions_;
+
+    // The sizes the deferred piece copy will be checked against. Captured here,
+    // with the other scalars, because here is where "as laid" is decided.
+    this->laid_objective_pieces_ = static_cast<int>(this->objectives_.size());
+    this->laid_equality_pieces_ = static_cast<int>(this->equality_constraints_.size());
+    this->laid_inequality_pieces_ = static_cast<int>(this->inequality_constraints_.size());
 
     // The equality row count is the row space AS LAID, so it counts whatever
     // internal fixing rows the MakeConstraint treatment currently has
@@ -143,6 +157,19 @@ void hven::solvers::NonLinearProgram::invalidate_laid_state() {
     this->declaration_pieces_pending_ = true;
     this->claim_digest_pending_ = true;
     this->bound_digest_pending_ = true;
+
+    // DROPPED, not merely marked. The flags alone would be enough for every
+    // read that goes through an accessor, which is every read the interface
+    // offers; clearing is what makes the state a consumer could still be
+    // holding a reference to EMPTY rather than stale, so a retained reference
+    // cannot be mistaken for a live one. clear() keeps the capacity, so the
+    // next materialization refills the same buffers.
+    this->declaration_.objectives_.clear();
+    this->declaration_.equality_constraints_.clear();
+    this->declaration_.inequality_constraints_.clear();
+    this->declaration_.variable_bounds_.clear();
+    this->claim_digest_ = 0;
+    this->bound_digest_ = 0;
 }
 
 void hven::solvers::NonLinearProgram::materialize_declaration_bounds() const {
@@ -168,6 +195,26 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     if (!this->declaration_pieces_pending_) {
         return;
     }
+
+    // The lists are read HERE rather than at the lay, so they must still be the
+    // lists that were laid. A front end writes these three members directly, so
+    // "still" is not automatic: a piece added or dropped since the lay would be
+    // copied into a declaration whose claim arrays, digest and row counts all
+    // describe the list as it was. Refused by name rather than served.
+    const auto check = [](const char *which, std::size_t have, int laid) {
+        if (static_cast<std::size_t>(laid) != have) {
+            throw std::invalid_argument(fmt::format(
+                "NonLinearProgram::declaration: the {0} list holds {1} pieces but the layout was "
+                "laid over {2} -- the master lists were mutated after the last lay, and the claim "
+                "arrays, the claim digest and the row counts all describe the list as it was laid; "
+                "re-lay (make_nlp) before reading the declaration",
+                which, have, laid));
+        }
+    };
+    check("objective", this->objectives_.size(), this->laid_objective_pieces_);
+    check("equality constraint", this->equality_constraints_.size(), this->laid_equality_pieces_);
+    check("inequality constraint", this->inequality_constraints_.size(),
+          this->laid_inequality_pieces_);
 
     this->declaration_.objectives_ = this->objectives_;
     this->declaration_.equality_constraints_ = this->equality_constraints_;
