@@ -101,6 +101,26 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AggregateDeclaration dec
     // epoch all untouched, with nothing owing.
     declaration.validate();
 
+    // The declaration type's piece-sum conjunct is conditional on there being
+    // pieces at all -- a provider that is not a piece collection declares none,
+    // and there is then no sum for its row counts to disagree with. THIS ENTRY
+    // is a piece-laying one: it takes the declared counts straight into the
+    // layout, so a declaration with rows and no pieces would lay a row space
+    // nothing claims, and the defect would surface much later as a structurally
+    // singular factorization with nothing pointing back here. Refused before
+    // anything moves.
+    const bool has_pieces = !declaration.objectives_.empty() ||
+                            !declaration.equality_constraints_.empty() ||
+                            !declaration.inequality_constraints_.empty();
+    if (!has_pieces && (declaration.equality_rows_ != 0 || declaration.inequality_rows_ != 0)) {
+        throw std::invalid_argument(fmt::format(
+            "NonLinearProgram::adopt_declaration: the declaration carries no pieces but declares "
+            "{0} equality and {1} inequality rows; this entry lays a problem out of its pieces, so "
+            "those rows would be laid with nothing to claim or evaluate them. A declaration from a "
+            "provider that is not a piece collection is not adoptable here",
+            declaration.equality_rows_, declaration.inequality_rows_));
+    }
+
     const int fixing_rows = declaration.fixing_rows_;
     const int user_equality_rows = declaration.equality_rows_ - fixing_rows;
 
@@ -118,6 +138,30 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AggregateDeclaration dec
         const std::size_t first = declared.size() - static_cast<std::size_t>(fixing_rows);
         internal_rows.reserve(static_cast<std::size_t>(fixing_rows));
         for (std::size_t k = first; k < declared.size(); k++) {
+            // WHERE each lifted row writes, checked against the band the
+            // internal rows occupy. The count itself is trusted (see the field's
+            // own note), but the rows it names are not: a declaration whose
+            // dimensions were edited would otherwise splice these pieces back
+            // over user rows, or past the end of the row space, and scatter into
+            // constraint rows that belong to something else.
+            const auto &constraint_index = declared[k].index_data_.get_c_index();
+            if (constraint_index.size() != 1) {
+                throw std::invalid_argument(fmt::format(
+                    "NonLinearProgram::adopt_declaration: declared internal fixing row {0} names "
+                    "{1} constraint rows; a fixing row writes exactly one",
+                    k, constraint_index.size()));
+            }
+            const int constraint_row = constraint_index(0, 0);
+            if (constraint_row < user_equality_rows ||
+                constraint_row >= declaration.equality_rows_) {
+                throw std::invalid_argument(fmt::format(
+                    "NonLinearProgram::adopt_declaration: declared internal fixing row {0} writes "
+                    "equality row {1}, outside the [{2}, {3}) band the declaration's {4} fixing "
+                    "rows occupy; a treatment appends its rows after every row a transcription "
+                    "declared",
+                    k, constraint_row, user_equality_rows, declaration.equality_rows_,
+                    fixing_rows));
+            }
             internal_rows.push_back(std::move(declared[k]));
         }
         declared.resize(first);

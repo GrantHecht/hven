@@ -285,7 +285,10 @@ struct NonLinearProgram : public NlpAggregate {
     ///   2. the three piece lists move in, each piece taking its declared
     ///      thread mode.
     ///   3. the staged bounds are cleared, then the declared records are
-    ///      replayed through set_variable_bound() in DECLARATION ORDER.
+    ///      replayed through set_variable_bound() in DECLARATION ORDER. A record
+    ///      that is unbounded on both sides narrows nothing and is dropped
+    ///      there, so the replayed list is the declared one less those; the
+    ///      merged bounds, and therefore the key, are the same either way.
     ///   4. the partition count becomes the declared one -- a request the lay's
     ///      cap may reduce; declaration() reports the adopted count.
     ///   5. the layout runs, from the declared counts less
@@ -300,9 +303,11 @@ struct NonLinearProgram : public NlpAggregate {
     ///
     /// What does NOT come back is the CLASSIFICATION those rows were derived
     /// from: the adopting problem reports the fixing rows through
-    /// internal_fixed_constraints() while fixed_variable_indices() is still
-    /// empty, until the next configure_variable_treatment discards them and
-    /// re-derives its own from the replayed bounds.
+    /// internal_fixed_constraints() while fixed_variable_indices() is
+    /// UNCHANGED -- empty on a target that never configured a treatment, and
+    /// otherwise still whatever its last one recorded -- until the next
+    /// configure_variable_treatment discards the rows and re-derives both from
+    /// the replayed bounds.
     ///
     /// EVERY REFUSAL IS THE DECLARATION'S OWN, and is made before anything
     /// moves: a refused adoption leaves the problem on hand exactly as it was,

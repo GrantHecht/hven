@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 
@@ -35,12 +36,24 @@ AggregateDeclaration &AggregateDeclaration::operator=(AggregateDeclaration &&) n
 namespace {
 
 /// Rows the pieces of one block claim, summed over the block.
-int declared_rows(const std::vector<ConstraintFunction> &pieces) {
-    int rows = 0;
+///
+/// Accumulated at 64 bits and narrowed once, checked. Unreachable in any
+/// problem this engine can lay, and checked for the reason the laid piece
+/// counts are: an unchecked narrowing would wrap into a total that the
+/// row-count comparison below then accepts, turning an impossible input into a
+/// wrong answer instead of a refusal.
+int declared_rows(const std::vector<ConstraintFunction> &pieces, const char *which) {
+    std::int64_t rows = 0;
     for (const auto &piece : pieces) {
         rows += piece.num_con_eles();
     }
-    return rows;
+    if (rows > static_cast<std::int64_t>(std::numeric_limits<int>::max())) {
+        throw std::invalid_argument(
+            fmt::format("AggregateDeclaration: the {0} pieces claim {1} rows in total, past the "
+                        "{2} a declaration can state",
+                        which, rows, std::numeric_limits<int>::max()));
+    }
+    return static_cast<int>(rows);
 }
 
 void require_non_negative(int value, const char *what) {
@@ -123,7 +136,14 @@ void AggregateDeclaration::validate() const {
     // Per PIECE rather than over the tail sum: a tail of a zero-row piece
     // beside a two-row piece sums correctly and is still not the shape.
     if (fixing_rows_ > 0) {
-        const int pieces = static_cast<int>(equality_constraints_.size());
+        const std::size_t piece_count = equality_constraints_.size();
+        if (piece_count > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+            throw std::invalid_argument(
+                fmt::format("AggregateDeclaration: the equality list holds {0} pieces, past the "
+                            "{1} a declaration can index",
+                            piece_count, std::numeric_limits<int>::max()));
+        }
+        const int pieces = static_cast<int>(piece_count);
         if (pieces < fixing_rows_) {
             throw std::invalid_argument(fmt::format(
                 "AggregateDeclaration: {0} of the declared equality rows are internal fixing "
@@ -161,7 +181,7 @@ void AggregateDeclaration::validate() const {
     const bool has_pieces =
         !objectives_.empty() || !equality_constraints_.empty() || !inequality_constraints_.empty();
     if (has_pieces) {
-        const int equality_claimed = declared_rows(equality_constraints_);
+        const int equality_claimed = declared_rows(equality_constraints_, "equality");
         if (equality_claimed != equality_rows_) {
             throw std::invalid_argument(fmt::format(
                 "AggregateDeclaration: the equality pieces claim {0} rows in total, but the "
@@ -169,7 +189,7 @@ void AggregateDeclaration::validate() const {
                 equality_claimed, equality_rows_));
         }
 
-        const int inequality_claimed = declared_rows(inequality_constraints_);
+        const int inequality_claimed = declared_rows(inequality_constraints_, "inequality");
         if (inequality_claimed != inequality_rows_) {
             throw std::invalid_argument(fmt::format(
                 "AggregateDeclaration: the inequality pieces claim {0} rows in total, but the "

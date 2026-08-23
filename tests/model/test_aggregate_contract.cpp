@@ -1545,6 +1545,91 @@ TEST(AdoptDeclaration, AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain) {
     EXPECT_NO_THROW(again.equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread));
 }
 
+TEST(AdoptDeclaration, RefusesADeclarationWithRowsAndNoPiecesToClaimThem) {
+    auto target = adopt_build(adopt_default_modes(), 8, false);
+    const ModelStructureKey before_key = target->model_structure_key();
+
+    // What a provider that is not a piece collection declares: dimensions with
+    // no pieces behind them. The declaration TYPE accepts it -- its piece-sum
+    // conjunct has no sum to check -- and this entry must not, because it lays
+    // the problem out of the pieces.
+    AggregateDeclaration piece_less;
+    piece_less.primal_vars_ = 4;
+    piece_less.equality_rows_ = 2;
+    piece_less.inequality_rows_ = 1;
+    EXPECT_NO_THROW(piece_less.validate());
+
+    try {
+        target->adopt_declaration(piece_less);
+        FAIL() << "a declaration with rows and no pieces must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("adopt_declaration"), std::string::npos) << message;
+        EXPECT_NE(message.find("no pieces"), std::string::npos) << message;
+    }
+    EXPECT_EQ(target->model_structure_key(), before_key);
+
+    // Rows and pieces both absent is a different thing and is adoptable: there
+    // is nothing to claim and nothing claiming it.
+    AggregateDeclaration empty;
+    empty.primal_vars_ = 4;
+    EXPECT_NO_THROW(target->adopt_declaration(empty));
+}
+
+TEST(AdoptDeclaration, RefusesAFixingRowThatWritesOutsideTheInternalBand) {
+    auto target = adopt_build(adopt_default_modes(), 8, false);
+    const AggregateDeclaration before_declaration = target->declaration();
+    const ModelStructureKey before_key = target->model_structure_key();
+
+    // A tail piece of exactly the shape a fixing row has -- one piece, one row
+    // -- but writing a row the transcription declared. The declared count is
+    // trusted, so the shape check cannot tell this from a real fixing row; the
+    // row it writes can.
+    AggregateDeclaration mislabelled = before_declaration;
+    mislabelled.equality_constraints_.push_back(hven::solvers::make_fixed_variable_row(0, 0.0, 0));
+    mislabelled.equality_rows_ = kAdoptRows + 1;
+    mislabelled.fixing_rows_ = 1;
+    EXPECT_NO_THROW(mislabelled.validate());
+
+    try {
+        target->adopt_declaration(mislabelled);
+        FAIL() << "a declared fixing row writing a user row must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("adopt_declaration"), std::string::npos) << message;
+        EXPECT_NE(message.find("band"), std::string::npos) << message;
+    }
+
+    adopt_expect_same_declaration(target->declaration(), before_declaration);
+    EXPECT_EQ(target->model_structure_key(), before_key);
+}
+
+TEST(AdoptDeclaration, TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried) {
+    auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
+    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    ASSERT_EQ(source->internal_fixed_constraints(), 1);
+
+    NonLinearProgram adopted(1);
+    adopted.adopt_declaration(source->declaration());
+    ASSERT_EQ(adopted.internal_fixed_constraints(), 1);
+    const std::size_t equality_pieces = adopted.equality_constraints_.size();
+
+    // The rows came across; the classification they were derived from did not.
+    EXPECT_EQ(adopted.fixed_variable_indices().size(), 0);
+
+    // The next configuration discards them and derives its own from the bounds
+    // the adoption replayed -- landing on the same row space, with the user
+    // pieces untouched.
+    EXPECT_TRUE(adopted.configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    EXPECT_EQ(adopted.internal_fixed_constraints(), 1);
+    ASSERT_EQ(adopted.fixed_variable_indices().size(), 1);
+    EXPECT_EQ(adopted.fixed_variable_indices()[0], 7);
+    EXPECT_EQ(adopted.equality_constraints_.size(), equality_pieces);
+    EXPECT_EQ(adopted.user_equal_cons_, kAdoptRows);
+    EXPECT_EQ(adopted.equal_cons_, source->equal_cons_);
+    EXPECT_EQ(adopted.model_structure_key(), source->model_structure_key());
+}
+
 TEST(AdoptDeclaration, TheLayMarkerEntriesAreNotReachableFromOutsideTheLay) {
     // The substance is in the static_asserts beside adopt_default_modes(); this
     // case exists so a regression in them is reported as a named failure rather

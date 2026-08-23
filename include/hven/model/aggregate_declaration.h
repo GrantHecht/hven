@@ -159,6 +159,12 @@ struct AggregateDeclaration {
     /// equality_constraints_ -- the shape a fixed-variable treatment appends,
     /// and the shape validate() holds this count to, so a consumer may split
     /// the tail off by piece count alone.
+    ///
+    /// TRUSTED. The count is the treatment's own bookkeeping and is not
+    /// derivable from the tail: the piece type is erased, and a user constraint
+    /// over a single application has the shape validate() checks for. A
+    /// declaration that labels user pieces as fixing rows is accepted here and
+    /// loses them at the next treatment, which discards what this count claims.
     int fixing_rows_ = 0;
 
     /// Requested partition count; the adopted count is returned by
