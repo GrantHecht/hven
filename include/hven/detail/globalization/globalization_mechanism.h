@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Part of the globalization component extraction: this interface is the
 // backtracking line search (classic) with recovery-dispatch hooks. A
 // trust-region mechanism was investigated as an alternative implementation

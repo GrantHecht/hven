@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // ledger.cpp -- the instrumentation ledger's three REPORTING functions,
 // carved out of hven/core/ledger.h.
 //

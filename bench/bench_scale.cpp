@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // bench/bench_scale.cpp — PHASE-5 TASK 2: the bench harness and wall-time
 // instrumentation, the measurement instrument the rest of Phase 5 (Tasks 3,
 // 4, 5, 9) reads. This is NOT a new algorithm: every number it reports comes

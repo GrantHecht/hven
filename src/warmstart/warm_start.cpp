@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // warm_start.cpp -- the interior-point crossover's ingest orchestration,
 // `from_interior_point`, carved out of detail/warmstart/warm_start.h.
 //

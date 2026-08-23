@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The NlpModel bridge: the contract's second provider.
 //
 // What is pinned here, in the order the file runs: the declaration the bridge

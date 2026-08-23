@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // funnel.cpp -- FunnelStrategy's state machine (KLV Algorithm 2, optimality
 // phase), carved out of the class body in
 // include/hven/detail/globalization/sqp/globalization.h.

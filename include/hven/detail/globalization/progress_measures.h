@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Part of the globalization component extraction: InteriorPointSolver's step-acceptance,
 // step-length, and barrier-parameter logic is being pulled out of the
 // monolithic solver into standalone components under this directory.

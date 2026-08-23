@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Part of the globalization component extraction: this header declares
 // SolverContext, a references-only aggregate that bundles the persistent
 // InteriorPointSolver state the globalization components need to read (and, for a few

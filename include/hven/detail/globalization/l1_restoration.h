@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // NestedL1Restoration — a RestorationStrategy that solves the l1 elastic
 // feasibility reformulation as a CONDENSED in-place phase, reusing the outer
 // barrier algorithm's KKT system rather than spinning up a separate nested

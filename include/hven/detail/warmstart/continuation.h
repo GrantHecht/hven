@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #pragma once
 
 // continuation.h — PHASE-4 TASK 10: THE CONTINUATION DRIVER, the sweep loop

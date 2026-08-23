@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Part of the globalization component extraction: definitions for
 // ClassicMeritAcceptance. The classic_line_search dispatcher and the
 // ls_lang / ls_l1 / ls_auglang merit variants plus their

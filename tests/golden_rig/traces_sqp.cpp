@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The SQP half of the trace set: T1-T8 plus T2b and T4b, each pinning one
 // clause of the interface contract the SQP engine's migration has to
 // reproduce.

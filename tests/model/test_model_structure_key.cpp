@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // ModelStructureKey: its equality, its folded digest, its partition-count
 // conjunct, and the two digest streams it is composed from -- the declared
 // claim stream, opened by its dimension preamble, and the MATERIALIZED

@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #pragma once
 
 // mesh_transfer.h — MeshTransfer: mapping a WarmStart (warm_start.h) from one

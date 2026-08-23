@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_corpus_cells.cpp — PHASE-7 TASK 1: the replay corpus's own
 // correctness gate. Shares bench/corpus_cells.h's implementation with
 // bench/bench_corpus.cpp rather than duplicating it (the SNOPT-gate

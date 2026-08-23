@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_funnel.cpp — Task 5: the KLV funnel acceptance test, in
 // ISOLATION (no driver, no NLP, no QP). Every fixture is a scripted
 // StepContext sequence whose expected verdict is HAND-DERIVED from the

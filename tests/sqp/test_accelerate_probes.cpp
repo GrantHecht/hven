@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Accelerate-backend audit probes (macOS only) — the measurement instruments
 // for docs/notes/2026-07-28-accelerate-audit-checklist.md sections (c) and
 // (e), reported in docs/notes/2026-07-29-accelerate-audit-results.md.

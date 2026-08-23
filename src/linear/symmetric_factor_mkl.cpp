@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The MKL Pardiso backend for SymmetricFactor / Factorization. Compiled on
 // the platforms whose sparse backend is MKL (see src/CMakeLists.txt); the
 // Apple Accelerate backend implements the same header in its own TU.

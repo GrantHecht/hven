@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Fault-injection coverage for backend paths no real fixture can provoke --
 // see docs/testing.md for the seam design and why it is shaped this way.
 // This file is compiled ONLY into the standalone hven_fault_injection_tests

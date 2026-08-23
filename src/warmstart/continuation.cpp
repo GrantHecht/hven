@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // continuation.cpp -- the continuation driver, `run_continuation`, and the
 // input validation it runs first, `continuation_detail::validate`, carved out
 // of detail/warmstart/continuation.h.

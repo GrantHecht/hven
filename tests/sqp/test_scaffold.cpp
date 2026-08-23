@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Scaffold smoke test: proves the toolchain matches the tycho incorporation
 // target — vendored Eigen + fmt compile, and the platform sparse backend
 // (MKL Pardiso / Apple Accelerate) links and factorizes through Eigen's

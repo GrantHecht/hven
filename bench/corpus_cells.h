@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #pragma once
 
 // bench/corpus_cells.h — PHASE-7 TASK 1: the replay corpus's cell table and

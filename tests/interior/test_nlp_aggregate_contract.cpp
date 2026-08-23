@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The partitioned evaluation engine AS a Level 2 provider.
 //
 // tests/model/ pins what the contract guarantees with no engine behind it, and

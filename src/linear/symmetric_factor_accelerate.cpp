@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The Apple Accelerate backend for SymmetricFactor / Factorization. Compiled
 // on the platforms whose sparse backend is Accelerate (see
 // src/CMakeLists.txt); MKL Pardiso implements the same header in its own TU

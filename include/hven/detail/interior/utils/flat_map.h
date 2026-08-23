@@ -1,7 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Minimal flat map backed by std::vector<std::pair<Key, Value>>.
 // Memcpy-relocatable (safe for TypeStorage SBO memcpy-move):
 // only member is std::vector (stores {pointer, size, capacity},

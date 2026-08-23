@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // hven_sqp_ssn_safeguard_probe -- the reproduction vehicle for
 // docs/notes/2026-08-07-ssn-safeguards.md (Phase-7 Task 4, review fix round 1,
 // finding I5; Fable review F1/F3).

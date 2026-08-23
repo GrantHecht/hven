@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // sqp_driver.cpp — SqpDriver's major loop, and everything the loop
 // orchestrates.
 //

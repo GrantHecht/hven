@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // MonitoredBarrierGovernor — a free<->monotone barrier-parameter governor. In
 // FREE mode it delegates the barrier update to a composed BarrierGovernor (by
 // default a ClassicAdaptiveGovernor running the PROBE/LOQO oracles unchanged).

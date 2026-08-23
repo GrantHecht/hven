@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // FilterAcceptance — the concrete Wächter–Biegler (θ, φ)-pair FILTER strategy
 // on the shared switching skeleton (SwitchingAcceptance). Where the funnel
 // companion collapses the acceptance history into ONE scalar width, the filter

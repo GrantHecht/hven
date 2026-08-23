@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Part of the globalization component extraction: RecoveryChain provides an
 // ordered dispatch on step rejection (second-order correction -> extended
 // backtracking -> watchdog revert -> feasibility switch); this file supplies

@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // SocRecovery — the first live RecoveryChain link: an opt-in second-order
 // correction (SOC) applied after the line search rejects a step on its very
 // first trial. The mechanics follow Wächter & Biegler, "On the implementation

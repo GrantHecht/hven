@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // FeasibilitySwitchRecovery — the outermost RecoveryChain link that converts a
 // ladder-exhausted step rejection into a feasibility-restoration mode-switch.
 // It is built (by rebuild_globalization_components) whenever a restoration

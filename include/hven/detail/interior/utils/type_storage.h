@@ -1,7 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // General-purpose SBO container with value semantics. Replaces
 // rubber_types::TypeErasure as the storage behind this library's erased
 // function handles — ConstraintInterface and ObjectiveInterface (see

@@ -1,7 +1,5 @@
-// =============================================================================
-// New file in hven (Copyright 2026-present Grant R. Hecht, Apache 2.0 — see
-//   LICENSE.txt)
-// =============================================================================
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
 
 // The consumer-side binding's claim pass and its evaluation moments. The
 // contract text it implements against is model/nlp_aggregate.h; the moments it

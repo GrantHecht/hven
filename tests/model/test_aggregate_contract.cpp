@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The rest of the contract surface: the piece concepts, the declaration's
 // boundary validation and bound materialization, the published location tables,
 // the scatter views, and the rules a request carries -- only the eight mapped

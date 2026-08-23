@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_snopt_bridge_gate.cpp — PHASE-6 TASK 0. THE REFEREE GATE for the
 // SNOPT bridge.
 //

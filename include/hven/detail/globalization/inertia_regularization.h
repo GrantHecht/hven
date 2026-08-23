@@ -1,8 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Proximal primal-dual KKT regularization — constants and pure-logic helpers
 // for the `proximal_regularization` inertia mode (InteriorPointSolver::Settings::
 // inertia_mode_). This is an alternative to the classic on-demand inertia

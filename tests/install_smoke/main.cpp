@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Standalone install-tree smoke consumer for hven's install/export rules.
 // Not part of hven's own build (see this directory's CMakeLists.txt) --
 // built against an *installed* hven package via find_package(hven), the

@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // test_qp_engine_indefinite.cpp — INDEFINITE-H coverage of the QP engine
 // (qp_engine.h section 4b: the inertia gate and the temporary-vertex start
 // repair; section 4c: the negative-curvature ride after a drop).

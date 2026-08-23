@@ -1,7 +1,6 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-//
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // Classification products for primal variable bounds: the set of finite bounds
 // the solver must keep barrier terms for, and the dual state that will be
 // attached to them.
