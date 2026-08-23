@@ -1,5 +1,5 @@
-# filtered nm (layout leg): symbols matching the model/provider/engine families
-# base symbols 345   head symbols 348   changed-or-new 29
+# filtered nm (layout leg): symbols matching the model/provider/piece/engine families
+# base symbols 345   head symbols 350   changed-or-new 31
 
 0x1f4 -> 0x201   _ZSt12construct_atIN4hven7solvers17ObjectiveFunctionEJS2_EQaant20is_unbounded_array_vIT_ErqXgsnwcvPvLi0E_S3_pispclsr3stdE7declvalIT0_EEEEEPS3_S6_DpOS5_
 0x1f4 -> 0x201   _ZSt12construct_atIN4hven7solvers18ConstraintFunctionEJS2_EQaant20is_unbounded_array_vIT_ErqXgsnwcvPvLi0E_S3_pispclsr3stdE7declvalIT0_EEEEEPS3_S6_DpOS5_
@@ -8,17 +8,19 @@
 0x88 -> 0x8e   hven::solvers::AggregateDeclaration::AggregateDeclaration(hven::solvers::AggregateDeclaration&&)
 0x4f -> 0x56   hven::solvers::AggregateDeclaration::operator=(hven::solvers::AggregateDeclaration const&)
 0x24b -> 0x252   hven::solvers::AggregateDeclaration::operator=(hven::solvers::AggregateDeclaration&&)
-0x38b -> 0x419   hven::solvers::AggregateDeclaration::validate() const
+0x38b -> 0x56b   hven::solvers::AggregateDeclaration::validate() const
 0x140 -> 0x14c   hven::solvers::ConstraintFunction* std::vector<hven::solvers::ConstraintFunction, std::allocator<hven::solvers::ConstraintFunction> >::_M_allocate_and_copy<__gnu_cxx::__normal_iterator<hven::solvers::ConstraintFunction const*, std::vector<hven::solvers::ConstraintFunction, std::allocator<hven::solvers::ConstraintFunction> > > >(unsigned long, __gnu_cxx::__normal_iterator<hven::solvers::ConstraintFunction const*, std::vector<hven::solvers::ConstraintFunction, std::allocator<hven::solvers::ConstraintFunction> > >, __gnu_cxx::__normal_iterator<hven::solvers::ConstraintFunction const*, std::vector<hven::solvers::ConstraintFunction, std::allocator<hven::solvers::ConstraintFunction> > >)
 0x33a -> 0x341   hven::solvers::ConstraintFunction::ConstraintFunction(hven::solvers::ConstraintInterface const&, Eigen::Matrix<int, -1, -1, 0, -1, -1> const&, Eigen::Matrix<int, -1, -1, 0, -1, -1> const&)
 0x9b7 -> 0xa07   hven::solvers::ConstraintFunction::thread_split(int) const
-- -> 0x743   hven::solvers::NonLinearProgram::adopt_declaration(hven::solvers::AggregateDeclaration)
+- -> 0x60c   hven::solvers::NonLinearProgram::adopt_declaration(hven::solvers::AggregateDeclaration)
 0x61c -> 0x68b   hven::solvers::NonLinearProgram::analyze_partitioning()
-0x250 -> 0x2d7   hven::solvers::NonLinearProgram::capture_laid_dimensions()
+0x250 -> 0x266   hven::solvers::NonLinearProgram::capture_laid_dimensions()
 0x5d -> 0xf5   hven::solvers::NonLinearProgram::declaration() const
-0x4db -> 0x4eb   hven::solvers::NonLinearProgram::install_fixed_variable_rows()
+- -> 0x146   hven::solvers::NonLinearProgram::freeze_laid_thread_modes()
+0x4db -> 0x4e5   hven::solvers::NonLinearProgram::install_fixed_variable_rows()
 0x49 -> 0xdb   hven::solvers::NonLinearProgram::materialize_declaration_pieces() const
 - -> 0x222   hven::solvers::NonLinearProgram::set_variable_bound(int, double, double)
+- -> 0xf3   hven::solvers::NonLinearProgram::splice_fixed_variable_rows(std::vector<hven::solvers::ConstraintFunction, std::allocator<hven::solvers::ConstraintFunction> >)
 0x140 -> 0x14c   hven::solvers::ObjectiveFunction* std::vector<hven::solvers::ObjectiveFunction, std::allocator<hven::solvers::ObjectiveFunction> >::_M_allocate_and_copy<__gnu_cxx::__normal_iterator<hven::solvers::ObjectiveFunction const*, std::vector<hven::solvers::ObjectiveFunction, std::allocator<hven::solvers::ObjectiveFunction> > > >(unsigned long, __gnu_cxx::__normal_iterator<hven::solvers::ObjectiveFunction const*, std::vector<hven::solvers::ObjectiveFunction, std::allocator<hven::solvers::ObjectiveFunction> > >, __gnu_cxx::__normal_iterator<hven::solvers::ObjectiveFunction const*, std::vector<hven::solvers::ObjectiveFunction, std::allocator<hven::solvers::ObjectiveFunction> > >)
 0x2fd -> 0x304   hven::solvers::ObjectiveFunction::ObjectiveFunction(hven::solvers::ObjectiveInterface const&, Eigen::Matrix<int, -1, -1, 0, -1, -1> const&)
 0x9b7 -> 0xa07   hven::solvers::ObjectiveFunction::thread_split(int) const
