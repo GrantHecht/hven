@@ -98,6 +98,27 @@ TEST(NLPSolverTest, Hs071ConvergesToKnownOptimum) {
     EXPECT_LT((x - expect).lpNorm<Eigen::Infinity>(), 1e-5);
 }
 
+// SolveResult::bound_lmults_ pin: HS071's x[0] sits exactly on its active
+// lower bound (xl[0] == 1.0 == x*[0]) at the known optimum above, and the
+// other three variables are strictly interior. The exposed z must therefore
+// be the right dimension (one entry per solver primal, since HS071 has no
+// eliminated variables) and follow the sign convention nlp_model.h pins:
+// >= 0 at an active lower bound, ~0 when free.
+TEST(NLPSolverTest, Hs071BoundDualsMatchActiveLowerBound) {
+    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+
+    const Eigen::VectorXd &z = solver.optimizer_->result().bound_lmults_;
+    ASSERT_EQ(z.size(), 4);
+    EXPECT_GT(z[0], 1e-6);        // active lower bound: z >= 0, and strictly so here
+    EXPECT_NEAR(z[1], 0.0, 1e-6); // free
+    EXPECT_NEAR(z[2], 0.0, 1e-6); // free
+    EXPECT_NEAR(z[3], 0.0, 1e-6); // free
+}
+
 // Unconstrained Rosenbrock: exercises the objective-owned Hessian path (no
 // constraint rows at all).
 struct RosenbrockProblem : NLPProblem {

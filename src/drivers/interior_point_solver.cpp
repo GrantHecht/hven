@@ -270,6 +270,7 @@ void hven::solvers::InteriorPointSolver::release() {
     result_.iq_lmults_.resize(0);
     result_.eq_cons_.resize(0);
     result_.iq_cons_.resize(0);
+    result_.bound_lmults_.resize(0);
 }
 
 // Barrier math helpers
@@ -3210,6 +3211,21 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     if (this->inequal_cons_ > 0) {
         this->result_.iq_cons_ = v_rhs.iq_cons() - v_xsl.slacks();
         this->result_.iq_lmults_ = v_xsl.iq_lmults();
+    }
+    if (this->bounds_) {
+        // Combine the two per-side multipliers into the single signed z that
+        // nlp_model.h's stationarity convention uses -- see accumulate_bound_
+        // dual_terms in barrier_math.h, which folds the same z_lower_/z_upper_
+        // pair into a primal residual with the identical signs (-zL, +zU).
+        this->result_.bound_lmults_ = Eigen::VectorXd::Zero(this->primal_vars_);
+        const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
+        const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
+        for (int k = 0; k < nl; k++)
+            this->result_.bound_lmults_[this->bounds_->lower_idx_[k]] +=
+                this->bound_duals_.z_lower_[k];
+        for (int k = 0; k < nu; k++)
+            this->result_.bound_lmults_[this->bounds_->upper_idx_[k]] -=
+                this->bound_duals_.z_upper_[k];
     }
 
     Runtimer.stop();

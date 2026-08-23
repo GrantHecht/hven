@@ -546,6 +546,23 @@ class InteriorPointSolver {
         Eigen::VectorXd eq_cons_;
         /// @brief Inequality-constraint residuals at the returned point.
         Eigen::VectorXd iq_cons_;
+        /// @brief Variable-bound multipliers (z) at the returned point, combining
+        ///        BoundDualState's separate z_lower_/z_upper_ into the single
+        ///        signed z that nlp_model.h's stationarity convention (and this
+        ///        solver's own z-form dual-infeasibility residual,
+        ///        accumulate_bound_dual_terms in barrier_math.h) uses: z =
+        ///        z_lower_ - z_upper_, so a component is >= 0 when that variable
+        ///        sits at an active lower bound, <= 0 at an active upper bound,
+        ///        and 0 when free. Dense over the SOLVER's reduced primal space
+        ///        (size primal_vars_, index-aligned 1:1 with the solver's own
+        ///        primal vectors) -- unlike primals_, this is NOT expanded to the
+        ///        caller's full space: an eliminated (bound-fixed) variable has no
+        ///        row in the reduced problem, so it has no multiplier to report
+        ///        here (see the reinsertion-seam comment in
+        ///        interior_point_solver.cpp's optimize()/solve() return path).
+        ///        Empty when the problem has no finite variable bounds
+        ///        (bounds_ == nullptr for the whole solve).
+        Eigen::VectorXd bound_lmults_;
 
         // --- Timing (seconds) ---
         /// @brief Total wall-clock time of the most recent call.
@@ -729,7 +746,9 @@ class InteriorPointSolver {
         /// last_* diagnostic (including last_eval_exception_). primals_ and
         /// obj_val_ are overwritten unconditionally by alg_impl each phase.
         /// eq_lmults_ and eq_cons_ are overwritten when equal_cons_ > 0;
-        /// iq_lmults_ and iq_cons_ are overwritten when inequal_cons_ > 0.
+        /// iq_lmults_ and iq_cons_ are overwritten when inequal_cons_ > 0;
+        /// bound_lmults_ is overwritten when the solve has finite variable
+        /// bounds (bounds_ != nullptr).
         /// factor_mem_ and factor_flops_ reflect the last factorization's stats
         /// (set by init_impl) and are not accumulated across phases.
         void reset_accumulators() {
