@@ -12,6 +12,7 @@
 #pragma once
 
 #include <cstddef>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -60,10 +61,10 @@ class SettableClaimStreamSource final : public hven::solvers::ClaimStreamSource 
     void set_kkt_stream(const std::vector<int> &rows, const std::vector<int> &cols,
                         hven::solvers::ClaimBlock hessian, hven::solvers::ClaimBlock equality,
                         hven::solvers::ClaimBlock inequality) {
-        kkt_claim_rows_ = Eigen::Map<const Eigen::VectorXi>(
-            rows.data(), static_cast<Eigen::Index>(rows.size()));
-        kkt_claim_cols_ = Eigen::Map<const Eigen::VectorXi>(
-            cols.data(), static_cast<Eigen::Index>(cols.size()));
+        kkt_claim_rows_ =
+            Eigen::Map<const Eigen::VectorXi>(rows.data(), static_cast<Eigen::Index>(rows.size()));
+        kkt_claim_cols_ =
+            Eigen::Map<const Eigen::VectorXi>(cols.data(), static_cast<Eigen::Index>(cols.size()));
         hessian_ = hessian;
         equality_jacobian_ = equality;
         inequality_jacobian_ = inequality;
@@ -84,16 +85,14 @@ class SettableClaimStreamSource final : public hven::solvers::ClaimStreamSource 
     ///
     /// @param rows the assembled gradient row per claim slot of that arena.
     void set_objective_gradient_rows(const std::vector<int> &rows) {
-        objective_gradient_rows_ = Eigen::Map<const Eigen::VectorXi>(
-            rows.data(), static_cast<Eigen::Index>(rows.size()));
+        objective_gradient_rows_ =
+            Eigen::Map<const Eigen::VectorXi>(rows.data(), static_cast<Eigen::Index>(rows.size()));
         this->bump_structure_epoch();
     }
 
     // ---- NlpAggregate ------------------------------------------------------
 
-    const hven::solvers::AggregateDeclaration &declaration() const override {
-        return declaration_;
-    }
+    const hven::solvers::AggregateDeclaration &declaration() const override { return declaration_; }
 
     int negotiate_partition_count(int requested) override {
         if (requested < 1) {

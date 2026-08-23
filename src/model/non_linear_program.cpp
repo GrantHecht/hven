@@ -1542,6 +1542,12 @@ namespace {
 /// has already refused everything else -- so the fallback is unreachable in
 /// practice and exists only so this returns a total function.
 ///
+/// KEEP THIS LIST IN STEP with the named shapes in model/candidate_point.h. It
+/// is a second enumeration of them, and a shape added there but not here does
+/// not fail to build: it falls through to the fallback, and the refusal then
+/// reads "an unnamed flag combination, the flag combination 0x..." for a shape
+/// that does have a name.
+///
 /// @param request the shape to name.
 /// @return the enumerator's spelling.
 const char *refused_shape_name(hven::solvers::EvalRequest request) {

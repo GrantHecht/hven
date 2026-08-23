@@ -16,6 +16,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 
@@ -43,9 +44,12 @@ struct DomainClaims {
 ///
 /// Run wherever a table is BOUND -- which for this seam is the one lay() that
 /// rebuilds every table and its destination together -- and never on an
-/// evaluation. A table's own constructor validates the array's sentinels, but
-/// it is handed no destination length and so cannot check the upper bound; this
-/// is the only place both are in scope. It matters most for the rows a provider
+/// evaluation. No table is handed a destination length at construction, so none
+/// can check the upper bound; this is the only place both are in scope. The
+/// LOWER end is not this scan's: RhsLocationTable's constructor rejects a row
+/// below -1, and KktLocationTable element-checks only its clash marks, so a
+/// consumer binding a KKT table whose locations could be negative owes that
+/// check itself. It matters most for the rows a provider
 /// publishes and this seam copies verbatim: unlike the KKT offsets, which this
 /// seam computes itself, those arrive from outside, and one past the end is a
 /// heap write during the provider's own scatter in a build with the asserts
@@ -257,6 +261,16 @@ void AggregateEvalSeam::lay() {
 
     Eigen::Ref<const Eigen::VectorXi> stream_rows = aggregate_->kkt_claim_rows();
     Eigen::Ref<const Eigen::VectorXi> stream_cols = aggregate_->kkt_claim_cols();
+    // Narrowed once, checked once. Everything below reasons in int about this
+    // number, and the block scan is hardened precisely because provider-supplied
+    // ints can reach the edges of the type; a stream longer than an int can
+    // count is refused here rather than silently becoming a different number.
+    if (stream_rows.size() > static_cast<Eigen::Index>(std::numeric_limits<int>::max())) {
+        throw std::invalid_argument(
+            fmt::format("AggregateEvalSeam: the claim stream publishes {0} slots, more than this "
+                        "seam can address",
+                        stream_rows.size()));
+    }
     const int total_claims = static_cast<int>(stream_rows.size());
     if (static_cast<int>(stream_cols.size()) != total_claims) {
         throw std::invalid_argument(
@@ -294,49 +308,66 @@ void AggregateEvalSeam::lay() {
             covered, total_claims));
     }
 
-    // The counts summing to the stream length does NOT make the three ranges a
-    // partition of it: overlapping blocks sum correctly and then hand two
-    // domains the same slots, which corrupts the permutation kkt_locations_
-    // carries and the arena segments publish_matrix copies out of. Both are
-    // silent -- wrong values, no diagnostic -- so the ranges are checked here,
-    // once per lay, for what the arena layout actually requires: in bounds,
-    // pairwise disjoint, and in the order the arena is laid, Hessian then
-    // equality Jacobian then inequality Jacobian.
+    // WHAT THE THREE BLOCKS MUST BE, and what they need not be. The arena is one
+    // slot per claim, and each domain is seeded and published through its OWN
+    // block's start_ (seed_kkt_segment, publish_matrix, and the arena_base
+    // handed to build_domain), so the layout requires that the three ranges be
+    // in bounds and pairwise disjoint -- together they then partition
+    // [0, total_claims) exactly, since their counts already sum to it and each
+    // sits inside it. It does NOT require them to arrive in any particular
+    // ORDER: nothing here derives one domain's base from another's count, so a
+    // provider that lays its equality Jacobian ahead of its Hessian is served
+    // correctly. The claim-stream interface fixes contiguity per domain, not an
+    // order between domains, and this scan says exactly that and no more.
+    //
+    // The counts summing to the stream length is not enough on its own:
+    // overlapping blocks sum correctly and then hand two domains the same
+    // slots, which corrupts both the permutation kkt_locations_ carries and the
+    // arena segments publish_matrix copies out of -- silently, with wrong
+    // values and no diagnostic. So disjointness is checked here, once per lay,
+    // over the blocks taken in start_ order rather than in declaration order.
+    for (const auto &[domain, block] : ordered_blocks) {
+        // Compared as start_ > total_claims - count_ rather than
+        // start_ + count_ > total_claims: both operands are non-negative by the
+        // pass above and total_claims is non-negative, so the subtraction is
+        // representable, while the sum need not be.
+        if (block->start_ > total_claims - block->count_) {
+            throw std::invalid_argument(fmt::format(
+                "AggregateEvalSeam: the {0} block names slots [{1}, {2}) of a "
+                "claim stream {3} slots long",
+                domain, block->start_, static_cast<std::int64_t>(block->start_) + block->count_,
+                total_claims));
+        }
+    }
+
     {
-        int previous_start = 0;
-        int previous_end = 0;
-        const char *previous_domain = "the start of the stream";
-        for (const auto &[domain, block] : ordered_blocks) {
-            // Compared as start_ > total_claims - count_ rather than
-            // start_ + count_ > total_claims: both operands are non-negative by
-            // the pass above and total_claims is non-negative, so the
-            // subtraction is representable, while the sum need not be.
-            if (block->start_ > total_claims - block->count_) {
-                throw std::invalid_argument(
-                    fmt::format("AggregateEvalSeam: the {0} block names slots [{1}, {2}) of a "
-                                "claim stream {3} slots long",
-                                domain, block->start_,
-                                static_cast<std::int64_t>(block->start_) + block->count_,
-                                total_claims));
+        // An empty block claims nothing, overlaps nothing, and its start_ says
+        // nothing about ownership, so only the blocks that actually hold slots
+        // take part. Sorting by start_ is what makes the check order-agnostic:
+        // a neighbouring pair in this order is the only pair that can overlap.
+        std::array<std::pair<const char *, const ClaimBlock *>, 3> occupied = ordered_blocks;
+        const auto end =
+            std::stable_partition(occupied.begin(), occupied.end(),
+                                  [](const auto &entry) { return entry.second->count_ > 0; });
+        std::stable_sort(occupied.begin(), end, [](const auto &left, const auto &right) {
+            return left.second->start_ < right.second->start_;
+        });
+        for (auto current = occupied.begin(); current != end; ++current) {
+            const auto following = std::next(current);
+            if (following == end) {
+                break;
             }
-            // An empty block claims nothing and need not carry the cursor, so its
-            // position is not checked and it advances nothing.
-            if (block->count_ == 0) {
-                continue;
-            }
-            if (block->start_ < previous_end) {
+            // Both ends are representable: the bound pass above proved each
+            // start_ + count_ no larger than total_claims, which is an int.
+            const int current_end = current->second->start_ + current->second->count_;
+            if (following->second->start_ < current_end) {
                 throw std::invalid_argument(fmt::format(
-                    "AggregateEvalSeam: the {0} block names slots [{1}, {2}) and {3} names "
-                    "[{4}, {5}); the three blocks must be disjoint and laid in the order "
-                    "Hessian, equality Jacobian, inequality Jacobian",
-                    domain, block->start_, block->start_ + block->count_, previous_domain,
-                    previous_start, previous_end));
+                    "AggregateEvalSeam: the {0} block names slots [{1}, {2}) and the {3} block "
+                    "names [{4}, {5}); the three blocks must be pairwise disjoint",
+                    current->first, current->second->start_, current_end, following->first,
+                    following->second->start_,
+                    following->second->start_ + following->second->count_));
             }
-            // Representable in int: the bound check above proved
-            // start_ + count_ <= total_claims, which is itself an int.
-            previous_start = block->start_;
-            previous_end = block->start_ + block->count_;
-            previous_domain = domain;
         }
     }
 
@@ -398,8 +429,7 @@ void AggregateEvalSeam::lay() {
     epoch_at_lay_ = epoch_read_before_structures;
 }
 
-void AggregateEvalSeam::require_bundle_matches_layout(const NlpEval &ev,
-                                                      const char *moment) const {
+void AggregateEvalSeam::require_bundle_matches_layout(const NlpEval &ev, const char *moment) const {
     auto refuse = [&](const char *block, const std::string &held, const std::string &declared) {
         throw std::invalid_argument(
             fmt::format("AggregateEvalSeam::{0}: the bundle's {1} is {2}, but these structures "

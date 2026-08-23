@@ -764,24 +764,50 @@ TEST(AggregateEvalSeamBoundary, OverlappingClaimBlocksAreRefused) {
         EXPECT_NE(message.find("equality Jacobian"), std::string::npos) << message;
         EXPECT_NE(message.find("Hessian"), std::string::npos) << message;
         EXPECT_NE(message.find("disjoint"), std::string::npos) << message;
+        // Both complete ranges, not one endpoint from each.
+        EXPECT_NE(message.find("[0, 2)"), std::string::npos) << message;
+        EXPECT_NE(message.find("[1, 3)"), std::string::npos) << message;
     }
 }
 
-TEST(AggregateEvalSeamBoundary, ClaimBlocksOutOfArenaOrderAreRefused) {
-    // Disjoint, covering, and in the wrong order. The arena is laid
-    // [H | Ae | Ai] and each domain is published by copying its own segment,
-    // so the order is part of the layout rather than a convention.
+TEST(AggregateEvalSeamBoundary, ClaimBlocksInAnyOrderAreServedFromTheirOwnStarts) {
+    // Disjoint, covering, and NOT in the order the arena's three segments are
+    // named -- the equality Jacobian occupies the first slots and the Hessian
+    // the last. That is legal: the interface fixes contiguity WITHIN a domain,
+    // not an order BETWEEN domains, and nothing in the seam derives one
+    // domain's arena base from another's count. Each is seeded and published
+    // through its own block's start_, so the layout is order-agnostic.
+    //
+    // Slots 0-1 are equality Jacobian claims (assembled rows at primal = 4);
+    // slots 2-3 are Hessian coordinates.
     SettableClaimStreamSource source(4, 1, 1);
-    source.set_kkt_stream({4, 5, 0, 1}, {0, 1, 0, 1}, {2, 2}, {0, 2}, {4, 0});
+    source.set_kkt_stream({4, 4, 0, 1}, {0, 1, 0, 1}, {2, 2}, {0, 2}, {0, 0});
 
-    try {
-        AggregateEvalSeam seam(source);
-        FAIL() << "claim blocks laid out of order must be refused";
-    } catch (const std::invalid_argument &error) {
-        const std::string message = error.what();
-        EXPECT_NE(message.find("equality Jacobian"), std::string::npos) << message;
-        EXPECT_NE(message.find("order"), std::string::npos) << message;
+    AggregateEvalSeam seam(source);
+
+    // The property that makes it order-agnostic, asserted directly: every
+    // claim's arena offset lies inside ITS OWN block's range. A base derived
+    // from a preceding domain's count instead would put the Hessian's slots at
+    // offsets 0-1 and the equality Jacobian's at 2-3, i.e. exactly swapped.
+    for (int slot = 2; slot < 4; ++slot) {
+        const int location = AggregateEvalSeamTestAccess::location(seam, slot);
+        EXPECT_GE(location, 2) << "Hessian slot " << slot;
+        EXPECT_LT(location, 4) << "Hessian slot " << slot;
     }
+    for (int slot = 0; slot < 2; ++slot) {
+        const int location = AggregateEvalSeamTestAccess::location(seam, slot);
+        EXPECT_GE(location, 0) << "equality Jacobian slot " << slot;
+        EXPECT_LT(location, 2) << "equality Jacobian slot " << slot;
+    }
+
+    // And it evaluates, at the declared shapes.
+    const Vec x = (Vec(4) << 0.5, -0.25, 1.0, 0.125).finished();
+    const NlpEval ev = seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(1));
+    EXPECT_EQ(ev.Je.rows(), 1);
+    EXPECT_EQ(ev.Je.cols(), 4);
+    EXPECT_EQ(ev.Je.nonZeros(), 2);
+    EXPECT_EQ(ev.Ji.rows(), 1);
+    EXPECT_EQ(ev.Ji.nonZeros(), 0);
 }
 
 TEST(AggregateEvalSeamBoundary, AnEmptyBlockNeedNotCarryTheCursorButANonEmptyOneStillMust) {
@@ -832,8 +858,7 @@ TEST(AggregateEvalSeamBoundary, BlockMetadataNearTheTopOfTheTypeIsRefusedRatherT
     }
 
     SettableClaimStreamSource huge_start(2, 0, 0);
-    huge_start.set_kkt_stream({0, 1}, {0, 1}, {std::numeric_limits<int>::max(), 2}, {0, 0},
-                              {0, 0});
+    huge_start.set_kkt_stream({0, 1}, {0, 1}, {std::numeric_limits<int>::max(), 2}, {0, 0}, {0, 0});
     try {
         AggregateEvalSeam seam(huge_start);
         FAIL() << "a block starting past the end of the stream must be refused";
