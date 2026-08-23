@@ -10,7 +10,9 @@ running total rather than a per-task judgement.
 - **The layout leg** (`layout_time.cpp`, `layout_wall_leg.sh`) times
   TRANSCRIPTION -- see "The layout leg" at the bottom.
 
-Both are read by one aggregator, `aggregate.py`.
+Both are read by one aggregator, `aggregate.py`. How each recorded run's two
+arms were built -- and what the base arm was built FROM, since no checkout of
+the branch point survives -- is in `PROVENANCE.md`.
 
 ## Why this instrument and not the standing bench
 
@@ -111,6 +113,12 @@ objective is the bit-identity column. It costs a second solve per rep, which is
 the price of having one number a comparison can be gated on instead of two that
 cannot.
 
+`solve`'s TIMING in the SERIAL arm is meaningless, not merely noisy, and is
+recorded only for its iterations and flag: that arm pins the process to one
+core with `taskset -c 2`, so four partitions spin against each other on it
+(base n=256 reads 1.1 s against `solve1`'s 5.9 ms). Read `solve` timings from
+the threaded arm and `solve1` timings from either.
+
 ```
 build_layout_time.sh <base source root> <base build dir> ./layout_base
 build_layout_time.sh <head source root> <head build dir> ./layout_head
@@ -133,3 +141,10 @@ where it was paid for?". Deferring it required `analyze_sparsity` to stop
 canonicalising the claim endpoints in place and derive that ordering per element
 instead, which trades two stores and a branch for two compares. The cell says
 the trade is free or better: neutral to −5%, never a regression.
+
+It compares unlike steady states, and the bias runs the safe way. The cell
+analyses ONE laid program `reps` times; under the base arm the first analysis
+canonicalises the claim arrays in place and every later one runs with the
+endpoints already ordered, so the median is base's post-canonicalisation steady
+state rather than its first-analysis cost. That can only hide a head win, never
+manufacture one, so the "never a regression" reading stands.

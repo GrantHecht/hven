@@ -46,25 +46,32 @@ struct Wide : NLPProblem {
     std::string name() const override { return "Wide"; }
 };
 
-template <int N> double solve_once(int &iters, double &obj) {
+template <int N> double solve_once(int &iters, int &flag, double &obj) {
     hven::solvers::NLPSolver solver(std::make_shared<Wide<N>>());
     solver.optimizer_->set_print_level(3);
     Eigen::VectorXd x0 = Eigen::VectorXd::LinSpaced(N, -0.5, 0.5);
     auto t0 = std::chrono::steady_clock::now();
-    auto flag = solver.optimize(x0);
+    auto exit_flag = solver.optimize(x0);
     auto t1 = std::chrono::steady_clock::now();
-    iters = static_cast<int>(flag);
+    // The ITERATION COUNT and the flag are two different answers and this used
+    // to print the flag under both names -- `iters` was the convergence flag
+    // cast to int, so every row read `iters=0` and the count that a code-path
+    // change would actually move was never in the record.
+    flag = static_cast<int>(exit_flag);
+    iters = solver.optimizer_->result().iter_num_;
     obj = solver.return_x().squaredNorm();
     return std::chrono::duration<double>(t1 - t0).count();
 }
 
 template <int N> void arm(const char *tag, int reps) {
     std::vector<double> s;
-    int iters = 0; double obj = 0.0;
-    for (int r = 0; r < reps; r++) s.push_back(solve_once<N>(iters, obj));
+    int iters = 0, flag = 0;
+    double obj = 0.0;
+    for (int r = 0; r < reps; r++)
+        s.push_back(solve_once<N>(iters, flag, obj));
     std::sort(s.begin(), s.end());
-    std::printf("%s n=%d reps=%d median_s=%.6f min_s=%.6f flag=%d xnorm2=%.17g\n", tag, N, reps,
-                s[s.size() / 2], s.front(), iters, obj);
+    std::printf("%s n=%d reps=%d median_s=%.6f min_s=%.6f iters=%d flag=%d xnorm2=%.17g\n", tag, N,
+                reps, s[s.size() / 2], s.front(), iters, flag, obj);
 }
 
 int main(int argc, char **argv) {
