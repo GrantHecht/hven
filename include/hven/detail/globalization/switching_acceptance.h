@@ -26,10 +26,10 @@ inline constexpr double kThetaMaxFact = 1.0e4;
 /// Why the template method rejected a trial, handed to the subclass's
 /// notify_trial_rejected() hook.
 enum class RejectionCause {
-    kCeiling,      
-    kMembership,   
-    kArmijo,       
-    kHTypeProgress 
+    kCeiling,      ///< θ(trial) > θ_max (Eq. 21).
+    kMembership,   ///< Failed the strategy membership test.
+    kArmijo,       ///< F-type: failed the Armijo condition on φ (Eq. 20).
+    kHTypeProgress ///< H-type: failed the sufficient-progress verdict.
 };
 
 /// @brief Shared Wächter–Biegler switching-condition skeleton (template

@@ -22,7 +22,8 @@ namespace hven::solvers {
 /// @brief Relative infeasibility-reduction floor for leaving feasibility
 /// restoration: a trial's constraint violation must fall to
 /// kKappaResto * theta_ref to be eligible to exit (consumers may apply a
-/// tolerance floor on top). Shared by the strategies whose exit test uses it;
+/// tolerance floor on top). Ipopt option "required_infeasibility_reduction",
+/// shipped default 0.9. Shared by the strategies whose exit test uses it;
 /// both compile into the same translation unit, so exactly one definition
 /// must exist.
 inline constexpr double kKappaResto = 0.9;
@@ -76,16 +77,15 @@ class AcceptanceStrategy {
     virtual bool drives_classic_path() const = 0;
 
     /// @brief Mode-switch notification, called when the solver enters
-    /// feasibility restoration.
-    /// @param current ProgressMeasures at the switch point (the entry point
-    ///   on the way in, the exit point on the way out).
+    /// feasibility restoration; the argument is the ProgressMeasures at the
+    /// switch point (the entry point on the way in).
     /// Default no-op: strategies whose acceptance state survives the objective
     /// swap need no action.
     virtual void notify_switch_to_feasibility(const ProgressMeasures &) {}
 
     /// @brief Mode-switch notification, called when the solver leaves
-    /// feasibility restoration.
-    /// @param current ProgressMeasures at the switch point.
+    /// feasibility restoration; the argument is the ProgressMeasures at the
+    /// switch point (the exit point on the way out).
     /// Default no-op.
     virtual void notify_switch_to_optimality(const ProgressMeasures &) {}
 

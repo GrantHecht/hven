@@ -16,10 +16,13 @@ namespace hven::solvers {
 
 class GlobalizationMechanism;
 
-/// Ipopt option defaults this governor transcribes:
-/// adaptive_mu_kkterror_red_iters / _red_fact / monotone_init_factor,
-/// mu_linear_decrease_factor, mu_superlinear_decrease_power,
-/// barrier_tol_factor.
+// Ipopt option defaults this governor transcribes (in order):
+// kAdaptiveMuKktErrorRedIters -> adaptive_mu_kkterror_red_iters,
+// kAdaptiveMuKktErrorRedFact -> adaptive_mu_kkterror_red_fact,
+// kAdaptiveMuMonotoneInitFactor -> adaptive_mu_monotone_init_factor,
+// kBarrierKappaMu -> mu_linear_decrease_factor,
+// kBarrierThetaMu -> mu_superlinear_decrease_power,
+// kBarrierTolFactor -> barrier_tol_factor.
 inline constexpr int kAdaptiveMuKktErrorRedIters = 4;       
 inline constexpr double kAdaptiveMuKktErrorRedFact = 0.9999; 
 inline constexpr double kAdaptiveMuMonotoneInitFactor = 0.8; 
@@ -68,8 +71,10 @@ inline constexpr double kBarrierTolFactor = 10.0;
 ///     default); the safeguard/max_ref caps are inert under their defaults and
 ///     omitted.
 /// (5) Re-entry monotone -> free: the sufficient-progress test is re-evaluated
-///     every monotone iteration against the frozen band; passing it (with no
-///     tiny step) re-enters free mode.
+///     every monotone iteration against the frozen band; passing it re-enters
+///     free mode. (The reference additionally requires that the previous step
+///     was not a tiny step; this engine tracks no tiny-step state and does not
+///     apply that extra condition.)
 /// (6) Monotone Fiacco–McCormick advance: only once the barrier subproblem has
 ///         converged: sub_problem_error ≤ kBarrierTolFactor · μ,
 ///     then μ⁺ = max(floor, min(kBarrierKappaMu·μ, μ^kBarrierThetaMu)) with
@@ -139,9 +144,11 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     // drivable in unit tests without a real KKT solve.
     // ------------------------------------------------------------------------
     struct BarrierDecision {
-        double mu = 0.0;      
-        bool mu_event = false; 
-        bool monotone = false; 
+        double mu = 0.0;      ///< Barrier parameter to use (MEANINGFUL IFF monotone:
+                               ///< decide() returns mu_in untouched on every free-mode
+                               ///< path, so read d.mu only after checking d.monotone).
+        bool mu_event = false; ///< A new monotone barrier subproblem began.
+        bool monotone = false; ///< Resulting mode after this decision.
     };
     BarrierDecision decide(const IterateInfo &current, double mu_in, double avgcomp,
                            double bar_tol, double kkt_tol, double min_mu, double max_mu);

@@ -92,6 +92,9 @@ class BarrierGovernor {
     /// actually shrink.
     ///
     /// @param mu_in Current held monotone parameter carried across phase iterations.
+    /// @param barr_obj Out: barrier objective written by the log-barrier tail at
+    ///   the resulting mu (slacks/iq_lmults on XSL, dual gradient on RHS), as
+    ///   the free-mode common tail does.
     /// @param mu_event Set true on a strict decrease (a new barrier subproblem
     ///   — the acceptance per-subproblem reset trigger).
     /// @return The possibly-advanced mu. Never reached off the nested path.

@@ -94,6 +94,9 @@ inline constexpr double kFunnelKappa = 0.5;
 ///  - The optional acceptable-wrt-current-iterate refinement (funnel_gamma /
 ///    funnel_require_acceptance_wrt_current_iterate) is off by default upstream
 ///    and not implemented here; its constant is omitted to avoid dead state.
+///
+/// Ownership: no SolverContext reference and no NLP evaluation — a pure
+/// function of its ProgressMeasures arguments plus the scalar width state.
 class FunnelAcceptance final : public SwitchingAcceptance {
   public:
     /// Current funnel width tau (diagnostics + unit tests). Before the first
@@ -112,9 +115,13 @@ class FunnelAcceptance final : public SwitchingAcceptance {
                                                const ProgressMeasures &trial) const override;
 
     /// Entry hook: stash the optimality width, set the flag, reinitialize fresh.
+    /// @throws std::logic_error On a mis-wired transition (already in the
+    ///   feasibility phase).
     void notify_switch_to_feasibility(const ProgressMeasures &current_progress) override;
 
     /// Exit hook: restore the stashed width, then re-base tau.
+    /// @throws std::logic_error On a mis-wired transition (not in the
+    ///   feasibility phase).
     void notify_switch_to_optimality(const ProgressMeasures &current_progress) override;
 
     /// Restoration diagnostics (unit tests).

@@ -102,6 +102,8 @@ inline constexpr double kSufficientInfeasibilityDecreaseRatio = 0.9;
 /// undefined); the acceptance test still evaluates pred_pi = m_f.
 class ModernMeritAcceptance : public AcceptanceStrategy {
   public:
+    /// @brief Constructs with the penalty rule and a fresh state.
+    /// @throws std::logic_error On an unknown MeritPenaltyRules value.
     explicit ModernMeritAcceptance(MeritPenaltyRules rule) : rule_(rule) { reset(); }
 
     /// @brief The generic acceptance test (formulation above). Pure in its
@@ -138,9 +140,12 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     /// Restoration entry hook: stash ALL persistent state, set the flag, and
     /// reinitialize the working state fresh so the feasibility phase runs its
     /// own penalties/tracker without contaminating the frozen copy.
+    /// @throws std::logic_error On a repeated entry (already in the feasibility
+    ///   phase).
     void notify_switch_to_feasibility(const ProgressMeasures &current_progress) override;
 
     /// Restoration exit hook: restore the stash and clear the flag.
+    /// @throws std::logic_error When not in the feasibility phase.
     void notify_switch_to_optimality(const ProgressMeasures &current_progress) override;
 
     /// Penalty-state accessors (diagnostics + unit tests).

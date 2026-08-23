@@ -18,15 +18,16 @@
 
 namespace hven::solvers {
 
-/// Recovery-dispatch depth: which link (if any) actually resolved a given
-/// rejection. Only a composing/wrapping link knows its position in the dispatch
-/// order, so individual links (SOC, extended backtracking) never write it —
-/// ChainedRecovery/WatchdogRecovery and FeasibilitySwitchRecovery do. The
-/// solver also overwrites it directly in two feasibility-restoration branches
-/// (the elastic re-centering fallback and the un-evaluable-fallback entry, the
-/// latter so the histogram attributes that iteration to restoration rather
-/// than to whatever depth the chain resolved). Backs the SolveResult recovery
-/// depth histogram.
+// Recovery-dispatch depths: which link (if any) actually resolved a given
+// rejection — Soc=0, Extended=1, Watchdog=2, Unresolved=3 (classic give-up),
+// Restoration=4. Only a composing/wrapping link knows its position in the
+// dispatch order, so individual links (SOC, extended backtracking) never write
+// it — ChainedRecovery/WatchdogRecovery and FeasibilitySwitchRecovery do. The
+// solver also overwrites it directly in two feasibility-restoration branches
+// (the elastic re-centering fallback and the un-evaluable-fallback entry, the
+// latter so the histogram attributes that iteration to restoration rather than
+// to whatever depth the chain resolved). Backs the SolveResult recovery-depth
+// histogram.
 inline constexpr int kRecoveryDepthSoc = 0;
 inline constexpr int kRecoveryDepthExtended = 1;
 inline constexpr int kRecoveryDepthWatchdog = 2;

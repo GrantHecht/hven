@@ -14,13 +14,25 @@
 //
 // SOURCES. [KLV] D. Kiessling, S. Leyffer, C. Vanaret, "A Unified Funnel
 // Restoration SQP Algorithm", arXiv:2409.09208, Math. Program. (2025) --
-// every equation number below is KLV's. Where this file's predecessor port
-// (the IPM barrier-context funnel, now funnel_acceptance.h) and [KLV]
-// disagree, [KLV] WINS; the resolutions are tagged below. That port's barrier
-// adaptations are precisely what must NOT be inherited: they exist because an
-// IPM judges a BARRIER objective phi = f + auxiliary along a line search with
-// a step length alpha, and neither is true here -- this is a trust-region SQP
-// judging f itself.
+// every equation number below is KLV's. Where the interior-point port of the
+// same paper (funnel_acceptance.h) and [KLV] disagree, [KLV] WINS; the two
+// deliberate deviations from that port a reader might otherwise "fix" are
+// recorded at the constants below. The port's barrier adaptations are
+// precisely what must NOT be inherited: they exist because an IPM judges a
+// BARRIER objective phi = f + auxiliary along a line search with a step length
+// alpha, and neither is true here -- this is a trust-region SQP judging f
+// itself.
+//
+// Deliberate deviations from that port, resolved toward [KLV]:
+//  - NO theta_min/theta_max machinery: KLV has no such thresholds — the funnel
+//    condition IS the ceiling and the switching condition is tested
+//    unconditionally; carrying the WB ceiling/gate over would suppress f-type
+//    steps KLV's proof relies on.
+//  - CONSTANT VALUES are KLV Table 1's published values (tau_bar = 100,
+//    kappa_bar = 1.25, delta = 0.999, sigma = 1e-4, beta = 0.99, kappa = 0.5),
+//    NOT the port's Uno-shipped defaults. beta matters most: with kappa = 0.5
+//    the guaranteed contraction factor theta = 1-(1-beta)(1-kappa) is 0.995
+//    rather than 0.99995, i.e. the funnel actually closes.
 
 #include <algorithm>
 #include <cmath>
@@ -33,45 +45,44 @@
 
 namespace hven::solvers {
 
-/// @brief THE ALGORITHM (KLV Algorithm 2, optimality-phase branch,
-/// transcribed).
-///
-/// A funnel is "a relaxation of the feasible set that allows a constraint
-/// violation up to a given upper bound tau > 0" (KLV Sec. 2.4.2): one scalar,
-/// monotonically tightened, replaces a filter's list of (h, f) pairs.
-///
-///   (init) Eq. (9):   tau_0 = max(tau_bar, kappa_bar*h_0)
-///                     with tau_bar > 0 and kappa_bar > 1 ("to ensure that
-///                     the initial point is acceptable").
-///   (8)    FUNNEL CONDITION, NECESSARY for acceptance, tested on EVERY trial
-///          before either type test:  h(x_hat) <= tau.
-///   (10)   SWITCHING CONDITION, selects the iteration type:
-///                     delta_m_f(d) >= delta*(h)^2,  delta in (0,1)
-///          ("ensures that the algorithm does not take infinitely small steps
-///          and thus avoids convergence toward infeasible points").
-///          * HOLDS -> f-TYPE: accepted iff Armijo
-///   (11)               delta_f >= sigma*delta_m_f(d),  sigma in (0,1)
-///            holds. Width NOT updated (KLV Thm. 1, f-type branch:
-///            "tau_(k+1) = tau_(k)").
-///          * VIOLATED -> h-TYPE: accepted iff
-///   (12)               h(x_hat) <= beta*tau,  beta in (0,1),
-///            then the width decreases by
-///   (13)               tau_+ = (1-kappa)*h(x_hat) + kappa*tau, kappa in (0,1).
-///   Otherwise rejected ("and either the trust-region radius or the step size
-///   is reduced").
-///
-/// ORDERING IS NOT A CHOICE: Algorithm 2 nests these as if/else-if — an f-type
-/// trial that fails Armijo is REJECTED, it does not fall through to h-type.
-///
-/// MONOTONICITY IS UNCONDITIONAL HERE: beta < 1 makes (13) give
-/// tau_+ <= theta*tau with theta = 1-(1-beta)(1-kappa) in (0,1) (KLV Thm. 1
-/// case 1). The contraction depends on nothing but the trial and old width, so
-/// the width is monotonically non-increasing for ANY accepted sequence, no side
-/// condition — which is also why the re-widening edge the barrier-port note
-/// discloses cannot exist under Eq. (13).
+// THE ALGORITHM (KLV Algorithm 2, optimality-phase branch, transcribed).
+//
+// A funnel is "a relaxation of the feasible set that allows a constraint
+// violation up to a given upper bound tau > 0" (KLV Sec. 2.4.2): one scalar,
+// monotonically tightened, replaces a filter's list of (h, f) pairs.
+//
+//   (init) Eq. (9):   tau_0 = max(tau_bar, kappa_bar*h_0)
+//                     with tau_bar > 0 and kappa_bar > 1 ("to ensure that
+//                     the initial point is acceptable").
+//   (8)    FUNNEL CONDITION, NECESSARY for acceptance, tested on EVERY trial
+//          before either type test:  h(x_hat) <= tau.
+//   (10)   SWITCHING CONDITION, selects the iteration type:
+//                     delta_m_f(d) >= delta*(h)^2,  delta in (0,1)
+//          ("ensures that the algorithm does not take infinitely small steps
+//          and thus avoids convergence toward infeasible points").
+//          * HOLDS -> f-TYPE: accepted iff Armijo
+//   (11)               delta_f >= sigma*delta_m_f(d),  sigma in (0,1)
+//            holds. Width NOT updated (KLV Thm. 1, f-type branch:
+//            "tau_(k+1) = tau_(k)").
+//          * VIOLATED -> h-TYPE: accepted iff
+//   (12)               h(x_hat) <= beta*tau,  beta in (0,1),
+//            then the width decreases by
+//   (13)               tau_+ = (1-kappa)*h(x_hat) + kappa*tau, kappa in (0,1).
+//   Otherwise rejected ("and either the trust-region radius or the step size
+//   is reduced").
+//
+// ORDERING IS NOT A CHOICE: Algorithm 2 nests these as if/else-if — an f-type
+// trial that fails Armijo is REJECTED, it does not fall through to h-type.
+//
+// MONOTONICITY IS UNCONDITIONAL HERE: beta < 1 makes (13) give
+// tau_+ <= theta*tau with theta = 1-(1-beta)(1-kappa) in (0,1) (KLV Thm. 1
+// case 1). The contraction depends on nothing but the trial and old width, so
+// the width is monotonically non-increasing for ANY accepted sequence, no side
+// condition — which is also why the re-widening edge the barrier-port note
+// discloses cannot exist under Eq. (13).
 
-/// KLV parameters: every value is Table 1 (Sec. 5.1); admissible ranges are
-/// those stated with the equation using each constant.
+// KLV parameters: every value is Table 1 (Sec. 5.1); admissible ranges are
+// those stated with the equation using each constant.
 
 /// tau_bar > 0: absolute floor on the initial width (Eq. (9); Table 1 = 100).
 inline constexpr double kFunnelTauBar = 100.0;
@@ -210,16 +221,16 @@ enum class StepVerdict {
     kRestore
 };
 
-/// @brief Generalization note for h. KLV Sec. 2.4.1 defines h(x) = ||c(x)||_1
-/// for an NCO whose only inequalities are bounds ("always feasible throughout
-/// SQP iterations"). This engine carries general inequalities cI(x) <= 0, so h
-/// generalizes to ||cE||_1 + sum_j max(0, cI_j), reducing to the paper's h
-/// exactly when mi() == 0. Bounds are excluded for the paper's own reason —
-/// and here that assumption is a THEOREM, since the subproblem's box is
-/// l - x .. u - x, so every driver-produced iterate satisfies the bounds by
-/// construction. The measure lives beside the evaluation it is computed from
-/// (sqp_driver.h's constraint_violation_l1).
-///
+// Generalization note for h: KLV Sec. 2.4.1 defines h(x) = ||c(x)||_1 for an
+// NCO whose only inequalities are bounds ("always feasible throughout SQP
+// iterations"). This engine carries general inequalities cI(x) <= 0, so h
+// generalizes to ||cE||_1 + sum_j max(0, cI_j), reducing to the paper's h
+// exactly when mi() == 0. Bounds are excluded for the paper's own reason —
+// and here that assumption is a THEOREM, since the subproblem's box is
+// l - x .. u - x, so every driver-produced iterate satisfies the bounds by
+// construction. The measure lives beside the evaluation it is computed from
+// (sqp_driver.h's constraint_violation_l1).
+
 /// @brief Interface the driver holds.
 class GlobalizationStrategy {
   public:
@@ -228,6 +239,7 @@ class GlobalizationStrategy {
     /// @brief Renders the verdict for one trial step and applies whatever
     /// state update that verdict implies. NOT idempotent (an accepted h-type
     /// step tightens the funnel).
+    /// @throws std::logic_error When called before the first reset().
     ///
     /// Interface contract: MAY BE CALLED UP TO TWICE FOR THE SAME ITERATE —
     /// when the driver attempts a second-order correction on a kReject whose

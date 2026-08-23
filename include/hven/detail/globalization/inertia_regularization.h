@@ -8,9 +8,9 @@
 
 namespace hven::solvers {
 
-/// @brief Proximal primal-dual KKT regularization: constants and pure-logic
-/// helpers for the `proximal_regularization` inertia mode — an alternative to
-/// the classic on-demand inertia ladder.
+// Proximal primal-dual KKT regularization: constants and pure-logic helpers
+// for the `proximal_regularization` inertia mode — an alternative to the
+// classic on-demand inertia ladder.
 ///
 /// Instead of first attempting an unperturbed factorization every iteration and
 /// shifting only on wrong inertia, this mode carries a small persistent primal
@@ -20,22 +20,22 @@ namespace hven::solvers {
 /// singularity signal — so its constants are shared by both modes; applying both
 /// shifts always-on in the base matrix is what is exclusive to this mode.)
 ///
-/// Numerical caveats every reader needs:
-/// - The negative sign on the constraint block is the augmented-system
+// Numerical caveats every reader needs:
+// - The negative sign on the constraint block is the augmented-system
 ///   convention (W + delta_w*I / -delta_c*I): it keeps one negative eigenvalue
 ///   per constraint row, so the target inertia count is unchanged, while making
-///   a rank-deficient constraint Jacobian factorizable. The dual shift shrinks
+//   a rank-deficient constraint Jacobian factorizable. The dual shift shrinks
 ///   to zero with mu and never masks non-convergence — convergence residuals
 ///   are read from raw evaluations, never from the shifted matrix.
-/// - Nested-restoration suppression: while a nested l1 restoration phase is
+// - Nested-restoration suppression: while a nested l1 restoration phase is
 ///   active the dual shift is NOT applied — elastic pivots already regularize
 ///   the constraint-row diagonals at magnitude ~1/mu, and the condensed elastic
-///   step-recovery algebra assumes the (y,y) diagonal equals the elastic pivot
+//   step-recovery algebra assumes the (y,y) diagonal equals the elastic pivot
 ///   EXACTLY; stacking -delta_c would make recovered elastic steps inconsistent
 ///   with the solved system. The primal base shift stays on throughout (it
 ///   touches only the Hessian diagonal), as does the dual shift under the
 ///   proximal mode-switch restoration (same reasoning) — no slot conflict there.
-/// - Orthogonality to Pardiso static pivoting: the dual shift is a problem-level
+// - Orthogonality to Pardiso static pivoting: the dual shift is a problem-level
 ///   constraint regularization; the static tiny-pivot perturbation is a
 ///   factorization-internal guard. Different failure modes; neither subsumes
 ///   the other; this mode does not adjust the pivot exponent.

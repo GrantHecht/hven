@@ -28,9 +28,8 @@ inline constexpr double kBoundMultResetThreshold = 1.0e3;
 // kRestoFailureFeasibilityFactor are shared with the proximal switch
 // (proximal_restoration.h) — included above; not redefined here.
 
-/// Closed-form elastic slack initialization for one constraint row; exposed as
-/// a free function so it is directly unit-testable at a chosen resto_mu
-/// independent of the entry max-rule.
+/// Result aggregate of the closed-form elastic slack initialization for one
+/// constraint row.
 struct ElasticSlackInit {
     double n;  ///< Positive slack, root of n² − 2 a n − b = 0.
     double p;  ///< Paired slack, p = c + n.
@@ -38,9 +37,12 @@ struct ElasticSlackInit {
     double zp; ///< Bound multiplier resto_mu / p.
 };
 
-/// Positive-root closed form for one row: k = resto_mu/(2rho), a = k - c/2,
-/// b = c*k, n = a + sqrt(a^2 + b), p = c + n. The c = 0 edge gives a > 0,
-/// b = 0, n = p = 2a (no division by zero); n,p > 0 for mixed-sign c.
+/// @brief Closed-form elastic slack initialization for one constraint row;
+/// exposed as a free function so it is directly unit-testable at a chosen
+/// resto_mu independent of the entry max-rule. Positive root:
+/// k = resto_mu/(2rho), a = k - c/2, b = c*k, n = a + sqrt(a^2 + b),
+/// p = c + n. The c = 0 edge gives a > 0, b = 0, n = p = 2a (no division by
+/// zero); n,p > 0 for mixed-sign c.
 inline ElasticSlackInit l1_elastic_slack_init(double c, double resto_mu, double rho) {
     const double k = resto_mu / (2.0 * rho);
     const double a = k - 0.5 * c;
@@ -114,6 +116,10 @@ inline ElasticSlackInit l1_elastic_slack_init(double c, double resto_mu, double 
 ///      budget re-arms on any accepted step and at each entry) — this phase has
 ///      no inner solver guaranteeing forward progress, so an unbounded re-center
 ///      risks a no-progress loop.
+///
+/// Ownership: no SolverContext reference or NLP handle is retained across
+/// calls — only the entry snapshot, live elastic state, recovered steps,
+/// cached pivots, and per-phase counters below.
 class NestedL1Restoration final : public RestorationStrategy {
   public:
     /// Guard-only entry: records the reference point and proximal center for

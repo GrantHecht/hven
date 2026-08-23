@@ -202,7 +202,8 @@ QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed);
 /// carry_multipliers IS FALSE WHENEVER THE RELAXATION STAYED OPEN, and that is
 /// not a nicety: at an elastic solution with s_j > 0 the row's own multiplier
 /// is FORCED to the penalty (stationarity in s_j reads rho - sigma*lambda_j -
-/// z_j = 0, so |lambda_j| = rho), and the contamination spreads to rows that
+/// z_j = 0 with z_j = 0 when s_j is off its bound, so |lambda_j| = rho), and
+/// the contamination spreads to rows that
 /// merely SHARE A VARIABLE with a relaxed one (measured on a suite fixture
 /// where a row with s == 0 prices at rho as well). Those numbers are penalty
 /// parameters wearing the shape of prices; feeding them to eval_hess would

@@ -92,7 +92,8 @@ class Filter {
 /// Verdicts:
 ///  - H-type progress (acceptable to current iterate), two parts:
 ///      (i) barrier-objective CEILING — reject when
-///          log10(phi_trial - phi_ref) > kFilterObjMaxInc + log10(|phi_ref|)
+///          log10(phi_trial - phi_ref) > kFilterObjMaxInc + basval, where
+///          basval = log10(|phi_ref|) when |phi_ref| > 10 and 1.0 otherwise
 ///          (only evaluated when phi_trial > phi_ref): a LOG10-scaled growth
 ///          test, deliberately NOT a ratio.
 ///      (ii) two-condition margin (WB Eqs. (18a)/(18b)):
@@ -158,6 +159,9 @@ class Filter {
 ///    LOOSER than a byte-restore (feasibility theta_0 is the high entry
 ///    infeasibility), affecting only the heuristic scalars, never membership or
 ///    dominance, and self-healing at the next mu-event/reset.
+///
+/// Ownership: no SolverContext reference and no NLP evaluation — a pure
+/// function of its ProgressMeasures arguments plus the filter/counter state.
 class FilterAcceptance final : public SwitchingAcceptance {
   public:
     /// Number of stored filter entries (diagnostics + unit tests). Zero before
@@ -182,9 +186,13 @@ class FilterAcceptance final : public SwitchingAcceptance {
                                                const ProgressMeasures &trial) const override;
 
     /// Entry hook (see the restoration description above).
+    /// @throws std::logic_error On a mis-wired transition (already in the
+    ///   feasibility phase).
     void notify_switch_to_feasibility(const ProgressMeasures &current_progress) override;
 
     /// Exit hook (see above).
+    /// @throws std::logic_error On a mis-wired transition (not in the
+    ///   feasibility phase).
     void notify_switch_to_optimality(const ProgressMeasures &current_progress) override;
 
     /// Injects the constraint-violation tolerance used as the exit floor.
