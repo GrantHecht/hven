@@ -272,6 +272,47 @@ struct NonLinearProgram : public NlpAggregate {
     /// </summary>
     void make_nlp(int PV, int EQ, int IQ);
 
+    /// @brief Adopts a declaration whose row counts are the row space AS LAID,
+    ///        fixing rows included, and lays the problem out from it.
+    ///
+    /// equality_rows_ is the AS-LAID count, fixing rows included; this entry
+    /// subtracts declaration.fixing_rows_ before make_nlp, which takes the user
+    /// count.
+    ///
+    /// The order of operations, which is observable through the bound merge:
+    ///   1. @p declaration.validate() -- nothing is touched until it passes.
+    ///   2. the three piece lists move in, each piece taking its declared
+    ///      thread mode.
+    ///   3. the staged bounds are cleared, then the declared records are
+    ///      replayed through set_variable_bound() in DECLARATION ORDER.
+    ///   4. the partition count becomes the declared one -- a request the lay's
+    ///      cap may reduce; declaration() reports the adopted count.
+    ///   5. the layout runs, from the declared counts less
+    ///      @p declaration.fixing_rows_.
+    ///
+    /// The declared fixing rows are lifted off the tail of the equality list
+    /// before step 5 and appended again after it, over the same
+    /// refresh_function_partitions / rebuild_structures chain the treatment
+    /// that produced them uses. The adopting problem therefore repeats the
+    /// history the source layout was laid by -- a user-row lay, then the
+    /// internal rows -- so its claim stream, its row space and its own
+    /// fixing-row count all come back the same, which is what makes the round
+    /// trip exact with fixing rows present.
+    ///
+    /// @param declaration the pieces, thread modes, dimensions, bounds and
+    ///                    requested partition count to lay from; moved out of.
+    /// @throws std::invalid_argument through @p declaration.validate() -- a
+    ///         non-positive partition count, negative dimensions, piece row
+    ///         counts that do not sum to the declared row counts, an
+    ///         out-of-range bound index, a NaN bound, an inverted single record
+    ///         or an empty bound intersection.
+    /// @throws std::invalid_argument if the last @p declaration.fixing_rows_
+    ///         equality pieces do not claim exactly that many rows, naming both
+    ///         counts: the internal rows are one piece per row where a
+    ///         treatment appends them, and a tail that does not split there is
+    ///         not the row space the count describes.
+    void adopt_declaration(AggregateDeclaration declaration);
+
     /// <summary>
     /// One staged variable-bound declaration, as handed to set_variable_bound.
     /// Recorded verbatim (no merging at declaration time) so that repeated

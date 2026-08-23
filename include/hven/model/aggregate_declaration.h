@@ -151,6 +151,11 @@ struct AggregateDeclaration {
     int equality_rows_ = 0;
     int inequality_rows_ = 0;
 
+    /// The internal fixing rows included in equality_rows_. equality_rows_ is
+    /// the AS-LAID count; subtracting this yields the user count the sizing
+    /// entry takes.
+    int fixing_rows_ = 0;
+
     /// Requested partition count; the adopted count is returned by
     /// negotiate_partition_count() and governs layout and the structural key.
     int partition_count_ = 1;
@@ -176,9 +181,10 @@ struct AggregateDeclaration {
 
     /// Rejects a declaration that cannot describe a problem: non-positive
     /// partition count, negative dimensions, piece row counts that do not sum
-    /// to the declared row counts, bounds naming a variable the declaration
-    /// does not have, NaN bounds, a single record whose two finite sides are
-    /// inverted, and a bound history whose intersection is empty. Throws
+    /// to the declared row counts, a fixing-row count outside
+    /// [0, equality_rows_], bounds naming a variable the declaration does not
+    /// have, NaN bounds, a single record whose two finite sides are inverted,
+    /// and a bound history whose intersection is empty. Throws
     /// std::invalid_argument naming what disagreed and both numbers.
     ///
     /// A provider validates its declaration with validate() before its first

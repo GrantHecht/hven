@@ -6,19 +6,23 @@
 // request never moves layout, digest or epoch.
 
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
 
+#include "hven/detail/interior/fixed_variable_row.h"
 #include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/model/aggregate_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/nlp_aggregate.h"
+#include "hven/model/non_linear_program.h"
 #include "support/fake_aggregate.h"
 
 using hven::Vec;
@@ -1059,4 +1063,211 @@ TEST(AggregateContract, TheAdoptedPartitionCountIsTheKeysPartitionConjunct) {
     FakeAggregate aggregate;
     aggregate.negotiate_partition_count(FakeAggregate::kMaxPartitions + 2);
     EXPECT_EQ(aggregate.model_structure_key().partition_count_, FakeAggregate::kMaxPartitions);
+}
+
+// ---------------------------------------------------------------------------
+// Adopting a declaration
+//
+// The other direction of the declaration: a provider hands one out through
+// declaration(), and this is the entry that lays a problem FROM one. The pins
+// below are what makes the pair a round trip -- an adopted declaration lays the
+// same structures the declaration was read off, fixing rows included -- and
+// what makes the per-piece thread mode declaration data rather than a field a
+// caller writes whenever it likes.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+using hven::solvers::ConstraintFunction;
+using hven::solvers::ConstraintInterface;
+using hven::solvers::FixedVariableRow;
+using hven::solvers::FixedVariableTreatments;
+using hven::solvers::ModelStructureKey;
+using hven::solvers::NonLinearProgram;
+using hven::solvers::ThreadingFlags;
+
+/// Applications per piece, and pieces. The product is the KKT element count,
+/// which has to clear kMinKktElementsPerPartition per partition or the lay's
+/// cap collapses the problem to one partition and no thread mode can move a
+/// claim anywhere.
+constexpr int kAdoptApplications = 1050;
+constexpr int kAdoptPieces = 3;
+constexpr int kAdoptRows = kAdoptApplications * kAdoptPieces;
+
+/// One equality piece pinning kAdoptApplications consecutive variables, one
+/// application per row. Cheap to lay and it claims exactly one KKT slot per
+/// application, which is what makes the claim stream easy to read.
+ConstraintFunction adopt_pin_piece(int first_index) {
+    Eigen::MatrixXi v_index(1, kAdoptApplications);
+    Eigen::MatrixXi c_index(1, kAdoptApplications);
+    for (int k = 0; k < kAdoptApplications; k++) {
+        v_index(0, k) = first_index + k;
+        c_index(0, k) = first_index + k;
+    }
+    return ConstraintFunction(ConstraintInterface(FixedVariableRow(0.25)), v_index, c_index);
+}
+
+/// A laid problem of kAdoptPieces such pieces, at the given thread modes and
+/// requested partition count, with a two-sided bound on every variable. When
+/// @p fix_one is true the bounds on one variable are narrowed to a point, which
+/// is what a fixed-variable treatment turns into an internal fixing row.
+std::shared_ptr<NonLinearProgram> adopt_build(const std::vector<ThreadingFlags> &modes,
+                                              int requested_partitions, bool fix_one) {
+    auto nlp = std::make_shared<NonLinearProgram>(requested_partitions);
+    for (int p = 0; p < kAdoptPieces; p++) {
+        ConstraintFunction piece = adopt_pin_piece(p * kAdoptApplications);
+        piece.set_thread_mode(modes[static_cast<std::size_t>(p)]);
+        nlp->equality_constraints_.push_back(std::move(piece));
+    }
+    for (int i = 0; i < kAdoptRows; i++) {
+        nlp->set_variable_bound(i, -1.0, 2.0);
+    }
+    if (fix_one) {
+        nlp->set_variable_bound(7, 0.25, 0.25);
+    }
+    nlp->make_nlp(kAdoptRows, kAdoptRows, 0);
+    return nlp;
+}
+
+std::vector<ThreadingFlags> adopt_default_modes() {
+    return {ThreadingFlags::Thread0, ThreadingFlags::Thread1, ThreadingFlags::MainThread};
+}
+
+/// The claim stream as laid: the two index arrays over the user elements, in
+/// claim order.
+std::vector<int> adopt_claim_stream(const NonLinearProgram &nlp) {
+    std::vector<int> stream;
+    stream.reserve(static_cast<std::size_t>(2 * nlp.num_user_kkt_elems_));
+    for (int i = 0; i < nlp.num_user_kkt_elems_; i++) {
+        stream.push_back(nlp.kkt_coeff_rows_[i]);
+        stream.push_back(nlp.kkt_coeff_cols_[i]);
+    }
+    return stream;
+}
+
+} // namespace
+
+TEST(AdoptDeclaration, LaysWhatAHandAssembledProblemLays) {
+    auto assembled = adopt_build(adopt_default_modes(), 8, false);
+    const AggregateDeclaration declaration = assembled->declaration();
+
+    NonLinearProgram adopted(1);
+    adopted.adopt_declaration(declaration);
+
+    EXPECT_EQ(adopted.model_structure_key(), assembled->model_structure_key());
+    EXPECT_EQ(adopted.num_partitions_, assembled->num_partitions_);
+    EXPECT_EQ(adopt_claim_stream(adopted), adopt_claim_stream(*assembled));
+
+    const AggregateDeclaration &adopted_declaration = adopted.declaration();
+    EXPECT_EQ(adopted_declaration.primal_vars_, declaration.primal_vars_);
+    EXPECT_EQ(adopted_declaration.equality_rows_, declaration.equality_rows_);
+    EXPECT_EQ(adopted_declaration.inequality_rows_, declaration.inequality_rows_);
+    EXPECT_EQ(adopted_declaration.fixing_rows_, declaration.fixing_rows_);
+    EXPECT_EQ(adopted_declaration.partition_count_, declaration.partition_count_);
+    EXPECT_EQ(adopted_declaration.variable_bounds_, declaration.variable_bounds_);
+    EXPECT_EQ(adopted_declaration.objectives_.size(), declaration.objectives_.size());
+    EXPECT_EQ(adopted_declaration.equality_constraints_.size(),
+              declaration.equality_constraints_.size());
+    EXPECT_EQ(adopted_declaration.inequality_constraints_.size(),
+              declaration.inequality_constraints_.size());
+    for (std::size_t k = 0; k < declaration.equality_constraints_.size(); k++) {
+        EXPECT_EQ(adopted_declaration.equality_constraints_[k].get_thread_mode(),
+                  declaration.equality_constraints_[k].get_thread_mode());
+    }
+}
+
+TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
+    auto source = adopt_build(adopt_default_modes(), 8, true);
+    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    ASSERT_EQ(source->internal_fixed_constraints(), 1);
+
+    const AggregateDeclaration declaration = source->declaration();
+    // The declaration is self-describing: the row count is the row space AS
+    // LAID and the fixing-row count says how much of it is internal.
+    ASSERT_EQ(declaration.equality_rows_, kAdoptRows + 1);
+    ASSERT_EQ(declaration.fixing_rows_, 1);
+
+    NonLinearProgram adopted(1);
+    adopted.adopt_declaration(declaration);
+
+    EXPECT_EQ(adopted.model_structure_key(), source->model_structure_key());
+    EXPECT_EQ(adopt_claim_stream(adopted), adopt_claim_stream(*source));
+    EXPECT_EQ(adopted.equal_cons_, source->equal_cons_);
+    EXPECT_EQ(adopted.internal_fixed_constraints(), source->internal_fixed_constraints());
+    EXPECT_EQ(adopted.declaration().fixing_rows_, 1);
+}
+
+TEST(AdoptDeclaration, ReportsTheAdoptedPartitionCountNotTheRequestedOne) {
+    auto assembled = adopt_build(adopt_default_modes(), 1, false);
+    AggregateDeclaration declaration = assembled->declaration();
+    declaration.partition_count_ = 64;
+
+    NonLinearProgram adopted(1);
+    adopted.adopt_declaration(std::move(declaration));
+
+    // 64 partitions is far more work than the problem has to hand out, so the
+    // lay's cap brings the count down -- and it is the ADOPTED count that
+    // reaches the declaration and the key.
+    EXPECT_LT(adopted.declaration().partition_count_, 64);
+    EXPECT_EQ(adopted.declaration().partition_count_, adopted.num_partitions_);
+    EXPECT_EQ(adopted.model_structure_key().partition_count_, adopted.num_partitions_);
+}
+
+TEST(AdoptDeclaration, ClaimOrderIsAFunctionOfTheDeclaredThreadModes) {
+    auto assembled = adopt_build(adopt_default_modes(), 8, false);
+    const AggregateDeclaration declaration = assembled->declaration();
+
+    NonLinearProgram first(1);
+    first.adopt_declaration(declaration);
+    NonLinearProgram second(1);
+    second.adopt_declaration(declaration);
+    EXPECT_EQ(adopt_claim_stream(first), adopt_claim_stream(second));
+    EXPECT_EQ(first.model_structure_key(), second.model_structure_key());
+
+    // The same pieces, the same bounds, the same partition count -- and the
+    // LAST piece declared onto the FIRST partition, so it claims ahead of the
+    // piece that used to sit between them. Claims are handed out partition by
+    // partition, so that is what a mode change moves: a mode that keeps a
+    // piece's position in the partition order leaves the stream alone.
+    AggregateDeclaration moved = declaration;
+    moved.equality_constraints_[kAdoptPieces - 1].set_thread_mode(ThreadingFlags::Thread0);
+
+    const hven::solvers::StructureEpoch before = second.structure_epoch();
+    second.adopt_declaration(std::move(moved));
+    EXPECT_FALSE(second.structure_epoch() == before);
+    EXPECT_NE(adopt_claim_stream(second), adopt_claim_stream(first));
+    EXPECT_FALSE(second.model_structure_key() == first.model_structure_key());
+}
+
+TEST(AdoptDeclaration, AThreadModeWriteAfterTheLayIsRefused) {
+    auto assembled = adopt_build(adopt_default_modes(), 8, false);
+
+    try {
+        assembled->equality_constraints_[0].set_thread_mode(ThreadingFlags::RoundRobin);
+        FAIL() << "a thread-mode write on a laid piece must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("FixedVariableRow"), std::string::npos) << message;
+        EXPECT_NE(message.find("set_thread_mode"), std::string::npos) << message;
+    }
+
+    // The copy a declaration hands out is declaration data, not part of a
+    // layout, so it takes a new mode -- which is the one route to changing one.
+    AggregateDeclaration declaration = assembled->declaration();
+    EXPECT_NO_THROW(
+        declaration.equality_constraints_[0].set_thread_mode(ThreadingFlags::RoundRobin));
+}
+
+TEST(AggregateDeclarationValidation, RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows) {
+    AggregateDeclaration declaration;
+    declaration.primal_vars_ = 2;
+    declaration.equality_rows_ = 3;
+    declaration.fixing_rows_ = 4;
+    EXPECT_THROW(declaration.validate(), std::invalid_argument);
+
+    declaration.fixing_rows_ = -1;
+    EXPECT_THROW(declaration.validate(), std::invalid_argument);
+
+    declaration.fixing_rows_ = 3;
+    EXPECT_NO_THROW(declaration.validate());
 }

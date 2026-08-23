@@ -100,6 +100,19 @@ void AggregateDeclaration::validate() const {
     require_non_negative(equality_rows_, "the equality-row count");
     require_non_negative(inequality_rows_, "the inequality-row count");
 
+    // The fixing rows are a SUBSET of the declared equality rows: equality_rows_
+    // is the row space as laid, and this says how many of those rows are the
+    // internal ones a fixed-variable treatment appended. A count outside
+    // [0, equality_rows_] describes no row space, and the subtraction the
+    // adoption entry takes would leave a negative user count.
+    if (fixing_rows_ < 0 || fixing_rows_ > equality_rows_) {
+        throw std::invalid_argument(
+            fmt::format("AggregateDeclaration: {0} of the {1} declared equality rows are internal "
+                        "fixing rows; that count must be at least 0 and no greater than the "
+                        "equality-row count",
+                        fixing_rows_, equality_rows_));
+    }
+
     if (partition_count_ < 1) {
         throw std::invalid_argument(fmt::format(
             "AggregateDeclaration: the partition count is {0}; it must be at least 1 (what a "
@@ -115,8 +128,8 @@ void AggregateDeclaration::validate() const {
     // universal rather than one engine's description of itself. Coverage of a
     // provider that should have declared pieces and did not is owned downstream,
     // by its own claim pass.
-    const bool has_pieces = !objectives_.empty() || !equality_constraints_.empty() ||
-                            !inequality_constraints_.empty();
+    const bool has_pieces =
+        !objectives_.empty() || !equality_constraints_.empty() || !inequality_constraints_.empty();
     if (has_pieces) {
         const int equality_claimed = declared_rows(equality_constraints_);
         if (equality_claimed != equality_rows_) {

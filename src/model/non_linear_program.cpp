@@ -14,6 +14,8 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -90,6 +92,86 @@ void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
     this->rebuild_structures();
 }
 
+void hven::solvers::NonLinearProgram::adopt_declaration(AggregateDeclaration declaration) {
+    // FIRST, and before a single member is written: a declaration that does not
+    // describe a problem must leave the problem on hand exactly as it was.
+    declaration.validate();
+
+    const int fixing_rows = declaration.fixing_rows_;
+    const int user_equality_rows = declaration.equality_rows_ - fixing_rows;
+
+    // The three lists are replaced wholesale, so whatever internal rows the
+    // previous layout counted went with them. Cleared before make_nlp so its
+    // discard has nothing stale to truncate and its bookkeeping check reads a
+    // consistent pair.
+    this->objectives_ = std::move(declaration.objectives_);
+    this->equality_constraints_ = std::move(declaration.equality_constraints_);
+    this->inequality_constraints_ = std::move(declaration.inequality_constraints_);
+    this->internal_fixed_cons_ = 0;
+    this->user_equal_cons_ = 0;
+    this->equal_cons_ = 0;
+
+    // The declared internal fixing rows sit at the tail of the equality list,
+    // where the treatment that produced them appended them, one piece per row.
+    // Lifting them off here and putting them back after the lay is what makes
+    // the adopting problem repeat the source's own history rather than lay a
+    // row space nothing declared.
+    std::vector<ConstraintFunction> internal_rows;
+    if (fixing_rows > 0) {
+        const int pieces = static_cast<int>(this->equality_constraints_.size());
+        int tail_rows = 0;
+        if (pieces >= fixing_rows) {
+            for (int k = pieces - fixing_rows; k < pieces; k++) {
+                tail_rows +=
+                    this->equality_constraints_[static_cast<std::size_t>(k)].num_con_eles();
+            }
+        }
+        if (pieces < fixing_rows || tail_rows != fixing_rows) {
+            throw std::invalid_argument(fmt::format(
+                "NonLinearProgram::adopt_declaration: the declaration states {0} internal fixing "
+                "rows, but the last {0} of its {1} equality pieces claim {2} rows; a fixing row is "
+                "one piece claiming one row, and a tail that does not split there is not the row "
+                "space that count describes",
+                fixing_rows, pieces, tail_rows));
+        }
+        const std::size_t first =
+            this->equality_constraints_.size() - static_cast<std::size_t>(fixing_rows);
+        internal_rows.reserve(static_cast<std::size_t>(fixing_rows));
+        for (std::size_t k = first; k < this->equality_constraints_.size(); k++) {
+            internal_rows.push_back(std::move(this->equality_constraints_[k]));
+        }
+        this->equality_constraints_.resize(first);
+    }
+
+    // Cleared and replayed in DECLARATION ORDER, so the tightest-wins merge is
+    // re-derived from the same history rather than from a merged result -- which
+    // is what keeps the bound conjunct of the structural key equal across the
+    // round trip.
+    this->clear_variable_bounds();
+    for (const VariableBound &bound : declaration.variable_bounds_) {
+        this->set_variable_bound(bound.index_, bound.lower_, bound.upper_);
+    }
+
+    // A REQUEST. make_nlp's cap may bring it down, and declaration() then
+    // reports the count that was adopted.
+    this->num_partitions_ = declaration.partition_count_;
+
+    this->make_nlp(declaration.primal_vars_, user_equality_rows, declaration.inequality_rows_);
+
+    if (fixing_rows > 0) {
+        // The same chain the MakeConstraint treatment runs after it installs its
+        // own rows: the set of functions changed, so the element counts and the
+        // work partitioning are re-derived before the layout is laid over them.
+        for (auto &row : internal_rows) {
+            this->equality_constraints_.push_back(std::move(row));
+        }
+        this->internal_fixed_cons_ = fixing_rows;
+        this->equal_cons_ = this->user_equal_cons_ + fixing_rows;
+        this->refresh_function_partitions();
+        this->rebuild_structures();
+    }
+}
+
 void hven::solvers::NonLinearProgram::rebuild_structures() {
     // THE ONE ROUTINE THAT RE-LAYS, and therefore the one place a structural
     // event is recorded. Every path that changes the assembled claim structure
@@ -139,6 +221,13 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     this->declaration_.inequality_rows_ = this->inequal_cons_;
     this->declaration_.partition_count_ = this->num_partitions_;
 
+    // How many of those equality rows are the internal ones a fixed-variable
+    // treatment appended. Written HERE and nowhere else: a declaration that
+    // carries its own fixing-row count is self-describing, so the adoption
+    // entry subtracts a property of the declaration rather than of whichever
+    // problem happens to receive it.
+    this->declaration_.fixing_rows_ = this->equal_cons_ - this->user_equal_cons_;
+
     // The sizes the deferred piece copy will be checked against. Captured here,
     // with the other scalars, because here is where "as laid" is decided.
     //
@@ -162,6 +251,21 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     this->laid_inequality_pieces_ =
         laid_count("inequality constraint", this->inequality_constraints_.size());
     this->ever_laid_ = true;
+
+    // The thread modes are frozen here, with the other "as laid" facts. The
+    // partitioner has already read them, and the claim order they produced is
+    // what the claim arrays and the claim digest now describe -- so a write
+    // that moved a piece to another partition would describe a layout nobody
+    // laid. Changing one is a re-lay from a declaration that carries the new
+    // mode.
+    const auto freeze = [](auto &pieces) {
+        for (auto &piece : pieces) {
+            piece.mark_thread_mode_laid();
+        }
+    };
+    freeze(this->objectives_);
+    freeze(this->equality_constraints_);
+    freeze(this->inequality_constraints_);
 
     // The equality row count is the row space AS LAID, so it counts whatever
     // internal fixing rows the MakeConstraint treatment currently has
@@ -218,6 +322,19 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     this->declaration_.objectives_ = this->objectives_;
     this->declaration_.equality_constraints_ = this->equality_constraints_;
     this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+
+    // The copies are DECLARATION data, and a thread mode is settable in a
+    // declaration: that is the one route a consumer has to change one, by
+    // re-declaring and adopting. The pieces the layout itself holds stay
+    // frozen; only these copies are thawed.
+    const auto thaw = [](auto &pieces) {
+        for (auto &piece : pieces) {
+            piece.clear_thread_mode_laid();
+        }
+    };
+    thaw(this->declaration_.objectives_);
+    thaw(this->declaration_.equality_constraints_);
+    thaw(this->declaration_.inequality_constraints_);
 
     this->declaration_pieces_pending_ = false;
 }

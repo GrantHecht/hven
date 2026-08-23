@@ -314,7 +314,7 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
     auto nlp = std::make_shared<NonLinearProgram>(1);
 
     ObjectiveFunction obj(ObjectiveInterface(NLPObjectivePiece(core)), vindex);
-    obj.thread_mode_ = ThreadingFlags::MainThread;
+    obj.set_thread_mode(ThreadingFlags::MainThread);
     nlp->objectives_.push_back(obj);
 
     if (core->num_eq_ > 0) {
@@ -323,7 +323,7 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
             cindex(k, 0) = k;
         }
         ConstraintFunction eq(ConstraintInterface(NLPConstraintPiece(core, false)), vindex, cindex);
-        eq.thread_mode_ = ThreadingFlags::MainThread;
+        eq.set_thread_mode(ThreadingFlags::MainThread);
         nlp->equality_constraints_.push_back(eq);
     }
     if (core->num_iq_ > 0) {
@@ -332,7 +332,7 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
             cindex(k, 0) = k;
         }
         ConstraintFunction iq(ConstraintInterface(NLPConstraintPiece(core, true)), vindex, cindex);
-        iq.thread_mode_ = ThreadingFlags::MainThread;
+        iq.set_thread_mode(ThreadingFlags::MainThread);
         nlp->inequality_constraints_.push_back(iq);
     }
 
