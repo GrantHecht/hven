@@ -50,3 +50,27 @@ Files: `leg_per_rep.csv` (raw per-rep rows: arm, rep, side, n, inner, median_s,
 min_s, flag, xnorm2), `leg_aggregate.txt`, `provenance.txt`, `nm_base_a062fcc.txt`
 / `nm_head_1939a3d.txt` (symbol-size dumps filtered to the seam, provider,
 aggregate and driver symbols), and the three harness scripts as run.
+
+## SQP-side leg — the arm that CAN observe the seam
+
+The instrument above links no seam symbol, so a second leg was run on the arm
+that does: `hven_sqp_bench`, built at both sides, three standing cells, 7 reps,
+base/head alternated per rep, each run pinned to one core under
+`MKL_NUM_THREADS=1`, with the same box-quiet gate (started at loadavg 0.52).
+This is where A3's per-major bundle check and A4/A5's per-lay checks would show.
+
+| cell | median | minimum | base rep-spread |
+|---|---|---|---|
+| F3 n=1000 cold | +0.32% | +0.11% | 1.73% |
+| F3 n=1000 warm | +0.77% | +0.38% | 0.96% |
+| F7 n=200 cold | −0.23% | −0.34% | 0.81% |
+
+Every reading is at or inside its own cell's base rep-spread, and the sizes match
+the standing precedent for this instrument (the Task 6 leg read +0.13% / +0.08% /
++0.17% on the same three cells). This is the expected shape for adding fixed work
+per lay and per major to a path whose cost is per minor: A3's check runs once per
+`build_subproblem`, A4's and A5's once per `lay()`, and none of them is per
+element.
+
+Raw rows in `sqp_leg_per_rep.txt` (rep, side, cell, wall seconds); harness in
+`run_sqp_leg.sh`.
