@@ -13,10 +13,9 @@
 // problem reaches this level, and neither NlpModel nor NLPProblem gains a
 // method, a base class or an obligation from anything in this header.
 //
-// CONCURRENCY POSTURE, stated here because it is part of the contract rather
-// than an implementation note: an aggregate is inside at most ONE operation at
-// a time, and STRUCTURAL MUTATION IS AN OPERATION. Each of the following
-// overlapping any other is a caller error:
+// CONCURRENCY POSTURE, part of the contract: an aggregate is inside at most
+// ONE operation at a time, and STRUCTURAL MUTATION IS AN OPERATION. Each of
+// the following overlapping any other is a caller error:
 //
 //   * two evaluations at once -- assemble, either candidate evaluation, or
 //     probe_identity. They are non-const and share whatever per-partition
@@ -127,32 +126,22 @@ namespace detail {
 
 /// A gradient arena's presence check: storage and a table, both there.
 ///
-/// Presence and NOT a size match, deliberately, and the asymmetry with the
-/// residual rows below is the contract rather than an omission. A residual
-/// arena has a DECLARED length -- the declaration's own row count, which is what
-/// the mapping table names it as. A gradient arena's length is the provider's
-/// own primal width, which this contract nowhere fixes: a provider that
-/// eliminates variables from the system it solves has a narrower one, which is
-/// exactly why RhsLocationTable carries a dropped-row sentinel. Checking a
-/// gradient arena against the declared variable count would reject that
-/// provider's own storage.
+/// Presence and NOT a size match, deliberately: a residual arena has a
+/// DECLARED length (the declaration's own row count), but a gradient arena's
+/// length is the provider's own primal width, which this contract nowhere
+/// fixes -- a provider that eliminates variables from the system it solves has
+/// a narrower one, and checking against the declared variable count would
+/// reject that provider's own storage.
 ///
-/// WHICH DIVIDES THE LABOUR RATHER THAN LEAVING A GAP, and the split is the
-/// principle: THE ENTRY VALIDATES CONTRACT-VISIBLE FACTS, AND AN IMPLEMENTATION
-/// VALIDATES LAID-WIDTH FACTS. A view shorter than the width a provider laid
-/// its arena over would scatter off the end, and no entry can catch that --
-/// the laid width is not a fact this contract can see, which is exactly why
-/// presence is the most that can be asked here. An implementation compares the
-/// view against its own laid width at its hook, and refuses the same way.
-/// PRESENT MEANS NON-EMPTY, all three ways. A named gradient arena with no
-/// storage, with no table, or with a length of ZERO is refused. The last is
-/// worth spelling out because it is the one a size-match rule would have let
-/// through: unlike a residual block, a gradient arena has no legitimate empty
-/// case -- an aggregate with no primal variables is not a problem -- so a
-/// zero-length view under a naming request is incoherent rather than
-/// degenerate, and a filler that trusted its non-null storage would write past
-/// it. Rejecting it here is still a fixed amount of work and is still not a
-/// laid-width check.
+/// THE ENTRY VALIDATES CONTRACT-VISIBLE FACTS; AN IMPLEMENTATION VALIDATES
+/// LAID-WIDTH FACTS. A view shorter than the width a provider laid its arena
+/// over would scatter off the end, and no entry can catch that -- so an
+/// implementation compares the view against its own laid width at its hook.
+/// PRESENT MEANS NON-EMPTY, all three ways: a named gradient arena with no
+/// storage, with no table, or with a length of ZERO is refused. A gradient
+/// arena, unlike a residual block, has no legitimate empty case -- an
+/// aggregate with no primal variables is not a problem -- so a zero-length
+/// view under a naming request is incoherent rather than degenerate.
 inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const char *arena) {
     if (view.empty()) {
         const char *missing = view.values_ == nullptr      ? "storage"
@@ -169,30 +158,19 @@ inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const
 /// A residual arena's check: the view's length MATCHES the declared row count.
 ///
 /// A size match rather than a non-emptiness test, because a declared row count
-/// of zero is an ordinary problem and not a missing destination. An
-/// equality-only model declares no inequality rows; an inequality-only model
-/// declares no equality rows; both are legal, and both hand this a zero-length
-/// view for the block they do not have. Testing such a view for "empty" would
-/// lock those models out of every values-bearing request -- the residual flag
-/// names both arenas at once, so the block that does exist could never be
-/// evaluated either.
+/// of zero is an ordinary problem and not a missing destination: an
+/// equality-only model declares no inequality rows and vice versa, and testing
+/// such a view for "empty" would lock those models out of every values-bearing
+/// request -- the residual flag names both arenas at once. A zero declared row
+/// count therefore accepts any view, including a wholly default one.
 ///
-/// A zero declared row count therefore accepts any view, including a wholly
-/// default one: there is nothing to write, and demanding storage for it would
-/// be demanding a pointer to nothing.
-///
-/// WHAT THE STRICTNESS DEPENDS ON, stated so nobody "repairs" it into being
-/// wrong: this works ONLY because declaration() reports the row space AS LAID.
-/// A provider whose treatment configuration appends rows -- internal rows for
-/// fixed variables, say -- appends them after every row the transcription
-/// declared AND counts them in the declaration, so a residual view sized to the
-/// solver's actual row space still matches the declared count exactly. A reader
-/// who notices such rows exist and concludes the strict check must be loosened
-/// to tolerate them would be loosening it against a mismatch that cannot
-/// happen, and would give up the zero-length case in exchange. If a provider is
-/// ever allowed to hide rows from its own declaration, THAT is the change that
-/// breaks this, and it is the declaration's contract that would have to be
-/// re-settled first.
+/// This works ONLY because declaration() reports the row space AS LAID: a
+/// provider whose treatment configuration appends internal rows (for fixed
+/// variables, say) counts them in the declaration, so a residual view sized to
+/// the solver's actual row space still matches the declared count exactly. A
+/// provider allowed to hide rows from its own declaration is the change that
+/// would break this, and it is the declaration's contract that would have to
+/// be re-settled first.
 inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declared_rows,
                                    const char *arena) {
     if (declared_rows == 0) {
@@ -216,30 +194,21 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
 
 /// Rejects an assemble call that names an output with nowhere to put it.
 ///
-/// A FIXED AMOUNT OF WORK PER DESTINATION -- a null test, a size comparison --
-/// and that bound is the point rather than an economy. The entry's budget
-/// belongs to the fill, so this asks whether a destination EXISTS and never
-/// whether its contents agree with the layout: a per-slot scan of a location
-/// table would re-derive at every evaluation what the claim pass established
-/// once.
+/// A FIXED AMOUNT OF WORK PER DESTINATION -- a null test, a size comparison.
+/// This asks whether a destination EXISTS and never whether its contents agree
+/// with the layout: a per-slot scan of a location table would re-derive at
+/// every evaluation what the claim pass established once.
 ///
-/// What it buys is the other half of the type-level guarantee the non-virtual
-/// entry makes. "No output is written that the request did not name" was
-/// already structural; this adds its converse -- a request the entry ACCEPTS
-/// has a destination for everything it names -- so a consumer that forgot an
-/// arena is told which one at the entry rather than discovering a silently
-/// unwritten block.
+/// What it buys is the converse of "no output is written that the request did
+/// not name": a request this entry ACCEPTS has a destination for everything it
+/// names, so a consumer that forgot an arena is told which one at the entry
+/// rather than discovering a silently unwritten block.
 ///
-/// It does NOT leave an implementation with nothing to check. The division is
-/// the two-boundary split stated at require_arena_view above: THE ENTRY
-/// VALIDATES CONTRACT-VISIBLE FACTS, AND AN IMPLEMENTATION VALIDATES
-/// LAID-WIDTH FACTS. What arrives at a hook is a destination that exists and,
-/// where the contract knows a length, one of the right length; whether it
-/// matches the width that provider actually laid its arena over is the
-/// provider's own question, asked at its own hook.
-///
-/// The empty-view permission is unchanged and is exactly its complement: an
-/// arena the request does not name may be empty, and shapes 5 and 7 of the
+/// It does NOT leave an implementation with nothing to check: whether a
+/// destination matches the width that provider actually laid its arena over is
+/// the provider's own question, asked at its own hook -- see the two-boundary
+/// split at require_arena_view. The empty-view permission is the complement:
+/// an arena the request does not name may be empty, and shapes 5 and 7 of the
 /// mapping table rely on that.
 ///
 /// The residual arenas are checked against the DECLARED row counts rather than
@@ -289,45 +258,29 @@ inline void validate_request_destinations(EvalRequest request, const AggregateDe
 /// location tables were bound to.
 ///
 /// A PROVIDER MAY BIND ITS LOCATION TABLES TO A DESTINATION IDENTITY AT
-/// ANALYSIS TIME, and the entry validates that the view names that
-/// destination. Some providers compute their KKT locations as offsets into one
-/// particular value array -- they are handed the consumer's storage at an
-/// analysis step, walk its pattern, and record where each claim slot lands in
-/// it. Such a table is meaningful for that array and no other, so the binding
-/// is a fact about the tables rather than an extra obligation on the consumer.
-/// A provider that binds nothing returns nullptr from
+/// ANALYSIS TIME; this entry validates that the view names that destination.
+/// Such a table is meaningful for one particular value array and no other, so
+/// the binding is a fact about the tables rather than an extra obligation on
+/// the consumer. A provider that binds nothing returns nullptr from
 /// NlpAggregate::bound_kkt_destination and is never checked here.
 ///
-/// A CAPTURED VALUE, NOT A LIVE READING. What a provider returns from
-/// bound_kkt_destination must be the address it recorded AT ANALYSIS TIME, kept
-/// as a value. It must not be re-derived on each call from whatever object the
-/// analysis was handed. Re-deriving defeats the whole check twice over: a
-/// consumer that resized or re-patterned THE SAME container moves its value
-/// array, and a live reading moves with it, so both sides of the comparison
-/// agree while every recorded offset has gone stale -- the precise inversion of
-/// what this exists to catch. And a container destroyed since the analysis
-/// cannot be read at all, while this accessor is called on EVERY assemble,
-/// including ones that name no KKT output.
+/// A CAPTURED VALUE, NOT A LIVE READING: the bound address must be the one
+/// recorded AT ANALYSIS TIME. Re-deriving it per call defeats the check twice
+/// over -- a resized container moves its value array and a live reading moves
+/// with it, so both sides agree while every recorded offset has gone stale --
+/// and a destroyed container cannot be read at all, while this accessor runs
+/// on EVERY assemble.
 ///
-/// IDENTITY ONLY, NEVER A LIFETIME PROMISE. This compares two addresses as
-/// values. It cannot tell a live destination from a freed one, and nothing here
-/// should be read as saying the bound destination is still valid -- storage
-/// lifetime is the consumer's, exactly as it is for every view in this contract.
-/// Neither the captured address nor the view's is dereferenced here.
+/// IDENTITY ONLY, NEVER A LIFETIME PROMISE: two addresses are compared as
+/// values; neither is dereferenced, and storage lifetime stays the consumer's.
+/// What it catches is the STALE TABLE -- a consumer matrix that was reallocated
+/// moved its value array, so the recorded offsets describe storage that is
+/// gone -- which is why the throw names the remedy (re-run the analysis).
 ///
-/// What it DOES catch is the case worth catching: a consumer whose matrix was
-/// reallocated moves its value array, so the recorded offsets now describe
-/// storage that is gone. That is a STALE TABLE, and detecting it is this
-/// check working rather than a caller being scolded -- which is why the throw
-/// names the remedy (re-run the analysis) instead of only reporting the
-/// mismatch.
-///
-/// THE CONTRAST, stated here because the two surfaces are easy to conflate:
-/// the CANDIDATE surface stays UNBOUND. evaluate_candidate_values and
-/// evaluate_candidate_first_order take caller-owned storage afresh on every
-/// call and bind to nothing, so an independent scorer needs no analysis step
-/// and may evaluate into whatever buffers it happens to hold. Binding is a
-/// property of the hot path's location tables alone.
+/// THE CANDIDATE surface stays UNBOUND:
+/// evaluate_candidate_values/evaluate_candidate_first_order take caller-owned
+/// storage afresh on every call and bind to nothing. Binding is a property of
+/// the hot path's location tables alone.
 inline void validate_bound_destination(const double *bound, const KktScatterView &kkt) {
     if (bound == nullptr || kkt.empty()) {
         return;
@@ -346,14 +299,13 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
 /// The Level 2 provider interface: a partitioned collection of pieces plus its
 /// layout.
 ///
-/// An abstract base class rather than a type-erased handle. Its virtuals are
-/// per structural call and per evaluation fan-out -- never per element -- so
-/// the dispatch cost is immaterial, and one declaration reads as one contract.
-/// The type-erasure seam stays one level down, at the pieces, where a
-/// per-element dispatch budget is the thing being defended.
+/// An abstract base class rather than a type-erased handle: its virtuals are
+/// per structural call and per evaluation fan-out -- never per element. The
+/// type-erasure seam stays one level down, at the pieces, where a per-element
+/// dispatch budget is the thing being defended.
 ///
 /// PARTITION INVARIANCE, a contract sentence every implementation owes:
-/// **global (variable, row) identities are partition-invariant.** A variable's
+/// global (variable, row) identities are partition-invariant. A variable's
 /// global index and a constraint's global row are properties of the declaration
 /// alone. No renegotiation of the partition count and no re-partitioning of the
 /// piece lists may renumber either. Partitions decide which thread evaluates a
@@ -369,13 +321,13 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
 /// standing thread-count invariance pin.
 ///
 /// CLAIM EXCLUSIVITY, the second contract sentence every implementation owes:
-/// **a claim slot belongs to exactly one partition. An arena row may receive
+/// a claim slot belongs to exactly one partition. An arena row may receive
 /// several partitions' slots; the provider folds them into the row serially,
 /// after the join, in claim order (partition-index order), so each row has one
 /// writer. Physical KKT destination clashes are the consumer's, resolved
 /// through the clash marks and lock vector of the location table it
 /// published (model/claim_space.h); a provider scatters through the table
-/// honoring the marks and never pre-reduces contested KKT coordinates.**
+/// honoring the marks and never pre-reduces contested KKT coordinates.
 ///
 /// CLAIM-PASS SHAPE: claims are issued serially by the provider, in
 /// partition-index order, never from worker threads. Pre-reserving slot ranges
@@ -398,17 +350,14 @@ class NlpAggregate {
     /// object's lifetime except across a structural mutation. An implementation
     /// must not build a declaration per call and return a reference to it: the
     /// non-virtual entries above read this on EVERY evaluation, to check the
-    /// caller's blocks against real dimensions, so a rebuilding implementation
-    /// would put that work on the evaluation path -- and returning a reference
-    /// to anything temporary would dangle. An implementation MAY materialize
-    /// the stored state on the first read after a structural mutation, since
-    /// once-per-mutation is not per call.
+    /// caller's blocks against real dimensions. An implementation MAY
+    /// materialize the stored state on the first read after a structural
+    /// mutation, since once-per-mutation is not per call.
     virtual const AggregateDeclaration &declaration() const = 0;
 
     /// Adopts a partition count and returns the count ACTUALLY adopted, which
     /// may be smaller than the request -- a provider with fewer pieces than
-    /// partitions caps it. Returning the adopted count is what makes
-    /// renegotiation honest: a consumer that assumed its request was honoured
+    /// partitions caps it. A consumer that assumed its request was honoured
     /// would mis-key the structural key, whose partition conjunct must be the
     /// ADOPTED count.
     ///
@@ -417,17 +366,10 @@ class NlpAggregate {
     /// force and leaves the claim structure identical. Claim order moved, and a
     /// consumer holding claim-slot-indexed state is stale.
     ///
-    /// A NON-POSITIVE REQUEST IS REFUSED, with std::invalid_argument naming the
-    /// value, and is never silently corrected to one. The two are different
-    /// acts and only one of them is this method's job: CAPPING a request the
-    /// provider cannot support is honest work, and it is reported honestly
-    /// through the return value, which is the whole reason the adopted count is
-    /// returned at all. A request for zero or fewer partitions names no
-    /// partitioning, so there is nothing to cap and nothing to report -- and
-    /// serving one instead would hand back a count the caller never asked for,
-    /// which it would then key its structural key on. Refusing a nonsensical
-    /// request rather than correcting it is the rule; every implementation owes
-    /// it.
+    /// A NON-POSITIVE REQUEST IS REFUSED with std::invalid_argument naming the
+    /// value, and is never silently corrected to one: capping is honest work
+    /// reported through the return value; a request for zero or fewer
+    /// partitions names no partitioning, so there is nothing to cap.
     ///
     /// Engine-side threading (a subproblem solver's own thread count) is not
     /// this interface's business and never routes through it.
@@ -483,21 +425,17 @@ class NlpAggregate {
     /// caller abandons -- the structures on hand are not the structures the
     /// consumer last saw, whether or not they are the ones it saw before.
     /// Restoring them is itself a structural event and bumps under the same
-    /// guarantee. What this closes is the failure where a consumer's cached
+    /// guarantee, which closes the failure where a consumer's cached
     /// claim-slot state survives a rejected reconfiguration because the epoch
     /// went out and came back.
     ///
     /// Virtual so that a provider wrapping another aggregate can forward the
-    /// inner one's epoch; the default is the counter this base owns, which is
-    /// what keeps monotonicity out of each provider's discipline.
-    ///
-    /// AN OVERRIDE TAKES OVER THE FULL SET OF EPOCH OBLIGATIONS -- monotonicity,
+    /// inner one's epoch; the default is the counter this base owns. AN
+    /// OVERRIDE TAKES OVER THE FULL SET OF EPOCH OBLIGATIONS -- monotonicity,
     /// the ordering guarantee, and the failure-restore rule -- and must justify
-    /// itself in its own contract text. The door is open for a delegating
-    /// aggregate that mirrors an inner aggregate's epoch, which is a genuine
-    /// case; it is not open for a provider that would rather compute an epoch
-    /// its own way, because the escape hatch must not erode the enforcement the
-    /// default exists to provide.
+    /// itself in its own contract text; the escape hatch exists for a
+    /// delegating aggregate that mirrors an inner aggregate's epoch, not for a
+    /// provider computing an epoch its own way.
     virtual StructureEpoch structure_epoch() const { return structure_epoch_counter_.current(); }
 
     /// What this provider declares about how it does its work. Declaring
@@ -507,19 +445,13 @@ class NlpAggregate {
     /// The KKT value array this provider's location tables were bound to at
     /// analysis time, or nullptr when it binds none.
     ///
-    /// The default binds none, which is the right answer for any provider whose
-    /// tables are destination-independent. A provider that computes its
-    /// locations as offsets into one particular array returns that array here,
-    /// and the assemble entry then refuses a view naming anything else -- see
-    /// validate_bound_destination above for what that check is and, more
-    /// importantly, what it is not.
-    ///
-    /// AN IMPLEMENTATION RETURNS THE ADDRESS IT CAPTURED AT ANALYSIS TIME, held
-    /// as a value, and dereferences nothing to produce it. Re-reading the
-    /// address out of the container the analysis was handed would make the
-    /// check vacuous against a resize of that container and unsafe against its
-    /// destruction; this entry is called on every assemble, including ones that
-    /// name no KKT output at all.
+    /// The default binds none. A provider that computes its locations as
+    /// offsets into one particular array returns that array here, and the
+    /// assemble entry then refuses a view naming anything else -- see
+    /// validate_bound_destination above for what that check is and what it is
+    /// not. AN IMPLEMENTATION RETURNS THE ADDRESS IT CAPTURED AT ANALYSIS
+    /// TIME, held as a value; re-reading it out of the container would make
+    /// the check vacuous against a resize and unsafe against destruction.
     virtual const double *bound_kkt_destination() const { return nullptr; }
 
     /// The hot path: fan out over the partitions, each piece scattering its own
@@ -563,15 +495,12 @@ class NlpAggregate {
     ///     time, the view names that destination. One pointer comparison, and
     ///     vacuous for a provider that binds nothing.
     ///
-    /// THE ENTRY IS NON-VIRTUAL AND THE HOOK BELOW IT IS THE VIRTUAL ONE, which
-    /// upgrades the guarantee at the top of this comment in BOTH directions and
-    /// makes each half a property of the TYPE rather than a rule each provider
-    /// is asked to keep: no output is written that the request did not name,
-    /// and a request the entry accepts has a destination for everything it
-    /// does. An implementation cannot skip the validation, forget it, or
-    /// reorder it after its own work, because it never sees an unvalidated
-    /// call. That is strictly stronger than the settled text required, and a
-    /// consumer may rely on it: any NlpAggregate&, whatever is behind it, has
+    /// THE ENTRY IS NON-VIRTUAL AND THE HOOK BELOW IT IS THE VIRTUAL ONE,
+    /// which makes both halves of the guarantee properties of the TYPE: no
+    /// output is written that the request did not name, and a request the
+    /// entry accepts has a destination for everything it does. An
+    /// implementation cannot skip the validation, forget it, or reorder it
+    /// after its own work; any NlpAggregate&, whatever is behind it, has
     /// refused an unmapped request, a short-blocked point and a missing
     /// destination before a single value moved.
     ///
@@ -584,9 +513,8 @@ class NlpAggregate {
     /// successive requests against one destination, compose the same way.
     /// Provider-internal scratch is a separate matter and stays the provider's
     /// own to zero. Accumulation is exact only against a -0.0-seeded arena;
-    /// the seed choice is the consumer's and is byte-identity-relevant
-    /// (docs/notes/2026-08-m4-ledger.md:760-763; the mechanism is
-    /// detail/drivers/aggregate_eval_seam.h's, not restated here).
+    /// the seed choice is the consumer's and is byte-identity-relevant (the
+    /// mechanism is detail/drivers/aggregate_eval_seam.h's, not restated here).
     ///
     /// IF assemble THROWS, the destinations hold an unspecified prefix of the
     /// fill. This call is not scratch-then-commit: a caller that retries
@@ -602,8 +530,7 @@ class NlpAggregate {
     /// A consumer may run its own coefficient steps concurrently with
     /// assemble() when its writes touch no destination the scatter views name;
     /// destination disjointness is the consumer's obligation. The interior
-    /// engine does not meet it and sequences instead; rationale and that
-    /// engine's own pin: docs/notes/2026-08-m4-ledger.md.
+    /// engine does not meet it and sequences instead.
     void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                   RhsScatterView rhs) {
         const AggregateDeclaration &declared = this->declaration();
@@ -622,26 +549,20 @@ class NlpAggregate {
     /// an arbitrary candidate point, into caller-owned split storage. No engine
     /// cooperation, and no access to whatever model sits behind the provider.
     ///
-    /// Deliberately NOT spelled `eval_values`: the model-level method of that
-    /// name has its own pinned wording that this contract does not re-word, and
-    /// a reader who sees two different spellings in one call stack is being
-    /// told, correctly, that they are two different levels.
-    ///
     /// A VALUES path, so the point's multiplier blocks are legally empty: it
     /// reads none of them. The storage blocks are checked against the
-    /// declaration's dimensions here, before the hook runs.
+    /// declaration's dimensions here, before the hook runs. Deliberately NOT
+    /// spelled `eval_values`: the model-level method of that name has its own
+    /// wording this contract does not re-word -- the two spellings name two
+    /// different levels.
     ///
     /// THE CANDIDATE ENTRIES ASSIGN. Every block this call and
     /// evaluate_candidate_first_order write is ASSIGNED, not accumulated into,
-    /// and that is deliberately the opposite of assemble's discipline rather
-    /// than an inconsistency to tidy away. The two calls are doing different
-    /// things. Assemble is a MULTI-PIECE fan-out on the hot path: many pieces
-    /// sum into arenas the consumer zeroed once and reuses across a whole
-    /// minor, so accumulation is what lets partitions and successive requests
-    /// compose. A candidate evaluation is the WHOLE aggregate written once into
-    /// a caller's own buffer, off that path, and its caller is a scorer that
-    /// holds a scratch vector and wants the values at a point -- requiring it
-    /// to pre-zero would be an obligation with nothing to buy it, and a
+    /// and that is deliberately the opposite of assemble's discipline: assemble
+    /// is a MULTI-PIECE fan-out whose partitions and successive requests must
+    /// compose against arenas the consumer zeroed once; a candidate evaluation
+    /// is the WHOLE aggregate written once into a caller's own buffer off that
+    /// path, and requiring its scorer to pre-zero would buy nothing while a
     /// forgotten zero would silently return the sum of two points.
     ///
     /// THE IDENTITY-SPACE PRINCIPLE, which binds every vector on this surface:
@@ -672,24 +593,18 @@ class NlpAggregate {
     /// they carry one row per DECLARED variable whatever the provider's own
     /// working space is.
     ///
-    /// WHAT A SCORER OWES, and it is an obligation on the CONSUMER rather than
-    /// a defect in any provider: a variable whose declared bounds coincide
-    /// carries no degree of freedom, and its stationarity row is not a
-    /// stationarity condition -- the quantity that balances there is the bound
-    /// multiplier holding it at its value, which this surface does not carry.
-    /// A correct scorer therefore EXCLUDES the declared-fixed coordinates from
-    /// stationarity scoring rather than reading whatever the gradient blocks
-    /// hold for them.
-    ///
-    /// The exclusion set is computable FROM DECLARATION DATA ALONE: it is the
-    /// set of variables whose materialized bound record has lower == upper
-    /// (declaration().materialize_variable_bounds(), the same intersection the
-    /// structural key's bound conjunct is taken over). No engine state, no
-    /// provider internals, and no knowledge of which treatment a provider was
-    /// configured with is needed to compute it -- which is what keeps a scorer
-    /// written against this surface independent of the provider behind it.
-    /// Providers differ in what they leave in an excluded coordinate's row, and
-    /// a scorer that skips those rows is insensitive to the difference.
+    /// WHAT A SCORER OWES, an obligation on the CONSUMER rather than a defect
+    /// in any provider: a variable whose declared bounds coincide carries no
+    /// degree of freedom, and its stationarity row is not a stationarity
+    /// condition -- the quantity that balances there is the bound multiplier
+    /// holding it at its value, which this surface does not carry. A correct
+    /// scorer therefore EXCLUDES the declared-fixed coordinates from
+    /// stationarity scoring. The exclusion set is computable FROM DECLARATION
+    /// DATA ALONE: the variables whose materialized bound record has
+    /// lower == upper (declaration().materialize_variable_bounds(), the same
+    /// intersection the structural key's bound conjunct is taken over).
+    /// Providers differ in what they leave in an excluded coordinate's row,
+    /// and a scorer that skips those rows is insensitive to the difference.
     void evaluate_candidate_first_order(const CandidatePoint &point, CandidateFirstOrder out) {
         const AggregateDeclaration &declared = this->declaration();
         validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
@@ -705,14 +620,11 @@ class NlpAggregate {
     ///
     /// It performs no factorization and no full derivative evaluation: it is
     /// evaluate_candidate_values plus a hash, which is why a provider declaring
-    /// kValuesFastPath gets a genuinely cheap probe for free.
-    ///
-    /// Virtual rather than split like the three entries above, because a probe
-    /// takes no caller-owned storage and no request: the only thing there would
-    /// be to check at a non-virtual entry is the primal block, and an
-    /// implementation that routes through evaluate_candidate_values -- which is
-    /// what "values plus a hash" means -- has that checked already, at the
-    /// entry it goes through.
+    /// kValuesFastPath gets a genuinely cheap probe for free. Virtual rather
+    /// than split like the three entries above, because a probe takes no
+    /// caller-owned storage and no request -- an implementation that routes
+    /// through evaluate_candidate_values has the primal block checked already,
+    /// at the entry it goes through.
     virtual IdentityProbe probe_identity(ConstVecRef x) = 0;
 
   protected:
@@ -727,10 +639,8 @@ class NlpAggregate {
     //
     // What the entries check is deliberately bounded: flag tests and dimension
     // comparisons, a fixed amount of work per call. The hot-path budget belongs
-    // to the fill, and a per-element scan at the entry would spend it on
-    // re-deriving what the layout already established. A check that needs
-    // element work is not an entry check; it belongs where the elements are
-    // already being walked.
+    // to the fill; a check that needs element work belongs where the elements
+    // are already being walked.
 
     virtual void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                                RhsScatterView rhs) = 0;

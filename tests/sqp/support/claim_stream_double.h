@@ -1,3 +1,8 @@
+// =============================================================================
+// New file in hven (Copyright 2026-present Grant R. Hecht, Apache 2.0 — see
+//   LICENSE.txt)
+// =============================================================================
+
 // A ClaimStreamSource whose claim stream is written by the test rather than
 // derived from a model.
 //
@@ -90,8 +95,6 @@ class SettableClaimStreamSource final : public hven::solvers::ClaimStreamSource 
         this->bump_structure_epoch();
     }
 
-    // ---- NlpAggregate ------------------------------------------------------
-
     const hven::solvers::AggregateDeclaration &declaration() const override { return declaration_; }
 
     int negotiate_partition_count(int requested) override {
@@ -132,8 +135,8 @@ class SettableClaimStreamSource final : public hven::solvers::ClaimStreamSource 
                                             hven::solvers::candidate_value_digest(values)};
     }
 
-    // ---- ClaimStreamSource -------------------------------------------------
-
+    // ClaimStreamSource overrides; the aggregate entries above forward to the
+    // base's non-virtual validation, so only the hooks and accessors remain.
     Eigen::Ref<const Eigen::VectorXi> kkt_claim_rows() const override { return kkt_claim_rows_; }
     Eigen::Ref<const Eigen::VectorXi> kkt_claim_cols() const override { return kkt_claim_cols_; }
     hven::solvers::ClaimBlock hessian_claims() const override { return hessian_; }

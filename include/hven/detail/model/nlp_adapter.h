@@ -92,9 +92,9 @@ struct NLPAdapterCore {
     enum class HessOwner { Objective, EqPiece, IqPiece };
     HessOwner hess_owner_ = HessOwner::Objective;
 
-    // --- Per-iterate cache. The model's callbacks are pure, so it keys on the
+    // Per-iterate cache. The model's callbacks are pure, so it keys on the
     // iterate value. x_cache_ is also the plain vector every model call is
-    // handed, so one assembly copies the solver's iterate once. ---
+    // handed, so one assembly copies the solver's iterate once.
     Eigen::VectorXd x_cache_;
     bool gradient_valid_ = false;
     bool residuals_valid_ = false;
@@ -108,13 +108,13 @@ struct NLPAdapterCore {
     Eigen::VectorXd grad_scratch_, ce_scratch_, ci_scratch_;
     SpMatRM jac_e_scratch_, jac_i_scratch_, hess_scratch_;
 
-    // --- Per-assembly consume-once records. The objective piece records the
+    // Per-assembly consume-once records. The objective piece records the
     // objective scale when its Hessian-bearing method runs; the equality piece
     // records its multipliers likewise; the Hessian owner consumes both. A
     // chain that skips the objective (the solver's no-objective KKT mode)
     // leaves no record, and the owner correctly uses scale 0. The multiplier
     // record is a sized member rather than an optional vector so that setting
-    // it allocates nothing. ---
+    // it allocates nothing.
     std::optional<double> pending_obj_scale_;
     bool le_recorded_ = false;
     Eigen::VectorXd le_record_;

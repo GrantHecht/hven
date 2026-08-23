@@ -39,7 +39,6 @@
 // (the condensed elastic l1 phase) — see proximal_restoration.h and
 // l1_restoration.h for the formulations and citations, and restoration.h for
 // the wiring overview.
-// =============================================================================
 
 #include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/interior/barrier_math.h"
@@ -84,7 +83,6 @@ void note_eval_error_unknown(EvalErrorLog *log) {
 }
 } // namespace
 
-// ============================================================================
 // Generic interface — is_iterate_acceptable is unused on the classic merit
 // path (see header). T6: it throws rather than return a fabricated answer;
 // the shipped FilterAcceptance/FunnelAcceptance/ModernMeritAcceptance
@@ -92,7 +90,6 @@ void note_eval_error_unknown(EvalErrorLog *log) {
 // that actually drive it. is_infeasibility_sufficiently_reduced below is a
 // separate case: it has a real body right here, because it IS driven on the
 // classic path (see alg_impl, interior_point_solver.cpp).
-// ============================================================================
 bool ClassicMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
                                                    const ProgressMeasures &trial,
                                                    const ProgressMeasures &predicted_reduction,
@@ -129,13 +126,11 @@ bool ClassicMeritAcceptance::is_infeasibility_sufficiently_reduced(
     return trial.infeasibility <= floor;
 }
 
-// ============================================================================
 // Barrier/eval helpers. apply_reset_slacks/barrier_objective/barrier_gradient
 // are one-line forwarders into the shared kernels in barrier_math.h; eval_rhs
 // has no shared counterpart and stays a real body, issuing the first-order
 // right-hand-side request through the aggregate contract (see
 // merit_acceptance.h's byte-identity design note).
-// ============================================================================
 
 void ClassicMeritAcceptance::eval_rhs(double obj_scale,
                                       const Eigen::Ref<const Eigen::VectorXd> &XSL, double &val,
@@ -170,9 +165,7 @@ void ClassicMeritAcceptance::barrier_gradient(Eigen::Ref<Eigen::VectorXd> S,
     detail::barrier_gradient(S, LI, mu, AGS);
 }
 
-// ============================================================================
 // Line search — shared helpers
-// ============================================================================
 
 void ClassicMeritAcceptance::eval_trial_point_occ(double obj_scale, double mu, double alpha,
                                                   KKTVector &xsl, KKTVector &dxsl, KKTVector &xsl2,
@@ -237,9 +230,7 @@ bool ClassicMeritAcceptance::secondary_accept(double ptest, double prim_obj,
     return ptest < prim_obj && (test.l2_ < init.l2_ || test.linf_ < init.linf_);
 }
 
-// ============================================================================
 // Line search — variant implementations
-// ============================================================================
 
 double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_obj,
                                        double barr_obj, KKTVector &xsl, KKTVector &dxsl,
@@ -488,9 +479,7 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
     return alpha;
 }
 
-// ============================================================================
 // Line search — dispatcher (verbatim today's InteriorPointSolver::ls_impl)
-// ============================================================================
 
 double ClassicMeritAcceptance::classic_line_search(InteriorPointSolver::LineSearchModes lsmode,
                                                    double obj_scale, double mu, double prim_obj,
@@ -536,13 +525,11 @@ double ClassicMeritAcceptance::classic_line_search(InteriorPointSolver::LineSear
     }
 }
 
-// ============================================================================
 // ModernMeritAcceptance — the modernized merit family (WMNO / flexible penalty
 // rules), driven through the GENERIC AcceptanceStrategy path. See
 // globalization/modern_merit.h for the full paper-derived formulation and the
 // ProgressMeasures mapping; the code below is a direct transcription of the
 // (accept-π), (threshold), and penalty-update equations documented there.
-// ============================================================================
 
 void ModernMeritAcceptance::reset() {
     // Working penalty state + working smallest-known tracker back to their
@@ -733,7 +720,6 @@ bool ModernMeritAcceptance::accept_flexible(const ProgressMeasures &current,
 }
 
 namespace {
-// ============================================================================
 // modern_eval_trial_point — shared trial-point evaluation for the GENERIC
 // acceptance loop (BacktrackingLineSearch::generic_line_search). A PARALLEL
 // copy of ClassicMeritAcceptance::eval_trial_point_occ's math (same slack-reset
@@ -742,7 +728,6 @@ namespace {
 // diff stays empty. Reaches InteriorPointSolver state through the SolverContext only.
 // Returns ptest (σ-scaled primal objective at the trial), btest (barrier term
 // −μ·Σ log s), and theta (L1 constraint-norm merit infeasibility ‖c‖₁).
-// ============================================================================
 void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, double alpha,
                              const Eigen::VectorXd &XSL, const Eigen::VectorXd &DXSL,
                              Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS2, double &ptest,
@@ -817,7 +802,6 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
 }
 } // namespace
 
-// ============================================================================
 // BacktrackingLineSearch — step-length mechanism. max_step_to_
 // boundary and max_primal_dual_step are moved VERBATIM from src/solvers/
 // interior_point_solver.cpp (statement order and operand order preserved exactly — the merge
@@ -825,9 +809,8 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
 // context-plumbing renames: former InteriorPointSolver member reads (settings_.pd_step_
 // strategy_, inequal_cons_, equal_cons_) now go through the SolverContext
 // reference `ctx`, and the KKTVector view over the raw XSL/DXSL blocks is
-// reconstructed inside max_primal_dual_step (the caller used to build and pass
-// it). See backtracking_line_search.h's riskiest-seam design note.
-// ============================================================================
+// reconstructed inside max_primal_dual_step rather than passed in by the
+// caller. See backtracking_line_search.h's riskiest-seam design note.
 
 double BacktrackingLineSearch::max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> SLI,
                                                     Eigen::Ref<Eigen::VectorXd> dSLI, double bfrac,
@@ -1079,7 +1062,6 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
     return alpha;
 }
 
-// ============================================================================
 // ClassicAdaptiveGovernor — barrier-parameter update. The
 // PROBE/LOQO barmode switch + common clamp/objective/gradient tail and the
 // loqo_mu / mpc_mu oracles are moved from src/solvers/interior_point_solver.cpp (statement
@@ -1096,7 +1078,6 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
 // (including its ULP-load-bearing .sum() warning), since its avgcomp/mincomp
 // feed mu and are not a candidate for the shared header. See
 // classic_adaptive_governor.h's PROBE-impurity and byte-identity design notes.
-// ============================================================================
 
 void ClassicAdaptiveGovernor::complementarity(Eigen::Ref<Eigen::VectorXd> X,
                                               Eigen::Ref<Eigen::VectorXd> S,
@@ -1247,7 +1228,6 @@ double ClassicAdaptiveGovernor::update_barrier(
     return mu;
 }
 
-// ============================================================================
 // BarrierGovernor::update_barrier_monotone — the monotone (Fiacco-McCormick)
 // barrier schedule forced while a nested l1 feasibility-restoration phase is
 // active, transcribing Ipopt's default restoration mu_strategy. Non-virtual and
@@ -1256,7 +1236,6 @@ double ClassicAdaptiveGovernor::update_barrier(
 // barrier_governor.h). Reuses MonitoredBarrierGovernor's pure static
 // Fiacco-McCormick helpers — the same safeguarded rule the monitored governor
 // runs in its own monotone mode — so the two paths share one arithmetic.
-// ============================================================================
 double BarrierGovernor::update_barrier_monotone(double mu_in, Eigen::VectorXd &XSL,
                                                 Eigen::VectorXd &RHS, SolverContext &ctx,
                                                 double &barr_obj, const IterateInfo &current,
@@ -1314,14 +1293,12 @@ void commit_recovered_step(Eigen::VectorXd &DXSL, double &alpha, IterateInfo &Ci
 }
 } // namespace
 
-// ============================================================================
 // SocRecovery — second-order correction (Wächter & Biegler 2006, §2.4). Only
 // reached when SOC is enabled (max_soc_ > 0, so rebuild_globalization_
 // components() built a SocRecovery)
 // AND the line search rejected a usable step (the recovery-dispatch gate). See
 // globalization/soc.h for the algorithm overview and the trigger/termination
 // predicates driven below.
-// ============================================================================
 
 void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
                                          const Eigen::VectorXd &XSL, const Eigen::VectorXd &dir,
@@ -1509,12 +1486,10 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     return action;
 }
 
-// ============================================================================
 // ExtendedBacktrackRecovery — see watchdog.h's file docstring, "Extended
 // backtracking" section, for the exact mechanics (why scaling DXSL by the
 // live alpha and re-driving run_acceptance_backtrack reproduces the SAME
 // ladder with no redundant re-test and no new math).
-// ============================================================================
 RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
@@ -1559,10 +1534,8 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     return Action::kAcceptAsIs; // extended budget exhausted: take the original rejected step.
 }
 
-// ============================================================================
 // WatchdogRecovery — drives WatchdogState against the real working set. See
 // watchdog.h's file docstring, "Watchdog" section, for the full semantics.
-// ============================================================================
 RecoveryChain::Action WatchdogRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
@@ -1643,11 +1616,9 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
         "WatchdogRecovery::on_step_rejected: unreachable WatchdogState::Outcome");
 }
 
-// ============================================================================
 // ChainedRecovery — tries SOC then extended backtracking (see watchdog.h's
 // class doc for the ordering rationale), stamping resolved_depth with
 // whichever link's index actually resolved the rejection.
-// ============================================================================
 RecoveryChain::Action ChainedRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
@@ -1676,11 +1647,9 @@ RecoveryChain::Action ChainedRecovery::on_step_rejected(
     return Action::kAcceptAsIs;
 }
 
-// ============================================================================
 // FeasibilitySwitchRecovery — outermost link; converts a ladder-exhausted
 // rejection into a feasibility-restoration mode-switch. See
 // feasibility_switch_recovery.h for the design.
-// ============================================================================
 
 RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
@@ -1751,13 +1720,11 @@ RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
     return Action::kSwitchToFeasibility;
 }
 
-// ============================================================================
 // SwitchingAcceptance — the shared Wächter–Biegler switching-condition
 // skeleton (filter/funnel shared base). See globalization/switching_acceptance.h
 // for the full formulation; the code below is a direct transcription of the
 // θ_min/θ_max derivation, the switching condition (Eq. 19), and the F-type
 // Armijo test (Eq. 20) documented there.
-// ============================================================================
 
 void SwitchingAcceptance::reset() {
     bounds_initialized_ = false;
@@ -1867,13 +1834,11 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
     return true;
 }
 
-// ============================================================================
 // FunnelAcceptance — scalar-funnel H-type strategy on the switching skeleton.
 // See globalization/funnel_acceptance.h for the full formulation; the code
 // below transcribes the width initialization (init), the H-type verdict (2),
 // and the width update (3) documented there, following Uno's shipped default
 // funnel_update_strategy = 1.
-// ============================================================================
 
 void FunnelAcceptance::initialize_bounds(double theta_0) {
     // (init): τ = max(τ̄, κ̄·θ₀).
@@ -1998,13 +1963,11 @@ void FunnelAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     in_feasibility_phase_ = false;
 }
 
-// ============================================================================
 // FilterAcceptance — (θ, φ)-pair filter H-type strategy on the switching
 // skeleton. See globalization/filter_acceptance.h for the full formulation and
 // the rule-by-rule Ipopt citations; the code below transcribes the
 // acceptable-to-current test (1a), the acceptable-to-filter test (1b), the
 // augmentation (2), and the filter-reset heuristic (4) documented there.
-// ============================================================================
 
 void FilterAcceptance::initialize_bounds(double theta_0) {
     // Start the phase with an empty filter (Ipopt Reset; the θ_max ceiling is
@@ -2244,14 +2207,12 @@ void FilterAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     in_feasibility_phase_ = false;
 }
 
-// ============================================================================
 // MonitoredBarrierGovernor — free<->monotone monitored barrier governor. See
 // monitored_governor.h for the full formulation, the Ipopt source citations,
 // and the μ-event / re-entry / error-norm resolutions. Every bare
 // IpAdaptiveMuUpdate.cpp/IpMonotoneMuUpdate.cpp line-number citation below
 // (including the AMU:/MMU: shorthand) is pinned to Ipopt releases/3.14.19
 // (2695946fa79d2e84f3034e065e788933a81466eb), matching monitored_governor.h.
-// ============================================================================
 
 MonitoredBarrierGovernor::MonitoredBarrierGovernor()
     : free_delegate_(std::make_unique<ClassicAdaptiveGovernor>()) {}
@@ -2429,13 +2390,11 @@ void MonitoredBarrierGovernor::append_diagnostics(InteriorPointSolver::SolveResu
     result.last_monotone_iters_ = last_monotone_iters_;
 }
 
-// ============================================================================
 // ProximalSwitchRestoration — proximal feasibility mode-switch. See
 // proximal_restoration.h for the full formulation and the Uno/Ipopt source
 // citations; the code below transcribes the frozen-ζ snapshot (1), the
 // per-coordinate scaling and proximal term/gradient (2), and the near-
 // feasible + budget entry guard (3)/(4) documented there.
-// ============================================================================
 
 void ProximalSwitchRestoration::enter_restoration(const ProgressMeasures &reference,
                                                   const Eigen::Ref<const Eigen::VectorXd> &primals,
@@ -2485,14 +2444,12 @@ void ProximalSwitchRestoration::add_proximal_gradient(
 // (restoration.h) — both concrete strategies share the identical
 // entries_/iterations_in_mode_ pair.
 
-// ============================================================================
 // NestedL1Restoration — condensed l1 elastic feasibility restoration. See
 // l1_restoration.h for the full formulation, the pinned Ipopt citations per
 // formula, and the disclosed design decisions. The code below transcribes the
 // closed-form slack init (4), the per-iteration condensation (pivot + r̃) and
 // step recovery (5), the live-μ proximal objective/gradient/diagonal (2)/(3),
 // and the fraction-to-boundary caps documented there.
-// ============================================================================
 
 void NestedL1Restoration::enter_restoration(const ProgressMeasures &reference,
                                             const Eigen::Ref<const Eigen::VectorXd> &primals,

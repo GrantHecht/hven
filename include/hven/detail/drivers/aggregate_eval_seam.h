@@ -32,8 +32,7 @@
 // results, scatters them into this seam's arena, and the seam copies the three
 // contiguous segments out. Those transfers are per major, not per minor -- the
 // QP engine's working-set iterations gain no copy, no branch and no
-// indirection from any of it, which is the ground the per-minor scope stands on
-// (see docs/notes/2026-08-21-m4-task5-design.md §7).
+// indirection from any of it, which is the ground the per-minor scope stands on.
 //
 // WHY THE SEED IS NEGATIVE ZERO. The contract's assemble ACCUMULATES (see
 // model/nlp_aggregate.h) and the consumer owns the initial state, so every
@@ -98,8 +97,6 @@ class AggregateEvalSeam {
     AggregateEvalSeam(const AggregateEvalSeam &) = delete;
     AggregateEvalSeam &operator=(const AggregateEvalSeam &) = delete;
 
-    // ---- what was laid ----------------------------------------------------
-
     /// @brief Primal variable count, as laid.
     Index n() const noexcept { return primal_vars_; }
     /// @brief Equality row count, as laid.
@@ -118,8 +115,6 @@ class AggregateEvalSeam {
 
     /// @brief The provider this seam is bound to.
     ClaimStreamSource &aggregate() const noexcept { return *aggregate_; }
-
-    // ---- the evaluation moments -------------------------------------------
 
     /// @brief Full first-order evaluation at @p x: f, grad f, cE, cI, Je, Ji.
     ///

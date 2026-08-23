@@ -11,24 +11,16 @@
 // into) and the right-hand-side arena (one slot per gradient row and per
 // residual row the piece will sum into). The claim pass turns those claims into
 // a sparsity pattern and a LOCATION TABLE, and every later evaluation addresses
-// its destinations only through that table.
+// its destinations only through that table. Nothing here allocates a
+// destination, and nothing here owns one: the consumer publishes storage and a
+// table; the provider fills locations someone else published.
 //
-// Three types per arena, and they are three because the arena has three
-// distinct moments:
+// Three types per arena, one per moment:
 //
 //   * a CLAIM SPACE is the setup-time cursor a piece claims out of;
 //   * a LOCATION TABLE is the published, read-only result of that pass;
 //   * a SCATTER VIEW is a consumer-owned destination plus the table that says
 //     where in it each claim slot lands.
-//
-// Nothing here allocates a destination, and nothing here owns one. The consumer
-// publishes storage and a table; the provider fills locations someone else
-// published. That is one fill path for both consumers of these tables -- an
-// engine scattering on its per-minor hot path, and an engine-independent
-// scorer evaluating at an arbitrary point off it.
-//
-// This header is engine-independent by construction: it includes nothing from
-// the interior-point machinery and names no engine type.
 
 #include <cstdint>
 #include <mutex>
@@ -41,10 +33,7 @@
 
 namespace hven::solvers {
 
-/// The four kinds of structure a piece may claim slots for. Naming them is what
-/// makes "which domains does this piece claim?" a question with a checkable
-/// answer, rather than something inferred from which list a piece came out of
-/// and from a pair of booleans passed alongside it.
+/// @brief The four kinds of structure a piece may claim slots for.
 ///
 /// NOT a request vocabulary. A claim domain names what is CLAIMED at layout
 /// time; what is EVALUATED per call is named by EvalRequest
@@ -107,9 +96,9 @@ constexpr ClaimDomainSet operator|(ClaimDomain left, ClaimDomain right) noexcept
     return ClaimDomainSet(left) | ClaimDomainSet(right);
 }
 
-/// Which triangle of the KKT matrix the assembled storage holds.
+/// @brief Which triangle of the KKT matrix the assembled storage holds.
 ///
-/// Resolved ONCE, here, at claim time -- never on a per-element scatter. The
+/// Resolved ONCE, here, at claim time -- never on a per-element scatter: the
 /// location table a claim pass publishes already accounts for the storage
 /// state, so a scatter writes `values[table.location(slot)]` and never branches
 /// on which triangle that offset names.
@@ -131,23 +120,18 @@ struct KktClaimSpace {
     KktStorage storage_ = KktStorage::kUpperTriangle;
 };
 
-/// The published, read-only result of the KKT claim pass: claim slot -> offset
-/// into the assembled value array, plus the per-column clash marks and the
-/// mutex vector those marks index.
-///
-/// The three are published as ONE type because they are never used apart: every
-/// scatter site needs the offset, needs to know whether the column it is
-/// writing is contested, and must key its lock the same way every other
-/// claimant of that slot does. Publishing them together is what makes the
-/// shared keying structural rather than a convention each site re-implements.
+/// @brief The published, read-only result of the KKT claim pass: claim slot ->
+///        offset into the assembled value array, plus the per-column clash
+///        marks and the mutex vector those marks index -- never used apart,
+///        since every scatter site must key its lock the same way every other
+///        claimant of that slot does.
 ///
 /// A non-owning view. The arrays and the mutex vector belong to whoever laid
 /// the arena; a table must not outlive them.
 ///
 /// The three element accessors are unchecked, deliberately: they sit on a
-/// per-element scatter loop, and the invariants they would re-check are
-/// established ONCE here, at construction. What construction validates is that
-/// the published arrays are consistent with each other -- so a clash mark can
+/// per-element scatter loop, and construction validates instead that the
+/// published arrays are consistent with each other -- so a clash mark can
 /// never index past the mutex vector, and `lock(clash_lock(col))` is
 /// well-defined for every column the table describes. A claim slot handed to
 /// `location()` is the CALLER's own claim range, which the caller validates at
@@ -181,8 +165,7 @@ class KktLocationTable {
             // -1 is the ONLY legal negative -- it is the uncontested sentinel.
             // Any other negative reaches lock() through a scatter that tested
             // `mark != -1`, and indexing the mutex vector with it is undefined
-            // behaviour: exactly what this constructor exists to make
-            // unreachable, and what an upper-bound check alone lets through.
+            // behaviour, which an upper-bound check alone lets through.
             if (mark < -1) {
                 throw std::invalid_argument(fmt::format(
                     "KktLocationTable: column {0} carries clash mark {1}; the only negative mark "
@@ -237,10 +220,9 @@ struct KktScatterView {
     }
 };
 
-/// The four right-hand-side arrays, each its own claim arena with its own
-/// cursor. They are a separate space from the KKT arena and carry no locking:
-/// folding them into the KKT types would put a lock surface on a space that has
-/// no contention.
+/// @brief The four right-hand-side arrays, each its own claim arena with its
+///        own cursor -- a separate space from the KKT arena, carrying no
+///        locking.
 enum class RhsArena {
     kObjectiveGradient,
     kConstraintAdjointGradient,
@@ -279,18 +261,10 @@ class RhsLocationTable {
                 "RhsLocationTable: {0} claim slots were published with no row array", size_));
         }
         for (int slot = 0; slot < size_; ++slot) {
-            // Same sentinel discipline as the KKT table's clash marks, though
-            // NOT for the same reason -- the reason here is the weaker
-            // protocol, not the stronger one. A filler that tests `row >= 0`
-            // skips -1 and -3 alike and is safe either way; the filler that
-            // does NOT test, and indexes the destination directly, is unsafe on
-            // -1 exactly as it is on -3. So there is no arithmetic that makes
-            // one negative worse than another. What this check buys is the
-            // guarantee the unchecked protocol needs: every published mark is
-            // either the one sentinel a skipping filler recognizes, or an index
-            // that is genuinely in range. A stray negative belongs to neither
-            // set, and the only place to say so is here, once, where the table
-            // is published.
+            // Same sentinel discipline as the KKT table's clash marks: every
+            // published mark is either the one sentinel (-1, dropped) a
+            // skipping filler recognizes, or an index genuinely in range. A
+            // stray negative belongs to neither set.
             if (rows_[slot] < -1) {
                 throw std::invalid_argument(
                     fmt::format("RhsLocationTable: claim slot {0} maps to row {1}; the only "
@@ -325,12 +299,9 @@ struct RhsArenaView {
     }
 };
 
-/// The consumer-owned right-hand-side destination a provider fills: the four
-/// arenas, plus an explicit out slot for the scalar objective value.
-///
-/// The scalar gets a slot of its own rather than a repurposed arena, because a
-/// value is not a vector of claims and pretending otherwise would put a
-/// one-element arena on every objective evaluation.
+/// @brief The consumer-owned right-hand-side destination a provider fills: the
+///        four arenas, plus an explicit out slot for the scalar objective
+///        value (a value is not a vector of claims, so it gets no arena).
 struct RhsScatterView {
     RhsArenaView objective_gradient_;
     RhsArenaView constraint_adjoint_gradient_;

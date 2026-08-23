@@ -103,9 +103,7 @@ void check_fixed_variable_treatment(hven::solvers::FixedVariableTreatments treat
 
 } // namespace
 
-// =============================================================================
 // Static string-to-enum converters
-// =============================================================================
 
 auto hven::solvers::InteriorPointSolver::strto_OrderingMode(const std::string &str)
     -> QPOrderingModes {
@@ -171,9 +169,7 @@ auto hven::solvers::InteriorPointSolver::strto_BestCriteriaMode(const std::strin
     }
 }
 
-// =============================================================================
 // Validated setter methods
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::set_max_iters(int max_iters) {
     pos_int(max_iters, "max_iters");
@@ -518,9 +514,7 @@ void hven::solvers::InteriorPointSolver::set_obj_scale(double scale) {
     settings_.obj_scale_ = scale;
 }
 
-// =============================================================================
 // Settings validation
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::Settings::validate() const {
     // pos_finite/pos_int/in_open_unit/greater_than are the file-scope helpers
@@ -712,9 +706,7 @@ void hven::solvers::InteriorPointSolver::Settings::validate() const {
 #endif
 }
 
-// =============================================================================
 // Named configuration presets
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::apply_preset(std::string_view name) {
     for (const auto &entry : kInteriorPointSolverPresets) {

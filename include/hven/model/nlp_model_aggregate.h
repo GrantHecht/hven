@@ -92,16 +92,13 @@ class NlpModelAggregate final : public ClaimStreamSource {
     ///         claim time. The triangle is checked where the pattern is walked and
     ///         nowhere else, so a later evaluation's triangle rests on the same
     ///         invariance precondition the per-call nonzero count rests on.
-    /// The handle is `std::shared_ptr<const NlpModel>`: widened from a
-    /// non-const handle by changing this one parameter, not by adding an
-    /// overload, because a constness-only overload pair is ambiguous for a
-    /// caller holding `shared_ptr<Derived>` (both conversions rank equally).
-    /// The widening is source-compatible -- every `shared_ptr<NlpModel>`
-    /// caller still converts implicitly. It also lets a consumer that does
-    /// not own its model bridge a `const NlpModel &` through shared_ptr's
-    /// aliasing constructor with a null owner, which is how
-    /// drivers/sqp_driver.h's model-taking solve() overloads reach this
-    /// contract. History: commit 9579e08; docs/notes/2026-08-m4-ledger.md:790.
+    /// The handle is `std::shared_ptr<const NlpModel>`, widened from a
+    /// non-const handle by changing this one parameter rather than by adding an
+    /// overload -- a constness-only overload pair is ambiguous for a caller
+    /// holding `shared_ptr<Derived>` (both conversions rank equally), and the
+    /// widening is source-compatible. It also lets a consumer that does not own
+    /// its model bridge a `const NlpModel &` through shared_ptr's aliasing
+    /// constructor with a null owner.
     explicit NlpModelAggregate(std::shared_ptr<const NlpModel> model);
 
     /// @brief The declaration these structures were laid from.
@@ -338,8 +335,7 @@ class NlpModelAggregate final : public ClaimStreamSource {
     // HELD CONST. The bridge reads the model and never mutates it, so the
     // storage says so and the compiler enforces it -- which is also what lets a
     // consumer bind a bridge over a `const NlpModel &` it does not own, through
-    // shared_ptr's aliasing constructor (see drivers/sqp_driver.h's own
-    // model-taking solve() overloads).
+    // shared_ptr's aliasing constructor.
     std::shared_ptr<const NlpModel> model_;
     int primal_vars_ = 0;
     int equality_rows_ = 0;

@@ -14,36 +14,40 @@
 
 namespace hven::solvers {
 
-/// Solves an NLPProblem with InteriorPointSolver. Owns the optimizer and its settings
-/// (via OptimizationProblemBase); transcription happens lazily on the first
-/// solve call. The problem is evaluated single-partition on the calling
-/// thread, which is what a subclass implemented in Python requires anyway.
+/// @brief Solves an NLPProblem with InteriorPointSolver; owns the optimizer
+///        and its settings via OptimizationProblemBase.
 ///
-/// Transcription runs the problem through NlpProblemModel, which converts the
-/// triplet declaration to the native model contract, and then through the
-/// piece host that carries a model onto NonLinearProgram. The problem reaches
-/// the engine no other way.
-///
-/// Transcription evaluates the problem, once, before any solve iterate exists:
-/// the host calls the converted model's Jacobian and Hessian at the model's
-/// start point -- the origin projected onto the declared variable bounds --
-/// and records the sparsity pattern each returns, which is what its KKT claims
-/// are laid over. The values are discarded. NLPProblem::eval_jac and
-/// eval_hess must therefore be defined at that point; see NLPProblem's own
-/// note for what to do when they are not. A transcription that faults there
-/// commits nothing and leaves the solver retriable.
+/// Transcription happens lazily on the first solve: NlpProblemModel converts
+/// the triplet declaration to the native model contract and the piece host
+/// carries it onto NonLinearProgram -- the problem reaches the engine no other
+/// way. Transcription evaluates eval_jac and eval_hess once, before any solve
+/// iterate exists, at the model's start point (the origin projected onto the
+/// declared variable bounds); the values are discarded and only the sparsity
+/// patterns are kept. Those two callbacks must therefore be defined there (see
+/// NLPProblem). A transcription that faults commits nothing and leaves the
+/// solver retriable. The problem is evaluated single-partition on the calling
+/// thread. Every entry point throws std::invalid_argument when the initial
+/// guess's size does not match the transcribed problem's variable count.
 struct NLPSolver : OptimizationProblemBase {
+    /// The problem being solved.
     std::shared_ptr<NLPProblem> problem_;
+    /// The converted model from the last transcription; null before one.
     std::shared_ptr<NlpProblemModel> model_;
+    /// The adapter core from the last transcription; null before one.
     std::shared_ptr<NLPAdapterCore> core_;
 
     Eigen::VectorXd active_variables_;
     Eigen::VectorXd active_eq_lmults_;
     Eigen::VectorXd active_iq_lmults_;
+    /// True until the first successful transcription; jet_release() restores it.
     bool do_transcription_ = true;
 
+    /// @brief Takes ownership of @p problem; transcription waits for the first solve.
+    /// @throws std::invalid_argument if @p problem is null.
     explicit NLPSolver(std::shared_ptr<NLPProblem> problem);
 
+    /// @brief Transcribes now: builds the model, core and program and adopts
+    ///        the program. A failure leaves the previous state whole.
     void transcribe();
 
     hven::ConvergenceFlags solve(ConstEigenRef<Eigen::VectorXd> x0);
@@ -58,13 +62,12 @@ struct NLPSolver : OptimizationProblemBase {
     /// Solution constraint multipliers in the problem's own row space, Ipopt
     /// sign convention (L = obj_factor*f + lambda^T g). Zero for rows the
     /// classification dropped.
+    ///
+    /// @throws std::runtime_error if no solve has run yet.
     Eigen::VectorXd return_multipliers() const;
 
-    // --- OptimizationProblemBase's Jet-batch surface. NLPSolver mirrors
-    // OptimizationProblem's implementation of these (same pattern: the
-    // no-arg overloads reuse whatever is currently in active_variables_,
-    // e.g. from a prior solve or a batch driver's own setup). The x0-taking
-    // overloads above remain the primary entry points for direct use. ---
+    // Jet-batch surface: the no-arg overloads reuse whatever is currently in
+    // active_variables_; the x0-taking overloads are the primary entry points.
     hven::ConvergenceFlags solve() override;
     hven::ConvergenceFlags optimize() override;
     hven::ConvergenceFlags solve_optimize() override;

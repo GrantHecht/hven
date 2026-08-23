@@ -4,56 +4,16 @@
 // sqp_driver.cpp — SqpDriver's major loop, and everything the loop
 // orchestrates.
 //
-// M3 PHASE-C TASK T5. This TU holds the DEFINITIONS of every SqpDriver member
-// function except the two constructors; the class, its data members, its
-// documentation and its constructors stay in include/hven/drivers/sqp_driver.h,
-// which is unchanged in every other respect. Nothing about the algorithm moved:
-// the loop's phases, its arithmetic, its branch order, its counters and its
-// exit table are the lines that were in the header, verbatim, one indentation
-// level shallower.
-//
-// WHY. CLAUDE.md §5's rule is that orchestration and drivers live in .cpp TUs
-// while per-element hot paths that depend on inlining stay header-side, and
-// that a TU boundary is drawn "never at measurable runtime cost". solve_impl is
-// ~2 150 lines that ran through the front end of EVERY translation unit
-// including this header — twenty-odd test objects, four bench objects, the
-// library — for a function each of them calls at most once per solve. It is the
-// largest single body in the SQP tree and the plan's (§6, T1–T9) biggest
-// build-side candidate.
-//
-// WHAT THE BOUNDARY COSTS, MEASURED RATHER THAN ASSUMED. The plan flagged this
-// as the series' highest bench risk because the loop "currently inlines
-// eval_nlp, evaluate_kkt, build_subproblem". Read out of the base commit's own
-// object files, it does not: in bench_corpus.cpp.o at 718eef4, solve_impl's
-// relocation set holds one PLT32 call per SOURCE call site for every one of
-// them — eval_nlp 3/3, eval_nlp_values 3/3, evaluate_kkt 3/3, build_subproblem
-// 2/2, predicted_decrease 2/2, crash_basis_seed 1/1 — i.e. ZERO of the fourteen
-// sites was inlined at -O3 before this carve. They are ordinary calls on both
-// sides of the boundary, and they remain inlinable candidates here anyway,
-// since sqp_driver.h comes along with this TU. The same is true of QpEngine::run
-// (5 relocations) and SsnEngine::solve (1): both were already call boundaries.
-//
-// The members that the base build DID inline into solve_impl — map_status,
-// shrink_hits_floor, shrunk_radius, restoration_restart_radius, ssn_engine(),
-// and 3 of finish()'s 10 sites — all MOVE HERE WITH IT, into the same TU, so
-// the inliner sees exactly the input it saw before. That is the mechanical
-// reason the trust-region UPDATE logic travels with the loop rather than
-// staying behind, and it is also what the S3 ruling (S3-RULING-FINAL, folded
-// into the phase-C plan's S3 section) requires on separate, design grounds: the
-// TR POLICY — the constants kTrShrinkFactor (detail/globalization/sqp/
-// trust_region.h) and kRestoreRadiusFactor (…/restoration.h) — stayed in
-// globalization at S3 because it is policy; the three functions that CONSUME
-// those constants to advance the radius are loop orchestration reading opts_,
-// and belong wherever the loop is. They are here.
-//
-// FP ARITHMETIC CROSSES THIS BOUNDARY. Everything the major loop computes is
-// now compiled in this TU rather than in each includer's. Under the ONE uniform
-// flag regime U0 established (CLAUDE.md §7), both sides carry the same flags, so
-// the expressions are compiled as they were compiled inline — and the PROOF of
-// that is bit-identity of every asserted counter across the carve (T5's P-BENCH
-// on 36 columns × 17 cells and P-CENSUS on the 57-cell walk corpus), not an
-// argument. A counter delta here is a FAILED CARVE, to be reverted or redrawn;
-// it is never a re-derivation.
+// This TU holds the DEFINITIONS of every SqpDriver member function except the
+// two constructors; the class, its data members, its documentation and its
+// constructors stay in include/hven/drivers/sqp_driver.h. The members the
+// trust-region UPDATE logic consumes -- map_status, shrink_hits_floor,
+// shrunk_radius, restoration_restart_radius, ssn_engine() -- are defined here
+// too, so the inliner sees across those sites exactly the input it saw when
+// solve_impl lived in the header. FP arithmetic crosses this TU boundary under
+// ONE uniform flag regime on both sides; every asserted counter must be
+// bit-identical across the boundary, so a counter delta here is a FAILED CARVE,
+// to be reverted or redrawn, never a re-derivation.
 
 #include <hven/drivers/sqp_driver.h>
 
@@ -78,18 +38,16 @@ std::shared_ptr<const NlpModel> borrow_model(const NlpModel &model) {
     return std::shared_ptr<const NlpModel>(std::shared_ptr<const void>(), &model);
 }
 
-// THE BOX IS THE MODEL'S OTHER SIZED RETURN (M3 final review, S-1), and it is
-// checked ONCE, here, rather than at each of the several sites that index it.
+// THE BOX IS THE MODEL'S OTHER SIZED RETURN, and it is checked ONCE, here,
+// rather than at each of the several sites that index it.
 // lower()/upper() are read coordinate-wise by evaluate_kkt's activity test and
 // by the subproblem's l - x .. u - x window, both of which loop i = 0..n-1 with
 // no size of their own to compare against; a model returning a short box
 // therefore reads out of bounds in Release, where Eigen's own assert is
 // compiled out. Two O(1) comparisons per solve, against the model's own n().
 //
-// AT THE MODEL BOUNDARY NOW, which is a move of one call site and not a
-// change of rule. The check used to sit at the top of solve_impl, where a
-// `model` was still in scope; the loop now measures against the SEAM, whose
-// box is materialized from the bridge's declaration and is n-sized by
+// AT THE MODEL BOUNDARY: the loop itself measures against the SEAM, whose box
+// is materialized from the bridge's declaration and is n-sized by
 // construction, so there is no model return left there to disagree with
 // anything. What is being validated is what the MODEL returned, so it is
 // validated where a model is handed in -- and BEFORE the bridge is built, so
@@ -119,9 +77,8 @@ void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
 
 // The two model-taking overloads are wrappers. Each validates the model's box,
 // borrows it into a bridge that lives exactly as long as the call, and delegates
-// to its bridge-taking twin. Nothing about their contract moved: the same
-// argument checks fire in the same order with the same messages, and the solve
-// they run is the same solve. See docs/notes/2026-08-21-m4-task5-design.md.
+// to its bridge-taking twin: the same argument checks fire in the same order
+// with the same messages, and the solve they run is the same solve.
 //
 // The bridge is built per call, deliberately. Laying it walks the model's three
 // derivative patterns once (model/nlp_model_aggregate.h) -- real work, outside
@@ -149,7 +106,7 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
     // in this frame and rides into solve_impl for the restoration phase's one
     // Level 1 read.
     AggregateEvalSeam seam{bridge};
-    // PHASE-5 TASK 2. Timed around solve_impl ALONE -- never around
+    // Timed around solve_impl ALONE -- never around
     // model construction, x0/warm setup above, or record_solve's own
     // ledger bookkeeping below -- per ledger.h's SqpSolveRecord::
     // wall_seconds note (informational, never asserted).
@@ -162,7 +119,7 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
                              Index minor_budget) {
     AggregateEvalSeam seam{bridge};
-    // PHASE-5 TASK 2. Same timing scope as the 2-arg overload above.
+    // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
     SqpSolution out = solve_impl(seam, bridge, x0, warm, minor_budget);
     const auto t1 = std::chrono::steady_clock::now();
@@ -170,7 +127,7 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const War
 }
 
 SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
-    // PHASE-7 TASK 5: THE PROXIMAL CARRY, EXPORTED. Stamped here rather
+    // THE PROXIMAL CARRY, EXPORTED. Stamped here rather
     // than in make_warm_start because make_warm_start is static (it is
     // called from a context with no `SqpDriver&`) while the accumulator is
     // per-driver state, and because this function is the ONE point every
@@ -184,7 +141,7 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
     // centre vectors stay empty and `has_prox_center` stays false. See
     // warm_start.h's THE COST GATE.
     //
-    // THE GATE IS THE SIGMA, NOT THE CENTRE, and since fix round 1 those
+    // THE GATE IS THE SIGMA, NOT THE CENTRE, and those
     // are two different high-water marks (see the members): a solve whose
     // ladder armed only on subproblems that ESCAPED exports a real sigma
     // with BOTH centre vectors empty. That is the honest reading, and
@@ -201,8 +158,8 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
         rec.label = fmt::format("{}_{}", label_prefix_, solve_counter_);
         rec.status = out.status;
         rec.counters = out.counters;
-        // PHASE-4 TASK 7. Flat copies of a subset of `counters` above,
-        // added for the Phase-6 benchmark's direct field access -- see
+        // Flat copies of a subset of `counters` above,
+        // for direct field access -- see
         // ledger.h's SqpSolveRecord note for why these duplicate rather
         // than replace `counters` (which remains the complete,
         // authoritative source every one of these is copied from, here,
@@ -214,11 +171,11 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
         rec.soc_applied = out.counters.soc_applied;
         rec.border_refine_steps = out.counters.border_refine_steps;
         rec.eqp_refine_steps = out.counters.eqp_refine_steps;
-        // FACTORIZATIONS_SAVED (Task 7's one genuinely new field -- see
-        // ledger.h for the full definition and why it is derived exactly
-        // this way rather than from qp_factorizations directly).
+        // FACTORIZATIONS_SAVED -- see ledger.h for the full definition and
+        // why it is derived exactly this way rather than from
+        // qp_factorizations directly.
         rec.factorizations_saved = out.counters.start_level_used == StartLevel::kHot ? 1 : 0;
-        // PHASE-7 TASK 5. The three SSN columns, copied from the same
+        // The three SSN columns, copied from the same
         // `out.counters` in the same statement list as the seven above --
         // see ledger.h's SqpSolveRecord for why they duplicate rather than
         // replace `counters.ssn`, which stays the authoritative source and
@@ -265,7 +222,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             "finite in every coordinate");
     }
     // The box is checked at the model boundary, not here. See
-    // require_declared_box at the top of this file for the S-1 argument and for
+    // require_declared_box at the top of this file for why the check sits
+    // there and for
     // why the check moved rather than changed: the box this loop reads is
     // `seam.lower()`/`seam.upper()`, materialized from the bridge's declaration
     // and n-sized by construction, so there is nothing left to compare at this
@@ -285,7 +243,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 
     SqpSolution out;
 
-    // PHASE-7 TASK 5. Read once, here, rather than at each of the three
+    // Read once, here, rather than at each of the three
     // sites below that branch on it -- the mode cannot change during a
     // solve, and one named bool keeps "is this an SSN solve" from being
     // three independently maintained expressions.
@@ -297,7 +255,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     ssn_prox_center_x_out_ = Vec();
     ssn_prox_center_lambda_out_ = Vec();
 
-    // --- WARM-START INGEST (Phase-4 Task 3/4; Phase-6 Task 5) ----------
+    // WARM-START INGEST.
     //
     // Resolves the level `warm` actually earns and, on a kSeeded-or-above
     // resolution, computes the ingested x/duals/seed this solve starts
@@ -323,9 +281,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     //                                         object is documented as safe
     //                                         to feed back even when stale
     //                                         (warm_start.h).
-    //   valid, sized, finite, HASH USELESS  -> kSeeded (PHASE-6 TASK 5;
-    //     (0 sentinel, or a mismatch)         WAS kCold). "Trusts values,
-    //                                         not provenance" --
+    //   valid, sized, finite, HASH USELESS  -> kSeeded
+    //     (0 sentinel, or a mismatch)         ("trusts values,
+    //                                         not provenance") --
     //                                         warm_start.h's StartLevel
     //                                         note has the exact take/
     //                                         refuse list, and THE SEEDED
@@ -338,28 +296,23 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     //                                         solve's to hash and say so
     //                                         by contract; no VALID exit
     //                                         of THIS driver emits one
-    //                                         (Phase-5 Task 0 --
-    //                                         make_warm_start probes the
+    //                                         (make_warm_start probes the
     //                                         model when no subproblem was
     //                                         built), and the driver's one
     //                                         remaining 0, the unevaluable
     //                                         start point, is caught by
     //                                         the `warm.valid` line above
-    //                                         and never gets here.
-    //                                         STRUCTURE-SAFE DEGRADATION
-    //                                         IS UNCHANGED IN THE ONE
-    //                                         SENSE THAT MATTERS: a stale
-    //                                         or foreign `warm` still
-    //                                         never throws, and still
+    //                                         and never gets here. Either
+    //                                         way a stale or foreign `warm`
+    //                                         still never throws, and still
     //                                         never authorizes reuse of a
     //                                         factorization built on
     //                                         another matrix -- it now
     //                                         contributes its values
     //                                         instead of nothing.
     //   valid, hash match, warm.hot == null  -> kWarm.
-    //   valid, hash match, warm.hot != null  -> kHot, TENTATIVELY (Task
-    //                                         4 -- see the note below
-    //                                         this block).
+    //   valid, hash match, warm.hot != null  -> kHot, TENTATIVELY (see the
+    //                                         note below this block).
     //   SqpOptions::start_level then CAPS the result (that struct's own
     //   note) -- it can only push the level DOWN, never up.
     //
@@ -375,8 +328,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // came from. Its VALUES, by contrast, are exactly as good as whoever
     // produced them -- and the two producers this level exists for
     // (mesh_transfer.h, warm_start.h's from_interior_point) produce good
-    // ones, which is what their own notes have said since Phase 4 while
-    // having no way to deliver them.
+    // ones.
     //
     // THE HASH IS CHECKED AGAINST A PROBE, NOT AGAINST warm.x ITSELF.
     // Building the REAL first subproblem to learn its structural_hash
@@ -390,9 +342,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // with, only on the model's own construction -- which is a BINDING
     // PRECONDITION on the model, not an assumption made here (see
     // nlp_model.h's STRUCTURAL PATTERN INVARIANCE note, whose
-    // obj_scale/multiplier clause was added on Phase-5 Task 0's review
-    // precisely because this probe and make_warm_start's emission probe
-    // both rest on it). So the probe's hash
+    // obj_scale/multiplier clause exists precisely because this probe
+    // and make_warm_start's emission probe both rest on it). So the probe's hash
     // equals whatever building at `warm.x` would have hashed, without
     // ever needing warm.x to be the right size for THIS model.
     //
@@ -401,19 +352,19 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // ingest would use is already dimensionally consistent with
     // `model` -- x against n, lambda_e/lambda_i against me()/mi(), and
     // qp_working_set's own (n, mi) shape. A dimension mismatch (e.g.
-    // Task 3's own StaleWarmIsSafe fixture: a different me()/mi()
+    // a stale object carrying a different me()/mi()
     // entirely) is therefore resolved at ZERO extra cost, and this
     // check is additionally the belt-and-braces net against a hash
     // COLLISION on a same-shape-different-structure pair, which the
     // probe's own comparison cannot rule out on dimensions alone.
     //
-    // TASK 4's kHot IS TENTATIVE HERE, and corrected after the FIRST
-    // subproblem actually runs. This function does not, and per the
-    // brief must not, re-derive qp_engine.h's own reuse-eligibility
+    // kHot IS TENTATIVE HERE, and corrected after the FIRST
+    // subproblem actually runs. This function does not re-derive
+    // qp_engine.h's own reuse-eligibility
     // conditions (a)-(e) -- the engine remains the SOLE gate on whether
     // an offered `warm.hot` is actually usable (structural/values
     // hashes, the effective (primal_delta, dual_mu) pair, the seed
-    // working set, and -- Fix Round 1's addition -- the shared object's
+    // working set, and the shared object's
     // own generation counter). resolved_level is set to kHot here purely
     // on the same evidence kWarm already uses PLUS `warm.hot != nullptr`;
     // the FIRST major's own engine_.solve() call (below) is what
@@ -423,57 +374,47 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // up recording what was
     // OBSERVED to happen, never merely what was offered.
     StartLevel resolved_level = StartLevel::kCold;
-    // TASK 8 (eval-economics carry): THE CEILING SHORT-CIRCUIT. A NEW
-    // conjunct, ADDED here first -- NOT a reordering of any pre-existing
-    // check; the ceiling itself has always lived only in the separate,
-    // later `if (static_cast<int>(opts_.start_level) < ...)` block below,
-    // and still does. This conjunct duplicates that block's condition
-    // inline, placed first (cheapest -- a pure read, no model method
+    // THE CEILING SHORT-CIRCUIT: a conjunct duplicating the ceiling block's
+    // condition inline, placed first (cheapest -- a pure read, no model method
     // touched) so the probe never runs when the ceiling was always going
     // to discard its answer: opts_.start_level == kCold means
     // resolved_level is capped straight back to kCold a few lines below
     // NO MATTER WHAT the probe would have found -- SqpOptions::
     // start_level's own note says as much ("force EVERY solve on this
     // driver ... to behave exactly as the 2-arg one does"). Without this
-    // conjunct that solve paid the probe's model evaluation for a
-    // resolved_level the very next statement was going to discard;
-    // docs/notes/2026-07-30-phase-4-close-carries.md named it "one
-    // wasted eval per warm-looking call".
+    // conjunct that solve pays the probe's model evaluation for a
+    // resolved_level the very next statement is going to discard -- one
+    // wasted eval per warm-looking call.
     //
-    // PHASE-6 TASK 5 SPLIT THAT ONE CONDITION IN TWO, without moving any of
-    // its conjuncts. `warm_dims_plausible` is unchanged in MEANING -- the
-    // same `valid` + same five size checks -- but the two conjuncts that
-    // are about the PROBE rather than about the object (`structure_hash !=
-    // 0`, and the ceiling short-circuit) moved down into
-    // `probe_is_worth_running` below, because the dimension answer is now
-    // needed by the SEEDED gate as well and the seeded gate cares about
-    // neither. The ceiling conjunct also GENERALIZED: it is now "the
-    // ceiling is below kWarm", so a driver capped at kSeeded skips the
+    // The condition is split in two across `warm_dims_plausible` and
+    // `probe_is_worth_running` below. `warm_dims_plausible` carries
+    // `valid` plus the five size checks; the two conjuncts that are about
+    // the PROBE rather than about the object (`structure_hash != 0`, and
+    // the ceiling short-circuit) live in `probe_is_worth_running`,
+    // because the dimension answer is also needed by the SEEDED gate and
+    // the seeded gate cares about neither. The ceiling conjunct is
+    // "the ceiling is below kWarm", so a driver capped at kSeeded skips the
     // probe for exactly the reason a kCold-capped one does -- the probe's
     // only possible product is a level the ceiling is about to discard.
     const bool warm_dims_plausible =
         warm.valid && warm.x.size() == n && warm.lambda_e.size() == seam.me() &&
         warm.lambda_i.size() == seam.mi() && warm.qp_working_set.n() == n &&
         warm.qp_working_set.mi() == seam.mi();
-    // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one (M3 final
-    // review, S-3). It used to sit on the kSeeded resolution alone, on the
-    // argument that a hash-matching object "came from a solve whose own exits
-    // are finite by construction" -- true of every object this library
-    // PRODUCES, and not a property of the object a caller HANDS this function.
-    // WarmStart is an aggregate with public fields: a hand-assembled or
+    // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one. WarmStart
+    // is an aggregate with public fields: a hand-assembled or
     // foreign-solver object can carry warm.x(0) = NaN and a structure_hash
-    // that matches, resolve kWarm, and be ingested -- which contradicts
+    // that matches, resolve kWarm, and be ingested -- which would contradict
     // solver_counters.h's documented contract that a non-finite ingested
-    // vector resolves kCold unconditionally. Hoisting the three conjuncts into
-    // `ingest_allowed` makes the seeded gate and the probe gate share one
+    // vector resolves kCold unconditionally. The three conjuncts sit in
+    // `ingest_allowed` so the seeded gate and the probe gate share one
     // answer, which is what that contract says. The three vectors tested are
-    // exactly the three that are ingested; `z` is not (this ingest has never
-    // read it), and `tr_radius`/`funnel_width` are guarded by their own
+    // exactly the three that are ingested; `z` is not (this ingest never
+    // reads it), and `tr_radius`/`funnel_width` are guarded by their own
     // `>= 0.0` tests, which a NaN fails.
     const bool ingest_allowed = opts_.start_level != StartLevel::kCold && warm_dims_plausible &&
                                 warm.x.allFinite() && warm.lambda_e.allFinite() &&
                                 warm.lambda_i.allFinite();
-    // THE SEEDED GATE (Phase-6 Task 5): dimensions plus FINITENESS, and
+    // THE SEEDED GATE: dimensions plus FINITENESS, and
     // nothing else -- no hash, no probe, no model evaluation.
     if (ingest_allowed) {
         resolved_level = StartLevel::kSeeded;
@@ -482,21 +423,21 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         ingest_allowed && warm.structure_hash != 0 &&
         static_cast<int>(opts_.start_level) >= static_cast<int>(StartLevel::kWarm);
     if (probe_is_worth_running) {
-        // TASK 8: THE VALUES-ONLY PROBE. structural_hash reads H/Ae/Ai's
+        // THE VALUES-ONLY PROBE. structural_hash reads H/Ae/Ai's
         // SPARSITY PATTERN ONLY (this block's own note above), never
         // f/grad/cE/cI's VALUES, so f/cE/cI are fetched through
         // eval_nlp_values (never more expensive than the eval_f/eval_ce/
-        // eval_ci the old full eval_nlp call already paid, and cheaper on
+        // eval_ci of a full eval_nlp call, and cheaper on
         // a model that overrides eval_values) and eval_grad is skipped
         // entirely -- nothing downstream of this block ever reads a
         // gradient. Je/Ji ARE fetched, directly and unconditionally when
         // me()/mi() > 0: they become Ae/Ai, and Ae/Ai's PATTERN is
-        // exactly what gets hashed, so those two calls are not the waste
-        // this task removes -- only the values were.
+        // exactly what gets hashed, so those two calls pay for the hash,
+        // not for values.
         NlpEval probe_ev = seam.eval_nlp_values(x0);
         ++out.counters.evals_values;
-        // The Jacobians-alone moment: the two calls this block used to make
-        // itself, in one request that names exactly them (see the seam's
+        // The Jacobians-alone moment: the two Jacobian calls this block needs,
+        // in one request that names exactly them (see the seam's
         // jacobians_only, which leaves a block the declaration gives no rows
         // alone, precisely as the me()/mi() guards here did).
         seam.jacobians_only(probe_ev, x0);
@@ -511,13 +452,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         resolved_level = opts_.start_level;
     }
     out.counters.start_level_used = resolved_level;
-    // THE TWO INGEST PREDICATES (Phase-6 Task 5). `warm_ingest` keeps its
-    // Phase-4 meaning EXACTLY -- "the values were taken" -- and is now true
-    // one level lower. `warm_state_ingest` is the new one and carries what
-    // `warm_ingest` used to carry alone: the globalization/regularization
-    // state a seeded object may not claim. On every pre-Task-5 resolution
-    // the two are identical, which is why nothing kWarm or kHot does can
-    // move.
+    // THE TWO INGEST PREDICATES. `warm_ingest` means "the values were taken"
+    // and is true from kSeeded up. `warm_state_ingest` carries what a seeded
+    // object may not claim: the globalization/regularization state gated at
+    // kWarm and above.
     // NOT const: THE SEEDED DUAL CLAMP below can degrade a kSeeded
     // resolution to kCold after the fact, and this predicate must follow.
     bool warm_ingest = resolved_level != StartLevel::kCold;
@@ -539,9 +477,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // is silently dropped by qp_engine.h's WINDOW-CONSISTENCY RULE --
     // this ingest leans on that rule rather than duplicating it.
     //
-    // AT kSeeded AN EMPTY HINT IS NO HINT, AND THAT IS A RULING RATHER THAN
-    // AN ACCIDENT (Phase-6 Task 5; the crash-basis interaction the brief
-    // asked to be decided and documented). warm_start.h's own field notes
+    // AT kSeeded AN EMPTY HINT IS NO HINT, BY RULE. warm_start.h's own field notes
     // say an ALL-ZERO ineq_active/bound_active means "no activity was
     // attributed", NOT "nothing is active" -- a solve that built no
     // subproblem has no QpSolution to read activity off, and a mesh
@@ -556,10 +492,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // below, since a cold-quality activity guess derived from the real
     // first linearization is strictly better information than an empty
     // one. A kSeeded object that DOES carry a hint suppresses the crash
-    // basis exactly as a kWarm one does. THE kCold/kWarm/kHot BEHAVIOUR IS
-    // BYTE-IDENTICAL EITHER WAY: at kWarm/kHot `have_seed` is
-    // unconditionally true, at kCold unconditionally false, so
-    // `!have_seed` below equals the `!warm_ingest` this line used to read.
+    // basis exactly as a kWarm one does. At every other resolution
+    // `!have_seed` below equals `!warm_ingest`: at kWarm/kHot `have_seed`
+    // is unconditionally true, at kCold unconditionally false.
     QpSolution seed;
     bool have_seed = false;
     if (warm_ingest) {
@@ -574,7 +509,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 seed.ineq_active[static_cast<std::size_t>(row)] = true;
             }
             have_seed = true;
-            // PHASE-7 TASK 0: the hint's own size, counted at kSeeded only
+            // The hint's own size, counted at kSeeded only
             // (SqpCounters::ip_activity_inferred says why, and why the
             // bound half is not folded in). Write-only: nothing below
             // reads it, so this line cannot move a trajectory.
@@ -585,18 +520,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         }
     }
 
-    // THE CRASH BASIS (Phase-6 Task 4, SqpOptions::crash_basis). Armed
+    // THE CRASH BASIS (SqpOptions::crash_basis). Armed
     // here and consumed at the FIRST subproblem below, where `qp` exists
     // and the seed can be read off it without a model evaluation (see
     // crash_basis_seed's own note). Armed ONLY when no working-set seed was
-    // ingested -- `!have_seed` is exactly that condition, and through
-    // Phase 5 it was spelled `!warm_ingest`, which meant the same thing
-    // because every ingest built a seed. Phase-6 Task 5's ONE new case is
-    // the hint-less kSeeded object described just above; on every other
-    // resolution this is the same arming decision Task 4 shipped. It can
-    // still never displace, reorder or interact with an ingested working
+    // ingested -- `!have_seed` is exactly that condition. It can
+    // never displace, reorder or interact with an ingested working
     // set (the two are mutually exclusive by construction), nor with the
-    // Task-7b B-1 clear or the zero-major hand-off.
+    // B-1 clear or the zero-major hand-off.
     bool crash_pending = opts_.crash_basis && !have_seed;
     QpSolution crash_seed;
 
@@ -604,11 +535,11 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // consecutive-rejection count at the CURRENT iterate (the funnel's
     // kRestore gate reads it -- globalization.h conjunct (e)) and the
     // subproblem itself, which is rebuilt only when the iterate MOVES.
-    // kWarm INGEST (Task 3): warm.tr_radius clamped to
+    // kWarm INGEST: warm.tr_radius clamped to
     // [opts_.tr_min, opts_.tr_init] -- warm.tr_radius < 0 is
     // warm_start.h's own "never populated" sentinel and is treated as
     // absent (opts_.tr_init stands, exactly as on a cold solve).
-    // `warm_state_ingest`, NOT `warm_ingest` (Phase-6 Task 5): a radius is
+    // `warm_state_ingest`, NOT `warm_ingest`: a radius is
     // a step scale on a SPECIFIC problem's variables, so a seeded object --
     // which cannot say which problem it came from -- may not set it. Note
     // mesh_transfer.h DOES carry a radius and argues correctly that a
@@ -618,7 +549,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     if (warm_state_ingest && warm.tr_radius >= 0.0) {
         delta = std::clamp(warm.tr_radius, opts_.tr_min, opts_.tr_init);
     }
-    // PHASE-7 TASK 5: THE PROXIMAL CARRY, INGESTED. `warm_state_ingest`,
+    // THE PROXIMAL CARRY, INGESTED. `warm_state_ingest`,
     // NOT `warm_ingest`, and for exactly the reason the radius immediately
     // above uses it: a proximal level is a statement about how hard ONE
     // model's subproblems were, so an object that cannot say which model it
@@ -632,23 +563,21 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // needs no mode gate to be inert there.
     double ssn_prox_ingested =
         (opts_.ssn_prox_carry && warm_state_ingest && warm.has_prox_center) ? warm.prox_sigma : 0.0;
-    // PHASE-7 TASK 5, FIX ROUND 1. THE PROBE BUDGET'S SSN CHARGE.
+    // THE PROBE BUDGET'S SSN CHARGE.
     //
-    // THE DEFECT THIS CLOSES. The probe budget (the 4-argument solve()'s
+    // WHY IT EXISTS. The probe budget (the 4-argument solve()'s
     // own THE PROBE BUDGET note, clause 5) is denominated in
     // `qp_minor_iters`, and an SSN-solved subproblem contributes ZERO to
     // that counter by design (ssn_result_to_qp_solution's counter-mapping
     // note -- the currency every published figure in this repository is
     // quoted in must not be corrupted, and that separation stands
-    // unchanged). The consequence was that under kSsn the budget could not
-    // trip at all: a failed warm probe could spend up to `max_iter`
-    // subproblems times the SSN's own hard budget of 25 factorizations each
-    // and still report 0 against its budget, silently voiding Phase-6
-    // Task 1's failed-proposal detector -- the mechanism Phase 6 named its
-    // own priority #1 -- in the one mode Phase 7 exists to measure.
+    // unchanged). Without this accumulator the budget could not
+    // trip at all under kSsn: a failed warm probe could spend up to
+    // `max_iter` subproblems times the SSN's own hard budget of 25
+    // factorizations each and still report 0 against its budget, silently
+    // voiding the failed-proposal detector in the one mode it matters.
     //
-    // THE CURRENCY IS FACTORIZATIONS, which is this phase's own asserted
-    // cost unit and the ONE quantity both kernels agree on --
+    // THE CURRENCY IS FACTORIZATIONS, the ONE quantity both kernels agree on --
     // ssn_result_to_qp_solution carries it across for exactly that reason.
     // What is charged is every factorization a kSsn subproblem paid that
     // the walk currency cannot see: the SSN kernel's own, plus the tier-3
@@ -666,7 +595,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     //
     // IDENTICALLY ZERO AT kWalk -- written only inside the `ssn_mode`
     // branch of the dispatch -- so the budget test below reduces to the
-    // expression it has had since Phase-6 Task 1.
+    // plain `qp_minor_iters` expression.
     Index ssn_budget_charge = 0;
     Index rejections_at_iterate = 0;
     // CONSECUTIVE failed subproblems, reset by any solve that reaches
@@ -684,7 +613,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     SqpKkt restoration_exit_kkt;
     double restoration_exit_f = std::numeric_limits<double>::quiet_NaN();
 
-    // WARM-START POPULATION (Phase-4, Task 2). Three pieces of state
+    // WARM-START POPULATION. Three pieces of state
     // `make_warm_start` (below) reads at every exit, none of which
     // otherwise has a home in this loop:
     //   qp_built        true once `qp` holds a REAL subproblem (false
@@ -725,13 +654,13 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     double last_dual_mu = opts_.qp.dual_mu;
     bool restoration_moved_x = false;
 
-    // FULL-STEP-FIRST (Phase-4 Task 5). See this header's FULL-STEP-FIRST
+    // FULL-STEP-FIRST. See this header's FULL-STEP-FIRST
     // WARM RULE note for every decision below; only the state is here.
     //
     // NON-NULL IFF THE MODE IS ARMED, and it is the SAME object
     // `strategy` owns -- the loop's mirror of the strategy's own mode
     // flag. A POINTER rather than a bool because the watchdog needs the
-    // funnel's WIDTH to clamp its re-base (fix round 1's F3), and because
+    // funnel's WIDTH to clamp its re-base, and because
     // one piece of state that answers both "is the mode on" and "on
     // which funnel" cannot disagree with itself. Cleared exactly where
     // the strategy's own flag is (the watchdog exit and a restoration
@@ -743,7 +672,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     Vec fs_best_x, fs_best_lambda_e, fs_best_lambda_i;
     NlpEval fs_best_ev;
     double fs_best_residual = std::numeric_limits<double>::infinity();
-    // W1: the best iterate's own `duals_ingested` reading, so that a
+    // The best iterate's own `duals_ingested` reading, so that a
     // restore puts the complementarity gate back exactly as it puts the
     // multipliers back. Without it a solve refused at iter 0 could certify
     // the identical (x, lambda) at iter k.
@@ -756,14 +685,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     Index fs_majors_since_best = 0;
     double fs_prev_residual = std::numeric_limits<double>::infinity();
 
-    // PHASE-4 TASK 6. BUDGETED MODE's own best-iterate tracking -- see
+    // BUDGETED MODE's own best-iterate tracking -- see
     // sqp_types.h's SqpOptions::budget_mode note for the ordering
     // (feasibility-first: min h, tie-break min f) and why it is a
     // DIFFERENT ranking from fs_best_* just above (that one answers
     // "closest to a KKT point"; this one answers "best to hand a
     // continuation driver"). Only maintained when opts_.budget_mode is
-    // set -- a budget_mode=false solve touches none of this and stays
-    // byte-identical to Phase 3. `mb_best_kkt` is a COPY of the `kkt`
+    // set -- a budget_mode=false solve touches none of this.
+    // `mb_best_kkt` is a COPY of the `kkt`
     // already computed this pass, so tracking costs no extra model or
     // KKT evaluation.
     Vec mb_best_x, mb_best_lambda_e, mb_best_lambda_i;
@@ -775,14 +704,13 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // the subproblem (see NlpEval). After the first, every iterate's
     // evaluation is the TRIAL evaluation of the step that reached it.
     //
-    // FULL, NOT VALUES-ONLY (Task 8): this `ev` feeds the B-1 gate's
+    // FULL, NOT VALUES-ONLY: this `ev` feeds the B-1 gate's
     // stationarity computation below (which needs Je/Ji), the first
-    // convergence test (same), and the first subproblem (H/Je/Ji) --
-    // none of Task 8's three call sites, per this phase's brief.
+    // convergence test (same), and the first subproblem (H/Je/Ji).
     NlpEval ev = seam.eval_nlp(x, lambda_e, lambda_i);
     ++out.counters.evals_full;
 
-    // B-1 REPAIR (Phase-5 Task 7b). Clear every ingested lambda_i whose
+    // B-1 REPAIR. Clear every ingested lambda_i whose
     // row is not GEOMETRICALLY ACTIVE at the ingested x, so that the
     // convergence test below -- which runs before this solve has any
     // subproblem of its own -- reads a set of multipliers that is
@@ -804,7 +732,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         }
     }
 
-    // THE SEEDED DUAL CLAMP (Phase-6 Task 5) -- SECOND, BY CONTRACT. See
+    // THE SEEDED DUAL CLAMP -- SECOND, BY CONTRACT. See
     // this header's THE SEEDED DUAL CLAMP note above for the value's
     // derivation and for why this order (B-1 clear FIRST, sign enforcement
     // SECOND) is normative rather than incidental. Scoped to kSeeded: every
@@ -861,7 +789,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 
     bool funnel_started = false;
 
-    // W1 (Phase-6 final fix wave). TRUE while lambda_e/lambda_i are still
+    // TRUE while lambda_e/lambda_i are still
     // the multipliers this solve INGESTED -- i.e. while no subproblem or
     // restoration of THIS problem has re-priced them. It arms the
     // convergence test's complementarity conjunct and nothing else. See
@@ -874,7 +802,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     bool duals_ingested = warm_ingest;
 
     for (Index iter = 0;; ++iter) {
-        // NOT const FROM TASK 5: the full-step watchdog below may restore
+        // NOT const: the full-step watchdog below may restore
         // an EARLIER iterate before this pass records or tests anything,
         // and the row and the convergence test must then describe the
         // point the driver is actually standing on. Re-measuring is free
@@ -906,15 +834,13 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // last successful subproblem's prices are still meaningful
         // evidence and here nothing is.
         //
-        // FROM TASK 6 ON THIS IS A START-POINT CONDITION, not something
+        // THIS IS A START-POINT CONDITION, not something
         // the iteration can walk into: a trial point at which the model is
         // non-finite produces a non-finite StepContext, which
         // globalization.h rejects up front, so the driver shrinks the
         // radius and stays where it is instead of moving onto the NaN.
         // Only an x0 the model cannot evaluate (x0 itself is validated
-        // finite by the caller check above) reaches here. That is a strict
-        // improvement over Task 4, where the same walk ended the solve --
-        // see the test of the same name.
+        // finite by the caller check above) reaches here.
         if (!kkt.finite) {
             out.history.push_back(row);
             out.status = SqpStatus::kNumericalError;
@@ -953,7 +879,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // what the check above has just decided.
         if (!funnel_started) {
             strategy->reset(row.violation_l1);
-            // kWarm INGEST (Task 3): re-base the funnel from the PRIOR
+            // kWarm INGEST: re-base the funnel from the PRIOR
             // solve's own width rather than leaving it at Eq. (9)'s
             // absolute floor, reusing the SAME Eq.-13-style blend
             // resume_from_restoration already implements for the
@@ -969,7 +895,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // justify. warm.funnel_width < 0 is warm_start.h's own
             // "never populated" sentinel and is skipped, exactly like an
             // absent qp_working_set is above.
-            // `warm_state_ingest` (Phase-6 Task 5): a funnel width is
+            // `warm_state_ingest`: a funnel width is
             // measured in the units of h(x) on the problem it was recorded
             // on -- mesh_transfer.h's section 4 declines to transfer one for
             // exactly that reason -- so a seeded object may not re-base this
@@ -981,14 +907,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     funnel->resume_from_restoration(std::max(warm.funnel_width, floor));
                 }
             }
-            // FULL-STEP-FIRST (Task 5): the three engagement conditions,
+            // FULL-STEP-FIRST: the three engagement conditions,
             // checked exactly here because this is the first point at
             // which the funnel exists (begin_full_step requires it -- its
             // exit re-bases a width) and the first at which the iterate
             // is known measurable. AFTER the width re-basing above, so the
             // mode is armed over the width the ingest chose. See this
             // header's FULL-STEP-FIRST WARM RULE note.
-            // `warm_state_ingest` (Phase-6 Task 5): the Kungurtsev-Diehl
+            // `warm_state_ingest`: the Kungurtsev-Diehl
             // full-step-first rule's justification is the local convergence
             // of a warm start ON THE SAME PROBLEM, which is precisely the
             // claim a seeded object cannot make, so the window is never
@@ -1002,7 +928,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             funnel_started = true;
         }
 
-        // THE FULL-STEP WATCHDOG (Task 5). Placed BEFORE the convergence
+        // THE FULL-STEP WATCHDOG. Placed BEFORE the convergence
         // test so that a restored iterate is the one this pass records,
         // tests and steps from -- and placed AFTER the non-finite exit so
         // `kkt` is known measurable (the mode never steps onto a
@@ -1012,8 +938,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // "best iterate".
         if (full_step_funnel != nullptr) {
             // THE RANKING IS kkt.residual(), i.e. max(stationarity,
-            // feasibility) -- COMPLEMENTARITY IS DELIBERATELY NOT IN IT
-            // (fix round 1's F4), and the reason is that the watchdog must
+            // feasibility) -- COMPLEMENTARITY IS DELIBERATELY NOT IN IT,
+            // and the reason is that the watchdog must
             // rank iterates by exactly the quantity the CONVERGENCE TEST
             // gates on. That test is `kkt.stationarity <= kkt_tol &&
             // kkt.feasibility <= feas_tol` (just below), and SqpKkt::
@@ -1031,7 +957,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 fs_best_x = x;
                 fs_best_lambda_e = lambda_e;
                 fs_best_lambda_i = lambda_i;
-                fs_best_duals_ingested = duals_ingested; // W1; see its note
+                fs_best_duals_ingested = duals_ingested; // see its note above
                 fs_best_ev = ev;                         // a COPY; no model evaluation
                 fs_majors_since_best = 0;
                 fs_growth_in_a_row = 0;
@@ -1054,7 +980,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 x = std::move(fs_best_x);
                 lambda_e = std::move(fs_best_lambda_e);
                 lambda_i = std::move(fs_best_lambda_i);
-                duals_ingested = fs_best_duals_ingested; // W1; see its note
+                duals_ingested = fs_best_duals_ingested; // see its note above
                 ev = std::move(fs_best_ev);
                 kkt = evaluate_kkt(seam, ev, x, lambda_e, lambda_i, opts_.feas_tol);
                 measure_iterate();
@@ -1062,8 +988,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // own mode flag (globalization.h). Both flags fall
                 // together; nothing re-enters the mode.
                 //
-                // CLAMPED FROM ABOVE BY THE CURRENT WIDTH (fix round 1's
-                // F3). Eq. (13) gives tau_+ = (1-kappa)h + kappa*tau,
+                // CLAMPED FROM ABOVE BY THE CURRENT WIDTH. Eq. (13) gives
+                // tau_+ = (1-kappa)h + kappa*tau,
                 // which is <= tau IFF h <= tau -- so an UNCLAMPED re-base
                 // at a restored point lying outside its own funnel would
                 // WIDEN it, and the monotonically non-increasing width is
@@ -1071,7 +997,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // callers of this hook are each protected already and
                 // neither protection is available here: the restoration
                 // resume only calls it when h_restored <= feas_tol (so
-                // h < tau with room to spare), and the Task-3 ingest
+                // h < tau with room to spare), and the kWarm ingest
                 // clamps its argument from BELOW because there the
                 // argument is a remembered WIDTH rather than an h. The
                 // watchdog's argument is a genuine h at a point chosen by
@@ -1134,7 +1060,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // takes over from there and shrinks it on its own evidence,
                 // as it does everywhere else.
                 ++out.counters.watchdog_restores;
-                // PHASE-4 TASK 7 (closing Task 5's F5 carry): label THIS
+                // Label THIS
                 // row -- the one `measure_iterate()` just re-took above,
                 // so `row` already describes the restored point -- as the
                 // one the watchdog rebased. See SqpIterate::
@@ -1144,7 +1070,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             }
         }
 
-        // PHASE-4 TASK 6. BUDGETED MODE's best-iterate tracking (see the
+        // BUDGETED MODE's best-iterate tracking (see the
         // declaration note above for the ordering and sqp_types.h's
         // SqpOptions::budget_mode for the full contract). Runs on EVERY
         // measured pass, AFTER the full-step watchdog above -- so if this
@@ -1170,18 +1096,17 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // SqpOptions note): max_iter bounds subproblems solved across
         // BOTH, so majors already spent restoring are not available here.
         //
-        // THE THIRD CONJUNCT (W1) IS ARMED ONLY WHILE THE MULTIPLIERS ARE
+        // THE THIRD CONJUNCT IS ARMED ONLY WHILE THE MULTIPLIERS ARE
         // THE INGESTED ONES. Once a subproblem or a restoration of this
         // problem has re-priced them, `duals_ingested` is false and the
-        // test is character-for-character the Phase-3 one -- which is why
-        // every cold trajectory in the corpus is untouched. The tolerance
+        // test reduces to the plain two-conjunct form. The tolerance
         // is kkt_tol, absolute; see this header's THE INGESTED CERTIFICATE
         // IS GATED ON COMPLEMENTARITY note for that derivation, for why no
         // ||lambda_i||-relative form can do the job, and for the scope.
         const bool converged = kkt.stationarity <= opts_.kkt_tol &&
                                kkt.feasibility <= opts_.feas_tol &&
                                (!duals_ingested || kkt.complementarity <= opts_.kkt_tol);
-        // PHASE-6 TASK 1. THE CALLER'S PROBE BUDGET (the 4-argument
+        // THE CALLER'S PROBE BUDGET (the 4-argument
         // solve()'s own note has the contract). Evaluated HERE, beside
         // the max_iter test and after `converged` is already known, which
         // is what gives the budget its two defining properties: it never
@@ -1200,12 +1125,12 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // reaches the returned counters and the ledger record.
                 out.counters.probe_budget_stops = 1;
             }
-            // `!probe_exhausted` (Phase-6 Task 1): a probe-budget stop
+            // `!probe_exhausted`: a probe-budget stop
             // takes the ORDINARY kMaxIter exit below even under budgeted
             // mode, because the two budgets promise opposite things --
             // see the 4-argument solve()'s note, part 4.
             if (!converged && !probe_exhausted && opts_.budget_mode) {
-                // BUDGETED MODE (Task 6): report the best-by-(h, f)
+                // BUDGETED MODE: report the best-by-(h, f)
                 // iterate rather than the last one. `seed` is only this
                 // best point's own activity when the best iterate IS the
                 // current one (row.violation_l1/row.f just tied the
@@ -1232,7 +1157,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                                           strategy.get(), engine_.hot_state()));
         }
 
-        // THE RESTORATION PHASE (Task 9). See this header's RESTORATION
+        // THE RESTORATION PHASE. See this header's RESTORATION
         // PHASE note for every design choice below; only the mechanics are
         // here. Defined at this point in the loop because it reads `kkt`
         // and `ev` (the requesting iterate's own measurement, used on the
@@ -1297,7 +1222,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // The caller's strategy factory is NOT carried; the radius is.
             // See the header note's WHAT IS CARRIED IN.
             ropts.make_strategy = {};
-            // PHASE-4 TASK 6. BUDGETED MODE NEVER PROPAGATES TO THE
+            // BUDGETED MODE NEVER PROPAGATES TO THE
             // RESTORATION SUB-SOLVE, even when the caller's own solve has
             // it on: sqp_types.h's SqpOptions::budget_mode SCOPE note
             // says the lever governs only the MAIN loop's own max_iter
@@ -1308,17 +1233,17 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // Forcing this off is what keeps rs.status below able to stay
             // exhaustive without a reachable kBudgetExhausted arm.
             ropts.budget_mode = false;
-            // PHASE-7 TASK 5, FIX ROUND 1. THE RESTORATION SUB-SOLVE RUNS
-            // THE WALK, WHATEVER THE CALLER'S MODE IS. Until this line
-            // existed the copy above carried `qp_mode` in with everything
-            // else, so a kSsn caller silently ran the semismooth kernel
+            // THE RESTORATION SUB-SOLVE RUNS
+            // THE WALK, WHATEVER THE CALLER'S MODE IS. Without this line
+            // the copy above would carry `qp_mode` in with everything
+            // else, so a kSsn caller would silently run the semismooth kernel
             // through the whole restoration phase -- flatly contradicting
             // this header's own WHAT IS NOT ROUTED THROUGH SSN note, which
             // says the restoration sub-solve stays on the walk
             // UNCONDITIONALLY, and doing it on a wrapper model (original
             // plus slack variables, a subgradient-selector objective) that
             // no fixture in this repository has ever run that kernel
-            // against. The note was the design; this is the enforcement.
+            // against. The note is the design; this is the enforcement.
             //
             // MEASURED, not merely asserted: `rs.counters.ssn` is folded
             // below, so deleting this line MOVES a pinned number
@@ -1329,7 +1254,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // test's pins).
             ropts.qp_mode = QpMode::kWalk;
             // THE RADIUS IS CARRIED, BUT NOT BELOW THE RESTART VALUE.
-            // Carrying it is the brief's rule and the right default -- it
+            // Carrying it is the right default -- it
             // is what the driver currently trusts the model over. But when
             // the request came FROM the floor, the radius that arrives
             // here is by definition collapsed, and it is collapsed as
@@ -1375,19 +1300,20 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.counters.soc_rejected += rs.counters.soc_rejected;
             out.counters.elastic_activations += rs.counters.elastic_activations;
             out.counters.elastic_escalations += rs.counters.elastic_escalations;
-            // TASK 8's two counters ARE folded, exactly like every other
+            // The VALUES-only counters ARE folded, exactly like every other
             // WORK counter above (qp_minor_iters, factorizations, ...):
             // the sub-solve's own solve_impl runs through the SAME three
-            // call sites this task changed, so its values-only/full
+            // call sites the values/full split exists for, so its
             // split is real work spent evaluating `feasibility`, not a
             // property of the WRAPPER's variables the way steps_accepted/
             // rejected_steps are (see the note just below for that
             // distinction).
             out.counters.evals_full += rs.counters.evals_full;
             out.counters.evals_values += rs.counters.evals_values;
-            // PHASE-6 TASK 4's two counters ARE folded, for the same
-            // reason Task 8's are and NOT for the reason Task 5's are
-            // omitted below. The sub-solve inherits `crash_basis` from
+            // The crash-basis counters ARE folded, for the same
+            // reason the values counters are and NOT for the reason the
+            // full-step pair below is
+            // omitted. The sub-solve inherits `crash_basis` from
             // `opts_` like every other lever in ropts, it is COLD by
             // construction (a fresh 2-arg solve()), and its own first
             // subproblem therefore gets a crash basis of its own -- real
@@ -1399,10 +1325,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // one of them.
             out.counters.crash_seeded_rows += rs.counters.crash_seeded_rows;
             out.counters.crash_seeded_bounds += rs.counters.crash_seeded_bounds;
-            // PHASE-7 TASK 5's SSN counters ARE folded, and for the exact
+            // The SSN counters ARE folded, and for the exact
             // OPPOSITE of the "identically zero, so folding it would only
             // suggest it might not be" argument the next paragraph makes
-            // about Phase-4 Task 5's pair. They are identically zero too --
+            // about the warm-start pair's counters. They are identically zero too --
             // `ropts.qp_mode` is reset to kWalk above, so the sub-solve has
             // no SSN kernel to run -- and folding them is what makes that
             // reset OBSERVABLE FROM OUTSIDE. With the fold in place a kSsn
@@ -1428,7 +1354,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // reset -- dies on this fixture with or without this line,
             // since the folded FACTORIZATIONS move too (234 -> 247).
             accumulate_ssn_counters(out.counters.ssn, rs.counters.ssn);
-            // TASK 5's two counters are deliberately absent from this
+            // The full-step-mode counters are deliberately absent from this
             // fold, and they are absent because they are IDENTICALLY ZERO
             // on the sub-solve: it runs the 2-arg solve() on a fresh
             // driver, which is cold by construction, and the full-step
@@ -1469,7 +1395,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // prices); the first main-loop QP re-estimates them.
                 lambda_e.setZero();
                 lambda_i.setZero();
-                // W1 (round 2, N4): the ingested duals are gone here too,
+                // The ingested duals are gone here too,
                 // so the ingest-scoped complementarity gate disarms with
                 // them. Behaviourally this line is inert -- complementarity
                 // is max_j |lambda_i(j) cI_j| and lambda_i has just been
@@ -1477,11 +1403,11 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // the flag's declared invariant ("TRUE while lambda are
                 // still the multipliers this solve INGESTED") must be TRUE
                 // rather than merely harmless, which is the same doc-vs-code
-                // discipline W7 exists to enforce.
+                // discipline every declared invariant here is held to.
                 duals_ingested = false;
                 // KLV Algorithm 2's re-basing, NOT reset() -- see
                 // globalization.h::resume_from_restoration. It also CLEARS
-                // the full-step mode on the strategy (Task 5), so the
+                // the full-step mode on the strategy, so the
                 // driver's own mirror of that flag is cleared with it: a
                 // restoration is definitive evidence against the mode's
                 // premise, and the solve comes back out fully globalized.
@@ -1506,8 +1432,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // certificate. The status does not encode which, deliberately:
             // a caller that needs the distinction checks the certificate
             // (four lines -- tests/test_sqp_restoration.cpp does exactly
-            // that), and recording it as a field belongs to Task 12's
-            // formalization of SqpIterate rather than to a bool bolted on
+            // that) rather than reading it off a bool bolted on
             // here.
             x = x_r;
             // The point being reported is now the RESTORED point, which
@@ -1516,8 +1441,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             restoration_moved_x = true;
             lambda_e = rs.lambda_e;
             lambda_i = rs.lambda_i;
-            // W1: the ingested duals are gone -- these are the restoration
-            // sub-solve's own subgradient selectors -- so the ingest-scoped
+            // The ingested duals are gone -- these are the restoration            // sub-solve's own subgradient selectors -- so the ingest-scoped
             // complementarity gate disarms with them.
             duals_ingested = false;
             restoration_exit_kkt = kkt_r;
@@ -1587,15 +1511,15 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 
         SolveOverrides overrides;
         overrides.tr_radius = delta;
-        // ADAPTIVE DUAL REGULARIZATION (Task 10, see the header note
+        // ADAPTIVE DUAL REGULARIZATION (see the header note
         // above). `kkt` is this loop pass's measurement of the CURRENT
         // iterate, taken before this subproblem is built -- exactly "the
         // previous major's" residual by the time this trial is solved.
         //
-        // PHASE-7 TASK 5 ADDED THE SECOND CONJUNCT, and it is a MODE gate,
-        // not a reordering: at `qp_mode == QpMode::kWalk` -- the shipped
-        // default -- `ssn_mode` is false and this expression is exactly the
-        // `opts_.adaptive_mu` it has always been. Under kSsn the schedule is
+        // The second conjunct is a MODE gate:
+        // at `qp_mode == QpMode::kWalk` -- the shipped
+        // default -- `ssn_mode` is false and this expression is exactly
+        // `opts_.adaptive_mu`. Under kSsn the schedule is
         // off for the whole solve; see this header's WHY THE ADAPTIVE-mu
         // SCHEDULE IS OFF UNDER kSsn note for the derivation and for why the
         // scope is the solve rather than the SSN call alone.
@@ -1610,17 +1534,17 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         row.mu = adaptive_mu_active ? overrides.dual_mu : opts_.qp.dual_mu;
         last_dual_mu = row.mu; // this trial's EFFECTIVE dual_mu; see the declaration note
 
-        // PHASE-4 TASK 4: the hot handle is offered ONLY on this solve's
+        // The hot handle is offered ONLY on this solve's
         // very FIRST subproblem (iter == 0) -- every later major on this
         // same engine_ already benefits from its OWN instance-level
         // border_ persistence (qp_engine.h's HOT-START REUSE note),
-        // unaffected by this task, so re-offering `warm.hot` there would
+        // so re-offering `warm.hot` there would
         // be a no-op at best. Whether the engine actually reuses
-        // anything is entirely its own call (conditions (a)-(e), the
-        // fifth added in Fix Round 1); this driver never inspects the
+        // anything is entirely its own call (conditions (a)-(e));
+        // this driver never inspects the
         // handle's contents, only whether it is present.
         const bool offer_hot = iter == 0 && resolved_level == StartLevel::kHot;
-        // THE CRASH BASIS, CONSUMED (Phase-6 Task 4). One-shot, at the
+        // THE CRASH BASIS, CONSUMED. One-shot, at the
         // FIRST subproblem this solve builds and nowhere else: from the
         // second subproblem on, `have_seed` is true and the seed is the
         // previous QP's own answer, which is strictly better information
@@ -1645,7 +1569,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.counters.crash_seeded_bounds += seeded_bounds;
         }
 
-        // --- THE QP KERNEL DISPATCH (Phase-7 Task 5) --------------------
+        // THE QP KERNEL DISPATCH.
         //
         // See this header's THE SEMISMOOTH-NEWTON TIER note for the whole
         // contract; only the mechanics are here.
@@ -1653,8 +1577,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // AT kWalk THIS BLOCK IS INERT AND STRUCTURALLY SO: `ssn_mode` is
         // false, so `walk_owns_this_qp` is true from its initializer, the
         // SSN branch is not entered, no SsnEngine is ever constructed, and
-        // the walk call below is the same four-way select that has stood
-        // here since Phase-6 Task 4 with the same arguments in the same
+        // the walk call below is the same four-way select, with the same
+        // arguments in the same
         // order.
         QpSolution qs;
         bool walk_owns_this_qp = !ssn_mode;
@@ -1679,7 +1603,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             SsnResult sres;
             ssn_engine().solve(qp, ssn_start_from_qp_seed(have_seed ? &seed : nullptr), sopts,
                                ssn_overrides, &sres);
-            // --- R5 (Phase-7 Task 6b Phase B): GOULD'S LEMMA ------------
+            // GOULD'S LEMMA (R5).
             //
             // INERT AND STRUCTURALLY SO at the shipped default:
             // `SqpOptions::ssn_certify_from_face` is false, so
@@ -1755,18 +1679,17 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // usability gate; see its own note there.
             ssn_prox_sigma_out_ = std::max(ssn_prox_sigma_out_, sres.prox_sigma);
             if (ssn_exit_is_a_usable_step(sres, sopts.fb_tol)) {
-                // THE CENTRE IS STAMPED ONLY FROM A USABLE EXIT (fix round
-                // 1). It used to be stamped beside the sigma above, i.e.
-                // BEFORE this gate -- and the subproblem that sets the max
+                // THE CENTRE IS STAMPED ONLY FROM A USABLE EXIT, not beside
+                // the sigma above: the subproblem that sets the max
                 // sigma is typically an EXHAUSTED LADDER, i.e. an ESCAPED
                 // solve, whose x ssn_engine.h measures at 133x-160x the
                 // trust region and whose export certifies nothing. The
-                // carried centre was therefore, by construction, usually a
+                // carried centre would therefore, by construction, usually be a
                 // DIVERGED POINT -- shipped on the WarmStart interface
                 // under a field documented as "the point it was reached
-                // at". No live defect (the centres are unread today, Task-4
-                // deviation D5), which is exactly why it had to be repaired
-                // before a reader starts trusting them. The centre now
+                // at". No live defect (the centres are unread today),
+                // but this gate keeps them trustworthy for when a reader
+                // does. The centre
                 // carries its OWN high-water mark, so it is the largest
                 // sigma among CERTIFYING subproblems; when none certified,
                 // the sigma carries alone and both vectors stay empty.
@@ -1848,8 +1771,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // there is no second SSN attempt on this subproblem, and
                 // from here the walk owns it, elastic tier and all.
                 walk_owns_this_qp = true;
-                // R5's HOISTED FACE SOLVE, CHARGED HERE WHEN THE EXIT IT
-                // WAS PAID FOR IS ABANDONED (fix round, review F3). See
+                // THE HOISTED FACE SOLVE, CHARGED HERE WHEN THE EXIT IT
+                // WAS PAID FOR IS ABANDONED. See
                 // charge_refused_face_refinement's own note for the path
                 // and for why the fields are these four.
                 //
@@ -1872,23 +1795,20 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // trust-region gate refused, where its own count was 0.
                 if (sres.escape_reason == SsnEscape::kNone) {
                     ++out.counters.ssn.ssn_escapes;
-                    // PHASE-7 TASK 6b (docket D6): and it is the ONE census
+                    // And it is the ONE census
                     // bucket with no SsnEscape value behind it, written at
                     // the same site and under the same condition as the
                     // total it partitions. See SqpCounters::ssn's census
                     // note (sqp_types.h) for why the sixth bucket exists.
                     ++out.counters.ssn.ssn_escape_gate_refused;
                 }
-                // AND ITS COST IS STILL PAID (fix round 1). `qs` below is
+                // AND ITS COST IS STILL PAID. `qs` below is
                 // the WALK's solution, so the escaped attempt's own
                 // factorizations reach no other accumulation site -- they
                 // were simply LOST, which is the same "vanishing work"
-                // class as the restoration fold's, and it broke
+                // class as the restoration fold's, and it breaks
                 // sqp_types.h's documented `ssn_iters <= factorizations`
-                // outright: measured 131 SSN iterations against 128
-                // factorizations on tests/test_sqp_driver.cpp's
-                // RestorationStaysOnTheWalkUnderKSsn before this line
-                // existed. Charged HERE and only here: on the CERTIFYING
+                // invariant outright. Charged HERE and only here: on the CERTIFYING
                 // path the same two fields travel across inside
                 // ssn_result_to_qp_solution, so this branch is the one
                 // place they would otherwise disappear, and there is no
@@ -1905,11 +1825,11 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         if (offer_hot) {
             // start_level_used RECORDS WHAT WAS OBSERVED, not merely
             // what was offered (see the WARM-START INGEST note above).
-            // FIX ROUND 1 (Q5): this reads qs.counters.k0_reused --
+            // This reads qs.counters.k0_reused --
             // qp_engine.h's OWN report of whether its reuse gate
             // (conditions (a)-(e)) actually judged the cache
             // trustworthy -- rather than inferring reuse from
-            // `qp_factorizations == 0`, which the review showed can be
+            // `qp_factorizations == 0`, which can be
             // zero for reasons that have nothing to do with hot-start
             // reuse at all (an empty reduced system with nothing to
             // factorize, or a crossed-bounds box reported kInfeasible
@@ -1917,12 +1837,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // values-hash mismatch, a different effective
             // (primal_delta, dual_mu) pair, a seed working set the
             // engine's own border stack did not already match, or a
-            // stale generation (Fix Round 1's new condition (e)) --
-            // silently degrades to kWarm here, never throws and never
+            // stale generation -- silently degrades to kWarm here, never throws and never
             // mis-reports.
             //
-            // PHASE-7 TASK 5 NEEDED NO EDIT HERE, and that is worth stating
-            // rather than leaving to be rediscovered. A subproblem the SSN
+            // A subproblem the SSN
             // tier certified was never offered the hot handle at all
             // (SsnEngine has no hot-state seam), and
             // ssn_result_to_qp_solution leaves `k0_reused` at its default
@@ -1934,7 +1852,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         }
 
         out.counters.major_iters = iter + 1;
-        // TASK 5. Counted here, alongside major_iters and on exactly the
+        // full_step_majors: counted here, alongside major_iters and on exactly the
         // same event (a subproblem was solved), so full_step_majors <=
         // major_iters holds by construction -- see its own note in
         // sqp_types.h for why a routed failure counts too.
@@ -1948,10 +1866,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         out.counters.suspect_escalations += qs.counters.suspect_escalations;
         out.counters.symbolic_analyses += qs.counters.symbolic_analyses;
 
-        // THE ELASTIC TIER (Task 8). See this header's ELASTIC TIER note
+        // THE ELASTIC TIER. See this header's ELASTIC TIER note
         // for every design choice below; only the mechanics are here.
         // This is the ONLY consumer of QpStatus::kInfeasible in the
-        // driver, and it replaces Task 6b's immediate propagation.
+        // driver.
         bool elastic_applied = false;
         if (qs.status == QpStatus::kInfeasible) {
             ++out.counters.elastic_activations;
@@ -1967,7 +1885,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             QpSolution seed_elastic = elastic_seed(elastic, qs);
 
             QpSolution qs_e;
-            // THE STALL EARLY-EXIT's own state (Phase-5 Task 10): the
+            // THE STALL EARLY-EXIT's own state: the
             // PREVIOUS rung's augmented solution, valid once
             // has_prev_rung is true (i.e. from the second solve on), so
             // it can be compared against the CURRENT rung's -- see THE
@@ -1998,7 +1916,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 if (v_max <= opts_.feas_tol || !(rho < kElasticRhoMax)) {
                     break;
                 }
-                // THE STALL EARLY-EXIT (Phase-5 Task 10). This rung left
+                // THE STALL EARLY-EXIT. This rung left
                 // the augmented solution where the PREVIOUS one left it
                 // -- so, per THE STALL EARLY-EXIT note above, escalating
                 // further only re-solves the same reduced system at a
@@ -2018,7 +1936,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 ++out.counters.elastic_escalations;
                 qs_e_prev = qs_e;
                 has_prev_rung = true;
-                // CHAIN THE SEED (fix round 1). Only g changes between
+                // CHAIN THE SEED. Only g changes between
                 // rungs, so H/Ae/Ai's hashes and the effective
                 // (primal_delta, dual_mu) pair are already unchanged --
                 // but qp_engine.h's HOT-START REUSE condition (b) needs
@@ -2046,8 +1964,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             const bool closed = slack_l1 <= opts_.feas_tol;
             const bool reduced = slack_l1 <= elastic.violation_l1 - opts_.feas_tol;
             // EXACT ZERO, DELIBERATELY: see THE KNIFE-EDGE RULING above
-            // (Phase-5 Task 10) for why a tolerance was considered and
-            // not added here.
+            // for why a tolerance was considered and not added here.
             const bool promises_f =
                 qs_e.status == QpStatus::kOptimal && predicted_decrease(qp, p_elastic) > 0.0;
             const bool usable =
@@ -2064,8 +1981,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 row.step_norm = p_elastic.size() > 0 ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0;
                 row.verdict = StepVerdict::kRestore;
                 out.history.push_back(row);
-                // KLV Algorithm 5's authoritative trigger, serviced (Task
-                // 9). Through Task 8 this was the interim exit.
+                // KLV Algorithm 5's authoritative trigger.
                 if (enter_restoration()) {
                     continue;
                 }
@@ -2110,7 +2026,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 ++rejections_at_iterate;
                 ++out.counters.rejected_steps;
                 out.history.push_back(row);
-                // THE RADIUS FLOOR (Task 9) applies to a ROUTED failure
+                // THE RADIUS FLOOR applies to a ROUTED failure
                 // exactly as to a judged rejection: both are "the radius
                 // was shrunk here and the iterate did not move", and the
                 // floor is a statement about the radius, not about which
@@ -2157,8 +2073,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         }
         qp_failures_in_a_row = 0;
 
-        // THE TRIAL POINT, VALUES ONLY FIRST (Task 8, the eval-economics
-        // carry). globalization.h's judge() reads StepContext, and every
+        // THE TRIAL POINT, VALUES ONLY FIRST (the eval-economics
+        // rule). globalization.h's judge() reads StepContext, and every
         // field of it (f_old/f_new/h_old/h_new/pred_df/tr_active/
         // rejections_at_iterate -- confirmed against globalization.h's
         // own struct) comes from f/cE/cI or from the QP already solved,
@@ -2204,7 +2120,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 
         StepVerdict verdict = zero_step ? StepVerdict::kAcceptF : strategy->judge(ctx);
 
-        // SECOND-ORDER CORRECTION (Task 7). See this header's note for
+        // SECOND-ORDER CORRECTION. See this header's note for
         // the derivation and every design choice below; only the
         // mechanics are here. Gated on the ORIGINAL verdict, never on a
         // routed QP failure (this code is unreached there -- see the
@@ -2262,7 +2178,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     verdict = soc_verdict;
                     ctx = soc_ctx;
                     ++out.counters.soc_applied;
-                    // UPGRADE TO FULL (Task 8): promoted, so `ev_soc`
+                    // UPGRADE TO FULL: promoted, so `ev_soc`
                     // becomes the next iterate's `ev` below (the
                     // `soc_applied` branch of ACCEPTED), which needs the
                     // derivatives the values-only evaluation above
@@ -2274,7 +2190,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     // The corrected point is ALSO not accepted (a
                     // kReject, or -- not promoted -- a kRestore); fall
                     // through with the ORIGINAL verdict below. `ev_soc`
-                    // is discarded values-only (Task 8) -- it never
+                    // is discarded values-only -- it never
                     // becomes anyone's `ev`, so it never earns the
                     // upgrade above.
                     ++out.counters.soc_rejected;
@@ -2288,7 +2204,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             }
         }
 
-        // TASK 8: `ev_trial`'s OWN FATE is now decided -- verdict and
+        // `ev_trial`'s OWN FATE is now decided -- verdict and
         // soc_applied are both final. It is UPGRADED (evals_full, at the
         // direct-accept branch further below) only when this trial is
         // accepted WITHOUT a promoted SOC correction; every other
@@ -2313,7 +2229,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // attempted above -- see the note.
             ++rejections_at_iterate;
             ++out.counters.rejected_steps;
-            // THE RADIUS FLOOR (Task 9) -- KLV Algorithm 4's alpha_min
+            // THE RADIUS FLOOR -- KLV Algorithm 4's alpha_min
             // trigger in trust-region form. The shrink is NOT taken and
             // NOT clamped: crossing the floor IS the request. See RADIUS
             // MANAGEMENT.
@@ -2341,8 +2257,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 
         if (verdict == StepVerdict::kRestore) {
             // The funnel's own restoration signature (globalization.h's
-            // five conjuncts), serviced (Task 9). Through Task 8 this was
-            // the interim exit.
+            // five conjuncts).
             if (enter_restoration()) {
                 continue;
             }
@@ -2378,10 +2293,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             ev = std::move(ev_soc); // already upgraded to full -- see the promotion above
             lambda_e = qs_soc.lambda_e;
             lambda_i = qs_soc.lambda_i;
-            duals_ingested = false; // W1: re-priced by this solve's own QP
+            duals_ingested = false; // re-priced by this solve's own QP
             seed = std::move(qs_soc);
         } else {
-            // UPGRADE TO FULL (Task 8): a DIRECT acceptance (no SOC, or
+            // UPGRADE TO FULL: a DIRECT acceptance (no SOC, or
             // SOC ran and was not promoted -- either way `verdict` is
             // kAcceptF/kAcceptH and `ev_trial` is what becomes `ev`
             // below), so the values-only evaluation above is not enough
@@ -2398,7 +2313,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             ev = std::move(ev_trial);
             lambda_e = qs.lambda_e;
             lambda_i = qs.lambda_i;
-            duals_ingested = false; // W1: re-priced by this solve's own QP
+            duals_ingested = false; // re-priced by this solve's own QP
             seed = std::move(qs);
         }
         ++out.counters.steps_accepted;
@@ -2448,7 +2363,7 @@ SsnOptions SqpDriver::ssn_options(double prox_sigma_init) const {
     SsnOptions sopts;
     sopts.fb_tol = ssn_fb_tol_for(opts_.kkt_tol, opts_.feas_tol);
     sopts.prox_sigma_init = prox_sigma_init;
-    // PHASE-7 TASK 6b PHASE B. The four research levers, each carried from
+    // The four research levers, each carried from
     // its own SqpOptions field and each at the value that reproduces the
     // shipped kernel bit for bit when the field is at its default.
     sopts.defer_certification = opts_.ssn_certify_from_face;

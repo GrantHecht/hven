@@ -7,29 +7,13 @@
 // NlpAggregate that also publishes, per claim slot, the assembled coordinate
 // that slot names.
 //
-// WHY IT IS ITS OWN INTERFACE. NlpAggregate (model/nlp_aggregate.h) publishes a
-// declaration, a structure epoch and the evaluation entries -- everything a
-// consumer needs in order to ASK for a fill, given a destination and a location
-// table it already has. It does not publish WHERE the fill lands. A consumer
-// that lays its own destination needs the second half too: the per-slot
-// (row, column) pairs, and the per-domain slot ranges, from which it builds the
-// destination and the location table the provider is then scattered through.
-// Those are what this interface adds, and nothing else. A provider whose
-// consumers always hand it a destination they laid elsewhere keeps deriving
-// from the base.
-//
-// THE COORDINATE CONVENTION. Claims are stated in the square assembled space
-// the declaration describes -- n + me + mi on a side, laid
+// COORDINATE CONVENTION. Claims are stated in the square assembled space the
+// declaration describes -- n + me + mi on a side, laid
 // [primal | equality rows | inequality rows]. A Hessian claim names (i, j) with
 // i <= j, the upper triangle; an equality Jacobian claim names (n + r, c); an
 // inequality Jacobian claim names (n + me + r, c). Objective-gradient claims
 // name a row of the primal block alone. The three dimensions come from the
 // declaration, so this interface adds no accessor for them.
-//
-// WHAT IT IS NOT. Not a second contract: every obligation an implementation
-// carries -- the concurrency posture, the epoch's ordering guarantee, partition
-// invariance -- is the base's, unchanged. This interface adds accessors and no
-// rule of its own.
 
 #include <Eigen/Core>
 
@@ -46,11 +30,7 @@ struct ClaimBlock {
 };
 
 /// @brief A provider that publishes its claim stream: an NlpAggregate a
-///        consumer can lay a destination for.
-///
-/// Abstract, and abstract for the same reason the base is: these accessors are
-/// read once per lay, never per element, so the dispatch cost is immaterial and
-/// one declaration reads as one contract.
+///        consumer can lay a destination for. Abstract, like the base.
 ///
 /// STREAM SHAPE. Claims are issued serially by the provider, in partition-index
 /// order, and never from worker threads; each domain's claims -- Lagrangian

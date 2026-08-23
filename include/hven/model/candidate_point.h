@@ -165,14 +165,9 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
     return hash.value();
 }
 
-// ---------------------------------------------------------------------------
-// What one assemble call evaluates
-// ---------------------------------------------------------------------------
-
 /// What an assemble call EVALUATES. A separate vocabulary from ClaimDomain,
 /// which names what a piece CLAIMS at layout time: an objective value is
-/// evaluable but claims no structure, and conflating the two would blur exactly
-/// the statement ClaimDomain exists to make checkable.
+/// evaluable but claims no structure.
 ///
 /// Five rules bind every request:
 ///
@@ -184,17 +179,14 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
 ///     partition count alone, and every legal request subset carries the full
 ///     path's determinism guarantee.
 ///   * EXACTLY THE NAMED SETS BELOW ARE LEGAL, and the named sets are a UNION
-///     OF CONSUMER-OWNED FAMILIES: each shape is owned by the consumer whose
-///     legacy call bill it reproduces, added at that consumer's own
-///     consumption task with a named call site and the counter evidence that
-///     a superset would break (docs/notes/2026-08-m4-ledger.md, the
-///     amendment ruling, 2026-08-21).
-///     A set outside the named ones is an evaluation shape no consumer has,
-///     so an implementation would have to over-evaluate or run two passes --
-///     both break the call-for-call counter equivalence the mapping exists to
-///     give. assemble() validates its request and throws on anything else;
-///     validate_eval_request below is that check, so every provider spells
-///     the refusal the same way.
+///     OF CONSUMER-OWNED FAMILIES: each shape reproduces one consumer family's
+///     exact call bill, with a named call site and the counter evidence that a
+///     superset would break. A set outside the named ones is an evaluation
+///     shape no consumer has, so an implementation would have to over-evaluate
+///     or run two passes -- both break the call-for-call counter equivalence
+///     the mapping exists to give. assemble() validates its request and throws
+///     on anything else; validate_eval_request below is that check, so every
+///     provider spells the refusal the same way.
 ///   * LEGAL AND SUPPORTED-BY-THIS-PROVIDER ARE DISTINCT FACTS. Every
 ///     provider refuses an unmapped set identically (above); a provider
 ///     handed a mapped set outside the families it serves REFUSES it by name
@@ -257,28 +249,24 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
     return (request & probe) == probe;
 }
 
-// ---------------------------------------------------------------------------
 // THE EVALUATION-SHAPE MAPPING TABLE
-// ---------------------------------------------------------------------------
 //
-// The named sets are a UNION OF CONSUMER-OWNED FAMILIES
-// (docs/notes/2026-08-m4-ledger.md, the amendment ruling, 2026-08-21).
-// Rows 1-8 are the partitioned evaluation engine's: its eight
-// evaluation entry points whose output shapes genuinely differ, replaced
-// BIJECTIVELY -- each entry is exactly one request set, the sets are distinct,
-// and no set names an output its shape did not produce. Rows 9-11 are the SQP
-// driver's: its evaluation moments, each reproducing that consumer's exact
-// model-call bill. Nothing over-evaluates in either family -- the proofs of
-// call-for-call counter identity on both sides depend on that, since an entry
-// that quietly computed more would move counters even where the numerics
-// agreed.
+// The named sets are a UNION OF CONSUMER-OWNED FAMILIES.
+// Rows 1-8 are the partitioned evaluation engine's: its eight evaluation entry
+// points whose output shapes genuinely differ, replaced BIJECTIVELY -- each
+// entry is exactly one request set, the sets are distinct, and no set names an
+// output its shape did not produce. Rows 9-11 are the SQP driver's: its
+// evaluation moments, each reproducing that consumer's exact model-call bill.
+// Nothing over-evaluates in either family -- the proofs of call-for-call
+// counter identity on both sides depend on that, since an entry that quietly
+// computed more would move counters even where the numerics agreed.
 //
 // PER-PROVIDER SUPPORT (a distinct fact from legality): the partitioned
 // engine SERVES rows 1-8 and REFUSES rows 9-11 by name at its assemble hook;
 // the NlpModelAggregate bridge serves ALL named rows (its dispatch is
 // per-flag). A provider handed a legal-but-unsupported shape refuses it
-// rather than serving a superset. A provider refuses a mapped shape it does
-// not serve with std::invalid_argument, naming the shape.
+// rather than serving a superset: with std::invalid_argument, naming the
+// shape.
 //
 // Reading the table: "owner" names the consumer family a row belongs to;
 // "entry"/"moment" is the legacy entry point or driver moment the row
@@ -288,7 +276,6 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // out slot); the four arena names are RhsScatterView's four members; `kkt` is
 // the KktScatterView. Rows 1-8: owner = the partitioned evaluation engine.
 //
-// ---------------------------------------------------------------------------
 // 1. objective value only                    -> kRequestObjectiveOnly
 //    entry   eval_obj
 //    flags   kObjectiveValue
@@ -358,9 +345,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    empty   -
 //    caller  also scatters its own solver KKT coefficients, outside assemble
 //
-// Rows 9-11: owner = the SQP driver (added at its Level 2 consumption task;
-// call sites and counter evidence in
-// docs/notes/2026-08-21-m4-task5-design.md + docs/notes/2026-08-m4-ledger.md).
+// Rows 9-11: owner = the SQP driver.
 //
 // 9. the Lagrangian Hessian alone             -> kRequestLagrangianHessian
 //    moment  the per-accepted-iterate subproblem Hessian (one
@@ -392,7 +377,6 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    writes  kkt (Jacobian blocks)
 //    empty   objective, every arena
 //
-// ---------------------------------------------------------------------------
 // THE SOLVER-COEFFICIENT SCATTER: A RESPONSIBILITY THAT TRANSFERS.
 //
 // Every KKT-bearing shape above -- 5, 6, 7 and 8 -- does one more thing in its
@@ -410,14 +394,13 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // consumer's own assembly order requires. A provider neither knows them nor
 // has anywhere to read them from.
 //
-// Written down here, in the table, and not left to the retarget to notice:
-// these four rows are the only place where "what the entry did" is strictly
-// larger than "what the request names", and the difference is a step that has
-// to be re-attached on the consumer's side. A retarget that reads the table as
-// the whole of the entry's behaviour drops the slack Jacobian and the pivots
-// silently -- an assembled matrix missing its solver block factorizes, and
-// factorizes wrong.
-// ---------------------------------------------------------------------------
+// These four rows are the only place where "what the legacy entry did" is
+// strictly larger than "what the request names", and the difference is a step
+// that has to be re-attached on the consumer's side. A retarget that reads the
+// table as the whole of the legacy behaviour drops the slack Jacobian and the
+// pivots silently -- an assembled matrix missing its solver block factorizes,
+// and factorizes wrong.
+//
 // ACCUMULATE-VS-ZERO: the discipline every shape shares.
 //
 // A provider ACCUMULATES into every destination it writes -- the KKT values
@@ -430,11 +413,9 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // destination compose the way a single fan-out over partitions already does.
 //
 // Provider-internal coefficient scratch is a separate matter and stays the
-// provider's own: the legacy entries zero their internal arrays at entry
-// (all four for the shapes that fill gradients, the two constraint arrays for
-// shape 2) precisely because their pieces accumulate into them. None of that is
-// visible at this contract, and none of it is the consumer's to do.
-// ---------------------------------------------------------------------------
+// provider's own; none of that is visible at this contract, and none of it is
+// the consumer's to do.
+//
 // Three further points the table is easy to misread on:
 //
 //   * Shapes 5 and 7 legally leave the objective-gradient arena empty even
@@ -446,11 +427,10 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //     SAME GROUND, and it is named here because the empty column is easy to
 //     read as an oversight where the objective half is not. eval_soe calls the
 //     constraints' JACOBIAN entry, which produces no adjoint gradient at all;
-//     the entry nevertheless zeroes that arena and passes it to its fill, so
-//     what the legacy shape summed in was identically zero, exactly as with the
-//     objective gradient. Shape 7 is not in this half of the sentence: it calls
-//     the adjoint entry and genuinely produces the constraint adjoint gradient,
-//     so its empty column names the objective-gradient arena alone.
+//     what the legacy shape summed in was identically zero, exactly as with
+//     the objective gradient. Shape 7 is not in this half of the sentence: it
+//     calls the adjoint entry and genuinely produces the constraint adjoint
+//     gradient, so its empty column names the objective-gradient arena alone.
 //   * kObjectiveValue is a flag of its own even though every INTERIOR-owned
 //     shape that produces the objective gradient produces the value with it,
 //     in one call. Shape 1 produces the value alone, and the value's
@@ -461,7 +441,6 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //   * kConstraintValues covers BOTH residual blocks. No shape splits them, and
 //     splitting the flag would introduce request sets no evaluation shape has,
 //     which is exactly what bijectivity rules out.
-// ---------------------------------------------------------------------------
 
 /// Shape 1.
 inline constexpr EvalRequest kRequestObjectiveOnly = EvalRequest::kObjectiveValue;

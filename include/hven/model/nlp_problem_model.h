@@ -166,10 +166,10 @@ class NlpProblemModel final : public NlpModel {
     SpMatRM eval_jac_e(const Vec &x) const override;
     SpMatRM eval_jac_i(const Vec &x) const override;
 
-    // --- The in-place forms, overridden so a consumer's own storage is filled
-    //     directly. Each leaves the destination holding exactly what its
-    //     by-value counterpart returns; the by-value methods are implemented
-    //     as a copy of these. ---
+    // The in-place forms, overridden so a consumer's own storage is filled
+    // directly. Each leaves the destination holding exactly what its
+    // by-value counterpart returns; the by-value methods are implemented
+    // as a copy of these.
 
     /// @brief The objective gradient at @p x, written into @p out.
     /// @param x The iterate.
@@ -298,7 +298,7 @@ class NlpProblemModel final : public NlpModel {
     /// and copied out.
     mutable SpMatRM jac_e_values_, jac_i_values_, hess_values_;
 
-    // --- Per-iterate cache; the callbacks are pure, so it keys on the iterate.
+    // Per-iterate cache; the callbacks are pure, so it keys on the iterate.
     mutable Vec x_cache_;
     mutable bool g_valid_ = false;
     mutable bool jac_valid_ = false;

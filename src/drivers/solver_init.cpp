@@ -29,7 +29,7 @@ double ensure_solver_initialized() {
         t.stop();
         first_init_ms = double(t.count<std::chrono::microseconds>()) / 1000.0;
     });
-    return first_init_ms; // 0.0 on every call after the first (header contract)
+    return first_init_ms;
 }
 
 } // namespace hven::solvers

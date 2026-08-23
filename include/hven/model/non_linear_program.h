@@ -39,7 +39,6 @@
 
 namespace hven::solvers {
 
-/// <summary>
 /// How a primal variable whose declared lower and upper bounds are equal is
 /// handed to the solver. All three are implemented, and all three reach the same
 /// solution on a well-posed problem; they differ in the size of the system the
@@ -62,7 +61,6 @@ namespace hven::solvers {
 /// its bounds pushed apart by the relax factor, so it is held near its value by
 /// the barrier, within the relaxation, and the system is the same size as the
 /// declared problem's.
-/// </summary>
 enum class FixedVariableTreatments { MakeParameter, MakeConstraint, RelaxBounds };
 
 /// Human-readable name for a treatment, for diagnostics and error messages.
@@ -92,24 +90,19 @@ inline constexpr double kMaxBoundRelaxFactor = 1.0e-2;
 
 /// Smallest per-partition KKT element count worth dispatching for. Below it the
 /// thread-dispatch overhead dominates the work, so the partition count is capped
-/// at num_user_kkt_elems_ / this. Empirically chosen via solver benchmarks;
-/// re-evaluate with the bench harness if dispatch overhead changes.
+/// at num_user_kkt_elems_ / this.
 inline constexpr int kMinKktElementsPerPartition = 1000;
 
-/// The partitioned evaluation engine, and a Level 2 provider.
+/// @brief The partitioned evaluation engine, and a Level 2 provider.
 ///
-/// WHAT THE CONTRACT SURFACE ADDS AND WHAT IT DOES NOT REPLACE. Every member
-/// and method this type had before it derived from NlpAggregate is still here
-/// and still behaves identically: the eight eval_ entry points, the public
-/// layout members, the solver-coefficient accessors. The contract methods are
-/// a second way in, over the same machinery -- assemble() reaches the same
-/// per-shape passes the eval_ entries do, call for call. Nothing was moved out
-/// to the consumer except the one thing the mapping table says transfers (the
-/// solver-coefficient scatter, which assemble deliberately does not do and the
-/// eval_ entries still do).
+/// assemble() reaches the same per-shape passes the eval_ entry points do,
+/// call for call, over the same machinery; the only step moved out to the
+/// consumer is the one the mapping table transfers (the solver-coefficient
+/// scatter, which assemble deliberately does not do and the eval_ entries
+/// still do).
 ///
-/// THE FILL PATH, both halves, because the capability declaration below turns
-/// on the difference:
+/// THE FILL PATH, both halves, because the capability declaration turns on
+/// the difference:
 ///
 ///   * The KKT fill is DIRECT. Each piece writes the consumer's value array in
 ///     place, at offsets its claim recorded (kkt_locations_), under the
@@ -134,19 +127,13 @@ inline constexpr int kMinKktElementsPerPartition = 1000;
 /// every pin and measurement runs on -- it outranks the no-copy property:
 /// removing the intermediate there would be a regression, not an
 /// optimization. Accumulation-VALUE determinism is a property of this path,
-/// not a library absolute (owner ruling): a future user-selectable
-/// max-performance fill may relax it, exactly as threaded MKL already does,
-/// behind an explicit mode choice -- never silently, and never as this
-/// path's default. What stays hard everywhere, on every path and for every
-/// provider, is LAYOUT determinism: claim order, structural keys, and
-/// location tables are untouched by that option; keys, byte-stable pins,
-/// and warm-start identity rest on them, and only the floating-point
-/// summation order is ever mode-dependent.
-///
-/// The two facts are per-major/per-minor consistent with how the same question
-/// is scoped for a Level 1 bridge: what is protected is the per-minor hot path,
-/// and an intermediate that sits outside it is a declared property rather than
-/// a defect.
+/// not a library absolute: a future user-selectable max-performance fill may
+/// relax it, exactly as threaded MKL already does, behind an explicit mode
+/// choice -- never silently, and never as this path's default. What stays hard
+/// everywhere, on every path and for every provider, is LAYOUT determinism:
+/// claim order, structural keys, and location tables are untouched by that
+/// option; keys, byte-stable pins, and warm-start identity rest on them, and
+/// only the floating-point summation order is ever mode-dependent.
 struct NonLinearProgram : public NlpAggregate {
     using VectorXi = Eigen::VectorXi;
     using VectorXd = Eigen::VectorXd;
@@ -154,40 +141,25 @@ struct NonLinearProgram : public NlpAggregate {
 
     int num_partitions_ = 1;
 
-    /// <summary>
-    /// Master List of Objective functions that will be partitioned across work partitions
-    /// (part_obj_)
-    /// </summary>
+    /// Objective functions that will be partitioned across work partitions
+    /// (part_obj_).
     std::vector<ObjectiveFunction> objectives_;
 
-    /// <summary>
-    /// Master List of Equality Constraint functions that will be partitioned across work partitions
-    /// (part_eq_)
-    /// </summary>
+    /// Equality constraint functions that will be partitioned across work
+    /// partitions (part_eq_).
     std::vector<ConstraintFunction> equality_constraints_;
 
-    /// <summary>
-    /// Master List of Inequality Constraint functions that will be partitioned across work
-    /// partitions (part_iq_)
-    /// </summary>
+    /// Inequality constraint functions that will be partitioned across work
+    /// partitions (part_iq_).
     std::vector<ConstraintFunction> inequality_constraints_;
 
-    /// <summary>
-    /// Vector with each element being the list of ObjectiveFunctions
-    /// assigned to the corresponding partition.
-    /// </summary>
+    /// Per partition: the ObjectiveFunctions assigned to it.
     std::vector<std::vector<ObjectiveFunction>> part_obj_;
 
-    /// <summary>
-    /// Vector with each element being the list of equality_constraints_
-    /// assigned to the corresponding partition.
-    /// </summary>
+    /// Per partition: the equality_constraints_ assigned to it.
     std::vector<std::vector<ConstraintFunction>> part_eq_;
 
-    /// <summary>
-    /// Vector with each element being the list of inequality_constraints_
-    /// assigned to the corresponding partition.
-    /// </summary>
+    /// Per partition: the inequality_constraints_ assigned to it.
     std::vector<std::vector<ConstraintFunction>> part_iq_;
 
     int primal_vars_ = 0; // Number of design variables
@@ -207,20 +179,23 @@ struct NonLinearProgram : public NlpAggregate {
     int num_kkt_elems_ = 0;
 
     VectorXd solver_coeffs_;
-    int slack_jac_data_start_;    //// Solver supplied slack jacobian data, usually just
-                                  /// a vector of ones
-    int primal_diags_data_start_; //// Solver supplied diaganol elements for inertia
-                                  /// modification or least norm solving
-    int slack_diag_data_start_;   //// Solver suppled diaganols for slack elements in
-                                  /// the hessian, used for interior point methods,
-                                  /// zeros for SQP
-    int e_pivot_data_start_;      //// Solver suppled Equality pivots
-    int i_pivot_data_start_;      //// Solver suppled Inequality pivots
+    /// Start offset of the solver-supplied slack Jacobian data (usually ones).
+    int slack_jac_data_start_;
+    /// Start offset of the solver-supplied diagonal elements for inertia
+    /// modification or least-norm solving.
+    int primal_diags_data_start_;
+    /// Start offset of the solver-supplied diagonals for the slack elements in
+    /// the Hessian -- used by interior-point methods, zeros for SQP.
+    int slack_diag_data_start_;
+    /// Start offset of the solver-supplied equality pivots.
+    int e_pivot_data_start_;
+    /// Start offset of the solver-supplied inequality pivots.
+    int i_pivot_data_start_;
 
     std::vector<std::mutex> kkt_locks_;
     int num_kkt_clashes_ = 0;
 
-    //// [i] = -1 if no fill clash, [i] = mutex lock index otherwise
+    /// [i] = -1 if no fill clash, [i] = mutex lock index otherwise
     VectorXi kkt_clashes_;
 
     VectorXd rhs_coeffs_;
@@ -236,8 +211,6 @@ struct NonLinearProgram : public NlpAggregate {
     int agx_data_start_ = 0;
     int econ_data_start_ = 0;
     int icon_data_start_ = 0;
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     NonLinearProgram(int NumParts) { this->num_partitions_ = std::max(NumParts, 1); }
     NonLinearProgram(int PV, int EQ, int IQ, std::vector<ObjectiveFunction> &obj,
@@ -251,9 +224,9 @@ struct NonLinearProgram : public NlpAggregate {
         this->make_nlp(PV, EQ, IQ);
     }
 
-    /// <summary>
-    /// Lays the whole problem out over PV primal variables, EQ equality rows and
-    /// IQ inequality rows, from the objective and constraint lists as they stand.
+    /// @brief Lays the whole problem out over PV primal variables, EQ equality
+    ///        rows and IQ inequality rows, from the objective and constraint
+    ///        lists as they stand.
     ///
     /// EQ is the count of equality rows the USER's own constraint functions
     /// address. The MakeConstraint fixed-variable treatment appends its internal
@@ -263,7 +236,6 @@ struct NonLinearProgram : public NlpAggregate {
     /// This call drops any installed fixing row itself -- it re-materializes the
     /// bounds those rows were derived from, so the next configuration re-derives
     /// them.
-    /// </summary>
     void make_nlp(int PV, int EQ, int IQ);
 
     /// @brief Adopts a declaration whose row counts are the row space AS LAID,
@@ -318,12 +290,10 @@ struct NonLinearProgram : public NlpAggregate {
     ///         for.
     void adopt_declaration(AggregateDeclaration declaration);
 
-    /// <summary>
     /// One staged variable-bound declaration, as handed to set_variable_bound.
     /// Recorded verbatim (no merging at declaration time) so that repeated
     /// make_nlp calls re-derive the same tightest-wins result from the same
     /// history.
-    /// </summary>
     struct VariableBoundStage {
         int index_;
         double lower_;
@@ -343,14 +313,15 @@ struct NonLinearProgram : public NlpAggregate {
     VectorXd x_lower_;
     VectorXd x_upper_;
 
-    /// <summary>
-    /// Stages a bound declaration for primal variable global_index. Repeated
-    /// declarations on the same index are intersected (tightest wins) when
-    /// make_nlp materializes x_lower_/x_upper_: l = max(l_prev, l_new),
+    /// @brief Stages a bound declaration for primal variable global_index.
+    ///
+    /// Repeated declarations on the same index are intersected (tightest wins)
+    /// when make_nlp materializes x_lower_/x_upper_: l = max(l_prev, l_new),
     /// u = min(u_prev, u_new). A declaration with both bounds infinite leaves
-    /// the variable unbounded and is a no-op. NaN bounds are rejected
-    /// immediately, since they cannot participate in the max/min merge.
-    /// </summary>
+    /// the variable unbounded and is a no-op.
+    ///
+    /// @throws std::invalid_argument on a NaN bound, since it cannot
+    ///         participate in the max/min merge.
     void set_variable_bound(int global_index, double lower, double upper) {
         if (std::isnan(lower) || std::isnan(upper)) {
             throw std::invalid_argument(
@@ -384,70 +355,44 @@ struct NonLinearProgram : public NlpAggregate {
         return (this->x_lower_.array() > -kInf).any() || (this->x_upper_.array() < kInf).any();
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // Bound-fixed variable treatment
     //
     // A variable declared with lower == upper carries no degree of freedom.
     // Under the MakeParameter treatment it is ELIMINATED: it does not appear in
     // the solver's variable space at all, and the KKT system the solver
     // factorizes is the system of the remaining variables -- narrower by exactly
-    // one row and column per eliminated variable.
-    //
-    // How the elimination is realized. Each objective and constraint addresses
-    // primal variables by index, and does so for two different purposes: to
-    // GATHER its arguments out of the primal vector, and to say where its
-    // outputs (KKT columns, gradient rows) belong. Those two roles are split
-    // here. The input map is left alone -- a function still reads exactly the
-    // variables it was declared over -- and every evaluation hands it a
-    // full-space buffer built from the reduced iterate plus the pinned values,
-    // so the functions never learn anything happened and their contributions to
-    // constraint values and to the surviving variables' derivatives are correct
-    // for free. Only the OUTPUT map is rewritten, at configuration time, from
-    // the pristine input map:
-    //
-    //   * retained variables' outputs are renumbered into the reduced space;
-    //   * eliminated variables' outputs are marked -1;
-    //   * the KKT/RHS location tables, the sparsity pattern, the partition clash
-    //     marks and the solver-coefficient ranges are all rebuilt over that
-    //     rewritten map.
+    // one row and column per eliminated variable. The elimination splits each
+    // function's index map by role: the INPUT map is left alone -- a function
+    // still reads exactly the variables it was declared over, out of a
+    // full-space buffer built from the reduced iterate plus the pinned values --
+    // and only the OUTPUT map is rewritten, at configuration time, from the
+    // pristine input map: retained variables renumbered into the reduced space,
+    // eliminated ones marked -1, and the KKT/RHS location tables, sparsity
+    // pattern, clash marks and solver-coefficient ranges rebuilt over it.
     //
     // Element CLAIMS stay exactly as they were -- same count, same contiguous
     // per-application ranges -- because the scatters walk their claims in
-    // lockstep with the function's own loop bounds. A -1 element keeps its claim
-    // and simply names no matrix entry: analyze_sparsity leaves it out of the
-    // pattern, so the eliminated row and column never exist, and the scatter
-    // steps over it instead of writing.
+    // lockstep with the function's own loop bounds; a -1 element keeps its claim
+    // and simply names no matrix entry.
     //
     // Identity fast path. With no fixed variables nothing is rewritten at all:
-    // no output map is installed, so every scatter takes its original loop,
-    // every table is the pristine one, no expansion buffer is built, and the
-    // assembled system is what it was before this feature existed.
-    //
-    // The other two treatments leave the variable space alone and take the
-    // identity fast path through all of the above -- neither of them eliminates
-    // anything, so is_reduced() stays false and no output map is ever installed.
-    // They differ from each other only in what classification records:
-    //
-    //   * MakeConstraint records no bound for the variable (it goes to the solver
-    //     free) and appends one internal equality row per fixed variable, which
-    //     widens the equality row space and therefore re-lays the layout -- the
-    //     element counts and the work partitioning included, since the set of
-    //     functions itself changed.
-    //   * RelaxBounds records the variable as an ordinary two-sided bound whose
-    //     endpoints have been pushed apart, which changes nothing structural at
-    //     all: the layout on hand is already the answer.
-    ////////////////////////////////////////////////////////////////////////////
+    // no output map is installed and no expansion buffer is built. The other two
+    // treatments take that path throughout -- neither eliminates anything -- and
+    // differ only in what classification records: MakeConstraint appends one
+    // internal equality row per fixed variable (re-laying the layout over the
+    // widened row space), RelaxBounds records an ordinary relaxed bound pair
+    // (changing nothing structural).
 
-    /// <summary>
-    /// Classifies every primal variable against the materialized
-    /// x_lower_/x_upper_ (free / lower-only / upper-only / two-sided / fixed),
-    /// records the finite bounds of everything the treatment leaves bounded in
-    /// variable_bound_set_, and then applies the treatment to the fixed
-    /// variables: under MakeParameter rewriting every function's output map into
-    /// the reduced space and rebuilding the KKT/RHS structures over it, under
-    /// MakeConstraint appending one internal equality row per fixed variable and
-    /// re-laying the layout over the widened row space, and under RelaxBounds
-    /// nothing structural at all.
+    /// @brief Classifies every primal variable against the materialized
+    ///        x_lower_/x_upper_ (free / lower-only / upper-only / two-sided /
+    ///        fixed), records the finite bounds of everything the treatment
+    ///        leaves bounded in variable_bound_set_, and then applies the
+    ///        treatment to the fixed variables: under MakeParameter rewriting
+    ///        every function's output map into the reduced space and rebuilding
+    ///        the KKT/RHS structures over it, under MakeConstraint appending one
+    ///        internal equality row per fixed variable and re-laying the layout
+    ///        over the widened row space, and under RelaxBounds nothing
+    ///        structural at all.
     ///
     /// Called once at solve setup. Idempotent and re-entrant: a call that
     /// repeats the same treatment, the same relax factor, and the same bound
@@ -456,20 +401,19 @@ struct NonLinearProgram : public NlpAggregate {
     /// (make_nlp / clear_variable_bounds) reclassifies from scratch. Every
     /// rewritten output map is regenerated from the pristine input map, which is
     /// never edited, and every internal fixing row is dropped before the new
-    /// classification derives its own, so repeated configuration cannot compound
-    /// -- including the return to the identity path when the last fixed bound is
-    /// dropped, and the switch from one treatment to another between two solves.
-    ///
-    /// Throws std::invalid_argument for an unrecognized treatment, for a negative
-    /// or non-finite relax factor, for an infinite fixing value, for a
-    /// zero relax factor under RelaxBounds while a variable is fixed (the pair
-    /// would be pushed nowhere and the barrier would divide by zero), and, under
-    /// MakeParameter only, for a problem all of whose variables are fixed.
+    /// classification derives its own, so repeated configuration cannot compound.
     ///
     /// @return true iff this call rebuilt the KKT/RHS structures, in which case
-    /// the caller must re-read the dimensions and recompute the sparsity pattern
-    /// (InteriorPointSolver does both at its solve entry). false means nothing changed.
-    /// </summary>
+    ///         the caller must re-read the dimensions and recompute the sparsity
+    ///         pattern (InteriorPointSolver does both at its solve entry). false
+    ///         means nothing changed.
+    ///
+    /// @throws std::invalid_argument for an unrecognized treatment, for a
+    ///         negative or non-finite relax factor, for an infinite fixing
+    ///         value, for a zero relax factor under RelaxBounds while a variable
+    ///         is fixed (the pair would be pushed nowhere and the barrier would
+    ///         divide by zero), and, under MakeParameter only, for a problem all
+    ///         of whose variables are fixed.
     bool configure_variable_treatment(FixedVariableTreatments treatment, double bound_relax_factor);
 
     /// Width of the primal block of the KKT system the solver factorizes:
@@ -516,42 +460,32 @@ struct NonLinearProgram : public NlpAggregate {
     /// Reduced index -> full-space index. Empty on the identity path.
     const VectorXi &reduced_to_full() const { return this->reduced_to_full_; }
 
-    /// <summary>
-    /// Compacts a full-space primal vector into reduced_primal_vars() entries,
-    /// dropping the eliminated coordinates. Used at the solve entry to turn a
-    /// caller's initial guess into the solver's iterate. Pass-through copy on
-    /// the identity path. Throws std::invalid_argument on a size mismatch.
-    /// </summary>
+    /// @brief Compacts a full-space primal vector into reduced_primal_vars()
+    ///        entries, dropping the eliminated coordinates. Used at the solve
+    ///        entry to turn a caller's initial guess into the solver's iterate.
+    ///        Pass-through copy on the identity path.
+    /// @throws std::invalid_argument on a size mismatch.
     void gather_reduced_x(ConstEigenRef<VectorXd> x_full, EigenRef<VectorXd> x_reduced) const;
 
-    /// <summary>
-    /// Expands a reduced primal vector back to primal_vars_ entries, writing
-    /// each eliminated coordinate's pinned value.
+    /// @brief Expands a reduced primal vector back to primal_vars_ entries,
+    ///        writing each eliminated coordinate's pinned value.
     ///
-    /// Two callers, and they are the whole reinsertion story. Every evaluation
-    /// uses it to build the full-space buffer the functions read, which is why
-    /// they never learn a variable was eliminated. And the solver uses it once
-    /// at its return boundary to hand the solution back in the caller's own
-    /// variable space -- the single seam where the reduced space stops being an
-    /// internal detail.
+    /// Two callers, and they are the whole reinsertion story: every evaluation
+    /// builds the full-space buffer the functions read with it, and the solver
+    /// uses it once at its return boundary to hand the solution back in the
+    /// caller's own variable space. Pass-through copy on the identity path.
     ///
-    /// Pass-through copy on the identity path. Throws std::invalid_argument on a
-    /// size mismatch.
-    /// </summary>
+    /// @throws std::invalid_argument on a size mismatch.
     void scatter_full_x(ConstEigenRef<VectorXd> x_reduced, EigenRef<VectorXd> x_full) const;
 
-    /// <summary>
-    /// The full-space primal vector the objective and constraint functions must
-    /// read, given the solver's reduced iterate: the reduced values put back in
-    /// their own coordinates, with the eliminated ones pinned at their declared
-    /// values.
+    /// @brief The full-space primal vector the objective and constraint
+    ///        functions must read, given the solver's reduced iterate.
     ///
     /// Returns a view of @p x itself on the identity path -- no buffer, no copy.
     /// Otherwise returns a view of an internal buffer, valid until the next
     /// call. Like vals_scratch_, that buffer is safe to share because a single
     /// NLP is inside at most one evaluation at a time; the parallelism inside an
     /// evaluation only reads it.
-    /// </summary>
     Eigen::Ref<const VectorXd> primal_view(ConstEigenRef<VectorXd> x) {
         if (!this->fixed_reduction_active_) {
             return x;
@@ -710,8 +644,9 @@ struct NonLinearProgram : public NlpAggregate {
         this->kkt_coeff_rows_.resize(0);
         this->kkt_coeff_cols_.resize(0);
     }
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /// Views into the solver-coefficient block of solver_coeffs_, and the
+    /// matching column/row index views into kkt_coeff_cols_/kkt_coeff_rows_.
     EigenRef<VectorXd> slack_coeffs() {
         return this->solver_coeffs_.segment(this->slack_jac_data_start_, this->slack_vars_);
     }
@@ -825,7 +760,8 @@ struct NonLinearProgram : public NlpAggregate {
             mat.valuePtr()[this->kkt_locations_[iofs + i]] += pert;
         }
     }
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Views into the right-hand-side coefficient arena of rhs_coeffs_.
     EigenRef<VectorXd> pgx_coeffs() {
         return this->rhs_coeffs_.segment(this->pgx_data_start_, this->num_pgx_elems_);
     }
@@ -926,21 +862,15 @@ struct NonLinearProgram : public NlpAggregate {
         }
     }
 
-    /// <summary>
     /// Per-partition objective/value accumulator scratch, shared across
     /// eval_rhs/eval_ogc/eval_occ/eval_obj/eval_kkt/eval_aug. Each of those
     /// entry points is only ever invoked serially on this NLP instance -- a
-    /// single NLP is inside at most one alg_impl call at a time (InteriorPointSolver's
-    /// outer control loop is single-threaded; the only concurrency is the
+    /// single NLP is inside at most one alg_impl call at a time (the outer
+    /// control loop is single-threaded; the only concurrency is the
     /// parallel_sequence dispatch *within* one call, which writes disjoint
-    /// vals_scratch_[thrnum] entries, exactly as the old per-call local
-    /// `Vals` vector did). Resized in place (assign() re-zeros without a
-    /// realloc once sized to num_partitions_).
-    /// </summary>
+    /// vals_scratch_[thrnum] entries). Resized in place (assign() re-zeros
+    /// without a realloc once sized to num_partitions_).
     std::vector<double> vals_scratch_;
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
                   ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX,
@@ -977,10 +907,6 @@ struct NonLinearProgram : public NlpAggregate {
     static void nlp_test(const Eigen::VectorXd &x, int n, std::shared_ptr<NonLinearProgram> nlp1,
                          std::shared_ptr<NonLinearProgram> nlp2);
 
-    ////////////////////////////////////////////////////////////////////////////
-    // The Level 2 provider contract
-    ////////////////////////////////////////////////////////////////////////////
-
     /// The declaration as of the last lay, and deliberately not as of now.
     ///
     /// Stored state, refreshed by rebuild_structures() and by nothing else, so
@@ -1001,26 +927,21 @@ struct NonLinearProgram : public NlpAggregate {
     /// throughout: visible through declaration(), through model_structure_key()
     /// and through structure_epoch(), exactly as any other structural mutation
     /// is. What it is NOT is visible in vector INDEXING -- nothing a consumer
-    /// addresses by declared identity moves under it. There is deliberately no
-    /// user-rows/internal-rows split field on this surface: the counts a
-    /// consumer needs are the counts as laid, and a split gets added when a
-    /// consumer has a use for one, not before.
+    /// addresses by declared identity moves under it.
     ///
     /// MATERIALIZED ON FIRST READ AFTER A LAY, then held. The reference is to
     /// stored state and stays valid and unchanging until the next structural
-    /// mutation, exactly as the contract requires; what a re-lay leaves behind
-    /// is the OBLIGATION to refill the piece lists and bound records, which the
-    /// first read after it discharges once. A consumer that never reads the
-    /// declaration never pays for one, and no consumer pays per call.
+    /// mutation; a re-lay leaves behind the OBLIGATION to refill the piece lists
+    /// and bound records, which the first read after it discharges once. A
+    /// consumer that never reads the declaration never pays for one, and no
+    /// consumer pays per call.
     ///
-    /// A REFERENCE DOES NOT SURVIVE A LAY, which is what the contract's own
-    /// "unchanging except across a structural mutation" already says, and the
-    /// structure epoch is the proof. A re-lay empties this object's piece lists
-    /// before it writes anything else, so a reference held across one reads as
-    /// empty UNTIL the next read refills the same stored object -- after which
-    /// it reads the new layout. Neither state is the old declaration; the
-    /// reference is stale from the lay onward, and emptiness is a courtesy in
-    /// the window before the refill, not a guarantee that outlives it.
+    /// A REFERENCE DOES NOT SURVIVE A LAY: a re-lay empties this object's piece
+    /// lists before it writes anything else, so a reference held across one
+    /// reads as empty UNTIL the next read refills the same stored object --
+    /// after which it reads the new layout. Neither state is the old
+    /// declaration; emptiness is a courtesy in the window before the refill,
+    /// not a guarantee that outlives it.
     ///
     /// Not reentrant against itself: the first read after a lay writes the
     /// stored state, so two threads reading a freshly laid declaration
@@ -1103,14 +1024,10 @@ struct NonLinearProgram : public NlpAggregate {
     /// and constraint VALUE evaluators and touches no derivative anywhere, so a
     /// consumer pricing a probe at values cost is pricing it correctly.
     ///
-    /// kDirectScatter is NOT declared, and the flag being per-aggregate is why
-    /// the KKT half cannot raise it. The declaration is the weakest claim over
-    /// the whole provider, so one fill path holding an intermediate settles it
-    /// for all of them -- and the right-hand-side path holds one by design (see
-    /// the determinism argument at the top of this class). Splitting the flag
-    /// per arena would be the wrong repair: it would hand a consumer two bits
-    /// where no consumer has two decisions to make, and every decision these
-    /// flags exist for is taken once per solve over the provider as a whole.
+    /// kDirectScatter is NOT declared: the declaration is the weakest claim over
+    /// the whole provider, so the right-hand-side fill path holding an
+    /// intermediate (by design -- see the determinism argument at the top of
+    /// this class) settles it for all of them.
     AggregateCapability capabilities() const override {
         return AggregateCapability::kValuesFastPath;
     }
@@ -1124,13 +1041,9 @@ struct NonLinearProgram : public NlpAggregate {
     /// checked at the assemble entry.
     ///
     /// A CAPTURED VALUE. This returns the address recorded at analysis time and
-    /// touches no matrix to produce it. Re-reading valuePtr() from the analysed
-    /// matrix would break the check in both directions: a caller that resized or
-    /// re-patterned THAT SAME MATRIX moves its value array, and a live reading
-    /// would move with it, so the comparison would agree while every recorded
-    /// offset had gone stale -- and a matrix destroyed since the analysis cannot
-    /// be read at all, while this accessor runs on every assemble, including
-    /// ones that name no KKT output.
+    /// touches no matrix to produce it; re-reading valuePtr() from the analysed
+    /// matrix would make the check vacuous against a resize and unsafe against
+    /// destruction (see validate_bound_destination in model/nlp_aggregate.h).
     const double *bound_kkt_destination() const override { return this->analyzed_kkt_values_; }
 
     IdentityProbe probe_identity(ConstVecRef x) override;
@@ -1146,8 +1059,8 @@ struct NonLinearProgram : public NlpAggregate {
 
   protected:
     // WHAT THIS PROVIDER'S FIRST-ORDER CANDIDATE SURFACE DOES AND DOES NOT
-    // GIVE YOU. Two facts, both stated plainly because both are easy to read
-    // past and either one silently corrupts a residual score.
+    // GIVE YOU. Two facts, both easy to read past and either one silently
+    // corrupting a residual score:
     //
     // 1. THE GRADIENT ROWS OF ELIMINATED COORDINATES ARE NOT PARTIAL
     //    DERIVATIVES. They read ZERO. Under the MakeParameter treatment a
@@ -1166,13 +1079,12 @@ struct NonLinearProgram : public NlpAggregate {
     //    contribution. Same declaration, same point, different rows: the
     //    difference is the treatment, not the mathematics.
     //
-    // THE CONSUMER-SIDE RULE that makes both facts harmless, stated at the
-    // contract in full (see evaluate_candidate_first_order in
-    // model/nlp_aggregate.h): a correct scorer EXCLUDES declared-fixed
-    // coordinates -- those whose materialized bound record has lower == upper --
-    // from stationarity scoring, and computes that exclusion set from
-    // DECLARATION DATA ALONE. A scorer that does so never reads either row and
-    // is insensitive to which treatment is configured.
+    // THE CONSUMER-SIDE RULE that makes both facts harmless: a correct scorer
+    // EXCLUDES declared-fixed coordinates -- those whose materialized bound
+    // record has lower == upper -- from stationarity scoring, per
+    // evaluate_candidate_first_order in model/nlp_aggregate.h. A scorer that
+    // does so never reads either row and is insensitive to which treatment is
+    // configured.
 
     void assemble_impl(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                        RhsScatterView rhs) override;
@@ -1181,21 +1093,17 @@ struct NonLinearProgram : public NlpAggregate {
                                              CandidateFirstOrder out) override;
 
   public:
-    ////////////////////////////////////////////////////////////////////////////
-    // The eight evaluation shapes, factored
+    // The eight evaluation shapes, factored.
     //
-    // Each public eval_ entry above is now a pass plus its fills. The split is
-    // mechanical and the passes are the entries' own bodies verbatim: same
-    // calls, same order, same internal zeroing. What it buys is that assemble()
-    // can run one of these shapes and then fill DIFFERENT destinations --
-    // omitting the fills for arenas its request does not name, and omitting the
-    // solver-coefficient scatter, which the contract transfers to the consumer.
+    // Each eval_ entry above is a pass plus its fills; assemble() runs one of
+    // these shapes and then fills DIFFERENT destinations -- omitting the fills
+    // for arenas its request does not name, and omitting the solver-coefficient
+    // scatter, which the contract transfers to the consumer.
     //
     // Xf is the full-space primal buffer the pieces read, computed by the
     // caller: primal_view() for an eval_ entry (whose X is the solver's reduced
     // iterate) and declaration_view() for assemble (whose point is in
     // declaration space).
-    ////////////////////////////////////////////////////////////////////////////
 
     void objective_pass(double ObjScale, ConstEigenRef<VectorXd> Xf, double &val);
     void objective_constraints_pass(double ObjScale, ConstEigenRef<VectorXd> Xf, double &val);
@@ -1234,16 +1142,14 @@ struct NonLinearProgram : public NlpAggregate {
     /// just been range-checked and intersected successfully.
     ///
     /// The snapshot, rather than reading staged_variable_bounds_ when the
-    /// declaration is refreshed, is what keeps two separate promises. It keeps
-    /// the structural key describing the bounds AS LAID: a record staged after
-    /// the layout has no business moving the key of the structures on hand, and
-    /// a later re-lay for some unrelated reason -- a treatment configuration, a
-    /// partition renegotiation -- must not quietly fold it in. And it keeps the
-    /// bound digest from ever throwing part-way through a re-lay: the records
-    /// here have already passed materialization, so the digest cannot be the
-    /// thing that fails after the structures have been re-laid but before the
-    /// epoch has been bumped, which would leave the old epoch standing over new
-    /// tables.
+    /// declaration is refreshed, keeps two promises. It keeps the structural key
+    /// describing the bounds AS LAID: a record staged after the layout has no
+    /// business moving the key of the structures on hand, and a later re-lay for
+    /// some unrelated reason must not quietly fold it in. And it keeps the bound
+    /// digest from ever throwing part-way through a re-lay: the records here have
+    /// already passed materialization, so the digest cannot be the thing that
+    /// fails after the structures have been re-laid but before the epoch has been
+    /// bumped, which would leave the old epoch standing over new tables.
     std::vector<VariableBoundStage> laid_variable_bounds_;
 
     /// The partition count the structures were laid at -- the ADOPTED count,
@@ -1288,7 +1194,6 @@ struct NonLinearProgram : public NlpAggregate {
     VectorXd probe_inequality_scratch_;
 
   private:
-    ////////////////////////////////////////////////////////////////////////////
     // The deferred half of the laid state, and the only paths that read it.
     //
     // PRIVATE, and that is the point rather than tidiness: between a lay and
@@ -1296,7 +1201,6 @@ struct NonLinearProgram : public NlpAggregate {
     // conjuncts are written, the piece lists and the digests are not -- and a
     // half-derived declaration is not a declaration. The accessors above are
     // the only read path, and each one returns whole state or throws.
-    ////////////////////////////////////////////////////////////////////////////
 
     /// @brief Freezes the thread modes of every piece in @p pieces.
     /// @tparam Pieces a range of ObjectiveFunction or ConstraintFunction.

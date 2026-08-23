@@ -6,21 +6,15 @@
 // aggregate_declaration.h — what a provider DECLARES, and what a declared piece
 // must be able to do.
 //
-// The declaration is a VALUE, not a sequence of setter calls, and that is
-// load-bearing rather than stylistic: the layout is then a pure function of the
-// declaration and the adopted partition count, which is the property a
-// layout-determinism check asserts against and the property the structural key
-// keys on.
+// The declaration is a VALUE, not a sequence of setter calls: the layout is
+// then a pure function of the declaration and the adopted partition count.
 //
 // Engine-independent by construction: this header includes nothing from the
 // interior-point machinery. It does DECLARE the two piece handle types the
-// pieces are stored as, so the declaration can hold them by value; a
-// declaration is a value type over pieces, and a piece list of pointers to
-// somewhere else would give up exactly the property above. A translation unit
-// that constructs, copies or destroys an AggregateDeclaration therefore needs
-// the piece definitions in scope; one that merely names the type does not.
-// (The same forward-declaration shape the piece adapter already uses for the
-// evaluation engine.)
+// pieces are stored as, so the declaration can hold them by value -- a
+// translation unit that constructs, copies or destroys an AggregateDeclaration
+// therefore needs the piece definitions in scope; one that merely names the
+// type does not.
 
 #include <concepts>
 #include <limits>
@@ -51,23 +45,13 @@ struct VariableBound {
     friend bool operator==(const VariableBound &, const VariableBound &) = default;
 };
 
-/// What a declared piece must be able to do, at layout time: report its size
-/// and its threading posture, say how many KKT slots it will claim, and claim
-/// them.
-///
-/// The piece surface is otherwise an unwritten duck-typing contract, enforced
-/// only by whether the type-erasure seam compiles. This concept states it. It
-/// does not REPLACE that seam: the seam still decides what gets stored; the
-/// concept says what a stored thing must be able to do.
+/// @brief What a declared piece must be able to do, at layout time: report its
+///        size and its threading posture, say how many KKT slots it will
+///        claim, and claim them.
 ///
 /// Stated over the indexing-data type rather than over a concrete one, so the
-/// contract names no provider's internals. A provider instantiates it with
-/// whatever per-piece indexing state it threads through its own claim pass.
-///
-/// The claim pass is spelled here as the pieces spell it today. Retiring the
-/// `get_`-prefixed spelling in favour of a claim-space-typed one is a change to
-/// the pieces, and belongs with the change that makes it -- not with the header
-/// that first writes the contract down.
+/// contract names no provider's internals. The type-erasure seam still decides
+/// what gets stored; this concept says what a stored thing must be able to do.
 template <class Piece, class IndexData>
 concept AggregatePiece =
     requires(const Piece &piece, Piece &mutable_piece, Eigen::Ref<Eigen::VectorXi> indices,
@@ -80,10 +64,9 @@ concept AggregatePiece =
         { piece.num_kkt_elements(flag, flag) } -> std::convertible_to<int>;
     };
 
-/// The three scalar-objective members ONLY. Deliberately does not subsume the
-/// constraint surface, mirroring the type-erasure seam's own split: keeping the
-/// two groups independent is what lets a type missing exactly one of them be
-/// diagnosed for exactly that.
+/// @brief The three scalar-objective members only, split from the constraint
+///        surface the same way the type-erasure seam splits them, so a type
+///        missing exactly one group is diagnosed for exactly that.
 template <class Piece, class IndexData>
 concept ObjectiveAggregateSurface = requires(
     const Piece &piece, double scale, const Eigen::Ref<const Eigen::VectorXd> &x, double &value,
@@ -112,17 +95,15 @@ concept ConstraintAggregatePiece =
                                                                   indices, indices, locks, data);
     };
 
-/// A piece of the objective kind.
+/// @brief A piece of the objective kind: the constraint surface as well as the
+///        objective one.
 ///
-/// It requires the CONSTRAINT surface as well as the objective one, which is
-/// not an oversight to be tidied away: the type-erasure seam that stores an
-/// objective forwards both surfaces, so a type carrying only the three scalar
-/// methods is not storable as an objective however objective-shaped it looks.
-/// A concept weaker than the seam would accept a piece the seam then rejects,
-/// which is the one thing a concept over a storable surface must not do. The
-/// pieces that exist today all satisfy it -- an objective piece answers the
-/// constraint surface by refusing it at run time, which is a different question
-/// from whether the members are there to call.
+/// The type-erasure seam that stores an objective forwards both surfaces, so a
+/// type carrying only the three scalar methods is not storable as an objective
+/// however objective-shaped it looks -- a weaker concept would accept a piece
+/// the seam then rejects. The pieces that exist today all satisfy it: an
+/// objective piece answers the constraint surface by refusing it at run time,
+/// which is a different question from whether the members are there to call.
 template <class Piece, class IndexData>
 concept ObjectiveAggregatePiece =
     ConstraintAggregatePiece<Piece, IndexData> && ObjectiveAggregateSurface<Piece, IndexData>;
@@ -149,20 +130,18 @@ struct AggregateDeclaration {
     int equality_rows_ = 0;
     int inequality_rows_ = 0;
 
-    /// The internal fixing rows included in equality_rows_. equality_rows_ is
-    /// the AS-LAID count; subtracting this yields the user count the sizing
-    /// entry takes.
+    /// The internal fixing rows included in equality_rows_ (the AS-LAID
+    /// count); subtracting this yields the user count the sizing entry takes.
+    /// A fixing row is ONE SINGLE-ROW PIECE AT THE TAIL of
+    /// equality_constraints_, the shape a fixed-variable treatment appends and
+    /// the shape validate() holds this count to, so a consumer may split the
+    /// tail off by piece count alone.
     ///
-    /// A FIXING ROW IS ONE SINGLE-ROW PIECE AT THE TAIL of
-    /// equality_constraints_ -- the shape a fixed-variable treatment appends,
-    /// and the shape validate() holds this count to, so a consumer may split
-    /// the tail off by piece count alone.
-    ///
-    /// TRUSTED. The count is the treatment's own bookkeeping and is not
-    /// derivable from the tail: the piece type is erased, and a user constraint
-    /// over a single application has the shape validate() checks for. A
+    /// TRUSTED: not derivable from the tail -- the piece type is erased, and a
+    /// user constraint over a single application has that same shape. A
     /// declaration that labels user pieces as fixing rows is accepted here and
-    /// loses them at the next treatment, which discards what this count claims.
+    /// loses them at the next treatment, which discards what this count
+    /// claims.
     int fixing_rows_ = 0;
 
     /// Requested partition count; the adopted count is returned by
@@ -188,40 +167,30 @@ struct AggregateDeclaration {
     /// order, as the engine's own bound materializer applies it.
     std::vector<VariableBound> materialize_variable_bounds() const;
 
-    /// Rejects a declaration that cannot describe a problem: non-positive
-    /// partition count, negative dimensions, piece row counts that do not sum
-    /// to the declared row counts, a fixing-row count outside
-    /// [0, equality_rows_], a fixing-row count the tail of the equality list
-    /// does not have one single-row piece each for, bounds naming a variable
-    /// the declaration does not have, NaN bounds, a single record whose two
-    /// finite sides are inverted, and a bound history whose intersection is
-    /// empty. Throws std::invalid_argument naming what disagreed and both
-    /// numbers.
+    /// @brief Rejects a declaration that cannot describe a problem. A provider
+    ///        validates its declaration with validate() before its first
+    ///        layout.
     ///
-    /// A provider validates its declaration with validate() before its first
-    /// layout; empty piece lists satisfy the piece-sum checks vacuously.
+    /// @throws std::invalid_argument naming what disagreed and both numbers,
+    ///         for any of: a non-positive partition count; a negative
+    ///         dimension; a fixing-row count outside [0, equality_rows_]; a
+    ///         fixing-row count the tail of the equality list does not have
+    ///         one single-row piece each for; a bound naming a variable the
+    ///         declaration does not have; a NaN bound; a single record whose
+    ///         two finite sides are inverted; a piece row count that does not
+    ///         sum to the declared row count; and a bound history whose
+    ///         intersection is empty.
     ///
-    /// "No pieces" is a property of all three lists together: a declaration
-    /// carrying objective pieces but no constraint pieces, while declaring
-    /// constraint rows, is piece-sourced and trips the sum conjunct.
+    /// The piece-sum checks run only when at least one list carries pieces --
+    /// "no pieces" is a property of all three lists together, and empty lists
+    /// satisfy the sums vacuously.
     ///
-    /// OWNERSHIP SPLIT with the engine's own bound materializer, stated so
-    /// neither side is assumed to cover the other: this boundary validates the
-    /// declaration it is handed, and materializing here is what makes an empty
-    /// intersection detectable before any layout runs. A provider reaching the
-    /// engine without coming through here is not thereby unchecked -- the
-    /// engine re-derives the same intersection from its own staged history and
-    /// applies the same range, NaN and emptiness rules -- so these are one rule
-    /// at two boundaries, not a rule and its only enforcement.
-    ///
-    /// One carve-out, stated rather than implied so nobody reads "two
-    /// boundaries" as "the same rule twice": the engine silently no-op-DROPS a
-    /// fully unbounded record -- (-inf, +inf) narrows nothing -- before it is
-    /// staged, and therefore never range-checks its index. A record naming a
-    /// variable the declaration does not have is refused here and accepted
-    /// there. The divergence is in the safe direction (this boundary is the
-    /// stricter of the two, and a record that changes no bound cannot change a
-    /// layout), so it is a difference to know about rather than one to close.
+    /// Carve-out, in the safe direction: the engine's own bound materializer
+    /// silently no-op-drops a fully unbounded record -- (-inf, +inf) narrows
+    /// nothing -- before it is staged and therefore never range-checks its
+    /// index, so a record naming a variable the declaration does not have is
+    /// refused here and accepted there. This boundary is the stricter of the
+    /// two, and a record that changes no bound cannot change a layout.
     void validate() const;
 };
 

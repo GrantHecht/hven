@@ -86,9 +86,7 @@ bool interior_point_iterate_acceptable(
 
 } // namespace
 
-// =============================================================================
 // QP parameter setup
-// =============================================================================
 
 namespace {
 
@@ -246,9 +244,7 @@ void hven::solvers::InteriorPointSolver::set_qp_params() {
     this->kkt_sol_.reconfigure(opts);
 }
 
-// =============================================================================
 // KKT matrix analysis
-// =============================================================================
 
 bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
     bool docompute = true;
@@ -260,9 +256,7 @@ bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
     return docompute;
 }
 
-// =============================================================================
 // Release
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::release() {
     this->kkt_sol_.release();
@@ -278,9 +272,7 @@ void hven::solvers::InteriorPointSolver::release() {
     result_.iq_cons_.resize(0);
 }
 
-// =============================================================================
 // Barrier math helpers
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
                                                             Eigen::Ref<Eigen::VectorXd> FXI) const {
@@ -390,10 +382,8 @@ void hven::solvers::InteriorPointSolver::barrier_hessian(
 // (src/solvers/interior_point_solver_globalization.cpp); the barrier-parameter
 // update now runs through governor_->update_barrier().
 
-// =============================================================================
 // Native variable-bound helpers. Every one is a no-op when bounds_ is null,
 // which is the whole story on a problem that declares no variable bounds.
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::push_initial_point_interior(EigenRef<Eigen::VectorXd> x,
                                                                      double mu0) {
@@ -612,9 +602,7 @@ double hven::solvers::InteriorPointSolver::dual_infeasibility_inf(
     return this->bound_resid_scratch_.lpNorm<Eigen::Infinity>();
 }
 
-// =============================================================================
 // NLP eval dispatch methods
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::assemble_dispatch(
     EvalRequest request, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
@@ -698,9 +686,7 @@ void hven::solvers::InteriorPointSolver::eval_soe(
                             AGXS_FX, KKTmat);
 }
 
-// =============================================================================
 // Solver initialization and NLP setup
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::ensure_solver_initialized() {
     double initMs = ::hven::solvers::ensure_solver_initialized();
@@ -815,8 +801,8 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
 //
 // Neutrality on the default (all-off) path: this call constructs the exact
 // same four concrete types (ClassicMeritAcceptance, BacktrackingLineSearch,
-// ClassicAdaptiveGovernor, NoopRecovery) that set_nlp() used to construct —
-// only the MOMENT of construction moves (every solve entry vs. every
+// ClassicAdaptiveGovernor, NoopRecovery) set_nlp() constructs —
+// only the MOMENT of construction differs (every solve entry vs. every
 // (re)transcription). No consumer can observe the difference: nothing reads
 // acceptance_/mechanism_/governor_/recovery_ between set_nlp() returning and
 // run_phase_sequence() reaching this call (verified by grep — the only
@@ -2558,8 +2544,8 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         const bool force_monotone_barrier =
             nested_active && !governor_->provides_restoration_barrier_safeguard();
         // The barrier parameter is updated whenever there is a barrier term to
-        // drive. That used to mean inequality slacks; it now also means variable
-        // bounds. Without the added disjunct a problem whose only barrier terms
+        // drive -- an inequality slack OR a variable bound. Without the bound
+        // disjunct a problem whose only barrier terms
         // are bound terms would hold mu at init_mu_ for the whole phase, its
         // bound complementarity would floor at that value, and the solve could
         // not reach the barrier tolerance at all. The oracles handle an empty

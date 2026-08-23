@@ -672,11 +672,9 @@ void hven::solvers::NonLinearProgram::count_elems() {
 }
 
 void hven::solvers::NonLinearProgram::analyze_partitioning() {
-    /*
-    This function loops over the master list of objectives and constraints and assigns them
-    to num_partitions_ work partitions. Each partition's work is dispatched as a single task
-    to the global thread pool.
-    */
+    // Loops over the master list of objectives and constraints and assigns
+    // them to num_partitions_ work partitions. Each partition's work is
+    // dispatched as a single task to the global thread pool.
     this->part_obj_.clear();
     this->part_eq_.clear();
     this->part_iq_.clear();
@@ -719,27 +717,24 @@ void hven::solvers::NonLinearProgram::analyze_partitioning() {
 }
 
 void hven::solvers::NonLinearProgram::get_mat_space() {
-    /*
-     * Loops over all constraints and objectives on each partition and has each claim its
-     * own portion of kkt_coeff_cols_,kkt_coeff_rows_. Tags each element with the partition that
-     * will be operating on it, then from this info calculates which columns/rows of the KKT matrix
-     * need to be locked when multiple partitions are scattering into the KKT matrix. Allocates
-     * kkt_locks_ mutexes based on this info.
-     *
-     * Canonical-column locking protocol: every KKT scatter site (kkt_fill_all and
-     * kkt_fill_hess in dense_function_base.h) locks each element's mutex on the slot's
-     * canonical column -- hven::solvers::kkt_canonical_lock_col(row, col), the smaller
-     * endpoint, which is the same endpoint analyze_sparsity stores the physical slot
-     * under. The clash detection below marks contested columns with that SAME shared
-     * keying function, so cross-partition claimants of one physical slot agree on the
-     * mutex BY CONSTRUCTION -- there is no per-site convention that can drift, and hence
-     * no runtime check (a claims-map assertion that once lived here verified min == min
-     * and was deleted as tautological; see kkt_canonical_lock_col's doc comment for the
-     * structural argument). Writes within one partition need no mutual exclusion -- each
-     * partition's scatter runs serially on a single thread (parallel_sequence dispatches
-     * one task per partition), and single-partition problems take no locks at all (no
-     * column can be claimed by more than one partition, so kkt_clashes_ is all -1).
-     */
+    // Loops over all constraints and objectives on each partition and has each
+    // claim its own portion of kkt_coeff_cols_/kkt_coeff_rows_, tagging each
+    // element with the partition that will operate on it; from that, calculates
+    // which columns/rows of the KKT matrix need locking when multiple
+    // partitions scatter into it, and allocates kkt_locks_ accordingly.
+    //
+    // Canonical-column locking protocol: every KKT scatter site locks each
+    // element's mutex on the slot's canonical column --
+    // hven::solvers::kkt_canonical_lock_col(row, col), the smaller endpoint,
+    // which is the same endpoint analyze_sparsity stores the physical slot
+    // under. The clash detection below marks contested columns with that SAME
+    // shared keying function, so cross-partition claimants of one physical slot
+    // agree on the mutex BY CONSTRUCTION -- there is no per-site convention that
+    // can drift, and hence no runtime check. Writes within one partition need no
+    // mutual exclusion -- each partition's scatter runs serially on a single
+    // thread (parallel_sequence dispatches one task per partition), and
+    // single-partition problems take no locks at all (no column can be claimed
+    // by more than one partition, so kkt_clashes_ is all -1).
 
     // THE CLAIM SEAM, in the contract's own spelling. The cursor a piece claims
     // out of is a KktClaimSpace: the two index arrays, the next free slot, the
@@ -798,10 +793,10 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     // Mark a KKT column contested iff >= 2 partitions write a slot whose CANONICAL column
     // (kkt_canonical_lock_col(row, col), the smaller endpoint) is that column -- the same
     // shared keying function every scatter site locks with, so a contested slot's writers
-    // all map to the mutex allocated here. (Historically this keyed on the raw recorded
-    // column kkt_coeff_cols_[i], i.e. the outer-loop variable, which mis-attributed
-    // mirror-order Hessian writes and left genuinely shared slots unlocked -- the race
-    // this keying closes.)
+    // all map to the mutex allocated here. (Keying on the raw recorded column
+    // kkt_coeff_cols_[i] instead -- the outer-loop variable -- would mis-attribute
+    // mirror-order Hessian writes and leave genuinely shared slots unlocked, which
+    // is the race this keying closes.)
     Eigen::MatrixXi KKTclash(this->num_partitions_, this->kkt_dim_);
     KKTclash.setZero();
     for (int i = 0; i < this->num_user_kkt_elems_; i++) {
@@ -860,15 +855,12 @@ void hven::solvers::NonLinearProgram::set_mat_dimensions() {
     this->kkt_dim_ = this->reduced_primal_vars_count_ + this->slack_vars_ + this->equal_cons_ +
                      this->inequal_cons_;
 
-    ////////////////// This is the storage order of Solver data/////////////////
-    ////////////////////////////////////////////////////////////////////////////
+    // Storage order of the solver data block.
     this->num_solver_kkt_elems_ = this->slack_vars_                  // solver ijac slack ones
                                   + this->reduced_primal_vars_count_ // solver primal hess diags
                                   + this->slack_vars_                // solver slack hessian diags
                                   + this->equal_cons_                // solver equal pivots
                                   + this->inequal_cons_;             // solver inequal pivots
-    /////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////
 
     this->slack_jac_data_start_ = 0;
     this->primal_diags_data_start_ = this->slack_jac_data_start_ + this->slack_vars_;
@@ -878,8 +870,6 @@ void hven::solvers::NonLinearProgram::set_mat_dimensions() {
     this->i_pivot_data_start_ = this->e_pivot_data_start_ + this->equal_cons_;
 
     this->solver_coeffs_ = Eigen::VectorXd::Zero(this->num_solver_kkt_elems_);
-    ///////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////
 
     this->num_kkt_elems_ = this->num_user_kkt_elems_ + this->num_solver_kkt_elems_;
 
@@ -889,8 +879,6 @@ void hven::solvers::NonLinearProgram::set_mat_dimensions() {
     this->kkt_locations_ = Eigen::VectorXi::Constant(this->num_kkt_elems_, -1);
 
     this->solver_coeffs_ = Eigen::VectorXd::Constant(this->num_solver_kkt_elems_, 0);
-    ///////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////
 }
 
 void hven::solvers::NonLinearProgram::set_rhs_dimensions() {
@@ -935,28 +923,23 @@ void hven::solvers::NonLinearProgram::finalize_data() {
 
 void hven::solvers::NonLinearProgram::analyze_sparsity(
     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    /*
-    Calculates Sparsity Pattern of NLP. InteriorPointSolver requires that only the upper triangular
-    part of a CSR matrix be filled. get_mat_space calculates the non-zeros of the lower triangular
-    part. Therefore in this routine we transpose the row-column indices when making the triplet
-    vector that Eigen uses to calculate the compressed sparsity pattern of the upper triangular CSR
-    matrix. Once this routine calculates the sparsity pattern of the KKT matrix it back calculates
-    where every element specified by kkt_coeff_rows_[i],kkt_coeff_cols_[i], should be summed into
-    the KKT matrix. This info is stored in kkt_locations_, and is passed back to all functions so
-    that they know where to scatter their outputs.
-
-    THE CLAIM ARRAYS ARE READ, NEVER REWRITTEN. Each element's canonical
-    endpoint ordering -- smaller endpoint outer, larger inner -- is derived here,
-    per element, in both passes. It used to be written back into the claim
-    arrays instead, which left the layout with no readable record of the stream
-    the pieces actually handed out: a claim whose endpoints had been swapped is
-    indistinguishable afterwards from one that never needed swapping, so the
-    claim stream was destroyed by the very analysis that consumed it. Deriving
-    it costs a pair of compares per element in a loop that already branches on
-    the same two values, and it is what lets the structural key's claim conjunct
-    be taken on demand instead of during every layout.
-
-    */
+    // InteriorPointSolver requires that only the upper triangular part of a CSR
+    // matrix be filled. get_mat_space calculates the non-zeros of the lower
+    // triangular part, so this routine transposes the row-column indices when
+    // making the triplet vector Eigen uses to build the compressed upper-
+    // triangular pattern. It then back-calculates where every element named by
+    // kkt_coeff_rows_[i]/kkt_coeff_cols_[i] is summed into that matrix and
+    // stores it in kkt_locations_, which every scatter reads.
+    //
+    // THE CLAIM ARRAYS ARE READ, NEVER REWRITTEN: each element's canonical
+    // endpoint ordering -- smaller endpoint outer, larger inner -- is derived
+    // here, per element, in both passes. Writing it back into the claim arrays
+    // would leave the layout with no readable record of the stream the pieces
+    // actually handed out (a claim whose endpoints had been swapped would be
+    // indistinguishable afterwards from one that never needed swapping).
+    // Deriving costs a pair of compares per element in a loop that already
+    // branches on the same two values, and it lets the structural key's claim
+    // conjunct be taken on demand instead of during every layout.
     KKTmat.resize(this->kkt_dim_, this->kkt_dim_);
     std::vector<Eigen::Triplet<double>> kktvec(this->num_kkt_elems_,
                                                Eigen::Triplet<double>(0, 0, 0.0));
@@ -993,7 +976,6 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
     KKTmat.setFromTriplets(kktvec.begin(), kktvec.end());
     KKTmat.makeCompressed();
 
-    /////////////////////////////////////////////////////////////
     Eigen::VectorXi innerKKTNNZ(this->kkt_dim_);
 
     for (int i = 0; i < this->kkt_dim_; i++) {
@@ -1021,7 +1003,6 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
     };
 
     hven::utils::parallel_blocks(this->num_kkt_elems_, FindOP, this->num_partitions_);
-    /////////////////////////////////////////////////////////////
 
     // kkt_locations_ now holds offsets into THIS matrix's value array and no
     // other's. The address of that array is captured HERE, as a VALUE, after
