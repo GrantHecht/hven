@@ -45,7 +45,7 @@ echo "# probe source: $HERE/ipm_time.cpp  sha256=$(sha256sum "$HERE/ipm_time.cpp
 for side in base head; do
   b="$HERE/ipm_$side"
   if [ -f "$b" ]; then
-    echo "# binary $side: $b  sha256=$(sha256sum "$b" | cut -d' ' -f1)  mtime=$(date -Ir -r "$b")"
+    echo "# binary $side: $b  sha256=$(sha256sum "$b" | cut -d' ' -f1)  mtime=$(date -Is -r "$b")"
   else
     echo "# binary $side: $b  MISSING"
   fi
