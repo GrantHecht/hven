@@ -1065,6 +1065,81 @@ TEST(AggregateContract, TheAdoptedPartitionCountIsTheKeysPartitionConjunct) {
     EXPECT_EQ(aggregate.model_structure_key().partition_count_, FakeAggregate::kMaxPartitions);
 }
 
+/// A scalar objective over one variable per application, written out here
+/// because the declaration round trip has to carry an OBJECTIVE list as well
+/// as the two constraint lists, and the pieces this suite otherwise builds are
+/// constraints.
+///
+/// Structurally linear, so it claims no KKT slot -- the objective claim pass
+/// asks for Hessian space only, and a linear objective has none. Nothing here
+/// is evaluated: these tests lay layouts and read declarations.
+///
+/// At namespace scope rather than in the anonymous block below because the
+/// erasure seam's adapter has to be specialized on it, and a specialization
+/// belongs at the namespace scope of the template it specializes.
+struct AdoptDeclarationObjectivePiece {
+    std::string name() const { return "AdoptDeclarationObjective"; }
+    int input_rows() const { return 1; }
+    int output_rows() const { return 1; }
+    bool thread_safe() const { return true; }
+
+    int num_kkt_elements(bool dojac, bool) const { return dojac ? 1 : 0; }
+
+    void get_kkt_space(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>, int &freeloc, int,
+                       bool dojac, bool, hven::solvers::SolverIndexingData &data) {
+        data.inner_kkt_starts_.resize(data.num_appl());
+        for (int v = 0; v < data.num_appl(); v++) {
+            data.inner_kkt_starts_[v] = freeloc;
+            if (dojac) {
+                freeloc++;
+            }
+        }
+    }
+
+    void constraints(const Eigen::Ref<const Eigen::VectorXd> &, Eigen::Ref<Eigen::VectorXd>,
+                     const hven::solvers::SolverIndexingData &) const {}
+    void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &,
+                                     const Eigen::Ref<const Eigen::VectorXd> &,
+                                     Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
+                                     const hven::solvers::SolverIndexingData &) const {}
+    void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &,
+                              Eigen::Ref<Eigen::VectorXd>,
+                              Eigen::SparseMatrix<double, Eigen::RowMajor> &,
+                              Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
+                              std::vector<std::mutex> &,
+                              const hven::solvers::SolverIndexingData &) const {}
+    void constraints_jacobian_adjointgradient(
+        const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
+        Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
+        Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
+        Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
+        const hven::solvers::SolverIndexingData &) const {}
+    void constraints_jacobian_adjointgradient_adjointhessian(
+        const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
+        Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
+        Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
+        Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
+        const hven::solvers::SolverIndexingData &) const {}
+
+    void objective(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
+                   const hven::solvers::SolverIndexingData &) const {}
+    void objective_gradient(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
+                            Eigen::Ref<Eigen::VectorXd>,
+                            const hven::solvers::SolverIndexingData &) const {}
+    void objective_gradient_hessian(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
+                                    Eigen::Ref<Eigen::VectorXd>,
+                                    Eigen::SparseMatrix<double, Eigen::RowMajor> &,
+                                    Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
+                                    std::vector<std::mutex> &,
+                                    const hven::solvers::SolverIndexingData &) const {}
+};
+
+namespace hven::solvers {
+template <>
+struct SolverInterfaceAdapter<AdoptDeclarationObjectivePiece>
+    : DirectFunctionModel<AdoptDeclarationObjectivePiece> {};
+} // namespace hven::solvers
+
 // ---------------------------------------------------------------------------
 // Adopting a declaration
 //
@@ -1084,6 +1159,8 @@ using hven::solvers::FixedVariableRow;
 using hven::solvers::FixedVariableTreatments;
 using hven::solvers::ModelStructureKey;
 using hven::solvers::NonLinearProgram;
+using hven::solvers::ObjectiveFunction;
+using hven::solvers::ObjectiveInterface;
 using hven::solvers::ThreadingFlags;
 
 /// Applications per piece, and pieces. The product is the KKT element count,
@@ -1107,27 +1184,114 @@ ConstraintFunction adopt_pin_piece(int first_index) {
     return ConstraintFunction(ConstraintInterface(FixedVariableRow(0.25)), v_index, c_index);
 }
 
-/// A laid problem of kAdoptPieces such pieces, at the given thread modes and
+/// Which of the three piece lists a fixture populates. The equality-only shape
+/// is what the claim-order tests read, because its stream is one block per
+/// piece; the three-list shape is what the round trip needs, since a
+/// declaration carries all three lists and each piece's thread mode.
+enum class AdoptPieceKinds { kEqualitiesOnly, kAllThreeLists };
+
+/// Applications in the inequality piece of the three-list shape.
+constexpr int kAdoptInequalityRows = 64;
+/// Applications in the objective piece of the three-list shape.
+constexpr int kAdoptObjectiveApplications = 16;
+
+/// One objective piece over the first kAdoptObjectiveApplications variables,
+/// one variable per application.
+ObjectiveFunction adopt_objective_piece() {
+    Eigen::MatrixXi v_index(1, kAdoptObjectiveApplications);
+    for (int k = 0; k < kAdoptObjectiveApplications; k++) {
+        v_index(0, k) = k;
+    }
+    return ObjectiveFunction(ObjectiveInterface(AdoptDeclarationObjectivePiece()), v_index);
+}
+
+/// One inequality piece over the first kAdoptInequalityRows variables.
+ConstraintFunction adopt_inequality_piece() {
+    Eigen::MatrixXi v_index(1, kAdoptInequalityRows);
+    Eigen::MatrixXi c_index(1, kAdoptInequalityRows);
+    for (int k = 0; k < kAdoptInequalityRows; k++) {
+        v_index(0, k) = k;
+        c_index(0, k) = k;
+    }
+    return ConstraintFunction(ConstraintInterface(FixedVariableRow(-0.5)), v_index, c_index);
+}
+
+/// A laid problem of kAdoptPieces equality pieces, at the given thread modes and
 /// requested partition count, with a two-sided bound on every variable. When
 /// @p fix_one is true the bounds on one variable are narrowed to a point, which
 /// is what a fixed-variable treatment turns into an internal fixing row.
 std::shared_ptr<NonLinearProgram> adopt_build(const std::vector<ThreadingFlags> &modes,
-                                              int requested_partitions, bool fix_one) {
+                                              int requested_partitions, bool fix_one,
+                                              AdoptPieceKinds kinds) {
     auto nlp = std::make_shared<NonLinearProgram>(requested_partitions);
     for (int p = 0; p < kAdoptPieces; p++) {
         ConstraintFunction piece = adopt_pin_piece(p * kAdoptApplications);
         piece.set_thread_mode(modes[static_cast<std::size_t>(p)]);
         nlp->equality_constraints_.push_back(std::move(piece));
     }
+
+    int inequality_rows = 0;
+    if (kinds == AdoptPieceKinds::kAllThreeLists) {
+        ObjectiveFunction objective = adopt_objective_piece();
+        objective.set_thread_mode(ThreadingFlags::MainThread);
+        nlp->objectives_.push_back(std::move(objective));
+
+        ConstraintFunction inequality = adopt_inequality_piece();
+        inequality.set_thread_mode(ThreadingFlags::RoundRobin);
+        nlp->inequality_constraints_.push_back(std::move(inequality));
+        inequality_rows = kAdoptInequalityRows;
+    }
+
     for (int i = 0; i < kAdoptRows; i++) {
         nlp->set_variable_bound(i, -1.0, 2.0);
     }
     if (fix_one) {
         nlp->set_variable_bound(7, 0.25, 0.25);
     }
-    nlp->make_nlp(kAdoptRows, kAdoptRows, 0);
+    nlp->make_nlp(kAdoptRows, kAdoptRows, inequality_rows);
     return nlp;
 }
+
+/// The equality-only shape, which is what most of these tests read.
+std::shared_ptr<NonLinearProgram> adopt_build(const std::vector<ThreadingFlags> &modes,
+                                              int requested_partitions, bool fix_one) {
+    return adopt_build(modes, requested_partitions, fix_one, AdoptPieceKinds::kEqualitiesOnly);
+}
+
+/// Whether the lay marker's two entries can be reached from here -- which is
+/// to say, from anywhere that is not the type that lays layouts.
+///
+/// Access is part of what makes a requires-expression satisfied, so these
+/// answer "is it accessible?", not "does it exist?". They must be FALSE: a
+/// reachable pair would make the post-lay refusal advisory, since a thaw
+/// followed by a write moves a laid piece's mode while the structural key, the
+/// structure epoch and the claim arrays all stand still, and the size-only
+/// guard on the declaration readers would not see the difference.
+///
+/// A negative compile-time pin is spelling-sensitive by nature: were an entry
+/// renamed in the piece types, these would go on passing for the wrong reason.
+/// The setter check below is the control that the expression FORM is right;
+/// the names themselves are held in step by the library, which calls them.
+template <class Piece>
+concept AdoptCanFreezeThreadMode = requires(Piece &piece) { piece.mark_thread_mode_laid(); };
+
+template <class Piece>
+concept AdoptCanThawThreadMode = requires(Piece &piece) { piece.clear_thread_mode_laid(); };
+
+template <class Piece>
+concept AdoptCanSetThreadMode =
+    requires(Piece &piece) { piece.set_thread_mode(ThreadingFlags::MainThread); };
+
+static_assert(!AdoptCanFreezeThreadMode<ConstraintFunction>);
+static_assert(!AdoptCanFreezeThreadMode<ObjectiveFunction>);
+static_assert(!AdoptCanThawThreadMode<ConstraintFunction>);
+static_assert(!AdoptCanThawThreadMode<ObjectiveFunction>);
+
+// The control: a member call of exactly this shape IS satisfiable on the same
+// types, so the four assertions above are about access and not about a
+// requires-expression that could never be satisfied by anything.
+static_assert(AdoptCanSetThreadMode<ConstraintFunction>);
+static_assert(AdoptCanSetThreadMode<ObjectiveFunction>);
 
 std::vector<ThreadingFlags> adopt_default_modes() {
     return {ThreadingFlags::Thread0, ThreadingFlags::Thread1, ThreadingFlags::MainThread};
@@ -1155,6 +1319,11 @@ void adopt_expect_same_declaration(const AggregateDeclaration &adopted,
     for (std::size_t k = 0; k < source.objectives_.size(); k++) {
         EXPECT_EQ(adopted.objectives_[k].get_thread_mode(), source.objectives_[k].get_thread_mode())
             << "objective piece " << k;
+    }
+    for (std::size_t k = 0; k < source.inequality_constraints_.size(); k++) {
+        EXPECT_EQ(adopted.inequality_constraints_[k].get_thread_mode(),
+                  source.inequality_constraints_[k].get_thread_mode())
+            << "inequality piece " << k;
     }
 }
 
@@ -1187,7 +1356,10 @@ TEST(AdoptDeclaration, LaysWhatAHandAssembledProblemLays) {
 }
 
 TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
-    auto source = adopt_build(adopt_default_modes(), 8, true);
+    // All three lists populated, so the round trip is over a declaration that
+    // carries objective, equality and inequality pieces with their own thread
+    // modes -- not over the equality list alone.
+    auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
     ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
@@ -1195,7 +1367,10 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     // The declaration is self-describing: the row count is the row space AS
     // LAID and the fixing-row count says how much of it is internal.
     ASSERT_EQ(declaration.equality_rows_, kAdoptRows + 1);
+    ASSERT_EQ(declaration.inequality_rows_, kAdoptInequalityRows);
     ASSERT_EQ(declaration.fixing_rows_, 1);
+    ASSERT_EQ(declaration.objectives_.size(), 1u);
+    ASSERT_EQ(declaration.inequality_constraints_.size(), 1u);
 
     NonLinearProgram adopted(1);
     adopted.adopt_declaration(declaration);
@@ -1205,6 +1380,19 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     EXPECT_EQ(adopted.equal_cons_, source->equal_cons_);
     EXPECT_EQ(adopted.internal_fixed_constraints(), source->internal_fixed_constraints());
     adopt_expect_same_declaration(adopted.declaration(), declaration);
+
+    // And the trip closes: what the ADOPTER declares is itself adoptable, and
+    // lays the same thing again. That is the property the self-describing
+    // fixing-row count buys -- a declaration read off a provider that never
+    // ran a treatment of its own still says how much of its row space is
+    // internal.
+    const AggregateDeclaration readopted_declaration = adopted.declaration();
+    NonLinearProgram readopted(1);
+    readopted.adopt_declaration(readopted_declaration);
+    EXPECT_EQ(readopted.model_structure_key(), source->model_structure_key());
+    EXPECT_EQ(adopt_claim_stream(readopted), adopt_claim_stream(*source));
+    EXPECT_EQ(readopted.internal_fixed_constraints(), source->internal_fixed_constraints());
+    adopt_expect_same_declaration(readopted.declaration(), declaration);
 }
 
 TEST(AdoptDeclaration, ReportsTheAdoptedPartitionCountNotTheRequestedOne) {
@@ -1278,6 +1466,15 @@ TEST(AdoptDeclaration, AThreadModeWriteAfterTheLayIsRefused) {
         EXPECT_NE(message.find("set_thread_mode"), std::string::npos) << message;
     }
 
+    // The partition copies too. They are pieces of the same laid layout, and
+    // they are frozen after the partitioning rather than inheriting whatever
+    // marker their master carried when the copy was taken -- so the answer does
+    // not depend on whether this was a first lay or a re-lay.
+    ASSERT_FALSE(assembled->part_eq_.empty());
+    ASSERT_FALSE(assembled->part_eq_[0].empty());
+    EXPECT_THROW(assembled->part_eq_[0][0].set_thread_mode(ThreadingFlags::RoundRobin),
+                 std::invalid_argument);
+
     // The copy a declaration hands out is declaration data, not part of a
     // layout, so it takes a new mode -- which is the one route to changing one.
     AggregateDeclaration declaration = assembled->declaration();
@@ -1300,6 +1497,11 @@ TEST(AdoptDeclaration, ARefusedAdoptionLeavesTheProblemUnchanged) {
     // one of its many.
     AggregateDeclaration malformed = before_declaration;
     malformed.fixing_rows_ = 1;
+    // Same three list SIZES as the layout on hand, different CONTENTS: the
+    // size-only guard on the declaration readers cannot tell these lists apart
+    // from the laid ones, so if the refusal came after the move the target
+    // would report this mode under the old key and the old epoch.
+    malformed.equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread);
     try {
         target->adopt_declaration(malformed);
         FAIL() << "a fixing-row count the equality tail cannot supply must be refused";
@@ -1341,6 +1543,20 @@ TEST(AdoptDeclaration, AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain) {
                  std::invalid_argument);
     AggregateDeclaration again = provider->declaration();
     EXPECT_NO_THROW(again.equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread));
+}
+
+TEST(AdoptDeclaration, TheLayMarkerEntriesAreNotReachableFromOutsideTheLay) {
+    // The substance is in the static_asserts beside adopt_default_modes(); this
+    // case exists so a regression in them is reported as a named failure rather
+    // than only as a build break -- and because what they rule out is the one
+    // route by which a laid piece's mode could move with no diagnostic
+    // anywhere: thaw the marker, then write the mode.
+    EXPECT_FALSE(AdoptCanFreezeThreadMode<ConstraintFunction>);
+    EXPECT_FALSE(AdoptCanFreezeThreadMode<ObjectiveFunction>);
+    EXPECT_FALSE(AdoptCanThawThreadMode<ConstraintFunction>);
+    EXPECT_FALSE(AdoptCanThawThreadMode<ObjectiveFunction>);
+    EXPECT_TRUE(AdoptCanSetThreadMode<ConstraintFunction>);
+    EXPECT_TRUE(AdoptCanSetThreadMode<ObjectiveFunction>);
 }
 
 TEST(AggregateDeclarationValidation, RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows) {

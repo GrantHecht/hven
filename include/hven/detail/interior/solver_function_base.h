@@ -36,6 +36,10 @@
 
 namespace hven::solvers {
 
+/// The one type allowed to move a piece's lay marker: it is the thing that
+/// lays layouts, and the marker records that it has.
+struct NonLinearProgram;
+
 template <class FuncType> struct SolverFunctionBase {
     using MatrixXi = Eigen::MatrixXi;
     using VectorXi = Eigen::VectorXi;
@@ -91,15 +95,6 @@ template <class FuncType> struct SolverFunctionBase {
         }
         this->thread_mode_ = mode;
     }
-
-    /// @brief Freezes this piece's thread mode, as the lay that partitioned it
-    ///        leaves it. The engine's own lay-phase entry.
-    void mark_thread_mode_laid() { this->thread_mode_laid_ = true; }
-
-    /// @brief Thaws this piece's thread mode, for a copy handed out as
-    ///        declaration data rather than held as part of a layout. The
-    ///        engine's own entry, paired with mark_thread_mode_laid().
-    void clear_thread_mode_laid() { this->thread_mode_laid_ = false; }
     void get_kkt_space(EigenRef<VectorXi> KKTrows, EigenRef<VectorXi> KKTcols, int &freeloc,
                        int conoffset, bool dojac, bool dohess) {
         this->function_.get_kkt_space(KKTrows, KKTcols, freeloc, conoffset, dojac, dohess,
@@ -113,6 +108,25 @@ template <class FuncType> struct SolverFunctionBase {
     }
 
   private:
+    /// @brief Freezes this piece's thread mode, as the lay that partitioned it
+    ///        leaves it.
+    ///
+    /// PRIVATE, and reachable only from the type that lays layouts. A public
+    /// pair of these would make the refusal advisory: two calls -- thaw, then
+    /// write -- would move a laid piece's mode while the structural key, the
+    /// structure epoch and the claim arrays all stood still, and the size-only
+    /// guard on the declaration readers would not see it. There would be no
+    /// diagnostic anywhere, and the declaration would report a mode the layout
+    /// was not partitioned from.
+    void mark_thread_mode_laid() { this->thread_mode_laid_ = true; }
+
+    /// @brief Thaws this piece's thread mode, for a copy handed out as
+    ///        declaration data rather than held as part of a layout. Paired
+    ///        with mark_thread_mode_laid(), and private for the same reason.
+    void clear_thread_mode_laid() { this->thread_mode_laid_ = false; }
+
+    friend struct NonLinearProgram;
+
     ThreadingFlags thread_mode_ = ThreadingFlags::ByApplication;
 
     /// Whether a layout has been laid over this piece. Set by the lay, cleared

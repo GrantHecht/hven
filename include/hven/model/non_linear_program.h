@@ -1299,6 +1299,39 @@ struct NonLinearProgram : public NlpAggregate {
     // the only read path, and each one returns whole state or throws.
     ////////////////////////////////////////////////////////////////////////////
 
+    /// @brief Freezes the thread modes of every piece in @p pieces.
+    /// @tparam Pieces a range of ObjectiveFunction or ConstraintFunction.
+    /// @param pieces the pieces to freeze.
+    ///
+    /// A member of this class because the piece entry it calls is private to
+    /// the piece types and reachable only from here -- which is what keeps a
+    /// laid piece's mode from being moved without a re-lay.
+    template <class Pieces> static void freeze_thread_modes(Pieces &pieces) {
+        for (auto &piece : pieces) {
+            piece.mark_thread_mode_laid();
+        }
+    }
+
+    /// @brief Thaws the thread modes of every piece in @p pieces.
+    /// @tparam Pieces a range of ObjectiveFunction or ConstraintFunction.
+    /// @param pieces the pieces to thaw.
+    ///
+    /// For the copies handed out as declaration data, and for nothing else.
+    template <class Pieces> static void thaw_thread_modes(Pieces &pieces) {
+        for (auto &piece : pieces) {
+            piece.clear_thread_mode_laid();
+        }
+    }
+
+    /// @brief Freezes the thread mode of every piece THIS LAYOUT HOLDS: the
+    ///        three master lists and the partition copies taken from them.
+    ///
+    /// Both halves, and after the partitioning rather than before it, so the
+    /// invariant is uniform -- a partition copy is a piece of a laid layout
+    /// exactly as its master is, and a copy taken before the freeze would
+    /// carry whatever marker its master happened to have at the time.
+    void freeze_laid_thread_modes();
+
     /// @brief Writes the laid DIMENSIONS into the stored declaration: the three
     ///        declared sizes, the adopted partition count and the three piece
     ///        counts the size guard checks against.

@@ -205,6 +205,27 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     this->bump_structure_epoch();
 }
 
+void hven::solvers::NonLinearProgram::freeze_laid_thread_modes() {
+    freeze_thread_modes(this->objectives_);
+    freeze_thread_modes(this->equality_constraints_);
+    freeze_thread_modes(this->inequality_constraints_);
+
+    // The partition copies too, and that is the point of doing this after the
+    // partitioning rather than inside it: a copy is taken from a master whose
+    // marker says whatever the PREVIOUS lay left, so freezing only the masters
+    // would leave the partition lists frozen on a re-lay and thawed on a first
+    // lay. Every piece this layout holds carries the same answer.
+    for (auto &partition : this->part_obj_) {
+        freeze_thread_modes(partition);
+    }
+    for (auto &partition : this->part_eq_) {
+        freeze_thread_modes(partition);
+    }
+    for (auto &partition : this->part_iq_) {
+        freeze_thread_modes(partition);
+    }
+}
+
 void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     this->declaration_.primal_vars_ = this->primal_vars_;
     this->declaration_.equality_rows_ = this->equal_cons_;
@@ -248,14 +269,7 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     // that moved a piece to another partition would describe a layout nobody
     // laid. Changing one is a re-lay from a declaration that carries the new
     // mode.
-    const auto freeze = [](auto &pieces) {
-        for (auto &piece : pieces) {
-            piece.mark_thread_mode_laid();
-        }
-    };
-    freeze(this->objectives_);
-    freeze(this->equality_constraints_);
-    freeze(this->inequality_constraints_);
+    this->freeze_laid_thread_modes();
 
     // The equality row count is the row space AS LAID, so it counts whatever
     // internal fixing rows the MakeConstraint treatment currently has
@@ -317,14 +331,9 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     // declaration: that is the one route a consumer has to change one, by
     // re-declaring and adopting. The pieces the layout itself holds stay
     // frozen; only these copies are thawed.
-    const auto thaw = [](auto &pieces) {
-        for (auto &piece : pieces) {
-            piece.clear_thread_mode_laid();
-        }
-    };
-    thaw(this->declaration_.objectives_);
-    thaw(this->declaration_.equality_constraints_);
-    thaw(this->declaration_.inequality_constraints_);
+    thaw_thread_modes(this->declaration_.objectives_);
+    thaw_thread_modes(this->declaration_.equality_constraints_);
+    thaw_thread_modes(this->declaration_.inequality_constraints_);
 
     this->declaration_pieces_pending_ = false;
 }
