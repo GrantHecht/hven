@@ -19,6 +19,7 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_classic_merit_restoration.cpp
     test_filter_acceptance.cpp
     test_funnel_acceptance.cpp
+    test_interior_point_solver_presets.cpp
     test_jet_mkl_guard.cpp
     test_kkt_factorization.cpp
     test_l1_restoration.cpp
