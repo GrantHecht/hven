@@ -147,9 +147,12 @@
 //    found not to have helped, then the fallback solve_eqp); schur_updates
 //    counts individual add_border/drop_border calls INCLUDING re-adds after a
 //    rebuild (work actually done), but not the rebuild's own wholesale clear.
-//    Section 4b's repair and 4c's ride cost one minor_iter like any other
-//    step and are otherwise invisible to these counters on a convex H (the
-//    inertia gate cannot fire kWrong there). border_refine_steps/
+//    4c's ride costs one minor_iter like any other step and is otherwise
+//    invisible to these counters. 4b's repair costs one EXTRA minor_iter (the
+//    kWrong iteration is counted, then retried) plus, per pin/release it
+//    probes, schur_updates under kSchurBorder or one factorization under
+//    kRefactorize. Neither is reachable on a convex H (the inertia gate
+//    cannot fire kWrong there). border_refine_steps/
 //    eqp_refine_steps accumulate at the same two EQP call sites: every
 //    solve_bordered_eqp call adds its total kept steps (>= 1), every
 //    solve_eqp call adds its extra kept steps (always 0 -- no iterated loop)
@@ -550,7 +553,9 @@
 //        without assigning a status on this pass -- the only branch here
 //        that does not end the solve.
 //      - kOptimal otherwise.
-//    kMaxIter once opts.max_iter major iterations have been spent. A FOURTH
+//    kMaxIter once eff_max_iter major iterations have been spent -- an
+//    explicit opts.max_iter, or, at its default sentinel, the SIZE-DERIVED
+//    QP ITERATION CAP (see section 4's block of that name). A FOURTH
 //    kNumericalError exit bypasses this classification entirely: section
 //    4c's ride, finding no blocker for a direction of negative curvature,
 //    stops the loop mid-iteration (same semantics; cannot coincide with the
@@ -1130,8 +1135,8 @@ inline void fnv1a_mix(std::uint64_t &h, const void *data, std::size_t len) {
 // row [1,-1] -- same value bytes, different mi). structural_hash is the
 // primary guard against that class and is always checked alongside this one
 // in a reuse decision (see the header contract's HOT-START REUSE note), but
-// mixing the shape in here too keeps values_hash collision-resistant on its
-// own.
+// mixing the shape in here too keeps values_hash collision-resistant across
+// a shape change.
 //
 // A caller-supplied QpProblem matrix is not guaranteed to already be
 // COMPRESSED (unlike the KKT matrix K, which this engine assembles itself),
@@ -1660,19 +1665,22 @@ class QpEngine {
     ///     carried through unchanged.
     /// @param overrides per-solve overrides (qp_types.h's SolveOverrides
     ///     sentinel convention: tr_radius disables at +inf; primal_delta/
-    ///     dual_mu disable at any negative value).
+    ///     dual_mu are overridden only by a value >= 0, and 0 is what
+    ///     disables the regularization -- a negative override means "use
+    ///     the stored field" instead).
     /// @return effective QpOptions, safe to pass anywhere a whole QpOptions
     ///     is expected.
-    /// @throws std::invalid_argument if the SELECTED tr_radius -- the
-    ///     override if finite and non-negative, else the stored
-    ///     opts.tr_radius -- is NaN or negative. A negative, non-sentinel
-    ///     Delta would silently cross lo_eff/up_eff (section 6's proof
-    ///     assumes Delta >= 0; the assert guarding that is compiled out
-    ///     under NDEBUG). Also thrown if the selected primal_delta/dual_mu is
-    ///     NaN (NaN is not absorbed by either field's negative-means-
-    ///     sentinel convention). Only the value actually SELECTED is
-    ///     validated -- a stored field a finite override supersedes is never
-    ///     read, so it is never rejected either.
+    /// @throws std::invalid_argument if overrides.tr_radius is NaN or
+    ///     negative; or, at the +inf sentinel, if the stored opts.tr_radius
+    ///     is NaN or negative. A negative, non-sentinel Delta would silently
+    ///     cross lo_eff/up_eff (section 6's proof assumes Delta >= 0; the
+    ///     assert guarding that is compiled out under NDEBUG). Also thrown
+    ///     if overrides.primal_delta or overrides.dual_mu is NaN; or, at
+    ///     either field's negative sentinel, if the corresponding stored
+    ///     opts field is NaN or negative. The domain enforced throughout is
+    ///     NOT NaN and >= 0 -- on the override directly for the NaN checks,
+    ///     and on whichever of override/stored the sentinel rule selects for
+    ///     the negative checks.
     static QpOptions resolve_effective_options(const QpOptions &opts,
                                                const SolveOverrides &overrides) {
         if (std::isnan(overrides.tr_radius) || overrides.tr_radius < 0.0) {
@@ -1894,10 +1902,10 @@ class QpEngine {
         // effective values every opts_.tr_radius/primal_delta/dual_mu read
         // site below actually consults from here on (see qp_types.h's
         // SolveOverrides and the header contract's PER-SOLVE RADIUS
-        // VARIATION note). `eff_opts` is opts_ verbatim except for these three fields,
-        // so passing it anywhere opts_ used to be passed as a whole
-        // QpOptions is safe: every other field (feas_tol, opt_tol, max_iter,
-        // schur_cap, schur_cond_max, ws_algebra) is untouched.
+        // VARIATION note). `eff_opts` is opts_ verbatim except for these
+        // three fields, so passing it anywhere opts_ used to be passed as a
+        // whole QpOptions is safe: every other field (feas_tol, opt_tol,
+        // max_iter, schur_cap, schur_cond_max, ws_algebra) is untouched.
         //
         // VALIDATE FIRST. tr_radius must be the +inf sentinel or >= 0: a
         // negative, non-sentinel Delta silently crosses lo_eff/up_eff --
@@ -2215,7 +2223,7 @@ class QpEngine {
             // is a saddle/maximizer rather than a minimizer, so it is
             // discarded and the iteration is retried from the repaired
             // vertex. A kSuspect verdict is deliberately NOT a repair
-            // trigger (findings-doc policy) and a wrong inertia LATER in the
+            // trigger, and a wrong inertia LATER in the
             // run is a mid-solve negative-curvature event, which section
             // 4c's ride handles.
             if (iter == 0 && verdict == detail::InertiaVerdict::kWrong &&
@@ -2343,7 +2351,7 @@ class QpEngine {
                         // pivot. Certify only after checking the QP model's own
                         // first-order condition on the free block; a failure
                         // means the rebuild loop stalled and the answer is
-                        // fiction (audit finding D9).
+                        // fiction.
                         double stat_scale = 1.0;
                         const double free_stat =
                             verdict == detail::InertiaVerdict::kSuspect

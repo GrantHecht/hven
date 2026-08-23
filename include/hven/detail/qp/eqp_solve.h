@@ -44,13 +44,13 @@
 //   - lambda_w (one entry per row of ws.active_ineq(), in that sorted
 //     order) IS lambda_i for those rows directly: lambda_i >= 0 at
 //     optimality (qp_problem.h's convention). A negative lambda_w entry
-//     signals that row should be DROPPED from the working set (Task 9).
+//     signals that row should be DROPPED from the working set.
 //   - Bound multipliers z are NOT computed here (EqpResult has no z field).
-//     Task 9 must price them from the stationarity residual at a non-free
-//     variable, i.e. z(i) = (Hx + g + Ae^T lambda_e + Ai^T lambda_i)(i) for
-//     that i. Per qp_problem.h's convention, z >= 0 is required at an
-//     active LOWER bound and z <= 0 at an active UPPER bound; a kFixed
-//     variable's z is not sign-constrained.
+//     qp_engine.h's price() prices them from the stationarity residual at a
+//     non-free variable instead, i.e. z(i) = (Hx + g + Ae^T lambda_e +
+//     Ai^T lambda_i)(i) for that i. Per qp_problem.h's convention, z >= 0 is
+//     required at an active LOWER bound and z <= 0 at an active UPPER
+//     bound; a kFixed variable's z is not sign-constrained.
 //
 // --- Iterative refinement ---
 //

@@ -684,7 +684,7 @@ inline constexpr Index kSsnProxRungs = 7;
 // steps), and a stall alone is a hard-but-feasible problem or a budget that
 // is simply too small (what kBudget is for).
 //
-// THREE CONJUNCTS:
+// THREE DESIGN CHOICES IN THE STALL TEST:
 //
 //   (i) THE WINDOW ADVANCES ON ACCEPTED STEPS, NEVER ON ATTEMPTS. A
 //       proximal retry re-evaluates the IDENTICAL residual at the
@@ -731,8 +731,10 @@ inline constexpr Index kSsnProxRungs = 7;
 // kSsnDualGrowthFactor = 1e4 against the multiplier norm at the reference
 // point the route selects (floored at 1, so a zero-multiplier reference is
 // measured absolutely). Four orders is far above any legitimate dual growth
-// between two points that made no progress on each other and far below the
-// overflow escape.
+// between two points that made no progress on each other and far below
+// 1e150, the scale at which IEEE double arithmetic itself starts to break
+// down -- these two growth checks catch a diverging dual long before any
+// dedicated SsnEscape state would need to.
 //
 // kSsnDualStepGrowth = 10, the EXHAUSTION route's second conjunct, on the
 // growth across ONE accepted step: an order of magnitude in a single step
@@ -1059,13 +1061,13 @@ struct SsnOptions {
     // counter, deliberately -- adding one would widen SqpCounters for a fact
     // ssn_prox_updates already carries.
     //
-    // 12 is the brief's registered value, kept rather than re-derived: every
-    // benign fixture in tests/test_ssn_engine.cpp converges in at most 9
-    // attempts (BoxQpCountGrowsSlowlyInN's n = 400 cell is the largest), so the
+    // 12 is kept rather than re-derived: every benign fixture in
+    // tests/test_ssn_engine.cpp converges in at most 9 attempts
+    // (BoxQpCountGrowsSlowlyInN's n = 400 cell is the largest), so the
     // threshold is provably unreachable on all of them and the escalation is
     // inert there by construction -- the strongest form of old-behaviour
-    // preservation this project recognises (the identification-stall note's
-    // "provably inert on every one of them" standard).
+    // preservation this project recognises: provably inert on every one of
+    // them.
     Index soft_budget = 12;
 
     // THE HARD CAP, and it is a cap on ATTEMPTS rather than on accepted steps
@@ -1231,15 +1233,16 @@ struct SsnResult {
     QpStatus status = QpStatus::kOptimal;
     SsnEscape escape_reason = SsnEscape::kNone;
 
-    // True iff this solve reached a certifying
-    // exit under SsnOptions::defer_certification and therefore returned
-    // kOptimal WITHOUT the second-order verification having been factorized.
-    // The status is provisional until the caller calls
+    // True iff this solve reached a certifying exit under
+    // SsnOptions::defer_certification and therefore returned kOptimal
+    // WITHOUT the second-order verification having been factorized. The
+    // status is provisional until the caller calls
     // SsnEngine::finish_deferred_certification() (which may withdraw it) or
     // SsnEngine::discard_deferred_certification() (which drops the pending
-    // evidence unread, legitimate only when the caller is discarding the exit
-    // anyway). ALWAYS false when the option is off, on an escape, and under
-    // kBare -- so a consumer that never sets the option never sees it set.
+    // evidence unread, legitimate only when the caller is discarding the
+    // exit anyway). ALWAYS false when the option is off, on an escape, and
+    // under kBare -- so a consumer that never sets the option never sees it
+    // set.
     bool certification_deferred = false;
 
     // THE TWO LEVER INSTRUMENTS.
@@ -1359,8 +1362,7 @@ struct SsnResult {
     // radius was supplied, and 0.0 when the radius held.
     //
     // THE CONTRACT, stated here because the driver's funnel is the consumer
-    // and its
-    // ratio test presumes ||d||inf <= Delta:
+    // and its ratio test presumes ||d||inf <= Delta:
     //
     //   * THE TRUST REGION IS A SOFT CONSTRAINT IN THIS KERNEL. It enters as FB
     //     bound ROWS, and an FB row is satisfied only at a root -- so no
@@ -1421,17 +1423,17 @@ struct SsnResult {
     // Why the solve stopped, in words, whenever there are words to add: the
     // linear solver's own message on kSingular, the stall/growth figures on
     // kInfeasibleSuspect, the exhausted schedule on kNoContraction. Carried
-    // out rather than printed (tycho rule T6 -- a diagnostic this file does not
-    // throw is one it must still hand to its caller). Empty on kNone and on
-    // kBudget, which say everything they have to say in the enum.
+    // out rather than printed (this project's rule that a diagnostic never
+    // printed must still fold into what the caller receives -- here
+    // escape_detail, since a solve that cannot make progress reports a
+    // status/escape rather than throwing). Empty on kNone and on kBudget,
+    // which say everything they have to say in the enum.
     std::string escape_detail;
 
     SsnCounters counters;
 };
 
-// =============================================================================
 // The engine
-// =============================================================================
 //
 // Holds ONE KktFactor across solves, which is what makes the "symbolic
 // analysis once per structure, reused across QPs of identical structure"
@@ -1457,9 +1459,8 @@ class SsnEngine {
     // distinguished from SOLVER outcomes: a solve that cannot make progress
     // reports a status and an SsnEscape and does not throw.
     //
-    // The brief for this task calls the first parameter's type `QpData`; this
-    // repository's "QP subproblem view" is qp_problem.h's QpProblem and that
-    // is what is used here -- there is no second type and no alias.
+    // This repository's "QP subproblem view" is qp_problem.h's QpProblem;
+    // that is what is used here -- there is no second type and no alias.
     //
     // This overload forwards a default-constructed SolveOverrides, which
     // resolves to every opts_ value unchanged, so it is BYTE-IDENTICAL to
@@ -1661,12 +1662,11 @@ class SsnEngine {
                 f_scale = std::max(1.0, nrm.inf_norm);
             }
 
-            // --- convergence, and THE SECOND-ORDER VERIFICATION (C1) ----
+            // --- convergence, and THE SECOND-ORDER VERIFICATION ----
             //
             // Under kBare this is the bare method's test, unchanged and free.
             // Under kFull it does NOT exit: it opens a verification attempt,
-            // which
-            // falls through to the classification and the factorization below
+            // which falls through to the classification and the factorization below
             // and certifies only on the inertia verdict read THERE. Header
             // section 7b is the whole contract, including why an earlier
             // attempt's verdict cannot stand in for this one and why the
@@ -1788,9 +1788,11 @@ class SsnEngine {
                         dual_window, dn, dn / dual_window, detail::kSsnDualGrowthFactor);
                     if (farkas_rule) {
                         // The Farkas certificate's own two numbers, carried out
-                        // rather than discarded (tycho rule T6). Under the
-                        // shipped rule there is no certificate and nothing is
-                        // appended, so the message is byte-identical there.
+                        // rather than discarded (this project's rule that a
+                        // diagnostic never printed must still fold into what
+                        // the caller receives). Under the shipped rule there
+                        // is no certificate and nothing is appended, so the
+                        // message is byte-identical there.
                         out->escape_detail += fmt::format(
                             ". THE FARKAS CERTIFICATE CONFIRMED IT: the normalized dual "
                             "increment over this window, projected onto the sign cone, has "
@@ -2349,9 +2351,7 @@ class SsnEngine {
         export_uncertain(out, any_klass ? &klass : nullptr, n, mi);
     }
 
-    // =====================================================================
     // THE DEFERRED CERTIFICATION'S TWO CLOSING MOVES
-    // =====================================================================
     //
     // Both are no-ops on any engine that never ran with
     // SsnOptions::defer_certification, and both throw if called when nothing is
