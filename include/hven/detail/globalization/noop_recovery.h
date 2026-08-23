@@ -1,53 +1,31 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// Part of the globalization component extraction: RecoveryChain provides an
-// ordered dispatch on step rejection (second-order correction -> extended
-// backtracking -> watchdog revert -> feasibility switch); this file supplies
-// the empty-chain implementation, matching today's give-up behavior.
-//
-// NoopRecovery implements the RecoveryChain::on_step_rejected() hook as a
-// pure no-op: it unconditionally returns Action::kAcceptAsIs and never
-// inspects/mutates Citer, iters, or ctx. This is the CLASSIC behavior today's
-// alg_impl already exhibits without any recovery chain at all — whatever alpha
-// survived BacktrackingLineSearch's capped backtrack (compute_step) is simply
-// taken as-is; there is no SOC retry, no extended backtrack, no watchdog
-// revert, and no feasibility-switch handoff. Wiring this hook is therefore
-// purely structural: the call site in alg_impl (src/solvers/interior_point_solver.cpp) is
-// provably inert (see the comment block at that call site) — NoopRecovery
-// cannot produce kRetry / kSwitchToFeasibility / kGiveUp, so no dispatch
-// branch downstream of the call is reachable, and the CBWR gate (bit-identical
-// iteration counts on the 31-problem corpus) is expected to hold trivially.
-//
-// NoopRecovery is the all-default-path link, not the only one: the real SOC
-// -> extended-backtrack -> watchdog -> feasibility-switch dispatchers ship in
-// soc.h, watchdog.h, and feasibility_switch_recovery.h respectively, composed
-// by rebuild_globalization_components() whenever the corresponding Settings
-// field opts in (max_soc_, ls_extended_iters_, watchdog_, restoration_mode_).
-// The inertia/perturbation ladder (factor_impl's Zfac cycling + 8x/(1/3)
-// escalation) is a SEPARATE mechanism that stays inside InteriorPointSolver::factor_impl
-// and is not part of this chain; a future inertia-dispatch stage may wire
-// it in.
-//
-// Ownership: stateless, per RecoveryChain's ownership rule — reset() has
-// nothing to clear.
-
 #pragma once
 
 #include "hven/detail/globalization/recovery_chain.h"
 
 namespace hven::solvers {
 
-// =============================================================================
-// NoopRecovery — the empty recovery chain: always accepts the step as-is.
-// =============================================================================
+/// @brief The empty recovery chain: unconditionally accepts the rejected step
+/// as-is — exactly the classic give-up behavior with no recovery chain at all.
+///
+/// Wiring this link is purely structural: it never produces a retry/switch/
+/// give-up action, so no dispatch branch downstream of the rejection hook is
+/// reachable and the default solve path stays bit-identical to pre-recovery
+/// behavior. The real dispatchers (SOC, extended backtracking, watchdog,
+/// feasibility switch) ship as sibling links composed by the component rebuild
+/// whenever their Settings fields opt in; the inertia/perturbation ladder is a
+/// SEPARATE mechanism that lives inside the factorization and is deliberately
+/// not part of this chain.
+///
+/// Stateless, per RecoveryChain's ownership rule.
 class NoopRecovery : public RecoveryChain {
   public:
     NoopRecovery() = default;
 
-    // Pure no-op: ignores every argument (Citer/iters/ctx and the entire
-    // threaded working set) and unconditionally accepts the step as-is, so the
-    // default solve path is bit-identical to pre-recovery behavior.
+    /// Pure no-op: ignores every argument (iterate info, history, context, the
+    /// entire threaded working set) and accepts the step as-is.
     Action on_step_rejected(IterateInfo & /*Citer*/, const std::vector<IterateInfo> & /*iters*/,
                             SolverContext & /*ctx*/, AcceptanceStrategy & /*acceptance*/,
                             GlobalizationMechanism & /*mechanism*/,

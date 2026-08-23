@@ -1,31 +1,6 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// Part of the globalization component extraction: this header declares
-// RestorationStrategy, the interface a feasibility-restoration mode-switch
-// implements.
-//
-// This file: interface declaration, finalized against two concrete
-// implementations — ProximalSwitchRestoration (proximal_restoration.h) and
-// NestedL1Restoration (l1_restoration.h). The feasibility-restoration plan
-// originally scoped a third trio member, a formulation-level elastic/penalty
-// relaxation (LOQO/Knitro `bar_relaxcons` lineage); that member was
-// deliberately cut from the program after the nested-l1 stage's evidence
-// showed no remaining robustness gap it would plausibly close — see
-// docs/dev/analysis/2026-07-e2-g6-implicit-tr-regularization.md §3 for the
-// decision and its reversal condition. Both shipped strategies are wired:
-// rebuild_globalization_components constructs the strategy selected by
-// Settings::restoration_mode_, and RecoveryChain::Action::kSwitchToFeasibility
-// (recovery_chain.h) dispatches into the entry orchestration in alg_impl.
-//
-// Ownership rule: like the other globalization interfaces, a
-// RestorationStrategy caches NO live solver state beyond what defines its own
-// mode — for the proximal switch that is exactly the primal snapshot / frozen
-// proximal coefficient / per-coordinate scaling captured at entry (see
-// proximal_restoration.h). Everything else it needs is either an explicit
-// per-call parameter or reached through a SolverContext reference passed to
-// the call — never stored across calls beyond that entry snapshot.
-
 #pragma once
 
 #include <Eigen/Core>
@@ -41,87 +16,81 @@
 
 namespace hven::solvers {
 
-// Near-feasible entry guard factor, adapted from Ipopt's unscaled
-// 1e-1 * constr_viol_tol member of its scaled/unscaled entry-guard pair — see
-// proximal_restoration.h's file docstring, item (3), for the full
-// single-measure adaptation disclosure. Defined here rather than beside that
-// one strategy because the guard is shared: both concrete strategies test
-// against it in entry_permitted(), and so does the feasibility-stage stall
-// seam, through near_feasible() below.
+/// Near-feasible entry-guard factor, adapted from the unscaled
+/// 1e-1 * constr_viol_tol member of Ipopt's scaled/unscaled entry-guard pair —
+/// see proximal_restoration.h for the single-measure adaptation disclosure.
+/// Defined here rather than beside one strategy because the guard is shared:
+/// both concrete strategies test against it in entry_permitted(), and so does
+/// the feasibility-stage stall seam, through near_feasible() below.
 inline constexpr double kNearFeasibleGuardFactor = 0.1;
 
-// =============================================================================
-// RestorationStrategy — feasibility-restoration mode-switch interface.
-// =============================================================================
+/// @brief Feasibility-restoration mode-switch interface.
+///
+/// A RestorationStrategy caches NO live solver state beyond what defines its
+/// own mode (for the proximal switch: the primal snapshot / frozen proximal
+/// coefficient / per-coordinate scaling captured at entry). Everything else is
+/// an explicit per-call parameter or reached through a SolverContext passed to
+/// the call.
 class RestorationStrategy {
   public:
     virtual ~RestorationStrategy() = default;
 
-    // Enter restoration mode. `reference` is the (θ,f) pair of the point
-    // restoration was entered from — the eventual exit test (AcceptanceStrategy::
-    // is_infeasibility_sufficiently_reduced, acceptance_strategy.h) compares a
-    // later trial against it via reference() below. `primals` is snapshotted
-    // (copied, not referenced) as the restoration mode's defining center point;
-    // `mu` is the barrier parameter live at the moment of entry, used to derive
-    // whatever mode-specific state is frozen at switch time (for
-    // ProximalSwitchRestoration: the proximal coefficient ζ, set ONCE here and
-    // never re-derived from a later, live μ).
+    /// @brief Enter restoration mode.
+    /// @param reference The (theta, f) pair of the point restoration was
+    ///   entered from — the eventual exit test compares later trials against it
+    ///   via reference().
+    /// @param primals Snapshotted (copied, not referenced) as the restoration
+    ///   mode's defining center point.
+    /// @param mu Barrier parameter live at entry, used to derive whatever
+    ///   mode-specific state is frozen at switch time (for the proximal switch:
+    ///   the coefficient zeta, set ONCE here and never re-derived from live mu).
     virtual void enter_restoration(const ProgressMeasures &reference,
                                     const Eigen::Ref<const Eigen::VectorXd> &primals,
                                     double mu) = 0;
 
-    // Leave restoration mode. This call's own contract is limited to
-    // deactivating the mode; the solver-side multiplier reset around a
-    // nested-restoration exit (the Newton complementarity step on the slack
-    // multipliers plus the equality-multiplier zeroing) already ships at the
-    // call site — see InteriorPointSolver::exit_feasibility_restoration_nested —
-    // deliberately kept out of this interface because it is solver state,
-    // not restoration-strategy state.
+    /// @brief Leave restoration mode. This call only deactivates the mode;
+    /// the solver-side multiplier reset around a nested-restoration exit ships
+    /// at the call site — deliberately kept out of this interface because it is
+    /// solver state, not restoration-strategy state.
     virtual void exit_restoration() = 0;
 
-    // Whether restoration mode is currently active.
+    /// Whether restoration mode is currently active.
     virtual bool is_active() const = 0;
 
-    // Full clear: deactivates, drops the entry snapshot, and zeroes the
-    // per-phase counters (entries / iterations-in-mode below). μ-event /
-    // phase-change reset hook, matching the other four globalization
-    // interfaces.
+    /// Full clear: deactivates, drops the entry snapshot, zeroes the per-phase
+    /// counters. mu-event / phase-change hook, matching the other globalization
+    /// interfaces.
     virtual void reset() = 0;
 
     // --- Evaluation surface the solver seam consumes while active ---
 
-    // The proximal term's contribution to the objective at `primals`.
+    /// The proximal term's contribution to the objective at primals.
     virtual double proximal_objective(const Eigen::Ref<const Eigen::VectorXd> &primals) const = 0;
 
-    // Accumulates the proximal term's gradient contribution into `grad_out`
-    // (added, not overwritten — the caller's existing objective gradient is
-    // already in `grad_out`).
+    /// Accumulates the proximal term's gradient into grad_out (ADDED, not
+    /// overwritten — the caller's objective gradient is already there).
     virtual void add_proximal_gradient(const Eigen::Ref<const Eigen::VectorXd> &primals,
                                         Eigen::Ref<Eigen::VectorXd> grad_out) const = 0;
 
-    // The proximal term's (diagonal) contribution to the primal Hessian block.
+    /// The proximal term's (diagonal) contribution to the primal Hessian block.
     virtual const Eigen::VectorXd &proximal_diagonal() const = 0;
 
-    // Is this violation already at the near-feasible floor, where a real
-    // restoration episode is not warranted? The single shared guard rule (see
-    // kNearFeasibleGuardFactor above); non-virtual because the rule does not
-    // vary by strategy. Both concrete entry_permitted() implementations use it
-    // for the guard half of their entry test, and the feasibility-stage stall
-    // seam uses it to tell an endgame — constraints at their floor while the
-    // barrier residual still grinds down — from a genuine stall.
+    /// Is this violation already at the near-feasible floor, where a real
+    /// restoration episode is not warranted? Non-virtual: the rule does not
+    /// vary by strategy. Used by both concrete entry_permitted()
+    /// implementations, and by the feasibility-stage stall seam to tell an
+    /// endgame (constraints at their floor while the barrier residual still
+    /// grinds down) from a genuine stall.
     bool near_feasible(double constraint_violation, const SolverContext &ctx) const {
         return constraint_violation <= kNearFeasibleGuardFactor * ctx.settings_.econ_tol_;
     }
 
-    // Entry-permission test: may the solver enter restoration right now, given
-    // the current constraint violation? False refuses entry — either because
-    // the point is already near-feasible (near_feasible() above) or because
-    // this phase's restoration budget (ctx.settings_.max_feas_rest_) is
-    // exhausted. Virtual with a shared default body: both shipped strategies
-    // (ProximalSwitchRestoration, NestedL1Restoration) share this exact guard +
-    // budget test against the entries_ counter below and do not override it;
-    // test doubles (e.g. FeasSwitchStubRestoration, NestedSeamProximalDouble)
-    // still override it directly for controllability.
+    /// @brief Entry-permission test: may the solver enter restoration right now?
+    /// False refuses entry — either the point is already near-feasible or this
+    /// phase's restoration budget (ctx.settings_.max_feas_rest_) is exhausted.
+    /// Virtual with a shared default body: both shipped strategies use exactly
+    /// this guard + budget test and do not override it; test doubles override
+    /// it directly for controllability.
     virtual bool entry_permitted(double constraint_violation, const SolverContext &ctx) const {
         if (near_feasible(constraint_violation, ctx)) {
             return false;
@@ -132,28 +101,19 @@ class RestorationStrategy {
         return true;
     }
 
-    // The (θ,f) pair restoration was entered from — see `reference` above.
+    /// The (theta, f) pair restoration was entered from.
     virtual const ProgressMeasures &reference() const = 0;
 
-    // Increments the per-phase iterations-in-mode counter. Called by
-    // alg_impl once per iteration while restoration is active — nine call
-    // sites across the nested and proximal branches, one per iteration
-    // outcome (stay-in-mode, each terminal exit, and each mode-switch
-    // handoff).
+    /// Increments the per-phase iterations-in-mode counter; called once per
+    /// iteration while restoration is active, one call per iteration outcome.
     virtual void note_iteration() = 0;
 
-    // Solver-level observability hook: writes this strategy's diagnostic
-    // state into `result`. Mirrors AcceptanceStrategy::append_diagnostics() /
-    // BarrierGovernor::append_diagnostics() — same write-only contract, same
-    // last-phase-wins semantics once a multi-phase caller collects it.
-    // Non-virtual: both shipped strategies (ProximalSwitchRestoration,
-    // NestedL1Restoration) report the identical entries_/iterations_in_mode_
-    // pair, so there is nothing for a subclass to override. When
-    // restoration_mode_ == off no RestorationStrategy is constructed at all,
-    // so this is never reached on that path and the corresponding
-    // SolveResult fields stay at their -1 sentinel (see
-    // InteriorPointSolver::SolveResult::last_feas_rest_entries_ / last_feas_rest_iters_ in
-    // interior_point_solver.h).
+    /// Writes this strategy's diagnostic state into result. Same write-only
+    /// contract and last-phase-wins semantics as the other globalization
+    /// components' hooks. Non-virtual: both shipped strategies report the
+    /// identical counter pair. When restoration_mode_ == off no strategy is
+    /// constructed, so this is never reached on that path and the
+    /// corresponding SolveResult fields keep their -1 sentinel.
     void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
         result.last_feas_rest_entries_ = entries_;
         result.last_feas_rest_iters_ = iterations_in_mode_;
@@ -163,27 +123,25 @@ class RestorationStrategy {
     // Nested restoration surface.
     //
     // A second family of restoration strategies solves an l1 elastic
-    // reformulation of the feasibility problem (min ρ·Σ(n+p) + proximal) with
-    // the elastic slack pairs (n,p) and their bound multipliers condensed out of
-    // the KKT system analytically. That machinery has no counterpart in the
-    // proximal mode-switch above, so it lives behind is_nested(): the solver seam
-    // consults these methods ONLY when is_nested() reports true.
+    // reformulation of the feasibility problem (min rho*sum(n+p) + proximal)
+    // with the elastic slack pairs (n,p) and their bound multipliers condensed
+    // out of the KKT system analytically. That machinery has no counterpart in
+    // the proximal mode-switch above, so it lives behind is_nested(): the
+    // solver seam consults these methods ONLY when is_nested() reports true.
     //
-    // The default bodies below therefore throw — reaching one on a strategy that
-    // is not nested marks a wiring bug, not a recoverable condition. Concrete
-    // proximal-switch strategies inherit these throwing defaults untouched (they
-    // are never reached through the is_nested() gate); the nested l1 strategy
-    // overrides every one.
+    // The default bodies below therefore throw — reaching one on a strategy
+    // that is not nested marks a wiring bug, not a recoverable condition.
+    // Concrete proximal-switch strategies inherit them untouched; the nested l1
+    // strategy overrides every one.
     // -------------------------------------------------------------------------
 
-    // Whether this strategy uses the nested elastic-condensation surface below.
+    /// Whether this strategy uses the nested elastic-condensation surface below.
     virtual bool is_nested() const { return false; }
 
-    // Enter the nested phase from the given entry point. `reference` is the
-    // (θ,f) pair; `primals` is snapshotted as the proximal center x_R;
-    // `eq_residuals`/`iq_residuals` are the constraint residual values at entry
-    // (equality h(x); inequality g(x)+s). `outer_mu` is the live outer barrier
-    // parameter, one input to the entry barrier parameter (see entry_mu()).
+    /// @brief Enter the nested phase from the given entry point.
+    /// @param eq_residuals,iq_residuals Constraint residual values at entry
+    ///   (equality h(x); inequality g(x)+s).
+    /// @param outer_mu Live outer barrier parameter, one input to entry_mu().
     virtual void enter_nested(const ProgressMeasures &reference,
                               const Eigen::Ref<const Eigen::VectorXd> &primals,
                               const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
@@ -199,16 +157,17 @@ class RestorationStrategy {
             "implement the nested restoration surface");
     }
 
-    // The restoration barrier parameter computed at entry (also the phase's
-    // starting barrier parameter).
+    /// The restoration barrier parameter computed at entry (also the phase's
+    /// starting barrier parameter).
     virtual double entry_mu() const {
         throw std::logic_error(
             "RestorationStrategy::entry_mu called on a strategy that does not "
             "implement the nested restoration surface");
     }
 
-    // Per-row diagonal pivots landing in the KKT constraint-row slots — POSITIVE
-    // vectors (the solver seam negates them into the (y,y) diagonal entries).
+    /// Per-row diagonal pivots landing in the KKT constraint-row slots —
+    /// POSITIVE vectors (the solver seam negates them into the (y,y)
+    /// diagonal entries).
     virtual const Eigen::VectorXd &e_pivots() const {
         throw std::logic_error(
             "RestorationStrategy::e_pivots called on a strategy that does not "
@@ -220,18 +179,17 @@ class RestorationStrategy {
             "implement the nested restoration surface");
     }
 
-    // Aggregate the elastic bound-variable complementarity products (n·z_n and
-    // p·z_p over every equality- and inequality-channel row) into a sum,
-    // per-element min, per-element max, and count over ONLY those elastic pairs.
-    // All four outputs are (re)initialized by the call: sum and count start at
-    // zero, min/max at +/-infinity, so when no elastic rows exist count is zero
-    // and min/max stay at their infinite sentinels (the caller must guard on
-    // count). These pairs are part of the restoration barrier subproblem exactly
-    // as the original slack/multiplier pairs are part of the outer barrier
-    // subproblem; the barrier-parameter machinery must see them, or a
-    // late-entered phase (whose original complementarity is already at
-    // solve-tolerance) drives the barrier parameter to its floor while the
-    // elastic pairs are still at restoration scale.
+    /// @brief Aggregates the elastic bound-variable complementarity products
+    /// (n*z_n and p*z_p over every equality- and inequality-channel row) into
+    /// sum/min/max/count over ONLY those pairs. All outputs are reinitialized
+    /// by the call: when no elastic rows exist count is zero and min/max stay
+    /// at their infinite sentinels (the caller must guard on count).
+    ///
+    /// These pairs are part of the restoration barrier subproblem exactly as
+    /// the original slack/multiplier pairs are part of the outer one; the
+    /// barrier machinery MUST see them, or a late-entered phase (original
+    /// complementarity already at solve tolerance) drives the barrier parameter
+    /// to its floor while the elastic pairs are still at restoration scale.
     virtual void nested_complementarity(double &sum, double &min_comp, double &max_comp,
                                         int &count) const {
         (void)sum;
@@ -243,8 +201,8 @@ class RestorationStrategy {
             "does not implement the nested restoration surface");
     }
 
-    // Condensed constraint-row right-hand sides (r̃), given the live barrier
-    // parameter and the CURRENT residual values and multipliers.
+    /// Condensed constraint-row right-hand sides (r-tilde), given the live
+    /// barrier parameter and the CURRENT residual values and multipliers.
     virtual void condensed_residuals(double mu,
                                      const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
                                      const Eigen::Ref<const Eigen::VectorXd> &iq_residuals,
@@ -264,9 +222,9 @@ class RestorationStrategy {
             "not implement the nested restoration surface");
     }
 
-    // The proximal objective/gradient/Hessian-diagonal pieces of the nested
-    // reformulation, evaluated with the LIVE barrier parameter (η recomputed
-    // from `mu` on every call, unlike the frozen-ζ proximal-switch trio above).
+    /// The proximal objective/gradient/Hessian-diagonal pieces of the nested
+    /// reformulation, evaluated with the LIVE barrier parameter (eta recomputed
+    /// from mu on every call, unlike the frozen-zeta proximal-switch trio).
     virtual double nested_objective(double mu,
                                     const Eigen::Ref<const Eigen::VectorXd> &primals) const {
         (void)mu;
@@ -293,8 +251,8 @@ class RestorationStrategy {
             "not implement the nested restoration surface");
     }
 
-    // Recover the elastic slack / bound-multiplier steps from the constraint
-    // multiplier steps (Δy) produced by the condensed KKT solve.
+    /// Recovers the elastic slack / bound-multiplier steps from the constraint
+    /// multiplier steps (delta-y) produced by the condensed KKT solve.
     virtual void recover_elastic_steps(double mu,
                                        const Eigen::Ref<const Eigen::VectorXd> &eq_lmults,
                                        const Eigen::Ref<const Eigen::VectorXd> &iq_lmults,
@@ -310,16 +268,17 @@ class RestorationStrategy {
             "not implement the nested restoration surface");
     }
 
-    // Second-level elastic re-centering fallback. When the in-phase line search
-    // exhausts the recovery ladder, re-solve the separable elastic subproblem in
-    // closed form holding x and s FIXED — the same per-row quadratic the entry
-    // initializer uses, evaluated at the LIVE barrier parameter `mu` and the
-    // CURRENT raw constraint residuals (equality h(x); inequality g(x)+s) — and
-    // adopt the re-centered pairs as the live elastic state (n,p from the closed
-    // form; z_n=μ/n, z_p=μ/p). See l1_restoration.h's disclosure for why the
-    // condensed representation re-centers z alongside n,p rather than keeping the
-    // stale multipliers (Ipopt's RestoRestorationPhase leaves z untouched because
-    // its z are real variables the next Newton step updates).
+    /// @brief Second-level elastic re-centering fallback: when the in-phase
+    /// line search exhausts the recovery ladder, re-solve the separable elastic
+    /// subproblem in closed form holding x and s FIXED (the same per-row
+    /// quadratic the entry initializer uses, at LIVE mu and CURRENT raw
+    /// residuals) and adopt the re-centered pairs as the live elastic state
+    /// (n,p from the closed form; z_n=mu/n, z_p=mu/p).
+    ///
+    /// Deliberate deviation note: the condensed representation re-centers z
+    /// ALONGSIDE n,p rather than keeping stale multipliers (the classic
+    /// reference implementation leaves z untouched because its z are real
+    /// variables the next Newton step updates — here they are not).
     virtual void recenter_elastics(double mu,
                                    const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
                                    const Eigen::Ref<const Eigen::VectorXd> &iq_residuals) {
@@ -331,8 +290,8 @@ class RestorationStrategy {
             "not implement the nested restoration surface");
     }
 
-    // Fraction-to-boundary caps for the recovered elastic steps: primal cap from
-    // the slacks (n,p), dual cap from their bound multipliers (z_n,z_p).
+    /// Fraction-to-boundary caps for the recovered elastic steps: primal cap
+    /// from the slacks (n,p), dual cap from their bound multipliers (z_n,z_p).
     virtual double primal_boundary_alpha(double tau) const {
         (void)tau;
         throw std::logic_error(
@@ -346,7 +305,7 @@ class RestorationStrategy {
             "not implement the nested restoration surface");
     }
 
-    // Commit the recovered elastic steps at the accepted step fractions.
+    /// Commits the recovered elastic steps at the accepted step fractions.
     virtual void apply_elastic_step(double alpha_primal, double alpha_dual) {
         (void)alpha_primal;
         (void)alpha_dual;
@@ -355,7 +314,7 @@ class RestorationStrategy {
             "implement the nested restoration surface");
     }
 
-    // Trial-path measures at step fraction alpha, for acceptance during the phase.
+    /// Trial-path measures at step fraction alpha, for acceptance during the phase.
     virtual double trial_objective(double mu, double alpha,
                                    const Eigen::Ref<const Eigen::VectorXd> &trial_primals) const {
         (void)mu;
@@ -365,7 +324,9 @@ class RestorationStrategy {
             "RestorationStrategy::trial_objective called on a strategy that does not "
             "implement the nested restoration surface");
     }
-    // shift = (n + αΔn) − (p + αΔp), added to the raw constraint residuals.
+
+    /// shift = (n + alpha*dn) - (p + alpha*dp), added to the raw constraint
+    /// residuals during trial evaluation in-phase.
     virtual void trial_residual_shift(double alpha, Eigen::Ref<Eigen::VectorXd> eq_shift_out,
                                       Eigen::Ref<Eigen::VectorXd> iq_shift_out) const {
         (void)alpha;
@@ -377,10 +338,10 @@ class RestorationStrategy {
     }
 
   protected:
-    // Per-phase diagnostics (write-only, see append_diagnostics() above), and
-    // the entry-permission budget counter entry_permitted() reads. Shared base
-    // state: both concrete strategies increment entries_ in their
-    // enter_restoration()/enter_nested() and clear both counters in reset().
+    /// Per-phase diagnostics (write-only via append_diagnostics()) and the
+    /// entry-permission budget counter entry_permitted() reads. Both concrete
+    /// strategies increment entries_ in their enter hooks and clear both in
+    /// reset().
     int entries_ = 0;
     int iterations_in_mode_ = 0;
 };

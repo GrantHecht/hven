@@ -1,94 +1,6 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// SocRecovery — the first live RecoveryChain link: an opt-in second-order
-// correction (SOC) applied after the line search rejects a step on its very
-// first trial. The mechanics follow Wächter & Biegler, "On the implementation
-// of an interior-point filter line-search algorithm for large-scale nonlinear
-// programming", Math. Program. 106(1):25-57, 2006, §2.4 (second-order
-// corrections):
-//
-//   * Trigger only when the first trial step was the one rejected AND that
-//     trial did not reduce the constraint violation relative to the current
-//     iterate. When the merit variant records no infeasibility reading (LANG
-//     never does), SOC conservatively does not trigger.
-//   * A correction re-solves the SAME KKT system on the LIVE factorization (no
-//     refactor — one back-substitution) with the constraint block of the
-//     right-hand side replaced by an accumulated corrected value; the objective
-//     block is unchanged.
-//   * The corrected direction is fraction-to-boundary scaled and the full
-//     acceptance backtrack is re-run on it THROUGH THE MECHANISM
-//     (GlobalizationMechanism::run_acceptance_backtrack), so the corrected
-//     trial is tested against the SAME acceptance criteria the ordinary step
-//     faced — Ipopt tests its SOC step via the same
-//     CheckAcceptabilityOfTrialPoint (coin-or/Ipopt 72a29c9,
-//     IpFilterLSAcceptor.cpp TrySecondOrderCorrection). On the classic merit
-//     path that is the fused classic_line_search (byte-identical to the
-//     pre-generic behavior); on the generic path (modern merit / filter /
-//     funnel) it is AcceptanceStrategy::is_iterate_acceptable via
-//     generic_line_search. This is what lets SOC compose with every acceptance
-//     strategy rather than only classic merit. If the corrected trial is
-//     accepted, the corrected step replaces the rejected one
-//     (RecoveryChain::Action::kRetry).
-//   * Otherwise corrections repeat while the corrected trial's violation keeps
-//     dropping by at least the kSocViolationDecrease factor, up to
-//     Settings::max_soc_ corrections; once the violation stagnates or the cap
-//     is hit, SOC gives up and the originally-rejected step is taken
-//     (RecoveryChain::Action::kAcceptAsIs — bit-identical to the no-SOC path).
-//
-// Default is off (max_soc_ == 0): SocRecovery is not even constructed then
-// (rebuild_globalization_components() installs a NoopRecovery), so the
-// solver is bit-identical to its pre-SOC behavior. The correctness-critical
-// numeric path is exercised
-// end-to-end by the solver corpus; the unit tests here truth-table the trigger,
-// the termination policy, and the correction counter with scripted outcomes.
-//
-// Interaction rules with the generic-path acceptance strategies (resolved):
-//
-//   (a) Funnel width / filter augmentation on a corrected accept. Because the
-//       corrected re-test routes through is_iterate_acceptable, the strategy's
-//       own accept-time bookkeeping runs on the ACCEPTED trial — i.e. the
-//       funnel width tightens from the CORRECTED trial's (θ, φ), and the filter
-//       is augmented with the current-iterate reference exactly as for an
-//       ordinary accepted H-type step. This matches Ipopt/Uno structure (the
-//       accepted point, corrected or not, drives the filter/funnel update) and
-//       is the intended, disclosed behavior. Rejected corrections invoke
-//       is_iterate_acceptable too (the re-run backtrack ladder), so the filter's
-//       last-rejection reset heuristic advances per rejected rung, identically
-//       to any other line-search invocation — the corrected re-test is treated
-//       as just another line search, which is the reference-faithful reading.
-//
-//   (b) SOC during an active (nested l1) feasibility-restoration phase. The
-//       recovery chain runs in-phase, so a correction can be attempted on the
-//       elastic-modified system. The acceptance re-test uses the phase's trial
-//       machinery: run_acceptance_backtrack -> generic_line_search /
-//       classic_line_search both go through the restoration trial seam
-//       (trial_objective + trial_residual_shift), so the accept/reject verdict
-//       on a corrected step measures the elastic subproblem's objective and
-//       infeasibility ‖c + n − p‖, not the raw problem's. The c_soc constraint
-//       accumulation and the CURRENT-side trigger/termination violation
-//       measures stay in the raw-slack-reset space (eval_trial_constraints, and
-//       the RHS constraint block which carries the condensed residual r̃
-//       in-phase), while the TRIAL-side trigger measure recorded at the first
-//       rejection is elastic-shifted in-phase (it comes off the shifted trial
-//       residuals) — a mixed-space trigger comparison — EXACTLY as the
-//       classic SOC link computes them in-phase, since both paths share that
-//       machinery unchanged. The generic path is therefore consistent with the
-//       classic path here; the raw-vs-elastic space asymmetry in the corrective
-//       direction/trigger is a pre-existing property of the classic link,
-//       affecting only the heuristic correction and trigger sensitivity, never
-//       the rigor of the phase-aware acceptance decision.
-//
-//   (c) Watchdog composition is unchanged. WatchdogRecovery wraps the chain and
-//       delegates rejections to the inner ChainedRecovery(SOC, extended); its
-//       own arm/revert logic uses the strategy-agnostic prim_obj + barr_obj
-//       proxy, so SOC and extended backtracking under a generic strategy compose
-//       with the watchdog exactly as under classic merit.
-//
-// Ownership: stateless, per RecoveryChain's ownership rule — the correction
-// loop's transient buffers are local to on_step_rejected, and reset() has
-// nothing to clear.
-
 #pragma once
 
 #include <vector>
@@ -103,43 +15,37 @@
 
 namespace hven::solvers {
 
-// κ_soc — the required per-correction reduction factor in the constraint
-// violation (Wächter & Biegler 2006, §2.4). A correction is worth continuing
-// only while it keeps cutting the violation by at least this factor.
+/// kappa_soc — required per-correction reduction factor in the constraint
+/// violation (Wächter & Biegler 2006, §2.4): a correction is worth continuing
+/// only while it keeps cutting the violation by at least this factor.
 inline constexpr double kSocViolationDecrease = 0.99;
 
-// Recommended value to enable SOC with (the Ipopt default: up to four
-// corrections per rejected step, Wächter & Biegler 2006, §2.4). Settings'
-// own default stays 0 (off); this names the value to opt in with.
+/// Recommended value to enable SOC with (the reference implementation's
+/// default: up to four corrections per rejected step). Settings' own default
+/// stays 0 (off); this names the value to opt in with.
 inline constexpr int kSocRecommendedMaxCorrections = 4;
 
-// -----------------------------------------------------------------------------
-// Trigger predicate (Wächter & Biegler 2006, §2.4).
-//
-// Fire a second-order correction only when the FIRST trial step (backtracking
-// index 0) was the one rejected AND that trial did not reduce the constraint
-// violation relative to the current iterate. A negative theta means "no
-// infeasibility reading available" — the LANG merit variant records none, and
-// -1 is IterateInfo's unset sentinel — in which case the reduction test cannot
-// be made and SOC conservatively does not trigger.
-//
-// `current_infeasibility` must be the SAME quantity theta_at_first_rejection_
-// records, under whichever norm convention the driving acceptance strategy
-// uses: the squared L2 norm of the full constraint block (all_cons) on the
-// classic merit path, or its L1 norm on the generic path (modern merit,
-// filter, funnel) — see AcceptanceStrategy::drives_classic_path() and its
-// caller in SocRecovery::on_step_rejected (interior_point_solver_globalization.cpp) for the
-// selection. Either way alg_impl derives it from RHS.all_cons() at the hook,
-// whose inequality block carries the identical slack reset (see the RHS
-// assembly in interior_point_solver.cpp).
-//
-// Known asymmetry: the augmented-Lagrangian merit variant zeroes constraint
-// entries within tolerance when it records theta_at_first_rejection_, while
-// current_infeasibility is not tolerance-zeroed. The zeroing can only SHRINK
-// the trial-side theta, making the `theta >= current` trigger HARDER to
-// satisfy — i.e. the asymmetry suppresses SOC near feasibility (where it has
-// nothing to gain) and can never spuriously fire it.
-// -----------------------------------------------------------------------------
+/// @brief Trigger predicate (Wächter & Biegler 2006, §2.4).
+///
+/// Fire a second-order correction only when the FIRST trial step (backtracking
+/// index 0) was the one rejected AND that trial did not reduce the constraint
+/// violation relative to the current iterate. A negative theta means "no
+/// infeasibility reading available" (the LANG merit variant records none;
+/// -1 is IterateInfo's unset sentinel), in which case SOC conservatively does
+/// not trigger.
+///
+/// @param current_infeasibility Must be the SAME quantity
+///   theta_at_first_rejection_ records, under whichever norm convention the
+///   driving acceptance strategy uses: squared L2 of the full constraint block
+///   on the classic path, L1 on the generic path. Either way the caller derives
+///   it from RHS.all_cons(), whose inequality block carries the identical slack
+///   reset.
+///
+/// Known asymmetry: the augmented-Lagrangian merit variant zeroes constraint
+/// entries within tolerance when it records theta_at_first_rejection_, while
+/// current_infeasibility is not tolerance-zeroed. The zeroing can only SHRINK
+/// the trial-side theta, making the trigger HARDER to satisfy — the asymmetry
+/// suppresses SOC near feasibility and can never spuriously fire it.
 inline bool soc_should_trigger(const IterateInfo &citer, double current_infeasibility) {
     if (citer.first_rejection_iter_ != 0)
         return false;
@@ -149,15 +55,10 @@ inline bool soc_should_trigger(const IterateInfo &citer, double current_infeasib
     return trial_infeasibility >= current_infeasibility;
 }
 
-// -----------------------------------------------------------------------------
-// Termination predicate (Wächter & Biegler 2006, §2.4).
-//
-// After a rejected correction, keep correcting only while (a) the correction
-// cap has not been reached and (b) the corrected trial's violation is still
-// dropping by at least the kSocViolationDecrease factor versus the previous
-// violation. Once the drop stagnates (slower than the factor) or the cap is
-// hit, SOC gives up.
-// -----------------------------------------------------------------------------
+/// @brief Termination predicate (Wächter & Biegler 2006, §2.4): after a
+/// rejected correction, keep correcting only while the cap has not been
+/// reached AND the corrected trial's violation is still dropping by at least
+/// kSocViolationDecrease versus the previous violation.
 inline bool soc_should_continue(double trial_violation, double prev_violation,
                                 int corrections_done, int max_soc) {
     if (corrections_done >= max_soc)
@@ -165,31 +66,27 @@ inline bool soc_should_continue(double trial_violation, double prev_violation,
     return trial_violation <= kSocViolationDecrease * prev_violation;
 }
 
-// Outcome of a single correction attempt, returned by the correction primitive
-// to the loop driver.
+/// Outcome of a single correction attempt, returned by the correction
+/// primitive to the loop driver.
 struct SocCorrectionOutcome {
-    // The corrected step was accepted by the re-run acceptance test; the
-    // corrected direction/length have been committed in place.
+    /// Corrected step accepted by the re-run acceptance test; the corrected
+    /// direction/length have been committed in place.
     bool accepted;
-    // The corrected first-trial constraint violation, in whichever norm
-    // drives_classic_path() selected for this call (squared L2 classic, L1
-    // generic — see soc_should_trigger()'s doc comment above). Only
-    // meaningful when !accepted; drives the next accumulation and the
-    // termination test.
+
+    /// Corrected first-trial constraint violation, in whichever norm
+    /// drives_classic_path() selected (see soc_should_trigger()). Only
+    /// meaningful when !accepted; drives the next accumulation and the
+    /// termination test.
     double trial_violation;
 };
 
-// -----------------------------------------------------------------------------
-// Correction loop driver — pure policy, no KKT/nlp machinery. Runs the
-// correction primitive `do_correction(correction_index, prev_violation)` until
-// a correction is accepted (returns kRetry) or the termination policy stops it
-// (returns kAcceptAsIs). Increments `soc_steps` once per attempted correction
-// (each is one back-substitution). Templated on the primitive so the unit tests
-// drive it with a scripted lambda in place of the real solve.
-//
-// The first correction is always attempted once the trigger has fired (matching
-// the paper); subsequent corrections are gated by soc_should_continue.
-// -----------------------------------------------------------------------------
+/// @brief Correction loop driver — pure policy, no KKT/NLP machinery. Runs the
+/// correction primitive do_correction(correction_index, prev_violation) until
+/// a correction is accepted (kRetry) or the termination policy stops it
+/// (kAcceptAsIs). Increments soc_steps once per attempted correction (one
+/// back-substitution each). Templated on the primitive so unit tests drive it
+/// with a scripted lambda. The first correction always runs once triggered;
+/// subsequent ones are gated by soc_should_continue.
 template <class CorrectionFn>
 RecoveryChain::Action soc_run_loop(double first_trial_violation, int max_soc, int &soc_steps,
                                    CorrectionFn &&do_correction) {
@@ -207,9 +104,41 @@ RecoveryChain::Action soc_run_loop(double first_trial_violation, int max_soc, in
     }
 }
 
-// =============================================================================
-// SocRecovery — opt-in second-order correction recovery link.
-// =============================================================================
+/// @brief Opt-in second-order correction recovery link (Wächter & Biegler 2006,
+/// §2.4): applied after the line search rejects a step on its very first trial.
+///
+/// Mechanics: a correction re-solves the SAME KKT system on the LIVE
+/// factorization (no refactor — one back-substitution) with the constraint
+/// block of the right-hand side replaced by an accumulated corrected value;
+/// the objective block is unchanged. The corrected direction is
+/// fraction-to-boundary scaled and the FULL acceptance backtrack re-runs on it
+/// THROUGH THE MECHANISM (run_acceptance_backtrack), so the corrected trial
+/// faces the same criteria as the ordinary step — this is what lets SOC compose
+/// with every acceptance strategy rather than only classic merit. An accepted
+/// corrected step replaces the rejected one (kRetry); once the violation
+/// stagnates or the Settings::max_soc_ cap is hit, the originally-rejected step
+/// is taken (kAcceptAsIs — bit-identical to the no-SOC path).
+///
+/// Default is off (max_soc_ == 0): not even constructed then (a NoopRecovery
+/// installs instead), so the solver stays bit-identical to its no-SOC behavior.
+///
+/// Interaction rules with the generic-path strategies:
+///  (a) Funnel width / filter augmentation run on the ACCEPTED corrected trial
+///      (the strategy's own accept-time bookkeeping), and rejected correction
+///      rungs advance the filter's last-rejection reset heuristic like any
+///      other line-search invocation — a corrected re-test IS just another
+///      line search.
+///  (b) During an active nested l1 restoration phase the chain runs in-phase;
+///      the acceptance re-test measures the elastic subproblem's objective and
+///      infeasibility via the restoration trial seam, while the c_soc
+///      accumulation and CURRENT-side trigger measure stay in raw-slack-reset
+///      space (the TRIAL-side trigger is elastic-shifted in-phase) — a mixed-
+///      space trigger comparison that is a pre-existing property shared with
+///      the classic link: it affects only heuristic sensitivity, never the
+///      rigor of the phase-aware acceptance decision.
+///  (c) Watchdog composition is unchanged: the watchdog wraps the chain and
+///      delegates rejections to the inner chain, using the strategy-agnostic
+///      merit proxy for its own arm/revert logic.
 class SocRecovery : public RecoveryChain {
   public:
     SocRecovery() = default;
@@ -224,16 +153,15 @@ class SocRecovery : public RecoveryChain {
                             int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
-    // Stateless (per RecoveryChain's ownership rule): nothing to clear.
+    /// Stateless (per RecoveryChain's ownership rule): nothing to clear.
     void reset() override {}
 
   private:
-    // Evaluate the constraint block c(x_k + alpha*dir) into `cons_out` (size
-    // equal_cons_ + inequal_cons_, layout [eq | iq]) using the same
-    // objective-and-constraints request plus slack-reset convention the merit
-    // line search and alg_impl's RHS assembly use, so the value is directly
-    // comparable to RHS.all_cons(). Trial
-    // primals/slacks are written into `xsl2_scratch`.
+    /// @brief Evaluates the constraint block c(x_k + alpha*dir) into cons_out
+    /// (size equal_cons_ + inequal_cons_, layout [eq | iq]) using the same
+    /// request and slack-reset convention as the RHS assembly, so the value is
+    /// directly comparable to RHS.all_cons(). Trial primals/slacks are written
+    /// into xsl2_scratch.
     void eval_trial_constraints(SolverContext &ctx, double obj_scale, const Eigen::VectorXd &XSL,
                                 const Eigen::VectorXd &dir, double alpha,
                                 Eigen::VectorXd &xsl2_scratch, Eigen::VectorXd &cons_out);
