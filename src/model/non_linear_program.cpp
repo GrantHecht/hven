@@ -143,6 +143,7 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     this->laid_objective_pieces_ = static_cast<int>(this->objectives_.size());
     this->laid_equality_pieces_ = static_cast<int>(this->equality_constraints_.size());
     this->laid_inequality_pieces_ = static_cast<int>(this->inequality_constraints_.size());
+    this->ever_laid_ = true;
 
     // The equality row count is the row space AS LAID, so it counts whatever
     // internal fixing rows the MakeConstraint treatment currently has
@@ -196,11 +197,26 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
         return;
     }
 
-    // The lists are read HERE rather than at the lay, so they must still be the
-    // lists that were laid. A front end writes these three members directly, so
-    // "still" is not automatic: a piece added or dropped since the lay would be
-    // copied into a declaration whose claim arrays, digest and row counts all
-    // describe the list as it was. Refused by name rather than served.
+    this->declaration_.objectives_ = this->objectives_;
+    this->declaration_.equality_constraints_ = this->equality_constraints_;
+    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+
+    this->declaration_pieces_pending_ = false;
+}
+
+void hven::solvers::NonLinearProgram::require_master_lists_unmoved() const {
+    // Nothing to disagree with before the first lay: the pieces a front end has
+    // pushed have not been laid over yet, and declaration() reports the empty
+    // declaration there by design.
+    if (!this->ever_laid_) {
+        return;
+    }
+
+    // EVERY read, not only the one that still owes a copy. The lists are read
+    // after the lay rather than at it, and a front end writes these three
+    // members directly, so "still the lists that were laid" is not automatic: a
+    // piece added or dropped since the lay no longer matches the claim arrays,
+    // the digest or the row counts. Refused by name rather than served.
     const auto check = [](const char *which, std::size_t have, int laid) {
         if (static_cast<std::size_t>(laid) != have) {
             throw std::invalid_argument(fmt::format(
@@ -215,12 +231,6 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     check("equality constraint", this->equality_constraints_.size(), this->laid_equality_pieces_);
     check("inequality constraint", this->inequality_constraints_.size(),
           this->laid_inequality_pieces_);
-
-    this->declaration_.objectives_ = this->objectives_;
-    this->declaration_.equality_constraints_ = this->equality_constraints_;
-    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
-
-    this->declaration_pieces_pending_ = false;
 }
 
 std::uint64_t hven::solvers::NonLinearProgram::claim_digest() const {

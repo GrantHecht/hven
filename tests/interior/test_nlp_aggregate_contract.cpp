@@ -822,6 +822,61 @@ TEST(NlpAggregateEngineLayout, AFailedRelayNeverLeavesAMixedDeclaration) {
     }
 }
 
+TEST(NlpAggregateEngineLayout, AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed) {
+    // The other half of the failed-lay property, and the half the pin above
+    // cannot reach: a make_nlp that throws AFTER the master lists have already
+    // moved. A MakeConstraint treatment installs its internal fixing row as a
+    // real piece on the equality list, so the fixing-row discard at the top of
+    // make_nlp actually truncates that list before the bound materialization
+    // further down refuses the conflicting record.
+    auto problem = std::make_shared<AggPinProblem>();
+    problem->fix_ = 2;
+    problem->fix_at_ = 0.4;
+    auto nlp = agg_pin_build(problem);
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 1.0e-8));
+    ASSERT_EQ(nlp->internal_fixed_constraints(), 1);
+    const std::size_t equalities_as_laid = nlp->equality_constraints_.size();
+
+    // A bound history whose intersection is empty, refused by the materializer
+    // -- which runs after the discard has already truncated the list.
+    nlp->set_variable_bound(0, 0.0, 1.0);
+    nlp->set_variable_bound(0, 2.0, 3.0);
+    EXPECT_THROW(nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_),
+                 std::invalid_argument);
+    ASSERT_LT(nlp->equality_constraints_.size(), equalities_as_laid);
+
+    // The list moved, so the layout on hand no longer describes it. Both
+    // readers REFUSE rather than serve a declaration whose piece lists and laid
+    // counts disagree -- the invalidated branch, which is what makes "never
+    // mixed" a property rather than a hope.
+    EXPECT_THROW({ (void)nlp->declaration(); }, std::invalid_argument);
+    EXPECT_THROW({ (void)nlp->model_structure_key(); }, std::invalid_argument);
+}
+
+TEST(NlpAggregateEngineLayout, TheMasterListGuardFiresAfterTheCopyIsAlreadyDischarged) {
+    // The guard runs on EVERY read, not only while the deferred copy is still
+    // owing. Discharge it first -- which is the common state, since the
+    // assemble entry reads the declaration on every evaluation -- then mutate a
+    // master list and read again. A guard that only checked the owing path
+    // would serve the cached copy here and the violation would go unseen.
+    auto nlp = agg_pin_build_small();
+    const std::size_t objectives = nlp->declaration().objectives_.size();
+    ASSERT_GT(objectives, 0u);
+    (void)nlp->model_structure_key();
+
+    nlp->objectives_.push_back(nlp->objectives_.front());
+
+    EXPECT_THROW({ (void)nlp->model_structure_key(); }, std::invalid_argument);
+    try {
+        (void)nlp->declaration();
+        FAIL() << "expected the mutated master list to be refused after the copy was discharged";
+    } catch (const std::invalid_argument &e) {
+        const std::string message = e.what();
+        EXPECT_NE(message.find("objective"), std::string::npos) << message;
+        EXPECT_NE(message.find("make_nlp"), std::string::npos) << message;
+    }
+}
+
 TEST(NlpAggregateEngineLayout, TheEvaluationThreadCountDecidesNoPartOfTheLayout) {
     // Layout is a function of the declaration and the adopted partition count
     // alone. The evaluation thread budget is neither, so moving it must leave

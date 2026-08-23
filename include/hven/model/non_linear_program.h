@@ -971,6 +971,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///         mutated since the last lay -- see
     ///         materialize_declaration_pieces().
     const AggregateDeclaration &declaration() const override {
+        this->require_master_lists_unmoved();
         this->materialize_declaration_bounds();
         this->materialize_declaration_pieces();
         return this->declaration_;
@@ -1004,16 +1005,24 @@ struct NonLinearProgram : public NlpAggregate {
     int evaluation_threads() const override { return hven::utils::get_num_threads(); }
     void set_evaluation_threads(int n) override { hven::utils::set_num_threads(n); }
 
-    /// The three conjuncts of the LAST LAY, digested on first read after it and
-    /// then held -- see claim_digest() and bound_digest() below for what each
-    /// is taken over, and materialize_declaration_bounds() for the one piece of
-    /// declaration state a key read needs.
+    /// @brief The three conjuncts of the LAST LAY: the claim digest, the
+    ///        adopted partition count, and the bound digest.
+    /// @return The structural key of the layout on hand.
+    /// @throws std::invalid_argument if the master piece lists have been
+    ///         mutated since the last lay -- the same guard declaration()
+    ///         carries, for the same reason.
+    ///
+    /// Both digests are taken on FIRST READ after a lay and then held -- see
+    /// claim_digest() and bound_digest() for what each is taken over, and
+    /// materialize_declaration_bounds() for the one piece of declaration state
+    /// a key read needs.
     ///
     /// Deferred rather than taken during the lay because both digests are
     /// O(claims) and O(variables) work that a consumer which never asks about
     /// structural identity has no use for -- and every consumer pays a layout,
     /// while only some ask. A consumer that does ask pays once per lay.
     ModelStructureKey model_structure_key() const override {
+        this->require_master_lists_unmoved();
         return ModelStructureKey{this->claim_digest(), this->laid_partition_count_,
                                  this->bound_digest()};
     }
@@ -1257,21 +1266,35 @@ struct NonLinearProgram : public NlpAggregate {
     /// the copy is taken, not that it is taken: once per lay, on the first read
     /// that needs it, instead of once per lay unconditionally.
     ///
+    /// The mutated-master-list case is refused before this runs -- see
+    /// require_master_lists_unmoved(), which both public readers call first.
+    void materialize_declaration_pieces() const;
+
+    /// @brief Refuses a read whose master piece lists are no longer the lists
+    ///        the layout was laid over.
+    /// @throws std::invalid_argument if any of the three master lists has a
+    ///         different size from the count captured at the last lay, naming
+    ///         the list, both counts and the remedy.
+    ///
     /// MUTATING THE MASTER LISTS AFTER A LAY, WITHOUT RE-LAYING, IS A CONTRACT
     /// VIOLATION. The three lists are public members and a front end writes
     /// them directly; the claim arrays, the claim digest and the row counts all
     /// describe the lists AS LAID, so a list that has grown or shrunk since
-    /// then no longer describes the layout on hand. The deferred copy is what
-    /// makes that violation detectable at all -- an eager copy would have
-    /// silently frozen the pre-mutation lists -- and this is where it is
-    /// caught.
+    /// then no longer describes the layout on hand.
     ///
-    /// @throws std::invalid_argument if any of the three master lists has a
-    ///         different size from the count captured at the last lay, naming
-    ///         the list and both counts. It catches a size change and nothing
-    ///         finer: a list mutated in place at constant length is not
-    ///         detectable here and remains the caller's obligation.
-    void materialize_declaration_pieces() const;
+    /// CALLED ON EVERY READ of declaration() and model_structure_key(), not
+    /// only while the deferred copy is still owing. Checking it only on the
+    /// owing path would have made the guard read-history-dependent: the same
+    /// violation would throw for a consumer that had not read since the lay and
+    /// be served silently from the cached copy for one that had -- and since
+    /// the assemble entry reads declaration() on every evaluation, served would
+    /// have been the common case. Three integer compares is the whole cost.
+    ///
+    /// It catches a SIZE change and nothing finer: a list mutated in place at
+    /// constant length is not detectable here and remains the caller's
+    /// obligation. An aggregate that has never been laid is not checked at all
+    /// -- there is no layout for the lists to disagree with.
+    void require_master_lists_unmoved() const;
 
     /// @brief Drops every deferred part of the laid state: the cached piece
     ///        copies and bound records, both digests, and the four flags that
@@ -1333,11 +1356,16 @@ struct NonLinearProgram : public NlpAggregate {
     mutable std::uint64_t bound_digest_ = 0;
 
     /// The sizes of the three master piece lists as of the last lay, which is
-    /// what the deferred copy is checked against. See
-    /// materialize_declaration_pieces().
+    /// what every read is checked against. See require_master_lists_unmoved().
     int laid_objective_pieces_ = 0;
     int laid_equality_pieces_ = 0;
     int laid_inequality_pieces_ = 0;
+
+    /// Whether a layout exists at all. False until the first lay, and what
+    /// keeps the size guard off an aggregate whose pieces have been pushed but
+    /// which has never been laid: there is no layout for the lists to disagree
+    /// with, and declaration() correctly reports the empty declaration there.
+    bool ever_laid_ = false;
 };
 
 } // namespace hven::solvers

@@ -27,16 +27,21 @@ namespace hven {
 
 namespace detail {
 
-// The FNV-1a 64-bit prime, and the prime raised to 0..8.
-//
-// The powers exist so that a RUN OF ZERO BYTES can be mixed in one multiply
-// instead of one per byte: feeding a zero byte is exactly `h *= prime` (the
-// XOR contributes nothing), and multiplication modulo 2^64 is associative, so
-// folding k of them into one multiply by prime^k is an identity rather than an
-// approximation. Every value the accumulator produces is bit-for-bit what the
-// byte-at-a-time form produces.
+/// @brief The FNV-1a 64-bit prime.
+///
+/// Spelled once here and referred to by Fnv1a::kPrime, so the accumulator and
+/// the power table below cannot drift apart.
 inline constexpr std::uint64_t kFnv1aPrime = 1099511628211ULL;
 
+/// @brief Builds the prime raised to 0..8.
+/// @return powers[k] == kFnv1aPrime^k, evaluated modulo 2^64.
+///
+/// The powers exist so that a RUN OF ZERO BYTES can be mixed in one multiply
+/// instead of one per byte: feeding a zero byte is exactly `h *= prime` (the
+/// XOR contributes nothing), and multiplication modulo 2^64 is associative, so
+/// folding k of them into one multiply by prime^k is an identity rather than an
+/// approximation. Every value the accumulator produces is bit-for-bit what the
+/// byte-at-a-time form produces.
 constexpr std::array<std::uint64_t, 9> fnv1a_prime_powers() noexcept {
     std::array<std::uint64_t, 9> powers{};
     powers[0] = 1;
@@ -46,12 +51,20 @@ constexpr std::array<std::uint64_t, 9> fnv1a_prime_powers() noexcept {
     return powers;
 }
 
+/// @brief kFnv1aPrime raised to 0..8, per fnv1a_prime_powers().
 inline constexpr std::array<std::uint64_t, 9> kFnv1aPrimePowers = fnv1a_prime_powers();
 
-// The low `Count` bytes of `u` byte-at-a-time, then the 8 - Count high bytes --
-// all of them zero at every call site that reaches this -- as one multiply.
-// A free function rather than a member so it is DEFINED before the accumulator
-// uses it, which is what keeps feed_index usable in a constant expression.
+/// @brief Mixes one 64-bit value into a running hash: the low `Count` bytes
+///        byte-at-a-time, then the 8 - Count high bytes -- all of them zero at
+///        every call site that reaches this -- as one multiply.
+/// @tparam Count  How many low bytes are fed explicitly; 8 - Count high bytes
+///                are folded into a single multiply and MUST be zero.
+/// @param hash    The running hash, updated in place.
+/// @param u       The value whose low `Count` bytes are fed, least-significant
+///                byte first.
+///
+/// A free function rather than a member so it is DEFINED before the accumulator
+/// uses it, which is what keeps feed_index usable in a constant expression.
 template <int Count>
 constexpr void fnv1a_feed_low_bytes(std::uint64_t &hash, std::uint64_t u) noexcept {
     for (int i = 0; i < Count; ++i) {
