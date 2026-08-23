@@ -272,6 +272,12 @@ void AggregateEvalSeam::lay() {
                         stream_rows.size()));
     }
     const int total_claims = static_cast<int>(stream_rows.size());
+    if (stream_cols.size() > static_cast<Eigen::Index>(std::numeric_limits<int>::max())) {
+        throw std::invalid_argument(
+            fmt::format("AggregateEvalSeam: the claim stream publishes {0} columns, more than "
+                        "this seam can address",
+                        stream_cols.size()));
+    }
     if (static_cast<int>(stream_cols.size()) != total_claims) {
         throw std::invalid_argument(
             fmt::format("AggregateEvalSeam: the claim stream publishes {0} rows and {1} columns",
@@ -281,16 +287,23 @@ void AggregateEvalSeam::lay() {
     // ordered to keep every intermediate representable. Non-negativity is
     // established for all three blocks BEFORE anything is summed or subtracted;
     // the coverage sum is then taken in a wider type, because three int counts
-    // can carry past an int between them; and no block's end is ever formed in
-    // int, not even to print one, since the value being reported may be exactly
-    // the one that would not fit. A provider that hands over nonsense gets a
-    // refusal naming it, rather than undefined behaviour on the way to one.
-    const std::array<std::pair<const char *, const ClaimBlock *>, 3> ordered_blocks{
+    // can carry past an int between them; and the one end that is formed BEFORE
+    // its block is known to fit -- the one the out-of-bounds refusal prints --
+    // is formed wide, since the value being reported may be exactly the one that
+    // would not fit. Ends are formed in int only after the bound check has
+    // proved them no larger than total_claims, which is itself an int. A
+    // provider that hands over nonsense gets a refusal naming it, rather than
+    // undefined behaviour on the way to one.
+    // In DECLARATION order -- Hessian, equality Jacobian, inequality Jacobian --
+    // which is the order the three accessors are named in and nothing more. The
+    // per-block checks below are order-independent; the pairwise check sorts a
+    // copy of this by start_ before it looks at neighbours.
+    const std::array<std::pair<const char *, const ClaimBlock *>, 3> declared_blocks{
         {{"Hessian", &hessian_},
          {"equality Jacobian", &equality_jacobian_},
          {"inequality Jacobian", &inequality_jacobian_}}};
 
-    for (const auto &[domain, block] : ordered_blocks) {
+    for (const auto &[domain, block] : declared_blocks) {
         if (block->start_ < 0 || block->count_ < 0) {
             throw std::invalid_argument(
                 fmt::format("AggregateEvalSeam: the {0} block reports start {1} and count {2}; "
@@ -325,8 +338,9 @@ void AggregateEvalSeam::lay() {
     // slots, which corrupts both the permutation kkt_locations_ carries and the
     // arena segments publish_matrix copies out of -- silently, with wrong
     // values and no diagnostic. So disjointness is checked here, once per lay,
-    // over the blocks taken in start_ order rather than in declaration order.
-    for (const auto &[domain, block] : ordered_blocks) {
+    // over a copy of the three taken in start_ order rather than in the order
+    // the accessors are declared.
+    for (const auto &[domain, block] : declared_blocks) {
         // Compared as start_ > total_claims - count_ rather than
         // start_ + count_ > total_claims: both operands are non-negative by the
         // pass above and total_claims is non-negative, so the subtraction is
@@ -353,7 +367,7 @@ void AggregateEvalSeam::lay() {
         // function for no benefit an insertion sort of three does not give.
         std::array<std::pair<const char *, const ClaimBlock *>, 3> occupied{};
         int occupied_count = 0;
-        for (const auto &entry : ordered_blocks) {
+        for (const auto &entry : declared_blocks) {
             if (entry.second->count_ == 0) {
                 continue;
             }

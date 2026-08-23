@@ -20,10 +20,13 @@
 // stream — one (assembled row, assembled column) pair per stored element the
 // provider will scatter — and turns it into (a) a sorted row-major pattern per
 // matrix, identical to the pattern the model's own return carries, (b) ONE
-// owned value arena laid [H | Ae | Ai] in exactly those patterns' CSR order,
-// and (c) the claim-slot -> arena-offset permutation, published as a
-// KktLocationTable. Each later evaluation is then `values[location(slot)] +=
-// v` on the provider's side and a contiguous segment copy on this one.
+// owned value arena, holding each domain's values in that domain's own pattern's
+// CSR order, and (c) the claim-slot -> arena-offset permutation, published as a
+// KktLocationTable. The arena is one slot per claim, divided into three disjoint
+// blocks that together partition [0, total_claims); each domain's block is the
+// range its own ClaimBlock names, so the provider decides where a domain sits
+// and this seam reads it rather than assuming it. Each later evaluation is then
+// `values[location(slot)] += v` on the provider's side and a contiguous segment copy on this one.
 //
 // What the path costs. Each evaluation moment runs model scratch -> arena
 // scatter -> segment publish, where the free functions it replaces assigned
@@ -256,8 +259,11 @@ class AggregateEvalSeam {
     Vec lower_;
     Vec upper_;
 
-    // The KKT arena, laid [H | Ae | Ai], and the claim-slot -> offset
-    // permutation addressing it. The table is a non-owning view over
+    // The KKT arena -- one slot per claim, divided into the three disjoint
+    // blocks the provider's ClaimBlocks name, which together partition it --
+    // and the claim-slot -> offset permutation addressing it. Each domain is
+    // seeded and published through its OWN block's start_, so no order between
+    // the three is assumed. The table is a non-owning view over
     // kkt_locations_, so both are rebuilt together at every lay.
     Vec arena_;
     std::vector<int> kkt_locations_;
