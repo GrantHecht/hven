@@ -71,7 +71,7 @@
 // bordering K0 with a unit column e_i and diagonal -opts.dual_mu
 // (SchurComplement::add_border), with the bound VALUE entering through that
 // border's right-hand-side entry (not through rhs_shift, which stays zero).
-// See tests/test_qp_engine_border.cpp's BorderPinEquivalence for the
+// See tests/sqp/test_qp_engine_border.cpp's BorderPinEquivalence for the
 // pin-by-border vs. pin-by-elimination equivalence this relies on.
 
 #include <stdexcept>

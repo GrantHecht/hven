@@ -22,8 +22,10 @@
 // It is a preference with an escape, not a prohibition: where the fact being
 // observed leaves no trace outside the function that produces it, the hook
 // goes where the fact is, with the reason written down. Two such deviations
-// exist today (PardisoIparmObserver's did-the-write-execute fields); both are
-// argued in full in docs/testing.md.
+// exist today (PardisoIparmObserver's did-the-write-execute fields, and its
+// post_pardisoinit_* fields, recorded at a different line in the same
+// function for a different reason); both are argued in full in
+// docs/testing.md.
 //
 // This header is the ONE place all of it is declared -- both adapters' fault
 // injectors plus the read-only OBSERVERS that ride the identical seam for a

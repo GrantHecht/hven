@@ -55,12 +55,14 @@
 // x's pinned entries are overwritten with their exact bound values rather
 // than taken from the solve, matching solve_eqp's scatter. A pin border
 // carries d = -dual_mu, so the solve itself only satisfies x(i) to
-// O(dual_mu * |y_i|) of the bound -- and on over-determined working sets a
-// pin's dual can be large, making that gap material. The refinement below
-// happens to close it on every fixture in the equivalence battery, but the
-// overwrite is kept because the bound value is KNOWN exactly and it makes
-// the two paths agree on pinned components by construction rather than by
-// the refinement's good behavior.
+// O(dual_mu * |y_i|) of the bound -- and on the over-determined working sets
+// the loop legitimately visits mid-run (every variable pinned AND a working
+// row still demanding something of them) a pin's dual is a regularization
+// artifact of order 1/dual_mu, so that gap is O(1) rather than O(dual_mu).
+// The refinement below happens to close it on every fixture in the
+// equivalence battery, but the overwrite is kept because the bound value is
+// KNOWN exactly and it makes the two paths agree on pinned components by
+// construction rather than by the refinement's good behavior.
 
 #include <algorithm>
 #include <utility>
@@ -155,8 +157,9 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 // problem whose curvature only becomes definite ONCE the pins are applied,
 // K0 is exactly singular in exact arithmetic and primal_delta alone makes it
 // invertible; ||K0^-1|| ~ 1/primal_delta then leaves the raw two-solve
-// answer wrong in its first digit, while refinement -- which targets the
-// well-conditioned unregularized system -- converges only geometrically.
+// answer wrong in its first digit, while refinement -- whose target system
+// was well conditioned in the reproduction (cond ~1.5e2) -- converges only
+// geometrically.
 // The eliminated path (eqp_solve.h) never forms those intermediates and does
 // not need this loop.
 //

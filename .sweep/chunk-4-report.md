@@ -285,3 +285,40 @@ changing meaning.
    regularization artifact of size ~1/mu, making the gap O(1)" to "a pin's
    dual can be large, making that gap material"; confirm the softening loses
    nothing a reader needs.
+
+## Fix round (chunk-4-review.md, applied at c4b6e6e)
+
+| # | Severity | Location | Applied | Disposition |
+|---|----------|----------|---------|-------------|
+| F1 | Blocking | `fault_injection.h:24-26` MPL-deviation ledger "Two such deviations" | yes | Restored the second item (`post_pardisoinit_*` fields, recorded at a different line in the same function for a different reason) so the enumeration matches the stated count of two. |
+| F2 | Blocking | `kkt_calls.h:78-90` `@throws` on the wrong `factorize_checked` overload | yes | Moved `@throws std::runtime_error If the outcome is FactorizeOutcome::Status::kBackendError; every other status is returned.` to the 3-arg overload (`src/kkt/kkt_calls.cpp:25-46` confirms it, not the delegating 2-arg, is where the throw lives); the 2-arg overload now carries `@throws std::runtime_error As the three-argument overload.` |
+| F3 | Blocking | `predictor.h:445` `predict()` THROWS list dropped the non-finite `fd_step_scale` case | yes | Reworded to "an fd_step_scale that is not finite and positive", matching the guard at `predictor.h:549` and the sibling field doc at `:229`. |
+| F4 | Blocking | `predictor.h:93-95` RELAX note lost "numerically" and the cross-backend caveat | yes | Restored "land at numerically zero (exactly 0.0 on MKL; an O(1e-34) residue on Accelerate)". |
+| F5 | Blocking | `kkt_calls.h:58` hash-cost floor unit "per solve" vs "per SSN major" | yes | Restored "per SSN major". |
+| F6 | Blocking | `continuation.h:412-415` `~1.8x` clearance attached to the wrong quantity | yes | Restated as "the largest pre-convergence spend ... (110 minors at the top of the step's final major)", matching 200/110 ≈ 1.8x. |
+| F7 | Blocking | `mesh_transfer.h` "THE PHASE-6 INGEST GAP" title deleted but still referenced from `core/start_level.h:63` and `tests/sqp/test_mesh_transfer.cpp:446` | yes | Took option (a): restored a two-line anchor in section 4 carrying the exact title and the one surviving fact ("the hash-less object reaches the solve at kSeeded; factorization reuse is what the sentinel protects"). Neither external referring file needed touching since the exact title is back. |
+| F8 | Blocking | `warm_start.h:462-476` malformed `//` immediately followed by `///` on `from_interior_point`, real `@brief` invisible to Doxygen | yes | Rebuilt as one `///` block: `@brief Builds a WarmStart from an interior-point-style primal-dual point.` first, sign-convention pointer and dimensions folded into the body, `@throws` retained. |
+| F9 | Non-blocking | `symmetric_factor.h:282,420` two table rows six columns over-indented | yes | Both re-indented to `//   ` matching their siblings (`kOneByOne`, `kOneByOneNoAutoRefine`, the present-value row). |
+| F10 | Non-blocking | `warm_start.h:338` citation to `docs/notes/2026-08-06-activity-tol-repair.md`, not in this repo | yes | Dropped the path; the sentence stands without it (measurement claim kept, citation removed). |
+| F11 | Non-blocking | Three stale `tests/*.cpp` paths (`kkt_assembly.h:74`, `continuation.h:234`, `predictor.h:65`) missing the `sqp/` subdirectory | yes | All three retargeted to `tests/sqp/test_qp_engine_border.cpp`, `tests/sqp/test_continuation.cpp`, `tests/sqp/test_predictor.cpp` (confirmed those are the actual paths in the tree). |
+| F12 | Non-blocking | `mesh_transfer.h:222` "warm_start.h's StartLevel note" — StartLevel is documented in `core/start_level.h` | yes | Retargeted to "core/start_level.h's StartLevel note". |
+| F13 | Non-blocking | `bordered_eqp.h:59` pinned-scatter softening lost the magnitude and the over-determined-working-set reachability parenthetical | yes | Restored both: "a pin's dual is a regularization artifact of order 1/dual_mu, so that gap is O(1) rather than O(dual_mu)" and the parenthetical "(every variable pinned AND a working row still demanding something of them)". |
+| F14 | Non-blocking | `bordered_eqp.h:159` "the well-conditioned unregularized system" asserted a general property the file never establishes | yes | Reworded to "whose target system was well conditioned in the reproduction (cond ~1.5e2)", restoring the measured framing and the dropped magnitude. |
+| F15 | Non-blocking | `schur_complement.h:38,113` two consequence clauses deleted with their premises | yes | Restored `:38`'s "so one border beyond the cap is always paid for. A caller that ignores needs_refactorization() will simply grow C without bound and pay the O(dim()^3) rebuild for it." and `:113`'s Release-only memory-safety parenthetical ("drop_border's per-array erase and rebuild_schur's C assembly both index all three at dim(), so a length skew is an unguarded out-of-bounds read in Release, not a degraded answer"). |
+| F16 | Informational | Report vs. review comment-count delta (4 lines, counting-convention only) | n/a | No code action — informational reconciliation note only, nothing to fix in the headers. |
+
+Applied: 16 of 16 actionable findings (8/8 blocking, 8/8 non-blocking); F16 is
+informational and required no header change. Counts (comments, total lines)
+are unchanged from the table above — every fix is a same-line or same-block
+rewording, not an addition/removal of comment lines beyond what the review
+itself flagged as missing.
+
+Gate: `strip_compare.py . c4b6e6e HEAD` → `files checked: 10 violations: 0`
+(pre-commit token-strip verification against the working tree; re-run against
+the committed HEAD after this commit lands gives the identical result since
+no further changes were made).
+Files touched: `include/hven/detail/kkt/{bordered_eqp.h, kkt_assembly.h,
+kkt_calls.h, schur_complement.h}`, `include/hven/detail/linear/fault_injection.h`,
+`include/hven/detail/warmstart/{continuation.h, mesh_transfer.h, predictor.h,
+warm_start.h}`, `include/hven/linear/symmetric_factor.h`.
+Commit subject: `docs: comment sweep — kkt, linear and warm-start accuracy fixes`.

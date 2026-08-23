@@ -334,13 +334,12 @@ struct WarmStart {
 // WHY A DUAL-SIDE TEST: the slack-side rule it replaced ("residual small
 // relative to its own multiplier", with an absolute max(1, .) floor) degrades
 // to "empty" on mesh-refinement sequences, where collocation multipliers are
-// O(h) while an IP method's residual mu/lambda GROWS as prices shrink --
-// measured in docs/notes/2026-08-06-activity-tol-repair.md. The dual-side
-// rule recovers the same fixtures' active sets across all mesh sizes. The
-// slack is not ignored -- it is read AGGREGATELY as `mu_hat`, which also
-// closes the extreme-dual trap: a hand-off pricing a row far above its own
-// residual raises the threshold against itself instead of certifying the row
-// ACTIVE.
+// O(h) while an IP method's residual mu/lambda GROWS as prices shrink. The
+// dual-side rule recovers the same fixtures' active sets across all mesh
+// sizes. The slack is not ignored -- it is read AGGREGATELY as `mu_hat`,
+// which also closes the extreme-dual trap: a hand-off pricing a row far
+// above its own residual raises the threshold against itself instead of
+// certifying the row ACTIVE.
 //
 // AMBIGUOUS rows -- a price at or below the noise floor, the degenerate case
 // an IP method's numerical noise produces close to convergence -- are left
@@ -458,15 +457,14 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
 
 } // namespace detail
 
-// Builds a WarmStart from an interior-point-style primal-dual point. See
-// this header's own note immediately above for the sign convention `slack_i`
-// must already be in (cI(x) VALUES, NOT an IP solver's own non-negative
-// slack), the activity-inference rule, and what this object's fields do and
-// do not carry.
-//
-/// @brief Dimensions: n = x.size(), me = lambda_e.size(), mi =
-/// lambda_i.size(). slack_i must match mi; z_lower, z_upper, lower and upper
-/// must each match n.
+/// @brief Builds a WarmStart from an interior-point-style primal-dual point.
+///
+/// See this header's own note immediately above for the sign convention
+/// `slack_i` must already be in (cI(x) VALUES, NOT an IP solver's own
+/// non-negative slack), the activity-inference rule, and what this object's
+/// fields do and do not carry. Dimensions: n = x.size(), me =
+/// lambda_e.size(), mi = lambda_i.size(); slack_i must match mi; z_lower,
+/// z_upper, lower and upper must each match n.
 /// @throws std::invalid_argument On any size mismatch (offending sizes in
 /// the message).
 ///

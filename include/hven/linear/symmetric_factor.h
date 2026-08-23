@@ -279,7 +279,7 @@ class SymmetricFactor {
         //                 Accelerate: zeroTolerance = 10^-k * eps (see
         //                 accelerate_zero_tolerance below for the override
         //                 that bypasses this formula entirely).
-        //         std::nullopt  MKL: iparm[9] is never touched -- pardisoinit's
+        //   std::nullopt  MKL: iparm[9] is never touched -- pardisoinit's
         //                 own value survives exactly (8 on the MKL this
         //                 was verified against; the fault-injection suite's
         //                 BackendDefaultPremise canary pins that value, so an
@@ -417,7 +417,7 @@ class SymmetricFactor {
         //   kOneByOne              iparm[20] = 0  "Apply 1x1 diagonal
         //                          pivoting during the factorization
         //                          process."
-        //         kTwoByTwo              iparm[20] = 1  "Apply 1x1 and 2x2
+        //   kTwoByTwo              iparm[20] = 1  "Apply 1x1 and 2x2
         //                          Bunch-Kaufman pivoting during the
         //                          factorization process." (Pardiso's own
         //                          documented default.)

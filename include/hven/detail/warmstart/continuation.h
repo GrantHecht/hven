@@ -231,7 +231,7 @@ struct ContinuationOptions {
     // forward unchanged. This is the predictor's own A/B lever, in the same
     // spirit as SqpOptions::enable_soc / adaptive_mu / warm_full_step: with it
     // off the sweep still works, it is simply slower, and the difference is
-    // what tests/test_continuation.cpp's PredictorOffCostsMore measures.
+    // what tests/sqp/test_continuation.cpp's PredictorOffCostsMore measures.
     bool use_predictor = true;
 
     // THE PROBE BUDGET, in multiples of the LAST CONVERGED step's own QP
@@ -410,11 +410,12 @@ inline constexpr int kBudgetContinuationsMax = 3;
 // abandonment that cascades into a shrink-and-retry pile (measured as a
 // multi-x minor-count REGRESSION on healthy sweeps; deleting this floor
 // fails a broad set of existing tests). The value 200 clears by ~1.8x the
-// largest legitimately-cheap step observed on the binding control sweep at
-// N = 2000 nodes, where a floor of 100 measurably moved a healthy-corpus
-// cell. WHERE it binds is measured rather than assumed: on large sweeps the
-// floor sets the budget on most steps -- the honest general statement is
-// that on every corpus measured the floor is the operative term and
+// largest pre-convergence spend observed on the binding control sweep at
+// N = 2000 nodes (110 minors at the top of the step's final major), where a
+// floor of 100 measurably moved a healthy-corpus cell. WHERE it binds is
+// measured rather than assumed: on large sweeps the floor sets the budget
+// on most steps -- the honest general statement is that on every corpus
+// measured the floor is the operative term and
 // ContinuationOptions::probe_budget is headroom above it.
 inline constexpr Index kProbeBudgetFloor = 200;
 

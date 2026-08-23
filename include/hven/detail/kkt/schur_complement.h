@@ -35,7 +35,10 @@
 // CALLER's job to stop bordering at that point (qp_engine.h rebuilds K0 when
 // the offending borders can be folded into it, and latches onto the
 // elimination path when they cannot). Either way dim() peaks at
-// schur_cap + 1: the cap is detected by the add that crosses it.
+// schur_cap + 1: the cap is detected by the add that crosses it, so one
+// border beyond the cap is always paid for. A caller that ignores
+// needs_refactorization() will simply grow C without bound and pay the
+// O(dim()^3) rebuild for it.
 //
 // K0^-1 v_i is cached at add_border time (one K0 solve per border) so
 // `solve` costs exactly two K0 solves (for w and for x0), independent of
@@ -112,7 +115,10 @@ class SchurComplement {
         // Every allocation the three pushes below could need is taken HERE,
         // before any of them mutates anything, so the torn state of one
         // push_back succeeding and a later one throwing bad_alloc cannot
-        // form. Growing GEOMETRICALLY, not to the exact size needed:
+        // form. (drop_border's per-array erase and rebuild_schur's C
+        // assembly both index all three at dim(), so a length skew is an
+        // unguarded out-of-bounds read in Release, not a degraded answer.)
+        // Growing GEOMETRICALLY, not to the exact size needed:
         // reserving base + 1 every time would turn push_back's amortized
         // growth into a reallocation per add_border.
         reserve_all(v_.size() + 1);

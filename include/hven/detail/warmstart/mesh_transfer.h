@@ -219,8 +219,11 @@
 // width, the trust-region radius and the Kungurtsev-Diehl window are refused.
 // The sentinel's job is undiminished, because the ONE thing it was ever
 // protecting -- factorization reuse -- is precisely the one thing kSeeded does
-// not offer. (See warm_start.h's StartLevel note for the full take/refuse
-// list.)
+// not offer. (See core/start_level.h's StartLevel note for the full
+// take/refuse list.)
+//
+// THE PHASE-6 INGEST GAP: the hash-less object reaches the solve at kSeeded;
+// factorization reuse is what the sentinel protects.
 //
 // hot == nullptr, ALWAYS, for the same reason one level down: a HotState is a
 // frozen factorization of a specific K0, and no K0 of the source mesh

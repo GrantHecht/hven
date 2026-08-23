@@ -62,7 +62,7 @@
 // effective values, so the step carries a RELATIVE error of order delta.
 // On a family whose solution path is affine in p, term (3) dominates and is
 // proportional to delta * ||dp|| with a family-dependent constant (the
-// system's conditioning); tests/test_predictor.cpp's affine-path tests
+// system's conditioning); tests/sqp/test_predictor.cpp's affine-path tests
 // measure at two deltas precisely so that floor is identified by how it
 // MOVES WITH THE KNOB. NO ITERATIVE REFINEMENT is applied against the
 // unregularized operator, deliberately: at any dp a caller would actually
@@ -91,7 +91,8 @@
 //         SIGN (z < 0 at a lower bound, z > 0 at an upper bound): drop its
 //         pin border. The variable's own stationarity row additionally has
 //         the frozen z subtracted from its right-hand side, which forces the
-//         released multiplier to land at zero instead of staying at its
+//         released multiplier to land at numerically zero (exactly 0.0 on
+//         MKL; an O(1e-34) residue on Accelerate) instead of staying at its
 //         frozen value -- at a genuine crossing the frozen z is O(||dp||),
 //         so omitting this would silently cost the predictor its order.
 //   DROP  an active inequality row whose predicted multiplier goes negative:
@@ -442,7 +443,8 @@ inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &
 //
 // THROWS std::invalid_argument (sizes always in the message) on a cold
 // `warm`, a `warm` whose blocks do not match `model`'s (n, me, mi), a dp of
-// the wrong size or a non-finite dp, or a non-positive fd_step_scale. A
+// the wrong size or a non-finite dp, or an fd_step_scale that is not finite
+// and positive. A
 // stale-but-well-shaped warm start is NOT rejected: predicting from a point
 // that is not actually a KKT point of the model produces a poor prediction,
 // which is a warm start like any other, not an error.
