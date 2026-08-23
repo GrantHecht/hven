@@ -954,10 +954,13 @@ struct NonLinearProgram : public NlpAggregate {
     /// declaration never pays for one, and no consumer pays per call.
     ///
     /// A REFERENCE DOES NOT SURVIVE A LAY, which is what the contract's own
-    /// "unchanging except across a structural mutation" already says; the
-    /// structure epoch is the proof, and a re-lay empties this object's piece
-    /// lists before it writes anything else, so a stale reference reads as
-    /// empty rather than as a plausible declaration.
+    /// "unchanging except across a structural mutation" already says, and the
+    /// structure epoch is the proof. A re-lay empties this object's piece lists
+    /// before it writes anything else, so a reference held across one reads as
+    /// empty UNTIL the next read refills the same stored object -- after which
+    /// it reads the new layout. Neither state is the old declaration; the
+    /// reference is stale from the lay onward, and emptiness is a courtesy in
+    /// the window before the refill, not a guarantee that outlives it.
     ///
     /// Not reentrant against itself: the first read after a lay writes the
     /// stored state, so two threads reading a freshly laid declaration
@@ -970,6 +973,13 @@ struct NonLinearProgram : public NlpAggregate {
     /// @throws std::invalid_argument if the master piece lists have been
     ///         mutated since the last lay -- see
     ///         require_master_lists_unmoved().
+    /// @throws std::bad_alloc from the first read after a lay, which allocates:
+    ///         it is the read that takes the deferred piece and bound copies.
+    ///         Worth naming because assemble() calls this on every evaluation
+    ///         and so inherits it, where an eager copy put the allocation in
+    ///         make_nlp instead. The materializers are restartable -- each
+    ///         clears its pending flag only after it has finished -- so a throw
+    ///         here leaves the state owing and the next read re-derives it.
     const AggregateDeclaration &declaration() const override {
         this->require_master_lists_unmoved();
         this->materialize_declaration_bounds();
@@ -1282,18 +1292,15 @@ struct NonLinearProgram : public NlpAggregate {
     /// describe the lists AS LAID, so a list that has grown or shrunk since
     /// then no longer describes the layout on hand.
     ///
-    /// CALLED ON EVERY READ of declaration() and model_structure_key(), not
-    /// only while the deferred copy is still owing. Checking it only on the
-    /// owing path would have made the guard read-history-dependent: the same
-    /// violation would throw for a consumer that had not read since the lay and
-    /// be served silently from the cached copy for one that had -- and since
-    /// the assemble entry reads declaration() on every evaluation, served would
-    /// have been the common case. Three integer compares is the whole cost.
+    /// CALLED ON EVERY READ of declaration() and model_structure_key(),
+    /// independently of whether the deferred copy is still owing, so the answer
+    /// does not depend on whether the caller has read since the lay. Three
+    /// integer compares.
     ///
-    /// It catches a SIZE change and nothing finer: a list mutated in place at
+    /// Catches a SIZE change and nothing finer: a list mutated in place at
     /// constant length is not detectable here and remains the caller's
-    /// obligation. An aggregate that has never been laid is not checked at all
-    /// -- there is no layout for the lists to disagree with.
+    /// obligation. An aggregate that has never been laid is not checked -- there
+    /// is no layout for the lists to disagree with.
     void require_master_lists_unmoved() const;
 
     /// @brief Drops every deferred part of the laid state: the cached piece
@@ -1302,19 +1309,14 @@ struct NonLinearProgram : public NlpAggregate {
     ///
     /// RUNS FIRST, at the top of make_nlp() and at the top of
     /// rebuild_structures(), before any master list is touched and before any
-    /// eager scalar is written. The order is what keeps two failure modes shut:
+    /// eager scalar is written. Two invariants rest on that position:
     ///
-    ///   * A consumer holding a reference from a previous declaration() cannot
-    ///     see NEW scalar dimensions beside OLD piece lists. It sees the new
-    ///     scalars beside EMPTY lists, which is not a state anything can
-    ///     mistake for a declaration -- and a reference retained across a
-    ///     structural mutation was already invalid, which the structure epoch
-    ///     is the proof of.
-    ///   * A lay that THROWS part-way -- a bound intersection that turns out
-    ///     empty, an allocation, the invariant check -- leaves the deferred
-    ///     state marked owing rather than leaving the previous lay's digests
-    ///     cached over half-replaced arrays. The next read re-derives, and the
-    ///     size guard above catches the case where the master lists moved.
+    ///   * No reader ever sees new scalar dimensions beside old piece lists.
+    ///     Between this call and the epoch bump the lists are EMPTY.
+    ///   * A lay that throws part-way leaves the deferred state owing rather
+    ///     than leaving the previous lay's digests cached over half-replaced
+    ///     arrays. The next read re-derives it, and require_master_lists_unmoved()
+    ///     refuses the read if the master lists moved in the meantime.
     void invalidate_laid_state();
 
     /// @brief The claim-structure conjunct of the structural key, digested on

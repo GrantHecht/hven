@@ -13,6 +13,7 @@
 // =============================================================================
 
 #include <algorithm>
+#include <limits>
 
 #include <fmt/format.h>
 
@@ -140,9 +141,26 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
 
     // The sizes the deferred piece copy will be checked against. Captured here,
     // with the other scalars, because here is where "as laid" is decided.
-    this->laid_objective_pieces_ = static_cast<int>(this->objectives_.size());
-    this->laid_equality_pieces_ = static_cast<int>(this->equality_constraints_.size());
-    this->laid_inequality_pieces_ = static_cast<int>(this->inequality_constraints_.size());
+    //
+    // The narrowing to int is checked rather than assumed. A piece count past
+    // INT_MAX is unreachable in any problem this engine can lay, but an
+    // unchecked narrowing here would wrap into a laid count that the guard then
+    // compares against and silently accepts -- turning an impossible input into
+    // a wrong answer instead of a refusal.
+    const auto laid_count = [](const char *which, std::size_t count) {
+        if (count > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+            throw std::invalid_argument(
+                fmt::format("NonLinearProgram::make_nlp: the {0} list holds {1} pieces, past the "
+                            "{2} this layout can index",
+                            which, count, std::numeric_limits<int>::max()));
+        }
+        return static_cast<int>(count);
+    };
+    this->laid_objective_pieces_ = laid_count("objective", this->objectives_.size());
+    this->laid_equality_pieces_ =
+        laid_count("equality constraint", this->equality_constraints_.size());
+    this->laid_inequality_pieces_ =
+        laid_count("inequality constraint", this->inequality_constraints_.size());
     this->ever_laid_ = true;
 
     // The equality row count is the row space AS LAID, so it counts whatever

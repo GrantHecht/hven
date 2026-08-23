@@ -805,21 +805,23 @@ TEST(NlpAggregateEngineLayout, AFailedRelayNeverLeavesAMixedDeclaration) {
     EXPECT_THROW(nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_),
                  std::invalid_argument);
 
-    bool refused = false;
-    try {
-        const hven::solvers::AggregateDeclaration &after = nlp->declaration();
-        EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
-        EXPECT_EQ(after.equality_constraints_.size(), equalities);
-        EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
-    } catch (const std::invalid_argument &) {
-        refused = true;
-    }
+    // NOT a disjunction. This program has no internal fixing rows, so the
+    // fixing-row discard at the top of make_nlp is a no-op and NOTHING moved
+    // before the throw -- so the read is served, and served with exactly the
+    // pre-call state. (The other branch, where the discard does move the
+    // equality list and the read is refused, is pinned by
+    // AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed.) Asserting the
+    // one outcome this setup can produce is what makes the pin catch a change
+    // in it; a disjunction would pass either way.
+    ASSERT_EQ(nlp->internal_fixed_constraints(), 0);
+    const hven::solvers::AggregateDeclaration &after = nlp->declaration();
+    EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
+    EXPECT_EQ(after.equality_constraints_.size(), equalities);
+    EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
 
-    // The key is readable either way, and is not a value invented by the
-    // failure: it is the pre-failure key, because nothing re-laid.
-    if (!refused) {
-        EXPECT_EQ(nlp->model_structure_key(), key_before);
-    }
+    // And the key is not a value invented by the failure: it is the pre-failure
+    // key, because nothing re-laid.
+    EXPECT_EQ(nlp->model_structure_key(), key_before);
 }
 
 TEST(NlpAggregateEngineLayout, AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed) {
