@@ -170,6 +170,8 @@ TEST(NlpAdapterAllocationTest, TheCounterSeesEachInterposedAllocator) {
     Eigen::VectorXd probe;
     EXPECT_GT(count_of([&] { probe = Eigen::VectorXd::Zero(1024); }), 0u) << "Eigen allocation";
     EXPECT_DOUBLE_EQ(probe.sum(), 0.0);
+    EXPECT_GT(count_of([&] { probe.conservativeResize(2048); }), 0u) << "conservativeResize";
+    EXPECT_DOUBLE_EQ(probe.sum(), 0.0);
 
     void *block = nullptr;
     EXPECT_GT(count_of([&] { block = std::malloc(64); }), 0u) << "malloc";
