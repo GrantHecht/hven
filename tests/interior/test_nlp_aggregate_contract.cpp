@@ -877,6 +877,35 @@ TEST(NlpAggregateEngineLayout, TheMasterListGuardFiresAfterTheCopyIsAlreadyDisch
     }
 }
 
+TEST(NlpAggregateEngineLayout, AnAggregateThatWasNeverLaidIsNotCheckedAgainstALayout) {
+    // The guard's other branch, and the one nothing else reaches: an aggregate
+    // that has never been laid. The laid piece counts default to zero, so a
+    // program carrying pushed pieces would be REFUSED if the guard ran there --
+    // and pushing pieces before the first make_nlp is exactly how a front end
+    // builds one. There is no layout for the lists to disagree with, so the
+    // guard steps aside and the empty declaration and zero key stand, which is
+    // the answer this surface gave before any of the deferral existed.
+    auto laid = agg_pin_build_small();
+    NonLinearProgram fresh(1);
+    fresh.objectives_ = laid->objectives_;
+    fresh.equality_constraints_ = laid->equality_constraints_;
+    fresh.inequality_constraints_ = laid->inequality_constraints_;
+    ASSERT_FALSE(fresh.objectives_.empty());
+
+    const hven::solvers::AggregateDeclaration *declared = nullptr;
+    EXPECT_NO_THROW({ declared = &fresh.declaration(); });
+    ASSERT_NE(declared, nullptr);
+    EXPECT_TRUE(declared->objectives_.empty());
+    EXPECT_TRUE(declared->equality_constraints_.empty());
+    EXPECT_TRUE(declared->inequality_constraints_.empty());
+    EXPECT_EQ(declared->primal_vars_, 0);
+
+    hven::solvers::ModelStructureKey key{};
+    EXPECT_NO_THROW({ key = fresh.model_structure_key(); });
+    EXPECT_EQ(key, (hven::solvers::ModelStructureKey{0, 0, 0}));
+    EXPECT_EQ(fresh.structure_epoch(), hven::solvers::StructureEpoch{});
+}
+
 TEST(NlpAggregateEngineLayout, TheEvaluationThreadCountDecidesNoPartOfTheLayout) {
     // Layout is a function of the declaration and the adopted partition count
     // alone. The evaluation thread budget is neither, so moving it must leave

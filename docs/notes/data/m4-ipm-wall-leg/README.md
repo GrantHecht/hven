@@ -139,12 +139,16 @@ programs are not comparable.
 `analyze` is the cell that answers "did deferring the claim digest cost anything
 where it was paid for?". Deferring it required `analyze_sparsity` to stop
 canonicalising the claim endpoints in place and derive that ordering per element
-instead, which trades two stores and a branch for two compares. The cell says
-the trade is free or better: neutral to −5%, never a regression.
+instead, which trades two stores and a branch for two compares. The cell puts
+the trade inside the noise: over both arms and all three sizes the minimum
+estimator runs −5.3% … +0.8% and the median −0.6% … +2.9%, against base
+rep-spreads of 5.4% to 38% on the same cells. Nothing there separates the two
+arms in either direction.
 
-It compares unlike steady states, and the bias runs the safe way. The cell
+It also compares unlike steady states, and the bias runs one way. The cell
 analyses ONE laid program `reps` times; under the base arm the first analysis
 canonicalises the claim arrays in place and every later one runs with the
 endpoints already ordered, so the median is base's post-canonicalisation steady
 state rather than its first-analysis cost. That can only hide a head win, never
-manufacture one, so the "never a regression" reading stands.
+manufacture one -- which is consistent with the band above sitting inside the
+noise, and is the reason not to read the positive medians as a cost either.

@@ -28,7 +28,7 @@ void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
     // through with the master lists already moved. Invalidating here is what
     // makes that survivable: whatever a failed transcription leaves behind, the
     // deferred state is marked owing rather than describing a layout that no
-    // longer exists, and the size guard in materialize_declaration_pieces()
+    // longer exists, and the size guard in require_master_lists_unmoved()
     // catches the case where the lists moved under it.
     this->invalidate_laid_state();
 

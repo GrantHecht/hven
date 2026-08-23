@@ -969,7 +969,7 @@ struct NonLinearProgram : public NlpAggregate {
     /// @return The declaration the current layout was laid from.
     /// @throws std::invalid_argument if the master piece lists have been
     ///         mutated since the last lay -- see
-    ///         materialize_declaration_pieces().
+    ///         require_master_lists_unmoved().
     const AggregateDeclaration &declaration() const override {
         this->require_master_lists_unmoved();
         this->materialize_declaration_bounds();
