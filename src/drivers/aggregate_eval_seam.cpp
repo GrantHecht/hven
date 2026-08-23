@@ -43,15 +43,16 @@ struct DomainClaims {
 /// Run wherever a table is BOUND -- which for this seam is the one lay() that
 /// rebuilds every table and its destination together -- and never on an
 /// evaluation. No table is handed a destination length at construction, so none
-/// can check the upper bound; this is the only place both are in scope. The
-/// LOWER end is not this scan's: RhsLocationTable's constructor rejects a row
-/// below -1, and KktLocationTable element-checks only its clash marks, so a
+/// can check the upper bound; this is the only place both are in scope.
+///
+/// The LOWER end is not this scan's: RhsLocationTable's constructor rejects a
+/// row below -1, and KktLocationTable element-checks only its clash marks, so a
 /// consumer binding a KKT table whose locations could be negative owes that
-/// check itself. It matters most for the rows a provider
-/// publishes and this seam copies verbatim: unlike the KKT offsets, which this
-/// seam computes itself, those arrive from outside, and one past the end is a
-/// heap write during the provider's own scatter in a build with the asserts
-/// compiled out.
+/// check itself.
+///
+/// It matters most for the rows a provider publishes and this seam copies
+/// verbatim: one past the end is a heap write during the provider's own
+/// scatter, in a build with Eigen's own asserts compiled out.
 ///
 /// @param locations          the published table's array.
 /// @param destination_length the length of the array those locations index.
@@ -137,11 +138,9 @@ DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
 /// ARENA SPEAKING, NOT A LEVEL 2 PROHIBITION. This seam lays exactly one arena
 /// slot per stored pattern element and publishes a domain by copying that
 /// contiguous segment straight onto the pattern's value array (publish_matrix),
-/// so a coordinate named twice has one offset to hand to two claims and the
-/// segment copy has no way to represent the second. A consumer that publishes
-/// clash marks and a lock vector instead accepts colliding claims and
-/// accumulates them -- the interior engine does exactly that -- so the refusal
-/// below is a property of this destination, not of the contract.
+/// so a coordinate named twice has one offset to hand to two claims. A consumer
+/// that publishes clash marks and a lock vector instead accepts colliding
+/// claims and accumulates them -- the interior engine does exactly that.
 void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matrix_rows,
                   int matrix_cols, int arena_base, const char *domain, SpMatRM &pattern,
                   std::vector<int> &locations) {
@@ -206,10 +205,6 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
 
 } // namespace
 
-// ---------------------------------------------------------------------------
-// Construction and layout
-// ---------------------------------------------------------------------------
-
 AggregateEvalSeam::AggregateEvalSeam(ClaimStreamSource &aggregate) : aggregate_(&aggregate) {
     this->lay();
 }
@@ -223,14 +218,11 @@ void AggregateEvalSeam::lay() {
     // seam never actually laid against, and the staleness would never be
     // detected again.
     //
-    // Read here, COMMITTED LAST. The read order is the argument above; the
-    // commit point is a separate question, and it is the end of this function
-    // because everything between can throw -- a declaration that refuses to
-    // materialize its bounds, a claim stream this seam rejects, an allocation.
-    // Committed here, such a throw would leave the new epoch standing over
-    // half-rebuilt structures and relay_if_stale would never re-lay them again.
-    // Committed last, a failed re-lay leaves the stale epoch, so the next
-    // evaluation moment tries again.
+    // COMMITTED LAST, at the end of this function, because everything between
+    // can throw -- a declaration that refuses to materialize its bounds, a
+    // claim stream this seam rejects, an allocation. Committed here, such a
+    // throw would leave the new epoch standing over half-rebuilt structures and
+    // relay_if_stale would never re-lay them again.
     const StructureEpoch epoch_read_before_structures = aggregate_->structure_epoch();
 
     const AggregateDeclaration &declared = aggregate_->declaration();
@@ -292,6 +284,7 @@ void AggregateEvalSeam::lay() {
     // proved them no larger than total_claims, which is itself an int. A
     // provider that hands over nonsense gets a refusal naming it, rather than
     // undefined behaviour on the way to one.
+    //
     // In DECLARATION order -- Hessian, equality Jacobian, inequality Jacobian --
     // which is the order the three accessors are named in and nothing more. The
     // per-block checks below are order-independent; the pairwise check sorts a
@@ -359,10 +352,9 @@ void AggregateEvalSeam::lay() {
         // order-agnostic: a neighbouring pair in that order is the only pair
         // that can overlap, so one pass over at most three entries decides it.
         //
-        // Ordered by hand rather than through a library sort. There are three
-        // entries and the comparison is one integer; a generic stable sort over
-        // them costs a kilobyte of merge machinery instantiated into this
-        // function for no benefit an insertion sort of three does not give.
+        // Ordered by hand rather than through a library sort: three entries and
+        // a one-integer comparison, where a generic sort would instantiate its
+        // merge machinery into this function for no benefit.
         std::array<std::pair<const char *, const ClaimBlock *>, 3> occupied{};
         int occupied_count = 0;
         for (const auto &entry : declared_blocks) {
@@ -488,10 +480,6 @@ void AggregateEvalSeam::relay_if_stale() {
     }
 }
 
-// ---------------------------------------------------------------------------
-// The destinations, and the three assemble shapes
-// ---------------------------------------------------------------------------
-
 KktScatterView AggregateEvalSeam::kkt_view() {
     KktScatterView view;
     view.values_ = arena_.data();
@@ -553,10 +541,6 @@ void AggregateEvalSeam::assemble_jacobians(const Vec &x) {
     aggregate_->assemble(CandidatePoint{x, no_multipliers, no_multipliers, 1.0},
                          kRequestConstraintJacobiansOnly, this->kkt_view(), rhs);
 }
-
-// ---------------------------------------------------------------------------
-// The evaluation moments
-// ---------------------------------------------------------------------------
 
 NlpEval AggregateEvalSeam::eval_nlp(const Vec &x, const Vec &, const Vec &) {
     this->relay_if_stale();

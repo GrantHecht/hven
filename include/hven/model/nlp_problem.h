@@ -46,9 +46,11 @@ namespace hven::solvers {
 /// `nlp_lower_bound_inf` / `nlp_upper_bound_inf` cutoff (default magnitude
 /// 1e19) makes any bound past the cutoff mean "unbounded": a problem carried
 /// over from Ipopt that spells unboundedness as +/-1e20 arrives here as
-/// genuine bounds at +/-1e20 rather than free. One route does apply a cutoff:
-/// the SSN/QP engine treats a bound of magnitude kSsnInfBound (1e20) or larger
-/// as absent, so a genuine bound in [1e20, inf) is honored by the
+/// genuine bounds at +/-1e20 rather than free, and an equality row declared at
+/// +/-1e20 on both sides becomes an equality at 1e20 rather than a dropped free
+/// row. Rewrite such declarations to use the infinities. One route does apply
+/// a cutoff: the SSN/QP engine treats a bound of magnitude kSsnInfBound (1e20)
+/// or larger as absent, so a genuine bound in [1e20, inf) is honored by the
 /// interior-point route and not by that one.
 class NLPProblem {
   public:

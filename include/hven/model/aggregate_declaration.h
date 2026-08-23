@@ -178,8 +178,9 @@ struct AggregateDeclaration {
     ///         one single-row piece each for; a bound naming a variable the
     ///         declaration does not have; a NaN bound; a single record whose
     ///         two finite sides are inverted; a piece row count that does not
-    ///         sum to the declared row count; and a bound history whose
-    ///         intersection is empty.
+    ///         sum to the declared row count; a bound history whose
+    ///         intersection is empty; a piece row sum past INT_MAX; and an
+    ///         equality piece count past INT_MAX.
     ///
     /// The piece-sum checks run only when at least one list carries pieces --
     /// "no pieces" is a property of all three lists together, and empty lists

@@ -1,29 +1,28 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// Part of the globalization component extraction: definitions for
-// ClassicMeritAcceptance. The classic_line_search dispatcher and the
-// ls_lang / ls_l1 / ls_auglang merit variants plus their
-// eval_trial_point_occ / compute_penalties / secondary_accept helpers are
-// moved VERBATIM from src/solvers/interior_point_solver.cpp (statement order and operand
-// order preserved exactly — the merge gate is a bit-identical CBWR
-// iteration-count comparison). The only edits are context-plumbing renames:
-// former InteriorPointSolver member reads (settings_, equal_cons_, inequal_cons_, nlp_)
-// now go through the SolverContext reference ctx_. Of the four barrier/eval
+// Definitions for ClassicMeritAcceptance: the classic_line_search dispatcher,
+// the ls_lang / ls_l1 / ls_auglang merit variants, and their
+// eval_trial_point_occ / compute_penalties / secondary_accept helpers. Each
+// reads the solver state (settings, equal_cons, inequal_cons, nlp) through the
+// SolverContext reference ctx_ rather than off a member of its own. Statement
+// order and operand order in these bodies are load-bearing: the iteration
+// counts they produce are bit-identical to InteriorPointSolver's own under CBWR,
+// and reordering either changes them. Of the four barrier/eval
 // helpers, apply_reset_slacks/barrier_objective/barrier_gradient forward to
 // the shared inline kernels in barrier_math.h (as do InteriorPointSolver's own
 // identically-named methods); eval_rhs has no shared counterpart and stays a
 // real body, issuing the first-order right-hand-side request through the
 // aggregate contract (see merit_acceptance.h's byte-identity design note).
 //
-// This file also hosts BacktrackingLineSearch (the step-length
-// mechanism) — verbatim today's max_step_to_boundary / max_primal_dual_step,
-// reading through the SolverContext passed to each call. See
+// This file also hosts BacktrackingLineSearch (the step-length mechanism):
+// max_step_to_boundary / max_primal_dual_step, reading through the
+// SolverContext passed to each call. See
 // backtracking_line_search.h's riskiest-seam design note.
 //
-// This file also hosts ClassicAdaptiveGovernor (the barrier-parameter
-// update) — verbatim today's PROBE/LOQO barmode switch + common clamp/objective/
-// gradient tail, plus the loqo_mu / mpc_mu oracles it consumes. Its barrier_*
+// This file also hosts ClassicAdaptiveGovernor (the barrier-parameter update):
+// the PROBE/LOQO barmode switch + common clamp/objective/gradient tail, plus
+// the loqo_mu / mpc_mu oracles it consumes. Its barrier_*
 // helpers forward to the shared inline kernels in barrier_math.h; complementarity
 // stays a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own (including its
 // ULP-load-bearing .sum() warning), since its avgcomp/mincomp feed mu and are not
@@ -84,7 +83,7 @@ void note_eval_error_unknown(EvalErrorLog *log) {
 } // namespace
 
 // Generic interface — is_iterate_acceptable is unused on the classic merit
-// path (see header). T6: it throws rather than return a fabricated answer;
+// path (see header). It throws rather than return a fabricated answer;
 // the shipped FilterAcceptance/FunnelAcceptance/ModernMeritAcceptance
 // strategies are the ones that give it a real body, since they are the ones
 // that actually drive it. is_infeasibility_sufficiently_reduced below is a
@@ -580,7 +579,7 @@ bool ModernMeritAcceptance::is_infeasibility_sufficiently_reduced(
 }
 
 void ModernMeritAcceptance::notify_switch_to_feasibility(const ProgressMeasures &current_progress) {
-    // T6: a second entry without an intervening exit would stash the FEASIBILITY
+    // A second entry without an intervening exit would stash the FEASIBILITY
     // working penalties/tracker over the preserved optimality stash, silently
     // clobbering the frozen state the exit test consults — a phase-transition
     // mis-wiring, not a recoverable runtime condition.
@@ -607,7 +606,7 @@ void ModernMeritAcceptance::notify_switch_to_feasibility(const ProgressMeasures 
 }
 
 void ModernMeritAcceptance::notify_switch_to_optimality(const ProgressMeasures &current_progress) {
-    // T6: an exit without a preceding entry has no stash to restore — running
+    // An exit without a preceding entry has no stash to restore — running
     // this body would overwrite the live optimality penalties/tracker with the
     // fresh-construction stash (or a stale one from a prior phase), a
     // phase-transition mis-wiring symmetric to the entry-side hazard above.
@@ -802,15 +801,13 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
 }
 } // namespace
 
-// BacktrackingLineSearch — step-length mechanism. max_step_to_
-// boundary and max_primal_dual_step are moved VERBATIM from src/solvers/
-// interior_point_solver.cpp (statement order and operand order preserved exactly — the merge
-// gate is a bit-identical CBWR iteration-count comparison). The only edits are
-// context-plumbing renames: former InteriorPointSolver member reads (settings_.pd_step_
-// strategy_, inequal_cons_, equal_cons_) now go through the SolverContext
-// reference `ctx`, and the KKTVector view over the raw XSL/DXSL blocks is
-// reconstructed inside max_primal_dual_step rather than passed in by the
-// caller. See backtracking_line_search.h's riskiest-seam design note.
+// BacktrackingLineSearch — step-length mechanism. max_step_to_boundary and
+// max_primal_dual_step read the solver state (settings_.pd_step_strategy_,
+// inequal_cons_, equal_cons_) through the SolverContext reference `ctx`, and
+// max_primal_dual_step reconstructs the KKTVector view over the raw XSL/DXSL
+// blocks itself rather than taking it from the caller. Statement and operand
+// order are load-bearing here for the reason the file block above states. See
+// backtracking_line_search.h's riskiest-seam design note.
 
 double BacktrackingLineSearch::max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> SLI,
                                                     Eigen::Ref<Eigen::VectorXd> dSLI, double bfrac,
@@ -1062,18 +1059,15 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
     return alpha;
 }
 
-// ClassicAdaptiveGovernor — barrier-parameter update. The
-// PROBE/LOQO barmode switch + common clamp/objective/gradient tail and the
-// loqo_mu / mpc_mu oracles are moved from src/solvers/interior_point_solver.cpp (statement
-// order and operand order preserved exactly — the merge gate is a
-// bit-identical CBWR iteration-count comparison). Besides context-plumbing
-// renames (former InteriorPointSolver member reads (kkt_sol_ -> ctx.kkt_solver_,
-// settings_/dims -> ctx.*) and the mechanism_ base pointer -> the mechanism
-// reference parameter), loqo_mu dropped its unused S/LI parameters (the
-// former InteriorPointSolver::loqo_mu took Eigen::Ref<Eigen::VectorXd> S, LI ahead of
-// avgcomp/mincomp; neither was read by the body). Of the barrier_* /
-// complementarity helpers below, barrier_objective/barrier_gradient are
-// one-line forwarders into the shared kernels in barrier_math.h;
+// ClassicAdaptiveGovernor — barrier-parameter update: the PROBE/LOQO barmode
+// switch with its common clamp/objective/gradient tail, and the loqo_mu /
+// mpc_mu oracles it consumes. The solver state reaches them through the
+// SolverContext (kkt_sol_ as ctx.kkt_solver_, settings and dimensions as
+// ctx.*) and the mechanism through a reference parameter rather than a base
+// pointer. Statement and operand order are load-bearing here for the reason the
+// file block above states. Of the barrier_* / complementarity helpers below,
+// barrier_objective/barrier_gradient are one-line forwarders into the shared
+// kernels in barrier_math.h;
 // complementarity remains a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own
 // (including its ULP-load-bearing .sum() warning), since its avgcomp/mincomp
 // feed mu and are not a candidate for the shared header. See
@@ -1915,7 +1909,7 @@ bool FunnelAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasu
 }
 
 void FunnelAcceptance::notify_switch_to_feasibility(const ProgressMeasures &current_progress) {
-    // T6: a second entry without an intervening exit would stash the FEASIBILITY
+    // A second entry without an intervening exit would stash the FEASIBILITY
     // working width over the preserved optimality width, silently clobbering the
     // frozen width the exit test and exit re-base consult — a phase-transition
     // mis-wiring, not a recoverable runtime condition.
@@ -1940,7 +1934,7 @@ void FunnelAcceptance::notify_switch_to_feasibility(const ProgressMeasures &curr
 }
 
 void FunnelAcceptance::notify_switch_to_optimality(const ProgressMeasures &current_progress) {
-    // T6: an exit without a preceding entry has no stashed width to restore —
+    // An exit without a preceding entry has no stashed width to restore —
     // running this body would re-base whatever stashed_width_ last held (the
     // uninitialized sentinel, or a stale stash), a phase-transition mis-wiring
     // symmetric to the entry-side hazard above.
@@ -2134,7 +2128,7 @@ bool FilterAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasu
 }
 
 void FilterAcceptance::notify_switch_to_feasibility(const ProgressMeasures &current_progress) {
-    // T6: a second entry without an intervening exit would run
+    // A second entry without an intervening exit would run
     // `stashed_filter_ = filter_` while filter_ already holds the
     // FEASIBILITY working filter, silently clobbering the preserved
     // optimality stash — a phase-transition mis-wiring, not a recoverable
@@ -2169,7 +2163,7 @@ void FilterAcceptance::notify_switch_to_feasibility(const ProgressMeasures &curr
 }
 
 void FilterAcceptance::notify_switch_to_optimality(const ProgressMeasures &current_progress) {
-    // T6: an exit without a preceding entry has no stash to restore — running
+    // An exit without a preceding entry has no stash to restore — running
     // this body would overwrite the live optimality filter with whatever
     // stashed_filter_ last held (empty, or a stale stash from a prior phase),
     // a phase-transition mis-wiring symmetric to the entry-side hazard above.

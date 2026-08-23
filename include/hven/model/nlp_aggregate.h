@@ -350,9 +350,10 @@ class NlpAggregate {
     /// object's lifetime except across a structural mutation. An implementation
     /// must not build a declaration per call and return a reference to it: the
     /// non-virtual entries above read this on EVERY evaluation, to check the
-    /// caller's blocks against real dimensions. An implementation MAY
-    /// materialize the stored state on the first read after a structural
-    /// mutation, since once-per-mutation is not per call.
+    /// caller's blocks against real dimensions, and a reference to anything
+    /// temporary would dangle. An implementation MAY materialize the stored
+    /// state on the first read after a structural mutation, since
+    /// once-per-mutation is not per call.
     virtual const AggregateDeclaration &declaration() const = 0;
 
     /// Adopts a partition count and returns the count ACTUALLY adopted, which

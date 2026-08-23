@@ -39,6 +39,10 @@ namespace hven::solvers {
 /// materialized_bound_digest, and `partition_count_` is the count
 /// NlpAggregate::negotiate_partition_count actually adopted. Filling a field
 /// from anything else is how a key stops answering the question it exists for.
+///
+/// `partition_count_` is deliberately explicit though the claim stream is
+/// already partition-sensitive: an inspectable field where an order-sensitivity
+/// is not.
 struct ModelStructureKey {
     std::uint64_t claim_digest_ = 0;
     int partition_count_ = 0;
@@ -161,9 +165,10 @@ inline std::uint64_t claim_stream_digest(const AggregateDeclaration &declaration
 ///        the only public way to compute one: the materialized per-variable
 ///        structure, in variable order.
 ///
-/// @throws Whatever materialize_variable_bounds throws -- an out-of-range
-///         index, a NaN bound, an empty intersection -- so a key can never be
-///         taken over a bound set that does not describe a problem.
+/// @throws std::invalid_argument whatever materialize_variable_bounds throws --
+///         an out-of-range index, a NaN bound, an empty intersection -- so a
+///         key can never be taken over a bound set that does not describe a
+///         problem.
 inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &declaration) {
     Fnv1a hash;
     for (const VariableBound &bound : declaration.materialize_variable_bounds()) {

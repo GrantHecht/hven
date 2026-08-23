@@ -279,8 +279,8 @@ void hven::solvers::InteriorPointSolver::apply_reset_slacks(Eigen::Ref<Eigen::Ve
     detail::apply_reset_slacks(S, FXI, this->slack_vars_, settings_.neg_slack_reset_);
 }
 
-// max_step_to_boundary was extracted verbatim into BacktrackingLineSearch
-// (src/solvers/interior_point_solver_globalization.cpp).
+// max_step_to_boundary lives on BacktrackingLineSearch
+// (src/drivers/interior_point_solver_globalization.cpp).
 
 void hven::solvers::InteriorPointSolver::complementarity(Eigen::Ref<Eigen::VectorXd> X,
                                                          Eigen::Ref<Eigen::VectorXd> S,
@@ -378,9 +378,9 @@ void hven::solvers::InteriorPointSolver::barrier_hessian(
     this->nlp_->assign_kkt_slack_hessian(this->hp_scratch_, KKTmat);
 }
 
-// loqo_mu / mpc_mu were extracted verbatim into ClassicAdaptiveGovernor
-// (src/solvers/interior_point_solver_globalization.cpp); the barrier-parameter
-// update now runs through governor_->update_barrier().
+// loqo_mu / mpc_mu live on ClassicAdaptiveGovernor
+// (src/drivers/interior_point_solver_globalization.cpp); the barrier-parameter
+// update runs through governor_->update_barrier().
 
 // Native variable-bound helpers. Every one is a no-op when bounds_ is null,
 // which is the whole story on a problem that declares no variable bounds.
@@ -783,9 +783,9 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
 // (acceptance_/mechanism_/governor_/recovery_, always constructed, plus the
 // optional restoration_). Called once per run_phase_sequence(), right after the
 // variable-treatment configuration and before the first phase — i.e. once per
-// solve invocation (optimize()/solve()/solve_optimize()/etc.
-// all route through run_phase_sequence()) — rather than only from set_nlp()
-// (which runs only on (re)transcription). This makes construction-time knobs
+// solve invocation (optimize()/solve()/solve_optimize()/etc. all route through
+// run_phase_sequence()) — rather than only from set_nlp() (which runs only on
+// (re)transcription). This makes construction-time knobs
 // (acceptance_strategy, max_soc, ls_extended_iters, watchdog,
 // merit_penalty_rule, barrier_governor, restoration_mode) live at the next
 // solve even when no set_nlp() call intervenes, matching every other Settings
@@ -795,17 +795,16 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
 // solve() call that changed them without retranscribing — see the origin
 // project's component-rebuild-takes-effect-without-retranscription test
 // for the reachable-from-a-binding repro (the two acceptance strategies
-// produce different
-// iteration counts from the same cold start, so a stale acceptance_ is
-// directly observable).
+// produce different iteration counts from the same cold start, so a stale
+// acceptance_ is directly observable).
 //
 // Neutrality on the default (all-off) path: this call constructs the exact
 // same four concrete types (ClassicMeritAcceptance, BacktrackingLineSearch,
-// ClassicAdaptiveGovernor, NoopRecovery) set_nlp() constructs —
-// only the MOMENT of construction differs (every solve entry vs. every
-// (re)transcription). No consumer can observe the difference: nothing reads
-// acceptance_/mechanism_/governor_/recovery_ between set_nlp() returning and
-// run_phase_sequence() reaching this call (verified by grep — the only
+// ClassicAdaptiveGovernor, NoopRecovery) that set_nlp() used to construct —
+// only the MOMENT of construction moved (every run_phase_sequence() entry
+// rather than every (re)transcription). No consumer can observe the difference:
+// nothing reads acceptance_/mechanism_/governor_/recovery_ between set_nlp()
+// returning and run_phase_sequence() reaching this call (the only
 // consumers are alg_impl's dispatch and the per-phase reset() calls, both
 // inside run_phase_sequence()'s own call graph), and ClassicMeritAcceptance's
 // SolverContext captures (this->nlp_.get(), and primal_vars_/slack_vars_/
@@ -945,8 +944,8 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     }
 }
 
-// max_primal_dual_step was extracted verbatim into BacktrackingLineSearch
-// (src/solvers/interior_point_solver_globalization.cpp). alg_impl drives it
+// max_primal_dual_step lives on BacktrackingLineSearch
+// (src/drivers/interior_point_solver_globalization.cpp). alg_impl drives it
 // through mechanism_ (fused into compute_step on the main path; via the public
 // method at the PROBE predictor call site).
 
@@ -1624,12 +1623,12 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
                            "Warning: Potential Rank Deficiency Detected\n");
         }
     };
-    // T6 (dead-status fix): kkt_sol_.info() was computed by every Compute()/
-    // Refactor() call below and never read anywhere -- a dead status. This records
-    // the last non-Success status into result_.last_kkt_info_ (surfaced only by
-    // print_exit_stats(), see interior_point_solver_print.cpp) and, for hard failures only, emits
-    // an immediate diagnostic gated the same as the sibling RankDef()/perturbation-
-    // exhausted warnings in this function. NumericalIssue (Pardiso info -4/-7:
+    // kkt_sol_.info() is computed by every Compute()/Refactor() call below. This
+    // records the last non-Success status into result_.last_kkt_info_ (surfaced
+    // only by print_exit_stats(), see interior_point_solver_print.cpp) and, for
+    // hard failures only, emits an immediate diagnostic gated the same as the
+    // sibling RankDef()/perturbation-exhausted warnings in this function.
+    // NumericalIssue (Pardiso info -4/-7:
     // zero/near-zero pivot; Accelerate factorization-failed/singular) is a NORMAL,
     // expected condition while probing perturbations during inertia correction
     // below -- printing on every occurrence would spam the console for any problem

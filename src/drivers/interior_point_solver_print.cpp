@@ -157,10 +157,9 @@ void hven::solvers::InteriorPointSolver::print_last_iterate(const std::vector<It
     fmt::print(Icol, "{:>10.4e}", last.icon_inf_);
     chash(IHashcol);
 
-    // InteriorPointSolver 2.4 (display-only carve-out): the HPert column shows the CUMULATIVE
-    // perturbation total (h_pert_cum_), not the last delta (h_pert_). h_pert_
-    // itself is untouched and still feeds the Hpert0 warm-start in alg_impl() --
-    // only this print statement's source field changed.
+    // DISPLAY-ONLY CARVE-OUT: the HPert column shows the CUMULATIVE perturbation
+    // total (h_pert_cum_), not the last delta (h_pert_). h_pert_ itself feeds
+    // the Hpert0 warm-start in alg_impl().
     if (settings_.wide_console_) {
         fmt::print(
             "{:>9.3e}|{:>9.3e}|{:>8.2e}|{:>8.2e}|{:>8.2e}|{:>10.3e}|{:>3}|{:>3}|{:>3}|{:>6.1e}|\n",
@@ -236,10 +235,9 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitC
         fmt::print(" ICons Inf  : ");
         fmt::print(Icol, "{:<15.8e}\n", last.icon_inf_);
 
-        // T6 (dead-status fix): surface the last non-Success kkt_sol_.info() status
-        // observed across this run_phase_sequence() call, if any. Silent (matches
-        // today's output exactly) whenever every factorization reported Success --
-        // i.e. on every healthy solve in the examples suite.
+        // The last non-Success kkt_sol_.info() status observed across this
+        // run_phase_sequence() call, if any. Silent whenever every
+        // factorization reported Success.
         if (this->result_.last_kkt_info_ != Eigen::Success) {
             fmt::print(" KKT Factor Status : ");
             fmt::print(fmt::fg(fmt::color::yellow), "{}\n",

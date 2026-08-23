@@ -18,15 +18,12 @@
 #include "hven/model/non_linear_program.h"
 
 void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
-    // FIRST, before anything below mutates a master list or can throw. The
+    // FIRST, before anything below mutates a master list or can throw: the
     // discard just below truncates equality_constraints_, the invariant check
     // after it throws, and the bound materialization further down throws on an
-    // empty intersection -- so every one of those can leave this call part-way
-    // through with the master lists already moved. Invalidating here is what
-    // makes that survivable: whatever a failed transcription leaves behind, the
-    // deferred state is marked owing rather than describing a layout that no
-    // longer exists, and the size guard in require_master_lists_unmoved()
-    // catches the case where the lists moved under it.
+    // empty intersection, so each of those can leave this call part-way through
+    // with the master lists already moved. See invalidate_laid_state's
+    // definition for what that position buys.
     this->invalidate_laid_state();
 
     // A previous configuration's internal fixing rows describe the bounds as they
@@ -213,8 +210,8 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // an NLP that was never reduced) correctly do not bump.
     //
     // INVALIDATION FIRST, before the eager scalars are written and before a
-    // single array is touched -- see invalidate_laid_state() for the two
-    // failure modes that ordering shuts. It is idempotent, so the make_nlp
+    // single array is touched -- see invalidate_laid_state's definition for the
+    // two failure modes that ordering shuts. It is idempotent, so the make_nlp
     // path calling it once more here costs four flag writes and three clears
     // of already-empty vectors.
     this->invalidate_laid_state();
@@ -317,6 +314,13 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
     // partition-invariance sentence both rest on.
 }
 
+// Two invariants rest on this running FIRST, before any master list is touched
+// and before any eager scalar is written: no reader ever sees new scalar
+// dimensions beside old piece lists, and a lay that throws part-way leaves the
+// deferred state owing rather than leaving the previous lay's digests cached
+// over half-replaced arrays. The next read re-derives it, and
+// require_master_lists_unmoved() refuses that read if the master lists moved in
+// the meantime.
 void hven::solvers::NonLinearProgram::invalidate_laid_state() {
     this->declaration_bounds_pending_ = true;
     this->declaration_pieces_pending_ = true;
@@ -365,6 +369,10 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     this->declaration_.equality_constraints_ = this->equality_constraints_;
     this->declaration_.inequality_constraints_ = this->inequality_constraints_;
 
+    // COPIES rather than views because an AggregateDeclaration is a value over
+    // its pieces -- which is what makes a layout a pure function of the
+    // declaration, and what lets a consumer MOVE one in.
+    //
     // The copies are DECLARATION data, and a thread mode is settable in a
     // declaration: that is the one route a consumer has to change one, by
     // re-declaring and adopting. The pieces the layout itself holds stay
@@ -386,9 +394,10 @@ void hven::solvers::NonLinearProgram::require_master_lists_unmoved() const {
 
     // EVERY read, not only the one that still owes a copy. The lists are read
     // after the lay rather than at it, and a front end writes these three
-    // members directly, so "still the lists that were laid" is not automatic: a
-    // piece added or dropped since the lay no longer matches the claim arrays,
-    // the digest or the row counts. Refused by name rather than served.
+    // public members directly, so "still the lists that were laid" is not
+    // automatic: the claim arrays, the claim digest and the row counts all
+    // describe the lists AS LAID, and a piece added or dropped since then
+    // matches none of them. Refused by name rather than served.
     const auto check = [](const char *which, std::size_t have, int laid) {
         if (static_cast<std::size_t>(laid) != have) {
             throw std::invalid_argument(fmt::format(
@@ -723,14 +732,16 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     // which columns/rows of the KKT matrix need locking when multiple
     // partitions scatter into it, and allocates kkt_locks_ accordingly.
     //
-    // Canonical-column locking protocol: every KKT scatter site locks each
+    // Canonical-column locking protocol: every KKT scatter site
+    // (DenseFunctionBase::kkt_fill_all and ::kkt_fill_hess) locks each
     // element's mutex on the slot's canonical column --
     // hven::solvers::kkt_canonical_lock_col(row, col), the smaller endpoint,
     // which is the same endpoint analyze_sparsity stores the physical slot
     // under. The clash detection below marks contested columns with that SAME
     // shared keying function, so cross-partition claimants of one physical slot
     // agree on the mutex BY CONSTRUCTION -- there is no per-site convention that
-    // can drift, and hence no runtime check. Writes within one partition need no
+    // can drift, and hence no runtime check (see kkt_canonical_lock_col's doc
+    // comment for the structural argument). Writes within one partition need no
     // mutual exclusion -- each partition's scatter runs serially on a single
     // thread (parallel_sequence dispatches one task per partition), and
     // single-partition problems take no locks at all (no column can be claimed
@@ -1449,7 +1460,6 @@ void hven::solvers::NonLinearProgram::scatter_full_x(ConstEigenRef<VectorXd> x_r
     }
 }
 
-// ---------------------------------------------------------------------------
 // THE EIGHT EVALUATION SHAPES
 //
 // Each shape is a PASS (the partitioned fan-out plus the internal-scratch
@@ -1462,9 +1472,7 @@ void hven::solvers::NonLinearProgram::scatter_full_x(ConstEigenRef<VectorXd> x_r
 //     its request names, and does NOT scatter the solver coefficients -- that
 //     step transfers to the consumer.
 //
-// The passes are the entries' former bodies verbatim: same calls, same order,
-// same zeroing. Nothing here evaluates anything an entry did not.
-// ---------------------------------------------------------------------------
+// A pass evaluates nothing its entry does not.
 
 void hven::solvers::NonLinearProgram::first_order_rhs_pass(double ObjScale,
                                                            ConstEigenRef<VectorXd> Xf,
@@ -1639,7 +1647,6 @@ void hven::solvers::NonLinearProgram::first_order_kkt_pass(
         val += this->vals_scratch_[i];
 }
 
-// ---------------------------------------------------------------------------
 // The eight entry points. Each is its pass plus its fills.
 //
 // Every one of them starts by turning the solver's iterate into the buffer the
@@ -1649,7 +1656,7 @@ void hven::solvers::NonLinearProgram::first_order_kkt_pass(
 // the pinned values in place. Nothing downstream can tell the difference, which
 // is why eliminated variables' contributions to constraint values and to the
 // surviving variables' derivatives need no handling of their own.
-// ---------------------------------------------------------------------------
+
 
 void hven::solvers::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X,
                                                ConstEigenRef<VectorXd> LE,
@@ -1747,10 +1754,6 @@ void hven::solvers::NonLinearProgram::eval_aug(
         this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
         [&] { this->fill_solver_coeffs(KKTmat); });
 }
-
-// ---------------------------------------------------------------------------
-// The contract's evaluation hooks
-// ---------------------------------------------------------------------------
 
 Eigen::Ref<const hven::solvers::NonLinearProgram::VectorXd>
 hven::solvers::NonLinearProgram::declaration_view(ConstEigenRef<VectorXd> x) {

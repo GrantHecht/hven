@@ -1,16 +1,12 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// Named InteriorPointSolver configuration presets: five mechanism-named globalization
-// configurations, each a pure Settings field assignment (no algorithm code is
-// touched). Evidence of record for the non-classic presets is the globalization
-// campaign's post-fixes evidence refresh,
-// docs/dev/analysis/2026-07-e2-fixes-evidence-refresh.md (cell hashes cited
-// per preset below); `classic` is the stock Settings{} baseline the campaign
-// was measured against, pinned here as literals rather than read off a
-// default-constructed Settings so this table keeps meaning even if a future
-// change moves the struct's own defaults (see the default-drift regression
-// test in tests/cpp/solvers/test_interior_point_solver_presets.cpp).
+// Named InteriorPointSolver configuration presets: five mechanism-named
+// globalization configurations, each a pure Settings field assignment (no
+// algorithm code is touched). `classic` is the stock Settings{} baseline,
+// pinned here as literals rather than read off a default-constructed Settings
+// so this table keeps its mechanism meaning even if a future change moves the
+// struct's own defaults.
 //
 // Every preset assigns exactly the same nine globalization fields (the full
 // set InteriorPointSolver::apply_preset() touches): acceptance_strategy_,
@@ -19,10 +15,11 @@
 // field (tolerances, iteration caps, QP parameters, ...) is read or written by
 // a preset.
 //
-// kInteriorPointSolverPresets drives both InteriorPointSolver::apply_preset()'s dispatch and the
-// valid- name list folded into its error message. The Python binding's docstring repeats the preset
-// names by hand rather than reading this table; a Python test pins that docstring against this
-// table so the two cannot drift apart unnoticed.
+// kInteriorPointSolverPresets drives both InteriorPointSolver::apply_preset()'s
+// dispatch and the valid-name list folded into its error message.
+//
+// The comparative figures below were measured on the consumer project's
+// example suite, against `classic` as the baseline.
 
 #pragma once
 
@@ -56,11 +53,7 @@ struct InteriorPointSolverPresetEntry {
 inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSolverPresets = {{
     // classic — the stock Settings{} baseline (bit-identical default path).
     // Pinned as literals (not read off Settings{}) so this preset keeps its
-    // mechanism meaning independent of the struct's own defaults; the
-    // default-drift tripwire test in test_interior_point_solver_presets.cpp compares this
-    // preset's result against a live default-constructed Settings and fails
-    // loudly if the two ever diverge, forcing a conscious decision instead of
-    // a silent behavior change.
+    // mechanism meaning independent of the struct's own defaults.
     {"classic", InteriorPointSolverPresetFields{
         /*acceptance_strategy_=*/AcceptanceStrategies::classic_merit,
         /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
@@ -73,10 +66,8 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
         /*watchdog_=*/false,
     }},
     // filter_l1 — filter acceptance + monitored governor + nested-l1
-    // restoration. The original campaign's sole leader and one of the three
-    // post-fixes co-leaders at 12/17 (evidence refresh, cell 62994231856d).
-    // Worst example-suite tail: +609% (DionysusLowThrust) at +31% aggregate
-    // iterations vs stock, median parity.
+    // restoration. Solved 12 of 17, at +31% aggregate iterations with median
+    // parity; worst tail +609% (DionysusLowThrust).
     {"filter_l1", InteriorPointSolverPresetFields{
         /*acceptance_strategy_=*/AcceptanceStrategies::filter,
         /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
@@ -90,11 +81,9 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     }},
     // soc_recovery_l1 — classic-merit acceptance + monitored governor +
     // proximal-regularization inertia + SOC(4) + recovery (extended
-    // backtrack(2) + watchdog) + nested-l1 restoration. A post-fixes
-    // co-leader at 12/17 (evidence refresh, cell 8417a47846c1); the
-    // composite recovery axis expands to ls_extended_iters=2 + watchdog=true.
-    // Flattest worst-case tail among the three co-leaders (+100%,
-    // OptimalDocking) at the highest aggregate cost (+42%).
+    // backtrack(2) + watchdog) + nested-l1 restoration. Solved 12 of 17, at
+    // the highest aggregate cost (+42%) and the flattest worst-case tail
+    // (+100%, OptimalDocking).
     {"soc_recovery_l1", InteriorPointSolverPresetFields{
         /*acceptance_strategy_=*/AcceptanceStrategies::classic_merit,
         /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
@@ -108,9 +97,8 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     }},
     // soc_proximal — classic-merit acceptance + monitored governor +
     // proximal-regularization inertia + SOC(4) + proximal-switch restoration
-    // (no l1 machinery). A post-fixes co-leader at 12/17 (evidence refresh,
-    // cell 8d8397c915b2); the lowest aggregate example-suite cost of the
-    // three co-leaders (+27%), worst tail +219% (MinimumTimeToClimb).
+    // (no l1 machinery). Solved 12 of 17, at the lowest aggregate cost (+27%);
+    // worst tail +219% (MinimumTimeToClimb).
     {"soc_proximal", InteriorPointSolverPresetFields{
         /*acceptance_strategy_=*/AcceptanceStrategies::classic_merit,
         /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
@@ -123,12 +111,10 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
         /*watchdog_=*/false,
     }},
     // merit_l1 — modernized merit acceptance (classic barrier governor, NOT
-    // monitored) + nested-l1 restoration. The matched-call section of the
-    // evidence refresh: 7+2 under module call shape, 8+2 under the matched
-    // (single-optimize()) shape, with zermelo's wrong-basin guess converging
-    // under the matched shape at iteration 40 to objective
-    // 1.7009270229362865 (the Ipopt-agreement reference) — the call-shape
-    // lever, not the acceptance mechanism, decides that problem's outcome.
+    // monitored) + nested-l1 restoration. Solved 7+2 under the module call
+    // shape and 8+2 under the matched (single-optimize()) shape: for zermelo's
+    // wrong-basin guess it is the call shape, not the acceptance mechanism,
+    // that decides the outcome.
     {"merit_l1", InteriorPointSolverPresetFields{
         /*acceptance_strategy_=*/AcceptanceStrategies::merit,
         /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,

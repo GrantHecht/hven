@@ -261,10 +261,12 @@ class RhsLocationTable {
                 "RhsLocationTable: {0} claim slots were published with no row array", size_));
         }
         for (int slot = 0; slot < size_; ++slot) {
-            // Same sentinel discipline as the KKT table's clash marks: every
-            // published mark is either the one sentinel (-1, dropped) a
-            // skipping filler recognizes, or an index genuinely in range. A
-            // stray negative belongs to neither set.
+            // Same sentinel discipline as the KKT table's clash marks, though
+            // NOT for the same reason -- the reason here is the weaker
+            // protocol, not the stronger one. Every published mark is either
+            // the one sentinel (-1, dropped) a skipping filler recognizes, or
+            // an index genuinely in range. A stray negative belongs to neither
+            // set.
             if (rows_[slot] < -1) {
                 throw std::invalid_argument(
                     fmt::format("RhsLocationTable: claim slot {0} maps to row {1}; the only "

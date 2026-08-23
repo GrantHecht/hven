@@ -166,21 +166,16 @@ void require_block_size(Eigen::Index actual, int declared, const char *what) {
 /// claimed at.
 ///
 /// The pairing is positional: the nth stored element this return iterates goes
-/// to the nth slot of the block. That is correct exactly while the return
-/// presents the same coordinates in the same order the claim pass recorded, and
-/// nothing else in this bridge establishes it -- a nonzero count cannot, and
-/// the model's invariance precondition is a statement about the coordinates a
-/// return carries. Two ways a conforming-looking return breaks the pairing, both
-/// caught here and neither visible to any other check: a return that iterates
-/// the same entries in a different order than the claim pass saw, and a pattern
-/// that moved one entry without changing the count. Unchecked, either sums a
-/// value into a location laid for a different coordinate, silently.
+/// to the nth slot of the block, which is correct exactly while the return
+/// presents the same coordinates in the same order the claim pass recorded.
+/// Nothing else in this bridge establishes that -- a nonzero count cannot see a
+/// reordering, nor one entry moved without a change in count, and either sums a
+/// value into a location laid for a different coordinate.
 ///
 /// The comparison is against the claim-time coordinates themselves, held per
-/// slot in the claim stream this bridge already publishes, so it costs the two
+/// slot in the claim stream this bridge already publishes, so it costs two
 /// integer loads per entry and no new storage. It reports the first offending
-/// entry and stops: the destination is already wrong at that point, and the
-/// remaining entries would report the same fault shifted.
+/// entry and stops.
 void scatter_matrix(const SpMatRM &matrix, const ClaimBlock &block, int row_offset,
                     const Eigen::VectorXi &claim_rows, const Eigen::VectorXi &claim_cols,
                     const char *callback, const KktScatterView &kkt) {
@@ -225,10 +220,6 @@ void accumulate_adjoint(const SpMatRM &jacobian, const Vec &multipliers, Vec &ou
 }
 
 } // namespace
-
-// ---------------------------------------------------------------------------
-// Construction and layout
-// ---------------------------------------------------------------------------
 
 NlpModelAggregate::NlpModelAggregate(std::shared_ptr<const NlpModel> model)
     : model_(std::move(model)) {
@@ -392,10 +383,6 @@ void NlpModelAggregate::set_evaluation_threads(int n) {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Staging and the model calls
-// ---------------------------------------------------------------------------
-
 const Vec &NlpModelAggregate::stage_point(const CandidatePoint &point, bool with_multipliers) {
     x_scratch_ = point.x_;
     if (with_multipliers) {
@@ -427,6 +414,7 @@ void NlpModelAggregate::evaluate_jacobians(const Vec &x) {
     // constant constraint -- claims nothing, and gating on claims would silently
     // skip a callback the request named. The block is evaluated because it has
     // rows; the fill then writes nothing because it claimed nothing.
+    //
     // Dimensions first, then the claim count: a matrix of the wrong shape is not
     // this model's block at all, and saying so names a plainer fault than a
     // nonzero count that happens to disagree.
@@ -457,10 +445,6 @@ void NlpModelAggregate::compose_adjoint_gradient() {
                            adjoint_scratch_);
     }
 }
-
-// ---------------------------------------------------------------------------
-// The contract's evaluation hooks
-// ---------------------------------------------------------------------------
 
 void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest request,
                                       KktScatterView kkt, RhsScatterView rhs) {

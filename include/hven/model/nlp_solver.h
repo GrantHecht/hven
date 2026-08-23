@@ -47,7 +47,8 @@ struct NLPSolver : OptimizationProblemBase {
     explicit NLPSolver(std::shared_ptr<NLPProblem> problem);
 
     /// @brief Transcribes now: builds the model, core and program and adopts
-    ///        the program. A failure leaves the previous state whole.
+    ///        the program. A failure leaves this solver retriable --
+    ///        do_transcription_ stays true and the next solve re-transcribes.
     void transcribe();
 
     hven::ConvergenceFlags solve(ConstEigenRef<Eigen::VectorXd> x0);
@@ -63,7 +64,9 @@ struct NLPSolver : OptimizationProblemBase {
     /// sign convention (L = obj_factor*f + lambda^T g). Zero for rows the
     /// classification dropped.
     ///
-    /// @throws std::runtime_error if no solve has run yet.
+    /// @throws std::runtime_error if the problem has not been transcribed, or if
+    ///         the solver's multiplier block is shorter than the transcribed row
+    ///         count.
     Eigen::VectorXd return_multipliers() const;
 
     // Jet-batch surface: the no-arg overloads reuse whatever is currently in

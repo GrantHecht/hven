@@ -7,12 +7,12 @@
 // derived from a model.
 //
 // The seam's boundary checks are about streams no in-tree provider can produce
-// -- a coordinate named twice inside one domain, blocks that overlap or arrive
-// out of order, a location past the end of the destination it addresses. A
-// provider that lays its own stream correctly cannot exercise any of them, so
-// the pins need a source whose stream is settable per test. This double
-// computes nothing: it accepts every evaluation and writes recognizable
-// markers, because what is under test is the lay, not the arithmetic.
+// -- a coordinate named twice inside one domain, blocks that overlap, a
+// location past the end of the destination it addresses. A provider that lays
+// its own stream correctly cannot exercise any of them, so the pins need a
+// source whose stream is settable per test. This double computes nothing: it
+// accepts every evaluation and writes recognizable markers, because what is
+// under test is the lay, not the arithmetic.
 
 #pragma once
 

@@ -3,11 +3,11 @@
 
 // AggregateDeclaration's special members and its boundary validation.
 //
-// Out of line for one reason: the declaration holds its piece lists BY VALUE,
-// and the header only declares the piece handle types. Defining the special
-// members here -- where the definitions are in scope -- is what lets a
-// consumer name, construct, inspect and validate a declaration without pulling
-// the piece machinery in behind it.
+// Out of line because the declaration holds its piece lists BY VALUE while the
+// header only declares the piece handle types: defining the special members
+// here, where the definitions are in scope, is what lets a consumer name,
+// construct, inspect and validate a declaration without pulling the piece
+// machinery in behind it.
 
 #include "hven/model/aggregate_declaration.h"
 
@@ -35,11 +35,14 @@ namespace {
 
 /// Rows the pieces of one block claim, summed over the block.
 ///
+/// @param pieces the block's pieces.
+/// @param which  the block's name, for the refusal message.
+/// @throws std::invalid_argument if the summed row count is past INT_MAX.
+///
 /// Accumulated at 64 bits and narrowed once, checked. Unreachable in any
-/// problem this engine can lay, and checked for the reason the laid piece
-/// counts are: an unchecked narrowing would wrap into a total that the
-/// row-count comparison below then accepts, turning an impossible input into a
-/// wrong answer instead of a refusal.
+/// problem this engine can lay, and checked anyway: an unchecked narrowing
+/// would wrap into a total the row-count comparison below then accepts, turning
+/// an impossible input into a wrong answer instead of a refusal.
 int declared_rows(const std::vector<ConstraintFunction> &pieces, const char *which) {
     std::int64_t rows = 0;
     for (const auto &piece : pieces) {
@@ -172,10 +175,9 @@ void AggregateDeclaration::validate() const {
     // conditional on the declaration having pieces at all. A provider that is
     // not a piece collection -- a bridge over a single model, say -- declares
     // none, and there is then no sum for the row counts to disagree with. Every
-    // other check in this routine always runs, which is what makes this boundary
-    // universal rather than one engine's description of itself. Coverage of a
-    // provider that should have declared pieces and did not is owned downstream,
-    // by its own claim pass.
+    // other check in this routine always runs. Coverage of a provider that
+    // should have declared pieces and did not is owned downstream, by its own
+    // claim pass.
     const bool has_pieces =
         !objectives_.empty() || !equality_constraints_.empty() || !inequality_constraints_.empty();
     if (has_pieces) {
@@ -202,18 +204,15 @@ void AggregateDeclaration::validate() const {
     // inversion involving an infinity is caught by the emptiness test below,
     // where max/min put it.
     //
-    // ONE CASE PASSES BOTH CHECKS, and it is recorded here rather than closed:
-    // equal non-finite bounds (lower == upper == +inf, or both -inf) are not
-    // inverted and do not intersect to nothing, so they reach the bound digest
-    // and hash as fixed with no finite side. The engine's own bound
-    // materializer accepts them identically -- the two boundaries agree, which
-    // is the property this validation exists to keep -- and the engine refuses
-    // them one step later, when a treatment is configured over the materialized
-    // bounds ("equal but non-finite bounds; a fixed variable needs a finite
-    // value", non_linear_program.cpp's configure_variable_treatment). Refusing
-    // them here instead would put this boundary ahead of the materializer it
-    // mirrors without closing the digest case anyway, since the digest is taken
-    // over the materialization rather than over this check.
+    // ONE CASE PASSES BOTH CHECKS DELIBERATELY: equal non-finite bounds
+    // (lower == upper == +inf, or both -inf) are neither inverted nor empty, so
+    // they reach the bound digest and hash as fixed with no finite side. The
+    // engine's own bound materializer accepts them identically -- the two
+    // boundaries agree, which is the property this validation exists to keep --
+    // and the engine refuses them one step later, when a treatment is
+    // configured over the materialized bounds ("equal but non-finite bounds; a
+    // fixed variable needs a finite value", non_linear_program.cpp's
+    // configure_variable_treatment).
     constexpr double kInf = std::numeric_limits<double>::infinity();
     for (const VariableBound &bound : variable_bounds_) {
         const bool lower_finite = bound.lower_ > -kInf && bound.lower_ < kInf;

@@ -726,7 +726,7 @@ void hven::solvers::InteriorPointSolver::apply_preset(std::string_view name) {
     }
 
     // Unrecognized name: fold the full valid-name list into the exception
-    // message (T6) rather than printing it separately -- kInteriorPointSolverPresets drives
+    // message rather than printing it separately -- kInteriorPointSolverPresets drives
     // this message directly; the Python binding's docstring repeats the names
     // by hand, and a Python test pins it against this table.
     std::string valid_names;

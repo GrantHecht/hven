@@ -275,19 +275,25 @@ struct NonLinearProgram : public NlpAggregate {
     /// configure_variable_treatment discards the rows and re-derives both from
     /// the replayed bounds.
     ///
-    /// EVERY REFUSAL IS THE DECLARATION'S OWN, and is made before anything
-    /// moves: a refused adoption leaves the problem on hand exactly as it was,
-    /// down to its layout, its stored declaration and its structure epoch.
+    /// EVERY REFUSAL IS MADE BEFORE ANYTHING MOVES: a refused adoption leaves
+    /// the problem on hand exactly as it was, down to its layout, its stored
+    /// declaration and its structure epoch.
     ///
     /// @param declaration the pieces, thread modes, dimensions, bounds and
     ///                    requested partition count to lay from; moved out of.
     /// @throws std::invalid_argument through @p declaration.validate() -- a
     ///         non-positive partition count, negative dimensions, piece row
-    ///         counts that do not sum to the declared row counts, an
-    ///         out-of-range bound index, a NaN bound, an inverted single record
-    ///         or an empty bound intersection; and a fixing-row count the tail
-    ///         of the equality list does not have one single-row piece each
-    ///         for.
+    ///         counts that do not sum to the declared row counts, a piece row
+    ///         sum past INT_MAX, an out-of-range bound index, a NaN bound, an
+    ///         inverted single record or an empty bound intersection; and a
+    ///         fixing-row count the tail of the equality list does not have one
+    ///         single-row piece each for.
+    /// @throws std::invalid_argument from this entry itself if the declaration
+    ///         carries no pieces but declares equality or inequality rows (this
+    ///         entry lays a problem out of its pieces); if a declared internal
+    ///         fixing row names other than exactly one constraint row; or if
+    ///         one names an equality row outside the [declared equality rows
+    ///         less the fixing-row count, declared equality rows) band.
     void adopt_declaration(AggregateDeclaration declaration);
 
     /// One staged variable-bound declaration, as handed to set_variable_bound.
@@ -378,7 +384,8 @@ struct NonLinearProgram : public NlpAggregate {
     // Identity fast path. With no fixed variables nothing is rewritten at all:
     // no output map is installed and no expansion buffer is built. The other two
     // treatments take that path throughout -- neither eliminates anything -- and
-    // differ only in what classification records: MakeConstraint appends one
+    // differ only in what classification records: MakeConstraint records no
+    // bound for the variable (it goes to the solver free) and appends one
     // internal equality row per fixed variable (re-laying the layout over the
     // widened row space), RelaxBounds records an ordinary relaxed bound pair
     // (changing nothing structural).
@@ -1229,26 +1236,24 @@ struct NonLinearProgram : public NlpAggregate {
     /// @brief Freezes the thread mode of every piece THIS LAYOUT HOLDS: the
     ///        three master lists and the partition copies taken from them.
     ///
-    /// Both halves, and after the partitioning rather than before it, so the
-    /// invariant is uniform -- a partition copy is a piece of a laid layout
-    /// exactly as its master is, and a copy taken before the freeze would
-    /// carry whatever marker its master happened to have at the time.
+    /// Every piece a laid layout holds carries the same marker, master and
+    /// partition copy alike.
     void freeze_laid_thread_modes();
 
-    /// @brief Writes the laid DIMENSIONS into the stored declaration: the three
-    ///        declared sizes, the adopted partition count and the three piece
-    ///        counts the size guard checks against.
+    /// @brief Writes the laid DIMENSIONS into the stored declaration -- the
+    ///        three declared sizes, the adopted partition count and the three
+    ///        piece counts the size guard checks against -- and freezes the
+    ///        laid thread modes with them.
+    /// @throws std::invalid_argument if a master piece list holds more pieces
+    ///         than an int can index.
     ///
-    /// Eager, while the piece lists and the bound records are not, and the
-    /// split is the point rather than an inconsistency: these are scalars, so
-    /// capturing them costs nothing, and three of them are read on EVERY
-    /// evaluation (the assemble entry checks the caller's blocks against them).
-    /// The partition count has to be captured because num_partitions_ is a
-    /// public member a consumer may write, and writing it changes nothing
-    /// structural until the next lay.
+    /// Eager, while the piece lists and the bound records are not: three of
+    /// these scalars are read on EVERY evaluation, and the partition count has
+    /// to be captured because num_partitions_ is a public member a consumer may
+    /// write, which changes nothing structural until the next lay.
     ///
     /// Called by rebuild_structures(), AFTER invalidate_laid_state() and never
-    /// before it -- see that member for why the order is load-bearing.
+    /// before it.
     void capture_laid_dimensions();
 
     /// @brief Fills the stored declaration's bound records from the laid bound
@@ -1262,16 +1267,10 @@ struct NonLinearProgram : public NlpAggregate {
     /// @brief Fills the stored declaration's three piece lists from the master
     ///        lists, if a lay has left that owing.
     ///
-    /// Idempotent, and a no-op once discharged.
-    ///
-    /// The lists are COPIES rather than views over the master lists, and that
-    /// is the declaration type's own decision rather than this provider's: an
-    /// AggregateDeclaration is a value over its pieces -- which is what makes a
-    /// layout a pure function of the declaration, and what lets a consumer MOVE
-    /// one in -- so a piece list of handles into somebody else's storage would
-    /// give that up for every consumer of the type. What this defers is WHEN
-    /// the copy is taken, not that it is taken: once per lay, on the first read
-    /// that needs it, instead of once per lay unconditionally.
+    /// Idempotent, and a no-op once discharged. The lists are COPIES rather
+    /// than views over the master lists; what is deferred is WHEN the copy is
+    /// taken, not that it is taken -- once per lay, on the first read that
+    /// needs it.
     ///
     /// The mutated-master-list case is refused before this runs -- see
     /// require_master_lists_unmoved(), which both public readers call first.
@@ -1284,10 +1283,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///         the list, both counts and the remedy.
     ///
     /// MUTATING THE MASTER LISTS AFTER A LAY, WITHOUT RE-LAYING, IS A CONTRACT
-    /// VIOLATION. The three lists are public members and a front end writes
-    /// them directly; the claim arrays, the claim digest and the row counts all
-    /// describe the lists AS LAID, so a list that has grown or shrunk since
-    /// then no longer describes the layout on hand.
+    /// VIOLATION.
     ///
     /// CALLED ON EVERY READ of declaration() and model_structure_key(),
     /// independently of whether the deferred copy is still owing, so the answer
@@ -1306,14 +1302,8 @@ struct NonLinearProgram : public NlpAggregate {
     ///
     /// RUNS FIRST, at the top of make_nlp() and at the top of
     /// rebuild_structures(), before any master list is touched and before any
-    /// eager scalar is written. Two invariants rest on that position:
-    ///
-    ///   * No reader ever sees new scalar dimensions beside old piece lists.
-    ///     Between this call and the epoch bump the lists are EMPTY.
-    ///   * A lay that throws part-way leaves the deferred state owing rather
-    ///     than leaving the previous lay's digests cached over half-replaced
-    ///     arrays. The next read re-derives it, and require_master_lists_unmoved()
-    ///     refuses the read if the master lists moved in the meantime.
+    /// eager scalar is written; between it and the epoch bump the declaration's
+    /// piece lists are EMPTY. Idempotent.
     void invalidate_laid_state();
 
     /// @brief The claim-structure conjunct of the structural key, digested on
