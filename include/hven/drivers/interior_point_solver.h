@@ -528,7 +528,13 @@ class InteriorPointSolver {
         // --- Solve outcome ---
         /// @brief Iterations taken by the most recent call.
         int iter_num_ = 0;
-        /// @brief Objective value at the returned point.
+        /// @brief Objective value at the returned point, on the CALLER's
+        ///        scale: f(x), never Settings::obj_scale_ * f(x).
+        ///
+        /// The solver minimizes the scaled objective and every evaluation it
+        /// takes reports the scaled value; the scale is divided back out once,
+        /// at the end of the call, so this field and the multiplier blocks
+        /// below describe the problem the caller posed.
         double obj_val_ = 0;
         /// @brief Convergence verdict of the most recent call.
         ConvergenceFlags converge_flag_ = ConvergenceFlags::NOTCONVERGED;
@@ -553,7 +559,9 @@ class InteriorPointSolver {
         FixedVariableTreatments fixed_variable_treatment_ = FixedVariableTreatments::MakeParameter;
 
         // --- Multipliers and constraints ---
-        /// @brief Equality-constraint multipliers at the returned point.
+        /// @brief Equality-constraint multipliers at the returned point, on
+        ///        the CALLER's scale -- against L = f + lambda_e^T cE +
+        ///        lambda_i^T cI - z, with no Settings::obj_scale_ factor.
         ///        Sized equal_cons_: the user's own declared equality rows,
         ///        PLUS -- only under fixed_variable_treatment_ ==
         ///        MakeConstraint -- one internal fixing row per bound-fixed
@@ -565,13 +573,15 @@ class InteriorPointSolver {
         ///        multiplier block. eq_cons_ (below) shares the same shape and
         ///        the same treatment-dependent tail.
         Eigen::VectorXd eq_lmults_;
-        /// @brief Inequality-constraint multipliers at the returned point.
+        /// @brief Inequality-constraint multipliers at the returned point, on
+        ///        the caller's scale (see eq_lmults_).
         Eigen::VectorXd iq_lmults_;
         /// @brief Equality-constraint residuals at the returned point.
         Eigen::VectorXd eq_cons_;
         /// @brief Inequality-constraint residuals at the returned point.
         Eigen::VectorXd iq_cons_;
-        /// @brief Variable-bound multipliers (z) at the returned point, combining
+        /// @brief Variable-bound multipliers (z) at the returned point, on the
+        ///        caller's scale (see eq_lmults_), combining
         ///        BoundDualState's separate z_lower_/z_upper_ into the single
         ///        signed z that nlp_model.h's stationarity convention (and this
         ///        solver's own z-form dual-infeasibility residual,
@@ -1185,6 +1195,16 @@ class InteriorPointSolver {
     void set_qp_par_solve(int v);
     /// @brief Sets Settings::obj_scale_, the factor the objective is multiplied
     ///        by at evaluation.
+    ///
+    /// INTERNAL ONLY, in the sense that matters to a caller: the scale governs
+    /// what the solver minimizes and therefore which iterates it takes, but it
+    /// does not move what the solve REPORTS. SolveResult's objective value and
+    /// its three multiplier blocks are divided back out before they leave, and
+    /// a multiplier seed handed to set_initial_multipliers() is multiplied in
+    /// on the way through -- so both boundaries speak the caller's convention
+    /// and a seed round-tripped through a solve means the same thing at any
+    /// scale.
+    ///
     /// @param scale Dimensionless scale; any finite nonzero value is accepted.
     /// @throws std::invalid_argument if scale is not finite, or scale == 0.
     void set_obj_scale(double scale);
@@ -1328,6 +1348,11 @@ class InteriorPointSolver {
 
     /// Stages equality/inequality multiplier seeds for the next solve call
     /// (see the staged_* field contract above).
+    ///
+    /// The seeds are the CALLER's multipliers, on the convention SolveResult
+    /// reports in: Settings::obj_scale_ is multiplied in when they are
+    /// installed, so a seed taken from an earlier SolveResult means the same
+    /// thing whatever the scale is.
     void set_initial_multipliers(const Eigen::VectorXd &eq_mults, const Eigen::VectorXd &iq_mults) {
         this->staged_eq_mults_ = eq_mults;
         this->staged_iq_mults_ = iq_mults;
@@ -1450,6 +1475,16 @@ class InteriorPointSolver {
     // Called by set_nlp, and again at solve entry whenever the fixed-variable
     // configuration changed the size of the problem the solver factorizes.
     void refresh_nlp_dimensions();
+
+    /// @brief Divides Settings::obj_scale_ back out of the reported objective
+    ///        value and the three multiplier blocks, once per solve call.
+    ///
+    /// The solver minimizes obj_scale * f, so its multipliers and its reported
+    /// objective are the scaled problem's. What leaves this class is the
+    /// caller's problem: nlp_model.h's stationarity convention is stated at a
+    /// unit scale, and SolveResult's fields are read against it. A unit scale
+    /// -- the default -- returns without touching anything.
+    void unscale_reported_outputs();
 
     /// @brief Lays the KKT sparsity pattern into the assembly buffer, records
     ///        the structure epoch it was laid against, and schedules the

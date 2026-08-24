@@ -3431,11 +3431,21 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
     // of the equality row space (see validate_staged_multipliers and
     // install_fixed_variable_rows); a seed already sized to the
     // post-treatment count is installed as-is.
+    //
+    // THE SEED ARRIVES IN THE CALLER'S CONVENTION and is installed into the
+    // solver's, which is the same boundary unscale_reported_outputs() sits on
+    // read the other way: the caller's multipliers stand against L = f + ...,
+    // the solver's against L = obj_scale*f + ..., so the seed is multiplied
+    // by the scale on the way in. Scaled BEFORE the clamp, deliberately --
+    // the clamp bounds the magnitude the solver starts from, which is a
+    // statement about the solver's own space.
     const int user_eq = this->nlp_->user_equal_cons_;
+    const double scale = settings_.obj_scale_;
     KKTVector v_xsl = kkt_view(XSL);
     if (this->equal_cons_ > 0) {
-        Eigen::VectorXd clamped_eq =
-            eq_mults.cwiseMax(-kSeededMultInitMax).cwiseMin(kSeededMultInitMax);
+        Eigen::VectorXd clamped_eq = (scale == 1.0 ? eq_mults : Eigen::VectorXd(eq_mults * scale))
+                                         .cwiseMax(-kSeededMultInitMax)
+                                         .cwiseMin(kSeededMultInitMax);
         if (eq_mults.size() == this->equal_cons_) {
             v_xsl.eq_lmults() = clamped_eq;
         } else {
@@ -3446,8 +3456,40 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
         }
     }
     for (int i = 0; i < this->inequal_cons_; i++) {
-        v_xsl.iq_lmults()[i] = std::clamp(iq_mults[i], kSeededIqMultFloor, kSeededMultInitMax);
+        const double seeded = scale == 1.0 ? iq_mults[i] : iq_mults[i] * scale;
+        v_xsl.iq_lmults()[i] = std::clamp(seeded, kSeededIqMultFloor, kSeededMultInitMax);
     }
+}
+
+void hven::solvers::InteriorPointSolver::unscale_reported_outputs() {
+    // The solver minimizes obj_scale * f subject to the constraints, so its
+    // Lagrangian is L = s*f + lambda_e^T cE + lambda_i^T cI - z, and every
+    // quantity that stands in a stationarity relation with the objective
+    // carries the s. The objective VALUE carries it too: the evaluation the
+    // last phase reported is the scaled one, because the same request that
+    // produces it is the one the barrier work drives.
+    //
+    // What leaves this class is the caller's problem, not the scaled one --
+    // nlp_model.h's stationarity convention is stated at s = 1 -- so the
+    // reported objective and the three multiplier blocks are divided back out
+    // here. The primals are untouched: a positive scale does not move the
+    // minimizer. So are the constraint residuals, which never carried it.
+    //
+    // NOTHING IN THIS SOLVER READS THESE FIELDS BACK, which is what lets one
+    // division at the end stand in for scaling every write: alg_impl
+    // overwrites all four per phase and no phase, print, or globalization
+    // component consumes them.
+    const double scale = settings_.obj_scale_;
+    if (scale == 1.0) {
+        // The default, and the one case where the division would be the only
+        // floating-point operation on this path. Skipped so the default path
+        // is not merely bit-identical but arithmetically untouched.
+        return;
+    }
+    this->result_.obj_val_ /= scale;
+    this->result_.eq_lmults_ /= scale;
+    this->result_.iq_lmults_ /= scale;
+    this->result_.bound_lmults_ /= scale;
 }
 
 Eigen::VectorXd
@@ -3811,6 +3853,11 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         print_finished("InteriorPointSolver ");
         print_header();
     }
+
+    // THE OBJECTIVE-SCALE SEAM, and it sits here for the same reason the
+    // reinsertion seam below does: this is where the solve's outputs stop
+    // being the solver's and become the caller's.
+    this->unscale_reported_outputs();
 
     // THE reinsertion seam. Everything above ran in the solver's space; from
     // here on the solution is in the caller's, with each eliminated variable
