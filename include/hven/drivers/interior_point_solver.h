@@ -586,8 +586,14 @@ class InteriorPointSolver {
         ///        here (see the reinsertion-seam comment in
         ///        interior_point_solver.cpp's optimize()/solve() return path).
         ///        Empty when the problem has no finite variable bounds
-        ///        (bounds_ == nullptr for the whole solve); reset by set_nlp()
-        ///        so that stays true across reuse of one solver instance.
+        ///        (bounds_ == nullptr for the whole solve); reset alongside
+        ///        bounds_ itself everywhere it goes null -- set_nlp(),
+        ///        release(), and run_phase_sequence()'s entry (which also
+        ///        covers a fixed-variable-treatment switch or a caller's own
+        ///        clear_variable_bounds() call emptying the bound set on a
+        ///        reused solver instance with no intervening set_nlp()) -- so
+        ///        that stays true across every path that can drop the bound
+        ///        set, not just a fresh NLP.
         ///        Included in the return_best_ snapshot/restore
         ///        (best_bound_duals_scratch_) alongside primals_/eq_lmults_/
         ///        iq_lmults_, so a non-converged return_best_ exit reports this

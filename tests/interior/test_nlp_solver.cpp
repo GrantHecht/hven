@@ -476,6 +476,30 @@ TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
     }
 }
 
+// SolveResult::bound_lmults_ pin against the RelaxBounds -> MakeParameter
+// treatment switch: under RelaxBounds the fixed variable is NOT eliminated,
+// so it reaches the solver as a widened two-sided bound and bounds_lmults_
+// comes back non-empty; switched to MakeParameter on the SAME solver
+// instance (no intervening set_nlp()), the variable is eliminated instead,
+// bounds_ goes back to null, and bound_lmults_ must not still be reporting
+// the first solve's z at the old, now-mismatched primal_vars_ width.
+TEST(NLPSolverTest, BoundLmultsClearedAfterATreatmentSwitchDropsTheBoundSet) {
+    hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::RelaxBounds);
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 3.0;
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_GT(solver.optimizer_->result().bound_lmults_.size(), 0);
+
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::MakeParameter);
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimizer_->result().bound_lmults_.size(), 0);
+}
+
 // EqOnlyProblem plus a starting_multipliers() override that returns true and
 // seeds the exact solution multiplier (lambda = -2, see
 // EqualityMultiplierHasIpoptSign above) -- proves the seed reaches InteriorPointSolver and

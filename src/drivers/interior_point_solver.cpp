@@ -3508,7 +3508,21 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // after makes the success path the only one that can produce a non-null
     // bounds_. A set with nothing in it is left null, so "has variable-bound
     // barrier terms" and "bounds_ != nullptr" are the same question everywhere.
+    //
+    // result_.bound_lmults_ is cleared in step with it. bounds_ does not only
+    // go null via set_nlp()/release() -- a treatment switch on one solver
+    // instance (RelaxBounds, which records a widened bound pair for a
+    // bound-fixed variable, to MakeParameter/MakeConstraint, neither of which
+    // does) or a caller's own NonLinearProgram::clear_variable_bounds() call
+    // both reach configure_variable_treatment() below with a now-empty bound
+    // set, on the SAME solver instance, with no intervening set_nlp(). Without
+    // this reset the tail fill a few phases down (guarded on `this->bounds_`,
+    // with no else) would leave the PREVIOUS solve's z standing, silently
+    // wrong-length against the new primal_vars_ -- exactly what the field's
+    // own "empty when the problem has no finite variable bounds" doc promises
+    // cannot happen.
     this->bounds_ = nullptr;
+    this->result_.bound_lmults_.resize(0);
     // Recorded whether or not the call below rebuilds anything: configure_
     // variable_treatment either runs the requested treatment or throws, so
     // this is what ran for this solve regardless of the idempotence
