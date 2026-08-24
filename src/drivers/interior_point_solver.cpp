@@ -749,9 +749,13 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
     this->nlp_ = np;
     // Any bound set this solver was pointing at belonged to the previous NLP,
     // and the multipliers indexed it. The next solve's configuration step
-    // re-reads both.
+    // re-reads both. result_.bound_lmults_ is reset alongside them so a
+    // solver reused across a bounded NLP and then an unbounded one does not
+    // leave the previous solve's z standing (its "empty when no finite
+    // variable bounds" doc would otherwise not hold across that reuse).
     this->bounds_ = nullptr;
     this->bound_duals_ = BoundDualState{};
+    this->result_.bound_lmults_.resize(0);
     this->refresh_nlp_dimensions();
 
     // acceptance_/mechanism_/governor_/recovery_ are rebuilt from Settings by
@@ -1806,6 +1810,10 @@ void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &i
         BestCriteriaVal = critval;
         this->best_xsl_scratch_ = XSL;
         this->best_rhs_scratch_ = RHS;
+        // bound_duals_ carries no XSL/RHS-embedded counterpart, so it needs
+        // its own snapshot here -- see the note on best_bound_duals_scratch_'s
+        // declaration in the header.
+        this->best_bound_duals_scratch_ = this->bound_duals_;
         BestIter = i;
     }
 }
@@ -2219,6 +2227,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 if (settings_.return_best_) {
                     XSL = BestXSL;
                     RHS = BestRHS;
+                    this->bound_duals_ = this->best_bound_duals_scratch_;
                 }
                 // obj_val_ must describe the RETURNED primals: evaluate after the
                 // return_best_ substitution above (which may have replaced XSL),
@@ -2291,6 +2300,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             if (ExitCode != ConvergenceFlags::CONVERGED && settings_.return_best_) {
                 XSL = BestXSL;
                 RHS = BestRHS;
+                this->bound_duals_ = this->best_bound_duals_scratch_;
             }
 
             this->result_.converge_flag_ = ExitCode;
@@ -3055,6 +3065,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             if (ExitCode != ConvergenceFlags::CONVERGED && settings_.return_best_) {
                 XSL = BestXSL;
                 RHS = BestRHS;
+                this->bound_duals_ = this->best_bound_duals_scratch_;
             }
 
             this->result_.converge_flag_ = ExitCode;
@@ -3737,9 +3748,11 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // What is NOT expanded, deliberately: an eliminated variable's bound
     // multiplier is not reported. Its value is the stationarity residual in the
     // eliminated coordinate -- the gradient entry that the reduced problem
-    // simply has no row for -- and surfacing it belongs with the bound
-    // multipliers the barrier work introduces, which is where it will be
-    // computed alongside every other bound's.
+    // simply has no row for. result_.bound_lmults_ (the multipliers the
+    // barrier work introduces) is dense over the SOLVER's reduced space for
+    // exactly this reason: it has no row to report for an eliminated
+    // variable, so it is not expanded here alongside result_.primals_ -- see
+    // that field's own doc.
     if (this->nlp_->is_reduced()) {
         Eigen::VectorXd primals_full(this->full_primal_vars_);
         this->nlp_->scatter_full_x(result_.primals_, primals_full);

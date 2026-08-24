@@ -586,7 +586,13 @@ class InteriorPointSolver {
         ///        here (see the reinsertion-seam comment in
         ///        interior_point_solver.cpp's optimize()/solve() return path).
         ///        Empty when the problem has no finite variable bounds
-        ///        (bounds_ == nullptr for the whole solve).
+        ///        (bounds_ == nullptr for the whole solve); reset by set_nlp()
+        ///        so that stays true across reuse of one solver instance.
+        ///        Included in the return_best_ snapshot/restore
+        ///        (best_bound_duals_scratch_) alongside primals_/eq_lmults_/
+        ///        iq_lmults_, so a non-converged return_best_ exit reports this
+        ///        from the SAME best iterate as the rest of SolveResult, not
+        ///        the last one evaluated.
         Eigen::VectorXd bound_lmults_;
 
         // --- Timing (seconds) ---
@@ -1080,8 +1086,10 @@ class InteriorPointSolver {
     /// @param delta_h First perturbation magnitude.
     /// @param incr_h  Growth factor.
     /// @param decr_h  Decay factor.
-    /// @throws std::invalid_argument if delta_h <= 0, incr_h <= 1, or decr_h is
-    ///         outside the open interval (0, 1).
+    /// @throws std::invalid_argument unless delta_h > 0, incr_h > 1 and
+    ///         0 < decr_h < 1 -- delegates to set_delta_h/set_incr_h/
+    ///         set_decr_h, so a NaN in any argument fails that argument's
+    ///         test and is rejected, same as calling the individual setter.
     void set_hpert_params(double delta_h, double incr_h, double decr_h);
 
     /// @brief Sets Settings::print_level_, the console verbosity.
@@ -1434,6 +1442,13 @@ class InteriorPointSolver {
     // resize-on-assign is then a no-op once kkt_dim_ is stable across a solve.
     Eigen::VectorXd best_xsl_scratch_; ///< @internal alg_impl() return_best_ XSL snapshot.
     Eigen::VectorXd best_rhs_scratch_; ///< @internal alg_impl() return_best_ RHS snapshot.
+    // bound_duals_ (the z_lower_/z_upper_ pair SolveResult::bound_lmults_ is
+    // built from) has no XSL/RHS-carried counterpart -- it is separate solver
+    // state -- so the return_best_ substitution needs its own snapshot of it,
+    // taken and restored alongside best_xsl_scratch_/best_rhs_scratch_, or a
+    // non-converged return_best_ exit would report bound_lmults_ from the
+    // LAST iterate beside primals_/eq_lmults_/iq_lmults_ from the BEST one.
+    BoundDualState best_bound_duals_scratch_; ///< @internal return_best_ bound_duals_ snapshot.
 
     // Nested feasibility-restoration eval-seam scratch (all dead unless a
     // nested restoration strategy is active). The seam runs in the
@@ -1971,9 +1986,11 @@ class InteriorPointSolver {
     // Best-iterate bookkeeping for the return_best_ path (off by default). Scores
     // `iter` under best_criteria_ and, when it ties or beats the incumbent (or is
     // the phase's first iterate), snapshots XSL/RHS into best_xsl_scratch_/
-    // best_rhs_scratch_ and records the criterion value and iteration index. The
-    // return_best_ / restoration-active guard stays at the call sites, which
-    // differ in why they are reached; only the scoring and snapshot live here.
+    // best_rhs_scratch_, snapshots bound_duals_ into best_bound_duals_scratch_
+    // (the z pair has no XSL/RHS-carried counterpart), and records the
+    // criterion value and iteration index. The return_best_ / restoration-
+    // active guard stays at the call sites, which differ in why they are
+    // reached; only the scoring and snapshot live here.
     void track_best_iterate(const IterateInfo &iter, int i, const VectorXd &XSL,
                             const VectorXd &RHS, double &BestCriteriaVal, int &BestIter);
 
