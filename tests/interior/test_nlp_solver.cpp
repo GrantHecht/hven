@@ -686,6 +686,18 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
     }
+    try {
+        solver.set_bound_interval_push(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_interval_push"), std::string::npos);
+    }
+    try {
+        solver.set_bound_relax_factor(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_relax_factor"), std::string::npos);
+    }
 
     // set_hpert_params delegates to the three setters above, so a NaN in any
     // one argument is refused too -- naming that argument's own setter site,
@@ -741,6 +753,65 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+    }
+}
+
+// The other half of the twice-checked pairing: a NaN written directly through
+// the mutable settings() reference (bypassing the setter entirely) must still
+// be caught by Settings::validate(), one representative field per helper
+// family that has a numeric double-valued invariant.
+TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    {
+        hven::solvers::InteriorPointSolver solver; // pos_finite
+        solver.settings().kkt_tol_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("kkt_tol"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // in_open_unit
+        solver.settings().bound_fraction_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // greater_than
+        solver.settings().bound_push_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // in_open_interval
+        solver.settings().bound_interval_push_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_interval_push"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // in_closed_interval
+        solver.settings().bound_relax_factor_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_relax_factor"), std::string::npos);
+        }
     }
 }
 
