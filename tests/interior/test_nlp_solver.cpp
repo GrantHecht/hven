@@ -710,6 +710,40 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     }
 }
 
+// greater_than's four callers (bound_push, alpha_red, delta_h, incr_h) all
+// feed a magnitude or rate that downstream arithmetic uses directly, with no
+// "infinity means disabled" reading anywhere in the solver -- so +inf is
+// refused right alongside NaN, not just accepted as "greater than the bound".
+TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
+    hven::solvers::InteriorPointSolver solver;
+    const double inf = std::numeric_limits<double>::infinity();
+
+    try {
+        solver.set_bound_push(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
+    }
+    try {
+        solver.set_alpha_red(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
+    }
+    try {
+        solver.set_delta_h(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+    }
+    try {
+        solver.set_incr_h(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+    }
+}
+
 // A problem whose Hessian callback throws while armed. Transcription runs that
 // callback at the model's start point, so arming it makes transcribe() fault
 // partway through.

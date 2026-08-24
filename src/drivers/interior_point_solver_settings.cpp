@@ -75,10 +75,21 @@ void in_open_unit(double v, const char *name) {
         throw std::invalid_argument(fmt::format("{} must be in (0, 1), got {}", name, v));
 }
 
+// All four current callers (bound_push, alpha_red, delta_h, incr_h) feed a
+// magnitude/rate that downstream arithmetic uses directly -- an interior push
+// distance, a backtracking divisor applied as alpha /= v each rejected trial,
+// a Hessian-diagonal perturbation, and that perturbation's growth factor.
+// None of the four has an "infinity means disabled" reading anywhere in the
+// solver: bound_push=inf would push the initial iterate to infinity,
+// alpha_red=inf collapses backtracking to a single all-or-nothing trial
+// (alpha/inf == 0), and delta_h=inf or incr_h=inf puts an infinite entry on
+// the KKT diagonal on the very first perturbation/growth step. +inf is
+// therefore refused for all four, same as NaN -- this helper requires
+// finiteness, not just "greater than bound".
 void greater_than(double v, double bound, const char *name) {
-    if (!(v > bound))
+    if (!std::isfinite(v) || !(v > bound))
         throw std::invalid_argument(
-            fmt::format("{} must be greater than {}, got {}", name, bound, v));
+            fmt::format("{} must be finite and greater than {}, got {}", name, bound, v));
 }
 
 // The two range helpers are written as negated comparisons so that a NaN, which

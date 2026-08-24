@@ -1043,8 +1043,8 @@ class InteriorPointSolver {
     void set_bound_fraction(double bound_fraction);
     /// @brief Sets Settings::bound_push_, the absolute interior-push component.
     /// @param bound_push Dimensionless coefficient; must be positive.
-    /// @throws std::invalid_argument unless bound_push > 0; a NaN fails that
-    ///         test and is rejected.
+    /// @throws std::invalid_argument unless bound_push is finite and > 0; a
+    ///         NaN or +inf fails that test and is rejected.
     void set_bound_push(double bound_push);
     /// @brief Sets Settings::bound_interval_push_, the relative (two-sided)
     ///        interior-push component.
@@ -1067,20 +1067,24 @@ class InteriorPointSolver {
     void set_fixed_variable_treatment(FixedVariableTreatments treatment);
     /// @brief Sets Settings::alpha_red_, the backtracking step-reduction divisor.
     /// @param ared Divisor; must exceed 1 for the step to actually shrink.
-    /// @throws std::invalid_argument unless ared > 1; a NaN fails that test and
-    ///         is rejected.
+    /// @throws std::invalid_argument unless ared is finite and > 1; a NaN or
+    ///         +inf fails that test and is rejected -- +inf would collapse
+    ///         backtracking to a single all-or-nothing trial (alpha / inf ==
+    ///         0 after the first rejection).
     void set_alpha_red(double ared);
 
     /// @brief Sets Settings::delta_h_, the first Hessian-perturbation magnitude.
     /// @param delta_h Perturbation added to the Hessian diagonal; must be positive.
-    /// @throws std::invalid_argument unless delta_h > 0; a NaN fails that test
-    ///         and is rejected.
+    /// @throws std::invalid_argument unless delta_h is finite and > 0; a NaN
+    ///         or +inf fails that test and is rejected -- +inf would put an
+    ///         infinite entry on the KKT diagonal on the first perturbation.
     void set_delta_h(double delta_h);
     /// @brief Sets Settings::incr_h_, the Hessian-perturbation growth factor.
     /// @param incr_h Multiplier applied on each further perturbation; must
     ///        exceed 1.
-    /// @throws std::invalid_argument unless incr_h > 1; a NaN fails that test
-    ///         and is rejected.
+    /// @throws std::invalid_argument unless incr_h is finite and > 1; a NaN or
+    ///         +inf fails that test and is rejected -- +inf would put an
+    ///         infinite entry on the KKT diagonal on the first growth step.
     void set_incr_h(double incr_h);
     /// @brief Sets Settings::decr_h_, the Hessian-perturbation decay factor.
     /// @param decr_h Multiplier applied when the perturbation is relaxed, in the
@@ -1092,10 +1096,11 @@ class InteriorPointSolver {
     /// @param delta_h First perturbation magnitude.
     /// @param incr_h  Growth factor.
     /// @param decr_h  Decay factor.
-    /// @throws std::invalid_argument unless delta_h > 0, incr_h > 1 and
-    ///         0 < decr_h < 1 -- delegates to set_delta_h/set_incr_h/
-    ///         set_decr_h, so a NaN in any argument fails that argument's
-    ///         test and is rejected, same as calling the individual setter.
+    /// @throws std::invalid_argument unless delta_h is finite and > 0,
+    ///         incr_h is finite and > 1, and 0 < decr_h < 1 -- delegates to
+    ///         set_delta_h/set_incr_h/set_decr_h, so a NaN or (for the first
+    ///         two) a +inf in any argument fails that argument's test and is
+    ///         rejected, same as calling the individual setter.
     void set_hpert_params(double delta_h, double incr_h, double decr_h);
 
     /// @brief Sets Settings::print_level_, the console verbosity.
