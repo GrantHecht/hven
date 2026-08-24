@@ -165,8 +165,11 @@ TEST(NlpAdapterAllocationTest, TheCounterSeesEachInterposedAllocator) {
         return alloc_counter_hits;
     };
 
-    // Eigen's own path first: a dynamic vector, and a conservativeResize,
-    // which is what reaches realloc.
+    // Eigen's own path first: a dynamic vector, and a conservativeResize --
+    // Eigen's growth path that is LIKELY to reach realloc under the hood. This
+    // probe only asserts the counter fired at all, not which entry point it
+    // went through; the std::realloc probe a few lines down is what pins
+    // realloc specifically.
     Eigen::VectorXd probe;
     EXPECT_GT(count_of([&] { probe = Eigen::VectorXd::Zero(1024); }), 0u) << "Eigen allocation";
     EXPECT_DOUBLE_EQ(probe.sum(), 0.0);
