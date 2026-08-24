@@ -2,7 +2,10 @@ THIRD-PARTY NOTICE — Boost Software Library (Boost Software License 1.0)
 =========================================================================
 
 Boost-licensed code for CPU core-count detection has been incorporated into
-src/interior/utils/get_core_count.cpp. The code is used unchanged.
+src/interior/utils/get_core_count.cpp. Adapted from
+boost::thread::physical_concurrency (boostorg/thread, pthread/thread.cpp),
+modified to work without Boost -- see the file's own header comment for the
+specifics of what changed.
   Package:   Boost C++ Libraries
   Source:    https://www.boost.org/
   License:   Boost Software License, Version 1.0 (reproduced in full below)
