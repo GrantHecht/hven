@@ -26,6 +26,7 @@
 #include "hven/model/claim_space.h"
 #include "hven/model/nlp_aggregate.h"
 #include "hven/model/non_linear_program.h"
+#include "hven/model/structure_identity.h"
 #include "support/fake_aggregate.h"
 
 using hven::Vec;
@@ -1309,6 +1310,8 @@ void adopt_expect_same_declaration(const AggregateDeclaration &adopted,
     EXPECT_EQ(adopted.equality_rows_, source.equality_rows_);
     EXPECT_EQ(adopted.inequality_rows_, source.inequality_rows_);
     EXPECT_EQ(adopted.fixing_rows_, source.fixing_rows_);
+    EXPECT_EQ(adopted.equality_shared_row_overcount_, source.equality_shared_row_overcount_);
+    EXPECT_EQ(adopted.inequality_shared_row_overcount_, source.inequality_shared_row_overcount_);
     EXPECT_EQ(adopted.partition_count_, source.partition_count_);
     EXPECT_EQ(adopted.variable_bounds_, source.variable_bounds_);
     ASSERT_EQ(adopted.objectives_.size(), source.objectives_.size());
@@ -1665,4 +1668,122 @@ TEST(AggregateDeclarationValidation, RefusesAFixingRowCountThatIsNotPartOfTheEqu
 
     declaration.fixing_rows_ = 0;
     EXPECT_NO_THROW(declaration.validate());
+}
+
+// =============================================================================
+// The shared-row overcount
+//
+// A piece reports how many rows it claims, never which ones, so a provider
+// whose pieces accumulate into shared rows hands out more claimed rows than
+// its declared row space. The piece-sum conjunct is an EQUALITY against the
+// declared count PLUS a declared overcount, which keeps that provider
+// expressible without turning the conjunct into a floor a drifting piece list
+// could slip under.
+// =============================================================================
+
+namespace {
+
+/// A pieces-bearing declaration whose equality pieces claim more rows than the
+/// declaration states, by @p overlap -- the shape a provider with
+/// row-overlapping pieces produces. The pieces are untouched; only the
+/// declared row space and the stated excess move.
+AggregateDeclaration overcount_sharing_declaration(int overlap) {
+    auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
+    AggregateDeclaration declaration = laid->declaration();
+    declaration.equality_rows_ -= overlap;
+    declaration.equality_shared_row_overcount_ = overlap;
+    return declaration;
+}
+
+} // namespace
+
+TEST(AggregateDeclarationOvercount,
+     AcceptsPiecesThatClaimMoreRowsThanDeclaredWhenTheExcessIsStated) {
+    const AggregateDeclaration declaration = overcount_sharing_declaration(5);
+
+    const int claimed = kAdoptRows;
+    ASSERT_EQ(declaration.equality_rows_, claimed - 5);
+    ASSERT_EQ(declaration.equality_shared_row_overcount_, 5);
+
+    EXPECT_NO_THROW(declaration.validate());
+}
+
+TEST(AggregateDeclarationOvercount, RefusesTheSameSharingWithTheExcessUnstated) {
+    AggregateDeclaration declaration = overcount_sharing_declaration(5);
+    declaration.equality_shared_row_overcount_ = 0;
+
+    try {
+        declaration.validate();
+        FAIL() << "an unstated excess must be refused";
+    } catch (const std::invalid_argument &error) {
+        // Both numbers named, so the reader can see which one is wrong.
+        const std::string message = error.what();
+        EXPECT_NE(message.find(std::to_string(kAdoptRows)), std::string::npos) << message;
+        EXPECT_NE(message.find(std::to_string(kAdoptRows - 5)), std::string::npos) << message;
+        EXPECT_NE(message.find("overcount"), std::string::npos) << message;
+    }
+}
+
+TEST(AggregateDeclarationOvercount, RefusesAnExcessThatIsNotACount) {
+    AggregateDeclaration declaration = overcount_sharing_declaration(5);
+    declaration.equality_shared_row_overcount_ = -5;
+    declaration.equality_rows_ = kAdoptRows + 5;
+    EXPECT_THROW(declaration.validate(), std::invalid_argument);
+
+    // The inequality block carries its own, refused on its own terms.
+    AggregateDeclaration inequality_side = overcount_sharing_declaration(0);
+    inequality_side.inequality_shared_row_overcount_ = -1;
+    EXPECT_THROW(inequality_side.validate(), std::invalid_argument);
+}
+
+TEST(AggregateDeclarationOvercount, RefusesAnExcessOnADeclarationWithNoPieces) {
+    // A provider that is not a piece collection: no pieces, and the piece-sum
+    // conjunct is vacuous. An overcount there is an excess over nothing.
+    AggregateDeclaration declaration;
+    declaration.primal_vars_ = 4;
+    EXPECT_NO_THROW(declaration.validate());
+
+    declaration.equality_shared_row_overcount_ = 1;
+    EXPECT_THROW(declaration.validate(), std::invalid_argument);
+
+    declaration.equality_shared_row_overcount_ = 0;
+    declaration.inequality_shared_row_overcount_ = 1;
+    EXPECT_THROW(declaration.validate(), std::invalid_argument);
+}
+
+TEST(AggregateDeclarationOvercount, IsNotAStructuralKeyConjunct) {
+    auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
+    const AggregateDeclaration base = laid->declaration();
+
+    Eigen::VectorXi claim_rows(2);
+    Eigen::VectorXi claim_cols(2);
+    claim_rows << 0, 1;
+    claim_cols << 0, 1;
+
+    const std::uint64_t base_claim =
+        hven::solvers::claim_stream_digest(base, claim_rows, claim_cols);
+    const std::uint64_t base_bounds = hven::solvers::materialized_bound_digest(base);
+
+    // Both key conjuncts a declaration feeds are blind to the overcount, and
+    // blind to the fixing-row count in exactly the same way: the claim digest
+    // is taken over the declared dimensions and the claim stream, the bound
+    // digest over the materialized per-variable structure, and neither field
+    // appears in either.
+    AggregateDeclaration moved = base;
+    moved.equality_shared_row_overcount_ = 7;
+    moved.inequality_shared_row_overcount_ = 3;
+    EXPECT_EQ(hven::solvers::claim_stream_digest(moved, claim_rows, claim_cols), base_claim);
+    EXPECT_EQ(hven::solvers::materialized_bound_digest(moved), base_bounds);
+
+    AggregateDeclaration fixing_moved = base;
+    fixing_moved.fixing_rows_ = 1;
+    EXPECT_EQ(hven::solvers::claim_stream_digest(fixing_moved, claim_rows, claim_cols), base_claim);
+    EXPECT_EQ(hven::solvers::materialized_bound_digest(fixing_moved), base_bounds);
+
+    // The row COUNT is a conjunct, which is what makes the two fields' absence
+    // a statement rather than an accident: it is fed through the dimension
+    // preamble, so moving it moves the digest.
+    AggregateDeclaration rows_moved = base;
+    rows_moved.equality_rows_ += 1;
+    EXPECT_NE(hven::solvers::claim_stream_digest(rows_moved, claim_rows, claim_cols), base_claim);
 }

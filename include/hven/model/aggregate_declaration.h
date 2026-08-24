@@ -144,6 +144,46 @@ struct AggregateDeclaration {
     /// claims.
     int fixing_rows_ = 0;
 
+    /// @brief How many rows the equality pieces claim IN EXCESS of
+    ///        equality_rows_, because pieces share rows with each other.
+    ///
+    /// A piece reports how many rows it claims; it does not report WHICH rows,
+    /// and placement is assigned at lay. So a provider whose pieces
+    /// deliberately accumulate into shared rows -- an integrand summed across
+    /// several pieces into one constraint row is the shape that produces it --
+    /// hands out more claimed rows than the row space it declares, and the
+    /// difference is not recoverable from anything the declaration carries.
+    /// This states it: validate()'s piece-sum conjunct reads
+    /// `sum(piece rows) == equality_rows_ + this`, an EQUALITY rather than an
+    /// inequality, so a provider with row-overlapping pieces is expressible
+    /// and a piece list that has drifted by an unstated amount is still
+    /// refused.
+    ///
+    /// Zero for a provider whose pieces claim disjoint rows, which makes a
+    /// zero-overcount declaration exactly what it was before this field
+    /// existed.
+    ///
+    /// TRUSTED, on fixing_rows_'s footing and for the same reason: nothing at
+    /// this boundary can tell a shared row from a piece list that has drifted,
+    /// so a wrong count buys silence from the one conjunct that would have
+    /// caught the drift. Held non-negative, and legal only where the
+    /// declaration carries pieces at all -- with no pieces there is no sum for
+    /// an excess to be an excess OF.
+    ///
+    /// NOT A STRUCTURAL-KEY CONJUNCT, mirroring fixing_rows_: the key is taken
+    /// over the claim stream, the adopted partition count and the materialized
+    /// bound structure, and two declarations differing only in this field
+    /// describe the same laid system.
+    int equality_shared_row_overcount_ = 0;
+
+    /// @brief The inequality block's shared-row overcount, on exactly the
+    ///        terms equality_shared_row_overcount_ states.
+    ///
+    /// Per block rather than one number for both: the two conjuncts are
+    /// checked separately and a refusal names the block it is about, so one
+    /// block's overlap can never excuse the other block's drift.
+    int inequality_shared_row_overcount_ = 0;
+
     /// Requested partition count; the adopted count is returned by
     /// negotiate_partition_count() and governs layout and the structural key.
     int partition_count_ = 1;
@@ -178,13 +218,17 @@ struct AggregateDeclaration {
     ///         one single-row piece each for; a bound naming a variable the
     ///         declaration does not have; a NaN bound; a single record whose
     ///         two finite sides are inverted; a piece row count that does not
-    ///         sum to the declared row count; a bound history whose
-    ///         intersection is empty; a piece row sum past INT_MAX; and an
-    ///         equality piece count past INT_MAX.
+    ///         sum to the declared row count plus that block's declared
+    ///         shared-row overcount; a negative shared-row overcount; a
+    ///         non-zero shared-row overcount on a declaration with no pieces;
+    ///         a bound history whose intersection is empty; a piece row sum
+    ///         past INT_MAX; and an equality piece count past INT_MAX.
     ///
     /// The piece-sum checks run only when at least one list carries pieces --
     /// "no pieces" is a property of all three lists together, and empty lists
-    /// satisfy the sums vacuously.
+    /// satisfy the sums vacuously. The two shared-row overcounts are checked
+    /// for sign always and for legality against that same property: an excess
+    /// over a sum that is not being checked is a number with nothing to mean.
     ///
     /// Carve-out, in the safe direction: the engine's own bound materializer
     /// silently no-op-drops a fully unbounded record -- (-inf, +inf) narrows

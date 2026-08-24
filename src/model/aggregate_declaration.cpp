@@ -57,6 +57,45 @@ int declared_rows(const std::vector<ConstraintFunction> &pieces, const char *whi
     return static_cast<int>(rows);
 }
 
+/// The piece-sum conjunct for one constraint block, as an EQUALITY against the
+/// declared row count plus that block's declared shared-row overcount.
+///
+/// @param claimed   rows the block's pieces claim in total.
+/// @param declared  rows the declaration states for the block.
+/// @param overcount rows the pieces claim in excess because they share rows.
+/// @param which     the block's name, for the refusal message.
+/// @throws std::invalid_argument if the three do not balance.
+///
+/// KEPT AN EQUALITY rather than weakened to `claimed >= declared`. The excess
+/// is real and has to be expressible, but it is a number the provider knows
+/// and can state; an inequality would let a piece list that has drifted by any
+/// amount pass the one check that would have caught it. What the boundary
+/// cannot do is verify the stated excess -- see the field's own trust note --
+/// so the refusal names all three numbers and leaves the reader to see which
+/// one is wrong.
+void require_piece_sum(int claimed, int declared, int overcount, const char *which) {
+    // At 64 bits: `declared` and `overcount` are each in [0, INT_MAX] by the
+    // checks above, and their sum is not.
+    const std::int64_t expected =
+        static_cast<std::int64_t>(declared) + static_cast<std::int64_t>(overcount);
+    if (static_cast<std::int64_t>(claimed) != expected) {
+        throw std::invalid_argument(fmt::format(
+            "AggregateDeclaration: the {0} pieces claim {1} rows in total, but the declaration "
+            "states {2} {0} rows with a shared-row overcount of {3}, which is {4}",
+            which, claimed, declared, overcount, expected));
+    }
+}
+
+void require_no_overcount_without_pieces(int overcount, const char *which) {
+    if (overcount != 0) {
+        throw std::invalid_argument(
+            fmt::format("AggregateDeclaration: the {0} shared-row overcount is {1}, but the "
+                        "declaration carries no pieces at all; an overcount states how far a "
+                        "piece sum exceeds a declared row count, and there is no piece sum here",
+                        which, overcount));
+    }
+}
+
 void require_non_negative(int value, const char *what) {
     if (value < 0) {
         throw std::invalid_argument(
@@ -113,6 +152,8 @@ void AggregateDeclaration::validate() const {
     require_non_negative(primal_vars_, "the primal-variable count");
     require_non_negative(equality_rows_, "the equality-row count");
     require_non_negative(inequality_rows_, "the inequality-row count");
+    require_non_negative(equality_shared_row_overcount_, "the equality shared-row overcount");
+    require_non_negative(inequality_shared_row_overcount_, "the inequality shared-row overcount");
 
     // The fixing rows are a SUBSET of the declared equality rows: equality_rows_
     // is the row space as laid, and this says how many of those rows are the
@@ -181,21 +222,19 @@ void AggregateDeclaration::validate() const {
     const bool has_pieces =
         !objectives_.empty() || !equality_constraints_.empty() || !inequality_constraints_.empty();
     if (has_pieces) {
-        const int equality_claimed = declared_rows(equality_constraints_, "equality");
-        if (equality_claimed != equality_rows_) {
-            throw std::invalid_argument(fmt::format(
-                "AggregateDeclaration: the equality pieces claim {0} rows in total, but the "
-                "declaration states {1} equality rows",
-                equality_claimed, equality_rows_));
-        }
-
-        const int inequality_claimed = declared_rows(inequality_constraints_, "inequality");
-        if (inequality_claimed != inequality_rows_) {
-            throw std::invalid_argument(fmt::format(
-                "AggregateDeclaration: the inequality pieces claim {0} rows in total, but the "
-                "declaration states {1} inequality rows",
-                inequality_claimed, inequality_rows_));
-        }
+        require_piece_sum(declared_rows(equality_constraints_, "equality"), equality_rows_,
+                          equality_shared_row_overcount_, "equality");
+        require_piece_sum(declared_rows(inequality_constraints_, "inequality"), inequality_rows_,
+                          inequality_shared_row_overcount_, "inequality");
+    } else {
+        // An overcount is an excess over a piece sum, and there is no piece sum
+        // here. Refused rather than ignored: a provider that is not a piece
+        // collection has nothing to say about shared rows, so a non-zero value
+        // is a declaration built for a different provider's shape, and
+        // accepting it would leave the one conjunct that reads it switched off
+        // with no diagnostic anywhere.
+        require_no_overcount_without_pieces(equality_shared_row_overcount_, "equality");
+        require_no_overcount_without_pieces(inequality_shared_row_overcount_, "inequality");
     }
 
     // Per RECORD: a single declaration whose two finite sides are inverted is
