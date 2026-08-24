@@ -662,6 +662,28 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
     }
+
+    // set_hpert_params delegates to the three setters above, so a NaN in any
+    // one argument is refused too -- naming that argument's own setter site,
+    // since it is set_delta_h/set_incr_h/set_decr_h that actually throws.
+    try {
+        solver.set_hpert_params(nan, 8.0, 0.1);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+    }
+    try {
+        solver.set_hpert_params(1e-4, nan, 0.1);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+    }
+    try {
+        solver.set_hpert_params(1e-4, 8.0, nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
+    }
 }
 
 // A problem whose Hessian callback throws while armed. Transcription runs that
