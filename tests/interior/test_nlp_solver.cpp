@@ -459,7 +459,7 @@ TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
         x0 << 0.0, 3.0;
         ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
         EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
-                 hven::solvers::FixedVariableTreatments::MakeParameter);
+                  hven::solvers::FixedVariableTreatments::MakeParameter);
         EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0);
     }
     {
@@ -471,7 +471,7 @@ TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
         x0 << 0.0, 3.0;
         ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
         EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
-                 hven::solvers::FixedVariableTreatments::MakeConstraint);
+                  hven::solvers::FixedVariableTreatments::MakeConstraint);
         EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
     }
 }
