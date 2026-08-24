@@ -153,15 +153,19 @@ class NlpProblemModel final : public NlpModel {
     ///        declared multipliers.
     /// @param x The iterate.
     /// @param obj_scale The objective scale, passed through as obj_factor.
-    /// @param lambda_e Equality multipliers, or empty for all-zero.
-    /// @param lambda_i Inequality multipliers, or empty for all-zero.
+    /// @param lambda_e Equality multipliers, exactly me() entries; empty is
+    ///                    legal only where me() == 0.
+    /// @param lambda_i Inequality multipliers, exactly mi() entries; empty is
+    ///                    legal only where mi() == 0.
     /// @return The upper triangle, over the pattern the declared structure
     ///         defines, mirrored across the diagonal.
     /// @throws std::invalid_argument if @p x is not n() long, or if a
-    ///         multiplier block is neither empty nor exactly as long as the
-    ///         row count it stands for -- stricter than the adapter's own
-    ///         head-taking rule (nlp_adapter.h's refuse_short_multiplier_
-    ///         block, which accepts a block longer than its rows too).
+    ///         multiplier block is not exactly as long as the row count it
+    ///         stands for -- empty is legal only where that count is itself
+    ///         0, not a general shorthand for all-zero; stricter than the
+    ///         adapter's own head-taking rule (nlp_adapter.h's refuse_short_
+    ///         multiplier_block, which accepts a block longer than its rows,
+    ///         and treats empty as all-zero regardless of row count).
     SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
                       const Vec &lambda_i) const override;
 
@@ -204,15 +208,19 @@ class NlpProblemModel final : public NlpModel {
     ///        @p out.
     /// @param x The iterate.
     /// @param obj_scale The objective scale, passed through as obj_factor.
-    /// @param lambda_e Equality multipliers, or empty for all-zero.
-    /// @param lambda_i Inequality multipliers, or empty for all-zero.
+    /// @param lambda_e Equality multipliers, exactly me() entries; empty is
+    ///                    legal only where me() == 0.
+    /// @param lambda_i Inequality multipliers, exactly mi() entries; empty is
+    ///                    legal only where mi() == 0.
     /// @param out Filled over the pattern the declared structure defines,
     ///            compressed, mirrored across the diagonal.
     /// @throws std::invalid_argument if @p x is not n() long, or if a
-    ///         multiplier block is neither empty nor exactly as long as the
-    ///         row count it stands for -- stricter than the adapter's own
-    ///         head-taking rule (nlp_adapter.h's refuse_short_multiplier_
-    ///         block, which accepts a block longer than its rows too).
+    ///         multiplier block is not exactly as long as the row count it
+    ///         stands for -- empty is legal only where that count is itself
+    ///         0, not a general shorthand for all-zero; stricter than the
+    ///         adapter's own head-taking rule (nlp_adapter.h's refuse_short_
+    ///         multiplier_block, which accepts a block longer than its rows,
+    ///         and treats empty as all-zero regardless of row count).
     void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                             const Vec &lambda_i, SpMatRM &out) const override;
 
@@ -238,14 +246,17 @@ class NlpProblemModel final : public NlpModel {
     int num_declared_rows() const { return m_; }
 
     /// @brief Maps native multipliers onto the declared row space.
-    /// @param lambda_e Equality multipliers, or empty for all-zero.
-    /// @param lambda_i Inequality multipliers, or empty for all-zero.
+    /// @param lambda_e Equality multipliers, exactly me() entries; empty is
+    ///                    legal only where me() == 0.
+    /// @param lambda_i Inequality multipliers, exactly mi() entries; empty is
+    ///                    legal only where mi() == 0.
     /// @return One multiplier per declared row, Ipopt sign convention.
-    /// @throws std::invalid_argument if either multiplier block is neither
-    ///         empty nor exactly as long as the row count it stands for
-    ///         (me() for @p lambda_e, mi() for @p lambda_i) -- a block that is
-    ///         merely at least that long is not accepted; the two accepted
-    ///         sizes are 0 and exactly that count.
+    /// @throws std::invalid_argument if either multiplier block is not
+    ///         exactly as long as the row count it stands for (me() for
+    ///         @p lambda_e, mi() for @p lambda_i) -- a block merely at least
+    ///         that long is refused, and so is an empty block against a
+    ///         nonzero row count: empty is legal only where that count is
+    ///         itself 0, never a general shorthand for all-zero.
     Vec compose_user_multipliers(ConstEigenRef<Vec> lambda_e, ConstEigenRef<Vec> lambda_i) const;
 
     /// @brief Maps declared multipliers onto the native row spaces.
@@ -278,8 +289,12 @@ class NlpProblemModel final : public NlpModel {
     void build_jacobian_pattern();
     void build_hessian_pattern();
 
-    void compose_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e,
-                      ConstEigenRef<Vec> lambda_i) const;
+    // site names the public entry that reached this helper (eval_hess_in_place
+    // or compose_user_multipliers), so a refusal names which one the caller
+    // actually called -- mirroring nlp_adapter.h's refuse_short_multiplier_
+    // block, whose own site parameter serves the same purpose one layer up.
+    void compose_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e, ConstEigenRef<Vec> lambda_i,
+                      const char *site) const;
 
     void sync_x(const Vec &x) const;
     void refresh_g(const Vec &x) const;

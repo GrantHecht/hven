@@ -420,7 +420,7 @@ void NlpProblemModel::eval_jac_i_in_place(const Vec &x, SpMatRM &out) const {
 void NlpProblemModel::eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                                          const Vec &lambda_i, SpMatRM &out) const {
     this->sync_x(x);
-    this->compose_into(lambda_user_, lambda_e, lambda_i);
+    this->compose_into(lambda_user_, lambda_e, lambda_i, "eval_hess_in_place");
     if (hess_nnz_ > 0) {
         problem_->eval_hess(x_cache_, obj_scale, lambda_user_, hess_vals_);
     }
@@ -468,33 +468,40 @@ Vec NlpProblemModel::start_point() const {
 }
 
 void NlpProblemModel::compose_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e,
-                                   ConstEigenRef<Vec> lambda_i) const {
-    if (lambda_e.size() != 0 && lambda_e.size() != rows_.num_eq_) {
-        throw std::invalid_argument(
-            fmt::format("{}: {} equality multipliers were supplied for {} equality rows",
-                        problem_->name(), lambda_e.size(), rows_.num_eq_));
+                                   ConstEigenRef<Vec> lambda_i, const char *site) const {
+    // Exact length only, empty included: the symmetric rule with the chain
+    // surface (nlp_adapter.h's refuse_short_multiplier_block, which reads the
+    // head of a block at least as long as its rows) is that the model surface
+    // takes exactly its own row count. Empty is legal exactly where that count
+    // is itself 0 -- not a special case that means "all-zero" regardless of
+    // how many rows are actually hosted. A caller that wants all-zero
+    // multipliers on a model with rows passes that many zeros explicitly.
+    if (lambda_e.size() != rows_.num_eq_) {
+        throw std::invalid_argument(fmt::format(
+            "{}: {} refused {} equality multipliers for {} equality rows -- exactly that many "
+            "are accepted, empty included only when {} equality rows are hosted",
+            problem_->name(), site, lambda_e.size(), rows_.num_eq_, rows_.num_eq_));
     }
-    if (lambda_i.size() != 0 && lambda_i.size() != rows_.num_iq_) {
-        throw std::invalid_argument(
-            fmt::format("{}: {} inequality multipliers were supplied for {} inequality rows",
-                        problem_->name(), lambda_i.size(), rows_.num_iq_));
+    if (lambda_i.size() != rows_.num_iq_) {
+        throw std::invalid_argument(fmt::format(
+            "{}: {} refused {} inequality multipliers for {} inequality rows -- exactly that "
+            "many are accepted, empty included only when {} inequality rows are hosted",
+            problem_->name(), site, lambda_i.size(), rows_.num_iq_, rows_.num_iq_));
     }
     lambda_user.resize(m_);
     for (int r = 0; r < m_; r++) {
         switch (rows_.kinds_[r]) {
         case NLPRowKind::Equality:
-            lambda_user[r] = (lambda_e.size() > 0) ? lambda_e[rows_.eq_row_[r]] : 0.0;
+            lambda_user[r] = lambda_e[rows_.eq_row_[r]];
             break;
         case NLPRowKind::UpperBounded:
-            lambda_user[r] = (lambda_i.size() > 0) ? lambda_i[rows_.iq_upper_row_[r]] : 0.0;
+            lambda_user[r] = lambda_i[rows_.iq_upper_row_[r]];
             break;
         case NLPRowKind::LowerBounded:
-            lambda_user[r] = (lambda_i.size() > 0) ? -lambda_i[rows_.iq_lower_row_[r]] : 0.0;
+            lambda_user[r] = -lambda_i[rows_.iq_lower_row_[r]];
             break;
         case NLPRowKind::Range:
-            lambda_user[r] = (lambda_i.size() > 0) ? lambda_i[rows_.iq_upper_row_[r]] -
-                                                         lambda_i[rows_.iq_lower_row_[r]]
-                                                   : 0.0;
+            lambda_user[r] = lambda_i[rows_.iq_upper_row_[r]] - lambda_i[rows_.iq_lower_row_[r]];
             break;
         case NLPRowKind::Free:
             lambda_user[r] = 0.0;
@@ -506,7 +513,7 @@ void NlpProblemModel::compose_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e
 Vec NlpProblemModel::compose_user_multipliers(ConstEigenRef<Vec> lambda_e,
                                               ConstEigenRef<Vec> lambda_i) const {
     Vec lambda_user;
-    this->compose_into(lambda_user, lambda_e, lambda_i);
+    this->compose_into(lambda_user, lambda_e, lambda_i, "compose_user_multipliers");
     return lambda_user;
 }
 

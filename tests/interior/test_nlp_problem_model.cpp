@@ -239,10 +239,16 @@ TEST(NlpProblemModelTest, MultiplierShapesMapBothWays) {
     EXPECT_DOUBLE_EQ(lam[3], -1.0); // range: upper minus lower
     EXPECT_DOUBLE_EQ(lam[4], 0.0);  // a dropped row carries no multiplier
 
-    // Empty blocks mean all-zero, which is what a chain that never produced one
-    // hands over.
+    // The symmetric empty-block rule: this model hosts 1 equality and 4
+    // inequality rows, so an empty block for either is refused rather than
+    // read as all-zero -- empty is legal only where the row count is itself
+    // 0. An all-zero result still requires explicitly-sized zero vectors.
+    EXPECT_THROW(model.compose_user_multipliers(Eigen::VectorXd(), Eigen::VectorXd()),
+                 std::invalid_argument);
+    EXPECT_THROW(model.compose_user_multipliers(le, Eigen::VectorXd()), std::invalid_argument);
+    EXPECT_THROW(model.compose_user_multipliers(Eigen::VectorXd(), li), std::invalid_argument);
     const Eigen::VectorXd none =
-        model.compose_user_multipliers(Eigen::VectorXd(), Eigen::VectorXd());
+        model.compose_user_multipliers(Eigen::VectorXd::Zero(1), Eigen::VectorXd::Zero(4));
     EXPECT_EQ(none.size(), 5);
     EXPECT_DOUBLE_EQ(none.norm(), 0.0);
 
@@ -292,6 +298,37 @@ TEST(NlpProblemModelTest, MultiplierShapesMapBothWays) {
     Eigen::VectorXd wrong(4);
     wrong.setZero();
     EXPECT_THROW(model.split_user_multipliers(wrong, back_e, back_i), std::invalid_argument);
+}
+
+// The model surface's refusal names the entry it was reached through (unlike
+// the old, dropped "empty means all-zero" special case) and states rows
+// expected vs. what was actually given -- pinned through both public
+// entries that end up in compose_into: compose_user_multipliers directly,
+// and eval_hess (by value; delegates to eval_hess_in_place).
+TEST(NlpProblemModelTest, EmptyMultiplierBlockIsRefusedSiteNamedWhenRowsAreHosted) {
+    NlpProblemModel model(std::make_shared<NpmKindsProblem>());
+
+    try {
+        model.compose_user_multipliers(Eigen::VectorXd(), Eigen::VectorXd());
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("compose_user_multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("refused 0 equality multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("1 equality rows"), std::string::npos) << message;
+    }
+
+    Eigen::VectorXd x(2);
+    x << 0.3, -0.7;
+    try {
+        model.eval_hess(x, 1.0, Eigen::VectorXd(), Eigen::VectorXd());
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string message(e.what());
+        EXPECT_NE(message.find("eval_hess_in_place"), std::string::npos) << message;
+        EXPECT_NE(message.find("refused 0 equality multipliers"), std::string::npos) << message;
+        EXPECT_NE(message.find("1 equality rows"), std::string::npos) << message;
+    }
 }
 
 TEST(NlpProblemModelTest, TheDeclaredLowerTriangleBecomesTheNativeUpperTriangle) {
