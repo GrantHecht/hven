@@ -170,6 +170,75 @@ TEST(SymmetricFactor, FactorizeRejectsAForeignPattern) {
     EXPECT_EQ(factor.counters().analyze_count, 1) << "a rejected factorize must not re-analyze";
 }
 
+// The pattern guard is skippable BY DECLARATION, and the declaration changes
+// nothing but whether the guard ran: same numerics, same solve, same backend
+// counters -- only the guard counter separates the two calls.
+TEST(SymmetricFactor, AnAssumedPatternSkipsTheGuardAndNothingElse) {
+    const Mat dense = spd4();
+    const Vec x_exact = (Vec(4) << 1.0, 2.0, 3.0, 4.0).finished();
+    const Vec b = dense * x_exact;
+    const SpMatRM A = upper_csr(dense);
+
+    SymmetricFactor verified(default_options());
+    SymmetricFactor assumed(default_options());
+    verified.analyze(A);
+    assumed.analyze(A);
+
+    // analyze() takes a pattern hash of its own; neither engine has run the
+    // FACTORIZE guard yet.
+    EXPECT_EQ(verified.counters().pattern_verify_count, 0);
+    EXPECT_EQ(assumed.counters().pattern_verify_count, 0);
+
+    const FactorizeOutcome verified_out = verified.factorize(A);
+    const FactorizeOutcome assumed_out =
+        assumed.factorize(A, SymmetricFactor::PatternCheck::kAssumeAnalyzed);
+
+    ASSERT_EQ(verified_out.status, FactorizeOutcome::Status::kOk);
+    ASSERT_EQ(assumed_out.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(assumed_out.backend_code, verified_out.backend_code);
+    EXPECT_EQ(assumed_out.inertia.n_pos, verified_out.inertia.n_pos);
+    EXPECT_EQ(assumed_out.inertia.n_neg, verified_out.inertia.n_neg);
+
+    EXPECT_EQ(verified.counters().pattern_verify_count, 1);
+    EXPECT_EQ(assumed.counters().pattern_verify_count, 0)
+        << "a declared pattern is the whole point: no O(nnz) walk";
+
+    // Every other counter moves identically, so the skip is visible in exactly
+    // one place and nowhere else.
+    EXPECT_EQ(assumed.counters().factorize_count, verified.counters().factorize_count);
+    EXPECT_EQ(assumed.counters().analyze_count, verified.counters().analyze_count);
+    EXPECT_EQ(assumed.epoch(), verified.epoch());
+
+    // And the numbers the two engines produce are the same numbers, bit for
+    // bit -- the guard reads the matrix and decides whether to throw; it feeds
+    // nothing into the factorization.
+    Vec x_verified(4);
+    Vec x_assumed(4);
+    verified.solve(b, x_verified);
+    assumed.solve(b, x_assumed);
+    for (int i = 0; i < 4; ++i) {
+        EXPECT_EQ(x_assumed[i], x_verified[i]);
+    }
+}
+
+// The guard is not weakened for callers that do not opt out: the default
+// argument is the verifying one, so every existing call site is unchanged and
+// a foreign pattern is still refused.
+TEST(SymmetricFactor, TheGuardCounterCountsRejectedCallsToo) {
+    SymmetricFactor factor(default_options());
+    factor.analyze(upper_csr(spd4()));
+
+    Mat other = spd4();
+    other(0, 3) = 1.0;
+    other(3, 0) = 1.0;
+
+    EXPECT_THROW(factor.factorize(upper_csr(other)), std::invalid_argument);
+    EXPECT_EQ(factor.counters().pattern_verify_count, 1)
+        << "the guard ran -- that is why the call was rejected";
+    EXPECT_EQ(factor.counters().factorize_count, 0)
+        << "and the rejected call never reached the backend";
+}
+
 TEST(SymmetricFactor, MisuseOrderingThrows) {
     SymmetricFactor factor(default_options());
     const SpMatRM A = upper_csr(spd4());

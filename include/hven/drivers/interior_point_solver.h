@@ -888,6 +888,34 @@ class InteriorPointSolver {
     /// @brief Returns the log of absorbed NLP evaluation errors.
     const EvalErrorLog &eval_error_log() const { return eval_error_log_; }
 
+    /// @brief How many times this solver has laid and analyzed the KKT
+    ///        sparsity pattern, over this object's LIFETIME.
+    ///
+    /// Deliberately not a SolveResult field: that struct is reset per call,
+    /// and the question this answers -- did a second solve against unchanged
+    /// structures analyze again? -- is a cross-call one. Moves once per
+    /// set_nlp() and once more per solve entry that finds the structures
+    /// re-laid since the last analysis. release() returns it to zero along
+    /// with the analysis it counts.
+    Index kkt_analysis_count() const noexcept { return kkt_analysis_count_; }
+
+    /// @brief The KKT factor's linear-layer call counters, including the
+    ///        pattern-guard count that shows how many factorizations
+    ///        re-verified the sparsity pattern.
+    const KktFactorization::Counters &kkt_factor_counters() const { return kkt_sol_.counters(); }
+
+    /// @brief True when the assembly buffer's sparsity pattern is the one this
+    ///        solver's current analysis was laid against.
+    ///
+    /// The model owns the answer and this only asks it: an epoch equal to the
+    /// one recorded at the last analysis means no structural event has
+    /// happened since, and the pattern in the buffer is therefore the analyzed
+    /// one. False before the first analysis, and false over the whole span
+    /// between a re-lay and the analysis that answers it -- a span a caller can
+    /// open by renegotiating the partition count, or re-transcribing, between
+    /// two solves. The next solve entry closes it.
+    bool kkt_pattern_is_analyzed() const;
+
     // --- NLP management ---
     /// Sets (or replaces) the program this solver works on; also runs QP
     /// parameter setup.
@@ -1423,6 +1451,24 @@ class InteriorPointSolver {
     // configuration changed the size of the problem the solver factorizes.
     void refresh_nlp_dimensions();
 
+    /// @brief Lays the KKT sparsity pattern into the assembly buffer, records
+    ///        the structure epoch it was laid against, and schedules the
+    ///        symbolic analysis over it.
+    ///
+    /// THE ONE PLACE THIS SOLVER ANALYZES, so the epoch record and the
+    /// analysis cannot drift apart: every path that re-lays the pattern goes
+    /// through here, and none of them writes analyzed_structure_epoch_ itself.
+    void analyze_kkt_sparsity();
+
+    /// @brief The pattern-guard mode a numeric factorization runs under right
+    ///        now: kAssumeAnalyzed while kkt_pattern_is_analyzed() holds,
+    ///        kVerify otherwise.
+    ///
+    /// One epoch read per factorization in place of one full-KKT pattern hash
+    /// per factorization. The guard is not dropped -- it is moved onto the
+    /// signal that actually answers the question it asks.
+    KktFactorization::PatternCheck kkt_pattern_check() const;
+
     // --- Problem dimensions ---
     // primal_vars_ is the SOLVER's primal width: the NLP's variable count minus
     // the variables the fixed-variable treatment eliminated. Every vector this
@@ -1569,6 +1615,28 @@ class InteriorPointSolver {
     // evidence projection the inertia machinery reads (kkt_factorization.h).
     KktFactorization kkt_sol_;
     bool qp_analyzed_ = false;
+
+    // The structure epoch the KKT sparsity analysis was laid against, and
+    // whether there has been one at all.
+    //
+    // WHY AN EPOCH RATHER THAN THE OUTCOME OF THE TREATMENT CALL: a re-lay
+    // resets the NLP's location table to -1 and drops its analyzed-destination
+    // capture, and the treatment call reports only whether IT rebuilt
+    // anything. Every other structural event -- a partition renegotiation, a
+    // re-transcription, a declaration adoption replaying identical bounds --
+    // re-lays without moving treatment, relax factor or bounds revision, so
+    // the treatment call takes its idempotence shortcut and reports no change
+    // while the table it left behind names no destination at all. The epoch is
+    // the model's own record that its structures were re-laid, and it moves
+    // for all of them.
+    //
+    // Reset with the analysis it describes: release() drops both, and
+    // set_nlp() re-lays and re-records.
+    StructureEpoch analyzed_structure_epoch_;
+    bool has_analyzed_structure_epoch_ = false;
+
+    // Lifetime count of KKT sparsity analyses; see kkt_analysis_count().
+    Index kkt_analysis_count_ = 0;
 
     // --- Callbacks ---
     EarlyCallBackType early_callback_;

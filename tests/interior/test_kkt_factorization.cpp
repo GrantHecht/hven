@@ -77,6 +77,40 @@ TEST(KktFactorizationTest, RefactorizeReusesTheSymbolicAndTracksNewValues) {
     EXPECT_EQ(kkt.info(), Eigen::Success);
 }
 
+// The engine's own view of the same skip: compute() never re-walks the buffer
+// it just analyzed, and a refactorize told the pattern is the analyzed one
+// produces the same inertia as one that checks -- while the guard counter is
+// the only thing that separates them.
+TEST(KktFactorizationTest, AnAssumedPatternSkipsTheGuardAndReportsTheSameInertia) {
+    KktFactorization verified(mkl_like_options());
+    KktFactorization assumed(mkl_like_options());
+    verified.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    assumed.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+
+    verified.compute();
+    assumed.compute();
+
+    // compute() analyzes the buffer and then factorizes it, and the pattern
+    // hash the analysis took a statement earlier is the answer the guard would
+    // recompute -- so neither engine walks the buffer twice.
+    EXPECT_EQ(verified.counters().pattern_verify_count, 0);
+    EXPECT_EQ(assumed.counters().pattern_verify_count, 0);
+
+    verified.matrix().coeffRef(1, 1) = 5.0;
+    assumed.matrix().coeffRef(1, 1) = 5.0;
+
+    verified.refactorize();
+    assumed.refactorize(KktFactorization::PatternCheck::kAssumeAnalyzed);
+
+    EXPECT_EQ(verified.counters().pattern_verify_count, 1);
+    EXPECT_EQ(assumed.counters().pattern_verify_count, 0);
+
+    EXPECT_EQ(assumed.peigs(), verified.peigs());
+    EXPECT_EQ(assumed.neigs(), verified.neigs());
+    EXPECT_EQ(assumed.info(), verified.info());
+    EXPECT_EQ(assumed.counters().factorize_count, verified.counters().factorize_count);
+}
+
 TEST(KktFactorizationTest, SolveReturnsTheNewtonDirectionForTheAssembledSystem) {
     KktFactorization kkt(mkl_like_options());
     kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());

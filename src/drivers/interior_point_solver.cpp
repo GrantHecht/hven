@@ -261,6 +261,11 @@ bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
 void hven::solvers::InteriorPointSolver::release() {
     this->kkt_sol_.release();
     this->qp_analyzed_ = false;
+    // The analysis is gone, so the epoch describing it is too -- and the count
+    // of analyses this solver has run against a program it no longer holds.
+    this->has_analyzed_structure_epoch_ = false;
+    this->analyzed_structure_epoch_ = StructureEpoch{};
+    this->kkt_analysis_count_ = 0;
     // The bound set lives in the NLP being released; the multipliers indexed it.
     this->bounds_ = nullptr;
     this->bound_duals_ = BoundDualState{};
@@ -778,10 +783,44 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
 #endif
 
     // The pattern is laid out directly into the assembly buffer; the symbolic
-    // analysis over it runs at the next compute(), which qp_analyzed_ = false
-    // below is what schedules.
+    // analysis over it runs at the next compute(), which the qp_analyzed_ =
+    // false inside this call is what schedules.
+    this->analyze_kkt_sparsity();
+}
+
+void hven::solvers::InteriorPointSolver::analyze_kkt_sparsity() {
     this->nlp_->analyze_sparsity(this->kkt_sol_.matrix());
+
+    // Read AFTER the lay, not before: analyze_sparsity does not bump the
+    // epoch (only a re-lay does), so the two orders agree today -- and reading
+    // after is the one that stays correct if a future analysis path ever
+    // re-lays on its way through. What is recorded is the epoch the pattern
+    // now in the buffer belongs to.
+    this->analyzed_structure_epoch_ = this->nlp_->structure_epoch();
+    this->has_analyzed_structure_epoch_ = true;
+    ++this->kkt_analysis_count_;
+
+    // A new pattern in the assembly buffer: marking the analysis stale is what
+    // routes the entry factorization through compute(), so the backend
+    // symbolic is redone over it.
     this->qp_analyzed_ = false;
+}
+
+bool hven::solvers::InteriorPointSolver::kkt_pattern_is_analyzed() const {
+    return this->has_analyzed_structure_epoch_ && this->nlp_ != nullptr &&
+           this->nlp_->structure_epoch() == this->analyzed_structure_epoch_;
+}
+
+hven::solvers::KktFactorization::PatternCheck
+hven::solvers::InteriorPointSolver::kkt_pattern_check() const {
+    // Declared, not assumed: the same predicate the solve-entry re-analysis is
+    // gated on. When it holds, a re-lay since the analysis is impossible, so
+    // the buffer's pattern IS the analyzed one and the full-KKT hash the guard
+    // would take is a walk over the whole matrix to confirm it. When it does
+    // not hold, the guard runs -- which is what turns a stale-structure bug
+    // into a refusal instead of a factorization over the wrong symbolic.
+    return this->kkt_pattern_is_analyzed() ? KktFactorization::PatternCheck::kAssumeAnalyzed
+                                           : KktFactorization::PatternCheck::kVerify;
 }
 
 // (Re)builds the five globalization components from the CURRENT Settings
@@ -925,7 +964,7 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
             this->settings_.max_soc_ > 0 ? std::make_unique<SocRecovery>() : nullptr;
         std::unique_ptr<RecoveryChain> extended_link =
             this->settings_.ls_extended_iters_ > 0 ? std::make_unique<ExtendedBacktrackRecovery>()
-                                                    : nullptr;
+                                                   : nullptr;
         this->recovery_ =
             std::make_unique<ChainedRecovery>(std::move(soc_link), std::move(extended_link));
     } else {
@@ -1222,11 +1261,9 @@ void hven::solvers::InteriorPointSolver::enter_feasibility_restoration(
         this->resto_ic_scratch_ = v_rhs.iq_cons();
         double theta_orig = 0.0;
         if (this->equal_cons_ > 0)
-            theta_orig =
-                std::max(theta_orig, v_rhs.eq_cons().template lpNorm<Eigen::Infinity>());
+            theta_orig = std::max(theta_orig, v_rhs.eq_cons().template lpNorm<Eigen::Infinity>());
         if (this->inequal_cons_ > 0)
-            theta_orig =
-                std::max(theta_orig, v_rhs.iq_cons().template lpNorm<Eigen::Infinity>());
+            theta_orig = std::max(theta_orig, v_rhs.iq_cons().template lpNorm<Eigen::Infinity>());
         this->resto_theta_orig_prev_ = theta_orig;
 
         // Verified entry multiplier init. In this engine's slack-complementarity
@@ -1652,7 +1689,15 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
         }
     };
     auto Perturb = [&](double p) { this->nlp_->perturb_kkt_p_diags(p, this->kkt_sol_.matrix()); };
-    auto Refactor = [&]() { this->kkt_sol_.refactorize(); };
+    // The inertia ladder's refactorizations, of which there may be several per
+    // iteration, all run over one pattern: the ladder perturbs DIAGONAL values
+    // that the analysis already laid slots for, and nothing inside a solve can
+    // re-lay the model. The gate is the structure epoch all the same rather
+    // than that argument written out here -- it is the model's own signal, it
+    // is one atomic load, and it is the same signal the solve-entry
+    // re-analysis is gated on, so the two cannot come to different conclusions
+    // about whether the buffer holds the analyzed pattern.
+    auto Refactor = [&]() { this->kkt_sol_.refactorize(this->kkt_pattern_check()); };
     auto Compute = [&]() { this->kkt_sol_.compute(); };
     auto PerturbC = [&](double p) { this->nlp_->perturb_kkt_c_diags(p, this->kkt_sol_.matrix()); };
     // On-demand dual regularization (delta_c). dual_shift is the magnitude
@@ -1885,7 +1930,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     hven::utils::Timer Funtimer;
     hven::utils::Timer QPtimer;
     hven::utils::Timer CBtimer; // Callback time falls into misc_time_ implicitly (misc = total -
-                                 // pre - kkt - func - print)
+                                // pre - kkt - func - print)
     hven::utils::Timer Printtimer;
 
     double Hpert0 = settings_.delta_h_;
@@ -2653,9 +2698,8 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // max_primal_dual_step and are committed by apply_elastic_step below.
         if (nested_active) {
             KKTVector v_dxsl = kkt_view(DXSL);
-            this->restoration_->recover_elastic_steps(step_mu, v_xsl.eq_lmults(),
-                                                      v_xsl.iq_lmults(), v_dxsl.eq_lmults(),
-                                                      v_dxsl.iq_lmults());
+            this->restoration_->recover_elastic_steps(step_mu, v_xsl.eq_lmults(), v_xsl.iq_lmults(),
+                                                      v_dxsl.eq_lmults(), v_dxsl.iq_lmults());
         }
         QPtimer.stop();
 
@@ -3310,7 +3354,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
     if (docompute)
         this->kkt_sol_.compute();
     else
-        this->kkt_sol_.refactorize();
+        this->kkt_sol_.refactorize(this->kkt_pattern_check());
     kktt.stop();
 
     double pretime = double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
@@ -3501,6 +3545,19 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // matrix it was computed for no longer exists. A solver instance solving
     // repeatedly against unchanged bounds takes none of this.
     //
+    // THAT REPORT IS NOT THE WHOLE QUESTION, and the re-analysis below is
+    // therefore gated on the model's structure epoch as well. The treatment
+    // call reports only whether IT rebuilt anything, and takes an idempotence
+    // shortcut whenever treatment, relax factor and bounds revision are all
+    // unchanged. Every other structural event leaves those three alone: a
+    // partition renegotiation, a re-transcription, an adoption replaying
+    // identical bounds. Each of them re-lays -- which resets the NLP's KKT
+    // location table to -1 and drops its analyzed-destination capture -- and
+    // then reports no treatment change, so a gate reading only that report
+    // would carry a location table naming no destination into the next solve
+    // and scatter through it. The epoch moves for every re-lay, which is
+    // exactly the set of events this analysis has to answer.
+    //
     // The bound-set pointer is cleared FIRST and re-read only after the call
     // returns. A configuration that throws leaves a rejected classification
     // behind on the NLP, and a caller that catches it and solves again must not
@@ -3528,14 +3585,16 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // this is what ran for this solve regardless of the idempotence
     // short-circuit inside it.
     this->result_.fixed_variable_treatment_ = settings_.fixed_variable_treatment_;
-    if (this->nlp_->configure_variable_treatment(settings_.fixed_variable_treatment_,
-                                                 settings_.bound_relax_factor_)) {
+    const bool treatment_rebuilt = this->nlp_->configure_variable_treatment(
+        settings_.fixed_variable_treatment_, settings_.bound_relax_factor_);
+    if (treatment_rebuilt || !this->kkt_pattern_is_analyzed()) {
+        // Both conjuncts are kept rather than folded into the epoch test
+        // alone: a treatment that rebuilt anything re-laid, so the two agree
+        // on that path today, and reading the call's own report keeps the
+        // dimension refresh tied to the call that can change the dimensions
+        // rather than to a signal that merely correlates with it.
         this->refresh_nlp_dimensions();
-        // A new pattern in the assembly buffer; marking the analysis stale is
-        // what routes the entry factorization through compute() so the
-        // symbolic is redone over it.
-        this->nlp_->analyze_sparsity(this->kkt_sol_.matrix());
-        this->qp_analyzed_ = false;
+        this->analyze_kkt_sparsity();
     }
 
     // A staged seed is validated here, right after variable-treatment

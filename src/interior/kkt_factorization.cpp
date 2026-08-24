@@ -107,10 +107,15 @@ void KktFactorization::compute() {
         record_failed_factorization(hven::linear::FactorizeOutcome{});
         return;
     }
-    record(factor_.factorize(matrix_));
+    // The analysis above captured this exact buffer's pattern hash a
+    // statement ago, and nothing between the two touches the buffer, so
+    // re-walking it here would compare a value against itself.
+    record(factor_.factorize(matrix_, PatternCheck::kAssumeAnalyzed));
 }
 
-void KktFactorization::refactorize() { record(factor_.factorize(matrix_)); }
+void KktFactorization::refactorize(PatternCheck check) {
+    record(factor_.factorize(matrix_, check));
+}
 
 void KktFactorization::solve(ConstVecRef rhs, VecRef x) const { factor_.solve(rhs, x); }
 

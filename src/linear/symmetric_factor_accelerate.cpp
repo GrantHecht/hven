@@ -564,7 +564,7 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     ++counters_.analyze_count;
 }
 
-FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
+FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
     if (!has_pattern_ || !session_) {
         throw std::runtime_error("SymmetricFactor::factorize: called before analyze() (or before "
                                  "adopting a factorization that carries a symbolic analysis)");
@@ -576,13 +576,20 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
                         A.rows(), A.cols(), A.nonZeros()));
     }
 
-    const std::uint64_t hash = hven::pattern_hash(A);
-    if (hash != pattern_hash_) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor::factorize: the matrix's sparsity pattern (hash {:#018x}) is not the "
-            "analyzed one (hash {:#018x}) -- factorize() never re-analyzes; call analyze() for a "
-            "new pattern",
-            hash, pattern_hash_));
+    // The compressed-storage check above runs whatever `check` says: it is a
+    // property of the ARGUMENT this call is about to hand the backend, not a
+    // re-derivation of something the caller could have tracked. Only the
+    // O(nnz) pattern walk below is skippable, and skipping it is counted.
+    if (check == PatternCheck::kVerify) {
+        ++counters_.pattern_verify_count;
+        const std::uint64_t hash = hven::pattern_hash(A);
+        if (hash != pattern_hash_) {
+            throw std::invalid_argument(fmt::format(
+                "SymmetricFactor::factorize: the matrix's sparsity pattern (hash {:#018x}) is not "
+                "the analyzed one (hash {:#018x}) -- factorize() never re-analyzes; call analyze() "
+                "for a new pattern",
+                hash, pattern_hash_));
+        }
     }
 
     int backend_code;

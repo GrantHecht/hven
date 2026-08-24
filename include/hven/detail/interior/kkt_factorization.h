@@ -29,6 +29,16 @@ namespace hven::solvers {
 class KktFactorization {
   public:
     using Options = hven::linear::SymmetricFactor::Options;
+    using Counters = hven::linear::SymmetricFactor::Counters;
+
+    /// @brief Whether a numeric factorization still has to verify that the
+    ///        assembly buffer carries the analyzed sparsity pattern.
+    ///
+    /// The linear layer's own vocabulary, re-exported here so an engine that
+    /// knows its buffer's pattern is fixed can say so without naming
+    /// hven::linear at the call site. What passing kAssumeAnalyzed takes on
+    /// is stated once, on SymmetricFactor::PatternCheck.
+    using PatternCheck = hven::linear::SymmetricFactor::PatternCheck;
 
     /// Backend defaults. Nothing is analyzed or factorized until the engine
     /// configures this object and fills the matrix.
@@ -92,11 +102,26 @@ class KktFactorization {
     /// still throws.
     void compute();
 
-    /// Numeric factorization into the existing symbolic analysis. Throws if
-    /// there is none, or if the buffer's sparsity pattern is not the analyzed
-    /// one -- a pattern change is a caller error here, not a numeric outcome,
-    /// and its remedy is compute().
-    void refactorize();
+    /// @brief Numeric factorization into the existing symbolic analysis.
+    /// @param check  whether the buffer's pattern is verified against the
+    ///               analyzed one on this call, or declared to match it.
+    ///
+    /// Throws if there is no symbolic analysis, or -- under
+    /// PatternCheck::kVerify -- if the buffer's sparsity pattern is not the
+    /// analyzed one; a pattern change is a caller error here, not a numeric
+    /// outcome, and its remedy is compute().
+    ///
+    /// The verification is an O(nnz) walk of the whole KKT matrix, and this
+    /// call sits inside the inertia ladder, so on a solve it runs several
+    /// times per iteration. kAssumeAnalyzed is for an engine that can name
+    /// what keeps the pattern fixed between analyses -- the interior engine
+    /// gates it on the model's structure epoch, which is the model's own
+    /// signal that its structures have been re-laid.
+    void refactorize(PatternCheck check = PatternCheck::kVerify);
+
+    /// @brief The linear engine's call counters, including the pattern-guard
+    ///        count that makes a skipped verification observable.
+    const Counters &counters() const { return factor_.counters(); }
 
     /// Solve against the current factorization. `x` must already be sized.
     void solve(ConstVecRef rhs, VecRef x) const;
