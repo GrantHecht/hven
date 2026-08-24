@@ -49,7 +49,14 @@ const char *acceptance_strategy_name(hven::solvers::AcceptanceStrategies strateg
 // condition and report the identical message -- these six helpers (plus
 // check_fixed_variable_treatment further down, for the one non-numeric field
 // under the same twice-checked discipline) are the single home for that
-// pairing, so the two call sites cannot drift apart.
+// pairing, so the two call sites cannot drift apart. Every set_*() method
+// below that shares one of these six conditions calls the helper rather than
+// re-stating it -- the pos_finite family previously had ~18 setters
+// hand-duplicating its "finite and positive" check and message instead of
+// calling it, which made the "single home" claim above false for exactly the
+// largest field family in this file; all are routed through pos_finite() now
+// (message- and condition-identical, since the duplicated text was already a
+// verbatim copy of what pos_finite renders).
 void pos_finite(double v, const char *name) {
     if (!std::isfinite(v) || v <= 0.0)
         throw std::invalid_argument(
@@ -218,30 +225,22 @@ void hven::solvers::InteriorPointSolver::set_max_feas_rest(int max_feas_rest) {
 }
 
 void hven::solvers::InteriorPointSolver::set_kkt_tol(double kkt_tol) {
-    if (!std::isfinite(kkt_tol) || kkt_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("kkt_tol must be finite and positive, got {}", kkt_tol));
+    pos_finite(kkt_tol, "kkt_tol");
     settings_.kkt_tol_ = kkt_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_bar_tol(double bar_tol) {
-    if (!std::isfinite(bar_tol) || bar_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("bar_tol must be finite and positive, got {}", bar_tol));
+    pos_finite(bar_tol, "bar_tol");
     settings_.bar_tol_ = bar_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_econ_tol(double econ_tol) {
-    if (!std::isfinite(econ_tol) || econ_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("econ_tol must be finite and positive, got {}", econ_tol));
+    pos_finite(econ_tol, "econ_tol");
     settings_.econ_tol_ = econ_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_icon_tol(double icon_tol) {
-    if (!std::isfinite(icon_tol) || icon_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("icon_tol must be finite and positive, got {}", icon_tol));
+    pos_finite(icon_tol, "icon_tol");
     settings_.icon_tol_ = icon_tol;
 }
 
@@ -254,30 +253,22 @@ void hven::solvers::InteriorPointSolver::set_tols(double kkt_tol, double econ_to
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_kkt_tol(double acc_kkt_tol) {
-    if (!std::isfinite(acc_kkt_tol) || acc_kkt_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_kkt_tol must be finite and positive, got {}", acc_kkt_tol));
+    pos_finite(acc_kkt_tol, "acc_kkt_tol");
     settings_.acc_kkt_tol_ = acc_kkt_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_bar_tol(double acc_bar_tol) {
-    if (!std::isfinite(acc_bar_tol) || acc_bar_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_bar_tol must be finite and positive, got {}", acc_bar_tol));
+    pos_finite(acc_bar_tol, "acc_bar_tol");
     settings_.acc_bar_tol_ = acc_bar_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_econ_tol(double acc_econ_tol) {
-    if (!std::isfinite(acc_econ_tol) || acc_econ_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_econ_tol must be finite and positive, got {}", acc_econ_tol));
+    pos_finite(acc_econ_tol, "acc_econ_tol");
     settings_.acc_econ_tol_ = acc_econ_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_icon_tol(double acc_icon_tol) {
-    if (!std::isfinite(acc_icon_tol) || acc_icon_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_icon_tol must be finite and positive, got {}", acc_icon_tol));
+    pos_finite(acc_icon_tol, "acc_icon_tol");
     settings_.acc_icon_tol_ = acc_icon_tol;
 }
 
@@ -290,30 +281,22 @@ void hven::solvers::InteriorPointSolver::set_acc_tols(double acc_kkt_tol, double
 }
 
 void hven::solvers::InteriorPointSolver::set_div_kkt_tol(double div_kkt_tol) {
-    if (!std::isfinite(div_kkt_tol) || div_kkt_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_kkt_tol must be finite and positive, got {}", div_kkt_tol));
+    pos_finite(div_kkt_tol, "div_kkt_tol");
     settings_.div_kkt_tol_ = div_kkt_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_div_bar_tol(double div_bar_tol) {
-    if (!std::isfinite(div_bar_tol) || div_bar_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_bar_tol must be finite and positive, got {}", div_bar_tol));
+    pos_finite(div_bar_tol, "div_bar_tol");
     settings_.div_bar_tol_ = div_bar_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_div_econ_tol(double div_econ_tol) {
-    if (!std::isfinite(div_econ_tol) || div_econ_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_econ_tol must be finite and positive, got {}", div_econ_tol));
+    pos_finite(div_econ_tol, "div_econ_tol");
     settings_.div_econ_tol_ = div_econ_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_div_icon_tol(double div_icon_tol) {
-    if (!std::isfinite(div_icon_tol) || div_icon_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_icon_tol must be finite and positive, got {}", div_icon_tol));
+    pos_finite(div_icon_tol, "div_icon_tol");
     settings_.div_icon_tol_ = div_icon_tol;
 }
 
@@ -435,42 +418,33 @@ void hven::solvers::InteriorPointSolver::set_best_criteria(const std::string &st
 
 #ifdef USE_ACCELERATE_SPARSE
 void hven::solvers::InteriorPointSolver::set_accel_pivot_tolerance(double tol) {
-    if (!std::isfinite(tol) || tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("accel_pivot_tolerance must be finite and positive, got {}", tol));
+    pos_finite(tol, "accel_pivot_tolerance");
     settings_.accel_pivot_tolerance_ = tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_accel_zero_tolerance(double tol) {
-    if (!std::isfinite(tol) || tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("accel_zero_tolerance must be finite and positive, got {}", tol));
+    pos_finite(tol, "accel_zero_tolerance");
     settings_.accel_zero_tolerance_ = tol;
 }
 #endif
 
 void hven::solvers::InteriorPointSolver::set_init_mu(double mu) {
-    if (!std::isfinite(mu) || mu <= 0.0)
-        throw std::invalid_argument(fmt::format("init_mu must be finite and positive, got {}", mu));
+    pos_finite(mu, "init_mu");
     settings_.init_mu_ = mu;
 }
 
 void hven::solvers::InteriorPointSolver::set_min_mu(double mu) {
-    if (!std::isfinite(mu) || mu <= 0.0)
-        throw std::invalid_argument(fmt::format("min_mu must be finite and positive, got {}", mu));
+    pos_finite(mu, "min_mu");
     settings_.min_mu_ = mu;
 }
 
 void hven::solvers::InteriorPointSolver::set_max_mu(double mu) {
-    if (!std::isfinite(mu) || mu <= 0.0)
-        throw std::invalid_argument(fmt::format("max_mu must be finite and positive, got {}", mu));
+    pos_finite(mu, "max_mu");
     settings_.max_mu_ = mu;
 }
 
 void hven::solvers::InteriorPointSolver::set_neg_slack_reset(double val) {
-    if (!std::isfinite(val) || val <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("neg_slack_reset must be finite and positive, got {}", val));
+    pos_finite(val, "neg_slack_reset");
     settings_.neg_slack_reset_ = val;
 }
 
