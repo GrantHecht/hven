@@ -171,7 +171,10 @@ TEST(NlpAdapterAllocationTest, TheCounterSeesEachInterposedAllocator) {
     EXPECT_GT(count_of([&] { probe = Eigen::VectorXd::Zero(1024); }), 0u) << "Eigen allocation";
     EXPECT_DOUBLE_EQ(probe.sum(), 0.0);
     EXPECT_GT(count_of([&] { probe.conservativeResize(2048); }), 0u) << "conservativeResize";
-    EXPECT_DOUBLE_EQ(probe.sum(), 0.0);
+    // conservativeResize preserves the original entries but does not
+    // zero-initialize the newly grown tail, so only the original head is
+    // checked here.
+    EXPECT_DOUBLE_EQ(probe.head(1024).sum(), 0.0);
 
     void *block = nullptr;
     EXPECT_GT(count_of([&] { block = std::malloc(64); }), 0u) << "malloc";
