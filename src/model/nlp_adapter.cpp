@@ -268,9 +268,9 @@ void NLPAdapterCore::refuse_short_multiplier_block(Index actual, int rows, bool 
     // an equality and an inequality block. Naming the piece after the kind of
     // the SHORT block, rather than after this host's actual role, would claim
     // an identity the host may not have.
-    throw std::invalid_argument(fmt::format(
-        "{}: {} {} multipliers reached this host, which hosts {} {} rows (refused {})", name_,
-        actual, kind, rows, kind, site));
+    throw std::invalid_argument(
+        fmt::format("{}: {} {} multipliers reached this host, which hosts {} {} rows (refused {})",
+                    name_, actual, kind, rows, kind, site));
 }
 
 void NLPAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L) {
