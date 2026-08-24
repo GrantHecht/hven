@@ -479,14 +479,14 @@ void NlpProblemModel::compose_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e
     if (lambda_e.size() != rows_.num_eq_) {
         throw std::invalid_argument(fmt::format(
             "{}: {} refused {} equality multipliers for {} equality rows -- exactly that many "
-            "are accepted, empty included only when {} equality rows are hosted",
-            problem_->name(), site, lambda_e.size(), rows_.num_eq_, rows_.num_eq_));
+            "are accepted; empty is the exact length only when zero rows are hosted",
+            problem_->name(), site, lambda_e.size(), rows_.num_eq_));
     }
     if (lambda_i.size() != rows_.num_iq_) {
         throw std::invalid_argument(fmt::format(
             "{}: {} refused {} inequality multipliers for {} inequality rows -- exactly that "
-            "many are accepted, empty included only when {} inequality rows are hosted",
-            problem_->name(), site, lambda_i.size(), rows_.num_iq_, rows_.num_iq_));
+            "many are accepted; empty is the exact length only when zero rows are hosted",
+            problem_->name(), site, lambda_i.size(), rows_.num_iq_));
     }
     lambda_user.resize(m_);
     for (int r = 0; r < m_; r++) {
