@@ -46,8 +46,10 @@ const char *acceptance_strategy_name(hven::solvers::AcceptanceStrategies strateg
 // Settings::validate(): every numeric-field invariant below is checked twice
 // (once at the point of assignment, once again over the whole struct at
 // run_phase_sequence() entry), and both checks must enforce the identical
-// condition and report the identical message -- these four helpers are the
-// single home for that pairing, so the two call sites cannot drift apart.
+// condition and report the identical message -- these six helpers (plus
+// check_fixed_variable_treatment further down, for the one non-numeric field
+// under the same twice-checked discipline) are the single home for that
+// pairing, so the two call sites cannot drift apart.
 void pos_finite(double v, const char *name) {
     if (!std::isfinite(v) || v <= 0.0)
         throw std::invalid_argument(
@@ -519,9 +521,11 @@ void hven::solvers::InteriorPointSolver::set_obj_scale(double scale) {
 // Settings validation
 
 void hven::solvers::InteriorPointSolver::Settings::validate() const {
-    // pos_finite/pos_int/in_open_unit/greater_than are the file-scope helpers
-    // defined above (shared with the individual set_*() methods, so a field's
-    // invariant and message can never drift between the two call sites).
+    // pos_finite/pos_int/in_open_unit/greater_than/in_open_interval/
+    // in_closed_interval (plus check_fixed_variable_treatment, used below) are
+    // the file-scope helpers defined above (shared with the individual
+    // set_*() methods, so a field's invariant and message can never drift
+    // between the two call sites).
 
     // --- Iteration limits ---
     pos_int(max_iters_, "max_iters");
