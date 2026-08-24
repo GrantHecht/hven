@@ -3498,6 +3498,11 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // bounds_. A set with nothing in it is left null, so "has variable-bound
     // barrier terms" and "bounds_ != nullptr" are the same question everywhere.
     this->bounds_ = nullptr;
+    // Recorded whether or not the call below rebuilds anything: configure_
+    // variable_treatment either runs the requested treatment or throws, so
+    // this is what ran for this solve regardless of the idempotence
+    // short-circuit inside it.
+    this->result_.fixed_variable_treatment_ = settings_.fixed_variable_treatment_;
     if (this->nlp_->configure_variable_treatment(settings_.fixed_variable_treatment_,
                                                  settings_.bound_relax_factor_)) {
         this->refresh_nlp_dimensions();

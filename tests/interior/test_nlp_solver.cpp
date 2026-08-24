@@ -445,6 +445,37 @@ TEST(NLPSolverTest, FixedVariableSolvesExactlyAtItsFixedValue) {
     EXPECT_NEAR(x[1], 3.0, 1e-12);
 }
 
+// SolveResult::fixed_variable_treatment_ pin, using the same fixture: under
+// the default MakeParameter treatment the fixed variable is eliminated (no
+// row added), so eq_lmults_ stays empty; switched to MakeConstraint, the one
+// fixed variable becomes one internal fixing row, so eq_lmults_ grows to
+// exactly one entry -- pinning both the recorded treatment and the
+// treatment-dependent shape documented on eq_lmults_.
+TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
+    {
+        hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
+        solver.optimizer_->set_print_level(10);
+        Eigen::VectorXd x0(2);
+        x0 << 0.0, 3.0;
+        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+        EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
+                 hven::solvers::FixedVariableTreatments::MakeParameter);
+        EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0);
+    }
+    {
+        hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
+        solver.optimizer_->set_print_level(10);
+        solver.optimizer_->set_fixed_variable_treatment(
+            hven::solvers::FixedVariableTreatments::MakeConstraint);
+        Eigen::VectorXd x0(2);
+        x0 << 0.0, 3.0;
+        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+        EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
+                 hven::solvers::FixedVariableTreatments::MakeConstraint);
+        EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
+    }
+}
+
 // EqOnlyProblem plus a starting_multipliers() override that returns true and
 // seeds the exact solution multiplier (lambda = -2, see
 // EqualityMultiplierHasIpoptSign above) -- proves the seed reaches InteriorPointSolver and

@@ -537,8 +537,33 @@ class InteriorPointSolver {
         /// @brief Returned primal variables, in the caller's (full) space.
         Eigen::VectorXd primals_;
 
+        /// @brief Which Settings::fixed_variable_treatment_ this call actually
+        ///        ran under (MakeParameter, MakeConstraint or RelaxBounds; see
+        ///        NonLinearProgram::configure_variable_treatment). configure_
+        ///        variable_treatment never substitutes a different treatment
+        ///        than the one requested -- it either runs the requested one
+        ///        or throws -- so this always equals the Settings field's
+        ///        value at the time this call ran; it is recorded here so a
+        ///        caller reading a SolveResult later does not have to have
+        ///        kept its own copy of the setting to know which treatment
+        ///        produced eq_lmults_'s shape (see that field's own doc).
+        ///        Overwritten unconditionally by run_phase_sequence at the
+        ///        start of every solve/optimize call, whether or not the
+        ///        treatment actually changed anything on the NLP.
+        FixedVariableTreatments fixed_variable_treatment_ = FixedVariableTreatments::MakeParameter;
+
         // --- Multipliers and constraints ---
         /// @brief Equality-constraint multipliers at the returned point.
+        ///        Sized equal_cons_: the user's own declared equality rows,
+        ///        PLUS -- only under fixed_variable_treatment_ ==
+        ///        MakeConstraint -- one internal fixing row per bound-fixed
+        ///        variable, appended after the user's own rows (see
+        ///        NonLinearProgram's internal-fixing-row note and the
+        ///        reinsertion-seam comment at the end of this class's
+        ///        optimize()/solve()). Under MakeParameter or RelaxBounds no
+        ///        such rows exist, so this is exactly the user's own equality
+        ///        multiplier block. eq_cons_ (below) shares the same shape and
+        ///        the same treatment-dependent tail.
         Eigen::VectorXd eq_lmults_;
         /// @brief Inequality-constraint multipliers at the returned point.
         Eigen::VectorXd iq_lmults_;
@@ -744,7 +769,8 @@ class InteriorPointSolver {
         /// Resets the accumulated timing/iteration counters, the convergence
         /// flag, last_kkt_info_, the SOC/watchdog/recovery counters and every
         /// last_* diagnostic (including last_eval_exception_). primals_ and
-        /// obj_val_ are overwritten unconditionally by alg_impl each phase.
+        /// obj_val_ are overwritten unconditionally by alg_impl each phase, as
+        /// is fixed_variable_treatment_ by run_phase_sequence at call entry.
         /// eq_lmults_ and eq_cons_ are overwritten when equal_cons_ > 0;
         /// iq_lmults_ and iq_cons_ are overwritten when inequal_cons_ > 0;
         /// bound_lmults_ is overwritten when the solve has finite variable
