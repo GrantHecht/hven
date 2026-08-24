@@ -158,8 +158,10 @@ class NlpProblemModel final : public NlpModel {
     /// @return The upper triangle, over the pattern the declared structure
     ///         defines, mirrored across the diagonal.
     /// @throws std::invalid_argument if @p x is not n() long, or if a
-    ///         multiplier block is neither empty nor as long as the row count
-    ///         it stands for.
+    ///         multiplier block is neither empty nor exactly as long as the
+    ///         row count it stands for -- stricter than the adapter's own
+    ///         head-taking rule (nlp_adapter.h's refuse_short_multiplier_
+    ///         block, which accepts a block longer than its rows too).
     SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
                       const Vec &lambda_i) const override;
 
@@ -207,8 +209,10 @@ class NlpProblemModel final : public NlpModel {
     /// @param out Filled over the pattern the declared structure defines,
     ///            compressed, mirrored across the diagonal.
     /// @throws std::invalid_argument if @p x is not n() long, or if a
-    ///         multiplier block is neither empty nor as long as the row count
-    ///         it stands for.
+    ///         multiplier block is neither empty nor exactly as long as the
+    ///         row count it stands for -- stricter than the adapter's own
+    ///         head-taking rule (nlp_adapter.h's refuse_short_multiplier_
+    ///         block, which accepts a block longer than its rows too).
     void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                             const Vec &lambda_i, SpMatRM &out) const override;
 
