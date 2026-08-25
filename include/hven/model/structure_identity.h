@@ -29,12 +29,20 @@
 //
 //   * DeclarationKey is the PROBLEM-IDENTITY key, and the one the M5 warm-start
 //     currency stamps with. It is taken over the DECLARATION alone -- the
-//     dimensions a caller declared, the row structure of the pieces they
-//     declared, and the bound records -- and deliberately over nothing an
-//     engine or a policy decides. So it is the same value on both engines, and
-//     the same value under every fixed-variable treatment, for one declared
-//     problem. Staleness under this key is a DECLARATION change: the caller
-//     transcribed a different problem.
+//     dimensions a caller declared, with the fixed-variable treatment's own
+//     rows subtracted, and the declared bound STRUCTURE -- and deliberately
+//     over nothing an engine or a policy decides. So it is the same value on
+//     both engines, and the same value under every fixed-variable treatment,
+//     for one declared problem. Staleness under this key is a DECLARATION
+//     change: the caller transcribed a different problem.
+//
+//     READ THE EXCLUSIONS ON declaration_identity_digest BELOW BEFORE BUILDING
+//     AN ARGUMENT ON THIS KEY. It covers less than "the declared problem"
+//     suggests: the pieces' row structure is NOT hashed (it is not a
+//     cross-engine property of a declaration), and neither are bound VALUES --
+//     only which sides are finite and whether they coincide. Two declarations
+//     that agree on dimensions and on bound structure key the same even if
+//     their pieces, and their bound values, differ.
 //
 // A consumer wanting "may I reuse this factorization?" reads the first. A
 // consumer wanting "does this value describe the problem I am about to solve?"

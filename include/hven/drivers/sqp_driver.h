@@ -3336,12 +3336,20 @@ class SqpDriver {
     /// just rejected.
     ///
     /// WHAT A STAMP MISMATCH MEANS: the caller transcribed a DIFFERENT PROBLEM
-    /// -- different dimensions, different piece row structure, or a different
-    /// declared box. It does NOT mean a different engine and it does NOT mean
-    /// a different fixed-variable treatment: the stamp is the declaration key,
-    /// so a value the interior-point engine exported, under any treatment,
-    /// stages and applies here on the same declaration. That is the crossover,
-    /// and it is one composition rather than a conversion.
+    /// -- different declared dimensions, or a different declared bound
+    /// STRUCTURE (which sides are finite, and which variables are fixed). It
+    /// does NOT mean a different engine and it does NOT mean a different
+    /// fixed-variable treatment: the stamp is the declaration key, so a value
+    /// the interior-point engine exported, under any treatment, stages and
+    /// applies here on the same declaration. That is the crossover, and it is
+    /// one composition rather than a conversion.
+    ///
+    /// AND WHAT A MATCH DOES NOT PROMISE: the stamp hashes neither the pieces'
+    /// row structure nor bound VALUES, so a re-transcription that re-splits the
+    /// same rows, or that moves a finite bound without changing which sides are
+    /// finite, matches. warmstart/warm_start_data.h states the whole
+    /// guarantee, and model/structure_identity.h's
+    /// declaration_identity_digest argues each exclusion.
     ///
     /// NON-CONSUMING (R5): the argument is taken by const reference and
     /// copied. Staging the same value twice from the same cold state produces

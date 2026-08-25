@@ -3657,7 +3657,24 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
     // treatment -- none of which the value carries or a consumer could honour
     // (warmstart/warm_start_data.h's stamp note). declaration() materializes
     // the program's laid declaration, memoized per lay.
-    captured.structure_key_ = declaration_key(this->nlp_->declaration());
+    //
+    // UNDER THE SAME SKIP DISCIPLINE AS EVERY CHECK BELOW, and for the same
+    // reason this function does not throw at all: this is the one statement
+    // here that CALLS OUT of it, and both halves can refuse --
+    // declaration_key over its fixing-row split, and declaration() itself
+    // through require_master_lists_unmoved and the piece materialization's
+    // narrowing check. Neither is reachable from a laid, validated program
+    // today, but "a failed check skips the capture" is an absolute promise on
+    // this function's own note above, and a promise with one unguarded call at
+    // its head is not one. A throw here would destroy a converged result the
+    // caller was about to receive -- every caller, including the ones that
+    // never touch this surface -- to report a defect in a side product.
+    try {
+        captured.structure_key_ = declaration_key(this->nlp_->declaration());
+    } catch (const std::exception &) {
+        skip_capture();
+        return;
+    }
 
     // Already declared-space: the reinsertion seam above this call put every
     // eliminated variable back in its own coordinate at the value the
@@ -4255,9 +4272,10 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
             throw std::invalid_argument(fmt::format(
                 "InteriorPointSolver: the staged warm start was taken under declaration key "
                 "{0:#x} but the problem this solve binds keys {1:#x} -- the value describes a "
-                "different declared problem (dimensions, piece row structure, or bound "
-                "structure). The staged start is refused rather than silently dropped; re-export "
-                "and re-stage against the current declaration.",
+                "different declared problem. The key covers the declared dimensions (with the "
+                "fixed-variable treatment's own rows subtracted) and the declared bound "
+                "STRUCTURE, so one of those moved. The staged start is refused rather than "
+                "silently dropped; re-export and re-stage against the current declaration.",
                 warm.structure_key_.digest(), live.digest()));
         }
     }

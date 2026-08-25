@@ -1517,12 +1517,19 @@ class InteriorPointSolver {
     /// over. A caller wanting a second warm solve stages again.
     ///
     /// WHAT A STAMP MISMATCH MEANS HERE: the caller transcribed a DIFFERENT
-    /// PROBLEM -- different dimensions, different piece row structure, or a
-    /// different declared box. It does NOT mean a different fixed-variable
-    /// treatment or a different layout: the stamp is the declaration key, so a
-    /// value exported under one treatment stages and applies under another on
-    /// the same declaration, which is safe because the blocks are declared-space
-    /// and application ignores the coordinates an eliminating treatment holds.
+    /// PROBLEM -- different declared dimensions, or a different declared bound
+    /// STRUCTURE (which sides are finite, and which variables are fixed). It
+    /// does NOT mean a different fixed-variable treatment or a different
+    /// layout: the stamp is the declaration key, so a value exported under one
+    /// treatment stages and applies under another on the same declaration,
+    /// which is safe because the blocks are declared-space and application
+    /// ignores the coordinates an eliminating treatment holds.
+    ///
+    /// AND WHAT A MATCH DOES NOT PROMISE: the stamp hashes neither the pieces'
+    /// row structure nor bound VALUES, so a re-transcription that re-splits the
+    /// same rows, or that moves a finite bound without changing which sides are
+    /// finite, matches. warmstart/warm_start_data.h states the whole
+    /// guarantee.
     ///
     /// CHECKED HERE: every block's length against the declared dimensions, and
     /// finiteness. NOT checked here: the stamp -- it is compared once, at

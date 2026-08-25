@@ -45,11 +45,25 @@ struct WarmExtension {
 ///
 /// THE STAMP IS A DECLARATION-IDENTITY KEY (owner ruling, 2026-08-25, on M5
 /// W3's cross-engine evidence): a canonical digest of the DECLARED problem --
-/// its dimensions, its pieces' row structure, and its bound records --
-/// computed from the AggregateDeclaration both engines consume
-/// (model/structure_identity.h's declaration_key). It is therefore
-/// ENGINE-INDEPENDENT and TREATMENT-INDEPENDENT by construction, which is what
-/// makes one value mean the same thing at both ends of a hand-off.
+/// its dimensions, with the fixed-variable treatment's own rows subtracted,
+/// and its declared bound STRUCTURE -- computed from the AggregateDeclaration
+/// both engines consume (model/structure_identity.h's declaration_key). It is
+/// therefore ENGINE-INDEPENDENT and TREATMENT-INDEPENDENT by construction,
+/// which is what makes one value mean the same thing at both ends of a
+/// hand-off.
+///
+/// WHAT THE STAMP DOES NOT COVER, stated here because a consumer builds safety
+/// arguments on this field: the pieces' ROW STRUCTURE is not hashed (it is not
+/// a cross-engine property of a declaration -- see declaration_identity_digest
+/// for the measured reason), and bound VALUES are not hashed either, only
+/// which sides are finite and whether they coincide. So a re-transcription
+/// that splits the same rows across different pieces, or that moves a finite
+/// bound without changing which sides are finite, keys the SAME and stages
+/// with no refusal. That is deliberate -- moving a finite bound is the
+/// continuation flow this currency exists to serve -- and the cost is a
+/// possibly-poor starting point, never a wrong answer: every block a warm
+/// start supplies is re-measured by the receiving solve's own first
+/// convergence test.
 ///
 /// STALENESS IS A DECLARATION CHANGE -- the caller transcribed a different
 /// problem -- and nothing else. It is NOT an engine's layout state and NOT its

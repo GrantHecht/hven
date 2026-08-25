@@ -548,6 +548,42 @@ TEST(WarmStartSerialization, RefusesAVersionOnePayloadNamingBothVersions) {
     EXPECT_TRUE(mentions(message, "is 1")) << message;
     EXPECT_TRUE(mentions(message, "version 2")) << message;
     EXPECT_TRUE(mentions(message, "re-export")) << message;
+    EXPECT_TRUE(mentions(message, "pre-ruling layout stamp")) << message;
+}
+
+// AND THE v1 EXPLANATION IS ABOUT v1 ONLY. The refusal fires for every version
+// this build does not read, but "carries the pre-ruling layout stamp, cannot be
+// converted, re-export it" is a statement about ONE format. A payload from a
+// FUTURE version is the opposite situation -- the payload is fine and this
+// build is the old one -- and telling it the 2026-08-25 ruling's story would
+// send the reader to a ruling instead of to their toolchain. The v3
+// strengthening model/structure_identity.h names as the path forward is exactly
+// this case, so it is pinned before it exists.
+TEST(WarmStartSerialization, AVersionAboveThisBuildsIsNotBlamedOnThePreRulingStamp) {
+    std::vector<std::byte> bytes = frozen_bytes();
+    poke_u32(bytes, kVersionOffset, 3U);
+    const std::string message = refusal_message(bytes);
+    // Both versions, always.
+    EXPECT_TRUE(mentions(message, "byte offset 8")) << message;
+    EXPECT_TRUE(mentions(message, "is 3")) << message;
+    EXPECT_TRUE(mentions(message, "version 2")) << message;
+    // But not v1's story.
+    EXPECT_FALSE(mentions(message, "pre-ruling layout stamp")) << message;
+    EXPECT_FALSE(mentions(message, "re-export")) << message;
+    // The true one instead.
+    EXPECT_TRUE(mentions(message, "NEWER format")) << message;
+}
+
+// A version this project simply never wrote gets the two numbers and no story:
+// there is nothing true to add about it.
+TEST(WarmStartSerialization, AVersionZeroPayloadGetsTheNumbersAndNoStory) {
+    std::vector<std::byte> bytes = frozen_bytes();
+    poke_u32(bytes, kVersionOffset, 0U);
+    const std::string message = refusal_message(bytes);
+    EXPECT_TRUE(mentions(message, "is 0")) << message;
+    EXPECT_TRUE(mentions(message, "version 2")) << message;
+    EXPECT_FALSE(mentions(message, "pre-ruling layout stamp")) << message;
+    EXPECT_FALSE(mentions(message, "NEWER format")) << message;
 }
 
 // ---------------------------------------------------------------------------

@@ -240,7 +240,9 @@ WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const V
         throw std::invalid_argument(fmt::format(
             "to_sqp_warm_start: the warm-start value was taken under declaration key {0:#x} but "
             "the bounds handed in belong to a model keying {1:#x} -- the value describes a "
-            "different declared problem (dimensions, piece row structure, or bound structure)",
+            "different declared problem. The key covers the declared dimensions (with any "
+            "fixed-variable treatment's own rows subtracted) and the declared bound STRUCTURE, so "
+            "one of those moved",
             data.structure_key_.digest(), structure_key.digest()));
     }
 

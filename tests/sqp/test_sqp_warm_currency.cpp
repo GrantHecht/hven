@@ -440,6 +440,46 @@ TEST(SqpWarmCurrency, ASolveThatThrewIsNotACompletedSolve) {
     EXPECT_THROW((void)driver.export_warm_start(), std::logic_error);
 }
 
+// THE OTHER HALF OF THE SAME CONTRACT SENTENCE. "Completed" means a public
+// solve() that RETURNED, so a call that throws does not arm the export -- and,
+// symmetrically, it does not DISARM one an earlier call armed. A throw leaves
+// the last completed solve's payload standing, untouched, because the capture
+// is simply never reached.
+//
+// Worth its own pin rather than left to the implementation: the alternative
+// shape -- a throw clearing the export -- is the plausible one (it is what
+// stage_warm_start's own clears-first rule does to STAGED state), and a
+// consumer that solved, then hit a bad model, then exported would silently get
+// a refusal instead of the payload it was entitled to.
+TEST(SqpWarmCurrency, ASolveThatThrewLeavesAnEarlierExportStanding) {
+    class ShortBoxModel : public CurrencyModel {
+      public:
+        const Vec &lower() const override {
+            static const Vec l = Vec::Constant(2, -1.0);
+            return l;
+        }
+    } bad;
+
+    const auto good = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(good);
+
+    SqpDriver driver{SqpOptions{}};
+    const SqpSolution first = driver.solve(*bridge, good->start_point());
+    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    const WarmStartData after_first = driver.export_warm_start();
+
+    // A second solve that throws -- here at the declared-box validation, before
+    // the loop is ever entered.
+    EXPECT_THROW((void)driver.solve(bad), std::invalid_argument);
+
+    // The first solve's payload is still there, and is still the SAME value:
+    // not merely exportable, but unmodified.
+    const WarmStartData after_throw = driver.export_warm_start();
+    EXPECT_EQ(after_throw, after_first);
+    EXPECT_EQ(after_throw.primal_, first.x);
+    EXPECT_TRUE(after_throw.structure_key_ == declaration_key(bridge->declaration()));
+}
+
 // THE ROUND TRIP. The exported blocks are the solution's own vectors -- model
 // space IS declared space on this engine, so they are equal bit-for-bit, not
 // merely close -- at the model's declared widths, and the stamp is the key of
@@ -619,11 +659,14 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueAtTheWrongSizes) {
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
-// SAME SIZES, DIFFERENT DECLARED PROBLEM. The declared box moved -- one
-// variable's lower side went from finite to infinite -- which is a DECLARATION
-// change carried by the stamp's bound conjunct alone. The size check cannot see
-// it: only the stamp can, and only at solve entry, against the problem that call
-// binds. This is the pin for the refusal naming BOTH key digests.
+// SAME SIZES, DIFFERENT DECLARED PROBLEM. The declared bound STRUCTURE moved --
+// one variable's lower side went from finite to infinite -- which is a
+// DECLARATION change carried by the stamp's bound conjunct alone. Note it is
+// the STRUCTURE, not a value: moving a finite bound to another finite value
+// would NOT re-key (that is the continuation flow), which is why this fixture
+// changes finiteness rather than a number. The size check cannot see it: only
+// the stamp can, and only at solve entry, against the problem that call binds.
+// This is the pin for the refusal naming BOTH key digests.
 TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDigests) {
     const auto original = std::make_shared<CurrencyModel>(/*lower_x0_finite=*/true);
     const auto original_bridge = make_bridge(original);

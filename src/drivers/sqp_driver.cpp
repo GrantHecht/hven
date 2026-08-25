@@ -399,9 +399,28 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
     staged_warm_ = WarmStartData{};
     warm_staged_ = false;
 
-    // THE SIZES, against the problem THIS call binds -- the check that had
-    // nowhere to stand at staging time. Taken off the SEAM, whose dimensions are
-    // the declaration's as laid for this solve.
+    // THE DECLARATION THIS CALL BINDS, read ONCE and used by both checks below
+    // -- the sizes and the stamp have to be answered against the same reading,
+    // and on a provider whose declaration() does real work one reading is also
+    // the cheaper shape.
+    const AggregateDeclaration &declaration = bridge.declaration();
+
+    // THE SIZES, against that problem -- the check that had nowhere to stand at
+    // staging time.
+    //
+    // THE EQUALITY COUNT IS FIXING-ADJUSTED, matching what the stamp hashes and
+    // what the interior-point engine's own size check uses (its
+    // user_equal_cons_). A fixed-variable treatment's internal rows are the
+    // TREATMENT's, not the declaration's, and the currency does not carry them.
+    // Today every declaration this driver can bind comes from
+    // NlpModelAggregate, whose fixing_rows_ is 0 by construction, so the
+    // subtraction is inert and seam.me() would give the same number. It is
+    // written anyway because the alternative is a latent CONTRADICTION rather
+    // than a latent mismatch: a provider that did append fixing rows would pass
+    // the stamp check -- which subtracts them -- and then be refused on
+    // eq_lmults_ size, two refusals disagreeing about one declaration. The
+    // other three widths have no treatment that moves them.
+    const Index declared_eq = declaration.equality_rows_ - declaration.fixing_rows_;
     const auto check_size = [](const char *block, Index held, Index declared) {
         if (held != declared) {
             throw std::invalid_argument(fmt::format(
@@ -412,7 +431,7 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
         }
     };
     check_size("primal_", data.primal_.size(), seam.n());
-    check_size("eq_lmults_", data.eq_lmults_.size(), seam.me());
+    check_size("eq_lmults_", data.eq_lmults_.size(), declared_eq);
     check_size("iq_lmults_", data.iq_lmults_.size(), seam.mi());
     check_size("bound_lmults_", data.bound_lmults_.size(), seam.n());
 
@@ -428,16 +447,18 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
     // 2026-08-25 ruling (warm_start_data.h's stamp note, and
     // model/structure_identity.h's DeclarationKey/ModelStructureKey note).
     //
-    // Read off the BRIDGE's declaration, and read HERE rather than at staging:
-    // this is the first moment a declaration this solve binds exists.
-    const DeclarationKey live = declaration_key(bridge.declaration());
+    // Off the same declaration the sizes were answered against, and read HERE
+    // rather than at staging: this is the first moment a declaration this solve
+    // binds exists.
+    const DeclarationKey live = declaration_key(declaration);
     if (!(data.structure_key_ == live)) {
         throw std::invalid_argument(fmt::format(
             "SqpDriver::solve: the staged warm start was taken under declaration key {0:#x} but "
             "the problem this solve binds keys {1:#x} -- the value describes a different declared "
-            "problem (dimensions, piece row structure, or bound structure). The staged start is "
-            "refused rather than silently dropped; re-export and re-stage against the current "
-            "declaration.",
+            "problem. The key covers the declared dimensions (with any fixed-variable treatment's "
+            "own rows subtracted) and the declared bound STRUCTURE, so one of those moved. The "
+            "staged start is refused rather than silently dropped; re-export and re-stage against "
+            "the current declaration.",
             data.structure_key_.digest(), live.digest()));
     }
 
@@ -532,7 +553,23 @@ void SqpDriver::capture_completed_warm_start(const SqpSolution &out, const Aggre
     // two cannot stamp these blocks with a key they were never taken under.
     // THE DECLARATION KEY -- see the consume side above for why it is that one
     // and not the bridge's layout key.
-    captured.structure_key_ = declaration_key(bridge.declaration());
+    //
+    // UNDER THE SAME SKIP DISCIPLINE AS EVERY CHECK ABOVE, and for the same
+    // reason: this is the one statement here that CALLS OUT of this function,
+    // and declaration_key can refuse (its fixing-row split) while
+    // declaration() is a provider entry that may validate. Neither is
+    // reachable through NlpModelAggregate today -- its declaration() is a
+    // plain accessor over a lay-validated value -- but "a failed check skips
+    // the capture" is an absolute promise on this function's declaration, and
+    // a promise with one unguarded call at its head is not one. A throw here
+    // would destroy a solved result the caller was about to receive, after
+    // record_solve had already run, to report a defect in a side product.
+    try {
+        captured.structure_key_ = declaration_key(bridge.declaration());
+    } catch (const std::exception &) {
+        skip_capture();
+        return;
+    }
 
     // NO EXTENSIONS: this engine produces none (see export_warm_start).
     completed_warm_ = std::move(captured);

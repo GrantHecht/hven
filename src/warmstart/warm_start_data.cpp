@@ -259,18 +259,38 @@ WarmStartData deserialize(std::span<const std::byte> bytes) {
 
     const std::uint32_t version = reader.read_u32("the format version");
     if (version != kWarmStartFormatVersion) {
-        // NAMING BOTH VERSIONS, and refusing rather than adapting. Version 1
-        // carried a three-conjunct LAYOUT key where this one carries a
-        // two-conjunct DECLARATION key (warm_start_data.h's stamp note); a
-        // shim would have to invent a declaration digest out of a claim
-        // digest, which is not a thing that can be done, so a v1 payload is
-        // re-exported from its producer rather than converted.
+        // NAMING BOTH VERSIONS, always. What follows the two numbers is
+        // GATED ON THE VERSION IT IS ABOUT, because the three cases are three
+        // different problems and only one of them is the 2026-08-25 ruling's.
+        //
+        //   * VERSION 1 is the one format this project ever wrote that a shim
+        //     could plausibly be asked for, and the one where "no shim exists"
+        //     is a statement about the FORMAT rather than about this build's
+        //     age: v1's key slot was a three-conjunct LAYOUT key where this
+        //     build's is a two-conjunct DECLARATION key (warm_start_data.h's
+        //     stamp note), and converting one into the other would mean
+        //     inventing a declaration digest out of a claim digest, which is
+        //     not a thing that can be done. So: re-export, do not convert.
+        //   * A VERSION ABOVE OURS is the opposite problem -- the payload is
+        //     fine and this build is the old one. Telling it that it "carries
+        //     the pre-ruling layout stamp" would be false, and would point the
+        //     reader at a ruling instead of at their toolchain. The v3
+        //     strengthening structure_identity.h names as the path forward is
+        //     exactly this case, so it is written for before it exists.
+        //   * ANYTHING ELSE (0, or a version this project skipped) gets the
+        //     two numbers and no story. There is nothing true to add.
+        const char *note = "";
+        if (version == 1) {
+            note = " A version 1 payload carries the pre-ruling layout stamp, which cannot be "
+                   "converted -- re-export it from the engine that produced it.";
+        } else if (version > kWarmStartFormatVersion) {
+            note = " That is a NEWER format than this build reads: the payload is fine and this "
+                   "build is the old one -- read it with a build that writes its version.";
+        }
         throw std::invalid_argument(
             fmt::format("deserialize(WarmStartData): the format version at byte offset {0} is {1}, "
-                        "which this build does not read; it writes and reads version {2}. A "
-                        "version {1} payload carries the pre-ruling layout stamp and cannot be "
-                        "converted -- re-export it from the engine that produced it.",
-                        kMagicSize, version, kWarmStartFormatVersion));
+                        "which this build does not read; it writes and reads version {2}.{3}",
+                        kMagicSize, version, kWarmStartFormatVersion, note));
     }
 
     WarmStartData data;
