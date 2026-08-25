@@ -64,6 +64,119 @@ void require_declared_box(const NlpModel &model) {
     }
 }
 
+// --- WARM-START CURRENCY: THE STAGING-TIME CHECKS ---
+//
+// The three questions a staged value can be asked BEFORE a problem exists to
+// ask them against. Everything else the currency owes -- the block lengths
+// and the stamp -- is asked at solve entry, in consume_staged_warm_start; the
+// whole division is argued on stage_warm_start's declaration in sqp_driver.h.
+
+// The core's own INTERNAL CONSISTENCY, which is the only structural question
+// answerable without a problem: `primal_` and `bound_lmults_` are two readings
+// of ONE space (the declared variables) and must therefore be one length. The
+// two row blocks have no such partner -- me and mi are independent of each
+// other and of n -- so their lengths are checkable only against a problem.
+void require_consistent_core(const WarmStartData &data) {
+    if (data.primal_.size() != data.bound_lmults_.size()) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver::stage_warm_start: warm-start block primal_ holds {0} entries but "
+            "bound_lmults_ holds {1}; both are stated over the DECLARED variables and must be one "
+            "length -- one bound price per variable",
+            data.primal_.size(), data.bound_lmults_.size()));
+    }
+}
+
+// FINITENESS, on every core block. A staged value names the point and the
+// prices the next solve starts from; a NaN in any of them is not a start state,
+// and the ingest gate would silently degrade it to a cold solve rather than say
+// so. Refused here, where the caller is still standing.
+void require_finite_core(const WarmStartData &data) {
+    const auto check = [](const char *block, const Vec &v) {
+        if (!v.allFinite()) {
+            throw std::invalid_argument(
+                fmt::format("SqpDriver::stage_warm_start: warm-start block {0} holds a non-finite "
+                            "value; a warm start must name a point and multipliers the next solve "
+                            "can start from",
+                            block));
+        }
+    };
+    check("primal_", data.primal_);
+    check("eq_lmults_", data.eq_lmults_);
+    check("iq_lmults_", data.iq_lmults_);
+    check("bound_lmults_", data.bound_lmults_);
+}
+
+// THE KNOWN EXTENSION, if the value carries it. A payload that cannot be read
+// is refused at staging rather than at solve entry because the caller is
+// standing at the staging call and can still do something about it, while a
+// solve that discovered the corruption on its way in would have to choose
+// between throwing out of a call the caller asked to WARM-start and silently
+// cold-starting it. Neither is a good answer, so the question is settled before
+// it can be asked. A value with no polish extension, or one carrying only tags
+// this engine does not know, passes through untouched -- R3's capability
+// downgrade, which is not an error.
+//
+// THE WIDTHS ARE CHECKED AGAINST THE CORE, not against a problem: the extension
+// and the core describe one declared structure, so a disagreement BETWEEN them
+// is internal to the value and answerable here. Whether that structure is the
+// one the next solve lays is the STAMP's question. to_sqp_warm_start re-checks
+// both from its own side; this pass exists so the refusal names the staging
+// call the caller actually made.
+void validate_staged_polish(const WarmStartData &data) {
+    const WarmExtension *extension = nullptr;
+    try {
+        extension = find_ipm_polish(data);
+    } catch (const std::invalid_argument &error) {
+        // The inner message already names the tag and says what it refused.
+        // What it cannot name is the entry the caller stood at, and that is the
+        // only thing this wrapper adds -- re-wording it would put two spellings
+        // of one refusal in the tree.
+        throw std::invalid_argument(
+            fmt::format("SqpDriver::stage_warm_start: the staged warm start's extension list "
+                        "could not be read -- {0}",
+                        error.what()));
+    }
+    if (extension == nullptr) {
+        return;
+    }
+
+    IpmPolishData polish;
+    try {
+        polish = deserialize_ipm_polish(extension->payload_);
+    } catch (const std::invalid_argument &error) {
+        throw std::invalid_argument(
+            fmt::format("SqpDriver::stage_warm_start: the staged warm start carries a \"{0}\" "
+                        "extension whose payload could not be read -- {1}",
+                        kIpmPolishTag, error.what()));
+    }
+
+    const auto check_size = [](const char *block, Index held, Index core) {
+        if (held != core) {
+            throw std::invalid_argument(fmt::format(
+                "SqpDriver::stage_warm_start: the staged warm start's \"{0}\" extension holds {1} "
+                "entries in {2} but the core block beside it holds {3} -- the extension is stated "
+                "over the same DECLARED problem, at exactly its dimensions",
+                kIpmPolishTag, held, block, core));
+        }
+    };
+    check_size("the lower-bound multiplier block", polish.z_lower_.size(), data.primal_.size());
+    check_size("the upper-bound multiplier block", polish.z_upper_.size(), data.primal_.size());
+    check_size("the inequality-value block", polish.iq_values_.size(), data.iq_lmults_.size());
+
+    const auto check_finite = [](const char *block, const Vec &v) {
+        if (!v.allFinite()) {
+            throw std::invalid_argument(fmt::format(
+                "SqpDriver::stage_warm_start: the staged warm start's \"{0}\" extension holds a "
+                "non-finite value in {1}; the crossover's activity rule compares these against "
+                "each other and would certify nothing at all",
+                kIpmPolishTag, block));
+        }
+    };
+    check_finite("the lower-bound multiplier block", polish.z_lower_);
+    check_finite("the upper-bound multiplier block", polish.z_upper_);
+    check_finite("the inequality-value block", polish.iq_values_);
+}
+
 } // namespace
 
 SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
@@ -94,6 +207,9 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0) {
 
 SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
                              Index minor_budget) {
+    // FIRST, before the box check and before the bridge lay: a contradiction
+    // in this call's own arguments is not worth a derivative-pattern walk.
+    refuse_two_warm_sources();
     require_declared_box(model);
     NlpModelAggregate bridge{borrow_model(model)};
     return solve(bridge, x0, warm, minor_budget);
@@ -106,24 +222,36 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
     // in this frame and rides into solve_impl for the restoration phase's one
     // Level 1 read.
     AggregateEvalSeam seam{bridge};
+    // THE STAGED WARM START'S ONE BRANCH, after the lay (so the dimensions and
+    // the key are this solve's) and before the clock (it is setup, like the
+    // seam). Cold and free when nothing is staged -- one bool test, returning
+    // the same default-constructed object this call has always passed.
+    const WarmStart warm = consume_staged_warm_start(seam, bridge);
     // Timed around solve_impl ALONE -- never around model construction,
     // x0/warm setup above, or record_solve's own ledger bookkeeping
     // below -- per ledger.h's SqpSolveRecord::wall_seconds note
     // (informational, never asserted).
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, bridge, x0, WarmStart{}, /*minor_budget=*/0);
+    SqpSolution out = solve_impl(seam, bridge, x0, warm, /*minor_budget=*/0);
     const auto t1 = std::chrono::steady_clock::now();
-    return record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
+    SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
+    // THE EXPORT'S ONE CAPTURE, last: "completed" is a public solve() that
+    // returned, and everything that could still throw has run.
+    capture_completed_warm_start(done, seam, bridge);
+    return done;
 }
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
                              Index minor_budget) {
+    refuse_two_warm_sources();
     AggregateEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
     SqpSolution out = solve_impl(seam, bridge, x0, warm, minor_budget);
     const auto t1 = std::chrono::steady_clock::now();
-    return record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
+    SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
+    capture_completed_warm_start(done, seam, bridge);
+    return done;
 }
 
 SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
@@ -187,6 +315,220 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
         ++solve_counter_;
     }
     return out;
+}
+
+// --- WARM-START CURRENCY: THE TWO PUBLIC ENTRIES AND THEIR TWO HOOKS ---
+//
+// The contract lives on the declarations in sqp_driver.h -- what is checked
+// where, what a refusal consumes, and the level a staged value enters at. What
+// is here is the mechanism.
+
+WarmStartData SqpDriver::export_warm_start() const {
+    // REFUSED, not served empty. An empty payload would stage cleanly against
+    // any problem and then silently cold-start, which is the wrong-but-
+    // plausible shape this entry exists to rule out -- so a driver that has not
+    // solved (a freshly constructed one, or one whose only solve threw) says so.
+    if (!solve_completed_) {
+        throw std::logic_error(
+            "SqpDriver::export_warm_start: no completed solve on this instance -- there is no "
+            "warm-start value to export. Call solve() (a call that threw does not count as "
+            "completed) before exporting.");
+    }
+    return completed_warm_;
+}
+
+void SqpDriver::stage_warm_start(const WarmStartData &data) {
+    // FIRST, and before this call can refuse anything: a staging CALL --
+    // accepted or refused -- clears whatever was staged before it.
+    //
+    // The refused case is the one this ordering exists for. A consumer that
+    // stages P1, later stages P2, gets a refusal, logs it and solves anyway
+    // must NOT silently warm-start off the stale P1: P2's refusal was a
+    // complaint about P2, so nothing downstream can catch the substitution. It
+    // cold-starts instead, and the refusal the caller already saw is the notice.
+    //
+    // `data` MAY ALIAS what is being cleared -- a caller re-staging the value it
+    // holds a const reference to is not a thing this class can rule out -- so
+    // the member is emptied, never assigned from, and the copy that arms it
+    // happens after every check has passed.
+    staged_warm_ = WarmStartData{};
+    warm_staged_ = false;
+
+    require_consistent_core(data);
+    require_finite_core(data);
+    validate_staged_polish(data);
+
+    staged_warm_ = data;
+    warm_staged_ = true;
+}
+
+void SqpDriver::refuse_two_warm_sources() const {
+    // NAMING BOTH SOURCES, rather than one silently taking precedence --
+    // including when the argument is a default-constructed (cold) object,
+    // which is this class's documented way of ASKING for a cold solve and so
+    // contradicts a staged value just as loudly.
+    //
+    // THE STAGED VALUE IS LEFT STANDING. This judges the CALL's arguments, not
+    // the value: the call binds no problem and runs nothing, so there is
+    // nothing for a one-shot value to have been spent on. It is the one
+    // refusal on this surface that leaves something staged, precisely because
+    // it is the one that never looked at what was staged.
+    if (warm_staged_) {
+        throw std::invalid_argument(
+            "SqpDriver::solve: this call passes a WarmStart argument while a warm-start value is "
+            "staged on this driver (stage_warm_start) -- two warm-start sources for one solve. "
+            "Neither silently wins: drop the argument to use the staged value, or stage nothing "
+            "and pass the argument. The staged value is still staged.");
+    }
+}
+
+WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
+                                               const NlpModelAggregate &bridge) {
+    // THE COLD PATH IS ONE BOOL TEST, and the object it returns is the
+    // default-constructed WarmStart the 2-argument overload has always passed --
+    // so a driver nobody stages into runs exactly the solve it always ran.
+    if (!warm_staged_) {
+        return WarmStart{};
+    }
+
+    // CONSUMED BEFORE ANYTHING BELOW CAN THROW. Every refusal from here on is a
+    // refusal BY THIS SOLVE, and stage_warm_start's contract is that the value
+    // is gone either way -- loud, then gone.
+    const WarmStartData data = std::move(staged_warm_);
+    staged_warm_ = WarmStartData{};
+    warm_staged_ = false;
+
+    // THE SIZES, against the problem THIS call binds -- the check that had
+    // nowhere to stand at staging time. Taken off the SEAM, whose dimensions are
+    // the declaration's as laid for this solve.
+    const auto check_size = [](const char *block, Index held, Index declared) {
+        if (held != declared) {
+            throw std::invalid_argument(fmt::format(
+                "SqpDriver::solve: the staged warm-start block {0} holds {1} entries but the "
+                "problem this solve binds declares {2} -- every block of the currency is stated "
+                "over the DECLARED problem, at exactly its dimensions",
+                block, held, declared));
+        }
+    };
+    check_size("primal_", data.primal_.size(), seam.n());
+    check_size("eq_lmults_", data.eq_lmults_.size(), seam.me());
+    check_size("iq_lmults_", data.iq_lmults_.size(), seam.mi());
+    check_size("bound_lmults_", data.bound_lmults_.size(), seam.n());
+
+    // AND THE STAMP, after the sizes and against the same problem. Sizes first,
+    // deliberately: every size mismatch implies a stamp mismatch, and "block
+    // eq_lmults_ holds 3, this problem declares 5" is the more actionable of the
+    // two diagnostics when both are true.
+    //
+    // Read off the BRIDGE, which is where the key lives, and read HERE rather
+    // than at staging: this is the first moment the key this solve lays under
+    // exists.
+    const ModelStructureKey live = bridge.model_structure_key();
+    if (!(data.structure_key_ == live)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver::solve: the staged warm start was taken under structure key {0:#x} but the "
+            "problem this solve binds keys {1:#x} -- the value describes a different declared "
+            "structure (claims, partition count, and bound structure). The staged start is refused "
+            "rather than silently dropped; re-export and re-stage against the current structure.",
+            data.structure_key_.digest(), live.digest()));
+    }
+
+    // THE CROSSOVER, when the value carries the interior-point engine's own
+    // hand-off. to_sqp_warm_start is THE bridge and nothing here duplicates it:
+    // it re-derives the activity hint from the (z_lower, z_upper) pair and the
+    // inequality values against THIS problem's box, and the object it returns
+    // carries structure_hash == 0 by construction, so it resolves kSeeded
+    // exactly as the core-only object below does.
+    //
+    // Neither the find nor the decode inside it can fail here -- a duplicated
+    // tag and a malformed payload were both refused at staging. What was NOT
+    // available at staging, and is what this call adds, is the box.
+    if (find_ipm_polish(data) != nullptr) {
+        return to_sqp_warm_start(data, seam.lower(), seam.upper(), live);
+    }
+
+    // CORE-ONLY -- the R3 downgrade, and the shape every producer that is not
+    // this project's interior-point engine emits. The four blocks go across
+    // verbatim; NO ACTIVITY IS ATTRIBUTED, because the currency's core carries
+    // none and inventing one would hand the first subproblem a working set
+    // nothing measured.
+    //
+    // The activity vectors are SIZED AND ZERO-FILLED rather than left empty, per
+    // WarmStart::ineq_active/bound_active's own field notes (a caller reads
+    // all-zero, never size 0, as "no activity"), and the working set is an
+    // all-free WorkingSet(n, mi) -- which the ingest's own dimension gate
+    // requires, and which kSeeded reads as AN EMPTY HINT IS NO HINT.
+    //
+    // structure_hash STAYS 0: it fingerprints assembled matrices this value
+    // never saw and could not carry. That is what caps the level at kSeeded, and
+    // it is the honest answer rather than a limitation -- see stage_warm_start.
+    WarmStart warm;
+    warm.x = data.primal_;
+    warm.lambda_e = data.eq_lmults_;
+    warm.lambda_i = data.iq_lmults_;
+    warm.z = data.bound_lmults_;
+    warm.ineq_active.assign(static_cast<std::size_t>(seam.mi()), 0);
+    warm.bound_active.assign(static_cast<std::size_t>(seam.n()), 0);
+    warm.qp_working_set = WorkingSet(seam.n(), seam.mi());
+    warm.structure_hash = 0;
+    warm.valid = true;
+    return warm;
+}
+
+void SqpDriver::capture_completed_warm_start(const SqpSolution &out, const AggregateEvalSeam &seam,
+                                             const NlpModelAggregate &bridge) {
+    // See the declaration for why a failed check skips the capture rather than
+    // throwing out of a solve the caller was about to receive.
+    const auto skip_capture = [this] {
+        completed_warm_ = WarmStartData{};
+        solve_completed_ = false;
+    };
+
+    // MODEL SPACE IS DECLARED SPACE HERE, so the blocks are the solution's own
+    // vectors with no mapping in between. What is enforced is only that they are
+    // at the widths the currency promises -- every exit of the loop writes all
+    // four at those widths, so these are guards, not expectations, and CLAUDE.md
+    // section 4 forbids leaning on Eigen's asserts, which Release compiles out.
+    //
+    // A ROW BLOCK REPORTED EMPTY exports as the declared-width zero vector: a
+    // solve that priced no rows has no prices to carry, and the currency's
+    // lengths are the declared ones unconditionally. `primal_` gets no such
+    // rule -- a zero POINT is a real point, and inventing one would put a value
+    // in the payload no solve ever stood at.
+    const auto row_block = [](const Vec &reported, Index declared, Vec &dst) {
+        if (reported.size() == 0) {
+            dst = Vec::Zero(declared);
+            return true;
+        }
+        if (reported.size() != declared) {
+            return false;
+        }
+        dst = reported;
+        return true;
+    };
+
+    if (out.x.size() != seam.n() || out.z.size() != seam.n()) {
+        skip_capture();
+        return;
+    }
+    WarmStartData captured;
+    captured.primal_ = out.x;
+    captured.bound_lmults_ = out.z;
+    if (!row_block(out.lambda_e, seam.me(), captured.eq_lmults_) ||
+        !row_block(out.lambda_i, seam.mi(), captured.iq_lmults_)) {
+        skip_capture();
+        return;
+    }
+
+    // AS OF THIS SOLVE. Read here rather than at export so a re-lay between the
+    // two cannot stamp these blocks with a key they were never taken under. The
+    // bridge memoizes its digests per lay, so a driver solving repeatedly
+    // against unmoved structures pays them once.
+    captured.structure_key_ = bridge.model_structure_key();
+
+    // NO EXTENSIONS: this engine produces none (see export_warm_start).
+    completed_warm_ = std::move(captured);
+    solve_completed_ = true;
 }
 
 SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,

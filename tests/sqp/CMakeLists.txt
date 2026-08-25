@@ -54,6 +54,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_schur.cpp
     test_sqp_driver.cpp
     test_sqp_restoration.cpp
+    test_sqp_warm_currency.cpp
     test_ssn_engine.cpp
     test_types.cpp
     test_warm_start.cpp
