@@ -3502,6 +3502,171 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
     }
 }
 
+hven::solvers::WarmStartData hven::solvers::InteriorPointSolver::export_warm_start() const {
+    // REFUSED, not served empty. An empty payload would stage cleanly against
+    // any problem and then silently cold-start, which is the wrong-but-
+    // plausible shape this entry exists to rule out -- so an engine that has
+    // not solved (a freshly constructed one, a prototype clone, or one whose
+    // only solve threw) says so.
+    if (!this->solve_completed_) {
+        throw std::logic_error(
+            "InteriorPointSolver::export_warm_start: no completed solve on this instance -- "
+            "there is no warm-start value to export. Run optimize()/solve() (a call that threw "
+            "does not count as completed) before exporting.");
+    }
+    return this->completed_warm_;
+}
+
+void hven::solvers::InteriorPointSolver::stage_warm_start(const WarmStartData &data) {
+    if (!this->nlp_) {
+        throw std::runtime_error("InteriorPointSolver::stage_warm_start: no NLP has been set. "
+                                 "Call set_nlp() before staging a warm start.");
+    }
+
+    // THE STAMP FIRST, before the blocks. A payload from a different declared
+    // structure can still happen to carry blocks of the right lengths, and
+    // reporting that as a size mismatch would name the symptom instead of the
+    // cause.
+    const ModelStructureKey live = this->nlp_->model_structure_key();
+    if (!(data.structure_key_ == live)) {
+        throw std::invalid_argument(fmt::format(
+            "InteriorPointSolver::stage_warm_start: the warm-start value was taken under "
+            "structure key {0:#x} but the bound program's current key is {1:#x} -- the value "
+            "describes a different declared structure (claims, partition count or bound "
+            "structure, the fixed-variable treatment's own rows included) and cannot be staged "
+            "against this problem. Re-solve and re-export against the current structure.",
+            data.structure_key_.digest(), live.digest()));
+    }
+
+    this->validate_warm_start_blocks(data, "stage_warm_start");
+
+    this->staged_warm_ = data;
+    this->warm_staged_ = true;
+
+    // PRECEDENCE, applied here so the staged state is never ambiguous: the
+    // warm start's own eq/iq blocks are what the next solve installs, and a
+    // seed left standing alongside them would describe the same rows twice.
+    // See both docstrings.
+    this->clear_initial_multipliers();
+}
+
+void hven::solvers::InteriorPointSolver::validate_warm_start_blocks(const WarmStartData &data,
+                                                                    const char *entry) const {
+    // Off the PROGRAM, not off this solver's cached dimensions: those are
+    // refreshed at set_nlp() and at solve entry, so between a re-lay and the
+    // next solve they describe the previous layout.
+    const int declared_primal = this->nlp_->primal_vars_;
+    const int declared_eq = this->nlp_->user_equal_cons_;
+    const int declared_iq = this->nlp_->inequal_cons_;
+
+    const auto check_size = [&](const char *block, Eigen::Index held, int declared) {
+        if (held != static_cast<Eigen::Index>(declared)) {
+            throw std::invalid_argument(
+                fmt::format("InteriorPointSolver::{0}: warm-start block {1} holds {2} entries but "
+                            "the declared problem has {3} -- every block of the currency is stated "
+                            "over the DECLARED problem, at exactly its dimensions",
+                            entry, block, held, declared));
+        }
+    };
+    check_size("primal_", data.primal_.size(), declared_primal);
+    check_size("eq_lmults_", data.eq_lmults_.size(), declared_eq);
+    check_size("iq_lmults_", data.iq_lmults_.size(), declared_iq);
+    check_size("bound_lmults_", data.bound_lmults_.size(), declared_primal);
+
+    const auto check_finite = [&](const char *block, const Eigen::VectorXd &v) {
+        if (!v.allFinite()) {
+            throw std::invalid_argument(
+                fmt::format("InteriorPointSolver::{0}: warm-start block {1} holds a non-finite "
+                            "value; a warm start must name a point and multipliers the next solve "
+                            "can start from",
+                            entry, block));
+        }
+    };
+    check_finite("primal_", data.primal_);
+    check_finite("eq_lmults_", data.eq_lmults_);
+    check_finite("iq_lmults_", data.iq_lmults_);
+    check_finite("bound_lmults_", data.bound_lmults_);
+}
+
+void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
+    WarmStartData captured;
+
+    // AS OF THIS SOLVE. Read here rather than at export so a re-lay between
+    // the two cannot stamp these blocks with a key they were never taken
+    // under. Both digests are memoized by the program per lay, so a solver
+    // solving repeatedly against unmoved structures pays them once.
+    captured.structure_key_ = this->nlp_->model_structure_key();
+
+    // Already declared-space: the reinsertion seam above this call put every
+    // eliminated variable back in its own coordinate at the value the
+    // treatment holds it at, which is exactly what a warm payload has to carry
+    // for the point to be restartable.
+    captured.primal_ = this->result_.primals_;
+
+    // THE DECLARED EQUALITY ROWS EXACTLY. result_.eq_lmults_ is sized
+    // equal_cons_, which under the MakeConstraint treatment counts one
+    // internal fixing row per bound-fixed variable at the TAIL of the row
+    // space on top of the user's own rows; those rows are the treatment's, not
+    // the declaration's, and the currency does not carry them.
+    //
+    // A block the solve did not report at all -- the empty state every solve
+    // entry resets these to -- exports as the declared-width zero vector
+    // rather than as a short block: the currency's lengths are the declared
+    // ones unconditionally, and a solve that reported no multipliers has none
+    // to carry. Any other length is impossible (the fill writes the whole
+    // block or none of it) and is refused rather than trimmed.
+    const auto declared_block = [](const Eigen::VectorXd &reported, int declared,
+                                   const char *which) {
+        if (reported.size() == 0) {
+            return Eigen::VectorXd(Eigen::VectorXd::Zero(declared));
+        }
+        if (reported.size() < static_cast<Eigen::Index>(declared)) {
+            throw std::logic_error(
+                fmt::format("hven interior-point solver: completed solve reported {0} {1} "
+                            "multipliers for a problem declaring {2} {1} rows",
+                            reported.size(), which, declared));
+        }
+        return Eigen::VectorXd(reported.head(declared));
+    };
+    captured.eq_lmults_ =
+        declared_block(this->result_.eq_lmults_, this->nlp_->user_equal_cons_, "equality");
+
+    // No treatment ever adds an inequality row, so the reported block is the
+    // declared one.
+    captured.iq_lmults_ =
+        declared_block(this->result_.iq_lmults_, this->nlp_->inequal_cons_, "inequality");
+
+    // REDUCED -> DECLARED. result_.bound_lmults_ is dense over the solver's
+    // reduced primal space and is deliberately not expanded there (an
+    // eliminated variable has no row in the reduced problem and so no
+    // multiplier to report). The currency is declared-width, so the block is
+    // scattered into declared coordinates with a zero left at every eliminated
+    // one: that is what the reduced block's ABSENCE at those coordinates
+    // means, and it is also the entry a consumer ignores -- the treatment
+    // holds those variables, so nothing stages a bound multiplier for them.
+    // An empty reported block (a problem with no finite variable bounds at
+    // all) exports as the declared-width zero vector, so the currency's block
+    // is always at its declared length.
+    const int declared_primal = this->full_primal_vars_;
+    captured.bound_lmults_ = Eigen::VectorXd::Zero(declared_primal);
+    if (this->result_.bound_lmults_.size() > 0) {
+        if (this->nlp_->is_reduced()) {
+            const auto &reduced_to_full = this->nlp_->reduced_to_full();
+            for (Eigen::Index k = 0; k < this->result_.bound_lmults_.size(); k++) {
+                captured.bound_lmults_[reduced_to_full[k]] = this->result_.bound_lmults_[k];
+            }
+        } else {
+            captured.bound_lmults_ = this->result_.bound_lmults_;
+        }
+    }
+
+    // No extensions in this engine yet -- the polish handoff is a later work
+    // package, and a reader that does not know a tag ignores it anyway.
+
+    this->completed_warm_ = std::move(captured);
+    this->solve_completed_ = true;
+}
+
 void hven::solvers::InteriorPointSolver::unscale_reported_outputs() {
     // The solver minimizes obj_scale * f subject to the constraints, so its
     // Lagrangian is L = s*f + lambda_e^T cE + lambda_i^T cI - z, and every
@@ -3563,7 +3728,33 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->staged_eq_mults_.resize(0);
         this->staged_iq_mults_.resize(0);
         this->mults_staged_ = false;
+    }
 
+    // A staged warm start is disarmed on exactly the same terms and at the
+    // same point, and for the same reason: it is ONE-SHOT, so this call owns
+    // it whether it ends up applied, refused by the stamp re-check below, or
+    // lost to an unrelated throw on the way there. Nothing it holds survives
+    // past this return either way.
+    bool have_warm = this->warm_staged_;
+    WarmStartData warm;
+    if (have_warm) {
+        warm = std::move(this->staged_warm_);
+        this->staged_warm_ = WarmStartData{};
+        this->warm_staged_ = false;
+
+        // PRECEDENCE (see stage_warm_start): the warm start's own multiplier
+        // blocks replace a staged seed. stage_warm_start() already cleared any
+        // seed standing at that moment; this covers the seed staged AFTER it,
+        // which is discarded unapplied rather than mixed with the warm start's
+        // blocks. From here the warm multipliers ARE the seed, so they take
+        // the seed path's own validation, clamps and objective-scale handling
+        // -- there is one multiplier-install site in this class, not two.
+        seed_eq_mults = warm.eq_lmults_;
+        seed_iq_mults = warm.iq_lmults_;
+        have_seed = true;
+    }
+
+    if (have_seed) {
         int idx = 0;
         for (const auto &step : steps) {
             if (step.alg_mode_ == AlgorithmModes::OPT || step.alg_mode_ == AlgorithmModes::OPTNO) {
@@ -3577,6 +3768,24 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     if (!this->nlp_) {
         throw std::runtime_error("InteriorPointSolver::run_phase_sequence: no NLP has been set. "
                                  "Call set_nlp() before optimize/solve.");
+    }
+
+    // THE LIVE STAMP RE-CHECK. The staged value was checked against the
+    // program's key at staging, but it survives every re-bind and re-lay in
+    // between, and either can move that key out from under it. A moved key
+    // REFUSES here: silently dropping the staged start would cold-start a
+    // solve the caller asked to warm-start, and applying it would restart a
+    // point belonging to a different declared structure.
+    if (have_warm) {
+        const ModelStructureKey live = this->nlp_->model_structure_key();
+        if (!(warm.structure_key_ == live)) {
+            throw std::invalid_argument(fmt::format(
+                "InteriorPointSolver: the staged warm start was taken under structure key {0:#x} "
+                "but the bound program's key at this solve's entry is {1:#x} -- the structure "
+                "moved between staging and solving. The staged start is refused rather than "
+                "silently dropped; re-export and re-stage against the current structure.",
+                warm.structure_key_.digest(), live.digest()));
+        }
     }
     if (x.size() != full_primal_vars_) {
         throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
@@ -3759,8 +3968,18 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // Into the solver's space: the eliminated coordinates are dropped from the
     // guess here, and their values live in the NLP until the solution is
     // expanded again at the return below.
+    //
+    // A STAGED WARM START SUPPLIES THE POINT, in place of the caller's guess:
+    // that is what warm-starting a solve is. Its primal block is DECLARED-space
+    // and the gather is exactly the declared -> reduced mapping
+    // (full_to_reduced), so an eliminated variable's entry is dropped here and
+    // written nowhere -- the treatment holds that coordinate, and a warm value
+    // for it is ignored by construction rather than by a special case. The
+    // caller's own x is still size-checked at the top of this call, so a warm
+    // solve does not quietly accept a guess that names a different problem.
+    const Eigen::VectorXd &start_x = have_warm ? warm.primal_ : x;
     Eigen::VectorXd x_solver(this->primal_vars_);
-    this->nlp_->gather_reduced_x(x, x_solver);
+    this->nlp_->gather_reduced_x(start_x, x_solver);
 
     // Into the interior of the declared variable bounds, and seed the bound
     // multipliers there. Runs once per solve, after the gather (so it works in
@@ -3950,6 +4169,13 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->nlp_->scatter_full_x(result_.primals_, primals_full);
         result_.primals_ = primals_full;
     }
+
+    // THE COMPLETED-SOLVE MARKER, and the warm-start capture it arms. Last,
+    // after both seams above, so the captured blocks are the caller's-space,
+    // caller's-scale ones this call reports -- and reached only on the path
+    // that returns, so a call that threw leaves the previous capture (if any)
+    // standing and never claims a completion of its own.
+    this->capture_completed_warm_start();
 
     return result_.primals_;
 }
