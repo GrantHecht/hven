@@ -862,6 +862,37 @@ class InteriorPointSolver {
     /// by contrast, is always in the caller's space. print_stats() likewise
     /// reports the solver's primal count, i.e. the width of the system being
     /// factorized.
+    ///
+    /// THE KKT MATRIX ARGUMENT. The early callback is handed the solver's own KKT
+    /// assembly buffer, by mutable reference, after this iteration's values have
+    /// been assembled and immediately before the factorization that consumes them.
+    /// What may be done with it has three parts.
+    ///
+    /// VALUE MUTATION IS SUPPORTED. Writing new coefficients into the entries the
+    /// matrix already carries is a use this callback exists for: the factorization
+    /// that follows reads what the callback left, and the symbolic analysis the
+    /// solve is holding still describes the matrix, because a value never changed
+    /// what the analysis was taken over.
+    ///
+    /// STRUCTURE MUTATION IS NOT SUPPORTED. Inserting an entry, removing one, or
+    /// otherwise handing back a different sparsity pattern is outside what this
+    /// callback offers. A structural edit is not a model event -- nothing was
+    /// re-laid, so the program's structure epoch does not move -- and the symbolic
+    /// analysis the solve is holding was taken over the pattern that has just been
+    /// replaced. A caller that needs a different structure re-declares the problem
+    /// and solves again; there is no in-flight route to one.
+    ///
+    /// THE VERIFY GATE IS WHAT CATCHES A STRUCTURAL EDIT. Installing an early
+    /// callback makes the whole call run every numeric factorization under the full
+    /// pattern check, rather than under the structure epoch's word for it: the
+    /// factorization re-derives the buffer's pattern and compares it against the
+    /// analyzed one. An edit that changed the structure is therefore refused by
+    /// name, deterministically, at the first factorization that sees it -- not
+    /// factorized against stale symbolics, and not left to surface as a backend
+    /// error or worse. That check is the cost of holding the matrix: a call with a
+    /// callback installed pays one full pattern hash per factorization, which is
+    /// what every call paid before the epoch gate existed. A call with no early
+    /// callback is unaffected and keeps the skip.
     using EarlyCallBackType =
         std::function<int(int, double, EigenRef<VectorXd>, double, EigenRef<VectorXd>,
                           EigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
