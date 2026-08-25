@@ -1416,10 +1416,10 @@ class InteriorPointSolver {
     /// installed, so a seed taken from an earlier SolveResult means the same
     /// thing whatever the scale is.
     ///
-    /// PRECEDENCE against a staged warm start: the warm start wins. Staging
-    /// one clears any seed standing at that moment, and a seed staged after a
-    /// warm start is discarded unapplied at solve entry in favour of the warm
-    /// start's own multiplier blocks -- see stage_warm_start().
+    /// PRECEDENCE against a staged warm start: the warm start wins. Any
+    /// stage_warm_start() CALL, accepted or refused, clears a seed standing at
+    /// that moment, and a seed staged after a warm start is discarded
+    /// unapplied at solve entry -- see stage_warm_start().
     void set_initial_multipliers(const Eigen::VectorXd &eq_mults, const Eigen::VectorXd &iq_mults) {
         this->staged_eq_mults_ = eq_mults;
         this->staged_iq_mults_ = iq_mults;
@@ -1460,24 +1460,16 @@ class InteriorPointSolver {
     ///
     /// Blocks, all at declared dimensions: `primal_` is the returned primal
     /// vector, an eliminated variable carrying the value the treatment holds
-    /// it at (result().primals_ is already expanded); `eq_lmults_` is the
-    /// USER's equality rows only, so the MakeConstraint treatment's internal
-    /// fixing rows -- which occupy the tail of the solver's equality row
-    /// space -- are dropped; `iq_lmults_` is the inequality block as reported
-    /// (no treatment ever adds an inequality row); `bound_lmults_` is the
-    /// signed z of result().bound_lmults_, which is dense over the solver's
-    /// REDUCED space, scattered back into declared coordinates with a zero at
-    /// every eliminated variable -- the reduced problem has no row there, so
-    /// there is no multiplier to report, and zero is the value the currency's
-    /// own consumer contract ignores. A solve on a problem with no finite
-    /// variable bounds reports an empty block; this exports the declared-width
-    /// zero vector for it.
+    /// it at; `eq_lmults_` is the USER's equality rows only, so the
+    /// MakeConstraint treatment's internal fixing rows are dropped;
+    /// `iq_lmults_` is the inequality block as reported; `bound_lmults_` is
+    /// result().bound_lmults_ mapped out of the solver's reduced space, an
+    /// exact zero at every eliminated variable and at every entry a solve with
+    /// no finite variable bounds reports nothing for.
     ///
-    /// SIGN: `bound_lmults_` is carried VERBATIM from
-    /// SolveResult::bound_lmults_, i.e. z = z_lower - z_upper -- the engine's
-    /// convention of record (M4 Task 8), and the currency's. The two blocks
-    /// name the same quantity, so a value round-tripped through the currency
-    /// means the same thing at both ends.
+    /// SIGN: z = z_lower - z_upper, verbatim from SolveResult::bound_lmults_ --
+    /// the engine's convention and the currency's, so a value round-tripped
+    /// through the currency means the same thing at both ends.
     ///
     /// The stamp is the bound program's model_structure_key() AS OF that
     /// solve's completion, not as of this call.
@@ -1498,26 +1490,21 @@ class InteriorPointSolver {
     /// REFUSES rather than being silently dropped or silently cold-started
     /// over. A caller wanting a second warm solve stages again.
     ///
-    /// WHAT THIS ENTRY CHECKS, and what it deliberately does not. It checks
-    /// every block's SIZE against the DECLARED dimensions, which are
-    /// treatment-invariant -- that is what the currency's declared-space
-    /// convention buys -- plus finiteness. It does NOT check the stamp: the
-    /// key the next solve lays under does not exist yet, because the
-    /// fixed-variable treatment (which re-lays whenever it eliminates or
-    /// restores variables) is configured at solve entry. Refusing on the stamp
-    /// here would refuse the primary flow -- a consumer staging into a fresh
-    /// engine before its first solve, while the program still keys
-    /// pre-treatment. The stamp is checked once, at solve entry, after that
-    /// configuration, and a mismatch there names both keys.
+    /// CHECKED HERE: every block's length against the declared dimensions, and
+    /// finiteness. NOT checked here: the stamp -- it is compared once, at
+    /// solve entry, and a mismatch refuses there naming both keys.
     ///
     /// NON-CONSUMING (R5): the argument is taken by const reference and
     /// copied. Staging the same value twice from the same cold state produces
     /// the same start state.
     ///
-    /// PRECEDENCE: staging a warm start REPLACES any staged multiplier seed --
-    /// this entry clears one on the spot, and a seed staged AFTER a warm start
-    /// is discarded unapplied at solve entry. The two describe the same
-    /// multiplier blocks and there is no sound way to honor both.
+    /// CLEARS FIRST: this call, WHETHER IT SUCCEEDS OR REFUSES, first drops any
+    /// warm start and any multiplier seed staged before it. A caller whose
+    /// staging is refused is cold, not still holding the previous payload.
+    ///
+    /// PRECEDENCE: staging a warm start REPLACES any staged multiplier seed,
+    /// and a seed staged AFTER a warm start is discarded unapplied at solve
+    /// entry. The two describe the same multiplier blocks.
     ///
     /// WHAT IS APPLIED: `primal_` becomes the solve's starting point, mapped
     /// declared -> reduced (values at eliminated variables are ignored -- the
@@ -1536,7 +1523,8 @@ class InteriorPointSolver {
     /// @throws std::invalid_argument if any block's length is not the matching
     ///         declared dimension (naming the block, the length held and the
     ///         length declared), or if any block holds a non-finite value. A
-    ///         stamp mismatch is refused at solve entry, not here.
+    ///         stamp mismatch is refused at solve entry, not here. Either
+    ///         refusal still leaves this instance with nothing staged.
     void stage_warm_start(const WarmStartData &data);
 
     /// @brief Discards any staged warm start.
@@ -1960,7 +1948,11 @@ class InteriorPointSolver {
     void validate_warm_start_blocks(const WarmStartData &data, const char *entry) const;
 
     // Captures completed_warm_ from result_ and the bound program, and arms
-    // solve_completed_. Called once, at the end of run_phase_sequence, AFTER
+    // solve_completed_. DEFENSIVE BUT NOT FATAL: an internal-consistency check
+    // that fails skips the capture and leaves solve_completed_ false (export
+    // then refuses "no completed solve") rather than throwing one line before a
+    // completed solve's return -- see the banner at the definition.
+    // Called once, at the end of run_phase_sequence, AFTER
     // the reinsertion seam (so result_.primals_ is already in declared space)
     // and after the objective-scale seam (so every multiplier block is on the
     // caller's scale). One structural-key read per solve: both of its digests

@@ -372,6 +372,64 @@ TEST(IpmWarmStart, StagingRefusesANonFiniteBlock) {
     EXPECT_FALSE(solver.optimizer_->warm_staged_);
 }
 
+// A staging CALL clears what was staged before it, whether it is accepted or
+// refused. The refused case is the one that matters: a consumer that stages
+// P1, later stages a bad P2, logs the refusal and solves anyway must
+// cold-start, not silently warm-start off the stale P1 -- P2 was refused on a
+// SIZE complaint, so no stamp check downstream could catch it.
+TEST(IpmWarmStart, ARefusedStagingClearsTheValueStagedBeforeIt) {
+    NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.transcribe();
+
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
+              hven::ConvergenceFlags::CONVERGED);
+    const WarmStartData good = solver.optimizer_->export_warm_start();
+
+    solver.optimizer_->stage_warm_start(good);
+    ASSERT_TRUE(solver.optimizer_->warm_staged_);
+
+    WarmStartData bad = good;
+    bad.iq_lmults_ = Eigen::VectorXd::Zero(3); // the problem declares none
+    EXPECT_THROW(solver.optimizer_->stage_warm_start(bad), std::invalid_argument);
+
+    EXPECT_FALSE(solver.optimizer_->warm_staged_)
+        << "the refused call must have cleared the value staged before it";
+
+    // And the next solve is genuinely cold: it starts from the caller's guess,
+    // not from the payload that was staged before the refusal.
+    FirstIterateProbe probe;
+    probe.arm(*solver.optimizer_, solver.nlp_->reduced_primal_vars());
+    Eigen::VectorXd cold(2);
+    cold << 12.0, -7.0;
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    solver.optimizer_->disable_early_callback();
+
+    ASSERT_TRUE(probe.seen_);
+    expect_bit_identical(probe.primal_, cold, "the solve after a refused staging is cold");
+}
+
+// The seed half of the same rule.
+TEST(IpmWarmStart, ARefusedStagingAlsoClearsAStagedMultiplierSeed) {
+    NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.transcribe();
+
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
+              hven::ConvergenceFlags::CONVERGED);
+    WarmStartData bad = solver.optimizer_->export_warm_start();
+    bad.primal_ = Eigen::VectorXd::Zero(5);
+
+    Eigen::VectorXd seed_eq(1);
+    seed_eq << 42.0;
+    solver.optimizer_->set_initial_multipliers(seed_eq, Eigen::VectorXd());
+    ASSERT_TRUE(solver.optimizer_->mults_staged_);
+
+    EXPECT_THROW(solver.optimizer_->stage_warm_start(bad), std::invalid_argument);
+    EXPECT_FALSE(solver.optimizer_->mults_staged_);
+    EXPECT_FALSE(solver.optimizer_->warm_staged_);
+}
+
 // --- The stamp check, which fires at solve entry and only there ---
 
 TEST(IpmWarmStart, ARelayBetweenStagingAndSolvingRefusesAtSolveEntry) {
@@ -586,6 +644,52 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
     EXPECT_EQ(solver.optimizer_->result().primals_[2], 0.25);
 }
 
+// THE BRANCH head(user_equal_cons_) EXISTS FOR, and the only treatment that
+// exercises it. Under MakeConstraint a bound-fixed variable becomes an
+// INTERNAL equality row appended at the TAIL of the solver's equality row
+// space, so the solve reports two multipliers where the declaration has one --
+// and the currency carries the declared row only. Every other pin in this file
+// runs the default MakeParameter path, where the two counts coincide and the
+// truncation is a no-op copy that would stay green even if it were written
+// tail() instead of head().
+TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
+    NLPSolver solver(std::make_shared<WarmFixedVarProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::MakeConstraint);
+    solver.transcribe();
+
+    Eigen::VectorXd x0(3);
+    x0 << 2.0, -1.0, 0.25;
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+
+    // The treatment kept the variable in the solved system and paid for it with
+    // a row: no reduction, one internal fixing row on top of the user's own.
+    ASSERT_FALSE(solver.nlp_->is_reduced());
+    ASSERT_EQ(solver.nlp_->internal_fixed_constraints(), 1);
+    ASSERT_EQ(solver.nlp_->user_equal_cons_, 1);
+    ASSERT_EQ(solver.optimizer_->result().eq_lmults_.size(), 2)
+        << "the solve reports the user row AND the treatment's fixing row";
+
+    const WarmStartData warm = solver.optimizer_->export_warm_start();
+
+    EXPECT_EQ(warm.eq_lmults_.size(), 1) << "the currency carries the DECLARED rows only";
+    // ...and it is the USER's row that survived, not the treatment's. Bitwise:
+    // the export is a head(), so the value is the reported one unchanged.
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(warm.eq_lmults_[0]),
+              std::bit_cast<std::uint64_t>(solver.optimizer_->result().eq_lmults_[0]));
+    // A tail() would have carried this one instead, and the two differ.
+    EXPECT_NE(std::bit_cast<std::uint64_t>(warm.eq_lmults_[0]),
+              std::bit_cast<std::uint64_t>(solver.optimizer_->result().eq_lmults_[1]));
+
+    // The rest of the payload is still declared-width, and the fixed variable
+    // is at its held value -- here because the fixing ROW holds it, not because
+    // it was eliminated and reinserted.
+    EXPECT_EQ(warm.primal_.size(), 3);
+    EXPECT_EQ(warm.bound_lmults_.size(), 3);
+    EXPECT_NEAR(warm.primal_[2], 0.25, 1e-9);
+}
+
 // THE PRIMARY FLOW, and the reason the stamp is checked at solve entry rather
 // than at staging. The MakeParameter treatment RE-LAYS the program (it
 // renumbers the claim stream into the reduced column space), so a program that
@@ -649,7 +753,11 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     // so the interior push moves it -- as it moves any starting point, warm or
     // cold. What is pinned is which point it was pushed FROM: the staged one,
     // not the guess handed in.
-    EXPECT_LT(probe.primal_[0], 1.0e-3) << "pushed off the staged point at the lower bound";
+    // The push lands at l_relaxed + min(bound_push_ * max(1, |l|),
+    // bound_interval_push_ * (u - l)) = -1e-8 + 1e-3, so the threshold carries
+    // real headroom over the arithmetic rather than sitting on it: what is
+    // being distinguished is a start near the bound from the cold guess at 4.5.
+    EXPECT_LT(probe.primal_[0], 2.0e-3) << "pushed off the staged point at the lower bound";
     EXPECT_GT(probe.primal_[0], 0.0) << "and pushed strictly inside";
     EXPECT_NE(probe.primal_[0], cold[0]) << "the caller's guess did not survive the staging";
 
