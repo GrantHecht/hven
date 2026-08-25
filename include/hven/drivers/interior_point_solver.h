@@ -31,7 +31,6 @@
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/model/non_linear_program.h"
-#include "hven/warmstart/ipm_polish_extension.h"
 #include "hven/warmstart/warm_start_data.h"
 
 #ifdef USE_ACCELERATE_SPARSE
@@ -91,6 +90,18 @@ namespace hven::solvers {
 // without full qualification inside this namespace.
 using hven::ConstEigenRef;
 using hven::EigenRef;
+
+// The interior-point polish hand-off (hven/warmstart/ipm_polish_extension.h),
+// FORWARD-DECLARED rather than included. Its only appearance in this header is
+// as a `const &` parameter of one PRIVATE method, which needs the name and not
+// the definition -- and the definition would pull the SQP crossover header,
+// and through it hven/qp/qp_types.h and hven/detail/qp/working_set.h, into
+// every consumer of this header. The interior-point engine's public surface
+// depending on the QP engine's types is the opposite of the direction this
+// project's components are split in, and the extension itself belongs to
+// NEITHER engine (see its own TU banner). src/drivers/interior_point_solver.cpp
+// takes the include; nothing else needs it.
+struct IpmPolishData;
 
 /// Number of consecutive trailing iterates that must ALL exceed a divergence
 /// threshold before converge_check() declares DIVERGING on a finite (but large)

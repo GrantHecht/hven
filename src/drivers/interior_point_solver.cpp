@@ -65,6 +65,13 @@
 #include "hven/detail/globalization/feasibility_stall.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"
 
+// The polish extension's own surface -- the value type, its byte form, and the
+// tag lookup. It lives HERE and not in the driver's public header: that header
+// only forward-declares IpmPolishData (see the declaration's own note), so the
+// SQP crossover header this one pulls, and hven/qp/qp_types.h behind it, stay
+// out of every consumer of the interior-point driver.
+#include "hven/warmstart/ipm_polish_extension.h"
+
 // clang-format on
 
 namespace {
@@ -3827,9 +3834,21 @@ bool hven::solvers::InteriorPointSolver::build_polish_extension(const Eigen::Vec
 
 void hven::solvers::InteriorPointSolver::validate_staged_polish(const WarmStartData &data,
                                                                 const char *entry) const {
-    // Throws on a DUPLICATED tag; returns null when the value simply does not
-    // carry one, which is the ordinary core-only hand-off.
-    const WarmExtension *extension = find_ipm_polish(data);
+    // Returns null when the value simply does not carry the tag, which is the
+    // ordinary core-only hand-off; throws on a DUPLICATED one. That throw is
+    // wrapped for the same reason the decode's is: EVERY refusal this entry
+    // emits opens with the entry's own name, so a consumer grepping its logs
+    // for one prefix does not miss a refusal class. The inner message is kept
+    // verbatim -- it already names the tag and says what it refused.
+    const WarmExtension *extension = nullptr;
+    try {
+        extension = find_ipm_polish(data);
+    } catch (const std::invalid_argument &error) {
+        throw std::invalid_argument(
+            fmt::format("InteriorPointSolver::{0}: the staged warm start's extension list could "
+                        "not be read -- {1}",
+                        entry, error.what()));
+    }
     if (extension == nullptr) {
         return;
     }

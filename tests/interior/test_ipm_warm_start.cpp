@@ -1038,10 +1038,19 @@ TEST(IpmWarmStart, ExportCarriesThePolishTagOnABoundedProblem) {
     EXPECT_GT(polish.mu_, 0.0);
     EXPECT_LT(polish.mu_, 1.0);
 
-    // AND IT AGREES WITH THE CORE, bit for bit. Every bounded variable here is
-    // one-sided, so the signed block IS one of the two pair entries, negated
-    // for an upper side -- an exact operation. A pair that had been rescaled,
-    // reordered or taken at a different iterate could not survive this.
+    // AND IT AGREES WITH THE CORE, BIT FOR BIT AT THE DEFAULT OBJECTIVE SCALE.
+    // Every bounded variable here is one-sided, so the signed block IS one of
+    // the two pair entries, negated for an upper side -- an exact operation. A
+    // pair that had been rescaled, reordered or taken at a different iterate
+    // could not survive this.
+    //
+    // THE SCALE QUALIFIER IS REAL, not caution: the export divides each side of
+    // the pair by solve_obj_scale_ INDIVIDUALLY, while the core's signed block
+    // is divided AFTER the subtraction, in unscale_reported_outputs. At
+    // obj_scale == 1 both paths skip the division outright and the identity is
+    // exact; at obj_scale != 1 on a genuinely two-sided bound, (zL/s) - (zU/s)
+    // and (zL - zU)/s may differ by an ulp. The pair is the authoritative
+    // block either way -- the core's z is documented as the signed one.
     ASSERT_EQ(solved.warm_.bound_lmults_.size(), 2);
     Eigen::VectorXd signed_from_pair = polish.z_lower_ - polish.z_upper_;
     expect_bit_identical(signed_from_pair, solved.warm_.bound_lmults_,
@@ -1152,6 +1161,32 @@ TEST(IpmWarmStart, StagingRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
         EXPECT_NE(message.find("holds 3"), std::string::npos) << message;
         EXPECT_NE(message.find("has 2"), std::string::npos) << message;
     }
+}
+
+// The duplicate-tag refusal, THROUGH THE ENGINE. find_ipm_polish's own unit
+// test covers the refusal; what this adds is that staging routes it out with
+// the entry prefix every other refusal from this entry carries, so a consumer
+// grepping for "InteriorPointSolver::stage_warm_start" sees this class too.
+TEST(IpmWarmStart, StagingRefusesThePolishTagCarriedTwiceNamingTheEntry) {
+    const WarmBoundedSolve solved;
+    WarmStartData twice = solved.warm_;
+    twice.extensions_.push_back(solved.warm_.extensions_[0]);
+    ASSERT_EQ(twice.extensions_.size(), 2u);
+
+    NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
+    fresh.optimizer_->set_print_level(10);
+    fresh.transcribe();
+    try {
+        fresh.optimizer_->stage_warm_start(twice);
+        ADD_FAILURE() << "expected a refusal";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_EQ(message.rfind("InteriorPointSolver::stage_warm_start:", 0), 0u) << message;
+        EXPECT_NE(message.find("more than once"), std::string::npos) << message;
+        EXPECT_NE(message.find(std::string(hven::solvers::kIpmPolishTag)), std::string::npos)
+            << message;
+    }
+    EXPECT_FALSE(fresh.optimizer_->warm_staged_);
 }
 
 TEST(IpmWarmStart, AForeignExtensionTagIsIgnoredAtStagingAndAtSolve) {
