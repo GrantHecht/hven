@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_continuation.cpp — Phase-4 Task 10: the CONTINUATION DRIVER
 // (continuation.h), the sweep loop that composes everything the phase built --
 // warm ingest (Task 3), the hot handle (Task 4), the Kungurtsev-Diehl

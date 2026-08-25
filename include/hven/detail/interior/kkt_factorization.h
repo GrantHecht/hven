@@ -1,34 +1,23 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #pragma once
 
-// The interior-point engine's KKT factorization: the assembly buffer the
-// engine writes its Newton system into, the hven::linear::SymmetricFactor that
-// consumes it, and the small evidence cache the engine reads back after every
-// numeric factorization.
+// The interior-point engine's KKT factorization: the assembly buffer
+// the engine writes its Newton system into, the SymmetricFactor consuming it,
+// and the small evidence cache read back after every numeric factorization.
 //
-// WHY A BUFFER OF ITS OWN. The engine assembles values -- and, when the
-// variable treatment changes, a whole new sparsity pattern -- directly into a
-// matrix it holds a reference to. hven::linear takes the matrix BY REFERENCE at
-// analyze() and factorize() instead of handing out an internal one, so the
-// buffer moves here and every assembly site writes into it exactly as before.
-//
-// WHY AN EVIDENCE CACHE. hven::linear reports what a factorization observed
-// (an inertia state, an optional perturbed-pivot count, a factor size that is
-// an entry count on one backend and a byte size on another) and never a
-// verdict. The engine above consumes plain integers and an
-// Eigen::ComputationInfo status, so this class projects the one onto the other
-// at a single point. The projection is deliberately faithful to what the
-// engine saw before the linear layer was replaced -- an absent perturbed-pivot
-// count reads as 0, the two structurally different factor-size observables both
-// land in one integer -- so that swapping the backend is not also an
-// algorithm-policy change. Adopting the honest evidence shapes inside the
-// engine is a separate piece of work with its own justification.
-//
-// FIDELITY EXTENDS TO THE FAILURE PATHS, and those are BACKEND-SPECIFIC: the
-// two interfaces this replaced categorized their own backends' error codes
-// differently and left different values behind on a failed factorization, so
-// the projection has to be written per backend rather than once over a code
-// that means different things on each. The implementation splits on the sparse
-// backend for exactly that reason and for nothing else.
+// The engine assembles directly into a matrix held by reference (hven::linear
+// takes the matrix BY REFERENCE at analyze()/factorize()), and consumes plain
+// integers plus an Eigen::ComputationInfo status while the linear layer
+// reports what a factorization OBSERVED (inertia, optional perturbed-pivot
+// count, factor size in backend-specific units) and never a verdict. This
+// class projects one onto the other at a single point, deliberately faithful
+// to pre-linear-layer shapes (absent pivot count reads 0; both factor-size
+// observables land in one integer) so swapping backends is not an
+// algorithm-policy change. Fidelity extends to the FAILURE paths, which are
+// BACKEND-SPECIFIC: the replaced interfaces categorized their error codes
+// differently, so the failed-factorization projection is written per backend.
 
 #include <Eigen/Core>
 
@@ -40,6 +29,16 @@ namespace hven::solvers {
 class KktFactorization {
   public:
     using Options = hven::linear::SymmetricFactor::Options;
+    using Counters = hven::linear::SymmetricFactor::Counters;
+
+    /// @brief Whether a numeric factorization still has to verify that the
+    ///        assembly buffer carries the analyzed sparsity pattern.
+    ///
+    /// The linear layer's own vocabulary, re-exported here so an engine that
+    /// knows its buffer's pattern is fixed can say so without naming
+    /// hven::linear at the call site. What passing kAssumeAnalyzed takes on
+    /// is stated once, on SymmetricFactor::PatternCheck.
+    using PatternCheck = hven::linear::SymmetricFactor::PatternCheck;
 
     /// Backend defaults. Nothing is analyzed or factorized until the engine
     /// configures this object and fills the matrix.
@@ -103,11 +102,26 @@ class KktFactorization {
     /// still throws.
     void compute();
 
-    /// Numeric factorization into the existing symbolic analysis. Throws if
-    /// there is none, or if the buffer's sparsity pattern is not the analyzed
-    /// one -- a pattern change is a caller error here, not a numeric outcome,
-    /// and its remedy is compute().
-    void refactorize();
+    /// @brief Numeric factorization into the existing symbolic analysis.
+    /// @param check  whether the buffer's pattern is verified against the
+    ///               analyzed one on this call, or declared to match it.
+    ///
+    /// Throws if there is no symbolic analysis, or -- under
+    /// PatternCheck::kVerify -- if the buffer's sparsity pattern is not the
+    /// analyzed one; a pattern change is a caller error here, not a numeric
+    /// outcome, and its remedy is compute().
+    ///
+    /// The verification is an O(nnz) walk of the whole KKT matrix, and this
+    /// call sits inside the inertia ladder, so on a solve it runs several
+    /// times per iteration. kAssumeAnalyzed is for an engine that can name
+    /// what keeps the pattern fixed between analyses -- the interior engine
+    /// gates it on the model's structure epoch, which is the model's own
+    /// signal that its structures have been re-laid.
+    void refactorize(PatternCheck check = PatternCheck::kVerify);
+
+    /// @brief The linear engine's call counters, including the pattern-guard
+    ///        count that makes a skipped verification observable.
+    const Counters &counters() const { return factor_.counters(); }
 
     /// Solve against the current factorization. `x` must already be sized.
     void solve(ConstVecRef rhs, VecRef x) const;

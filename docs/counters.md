@@ -25,11 +25,12 @@ correctness or to gate a test or benchmark.
 - **`core/`** — no counters yet; the shared type aliases and `pattern_hash`
   seeded here carry none.
 - **`linear/`** — `SymmetricFactor::Counters`
-  (`include/hven/linear/symmetric_factor.h`) carries four counters. All are
-  per engine instance, and all count calls that reached the backend and
-  returned: a call rejected by validation (wrong pattern hash, size mismatch,
-  wrong lifecycle order) throws and increments nothing, and neither does one
-  that fails inside the backend and throws.
+  (`include/hven/linear/symmetric_factor.h`) carries five counters. All are
+  per engine instance. The four BACKEND-CALL counters below — everything but
+  `pattern_verify_count` — count calls that reached the backend and returned:
+  a call rejected by validation (wrong pattern hash, size mismatch, wrong
+  lifecycle order) throws and increments nothing, and neither does one that
+  fails inside the backend and throws.
   - `analyze_count` — +1 per completed symbolic analysis. `factorize()` never
     increments it, which is what makes "the symbolic was reused" checkable
     rather than merely claimed. Adopting a shared factorization starts a
@@ -45,6 +46,17 @@ correctness or to gate a test or benchmark.
     composing three partial solves is not one full solve, and the traces
     that assert on these need to tell them apart.
 
+  - `pattern_verify_count` — +1 per `factorize()` call that actually RAN the
+    pattern guard: recomputed the matrix's pattern hash and compared it
+    against the analyzed key. The one counter here that does not count a
+    backend call, and the one that counts a call the validation then
+    REJECTED — the rejection throws, and `factorize_count` does not move, but
+    the guard did run. It exists so that "the guard was skipped" is checkable
+    the way `analyze_count` makes "the symbolic was reused" checkable: a run
+    of factorizations under `PatternCheck::kAssumeAnalyzed` advances
+    `factorize_count` and leaves this one standing, and under
+    `PatternCheck::kVerify` the two move together.
+
   `DenseSymmetricFactor` exposes no counters; one gets added when a consumer
   reads it.
 - **`model/`** — documented as the component lands.
@@ -53,4 +65,13 @@ correctness or to gate a test or benchmark.
 - **`qp/`** — documented as the component lands.
 - **`globalization/`** — documented as the component lands.
 - **`warmstart/`** — documented as the component lands.
-- **`drivers/`** — documented as the component lands.
+- **`drivers/`** — `InteriorPointSolver::kkt_analysis_count()`
+  (`include/hven/drivers/interior_point_solver.h`) is the one counter this
+  component exposes so far. +1 per KKT sparsity analysis this solver instance
+  has laid, over the object's LIFETIME rather than per call: it moves once at
+  `set_nlp()` and once more at any solve entry that finds the model's
+  structure epoch moved since the last analysis, and `release()` returns it to
+  zero along with the analysis it counts. Deliberately not a `SolveResult`
+  field — that struct is reset per call, and "did a second solve against
+  unchanged structures analyze again?" is a cross-call question. The rest of
+  the component's diagnostics are documented as they land.

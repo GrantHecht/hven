@@ -1,9 +1,13 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #include <gtest/gtest.h>
 
 #include <cmath>
 #include <limits>
 #include <memory>
 
+#include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
 
 namespace {
@@ -92,6 +96,27 @@ TEST(NLPSolverTest, Hs071ConvergesToKnownOptimum) {
     Eigen::VectorXd expect(4);
     expect << 1.00000000, 4.74299963, 3.82114998, 1.37940829;
     EXPECT_LT((x - expect).lpNorm<Eigen::Infinity>(), 1e-5);
+}
+
+// SolveResult::bound_lmults_ pin: HS071's x[0] sits exactly on its active
+// lower bound (xl[0] == 1.0 == x*[0]) at the known optimum above, and the
+// other three variables are strictly interior. The exposed z must therefore
+// be the right dimension (one entry per solver primal, since HS071 has no
+// eliminated variables) and follow the sign convention nlp_model.h pins:
+// >= 0 at an active lower bound, ~0 when free.
+TEST(NLPSolverTest, Hs071BoundDualsMatchActiveLowerBound) {
+    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+
+    const Eigen::VectorXd &z = solver.optimizer_->result().bound_lmults_;
+    ASSERT_EQ(z.size(), 4);
+    EXPECT_GT(z[0], 1e-6);        // active lower bound: z >= 0, and strictly so here
+    EXPECT_NEAR(z[1], 0.0, 1e-6); // free
+    EXPECT_NEAR(z[2], 0.0, 1e-6); // free
+    EXPECT_NEAR(z[3], 0.0, 1e-6); // free
 }
 
 // Unconstrained Rosenbrock: exercises the objective-owned Hessian path (no
@@ -420,6 +445,61 @@ TEST(NLPSolverTest, FixedVariableSolvesExactlyAtItsFixedValue) {
     EXPECT_NEAR(x[1], 3.0, 1e-12);
 }
 
+// SolveResult::fixed_variable_treatment_ pin, using the same fixture: under
+// the default MakeParameter treatment the fixed variable is eliminated (no
+// row added), so eq_lmults_ stays empty; switched to MakeConstraint, the one
+// fixed variable becomes one internal fixing row, so eq_lmults_ grows to
+// exactly one entry -- pinning both the recorded treatment and the
+// treatment-dependent shape documented on eq_lmults_.
+TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
+    {
+        hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
+        solver.optimizer_->set_print_level(10);
+        Eigen::VectorXd x0(2);
+        x0 << 0.0, 3.0;
+        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+        EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
+                  hven::solvers::FixedVariableTreatments::MakeParameter);
+        EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0);
+    }
+    {
+        hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
+        solver.optimizer_->set_print_level(10);
+        solver.optimizer_->set_fixed_variable_treatment(
+            hven::solvers::FixedVariableTreatments::MakeConstraint);
+        Eigen::VectorXd x0(2);
+        x0 << 0.0, 3.0;
+        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+        EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
+                  hven::solvers::FixedVariableTreatments::MakeConstraint);
+        EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
+    }
+}
+
+// SolveResult::bound_lmults_ pin against the RelaxBounds -> MakeParameter
+// treatment switch: under RelaxBounds the fixed variable is NOT eliminated,
+// so it reaches the solver as a widened two-sided bound and bounds_lmults_
+// comes back non-empty; switched to MakeParameter on the SAME solver
+// instance (no intervening set_nlp()), the variable is eliminated instead,
+// bounds_ goes back to null, and bound_lmults_ must not still be reporting
+// the first solve's z at the old, now-mismatched primal_vars_ width.
+TEST(NLPSolverTest, BoundLmultsClearedAfterATreatmentSwitchDropsTheBoundSet) {
+    hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::RelaxBounds);
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 3.0;
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_GT(solver.optimizer_->result().bound_lmults_.size(), 0);
+
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::MakeParameter);
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimizer_->result().bound_lmults_.size(), 0);
+}
+
 // EqOnlyProblem plus a starting_multipliers() override that returns true and
 // seeds the exact solution multiplier (lambda = -2, see
 // EqualityMultiplierHasIpoptSign above) -- proves the seed reaches InteriorPointSolver and
@@ -514,4 +594,359 @@ TEST(NLPSolverTest, NonFiniteStartingMultipliersThrow) {
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("non-finite"), std::string::npos);
     }
+}
+
+// Partition count and QP thread count are independent settings, each reached
+// through its own setter, and neither setter touches the other's state. The
+// concepts below pin that surface: the only partition setter takes the
+// partition count alone, so no call site can silently reset the QP thread
+// count while asking for a partition count.
+template <class T>
+concept SetsPartitionsAlone = requires(T &t) { t.set_num_partitions(1); };
+template <class T>
+concept SetsPartitionsAndQpThreads = requires(T &t) { t.set_num_partitions(1, 1); };
+
+static_assert(SetsPartitionsAlone<hven::solvers::OptimizationProblemBase>);
+static_assert(!SetsPartitionsAndQpThreads<hven::solvers::OptimizationProblemBase>);
+static_assert(SetsPartitionsAlone<NLPSolver>);
+static_assert(!SetsPartitionsAndQpThreads<NLPSolver>);
+
+TEST(NLPSolverTest, PartitionCountAndQpThreadCountAreSetIndependently) {
+    NLPSolver solver(std::make_shared<EqOnlyProblem>());
+    solver.optimizer_->set_print_level(10);
+
+    solver.optimizer_->set_qp_threads(3);
+    solver.set_num_partitions(2);
+    EXPECT_EQ(solver.num_partitions_, 2);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 3); // partitions left it alone
+
+    solver.optimizer_->set_qp_threads(1);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+    EXPECT_EQ(solver.num_partitions_, 2); // and the QP setter left partitions alone
+
+    EXPECT_THROW(solver.set_num_partitions(0), std::invalid_argument);
+    EXPECT_THROW(solver.optimizer_->set_qp_threads(0), std::invalid_argument);
+
+    // Both jet entry points put the solver on one partition and one QP thread.
+    solver.set_num_partitions(4);
+    solver.optimizer_->set_qp_threads(4);
+    solver.jet_initialize();
+    EXPECT_EQ(solver.num_partitions_, 1);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+
+    solver.set_num_partitions(4);
+    solver.optimizer_->set_qp_threads(4);
+    solver.jet_release();
+    EXPECT_EQ(solver.num_partitions_, 1);
+    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+    solver.optimizer_->set_print_level(10); // jet_release() resets the print level
+}
+
+// The set_*() validators for bound_push, alpha_red, delta_h, incr_h,
+// bound_fraction and decr_h are written as negated comparisons so that a NaN,
+// which compares false against every ordinary relational operator, is
+// refused rather than silently accepted and stored.
+TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
+    hven::solvers::InteriorPointSolver solver;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    try {
+        solver.set_bound_push(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
+    }
+    try {
+        solver.set_alpha_red(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
+    }
+    try {
+        solver.set_delta_h(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+    }
+    try {
+        solver.set_incr_h(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+    }
+    try {
+        solver.set_bound_fraction(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
+    }
+    try {
+        solver.set_decr_h(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
+    }
+    try {
+        solver.set_bound_interval_push(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_interval_push"), std::string::npos);
+    }
+    try {
+        solver.set_bound_relax_factor(nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_relax_factor"), std::string::npos);
+    }
+
+    // set_hpert_params delegates to the three setters above, so a NaN in any
+    // one argument is refused too -- naming that argument's own setter site,
+    // since it is set_delta_h/set_incr_h/set_decr_h that actually throws.
+    try {
+        solver.set_hpert_params(nan, 8.0, 0.1);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+    }
+    try {
+        solver.set_hpert_params(1e-4, nan, 0.1);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+    }
+    try {
+        solver.set_hpert_params(1e-4, 8.0, nan);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
+    }
+}
+
+// greater_than's four callers (bound_push, alpha_red, delta_h, incr_h) all
+// feed a magnitude or rate that downstream arithmetic uses directly, with no
+// "infinity means disabled" reading anywhere in the solver -- so +inf is
+// refused right alongside NaN, not just accepted as "greater than the bound".
+TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
+    hven::solvers::InteriorPointSolver solver;
+    const double inf = std::numeric_limits<double>::infinity();
+
+    try {
+        solver.set_bound_push(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
+    }
+    try {
+        solver.set_alpha_red(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
+    }
+    try {
+        solver.set_delta_h(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
+    }
+    try {
+        solver.set_incr_h(inf);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
+    }
+}
+
+// The other half of the twice-checked pairing: a NaN written directly through
+// the mutable settings() reference (bypassing the setter entirely) must still
+// be caught by Settings::validate(), one representative field per helper
+// family that has a numeric double-valued invariant.
+TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    {
+        hven::solvers::InteriorPointSolver solver; // pos_finite
+        solver.settings().kkt_tol_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("kkt_tol"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // in_open_unit
+        solver.settings().bound_fraction_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // greater_than
+        solver.settings().bound_push_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // in_open_interval
+        solver.settings().bound_interval_push_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_interval_push"), std::string::npos);
+        }
+    }
+    {
+        hven::solvers::InteriorPointSolver solver; // in_closed_interval
+        solver.settings().bound_relax_factor_ = nan;
+        try {
+            solver.settings().validate();
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("bound_relax_factor"), std::string::npos);
+        }
+    }
+}
+
+// A problem whose Hessian callback throws while armed. Transcription runs that
+// callback at the model's start point, so arming it makes transcribe() fault
+// partway through.
+struct FaultingSetupProblem : EqOnlyProblem {
+    bool armed_ = true;
+
+    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd> lambda,
+                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        if (armed_) {
+            throw std::runtime_error("FaultingSetupProblem: eval_hess armed to throw");
+        }
+        EqOnlyProblem::eval_hess(x, obj_factor, lambda, v);
+    }
+    std::string name() const override { return "FaultingSetupProblem"; }
+};
+
+TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
+    auto problem = std::make_shared<FaultingSetupProblem>();
+    NLPSolver solver(problem);
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+
+    // A fault on the very first transcription commits nothing at all.
+    EXPECT_THROW(solver.optimize(x0), std::runtime_error);
+    EXPECT_EQ(solver.model_, nullptr);
+    EXPECT_EQ(solver.core_, nullptr);
+    EXPECT_EQ(solver.nlp_, nullptr);
+    EXPECT_TRUE(solver.do_transcription_);
+    EXPECT_THROW(solver.return_multipliers(), std::runtime_error); // nothing was solved
+
+    // Clearing the fault and retrying succeeds; nothing had to be reset by hand.
+    problem->armed_ = false;
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_FALSE(solver.do_transcription_);
+    const auto model_after = solver.model_;
+    const auto core_after = solver.core_;
+    const auto nlp_after = solver.nlp_;
+    ASSERT_NE(model_after, nullptr);
+
+    // A fault on a later transcription leaves the standing one whole -- same
+    // three objects, still consistent with each other -- and leaves the retry
+    // flag set rather than half-replacing the solver.
+    problem->armed_ = true;
+    solver.do_transcription_ = true;
+    EXPECT_THROW(solver.optimize(x0), std::runtime_error);
+    EXPECT_EQ(solver.model_, model_after);
+    EXPECT_EQ(solver.core_, core_after);
+    EXPECT_EQ(solver.nlp_, nlp_after);
+    EXPECT_TRUE(solver.do_transcription_);
+
+    // The optimizer kept the standing transcription too, not just this
+    // solver's members: with the fault cleared and re-transcription
+    // suppressed, a solve still runs against the program the optimizer was
+    // given before the fault. Nothing reached set_nlp on the faulted attempt,
+    // so there was nothing there to replace.
+    problem->armed_ = false;
+    solver.do_transcription_ = false;
+    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.model_, model_after);
+    EXPECT_EQ(solver.nlp_, nlp_after);
+
+    solver.do_transcription_ = true;
+    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+}
+
+// Counts the setup-only queries a transcription makes of the problem. bounds,
+// jac_structure and hess_structure are asked exactly once per transcription
+// and never during a solve, so their totals are a direct count of how many
+// transcriptions have happened.
+struct TranscriptionCountingProblem : EqOnlyProblem {
+    mutable int n_bounds_ = 0, n_jac_structure_ = 0, n_hess_structure_ = 0;
+    mutable int n_eval_jac_ = 0, n_eval_hess_ = 0;
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        n_bounds_++;
+        EqOnlyProblem::bounds(xl, xu, gl, gu);
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        n_jac_structure_++;
+        EqOnlyProblem::jac_structure(r, c);
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        n_hess_structure_++;
+        EqOnlyProblem::hess_structure(r, c);
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+        n_eval_jac_++;
+        EqOnlyProblem::eval_jac(x, v);
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd> lambda,
+                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        n_eval_hess_++;
+        EqOnlyProblem::eval_hess(x, obj_factor, lambda, v);
+    }
+    std::string name() const override { return "TranscriptionCountingProblem"; }
+};
+
+TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation) {
+    auto problem = std::make_shared<TranscriptionCountingProblem>();
+    NLPSolver solver(problem);
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    // Exactly one transcription: one bounds query, one of each structure.
+    EXPECT_EQ(problem->n_bounds_, 1);
+    EXPECT_EQ(problem->n_jac_structure_, 1);
+    EXPECT_EQ(problem->n_hess_structure_, 1);
+    EXPECT_FALSE(solver.do_transcription_);
+    const auto model_after_first = solver.model_;
+    const auto nlp_after_first = solver.nlp_;
+
+    const int jac_after_first = problem->n_eval_jac_;
+    const int hess_after_first = problem->n_eval_hess_;
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    // Nothing was transcribed a second time, so no setup evaluation happened a
+    // second time either: the counts that a transcription and only a
+    // transcription moves are unchanged, and the model and program are the
+    // same objects.
+    EXPECT_EQ(problem->n_bounds_, 1);
+    EXPECT_EQ(problem->n_jac_structure_, 1);
+    EXPECT_EQ(problem->n_hess_structure_, 1);
+    EXPECT_EQ(solver.model_, model_after_first);
+    EXPECT_EQ(solver.nlp_, nlp_after_first);
+    // The second solve did evaluate -- it is a solve -- so the derivative
+    // counts moved; the point is that none of that movement was setup.
+    EXPECT_GT(problem->n_eval_jac_, jac_after_first);
+    EXPECT_GT(problem->n_eval_hess_, hess_after_first);
 }

@@ -1,0 +1,7 @@
+run: run1
+HEAD binary commit: cf7f2fb
+BASE binary commit: 3208dcd (rig ipm_base) unless stated in HEAD line
+protocol: ipm_wall_leg.sh 9 reps x 15 inner solves, base/head alternated per rep; arms serial (MKL_NUM_THREADS=1, pinned) + threaded
+MKL_NUM_THREADS=1 exported for the whole run
+box state: contended? see README (first pass, OpenCode idle, Fable reviewer running)
+date: 2026-08-22

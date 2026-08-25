@@ -1,37 +1,38 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
 // Implements the SolverFunctionBase class which is the base class to
 // ConstraintFunction and ObjectiveFunction. Holds an Constraint/ObjectiveInterface type erasure
 // class and SolverIndexingData struct. Defines methods for the function to request and reserve KKT
 // and RHS space from the solver, and passes relevant arguments to the underlying type erased
 // function or index data structure. The two Derived classes ( Constraint/ObjectiveInterface) then
 // define the rest of the interface to the type-erased functions constraints and objective methods.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 #include <Eigen/Core>
 
+#include <fmt/format.h>
+
 #include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/solvers/solver_interface_specs.h"
 #include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/solvers/solver_interface_specs.h"
 
 namespace hven::solvers {
+
+/// The one type allowed to move a piece's lay marker: it is the thing that
+/// lays layouts, and the marker records that it has.
+struct NonLinearProgram;
 
 template <class FuncType> struct SolverFunctionBase {
     using MatrixXi = Eigen::MatrixXi;
@@ -39,7 +40,6 @@ template <class FuncType> struct SolverFunctionBase {
 
     FuncType function_;
     SolverIndexingData index_data_;
-    ThreadingFlags thread_mode_ = ThreadingFlags::ByApplication;
 
     SolverFunctionBase() {}
 
@@ -68,6 +68,27 @@ template <class FuncType> struct SolverFunctionBase {
         return this->function_.input_rows() * this->index_data_.num_appl();
     }
     ThreadingFlags get_thread_mode() const { return this->thread_mode_; }
+
+    /// @brief Sets the thread assignment policy this piece is laid out under.
+    /// @param mode the policy the partitioner reads.
+    /// @throws std::invalid_argument if a layout has already been laid over
+    ///         this piece, naming it by name().
+    ///
+    /// The mode decides which work partition the piece lands in, so it decides
+    /// claim order and therefore the structural key. It is declaration data:
+    /// set it before the problem is laid. Changing it afterwards is a
+    /// structural mutation and is reached by re-laying from a declaration that
+    /// carries the new mode, never by writing the piece on hand.
+    void set_thread_mode(ThreadingFlags mode) {
+        if (this->thread_mode_laid_) {
+            throw std::invalid_argument(fmt::format(
+                "set_thread_mode: the layout on hand was laid over '{0}' with thread mode {1}, and "
+                "the mode decides which partition claims its KKT slots; re-lay from a declaration "
+                "carrying the new mode instead of writing the laid piece",
+                this->function_.name(), static_cast<int>(this->thread_mode_)));
+        }
+        this->thread_mode_ = mode;
+    }
     void get_kkt_space(EigenRef<VectorXi> KKTrows, EigenRef<VectorXi> KKTcols, int &freeloc,
                        int conoffset, bool dojac, bool dohess) {
         this->function_.get_kkt_space(KKTrows, KKTcols, freeloc, conoffset, dojac, dohess,
@@ -79,6 +100,34 @@ template <class FuncType> struct SolverFunctionBase {
     void get_constraint_space(EigenRef<VectorXi> FXrows, int &freeloc) {
         this->index_data_.get_constraint_space(FXrows, freeloc);
     }
+
+  private:
+    /// @brief Freezes this piece's thread mode, as the lay that partitioned it
+    ///        leaves it.
+    ///
+    /// PRIVATE, and reachable only from the type that lays layouts. A public
+    /// pair of these would make the refusal advisory: two calls -- thaw, then
+    /// write -- would move a laid piece's mode while the structural key, the
+    /// structure epoch and the claim arrays all stood still, and the size-only
+    /// guard on the declaration readers would not see it. There would be no
+    /// diagnostic anywhere, and the declaration would report a mode the layout
+    /// was not partitioned from.
+    void mark_thread_mode_laid() { this->thread_mode_laid_ = true; }
+
+    /// @brief Thaws this piece's thread mode, for a copy handed out as
+    ///        declaration data rather than held as part of a layout. Paired
+    ///        with mark_thread_mode_laid(), and private for the same reason.
+    void clear_thread_mode_laid() { this->thread_mode_laid_ = false; }
+
+    friend struct NonLinearProgram;
+
+    ThreadingFlags thread_mode_ = ThreadingFlags::ByApplication;
+
+    /// Whether a layout has been laid over this piece. Set by the lay, cleared
+    /// on the copies handed out as declaration data, and what makes the mode
+    /// frozen for as long as the structures that were partitioned from it
+    /// stand.
+    bool thread_mode_laid_ = false;
 };
 
 } // namespace hven::solvers

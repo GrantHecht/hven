@@ -1,21 +1,10 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-//   - Configuration fields grouped into Settings struct
-//   - Phase dispatch refactored into run_phase_sequence
-//   - Line search methods extracted (ls_lang, ls_l1, ls_auglang)
-//   - Printing extracted to psiopt_print.cpp
-//   - Settings converters/setters/validation extracted to psiopt_settings.cpp
-// =============================================================================
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
 
 // clang-format off
 //
@@ -36,6 +25,7 @@
 #include <limits>
 #include <stdexcept>
 
+#include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
 #include "hven/detail/interior/utils/timer.h"
@@ -96,9 +86,7 @@ bool interior_point_iterate_acceptable(
 
 } // namespace
 
-// =============================================================================
 // QP parameter setup
-// =============================================================================
 
 namespace {
 
@@ -256,9 +244,7 @@ void hven::solvers::InteriorPointSolver::set_qp_params() {
     this->kkt_sol_.reconfigure(opts);
 }
 
-// =============================================================================
 // KKT matrix analysis
-// =============================================================================
 
 bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
     bool docompute = true;
@@ -270,35 +256,34 @@ bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
     return docompute;
 }
 
-// =============================================================================
 // Release
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::release() {
     this->kkt_sol_.release();
     this->qp_analyzed_ = false;
+    // The analysis is gone, so the epoch describing it is too -- and the count
+    // of analyses this solver has run against a program it no longer holds.
+    this->has_analyzed_structure_epoch_ = false;
+    this->analyzed_structure_epoch_ = StructureEpoch{};
+    this->kkt_analysis_count_ = 0;
     // The bound set lives in the NLP being released; the multipliers indexed it.
     this->bounds_ = nullptr;
     this->bound_duals_ = BoundDualState{};
     this->nlp_.reset();
     result_.primals_.resize(0);
-    result_.eq_lmults_.resize(0);
-    result_.iq_lmults_.resize(0);
-    result_.eq_cons_.resize(0);
-    result_.iq_cons_.resize(0);
+    this->clear_reported_constraint_blocks();
+    result_.bound_lmults_.resize(0);
 }
 
-// =============================================================================
 // Barrier math helpers
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
                                                             Eigen::Ref<Eigen::VectorXd> FXI) const {
     detail::apply_reset_slacks(S, FXI, this->slack_vars_, settings_.neg_slack_reset_);
 }
 
-// max_step_to_boundary was extracted verbatim into BacktrackingLineSearch
-// (src/solvers/interior_point_solver_globalization.cpp).
+// max_step_to_boundary lives on BacktrackingLineSearch
+// (src/drivers/interior_point_solver_globalization.cpp).
 
 void hven::solvers::InteriorPointSolver::complementarity(Eigen::Ref<Eigen::VectorXd> X,
                                                          Eigen::Ref<Eigen::VectorXd> S,
@@ -396,14 +381,12 @@ void hven::solvers::InteriorPointSolver::barrier_hessian(
     this->nlp_->assign_kkt_slack_hessian(this->hp_scratch_, KKTmat);
 }
 
-// loqo_mu / mpc_mu were extracted verbatim into ClassicAdaptiveGovernor
-// (src/solvers/interior_point_solver_globalization.cpp); the barrier-parameter
-// update now runs through governor_->update_barrier().
+// loqo_mu / mpc_mu live on ClassicAdaptiveGovernor
+// (src/drivers/interior_point_solver_globalization.cpp); the barrier-parameter
+// update runs through governor_->update_barrier().
 
-// =============================================================================
 // Native variable-bound helpers. Every one is a no-op when bounds_ is null,
 // which is the whole story on a problem that declares no variable bounds.
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::push_initial_point_interior(EigenRef<Eigen::VectorXd> x,
                                                                      double mu0) {
@@ -622,48 +605,91 @@ double hven::solvers::InteriorPointSolver::dual_infeasibility_inf(
     return this->bound_resid_scratch_.lpNorm<Eigen::Infinity>();
 }
 
-// =============================================================================
 // NLP eval dispatch methods
-// =============================================================================
 
-template <class Fn>
-void hven::solvers::InteriorPointSolver::eval_dispatch(
-    Fn fn, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
-    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    ((*this->nlp_).*fn)(
-        obj_scale, XSL.head(primal_vars_), XSL.segment(primal_vars_ + slack_vars_, equal_cons_),
-        XSL.tail(inequal_cons_), val, GX.head(primal_vars_), AGXS_FX.head(primal_vars_),
-        AGXS_FX.segment(primal_vars_ + slack_vars_, equal_cons_), AGXS_FX.tail(inequal_cons_),
-        KKTmat);
+void hven::solvers::InteriorPointSolver::assemble_dispatch(
+    EvalRequest request, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
+    EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |
+                                        EvalRequest::kConstraintJacobian |
+                                        EvalRequest::kConstraintAdjointHessian;
+    const bool kkt_bearing = (request & kKktBearing) != EvalRequest::kNone;
+
+    const CandidatePoint point{
+        detail::declaration_primals(*this->nlp_, this->declaration_primals_scratch_,
+                                    XSL.head(this->primal_vars_)),
+        XSL.segment(this->primal_vars_ + this->slack_vars_, this->equal_cons_),
+        XSL.tail(this->inequal_cons_), obj_scale};
+    const RhsScatterView rhs = detail::compound_rhs_scatter_view(
+        *this->nlp_, val, GX, AGXS_FX, this->primal_vars_, this->slack_vars_, this->equal_cons_,
+        this->inequal_cons_);
+
+    if (!kkt_bearing) {
+        this->nlp_->assemble(point, request, KktScatterView{}, rhs);
+        return;
+    }
+
+    this->nlp_->assemble(point, request, detail::kkt_scatter_view(*this->nlp_, KKTmat), rhs);
+
+    // The consumer-owned coefficient scatter: the primal and slack diagonals,
+    // the constraint-row pivots and the slack Jacobian this solver set on its
+    // own storage. assemble() does not write them.
+    //
+    // Sequenced after the evaluation rather than run alongside it. The contract
+    // permits a consumer to overlap its own coefficient steps with assemble()
+    // when the two write disjoint destinations, and these do not: a primal
+    // diagonal is added onto the Hessian (1,1) diagonal element, which a
+    // Hessian piece claims as well. The two therefore accumulate into the same
+    // doubles, and overlapping them would race. Pinned by
+    // SolverCoefficientBlocksAgainstPieceClaims in tests/interior.
+    this->nlp_->fill_solver_coeffs(KKTmat);
+}
+
+void hven::solvers::InteriorPointSolver::assemble_objective(double obj_scale,
+                                                            ConstEigenRef<VectorXd> primals,
+                                                            double &val) {
+    RhsScatterView rhs;
+    rhs.objective_ = &val;
+    // A values-only request reads no multipliers, so both blocks are empty.
+    this->nlp_->assemble(
+        CandidatePoint{
+            detail::declaration_primals(*this->nlp_, this->declaration_primals_scratch_, primals),
+            detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveOnly, KktScatterView{}, rhs);
 }
 
 void hven::solvers::InteriorPointSolver::eval_kkt(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_kkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    this->assemble_dispatch(kRequestFullKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
 void hven::solvers::InteriorPointSolver::eval_kkt_no(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_kkt_no, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    // No-objective mode: this request names no objective output, so obj_scale
+    // and val are unused. Both stay in the signature to keep one shape across
+    // the four wrappers.
+    this->assemble_dispatch(kRequestConstraintKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
 void hven::solvers::InteriorPointSolver::eval_aug(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_aug, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    this->assemble_dispatch(kRequestFirstOrderKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
 void hven::solvers::InteriorPointSolver::eval_soe(
     double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
     EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    this->eval_dispatch(&NonLinearProgram::eval_soe, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
+    // Constraint-only mode, as eval_kkt_no above: neither obj_scale nor val is
+    // read by this request.
+    this->assemble_dispatch(kRequestConstraintResidualsAndJacobian, obj_scale, XSL, val, GX,
+                            AGXS_FX, KKTmat);
 }
 
-// =============================================================================
 // Solver initialization and NLP setup
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::ensure_solver_initialized() {
     double initMs = ::hven::solvers::ensure_solver_initialized();
@@ -725,9 +751,16 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
     this->nlp_ = np;
     // Any bound set this solver was pointing at belonged to the previous NLP,
     // and the multipliers indexed it. The next solve's configuration step
-    // re-reads both.
+    // re-reads both. result_.bound_lmults_ is reset alongside them so a
+    // solver reused across a bounded NLP and then an unbounded one does not
+    // leave the previous solve's z standing (its "empty when no finite
+    // variable bounds" doc would otherwise not hold across that reuse), and
+    // the four constraint-indexed blocks go with it for the same reason: they
+    // describe row spaces belonging to the program being replaced.
     this->bounds_ = nullptr;
     this->bound_duals_ = BoundDualState{};
+    this->result_.bound_lmults_.resize(0);
+    this->clear_reported_constraint_blocks();
     this->refresh_nlp_dimensions();
 
     // acceptance_/mechanism_/governor_/recovery_ are rebuilt from Settings by
@@ -750,19 +783,81 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
 #endif
 
     // The pattern is laid out directly into the assembly buffer; the symbolic
-    // analysis over it runs at the next compute(), which qp_analyzed_ = false
-    // below is what schedules.
+    // analysis over it runs at the next compute(), which the qp_analyzed_ =
+    // false inside this call is what schedules.
+    this->analyze_kkt_sparsity();
+}
+
+void hven::solvers::InteriorPointSolver::analyze_kkt_sparsity() {
     this->nlp_->analyze_sparsity(this->kkt_sol_.matrix());
+
+    // Read AFTER the lay, not before: analyze_sparsity does not bump the
+    // epoch (only a re-lay does), so the two orders agree today -- and reading
+    // after is the one that stays correct if a future analysis path ever
+    // re-lays on its way through. What is recorded is the epoch the pattern
+    // now in the buffer belongs to.
+    this->analyzed_structure_epoch_ = this->nlp_->structure_epoch();
+    this->has_analyzed_structure_epoch_ = true;
+    ++this->kkt_analysis_count_;
+
+    // A new pattern in the assembly buffer: marking the analysis stale is what
+    // routes the entry factorization through compute(), so the backend
+    // symbolic is redone over it.
     this->qp_analyzed_ = false;
+}
+
+void hven::solvers::InteriorPointSolver::clear_reported_constraint_blocks() {
+    this->result_.eq_lmults_.resize(0);
+    this->result_.iq_lmults_.resize(0);
+    this->result_.eq_cons_.resize(0);
+    this->result_.iq_cons_.resize(0);
+}
+
+bool hven::solvers::InteriorPointSolver::kkt_pattern_is_analyzed() const {
+    return this->has_analyzed_structure_epoch_ && this->nlp_ != nullptr &&
+           this->nlp_->structure_epoch() == this->analyzed_structure_epoch_;
+}
+
+hven::solvers::KktFactorization::PatternCheck
+hven::solvers::InteriorPointSolver::kkt_pattern_check() const {
+    // A CALL THAT HANDS THE MATRIX OUT VERIFIES FROM THAT POINT ON. The early
+    // callback receives the assembly buffer by mutable reference, and an edit
+    // made there is not a model event: it changes the buffer's pattern without
+    // re-laying anything, so the structure epoch stands and would vouch for a
+    // pattern that is no longer the analyzed one. The epoch answers "has the
+    // model re-laid", which is the whole question only while nothing else can
+    // re-pattern the buffer. verify_kkt_pattern_for_solve_ is not a decision
+    // taken only at entry: a callback already armed there sets it before the
+    // entry init_impl() factorization runs, covering the whole call, but a
+    // callback armed mid-call (nothing in the API forbids installing one from
+    // inside the late callback) sets the flag itself at its own first
+    // hand-out, so every factorization from that hand-out through the end of
+    // the call verifies even though earlier ones -- which never had the
+    // matrix out -- did not need to. Once set, never cleared before the call
+    // ends: the only reset site is the entry assignment above, so a
+    // disable_early_callback() mid-call cannot hand the skip back.
+    if (this->verify_kkt_pattern_for_solve_) {
+        return KktFactorization::PatternCheck::kVerify;
+    }
+
+    // Otherwise declared, not assumed: the same predicate the solve-entry
+    // re-analysis is gated on. When it holds, a re-lay since the analysis is
+    // impossible, so the buffer's pattern IS the analyzed one and the full-KKT
+    // hash the guard would take is a walk over the whole matrix to confirm it.
+    // When it does not hold, the guard runs -- which is what turns a
+    // stale-structure bug into a refusal instead of a factorization over the
+    // wrong symbolic.
+    return this->kkt_pattern_is_analyzed() ? KktFactorization::PatternCheck::kAssumeAnalyzed
+                                           : KktFactorization::PatternCheck::kVerify;
 }
 
 // (Re)builds the five globalization components from the CURRENT Settings
 // (acceptance_/mechanism_/governor_/recovery_, always constructed, plus the
 // optional restoration_). Called once per run_phase_sequence(), right after the
 // variable-treatment configuration and before the first phase — i.e. once per
-// solve invocation (optimize()/solve()/solve_optimize()/etc.
-// all route through run_phase_sequence()) — rather than only from set_nlp()
-// (which runs only on (re)transcription). This makes construction-time knobs
+// solve invocation (optimize()/solve()/solve_optimize()/etc. all route through
+// run_phase_sequence()) — rather than only from set_nlp() (which runs only on
+// (re)transcription). This makes construction-time knobs
 // (acceptance_strategy, max_soc, ls_extended_iters, watchdog,
 // merit_penalty_rule, barrier_governor, restoration_mode) live at the next
 // solve even when no set_nlp() call intervenes, matching every other Settings
@@ -772,17 +867,16 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
 // solve() call that changed them without retranscribing — see the origin
 // project's component-rebuild-takes-effect-without-retranscription test
 // for the reachable-from-a-binding repro (the two acceptance strategies
-// produce different
-// iteration counts from the same cold start, so a stale acceptance_ is
-// directly observable).
+// produce different iteration counts from the same cold start, so a stale
+// acceptance_ is directly observable).
 //
 // Neutrality on the default (all-off) path: this call constructs the exact
 // same four concrete types (ClassicMeritAcceptance, BacktrackingLineSearch,
 // ClassicAdaptiveGovernor, NoopRecovery) that set_nlp() used to construct —
-// only the MOMENT of construction moves (every solve entry vs. every
-// (re)transcription). No consumer can observe the difference: nothing reads
-// acceptance_/mechanism_/governor_/recovery_ between set_nlp() returning and
-// run_phase_sequence() reaching this call (verified by grep — the only
+// only the MOMENT of construction moved (every run_phase_sequence() entry
+// rather than every (re)transcription). No consumer can observe the difference:
+// nothing reads acceptance_/mechanism_/governor_/recovery_ between set_nlp()
+// returning and run_phase_sequence() reaching this call (the only
 // consumers are alg_impl's dispatch and the per-phase reset() calls, both
 // inside run_phase_sequence()'s own call graph), and ClassicMeritAcceptance's
 // SolverContext captures (this->nlp_.get(), and primal_vars_/slack_vars_/
@@ -845,11 +939,11 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
         filter->set_restoration_constraint_tol(this->settings_.econ_tol_);
         this->acceptance_ = std::move(filter);
     } else {
-        this->acceptance_ = std::make_unique<ClassicMeritAcceptance>(
-            SolverContext{this->nlp_.get(), this->kkt_sol_, this->settings_, this->primal_vars_,
-                          this->slack_vars_, this->equal_cons_, this->inequal_cons_, this->kkt_dim_,
-                          this->stli_scratch_, this->restoration_.get(), &this->eval_error_log_,
-                          this->bounds_, &this->bound_duals_});
+        this->acceptance_ = std::make_unique<ClassicMeritAcceptance>(SolverContext{
+            this->nlp_.get(), this->kkt_sol_, this->settings_, this->primal_vars_,
+            this->slack_vars_, this->equal_cons_, this->inequal_cons_, this->kkt_dim_,
+            this->stli_scratch_, this->declaration_primals_scratch_, this->restoration_.get(),
+            &this->eval_error_log_, this->bounds_, &this->bound_duals_});
     }
 
     // The step-length globalization mechanism. Stateless (holds
@@ -898,7 +992,7 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
             this->settings_.max_soc_ > 0 ? std::make_unique<SocRecovery>() : nullptr;
         std::unique_ptr<RecoveryChain> extended_link =
             this->settings_.ls_extended_iters_ > 0 ? std::make_unique<ExtendedBacktrackRecovery>()
-                                                    : nullptr;
+                                                   : nullptr;
         this->recovery_ =
             std::make_unique<ChainedRecovery>(std::move(soc_link), std::move(extended_link));
     } else {
@@ -922,8 +1016,8 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     }
 }
 
-// max_primal_dual_step was extracted verbatim into BacktrackingLineSearch
-// (src/solvers/interior_point_solver_globalization.cpp). alg_impl drives it
+// max_primal_dual_step lives on BacktrackingLineSearch
+// (src/drivers/interior_point_solver_globalization.cpp). alg_impl drives it
 // through mechanism_ (fused into compute_step on the main path; via the public
 // method at the PROBE predictor call site).
 
@@ -1022,8 +1116,9 @@ void hven::solvers::InteriorPointSolver::eval_nlp(
         // switch does, and each constraint-row RHS carries the condensed residual
         // r̃ in place of the raw residual. μ is the live phase barrier parameter
         // (η(μ) is recomputed on every evaluation). Pivots and the primal diagonal
-        // must be set BEFORE eval_kkt_no (they scatter inside fill_solver_coeffs)
-        // and reset to 0.0 after, mirroring the set_primal_diags discipline.
+        // are set before eval_kkt_no (assemble_dispatch's fill_solver_coeffs
+        // step scatters them) and reset to 0.0 after, mirroring the
+        // set_primal_diags discipline.
         if (this->restoration_->is_nested()) {
             const int ec = this->equal_cons_;
             const int ic = this->inequal_cons_;
@@ -1133,13 +1228,14 @@ void hven::solvers::InteriorPointSolver::eval_nlp(
 // handed to notify_switch_to_optimality or reported as obj_val_, since both
 // consumers expect true-objective scale. This re-evaluates the true objective
 // once at the live primals, matching the non-OPT obj_val_ eval pattern below
-// (zero the accumulator, then let eval_obj accumulate into it).
+// (zero the accumulator, then let the objective-value request accumulate into
+// it).
 hven::solvers::ProgressMeasures hven::solvers::InteriorPointSolver::build_restoration_exit_measures(
     double obj_scale, double infeasibility, ConstEigenRef<VectorXd> primals, double barr_obj) {
     ProgressMeasures measures;
     measures.infeasibility = infeasibility;
     measures.objective = 0.0;
-    this->nlp_->eval_obj(obj_scale, primals, measures.objective);
+    this->assemble_objective(obj_scale, primals, measures.objective);
     measures.auxiliary = barr_obj;
     return measures;
 }
@@ -1193,11 +1289,9 @@ void hven::solvers::InteriorPointSolver::enter_feasibility_restoration(
         this->resto_ic_scratch_ = v_rhs.iq_cons();
         double theta_orig = 0.0;
         if (this->equal_cons_ > 0)
-            theta_orig =
-                std::max(theta_orig, v_rhs.eq_cons().template lpNorm<Eigen::Infinity>());
+            theta_orig = std::max(theta_orig, v_rhs.eq_cons().template lpNorm<Eigen::Infinity>());
         if (this->inequal_cons_ > 0)
-            theta_orig =
-                std::max(theta_orig, v_rhs.iq_cons().template lpNorm<Eigen::Infinity>());
+            theta_orig = std::max(theta_orig, v_rhs.iq_cons().template lpNorm<Eigen::Infinity>());
         this->resto_theta_orig_prev_ = theta_orig;
 
         // Verified entry multiplier init. In this engine's slack-complementarity
@@ -1599,12 +1693,12 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
                            "Warning: Potential Rank Deficiency Detected\n");
         }
     };
-    // T6 (dead-status fix): kkt_sol_.info() was computed by every Compute()/
-    // Refactor() call below and never read anywhere -- a dead status. This records
-    // the last non-Success status into result_.last_kkt_info_ (surfaced only by
-    // print_exit_stats(), see interior_point_solver_print.cpp) and, for hard failures only, emits
-    // an immediate diagnostic gated the same as the sibling RankDef()/perturbation-
-    // exhausted warnings in this function. NumericalIssue (Pardiso info -4/-7:
+    // kkt_sol_.info() is computed by every Compute()/Refactor() call below. This
+    // records the last non-Success status into result_.last_kkt_info_ (surfaced
+    // only by print_exit_stats(), see interior_point_solver_print.cpp) and, for
+    // hard failures only, emits an immediate diagnostic gated the same as the
+    // sibling RankDef()/perturbation-exhausted warnings in this function.
+    // NumericalIssue (Pardiso info -4/-7:
     // zero/near-zero pivot; Accelerate factorization-failed/singular) is a NORMAL,
     // expected condition while probing perturbations during inertia correction
     // below -- printing on every occurrence would spam the console for any problem
@@ -1623,7 +1717,15 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
         }
     };
     auto Perturb = [&](double p) { this->nlp_->perturb_kkt_p_diags(p, this->kkt_sol_.matrix()); };
-    auto Refactor = [&]() { this->kkt_sol_.refactorize(); };
+    // The inertia ladder's refactorizations, of which there may be several per
+    // iteration, all run over one pattern: the ladder perturbs DIAGONAL values
+    // that the analysis already laid slots for, and nothing inside a solve can
+    // re-lay the model. The gate is the structure epoch all the same rather
+    // than that argument written out here -- it is the model's own signal, it
+    // is one atomic load, and it is the same signal the solve-entry
+    // re-analysis is gated on, so the two cannot come to different conclusions
+    // about whether the buffer holds the analyzed pattern.
+    auto Refactor = [&]() { this->kkt_sol_.refactorize(this->kkt_pattern_check()); };
     auto Compute = [&]() { this->kkt_sol_.compute(); };
     auto PerturbC = [&](double p) { this->nlp_->perturb_kkt_c_diags(p, this->kkt_sol_.matrix()); };
     // On-demand dual regularization (delta_c). dual_shift is the magnitude
@@ -1781,6 +1883,10 @@ void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &i
         BestCriteriaVal = critval;
         this->best_xsl_scratch_ = XSL;
         this->best_rhs_scratch_ = RHS;
+        // bound_duals_ carries no XSL/RHS-embedded counterpart, so it needs
+        // its own snapshot here -- see the note on best_bound_duals_scratch_'s
+        // declaration in the header.
+        this->best_bound_duals_scratch_ = this->bound_duals_;
         BestIter = i;
     }
 }
@@ -1827,10 +1933,19 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // step-length mechanism (mechanism_) at its call sites below. Built once
     // here (dims/settings/scratch are stable for the solve); it must not
     // outlive this alg_impl frame or the InteriorPointSolver members it references.
-    SolverContext ctx{this->nlp_.get(),         this->kkt_sol_,         this->settings_,
-                      this->primal_vars_,       this->slack_vars_,      this->equal_cons_,
-                      this->inequal_cons_,      this->kkt_dim_,         this->stli_scratch_,
-                      this->restoration_.get(), &this->eval_error_log_, this->bounds_,
+    SolverContext ctx{this->nlp_.get(),
+                      this->kkt_sol_,
+                      this->settings_,
+                      this->primal_vars_,
+                      this->slack_vars_,
+                      this->equal_cons_,
+                      this->inequal_cons_,
+                      this->kkt_dim_,
+                      this->stli_scratch_,
+                      this->declaration_primals_scratch_,
+                      this->restoration_.get(),
+                      &this->eval_error_log_,
+                      this->bounds_,
                       &this->bound_duals_};
 
     // Windowed sustained-worsening detector for the feasibility-only stage (see
@@ -1843,7 +1958,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     hven::utils::Timer Funtimer;
     hven::utils::Timer QPtimer;
     hven::utils::Timer CBtimer; // Callback time falls into misc_time_ implicitly (misc = total -
-                                 // pre - kkt - func - print)
+                                // pre - kkt - func - print)
     hven::utils::Timer Printtimer;
 
     double Hpert0 = settings_.delta_h_;
@@ -1944,6 +2059,19 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         Funtimer.stop();
         if (this->early_callback_enabled_) {
             CBtimer.start();
+            // Set at the hand-out itself, not only trusted to have been set at
+            // solve entry: early_callback_enabled_ is re-read every iteration, so
+            // a callback armed mid-call (set_early_callback() called from inside
+            // the late callback below, which nothing in the API forbids) reaches
+            // this statement with the entry assignment still false. Setting the
+            // flag right beside the hand-out, unconditionally, is what makes "the
+            // matrix was handed out => every subsequent factorization this call
+            // verifies" true by construction regardless of when the callback was
+            // armed -- this iteration's own upcoming factor_impl() included.
+            // Nothing clears it again before the call ends (see
+            // run_phase_sequence()'s entry assignment, the only reset site), so a
+            // later disable_early_callback() cannot hand the skip back either.
+            this->verify_kkt_pattern_for_solve_ = true;
             this->early_callback_(i, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix());
             CBtimer.stop();
         }
@@ -2185,13 +2313,14 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 if (settings_.return_best_) {
                     XSL = BestXSL;
                     RHS = BestRHS;
+                    this->bound_duals_ = this->best_bound_duals_scratch_;
                 }
                 // obj_val_ must describe the RETURNED primals: evaluate after the
                 // return_best_ substitution above (which may have replaced XSL),
                 // unlike the notify measures, which record the exit point. With
                 // return_best_ off the two evaluations coincide.
                 restoration_true_obj = 0.0;
-                this->nlp_->eval_obj(obj_scale, v_xsl.primals(), restoration_true_obj);
+                this->assemble_objective(obj_scale, v_xsl.primals(), restoration_true_obj);
                 this->result_.converge_flag_ = ExitCode;
                 if (settings_.print_level_ == 0) {
                     Printtimer.start();
@@ -2257,6 +2386,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             if (ExitCode != ConvergenceFlags::CONVERGED && settings_.return_best_) {
                 XSL = BestXSL;
                 RHS = BestRHS;
+                this->bound_duals_ = this->best_bound_duals_scratch_;
             }
 
             this->result_.converge_flag_ = ExitCode;
@@ -2510,8 +2640,8 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         const bool force_monotone_barrier =
             nested_active && !governor_->provides_restoration_barrier_safeguard();
         // The barrier parameter is updated whenever there is a barrier term to
-        // drive. That used to mean inequality slacks; it now also means variable
-        // bounds. Without the added disjunct a problem whose only barrier terms
+        // drive -- an inequality slack OR a variable bound. Without the bound
+        // disjunct a problem whose only barrier terms
         // are bound terms would hold mu at init_mu_ for the whole phase, its
         // bound complementarity would floor at that value, and the solve could
         // not reach the barrier tolerance at all. The oracles handle an empty
@@ -2609,9 +2739,8 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // max_primal_dual_step and are committed by apply_elastic_step below.
         if (nested_active) {
             KKTVector v_dxsl = kkt_view(DXSL);
-            this->restoration_->recover_elastic_steps(step_mu, v_xsl.eq_lmults(),
-                                                      v_xsl.iq_lmults(), v_dxsl.eq_lmults(),
-                                                      v_dxsl.iq_lmults());
+            this->restoration_->recover_elastic_steps(step_mu, v_xsl.eq_lmults(), v_xsl.iq_lmults(),
+                                                      v_dxsl.eq_lmults(), v_dxsl.iq_lmults());
         }
         QPtimer.stop();
 
@@ -3021,6 +3150,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             if (ExitCode != ConvergenceFlags::CONVERGED && settings_.return_best_) {
                 XSL = BestXSL;
                 RHS = BestRHS;
+                this->bound_duals_ = this->best_bound_duals_scratch_;
             }
 
             this->result_.converge_flag_ = ExitCode;
@@ -3128,7 +3258,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     } else {
         Funtimer.start();
         this->result_.obj_val_ = 0;
-        this->nlp_->eval_obj(obj_scale, v_xsl.primals(), this->result_.obj_val_);
+        this->assemble_objective(obj_scale, v_xsl.primals(), this->result_.obj_val_);
         Funtimer.stop();
     }
 
@@ -3178,6 +3308,21 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         this->result_.iq_cons_ = v_rhs.iq_cons() - v_xsl.slacks();
         this->result_.iq_lmults_ = v_xsl.iq_lmults();
     }
+    if (this->bounds_) {
+        // Combine the two per-side multipliers into the single signed z that
+        // nlp_model.h's stationarity convention uses -- see accumulate_bound_
+        // dual_terms in barrier_math.h, which folds the same z_lower_/z_upper_
+        // pair into a primal residual with the identical signs (-zL, +zU).
+        this->result_.bound_lmults_ = Eigen::VectorXd::Zero(this->primal_vars_);
+        const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
+        const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
+        for (int k = 0; k < nl; k++)
+            this->result_.bound_lmults_[this->bounds_->lower_idx_[k]] +=
+                this->bound_duals_.z_lower_[k];
+        for (int k = 0; k < nu; k++)
+            this->result_.bound_lmults_[this->bounds_->upper_idx_[k]] -=
+                this->bound_duals_.z_upper_[k];
+    }
 
     Runtimer.stop();
     this->result_.iter_num_ += iters.size();
@@ -3220,7 +3365,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
     // INIT mode never runs with restoration active (init_impl is the one-shot
     // multiplier initializer), so the μ argument is inert here; pass mu for
     // consistency with the live phase parameter.
-    this->eval_nlp(AlgorithmModes::INIT, settings_.obj_scale_, XSL, val,
+    this->eval_nlp(AlgorithmModes::INIT, this->solve_obj_scale_, XSL, val,
                    RHS.head(this->primal_vars_), RHS, this->kkt_sol_.matrix(), mu);
 
     KKTVector v_xsl = kkt_view(XSL);
@@ -3250,7 +3395,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
     if (docompute)
         this->kkt_sol_.compute();
     else
-        this->kkt_sol_.refactorize();
+        this->kkt_sol_.refactorize(this->kkt_pattern_check());
     kktt.stop();
 
     double pretime = double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
@@ -3327,11 +3472,21 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
     // of the equality row space (see validate_staged_multipliers and
     // install_fixed_variable_rows); a seed already sized to the
     // post-treatment count is installed as-is.
+    //
+    // THE SEED ARRIVES IN THE CALLER'S CONVENTION and is installed into the
+    // solver's, which is the same boundary unscale_reported_outputs() sits on
+    // read the other way: the caller's multipliers stand against L = f + ...,
+    // the solver's against L = obj_scale*f + ..., so the seed is multiplied
+    // by the scale on the way in. Scaled BEFORE the clamp, deliberately --
+    // the clamp bounds the magnitude the solver starts from, which is a
+    // statement about the solver's own space.
     const int user_eq = this->nlp_->user_equal_cons_;
+    const double scale = this->solve_obj_scale_;
     KKTVector v_xsl = kkt_view(XSL);
     if (this->equal_cons_ > 0) {
-        Eigen::VectorXd clamped_eq =
-            eq_mults.cwiseMax(-kSeededMultInitMax).cwiseMin(kSeededMultInitMax);
+        Eigen::VectorXd clamped_eq = (scale == 1.0 ? eq_mults : Eigen::VectorXd(eq_mults * scale))
+                                         .cwiseMax(-kSeededMultInitMax)
+                                         .cwiseMin(kSeededMultInitMax);
         if (eq_mults.size() == this->equal_cons_) {
             v_xsl.eq_lmults() = clamped_eq;
         } else {
@@ -3342,8 +3497,46 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
         }
     }
     for (int i = 0; i < this->inequal_cons_; i++) {
-        v_xsl.iq_lmults()[i] = std::clamp(iq_mults[i], kSeededIqMultFloor, kSeededMultInitMax);
+        const double seeded = scale == 1.0 ? iq_mults[i] : iq_mults[i] * scale;
+        v_xsl.iq_lmults()[i] = std::clamp(seeded, kSeededIqMultFloor, kSeededMultInitMax);
     }
+}
+
+void hven::solvers::InteriorPointSolver::unscale_reported_outputs() {
+    // The solver minimizes obj_scale * f subject to the constraints, so its
+    // Lagrangian is L = s*f + lambda_e^T cE + lambda_i^T cI - z, and every
+    // quantity that stands in a stationarity relation with the objective
+    // carries the s. The objective VALUE carries it too: the evaluation the
+    // last phase reported is the scaled one, because the same request that
+    // produces it is the one the barrier work drives.
+    //
+    // What leaves this class is the caller's problem, not the scaled one --
+    // nlp_model.h's stationarity convention is stated at s = 1 -- so the
+    // reported objective and the three multiplier blocks are divided back out
+    // here. The primals are untouched: a positive scale does not move the
+    // minimizer. So are the constraint residuals, which never carried it.
+    //
+    // NOTHING IN THIS SOLVER READS THESE FIELDS BACK, which is what lets one
+    // division at the end stand in for scaling every write: alg_impl
+    // overwrites all four per phase and no phase, print, or globalization
+    // component consumes them.
+    //
+    // THE SCALE DIVIDED OUT HERE IS THE ONE THIS CALL RAN AT, taken at its
+    // entry, not the setting as it stands now -- the two differ whenever a
+    // callback wrote the setting mid-call, and dividing by a number nothing
+    // was evaluated at would report an objective and duals belonging to no
+    // problem.
+    const double scale = this->solve_obj_scale_;
+    if (scale == 1.0) {
+        // The default, and the one case where the division would be the only
+        // floating-point operation on this path. Skipped so the default path
+        // is not merely bit-identical but arithmetically untouched.
+        return;
+    }
+    this->result_.obj_val_ /= scale;
+    this->result_.eq_lmults_ /= scale;
+    this->result_.iq_lmults_ /= scale;
+    this->result_.bound_lmults_ /= scale;
 }
 
 Eigen::VectorXd
@@ -3392,8 +3585,33 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     }
 
     this->result_.reset_accumulators();
+    this->clear_reported_constraint_blocks();
     this->eval_error_log_.reset();
     settings_.validate();
+
+    // TAKEN ONCE, HERE, and read by everything downstream. The scale governs
+    // what this call minimizes, so one call has to run at one scale: the entry
+    // initialization, the multiplier seed, every phase and the unscaling of
+    // what leaves must all divide and multiply by the same number. Reading the
+    // setting live at each of those points would let a callback -- which can
+    // reach the public setter and the settings reference -- change the scale
+    // between the phase that produced a multiplier and the seam that reports
+    // it, so a solve would report its objective and its duals on a scale
+    // nothing was evaluated at. A scale written during a call takes effect on
+    // the next one. Read AFTER validate(), so what is captured is a scale that
+    // has been checked.
+    this->solve_obj_scale_ = settings_.obj_scale_;
+
+    // The entry state of the guard: true only when a callback is already
+    // armed at entry, so the entry init_impl() factorization -- which runs
+    // before any iteration, and so before the per-iteration hand-out below
+    // gets a chance to set this itself -- verifies whenever that hand-out is
+    // possible from the start. NOT a decision held for the whole call: a
+    // callback armed mid-call (from inside the late callback, at the
+    // per-iteration hand-out) sets this flag again itself at that later
+    // point -- see the hand-out site's comment and kkt_pattern_check() for
+    // why the flag is never reset except here, at entry.
+    this->verify_kkt_pattern_for_solve_ = this->early_callback_enabled_;
 
     // Re-apply the QP threading setting on every solve entry, not just in
     // set_qp_params() (which only runs on transcribe). The two backends need
@@ -3441,6 +3659,19 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // matrix it was computed for no longer exists. A solver instance solving
     // repeatedly against unchanged bounds takes none of this.
     //
+    // THAT REPORT IS NOT THE WHOLE QUESTION, and the re-analysis below is
+    // therefore gated on the model's structure epoch as well. The treatment
+    // call reports only whether IT rebuilt anything, and takes an idempotence
+    // shortcut whenever treatment, relax factor and bounds revision are all
+    // unchanged. Every other structural event leaves those three alone: a
+    // partition renegotiation, a re-transcription, an adoption replaying
+    // identical bounds. Each of them re-lays -- which resets the NLP's KKT
+    // location table to -1 and drops its analyzed-destination capture -- and
+    // then reports no treatment change, so a gate reading only that report
+    // would carry a location table naming no destination into the next solve
+    // and scatter through it. The epoch moves for every re-lay, which is
+    // exactly the set of events this analysis has to answer.
+    //
     // The bound-set pointer is cleared FIRST and re-read only after the call
     // returns. A configuration that throws leaves a rejected classification
     // behind on the NLP, and a caller that catches it and solves again must not
@@ -3448,15 +3679,36 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // after makes the success path the only one that can produce a non-null
     // bounds_. A set with nothing in it is left null, so "has variable-bound
     // barrier terms" and "bounds_ != nullptr" are the same question everywhere.
+    //
+    // result_.bound_lmults_ is cleared in step with it. bounds_ does not only
+    // go null via set_nlp()/release() -- a treatment switch on one solver
+    // instance (RelaxBounds, which records a widened bound pair for a
+    // bound-fixed variable, to MakeParameter/MakeConstraint, neither of which
+    // does) or a caller's own NonLinearProgram::clear_variable_bounds() call
+    // both reach configure_variable_treatment() below with a now-empty bound
+    // set, on the SAME solver instance, with no intervening set_nlp(). Without
+    // this reset the tail fill a few phases down (guarded on `this->bounds_`,
+    // with no else) would leave the PREVIOUS solve's z standing, silently
+    // wrong-length against the new primal_vars_ -- exactly what the field's
+    // own "empty when the problem has no finite variable bounds" doc promises
+    // cannot happen.
     this->bounds_ = nullptr;
-    if (this->nlp_->configure_variable_treatment(settings_.fixed_variable_treatment_,
-                                                 settings_.bound_relax_factor_)) {
+    this->result_.bound_lmults_.resize(0);
+    // Recorded whether or not the call below rebuilds anything: configure_
+    // variable_treatment either runs the requested treatment or throws, so
+    // this is what ran for this solve regardless of the idempotence
+    // short-circuit inside it.
+    this->result_.fixed_variable_treatment_ = settings_.fixed_variable_treatment_;
+    const bool treatment_rebuilt = this->nlp_->configure_variable_treatment(
+        settings_.fixed_variable_treatment_, settings_.bound_relax_factor_);
+    if (treatment_rebuilt || !this->kkt_pattern_is_analyzed()) {
+        // Both conjuncts are kept rather than folded into the epoch test
+        // alone: a treatment that rebuilt anything re-laid, so the two agree
+        // on that path today, and reading the call's own report keeps the
+        // dimension refresh tied to the call that can change the dimensions
+        // rather than to a signal that merely correlates with it.
         this->refresh_nlp_dimensions();
-        // A new pattern in the assembly buffer; marking the analysis stale is
-        // what routes the entry factorization through compute() so the
-        // symbolic is redone over it.
-        this->nlp_->analyze_sparsity(this->kkt_sol_.matrix());
-        this->qp_analyzed_ = false;
+        this->analyze_kkt_sparsity();
     }
 
     // A staged seed is validated here, right after variable-treatment
@@ -3603,7 +3855,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
             this->resto_recentered_ = false;
         }
 
-        XSL = this->alg_impl(step.alg_mode_, step.bar_mode_, step.ls_mode_, settings_.obj_scale_,
+        XSL = this->alg_impl(step.alg_mode_, step.bar_mode_, step.ls_mode_, this->solve_obj_scale_,
                              settings_.init_mu_, XSL);
 
         // Solver-level observability: collect this phase's acceptance-
@@ -3674,6 +3926,11 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         print_header();
     }
 
+    // THE OBJECTIVE-SCALE SEAM, and it sits here for the same reason the
+    // reinsertion seam below does: this is where the solve's outputs stop
+    // being the solver's and become the caller's.
+    this->unscale_reported_outputs();
+
     // THE reinsertion seam. Everything above ran in the solver's space; from
     // here on the solution is in the caller's, with each eliminated variable
     // back in its own coordinate at its declared value. Nothing else in this
@@ -3683,9 +3940,11 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // What is NOT expanded, deliberately: an eliminated variable's bound
     // multiplier is not reported. Its value is the stationarity residual in the
     // eliminated coordinate -- the gradient entry that the reduced problem
-    // simply has no row for -- and surfacing it belongs with the bound
-    // multipliers the barrier work introduces, which is where it will be
-    // computed alongside every other bound's.
+    // simply has no row for. result_.bound_lmults_ (the multipliers the
+    // barrier work introduces) is dense over the SOLVER's reduced space for
+    // exactly this reason: it has no row to report for an eliminated
+    // variable, so it is not expanded here alongside result_.primals_ -- see
+    // that field's own doc.
     if (this->nlp_->is_reduced()) {
         Eigen::VectorXd primals_full(this->full_primal_vars_);
         this->nlp_->scatter_full_x(result_.primals_, primals_full);

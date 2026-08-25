@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_hs_sweeps.cpp — PHASE-5 TASK 7: THE NONCONVEX SWEEP CORPUS and
 // the policy adjudications it exists to produce.
 //

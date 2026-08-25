@@ -1,46 +1,24 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Extracted the slack-reset and log-barrier objective/gradient kernels from
-//     InteriorPointSolver (interior_point_solver.cpp), where the globalization component extraction
-//     had left one verbatim copy per component
-//   - Added the primal variable-bound barrier kernels (objective, the two
-//     gradient forms, and the condensed sigma diagonal)
-// =============================================================================
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
+// Three tiny pure kernels the barrier machinery evaluates everywhere: the
+// slack reset that completes a raw inequality residual, the log-barrier
+// objective, and its dual gradient -- each a one-line forwarder target for the
+// components that share them, so the arithmetic exists once. The four bound
+// kernels at the bottom are the same idea for barrier terms on PRIMAL VARIABLE
+// BOUNDS; they walk a BoundSet (reduced-space indices), so a problem with no
+// variable bounds gives them no trip count and every caller guards on an empty
+// set anyway. Two of the gradient accumulators look interchangeable and are
+// NOT -- see the mu-form / z-form notes below.
 //
-// Three tiny pure kernels the barrier machinery evaluates everywhere: the slack
-// reset that completes a raw inequality residual, the log-barrier objective, and
-// its dual gradient. They depend on nothing but their arguments, which is why
-// each extracted component (ClassicMeritAcceptance, ClassicAdaptiveGovernor,
-// MonitoredBarrierGovernor) could carry its own verbatim copy reading through a
-// SolverContext instead of a InteriorPointSolver member. This header is the single home; each
-// former member is now a one-line forwarder, so the arithmetic exists once.
-//
-// The four bound kernels at the bottom are the same idea for barrier terms on
-// PRIMAL VARIABLE BOUNDS rather than on inequality slacks. They walk a BoundSet
-// (index/value pairs, reduced-space indices), so a problem with no variable
-// bounds gives them no trip count at all and every caller guards on an empty
-// set anyway. Two of them are gradient accumulators that look interchangeable
-// and are NOT -- see the mu-form / z-form note on the pair below.
-//
-// The bodies below are token-identical to the copies they replace, with the
-// former member reads (slack_vars_ / inequal_cons_ / neg_slack_reset_) turned
-// into explicit parameters. That matters: this arithmetic is on the iterate
-// path, and the merge gate for the component extraction was a bit-identical
-// iteration-count comparison.
-//
-// InteriorPointSolver::complementarity is deliberately NOT here. Its .sum() reduction feeds
-// mu, so any change to how that sum is formed can move iterates by a ULP under
-// fast-math; unifying it needs its own evidence and is out of scope for a
-// move-neutral extraction.
+// Callout: the solver's complementarity reduction is deliberately NOT here.
+// Its .sum() feeds mu, so any change to how that sum is formed can move
+// iterates by a ULP under fast-math; unifying it needs its own evidence.
 
 #pragma once
 
@@ -54,11 +32,10 @@
 
 namespace hven::solvers::detail {
 
-// Completes the raw inequality residual g(x) into g(x) + s and repairs
-// non-positive slacks in place: a slack below `neg_slack_reset` is treated as
-// `neg_slack_reset`, and a negative residual resets the pair instead of adding.
-// `slack_vars` and `neg_slack_reset` are the solver's slack_vars_ /
-// settings_.neg_slack_reset_.
+/// @brief Completes the raw inequality residual g(x) into g(x) + s: a slack
+/// below neg_slack_reset is clamped to that floor for the purpose of the sum
+/// (S[i] itself is left untouched on this branch); a negative residual
+/// instead zeroes the residual and resets S[i] to max(|fx|, neg_slack_reset).
 inline void apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> FXI,
                                int slack_vars, double neg_slack_reset) {
     for (int i = 0; i < slack_vars; i++) {
@@ -77,17 +54,11 @@ inline void apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::
     }
 }
 
-// Fraction-to-boundary step for one block of strictly-positive quantities and
-// their step: the largest alpha in (0, 1] with SLI + alpha*dSLI >= (1-bfrac)*SLI
-// componentwise. `count` is the block length, passed explicitly because the
-// blocks this serves have different lengths -- inequality slacks and their
-// multipliers, variable-bound distances, bound multipliers, and the restoration
-// return's re-centring step.
-//
-// Body moved verbatim from BacktrackingLineSearch::max_step_to_boundary, which
-// is now a one-line forwarder, so every existing caller's arithmetic and trip
-// count are unchanged. Shared for the same reason the kernels above are: this
-// rule was being open-coded a fifth time.
+/// @brief Fraction-to-boundary step for one block of strictly-positive
+/// quantities: the largest alpha in (0, 1] with SLI + alpha*dSLI >=
+/// (1-bfrac)*SLI componentwise. count is passed explicitly because the blocks
+/// served have different lengths (slacks/multipliers, bound distances, bound
+/// multipliers, restoration re-centring).
 inline double max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> SLI,
                                    Eigen::Ref<Eigen::VectorXd> dSLI, double bfrac, int count) {
     double alpha = 1.0;
@@ -101,7 +72,7 @@ inline double max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> SLI,
     return alpha;
 }
 
-// Log-barrier objective -mu * sum(log s_i) over the first `inequal_cons` slacks.
+/// @brief Log-barrier objective -mu * sum(log s_i) over the first inequal_cons slacks.
 inline double barrier_objective(Eigen::Ref<Eigen::VectorXd> S, double mu, int inequal_cons) {
     double psi = 0;
     for (int i = 0; i < inequal_cons; i++) {
@@ -110,37 +81,30 @@ inline double barrier_objective(Eigen::Ref<Eigen::VectorXd> S, double mu, int in
     return psi;
 }
 
-// Dual gradient of the log-barrier objective: lambda_i - mu / s_i, written into
-// the KKT vector's dual-gradient block.
+/// @brief Dual gradient of the log-barrier objective: lambda_i - mu/s_i,
+/// written into the KKT vector's dual-gradient block.
 inline void barrier_gradient(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> LI,
                              double mu, Eigen::Ref<Eigen::VectorXd> AGS) {
     AGS = LI - mu * (S.cwiseInverse());
 }
 
-// =============================================================================
-// Primal variable-bound barrier kernels.
-//
-// For the bounds recorded in `b` (reduced-space indices; a two-sided variable
-// appears in both lists) the barrier objective is
-//
-//     phi_mu(x) = f(x) - mu * sum ln(x_i - l_i) - mu * sum ln(u_i - x_i)
-//
-// and its primal gradient contribution is -mu/(x_i - l_i) + mu/(u_i - x_i).
-// Every caller is responsible for keeping x strictly inside the recorded
-// bounds; the interior push at solve entry and the fraction-to-boundary rule
-// are what guarantee it, and none of these kernels re-checks.
-// =============================================================================
+// Primal variable-bound barrier kernels: for the bounds recorded in b
+// (reduced-space indices; a two-sided variable appears in both lists) the
+// barrier objective is phi_mu(x) = f(x) - mu*sum ln(x_i-l_i) -
+// mu*sum ln(u_i-x_i). Invariant: every caller keeps x STRICTLY inside the
+// recorded bounds (the solve-entry interior push and the fraction-to-boundary
+// rule guarantee it); none of these kernels re-checks.
 
-// -mu * [ sum ln(x_i - l_i) + sum ln(u_i - x_i) ] over the bound set, plus the
-// one-sided damping term kappa_d * mu * sum(distance) over the entries whose
-// variable is bounded on that side only.
-//
-// The damping is Ipopt's (IpIpoptCalculatedQuantities::CalcBarrierTerm adds
-// `kappa_d * mu * slack.Dot(dampind)` per side). Without it the log barrier
-// gives a variable with only one finite bound nothing to push back against in
-// its unbounded direction, and a barrier subproblem can drive it arbitrarily
-// far out. It belongs to the barrier OBJECTIVE and its mu-form gradient only --
-// see kKappaD's note in bound_set.h for the seams it must stay out of.
+/// @brief Bound-set log-barrier objective: -mu * [sum ln(x_i-l_i) +
+/// sum ln(u_i-x_i)], plus the one-sided damping term kappa_d * mu *
+/// sum(distance) over entries whose variable is bounded on that side only.
+///
+/// The damping is Ipopt's (CalcBarrierTerm adds kappa_d * mu * slack.dot(dampind)
+/// per side). Without it a variable with only one finite bound has nothing to
+/// push back against in its unbounded direction and a barrier subproblem can
+/// drive it arbitrarily far out. It belongs to the barrier OBJECTIVE and its
+/// mu-form gradient only -- see kKappaD's note in bound_set.h for the seams it
+/// must stay out of.
 inline double bound_barrier_objective(ConstEigenRef<Eigen::VectorXd> x, const BoundSet &b,
                                       double mu) {
     const int nl = static_cast<int>(b.lower_idx_.size());
@@ -157,19 +121,14 @@ inline double bound_barrier_objective(ConstEigenRef<Eigen::VectorXd> x, const Bo
     return psi;
 }
 
-// mu-FORM primal gradient terms: gx_i += -mu/(x_i - l_i) and += +mu/(u_i - x_i),
-// plus the derivative of the one-sided damping term, += +kappa_d*mu on a
-// lower-only entry and -= kappa_d*mu on an upper-only entry.
-//
-// This is the gradient of the barrier objective above, and it is what the
-// CONDENSED NEWTON RIGHT-HAND SIDE carries. Eliminating the bound-multiplier
-// rows from the primal-dual system turns the primal row's right-hand side
-// (grad f + J'lambda - z_L + z_U) into exactly grad phi_mu + J'lambda: the
-// -z_L + z_U cancels against the multiplier steps that were substituted in.
-// Ipopt keeps the same split, damping and all: its Newton RHS reads
-// curr_grad_lag_WITH_DAMPING_x while its optimality error reads the undamped
-// curr_grad_lag_x. Never use this form for a residual a convergence test
-// consumes.
+/// @brief mu-FORM primal gradient terms: gx_i += -mu/(x_i-l_i), +=
+/// +mu/(u_i-x_i), plus the damping derivative (+/-kappa_d*mu on single-sided
+/// entries). This is the gradient of the barrier objective above and what the
+/// CONDENSED NEWTON RIGHT-HAND SIDE carries: eliminating the bound-multiplier
+/// rows turns the primal RHS into grad phi_mu + J'lambda (the -z_L+z_U cancels
+/// against the substituted multiplier steps). Ipopt keeps the same split,
+/// damping and all. Never use this form for a residual a convergence test
+/// consumes.
 inline void accumulate_bound_barrier_gradient(ConstEigenRef<Eigen::VectorXd> x, const BoundSet &b,
                                               double mu, EigenRef<Eigen::VectorXd> gx) {
     const int nl = static_cast<int>(b.lower_idx_.size());
@@ -184,14 +143,12 @@ inline void accumulate_bound_barrier_gradient(ConstEigenRef<Eigen::VectorXd> x, 
     }
 }
 
-// z-FORM primal gradient terms: gx_i += -zL_i and += +zU_i.
-//
-// This is the DUAL INFEASIBILITY contribution -- the residual whose norm the
-// convergence check consumes, grad f + J'lambda - z_L + z_U. It agrees with the
-// mu-form only at a point that satisfies the bound complementarity exactly
-// (z_L = mu/(x-l), z_U = mu/(u-x)); away from the central path the two differ,
-// which is the whole reason both exist. Never use this form for a Newton
-// right-hand side.
+/// @brief z-FORM primal gradient terms: gx_i += -zL_i, += +zU_i. This is the
+/// DUAL INFEASIBILITY contribution -- the residual whose norm the convergence
+/// check consumes. Agrees with the mu-form only where bound complementarity
+/// holds exactly (z_L = mu/(x-l), z_U = mu/(u-x)); away from the central path
+/// they differ, which is the whole reason both exist. Never use this form for
+/// a Newton right-hand side.
 inline void accumulate_bound_dual_terms(const BoundSet &b, const BoundDualState &z,
                                         EigenRef<Eigen::VectorXd> gx) {
     const int nl = static_cast<int>(b.lower_idx_.size());
@@ -204,22 +161,15 @@ inline void accumulate_bound_dual_terms(const BoundSet &b, const BoundDualState 
     }
 }
 
-// Folds the variable-bound complementarity pairs (x_i - l_i)*zL_i and
-// (u_i - x_i)*zU_i into aggregates already reduced over the inequality
-// slack/multiplier pairs, in place.
-//
-// `base_count` is how many pairs were reduced into `avgcomp` (so their sum can
-// be reconstructed as avgcomp*base_count and re-averaged over the union). The
-// combination is the same shape InteriorPointSolver::augment_complementarity_nested uses for
-// the restoration elastics, and for the same reason: the base aggregates are
-// NOT re-reduced, so the exact Eigen reduction that produced them -- whose
-// ordering feeds mu and is therefore ULP-load-bearing under fast-math -- is
-// preserved untouched. Union min is the min of the mins, union max the max of
-// the maxes, and the union average is count-weighted.
-//
-// A problem with no bounded variables never reaches this (every caller guards
-// on a non-empty set), so the aggregates the barrier oracles consume are
-// bit-identical to what they were before variable bounds existed.
+/// @brief Folds the variable-bound complementarity pairs (x_i-l_i)*zL_i and
+/// (u_i-x_i)*zU_i into aggregates already reduced over the inequality
+/// slack/multiplier pairs, in place. base_count is how many pairs were reduced
+/// into avgcomp (their sum reconstructs as avgcomp*base_count). The base
+/// aggregates are NOT re-reduced, so the exact Eigen reduction that produced
+/// them -- whose ordering feeds mu and is ULP-load-bearing under fast-math --
+/// survives untouched; union min/max are min-of-mins/max-of-maxes, the union
+/// average count-weighted. A problem with no bounded variables never reaches
+/// this (callers guard on non-empty sets).
 inline void augment_bound_complementarity(ConstEigenRef<Eigen::VectorXd> x, const BoundSet &b,
                                           const BoundDualState &z, int base_count, double &avgcomp,
                                           double &mincomp, double &maxcomp) {

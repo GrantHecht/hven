@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // bench/bench_snopt_f7.cpp — PHASE-6 TASK 0. THE SNOPT MEASUREMENT BINARY:
 // the CLI over bench/snopt_f7_driver.h that produced every SNOPT column in
 // docs/notes/2026-08-02-snopt-first-contact.md, and that Task 6 re-runs

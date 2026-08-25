@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // See recipes.h for the recipes-not-matrices rule these all obey.
 
 #include <cmath>

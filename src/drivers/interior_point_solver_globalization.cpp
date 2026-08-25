@@ -1,31 +1,28 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
-//
-// Part of the globalization component extraction: definitions for
-// ClassicMeritAcceptance. The classic_line_search dispatcher and the
-// ls_lang / ls_l1 / ls_auglang merit variants plus their
-// eval_trial_point_occ / compute_penalties / secondary_accept helpers are
-// moved VERBATIM from src/solvers/interior_point_solver.cpp (statement order and operand
-// order preserved exactly — the merge gate is a bit-identical CBWR
-// iteration-count comparison). The only edits are context-plumbing renames:
-// former InteriorPointSolver member reads (settings_, equal_cons_, inequal_cons_, nlp_)
-// now go through the SolverContext reference ctx_. Of the four barrier/eval
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// Definitions for ClassicMeritAcceptance: the classic_line_search dispatcher,
+// the ls_lang / ls_l1 / ls_auglang merit variants, and their
+// eval_trial_point_occ / compute_penalties / secondary_accept helpers. Each
+// reads the solver state (settings, equal_cons, inequal_cons, nlp) through the
+// SolverContext reference ctx_ rather than off a member of its own. Statement
+// order and operand order in these bodies are load-bearing: the iteration
+// counts they produce are bit-identical to InteriorPointSolver's own under CBWR,
+// and reordering either changes them. Of the four barrier/eval
 // helpers, apply_reset_slacks/barrier_objective/barrier_gradient forward to
 // the shared inline kernels in barrier_math.h (as do InteriorPointSolver's own
 // identically-named methods); eval_rhs has no shared counterpart and stays a
-// real body forwarding to ctx_.nlp_->eval_rhs (see merit_acceptance.h's
-// byte-identity design note).
+// real body, issuing the first-order right-hand-side request through the
+// aggregate contract (see merit_acceptance.h's byte-identity design note).
 //
-// This file also hosts BacktrackingLineSearch (the step-length
-// mechanism) — verbatim today's max_step_to_boundary / max_primal_dual_step,
-// reading through the SolverContext passed to each call. See
+// This file also hosts BacktrackingLineSearch (the step-length mechanism):
+// max_step_to_boundary / max_primal_dual_step, reading through the
+// SolverContext passed to each call. See
 // backtracking_line_search.h's riskiest-seam design note.
 //
-// This file also hosts ClassicAdaptiveGovernor (the barrier-parameter
-// update) — verbatim today's PROBE/LOQO barmode switch + common clamp/objective/
-// gradient tail, plus the loqo_mu / mpc_mu oracles it consumes. Its barrier_*
+// This file also hosts ClassicAdaptiveGovernor (the barrier-parameter update):
+// the PROBE/LOQO barmode switch + common clamp/objective/gradient tail, plus
+// the loqo_mu / mpc_mu oracles it consumes. Its barrier_*
 // helpers forward to the shared inline kernels in barrier_math.h; complementarity
 // stays a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own (including its
 // ULP-load-bearing .sum() warning), since its avgcomp/mincomp feed mu and are not
@@ -41,8 +38,8 @@
 // (the condensed elastic l1 phase) — see proximal_restoration.h and
 // l1_restoration.h for the formulations and citations, and restoration.h for
 // the wiring overview.
-// =============================================================================
 
+#include "hven/detail/interior/aggregate_views.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
@@ -85,15 +82,13 @@ void note_eval_error_unknown(EvalErrorLog *log) {
 }
 } // namespace
 
-// ============================================================================
 // Generic interface — is_iterate_acceptable is unused on the classic merit
-// path (see header). T6: it throws rather than return a fabricated answer;
+// path (see header). It throws rather than return a fabricated answer;
 // the shipped FilterAcceptance/FunnelAcceptance/ModernMeritAcceptance
 // strategies are the ones that give it a real body, since they are the ones
 // that actually drive it. is_infeasibility_sufficiently_reduced below is a
 // separate case: it has a real body right here, because it IS driven on the
 // classic path (see alg_impl, interior_point_solver.cpp).
-// ============================================================================
 bool ClassicMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
                                                    const ProgressMeasures &trial,
                                                    const ProgressMeasures &predicted_reduction,
@@ -130,23 +125,28 @@ bool ClassicMeritAcceptance::is_infeasibility_sufficiently_reduced(
     return trial.infeasibility <= floor;
 }
 
-// ============================================================================
 // Barrier/eval helpers. apply_reset_slacks/barrier_objective/barrier_gradient
-// are one-line forwarders into the shared kernels in barrier_math.h;
-// eval_rhs has no shared counterpart and stays a real body forwarding to
-// ctx_.nlp_->eval_rhs (see merit_acceptance.h's byte-identity design note).
-// ============================================================================
+// are one-line forwarders into the shared kernels in barrier_math.h; eval_rhs
+// has no shared counterpart and stays a real body, issuing the first-order
+// right-hand-side request through the aggregate contract (see
+// merit_acceptance.h's byte-identity design note).
 
 void ClassicMeritAcceptance::eval_rhs(double obj_scale,
                                       const Eigen::Ref<const Eigen::VectorXd> &XSL, double &val,
                                       Eigen::Ref<Eigen::VectorXd> GX,
                                       Eigen::Ref<Eigen::VectorXd> AGXS_FX) {
-    ctx_.nlp_->eval_rhs(obj_scale, XSL.head(ctx_.primal_vars_),
-                        XSL.segment(ctx_.primal_vars_ + ctx_.slack_vars_, ctx_.equal_cons_),
-                        XSL.tail(ctx_.inequal_cons_), val, GX.head(ctx_.primal_vars_),
-                        AGXS_FX.head(ctx_.primal_vars_),
-                        AGXS_FX.segment(ctx_.primal_vars_ + ctx_.slack_vars_, ctx_.equal_cons_),
-                        AGXS_FX.tail(ctx_.inequal_cons_));
+    // The full first-order right-hand side. No KKT-bearing output, so no
+    // consumer coefficient scatter belongs beside it: the whole of what the
+    // legacy entry did is inside this call.
+    const CandidatePoint point{detail::declaration_primals(*ctx_.nlp_,
+                                                           ctx_.declaration_primals_scratch_,
+                                                           XSL.head(ctx_.primal_vars_)),
+                               XSL.segment(ctx_.primal_vars_ + ctx_.slack_vars_, ctx_.equal_cons_),
+                               XSL.tail(ctx_.inequal_cons_), obj_scale};
+    ctx_.nlp_->assemble(point, kRequestFirstOrderRhs, KktScatterView{},
+                        detail::compound_rhs_scatter_view(*ctx_.nlp_, val, GX, AGXS_FX,
+                                                          ctx_.primal_vars_, ctx_.slack_vars_,
+                                                          ctx_.equal_cons_, ctx_.inequal_cons_));
 }
 
 void ClassicMeritAcceptance::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
@@ -164,16 +164,21 @@ void ClassicMeritAcceptance::barrier_gradient(Eigen::Ref<Eigen::VectorXd> S,
     detail::barrier_gradient(S, LI, mu, AGS);
 }
 
-// ============================================================================
 // Line search — shared helpers
-// ============================================================================
 
 void ClassicMeritAcceptance::eval_trial_point_occ(double obj_scale, double mu, double alpha,
                                                   KKTVector &xsl, KKTVector &dxsl, KKTVector &xsl2,
                                                   KKTVector &rhs2, double &ptest, double &btest) {
     xsl2.data() = xsl.data() + alpha * dxsl.data();
     rhs2.data().setZero();
-    ctx_.nlp_->eval_occ(obj_scale, xsl2.primals(), ptest, rhs2.eq_cons(), rhs2.iq_cons());
+    ctx_.nlp_->assemble(
+        CandidatePoint{detail::declaration_primals(*ctx_.nlp_, ctx_.declaration_primals_scratch_,
+                                                   xsl2.primals()),
+                       detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveAndConstraints, KktScatterView{},
+        detail::residual_rhs_scatter_view(*ctx_.nlp_, ptest, rhs2.eq_cons().data(),
+                                          rhs2.iq_cons().data(), ctx_.equal_cons_,
+                                          ctx_.inequal_cons_));
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx_.restoration_ is null). Shared by the L1 and AUGLANG variants. While
     // active, obj_scale is 0 (user objective contributes exactly 0.0) and the
@@ -224,9 +229,7 @@ bool ClassicMeritAcceptance::secondary_accept(double ptest, double prim_obj,
     return ptest < prim_obj && (test.l2_ < init.l2_ || test.linf_ < init.linf_);
 }
 
-// ============================================================================
 // Line search — variant implementations
-// ============================================================================
 
 double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_obj,
                                        double barr_obj, KKTVector &xsl, KKTVector &dxsl,
@@ -475,9 +478,7 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
     return alpha;
 }
 
-// ============================================================================
 // Line search — dispatcher (verbatim today's InteriorPointSolver::ls_impl)
-// ============================================================================
 
 double ClassicMeritAcceptance::classic_line_search(InteriorPointSolver::LineSearchModes lsmode,
                                                    double obj_scale, double mu, double prim_obj,
@@ -523,13 +524,11 @@ double ClassicMeritAcceptance::classic_line_search(InteriorPointSolver::LineSear
     }
 }
 
-// ============================================================================
 // ModernMeritAcceptance — the modernized merit family (WMNO / flexible penalty
 // rules), driven through the GENERIC AcceptanceStrategy path. See
 // globalization/modern_merit.h for the full paper-derived formulation and the
 // ProgressMeasures mapping; the code below is a direct transcription of the
 // (accept-π), (threshold), and penalty-update equations documented there.
-// ============================================================================
 
 void ModernMeritAcceptance::reset() {
     // Working penalty state + working smallest-known tracker back to their
@@ -580,7 +579,7 @@ bool ModernMeritAcceptance::is_infeasibility_sufficiently_reduced(
 }
 
 void ModernMeritAcceptance::notify_switch_to_feasibility(const ProgressMeasures &current_progress) {
-    // T6: a second entry without an intervening exit would stash the FEASIBILITY
+    // A second entry without an intervening exit would stash the FEASIBILITY
     // working penalties/tracker over the preserved optimality stash, silently
     // clobbering the frozen state the exit test consults — a phase-transition
     // mis-wiring, not a recoverable runtime condition.
@@ -607,7 +606,7 @@ void ModernMeritAcceptance::notify_switch_to_feasibility(const ProgressMeasures 
 }
 
 void ModernMeritAcceptance::notify_switch_to_optimality(const ProgressMeasures &current_progress) {
-    // T6: an exit without a preceding entry has no stash to restore — running
+    // An exit without a preceding entry has no stash to restore — running
     // this body would overwrite the live optimality penalties/tracker with the
     // fresh-construction stash (or a stale one from a prior phase), a
     // phase-transition mis-wiring symmetric to the entry-side hazard above.
@@ -720,7 +719,6 @@ bool ModernMeritAcceptance::accept_flexible(const ProgressMeasures &current,
 }
 
 namespace {
-// ============================================================================
 // modern_eval_trial_point — shared trial-point evaluation for the GENERIC
 // acceptance loop (BacktrackingLineSearch::generic_line_search). A PARALLEL
 // copy of ClassicMeritAcceptance::eval_trial_point_occ's math (same slack-reset
@@ -729,7 +727,6 @@ namespace {
 // diff stays empty. Reaches InteriorPointSolver state through the SolverContext only.
 // Returns ptest (σ-scaled primal objective at the trial), btest (barrier term
 // −μ·Σ log s), and theta (L1 constraint-norm merit infeasibility ‖c‖₁).
-// ============================================================================
 void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, double alpha,
                              const Eigen::VectorXd &XSL, const Eigen::VectorXd &DXSL,
                              Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS2, double &ptest,
@@ -744,7 +741,13 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
     XSL2 = XSL + alpha * DXSL;
     RHS2.setZero();
     ptest = 0.0;
-    ctx.nlp_->eval_occ(obj_scale, XSL2.head(pv), ptest, RHS2.segment(pv + sv, ec), RHS2.tail(ic));
+    ctx.nlp_->assemble(
+        CandidatePoint{
+            detail::declaration_primals(*ctx.nlp_, ctx.declaration_primals_scratch_, XSL2.head(pv)),
+            detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveAndConstraints, KktScatterView{},
+        detail::residual_rhs_scatter_view(*ctx.nlp_, ptest, RHS2.data() + pv + sv,
+                                          RHS2.data() + (RHS2.size() - ic), ec, ic));
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx.restoration_ is null). While active, obj_scale is 0 (user objective
     // contributes exactly 0.0) and the restoration objective at the trial primals
@@ -798,17 +801,13 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
 }
 } // namespace
 
-// ============================================================================
-// BacktrackingLineSearch — step-length mechanism. max_step_to_
-// boundary and max_primal_dual_step are moved VERBATIM from src/solvers/
-// interior_point_solver.cpp (statement order and operand order preserved exactly — the merge
-// gate is a bit-identical CBWR iteration-count comparison). The only edits are
-// context-plumbing renames: former InteriorPointSolver member reads (settings_.pd_step_
-// strategy_, inequal_cons_, equal_cons_) now go through the SolverContext
-// reference `ctx`, and the KKTVector view over the raw XSL/DXSL blocks is
-// reconstructed inside max_primal_dual_step (the caller used to build and pass
-// it). See backtracking_line_search.h's riskiest-seam design note.
-// ============================================================================
+// BacktrackingLineSearch — step-length mechanism. max_step_to_boundary and
+// max_primal_dual_step read the solver state (settings_.pd_step_strategy_,
+// inequal_cons_, equal_cons_) through the SolverContext reference `ctx`, and
+// max_primal_dual_step reconstructs the KKTVector view over the raw XSL/DXSL
+// blocks itself rather than taking it from the caller. Statement and operand
+// order are load-bearing here for the reason the file block above states. See
+// backtracking_line_search.h's riskiest-seam design note.
 
 double BacktrackingLineSearch::max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> SLI,
                                                     Eigen::Ref<Eigen::VectorXd> dSLI, double bfrac,
@@ -1060,24 +1059,19 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
     return alpha;
 }
 
-// ============================================================================
-// ClassicAdaptiveGovernor — barrier-parameter update. The
-// PROBE/LOQO barmode switch + common clamp/objective/gradient tail and the
-// loqo_mu / mpc_mu oracles are moved from src/solvers/interior_point_solver.cpp (statement
-// order and operand order preserved exactly — the merge gate is a
-// bit-identical CBWR iteration-count comparison). Besides context-plumbing
-// renames (former InteriorPointSolver member reads (kkt_sol_ -> ctx.kkt_solver_,
-// settings_/dims -> ctx.*) and the mechanism_ base pointer -> the mechanism
-// reference parameter), loqo_mu dropped its unused S/LI parameters (the
-// former InteriorPointSolver::loqo_mu took Eigen::Ref<Eigen::VectorXd> S, LI ahead of
-// avgcomp/mincomp; neither was read by the body). Of the barrier_* /
-// complementarity helpers below, barrier_objective/barrier_gradient are
-// one-line forwarders into the shared kernels in barrier_math.h;
+// ClassicAdaptiveGovernor — barrier-parameter update: the PROBE/LOQO barmode
+// switch with its common clamp/objective/gradient tail, and the loqo_mu /
+// mpc_mu oracles it consumes. The solver state reaches them through the
+// SolverContext (kkt_sol_ as ctx.kkt_solver_, settings and dimensions as
+// ctx.*) and the mechanism through a reference parameter rather than a base
+// pointer. Statement and operand order are load-bearing here for the reason the
+// file block above states. Of the barrier_* / complementarity helpers below,
+// barrier_objective/barrier_gradient are one-line forwarders into the shared
+// kernels in barrier_math.h;
 // complementarity remains a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own
 // (including its ULP-load-bearing .sum() warning), since its avgcomp/mincomp
 // feed mu and are not a candidate for the shared header. See
 // classic_adaptive_governor.h's PROBE-impurity and byte-identity design notes.
-// ============================================================================
 
 void ClassicAdaptiveGovernor::complementarity(Eigen::Ref<Eigen::VectorXd> X,
                                               Eigen::Ref<Eigen::VectorXd> S,
@@ -1228,7 +1222,6 @@ double ClassicAdaptiveGovernor::update_barrier(
     return mu;
 }
 
-// ============================================================================
 // BarrierGovernor::update_barrier_monotone — the monotone (Fiacco-McCormick)
 // barrier schedule forced while a nested l1 feasibility-restoration phase is
 // active, transcribing Ipopt's default restoration mu_strategy. Non-virtual and
@@ -1237,7 +1230,6 @@ double ClassicAdaptiveGovernor::update_barrier(
 // barrier_governor.h). Reuses MonitoredBarrierGovernor's pure static
 // Fiacco-McCormick helpers — the same safeguarded rule the monitored governor
 // runs in its own monotone mode — so the two paths share one arithmetic.
-// ============================================================================
 double BarrierGovernor::update_barrier_monotone(double mu_in, Eigen::VectorXd &XSL,
                                                 Eigen::VectorXd &RHS, SolverContext &ctx,
                                                 double &barr_obj, const IterateInfo &current,
@@ -1295,14 +1287,12 @@ void commit_recovered_step(Eigen::VectorXd &DXSL, double &alpha, IterateInfo &Ci
 }
 } // namespace
 
-// ============================================================================
 // SocRecovery — second-order correction (Wächter & Biegler 2006, §2.4). Only
 // reached when SOC is enabled (max_soc_ > 0, so rebuild_globalization_
 // components() built a SocRecovery)
 // AND the line search rejected a usable step (the recovery-dispatch gate). See
 // globalization/soc.h for the algorithm overview and the trigger/termination
 // predicates driven below.
-// ============================================================================
 
 void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
                                          const Eigen::VectorXd &XSL, const Eigen::VectorXd &dir,
@@ -1317,7 +1307,13 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
 
     double val = 0.0;
     cons_out.setZero();
-    ctx.nlp_->eval_occ(obj_scale, xsl2_scratch.head(pv), val, cons_out.head(ec), cons_out.tail(ic));
+    ctx.nlp_->assemble(
+        CandidatePoint{detail::declaration_primals(*ctx.nlp_, ctx.declaration_primals_scratch_,
+                                                   xsl2_scratch.head(pv)),
+                       detail::no_multipliers(), detail::no_multipliers(), obj_scale},
+        kRequestObjectiveAndConstraints, KktScatterView{},
+        detail::residual_rhs_scatter_view(*ctx.nlp_, val, cons_out.data(),
+                                          cons_out.data() + (cons_out.size() - ic), ec, ic));
 
     // Slack reset on the inequality block against the trial slacks — the same
     // convention ClassicMeritAcceptance::apply_reset_slacks / alg_impl's RHS
@@ -1484,12 +1480,10 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     return action;
 }
 
-// ============================================================================
 // ExtendedBacktrackRecovery — see watchdog.h's file docstring, "Extended
 // backtracking" section, for the exact mechanics (why scaling DXSL by the
 // live alpha and re-driving run_acceptance_backtrack reproduces the SAME
 // ladder with no redundant re-test and no new math).
-// ============================================================================
 RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
@@ -1534,10 +1528,8 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     return Action::kAcceptAsIs; // extended budget exhausted: take the original rejected step.
 }
 
-// ============================================================================
 // WatchdogRecovery — drives WatchdogState against the real working set. See
 // watchdog.h's file docstring, "Watchdog" section, for the full semantics.
-// ============================================================================
 RecoveryChain::Action WatchdogRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
@@ -1618,11 +1610,9 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
         "WatchdogRecovery::on_step_rejected: unreachable WatchdogState::Outcome");
 }
 
-// ============================================================================
 // ChainedRecovery — tries SOC then extended backtracking (see watchdog.h's
 // class doc for the ordering rationale), stamping resolved_depth with
 // whichever link's index actually resolved the rejection.
-// ============================================================================
 RecoveryChain::Action ChainedRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
@@ -1651,11 +1641,9 @@ RecoveryChain::Action ChainedRecovery::on_step_rejected(
     return Action::kAcceptAsIs;
 }
 
-// ============================================================================
 // FeasibilitySwitchRecovery — outermost link; converts a ladder-exhausted
 // rejection into a feasibility-restoration mode-switch. See
 // feasibility_switch_recovery.h for the design.
-// ============================================================================
 
 RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
@@ -1726,13 +1714,11 @@ RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
     return Action::kSwitchToFeasibility;
 }
 
-// ============================================================================
 // SwitchingAcceptance — the shared Wächter–Biegler switching-condition
 // skeleton (filter/funnel shared base). See globalization/switching_acceptance.h
 // for the full formulation; the code below is a direct transcription of the
 // θ_min/θ_max derivation, the switching condition (Eq. 19), and the F-type
 // Armijo test (Eq. 20) documented there.
-// ============================================================================
 
 void SwitchingAcceptance::reset() {
     bounds_initialized_ = false;
@@ -1842,13 +1828,11 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
     return true;
 }
 
-// ============================================================================
 // FunnelAcceptance — scalar-funnel H-type strategy on the switching skeleton.
 // See globalization/funnel_acceptance.h for the full formulation; the code
 // below transcribes the width initialization (init), the H-type verdict (2),
 // and the width update (3) documented there, following Uno's shipped default
 // funnel_update_strategy = 1.
-// ============================================================================
 
 void FunnelAcceptance::initialize_bounds(double theta_0) {
     // (init): τ = max(τ̄, κ̄·θ₀).
@@ -1925,7 +1909,7 @@ bool FunnelAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasu
 }
 
 void FunnelAcceptance::notify_switch_to_feasibility(const ProgressMeasures &current_progress) {
-    // T6: a second entry without an intervening exit would stash the FEASIBILITY
+    // A second entry without an intervening exit would stash the FEASIBILITY
     // working width over the preserved optimality width, silently clobbering the
     // frozen width the exit test and exit re-base consult — a phase-transition
     // mis-wiring, not a recoverable runtime condition.
@@ -1950,7 +1934,7 @@ void FunnelAcceptance::notify_switch_to_feasibility(const ProgressMeasures &curr
 }
 
 void FunnelAcceptance::notify_switch_to_optimality(const ProgressMeasures &current_progress) {
-    // T6: an exit without a preceding entry has no stashed width to restore —
+    // An exit without a preceding entry has no stashed width to restore —
     // running this body would re-base whatever stashed_width_ last held (the
     // uninitialized sentinel, or a stale stash), a phase-transition mis-wiring
     // symmetric to the entry-side hazard above.
@@ -1973,13 +1957,11 @@ void FunnelAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     in_feasibility_phase_ = false;
 }
 
-// ============================================================================
 // FilterAcceptance — (θ, φ)-pair filter H-type strategy on the switching
 // skeleton. See globalization/filter_acceptance.h for the full formulation and
 // the rule-by-rule Ipopt citations; the code below transcribes the
 // acceptable-to-current test (1a), the acceptable-to-filter test (1b), the
 // augmentation (2), and the filter-reset heuristic (4) documented there.
-// ============================================================================
 
 void FilterAcceptance::initialize_bounds(double theta_0) {
     // Start the phase with an empty filter (Ipopt Reset; the θ_max ceiling is
@@ -2146,7 +2128,7 @@ bool FilterAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasu
 }
 
 void FilterAcceptance::notify_switch_to_feasibility(const ProgressMeasures &current_progress) {
-    // T6: a second entry without an intervening exit would run
+    // A second entry without an intervening exit would run
     // `stashed_filter_ = filter_` while filter_ already holds the
     // FEASIBILITY working filter, silently clobbering the preserved
     // optimality stash — a phase-transition mis-wiring, not a recoverable
@@ -2181,7 +2163,7 @@ void FilterAcceptance::notify_switch_to_feasibility(const ProgressMeasures &curr
 }
 
 void FilterAcceptance::notify_switch_to_optimality(const ProgressMeasures &current_progress) {
-    // T6: an exit without a preceding entry has no stash to restore — running
+    // An exit without a preceding entry has no stash to restore — running
     // this body would overwrite the live optimality filter with whatever
     // stashed_filter_ last held (empty, or a stale stash from a prior phase),
     // a phase-transition mis-wiring symmetric to the entry-side hazard above.
@@ -2219,14 +2201,12 @@ void FilterAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     in_feasibility_phase_ = false;
 }
 
-// ============================================================================
 // MonitoredBarrierGovernor — free<->monotone monitored barrier governor. See
 // monitored_governor.h for the full formulation, the Ipopt source citations,
 // and the μ-event / re-entry / error-norm resolutions. Every bare
 // IpAdaptiveMuUpdate.cpp/IpMonotoneMuUpdate.cpp line-number citation below
 // (including the AMU:/MMU: shorthand) is pinned to Ipopt releases/3.14.19
 // (2695946fa79d2e84f3034e065e788933a81466eb), matching monitored_governor.h.
-// ============================================================================
 
 MonitoredBarrierGovernor::MonitoredBarrierGovernor()
     : free_delegate_(std::make_unique<ClassicAdaptiveGovernor>()) {}
@@ -2404,13 +2384,11 @@ void MonitoredBarrierGovernor::append_diagnostics(InteriorPointSolver::SolveResu
     result.last_monotone_iters_ = last_monotone_iters_;
 }
 
-// ============================================================================
 // ProximalSwitchRestoration — proximal feasibility mode-switch. See
 // proximal_restoration.h for the full formulation and the Uno/Ipopt source
 // citations; the code below transcribes the frozen-ζ snapshot (1), the
 // per-coordinate scaling and proximal term/gradient (2), and the near-
 // feasible + budget entry guard (3)/(4) documented there.
-// ============================================================================
 
 void ProximalSwitchRestoration::enter_restoration(const ProgressMeasures &reference,
                                                   const Eigen::Ref<const Eigen::VectorXd> &primals,
@@ -2460,14 +2438,12 @@ void ProximalSwitchRestoration::add_proximal_gradient(
 // (restoration.h) — both concrete strategies share the identical
 // entries_/iterations_in_mode_ pair.
 
-// ============================================================================
 // NestedL1Restoration — condensed l1 elastic feasibility restoration. See
 // l1_restoration.h for the full formulation, the pinned Ipopt citations per
 // formula, and the disclosed design decisions. The code below transcribes the
 // closed-form slack init (4), the per-iteration condensation (pivot + r̃) and
 // step recovery (5), the live-μ proximal objective/gradient/diagonal (2)/(3),
 // and the fraction-to-boundary caps documented there.
-// ============================================================================
 
 void NestedL1Restoration::enter_restoration(const ProgressMeasures &reference,
                                             const Eigen::Ref<const Eigen::VectorXd> &primals,

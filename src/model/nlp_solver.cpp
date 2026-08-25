@@ -1,15 +1,37 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-// =============================================================================
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
 
 #include "hven/model/nlp_solver.h"
 
 #include <cmath>
+#include <string>
 
 #include <fmt/format.h>
 
 namespace hven::solvers {
+
+namespace {
+
+/// The model's own block of a solver-space multiplier vector.
+///
+/// The solver's vector carries the engine's own rows after the model's when a
+/// fixed variable was turned into an equality row, and is empty when no solve
+/// has run yet; either way the model's block is the leading @p rows entries.
+Eigen::VectorXd model_multiplier_block(const Eigen::VectorXd &solver_block, Index rows,
+                                       const char *which, const std::string &name) {
+    if (solver_block.size() == 0) {
+        return Eigen::VectorXd::Zero(rows);
+    }
+    if (solver_block.size() < rows) {
+        throw std::runtime_error(
+            fmt::format("{}: the solver reported {} {} multipliers for a problem transcribed with "
+                        "{} {} rows",
+                        name, solver_block.size(), which, rows, which));
+    }
+    return solver_block.head(rows);
+}
+
+} // namespace
 
 NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(problem)) {
     if (!this->problem_) {
@@ -18,9 +40,30 @@ NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(p
 }
 
 void NLPSolver::transcribe() {
-    this->core_ = std::make_shared<NLPAdapterCore>(this->problem_);
-    this->nlp_ = make_nlp_program(this->core_);
-    this->optimizer_->set_nlp(this->nlp_);
+    // Built whole, then committed. Every step below can throw -- the
+    // conversion validates the declaration, the host runs the model's
+    // derivative callbacks at its start point, the layout sizes the program --
+    // so nothing is written to a member until all of them have succeeded. A
+    // transcription that faults therefore leaves this solver exactly as it
+    // was: the previous transcription still whole, or none at all, and
+    // do_transcription_ still true so the next solve retries rather than
+    // running against a half-replaced state.
+    auto model = std::make_shared<NlpProblemModel>(this->problem_);
+    auto core = std::make_shared<NLPAdapterCore>(model, this->problem_->name());
+    auto nlp = make_nlp_program(core);
+
+    // The one step that is not this function's to make atomic: set_nlp adopts
+    // the program and then does work of its own that can throw (it re-reads
+    // dimensions and applies the QP settings). A throw inside it leaves the
+    // optimizer holding the new program while the members below still name the
+    // old one. do_transcription_ is still true at that point, so the next
+    // solve re-transcribes and the pair is consistent again before anything
+    // runs; the window is between those two calls and nothing evaluates in it.
+    this->optimizer_->set_nlp(nlp);
+
+    this->model_ = std::move(model);
+    this->core_ = std::move(core);
+    this->nlp_ = std::move(nlp);
     this->do_transcription_ = false;
 }
 
@@ -76,32 +119,36 @@ hven::ConvergenceFlags NLPSolver::optimize_solve() {
 }
 
 void NLPSolver::jet_initialize() {
-    this->set_num_partitions(1, 1);
+    // Single-partition evaluation on the calling thread, and a single QP
+    // thread: two independent settings, set independently. set_qp_threads
+    // goes first because it validates and can throw.
+    this->optimizer_->set_qp_threads(1);
+    this->set_num_partitions(1);
     this->optimizer_->set_print_level(10);
     this->transcribe();
 }
 
 void NLPSolver::jet_release() {
     this->optimizer_->release();
-    this->set_num_partitions(1, 1);
+    this->optimizer_->set_qp_threads(1);
+    this->set_num_partitions(1);
     this->optimizer_->set_print_level(0);
     this->nlp_ = std::shared_ptr<NonLinearProgram>();
     this->do_transcription_ = true;
 }
 
 Eigen::VectorXd NLPSolver::return_multipliers() const {
-    if (!this->core_) {
+    if (!this->model_) {
         throw std::runtime_error("NLPSolver::return_multipliers: nothing has been solved yet");
     }
-    // compose_user_lambda tolerates empty vectors (all-zero result), so this is
-    // safe even if a solve never ran or the problem has no constraints.
-    const_cast<NLPAdapterCore &>(*this->core_)
-        .compose_user_lambda(this->active_eq_lmults_, this->active_iq_lmults_);
-    return this->core_->lambda_user_;
+    const std::string &name = this->problem_->name();
+    return this->model_->compose_user_multipliers(
+        model_multiplier_block(this->active_eq_lmults_, this->model_->me(), "equality", name),
+        model_multiplier_block(this->active_iq_lmults_, this->model_->mi(), "inequality", name));
 }
 
 void NLPSolver::apply_starting_multipliers() {
-    Eigen::VectorXd lam = Eigen::VectorXd::Zero(this->core_->m_);
+    Eigen::VectorXd lam = Eigen::VectorXd::Zero(this->model_->num_declared_rows());
     if (!this->problem_->starting_multipliers(lam)) {
         // No seed requested for THIS call. Any staging already armed on the
         // optimizer -- e.g. a direct optimizer_->set_initial_multipliers()
@@ -113,28 +160,8 @@ void NLPSolver::apply_starting_multipliers() {
         throw std::invalid_argument(fmt::format(
             "{}: starting_multipliers returned a non-finite value", this->problem_->name()));
     }
-    const auto &rc = this->core_->rows_;
-    Eigen::VectorXd eqm = Eigen::VectorXd::Zero(rc.num_eq_);
-    Eigen::VectorXd iqm = Eigen::VectorXd::Zero(rc.num_iq_);
-    for (int r = 0; r < this->core_->m_; r++) {
-        switch (rc.kinds_[r]) {
-        case NLPRowKind::Equality:
-            eqm[rc.eq_row_[r]] = lam[r];
-            break;
-        case NLPRowKind::UpperBounded:
-            iqm[rc.iq_upper_row_[r]] = lam[r];
-            break;
-        case NLPRowKind::LowerBounded:
-            iqm[rc.iq_lower_row_[r]] = -lam[r];
-            break;
-        case NLPRowKind::Range:
-            iqm[rc.iq_upper_row_[r]] = std::max(lam[r], 0.0);
-            iqm[rc.iq_lower_row_[r]] = std::max(-lam[r], 0.0);
-            break;
-        case NLPRowKind::Free:
-            break;
-        }
-    }
+    Eigen::VectorXd eqm, iqm;
+    this->model_->split_user_multipliers(lam, eqm, iqm);
     this->optimizer_->set_initial_multipliers(eqm, iqm);
 }
 

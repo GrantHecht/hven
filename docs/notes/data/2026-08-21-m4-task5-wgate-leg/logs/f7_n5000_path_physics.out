@@ -1,0 +1,3 @@
+running f7_n5000_path_physics (N=5000, path, physics, engine walk, wall budget 3600s per phase)...
+wrote 1 row(s) to /home/ghecht/Projects/hven/docs/notes/data/2026-08-21-m4-task5-wgate-leg/rows/f7_n5000_path_physics.csv.part
+wrote the model-surface census to /home/ghecht/Projects/hven/docs/notes/data/2026-08-21-m4-task5-wgate-leg/scorer_rows/f7_n5000_path_physics.wgate.csv

@@ -211,6 +211,32 @@ if(NOT WIN32)
   list(APPEND RELEASE_FLAGS "-fno-stack-protector")
   #list(APPEND RELEASE_FLAGS "-fcf-protection=none")
   list(APPEND RELEASE_FLAGS "-fno-asynchronous-unwind-tables")
+
+  # Align every loop head to 32 bytes.
+  #
+  # Without this, a loop head lands wherever the accumulated .text size of
+  # everything linked before it happens to put it, and the engine's hot loops
+  # sit at a different offset after any unrelated translation unit changes
+  # size. That is not a theoretical hazard: sixteen bytes of padding injected
+  # into a TU that links ahead of the interior-point engine -- with no source
+  # logic changed anywhere -- moved NonLinearProgram::analyze_sparsity's loop
+  # heads from a 32-byte boundary to mid-window and cost 2.4% of whole-solve
+  # wall time on Zen 3, whose instruction fetch and op cache both work in
+  # 32-byte windows. A padding sweep showed the penalty is a cliff at
+  # (offset mod 32) == 16 and zero at 0, 32, 48, 64 and 128, so what was
+  # being measured was which side of a fetch window the loop opened on.
+  #
+  # Pinning loop heads to the window boundary removes that degree of freedom:
+  # the same two arms then read the same time, and the flag costs nothing on
+  # an arm that was already lucky. It buys determinism against this class of
+  # perturbation, not layout-independent timing in general -- function starts
+  # and data layout still move. Price: about 1.6% more archive.
+  #
+  # Derived and verified on Linux with clang; the 32 is Zen 3's fetch-window
+  # size. The macOS and Windows lanes have not been measured for it, and the
+  # Windows branch above does not carry it at all (MSVC-style frontends have
+  # no equivalent switch).
+  list(APPEND RELEASE_FLAGS "-falign-loops=32")
 endif()
 
 if(HVEN_FP_MODE STREQUAL "STRICT")

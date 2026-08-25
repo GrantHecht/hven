@@ -1,57 +1,10 @@
-// continuation.cpp -- the continuation driver, `run_continuation`, and the
-// input validation it runs first, `continuation_detail::validate`, carved out
-// of detail/warmstart/continuation.h.
-//
-// M3 PHASE-C T8, the last carve of the phase-C T-series.
-//
-// ---------------------------------------------------------------------------
-// WHY IT COSTS NOTHING, READ OUT OF THE OBJECT FILES.
-//
-// run_continuation runs ONCE PER SWEEP and loops per continuation STEP, and
-// each of its steps is a whole SqpDriver::solve() -- so the call into this
-// function is arithmetically the cheapest thing in any program that makes it.
-// The object files agree: at the base commit it emitted a weak copy in exactly
-// five objects (bench_scale, test_b1_gate, test_continuation, test_hs_sweeps,
-// test_warm_start_battery) and every call to it was already a DIRECT
-// relocation to that copy. No src/ object defined it at all -- like the
-// crossover T7 moved, this is a public entry point with no caller inside the
-// library.
-//
-// TWO THINGS TRAVEL WITH IT, and both were counted before the carve rather
-// than assumed:
-//
-//   * continuation_detail::validate, called EXACTLY ONCE from run_continuation
-//     in every one of the five objects -- i.e. it was never inlined into it.
-//     It moves here so the validate-first discipline stays next to the loop it
-//     guards.
-//   * the `record` CLOSURE's out-of-line operator(), which lived in its own
-//     COMDAT section and was called THREE times in every one of the five
-//     objects. It is defined inside the moved body, so it travels with it. A
-//     relocation census that looked only at `.text` would not have seen those
-//     three calls at all -- the T5 review's F1, on the target side.
-//
-// ---------------------------------------------------------------------------
-// THE FP, AND WHAT CARRIES THE PROOF.
-//
-// The step-size policy computes with doubles: the shrink/grow updates of dp,
-// the arc position s_cur against `total`, the dp_min floor, and the
-// predictor's degraded-outcome accounting. Those decide how many steps a sweep
-// takes and at which parameter values, so they decide which solves happen at
-// all -- this is the carve in the series whose arithmetic has the longest
-// lever on a counter.
-//
-// Since M3 phase-C U0 there is ONE uniform flag regime: this TU, the header,
-// and every consumer compile with the same options, so these expressions are
-// compiled exactly as they were compiled inline. The falsifier is the same one
-// T4, T5, T6 and T7 accepted: the proof is BIT-IDENTITY of every asserted
-// counter across the 57-cell walk census and the 17-cell bench. Any counter
-// movement means the arithmetic moved, and the carve is reverted rather than
-// re-derived.
-//
-// ---------------------------------------------------------------------------
-// The algorithm, the budget rule, the predictor interaction, what the sweep
-// leaves the model posed at, and every "why" stay in the header. This file
-// carries the executable form.
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// The continuation driver, run_continuation, and the input validation it
+// runs first, continuation_detail::validate. The algorithm, the budget rule,
+// the predictor interaction, and what the sweep leaves the model posed at are
+// documented in detail/warmstart/continuation.h.
 
 #include <hven/detail/warmstart/continuation.h>
 
@@ -148,24 +101,22 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         out.steps.push_back(std::move(step));
     };
 
-    // ---- STEP 0: THE ONE COLD SOLVE ----------------------------------
+    // Step 0: the one cold solve.
     model.set_parameters(p0);
     SqpSolution sol = driver.solve(model, model.start_point());
     record(p0, 0.0, sol, std::nullopt, /*used=*/false);
 
-    // THE COLD STEP PARTICIPATES IN THE BUDGET RULE TOO (fix round 1). An
-    // earlier version returned on any non-kOptimal status here, which made p0
-    // the one parameter value in the whole sweep where kBudgetExhausted was
-    // fatal rather than a continue -- an asymmetry with no argument behind it,
-    // since a p0 needing two budget slices is in exactly the position every
-    // later p is when it needs two. Same rule, same cap, same reason: re-solve
-    // AT p0 from the hand-off budgeted mode returned.
+    // THE COLD STEP PARTICIPATES IN THE BUDGET RULE TOO: a p0 needing two
+    // budget slices is in exactly the position every later p is when it needs
+    // two. Same rule, same cap, same reason -- re-solve AT p0 from the
+    // hand-off budgeted mode returned.
     //
-    // THE ONE THING THAT IS GENUINELY DIFFERENT HERE, and it is a consequence
-    // rather than a choice: there is no dp to shrink at p0, because the
-    // proposal is p0 itself and the caller fixed it. So the cap's demotion has
-    // nothing to demote TO and the sweep ends -- which is the same outcome any
-    // other unrecoverable failure at p0 has.
+    // The one thing genuinely different here is a consequence, not a choice:
+    // there is no dp to shrink at p0 (the proposal is p0 itself and the
+    // caller fixed it), so the cap's demotion has nothing to demote TO and
+    // the sweep ends -- the same outcome any other unrecoverable failure at
+    // p0 has.
+    //
     // The cold solve's own minor cost is the FIRST probe budget's baseline
     // (see the probe-budget block in the loop below), summed over its budget
     // continuations for the same reason majors_at_proposal is: what a
@@ -183,13 +134,11 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
 
     out.final_warm = sol.warm_start;
     if (sol.status != SqpStatus::kOptimal) {
-        // THE FAILED INITIAL POINT IS A FAILED ATTEMPT (M3 final review, S-4)
-        // and is classified here EXACTLY as the loop classifies its own
-        // (below): caught by the probe budget, or paid in full. It used to
-        // return with both counters at zero, which broke
-        // ContinuationResult's own invariant -- that the two sum to the number
-        // of failed attempts -- on every sweep whose p0 did not solve, the one
-        // case where `steps` is entirely failures. Both ways of arriving here
+        // A FAILED INITIAL POINT IS A FAILED ATTEMPT, classified here EXACTLY
+        // as the loop classifies its own below: caught by the probe budget,
+        // or paid in full. ContinuationResult's own invariant -- the two
+        // counters sum to the number of failed attempts -- holds here too, the
+        // one case where `steps` is entirely failures. Both ways of arriving here
         // are covered by the one classification: the direct failure, and a
         // budget chain that ran past kBudgetContinuationsMax (which leaves the
         // loop above with a non-kOptimal status and falls through to exactly
@@ -202,39 +151,27 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         return out; // no path to follow from a p0 that did not solve
     }
 
-    // ENDPOINT EQUALITY IS DECIDED EXACTLY (M3 final review, S-5). The old test
-    // asked ONE number -- `!(segment.norm() > 0.0)` -- two different questions:
-    // "is p1 the same point as p0" and "is there an arc to parameterize". Those
-    // come apart on a segment whose SQUARE underflows (p1 - p0 = [1e-300],
-    // whose square is 0), where the length reads 0 for a p1 that is genuinely a
-    // different point. The old code then claimed "p1 == p0: the cold solve IS
-    // the sweep" and reported reached_p1 -- for a p1 never proposed and never
-    // solved at. reached_p1 is the field a caller trusts to mean "the sweep
-    // arrived", so that was a wrong answer rather than a rounding nicety. The
-    // p1 == p0 claim is now the exact componentwise equality it always
-    // asserted, and nothing else.
+    // ENDPOINT EQUALITY IS DECIDED EXACTLY (componentwise). A norm()-based
+    // test would conflate two different questions -- "is p1 the same point as
+    // p0" and "is there an arc to parameterize" -- because they come apart on
+    // a segment whose SQUARE underflows, where the length reads 0 for a p1
+    // that is genuinely a different point. Such a sweep would report
+    // reached_p1 for a p1 never proposed and never solved at; reached_p1 is
+    // the field a caller trusts to mean "the sweep arrived", so that would be
+    // a wrong answer rather than a rounding nicety.
     //
-    // THE ARC LENGTH STAYS `norm()`, DELIBERATELY, and this is round 2
-    // correcting round 1. Round 1 also switched `total` to stableNorm() so the
-    // subnormal segment could parameterize. But `total` is not a diagnostic --
-    // it divides into `direction` and clamps every `s_next`, so it reaches
-    // every p_next of every sweep. stableNorm() computes scale * sqrt(ssq)
-    // where norm() computes sqrt(sum of squares), and for np > 1 those differ
-    // in the last bit on ORDINARY, well-scaled inputs. That is a rounding
-    // change on the success path of every multi-parameter sweep -- exactly what
-    // the counter-neutrality rule this batch is bound by forbids, and not
-    // something a passing suite can license, since it moves values the suite
-    // does not pin. norm() is restored, so the success path is bit-identical to
-    // its pre-S-5 form for every non-degenerate sweep.
+    // THE ARC LENGTH STAYS norm(), DELIBERATELY: stableNorm() computes
+    // scale * sqrt(ssq) where norm() computes sqrt(sum of squares), and for
+    // np > 1 those differ in the last bit on ORDINARY, well-scaled inputs --
+    // a rounding change on the success path of every multi-parameter sweep,
+    // exactly what counter neutrality forbids.
     //
-    // WHICH LEAVES THE DEGENERATE CASE, and it is now REPORTED rather than
-    // mis-answered. A segment that is nonzero but whose length underflows has
-    // no direction this routine can compute -- `segment / total` would be a
-    // division by zero, and the round-1 answer (silently parameterize it) is
-    // unavailable now that norm() is back. Refusing loudly is the honest
-    // remaining option: the caller learns their endpoints are too close to
-    // separate in binary64 and can rescale, which is a real answer, where
-    // `reached_p1 = true` was a false one.
+    // WHICH LEAVES THE DEGENERATE CASE, REPORTED rather than mis-answered:
+    // a segment that is nonzero but whose length underflows has no direction
+    // this routine can compute -- `segment / total` would be a division by
+    // zero. Refusing loudly is the honest option: the caller learns their
+    // endpoints are too close to separate in binary64 and can rescale, which
+    // is a real answer where `reached_p1 = true` was a false one.
     const Vec segment = p1 - p0;
     if ((p1.array() == p0.array()).all()) {
         out.reached_p1 = true; // p1 == p0: the cold solve IS the sweep
@@ -268,12 +205,11 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     bool continuing = false;
     WarmStart budget_warm;
 
-    // PHASE-6 TASK 1 (this header's RETRY ECONOMICS note). `last_good_minors`
-    // is the whole minor cost of arriving at the last CONVERGED parameter
-    // value -- the cold solve at p0 to begin with -- and is the only thing
-    // the probe budget is scaled from. `growth_suspended` is the
-    // failure-history term: armed by a failed proposal, spent by the next
-    // accepted one.
+    // `last_good_minors` is the whole minor cost of arriving at the last
+    // CONVERGED parameter value -- the cold solve at p0 to begin with -- and
+    // is the only thing the probe budget is scaled from. `growth_suspended`
+    // is the failure-history term: armed by a failed proposal, spent by the
+    // next accepted one.
     Index last_good_minors = minors_at_proposal;
     bool growth_suspended = false;
 
@@ -314,16 +250,15 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
             }
         }
 
-        // PHASE-6 TASK 1. THE PROBE BUDGET, armed on a PROPOSAL'S FIRST SOLVE
-        // only. A budget continuation (`continuing`) is deliberately left
-        // unbudgeted: it is not a new proposal, it is the caller's own
-        // budgeted mode finishing a solve this loop already decided to keep
-        // paying for, and it is capped by kBudgetContinuationsMax already.
+        // THE PROBE BUDGET, armed on a PROPOSAL'S FIRST SOLVE only. A budget
+        // continuation (`continuing`) is deliberately left unbudgeted: it is
+        // not a new proposal, it is the caller's own budgeted mode finishing a
+        // solve this loop already decided to keep paying for, and it is capped
+        // by kBudgetContinuationsMax already.
         // ONLY `probe_budget == 0` disarms it. A zero BASELINE
         // (`last_good_minors == 0`, e.g. the first proposal of a sweep) does
         // NOT: kProbeBudgetFloor is the max() below and still arms the budget
-        // at 200 minors. This comment used to claim the opposite (final fix
-        // wave, W10). See ContinuationOptions::probe_budget, whose own note
+        // at 200 minors. See ContinuationOptions::probe_budget, whose own note
         // already says the floor is what sets the budget on every corpus this
         // project has run.
         const Index probe_minors =
@@ -349,18 +284,15 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
             out.final_warm = warm_cur;
             continuing = false;
             budget_continuations = 0;
-            // The baseline the NEXT proposal's probe budget is scaled from
-            // (Task 1) -- the whole cost of arriving here, on the same
-            // reading majors_at_proposal has.
+            // The baseline the NEXT proposal's probe budget is scaled from --
+            // the whole cost of arriving here, budget continuations included,
+            // on the same reading majors_at_proposal has.
             last_good_minors = minors_at_proposal;
             if (s_cur >= total) {
                 out.reached_p1 = true;
                 return out;
             }
-            // The cost that decides the next step's length is the WHOLE cost
-            // of arriving here, budget continuations included.
-            //
-            // THE FAILURE-HISTORY TERM (Task 1) sits in front of that rule and
+            // THE FAILURE-HISTORY TERM sits in front of the growth rule and
             // nowhere else: one accepted step after a failure does not
             // lengthen the next proposal, however cheap it was. See
             // ContinuationOptions::suspend_growth_after_failure. Note the
@@ -387,22 +319,21 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         // proposal was too long. Shrink and retry FROM THE LAST GOOD WARM.
         continuing = false;
         budget_continuations = 0;
-        // PHASE-6 TASK 1. Which KIND of failure this was -- caught by the
-        // probe budget, or paid in full -- and the arming of the
-        // failure-history term. Both read the solve that just came back:
-        // probe_budget_stops is set by, and only by, the driver's own
-        // budget exit (sqp_driver.h).
+        // Which KIND of failure this was -- caught by the probe budget, or
+        // paid in full -- and the arming of the failure-history term. Both
+        // read the solve that just came back: probe_budget_stops is set by,
+        // and only by, the driver's own budget exit (sqp_driver.h).
         if (sol.counters.probe_budget_stops > 0) {
             ++out.proposals_abandoned;
         } else {
             ++out.proposals_full_cost;
         }
         growth_suspended = opts.suspend_growth_after_failure;
-        // FROM THE STEP THAT ACTUALLY FAILED, not from the controller's dp --
-        // step_dp <= dp always (the endpoint clamp), so this is the old
-        // dp *= shrink wherever no clamp was in effect and strictly stronger
-        // where one was. See this header's THE SHRINK IS APPLIED TO THE STEP
-        // THAT ACTUALLY FAILED note for the defect this repairs.
+        // Shrink FROM THE STEP THAT ACTUALLY FAILED, not from the
+        // controller's dp: step_dp <= dp always (the endpoint clamp), so this
+        // is dp *= shrink wherever no clamp was in effect and strictly
+        // stronger where one was. See the header's THE SHRINK IS APPLIED TO
+        // THE STEP THAT ACTUALLY FAILED note for the defect this repairs.
         dp = step_dp * opts.shrink;
         if (dp < opts.dp_min) {
             return out; // reached_p1 stays false

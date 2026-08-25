@@ -1,0 +1,195 @@
+# The standing wall legs
+
+Two per-task legs for the remainder of M4: every task touching the
+interior-point consumption path re-runs them and records the deltas in
+`docs/notes/2026-08-m4-ledger.md`, so contract-cost accretion is a visible
+running total rather than a per-task judgement.
+
+- **The IPM leg** (`ipm_time.cpp`, `ipm_wall_leg.sh`) times whole solves. It is
+  the original leg; everything below headed "Running it" and "Runs" is its.
+- **The layout leg** (`layout_time.cpp`, `layout_wall_leg.sh`) times
+  TRANSCRIPTION -- see "The layout leg" at the bottom.
+
+Both are read by one aggregator, `aggregate.py`. How each recorded run's two
+arms were built -- and what the base arm was built FROM, since no checkout of
+the branch point survives -- is in `PROVENANCE.md`.
+
+## Why this instrument and not the standing bench
+
+`hven_sqp_bench` and the `--engine ssn` corpus drive `SqpDriver`, which never
+reaches `InteriorPointSolver`. Neither can observe a change to the
+interior-point consumption path; both remain worth running, as neutrality
+checks. This is the leg that observes it.
+
+## Running it
+
+```
+build_ipm_time.sh <base source root> <base build dir> ./ipm_base
+build_ipm_time.sh <head source root> <head build dir> ./ipm_head
+./ipm_wall_leg.sh 9 15 > runs/<date>-<task>.log
+./aggregate.py runs/<date>-<task>.log
+```
+
+The protocol — the two arms, the alternation, and how to read the two
+estimators — is stated in `ipm_wall_leg.sh`'s own header. Read per-task deltas
+off the MINIMUM estimator: the median estimator's rep-to-rep spread on these
+problem sizes is 0.5–0.8%, which is the same size as the effects being looked
+for.
+
+## The band, and the alignment class
+
+The one-sided ceiling for a consumption-path task's serial IPM reading is
++3.0% on the minimum estimator (calibration `d7f33ca`; three grown-layout
+rolls scattered 0.1/2.3/0.3% at bit-identity). A trip closes on positive
+layout evidence, and one whole class of trips is now known by mechanism:
+
+Alignment class: wall-time deltas up to ~±2.5% can arise from code-layout
+shifts alone — a 16-byte `.text` move that drops a hot loop head off the
+32-byte fetch window measured +2.4% with equal instructions retired and IPC
+down 4.3% (fb4, 2026-08-25). The Release flag set pins loop heads
+(`-falign-loops=32`) to close the known instance. A band trip whose
+symbol/codegen comparison shows layout-only change with bit-identical answers
+may auto-close under the standing positive-evidence rule, with the
+symbol/codegen comparison and the bit-identity check recorded in the trip's
+artifact. Corrected inference, on the record: a delta that grows with problem
+size does not imply evaluation-cost causation — alignment penalties are
+per-iteration and grow with size identically.
+
+## Runs
+
+| run | arms | headline |
+|---|---|---|
+| `runs/2026-08-21-task3.log` | base `f07184b` vs the Task 3 consumption switch | minimum estimator −0.23% … +0.34%, largest cells +0.03% / +0.06%; median estimator inside its own spread |
+| `runs/2026-08-21-task4-1.log`, `runs/2026-08-21-task4-2.log` | base `a0dcec2` vs the NlpModel bridge's review fix round | minimum estimator +0.01% … +0.97% over two repetitions, every cell inside the base arm's own rep-spread; largest cells reproducible at +0.378% / +0.380% (serial n=240) |
+| `runs/2026-08-22-layout-cost-fix-ipm.log` | base `777e1a7` vs the layout-cost fix | minimum estimator −15% … −19%, every cell and both arms. Answers bit-identical: `iters`, `flag` and `xnorm2` equal on every rep of both arms (7/7/8 iterations). **The saving is `Fnv1a::feed_index`, not the layout work** — `pattern_hash()` guards every factorization (`src/linear/symmetric_factor_mkl.cpp:656`), so this is per-iteration work that predates M4; identical iteration counts across arms are the proof that the same iterate sequence simply runs faster |
+| `runs/2026-08-23-stage2b-fixes-ipm.log` | base `6d7433f` (the standing watch base) vs the declaration-adoption chain at its head (`4bdb24d`) | minimum estimator **-0.263% … +0.079%**, every cell of both arms; median -0.759% … +0.884%. Answers bit-identical: one `iters`, one `flag` and one `xnorm2` per size on both sides, all 54 pairs. INFORMATIONAL rather than asserted -- the serial base rep-spreads are 1.50/1.55/2.89%, above the ~1.3% this leg asserts under -- so it corroborates parity rather than establishing it; nothing in the change touches an evaluation path (`nm` and the unchanged 352-byte piece `sizeof` in `../2026-08-23-m4-task7-stage2b-wall-leg/`) |
+| `runs/2026-08-24-task9-ipm.log`, `runs/2026-08-24-task9-ipm-2.log` | base `42091c6` vs the Task 9 head batch (epoch-gated re-analysis and epoch-gated pattern guard) | **minimum estimator -3.82% … -5.56%**, every cell of both repetitions, both arms; median -3.85% … -4.92%. A WIN, and its mechanism is named: the per-factorization full-KKT `hven::pattern_hash` is now skipped while the model's structure epoch stands, so what disappears is one O(nnz) walk of the KKT matrix per numeric factorization. Answers bit-identical: one `iters`, one `flag` and one `xnorm2` per size on both sides, all 54 pairs of each run. Base rep-spreads 0.64-3.42% (one threaded n=60 cell reads 35.07% on the second run, a machine disturbance the minimum estimator is immune to). A wider identity check on three problems is in `../2026-08-24-m4-task9-gate/` |
+| `runs/2026-08-24-task9-fixround-ipm.log` | base `42091c6` vs the Task 9 head batch AFTER its review fix round (`ccdd541`) | **THE WIN IS RETAINED: minimum estimator -3.47% ... -4.38%**, every cell of both arms; median -3.18% ... -4.12%. Base rep-spreads 0.71-1.97%. The workload is CALLBACK-FREE, which is the shape the skip still applies to: the fix round forces the full pattern check for the whole of any call that hands the KKT matrix to an early callback, and that cost is by design -- such a call pays what every call paid before the epoch gate existed. Answers bit-identical between arms: exactly three (`iters`, `flag`, `xnorm2`) triples across all 108 data lines, one per size, on both sides |
+| `runs/2026-08-24-task9-fb4-remeasure.log` | `6b5fc12` vs `46d6ff8` -- the isolating A/B the ledger registered for Task 9 | **REPRODUCED, +2.38% minimum / +2.00% median at serial n=240**, +2.59%/+2.45% threaded, against base rep-spreads of 1.35% and 0.60%. Smaller sizes read +0.47% … +1.47%; five of six cells are positive on the minimum estimator and the sixth (threaded n=60 median, -0.14%) sits inside a 2.42% spread. The offset GROWS with problem size, which is what separates per-iteration work from link layout, so the earlier "mechanism not established" reading is closed: the cost is real. It is more than repaid by the row above, measured on the same instrument, same day, same box |
+| `runs/2026-08-22-task5-1.log`, `runs/2026-08-22-task5-2.log` | base `07d5ee1` vs the SQP driver's Level 2 consumption switch | **BAND TRIP**: minimum estimator +0.44% … +2.44% over two repetitions; the `n = 240` cells (+2.44%/+2.20% serial, +2.37%/+2.34% threaded) clear their own base rep-spread and the precedent's +0.97% upper end. Answers identical (`flag`/`xnorm2` bit-equal on every cell of both runs). Mechanism in `../2026-08-21-m4-task5-wall/README.md`: two timed-path objects recompile because `candidate_point.h` grew, but the added work is three integer compares per `assemble()` — layout, not evaluation cost |
+| `runs/2026-08-25-align-loops-ipm.log`, `runs/2026-08-25-align-loops-ipm-2.log` | `8fa68c2` vs the same sources plus `-falign-loops=32` in the Release flag set -- ONE compile flag, no source change of any kind | **minimum estimator -1.05% ... -3.41%, every cell of both repetitions and both arms**; median -0.67% ... -2.92%, and the two runs reproduce each other cell for cell (serial n=240 minimum -3.207% then -3.223%). The flag makes this commit FASTER, which is the fb4 mechanism read from the other side: `8fa68c2` happens to sit at an unlucky `.text` offset, and pinning loop heads to the 32-byte fetch window recovers what that costs -- the win grows with problem size (-1.1% at n=60, -3.2% at n=240) exactly as an alignment penalty paid per loop iteration should. Read as the DIRECTION being right, not as a number to bank: an alignment delta is a property of one commit's layout, not a standing speedup. Answers bit-identical: all 54 base/head pairs of each run, three distinct `(iters, flag, xnorm2)` triples across each run's 108 data lines, one per size, on both sides. Base rep-spreads 0.29-1.91% serial in run 2 (1.91-8.92% in run 1); the threaded n=60/n=120 cells read 34-37% in BOTH runs, a disturbance the minimum estimator is immune to and the reason those two cells are corroboration rather than evidence. Both runs started above this leg's usual sub-0.6 load average (1.19 and 2.19), decaying from the builds that produced the arms; the serial cells' tight spreads and the two runs' agreement are what make the reading assertable anyway. Layout-only proof, which is the claim that actually matters here: `../2026-08-25-align-loops/` |
+
+Two repetitions rather than one, because every cell of the first came out
+positive and a shared sign is worth a second look. The second reproduced the
+largest serial cell to three decimal places, and rep8 of its threaded arm hit a
+machine disturbance (0.444 s against a 0.035 s cell) that inflates that arm's
+printed spread while leaving the minimum estimator untouched — which is the
+behaviour that estimator is chosen for.
+
+What that run measured, stated because the number alone invites the wrong
+reading: 28 of the 30 objects in `libhven.a` were byte-identical between the two
+arms, and the two that differed — `aggregate_declaration.cpp.o` and
+`nlp_model_aggregate.cpp.o` — contain no code a solve executes
+(`AggregateDeclaration::validate()` is layout-time; the bridge is never called
+by the interior engine). No machine code on the timed path changed, so the
+reproducible sub-half-percent offset is link layout — the changed objects shift
+every symbol after them in the archive — and not evaluation cost. `xnorm2` and
+`flag` were identical between arms on every cell of both repetitions.
+
+Conditions: Fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux 7.1.5-201.fc44,
+`/usr/bin/clang++` 22.1.8, MKL LP64, Release, `HVEN_FP_MODE=SAFER_FAST`.
+
+## The layout leg
+
+The IPM leg's problem has three pieces and one application each, so per-claim
+and per-piece LAYOUT work is a rounding error inside its cells: a change to
+what a transcription costs is invisible in it. That is not hypothetical -- the
+first Level 2 layout implementation moved the front end's transcription cells
+by more than half while every whole-solve cell stayed at parity, and no
+instrument in this repository could see it.
+
+`layout_time.cpp` is that instrument. It builds a problem shaped like a
+collocation transcription -- four constraint pieces plus an objective piece,
+`n` applications over four-variable windows that overlap by two (so consecutive
+applications share KKT columns, and columns are contested across partitions),
+four partitions, bounds on every variable -- and times seven cells at three
+sizes:
+
+| cell | what it times |
+|---|---|
+| `construct` | building the pieces and the program, first layout included |
+| `transcribe` | re-laying an existing program (`make_nlp` again), layout only |
+| `transcribe+key` | the same re-lay plus ONE `model_structure_key()` read |
+| `transcribe+decl` | the same re-lay plus ONE `declaration()` read |
+| `analyze` | the sparsity analysis over a laid program |
+| `solve` | one partitioned whole solve |
+| `solve1` | the same solve at one partition and one factorization thread |
+
+`transcribe+decl` is the cell that prices what every EVALUATING consumer pays, and
+without it the other two overstate the saving. The deferred state has three parts;
+`transcribe` discharges none of them and `transcribe+key` discharges only the two
+digests and the bound records. Neither calls `declaration()`, so neither pays the
+deep clone of the three master piece lists -- the largest of the three -- while the
+base arm paid it eagerly inside every `make_nlp`. `NlpAggregate::assemble()` reads
+`declaration()` as its first statement, so the first assemble after a lay pays exactly
+that clone on top of a bare transcribe. **Read `transcribe+decl` as the headline for
+any consumer that evaluates; read `transcribe` only for one that lays and never
+evaluates.** The cell asserts the copy really happened inside the timed region -- all
+three lists populated to the master lists' sizes -- and aborts rather than printing a
+row if it did not.
+
+`transcribe+key` is INFORMATIONAL and exists so that one number is not hidden.
+The structural key's two digests are taken on first read rather than during the
+lay, so a consumer that never asks about structural identity pays `transcribe`
+and one that asks once per lay pays `transcribe+key`. Recording only the
+cheaper of the two would report a saving that some consumer still pays.
+
+Every cell prints an identity column -- the structural key's folded digest and
+the claim count for the layout cells, the objective, iteration count and
+convergence flag for the solve cells. Those must be EQUAL between arms; a
+difference in one is a correctness finding, not a timing one.
+
+With ONE exception, and it is why `solve1` exists. `solve`'s objective moves in
+its low bits between runs of the SAME binary, from two independent schedule
+dependences: the contested-slot accumulation order (two partitions summing into
+one KKT column can land in either order) and the multi-threaded sparse
+factorization, which reorders its own reductions. Both were measured, not
+assumed. `solve`'s gate is therefore its iteration count and its flag.
+
+`solve1` closes both -- one partition and one factorization thread -- and ITS
+objective is the bit-identity column. It costs a second solve per rep, which is
+the price of having one number a comparison can be gated on instead of two that
+cannot.
+
+`solve`'s TIMING in the SERIAL arm is meaningless, not merely noisy, and is
+recorded only for its iterations and flag: that arm pins the process to one
+core with `taskset -c 2`, so four partitions spin against each other on it
+(base n=256 reads 1.1 s against `solve1`'s 5.9 ms). Read `solve` timings from
+the threaded arm and `solve1` timings from either.
+
+```
+build_layout_time.sh <base source root> <base build dir> ./layout_base
+build_layout_time.sh <head source root> <head build dir> ./layout_head
+./layout_wall_leg.sh 9 15 > runs/<date>-<task>-layout.log
+./aggregate.py runs/<date>-<task>-layout.log
+```
+
+The probe source compiled into BOTH arms is this directory's copy -- only the
+headers and the archive come from the arm -- because two arms running different
+programs are not comparable.
+
+### Layout leg runs
+
+| run | arms | headline |
+|---|---|---|
+| `runs/2026-08-23-stage2b-fixes-layout.log` | base `e832675` vs the declaration-adoption chain at its head (`4bdb24d`) | **`transcribe+decl` +0.000% … +0.518%** on the minimum estimator, every cell of both arms and all three sizes inside the +/-1% bar. `transcribe` clears it once (serial n=1024, +1.058%) against a 6.7% base rep-spread on that cell, with its threaded twin at +0.529%. Identity: the structural key digest and claim count are EQUAL across arms on every layout cell at every size, and `solve1`'s objective is bit-identical. Supersedes the row below, which was taken mid-chain. Symbol evidence and the `sizeof` argument in `../2026-08-23-m4-task7-stage2b-wall-leg/` |
+| `runs/2026-08-23-adopt-declaration-layout.log` | base `e832675` vs the same chain's first commit (`6d6288e`) | **`transcribe+decl` -1.818% … +0.515%** on the minimum estimator, every cell of both arms and all three sizes inside the +/-1% bar except serial n=256, which clears it on the fast side. `transcribe` +0.000% … +1.887%, `construct` +0.000% … +1.515%; the two cells above +1% are threaded n=256 against base rep-spreads of 3.6% and 7.5% on the same cells, and their serial twins read +0.000%. Identity: the structural key digest and claim count are EQUAL across arms on every layout cell at every size, and `solve1`'s objective is bit-identical. Symbol evidence and the `sizeof` argument in `../2026-08-23-m4-task7-stage2b-wall-leg/` |
+| `runs/2026-08-23-layout-cost-closefold-layout.log` | base `777e1a7` vs the layout-cost fix at its close fold | **`transcribe+decl` −66.7% … −70.0%** -- the headline for any consumer that evaluates, since it is the cell that discharges the deferred piece copy. `transcribe` −67.6% … −70.8% (lay-only consumers), `transcribe+key` −50.0% … −52.4%. The piece copy itself costs ~1 µs at n=64/256 and ~5 µs at n=1024 against a 650 µs base lay, so on this 5-piece problem it moves the headline by under half a point; a front end with many more pieces pays proportionally more per lay, which is what the tycho-shaped acceptance covers |
+| `runs/2026-08-22-layout-cost-fix-layout.log` | base `777e1a7` vs the layout-cost fix | `transcribe` −67% … −70%, `construct` −55% … −65%, `analyze` neutral, `solve1` −9%; both arms, all three sizes. Identity: the structural key digest is equal across arms on every rep of every size, and `solve1`'s objective/iterations/flag are bit-identical. This is the leg that carries the LAYOUT saving; the whole-solve saving belongs to the hash change and is on the IPM leg's row above |
+
+`analyze` is the cell that answers "did deferring the claim digest cost anything
+where it was paid for?". Deferring it required `analyze_sparsity` to stop
+canonicalising the claim endpoints in place and derive that ordering per element
+instead, which trades two stores and a branch for two compares. The cell puts
+the trade inside the noise: over both arms and all three sizes the minimum
+estimator runs −5.3% … +0.8% and the median −0.6% … +2.9%, against base
+rep-spreads of 5.4% to 38% on the same cells. Nothing there separates the two
+arms in either direction.
+
+It also compares unlike steady states, and the bias runs one way. The cell
+analyses ONE laid program `reps` times; under the base arm the first analysis
+canonicalises the claim arrays in place and every later one runs with the
+endpoints already ordered, so the median is base's post-canonicalisation steady
+state rather than its first-analysis cost. That can only hide a head win, never
+manufacture one -- which is consistent with the band above sitting inside the
+noise, and is the reason not to read the positive medians as a cost either.

@@ -1,38 +1,24 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Extracted the compound-KKT segment view from InteriorPointSolver (interior_point_solver.h),
-//   where it
-//     was a private nested class that the globalization components could not
-//     name and therefore each reproduced verbatim
-// =============================================================================
-//
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
 // The solver's compound KKT vectors are plain Eigen::VectorXd of length
 // primal_vars + slack_vars + equal_cons + inequal_cons. KKTVector is the
-// non-owning view that gives those four blocks names. It is deliberately a
-// standalone header with no InteriorPointSolver dependency: InteriorPointSolver and every
-// globalization component (ClassicMeritAcceptance, BacktrackingLineSearch, ClassicAdaptiveGovernor,
-// ...) builds its views from the SAME type, so the segment expressions that encode the layout exist
-// once in the codebase.
+// non-owning view giving those four blocks names. Deliberately a standalone
+// header with no InteriorPointSolver dependency: the solver and every
+// globalization component build views from the SAME type, so the segment
+// expressions encoding the layout exist once. Each component supplies its own
+// kkt_view() factory, since dimensions come from different places.
 //
-// Each component supplies its own kkt_view() factory, since the dimensions come
-// from different places (InteriorPointSolver's own members; a SolverContext's dimension
-// references).
-//
-// Not every multiplier the solver carries lives in this vector. The native
-// primal variable-bound multipliers (z_L, z_U) are held separately, in the
-// InteriorPointSolver-owned BoundDualState (detail/interior/bound_set.h), because the bound
-// rows are condensed into the primal diagonal rather than enlarging the KKT
-// system — which is precisely why the layout above is unchanged by that
-// feature. A reader looking for "all the duals" needs both.
+// Not every multiplier lives here: the native bound multipliers (z_L, z_U) are
+// held separately in the solver-owned BoundDualState (bound_set.h) because the
+// bound rows are condensed into the primal diagonal rather than enlarging the
+// KKT system — which is precisely why this layout is unchanged by that feature.
+// A reader looking for "all the duals" needs both.
 
 #pragma once
 
@@ -43,19 +29,14 @@
 
 namespace hven::solvers {
 
-// =============================================================================
-// KKTVector — lightweight non-owning view over compound KKT layout
-//   [primals | slacks | eq_lmults | iq_lmults]
-// Used for both the iterate vector (x, s, lambda_e, lambda_i) and the
-// RHS/gradient vector (grad_x, grad_s, c_eq, c_iq). The two accessor
-// groups provide semantic names for each interpretation.
-//
-// const-correctness: const overloads use std::as_const(data_) to force
-// Eigen's .head()/.segment()/.tail() to return immutable segment
-// expressions. Without this, calling .head() on the non-const VectorXd&
-// member would return a mutable expression even from a const method.
-// Lifetime: must not outlive the referenced VectorXd.
-// =============================================================================
+/// @brief Lightweight non-owning view over the compound KKT layout
+/// [primals | slacks | eq_lmults | iq_lmults], used both as the iterate
+/// vector (x, s, lambda_e, lambda_i) and as the RHS/gradient vector (grad_x,
+/// grad_s, c_eq, c_iq); the two accessor groups name each interpretation.
+///
+/// const overloads use std::as_const(data_) to force Eigen's segment accessors
+/// to return immutable expressions. Lifetime: must not outlive the referenced
+/// VectorXd.
 class KKTVector {
   public:
     KKTVector(Eigen::VectorXd &data, int pv, int sv, int ec, int ic)

@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_corpus_cells.cpp — PHASE-7 TASK 1: the replay corpus's own
 // correctness gate. Shares bench/corpus_cells.h's implementation with
 // bench/bench_corpus.cpp rather than duplicating it (the SNOPT-gate
@@ -246,6 +249,43 @@ TEST(CorpusCellsRunner, EngineSsnSelectsTheSemismoothKernelAndNothingElse) {
     EXPECT_EQ(walk_row.ssn.ssn_refine_factorizations, 0);
     EXPECT_EQ(walk_row.ssn.ssn_refine_neg_duals, 0);
     EXPECT_EQ(walk_row.escapes, 0);
+}
+
+// The model-surface census hook is DEFAULT OFF and its five ms_* columns
+// stay at CorpusRow's own -1.0 "not computed" sentinel
+// -- the identical convention kkt_stationarity et al. already use -- unless
+// EngineConfig::score_model_surface is explicitly set.
+TEST(CorpusCellsRunner, ModelSurfaceCensusHookDefaultsOff) {
+    const CorpusCell cell = tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false);
+    const CorpusRow row = run_cell(cell, "walk");
+    EXPECT_DOUBLE_EQ(row.ms_stationarity, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_complementarity, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_primal, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_dual_scale, -1.0);
+    EXPECT_DOUBLE_EQ(row.ms_x_scale, -1.0);
+}
+
+// Behavioural half: with the flag on, the census hook's own independent
+// reading (bench/model_surface_kkt.h, off the Level 2 aggregate surface)
+// agrees with self_check_kkt's (bench/corpus_cells.h's record_kkt_check) at
+// the SAME returned point -- two different code paths over the same seam
+// stationarity convention, scoring the same solution.
+TEST(CorpusCellsRunner, ModelSurfaceCensusHookAgreesWithRecordedResidualsWhenOn) {
+    const CorpusCell cell = tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false);
+    detail::EngineConfig levers;
+    levers.score_model_surface = true;
+    const CorpusRow row = run_cell(cell, "walk", {}, levers);
+    ASSERT_EQ(row.status, hven::solvers::SqpStatus::kOptimal);
+    EXPECT_GE(row.ms_stationarity, 0.0);
+    EXPECT_GE(row.ms_complementarity, 0.0);
+    EXPECT_GE(row.ms_primal, 0.0);
+    constexpr double kAgreementTol = 1.0e-6;
+    EXPECT_NEAR(row.ms_stationarity, row.kkt_stationarity, kAgreementTol);
+    EXPECT_NEAR(row.ms_complementarity, row.kkt_complementarity, kAgreementTol);
+    EXPECT_NEAR(row.ms_primal, row.kkt_primal, kAgreementTol);
+    EXPECT_DOUBLE_EQ(row.ms_dual_scale, row.dual_scale);
+    EXPECT_DOUBLE_EQ(row.ms_x_scale, row.x_scale);
+    EXPECT_EQ(kkt_gate_verdict(row), KktVerdict::kOk);
 }
 
 TEST(CorpusCellsRunner, SsnEngineIsDeterministicOnEveryTaxonomy) {
@@ -1005,6 +1045,63 @@ TEST(CorpusRunnerProcess, AForcedTestBudgetIsStampedIntoTheProvenanceHeader) {
     std::remove(log.c_str());
 }
 
+// The model-surface census hook's own end-to-end process test: --score-
+// model-surface/--score-model-surface-out have to cross the fork/exec
+// subprocess boundary via the sidecar file (write_model_surface_sidecar /
+// read_model_surface_sidecar in bench_corpus.cpp), which nothing above
+// exercises -- the file's own manual smoke test covered this once, by hand;
+// this is the automated version of that same claim. f7_n1000_bound_neutral
+// is the same fast, well-exercised cell WallDeadlineDoesNotFireAtTheReal
+// BudgetOnAFastCell above already relies on.
+TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMainCsvUnchanged) {
+    const std::string csv_on = runner_test::temp_path("corpus_ms_on.csv");
+    const std::string csv_off = runner_test::temp_path("corpus_ms_off.csv");
+    const std::string wgate = runner_test::temp_path("corpus_ms.wgate.csv");
+    ASSERT_EQ(
+        runner_test::run_binary(fmt::format("--engine walk --cells f7_n1000_bound_neutral --csv {} "
+                                            "--score-model-surface --score-model-surface-out {}",
+                                            csv_on, wgate)),
+        0);
+    ASSERT_EQ(runner_test::run_binary(
+                  fmt::format("--engine walk --cells f7_n1000_bound_neutral --csv {}", csv_off)),
+              0);
+
+    // The census artifact: header schema, one data row, and a genuine
+    // verdict-equal reading on a converged cell -- both scorers agree.
+    const std::vector<std::string> wgate_lines = runner_test::read_lines(wgate);
+    ASSERT_EQ(wgate_lines.size(), 2u) << runner_test::slurp(wgate);
+    EXPECT_EQ(wgate_lines[0], "cell_id,kkt_stationarity,kkt_complementarity,kkt_primal,"
+                              "ms_stationarity,ms_complementarity,ms_primal,verdict_equal");
+    const std::vector<std::string> wgate_cols = runner_test::split_all(wgate_lines[1]);
+    ASSERT_EQ(wgate_cols.size(), 8u) << wgate_lines[1];
+    EXPECT_EQ(wgate_cols[0], "f7_n1000_bound_neutral");
+    EXPECT_EQ(wgate_cols[7], "1") << "both scorers must agree on a converged cell: "
+                                  << wgate_lines[1];
+
+    // THE CLI-LEVEL INERTNESS CLAIM, automated: the main --csv is unaffected
+    // by the flag, column for column, except `wall_s` (index 13 -- timing
+    // noise, never a regression contract per this file's own banner).
+    const std::vector<std::string> rows_on = runner_test::data_rows(csv_on);
+    const std::vector<std::string> rows_off = runner_test::data_rows(csv_off);
+    ASSERT_EQ(rows_on.size(), 1u);
+    ASSERT_EQ(rows_off.size(), 1u);
+    const std::vector<std::string> cols_on = runner_test::split_all(rows_on[0]);
+    const std::vector<std::string> cols_off = runner_test::split_all(rows_off[0]);
+    ASSERT_EQ(cols_on.size(), cols_off.size());
+    ASSERT_EQ(cols_on.size(), 37u) << rows_on[0];
+    for (std::size_t i = 0; i < cols_on.size(); ++i) {
+        if (i == 13) {
+            continue; // wall_s
+        }
+        EXPECT_EQ(cols_on[i], cols_off[i])
+            << "column " << i << " diverged: on=" << rows_on[0] << " off=" << rows_off[0];
+    }
+
+    std::remove(csv_on.c_str());
+    std::remove(csv_off.c_str());
+    std::remove(wgate.c_str());
+}
+
 TEST(CorpusRunnerProcess, ScoreGatesRunsEndToEndOnRealCells) {
     // I5's live arm: the whole --score-gates path (run, write, filter, pair,
     // score, print) over two cheap bound-arc cells. The verdict itself is
@@ -1346,6 +1443,18 @@ TEST(CorpusRunnerProcess, FromCsvRefusesToBeCombinedWithARunRequest) {
     const std::string csv = runner_test::temp_path("corpus_conflict.csv");
     EXPECT_NE(runner_test::run_binary(
                   fmt::format("--from-csv {} --engine walk --cells f7_n1000_bound_neutral", csv)),
+              0);
+}
+
+// The census hook's own arm of the same refusal: a committed CSV row carries
+// no (x, lambda, z), so --score-model-surface has nothing to score there --
+// --from-csv must refuse it exactly as it refuses --engine/--cells above,
+// rather than silently doing nothing.
+TEST(CorpusRunnerProcess, FromCsvRefusesToBeCombinedWithScoreModelSurface) {
+    const std::string csv = runner_test::temp_path("corpus_conflict_ms.csv");
+    const std::string ms = runner_test::temp_path("corpus_conflict_ms.wgate.csv");
+    EXPECT_NE(runner_test::run_binary(fmt::format(
+                  "--from-csv {} --score-model-surface --score-model-surface-out {}", csv, ms)),
               0);
 }
 
@@ -2346,8 +2455,7 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
     // test above). The D0-repair claim is a historical claim about those
     // artifacts and survives the flag unification untouched.
     for (const char *ref : {HVEN_SQP_PRE_U0_WALK_BASELINE_CSV, HVEN_SQP_WALK_RESWEPT_CSV}) {
-        const bool ref_is_amended_baseline =
-            std::string(ref) == HVEN_SQP_PRE_U0_WALK_BASELINE_CSV;
+        const bool ref_is_amended_baseline = std::string(ref) == HVEN_SQP_PRE_U0_WALK_BASELINE_CSV;
         const auto base = runner_test::data_rows(ref);
         ASSERT_EQ(base.size(), 57u) << ref;
         for (const std::string &r : base) {
@@ -2650,8 +2758,8 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             const double want = std::stod(derived);
             const double scale = std::max(std::abs(want), std::abs(observed));
             EXPECT_LE(std::abs(observed - want), kHostRelTol * scale)
-                << what << " on cell " << id << ": observed "
-                << fmt::format("{:.9e}", observed) << ", derivation machine " << derived;
+                << what << " on cell " << id << ": observed " << fmt::format("{:.9e}", observed)
+                << ", derivation machine " << derived;
         };
         close(row.kkt_residual, exp9.kkt, "kkt_residual");
         close(row.kkt_stationarity, exp9.stationarity, "kkt_stationarity");

@@ -1,12 +1,15 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // sqp_options.cpp -- the SqpOptions boundary validation SqpDriver's
 // constructor runs, carved out of the class body in sqp_driver.h.
 //
-// M3 PHASE-C T3. CLAUDE.md section 5 homes "orchestration, drivers, options,
+// CLAUDE.md section 5 homes "orchestration, drivers, options,
 // printing, and instrumentation" in .cpp translation units regardless of how
 // hot the surrounding loop is; this block is options validation and runs
 // exactly ONCE per driver construction, so nothing about it depends on
-// inlining through a template parameter. Before this carve it was an inline
-// body inside `class SqpDriver`, so six comparison chains and six
+// inlining through a template parameter. As an inline body inside
+// `class SqpDriver`, the six comparison chains and six
 // `fmt::format` call chains were parsed and code-generated in every TU that
 // included sqp_driver.h -- and the SQP tree is header-only today, so that is
 // every test, bench and library TU that touches the driver at all.
@@ -34,20 +37,19 @@
 // `-ffinite-math-only`, under which the compiler MAY rewrite `!(x > 0.0)` into
 // `x <= 0.0` -- the two are equivalent exactly when NaN is excluded by
 // assumption. hven therefore appends `-fno-finite-math-only` immediately after
-// `-ffast-math` in the SAFER_FAST FP mode that is this library's default and,
-// since M3 phase-C U0, its ONE uniform regime
+// `-ffast-math` in the SAFER_FAST FP mode that is this library's default and
+// its one uniform flag regime
 // (cmake/hven_compile_options.cmake, the HVEN_FP_MODE block: `-ffast-math`
 // then `-fno-finite-math-only`; on Windows `/fp:fast` plus the probed spelling
 // of the same). SAFER_FAST is exactly this: fast math WITHOUT the finiteness
 // assumption.
 //
-// **THIS PREMISE IS PINNED BY DISASSEMBLY, NOT BY ASSERTION.** T3's proof
-// battery disassembles this TU's object and checks that the NaN-catching
+// **THIS PREMISE IS PINNED BY DISASSEMBLY, NOT BY ASSERTION.** The proof
+// battery for this file disassembles this TU's object and checks that the NaN-catching
 // comparisons survive as written -- that the emitted branch is the
 // unordered-aware form (`comisd` + `jbe`/`ja`, i.e. a branch that takes the
 // reject path when the compare sets PF) and not the finite-math complement.
-// The evidence excerpt and the exact flags line are recorded with the commit
-// and in the task report. If a future flag change drops
+// If a future flag change drops
 // `-fno-finite-math-only`, that pin is what turns a silent NaN admission into
 // a caught one.
 //
@@ -58,8 +60,7 @@
 // reads a double and formats its value; it does not compute with it. So
 // nothing here can be re-associated, contracted into an FMA, or otherwise
 // re-shaped by the codegen flags -- which, together with the pin above, is why
-// this carve could land as an early phase-C split rather than waiting behind
-// the FP-carrying ones.
+// this file carries no FP-reassociation risk at all.
 
 #include <cmath>
 #include <stdexcept>
@@ -86,14 +87,14 @@ void validate_sqp_options(const SqpOptions &opts) {
             "pin every step to zero and stall until max_iter)",
             opts.tr_init));
     }
-    // tr_max is READ from Task 6 on (it caps the growth rule), so a
-    // ceiling below the floor is now a contradiction rather than an
+    // tr_max caps the growth rule, so a
+    // ceiling below the floor would be a contradiction rather than an
     // ignored field: it would silently mean "the radius may never grow,
     // and the very first subproblem already violates the cap".
     //
     // tr_init == +inf IS EXEMPT FROM THIS PARTICULAR CHECK, because at
     // that value there is no starting radius for tr_max to be a ceiling
-    // ON. It is no longer exempt from tr_max MATTERING: from Task 9 the
+    // ON. It is NOT exempt from tr_max MATTERING: the
     // FIRST rejection lands the radius on tr_max (see sqp_driver.h's RADIUS
     // MANAGEMENT), so the pair is meaningful after all -- what +inf now means
     // is "unbounded until the method finds it needs a bound, then tr_max".
@@ -105,7 +106,7 @@ void validate_sqp_options(const SqpOptions &opts) {
                         "the trust-region growth rule expands toward",
                         opts.tr_max, opts.tr_init));
     }
-    // THE FLOOR (Task 9). It must be positive (0 would make it
+    // THE FLOOR. It must be positive (0 would make it
     // unreachable, since the radius only ever halves, and the restoration
     // trigger it exists to arm would be dead), and it must not exceed
     // either end of the range it floors -- tr_min > tr_init would put the

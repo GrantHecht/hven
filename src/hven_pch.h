@@ -1,25 +1,20 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 #pragma once
 
 // Precompiled header for the hven library target.
 //
 // WHY THIS EXISTS
 //
-// Measured on this tree (Linux, clang, -O3, ccache disabled): parsing the
-// header set below costs 3.01 s, and that cost is paid once per translation
-// unit that includes it. For the engine's largest TU,
-// drivers/interior_point_solver.cpp, 3.01 s of its ~7.0 s total is header
-// parsing -- only 4.01 s is its own 3722 lines of body. Header parsing, not
-// file length, is what the engine's build time is made of: core/pattern_hash.cpp
-// is 39 lines and still costs 2.98 s.
-//
-// Precompiling amortizes that floor across the TUs that pay it. The PCH is
-// built once (3.38 s) and then each participating TU drops ~1.5-2.0 s.
-//
-// This is also why the engine's big TUs are NOT split into smaller ones: a
-// split multiplies the 3.01 s floor by the number of pieces instead of
-// amortizing it, and (with LINK_TIME_OPT off) turns intra-TU helper calls in
-// the interior-point hot loop into un-inlinable cross-TU references. The
-// measured comparison behind that decision is summarized in docs/build.md.
+// Parsing the header set below is a large fixed cost paid once per
+// translation unit that includes it; precompiling amortizes that floor across
+// the TUs that pay it. It is also why the engine's big TUs are NOT split into
+// smaller ones: a split multiplies the header-parsing floor by the number of
+// pieces instead of amortizing it, and (with LINK_TIME_OPT off) turns intra-TU
+// helper calls in the interior-point hot loop into un-inlinable cross-TU
+// references. The measured comparison behind that decision is summarized in
+// docs/build.md.
 //
 // WHAT IS IN IT, AND WHY THE ORDER MATTERS
 //
@@ -43,14 +38,13 @@
 
 // clang-format off
 //
-// Include sorting is disabled for this block on purpose. clang-format's
-// default is to alphabetize, and alphabetizing here would silently cost the
-// byte-identity property described above: the order below is the order
-// drivers/interior_point_solver.cpp uses (dependency order, not alphabetical),
-// and matching it is what makes the PCH build emit the same object as the
-// non-PCH build. Note that clang-format would also reorder that .cpp's own
-// include block, so if it is ever reformatted, this list has to be brought
-// back into step with it and the byte-identity check re-run.
+// Include sorting is disabled for this block on purpose: clang-format's
+// default is to alphabetize, which would silently cost the byte-identity
+// property described above -- the order below matches
+// drivers/interior_point_solver.cpp (dependency order, not alphabetical).
+// Note that clang-format would also reorder that .cpp's own include block,
+// so if it is ever reformatted, this list has to be brought back into step
+// with it and the byte-identity check re-run.
 
 #include "hven/drivers/interior_point_solver.h"
 
@@ -70,13 +64,13 @@
 #include "hven/detail/interior/utils/accelerate_threads.h"
 #endif
 
-// Globalization component interfaces. Included here (rather than from
-// interior_point_solver.h) so the TU that builds InteriorPointSolver exercises
-// them on every build without interior_point_solver.h having to include a
-// directory of headers that themselves need the complete InteriorPointSolver
-// class (a circular-include arrangement that is fragile for the "middle"
-// headers below -- see the include-discipline note in solver_context.h).
-// Dependency-ordered.
+// Globalization component interfaces, dependency-ordered. Included here
+// (rather than from interior_point_solver.h) so the TU that builds
+// InteriorPointSolver exercises them on every build without
+// interior_point_solver.h having to include a directory of headers that
+// themselves need the complete InteriorPointSolver class (a circular-include
+// arrangement that is fragile for the "middle" headers below -- see the
+// include-discipline note in solver_context.h).
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/globalization/acceptance_strategy.h"

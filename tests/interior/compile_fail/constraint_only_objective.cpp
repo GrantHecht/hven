@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // MUST NOT COMPILE.
 //
 // Registration is per type, not per interface, so a family registered for

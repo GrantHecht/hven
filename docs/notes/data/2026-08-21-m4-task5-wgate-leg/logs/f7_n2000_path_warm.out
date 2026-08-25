@@ -1,0 +1,3 @@
+running f7_n2000_path_warm (N=2000, path, warm, engine walk, wall budget 2700s per phase)...
+wrote 1 row(s) to /home/ghecht/Projects/hven/docs/notes/data/2026-08-21-m4-task5-wgate-leg/rows/f7_n2000_path_warm.csv.part
+wrote the model-surface census to /home/ghecht/Projects/hven/docs/notes/data/2026-08-21-m4-task5-wgate-leg/scorer_rows/f7_n2000_path_warm.wgate.csv

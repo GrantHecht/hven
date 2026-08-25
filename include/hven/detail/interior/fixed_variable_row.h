@@ -1,20 +1,10 @@
-// =============================================================================
-// New file in Tycho, carried into hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt)
-//
-// The internal equality row the MakeConstraint fixed-variable treatment installs:
-// x[index] - value = 0, one per variable whose declared bounds are equal.
-//
-// The row used to be built as a VectorFunction expression, which made the only
-// caller -- NonLinearProgram, the heart of the solver -- depend on the whole
-// expression machinery for one line of arithmetic. It is written here as a
-// plain solver-side constraint instead: one input, one output, a residual that
-// subtracts a constant, and a Jacobian that is the constant 1. Everything the
-// solver asks a constraint for is spelled out below, and each method mirrors
-// what the general VectorFunction path did for a function of this shape, so the
-// row occupies exactly the same KKT slots and writes exactly the same values it
-// did before.
-// =============================================================================
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// The internal equality row the MakeConstraint fixed-variable treatment
+// installs: x[index] - value = 0, one per variable whose declared bounds are
+// equal -- one input, one output, a residual that subtracts a constant, and a
+// Jacobian that is the constant 1.
 
 #pragma once
 
@@ -37,8 +27,7 @@
 
 namespace hven::solvers {
 
-/// <summary>
-/// The residual x - value as a solver constraint: one variable in, one
+/// @brief The residual x - value as a solver constraint: one variable in, one
 /// constraint row out, per application.
 ///
 /// The variable it reads and the row it writes are not stored here -- they live
@@ -47,12 +36,8 @@ namespace hven::solvers {
 /// application in a partition and lets thread_split slice it like any other.
 ///
 /// Structurally this is a linear function: its Hessian is identically zero, so
-/// it claims no Hessian slot in the KKT matrix and its Jacobian is the single
-/// element 1.0 in the column of the variable it pins. The general
-/// VectorFunction path reached the same two conclusions from
-/// `is_linear_function` and a dense 1x1 Jacobian; here they are simply the
-/// shape of the code.
-/// </summary>
+/// it claims no Hessian slot in the KKT matrix, and its Jacobian is the single
+/// element 1.0 in the pinned variable's column.
 struct FixedVariableRow {
     /// The value the variable is pinned to.
     double value_ = 0.0;
@@ -201,13 +186,10 @@ struct FixedVariableRow {
 template <>
 struct SolverInterfaceAdapter<FixedVariableRow> : DirectFunctionModel<FixedVariableRow> {};
 
-/// <summary>
-/// Builds one internal equality row pinning primal variable @p index to
-/// @p value and writing constraint row @p row, addressed over the problem's own
-/// variable space.
-///
-/// The MakeConstraint fixed-variable treatment's whole payload.
-/// </summary>
+/// @brief Builds one internal equality row pinning primal variable @p index
+/// to @p value and writing constraint row @p row, addressed over the problem's
+/// own variable space — the MakeConstraint fixed-variable treatment's whole
+/// payload.
 inline ConstraintFunction make_fixed_variable_row(int index, double value, int row) {
     if (index < 0) {
         throw std::invalid_argument(fmt::format(
@@ -235,7 +217,7 @@ inline ConstraintFunction make_fixed_variable_row(int index, double value, int r
     // The policy the transcription gives a thread-safe single-application
     // function, so these rows spread over the work partitions the same way the
     // user's own single-application constraints do.
-    fix_row.thread_mode_ = ThreadingFlags::RoundRobin;
+    fix_row.set_thread_mode(ThreadingFlags::RoundRobin);
     return fix_row;
 }
 

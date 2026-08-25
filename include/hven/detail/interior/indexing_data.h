@@ -1,21 +1,15 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
 // This file implements the struct SolverIndexingData which holds all meta data
 // necessary for an asset vector function to be used as a constraint or objective inside of hven's
 // interior-point engine. It is coupled with a function by the interface classes ConstraintFunction
 // and ObjectiveFunction.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-// =============================================================================
 
 #pragma once
 #include "hven/detail/interior/parsed_io_flags.h"
@@ -78,21 +72,17 @@ struct SolverIndexingData {
     bool cindex_init_ = false;
     bool unique_constraints_ = true;
 
-    /// <summary>
-    /// Matrix whose columns contains the ordered indices of the variables
-    /// that will be forwarded to a constraint or objective function
-    /// </summary>
+    /// @brief Matrix whose columns contain the ordered indices of the
+    /// variables forwarded to the constraint or objective function.
     MatrixXi v_index_;
 
-    /// <summary>
-    /// Matrix whose columns constraint the ordered constraint output indices for the corresponding
-    /// column in v_index_. This matrix is empy for objective functions.
-    /// </summary>
+    /// @brief Matrix whose columns contain the ordered constraint-output
+    /// indices corresponding to each column of v_index_. Empty for objective
+    /// functions.
     MatrixXi c_index_;
 
-    /// <summary>
-    /// Where this function's outputs go in the SOLVER's variable space, when
-    /// that differs from the problem's own variable space.
+    /// @brief Where this function's outputs go in the SOLVER's variable space,
+    /// when that differs from the problem's own variable space.
     ///
     /// v_index_ above is the function's INPUT map: which entries of the primal
     /// vector its arguments are gathered from. It always addresses the full
@@ -110,7 +100,6 @@ struct SolverIndexingData {
     /// table is built and no copy is made. Derived state -- always regenerated
     /// from v_index_, never edited in place, so repeated configuration cannot
     /// compound.
-    /// </summary>
     MatrixXi v_out_index_;
 
     /// True while v_out_index_ is live, i.e. the output map differs from the
@@ -120,35 +109,25 @@ struct SolverIndexingData {
     /// v_scatter_loc(), which dispatches on the same flag.
     bool v_out_reduced_ = false;
 
-    /// <summary>
-    /// Each element indicates whether the corresponding indices in v_index_ are sorted
-    /// and contigous (ie: 10,11,12...)
-    /// </summary>
+    /// @brief Per column of v_index_: whether its indices are sorted and
+    /// contiguous (e.g. 10,11,12,...).
     std::vector<ParsedIOFlags> v_index_continuity_;
 
-    /// <summary>
-    /// Each element indicates whether the corresponding indices in c_index_ are sorted
-    /// and contigous (ie: 10,11,12...)
-    /// </summary>
+    /// @brief Per column of c_index_: whether its indices are sorted and
+    /// contiguous (e.g. 10,11,12,...).
     std::vector<ParsedIOFlags> c_index_continuity_;
 
-    /// <summary>
-    /// Holds the index of the start of the region of memory allocated by the interior-point engine
-    /// to sum the constraint output of the ith call of a constraint function.
-    /// </summary>
+    /// @brief Start of the memory region where the engine sums the constraint
+    /// output of the i-th application of this function.
     VectorXi inner_constraint_starts_;
 
-    /// <summary>
-    /// Holds the index of the start of the region of memory allocated by the interior-point engine
-    /// to sum the gradient output of the ith call of a constraint or objective function.
-    /// </summary>
+    /// @brief Start of the memory region where the engine sums the gradient
+    /// output of the i-th application of this function.
     VectorXi inner_gradient_starts_;
 
-    /// <summary>
-    /// Holds the index of the start of the region of memory allocated by the interior-point engine
-    /// to store the locations where the derivatives of the ith call to a function should be summed
-    /// into the global KKT matrix.
-    /// </summary>
+    /// @brief Start of the memory region holding the locations where the
+    /// derivatives of the i-th application are summed into the global KKT
+    /// matrix.
     VectorXi inner_kkt_starts_;
 
     SolverIndexingData() {}
@@ -161,12 +140,10 @@ struct SolverIndexingData {
         this->set_v_index(vindex);
     }
 
-    /// <summary>
-    /// Installs the solver-space output map. @p vout must have the same shape as
-    /// v_index_; -1 entries mark eliminated variables. Regenerated wholesale by
-    /// the caller from v_index_ on every configuration, so this never has to
-    /// undo a previous mapping.
-    /// </summary>
+    /// @brief Installs the solver-space output map. @p vout must have the same
+    /// shape as v_index_; -1 entries mark eliminated variables. Regenerated
+    /// wholesale by the caller from v_index_ on every configuration, so this
+    /// never has to undo a previous mapping.
     void set_output_v_index(const MatrixXi &vout) {
         if (vout.rows() != this->v_index_.rows() || vout.cols() != this->v_index_.cols()) {
             throw std::invalid_argument(fmt::format(

@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 ///////////////////////////////////////////////////////////////////////////////
 // InertSolverContext -- an owning stand-in for globalization-component unit
 // tests that only need a SolverContext-satisfying signature, not a live solve.
@@ -54,6 +57,7 @@ struct InertSolverContext {
     InteriorPointSolver::Settings settings_;
     KktSolverType kkt_solver_;
     Eigen::VectorXd scratch_;
+    Eigen::VectorXd primals_scratch_;
     int primal_vars_ = 0;
     int slack_vars_ = 0;
     int equal_cons_ = 0;
@@ -65,9 +69,9 @@ struct InertSolverContext {
     SolverContext ctx() {
         // clang-format off
         return SolverContext{
-            nullptr,      kkt_solver_,   settings_,
-            primal_vars_, slack_vars_,   equal_cons_, inequal_cons_, kkt_dim_,
-            scratch_,     restoration_,  eval_errors_,
+            nullptr,      kkt_solver_,           settings_,
+            primal_vars_, slack_vars_,           equal_cons_, inequal_cons_, kkt_dim_,
+            scratch_,     primals_scratch_,      restoration_, eval_errors_,
         };
         // clang-format on
     }

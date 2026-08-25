@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // tests/sqp/test_scale_problems.cpp — Phase-5 Task 1: the F7 collocation-chain
 // scale generator of tests/sqp/support/scale_problems.h, held to the two gates
 // tests/test_parametric_families.cpp holds F1-F6 to, plus the two Phase-5

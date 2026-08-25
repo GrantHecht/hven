@@ -344,7 +344,7 @@ target_compile_definitions(hven PUBLIC
 #   - NOMINMAX / WIN32_LEAN_AND_MEAN / _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
 #     are needed for include/hven/detail/interior/utils/thread_pool.h to
 #     even COMPILE on Windows (it is reached from the public
-#     include/hven/drivers/non_linear_program.h); without them a Windows
+#     include/hven/model/non_linear_program.h); without them a Windows
 #     consumer hits the exact <windows.h> max/min collision and
 #     constexpr-mutex-constructor failure this project's own build works
 #     around for itself (see the if(WIN32) add_compile_definitions() block

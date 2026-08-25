@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The function-entry seam: what SolverInterfaceAdapter<T> routes into
 // ConstraintInterface / ObjectiveInterface, and what it refuses to.
 //

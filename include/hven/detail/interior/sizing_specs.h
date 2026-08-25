@@ -1,21 +1,14 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
 // Defines the type erasure spec SizableSpec defining the ability to query
 // the Input/Output rows of a type-erased vectorfunction as well as its name
 // and thread safety.
-//
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-//   - PR 9: Removed dead Model<>/ExternalInterface<> boilerplate
-// =============================================================================
 
 #pragma once
 
@@ -48,18 +41,17 @@
 
 namespace hven::solvers {
 
+/// @brief Type-erasure spec: query the Input/Output rows of a type-erased
+/// vector function, plus its name and thread safety.
 struct SizableSpec {
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    struct Concept { // abstract base class for model.
+    struct Concept { 
         virtual ~Concept() = default;
-        // Your (internal) interface goes here.
         virtual std::string name() const = 0;
 
         virtual int input_rows() const = 0;
         virtual int output_rows() const = 0;
         virtual bool thread_safe() const = 0;
     };
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
 } // namespace hven::solvers

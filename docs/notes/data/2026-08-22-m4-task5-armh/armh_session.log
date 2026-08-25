@@ -1,0 +1,269 @@
+=== quiet check before build
+# quiet check 2026-08-22T13:16:46Z
+934 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+793549 clangd --background-index
+815433 /usr/bin/clangd
+# loadavg: 0.63 0.88 0.90
+=== preparing BASE worktree (07d5ee1)
+Preparing worktree (detached HEAD 07d5ee1)
+HEAD is now at 07d5ee1 docs(m4): ledger — I-1 fold inspected, Task 4 CLOSED; Task 5 cross-lane grant to the SQP lane
+=== preparing LANDED worktree (8503f39)
+Preparing worktree (detached HEAD 8503f39)
+HEAD is now at 8503f39 docs(m4): Task 5 proof evidence -- wall leg (bench IN BAND, IPM band trip with mechanism) + scorer-leg launch record
+=== preparing ARM-H worktree (8503f39 + arm_h.patch)
+Preparing worktree (detached HEAD 8503f39)
+HEAD is now at 8503f39 docs(m4): Task 5 proof evidence -- wall leg (bench IN BAND, IPM band trip with mechanism) + scorer-leg launch record
+=== FIXED arm builds the main tree at HEAD 726645a876121b376f55fa17f37c193898edd3ff (unmodified)
+=== configuring BASE (07d5ee1)
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.7s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/task5-armh/basebuild
+=== building BASE (07d5ee1)
+[1/32] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/32] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[3/32] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[4/32] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[5/32] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[6/32] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[7/32] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[8/32] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[9/32] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[10/32] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[11/32] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[12/32] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[13/32] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[14/32] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[15/32] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[16/32] Building CXX object CMakeFiles/hven.dir/src/model/aggregate_declaration.cpp.o
+[17/32] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_aggregate.cpp.o
+[18/32] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[19/32] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[20/32] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[21/32] Building CXX object CMakeFiles/hven.dir/src/model/nlp_solver.cpp.o
+[22/32] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_globalization.cpp.o
+[23/32] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_settings.cpp.o
+[24/32] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[25/32] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_print.cpp.o
+[26/32] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[27/32] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[28/32] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[29/32] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver.cpp.o
+[30/32] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[31/32] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_driver.cpp.o
+[32/32] Linking CXX static library libhven.a
+=== configuring ARM-H (8503f39 + arm_h.patch)
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.7s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/task5-armh/armhbuild
+=== building ARM-H (8503f39 + arm_h.patch)
+[1/33] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[3/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[4/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[5/33] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[6/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[7/33] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[8/33] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[9/33] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[10/33] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[11/33] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[12/33] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[13/33] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[14/33] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[15/33] Building CXX object CMakeFiles/hven.dir/src/model/aggregate_declaration.cpp.o
+[16/33] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_aggregate.cpp.o
+[17/33] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[18/33] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[19/33] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[20/33] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[21/33] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[22/33] Building CXX object CMakeFiles/hven.dir/src/drivers/aggregate_eval_seam.cpp.o
+[23/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_globalization.cpp.o
+[24/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_print.cpp.o
+[25/33] Building CXX object CMakeFiles/hven.dir/src/model/nlp_solver.cpp.o
+[26/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_settings.cpp.o
+[27/33] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[28/33] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[29/33] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[30/33] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[31/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver.cpp.o
+[32/33] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_driver.cpp.o
+[33/33] Linking CXX static library libhven.a
+=== configuring LANDED (8503f39, unpatched)
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.7s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/task5-armh/landedbuild
+=== building LANDED (8503f39, unpatched)
+[1/33] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[3/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[4/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[5/33] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[6/33] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[7/33] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[8/33] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[9/33] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[10/33] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[11/33] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[12/33] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[13/33] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[14/33] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[15/33] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_aggregate.cpp.o
+[16/33] Building CXX object CMakeFiles/hven.dir/src/model/aggregate_declaration.cpp.o
+[17/33] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[18/33] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[19/33] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[20/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_globalization.cpp.o
+[21/33] Building CXX object CMakeFiles/hven.dir/src/drivers/aggregate_eval_seam.cpp.o
+[22/33] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[23/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_settings.cpp.o
+[24/33] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[25/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver_print.cpp.o
+[26/33] Building CXX object CMakeFiles/hven.dir/src/model/nlp_solver.cpp.o
+[27/33] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[28/33] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[29/33] Building CXX object CMakeFiles/hven.dir/src/drivers/interior_point_solver.cpp.o
+[30/33] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[31/33] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[32/33] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_driver.cpp.o
+[33/33] Linking CXX static library libhven.a
+=== configuring FIXED (HEAD 726645a876121b376f55fa17f37c193898edd3ff, main tree, unpatched)
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/task5-armh/fixedbuild
+=== building FIXED (HEAD 726645a876121b376f55fa17f37c193898edd3ff, main tree, unpatched)
+ninja: no work to do.
+=== building the four IPM probes (standing instrument, unmodified)
+=== quiet check before repetition 1
+# quiet check 2026-08-22T13:18:00Z
+934 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+793549 clangd --background-index
+815433 /usr/bin/clangd
+# loadavg: 4.84 2.36 1.43
+=== quiet check before repetition 2
+# quiet check 2026-08-22T13:19:12Z
+934 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+793549 clangd --background-index
+815433 /usr/bin/clangd
+# loadavg: 7.16 3.63 1.95
+=== quiet check before repetition 3
+# quiet check 2026-08-22T13:20:24Z
+934 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+793549 clangd --background-index
+815433 /usr/bin/clangd
+# loadavg: 7.96 4.60 2.41
+serial    n=60    median base=0.002216 armh=0.002225 landed=0.002227 fixed=0.002229 | minimum base=0.002183 armh=0.002185 landed=0.002188 fixed=0.002193 | armh_vs_base +0.092% [within] landed_vs_base +0.229% [within] armh_vs_landed -0.137% [within] fixed_vs_base +0.458% [within] fixed_vs_landed +0.229% [within] | max-of-rep-spreads base=0.95% armh=1.48% landed=1.17% fixed=1.17%
+serial    n=120   median base=0.007279 armh=0.007288 landed=0.007361 fixed=0.007282 | minimum base=0.007208 armh=0.007199 landed=0.007302 fixed=0.007219 | armh_vs_base -0.125% [within] landed_vs_base +1.304% [outside] armh_vs_landed -1.411% [within] fixed_vs_base +0.153% [within] fixed_vs_landed -1.137% [outside] | max-of-rep-spreads base=0.50% armh=2.03% landed=0.67% fixed=0.63%
+serial    n=240   median base=0.036907 armh=0.036948 landed=0.037705 fixed=0.037162 | minimum base=0.036658 armh=0.036702 landed=0.037489 fixed=0.036806 | armh_vs_base +0.120% [within] landed_vs_base +2.267% [outside] armh_vs_landed -2.099% [outside] fixed_vs_base +0.404% [within] fixed_vs_landed -1.822% [outside] | max-of-rep-spreads base=0.56% armh=0.82% landed=0.74% fixed=1.57%
+threaded  n=60    median base=0.002074 armh=0.002068 landed=0.002079 fixed=0.002068 | minimum base=0.002043 armh=0.002047 landed=0.002049 fixed=0.002045 | armh_vs_base +0.196% [within] landed_vs_base +0.294% [within] armh_vs_landed -0.098% [within] fixed_vs_base +0.098% [within] fixed_vs_landed -0.195% [within] | max-of-rep-spreads base=0.92% armh=29.40% landed=30.36% fixed=1.84%
+threaded  n=120   median base=0.007101 armh=0.007141 landed=0.007195 fixed=0.007109 | minimum base=0.007015 armh=0.007019 landed=0.007111 fixed=0.007028 | armh_vs_base +0.057% [within] landed_vs_base +1.368% [within] armh_vs_landed -1.294% [within] fixed_vs_base +0.185% [within] fixed_vs_landed -1.167% [within] | max-of-rep-spreads base=1.23% armh=1.43% landed=30.32% fixed=1.27%
+threaded  n=240   median base=0.035062 armh=0.034991 landed=0.035850 fixed=0.035196 | minimum base=0.034603 armh=0.034761 landed=0.035479 fixed=0.034728 | armh_vs_base +0.457% [within] landed_vs_base +2.532% [outside] armh_vs_landed -2.024% [within] fixed_vs_base +0.361% [within] fixed_vs_landed -2.117% [within] | max-of-rep-spreads base=2.18% armh=0.68% landed=2.26% fixed=1.59%
+serial    n=60    median base=0.002218 armh=0.002228 landed=0.002224 fixed=0.002223 | minimum base=0.002172 armh=0.002185 landed=0.002192 fixed=0.002197 | armh_vs_base +0.599% [within] landed_vs_base +0.921% [within] armh_vs_landed -0.319% [within] fixed_vs_base +1.151% [within] fixed_vs_landed +0.228% [within] | max-of-rep-spreads base=1.41% armh=0.96% landed=1.26% fixed=1.44%
+serial    n=120   median base=0.007301 armh=0.007345 landed=0.007373 fixed=0.007294 | minimum base=0.007222 armh=0.007197 landed=0.007300 fixed=0.007221 | armh_vs_base -0.346% [within] landed_vs_base +1.080% [within] armh_vs_landed -1.411% [outside] fixed_vs_base -0.014% [within] fixed_vs_landed -1.082% [within] | max-of-rep-spreads base=0.96% armh=1.23% landed=1.19% fixed=1.17%
+serial    n=240   median base=0.036898 armh=0.036924 landed=0.037649 fixed=0.037030 | minimum base=0.036597 armh=0.036657 landed=0.037434 fixed=0.036743 | armh_vs_base +0.164% [within] landed_vs_base +2.287% [outside] armh_vs_landed -2.076% [outside] fixed_vs_base +0.399% [within] fixed_vs_landed -1.846% [outside] | max-of-rep-spreads base=0.65% armh=0.56% landed=0.75% fixed=0.97%
+threaded  n=60    median base=0.002065 armh=0.002072 landed=0.002072 fixed=0.002068 | minimum base=0.002037 armh=0.002045 landed=0.002046 fixed=0.002046 | armh_vs_base +0.393% [within] landed_vs_base +0.442% [within] armh_vs_landed -0.049% [within] fixed_vs_base +0.442% [within] fixed_vs_landed +0.000% [within] | max-of-rep-spreads base=29.16% armh=29.49% landed=1.50% fixed=29.76%
+threaded  n=120   median base=0.007087 armh=0.007118 landed=0.007173 fixed=0.007085 | minimum base=0.007027 armh=0.007023 landed=0.007111 fixed=0.007027 | armh_vs_base -0.057% [within] landed_vs_base +1.195% [within] armh_vs_landed -1.238% [within] fixed_vs_base +0.000% [within] fixed_vs_landed -1.181% [within] | max-of-rep-spreads base=27.98% armh=27.91% landed=1.28% fixed=27.87%
+threaded  n=240   median base=0.034991 armh=0.035095 landed=0.035693 fixed=0.035116 | minimum base=0.034604 armh=0.034680 landed=0.035413 fixed=0.034703 | armh_vs_base +0.220% [within] landed_vs_base +2.338% [outside] armh_vs_landed -2.070% [within] fixed_vs_base +0.286% [within] fixed_vs_landed -2.005% [outside] | max-of-rep-spreads base=1.56% armh=3.52% landed=1.16% fixed=1.16%
+serial    n=60    median base=0.002213 armh=0.002221 landed=0.002222 fixed=0.002219 | minimum base=0.002174 armh=0.002189 landed=0.002198 fixed=0.002192 | armh_vs_base +0.690% [within] landed_vs_base +1.104% [within] armh_vs_landed -0.409% [within] fixed_vs_base +0.828% [within] fixed_vs_landed -0.273% [within] | max-of-rep-spreads base=2.21% armh=0.68% landed=0.72% fixed=1.26%
+serial    n=120   median base=0.007280 armh=0.007324 landed=0.007374 fixed=0.007279 | minimum base=0.007208 armh=0.007211 landed=0.007300 fixed=0.007209 | armh_vs_base +0.042% [within] landed_vs_base +1.276% [outside] armh_vs_landed -1.219% [outside] fixed_vs_base +0.014% [within] fixed_vs_landed -1.247% [within] | max-of-rep-spreads base=0.84% armh=1.09% landed=0.88% fixed=1.40%
+serial    n=240   median base=0.036966 armh=0.036916 landed=0.037627 fixed=0.037211 | minimum base=0.036618 armh=0.036646 landed=0.037462 fixed=0.036688 | armh_vs_base +0.076% [within] landed_vs_base +2.305% [outside] armh_vs_landed -2.178% [outside] fixed_vs_base +0.191% [within] fixed_vs_landed -2.066% [outside] | max-of-rep-spreads base=0.47% armh=0.82% landed=0.56% fixed=1.26%
+threaded  n=60    median base=0.002072 armh=0.002073 landed=0.002074 fixed=0.002071 | minimum base=0.002040 armh=0.002041 landed=0.002047 fixed=0.002046 | armh_vs_base +0.049% [within] landed_vs_base +0.343% [within] armh_vs_landed -0.293% [within] fixed_vs_base +0.294% [within] fixed_vs_landed -0.049% [within] | max-of-rep-spreads base=3.32% armh=1.21% landed=1.06% fixed=1.45%
+threaded  n=120   median base=0.007089 armh=0.007153 landed=0.007177 fixed=0.007089 | minimum base=0.007037 armh=0.007020 landed=0.007106 fixed=0.007033 | armh_vs_base -0.242% [within] landed_vs_base +0.981% [within] armh_vs_landed -1.210% [within] fixed_vs_base -0.057% [within] fixed_vs_landed -1.027% [within] | max-of-rep-spreads base=3.98% armh=0.80% landed=1.56% fixed=0.89%
+threaded  n=240   median base=0.034937 armh=0.034857 landed=0.035662 fixed=0.034993 | minimum base=0.034620 armh=0.034656 landed=0.035452 fixed=0.034694 | armh_vs_base +0.104% [within] landed_vs_base +2.403% [within] armh_vs_landed -2.245% [outside] fixed_vs_base +0.214% [within] fixed_vs_landed -2.138% [outside] | max-of-rep-spreads base=3.41% armh=0.75% landed=0.41% fixed=1.67%
+=== ARM-H wall leg complete.
+=== Run bit_identity_check.sh next, then fill README.md's four-way read
+=== table and calibration output from these three aggregate files. The
+=== accept-vs-mitigate decision tree is SUPERSEDED: this session is a
+=== noise-floor calibration (docs/notes/2026-08-m4-ledger.md, 2026-08-22).

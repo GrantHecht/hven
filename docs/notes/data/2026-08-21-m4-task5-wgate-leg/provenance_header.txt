@@ -1,0 +1,79 @@
+# census.label: SCORER-LEG DEMONSTRATION RUN -- NOT a census of record.
+# census.label: This run is the Task 5 model-surface scorer demonstration (settler-mandated); census columns are co-asserted against the baseline as supporting evidence at zero marginal cost; the milestone's close census remains the Task 9 instrument.
+# census.leg: model-surface KKT scorer (W1-W5), --score-model-surface ON
+# census.pre_registration: zero verdict flips across all KKT-gated cells
+# census.pre_registration: (docs/notes/2026-08-m4-ledger.md, settler rider,
+# census.pre_registration: declared before the leg ran); applies to the
+# census.pre_registration: co-asserted baseline column comparison.
+# census.commit: d9cc35eca3acc12986ce0c82302df7ad94ad0bff (branch m4)
+# census.binary_real: /home/ghecht/Projects/hven/.scratch/task-5/build/bench/hven_sqp_corpus
+# census.binary_stamp: binary d9cc35eca3ac, schema 37, budget_table_hash 0x357aee91dee27391
+# census.binary_shim: docs/notes/data/2026-08-21-m4-task5-wgate-leg/corpus_with_scorer.sh
+# census.shim_reason: scripts/run_walk_census.sh builds its worker command lines
+# census.shim_reason: itself and has no pass-through for extra flags, and
+# census.shim_reason: --score-model-surface-out is a per-PROCESS path that six
+# census.shim_reason: concurrent tier-1 workers would clobber. The shim adds the
+# census.shim_reason: two scorer flags to SOLVE invocations only, with a per-cell
+# census.shim_reason: output path, and passes --list and --from-csv through
+# census.shim_reason: untouched (--from-csv refuses the scorer flags by design).
+# census.shim_reason: The per-cell rows are concatenated into wgate_scorer.csv
+# census.shim_reason: after the sweep. The standing runner is UNMODIFIED.
+# census.scorer_out: docs/notes/data/2026-08-21-m4-task5-wgate-leg/wgate_scorer.csv
+# census.scorer_rows: docs/notes/data/2026-08-21-m4-task5-wgate-leg/scorer_rows/
+# census.baseline: bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv
+# census.comparator: .superpowers/sdd/2026-08-14-hven-m3-plan-revB/preserved-census/census_compare.py
+# census.build: Release, clang++, Ninja, .scratch/task-5/build (fresh configure)
+# census.threads: MKL_NUM_THREADS=1 on every cell process
+# census.launch_mode: detached (setsid + nohup); DONE carries the runner's exit status
+# census.launch_log: docs/notes/data/2026-08-21-m4-task5-wgate-leg/census.log
+# census.launch_cmdline: setsid nohup env MKL_NUM_THREADS=1 docs/notes/data/2026-08-21-m4-task5-wgate-leg/run_wgate_leg.sh > docs/notes/data/2026-08-21-m4-task5-wgate-leg/census.log 2>&1 &
+# census.wrapped_cmdline: scripts/run_walk_census.sh --binary docs/notes/data/2026-08-21-m4-task5-wgate-leg/corpus_with_scorer.sh --out docs/notes/data/2026-08-21-m4-task5-wgate-leg --baseline bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv --compare .superpowers/sdd/2026-08-14-hven-m3-plan-revB/preserved-census/census_compare.py
+# census.host: fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux 7.1.5-201.fc44
+# census.machine_hold: the controller announced a machine hold to the other lanes
+# census.quiet_check: see census.quiet_check_output below -- the peer lane's rider
+# census.quiet_check: requires the check's OUTPUT be recorded, because clangd can
+# census.quiet_check: respawn if an editor opens on this box.
+# census.quiet_check_output: # quiet check 2026-08-22T07:57:17Z|934 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$|# loadavg: 0.66 0.92 1.00|
+# census.launch_pid: 759501
+# census.launch_started: 2026-08-22T07:57:23Z
+
+TERMINATION RECORD (amended 2026-08-22T11:58:02Z):
+Tier 3 deliberately terminated by OWNER INSTRUCTION (Grant, in-session,
+2026-08-22 ~11:56Z) after tiers 1-2 completed clean. Rationale: the 10
+tier-3 cells are the baseline-DNF class (dnf_budget/dnf_setup on every
+one — verified against bench/baselines/2026-08-16-u0-corpus before the
+kill); DNF rows are never KKT-gated, so the scorer-leg demonstration's
+pre-registered surface (all 43 KKT-gated cells) was already complete at
+termination. Consequences: the co-asserted census-column comparison
+covers the 47 completed cells; the 10 DNF cells are UNOBSERVED this run
+(absent, not flipped); the milestone's close census (Task 9) remains the
+full 57-cell instrument. Process group SIGTERM'd at 11:57Z; zero
+stragglers verified; the five in-flight .part files are partial and
+excluded from the artifact set.
+OWNER-TERMINATED: tier 3 (10 DNF cells)
+
+HARVEST RECORD (Task 5 STAGE B, 2026-08-22):
+The runner was killed with its process group at 11:57Z, BEFORE its own
+merge/compare post-pass, so no DONE file exists and the merged CSV and the
+compare were produced by hand at harvest time. The corpus binary was NOT
+re-invoked (the build token is held elsewhere): walk_census_task5wgate.csv is
+a TEXTUAL concatenation of the 47 row files, header once, cell_id order, no
+value recomputed. wgate_scorer.csv is the same textual concatenation of the 47
+scorer sidecars.
+
+EXECUTABLE IDENTITY OF THE RUN AS LAUNCHED (adjudicated requirement -- the
+shim is part of the invocation and must be reproducible beside the standing
+runner it wrapped):
+# census.runner_path: scripts/run_walk_census.sh
+# census.runner_sha256: dba90583ff963ddda24d21a97f31a86b865de7448b4a2b922214b2211f0ed4ce
+# census.runner_state: UNMODIFIED (the standing runner of record)
+# census.shim_path: docs/notes/data/2026-08-21-m4-task5-wgate-leg/corpus_with_scorer.sh
+# census.shim_sha256: 4aab361e91b4538d0b54e1a56d9d20f36ee1881978ef7a59e4a24be0a41bfbea
+# census.wrapper_path: docs/notes/data/2026-08-21-m4-task5-wgate-leg/run_wgate_leg.sh
+# census.wrapper_sha256: 3b528058d1e1edf3389e7c1fb5a8f1ef90ac53704049c03fb1bf9558efa6c0c6
+# census.comparator_path: .superpowers/sdd/2026-08-14-hven-m3-plan-revB/preserved-census/census_compare.py
+# census.comparator_sha256: 74e4112db603e5f0ad64b7aa40fad433af4ad7958ec84d1e4defa5f4ca435acd
+# census.commit_note: the binary's compiled-in git-describe stamp is d9cc35e
+# census.commit_note: (clean configure at that commit); the launch record was
+# census.commit_note: committed one commit later at 8503f39. Both name the same
+# census.commit_note: run: 8503f39 is a docs-only child of d9cc35e.

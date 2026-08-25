@@ -1,3 +1,6 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The rig's NATIVE arm: hven::linear::SymmetricFactor driven through the
 // SeamUnderTest surface. This is the product under test, and the only adapter
 // that is permanent -- the two old-seam adapters beside it are deleted once

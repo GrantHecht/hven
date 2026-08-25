@@ -15,20 +15,26 @@
 
 set(HVEN_INTERIOR_TEST_SOURCES
     test_acceptance_diagnostics.cpp
+    test_assembly_allocation.cpp
     test_classic_merit_restoration.cpp
     test_filter_acceptance.cpp
     test_funnel_acceptance.cpp
+    test_interior_point_solver_presets.cpp
     test_jet_mkl_guard.cpp
     test_kkt_factorization.cpp
     test_l1_restoration.cpp
     test_merit_rules.cpp
     test_monitored_governor.cpp
     test_nlp_adapter.cpp
+    test_nlp_aggregate_contract.cpp
     test_nlp_multiplier_seeding.cpp
+    test_nlp_problem_model.cpp
     test_nlp_solver.cpp
+    test_objective_scale_reporting.cpp
     test_proximal_restoration.cpp
     test_recovery_dispatch_gate.cpp
     test_solver_interface_adapter.cpp
+    test_structure_epoch_gating.cpp
     test_switching_acceptance.cpp
     test_watchdog.cpp
 )

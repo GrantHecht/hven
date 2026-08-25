@@ -1,17 +1,10 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Extracted ConvergenceFlags enum, severity ordering operator, and forward declaration from
-//   psiopt.h
-//   - Namespace: asset -> tycho -> hven
-// =============================================================================
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
 
 #pragma once
 #include <compare>
@@ -43,10 +36,9 @@ namespace hven::solvers {
 class InteriorPointSolver;
 
 // Step-acceptance strategy selector (InteriorPointSolver::Settings::acceptance_strategy_).
-// Declared here — rather than nested in InteriorPointSolver like BarrierModes/LineSearchModes
-// — so both InteriorPointSolver::Settings (interior_point_solver.h) and the acceptance components
-// (globalization/modern_merit.h) can name it without a circular include.
-// Style matches the nested mode enums: strongly-typed with explicit values.
+// Declared here rather than nested in InteriorPointSolver so both
+// InteriorPointSolver::Settings and the acceptance components can name it
+// without a circular include.
 //   classic_merit — the fused classic backtracking merit line search
 //                   (ClassicMeritAcceptance); the bit-identical default.
 //   merit         — the modernized merit family driven through the GENERIC
@@ -68,11 +60,8 @@ enum class AcceptanceStrategies { classic_merit = 0, merit = 1, funnel = 2, filt
 //              for at least one π in the interval (Eqs 2.1, 3.9, 3.10).
 enum class MeritPenaltyRules { wmno = 0, flexible = 1 };
 
-// Barrier-parameter governor selector (InteriorPointSolver::Settings::barrier_governor_).
-// Declared here alongside AcceptanceStrategies/MeritPenaltyRules — for the
-// same reason: both InteriorPointSolver::Settings (interior_point_solver.h) and the governor
-// components (globalization/classic_adaptive_governor.h, globalization/ monitored_governor.h) need
-// it without a circular include.
+// Barrier-parameter governor selector (InteriorPointSolver::Settings::barrier_governor_),
+// declared here for the same no-circular-include reason as the selectors above.
 //   classic_adaptive — the classic PROBE/LOQO free-mode barrier update
 //                      (ClassicAdaptiveGovernor); the bit-identical default.
 //   monitored        — the free<->monotone monitored governor
@@ -84,15 +73,12 @@ enum class MeritPenaltyRules { wmno = 0, flexible = 1 };
 //                      may pair with it.
 enum class BarrierGovernors { classic_adaptive = 0, monitored = 1 };
 
-// Feasibility-restoration mode selector (InteriorPointSolver::Settings::restoration_mode_).
-// Declared here alongside the other strategy selectors — for the same reason:
-// both InteriorPointSolver::Settings (interior_point_solver.h) and the restoration component
-// (globalization/proximal_restoration.h) need it without a circular include.
-//   off             — no feasibility restoration (default). The globalization
-//                     failure path behaves exactly as it did before restoration
-//                     existed: a ladder-exhausted rejection is taken as-is. No
-//                     RestorationStrategy is constructed, so every restoration
-//                     branch in the solver is provably dead.
+// Feasibility-restoration mode selector (InteriorPointSolver::Settings::restoration_mode_),
+// declared here for the same no-circular-include reason as the selectors above.
+//   off             — no feasibility restoration (default). A ladder-exhausted
+//                     rejection is taken as-is; no RestorationStrategy is
+//                     constructed, so every restoration branch in the solver
+//                     is provably dead.
 //   proximal_switch — the proximal feasibility mode-switch
 //                     (ProximalSwitchRestoration): on a ladder-exhausted
 //                     rejection, keep the same barrier algorithm running but
@@ -101,31 +87,28 @@ enum class BarrierGovernors { classic_adaptive = 0, monitored = 1 };
 //                     is sufficiently reduced. Composes with every acceptance
 //                     strategy and barrier governor.
 //   l1_nested       — the nested l1 elastic feasibility restoration
-//                     (NestedL1Restoration, globalization/l1_restoration.h):
-//                     on a ladder-exhausted rejection, solve the l1 elastic
-//                     reformulation (Ipopt-lineage restoration NLP) as a
-//                     CONDENSED in-place phase that reuses the outer barrier
-//                     algorithm's KKT system, rather than switching the outer
-//                     objective the way proximal_switch does. Every shipped
-//                     acceptance strategy implements the restoration exit
-//                     test, so l1_nested composes with every
-//                     acceptance_strategy and barrier_governor exactly like
-//                     proximal_switch (no matrix restrictions).
+//                     (NestedL1Restoration): on a ladder-exhausted rejection,
+//                     solve the l1 elastic reformulation (Ipopt-lineage
+//                     restoration NLP) as a CONDENSED in-place phase that
+//                     reuses the outer barrier algorithm's KKT system, rather
+//                     than switching the outer objective the way
+//                     proximal_switch does. Every shipped acceptance strategy
+//                     implements the restoration exit test, so l1_nested
+//                     composes with every acceptance_strategy and
+//                     barrier_governor exactly like proximal_switch (no
+//                     matrix restrictions).
 enum class RestorationModes { off = 0, proximal_switch = 1, l1_nested = 2 };
 
 // KKT inertia-correction / regularization mode selector
-// (InteriorPointSolver::Settings::inertia_mode_). Declared here alongside the other strategy
-// selectors so both InteriorPointSolver::Settings (interior_point_solver.h) and the regularization
-// helpers (globalization/inertia_regularization.h) can name it without a circular include.
-// Strongly-typed with explicit values, matching the neighbors.
+// (InteriorPointSolver::Settings::inertia_mode_), declared here for the same
+// no-circular-include reason as the selectors above.
 //   classic                 — the on-demand inertia ladder inline in
 //                             InteriorPointSolver::factor_impl (the bit-identical default):
 //                             each iteration first attempts an unperturbed
 //                             factorization and only shifts the Hessian diagonal
 //                             (by increasing amounts) when the factorization
 //                             reports wrong inertia. No constraint-block shift.
-//   proximal_regularization — proximal primal-dual regularization
-//                             (globalization/inertia_regularization.h): a small
+//   proximal_regularization — proximal primal-dual regularization: a small
 //                             persistent, decaying primal base shift ρ_k on the
 //                             Hessian diagonal plus an always-on barrier-scaled
 //                             dual shift −δ_c on the constraint-row diagonals are

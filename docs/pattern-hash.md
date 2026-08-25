@@ -134,6 +134,28 @@ a caller who forgot `makeCompressed()` fails at the first call that touches
 the matrix rather than one call later. Callers who want the tolerance call
 `feed_pattern` or `combined_pattern_hash` directly.
 
+### When the factorize-time guard runs at all
+
+`SymmetricFactor::factorize` recomputes the hash and compares it against the
+key `analyze()` captured. That walk is O(nnz) and it runs per NUMERIC
+factorization, so on an engine driven at one or more factorizations per
+iteration it is a standing per-iteration cost proportional to the matrix --
+paid to re-establish a fact the caller may already know from its own structural
+bookkeeping.
+
+`factorize(A, PatternCheck::kAssumeAnalyzed)` lets such a caller say so. It is
+a DECLARATION, not a hint: the caller takes on the obligation the guard
+otherwise discharges, and a caller that declares it wrongly gets a numeric
+factorization over a symbolic that does not describe the matrix. Only a caller
+that can NAME the mechanism keeping the pattern fixed may pass it -- the
+interior engine names the model's structure epoch, which is the model's own
+signal that its structures have been re-laid, and re-verifies whenever that
+epoch has moved. The compressed-storage check above is NOT part of what is
+skipped: it is a property of the argument the call is about to hand the
+backend, not a re-derivation of something a caller could have tracked. Whether
+the guard ran is observable in `Counters::pattern_verify_count`
+(`docs/counters.md`).
+
 ## Width and byte order
 
 Every ingredient is widened to `std::int64_t` and fed through
@@ -158,6 +180,21 @@ the two a caller passes.
 
 Neither property is a claim of portability in any broader sense. The digest
 is not a wire format and nothing serializes it across builds.
+
+`feed_index` mixes all eight bytes on every call, but it does not spend a
+multiply on each of the high ones when they are known to be zero. Feeding a
+zero byte is exactly `hash *= prime` -- the XOR contributes nothing -- and
+multiplication modulo 2^64 is associative, so a run of `k` zero bytes is one
+multiply by `prime^k`. The three arms (two, four or eight explicit bytes,
+chosen by how far the value's magnitude reaches) are therefore an identity on
+the digest and not a variant algorithm: every value is bit-for-bit what the
+byte-at-a-time form produces, which the cross-check test asserts against an
+independent reference implementation of the byte-at-a-time form.
+
+`feed_index_pairs` is the same stream over an INTERLEAVED pair of contiguous
+index arrays -- `first[i]`, then `second[i]`, for each `i` -- in one pass. It
+exists because that shape is the one a caller cannot express as two bulk
+feeds: feeding one whole array and then the other is a different stream.
 
 ## The pinned value
 

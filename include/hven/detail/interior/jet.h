@@ -1,18 +1,10 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Python binding methods moved to src/bindings/ (nanobind)
-//   - Thread pool replaced with global hven::utils::thread_pool() singleton
-//   - Removed `nt` parameter: parallelism is controlled by hven::utils::set_num_threads()
-// =============================================================================
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
 
 #pragma once
 
@@ -138,9 +130,14 @@ struct Jet {
         fmt::print(fmt::fg(fmt::color::white), "{0:=^{1}}\n", "", 79);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////// Map///////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////
+    /// @brief Runs genfuncs[genfidxes[i]](args[i]) for every i -- on the
+    /// shared thread pool when enabled, sequentially otherwise -- collecting
+    /// each job's ConvergenceFlags and printing progress when verbose.
+    ///
+    /// Each job runs with its thread's BLAS pinned to single-threaded mode
+    /// (scope-guarded under MKL; set-and-leak under Accelerate, which the
+    /// solver heals by re-applying its threading at every solve entry -- see
+    /// the per-thread note inside).
     template <class T, class Args1, class Args2>
     static std::vector<std::shared_ptr<T>>
     map(const std::vector<std::function<std::shared_ptr<T>(Args1)>> &genfuncs,
@@ -256,6 +253,8 @@ struct Jet {
         return optprobs;
     }
 
+    /// @brief Single-generator overload: applies @p genfunc to every element
+    /// of @p args.
     template <class T, class Args1, class Args2>
     static std::vector<std::shared_ptr<T>> map(std::function<std::shared_ptr<T>(Args1)> genfunc,
                                                const std::vector<Args2> &args, bool verbose) {
@@ -269,6 +268,8 @@ struct Jet {
         return Jet::map(genfuncs, args, genfidxes, verbose);
     }
 
+    /// @brief Identity-generator overload: runs the already-constructed
+    /// problems' jet_run() in parallel.
     template <class T>
     static std::vector<std::shared_ptr<T>> map(const std::vector<std::shared_ptr<T>> &optprobs,
                                                bool verbose) {
@@ -278,7 +279,6 @@ struct Jet {
 
         return Jet::map(genfunc, optprobs, verbose);
     }
-    ////////////////////////////////////////////////////////////////////////////////////
 };
 
 } // namespace hven::solvers

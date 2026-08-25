@@ -1,18 +1,11 @@
-// =============================================================================
-// Originally from ASSET (AlabamaASRL/asset_asrl)
-// Copyright 2020-present The University of Alabama-Astrodynamics and Space
-//   Research Lab. Licensed under the Apache License, Version 2.0
-// License: notices/asset-apache2.txt.
-// Source: https://github.com/AlabamaASRL/asset_asrl
-// Original Developer: James B. Pezent
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
 //
-// Modified in Tycho, then in hven (Copyright 2026-present Grant R. Hecht,
-//   Apache 2.0 — see LICENSE.txt):
-//   - Namespace: asset -> tycho -> hven
-//   - Configuration fields grouped into Settings struct
-//   - Validated setter methods added
-//   - Split out of psiopt.cpp: the string-to-enum converters, the validated
-//     setters and Settings::validate() share no state and no idea with the
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
 //     algorithm, and account for the first six hundred lines of a heavy TU
 // =============================================================================
 //
@@ -53,8 +46,17 @@ const char *acceptance_strategy_name(hven::solvers::AcceptanceStrategies strateg
 // Settings::validate(): every numeric-field invariant below is checked twice
 // (once at the point of assignment, once again over the whole struct at
 // run_phase_sequence() entry), and both checks must enforce the identical
-// condition and report the identical message -- these four helpers are the
-// single home for that pairing, so the two call sites cannot drift apart.
+// condition and report the identical message -- these six helpers (plus
+// check_fixed_variable_treatment further down, for the one non-numeric field
+// under the same twice-checked discipline) are the single home for that
+// pairing, so the two call sites cannot drift apart. Every set_*() method
+// below that shares one of these six conditions calls the helper rather than
+// re-stating it -- the pos_finite family previously had ~18 setters
+// hand-duplicating its "finite and positive" check and message instead of
+// calling it, which made the "single home" claim above false for exactly the
+// largest field family in this file; all are routed through pos_finite() now
+// (message- and condition-identical, since the duplicated text was already a
+// verbatim copy of what pos_finite renders).
 void pos_finite(double v, const char *name) {
     if (!std::isfinite(v) || v <= 0.0)
         throw std::invalid_argument(
@@ -66,15 +68,28 @@ void pos_int(int v, const char *name) {
         throw std::invalid_argument(fmt::format("{} must be >= 1, got {}", name, v));
 }
 
+// Written as negated comparisons so that a NaN, which compares false against
+// everything, is rejected rather than let through.
 void in_open_unit(double v, const char *name) {
-    if (v <= 0.0 || v >= 1.0)
+    if (!(v > 0.0 && v < 1.0))
         throw std::invalid_argument(fmt::format("{} must be in (0, 1), got {}", name, v));
 }
 
+// All four current callers (bound_push, alpha_red, delta_h, incr_h) feed a
+// magnitude/rate that downstream arithmetic uses directly -- an interior push
+// distance, a backtracking divisor applied as alpha /= v each rejected trial,
+// a Hessian-diagonal perturbation, and that perturbation's growth factor.
+// None of the four has an "infinity means disabled" reading anywhere in the
+// solver: bound_push=inf would push the initial iterate to infinity,
+// alpha_red=inf collapses backtracking to a single all-or-nothing trial
+// (alpha/inf == 0), and delta_h=inf or incr_h=inf puts an infinite entry on
+// the KKT diagonal on the very first perturbation/growth step. +inf is
+// therefore refused for all four, same as NaN -- this helper requires
+// finiteness, not just "greater than bound".
 void greater_than(double v, double bound, const char *name) {
-    if (v <= bound)
+    if (!std::isfinite(v) || !(v > bound))
         throw std::invalid_argument(
-            fmt::format("{} must be greater than {}, got {}", name, bound, v));
+            fmt::format("{} must be finite and greater than {}, got {}", name, bound, v));
 }
 
 // The two range helpers are written as negated comparisons so that a NaN, which
@@ -110,9 +125,7 @@ void check_fixed_variable_treatment(hven::solvers::FixedVariableTreatments treat
 
 } // namespace
 
-// =============================================================================
 // Static string-to-enum converters
-// =============================================================================
 
 auto hven::solvers::InteriorPointSolver::strto_OrderingMode(const std::string &str)
     -> QPOrderingModes {
@@ -178,9 +191,7 @@ auto hven::solvers::InteriorPointSolver::strto_BestCriteriaMode(const std::strin
     }
 }
 
-// =============================================================================
 // Validated setter methods
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::set_max_iters(int max_iters) {
     pos_int(max_iters, "max_iters");
@@ -225,30 +236,22 @@ void hven::solvers::InteriorPointSolver::set_max_feas_rest(int max_feas_rest) {
 }
 
 void hven::solvers::InteriorPointSolver::set_kkt_tol(double kkt_tol) {
-    if (!std::isfinite(kkt_tol) || kkt_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("kkt_tol must be finite and positive, got {}", kkt_tol));
+    pos_finite(kkt_tol, "kkt_tol");
     settings_.kkt_tol_ = kkt_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_bar_tol(double bar_tol) {
-    if (!std::isfinite(bar_tol) || bar_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("bar_tol must be finite and positive, got {}", bar_tol));
+    pos_finite(bar_tol, "bar_tol");
     settings_.bar_tol_ = bar_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_econ_tol(double econ_tol) {
-    if (!std::isfinite(econ_tol) || econ_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("econ_tol must be finite and positive, got {}", econ_tol));
+    pos_finite(econ_tol, "econ_tol");
     settings_.econ_tol_ = econ_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_icon_tol(double icon_tol) {
-    if (!std::isfinite(icon_tol) || icon_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("icon_tol must be finite and positive, got {}", icon_tol));
+    pos_finite(icon_tol, "icon_tol");
     settings_.icon_tol_ = icon_tol;
 }
 
@@ -261,30 +264,22 @@ void hven::solvers::InteriorPointSolver::set_tols(double kkt_tol, double econ_to
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_kkt_tol(double acc_kkt_tol) {
-    if (!std::isfinite(acc_kkt_tol) || acc_kkt_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_kkt_tol must be finite and positive, got {}", acc_kkt_tol));
+    pos_finite(acc_kkt_tol, "acc_kkt_tol");
     settings_.acc_kkt_tol_ = acc_kkt_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_bar_tol(double acc_bar_tol) {
-    if (!std::isfinite(acc_bar_tol) || acc_bar_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_bar_tol must be finite and positive, got {}", acc_bar_tol));
+    pos_finite(acc_bar_tol, "acc_bar_tol");
     settings_.acc_bar_tol_ = acc_bar_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_econ_tol(double acc_econ_tol) {
-    if (!std::isfinite(acc_econ_tol) || acc_econ_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_econ_tol must be finite and positive, got {}", acc_econ_tol));
+    pos_finite(acc_econ_tol, "acc_econ_tol");
     settings_.acc_econ_tol_ = acc_econ_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_acc_icon_tol(double acc_icon_tol) {
-    if (!std::isfinite(acc_icon_tol) || acc_icon_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("acc_icon_tol must be finite and positive, got {}", acc_icon_tol));
+    pos_finite(acc_icon_tol, "acc_icon_tol");
     settings_.acc_icon_tol_ = acc_icon_tol;
 }
 
@@ -297,30 +292,22 @@ void hven::solvers::InteriorPointSolver::set_acc_tols(double acc_kkt_tol, double
 }
 
 void hven::solvers::InteriorPointSolver::set_div_kkt_tol(double div_kkt_tol) {
-    if (!std::isfinite(div_kkt_tol) || div_kkt_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_kkt_tol must be finite and positive, got {}", div_kkt_tol));
+    pos_finite(div_kkt_tol, "div_kkt_tol");
     settings_.div_kkt_tol_ = div_kkt_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_div_bar_tol(double div_bar_tol) {
-    if (!std::isfinite(div_bar_tol) || div_bar_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_bar_tol must be finite and positive, got {}", div_bar_tol));
+    pos_finite(div_bar_tol, "div_bar_tol");
     settings_.div_bar_tol_ = div_bar_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_div_econ_tol(double div_econ_tol) {
-    if (!std::isfinite(div_econ_tol) || div_econ_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_econ_tol must be finite and positive, got {}", div_econ_tol));
+    pos_finite(div_econ_tol, "div_econ_tol");
     settings_.div_econ_tol_ = div_econ_tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_div_icon_tol(double div_icon_tol) {
-    if (!std::isfinite(div_icon_tol) || div_icon_tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("div_icon_tol must be finite and positive, got {}", div_icon_tol));
+    pos_finite(div_icon_tol, "div_icon_tol");
     settings_.div_icon_tol_ = div_icon_tol;
 }
 
@@ -442,42 +429,33 @@ void hven::solvers::InteriorPointSolver::set_best_criteria(const std::string &st
 
 #ifdef USE_ACCELERATE_SPARSE
 void hven::solvers::InteriorPointSolver::set_accel_pivot_tolerance(double tol) {
-    if (!std::isfinite(tol) || tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("accel_pivot_tolerance must be finite and positive, got {}", tol));
+    pos_finite(tol, "accel_pivot_tolerance");
     settings_.accel_pivot_tolerance_ = tol;
 }
 
 void hven::solvers::InteriorPointSolver::set_accel_zero_tolerance(double tol) {
-    if (!std::isfinite(tol) || tol <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("accel_zero_tolerance must be finite and positive, got {}", tol));
+    pos_finite(tol, "accel_zero_tolerance");
     settings_.accel_zero_tolerance_ = tol;
 }
 #endif
 
 void hven::solvers::InteriorPointSolver::set_init_mu(double mu) {
-    if (!std::isfinite(mu) || mu <= 0.0)
-        throw std::invalid_argument(fmt::format("init_mu must be finite and positive, got {}", mu));
+    pos_finite(mu, "init_mu");
     settings_.init_mu_ = mu;
 }
 
 void hven::solvers::InteriorPointSolver::set_min_mu(double mu) {
-    if (!std::isfinite(mu) || mu <= 0.0)
-        throw std::invalid_argument(fmt::format("min_mu must be finite and positive, got {}", mu));
+    pos_finite(mu, "min_mu");
     settings_.min_mu_ = mu;
 }
 
 void hven::solvers::InteriorPointSolver::set_max_mu(double mu) {
-    if (!std::isfinite(mu) || mu <= 0.0)
-        throw std::invalid_argument(fmt::format("max_mu must be finite and positive, got {}", mu));
+    pos_finite(mu, "max_mu");
     settings_.max_mu_ = mu;
 }
 
 void hven::solvers::InteriorPointSolver::set_neg_slack_reset(double val) {
-    if (!std::isfinite(val) || val <= 0.0)
-        throw std::invalid_argument(
-            fmt::format("neg_slack_reset must be finite and positive, got {}", val));
+    pos_finite(val, "neg_slack_reset");
     settings_.neg_slack_reset_ = val;
 }
 
@@ -519,20 +497,28 @@ void hven::solvers::InteriorPointSolver::set_qp_scaling(int v) {
 }
 
 void hven::solvers::InteriorPointSolver::set_obj_scale(double scale) {
-    if (!std::isfinite(scale) || scale == 0.0)
+    // POSITIVE, not merely nonzero. A negative factor does not rescale the
+    // problem, it reverses it: minimizing s*f for s < 0 maximizes f, while the
+    // multiplier cones the solve reports against do not turn over with it. The
+    // inequality multipliers stay non-negative and a bound multiplier keeps
+    // its documented sign at an active bound, so the reporting seam would
+    // divide a sign-constrained dual by a negative number and hand back a
+    // value its own convention says cannot occur. Maximization is a different
+    // problem statement, not a scale, and would need its own mode.
+    if (!std::isfinite(scale) || scale <= 0.0)
         throw std::invalid_argument(
-            fmt::format("obj_scale must be finite and non-zero, got {}", scale));
+            fmt::format("obj_scale must be finite and strictly positive, got {}", scale));
     settings_.obj_scale_ = scale;
 }
 
-// =============================================================================
 // Settings validation
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::Settings::validate() const {
-    // pos_finite/pos_int/in_open_unit/greater_than are the file-scope helpers
-    // defined above (shared with the individual set_*() methods, so a field's
-    // invariant and message can never drift between the two call sites).
+    // pos_finite/pos_int/in_open_unit/greater_than/in_open_interval/
+    // in_closed_interval (plus check_fixed_variable_treatment, used below) are
+    // the file-scope helpers defined above (shared with the individual
+    // set_*() methods, so a field's invariant and message can never drift
+    // between the two call sites).
 
     // --- Iteration limits ---
     pos_int(max_iters_, "max_iters");
@@ -704,8 +690,13 @@ void hven::solvers::InteriorPointSolver::Settings::validate() const {
             fmt::format("qp_scaling must be 0 or 1, got {}", qp_scaling_));
 
     // --- Objective ---
-    if (!std::isfinite(obj_scale_) || obj_scale_ == 0.0)
-        throw std::invalid_argument("obj_scale must be finite and non-zero");
+    // Checked here as well as in set_obj_scale(), and on the same terms: the
+    // field is writable directly through settings(), so the setter is not the
+    // only way a scale arrives. See set_obj_scale() for why a negative scale
+    // is a different problem rather than a scaled one.
+    if (!std::isfinite(obj_scale_) || obj_scale_ <= 0.0)
+        throw std::invalid_argument(
+            fmt::format("obj_scale must be finite and strictly positive, got {}", obj_scale_));
 
     // --- Output ---
     if (print_level_ < 0)
@@ -719,9 +710,7 @@ void hven::solvers::InteriorPointSolver::Settings::validate() const {
 #endif
 }
 
-// =============================================================================
 // Named configuration presets
-// =============================================================================
 
 void hven::solvers::InteriorPointSolver::apply_preset(std::string_view name) {
     for (const auto &entry : kInteriorPointSolverPresets) {
@@ -741,7 +730,7 @@ void hven::solvers::InteriorPointSolver::apply_preset(std::string_view name) {
     }
 
     // Unrecognized name: fold the full valid-name list into the exception
-    // message (T6) rather than printing it separately -- kInteriorPointSolverPresets drives
+    // message rather than printing it separately -- kInteriorPointSolverPresets drives
     // this message directly; the Python binding's docstring repeats the names
     // by hand, and a Python test pins it against this table.
     std::string valid_names;

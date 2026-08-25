@@ -1,11 +1,13 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // The Apple Accelerate backend for SymmetricFactor / Factorization. Compiled
 // on the platforms whose sparse backend is Accelerate (see
 // src/CMakeLists.txt); MKL Pardiso implements the same header in its own TU
 // (symmetric_factor_mkl.cpp). The two adapters are intentionally NOT shared:
 // MKL's phase-driven session and Accelerate's symbolic/numeric factorization
 // objects have nothing in common below the public header, so each backend
-// gets its own TU and only the platform's own is ever compiled -- see the
-// comment in src/CMakeLists.txt.
+// gets its own TU and only the platform's own is ever compiled.
 //
 // Everything Accelerate-shaped lives one layer down, in FactorSession (the
 // concrete definition this TU gives to hven/linear/symmetric_factor.h's
@@ -18,10 +20,7 @@
 // value FactorSession cached at factorize() time. That placement is
 // deliberate, not a leak -- it is what lets the test-seam convention
 // (docs/testing.md) inject SparseGetInertia's failure without adding a hook
-// to the MPL-derived accelerate_session.h/.cpp. This mirrors
-// symmetric_factor_mkl.cpp's own structure closely; the two files are
-// deliberately kept in lock-step shape so a reader who knows one can find
-// their way around the other, even though neither #includes the other.
+// to the MPL-derived accelerate_session.h/.cpp.
 //
 // This file compiles and runs against the real Accelerate framework on every
 // macOS CI run. The minimal local-stub pass on Linux
@@ -59,11 +58,8 @@ const char *kind_name(FactorKind kind) {
 // MT-METIS (multi-threaded METIS) is only declared starting in the macOS 26
 // SDK. This is an SDK-version macro -- it says the enum constant
 // SparseOrderMTMetis EXISTS at compile time, not that the RUNNING host
-// implements it -- exactly mirroring the legacy interior-point engine's own has-MT-METIS /
-// accelerate_supported_order guard, full predicate included
-// (`defined(__APPLE__)` guards the SDK-version macro check itself, which is
-// otherwise meaningless off Apple platforms), which this block deliberately
-// follows.
+// implements it. `defined(__APPLE__)` guards the SDK-version macro check
+// itself, which is otherwise meaningless off Apple platforms.
 #if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&                               \
     __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 #define HVEN_HAS_MTMETIS 1
@@ -72,8 +68,8 @@ const char *kind_name(FactorKind kind) {
 #ifdef HVEN_HAS_MTMETIS
 // Downgrades SparseOrderMTMetis to SparseOrderMetis at RUNTIME on a host
 // that lacks it (macOS < 26): passing SparseOrderMTMetis unconditionally
-// there raises SparseParameterError and a dead solver, per the legacy interior-point engine
-// precedent this mirrors. Every other order passes through unchanged.
+// there raises SparseParameterError and a dead solver. Every other order
+// passes through unchanged.
 SparseOrder_t accelerate_supported_order(SparseOrder_t order) {
     if (order != SparseOrderMTMetis) {
         return order;
@@ -92,9 +88,7 @@ SparseOrder_t accelerate_supported_order(SparseOrder_t order) {
 // kNestedDissection -> SparseOrderMetis, kParallelNestedDissection ->
 // SparseOrderMTMetis with the OS-availability downgrade above. Written as an
 // explicit switch, not a bare cast, so a future Ordering value fails loudly
-// here rather than silently picking an unintended order method -- the same
-// discipline symmetric_factor_mkl.cpp's pardiso_ordering_code uses for its
-// half of the same mapping.
+// here rather than silently picking an unintended order method.
 SparseOrder_t accelerate_ordering_code(SymmetricFactor::Options::Ordering ordering) {
     switch (ordering) {
     case SymmetricFactor::Options::Ordering::kBackendDefault:
@@ -182,14 +176,12 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
 
 // Validates the whole input convention in one pass: compressed, square,
 // non-empty, upper triangle only, and a structurally present diagonal in
-// every row. Identical rule to (and deliberately duplicated from, not shared
-// with) symmetric_factor_mkl.cpp's own validate_upper_csr -- see
-// src/CMakeLists.txt's comment on why the two backend adapters do not share
-// a TU. The rule itself is backend-agnostic (hven's own upper-CSR
-// convention, documented at the top of symmetric_factor.h), but Accelerate
-// enforces it for the identical reason Pardiso does: fed a matrix that
-// violates either, it does not report a clean error, it computes something
-// else.
+// every row. Deliberately duplicated from symmetric_factor_mkl.cpp's own
+// validate_upper_csr, not shared (see src/CMakeLists.txt on why the two
+// backend adapters do not share a TU). The rule itself is hven's own
+// upper-CSR convention, and Accelerate enforces it for the same reason
+// Pardiso does: fed a matrix that violates either, it does not report a
+// clean error, it computes something else.
 void validate_upper_csr(const SpMatRM &A) {
     if (!A.isCompressed()) {
         throw std::invalid_argument(
@@ -243,13 +235,10 @@ void validate_upper_csr(const SpMatRM &A) {
 // factorize() time, precisely so the test-seam convention (docs/testing.md)
 // can inject its failure without touching the MPL-derived session file. A
 // query failure is reported as kQueryFailed with the counts left at their
-// invalid sentinel (-1), NEVER zero-filled -- the frozen contract's
-// fabrication fix. perturbed_pivots is unconditionally absent: Accelerate has
-// no perturbed-pivot counter, and absence is the honest state -- NOT the SQP
-// shim's superseded choice of mapping Accelerate's zero-pivot count into that
-// field, which the contract's degradation rule (a reading on this backend may
-// be LESS INFORMATIVE than the reference one, never DIFFERENTLY VALUED)
-// forbids.
+// invalid sentinel (-1), NEVER zero-filled. perturbed_pivots is
+// unconditionally absent: Accelerate has no perturbed-pivot counter, and
+// absence is the honest state -- a reading on this backend may be LESS
+// INFORMATIVE than the reference one, never DIFFERENTLY VALUED.
 InertiaEvidence evidence_of(const detail::FactorSession &session) {
     InertiaEvidence evidence;
     if (!session.has_numerics()) {
@@ -304,9 +293,7 @@ FactorEvidence factor_evidence_of(const detail::FactorSession &session) {
 }
 
 // Shared solve bodies: SymmetricFactor and Factorization differ in who may
-// call them, not in what they do. Identical shape to
-// symmetric_factor_mkl.cpp's own run_solve pair; only the backend call
-// underneath (detail::FactorSession::solve) differs.
+// call them, not in what they do.
 SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRef X,
                     const char *what) {
     if (RHS.rows() != session.dim()) {
@@ -328,8 +315,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
     // Accelerate's DenseVector_Double solve (see FactorSession::solve) needs
     // contiguous column-major buffers and cannot solve in place, so the
     // right-hand side is always copied. The solution buffer is only copied
-    // when X is a strided view into a larger matrix. Identical discipline to
-    // the MKL adapter.
+    // when X is a strided view into a larger matrix.
     Mat rhs_buffer = RHS;
     const bool x_contiguous = X.cols() == 1 || X.outerStride() == X.rows();
     Mat scratch;
@@ -394,9 +380,7 @@ detail::SubfactorPhase accelerate_phase_of(SymmetricFactor::SolvePhase phase) {
 
 } // namespace
 
-// =============================================================================
 // SymmetricFactor
-// =============================================================================
 
 SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     if (opts_.kind != FactorKind::kLDLT) {
@@ -408,9 +392,7 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     validate_num_threads(opts_.num_threads, "SymmetricFactor");
     // A present value is validated; std::nullopt is the don't-write state
     // (on this backend: Apple's own documented defaults -- see the two
-    // options' doc comments) and needs no range check. Identical rule and
-    // message to the MKL adapter's, because the argument's validity is a
-    // property of the surface, not of the backend behind it.
+    // options' doc comments) and needs no range check.
     if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
         throw std::invalid_argument(
             fmt::format("SymmetricFactor: pivot_perturb_exp must be >= 0 (or std::nullopt to "
@@ -430,16 +412,13 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     }
 
     // weighted_matching is a Pardiso-only concept (it configures iparm[12],
-    // which has no Accelerate analogue -- Apple's own matching precedent,
-    // where it exists at all, is not exposed through this surface).
-    // Accelerate never silently ignores it: a non-default value throws
-    // here, at construction, naming the option and the backend, rather than
-    // being dropped on the floor.
+    // which has no Accelerate analogue). Accelerate never silently ignores
+    // it: a non-default value throws here, at construction, naming the option
+    // and the backend, rather than being dropped on the floor.
     //
     // ordering, unlike weighted_matching, is NOT Pardiso-only: every
     // Options::Ordering value maps onto an Accelerate order method (see
-    // accelerate_ordering_code() above and the backend-neutral mapping in
-    // symmetric_factor.h's own doc comment), so it is accepted unconditionally
+    // accelerate_ordering_code() above), so it is accepted unconditionally
     // here -- the mapping is resolved once, in config_from(), at the point
     // analyze() actually needs it.
     static constexpr const char *kBackendName = "Accelerate";
@@ -527,9 +506,7 @@ SymmetricFactor &SymmetricFactor::operator=(SymmetricFactor &&) noexcept = defau
 
 void SymmetricFactor::set_num_threads(int num_threads) {
     // Validated before anything moves, so a rejected count leaves this engine
-    // exactly as it was -- the same rule and the same message the MKL adapter
-    // applies, because the argument's validity is a property of the surface,
-    // not of the backend behind it.
+    // exactly as it was.
     validate_num_threads(num_threads, "SymmetricFactor::set_num_threads");
 
     // BEST-EFFORT-ABSENT, per Options::num_threads' own contract: this
@@ -545,27 +522,24 @@ void SymmetricFactor::set_num_threads(int num_threads) {
 }
 
 int SymmetricFactor::num_threads() const noexcept {
-    // The same read-through the MKL adapter does, and for the same reason:
-    // `opts_` is only THIS engine's copy, and a co-owner's set_num_threads()
-    // moves the session's without touching it. The mechanism is identical
-    // across backends because it is a statement about which copy is
-    // authoritative for the surface, not about what either backend does with
-    // the number.
+    // Read THROUGH to the session rather than reporting `opts_`: `opts_` is
+    // only THIS engine's copy, and a co-owner's set_num_threads() moves the
+    // session's without touching it.
     //
-    // What differs here is only what the count then GOVERNS: nothing.
-    // Accelerate exposes no per-instance thread control, so the value is
-    // stored and applied to no backend call (Options::num_threads' own
-    // BEST-EFFORT-ABSENT contract). Reading it back faithfully is the whole of
-    // this backend's obligation to it, and is exactly what this preserves.
+    // What the count GOVERNS here is nothing: Accelerate exposes no
+    // per-instance thread control, so the value is stored and applied to no
+    // backend call (Options::num_threads' own BEST-EFFORT-ABSENT contract).
+    // Reading it back faithfully is the whole of this backend's obligation to
+    // it, and is exactly what this preserves.
     return session_ ? session_->config().num_threads : opts_.num_threads;
 }
 
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);
 
-    // A fresh session per analysis -- identical rationale to the MKL
-    // adapter's analyze(): a previously shared factorization is never
-    // disturbed by a re-analysis here, and a failed analysis leaves this
+    // A fresh session per analysis: a previously shared factorization is
+    // never disturbed by a re-analysis here, and committing the new session
+    // only after the backend succeeds means a failed analysis leaves this
     // engine exactly as it was.
     auto session = std::make_shared<detail::FactorSession>(config_from(opts_), epoch());
 #ifdef HVEN_TESTING
@@ -590,7 +564,7 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     ++counters_.analyze_count;
 }
 
-FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
+FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
     if (!has_pattern_ || !session_) {
         throw std::runtime_error("SymmetricFactor::factorize: called before analyze() (or before "
                                  "adopting a factorization that carries a symbolic analysis)");
@@ -602,23 +576,30 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
                         A.rows(), A.cols(), A.nonZeros()));
     }
 
-    const std::uint64_t hash = hven::pattern_hash(A);
-    if (hash != pattern_hash_) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor::factorize: the matrix's sparsity pattern (hash {:#018x}) is not the "
-            "analyzed one (hash {:#018x}) -- factorize() never re-analyzes; call analyze() for a "
-            "new pattern",
-            hash, pattern_hash_));
+    // The compressed-storage check above runs whatever `check` says: it is a
+    // property of the ARGUMENT this call is about to hand the backend, not a
+    // re-derivation of something the caller could have tracked. Only the
+    // O(nnz) pattern walk below is skippable, and skipping it is counted.
+    if (check == PatternCheck::kVerify) {
+        ++counters_.pattern_verify_count;
+        const std::uint64_t hash = hven::pattern_hash(A);
+        if (hash != pattern_hash_) {
+            throw std::invalid_argument(fmt::format(
+                "SymmetricFactor::factorize: the matrix's sparsity pattern (hash {:#018x}) is not "
+                "the analyzed one (hash {:#018x}) -- factorize() never re-analyzes; call analyze() "
+                "for a new pattern",
+                hash, pattern_hash_));
+        }
     }
 
     int backend_code;
 #ifdef HVEN_TESTING
     if (detail::testing::FactorizeFaultInjector::active) {
-        // See hven/detail/linear/fault_injection.h for the exact scope this is
-        // faithful within -- identical to the MKL twin's: the real backend
-        // call is SKIPPED rather than its result overridden, so the session's
-        // own state is left exactly as it was, which is only a faithful
-        // scenario on a session that has never factorized successfully.
+        // See hven/detail/linear/fault_injection.h for the exact scope this
+        // is faithful within: valid ONLY when `session_` has never
+        // previously factorized successfully. The real backend call is
+        // SKIPPED rather than its result overridden, so the session's own
+        // state is left exactly as it was.
         backend_code = detail::testing::FactorizeFaultInjector::injected_backend_code;
     } else
 #endif
@@ -645,13 +626,11 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A) {
         // left the epoch where it was, so solves through this engine and
         // through any shared handle throw until a factorization succeeds.
         //
-        // UNLIKE the MKL adapter's identical branch, this one is not known
-        // to be unreachable by ordinary fixtures: Accelerate is documented
-        // (and was measured on real hardware by the SQP engine's
-        // 2026-07-29 Accelerate audit) to genuinely refuse a
-        // numeric factorization on some singular/indefinite input rather
-        // than perturbing through it. Native macOS CI now runs this backend,
-        // but no contract test pins a particular fixture to this nonzero-status
+        // UNLIKE MKL, this branch is not known to be unreachable by ordinary
+        // fixtures: Accelerate is documented to genuinely refuse a numeric
+        // factorization on some singular/indefinite input rather than
+        // perturbing through it. Native macOS CI runs this backend, but no
+        // contract test pins a particular fixture to this nonzero-status
         // branch. See docs/testing.md.
     }
     return outcome;
@@ -760,9 +739,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     //
     // The session conjunct is written out although it cannot fail from here:
     // `session` IS `handle->session_`, so the two ids are the same id today.
-    // It is the identity rule, not a redundancy -- the rule is "same session
-    // AND same epoch", and stating it here is what makes this the one place
-    // to look if a handle ever comes to name a session it does not co-own.
+    // It is the identity rule, not a redundancy.
     if (handle->session_id() != session->session_id() || handle->epoch() != session->epoch()) {
         adopted.numerics_refused_ = true;
         adopted.refused_epoch_ = handle->epoch();
@@ -789,9 +766,7 @@ void SymmetricFactor::require_solvable(const char *what) const {
     }
 }
 
-// =============================================================================
 // Factorization
-// =============================================================================
 
 Factorization::Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
                              std::uint64_t pattern_hash, std::uint64_t epoch)

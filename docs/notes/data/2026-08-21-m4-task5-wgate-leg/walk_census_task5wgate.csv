@@ -1,0 +1,135 @@
+# census.merge: assembled TEXTUALLY by the Task 5 harvest (the runner was
+# census.merge: killed before its own merge step; the corpus binary was not
+# census.merge: re-invoked -- the build token is held elsewhere). Row files are
+# census.merge: concatenated verbatim: one shared header, then the 47 completed
+# census.merge: cells in cell_id order. No value is recomputed by this merge.
+# census.merge: The 10 tier-3 cells are UNOBSERVED (owner-terminated), absent.
+# census.merge: Non-comment provenance lines are prefixed with "# " here so the
+# census.merge: comparator cannot read them as data.
+# census.label: SCORER-LEG DEMONSTRATION RUN -- NOT a census of record.
+# census.label: This run is the Task 5 model-surface scorer demonstration (settler-mandated); census columns are co-asserted against the baseline as supporting evidence at zero marginal cost; the milestone's close census remains the Task 9 instrument.
+# census.leg: model-surface KKT scorer (W1-W5), --score-model-surface ON
+# census.pre_registration: zero verdict flips across all KKT-gated cells
+# census.pre_registration: (docs/notes/2026-08-m4-ledger.md, settler rider,
+# census.pre_registration: declared before the leg ran); applies to the
+# census.pre_registration: co-asserted baseline column comparison.
+# census.commit: d9cc35eca3acc12986ce0c82302df7ad94ad0bff (branch m4)
+# census.binary_real: /home/ghecht/Projects/hven/.scratch/task-5/build/bench/hven_sqp_corpus
+# census.binary_stamp: binary d9cc35eca3ac, schema 37, budget_table_hash 0x357aee91dee27391
+# census.binary_shim: docs/notes/data/2026-08-21-m4-task5-wgate-leg/corpus_with_scorer.sh
+# census.shim_reason: scripts/run_walk_census.sh builds its worker command lines
+# census.shim_reason: itself and has no pass-through for extra flags, and
+# census.shim_reason: --score-model-surface-out is a per-PROCESS path that six
+# census.shim_reason: concurrent tier-1 workers would clobber. The shim adds the
+# census.shim_reason: two scorer flags to SOLVE invocations only, with a per-cell
+# census.shim_reason: output path, and passes --list and --from-csv through
+# census.shim_reason: untouched (--from-csv refuses the scorer flags by design).
+# census.shim_reason: The per-cell rows are concatenated into wgate_scorer.csv
+# census.shim_reason: after the sweep. The standing runner is UNMODIFIED.
+# census.scorer_out: docs/notes/data/2026-08-21-m4-task5-wgate-leg/wgate_scorer.csv
+# census.scorer_rows: docs/notes/data/2026-08-21-m4-task5-wgate-leg/scorer_rows/
+# census.baseline: bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv
+# census.comparator: .superpowers/sdd/2026-08-14-hven-m3-plan-revB/preserved-census/census_compare.py
+# census.build: Release, clang++, Ninja, .scratch/task-5/build (fresh configure)
+# census.threads: MKL_NUM_THREADS=1 on every cell process
+# census.launch_mode: detached (setsid + nohup); DONE carries the runner's exit status
+# census.launch_log: docs/notes/data/2026-08-21-m4-task5-wgate-leg/census.log
+# census.launch_cmdline: setsid nohup env MKL_NUM_THREADS=1 docs/notes/data/2026-08-21-m4-task5-wgate-leg/run_wgate_leg.sh > docs/notes/data/2026-08-21-m4-task5-wgate-leg/census.log 2>&1 &
+# census.wrapped_cmdline: scripts/run_walk_census.sh --binary docs/notes/data/2026-08-21-m4-task5-wgate-leg/corpus_with_scorer.sh --out docs/notes/data/2026-08-21-m4-task5-wgate-leg --baseline bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv --compare .superpowers/sdd/2026-08-14-hven-m3-plan-revB/preserved-census/census_compare.py
+# census.host: fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux 7.1.5-201.fc44
+# census.machine_hold: the controller announced a machine hold to the other lanes
+# census.quiet_check: see census.quiet_check_output below -- the peer lane's rider
+# census.quiet_check: requires the check's OUTPUT be recorded, because clangd can
+# census.quiet_check: respawn if an editor opens on this box.
+# census.quiet_check_output: # quiet check 2026-08-22T07:57:17Z|934 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$|# loadavg: 0.66 0.92 1.00|
+# census.launch_pid: 759501
+# census.launch_started: 2026-08-22T07:57:23Z
+#
+# TERMINATION RECORD (amended 2026-08-22T11:58:02Z):
+# Tier 3 deliberately terminated by OWNER INSTRUCTION (Grant, in-session,
+# 2026-08-22 ~11:56Z) after tiers 1-2 completed clean. Rationale: the 10
+# tier-3 cells are the baseline-DNF class (dnf_budget/dnf_setup on every
+# one — verified against bench/baselines/2026-08-16-u0-corpus before the
+# kill); DNF rows are never KKT-gated, so the scorer-leg demonstration's
+# pre-registered surface (all 43 KKT-gated cells) was already complete at
+# termination. Consequences: the co-asserted census-column comparison
+# covers the 47 completed cells; the 10 DNF cells are UNOBSERVED this run
+# (absent, not flipped); the milestone's close census (Task 9) remains the
+# full 57-cell instrument. Process group SIGTERM'd at 11:57Z; zero
+# stragglers verified; the five in-flight .part files are partial and
+# excluded from the artifact set.
+# OWNER-TERMINATED: tier 3 (10 DNF cells)
+#
+# HARVEST RECORD (Task 5 STAGE B, 2026-08-22):
+# The runner was killed with its process group at 11:57Z, BEFORE its own
+# merge/compare post-pass, so no DONE file exists and the merged CSV and the
+# compare were produced by hand at harvest time. The corpus binary was NOT
+# re-invoked (the build token is held elsewhere): walk_census_task5wgate.csv is
+# a TEXTUAL concatenation of the 47 row files, header once, cell_id order, no
+# value recomputed. wgate_scorer.csv is the same textual concatenation of the 47
+# scorer sidecars.
+#
+# EXECUTABLE IDENTITY OF THE RUN AS LAUNCHED (adjudicated requirement -- the
+# shim is part of the invocation and must be reproducible beside the standing
+# runner it wrapped):
+# census.runner_path: scripts/run_walk_census.sh
+# census.runner_sha256: dba90583ff963ddda24d21a97f31a86b865de7448b4a2b922214b2211f0ed4ce
+# census.runner_state: UNMODIFIED (the standing runner of record)
+# census.shim_path: docs/notes/data/2026-08-21-m4-task5-wgate-leg/corpus_with_scorer.sh
+# census.shim_sha256: 4aab361e91b4538d0b54e1a56d9d20f36ee1881978ef7a59e4a24be0a41bfbea
+# census.wrapper_path: docs/notes/data/2026-08-21-m4-task5-wgate-leg/run_wgate_leg.sh
+# census.wrapper_sha256: 3b528058d1e1edf3389e7c1fb5a8f1ef90ac53704049c03fb1bf9558efa6c0c6
+# census.comparator_path: .superpowers/sdd/2026-08-14-hven-m3-plan-revB/preserved-census/census_compare.py
+# census.comparator_sha256: 74e4112db603e5f0ad64b7aa40fad433af4ad7958ec84d1e4defa5f4ca435acd
+# census.commit_note: the binary's compiled-in git-describe stamp is d9cc35e
+# census.commit_note: (clean configure at that commit); the launch record was
+# census.commit_note: committed one commit later at 8503f39. Both name the same
+# census.commit_note: run: 8503f39 is a docs-only child of d9cc35e.
+cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual,wall_s,kkt_verdict,kkt_stationarity,kkt_primal,kkt_dual_sign,kkt_complementarity,dual_scale,x_scale,neg_ineq_duals,ssn_iters,ssn_bulk_flips,ssn_backtracks,ssn_prox_updates,ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,ssn_refine_facts,ssn_refine_neg_duals,esc_budget,esc_singular,esc_no_contraction,esc_infeasible_suspect,esc_indefinite,esc_gate_refused
+f7_n10000_bound_activity,F7,10000,bound,activity,0,Optimal,1,2,0,1,1,1.016559106e-15,0.331239601,ok,1.016559106e-15,1.151644575e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_corrupted,F7,10000,bound,corrupted,0,Optimal,1,2,0,1,1,9.189172314e-14,0.315150099,ok,9.189172314e-14,2.698456180e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_neutral,F7,10000,bound,neutral,0,Optimal,1,2,0,1,1,6.300386629e-13,0.331772119,ok,6.300386629e-13,1.938683814e-13,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_physics,F7,10000,bound,physics,0,Optimal,1,2,0,1,1,1.016559106e-15,0.331100052,ok,1.016559106e-15,1.151644575e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_bound_warm,F7,10000,bound,warm,0,Optimal,1,2,0,1,1,4.196022966e-14,0.313426869,ok,4.196022966e-14,2.701549016e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n10000_path_physics,F7,10000,path,physics,0,Optimal,8798,19311,0,2,8797;1,1.399675305e-10,2803.527037028,ok,1.399675305e-10,2.856603842e-13,0.000000000e+00,1.955907544e-17,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_activity,F7,1000,bound,activity,0,Optimal,1,2,0,1,1,1.168049964e-16,0.033043539,ok,1.168049964e-16,1.079633839e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_corrupted,F7,1000,bound,corrupted,0,Optimal,1,2,0,1,1,9.157873527e-15,0.029155281,ok,9.157873527e-15,2.734932492e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_neutral,F7,1000,bound,neutral,0,Optimal,1,2,0,1,1,6.295832335e-14,0.032738591,ok,6.295832335e-14,1.937883159e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_physics,F7,1000,bound,physics,0,Optimal,1,2,0,1,1,1.168049964e-16,0.032702551,ok,1.168049964e-16,1.079633839e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_bound_warm,F7,1000,bound,warm,0,Optimal,1,2,0,1,1,4.198558725e-15,0.029070791,ok,4.198558725e-15,2.759659681e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_activity,F7,1000,path,activity,0,Optimal,4,548,0,2,3;1,5.823994991e-09,6.759085433,ok,5.823994991e-09,3.300670848e-11,0.000000000e+00,2.275489574e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,2976,4049,0,3,2974;1;1,8.134399458e-12,62.325470168,ok,8.134399458e-12,3.509414981e-13,0.000000000e+00,2.135826378e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_neutral,F7,1000,path,neutral,0,Optimal,9951,11043,0,4,1;9948;1;1,1.875412048e-10,151.569754535,ok,9.945804538e-11,1.875412048e-10,0.000000000e+00,1.270349276e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_physics,F7,1000,path,physics,0,Optimal,5,623,0,2,4;1,4.067571900e-10,8.381044516,ok,4.067571900e-10,3.210764987e-13,0.000000000e+00,2.216922906e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n1000_path_warm,F7,1000,path,warm,0,Optimal,2,12,0,2,1;1,3.364060441e-10,0.108532717,ok,3.364060441e-10,4.445677160e-11,0.000000000e+00,1.081515277e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_activity,F7,20000,bound,activity,0,Optimal,1,2,0,1,1,2.015847636e-15,0.683039341,ok,2.015847636e-15,1.365272909e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_corrupted,F7,20000,bound,corrupted,0,Optimal,1,2,0,1,1,1.838068087e-13,0.654888184,ok,1.838068087e-13,5.392944711e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_neutral,F7,20000,bound,neutral,0,Optimal,1,2,0,1,1,1.259925399e-12,0.686966399,ok,1.259925399e-12,3.876288913e-13,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_physics,F7,20000,bound,physics,0,Optimal,1,2,0,1,1,2.015847636e-15,0.682775522,ok,2.015847636e-15,1.365272909e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n20000_bound_warm,F7,20000,bound,warm,0,Optimal,1,2,0,1,1,8.390643067e-14,0.651832181,ok,8.390643067e-14,5.394909349e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_activity,F7,2000,bound,activity,0,Optimal,1,2,0,1,1,2.168216410e-16,0.065620581,ok,2.168216410e-16,1.105729050e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_corrupted,F7,2000,bound,corrupted,0,Optimal,1,2,0,1,1,1.834292390e-14,0.060126002,ok,1.834292390e-14,5.425851090e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_neutral,F7,2000,bound,neutral,0,Optimal,1,2,0,1,1,1.259764344e-13,0.066805075,ok,1.259764344e-13,3.878155499e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_physics,F7,2000,bound,physics,0,Optimal,1,2,0,1,1,2.168216410e-16,0.066185069,ok,2.168216410e-16,1.105729050e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_bound_warm,F7,2000,bound,warm,0,Optimal,1,2,0,1,1,8.394924906e-15,0.060335550,ok,8.394924906e-15,5.419408507e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_activity,F7,2000,path,activity,1,Optimal,8,1505,0,2,7;1,3.049823215e-09,35.989518633,ok,3.049823215e-09,3.083522326e-11,0.000000000e+00,1.062254363e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_corrupted,F7,2000,path,corrupted,1,NumericalError,39783,40000,0,2,19911;19872,9.843817033e-02,985.040715880,unchecked,5.402058407e-03,9.843817033e-02,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_neutral,F7,2000,path,neutral,1,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01,907.979572345,unchecked,5.085072728e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_physics,F7,2000,path,physics,1,Optimal,9,1396,0,2,8;1,2.290368260e-10,37.385168152,ok,2.290368260e-10,3.198552534e-13,0.000000000e+00,1.099753487e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n2000_path_warm,F7,2000,path,warm,1,Optimal,7,1615,0,3,5;1;1,4.904145803e-12,45.975668616,ok,4.904145803e-12,2.574829239e-12,0.000000000e+00,8.717603738e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_activity,F7,5000,bound,activity,0,Optimal,1,2,0,1,1,5.167818090e-16,0.162060825,ok,5.167818090e-16,1.110891234e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_corrupted,F7,5000,bound,corrupted,0,Optimal,1,2,0,1,1,4.592198241e-14,0.152319728,ok,4.592198241e-14,1.351772635e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_neutral,F7,5000,bound,neutral,0,Optimal,1,2,0,1,1,3.150169743e-13,0.162543172,ok,3.150169743e-13,9.692247005e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_physics,F7,5000,bound,physics,0,Optimal,1,2,0,1,1,5.167818090e-16,0.161934315,ok,5.167818090e-16,1.110891234e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_bound_warm,F7,5000,bound,warm,0,Optimal,1,2,0,1,1,2.098298050e-14,0.151933091,ok,2.098298050e-14,1.353613753e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_activity,F7,5000,path,activity,0,Optimal,24,5250,0,2,23;1,1.890156979e-09,342.472444999,ok,1.890156979e-09,2.878008942e-11,0.000000000e+00,3.959509908e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_neutral,F7,5000,path,neutral,0,NumericalError,39744,40004,0,3,1;19871;19872,3.889087297e-01,2359.891248767,unchecked,2.032099408e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_physics,F7,5000,path,physics,0,Optimal,19,3656,0,2,18;1,1.450680211e-10,260.234321132,ok,1.450680211e-10,3.049782649e-13,0.000000000e+00,4.249546468e-17,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n5000_path_warm,F7,5000,path,warm,0,NumericalError,39744,40000,0,2,19872;19872,3.889087297e-01,2189.995642438,unchecked,2.032099408e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n750_path_neutral_control,F7,750,path,neutral,0,Optimal,7865,9297,0,4,1;7862;1;1,1.874010946e-10,90.459688264,ok,1.065823448e-10,1.874010946e-10,0.000000000e+00,1.693085346e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_activity,F7,800,path,activity,1,Optimal,3,385,0,2,2;1,6.914595476e-09,3.633891177,ok,6.914595476e-09,3.328159970e-11,0.000000000e+00,2.867429594e-14,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,14,1795,0,3,12;1;1,8.379476637e-12,19.848439840,ok,8.379476637e-12,2.696731727e-13,0.000000000e+00,2.336241365e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,29222,30165,0,5,1;19872;9347;1;1,1.874362887e-10,319.000137548,ok,1.061788210e-10,1.874362887e-10,0.000000000e+00,1.587440445e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_physics,F7,800,path,physics,1,Optimal,6,481,0,2,5;1,4.777161882e-10,4.902766609,ok,4.777161882e-10,3.245181901e-13,0.000000000e+00,2.823620398e-16,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n800_path_warm,F7,800,path,warm,1,Optimal,2,6,0,2,1;1,4.212497650e-10,0.056058814,ok,4.212497650e-10,4.285150013e-11,0.000000000e+00,1.295715293e-15,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+f7_n825_path_neutral_control,F7,825,path,neutral,0,Optimal,7605,9561,0,4,1;7601;2;1,1.874508326e-10,125.086201250,ok,1.023066238e-10,1.874508326e-10,0.000000000e+00,1.539399008e-13,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

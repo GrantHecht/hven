@@ -1,0 +1,4 @@
+family,n,arm,step,p,label,status,start_level,major_iters,qp_minor_iters,factorizations,factorizations_saved,full_step_majors,watchdog_restores,soc_steps,soc_applied,border_refine_steps,eqp_refine_steps,wall_seconds,peak_rss_mib
+F7,200,cold,0,0.29999999999999999,cold0_0,Optimal,Cold,1,2,1,0,0,0,0,0,2,0,0.006985725,12.328
+F7,200,cold,1,0.60000000000000009,cold1_0,Optimal,Cold,4,208,4,0,0,0,0,0,208,0,0.333767314,15.785
+F7,200,cold,2,0.90000000000000013,cold2_0,Optimal,Cold,4,4580,2613,0,0,0,0,0,2000,0,17.168888435,20.242

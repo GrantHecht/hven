@@ -1,28 +1,27 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
 // sqp_print.cpp -- the SQP engine's display-string helpers and its iteration
 // -table renderer, carved out of the headers that declare them.
 //
-// M3 PHASE-C T1. CLAUDE.md section 5 names printing explicitly as code that
+// CLAUDE.md section 5 names printing explicitly as code that
 // belongs in a .cpp translation unit: none of it is a per-element hot path,
 // none of it depends on inlining through a template parameter, and every one
-// of these functions runs O(1) times per solve or once per report row. Before
-// that carve each was an `inline` definition in a header, so the switch (or
-// the fmt call chain) was parsed and code-generated in every TU that included
-// the header, and the linker discarded all but one copy.
+// of these functions runs O(1) times per solve or once per report row. As a
+// header `inline` each definition was parsed and code-generated in every TU
+// that included the header, and the linker discarded all but one copy.
 //
-// THE WHOLE SET IS FP-ARITHMETIC-FREE, which is what let it land as an
-// early phase-C split: switch-to-`const char *` functions, and one
+// THE WHOLE SET IS FP-ARITHMETIC-FREE: switch-to-`const char *` functions, and one
 // renderer that hands already-computed doubles to `fmt::format`. `fmt` READS
 // a double and formats its value; it does not compute with it, so no
 // floating-point expression in this file can be re-associated, contracted or
 // otherwise re-shaped by the codegen flags.
 //
-// THREE OF THE ORIGINAL FIVE LIVE HERE. T1 put all five in this one TU, which
-// left the two whose enums phase-C S2 had rehomed into `core/` -- `SqpStatus`
-// and `StartLevel` -- defined in a `drivers/` object that `src/core/ledger.cpp`
-// then had to resolve against, a link-time edge pointing up CLAUDE.md section
-// 2's tier order. T3's follow-up moved those two into `src/core/enum_names.cpp`
-// (T1 review finding F1). What stays here points DOWNWARD and is not an
-// inversion: `StepVerdict` and `SqpSolution` are `drivers/` types, and
+// WHAT LIVES WHERE. The display strings for `SqpStatus` and `StartLevel` are
+// defined in `src/core/enum_names.cpp`, so no `core/` object resolves a symbol
+// out of a `drivers/` one (an edge pointing up CLAUDE.md section 2's tier
+// order). What stays here points DOWNWARD and is not an inversion:
+// `StepVerdict` and `SqpSolution` are `drivers/` types, and
 // `PredictorOutcome` is a `detail/warmstart/` one.
 
 #include <string>
