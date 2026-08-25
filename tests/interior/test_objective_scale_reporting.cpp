@@ -242,3 +242,154 @@ TEST(ObjectiveScaleReporting, ASeededMultiplierIsInstalledOnTheSolversScale) {
     EXPECT_DOUBLE_EQ(obj_scale_installed_seed(4.0), ObjScaleBoxedProblem::kSeed * 4.0);
     EXPECT_DOUBLE_EQ(obj_scale_installed_seed(0.25), ObjScaleBoxedProblem::kSeed * 0.25);
 }
+
+// A problem with no constraint rows at all, used to show that a solver reused
+// across shapes reports the shape it just solved.
+struct ObjScaleUnconstrainedProblem : NLPProblem {
+    static constexpr int kN = 3;
+
+    int num_vars() const override { return kN; }
+    int num_cons() const override { return 0; }
+    int num_jac_nonzeros() const override { return 0; }
+    int num_hess_nonzeros() const override { return kN; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
+        xl.setConstant(-2.0);
+        xu.setConstant(2.0);
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = 0.5 * x.squaredNorm();
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g = x;
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
+    void jac_structure(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>) const override {}
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        for (int i = 0; i < kN; i++) {
+            r[i] = i;
+            c[i] = i;
+        }
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
+    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v.setConstant(obj_factor);
+    }
+    std::string name() const override { return "ObjScaleUnconstrained"; }
+};
+
+// A scale multiplies the objective; it does not turn minimization into
+// maximization. A negative factor would do the latter while leaving the
+// multiplier cones the solve reports against exactly where they were, so a
+// sign-constrained dual would come back with a sign its own convention rules
+// out. Refused at both doors -- the setter, and the whole-settings check the
+// solve entry runs, since the field is writable directly.
+TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedAtBothDoors) {
+    NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+    solver.optimizer_->set_print_level(3);
+
+    EXPECT_THROW(solver.optimizer_->set_obj_scale(-1.0), std::invalid_argument);
+    EXPECT_THROW(solver.optimizer_->set_obj_scale(0.0), std::invalid_argument);
+    EXPECT_THROW(solver.optimizer_->set_obj_scale(-1e-12), std::invalid_argument);
+    EXPECT_NO_THROW(solver.optimizer_->set_obj_scale(2.0));
+
+    // The refusal names the value, so the reader is not left to guess which
+    // setting was rejected.
+    try {
+        solver.optimizer_->set_obj_scale(-3.5);
+        FAIL() << "a negative scale must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("obj_scale"), std::string::npos) << message;
+        EXPECT_NE(message.find("-3.5"), std::string::npos) << message;
+    }
+
+    // Written past the setter, and refused all the same -- by the whole
+    // settings check at the entry of the next call.
+    solver.optimizer_->settings().obj_scale_ = -2.0;
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
+    EXPECT_THROW(solver.optimize(x0), std::invalid_argument);
+}
+
+// The reported constraint blocks describe the problem the call just solved,
+// and nothing else. Without that, a solver reused across shapes would keep the
+// earlier call's block standing and the scale seam would divide it a second
+// time on every subsequent call.
+TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
+    NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+    solver.optimizer_->set_print_level(3);
+    solver.optimizer_->set_obj_scale(2.0);
+
+    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
+              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
+    const double constrained_eq = solver.optimizer_->result().eq_lmults_[0];
+    EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol);
+
+    // The SAME engine, at the same scale, pointed at a program with no
+    // constraint rows at all.
+    NLPSolver unconstrained(std::make_shared<ObjScaleUnconstrainedProblem>());
+    unconstrained.transcribe();
+    solver.optimizer_->set_nlp(unconstrained.nlp_);
+
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleUnconstrainedProblem::kN, 0.6);
+    solver.optimizer_->optimize(x0);
+    ASSERT_EQ(solver.optimizer_->result().converge_flag_, hven::ConvergenceFlags::CONVERGED);
+
+    EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0)
+        << "there are no equality rows, so there is no equality multiplier block";
+    EXPECT_EQ(solver.optimizer_->result().iq_lmults_.size(), 0);
+    EXPECT_EQ(solver.optimizer_->result().eq_cons_.size(), 0);
+    EXPECT_EQ(solver.optimizer_->result().iq_cons_.size(), 0);
+
+    // And a second call still reports nothing, rather than a block that has
+    // been divided by the scale one more time.
+    solver.optimizer_->optimize(x0);
+    ASSERT_EQ(solver.optimizer_->result().converge_flag_, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0);
+    EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol) << "the first call's value is not in doubt";
+}
+
+// One call runs at one scale. The setting is taken at entry and read from
+// there by everything downstream, so a scale written while the call is in
+// flight moves the NEXT call rather than splitting this one between two
+// scales -- which would report an objective and duals belonging to no problem.
+TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn) {
+    NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+    solver.optimizer_->set_print_level(3);
+    solver.optimizer_->set_obj_scale(2.0);
+
+    bool changed = false;
+    solver.optimizer_->set_early_callback(
+        [&](int iteration, double, hven::EigenRef<Eigen::VectorXd>, double,
+            hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+            if (iteration == 0 && !changed) {
+                solver.optimizer_->set_obj_scale(4.0);
+                changed = true;
+            }
+            return 0;
+        });
+
+    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
+              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(changed) << "the callback never ran, so nothing was changed under the call";
+
+    // Reported on the entry scale of 2, which is what every phase evaluated
+    // at -- not on the 4 the setting now holds.
+    EXPECT_NEAR(solver.optimizer_->result().obj_val_, 1.125, kObjScaleTol);
+    ASSERT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
+    EXPECT_NEAR(solver.optimizer_->result().eq_lmults_[0], -0.75, kObjScaleTol);
+
+    // The change is not lost, it is deferred: the next call runs at 4, and
+    // reports the same caller-scale numbers because that is what the seam is
+    // for.
+    solver.optimizer_->disable_early_callback();
+    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
+              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_NEAR(solver.optimizer_->result().obj_val_, 1.125, kObjScaleTol);
+}

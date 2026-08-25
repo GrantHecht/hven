@@ -497,9 +497,17 @@ void hven::solvers::InteriorPointSolver::set_qp_scaling(int v) {
 }
 
 void hven::solvers::InteriorPointSolver::set_obj_scale(double scale) {
-    if (!std::isfinite(scale) || scale == 0.0)
+    // POSITIVE, not merely nonzero. A negative factor does not rescale the
+    // problem, it reverses it: minimizing s*f for s < 0 maximizes f, while the
+    // multiplier cones the solve reports against do not turn over with it. The
+    // inequality multipliers stay non-negative and a bound multiplier keeps
+    // its documented sign at an active bound, so the reporting seam would
+    // divide a sign-constrained dual by a negative number and hand back a
+    // value its own convention says cannot occur. Maximization is a different
+    // problem statement, not a scale, and would need its own mode.
+    if (!std::isfinite(scale) || scale <= 0.0)
         throw std::invalid_argument(
-            fmt::format("obj_scale must be finite and non-zero, got {}", scale));
+            fmt::format("obj_scale must be finite and strictly positive, got {}", scale));
     settings_.obj_scale_ = scale;
 }
 
@@ -682,8 +690,13 @@ void hven::solvers::InteriorPointSolver::Settings::validate() const {
             fmt::format("qp_scaling must be 0 or 1, got {}", qp_scaling_));
 
     // --- Objective ---
-    if (!std::isfinite(obj_scale_) || obj_scale_ == 0.0)
-        throw std::invalid_argument("obj_scale must be finite and non-zero");
+    // Checked here as well as in set_obj_scale(), and on the same terms: the
+    // field is writable directly through settings(), so the setter is not the
+    // only way a scale arrives. See set_obj_scale() for why a negative scale
+    // is a different problem rather than a scaled one.
+    if (!std::isfinite(obj_scale_) || obj_scale_ <= 0.0)
+        throw std::invalid_argument(
+            fmt::format("obj_scale must be finite and strictly positive, got {}", obj_scale_));
 
     // --- Output ---
     if (print_level_ < 0)

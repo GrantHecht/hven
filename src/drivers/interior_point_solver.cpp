@@ -271,10 +271,7 @@ void hven::solvers::InteriorPointSolver::release() {
     this->bound_duals_ = BoundDualState{};
     this->nlp_.reset();
     result_.primals_.resize(0);
-    result_.eq_lmults_.resize(0);
-    result_.iq_lmults_.resize(0);
-    result_.eq_cons_.resize(0);
-    result_.iq_cons_.resize(0);
+    this->clear_reported_constraint_blocks();
     result_.bound_lmults_.resize(0);
 }
 
@@ -757,10 +754,13 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
     // re-reads both. result_.bound_lmults_ is reset alongside them so a
     // solver reused across a bounded NLP and then an unbounded one does not
     // leave the previous solve's z standing (its "empty when no finite
-    // variable bounds" doc would otherwise not hold across that reuse).
+    // variable bounds" doc would otherwise not hold across that reuse), and
+    // the four constraint-indexed blocks go with it for the same reason: they
+    // describe row spaces belonging to the program being replaced.
     this->bounds_ = nullptr;
     this->bound_duals_ = BoundDualState{};
     this->result_.bound_lmults_.resize(0);
+    this->clear_reported_constraint_blocks();
     this->refresh_nlp_dimensions();
 
     // acceptance_/mechanism_/governor_/recovery_ are rebuilt from Settings by
@@ -804,6 +804,13 @@ void hven::solvers::InteriorPointSolver::analyze_kkt_sparsity() {
     // routes the entry factorization through compute(), so the backend
     // symbolic is redone over it.
     this->qp_analyzed_ = false;
+}
+
+void hven::solvers::InteriorPointSolver::clear_reported_constraint_blocks() {
+    this->result_.eq_lmults_.resize(0);
+    this->result_.iq_lmults_.resize(0);
+    this->result_.eq_cons_.resize(0);
+    this->result_.iq_cons_.resize(0);
 }
 
 bool hven::solvers::InteriorPointSolver::kkt_pattern_is_analyzed() const {
@@ -3338,7 +3345,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
     // INIT mode never runs with restoration active (init_impl is the one-shot
     // multiplier initializer), so the μ argument is inert here; pass mu for
     // consistency with the live phase parameter.
-    this->eval_nlp(AlgorithmModes::INIT, settings_.obj_scale_, XSL, val,
+    this->eval_nlp(AlgorithmModes::INIT, this->solve_obj_scale_, XSL, val,
                    RHS.head(this->primal_vars_), RHS, this->kkt_sol_.matrix(), mu);
 
     KKTVector v_xsl = kkt_view(XSL);
@@ -3454,7 +3461,7 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
     // the clamp bounds the magnitude the solver starts from, which is a
     // statement about the solver's own space.
     const int user_eq = this->nlp_->user_equal_cons_;
-    const double scale = settings_.obj_scale_;
+    const double scale = this->solve_obj_scale_;
     KKTVector v_xsl = kkt_view(XSL);
     if (this->equal_cons_ > 0) {
         Eigen::VectorXd clamped_eq = (scale == 1.0 ? eq_mults : Eigen::VectorXd(eq_mults * scale))
@@ -3493,7 +3500,13 @@ void hven::solvers::InteriorPointSolver::unscale_reported_outputs() {
     // division at the end stand in for scaling every write: alg_impl
     // overwrites all four per phase and no phase, print, or globalization
     // component consumes them.
-    const double scale = settings_.obj_scale_;
+    //
+    // THE SCALE DIVIDED OUT HERE IS THE ONE THIS CALL RAN AT, taken at its
+    // entry, not the setting as it stands now -- the two differ whenever a
+    // callback wrote the setting mid-call, and dividing by a number nothing
+    // was evaluated at would report an objective and duals belonging to no
+    // problem.
+    const double scale = this->solve_obj_scale_;
     if (scale == 1.0) {
         // The default, and the one case where the division would be the only
         // floating-point operation on this path. Skipped so the default path
@@ -3552,8 +3565,22 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     }
 
     this->result_.reset_accumulators();
+    this->clear_reported_constraint_blocks();
     this->eval_error_log_.reset();
     settings_.validate();
+
+    // TAKEN ONCE, HERE, and read by everything downstream. The scale governs
+    // what this call minimizes, so one call has to run at one scale: the entry
+    // initialization, the multiplier seed, every phase and the unscaling of
+    // what leaves must all divide and multiply by the same number. Reading the
+    // setting live at each of those points would let a callback -- which can
+    // reach the public setter and the settings reference -- change the scale
+    // between the phase that produced a multiplier and the seam that reports
+    // it, so a solve would report its objective and its duals on a scale
+    // nothing was evaluated at. A scale written during a call takes effect on
+    // the next one. Read AFTER validate(), so what is captured is a scale that
+    // has been checked.
+    this->solve_obj_scale_ = settings_.obj_scale_;
 
     // Whether this call verifies the KKT pattern at every factorization,
     // decided once and held -- see kkt_pattern_check() for why an installed
@@ -3802,7 +3829,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
             this->resto_recentered_ = false;
         }
 
-        XSL = this->alg_impl(step.alg_mode_, step.bar_mode_, step.ls_mode_, settings_.obj_scale_,
+        XSL = this->alg_impl(step.alg_mode_, step.bar_mode_, step.ls_mode_, this->solve_obj_scale_,
                              settings_.init_mu_, XSL);
 
         // Solver-level observability: collect this phase's acceptance-

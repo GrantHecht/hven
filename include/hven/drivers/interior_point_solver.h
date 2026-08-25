@@ -468,6 +468,7 @@ class InteriorPointSolver {
 
         // --- Objective ---
         /// @brief Objective scale factor applied at evaluation. Default 1.0.
+        ///        Finite and strictly positive; see set_obj_scale().
         double obj_scale_ = 1.0;
 
         // --- Output/behavior ---
@@ -535,6 +536,17 @@ class InteriorPointSolver {
         /// takes reports the scaled value; the scale is divided back out once,
         /// at the end of the call, so this field and the multiplier blocks
         /// below describe the problem the caller posed.
+        ///
+        /// ON A COMPLETED CALL. That one division sits on the success path, so
+        /// a call that threw part-way through its phase sequence leaves
+        /// whatever the last phase wrote -- which is the SCALED value -- and
+        /// the same holds for the multiplier blocks. Reading a result after a
+        /// throw was never contractual; the scale is named here so it is not
+        /// mistaken for a guarantee that survives one.
+        ///
+        /// The scale divided out is the one the call RAN at, captured at its
+        /// entry: a scale written while a solve is in flight takes effect on
+        /// the next call.
         double obj_val_ = 0;
         /// @brief Convergence verdict of the most recent call.
         ConvergenceFlags converge_flag_ = ConvergenceFlags::NOTCONVERGED;
@@ -793,8 +805,12 @@ class InteriorPointSolver {
         /// last_* diagnostic (including last_eval_exception_). primals_ and
         /// obj_val_ are overwritten unconditionally by alg_impl each phase, as
         /// is fixed_variable_treatment_ by run_phase_sequence at call entry.
-        /// eq_lmults_ and eq_cons_ are overwritten when equal_cons_ > 0;
-        /// iq_lmults_ and iq_cons_ are overwritten when inequal_cons_ > 0;
+        /// The four constraint-indexed blocks are emptied at solve entry (see
+        /// clear_reported_constraint_blocks) and then written by alg_impl:
+        /// eq_lmults_ and eq_cons_ when equal_cons_ > 0, iq_lmults_ and
+        /// iq_cons_ when inequal_cons_ > 0 -- so a block the current problem
+        /// has no rows for is empty rather than left over from an earlier
+        /// call;
         /// bound_lmults_ is overwritten when the solve has finite variable
         /// bounds (bounds_ != nullptr).
         /// factor_mem_ and factor_flops_ reflect the last factorization's stats
@@ -1205,8 +1221,17 @@ class InteriorPointSolver {
     /// and a seed round-tripped through a solve means the same thing at any
     /// scale.
     ///
-    /// @param scale Dimensionless scale; any finite nonzero value is accepted.
-    /// @throws std::invalid_argument if scale is not finite, or scale == 0.
+    /// STRICTLY POSITIVE. A positive scale leaves the minimizer where it was
+    /// and rescales the multipliers, which is what makes the two boundaries
+    /// above exact inverses. A negative one would reverse the problem --
+    /// minimizing s*f for s < 0 maximizes f -- while leaving the multiplier
+    /// cones the solve reports against unchanged, so a sign-constrained dual
+    /// would come back with a sign its own convention rules out. Maximization
+    /// is a different problem statement rather than a scale, and is not what
+    /// this setting offers.
+    ///
+    /// @param scale Dimensionless scale; any finite, strictly positive value.
+    /// @throws std::invalid_argument if scale is not finite or is not > 0.
     void set_obj_scale(double scale);
 
     /// @brief Sets Settings::qp_ord_, the backend's fill-reducing ordering.
@@ -1506,6 +1531,21 @@ class InteriorPointSolver {
     /// verify_kkt_pattern_for_solve_).
     KktFactorization::PatternCheck kkt_pattern_check() const;
 
+    /// @brief Empties the four constraint-indexed result blocks -- the
+    ///        equality and inequality multipliers and residuals.
+    ///
+    /// Called wherever result_.bound_lmults_ is cleared, and for the same
+    /// reason. alg_impl writes the equality pair only when the current problem
+    /// has equality rows and the inequality pair only when it has inequality
+    /// rows, so without this a solver reused across a constrained problem and
+    /// then an unconstrained one would keep the earlier call's block standing
+    /// -- a nonempty block that the current problem has no rows to justify,
+    /// and one the objective-scale seam would then divide a second time on
+    /// every subsequent call. Emptied rather than resized to the current
+    /// counts: a block with no rows behind it is empty, which is what these
+    /// fields' own documentation promises.
+    void clear_reported_constraint_blocks();
+
     // --- Problem dimensions ---
     // primal_vars_ is the SOLVER's primal width: the NLP's variable count minus
     // the variables the fixed-variable treatment eliminated. Every vector this
@@ -1681,6 +1721,14 @@ class InteriorPointSolver {
     // callback that disables itself part-way cannot hand the rest of the solve
     // back the skip after it has already had the matrix.
     bool verify_kkt_pattern_for_solve_ = false;
+
+    // The objective scale THIS call runs under, taken once at
+    // run_phase_sequence() entry from the just-validated Settings and read by
+    // everything downstream: the entry initialization, the multiplier seed,
+    // every phase, and the unscaling of what the call reports. A setting
+    // written while a solve is in flight therefore takes effect on the NEXT
+    // call rather than splitting one call between two scales.
+    double solve_obj_scale_ = 1.0;
 
     // --- Callbacks ---
     EarlyCallBackType early_callback_;
