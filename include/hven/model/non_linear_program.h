@@ -968,6 +968,16 @@ struct NonLinearProgram : public NlpAggregate {
     ///         make_nlp instead. The materializers are restartable -- each
     ///         clears its pending flag only after it has finished -- so a throw
     ///         here leaves the state owing and the next read re-derives it.
+    /// @throws std::invalid_argument from the first read after a lay if a
+    ///         block's pieces claim fewer rows in total than the row space
+    ///         that block was laid over -- see shared_row_overcount(), which
+    ///         materialize_declaration_pieces() calls per block. Rows laid
+    ///         with no piece to claim them are a shape validate() tolerates
+    ///         when a declaration carries no pieces at all, but this read
+    ///         refuses it once pieces are read, because nothing on the
+    ///         evaluation path below can evaluate a row no piece names. Only a
+    ///         hand-laid layout can reach this; adopt_declaration() refuses
+    ///         rows-without-pieces before a lay is ever attempted.
     const AggregateDeclaration &declaration() const override {
         this->require_master_lists_unmoved();
         this->materialize_declaration_bounds();

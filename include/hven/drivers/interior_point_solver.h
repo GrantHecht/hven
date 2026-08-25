@@ -882,17 +882,22 @@ class InteriorPointSolver {
     /// replaced. A caller that needs a different structure re-declares the problem
     /// and solves again; there is no in-flight route to one.
     ///
-    /// THE VERIFY GATE IS WHAT CATCHES A STRUCTURAL EDIT. Installing an early
-    /// callback makes the whole call run every numeric factorization under the full
-    /// pattern check, rather than under the structure epoch's word for it: the
-    /// factorization re-derives the buffer's pattern and compares it against the
-    /// analyzed one. An edit that changed the structure is therefore refused by
-    /// name, deterministically, at the first factorization that sees it -- not
+    /// THE VERIFY GATE IS WHAT CATCHES A STRUCTURAL EDIT. From this callback's
+    /// first invocation in a call through the end of that call, every numeric
+    /// factorization runs under the full pattern check rather than under the
+    /// structure epoch's word for it: the factorization re-derives the buffer's
+    /// pattern and compares it against the analyzed one. This holds no matter
+    /// when the callback was armed -- including from inside the late callback,
+    /// mid-call -- because it is the hand-out itself that turns the check on,
+    /// not the fact of having called set_early_callback() at some earlier point.
+    /// An edit that changed the structure is therefore refused by name,
+    /// deterministically, at the first factorization that sees it -- not
     /// factorized against stale symbolics, and not left to surface as a backend
-    /// error or worse. That check is the cost of holding the matrix: a call with a
-    /// callback installed pays one full pattern hash per factorization, which is
-    /// what every call paid before the epoch gate existed. A call with no early
-    /// callback is unaffected and keeps the skip.
+    /// error or worse. That check is the cost of holding the matrix: every
+    /// factorization from the first hand-out onward pays one full pattern hash,
+    /// which is what every call paid before the epoch gate existed. A call in
+    /// which this callback never runs is unaffected and keeps the skip
+    /// throughout.
     using EarlyCallBackType =
         std::function<int(int, double, EigenRef<VectorXd>, double, EigenRef<VectorXd>,
                           EigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;

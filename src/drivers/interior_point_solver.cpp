@@ -820,15 +820,22 @@ bool hven::solvers::InteriorPointSolver::kkt_pattern_is_analyzed() const {
 
 hven::solvers::KktFactorization::PatternCheck
 hven::solvers::InteriorPointSolver::kkt_pattern_check() const {
-    // A CALL THAT HANDS THE MATRIX OUT VERIFIES THROUGHOUT. The early callback
-    // receives the assembly buffer by mutable reference, and an edit made
-    // there is not a model event: it changes the buffer's pattern without
+    // A CALL THAT HANDS THE MATRIX OUT VERIFIES FROM THAT POINT ON. The early
+    // callback receives the assembly buffer by mutable reference, and an edit
+    // made there is not a model event: it changes the buffer's pattern without
     // re-laying anything, so the structure epoch stands and would vouch for a
     // pattern that is no longer the analyzed one. The epoch answers "has the
     // model re-laid", which is the whole question only while nothing else can
-    // re-pattern the buffer. Forced for the WHOLE call rather than for the
-    // iterations after the first callback: the flag is read on the entry
-    // factorization too, and a callback is installed before the call starts.
+    // re-pattern the buffer. verify_kkt_pattern_for_solve_ is not a decision
+    // taken only at entry: a callback already armed there sets it before the
+    // entry init_impl() factorization runs, covering the whole call, but a
+    // callback armed mid-call (nothing in the API forbids installing one from
+    // inside the late callback) sets the flag itself at its own first
+    // hand-out, so every factorization from that hand-out through the end of
+    // the call verifies even though earlier ones -- which never had the
+    // matrix out -- did not need to. Once set, never cleared before the call
+    // ends: the only reset site is the entry assignment above, so a
+    // disable_early_callback() mid-call cannot hand the skip back.
     if (this->verify_kkt_pattern_for_solve_) {
         return KktFactorization::PatternCheck::kVerify;
     }
@@ -2052,6 +2059,19 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         Funtimer.stop();
         if (this->early_callback_enabled_) {
             CBtimer.start();
+            // Set at the hand-out itself, not only trusted to have been set at
+            // solve entry: early_callback_enabled_ is re-read every iteration, so
+            // a callback armed mid-call (set_early_callback() called from inside
+            // the late callback below, which nothing in the API forbids) reaches
+            // this statement with the entry assignment still false. Setting the
+            // flag right beside the hand-out, unconditionally, is what makes "the
+            // matrix was handed out => every subsequent factorization this call
+            // verifies" true by construction regardless of when the callback was
+            // armed -- this iteration's own upcoming factor_impl() included.
+            // Nothing clears it again before the call ends (see
+            // run_phase_sequence()'s entry assignment, the only reset site), so a
+            // later disable_early_callback() cannot hand the skip back either.
+            this->verify_kkt_pattern_for_solve_ = true;
             this->early_callback_(i, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix());
             CBtimer.stop();
         }
@@ -3582,9 +3602,15 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // has been checked.
     this->solve_obj_scale_ = settings_.obj_scale_;
 
-    // Whether this call verifies the KKT pattern at every factorization,
-    // decided once and held -- see kkt_pattern_check() for why an installed
-    // early callback is what decides it.
+    // The entry state of the guard: true only when a callback is already
+    // armed at entry, so the entry init_impl() factorization -- which runs
+    // before any iteration, and so before the per-iteration hand-out below
+    // gets a chance to set this itself -- verifies whenever that hand-out is
+    // possible from the start. NOT a decision held for the whole call: a
+    // callback armed mid-call (from inside the late callback, at the
+    // per-iteration hand-out) sets this flag again itself at that later
+    // point -- see the hand-out site's comment and kkt_pattern_check() for
+    // why the flag is never reset except here, at entry.
     this->verify_kkt_pattern_for_solve_ = this->early_callback_enabled_;
 
     // Re-apply the QP threading setting on every solve entry, not just in

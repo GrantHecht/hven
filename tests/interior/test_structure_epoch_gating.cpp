@@ -310,3 +310,59 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
               counters_after_disarming.pattern_verify_count)
         << "the next call has nothing installed, so it takes the skip again";
 }
+
+// The verdict is not only taken at entry -- it also responds to a hand-out
+// that happens mid-call. Nothing in the public API forbids installing an
+// early callback from inside the late callback, and doing so is the door a
+// call with no callback armed at entry can still reach the matrix through:
+// this call starts with no early callback installed at all (so the entry
+// verdict is false, same as the callback-free baseline), then arms one from
+// inside the late callback partway through. The early callback's first
+// hand-out -- and every factorization after it -- must still verify, exactly
+// as it would have if the callback had been armed from the start.
+TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn) {
+    NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
+    solver.optimizer_->set_print_level(3);
+
+    bool armed = false;
+    int early_callback_calls = 0;
+    solver.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
+                                             hven::ConstEigenRef<Eigen::VectorXd>,
+                                             hven::ConstEigenRef<Eigen::VectorXd>) {
+        if (!armed) {
+            armed = true;
+            solver.optimizer_->set_early_callback(
+                [&](int, double, hven::EigenRef<Eigen::VectorXd>, double,
+                    hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+                    Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+                    ++early_callback_calls;
+                    return 0;
+                });
+        }
+        return 0;
+    });
+
+    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(armed) << "the late callback never ran, so the early one was never armed";
+    ASSERT_GT(early_callback_calls, 0)
+        << "the mid-call-armed early callback never ran, so nothing was handed out";
+
+    EXPECT_GT(solver.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+        << "a hand-out armed mid-call, not just one armed at entry, must still force every "
+           "factorization from that hand-out on to re-derive the pattern rather than assume it "
+           "-- an early callback armed from inside the late callback used to run under the "
+           "entry verdict (false) instead, which is the gap this closes";
+
+    // The late callback alone, never arming an early one, never hands the
+    // matrix out and keeps the skip -- isolating that the late callback's
+    // mere presence is not what forces verification.
+    NLPSolver late_only(std::make_shared<EpochGateBoxedProblem>());
+    late_only.optimizer_->set_print_level(3);
+    late_only.optimizer_->set_late_callback([](const hven::solvers::IterateInfo &,
+                                               hven::ConstEigenRef<Eigen::VectorXd>,
+                                               hven::ConstEigenRef<Eigen::VectorXd>) { return 0; });
+    ASSERT_EQ(late_only.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(late_only.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+        << "a late callback that never arms an early one never hands the matrix out, and must "
+           "keep the skip throughout";
+}
