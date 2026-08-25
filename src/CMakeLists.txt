@@ -152,6 +152,20 @@ target_sources(hven PRIVATE
 )
 
 ################################################################################
+# The warm-start currency (include/hven/warmstart/warm_start_data.h). Its own
+# block rather than part of the engine blocks above, because it is neither
+# engine's: WarmStartData is the value a consumer holds BETWEEN solves, and the
+# component names no engine type and includes no engine header. Its TU carries
+# the byte form -- the layout, the bounds-checked decode, and the refusals --
+# which is orchestration-shaped, non-template code that CLAUDE.md section 5
+# puts in a .cpp regardless of the surrounding loop.
+################################################################################
+
+target_sources(hven PRIVATE
+    warmstart/warm_start_data.cpp
+)
+
+################################################################################
 # Precompiled header
 #
 # What it contains and why the include order is load-bearing: src/hven_pch.h.
@@ -286,7 +300,13 @@ endif()
 # it, and out is the unmeasured default. It includes the model contract, the
 # triplet problem surface, Eigen sparse and fmt: again a different header set
 # in a different order from the one src/hven_pch.h prefixes.
-set(_hven_expected_source_count 32)
+#
+# 33 as of warmstart/warm_start_data.cpp, the warm-start currency's byte form.
+# It stays OUT on the same footing as the four above -- no measurement exists
+# for it, and out is the unmeasured default. It includes the currency header,
+# the model contract's structure-identity header, and fmt: again a different
+# header set in a different order from the one src/hven_pch.h prefixes.
+set(_hven_expected_source_count 33)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
