@@ -3283,9 +3283,16 @@ class SqpDriver {
     /// subgradient certificate rather than prices. Nothing here re-reads or
     /// re-judges them.
     ///
-    /// The stamp is the bridge's `model_structure_key()` AS OF that solve's
-    /// COMPLETION, not as of this call: a re-lay in between must not stamp
-    /// these blocks with a key they were never taken under.
+    /// The stamp is the bridge's DECLARATION key
+    /// (model/structure_identity.h's `declaration_key` over `declaration()`)
+    /// AS OF that solve's COMPLETION, not as of this call: a re-lay in between
+    /// must not stamp these blocks with a key they were never taken under. The
+    /// DECLARATION key and not the bridge's `model_structure_key()`: what the
+    /// value claims is the PROBLEM it was taken on, which is the only thing a
+    /// hand-off crossing engines or fixed-variable treatments can be held to
+    /// (warmstart/warm_start_data.h carries the ruling and the argument).
+    /// `ModelStructureKey` stays what it always was, the layout/epoch key, and
+    /// is not this stamp.
     ///
     /// NO EXTENSIONS. This engine produces none: the polish tag is the
     /// interior-point engine's own hand-off and an SQP-side extension is not
@@ -3322,11 +3329,19 @@ class SqpDriver {
     /// above), so both are checked AT THE NEXT SOLVE, against the problem
     /// that call binds: every block's length against the declared dimensions,
     /// refusing `std::invalid_argument` naming the block, the length held and
-    /// the length declared; then the stamp, refusing naming BOTH key digests.
-    /// Either refusal has ALREADY consumed the staged value -- loud, then
-    /// gone, so a caller that logs the refusal and solves anyway cold-starts
-    /// rather than silently warm-starting off a value that engine just
-    /// rejected.
+    /// the length declared; then the stamp, refusing naming BOTH DECLARATION
+    /// key digests. Either refusal has ALREADY consumed the staged value --
+    /// loud, then gone, so a caller that logs the refusal and solves anyway
+    /// cold-starts rather than silently warm-starting off a value this engine
+    /// just rejected.
+    ///
+    /// WHAT A STAMP MISMATCH MEANS: the caller transcribed a DIFFERENT PROBLEM
+    /// -- different dimensions, different piece row structure, or a different
+    /// declared box. It does NOT mean a different engine and it does NOT mean
+    /// a different fixed-variable treatment: the stamp is the declaration key,
+    /// so a value the interior-point engine exported, under any treatment,
+    /// stages and applies here on the same declaration. That is the crossover,
+    /// and it is one composition rather than a conversion.
     ///
     /// NON-CONSUMING (R5): the argument is taken by const reference and
     /// copied. Staging the same value twice from the same cold state produces
@@ -3342,12 +3357,14 @@ class SqpDriver {
     /// silently -- including when the argument is a default-constructed
     /// (cold) object, which is this class's documented way of ASKING for a
     /// cold solve and so contradicts a staged value just as loudly. THAT
-    /// REFUSAL DOES NOT CONSUME THE STAGED VALUE: it judges the CALL's
-    /// arguments, not the value, and the call binds no problem and runs
-    /// nothing -- so the caller's fix is to drop one of the two sources and
-    /// call again, with the value still standing. It is the one refusal on
-    /// this surface that leaves something staged, precisely because it is the
-    /// one that never looked at what was staged.
+    /// REFUSAL DOES NOT CONSUME THE STAGED VALUE (settler ruling,
+    /// 2026-08-25): it judges the CALL's arguments, not the value, and the
+    /// call binds no problem and runs nothing -- so the caller's fix is to
+    /// drop one of the two sources and call again, with the value still
+    /// standing. It is the one refusal on this surface that leaves something
+    /// staged, precisely because it is the one that never looked at what was
+    /// staged, AND THE REFUSAL MESSAGE SAYS SO -- a caller must not have to
+    /// infer from silence whether a one-shot value survived.
     ///
     /// WHAT IS APPLIED. The value becomes the `warm` object the next solve
     /// runs against -- the same object an explicit argument would have been

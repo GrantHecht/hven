@@ -31,9 +31,9 @@
 #include "hven/model/structure_identity.h"
 #include "hven/warmstart/warm_start_data.h"
 
+using hven::solvers::DeclarationKey;
 using hven::solvers::deserialize;
 using hven::solvers::kWarmStartFormatVersion;
-using hven::solvers::ModelStructureKey;
 using hven::solvers::serialize;
 using hven::solvers::WarmExtension;
 using hven::solvers::WarmStartData;
@@ -91,7 +91,7 @@ WarmStartData make_populated() {
     data.eq_lmults_ = vector_of({0.125, -0.5});
     data.iq_lmults_ = vector_of({4.0});
     data.bound_lmults_ = vector_of({-1.0, 0.0, 2.5});
-    data.structure_key_ = ModelStructureKey{0xA1B2C3D4E5F60718ULL, 7, 0x0F1E2D3C4B5A6978ULL};
+    data.structure_key_ = DeclarationKey{0xA1B2C3D4E5F60718ULL, 0x0F1E2D3C4B5A6978ULL};
     data.extensions_ = {
         WarmExtension{"hven.ipm.polish.v1", bytes_of({0x00, 0x7F, 0xFF, 0x10})},
         WarmExtension{"foreign.tag", bytes_of({0x2A})},
@@ -123,8 +123,16 @@ bool mentions(const std::string &message, const std::string &fragment) {
 // The value is small and every field is exercised: a two-element primal block,
 // a one-element equality block, an EMPTY inequality block, a bound block
 // carrying +0.0 and -0.0 (the pair `operator==` cannot tell apart but the byte
-// form must), all three stamp conjuncts distinct and byte-asymmetric, and one
+// form must), both stamp conjuncts distinct and byte-asymmetric, and one
 // extension with a two-character tag and a three-byte payload.
+//
+// RE-STATED FOR FORMAT v2 (the 2026-08-25 declaration-identity ruling): the
+// key slot is two u64 conjuncts where v1 carried u64 + i32 + u64, so the
+// encoding is FOUR BYTES SHORTER and every offset past the stamp moves down by
+// four. The bytes below are re-derived by hand from the layout in
+// src/warmstart/warm_start_data.cpp, not adjusted from the v1 pin: the
+// derivation is the whole point of the pin, and patching a frozen artifact to
+// match new output would make it agree with anything.
 // ---------------------------------------------------------------------------
 
 WarmStartData frozen_value() {
@@ -133,7 +141,7 @@ WarmStartData frozen_value() {
     data.eq_lmults_ = vector_of({0.5});
     data.iq_lmults_ = Eigen::VectorXd();
     data.bound_lmults_ = vector_of({0.0, -0.0});
-    data.structure_key_ = ModelStructureKey{0x0123456789ABCDEFULL, 3, 0xFEDCBA9876543210ULL};
+    data.structure_key_ = DeclarationKey{0x0123456789ABCDEFULL, 0xFEDCBA9876543210ULL};
     data.extensions_ = {WarmExtension{"ab", bytes_of({0x01, 0x02, 0x03})}};
     return data;
 }
@@ -155,8 +163,8 @@ std::vector<std::byte> frozen_bytes() {
         0x53,
         0x44,
         0x00,
-        // [8] version = 1 (u32)
-        0x01,
+        // [8] version = 2 (u32)
+        0x02,
         0x00,
         0x00,
         0x00,
@@ -241,7 +249,7 @@ std::vector<std::byte> frozen_bytes() {
         0x00,
         0x00,
         0x80,
-        // [84] structure_key_.claim_digest_ = 0x0123456789ABCDEF (u64)
+        // [84] structure_key_.declaration_digest_ = 0x0123456789ABCDEF (u64)
         0xEF,
         0xCD,
         0xAB,
@@ -250,12 +258,7 @@ std::vector<std::byte> frozen_bytes() {
         0x45,
         0x23,
         0x01,
-        // [92] structure_key_.partition_count_ = 3 (i32)
-        0x03,
-        0x00,
-        0x00,
-        0x00,
-        // [96] structure_key_.bound_digest_ = 0xFEDCBA9876543210 (u64)
+        // [92] structure_key_.bound_digest_ = 0xFEDCBA9876543210 (u64)
         0x10,
         0x32,
         0x54,
@@ -264,7 +267,7 @@ std::vector<std::byte> frozen_bytes() {
         0xBA,
         0xDC,
         0xFE,
-        // [104] extension count = 1 (u64)
+        // [100] extension count = 1 (u64)
         0x01,
         0x00,
         0x00,
@@ -273,7 +276,7 @@ std::vector<std::byte> frozen_bytes() {
         0x00,
         0x00,
         0x00,
-        // [112] extension[0] tag length = 2 (u64)
+        // [108] extension[0] tag length = 2 (u64)
         0x02,
         0x00,
         0x00,
@@ -282,10 +285,10 @@ std::vector<std::byte> frozen_bytes() {
         0x00,
         0x00,
         0x00,
-        // [120] extension[0] tag = "ab"
+        // [116] extension[0] tag = "ab"
         0x61,
         0x62,
-        // [122] extension[0] payload length = 3 (u64)
+        // [118] extension[0] payload length = 3 (u64)
         0x03,
         0x00,
         0x00,
@@ -294,25 +297,25 @@ std::vector<std::byte> frozen_bytes() {
         0x00,
         0x00,
         0x00,
-        // [130] extension[0] payload
+        // [126] extension[0] payload
         0x01,
         0x02,
         0x03,
-        // ends at [133]
+        // ends at [129]
     });
 }
 
 /// The hand-stated encoding's length, and the number of proper prefixes the
 /// truncation suite below sweeps.
-constexpr std::size_t kFrozenSize = 133;
+constexpr std::size_t kFrozenSize = 129;
 
 // The offsets the length-field refusal tests patch, read off the same
 // hand-stated layout.
 constexpr std::size_t kVersionOffset = 8;
 constexpr std::size_t kPrimalLengthOffset = 12;
-constexpr std::size_t kExtensionCountOffset = 104;
-constexpr std::size_t kTagLengthOffset = 112;
-constexpr std::size_t kPayloadLengthOffset = 122;
+constexpr std::size_t kExtensionCountOffset = 100;
+constexpr std::size_t kTagLengthOffset = 108;
+constexpr std::size_t kPayloadLengthOffset = 118;
 
 void poke_u64(std::vector<std::byte> &bytes, std::size_t offset, std::uint64_t value) {
     for (std::size_t i = 0; i < 8; ++i) {
@@ -340,7 +343,7 @@ TEST(WarmStartValue, DefaultIsEmptyAndEqualToAnotherDefault) {
     EXPECT_EQ(left.iq_lmults_.size(), 0);
     EXPECT_EQ(left.bound_lmults_.size(), 0);
     EXPECT_TRUE(left.extensions_.empty());
-    EXPECT_EQ(left.structure_key_, ModelStructureKey{});
+    EXPECT_EQ(left.structure_key_, DeclarationKey{});
     EXPECT_EQ(left, right);
 }
 
@@ -374,16 +377,12 @@ TEST(WarmStartValue, EqualityIsFieldwiseOverEveryBlock) {
     EXPECT_NE(base, bound);
 }
 
-TEST(WarmStartValue, EqualityIsFieldwiseOverTheStampsThreeConjuncts) {
+TEST(WarmStartValue, EqualityIsFieldwiseOverBothStampConjuncts) {
     const WarmStartData base = make_populated();
 
-    WarmStartData claims = base;
-    claims.structure_key_.claim_digest_ += 1;
-    EXPECT_NE(base, claims);
-
-    WarmStartData partitions = base;
-    partitions.structure_key_.partition_count_ += 1;
-    EXPECT_NE(base, partitions);
+    WarmStartData declaration = base;
+    declaration.structure_key_.declaration_digest_ += 1;
+    EXPECT_NE(base, declaration);
 
     WarmStartData bounds = base;
     bounds.structure_key_.bound_digest_ += 1;
@@ -444,11 +443,20 @@ TEST(WarmStartSerialization, RoundTripsADefaultConstructedValue) {
 }
 
 TEST(WarmStartSerialization, RoundTripsEmptyBlocksWithAPopulatedStamp) {
+    // BOTH CONJUNCTS AT THEIR EXTREMES, and one of them zero: a digest is an
+    // FNV-1a value with no reserved bit patterns, so the top bit set and the
+    // all-zero value are both real keys the byte form has to carry unchanged.
     WarmStartData original;
-    original.structure_key_ = ModelStructureKey{99ULL, -4, 0ULL};
-    const WarmStartData decoded = deserialize(serialize(original));
+    original.structure_key_ = DeclarationKey{0xFFFFFFFFFFFFFFFFULL, 0ULL};
+    WarmStartData decoded = deserialize(serialize(original));
     EXPECT_EQ(original, decoded);
-    EXPECT_EQ(decoded.structure_key_.partition_count_, -4);
+    EXPECT_EQ(decoded.structure_key_.declaration_digest_, 0xFFFFFFFFFFFFFFFFULL);
+    EXPECT_EQ(decoded.structure_key_.bound_digest_, 0ULL);
+
+    original.structure_key_ = DeclarationKey{0ULL, 0x8000000000000000ULL};
+    decoded = deserialize(serialize(original));
+    EXPECT_EQ(original, decoded);
+    EXPECT_EQ(decoded.structure_key_.bound_digest_, 0x8000000000000000ULL);
 }
 
 TEST(WarmStartSerialization, RoundTripsSpecialDoublesBitExactly) {
@@ -522,8 +530,24 @@ TEST(WarmStartSerialization, DecodesTheFrozenBytesBackToTheFrozenValue) {
     EXPECT_TRUE(std::signbit(decoded.bound_lmults_[1]));
 }
 
-TEST(WarmStartSerialization, TheFormatVersionThisBuildWritesIsOne) {
-    EXPECT_EQ(kWarmStartFormatVersion, 1U);
+TEST(WarmStartSerialization, TheFormatVersionThisBuildWritesIsTwo) {
+    EXPECT_EQ(kWarmStartFormatVersion, 2U);
+}
+
+// THE v1 REFUSAL, called out on its own rather than left to the sweep below.
+// v1 is not a hypothetical unknown version: it is the format this repository
+// wrote before the 2026-08-25 declaration-identity ruling, whose key slot was
+// three conjuncts of a LAYOUT key. There is no shim -- a v1 stamp cannot be
+// converted into a declaration digest, because the information is not in it --
+// so the refusal has to be unmistakable and has to name both versions.
+TEST(WarmStartSerialization, RefusesAVersionOnePayloadNamingBothVersions) {
+    std::vector<std::byte> bytes = frozen_bytes();
+    poke_u32(bytes, kVersionOffset, 1U);
+    const std::string message = refusal_message(bytes);
+    EXPECT_TRUE(mentions(message, "byte offset 8")) << message;
+    EXPECT_TRUE(mentions(message, "is 1")) << message;
+    EXPECT_TRUE(mentions(message, "version 2")) << message;
+    EXPECT_TRUE(mentions(message, "re-export")) << message;
 }
 
 // ---------------------------------------------------------------------------
@@ -546,7 +570,7 @@ TEST(WarmStartSerialization, RefusesABadMagic) {
 }
 
 TEST(WarmStartSerialization, RefusesAVersionThisBuildDoesNotRead) {
-    for (const std::uint32_t version : {0U, 2U, 0xFFFFFFFFU}) {
+    for (const std::uint32_t version : {0U, 1U, 3U, 0xFFFFFFFFU}) {
         std::vector<std::byte> bytes = frozen_bytes();
         poke_u32(bytes, kVersionOffset, version);
         const std::string message = refusal_message(bytes);
@@ -560,7 +584,7 @@ TEST(WarmStartSerialization, RefusesTrailingBytes) {
     std::vector<std::byte> bytes = frozen_bytes();
     bytes.push_back(std::byte{0x00});
     const std::string message = refusal_message(bytes);
-    EXPECT_TRUE(mentions(message, "byte offset 133")) << message;
+    EXPECT_TRUE(mentions(message, "byte offset 129")) << message;
     EXPECT_TRUE(mentions(message, "trailing")) << message;
 }
 
@@ -580,7 +604,7 @@ TEST(WarmStartSerialization, RefusesAnExtensionCountTheInputCannotHold) {
     std::vector<std::byte> bytes = frozen_bytes();
     poke_u64(bytes, kExtensionCountOffset, std::numeric_limits<std::uint64_t>::max());
     const std::string message = refusal_message(bytes);
-    EXPECT_TRUE(mentions(message, "byte offset 104")) << message;
+    EXPECT_TRUE(mentions(message, "byte offset 100")) << message;
     EXPECT_TRUE(mentions(message, "the extension list")) << message;
 }
 
@@ -588,7 +612,7 @@ TEST(WarmStartSerialization, RefusesATagLengthTheInputCannotHold) {
     std::vector<std::byte> bytes = frozen_bytes();
     poke_u64(bytes, kTagLengthOffset, 1000);
     const std::string message = refusal_message(bytes);
-    EXPECT_TRUE(mentions(message, "byte offset 112")) << message;
+    EXPECT_TRUE(mentions(message, "byte offset 108")) << message;
     EXPECT_TRUE(mentions(message, "an extension tag")) << message;
 }
 
@@ -596,7 +620,7 @@ TEST(WarmStartSerialization, RefusesAPayloadLengthTheInputCannotHold) {
     std::vector<std::byte> bytes = frozen_bytes();
     poke_u64(bytes, kPayloadLengthOffset, 1000);
     const std::string message = refusal_message(bytes);
-    EXPECT_TRUE(mentions(message, "byte offset 122")) << message;
+    EXPECT_TRUE(mentions(message, "byte offset 118")) << message;
     EXPECT_TRUE(mentions(message, "an extension payload")) << message;
 }
 

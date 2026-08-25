@@ -1483,8 +1483,14 @@ class InteriorPointSolver {
     /// the engine's convention and the currency's, so a value round-tripped
     /// through the currency means the same thing at both ends.
     ///
-    /// The stamp is the bound program's model_structure_key() AS OF that
-    /// solve's completion, not as of this call.
+    /// The stamp is the bound program's DECLARATION key
+    /// (model/structure_identity.h's declaration_key over declaration()) AS OF
+    /// that solve's completion, not as of this call. The declaration key and
+    /// not the layout key: what the value claims is the PROBLEM it was taken
+    /// on, which is the only thing a hand-off crossing engines or
+    /// fixed-variable treatments can be held to -- warmstart/warm_start_data.h
+    /// carries the ruling and the argument. ModelStructureKey stays what it
+    /// always was, the layout/epoch key, and is not this stamp.
     ///
     /// EXTENSIONS: exactly one, `"hven.ipm.polish.v1"`
     /// (warmstart/ipm_polish_extension.h), and only when the solve had a
@@ -1510,9 +1516,18 @@ class InteriorPointSolver {
     /// REFUSES rather than being silently dropped or silently cold-started
     /// over. A caller wanting a second warm solve stages again.
     ///
+    /// WHAT A STAMP MISMATCH MEANS HERE: the caller transcribed a DIFFERENT
+    /// PROBLEM -- different dimensions, different piece row structure, or a
+    /// different declared box. It does NOT mean a different fixed-variable
+    /// treatment or a different layout: the stamp is the declaration key, so a
+    /// value exported under one treatment stages and applies under another on
+    /// the same declaration, which is safe because the blocks are declared-space
+    /// and application ignores the coordinates an eliminating treatment holds.
+    ///
     /// CHECKED HERE: every block's length against the declared dimensions, and
     /// finiteness. NOT checked here: the stamp -- it is compared once, at
-    /// solve entry, and a mismatch refuses there naming both keys.
+    /// solve entry, and a mismatch refuses there naming both DECLARATION key
+    /// digests.
     ///
     /// NON-CONSUMING (R5): the argument is taken by const reference and
     /// copied. Staging the same value twice from the same cold state produces

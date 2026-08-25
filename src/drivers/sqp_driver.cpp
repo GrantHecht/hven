@@ -378,7 +378,8 @@ void SqpDriver::refuse_two_warm_sources() const {
             "SqpDriver::solve: this call passes a WarmStart argument while a warm-start value is "
             "staged on this driver (stage_warm_start) -- two warm-start sources for one solve. "
             "Neither silently wins: drop the argument to use the staged value, or stage nothing "
-            "and pass the argument. The staged value is still staged.");
+            "and pass the argument. The staged value is RETAINED -- it is still staged and this "
+            "call consumed nothing, so calling again without the argument applies it.");
     }
 }
 
@@ -420,16 +421,23 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
     // eq_lmults_ holds 3, this problem declares 5" is the more actionable of the
     // two diagnostics when both are true.
     //
-    // Read off the BRIDGE, which is where the key lives, and read HERE rather
-    // than at staging: this is the first moment the key this solve lays under
-    // exists.
-    const ModelStructureKey live = bridge.model_structure_key();
+    // THE DECLARATION KEY, not the layout key: what this value claims is the
+    // PROBLEM it was taken on, and the layout key would additionally claim an
+    // engine's own claim order and partition count -- which is exactly what
+    // made the cross-engine hand-off refuse on every problem before the
+    // 2026-08-25 ruling (warm_start_data.h's stamp note, and
+    // model/structure_identity.h's DeclarationKey/ModelStructureKey note).
+    //
+    // Read off the BRIDGE's declaration, and read HERE rather than at staging:
+    // this is the first moment a declaration this solve binds exists.
+    const DeclarationKey live = declaration_key(bridge.declaration());
     if (!(data.structure_key_ == live)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver::solve: the staged warm start was taken under structure key {0:#x} but the "
-            "problem this solve binds keys {1:#x} -- the value describes a different declared "
-            "structure (claims, partition count, and bound structure). The staged start is refused "
-            "rather than silently dropped; re-export and re-stage against the current structure.",
+            "SqpDriver::solve: the staged warm start was taken under declaration key {0:#x} but "
+            "the problem this solve binds keys {1:#x} -- the value describes a different declared "
+            "problem (dimensions, piece row structure, or bound structure). The staged start is "
+            "refused rather than silently dropped; re-export and re-stage against the current "
+            "declaration.",
             data.structure_key_.digest(), live.digest()));
     }
 
@@ -521,10 +529,10 @@ void SqpDriver::capture_completed_warm_start(const SqpSolution &out, const Aggre
     }
 
     // AS OF THIS SOLVE. Read here rather than at export so a re-lay between the
-    // two cannot stamp these blocks with a key they were never taken under. The
-    // bridge memoizes its digests per lay, so a driver solving repeatedly
-    // against unmoved structures pays them once.
-    captured.structure_key_ = bridge.model_structure_key();
+    // two cannot stamp these blocks with a key they were never taken under.
+    // THE DECLARATION KEY -- see the consume side above for why it is that one
+    // and not the bridge's layout key.
+    captured.structure_key_ = declaration_key(bridge.declaration());
 
     // NO EXTENSIONS: this engine produces none (see export_warm_start).
     completed_warm_ = std::move(captured);

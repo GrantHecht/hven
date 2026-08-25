@@ -173,9 +173,14 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data);
 /// @param lower Declared lower bounds, size n (nlp_model.h's -1e20 convention
 ///        marks a side nothing can be active at).
 /// @param upper Declared upper bounds, size n.
-/// @param structure_key The key of the model `lower`/`upper` belong to. The
-///        value's own stamp must equal it: a hand-off taken under a different
-///        declared structure names different variables and different rows.
+/// @param structure_key The DECLARATION key (model/structure_identity.h's
+///        declaration_key) of the model `lower`/`upper` belong to. The value's
+///        own stamp must equal it: a hand-off taken under a different declared
+///        problem names different variables and different rows. It is the
+///        DECLARATION key rather than the layout key for the reason
+///        warm_start_data.h's stamp note gives -- the layout key is
+///        engine- and treatment-specific, and this bridge exists precisely to
+///        carry a value from one engine to the other.
 /// @param opts The crossover's activity-inference tolerances, forwarded
 ///        verbatim.
 /// @return The crossover object, `valid == true`.
@@ -187,7 +192,7 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data);
 ///         extension's block widths disagree with the core's, or if
 ///         `lower`/`upper` are not at the core's own n.
 WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
-                            const ModelStructureKey &structure_key,
+                            const DeclarationKey &structure_key,
                             const IpCrossoverOptions &opts = {});
 
 } // namespace hven::solvers

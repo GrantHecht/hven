@@ -21,6 +21,7 @@
 
 #include "hven/detail/interior/constraint_function.h"
 #include "hven/detail/interior/objective_function.h"
+#include "hven/model/structure_identity.h"
 
 namespace hven::solvers {
 
@@ -268,6 +269,52 @@ void AggregateDeclaration::validate() const {
     // interval. Materializing is what makes the last of those detectable here,
     // before any layout runs, rather than only when a layout is attempted.
     static_cast<void>(this->materialize_variable_bounds());
+}
+
+// --- THE DECLARATION-IDENTITY DIGEST (model/structure_identity.h) ---
+//
+// HERE rather than in structure_identity.h, which is otherwise header-only: the
+// digest is declaration-level logic, and this TU is the one place declaration-
+// level logic lives with the piece definitions in scope. (It no longer READS a
+// piece -- see the exclusion note on the function below -- but the placement is
+// what lets a future strengthening read one without moving the function.)
+
+std::uint64_t declaration_identity_digest(const AggregateDeclaration &declaration) {
+    // THE FIXING TAIL HAS TO BE A LEGAL SPLIT before the user row count is
+    // taken. The count is the declaration's own trust boundary (its field
+    // note), and validate() holds it to "one single-row piece each at the tail
+    // of equality_constraints_" -- but this function is reachable on a
+    // declaration nobody validated. A count that does not name a legal split is
+    // refused rather than clamped: clamping would key two different problems
+    // the same, which is the one thing a stamp may never do.
+    const int fixing = declaration.fixing_rows_;
+    if (fixing < 0 || fixing > declaration.equality_rows_) {
+        throw std::invalid_argument(fmt::format(
+            "declaration_identity_digest: the declaration states {0} internal fixing rows inside "
+            "an equality row space of {1} -- a fixing-row count names rows a treatment appended "
+            "to that space, so it must lie in [0, equality_rows_]",
+            fixing, declaration.equality_rows_));
+    }
+
+    Fnv1a hash;
+    // THE DECLARED DIMENSIONS, with the USER equality count. Fed through the
+    // same self-delimiting preamble claim_stream_digest opens with, so the two
+    // digests agree about what a dimension triple hashes to even though they
+    // agree about nothing else.
+    detail::feed_dimensions(hash, declaration.primal_vars_, declaration.equality_rows_ - fixing,
+                            declaration.inequality_rows_);
+    return hash.value();
+}
+
+DeclarationKey declaration_key(const AggregateDeclaration &declaration) {
+    // Each conjunct through its own public builder, and the bound one through
+    // the SAME builder ModelStructureKey's bound conjunct uses -- the input is
+    // the declaration's own materialized bound records, which are declaration
+    // data on both engines and under every treatment (a relaxing treatment
+    // widens the BoundSet it hands the barrier, never the records the
+    // declaration carries), so there is nothing here to re-derive.
+    return DeclarationKey{declaration_identity_digest(declaration),
+                          materialized_bound_digest(declaration)};
 }
 
 } // namespace hven::solvers

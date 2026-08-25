@@ -40,10 +40,25 @@ struct WarmExtension {
 ///
 /// SPACE CONVENTION -- binding on every producer and every consumer: every
 /// block is stated over the DECLARED problem, the full primal space and the
-/// declared row spaces, never over a solver's reduced space. The stamp carries
-/// the treatment conjunct, so a payload taken under one treatment refuses
-/// against a problem laid under another; inside one stamp the declared space is
-/// the one space both engines share.
+/// declared row spaces, never over a solver's reduced space. Inside one stamp
+/// the declared space is the one space both engines share.
+///
+/// THE STAMP IS A DECLARATION-IDENTITY KEY (owner ruling, 2026-08-25, on M5
+/// W3's cross-engine evidence): a canonical digest of the DECLARED problem --
+/// its dimensions, its pieces' row structure, and its bound records --
+/// computed from the AggregateDeclaration both engines consume
+/// (model/structure_identity.h's declaration_key). It is therefore
+/// ENGINE-INDEPENDENT and TREATMENT-INDEPENDENT by construction, which is what
+/// makes one value mean the same thing at both ends of a hand-off.
+///
+/// STALENESS IS A DECLARATION CHANGE -- the caller transcribed a different
+/// problem -- and nothing else. It is NOT an engine's layout state and NOT its
+/// fixed-variable treatment: declared-space payloads are treatment-safe
+/// because application ignores the entries an eliminating treatment holds, so
+/// refusing across a treatment change would refuse a hand-off that is
+/// perfectly good. `ModelStructureKey` remains the LAYOUT/EPOCH key (M4's E2
+/// ruling, unchanged) and is not this stamp; the two answer different
+/// questions and must never be compared against one another.
 ///
 /// The block sizes are the declared dimensions -- `primal_` and `bound_lmults_`
 /// are n, `eq_lmults_` is me, `iq_lmults_` is mi -- and nothing in this
@@ -61,7 +76,7 @@ struct WarmStartData {
     /// n, signed z = zL - zU (the engine's convention; >= 0 at an active
     /// lower bound).
     Eigen::VectorXd bound_lmults_;
-    ModelStructureKey structure_key_; ///< The stamp; `==` is the currency test.
+    DeclarationKey structure_key_; ///< The stamp; `==` is the currency test.
     std::vector<WarmExtension> extensions_;
 
     friend bool operator==(const WarmStartData &, const WarmStartData &) = default;
@@ -69,7 +84,14 @@ struct WarmStartData {
 
 /// @brief The serialized-format version this build writes, and the only one
 ///        `deserialize` accepts.
-inline constexpr std::uint32_t kWarmStartFormatVersion = 1;
+///
+/// v2 is the DECLARATION-IDENTITY STAMP's format: the key slot is two u64
+/// conjuncts where v1 carried three (u64, i32, u64). v1 payloads are REFUSED
+/// BY VERSION, naming both versions -- there is no compatibility shim, because
+/// there are no v1 payloads outside this repository's own history (the
+/// currency is pre-release) and a shim would have to invent a declaration
+/// digest from a claim digest, which is not a thing that can be done.
+inline constexpr std::uint32_t kWarmStartFormatVersion = 2;
 
 /// @brief Encodes a warm-start value as a self-delimiting, versioned byte
 ///        sequence.

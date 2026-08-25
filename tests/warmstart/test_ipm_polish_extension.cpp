@@ -39,12 +39,12 @@
 #include "hven/warmstart/ipm_polish_extension.h"
 #include "hven/warmstart/warm_start_data.h"
 
+using hven::solvers::DeclarationKey;
 using hven::solvers::deserialize_ipm_polish;
 using hven::solvers::find_ipm_polish;
 using hven::solvers::from_interior_point;
 using hven::solvers::IpmPolishData;
 using hven::solvers::kIpmPolishTag;
-using hven::solvers::ModelStructureKey;
 using hven::solvers::serialize_ipm_polish;
 using hven::solvers::to_sqp_warm_start;
 using hven::solvers::WarmExtension;
@@ -136,10 +136,9 @@ void poke_u64(std::vector<std::byte> &bytes, std::size_t offset, std::uint64_t v
     }
 }
 
-ModelStructureKey key_of(std::uint64_t claims) {
-    ModelStructureKey key;
-    key.claim_digest_ = claims;
-    key.partition_count_ = 1;
+DeclarationKey key_of(std::uint64_t declaration) {
+    DeclarationKey key;
+    key.declaration_digest_ = declaration;
     key.bound_digest_ = 0xABCDEF;
     return key;
 }
@@ -394,7 +393,7 @@ TEST(IpmPolishBridge, RefusesACoreOnlyValueNamingTheTag) {
 
 TEST(IpmPolishBridge, RefusesAStampThatDoesNotMatchTheModel) {
     const WarmStartData data = bridgeable_value();
-    const ModelStructureKey other = key_of(0x22);
+    const DeclarationKey other = key_of(0x22);
     const std::string message =
         refusal_from([&] { to_sqp_warm_start(data, bridge_lower(), bridge_upper(), other); });
     EXPECT_TRUE(mentions(message, fmt::format("{:#x}", data.structure_key_.digest()))) << message;

@@ -19,9 +19,12 @@
 //     StartLevel::kSeeded, and a foreign tag skipped silently;
 //   * R5 determinism, instrumented on `SqpSolution::history[0]` (the first
 //     iterate's measured row, a bit-exact function of the ingested start state);
-//   * the interior-point -> SQP composition end to end, which as of this commit
-//     is BLOCKED CROSS-ENGINE by a stamp defect the last test in this file
-//     documents and pins.
+//   * the interior-point -> SQP composition end to end, natively: one declared
+//     problem, one exported value, no conversion and no re-stamp anywhere.
+//     That composition is what the DECLARATION-IDENTITY stamp bought (owner
+//     ruling, 2026-08-25) and the last two tests here pin both halves of it --
+//     the cross-engine hand-off that now works, and the declaration change
+//     that still refuses.
 //
 // Names carry a `Currency` prefix: this suite's TUs share a link unit, so
 // file-scope names must not collide with the other files here.
@@ -53,9 +56,10 @@ using hven::ConstEigenRef;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
+using hven::solvers::declaration_key;
+using hven::solvers::DeclarationKey;
 using hven::solvers::IpmPolishData;
 using hven::solvers::kIpmPolishTag;
-using hven::solvers::ModelStructureKey;
 using hven::solvers::NlpModel;
 using hven::solvers::NlpModelAggregate;
 using hven::solvers::NLPProblem;
@@ -220,6 +224,74 @@ class CurrencyWiderModel : public NlpModel {
     Vec lower_, upper_;
 };
 
+// The fixture problem with ONE MORE EQUALITY ROW and the same box: a genuinely
+// different DECLARED PROBLEM at the same primal width, which is what the
+// staleness pin needs. The second row is x1 + x2 = 1.5, chosen only so the
+// problem still has a solution; nothing below reads its answer.
+class CurrencyExtraRowModel : public NlpModel {
+  public:
+    CurrencyExtraRowModel() : lower_(3), upper_(Vec::Constant(3, 2.0)) {
+        lower_ << -1.0, -1.0, 0.0;
+    }
+
+    Index n() const override { return 3; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 1; }
+
+    double eval_f(const Vec &x) const override {
+        return 0.5 * x.squaredNorm() - 2.0 * x(0) - 3.0 * x(1);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(3);
+        g << x(0) - 2.0, x(1) - 3.0, x(2);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << x(0) + x(1) + x(2) - 1.0, x(1) + x(2) - 1.5;
+        return c;
+    }
+    Vec eval_ci(const Vec &x) const override {
+        Vec c(1);
+        c(0) = x(0) + 0.5;
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(3, 3);
+        for (int i = 0; i < 3; ++i) {
+            h.insert(i, i) = obj_scale;
+        }
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(2, 3);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = 1.0;
+        j.insert(0, 2) = 1.0;
+        j.insert(1, 1) = 1.0;
+        j.insert(1, 2) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override {
+        SpMatRM j(1, 3);
+        j.insert(0, 0) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override {
+        Vec x(3);
+        x << 0.0, 0.0, 0.5;
+        return x;
+    }
+
+  private:
+    Vec lower_, upper_;
+};
+
 // The fixture problem again, in the triplet-shaped convenience form the
 // interior-point engine's front end takes. Row 0 is the equality (gl == gu);
 // row 1 is upper-bounded at -0.5, which NlpProblemModel converts to the single
@@ -287,7 +359,7 @@ WarmStartData core_payload(const SqpSolution &sol, const NlpModelAggregate &brid
     data.eq_lmults_ = sol.lambda_e;
     data.iq_lmults_ = sol.lambda_i;
     data.bound_lmults_ = sol.z;
-    data.structure_key_ = bridge.model_structure_key();
+    data.structure_key_ = declaration_key(bridge.declaration());
     return data;
 }
 
@@ -382,7 +454,7 @@ TEST(SqpWarmCurrency, ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey) 
 
     const WarmStartData warm = driver.export_warm_start();
 
-    EXPECT_TRUE(warm.structure_key_ == bridge->model_structure_key());
+    EXPECT_TRUE(warm.structure_key_ == declaration_key(bridge->declaration()));
     EXPECT_EQ(warm.primal_.size(), model->n());
     EXPECT_EQ(warm.eq_lmults_.size(), model->me());
     EXPECT_EQ(warm.iq_lmults_.size(), model->mi());
@@ -547,8 +619,11 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueAtTheWrongSizes) {
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
-// SAME SIZES, DIFFERENT STRUCTURE. The size check cannot see this one: only the
-// stamp can, and only at solve entry, against the problem that call binds.
+// SAME SIZES, DIFFERENT DECLARED PROBLEM. The declared box moved -- one
+// variable's lower side went from finite to infinite -- which is a DECLARATION
+// change carried by the stamp's bound conjunct alone. The size check cannot see
+// it: only the stamp can, and only at solve entry, against the problem that call
+// binds. This is the pin for the refusal naming BOTH key digests.
 TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDigests) {
     const auto original = std::make_shared<CurrencyModel>(/*lower_x0_finite=*/true);
     const auto original_bridge = make_bridge(original);
@@ -556,9 +631,16 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDi
     const auto rekeyed_bridge = make_bridge(rekeyed);
 
     // The two problems are the same shape and have the same solution; only the
-    // BOUND STRUCTURE differs, which is a conjunct of the key.
+    // BOUND STRUCTURE differs, which is one of the two conjuncts of the stamp --
+    // and the declaration conjunct is IDENTICAL, so the bound one is carrying
+    // the whole refusal.
     ASSERT_EQ(original->n(), rekeyed->n());
-    ASSERT_FALSE(original_bridge->model_structure_key() == rekeyed_bridge->model_structure_key());
+    ASSERT_FALSE(declaration_key(original_bridge->declaration()) ==
+                 declaration_key(rekeyed_bridge->declaration()));
+    EXPECT_EQ(declaration_key(original_bridge->declaration()).declaration_digest_,
+              declaration_key(rekeyed_bridge->declaration()).declaration_digest_);
+    EXPECT_NE(declaration_key(original_bridge->declaration()).bound_digest_,
+              declaration_key(rekeyed_bridge->declaration()).bound_digest_);
 
     const SqpSolution sol = solve_fixture_cold(*original);
     SqpDriver driver{SqpOptions{}};
@@ -569,13 +651,13 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDi
         FAIL() << "a payload under another declared structure must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
-        EXPECT_NE(
-            message.find(fmt::format("{:#x}", original_bridge->model_structure_key().digest())),
-            std::string::npos)
+        EXPECT_NE(message.find(fmt::format(
+                      "{:#x}", declaration_key(original_bridge->declaration()).digest())),
+                  std::string::npos)
             << "the refusal must name the payload's own key: " << message;
-        EXPECT_NE(
-            message.find(fmt::format("{:#x}", rekeyed_bridge->model_structure_key().digest())),
-            std::string::npos)
+        EXPECT_NE(message.find(fmt::format(
+                      "{:#x}", declaration_key(rekeyed_bridge->declaration()).digest())),
+                  std::string::npos)
             << "the refusal must name the live key: " << message;
     }
 
@@ -630,8 +712,24 @@ TEST(SqpWarmCurrency, AnExplicitWarmArgumentAndAStagedValueAreRefusedTogether) {
     EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), WarmStart{}),
                  std::invalid_argument);
 
-    // AND THE VALUE IS STILL STAGED. The caller's fix is to drop one source and
-    // call again; nothing was judged and nothing was spent.
+    // AND THE REFUSAL SAYS SO. A caller must not have to infer from silence
+    // whether a ONE-SHOT value survived a refusal -- this is the one refusal on
+    // the surface that retains it, so the message states it in words (settler
+    // ruling, 2026-08-25).
+    try {
+        (void)driver.solve(*bridge, model->start_point(), WarmStart{});
+        FAIL() << "the two-sources refusal must fire";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("RETAINED"), std::string::npos)
+            << "the refusal must SAY the staged value survives: " << message;
+        EXPECT_NE(message.find("still staged"), std::string::npos) << message;
+        EXPECT_NE(message.find("consumed nothing"), std::string::npos) << message;
+    }
+
+    // AND THE VALUE IS STILL STAGED, which is what the message just promised.
+    // The caller's fix is to drop one source and call again; nothing was judged
+    // and nothing was spent.
     const SqpSolution out = driver.solve(*bridge, model->start_point());
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
 }
@@ -685,8 +783,8 @@ TEST(SqpWarmCurrency, APolishTaggedValueRoutesThroughTheCrossoverBridge) {
     const SqpSolution staged = staged_driver.solve(*bridge, model->start_point());
 
     // (b) through the bridge called by hand, on a fresh driver.
-    const WarmStart crossover =
-        to_sqp_warm_start(data, model->lower(), model->upper(), bridge->model_structure_key());
+    const WarmStart crossover = to_sqp_warm_start(data, model->lower(), model->upper(),
+                                                  declaration_key(bridge->declaration()));
     SqpDriver explicit_driver{SqpOptions{}};
     const SqpSolution direct = explicit_driver.solve(*bridge, model->start_point(), crossover);
 
@@ -743,25 +841,21 @@ TEST(SqpWarmCurrency, StagingTheSameValueTwiceFromColdIsBitIdentical) {
 // --- The interior-point -> SQP composition ---
 
 // THE CROSSOVER AS ONE COMPOSITION: an interior-point solve, its exported
-// value, and an SQP solve that finishes from it.
+// value, and an SQP solve that finishes from it -- no re-stamp, no conversion,
+// nothing in between.
 //
-// AND THE DEFECT IT WALKS INTO, pinned here rather than left to be discovered.
-// The two engines lay the SAME (row, column) claim SET for one declared model
-// in a DIFFERENT ORDER -- the interior-point program lays the constraint
-// Jacobian claims before the Hessian's, NlpModelAggregate lays the Hessian's
-// first -- and claim_stream_digest is ORDER-SENSITIVE by design
-// (model/structure_identity.h says so outright). So the CLAIM conjunct of the
-// key never agrees across the two engines, for any problem, while the BOUND
-// conjunct always does. A payload exported by one engine is therefore refused
-// by the other's stamp check, and the refusal is correct given the key it is
-// comparing: the defect is in the key's cross-engine meaning, not in either
-// engine's check.
-//
-// This test pins BOTH halves: the refusal as it stands today (so a fix cannot
-// land silently), and the rest of the composition -- the export's blocks, its
-// polish extension, and the SQP solve that consumes them -- through a payload
-// re-stamped with the destination bridge's own key. Everything except the
-// digest comparison is exercised end to end.
+// WHAT THIS TEST WATCHED FAIL, and what fixed it. Before the 2026-08-25
+// declaration-identity ruling the currency stamped `ModelStructureKey`, a
+// digest of the claim stream a provider actually laid. The two engines lay the
+// same (row, column) claim SET for one declared model in a DIFFERENT ORDER --
+// the interior-point program lays the constraint Jacobian's claims before the
+// Hessian's, NlpModelAggregate lays the Hessian's first -- and that digest is
+// order-sensitive by design, so the cross-engine stamp disagreed on EVERY
+// problem and this hand-off was refused unconditionally. The stamp is now the
+// DECLARATION key, which reads the declared problem and nothing a provider
+// decided. The first two assertions below are that fact stated directly: the
+// LAYOUT keys still differ (the claim orders are still different, and that is
+// still correct for the question that key answers), and the STAMPS agree.
 TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     const auto problem = std::make_shared<CurrencyIpmProblem>();
 
@@ -791,31 +885,23 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     const auto model = std::make_shared<NlpProblemModel>(problem);
     const auto bridge = make_bridge(model);
 
-    // HALF ONE -- the defect. Same declared model, same bound conjunct, and yet
-    // the keys differ, because the claim streams are ordered differently.
-    const ModelStructureKey ipm_key = ipm.nlp_->model_structure_key();
-    const ModelStructureKey sqp_key = bridge->model_structure_key();
-    EXPECT_EQ(ipm_key.bound_digest_, sqp_key.bound_digest_)
-        << "the bound conjunct is a property of the declaration and does agree";
-    EXPECT_NE(ipm_key.claim_digest_, sqp_key.claim_digest_)
-        << "THE DEFECT: if this now passes, the cross-engine claim-order "
-           "mismatch has been fixed -- drop the re-stamp below and stage "
-           "`exported` directly, and tell the M5 ledger";
-    {
-        SqpDriver refusing{SqpOptions{}};
-        refusing.stage_warm_start(exported);
-        EXPECT_THROW((void)refusing.solve(*bridge, model->start_point()), std::invalid_argument);
-    }
+    // THE TWO KEYS, side by side. The layout keys differ -- the claim orders
+    // are genuinely different -- and the stamps do not.
+    EXPECT_NE(ipm.nlp_->model_structure_key().claim_digest_,
+              bridge->model_structure_key().claim_digest_)
+        << "the two engines really do lay this declaration's claims differently; "
+           "if they ever stop, this pin is the note that says the layout keys "
+           "converged, not that anything broke";
+    EXPECT_TRUE(declaration_key(ipm.nlp_->declaration()) == declaration_key(bridge->declaration()))
+        << "one declared problem must key the same on both engines -- that is "
+           "the whole content of the declaration-identity ruling";
+    EXPECT_TRUE(exported.structure_key_ == declaration_key(bridge->declaration()))
+        << "and the exported value carries that key, so it stages here as-is";
 
-    // HALF TWO -- the rest of the composition, on a payload re-stamped for the
-    // destination. Everything the crossover actually consumes (the point, the
-    // duals, the polish pair, the inequality values) is the interior-point
-    // engine's own export, unmodified.
-    WarmStartData staged = exported;
-    staged.structure_key_ = sqp_key;
-
+    // THE COMPOSITION, with the value exactly as the other engine handed it
+    // over.
     SqpDriver sqp{SqpOptions{}};
-    sqp.stage_warm_start(staged);
+    sqp.stage_warm_start(exported);
     const SqpSolution out = sqp.solve(*bridge, model->start_point());
 
     EXPECT_EQ(out.status, SqpStatus::kOptimal);
@@ -834,8 +920,55 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     EXPECT_LT(out.counters.major_iters, cold.counters.major_iters)
         << "the crossover must save majors against a cold solve of the same problem";
 
-    // And the SQP engine can hand the result on again, stamped for ITS bridge.
+    // And the SQP engine can hand the result straight back, under the same
+    // stamp -- so the composition closes rather than ending in a value only one
+    // side can read.
     const WarmStartData reexported = sqp.export_warm_start();
-    EXPECT_TRUE(reexported.structure_key_ == sqp_key);
+    EXPECT_TRUE(reexported.structure_key_ == exported.structure_key_);
     EXPECT_EQ(reexported.primal_, out.x);
+}
+
+// GENUINE STALENESS: the caller transcribed a DIFFERENT PROBLEM -- one more
+// equality row -- and the value taken on the old one is refused.
+//
+// A row change moves a BLOCK LENGTH as well as the key, so the size check is
+// what fires (it runs first, deliberately, because "eq_lmults_ holds 1, this
+// problem declares 2" is the more actionable of the two diagnostics when both
+// are true). The keys are asserted apart directly, right here, so the pin says
+// what it means: this is a declaration change, and the stamp sees it. The
+// SAME-SIZE case -- where the stamp is the ONLY thing that can catch the change
+// -- is the bound-structure test further up, which is the one that names both
+// digests.
+TEST(SqpWarmCurrency, ADeclarationWithAnExtraRowIsStaleAndIsRefused) {
+    const auto original = std::make_shared<CurrencyModel>();
+    const auto original_bridge = make_bridge(original);
+    const auto extra = std::make_shared<CurrencyExtraRowModel>();
+    const auto extra_bridge = make_bridge(extra);
+
+    // The declaration really did change, and the stamp really does see it.
+    EXPECT_FALSE(declaration_key(original_bridge->declaration()) ==
+                 declaration_key(extra_bridge->declaration()));
+    EXPECT_NE(declaration_key(original_bridge->declaration()).declaration_digest_,
+              declaration_key(extra_bridge->declaration()).declaration_digest_);
+    // The BOX is untouched, so the bound conjunct is the same on both: the row
+    // change is carried entirely by the declaration conjunct, which is what
+    // that conjunct is for.
+    EXPECT_EQ(declaration_key(original_bridge->declaration()).bound_digest_,
+              declaration_key(extra_bridge->declaration()).bound_digest_);
+
+    const SqpSolution sol = solve_fixture_cold(*original);
+    SqpDriver driver{SqpOptions{}};
+    ASSERT_NO_THROW(driver.stage_warm_start(core_payload(sol, *original_bridge)));
+
+    try {
+        (void)driver.solve(*extra_bridge, extra->start_point());
+        FAIL() << "a value taken on a one-row-smaller declaration must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("eq_lmults_"), std::string::npos) << message;
+    }
+
+    // Consumed by the refusal, like every other solve-entry refusal.
+    const SqpSolution after = driver.solve(*extra_bridge, extra->start_point());
+    EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }

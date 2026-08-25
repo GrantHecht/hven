@@ -37,6 +37,7 @@
 #include "hven/warmstart/warm_start_data.h"
 
 using hven::ConstEigenRef;
+using hven::solvers::declaration_key;
 using hven::solvers::NLPProblem;
 using hven::solvers::NLPSolver;
 using hven::solvers::WarmStartData;
@@ -295,7 +296,7 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
 
     const WarmStartData warm = solver.optimizer_->export_warm_start();
 
-    EXPECT_TRUE(warm.structure_key_ == solver.nlp_->model_structure_key());
+    EXPECT_TRUE(warm.structure_key_ == declaration_key(solver.nlp_->declaration()));
     EXPECT_EQ(warm.primal_.size(), 3);
     EXPECT_EQ(warm.bound_lmults_.size(), 3);
     EXPECT_EQ(warm.eq_lmults_.size(), 1);
@@ -349,15 +350,15 @@ TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
               hven::ConvergenceFlags::CONVERGED);
-    const auto solved_key = solver.nlp_->model_structure_key();
+    const auto solved_key = declaration_key(solver.nlp_->declaration());
 
-    // A genuine re-lay that moves the key: a previously infinite side of a
-    // variable becomes finite, which is one of the two changes the bound
-    // conjunct is defined to notice.
+    // A genuine DECLARATION change, which is the only thing the stamp is
+    // defined to notice: a previously infinite side of a variable becomes
+    // finite, which moves the bound conjunct.
     solver.nlp_->set_variable_bound(0, -10.0, 10.0);
     solver.nlp_->make_nlp(2, 1, 0);
-    const auto relaid_key = solver.nlp_->model_structure_key();
-    ASSERT_FALSE(relaid_key == solved_key) << "the re-lay must have moved the structural key";
+    const auto relaid_key = declaration_key(solver.nlp_->declaration());
+    ASSERT_FALSE(relaid_key == solved_key) << "the re-declaration must have moved the stamp";
 
     const WarmStartData warm = solver.optimizer_->export_warm_start();
     EXPECT_TRUE(warm.structure_key_ == solved_key);
@@ -476,7 +477,7 @@ TEST(IpmWarmStart, ARelayBetweenStagingAndSolvingRefusesAtSolveEntry) {
 
     solver.nlp_->set_variable_bound(0, -10.0, 10.0);
     solver.nlp_->make_nlp(2, 1, 0);
-    const auto live_key = solver.nlp_->model_structure_key();
+    const auto live_key = declaration_key(solver.nlp_->declaration());
 
     try {
         warm_optimize(*solver.optimizer_, warm_eq_start());
@@ -525,14 +526,15 @@ TEST(IpmWarmStart, AStagedStartSurvivesAnIdenticalStampRelayAndIsTheSolveStart) 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
               hven::ConvergenceFlags::CONVERGED);
     const WarmStartData warm = solver.optimizer_->export_warm_start();
-    const auto key_before = solver.nlp_->model_structure_key();
+    const auto key_before = declaration_key(solver.nlp_->declaration());
 
     solver.optimizer_->stage_warm_start(warm);
 
-    // A genuine re-lay that leaves every conjunct of the key where it was: the
-    // renegotiation adopts the count already in force.
+    // A genuine re-lay that leaves the DECLARED PROBLEM where it was: the
+    // renegotiation adopts the count already in force, and a partition count is
+    // layout policy the stamp is defined to ignore either way.
     solver.nlp_->negotiate_partition_count(1);
-    ASSERT_TRUE(solver.nlp_->model_structure_key() == key_before);
+    ASSERT_TRUE(declaration_key(solver.nlp_->declaration()) == key_before);
 
     FirstIterateProbe probe;
     probe.arm(*solver.optimizer_, solver.nlp_->reduced_primal_vars());
@@ -594,7 +596,7 @@ TEST(IpmWarmStart, StagingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
         NLPSolver fresh(std::make_shared<WarmEqOnlyProblem>());
         fresh.optimizer_->set_print_level(10);
         fresh.transcribe();
-        ASSERT_TRUE(fresh.nlp_->model_structure_key() == warm.structure_key_)
+        ASSERT_TRUE(declaration_key(fresh.nlp_->declaration()) == warm.structure_key_)
             << "the same declaration must key the same from cold";
 
         fresh.optimizer_->stage_warm_start(warm);
@@ -720,39 +722,56 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     EXPECT_NEAR(warm.primal_[2], 0.25, 1e-9);
 }
 
-// THE PRIMARY FLOW, and the reason the stamp is checked at solve entry rather
-// than at staging. The MakeParameter treatment RE-LAYS the program (it
-// renumbers the claim stream into the reduced column space), so a program that
-// has solved once keys differently from the same declaration freshly
-// transcribed and not yet configured for any treatment. A consumer stages into
-// a cold engine, before that engine has ever solved -- so the check has to
-// happen where the key this solve lays under exists, which is after the
-// treatment configuration at solve entry. Staged on a fresh engine with the
-// same settings, the value goes in and the first solve consumes it WARM.
+// THE PRIMARY FLOW, and what the DECLARATION-IDENTITY stamp changed about it
+// (owner ruling, 2026-08-25).
+//
+// The MakeParameter treatment RE-LAYS the program -- it renumbers the claim
+// stream into the reduced column space -- so a program that has solved once has
+// a different LAYOUT key from the same declaration freshly transcribed. Under
+// the pre-ruling stamp that made the placement of the stamp check load-bearing:
+// a consumer staging into a cold engine would have been refused at staging by a
+// key that had not been configured yet.
+//
+// UNDER THE DECLARATION KEY IT IS NOT THE SAME FACT ANY MORE, and the pins
+// below say so both ways: the layout key still moves across the treatment, and
+// the DECLARATION key does NOT -- the two engines' claim orders and every
+// treatment's row and column rearrangement are exactly what the declaration key
+// is defined to exclude. What still makes solve entry the right placement is
+// the other half of the argument, which the ruling did not touch: the value is
+// held across an arbitrary number of set_nlp/re-declaration calls, so the only
+// honest thing to compare it against is the problem THE CONSUMING CALL binds.
+//
+// Staged on a fresh engine with the same settings, the value goes in and the
+// first solve consumes it WARM.
 TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings) {
     NLPSolver source(std::make_shared<WarmFixedVarProblem>());
     source.optimizer_->set_print_level(10);
     source.transcribe();
-    const auto key_before_any_solve = source.nlp_->model_structure_key();
+    const auto layout_key_before_any_solve = source.nlp_->model_structure_key();
+    const auto stamp_before_any_solve = declaration_key(source.nlp_->declaration());
 
     Eigen::VectorXd x0(3);
     x0 << 2.0, -1.0, 0.25;
     ASSERT_EQ(warm_optimize(*source.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
     ASSERT_TRUE(source.nlp_->is_reduced());
-    // The fact that makes the placement load-bearing rather than a preference.
-    EXPECT_FALSE(source.nlp_->model_structure_key() == key_before_any_solve)
-        << "the eliminating treatment re-lays, and a re-lay moves the key";
+    // THE LAYOUT KEY MOVES ACROSS THE TREATMENT -- unchanged, and still true.
+    EXPECT_FALSE(source.nlp_->model_structure_key() == layout_key_before_any_solve)
+        << "the eliminating treatment re-lays, and a re-lay moves the LAYOUT key";
+    // THE STAMP DOES NOT. Same declaration, same declared problem, same key --
+    // which is the whole content of the declaration-identity ruling.
+    EXPECT_TRUE(declaration_key(source.nlp_->declaration()) == stamp_before_any_solve)
+        << "a fixed-variable treatment rearranges the solved system, not the "
+           "declared problem, so it must not move the currency's stamp";
 
     const WarmStartData warm = source.optimizer_->export_warm_start();
 
-    // A cold engine on the same declaration and the same settings. Its program
-    // still keys pre-treatment here, and the staging stands anyway.
+    // A cold engine on the same declaration and the same settings.
     NLPSolver fresh(std::make_shared<WarmFixedVarProblem>());
     fresh.optimizer_->set_print_level(10);
     fresh.transcribe();
-    ASSERT_FALSE(fresh.nlp_->model_structure_key() == warm.structure_key_)
-        << "the fresh program keys pre-treatment, which is exactly the state a "
-           "staging-time stamp check would have refused";
+    ASSERT_TRUE(declaration_key(fresh.nlp_->declaration()) == warm.structure_key_)
+        << "the fresh program has not been configured for any treatment, and the "
+           "stamp does not care -- it is the same declared problem";
     ASSERT_EQ(fresh.optimizer_->settings().fixed_variable_treatment_,
               source.optimizer_->settings().fixed_variable_treatment_);
 
@@ -792,7 +811,73 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     EXPECT_NE(probe.primal_[0], cold[0]) << "the caller's guess did not survive the staging";
 
     // And once staged and consumed, the key it ran under IS the payload's.
-    EXPECT_TRUE(fresh.nlp_->model_structure_key() == warm.structure_key_);
+    EXPECT_TRUE(declaration_key(fresh.nlp_->declaration()) == warm.structure_key_);
+}
+
+// THE CROSS-TREATMENT PIN, and the sharpest statement of what the
+// DECLARATION-IDENTITY stamp is for (owner ruling, 2026-08-25).
+//
+// One declaration, two fixed-variable treatments. MakeParameter ELIMINATES the
+// fixed variable -- the solved system is one row and column narrower, and the
+// claim stream is renumbered into the reduced column space. MakeConstraint
+// keeps it and APPENDS an internal equality row -- the solved system is one row
+// and column wider, and the equality row space grows. Those are two different
+// systems, and the M4 layout key says so, correctly, in both directions.
+//
+// THEY ARE THE SAME DECLARED PROBLEM, and the currency's stamp says THAT --
+// which is what lets a value exported under one treatment be staged and applied
+// under the other. It is safe for the reason the declared-space convention
+// exists: the blocks are stated over the declared variables and rows, and
+// application ignores whatever coordinates the receiving treatment holds.
+TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
+    NLPSolver source(std::make_shared<WarmFixedVarProblem>());
+    source.optimizer_->set_print_level(10);
+    source.optimizer_->settings().fixed_variable_treatment_ =
+        hven::solvers::FixedVariableTreatments::MakeParameter;
+    source.transcribe();
+
+    Eigen::VectorXd x0(3);
+    x0 << 2.0, -1.0, 0.25;
+    ASSERT_EQ(warm_optimize(*source.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(source.nlp_->is_reduced()) << "MakeParameter must actually have eliminated";
+    const WarmStartData warm = source.optimizer_->export_warm_start();
+
+    // The receiving engine: same declaration, DIFFERENT treatment.
+    NLPSolver sink(std::make_shared<WarmFixedVarProblem>());
+    sink.optimizer_->set_print_level(10);
+    sink.optimizer_->settings().fixed_variable_treatment_ =
+        hven::solvers::FixedVariableTreatments::MakeConstraint;
+    sink.transcribe();
+
+    EXPECT_NO_THROW(sink.optimizer_->stage_warm_start(warm));
+
+    FirstIterateProbe probe;
+    probe.arm(*sink.optimizer_, sink.nlp_->primal_vars_);
+    Eigen::VectorXd cold(3);
+    cold << -5.0, 9.0, 0.25;
+    ASSERT_EQ(warm_optimize(*sink.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+
+    // ACCEPTED AND APPLIED, not silently dropped: the solve consumed the value
+    // and started from the staged point rather than from the caller's guess.
+    EXPECT_FALSE(sink.optimizer_->warm_staged_) << "the solve consumed the staged value";
+    ASSERT_TRUE(probe.seen_);
+    ASSERT_GE(probe.primal_.size(), 2);
+    EXPECT_NE(probe.primal_[1], cold[1]) << "the caller's guess did not survive the staging";
+    EXPECT_NEAR(probe.primal_[1], warm.primal_[1], 1e-6);
+
+    // THE TWO KEYS, side by side, on the two engines that just exchanged a
+    // value: the layout keys disagree (two genuinely different solved systems)
+    // and the stamps agree (one declared problem).
+    EXPECT_FALSE(source.nlp_->model_structure_key() == sink.nlp_->model_structure_key())
+        << "eliminating and constraining lay different systems, and the LAYOUT "
+           "key is supposed to notice";
+    EXPECT_TRUE(declaration_key(sink.nlp_->declaration()) == warm.structure_key_)
+        << "one declared problem must key the same under every treatment -- that "
+           "is what makes the hand-off above legal rather than lucky";
+
+    // And the solve really did run under the other treatment.
+    EXPECT_EQ(sink.optimizer_->result().fixed_variable_treatment_,
+              hven::solvers::FixedVariableTreatments::MakeConstraint);
 }
 
 // --- Precedence over a staged multiplier seed ---
@@ -1297,8 +1382,8 @@ TEST(IpmWarmStart, TheBridgeRefusesTheStampOfADifferentStructure) {
     lower << -kWarmInf, -1.0;
     upper << 1.0, kWarmInf;
 
-    hven::solvers::ModelStructureKey other = solved.warm_.structure_key_;
-    other.claim_digest_ += 1;
+    hven::solvers::DeclarationKey other = solved.warm_.structure_key_;
+    other.declaration_digest_ += 1;
     EXPECT_THROW(hven::solvers::to_sqp_warm_start(solved.warm_, lower, upper, other),
                  std::invalid_argument);
 }

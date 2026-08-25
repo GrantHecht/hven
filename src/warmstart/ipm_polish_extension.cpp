@@ -216,8 +216,7 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data) {
 }
 
 WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
-                            const ModelStructureKey &structure_key,
-                            const IpCrossoverOptions &opts) {
+                            const DeclarationKey &structure_key, const IpCrossoverOptions &opts) {
     const WarmExtension *extension = find_ipm_polish(data);
     if (extension == nullptr) {
         // A CORE-ONLY VALUE CANNOT BE BRIDGED, and this is a refusal rather
@@ -239,10 +238,9 @@ WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const V
     // each of them.
     if (!(data.structure_key_ == structure_key)) {
         throw std::invalid_argument(fmt::format(
-            "to_sqp_warm_start: the warm-start value was taken under structure key {0:#x} but the "
-            "bounds handed in belong to a model keying {1:#x} -- the value describes a different "
-            "declared structure (claims, partition count, bound structure, and the fixed-variable "
-            "treatment's own rows)",
+            "to_sqp_warm_start: the warm-start value was taken under declaration key {0:#x} but "
+            "the bounds handed in belong to a model keying {1:#x} -- the value describes a "
+            "different declared problem (dimensions, piece row structure, or bound structure)",
             data.structure_key_.digest(), structure_key.digest()));
     }
 

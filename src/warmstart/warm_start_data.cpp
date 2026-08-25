@@ -19,8 +19,7 @@
 //       eq_lmults_:    u64 count, then count doubles
 //       iq_lmults_:    u64 count, then count doubles
 //       bound_lmults_: u64 count, then count doubles
-//       structure_key_: u64 claim_digest_, i32 partition_count_,
-//                       u64 bound_digest_
+//       structure_key_: u64 declaration_digest_, u64 bound_digest_
 //       extensions_:   u64 count, then per extension
 //                        u64 tag length, tag bytes,
 //                        u64 payload length, payload bytes
@@ -207,8 +206,8 @@ std::size_t encoded_size_hint(const WarmStartData &data) {
     size += static_cast<std::size_t>(data.primal_.size() + data.eq_lmults_.size() +
                                      data.iq_lmults_.size() + data.bound_lmults_.size()) *
             kDoubleSize;
-    size += 8 + 4 + 8; // the stamp's three conjuncts
-    size += 8;         // the extension count
+    size += 8 + 8; // the stamp's two conjuncts
+    size += 8;     // the extension count
     for (const WarmExtension &extension : data.extensions_) {
         size += kMinExtensionSize + extension.tag_.size() + extension.payload_.size();
     }
@@ -230,8 +229,7 @@ std::vector<std::byte> serialize(const WarmStartData &data) {
     append_vector(out, data.iq_lmults_);
     append_vector(out, data.bound_lmults_);
 
-    append_u64(out, data.structure_key_.claim_digest_);
-    append_u32(out, static_cast<std::uint32_t>(data.structure_key_.partition_count_));
+    append_u64(out, data.structure_key_.declaration_digest_);
     append_u64(out, data.structure_key_.bound_digest_);
 
     append_u64(out, static_cast<std::uint64_t>(data.extensions_.size()));
@@ -261,9 +259,17 @@ WarmStartData deserialize(std::span<const std::byte> bytes) {
 
     const std::uint32_t version = reader.read_u32("the format version");
     if (version != kWarmStartFormatVersion) {
+        // NAMING BOTH VERSIONS, and refusing rather than adapting. Version 1
+        // carried a three-conjunct LAYOUT key where this one carries a
+        // two-conjunct DECLARATION key (warm_start_data.h's stamp note); a
+        // shim would have to invent a declaration digest out of a claim
+        // digest, which is not a thing that can be done, so a v1 payload is
+        // re-exported from its producer rather than converted.
         throw std::invalid_argument(
             fmt::format("deserialize(WarmStartData): the format version at byte offset {0} is {1}, "
-                        "which this build does not read; it writes and reads version {2}",
+                        "which this build does not read; it writes and reads version {2}. A "
+                        "version {1} payload carries the pre-ruling layout stamp and cannot be "
+                        "converted -- re-export it from the engine that produced it.",
                         kMagicSize, version, kWarmStartFormatVersion));
     }
 
@@ -273,9 +279,7 @@ WarmStartData deserialize(std::span<const std::byte> bytes) {
     data.iq_lmults_ = reader.read_vector("the inequality-multiplier block");
     data.bound_lmults_ = reader.read_vector("the bound-multiplier block");
 
-    data.structure_key_.claim_digest_ = reader.read_u64("the stamp's claim digest");
-    data.structure_key_.partition_count_ =
-        static_cast<int>(static_cast<std::int32_t>(reader.read_u32("the stamp's partition count")));
+    data.structure_key_.declaration_digest_ = reader.read_u64("the stamp's declaration digest");
     data.structure_key_.bound_digest_ = reader.read_u64("the stamp's bound digest");
 
     const std::uint64_t extension_count =

@@ -3649,9 +3649,15 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
 
     // AS OF THIS SOLVE. Read here rather than at export so a re-lay between
     // the two cannot stamp these blocks with a key they were never taken
-    // under. Both digests are memoized by the program per lay, so a solver
-    // solving repeatedly against unmoved structures pays them once.
-    captured.structure_key_ = this->nlp_->model_structure_key();
+    // under.
+    //
+    // THE DECLARATION KEY, not the layout key: what this value claims is the
+    // PROBLEM it was taken on, and the layout key would additionally claim
+    // this engine's own claim order, partition count and fixed-variable
+    // treatment -- none of which the value carries or a consumer could honour
+    // (warmstart/warm_start_data.h's stamp note). declaration() materializes
+    // the program's laid declaration, memoized per lay.
+    captured.structure_key_ = declaration_key(this->nlp_->declaration());
 
     // Already declared-space: the reinsertion seam above this call put every
     // eliminated variable back in its own coordinate at the value the
@@ -4237,14 +4243,21 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // staged value is already consumed by this call at this point -- loud,
     // then gone, exactly as the staged-multiplier seed above is.
     if (have_warm) {
-        const ModelStructureKey live = this->nlp_->model_structure_key();
+        // THE DECLARATION KEY, not the layout key. What is compared is the
+        // problem the caller TRANSCRIBED -- the only thing a value crossing
+        // engines or treatments can be held to (warmstart/warm_start_data.h's
+        // stamp note; model/structure_identity.h's own
+        // DeclarationKey/ModelStructureKey note). Read off the program's
+        // declaration, which at this point in the call is the declaration this
+        // solve lays under.
+        const DeclarationKey live = declaration_key(this->nlp_->declaration());
         if (!(warm.structure_key_ == live)) {
             throw std::invalid_argument(fmt::format(
-                "InteriorPointSolver: the staged warm start was taken under structure key {0:#x} "
-                "but the program this solve lays under keys {1:#x} -- the value describes a "
-                "different declared structure (claims, partition count, bound structure, and the "
-                "fixed-variable treatment's own rows). The staged start is refused rather than "
-                "silently dropped; re-export and re-stage against the current structure.",
+                "InteriorPointSolver: the staged warm start was taken under declaration key "
+                "{0:#x} but the problem this solve binds keys {1:#x} -- the value describes a "
+                "different declared problem (dimensions, piece row structure, or bound "
+                "structure). The staged start is refused rather than silently dropped; re-export "
+                "and re-stage against the current declaration.",
                 warm.structure_key_.digest(), live.digest()));
         }
     }
