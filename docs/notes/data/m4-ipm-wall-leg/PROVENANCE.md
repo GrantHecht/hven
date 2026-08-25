@@ -83,6 +83,28 @@ Two repetitions rather than one, for the same reason the Task 4 rows give: every
 cell of the first came out with a shared sign. The second reproduced it on every
 cell and both estimators.
 
+## `runs/2026-08-24-task9-fixround-ipm.log`
+
+The re-run the standing instrument calls for when a fix round touches the solve
+path again -- here the forced pattern verification for calls that hand the KKT
+matrix out.
+
+| arm | hven source | `libhven.a` |
+|---|---|---|
+| `base` | `42091c6` (the same Task 9 anchor the two rows above used) | the same `git archive 42091c6` tree and build directory those rows were taken from, rebuilt from nothing |
+| `head` | `ccdd541`, the fix round's tip | built from the working tree into the same independent build directory the earlier head arm used |
+
+Both arms were configured exactly as the rows above state, so the two differ in
+source and in nothing else. The probe drives whole solves with NO early callback
+installed, which is deliberate: that is the shape the epoch skip still covers,
+and it is the shape the earlier rows measured, so the two runs are comparable
+cell for cell. A call WITH a callback installed now verifies the pattern at
+every factorization by design, which returns it to pre-epoch-gate cost; no
+instrument row asserts that arm, because it is a restoration of the previous
+behaviour rather than a change to be tracked.
+
+One-minute load average 0.40 at the run's start.
+
 ## `runs/2026-08-24-task9-fb4-remeasure.log`
 
 The isolating A/B the ledger registered for Task 9 (`6b5fc12` -> `46d6ff8`,
