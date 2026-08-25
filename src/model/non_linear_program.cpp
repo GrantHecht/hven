@@ -7,7 +7,9 @@
 // (see LICENSE).
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -360,6 +362,39 @@ void hven::solvers::NonLinearProgram::materialize_declaration_bounds() const {
     this->declaration_bounds_pending_ = false;
 }
 
+int hven::solvers::NonLinearProgram::shared_row_overcount(
+    const std::vector<ConstraintFunction> &pieces, int declared_rows, const char *which) {
+    // At 64 bits and narrowed once, checked -- the same discipline the
+    // declaration's own piece sum uses, and for the same reason: an unchecked
+    // narrowing would wrap into an excess the validation then balances against,
+    // turning an impossible input into a wrong answer instead of a refusal.
+    std::int64_t claimed = 0;
+    for (const auto &piece : pieces) {
+        claimed += piece.num_con_eles();
+    }
+    if (claimed > static_cast<std::int64_t>(std::numeric_limits<int>::max())) {
+        throw std::invalid_argument(
+            fmt::format("NonLinearProgram: the {0} pieces claim {1} rows in total, past the {2} a "
+                        "declaration can state",
+                        which, claimed, std::numeric_limits<int>::max()));
+    }
+
+    // A layout whose pieces claim FEWER rows than the space they were laid
+    // over has no excess to state, and is not a shape a declaration can
+    // describe: an overcount states how far a piece sum exceeds a row count.
+    // Refused here, where both numbers are in hand and can be named, rather
+    // than emitted as a negative count for the declaration's own sign check to
+    // refuse without them.
+    const std::int64_t overcount = claimed - static_cast<std::int64_t>(declared_rows);
+    if (overcount < 0) {
+        throw std::invalid_argument(fmt::format(
+            "NonLinearProgram: the {0} pieces claim {1} rows in total, fewer than the {2} {0} rows "
+            "this layout was laid over; every laid row is claimed by some piece",
+            which, claimed, declared_rows));
+    }
+    return static_cast<int>(overcount);
+}
+
 void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     if (!this->declaration_pieces_pending_) {
         return;
@@ -368,6 +403,21 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     this->declaration_.objectives_ = this->objectives_;
     this->declaration_.equality_constraints_ = this->equality_constraints_;
     this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+
+    // THE ROUND TRIP'S OTHER HALF. capture_laid_dimensions wrote the row
+    // SPACES; the excess the pieces claim over them is a fact about the pieces
+    // and is derived here, with the pieces, so that a declaration this layout
+    // emits validates and can be adopted again. Deriving beats carrying: an
+    // adopted overcount would be a number taken on trust and replayed, and it
+    // would say nothing at all about a layout that was never adopted from a
+    // declaration in the first place. Computed once per lay -- this whole
+    // routine runs only on the first read after one -- so the evaluation path
+    // that reaches declaration() pays nothing for it.
+    this->declaration_.equality_shared_row_overcount_ = shared_row_overcount(
+        this->declaration_.equality_constraints_, this->declaration_.equality_rows_, "equality");
+    this->declaration_.inequality_shared_row_overcount_ =
+        shared_row_overcount(this->declaration_.inequality_constraints_,
+                             this->declaration_.inequality_rows_, "inequality");
 
     // COPIES rather than views because an AggregateDeclaration is a value over
     // its pieces -- which is what makes a layout a pure function of the

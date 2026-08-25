@@ -1233,6 +1233,24 @@ struct NonLinearProgram : public NlpAggregate {
         }
     }
 
+    /// @brief How many rows @p pieces claim in excess of @p declared_rows,
+    ///        because they share rows with one another.
+    /// @param pieces        one constraint block's pieces.
+    /// @param declared_rows the row space that block was laid over.
+    /// @param which         the block's name, for the refusal message.
+    /// @return the excess, zero when the pieces claim disjoint rows.
+    /// @throws std::invalid_argument if the summed claim is past INT_MAX.
+    ///
+    /// DERIVED, NEVER CARRIED. A piece reports how many rows it claims, not
+    /// which ones, so a provider whose pieces accumulate into shared rows
+    /// hands out more claimed rows than the space it was laid over. The
+    /// difference is not recoverable from the scalars alone -- but it IS
+    /// recoverable right here, where the pieces and the laid row space are
+    /// both in hand, which is why an emitted declaration states a count this
+    /// layout computes rather than one it was told and kept.
+    static int shared_row_overcount(const std::vector<ConstraintFunction> &pieces,
+                                    int declared_rows, const char *which);
+
     /// @brief Freezes the thread mode of every piece THIS LAYOUT HOLDS: the
     ///        three master lists and the partition copies taken from them.
     ///

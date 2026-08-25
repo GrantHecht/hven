@@ -187,6 +187,12 @@ struct AggregateDeclaration {
     /// over the claim stream, the adopted partition count and the materialized
     /// bound structure, and two declarations differing only in this field
     /// describe the same laid system.
+    ///
+    /// Trusted on the way IN and derived on the way OUT: a provider emitting a
+    /// declaration for a layout it has already laid holds both the pieces and
+    /// the row space, so it computes this rather than replaying a number it
+    /// was handed -- which is what makes an emitted declaration one that
+    /// validates and can be adopted again, at a nonzero overcount as at zero.
     int equality_shared_row_overcount_ = 0;
 
     /// @brief The inequality block's shared-row overcount, on exactly the

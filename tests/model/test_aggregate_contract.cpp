@@ -1787,3 +1787,90 @@ TEST(AggregateDeclarationOvercount, IsNotAStructuralKeyConjunct) {
     rows_moved.equality_rows_ += 1;
     EXPECT_NE(hven::solvers::claim_stream_digest(rows_moved, claim_rows, claim_cols), base_claim);
 }
+
+namespace {
+
+/// One equality piece claiming @p count rows that the pin pieces already
+/// claim -- the shape a provider whose pieces accumulate into shared rows
+/// produces, with every row index in range of the declared row space.
+ConstraintFunction overcount_overlapping_piece(int count) {
+    Eigen::MatrixXi v_index(1, count);
+    Eigen::MatrixXi c_index(1, count);
+    for (int k = 0; k < count; k++) {
+        v_index(0, k) = k;
+        c_index(0, k) = k;
+    }
+    return ConstraintFunction(ConstraintInterface(FixedVariableRow(0.25)), v_index, c_index);
+}
+
+/// A natively laid problem whose equality pieces claim @p overlap rows more
+/// than its equality row space, because one piece re-claims rows the others
+/// already claimed.
+std::shared_ptr<NonLinearProgram> overcount_sharing_nlp(int overlap) {
+    auto nlp = std::make_shared<NonLinearProgram>(1);
+    for (int p = 0; p < kAdoptPieces; p++) {
+        ConstraintFunction piece = adopt_pin_piece(p * kAdoptApplications);
+        piece.set_thread_mode(ThreadingFlags::MainThread);
+        nlp->equality_constraints_.push_back(std::move(piece));
+    }
+    ConstraintFunction shared = overcount_overlapping_piece(overlap);
+    shared.set_thread_mode(ThreadingFlags::MainThread);
+    nlp->equality_constraints_.push_back(std::move(shared));
+
+    for (int i = 0; i < kAdoptRows; i++) {
+        nlp->set_variable_bound(i, -1.0, 2.0);
+    }
+    nlp->make_nlp(kAdoptRows, kAdoptRows, 0);
+    return nlp;
+}
+
+} // namespace
+
+TEST(AggregateDeclarationOvercount, ALayoutWithSharedRowsEmitsTheExcessItActuallyCarries) {
+    auto sharing = overcount_sharing_nlp(5);
+    const AggregateDeclaration emitted = sharing->declaration();
+
+    // The row space is what the layout was laid over; the excess is what its
+    // pieces claim beyond it, derived from the two rather than carried.
+    EXPECT_EQ(emitted.equality_rows_, kAdoptRows);
+    EXPECT_EQ(emitted.equality_shared_row_overcount_, 5);
+    EXPECT_EQ(emitted.inequality_shared_row_overcount_, 0)
+        << "there are no inequality pieces, so there is no excess to state";
+
+    // And it is a declaration, not merely a report: what a layout emits is
+    // something the boundary accepts.
+    EXPECT_NO_THROW(emitted.validate());
+}
+
+TEST(AggregateDeclarationOvercount, SurvivesAdoptionAndComesBackOutOfTheDeclarationItEmits) {
+    auto sharing = overcount_sharing_nlp(5);
+    const AggregateDeclaration handed_over = sharing->declaration();
+    ASSERT_EQ(handed_over.equality_shared_row_overcount_, 5);
+
+    auto adopted = std::make_shared<NonLinearProgram>(1);
+    ASSERT_NO_THROW(adopted->adopt_declaration(handed_over));
+
+    // The round trip closes: the adopting problem re-emits the same excess,
+    // that declaration validates, and adopting it again works -- which is the
+    // whole of what "self-describing" has to mean at a nonzero overcount.
+    const AggregateDeclaration re_emitted = adopted->declaration();
+    EXPECT_EQ(re_emitted.equality_rows_, kAdoptRows);
+    EXPECT_EQ(re_emitted.equality_shared_row_overcount_, 5);
+    EXPECT_NO_THROW(re_emitted.validate());
+
+    auto readopted = std::make_shared<NonLinearProgram>(1);
+    EXPECT_NO_THROW(readopted->adopt_declaration(re_emitted));
+    EXPECT_EQ(readopted->declaration().equality_shared_row_overcount_, 5);
+}
+
+TEST(AggregateDeclarationOvercount, IsZeroOnALayoutWhosePiecesClaimDisjointRows) {
+    // The control, and the statement that deriving the excess did not change
+    // what a provider without shared rows emits: every piece claims its own
+    // rows, so the piece sum IS the row space and there is no excess.
+    auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
+    const AggregateDeclaration declaration = laid->declaration();
+
+    EXPECT_EQ(declaration.equality_shared_row_overcount_, 0);
+    EXPECT_EQ(declaration.inequality_shared_row_overcount_, 0);
+    EXPECT_NO_THROW(declaration.validate());
+}
