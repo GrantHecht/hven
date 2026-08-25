@@ -177,6 +177,20 @@ void validate_staged_polish(const WarmStartData &data) {
     check_finite("the inequality-value block", polish.iq_values_);
 }
 
+// THE TERMINAL KKT MEASUREMENT, copied onto the solution from the SqpKkt
+// measured at the point being returned (sqp_types.h's SqpSolution note). One
+// body rather than two copies because there are two assembly sites -- finish()
+// and the non-finite-iterate exit, which does not route through it -- and a
+// field added to one and missed on the other would report a default as a
+// measurement. Deliberately does NOT take kkt.z: the restoration exits replace
+// that vector, and out.z is written by the caller for exactly that reason.
+void record_terminal_kkt(SqpSolution &out, const SqpKkt &kkt) {
+    out.stationarity = kkt.stationarity;
+    out.feasibility = kkt.feasibility;
+    out.complementarity = kkt.complementarity;
+    out.kkt_residual = kkt.residual();
+}
+
 } // namespace
 
 SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
@@ -255,6 +269,15 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const War
 }
 
 SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
+    // THE WALL TIME, REPORTED. Written here rather than at each of
+    // solve_impl's exits for the same reason the proximal carry below is:
+    // this function is the ONE point every public solve() overload funnels
+    // through, and it is also the only frame that HOLDS the measurement --
+    // the clock brackets solve_impl from outside, so no exit inside it can
+    // see its own duration. INFORMATIONAL ONLY (sqp_types.h's field note and
+    // ledger.h's SqpSolveRecord::wall_seconds); nothing in this driver reads
+    // it back, and no test asserts a value.
+    out.wall_seconds = wall_seconds;
     // THE PROXIMAL CARRY, EXPORTED. Stamped here rather than in
     // make_warm_start because make_warm_start is static (it is called from
     // a context with no `SqpDriver&`) while the accumulator is per-driver
@@ -1229,6 +1252,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.lambda_i = Vec::Zero(seam.mi());
             out.z = Vec::Zero(n);
             out.f = ev.f;
+            // NaN, every one of them: this exit is reached exactly because
+            // kkt.finite is false, and evaluate_kkt sets every residual to
+            // NaN there rather than to the 0.0 a running maximum over NaN
+            // entries would otherwise leave (see its NON-FINITE ITERATES
+            // note). The multipliers above are cleared for the same reason
+            // this is not: a cleared multiplier is "no evidence", and a
+            // zeroed residual would read as a converged one.
+            record_terminal_kkt(out, kkt);
             // No subproblem has ever been built here (this is a
             // start-point condition -- see the caller's own note above),
             // so there is no activity to attribute -- AND NO USABLE
@@ -2815,6 +2846,7 @@ SqpSolution SqpDriver::finish(SqpSolution out, SqpStatus status, const Vec &x, c
     out.lambda_i = lambda_i;
     out.z = kkt.z;
     out.f = f;
+    record_terminal_kkt(out, kkt);
     // The point/multipliers make_warm_start's caller reports are exactly
     // the ones being finished here -- see WarmStart's own note on why a
     // failed solve's point is still safe to carry.

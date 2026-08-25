@@ -66,6 +66,7 @@ using hven::solvers::NLPProblem;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPSolver;
 using hven::solvers::serialize_ipm_polish;
+using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
@@ -1014,4 +1015,179 @@ TEST(SqpWarmCurrency, ADeclarationWithAnExtraRowIsStaleAndIsRefused) {
     // Consumed by the refusal, like every other solve-entry refusal.
     const SqpSolution after = driver.solve(*extra_bridge, extra->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
+}
+
+// --- R6: cold-vs-hot is never answer-observable ---
+
+namespace {
+
+// Every ANSWER an SqpSolution reports -- the point, its prices, the objective,
+// the terminal KKT measurement and the verdict -- compared BITWISE. R6 asks for
+// exact identity, not a neighbourhood of it: a margin here would be a claim
+// that reuse perturbs the answer slightly, which is the one thing R6 forbids.
+//
+// Wall time is deliberately absent: it may differ freely (skipping work is the
+// point of reuse) and it is informational, never asserted.
+void expect_same_answer(const SqpSolution &hot, const SqpSolution &cold) {
+    EXPECT_EQ(hot.status, cold.status);
+    EXPECT_EQ(hot.infeasibility_certified, cold.infeasibility_certified);
+    EXPECT_EQ(hot.f, cold.f);
+    EXPECT_EQ(hot.stationarity, cold.stationarity);
+    EXPECT_EQ(hot.feasibility, cold.feasibility);
+    EXPECT_EQ(hot.complementarity, cold.complementarity);
+    EXPECT_EQ(hot.kkt_residual, cold.kkt_residual);
+
+    ASSERT_EQ(hot.x.size(), cold.x.size());
+    for (Index i = 0; i < hot.x.size(); ++i) {
+        EXPECT_EQ(hot.x(i), cold.x(i)) << "primal " << i;
+        EXPECT_EQ(hot.z(i), cold.z(i)) << "bound multiplier " << i;
+    }
+    ASSERT_EQ(hot.lambda_e.size(), cold.lambda_e.size());
+    for (Index i = 0; i < hot.lambda_e.size(); ++i) {
+        EXPECT_EQ(hot.lambda_e(i), cold.lambda_e(i)) << "equality multiplier " << i;
+    }
+    ASSERT_EQ(hot.lambda_i.size(), cold.lambda_i.size());
+    for (Index i = 0; i < hot.lambda_i.size(); ++i) {
+        EXPECT_EQ(hot.lambda_i(i), cold.lambda_i(i)) << "inequality multiplier " << i;
+    }
+
+    // THE PATH, not only the endpoint: the two solves visited the same
+    // iterates, in the same order, measuring the same residuals at each. A
+    // divergence anywhere in the loop that the endpoint happened to absorb
+    // still fails here.
+    ASSERT_EQ(hot.history.size(), cold.history.size());
+    for (std::size_t k = 0; k < hot.history.size(); ++k) {
+        const auto &a = hot.history[k];
+        const auto &b = cold.history[k];
+        EXPECT_EQ(a.f, b.f) << "row " << k;
+        EXPECT_EQ(a.stationarity, b.stationarity) << "row " << k;
+        EXPECT_EQ(a.feasibility, b.feasibility) << "row " << k;
+        EXPECT_EQ(a.complementarity, b.complementarity) << "row " << k;
+        EXPECT_EQ(a.kkt_residual, b.kkt_residual) << "row " << k;
+        EXPECT_EQ(a.violation_l1, b.violation_l1) << "row " << k;
+        EXPECT_EQ(a.tr_radius, b.tr_radius) << "row " << k;
+        EXPECT_EQ(a.step_norm, b.step_norm) << "row " << k;
+        EXPECT_EQ(a.verdict, b.verdict) << "row " << k;
+        EXPECT_EQ(a.qp_solved, b.qp_solved) << "row " << k;
+        EXPECT_EQ(a.qp_status, b.qp_status) << "row " << k;
+        EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters) << "row " << k;
+        EXPECT_EQ(a.qp_factorizations, b.qp_factorizations) << "row " << k;
+    }
+}
+
+// The COUNTERS, which R6 covers alongside the values: work spent is part of
+// what a consumer reports, and a reuse that changed the iteration path would
+// show up here first.
+void expect_same_counters(const SqpCounters &hot, const SqpCounters &cold) {
+    EXPECT_EQ(hot.major_iters, cold.major_iters);
+    EXPECT_EQ(hot.qp_minor_iters, cold.qp_minor_iters);
+    EXPECT_EQ(hot.factorizations, cold.factorizations);
+    EXPECT_EQ(hot.steps_accepted, cold.steps_accepted);
+    EXPECT_EQ(hot.rejected_steps, cold.rejected_steps);
+    EXPECT_EQ(hot.soc_steps, cold.soc_steps);
+    EXPECT_EQ(hot.soc_applied, cold.soc_applied);
+    EXPECT_EQ(hot.elastic_activations, cold.elastic_activations);
+    EXPECT_EQ(hot.elastic_escalations, cold.elastic_escalations);
+    EXPECT_EQ(hot.restoration_iters, cold.restoration_iters);
+    EXPECT_EQ(hot.suspect_escalations, cold.suspect_escalations);
+    EXPECT_EQ(hot.symbolic_analyses, cold.symbolic_analyses);
+    EXPECT_EQ(hot.start_level_used, cold.start_level_used);
+    EXPECT_EQ(hot.full_step_majors, cold.full_step_majors);
+    EXPECT_EQ(hot.watchdog_restores, cold.watchdog_restores);
+    EXPECT_EQ(hot.border_refine_steps, cold.border_refine_steps);
+    EXPECT_EQ(hot.eqp_refine_steps, cold.eqp_refine_steps);
+}
+
+} // namespace
+
+// M5 R6: HOT-STATE REUSE IS NEVER OBSERVABLE IN ANSWERS -- the SQP side.
+//
+// SqpDriver carries no cross-solve NUMERIC state of its own; the one piece of
+// cross-solve state in the picture is its QpEngine's border cache, and that
+// cache is consulted through a gate whose conjuncts include the K0 STRUCTURAL
+// hash, the K0 VALUES hash, the effective (primal_delta, dual_mu) pair, the
+// incoming working set and the factor's own live identity (qp_engine.h's
+// HOT-START REUSE note, conditions (a)-(e)). A grant therefore means the
+// matrix that WOULD have been assembled and factorized is bit-for-bit the one
+// already in hand, and the fast path skips only that assembly and
+// factorization -- never sync_borders(), which reconciles unconditionally on
+// every iteration of every solve.
+//
+// This is that argument turned into a measurement: two solves on ONE driver,
+// against a fresh driver's single solve of the same problem from the same
+// start, over the same bridge -- so the driver's own carried state is the only
+// thing that differs between them.
+//
+// EXACT EQUALITY, no margins. Wall time is exempt and is not read here.
+TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswers) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const Vec x0 = model->start_point();
+
+    SqpDriver reused{SqpOptions{}};
+    const SqpSolution first = reused.solve(*bridge, x0);
+    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    // THE HOT SOLVE. Nothing was staged between the two calls, so this call
+    // differs from the first only in what the driver and its engine carried
+    // out of it.
+    const SqpSolution second = reused.solve(*bridge, x0);
+    ASSERT_EQ(second.status, SqpStatus::kOptimal);
+
+    SqpDriver fresh{SqpOptions{}};
+    const SqpSolution cold = fresh.solve(*bridge, x0);
+    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+
+    expect_same_answer(second, cold);
+    expect_same_counters(second.counters, cold.counters);
+    // The first solve is the control: a driver's FIRST solve is a cold one, so
+    // all three of these agree, and the second-vs-first comparison is what
+    // shows the carried state changed nothing on this instance either.
+    expect_same_answer(second, first);
+    expect_same_counters(second.counters, first.counters);
+}
+
+// THE SAME QUESTION WITH THE SECOND SOLVE WARM-STARTED. The test above
+// re-solves from the same cold start; this one stages the exported solution
+// into BOTH sides first, so the warm ingest is held constant and the engine's
+// carried cache is again the only difference between them.
+//
+// NEITHER TEST CLAIMS A GRANTED REUSE, and that is stated rather than glossed:
+// measured on this fixture, the reused driver pays exactly the factorizations
+// and symbolic analyses the fresh one pays, so the gate above was not passed
+// on either. What these two pin is that whatever the driver carried out of an
+// earlier solve changed nothing -- which is the question the brief asks of a
+// re-solve. The GRANTED case, where the fast path really does skip a
+// factorization and the answer is still bit-identical, is pinned separately by
+// tests/sqp/test_warm_start.cpp's WarmStart.HotReuseIsNeverAnswerObservable.
+TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const Vec x0 = model->start_point();
+
+    SqpDriver reused{SqpOptions{}};
+    const SqpSolution first = reused.solve(*bridge, x0);
+    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    const WarmStartData payload = reused.export_warm_start();
+
+    reused.stage_warm_start(payload);
+    const SqpSolution hot = reused.solve(*bridge, x0);
+    ASSERT_EQ(hot.status, SqpStatus::kOptimal);
+
+    SqpDriver fresh{SqpOptions{}};
+    fresh.stage_warm_start(payload);
+    const SqpSolution cold = fresh.solve(*bridge, x0);
+    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+
+    // Both staged the same value, so both resolve at the same level -- and
+    // that level is kSeeded, never kWarm or kHot: a currency-borne value
+    // carries no structure hash, which is what those two levels are gated on.
+    // Stated here as well as in the level pins above because R6's other half
+    // is that a reuse form which cannot argue answer-neutrality is not
+    // SILENTLY enabled, and a level silently climbing to kHot on the reused
+    // driver would be exactly that.
+    EXPECT_EQ(hot.counters.start_level_used, StartLevel::kSeeded);
+    EXPECT_EQ(cold.counters.start_level_used, StartLevel::kSeeded);
+
+    expect_same_answer(hot, cold);
+    expect_same_counters(hot.counters, cold.counters);
 }

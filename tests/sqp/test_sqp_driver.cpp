@@ -8246,3 +8246,117 @@ TEST(SqpDriverSsnMode, TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore) {
     EXPECT_EQ(total.symbolic_analyses, 0);
     EXPECT_EQ(total.ssn.ssn_refinements, 0);
 }
+
+// --- M5 R4: the outcome values a consumer's per-solve record needs ---
+//
+// Two additions to SqpSolution, pinned here because this file is where the
+// solution's own contract is pinned: the TERMINAL KKT MEASUREMENT (the four
+// scalar columns of the evaluate_kkt call taken at the point the solve
+// returns) and the SOLVE'S WALL TIME.
+//
+// WHY THE MEASUREMENT IS ON THE SOLUTION AND NOT LEFT TO `history`: the last
+// history row is not reliably the returned point. A restoration exit returns
+// the RESTORED point, which never had a row of its own -- so a consumer
+// scanning the history for "the residual at the answer" is wrong on exactly
+// the exits where the answer is hardest to read.
+//
+// WALL TIME IS INFORMATIONAL AND IS NEVER ASSERTED AS A VALUE. The pins below
+// assert only that the field was WRITTEN (finite, non-negative, and nonzero
+// after a solve that really ran majors) -- a liveness pin on the plumbing, not
+// a claim about how long anything takes. Nothing here compares two durations,
+// and nothing gates on one.
+TEST(SqpDriverContract, TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime) {
+    const HsProblem p = make_hs(6);
+    SqpOptions opts;
+    SqpDriver driver(opts);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_GE(sol.counters.major_iters, 1);
+
+    // The scalar is the pair's own maximum -- SqpKkt::residual(), carried
+    // across unchanged. Bitwise, because no arithmetic happens in between.
+    EXPECT_EQ(sol.kkt_residual, std::max(sol.stationarity, sol.feasibility));
+
+    // And the pair really is the CONVERGED measurement: it satisfies the two
+    // gates the convergence test applied, at the tolerances this solve ran at.
+    EXPECT_LE(sol.stationarity, opts.kkt_tol);
+    EXPECT_LE(sol.feasibility, opts.feas_tol);
+    EXPECT_TRUE(std::isfinite(sol.complementarity));
+
+    // ON THIS EXIT -- and only on exits where the returned point is the last
+    // iterate measured -- the solution's four columns are the last history
+    // row's, bit for bit. Asserted here so the two readings cannot drift; NOT
+    // asserted as a general rule, for the restoration reason in the note above.
+    ASSERT_FALSE(sol.history.empty());
+    const SqpIterate &last = sol.history.back();
+    EXPECT_EQ(sol.stationarity, last.stationarity);
+    EXPECT_EQ(sol.feasibility, last.feasibility);
+    EXPECT_EQ(sol.complementarity, last.complementarity);
+    EXPECT_EQ(sol.kkt_residual, last.kkt_residual);
+
+    // THE WALL TIME: written, finite, non-negative. The `> 0` is a LIVENESS
+    // pin -- a solve that ran majors took some measurable time, so a zero here
+    // means the field was never written -- and is deliberately the strongest
+    // thing said about it. No duration is compared with any other.
+    EXPECT_TRUE(std::isfinite(sol.wall_seconds));
+    EXPECT_GE(sol.wall_seconds, 0.0);
+    EXPECT_GT(sol.wall_seconds, 0.0) << "the field was not populated";
+}
+
+// The NON-FINITE-ITERATE exit: nothing was measured at the returned point, so
+// all four residuals are NaN rather than the 0.0 a running maximum over NaN
+// entries would otherwise leave. This is the same wrong-answer shape
+// evaluate_kkt's own NON-FINITE ITERATES note describes, one level up: a
+// consumer reading 0.0 here would report a converged residual at a point the
+// model could not be evaluated at.
+TEST(SqpDriverContract, TheTerminalKktMeasurementIsNaNAtAnUnevaluablePoint) {
+    NanPastRadiusModel model;
+    SqpOptions opts;
+    opts.tr_init = 1e3;
+    opts.max_iter = 10;
+    SqpDriver driver(opts);
+
+    Vec x0_outside(1);
+    x0_outside << 50.0;
+    const SqpSolution bad = driver.solve(model, x0_outside);
+
+    ASSERT_EQ(bad.status, SqpStatus::kNumericalError);
+    EXPECT_TRUE(std::isnan(bad.stationarity)) << "read " << bad.stationarity;
+    EXPECT_TRUE(std::isnan(bad.feasibility)) << "read " << bad.feasibility;
+    EXPECT_TRUE(std::isnan(bad.complementarity)) << "read " << bad.complementarity;
+    EXPECT_TRUE(std::isnan(bad.kkt_residual)) << "read " << bad.kkt_residual;
+
+    // The wall time is still a real measurement: the solve ran, it just could
+    // not measure the model. Populated and non-negative; no value asserted.
+    EXPECT_TRUE(std::isfinite(bad.wall_seconds));
+    EXPECT_GE(bad.wall_seconds, 0.0);
+}
+
+// The CERTIFIED-INFEASIBLE exit, where the four residuals mean what
+// sqp_types.h says they mean and NOT what a reader might assume: they measure
+// the NLP's OWN KKT conditions at the returned point, which is an infeasible
+// point -- so `feasibility` is large by construction. They are NOT the
+// subgradient certificate's residual (that certificate is the multiplier
+// quadruple, and SqpDriverRestoration.InfeasibleNlpCertifies re-derives it from
+// the model). Pinned because the plausible misreading -- "kkt_residual is small,
+// so this converged" -- is exactly the one a consumer filling an outcome record
+// could make.
+TEST(SqpDriverContract, TheTerminalKktMeasurementOnACertifiedInfeasibleExitMeasuresTheNlp) {
+    InfeasibleCircleLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    SqpDriver driver(opts);
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SqpStatus::kInfeasible);
+    ASSERT_TRUE(sol.infeasibility_certified);
+
+    EXPECT_GT(sol.feasibility, opts.feas_tol)
+        << "the returned point is infeasible; a small feasibility measure here would mean "
+           "these columns describe the restoration problem instead of the NLP";
+    EXPECT_EQ(sol.kkt_residual, std::max(sol.stationarity, sol.feasibility));
+    EXPECT_TRUE(std::isfinite(sol.stationarity));
+    EXPECT_TRUE(std::isfinite(sol.complementarity));
+    EXPECT_GE(sol.wall_seconds, 0.0);
+}

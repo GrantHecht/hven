@@ -636,8 +636,53 @@ class InteriorPointSolver {
         ///        the last one evaluated.
         Eigen::VectorXd bound_lmults_;
 
+        // --- Terminal KKT residuals ---
+        //
+        // THE FOUR SCALAR RESIDUALS AT THE REPORTED ITERATE, copied at each
+        // phase's exit from the IterateInfo of the very iterate primals_ and
+        // the multiplier blocks above describe -- the return_best_ pick when
+        // that setting is on, the last iterate otherwise. They are what a
+        // consumer's outcome record needs and could not otherwise obtain:
+        // eq_cons_/iq_cons_ give the PRIMAL residuals as vectors, but
+        // stationarity and complementarity are not reconstructible from a
+        // SolveResult at all (that would take the gradient and the Jacobian,
+        // which this struct does not carry).
+        //
+        // SAME DEFINITIONS AS IterateInfo's own fields, which are the
+        // quantities converge_check() gates on -- so a caller comparing one
+        // of these against the matching Settings tolerance is reading
+        // exactly the number the solver read.
+        //
+        // ON THE SOLVER'S SCALE, NOT THE CALLER'S -- unlike obj_val_ and the
+        // multiplier blocks above, which are divided back by
+        // Settings::obj_scale_ on the way out. kkt_inf_ and barr_inf_ carry
+        // that factor (they are measured against the SCALED objective's
+        // gradient); econ_inf_ and icon_inf_ are constraint residuals and do
+        // not. Nothing is unscaled here deliberately: these are reported as
+        // the convergence test saw them, and a partial unscaling would make
+        // the four incomparable with each other and with the tolerances.
+        //
+        // LAST PHASE WINS on a multi-phase call (solve_optimize()), matching
+        // the last_* diagnostics below. Reset to 0 per call by
+        // reset_accumulators(); a call that threw part-way leaves whatever
+        // the last completed phase wrote, exactly as obj_val_ does.
+        /// @brief inf-norm dual infeasibility (z-form) at the reported iterate.
+        double kkt_inf_ = 0;
+        /// @brief Complementarity (barrier) error at the reported iterate.
+        double barr_inf_ = 0;
+        /// @brief inf-norm equality-constraint residual; 0 when equal_cons_ == 0.
+        double econ_inf_ = 0;
+        /// @brief inf-norm inequality-constraint residual; 0 when inequal_cons_ == 0.
+        double icon_inf_ = 0;
+
         // --- Timing (seconds) ---
         /// @brief Total wall-clock time of the most recent call.
+        ///
+        /// INFORMATIONAL, NEVER ASSERTED -- a timing is not this project's
+        /// currency of correctness, counters are. No test asserts a value
+        /// here. The SQP engine's SqpSolution::wall_seconds carries the same
+        /// contract, on the same clock (std::chrono::steady_clock, which
+        /// utils::Timer wraps), so the two engines' timing fields read alike.
         double total_time_ = 0;
         /// @brief Setup/preprocessing time.
         double pre_time_ = 0;
@@ -814,8 +859,9 @@ class InteriorPointSolver {
         Eigen::ComputationInfo last_kkt_info_ = Eigen::Success;
 
         /// Resets the accumulated timing/iteration counters, the convergence
-        /// flag, last_kkt_info_, the SOC/watchdog/recovery counters and every
-        /// last_* diagnostic (including last_eval_exception_). primals_ and
+        /// flag, last_kkt_info_, the four terminal KKT residuals, the
+        /// SOC/watchdog/recovery counters and every last_* diagnostic
+        /// (including last_eval_exception_). primals_ and
         /// obj_val_ are overwritten unconditionally by alg_impl each phase, as
         /// is fixed_variable_treatment_ by run_phase_sequence at call entry.
         /// The four constraint-indexed blocks are emptied at solve entry (see
@@ -837,6 +883,10 @@ class InteriorPointSolver {
             print_time_ = 0;
             solver_init_time_ = 0;
             iter_num_ = 0;
+            kkt_inf_ = 0;
+            barr_inf_ = 0;
+            econ_inf_ = 0;
+            icon_inf_ = 0;
             last_kkt_info_ = Eigen::Success;
             soc_steps_taken_ = 0;
             watchdog_activations_ = 0;

@@ -3355,6 +3355,17 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     assert(!iters.empty());
     assert(!settings_.return_best_ || BestIter < static_cast<int>(iters.size()));
     int retiter = (settings_.return_best_ ? BestIter : static_cast<int>(iters.size()) - 1);
+    // THE TERMINAL KKT RESIDUALS, REPORTED. `iters[retiter]` is already this
+    // phase's reported iterate -- the same row print_exit_stats prints and
+    // the one whose XSL primals_/the multiplier blocks were taken from, under
+    // return_best_ or not -- so publishing its four residual columns says
+    // nothing new about which point is being described. Written per phase,
+    // last phase wins, exactly like the last_* diagnostics; see SolveResult's
+    // field note for the scale they are on.
+    this->result_.kkt_inf_ = iters[retiter].kkt_inf_;
+    this->result_.barr_inf_ = iters[retiter].barr_inf_;
+    this->result_.econ_inf_ = iters[retiter].econ_inf_;
+    this->result_.icon_inf_ = iters[retiter].icon_inf_;
     print_exit_stats(ExitCode, iters[retiter], iters.size(), tottime * 1000, nlptime * 1000,
                      qptime * 1000, printtime * 1000);
 

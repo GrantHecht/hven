@@ -1387,3 +1387,114 @@ TEST(IpmWarmStart, TheBridgeRefusesTheStampOfADifferentStructure) {
     EXPECT_THROW(hven::solvers::to_sqp_warm_start(solved.warm_, lower, upper, other),
                  std::invalid_argument);
 }
+
+// --- R6: cold-vs-hot is never answer-observable ---
+//
+// THE ONLY HOT STATE THIS ENGINE CARRIES ACROSS SOLVES is the epoch-gated KKT
+// sparsity analysis -- M5's own statement of record for this engine (M4 built
+// the gate; tests/interior/test_structure_epoch_gating.cpp pins the gate
+// itself). R6 asks the consequence of that reuse, not its mechanism: a second solve that SKIPS the
+// analysis must answer exactly what a fresh engine that PAID it answers, bit for bit.
+//
+// The rule of record is that epoch-keyed reuse is answer-neutral BY
+// CONSTRUCTION -- same declared pattern, same symbolic -- so this is an
+// EXACT-EQUALITY pin, not a tolerance one. A margin here would be a claim that
+// reuse perturbs the answer slightly, which is precisely the claim R6 refuses
+// to allow.
+//
+// NOTHING HERE READS A CLOCK. Wall time may differ freely between the two
+// solves (skipping an analysis is the point), and that difference is
+// informational; it is asserted nowhere.
+
+namespace {
+
+// Every ANSWER a SolveResult reports, taken off a finished call.
+struct WarmAnswer {
+    hven::ConvergenceFlags flag_ = hven::ConvergenceFlags::NOTCONVERGED;
+    int iters_ = -1;
+    double obj_ = 0.0;
+    double kkt_inf_ = 0.0;
+    double barr_inf_ = 0.0;
+    double econ_inf_ = 0.0;
+    double icon_inf_ = 0.0;
+    Eigen::VectorXd primals_, eq_lmults_, iq_lmults_, bound_lmults_, eq_cons_, iq_cons_;
+};
+
+WarmAnswer answer_of(const hven::solvers::InteriorPointSolver &opt) {
+    const auto &r = opt.result();
+    WarmAnswer a;
+    a.flag_ = r.converge_flag_;
+    a.iters_ = r.iter_num_;
+    a.obj_ = r.obj_val_;
+    a.kkt_inf_ = r.kkt_inf_;
+    a.barr_inf_ = r.barr_inf_;
+    a.econ_inf_ = r.econ_inf_;
+    a.icon_inf_ = r.icon_inf_;
+    a.primals_ = r.primals_;
+    a.eq_lmults_ = r.eq_lmults_;
+    a.iq_lmults_ = r.iq_lmults_;
+    a.bound_lmults_ = r.bound_lmults_;
+    a.eq_cons_ = r.eq_cons_;
+    a.iq_cons_ = r.iq_cons_;
+    return a;
+}
+
+void expect_same_answer(const WarmAnswer &hot, const WarmAnswer &cold) {
+    EXPECT_EQ(hot.flag_, cold.flag_);
+    EXPECT_EQ(hot.iters_, cold.iters_);
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(hot.obj_), std::bit_cast<std::uint64_t>(cold.obj_));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(hot.kkt_inf_),
+              std::bit_cast<std::uint64_t>(cold.kkt_inf_));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(hot.barr_inf_),
+              std::bit_cast<std::uint64_t>(cold.barr_inf_));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(hot.econ_inf_),
+              std::bit_cast<std::uint64_t>(cold.econ_inf_));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(hot.icon_inf_),
+              std::bit_cast<std::uint64_t>(cold.icon_inf_));
+    expect_bit_identical(hot.primals_, cold.primals_, "R6 primals");
+    expect_bit_identical(hot.eq_lmults_, cold.eq_lmults_, "R6 eq_lmults");
+    expect_bit_identical(hot.iq_lmults_, cold.iq_lmults_, "R6 iq_lmults");
+    expect_bit_identical(hot.bound_lmults_, cold.bound_lmults_, "R6 bound_lmults");
+    expect_bit_identical(hot.eq_cons_, cold.eq_cons_, "R6 eq_cons");
+    expect_bit_identical(hot.iq_cons_, cold.iq_cons_, "R6 iq_cons");
+}
+
+} // namespace
+
+TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers) {
+    NLPSolver reused(std::make_shared<WarmBoundedProblem>());
+    reused.optimizer_->set_print_level(10);
+    reused.transcribe();
+
+    ASSERT_EQ(warm_optimize(*reused.optimizer_, warm_bounded_start()),
+              hven::ConvergenceFlags::CONVERGED);
+    const hven::Index analyses_after_first = reused.optimizer_->kkt_analysis_count();
+    const hven::solvers::StructureEpoch epoch_after_first = reused.nlp_->structure_epoch();
+    ASSERT_GT(analyses_after_first, 0) << "the first solve must have laid and analyzed a pattern";
+
+    // THE HOT SOLVE. Same instance, same problem, same start point, nothing
+    // staged -- so the only thing that differs from the first call is the
+    // engine's own carried state.
+    ASSERT_EQ(warm_optimize(*reused.optimizer_, warm_bounded_start()),
+              hven::ConvergenceFlags::CONVERGED);
+
+    // The reuse actually happened: the epoch did not move, and no second
+    // analysis was paid. Asserted through the existing counter rather than
+    // inferred from timing -- counters are the currency here.
+    EXPECT_TRUE(reused.nlp_->structure_epoch() == epoch_after_first)
+        << "nothing structural happened between the two solves";
+    EXPECT_EQ(reused.optimizer_->kkt_analysis_count(), analyses_after_first)
+        << "an unchanged epoch must not re-analyze; without this the pin below proves nothing";
+    const WarmAnswer hot = answer_of(*reused.optimizer_);
+
+    // THE COLD SOLVE, on a fresh engine over a fresh program: it pays the
+    // analysis the second solve above skipped, and must land on the same bits.
+    NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
+    fresh.optimizer_->set_print_level(10);
+    fresh.transcribe();
+    ASSERT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
+              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_GT(fresh.optimizer_->kkt_analysis_count(), 0);
+
+    expect_same_answer(hot, answer_of(*fresh.optimizer_));
+}

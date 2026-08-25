@@ -644,6 +644,115 @@ TEST(WarmStart, HotReusesFactorization) {
     EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
 }
 
+// M5 R6: HOT-STATE REUSE IS NEVER OBSERVABLE IN ANSWERS.
+//
+// The test above pins that the reuse HAPPENS. This one pins the consequence
+// M5's R6 asks for: the solve that reused the producer's K0 must answer
+// exactly what the same solve answers with the reuse withheld -- same point,
+// same prices, same terminal residuals, same iterate path -- so a consumer can
+// never tell from an answer whether an engine was hot.
+//
+// THE CONTROL IS THE SAME WARM OBJECT WITH ITS HANDLE STRIPPED. Everything
+// else about the two solves is identical by construction: the same fixture,
+// the same start point, the same options, the same ingested x/duals/activity.
+// Only `hot` differs, so only the reuse differs -- which is what makes this a
+// measurement of the reuse rather than of two loosely similar runs.
+//
+// THE ONE COUNTER THAT MAY DIFFER IS THE ONE THAT COUNTS THE SAVED WORK, and
+// it is pinned by an EXACT relation rather than exempted: withholding the
+// handle costs exactly one more factorization, the one the fast path skipped.
+// Every other counter, and the whole history, must match. Wall time is not
+// read here at all -- it is informational, and skipping a factorization is
+// expected to move it.
+//
+// EXACT EQUALITY, no margins: the reuse is answer-neutral BY CONSTRUCTION (the
+// same K0, factorized once instead of twice), so a tolerance here would be a
+// claim that it perturbs the answer slightly -- the very claim R6 forbids.
+TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false; // condition (d), held by construction
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
+    SqpDriver producer_driver(opts);
+    const SqpSolution produced = producer_driver.solve(producer);
+    ASSERT_EQ(produced.status, SqpStatus::kOptimal);
+    ASSERT_NE(produced.warm_start.hot, nullptr);
+
+    ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
+
+    SqpDriver hot_driver(opts);
+    const SqpSolution hot = hot_driver.solve(consumer, consumer.start_point(), produced.warm_start);
+
+    // The control: byte-for-byte the same warm object, minus the handle.
+    WarmStart without_handle = produced.warm_start;
+    without_handle.hot = nullptr;
+    SqpDriver warm_driver(opts);
+    const SqpSolution warm = warm_driver.solve(consumer, consumer.start_point(), without_handle);
+
+    // THE FIXTURE PREMISE: one solve really was hot and the other really was
+    // not. Without this the identity below would pass vacuously on two cold
+    // solves.
+    ASSERT_EQ(hot.counters.start_level_used, StartLevel::kHot);
+    ASSERT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
+    ASSERT_FALSE(hot.history.empty());
+    ASSERT_FALSE(warm.history.empty());
+    ASSERT_EQ(hot.history[0].qp_factorizations, 0);
+    ASSERT_GE(warm.history[0].qp_factorizations, 1);
+
+    // THE ANSWER, bit for bit.
+    EXPECT_EQ(hot.status, warm.status);
+    EXPECT_EQ(hot.f, warm.f);
+    EXPECT_EQ(hot.stationarity, warm.stationarity);
+    EXPECT_EQ(hot.feasibility, warm.feasibility);
+    EXPECT_EQ(hot.complementarity, warm.complementarity);
+    EXPECT_EQ(hot.kkt_residual, warm.kkt_residual);
+    ASSERT_EQ(hot.x.size(), warm.x.size());
+    for (Index i = 0; i < hot.x.size(); ++i) {
+        EXPECT_EQ(hot.x(i), warm.x(i)) << "primal " << i;
+        EXPECT_EQ(hot.z(i), warm.z(i)) << "bound multiplier " << i;
+    }
+    ASSERT_EQ(hot.lambda_e.size(), warm.lambda_e.size());
+    for (Index i = 0; i < hot.lambda_e.size(); ++i) {
+        EXPECT_EQ(hot.lambda_e(i), warm.lambda_e(i)) << "equality multiplier " << i;
+    }
+    ASSERT_EQ(hot.lambda_i.size(), warm.lambda_i.size());
+    for (Index i = 0; i < hot.lambda_i.size(); ++i) {
+        EXPECT_EQ(hot.lambda_i(i), warm.lambda_i(i)) << "inequality multiplier " << i;
+    }
+
+    // THE PATH, not only the endpoint.
+    ASSERT_EQ(hot.history.size(), warm.history.size());
+    for (std::size_t k = 0; k < hot.history.size(); ++k) {
+        const SqpIterate &h = hot.history[k];
+        const SqpIterate &w = warm.history[k];
+        EXPECT_EQ(h.f, w.f) << "row " << k;
+        EXPECT_EQ(h.stationarity, w.stationarity) << "row " << k;
+        EXPECT_EQ(h.feasibility, w.feasibility) << "row " << k;
+        EXPECT_EQ(h.complementarity, w.complementarity) << "row " << k;
+        EXPECT_EQ(h.kkt_residual, w.kkt_residual) << "row " << k;
+        EXPECT_EQ(h.violation_l1, w.violation_l1) << "row " << k;
+        EXPECT_EQ(h.tr_radius, w.tr_radius) << "row " << k;
+        EXPECT_EQ(h.step_norm, w.step_norm) << "row " << k;
+        EXPECT_EQ(h.verdict, w.verdict) << "row " << k;
+        EXPECT_EQ(h.qp_status, w.qp_status) << "row " << k;
+        EXPECT_EQ(h.qp_minor_iters, w.qp_minor_iters) << "row " << k;
+    }
+
+    // THE WORK, with the saved factorization named exactly.
+    EXPECT_EQ(warm.counters.factorizations, hot.counters.factorizations + 1)
+        << "the hot solve skips exactly the one K0 factorization the handle carried";
+    EXPECT_EQ(hot.counters.major_iters, warm.counters.major_iters);
+    EXPECT_EQ(hot.counters.qp_minor_iters, warm.counters.qp_minor_iters);
+    EXPECT_EQ(hot.counters.steps_accepted, warm.counters.steps_accepted);
+    EXPECT_EQ(hot.counters.rejected_steps, warm.counters.rejected_steps);
+    EXPECT_EQ(hot.counters.soc_steps, warm.counters.soc_steps);
+    EXPECT_EQ(hot.counters.elastic_activations, warm.counters.elastic_activations);
+    EXPECT_EQ(hot.counters.restoration_iters, warm.counters.restoration_iters);
+    EXPECT_EQ(hot.counters.border_refine_steps, warm.counters.border_refine_steps);
+}
+
 // THE BRIEF'S TEST, DEGRADATION HALF: changing one H VALUE (same pattern,
 // same n/me/mi, same nonzero positions) between the producer and the
 // consumer must force a genuine refactorization on the consumer's first

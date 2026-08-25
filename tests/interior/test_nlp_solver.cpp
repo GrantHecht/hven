@@ -950,3 +950,62 @@ TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluat
     EXPECT_GT(problem->n_eval_jac_, jac_after_first);
     EXPECT_GT(problem->n_eval_hess_, hess_after_first);
 }
+
+// THE TERMINAL KKT RESIDUALS ON SolveResult (M5 R4). Four scalars a consumer's
+// outcome record needs and could not otherwise obtain: eq_cons_/iq_cons_ carry
+// the PRIMAL residuals as vectors, but stationarity and complementarity are
+// not reconstructible from a SolveResult at all.
+//
+// WHAT MAKES THEM MEANINGFUL is that they are the very numbers converge_check
+// gated on, so this pins them against the four Settings tolerances that
+// produced the CONVERGED verdict rather than against hand-copied constants. A
+// residual reported from some other iterate, or left at its reset value on a
+// path that forgot to write it, fails here -- the first because a non-final
+// iterate does not satisfy all four gates, the second because a solve whose
+// residuals really were all exactly 0.0 is not a thing HS071 produces.
+//
+// Nothing here reads a clock, and nothing asserts a residual VALUE against a
+// literal: the assertion is the relation to the gate.
+TEST(NLPSolverTest, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+
+    const auto &result = solver.optimizer_->result();
+    const auto &settings = solver.optimizer_->settings();
+
+    EXPECT_TRUE(std::isfinite(result.kkt_inf_));
+    EXPECT_TRUE(std::isfinite(result.barr_inf_));
+    EXPECT_TRUE(std::isfinite(result.econ_inf_));
+    EXPECT_TRUE(std::isfinite(result.icon_inf_));
+
+    EXPECT_LT(result.kkt_inf_, settings.kkt_tol_);
+    EXPECT_LT(result.barr_inf_, settings.bar_tol_);
+    EXPECT_LT(result.econ_inf_, settings.econ_tol_);
+    EXPECT_LT(result.icon_inf_, settings.icon_tol_);
+
+    // A residual is a norm: never negative, whatever the exit.
+    EXPECT_GE(result.kkt_inf_, 0.0);
+    EXPECT_GE(result.barr_inf_, 0.0);
+    EXPECT_GE(result.econ_inf_, 0.0);
+    EXPECT_GE(result.icon_inf_, 0.0);
+
+    // HS071 has both row kinds, so neither constraint residual is the vacuous
+    // "no rows, therefore zero" reading. Guards the pin above from passing on
+    // a fixture where two of the four gates are trivially met.
+    ASSERT_EQ(result.eq_cons_.size(), 1);
+    ASSERT_EQ(result.iq_cons_.size(), 1);
+
+    // A SECOND CALL RE-REPORTS. reset_accumulators() clears the four at solve
+    // entry, so a stale reading cannot survive into a call that never wrote
+    // them; here the second call writes them again and lands inside the same
+    // gates.
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_LT(result.kkt_inf_, settings.kkt_tol_);
+    EXPECT_LT(result.barr_inf_, settings.bar_tol_);
+    EXPECT_LT(result.econ_inf_, settings.econ_tol_);
+    EXPECT_LT(result.icon_inf_, settings.icon_tol_);
+}
