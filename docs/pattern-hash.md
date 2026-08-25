@@ -134,6 +134,28 @@ a caller who forgot `makeCompressed()` fails at the first call that touches
 the matrix rather than one call later. Callers who want the tolerance call
 `feed_pattern` or `combined_pattern_hash` directly.
 
+### When the factorize-time guard runs at all
+
+`SymmetricFactor::factorize` recomputes the hash and compares it against the
+key `analyze()` captured. That walk is O(nnz) and it runs per NUMERIC
+factorization, so on an engine driven at one or more factorizations per
+iteration it is a standing per-iteration cost proportional to the matrix --
+paid to re-establish a fact the caller may already know from its own structural
+bookkeeping.
+
+`factorize(A, PatternCheck::kAssumeAnalyzed)` lets such a caller say so. It is
+a DECLARATION, not a hint: the caller takes on the obligation the guard
+otherwise discharges, and a caller that declares it wrongly gets a numeric
+factorization over a symbolic that does not describe the matrix. Only a caller
+that can NAME the mechanism keeping the pattern fixed may pass it -- the
+interior engine names the model's structure epoch, which is the model's own
+signal that its structures have been re-laid, and re-verifies whenever that
+epoch has moved. The compressed-storage check above is NOT part of what is
+skipped: it is a property of the argument the call is about to hand the
+backend, not a re-derivation of something a caller could have tracked. Whether
+the guard ran is observable in `Counters::pattern_verify_count`
+(`docs/counters.md`).
+
 ## Width and byte order
 
 Every ingredient is widened to `std::int64_t` and fed through
