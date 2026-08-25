@@ -128,3 +128,49 @@ Conditions for all three runs: Fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux
 held `flock /tmp/box-build.lock`; every run started with the box's one-minute
 load average below 0.6, and each log's own header records the value it started
 at.
+
+## `runs/2026-08-25-align-loops-ipm.log`, `runs/2026-08-25-align-loops-ipm-2.log`
+
+The flag flip: `-falign-loops=32` added to the shared Release flag set. Unlike
+every pair above, the two arms are not two commits — they are one commit's
+sources built twice, differing in one compile flag.
+
+| arm | hven source | `libhven.a` |
+|---|---|---|
+| `base` | `8fa68c2`, from a `git archive 8fa68c2 \| tar -x` tree with `dep/eigen` and `dep/fmt` symlinked to the working tree's submodules | built from that tree |
+| `head` | the SAME extracted tree, plus the one-hunk patch appending `-falign-loops=32` to `RELEASE_FLAGS` in `cmake/hven_compile_options.cmake` | built from that tree |
+
+A recursive diff of the two source trees reports exactly one differing file,
+which is that cmake module. Both were configured identically and independently
+of the working build directory, as the Task 9 rows above state:
+
+```
+cmake -S <arm> -B <arm>/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_FP_MODE=SAFER_FAST \
+      -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF
+ninja -C <arm>/build -j6 hven
+```
+
+The flag lands on 33 compile lines of the head arm's `build.ninja` and on none
+of the base arm's. `libhven.a`: 7,494,110 → 7,614,046 bytes, +1.60 %.
+
+Two repetitions for the same reason the Task 4 and Task 9 rows give: every cell
+of the first shared a sign. The second reproduced the largest serial cell to
+three decimal places.
+
+Both runs started at a one-minute load average above this leg's usual sub-0.6
+gate — 1.19 and 2.19 — decaying from the builds that produced the arms rather
+than from a competing workload; the box was otherwise idle and the lock was
+held throughout. That is recorded rather than smoothed over: the serial cells'
+0.29-1.91 % base rep-spreads in run 2 and the two runs' cell-for-cell agreement
+are what the reading rests on, and the threaded n=60/n=120 cells (34-37 %
+spread in both runs) are explicitly not part of it.
+
+The layout-only evidence these two logs cannot carry — the three-problem `%a`
+identity check across the same flag flip, and the PCH byte-identity re-prove —
+is in `../2026-08-25-align-loops/`.
+
+Conditions: Fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux 7.1.9-200.fc44,
+`/usr/bin/clang++` 22.1.8, MKL LP64 static, `HVEN_FP_MODE=SAFER_FAST`,
+`-DHVEN_DEFAULT_QP_THREADS=8`, Release. Every build and every run held
+`flock /tmp/box-build.lock`.

@@ -176,3 +176,46 @@ emission order. Anyone proposing to admit them is proposing to relax bar 2,
 which docs/build.md is explicit is a numerics-governance decision and not a
 build one. Eight measurements is now the evidence for that conversation.
 Linux table: 28 sources.
+
+RELEASE-FLAG ADDENDUM (2026-08-25) — the byte-identity baseline re-proven under
+`-falign-loops=32`. This one is not a TU-carve row: no source joins or leaves
+the target and no membership verdict changes. It is here because the commit
+that adds `-falign-loops=32` to the shared Release flag set recompiles every
+object in `libhven.a`, and the PCH's admission bar 2 — a participating TU's
+object stays BYTE-IDENTICAL to the non-PCH build — was proven under the flag
+set that preceded it. A property proven under one flag set and presumed under
+the next is exactly what this file exists to stop, so it was re-proven rather
+than carried forward. The prior record above stands unaltered; this is what
+the same procedure reports under the new flags.
+
+Same procedure as every row above, and the automated form of it: two
+configures from one source tree differing only in
+`-DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON`, `CCACHE_DISABLE=1` so both arms
+compile what is in front of them, objects and the archive byte-compared, plus
+the engagement assertion that catches a PCH which quietly stopped applying.
+That is `scripts/check_pch_neutrality.sh`, run here with
+`HVEN_PCH_NEUTRALITY_JOBS=6` against the working tree with the flag in it.
+Both of its builds carry the flag: 33 compile lines in the PCH-on
+`build.ninja`, 32 in the PCH-off one, the difference being the PCH's own
+compile.
+
+    PASS: PCH engaged on 6 translation units, and all 33
+          emitted artifacts are byte-identical with and without it.
+
+    objects compared: 33, differing: 0        libhven.a: identical
+
+So the six-name opt-in list is unchanged and still earns its place: bar 2 holds
+for every one of its members under `-falign-loops=32`, and the archive matches
+too. Box and toolchain as for the T-series rows (AMD Ryzen 7 5800X3D,
+`/usr/bin/clang++` 22.1.8, Release, MKL LP64). Linux table: 28 sources,
+unchanged.
+
+The full log is `data/2026-08-25-align-loops/pch-neutrality.log`; the rest of
+that directory carries the flag's layout-only evidence — the three-problem `%a`
+identity check and the wall leg's 54 answer pairs, both across the flag flip.
+
+Bar 1 (a participating TU compiles FASTER with the PCH) was not re-measured:
+the flag changes instruction placement in the emitted object, not the parse
+cost of the shared header set that bar 1 prices, and no TU's membership is
+being argued from a new timing. If a future flag change plausibly moves compile
+TIME, that half needs its own pass.

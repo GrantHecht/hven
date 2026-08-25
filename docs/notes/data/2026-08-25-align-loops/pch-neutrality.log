@@ -1,0 +1,53 @@
+== hven PCH neutrality check
+   source:    /home/ghecht/Projects/tycho/dep/hven
+   scratch:   /tmp/claude-1000/-home-ghecht-Projects-tycho/e1a143ea-14a1-48f9-9d6b-47be1f604545/scratchpad/pchwork
+   jobs:      6
+   compiler:  /usr/lib64/ccache/clang++ (project default; override by passing -DCMAKE_CXX_COMPILER=...)
+
+-- configuring PCH-enabled build
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/claude-1000/-home-ghecht-Projects-tycho/e1a143ea-14a1-48f9-9d6b-47be1f604545/scratchpad/pchwork/build-pch-on
+-- building PCH-enabled build
+ninja: no work to do.
+
+-- configuring PCH-disabled build
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/claude-1000/-home-ghecht-Projects-tycho/e1a143ea-14a1-48f9-9d6b-47be1f604545/scratchpad/pchwork/build-pch-off
+-- building PCH-disabled build
+ninja: no work to do.
+
+-- checking the PCH was actually engaged
+   compiled PCH artifacts found: 1
+PASS: PCH engaged on 6 translation units in /tmp/claude-1000/-home-ghecht-Projects-tycho/e1a143ea-14a1-48f9-9d6b-47be1f604545/scratchpad/pchwork/build-pch-on (expected 6).
+
+-- comparing every hven object between the two builds
+   object count matches the compile database: 32/32
+   libhven.a: identical
+   objects compared: 33, differing: 0
+
+PASS: PCH engaged on 6 translation units, and all 33
+      emitted artifacts are byte-identical with and without it.

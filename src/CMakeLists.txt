@@ -220,6 +220,8 @@ target_sources(hven PRIVATE
 #
 # The T1-T8 addenda (per-TU PCH measurement provenance for the SQP-side carves)
 # moved verbatim to docs/notes/2026-08-m3-phase-c-tu-carve-addenda.md.
+# That file also carries the 2026-08-25 re-prove of bar 2 under the Release
+# flag set that added -falign-loops=32, which recompiles every object here.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
