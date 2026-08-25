@@ -58,3 +58,51 @@ Conditions: Fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux 7.1.9-200.fc44,
 `flock /tmp/box-build.lock` and started with the box's one-minute load average
 below 0.6; the box state at each run's start and end is in the report that
 cites the run.
+
+## `runs/2026-08-24-task9-ipm.log`, `runs/2026-08-24-task9-ipm-2.log`
+
+| arm | hven source | `libhven.a` |
+|---|---|---|
+| `base` | `42091c6` (the Task 9 token-grant anchor, and this batch's real branch point) | built from a `git archive 42091c6 | tar -x` tree with `dep/eigen` and `dep/fmt` symlinked to the working tree's submodules |
+| `head` | the Task 9 head batch at its tip | built from the working tree |
+
+Both libraries were configured identically and independently of the working
+build directory, so the two arms differ in source and in nothing else:
+
+```
+cmake -S <arm> -B <arm>/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_FP_MODE=SAFER_FAST \
+      -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF
+ninja -C <arm>/build -j6 hven
+```
+
+UNLIKE the layout-cost fix's rows above, **the base arm here IS this batch's
+branch point** -- the two rows report this batch and nothing else.
+
+Two repetitions rather than one, for the same reason the Task 4 rows give: every
+cell of the first came out with a shared sign. The second reproduced it on every
+cell and both estimators.
+
+## `runs/2026-08-24-task9-fb4-remeasure.log`
+
+The isolating A/B the ledger registered for Task 9 (`6b5fc12` -> `46d6ff8`,
+"fix batch 4"), which the earlier reading left as "mechanism not established"
+against a 4.4% spread.
+
+| arm | hven source |
+|---|---|
+| `base` | `6b5fc12` |
+| `head` | `46d6ff8` |
+
+Both extracted and built exactly as the two arms above, on the same box in the
+same window, with the one-minute load average below 0.6 at the run's start.
+Base rep-spreads came in at 0.60-3.05%, against 4.4% before, which is what makes
+the reading assertable this time. **The re-measure is not part of the Task 9
+comparison** and shares nothing with it but the instrument and the box.
+
+Conditions for all three runs: Fedora, AMD Ryzen 7 5800X3D 8C/16T, 31 GiB, Linux
+7.1.9-200.fc44, `/usr/bin/clang++` 22.1.8, MKL LP64 static,
+`HVEN_FP_MODE=SAFER_FAST`, `-DHVEN_DEFAULT_QP_THREADS=8`, Release. Every build
+held `flock /tmp/box-build.lock`; every run started with the box's one-minute
+load average below 0.6, and each log's own header records the value it started
+at.
