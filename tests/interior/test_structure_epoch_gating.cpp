@@ -366,3 +366,101 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
         << "a late callback that never arms an early one never hands the matrix out, and must "
            "keep the skip throughout";
 }
+
+// The other half of the same contract: writing a new value into an entry the
+// matrix already carries is what the early callback is FOR, and the
+// factorization right after the callback runs must read what got written
+// there. This installs an early callback that scales the assembled matrix's
+// stored coefficient for the problem's first variable -- the same (0, 0)
+// entry hess_structure() already declares, so nothing is inserted or
+// removed and the pattern the analysis was laid against still matches what
+// gets factorized. The evidence that the factorization actually consumed
+// the edit is the step it produced: the primal iterate the solver has moved
+// to by the start of iteration 1 -- the point iteration 0's step landed on --
+// differs from an identical, callback-free control run's corresponding
+// iterate, and by more than noise -- the scaling factor is large enough that
+// "the two steps came out the same" is not a plausible coincidence. The call
+// itself is unremarkable: it converges with no structural refusal, and the
+// pattern-verify counter moves exactly as the hand-out pins above say a call
+// that hands the matrix out must move it.
+TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheStepItProduces) {
+    constexpr double kScale = 1000.0;
+
+    NLPSolver mutating(std::make_shared<EpochGateBoxedProblem>());
+    mutating.optimizer_->set_print_level(3);
+    bool mutating_captured = false;
+    Eigen::VectorXd mutating_first_step;
+    mutating.optimizer_->set_early_callback(
+        [&](int iteration, double, hven::EigenRef<Eigen::VectorXd>, double,
+            hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+            Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt) {
+            // hess_structure() declares (0, 0) for every solve of this problem, so
+            // this coefficient is always already present -- a write into an
+            // existing entry, never an insertion. Scaling only the first
+            // iteration's step is enough to move it (the comparison below only
+            // reads that first step) while leaving the rest of the solve free to
+            // run to a clean convergence on the unedited coefficient.
+            if (iteration == 0) {
+                kkt.coeffRef(0, 0) *= kScale;
+            }
+            return 0;
+        });
+    int mutating_late_calls = 0;
+    mutating.optimizer_->set_late_callback(
+        [&](const hven::solvers::IterateInfo &, hven::ConstEigenRef<Eigen::VectorXd> xsl,
+            hven::ConstEigenRef<Eigen::VectorXd>) {
+            // The late callback for iteration i fires with the iterate i started
+            // from -- XSL += alpha*DXSL, the commit of iteration i's step, runs
+            // after this call, not before it (see interior_point_solver.cpp). So
+            // the SECOND call (iteration 1) is what carries iteration 0's step:
+            // the iterate the mutated factorization actually produced.
+            ++mutating_late_calls;
+            if (mutating_late_calls == 2 && !mutating_captured) {
+                mutating_captured = true;
+                mutating_first_step = xsl.head(EpochGateBoxedProblem::kN);
+            }
+            return 0;
+        });
+    ASSERT_EQ(mutating.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(mutating_captured)
+        << "the mutating run's late callback never reached a second iteration, so no "
+           "iteration-0-step comparison point exists";
+
+    NLPSolver control(std::make_shared<EpochGateBoxedProblem>());
+    control.optimizer_->set_print_level(3);
+    bool control_captured = false;
+    Eigen::VectorXd control_first_step;
+    int control_late_calls = 0;
+    control.optimizer_->set_late_callback(
+        [&](const hven::solvers::IterateInfo &, hven::ConstEigenRef<Eigen::VectorXd> xsl,
+            hven::ConstEigenRef<Eigen::VectorXd>) {
+            ++control_late_calls;
+            if (control_late_calls == 2 && !control_captured) {
+                control_captured = true;
+                control_first_step = xsl.head(EpochGateBoxedProblem::kN);
+            }
+            return 0;
+        });
+    ASSERT_EQ(control.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(control_captured)
+        << "the control run's late callback never reached a second iteration, so no "
+           "iteration-0-step comparison point exists";
+
+    ASSERT_EQ(mutating_first_step.size(), control_first_step.size());
+    const double max_abs_diff = (mutating_first_step - control_first_step).cwiseAbs().maxCoeff();
+    EXPECT_GT(max_abs_diff, 1e-3)
+        << "a callback that scaled a stored coefficient by " << kScale
+        << "x must move the first Newton step the factorization produces; a step this close to "
+           "the control's would mean the factorization never read the edit";
+
+    // Not a structural refusal: the call above ran to CONVERGED with no
+    // exception, and the verify gate the hand-out pins above pin still moved
+    // exactly as they say it must for a call that hands the matrix out --
+    // every factorization from the first hand-out on re-derives the pattern
+    // rather than trusting the epoch, value edit or not.
+    EXPECT_GT(mutating.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+        << "a call that handed the matrix out must still re-derive the pattern it factorizes";
+    EXPECT_EQ(control.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+        << "the callback-free control run keeps the skip, isolating that the counter's movement "
+           "above is the callback's doing and not something the problem itself triggers";
+}
