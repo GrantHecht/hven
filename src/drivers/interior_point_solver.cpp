@@ -813,12 +813,26 @@ bool hven::solvers::InteriorPointSolver::kkt_pattern_is_analyzed() const {
 
 hven::solvers::KktFactorization::PatternCheck
 hven::solvers::InteriorPointSolver::kkt_pattern_check() const {
-    // Declared, not assumed: the same predicate the solve-entry re-analysis is
-    // gated on. When it holds, a re-lay since the analysis is impossible, so
-    // the buffer's pattern IS the analyzed one and the full-KKT hash the guard
-    // would take is a walk over the whole matrix to confirm it. When it does
-    // not hold, the guard runs -- which is what turns a stale-structure bug
-    // into a refusal instead of a factorization over the wrong symbolic.
+    // A CALL THAT HANDS THE MATRIX OUT VERIFIES THROUGHOUT. The early callback
+    // receives the assembly buffer by mutable reference, and an edit made
+    // there is not a model event: it changes the buffer's pattern without
+    // re-laying anything, so the structure epoch stands and would vouch for a
+    // pattern that is no longer the analyzed one. The epoch answers "has the
+    // model re-laid", which is the whole question only while nothing else can
+    // re-pattern the buffer. Forced for the WHOLE call rather than for the
+    // iterations after the first callback: the flag is read on the entry
+    // factorization too, and a callback is installed before the call starts.
+    if (this->verify_kkt_pattern_for_solve_) {
+        return KktFactorization::PatternCheck::kVerify;
+    }
+
+    // Otherwise declared, not assumed: the same predicate the solve-entry
+    // re-analysis is gated on. When it holds, a re-lay since the analysis is
+    // impossible, so the buffer's pattern IS the analyzed one and the full-KKT
+    // hash the guard would take is a walk over the whole matrix to confirm it.
+    // When it does not hold, the guard runs -- which is what turns a
+    // stale-structure bug into a refusal instead of a factorization over the
+    // wrong symbolic.
     return this->kkt_pattern_is_analyzed() ? KktFactorization::PatternCheck::kAssumeAnalyzed
                                            : KktFactorization::PatternCheck::kVerify;
 }
@@ -3540,6 +3554,11 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     this->result_.reset_accumulators();
     this->eval_error_log_.reset();
     settings_.validate();
+
+    // Whether this call verifies the KKT pattern at every factorization,
+    // decided once and held -- see kkt_pattern_check() for why an installed
+    // early callback is what decides it.
+    this->verify_kkt_pattern_for_solve_ = this->early_callback_enabled_;
 
     // Re-apply the QP threading setting on every solve entry, not just in
     // set_qp_params() (which only runs on transcribe). The two backends need

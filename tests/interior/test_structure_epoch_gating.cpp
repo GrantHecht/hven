@@ -113,7 +113,7 @@ bool epoch_gate_no_location_unset(hven::solvers::NonLinearProgram &nlp) {
 
 } // namespace
 
-// PIN 1 -- the defect. A partition renegotiation re-lays the structures while
+// The defect. A partition renegotiation re-lays the structures while
 // leaving treatment, relax factor and bounds revision exactly as they were, so
 // the treatment call the old gate read reports no change. The re-analysis has
 // to happen anyway, and this is the sequence that proves it does.
@@ -164,7 +164,7 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
     }
 }
 
-// PIN 2 -- the healthy path. Nothing structural happened between the two
+// The healthy path. Nothing structural happened between the two
 // solves, so no analysis is redone and the second solve reproduces the first
 // bit for bit.
 TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis) {
@@ -198,7 +198,7 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
     }
 }
 
-// PIN 3 -- the same signal on the factorization side. While the epoch stands,
+// The same signal on the factorization side. While the epoch stands,
 // every numeric factorization declares the pattern rather than re-hashing the
 // whole KKT matrix to rediscover it, and the linear layer's own counters are
 // what show that the guard was skipped rather than merely believed skipped.
@@ -237,4 +237,76 @@ TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     EXPECT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed())
         << "the solve-entry re-analysis re-establishes the epoch";
+}
+
+// The skip is not unconditional, and the condition is the callback. The early
+// callback holds the assembly buffer by mutable reference, so an edit made
+// there re-patterns the buffer without re-laying the model -- the one route by
+// which the epoch can stand over a pattern that is no longer the analyzed one.
+// A call that hands the matrix out therefore re-derives the pattern at every
+// factorization, for the whole call, and a call that does not keeps the skip.
+TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout) {
+    NLPSolver with_callback(std::make_shared<EpochGateBoxedProblem>());
+    with_callback.optimizer_->set_print_level(3);
+    int callback_calls = 0;
+    with_callback.optimizer_->set_early_callback(
+        [&](int, double, hven::EigenRef<Eigen::VectorXd>, double, hven::EigenRef<Eigen::VectorXd>,
+            hven::EigenRef<Eigen::VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+            ++callback_calls;
+            return 0;
+        });
+
+    ASSERT_EQ(with_callback.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_GT(callback_calls, 0) << "the callback never ran, so nothing was handed out";
+
+    const auto &guarded = with_callback.optimizer_->kkt_factor_counters();
+    EXPECT_GT(guarded.pattern_verify_count, 0)
+        << "a call that hands the matrix out must re-derive the pattern it factorizes";
+    EXPECT_TRUE(with_callback.optimizer_->kkt_pattern_is_analyzed())
+        << "the epoch itself never moved -- what changed is whether it is taken as the answer";
+
+    // The same problem with no callback installed keeps the skip, which is
+    // what makes the line the callback and not something the problem did.
+    NLPSolver without_callback(std::make_shared<EpochGateBoxedProblem>());
+    without_callback.optimizer_->set_print_level(3);
+    ASSERT_EQ(without_callback.optimize(epoch_gate_start_point()),
+              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(without_callback.optimizer_->kkt_factor_counters().pattern_verify_count, 0);
+
+    // The guard reads the matrix and decides whether to throw; it feeds
+    // nothing into the factorization, so the two calls agree exactly.
+    const Eigen::VectorXd guarded_x = with_callback.return_x();
+    const Eigen::VectorXd skipped_x = without_callback.return_x();
+    ASSERT_EQ(guarded_x.size(), skipped_x.size());
+    for (int i = 0; i < guarded_x.size(); i++) {
+        EXPECT_DOUBLE_EQ(guarded_x[i], skipped_x[i]);
+    }
+}
+
+// Disarming the callback part-way does not hand the rest of the call back the
+// skip: by the time it is disabled the matrix has already been out, so the
+// decision is taken once at entry and held. The next call, with nothing
+// installed, is the one that skips again.
+TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall) {
+    NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
+    solver.optimizer_->set_print_level(3);
+    solver.optimizer_->set_early_callback(
+        [&](int iteration, double, hven::EigenRef<Eigen::VectorXd>, double,
+            hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+            if (iteration == 0) {
+                solver.optimizer_->disable_early_callback();
+            }
+            return 0;
+        });
+
+    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    const auto counters_after_disarming = solver.optimizer_->kkt_factor_counters();
+    EXPECT_GT(counters_after_disarming.pattern_verify_count, 0)
+        << "the call that handed the matrix out verifies to its end";
+
+    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimizer_->kkt_factor_counters().pattern_verify_count,
+              counters_after_disarming.pattern_verify_count)
+        << "the next call has nothing installed, so it takes the skip again";
 }

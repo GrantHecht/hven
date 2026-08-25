@@ -1496,12 +1496,14 @@ class InteriorPointSolver {
     void analyze_kkt_sparsity();
 
     /// @brief The pattern-guard mode a numeric factorization runs under right
-    ///        now: kAssumeAnalyzed while kkt_pattern_is_analyzed() holds,
-    ///        kVerify otherwise.
+    ///        now: kAssumeAnalyzed while kkt_pattern_is_analyzed() holds and
+    ///        this call is not verifying throughout, kVerify otherwise.
     ///
     /// One epoch read per factorization in place of one full-KKT pattern hash
     /// per factorization. The guard is not dropped -- it is moved onto the
-    /// signal that actually answers the question it asks.
+    /// signal that actually answers the question it asks, and moved back onto
+    /// the hash for any call that hands the matrix out (see
+    /// verify_kkt_pattern_for_solve_).
     KktFactorization::PatternCheck kkt_pattern_check() const;
 
     // --- Problem dimensions ---
@@ -1672,6 +1674,13 @@ class InteriorPointSolver {
 
     // Lifetime count of KKT sparsity analyses; see kkt_analysis_count().
     Index kkt_analysis_count_ = 0;
+
+    // Whether every factorization of the CURRENT call re-derives the assembly
+    // buffer's pattern instead of taking the structure epoch's word for it.
+    // Set once at run_phase_sequence() entry and held for the whole call, so a
+    // callback that disables itself part-way cannot hand the rest of the solve
+    // back the skip after it has already had the matrix.
+    bool verify_kkt_pattern_for_solve_ = false;
 
     // --- Callbacks ---
     EarlyCallBackType early_callback_;
