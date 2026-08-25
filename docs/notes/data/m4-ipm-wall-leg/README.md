@@ -36,6 +36,25 @@ off the MINIMUM estimator: the median estimator's rep-to-rep spread on these
 problem sizes is 0.5–0.8%, which is the same size as the effects being looked
 for.
 
+## The band, and the alignment class
+
+The one-sided ceiling for a consumption-path task's serial IPM reading is
++3.0% on the minimum estimator (calibration `d7f33ca`; three grown-layout
+rolls scattered 0.1/2.3/0.3% at bit-identity). A trip closes on positive
+layout evidence, and one whole class of trips is now known by mechanism:
+
+Alignment class: wall-time deltas up to ~±2.5% can arise from code-layout
+shifts alone — a 16-byte `.text` move that drops a hot loop head off the
+32-byte fetch window measured +2.4% with equal instructions retired and IPC
+down 4.3% (fb4, 2026-08-25). The Release flag set pins loop heads
+(`-falign-loops=32`) to close the known instance. A band trip whose
+symbol/codegen comparison shows layout-only change with bit-identical answers
+may auto-close under the standing positive-evidence rule, with the
+symbol/codegen comparison and the bit-identity check recorded in the trip's
+artifact. Corrected inference, on the record: a delta that grows with problem
+size does not imply evaluation-cost causation — alignment penalties are
+per-iteration and grow with size identically.
+
 ## Runs
 
 | run | arms | headline |
