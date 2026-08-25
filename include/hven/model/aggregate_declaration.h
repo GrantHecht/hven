@@ -142,6 +142,19 @@ struct AggregateDeclaration {
     /// declaration that labels user pieces as fixing rows is accepted here and
     /// loses them at the next treatment, which discards what this count
     /// claims.
+    ///
+    /// THIS IS THE DECLARATION'S TRUST BOUNDARY, and two other fields stand on
+    /// it: equality_shared_row_overcount_ and inequality_shared_row_overcount_
+    /// below. What the three have in common is the reason they are trusted
+    /// rather than checked -- each states something about the pieces that the
+    /// piece surface does not expose, so nothing at this boundary can tell a
+    /// correct declaration from a wrong one. A wrong fixing-row count silently
+    /// discards user rows at the next treatment; a wrong overcount silently
+    /// buys a drifting piece list past the one conjunct that would have caught
+    /// it. Both are refused for SIGN and for LEGALITY (an overcount is legal
+    /// only where pieces exist, a fixing-row count only inside the equality row
+    /// space), and neither is verified for VALUE, because there is nothing here
+    /// to verify it against. A provider that states one states it correctly.
     int fixing_rows_ = 0;
 
     /// @brief How many rows the equality pieces claim IN EXCESS of

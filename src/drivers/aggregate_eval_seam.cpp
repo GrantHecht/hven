@@ -134,13 +134,20 @@ DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
 /// refuses a mismatch. That check is the whole basis on which a per-evaluation
 /// contiguous segment copy is allowed to stand in for a scatter.
 ///
-/// TWO CLAIMS ON ONE COORDINATE ARE REFUSED HERE, AND THAT IS THIS CONSUMER'S
-/// ARENA SPEAKING, NOT A LEVEL 2 PROHIBITION. This seam lays exactly one arena
-/// slot per stored pattern element and publishes a domain by copying that
-/// contiguous segment straight onto the pattern's value array (publish_matrix),
-/// so a coordinate named twice has one offset to hand to two claims. A consumer
-/// that publishes clash marks and a lock vector instead accepts colliding
-/// claims and accumulates them -- the interior engine does exactly that.
+/// THIS SEAM'S PUBLISHED SUPPORT STATEMENT: IT SERVES INJECTIVE CLAIM STREAMS.
+/// A stream that names one coordinate twice within a domain is refused here,
+/// and that refusal is this consumer declaring what it supports -- not Level 2
+/// prohibiting anything. A claim stream is free to be non-injective on
+/// coordinates (see nlp_aggregate.h's CLAIM EXCLUSIVITY paragraph: a slot is
+/// not a coordinate), and resolving several slots onto one destination is the
+/// consumer's to choose. This one chose not to: it lays exactly one arena slot
+/// per stored pattern element and publishes a domain by copying that
+/// contiguous segment straight onto the pattern's value array
+/// (publish_matrix), so a coordinate named twice has one offset to hand to two
+/// claims. A consumer that publishes clash marks and a lock vector instead
+/// accepts colliding claims and accumulates them -- the interior engine does
+/// exactly that. A provider whose pieces overlap therefore pairs with that
+/// consumer, and meets a NAMED refusal here rather than a wrong answer.
 void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matrix_rows,
                   int matrix_cols, int arena_base, const char *domain, SpMatRM &pattern,
                   std::vector<int> &locations) {
@@ -174,10 +181,11 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
     if (static_cast<int>(pattern.nonZeros()) != count) {
         throw std::invalid_argument(fmt::format(
             "AggregateEvalSeam: the {0} block's {1} claims name only {2} distinct coordinates. "
-            "This seam lays one arena slot per stored pattern element and publishes the domain by "
-            "copying that segment onto the pattern's value array, so a coordinate named twice has "
-            "one offset for two claims. A consumer publishing clash marks accepts such a stream; "
-            "this one does not",
+            "This seam supports injective claim streams: it lays one arena slot per stored "
+            "pattern element and publishes the domain by copying that segment onto the pattern's "
+            "value array, so a coordinate named twice has one offset for two claims. A "
+            "non-injective stream is legal and is served by a consumer that publishes clash marks "
+            "and a lock vector; this one does not",
             domain, count, pattern.nonZeros()));
     }
 
@@ -411,12 +419,13 @@ void AggregateEvalSeam::lay() {
                  inequality_jacobian_, inequality, primal, inequality_jacobian_.start_,
                  "inequality Jacobian", inequality_pattern_, kkt_locations_);
 
-    // Uncontested by construction: this seam lays one arena slot per distinct
-    // claimed coordinate and refuses a stream that names one twice within a
-    // domain (the collapse refusal above), so no two slots it publishes address
-    // one offset. There is therefore no clash mark to publish and no mutex
-    // vector to key one against. The table's constructor accepts that form and
-    // every scatter site reads only location().
+    // Uncontested BY THIS SEAM'S OWN SUPPORT STATEMENT, not by anything the
+    // provider owes: it serves injective claim streams and refuses a stream
+    // that names one coordinate twice within a domain (the collapse refusal
+    // above), so no two slots it publishes address one offset. There is
+    // therefore no clash mark to publish and no mutex vector to key one
+    // against. The table's constructor accepts that form and every scatter
+    // site reads only location().
     kkt_table_ = KktLocationTable(kkt_locations_.data(), total_claims, nullptr, 0, nullptr);
 
     // One padding slot when a model claims nothing at all -- an aggregate whose

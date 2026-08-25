@@ -329,6 +329,17 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
 /// published (model/claim_space.h); a provider scatters through the table
 /// honoring the marks and never pre-reduces contested KKT coordinates.
 ///
+/// A SLOT IS NOT A COORDINATE, and the exclusivity above is a statement about
+/// slots. A claim stream need not be injective on physical KKT coordinates:
+/// pieces that legitimately overlap -- an integrand accumulated across several
+/// pieces into one row is the shape that produces it -- emit several slots
+/// naming one destination, and that is a legal stream, not a defect in it.
+/// What each such slot belongs to exactly one of is a PARTITION. Resolving
+/// several slots onto one destination is the consumer's, by the clash marks
+/// and lock vector it published, or by whatever else it chooses to publish; a
+/// consumer that supports only injective streams says so in its own support
+/// statement rather than reading a prohibition into this one.
+///
 /// CLAIM-PASS SHAPE: claims are issued serially by the provider, in
 /// partition-index order, never from worker threads. Pre-reserving slot ranges
 /// is a permitted implementation detail; the OBSERVABLE stream is the ordered
@@ -399,7 +410,25 @@ class NlpAggregate {
     /// @throws std::invalid_argument if @p n is below 1.
     virtual void set_evaluation_threads(int n) = 0;
 
-    /// The structural key of the declared model as currently laid.
+    /// @brief The structural key of the declared model as currently laid.
+    ///
+    /// A PURE FUNCTION OF THREE THINGS: the declaration, the ADOPTED partition
+    /// count, and the configured fixed-variable treatment together with its
+    /// relax state. The third conjunct is not an accident of where the digest
+    /// is taken -- it is the key's meaning. A treatment that eliminates
+    /// bound-fixed variables changes the solver's reduced coordinate space, so
+    /// the claim structure the key is taken over is the reduced one; primal and
+    /// multiplier payloads are not transferable across a treatment flip, and a
+    /// key that stayed still across one would say they were.
+    ///
+    /// DISTINCT FROM CLAIM-ORDER DETERMINISM, which is a pure function of the
+    /// declaration and the adopted count ALONE (see the CLAIM-ORDER
+    /// DETERMINISM paragraph on this class). The two are statements about
+    /// different objects -- what order the claims come out in, and what
+    /// structure they describe -- and neither implies the other. Two
+    /// constructions from equal declarations at one adopted count hand out the
+    /// same claim stream whatever treatment is configured; whether they key
+    /// the same depends on the treatment as well.
     virtual ModelStructureKey model_structure_key() const = 0;
 
     /// How many times this aggregate has laid its structures.
