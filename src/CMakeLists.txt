@@ -159,9 +159,19 @@ target_sources(hven PRIVATE
 # the byte form -- the layout, the bounds-checked decode, and the refusals --
 # which is orchestration-shaped, non-template code that CLAUDE.md section 5
 # puts in a .cpp regardless of the surrounding loop.
+#
+# warmstart/ipm_polish_extension.cpp sits in this block rather than in the
+# interior-point block above, even though the interior-point engine is what
+# PRODUCES its payload. The extension is a VALUE the currency carries and a
+# bridge onto the SQP crossover; it names no engine type either, and its two
+# ends belong to two different engines, so filing it under one of them would
+# misdescribe it. Same shape of code as its neighbour -- a byte layout, a
+# bounds-checked decode, refusals -- and the same CLAUDE.md section 5 reason
+# for a .cpp.
 ################################################################################
 
 target_sources(hven PRIVATE
+    warmstart/ipm_polish_extension.cpp
     warmstart/warm_start_data.cpp
 )
 
@@ -306,7 +316,15 @@ endif()
 # for it, and out is the unmeasured default. It includes the currency header,
 # the model contract's structure-identity header, and fmt: again a different
 # header set in a different order from the one src/hven_pch.h prefixes.
-set(_hven_expected_source_count 33)
+#
+# 34 as of warmstart/ipm_polish_extension.cpp, the interior-point polish
+# extension's byte form and its crossover bridge. It stays OUT on the same
+# footing as the five above -- no measurement exists for it, and out is the
+# unmeasured default. It includes the currency header, the crossover header
+# (which pulls the QP types and the working set), the model contract's
+# structure-identity header, and fmt: again a different header set in a
+# different order from the one src/hven_pch.h prefixes.
+set(_hven_expected_source_count 34)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

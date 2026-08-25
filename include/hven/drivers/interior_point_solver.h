@@ -31,6 +31,7 @@
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/model/non_linear_program.h"
+#include "hven/warmstart/ipm_polish_extension.h"
 #include "hven/warmstart/warm_start_data.h"
 
 #ifdef USE_ACCELERATE_SPARSE
@@ -1474,7 +1475,15 @@ class InteriorPointSolver {
     /// The stamp is the bound program's model_structure_key() AS OF that
     /// solve's completion, not as of this call.
     ///
-    /// Extensions: none. The IPM's polish extension is a later work package.
+    /// EXTENSIONS: exactly one, `"hven.ipm.polish.v1"`
+    /// (warmstart/ipm_polish_extension.h), and only when the solve had a
+    /// non-empty variable-bound set. It carries what the signed core block
+    /// cannot: the invertible (z_lower, z_upper) pair at declared width, the
+    /// inequality values cI(x) the crossover judges rows against, and the
+    /// barrier parameter the solve ended at -- all on the caller's objective
+    /// scale, like the core blocks beside them. A problem with no finite
+    /// variable bounds carries no extension, because there is no pair to
+    /// carry: the core-only value is the whole hand-off there.
     ///
     /// @return The captured value, by copy.
     /// @throws std::logic_error if no solve has completed on this instance --
@@ -1513,18 +1522,38 @@ class InteriorPointSolver {
     /// point. `eq_lmults_`/`iq_lmults_` are installed through the same staged-
     /// seed path set_initial_multipliers() feeds, with the same clamps and the
     /// same objective-scale handling. `bound_lmults_` is validated and carried
-    /// but NOT installed: the signed core block does not invert into the
-    /// (z_lower, z_upper) pair the barrier state needs at a two-sided bound,
-    /// and the invertible form is what the IPM's polish extension carries.
-    /// Unknown extension tags are ignored (R3); this engine consumes none yet.
+    /// but NOT installed, and it never will be: the signed core block does not
+    /// invert into the (z_lower, z_upper) pair the barrier state needs at a
+    /// two-sided bound. The invertible form travels instead in the
+    /// `"hven.ipm.polish.v1"` extension, which THIS ENGINE CONSUMES: when the
+    /// staged value carries it, the pair seeds the bound multipliers in place
+    /// of the fresh `Settings::init_mu_`-and-distance seed, after the starting
+    /// point has been pushed into the interior and under the same
+    /// [kSeededIqMultFloor, kSeededMultInitMax] clamps and the same
+    /// objective-scale multiply-in the constraint-multiplier seed takes. The
+    /// payload's barrier parameter is NOT consumed: the barrier schedule is a
+    /// Settings decision the caller owns, and a payload silently overriding
+    /// `init_mu_` would be a value rewriting a setting. A value WITHOUT the
+    /// extension behaves exactly as a core-only value always has -- the point
+    /// and the constraint multipliers are restarted and the bound multipliers
+    /// are seeded fresh.
+    ///
+    /// UNKNOWN extension tags are ignored (R3): a capability downgrade, not an
+    /// error. A MALFORMED payload under the KNOWN tag is neither, and is
+    /// refused HERE, at staging, naming the tag -- corruption is not a foreign
+    /// tag, and a payload that cannot be read must not reach a solve that
+    /// would then silently cold-seed its bound multipliers.
     ///
     /// @param data The value to stage, in DECLARED space.
     /// @throws std::runtime_error if no NLP has been set.
     /// @throws std::invalid_argument if any block's length is not the matching
     ///         declared dimension (naming the block, the length held and the
-    ///         length declared), or if any block holds a non-finite value. A
-    ///         stamp mismatch is refused at solve entry, not here. Either
-    ///         refusal still leaves this instance with nothing staged.
+    ///         length declared), if any block holds a non-finite value, if the
+    ///         value carries the polish tag more than once, or if a payload
+    ///         under that tag is malformed or is not at the declared widths
+    ///         (naming the tag). A stamp mismatch is refused at solve entry,
+    ///         not here. Every one of these refusals still leaves this
+    ///         instance with nothing staged.
     void stage_warm_start(const WarmStartData &data);
 
     /// @brief Discards any staged warm start.
@@ -1873,6 +1902,17 @@ class InteriorPointSolver {
     // call rather than splitting one call between two scales.
     double solve_obj_scale_ = 1.0;
 
+    // The barrier parameter the last phase of this solve ended at, on the
+    // CALLER's objective scale (the capture divides solve_obj_scale_ out, like
+    // every other quantity that stands in a complementarity relation with a
+    // multiplier). Written once per phase at the same point result_ takes the
+    // rest of its per-phase fields, so a multi-phase call ends with the LAST
+    // phase's value -- the same last-phase-wins semantics every other
+    // diagnostic there has. Read by exactly one thing: the polish extension's
+    // `mu_`, which is the hand-off's own statement of how loose it is. Nothing
+    // in the solve reads it back.
+    double solve_exit_mu_ = 0.0;
+
     // --- Callbacks ---
     EarlyCallBackType early_callback_;
     bool early_callback_enabled_ = false;
@@ -1960,6 +2000,48 @@ class InteriorPointSolver {
     // against unmoved structures pays the O(claims)/O(variables) digests once,
     // not once per solve. Nothing per iteration.
     void capture_completed_warm_start();
+
+    // Builds the "hven.ipm.polish.v1" extension for the value being captured:
+    // the (z_lower, z_upper) pair scattered out of the solver's reduced space
+    // into declared coordinates, the inequality values `iq_values` (already
+    // reduced to the declared block by the caller), and the barrier parameter
+    // the solve ended at. Returns false, writing nothing, if any
+    // internal-consistency check on the reduced->declared mapping fails, on
+    // exactly the DEFENSIVE-BUT-NOT-FATAL terms capture_completed_warm_start
+    // itself is built on.
+    //
+    // THE OBJECTIVE SCALE IS DIVIDED OUT HERE, not at the seam
+    // unscale_reported_outputs owns: the pair is read live out of
+    // bound_duals_, which is the SOLVER's state at the SOLVER's scale and must
+    // not be mutated by a side product of the solve. The capture copies and
+    // divides; the live state is untouched.
+    //
+    // PRECONDITION: bounds_ != nullptr (the caller's own gate -- a problem
+    // with no finite variable bounds has no pair to carry, and carries no
+    // extension at all).
+    bool build_polish_extension(const Eigen::VectorXd &iq_values, WarmExtension &out) const;
+
+    // Rejects a staged value whose "hven.ipm.polish.v1" payload cannot be read
+    // or is not at the declared widths, naming the tag. A value carrying NO
+    // such extension is accepted silently (core-only is a supported hand-off);
+    // a FOREIGN tag is ignored entirely (R3's capability downgrade). The
+    // decoded value is DISCARDED: the bytes are the one source of truth, and
+    // they are decoded again at application -- once per solve, against a
+    // factorization, which is not a cost worth a second copy of the state and
+    // the clearing discipline it would need. `entry` names the public entry in
+    // the refusal.
+    void validate_staged_polish(const WarmStartData &data, const char *entry) const;
+
+    // Installs a staged polish hand-off's bound multipliers over the fresh
+    // seed push_initial_point_interior just wrote. Declared -> reduced by the
+    // bound set's own index lists (the stamp guarantees both ends agree on
+    // which sides are finite), clamped into [kSeededIqMultFloor,
+    // kSeededMultInitMax] and multiplied by this call's objective scale --
+    // the same three steps a staged constraint-multiplier seed takes, for the
+    // same three reasons. Called once per solve, after the push (so the
+    // distances the barrier divides by are already positive) and before any
+    // evaluation. PRECONDITION: bounds_ != nullptr.
+    void apply_polish_bound_duals(const IpmPolishData &polish);
 
     // --- Line search ---
     // The classic merit line search lives in ClassicMeritAcceptance; the

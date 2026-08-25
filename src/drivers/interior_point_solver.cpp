@@ -3308,6 +3308,15 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         this->result_.iq_cons_ = v_rhs.iq_cons() - v_xsl.slacks();
         this->result_.iq_lmults_ = v_xsl.iq_lmults();
     }
+    // The barrier parameter this phase ended at, kept for the warm-start
+    // capture's polish extension and read by nothing else. Recorded
+    // unconditionally rather than under the bounds_ guard below: mu describes
+    // the phase whether or not there are bound terms, and the capture is what
+    // decides whether anything wants it. Still at the SOLVER's objective scale
+    // here; the capture divides it out, alongside the multipliers it is
+    // complementary to.
+    this->solve_exit_mu_ = mu;
+
     if (this->bounds_) {
         // Combine the two per-side multipliers into the single signed z that
         // nlp_model.h's stationarity convention uses -- see accumulate_bound_
@@ -3549,6 +3558,17 @@ void hven::solvers::InteriorPointSolver::stage_warm_start(const WarmStartData &d
     // after that configuration.
     this->validate_warm_start_blocks(data, "stage_warm_start");
 
+    // AND THE EXTENSION, if the value carries our tag. A payload that cannot
+    // be read is refused HERE rather than at solve entry for the same reason
+    // the block sizes are: the caller is standing at the staging call and can
+    // still do something about it, and a solve that discovered the corruption
+    // on its way into the barrier would have to choose between throwing out of
+    // a call the caller asked to WARM-start and silently cold-seeding the
+    // bound multipliers. Neither is a good answer, so the question is settled
+    // before it can be asked. A value with no polish extension, or with a tag
+    // this engine does not know, passes through untouched.
+    this->validate_staged_polish(data, "stage_warm_start");
+
     // PRECEDENCE is already settled by the clear at the top: the warm start's
     // own eq/iq blocks are what the next solve installs, and a seed left
     // standing alongside them would describe the same rows twice. See both
@@ -3709,11 +3729,233 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
         }
     }
 
-    // No extensions in this engine yet -- the polish handoff is a later work
-    // package, and a reader that does not know a tag ignores it anyway.
+    // THE POLISH EXTENSION, and only when this solve had a variable-bound set.
+    // The gate is exactly `bounds_`: that pointer is non-null iff the declared
+    // problem has at least one finite variable bound (a set with nothing in it
+    // is left null at solve entry, so "has bound terms" and "bounds_ != null"
+    // are the same question everywhere in this class). With no bounds there is
+    // no (z_lower, z_upper) pair to carry and the core-only value IS the whole
+    // hand-off -- an extension carrying two zero vectors would claim a
+    // capability that says nothing.
+    //
+    // The inequality values it carries are the DECLARED block computed above,
+    // reduced from result_.iq_cons_ by the same rule the multiplier blocks
+    // take, so the extension and the core cannot disagree about the width of
+    // the row space they describe.
+    if (this->bounds_) {
+        Eigen::VectorXd declared_iq_values;
+        WarmExtension polish;
+        if (!declared_block(this->result_.iq_cons_, this->nlp_->inequal_cons_,
+                            declared_iq_values) ||
+            !this->build_polish_extension(declared_iq_values, polish)) {
+            skip_capture();
+            return;
+        }
+        captured.extensions_.push_back(std::move(polish));
+    }
 
     this->completed_warm_ = std::move(captured);
     this->solve_completed_ = true;
+}
+
+bool hven::solvers::InteriorPointSolver::build_polish_extension(const Eigen::VectorXd &iq_values,
+                                                                WarmExtension &out) const {
+    const BoundSet &b = *this->bounds_;
+    const auto nl = static_cast<Eigen::Index>(b.lower_idx_.size());
+    const auto nu = static_cast<Eigen::Index>(b.upper_idx_.size());
+
+    // Both side blocks must be the length their index list says. They are
+    // written together in push_initial_point_interior and stepped together
+    // afterwards, so a disagreement here is an internal defect, not an input
+    // -- and the loops below index one by the other's length.
+    if (this->bound_duals_.z_lower_.size() != nl || this->bound_duals_.z_upper_.size() != nu) {
+        return false;
+    }
+
+    // REDUCED -> DECLARED, exactly as the core's bound block is scattered: the
+    // bound set's index lists name SOLVER-space variables, and the currency
+    // and this extension both speak declared space. An index the mapping
+    // cannot resolve is refused rather than followed, because following it
+    // would read past reduced_to_full and write past the vectors below in a
+    // Release build, where Eigen's own bounds asserts are gone.
+    const Eigen::Index declared_primal = this->full_primal_vars_;
+    const bool reduced = this->nlp_->is_reduced();
+    const Eigen::Index reduced_primal = this->nlp_->reduced_primal_vars();
+    const Eigen::VectorXi &reduced_to_full = this->nlp_->reduced_to_full();
+    if (reduced && reduced_to_full.size() != reduced_primal) {
+        return false;
+    }
+    const Eigen::Index solver_primal = reduced ? reduced_primal : declared_primal;
+
+    IpmPolishData polish;
+    // THE OBJECTIVE SCALE, divided out here rather than at the seam: see this
+    // function's declaration. The multipliers and the barrier parameter are
+    // complementary quantities (z * distance ~ mu), so they carry the same
+    // factor and must lose it together or stop describing one central path.
+    // The scale is THIS SOLVE's, captured at its entry -- not the setting as
+    // it stands now, which a callback may have moved.
+    const double scale = this->solve_obj_scale_;
+    polish.mu_ = scale == 1.0 ? this->solve_exit_mu_ : this->solve_exit_mu_ / scale;
+    polish.z_lower_ = Eigen::VectorXd::Zero(declared_primal);
+    polish.z_upper_ = Eigen::VectorXd::Zero(declared_primal);
+    polish.iq_values_ = iq_values;
+
+    const auto scatter = [&](const Eigen::VectorXi &idx, const Eigen::VectorXd &z,
+                             Eigen::VectorXd &out_block) {
+        for (Eigen::Index k = 0; k < idx.size(); k++) {
+            const Eigen::Index i_solver = idx[k];
+            if (i_solver < 0 || i_solver >= solver_primal) {
+                return false;
+            }
+            const Eigen::Index i_declared = reduced ? reduced_to_full[i_solver] : i_solver;
+            if (i_declared < 0 || i_declared >= declared_primal) {
+                return false;
+            }
+            out_block[i_declared] = scale == 1.0 ? z[k] : z[k] / scale;
+        }
+        return true;
+    };
+    if (!scatter(b.lower_idx_, this->bound_duals_.z_lower_, polish.z_lower_) ||
+        !scatter(b.upper_idx_, this->bound_duals_.z_upper_, polish.z_upper_)) {
+        return false;
+    }
+
+    out.tag_ = std::string(kIpmPolishTag);
+    out.payload_ = serialize_ipm_polish(polish);
+    return true;
+}
+
+void hven::solvers::InteriorPointSolver::validate_staged_polish(const WarmStartData &data,
+                                                                const char *entry) const {
+    // Throws on a DUPLICATED tag; returns null when the value simply does not
+    // carry one, which is the ordinary core-only hand-off.
+    const WarmExtension *extension = find_ipm_polish(data);
+    if (extension == nullptr) {
+        return;
+    }
+
+    // The decode's own refusals already name the offset, the expectation and
+    // the tag. What they cannot name is the entry the caller stood at, so that
+    // is what this wrapper adds -- and only that; re-wording the decode's
+    // message would put two spellings of one refusal in the tree.
+    IpmPolishData polish;
+    try {
+        polish = deserialize_ipm_polish(extension->payload_);
+    } catch (const std::invalid_argument &error) {
+        throw std::invalid_argument(
+            fmt::format("InteriorPointSolver::{0}: the staged warm start carries a \"{1}\" "
+                        "extension whose payload could not be read -- {2}",
+                        entry, kIpmPolishTag, error.what()));
+    }
+
+    const int declared_primal = this->nlp_->primal_vars_;
+    const int declared_iq = this->nlp_->inequal_cons_;
+    const auto check_size = [&](const char *block, Eigen::Index held, int declared) {
+        if (held != static_cast<Eigen::Index>(declared)) {
+            throw std::invalid_argument(fmt::format(
+                "InteriorPointSolver::{0}: the staged warm start's \"{1}\" extension holds {2} "
+                "entries in {3} but the declared problem has {4} -- the extension is stated over "
+                "the DECLARED problem, at exactly its dimensions, like every core block beside it",
+                entry, kIpmPolishTag, held, block, declared));
+        }
+    };
+    check_size("the lower-bound multiplier block", polish.z_lower_.size(), declared_primal);
+    check_size("the upper-bound multiplier block", polish.z_upper_.size(), declared_primal);
+    check_size("the inequality-value block", polish.iq_values_.size(), declared_iq);
+
+    const auto check_finite = [&](const char *block, const Eigen::VectorXd &v) {
+        if (!v.allFinite()) {
+            throw std::invalid_argument(fmt::format(
+                "InteriorPointSolver::{0}: the staged warm start's \"{1}\" extension holds a "
+                "non-finite value in {2}; a seed the barrier divides by must be a real number",
+                entry, kIpmPolishTag, block));
+        }
+    };
+    check_finite("the lower-bound multiplier block", polish.z_lower_);
+    check_finite("the upper-bound multiplier block", polish.z_upper_);
+    check_finite("the inequality-value block", polish.iq_values_);
+}
+
+void hven::solvers::InteriorPointSolver::apply_polish_bound_duals(const IpmPolishData &polish) {
+    const BoundSet &b = *this->bounds_;
+    const auto nl = static_cast<Eigen::Index>(b.lower_idx_.size());
+    const auto nu = static_cast<Eigen::Index>(b.upper_idx_.size());
+    if (this->bound_duals_.z_lower_.size() != nl || this->bound_duals_.z_upper_.size() != nu) {
+        return;
+    }
+
+    // DECLARED -> REDUCED. The widths were checked at staging against the
+    // declared dimensions and the stamp was checked at solve entry, so the
+    // structure the payload describes and the structure this solve lays are
+    // the same one -- which is exactly what makes reading polish.z_lower_ at a
+    // declared coordinate meaningful: the bound DIGEST is a conjunct of the
+    // key, so both ends agree on which sides are finite and which variable
+    // each index names. The mapping guards below are the Release-build bounds
+    // checks CLAUDE.md section 4 asks for, not a doubt about that.
+    const Eigen::Index declared_primal = this->full_primal_vars_;
+    const bool reduced = this->nlp_->is_reduced();
+    const Eigen::Index reduced_primal = this->nlp_->reduced_primal_vars();
+    const Eigen::VectorXi &reduced_to_full = this->nlp_->reduced_to_full();
+    if (polish.z_lower_.size() != declared_primal || polish.z_upper_.size() != declared_primal ||
+        (reduced && reduced_to_full.size() != reduced_primal)) {
+        return;
+    }
+    const Eigen::Index solver_primal = reduced ? reduced_primal : declared_primal;
+
+    // THE SAME THREE STEPS A STAGED CONSTRAINT-MULTIPLIER SEED TAKES, and for
+    // the same reasons: multiply this call's objective scale back in (the
+    // export divided it out, and the barrier works on the scaled problem);
+    // floor at kSeededIqMultFloor, because every barrier term divides by a
+    // multiplier and a seed at or below zero puts the very first iterate
+    // outside the interior the method is defined on -- and an unpriced side's
+    // exported 0.0 lands here, so the floor is load-bearing on the ordinary
+    // path, not only on a malformed one; ceiling at kSeededMultInitMax rather
+    // than at push_initial_point_interior's own kBoundMultInitCap, because
+    // that cap exists to keep the FORMULA mu0/d from exploding at a tiny
+    // distance, while this is a MEASURED multiplier a converged solve reported
+    // and 1e3 would silently distort a legitimate one.
+    //
+    // ALL OR NOTHING, which is why the indices are resolved in full before the
+    // first value is written: a seeding that gave up half way would leave the
+    // bound multipliers a MIXTURE of the fresh seed and the staged one, a
+    // state no argument here covers -- neither the cold seed's consistency
+    // with mu0 nor the hand-off's consistency with its own solve. Leaving the
+    // fresh seed entirely alone is the one fallback that keeps a stated
+    // invariant.
+    const auto resolve = [&](const Eigen::VectorXi &idx, std::vector<Eigen::Index> &declared_idx) {
+        declared_idx.clear();
+        declared_idx.reserve(static_cast<std::size_t>(idx.size()));
+        for (Eigen::Index k = 0; k < idx.size(); k++) {
+            const Eigen::Index i_solver = idx[k];
+            if (i_solver < 0 || i_solver >= solver_primal) {
+                return false;
+            }
+            const Eigen::Index i_declared = reduced ? reduced_to_full[i_solver] : i_solver;
+            if (i_declared < 0 || i_declared >= declared_primal) {
+                return false;
+            }
+            declared_idx.push_back(i_declared);
+        }
+        return true;
+    };
+    std::vector<Eigen::Index> lower_declared;
+    std::vector<Eigen::Index> upper_declared;
+    if (!resolve(b.lower_idx_, lower_declared) || !resolve(b.upper_idx_, upper_declared)) {
+        return;
+    }
+
+    const double scale = this->solve_obj_scale_;
+    const auto seed = [&](const std::vector<Eigen::Index> &declared_idx,
+                          const Eigen::VectorXd &declared, Eigen::VectorXd &z) {
+        for (std::size_t k = 0; k < declared_idx.size(); k++) {
+            const Eigen::Index i = declared_idx[k];
+            const double staged = scale == 1.0 ? declared[i] : declared[i] * scale;
+            z[static_cast<Eigen::Index>(k)] =
+                std::clamp(staged, kSeededIqMultFloor, kSeededMultInitMax);
+        }
+    };
+    seed(lower_declared, polish.z_lower_, this->bound_duals_.z_lower_);
+    seed(upper_declared, polish.z_upper_, this->bound_duals_.z_upper_);
 }
 
 void hven::solvers::InteriorPointSolver::unscale_reported_outputs() {
@@ -3801,8 +4043,9 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         //
         // MOVED, not copied: `warm` is this call's own copy, already moved out
         // of staged_warm_ above and consumed by this call either way, and
-        // nothing below reads these two blocks again (only structure_key_ and
-        // primal_). R5's non-consuming promise is about the CALLER's value,
+        // nothing below reads these two blocks again (only structure_key_,
+        // primal_, and extensions_ -- the polish hand-off, read after the
+        // interior push). R5's non-consuming promise is about the CALLER's value,
         // which stage_warm_start copied on the way in and which this never
         // touches.
         seed_eq_mults = std::move(warm.eq_lmults_);
@@ -4056,6 +4299,30 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // guess sitting on or outside a bound is projected, not rejected. Resets the
     // multiplier state to empty on a problem with no bounds.
     this->push_initial_point_interior(x_solver, settings_.init_mu_);
+
+    // THE POLISH HAND-OFF, over the seed the push just wrote. The core's
+    // signed z cannot be installed at all -- it does not invert into the pair
+    // the barrier holds -- so this extension is the ONLY route by which a warm
+    // start reaches the bound multipliers, and a value without it leaves the
+    // fresh init_mu_-and-distance seed exactly as it stands (which is what
+    // every core-only warm start has always done).
+    //
+    // AFTER the push, not before: the push WRITES both multiplier blocks from
+    // mu0 and the post-projection distances, so seeding first would be seeding
+    // into vectors that are about to be overwritten. It also resizes them,
+    // which is what makes the sizes the helper checks meaningful.
+    //
+    // The payload is decoded again here rather than carried in parsed form
+    // from the staging call: it was already proven readable there (that is
+    // what makes a corrupt payload a STAGING refusal), the decode is O(n)
+    // against a solve that is about to factorize, and the bytes staying the
+    // single source of truth means there is no second copy to keep in step
+    // with staged_warm_ through the clear/consume discipline around it.
+    if (have_warm && this->bounds_) {
+        if (const WarmExtension *polish = find_ipm_polish(warm); polish != nullptr) {
+            this->apply_polish_bound_duals(deserialize_ipm_polish(polish->payload_));
+        }
+    }
 
     bool docompute = claim_kkt_analysis();
     Eigen::VectorXd XSL = this->init_impl(x_solver, settings_.init_mu_, docompute);
