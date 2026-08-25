@@ -3523,21 +3523,14 @@ void hven::solvers::InteriorPointSolver::stage_warm_start(const WarmStartData &d
                                  "Call set_nlp() before staging a warm start.");
     }
 
-    // THE STAMP FIRST, before the blocks. A payload from a different declared
-    // structure can still happen to carry blocks of the right lengths, and
-    // reporting that as a size mismatch would name the symptom instead of the
-    // cause.
-    const ModelStructureKey live = this->nlp_->model_structure_key();
-    if (!(data.structure_key_ == live)) {
-        throw std::invalid_argument(fmt::format(
-            "InteriorPointSolver::stage_warm_start: the warm-start value was taken under "
-            "structure key {0:#x} but the bound program's current key is {1:#x} -- the value "
-            "describes a different declared structure (claims, partition count or bound "
-            "structure, the fixed-variable treatment's own rows included) and cannot be staged "
-            "against this problem. Re-solve and re-export against the current structure.",
-            data.structure_key_.digest(), live.digest()));
-    }
-
+    // SIZES ONLY, and the stamp deliberately NOT here. The declared dimensions
+    // are treatment-invariant -- that is exactly what the currency's
+    // declared-space convention buys -- so they are checkable at this point,
+    // while the key the next solve will lay under does not exist yet: the
+    // treatment configuration that produces it runs at solve entry. Refusing
+    // on the stamp here would refuse the primary flow, a consumer staging into
+    // a fresh engine before its first solve. The stamp is checked there, once,
+    // after that configuration.
     this->validate_warm_start_blocks(data, "stage_warm_start");
 
     this->staged_warm_ = data;
@@ -3732,9 +3725,9 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
 
     // A staged warm start is disarmed on exactly the same terms and at the
     // same point, and for the same reason: it is ONE-SHOT, so this call owns
-    // it whether it ends up applied, refused by the stamp re-check below, or
-    // lost to an unrelated throw on the way there. Nothing it holds survives
-    // past this return either way.
+    // it whether it ends up applied, refused by the stamp check below, or lost
+    // to an unrelated throw on the way there. Nothing it holds survives past
+    // this return either way.
     bool have_warm = this->warm_staged_;
     WarmStartData warm;
     if (have_warm) {
@@ -3768,24 +3761,6 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     if (!this->nlp_) {
         throw std::runtime_error("InteriorPointSolver::run_phase_sequence: no NLP has been set. "
                                  "Call set_nlp() before optimize/solve.");
-    }
-
-    // THE LIVE STAMP RE-CHECK. The staged value was checked against the
-    // program's key at staging, but it survives every re-bind and re-lay in
-    // between, and either can move that key out from under it. A moved key
-    // REFUSES here: silently dropping the staged start would cold-start a
-    // solve the caller asked to warm-start, and applying it would restart a
-    // point belonging to a different declared structure.
-    if (have_warm) {
-        const ModelStructureKey live = this->nlp_->model_structure_key();
-        if (!(warm.structure_key_ == live)) {
-            throw std::invalid_argument(fmt::format(
-                "InteriorPointSolver: the staged warm start was taken under structure key {0:#x} "
-                "but the bound program's key at this solve's entry is {1:#x} -- the structure "
-                "moved between staging and solving. The staged start is refused rather than "
-                "silently dropped; re-export and re-stage against the current structure.",
-                warm.structure_key_.digest(), live.digest()));
-        }
     }
     if (x.size() != full_primal_vars_) {
         throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
@@ -3918,6 +3893,35 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         // rather than to a signal that merely correlates with it.
         this->refresh_nlp_dimensions();
         this->analyze_kkt_sparsity();
+    }
+
+    // THE STAMP CHECK, and this is the ONLY place it fires. It sits AFTER the
+    // variable-treatment configuration deliberately: that call re-lays
+    // whenever it eliminates or restores variables, so the key the program
+    // carries BEFORE it is not the key this solve lays under, and the key it
+    // carries after is. Checking at staging time instead would refuse the
+    // primary flow -- a consumer stages into a fresh engine before its first
+    // solve, while the program still keys pre-treatment -- which is why the
+    // staging entry validates block SIZES (treatment-invariant, because the
+    // currency is declared-space) and nothing else, and why the export side
+    // captures its stamp at solve COMPLETION for the same reason.
+    //
+    // A mismatch REFUSES naming both keys. Silently dropping the staged start
+    // would cold-start a solve the caller asked to warm-start, and applying it
+    // would restart a point belonging to a different declared structure. The
+    // staged value is already consumed by this call at this point -- loud,
+    // then gone, exactly as the staged-multiplier seed above is.
+    if (have_warm) {
+        const ModelStructureKey live = this->nlp_->model_structure_key();
+        if (!(warm.structure_key_ == live)) {
+            throw std::invalid_argument(fmt::format(
+                "InteriorPointSolver: the staged warm start was taken under structure key {0:#x} "
+                "but the program this solve lays under keys {1:#x} -- the value describes a "
+                "different declared structure (claims, partition count, bound structure, and the "
+                "fixed-variable treatment's own rows). The staged start is refused rather than "
+                "silently dropped; re-export and re-stage against the current structure.",
+                warm.structure_key_.digest(), live.digest()));
+        }
     }
 
     // A staged seed is validated here, right after variable-treatment

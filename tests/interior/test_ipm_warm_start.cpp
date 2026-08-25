@@ -334,33 +334,7 @@ TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
     EXPECT_FALSE(warm.structure_key_ == relaid_key);
 }
 
-// --- Staging refusals ---
-
-TEST(IpmWarmStart, StagingRefusesAStampFromABeforeStructure) {
-    NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.transcribe();
-
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
-    const WarmStartData warm = solver.optimizer_->export_warm_start();
-
-    solver.nlp_->set_variable_bound(0, -10.0, 10.0);
-    solver.nlp_->make_nlp(2, 1, 0);
-    const auto live_key = solver.nlp_->model_structure_key();
-    ASSERT_FALSE(warm.structure_key_ == live_key);
-
-    try {
-        solver.optimizer_->stage_warm_start(warm);
-        FAIL() << "staging a payload from a different structure must refuse";
-    } catch (const std::invalid_argument &e) {
-        const std::string msg = e.what();
-        EXPECT_NE(msg.find(fmt::format("{:#x}", warm.structure_key_.digest())), std::string::npos)
-            << msg;
-        EXPECT_NE(msg.find(fmt::format("{:#x}", live_key.digest())), std::string::npos) << msg;
-    }
-    EXPECT_FALSE(solver.optimizer_->warm_staged_);
-}
+// --- Staging refusals: sizes and finiteness, and deliberately NOT the stamp ---
 
 TEST(IpmWarmStart, StagingRefusesAMisSizedBlockNamingItAndBothCounts) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
@@ -398,7 +372,7 @@ TEST(IpmWarmStart, StagingRefusesANonFiniteBlock) {
     EXPECT_FALSE(solver.optimizer_->warm_staged_);
 }
 
-// --- The solve-entry re-check ---
+// --- The stamp check, which fires at solve entry and only there ---
 
 TEST(IpmWarmStart, ARelayBetweenStagingAndSolvingRefusesAtSolveEntry) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
@@ -612,40 +586,75 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
     EXPECT_EQ(solver.optimizer_->result().primals_[2], 0.25);
 }
 
-// RECORDED BEHAVIOUR, not an endorsement of it. The MakeParameter treatment
-// RE-LAYS the program (it renumbers the claim stream into the reduced column
-// space), so a program that has solved once carries a different structural key
-// from the same declaration freshly transcribed and not yet configured for any
-// treatment. The stamp is defined to carry the treatment conjunct, so the
-// refusal is consistent -- but the practical consequence is that a payload
-// exported from an eliminating solve does not stage into a cold engine until
-// that engine's program has been laid under the same treatment. Pinned so the
-// fact is visible rather than discovered downstream.
-TEST(IpmWarmStart, AnEliminatingExportDoesNotStageIntoAnUnconfiguredProgram) {
-    NLPSolver solved(std::make_shared<WarmFixedVarProblem>());
-    solved.optimizer_->set_print_level(10);
-    solved.transcribe();
-    const auto key_before_any_solve = solved.nlp_->model_structure_key();
+// THE PRIMARY FLOW, and the reason the stamp is checked at solve entry rather
+// than at staging. The MakeParameter treatment RE-LAYS the program (it
+// renumbers the claim stream into the reduced column space), so a program that
+// has solved once keys differently from the same declaration freshly
+// transcribed and not yet configured for any treatment. A consumer stages into
+// a cold engine, before that engine has ever solved -- so the check has to
+// happen where the key this solve lays under exists, which is after the
+// treatment configuration at solve entry. Staged on a fresh engine with the
+// same settings, the value goes in and the first solve consumes it WARM.
+TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings) {
+    NLPSolver source(std::make_shared<WarmFixedVarProblem>());
+    source.optimizer_->set_print_level(10);
+    source.transcribe();
+    const auto key_before_any_solve = source.nlp_->model_structure_key();
 
     Eigen::VectorXd x0(3);
     x0 << 2.0, -1.0, 0.25;
-    ASSERT_EQ(warm_optimize(*solved.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
-    ASSERT_TRUE(solved.nlp_->is_reduced());
-    EXPECT_FALSE(solved.nlp_->model_structure_key() == key_before_any_solve)
+    ASSERT_EQ(warm_optimize(*source.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(source.nlp_->is_reduced());
+    // The fact that makes the placement load-bearing rather than a preference.
+    EXPECT_FALSE(source.nlp_->model_structure_key() == key_before_any_solve)
         << "the eliminating treatment re-lays, and a re-lay moves the key";
 
-    const WarmStartData warm = solved.optimizer_->export_warm_start();
+    const WarmStartData warm = source.optimizer_->export_warm_start();
 
+    // A cold engine on the same declaration and the same settings. Its program
+    // still keys pre-treatment here, and the staging stands anyway.
     NLPSolver fresh(std::make_shared<WarmFixedVarProblem>());
     fresh.optimizer_->set_print_level(10);
     fresh.transcribe();
-    EXPECT_THROW(fresh.optimizer_->stage_warm_start(warm), std::invalid_argument);
+    ASSERT_FALSE(fresh.nlp_->model_structure_key() == warm.structure_key_)
+        << "the fresh program keys pre-treatment, which is exactly the state a "
+           "staging-time stamp check would have refused";
+    ASSERT_EQ(fresh.optimizer_->settings().fixed_variable_treatment_,
+              source.optimizer_->settings().fixed_variable_treatment_);
 
-    // One solve is all it takes to put the fresh engine's program in the state
-    // the payload was taken under, and the staging then stands.
-    ASSERT_EQ(warm_optimize(*fresh.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
     EXPECT_NO_THROW(fresh.optimizer_->stage_warm_start(warm));
-    EXPECT_TRUE(fresh.optimizer_->warm_staged_);
+    ASSERT_TRUE(fresh.optimizer_->warm_staged_);
+
+    // And the first solve consumes it warm: it starts at the staged point, not
+    // at the guess handed in.
+    FirstIterateProbe probe;
+    probe.arm(*fresh.optimizer_, 2);
+    Eigen::VectorXd cold(3);
+    cold << 4.5, -9.0, 0.25;
+    ASSERT_EQ(warm_optimize(*fresh.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    fresh.optimizer_->disable_early_callback();
+
+    ASSERT_TRUE(probe.seen_);
+    EXPECT_FALSE(fresh.optimizer_->warm_staged_) << "the solve consumed the staged value";
+
+    // The reduced space the treatment produced holds x0 and x1, in that order.
+    // x1 is FREE, so the interior push leaves it alone and it is the staged
+    // value bit for bit -- that is the warm start reaching the solve.
+    ASSERT_EQ(probe.primal_.size(), 2);
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(probe.primal_[1]),
+              std::bit_cast<std::uint64_t>(warm.primal_[1]))
+        << "the free coordinate must be the staged value exactly";
+
+    // x0 carries a two-sided box and the staged value sits ON its lower bound,
+    // so the interior push moves it -- as it moves any starting point, warm or
+    // cold. What is pinned is which point it was pushed FROM: the staged one,
+    // not the guess handed in.
+    EXPECT_LT(probe.primal_[0], 1.0e-3) << "pushed off the staged point at the lower bound";
+    EXPECT_GT(probe.primal_[0], 0.0) << "and pushed strictly inside";
+    EXPECT_NE(probe.primal_[0], cold[0]) << "the caller's guess did not survive the staging";
+
+    // And once staged and consumed, the key it ran under IS the payload's.
+    EXPECT_TRUE(fresh.nlp_->model_structure_key() == warm.structure_key_);
 }
 
 // --- Precedence over a staged multiplier seed ---

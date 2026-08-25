@@ -55,10 +55,12 @@ struct WarmExtension {
 /// equal. A round-trip check over a payload that may carry NaN compares bit
 /// patterns, not values.
 struct WarmStartData {
-    Eigen::VectorXd primal_;          ///< n.
-    Eigen::VectorXd eq_lmults_;       ///< me.
-    Eigen::VectorXd iq_lmults_;       ///< mi.
-    Eigen::VectorXd bound_lmults_;    ///< n, signed z = -zL + zU.
+    Eigen::VectorXd primal_;    ///< n.
+    Eigen::VectorXd eq_lmults_; ///< me.
+    Eigen::VectorXd iq_lmults_; ///< mi.
+    /// n, signed z = zL - zU (the engine's convention; >= 0 at an active
+    /// lower bound).
+    Eigen::VectorXd bound_lmults_;
     ModelStructureKey structure_key_; ///< The stamp; `==` is the currency test.
     std::vector<WarmExtension> extensions_;
 

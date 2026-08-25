@@ -1474,10 +1474,10 @@ class InteriorPointSolver {
     /// zero vector for it.
     ///
     /// SIGN: `bound_lmults_` is carried VERBATIM from
-    /// SolveResult::bound_lmults_, i.e. z = z_lower - z_upper, the M4 Task 8
-    /// convention this engine reports in. The two blocks name the same
-    /// quantity and a value round-tripped through the currency means the same
-    /// thing at both ends.
+    /// SolveResult::bound_lmults_, i.e. z = z_lower - z_upper -- the engine's
+    /// convention of record (M4 Task 8), and the currency's. The two blocks
+    /// name the same quantity, so a value round-tripped through the currency
+    /// means the same thing at both ends.
     ///
     /// The stamp is the bound program's model_structure_key() AS OF that
     /// solve's completion, not as of this call.
@@ -1494,10 +1494,21 @@ class InteriorPointSolver {
     ///
     /// ONE-SHOT AND LOUD. The value applies to the next run_phase_sequence()
     /// call and is consumed by it, applied or refused; it survives any
-    /// re-bind or re-lay in between; and its stamp is re-checked at that
-    /// call's entry, where a live mismatch REFUSES rather than being silently
-    /// dropped or silently cold-started over. A caller wanting a second warm
-    /// solve stages again.
+    /// re-bind or re-lay in between; and a live stamp mismatch at that call
+    /// REFUSES rather than being silently dropped or silently cold-started
+    /// over. A caller wanting a second warm solve stages again.
+    ///
+    /// WHAT THIS ENTRY CHECKS, and what it deliberately does not. It checks
+    /// every block's SIZE against the DECLARED dimensions, which are
+    /// treatment-invariant -- that is what the currency's declared-space
+    /// convention buys -- plus finiteness. It does NOT check the stamp: the
+    /// key the next solve lays under does not exist yet, because the
+    /// fixed-variable treatment (which re-lays whenever it eliminates or
+    /// restores variables) is configured at solve entry. Refusing on the stamp
+    /// here would refuse the primary flow -- a consumer staging into a fresh
+    /// engine before its first solve, while the program still keys
+    /// pre-treatment. The stamp is checked once, at solve entry, after that
+    /// configuration, and a mismatch there names both keys.
     ///
     /// NON-CONSUMING (R5): the argument is taken by const reference and
     /// copied. Staging the same value twice from the same cold state produces
@@ -1522,10 +1533,10 @@ class InteriorPointSolver {
     ///
     /// @param data The value to stage, in DECLARED space.
     /// @throws std::runtime_error if no NLP has been set.
-    /// @throws std::invalid_argument if `data`'s stamp is not the bound
-    ///         program's current model_structure_key() (naming both keys), if
-    ///         any block's length is not the matching declared dimension, or
-    ///         if any block holds a non-finite value.
+    /// @throws std::invalid_argument if any block's length is not the matching
+    ///         declared dimension (naming the block, the length held and the
+    ///         length declared), or if any block holds a non-finite value. A
+    ///         stamp mismatch is refused at solve entry, not here.
     void stage_warm_start(const WarmStartData &data);
 
     /// @brief Discards any staged warm start.
@@ -1941,10 +1952,11 @@ class InteriorPointSolver {
     // post-treatment count: the currency is declared-space, and the
     // MakeConstraint treatment's internal fixing rows are not declared rows),
     // iq_lmults_ at its inequality row count -- or which holds a non-finite
-    // value. Reads the dimensions off the program rather than off this
-    // solver's own cached copies, which are refreshed only at set_nlp() and at
-    // solve entry and so may predate a re-lay. `entry` names the public entry
-    // in the refusal.
+    // value. Every dimension it reads is treatment-invariant, which is what
+    // makes this checkable at staging time while the stamp is not. Reads them
+    // off the program rather than off this solver's own cached copies, which
+    // are refreshed only at set_nlp() and at solve entry and so may predate a
+    // re-lay. `entry` names the public entry in the refusal.
     void validate_warm_start_blocks(const WarmStartData &data, const char *entry) const;
 
     // Captures completed_warm_ from result_ and the bound program, and arms
