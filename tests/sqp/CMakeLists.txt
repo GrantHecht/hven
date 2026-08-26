@@ -28,6 +28,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_border_ops.cpp
     test_continuation.cpp
     test_corpus_cells.cpp
+    test_crossover_legs.cpp
     test_dense_oracle.cpp
     test_eqp_refine_ab.cpp
     test_eqp_solve.cpp

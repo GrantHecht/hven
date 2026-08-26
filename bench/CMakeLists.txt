@@ -118,3 +118,20 @@ target_link_libraries(hven_sqp_ssn_safeguard_probe PRIVATE hven::hven)
 target_compile_options(hven_sqp_ssn_safeguard_probe PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_ssn_safeguard_probe
                             PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+
+# hven_sqp_crossover — the M5 W5 crossover-leg runner: the dual-bind adapter,
+# the four legs and the margin arithmetic all live in bench/crossover_legs.h (a
+# header, deliberately, so tests/sqp/test_crossover_legs.cpp shares exactly this
+# implementation rather than a bench-only copy that could drift).
+# bench_crossover.cpp is CLI glue only. NOT ctest-registered: a full sweep of
+# the dual-bindable census runs for hours. Its correctness gate is
+# tests/sqp/test_crossover_legs.cpp, which pins the adapter's round trip and the
+# cross-engine declaration key at a size a test can afford.
+add_executable(hven_sqp_crossover bench_crossover.cpp)
+target_link_libraries(hven_sqp_crossover PRIVATE hven::hven)
+target_compile_options(hven_sqp_crossover PRIVATE ${COMPILE_FLAGS})
+target_include_directories(hven_sqp_crossover PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+# Same configure-time git description hven_sqp_corpus stamps, and for the same
+# reason: every CSV this runner writes says which binary produced its rows.
+target_compile_definitions(hven_sqp_crossover PRIVATE
+    HVEN_SQP_CROSSOVER_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
