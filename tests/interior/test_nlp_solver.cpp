@@ -953,18 +953,16 @@ TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluat
     EXPECT_GT(problem->n_eval_hess_, hess_after_first);
 }
 
-// THE TERMINAL KKT RESIDUALS ON SolveResult (M5 R4). Four scalars a consumer's
-// outcome record needs and could not otherwise obtain: eq_cons_/iq_cons_ carry
-// the PRIMAL residuals as vectors, but stationarity and complementarity are
-// not reconstructible from a SolveResult at all.
+// THE TERMINAL KKT RESIDUALS ON SolveResult. Four scalars a consumer's outcome
+// record needs and could not otherwise obtain: eq_cons_/iq_cons_ carry the
+// PRIMAL residuals as vectors, but stationarity and complementarity are not
+// reconstructible from a SolveResult at all.
 //
-// WHAT MAKES THEM MEANINGFUL is that they are the very numbers converge_check
-// gated on, so this pins them against the four Settings tolerances that
-// produced the CONVERGED verdict rather than against hand-copied constants. A
-// residual reported from some other iterate, or left at its reset value on a
-// path that forgot to write it, fails here -- the first because a non-final
-// iterate does not satisfy all four gates, the second because the reset value
-// is NaN and NaN passes neither the finiteness checks nor the < comparisons.
+// They are the very numbers converge_check gated on, so this pins them against
+// the four Settings tolerances that produced the CONVERGED verdict rather than
+// against hand-copied constants. A residual reported from some other iterate
+// fails the gates; one left at its reset value fails too, because that value is
+// NaN and NaN passes neither the finiteness checks nor the < comparisons.
 //
 // Nothing here reads a clock, and nothing asserts a residual VALUE against a
 // literal: the assertion is the relation to the gate.
@@ -996,8 +994,7 @@ TEST(NLPSolverTest, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     EXPECT_GE(result.icon_inf_, 0.0);
 
     // HS071 has both row kinds, so neither constraint residual is the vacuous
-    // "no rows, therefore zero" reading. Guards the pin above from passing on
-    // a fixture where two of the four gates are trivially met.
+    // "no rows, therefore zero" reading.
     ASSERT_EQ(result.eq_cons_.size(), 1);
     ASSERT_EQ(result.iq_cons_.size(), 1);
 
@@ -1014,11 +1011,10 @@ TEST(NLPSolverTest, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
 
 // A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
 // sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
-// f(x*) = 1.125, so under BestCriteriaModes::OBJ the best-scoring iterate is
-// an EARLY one while the solve still exits CONVERGED. That pairing --
-// BestIter != last on a converged exit -- is exactly the shape the reported-
-// iterate rule below has to get right, and it is not reachable with the
-// default ECONS criterion, whose winner is the converged iterate.
+// f(x*) = 1.125, so under BestCriteriaModes::OBJ the best-scoring iterate is an
+// EARLY one while the solve still exits CONVERGED. That pairing -- BestIter !=
+// last on a converged exit -- is what the pin below needs, and it is not
+// reachable with the default ECONS criterion.
 struct BestIterateRisingObjectiveProblem : NLPProblem {
     static constexpr int kN = 4;
 
@@ -1068,21 +1064,18 @@ struct BestIterateRisingObjectiveProblem : NLPProblem {
     std::string name() const override { return "BestIterateRisingObjective"; }
 };
 
-// THE REPORTED ITERATE IS ONE ITERATE, and this is the pin that says so.
-//
-// alg_impl's return_best_ substitution -- the one that makes primals_,
-// obj_val_ and the multiplier blocks describe BestIter -- is guarded on the
-// exit NOT being converged. So on a CONVERGED exit the result describes the
-// LAST iterate even with return_best_ on, and the four residuals must come
-// from that same row. Selecting them unconditionally on the setting would
-// report an objective measured at one point beside residuals measured at
-// another, with nothing in the result to reveal it.
+// THE REPORTED ITERATE IS ONE ITERATE. alg_impl's return_best_ substitution --
+// the one that makes primals_, obj_val_ and the multiplier blocks describe
+// BestIter -- is guarded on the exit NOT being converged, so on a CONVERGED
+// exit the result describes the LAST iterate even with return_best_ on, and the
+// four residuals must come from that same row. Selecting them unconditionally
+// on the setting would report an objective measured at one point beside
+// residuals measured at another.
 //
 // THE FIXTURE PREMISE IS ASSERTED, NOT ASSUMED: the test re-derives BestIter
-// from the iterate stream under track_best_iterate's own rule (minimum, ties
-// to the LATEST, since it updates on <=) and refuses to proceed unless that
-// pick really differs from the last row and really carries different
-// residuals. Without both, the pin would pass on the broken selection too.
+// from the iterate stream under track_best_iterate's own rule (minimum, ties to
+// the LATEST, since it updates on <=) and refuses to proceed unless that pick
+// really differs from the last row and really carries different residuals.
 TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes) {
     NLPSolver solver(std::make_shared<BestIterateRisingObjectiveProblem>());
     solver.optimizer_->set_print_level(10);
@@ -1124,17 +1117,14 @@ TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes)
     EXPECT_EQ(result.icon_inf_, rows[last].icon_inf_);
     EXPECT_NE(result.kkt_inf_, rows[best].kkt_inf_);
 
-    // AND THE OBJECTIVE AGREES WITH THEM, which is the property a consumer's
-    // outcome record actually depends on: one point, one set of numbers. The
+    // AND THE OBJECTIVE AGREES WITH THEM: one point, one set of numbers. The
     // scale is 1 here, so obj_val_ is prim_obj_ unmodified.
     EXPECT_EQ(result.obj_val_, rows[last].prim_obj_);
 }
 
-// NaN IS THE UNMEASURED SENTINEL, not 0.0, and it matches the SQP side's
-// convention so one outcome record reads both engines the same way. A zeroed
-// residual on an engine that never measured one reads as a converged solve;
-// the SQP driver's own non-finite exit note makes the same argument for the
-// same reason.
+// NaN IS THE UNMEASURED SENTINEL, not 0.0, matching the SQP side so one outcome
+// record reads both engines the same way: a zeroed residual on an engine that
+// never measured one reads as a converged solve.
 TEST(NLPSolverTest, TheKktResidualsOfASolverThatHasNotSolvedAreUnmeasured) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
     solver.optimizer_->set_print_level(10);

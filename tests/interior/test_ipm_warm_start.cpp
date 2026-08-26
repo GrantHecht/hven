@@ -302,8 +302,7 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
     EXPECT_EQ(warm.eq_lmults_.size(), 1);
     EXPECT_EQ(warm.iq_lmults_.size(), 0);
     // ONE extension: this problem HAS finite variable bounds, so the export
-    // carries the polish hand-off beside the core. (Task 2 pinned this list
-    // empty; W2 is what filled it.)
+    // carries the polish hand-off beside the core.
     ASSERT_EQ(warm.extensions_.size(), 1u);
     EXPECT_EQ(warm.extensions_[0].tag_, std::string(hven::solvers::kIpmPolishTag));
 
@@ -322,13 +321,10 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
     EXPECT_GT(warm.bound_lmults_[0], 0.5) << "x0 sits at an active lower bound";
     EXPECT_NEAR(warm.bound_lmults_[1], 0.0, 1e-6) << "x1 is free";
 
-    // THE EXTENSION MAPS OUT OF THE REDUCED SPACE THE SAME WAY, and this is
-    // the case that shows why the pair has to travel at all: x0 carries a
-    // TWO-SIDED box [0, 5], so its signed z above cannot say what the two
-    // sides are priced at -- while the pair does, with a live lower price and
-    // a barrier-floor upper one. The eliminated coordinate has no row in the
-    // reduced problem and so nothing is scattered to it: an exact zero on both
-    // sides, like the core block beside it.
+    // THE EXTENSION MAPS OUT OF THE REDUCED SPACE THE SAME WAY. x0 carries a
+    // TWO-SIDED box [0, 5], so its signed z above cannot say what the two sides
+    // are priced at while the pair can. The eliminated coordinate has nothing
+    // scattered to it: an exact zero on both sides, like the core block.
     const hven::solvers::IpmPolishData polish =
         hven::solvers::deserialize_ipm_polish(hven::solvers::find_ipm_polish(warm)->payload_);
     ASSERT_EQ(polish.z_lower_.size(), 3);
@@ -679,11 +675,10 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
 // THE BRANCH head(user_equal_cons_) EXISTS FOR, and the only treatment that
 // exercises it. Under MakeConstraint a bound-fixed variable becomes an
 // INTERNAL equality row appended at the TAIL of the solver's equality row
-// space, so the solve reports two multipliers where the declaration has one --
-// and the currency carries the declared row only. Every other pin in this file
-// runs the default MakeParameter path, where the two counts coincide and the
-// truncation is a no-op copy that would stay green even if it were written
-// tail() instead of head().
+// space, so the solve reports two multipliers where the declaration has one,
+// and the currency carries the declared row only. Every other pin here runs the
+// default MakeParameter path, where the two counts coincide and the truncation
+// is a no-op copy.
 TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     NLPSolver solver(std::make_shared<WarmFixedVarProblem>());
     solver.optimizer_->set_print_level(10);
@@ -722,24 +717,16 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     EXPECT_NEAR(warm.primal_[2], 0.25, 1e-9);
 }
 
-// THE PRIMARY FLOW, and what the DECLARATION-IDENTITY stamp changed about it
-// (owner ruling, 2026-08-25).
+// THE PRIMARY FLOW. The MakeParameter treatment RE-LAYS the program -- it
+// renumbers the claim stream into the reduced column space -- so a program that
+// has solved once has a different LAYOUT key from the same declaration freshly
+// transcribed. The pins below say both halves: the layout key moves across the
+// treatment, and the DECLARATION key does NOT, because a treatment's row and
+// column rearrangement is exactly what the declaration key excludes.
 //
-// The MakeParameter treatment RE-LAYS the program -- it renumbers the claim
-// stream into the reduced column space -- so a program that has solved once has
-// a different LAYOUT key from the same declaration freshly transcribed. Under
-// the pre-ruling stamp that made the placement of the stamp check load-bearing:
-// a consumer staging into a cold engine would have been refused at staging by a
-// key that had not been configured yet.
-//
-// UNDER THE DECLARATION KEY IT IS NOT THE SAME FACT ANY MORE, and the pins
-// below say so both ways: the layout key still moves across the treatment, and
-// the DECLARATION key does NOT -- the two engines' claim orders and every
-// treatment's row and column rearrangement are exactly what the declaration key
-// is defined to exclude. What still makes solve entry the right placement is
-// the other half of the argument, which the ruling did not touch: the value is
-// held across an arbitrary number of set_nlp/re-declaration calls, so the only
-// honest thing to compare it against is the problem THE CONSUMING CALL binds.
+// The stamp is checked at solve entry, not at staging: the value is held across
+// an arbitrary number of set_nlp/re-declaration calls, so the only honest thing
+// to compare it against is the problem THE CONSUMING CALL binds.
 //
 // Staged on a fresh engine with the same settings, the value goes in and the
 // first solve consumes it WARM.
@@ -754,11 +741,10 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     x0 << 2.0, -1.0, 0.25;
     ASSERT_EQ(warm_optimize(*source.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
     ASSERT_TRUE(source.nlp_->is_reduced());
-    // THE LAYOUT KEY MOVES ACROSS THE TREATMENT -- unchanged, and still true.
+    // THE LAYOUT KEY MOVES ACROSS THE TREATMENT.
     EXPECT_FALSE(source.nlp_->model_structure_key() == layout_key_before_any_solve)
         << "the eliminating treatment re-lays, and a re-lay moves the LAYOUT key";
-    // THE STAMP DOES NOT. Same declaration, same declared problem, same key --
-    // which is the whole content of the declaration-identity ruling.
+    // THE STAMP DOES NOT: same declaration, same declared problem, same key.
     EXPECT_TRUE(declaration_key(source.nlp_->declaration()) == stamp_before_any_solve)
         << "a fixed-variable treatment rearranges the solved system, not the "
            "declared problem, so it must not move the currency's stamp";
@@ -814,15 +800,13 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     EXPECT_TRUE(declaration_key(fresh.nlp_->declaration()) == warm.structure_key_);
 }
 
-// THE CROSS-TREATMENT PIN, and the sharpest statement of what the
-// DECLARATION-IDENTITY stamp is for (owner ruling, 2026-08-25).
-//
-// One declaration, two fixed-variable treatments. MakeParameter ELIMINATES the
-// fixed variable -- the solved system is one row and column narrower, and the
-// claim stream is renumbered into the reduced column space. MakeConstraint
-// keeps it and APPENDS an internal equality row -- the solved system is one row
-// and column wider, and the equality row space grows. Those are two different
-// systems, and the M4 layout key says so, correctly, in both directions.
+// THE CROSS-TREATMENT PIN. One declaration, two fixed-variable treatments.
+// MakeParameter ELIMINATES the fixed variable -- the solved system is one row
+// and column narrower, and the claim stream is renumbered into the reduced
+// column space. MakeConstraint keeps it and APPENDS an internal equality row --
+// the solved system is one row and column wider, and the equality row space
+// grows. Those are two different systems, and the M4 layout key says so,
+// correctly, in both directions.
 //
 // THEY ARE THE SAME DECLARED PROBLEM, and the currency's stamp says THAT --
 // which is what lets a value exported under one treatment be staged and applied
@@ -934,19 +918,18 @@ TEST(IpmWarmStart, ASeedStagedAfterAWarmStartIsDiscardedAtSolveEntry) {
 }
 
 // ===========================================================================
-// W2 -- the "hven.ipm.polish.v1" extension, produced here and consumed here.
+// The "hven.ipm.polish.v1" extension, produced here and consumed here.
 //
-// The gap Task 2 recorded and this section closes: the currency's signed
-// bound block does not invert into the (z_lower, z_upper) pair the barrier
-// holds, so a core-only warm start on a BOUNDED problem took a fresh
-// init_mu_-and-distance bound-dual seed. The pair now travels in the polish
-// extension, and these pins fix both directions of it plus its bridge onto
-// the SQP crossover.
+// The currency's signed bound block does not invert into the (z_lower, z_upper)
+// pair the barrier holds, so a core-only warm start on a BOUNDED problem takes
+// a fresh init_mu_-and-distance bound-dual seed. The pair travels in the polish
+// extension instead, and these pins fix both directions of it plus its bridge
+// onto the SQP crossover.
 //
-// The extension's own byte form -- round trip, frozen layout, every decode
-// refusal, and the bridge's mapping against hand-built blocks -- is pinned
-// engine-free in tests/warmstart/test_ipm_polish_extension.cpp. What is
-// pinned HERE is everything that needs a real solve to exist.
+// The extension's own byte form -- round trip, frozen layout, decode refusals,
+// bridge mapping -- is pinned engine-free in
+// tests/warmstart/test_ipm_polish_extension.cpp. What is pinned HERE is
+// everything that needs a real solve to exist.
 // ===========================================================================
 
 // Two variables, each priced at ONE bound side at the solution, and one slack
@@ -1125,17 +1108,13 @@ TEST(IpmWarmStart, ExportCarriesThePolishTagOnABoundedProblem) {
 
     // AND IT AGREES WITH THE CORE, BIT FOR BIT AT THE DEFAULT OBJECTIVE SCALE.
     // Every bounded variable here is one-sided, so the signed block IS one of
-    // the two pair entries, negated for an upper side -- an exact operation. A
-    // pair that had been rescaled, reordered or taken at a different iterate
-    // could not survive this.
+    // the two pair entries, negated for an upper side -- an exact operation.
     //
-    // THE SCALE QUALIFIER IS REAL, not caution: the export divides each side of
-    // the pair by solve_obj_scale_ INDIVIDUALLY, while the core's signed block
-    // is divided AFTER the subtraction, in unscale_reported_outputs. At
-    // obj_scale == 1 both paths skip the division outright and the identity is
-    // exact; at obj_scale != 1 on a genuinely two-sided bound, (zL/s) - (zU/s)
-    // and (zL - zU)/s may differ by an ulp. The pair is the authoritative
-    // block either way -- the core's z is documented as the signed one.
+    // THE SCALE QUALIFIER IS REAL: the export divides each side of the pair by
+    // solve_obj_scale_ INDIVIDUALLY, while the core's signed block is divided
+    // AFTER the subtraction, in unscale_reported_outputs. At obj_scale == 1
+    // both paths skip the division and the identity is exact; at obj_scale != 1
+    // on a genuinely two-sided bound the two may differ by an ulp.
     ASSERT_EQ(solved.warm_.bound_lmults_.size(), 2);
     Eigen::VectorXd signed_from_pair = polish.z_lower_ - polish.z_upper_;
     expect_bit_identical(signed_from_pair, solved.warm_.bound_lmults_,
@@ -1162,14 +1141,12 @@ TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
 }
 
 // EVERY finite variable bound this problem has sits on a BOUND-FIXED variable
-// (x0 is declared at [0.25, 0.25]; x1 is free on both sides). That is what
-// makes the fixed-variable treatment a bound-set SWITCH here rather than a
+// (x0 is declared at [0.25, 0.25]; x1 is free on both sides), which makes the
+// fixed-variable treatment a bound-set SWITCH here rather than a
 // re-partitioning: under RelaxBounds x0 keeps a widened two-sided box and the
 // bound set has members, while under MakeParameter x0 leaves the solver's
 // variable space entirely and the bound set is EMPTY -- on the same program,
-// with no re-declaration. It is the reachable in-tree route to "the same NLP
-// re-lays with the bound set emptied on a solver instance that has already
-// solved it bounded", which is what the pin below needs.
+// with no re-declaration. That is what the pin below needs.
 //
 // min 0.5*((x0 - 1)^2 + (x1 + 2)^2)  s.t.  x0 + x1 <= 5.
 struct WarmFixedOnlyBoundProblem : NLPProblem {
@@ -1217,17 +1194,14 @@ struct WarmFixedOnlyBoundProblem : NLPProblem {
     std::string name() const override { return "WarmFixedOnlyBoundProblem"; }
 };
 
-// W2's L3, pinned. bounds_ is established by a conditional in
-// run_phase_sequence, and that conditional now clears the field on its else
-// branch: a solve whose bound set came up empty must not be left pointing at
-// the PREVIOUS solve's set. Without an else the pointer survives the re-lay,
-// and the export's `if (this->bounds_)` gate then claims the polish hand-off
-// on a problem that has no variable-bound barrier terms at all -- an all-zero
-// (z_lower, z_upper) pair that a consumer would stage and seed from.
+// run_phase_sequence's conditional clears bounds_ on its else branch: a solve
+// whose bound set came up empty must not be left pointing at the PREVIOUS
+// solve's set, or the export's `if (this->bounds_)` gate claims the polish
+// hand-off on a problem with no variable-bound barrier terms at all -- an
+// all-zero (z_lower, z_upper) pair a consumer would stage and seed from.
 //
-// Both solves run on ONE InteriorPointSolver instance holding ONE program:
-// only Settings::fixed_variable_treatment_ moves between them, which is the
-// route the field's own doc comment names.
+// Both solves run on ONE InteriorPointSolver instance holding ONE program;
+// only Settings::fixed_variable_treatment_ moves between them.
 TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstance) {
     NLPSolver solver(std::make_shared<WarmFixedOnlyBoundProblem>());
     solver.optimizer_->set_print_level(10);
@@ -1321,9 +1295,9 @@ TEST(IpmWarmStart, StagingRefusesAMalformedPayloadUnderTheKnownTagNamingIt) {
 }
 
 // Every PROPER prefix of the payload refuses at staging, and names the offset
-// it ran out at. The codec suite proves the decoder does this; what this pin
-// adds is that the ENGINE routes every one of those refusals out of the
-// staging call rather than letting a short payload through to a solve.
+// it ran out at. The codec suite covers the decoder; this pin adds that the
+// ENGINE routes every one of those refusals out of the staging call rather
+// than letting a short payload through to a solve.
 TEST(IpmWarmStart, EveryTruncationOfThePolishPayloadRefusesAtStagingNamingTheOffset) {
     const WarmBoundedSolve solved;
     const std::vector<std::byte> &full = solved.warm_.extensions_[0].payload_;
@@ -1373,9 +1347,8 @@ TEST(IpmWarmStart, StagingRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
 }
 
 // The duplicate-tag refusal, THROUGH THE ENGINE. find_ipm_polish's own unit
-// test covers the refusal; what this adds is that staging routes it out with
-// the entry prefix every other refusal from this entry carries, so a consumer
-// grepping for "InteriorPointSolver::stage_warm_start" sees this class too.
+// test covers the refusal; this adds that staging routes it out with the entry
+// prefix every other refusal from this entry carries.
 TEST(IpmWarmStart, StagingRefusesThePolishTagCarriedTwiceNamingTheEntry) {
     const WarmBoundedSolve solved;
     WarmStartData twice = solved.warm_;
@@ -1436,18 +1409,17 @@ TEST(IpmWarmStart, ThePolishPairSeedsTheBoundDualsAndACoreOnlyValueDoesNot) {
     // the scale of the prices themselves (which are 2.0 and 1.0 here).
     EXPECT_LT(with_polish.first_kkt_inf_, 0.5);
 
-    // A MARGIN, not an exact count. The iteration count is a counter and so is
-    // assertable under CLAUDE.md section 7, but the exact value is a property
-    // of this box's arithmetic; what the seed promises is that it never costs
-    // iterations, and that is what is pinned.
+    // A MARGIN, not an exact count: the counter is assertable (CLAUDE.md
+    // section 7), but its exact value is a property of this box's arithmetic.
+    // What the seed promises is that it never costs iterations.
     EXPECT_LE(with_polish.iters_, core_only.iters_);
 }
 
 TEST(IpmWarmStart, ACoreOnlyWarmStartOnABoundedProblemStillConverges) {
     const WarmBoundedSolve solved;
     // The no-regression half of the pin above: stripping the extension leaves
-    // exactly the Task 2 behaviour -- point and constraint multipliers
-    // restarted, bound multipliers seeded fresh -- and that path still solves.
+    // point and constraint multipliers restarted and bound multipliers seeded
+    // fresh, and that path still solves.
     const WarmRun core_only = run_warm(without_extensions(solved.warm_));
     EXPECT_GT(core_only.iters_, 0);
 }
@@ -1468,9 +1440,8 @@ TEST(IpmWarmStart, TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks) {
     // THE RAW BLOCKS A CALLER WOULD HAVE HANDED OVER DIRECTLY, taken from the
     // PUBLIC SolveResult and nowhere else: the primal point, the two
     // multiplier blocks, the inequality values, and the pair recovered from
-    // the signed block by the exact one-sided inversion this fixture is built
-    // to make available (see WarmBoundedProblem's own note). If the extension
-    // had rescaled, reordered or restamped anything, these would differ.
+    // the signed block by the exact one-sided inversion this fixture makes
+    // available (see WarmBoundedProblem's own note).
     const Eigen::VectorXd z = result.bound_lmults_;
     const Eigen::VectorXd z_lower = z.cwiseMax(0.0);
     const Eigen::VectorXd z_upper = (-z).cwiseMax(0.0);
@@ -1478,9 +1449,8 @@ TEST(IpmWarmStart, TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks) {
         hven::solvers::from_interior_point(result.primals_, result.eq_lmults_, result.iq_lmults_,
                                            result.iq_cons_, z_lower, z_upper, lower, upper);
 
-    // BIT-EXACT, and it can be: from_interior_point is deterministic and both
-    // calls reach it with the same doubles, so the only arithmetic between the
-    // two is none at all.
+    // BIT-EXACT: from_interior_point is deterministic and both calls reach it
+    // with the same doubles.
     expect_bit_identical(bridged.x, direct.x, "crossover x");
     expect_bit_identical(bridged.lambda_e, direct.lambda_e, "crossover lambda_e");
     expect_bit_identical(bridged.lambda_i, direct.lambda_i, "crossover lambda_i");
@@ -1515,20 +1485,15 @@ TEST(IpmWarmStart, TheBridgeRefusesTheStampOfADifferentStructure) {
 // --- R6: cold-vs-hot is never answer-observable ---
 //
 // THE ONLY HOT STATE THIS ENGINE CARRIES ACROSS SOLVES is the epoch-gated KKT
-// sparsity analysis -- M5's own statement of record for this engine (M4 built
-// the gate; tests/interior/test_structure_epoch_gating.cpp pins the gate
-// itself). R6 asks the consequence of that reuse, not its mechanism: a second solve that SKIPS the
-// analysis must answer exactly what a fresh engine that PAID it answers, bit for bit.
-//
-// The rule of record is that epoch-keyed reuse is answer-neutral BY
-// CONSTRUCTION -- same declared pattern, same symbolic -- so this is an
-// EXACT-EQUALITY pin, not a tolerance one. A margin here would be a claim that
-// reuse perturbs the answer slightly, which is precisely the claim R6 refuses
-// to allow.
+// sparsity analysis (tests/interior/test_structure_epoch_gating.cpp pins the
+// gate itself). What is pinned here is the consequence of that reuse: a second
+// solve that SKIPS the analysis must answer exactly what a fresh engine that
+// PAID it answers, bit for bit. Epoch-keyed reuse is answer-neutral by
+// construction -- same declared pattern, same symbolic -- so this is an
+// EXACT-EQUALITY pin, not a tolerance one.
 //
 // NOTHING HERE READS A CLOCK. Wall time may differ freely between the two
-// solves (skipping an analysis is the point), and that difference is
-// informational; it is asserted nowhere.
+// solves; it is asserted nowhere.
 
 namespace {
 

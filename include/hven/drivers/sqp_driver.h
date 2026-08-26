@@ -3070,9 +3070,8 @@ class SqpDriver {
     /// @param x0     the starting point.
     /// @return the solution.
     ///
-    /// A value STAGED through stage_warm_start applies to this call and is
-    /// consumed by it, `x0` then serving only as the cold fallback -- that
-    /// entry's own note carries the whole contract.
+    /// A value staged through stage_warm_start applies to this call and is
+    /// consumed by it; `x0` is then only the cold fallback.
     /// @throws std::invalid_argument only through `bridge` itself (this entry
     ///         does not re-check the box -- see above), or through a staged
     ///         warm-start value whose block sizes or stamp do not match the
@@ -3202,14 +3201,11 @@ class SqpDriver {
     ///         enumerates, refused by the same aggregate-declaration boundary.
     ///         NOTE that this happens BEFORE `warm` is looked at, so a malformed
     ///         model is reported as such rather than as a failed ingest.
-    /// @throws std::invalid_argument if a warm-start value is STAGED on this
+    /// @throws std::invalid_argument if a warm-start value is staged on this
     ///         driver (stage_warm_start) when this overload is called: two
-    ///         warm-start sources for one solve are refused naming both,
-    ///         rather than one silently taking precedence. That refusal fires
-    ///         FIRST -- before the model's box is checked and before the
-    ///         bridge is laid -- and leaves the staged value standing, since
-    ///         it judges this call's arguments rather than the value itself
-    ///         (see stage_warm_start's own note).
+    ///         warm-start sources for one solve, refused naming both. That
+    ///         refusal fires before the model's box is checked and before the
+    ///         bridge is laid, and leaves the staged value standing.
     SqpSolution solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
                       Index minor_budget = 0);
 
@@ -3230,75 +3226,56 @@ class SqpDriver {
     /// @return the solution.
     /// @throws std::invalid_argument only through `bridge` itself (this entry
     ///         does not re-check the box -- see the 2-argument overload
-    ///         above), or if a warm-start value is STAGED on this driver when
-    ///         this overload is called: two warm-start sources for one solve
-    ///         are refused naming both, rather than one silently taking
-    ///         precedence. That refusal fires first, before the seam is laid,
-    ///         and leaves the staged value standing -- see stage_warm_start.
+    ///         above), or if a warm-start value is staged on this driver when
+    ///         this overload is called: two warm-start sources for one solve,
+    ///         refused naming both. That refusal fires before the seam is
+    ///         laid, and leaves the staged value standing.
     SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
                       Index minor_budget = 0);
 
-    // --- WARM-START CURRENCY (M5 R1/R3/R5) ---
+    // --- Warm-start currency ---
     //
-    // THE SAME TWO ENTRIES THE INTERIOR-POINT ENGINE CARRIES
-    // (drivers/interior_point_solver.h), under the SAME contract sentences,
-    // adapted to this class's binding model and to nothing else. That engine
-    // BINDS a problem once (set_nlp) and solves it repeatedly; this one binds
-    // nothing -- every public solve() call takes its problem as an argument,
-    // runs against it, and releases it when it returns. So the two checks the
-    // currency owes -- the block SIZES and the STAMP -- have nowhere to stand
-    // at staging time here: there is no declared problem to size a block
-    // against, and no key to compare one to, until a solve() call names one.
-    // BOTH move to SOLVE ENTRY, against the problem THAT call binds -- which
-    // is exactly where the interior-point engine already checks its stamp,
-    // and is what lets one contract fit both binding models.
+    // The same two entries the interior-point engine carries
+    // (drivers/interior_point_solver.h). That engine BINDS a problem once
+    // (set_nlp); this one binds nothing until a solve() call names one, so
+    // the two checks the currency owes -- the block SIZES and the STAMP --
+    // are made at SOLVE ENTRY, against the problem that call binds, rather
+    // than at staging.
     //
-    // THE STAGED VALUE IS THE ONLY STATE THIS CLASS KEEPS BETWEEN SOLVES that
-    // a caller can see, alongside the last completed solve's exported value.
-    // Neither is touched per iteration: the export is ONE capture at
-    // completion and the staged value is ONE branch at entry, so a driver
-    // that never touches this surface pays two predictable branches per
-    // solve and nothing at all inside the loop.
+    // The staged value and the last completed solve's captured value are the
+    // only state this class keeps between solves that a caller can see.
+    // Neither is touched per iteration: the export is one capture at
+    // completion, the staged value one branch at entry.
     /// @brief The warm-start value of the last completed solve, in DECLARED
     ///        space.
     ///
     /// Blocks, all at declared dimensions: `primal_` is `SqpSolution::x`,
-    /// `eq_lmults_` is its `lambda_e`, `iq_lmults_` its `lambda_i`, and
-    /// `bound_lmults_` its `z`. THE MODEL'S SPACE IS THE DECLARED SPACE ON
-    /// THIS ENGINE: there is no reduced space and no fixed-variable treatment
-    /// anywhere in this driver, so the blocks are the solution's own vectors
-    /// verbatim, with no mapping in between and none to get wrong.
+    /// `eq_lmults_` its `lambda_e`, `iq_lmults_` its `lambda_i`, and
+    /// `bound_lmults_` its `z`. Model space IS declared space on this engine
+    /// -- no reduced space and no fixed-variable treatment anywhere in this
+    /// driver -- so the blocks are the solution's own vectors verbatim, with
+    /// no mapping in between.
     ///
-    /// SIGN: `z` ALREADY IS the currency's z = zL - zU. warm_start.h's SIGN
-    /// CONVENTIONS paragraph states the identity this driver reports it
-    /// under -- grad f + Ae^T le + Ai^T li - z = 0, so z >= 0 at an active
-    /// LOWER bound and z <= 0 at an active UPPER one -- which is the signed
-    /// difference the currency's own field note names. Nothing is converted
-    /// on the way out.
+    /// SIGN: `z` already is the currency's z = zL - zU, under the identity
+    /// warm_start.h's SIGN CONVENTIONS paragraph states -- grad f + Ae^T le +
+    /// Ai^T li - z = 0, so z >= 0 at an active LOWER bound and z <= 0 at an
+    /// active UPPER one. Nothing is converted on the way out.
     ///
-    /// WHAT IS EXPORTED IS WHAT THE SOLVE REPORTED, a non-converged exit
-    /// included: the currency carries evidence, and SqpSolution's own
-    /// exit-dependent contract says what that evidence means at each exit --
-    /// including the certified-infeasible one, where the multipliers are a
-    /// subgradient certificate rather than prices. Nothing here re-reads or
-    /// re-judges them.
+    /// What is exported is what the solve reported, a non-converged exit
+    /// included; SqpSolution's own exit-dependent contract says what that
+    /// evidence means at each exit -- including the certified-infeasible one,
+    /// where the multipliers are a subgradient certificate rather than
+    /// prices. Nothing here re-reads or re-judges them.
     ///
-    /// The stamp is the bridge's DECLARATION key
-    /// (model/structure_identity.h's `declaration_key` over `declaration()`)
-    /// AS OF that solve's COMPLETION, not as of this call: a re-lay in between
-    /// must not stamp these blocks with a key they were never taken under. The
-    /// DECLARATION key and not the bridge's `model_structure_key()`: what the
-    /// value claims is the PROBLEM it was taken on, which is the only thing a
-    /// hand-off crossing engines or fixed-variable treatments can be held to
-    /// (warmstart/warm_start_data.h carries the ruling and the argument).
-    /// `ModelStructureKey` stays what it always was, the layout/epoch key, and
-    /// is not this stamp.
+    /// The stamp is the bridge's DECLARATION key (model/structure_identity.h's
+    /// `declaration_key` over `declaration()`) as of that solve's COMPLETION,
+    /// not as of this call. Not the bridge's `model_structure_key()`, which
+    /// stays what it always was, the layout/epoch key;
+    /// warmstart/warm_start_data.h carries the argument.
     ///
-    /// NO EXTENSIONS. This engine produces none: the polish tag is the
-    /// interior-point engine's own hand-off and an SQP-side extension is not
-    /// defined, so an exported value is always core-only. A consumer reading
-    /// `extensions_` here reads an empty list, which is a capability
-    /// statement and not an omission.
+    /// NO EXTENSIONS: this engine produces none, so an exported value is
+    /// always core-only and `extensions_` reads as an empty list -- a
+    /// capability statement, not an omission.
     ///
     /// @return The captured value, by copy.
     /// @throws std::logic_error if no solve has COMPLETED on this instance --
@@ -3312,67 +3289,51 @@ class SqpDriver {
     /// @brief Stages a warm start for the NEXT public solve() on this
     ///        instance.
     ///
-    /// ONE-SHOT AND LOUD. The value applies to the next public solve() call
-    /// -- whichever overload -- and is consumed by it, applied or refused;
-    /// it survives any re-lay of any bridge in between, because it is not
-    /// attached to one. A caller wanting a second warm solve stages again,
-    /// which is exactly the per-call shape a `warm=` argument already has.
+    /// ONE-SHOT. The value applies to the next public solve() -- whichever
+    /// overload -- and is consumed by it, applied or refused. It is not
+    /// attached to a bridge, so it survives any re-lay in between. A second
+    /// warm solve needs a second stage.
     ///
-    /// CHECKED HERE: FINITENESS of every core block, and the core's own
-    /// internal consistency -- `primal_` and `bound_lmults_` describe one
-    /// space and must be one length. When the value carries the
+    /// CHECKED HERE: FINITENESS of every core block; the core's own internal
+    /// consistency (`primal_` and `bound_lmults_` describe one space and must
+    /// be one length); and, when the value carries the
     /// `"hven.ipm.polish.v1"` tag, that the payload DECODES and that its
     /// three blocks are at the core's own widths.
     ///
-    /// NOT CHECKED HERE: the block sizes against a problem, and the stamp.
-    /// This engine binds no problem at staging (see this section's own note
-    /// above), so both are checked AT THE NEXT SOLVE, against the problem
-    /// that call binds: every block's length against the declared dimensions,
-    /// refusing `std::invalid_argument` naming the block, the length held and
-    /// the length declared; then the stamp, refusing naming BOTH DECLARATION
-    /// key digests. Either refusal has ALREADY consumed the staged value --
-    /// loud, then gone, so a caller that logs the refusal and solves anyway
-    /// cold-starts rather than silently warm-starting off a value this engine
-    /// just rejected.
+    /// CHECKED AT THE NEXT SOLVE instead, against the problem that call
+    /// binds: every block's length against the declared dimensions, refusing
+    /// `std::invalid_argument` naming the block, the length held and the
+    /// length declared; then the stamp, refusing naming both DECLARATION key
+    /// digests. Either refusal has ALREADY consumed the staged value, so a
+    /// caller that logs the refusal and solves anyway cold-starts rather than
+    /// silently warm-starting off a value this engine just rejected.
     ///
-    /// WHAT A STAMP MISMATCH MEANS: the caller transcribed a DIFFERENT PROBLEM
-    /// -- different declared dimensions, or a different declared bound
-    /// STRUCTURE (which sides are finite, and which variables are fixed). It
-    /// does NOT mean a different engine and it does NOT mean a different
-    /// fixed-variable treatment: the stamp is the declaration key, so a value
-    /// the interior-point engine exported, under any treatment, stages and
-    /// applies here on the same declaration. That is the crossover, and it is
-    /// one composition rather than a conversion.
+    /// A STAMP MISMATCH means the caller transcribed a DIFFERENT PROBLEM --
+    /// different declared dimensions, or a different declared bound STRUCTURE
+    /// (which sides are finite, and which variables are fixed). It does not
+    /// mean a different engine and it does not mean a different
+    /// fixed-variable treatment: a value the interior-point engine exported,
+    /// under any treatment, stages and applies here on the same declaration.
+    /// A MATCH does not promise the pieces' row structure or the bound
+    /// VALUES, neither of which the key hashes; warmstart/warm_start_data.h
+    /// states the whole guarantee.
     ///
-    /// AND WHAT A MATCH DOES NOT PROMISE: the stamp hashes neither the pieces'
-    /// row structure nor bound VALUES, so a re-transcription that re-splits the
-    /// same rows, or that moves a finite bound without changing which sides are
-    /// finite, matches. warmstart/warm_start_data.h states the whole
-    /// guarantee, and model/structure_identity.h's
-    /// declaration_identity_digest argues each exclusion.
+    /// NON-CONSUMING: `data` is taken by const reference and copied. Staging
+    /// the same value twice from the same cold state produces the same start
+    /// state.
     ///
-    /// NON-CONSUMING (R5): the argument is taken by const reference and
-    /// copied. Staging the same value twice from the same cold state produces
-    /// the same start state.
-    ///
-    /// CLEARS FIRST: this call, WHETHER IT SUCCEEDS OR REFUSES, first drops
+    /// CLEARS FIRST: this call, whether it succeeds or refuses, first drops
     /// any value staged before it. A caller whose staging is refused holds
     /// nothing, not the previous payload.
     ///
-    /// AN EXPLICIT `warm` ARGUMENT AND A STAGED VALUE ARE REFUSED TOGETHER.
-    /// A solve() overload taking a `WarmStart` while a value is staged throws
-    /// `std::invalid_argument` naming both sources rather than picking one
-    /// silently -- including when the argument is a default-constructed
-    /// (cold) object, which is this class's documented way of ASKING for a
-    /// cold solve and so contradicts a staged value just as loudly. THAT
-    /// REFUSAL DOES NOT CONSUME THE STAGED VALUE (settler ruling,
-    /// 2026-08-25): it judges the CALL's arguments, not the value, and the
-    /// call binds no problem and runs nothing -- so the caller's fix is to
-    /// drop one of the two sources and call again, with the value still
-    /// standing. It is the one refusal on this surface that leaves something
-    /// staged, precisely because it is the one that never looked at what was
-    /// staged, AND THE REFUSAL MESSAGE SAYS SO -- a caller must not have to
-    /// infer from silence whether a one-shot value survived.
+    /// AN EXPLICIT `warm` ARGUMENT AND A STAGED VALUE ARE REFUSED TOGETHER: a
+    /// solve() overload taking a `WarmStart` while a value is staged throws
+    /// `std::invalid_argument` naming both sources -- including when the
+    /// argument is a default-constructed (cold) object, which is this class's
+    /// documented way of ASKING for a cold solve. That refusal does NOT
+    /// consume the staged value: it judges the CALL's arguments, and the call
+    /// binds no problem and runs nothing. It is the one refusal on this
+    /// surface that leaves something staged, and its message says so.
     ///
     /// WHAT IS APPLIED. The value becomes the `warm` object the next solve
     /// runs against -- the same object an explicit argument would have been
@@ -3380,11 +3341,9 @@ class SqpDriver {
     ///
     ///   * WITH THE `"hven.ipm.polish.v1"` EXTENSION: the interior-point
     ///     crossover, built by warmstart/ipm_polish_extension.h's
-    ///     `to_sqp_warm_start` against that solve's own declared box. Nothing
-    ///     here re-implements any part of it -- the activity inference, the
-    ///     sign conventions and the resulting `structure_hash == 0` are all
-    ///     that function's, and its own note (and warm_start.h's
-    ///     `from_interior_point` behind it) carries them.
+    ///     `to_sqp_warm_start` against that solve's own declared box. The
+    ///     activity inference, the sign conventions and the resulting
+    ///     `structure_hash == 0` are all that function's.
     ///   * CORE-ONLY: `primal_`/`eq_lmults_`/`iq_lmults_`/`bound_lmults_`
     ///     copied verbatim into `x`/`lambda_e`/`lambda_i`/`z`, with NO
     ///     activity attributed -- an all-free `WorkingSet(n, mi)` and
@@ -3392,46 +3351,36 @@ class SqpDriver {
     ///     attributed" is spelled on this type (WarmStart::ineq_active's own
     ///     field note) -- and `structure_hash == 0`.
     ///
-    /// EITHER WAY THE LEVEL IS StartLevel::kSeeded, AND IT CANNOT BE HIGHER.
-    /// kWarm and kHot are HASH-gated (core/start_level.h), and that hash is a
-    /// fingerprint of THIS DRIVER'S OWN ASSEMBLED H/Ae/Ai -- a thing the
-    /// currency does not carry and could not: it is engine-internal, and the
-    /// whole point of a value that crosses processes is that its producer's
-    /// matrices are gone by the time it is read. So both routes above emit
-    /// the 0 sentinel and both resolve kSeeded, which is the level built for
-    /// exactly such objects. The consequences are kSeeded's own, unchanged by
-    /// this entry: the point, the duals and any activity hint are ingested;
-    /// THE SEEDED DUAL CLAMP applies (a negative `lambda_i` within
-    /// `kSeededDualClampTol` of zero is clamped and counted in
-    /// `SqpCounters::seeded_clamped`, a larger one degrades the whole object
-    /// to kCold); and the trust-region radius, the funnel-width re-base and
-    /// the Kungurtsev-Diehl full-step window are NOT taken. A CORE-ONLY
-    /// value's empty hint additionally re-arms `SqpOptions::crash_basis`, by
-    /// kSeeded's own AN EMPTY HINT IS NO HINT rule -- an all-free working set
-    /// means "no activity was attributed", never "nothing is active".
-    /// `SqpOptions::start_level` still CAPS the result, so a driver capped at
-    /// kCold ignores a staged value exactly as it ignores an argument-passed
-    /// one.
+    /// EITHER WAY THE LEVEL IS StartLevel::kSeeded, and it cannot be higher:
+    /// kWarm and kHot are gated (core/start_level.h) on a hash of this
+    /// driver's own assembled H/Ae/Ai, which the currency does not carry. The
+    /// consequences are kSeeded's own: the point, the duals and any activity
+    /// hint are ingested; THE SEEDED DUAL CLAMP applies (a negative
+    /// `lambda_i` within `kSeededDualClampTol` of zero is clamped and counted
+    /// in `SqpCounters::seeded_clamped`, a larger one degrades the whole
+    /// object to kCold); and the trust-region radius, the funnel-width
+    /// re-base and the Kungurtsev-Diehl full-step window are NOT taken. A
+    /// core-only value's empty hint additionally re-arms
+    /// `SqpOptions::crash_basis`, by kSeeded's own AN EMPTY HINT IS NO HINT
+    /// rule. `SqpOptions::start_level` still CAPS the result, so a driver
+    /// capped at kCold ignores a staged value exactly as it ignores an
+    /// argument-passed one.
     ///
-    /// THE STAGED PRIMAL REPLACES THE `x0` THE CALL WOULD HAVE USED, through
-    /// the ingest rule this class already documents on its 3-argument solve()
-    /// overload rather than through any second mechanism: `x0` is the COLD
-    /// fallback, and it is ignored whenever the warm object resolves above
-    /// kCold. A caller that wants its own `x0` honoured does not stage.
+    /// THE STAGED PRIMAL REPLACES THE `x0` the call would have used, through
+    /// the ingest rule the 3-argument solve() overload already documents:
+    /// `x0` is the COLD fallback and is ignored whenever the warm object
+    /// resolves above kCold. A caller that wants its own `x0` honoured does
+    /// not stage.
     ///
     /// @param data The value to stage, in DECLARED space.
     /// @throws std::invalid_argument if `primal_` and `bound_lmults_` are not
     ///         one length, if any core block holds a non-finite value, if the
     ///         value carries the polish tag MORE THAN ONCE, or if a payload
     ///         under that tag is malformed or is not at the core's own widths
-    ///         (naming the tag). A malformed payload under a KNOWN tag is
-    ///         corruption, not a foreign tag, and is refused HERE rather than
-    ///         skipped -- the caller is standing at the staging call and can
-    ///         still do something about it. An UNKNOWN tag is skipped
-    ///         silently (R3): a capability downgrade, not an error. Sizes
-    ///         against a problem and the stamp are refused at solve entry,
-    ///         not here. Every one of these refusals leaves this instance
-    ///         with nothing staged.
+    ///         (naming the tag). An UNKNOWN tag is skipped silently: a
+    ///         capability downgrade, not an error. Sizes against a problem
+    ///         and the stamp are refused at solve entry, not here. Every one
+    ///         of these refusals leaves this instance with nothing staged.
     void stage_warm_start(const WarmStartData &data);
 
   private:
@@ -3443,45 +3392,30 @@ class SqpDriver {
     // the record.
     SqpSolution record_solve(SqpSolution out, double wall_seconds);
 
-    // THE STAGED VALUE'S ONE BRANCH AT SOLVE ENTRY, shared by both
-    // bridge-taking overloads (the model-taking ones are wrappers around
-    // those, so one public call consumes at most once).
-    //
-    // Returns the `warm` object the solve should run against: a
-    // default-constructed COLD one when nothing is staged -- byte-for-byte
-    // what the 2-argument overload has always passed -- and otherwise the
-    // staged value, built through to_sqp_warm_start when it carries the
-    // polish tag and assembled core-only when it does not.
-    //
-    // THE STAGED VALUE IS CONSUMED FIRST, BEFORE ANY CHECK CAN THROW: the
-    // size and stamp refusals below are refusals BY THIS SOLVE, and
-    // stage_warm_start's own contract says the value is gone either way. The
-    // seam supplies the declared dimensions and the box; the bridge supplies
-    // the live key, read here (after the seam's own lay) rather than earlier.
-    // TWO WARM-START SOURCES FOR ONE SOLVE, refused naming both. Called
-    // FIRST by both WarmStart-taking overloads -- including the model-taking
-    // one, which would otherwise pay a bridge lay before discovering the
-    // contradiction. The double check on the delegated path costs one bool
-    // test and keeps the bridge-taking entry honest for a direct caller.
+    // Refuses `std::invalid_argument` when a WarmStart argument arrives while
+    // a value is staged, naming both sources and leaving the staged value
+    // standing. Called FIRST by both WarmStart-taking overloads -- including
+    // the model-taking one, which would otherwise pay a bridge lay before
+    // discovering the contradiction.
     void refuse_two_warm_sources() const;
 
+    // The staged value's one branch at solve entry, shared by both
+    // bridge-taking overloads (the model-taking ones wrap those, so one
+    // public call consumes at most once). Returns the `warm` object the solve
+    // runs against: a default-constructed COLD one when nothing is staged,
+    // otherwise the staged value, built through to_sqp_warm_start when it
+    // carries the polish tag and assembled core-only when it does not. The
+    // staged value is consumed BEFORE any check on it can throw.
     WarmStart consume_staged_warm_start(const AggregateEvalSeam &seam,
                                         const NlpModelAggregate &bridge);
 
-    // THE EXPORT'S ONE CAPTURE AT COMPLETION, taken after record_solve has
-    // returned -- "completed" is a public solve() that RETURNED, and this is
-    // the last thing each bridge-taking overload does before its own return.
-    //
-    // DEFENSIVE, AND DELIBERATELY NOT FATAL, on the same terms as the
-    // interior-point engine's own capture: every check here is an
-    // internal-consistency check on blocks this driver itself just wrote, and
-    // throwing would destroy a solved result the caller was about to receive
-    // in order to report a defect in a side product. A failed check SKIPS the
-    // capture and clears the marker, so export_warm_start() refuses with the
-    // refusal it already has for "there is nothing to export" -- and so a
-    // skipped capture can never leave a PREVIOUS solve's payload standing to
-    // be exported as if it were this one's. None of the conditions is
-    // reachable today.
+    // The export's one capture at completion, taken after record_solve has
+    // returned -- the last thing each bridge-taking overload does before its
+    // own return. A failed internal-consistency check SKIPS the capture and
+    // clears the marker rather than throwing, so export_warm_start() refuses
+    // with the refusal it already has for "there is nothing to export" and no
+    // PREVIOUS solve's payload is left standing. None of the conditions is
+    // reachable today; see the definition.
     void capture_completed_warm_start(const SqpSolution &out, const AggregateEvalSeam &seam,
                                       const NlpModelAggregate &bridge);
 
@@ -3704,11 +3638,9 @@ class SqpDriver {
     std::string label_prefix_;
     Index solve_counter_ = 0;
 
-    // --- Warm-start currency state (M5 R1/R3/R5) ---
-    // The two entries' whole state, and the only state this class carries
-    // across solves that a caller can observe. Both are per-instance: the
-    // restoration phase's nested driver is a different SqpDriver and shares
-    // neither.
+    // --- Warm-start currency state ---
+    // Both per-instance: the restoration phase's nested driver is a different
+    // SqpDriver and shares neither.
     //
     // The value captured at the end of the last COMPLETED solve, valid only
     // while solve_completed_ is true. Built at that point rather than at

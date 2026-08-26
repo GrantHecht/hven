@@ -5,39 +5,24 @@
 // caller-facing contract -- what the extension carries, what each block means,
 // and the layout itself -- is in hven/warmstart/ipm_polish_extension.h.
 //
-// WHY THIS FILE READS LIKE warm_start_data.cpp. It is the same job under a
-// different frame, and the arguments that file makes hold verbatim here:
-// fixed-width little-endian integers, doubles as explicit IEEE-754 bit
-// patterns (so a payload round-trips bit-exactly and the encoding is a
-// property of the value rather than of the host), every declared length
-// checked against what remains BEFORE it is used, the check written as a
-// division so a large count cannot wrap past it, and trailing bytes refused
-// because the encoding is self-delimiting. Rather than restate those, this
-// file states only what is DIFFERENT.
+// The byte form is warm_start_data.cpp's job under a different frame, and that
+// file's reasoning holds verbatim here: fixed-width little-endian integers,
+// doubles as explicit IEEE-754 bit patterns, every declared length checked
+// against what remains BEFORE it is used (as a division, so a large count
+// cannot wrap past the check), and trailing bytes refused. Two things differ.
 //
-// DIFFERENT 1 -- NO VERSION FIELD. The currency's byte form leads with magic
-// AND a version, because the currency is one shape that will grow. This
-// payload's version is its TAG: "hven.ipm.polish.v1" names this layout and a
-// later layout is "...v2", a tag a v1 reader skips silently by the currency's
-// own unknown-tag rule. An internal version would be a second axis that can
-// disagree with the first, and the disagreement has no defined resolution.
-// The magic stays: it turns a corrupt payload into "this is not a polish
-// payload" instead of "the length field at offset 0 declares 2^60 elements".
+// NO VERSION FIELD. This payload's version is its TAG: "hven.ipm.polish.v1"
+// names this layout and a later layout is "...v2", a tag a v1 reader skips by
+// the currency's own unknown-tag rule. An internal version would be a second
+// axis that can disagree with the first, and the disagreement has no defined
+// resolution. The magic stays: it turns a corrupt payload into "this is not a
+// polish payload" instead of "the length field at offset 0 declares 2^60
+// elements".
 //
-// DIFFERENT 2 -- THE REFUSALS NAME THE TAG. A malformed payload under a KNOWN
-// tag is corruption, and corruption is not a capability downgrade: the
-// currency's rule that a reader ignores an extension it does not know applies
-// to FOREIGN tags. Naming the tag in every message is what keeps the two
-// apart for whoever reads the exception.
-//
-// DIFFERENT 3 -- THIS FILE ALSO CARRIES THE BRIDGE, and deliberately: the
-// bridge is the extension's only non-trivial consumer inside this library, and
-// the mapping from payload blocks to from_interior_point's arguments is the
-// other half of the same contract. Splitting them would put the layout and
-// the one thing that reads it in different files for no benefit. The bridge
-// itself is a validate-then-forward: every convention, every activity rule and
-// every ingest semantic lives in detail/warmstart/warm_start.h, and nothing
-// here re-derives any of them.
+// THE REFUSALS NAME THE TAG. The currency's rule that a reader ignores an
+// extension it does not know applies to FOREIGN tags; a malformed payload under
+// a KNOWN tag is corruption. Naming the tag in every message is what keeps the
+// two apart for whoever reads the exception.
 
 #include "hven/warmstart/ipm_polish_extension.h"
 
@@ -202,9 +187,8 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data) {
             continue;
         }
         if (found != nullptr) {
-            // Not arbitrated silently. One tag naming two payloads is a value
-            // no producer in this library emits, and picking either one would
-            // be a guess a later wrong answer could be traced back to.
+            // Not arbitrated silently: picking either payload would be a
+            // guess a later wrong answer could be traced back to.
             throw std::invalid_argument(
                 fmt::format("find_ipm_polish: the warm-start value carries the \"{0}\" extension "
                             "more than once; exactly one payload may travel under one tag",
@@ -219,12 +203,15 @@ WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const V
                             const DeclarationKey &structure_key, const IpCrossoverOptions &opts) {
     const WarmExtension *extension = find_ipm_polish(data);
     if (extension == nullptr) {
-        // A CORE-ONLY VALUE CANNOT BE BRIDGED, and this is a refusal rather
-        // than a degraded best effort: the core carries only the signed
-        // z = zL - zU, and the two blocks from_interior_point judges each bound
-        // side against are exactly what that difference does not contain. A
-        // consumer wanting a core-only start has one -- it stages the value
-        // into an engine -- and it does not come through here.
+        // A CORE-ONLY VALUE CANNOT BE BRIDGED, and the refusal is why this
+        // extension exists at all. The core carries a single SIGNED bound
+        // multiplier per variable, z = zL - zU, which is what a stationarity
+        // residual wants but is not invertible at a two-sided bound: z = 0.4
+        // could be (zL, zU) = (0.4, 0) or (1.4, 1.0). from_interior_point
+        // judges each bound side against its own dual population, so it needs
+        // the pair, and the pair is exactly what the difference does not
+        // contain. A consumer wanting a core-only start stages the value into
+        // an engine instead; it does not come through here.
         throw std::invalid_argument(
             fmt::format("to_sqp_warm_start: the warm-start value carries no \"{0}\" extension, so "
                         "the (z_lower, z_upper) pair the crossover judges each bound side against "
@@ -232,10 +219,9 @@ WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const V
                         kIpmPolishTag));
     }
 
-    // THE STAMP, before anything is decoded. `lower`/`upper` describe a model,
-    // the value describes a solve, and if the two were not taken under one
-    // declared structure then every index below names a different variable in
-    // each of them.
+    // THE STAMP, before anything is decoded: if the bounds and the value were
+    // not taken under one declared structure, every index below names a
+    // different variable in each of them.
     if (!(data.structure_key_ == structure_key)) {
         throw std::invalid_argument(fmt::format(
             "to_sqp_warm_start: the warm-start value was taken under declaration key {0:#x} but "
@@ -269,11 +255,10 @@ WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const V
     check("the lower-bound vector", lower.size(), n, "the core's primal width n");
     check("the upper-bound vector", upper.size(), n, "the core's primal width n");
 
-    // FORWARD, and nothing else. `slack_i` is the cI(x) VALUES -- this
-    // project's own convention, which is what the extension carries and what
-    // from_interior_point's SIGN CONVENTION paragraph demands; the (z_lower,
-    // z_upper) -> signed z conversion, the activity inference, the kFixed
-    // choice and the kSeeded consequence all live there.
+    // FORWARD, and nothing else. `slack_i` is the cI(x) VALUES, this project's
+    // own convention and what the extension carries; the activity inference,
+    // the kFixed choice and the kSeeded consequence all live in
+    // from_interior_point.
     return from_interior_point(data.primal_, data.eq_lmults_, data.iq_lmults_, polish.iq_values_,
                                polish.z_lower_, polish.z_upper_, lower, upper, opts);
 }

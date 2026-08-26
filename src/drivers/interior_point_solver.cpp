@@ -65,11 +65,8 @@
 #include "hven/detail/globalization/feasibility_stall.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"
 
-// The polish extension's own surface -- the value type, its byte form, and the
-// tag lookup. It lives HERE and not in the driver's public header: that header
-// only forward-declares IpmPolishData (see the declaration's own note), so the
-// SQP crossover header this one pulls, and hven/qp/qp_types.h behind it, stay
-// out of every consumer of the interior-point driver.
+// The polish extension's value type, byte form, and tag lookup. The driver's
+// public header only forward-declares IpmPolishData -- see its note there.
 #include "hven/warmstart/ipm_polish_extension.h"
 
 // clang-format on
@@ -3315,13 +3312,10 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         this->result_.iq_cons_ = v_rhs.iq_cons() - v_xsl.slacks();
         this->result_.iq_lmults_ = v_xsl.iq_lmults();
     }
-    // The barrier parameter this phase ended at, kept for the warm-start
-    // capture's polish extension and read by nothing else. Recorded
-    // unconditionally rather than under the bounds_ guard below: mu describes
-    // the phase whether or not there are bound terms, and the capture is what
-    // decides whether anything wants it. Still at the SOLVER's objective scale
-    // here; the capture divides it out, alongside the multipliers it is
-    // complementary to.
+    // Recorded unconditionally rather than under the bounds_ guard below: mu
+    // describes the phase whether or not there are bound terms, and the
+    // capture decides whether anything wants it. Still at the solver's
+    // objective scale; the capture divides it out.
     this->solve_exit_mu_ = mu;
 
     if (this->bounds_) {
@@ -3354,30 +3348,20 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // Print exit statistics
     assert(!iters.empty());
     assert(!settings_.return_best_ || BestIter < static_cast<int>(iters.size()));
-    // THE REPORTED ITERATE, and it is NOT simply the return_best_ pick. The
+    // The reported iterate, and not simply the return_best_ pick: the
     // substitution that makes primals_/obj_val_/the multiplier blocks describe
-    // BestIter is itself guarded on the exit NOT being converged -- both break
-    // sites above read `ExitCode != CONVERGED && settings_.return_best_` --
-    // because a converged solve reports the point it converged AT, whatever
-    // some earlier iterate scored on best_criteria_. This expression mirrors
-    // that guard, so `iters[retiter]` names the iterate the caller's result
-    // actually describes on EVERY path.
-    //
-    // BOTH CONSUMERS BELOW NEED THAT, and one of them predates this commit:
-    // print_exit_stats prints this row's prim_obj_/kkt_inf_/barr_inf_/
-    // econ_inf_/icon_inf_ as the solve's exit statistics, so under a CONVERGED
-    // return_best_ exit it used to print an earlier iterate's residuals beside
-    // a result describing the last one. The unconditional form was harmless
-    // while it fed only the printout and became a wrong-answer shape the
-    // moment the same row was promoted onto SolveResult; one variable, one
-    // fix, both consumers.
+    // BestIter is itself guarded on the exit not being converged (both break
+    // sites above), because a converged solve reports the point it converged
+    // at. Mirroring that guard here is what makes `iters[retiter]` the iterate
+    // the result describes on every path -- harmless while this row fed only
+    // print_exit_stats, a wrong-answer shape once it is promoted onto
+    // SolveResult.
     const int retiter = (settings_.return_best_ && ExitCode != ConvergenceFlags::CONVERGED)
                             ? BestIter
                             : static_cast<int>(iters.size()) - 1;
-    // THE TERMINAL KKT RESIDUALS, REPORTED -- the four residual columns of the
-    // row selected just above. Written per phase, last phase wins, exactly
-    // like the last_* diagnostics; see SolveResult's field note for the scales
-    // they are on and for the restoration-mode caveat.
+    // The four residual columns of the row selected just above; written per
+    // phase, last phase wins. Scales and the restoration-mode caveat:
+    // SolveResult's field note.
     this->result_.kkt_inf_ = iters[retiter].kkt_inf_;
     this->result_.barr_inf_ = iters[retiter].barr_inf_;
     this->result_.econ_inf_ = iters[retiter].econ_inf_;
@@ -3546,11 +3530,8 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
 }
 
 hven::solvers::WarmStartData hven::solvers::InteriorPointSolver::export_warm_start() const {
-    // REFUSED, not served empty. An empty payload would stage cleanly against
-    // any problem and then silently cold-start, which is the wrong-but-
-    // plausible shape this entry exists to rule out -- so an engine that has
-    // not solved (a freshly constructed one, a prototype clone, or one whose
-    // only solve threw) says so.
+    // Refused, not served empty: an empty payload would stage cleanly against
+    // any problem and then silently cold-start.
     if (!this->solve_completed_) {
         throw std::logic_error(
             "InteriorPointSolver::export_warm_start: no completed solve on this instance -- "
@@ -3561,19 +3542,11 @@ hven::solvers::WarmStartData hven::solvers::InteriorPointSolver::export_warm_sta
 }
 
 void hven::solvers::InteriorPointSolver::stage_warm_start(const WarmStartData &data) {
-    // FIRST, and before this call can refuse anything: a staging CALL --
-    // accepted or refused -- clears whatever was staged before it. Both kinds
-    // of staged state go, the warm payload and the multiplier seed.
-    //
-    // The refused case is the one this ordering exists for. A consumer that
-    // stages P1, later stages P2, gets a size refusal, logs it and solves
-    // anyway must NOT silently warm-start off the stale P1: P2's refusal was a
-    // size complaint, so no stamp check downstream can catch it, and warm-
-    // starting from a payload the caller has already moved on from is exactly
-    // the wrong-but-plausible silent path this surface exists to refuse. It
-    // cold-starts instead, and loudly -- the refusal the caller already saw is
-    // the notice. The staged-multiplier seed follows the same precedent
-    // (run_phase_sequence disarms it before anything can throw).
+    // A staging call -- accepted or refused -- first clears whatever was
+    // staged before it, warm payload and multiplier seed both: a consumer that
+    // stages P1, gets a size refusal on P2 and solves anyway must not
+    // warm-start off the stale P1, and no downstream stamp check would catch
+    // that. It cold-starts instead, and the refusal is the caller's notice.
     this->clear_staged_warm_start();
     this->clear_initial_multipliers();
 
@@ -3582,38 +3555,29 @@ void hven::solvers::InteriorPointSolver::stage_warm_start(const WarmStartData &d
                                  "Call set_nlp() before staging a warm start.");
     }
 
-    // SIZES ONLY, and the stamp deliberately NOT here. The declared dimensions
-    // are treatment-invariant -- that is exactly what the currency's
-    // declared-space convention buys -- so they are checkable at this point,
-    // while the key the next solve will lay under does not exist yet: the
-    // treatment configuration that produces it runs at solve entry. Refusing
-    // on the stamp here would refuse the primary flow, a consumer staging into
-    // a fresh engine before its first solve. The stamp is checked there, once,
-    // after that configuration.
+    // Sizes only, and the stamp deliberately not here: the declared dimensions
+    // are treatment-invariant and so checkable now, while the key the next
+    // solve lays under does not exist until the treatment configuration runs
+    // at solve entry. Refusing on the stamp here would refuse the primary flow
+    // -- staging into a fresh engine before its first solve.
     this->validate_warm_start_blocks(data, "stage_warm_start");
 
-    // AND THE EXTENSION, if the value carries our tag. A payload that cannot
-    // be read is refused HERE rather than at solve entry for the same reason
-    // the block sizes are: the caller is standing at the staging call and can
-    // still do something about it, and a solve that discovered the corruption
-    // on its way into the barrier would have to choose between throwing out of
-    // a call the caller asked to WARM-start and silently cold-seeding the
-    // bound multipliers. Neither is a good answer, so the question is settled
-    // before it can be asked. A value with no polish extension, or with a tag
-    // this engine does not know, passes through untouched.
+    // A payload that cannot be read is refused here rather than at solve entry
+    // for the same reason the block sizes are: a solve discovering the
+    // corruption would have to choose between throwing out of a call asked to
+    // warm-start and silently cold-seeding the bound multipliers.
     this->validate_staged_polish(data, "stage_warm_start");
 
-    // PRECEDENCE is already settled by the clear at the top: the warm start's
-    // own eq/iq blocks are what the next solve installs, and a seed left
-    // standing alongside them would describe the same rows twice. See both
-    // docstrings.
+    // Precedence is settled by the clear at the top: the warm start's own
+    // eq/iq blocks are what the next solve installs, and a seed left standing
+    // alongside them would describe the same rows twice.
     this->staged_warm_ = data;
     this->warm_staged_ = true;
 }
 
 void hven::solvers::InteriorPointSolver::validate_warm_start_blocks(const WarmStartData &data,
                                                                     const char *entry) const {
-    // Off the PROGRAM, not off this solver's cached dimensions: those are
+    // Off the program, not off this solver's cached dimensions: those are
     // refreshed at set_nlp() and at solve entry, so between a re-lay and the
     // next solve they describe the previous layout.
     const int declared_primal = this->nlp_->primal_vars_;
@@ -3650,23 +3614,17 @@ void hven::solvers::InteriorPointSolver::validate_warm_start_blocks(const WarmSt
 }
 
 void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
-    // DEFENSIVE, AND DELIBERATELY NOT FATAL. Every check below is an
+    // Defensive but deliberately not fatal. Every check below is an
     // internal-consistency check on state this class itself wrote, and this
-    // call sits one line before a COMPLETED solve's return. Throwing here
-    // would destroy a converged result the caller was about to receive --
-    // every caller, including the ones that never touch this surface -- to
-    // report a defect in a side product of the solve. So a failed check SKIPS
-    // the capture: the solve returns untouched and solve_completed_ is left
-    // false, so export_warm_start() refuses with the refusal it already has
-    // for "there is nothing to export". None of the conditions is reachable
-    // today; they are guards, not expectations, and CLAUDE.md §4 forbids
-    // leaning on Eigen's asserts, which Release compiles out.
+    // call sits one line before a completed solve's return: throwing would
+    // destroy a converged result to report a defect in a side product. A
+    // failed check skips the capture instead, leaving solve_completed_ false
+    // so export_warm_start() refuses. None of the conditions is reachable
+    // today; they are guards, and Eigen's asserts are gone under Release.
     //
-    // The marker is cleared through skip_capture rather than merely left
-    // alone, so a skipped capture cannot leave a PREVIOUS solve's payload
-    // standing to be exported as if it were this one's. A solve that THREW
-    // never reaches this function at all and so still leaves the previous
-    // capture intact.
+    // skip_capture clears the marker rather than leaving it alone, so a
+    // skipped capture cannot leave a previous solve's payload standing to be
+    // exported as this one's. A solve that threw never reaches this function.
     const auto skip_capture = [this] {
         this->completed_warm_ = WarmStartData{};
         this->solve_completed_ = false;
@@ -3674,28 +3632,15 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
 
     WarmStartData captured;
 
-    // AS OF THIS SOLVE. Read here rather than at export so a re-lay between
+    // As of this solve: read here rather than at export, so a re-lay between
     // the two cannot stamp these blocks with a key they were never taken
-    // under.
+    // under. The declaration key and not the layout key -- warmstart/
+    // warm_start_data.h's stamp note carries the argument.
     //
-    // THE DECLARATION KEY, not the layout key: what this value claims is the
-    // PROBLEM it was taken on, and the layout key would additionally claim
-    // this engine's own claim order, partition count and fixed-variable
-    // treatment -- none of which the value carries or a consumer could honour
-    // (warmstart/warm_start_data.h's stamp note). declaration() materializes
-    // the program's laid declaration, memoized per lay.
-    //
-    // UNDER THE SAME SKIP DISCIPLINE AS EVERY CHECK BELOW, and for the same
-    // reason this function does not throw at all: this is the one statement
-    // here that CALLS OUT of it, and both halves can refuse --
-    // declaration_key over its fixing-row split, and declaration() itself
-    // through require_master_lists_unmoved and the piece materialization's
-    // narrowing check. Neither is reachable from a laid, validated program
-    // today, but "a failed check skips the capture" is an absolute promise on
-    // this function's own note above, and a promise with one unguarded call at
-    // its head is not one. A throw here would destroy a converged result the
-    // caller was about to receive -- every caller, including the ones that
-    // never touch this surface -- to report a defect in a side product.
+    // Guarded like every check below because it is the one statement here that
+    // calls out, and both halves can refuse (declaration_key over its
+    // fixing-row split, declaration() through require_master_lists_unmoved and
+    // the piece materialization's narrowing check).
     try {
         captured.structure_key_ = declaration_key(this->nlp_->declaration());
     } catch (const std::exception &) {
@@ -3709,18 +3654,14 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
     // for the point to be restartable.
     captured.primal_ = this->result_.primals_;
 
-    // THE DECLARED EQUALITY ROWS EXACTLY. result_.eq_lmults_ is sized
+    // The declared equality rows exactly: result_.eq_lmults_ is sized
     // equal_cons_, which under the MakeConstraint treatment counts one
-    // internal fixing row per bound-fixed variable at the TAIL of the row
-    // space on top of the user's own rows; those rows are the treatment's, not
-    // the declaration's, and the currency does not carry them.
-    //
-    // A block the solve did not report at all -- the empty state every solve
-    // entry resets these to -- exports as the declared-width zero vector
-    // rather than as a short block: the currency's lengths are the declared
-    // ones unconditionally, and a solve that reported no multipliers has none
-    // to carry. Any other length is impossible (the fill writes the whole
-    // block or none of it) and skips the capture rather than being trimmed.
+    // internal fixing row per bound-fixed variable at the tail; those rows are
+    // the treatment's, not the declaration's. A block the solve did not report
+    // at all exports as the declared-width zero vector rather than as a short
+    // one -- the currency's lengths are the declared ones unconditionally --
+    // and any other length is impossible (the fill writes the whole block or
+    // none of it), so it skips the capture rather than being trimmed.
     const auto declared_block = [](const Eigen::VectorXd &reported, int declared,
                                    Eigen::VectorXd &out) {
         if (reported.size() == 0) {
@@ -3742,27 +3683,21 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
         return;
     }
 
-    // REDUCED -> DECLARED. result_.bound_lmults_ is dense over the solver's
-    // reduced primal space and is deliberately not expanded there (an
-    // eliminated variable has no row in the reduced problem and so no
-    // multiplier to report). The currency is declared-width, so the block is
-    // scattered into declared coordinates with a zero left at every eliminated
-    // one: that is what the reduced block's ABSENCE at those coordinates
-    // means, and it is also the entry a consumer ignores -- the treatment
-    // holds those variables, so nothing stages a bound multiplier for them.
-    // An empty reported block (a problem with no finite variable bounds at
-    // all) exports as the declared-width zero vector, so the currency's block
-    // is always at its declared length.
+    // Reduced -> declared. result_.bound_lmults_ is dense over the solver's
+    // reduced primal space (an eliminated variable has no row there and so no
+    // multiplier to report), so the scatter leaves a zero at every eliminated
+    // coordinate: that is what the reduced block's absence there means, and it
+    // is the entry a consumer ignores. An empty reported block (no finite
+    // variable bounds at all) exports as the declared-width zero vector.
     const int declared_primal = this->full_primal_vars_;
     captured.bound_lmults_ = Eigen::VectorXd::Zero(declared_primal);
     if (this->result_.bound_lmults_.size() > 0) {
         if (this->nlp_->is_reduced()) {
-            // The scatter indexes reduced_to_full by k and writes the value it
-            // finds there, so a reported block wider than the reduced space
-            // would read past that table and write past this vector -- in a
-            // Release build, where Eigen's own bounds asserts are gone. Both
-            // widths are checked, not just one: the table is the thing being
-            // indexed and the reduced count is what it is supposed to be.
+            // The scatter indexes reduced_to_full by k, so a reported block
+            // wider than the reduced space would read past that table and
+            // write past this vector in a Release build. Both widths are
+            // checked: the table is the thing being indexed, and the reduced
+            // count is what it is supposed to be.
             const auto &reduced_to_full = this->nlp_->reduced_to_full();
             const Eigen::Index reduced = this->nlp_->reduced_primal_vars();
             if (this->result_.bound_lmults_.size() != reduced ||
@@ -3774,10 +3709,9 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
                 captured.bound_lmults_[reduced_to_full[k]] = this->result_.bound_lmults_[k];
             }
         } else {
-            // On the identity path the reported block IS the declared one, and
-            // this assignment replaces the correctly-sized zero vector above
-            // with it -- so the currency's declared-width promise holds here by
-            // ENFORCEMENT rather than by construction.
+            // On the identity path the reported block is the declared one, so
+            // the declared-width promise holds here by enforcement rather than
+            // by construction.
             if (this->result_.bound_lmults_.size() != static_cast<Eigen::Index>(declared_primal)) {
                 skip_capture();
                 return;
@@ -3786,19 +3720,12 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
         }
     }
 
-    // THE POLISH EXTENSION, and only when this solve had a variable-bound set.
-    // The gate is exactly `bounds_`: that pointer is non-null iff the declared
-    // problem has at least one finite variable bound (a set with nothing in it
-    // is left null at solve entry, so "has bound terms" and "bounds_ != null"
-    // are the same question everywhere in this class). With no bounds there is
-    // no (z_lower, z_upper) pair to carry and the core-only value IS the whole
-    // hand-off -- an extension carrying two zero vectors would claim a
-    // capability that says nothing.
-    //
-    // The inequality values it carries are the DECLARED block computed above,
-    // reduced from result_.iq_cons_ by the same rule the multiplier blocks
-    // take, so the extension and the core cannot disagree about the width of
-    // the row space they describe.
+    // Only when this solve had a variable-bound set: with no bounds there is
+    // no (z_lower, z_upper) pair to carry, and an extension holding two zero
+    // vectors would claim a capability that says nothing. The inequality
+    // values it carries are the declared block computed above, by the same
+    // rule the multiplier blocks take, so the extension and the core cannot
+    // disagree about the width of the row space they describe.
     if (this->bounds_) {
         Eigen::VectorXd declared_iq_values;
         WarmExtension polish;
@@ -3823,18 +3750,17 @@ bool hven::solvers::InteriorPointSolver::build_polish_extension(const Eigen::Vec
 
     // Both side blocks must be the length their index list says. They are
     // written together in push_initial_point_interior and stepped together
-    // afterwards, so a disagreement here is an internal defect, not an input
-    // -- and the loops below index one by the other's length.
+    // afterwards, so a disagreement here is an internal defect, not an input,
+    // and the loops below index one by the other's length.
     if (this->bound_duals_.z_lower_.size() != nl || this->bound_duals_.z_upper_.size() != nu) {
         return false;
     }
 
-    // REDUCED -> DECLARED, exactly as the core's bound block is scattered: the
-    // bound set's index lists name SOLVER-space variables, and the currency
+    // Reduced -> declared, exactly as the core's bound block is scattered: the
+    // bound set's index lists name solver-space variables, while the currency
     // and this extension both speak declared space. An index the mapping
-    // cannot resolve is refused rather than followed, because following it
-    // would read past reduced_to_full and write past the vectors below in a
-    // Release build, where Eigen's own bounds asserts are gone.
+    // cannot resolve is refused rather than followed -- following it would
+    // read past reduced_to_full and write past the vectors below.
     const Eigen::Index declared_primal = this->full_primal_vars_;
     const bool reduced = this->nlp_->is_reduced();
     const Eigen::Index reduced_primal = this->nlp_->reduced_primal_vars();
@@ -3845,12 +3771,12 @@ bool hven::solvers::InteriorPointSolver::build_polish_extension(const Eigen::Vec
     const Eigen::Index solver_primal = reduced ? reduced_primal : declared_primal;
 
     IpmPolishData polish;
-    // THE OBJECTIVE SCALE, divided out here rather than at the seam: see this
-    // function's declaration. The multipliers and the barrier parameter are
-    // complementary quantities (z * distance ~ mu), so they carry the same
-    // factor and must lose it together or stop describing one central path.
-    // The scale is THIS SOLVE's, captured at its entry -- not the setting as
-    // it stands now, which a callback may have moved.
+    // The objective scale, divided out here rather than at the seam: the
+    // multipliers and the barrier parameter are complementary (z * distance ~
+    // mu), so they carry the same factor and must lose it together or stop
+    // describing one central path. The scale is this solve's, captured at its
+    // entry -- not the setting as it stands now, which a callback may have
+    // moved.
     const double scale = this->solve_obj_scale_;
     polish.mu_ = scale == 1.0 ? this->solve_exit_mu_ : this->solve_exit_mu_ / scale;
     polish.z_lower_ = Eigen::VectorXd::Zero(declared_primal);
@@ -3884,12 +3810,11 @@ bool hven::solvers::InteriorPointSolver::build_polish_extension(const Eigen::Vec
 
 void hven::solvers::InteriorPointSolver::validate_staged_polish(const WarmStartData &data,
                                                                 const char *entry) const {
-    // Returns null when the value simply does not carry the tag, which is the
-    // ordinary core-only hand-off; throws on a DUPLICATED one. That throw is
-    // wrapped for the same reason the decode's is: EVERY refusal this entry
-    // emits opens with the entry's own name, so a consumer grepping its logs
-    // for one prefix does not miss a refusal class. The inner message is kept
-    // verbatim -- it already names the tag and says what it refused.
+    // Null when the value simply does not carry the tag -- the ordinary
+    // core-only hand-off; a throw means a duplicated one. Wrapped so that
+    // every refusal this entry emits opens with the entry's own name, and a
+    // consumer grepping for one prefix does not miss a refusal class; the
+    // inner message is kept verbatim.
     const WarmExtension *extension = nullptr;
     try {
         extension = find_ipm_polish(data);
@@ -3903,10 +3828,9 @@ void hven::solvers::InteriorPointSolver::validate_staged_polish(const WarmStartD
         return;
     }
 
-    // The decode's own refusals already name the offset, the expectation and
-    // the tag. What they cannot name is the entry the caller stood at, so that
-    // is what this wrapper adds -- and only that; re-wording the decode's
-    // message would put two spellings of one refusal in the tree.
+    // The decode's own refusals name the offset, the expectation and the tag;
+    // the entry the caller stood at is all this wrapper adds. Re-wording the
+    // inner message would put two spellings of one refusal in the tree.
     IpmPolishData polish;
     try {
         polish = deserialize_ipm_polish(extension->payload_);
@@ -3953,14 +3877,12 @@ void hven::solvers::InteriorPointSolver::apply_polish_bound_duals(const IpmPolis
         return;
     }
 
-    // DECLARED -> REDUCED. The widths were checked at staging against the
-    // declared dimensions and the stamp was checked at solve entry, so the
-    // structure the payload describes and the structure this solve lays are
-    // the same one -- which is exactly what makes reading polish.z_lower_ at a
-    // declared coordinate meaningful: the bound DIGEST is a conjunct of the
-    // key, so both ends agree on which sides are finite and which variable
-    // each index names. The mapping guards below are the Release-build bounds
-    // checks CLAUDE.md section 4 asks for, not a doubt about that.
+    // Declared -> reduced. The widths were checked at staging and the stamp at
+    // solve entry, which is what makes reading polish.z_lower_ at a declared
+    // coordinate meaningful: the bound digest is a conjunct of the key, so
+    // both ends agree on which sides are finite and which variable each index
+    // names. The mapping guards below are Release-build bounds checks, not a
+    // doubt about that.
     const Eigen::Index declared_primal = this->full_primal_vars_;
     const bool reduced = this->nlp_->is_reduced();
     const Eigen::Index reduced_primal = this->nlp_->reduced_primal_vars();
@@ -3971,26 +3893,20 @@ void hven::solvers::InteriorPointSolver::apply_polish_bound_duals(const IpmPolis
     }
     const Eigen::Index solver_primal = reduced ? reduced_primal : declared_primal;
 
-    // THE SAME THREE STEPS A STAGED CONSTRAINT-MULTIPLIER SEED TAKES, and for
-    // the same reasons: multiply this call's objective scale back in (the
-    // export divided it out, and the barrier works on the scaled problem);
-    // floor at kSeededIqMultFloor, because every barrier term divides by a
-    // multiplier and a seed at or below zero puts the very first iterate
-    // outside the interior the method is defined on -- and an unpriced side's
+    // The same three steps a staged constraint-multiplier seed takes: multiply
+    // this call's objective scale back in (the barrier works on the scaled
+    // problem); floor at kSeededIqMultFloor, because a seed at or below zero
+    // puts the first iterate outside the interior and an unpriced side's
     // exported 0.0 lands here, so the floor is load-bearing on the ordinary
-    // path, not only on a malformed one; ceiling at kSeededMultInitMax rather
-    // than at push_initial_point_interior's own kBoundMultInitCap, because
-    // that cap exists to keep the FORMULA mu0/d from exploding at a tiny
-    // distance, while this is a MEASURED multiplier a converged solve reported
-    // and 1e3 would silently distort a legitimate one.
+    // path; ceiling at kSeededMultInitMax rather than
+    // push_initial_point_interior's kBoundMultInitCap, because that cap keeps
+    // the formula mu0/d from exploding at a tiny distance, while this is a
+    // measured multiplier a converged solve reported.
     //
-    // ALL OR NOTHING, which is why the indices are resolved in full before the
-    // first value is written: a seeding that gave up half way would leave the
-    // bound multipliers a MIXTURE of the fresh seed and the staged one, a
-    // state no argument here covers -- neither the cold seed's consistency
-    // with mu0 nor the hand-off's consistency with its own solve. Leaving the
-    // fresh seed entirely alone is the one fallback that keeps a stated
-    // invariant.
+    // All or nothing, hence resolving every index before the first value is
+    // written: a seeding that gave up half way would leave the bound
+    // multipliers a mixture of the fresh seed and the staged one, a state no
+    // argument here covers.
     const auto resolve = [&](const Eigen::VectorXi &idx, std::vector<Eigen::Index> &declared_idx) {
         declared_idx.clear();
         declared_idx.reserve(static_cast<std::size_t>(idx.size()));
@@ -4090,11 +4006,10 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->mults_staged_ = false;
     }
 
-    // A staged warm start is disarmed on exactly the same terms and at the
-    // same point, and for the same reason: it is ONE-SHOT, so this call owns
-    // it whether it ends up applied, refused by the stamp check below, or lost
-    // to an unrelated throw on the way there. Nothing it holds survives past
-    // this return either way.
+    // A staged warm start is disarmed on the same terms and at the same point,
+    // and for the same reason: it is one-shot, so this call owns it whether it
+    // ends up applied, refused by the stamp check below, or lost to an
+    // unrelated throw on the way there.
     bool have_warm = this->warm_staged_;
     WarmStartData warm;
     if (have_warm) {
@@ -4102,21 +4017,16 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->staged_warm_ = WarmStartData{};
         this->warm_staged_ = false;
 
-        // PRECEDENCE (see stage_warm_start): the warm start's own multiplier
-        // blocks replace a staged seed. stage_warm_start() already cleared any
-        // seed standing at that moment; this covers the seed staged AFTER it,
-        // which is discarded unapplied rather than mixed with the warm start's
-        // blocks. From here the warm multipliers ARE the seed, so they take
+        // Precedence (see stage_warm_start): a seed staged after the warm
+        // start is discarded unapplied rather than mixed with the warm start's
+        // blocks. From here the warm multipliers are the seed, so they take
         // the seed path's own validation, clamps and objective-scale handling
-        // -- there is one multiplier-install site in this class, not two.
+        // -- one multiplier-install site in this class, not two.
         //
-        // MOVED, not copied: `warm` is this call's own copy, already moved out
-        // of staged_warm_ above and consumed by this call either way, and
-        // nothing below reads these two blocks again (only structure_key_,
-        // primal_, and extensions_ -- the polish hand-off, read after the
-        // interior push). R5's non-consuming promise is about the CALLER's value,
-        // which stage_warm_start copied on the way in and which this never
-        // touches.
+        // Moved, not copied: `warm` is this call's own copy, consumed either
+        // way, and nothing below reads these two blocks again. The
+        // non-consuming promise is about the caller's value, which
+        // stage_warm_start copied on the way in.
         seed_eq_mults = std::move(warm.eq_lmults_);
         seed_iq_mults = std::move(warm.iq_lmults_);
         have_seed = true;
@@ -4270,30 +4180,21 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->analyze_kkt_sparsity();
     }
 
-    // THE STAMP CHECK, and this is the ONLY place it fires. It sits AFTER the
+    // The stamp check, and the only place it fires. It sits after the
     // variable-treatment configuration deliberately: that call re-lays
     // whenever it eliminates or restores variables, so the key the program
-    // carries BEFORE it is not the key this solve lays under, and the key it
-    // carries after is. Checking at staging time instead would refuse the
-    // primary flow -- a consumer stages into a fresh engine before its first
-    // solve, while the program still keys pre-treatment -- which is why the
-    // staging entry validates block SIZES (treatment-invariant, because the
-    // currency is declared-space) and nothing else, and why the export side
-    // captures its stamp at solve COMPLETION for the same reason.
-    //
-    // A mismatch REFUSES naming both keys. Silently dropping the staged start
-    // would cold-start a solve the caller asked to warm-start, and applying it
-    // would restart a point belonging to a different declared structure. The
-    // staged value is already consumed by this call at this point -- loud,
-    // then gone, exactly as the staged-multiplier seed above is.
+    // carries before it is not the key this solve lays under, and checking at
+    // staging time would refuse a consumer staging into a fresh engine before
+    // its first solve. A mismatch refuses, naming both keys: dropping the
+    // staged start silently would cold-start a solve the caller asked to
+    // warm-start, and applying it would restart a point belonging to a
+    // different declared structure.
     if (have_warm) {
-        // THE DECLARATION KEY, not the layout key. What is compared is the
-        // problem the caller TRANSCRIBED -- the only thing a value crossing
-        // engines or treatments can be held to (warmstart/warm_start_data.h's
-        // stamp note; model/structure_identity.h's own
-        // DeclarationKey/ModelStructureKey note). Read off the program's
-        // declaration, which at this point in the call is the declaration this
-        // solve lays under.
+        // The declaration key, not the layout key: what is compared is the
+        // problem the caller transcribed, the only thing a value crossing
+        // engines or treatments can be held to (warmstart/warm_start_data.h).
+        // Read off the program's declaration, which at this point in the call
+        // is the declaration this solve lays under.
         const DeclarationKey live = declaration_key(this->nlp_->declaration());
         if (!(warm.structure_key_ == live)) {
             throw std::invalid_argument(fmt::format(
@@ -4319,24 +4220,18 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->validate_staged_multipliers(seed_eq_mults, seed_iq_mults);
     }
 
-    // The else is NOT redundant with the unconditional clear a few phases up.
-    // That clear runs BEFORE configure_variable_treatment, and its job is to
-    // keep a THROWING configuration from leaving this solver pointing at a
-    // rejected classification; it happens to also cover the empty-set case
-    // today, but only at a distance, across two intervening throw sites. The
-    // else makes "bounds_ describes the bound set THIS call laid, or is null"
-    // a local invariant of the statement that establishes it.
-    //
-    // The re-lay that needs it: a treatment switch on ONE solver instance,
-    // with no intervening set_nlp() -- RelaxBounds (which records a widened
-    // bound pair for a bound-fixed variable) to MakeParameter or
-    // MakeConstraint (neither of which does) -- or a caller's own
+    // The else is not redundant with the unconditional clear a few phases up:
+    // that clear runs before configure_variable_treatment, so it covers the
+    // empty-set case only at a distance, across two intervening throw sites.
+    // The else makes "bounds_ describes the bound set this call laid, or is
+    // null" a local invariant. The case that needs it is a treatment switch on
+    // one solver instance with no intervening set_nlp() -- RelaxBounds, which
+    // records a widened bound pair for a bound-fixed variable, to
+    // MakeParameter or MakeConstraint, which do not -- or a caller's own
     // NonLinearProgram::clear_variable_bounds(). Everything downstream reads
-    // "bounds_ != nullptr" as "this solve has variable-bound barrier terms":
-    // the barrier assembly, result_.bound_lmults_, and the warm-start
-    // capture's polish extension, which on a stale pointer would claim the
-    // hand-off with an all-zero (z_lower, z_upper) pair taken against a bound
-    // set that no longer has members.
+    // "bounds_ != nullptr" as "this solve has variable-bound barrier terms",
+    // the capture's polish extension included, which on a stale pointer would
+    // claim the hand-off with an all-zero pair.
     if (this->nlp_->variable_bound_set().any()) {
         this->bounds_ = &this->nlp_->variable_bound_set();
     } else {
@@ -4377,14 +4272,10 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // guess here, and their values live in the NLP until the solution is
     // expanded again at the return below.
     //
-    // A STAGED WARM START SUPPLIES THE POINT, in place of the caller's guess:
-    // that is what warm-starting a solve is. Its primal block is DECLARED-space
-    // and the gather is exactly the declared -> reduced mapping
-    // (full_to_reduced), so an eliminated variable's entry is dropped here and
-    // written nowhere -- the treatment holds that coordinate, and a warm value
-    // for it is ignored by construction rather than by a special case. The
-    // caller's own x is still size-checked at the top of this call, so a warm
-    // solve does not quietly accept a guess that names a different problem.
+    // A staged warm start supplies the point in place of the caller's guess.
+    // Its primal block is declared-space and the gather is the declared ->
+    // reduced mapping, so an eliminated variable's entry is dropped here and
+    // written nowhere -- ignored by construction, not by a special case.
     const Eigen::VectorXd &start_x = have_warm ? warm.primal_ : x;
     Eigen::VectorXd x_solver(this->primal_vars_);
     this->nlp_->gather_reduced_x(start_x, x_solver);
@@ -4398,24 +4289,19 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // multiplier state to empty on a problem with no bounds.
     this->push_initial_point_interior(x_solver, settings_.init_mu_);
 
-    // THE POLISH HAND-OFF, over the seed the push just wrote. The core's
-    // signed z cannot be installed at all -- it does not invert into the pair
-    // the barrier holds -- so this extension is the ONLY route by which a warm
-    // start reaches the bound multipliers, and a value without it leaves the
-    // fresh init_mu_-and-distance seed exactly as it stands (which is what
-    // every core-only warm start has always done).
+    // The polish hand-off, over the seed the push just wrote. The core's
+    // signed z does not invert into the pair the barrier holds, so this
+    // extension is the only route by which a warm start reaches the bound
+    // multipliers; a value without it leaves the fresh seed as it stands.
     //
-    // AFTER the push, not before: the push WRITES both multiplier blocks from
-    // mu0 and the post-projection distances, so seeding first would be seeding
-    // into vectors that are about to be overwritten. It also resizes them,
-    // which is what makes the sizes the helper checks meaningful.
+    // After the push, not before: the push writes both multiplier blocks from
+    // mu0 and the post-projection distances, and resizes them -- which is what
+    // makes the sizes the helper checks meaningful.
     //
     // The payload is decoded again here rather than carried in parsed form
-    // from the staging call: it was already proven readable there (that is
-    // what makes a corrupt payload a STAGING refusal), the decode is O(n)
-    // against a solve that is about to factorize, and the bytes staying the
-    // single source of truth means there is no second copy to keep in step
-    // with staged_warm_ through the clear/consume discipline around it.
+    // from staging: it was already proven readable there, the decode is O(n)
+    // against a solve about to factorize, and the bytes staying the single
+    // source of truth leaves no second copy to keep in step with staged_warm_.
     if (have_warm && this->bounds_) {
         if (const WarmExtension *polish = find_ipm_polish(warm); polish != nullptr) {
             this->apply_polish_bound_duals(deserialize_ipm_polish(polish->payload_));
@@ -4602,11 +4488,11 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         result_.primals_ = primals_full;
     }
 
-    // THE COMPLETED-SOLVE MARKER, and the warm-start capture it arms. Last,
+    // The completed-solve marker, and the warm-start capture it arms: last,
     // after both seams above, so the captured blocks are the caller's-space,
     // caller's-scale ones this call reports -- and reached only on the path
-    // that returns, so a call that threw leaves the previous capture (if any)
-    // standing and never claims a completion of its own.
+    // that returns, so a call that threw leaves the previous capture standing
+    // and never claims a completion of its own.
     this->capture_completed_warm_start();
 
     return result_.primals_;

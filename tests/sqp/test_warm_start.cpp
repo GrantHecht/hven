@@ -646,38 +646,25 @@ TEST(WarmStart, HotReusesFactorization) {
     EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
 }
 
-// BITWISE comparison of two doubles, the idiom the three R6 pins share: the
-// bit patterns, not `==`. See the call sites below for why that distinction is
-// the one R6 asks for.
+// Bitwise comparison of two doubles, the idiom the R6 pins share: the bit
+// patterns, not `==`. See the call site below for why.
 void expect_same_bits(double a, double b, const std::string &what) {
     EXPECT_EQ(std::bit_cast<std::uint64_t>(a), std::bit_cast<std::uint64_t>(b))
         << what << ": " << a << " vs " << b;
 }
 
-// M5 R6: HOT-STATE REUSE IS NEVER OBSERVABLE IN ANSWERS.
+// M5 R6: hot-state reuse is never observable in answers. The test above pins
+// that the reuse HAPPENS; this one pins that the solve which reused the
+// producer's K0 answers exactly what the same solve answers with the reuse
+// withheld -- same point, same prices, same terminal residuals, same iterate
+// path.
 //
-// The test above pins that the reuse HAPPENS. This one pins the consequence
-// M5's R6 asks for: the solve that reused the producer's K0 must answer
-// exactly what the same solve answers with the reuse withheld -- same point,
-// same prices, same terminal residuals, same iterate path -- so a consumer can
-// never tell from an answer whether an engine was hot.
-//
-// THE CONTROL IS THE SAME WARM OBJECT WITH ITS HANDLE STRIPPED. Everything
-// else about the two solves is identical by construction: the same fixture,
-// the same start point, the same options, the same ingested x/duals/activity.
-// Only `hot` differs, so only the reuse differs -- which is what makes this a
-// measurement of the reuse rather than of two loosely similar runs.
-//
-// THE ONE COUNTER THAT MAY DIFFER IS THE ONE THAT COUNTS THE SAVED WORK, and
-// it is pinned by an EXACT relation rather than exempted: withholding the
-// handle costs exactly one more factorization, the one the fast path skipped.
-// Every other counter, and the whole history, must match. Wall time is not
-// read here at all -- it is informational, and skipping a factorization is
-// expected to move it.
-//
-// EXACT EQUALITY, no margins: the reuse is answer-neutral BY CONSTRUCTION (the
-// same K0, factorized once instead of twice), so a tolerance here would be a
-// claim that it perturbs the answer slightly -- the very claim R6 forbids.
+// The control is the same warm object with its handle stripped, so `hot` is the
+// only thing that differs between the two solves. Exact equality, no margins:
+// the reuse is answer-neutral by construction (one K0, factorized once instead
+// of twice), so a tolerance would be a claim that it perturbs the answer. The
+// one counter that may differ is the one counting the saved work, and it is
+// pinned by an exact relation rather than exempted. Wall time is not read.
 TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     const double a = 1e-3;
     SqpOptions opts;
@@ -701,7 +688,7 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     SqpDriver warm_driver(opts);
     const SqpSolution warm = warm_driver.solve(consumer, consumer.start_point(), without_handle);
 
-    // THE FIXTURE PREMISE: one solve really was hot and the other really was
+    // The fixture premise: one solve really was hot and the other really was
     // not. Without this the identity below would pass vacuously on two cold
     // solves.
     ASSERT_EQ(hot.counters.start_level_used, StartLevel::kHot);
@@ -711,9 +698,9 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     ASSERT_EQ(hot.history[0].qp_factorizations, 0);
     ASSERT_GE(warm.history[0].qp_factorizations, 1);
 
-    // THE ANSWER, bit for bit -- read as BITS, not as `==`: EXPECT_EQ on two
-    // doubles calls -0.0 and +0.0 equal though their bits differ, and would
-    // call NaN unequal to itself. Same idiom as the other two R6 pins.
+    // The answer, read as BITS, not as `==`: EXPECT_EQ on two doubles calls
+    // -0.0 and +0.0 equal though their bits differ, and would call NaN unequal
+    // to itself.
     EXPECT_EQ(hot.status, warm.status);
     expect_same_bits(hot.f, warm.f, "objective");
     expect_same_bits(hot.stationarity, warm.stationarity, "stationarity");
@@ -736,7 +723,7 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
                          "inequality multiplier " + std::to_string(i));
     }
 
-    // THE PATH, not only the endpoint.
+    // The path, not only the endpoint.
     ASSERT_EQ(hot.history.size(), warm.history.size());
     for (std::size_t k = 0; k < hot.history.size(); ++k) {
         const SqpIterate &h = hot.history[k];
@@ -755,7 +742,7 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
         EXPECT_EQ(h.qp_minor_iters, w.qp_minor_iters) << "row " << k;
     }
 
-    // THE WORK, with the saved factorization named exactly.
+    // The work, with the saved factorization named exactly.
     EXPECT_EQ(warm.counters.factorizations, hot.counters.factorizations + 1)
         << "the hot solve skips exactly the one K0 factorization the handle carried";
     EXPECT_EQ(hot.counters.major_iters, warm.counters.major_iters);

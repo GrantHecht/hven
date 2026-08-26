@@ -15,38 +15,23 @@
 // are functions of the DECLARATION. Engine-independent by construction: nothing
 // here includes from the interior-point machinery.
 //
-// THE FIRST TWO ANSWER DIFFERENT QUESTIONS AND MUST NOT BE SUBSTITUTED FOR ONE
-// ANOTHER (owner ruling, 2026-08-25, on M5 W3's cross-engine evidence).
+// DeclarationKey and ModelStructureKey answer different questions, and must
+// never be compared against one another or substituted for one another:
 //
-//   * ModelStructureKey is the LAYOUT/EPOCH key. It is taken over the claim
-//     stream a provider actually handed out, in claim order, plus the adopted
-//     partition count -- so it moves when the LAYOUT moves, which is exactly
-//     what a consumer reusing a symbolic analysis needs. It is therefore
-//     ENGINE-SPECIFIC (two providers lay the same declaration's claims in
-//     different orders and key differently) and TREATMENT-SPECIFIC (an
-//     eliminating fixed-variable treatment lays claims in reduced coordinates).
-//     Both properties are correct for the question it answers.
+//   * ModelStructureKey answers "may I reuse this factorization?". It is taken
+//     over the claim stream a provider handed out, in claim order, plus the
+//     adopted partition count, so it moves when the LAYOUT moves. It is
+//     therefore ENGINE-SPECIFIC and TREATMENT-SPECIFIC.
 //
-//   * DeclarationKey is the PROBLEM-IDENTITY key, and the one the M5 warm-start
-//     currency stamps with. It is taken over the DECLARATION alone -- the
-//     dimensions a caller declared, with the fixed-variable treatment's own
-//     rows subtracted, and the declared bound STRUCTURE -- and deliberately
-//     over nothing an engine or a policy decides. So it is the same value on
-//     both engines, and the same value under every fixed-variable treatment,
-//     for one declared problem. Staleness under this key is a DECLARATION
-//     change: the caller transcribed a different problem.
+//   * DeclarationKey answers "does this value describe the problem I am about
+//     to solve?", and is what the warm-start currency stamps with. It is taken
+//     over the DECLARATION alone, so it is the same value on both engines and
+//     under every fixed-variable treatment. Staleness under it means the caller
+//     transcribed a different problem.
 //
-//     READ THE EXCLUSIONS ON declaration_identity_digest BELOW BEFORE BUILDING
-//     AN ARGUMENT ON THIS KEY. It covers less than "the declared problem"
-//     suggests: the pieces' row structure is NOT hashed (it is not a
-//     cross-engine property of a declaration), and neither are bound VALUES --
-//     only which sides are finite and whether they coincide. Two declarations
-//     that agree on dimensions and on bound structure key the same even if
-//     their pieces, and their bound values, differ.
-//
-// A consumer wanting "may I reuse this factorization?" reads the first. A
-// consumer wanting "does this value describe the problem I am about to solve?"
-// reads the second. Comparing one against the other is always a mistake.
+// DeclarationKey covers less than "the declared problem" suggests; what it
+// deliberately excludes is listed at declaration_identity_digest in
+// src/model/aggregate_declaration.cpp.
 
 #include <atomic>
 #include <cstddef>
@@ -99,17 +84,11 @@ struct ModelStructureKey {
 ///        declaration's mathematical identity, and a digest of its variable
 ///        bound structure.
 ///
-/// THE M5 WARM-START CURRENCY'S STAMP. Two conjuncts rather than one because
-/// they are computed from different halves of the declaration and refuse for
-/// different reasons -- a caller reading a refusal wants to know whether the
-/// ROWS moved or the BOX did -- and because the bound conjunct already had a
-/// public builder (materialized_bound_digest) that this key reuses verbatim
-/// rather than re-deriving.
+/// The warm-start currency's stamp. Two conjuncts rather than one so that a
+/// caller reading a refusal can tell whether the ROWS moved or the BOX did.
 ///
-/// ENGINE- AND TREATMENT-INDEPENDENT BY CONSTRUCTION. See this header's own
-/// note for the full argument; the short form is that
-/// declaration_identity_digest below reads only what the CALLER declared and
-/// nothing a provider or a policy decided.
+/// Engine- and treatment-independent: both conjuncts read only what the CALLER
+/// declared, never what a provider or a policy decided.
 struct DeclarationKey {
     /// The declared problem's mathematical identity: declaration_identity_digest.
     std::uint64_t declaration_digest_ = 0;
@@ -246,60 +225,21 @@ inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &decla
 }
 
 /// @brief THE declaration-identity conjunct of a DeclarationKey, and the only
-///        public way to compute one.
+///        public way to compute one: the DECLARED DIMENSIONS -- primal
+///        variables, USER equality rows, and inequality rows -- through the
+///        same self-delimiting preamble claim_stream_digest opens with.
 ///
-/// WHAT IS FED: the DECLARED DIMENSIONS -- primal variables, USER equality
-/// rows, and inequality rows -- through the same self-delimiting preamble
-/// claim_stream_digest opens with. The equality count fed is
-/// `equality_rows_ - fixing_rows_`: the internal rows a MakeConstraint
-/// treatment appends are the TREATMENT's rows, not the declaration's, and a key
-/// that counted them would refuse a value across a treatment change that did
-/// not change the problem at all.
+/// The equality count fed is `equality_rows_ - fixing_rows_`: the internal rows
+/// a MakeConstraint treatment appends are the TREATMENT's rows, not the
+/// declaration's.
 ///
-/// WHAT IS DELIBERATELY NOT FED, and why each exclusion is forced rather than
-/// chosen. The test is always the same one: this digest has to be the SAME
-/// VALUE for one declared problem on both of this project's engines and under
-/// every fixed-variable treatment (see the DeclarationKey note above), so
-/// anything a provider states about ITSELF rather than about the problem
-/// cannot be in it.
-///
-///   * `partition_count_`, and every piece's thread mode. Layout and threading
-///     POLICY: they decide how the declared problem is laid out and evaluated,
-///     never what problem it is, and they differ between the two engines on
-///     one identical declaration. ModelStructureKey is where they belong.
-///   * THE CLAIM STREAM. The same reason, and the measured one that produced
-///     this whole ruling: the two engines hand out the same (row, column)
-///     claim SET in a different ORDER, and claim_stream_digest is
-///     order-sensitive by design.
-///   * THE PER-PIECE ROW STRUCTURE, and the two SHARED-ROW OVERCOUNTS derived
-///     from it. Not because a piece split says nothing -- it says quite a lot
-///     -- but because IT IS NOT A CROSS-ENGINE PROPERTY OF A DECLARATION.
-///     nlp_model_aggregate.h states it outright: that bridge's declaration
-///     leaves all three piece lists EMPTY ("this bridge is one serial piece of
-///     its own rather than a collection of them ... the dimensions, the
-///     partition count and the bound records are what a consumer of this
-///     declaration reads"), while the interior-point program's declaration
-///     carries one type-erased handle per piece. Feeding the split would
-///     therefore key the two engines' readings of ONE declared problem
-///     differently on every problem with a constraint in it -- exactly the
-///     failure this key was ruled into existence to remove. The overcounts go
-///     with it: they are `sum(piece rows) - declared rows`, identically 0 on a
-///     declaration with no pieces, so a provider that states a real overcount
-///     would key apart from one that cannot express the concept.
-///
-/// WHAT THAT COSTS, stated rather than left to be discovered: two declarations
-/// with the same dimensions and the same box key the same even if their
-/// constraint FUNCTIONS differ. That is the strongest engine-independent
-/// statement the declaration surface supports today -- it carries no
-/// engine-neutral identity for a piece's mathematics, only type-erased handles
-/// -- and it is a weaker guarantee than the M4 layout key gives inside one
-/// engine. A consumer must read this key as "the same declared SHAPE and BOX",
-/// not as "the same functions". The failure it does not protect against is a
-/// warm start applied to a differently-posed problem of identical shape, which
-/// costs a bad starting point rather than a wrong answer -- every block is
-/// re-measured by the receiving solve's own first convergence test. If the
-/// bridge ever declares its pieces, the split can join this digest as a
-/// format-version event.
+/// The claim stream, the partition count and thread modes, and the per-piece
+/// row structure are deliberately NOT fed; the exclusions and the argument for
+/// each are stated at the definition, in src/model/aggregate_declaration.cpp.
+/// A caller must therefore read this digest as "the same declared SHAPE and
+/// BOX", never as "the same functions": two declarations agreeing on dimensions
+/// and on bound structure key the same even if their constraint functions
+/// differ.
 ///
 /// @param declaration the declared problem.
 /// @return the digest.
@@ -307,9 +247,6 @@ inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &decla
 ///         `equality_rows_` -- a fixing-row count that is not a legal split of
 ///         the equality row space is one this function cannot read, and
 ///         guessing at the split would key two different problems the same.
-///
-/// DEFINED OUT OF LINE, in src/model/aggregate_declaration.cpp, with the rest
-/// of this project's declaration-level logic.
 std::uint64_t declaration_identity_digest(const AggregateDeclaration &declaration);
 
 /// @brief The whole DeclarationKey of a declared problem: both conjuncts,

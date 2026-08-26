@@ -1,35 +1,27 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// bench/bench_crossover.cpp — M5 W5: the crossover-leg runner. CLI glue only;
-// the legs, the dual-bind adapter and the margin arithmetic all live in
-// bench/crossover_legs.h (a header, deliberately, so
-// tests/sqp/test_crossover_legs.cpp shares exactly this implementation rather
-// than a bench-only copy that could drift).
+// bench/bench_crossover.cpp — the crossover-leg runner. CLI glue only; the legs,
+// the dual-bind adapter and the margin arithmetic all live in
+// bench/crossover_legs.h (a header, so tests/sqp/test_crossover_legs.cpp shares
+// exactly this implementation rather than a bench-only copy that could drift).
 //
-// PROTOCOL (docs/notes/2026-08-m5-ledger.md, "W5 LEG PROTOCOL", 2026-08-25;
-// CLAUDE.md §7). This binary is SERIAL by construction: one cell at a time, one
-// solve at a time inside it, no co-run arm and no width flag. The protocol
-// declares no co-run terms for this artifact, so none are implementable here --
-// a runner that could co-run would be a runner that could produce rows the
-// artifact's own README does not describe.
+// PROTOCOL (docs/notes/2026-08-m5-ledger.md, "W5 LEG PROTOCOL"; CLAUDE.md §7).
+// This binary is SERIAL by construction: one cell at a time, one solve at a time
+// inside it, no co-run arm and no width flag. The protocol declares no co-run
+// terms for this artifact, and a deadline outcome is wall-DEPENDENT, which §7
+// requires to run solo or with its full budget honoured.
 //
 // COUNTERS ARE THE ASSERTED CURRENCY. Every wall column this writes is
-// informational; the artifact's README says so, and the margins are taken over
-// majors, QP minors and factorizations alone.
+// informational; the margins are taken over majors, QP minors and
+// factorizations alone.
 //
 // THE PER-CELL DEADLINE. Each cell runs in a forked child and is SIGKILLed if
 // it outlives --deadline-seconds; the parent then writes that cell's rows as
 // `dnf_budget` with -1 in every counter column, the same ABSENT-not-zero
 // convention bench_corpus.cpp uses. The parent itself never solves, so it holds
-// no MKL state across the fork. This is the CLAUDE.md §8 obligation ("no
-// unbounded cells") and it is also why the artifact is complete: a cell that ran
-// out of wall is a row that says so, never a missing row.
-//
-// A DEADLINE OUTCOME IS WALL-DEPENDENT and is therefore not a
-// scheduling-invariant column. That is the second reason this runner does not
-// co-run: §7 requires wall-dependent statuses to run solo or with their full
-// budget honoured.
+// no MKL state across the fork. A cell that ran out of wall is a row that says
+// so, never a missing row (CLAUDE.md §8: no unbounded cells).
 
 #include <cerrno>
 #include <chrono>
@@ -119,13 +111,12 @@ std::string absent_sqp(const CorpusCell &cell, const char *status) {
                        cell_prefix(cell), status);
 }
 
-// The margins row for a cell NO leg of which produced anything -- the child
-// died before leg (a) finished, so there is not one outcome to report. Every
-// column is `absent`, including the status columns: the cell-level kill reason
-// belongs in the per-leg files (which do record it), never stamped across a
-// status column that is supposed to describe one leg's own outcome. A cell that
-// got as far as ANY leg does not reach here -- its margins row is built by
-// crossover_legs.h's margins_row from whatever the child salvaged.
+// The margins row for a cell NO leg of which produced anything. Every column is
+// `absent`, including the status columns: the cell-level kill reason belongs in
+// the per-leg files, which do record it, never stamped across a status column
+// that describes one leg's own outcome. A cell that got as far as ANY leg does
+// not reach here -- crossover_legs.h's margins_row builds its row from whatever
+// the child salvaged.
 std::string absent_margins(const CorpusCell &cell) {
     return fmt::format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n", cell.id,
                        cell.n_nodes, hven::solvers::corpus::to_string(cell.ctag),
@@ -204,9 +195,8 @@ void write_provenance(std::ostream &os, int argc, char **argv, const char *leg_n
 // Each row is written and FLUSHED the moment its leg finishes, tagged with the
 // index of the file it belongs in. A child that is SIGKILLed part way through
 // therefore leaves the legs that did finish behind, and the parent fills only
-// the rest as absent -- which is why the legs run (a), (d), (c), (b):
-// constant-cost before scaling, cold last. See crossover_legs.h's
-// execution-order note for why that order and not another.
+// the rest as absent -- which is why the legs run (a), (d), (c), (b); see
+// crossover_legs.h's execution-order note.
 int run_child(const CorpusCell &cell, const LegOptions &opts, const std::string &sidecar) {
     try {
         std::ofstream out(sidecar);
@@ -230,13 +220,10 @@ int run_child(const CorpusCell &cell, const LegOptions &opts, const std::string 
             case hven::solvers::crossover::LegStage::kMargins:
                 break;
             }
-            // THE MARGINS ROW IS RE-EMITTED AFTER EVERY LEG, not only at the
-            // end. The parent keeps the last row it sees for each file index,
-            // so a cell killed at the deadline still carries the most complete
-            // aggregate the run reached -- with each status column reporting
-            // its own leg and only the genuinely unmeasured ones `absent`.
-            // Emitting it once at the end is what produced the first version's
-            // twelve false status cells.
+            // Re-emitted after EVERY leg, not only at the end: the parent keeps
+            // the last row it sees for each file index, so a cell killed at the
+            // deadline still carries the most complete aggregate the run
+            // reached.
             out << "4\t" << margins_row(legs);
             out.flush();
         };
@@ -297,13 +284,11 @@ CellOutcome run_cell_with_deadline(const CorpusCell &cell, const LegOptions &opt
         return outcome;
     }
     if (pid == 0) {
-        // NO ORPHANED SOLVER. Without this, Ctrl-C on the sweep script kills the
-        // script and the witness and leaves THIS child solving, detached, for up
-        // to a full deadline -- an invisible competitor for the next sweep, on a
-        // box whose contention discipline is the whole premise of the artifact
-        // these rows go into. PR_SET_PDEATHSIG asks the kernel to SIGKILL us
-        // when the parent dies. Linux-only; elsewhere the ordinary deadline path
-        // below is unchanged.
+        // NO ORPHANED SOLVER. Without this, Ctrl-C on the sweep script leaves
+        // THIS child solving, detached, for up to a full deadline -- an
+        // invisible competitor for the next sweep. PR_SET_PDEATHSIG asks the
+        // kernel to SIGKILL us when the parent dies. Linux-only; elsewhere the
+        // ordinary deadline path below is unchanged.
 #ifdef __linux__
         ::prctl(PR_SET_PDEATHSIG, SIGKILL);
         // The parent may have died between fork() and prctl(), in which case the

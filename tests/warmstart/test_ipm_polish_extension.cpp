@@ -2,21 +2,17 @@
 // (see LICENSE).
 
 // The "hven.ipm.polish.v1" extension, engine-free: the byte form's round trip
-// and every refusal it owes a caller (a bad magic, a truncation at any offset,
-// a declared length the input cannot hold, trailing bytes), the tag lookup's
-// three answers (absent, present, duplicated), and the crossover bridge's
-// validation and forwarding.
+// and its refusals (bad magic, truncation at any offset, a declared length the
+// input cannot hold, trailing bytes), the tag lookup's three answers (absent,
+// present, duplicated), and the crossover bridge's validation and forwarding.
 //
-// The frozen byte-layout pin is stated BY HAND from the layout documented in
-// hven/warmstart/ipm_polish_extension.h, so a silent format drift fails it
-// even when the encoder and decoder still agree with each other. That is what
-// makes the tag's "v1" mean something.
+// The frozen byte-layout pin is stated by hand from the layout documented in
+// hven/warmstart/ipm_polish_extension.h, so a format drift fails it even when
+// the encoder and decoder still agree with each other.
 //
-// The bridge's equivalence to the privileged hand-off is pinned twice: here,
-// against hand-built blocks, and in tests/interior/test_ipm_warm_start.cpp
-// against a real solve's own export. This one fixes the MAPPING (which payload
-// block reaches which from_interior_point argument); that one fixes the
-// PRODUCER.
+// The bridge is pinned against hand-built blocks here and against a real
+// solve's own export in tests/interior/test_ipm_warm_start.cpp: this file
+// fixes the mapping, that one fixes the producer.
 
 #include <bit>
 #include <cstddef>
@@ -144,8 +140,7 @@ DeclarationKey key_of(std::uint64_t declaration) {
 }
 
 /// A two-variable, one-equality, two-inequality hand-off, bounded on both
-/// sides, whose blocks are all distinguishable from one another -- so a
-/// mapping that swapped two of them could not pass.
+/// sides, whose blocks are all distinguishable -- a swapped mapping cannot pass.
 WarmStartData bridgeable_value() {
     WarmStartData data;
     data.primal_ = vector_of({0.0, 3.0});

@@ -126,13 +126,10 @@ bool mentions(const std::string &message, const std::string &fragment) {
 // form must), both stamp conjuncts distinct and byte-asymmetric, and one
 // extension with a two-character tag and a three-byte payload.
 //
-// RE-STATED FOR FORMAT v2 (the 2026-08-25 declaration-identity ruling): the
-// key slot is two u64 conjuncts where v1 carried u64 + i32 + u64, so the
-// encoding is FOUR BYTES SHORTER and every offset past the stamp moves down by
-// four. The bytes below are re-derived by hand from the layout in
-// src/warmstart/warm_start_data.cpp, not adjusted from the v1 pin: the
-// derivation is the whole point of the pin, and patching a frozen artifact to
-// match new output would make it agree with anything.
+// RE-STATED FOR FORMAT v2: the key slot is two u64 conjuncts where v1 carried
+// u64 + i32 + u64, so the encoding is FOUR BYTES SHORTER and every offset past
+// the stamp moves down by four. The bytes below are re-derived by hand from the
+// layout in src/warmstart/warm_start_data.cpp, not adjusted from the v1 pin.
 // ---------------------------------------------------------------------------
 
 WarmStartData frozen_value() {
@@ -534,12 +531,10 @@ TEST(WarmStartSerialization, TheFormatVersionThisBuildWritesIsTwo) {
     EXPECT_EQ(kWarmStartFormatVersion, 2U);
 }
 
-// THE v1 REFUSAL, called out on its own rather than left to the sweep below.
-// v1 is not a hypothetical unknown version: it is the format this repository
-// wrote before the 2026-08-25 declaration-identity ruling, whose key slot was
-// three conjuncts of a LAYOUT key. There is no shim -- a v1 stamp cannot be
-// converted into a declaration digest, because the information is not in it --
-// so the refusal has to be unmistakable and has to name both versions.
+// THE v1 REFUSAL, called out on its own rather than left to the sweep below:
+// v1 is a format this repository actually wrote, not a hypothetical unknown
+// version, so its refusal must name both versions and say re-export (the
+// version note in src/warmstart/warm_start_data.cpp has the why).
 TEST(WarmStartSerialization, RefusesAVersionOnePayloadNamingBothVersions) {
     std::vector<std::byte> bytes = frozen_bytes();
     poke_u32(bytes, kVersionOffset, 1U);
@@ -551,14 +546,9 @@ TEST(WarmStartSerialization, RefusesAVersionOnePayloadNamingBothVersions) {
     EXPECT_TRUE(mentions(message, "pre-ruling layout stamp")) << message;
 }
 
-// AND THE v1 EXPLANATION IS ABOUT v1 ONLY. The refusal fires for every version
-// this build does not read, but "carries the pre-ruling layout stamp, cannot be
-// converted, re-export it" is a statement about ONE format. A payload from a
-// FUTURE version is the opposite situation -- the payload is fine and this
-// build is the old one -- and telling it the 2026-08-25 ruling's story would
-// send the reader to a ruling instead of to their toolchain. The v3
-// strengthening model/structure_identity.h names as the path forward is exactly
-// this case, so it is pinned before it exists.
+// AND THE v1 EXPLANATION IS ABOUT v1 ONLY. A payload from a FUTURE version is
+// the opposite situation -- the payload is fine and this build is the old one
+// -- so it must not be handed v1's story. Pinned before such a version exists.
 TEST(WarmStartSerialization, AVersionAboveThisBuildsIsNotBlamedOnThePreRulingStamp) {
     std::vector<std::byte> bytes = frozen_bytes();
     poke_u32(bytes, kVersionOffset, 3U);

@@ -2,10 +2,9 @@
 // (see LICENSE).
 
 // tests/sqp/test_sqp_warm_currency.cpp — SqpDriver::export_warm_start /
-// stage_warm_start, the SQP engine's half of the M5 warm-start currency
-// (M5 W3 Task 4).
+// stage_warm_start, the SQP engine's half of the M5 warm-start currency.
 //
-// WHAT IS PINNED HERE, in the order the surface is used:
+// Pinned here, in the order the surface is used:
 //   * the no-completed-solve export refusal, and the round trip that follows a
 //     real solve (blocks == the solution's, widths == the model's, stamp == the
 //     bridge's key);
@@ -20,11 +19,8 @@
 //   * R5 determinism, instrumented on `SqpSolution::history[0]` (the first
 //     iterate's measured row, a bit-exact function of the ingested start state);
 //   * the interior-point -> SQP composition end to end, natively: one declared
-//     problem, one exported value, no conversion and no re-stamp anywhere.
-//     That composition is what the DECLARATION-IDENTITY stamp bought (owner
-//     ruling, 2026-08-25) and the last two tests here pin both halves of it --
-//     the cross-engine hand-off that now works, and the declaration change
-//     that still refuses.
+//     problem, one exported value, no conversion and no re-stamp anywhere, and
+//     the declaration change that still refuses.
 //
 // Names carry a `Currency` prefix: this suite's TUs share a link unit, so
 // file-scope names must not collide with the other files here.
@@ -82,7 +78,7 @@ namespace {
 
 constexpr double kCurrencyInf = std::numeric_limits<double>::infinity();
 
-// THE FIXTURE PROBLEM, in NlpModel form.
+// The fixture problem, in NlpModel form.
 //
 //   min  0.5*(x0^2 + x1^2 + x2^2) - 2*x0 - 3*x1
 //   s.t. cE:  x0 + x1 + x2 - 1 = 0
@@ -91,18 +87,15 @@ constexpr double kCurrencyInf = std::numeric_limits<double>::infinity();
 //
 // A strictly convex QP with linear constraints, so the solve is short and its
 // answer is closed-form: x* = (-0.5, 1.5, 0), lambda_e = 1.5, lambda_i = 1,
-// z = (0, 0, 1.5), f* = -2.25. It is shaped for this file's purpose rather
-// than borrowed from the HS battery: it has ONE strictly active inequality,
-// ONE strictly active variable bound and one free variable, so a crossover
-// hand-off through it has a real active set to infer and a real slack row to
-// leave alone -- which an HS problem with no bounds (HS7) or no rows could not
-// exercise.
+// z = (0, 0, 1.5), f* = -2.25. Shaped for this file's purpose rather than
+// borrowed from the HS battery: one strictly active inequality, one strictly
+// active variable bound and one free variable, so a crossover hand-off through
+// it has a real active set to infer and a real slack row to leave alone.
 //
-// `lower_x0_finite` is the ONE structural knob: dropping x0's finite lower
-// bound moves the bound digest, and therefore the stamp, WITHOUT moving n, me,
-// mi or the solution (x0* = -0.5 is strictly inside [-1, 2] either way). That
-// is exactly the shape the solve-entry stamp check exists to catch and the
-// size check cannot.
+// `lower_x0_finite` is the one structural knob: dropping x0's finite lower
+// bound moves the bound digest, and therefore the stamp, without moving n, me,
+// mi or the solution (x0* = -0.5 is strictly inside [-1, 2] either way) -- the
+// shape the solve-entry stamp check exists to catch and the size check cannot.
 class CurrencyModel : public NlpModel {
   public:
     explicit CurrencyModel(bool lower_x0_finite = true) : lower_(3), upper_(Vec::Constant(3, 2.0)) {
@@ -165,7 +158,7 @@ class CurrencyModel : public NlpModel {
     Vec lower_, upper_;
 };
 
-// The same problem widened to four variables: a DIFFERENT DECLARED SIZE, which
+// The same problem widened to four variables: a different declared size, which
 // is what the solve-entry block-size check answers before the stamp is even
 // reached.
 class CurrencyWiderModel : public NlpModel {
@@ -226,10 +219,10 @@ class CurrencyWiderModel : public NlpModel {
     Vec lower_, upper_;
 };
 
-// The fixture problem with ONE MORE EQUALITY ROW and the same box: a genuinely
-// different DECLARED PROBLEM at the same primal width, which is what the
-// staleness pin needs. The second row is x1 + x2 = 1.5, chosen only so the
-// problem still has a solution; nothing below reads its answer.
+// The fixture problem with one more equality row and the same box: a genuinely
+// different declared problem, which is what the staleness pin needs. The second
+// row is x1 + x2 = 1.5, chosen only so the problem still has a solution;
+// nothing below reads its answer.
 class CurrencyExtraRowModel : public NlpModel {
   public:
     CurrencyExtraRowModel() : lower_(3), upper_(Vec::Constant(3, 2.0)) {
@@ -387,9 +380,9 @@ WarmExtension polish_extension(const IpmPolishData &polish) {
     return ext;
 }
 
-// The R5 INSTRUMENT. `history[0]` is the FIRST measured iterate of a solve --
-// evaluate_kkt at the ingested point, before any subproblem is built -- so
-// every column in it is a deterministic function of the start state the ingest
+// The R5 instrument. `history[0]` is the first measured iterate of a solve --
+// evaluate_kkt at the ingested point, before any subproblem is built -- so every
+// column in it is a deterministic function of the start state the ingest
 // produced. Compared with EXPECT_EQ, not EXPECT_NEAR: R5 asks for bit-identical
 // first iterates, and a near-comparison would pass on a start state that had
 // drifted.
@@ -442,17 +435,13 @@ TEST(SqpWarmCurrency, ASolveThatThrewIsNotACompletedSolve) {
     EXPECT_THROW((void)driver.export_warm_start(), std::logic_error);
 }
 
-// THE OTHER HALF OF THE SAME CONTRACT SENTENCE. "Completed" means a public
-// solve() that RETURNED, so a call that throws does not arm the export -- and,
-// symmetrically, it does not DISARM one an earlier call armed. A throw leaves
-// the last completed solve's payload standing, untouched, because the capture
-// is simply never reached.
-//
-// Worth its own pin rather than left to the implementation: the alternative
-// shape -- a throw clearing the export -- is the plausible one (it is what
-// stage_warm_start's own clears-first rule does to STAGED state), and a
-// consumer that solved, then hit a bad model, then exported would silently get
-// a refusal instead of the payload it was entitled to.
+// The other half of the same contract sentence. "Completed" means a public
+// solve() that RETURNED, so a call that throws does not arm the export and,
+// symmetrically, does not disarm one an earlier call armed -- the capture is
+// simply never reached. Pinned because the opposite shape is the plausible one
+// (it is what stage_warm_start's own clears-first rule does to STAGED state),
+// and a consumer that solved, then hit a bad model, then exported would silently
+// get a refusal instead of the payload it was entitled to.
 TEST(SqpWarmCurrency, ASolveThatThrewLeavesAnEarlierExportStanding) {
     class ShortBoxModel : public CurrencyModel {
       public:
@@ -482,7 +471,7 @@ TEST(SqpWarmCurrency, ASolveThatThrewLeavesAnEarlierExportStanding) {
     EXPECT_TRUE(after_throw.structure_key_ == declaration_key(bridge->declaration()));
 }
 
-// THE ROUND TRIP. The exported blocks are the solution's own vectors -- model
+// The round trip. The exported blocks are the solution's own vectors -- model
 // space IS declared space on this engine, so they are equal bit-for-bit, not
 // merely close -- at the model's declared widths, and the stamp is the key of
 // the bridge the solve ran against.
@@ -661,14 +650,13 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueAtTheWrongSizes) {
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
-// SAME SIZES, DIFFERENT DECLARED PROBLEM. The declared bound STRUCTURE moved --
-// one variable's lower side went from finite to infinite -- which is a
-// DECLARATION change carried by the stamp's bound conjunct alone. Note it is
-// the STRUCTURE, not a value: moving a finite bound to another finite value
-// would NOT re-key (that is the continuation flow), which is why this fixture
-// changes finiteness rather than a number. The size check cannot see it: only
-// the stamp can, and only at solve entry, against the problem that call binds.
-// This is the pin for the refusal naming BOTH key digests.
+// Same sizes, different declared problem. The declared bound STRUCTURE moved --
+// one variable's lower side went from finite to infinite -- which the stamp's
+// bound conjunct carries alone. Structure, not value: moving a finite bound to
+// another finite value would not re-key (that is the continuation flow), which
+// is why this fixture changes finiteness rather than a number. The size check
+// cannot see it; only the stamp can, at solve entry, against the problem that
+// call binds. This is also the pin for the refusal naming both key digests.
 TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDigests) {
     const auto original = std::make_shared<CurrencyModel>(/*lower_x0_finite=*/true);
     const auto original_bridge = make_bridge(original);
@@ -757,10 +745,9 @@ TEST(SqpWarmCurrency, AnExplicitWarmArgumentAndAStagedValueAreRefusedTogether) {
     EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), WarmStart{}),
                  std::invalid_argument);
 
-    // AND THE REFUSAL SAYS SO. A caller must not have to infer from silence
-    // whether a ONE-SHOT value survived a refusal -- this is the one refusal on
-    // the surface that retains it, so the message states it in words (settler
-    // ruling, 2026-08-25).
+    // And the refusal says so: a caller must not have to infer from silence
+    // whether a one-shot value survived a refusal, and this is the one refusal
+    // on the surface that retains it.
     try {
         (void)driver.solve(*bridge, model->start_point(), WarmStart{});
         FAIL() << "the two-sources refusal must fire";
@@ -798,7 +785,7 @@ TEST(SqpWarmCurrency, ACoreOnlyValueEntersAtTheSeededLevel) {
 
     EXPECT_EQ(out.status, SqpStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
-    // THE STAGED PRIMAL REPLACED x0, through the ingest rule this class already
+    // The staged primal replaced x0, through the ingest rule this class already
     // documents ("x0 is the cold fallback"): the first measured iterate is the
     // exported point, not the argument.
     ASSERT_FALSE(out.history.empty());
@@ -854,10 +841,8 @@ TEST(SqpWarmCurrency, APolishTaggedValueRoutesThroughTheCrossoverBridge) {
 
 // --- R5: determinism ---
 
-// The same staged payload, from cold, twice: bit-identical first iterates.
-// Instrument: SqpSolution::history[0], the first MEASURED iterate -- every
-// column of it is a function of the start state the ingest produced, so a drift
-// anywhere in the ingest shows up here.
+// The same staged payload, from cold, twice: bit-identical first iterates on
+// the R5 instrument above, so a drift anywhere in the ingest shows up here.
 TEST(SqpWarmCurrency, StagingTheSameValueTwiceFromColdIsBitIdentical) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -885,22 +870,17 @@ TEST(SqpWarmCurrency, StagingTheSameValueTwiceFromColdIsBitIdentical) {
 
 // --- The interior-point -> SQP composition ---
 
-// THE CROSSOVER AS ONE COMPOSITION: an interior-point solve, its exported
+// The crossover as one composition: an interior-point solve, its exported
 // value, and an SQP solve that finishes from it -- no re-stamp, no conversion,
 // nothing in between.
 //
-// WHAT THIS TEST WATCHED FAIL, and what fixed it. Before the 2026-08-25
-// declaration-identity ruling the currency stamped `ModelStructureKey`, a
-// digest of the claim stream a provider actually laid. The two engines lay the
-// same (row, column) claim SET for one declared model in a DIFFERENT ORDER --
-// the interior-point program lays the constraint Jacobian's claims before the
-// Hessian's, NlpModelAggregate lays the Hessian's first -- and that digest is
-// order-sensitive by design, so the cross-engine stamp disagreed on EVERY
-// problem and this hand-off was refused unconditionally. The stamp is now the
-// DECLARATION key, which reads the declared problem and nothing a provider
-// decided. The first two assertions below are that fact stated directly: the
-// LAYOUT keys still differ (the claim orders are still different, and that is
-// still correct for the question that key answers), and the STAMPS agree.
+// The first two assertions below are why the stamp is the DECLARATION key
+// rather than a layout digest. The two engines lay one declared model's
+// (row, column) claim SET in different orders -- the interior-point program
+// lays the constraint Jacobian's claims before the Hessian's, NlpModelAggregate
+// the Hessian's first -- and a claim digest is order-sensitive by design. So
+// the layout keys still differ, correctly for the question that key answers,
+// and the stamps agree.
 TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     const auto problem = std::make_shared<CurrencyIpmProblem>();
 
@@ -973,17 +953,15 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     EXPECT_EQ(reexported.primal_, out.x);
 }
 
-// GENUINE STALENESS: the caller transcribed a DIFFERENT PROBLEM -- one more
+// Genuine staleness: the caller transcribed a different problem -- one more
 // equality row -- and the value taken on the old one is refused.
 //
 // A row change moves a BLOCK LENGTH as well as the key, so the size check is
-// what fires (it runs first, deliberately, because "eq_lmults_ holds 1, this
-// problem declares 2" is the more actionable of the two diagnostics when both
-// are true). The keys are asserted apart directly, right here, so the pin says
-// what it means: this is a declaration change, and the stamp sees it. The
-// SAME-SIZE case -- where the stamp is the ONLY thing that can catch the change
-// -- is the bound-structure test further up, which is the one that names both
-// digests.
+// what fires (it runs first, deliberately: "eq_lmults_ holds 1, this problem
+// declares 2" is the more actionable of the two diagnostics when both are
+// true). The keys are asserted apart directly below, so the pin says what it
+// means. The same-size case, where the stamp is the only thing that can catch
+// the change, is the bound-structure test further up.
 TEST(SqpWarmCurrency, ADeclarationWithAnExtraRowIsStaleAndIsRefused) {
     const auto original = std::make_shared<CurrencyModel>();
     const auto original_bridge = make_bridge(original);
@@ -1031,13 +1009,10 @@ void expect_same_bits(double a, double b, const std::string &what) {
         << what << ": " << a << " vs " << b;
 }
 
-// Every ANSWER an SqpSolution reports -- the point, its prices, the objective,
-// the terminal KKT measurement and the verdict -- compared BITWISE. R6 asks for
-// exact identity, not a neighbourhood of it: a margin here would be a claim
-// that reuse perturbs the answer slightly, which is the one thing R6 forbids.
-//
-// Wall time is deliberately absent: it may differ freely (skipping work is the
-// point of reuse) and it is informational, never asserted.
+// Every answer an SqpSolution reports -- the point, its prices, the objective,
+// the terminal KKT measurement and the verdict -- compared bitwise: R6 asks for
+// exact identity, not a neighbourhood of it. Wall time is deliberately absent:
+// it may differ freely, and it is informational, never asserted.
 void expect_same_answer(const SqpSolution &hot, const SqpSolution &cold) {
     EXPECT_EQ(hot.status, cold.status);
     EXPECT_EQ(hot.infeasibility_certified, cold.infeasibility_certified);
@@ -1113,25 +1088,19 @@ void expect_same_counters(const SqpCounters &hot, const SqpCounters &cold) {
 
 } // namespace
 
-// M5 R6: HOT-STATE REUSE IS NEVER OBSERVABLE IN ANSWERS -- the SQP side.
+// M5 R6: hot-state reuse is never observable in answers -- the SQP side.
 //
-// SqpDriver carries no cross-solve NUMERIC state of its own; the one piece of
-// cross-solve state in the picture is its QpEngine's border cache, and that
-// cache is consulted through a gate whose conjuncts include the K0 STRUCTURAL
-// hash, the K0 VALUES hash, the effective (primal_delta, dual_mu) pair, the
-// incoming working set and the factor's own live identity (qp_engine.h's
-// HOT-START REUSE note, conditions (a)-(e)). A grant therefore means the
-// matrix that WOULD have been assembled and factorized is bit-for-bit the one
-// already in hand, and the fast path skips only that assembly and
-// factorization -- never sync_borders(), which reconciles unconditionally on
-// every iteration of every solve.
+// SqpDriver carries no cross-solve NUMERIC state of its own; the one piece in
+// the picture is its QpEngine's border cache, consulted through the gate whose
+// conjuncts are qp_engine.h's HOT-START REUSE conditions (a)-(e). A grant means
+// the matrix that WOULD have been assembled and factorized is bit-for-bit the
+// one already in hand, and the fast path skips only that assembly and
+// factorization -- never sync_borders(), which reconciles unconditionally.
 //
 // This is that argument turned into a measurement: two solves on ONE driver,
-// against a fresh driver's single solve of the same problem from the same
-// start, over the same bridge -- so the driver's own carried state is the only
-// thing that differs between them.
-//
-// EXACT EQUALITY, no margins. Wall time is exempt and is not read here.
+// against a fresh driver's single solve of the same problem from the same start
+// over the same bridge, so the driver's own carried state is the only thing
+// that differs. Exact equality, no margins; wall time is exempt and not read.
 TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswers) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -1140,7 +1109,7 @@ TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswe
     SqpDriver reused{SqpOptions{}};
     const SqpSolution first = reused.solve(*bridge, x0);
     ASSERT_EQ(first.status, SqpStatus::kOptimal);
-    // THE HOT SOLVE. Nothing was staged between the two calls, so this call
+    // The hot solve. Nothing was staged between the two calls, so this call
     // differs from the first only in what the driver and its engine carried
     // out of it.
     const SqpSolution second = reused.solve(*bridge, x0);
@@ -1159,23 +1128,20 @@ TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswe
     expect_same_counters(second.counters, first.counters);
 }
 
-// THE SAME QUESTION WITH THE SECOND SOLVE WARM-STARTED. The test above
-// re-solves from the same cold start; this one stages the exported solution
+// The same question with the second solve warm-started: the test above
+// re-solves from the same cold start, this one stages the exported solution
 // into BOTH sides first, so the warm ingest is held constant and the engine's
 // carried cache is again the only difference between them.
 //
-// NEITHER TEST CLAIMS A GRANTED REUSE, and that is stated rather than glossed:
-// measured on this fixture, NO FACTORIZATION WAS SAVED -- the reused driver
-// pays exactly the factorizations and symbolic analyses the fresh one pays.
-// That is a statement about the work, not about the gate: qp_engine.h notes
-// its five conditions are NECESSARY BUT NOT SUFFICIENT for `factorizations ==
-// 0`, so equal counts are consistent with a granted reuse that
-// border_candidate then rebuilt anyway. What these two pin is that whatever
-// the driver carried out of an earlier solve changed nothing -- which is the
-// question the brief asks of a re-solve. The case where the fast path
-// demonstrably DOES skip a factorization and the answer is still bit-identical
-// is pinned separately by tests/sqp/test_warm_start.cpp's
-// WarmStart.HotReuseIsNeverAnswerObservable.
+// Neither test claims a granted reuse. Measured on this fixture, no
+// factorization was saved -- the reused driver pays exactly the factorizations
+// and symbolic analyses the fresh one pays -- and qp_engine.h notes its five
+// conditions are necessary but not sufficient for `factorizations == 0`, so
+// equal counts are consistent with a granted reuse that border_candidate then
+// rebuilt anyway. What these two pin is that whatever the driver carried out of
+// an earlier solve changed nothing. The case where the fast path demonstrably
+// DOES skip a factorization and the answer is still bit-identical is pinned by
+// tests/sqp/test_warm_start.cpp's WarmStart.HotReuseIsNeverAnswerObservable.
 TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -1195,13 +1161,12 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
     const SqpSolution cold = fresh.solve(*bridge, x0);
     ASSERT_EQ(cold.status, SqpStatus::kOptimal);
 
-    // Both staged the same value, so both resolve at the same level -- and
-    // that level is kSeeded, never kWarm or kHot: a currency-borne value
-    // carries no structure hash, which is what those two levels are gated on.
-    // Stated here as well as in the level pins above because R6's other half
-    // is that a reuse form which cannot argue answer-neutrality is not
-    // SILENTLY enabled, and a level silently climbing to kHot on the reused
-    // driver would be exactly that.
+    // Both staged the same value, so both resolve at the same level -- kSeeded,
+    // never kWarm or kHot: a currency-borne value carries no structure hash,
+    // which is what those two levels are gated on. Asserted here too because
+    // R6's other half is that a reuse form which cannot argue answer-neutrality
+    // is not silently enabled, and a level climbing to kHot on the reused driver
+    // would be exactly that.
     EXPECT_EQ(hot.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(cold.counters.start_level_used, StartLevel::kSeeded);
 

@@ -40,39 +40,31 @@ struct WarmExtension {
 ///
 /// SPACE CONVENTION -- binding on every producer and every consumer: every
 /// block is stated over the DECLARED problem, the full primal space and the
-/// declared row spaces, never over a solver's reduced space. Inside one stamp
-/// the declared space is the one space both engines share.
+/// declared row spaces, never over a solver's reduced space.
 ///
-/// THE STAMP IS A DECLARATION-IDENTITY KEY (owner ruling, 2026-08-25, on M5
-/// W3's cross-engine evidence): a canonical digest of the DECLARED problem --
-/// its dimensions, with the fixed-variable treatment's own rows subtracted,
-/// and its declared bound STRUCTURE -- computed from the AggregateDeclaration
-/// both engines consume (model/structure_identity.h's declaration_key). It is
-/// therefore ENGINE-INDEPENDENT and TREATMENT-INDEPENDENT by construction,
-/// which is what makes one value mean the same thing at both ends of a
-/// hand-off.
+/// THE STAMP IS A DECLARATION-IDENTITY KEY: a canonical digest of the DECLARED
+/// problem -- its dimensions, with the fixed-variable treatment's own rows
+/// subtracted, and its declared bound STRUCTURE -- computed from the
+/// AggregateDeclaration both engines consume (model/structure_identity.h's
+/// declaration_key). It is therefore ENGINE-INDEPENDENT and
+/// TREATMENT-INDEPENDENT, which is what makes one value mean the same thing at
+/// both ends of a hand-off.
 ///
 /// WHAT THE STAMP DOES NOT COVER, stated here because a consumer builds safety
-/// arguments on this field: the pieces' ROW STRUCTURE is not hashed (it is not
-/// a cross-engine property of a declaration -- see declaration_identity_digest
-/// for the measured reason), and bound VALUES are not hashed either, only
-/// which sides are finite and whether they coincide. So a re-transcription
-/// that splits the same rows across different pieces, or that moves a finite
-/// bound without changing which sides are finite, keys the SAME and stages
-/// with no refusal. That is deliberate -- moving a finite bound is the
-/// continuation flow this currency exists to serve -- and the cost is a
-/// possibly-poor starting point, never a wrong answer: every block a warm
-/// start supplies is re-measured by the receiving solve's own first
-/// convergence test.
+/// arguments on this field: the pieces' ROW STRUCTURE is not hashed, and bound
+/// VALUES are not hashed either, only which sides are finite and whether they
+/// coincide (declaration_identity_digest holds the exclusion list and its
+/// reasons). So a re-transcription that splits the same rows across different
+/// pieces, or that moves a finite bound without changing which sides are
+/// finite, keys the SAME and stages with no refusal. The cost is a
+/// possibly-poor starting point, never a wrong answer: every block a warm start
+/// supplies is re-measured by the receiving solve's own first convergence test.
 ///
 /// STALENESS IS A DECLARATION CHANGE -- the caller transcribed a different
-/// problem -- and nothing else. It is NOT an engine's layout state and NOT its
-/// fixed-variable treatment: declared-space payloads are treatment-safe
-/// because application ignores the entries an eliminating treatment holds, so
-/// refusing across a treatment change would refuse a hand-off that is
-/// perfectly good. `ModelStructureKey` remains the LAYOUT/EPOCH key (M4's E2
-/// ruling, unchanged) and is not this stamp; the two answer different
-/// questions and must never be compared against one another.
+/// problem -- and nothing else: not an engine's layout state, and not its
+/// fixed-variable treatment. `ModelStructureKey` remains the LAYOUT/EPOCH key;
+/// the two answer different questions and must never be compared against one
+/// another.
 ///
 /// The block sizes are the declared dimensions -- `primal_` and `bound_lmults_`
 /// are n, `eq_lmults_` is me, `iq_lmults_` is mi -- and nothing in this
@@ -101,10 +93,8 @@ struct WarmStartData {
 ///
 /// v2 is the DECLARATION-IDENTITY STAMP's format: the key slot is two u64
 /// conjuncts where v1 carried three (u64, i32, u64). v1 payloads are REFUSED
-/// BY VERSION, naming both versions -- there is no compatibility shim, because
-/// there are no v1 payloads outside this repository's own history (the
-/// currency is pre-release) and a shim would have to invent a declaration
-/// digest from a claim digest, which is not a thing that can be done.
+/// BY VERSION, naming both versions; there is no compatibility shim, so a v1
+/// payload is re-exported from the engine that produced it, never converted.
 inline constexpr std::uint32_t kWarmStartFormatVersion = 2;
 
 /// @brief Encodes a warm-start value as a self-delimiting, versioned byte

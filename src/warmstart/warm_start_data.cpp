@@ -4,12 +4,6 @@
 // The warm-start currency's byte form: what the layout is, and why it is this
 // one. The caller-facing contract is in hven/warmstart/warm_start_data.h.
 //
-// WHY A BYTE FORM AT ALL. The currency is the value a consumer may pickle,
-// send across a process boundary, or store between runs -- that is the whole
-// point of making it value-semantic rather than a handle into a live engine.
-// A byte form that is not versioned is one that cannot be changed later
-// without silently misreading old payloads, so the version leads.
-//
 // THE LAYOUT. All integers are fixed-width little-endian. All offsets below
 // are byte offsets from the start of the encoding.
 //
@@ -24,38 +18,34 @@
 //                        u64 tag length, tag bytes,
 //                        u64 payload length, payload bytes
 //
-// WHY THE MAGIC AS WELL AS THE VERSION. A bare version number makes every
-// short byte string a plausible payload -- an all-zero buffer reads as
-// "version 0" and refuses only because 0 is not a version we write, which is
-// luck rather than a check. The magic makes "these are not our bytes" a
-// distinct, earlier, and more useful refusal than "these are our bytes at a
-// version we do not read".
+// This is the layout the frozen byte-layout pin in
+// tests/warmstart/test_warm_start_data.cpp is stated by hand from.
 //
-// WHY DOUBLES AS EXPLICIT LITTLE-ENDIAN BIT PATTERNS, rather than a memcpy of
-// the native object representation. The currency's whole value is that it
-// round-trips bit-exactly -- a payload is a solver iterate, and an iterate
+// MAGIC AS WELL AS VERSION. A bare version number makes every short byte
+// string a plausible payload -- an all-zero buffer reads as "version 0" and
+// refuses only because 0 is not a version we write, which is luck rather than
+// a check.
+//
+// DOUBLES AS EXPLICIT LITTLE-ENDIAN BIT PATTERNS, rather than a memcpy of the
+// native object representation. A payload is a solver iterate, and an iterate
 // that came back rounded is a different start point, so NaN payload, infinity
-// and the sign of zero all have to survive. Going through the bit pattern
-// (std::bit_cast to u64, then an explicit byte order) gets that AND makes the
-// encoding a property of the value alone rather than of the host that wrote
-// it, which is what lets a frozen byte-layout pin mean anything. On a
-// little-endian IEEE-754 host the emitted bytes are exactly the object
-// representation, so this costs nothing measurable; the static_assert below
-// is what stands between us and a host where "the bit pattern" is not a
+// and the sign of zero all have to survive. Going through the bit pattern also
+// makes the encoding a property of the value alone rather than of the host
+// that wrote it, which is what lets a frozen byte-layout pin mean anything. On
+// a little-endian IEEE-754 host the emitted bytes are exactly the object
+// representation, so this costs nothing measurable; the static_assert below is
+// what stands between us and a host where "the bit pattern" is not a
 // well-defined thing to write down.
 //
-// WHY EVERY LENGTH IS CHECKED BEFORE IT IS USED. A declared length is
+// EVERY LENGTH IS CHECKED BEFORE IT IS USED: a declared length is
 // attacker-or-corruption-controlled input, and this decoder must never read
-// past its span (CLAUDE.md section 4: a bounds check, never UB, is the guard).
-// The check is written as a division rather than a multiplication -- `count >
-// remaining / element_size` -- because `count * element_size` can wrap for a
-// large declared count and wrap into a value that passes.
+// past its span. The check is written as a division -- `count > remaining /
+// element_size` -- because `count * element_size` can wrap for a large
+// declared count into a value that passes.
 //
-// WHY TRAILING BYTES REFUSE. The encoding is self-delimiting, so a decode
-// that ends before the input does means the caller handed us something other
-// than one payload -- a concatenation, a truncated-then-padded buffer, a
-// framing bug. Accepting it would make the first such bug show up later, as a
-// wrong answer somewhere else.
+// TRAILING BYTES REFUSE. The encoding is self-delimiting, so a decode that
+// ends before the input does means the caller handed us something other than
+// one payload: a concatenation, a truncated-then-padded buffer, a framing bug.
 
 #include "hven/warmstart/warm_start_data.h"
 
@@ -259,26 +249,16 @@ WarmStartData deserialize(std::span<const std::byte> bytes) {
 
     const std::uint32_t version = reader.read_u32("the format version");
     if (version != kWarmStartFormatVersion) {
-        // NAMING BOTH VERSIONS, always. What follows the two numbers is
-        // GATED ON THE VERSION IT IS ABOUT, because the three cases are three
-        // different problems and only one of them is the 2026-08-25 ruling's.
-        //
-        //   * VERSION 1 is the one format this project ever wrote that a shim
-        //     could plausibly be asked for, and the one where "no shim exists"
-        //     is a statement about the FORMAT rather than about this build's
-        //     age: v1's key slot was a three-conjunct LAYOUT key where this
-        //     build's is a two-conjunct DECLARATION key (warm_start_data.h's
-        //     stamp note), and converting one into the other would mean
-        //     inventing a declaration digest out of a claim digest, which is
-        //     not a thing that can be done. So: re-export, do not convert.
-        //   * A VERSION ABOVE OURS is the opposite problem -- the payload is
-        //     fine and this build is the old one. Telling it that it "carries
-        //     the pre-ruling layout stamp" would be false, and would point the
-        //     reader at a ruling instead of at their toolchain. The v3
-        //     strengthening structure_identity.h names as the path forward is
-        //     exactly this case, so it is written for before it exists.
-        //   * ANYTHING ELSE (0, or a version this project skipped) gets the
-        //     two numbers and no story. There is nothing true to add.
+        // NAMING BOTH VERSIONS, always, and the note that follows is GATED
+        // ON THE VERSION IT IS ABOUT, because the three cases are three
+        // different problems. v1 is the one format this project wrote whose
+        // key slot was a three-conjunct LAYOUT key where this build's is a
+        // two-conjunct DECLARATION key, and converting one into the other
+        // would mean inventing a declaration digest out of a claim digest --
+        // so: re-export, do not convert. A version ABOVE ours is the opposite
+        // problem, the payload is fine and this build is the old one, and the
+        // v1 story would send that reader to a ruling instead of to their
+        // toolchain. Anything else gets the two numbers and no story.
         const char *note = "";
         if (version == 1) {
             note = " A version 1 payload carries the pre-ruling layout stamp, which cannot be "

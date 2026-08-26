@@ -899,65 +899,41 @@ std::vector<std::string> split_all(const std::string &s) {
 }
 
 // =============================================================================
-// THE RESIDUAL-CLASS GATE (M5 close-prep, item 5): why the CLI-inertness pin
-// below is not byte-equality on every column.
+// THE RESIDUAL-CLASS GATE: why the CLI-inertness pin below is not byte equality
+// on every column.
 //
-// The pin compares two INDEPENDENT PROCESSES' rows for the same cell. Its
-// original premise was that every non-timing column is byte-identical across
-// them at MKL_NUM_THREADS=1. That premise is FALSE: these columns move in
-// their last digits between processes running identical code, and the record
-// has readings from THREE DIFFERENT REGIMES, all on f7_n1000_bound_neutral's
-// kkt_residual unless noted:
+// That pin compares two INDEPENDENT PROCESSES' rows for the same cell, and the
+// floating-point measure columns are not process-invariant: address-sensitive
+// MKL kernels (the property MKL's CNR mode exists for), compounded by reduction
+// order once threads are involved. Addresses differ per process, so no pinning
+// inside one process makes these columns process-invariant.
 //
-//   1.0e-7   SAME BOX, SERIAL. 6.295821662e-14 vs 6.295822298e-14 (M4 Task 9
-//            settler close verification). The anchor commit was rebuilt in a
-//            clean worktree and reproduced it, so it is not a code change.
-//   8.6e-7   CI CROSS-RUNNER. 6.295821599e-14 vs 6.295816157e-14 (the Linux
-//            runner-divergence register). A different pin -- CorpusTask6b
-//            PhaseB -- but the same column of the same cell, so it measures
-//            the same quantity. Its f7_n1000_path_neutral rows in the same
-//            table reach 1.63e-6 by the same arithmetic.
-//   1.79e-6  MKL-THREADED ARM. 6.295833584e-14 vs 6.295822298e-14 (M4 ledger,
-//            two-level model contract stage 2). The LARGEST on record: more
-//            threads means more reduction orders, on top of the addressing.
+// GATE DERIVATION: 1e-5 relative, ~5.6x the largest spread on record, taken
+// from the worst regime rather than the quietest because this pin runs wherever
+// the suite runs, threaded and CI included. The readings, all on
+// f7_n1000_bound_neutral's kkt_residual unless noted (provenance for each pair
+// is in docs/notes/2026-08-m5-ledger.md):
 //
-// The mechanism is address-sensitive MKL kernels -- the property MKL's CNR
-// mode exists for -- compounded by reduction order once threads are involved.
-// Addresses differ per process, so no amount of pinning inside one process
-// makes these columns process-invariant.
+//   1.0e-7   same box, serial       6.295821662e-14 vs 6.295822298e-14
+//   8.6e-7   CI cross-runner        6.295821599e-14 vs 6.295816157e-14
+//   1.63e-6  CI, path_neutral cell  4.555248530e-07 vs 4.555255959e-07
+//   1.79e-6  MKL-threaded           6.295833584e-14 vs 6.295822298e-14
 //
-// RULED FIX (the standing adjudication, M5 close-prep batch): counters and
-// statuses stay EXACT -- they are integers and enum spellings, computed by no
-// floating-point arithmetic, and a single-bit move in one is a real
-// regression. The residual-class columns move to a near-ULP gate, mirroring
-// the calibrated-gate discipline the tycho suite already uses: exact == where
-// no arithmetic, a tight relative gate where there is.
-//
-// THE GATE'S DERIVATION: 1e-5 relative, which is ~5.6x the LARGEST reading
-// across all three regimes (1.79e-6). It is deliberately derived from the
-// worst regime rather than from the quietest: this pin runs wherever the
-// suite runs, including threaded and CI configurations, and a gate calibrated
-// on same-box serial numbers alone would sit BELOW readings the record
-// already contains. (It did: the first cut of this gate was 1e-6, which is
-// 0.56x the threaded arm's spread. The fix round caught it.)
-//
-// The headroom costs nothing in discrimination. These measures span 1e-14 to
-// 1e-7 across cells and move by WHOLE ORDERS OF MAGNITUDE when a solve
-// actually changes -- there is no realistic regression that shifts a residual
-// by parts per hundred thousand and by no more. Anything large enough to
-// matter also moves a counter, and the counters are held exact, so this gate
-// is not the only thing standing between a regression and a green run. Byte
-// equality remains the common outcome and is checked first; the gate engages
-// only on the digits that provably vary.
+// Counters and statuses stay EXACT: no floating-point arithmetic produces them,
+// so a single-bit move in one is a real regression. The headroom costs nothing
+// in discrimination -- these measures span 1e-14 to 1e-7 across cells and move
+// by whole orders of magnitude when a solve actually changes, and anything that
+// large also moves a counter. Byte equality is checked first and remains the
+// common outcome; the gate engages only on the digits that provably vary.
 constexpr double kResidualRelativeGate = 1.0e-5;
 
 // The corpus schema's floating-point measure columns, by index:
 //   12 kkt_residual
 //   15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
 //   18 kkt_complementarity 19 dual_scale       20 x_scale
-// Column 13 (wall_s) is excluded by the caller for a different reason --
-// timing noise, never a regression contract. Column 14 (kkt_verdict) is a
-// STRING and stays exact. Everything at 21 and above is an integer counter.
+// Column 13 (wall_s) is excluded by the caller for a different reason -- timing
+// noise, never a regression contract. Column 14 (kkt_verdict) is a string and
+// stays exact. Everything at 21 and above is an integer counter.
 bool is_residual_column(std::size_t i) { return i == 12 || (i >= 15 && i <= 20); }
 
 // True when the two spellings are byte-equal, or agree to within the gate.
@@ -980,16 +956,13 @@ bool residual_columns_agree(const std::string &a, const std::string &b) {
     if (used_a != a.size() || used_b != b.size()) {
         return false;
     }
-    // NON-FINITE NEVER PASSES THE NUMERIC PATH. Without this, the relative
-    // form below waves through every infinity pairing it is handed: inf
-    // against a finite value gives |inf - x| = inf and scale = inf, so the
-    // test reads inf <= inf and SUCCEEDS, and inf against -inf does the same.
-    // A residual that went infinite is the loudest regression this column can
-    // report, and it must not be the one comparison that cannot fail. NaN is
-    // caught here too, though it would also have fallen out of the arithmetic
-    // (every comparison against NaN is false). Two identical non-finite
-    // spellings still agree -- via the byte-equality path above, which is the
-    // only way any non-finite value passes.
+    // Non-finite never passes the numeric path. Without this, the relative form
+    // below waves through every infinity pairing it is handed: inf against a
+    // finite value gives |inf - x| = inf and scale = inf, so the test reads
+    // inf <= inf and SUCCEEDS. An infinite residual is the loudest regression
+    // this column can report. NaN is caught here too. Two identical non-finite
+    // spellings still agree -- via byte equality above, the only way any
+    // non-finite value passes.
     if (!std::isfinite(va) || !std::isfinite(vb)) {
         return false;
     }
@@ -1184,13 +1157,10 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     // by the flag, column for column, except `wall_s` (index 13 -- timing
     // noise, never a regression contract per this file's own banner).
     //
-    // TWO GATES, not one. Counters, statuses and spellings are held to BYTE
-    // EQUALITY: no floating-point arithmetic produces them, so a moved digit
-    // is a real behaviour change. The residual-class columns are held to a
-    // near-ULP relative gate instead -- these two rows come from two separate
-    // PROCESSES, and those columns are measurably not process-invariant on
-    // this class of box. See runner_test::kResidualRelativeGate above for the
-    // measurement that fixes the number and for why the counters do not move.
+    // Two gates, not one: counters, statuses and spellings are held to byte
+    // equality, the residual-class columns to a relative gate, because these two
+    // rows come from separate PROCESSES. See runner_test::kResidualRelativeGate
+    // above for the measurement that fixes the number.
     const std::vector<std::string> rows_on = runner_test::data_rows(csv_on);
     const std::vector<std::string> rows_off = runner_test::data_rows(csv_off);
     ASSERT_EQ(rows_on.size(), 1u);
@@ -1220,16 +1190,13 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     std::remove(wgate.c_str());
 }
 
-// THE GATE ITSELF, pinned on hand-built spellings. The pin above can only
-// exercise it against whatever this box happens to produce, and the variance
-// it exists for is box- and regime-dependent -- it did not reproduce on every
-// machine that looked. These cases fix what the gate accepts and what it
-// refuses independently of that, so the calibration is a testable claim
-// rather than a number in a comment.
+// The gate itself, on hand-built spellings: the pin above can only exercise it
+// against whatever this box happens to produce, and the variance it exists for
+// is box- and regime-dependent. These cases fix what the gate accepts and
+// refuses independently of that.
 TEST(CorpusResidualGate, AcceptsEveryRecordedSpreadAndRefusesARealMove) {
-    // ACCEPTS: all three regimes on record, which is what the gate is
-    // calibrated from. Each pair is the literal reading, not a paraphrase --
-    // see kResidualRelativeGate above for the provenance of each.
+    // Accepts every reading on record -- the literal pairs the gate is
+    // calibrated from; see kResidualRelativeGate above.
     EXPECT_TRUE(runner_test::residual_columns_agree("6.295821662e-14",
                                                     "6.295822298e-14")); // 1.0e-7 serial
     EXPECT_TRUE(runner_test::residual_columns_agree("6.295821599e-14",
@@ -1258,10 +1225,8 @@ TEST(CorpusResidualGate, AcceptsEveryRecordedSpreadAndRefusesARealMove) {
     EXPECT_TRUE(runner_test::residual_columns_agree("0.000000000e+00", "0.000000000e+00"));
     EXPECT_FALSE(runner_test::residual_columns_agree("0.000000000e+00", "1.000000000e-30"));
 
-    // NON-FINITE. A residual that went infinite is the loudest regression this
-    // column can report, so it must never be waved through -- and the relative
-    // form would have done exactly that (inf <= inf) without an explicit
-    // guard. Identical spellings still agree, but ONLY through byte equality.
+    // Non-finite is never waved through, and identical spellings agree only
+    // through byte equality.
     EXPECT_FALSE(runner_test::residual_columns_agree("inf", "1.000000000e-09"));
     EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09", "inf"));
     EXPECT_FALSE(runner_test::residual_columns_agree("inf", "-inf"));

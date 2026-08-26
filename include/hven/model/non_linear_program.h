@@ -503,22 +503,13 @@ struct NonLinearProgram : public NlpAggregate {
     }
 
   private:
-    // The two members configure_variable_treatment's idempotence test compares,
-    // and its only reader. That test is a FOUR-term conjunction:
-    // fixed_treatment_valid_ (is there a classification at all), these two
-    // (same treatment, same relax factor), and configured_bounds_revision_
-    // against bounds_revision_ (same bound state). The other two terms are
-    // public and are declared below -- this block is an access boundary, not a
-    // grouping of the conjunction, which does not live on one side of it.
+    // Two of the four terms configure_variable_treatment's idempotence test
+    // compares, and its only reader; the other two, fixed_treatment_valid_ and
+    // configured_bounds_revision_, are public and declared below.
     //
-    // Neither member here can be dropped: a conjunction missing a term reads a
-    // real change to that term as a repeat, short-circuits, and leaves the
-    // previous configuration's structures standing under one that never ran.
-    //
-    // Private because the question they answer is not the one a caller wants:
-    // these describe what the last CONFIGURATION was told, which may predate
-    // the caller's own solve. The treatment a SOLVE actually ran under is
-    // reported per call as
+    // Private because they describe what the last CONFIGURATION was told, which
+    // may predate the caller's own solve. The treatment a SOLVE actually ran
+    // under is reported per call as
     // InteriorPointSolver::SolveResult::fixed_variable_treatment_.
 
     /// Selected treatment, as last configured.

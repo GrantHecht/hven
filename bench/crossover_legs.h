@@ -3,18 +3,15 @@
 
 #pragma once
 
-// bench/crossover_legs.h — M5 W5: the IPM -> SQP crossover measurement legs,
-// and the dual-bind path that makes a replay-corpus cell reachable from BOTH
-// engines under ONE declaration.
-//
-// THE PROTOCOL THIS IMPLEMENTS is declared verbatim in
-// docs/notes/2026-08-m5-ledger.md's "W5 LEG PROTOCOL" entry (2026-08-25) and
-// restated in the artifact's README. Four legs per dual-bindable cell:
+// bench/crossover_legs.h — the IPM -> SQP crossover measurement legs, and the
+// dual-bind path that makes a replay-corpus cell reachable from BOTH engines
+// under ONE declaration. Protocol: docs/notes/2026-08-m5-ledger.md, "W5 LEG
+// PROTOCOL". Four legs per dual-bindable cell:
 //
 //   (a) IPM-only        the interior-point baseline, and the exporter: its
 //                       export_warm_start() is what legs (c) and (d) stage.
 //   (b) SQP cold        the same declaration, same x0, nothing staged.
-//   (c) SQP warm core   (a)'s export with extensions_ CLEARED -- the neutral
+//   (c) SQP warm core   (a)'s export with extensions_ cleared -- the neutral
 //                       core alone, which is what R3 promises any engine can
 //                       read.
 //   (d) SQP warm polish (a)'s export exactly as the other engine handed it
@@ -25,65 +22,25 @@
 // per cell. Wall is recorded and is INFORMATIONAL ONLY -- never a margin,
 // never a claim.
 //
-// =============================================================================
-// THE DUAL-BIND PATH, and why it runs in this direction
-// =============================================================================
+// Both engines reach the cell through the ONE declared NLPProblem -- the
+// interior-point engine via NLPSolver's own transcription, the SQP engine via
+// NlpProblemModel -- so both key the same DeclarationKey and an export stages
+// across with no conversion and no re-stamp. The corpus's cells are NlpModels
+// (F7CollocationChain), so the declaration is ModelAsNlpProblem below; neither
+// engine sees the F7 model directly.
 //
-// The W3 crossover pin (tests/sqp/test_sqp_warm_currency.cpp,
-// InteriorPointExportCrossesOverIntoTheSqpEngine) established the shape: ONE
-// declared NLPProblem, bound to the interior-point engine through NLPSolver
-// and to the SQP engine through NlpProblemModel. Both engines then key the
-// same DeclarationKey, which is the whole content of the 2026-08-25
-// declaration-identity ruling, and an exported value stages across with no
-// conversion and no re-stamp.
-//
-// The corpus's cells are NlpModels (F7CollocationChain), not NLPProblems, so
-// the missing half of that path is an NlpModel stated as an NLPProblem. That
-// is ModelAsNlpProblem below. It is deliberately NOT a second conversion
-// alongside NlpProblemModel: the declared NLPProblem is the ONE declaration,
-// and BOTH engines reach the cell through it -- the interior-point engine via
-// NLPSolver's own transcription, the SQP engine via NlpProblemModel, exactly
-// as the W3 pin does. Neither engine sees the F7 model directly.
-//
-// The consequence worth stating plainly, because it is what makes the legs
-// comparable: leg (b) is NOT the committed walk-corpus baseline row for the
-// same cell. It is a cold solve of the same mathematics reached through the
+// Reading constraint: leg (b) is NOT the committed walk-corpus baseline row for
+// the same cell. It is a cold solve of the same mathematics reached through the
 // dual-bind conversion, so its counters may differ from
 // bench/baselines/*/walk_baseline.csv. b, c and d are strictly comparable to
-// one another -- one declaration, one conversion, one start point, one
-// options object -- which is what the protocol's margins are taken over.
+// one another -- one declaration, one conversion, one start point, one options
+// object -- which is what the margins are taken over.
 //
-// =============================================================================
-// WHICH CELLS DUAL-BIND, and why the rest cannot
-// =============================================================================
-//
-// Every cell's PROBLEM dual-binds: F7CollocationChain states f, cE, cI, the
-// two Jacobians, the Lagrangian Hessian and the box, which is everything
-// NLPProblem asks for. What does not always dual-bind is the cell's START.
-//
-//   kNeutralCold, kPhysicsInformed -- a bare primal x0. Both engines take a
-//       primal start point, so the cell binds whole. THESE ARE THE 24 CELLS
-//       THE ARTIFACT MEASURES.
-//
-//   kCorrupted, kFullWarm -- the cell's declared start is a WarmStart, the
-//       SQP engine's own internal warm value, produced by a prior SQP solve
-//       at p0 (kFullWarm) or that value then damaged (kCorrupted). It carries
-//       a hot factorization handle and an activity encoding that have no
-//       interior-point counterpart: the M5 currency's neutral core is not a
-//       WarmStart, and the IPM's stage_warm_start takes a WarmStartData. Leg
-//       (a) therefore cannot be run FROM THE CELL'S OWN START CONDITION, and
-//       a leg (a) run from somewhere else would not be that cell's baseline.
-//
-//   kActivityOnly -- the cell's declared start is a SYNTHESIZED interior-point
-//       iterate (corpus_cells.h's f7_ip_iterate, a hand-built central-path
-//       point) pushed through from_interior_point. Leg (a) would have to be
-//       the synthesis rather than a solve. This taxonomy is superseded here by
-//       construction: legs (c) and (d) measure the same hand-off with a REAL
-//       interior-point export in place of the synthetic one, which is the
-//       measurement kActivityOnly was standing in for.
-//
-// Both refusals are recorded per cell by dual_bind_refusal() and are LISTED in
-// the artifact. Nothing is silently dropped.
+// Every cell's PROBLEM dual-binds; what does not always dual-bind is its START.
+// The measured cells are the kNeutralCold and kPhysicsInformed ones, which
+// declare a bare primal x0 that both engines take. dual_bind_refusal() below
+// states, per cell, why the rest are refused; every refusal is LISTED in the
+// artifact, so nothing is silently dropped.
 
 #include <algorithm>
 #include <chrono>
@@ -129,7 +86,7 @@ using hven::solvers::corpus::StartTaxonomy;
 // =============================================================================
 
 /// @brief One NlpModel declared as an NLPProblem, so that both engines can be
-///        bound to it through the W3 dual-bind path.
+///        bound to it.
 ///
 /// ROW LAYOUT. The declared rows are the equalities first, in the model's own
 /// cE order, then the inequalities in its own cI order:
@@ -137,29 +94,24 @@ using hven::solvers::corpus::StartTaxonomy;
 ///   row i          in [0, me)        gl = gu = 0        -> cE_i(x) = 0
 ///   row me + j     in [0, mi)        gl = -inf, gu = 0  -> cI_j(x) <= 0
 ///
-/// which is exactly the pair of kinds NLPRowClassification calls Equality and
-/// UpperBounded. Reading the declaration back through NlpProblemModel therefore
-/// reproduces the ORIGINAL model's cE and cI, in the original order, with no
-/// sign flip: an Equality row converts to g(x) - gl = cE, and an UpperBounded
-/// row to g(x) - gu = cI. The Lagrangians agree term for term, so
-/// NLPProblem's lambda over [cE; cI] splits into the model's (lambda_e,
-/// lambda_i) by a head/tail cut and nothing else.
+/// Reading the declaration back through NlpProblemModel reproduces the ORIGINAL
+/// model's cE and cI, in the original order, with no sign flip, so NLPProblem's
+/// lambda over [cE; cI] splits into the model's (lambda_e, lambda_i) by a
+/// head/tail cut and nothing else.
 ///
 /// STRUCTURE. NLPProblem queries the two sparsity patterns once and they must
-/// not move afterwards, but an NlpModel returns whole matrices whose pattern
-/// it is free to decide per point. The declared structure here is therefore the
-/// UNION of the patterns at two points: the model's own start point, and the
-/// point NLPSolver's transcription evaluates at (the origin projected onto the
-/// declared box -- see NLPProblem's own note, which is why that second point is
-/// not optional). Every later evaluation is merged into the declared slots, and
-/// a nonzero arriving at a slot the union did not declare is REFUSED by name
-/// rather than silently dropped: a moving pattern would make every counter
-/// below a measurement of a different problem than the one declared.
+/// not move afterwards, but an NlpModel decides its pattern per point. The
+/// declared structure is therefore the UNION of the patterns at two points: the
+/// model's own start point, and the point NLPSolver's transcription evaluates
+/// at (the origin projected onto the declared box). Every later evaluation is
+/// merged into the declared slots, and a nonzero arriving at a slot the union
+/// did not declare is REFUSED by name: a model whose pattern depends on the
+/// iterate cannot be stated as an NLPProblem.
 ///
 /// HESSIAN TRIANGLE. NlpModel returns the UPPER triangle (row <= col);
-/// NLPProblem declares the LOWER one (row >= col). The two describe the same
-/// symmetric matrix, so the conversion is an index transpose on the declared
-/// structure and nothing at all on the values.
+/// NLPProblem declares the LOWER one (row >= col). Same symmetric matrix, so
+/// the conversion is an index transpose on the declared structure and nothing
+/// at all on the values.
 class ModelAsNlpProblem final : public NLPProblem {
   public:
     /// @brief Declares @p model as an NLPProblem.
@@ -233,9 +185,7 @@ class ModelAsNlpProblem final : public NLPProblem {
     void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
                    ConstEigenRef<Eigen::VectorXd> lambda,
                    Eigen::Ref<Eigen::VectorXd> vals) const override {
-        // NLPProblem's L = obj_factor*f + lambda^T g, with g = [cE; cI]; the
-        // model's is obj_scale*f + lambda_e^T cE + lambda_i^T cI. Same terms,
-        // so the split is a head/tail cut.
+        // g = [cE; cI], so lambda splits into the model's pair by a head/tail cut.
         const Vec lambda_e = me_ > 0 ? Vec(lambda.head(me_)) : Vec(0);
         const Vec lambda_i = mi_ > 0 ? Vec(lambda.tail(mi_)) : Vec(0);
         const SpRM upper = model_->eval_hess(Vec(x), obj_factor, lambda_e, lambda_i);
@@ -252,9 +202,9 @@ class ModelAsNlpProblem final : public NLPProblem {
     using SpRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
     // The point NLPSolver's transcription evaluates at: the origin projected
-    // onto the declared box. Quoted from NLPProblem's own note -- the pattern
-    // union has to cover it, because those two calls happen before any solve
-    // iterate exists and their patterns are what the solver keeps.
+    // onto the declared box. The pattern union has to cover it -- that call
+    // happens before any solve iterate exists, and its pattern is what the
+    // solver keeps.
     Vec projected_origin() const {
         const Vec &lower = model_->lower();
         const Vec &upper = model_->upper();
@@ -302,15 +252,11 @@ class ModelAsNlpProblem final : public NLPProblem {
     // pattern never declared is a MOVING PATTERN and is refused by name.
     static void merge_into_slots(const SpRM &pattern, const SpRM &values, const char *what,
                                  Eigen::Ref<Eigen::VectorXd> out) {
-        // COMPRESSED IS A PRECONDITION, SO IT IS CHECKED BY NAME. NlpModel
-        // requires every matrix return to be compressed with sorted,
-        // duplicate-free inner indices (model/nlp_model.h), and the tandem walk
-        // below reads outerIndexPtr/innerIndexPtr/valuePtr directly, which is
-        // only meaningful for compressed storage. The engine's own route
-        // enforces that contract by name at nlp_require_claimed_pattern; this
-        // adapter does not pass through there, so it would otherwise read an
-        // uncompressed return as silent garbage rather than refusing it -- and
-        // this class already refuses the moving-pattern case by name.
+        // The tandem walk below reads outerIndexPtr/innerIndexPtr/valuePtr
+        // directly, so compressed storage is a precondition. The engine's own
+        // route enforces NlpModel's contract at nlp_require_claimed_pattern;
+        // this adapter does not pass through there, so it checks by name rather
+        // than reading an uncompressed return as silent garbage.
         if (!values.isCompressed()) {
             throw std::runtime_error(fmt::format(
                 "ModelAsNlpProblem: the model returned an UNCOMPRESSED {}. NlpModel requires "
@@ -445,9 +391,8 @@ inline std::vector<const CorpusCell *> dual_bindable_cells() {
 /// The interior-point leg's recorded outcome. Counters are the asserted
 /// currency; `wall_s` is informational.
 struct IpmLegRow {
-    /// False until this leg actually finished. A leg that never ran reports
-    /// ABSENT in the aggregate rather than the default-constructed value of
-    /// whatever field it would otherwise print -- see margins_row.
+    /// False until this leg actually finished; a leg that never ran reports
+    /// `absent`, never a default value -- see margins_row.
     bool ran = false;
     hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
     int iters = -1;
@@ -466,10 +411,7 @@ struct IpmLegRow {
 /// One SQP leg's recorded outcome (b, c or d). Same shape for all three so the
 /// margins are a subtraction and nothing else.
 struct SqpLegRow {
-    /// False until this leg actually finished; see IpmLegRow::ran. This matters
-    /// most on a cell a runner killed at a wall deadline: `status` then still
-    /// holds its default, and printing that default would say the leg FAILED
-    /// when the truth is that it never ran.
+    /// False until this leg actually finished; see IpmLegRow::ran.
     bool ran = false;
     SqpStatus status = SqpStatus::kNumericalError;
     StartLevel start_level = StartLevel::kCold;
@@ -555,17 +497,14 @@ inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
 /// One SQP leg: a fresh driver, a fresh bridge over the SAME declared problem,
 /// the same x0, and whatever `stage` chooses to stage before the solve.
 ///
-/// THE TWO-ARGUMENT ENTRY, deliberately, on all three legs. The four-argument
-/// overload's explicit `WarmStart` argument is REFUSED against a staged value
-/// -- SqpDriver::refuse_two_warm_sources names both sources rather than letting
-/// one silently win, and it refuses a default-constructed argument too. So the
-/// minor-iteration budget that overload carries is unavailable to legs (c) and
-/// (d), and taking it on leg (b) alone would make the cold leg the only bounded
-/// one, which is exactly the asymmetry the margins must not have. All three legs
-/// are therefore bounded by the SAME thing: the options object's own
+/// The TWO-argument entry on all three legs. The four-argument overload's
+/// explicit `WarmStart` is refused against a staged value, so the
+/// minor-iteration budget it carries is unavailable to legs (c) and (d), and
+/// taking it on leg (b) alone would leave the cold leg the only bounded one.
+/// All three legs are therefore bounded by the SAME thing: the options object's
 /// SqpOptions::max_iter and SqpOptions::qp.max_iter caps, which
-/// corpus_cells.h's options_for_cell sets. The runner's wall deadline is the
-/// outer guard on top of that.
+/// corpus_cells.h's options_for_cell sets, with the runner's wall deadline as
+/// the outer guard.
 template <typename StageFn>
 SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
                       const SqpOptions &opts, StageFn &&stage) {
@@ -597,19 +536,10 @@ using LegSink = std::function<void(const CellLegs &, LegStage)>;
 ///   (a) first, unconditionally -- it is the exporter the two warm legs stage.
 ///   (d) second, because it is CONSTANT COST. The polish extension carries the
 ///       active set, so this leg builds one subproblem and certifies: 1 major,
-///       2 QP minors, 1 factorization, at every size measured. It is both the
-///       cheapest leg and the one that says the most.
+///       2 QP minors, 1 factorization, at every size measured.
 ///   (c) third -- core-only has no activity information, so its QP minors SCALE
 ///       with the problem and on a large cell can consume a whole budget.
 ///   (b) last -- the cold baseline is the most expensive of the four.
-///
-/// THIS ORDER WAS WRONG ONCE, AND SAYING SO IS THE POINT. The first W5 sweep
-/// ran (a), (c), (d), (b), on the reasoning that only the cold leg was
-/// expensive enough to starve the others. At N = 10000 on the path window that
-/// is false: leg (c) alone exhausted the per-cell budget, legs (d) and (b)
-/// never ran, and the cells where the polish route is most impressive are
-/// exactly the ones that lost it. Putting the constant-cost leg ahead of the
-/// scaling one costs nothing and cannot fail that way.
 ///
 /// @param cell The cell; must satisfy cell_dual_binds().
 /// @param opts The runner's knobs.
@@ -622,10 +552,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
                                                 cell.id, dual_bind_refusal(cell)));
     }
 
-    // THE ONE DECLARATION. Built once, and both engines reach the cell through
-    // it: the interior-point engine through NLPSolver's transcription, the SQP
-    // engine through NlpProblemModel. That is what makes the DeclarationKey
-    // agree and the export stage across with no re-stamp.
+    // THE ONE DECLARATION, built once; both engines reach the cell through it.
     const auto f7 =
         std::make_shared<test_support::F7CollocationChain>(corpus::detail::make_model(cell));
     const Vec x0 = detail::start_point_for(cell, *f7);
@@ -683,9 +610,8 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     emit(LegStage::kWarmPolish);
 
     // --- leg (c): SQP warm, core only ---
-    // The tag stripped from (a)'s export, which is the R3 shape: the neutral
-    // core alone, with the producer's extensions cleared. Its QP minors SCALE
-    // with the problem, which is why it runs after (d) -- see the order note.
+    // (a)'s export with the producer's extensions cleared, which is the R3
+    // shape. Runs after (d) -- see the execution-order note above.
     {
         WarmStartData core = exported;
         core.extensions_.clear();
@@ -734,10 +660,8 @@ inline CounterMargin margin_against_cold(const SqpLegRow &cold, const SqpLegRow 
 // The aggregate row
 // =============================================================================
 //
-// THE MARGINS ROW LIVES HERE, not in the runner's CLI glue, because it is the
-// one row that summarises the other four and is therefore the one a consumer
-// is most likely to read ALONE. A defect in it is a defect in the artifact's
-// headline, so it is shared with the gate test rather than copied into it.
+// The margins row lives here, not in the runner's CLI glue, so that the gate
+// test shares it rather than copying it.
 
 /// @brief One cell's identifying prefix: id, node count, window, taxonomy.
 inline std::string cell_prefix(const CorpusCell &cell) {
@@ -792,19 +716,12 @@ inline std::string margin_cell(const CounterMargin &m) {
 
 /// @brief The aggregate row for one cell.
 ///
-/// EVERY STATUS COLUMN REPORTS ITS OWN LEG. That is the whole content of this
-/// function, and it is worth stating because the first version of this artifact
-/// got it wrong: when a cell was killed at its wall deadline the runner wrote a
-/// single cell-level `dnf_budget` into all four status columns, including the
-/// legs that HAD finished and whose rows the same loop had just written to the
-/// other four files. A reader of this file alone -- the natural thing to do,
-/// since it is the aggregate -- would then conclude those legs failed, which on
-/// the cells carrying this measurement's headline finding is the finding read
-/// backwards.
-///
-/// A leg that did not run is `absent` in its status column and in its counter
-/// columns. The MARGIN columns go absent on their own separate condition (a
-/// margin needs both its legs), which is what CounterMargin::defined carries.
+/// EVERY STATUS COLUMN REPORTS ITS OWN LEG, never a cell-level outcome: on a
+/// cell killed at its wall deadline, a shared status would say the legs that
+/// HAD finished failed. A leg that did not run is `absent` in its status column
+/// and in its counter columns. The MARGIN columns go absent on their own
+/// separate condition -- a margin needs both its legs, which is what
+/// CounterMargin::defined carries.
 inline std::string margins_row(const CellLegs &legs) {
     const CounterMargin c = margin_against_cold(legs.b, legs.c);
     const CounterMargin d = margin_against_cold(legs.b, legs.d);

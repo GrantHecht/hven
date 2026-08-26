@@ -949,55 +949,49 @@ struct SqpSolution {
     std::vector<SqpIterate> history;
 
     // THE TERMINAL KKT MEASUREMENT, taken at the RETURNED (x, lambda_e,
-    // lambda_i) by the same evaluate_kkt call the convergence test read --
-    // the four scalar columns of SqpIterate, at the point this solve
-    // actually reports. They exist so a consumer can fill an outcome record
-    // without reconstructing the history's exit shape: the last history row
-    // is NOT reliably the returned point (a restoration exit returns the
-    // RESTORED point, which has no row of its own), so scanning `history`
-    // for these is wrong on exactly the exits where they matter most.
+    // lambda_i) by the same evaluate_kkt call the convergence test read.
+    // They exist so a consumer can fill an outcome record without
+    // reconstructing the history's exit shape: the last `history` row is NOT
+    // reliably the returned point (a restoration exit returns the RESTORED
+    // point, which has no row of its own), so scanning `history` for these is
+    // wrong on exactly the exits where they matter most.
     //
-    // kkt_residual is max(stationarity, feasibility) -- the scalar the
-    // convergence test gates on; complementarity is RECORDED, NOT GATED
-    // (SqpIterate::complementarity's own note has the argument).
+    // All four are NaN on the non-finite-iterate kNumericalError exit, for
+    // the reason evaluate_kkt reports NaN there: nothing was measured at that
+    // point, and a 0.0 would read as a converged residual.
     //
-    // ALL FOUR ARE NaN ON THE NON-FINITE-ITERATE kNumericalError EXIT, for
-    // the reason evaluate_kkt reports NaN there: nothing was measured at
-    // that point, and a 0.0 would read as a converged residual.
-    //
-    // ON A CERTIFIED kInfeasible EXIT THEY MEASURE THE NLP'S OWN KKT
-    // CONDITIONS at the returned point -- which is an INFEASIBLE point, so
+    // On a certified kInfeasible exit they measure the NLP's own KKT
+    // conditions at the returned point -- an INFEASIBLE point, so
     // `feasibility` is large by construction and `stationarity` is the
     // ordinary grad-L measure, NOT the subgradient certificate's residual
-    // (that certificate is the multiplier quadruple, read under this
-    // struct's own note above). `z` is the one field of this solution that
-    // comes from the restoration problem instead; these four do not.
+    // (that certificate is the multiplier quadruple, read under this struct's
+    // own note above). `z` is the one field of this solution that comes from
+    // the restoration problem instead; these four do not.
     /// @brief Reduced/projected ||grad L||inf at the returned point.
     double stationarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(||cE||inf, max(cI)+, bound violation) at the returned point.
     double feasibility = std::numeric_limits<double>::quiet_NaN();
-    /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point.
+    /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point. Recorded,
+    ///        not gated -- see SqpIterate::complementarity.
     double complementarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(stationarity, feasibility) -- the scalar the convergence
     ///        test gates on.
     double kkt_residual = std::numeric_limits<double>::quiet_NaN();
 
     /// Wall-clock seconds spent inside this solve, measured with
-    /// std::chrono::steady_clock (the clock the interior-point engine's own
-    /// timers wrap) around the driver's solve_impl ALONE -- never around
-    /// model construction, the bridge/seam lay, the staged-value ingest or
-    /// the ledger bookkeeping, all of which are setup. The same measurement
-    /// SqpSolveRecord::wall_seconds carries (ledger.h), taken once and
-    /// reported in both places.
+    /// std::chrono::steady_clock around the driver's solve_impl ALONE --
+    /// never around model construction, the bridge/seam lay, the staged-value
+    /// ingest or the ledger bookkeeping, all of which are setup. The same
+    /// measurement SqpSolveRecord::wall_seconds carries (ledger.h), taken
+    /// once and reported in both places.
     ///
-    /// INFORMATIONAL, NEVER ASSERTED. This is a timing, and timings are not
-    /// this project's currency of correctness -- counters are. No test in
-    /// this repository asserts a VALUE here; the pins on it assert only that
-    /// it is populated and non-negative. A consumer may report it and may
-    /// compare it against another reading taken under the same measurement
-    /// discipline; nothing may gate on it. This is exactly
-    /// InteriorPointSolver::SolveResult::total_time_'s standing, stated here
-    /// so the two engines' timing fields carry one contract.
+    /// INFORMATIONAL, NEVER ASSERTED -- counters, not timings, are this
+    /// project's currency of correctness. No test in this repository asserts
+    /// a VALUE here; the pins on it assert only that it is populated and
+    /// non-negative. A consumer may report it and may compare it against
+    /// another reading taken under the same measurement discipline; nothing
+    /// may gate on it. Same standing as
+    /// InteriorPointSolver::SolveResult::total_time_.
     ///
     /// Defaults to 0.0; every public solve() that RETURNS writes a value
     /// >= 0.0 onto the solution it hands back.

@@ -6,29 +6,16 @@
 //
 // The bench binary that produces the W5 artifact
 // (docs/notes/data/2026-08-m5-w5-crossover/) is not ctest-registered: a full
-// sweep of the dual-bindable census runs for hours. This file is what stands
-// behind it, on the repository's standing rule that every measurement binary's
-// correctness gate is a registered test SHARING ITS IMPLEMENTATION -- so
-// crossover_legs.h is quote-included here, never copied.
+// sweep of the dual-bindable census runs for hours. This file gates it under
+// the standing rule that a measurement binary's gate SHARES ITS
+// IMPLEMENTATION -- crossover_legs.h is quote-included here, never copied.
 //
-// WHAT IS GATED, and why each item is the thing that could silently corrupt an
-// artifact rather than fail loudly:
-//
-//   * ModelAsNlpProblem states the SAME PROBLEM the model states. If the
-//     adapter dropped a Jacobian block, transposed the Hessian wrongly, or got
-//     the row-kind mapping backwards, every leg would still run and every
-//     counter would still be a number -- of a different problem. The round trip
-//     is checked through NlpProblemModel, which is the path the SQP leg
-//     actually takes.
-//   * The two engines key the SAME DeclarationKey off it. That is the entire
-//     premise of the dual-bind path: if the keys parted, leg (c)/(d) would be
-//     refused at solve entry and the artifact would be all-cold rows.
-//   * The moving-pattern guard fires. NLPProblem's structures are queried once;
-//     a model whose pattern depends on the iterate cannot be stated as one, and
-//     the adapter must say so rather than write a wrong value into a declared
-//     slot.
-//   * The dual-bind partition is the one the artifact documents (24 measured,
-//     33 refused, with a reason on every refusal).
+// Gated: that ModelAsNlpProblem states the same problem it wraps (a dropped
+// Jacobian block or a reversed row-kind mapping would still yield plausible
+// counters, of a different problem); that both engines key one declaration the
+// same way, which is the premise of the dual-bind path; that the
+// moving-pattern guard fires; and that the dual-bind partition is the one the
+// artifact documents.
 //
 // Names carry a `Crossover` prefix: this suite's TUs share a link unit.
 
@@ -106,12 +93,9 @@ void expect_sparse_near(const SpMatRM &a, const SpMatRM &b, const std::string &w
 
 // --- The adapter states the same problem ---
 
-// THE ROUND TRIP, through the path the SQP leg actually takes. The model is
-// declared as an NLPProblem and read straight back as a native model; every
-// piece of the contract must survive both directions. A single wrong sign in
-// the row-kind mapping shows up here as a cI block that differs by more than a
-// tolerance, which is the failure that would otherwise be invisible in a CSV
-// full of plausible counters.
+// The round trip, through the path the SQP leg actually takes: declared as an
+// NLPProblem, read straight back as a native model. A wrong sign in the
+// row-kind mapping shows up here as a cI block off by more than a tolerance.
 TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     const auto model = crossover_model();
     const auto declared = std::make_shared<ModelAsNlpProblem>(model, "crossover_gate");
@@ -132,11 +116,10 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     expect_sparse_near(converted.eval_jac_e(x), model->eval_jac_e(x), "equality Jacobian");
     expect_sparse_near(converted.eval_jac_i(x), model->eval_jac_i(x), "inequality Jacobian");
 
-    // The Hessian is the one piece the adapter TRANSPOSES on the way out (the
-    // model returns the upper triangle, NLPProblem declares the lower one), so
-    // it is checked at multipliers that are neither zero nor all equal -- a
-    // wrong head/tail cut of NLPProblem's single lambda block would survive
-    // either of those.
+    // The Hessian is the one piece the adapter transposes on the way out (the
+    // model returns the upper triangle, NLPProblem the lower), so it is checked
+    // at multipliers that are neither zero nor all equal -- a wrong head/tail
+    // cut of NLPProblem's single lambda block would survive either.
     Vec lambda_e(model->me());
     for (Index i = 0; i < lambda_e.size(); ++i) {
         lambda_e(i) = 0.5 + 0.1 * static_cast<double>(i % 7);
@@ -156,11 +139,10 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
 
 namespace {
 
-// A model whose Jacobian pattern DEPENDS ON THE ITERATE: the second column of
+// A model whose Jacobian pattern depends on the iterate: the second column of
 // row 0 exists only where x(0) is positive. NLPProblem's structures are queried
-// once and must not change, so such a model cannot be stated as one -- and the
-// adapter must say that by name rather than write the entry into whatever slot
-// happens to be next.
+// once, so such a model cannot be stated as one and the adapter must say so by
+// name rather than write the entry into whatever slot comes next.
 class CrossoverMovingPatternModel final : public NlpModel {
   public:
     CrossoverMovingPatternModel() : lower_(Vec::Constant(2, -1.0)), upper_(Vec::Constant(2, 1.0)) {}
@@ -231,13 +213,11 @@ TEST(CrossoverAdapter, RefusesAModelWhosePatternMoves) {
 
 // --- The premise of the dual-bind path ---
 
-// ONE DECLARATION, TWO ENGINES, ONE KEY. This is the fact the whole W5 artifact
-// rests on: the interior-point engine's own transcription of the declared
-// problem and the SQP bridge over its conversion must produce the SAME
-// DeclarationKey, so an exported value stages across with no re-stamp. If they
-// ever part, legs (c) and (d) are refused at solve entry and every margin in the
-// artifact silently becomes zero -- a failure that reads as "the crossover saves
-// nothing" rather than as a defect, which is precisely why it is pinned here.
+// One declaration, two engines, one key: the interior-point transcription and
+// the SQP bridge over its conversion must produce the same DeclarationKey, so
+// an exported value stages across with no re-stamp. If they part, legs (c) and
+// (d) are refused at solve entry and every margin silently reads as zero saved
+// rather than as a defect.
 TEST(CrossoverLegs, BothEnginesKeyOneDeclarationTheSameWay) {
     const auto model = crossover_model();
     const auto declared = std::make_shared<ModelAsNlpProblem>(model, "crossover_gate");
@@ -254,10 +234,9 @@ TEST(CrossoverLegs, BothEnginesKeyOneDeclarationTheSameWay) {
            "exactly this fact, and the W5 artifact is meaningless without it";
 }
 
-// THE COMPOSITION, on a chain small enough for a test: an interior-point solve
-// of the declared problem, its export, and both warm legs staging it. This is
-// run_cell_legs' own sequence at a size ctest can afford, so the sequence the
-// artifact was produced by is exercised rather than merely described.
+// The composition, on a chain small enough for a test: an interior-point solve
+// of the declared problem, its export, and both warm legs staging it -- that is
+// run_cell_legs' own sequence at a size ctest can afford.
 TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const auto model = crossover_model();
     const auto declared = std::make_shared<ModelAsNlpProblem>(model, "crossover_gate");
@@ -300,36 +279,32 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const SqpSolution warm_core = solve_with(&core);
     const SqpSolution warm_polish = solve_with(&exported);
 
-    // BOTH warm routes were actually ingested. A staged value that was refused
-    // or ignored would come back kCold, and the margins below would then be
-    // measuring cold against cold.
+    // Both warm routes were actually ingested: a staged value that was refused
+    // or ignored comes back kCold, leaving the margins below cold against cold.
     EXPECT_EQ(warm_core.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(warm_polish.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(warm_core.status, SqpStatus::kOptimal);
     EXPECT_EQ(warm_polish.status, SqpStatus::kOptimal);
 
-    // MARGIN FORM (CLAUDE.md §7): the hand-off is judged by the work it saves.
-    // Neither warm leg may cost MORE majors than cold on this problem, and the
-    // polish route -- which infers the active set from the (z_lower, z_upper)
-    // pair rather than starting from an all-free working set -- must not cost
-    // more than the core-only one.
+    // Margin form: the hand-off is judged by the work it saves. Neither warm leg
+    // may cost more majors than cold here, and the polish route -- which infers
+    // the active set from the (z_lower, z_upper) pair rather than starting from
+    // an all-free working set -- must not cost more than the core-only one.
     EXPECT_LE(warm_core.counters.major_iters, cold.counters.major_iters);
     EXPECT_LE(warm_polish.counters.major_iters, cold.counters.major_iters);
     EXPECT_LE(warm_polish.counters.major_iters, warm_core.counters.major_iters);
 
-    // All three legs answer the same question. A warm leg that certified a
-    // DIFFERENT point would make its margin meaningless.
+    // All three legs answer the same question: a warm leg that certified a
+    // different point would make its margin meaningless.
     EXPECT_NEAR(warm_core.f, cold.f, 1e-6 * std::max(1.0, std::abs(cold.f)));
     EXPECT_NEAR(warm_polish.f, cold.f, 1e-6 * std::max(1.0, std::abs(cold.f)));
 }
 
 // --- The partition the artifact documents ---
 
-// The artifact lists 24 measured cells and 33 refused ones, each refusal with a
-// reason. That count is quoted in the README and in crossover_legs.h's banner,
-// so it is pinned rather than left to drift with a future cell's arrival: a
-// census change that moves it should move the prose too, and this failure is
-// what says so.
+// 24 measured cells, 33 refused, each refusal with a reason. That count is
+// quoted in the artifact README and in crossover_legs.h's banner, so it is
+// pinned here: a census change that moves it must move the prose too.
 TEST(CrossoverLegs, TheDualBindPartitionIsTheOneTheArtifactDocuments) {
     int measured = 0;
     int refused = 0;
@@ -342,8 +317,8 @@ TEST(CrossoverLegs, TheDualBindPartitionIsTheOneTheArtifactDocuments) {
                 << cell.id << ": only the two bare-primal taxonomies dual-bind";
         } else {
             ++refused;
-            // NEVER SILENTLY DROPPED: every refusal carries a reason a reader
-            // of the artifact can act on.
+            // Every refusal carries a reason a reader of the artifact can act
+            // on.
             EXPECT_FALSE(reason.empty()) << cell.id;
             EXPECT_GT(reason.size(), 40u) << cell.id << ": the reason must be a reason";
         }
@@ -373,27 +348,22 @@ TEST(CrossoverLegs, RunningANonDualBindingCellIsRefused) {
 
 // --- The aggregate row of a cell that was killed part way through ---
 
-// THE DEFECT THIS PINS, stated as the failure it was. The first W5 sweep wrote
-// the aggregate row only after all four legs finished; when a cell was killed at
-// its wall deadline the runner instead stamped ONE cell-level `dnf_budget`
-// across all four status columns -- including the legs that HAD finished and
-// whose rows the same loop had just written to the other four files. Twelve
-// status cells in the shipped `margins.csv` then contradicted the artifact's own
-// per-leg CSVs, and on exactly the cells the headline finding rests on: a reader
-// of the aggregate alone would have concluded the polish route FAILED on every
-// one of them, which is that finding read backwards.
+// A status column reports its own leg: a leg that ran reports its outcome, a
+// leg that did not is `absent`. The margin columns go absent on their own
+// separate condition -- a margin needs both its legs -- which is what makes
+// "absent margin" and "failed leg" different statements.
 //
-// The invariant is one sentence: a status column reports ITS OWN LEG. A leg that
-// ran reports its outcome; a leg that did not is `absent`. The margin columns go
-// absent on their own separate condition -- a margin needs both its legs -- which
-// is what makes "absent margin" and "failed leg" different statements.
+// Pinned because the first W5 sweep stamped one cell-level `dnf_budget` across
+// all four status columns when a cell was killed at its wall deadline,
+// contradicting the artifact's own per-leg CSVs on exactly the cells the
+// headline finding rests on.
 TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     const CorpusCell *cell = hven::solvers::corpus::find_cell("f7_n5000_path_neutral");
     ASSERT_NE(cell, nullptr);
 
     // The exact shape the deadline produced on that cell: the interior-point leg
-    // converged, both warm legs solved, and the COLD leg -- which runs last, and
-    // is the expensive one -- never finished.
+    // converged, both warm legs solved, and the cold leg -- last, and the
+    // expensive one -- never finished.
     hven::solvers::crossover::CellLegs legs;
     legs.cell = cell;
     legs.n = 25000;
@@ -471,8 +441,8 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     EXPECT_EQ(f[18], "1") << "export_has_polish";
 }
 
-// A cell where NOTHING ran carries no outcome to report anywhere, and says so in
-// every column rather than inventing one.
+// A cell where nothing ran carries no outcome anywhere, and says so in every
+// column rather than inventing one.
 TEST(CrossoverLegs, ACellWithNoLegAtAllIsAbsentInEveryColumn) {
     const CorpusCell *cell = hven::solvers::corpus::find_cell("f7_n20000_path_neutral");
     ASSERT_NE(cell, nullptr);
@@ -486,9 +456,9 @@ TEST(CrossoverLegs, ACellWithNoLegAtAllIsAbsentInEveryColumn) {
     EXPECT_NE(row.find("absent"), std::string::npos) << row;
 }
 
-// POSITIVE MEANS SAVED, and an undefined margin is ABSENT rather than zero. A
+// Positive means saved, and an undefined margin is absent rather than zero: a
 // zero would read as "the crossover saved nothing on this cell", which is a
-// measurement; absence is the truth when a leg never reached a counter.
+// measurement, where absence is the truth when a leg never reached a counter.
 TEST(CrossoverLegs, MarginsAreColdMinusWarmAndAbsentWhenUndefined) {
     hven::solvers::crossover::SqpLegRow cold;
     cold.major_iters = 9;

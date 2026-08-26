@@ -92,15 +92,10 @@ using hven::ConstEigenRef;
 using hven::EigenRef;
 
 // The interior-point polish hand-off (hven/warmstart/ipm_polish_extension.h),
-// FORWARD-DECLARED rather than included. Its only appearance in this header is
-// as a `const &` parameter of one PRIVATE method, which needs the name and not
-// the definition -- and the definition would pull the SQP crossover header,
-// and through it hven/qp/qp_types.h and hven/detail/qp/working_set.h, into
-// every consumer of this header. The interior-point engine's public surface
-// depending on the QP engine's types is the opposite of the direction this
-// project's components are split in, and the extension itself belongs to
-// NEITHER engine (see its own TU banner). src/drivers/interior_point_solver.cpp
-// takes the include; nothing else needs it.
+// forward-declared rather than included: it appears here only as a `const &`
+// parameter of one private method, and including it would pull the SQP
+// crossover header and hven/qp/qp_types.h behind it into every consumer of
+// this header. src/drivers/interior_point_solver.cpp takes the include.
 struct IpmPolishData;
 
 /// Number of consecutive trailing iterates that must ALL exceed a divergence
@@ -638,51 +633,24 @@ class InteriorPointSolver {
 
         // --- Terminal KKT residuals ---
         //
-        // THE FOUR SCALAR RESIDUALS AT THE REPORTED ITERATE, copied at each
-        // phase's exit from the IterateInfo of the very iterate primals_ and
-        // the multiplier blocks above describe: the return_best_ pick when
-        // that setting is on AND the exit is not CONVERGED, the last iterate
-        // otherwise. That is the return_best_ substitution's own condition,
-        // not a paraphrase of it -- a converged solve reports the point it
-        // converged at -- and alg_impl selects the row on exactly that
-        // expression. They are what a consumer's outcome record needs and
-        // could not otherwise obtain: eq_cons_/iq_cons_ give the PRIMAL
-        // residuals as vectors, but stationarity and complementarity are not
-        // reconstructible from a SolveResult at all (that would take the
-        // gradient and the Jacobian, which this struct does not carry).
+        // The four scalars of the iterate primals_ and the multiplier blocks
+        // above describe, with IterateInfo's definitions -- the quantities
+        // converge_check() gates on, so each is directly comparable against
+        // its matching Settings tolerance. alg_impl selects the row.
         //
-        // SAME DEFINITIONS AS IterateInfo's own fields, which are the
-        // quantities converge_check() gates on -- so a caller comparing one
-        // of these against the matching Settings tolerance is reading
-        // exactly the number the solver read.
+        // SCALE: kkt_inf_ and barr_inf_ are on the SOLVER's objective scale
+        // (they carry Settings::obj_scale_); econ_inf_ and icon_inf_ are
+        // constraint residuals and carry no scale. Unlike obj_val_ and the
+        // multiplier blocks above, nothing here is unscaled on the way out.
         //
-        // ON THE SOLVER'S SCALE, NOT THE CALLER'S -- unlike obj_val_ and the
-        // multiplier blocks above, which are divided back by
-        // Settings::obj_scale_ on the way out. kkt_inf_ and barr_inf_ carry
-        // that factor (they are measured against the SCALED objective's
-        // gradient); econ_inf_ and icon_inf_ are constraint residuals and do
-        // not. Nothing is unscaled here deliberately: these are reported as
-        // the convergence test saw them, and a partial unscaling would make
-        // the four incomparable with each other and with the tolerances.
+        // On a restoration-active exit -- restoration_mode_ != off with
+        // converge_flag_ NOTCONVERGED or DIVERGING -- the four describe the
+        // restoration subproblem on its proximal scale, not the NLP, and a
+        // comparison against a Settings tolerance is meaningless there.
         //
-        // ON A RESTORATION-ACTIVE EXIT THEY DESCRIBE THE RESTORATION
-        // SUBPROBLEM, on its proximal scale, not the NLP -- so a comparison
-        // against a Settings tolerance is meaningless there even though
-        // obj_val_ beside them is the true objective. The condition a
-        // consumer can check: restoration_mode_ != off AND converge_flag_ is
-        // NOTCONVERGED or DIVERGING. See alg_impl's locally-infeasible break
-        // and its DIVERGING fall-through for why the trailing row is never
-        // refilled, and track_best_iterate's own note for why a
-        // feasibility-mode row may not compete with true-objective ones.
-        //
-        // LAST PHASE WINS on a multi-phase call (solve_optimize()), matching
-        // the last_* diagnostics below. Reset to NaN per call by
-        // reset_accumulators(): NaN means UNMEASURED, never "zero residual",
-        // so a call that threw before any phase completed reports no
-        // measurement rather than a perfect-looking one -- the same
-        // convention SqpSolution's four columns carry, so one outcome record
-        // reads both engines the same way. A call that threw part-way leaves
-        // whatever the last completed phase wrote, exactly as obj_val_ does.
+        // Last phase wins on a multi-phase call, like the last_* diagnostics
+        // below. reset_accumulators() sets them to NaN per call; NaN means
+        // UNMEASURED, never "zero residual".
         /// @brief inf-norm dual infeasibility (z-form) at the reported iterate.
         double kkt_inf_ = std::numeric_limits<double>::quiet_NaN();
         /// @brief Complementarity (barrier) error at the reported iterate.
