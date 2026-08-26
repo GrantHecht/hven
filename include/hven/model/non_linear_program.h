@@ -502,8 +502,23 @@ struct NonLinearProgram : public NlpAggregate {
         return this->full_x_scratch_;
     }
 
+  private:
     /// Selected treatment, as last configured.
+    ///
+    /// PRIVATE, and the only reader is configure_variable_treatment's
+    /// idempotence test a few members down from bound_relax_factor_ and
+    /// configured_bounds_revision_: same treatment, same relax factor, same
+    /// bound revision means the structures on hand are already the answer.
+    /// That is the whole job. It was public only as an M2-era read-out for a
+    /// consumer that no longer needs it -- what a caller wants is the
+    /// treatment a SOLVE actually ran under, which the engine reports as
+    /// InteriorPointSolver::SolveResult::fixed_variable_treatment_, recorded
+    /// per call and unaffected by the idempotence short-circuit. Reading it
+    /// here instead would answer a different question: what the last
+    /// CONFIGURATION was told, which may predate the caller's own solve.
     FixedVariableTreatments variable_treatment_ = FixedVariableTreatments::MakeParameter;
+
+  public:
     /// Relax factor, as last configured.
     double bound_relax_factor_ = 0.0;
 
