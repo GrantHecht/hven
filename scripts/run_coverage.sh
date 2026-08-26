@@ -29,12 +29,25 @@ LLVM_PROFDATA=${LLVM_PROFDATA:-llvm-profdata}
 LLVM_COV=${LLVM_COV:-llvm-cov}
 
 if [[ "${1:-}" != "--report-only" ]]; then
-    cmake --preset linux-clang-coverage
+    # CMAKE_ARGS: extra configure flags (CI pins HVEN_SIMD_ARCH here).
+    cmake --preset linux-clang-coverage ${CMAKE_ARGS:-}
     cmake --build --preset linux-clang-coverage -j"$(nproc)"
     mkdir -p "$PROFDIR"
     # One raw profile per test process; %p disambiguates ctest's children.
+    # CTEST_ARGS: extra ctest flags (CI passes --timeout etc.).
+    # COVERAGE_TOLERATE_FAILURES=1: keep reporting coverage from whatever
+    # ran even if cells failed -- a report-only CI lane wants the data and
+    # the failure signal separately, not an aborted report. The ctest exit
+    # status is preserved in the summary either way.
+    CTEST_STATUS=0
     LLVM_PROFILE_FILE="$PWD/$PROFDIR/hven-%p.profraw" \
-        ctest --test-dir "$BUILD" --output-on-failure
+        ctest --test-dir "$BUILD" --output-on-failure ${CTEST_ARGS:-} \
+        || CTEST_STATUS=$?
+    if [[ $CTEST_STATUS -ne 0 && "${COVERAGE_TOLERATE_FAILURES:-0}" != "1" ]]; then
+        echo "ctest exited $CTEST_STATUS (set COVERAGE_TOLERATE_FAILURES=1 to report anyway)"
+        exit "$CTEST_STATUS"
+    fi
+    echo "ctest exit status: $CTEST_STATUS" > "$BUILD/ctest-status.txt"
 fi
 
 mkdir -p "$OUT"
