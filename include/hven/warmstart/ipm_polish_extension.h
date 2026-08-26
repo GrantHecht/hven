@@ -35,7 +35,9 @@ inline constexpr std::string_view kIpmPolishTag = "hven.ipm.polish.v1";
 /// Every block is stated in DECLARED space at declared widths -- `z_lower_` and
 /// `z_upper_` at n, `iq_values_` at mi -- and on the caller's own objective
 /// scale. Nothing in this component checks a block against a problem: that
-/// check belongs to whichever engine stages or bridges the value.
+/// check belongs to whichever engine stages or bridges the value. The `>= 0`
+/// on the two price blocks is part of the contract, not a convention: both
+/// engines' staging refuses a negative entry, naming this tag.
 struct IpmPolishData {
     /// Barrier parameter at exit, on the caller's objective scale (so
     /// mu_ ~ z * distance holds against the blocks below). Neither consumer in

@@ -3884,6 +3884,39 @@ void hven::solvers::InteriorPointSolver::validate_staged_polish(const WarmStartD
     check_finite("the lower-bound multiplier block", polish.z_lower_);
     check_finite("the upper-bound multiplier block", polish.z_upper_);
     check_finite("the inequality-value block", polish.iq_values_);
+
+    // COMPONENT-WISE NON-NEGATIVITY, on the two price blocks only. The
+    // extension states both as prices (>= 0 at every coordinate, exactly 0
+    // where a side is absent, eliminated or unpriced), so a negative entry is
+    // a CORRUPT SIGN and is refused here, naming the coordinate. The
+    // inequality VALUES are signed by construction (cI(x) <= 0 at a feasible
+    // point) and are not checked.
+    //
+    // AGAINST THE APPLICATION-TIME CLAMP, which stays: staging refuses a
+    // corrupt SIGN, the clamp handles MAGNITUDE. apply_polish_bound_duals
+    // floors what it seeds at kSeededIqMultFloor because a price at or below
+    // zero puts the first iterate outside the interior, and an unpriced side's
+    // legitimate exported 0.0 lands there on the ordinary path. Without this
+    // refusal that same floor would quietly absorb a wrong-sign value as
+    // though it were near-zero noise -- the corruption class this makes loud,
+    // and makes loud identically on both engines.
+    //
+    // AFTER the finiteness pass above, deliberately: a NaN is refused by its
+    // own message rather than slipping past a comparison that answers false.
+    const auto check_nonnegative = [&](const char *block, const Eigen::VectorXd &v) {
+        for (Eigen::Index i = 0; i < v.size(); i++) {
+            if (v[i] < 0.0) {
+                throw std::invalid_argument(fmt::format(
+                    "InteriorPointSolver::{0}: the staged warm start's \"{1}\" extension holds a "
+                    "NEGATIVE value in {2} at index {3} ({4}); both bound-dual blocks are prices, "
+                    "stated non-negative at every coordinate -- a negative entry is a corrupt "
+                    "value, not a seed the barrier can be started from",
+                    entry, kIpmPolishTag, block, i, v[i]));
+            }
+        }
+    };
+    check_nonnegative("the lower-bound multiplier block", polish.z_lower_);
+    check_nonnegative("the upper-bound multiplier block", polish.z_upper_);
 }
 
 void hven::solvers::InteriorPointSolver::apply_polish_bound_duals(const IpmPolishData &polish) {
@@ -3915,8 +3948,10 @@ void hven::solvers::InteriorPointSolver::apply_polish_bound_duals(const IpmPolis
     // problem); floor at kSeededIqMultFloor, because a seed at or below zero
     // puts the first iterate outside the interior and an unpriced side's
     // exported 0.0 lands here, so the floor is load-bearing on the ordinary
-    // path; ceiling at kSeededMultInitMax rather than
-    // push_initial_point_interior's kBoundMultInitCap, because that cap keeps
+    // path -- a MAGNITUDE guard over legitimate near-zero entries, never a
+    // repair of a wrong sign, which validate_staged_polish has already refused
+    // by the time anything reaches here; ceiling at kSeededMultInitMax rather
+    // than push_initial_point_interior's kBoundMultInitCap, because that cap keeps
     // the formula mu0/d from exploding at a tiny distance, while this is a
     // measured multiplier a converged solve reported.
     //

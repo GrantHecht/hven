@@ -3375,9 +3375,16 @@ class SqpDriver {
     /// @param data The value to stage, in DECLARED space.
     /// @throws std::invalid_argument if `primal_` and `bound_lmults_` are not
     ///         one length, if any core block holds a non-finite value, if the
-    ///         value carries the polish tag MORE THAN ONCE, or if a payload
-    ///         under that tag is malformed or is not at the core's own widths
-    ///         (naming the tag). An UNKNOWN tag is skipped silently: a
+    ///         value carries the polish tag MORE THAN ONCE, if a payload
+    ///         under that tag is malformed or is not at the core's own widths,
+    ///         or if either of that payload's bound-dual blocks holds a
+    ///         non-finite or NEGATIVE entry (all naming the tag; a negative
+    ///         also names the block, the coordinate and the value). The sign
+    ///         refusal is the IPM staging path's too, in the same terms:
+    ///         prices are non-negative by the extension's contract, so a
+    ///         negative one is corruption, and THE SEEDED DUAL CLAMP below --
+    ///         which governs `lambda_i`, not these blocks -- is not a licence
+    ///         to carry one through. An UNKNOWN tag is skipped silently: a
     ///         capability downgrade, not an error. Sizes against a problem
     ///         and the stamp are refused at solve entry, not here. Every one
     ///         of these refusals leaves this instance with nothing staged.

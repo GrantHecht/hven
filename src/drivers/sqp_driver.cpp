@@ -165,6 +165,38 @@ void validate_staged_polish(const WarmStartData &data) {
     check_finite("the lower-bound multiplier block", polish.z_lower_);
     check_finite("the upper-bound multiplier block", polish.z_upper_);
     check_finite("the inequality-value block", polish.iq_values_);
+
+    // COMPONENT-WISE NON-NEGATIVITY, on the two price blocks only, and in the
+    // same terms the IPM's own staging check states them: the extension states
+    // both blocks as prices (>= 0 at every coordinate), so a negative entry is
+    // a CORRUPT SIGN and is refused here, naming the coordinate. The
+    // inequality VALUES are signed by construction (cI(x) <= 0 at a feasible
+    // point) and are not checked.
+    //
+    // WHY IT MATTERS ON THIS SIDE: to_sqp_warm_start hands both blocks to
+    // from_interior_point, whose activity rule leaves a wrong-sign price FREE
+    // rather than certifying it (detail/warmstart/warm_start.h), and whose
+    // z = z_lower - z_upper then carries the corruption into an object the
+    // kSeeded clamp defends only within kSeededDualClampTol of zero. Refusing
+    // at staging keeps the corruption class loud on both engines instead of
+    // half-absorbed on each.
+    //
+    // AFTER the finiteness pass above, deliberately: a NaN is refused by its
+    // own message rather than slipping past a comparison that answers false.
+    const auto check_nonnegative = [](const char *block, const Vec &v) {
+        for (Index i = 0; i < v.size(); i++) {
+            if (v[i] < 0.0) {
+                throw std::invalid_argument(fmt::format(
+                    "SqpDriver::stage_warm_start: the staged warm start's \"{0}\" extension holds "
+                    "a NEGATIVE value in {1} at index {2} ({3}); both bound-dual blocks are "
+                    "prices, stated non-negative at every coordinate -- a negative entry is a "
+                    "corrupt value, not a hand-off the crossover can infer activity from",
+                    kIpmPolishTag, block, i, v[i]));
+            }
+        }
+    };
+    check_nonnegative("the lower-bound multiplier block", polish.z_lower_);
+    check_nonnegative("the upper-bound multiplier block", polish.z_upper_);
 }
 
 // THE TERMINAL KKT MEASUREMENT, copied onto the solution from the SqpKkt

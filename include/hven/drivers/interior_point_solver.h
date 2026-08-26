@@ -2125,8 +2125,13 @@ class InteriorPointSolver {
     // describes the wrong problem; both carry no extension at all).
     bool build_polish_extension(const Eigen::VectorXd &iq_values, WarmExtension &out) const;
 
-    // Rejects a staged value whose "hven.ipm.polish.v1" payload cannot be read
-    // or is not at the declared widths, naming the tag. A value carrying NO
+    // Rejects a staged value whose "hven.ipm.polish.v1" payload cannot be
+    // read, is not at the declared widths, holds a non-finite entry, or holds
+    // a NEGATIVE entry in either bound-dual block -- the refusal names the tag
+    // and, for the last two, the block (and for a negative, the coordinate and
+    // its value). The sign check is the SQP staging path's too, in the same
+    // terms: prices are non-negative by the extension's contract, so a
+    // negative one is corruption rather than a seed. A value carrying NO
     // such extension is accepted silently (core-only is a supported hand-off);
     // a FOREIGN tag is ignored entirely (R3's capability downgrade). The
     // decoded value is DISCARDED: the bytes are the one source of truth, and
@@ -2144,7 +2149,10 @@ class InteriorPointSolver {
     // the same three steps a staged constraint-multiplier seed takes, for the
     // same three reasons. Called once per solve, after the push (so the
     // distances the barrier divides by are already positive) and before any
-    // evaluation. PRECONDITION: bounds_ != nullptr.
+    // evaluation. The clamp is a MAGNITUDE guard and stays one: validate_
+    // staged_polish has already refused a negative entry, so what reaches the
+    // floor here is a legitimate zero or near-zero, never a wrong sign.
+    // PRECONDITION: bounds_ != nullptr.
     void apply_polish_bound_duals(const IpmPolishData &polish);
 
     // --- Line search ---

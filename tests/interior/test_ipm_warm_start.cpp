@@ -1465,6 +1465,87 @@ TEST(IpmWarmStart, StagingRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
     }
 }
 
+// THE SIGN REFUSAL, both blocks. The extension states z_lower_/z_upper_ as
+// prices -- non-negative at every coordinate -- so a negative entry is a
+// corrupt value, not a small seed. It is refused at STAGING, loudly and by
+// coordinate, rather than absorbed at application: apply_polish_bound_duals'
+// floor is a magnitude guard for legitimate near-zero and unpriced entries,
+// and without this check it would silently turn a wrong-sign price into a
+// floor value. The SQP staging path refuses the same thing in the same terms
+// (tests/sqp/test_sqp_warm_currency.cpp).
+TEST(IpmWarmStart, StagingRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock) {
+    const WarmBoundedSolve solved;
+    hven::solvers::IpmPolishData polish = polish_of(solved.warm_);
+    ASSERT_EQ(polish.z_lower_.size(), 2);
+    polish.z_lower_[1] = -1.0;
+
+    WarmStartData corrupt = solved.warm_;
+    corrupt.extensions_[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
+
+    NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
+    fresh.optimizer_->set_print_level(10);
+    fresh.transcribe();
+    try {
+        fresh.optimizer_->stage_warm_start(corrupt);
+        ADD_FAILURE() << "expected a refusal";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_EQ(message.rfind("InteriorPointSolver::stage_warm_start:", 0), 0u) << message;
+        EXPECT_NE(message.find(std::string(hven::solvers::kIpmPolishTag)), std::string::npos)
+            << message;
+        EXPECT_NE(message.find("lower-bound multiplier block"), std::string::npos) << message;
+        EXPECT_NE(message.find("index 1"), std::string::npos) << message;
+    }
+    EXPECT_FALSE(fresh.optimizer_->warm_staged_);
+}
+
+TEST(IpmWarmStart, StagingRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock) {
+    const WarmBoundedSolve solved;
+    hven::solvers::IpmPolishData polish = polish_of(solved.warm_);
+    ASSERT_EQ(polish.z_upper_.size(), 2);
+    polish.z_upper_[0] = -1e-12;
+
+    WarmStartData corrupt = solved.warm_;
+    corrupt.extensions_[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
+
+    NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
+    fresh.optimizer_->set_print_level(10);
+    fresh.transcribe();
+    try {
+        fresh.optimizer_->stage_warm_start(corrupt);
+        ADD_FAILURE() << "expected a refusal";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_EQ(message.rfind("InteriorPointSolver::stage_warm_start:", 0), 0u) << message;
+        EXPECT_NE(message.find(std::string(hven::solvers::kIpmPolishTag)), std::string::npos)
+            << message;
+        EXPECT_NE(message.find("upper-bound multiplier block"), std::string::npos) << message;
+        EXPECT_NE(message.find("index 0"), std::string::npos) << message;
+    }
+    EXPECT_FALSE(fresh.optimizer_->warm_staged_);
+}
+
+// The floor of the contract is INCLUSIVE: an all-zero price block is what an
+// unpriced, eliminated or absent side exports on the ordinary path, so it
+// stages and applies. The refusal above is about the SIGN, not about zero.
+TEST(IpmWarmStart, AZeroValuedPriceBlockStillStagesAndSolves) {
+    const WarmBoundedSolve solved;
+    hven::solvers::IpmPolishData polish = polish_of(solved.warm_);
+    polish.z_lower_.setZero();
+    polish.z_upper_.setZero();
+
+    WarmStartData zeroed = solved.warm_;
+    zeroed.extensions_[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
+
+    NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
+    fresh.optimizer_->set_print_level(10);
+    fresh.transcribe();
+    EXPECT_NO_THROW(fresh.optimizer_->stage_warm_start(zeroed));
+    EXPECT_TRUE(fresh.optimizer_->warm_staged_);
+    EXPECT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
+              hven::ConvergenceFlags::CONVERGED);
+}
+
 // The duplicate-tag refusal, THROUGH THE ENGINE. find_ipm_polish's own unit
 // test covers the refusal; this adds that staging routes it out with the entry
 // prefix every other refusal from this entry carries.

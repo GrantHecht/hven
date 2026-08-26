@@ -579,6 +579,89 @@ TEST(SqpWarmCurrency, StagingRefusesAMalformedPolishPayloadNamingTheTag) {
     }
 }
 
+// THE SIGN REFUSAL, both blocks, in the same terms the IPM's staging uses.
+// The extension states z_lower_/z_upper_ as prices -- non-negative at every
+// coordinate -- so a negative entry is corruption, not a seed. Left standing
+// it would reach from_interior_point, whose activity rule leaves a wrong-sign
+// price FREE while z = z_lower - z_upper carries the corruption into the
+// object regardless; the kSeeded clamp defends `lambda_i`, not these blocks.
+// Refused here so the class is loud on both engines rather than half-absorbed
+// on each (tests/interior/test_ipm_warm_start.cpp pins the IPM half).
+TEST(SqpWarmCurrency, StagingRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    WarmStartData data = core_payload(sol, *bridge);
+    IpmPolishData polish = fixture_polish(sol);
+    ASSERT_GT(polish.z_lower_.size(), 0);
+    polish.z_lower_(0) = -1.0;
+    data.extensions_.push_back(polish_extension(polish));
+
+    SqpDriver driver{SqpOptions{}};
+    try {
+        driver.stage_warm_start(data);
+        FAIL() << "a negative price under the known tag must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find(std::string(kIpmPolishTag)), std::string::npos) << message;
+        EXPECT_NE(message.find("stage_warm_start"), std::string::npos) << message;
+        EXPECT_NE(message.find("lower-bound multiplier block"), std::string::npos) << message;
+        EXPECT_NE(message.find("index 0"), std::string::npos) << message;
+    }
+
+    // Refused, and therefore not staged.
+    const SqpSolution after = driver.solve(*bridge, model->start_point());
+    EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
+}
+
+TEST(SqpWarmCurrency, StagingRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    WarmStartData data = core_payload(sol, *bridge);
+    IpmPolishData polish = fixture_polish(sol);
+    ASSERT_GT(polish.z_upper_.size(), 1);
+    polish.z_upper_(1) = -1e-12;
+    data.extensions_.push_back(polish_extension(polish));
+
+    SqpDriver driver{SqpOptions{}};
+    try {
+        driver.stage_warm_start(data);
+        FAIL() << "a negative price under the known tag must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find(std::string(kIpmPolishTag)), std::string::npos) << message;
+        EXPECT_NE(message.find("stage_warm_start"), std::string::npos) << message;
+        EXPECT_NE(message.find("upper-bound multiplier block"), std::string::npos) << message;
+        EXPECT_NE(message.find("index 1"), std::string::npos) << message;
+    }
+
+    const SqpSolution after = driver.solve(*bridge, model->start_point());
+    EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
+}
+
+// The floor of the contract is INCLUSIVE: an all-zero price block is what an
+// unpriced or absent side carries on the ordinary path, so it stages and the
+// solve crosses over. The refusal above is about the SIGN, not about zero.
+TEST(SqpWarmCurrency, AZeroValuedPriceBlockStillStages) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    WarmStartData data = core_payload(sol, *bridge);
+    IpmPolishData polish = fixture_polish(sol);
+    polish.z_lower_.setZero();
+    polish.z_upper_.setZero();
+    data.extensions_.push_back(polish_extension(polish));
+
+    SqpDriver driver{SqpOptions{}};
+    ASSERT_NO_THROW(driver.stage_warm_start(data));
+    const SqpSolution out = driver.solve(*bridge, model->start_point());
+    EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
+}
+
 // A FOREIGN tag is skipped silently (R3) -- a capability downgrade, not an
 // error. The value stages, applies, and the solve runs as a core-only warm one.
 TEST(SqpWarmCurrency, AForeignExtensionTagIsSkippedSilently) {
