@@ -64,9 +64,16 @@ if [[ ${#BINARIES[@]} -eq 0 ]]; then
     # Fallback: every executable under the test tree.
     mapfile -t BINARIES < <(find "$BUILD/tests" -maxdepth 3 -type f -executable | sort -u)
 fi
-echo "coverage report merges ${#BINARIES[@]} test binaries" >&2
 OBJ_ARGS=()
-for b in "${BINARIES[@]}"; do [[ -x "$b" ]] && OBJ_ARGS+=(-object "$b"); done
+for b in "${BINARIES[@]}"; do
+    # ctest's registry also lists script tests (the golden rig's audit runs
+    # a .sh); llvm-cov dies on a non-object file, so take only real ELF
+    # executables.
+    [[ -x "$b" ]] || continue
+    [[ "$(head -c4 "$b" 2>/dev/null)" == $'\x7fELF' ]] || continue
+    OBJ_ARGS+=(-object "$b")
+done
+echo "coverage report merges ${#OBJ_ARGS[@]} ELF test binaries (of ${#BINARIES[@]} ctest entries)" >&2
 
 "$LLVM_COV" report "${OBJ_ARGS[@]}" -instr-profile="$BUILD/hven.profdata" \
     -ignore-filename-regex='dep/|tests/|bench/|build' > "$OUT/summary.txt"
