@@ -21,9 +21,11 @@
 // into a solve) -- that is Task 3 and beyond; this task is the value object
 // and its population alone.
 
+#include <bit>
 #include <cstdint>
 #include <limits>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <Eigen/SparseCore>
@@ -644,6 +646,14 @@ TEST(WarmStart, HotReusesFactorization) {
     EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
 }
 
+// BITWISE comparison of two doubles, the idiom the three R6 pins share: the
+// bit patterns, not `==`. See the call sites below for why that distinction is
+// the one R6 asks for.
+void expect_same_bits(double a, double b, const std::string &what) {
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(a), std::bit_cast<std::uint64_t>(b))
+        << what << ": " << a << " vs " << b;
+}
+
 // M5 R6: HOT-STATE REUSE IS NEVER OBSERVABLE IN ANSWERS.
 //
 // The test above pins that the reuse HAPPENS. This one pins the consequence
@@ -701,25 +711,29 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     ASSERT_EQ(hot.history[0].qp_factorizations, 0);
     ASSERT_GE(warm.history[0].qp_factorizations, 1);
 
-    // THE ANSWER, bit for bit.
+    // THE ANSWER, bit for bit -- read as BITS, not as `==`: EXPECT_EQ on two
+    // doubles calls -0.0 and +0.0 equal though their bits differ, and would
+    // call NaN unequal to itself. Same idiom as the other two R6 pins.
     EXPECT_EQ(hot.status, warm.status);
-    EXPECT_EQ(hot.f, warm.f);
-    EXPECT_EQ(hot.stationarity, warm.stationarity);
-    EXPECT_EQ(hot.feasibility, warm.feasibility);
-    EXPECT_EQ(hot.complementarity, warm.complementarity);
-    EXPECT_EQ(hot.kkt_residual, warm.kkt_residual);
+    expect_same_bits(hot.f, warm.f, "objective");
+    expect_same_bits(hot.stationarity, warm.stationarity, "stationarity");
+    expect_same_bits(hot.feasibility, warm.feasibility, "feasibility");
+    expect_same_bits(hot.complementarity, warm.complementarity, "complementarity");
+    expect_same_bits(hot.kkt_residual, warm.kkt_residual, "kkt_residual");
     ASSERT_EQ(hot.x.size(), warm.x.size());
     for (Index i = 0; i < hot.x.size(); ++i) {
-        EXPECT_EQ(hot.x(i), warm.x(i)) << "primal " << i;
-        EXPECT_EQ(hot.z(i), warm.z(i)) << "bound multiplier " << i;
+        expect_same_bits(hot.x(i), warm.x(i), "primal " + std::to_string(i));
+        expect_same_bits(hot.z(i), warm.z(i), "bound multiplier " + std::to_string(i));
     }
     ASSERT_EQ(hot.lambda_e.size(), warm.lambda_e.size());
     for (Index i = 0; i < hot.lambda_e.size(); ++i) {
-        EXPECT_EQ(hot.lambda_e(i), warm.lambda_e(i)) << "equality multiplier " << i;
+        expect_same_bits(hot.lambda_e(i), warm.lambda_e(i),
+                         "equality multiplier " + std::to_string(i));
     }
     ASSERT_EQ(hot.lambda_i.size(), warm.lambda_i.size());
     for (Index i = 0; i < hot.lambda_i.size(); ++i) {
-        EXPECT_EQ(hot.lambda_i(i), warm.lambda_i(i)) << "inequality multiplier " << i;
+        expect_same_bits(hot.lambda_i(i), warm.lambda_i(i),
+                         "inequality multiplier " + std::to_string(i));
     }
 
     // THE PATH, not only the endpoint.
@@ -727,14 +741,15 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     for (std::size_t k = 0; k < hot.history.size(); ++k) {
         const SqpIterate &h = hot.history[k];
         const SqpIterate &w = warm.history[k];
-        EXPECT_EQ(h.f, w.f) << "row " << k;
-        EXPECT_EQ(h.stationarity, w.stationarity) << "row " << k;
-        EXPECT_EQ(h.feasibility, w.feasibility) << "row " << k;
-        EXPECT_EQ(h.complementarity, w.complementarity) << "row " << k;
-        EXPECT_EQ(h.kkt_residual, w.kkt_residual) << "row " << k;
-        EXPECT_EQ(h.violation_l1, w.violation_l1) << "row " << k;
-        EXPECT_EQ(h.tr_radius, w.tr_radius) << "row " << k;
-        EXPECT_EQ(h.step_norm, w.step_norm) << "row " << k;
+        const std::string row = "row " + std::to_string(k) + " ";
+        expect_same_bits(h.f, w.f, row + "f");
+        expect_same_bits(h.stationarity, w.stationarity, row + "stationarity");
+        expect_same_bits(h.feasibility, w.feasibility, row + "feasibility");
+        expect_same_bits(h.complementarity, w.complementarity, row + "complementarity");
+        expect_same_bits(h.kkt_residual, w.kkt_residual, row + "kkt_residual");
+        expect_same_bits(h.violation_l1, w.violation_l1, row + "violation_l1");
+        expect_same_bits(h.tr_radius, w.tr_radius, row + "tr_radius");
+        expect_same_bits(h.step_norm, w.step_norm, row + "step_norm");
         EXPECT_EQ(h.verdict, w.verdict) << "row " << k;
         EXPECT_EQ(h.qp_status, w.qp_status) << "row " << k;
         EXPECT_EQ(h.qp_minor_iters, w.qp_minor_iters) << "row " << k;

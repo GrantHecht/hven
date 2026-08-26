@@ -29,6 +29,7 @@
 // Names carry a `Currency` prefix: this suite's TUs share a link unit, so
 // file-scope names must not collide with the other files here.
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -1021,6 +1022,15 @@ TEST(SqpWarmCurrency, ADeclarationWithAnExtraRowIsStaleAndIsRefused) {
 
 namespace {
 
+// BITWISE, and it says so by reading the bits. EXPECT_EQ on two doubles is
+// `==`, which calls -0.0 and +0.0 equal though their bits differ and would
+// call NaN unequal to itself; R6 asks for bit identity, so the comparison is
+// on the bit patterns -- the same idiom the interior engine's R6 pin uses.
+void expect_same_bits(double a, double b, const std::string &what) {
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(a), std::bit_cast<std::uint64_t>(b))
+        << what << ": " << a << " vs " << b;
+}
+
 // Every ANSWER an SqpSolution reports -- the point, its prices, the objective,
 // the terminal KKT measurement and the verdict -- compared BITWISE. R6 asks for
 // exact identity, not a neighbourhood of it: a margin here would be a claim
@@ -1031,24 +1041,26 @@ namespace {
 void expect_same_answer(const SqpSolution &hot, const SqpSolution &cold) {
     EXPECT_EQ(hot.status, cold.status);
     EXPECT_EQ(hot.infeasibility_certified, cold.infeasibility_certified);
-    EXPECT_EQ(hot.f, cold.f);
-    EXPECT_EQ(hot.stationarity, cold.stationarity);
-    EXPECT_EQ(hot.feasibility, cold.feasibility);
-    EXPECT_EQ(hot.complementarity, cold.complementarity);
-    EXPECT_EQ(hot.kkt_residual, cold.kkt_residual);
+    expect_same_bits(hot.f, cold.f, "objective");
+    expect_same_bits(hot.stationarity, cold.stationarity, "stationarity");
+    expect_same_bits(hot.feasibility, cold.feasibility, "feasibility");
+    expect_same_bits(hot.complementarity, cold.complementarity, "complementarity");
+    expect_same_bits(hot.kkt_residual, cold.kkt_residual, "kkt_residual");
 
     ASSERT_EQ(hot.x.size(), cold.x.size());
     for (Index i = 0; i < hot.x.size(); ++i) {
-        EXPECT_EQ(hot.x(i), cold.x(i)) << "primal " << i;
-        EXPECT_EQ(hot.z(i), cold.z(i)) << "bound multiplier " << i;
+        expect_same_bits(hot.x(i), cold.x(i), "primal " + std::to_string(i));
+        expect_same_bits(hot.z(i), cold.z(i), "bound multiplier " + std::to_string(i));
     }
     ASSERT_EQ(hot.lambda_e.size(), cold.lambda_e.size());
     for (Index i = 0; i < hot.lambda_e.size(); ++i) {
-        EXPECT_EQ(hot.lambda_e(i), cold.lambda_e(i)) << "equality multiplier " << i;
+        expect_same_bits(hot.lambda_e(i), cold.lambda_e(i),
+                         "equality multiplier " + std::to_string(i));
     }
     ASSERT_EQ(hot.lambda_i.size(), cold.lambda_i.size());
     for (Index i = 0; i < hot.lambda_i.size(); ++i) {
-        EXPECT_EQ(hot.lambda_i(i), cold.lambda_i(i)) << "inequality multiplier " << i;
+        expect_same_bits(hot.lambda_i(i), cold.lambda_i(i),
+                         "inequality multiplier " + std::to_string(i));
     }
 
     // THE PATH, not only the endpoint: the two solves visited the same
@@ -1059,14 +1071,15 @@ void expect_same_answer(const SqpSolution &hot, const SqpSolution &cold) {
     for (std::size_t k = 0; k < hot.history.size(); ++k) {
         const auto &a = hot.history[k];
         const auto &b = cold.history[k];
-        EXPECT_EQ(a.f, b.f) << "row " << k;
-        EXPECT_EQ(a.stationarity, b.stationarity) << "row " << k;
-        EXPECT_EQ(a.feasibility, b.feasibility) << "row " << k;
-        EXPECT_EQ(a.complementarity, b.complementarity) << "row " << k;
-        EXPECT_EQ(a.kkt_residual, b.kkt_residual) << "row " << k;
-        EXPECT_EQ(a.violation_l1, b.violation_l1) << "row " << k;
-        EXPECT_EQ(a.tr_radius, b.tr_radius) << "row " << k;
-        EXPECT_EQ(a.step_norm, b.step_norm) << "row " << k;
+        const std::string row = "row " + std::to_string(k) + " ";
+        expect_same_bits(a.f, b.f, row + "f");
+        expect_same_bits(a.stationarity, b.stationarity, row + "stationarity");
+        expect_same_bits(a.feasibility, b.feasibility, row + "feasibility");
+        expect_same_bits(a.complementarity, b.complementarity, row + "complementarity");
+        expect_same_bits(a.kkt_residual, b.kkt_residual, row + "kkt_residual");
+        expect_same_bits(a.violation_l1, b.violation_l1, row + "violation_l1");
+        expect_same_bits(a.tr_radius, b.tr_radius, row + "tr_radius");
+        expect_same_bits(a.step_norm, b.step_norm, row + "step_norm");
         EXPECT_EQ(a.verdict, b.verdict) << "row " << k;
         EXPECT_EQ(a.qp_solved, b.qp_solved) << "row " << k;
         EXPECT_EQ(a.qp_status, b.qp_status) << "row " << k;
@@ -1152,13 +1165,17 @@ TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswe
 // carried cache is again the only difference between them.
 //
 // NEITHER TEST CLAIMS A GRANTED REUSE, and that is stated rather than glossed:
-// measured on this fixture, the reused driver pays exactly the factorizations
-// and symbolic analyses the fresh one pays, so the gate above was not passed
-// on either. What these two pin is that whatever the driver carried out of an
-// earlier solve changed nothing -- which is the question the brief asks of a
-// re-solve. The GRANTED case, where the fast path really does skip a
-// factorization and the answer is still bit-identical, is pinned separately by
-// tests/sqp/test_warm_start.cpp's WarmStart.HotReuseIsNeverAnswerObservable.
+// measured on this fixture, NO FACTORIZATION WAS SAVED -- the reused driver
+// pays exactly the factorizations and symbolic analyses the fresh one pays.
+// That is a statement about the work, not about the gate: qp_engine.h notes
+// its five conditions are NECESSARY BUT NOT SUFFICIENT for `factorizations ==
+// 0`, so equal counts are consistent with a granted reuse that
+// border_candidate then rebuilt anyway. What these two pin is that whatever
+// the driver carried out of an earlier solve changed nothing -- which is the
+// question the brief asks of a re-solve. The case where the fast path
+// demonstrably DOES skip a factorization and the answer is still bit-identical
+// is pinned separately by tests/sqp/test_warm_start.cpp's
+// WarmStart.HotReuseIsNeverAnswerObservable.
 TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);

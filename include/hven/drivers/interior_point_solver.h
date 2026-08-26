@@ -640,13 +640,16 @@ class InteriorPointSolver {
         //
         // THE FOUR SCALAR RESIDUALS AT THE REPORTED ITERATE, copied at each
         // phase's exit from the IterateInfo of the very iterate primals_ and
-        // the multiplier blocks above describe -- the return_best_ pick when
-        // that setting is on, the last iterate otherwise. They are what a
-        // consumer's outcome record needs and could not otherwise obtain:
-        // eq_cons_/iq_cons_ give the PRIMAL residuals as vectors, but
-        // stationarity and complementarity are not reconstructible from a
-        // SolveResult at all (that would take the gradient and the Jacobian,
-        // which this struct does not carry).
+        // the multiplier blocks above describe: the return_best_ pick when
+        // that setting is on AND the exit is not CONVERGED, the last iterate
+        // otherwise. That is the return_best_ substitution's own condition,
+        // not a paraphrase of it -- a converged solve reports the point it
+        // converged at -- and alg_impl selects the row on exactly that
+        // expression. They are what a consumer's outcome record needs and
+        // could not otherwise obtain: eq_cons_/iq_cons_ give the PRIMAL
+        // residuals as vectors, but stationarity and complementarity are not
+        // reconstructible from a SolveResult at all (that would take the
+        // gradient and the Jacobian, which this struct does not carry).
         //
         // SAME DEFINITIONS AS IterateInfo's own fields, which are the
         // quantities converge_check() gates on -- so a caller comparing one
@@ -662,18 +665,32 @@ class InteriorPointSolver {
         // the convergence test saw them, and a partial unscaling would make
         // the four incomparable with each other and with the tolerances.
         //
+        // ON A RESTORATION-ACTIVE EXIT THEY DESCRIBE THE RESTORATION
+        // SUBPROBLEM, on its proximal scale, not the NLP -- so a comparison
+        // against a Settings tolerance is meaningless there even though
+        // obj_val_ beside them is the true objective. The condition a
+        // consumer can check: restoration_mode_ != off AND converge_flag_ is
+        // NOTCONVERGED or DIVERGING. See alg_impl's locally-infeasible break
+        // and its DIVERGING fall-through for why the trailing row is never
+        // refilled, and track_best_iterate's own note for why a
+        // feasibility-mode row may not compete with true-objective ones.
+        //
         // LAST PHASE WINS on a multi-phase call (solve_optimize()), matching
-        // the last_* diagnostics below. Reset to 0 per call by
-        // reset_accumulators(); a call that threw part-way leaves whatever
-        // the last completed phase wrote, exactly as obj_val_ does.
+        // the last_* diagnostics below. Reset to NaN per call by
+        // reset_accumulators(): NaN means UNMEASURED, never "zero residual",
+        // so a call that threw before any phase completed reports no
+        // measurement rather than a perfect-looking one -- the same
+        // convention SqpSolution's four columns carry, so one outcome record
+        // reads both engines the same way. A call that threw part-way leaves
+        // whatever the last completed phase wrote, exactly as obj_val_ does.
         /// @brief inf-norm dual infeasibility (z-form) at the reported iterate.
-        double kkt_inf_ = 0;
+        double kkt_inf_ = std::numeric_limits<double>::quiet_NaN();
         /// @brief Complementarity (barrier) error at the reported iterate.
-        double barr_inf_ = 0;
+        double barr_inf_ = std::numeric_limits<double>::quiet_NaN();
         /// @brief inf-norm equality-constraint residual; 0 when equal_cons_ == 0.
-        double econ_inf_ = 0;
+        double econ_inf_ = std::numeric_limits<double>::quiet_NaN();
         /// @brief inf-norm inequality-constraint residual; 0 when inequal_cons_ == 0.
-        double icon_inf_ = 0;
+        double icon_inf_ = std::numeric_limits<double>::quiet_NaN();
 
         // --- Timing (seconds) ---
         /// @brief Total wall-clock time of the most recent call.
@@ -859,7 +876,8 @@ class InteriorPointSolver {
         Eigen::ComputationInfo last_kkt_info_ = Eigen::Success;
 
         /// Resets the accumulated timing/iteration counters, the convergence
-        /// flag, last_kkt_info_, the four terminal KKT residuals, the
+        /// flag, last_kkt_info_, the four terminal KKT residuals (to NaN --
+        /// see their own note), the
         /// SOC/watchdog/recovery counters and every last_* diagnostic
         /// (including last_eval_exception_). primals_ and
         /// obj_val_ are overwritten unconditionally by alg_impl each phase, as
@@ -883,10 +901,10 @@ class InteriorPointSolver {
             print_time_ = 0;
             solver_init_time_ = 0;
             iter_num_ = 0;
-            kkt_inf_ = 0;
-            barr_inf_ = 0;
-            econ_inf_ = 0;
-            icon_inf_ = 0;
+            kkt_inf_ = std::numeric_limits<double>::quiet_NaN();
+            barr_inf_ = std::numeric_limits<double>::quiet_NaN();
+            econ_inf_ = std::numeric_limits<double>::quiet_NaN();
+            icon_inf_ = std::numeric_limits<double>::quiet_NaN();
             last_kkt_info_ = Eigen::Success;
             soc_steps_taken_ = 0;
             watchdog_activations_ = 0;

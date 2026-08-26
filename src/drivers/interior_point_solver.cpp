@@ -3354,14 +3354,30 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // Print exit statistics
     assert(!iters.empty());
     assert(!settings_.return_best_ || BestIter < static_cast<int>(iters.size()));
-    int retiter = (settings_.return_best_ ? BestIter : static_cast<int>(iters.size()) - 1);
-    // THE TERMINAL KKT RESIDUALS, REPORTED. `iters[retiter]` is already this
-    // phase's reported iterate -- the same row print_exit_stats prints and
-    // the one whose XSL primals_/the multiplier blocks were taken from, under
-    // return_best_ or not -- so publishing its four residual columns says
-    // nothing new about which point is being described. Written per phase,
-    // last phase wins, exactly like the last_* diagnostics; see SolveResult's
-    // field note for the scale they are on.
+    // THE REPORTED ITERATE, and it is NOT simply the return_best_ pick. The
+    // substitution that makes primals_/obj_val_/the multiplier blocks describe
+    // BestIter is itself guarded on the exit NOT being converged -- both break
+    // sites above read `ExitCode != CONVERGED && settings_.return_best_` --
+    // because a converged solve reports the point it converged AT, whatever
+    // some earlier iterate scored on best_criteria_. This expression mirrors
+    // that guard, so `iters[retiter]` names the iterate the caller's result
+    // actually describes on EVERY path.
+    //
+    // BOTH CONSUMERS BELOW NEED THAT, and one of them predates this commit:
+    // print_exit_stats prints this row's prim_obj_/kkt_inf_/barr_inf_/
+    // econ_inf_/icon_inf_ as the solve's exit statistics, so under a CONVERGED
+    // return_best_ exit it used to print an earlier iterate's residuals beside
+    // a result describing the last one. The unconditional form was harmless
+    // while it fed only the printout and became a wrong-answer shape the
+    // moment the same row was promoted onto SolveResult; one variable, one
+    // fix, both consumers.
+    const int retiter = (settings_.return_best_ && ExitCode != ConvergenceFlags::CONVERGED)
+                            ? BestIter
+                            : static_cast<int>(iters.size()) - 1;
+    // THE TERMINAL KKT RESIDUALS, REPORTED -- the four residual columns of the
+    // row selected just above. Written per phase, last phase wins, exactly
+    // like the last_* diagnostics; see SolveResult's field note for the scales
+    // they are on and for the restoration-mode caveat.
     this->result_.kkt_inf_ = iters[retiter].kkt_inf_;
     this->result_.barr_inf_ = iters[retiter].barr_inf_;
     this->result_.econ_inf_ = iters[retiter].econ_inf_;
