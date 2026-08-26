@@ -1161,6 +1161,130 @@ TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
     EXPECT_EQ(hven::solvers::find_ipm_polish(warm), nullptr);
 }
 
+// EVERY finite variable bound this problem has sits on a BOUND-FIXED variable
+// (x0 is declared at [0.25, 0.25]; x1 is free on both sides). That is what
+// makes the fixed-variable treatment a bound-set SWITCH here rather than a
+// re-partitioning: under RelaxBounds x0 keeps a widened two-sided box and the
+// bound set has members, while under MakeParameter x0 leaves the solver's
+// variable space entirely and the bound set is EMPTY -- on the same program,
+// with no re-declaration. It is the reachable in-tree route to "the same NLP
+// re-lays with the bound set emptied on a solver instance that has already
+// solved it bounded", which is what the pin below needs.
+//
+// min 0.5*((x0 - 1)^2 + (x1 + 2)^2)  s.t.  x0 + x1 <= 5.
+struct WarmFixedOnlyBoundProblem : NLPProblem {
+    int num_vars() const override { return 2; }
+    int num_cons() const override { return 1; }
+    int num_jac_nonzeros() const override { return 2; }
+    int num_hess_nonzeros() const override { return 2; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << 0.25, -kWarmInf;
+        xu << 0.25, kWarmInf;
+        gl << -kWarmInf;
+        gu << 5.0;
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = 0.5 * ((x[0] - 1.0) * (x[0] - 1.0) + (x[1] + 2.0) * (x[1] + 2.0));
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] - 1.0;
+        g[1] = x[1] + 2.0;
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] + x[1];
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 1.0;
+        v[1] = 1.0;
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v.setConstant(obj_factor);
+    }
+    std::string name() const override { return "WarmFixedOnlyBoundProblem"; }
+};
+
+// W2's L3, pinned. bounds_ is established by a conditional in
+// run_phase_sequence, and that conditional now clears the field on its else
+// branch: a solve whose bound set came up empty must not be left pointing at
+// the PREVIOUS solve's set. Without an else the pointer survives the re-lay,
+// and the export's `if (this->bounds_)` gate then claims the polish hand-off
+// on a problem that has no variable-bound barrier terms at all -- an all-zero
+// (z_lower, z_upper) pair that a consumer would stage and seed from.
+//
+// Both solves run on ONE InteriorPointSolver instance holding ONE program:
+// only Settings::fixed_variable_treatment_ moves between them, which is the
+// route the field's own doc comment names.
+TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstance) {
+    NLPSolver solver(std::make_shared<WarmFixedOnlyBoundProblem>());
+    solver.optimizer_->set_print_level(10);
+    // The widest relaxation the contract allows (1e-2), so x0's relaxed box is
+    // [0.24, 0.26] -- room enough for the barrier to sit inside, rather than
+    // the default 1e-8's 5e-9-wide slit.
+    solver.optimizer_->set_bound_relax_factor(hven::solvers::kMaxBoundRelaxFactor);
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::RelaxBounds);
+    solver.transcribe();
+
+    Eigen::VectorXd x0(2);
+    x0 << 0.25, 1.0;
+
+    // --- Leg 1: bounded. The bound set has members and the export says so.
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(solver.nlp_->variable_bound_set().any())
+        << "RelaxBounds must leave x0 as a two-sided bounded variable";
+    ASSERT_EQ(solver.optimizer_->result().bound_lmults_.size(), 2);
+
+    const WarmStartData bounded = solver.optimizer_->export_warm_start();
+    ASSERT_EQ(bounded.extensions_.size(), 1u);
+    EXPECT_EQ(bounded.extensions_[0].tag_, std::string(hven::solvers::kIpmPolishTag));
+
+    // --- The re-lay: same instance, same program, no set_nlp(). The treatment
+    // eliminates the only bound-carrying variable, so the bound set empties.
+    solver.optimizer_->set_fixed_variable_treatment(
+        hven::solvers::FixedVariableTreatments::MakeParameter);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_TRUE(solver.nlp_->is_reduced());
+    ASSERT_FALSE(solver.nlp_->variable_bound_set().any())
+        << "MakeParameter eliminates x0, and nothing else here has a finite bound";
+
+    // --- Leg 2: the bound story is ABSENT, in all three places it is told.
+    //
+    // (a) The result's own signed block is EMPTY, which is exactly what the
+    //     field documents for a problem with no finite variable bounds -- not
+    //     a stale two-entry vector from leg 1, and not a zero-filled one.
+    EXPECT_EQ(solver.optimizer_->result().bound_lmults_.size(), 0);
+
+    const WarmStartData unbounded = solver.optimizer_->export_warm_start();
+
+    // (b) NO extension -- not an extension carrying zeros. Same rule
+    //     ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds pins for a
+    //     problem that never had bounds; a problem that just lost them is not
+    //     a different case.
+    EXPECT_TRUE(unbounded.extensions_.empty());
+    EXPECT_EQ(hven::solvers::find_ipm_polish(unbounded), nullptr);
+
+    // (c) The currency's core block is still DECLARED-WIDTH -- the currency's
+    //     lengths are the declared ones unconditionally -- and every entry is
+    //     an exact zero, because there was no reported block to scatter.
+    ASSERT_EQ(unbounded.bound_lmults_.size(), 2);
+    EXPECT_EQ(unbounded.bound_lmults_[0], 0.0);
+    EXPECT_EQ(unbounded.bound_lmults_[1], 0.0);
+}
+
 TEST(IpmWarmStart, ThePolishPayloadSurvivesTheCurrencysOwnRoundTripVerbatim) {
     const WarmBoundedSolve solved;
     const WarmStartData decoded =

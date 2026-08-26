@@ -4319,8 +4319,29 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->validate_staged_multipliers(seed_eq_mults, seed_iq_mults);
     }
 
-    if (this->nlp_->variable_bound_set().any())
+    // The else is NOT redundant with the unconditional clear a few phases up.
+    // That clear runs BEFORE configure_variable_treatment, and its job is to
+    // keep a THROWING configuration from leaving this solver pointing at a
+    // rejected classification; it happens to also cover the empty-set case
+    // today, but only at a distance, across two intervening throw sites. The
+    // else makes "bounds_ describes the bound set THIS call laid, or is null"
+    // a local invariant of the statement that establishes it.
+    //
+    // The re-lay that needs it: a treatment switch on ONE solver instance,
+    // with no intervening set_nlp() -- RelaxBounds (which records a widened
+    // bound pair for a bound-fixed variable) to MakeParameter or
+    // MakeConstraint (neither of which does) -- or a caller's own
+    // NonLinearProgram::clear_variable_bounds(). Everything downstream reads
+    // "bounds_ != nullptr" as "this solve has variable-bound barrier terms":
+    // the barrier assembly, result_.bound_lmults_, and the warm-start
+    // capture's polish extension, which on a stale pointer would claim the
+    // hand-off with an all-zero (z_lower, z_upper) pair taken against a bound
+    // set that no longer has members.
+    if (this->nlp_->variable_bound_set().any()) {
         this->bounds_ = &this->nlp_->variable_bound_set();
+    } else {
+        this->bounds_ = nullptr;
+    }
 
     // Rebuild acceptance_/mechanism_/governor_/recovery_ (and, when
     // restoration_mode_ != off, restoration_) from the just-validated Settings
