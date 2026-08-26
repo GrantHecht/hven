@@ -646,7 +646,9 @@ class InteriorPointSolver {
         // On a restoration-active exit -- restoration_mode_ != off with
         // converge_flag_ NOTCONVERGED or DIVERGING -- the four describe the
         // restoration subproblem on its proximal scale, not the NLP, and a
-        // comparison against a Settings tolerance is meaningless there.
+        // comparison against a Settings tolerance is meaningless there. The
+        // warm-start value such a solve exports carries NO polish extension,
+        // for the same reason (export_warm_start's EXTENSIONS note).
         //
         // Last phase wins on a multi-phase call, like the last_* diagnostics
         // below. reset_accumulators() sets them to NaN per call; NaN means
@@ -1530,13 +1532,19 @@ class InteriorPointSolver {
     ///
     /// EXTENSIONS: exactly one, `"hven.ipm.polish.v1"`
     /// (warmstart/ipm_polish_extension.h), and only when the solve had a
-    /// non-empty variable-bound set. It carries what the signed core block
-    /// cannot: the invertible (z_lower, z_upper) pair at declared width, the
-    /// inequality values cI(x) the crossover judges rows against, and the
-    /// barrier parameter the solve ended at -- all on the caller's objective
-    /// scale, like the core blocks beside them. A problem with no finite
-    /// variable bounds carries no extension, because there is no pair to
-    /// carry: the core-only value is the whole hand-off there.
+    /// non-empty variable-bound set AND did not end on a restoration-active
+    /// exit (SolveResult's own caveat on the four residuals names that
+    /// condition). It carries what the signed core block cannot: the
+    /// invertible (z_lower, z_upper) pair at declared width, the inequality
+    /// values cI(x) the crossover judges rows against, and the barrier
+    /// parameter the solve ended at -- all on the caller's objective scale,
+    /// like the core blocks beside them. A problem with no finite variable
+    /// bounds carries no extension, because there is no pair to carry; a
+    /// restoration-active exit carries none because its pair, its barrier
+    /// level and (under l1_nested) its inequality values are the RESTORATION
+    /// subproblem's, not the declared problem's. In both cases the core-only
+    /// value is the whole hand-off, which stages and applies exactly as any
+    /// other core-only value does.
     ///
     /// @return The captured value, by copy.
     /// @throws std::logic_error if no solve has completed on this instance --
@@ -1982,6 +1990,32 @@ class InteriorPointSolver {
     // in the solve reads it back.
     double solve_exit_mu_ = 0.0;
 
+    // Did the last phase of this solve end with feasibility restoration still
+    // active (SolveResult's restoration-active-exit condition, the four
+    // residuals' own caveat)? Written once per phase beside solve_exit_mu_,
+    // same last-phase-wins semantics. Read by exactly one thing: the capture,
+    // which SUPPRESSES the polish extension when it is true.
+    //
+    // WHY THE EXTENSION AND NOT THE CORE. Every block the extension carries is
+    // restoration-space on such an exit: under l1_nested the RHS constraint
+    // rows hold the condensed r-tilde, so result_.iq_cons_ is not cI(x) at all,
+    // and under either mode the bound-dual pair and mu describe the
+    // restoration subproblem's own barrier. The extension's contract states
+    // those blocks as cI(x) and as non-negative prices at a barrier level
+    // (warmstart/ipm_polish_extension.h), and the crossover bridge infers
+    // activity from them -- a payload must not claim that with
+    // restoration-space values. The CORE blocks make no such claim: they are
+    // "the point and multipliers this solve returned", which is exactly what
+    // they are, and the caveat on the four residuals above documents the scale
+    // they are on.
+    //
+    // KEYED ON THE EXIT, NOT ON THE VALUES. return_best_ substitutes an
+    // optimality-mode iterate on these exits (best-iterate tracking is
+    // suspended while restoration is active), so its blocks would be clean --
+    // the suppression applies there too rather than resting on a chain of
+    // reasoning about which iterate a substitution happened to leave behind.
+    bool solve_exit_restoration_active_ = false;
+
     // --- Callbacks ---
     EarlyCallBackType early_callback_;
     bool early_callback_enabled_ = false;
@@ -2085,9 +2119,10 @@ class InteriorPointSolver {
     // not be mutated by a side product of the solve. The capture copies and
     // divides; the live state is untouched.
     //
-    // PRECONDITION: bounds_ != nullptr (the caller's own gate -- a problem
-    // with no finite variable bounds has no pair to carry, and carries no
-    // extension at all).
+    // PRECONDITION: bounds_ != nullptr AND solve_exit_restoration_active_ ==
+    // false (the caller's own gate -- a problem with no finite variable bounds
+    // has no pair to carry, and a restoration-active exit has one that
+    // describes the wrong problem; both carry no extension at all).
     bool build_polish_extension(const Eigen::VectorXd &iq_values, WarmExtension &out) const;
 
     // Rejects a staged value whose "hven.ipm.polish.v1" payload cannot be read

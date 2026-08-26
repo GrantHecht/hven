@@ -3317,6 +3317,12 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // capture decides whether anything wants it. Still at the solver's
     // objective scale; the capture divides it out.
     this->solve_exit_mu_ = mu;
+    // Written beside it, from the same local the obj_val_ override above
+    // reads: did THIS phase end with restoration still active? The capture
+    // suppresses the polish extension when it did -- see the flag's own note
+    // in the header for what is contaminated and why the core blocks are not
+    // the same question.
+    this->solve_exit_restoration_active_ = restoration_was_active;
 
     if (this->bounds_) {
         // Combine the two per-side multipliers into the single signed z that
@@ -3720,13 +3726,24 @@ void hven::solvers::InteriorPointSolver::capture_completed_warm_start() {
         }
     }
 
-    // Only when this solve had a variable-bound set: with no bounds there is
-    // no (z_lower, z_upper) pair to carry, and an extension holding two zero
-    // vectors would claim a capability that says nothing. The inequality
-    // values it carries are the declared block computed above, by the same
-    // rule the multiplier blocks take, so the extension and the core cannot
-    // disagree about the width of the row space they describe.
-    if (this->bounds_) {
+    // Only when this solve had a variable-bound set AND did not end with
+    // feasibility restoration still active.
+    //
+    // With no bounds there is no (z_lower, z_upper) pair to carry, and an
+    // extension holding two zero vectors would claim a capability that says
+    // nothing. On a restoration-active exit there IS a pair, but it -- like
+    // the barrier level beside it and, under l1_nested, result_.iq_cons_
+    // itself -- describes the restoration subproblem rather than the declared
+    // one, and the extension's contract is stated over the declared problem.
+    // Same rule in both cases: no capability claimed where the blocks do not
+    // say what the tag says they do. See solve_exit_restoration_active_'s note
+    // in the header for why the core blocks below are not the same question.
+    //
+    // The inequality values the extension carries are the declared block
+    // computed above, by the same rule the multiplier blocks take, so the
+    // extension and the core cannot disagree about the width of the row space
+    // they describe.
+    if (this->bounds_ && !this->solve_exit_restoration_active_) {
         Eigen::VectorXd declared_iq_values;
         WarmExtension polish;
         if (!declared_block(this->result_.iq_cons_, this->nlp_->inequal_cons_,

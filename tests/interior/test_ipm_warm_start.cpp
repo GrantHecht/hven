@@ -1259,6 +1259,125 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
     EXPECT_EQ(unbounded.bound_lmults_[1], 0.0);
 }
 
+// A BOUNDED problem with NO feasible point: the box [-1, 1]^2 cannot reach the
+// equality row x0 + x1 = 5, and the inequality row is slack everywhere in it.
+// Solved under a nested-l1 restoration preset, this is the fixture that ends a
+// solve with feasibility restoration still active -- SolveResult's own
+// restoration-active-exit condition, and the one exit on which the polish
+// extension's blocks would be the RESTORATION subproblem's rather than the
+// declared problem's (under l1_nested the RHS constraint rows carry the
+// condensed residual, so result().iq_cons_ is not cI(x) at all).
+struct WarmInfeasibleBoundedProblem : NLPProblem {
+    int num_vars() const override { return 2; }
+    int num_cons() const override { return 2; }
+    int num_jac_nonzeros() const override { return 4; }
+    int num_hess_nonzeros() const override { return 2; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << -1.0, -1.0;
+        xu << 1.0, 1.0;
+        gl << 5.0, -kWarmInf;
+        gu << 5.0, 10.0;
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = 0.5 * (x[0] * x[0] + x[1] * x[1]);
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0];
+        g[1] = x[1];
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] + x[1];
+        g[1] = x[0] - x[1];
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0, 1, 1;
+        c << 0, 1, 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 1.0;
+        v[1] = 1.0;
+        v[2] = 1.0;
+        v[3] = -1.0;
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v.setConstant(obj_factor);
+    }
+    std::string name() const override { return "WarmInfeasibleBoundedProblem"; }
+};
+
+// THE RESTORATION-CONTAMINATED EXIT CARRIES NO EXTENSION.
+//
+// The core blocks are still captured and still exported -- they claim only
+// "the point and multipliers this solve returned", which is what they are, and
+// SolveResult's own caveat documents the scale they are on. The EXTENSION is
+// suppressed: its contract states cI(x) and two non-negative prices at a
+// barrier level over the DECLARED problem, and on this exit all three describe
+// the restoration subproblem instead. The crossover bridge infers activity
+// from exactly those blocks, so a payload carrying them here would be a
+// capability claim the bytes do not support -- the same rule the empty-bound-
+// set gate applies.
+TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
+    NLPSolver solver(std::make_shared<WarmInfeasibleBoundedProblem>());
+    solver.optimizer_->set_print_level(10);
+    // filter acceptance + monitored governor + nested-l1 restoration: the
+    // shipped preset whose restoration arm this fixture is built for.
+    solver.optimizer_->apply_preset("filter_l1");
+    solver.optimizer_->set_max_iters(60);
+    solver.transcribe();
+
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+    const hven::ConvergenceFlags flag = warm_optimize(*solver.optimizer_, x0);
+
+    // THE DISCRIMINATING CONDITION, asserted rather than assumed: restoration
+    // was entered during this solve and the verdict is not CONVERGED -- the
+    // exit class SolveResult's residual caveat names.
+    const auto &result = solver.optimizer_->result();
+    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
+    ASSERT_GT(result.last_feas_rest_entries_, 0)
+        << "the fixture must actually reach feasibility restoration";
+
+    // The solve completed, so the currency is exportable and carries its core.
+    ASSERT_TRUE(solver.optimizer_->solve_completed_);
+    const WarmStartData warm = solver.optimizer_->export_warm_start();
+    EXPECT_EQ(warm.primal_.size(), 2);
+    EXPECT_EQ(warm.eq_lmults_.size(), 1);
+    EXPECT_EQ(warm.iq_lmults_.size(), 1);
+    EXPECT_EQ(warm.bound_lmults_.size(), 2);
+
+    // AND NO EXTENSION AT ALL -- not one carrying restoration-space values.
+    EXPECT_TRUE(warm.extensions_.empty());
+    EXPECT_EQ(hven::solvers::find_ipm_polish(warm), nullptr);
+}
+
+// The other half of the same gate: a BOUNDED solve that ends Optimal under the
+// very same restoration-armed preset still carries the tag. Without this, the
+// pin above would pass on a build that suppressed the extension outright.
+TEST(IpmWarmStart, ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag) {
+    NLPSolver solver(std::make_shared<WarmBoundedProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->apply_preset("filter_l1");
+    solver.transcribe();
+
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_bounded_start()),
+              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimizer_->result().last_feas_rest_entries_, 0);
+
+    const WarmStartData warm = solver.optimizer_->export_warm_start();
+    ASSERT_EQ(warm.extensions_.size(), 1u);
+    EXPECT_EQ(warm.extensions_[0].tag_, std::string(hven::solvers::kIpmPolishTag));
+}
+
 TEST(IpmWarmStart, ThePolishPayloadSurvivesTheCurrencysOwnRoundTripVerbatim) {
     const WarmBoundedSolve solved;
     const WarmStartData decoded =
