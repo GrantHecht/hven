@@ -4,8 +4,10 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <memory>
+#include <vector>
 
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
@@ -949,4 +951,187 @@ TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluat
     // counts moved; the point is that none of that movement was setup.
     EXPECT_GT(problem->n_eval_jac_, jac_after_first);
     EXPECT_GT(problem->n_eval_hess_, hess_after_first);
+}
+
+// THE TERMINAL KKT RESIDUALS ON SolveResult. Four scalars a consumer's outcome
+// record needs and could not otherwise obtain: eq_cons_/iq_cons_ carry the
+// PRIMAL residuals as vectors, but stationarity and complementarity are not
+// reconstructible from a SolveResult at all.
+//
+// They are the very numbers converge_check gated on, so this pins them against
+// the four Settings tolerances that produced the CONVERGED verdict rather than
+// against hand-copied constants. A residual reported from some other iterate
+// fails the gates; one left at its reset value fails too, because that value is
+// NaN and NaN passes neither the finiteness checks nor the < comparisons.
+//
+// Nothing here reads a clock, and nothing asserts a residual VALUE against a
+// literal: the assertion is the relation to the gate.
+TEST(NLPSolverTest, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+
+    const auto &result = solver.optimizer_->result();
+    const auto &settings = solver.optimizer_->settings();
+
+    EXPECT_TRUE(std::isfinite(result.kkt_inf_));
+    EXPECT_TRUE(std::isfinite(result.barr_inf_));
+    EXPECT_TRUE(std::isfinite(result.econ_inf_));
+    EXPECT_TRUE(std::isfinite(result.icon_inf_));
+
+    EXPECT_LT(result.kkt_inf_, settings.kkt_tol_);
+    EXPECT_LT(result.barr_inf_, settings.bar_tol_);
+    EXPECT_LT(result.econ_inf_, settings.econ_tol_);
+    EXPECT_LT(result.icon_inf_, settings.icon_tol_);
+
+    // A residual is a norm: never negative, whatever the exit.
+    EXPECT_GE(result.kkt_inf_, 0.0);
+    EXPECT_GE(result.barr_inf_, 0.0);
+    EXPECT_GE(result.econ_inf_, 0.0);
+    EXPECT_GE(result.icon_inf_, 0.0);
+
+    // HS071 has both row kinds, so neither constraint residual is the vacuous
+    // "no rows, therefore zero" reading.
+    ASSERT_EQ(result.eq_cons_.size(), 1);
+    ASSERT_EQ(result.iq_cons_.size(), 1);
+
+    // A SECOND CALL RE-REPORTS. reset_accumulators() clears the four at solve
+    // entry, so a stale reading cannot survive into a call that never wrote
+    // them; here the second call writes them again and lands inside the same
+    // gates.
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_LT(result.kkt_inf_, settings.kkt_tol_);
+    EXPECT_LT(result.barr_inf_, settings.bar_tol_);
+    EXPECT_LT(result.econ_inf_, settings.econ_tol_);
+    EXPECT_LT(result.icon_inf_, settings.icon_tol_);
+}
+
+// A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
+// sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
+// f(x*) = 1.125, so under BestCriteriaModes::OBJ the best-scoring iterate is an
+// EARLY one while the solve still exits CONVERGED. That pairing -- BestIter !=
+// last on a converged exit -- is what the pin below needs, and it is not
+// reachable with the default ECONS criterion.
+struct BestIterateRisingObjectiveProblem : NLPProblem {
+    static constexpr int kN = 4;
+
+    int num_vars() const override { return kN; }
+    int num_cons() const override { return 1; }
+    int num_jac_nonzeros() const override { return kN; }
+    int num_hess_nonzeros() const override { return kN; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl.setConstant(-2.0);
+        xu.setConstant(2.0);
+        gl.setConstant(3.0);
+        gu.setConstant(3.0);
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = 0.5 * x.squaredNorm();
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g = x;
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x.sum();
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        for (int i = 0; i < kN; i++) {
+            r[i] = 0;
+            c[i] = i;
+        }
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        for (int i = 0; i < kN; i++) {
+            r[i] = i;
+            c[i] = i;
+        }
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v.setConstant(1.0);
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v.setConstant(obj_factor);
+    }
+    std::string name() const override { return "BestIterateRisingObjective"; }
+};
+
+// THE REPORTED ITERATE IS ONE ITERATE. alg_impl's return_best_ substitution --
+// the one that makes primals_, obj_val_ and the multiplier blocks describe
+// BestIter -- is guarded on the exit NOT being converged, so on a CONVERGED
+// exit the result describes the LAST iterate even with return_best_ on, and the
+// four residuals must come from that same row. Selecting them unconditionally
+// on the setting would report an objective measured at one point beside
+// residuals measured at another.
+//
+// THE FIXTURE PREMISE IS ASSERTED, NOT ASSUMED: the test re-derives BestIter
+// from the iterate stream under track_best_iterate's own rule (minimum, ties to
+// the LATEST, since it updates on <=) and refuses to proceed unless that pick
+// really differs from the last row and really carries different residuals.
+TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes) {
+    NLPSolver solver(std::make_shared<BestIterateRisingObjectiveProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->settings().return_best_ = true;
+    solver.optimizer_->set_best_criteria(
+        hven::solvers::InteriorPointSolver::BestCriteriaModes::OBJ);
+
+    std::vector<hven::solvers::IterateInfo> rows;
+    solver.optimizer_->set_late_callback([&rows](const hven::solvers::IterateInfo &info,
+                                                 hven::ConstEigenRef<Eigen::VectorXd>,
+                                                 hven::ConstEigenRef<Eigen::VectorXd>) {
+        rows.push_back(info);
+        return 0;
+    });
+
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(BestIterateRisingObjectiveProblem::kN);
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_GE(rows.size(), 2u);
+
+    std::size_t best = 0;
+    for (std::size_t i = 1; i < rows.size(); i++) {
+        if (rows[i].prim_obj_ <= rows[best].prim_obj_) {
+            best = i;
+        }
+    }
+    const std::size_t last = rows.size() - 1;
+    ASSERT_NE(best, last) << "fixture premise: the OBJ criterion must pick an EARLIER iterate "
+                             "than the converged one, or this pin proves nothing";
+    ASSERT_NE(rows[best].kkt_inf_, rows[last].kkt_inf_)
+        << "fixture premise: the two candidate rows must carry DIFFERENT residuals";
+
+    const auto &result = solver.optimizer_->result();
+
+    // THE PIN: the four residuals are the LAST iterate's -- the one the result
+    // describes on a converged exit -- and not the best-scoring one's.
+    EXPECT_EQ(result.kkt_inf_, rows[last].kkt_inf_);
+    EXPECT_EQ(result.barr_inf_, rows[last].barr_inf_);
+    EXPECT_EQ(result.econ_inf_, rows[last].econ_inf_);
+    EXPECT_EQ(result.icon_inf_, rows[last].icon_inf_);
+    EXPECT_NE(result.kkt_inf_, rows[best].kkt_inf_);
+
+    // AND THE OBJECTIVE AGREES WITH THEM: one point, one set of numbers. The
+    // scale is 1 here, so obj_val_ is prim_obj_ unmodified.
+    EXPECT_EQ(result.obj_val_, rows[last].prim_obj_);
+}
+
+// NaN IS THE UNMEASURED SENTINEL, not 0.0, matching the SQP side so one outcome
+// record reads both engines the same way: a zeroed residual on an engine that
+// never measured one reads as a converged solve.
+TEST(NLPSolverTest, TheKktResidualsOfASolverThatHasNotSolvedAreUnmeasured) {
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+
+    const auto &result = solver.optimizer_->result();
+    EXPECT_TRUE(std::isnan(result.kkt_inf_));
+    EXPECT_TRUE(std::isnan(result.barr_inf_));
+    EXPECT_TRUE(std::isnan(result.econ_inf_));
+    EXPECT_TRUE(std::isnan(result.icon_inf_));
 }

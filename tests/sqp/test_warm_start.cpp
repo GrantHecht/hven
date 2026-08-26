@@ -21,9 +21,11 @@
 // into a solve) -- that is Task 3 and beyond; this task is the value object
 // and its population alone.
 
+#include <bit>
 #include <cstdint>
 #include <limits>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <Eigen/SparseCore>
@@ -642,6 +644,115 @@ TEST(WarmStart, HotReusesFactorization) {
            "outright via the hot handle -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
+}
+
+// Bitwise comparison of two doubles, the idiom the R6 pins share: the bit
+// patterns, not `==`. See the call site below for why.
+void expect_same_bits(double a, double b, const std::string &what) {
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(a), std::bit_cast<std::uint64_t>(b))
+        << what << ": " << a << " vs " << b;
+}
+
+// M5 R6: hot-state reuse is never observable in answers. The test above pins
+// that the reuse HAPPENS; this one pins that the solve which reused the
+// producer's K0 answers exactly what the same solve answers with the reuse
+// withheld -- same point, same prices, same terminal residuals, same iterate
+// path.
+//
+// The control is the same warm object with its handle stripped, so `hot` is the
+// only thing that differs between the two solves. Exact equality, no margins:
+// the reuse is answer-neutral by construction (one K0, factorized once instead
+// of twice), so a tolerance would be a claim that it perturbs the answer. The
+// one counter that may differ is the one counting the saved work, and it is
+// pinned by an exact relation rather than exempted. Wall time is not read.
+TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false; // condition (d), held by construction
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
+    SqpDriver producer_driver(opts);
+    const SqpSolution produced = producer_driver.solve(producer);
+    ASSERT_EQ(produced.status, SqpStatus::kOptimal);
+    ASSERT_NE(produced.warm_start.hot, nullptr);
+
+    ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
+
+    SqpDriver hot_driver(opts);
+    const SqpSolution hot = hot_driver.solve(consumer, consumer.start_point(), produced.warm_start);
+
+    // The control: byte-for-byte the same warm object, minus the handle.
+    WarmStart without_handle = produced.warm_start;
+    without_handle.hot = nullptr;
+    SqpDriver warm_driver(opts);
+    const SqpSolution warm = warm_driver.solve(consumer, consumer.start_point(), without_handle);
+
+    // The fixture premise: one solve really was hot and the other really was
+    // not. Without this the identity below would pass vacuously on two cold
+    // solves.
+    ASSERT_EQ(hot.counters.start_level_used, StartLevel::kHot);
+    ASSERT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
+    ASSERT_FALSE(hot.history.empty());
+    ASSERT_FALSE(warm.history.empty());
+    ASSERT_EQ(hot.history[0].qp_factorizations, 0);
+    ASSERT_GE(warm.history[0].qp_factorizations, 1);
+
+    // The answer, read as BITS, not as `==`: EXPECT_EQ on two doubles calls
+    // -0.0 and +0.0 equal though their bits differ, and would call NaN unequal
+    // to itself.
+    EXPECT_EQ(hot.status, warm.status);
+    expect_same_bits(hot.f, warm.f, "objective");
+    expect_same_bits(hot.stationarity, warm.stationarity, "stationarity");
+    expect_same_bits(hot.feasibility, warm.feasibility, "feasibility");
+    expect_same_bits(hot.complementarity, warm.complementarity, "complementarity");
+    expect_same_bits(hot.kkt_residual, warm.kkt_residual, "kkt_residual");
+    ASSERT_EQ(hot.x.size(), warm.x.size());
+    for (Index i = 0; i < hot.x.size(); ++i) {
+        expect_same_bits(hot.x(i), warm.x(i), "primal " + std::to_string(i));
+        expect_same_bits(hot.z(i), warm.z(i), "bound multiplier " + std::to_string(i));
+    }
+    ASSERT_EQ(hot.lambda_e.size(), warm.lambda_e.size());
+    for (Index i = 0; i < hot.lambda_e.size(); ++i) {
+        expect_same_bits(hot.lambda_e(i), warm.lambda_e(i),
+                         "equality multiplier " + std::to_string(i));
+    }
+    ASSERT_EQ(hot.lambda_i.size(), warm.lambda_i.size());
+    for (Index i = 0; i < hot.lambda_i.size(); ++i) {
+        expect_same_bits(hot.lambda_i(i), warm.lambda_i(i),
+                         "inequality multiplier " + std::to_string(i));
+    }
+
+    // The path, not only the endpoint.
+    ASSERT_EQ(hot.history.size(), warm.history.size());
+    for (std::size_t k = 0; k < hot.history.size(); ++k) {
+        const SqpIterate &h = hot.history[k];
+        const SqpIterate &w = warm.history[k];
+        const std::string row = "row " + std::to_string(k) + " ";
+        expect_same_bits(h.f, w.f, row + "f");
+        expect_same_bits(h.stationarity, w.stationarity, row + "stationarity");
+        expect_same_bits(h.feasibility, w.feasibility, row + "feasibility");
+        expect_same_bits(h.complementarity, w.complementarity, row + "complementarity");
+        expect_same_bits(h.kkt_residual, w.kkt_residual, row + "kkt_residual");
+        expect_same_bits(h.violation_l1, w.violation_l1, row + "violation_l1");
+        expect_same_bits(h.tr_radius, w.tr_radius, row + "tr_radius");
+        expect_same_bits(h.step_norm, w.step_norm, row + "step_norm");
+        EXPECT_EQ(h.verdict, w.verdict) << "row " << k;
+        EXPECT_EQ(h.qp_status, w.qp_status) << "row " << k;
+        EXPECT_EQ(h.qp_minor_iters, w.qp_minor_iters) << "row " << k;
+    }
+
+    // The work, with the saved factorization named exactly.
+    EXPECT_EQ(warm.counters.factorizations, hot.counters.factorizations + 1)
+        << "the hot solve skips exactly the one K0 factorization the handle carried";
+    EXPECT_EQ(hot.counters.major_iters, warm.counters.major_iters);
+    EXPECT_EQ(hot.counters.qp_minor_iters, warm.counters.qp_minor_iters);
+    EXPECT_EQ(hot.counters.steps_accepted, warm.counters.steps_accepted);
+    EXPECT_EQ(hot.counters.rejected_steps, warm.counters.rejected_steps);
+    EXPECT_EQ(hot.counters.soc_steps, warm.counters.soc_steps);
+    EXPECT_EQ(hot.counters.elastic_activations, warm.counters.elastic_activations);
+    EXPECT_EQ(hot.counters.restoration_iters, warm.counters.restoration_iters);
+    EXPECT_EQ(hot.counters.border_refine_steps, warm.counters.border_refine_steps);
 }
 
 // THE BRIEF'S TEST, DEGRADATION HALF: changing one H VALUE (same pattern,

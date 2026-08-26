@@ -11,10 +11,10 @@
 // translation unit that includes it; precompiling amortizes that floor across
 // the TUs that pay it. It is also why the engine's big TUs are NOT split into
 // smaller ones: a split multiplies the header-parsing floor by the number of
-// pieces instead of amortizing it, and (with LINK_TIME_OPT off) turns intra-TU
-// helper calls in the interior-point hot loop into un-inlinable cross-TU
-// references. The measured comparison behind that decision is summarized in
-// docs/build.md.
+// pieces instead of amortizing it, and (with HVEN_LINK_TIME_OPT off) turns
+// intra-TU helper calls in the interior-point hot loop into un-inlinable
+// cross-TU references. The measured comparison behind that decision is
+// summarized in docs/build.md.
 //
 // WHAT IS IN IT, AND WHY THE ORDER MATTERS
 //

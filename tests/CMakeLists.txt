@@ -131,6 +131,17 @@ set(HVEN_TEST_SOURCES
     # compiles into hven_tests on every platform and asserts the throw on
     # Accelerate, the inverse guard on MKL.
     linear/test_symmetric_factor_pardiso_only_options.cpp
+    # The warm-start currency (M5 W1): the value types, their fieldwise
+    # equality, and the versioned byte form's round trip and refusals. It
+    # depends on nothing but the public warmstart/ and model/ headers, so it
+    # rides hven_tests rather than earning a target of its own.
+    warmstart/test_warm_start_data.cpp
+    # The IPM polish extension (M5 W2): its byte form, the tag lookup, and the
+    # crossover bridge onto from_interior_point. Engine-free -- it builds its
+    # hand-off values by hand -- so it rides hven_tests beside the currency
+    # suite; the producer half is pinned in tests/interior, where a real solve
+    # is available to produce one.
+    warmstart/test_ipm_polish_extension.cpp
 )
 
 # SymmetricFactor's MKL-specific tests follow the same platform split as its

@@ -33,7 +33,7 @@ library target, median of three runs each: **28.16 s → 23.20 s
 
 The same measurements are why the engine's large TUs are *not* split
 into smaller ones — a split multiplies the 3.01 s floor by the number of
-pieces instead of amortizing it, and (with `LINK_TIME_OPT` off) turns
+pieces instead of amortizing it, and (with `HVEN_LINK_TIME_OPT` off) turns
 helper calls inside the interior-point hot loop into cross-TU references
 the compiler can no longer inline.
 

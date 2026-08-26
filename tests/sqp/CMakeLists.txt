@@ -28,6 +28,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_border_ops.cpp
     test_continuation.cpp
     test_corpus_cells.cpp
+    test_crossover_legs.cpp
     test_dense_oracle.cpp
     test_eqp_refine_ab.cpp
     test_eqp_solve.cpp
@@ -54,6 +55,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_schur.cpp
     test_sqp_driver.cpp
     test_sqp_restoration.cpp
+    test_sqp_warm_currency.cpp
     test_ssn_engine.cpp
     test_types.cpp
     test_warm_start.cpp

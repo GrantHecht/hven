@@ -1,0 +1,13 @@
+# hven_sqp_crossover pass-2 sweep transcript (leg-order fix).
+# commit: 575331d10fa5   host: fedora   began: 2026-08-26T05:12:35Z   deadline: 600s/cell
+# (stamp added post-hoc; see README section 5.2)
+running f7_n10000_path_physics (N=10000, path, physics, deadline 600s)...
+  DNF: outlived the 600s deadline
+running f7_n10000_path_neutral (N=10000, path, neutral, deadline 600s)...
+  DNF: outlived the 600s deadline
+running f7_n20000_path_physics (N=20000, path, physics, deadline 600s)...
+  DNF: outlived the 600s deadline
+running f7_n20000_path_neutral (N=20000, path, neutral, deadline 600s)...
+  DNF: outlived the 600s deadline
+wrote 4 cell(s) to docs/notes/data/2026-08-m5-w5-crossover/pass2-legorder-fix: 0 completed, 4 dnf, 0 errored
+sweep exited rc=0

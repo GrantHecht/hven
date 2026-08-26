@@ -1,0 +1,47 @@
+# hven_sqp_crossover provenance (M5 W5)
+# leg: margins.csv
+# binary: 8bd4b9d62ef0
+# invocation: build-m5-release/bench/hven_sqp_crossover --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n800_path_physics,f7_n1000_path_physics,f7_n2000_path_physics,f7_n750_path_neutral_control,f7_n825_path_neutral_control,f7_n1000_path_neutral,f7_n5000_path_physics,f7_n800_path_neutral,f7_n2000_path_neutral,f7_n5000_path_neutral,f7_n10000_path_physics,f7_n10000_path_neutral,f7_n20000_path_physics,f7_n20000_path_neutral --out-dir docs/notes/data/2026-08-m5-w5-crossover --deadline-seconds 1200
+# MKL_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-08-26T02:35:05Z
+# per-cell wall deadline: 1200s (SIGKILL; a killed cell is a 'dnf_budget' row, not a missing one)
+# execution: SERIAL -- one cell at a time, one solve at a time, no co-run arm.
+# asserted currency: counters (majors, qp minors, factorizations). Every wall
+#   column here is INFORMATIONAL and is never quoted as a measurement.
+# REGENERATED POST-HOC, 2026-08-26, at commit 575331d + the H2 fix.
+#   The runner that produced this sweep built the aggregate row only after all
+#   four legs finished, and stamped ONE cell-level 'dnf_budget' across all four
+#   status columns when a cell was killed at its wall deadline -- contradicting
+#   the per-leg CSVs for the legs that HAD finished. This file was rebuilt from
+#   those per-leg CSVs, which are the PRIMARY RECORD (each row was written and
+#   flushed by the child the moment its leg finished, and none was touched).
+#   The rule applied is the one the corrected runner now applies: a status
+#   column reports its own leg, 'absent' when that leg never ran; a margin needs
+#   both its legs. Only status/counter cells of killed cells moved -- every row
+#   whose legs all completed is byte-identical to the original. See README §5.2.
+cell_id,n_nodes,window,taxonomy,n,cold_status,cold_majors,cold_qp_minors,cold_factorizations,warm_core_status,warm_polish_status,core_majors_saved,core_qp_minors_saved,core_factorizations_saved,polish_majors_saved,polish_qp_minors_saved,polish_factorizations_saved,ipm_flag,export_has_polish,legs_cd_identical
+f7_n1000_bound_neutral,1000,bound,neutral,5000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n1000_bound_physics,1000,bound,physics,5000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n2000_bound_neutral,2000,bound,neutral,10000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n2000_bound_physics,2000,bound,physics,10000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n5000_bound_neutral,5000,bound,neutral,25000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n5000_bound_physics,5000,bound,physics,25000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n10000_bound_neutral,10000,bound,neutral,50000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n10000_bound_physics,10000,bound,physics,50000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n20000_bound_neutral,20000,bound,neutral,100000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n20000_bound_physics,20000,bound,physics,100000,Optimal,1,2,1,Optimal,Optimal,1,2,1,1,2,1,CONVERGED,1,0
+f7_n800_path_physics,800,path,physics,4000,Optimal,2,481,6,Optimal,Optimal,1,-228,0,1,479,5,CONVERGED,1,0
+f7_n1000_path_physics,1000,path,physics,5000,Optimal,2,623,5,Optimal,Optimal,1,-264,-2,1,621,4,CONVERGED,1,0
+f7_n2000_path_physics,2000,path,physics,10000,Optimal,2,1396,9,Optimal,Optimal,1,-379,-5,1,1394,8,CONVERGED,1,0
+f7_n750_path_neutral_control,750,path,neutral,3750,Optimal,4,9297,7865,Optimal,Optimal,3,8632,7859,3,9295,7864,CONVERGED,1,0
+f7_n825_path_neutral_control,825,path,neutral,4125,Optimal,4,9561,7605,Optimal,Optimal,3,8829,7599,3,9559,7604,CONVERGED,1,0
+f7_n1000_path_neutral,1000,path,neutral,5000,Optimal,4,11043,9951,Optimal,Optimal,3,10156,9944,3,11041,9950,CONVERGED,1,0
+f7_n5000_path_physics,5000,path,physics,25000,Optimal,2,3656,19,Optimal,Optimal,1,-779,-16,1,3654,18,CONVERGED,1,0
+f7_n800_path_neutral,800,path,neutral,4000,Optimal,5,30165,29222,Optimal,Optimal,4,29456,29216,4,30163,29221,CONVERGED,1,0
+f7_n2000_path_neutral,2000,path,neutral,10000,NumericalError,3,40004,39744,Optimal,Optimal,2,38229,39730,2,40002,39743,CONVERGED,1,0
+f7_n5000_path_neutral,5000,path,neutral,absent,absent,absent,absent,absent,Optimal,Optimal,absent,absent,absent,absent,absent,absent,CONVERGED,1,0
+f7_n10000_path_physics,10000,path,physics,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,CONVERGED,1,0
+f7_n10000_path_neutral,10000,path,neutral,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,CONVERGED,1,0
+f7_n20000_path_physics,20000,path,physics,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,CONVERGED,1,0
+f7_n20000_path_neutral,20000,path,neutral,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,absent,CONVERGED,1,0

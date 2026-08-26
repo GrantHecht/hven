@@ -5,15 +5,33 @@
 
 // structure_identity.h — identity for consumers of the model contract:
 //
-//   * ModelStructureKey  -- "is this the same declared structure?"
+//   * DeclarationKey     -- "is this the same declared PROBLEM?"
+//   * ModelStructureKey  -- "is this the same LAID structure?"
 //   * StructureEpoch     -- "have the structures been re-laid since I looked?"
 //   * IdentityProbe      -- "same structure AND same point?", in one comparison
 //
 // None of these is the engine's own structural digest: that one is a function
-// of ASSEMBLED matrices and answers a factorization-reuse question, this one is
-// a function of the DECLARATION and answers a layout question -- the two must
-// never be compared. Engine-independent by construction: nothing here includes
-// from the interior-point machinery.
+// of ASSEMBLED matrices and answers a factorization-reuse question, while these
+// are functions of the DECLARATION. Engine-independent by construction: nothing
+// here includes from the interior-point machinery.
+//
+// DeclarationKey and ModelStructureKey answer different questions, and must
+// never be compared against one another or substituted for one another:
+//
+//   * ModelStructureKey answers "may I reuse this factorization?". It is taken
+//     over the claim stream a provider handed out, in claim order, plus the
+//     adopted partition count, so it moves when the LAYOUT moves. It is
+//     therefore ENGINE-SPECIFIC and TREATMENT-SPECIFIC.
+//
+//   * DeclarationKey answers "does this value describe the problem I am about
+//     to solve?", and is what the warm-start currency stamps with. It is taken
+//     over the DECLARATION alone, so it is the same value on both engines and
+//     under every fixed-variable treatment. Staleness under it means the caller
+//     transcribed a different problem.
+//
+// DeclarationKey covers less than "the declared problem" suggests; what it
+// deliberately excludes is listed at declaration_identity_digest in
+// src/model/aggregate_declaration.cpp.
 
 #include <atomic>
 #include <cstddef>
@@ -57,6 +75,35 @@ struct ModelStructureKey {
         Fnv1a hash;
         hash.feed_index(static_cast<std::int64_t>(claim_digest_));
         hash.feed_index(static_cast<std::int64_t>(partition_count_));
+        hash.feed_index(static_cast<std::int64_t>(bound_digest_));
+        return hash.value();
+    }
+};
+
+/// @brief The structural key of a declared PROBLEM: a digest of the
+///        declaration's mathematical identity, and a digest of its variable
+///        bound structure.
+///
+/// The warm-start currency's stamp. Two conjuncts rather than one so that a
+/// caller reading a refusal can tell whether the ROWS moved or the BOX did.
+///
+/// Engine- and treatment-independent: both conjuncts read only what the CALLER
+/// declared, never what a provider or a policy decided.
+struct DeclarationKey {
+    /// The declared problem's mathematical identity: declaration_identity_digest.
+    std::uint64_t declaration_digest_ = 0;
+    /// The declared bound structure: materialized_bound_digest, the same
+    /// builder ModelStructureKey's own bound conjunct uses.
+    std::uint64_t bound_digest_ = 0;
+
+    friend bool operator==(const DeclarationKey &, const DeclarationKey &) = default;
+
+    /// @brief The two conjuncts folded into one value, for diagnostics and for
+    ///        consumers that want a single number to carry. Comparing folded
+    ///        digests is weaker than comparing keys -- prefer `==`.
+    std::uint64_t digest() const noexcept {
+        Fnv1a hash;
+        hash.feed_index(static_cast<std::int64_t>(declaration_digest_));
         hash.feed_index(static_cast<std::int64_t>(bound_digest_));
         return hash.value();
     }
@@ -176,6 +223,43 @@ inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &decla
     }
     return hash.value();
 }
+
+/// @brief THE declaration-identity conjunct of a DeclarationKey, and the only
+///        public way to compute one: the DECLARED DIMENSIONS -- primal
+///        variables, USER equality rows, and inequality rows -- through the
+///        same self-delimiting preamble claim_stream_digest opens with.
+///
+/// The equality count fed is `equality_rows_ - fixing_rows_`: the internal rows
+/// a MakeConstraint treatment appends are the TREATMENT's rows, not the
+/// declaration's.
+///
+/// The claim stream, the partition count and thread modes, and the per-piece
+/// row structure are deliberately NOT fed; the exclusions and the argument for
+/// each are stated at the definition, in src/model/aggregate_declaration.cpp.
+/// A caller must therefore read this digest as "the same declared SHAPE and
+/// BOX", never as "the same functions": two declarations agreeing on dimensions
+/// and on bound structure key the same even if their constraint functions
+/// differ.
+///
+/// @param declaration the declared problem.
+/// @return the digest.
+/// @throws std::invalid_argument if `fixing_rows_` is negative or exceeds
+///         `equality_rows_` -- a fixing-row count that is not a legal split of
+///         the equality row space is one this function cannot read, and
+///         guessing at the split would key two different problems the same.
+std::uint64_t declaration_identity_digest(const AggregateDeclaration &declaration);
+
+/// @brief The whole DeclarationKey of a declared problem: both conjuncts,
+///        through their own builders.
+///
+/// @param declaration the declared problem.
+/// @return the key.
+/// @throws std::invalid_argument whatever either conjunct throws --
+///         declaration_identity_digest's fixing-row refusal above, or
+///         materialize_variable_bounds' out-of-range index, NaN bound or empty
+///         intersection -- so a key can never be taken over a declaration that
+///         does not describe a problem.
+DeclarationKey declaration_key(const AggregateDeclaration &declaration);
 
 /// @brief How many times the structures behind an aggregate have been laid.
 ///

@@ -21,6 +21,7 @@
 // them decide a Task-6 verdict.
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <deque>
@@ -897,6 +898,80 @@ std::vector<std::string> split_all(const std::string &s) {
     return out;
 }
 
+// =============================================================================
+// THE RESIDUAL-CLASS GATE: why the CLI-inertness pin below is not byte equality
+// on every column.
+//
+// That pin compares two INDEPENDENT PROCESSES' rows for the same cell, and the
+// floating-point measure columns are not process-invariant: address-sensitive
+// MKL kernels (the property MKL's CNR mode exists for), compounded by reduction
+// order once threads are involved. Addresses differ per process, so no pinning
+// inside one process makes these columns process-invariant.
+//
+// GATE DERIVATION: 1e-5 relative, ~5.6x the largest spread on record, taken
+// from the worst regime rather than the quietest because this pin runs wherever
+// the suite runs, threaded and CI included. The readings, all on
+// f7_n1000_bound_neutral's kkt_residual unless noted (provenance for each pair
+// is in docs/notes/2026-08-m5-ledger.md):
+//
+//   1.0e-7   same box, serial       6.295821662e-14 vs 6.295822298e-14
+//   8.6e-7   CI cross-runner        6.295821599e-14 vs 6.295816157e-14
+//   1.63e-6  CI, path_neutral cell  4.555248530e-07 vs 4.555255959e-07
+//   1.79e-6  MKL-threaded           6.295833584e-14 vs 6.295822298e-14
+//
+// Counters and statuses stay EXACT: no floating-point arithmetic produces them,
+// so a single-bit move in one is a real regression. The headroom costs nothing
+// in discrimination -- these measures span 1e-14 to 1e-7 across cells and move
+// by whole orders of magnitude when a solve actually changes, and anything that
+// large also moves a counter. Byte equality is checked first and remains the
+// common outcome; the gate engages only on the digits that provably vary.
+constexpr double kResidualRelativeGate = 1.0e-5;
+
+// The corpus schema's floating-point measure columns, by index:
+//   12 kkt_residual
+//   15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
+//   18 kkt_complementarity 19 dual_scale       20 x_scale
+// Column 13 (wall_s) is excluded by the caller for a different reason -- timing
+// noise, never a regression contract. Column 14 (kkt_verdict) is a string and
+// stays exact. Everything at 21 and above is an integer counter.
+bool is_residual_column(std::size_t i) { return i == 12 || (i >= 15 && i <= 20); }
+
+// True when the two spellings are byte-equal, or agree to within the gate.
+// A column that does not parse as a number is NOT quietly waved through: it
+// falls back to the byte comparison the caller reports.
+bool residual_columns_agree(const std::string &a, const std::string &b) {
+    if (a == b) {
+        return true;
+    }
+    std::size_t used_a = 0;
+    std::size_t used_b = 0;
+    double va = 0.0;
+    double vb = 0.0;
+    try {
+        va = std::stod(a, &used_a);
+        vb = std::stod(b, &used_b);
+    } catch (const std::exception &) {
+        return false;
+    }
+    if (used_a != a.size() || used_b != b.size()) {
+        return false;
+    }
+    // Non-finite never passes the numeric path. Without this, the relative form
+    // below waves through every infinity pairing it is handed: inf against a
+    // finite value gives |inf - x| = inf and scale = inf, so the test reads
+    // inf <= inf and SUCCEEDS. An infinite residual is the loudest regression
+    // this column can report. NaN is caught here too. Two identical non-finite
+    // spellings still agree -- via byte equality above, the only way any
+    // non-finite value passes.
+    if (!std::isfinite(va) || !std::isfinite(vb)) {
+        return false;
+    }
+    const double scale = std::max(std::abs(va), std::abs(vb));
+    // scale == 0 means both are zero, which the byte comparison above already
+    // settled; anything else is a genuine divergence from an exact zero.
+    return std::abs(va - vb) <= kResidualRelativeGate * scale;
+}
+
 std::string slurp(const std::string &path) {
     std::ifstream in(path);
     std::stringstream ss;
@@ -1081,6 +1156,11 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     // THE CLI-LEVEL INERTNESS CLAIM, automated: the main --csv is unaffected
     // by the flag, column for column, except `wall_s` (index 13 -- timing
     // noise, never a regression contract per this file's own banner).
+    //
+    // Two gates, not one: counters, statuses and spellings are held to byte
+    // equality, the residual-class columns to a relative gate, because these two
+    // rows come from separate PROCESSES. See runner_test::kResidualRelativeGate
+    // above for the measurement that fixes the number.
     const std::vector<std::string> rows_on = runner_test::data_rows(csv_on);
     const std::vector<std::string> rows_off = runner_test::data_rows(csv_off);
     ASSERT_EQ(rows_on.size(), 1u);
@@ -1093,6 +1173,14 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
         if (i == 13) {
             continue; // wall_s
         }
+        if (runner_test::is_residual_column(i)) {
+            EXPECT_TRUE(runner_test::residual_columns_agree(cols_on[i], cols_off[i]))
+                << "residual column " << i << " diverged by more than "
+                << runner_test::kResidualRelativeGate << " relative: on=" << cols_on[i]
+                << " off=" << cols_off[i] << "\n  on-row=" << rows_on[0]
+                << "\n off-row=" << rows_off[0];
+            continue;
+        }
         EXPECT_EQ(cols_on[i], cols_off[i])
             << "column " << i << " diverged: on=" << rows_on[0] << " off=" << rows_off[0];
     }
@@ -1100,6 +1188,71 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     std::remove(csv_on.c_str());
     std::remove(csv_off.c_str());
     std::remove(wgate.c_str());
+}
+
+// The gate itself, on hand-built spellings: the pin above can only exercise it
+// against whatever this box happens to produce, and the variance it exists for
+// is box- and regime-dependent. These cases fix what the gate accepts and
+// refuses independently of that.
+TEST(CorpusResidualGate, AcceptsEveryRecordedSpreadAndRefusesARealMove) {
+    // Accepts every reading on record -- the literal pairs the gate is
+    // calibrated from; see kResidualRelativeGate above.
+    EXPECT_TRUE(runner_test::residual_columns_agree("6.295821662e-14",
+                                                    "6.295822298e-14")); // 1.0e-7 serial
+    EXPECT_TRUE(runner_test::residual_columns_agree("6.295821599e-14",
+                                                    "6.295816157e-14")); // 8.6e-7 CI
+    EXPECT_TRUE(runner_test::residual_columns_agree("6.295833584e-14",
+                                                    "6.295822298e-14")); // 1.79e-6 threaded
+    // The largest CI reading from the path_neutral rows of the same table.
+    EXPECT_TRUE(runner_test::residual_columns_agree("4.555248530e-07",
+                                                    "4.555255959e-07")); // 1.63e-6
+    // Byte equality stays the common outcome and stays free.
+    EXPECT_TRUE(runner_test::residual_columns_agree("1.234567890e-09", "1.234567890e-09"));
+
+    // REFUSES: a move an order of magnitude past the gate, and one three
+    // orders past it. The gate is 1e-5; nothing near a real regression
+    // survives it.
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09",
+                                                     "1.000100000e-09")); // 1e-4
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09",
+                                                     "1.001000000e-09")); // 1e-3
+    // An order-of-magnitude move is what a real regression in these measures
+    // actually looks like.
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-14", "1.000000000e-11"));
+
+    // Both exactly zero agree; an exact zero against a nonzero never does,
+    // however small the nonzero is.
+    EXPECT_TRUE(runner_test::residual_columns_agree("0.000000000e+00", "0.000000000e+00"));
+    EXPECT_FALSE(runner_test::residual_columns_agree("0.000000000e+00", "1.000000000e-30"));
+
+    // Non-finite is never waved through, and identical spellings agree only
+    // through byte equality.
+    EXPECT_FALSE(runner_test::residual_columns_agree("inf", "1.000000000e-09"));
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09", "inf"));
+    EXPECT_FALSE(runner_test::residual_columns_agree("inf", "-inf"));
+    EXPECT_TRUE(runner_test::residual_columns_agree("inf", "inf"));
+    // NaN is "unmeasured" (M1), not "equal to anything": it agrees only with
+    // itself, byte for byte.
+    EXPECT_TRUE(runner_test::residual_columns_agree("nan", "nan"));
+    EXPECT_FALSE(runner_test::residual_columns_agree("nan", "1.000000000e-09"));
+    // A spelling the numeric path cannot fully consume is refused rather than
+    // waved through.
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.0e-9x", "1.0e-9"));
+
+    // The gated set is exactly the schema's floating-point measure columns.
+    EXPECT_TRUE(runner_test::is_residual_column(12)); // kkt_residual
+    for (std::size_t i = 15; i <= 20; ++i) {
+        // kkt_stationarity, kkt_primal, kkt_dual_sign, kkt_complementarity,
+        // dual_scale, x_scale
+        EXPECT_TRUE(runner_test::is_residual_column(i)) << "column " << i;
+    }
+    // cell_id, status, factorizations, qp_minors, wall_s, kkt_verdict, and the
+    // integer counter block are NOT gated -- they are held to byte equality.
+    for (const std::size_t i :
+         {std::size_t{0}, std::size_t{6}, std::size_t{7}, std::size_t{8}, std::size_t{13},
+          std::size_t{14}, std::size_t{21}, std::size_t{36}}) {
+        EXPECT_FALSE(runner_test::is_residual_column(i)) << "column " << i;
+    }
 }
 
 TEST(CorpusRunnerProcess, ScoreGatesRunsEndToEndOnRealCells) {

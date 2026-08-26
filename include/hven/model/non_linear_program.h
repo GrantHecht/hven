@@ -502,11 +502,22 @@ struct NonLinearProgram : public NlpAggregate {
         return this->full_x_scratch_;
     }
 
+  private:
+    // Two of the four terms configure_variable_treatment's idempotence test
+    // compares, and its only reader; the other two, fixed_treatment_valid_ and
+    // configured_bounds_revision_, are public and declared below.
+    //
+    // Private because they describe what the last CONFIGURATION was told, which
+    // may predate the caller's own solve. The treatment a SOLVE actually ran
+    // under is reported per call as
+    // InteriorPointSolver::SolveResult::fixed_variable_treatment_.
+
     /// Selected treatment, as last configured.
     FixedVariableTreatments variable_treatment_ = FixedVariableTreatments::MakeParameter;
     /// Relax factor, as last configured.
     double bound_relax_factor_ = 0.0;
 
+  public:
     /// Bumped whenever x_lower_/x_upper_ are (re)materialized or dropped, so
     /// configure_variable_treatment can tell a repeat call from a real change.
     /// Staging a declaration does NOT bump it: staged declarations only reach

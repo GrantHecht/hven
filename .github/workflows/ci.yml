@@ -15,6 +15,97 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Report-only coverage lane (owner directive, 2026-08-25). Runs the suite
+  # under LLVM source-based coverage (the linux-clang-coverage preset:
+  # instrument tree only -- its numbers are never timings, pins, or
+  # baselines) and publishes the per-file table + HTML as an artifact, with
+  # the totals row in the job summary. NO percentage gate: gating on
+  # coverage is an explicit policy decision (owner + ledger), not a lane
+  # default -- this job is not meant to be a required check.
+  #
+  # Triggers deliberately narrower than the gate lanes: main pushes and
+  # manual dispatch only, until the instrumented-suite runtime on a hosted
+  # runner is observed. Widening to pull_request is a one-line change here,
+  # taken when that observation says the latency is acceptable.
+  linux-clang-coverage:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # Job-level flag: secrets are legal here but not in a step's `if`,
+      # and a step's own env map is invisible to its own `if` -- this is
+      # the one place both constraints are satisfied.
+      HAS_CODECOV: ${{ secrets.CODECOV_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: recursive}
+
+      - name: Install ninja, clang, and llvm coverage tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang ninja-build libomp-dev llvm
+
+      - name: Install Intel MKL via the oneAPI apt repository
+        # Same install as linux-clang-release above, same reasoning for the
+        # two exported roots -- see that step's comment.
+        run: |
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          sudo apt-get update
+          sudo apt-get install -y intel-oneapi-mkl-devel
+          echo "ONEAPI_ROOT=/opt/intel/oneapi" >> "$GITHUB_ENV"
+          echo "MKLROOT=/opt/intel/oneapi/mkl/latest" >> "$GITHUB_ENV"
+
+      - name: Coverage build, suite, and report
+        # The script owns the whole path (configure/build/ctest/report) so
+        # CI and local runs cannot drift. Instrumented Debug is slow and
+        # some cells are wall-heavy, hence the generous per-test timeout;
+        # COVERAGE_TOLERATE_FAILURES keeps the report coming from whatever
+        # ran -- the failure signal is preserved separately below. The ISA
+        # pin matches the gate lanes' posture (see linux-clang-release's
+        # Configure comment).
+        env:
+          MKL_NUM_THREADS: "1"
+          CTEST_ARGS: "--timeout 1200"
+          COVERAGE_TOLERATE_FAILURES: "1"
+          CMAKE_ARGS: "-DHVEN_SIMD_ARCH=x86-64-v3"
+        run: scripts/run_coverage.sh
+
+      - name: Totals to the job summary
+        if: '!cancelled()'
+        run: |
+          {
+            echo "### Coverage (library sources; dep/, tests/, bench/ excluded)"
+            echo '```'
+            tail -3 build-coverage/coverage/summary.txt
+            cat build-coverage/ctest-status.txt 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the coverage report
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            build-coverage/coverage/
+            build-coverage/ctest-status.txt
+          if-no-files-found: warn
+
+      - name: Upload to Codecov
+        # No-ops until the CODECOV_TOKEN secret exists (owner sets it).
+        # codecov.yml pins both status checks informational -- the service
+        # displays coverage, it never gates a merge.
+        if: ${{ !cancelled() && env.HAS_CODECOV == 'true' }}
+        uses: codecov/codecov-action@v4
+        with:
+          files: build-coverage/coverage/coverage.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
   linux-clang-release:
     runs-on: ubuntu-latest
     permissions:

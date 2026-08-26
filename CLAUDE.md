@@ -213,6 +213,12 @@ no exceptions:
   a quotable timing.
 - A replay asserting only deterministic per-process columns — counters,
   statuses, and residuals computed at a fixed thread count — may co-run.
+  Residual-class columns are exempt from that determinism: MKL's kernels
+  are address-sensitive, so a residual can differ in its last digits
+  between two processes running identical code at `MKL_NUM_THREADS=1`,
+  and cross-process agreement on them is asserted by a calibrated
+  near-ulp gate rather than by byte equality — counters and statuses
+  remain exact.
   Such columns are scheduling-invariant at `MKL_NUM_THREADS=1`, and
   contention can only push a cell toward a budget/deadline outcome, never
   toward a false success or a false value. The terms are fixed: one

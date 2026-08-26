@@ -87,7 +87,7 @@ which AppleClang's compiler ID does **not** match — AppleClang's ID is
 literally `AppleClang`) is an optional nicety that is silently skipped
 under AppleClang, never a hard failure: the `-mllvm -inline-threshold=...`
 flag pair, the `-Wabsolute-value` warning, and `-ftime-trace` tracing. None
-of them are load-bearing for a green build. `LINK_TIME_OPT` (the one thing
+of them are load-bearing for a green build. `HVEN_LINK_TIME_OPT` (the one thing
 gated on compiler ID that select real behavior, not just a nicety) is
 `FALSE` by default and this job does not turn it on, so that branch never
 runs here either. The one flag applied unconditionally regardless of

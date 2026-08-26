@@ -21,6 +21,7 @@
 
 #include "hven/detail/interior/constraint_function.h"
 #include "hven/detail/interior/objective_function.h"
+#include "hven/model/structure_identity.h"
 
 namespace hven::solvers {
 
@@ -268,6 +269,84 @@ void AggregateDeclaration::validate() const {
     // interval. Materializing is what makes the last of those detectable here,
     // before any layout runs, rather than only when a layout is attempted.
     static_cast<void>(this->materialize_variable_bounds());
+}
+
+// --- THE DECLARATION-IDENTITY DIGEST (model/structure_identity.h) ---
+//
+// Defined here rather than in the otherwise header-only structure_identity.h:
+// the digest is declaration-level logic, and this TU is where declaration-level
+// logic lives with the piece definitions in scope.
+//
+// WHAT IS DELIBERATELY NOT FED, and why each exclusion is forced rather than
+// chosen. The test is the same one every time: this digest must be the SAME
+// VALUE for one declared problem on both of this project's engines and under
+// every fixed-variable treatment, so anything a provider states about ITSELF
+// rather than about the problem cannot be in it.
+//
+//   * `partition_count_`, and every piece's thread mode. Layout and threading
+//     POLICY: they decide how the declared problem is laid out and evaluated,
+//     never what problem it is, and they differ between the two engines on one
+//     identical declaration. ModelStructureKey is where they belong.
+//   * THE CLAIM STREAM. The same reason, measured: the two engines hand out
+//     the same (row, column) claim SET in a different ORDER, and
+//     claim_stream_digest is order-sensitive by design.
+//   * THE PER-PIECE ROW STRUCTURE, and the two shared-row overcounts derived
+//     from it -- not because a piece split says nothing, but because it is not
+//     a cross-engine property of a declaration. The nlp_model_aggregate.h
+//     bridge leaves all three piece lists EMPTY (it is one serial piece of its
+//     own), while the interior-point program's declaration carries one
+//     type-erased handle per piece, so feeding the split would key the two
+//     engines' readings of ONE declared problem differently on every problem
+//     with a constraint in it. The overcounts go with it: they are
+//     `sum(piece rows) - declared rows`, identically 0 on a declaration with
+//     no pieces.
+//   * BOUND VALUES. Only which sides are finite and whether they coincide
+//     reach the bound conjunct (detail::feed_variable_bound).
+//
+// The cost: two declarations with the same dimensions and the same box key the
+// same even if their constraint FUNCTIONS differ. The declaration surface
+// carries no engine-neutral identity for a piece's mathematics, only
+// type-erased handles, so this is the strongest engine-independent statement it
+// supports today. A warm start applied to a differently-posed problem of
+// identical shape costs a bad starting point rather than a wrong answer --
+// every block is re-measured by the receiving solve's own first convergence
+// test. If the bridge ever declares its pieces, the split can join this digest
+// as a format-version event.
+
+std::uint64_t declaration_identity_digest(const AggregateDeclaration &declaration) {
+    // THE FIXING TAIL HAS TO BE A LEGAL SPLIT before the user row count is
+    // taken: this function is reachable on a declaration nobody validated. A
+    // count that does not name a legal split is refused rather than clamped --
+    // clamping would key two different problems the same, which is the one
+    // thing a stamp may never do.
+    const int fixing = declaration.fixing_rows_;
+    if (fixing < 0 || fixing > declaration.equality_rows_) {
+        throw std::invalid_argument(fmt::format(
+            "declaration_identity_digest: the declaration states {0} internal fixing rows inside "
+            "an equality row space of {1} -- a fixing-row count names rows a treatment appended "
+            "to that space, so it must lie in [0, equality_rows_]",
+            fixing, declaration.equality_rows_));
+    }
+
+    Fnv1a hash;
+    // THE DECLARED DIMENSIONS, with the USER equality count. Fed through the
+    // same self-delimiting preamble claim_stream_digest opens with, so the two
+    // digests agree about what a dimension triple hashes to even though they
+    // agree about nothing else.
+    detail::feed_dimensions(hash, declaration.primal_vars_, declaration.equality_rows_ - fixing,
+                            declaration.inequality_rows_);
+    return hash.value();
+}
+
+DeclarationKey declaration_key(const AggregateDeclaration &declaration) {
+    // Each conjunct through its own public builder, and the bound one through
+    // the SAME builder ModelStructureKey's bound conjunct uses: its input is
+    // the declaration's own materialized bound records, which are declaration
+    // data on both engines and under every treatment (a relaxing treatment
+    // widens the BoundSet it hands the barrier, never the records the
+    // declaration carries).
+    return DeclarationKey{declaration_identity_digest(declaration),
+                          materialized_bound_digest(declaration)};
 }
 
 } // namespace hven::solvers
