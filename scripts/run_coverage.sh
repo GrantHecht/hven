@@ -73,17 +73,17 @@ for b in "${BINARIES[@]}"; do
     [[ "$(head -c4 "$b" 2>/dev/null)" == $'\x7fELF' ]] || continue
     OBJ_ARGS+=(-object "$b")
 done
-echo "coverage report merges ${#OBJ_ARGS[@]} ELF test binaries (of ${#BINARIES[@]} ctest entries)" >&2
+echo "coverage report merges $(( ${#OBJ_ARGS[@]} / 2 )) ELF test binaries (of ${#BINARIES[@]} ctest entries)" >&2
 
 "$LLVM_COV" report "${OBJ_ARGS[@]}" -instr-profile="$BUILD/hven.profdata" \
-    -ignore-filename-regex='dep/|tests/|bench/|build' > "$OUT/summary.txt"
+    -ignore-filename-regex='/dep/|/tests/|/bench/|/build' > "$OUT/summary.txt"
 "$LLVM_COV" show "${OBJ_ARGS[@]}" -instr-profile="$BUILD/hven.profdata" \
-    -ignore-filename-regex='dep/|tests/|bench/|build' \
+    -ignore-filename-regex='/dep/|/tests/|/bench/|/build' \
     -format=html -output-dir="$OUT" >/dev/null
 # lcov export for external ingestion (Codecov). Same object set and
 # exclusions as the report above, so every consumer sees one story.
 "$LLVM_COV" export "${OBJ_ARGS[@]}" -instr-profile="$BUILD/hven.profdata" \
-    -ignore-filename-regex='dep/|tests/|bench/|build' \
+    -ignore-filename-regex='/dep/|/tests/|/bench/|/build' \
     -format=lcov > "$OUT/coverage.lcov"
 
 echo "== coverage totals (library sources; dep/, tests/, bench/ excluded) =="
