@@ -302,6 +302,24 @@ class ModelAsNlpProblem final : public NLPProblem {
     // pattern never declared is a MOVING PATTERN and is refused by name.
     static void merge_into_slots(const SpRM &pattern, const SpRM &values, const char *what,
                                  Eigen::Ref<Eigen::VectorXd> out) {
+        // COMPRESSED IS A PRECONDITION, SO IT IS CHECKED BY NAME. NlpModel
+        // requires every matrix return to be compressed with sorted,
+        // duplicate-free inner indices (model/nlp_model.h), and the tandem walk
+        // below reads outerIndexPtr/innerIndexPtr/valuePtr directly, which is
+        // only meaningful for compressed storage. The engine's own route
+        // enforces that contract by name at nlp_require_claimed_pattern; this
+        // adapter does not pass through there, so it would otherwise read an
+        // uncompressed return as silent garbage rather than refusing it -- and
+        // this class already refuses the moving-pattern case by name.
+        if (!values.isCompressed()) {
+            throw std::runtime_error(fmt::format(
+                "ModelAsNlpProblem: the model returned an UNCOMPRESSED {}. NlpModel requires "
+                "every matrix return to be compressed with sorted, duplicate-free inner "
+                "indices (see model/nlp_model.h); pairing a stored value with a pattern slot "
+                "reads a different element in uncompressed storage. Call makeCompressed(), or "
+                "build the return with setFromTriplets(), which leaves it compressed.",
+                what));
+        }
         out.setZero();
         const int *p_outer = pattern.outerIndexPtr();
         const int *p_inner = pattern.innerIndexPtr();
@@ -427,6 +445,10 @@ inline std::vector<const CorpusCell *> dual_bindable_cells() {
 /// The interior-point leg's recorded outcome. Counters are the asserted
 /// currency; `wall_s` is informational.
 struct IpmLegRow {
+    /// False until this leg actually finished. A leg that never ran reports
+    /// ABSENT in the aggregate rather than the default-constructed value of
+    /// whatever field it would otherwise print -- see margins_row.
+    bool ran = false;
     hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
     int iters = -1;
     Index analyses = -1;
@@ -444,6 +466,11 @@ struct IpmLegRow {
 /// One SQP leg's recorded outcome (b, c or d). Same shape for all three so the
 /// margins are a subtraction and nothing else.
 struct SqpLegRow {
+    /// False until this leg actually finished; see IpmLegRow::ran. This matters
+    /// most on a cell a runner killed at a wall deadline: `status` then still
+    /// holds its default, and printing that default would say the leg FAILED
+    /// when the truth is that it never ran.
+    bool ran = false;
     SqpStatus status = SqpStatus::kNumericalError;
     StartLevel start_level = StartLevel::kCold;
     Index major_iters = -1;
@@ -507,6 +534,7 @@ inline Vec start_point_for(const CorpusCell &cell, const test_support::F7Colloca
 
 inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
     SqpLegRow row;
+    row.ran = true;
     row.status = sol.status;
     row.start_level = sol.counters.start_level_used;
     row.major_iters = sol.counters.major_iters;
@@ -636,6 +664,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
 
         exported = ipm.optimizer_->export_warm_start();
         legs.a.export_has_polish = find_ipm_polish(exported) != nullptr;
+        legs.a.ran = true;
     }
     legs.legs_cd_identical = !legs.a.export_has_polish;
     const auto emit = [&sink, &legs](LegStage stage) {
@@ -699,6 +728,93 @@ inline CounterMargin margin_against_cold(const SqpLegRow &cold, const SqpLegRow 
     m.qp_minors = cold.qp_minor_iters - warm.qp_minor_iters;
     m.factorizations = cold.factorizations - warm.factorizations;
     return m;
+}
+
+// =============================================================================
+// The aggregate row
+// =============================================================================
+//
+// THE MARGINS ROW LIVES HERE, not in the runner's CLI glue, because it is the
+// one row that summarises the other four and is therefore the one a consumer
+// is most likely to read ALONE. A defect in it is a defect in the artifact's
+// headline, so it is shared with the gate test rather than copied into it.
+
+/// @brief One cell's identifying prefix: id, node count, window, taxonomy.
+inline std::string cell_prefix(const CorpusCell &cell) {
+    return fmt::format("{},{},{},{}", cell.id, cell.n_nodes, corpus::to_string(cell.ctag),
+                       corpus::to_string(cell.start));
+}
+
+/// @brief The interior-point convergence flag as text.
+inline const char *flag_string(hven::ConvergenceFlags flag) {
+    switch (flag) {
+    case hven::ConvergenceFlags::CONVERGED:
+        return "CONVERGED";
+    case hven::ConvergenceFlags::ACCEPTABLE:
+        return "ACCEPTABLE";
+    case hven::ConvergenceFlags::NOTCONVERGED:
+        return "NOTCONVERGED";
+    case hven::ConvergenceFlags::DIVERGING:
+        return "DIVERGING";
+    case hven::ConvergenceFlags::SINGULAR_KKT:
+        return "SINGULAR_KKT";
+    }
+    return "UNKNOWN";
+}
+
+/// The token every column of this artifact uses for a value that was never
+/// measured. Never `0` and never a status: a status would claim an outcome the
+/// leg never reached.
+inline constexpr const char *kAbsent = "absent";
+
+/// @brief A leg's own status, or `absent` when that leg never ran.
+inline std::string leg_status(const SqpLegRow &row) {
+    return row.ran ? std::string(hven::solvers::to_string(row.status)) : std::string(kAbsent);
+}
+
+/// @brief The interior-point leg's own flag, or `absent` when it never ran.
+inline std::string ipm_status(const IpmLegRow &row) {
+    return row.ran ? std::string(flag_string(row.flag)) : std::string(kAbsent);
+}
+
+/// @brief One counter as text, or `absent` when its leg never ran.
+inline std::string leg_counter(const SqpLegRow &row, Index value) {
+    return row.ran ? fmt::format("{}", value) : std::string(kAbsent);
+}
+
+/// @brief A margin's three counters, or three `absent`s when it is undefined.
+inline std::string margin_cell(const CounterMargin &m) {
+    if (!m.defined) {
+        return fmt::format("{},{},{}", kAbsent, kAbsent, kAbsent);
+    }
+    return fmt::format("{},{},{}", m.majors, m.qp_minors, m.factorizations);
+}
+
+/// @brief The aggregate row for one cell.
+///
+/// EVERY STATUS COLUMN REPORTS ITS OWN LEG. That is the whole content of this
+/// function, and it is worth stating because the first version of this artifact
+/// got it wrong: when a cell was killed at its wall deadline the runner wrote a
+/// single cell-level `dnf_budget` into all four status columns, including the
+/// legs that HAD finished and whose rows the same loop had just written to the
+/// other four files. A reader of this file alone -- the natural thing to do,
+/// since it is the aggregate -- would then conclude those legs failed, which on
+/// the cells carrying this measurement's headline finding is the finding read
+/// backwards.
+///
+/// A leg that did not run is `absent` in its status column and in its counter
+/// columns. The MARGIN columns go absent on their own separate condition (a
+/// margin needs both its legs), which is what CounterMargin::defined carries.
+inline std::string margins_row(const CellLegs &legs) {
+    const CounterMargin c = margin_against_cold(legs.b, legs.c);
+    const CounterMargin d = margin_against_cold(legs.b, legs.d);
+    return fmt::format("{},{},{},{},{},{},{},{},{},{},{},{},{}\n", cell_prefix(*legs.cell), legs.n,
+                       leg_status(legs.b), leg_counter(legs.b, legs.b.major_iters),
+                       leg_counter(legs.b, legs.b.qp_minor_iters),
+                       leg_counter(legs.b, legs.b.factorizations), leg_status(legs.c),
+                       leg_status(legs.d), margin_cell(c), margin_cell(d), ipm_status(legs.a),
+                       legs.a.ran ? (legs.a.export_has_polish ? "1" : "0") : kAbsent,
+                       legs.a.ran ? (legs.legs_cd_identical ? "1" : "0") : kAbsent);
 }
 
 } // namespace hven::solvers::crossover

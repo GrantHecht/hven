@@ -48,6 +48,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 
 #include <fmt/format.h>
 
@@ -62,10 +65,14 @@ namespace {
 using hven::Index;
 using hven::solvers::SqpStatus;
 using hven::solvers::corpus::CorpusCell;
+using hven::solvers::crossover::cell_prefix;
 using hven::solvers::crossover::CellLegs;
 using hven::solvers::crossover::CounterMargin;
+using hven::solvers::crossover::flag_string;
 using hven::solvers::crossover::IpmLegRow;
+using hven::solvers::crossover::kAbsent;
 using hven::solvers::crossover::LegOptions;
+using hven::solvers::crossover::margins_row;
 using hven::solvers::crossover::SqpLegRow;
 
 // The five artifact files, in the order the child writes their rows.
@@ -81,28 +88,6 @@ constexpr const char *kErrorStatus = "engine_error";
 // =============================================================================
 // Rows
 // =============================================================================
-
-std::string cell_prefix(const CorpusCell &cell) {
-    return fmt::format("{},{},{},{}", cell.id, cell.n_nodes,
-                       hven::solvers::corpus::to_string(cell.ctag),
-                       hven::solvers::corpus::to_string(cell.start));
-}
-
-const char *flag_string(hven::ConvergenceFlags flag) {
-    switch (flag) {
-    case hven::ConvergenceFlags::CONVERGED:
-        return "CONVERGED";
-    case hven::ConvergenceFlags::ACCEPTABLE:
-        return "ACCEPTABLE";
-    case hven::ConvergenceFlags::NOTCONVERGED:
-        return "NOTCONVERGED";
-    case hven::ConvergenceFlags::DIVERGING:
-        return "DIVERGING";
-    case hven::ConvergenceFlags::SINGULAR_KKT:
-        return "SINGULAR_KKT";
-    }
-    return "UNKNOWN";
-}
 
 std::string leg_a_row(const CellLegs &legs) {
     const IpmLegRow &a = legs.a;
@@ -121,24 +106,6 @@ std::string sqp_row(const CellLegs &legs, const SqpLegRow &r) {
         r.stationarity, r.feasibility, r.complementarity, r.wall_s);
 }
 
-std::string margin_cell(const CounterMargin &m) {
-    if (!m.defined) {
-        return "absent,absent,absent";
-    }
-    return fmt::format("{},{},{}", m.majors, m.qp_minors, m.factorizations);
-}
-
-std::string margins_row(const CellLegs &legs) {
-    const CounterMargin c = margin_against_cold(legs.b, legs.c);
-    const CounterMargin d = margin_against_cold(legs.b, legs.d);
-    return fmt::format(
-        "{},{},{},{},{},{},{},{},{},{},{},{},{}\n", cell_prefix(*legs.cell), legs.n,
-        hven::solvers::to_string(legs.b.status), legs.b.major_iters, legs.b.qp_minor_iters,
-        legs.b.factorizations, hven::solvers::to_string(legs.c.status),
-        hven::solvers::to_string(legs.d.status), margin_cell(c), margin_cell(d),
-        flag_string(legs.a.flag), legs.a.export_has_polish ? 1 : 0, legs.legs_cd_identical ? 1 : 0);
-}
-
 // A cell that never produced an answer: -1 in every counter column, the phase
 // in the status column. ABSENT, not zero -- the same convention every other
 // absent column in this project's CSVs uses.
@@ -152,10 +119,19 @@ std::string absent_sqp(const CorpusCell &cell, const char *status) {
                        cell_prefix(cell), status);
 }
 
-std::string absent_margins(const CorpusCell &cell, const char *status) {
-    return fmt::format(
-        "{},-1,{},-1,-1,-1,{},{},absent,absent,absent,absent,absent,absent,{},-1,-1\n",
-        cell_prefix(cell), status, status, status, status);
+// The margins row for a cell NO leg of which produced anything -- the child
+// died before leg (a) finished, so there is not one outcome to report. Every
+// column is `absent`, including the status columns: the cell-level kill reason
+// belongs in the per-leg files (which do record it), never stamped across a
+// status column that is supposed to describe one leg's own outcome. A cell that
+// got as far as ANY leg does not reach here -- its margins row is built by
+// crossover_legs.h's margins_row from whatever the child salvaged.
+std::string absent_margins(const CorpusCell &cell) {
+    return fmt::format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n", cell.id,
+                       cell.n_nodes, hven::solvers::corpus::to_string(cell.ctag),
+                       hven::solvers::corpus::to_string(cell.start), kAbsent, kAbsent, kAbsent,
+                       kAbsent, kAbsent, kAbsent, kAbsent, kAbsent, kAbsent, kAbsent, kAbsent,
+                       kAbsent, kAbsent, kAbsent, kAbsent, kAbsent);
 }
 
 void write_headers(std::ostream &os, int which) {
@@ -211,8 +187,10 @@ void write_provenance(std::ostream &os, int argc, char **argv, const char *leg_n
     os << fmt::format("# MKL_NUM_THREADS: {}\n", mkl == nullptr ? "<unset>" : mkl);
     os << fmt::format("# host: {}\n", host[0] == '\0' ? "<unknown>" : host);
     os << fmt::format("# generated: {}\n", stamp[0] == '\0' ? "<unknown>" : stamp);
-    os << fmt::format("# per-cell wall deadline: {:.0f}s (SIGKILL; a killed cell is a "
-                      "'{}' row, not a missing one)\n",
+    os << fmt::format("# per-cell wall deadline: {:.0f}s (SIGKILL). A killed cell is never a "
+                      "missing row: the legs that\n#   finished are kept as measured, and only "
+                      "the ones that did not are '{}' in the per-leg\n#   files and 'absent' in "
+                      "the aggregate -- a status column always reports its OWN leg.\n",
                       deadline_s, kDnfStatus);
     os << "# execution: SERIAL -- one cell at a time, one solve at a time, no co-run arm.\n";
     os << "# asserted currency: counters (majors, qp minors, factorizations). Every wall\n";
@@ -226,8 +204,9 @@ void write_provenance(std::ostream &os, int argc, char **argv, const char *leg_n
 // Each row is written and FLUSHED the moment its leg finishes, tagged with the
 // index of the file it belongs in. A child that is SIGKILLed part way through
 // therefore leaves the legs that did finish behind, and the parent fills only
-// the rest as absent -- which is why the legs run (a), (c), (d), (b), with the
-// expensive cold leg last.
+// the rest as absent -- which is why the legs run (a), (d), (c), (b):
+// constant-cost before scaling, cold last. See crossover_legs.h's
+// execution-order note for why that order and not another.
 int run_child(const CorpusCell &cell, const LegOptions &opts, const std::string &sidecar) {
     try {
         std::ofstream out(sidecar);
@@ -249,9 +228,16 @@ int run_child(const CorpusCell &cell, const LegOptions &opts, const std::string 
                 out << "1\t" << sqp_row(legs, legs.b);
                 break;
             case hven::solvers::crossover::LegStage::kMargins:
-                out << "4\t" << margins_row(legs);
                 break;
             }
+            // THE MARGINS ROW IS RE-EMITTED AFTER EVERY LEG, not only at the
+            // end. The parent keeps the last row it sees for each file index,
+            // so a cell killed at the deadline still carries the most complete
+            // aggregate the run reached -- with each status column reporting
+            // its own leg and only the genuinely unmeasured ones `absent`.
+            // Emitting it once at the end is what produced the first version's
+            // twelve false status cells.
+            out << "4\t" << margins_row(legs);
             out.flush();
         };
         (void)hven::solvers::crossover::run_cell_legs(cell, opts, sink);
@@ -304,12 +290,28 @@ CellOutcome run_cell_with_deadline(const CorpusCell &cell, const LegOptions &opt
     // duplicate, and the child needs nothing forwarded because it inherits the
     // whole configuration already. The child writes only its own sidecar; the
     // parent's open CSV streams are never touched from the child side.
+    const pid_t parent_pid = ::getpid();
     const pid_t pid = ::fork();
     if (pid < 0) {
         outcome.error = fmt::format("fork failed: {}", std::strerror(errno));
         return outcome;
     }
     if (pid == 0) {
+        // NO ORPHANED SOLVER. Without this, Ctrl-C on the sweep script kills the
+        // script and the witness and leaves THIS child solving, detached, for up
+        // to a full deadline -- an invisible competitor for the next sweep, on a
+        // box whose contention discipline is the whole premise of the artifact
+        // these rows go into. PR_SET_PDEATHSIG asks the kernel to SIGKILL us
+        // when the parent dies. Linux-only; elsewhere the ordinary deadline path
+        // below is unchanged.
+#ifdef __linux__
+        ::prctl(PR_SET_PDEATHSIG, SIGKILL);
+        // The parent may have died between fork() and prctl(), in which case the
+        // signal just armed will never be delivered -- so check by hand.
+        if (::getppid() != parent_pid) {
+            ::_exit(1);
+        }
+#endif
         ::_exit(run_child(cell, opts, sidecar));
     }
 
@@ -371,9 +373,11 @@ void print_help() {
                "                              cell, in corpus order. A named cell that does not\n"
                "                              dual-bind is refused with its reason.\n"
                "  --out-dir <dir>             where the five CSVs are written. Required.\n"
-               "  --deadline-seconds <s>      per-cell wall deadline, default 1800. A cell that\n"
-               "                              outlives it is SIGKILLed and written as a\n"
-               "                              'dnf_budget' row with -1 counters.\n"
+               "  --deadline-seconds <s>      per-cell wall deadline, default 1200 -- the same\n"
+               "                              value scripts/run_crossover_legs.sh defaults\n"
+               "                              to, so one instrument quotes ONE budget. A\n"
+               "                              cell that outlives it is SIGKILLed; the legs that\n"
+               "                              finished are kept and the rest are 'absent'.\n"
                "  --ipm-max-iters <n>         interior-point iteration cap, default 200.\n"
                "  --list                      print every corpus cell, with its dual-bind\n"
                "                              verdict and (when refused) the reason.\n"
@@ -396,7 +400,7 @@ void print_list() {
 struct Args {
     std::optional<std::string> cells;
     std::optional<std::string> out_dir;
-    double deadline_s = 1800.0;
+    double deadline_s = 1200.0;
     int ipm_max_iters = 200;
     bool list = false;
     bool help = false;
@@ -534,7 +538,7 @@ int main(int argc, char **argv) {
                 } else if (i == 0) {
                     files[i] << absent_leg_a(*cell, status);
                 } else if (i == 4) {
-                    files[i] << absent_margins(*cell, status);
+                    files[i] << absent_margins(*cell);
                 } else {
                     files[i] << absent_sqp(*cell, status);
                 }

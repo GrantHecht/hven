@@ -371,6 +371,121 @@ TEST(CrossoverLegs, RunningANonDualBindingCellIsRefused) {
 
 // --- The margin arithmetic ---
 
+// --- The aggregate row of a cell that was killed part way through ---
+
+// THE DEFECT THIS PINS, stated as the failure it was. The first W5 sweep wrote
+// the aggregate row only after all four legs finished; when a cell was killed at
+// its wall deadline the runner instead stamped ONE cell-level `dnf_budget`
+// across all four status columns -- including the legs that HAD finished and
+// whose rows the same loop had just written to the other four files. Twelve
+// status cells in the shipped `margins.csv` then contradicted the artifact's own
+// per-leg CSVs, and on exactly the cells the headline finding rests on: a reader
+// of the aggregate alone would have concluded the polish route FAILED on every
+// one of them, which is that finding read backwards.
+//
+// The invariant is one sentence: a status column reports ITS OWN LEG. A leg that
+// ran reports its outcome; a leg that did not is `absent`. The margin columns go
+// absent on their own separate condition -- a margin needs both its legs -- which
+// is what makes "absent margin" and "failed leg" different statements.
+TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
+    const CorpusCell *cell = hven::solvers::corpus::find_cell("f7_n5000_path_neutral");
+    ASSERT_NE(cell, nullptr);
+
+    // The exact shape the deadline produced on that cell: the interior-point leg
+    // converged, both warm legs solved, and the COLD leg -- which runs last, and
+    // is the expensive one -- never finished.
+    hven::solvers::crossover::CellLegs legs;
+    legs.cell = cell;
+    legs.n = 25000;
+    legs.me = 15000;
+    legs.mi = 5000;
+
+    legs.a.ran = true;
+    legs.a.flag = hven::ConvergenceFlags::CONVERGED;
+    legs.a.iters = 17;
+    legs.a.export_has_polish = true;
+    legs.legs_cd_identical = false;
+
+    legs.c.ran = true;
+    legs.c.status = SqpStatus::kOptimal;
+    legs.c.major_iters = 1;
+    legs.c.qp_minor_iters = 4435;
+    legs.c.factorizations = 35;
+
+    legs.d.ran = true;
+    legs.d.status = SqpStatus::kOptimal;
+    legs.d.major_iters = 1;
+    legs.d.qp_minor_iters = 2;
+    legs.d.factorizations = 1;
+
+    // legs.b is left un-run: ran == false, and its `status` still holds the
+    // default kNumericalError that printing it unguarded would wrongly report.
+
+    const std::string row = hven::solvers::crossover::margins_row(legs);
+
+    // The legs that RAN say what they did.
+    EXPECT_NE(row.find("CONVERGED"), std::string::npos)
+        << "the interior-point leg converged and the aggregate must say so: " << row;
+    EXPECT_NE(row.find("Optimal"), std::string::npos)
+        << "both warm legs solved and the aggregate must say so: " << row;
+
+    // The leg that did NOT run is absent -- never a status, and never the
+    // default-constructed one in particular.
+    EXPECT_EQ(row.find("NumericalError"), std::string::npos)
+        << "a leg that never ran must not report the default status: " << row;
+
+    // Field by field, because "contains Optimal" would also pass on a row that
+    // put it in the wrong column. Schema: cell_id,n_nodes,window,taxonomy,n,
+    // cold_status,cold_majors,cold_qp_minors,cold_factorizations,
+    // warm_core_status,warm_polish_status,<3 core margins>,<3 polish margins>,
+    // ipm_flag,export_has_polish,legs_cd_identical.
+    std::vector<std::string> f;
+    for (std::size_t start = 0;;) {
+        const std::size_t comma = row.find(',', start);
+        if (comma == std::string::npos) {
+            std::string last = row.substr(start);
+            while (!last.empty() && (last.back() == '\n' || last.back() == '\r')) {
+                last.pop_back();
+            }
+            f.push_back(last);
+            break;
+        }
+        f.push_back(row.substr(start, comma - start));
+        start = comma + 1;
+    }
+    ASSERT_EQ(f.size(), 20u) << row;
+    EXPECT_EQ(f[0], "f7_n5000_path_neutral");
+    EXPECT_EQ(f[5], "absent") << "cold_status: that leg never ran";
+    EXPECT_EQ(f[6], "absent") << "cold_majors";
+    EXPECT_EQ(f[7], "absent") << "cold_qp_minors";
+    EXPECT_EQ(f[8], "absent") << "cold_factorizations";
+    EXPECT_EQ(f[9], "Optimal") << "warm_core_status: that leg DID run";
+    EXPECT_EQ(f[10], "Optimal") << "warm_polish_status: that leg DID run";
+    // Both margins are undefined -- not because the warm legs failed, but
+    // because the baseline they subtract from is missing. Different reason,
+    // same token, and that is the distinction the columns have to keep.
+    for (std::size_t i = 11; i <= 16; ++i) {
+        EXPECT_EQ(f[i], "absent") << "margin column " << i << " needs a cold baseline";
+    }
+    EXPECT_EQ(f[17], "CONVERGED") << "ipm_flag: that leg DID run";
+    EXPECT_EQ(f[18], "1") << "export_has_polish";
+}
+
+// A cell where NOTHING ran carries no outcome to report anywhere, and says so in
+// every column rather than inventing one.
+TEST(CrossoverLegs, ACellWithNoLegAtAllIsAbsentInEveryColumn) {
+    const CorpusCell *cell = hven::solvers::corpus::find_cell("f7_n20000_path_neutral");
+    ASSERT_NE(cell, nullptr);
+    hven::solvers::crossover::CellLegs legs;
+    legs.cell = cell;
+
+    const std::string row = hven::solvers::crossover::margins_row(legs);
+    EXPECT_EQ(row.find("NumericalError"), std::string::npos) << row;
+    EXPECT_EQ(row.find("CONVERGED"), std::string::npos) << row;
+    EXPECT_EQ(row.find("Optimal"), std::string::npos) << row;
+    EXPECT_NE(row.find("absent"), std::string::npos) << row;
+}
+
 // POSITIVE MEANS SAVED, and an undefined margin is ABSENT rather than zero. A
 // zero would read as "the crossover saved nothing on this cell", which is a
 // measurement; absence is the truth when a leg never reached a counter.
