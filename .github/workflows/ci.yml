@@ -94,9 +94,7 @@ jobs:
         # No-ops until the CODECOV_TOKEN secret exists (owner sets it).
         # codecov.yml pins both status checks informational -- the service
         # displays coverage, it never gates a merge.
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v4
         with:
           files: build-coverage/coverage/coverage.lcov
