@@ -503,25 +503,25 @@ struct NonLinearProgram : public NlpAggregate {
     }
 
   private:
-    /// Selected treatment, as last configured.
-    ///
-    /// PRIVATE, and the only reader is configure_variable_treatment's
-    /// idempotence test a few members down from bound_relax_factor_ and
-    /// configured_bounds_revision_: same treatment, same relax factor, same
-    /// bound revision means the structures on hand are already the answer.
-    /// That is the whole job. It was public only as an M2-era read-out for a
-    /// consumer that no longer needs it -- what a caller wants is the
-    /// treatment a SOLVE actually ran under, which the engine reports as
-    /// InteriorPointSolver::SolveResult::fixed_variable_treatment_, recorded
-    /// per call and unaffected by the idempotence short-circuit. Reading it
-    /// here instead would answer a different question: what the last
-    /// CONFIGURATION was told, which may predate the caller's own solve.
-    FixedVariableTreatments variable_treatment_ = FixedVariableTreatments::MakeParameter;
+    // READ AS ONE, so kept as one: configure_variable_treatment's idempotence
+    // test is a three-way conjunction over these two and
+    // configured_bounds_revision_ below, and is their only reader. Neither can
+    // be dropped -- a conjunction missing a term reads a real change to that
+    // term as a repeat, short-circuits, and leaves the previous
+    // configuration's structures standing under one that never ran.
+    //
+    // Private because the question they answer is not the one a caller wants:
+    // these describe what the last CONFIGURATION was told, which may predate
+    // the caller's own solve. The treatment a SOLVE actually ran under is
+    // reported per call as
+    // InteriorPointSolver::SolveResult::fixed_variable_treatment_.
 
-  public:
+    /// Selected treatment, as last configured.
+    FixedVariableTreatments variable_treatment_ = FixedVariableTreatments::MakeParameter;
     /// Relax factor, as last configured.
     double bound_relax_factor_ = 0.0;
 
+  public:
     /// Bumped whenever x_lower_/x_upper_ are (re)materialized or dropped, so
     /// configure_variable_treatment can tell a repeat call from a real change.
     /// Staging a declaration does NOT bump it: staged declarations only reach
