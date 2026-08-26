@@ -503,12 +503,17 @@ struct NonLinearProgram : public NlpAggregate {
     }
 
   private:
-    // READ AS ONE, so kept as one: configure_variable_treatment's idempotence
-    // test is a three-way conjunction over these two and
-    // configured_bounds_revision_ below, and is their only reader. Neither can
-    // be dropped -- a conjunction missing a term reads a real change to that
-    // term as a repeat, short-circuits, and leaves the previous
-    // configuration's structures standing under one that never ran.
+    // The two members configure_variable_treatment's idempotence test compares,
+    // and its only reader. That test is a FOUR-term conjunction:
+    // fixed_treatment_valid_ (is there a classification at all), these two
+    // (same treatment, same relax factor), and configured_bounds_revision_
+    // against bounds_revision_ (same bound state). The other two terms are
+    // public and are declared below -- this block is an access boundary, not a
+    // grouping of the conjunction, which does not live on one side of it.
+    //
+    // Neither member here can be dropped: a conjunction missing a term reads a
+    // real change to that term as a repeat, short-circuits, and leaves the
+    // previous configuration's structures standing under one that never ran.
     //
     // Private because the question they answer is not the one a caller wants:
     // these describe what the last CONFIGURATION was told, which may predate

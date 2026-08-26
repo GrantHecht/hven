@@ -904,14 +904,27 @@ std::vector<std::string> split_all(const std::string &s) {
 //
 // The pin compares two INDEPENDENT PROCESSES' rows for the same cell. Its
 // original premise was that every non-timing column is byte-identical across
-// them at MKL_NUM_THREADS=1. That premise is FALSE on at least one box: the
-// cell's residual columns move in their last digits between processes, which
-// the M4 Task 9 settler close verification measured directly -- the same cell
-// read kkt_residual 6.295821662e-14 in one process and 6.295822298e-14 in
-// another, a RELATIVE spread of 1.0e-7. Rebuilding the anchor commit in a
-// clean worktree reproduced it there too, so it is not a code change; the
-// mechanism is address-sensitive MKL kernels (the property MKL's CNR mode
-// exists for), and the addresses differ per process.
+// them at MKL_NUM_THREADS=1. That premise is FALSE: these columns move in
+// their last digits between processes running identical code, and the record
+// has readings from THREE DIFFERENT REGIMES, all on f7_n1000_bound_neutral's
+// kkt_residual unless noted:
+//
+//   1.0e-7   SAME BOX, SERIAL. 6.295821662e-14 vs 6.295822298e-14 (M4 Task 9
+//            settler close verification). The anchor commit was rebuilt in a
+//            clean worktree and reproduced it, so it is not a code change.
+//   8.6e-7   CI CROSS-RUNNER. 6.295821599e-14 vs 6.295816157e-14 (the Linux
+//            runner-divergence register). A different pin -- CorpusTask6b
+//            PhaseB -- but the same column of the same cell, so it measures
+//            the same quantity. Its f7_n1000_path_neutral rows in the same
+//            table reach 1.63e-6 by the same arithmetic.
+//   1.79e-6  MKL-THREADED ARM. 6.295833584e-14 vs 6.295822298e-14 (M4 ledger,
+//            two-level model contract stage 2). The LARGEST on record: more
+//            threads means more reduction orders, on top of the addressing.
+//
+// The mechanism is address-sensitive MKL kernels -- the property MKL's CNR
+// mode exists for -- compounded by reduction order once threads are involved.
+// Addresses differ per process, so no amount of pinning inside one process
+// makes these columns process-invariant.
 //
 // RULED FIX (the standing adjudication, M5 close-prep batch): counters and
 // statuses stay EXACT -- they are integers and enum spellings, computed by no
@@ -920,14 +933,23 @@ std::vector<std::string> split_all(const std::string &s) {
 // the calibrated-gate discipline the tycho suite already uses: exact == where
 // no arithmetic, a tight relative gate where there is.
 //
-// THE GATE'S DERIVATION: 1e-6 relative is ~10x the largest spread on record
-// (1.0e-7, above) -- enough headroom that a box noisier than the two measured
-// does not flake -- and still four to five decimal orders tighter than any
-// real regression in these measures, which move by ORDERS OF MAGNITUDE when
-// the solve actually changes, never by parts per million. Byte equality is
-// still the common outcome and is checked first; the gate only engages on the
-// digits that provably vary.
-constexpr double kResidualRelativeGate = 1.0e-6;
+// THE GATE'S DERIVATION: 1e-5 relative, which is ~5.6x the LARGEST reading
+// across all three regimes (1.79e-6). It is deliberately derived from the
+// worst regime rather than from the quietest: this pin runs wherever the
+// suite runs, including threaded and CI configurations, and a gate calibrated
+// on same-box serial numbers alone would sit BELOW readings the record
+// already contains. (It did: the first cut of this gate was 1e-6, which is
+// 0.56x the threaded arm's spread. The fix round caught it.)
+//
+// The headroom costs nothing in discrimination. These measures span 1e-14 to
+// 1e-7 across cells and move by WHOLE ORDERS OF MAGNITUDE when a solve
+// actually changes -- there is no realistic regression that shifts a residual
+// by parts per hundred thousand and by no more. Anything large enough to
+// matter also moves a counter, and the counters are held exact, so this gate
+// is not the only thing standing between a regression and a green run. Byte
+// equality remains the common outcome and is checked first; the gate engages
+// only on the digits that provably vary.
+constexpr double kResidualRelativeGate = 1.0e-5;
 
 // The corpus schema's floating-point measure columns, by index:
 //   12 kkt_residual
@@ -956,6 +978,19 @@ bool residual_columns_agree(const std::string &a, const std::string &b) {
         return false;
     }
     if (used_a != a.size() || used_b != b.size()) {
+        return false;
+    }
+    // NON-FINITE NEVER PASSES THE NUMERIC PATH. Without this, the relative
+    // form below waves through every infinity pairing it is handed: inf
+    // against a finite value gives |inf - x| = inf and scale = inf, so the
+    // test reads inf <= inf and SUCCEEDS, and inf against -inf does the same.
+    // A residual that went infinite is the loudest regression this column can
+    // report, and it must not be the one comparison that cannot fail. NaN is
+    // caught here too, though it would also have fallen out of the arithmetic
+    // (every comparison against NaN is false). Two identical non-finite
+    // spellings still agree -- via the byte-equality path above, which is the
+    // only way any non-finite value passes.
+    if (!std::isfinite(va) || !std::isfinite(vb)) {
         return false;
     }
     const double scale = std::max(std::abs(va), std::abs(vb));
@@ -1187,26 +1222,50 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
 
 // THE GATE ITSELF, pinned on hand-built spellings. The pin above can only
 // exercise it against whatever this box happens to produce, and the variance
-// it exists for is box-dependent -- it did not reproduce on every machine that
-// looked. These cases fix what the gate accepts and what it refuses
-// independently of that, so the calibration is a testable claim rather than a
-// number in a comment.
-TEST(CorpusResidualGate, AcceptsTheMeasuredCrossProcessSpreadAndRefusesARealMove) {
-    // The two readings actually on record (M4 Task 9 settler close
-    // verification), which are 1.0e-7 relative apart -- the measurement the
-    // 1e-6 gate is derived from.
-    EXPECT_TRUE(runner_test::residual_columns_agree("6.295821662e-14", "6.295822298e-14"));
+// it exists for is box- and regime-dependent -- it did not reproduce on every
+// machine that looked. These cases fix what the gate accepts and what it
+// refuses independently of that, so the calibration is a testable claim
+// rather than a number in a comment.
+TEST(CorpusResidualGate, AcceptsEveryRecordedSpreadAndRefusesARealMove) {
+    // ACCEPTS: all three regimes on record, which is what the gate is
+    // calibrated from. Each pair is the literal reading, not a paraphrase --
+    // see kResidualRelativeGate above for the provenance of each.
+    EXPECT_TRUE(runner_test::residual_columns_agree("6.295821662e-14",
+                                                    "6.295822298e-14")); // 1.0e-7 serial
+    EXPECT_TRUE(runner_test::residual_columns_agree("6.295821599e-14",
+                                                    "6.295816157e-14")); // 8.6e-7 CI
+    EXPECT_TRUE(runner_test::residual_columns_agree("6.295833584e-14",
+                                                    "6.295822298e-14")); // 1.79e-6 threaded
+    // The largest CI reading from the path_neutral rows of the same table.
+    EXPECT_TRUE(runner_test::residual_columns_agree("4.555248530e-07",
+                                                    "4.555255959e-07")); // 1.63e-6
     // Byte equality stays the common outcome and stays free.
     EXPECT_TRUE(runner_test::residual_columns_agree("1.234567890e-09", "1.234567890e-09"));
+
+    // REFUSES: a move an order of magnitude past the gate, and one three
+    // orders past it. The gate is 1e-5; nothing near a real regression
+    // survives it.
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09",
+                                                     "1.000100000e-09")); // 1e-4
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09",
+                                                     "1.001000000e-09")); // 1e-3
+    // An order-of-magnitude move is what a real regression in these measures
+    // actually looks like.
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-14", "1.000000000e-11"));
+
     // Both exactly zero agree; an exact zero against a nonzero never does,
     // however small the nonzero is.
     EXPECT_TRUE(runner_test::residual_columns_agree("0.000000000e+00", "0.000000000e+00"));
     EXPECT_FALSE(runner_test::residual_columns_agree("0.000000000e+00", "1.000000000e-30"));
-    // A move a thousand times the gate is a divergence, not noise ...
-    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09", "1.001000000e-09"));
-    // ... and an order-of-magnitude move is what a real regression in these
-    // measures actually looks like.
-    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-14", "1.000000000e-11"));
+
+    // NON-FINITE. A residual that went infinite is the loudest regression this
+    // column can report, so it must never be waved through -- and the relative
+    // form would have done exactly that (inf <= inf) without an explicit
+    // guard. Identical spellings still agree, but ONLY through byte equality.
+    EXPECT_FALSE(runner_test::residual_columns_agree("inf", "1.000000000e-09"));
+    EXPECT_FALSE(runner_test::residual_columns_agree("1.000000000e-09", "inf"));
+    EXPECT_FALSE(runner_test::residual_columns_agree("inf", "-inf"));
+    EXPECT_TRUE(runner_test::residual_columns_agree("inf", "inf"));
     // NaN is "unmeasured" (M1), not "equal to anything": it agrees only with
     // itself, byte for byte.
     EXPECT_TRUE(runner_test::residual_columns_agree("nan", "nan"));
