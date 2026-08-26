@@ -53,15 +53,18 @@ fi
 mkdir -p "$OUT"
 "$LLVM_PROFDATA" merge -sparse "$PROFDIR"/*.profraw -o "$BUILD/hven.profdata"
 
-# Every test binary ctest registered, deduplicated; llvm-cov merges across
-# objects so the report covers the union of what the suites executed.
-mapfile -t BINARIES < <(grep -rhoP '(?<=add_test\(\[=+\[[^]]{0,200}\]=+\] ")[^"]+' \
-    "$BUILD" --include='*_tests.cmake' 2>/dev/null | sort -u | head -50)
+# Every test binary ctest would run, from ctest's own registry -- the one
+# authoritative list. llvm-cov merges across objects so the report covers
+# the union of what the suites executed; A MISSED BINARY UNDER-REPORTS
+# (its exclusive code reads 0%), which is exactly what the first CI run
+# showed under the previous grep-based discovery.
+mapfile -t BINARIES < <(ctest --test-dir "$BUILD" --show-only=json-v1 2>/dev/null \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print("\n".join(sorted({t["command"][0] for t in d.get("tests",[]) if t.get("command")})))')
 if [[ ${#BINARIES[@]} -eq 0 ]]; then
-    # Fallback: the known suite executables.
-    mapfile -t BINARIES < <(find "$BUILD/tests" -maxdepth 2 -type f -executable \
-        -name '*test*' | sort -u)
+    # Fallback: every executable under the test tree.
+    mapfile -t BINARIES < <(find "$BUILD/tests" -maxdepth 3 -type f -executable | sort -u)
 fi
+echo "coverage report merges ${#BINARIES[@]} test binaries" >&2
 OBJ_ARGS=()
 for b in "${BINARIES[@]}"; do [[ -x "$b" ]] && OBJ_ARGS+=(-object "$b"); done
 
