@@ -37,7 +37,7 @@
         {
             "name": "linux-clang-coverage",
             "displayName": "Linux Clang Coverage",
-            "description": "Debug-based build with LLVM source-based coverage instrumentation (-fprofile-instr-generate -fcoverage-mapping). INSTRUMENT TREE ONLY: never a source of quotable timings, pins, or baselines -- coverage flags change codegen, so nothing measured here is comparable to the uniform flag regime. Debug base keeps Eigen's runtime asserts active so covered paths are also checked paths. Reports via scripts/run_coverage.sh (llvm-profdata + llvm-cov).",
+            "description": "Debug-based build with LLVM source-based coverage instrumentation (-fprofile-instr-generate -fcoverage-mapping). INSTRUMENT TREE ONLY: never a source of quotable timings, pins, or baselines -- coverage flags change codegen, so nothing measured here is comparable to the uniform flag regime. Debug base keeps Eigen's runtime asserts active so covered paths are also checked paths. Reports via scripts/run_coverage.sh (llvm-profdata + llvm-cov). Pins clang for C as well: the instrumentation flags ride CMAKE_<LANG>_FLAGS and the exe linker flags, and gcc (the default cc) does not accept clang's -fprofile-instr-generate spelling -- the C compiler sanity test would fail at configure.",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build-coverage",
             "installDir": "${sourceDir}/build-coverage/install/${presetName}",
@@ -47,7 +47,9 @@
                 "HVEN_FP_MODE": "SAFER_FAST",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
                 "CMAKE_CXX_FLAGS": "-fprofile-instr-generate -fcoverage-mapping",
-                "CMAKE_EXE_LINKER_FLAGS": "-fprofile-instr-generate"
+                "CMAKE_EXE_LINKER_FLAGS": "-fprofile-instr-generate",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_C_FLAGS": "-fprofile-instr-generate -fcoverage-mapping"
             }
         },
         {
