@@ -35,6 +35,22 @@
             }
         },
         {
+            "name": "linux-clang-coverage",
+            "displayName": "Linux Clang Coverage",
+            "description": "Debug-based build with LLVM source-based coverage instrumentation (-fprofile-instr-generate -fcoverage-mapping). INSTRUMENT TREE ONLY: never a source of quotable timings, pins, or baselines -- coverage flags change codegen, so nothing measured here is comparable to the uniform flag regime. Debug base keeps Eigen's runtime asserts active so covered paths are also checked paths. Reports via scripts/run_coverage.sh (llvm-profdata + llvm-cov).",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build-coverage",
+            "installDir": "${sourceDir}/build-coverage/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
+                "HVEN_FP_MODE": "SAFER_FAST",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_CXX_FLAGS": "-fprofile-instr-generate -fcoverage-mapping",
+                "CMAKE_EXE_LINKER_FLAGS": "-fprofile-instr-generate"
+            }
+        },
+        {
             "name": "macos-clang-release",
             "displayName": "macOS Clang Release (AppleClang, CI)",
             "description": "Release build using the Xcode Command Line Tools' AppleClang on macOS (Apple Silicon). Written for the macos-clang-release CI lane -- AppleClang is preferred over Homebrew LLVM for this lane because it needs no extra brew formula and is what a from-scratch Mac checkout has by default; CMAKE_CXX_COMPILER is intentionally left unset so CMake picks up whatever `clang++` the runner's `xcode-select` resolves to. Accelerate is a system framework, not a package -- cmake/FindAccelerateSparse.cmake finds it via the SDK's default framework search path, no extra install step needed. OBSERVED: this preset configured, built and ran green on GitHub's macos-26-arm64 runner in CI run 31287205323 (commit ca2744c1ba41), 51 tests: 49 passed, 2 skipped by design, 0 failed -- see docs/ci.md.",
@@ -94,6 +110,10 @@
                 "-j6",
                 "-v"
             ]
+        },
+        {
+            "name": "linux-clang-coverage",
+            "configurePreset": "linux-clang-coverage"
         },
         {
             "name": "macos-clang-release",
