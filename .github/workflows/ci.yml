@@ -90,6 +90,19 @@ jobs:
             build-coverage/ctest-status.txt
           if-no-files-found: warn
 
+      - name: Upload to Codecov
+        # No-ops until the CODECOV_TOKEN secret exists (owner sets it).
+        # codecov.yml pins both status checks informational -- the service
+        # displays coverage, it never gates a merge.
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v4
+        with:
+          files: build-coverage/coverage/coverage.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
   linux-clang-release:
     runs-on: ubuntu-latest
     permissions:

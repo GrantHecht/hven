@@ -1,0 +1,19 @@
+# Codecov configuration -- INFORMATIONAL ONLY (owner ruling: no coverage
+# percentage gates; gating is an explicit policy decision, not a default).
+# Both checks are informational: they always pass and exist to display the
+# number, never to block a merge.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+comment:
+  layout: "condensed_header, diff, files"
+  require_changes: true
+ignore:
+  - "dep/**"
+  - "tests/**"
+  - "bench/**"
