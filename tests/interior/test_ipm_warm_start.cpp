@@ -31,6 +31,7 @@
 
 #include <fmt/format.h>
 
+#include "hven/detail/globalization/recovery_chain.h"
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
 #include "hven/warmstart/ipm_polish_extension.h"
@@ -1259,15 +1260,58 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
     EXPECT_EQ(unbounded.bound_lmults_[1], 0.0);
 }
 
-// A BOUNDED problem with NO feasible point: the box [-1, 1]^2 cannot reach the
-// equality row x0 + x1 = 5, and the inequality row is slack everywhere in it.
-// Solved under a nested-l1 restoration preset, this is the fixture that ends a
-// solve with feasibility restoration still active -- SolveResult's own
-// restoration-active-exit condition, and the one exit on which the polish
-// extension's blocks would be the RESTORATION subproblem's rather than the
-// declared problem's (under l1_nested the RHS constraint rows carry the
-// condensed residual, so result().iq_cons_ is not cI(x) at all).
+// A BOUNDED problem with NO feasible point -- the box [-1, 1]^2 cannot reach
+// the equality row x0 + x1 = 5, and the inequality row is slack everywhere in
+// it -- that additionally REFUSES TO BE EVALUATED anywhere except the point it
+// was first asked about.
+//
+// WHY THE ANCHOR. Restoration ENTRY is a recovery decision, and every route
+// into it that depends on the step sequence -- an exhausted line-search ladder,
+// the feasibility stage's sustained-worsening detector, an exhausted
+// inertia-correction ladder -- depends on the factorization backend's
+// numerics. An infeasible problem alone therefore enters restoration on one
+// backend and not on another, which is exactly what it did: MKL entered,
+// Accelerate did not, and the premise assertion below failed on the macOS lane
+// rather than the pin.
+//
+// The anchor makes entry STRUCTURAL instead. Every trial point a line search
+// proposes differs from the committed iterate, so every trial evaluation
+// throws -- whatever direction the factorization produced. The driver's
+// designed handling of that is documented at the site: the soft feasibility
+// pre-stage treats an un-evaluable trial as "no reduction" and escalates to
+// the full restoration entry (try_soft_feasibility_step's own catch, and the
+// kSoftFeasibilityStep case in alg_impl). The two guards on the way in are
+// satisfied structurally, not numerically: the violation here is ~3, far above
+// the near-feasible floor (0.1 * econ_tol) and far outside the acceptable
+// tier, and the per-phase entry budget is the shipped default 2.
+//
+// Nothing ever throws at a COMMITTED point: every rejected iteration commits
+// alpha = 0, so the iterate never leaves the anchor.
+//
+// With max_iters = 2 the phase then ends exactly where this pin needs it:
+// entry during iteration 0's line search, one restoration iteration (whose
+// eval seam writes the CONDENSED residual into the RHS -- the contamination
+// the suppression exists for), and the max_iters break with restoration still
+// active.
 struct WarmInfeasibleBoundedProblem : NLPProblem {
+    // The first point ever evaluated. Mutable because the evaluation surface is
+    // const; one instance per solve, and nothing here is shared across threads.
+    mutable Eigen::VectorXd anchor_;
+
+    // Anchors on the first call, refuses every later point. Only the two VALUE
+    // evaluations call it -- that is all a trial needs to be un-evaluable, and
+    // it keeps the refusal on the surface a caller would actually see fail.
+    void require_anchor(ConstEigenRef<Eigen::VectorXd> x) const {
+        if (this->anchor_.size() == 0) {
+            this->anchor_ = x;
+            return;
+        }
+        if (x != this->anchor_) {
+            throw std::runtime_error("WarmInfeasibleBoundedProblem: this problem evaluates only "
+                                     "at the point it was first asked about");
+        }
+    }
+
     int num_vars() const override { return 2; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 4; }
@@ -1281,6 +1325,7 @@ struct WarmInfeasibleBoundedProblem : NLPProblem {
         gu << 5.0, 10.0;
     }
     void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        this->require_anchor(x);
         f = 0.5 * (x[0] * x[0] + x[1] * x[1]);
     }
     void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
@@ -1289,6 +1334,7 @@ struct WarmInfeasibleBoundedProblem : NLPProblem {
         g[1] = x[1];
     }
     void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        this->require_anchor(x);
         g[0] = x[0] + x[1];
         g[1] = x[0] - x[1];
     }
@@ -1332,20 +1378,37 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     // filter acceptance + monitored governor + nested-l1 restoration: the
     // shipped preset whose restoration arm this fixture is built for.
     solver.optimizer_->apply_preset("filter_l1");
-    solver.optimizer_->set_max_iters(60);
+    // Two iterations exactly -- see the fixture's own note for why that is the
+    // number: entry during the first, the condensed eval seam during the
+    // second, and the break with restoration still active.
+    solver.optimizer_->set_max_iters(2);
     solver.transcribe();
 
+    // Strictly interior to the box, so the entry interior push is a no-op and
+    // the anchor the problem takes is this point.
     Eigen::VectorXd x0(2);
     x0 << 0.0, 0.0;
     const hven::ConvergenceFlags flag = warm_optimize(*solver.optimizer_, x0);
 
     // THE DISCRIMINATING CONDITION, asserted rather than assumed: restoration
     // was entered during this solve and the verdict is not CONVERGED -- the
-    // exit class SolveResult's residual caveat names.
+    // exit class SolveResult's residual caveat names. Structural on every
+    // backend (see the fixture note), so a failure here is a real regression in
+    // the entry path, not a numerics difference.
     const auto &result = solver.optimizer_->result();
     ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
     ASSERT_GT(result.last_feas_rest_entries_, 0)
         << "the fixture must actually reach feasibility restoration";
+    // And it was still active at the exit: the phase spent its last iteration
+    // in mode. (entries > 0 alone would also read true for an episode the
+    // phase had already left.)
+    ASSERT_GT(result.last_feas_rest_iters_, 0);
+    // AND IT GOT THERE THE STRUCTURAL WAY. A trial evaluation was refused and
+    // absorbed (the anchor), and an iteration was attributed to the restoration
+    // recovery bucket -- so this pin cannot quietly start passing because some
+    // backend's numerics happened to exhaust a line search instead.
+    EXPECT_FALSE(result.last_eval_exception_.empty());
+    EXPECT_GT(result.recovery_depth_histogram_[hven::solvers::kRecoveryDepthRestoration], 0);
 
     // The solve completed, so the currency is exportable and carries its core.
     ASSERT_TRUE(solver.optimizer_->solve_completed_);
