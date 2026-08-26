@@ -560,13 +560,28 @@ using LegSink = std::function<void(const CellLegs &, LegStage)>;
 
 /// @brief Runs all four legs of one dual-bindable cell.
 ///
-/// EXECUTION ORDER IS (a), (c), (d), (b) -- the interior-point leg first
-/// because it is the exporter the two warm legs stage, and the COLD leg LAST
-/// because it is the expensive one. Each leg is an independent solve on a fresh
-/// driver over a fresh bridge, so the order moves no counter; what it buys is
-/// that a runner under a wall deadline still has legs (a), (c) and (d) written
-/// when the cold leg is the one that runs out of budget. The margins are then
-/// ABSENT, which is what an unmeasured cold baseline honestly leaves them.
+/// EXECUTION ORDER IS (a), (d), (c), (b) -- CHEAPEST-AND-MOST-INFORMATIVE
+/// FIRST, because a runner may be enforcing a wall deadline. Each leg is an
+/// independent solve on a fresh driver over a fresh bridge, so the order moves
+/// no counter; what it decides is WHICH LEGS EXIST when a cell runs out of
+/// budget.
+///
+///   (a) first, unconditionally -- it is the exporter the two warm legs stage.
+///   (d) second, because it is CONSTANT COST. The polish extension carries the
+///       active set, so this leg builds one subproblem and certifies: 1 major,
+///       2 QP minors, 1 factorization, at every size measured. It is both the
+///       cheapest leg and the one that says the most.
+///   (c) third -- core-only has no activity information, so its QP minors SCALE
+///       with the problem and on a large cell can consume a whole budget.
+///   (b) last -- the cold baseline is the most expensive of the four.
+///
+/// THIS ORDER WAS WRONG ONCE, AND SAYING SO IS THE POINT. The first W5 sweep
+/// ran (a), (c), (d), (b), on the reasoning that only the cold leg was
+/// expensive enough to starve the others. At N = 10000 on the path window that
+/// is false: leg (c) alone exhausted the per-cell budget, legs (d) and (b)
+/// never ran, and the cells where the polish route is most impressive are
+/// exactly the ones that lost it. Putting the constant-cost leg ahead of the
+/// scaling one costs nothing and cannot fail that way.
 ///
 /// @param cell The cell; must satisfy cell_dual_binds().
 /// @param opts The runner's knobs.
@@ -632,9 +647,16 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
 
     const SqpOptions sqp_opts = corpus::detail::options_for_cell(cell);
 
+    // --- leg (d): SQP warm, with polish -- CONSTANT COST, so it runs first ---
+    legs.d = detail::run_sqp_leg(
+        model, x0, sqp_opts,
+        [&exported](SqpDriver &driver, NlpModelAggregate &) { driver.stage_warm_start(exported); });
+    emit(LegStage::kWarmPolish);
+
     // --- leg (c): SQP warm, core only ---
     // The tag stripped from (a)'s export, which is the R3 shape: the neutral
-    // core alone, with the producer's extensions cleared.
+    // core alone, with the producer's extensions cleared. Its QP minors SCALE
+    // with the problem, which is why it runs after (d) -- see the order note.
     {
         WarmStartData core = exported;
         core.extensions_.clear();
@@ -643,12 +665,6 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
             [&core](SqpDriver &driver, NlpModelAggregate &) { driver.stage_warm_start(core); });
     }
     emit(LegStage::kWarmCore);
-
-    // --- leg (d): SQP warm, with polish ---
-    legs.d = detail::run_sqp_leg(
-        model, x0, sqp_opts,
-        [&exported](SqpDriver &driver, NlpModelAggregate &) { driver.stage_warm_start(exported); });
-    emit(LegStage::kWarmPolish);
 
     // --- leg (b): SQP cold, last -- see the execution-order note above ---
     legs.b = detail::run_sqp_leg(model, x0, sqp_opts, [](SqpDriver &, NlpModelAggregate &) {});
