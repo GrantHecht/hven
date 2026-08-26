@@ -57,22 +57,33 @@ endif()
 ############### Build Settings ###################################################
 ################################################################################
 
-# LINK_TIME_OPT is a CACHE option, not a plain set(). A plain set() here is a
-# NORMAL variable, and a normal variable shadows the cache entry that
-# `-DLINK_TIME_OPT=ON` creates: the command line would be accepted, the cache
-# would record ON, and this line would then hand hven_compile_options() a FALSE
-# anyway -- whose else() branch force-sets CMAKE_INTERPROCEDURAL_OPTIMIZATION
-# OFF. The switch was therefore unreachable from the command line, silently.
+# HVEN_LINK_TIME_OPT: a NAMESPACED CACHE option. Two defects are closed here,
+# and they compound.
 #
-# option() declares the SAME default (OFF -- unchanged; thin-LTO measured to
-# buy this library nothing, M4 Task 9's bench legs) while leaving an existing
-# cache entry alone, so a command line wins. Under add_subdirectory (tycho's
-# consumption mode) CMP0077 is NEW at this file's cmake_minimum_required, so a
-# parent project's normal variable of the same name is honoured too.
+# (1) SHADOWING. The original `set(LINK_TIME_OPT FALSE)` was a NORMAL variable,
+#     and a normal variable shadows the cache entry a `-D` command line
+#     creates: the cache recorded ON, hven_compile_options() read FALSE, and
+#     its else() force-set CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF. The switch
+#     was unreachable from the command line, silently.
+#
+# (2) COLLISION, which removing (1) exposes. Under add_subdirectory (tycho's
+#     consumption mode) CMP0077 is NEW at this file's cmake_minimum_required,
+#     so option() honours a parent project's normal variable of the same name.
+#     tycho sets an UNPREFIXED `LINK_TIME_OPT` in two places -- FALSE at its
+#     root, TRUE in its own compile-options module on the full-release branch
+#     -- so an unprefixed option() here would have silently inherited tycho's
+#     LTO choice for hven. The deleted plain set() had been masking that by
+#     accident. The prefix closes it by construction, and tycho needs no
+#     change.
+#
+# The DEFAULT DOES NOT MOVE: OFF, because thin-LTO was measured to buy this
+# library nothing (M4 Task 9's bench legs). No back-compat alias for the old
+# spelling -- nothing outside this repository consumed it, and an alias would
+# reintroduce exactly the unprefixed name (2) exists to avoid.
 #
 # BUILD_HVEN_WHEEL still forces LTO on by shadowing this inside
-# hven_compile_options() -- that shadowing is deliberate and stays.
-option(LINK_TIME_OPT
+# hven_compile_options(); that shadowing is deliberate and stays.
+option(HVEN_LINK_TIME_OPT
        "Build hven with IPO/LTO. Default OFF: measured to buy nothing on this library. Forced ON by BUILD_HVEN_WHEEL."
        OFF)
 set(CLANG_MAX_INLINE_DEPTH 225)

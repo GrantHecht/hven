@@ -34,7 +34,8 @@
 #   BUILD_HVEN_WHEEL
 #                   TRUE selects the portable wheel SIMD baseline (AVX2 /
 #                   apple-m1) and forces LTO; unset/FALSE selects -march=native.
-#   LINK_TIME_OPT   TRUE enables IPO/LTO. Ignored when BUILD_HVEN_WHEEL forces
+#   HVEN_LINK_TIME_OPT
+#                   TRUE enables IPO/LTO. Ignored when BUILD_HVEN_WHEEL forces
 #                   it on.
 #   CLANG_MAX_INLINE_DEPTH
 #                   Value for Clang's -inline-threshold. Overwritten to 400 by
@@ -112,13 +113,13 @@ if(BUILD_HVEN_WHEEL)
         message(WARNING "Unknown architecture ${CMAKE_SYSTEM_PROCESSOR}, using -march=native")
     endif()
 
-    # Windows runs out of ram with LINK_TIME_OPT on gh-actions
+    # Windows runs out of ram with HVEN_LINK_TIME_OPT on gh-actions
     if(NOT WIN32)
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
             list(APPEND SIMD_FLAGS "-mtune=skylake")
         endif()
     endif()
-    set(LINK_TIME_OPT TRUE)   ### DO LTO - Recommended for full release
+    set(HVEN_LINK_TIME_OPT TRUE)   ### DO LTO - Recommended for full release
     set(CLANG_MAX_INLINE_DEPTH 400)
 
 else()
@@ -164,7 +165,7 @@ if(NOT WIN32)
 endif()
 
 
-if(LINK_TIME_OPT)
+if(HVEN_LINK_TIME_OPT)
   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     if(WIN32)
         ## clang-cl flag
