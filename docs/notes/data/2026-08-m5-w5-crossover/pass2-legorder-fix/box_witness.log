@@ -1,0 +1,43 @@
+# W5 sweep contention witness -- competing build/compiler process count, once a minute.
+# A nonzero count means the 'alone on the machine' condition was broken at that moment;
+# any cell overlapping such a sample must be re-run solo before its row is trusted.
+2026-08-26T05:12:35Z competing=0 load1=0.46
+2026-08-26T05:13:35Z competing=2 load1=1.74
+2026-08-26T05:14:36Z competing=2 load1=1.91
+2026-08-26T05:15:36Z competing=2 load1=1.97
+2026-08-26T05:16:37Z competing=2 load1=2.07
+2026-08-26T05:17:38Z competing=2 load1=2.02
+2026-08-26T05:18:38Z competing=2 load1=2.01
+2026-08-26T05:19:39Z competing=2 load1=2.00
+2026-08-26T05:20:39Z competing=2 load1=2.00
+2026-08-26T05:21:40Z competing=2 load1=2.00
+2026-08-26T05:22:41Z competing=2 load1=2.56
+2026-08-26T05:23:41Z competing=2 load1=2.20
+2026-08-26T05:24:42Z competing=2 load1=2.15
+2026-08-26T05:25:42Z competing=2 load1=2.05
+2026-08-26T05:26:43Z competing=2 load1=2.02
+2026-08-26T05:27:44Z competing=2 load1=2.00
+2026-08-26T05:28:44Z competing=2 load1=2.00
+2026-08-26T05:29:45Z competing=2 load1=2.00
+2026-08-26T05:30:45Z competing=2 load1=2.00
+2026-08-26T05:31:46Z competing=2 load1=2.00
+2026-08-26T05:32:47Z competing=2 load1=3.12
+2026-08-26T05:33:47Z competing=2 load1=2.46
+2026-08-26T05:34:48Z competing=2 load1=2.17
+2026-08-26T05:35:48Z competing=2 load1=2.06
+2026-08-26T05:36:49Z competing=2 load1=2.06
+2026-08-26T05:37:50Z competing=2 load1=2.02
+2026-08-26T05:38:50Z competing=2 load1=2.01
+2026-08-26T05:39:51Z competing=2 load1=2.00
+2026-08-26T05:40:52Z competing=2 load1=2.00
+2026-08-26T05:41:52Z competing=2 load1=2.11
+2026-08-26T05:42:53Z competing=2 load1=2.48
+2026-08-26T05:43:53Z competing=2 load1=2.17
+2026-08-26T05:44:54Z competing=2 load1=2.09
+2026-08-26T05:45:55Z competing=2 load1=2.08
+2026-08-26T05:46:55Z competing=2 load1=2.03
+2026-08-26T05:47:56Z competing=2 load1=2.01
+2026-08-26T05:48:56Z competing=2 load1=2.00
+2026-08-26T05:49:57Z competing=0 load1=1.86
+2026-08-26T05:50:58Z competing=0 load1=1.86
+2026-08-26T05:51:58Z competing=0 load1=1.59

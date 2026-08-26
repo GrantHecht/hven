@@ -1,0 +1,16 @@
+# hven_sqp_crossover provenance (M5 W5)
+# leg: leg_d_sqp_warm_polish.csv
+# binary: 575331d10fa5
+# invocation: build-m5-release/bench/hven_sqp_crossover --cells f7_n10000_path_physics,f7_n10000_path_neutral,f7_n20000_path_physics,f7_n20000_path_neutral --out-dir docs/notes/data/2026-08-m5-w5-crossover/pass2-legorder-fix --deadline-seconds 600
+# MKL_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-08-26T05:12:35Z
+# per-cell wall deadline: 600s (SIGKILL; a killed cell is a 'dnf_budget' row, not a missing one)
+# execution: SERIAL -- one cell at a time, one solve at a time, no co-run arm.
+# asserted currency: counters (majors, qp minors, factorizations). Every wall
+#   column here is INFORMATIONAL and is never quoted as a measurement.
+cell_id,n_nodes,window,taxonomy,n,me,mi,status,start_level,majors,qp_minors,factorizations,symbolic_analyses,ip_activity_inferred,seeded_clamped,f,kkt_residual,stationarity,feasibility,complementarity,wall_s
+f7_n10000_path_physics,10000,path,physics,50000,30000,10000,Optimal,Seeded,1,2,1,1,8870,0,-1.016746077e+00,2.498402201e-12,2.498402201e-12,9.575673587e-13,9.962325072e-19,0.311451
+f7_n10000_path_neutral,10000,path,neutral,50000,30000,10000,Optimal,Seeded,1,2,1,1,8870,0,-1.016746077e+00,4.145505045e-12,4.145505045e-12,3.668287896e-12,4.698570331e-18,0.311105
+f7_n20000_path_physics,20000,path,physics,100000,60000,20000,Optimal,Seeded,1,39,2,2,17702,0,-1.016647412e+00,6.472156144e-12,3.079297493e-12,6.472156144e-12,5.639624327e-18,7.466557
+f7_n20000_path_neutral,20000,path,neutral,100000,60000,20000,Optimal,Seeded,1,2,1,1,17740,0,-1.016647412e+00,6.769029781e-12,3.040164047e-12,6.769029781e-12,4.921035731e-18,0.658520

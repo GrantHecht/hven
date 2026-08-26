@@ -1,0 +1,36 @@
+# hven_sqp_crossover provenance (M5 W5)
+# leg: leg_b_sqp_cold.csv
+# binary: 8bd4b9d62ef0
+# invocation: build-m5-release/bench/hven_sqp_crossover --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n800_path_physics,f7_n1000_path_physics,f7_n2000_path_physics,f7_n750_path_neutral_control,f7_n825_path_neutral_control,f7_n1000_path_neutral,f7_n5000_path_physics,f7_n800_path_neutral,f7_n2000_path_neutral,f7_n5000_path_neutral,f7_n10000_path_physics,f7_n10000_path_neutral,f7_n20000_path_physics,f7_n20000_path_neutral --out-dir docs/notes/data/2026-08-m5-w5-crossover --deadline-seconds 1200
+# MKL_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-08-26T02:35:05Z
+# per-cell wall deadline: 1200s (SIGKILL; a killed cell is a 'dnf_budget' row, not a missing one)
+# execution: SERIAL -- one cell at a time, one solve at a time, no co-run arm.
+# asserted currency: counters (majors, qp minors, factorizations). Every wall
+#   column here is INFORMATIONAL and is never quoted as a measurement.
+cell_id,n_nodes,window,taxonomy,n,me,mi,status,start_level,majors,qp_minors,factorizations,symbolic_analyses,ip_activity_inferred,seeded_clamped,f,kkt_residual,stationarity,feasibility,complementarity,wall_s
+f7_n1000_bound_neutral,1000,bound,neutral,5000,3000,1000,Optimal,Cold,1,2,1,1,0,0,-4.075173558e-01,6.295832335e-14,6.295832335e-14,1.937883159e-14,0.000000000e+00,0.023880
+f7_n1000_bound_physics,1000,bound,physics,5000,3000,1000,Optimal,Cold,1,2,1,1,0,0,-4.075173558e-01,1.168049964e-16,1.168049964e-16,1.079633839e-16,0.000000000e+00,0.023779
+f7_n2000_bound_neutral,2000,bound,neutral,10000,6000,2000,Optimal,Cold,1,2,1,1,0,0,-4.066533233e-01,1.259764344e-13,1.259764344e-13,3.878155499e-14,0.000000000e+00,0.048958
+f7_n2000_bound_physics,2000,bound,physics,10000,6000,2000,Optimal,Cold,1,2,1,1,0,0,-4.066533233e-01,2.168216410e-16,2.168216410e-16,1.105729050e-16,0.000000000e+00,0.049013
+f7_n5000_bound_neutral,5000,bound,neutral,25000,15000,5000,Optimal,Cold,1,2,1,1,0,0,-4.061354862e-01,3.150169743e-13,3.150169743e-13,9.692247005e-14,0.000000000e+00,0.125086
+f7_n5000_bound_physics,5000,bound,physics,25000,15000,5000,Optimal,Cold,1,2,1,1,0,0,-4.061354862e-01,5.167818090e-16,5.167818090e-16,1.110891234e-16,0.000000000e+00,0.124682
+f7_n10000_bound_neutral,10000,bound,neutral,50000,30000,10000,Optimal,Cold,1,2,1,1,0,0,-4.059629708e-01,6.300386629e-13,6.300386629e-13,1.938683814e-13,0.000000000e+00,0.258989
+f7_n10000_bound_physics,10000,bound,physics,50000,30000,10000,Optimal,Cold,1,2,1,1,0,0,-4.059629708e-01,1.016559106e-15,1.016559106e-15,1.151644575e-16,0.000000000e+00,0.258547
+f7_n20000_bound_neutral,20000,bound,neutral,100000,60000,20000,Optimal,Cold,1,2,1,1,0,0,-4.058767313e-01,1.259925399e-12,1.259925399e-12,3.876288913e-13,0.000000000e+00,0.542837
+f7_n20000_bound_physics,20000,bound,physics,100000,60000,20000,Optimal,Cold,1,2,1,1,0,0,-4.058767313e-01,2.015847636e-15,2.015847636e-15,1.365272909e-16,0.000000000e+00,0.540940
+f7_n800_path_physics,800,path,physics,4000,2400,800,Optimal,Cold,2,481,6,6,0,0,-1.019018961e+00,4.777161882e-10,4.777161882e-10,3.245181901e-13,2.823620398e-16,4.697422
+f7_n1000_path_physics,1000,path,physics,5000,3000,1000,Optimal,Cold,2,623,5,5,0,0,-1.018524270e+00,4.067571900e-10,4.067571900e-10,3.210764987e-13,2.216922906e-16,7.937335
+f7_n2000_path_physics,2000,path,physics,10000,6000,2000,Optimal,Cold,2,1396,9,9,0,0,-1.017535865e+00,2.290368260e-10,2.290368260e-10,3.198552534e-13,1.099753487e-16,35.526960
+f7_n750_path_neutral_control,750,path,neutral,3750,2250,750,Optimal,Cold,4,9297,7865,11,0,0,-1.019183930e+00,1.874010946e-10,1.065823448e-10,1.874010946e-10,1.693085346e-13,84.111851
+f7_n825_path_neutral_control,825,path,neutral,4125,2475,825,Optimal,Cold,4,9561,7605,37,0,0,-1.018943987e+00,1.874508326e-10,1.023066238e-10,1.874508326e-10,1.539399008e-13,117.836508
+f7_n1000_path_neutral,1000,path,neutral,5000,3000,1000,Optimal,Cold,4,11043,9951,19,0,0,-1.018524270e+00,1.875412048e-10,9.945804538e-11,1.875412048e-10,1.270349276e-13,141.382833
+f7_n5000_path_physics,5000,path,physics,25000,15000,5000,Optimal,Cold,2,3656,19,19,0,0,-1.016943446e+00,1.450680211e-10,1.450680211e-10,3.049782649e-13,4.249546468e-17,236.555548
+f7_n800_path_neutral,800,path,neutral,4000,2400,800,Optimal,Cold,5,30165,29222,11,0,0,-1.019018961e+00,1.874362887e-10,1.061788210e-10,1.874362887e-10,1.587440445e-13,298.983513
+f7_n2000_path_neutral,2000,path,neutral,10000,6000,2000,NumericalError,Cold,3,40004,39744,1,0,0,-3.726482998e-01,3.889087297e-01,5.085072728e-04,3.889087297e-01,0.000000000e+00,856.057899
+f7_n5000_path_neutral,5000,path,neutral,-1,-1,-1,dnf_budget,unknown,-1,-1,-1,-1,-1,-1,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0
+f7_n10000_path_physics,10000,path,physics,-1,-1,-1,dnf_budget,unknown,-1,-1,-1,-1,-1,-1,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0
+f7_n10000_path_neutral,10000,path,neutral,-1,-1,-1,dnf_budget,unknown,-1,-1,-1,-1,-1,-1,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0
+f7_n20000_path_physics,20000,path,physics,-1,-1,-1,dnf_budget,unknown,-1,-1,-1,-1,-1,-1,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0
+f7_n20000_path_neutral,20000,path,neutral,-1,-1,-1,dnf_budget,unknown,-1,-1,-1,-1,-1,-1,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0
