@@ -1,3 +1,6 @@
+# hven_sqp_crossover -- replay-corpus cells NOT measured by the W5 legs, with the
+# reason each one cannot be reached through the dual-bind path.
+# commit: 575331d10fa5   generated: 2026-08-26 (stamp added post-hoc; see README section 5.2)
 cell_id                              n_nodes  dual-bind reason if refused
 f7_n1000_bound_corrupted                1000  no        start is a damaged SQP WarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
 f7_n1000_bound_activity                 1000  no        start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export

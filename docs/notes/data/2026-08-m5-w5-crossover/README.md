@@ -1,6 +1,6 @@
 # M5 W5 — the IPM → SQP crossover, measured on the replay corpus
 
-Date: 2026-08-25. Branch: `m5`. Runner commit: `8bd4b9d62ef0`
+Date: 2026-08-26. Branch: `m5`. Runner commit: `8bd4b9d62ef0`
 (`bench/bench_crossover.cpp`, `bench/crossover_legs.h`; correctness gate
 `tests/sqp/test_crossover_legs.cpp`).
 
@@ -42,8 +42,22 @@ protocol it was produced under:
 ### 1.1 The one addition to it, declared
 
 The protocol names no wall budget. CLAUDE.md §8 requires one ("no unbounded
-cells that can run indefinitely"), so the runner enforces a **per-cell wall
-deadline of 1200 s**, recorded in every CSV's provenance header. A cell that
+cells that can run indefinitely"), so the runner enforces a per-cell wall
+deadline, recorded in every CSV's provenance header. **Two values were used:**
+
+| | budget | why |
+|---|---|---|
+| pass 1 (all 24 cells) | **1200 s** | the script's default |
+| pass 2 (4 cells, §5.1) | **600 s** | an explicit operator override |
+
+The pass-2 halving was deliberate and is stated here because §7 admits no silent
+cap. Pass 1 had already shown leg (c) failing to finish in ~1190 s at N = 10000,
+so no budget short of hours would have changed its outcome or the cold leg's;
+what pass 2 existed to capture was leg (d), which finishes in seconds. Halving
+the budget cost no measurement and saved 40 minutes on a contended machine.
+**Under the merge rule (§5.1) the `dnf` rows for legs (b) and (c) on those four
+cells still come from pass 1 at the honest 1200 s** — only leg (d)'s `Optimal`
+rows cross over, and for those the deadline is irrelevant. A cell that
 outlives it is SIGKILLed and its unfinished legs are written as `dnf_budget`
 rows with `-1` in every counter column.
 
@@ -59,22 +73,44 @@ Two consequences a reader must hold onto:
 ### 1.2 One discarded run, on the record
 
 A first sweep was launched and **stopped after three cells, and its rows
-discarded**, when a concurrent build of another project was found competing for
-the machine. Counters at `MKL_NUM_THREADS=1` are scheduling-invariant and would
-have survived it, but this artifact's deadline outcomes are wall-DEPENDENT, and
-the protocol's own instruction is "one solve at a time" — a partial run under
-contention is not that. The rows in this directory come from a single sweep
-begun only after the box went quiet, and `box_witness.log` records, once a
-minute for the whole sweep, how many competing build or compiler processes were
-running. Every sample in it must read `competing=0`; a nonzero sample means the
-cells overlapping it need re-running solo before their rows are trusted.
+discarded**, when a concurrent build was found competing for the machine.
+Counters at `MKL_NUM_THREADS=1` are scheduling-invariant and would have survived
+it, but this artifact's deadline outcomes are wall-DEPENDENT, and the protocol's
+own instruction is "one solve at a time" — a partial run under contention is not
+that.
 
-The legs run in the order **(a), (c), (d), (b)** — the exporter first because
-the warm legs stage its output, and the cold leg LAST because it is the
-expensive one. Each leg is an independent solve on a fresh driver over a fresh
-bridge, so the order moves no counter; what it buys is that a cell killed at the
-deadline still contributes legs (a), (c) and (d), with the margins then honestly
-ABSENT rather than fabricated.
+The rows in this directory come from **two sweeps**, not one: a full 24-cell
+pass and a four-cell re-run that corrected a defect in the leg ORDER. §5.1 is
+the whole account, including which rows come from which and the rule governing
+the substitution. Both sweeps were begun only after the machine went quiet, and
+each writes its own `box_witness.log` recording, once a minute, how many
+competing build or compiler processes were running.
+
+**What a nonzero witness sample does and does not mean.** It means the "alone on
+the machine" precondition was broken at that moment — and on both sweeps it was,
+for most of their duration. It does **not** put a counter in doubt: counters at
+`MKL_NUM_THREADS=1` are scheduling-invariant, which is the property §7 relies on
+when it permits counter-asserting replays to co-run at all. What it does put in
+doubt is any WALL-DEPENDENT outcome — a cell killed at its deadline — since
+contention can push a cell toward its budget and never away from it. Those rows
+need adjudicating cell by cell, and **§4.3 is where that adjudication is done**,
+for both sweeps. This section states the condition; §4.3 states what happened to
+it and what follows.
+
+### 1.3 Leg order
+
+The legs run **(a), (d), (c), (b)** — the exporter first because the two warm
+legs stage its output, then the constant-cost polish leg, then the core-only leg
+whose QP minors scale with the problem, then the cold baseline, which is the
+most expensive of the four. Each leg is an independent solve on a fresh driver
+over a fresh bridge, so the order moves no counter; what it decides is which
+legs exist when a cell runs out of budget.
+
+**Pass 1 ran (a), (c), (d), (b) and that was a defect**, not a variant: on four
+large cells leg (c) exhausted the whole per-cell budget and legs (d) and (b)
+never ran, losing the cheap and most informative leg to the expensive one on
+exactly the cells where the contrast is sharpest. §5.1 records what that cost
+and how it was repaired.
 
 ---
 
@@ -161,11 +197,13 @@ in full:
 
 | | |
 |---|---|
-| commit | `8bd4b9d62ef0` (branch `m5`), stamped into every CSV as `# binary:` |
+| commit (pass 1) | `8bd4b9d62ef0` (branch `m5`), stamped into every pass-1 CSV as `# binary:` |
+| commit (pass 2) | `575331d10fa5`, stamped into every `pass2-legorder-fix/` CSV; see §5.1 |
 | toolchain | clang 22.1.8 (Fedora 22.1.8-4.fc44), C++20, CMake Release, `HVEN_FP_MODE=SAFER_FAST`, build tree `build-m5-release` |
 | hardware | AMD Ryzen 7 5800X3D, 8 physical cores / 16 logical; Linux 7.1.9-200.fc44.x86_64 (host `fedora`) |
 | linear algebra | Intel MKL Pardiso, `MKL_NUM_THREADS=1` in the sweep process |
-| date | sweep began 2026-08-26T02:35:05Z |
+| date | pass 1 began 2026-08-26T02:35:05Z; pass 2 began 2026-08-26T05:12:35Z |
+| budget | pass 1: 1200 s/cell; pass 2: 600 s/cell (§1.1) |
 
 ---
 
@@ -173,7 +211,13 @@ in full:
 
 ### 4.1 Per-cell counter margins
 
-> Rows for `f7_n10000_path_neutral`, `f7_n10000_path_physics`, `f7_n20000_path_neutral`, `f7_n20000_path_physics` come from **pass 2**, the leg-order-fix re-run (`pass2-legorder-fix/`, binary `575331d10fa5`); every other row is from the pass-1 sweep (binary `8bd4b9d62ef0`). See section 5.1.
+> **Leg (d) only** for `f7_n10000_path_neutral`, `f7_n10000_path_physics`,
+> `f7_n20000_path_neutral` and `f7_n20000_path_physics` comes from **pass 2**,
+> the leg-order-fix re-run (`pass2-legorder-fix/`, binary `575331d10fa5`, 600 s
+> budget). Everything else in those rows — legs (a), (b) and (c), and therefore
+> the `dnf_budget` statuses — is pass 1's at the 1200 s budget, because the merge
+> rule replaces a row only where pass 1 was absent and pass 2 real (§5.1). Every
+> other row in this table is pass 1's throughout (binary `8bd4b9d62ef0`).
 
 Cold leg (b) counters are `majors / QP minors / factorizations`; the two
 margin columns are **cold minus warm, so positive means saved**.
@@ -252,7 +296,7 @@ Holds on 20 cell(s), fails on 0. `ip_activity_inferred` is identically 0 on ever
 
 ### 4.1b Cells whose COLD leg exceeded the budget
 
-These have no margin -- a margin needs a cold baseline. They are still the most informative cells in the artifact, because **the polish leg finished on every one of them, and it is the only route that did**. On the four largest, neither the cold baseline nor the core-only warm start reached an answer inside its budget:
+These have no margin -- a margin needs a cold baseline. They are still the most informative cells in the artifact, because **the polish leg finished on every one of them; on the four largest it was the only route that did**. On `f7_n5000_path_neutral` the core-only route also finished (`Optimal`, 1/4435/35); on the other four neither the cold baseline nor the core-only warm start reached an answer inside its budget:
 
 | cell | N | IPM (a) | core-only (c) | with polish (d) | cold (b) |
 |---|---|---|---|---|---|
@@ -263,6 +307,18 @@ These have no margin -- a margin needs a cold baseline. They are still the most 
 | `f7_n20000_path_neutral` | 20000 | CONVERGED (16 it, 16 fac) | **dnf_budget** | Optimal 1/2/1 | **dnf_budget** |
 
 The frozen walk baseline, measured SOLO under `scripts/run_walk_census.sh`'s ratified protocol, records the cold solve of these same cells at 2363.9 s (N = 5000 neutral), 2801.6 s (N = 10000 physics) and its own 3600 s budget exhaustion (N = 10000 neutral, N = 20000 both). Every one of those exceeds this artifact's 1200 s per-cell budget outright. **The deadline outcomes here are therefore over-determined**: they are what a solo run would have produced too, and the contention recorded in section 4.3 is not the discriminating factor. That corroboration is independent evidence, not a solo re-run, and is labelled as such.
+
+**The bridge this corroboration rests on, stated rather than assumed.** Reading
+the frozen baseline's cold-solve walls across onto leg (b)'s budget outcome
+assumes leg (b) tracks that baseline row — and §6 warns that leg (b) is *not*
+the baseline row, since it reaches the same mathematics through the dual-bind
+conversion and its counters may differ. The evidence supports the bridge where it
+can be checked: on `f7_n2000_path_neutral`, the one cell where both a leg-(b) row
+and a baseline row exist and the solve is hard, they are **counter-identical** —
+both `NumericalError` at 3 majors / 40004 QP minors / 39744 factorizations. Two
+independent routes to the same three counters and the same failure mode is the
+strongest available evidence that leg (b) is the baseline's cold solve by another
+path. It is one cell, and the corroboration is offered at that strength.
 
 ### 4.2 What the legs say
 
@@ -276,15 +332,25 @@ while the problem grows by a factor of 27:
 | window | N | leg (d) cost, majors / QP minors / factorizations |
 |---|---|---|
 | bound-arc | 1000 … 20000 | `0 / 0 / 0` on all ten cells |
-| path-interface | 750 … 10000 | `1 / 2 / 1` on all but one |
+| path-interface | 750 … 10000 | `1 / 2 / 1` on all nine |
+| path-interface | 20000 (neutral) | `1 / 2 / 1` |
 | path-interface | 20000 (physics) | `1 / 39 / 2` — the one cell that is not `1 / 2 / 1` |
 
 It is **near-constant, not exactly constant**, and the N = 20000 physics cell is
 the honest exception: 39 QP minors rather than 2. Its N = 20000 *neutral*
 counterpart is back at `1 / 2 / 1`, so the outlier does not track problem size
 alone. What does hold everywhere is the shape: one major, a handful of minors,
-one or two factorizations, against a core-only route whose minors reach 17703 at
-the same size and a cold route that does not finish at all.
+one or two factorizations, against a core-only route that **did not finish at all
+at that size**, and a cold route that did not either.
+
+A note on a number this artifact deliberately does NOT quote. The §4.2 identity
+would put core-only's minors at N = 20000 near 17703 (the polish leg's 17702
+inferred activity facts, plus one). **That is an extrapolation, not a
+measurement**: leg (c) is `dnf_budget` at N = 20000 in both passes, so no such
+counter was ever observed, and the identity itself is verified only on cells at
+N ≤ 5000. In an artifact whose entire asserted currency is counters, an inferred
+counter does not get quoted beside measured ones — it is recorded here as the
+estimate it is, and nowhere else.
 
 On the bound-arc window the SQP certifies the handed-over point without building
 a subproblem at all; on the path window it infers the active set from the
@@ -362,7 +428,9 @@ aggregate in section 4.1 systematically **understates** the hand-off: the cells
 where the crossover matters most are exactly the ones it cannot score. The
 frozen walk baseline, measured solo, puts the cold solve of those same cells at
 2802 s or past its own 3600 s budget, so this is a property of the problems and
-not of this artifact's deadline.
+not of this artifact's deadline. (That read-across assumes leg (b) tracks the
+baseline's cold solve; §4.1b states the assumption and gives the
+counter-identical `f7_n2000_path_neutral` row as its evidence.)
 
 #### The reading for the currency's design
 
@@ -385,6 +453,21 @@ sweep**, and the artifact states that plainly rather than burying it.
 | `competing=1` | 1 |
 | `competing=2` | 120 |
 | first non-zero sample | 02:37:06Z, about two minutes into a sweep that ran until 04:54Z |
+
+And **pass 2 was contended too**, which must be declared because four shipped
+leg-(d) rows come from it:
+
+| pass 2 (`pass2-legorder-fix/box_witness.log`) | |
+|---|---|
+| samples | 40, over 05:12:35Z → 05:51:58Z |
+| `competing=0` | 4 |
+| `competing=2` | 36 |
+| first non-zero sample | 05:13:35Z, one minute in |
+
+The same reasoning applies to it: pass 2's counters are scheduling-invariant and
+stand, and pass 2's `dnf` rows are load-bearing for nothing — under the merge
+rule only its leg-(d) `Optimal` rows are used, and those are solves that
+completed, not budget outcomes.
 
 A build belonging to another agent working in this same repository started
 shortly after the sweep began and held roughly one core for most of its
@@ -421,8 +504,11 @@ these same cells at 2363.9 s, 2801.6 s, and its own 3600 s budget exhaustion for
 the remaining three. Every one of those exceeds this artifact's 1200 s per-cell
 budget outright, so the deadline outcomes are **over-determined**: a solo run
 produces them too, and contention is not the discriminating factor. That is
-independent corroboration, not a solo re-run, and is labelled as such. A reader
-who wants the stronger claim should re-run those five alone; nothing in
+independent corroboration, not a solo re-run, and is labelled as such. It rests
+on leg (b) tracking the frozen baseline's cold solve, which §4.1b states
+explicitly and supports with the counter-identical `f7_n2000_path_neutral` row
+rather than assuming. A reader who wants the stronger claim should re-run those
+five alone; nothing in
 section 4's conclusions depends on it, because those cells contribute no margin
 either way.
 
@@ -446,6 +532,16 @@ re-runs exactly those four cells with the corrected order (a), (d), (c), (b):
 exporter first because the warm legs stage its output, then
 cheapest-and-most-informative, then the scaling leg, then the cold baseline.
 
+**Pass 2 ran at a 600 s per-cell budget, not pass 1's 1200 s** — an explicit
+operator override, declared here and in §1.1 because §7 admits no silent cap.
+Pass 1 had already shown leg (c) failing to finish in roughly 1190 s at
+N = 10000, so no budget short of hours would have changed leg (c)'s outcome or
+leg (b)'s; what pass 2 existed to capture was leg (d), which finishes in
+seconds. The halving cost no measurement and saved forty minutes on a machine
+that was, as §4.3 records, not idle. **It also changes nothing in §4**, because
+the merge rule below keeps pass 1's 1200 s `dnf` rows for legs (b) and (c) and
+takes only leg (d)'s completed solves from pass 2.
+
 Each leg is an independent solve on a fresh driver over a fresh bridge, so the
 order **moves no counter** — it decides only which legs exist when a cell runs
 out of budget. A pass-2 row is therefore the same measurement pass 1 would have
@@ -456,6 +552,40 @@ pass-1 row **only where pass 1 recorded an absent (`dnf_budget`) status and pass
 2 recorded a real one**. A completed pass-1 measurement is never overwritten.
 Both passes stay on disk under their own provenance headers, so the substitution
 is auditable rather than asserted.
+
+### 5.2 One file was regenerated after the fact, and this says so
+
+`margins.csv` — in both passes — was **rebuilt post-hoc from the per-leg CSVs**
+rather than shipped as the runner first wrote it. The reason is a defect worth
+naming, because it inverted the artifact's headline in the one file a reader is
+most likely to consult alone.
+
+The original runner built the aggregate row only after all four legs finished.
+When a cell was killed at its wall deadline it instead wrote a single
+*cell-level* `dnf_budget` into all four status columns — `cold_status`,
+`warm_core_status`, `warm_polish_status` and `ipm_flag` alike — discarding the
+salvaged leg rows the same loop had just written to the other four files.
+Twelve status cells across nine rows then said a leg had failed when the
+artifact's own per-leg CSVs recorded it as `Optimal` or `CONVERGED`, and those
+rows are precisely the ones §4.2's finding rests on. A consumer reading
+`margins.csv` alone would have concluded the polish route failed on every cell
+where it is most impressive.
+
+- **The per-leg CSVs are the primary record and were not touched.** Each row was
+  written and flushed by the child the moment its leg finished.
+- **The rule applied in the rebuild is the rule the corrected runner now
+  applies**: a status column reports its own leg and is `absent` when that leg
+  never ran; a margin column is `absent` when either of its two legs is missing.
+  "Absent margin" and "failed leg" are different statements and the columns now
+  keep them apart.
+- **Every row whose four legs all completed is byte-identical to the original.**
+  Only the killed cells' status and counter cells moved — 9 rows of 28 across
+  both passes.
+- The rebuild is stamped in each regenerated file's own header, and the code
+  defect is fixed at source with a gate test that fails if it returns
+  (`CrossoverLegs.AKilledCellsAggregateRowReportsEachLegsOwnOutcome`).
+
+No other file in this artifact was regenerated or edited after its run.
 
 ---
 

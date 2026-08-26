@@ -1,6 +1,7 @@
 # W5 sweep contention witness -- competing build/compiler process count, once a minute.
 # A nonzero count means the 'alone on the machine' condition was broken at that moment;
 # any cell overlapping such a sample must be re-run solo before its row is trusted.
+# commit: 8bd4b9d62ef0   host: fedora   pass 1 (stamp added post-hoc; see README section 5.2)
 2026-08-26T02:35:05Z competing=0 load1=1.26
 2026-08-26T02:36:06Z competing=0 load1=2.52
 2026-08-26T02:37:06Z competing=2 load1=2.19
