@@ -57,7 +57,24 @@ endif()
 ############### Build Settings ###################################################
 ################################################################################
 
-set(LINK_TIME_OPT FALSE)          ### DO LTO - Recommended for full release
+# LINK_TIME_OPT is a CACHE option, not a plain set(). A plain set() here is a
+# NORMAL variable, and a normal variable shadows the cache entry that
+# `-DLINK_TIME_OPT=ON` creates: the command line would be accepted, the cache
+# would record ON, and this line would then hand hven_compile_options() a FALSE
+# anyway -- whose else() branch force-sets CMAKE_INTERPROCEDURAL_OPTIMIZATION
+# OFF. The switch was therefore unreachable from the command line, silently.
+#
+# option() declares the SAME default (OFF -- unchanged; thin-LTO measured to
+# buy this library nothing, M4 Task 9's bench legs) while leaving an existing
+# cache entry alone, so a command line wins. Under add_subdirectory (tycho's
+# consumption mode) CMP0077 is NEW at this file's cmake_minimum_required, so a
+# parent project's normal variable of the same name is honoured too.
+#
+# BUILD_HVEN_WHEEL still forces LTO on by shadowing this inside
+# hven_compile_options() -- that shadowing is deliberate and stays.
+option(LINK_TIME_OPT
+       "Build hven with IPO/LTO. Default OFF: measured to buy nothing on this library. Forced ON by BUILD_HVEN_WHEEL."
+       OFF)
 set(CLANG_MAX_INLINE_DEPTH 225)
 
 # Floating-point optimization policy.
