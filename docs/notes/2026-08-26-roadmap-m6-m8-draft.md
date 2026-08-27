@@ -17,6 +17,32 @@ after that close; this note is the raw material.
 
 ---
 
+## 0. The end state — what "state of the art" means here
+
+The goal is measurable, not aspirational:
+
+- **Robustness**: success rate at fixed tolerance on the standard
+  sets ≥ Ipopt's, with no problem class where hven is the outlier
+  failure.
+- **Speed**: within the leaders' band on shifted geometric mean over
+  the Mittelmann-style sets (counters primary, §7-clean wall
+  informational), and AHEAD of them on warm-started and sequenced
+  workloads — continuation, mesh refinement, crossover chains —
+  because that is where hven's structural advantages (the
+  declaration-keyed currency, engine-peer composition, the polish
+  handoff's measured constant-cost re-solve) have no published peer.
+- **First-order-only**: beat SNOPT on most if not all problems when
+  only first derivatives are available (owner target, on the record).
+- **Presentation**: trace, diagnostics, and documentation at the
+  quality bar of the commercial solvers — a stranger with an NLP can
+  read a run.
+
+The strategy the milestones implement: fix the known weak cells
+(acquisition, degeneracy, scaling), then compose the engines
+adaptively where measurement supports it, then tune and prove it
+publicly. Lead with the sequenced-workload strength; reach parity on
+one-shot cold solves.
+
 ## M6 — the acquisition tier and the certified core
 
 The big milestone: IPQP + feasibility mode as one scope, on a
@@ -44,6 +70,15 @@ barrier active-set acquisition at nx=1e5 on near-boundary cells
 linear-algebra cost only — every measured cell was effectively
 equality-constrained. The experiment's result feeds the owner's
 build-vs-re-register decision on P7 G1/G2.
+CONTINGENCY (so a NO-GO is a branch, not a stall): if barrier
+acquisition at scale does NOT hold its margin on near-boundary
+cells, the fallback scope is (a) re-register G1/G2 with the measured
+evidence as the record, (b) keep feasibility mode on the existing
+elastic/restoration machinery (it is committed independently of
+IPQP), and (c) redirect the tier effort at the escape-path target
+(M7) and warm-start repair, which pay off under either verdict. The
+one-brief ruling covers both branches: the brief names the fork and
+the evidence that decides it.
 
 **The tier (on a GO):** IP-PMM (Pougkakiotis–Gondzio) on the existing
 KKT stack, specialized to fixed Hessian + fixed sparsity —
@@ -70,8 +105,31 @@ N=850 DNF cells; the Uno warm-chain latent fix (must land before any
 Uno warm re-run); the per-minor cost gap vs Uno (13.6–35.4x) as a
 named investigation.
 
+**M6 exit criteria:** the acquisition decision is TAKEN (either
+branch) and its evidence artifact is on the record; feasibility mode
+ships with its refusal/fallback contract pinned; the openers are
+closed (three headers TU-conformant and prose-cleaned, scaling
+landed, no-copy path landed and the Transcribe deviation closed);
+the API break is one declared event with both trees consuming; the
+usual close gate (replay, smoke, rig, suite) is green.
+
 ## M7 — adaptivity and the first-order mode
 
+Internal ordering: the suite comes FIRST — the heuristics, the
+ratification ladder, and the first-order design are all judged on
+it, so it cannot arrive last.
+
+- **Benchmark suite v1** (the instrument; sibling private repo per
+  ruling): the standard sets this solver class is judged on —
+  Hock–Schittkowski (in-suite already), CUTEst and the AMPL-NLP
+  Mittelmann/Plato sets — harnessed for counters + §7-clean timings,
+  with local SNOPT and IPOPT lanes wired in from the start. Direct
+  comparability requires speaking the sets' native format: an
+  AMPL .nl reader (ASL-based; license fine in the private harness)
+  bridging to the hven model contract is part of v1, and it doubles
+  as hven's first external-format frontend. Suite discipline from
+  day one: problem-set pins, per-cell budgets, and a train/holdout
+  SPLIT so M8's tuning cannot overfit the set it reports on.
 - **Adaptive mode composition** (owner directive, WIDENED
   2026-08-26, unforced): not only the cold-start case — the question
   is whether the solver can DETECT characteristics of the problem at
@@ -122,28 +180,82 @@ named investigation.
   R9, τ re-derivation on an ill-conditioned population — worked
   through against the M7 benchmark instrument (below) rather than
   one-off fixtures.
-- **Benchmark suite v1** (instrument, built here to serve M7 and M8):
-  the standard sets this solver class is judged on — Hock–Schittkowski
-  (in-suite already), CUTEst/AMPL-NLP (the Mittelmann/Plato
-  comparability goal), harnessed for counters + §7-clean timings, with
-  local SNOPT and IPOPT lanes wired in from the start.
+
+**M7 exit criteria:** suite v1 runs all lanes end-to-end with
+pinned sets and budgets; every shipped heuristic has a measured
+win over its own OFF state on the suite (a heuristic that cannot
+show one ships disabled); the first-order design is approved with
+its inertia-under-approximation question answered; the escape-path
+share of residual wall is measurably reduced or the finding is
+re-adjudicated with evidence.
 
 ## M8 — tuning, comparison, and presentation
 
-- **Default parameter tuning, both engines**, on the M7 suite;
-  labeled configs where the data supports them (unforced — named
-  profiles like "trajectory", "degenerate", "first-order-only" only
-  if clusters actually separate).
+- **Default parameter tuning, both engines**, on the M7 suite's
+  TRAIN split, reported on the holdout. Methodology candidates
+  (unforced, chosen by pilot): automated algorithm configuration in
+  the SMAC/irace tradition vs structured manual sweeps — automated
+  configuration is the field's standard for this and composes with
+  the per-toggle settings contract, but it earns its complexity only
+  if the pilot shows headroom manual sweeps miss. Labeled configs
+  where the data supports them (unforced — named profiles like
+  "trajectory", "degenerate", "first-order-only" only if clusters
+  actually separate).
 - **The published comparison**: hven-vs-SNOPT/IPOPT locally,
   Knitro via published Mittelmann results, on the suite's standard
-  cells. The first-order-only target (beat SNOPT with first
-  derivatives only) is measured here.
-- **Solver-trace upgrade**: concise per-iteration trace in the
-  SNOPT/IPOPT tradition — mode/tier column (acquisition vs SSN vs
-  walk vs restoration vs elastic), condensed event codes, a legend
-  block, machine-parseable. Specified early in M8 so tuning runs
-  read well; the trace is also the natural surface for the
-  mode-switch heuristics' decisions to be visible.
+  cells — reported in the field's own conventions so the numbers are
+  citable: Dolan–Moré performance profiles, shifted geometric means,
+  and success rates at the published tolerance, with hven's counters
+  alongside. The comparison declares its instrument per §7
+  (serialized wall-asserting runs) and separates the two claims: the
+  one-shot cold-solve standing, and the sequenced-workload standing
+  (continuation/mesh/crossover chains) where the currency should
+  show clear water. The first-order-only target (beat SNOPT with
+  first derivatives only) is measured here.
+- **Solver-trace upgrade**: two surfaces, one event stream. The
+  human trace: concise per-iteration lines in the SNOPT/IPOPT
+  tradition — mode/tier column (acquisition vs SSN vs walk vs
+  restoration vs elastic), condensed event codes, a legend block,
+  and a solve-summary footer (exit condition, counters, KKT set).
+  The machine trace: the same events as a structured stream (JSON
+  lines), which the harness, the tuning runs, and the heuristics'
+  own telemetry consume — no second bookkeeping path. Specified
+  early in M8 so tuning runs read well; the trace is also where the
+  mode-switch heuristics' decisions become visible and auditable.
+- **User-facing documentation**: a solver a stranger can adopt —
+  options reference generated from the settings surface (one source
+  of truth with the toggles), the trace legend, a getting-started
+  path, and the labeled configs' guidance. SOTA is partly
+  presentation; this is the presentation milestone.
+
+**M8 exit criteria:** tuned defaults adopted with the train/holdout
+evidence on the record; the comparison artifact published in the
+conventions above; every §0 end-state bullet either met or carrying
+a named, registered gap with its owning follow-on.
+
+---
+
+## Beyond M8 — SOTA watchlist (registered, unscheduled)
+
+Kept visible so the end state stays honest; none is forced into
+M6–M8:
+
+- **NLP presolve** (fixed/implied bounds, redundant rows, variable
+  fixing): every commercial peer presolves; our declaration layer is
+  the natural host.
+- **Iterative refinement / mixed-precision factorization**: the
+  modern lever on huge KKT systems; interacts with the residual
+  near-ulp discipline.
+- **Parallelism story beyond MKL's internal threading** (declared
+  thread modes exist since M4; a deliberate multi-solve/multi-core
+  strategy does not).
+- **Parametric sensitivities** (post-solve dS/dp): what tycho-class
+  consumers ask for next; the currency is the natural carrier.
+- **MPCC/complementarity handling**: only if the benchmark evidence
+  says the problem class matters to our consumers.
+- **Python bindings** (bindings/ component exists in the layout;
+  unscheduled): the adoption surface for the suite and for outside
+  users.
 
 ---
 
