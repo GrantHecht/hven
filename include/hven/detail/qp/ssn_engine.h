@@ -10,49 +10,39 @@
 // WALK solves (qp_problem.h's QpProblem, same sign convention, same
 // regularization knobs), by a different mechanism: every step changes the
 // WHOLE implied active set at once, where the walk changes one working-set
-// member per minor iteration.
-//
-// WHY IT EXISTS. The walk's cost at scale is in the NUMBER of minor
-// iterations, not in the cost of one. A method whose iteration count does
-// not grow with |W*| is therefore the only kind of change that can move
-// that figure, and the semismooth-Newton / primal-dual active-set family is
-// the standard one.
+// member per minor iteration. The walk's cost at scale is in the NUMBER of
+// minor iterations, so a method whose iteration count does not grow with |W*|
+// is the only kind of change that can move that figure.
 //
 // SCOPE -- READ THIS BEFORE JUDGING A DIVERGENCE. THIS FILE HAS TWO MODES:
 //
 //   SsnSafeguards::kBare -- the LOCAL METHOD. Full, undamped Newton steps;
 //     no line search, no merit function, no proximal term, no uncertain
 //     set, no dual projection, no inertia gate. Locally superlinearly
-//     convergent UNDER BD-REGULARITY AT THE SOLUTION (every element of the
-//     B-subdifferential there nonsingular) -- a real hypothesis rather than
-//     a formality: a WEAKLY ACTIVE row (lambda* = 0 AND c* = 0, this file's
-//     own weakly_active_qp) is exactly what can violate it. GLOBALLY
-//     nothing at all -- it can cycle, it can diverge, and it does BOTH on
-//     this project's own analytic fixtures (it orbits on two cycling
-//     instances and certifies a SADDLE POINT as kOptimal on the indefinite
-//     one). Kept as a POSITIVE CONTROL, not a product surface; every
-//     safeguard below is scored as a comparison against it.
+//     convergent UNDER BD-REGULARITY AT THE SOLUTION, which a WEAKLY ACTIVE
+//     row (lambda* = 0 AND c* = 0) can violate. GLOBALLY nothing at all --
+//     it can cycle, and it can certify a SADDLE POINT as kOptimal. A
+//     POSITIVE CONTROL, not a product surface; every safeguard is scored
+//     against it.
 //
 //   SsnSafeguards::kFull -- the production iteration, and the default.
-//     Section 7 below is its specification; section 7b is the contract that
-//     makes the saddle claim above a claim about kBare ALONE: under kFull
-//     no kOptimal is issued anywhere -- cold start, warm hand-off, or a
-//     seed placed exactly on the saddle -- without an inertia verdict read
-//     AT THE CERTIFIED POINT.
+//     Section 7 below is its specification; 7b is the contract that makes
+//     the saddle claim above a claim about kBare ALONE: under kFull no
+//     kOptimal is issued anywhere -- cold start, warm hand-off, or a seed
+//     placed exactly on the saddle -- without an inertia verdict read AT THE
+//     CERTIFIED POINT.
 //
 // DRIVER WIRING: sqp_driver.h dispatches its MAIN subproblem call on
-// SqpOptions::qp_mode, constructing an SsnEngine (kFull) under QpMode::kSsn
-// -- ingest, escape handling and tier-3 refinement are all wired there. The
-// SOC re-solve, elastic ladder rungs and restoration sub-solve stay on the
-// WALK unconditionally regardless of qp_mode (each is a rescue path
+// SqpOptions::qp_mode, constructing an SsnEngine (kFull) under QpMode::kSsn.
+// The SOC re-solve, elastic ladder rungs and restoration sub-solve stay on
+// the WALK unconditionally regardless of qp_mode (each is a rescue path
 // hot-started off the immediately preceding walk solve). With
 // `qp_mode = kWalk` every existing test, pin and battery remains
 // byte-identical.
 //
-// The only convergence claims either mode makes are on the ANALYTIC
-// FIXTURES in tests/test_ssn_engine.cpp, all of them at most six variables.
-// The corpus gates score the safeguarded engine; nothing in this file
-// should be quoted against them.
+// The only convergence claims either mode makes are on the ANALYTIC FIXTURES,
+// all of them at most six variables. The corpus gates score the safeguarded
+// engine; nothing here should be quoted against them.
 //
 // 1. THE RESIDUAL.
 //
@@ -67,25 +57,19 @@
 // where grad(f) = Hx + g and z is the SIGNED bound multiplier (>= 0 at an
 // active lower bound, <= 0 at an active upper bound).
 //
-// BOUNDS ARE ROWS. Each finite bound becomes a one-sided inequality row with
-// its own NON-NEGATIVE multiplier, exactly like a row of Ai:
-//
-//     lower:  l_j - x_j <= 0,   gradient -e_j,   multiplier lambda^lo_j >= 0
-//     upper:  x_j - u_j <= 0,   gradient +e_j,   multiplier lambda^up_j >= 0
-//
+// BOUNDS ARE ROWS -- each finite bound becomes a one-sided inequality row
+// with its own NON-NEGATIVE multiplier, exactly like a row of Ai (lower:
+// l_j - x_j <= 0, gradient -e_j; upper: x_j - u_j <= 0, gradient +e_j) --
 // and the signed z the rest of the project speaks is recovered as
 // z_j = lambda^lo_j - lambda^up_j. A bound at or beyond detail::kSsnInfBound
 // in magnitude is ABSENT and contributes no row at all.
 //
 // Writing s for the SLACK of an inequality-shaped row (s = bi_k - (Ai x)_k
-// for a row of Ai, s = x_j - l_j / u_j - x_j for a bound row) the KKT
-// conditions are, for every such row, s >= 0, lambda >= 0, s * lambda = 0,
-// and the Fischer-Burmeister function
-//
-//     phi(a, b) = a + b - sqrt(a^2 + b^2)
-//
-// encodes exactly that: phi(a, b) = 0  <=>  a >= 0, b >= 0, a*b = 0. So the
-// whole KKT system becomes ONE nonlinear equation F(w) = 0 in
+// for a row of Ai, s = x_j - l_j / u_j - x_j for a bound row), the KKT
+// conditions per row are s >= 0, lambda >= 0, s * lambda = 0, which the
+// Fischer-Burmeister function phi(a, b) = a + b - sqrt(a^2 + b^2) encodes
+// exactly: phi(a, b) = 0 <=> a >= 0, b >= 0, a*b = 0. The whole KKT system
+// becomes ONE nonlinear equation F(w) = 0 in
 // w = (x, lambda_e, lambda_i, lambda_bound):
 //
 //     F_x  = H x + g + Ae^T lambda_e + Ai^T lambda_i + B^T lambda_b   (n rows)
@@ -128,18 +112,16 @@
 // -- it IS the primal-dual active set of PDAS, whose equivalence to
 // semismooth Newton is the design's whole point.
 //
-// Since s_k = b_k - a_k^T x, the FB row of the Newton system is
-//
-//     - alpha_k (a_k^T dx) + beta_k d lambda_k = - phi_k
-//
-// which is NOT symmetric against the stationarity block's a_k column.
-// Multiplying the row through by (-1 / alpha_k) gives
+// Since s_k = b_k - a_k^T x the FB row is
+// -alpha_k (a_k^T dx) + beta_k d lambda_k = -phi_k, which is NOT symmetric
+// against the stationarity block's a_k column. Multiplying through by
+// (-1 / alpha_k) gives
 //
 //     a_k^T dx - (beta_k / alpha_k) d lambda_k = phi_k / alpha_k
 //
-// and now the off-diagonal is EXACTLY the constraint gradient a_k, so the
-// assembled matrix is the project's ordinary symmetric KKT shape with a
-// PER-ROW negative diagonal in place of the walk's uniform -mu:
+// whose off-diagonal is EXACTLY the constraint gradient a_k, so the assembled
+// matrix is the project's ordinary symmetric KKT shape with a PER-ROW
+// negative diagonal in place of the walk's uniform -mu:
 //
 //     K = [ H + delta I   Ae^T    Ai^T    B^T   ]
 //         [ Ae           -mu I     0       0    ]
@@ -154,27 +136,14 @@
 // factor (MKL Pardiso / Apple Accelerate) the walk uses.
 //
 // D IS LARGE WHERE THE ROW IS INACTIVE AND ~mu WHERE IT IS ACTIVE, which is
-// the interior-point-like conditioning this shape always has, and is why
-// the division is by alpha and not by beta: alpha -> 0 sends the diagonal
-// to +infinity (a decoupled, diagonally dominant row -- numerically
-// benign), while beta -> 0 sends it to mu (the ordinary active-constraint
-// KKT row the walk already factors every minor).
+// why the division is by alpha and not by beta: alpha -> 0 sends the diagonal
+// to +infinity (a decoupled, diagonally dominant row -- numerically benign),
+// while beta -> 0 sends it to mu (the ordinary active-constraint KKT row the
+// walk already factors every minor).
 //
-// THE alpha FLOOR. alpha is EXACTLY zero whenever lambda_k = 0 and s_k > 0,
-// which is the common case at a cold-ish seed, so the division needs a
-// floor: alpha_f = max(alpha, detail::kSsnAlphaFloor). It appears in BOTH
-// the diagonal and the right-hand side, so it CANCELS in the recovered
-// multiplier step:
-//
-//     d lambda_k  ~  - (r_k / alpha_f) / (beta_k / alpha_f + mu)
-//                 =  - r_k / (beta_k + mu * alpha_f)   ->  - r_k / beta_k
-//
-// for any alpha_f small enough that mu * alpha_f << beta_k. What the floor
-// DOES perturb is the row's coupling to dx, by O(kSsnAlphaFloor) -- exactly
-// the rows that should not couple to dx at all. So a floored row is a
-// Newton step for a generalized Jacobian element perturbed by O(1e-12) in
-// the one entry that is numerically zero; not a heuristic branch, and it
-// introduces no active/inactive decision.
+// THE alpha FLOOR. alpha is EXACTLY zero on a strictly inactive row, so the
+// division carries alpha_f = max(alpha, detail::kSsnAlphaFloor). It
+// introduces no active/inactive decision; detail::kSsnAlphaFloor derives why.
 //
 // 3. THE FIXED SPARSITY PATTERN -- THE LOAD-BEARING PROPERTY.
 //
@@ -196,9 +165,8 @@
 //     hash and factorize_checked() skips the symbolic analysis (kkt_calls.h).
 //
 // SsnResult::symbolic_analyses reports this directly, counted at the call
-// site before factorize() (as qp_engine.h's rebuild_k0() counts
-// QpCounters::symbolic_analyses, for the same reason: factorize() decides
-// internally and does not report back).
+// site before factorize(), because factorize() decides internally and does
+// not report back.
 //
 // 4. THE ACTIVITY HINT = ONE PDAS STEP.
 //
@@ -216,16 +184,10 @@
 // correctly hinted, correctly seeded QP converge in ONE iteration, and it
 // is the seam the driver's warm-start activity hands through.
 //
-// "DRIVE THE SLACK TO ZERO" IS EXACT ONLY AT dual_mu = 0. beta = 0 makes the
-// hinted-active row's diagonal -(beta/alpha_f + mu) = -mu rather than 0, so
-// the row solves a_k^T dx - mu*d lambda_k = s_k and the landing slack is
-//
-//     s_k^+ = -mu * d lambda_k,
-//
-// i.e. EXACTLY zero when mu = 0 and O(mu * |d lambda|) under the shipped
-// default. The distinction matters wherever an exactly-zero slack is used
-// as a premise rather than as a description; section 2's "beta = 0 sends
-// the diagonal to mu" is the same fact stated from the other side.
+// "DRIVE THE SLACK TO ZERO" IS EXACT ONLY AT dual_mu = 0: beta = 0 leaves the
+// hinted-active row's diagonal at -mu, so the landing slack is
+// s_k^+ = -mu * d lambda_k -- exactly zero when mu = 0, O(mu * |d lambda|)
+// under the shipped default. Never use an exactly-zero slack as a premise.
 //
 // 5. THE TOLERANCE, AND WHAT IT CERTIFIES.
 //
@@ -241,20 +203,17 @@
 //     min(s_k, lambda_k) <= fb_tol / (2 - sqrt(2)) = 1.7071 * fb_tol
 //
 // per row -- AND THAT LAST LINE CARRIES ITS HYPOTHESIS WITH IT: the
-// two-sided bound is derived for s, lambda >= 0, which an inexact exit
-// point is NOT guaranteed to satisfy (phi = 0 forces s, lambda >= 0
-// exactly, but |phi| <= fb_tol permits either component to be negative by
-// O(fb_tol)). So the honest reading is: every row satisfies
-// min(s_k, lambda_k) <= 1.7071 * fb_tol AMONG THE ROWS WHOSE PAIR IS
-// NON-NEGATIVE, and any row that is not has both components within
-// O(fb_tol) of the non-negative orthant. A caller that needs a strictly
-// feasible point must project, exactly as it must after any inexact solve.
+// two-sided bound is derived for s, lambda >= 0, which an inexact exit point
+// need not satisfy (|phi| <= fb_tol permits either component to be negative
+// by O(fb_tol)). The honest reading: every row with a NON-NEGATIVE pair
+// satisfies min(s_k, lambda_k) <= 1.7071 * fb_tol, and any row that does not
+// has both components within O(fb_tol) of the non-negative orthant. A caller
+// needing a strictly feasible point must project.
 //
 // THE DEFAULT: fb_tol = kkt_tol, which buys stationarity and equality
 // feasibility at exactly kkt_tol and complementarity within
-// detail::kSsnComplementarityFactor (~1.71) of it -- a constant factor
-// rather than a new tolerance to tune. ssn_fb_tol_from_kkt_tol() is that
-// derivation in code.
+// detail::kSsnComplementarityFactor (~1.71) of it.
+// ssn_fb_tol_from_kkt_tol() is that derivation in code.
 //
 // 6. THE PER-SOLVE SEAM: TRUST REGION AND REGULARIZERS.
 //
@@ -264,18 +223,13 @@
 // qp_types.h's rules unchanged.
 //
 // THE TRUST REGION IS A BOX, AND THAT IS THE WHOLE DESIGN. lo_eff =
-// max(lower, x0 - Delta), up_eff = min(upper, x0 + Delta), about this
-// solve's own start point, resolved once. Because it is a box it changes
-// only the bound rows' VALUES -- never which rows exist, once the radius is
-// finite at all -- so:
-//
-//   * K's sparsity pattern is INVARIANT ACROSS RADIUS CHANGES, and a
-//     shrink-retry loop re-solves at zero pattern cost and zero symbolic
-//     analyses (the structure key never mixes the radius or the from_tr
-//     flags -- detail::SsnBoundRow says so at the field);
-//   * Delta = +inf reproduces the no-trust-region solve BIT FOR BIT, since
-//     max(lower, -inf) is lower exactly -- the same guarantee
-//     QpOptions::tr_radius's default carries for the walk.
+// max(lower, x0 - Delta), up_eff = min(upper, x0 + Delta), about this solve's
+// own start point, resolved once. Because it is a box it changes only the
+// bound rows' VALUES -- never which rows exist, once the radius is finite at
+// all -- so K's sparsity pattern is INVARIANT ACROSS RADIUS CHANGES (a
+// shrink-retry loop re-solves at zero pattern cost and zero symbolic
+// analyses; detail::SsnBoundRow states the key's exclusion at the field), and
+// Delta = +inf reproduces the no-trust-region solve BIT FOR BIT.
 //
 // TR PINS ARE NOT BOUNDS, AND THE EXPORT KEEPS THEM APART:
 //
@@ -288,23 +242,17 @@
 // detects a binding radius by reading tr_active, never z or bound_state.
 //
 // AND THE RADIUS IS A SOFT CONSTRAINT: ON AN ESCAPED EXIT THE RETURNED x
-// MAY LIE FAR OUTSIDE IT. The TR is bound ROWS, an FB row holds only at a
-// root, and the line search damps the step rather than projecting it -- so
-// a solve that stops before converging can return a point far outside the
-// radius (SsnResult::tr_violation carries the full contract). A certifying
-// exit respects the box to O(1.71 * fb_tol) and is the ONLY exit whose x
-// may be used as a step.
+// MAY LIE FAR OUTSIDE IT -- the TR is bound ROWS and an FB row holds only at
+// a root. A certifying exit respects the box to O(1.71 * fb_tol) and is the
+// ONLY exit whose x may be used as a step. SsnResult::tr_violation carries
+// the full contract.
 //
 // THE REGULARIZERS RESOLVE TOO, BUT THE DRIVER'S ADAPTIVE-mu SCHEDULE BUYS
-// NOTHING HERE, so it is switched off deliberately: delta and mu perturb
-// ONLY the Jacobian -- for_each_entry's emissions and the FB diagonal --
-// and never the residual, which residual() computes unregularized. The
-// iteration is therefore modified Newton on the EXACT F: its fixed points
-// are exact, unregularized KKT points, and (delta, mu) cost ITERATIONS
-// rather than ACCURACY -- the opposite trade from the walk, whose returned
-// solution carries the mu|lambda| footprint that motivated its schedule.
-// SSN should therefore be expected to reach tighter KKT residuals than the
-// walk at identical settings.
+// NOTHING HERE and is switched off deliberately: delta and mu perturb ONLY
+// the Jacobian and never the residual, which residual() computes
+// unregularized. The iteration is therefore modified Newton on the EXACT F --
+// fixed points exact, unregularized KKT points -- so (delta, mu) cost
+// ITERATIONS rather than ACCURACY, the opposite trade from the walk.
 //
 // 7. THE SAFEGUARDED ITERATION.
 //
@@ -313,10 +261,8 @@
 // rather than a re-implementation of it.
 //
 //   1. Evaluate F at the iterate. TWO norms come out of the one walk: ||F||inf,
-//      which is the CERTIFICATE of section 5, and 1/2||F||_2^2, which is the
-//      LINE SEARCH's merit. They are different on purpose -- fb_tol certifies
-//      per-row quantities and must stay the inf-norm, while a merit function has
-//      to be smooth where phi is and max_k |F_k| is not.
+//      the CERTIFICATE of section 5, and 1/2||F||_2^2, the LINE SEARCH's
+//      merit. Different on purpose -- detail::kSsnArmijoSigma says why.
 //   2. Converged? ||F||inf <= fb_tol. [G] A CERTIFYING EXIT IS NOT FREE: it
 //      runs the SECOND-ORDER VERIFICATION first (section 7b), which is the one
 //      place the safeguarded iteration pays a factorization the bare one does
@@ -336,45 +282,32 @@
 //   7. Refresh the FB diagonals, build the right-hand side, factorize.
 //   8. [G] INERTIA GATE. K's inertia is (n, me+mi+mb) IFF the primal block is
 //      positive definite -- an identity, not a hope, PROVIDED delta+sigma > 0
-//      (D > 0 on every FB diagonal) -- so the gate is provably inert on any
-//      convex subproblem under that hypothesis. kWrong escalates the proximal
-//      ladder and retries the SAME iterate; kSuspect does NOT act, matching
-//      qp_engine.h.
+//      -- so the gate is provably inert on any convex subproblem under that
+//      hypothesis. kWrong escalates the proximal ladder and retries the SAME
+//      iterate; kSuspect does NOT act, matching qp_engine.h.
 //   9. [G] LINE SEARCH: Armijo on the merit, backtracking by
-//      detail::kSsnBacktrackFactor to the floor detail::kSsnMinStep, over trial
-//      points that carry the DUAL PROJECTION. Iteration 0 is exempt when a
-//      HINT governed it -- see the exemption's own block at the call site; a
-//      wrongly hinted first step legitimately raises ||F|| and a monotone rule
-//      would reject it along with the one-iteration correct-hint payoff.
+//      detail::kSsnBacktrackFactor to the floor detail::kSsnMinStep, over
+//      trial points that carry the DUAL PROJECTION. Iteration 0 is exempt when
+//      a HINT governed it -- see the exemption's own block at the call site.
 //  10. Accepted -> apply. Not accepted -> the escape ladder: the infeasibility
 //      DIAGNOSIS outranks the repair, then a proximal rung, then
 //      kNoContraction.
 //
-// FOUR OF THESE STEPS HAVE AN OPT-IN ALTERNATIVE, and every one of them
-// ships at the value that reproduces the list above BIT FOR BIT; none is a
-// default:
+// FOUR OF THESE STEPS HAVE AN OPT-IN ALTERNATIVE, each shipping at the value
+// that reproduces the list above BIT FOR BIT; none is a default. Each field
+// carries its own contract:
 //
-//   step 2/7b -- SsnOptions::defer_certification. The verification attempt
-//                is BUILT and not factorized; the caller closes it, and a
-//                caller that is about to re-solve the identified face exactly
-//                already owns the evidence (Gould's lemma).
-//   step 5/10 -- SsnOptions::sigma_rule. sigma sized from the RESIDUAL
-//                instead of climbed, with the ladder retained underneath as a
-//                monotone floor.
-//   step 9    -- SsnOptions::hint_rule + watchdog_q. The iteration-0
-//                exemption replaced by a q-step watchdog with return-to-best.
-//   step 3    -- SsnOptions::infeasibility_rule. The symptom conjuncts
-//                demoted to an ARMING condition, with a matvec-only Farkas
-//                certificate as the firing condition.
+//   step 2/7b -- SsnOptions::defer_certification
+//   step 5/10 -- SsnOptions::sigma_rule
+//   step 9    -- SsnOptions::hint_rule + watchdog_q
+//   step 3    -- SsnOptions::infeasibility_rule
 //
-// WHAT THE PROXIMAL TERM IS, PRECISELY. sigma is added to the SAME two
-// slots primal_delta and dual_mu already occupy, and it is anchored at the
-// CURRENT iterate. So it perturbs only the Jacobian, section 6's property
-// survives verbatim -- the iteration stays modified Newton on the EXACT F and
-// its fixed points stay exact, unregularized KKT points -- and one residual per
-// attempt serves both the certificate and the merit. It is NOT FBstab's outer
-// proximal loop with a lagging centre; SsnStart::prox_center_x carries that
-// decision and its cost.
+// WHAT THE PROXIMAL TERM IS, PRECISELY. sigma is added to the SAME two slots
+// primal_delta and dual_mu already occupy, anchored at the CURRENT iterate,
+// so it perturbs only the Jacobian and section 6's property survives
+// verbatim. It is NOT FBstab's outer proximal loop with a lagging centre --
+// see detail::kSsnProxInit for the ladder and SsnStart::prox_center_x for the
+// anchor ruling.
 //
 // ATTEMPTS ARE NOT STEPS. An attempt can pay its factorization and then
 // take no step (a rejected line search, a wrong inertia, or the second-order
@@ -386,17 +319,16 @@
 // 7b. THE CERTIFYING EXIT, AND WHY IT COSTS A FACTORIZATION.
 //
 // NO kOptimal IS ISSUED UNDER kFull WITHOUT AN INERTIA VERDICT READ AT THE
-// POINT BEING CERTIFIED. A solve seeded at (or within fb_tol of) a
-// stationary point that only ran the convergence test would return kOptimal
-// having gated nothing -- including at a SADDLE, reachable by exactly the
-// warm hand-off the driver builds (re-solve from the previous solve's
-// answer).
+// POINT BEING CERTIFIED. A solve seeded at (or within fb_tol of) a stationary
+// point that only ran the convergence test would return kOptimal having gated
+// nothing -- including at a SADDLE, reachable by exactly the warm hand-off
+// the driver builds.
 //
 // So the convergence test opens a VERIFICATION ATTEMPT instead of exiting:
-// classify the rows at the converged point, refresh K's diagonals,
-// factorize, read the inertia -- and only then certify. It takes no step,
-// forms no right-hand side and runs no triangular solve; it pays ONE
-// numeric factorization on the cached pattern, and it moves no counter but
+// classify the rows at the converged point, refresh K's diagonals, factorize,
+// read the inertia -- and only then certify. It takes no step, forms no
+// right-hand side and runs no triangular solve; it pays ONE numeric
+// factorization on the cached pattern and moves no counter but
 // SsnResult::factorizations.
 //
 //   verdict kOk       -> QpStatus::kOptimal. The primal block is positive
@@ -417,20 +349,16 @@
 // H + (delta+sigma) I + A^T D^{-1} A is positive definite, so at a large
 // sigma the test is about H + sigma I and says nothing about the QP the
 // caller handed in. An earlier attempt's verdict is not reused for the same
-// reason -- D is a function of the ITERATE, so a verdict taken at w_k is a
-// statement about w_k.
+// reason: D is a function of the ITERATE.
 //
-// THE COST IS ONE FACTORIZATION PER CERTIFIED SOLVE, and it is a real
-// product cost: a one-iteration warm hand-off goes from one factorization to
-// two, and the zero-step hand-off from zero to one. It is paid because the
-// alternative is a wrong answer, and because the gate is PROVABLY INERT
-// (section 6) rather than merely usually right, PROVIDED delta+sigma > 0 --
-// SolveOverrides::primal_delta = 0.0 with dual_mu = 0.0 is legal and
-// non-sentinel, and under it an inactive FB row's diagonal is exactly 0
-// (D not > 0), so the theorem's hypothesis fails (no shipped convex fixture
-// has been found where this changes the verdict). With the hypothesis held,
-// on a convex subproblem the verdict is kOk by the identity, so the
-// verification can never turn a good answer into an escape.
+// THE COST IS ONE FACTORIZATION PER CERTIFIED SOLVE -- a real product cost: a
+// one-iteration warm hand-off goes from one factorization to two, and the
+// zero-step hand-off from zero to one. THE GATE IS INERT ON A CONVEX
+// SUBPROBLEM ONLY WHILE delta+sigma > 0: SolveOverrides::primal_delta = 0.0
+// with dual_mu = 0.0 is legal and non-sentinel, and under it an inactive FB
+// row's diagonal is exactly 0, so the identity's hypothesis fails. With the
+// hypothesis held the verdict is kOk and the verification can never turn a
+// good answer into an escape.
 //
 // ACCELERATE COROLLARY. The gate reads the factorization evidence's
 // perturbed-pivot count, which means PERTURBED pivots on MKL and ZERO
@@ -488,18 +416,23 @@ namespace detail {
 
 // Bounds at or beyond this magnitude are ABSENT and contribute no FB row.
 // Identical value and meaning to qp_engine.h's kEngineInfBound and to the
-// +/-1e20 sentinel nlp_model.h/qp_problem.h document; restated here rather
-// than reached for across headers so ssn_engine.h depends on the QP data
-// types only, not on the walk's internals.
+// +/-1e20 sentinel nlp_model.h/qp_problem.h document; restated rather than
+// reached for so this header depends on the QP data types only, not on the
+// walk's internals.
 inline constexpr double kSsnInfBound = 1e20;
 
-// Floor applied to alpha = d phi / d s before it is divided by. See the
-// header's THE alpha FLOOR paragraph: it cancels out of the recovered
-// multiplier step and perturbs only the dx-coupling of rows whose true
-// coupling is numerically zero. 1e-12 is chosen so that mu * alpha_f
-// (1e-8 * 1e-12 = 1e-20) is negligible against the beta ~ 1 that always
-// accompanies a floored alpha, while the resulting diagonal (beta / alpha_f,
-// at most 2e12) stays far from any overflow or conditioning cliff.
+// Floor applied to alpha = d phi / d s before it is divided by (banner
+// banner section 2). alpha_f appears in BOTH the FB diagonal and the right-hand
+// side, so it CANCELS in the recovered multiplier step:
+//
+//     d lambda_k ~ -(r_k / alpha_f) / (beta_k / alpha_f + mu)
+//                = -r_k / (beta_k + mu * alpha_f)  ->  -r_k / beta_k
+//
+// and what it DOES perturb is the dx-coupling of rows whose true coupling is
+// numerically zero. 1e-12 keeps mu * alpha_f (1e-8 * 1e-12 = 1e-20)
+// negligible against the beta ~ 1 that always accompanies a floored alpha,
+// while the resulting diagonal (beta / alpha_f, at most 2e12) stays far from
+// any overflow or conditioning cliff.
 inline constexpr double kSsnAlphaFloor = 1e-12;
 
 // Pure division guard for rho = sqrt(s^2 + lambda^2): below this the pair is
@@ -517,30 +450,25 @@ inline constexpr double kSsnRhoFloor = 1e-300;
 inline const double kSsnDegenerateFbDeriv = 1.0 - 1.0 / std::sqrt(2.0);
 
 // 1 / (2 - sqrt(2)) ~ 1.7071: the factor by which a satisfied FB residual
-// bounds the per-row complementarity min(s, lambda). See section 5.
+// bounds the per-row complementarity min(s, lambda). See banner section 5.
 inline const double kSsnComplementarityFactor = 1.0 / (2.0 - std::sqrt(2.0));
 
 // phi(a, b) = a + b - sqrt(a^2 + b^2), evaluated in the CANCELLATION-FREE
 // form 2ab / (a + b + rho) whenever a + b > 0. The two are algebraically
 // identical -- multiply by (a+b+rho)/(a+b+rho) and use (a+b)^2 - rho^2 = 2ab
-// -- but they are not numerically identical,
-// and the naive one has an absolute error floor of ~ulp(rho)/2:
+// -- but not numerically: the naive form has an absolute error floor of
+// ~ulp(rho)/2, because fl(sqrt(fl(s*s))) == s exactly in IEEE double and
+// fl(s + lambda) == s for any |lambda| < ulp(s)/2, so a FAR-SLACK row
+// (s = 1e6, lambda = 1e-14, true phi ~1e-14) evaluates to EXACTLY 0. That
+// under-reports rather than adding noise, so it cannot stall the iteration,
+// but it puts an additive ulp(s_row)/2 slop on the exit CERTIFICATE and the
+// merit 1/2||F||^2 inherits the same quantization.
 //
-//   fl(sqrt(fl(s*s))) == s exactly in IEEE double whenever s^2 neither
-//   overflows nor underflows, and fl(s + lambda) == s for any
-//   |lambda| < ulp(s)/2. So on a FAR-SLACK row -- s = 1e6, lambda = 1e-14,
-//   whose true phi is ~1e-14 -- the naive form evaluates to EXACTLY 0. It
-//   under-reports rather than adding noise, so it cannot stall the
-//   iteration (measured convergence to 7e-16 at slacks of 1.9e7 under
-//   fb_tol = 1e-10, at n = 50 and n = 2000), but it does put an
-//   additive ulp(s_row)/2 slop on the exit CERTIFICATE, and the line
-//   search's merit 1/2||F||^2 would inherit the same quantization.
-//
-// The stable form removes that floor for one extra multiply. It is used
-// only when a + b > 0, which is exactly the same-sign regime where the
-// cancellation lives; when a + b <= 0 the naive expression sums two
-// non-positive terms and cannot cancel, and it also covers a = b = 0
-// (where the stable form's denominator vanishes).
+// The stable form removes that floor for one extra multiply, and is used
+// only when a + b > 0 -- the same-sign regime where the cancellation lives.
+// When a + b <= 0 the naive expression sums two non-positive terms and
+// cannot cancel, and it also covers a = b = 0 (where the stable form's
+// denominator vanishes).
 inline double ssn_fb(double a, double b) {
     const double rho = std::sqrt(a * a + b * b);
     const double sum = a + b;
@@ -555,34 +483,26 @@ inline double ssn_fb(double a, double b) {
 
 // ---- THE UNCERTAIN BAND (the three-set partition's only tolerance) --------
 //
-// THE MARGIN IS MEASURED ON THE FB DERIVATIVE PAIR ITSELF, which is what makes
-// it dimensionless and scale-free and is the reason no second tolerance is
-// introduced. Writing (s, lambda) = rho (cos theta, sin theta),
-//
-//     alpha - beta = (lambda - s) / rho = sqrt(2) * sin(theta - pi/4),
-//
-// so |alpha - beta| is 0 exactly on the kink ray s = lambda (where the row's
-// classification is undecidable), and 1 at either PURE state (a strictly
-// active row has (alpha, beta) = (1, 0); a strictly inactive one (0, 1)).
-// The partition rule alpha > beta is the SIGN of this quantity; the uncertain
-// set is the band around its zero.
+// THE MARGIN IS MEASURED ON THE FB DERIVATIVE PAIR ITSELF, which is what
+// makes it dimensionless and scale-free, so no second tolerance is needed.
+// Writing (s, lambda) = rho (cos theta, sin theta),
+// alpha - beta = (lambda - s) / rho = sqrt(2) * sin(theta - pi/4): 0 exactly
+// on the kink ray s = lambda (where the classification is undecidable), 1 at
+// either PURE state. The partition rule alpha > beta is the SIGN of this
+// quantity; the uncertain set is the band around its zero.
 //
 // kSsnUncertainEnter = 0.1 -- a row enters the uncertain set when its pair is
 // within 0.1 of the kink in this measure, i.e. within
-// arcsin(0.1/sqrt(2)) = 4.05 degrees of the kink ray. Swept on the fixture
-// set: 0 reproduces the binary partition exactly, 0.05 and 0.1 leave every
-// benign fixture's iteration count unmoved, and 0.5 and above start damping
-// rows that are not in fact ambiguous and cost iterations. 0.1 is the
-// largest swept value that is free on the benign set.
+// arcsin(0.1/sqrt(2)) = 4.05 degrees of the kink ray. The largest swept value
+// that costs no iterations on the benign set; 0 reproduces the binary
+// partition exactly.
 //
 // kSsnUncertainLeaveRatio = 3 -- the HYSTERESIS. A row LEAVES the uncertain set
 // only once its margin reaches 3x the entering threshold, so a row whose margin
 // hovers in [0.1, 0.3] keeps whatever class it already had and cannot chatter.
-// This applies continuation.h's suspend_growth_after_failure lesson ("do not
-// re-propose the thing that just failed"); the smallest ratio that is a band
-// at all is > 1, and 3 is one
-// natural step above it -- large enough that a row must move materially to be
-// re-decided, small enough that a genuinely decided row is never trapped.
+// The smallest ratio that is a band at all is > 1; 3 is large enough that a
+// row must move materially to be re-decided and small enough that a genuinely
+// decided row is never trapped.
 inline constexpr double kSsnUncertainEnter = 0.1;
 inline constexpr double kSsnUncertainLeaveRatio = 3.0;
 
@@ -596,150 +516,128 @@ inline constexpr double kSsnUncertainLeaveRatio = 3.0;
 // direction on an FB reformulation (De Luca-Facchinei-Kanzow's merit; the
 // exact Newton step of the UNregularized system gives
 // grad psi^T d = -||F||^2, so the condition above is Armijo with that
-// derivative substituted). 1e-4 is the textbook Armijo constant and is chosen
-// as such -- it is loose enough that a full Newton step in the local regime
-// always passes it, which is exactly the property that keeps the safeguarded
-// engine's trajectory equal to the bare one on every benign fixture.
+// derivative substituted). 1e-4 is the textbook Armijo constant, loose enough
+// that a full Newton step in the local regime always passes it -- which is
+// what keeps the safeguarded trajectory equal to the bare one on every benign
+// fixture.
 //
-// **THE MERIT IS THE 2-NORM SQUARE, THE CERTIFICATE IS THE INF-NORM.** They are
-// different quantities on purpose: fb_tol certifies per-row quantities and must
-// stay the inf-norm of section 5's derivation, while a merit function has to be
-// smooth where phi is, and max_k |F_k| is not.
+// **THE MERIT IS THE 2-NORM SQUARE, THE CERTIFICATE IS THE INF-NORM**, on
+// purpose: fb_tol certifies per-row quantities and must stay the inf-norm of
+// banner section 5, while a merit function has to be smooth where phi is and
+// max_k |F_k| is not.
 inline constexpr double kSsnArmijoSigma = 1e-4;
 
-// Halving. The standard factor; a coarser one (0.1) throws away the
-// intermediate step lengths that a nearly-accepted Newton step needs, and a
-// finer one (0.8) pays more residual evaluations for the same reduction.
+// Halving. A coarser factor (0.1) throws away the intermediate step lengths a
+// nearly-accepted Newton step needs; a finer one (0.8) pays more residual
+// evaluations for the same reduction.
 inline constexpr double kSsnBacktrackFactor = 0.5;
 
 // The step FLOOR. Below this the backtracking schedule is declared exhausted
 // and the escape ladder takes over (proximal escalation, then
-// SsnEscape::kNoContraction). 1e-4 with a halving factor is at most 14 trial
-// points -- 14 residual evaluations, each O(nnz), against the ONE factorization
-// they are protecting, so the whole schedule costs a small fraction of the step
-// it guards even in its worst case.
+// SsnEscape::kNoContraction). 1e-4 with a halving factor bounds the schedule
+// at 14 trial points -- 14 O(nnz) residual evaluations against the ONE
+// factorization they protect.
 inline constexpr double kSsnMinStep = 1e-4;
 
 // ---- THE LM-REGULARIZED LADDER ----
 //
 // NAMING: *proximal* properly means FBstab's outer loop with a LAGGING
-// centre -- the thing this ladder is NOT, per the paragraph immediately
-// below. sigma is Wachter-Biegler-style regularization escalation on a
-// CURRENT-iterate anchor, not a proximal-point method. The `ssn_prox_*`
-// identifiers (SsnOptions::prox_sigma_init, SsnCounters::ssn_prox_updates)
-// are shipped surface and are NOT renamed here to match -- an interface
-// decision, not a documentation one.
+// centre -- the thing this ladder is NOT. sigma is Wachter-Biegler-style
+// regularization escalation on a CURRENT-iterate anchor, not a
+// proximal-point method. The `ssn_prox_*` identifiers are shipped surface and
+// are not renamed to match.
 //
-// sigma is anchored at the CURRENT iterate, which makes it an additive
-// increment to the two regularizers this file already applies: K's primal
-// block gets H + (delta + sigma) I and every dual diagonal gets
-// -(... + mu + sigma). Because the anchor is the current point, the residual
-// is untouched -- so section 6's property survives intact: sigma costs
-// ITERATIONS, never ACCURACY, and the iteration's fixed points remain exact,
-// unregularized KKT points. (This is deliberately NOT FBstab's outer proximal
-// loop with a LAGGING centre, which would make the exit certificate two-level;
-// see SsnStart::prox_center_x for that decision and its cost.)
+// The CURRENT-iterate anchor makes sigma an additive increment to the two
+// regularizers this file already applies: K's primal block gets
+// H + (delta + sigma) I and every dual diagonal gets -(... + mu + sigma).
+// The residual is untouched, so banner section 6's property survives intact:
+// sigma costs ITERATIONS, never ACCURACY, and the iteration's fixed points
+// remain exact, unregularized KKT points. A LAGGING centre would make the
+// exit certificate two-level; SsnStart::prox_center_x carries that ruling.
 //
 // THE LADDER IS PER-SOLVE AND MONOTONE -- sigma never decreases inside one
-// solve, except for the second-order verification's documented drop to the
-// caller's own regularization (section 7b), which is not a rung -- exactly like
-// qp_engine.h's kSuspectDeltaFactor escalation, so the project has one
-// escalation convention rather than two. Two decades per rung and a 1e6 ceiling
-// give SEVEN rungs from 1e-6 (1e-6, 1e-4, 1e-2, 1, 1e2, 1e4, 1e6), which is
-// enough to dominate any Hessian this file can be handed at a sane scaling and
-// is bounded by the step budget in any case.
+// solve, except for the second-order verification's drop to the caller's own
+// regularization (banner section 7b), which is not a rung. Two decades per
+// rung and a 1e6 ceiling give SEVEN rungs from 1e-6 (1e-6, 1e-4, 1e-2, 1,
+// 1e2, 1e4, 1e6), enough to dominate any Hessian this file can be handed at a
+// sane scaling and bounded by the step budget in any case.
 //
-// **THE CEILING TEST NEEDS A RELATIVE SLACK, AND WITHOUT ONE THE LADDER HAD
-// EIGHT RUNGS**, not six. Six multiplications by 100 do not
-// reproduce 1e6 in binary floating point: the sequence runs 1e-06,
-// 9.999999999999999e-05, ..., 999999.9999999998 -- and 999999.9999999998 is
-// STRICTLY BELOW the 1e6 cap, so a `sigma >= kSsnProxMax` guard granted one
-// more rung that raised sigma by 2.3e-10 relative and cost a full numeric
-// factorization plus a full backtracking schedule (measured: 13 backtracks)
-// on every escape that reached the ceiling -- i.e. on exactly the solves a
-// driver must budget for. kSsnProxCapSlack closes the guard against the ladder's own
-// drift: 1e-9 is seven orders above the accumulated relative error (~2e-16)
-// and eleven orders below one rung (a factor 100), so it can neither miss the
-// ceiling nor merge two genuine rungs.
+// **THE CEILING TEST NEEDS A RELATIVE SLACK.** Repeated multiplication by 100
+// does not reproduce 1e6 in binary floating point -- the sequence ends at
+// 999999.9999999998, strictly below the cap -- so an exact `>= kSsnProxMax`
+// guard grants an extra rung that raises sigma by 2.3e-10 relative and buys a
+// full numeric factorization plus a full backtracking schedule for it.
+// kSsnProxCapSlack closes the guard against that drift: 1e-9 is seven orders
+// above the accumulated relative error (~2e-16) and eleven orders below one
+// rung (a factor 100), so it can neither miss the ceiling nor merge two
+// genuine rungs.
 inline constexpr double kSsnProxInit = 1e-6;
 inline constexpr double kSsnProxGrowth = 100.0;
 inline constexpr double kSsnProxMax = 1e6;
 inline constexpr double kSsnProxCapSlack = 1e-9;
-// The ladder's DOCUMENTED length, asserted by tests/test_ssn_engine.cpp rather
-// than read by the iteration -- the rungs come from Init/Growth/Max above, and
-// this constant exists so that the documented count and the delivered count
-// cannot drift apart again silently (they once did).
+// The ladder's DOCUMENTED length, asserted by the test suite rather than read
+// by the iteration -- the rungs come from Init/Growth/Max above. It exists so
+// the documented count and the delivered count cannot drift apart silently.
 inline constexpr Index kSsnProxRungs = 7;
 
 // THE INFEASIBILITY TELEMETRY.
 //
 // An infeasible convex QP has NO KKT point, so F has no root and the
-// iteration cannot converge. What happens instead: ||F||inf FLATTENS onto a
-// positive floor (the least-squares distance between the contradictory
-// rows) while the multipliers of those rows GROW without bound, because
-// phi(s, lambda) -> s as lambda -> +infinity on a row with s < 0, so the
-// only way the FB rows can shrink is by pushing lambda up. Both halves are
-// required: growth alone is ordinary early behaviour (a cold start on a QP
-// with large multipliers grows the duals by orders of magnitude in two
-// steps), and a stall alone is a hard-but-feasible problem or a budget that
-// is simply too small (what kBudget is for).
+// iteration cannot converge. Instead ||F||inf FLATTENS onto a positive floor
+// (the least-squares distance between the contradictory rows) while the
+// multipliers of those rows GROW without bound, because
+// phi(s, lambda) -> s as lambda -> +infinity on a row with s < 0. BOTH
+// HALVES ARE REQUIRED: growth alone is ordinary early behaviour, and a stall
+// alone is a hard-but-feasible problem or a budget too small (kBudget).
 //
-// THREE DESIGN CHOICES IN THE STALL TEST:
+// THREE PROPERTIES THE STALL TEST MUST HAVE:
 //
 //   (i) THE WINDOW ADVANCES ON ACCEPTED STEPS, NEVER ON ATTEMPTS. A
-//       proximal retry re-evaluates the IDENTICAL residual at the
-//       IDENTICAL iterate, so counting attempts would let one rough patch
-//       fill the window with copies of one point.
+//       proximal retry re-evaluates the IDENTICAL residual at the IDENTICAL
+//       iterate, so counting attempts would let one rough patch fill the
+//       window with copies of one point.
 //   (ii) THE IMPROVEMENT DEMAND IS OVER THE WHOLE WINDOW, NOT PER STEP. A
-//       proximally damped iteration legitimately crawls (a per-step demand
-//       reads that as a stall on a perfectly FEASIBLE subproblem); over a
+//       proximally damped iteration legitimately crawls, which a per-step
+//       demand reads as a stall on a perfectly FEASIBLE subproblem; over a
 //       window the same crawl improves measurably and re-arms, while the
 //       exactly-flat residual an infeasible QP produces still fills it.
-//   (iii) THE GROWTH CONJUNCT IS DIFFERENT ON THE TWO ROUTES, because they
-//       see different evidence, and measuring both against the START POINT
-//       (floored at 1) makes the test VACUOUS for a cold start on any
-//       feasible QP whose true multipliers exceed 1e4 -- they cross the
-//       threshold on the way to their own values and never come back.
+//   (iii) THE GROWTH CONJUNCT DIFFERS ON THE TWO ROUTES, because they see
+//       different evidence. Measuring both against the START POINT (floored
+//       at 1) would make the test VACUOUS for a cold start on any feasible
+//       QP whose true multipliers exceed 1e4.
 //         - THE STANDING ROUTE re-arms its reference with the window, so
 //           "the duals grew 1e4x" means the divergence happened WHILE
 //           nothing improved.
-//         - THE EXHAUSTION ROUTE cannot use a windowed reference at all: on
-//           the fixtures that motivate it, the divergence and the last
-//           progress are the SAME accepted step, so any "growth since the
-//           last progress" is 1. It keeps the start-point reference and
-//           adds kSsnDualStepGrowth instead: the multiplier norm must have
-//           multiplied by an ORDER OF MAGNITUDE across the most recently
-//           accepted step -- what separates diverging duals from merely
-//           large ones, since a trajectory converging to large multipliers
-//           has settled (per-step ratio -> 1) by the time its line search
-//           dies.
+//         - THE EXHAUSTION ROUTE cannot use a windowed reference at all:
+//           the divergence and the last progress are the SAME accepted
+//           step, so any "growth since the last progress" is 1. It keeps
+//           the start-point reference and adds kSsnDualStepGrowth: the
+//           multiplier norm must have multiplied by an ORDER OF MAGNITUDE
+//           across the most recently accepted step. A trajectory converging
+//           to large multipliers has settled (per-step ratio -> 1) by the
+//           time its line search dies.
 //
 // A window in which the PROXIMAL LADDER escalated cannot declare a stall at
 // all -- it is discarded and a fresh one starts. Slow progress under a sigma
 // that just changed is the safeguard's doing, not the problem's.
 //
 // kSsnStallWindow = 5 ACCEPTED STEPS over which ||F||inf must improve on the
-// window's reference by kSsnStallImproveFactor. Five is an order of
-// magnitude above the local regime this method targets (a healthy solve
-// reaches its answer in under ten steps), so no healthy trajectory can
-// reach it. The improvement demand of 1% per WINDOW is deliberately feeble
-// -- a Newton method that cannot manage 1% over five accepted steps is not
-// converging -- and it is a RELATIVE test so that the exactly-flat residual
-// an infeasible QP produces cannot be mistaken for improvement by rounding
-// noise.
+// window's reference by kSsnStallImproveFactor. Five is an order of magnitude
+// above the local regime this method targets, so no healthy trajectory can
+// reach it. The 1% improvement demand per WINDOW is deliberately feeble, and
+// RELATIVE so that an exactly-flat residual cannot be mistaken for
+// improvement by rounding noise.
 //
 // kSsnDualGrowthFactor = 1e4 against the multiplier norm at the reference
 // point the route selects (floored at 1, so a zero-multiplier reference is
 // measured absolutely). Four orders is far above any legitimate dual growth
-// between two points that made no progress on each other and far below
-// 1e150, the scale at which IEEE double arithmetic itself starts to break
-// down -- these two growth checks catch a diverging dual long before any
-// dedicated SsnEscape state would need to.
+// between two points that made no progress on each other, and far below the
+// 1e150 scale at which IEEE double arithmetic itself breaks down.
 //
 // kSsnDualStepGrowth = 10, the EXHAUSTION route's second conjunct, on the
-// growth across ONE accepted step: an order of magnitude in a single step
-// is not a trajectory settling onto its multipliers, it is one whose
-// multipliers have no limit to settle onto.
+// growth across ONE accepted step: an order of magnitude in a single step is
+// not a trajectory settling onto its multipliers, it is one whose multipliers
+// have no limit to settle onto.
 inline constexpr Index kSsnStallWindow = 5;
 inline constexpr double kSsnStallImproveFactor = 0.99;
 inline constexpr double kSsnDualGrowthFactor = 1e4;
@@ -760,32 +658,27 @@ inline constexpr double kSsnDualStepGrowth = 10.0;
 // WHY min(r, r^2) AND NOT r^2. Yamashita & Fukushima (Computing Suppl. 15,
 // 2001) prove quadratic local convergence for mu_LM = ||F||^2 under a local
 // error bound; Fan & Yuan (Computing 74, 2005) sharpen the exponent to any
-// delta in [1, 2]. r^2 is the right size CLOSE to the solution (it vanishes
-// fast enough not to spoil the Newton rate) and far too small FAR from it,
-// where r is the size the same theory wants. min(r, r^2) is exactly "r^2 when
-// r < 1, r when r > 1", the two regimes joined at the point where they agree.
+// delta in [1, 2]. r^2 is the right size CLOSE to the solution and far too
+// small FAR from it, where r is what the same theory wants; min(r, r^2) joins
+// the two regimes at the point where they agree.
 //
-// WHY THE NORMALIZATION IS THE START RESIDUAL. The theory sizes the shift in
-// the units of the least-squares system; this file's shift sits inside a KKT
-// block whose primal diagonal is H's, so the exponent and the constant are
-// TUNABLE rather than derived. Dividing by the start residual makes the
+// WHY THE NORMALIZATION IS THE START RESIDUAL. This file's shift sits inside
+// a KKT block whose primal diagonal is H's, so the exponent and the constant
+// are TUNABLE rather than derived; dividing by the start residual makes the
 // lever's first sigma independent of the problem's absolute scaling. Floored
-// at 1 so a start point that is already converged cannot divide by a tiny
-// number and manufacture a large r.
+// at 1 so an already-converged start point cannot manufacture a large r.
 //
-// c = 1 -- the neutral constant. With the floor and the cap below, c only
-// selects WHERE between them sigma sits, and 1 is the value at which sigma is
-// exactly the registered expression.
+// c = 1 -- the neutral constant: with the floor and the cap below, c only
+// selects WHERE between them sigma sits.
 inline constexpr double kSsnLmSigmaC = 1.0;
 
 // THE WATCHDOG (SsnOptions::hint_rule + watchdog_q).
 //
-// q = 1 relaxed step is the DEFAULT, and it is the value at which the watchdog
+// q = 1 relaxed step is the DEFAULT, and is the value at which the watchdog
 // reproduces the shipped iteration-0 exemption exactly on a hint that works:
 // step 0 is taken unsearched, and if the residual has not come down by step 1
-// the iteration returns to the best point it has stored and takes a monotone
-// step from there. q = 2 is the second arm, reachable through
-// SsnOptions::watchdog_q.
+// the iteration returns to its best stored point and takes a monotone step
+// from there. Other values are reachable through SsnOptions::watchdog_q.
 inline constexpr Index kSsnWatchdogQ = 1;
 
 // THE FARKAS RESIDUAL TEST (SsnOptions::infeasibility_rule).
@@ -797,26 +690,21 @@ inline constexpr Index kSsnWatchdogQ = 1;
 // O(m), and no factorization.
 //
 // kSsnFarkasResidualTol = 1e-6 on the RELATIVE residual
-// ||A^T y||inf / max(1, ||(|A|^T |y|)||inf). Relative because the absolute
-// residual scales with the problem's rows and the whole point of the test is
-// that it survives bad scaling; 1e-6 because the direction being tested is an
-// FB dual increment rather than an exact recession direction, so demanding
-// more would test the iteration's convergence rather than the certificate's
-// existence.
+// ||A^T y||inf / max(1, ||(|A|^T |y|)||inf). Relative because the test must
+// survive bad scaling; 1e-6 because the direction tested is an FB dual
+// increment rather than an exact recession direction, so demanding more would
+// test the iteration's convergence rather than the certificate's existence.
 //
 // BOTH QUANTITIES ARE RELATIVE ONLY ABOVE 1. The `max(1.0, .)` in each
-// denominator is an ABSOLUTE FLOOR: when the cancellation-free scale of the
-// sum is below 1 (a small, well-scaled row block, or a `y` whose
-// normalization left it small), the denominator is 1 and the test is on the
-// ABSOLUTE residual -- the floor cannot be reached by scaling a row UP, and
-// it is what stops a near-zero denominator from manufacturing a certificate
-// out of rounding noise. Same reading for the gap.
+// denominator is an ABSOLUTE FLOOR: below 1 the test is on the ABSOLUTE
+// residual, which is what stops a near-zero denominator from manufacturing a
+// certificate out of rounding noise. Same reading for the gap.
 //
 // kSsnFarkasGapTol = 1e-8 on the RELATIVE Farkas objective
 // <b, y> / max(1, sum_k |b_k y_k|), which must be at most -kSsnFarkasGapTol.
 // A strictly negative <b, y> is the certificate's own second half; the
-// tolerance exists only so that a rounding-noise negative cannot fire it, and
-// it is eight orders below the O(1) values a genuine contradiction produces.
+// tolerance exists only so a rounding-noise negative cannot fire it, eight
+// orders below the O(1) values a genuine contradiction produces.
 inline constexpr double kSsnFarkasResidualTol = 1e-6;
 inline constexpr double kSsnFarkasGapTol = 1e-8;
 
@@ -842,38 +730,33 @@ struct SsnBoundRow {
     double sign = 1.0;
     double rhs = 0.0;
     // True iff this row's bound is the TRUST REGION's, strictly tighter than
-    // whatever real bound (if any) the QP declares on this side. It is an
-    // EXPORT attribute, not a structural one: a TR row occupies the same slot
-    // in K as the real row it displaced, so this field must never enter the
-    // structure key (see structure_hash / bound_rows_match_cached, the key's
-    // two conjuncts) -- if it did, two different radii
-    // would look like two different structures and the pattern cache would
-    // rebuild on every major of a shrink-retry loop, which is exactly the tax
-    // the cache exists to remove.
+    // whatever real bound (if any) the QP declares on this side. An EXPORT
+    // attribute, not a structural one: a TR row occupies the same slot in K as
+    // the real row it displaced, so this field must NEVER enter the structure
+    // key (structure_hash / bound_rows_match_cached) -- if it did, two radii
+    // would look like two structures and the pattern cache would rebuild on
+    // every major of a shrink-retry loop.
     bool from_tr = false;
 };
 
 // The two norms of F one iteration needs. Separate fields rather than two
 // passes because they are accumulated in the same walk over the same blocks.
 struct SsnNorms {
-    double inf_norm = 0.0; // ||F||inf -- the CERTIFICATE (header section 5)
+    double inf_norm = 0.0; // ||F||inf -- the CERTIFICATE (banner section 5)
     double merit = 0.0;    // 1/2 ||F||_2^2 -- the LINE SEARCH's function
 };
 
 // What one factorization's reported inertia says about the system factorized.
 //
 // **THIS IS qp_engine.h's detail::InertiaVerdict, RESTATED RATHER THAN
-// INCLUDED**, for the same reason kSsnInfBound is restated: ssn_engine.h
+// INCLUDED**, for the same reason kSsnInfBound is restated: this header
 // depends on the QP data types and on the KKT factor helper, never on the
-// walk's internals, and reaching across for a nine-line enum would couple
-// this file to a 6000-line header. The verdict rules are qp_engine.h's
-// exactly (docs/retarget-design-sqp.md SS4.1; the original justification,
-// docs/notes/2026-07-27-pardiso-inertia-findings.md, applies unchanged):
-// non-kObserved evidence routes to kSuspect explicitly, then perturbed
-// pivots first (a factorization whose pivots were perturbed reports an
-// inertia that looks exactly like a genuine one, so its counts carry no
-// information AT ALL -- including when they happen to match; absent
-// evidence on Accelerate triggers nothing), then the short-sum rule.
+// walk's internals. The verdict rules are qp_engine.h's exactly
+// (docs/retarget-design-sqp.md SS4.1): non-kObserved evidence routes to
+// kSuspect explicitly, then perturbed pivots first -- a factorization whose
+// pivots were perturbed reports an inertia that looks exactly like a genuine
+// one, so its counts carry no information AT ALL, including when they happen
+// to match -- then the short-sum rule.
 enum class SsnInertia {
     kOk,      // trustworthy AND equal to the expectation
     kSuspect, // untrustworthy: perturbed pivots, or counts that do not sum to n
@@ -907,38 +790,31 @@ inline SsnInertia ssn_inertia_verdict(const hven::linear::InertiaEvidence &e, In
 //                      problem -- only that this budget was too small.
 //   kSingular          the factorization threw, the step came back non-finite,
 //                      or the inertia was TRUSTWORTHY AND WRONG at the top of
-//                      the proximal ladder. escape_detail names which.
+//                      the ladder. escape_detail names which.
 //   kIndefinite        THE SECOND-ORDER VERIFICATION's verdict: the residual
-//                      satisfies fb_tol -- so the
-//                      point IS first-order KKT -- but the inertia of K at
-//                      that very point is trustworthy and NOT (n, me+mi+mb),
-//                      i.e. the primal block is not positive definite there.
-//                      The point is a saddle or a maximizer of the QP, and no
-//                      residual-based test can see that, which is the whole
-//                      reason this verdict exists.
+//                      satisfies fb_tol -- so the point IS first-order KKT --
+//                      but the inertia of K there is trustworthy and NOT
+//                      (n, me+mi+mb), i.e. the primal block is not positive
+//                      definite. The point is a saddle or a maximizer of the
+//                      QP, which no residual-based test can see.
 //   kNoContraction     THE LINE SEARCH's verdict: the Armijo schedule ran down
-//                      to detail::kSsnMinStep without the merit 1/2||F||^2
-//                      accepting, at the top of the proximal ladder. The step
-//                      direction is not a descent direction for the merit and
-//                      no amount of damping made it one.
+//                      to detail::kSsnMinStep without the merit accepting, at
+//                      the top of the ladder. The direction is not a descent
+//                      direction for the merit and damping did not make it one.
 //   kInfeasibleSuspect THE DIVERGENCE TELEMETRY's verdict: ||F||inf stalled
-//                      (detail::kSsnStallWindow steps without a
-//                      kSsnStallImproveFactor improvement) WHILE the multiplier
-//                      norm grew by kSsnDualGrowthFactor. That is the signature
-//                      an infeasible QP produces and a hard feasible one does
-//                      not; the name says SUSPECT because it is a diagnosis
-//                      from behaviour, never a Farkas certificate.
+//                      (detail::kSsnStallWindow) WHILE the multiplier norm grew
+//                      by kSsnDualGrowthFactor. SUSPECT because it is a
+//                      diagnosis from behaviour, never a Farkas certificate.
 //
 // **NONE OF THEM CERTIFIES ANYTHING.** An escaped SsnResult reports where the
 // solve STOPPED. The driver routes an escaped subproblem back to the walk;
 // that routing is the only correct consumption of any value below.
 //
-// **BRANCH ON escape_reason, NEVER ON status**. Two escapes
-// map onto a QpStatus the WALK uses for a stronger statement than this file
-// ever makes: kInfeasibleSuspect reports QpStatus::kInfeasible, which the walk
-// issues as a CERTIFICATE, and kIndefinite/kNoContraction/kSingular all report
-// QpStatus::kNumericalError. A driver that switched on status alone
-// would promote a suspicion to a certificate at the driver layer.
+// **BRANCH ON escape_reason, NEVER ON status.** kInfeasibleSuspect reports
+// QpStatus::kInfeasible, which the walk issues as a CERTIFICATE, and
+// kIndefinite/kNoContraction/kSingular all report QpStatus::kNumericalError.
+// A driver switching on status alone would promote a suspicion to a
+// certificate at the driver layer.
 enum class SsnEscape {
     kNone = 0,
     kBudget = 1,
@@ -949,7 +825,7 @@ enum class SsnEscape {
 };
 
 // Which rows a caller believes are active, used for the FIRST Newton step only
-// (header section 4). The two halves are INDEPENDENT: supply either, both, or
+// (banner section 4). The two halves are INDEPENDENT: supply either, both, or
 // neither. An empty half means "no hint for these rows" and those rows take
 // the ordinary FB branch on step one like every later step; a non-empty half
 // must be exactly sized or solve() throws.
@@ -978,40 +854,33 @@ struct SsnStart {
     // bound activity at all.
     Vec z; // n
 
-    // **IGNORED BY THE LOCAL METHOD, AND STRUCTURALLY SO.** For a QP the slack
-    // of a row is a FUNCTION of x (s = bi - Ai x), so a separately seeded
-    // slack block can only agree with x or contradict it; this file always
-    // derives it. The field is present because the proximally stabilized
-    // formulation carries an independent slack/dual block that a caller may
-    // want to hand back in, and fixing the interface now is cheaper than
-    // widening it then. Validated for size when non-empty, so a caller who
-    // fills it wrongly is told; never read otherwise.
+    // **IGNORED, AND STRUCTURALLY SO.** For a QP the slack of a row is a
+    // FUNCTION of x (s = bi - Ai x), so a separately seeded slack block can
+    // only agree with x or contradict it; this file always derives it. The
+    // field exists because the proximally stabilized formulation carries an
+    // independent slack/dual block a caller may want to hand back in.
+    // Validated for size when non-empty; never read otherwise.
     Vec slacks; // mi, or empty
 
     // **STILL IGNORED, AND THIS IS A RULING RATHER THAN AN OMISSION.** The
-    // proximal term does not read them, because it anchors at the CURRENT
-    // ITERATE instead of at a lagging centre.
+    // proximal term does not read them: it anchors at the CURRENT ITERATE
+    // instead of at a lagging centre.
     //
     // WHY THAT ANCHOR. With the centre at the current point the proximal term
-    // perturbs only the JACOBIAN -- it is exactly an additive increment to the
-    // (delta, mu) pair this file already applies -- so section 6's property
-    // survives: the iteration stays modified Newton on the EXACT F, its fixed
-    // points stay exact unregularized KKT points, and ONE residual per attempt
-    // serves both the certificate and the merit. A LAGGING centre changes the
-    // residual (F_sigma = F + sigma(w - wbar), with the FB rows carrying a
-    // shifted slack), which splits the exit certificate into an inner and an
-    // outer one and forces two residual evaluations per attempt. Nothing
-    // measured needs that: the one thing a lagging centre uniquely buys -- the
-    // divergence-of-the-proximal-step infeasibility certificate -- is a
-    // certificate this file does not claim to produce anyway
-    // (SsnEscape::kInfeasibleSuspect is behavioural, and its stall/growth
-    // telemetry sees the infeasible fixture without any of it).
+    // perturbs only the JACOBIAN, so banner section 6's property survives --
+    // the iteration stays modified Newton on the EXACT F, its fixed points
+    // stay exact unregularized KKT points, and ONE residual per attempt serves
+    // both the certificate and the merit. A LAGGING centre changes the
+    // residual (F_sigma = F + sigma(w - wbar), the FB rows carrying a shifted
+    // slack), which splits the exit certificate into an inner and an outer one
+    // and forces two residual evaluations per attempt. The one thing it
+    // uniquely buys -- the divergence-of-the-proximal-step infeasibility
+    // certificate -- this file does not claim to produce anyway
+    // (SsnEscape::kInfeasibleSuspect is behavioural).
     //
-    // The fields stay, still size-checked when non-empty, because the decision
-    // above is a measurement rather than a permanent one: if a cell turns up
-    // where a lagging centre is what closes it, the interface is already the
-    // right shape. A caller who wants a warm proximal sequence today uses
-    // SsnOptions::prox_sigma_init.
+    // The fields stay, still size-checked when non-empty, so the interface is
+    // the right shape if a cell ever needs a lagging centre. A caller wanting
+    // a warm proximal sequence today uses SsnOptions::prox_sigma_init.
     Vec prox_center_x;      // n, or empty
     Vec prox_center_lambda; // me + mi, or empty
 
@@ -1023,20 +892,16 @@ struct SsnStart {
 //
 // **kBare IS THE BARE LOCAL METHOD, BIT FOR BIT** -- full undamped steps, the
 // binary alpha > beta partition with no uncertain set and no hysteresis, no
-// line search, no dual projection, no proximal term and no inertia gate. Its
-// pinned iteration counts reproduce under it exactly
-// (tests/test_ssn_engine.cpp's BareModeReproducesTheTask3Trajectories), which
-// is a much stronger statement than a compile-time switch could make: the two
-// code paths are the same function, so the claim is checked on every ctest run
-// rather than argued.
+// line search, no dual projection, no proximal term and no inertia gate. The
+// two modes are the same function, so the reproduction claim is checked on
+// every suite run rather than argued.
 //
-// **A RUNTIME SWITCH, DELIBERATELY.** A compile-time switch in a header-only
-// engine could only be a macro (un-co-testable in one TU) or a template
-// parameter on SsnEngine (propagating into every driver signature and into
-// SqpCounters). A runtime enum costs one predictable branch per solve on a
-// path that has already paid a sparse factorization, keeps both modes in ONE
-// binary so a single test can compare them directly, and provides the
-// ablation lever directly.
+// **A RUNTIME SWITCH, DELIBERATELY.** A compile-time switch could only be a
+// macro (un-co-testable in one TU) or a template parameter on SsnEngine
+// (propagating into every driver signature and into SqpCounters). A runtime
+// enum costs one predictable branch per solve on a path that has already paid
+// a sparse factorization, and keeps both modes in ONE binary so a single test
+// can compare them directly.
 enum class SsnSafeguards {
     kBare = 0, ///< The bare local method.
     kFull = 1, ///< The production iteration (default).
@@ -1056,55 +921,43 @@ struct SsnOptions {
     //
     // On reaching it a solve that is still running unregularized turns the
     // proximal term ON at detail::kSsnProxInit. That is the whole of the
-    // "soft_budget warns" contract and the warning is OBSERVABLE, not printed:
-    // SsnCounters::ssn_prox_updates leaves zero. There is no separate warn
-    // counter, deliberately -- adding one would widen SqpCounters for a fact
+    // "soft_budget warns" contract, and the warning is OBSERVABLE rather than
+    // printed: SsnCounters::ssn_prox_updates leaves zero. No separate warn
+    // counter, deliberately -- one would widen SqpCounters for a fact
     // ssn_prox_updates already carries.
     //
-    // 12 is kept rather than re-derived: every benign fixture in
-    // tests/test_ssn_engine.cpp converges in at most 9 attempts
-    // (BoxQpCountGrowsSlowlyInN's n = 400 cell is the largest), so the
-    // threshold is provably unreachable on all of them and the escalation is
-    // inert there by construction -- the strongest form of old-behaviour
-    // preservation this project recognises: provably inert on every one of
-    // them.
+    // 12 is above every benign fixture's attempt count, so the escalation is
+    // provably inert on all of them.
     Index soft_budget = 12;
 
-    // THE HARD CAP, and it is a cap on ATTEMPTS rather than on accepted steps
-    // (A prior doc drift: the field used to say "Newton-step cap" while the code
-    // tested the attempt index -- SsnResult::factorizations states the real
-    // invariant and this now agrees with it). A solve that reaches it stops
-    // with QpStatus::kMaxIter and SsnEscape::kBudget. Must be >= 0; 0 means
-    // "test the start point and take no step".
+    // THE HARD CAP, on ATTEMPTS rather than on accepted steps
+    // (SsnResult::factorizations states the invariant). A solve that reaches
+    // it stops with QpStatus::kMaxIter and SsnEscape::kBudget. Must be >= 0;
+    // 0 means "test the start point and take no step".
     //
     // **THE SECOND-ORDER VERIFICATION IS NOT AN ATTEMPT AND IS NOT CAPPED BY
-    // THIS FIELD** (header section 7b). Under kFull a start point that is
+    // THIS FIELD** (banner section 7b). Under kFull a start point that is
     // already converged still pays the ONE verification factorization at
     // hard_budget = 0, because the alternative is certifying a point nothing
     // ever looked at. It takes no step, so the field's contract is intact.
     Index hard_budget = 25;
 
     // ||F||_inf convergence threshold. Default = SqpOptions::kkt_tol's own
-    // default, per the derivation in header section 5; use
+    // default, per the derivation in banner section 5; use
     // ssn_fb_tol_from_kkt_tol() to track a non-default kkt_tol. Must be > 0.
     double fb_tol = 1e-6;
 
-    // THE PROXIMAL TERM'S STARTING VALUE, and **0.0 IS THE RULED DEFAULT**.
-    //
-    // The ruling: the proximal term is a REPAIR, not a policy. It costs
-    // iterations wherever it is on (it damps the Newton step toward the current
-    // point), it repairs nothing on a solve that is converging, and every
-    // fixture that needs it is a fixture the escalation ladder ARMS it on --
-    // the line search exhausting its schedule, a wrong inertia, or crossing
-    // soft_budget. Shipping it on by default would slow every healthy solve to
-    // insure against cases the ladder already covers. A caller CONTINUING a
-    // proximal sequence (the re-solve after an escape) can start it warm by
-    // setting this field; must be >= 0.
+    // THE PROXIMAL TERM'S STARTING VALUE, and **0.0 IS THE RULED DEFAULT**:
+    // the proximal term is a REPAIR, not a policy. It costs iterations
+    // wherever it is on, it repairs nothing on a converging solve, and every
+    // case that needs it is one the escalation ladder ARMS it on. A caller
+    // CONTINUING a proximal sequence (the re-solve after an escape) can start
+    // it warm here; must be >= 0.
     double prox_sigma_init = 0.0;
 
     // THE UNCERTAIN BAND's entering threshold, on |alpha - beta| -- see
-    // detail::kSsnUncertainEnter for the geometry, the sweep and the
-    // hysteresis ratio that derives the LEAVING threshold from it.
+    // detail::kSsnUncertainEnter for the geometry and the hysteresis ratio
+    // that derives the LEAVING threshold from it.
     //
     // 0.0 DISABLES THE UNCERTAIN SET without disabling anything else, which is
     // what makes "the uncertain set, ablated" a one-field experiment rather
@@ -1120,7 +973,7 @@ struct SsnOptions {
 
     // DEFER THE CERTIFYING EXIT'S INERTIA EVIDENCE (SsnOptions::defer_certification).
     //
-    // false (default) -- section 7b verbatim: the convergence test opens a
+    // false (default) -- banner section 7b verbatim: the convergence test opens a
     // VERIFICATION ATTEMPT that factorizes K at the converged point and reads
     // its inertia before kOptimal is issued.
     //
@@ -1128,25 +981,18 @@ struct SsnOptions {
     // converged point, sigma dropped to the caller's own regularization, K's
     // diagonals refreshed) but NOT FACTORIZED. The solve returns kOptimal with
     // `SsnResult::certification_deferred` set, and the caller owes the engine
-    // exactly one of `finish_deferred_certification()` (which pays that
-    // factorization and reads the verdict) or `discard_deferred_certification()`
-    // before the next solve.
+    // exactly one of finish_deferred_certification() or
+    // discard_deferred_certification() before the next solve.
     //
     // **WHY A CALLER WOULD WANT THAT** is Gould's lemma (Gould, Math. Prog. 32,
     // 1985): the KKT matrix of the face EQP has inertia (n_f, m_f, 0) IFF the
-    // reduced Hessian on that face is positive definite, so a caller that is
-    // about to re-solve the identified face EXACTLY -- which is what
-    // QpEngine::refine_on_face does, gating on that very verdict -- already
-    // buys the second-order evidence and does not need this file to buy it
-    // twice. The certificate the two routes issue is NOT the same statement:
-    // this file's verification tests (n, me+mi+mb) on the FULL augmented block
-    // at the caller's regularization, the face route tests positive
-    // definiteness of the reduced Hessian ON THE IDENTIFIED FACE. At a
-    // certifying exit on an identified active set the face statement is the
-    // semantically correct one (the full-block statement is stronger only
-    // through the delta/sigma shift it carries, which is a statement about the
-    // regularized model rather than about the QP); the two can therefore
-    // disagree, and the measurement arm reports whether they ever do.
+    // reduced Hessian on that face is positive definite, so a caller about to
+    // re-solve the identified face EXACTLY -- QpEngine::refine_on_face, which
+    // gates on that very verdict -- already buys the second-order evidence.
+    // THE TWO CERTIFICATES ARE NOT THE SAME STATEMENT: this file's
+    // verification tests (n, me+mi+mb) on the FULL augmented block at the
+    // caller's regularization; the face route tests positive definiteness of
+    // the reduced Hessian ON THE IDENTIFIED FACE. They can disagree.
     //
     // **NOTHING IS WEAKENED WHEN THE FACE SOLVE IS REFUSED.** A caller whose
     // refinement is refused calls finish_deferred_certification() and gets
@@ -1156,7 +1002,7 @@ struct SsnOptions {
 
     // HOW sigma IS SIZED (sqp_types.h's SsnSigmaRule).
     //
-    // kLadder (default) is section 7's failure-reactive ladder verbatim. The
+    // kLadder (default) is banner section 7's failure-reactive ladder verbatim. The
     // two residual rules replace the CLIMB with a size read off the residual:
     //
     //     sigma_k = max(ladder_k, clamp(c * min(r_k, r_k^2),
@@ -1166,34 +1012,30 @@ struct SsnOptions {
     //
     // THE LADDER IS RETAINED AS A MONOTONE FLOOR, NOT REPLACED: every
     // escalation trigger still climbs a rung, so a solve that cannot be
-    // repaired still reaches the ceiling and still escapes with the same
-    // reason. What changes is that between triggers sigma is sized from the
-    // evidence rather than from the history -- and a residual that FALLS
-    // lowers sigma back toward the floor, which the monotone ladder
-    // structurally cannot do.
+    // repaired still reaches the ceiling and escapes with the same reason.
+    // Between triggers sigma is sized from the evidence rather than the
+    // history, and a residual that FALLS lowers sigma back toward the floor --
+    // which the monotone ladder structurally cannot do.
     //
-    // kResidualArmed is INERT until the ladder arms (soft_budget crossing, a
-    // wrong inertia, or an exhausted line search), so it is provably inert on
-    // every fixture whose ladder never arms. kResidualAlways sizes sigma from
-    // attempt 0, so it carries at least kSsnProxInit everywhere and is inert
-    // NOWHERE -- that is the arm that answers whether LM sizing prevents the
-    // wasted overshoot trial step rather than merely shortening the recovery.
+    // kResidualArmed is INERT until the ladder arms, so it is provably inert
+    // on every fixture whose ladder never arms. kResidualAlways sizes sigma
+    // from attempt 0, carries at least kSsnProxInit everywhere, and is inert
+    // NOWHERE.
     SsnSigmaRule sigma_rule = SsnSigmaRule::kLadder;
 
     // WHAT PROTECTS THE HINTED FIRST STEP (sqp_types.h's SsnHintRule).
     //
-    // kIterationZeroFree (default) is section 7 step 9's exemption verbatim.
+    // kIterationZeroFree (default) is banner section 7 step 9's exemption verbatim.
     // kWatchdog replaces it with the published rule the exemption is an
     // unsafeguarded special case of: up to `watchdog_q` relaxed (unsearched)
     // steps from the hinted start, a stored BEST point, and -- if the merit has
     // not achieved Armijo decrease against the watchdog's own reference by then
     // -- a RETURN TO THAT BEST POINT followed by a monotone step.
     //
-    // The exemption and the watchdog agree exactly whenever the hint was right
-    // (the relaxed step lands at the solution and the convergence test fires
-    // before the watchdog can ever judge it) and differ exactly where the
-    // exemption has no answer: a wrong hint whose relaxed step is accepted and
-    // bad. `watchdog_q` must be >= 1.
+    // The two agree exactly whenever the hint was right (the relaxed step lands
+    // at the solution and the convergence test fires before the watchdog can
+    // judge it) and differ exactly where the exemption has no answer: a wrong
+    // hint whose relaxed step is accepted and bad. `watchdog_q` must be >= 1.
     SsnHintRule hint_rule = SsnHintRule::kIterationZeroFree;
     Index watchdog_q = detail::kSsnWatchdogQ;
 
@@ -1217,7 +1059,7 @@ struct SsnOptions {
     SsnInfeasibilityRule infeasibility_rule = SsnInfeasibilityRule::kSymptoms;
 };
 
-// The tolerance derivation of header section 5, in code: an FB residual at
+// The tolerance derivation of banner section 5, in code: an FB residual at
 // `kkt_tol` buys stationarity and equality feasibility at exactly kkt_tol and
 // per-row complementarity within detail::kSsnComplementarityFactor of it.
 // Throws std::invalid_argument on a non-positive kkt_tol.
@@ -1245,13 +1087,9 @@ struct SsnResult {
     // set.
     bool certification_deferred = false;
 
-    // THE TWO LEVER INSTRUMENTS.
-    //
-    // They live on SsnResult rather than on SsnCounters DELIBERATELY: they are
-    // measurements of an opt-in arm, not of the product, and SqpCounters::ssn
-    // is serialized into the corpus CSV whose schema is a pinned artifact.
-    // Putting them here keeps a reader of a shipped artifact from finding a
-    // column that is structurally zero.
+    // THE LEVER INSTRUMENTS live here rather than on SsnCounters DELIBERATELY:
+    // they measure an opt-in arm, not the product, and SqpCounters::ssn is
+    // serialized into the corpus CSV whose schema is a pinned artifact.
     //
     // `watchdog_returns` -- times the q-step watchdog exhausted its relaxed
     // window without Armijo decrease and RETURNED TO THE BEST STORED POINT.
@@ -1276,61 +1114,50 @@ struct SsnResult {
     Index iters = 0;
     // Numeric factorizations paid, one per ATTEMPT.
     //
-    // **THE SAFEGUARDS SEPARATED THESE TWO**, and the gap is their cost, read
-    // directly. The bare method could say "exactly one factorization per
-    // Newton step, so this equals iters"; with a line search and an escalation
-    // ladder an
-    // attempt can pay its factorization and then take NO step -- the schedule
-    // was exhausted, or the inertia came back wrong -- so the invariant is now
+    // **THE SAFEGUARDS SEPARATED THESE TWO**, and the gap is their cost read
+    // directly: an attempt can pay its factorization and take NO step (the
+    // schedule was exhausted, or the inertia came back wrong), so
     //
     //     iters <= factorizations <= min(attempts, hard_budget) + 1,
     //
-    // where the +1 is the CERTIFYING EXIT's second-order verification (header
-    // section 7b), which is the reason equality on the left is unreachable
-    // under kFull: a certified guarded solve pays exactly one factorization
-    // more than it takes steps, and an escaped one pays at least as many as it
-    // takes. **UNDER SsnOptions::defer_certification THE +1 IS NOT PAID BY
-    // THIS SOLVE** -- it moves to finish_deferred_certification(), which adds
-    // it to THIS field when the caller runs it, or is never paid at all when
-    // the caller's face solve supersedes it. So a deferring solve can read
-    // iters == factorizations at a certifying exit, and that is the lever
-    // working rather than the invariant breaking. Under kBare (no verification, no line search, no
-    // ladder) equality is exact and the bare contract stands verbatim. A regression that
-    // refactorized per branch change still shows up here and nowhere else.
+    // where the +1 is the CERTIFYING EXIT's second-order verification (banner
+    // banner section 7b) -- which is why equality on the left is unreachable under
+    // kFull. **UNDER SsnOptions::defer_certification THE +1 IS NOT PAID BY
+    // THIS SOLVE**: it moves to finish_deferred_certification(), which adds it
+    // to THIS field when the caller runs it, or is never paid at all when the
+    // caller's face solve supersedes it -- so a deferring solve can read
+    // iters == factorizations at a certifying exit. Under kBare equality is
+    // exact.
     Index factorizations = 0;
     // Pardiso phase-11 symbolic analyses paid. 1 for the first solve of a new
     // structure on this engine, 0 for every later solve of the same structure
-    // -- header section 3.
+    // -- banner section 3.
     Index symbolic_analyses = 0;
     // TRIPLET REBUILDS of K's sparsity pattern paid by this solve: 1 when the
     // structure differs from the one this engine currently holds, 0 when it
-    // was reused and only VALUES were refreshed. The
-    // sibling of symbolic_analyses one level down -- that field counts what
-    // PARDISO re-derives, this one counts what THIS FILE re-derives, and the
-    // "one symbolic analysis per structure" story was only ever telling half
-    // of it.
+    // was reused and only VALUES were refreshed. The sibling of
+    // symbolic_analyses one level down -- that field counts what PARDISO
+    // re-derives, this one what THIS FILE re-derives.
     Index pattern_rebuilds = 0;
 
     // ||F(w)||_inf at the returned point, on the UNSCALED residual.
     double fb_residual = 0.0;
 
-    // THE IMPLIED ACTIVE SET AT THE RETURNED POINT:
-    // in the same two shapes QpSolution reports it (qp_problem.h): one flag per
-    // row of Ai, one BoundState per variable. Derived from the FINAL iterate by
-    // the engine's own partition rule -- row active iff lambda > s, equivalently
-    // alpha > beta (header section 2) -- so it is the same partition the last
+    // THE IMPLIED ACTIVE SET AT THE RETURNED POINT, in the two shapes
+    // QpSolution reports it (qp_problem.h): one flag per row of Ai, one
+    // BoundState per variable. Derived from the FINAL iterate by the engine's
+    // own partition rule -- row active iff lambda > s, equivalently
+    // alpha > beta (banner section 2) -- so it is the same partition the last
     // Jacobian would have selected, not a separately maintained working set.
     //
-    // WRITE-ONLY, LIKE THE COUNTERS: nothing in this file reads either vector
-    // back, and computing them cannot move a trajectory. They exist for the
-    // activity export (warm-start hand-off and stable-face refinement);
-    // widening the struct later is the cost this avoids -- the same argument
-    // SsnStart::z is carried on.
+    // WRITE-ONLY, LIKE THE COUNTERS: nothing here reads either vector back,
+    // and computing them cannot move a trajectory. They exist for the activity
+    // export (warm-start hand-off and stable-face refinement).
     //
-    // ALWAYS POPULATED, INCLUDING ON AN ESCAPE and including on a solve that
-    // took zero steps: the derivation reads the iterate, not the loop's
-    // history, so there is no state to be missing. On an escaped solve it
-    // describes where the solve STOPPED and certifies nothing.
+    // ALWAYS POPULATED, INCLUDING ON AN ESCAPE and on a solve that took zero
+    // steps: the derivation reads the iterate, not the loop's history. On an
+    // escaped solve it describes where the solve STOPPED and certifies
+    // nothing.
     //
     // A variable whose lower AND upper bound rows are both implied active
     // reports kFixed; one with neither reports kFree. A variable with no finite
@@ -1338,18 +1165,17 @@ struct SsnResult {
     std::vector<bool> ineq_active;       // mi
     std::vector<BoundState> bound_state; // n
 
-    // TRUST-REGION ACTIVITY, size n, and qp_problem.h's QpSolution::tr_active
-    // contract verbatim. True at index i iff the
-    // variable is held by a TR-tight effective bound rather than a real one.
-    // Such a variable reports kFree in bound_state above -- which is a
-    // REAL-BOUND-ONLY view -- and z(i) is 0, because TR duals are internal to
-    // this solve and are never exposed.
+    // TRUST-REGION ACTIVITY, size n, qp_problem.h's QpSolution::tr_active
+    // contract verbatim. True at index i iff the variable is held by a
+    // TR-tight effective bound rather than a real one. Such a variable reports
+    // kFree in bound_state above -- a REAL-BOUND-ONLY view -- and z(i) is 0,
+    // because TR duals are internal to this solve and are never exposed.
     //
     // SAME STATIONARITY CAVEAT AS THE WALK'S: at a TR-pinned index the
     // reported quantities do NOT satisfy stationarity, since the multiplier
-    // that actually balanced that row was dropped on the way out. A kFree entry
-    // there is evidence that no REAL bound constrains the coordinate, NOT
-    // evidence that the point is stationary in it. **Read tr_active, never z or
+    // that balanced that row was dropped on the way out. A kFree entry there
+    // is evidence that no REAL bound constrains the coordinate, NOT evidence
+    // that the point is stationary in it. **Read tr_active, never z or
     // bound_state, to detect a binding radius.**
     //
     // All-false whenever the solve ran without a trust region (the default
@@ -1369,46 +1195,42 @@ struct SsnResult {
     //     intermediate iterate is confined to the box, the line search does not
     //     confine it either (the TR rows are four more terms in the same merit,
     //     not a step-length cap), and a solve that stops early can stop
-    //     anywhere. MEASURED on cycling_qp_3var from x0 = 0 at tr_radius =
-    //     0.01: hard_budget 1..5 return ||x||inf between 1.33 and 1.60, i.e.
-    //     133x to 160x the radius.
+    //     anywhere. MEASURED on cycling_qp_3var from x0 = 0 at
+    //     tr_radius = 0.01: hard_budget 1..5 return ||x||inf between 1.33 and
+    //     1.60, i.e. 133x to 160x the radius.
     //   * ON A CERTIFYING EXIT the violation is bounded by the tolerance and
-    //     nothing else: |phi| <= fb_tol permits a slack negative by
-    //     O(fb_tol) (header section 5's hypothesis caveat, applied to the TR
-    //     rows in particular), so tr_violation <= kSsnComplementarityFactor *
-    //     fb_tol ~ 1.71 fb_tol. That is the only exit at which this kernel's
-    //     x may be used as a trust-region step.
+    //     nothing else: |phi| <= fb_tol permits a slack negative by O(fb_tol)
+    //     (banner section 5's hypothesis caveat, applied to the TR rows), so
+    //     tr_violation <= kSsnComplementarityFactor * fb_tol ~ 1.71 fb_tol.
+    //     That is the only exit at which this kernel's x may be used as a
+    //     trust-region step.
     //   * ON ANY ESCAPE the value is UNBOUNDED and is reported rather than
     //     repaired. It is deliberately NOT clamped: clamping would break the
-    //     one invariant the export has -- that x, fb_residual, ineq_active,
+    //     export's one invariant -- that x, fb_residual, ineq_active,
     //     bound_state, tr_active and the uncertain flags all describe ONE
-    //     point -- and it would hand the funnel a point whose residual it had
-    //     never been measured at. The driver routes every escape to the walk (the
-    //     SsnEscape banner's standing instruction); this field is what lets it
-    //     ASSERT that it did.
+    //     point -- and hand the funnel a point whose residual it had never
+    //     been measured at. The driver routes every escape to the walk; this
+    //     field is what lets it ASSERT that it did.
     double tr_violation = 0.0;
 
-    // THE UNCERTAIN SET AT THE RETURNED POINT, the third leg of the
-    // CHR partition that ineq_active/bound_state cannot express -- those two
-    // report the BINARY reading (lambda > s) and always will, because the
-    // driver's hint ingest and QpSolution's own contract are binary.
+    // THE UNCERTAIN SET AT THE RETURNED POINT, the third leg of the CHR
+    // partition that ineq_active/bound_state cannot express -- those two
+    // report the BINARY reading (lambda > s), because the driver's hint ingest
+    // and QpSolution's own contract are binary.
     //
     // ineq_uncertain[k] is true iff row k of Ai was in the uncertain set when
     // the LAST generalized Jacobian was assembled; bound_uncertain[j] is true
-    // iff EITHER of variable j's bound rows was (a variable with one uncertain
-    // side is an uncertain variable -- the pessimistic reading, since the point
-    // of the flag is to warn a consumer off trusting the binary one).
+    // iff EITHER of variable j's bound rows was -- the pessimistic reading,
+    // since the flag exists to warn a consumer off trusting the binary one.
     //
     // **THE LAST ASSEMBLY**, which under kFull is the RETURNED ITERATE on every
-    // certifying exit (the second-order verification classifies there, header
-    // section 7b) and is one iterate back on an escape. The distinction still
-    // matters because the classification carries HYSTERESIS, so it is a
-    // function of the whole trajectory and cannot be recomputed from the final
-    // point. On a solve that assembled no Jacobian at all -- kBare converged at
-    // the seed, or hard_budget = 0 under kBare -- both vectors are all-false,
-    // which is the honest reading of "no classification was ever made" and not
-    // a claim that every row was decided. Always sized (mi / n), like every
-    // other export here.
+    // certifying exit (the second-order verification classifies there, banner
+    // banner section 7b) and is one iterate back on an escape. The distinction
+    // matters because the classification carries HYSTERESIS: it is a function
+    // of the whole trajectory and cannot be recomputed from the final point.
+    // On a solve that assembled no Jacobian at all both vectors are all-false
+    // -- the honest reading of "no classification was ever made", not a claim
+    // that every row was decided. Always sized (mi / n).
     //
     // ALWAYS ALL-FALSE UNDER SsnSafeguards::kBare, which has no uncertain set.
     std::vector<bool> ineq_uncertain;  // mi
@@ -1423,25 +1245,23 @@ struct SsnResult {
     // Why the solve stopped, in words, whenever there are words to add: the
     // linear solver's own message on kSingular, the stall/growth figures on
     // kInfeasibleSuspect, the exhausted schedule on kNoContraction. Carried
-    // out rather than printed (this project's rule that a diagnostic never
-    // printed must still fold into what the caller receives -- here
-    // escape_detail, since a solve that cannot make progress reports a
-    // status/escape rather than throwing). Empty on kNone and on kBudget,
-    // which say everything they have to say in the enum.
+    // out rather than printed, per CLAUDE.md banner section 4's rule that a
+    // diagnostic must fold into what the caller receives. Empty on kNone and
+    // on kBudget, which say everything they have to say in the enum.
     std::string escape_detail;
 
     SsnCounters counters;
 };
 
-// The engine
+// The engine.
 //
-// Holds ONE KktFactor across solves, which is what makes the "symbolic
-// analysis once per structure, reused across QPs of identical structure"
-// property of header section 3 observable: construct one SsnEngine and solve a
+// Holds ONE KktFactor across solves, which is what makes banner section 3's
+// "symbolic analysis once per structure, reused across QPs of identical
+// structure" property observable: construct one SsnEngine and solve a
 // sequence of same-shaped QPs through it.
 //
-// NOT THREAD-SAFE and not copyable, for the same reason the sparse factor is not: it
-// owns live Pardiso/Accelerate internal state.
+// NOT THREAD-SAFE and not copyable, for the same reason the sparse factor is
+// not: it owns live Pardiso/Accelerate internal state.
 class SsnEngine {
   public:
     explicit SsnEngine(const QpOptions &opts) : opts_(opts) {}
@@ -1459,9 +1279,6 @@ class SsnEngine {
     // distinguished from SOLVER outcomes: a solve that cannot make progress
     // reports a status and an SsnEscape and does not throw.
     //
-    // This repository's "QP subproblem view" is qp_problem.h's QpProblem;
-    // that is what is used here -- there is no second type and no alias.
-    //
     // This overload forwards a default-constructed SolveOverrides, which
     // resolves to every opts_ value unchanged, so it is BYTE-IDENTICAL to
     // solving with no override support at all -- the same guarantee
@@ -1471,13 +1288,11 @@ class SsnEngine {
         solve(qp, start, sopts, SolveOverrides{}, out);
     }
 
-    // THE PER-SOLVE SEAM. Takes the WALK'S OWN
-    // SolveOverrides (qp_types.h) rather than a parallel type, because the funnel
-    // driver already builds one per subproblem and per SOC re-solve, and a
-    // second struct would only be a translation layer to maintain.
-    // Every field's sentinel and resolution rule is qp_types.h's, unchanged:
-    // tr_radius +inf means "no radius", primal_delta/dual_mu negative means
-    // "use the engine's".
+    // THE PER-SOLVE SEAM. Takes the WALK'S OWN SolveOverrides (qp_types.h)
+    // rather than a parallel type, because the funnel driver already builds
+    // one per subproblem and per SOC re-solve. Every field's sentinel and
+    // resolution rule is qp_types.h's, unchanged: tr_radius +inf means "no
+    // radius", primal_delta/dual_mu negative means "use the engine's".
     //
     // TRUST REGION. lo_eff = max(lower, x0 - Delta), up_eff = min(upper,
     // x0 + Delta), about THIS solve's own start point, resolved once here and
@@ -1486,17 +1301,15 @@ class SsnEngine {
     // export_activity/recombine_bound_multipliers for the TR-pin/real-bound
     // separation that keeps radius artefacts out of z and bound_state.
     //
-    // REGULARIZERS. primal_delta/dual_mu are honoured too, for a reason worth
-    // stating rather than assuming: ignoring a field the caller deliberately
-    // set is precisely the silent-drop antipattern the seeded-z check was
-    // added to remove. **BUT THE DRIVER'S ADAPTIVE-mu SCHEDULE BUYS NOTHING
-    // HERE** -- switch it off deliberately rather than
-    // discover this: delta and mu perturb only the JACOBIAN (for_each_entry's
-    // emissions and the FB diagonal) and never the residual, so this
-    // iteration is modified Newton on the EXACT F and its fixed points are
-    // exact, unregularized KKT points. They cost iterations, not accuracy --
-    // the opposite trade from the walk, whose returned solution carries the
-    // mu|lambda| footprint that motivated the schedule in the first place.
+    // REGULARIZERS. primal_delta/dual_mu are honoured too -- ignoring a field
+    // the caller deliberately set is the silent-drop antipattern. **BUT THE
+    // DRIVER'S ADAPTIVE-mu SCHEDULE BUYS NOTHING HERE**: delta and mu perturb
+    // only the JACOBIAN (for_each_entry's emissions and the FB diagonal) and
+    // never the residual, so the iteration is modified Newton on the EXACT F
+    // and its fixed points are exact, unregularized KKT points. They cost
+    // iterations, not accuracy -- the opposite trade from the walk, whose
+    // returned solution carries the mu|lambda| footprint that motivated the
+    // schedule.
     void solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
                const SolveOverrides &overrides, SsnResult *out) {
         if (out == nullptr) {
@@ -1504,10 +1317,9 @@ class SsnEngine {
         }
         // The deferred-certification contract, enforced rather than
         // documented: a pending certification is EVIDENCE ABOUT K, and this
-        // solve is about to overwrite K. Silently dropping it would let a caller believe a
-        // certificate that nothing ever verified -- the same wrong-answer class
-        // section 7b exists to close -- so the omission is a caller error and
-        // is reported as one.
+        // solve is about to overwrite K. Dropping it silently would let a
+        // caller believe a certificate nothing ever verified -- the
+        // wrong-answer class banner section 7b exists to close.
         if (deferred_pending_) {
             throw std::invalid_argument(
                 "SsnEngine::solve: a deferred certification from the previous solve is still "
@@ -1570,22 +1382,17 @@ class SsnEngine {
         std::vector<detail::SsnRowClass> prev_klass;
         bool any_klass = false;
 
-        // The LINE SEARCH's trial POINT. Unavoidable -- a trial step has to be
-        // formed somewhere, and it cannot be formed in place because a rejected
-        // one has to be discarded.
+        // The LINE SEARCH's trial POINT. A trial step has to be formed
+        // somewhere and cannot be formed in place, because a rejected one has
+        // to be discarded.
         //
-        // **ITS RESIDUAL, HOWEVER, IS MEASURED IN THE WORKING SCRATCH ABOVE**,
-        // which is worth stating because the obvious implementation gives the
-        // line search a second set of residual blocks and that second set is
-        // n + me + 2mi + 2mb doubles -- at a bounds-heavy QP at n = 1e6 (so
-        // mb = 2e6) it is ~40 MB, against a phase whose cold ceiling figure is
-        // 1285 MiB. The price of not paying it is ONE extra O(nnz) residual
-        // evaluation per SOLVE (not per attempt): the loop re-evaluates at the
-        // returned point just before the activity export, unconditionally, so
-        // the export cannot read blocks a trial point left behind. Against the
-        // factorizations a solve pays that is noise, and it removes a whole
-        // class of "which point does this scratch describe" bug rather than
-        // documenting one.
+        // **ITS RESIDUAL, HOWEVER, IS MEASURED IN THE WORKING SCRATCH ABOVE.**
+        // A second set of residual blocks would be n + me + 2mi + 2mb doubles
+        // -- ~40 MB at a bounds-heavy n = 1e6 QP. The price of not paying it
+        // is ONE extra O(nnz) residual evaluation per SOLVE (not per attempt):
+        // the loop re-evaluates at the returned point just before the activity
+        // export, unconditionally, so the export cannot read blocks a trial
+        // point left behind.
         Vec t_x(n), t_le(me), t_li(mi), t_lb(mb);
 
         // Divergence telemetry (SsnEscape::kInfeasibleSuspect). Every field is
@@ -1603,7 +1410,7 @@ class SsnEngine {
         bool window_damped = false;
         bool stalled = false;
 
-        // The second-order verification's saved sigma (section 7b): >= 0 only
+        // The second-order verification's saved sigma (banner section 7b): >= 0 only
         // while a verification is running with the ladder temporarily dropped
         // to the caller's own regularization.
         double verify_sigma = -1.0;
@@ -1666,11 +1473,9 @@ class SsnEngine {
             //
             // Under kBare this is the bare method's test, unchanged and free.
             // Under kFull it does NOT exit: it opens a verification attempt,
-            // which falls through to the classification and the factorization below
-            // and certifies only on the inertia verdict read THERE. Header
-            // section 7b is the whole contract, including why an earlier
-            // attempt's verdict cannot stand in for this one and why the
-            // ladder is dropped to the caller's own regularization first.
+            // which falls through to the classification and factorization
+            // below and certifies only on the inertia verdict read THERE.
+            // Banner banner section 7b is the whole contract.
             bool verifying = false;
             if (nrm.inf_norm <= sopts.fb_tol) {
                 if (!guarded) {
@@ -1740,10 +1545,7 @@ class SsnEngine {
                             // A verdict ALREADY DECLARED on a clean window is
                             // NOT withdrawn: it was established on undamped
                             // steps, and only genuine progress -- the re-arm
-                            // branch above -- retracts it. (Measured: withdrawing
-                            // it as well loses slow_infeasible_qp's diagnosis
-                            // entirely, which is the fixture that discriminates
-                            // the two telemetry routes.)
+                            // branch above -- retracts it.
                             window_len = 0;
                             window_damped = false;
                         } else if (!stalled) {
@@ -1833,16 +1635,15 @@ class SsnEngine {
             // two residual rules sigma is re-sized from the CURRENT residual
             // every attempt, with the monotone ladder underneath it as a floor
             // -- so every escalation trigger still climbs a rung and every
-            // escape route is exactly the shipped one, while between triggers
-            // the shift tracks the evidence instead of the history.
+            // escape route is exactly the shipped one.
             //
-            // **window_damped IS SET ONLY ON AN INCREASE**, and that is not a
-            // convenience: the flag means "slow progress here is the
-            // safeguard's doing, so do not read it as a stall". A sigma that
-            // FALLS damps less than the step before it, so a window that
-            // spans a fall is not contaminated -- and marking every attempt
-            // damped would disable the standing infeasibility route outright
-            // under a rule that re-sizes every attempt.
+            // **window_damped IS SET ONLY ON AN INCREASE.** The flag means
+            // "slow progress here is the safeguard's doing, so do not read it
+            // as a stall"; a sigma that FALLS damps less than the step before
+            // it, so a window spanning a fall is not contaminated -- and
+            // marking every attempt damped would disable the standing
+            // infeasibility route outright under a rule that re-sizes every
+            // attempt.
             if (lm_sigma_rule && !verifying &&
                 (sopts.sigma_rule == SsnSigmaRule::kResidualAlways || ladder_sigma_ > 0.0)) {
                 const double r = nrm.inf_norm / f_scale;
@@ -1851,25 +1652,18 @@ class SsnEngine {
                     detail::kSsnProxMax);
                 // apply_sigma() is the ONE site that combines the ladder floor
                 // with the residual size. Recomputing the max here as well
-                // would make the floor UNFALSIFIABLE -- a mutant that deleted
-                // it from apply_sigma() SURVIVED on the strength of such a
-                // copy, which is what the mutation sweep found and this
-                // removed.
+                // would make the floor UNFALSIFIABLE.
                 //
                 // **AND IT IS CALLED UNCONDITIONALLY, WHICH COSTS AN O(nnz)
-                // VALUE REBUILD PER ARMED ATTEMPT**.
-                // apply_sigma() -> set_prox_sigma() -> sync_matrix() re-emits
-                // K's VALUES even when the combined sigma did not move: no
-                // factorization, no symbolic analysis, no counter and no
-                // trajectory effect (verified -- sync_matrix takes its REFRESH
-                // path, which writes values only), but real work. Guarding the
-                // call on a precomputed max would put the floor back at two
-                // sites and undo the paragraph above, so THE TRADE IS
-                // DELIBERATE and the cheap fix is a different one: have
-                // set_prox_sigma() early-out when `sigma == prox_sigma_`, where
-                // the floor is not involved at all. Carried as a
-                // micro-item; it is on the LEVER path only (`lm_sigma_rule`
-                // is false at the shipped default), so nothing shipped pays it.
+                // VALUE REBUILD PER ARMED ATTEMPT**: apply_sigma() ->
+                // set_prox_sigma() -> sync_matrix() re-emits K's VALUES even
+                // when the combined sigma did not move (the REFRESH path -- no
+                // factorization, no symbolic analysis, no counter, no
+                // trajectory effect, but real work). Guarding the call on a
+                // precomputed max would put the floor back at two sites, so
+                // THE TRADE IS DELIBERATE. This is on the LEVER path only
+                // (`lm_sigma_rule` is false at the shipped default), so
+                // nothing shipped pays it.
                 const double before = prox_sigma_;
                 apply_sigma(qp, n, me, mi, mb);
                 if (prox_sigma_ != before) {
@@ -1953,12 +1747,11 @@ class SsnEngine {
             any_klass = true;
 
             // **THE VERIFICATION ATTEMPT MOVES NO COUNTER BUT factorizations**
-            // (section 7b). It is not a step, so it cannot be a bulk flip, and
-            // its classification is not a partition the iteration ever acted
-            // on, so it cannot be an uncertain-set peak. It DOES leave `klass`
-            // describing the returned point, which is what the uncertain export
-            // then reports -- a strict improvement on the previous "the last
-            // assembly, which was one iterate back".
+            // (banner section 7b). It is not a step, so it cannot be a bulk
+            // flip, and its classification is not a partition the iteration
+            // ever acted on, so it cannot be an uncertain-set peak. It DOES
+            // leave `klass` describing the returned point, which is what the
+            // uncertain export then reports.
             if (!verifying) {
                 if (!prev_klass.empty() && klass != prev_klass) {
                     ++out->counters.ssn_bulk_flips;
@@ -2039,16 +1832,14 @@ class SsnEngine {
             } catch (const std::exception &e) {
                 out->status = QpStatus::kNumericalError;
                 out->escape_reason = SsnEscape::kSingular;
-                // N4: a throw during a
-                // VERIFICATION factorization (7b) must restore prox_sigma_ to
-                // the ladder's own value before falling through to the
-                // result assembly below, exactly as the two in-loop
-                // verification exits do -- otherwise SsnResult::prox_sigma
-                // reports 0.0 (the dropped verification value) rather than
-                // what the ladder was actually carrying. escape_detail also
+                // A throw during a VERIFICATION factorization (banner section
+                // 7b) must restore prox_sigma_ to the ladder's own value
+                // before falling through to the result assembly, exactly as
+                // the two in-loop verification exits do -- otherwise
+                // SsnResult::prox_sigma reports the dropped verification value
+                // rather than what the ladder was carrying. escape_detail also
                 // states that the point was already first-order KKT and the
-                // failure was in CERTIFYING it, not in stepping, since the
-                // raw backend message alone loses that distinction.
+                // failure was in CERTIFYING it, not in stepping.
                 if (verifying) {
                     prox_sigma_ = verify_sigma >= 0.0 ? verify_sigma : prox_sigma_;
                     out->escape_detail = fmt::format(
@@ -2071,28 +1862,21 @@ class SsnEngine {
             //
             // so its inertia is (n, me+mi+mb) IFF that AUGMENTED block -- the
             // Schur-reduced one, NOT H and not H + (delta+sigma) I alone -- is
-            // positive definite (Haynsworth's additivity). The distinction is the whole
-            // reason the gate certifies a SECOND-ORDER condition ON THE ACTIVE
-            // FACE rather than global convexity: at indefinite_qp's true
-            // solution the active bound's own D -> mu supplies a D^{-1} penalty
-            // of order 1e8 in the concave direction, which is why the verdict
-            // is kOk there and kWrong at the interior saddle. So kOk is not a
-            // hope on a convex subproblem, it is a theorem (H PSD makes the
-            // augmented block PSD + PSD), and the gate is INERT on every convex
-            // fixture rather than merely observed to be. kWrong therefore means
+            // positive definite (Haynsworth's additivity). That distinction is
+            // why the gate certifies a SECOND-ORDER condition ON THE ACTIVE
+            // FACE rather than global convexity: an active row's D -> mu
+            // supplies a large D^{-1} penalty in a concave direction. kOk on a
+            // convex subproblem is therefore a theorem rather than a hope
+            // (H PSD makes the augmented block PSD + PSD), and kWrong means
             // exactly one thing: the augmented block is not positive definite,
-            // so the step is
-            // toward a KKT point that may be a saddle or a maximizer of the QP
-            // -- which is precisely what the walk's own inertia ladder exists
-            // to prevent (qp_engine.h section 4b), and this responds the same
-            // way, by regularizing until it is not.
+            // so the step is toward a KKT point that may be a saddle or a
+            // maximizer -- what the walk's own inertia ladder exists to
+            // prevent (qp_engine.h section 4b), answered the same way.
             //
-            // **kSuspect DOES NOT ACT**, matching qp_engine.h exactly ("a
-            // kSuspect verdict is deliberately NOT a repair trigger"): a
+            // **kSuspect DOES NOT ACT**, matching qp_engine.h exactly: a
             // factorization whose pivots were perturbed reports counts that
             // carry no information, so acting on them would be acting on
-            // fabrication. It is recorded and surfaces only if the solve later
-            // fails for another reason.
+            // fabrication.
             if (guarded) {
                 // Evidence captured ONCE and consumed by verdict and
                 // diagnostics alike, so a message can never describe a
@@ -2103,19 +1887,17 @@ class SsnEngine {
                 if (verdict == detail::SsnInertia::kWrong) {
                     if (verifying) {
                         // **THE POINT IS FIRST-ORDER KKT AND IS NOT A
-                        // MINIMIZER** (section 7b). No escalation: F is already
+                        // MINIMIZER** (banner 7b). No escalation: F is already
                         // inside fb_tol here, so every rung produces the same
                         // (zero) step and would only spend factorizations
                         // reaching the same verdict.
                         //
                         // **AND BOTH VERIFICATION OUTCOMES MUST BREAK**, which
-                        // is what makes the sigma drop above safe rather than
-                        // merely tidy: a variant that fell through to the
-                        // escalate-and-retry path below would escalate FROM the
-                        // sigma the verification just dropped to 0, re-enter the
-                        // convergence test at the same point, and never
-                        // terminate. Found by scoring mutation F1b in the fix
-                        // round's sweep, which is killed by a test TIMEOUT.
+                        // is what makes the sigma drop above safe: falling
+                        // through to the escalate-and-retry path below would
+                        // escalate FROM the sigma the verification just dropped
+                        // to 0, re-enter the convergence test at the same
+                        // point, and never terminate.
                         prox_sigma_ = verify_sigma >= 0.0 ? verify_sigma : prox_sigma_;
                         out->status = QpStatus::kNumericalError;
                         out->escape_reason = SsnEscape::kIndefinite;
@@ -2147,7 +1929,7 @@ class SsnEngine {
             }
 
             // The verification's verdict was kOk or kSuspect -- the only two
-            // that reach here -- so the certificate is issued (section 7b).
+            // that reach here -- so the certificate is issued (banner 7b).
             if (verifying) {
                 prox_sigma_ = verify_sigma >= 0.0 ? verify_sigma : prox_sigma_;
                 out->status = QpStatus::kOptimal;
@@ -2168,27 +1950,21 @@ class SsnEngine {
 
             // --- globalization: the Armijo line search ------------------
             //
-            // **ITERATION 0 IS EXEMPT WHEN A HINT GOVERNED IT**, and this is
-            // the single most load-bearing line in the safeguard set. A
-            // wrongly hinted first step can RAISE the residual, because the
-            // hint is a PDAS step, not an FB Newton step, and nothing
-            // promises it descends the FB merit. A monotone
-            // Armijo rule rejects it, backtracks to a floor, and the solve
-            // escapes; with the exemption it converges. A CORRECT hint's step
-            // lands at ||F|| ~ 0 and would pass the test anyway, so the
-            // exemption gives up no protection on the path it is protecting --
-            // tests/test_ssn_engine.cpp runs BOTH polarities through it.
+            // **ITERATION 0 IS EXEMPT WHEN A HINT GOVERNED IT.** A wrongly
+            // hinted first step can RAISE the residual -- the hint is a PDAS
+            // step, not an FB Newton step, and nothing promises it descends
+            // the FB merit -- so a monotone Armijo rule rejects it, backtracks
+            // to the floor, and the solve escapes. A CORRECT hint's step lands
+            // at ||F|| ~ 0 and would pass the test anyway, so the exemption
+            // gives up no protection on the path it protects.
             //
             // The exemption is as narrow as it can be: iteration 0 AND a hint
             // supplied. An unhinted first step is an ordinary FB Newton step
             // and is line-searched like every other one.
             //
-            // THE WATCHDOG REPLACES THE CONDITION, NOT THE MECHANISM. Under the shipped
-            // kIterationZeroFree rule `wd_relaxed` is structurally false and
-            // `(it == 0 && use_hint)` is the exemption verbatim. Under
-            // kWatchdog the exemption is switched OFF and `wd_relaxed` -- the
-            // watchdog's own verdict, taken above -- is what grants a relaxed
-            // step, for up to q steps and with a stored best point behind it.
+            // THE WATCHDOG REPLACES THE CONDITION, NOT THE MECHANISM. Under
+            // the shipped kIterationZeroFree rule `wd_relaxed` is structurally
+            // false and `(it == 0 && use_hint)` is the exemption verbatim.
             double step = 1.0;
             bool accepted = false;
             if (!guarded || (watchdog_rule ? wd_relaxed : (it == 0 && use_hint))) {
@@ -2217,29 +1993,24 @@ class SsnEngine {
 
             if (!accepted) {
                 // **THE DIAGNOSIS OUTRANKS THE REPAIR.** An exhausted Armijo
-                // schedule is proof that the direction produces no descent at
-                // all -- a strictly stronger "no progress" statement than the
-                // stall window's five tepid steps -- so when the DIVERGENCE
-                // half of the telemetry is already satisfied, this is the
-                // infeasible picture and no amount of damping will change it.
-                // Escalating first would still reach the same verdict (the
-                // stall window fills while the iterate sits still), but only by
-                // accident: the diagnosis would then depend on how many rungs
-                // the ladder happened to have left, which means on soft_budget
-                // and on whatever the inertia gate already spent. Measured on
-                // the infeasible fixture: this reports at 8 attempts / 9
-                // factorizations where the accidental route took 12 / 12.
-                // **THE EXHAUSTION ROUTE'S SECOND CONJUNCT IS A PER-STEP ONE**
-                // "The duals are 1e4x the start point"
-                // alone is satisfied permanently by a feasible QP whose true
-                // multipliers merely exceed 1e4, and this route fires BEFORE
-                // the ladder gets its chance -- so it also demands that the
-                // duals are still MOVING, by an order of magnitude across the
-                // most recently accepted step. Converging multipliers cannot
-                // do that; diverging ones do it every step.
+                // schedule proves the direction produces no descent at all --
+                // a strictly stronger "no progress" statement than the stall
+                // window's five tepid steps -- so when the DIVERGENCE half of
+                // the telemetry is already satisfied, no amount of damping
+                // will change the picture. Escalating first would reach the
+                // same verdict only by accident: the diagnosis would then
+                // depend on how many rungs the ladder happened to have left.
                 //
-                // THE FARKAS GATE GATES THIS ROUTE THE SAME WAY IT GATES THE STANDING ONE,
-                // and on the increment this route's own growth conjunct is
+                // **THE EXHAUSTION ROUTE'S SECOND CONJUNCT IS A PER-STEP ONE.**
+                // "The duals are 1e4x the start point" alone is satisfied
+                // permanently by a feasible QP whose true multipliers merely
+                // exceed 1e4, and this route fires BEFORE the ladder gets its
+                // chance -- so it also demands the duals are still MOVING, by
+                // an order of magnitude across the most recently accepted
+                // step. Converging multipliers cannot do that.
+                //
+                // THE FARKAS GATE GATES THIS ROUTE AS IT GATES THE STANDING
+                // ONE, on the increment this route's own growth conjunct is
                 // measured over -- the MOST RECENT ACCEPTED STEP. Under the
                 // shipped kSymptoms rule `exhaustion_fires` is exactly the
                 // shipped conjunction.
@@ -2306,13 +2077,12 @@ class SsnEngine {
         out->counters.ssn_iters = out->iters;
         if (out->escape_reason != SsnEscape::kNone) {
             ++out->counters.ssn_escapes;
-            // THE ESCAPE-REASON CENSUS. Written
-            // HERE, beside the total it partitions, so the two can never drift:
-            // one `switch` over the same value the line above tested, and
-            // NO `default` -- so a new SsnEscape value raises -Wswitch here
-            // (the same discipline every other exhaustive switch in this
-            // repository uses) rather than being silently uncounted. See
-            // SqpCounters::ssn (sqp_types.h) for what the six fields are for.
+            // THE ESCAPE-REASON CENSUS, written HERE beside the total it
+            // partitions so the two cannot drift: one `switch` over the same
+            // value the line above tested, and NO `default`, so a new
+            // SsnEscape value raises -Wswitch rather than going silently
+            // uncounted. SqpCounters::ssn (sqp_types.h) is what the six fields
+            // feed.
             switch (out->escape_reason) {
             case SsnEscape::kBudget:
                 ++out->counters.ssn_escape_budget;
@@ -2336,39 +2106,31 @@ class SsnEngine {
         out->prox_sigma = prox_sigma_;
         out->z = recombine_bound_multipliers(lambda_b, n);
         // The activity export reads slack_i/slack_b, which must describe the
-        // returned point. An earlier form could rely on the loop for that (every
-        // exit broke immediately after residual()); this one cannot, because the
-        // line search evaluates trial points into these same blocks -- see the
-        // scratch declaration for why it does and what that buys. One
-        // unconditional re-evaluation here is the whole cost, and it makes the
-        // export's precondition a local fact rather than an invariant spread
-        // over six exit routes. `out->fb_residual` is deliberately not
-        // overwritten: it is the norm the exit decision was taken on, and
-        // recomputing it at the same point can only reproduce it anyway.
+        // returned point -- and the line search evaluates trial points into
+        // those same blocks (see the scratch declaration). One unconditional
+        // re-evaluation here makes the export's precondition a local fact
+        // rather than an invariant spread over six exit routes.
+        // `out->fb_residual` is deliberately NOT overwritten: it is the norm
+        // the exit decision was taken on.
         residual(qp, out->x, out->lambda_e, out->lambda_i, lambda_b, resid_x, resid_e, slack_i,
                  slack_b, phi_i, phi_b);
         export_activity(out, slack_i, slack_b, lambda_b, n, mi);
         export_uncertain(out, any_klass ? &klass : nullptr, n, mi);
     }
 
-    // THE DEFERRED CERTIFICATION'S TWO CLOSING MOVES
+    // THE DEFERRED CERTIFICATION'S TWO CLOSING MOVES. Both throw if called
+    // when nothing is pending -- a caller that closes a deferral twice, or
+    // closes one it never opened, has lost track of which point it is
+    // certifying.
     //
-    // Both are no-ops on any engine that never ran with
-    // SsnOptions::defer_certification, and both throw if called when nothing is
-    // pending -- a caller that closes a deferral twice, or closes one it never
-    // opened, has lost track of which point it is certifying, and that is the
-    // failure this pair exists to make loud.
-    //
-    // finish_deferred_certification() PAYS THE FACTORIZATION THE SOLVE DID NOT.
-    // It factorizes the matrix the solve left in place -- classified at the
-    // converged point, at the caller's own regularization -- and reads its
-    // inertia, so the verdict it returns is EXACTLY the one section 7b's
-    // in-loop verification would have returned, at exactly the same cost. On
-    // kWrong it rewrites `out` into the SsnEscape::kIndefinite escape the
-    // in-loop route issues, census included; on a thrown factorization it
-    // rewrites `out` into SsnEscape::kSingular the same way. `out` MUST be the
-    // SsnResult the deferring solve wrote, and the fields it touches are the
-    // ones that solve would have touched.
+    // finish_deferred_certification() PAYS THE FACTORIZATION THE SOLVE DID
+    // NOT. It factorizes the matrix the solve left in place -- classified at
+    // the converged point, at the caller's own regularization -- so its
+    // verdict is EXACTLY the one banner section 7b's in-loop verification
+    // would have returned, at the same cost. On kWrong it rewrites `out` into
+    // the SsnEscape::kIndefinite escape the in-loop route issues, census
+    // included; on a thrown factorization into SsnEscape::kSingular the same
+    // way. `out` MUST be the SsnResult the deferring solve wrote.
     //
     // Returns true iff the certificate stands.
     bool finish_deferred_certification(SsnResult *out) {
@@ -2419,13 +2181,11 @@ class SsnEngine {
         return true;
     }
 
-    // DROPS THE PENDING EVIDENCE UNREAD, and is legitimate on exactly one
-    // path: the caller is discarding the exit anyway (this engine's own
-    // trust-region usability gate refused it, so no certificate is being
-    // claimed and no step is being taken from that point). Calling it while a
-    // certificate IS being claimed is the wrong-answer class section 7b
-    // closes -- which is why it is a separate, named call rather than a
-    // default.
+    // DROPS THE PENDING EVIDENCE UNREAD. Legitimate on exactly one path: the
+    // caller is discarding the exit anyway, so no certificate is being claimed
+    // and no step taken from that point. Calling it while a certificate IS
+    // being claimed is the wrong-answer class banner section 7b closes --
+    // which is why it is a separate, named call rather than a default.
     void discard_deferred_certification() {
         if (!deferred_pending_) {
             throw std::invalid_argument(
@@ -2442,11 +2202,11 @@ class SsnEngine {
     // -----------------------------------------------------------------------
     // Validation
     // -----------------------------------------------------------------------
-    // qp_types.h's SolveOverrides precondition, applied unchanged: tr_radius must
-    // be the +inf sentinel or >= 0 -- never negative (a negative Delta would
-    // silently cross lo_eff and up_eff) and never NaN; primal_delta/dual_mu
-    // keep the negative-means-sentinel convention but reject NaN, which no
-    // downstream arithmetic can absorb.
+    // qp_types.h's SolveOverrides precondition, applied unchanged: tr_radius
+    // must be the +inf sentinel or >= 0 -- never negative (a negative Delta
+    // would silently cross lo_eff and up_eff) and never NaN;
+    // primal_delta/dual_mu keep the negative-means-sentinel convention but
+    // reject NaN, which no downstream arithmetic can absorb.
     static void validate_overrides(const SolveOverrides &o) {
         if (std::isnan(o.tr_radius) || o.tr_radius < 0.0) {
             throw std::invalid_argument(
@@ -2479,18 +2239,18 @@ class SsnEngine {
             throw std::invalid_argument(fmt::format(
                 "SsnEngine::solve: prox_sigma_init must be >= 0, got {}", s.prox_sigma_init));
         }
-        // The upper bound is 1 EXCLUSIVE and it is a real boundary, not a
-        // tidiness one: |alpha - beta| = 1 at a strictly active or strictly
-        // inactive row, so a threshold of 1 would classify the two PURE states
-        // as uncertain and the partition would carry no information at all.
+        // The upper bound is 1 EXCLUSIVE, and it is a real boundary:
+        // |alpha - beta| = 1 at a strictly active or strictly inactive row, so
+        // a threshold of 1 would classify the two PURE states as uncertain and
+        // the partition would carry no information at all.
         if (!(s.uncertain_tol >= 0.0) || !(s.uncertain_tol < 1.0)) {
             throw std::invalid_argument(fmt::format(
                 "SsnEngine::solve: uncertain_tol must be in [0, 1), got {}", s.uncertain_tol));
         }
-        // q = 0 would be a watchdog that grants no relaxed step at all,
-        // i.e. a plain monotone rule wearing the name of a nonmonotone one --
-        // a configuration whose measurement would be attributed to the wrong
-        // mechanism. The shipped rule is reached by hint_rule, not by q = 0.
+        // q = 0 would be a watchdog granting no relaxed step at all -- a plain
+        // monotone rule wearing the name of a nonmonotone one, whose
+        // measurement would be attributed to the wrong mechanism. The shipped
+        // rule is reached by hint_rule, not by q = 0.
         if (s.hint_rule == SsnHintRule::kWatchdog && s.watchdog_q < 1) {
             throw std::invalid_argument(
                 fmt::format("SsnEngine::solve: watchdog_q must be >= 1 under "
@@ -2591,36 +2351,26 @@ class SsnEngine {
         }
     }
 
-    // A kFixed hint marks BOTH of a variable's rows active, which is right for a
-    // genuinely fixed variable (l == u) and is a DOCUMENTED DEGRADED MODE when
-    // l < u.
+    // A kFixed hint marks BOTH of a variable's rows active, which is right for
+    // a genuinely fixed variable (l == u) and is a DOCUMENTED DEGRADED MODE
+    // when l < u.
     //
-    // HOW IT ARISES, and why it is not hypothetical: export_activity reports
-    // kFixed whenever both of a variable's bound rows come out implied-active,
-    // which a noisy or ESCAPED iterate can produce on an l < u variable. That
-    // export is exactly what the driver re-ingests as a warm-start hint, so
-    // the
-    // kernel can feed itself this hint. The first step then solves the
-    // contradictory pair {x_j = l_j, x_j = u_j}, which the dual-mu block
-    // regularizes into the midpoint rather than a singular factorization.
+    // HOW IT ARISES: export_activity reports kFixed whenever both of a
+    // variable's bound rows come out implied-active, which a noisy or ESCAPED
+    // iterate can produce on an l < u variable -- and that export is exactly
+    // what the driver re-ingests as a warm-start hint. The first step then
+    // solves the contradictory pair {x_j = l_j, x_j = u_j}, which the dual-mu
+    // block regularizes into the midpoint rather than a singular
+    // factorization.
     //
-    // **THE CHOICE IS DOCUMENTED RECOVERY, NOT REJECTION**, and deliberately.
-    // Rejecting would make a warm-start hand-off THROW because the previous
-    // solve happened to stop somewhere noisy -- turning a recoverable
-    // hand-off into a caller error on the one path the warm-start subsystem
-    // exists to serve, and pushing every caller into sanitising a hint
-    // the kernel itself produced. A hint is ADVICE about the first step, not a
+    // **THE CHOICE IS DOCUMENTED RECOVERY, NOT REJECTION.** Rejecting would
+    // make a warm-start hand-off THROW because the previous solve happened to
+    // stop somewhere noisy, and push every caller into sanitising a hint the
+    // kernel itself produced. A hint is ADVICE about the first step, not a
     // constraint: every later step re-derives the partition from the FB
-    // branch, so a contradictory hint costs iterations and nothing else. It
-    // recovers to the same point as the walk (measured: 7 iterations, agreeing
-    // to 1e-7 -- pinned by tests/test_ssn_engine.cpp's
-    // ContradictoryFixedHintRecovers), which is the cost of a bad hint and not
-    // a wrong answer.
-    //
-    // The alternative of masking kFixed at EXPORT was also rejected: it would
-    // suppress a real signal (an iterate whose two bound rows genuinely both
-    // read active is worth seeing) and it cannot help a caller who builds the
-    // hint from somewhere other than this engine.
+    // branch, so a contradictory hint costs iterations and nothing else.
+    // Masking kFixed at EXPORT was rejected too -- it would suppress a real
+    // signal and cannot help a caller who builds the hint elsewhere.
     static bool bound_hint_active(const std::vector<BoundState> &hint,
                                   const detail::SsnBoundRow &br) {
         const BoundState st = hint[static_cast<std::size_t>(br.var)];
@@ -2633,22 +2383,18 @@ class SsnEngine {
     // Splits the signed z into the two non-negative bound-row multipliers.
     //
     // **A SEEDED z THAT PRICES A BOUND THIS QP DOES NOT HAVE IS A CALLER ERROR
-    // AND THROWS**. z(j) > 0 prices variable j's LOWER
-    // bound and z(j) < 0 its UPPER one; if that side is absent (+/-kSsnInfBound
-    // or beyond, so there is no row for the multiplier to live on) the mass has
-    // nowhere to go, and the previous behaviour -- dropping it silently --
-    // made the one malformed input this engine accepted quietly, against a
-    // surface where every other one is rejected with a message. It is also a
-    // real hazard rather than a tidiness point: warm_start.h's own note records
-    // exactly this shape (a z priced against a 1e20 bound) poisoning a
-    // downstream estimate, and an ingest that hands one model's z to a
-    // differently bounded model would produce it.
+    // AND THROWS.** z(j) > 0 prices variable j's LOWER bound and z(j) < 0 its
+    // UPPER one; if that side is absent (at or beyond kSsnInfBound, so there
+    // is no row for the multiplier to live on) the mass has nowhere to go.
+    // A real hazard rather than a tidiness point: warm_start.h records exactly
+    // this shape (a z priced against a 1e20 bound) poisoning a downstream
+    // estimate, and an ingest handing one model's z to a differently bounded
+    // model would produce it.
     //
-    // THE TEST IS EXACT ZERO, deliberately, and not a tolerance: an absent side
-    // has no multiplier at all, so the only correct value there is 0, and any
-    // nonzero -- however small -- means the caller believes in a bound this QP
-    // does not have. (The same exact-zero reasoning the elastic ladder's
-    // exhaustion conjunct is ruled on.)
+    // THE TEST IS EXACT ZERO, not a tolerance: an absent side has no
+    // multiplier at all, so the only correct value there is 0, and any nonzero
+    // -- however small -- means the caller believes in a bound this QP does
+    // not have.
     //
     // **THE ABSENT-SIDE TEST READS THE REAL BOUND, NOT THE EFFECTIVE ONE**, and
     // a TR row is seeded at zero. A caller's z prices the QP's OWN bounds; the
@@ -2709,15 +2455,14 @@ class SsnEngine {
     // THE FIXED PATTERN, AND ITS REUSE ACROSS SOLVES.
     //
     // THE FB DIAGONALS GET A NONZERO PLACEHOLDER (-1.0) rather than their
-    // eventual value, so their slots exist regardless of what any later
-    // branch wants there (beta/alpha_f + mu is legitimately EXACTLY 0 on a
-    // strictly active row when the caller zeroes dual_mu), and the diagonal
-    // refresh in solve() addresses those slots positionally
-    // (K.outerIndexPtr()[row]) rather than by search. The placeholder is a
-    // defensive guarantee rather than one the vendored Eigen strictly
-    // requires (setFromTriplets happens to preserve explicit zeros today,
-    // but Eigen's prune()/assignment paths do drop exact zeros elsewhere) --
-    // the cost of not depending on it is one literal.
+    // eventual value, so their slots exist regardless of what any later branch
+    // wants there (beta/alpha_f + mu is legitimately EXACTLY 0 on a strictly
+    // active row when the caller zeroes dual_mu), and the diagonal refresh
+    // addresses those slots positionally (K.outerIndexPtr()[row]) rather than
+    // by search. Defensive rather than strictly required by the vendored Eigen
+    // -- setFromTriplets preserves explicit zeros today, but prune()/assignment
+    // paths drop them elsewhere -- and the cost of not depending on it is one
+    // literal.
     //
     // sync_matrix() decides between two paths and reports which:
     //
@@ -2740,13 +2485,12 @@ class SsnEngine {
     // then += reproduces that summation exactly; a straight = would silently
     // drop primal_delta wherever H has a stored diagonal.
     //
-    // THE STRUCTURE KEY is a COMPOSITE of two conjuncts, read from exactly
-    // the inputs build_pattern reads and nothing else:
+    // THE STRUCTURE KEY is a COMPOSITE of two conjuncts:
     //
     //   1. structure_hash -- hven's combined pattern key (feed_pattern,
-    //      docs/pattern-hash.md), the same instrument the KKT factor
-    //      helper's pattern compare uses to decide whether to skip the
-    //      symbolic analysis (kkt_calls.h).
+    //      docs/pattern-hash.md), the same instrument the KKT factor helper's
+    //      pattern compare uses to decide whether to skip the symbolic
+    //      analysis (kkt_calls.h).
     //   2. the bound-row (var, sign) list, compared EXACTLY against the copy
     //      cached when the current pattern was built (bound_rows_match_cached
     //      / structure_bound_key_) -- not hashed, so no collision exposure at
@@ -2757,10 +2501,9 @@ class SsnEngine {
     // consumed the map EXACTLY (t == value_pos_.size()), converting a
     // structure-mismatched refresh into a thrown std::runtime_error rather
     // than undefined behaviour. A collision between two structures with the
-    // SAME entry count remains undetected -- a 64-bit FNV coincidence, and
-    // the honest residual exposure; this guard is not reachable by any
-    // fixture (forging an FNV-1a collision), so it is a knowingly-unkillable
-    // defensive line, like the FB diagonal's placeholder above.
+    // SAME entry count remains undetected -- a 64-bit FNV coincidence, and the
+    // honest residual exposure; the guard is unreachable by any fixture, so it
+    // is a knowingly-unkillable defensive line like the placeholder above.
     template <typename Emit>
     void for_each_entry(const QpProblem &qp, Index n, Index me, Index mi, Index mb,
                         Emit emit) const {
@@ -2798,20 +2541,15 @@ class SsnEngine {
 
     // CONJUNCT 1 of the composite structure key: hven's combined pattern key
     // over the dimensions and the three input patterns. Fed **through
-    // feed_pattern, NOT off the raw index arrays**, and that carries the
-    // property the old InnerIterator walk here existed for: qp.H/Ae/Ai are
+    // feed_pattern, NOT off the raw index arrays**: qp.H/Ae/Ai are
     // CALLER-SUPPLIED and QpProblem imposes no compression requirement, and
     // feed_pattern's contract is that either storage state produces the
     // compressed digest -- same O(nnz), no compressed copy, exact in both
-    // states. (The emission still walks these matrices with InnerIterator, and
-    // feed_pattern's stream is defined by the same iteration, so the key and
-    // the emission keep agreeing about what "the pattern" is.) Every
-    // ingredient goes through Fnv1a::feed_index -- 64-bit widened, LSB-first
-    // -- so the digest does not depend on host byte order or on
+    // states. Every ingredient goes through Fnv1a::feed_index (64-bit widened,
+    // LSB-first), so the digest depends on neither host byte order nor
     // SpMatRM::StorageIndex's width. The bound-row list is DELIBERATELY not
-    // here: it is conjunct 2 (bound_rows_match_cached below), compared
-    // exactly rather than hashed. The digest's VALUE changed with the H3
-    // re-key (declared in that commit); it is only ever compared against
+    // here: it is conjunct 2 (bound_rows_match_cached), compared exactly
+    // rather than hashed. The digest's VALUE is only ever compared against
     // another computation of this same function on this same engine.
     std::uint64_t structure_hash(const QpProblem &qp, Index n, Index me, Index mi, Index mb) const {
         Fnv1a h;
@@ -2828,38 +2566,25 @@ class SsnEngine {
     // CONJUNCT 2: the bound-row (var, sign) list, compared EXACTLY against
     // the copy cached when the current pattern was built.
     //
-    // **br.var IS THE LOAD-BEARING HALF, AND mb ALONE DOES NOT COVER IT**
-    // (a mutation that dropped the bound rows from the old
-    // in-hash key entirely SURVIVED the first sweep, because almost every
-    // bound change also changes mb, which structure_hash mixes). The case mb
-    // misses is a DIFFERENT ASSIGNMENT of the same NUMBER of bound rows to
-    // variables -- two rows both on variable 0 versus one row each on
+    // **br.var IS THE LOAD-BEARING HALF, AND mb ALONE DOES NOT COVER IT.**
+    // The case mb misses is a DIFFERENT ASSIGNMENT of the same NUMBER of bound
+    // rows to variables -- two rows both on variable 0 versus one row each on
     // variables 0 and 1 -- which puts the bound block's off-diagonal entries
     // in different columns of K. Reusing a pattern across that would write
-    // B's values into A's slots. PatternKeySeparatesBoundLayoutsOfEqualSize
-    // is the fixture; as an exact comparison the check is now deterministic,
-    // where the old in-hash form left it a 2^-64 coincidence away from
-    // exactly that wrong-slot write.
+    // B's values into A's slots.
     //
     // sign participates too, CONSERVATIVELY rather than necessarily: a sign
     // flip (a variable trading its lower bound for its upper) moves no slot,
-    // only a value, and the refresh path re-emits br.sign -- so dropping sign
-    // from the conjunct would still be correct, just as `+ mb` alone would
-    // not be. It is kept because an over-conservative key costs one avoidable
-    // rebuild in that one case and buys never having to re-derive this
-    // argument -- and because rebuild COUNTS are pinned currency: the old key
-    // rebuilt on a sign flip, so the composite must too.
-    // SignFlipAtConstantBoundLayoutForcesRebuild is the fixture (the old
-    // in-hash sign term was recorded as knowingly unkillable; the exact
-    // comparison is killable, so it is pinned rather than recorded).
+    // only a value, and the refresh path re-emits br.sign. It is kept because
+    // an over-conservative key costs one avoidable rebuild in that one case,
+    // and because rebuild COUNTS are pinned currency.
     //
-    // rhs and from_tr are EXCLUDED, exactly as they were from the old hash:
-    // both are value attributes of a row whose slot they do not move (see
-    // SsnBoundRow), and comparing either would rebuild the pattern on bound
-    // VALUE moves -- from_tr on every radius change of a shrink-retry loop,
-    // which is exactly the tax this cache exists to remove. The cache is a
-    // (var, sign) pair list, not a SsnBoundRow copy, so neither CAN be
-    // compared by accident.
+    // rhs and from_tr are EXCLUDED: both are value attributes of a row whose
+    // slot they do not move (see SsnBoundRow), and comparing either would
+    // rebuild the pattern on bound VALUE moves -- from_tr on every radius
+    // change of a shrink-retry loop, which is exactly the tax this cache
+    // exists to remove. The cache is a (var, sign) pair list, not a
+    // SsnBoundRow copy, so neither CAN be compared by accident.
     bool bound_rows_match_cached() const {
         if (bound_rows_.size() != structure_bound_key_.size()) {
             return false;
@@ -2956,8 +2681,8 @@ class SsnEngine {
     // -----------------------------------------------------------------------
     //
     // The engine's own partition rule, applied to the returned iterate: a row
-    // is active iff its multiplier exceeds its slack (equivalently alpha >
-    // beta, header section 2). Written, never read.
+    // is active iff its multiplier exceeds its slack (equivalently
+    // alpha > beta, banner section 2). Written, never read.
     void export_activity(SsnResult *out, const Vec &slack_i, const Vec &slack_b,
                          const Vec &lambda_b, Index n, Index mi) const {
         out->ineq_active.assign(static_cast<std::size_t>(mi), false);
@@ -2970,10 +2695,10 @@ class SsnEngine {
         for (std::size_t r = 0; r < bound_rows_.size(); ++r) {
             const detail::SsnBoundRow &br = bound_rows_[r];
             const Index rr = static_cast<Index>(r);
-            // The TR EXIT CONTRACT, measured on the same
-            // slacks the partition is read from: a TR row's slack is negative
-            // exactly when the returned point is outside the radius on that
-            // side, and by exactly how much.
+            // The TR EXIT CONTRACT, measured on the same slacks the partition
+            // is read from: a TR row's slack is negative exactly when the
+            // returned point is outside the radius on that side, and by
+            // exactly how much.
             if (br.from_tr && slack_b(rr) < 0.0) {
                 out->tr_violation = std::max(out->tr_violation, -slack_b(rr));
             }
@@ -2995,18 +2720,15 @@ class SsnEngine {
             const BoundState here = br.sign < 0.0 ? BoundState::kAtLower : BoundState::kAtUpper;
             st = (st == BoundState::kFree) ? here : BoundState::kFixed;
         }
-        // A STRUCTURALLY FIXED VARIABLE (l == u) READS kFixed, whichever of its
-        // two rows won the partition. Found while pinning the kFixed hint: the
-        // partition rule alone reports kAtUpper there, because the two rows'
-        // multipliers split as (0, 1.5) rather than both being positive -- a
-        // correct reading of the partition, but NOT the convention the rest of
-        // the project uses. kkt_assembly.h treats kFixed as a structural fact
-        // about the variable (it substitutes qp.lower(i) for kAtLower AND
-        // kFixed alike), and the walk reports kFixed here. An export that
-        // disagreed with the walk on a whole variable class would be a trap for
-        // The driver's re-ingest, so the structural fact wins over the partition.
-        // TR rows are excluded from the test, since a radius does not make a
-        // variable fixed.
+        // A STRUCTURALLY FIXED VARIABLE (l == u) READS kFixed, whichever of
+        // its two rows won the partition. The partition rule alone reports
+        // kAtUpper there, which is a correct reading of the partition but NOT
+        // the project's convention: kkt_assembly.h treats kFixed as a
+        // structural fact about the variable, and the walk reports kFixed
+        // here. An export that disagreed with the walk on a whole variable
+        // class would trap the driver's re-ingest, so the structural fact wins
+        // over the partition. TR rows are excluded, since a radius does not
+        // make a variable fixed.
         for (Index j = 0; j < n; ++j) {
             const std::size_t jj = static_cast<std::size_t>(j);
             if (out->bound_state[jj] != BoundState::kFree && real_lower_[jj] == real_upper_[jj]) {
@@ -3063,24 +2785,21 @@ class SsnEngine {
     // w + step * dw, with THE DUAL PROJECTION applied to the two non-negative
     // multiplier blocks.
     //
-    // **THE PROJECTION IS THE WRONG-HINT MITIGATION**, the only cheap one
-    // available (no derivative re-selection can help, because the landing
-    // configuration
-    // (s, lambda) = (0, lambda < 0) is a DIFFERENTIABLE point of phi -- its
-    // subdifferential is the singleton {(1, 2)} -- so there is no
-    // generalized-Jacobian freedom to exploit). A wrongly hinted active row
-    // lands with a NEGATIVE multiplier and is then confined to the line
+    // **THE PROJECTION IS THE WRONG-HINT MITIGATION**, and the only cheap one
+    // available: the landing configuration (s, lambda) = (0, lambda < 0) is a
+    // DIFFERENTIABLE point of phi -- subdifferential the singleton {(1, 2)} --
+    // so no derivative re-selection can help. A wrongly hinted active row
+    // lands with a NEGATIVE multiplier and is confined to the line
     // s+ + 2 lambda+ = 2 s0 - (2 s0/|lambda| + mu) d lambda, on which a
     // non-degenerate row's root does not lie; clipping lambda to 0 moves the
     // pair onto the kink, where the symmetric subdifferential element applies
     // and the confinement dissolves.
     //
     // It is a PROJECTION ONTO A CONVEX SET THAT CONTAINS EVERY SOLUTION
-    // (lambda >= 0 is a KKT condition), so it cannot move the iterate away from
-    // the solution set, and it is inert at any point that already satisfies it
-    // -- which every converged point does. lambda_e is untouched: equality
-    // multipliers are free-sign and clipping them would be a wrong answer, not
-    // a safeguard.
+    // (lambda >= 0 is a KKT condition), so it cannot move the iterate away
+    // from the solution set, and it is inert at any point that already
+    // satisfies it. lambda_e is untouched: equality multipliers are free-sign
+    // and clipping them would be a wrong answer, not a safeguard.
     static void trial_point(const Vec &x, const Vec &le, const Vec &li, const Vec &lb,
                             const Vec &dw, double step, bool project, Index n, Index me, Index mi,
                             Index mb, Vec &t_x, Vec &t_le, Vec &t_li, Vec &t_lb) {
@@ -3111,18 +2830,7 @@ class SsnEngine {
         (void)sync_matrix(qp, n, me, mi, mb);
     }
 
-    // One rung up the ladder. Returns false at the ceiling, which is the
-    // caller's signal to escape rather than to keep paying factorizations.
-    //
-    // **THE CEILING TEST CARRIES A RELATIVE SLACK, AND IT IS NOT COSMETIC**
-    // The rungs are computed by repeated
-    // multiplication, which does not land on the cap exactly: rung 7 evaluates
-    // to 999999.9999999998, strictly below 1e6, so an exact `>= kSsnProxMax`
-    // guard granted an EIGHTH rung that raised sigma by 2.3e-10 relative and
-    // bought a full numeric factorization plus a full backtracking schedule for
-    // it. kSsnProxCapSlack's derivation is at the constant.
-    // The residual-driven sizing: sigma = max(the ladder's monotone state,
-    // the residual-driven size).
+    // sigma = max(the ladder's monotone state, the residual-driven size).
     // Under the shipped kLadder rule `lm_sigma_` is identically 0, so this is
     // `set_prox_sigma(ladder_sigma_, ...)` and `prox_sigma_ == ladder_sigma_`
     // at every point the shipped iteration can observe.
@@ -3130,6 +2838,12 @@ class SsnEngine {
         set_prox_sigma(std::max(ladder_sigma_, lm_sigma_), qp, n, me, mi, mb);
     }
 
+    // One rung up the ladder. Returns false at the ceiling, which is the
+    // caller's signal to escape rather than to keep paying factorizations.
+    //
+    // **THE CEILING TEST CARRIES A RELATIVE SLACK**, because the rungs are
+    // computed by repeated multiplication and do not land on the cap exactly.
+    // detail::kSsnProxCapSlack carries the derivation.
     bool escalate_prox(const QpProblem &qp, Index n, Index me, Index mi, Index mb) {
         if (ladder_sigma_ >= detail::kSsnProxMax * (1.0 - detail::kSsnProxCapSlack)) {
             return false;
@@ -3154,23 +2868,20 @@ class SsnEngine {
     // -----------------------------------------------------------------------
     //
     // The QP's constraint system is {Ae x = be} together with the
-    // inequality-shaped rows a_k^T x <= b_k of section 1 -- the rows of Ai and
-    // every finite bound row alike, which is exactly the row language this file
-    // already speaks. Farkas' lemma: that system is INFEASIBLE if and only if
-    // there is (y_e free, y >= 0) with
+    // inequality-shaped rows a_k^T x <= b_k of banner section 1 -- the rows of
+    // Ai and every finite bound row alike. Farkas' lemma: that system is
+    // INFEASIBLE if and only if there is (y_e free, y >= 0) with
     //
     //     Ae^T y_e + sum_k y_k a_k = 0    and    <be, y_e> + sum_k y_k b_k < 0.
     //
-    // `dle`/`dli`/`dlb` is the DUAL INCREMENT the caller wants tested. It is
-    // projected onto the sign cone (the equality block is free and passes
-    // through; the two non-negative blocks are clipped at 0), normalized by its
-    // own inf-norm, and the two Farkas quantities are evaluated:
-    //
-    //   * the RESIDUAL ||Ae^T y_e + Ai^T y_i + B^T y_b||inf, reported RELATIVE
-    //     to the same combination taken in absolute value -- the cancellation-
-    //     free scale of the sum, so a badly scaled row cannot make a
-    //     non-certificate look like one or vice versa;
-    //   * the OBJECTIVE <b, y>, likewise relative to the sum of |b_k y_k|.
+    // `dle`/`dli`/`dlb` is the DUAL INCREMENT to be tested. It is projected
+    // onto the sign cone (the equality block passes through; the two
+    // non-negative blocks are clipped at 0), normalized by its own inf-norm,
+    // and the two Farkas quantities are evaluated: the RESIDUAL
+    // ||Ae^T y_e + Ai^T y_i + B^T y_b||inf and the OBJECTIVE <b, y>, each
+    // reported RELATIVE to the same combination taken in absolute value -- the
+    // cancellation-free scale of the sum, so a badly scaled row cannot make a
+    // non-certificate look like one or vice versa.
     //
     // One matvec over Ae/Ai plus O(mb) plus O(n): no factorization, no solve,
     // and no allocation beyond the two n-vectors below.
@@ -3248,7 +2959,7 @@ class SsnEngine {
     // -----------------------------------------------------------------------
 
     // Fills every scratch block and returns both norms of F: the inf-norm that
-    // certifies (header section 5) and the merit 1/2||F||_2^2 the line search
+    // certifies (banner section 5) and the merit 1/2||F||_2^2 the line search
     // decreases. Both come out of the same walk over the same blocks.
     detail::SsnNorms residual(const QpProblem &qp, const Vec &x, const Vec &le, const Vec &li,
                               const Vec &lb, Vec &resid_x, Vec &resid_e, Vec &slack_i, Vec &slack_b,
@@ -3308,7 +3019,7 @@ class SsnEngine {
         return out;
     }
 
-    // BRANCH SELECTION (header sections 2 and 4).
+    // BRANCH SELECTION (banner sections 2 and 4).
     //
     // Writes alpha/beta/row_resid/klass at slot `slot`. `hinted` says a hint
     // governs THIS row (first step, and the relevant half of the hint was
@@ -3317,45 +3028,41 @@ class SsnEngine {
     // function IS the bare local method, statement for statement.
     //
     // THE THREE-SET PARTITION (CHR 2015's scaffold). The FB pair's own margin
-    // |alpha - beta| measures how far the row is from the kink ray
-    // s = lambda, where its classification is undecidable
-    // (detail::kSsnUncertainEnter derives the geometry). The classification
-    // is read with HYSTERESIS -- enter the uncertain set at `tau`, leave it
-    // only at kSsnUncertainLeaveRatio * tau -- so a row whose margin hovers
-    // inside the band keeps whatever class it had and cannot chatter between
-    // two partitions from step to step.
+    // |alpha - beta| measures how far the row is from the kink ray s = lambda,
+    // where its classification is undecidable (detail::kSsnUncertainEnter
+    // derives the geometry). The classification is read with HYSTERESIS --
+    // enter the uncertain set at `tau`, leave it only at
+    // kSsnUncertainLeaveRatio * tau -- so a row whose margin hovers inside the
+    // band keeps whatever class it had and cannot chatter.
     //
-    // THE TIE POLICY IS DETERMINISTIC AND IS A CONSEQUENCE OF THE BAND, NOT
-    // A SEPARATE RULE: an exact tie (alpha == beta) has margin 0, which is
-    // inside every band with tau > 0, so a tie NEVER decides anything -- a
-    // previously decided row becomes uncertain and a previously uncertain
-    // row stays uncertain. (kBare's binary rule, and the activity export,
-    // break an exact tie toward INACTIVE via a strict >, since
-    // QpSolution's contract is binary.)
+    // THE TIE POLICY IS A CONSEQUENCE OF THE BAND, NOT A SEPARATE RULE: an
+    // exact tie (alpha == beta) has margin 0, inside every band with tau > 0,
+    // so a tie NEVER decides anything -- a previously decided row becomes
+    // uncertain and a previously uncertain row stays uncertain. (kBare's
+    // binary rule, and the activity export, break an exact tie toward INACTIVE
+    // via a strict >, since QpSolution's contract is binary.)
     //
     // WHAT AN UNCERTAIN ROW GETS: BOTH BRANCHES DAMPED. The FB pair is
     // replaced wholesale by the SYMMETRIC element
     // (alpha, beta) = (1 - 1/sqrt(2), 1 - 1/sqrt(2)) -- the same
     // detail::kSsnDegenerateFbDeriv the kink itself uses: the row's diagonal
-    // becomes -(1 + mu + sigma) instead of racing toward -mu (a hard
-    // equality) or toward -2e12 (a decoupled row), and its coupling to dx
-    // keeps a moderate 0.293 weight instead of 1 or ~0.
+    // becomes -(1 + mu + sigma) instead of racing toward -mu (a hard equality)
+    // or toward -2e12 (a decoupled row), and its coupling to dx keeps a
+    // moderate 0.293 weight instead of 1 or ~0.
     //
-    // AND IT IS STILL A GENERALIZED JACOBIAN ELEMENT, which is what keeps
-    // this a semismooth Newton method rather than a heuristic: with
+    // AND IT IS STILL A GENERALIZED JACOBIAN ELEMENT, which is what keeps this
+    // a semismooth Newton method rather than a heuristic: with
     // (xi, eta) = (1 - alpha, 1 - beta), the C-subdifferential of phi at the
     // kink is exactly {(1 - xi, 1 - eta) : xi^2 + eta^2 <= 1}, the symmetric
-    // element sits ON that unit circle, and the row it is applied to is
-    // within O(tau) of the kink by construction -- an inexact generalized
-    // Jacobian with a bounded, stated error, not a branch.
+    // element sits ON that unit circle, and the row it is applied to is within
+    // O(tau) of the kink by construction -- an inexact generalized Jacobian
+    // with a bounded, stated error, not a branch.
     //
-    // WHY THE HINT OVERRIDES THE CLASSIFICATION. A hinted row takes its
-    // hint, uncertain or not: the exact-solution seed of one fixture has its
-    // active row exactly at the kink (s, lambda) = (0, 0), so a
-    // classification that outranked the hint would damp precisely the row
-    // the hint exists to snap onto its face, losing the one-iteration
-    // correct-hint payoff the hint mechanism exists to buy. The hint
-    // governs step 0 only; every step after it is classified.
+    // WHY THE HINT OVERRIDES THE CLASSIFICATION. A hinted row takes its hint,
+    // uncertain or not: an exact-solution seed can put an active row exactly
+    // at the kink (s, lambda) = (0, 0), so a classification that outranked the
+    // hint would damp precisely the row the hint exists to snap onto its face.
+    // The hint governs step 0 only; every step after it is classified.
     static void select_branch(double s, double lam, double phi, bool hinted, bool hint_active,
                               bool guarded, double tau, std::vector<double> &alpha,
                               std::vector<double> &beta, std::vector<double> &row_resid,
@@ -3414,10 +3121,10 @@ class SsnEngine {
     Index dim_ = 0;
     std::vector<detail::SsnBoundRow> bound_rows_;
     std::vector<double> real_lower_, real_upper_;
-    // The pattern cache: the structure key k_ was built for -- both
-    // conjuncts of it (the combined pattern digest, and the bound-row
-    // (var, sign) list the digest deliberately omits) -- and the position in
-    // k_.valuePtr() of each entry for_each_entry() emits, in emission order.
+    // The pattern cache: the structure key k_ was built for -- both conjuncts
+    // of it (the combined pattern digest, and the bound-row (var, sign) list
+    // the digest deliberately omits) -- and the position in k_.valuePtr() of
+    // each entry for_each_entry() emits, in emission order.
     std::vector<std::size_t> value_pos_;
     std::uint64_t structure_key_ = 0;
     std::vector<std::pair<Index, double>> structure_bound_key_;
@@ -3438,8 +3145,8 @@ class SsnEngine {
     // The proximal-point regularizer. Per-solve, monotone non-decreasing,
     // 0.0 whenever the escalation ladder never armed.
     double prox_sigma_ = 0.0;
-    // `ladder_sigma_` is the LADDER's own monotone state
-    // and `lm_sigma_` the residual-driven size; `prox_sigma_` is their max.
+    // `ladder_sigma_` is the LADDER's own monotone state and `lm_sigma_` the
+    // residual-driven size; `prox_sigma_` is their max.
     // Under the shipped SsnSigmaRule::kLadder `lm_sigma_` never leaves 0, so
     // `ladder_sigma_ == prox_sigma_` identically and the pair is invisible.
     double ladder_sigma_ = 0.0;
