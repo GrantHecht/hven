@@ -73,6 +73,30 @@ for a lane-silicon-specific flake; whether the fixture should pin a range
 or a stable invariant instead belongs to the post-M3 task, not to an M3
 change.
 
+**DISPOSITION (2026-08-27, M6 W0.4) — the tie fixture's exact pins are
+RETIRED.** Occurrence 10's mechanism note asked whether the fixture should
+pin a range or a stable invariant instead; a further occurrence settled it.
+On **2026-08-26** a main-push CI run failed exactly this fixture's direction
+assertions and a **rerun of the same commit passed** — the coin landing the
+other way **within MKL**, on one lane, which is what the per-backend pins had
+assumed could not happen. (Reported into the M6 register by the SQP lane; the
+run id was not carried with the report, so this is recorded as a disposition
+rather than as a numbered occurrence in the table above.)
+`SsnEngineLocal.WeaklyActiveRowFinishesUncertain` now asserts only what holds
+whichever way the coin lands: the tie is seen (`ssn_uncertain_peak == 1`), the
+safeguarded engine never exports the weakly active row as inactive-AND-certain
+(from either start), the two modes disagree about that row, and
+`ssn_bulk_flips` sits in `[1, 8]` — a band that admits every value the fixture
+has produced (1 MKL, 3 MKL-flipped, 4 Accelerate) and still separates this
+trajectory from the orbiting one `ChrCyclingBareCyclesAndSafeguardedConverges`
+reaches at 10 and 13 flips. Both `USE_ACCELERATE_SPARSE` arms are gone from that
+test; **M3-4's backend divergence stays documented there — only the assertions
+on it are removed**, and the register's re-open trigger (Verdict 2 item 4) is
+untouched. This removes the assertion sites this class kept landing on for its
+last surviving member; it does not close L-1, and says nothing about whether the
+underlying lane sensitivity persists — that is now simply unobservable through
+this fixture.
+
 Occurrence 4 (2026-08-15): same four tests, same assertion sites as
 occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60
 byte-identical, so the exoneration basis holds at its strongest. Per-cell

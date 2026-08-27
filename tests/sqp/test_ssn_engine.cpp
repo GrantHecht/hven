@@ -1976,10 +1976,12 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
 // otherwise present as fact. That is the failure this leg of the CHR partition
 // exists to prevent, and it is measurable on this fixture in both directions:
 //
-//   * the export must carry the row as UNCERTAIN, and
-//   * bare mode -- which has no third set -- gets the coin flip WRONG from at
-//     least one start (the second cell below), reporting the row ACTIVE where
-//     the walk reports it inactive, with a multiplier of 7e-28.
+//   * the export must never carry the row as inactive AND certain -- the
+//     third set exists so that a coin flip is not exported as fact, and the
+//     uncertain peak shows it fires on this solve; and
+//   * bare mode -- which has no third set -- reads the tie the other way from
+//     at least one start (the second cell below), reporting the row ACTIVE
+//     where the walk reports it inactive, with a multiplier of 7e-28.
 //
 // It is also the honest place to record what the uncertain set does NOT buy:
 // it moves no iteration count anywhere in this file, and the sweep in
@@ -1987,21 +1989,38 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
 // changes an outcome. Its demonstrated value is the export.
 //
 // "No oscillation counter growth" is the brief's third clause and is asserted
-// as ssn_bulk_flips staying at the single flip the trajectory legitimately has.
+// as a BAND on ssn_bulk_flips -- see the assertion for the band and its
+// grounds.
 //
-// BACKEND SCOPE (M3 gate B,
-// docs/notes/2026-08-14-accelerate-divergence-register.md entry M3-4, RULED by
-// the gate-B execution review (2026-08-15), Verdict 2). Every sentence above
-// with a DIRECTION in it -- which way the coin lands, which mode gets it
-// "wrong", the single flip -- is an MKL Pardiso reading. On Apple Accelerate
-// each of those lands the other way, which is exactly what a fixture built on
-// a tie should be expected to do across two different factorizations, and is
-// why the assertions below are split: the properties that hold whichever way
-// the coin lands are asserted on both backends (Verdict 2 item 1), and the
-// directions themselves are now pinned per backend -- MKL's arm unchanged,
-// Accelerate's arm carrying its own observed coin directions, end state, and
-// flip count (Verdict 2 item 2). Read the two arms below for what is held and
-// why.
+// EVERY SENTENCE ABOVE WITH A DIRECTION IN IT -- which way the coin lands,
+// which mode gets it "wrong", the single flip -- IS AN OBSERVATION, NOT AN
+// ASSERTION. Nothing below pins one. What is asserted is what holds whichever
+// way the coin lands: the tie is SEEN (ssn_uncertain_peak == 1), the
+// safeguarded engine never exports row 1 as inactive-and-certain, the two
+// modes disagree about that row (second cell), and the flip count stays in a
+// band that separates this trajectory from an orbiting one.
+//
+// WHY NO DIRECTION IS PINNED (M6 W0.4). This fixture used to carry per-backend
+// direction pins -- MKL's ineq_active[1]/ineq_uncertain[1] and
+// ssn_bulk_flips == 1, Accelerate's mirrored arm with ssn_bulk_flips == 4 --
+// ruled in by the gate-B execution review (2026-08-15), Verdict 2 item 2, on
+// the strength of ten stable CI runs per backend. They are RETIRED. They rested
+// on the coin being stable WITHIN a backend, and it is not: on 2026-08-26 a
+// main-push CI run failed exactly these assertions and a rerun of the SAME
+// COMMIT passed, the coin landing the other way within MKL. That is the flake
+// class docs/notes/2026-08-15-linux-runner-divergence-register.md L-1 has
+// tracked since 2026-08-14, whose own mechanism note already named an exact pin
+// on a tie-decided counter as the plausible root cause. A pin a rerun of
+// identical source can break is not evidence about the library, and M3-4's own
+// finding -- at c* = 0 the row IS at its boundary, so the twin readings are
+// both correct readings -- is precisely why there is no direction there to pin.
+// The DIVERGENCE ITSELF stays documented (that is what M3-4 records); only the
+// assertions on it are gone.
+//
+// The register's re-open trigger is unchanged (Verdict 2 item 4): a crossover
+// measurement attributing hint-quality loss to tie misclassification, first
+// remedy to evaluate being margin-based uncertain membership. That would give
+// this fixture a real property to pin; a coin direction never was one.
 TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
     const QpProblem qp = weakly_active_qp();
     const QpSolution walk = walk_solution(qp);
@@ -2020,67 +2039,43 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
         // Row 0 is strictly active and row 1 is the weakly active one.
         EXPECT_TRUE(res.ineq_active[0]);
         EXPECT_FALSE(res.ineq_uncertain[0]);
-        // THE PORTABLE HALF, asserted on every backend: the tie IS SEEN. The
-        // peak says the third set held a row at some point in this solve, and
-        // the safeguarded engine never ends with row 1 dropped as a FACT --
-        // inactive and certain at once is the one reading that throws away a
-        // constraint the fixture put exactly on the boundary.
+        // THE TIE IS SEEN: the peak says the third set held a row at some
+        // point in this solve. True on both backends, and on whichever side
+        // of the coin either lands.
         EXPECT_EQ(res.counters.ssn_uncertain_peak, 1);
+        // THE ONE READING OF THE TIE THAT IS WRONG, and the whole of what is
+        // asserted about row 1's end state: the safeguarded engine never ends
+        // with the row dropped as a FACT. Inactive and certain at once throws
+        // away a constraint the fixture put exactly on the boundary;
+        // active, or uncertain, are both honest readings of c* = 0 and either
+        // is accepted here.
         EXPECT_TRUE(res.ineq_active[1] || res.ineq_uncertain[1])
             << "the tie was returned inactive AND certain -- a weakly active row "
                "presented as fact";
-#ifdef USE_ACCELERATE_SPARSE
-        // M3-4 (docs/notes/2026-08-14-accelerate-divergence-register.md),
-        // RULED per the gate-B execution review (2026-08-15), Verdict 2, item
-        // 2: PIN the Accelerate arm -- coin directions, end-state, and flip
-        // count -- as per-backend-arm assertions, lifting the UNOBSERVED
-        // holds. The ten-run stability across all suite-carrying CI runs
-        // (most recently
-        // https://github.com/GrantHecht/hven/actions/runs/31824897327) meets
-        // the register's own committability bar for counters (the two-run
-        // byte bar is a float rule).
-        //
-        // On Apple Accelerate every coin in this fixture lands the OTHER way:
-        // row 1 comes back ACTIVE and NOT uncertain here, where MKL Pardiso
-        // returns it inactive and uncertain. `ssn_uncertain_peak == 1` above
-        // holds on BOTH backends, so the third set does fire on Accelerate;
-        // the row simply leaves it before the solve ends -- a defensible
-        // reading of the tie (Verdict 2: "at c* = 0 the row IS at its
-        // boundary; the twin readings are both correct readings"), not a
-        // dropped constraint, because the portable never-inactive-and-certain
-        // property above already excludes the dangerous export.
-        // `ssn_bulk_flips` reads 4 against MKL's 1: three extra flips
-        // confined to this deliberately degenerate tie fixture, stable across
-        // ten runs, is backend tie resolution rather than under-damping --
-        // the HS battery's near-identical minor counts (M3-1: 861/858 on
-        // Accelerate vs. 862/859 on MKL) are the systemic evidence that
-        // settles that question, not this fixture. No algorithmic change is
-        // warranted absent the ruling's named re-open trigger (Verdict 2 item
-        // 4): M5 crossover measurement attributing hint-quality loss to tie
-        // misclassification on Apple, first remedy to evaluate being
-        // margin-based uncertain membership.
-        EXPECT_TRUE(res.ineq_active[1]);
-        EXPECT_FALSE(res.ineq_uncertain[1]);
-        EXPECT_EQ(res.counters.ssn_bulk_flips, 4);
-#else
-        EXPECT_FALSE(res.ineq_active[1]);
-        EXPECT_TRUE(res.ineq_uncertain[1]);
-        // No oscillation: the trajectory's one legitimate flip, and no more.
-        EXPECT_EQ(res.counters.ssn_bulk_flips, 1);
-#endif
+        // No oscillation, as a band rather than an equality: at least the one
+        // flip this trajectory legitimately has, and far below the orbiting
+        // regime the cycling fixture in this file reaches (10 and 13 flips).
+        // Every value this cell has produced sits inside it -- 1 (MKL
+        // nominal), 3 (MKL, the 2026-08-26 within-lane flip), 4 (Accelerate) --
+        // and the band still fails on a genuine under-damping regression,
+        // which an exact equality on a tie-decided counter could not
+        // distinguish from the coin.
+        EXPECT_GE(res.counters.ssn_bulk_flips, 1);
+        EXPECT_LE(res.counters.ssn_bulk_flips, 8);
     }
 
     // The coin flip, caught: from x0 = (6, -5) bare mode reports the weakly
     // active row ACTIVE and the safeguarded engine reports it inactive AND
     // uncertain. Both are "correct" readings of a tie; only one of them says so.
     //
-    // ON ACCELERATE BOTH COINS LAND THE OTHER WAY (M3-4, RULED per the gate-B
-    // execution review (2026-08-15), Verdict 2): bare reads the row inactive
-    // and the safeguarded engine reads it active. The CONTRAST -- the two
-    // modes disagreeing about a row that is exactly on the boundary --
-    // survives the swap and is what this cell actually demonstrates, so that
-    // is what is asserted on both backends; the individual readings are now
-    // pinned per backend, MKL's arm unchanged.
+    // ON ACCELERATE BOTH COINS LAND THE OTHER WAY (M3-4): bare reads the row
+    // inactive and the safeguarded engine reads it active. The CONTRAST -- the
+    // two modes disagreeing about a row that is exactly on the boundary --
+    // survives the swap and is what this cell actually demonstrates, so that is
+    // what is asserted. The individual readings are NOT, for the reason this
+    // test's banner gives: the same 2026-08-26 within-MKL flip that retired the
+    // first cell's direction pins retired these, which were the other two
+    // assertion sites the flake class kept landing on.
     {
         SsnStart start;
         start.x = Vec(2);
@@ -2100,22 +2095,14 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
             << "the point of this start is that the two modes read the tie "
                "differently; bare.ineq_active[1] = "
             << bool(bare.ineq_active[1]);
-#ifdef USE_ACCELERATE_SPARSE
-        // M3-4, PINNED per the gate-B execution review (2026-08-15), Verdict 2,
-        // item 2: this cell's coin directions, stable across all ten
-        // suite-carrying CI runs. Both readings flip relative to MKL; bare's
-        // uncertain flag does not move because bare mode has no third set to
-        // report uncertain in on either backend.
-        EXPECT_FALSE(bare.ineq_active[1]);
+        // The safeguarded engine owes the same never-inactive-and-certain
+        // property from this start as from the cold one.
+        EXPECT_TRUE(full.ineq_active[1] || full.ineq_uncertain[1])
+            << "the tie was returned inactive AND certain by the safeguarded engine";
+        // Bare mode's uncertain flag is STRUCTURALLY false on both backends and
+        // on either side of the coin -- bare mode has no third set to report a
+        // row uncertain in -- so this one is a property, not a direction.
         EXPECT_FALSE(bare.ineq_uncertain[1]);
-        EXPECT_TRUE(full.ineq_active[1]);
-        EXPECT_FALSE(full.ineq_uncertain[1]);
-#else
-        EXPECT_TRUE(bare.ineq_active[1]); // the tie, decided by rounding
-        EXPECT_FALSE(bare.ineq_uncertain[1]);
-        EXPECT_FALSE(full.ineq_active[1]); // agrees with the walk
-        EXPECT_TRUE(full.ineq_uncertain[1]);
-#endif
     }
 }
 
