@@ -88,6 +88,15 @@ named investigation.
   being the closest production precedent). "Unforced" is the rule —
   if measurement says static per-family selection beats switching,
   the heuristics ship as configuration guidance, not machinery.
+  DESIGN CONSTRAINT (owner, 2026-08-26): adaptive switching must not
+  step on the polish/crossover feature. The explicit user-driven
+  composition — the caller exports, stages, and sequences engines
+  per call, full control, the M5 surface — stays first-class and
+  untouched; automatic switching is a separate opt-in layer that
+  CONSUMES the same currency mechanism rather than rewiring it, so
+  a switch the solver makes and a switch the user makes are the same
+  operation with a different trigger. More user control is good or
+  bad depending on the user; hven offers both and forces neither.
 - **Escape-path performance target**: 95.5% of residual
   PSIOPT-envelope wall sits in the 2/9 steps where SSN escaped to the
   walk — the best-localized target P7 produced, and the natural first
