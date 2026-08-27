@@ -27,7 +27,6 @@
 #include <deque>
 #include <fstream>
 #include <map>
-#include <optional>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -2643,11 +2642,45 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
 }
 
 TEST(CorpusTask6bRepair, TheKSsnArmMovesTheFourCrashingCellsAndNothingElse) {
-    // Claim (2). The four cells are named rather than derived, because the
-    // point is that the SET is what was predicted -- a fifth cell moving
-    // would be a finding, and this test is what would report it.
+    // Claim (2). TWO EVENTS now separate these two frozen artifacts, and this
+    // test names BOTH rather than collapsing them into one "moved" bit:
+    //
+    //   D0 REPAIR (2026-08-08) -- the reason this test exists. Four cells
+    //     stopped crashing; they may differ in ANY column.
+    //   R6 SIGN SWEEP (2026-08-27, owner-ruled honest re-pin; see the APPENDED
+    //     provenance note in ssn_resweep.csv). Fourteen cells had their
+    //     negative exported face prices repaired. The re-pin landed in the
+    //     POST artifact ONLY: the gate battery is the PRE-repair record, its
+    //     D0 cells are engine_error, and no current binary can re-derive that
+    //     state -- so its bytes stay the pin and are NOT touched.
+    //
+    // Both sets are NAMED rather than derived, because in each case the SET is
+    // the claim: a fifth D0 cell, a fifteenth R6 cell, an R6 cell moving a
+    // COUNTER, or any other cell moving at all would each fail here. This is
+    // strictly stronger than the single "is it a D0 cell" bit it replaces --
+    // every moved cell is now accounted for by name AND by column.
     const std::set<std::string> d0 = {"f7_n2000_path_neutral", "f7_n5000_path_neutral",
                                       "f7_n5000_path_corrupted", "f7_n5000_path_warm"};
+    const std::set<std::string> r6 = {
+        "f7_n1000_path_neutral",        "f7_n1000_path_physics",       "f7_n1000_path_corrupted",
+        "f7_n1000_path_activity",       "f7_n1000_path_warm",          "f7_n2000_path_physics",
+        "f7_n2000_path_activity",       "f7_n2000_path_warm",          "f7_n20000_path_activity",
+        "f7_n800_path_neutral",         "f7_n800_path_physics",        "f7_n800_path_corrupted",
+        "f7_n750_path_neutral_control", "f7_n825_path_neutral_control"};
+    // Schema-37 column indices, 0-based, for the columns R6 is allowed to
+    // move. Everything outside this set stays BYTE-STRICT on an R6 cell.
+    constexpr std::size_t kColKktResidual = 12;
+    constexpr std::size_t kColWallS = 13;
+    constexpr std::size_t kColKktVerdict = 14;
+    constexpr std::size_t kColKktStationarity = 15;
+    constexpr std::size_t kColKktPrimal = 16;
+    constexpr std::size_t kColKktDualSign = 17;
+    constexpr std::size_t kColKktComplementarity = 18;
+    constexpr std::size_t kColNegIneqDuals = 21;
+    const std::set<std::size_t> r6_columns = {
+        kColKktResidual, kColKktVerdict,         kColKktStationarity, kColKktPrimal,
+        kColKktDualSign, kColKktComplementarity, kColNegIneqDuals};
+
     const auto shipped = runner_test::data_rows(HVEN_SQP_SSN_BATTERY_CSV);
     const auto post = runner_test::data_rows(HVEN_SQP_TASK6B_SSN_CSV);
     ASSERT_EQ(shipped.size(), 57u);
@@ -2657,30 +2690,102 @@ TEST(CorpusTask6bRepair, TheKSsnArmMovesTheFourCrashingCellsAndNothingElse) {
         std::vector<std::string> col = runner_test::split_all(r);
         by_id[col[0]] = col;
     }
-    int moved_cells = 0;
+    int d0_moved = 0;
+    int r6_moved = 0;
     for (const std::string &r : shipped) {
         const std::vector<std::string> b = runner_test::split_all(r);
         const auto it = by_id.find(b[0]);
         ASSERT_NE(it, by_id.end()) << b[0];
+        const std::vector<std::string> &p = it->second;
+        const std::string &id = b[0];
+        const bool is_d0 = d0.count(id) == 1;
+        const bool is_r6 = r6.count(id) == 1;
+        ASSERT_FALSE(is_d0 && is_r6) << id << ": the two events must not claim the same cell";
+
         bool moved = false;
         // Every SHIPPED column (0..30, minus wall_s): the schema-37 tail is
         // new and has no counterpart to compare against.
         for (std::size_t k = 0; k < 31; ++k) {
-            if (k == 13) {
-                continue; // wall_s
+            if (k == kColWallS) {
+                continue;
             }
-            if (b[k] != it->second[k]) {
-                moved = true;
-                EXPECT_TRUE(d0.count(b[0]) == 1)
-                    << "cell " << b[0] << " column " << k << " moved (" << b[k] << " -> "
-                    << it->second[k] << ") and it is NOT one of the four D0 cells";
+            if (b[k] == p[k]) {
+                continue;
             }
+            moved = true;
+            if (is_d0) {
+                continue; // (1) the D0 repair may move any column
+            }
+            if (is_r6) {
+                // (2) an R6 cell may move ONLY inside the R6 column set. A
+                // counter, a status or a per-QP shape moving here would mean
+                // the sweep reached the iteration, which it must not.
+                EXPECT_TRUE(r6_columns.count(k) == 1)
+                    << "R6 cell " << id << " moved column " << k << " (" << b[k] << " -> " << p[k]
+                    << "), which is OUTSIDE the R6 column set -- the sign sweep runs at the "
+                       "export boundary and must not move a counter, status or shape";
+                continue;
+            }
+            // (3) nobody else moves at all.
+            ADD_FAILURE() << "cell " << id << " column " << k << " moved (" << b[k] << " -> "
+                          << p[k]
+                          << ") and it belongs to NEITHER the four D0 cells nor the "
+                             "fourteen R6 cells";
         }
         if (moved) {
-            ++moved_cells;
+            if (is_d0) {
+                ++d0_moved;
+            } else if (is_r6) {
+                ++r6_moved;
+            }
+        }
+        if (!is_r6) {
+            continue;
+        }
+        // AND WHY EACH R6 CELL MOVED, stated as the repair's own contract
+        // rather than as "something changed here".
+        EXPECT_GT(std::stoi(b[kColNegIneqDuals]), 0)
+            << id << " is claimed as an R6 cell, so it must have carried negative prices BEFORE";
+        EXPECT_EQ(p[kColNegIneqDuals], "0") << id << ": no negative price may escape after R6";
+        EXPECT_EQ(p[kColKktDualSign], "0.000000000e+00")
+            << id << ": the dual-sign residual is exactly zero once the prices are repaired";
+        EXPECT_GT(std::stod(p[kColKktStationarity]), std::stod(b[kColKktStationarity]))
+            << id
+            << ": clamping a price the stationarity condition was using COSTS "
+               "stationarity -- see solver_counters.h's R6 note";
+        // The other three residual-class columns only drift in their last
+        // digits. The bound is this file's usual 1e-5 RELATIVE test WITH AN
+        // ABSOLUTE FLOOR, and the floor is not padding: these are residual
+        // norms formed by cancellation from O(1) data, so their absolute
+        // accuracy is a few ulps of 1.0 (~1e-15) no matter how small the norm
+        // itself is -- f7_n800_path_physics' complementarity sits at 2.6e-15,
+        // where a purely relative test measures noise against noise (it reads
+        // 6.0e-05 for an absolute move of 1.6e-19). Worst observed drift over
+        // these 3 columns x 14 cells is 4.5e-15, so 1e-13 leaves 22x head-room
+        // while staying SIX ORDERS below the smallest genuine R6 movement
+        // (kkt_stationarity, ~1e-7). A real change cannot hide under it.
+        constexpr double kResidualAbsFloor = 1e-13;
+        for (const std::size_t k : {kColKktResidual, kColKktPrimal, kColKktComplementarity}) {
+            const double was = std::stod(b[k]);
+            const double now = std::stod(p[k]);
+            const double scale = std::max(std::abs(was), std::abs(now));
+            EXPECT_LE(std::abs(now - was), std::max(1e-5 * scale, kResidualAbsFloor))
+                << id << " column " << k
+                << ": R6 must not move this column beyond last-digit drift (" << b[k] << " -> "
+                << p[k] << ")";
+        }
+        if (b[kColKktVerdict] != p[kColKktVerdict]) {
+            // The single verdict flip the re-pin declared. Its repaired
+            // stationarity clears the gate's relative bound, so the verdict
+            // now tells the truth about a marginal solve.
+            EXPECT_EQ(id, "f7_n20000_path_activity")
+                << "only one cell's verdict may move across R6";
+            EXPECT_EQ(b[kColKktVerdict], "ok");
+            EXPECT_EQ(p[kColKktVerdict], "wrong");
         }
     }
-    EXPECT_EQ(moved_cells, 4) << "exactly the four D0 cells move";
+    EXPECT_EQ(d0_moved, 4) << "exactly the four D0 cells move for the repair";
+    EXPECT_EQ(r6_moved, 14) << "exactly the fourteen R6 cells move for the sign sweep";
 
     // AND THE DIRECTION OF THE MOVE: every one of the four stops throwing.
     for (const std::string &cid : d0) {
