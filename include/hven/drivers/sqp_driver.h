@@ -1482,7 +1482,8 @@ double predicted_decrease(const QpProblem &qp, const Vec &p);
 //
 // and the three geometric-activity tests SqpOptions::crash_basis names --
 // `cI_j(x) >= -feas_tol`, `x(i) - l(i) <= feas_tol`, `u(i) - x(i) <=
-// feas_tol` -- are exactly the three comparisons below. They are the SAME
+// feas_tol` -- are exactly the three comparisons this function makes (its
+// definition is in src/drivers/sqp_driver.cpp). They are the SAME
 // tests, at the SAME tolerance, evaluate_kkt already applies (this header's
 // CONVERGENCE TEST note and its INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY
 // note); no new tolerance is introduced anywhere.
@@ -1770,8 +1771,9 @@ bool ssn_exit_is_a_usable_step(const SsnResult &res, double fb_tol);
 
 // An SSN exit, in the shape every consumer downstream of a subproblem already
 // speaks. CALLED ONLY ON A CERTIFYING EXIT (ssn_exit_is_a_usable_step above
-// true); an escaped result never reaches here, which is why the status below
-// can be written as the constant it is rather than mapped.
+// true); an escaped result never reaches here, which is why the definition
+// (src/drivers/sqp_driver.cpp) writes the status as the constant it is rather
+// than mapping it.
 //
 // THE COUNTER MAPPING IS THE ONE JUDGEMENT IN THIS FUNCTION, and it is
 // deliberately PARTIAL:
@@ -2087,10 +2089,10 @@ inline constexpr double kSeededDualClampTol = 1e-6;
 // shrunk_radius / restoration_restart_radius), the ledger tail record_solve,
 // the exit helpers finish / make_warm_start / map_status, and the SSN tier's
 // ssn_engine / ssn_options. THE FREE FUNCTIONS DECLARED ABOVE ARE DEFINED IN
-// THAT SAME TU, for the same §5 reason and so that solve_impl -- the only
-// in-library caller of any of them -- still sees across the call exactly as it
-// did when they were header siblings. READ THAT FILE'S BANNER before changing
-// anything about this structure: it carries the reason the TR update functions
+// THAT SAME TU, for the same §5 reason and so that solve_impl and its
+// neighbours in that TU -- every in-library caller any of them has -- still
+// see across the call exactly as they did when they were header siblings. READ THAT FILE'S BANNER
+// before changing anything about this structure: it carries the reason the TR update functions
 // travel with the loop, and the counter-identity bar any redraw must clear.
 //
 // THE CONSTRUCTORS STAY INLINE, deliberately: their one piece of real work

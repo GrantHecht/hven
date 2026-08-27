@@ -13,7 +13,8 @@
 // shrunk_radius, restoration_restart_radius, ssn_engine() -- are defined here
 // too, so the inliner sees across those sites exactly the input it saw when
 // solve_impl lived in the header; the free functions are here for the same
-// reason, since solve_impl is the only in-library caller of any of them. FP
+// reason, since solve_impl and its neighbours in this TU are the only
+// in-library callers any of them have. FP
 // arithmetic crosses this TU boundary under ONE uniform flag regime on both
 // sides; every asserted counter must be bit-identical across the boundary, so
 // a counter delta here is a FAILED CARVE, to be reverted or redrawn, never a
@@ -235,9 +236,11 @@ void record_terminal_kkt(SqpSolution &out, const SqpKkt &kkt) {
 // the class's own members are: none of them depends on inlining through a
 // template parameter, and every one of them is driver-tier orchestration or
 // instrumentation, which CLAUDE.md §5 places in a .cpp TU. They land in THIS
-// TU rather than one of their own so that solve_impl, which is the only
-// in-library caller of any of them, still sees across the call exactly as it
-// did when they were header siblings. Their DECLARATIONS, and every word of
+// TU rather than one of their own so that every in-library caller of any of
+// them -- solve_impl and its neighbours in this TU, including ssn_options'
+// call to ssn_fb_tol_for and the sibling free functions that reach eval_nlp,
+// build_subproblem and detail::evaluate_kkt_over -- still sees across the call
+// exactly as it did when they were header siblings. Their DECLARATIONS, and every word of
 // their documentation, stay in the header.
 //
 // Definition order below follows the header's declaration order.

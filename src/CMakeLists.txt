@@ -117,11 +117,13 @@ target_include_directories(hven PRIVATE
 #
 #   - drivers/aggregate_eval_seam.cpp and drivers/sqp_driver.cpp: the driver's
 #     consumer-side seam and the major loop itself (SqpDriver::solve_impl plus
-#     everything it orchestrates). The loop's banner carries the object-file
-#     evidence that its per-element calls were already out-of-line at -O3, so
-#     the boundary removes no inlining, and the ruling under which the TR
-#     update functions travel with the loop while the TR policy constants stay
-#     in globalization.
+#     everything it orchestrates), together with the free functions
+#     drivers/sqp_driver.h declares alongside the class. That TU's banner
+#     carries the counter-identity bar any redraw of the boundary must clear,
+#     and the ruling under which the TR update functions travel with the loop
+#     while the TR policy constants stay in globalization. The object-file
+#     evidence that the carve removed no inlining is in the W0.1c report, not
+#     in that banner.
 #
 #   - globalization/sqp/funnel.cpp: FunnelStrategy's acceptance state machine,
 #     the first carve whose arithmetic is re-associable under -ffast-math; its

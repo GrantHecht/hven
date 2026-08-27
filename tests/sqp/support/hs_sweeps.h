@@ -27,7 +27,10 @@
 //       the human ruling was to keep it and re-adjudicate on a corpus that can
 //       discriminate.
 //   (b) kappa_soc -- the never-adopted magnitude gate on the SECOND-ORDER
-//       CORRECTION attempt (sqp_driver.h's A NAMED CANDIDATE FOR TASK 11).
+//       CORRECTION attempt: gate the attempt itself, not just its success, on
+//       `h_raw <= kappa_soc * h_old`. Never adopted, and not adopted for the
+//       reason this header exists: no shipped corpus produces enough SOC
+//       attempts to show a gate would change any outcome.
 //       Phase 3's HS battery saw SOC attempted TWICE in 27 problems; the
 //       Phase-4 parametric corpus never reaches SOC AT ALL, so the outcome
 //       counters Phase-4 Task 1 added (SqpCounters::soc_applied /

@@ -1266,8 +1266,9 @@ void check_soc_costs_what_it_costs() {
 // (8) THE SOC TRIGGER RATIOS -- the variable a kappa_soc gate would test, and
 // the only thing that can turn adjudication (b) from a rate into a THRESHOLD.
 //
-// The gate sqp_driver.h names (A NAMED CANDIDATE FOR TASK 11) is
-// `h_raw <= kappa_soc * h_old`, so what has to be measured is h_raw/h_old at
+// The never-adopted gate is `h_raw <= kappa_soc * h_old` -- a magnitude test
+// on the SOC ATTEMPT itself rather than on its success -- so what has to be
+// measured is h_raw/h_old at
 // each attempt. Neither number is in SqpCounters, but BOTH are in the
 // StepContext the globalization strategy is handed, so a RECORDING DECORATOR
 // on SqpOptions::make_strategy reads them without touching the engine.
