@@ -2865,8 +2865,21 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             {"f7_n1000_bound_neutral",
              {"6.295832335e-14", "6.295832335e-14", "1.937883159e-14", "0.000000000e+00",
               "0.000000000e+00"}},
+            // R6 RE-PIN (M6 W0.3, 2026-08-27, hven m6 commit 2d82b13, owner
+            // ruling). This cell is one of the 14 the sign sweep repairs, so
+            // two of its five residuals moved and are re-derived here from an
+            // actual run of the fixed binary: `dual_sign` is now EXACTLY zero
+            // because no negative price escapes the export any more, and
+            // `stationarity` is the value at those DUAL-FEASIBLE multipliers
+            // (1.045096220e-10 -> 3.220916799e-07 -- the clamp's own cost, see
+            // solver_counters.h's R6 note). kkt_residual, primal and
+            // complementarity are UNCHANGED. The full 14-row delta and the
+            // declaration live in the appended provenance note in
+            // ssn_resweep.csv. NOTHING BELOW IS RELAXED: the same 1e-5
+            // relative gate applies to these five, and every integer column
+            // above stays byte-strict.
             {"f7_n1000_path_neutral",
-             {"3.053665099e-10", "1.045096220e-10", "3.053665099e-10", "4.555244335e-07",
+             {"3.053665099e-10", "3.220916799e-07", "3.053665099e-10", "0.000000000e+00",
               "1.271441541e-13"}},
         };
         // U0 FOLLOW-UP (2026-08-16, the SAME event, after its first CI push):
