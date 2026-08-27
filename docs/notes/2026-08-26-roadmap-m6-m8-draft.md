@@ -37,10 +37,12 @@ The goal is measurable, not aspirational:
   quality bar of the commercial solvers — a stranger with an NLP can
   read a run.
 
-The strategy the milestones implement: fix the known weak cells
-(acquisition, degeneracy, scaling), then compose the engines
-adaptively where measurement supports it, then tune and prove it
-publicly. Lead with the sequenced-workload strength; reach parity on
+The strategy the milestones implement: fix the known weak cells —
+acquisition and degeneracy both remediated by the M6 tier (IP-PMM's
+proximal regularization needs no LICQ and is the named fallback for
+the frozen/degenerate cells where bulk SSN stalls), scaling by its
+M6 opener — then compose the engines adaptively where measurement
+supports it, then tune and prove it publicly. Lead with the sequenced-workload strength; reach parity on
 one-shot cold solves.
 
 ## M6 — the acquisition tier and the certified core
@@ -49,6 +51,12 @@ The big milestone: IPQP + feasibility mode as one scope, on a
 foundation cleaned first. Two decisions gate its middle: the
 build-vs-re-register ruling on tycho_sqp P7 G1/G2, taken AFTER the
 precondition experiment.
+SCOPE VALVE (review finding, held for the brief): this is a heavy
+milestone. The brief may split it — openers + experiment + API break
++ quality floor as M6a, the tier as M6b — without renegotiating this
+roadmap; and benchmark suite v1 has NO dependency on the tier, so
+its build may start as an M6-parallel lane in the harness repo even
+though it is ratified as M7 scope.
 
 **Openers (parallel, small, before the tier):**
 - TU-conformance of the three big SQP headers (qp_engine.h 5.3k /
@@ -86,10 +94,16 @@ interior/'s first scheduled second consumer, so the IPM lane is in
 the design room. Feasibility mode (owner-COMMITTED) scoped WITH it as
 the certified fallback IP-PMM lacks. Warm restart defined against
 WarmStartData + ipm.polish.v1 — resolving the reserved mu adoption
-ruling — never a new currency. Mode-selection TELEMETRY lands here
+ruling — never a new currency; this IS the repair-based warm-start
+work (strict-positivity/centrality restoration per
+Gondzio–Grothey / Skajaa–Andersen–Ye), the same item the NO-GO
+contingency redirects to, so it survives either verdict. Mode-selection TELEMETRY lands here
 (per-family counters: bulk-flip counts, weak-activity fractions,
 constraint tags) as instrumentation only — the heuristics that act on
-it are M7.
+it are M7. The machine-trace SCHEMA (the M8 trace item's JSON-lines
+event stream) is versioned v0 here and carried by M7's telemetry, so
+the heuristics never grow a second bookkeeping path for M8's trace
+to replace.
 
 **API break window (committed M6 items):** OptimizationProblemBase
 retirement/fold (consumer-free confirmed by tycho Task 8) + callback
@@ -107,11 +121,15 @@ named investigation.
 
 **M6 exit criteria:** the acquisition decision is TAKEN (either
 branch) and its evidence artifact is on the record; feasibility mode
-ships with its refusal/fallback contract pinned; the openers are
-closed (three headers TU-conformant and prose-cleaned, scaling
-landed, no-copy path landed and the Transcribe deviation closed);
+ships with its refusal/fallback contract pinned; ALL FIVE openers
+are closed (three headers TU-conformant and prose-cleaned; scaling
+landed; R6 sign sweep landed; self_check_kkt and the SSN tie-fixture
+pin fixed; no-copy path landed and the Transcribe deviation closed);
 the API break is one declared event with both trees consuming; the
-usual close gate (replay, smoke, rig, suite) is green.
+quality floor is met (drivers coverage at parity, comparator in
+scripts/, LTO exercised); the four tycho_sqp riders are each either
+closed or explicitly adjudicated non-gating in the brief; the usual
+close gate (replay, smoke, rig, suite) is green.
 
 ## M7 — adaptivity and the first-order mode
 
@@ -125,9 +143,11 @@ it, so it cannot arrive last.
   Mittelmann/Plato sets — harnessed for counters + §7-clean timings,
   with local SNOPT and IPOPT lanes wired in from the start. Direct
   comparability requires speaking the sets' native format: an
-  AMPL .nl reader (ASL-based; license fine in the private harness)
-  bridging to the hven model contract is part of v1, and it doubles
-  as hven's first external-format frontend. Suite discipline from
+  AMPL .nl reader (ASL-based) bridging to the hven model contract is
+  part of v1 and lives IN THE PRIVATE HARNESS REPO, full stop — hven
+  itself ships no .nl code. If it is ever to move into hven as a
+  public frontend, that is a separate decision that opens the ASL
+  license/notices question first; registered on the watchlist. Suite discipline from
   day one: problem-set pins, per-cell budgets, and a train/holdout
   SPLIT so M8's tuning cannot overfit the set it reports on.
 - **Adaptive mode composition** (owner directive, WIDENED
@@ -178,13 +198,15 @@ it, so it cannot arrive last.
 - **Globalization ratification ladder** (all opt-in today): R5
   default-flip fixture, R4 1e-4 re-derivation, R3 arming rule, R7,
   R9, τ re-derivation on an ill-conditioned population — worked
-  through against the M7 benchmark instrument (below) rather than
-  one-off fixtures.
+  through against the M7 benchmark instrument (above) rather than
+  one-off fixtures, on the TRAIN split only, like every default
+  chosen before M8 reports.
 
 **M7 exit criteria:** suite v1 runs all lanes end-to-end with
 pinned sets and budgets; every shipped heuristic has a measured
-win over its own OFF state on the suite (a heuristic that cannot
-show one ships disabled); the first-order design is approved with
+win over its own OFF state on the suite's TRAIN split (a heuristic
+that cannot show one ships disabled; the holdout stays untouched
+until M8); the first-order design is approved with
 its inertia-under-approximation question answered; the escape-path
 share of residual wall is measurably reduced or the finding is
 re-adjudicated with evidence.
@@ -201,13 +223,23 @@ re-adjudicated with evidence.
   where the data supports them (unforced — named profiles like
   "trajectory", "degenerate", "first-order-only" only if clusters
   actually separate).
+- **First-order-only mode: implementation** (design approved in
+  M7): the quasi-Newton mode is BUILT and certified here — pins for
+  its inertia-evidence semantics, suite lanes, and its own toggle in
+  the settings surface — so the beat-SNOPT measurement below runs
+  against shipped code, not a prototype.
 - **The published comparison**: hven-vs-SNOPT/IPOPT locally,
   Knitro via published Mittelmann results, on the suite's standard
   cells — reported in the field's own conventions so the numbers are
   citable: Dolan–Moré performance profiles, shifted geometric means,
   and success rates at the published tolerance, with hven's counters
   alongside. The comparison declares its instrument per §7
-  (serialized wall-asserting runs) and separates the two claims: the
+  (serialized wall-asserting runs), and cross-machine comparability
+  against Knitro's published numbers is CALIBRATED, not assumed: a
+  common reference solver (Ipopt, run both locally and in the
+  published tables) anchors the ratio, and claims against Knitro are
+  stated relative to that anchor, never as raw cross-hardware
+  seconds. It separates the two claims: the
   one-shot cold-solve standing, and the sequenced-workload standing
   (continuation/mesh/crossover chains) where the currency should
   show clear water. The first-order-only target (beat SNOPT with
@@ -229,9 +261,14 @@ re-adjudicated with evidence.
   presentation; this is the presentation milestone.
 
 **M8 exit criteria:** tuned defaults adopted with the train/holdout
-evidence on the record; the comparison artifact published in the
-conventions above; every §0 end-state bullet either met or carrying
-a named, registered gap with its owning follow-on.
+evidence on the record. HARD GATES (no gap-registration): the
+comparison artifact published in the conventions above; the
+first-order mode shipped and its beat-SNOPT standing measured
+(whatever the result says); the presentation bullet (trace both
+surfaces + documentation) delivered. The remaining §0 bullets
+(robustness and speed standings) exit either met or carrying a
+named, registered gap with its owning follow-on — those standings
+depend on where the field is, not only on us.
 
 ---
 
@@ -256,6 +293,9 @@ M6–M8:
 - **Python bindings** (bindings/ component exists in the layout;
   unscheduled): the adoption surface for the suite and for outside
   users.
+- **Public .nl / external-format frontend in hven proper** — opens
+  the ASL license/notices question; until then all .nl code stays in
+  the private harness.
 
 ---
 
