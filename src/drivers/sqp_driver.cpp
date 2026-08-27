@@ -5,15 +5,28 @@
 // orchestrates.
 //
 // This TU holds the DEFINITIONS of every SqpDriver member function except the
-// two constructors; the class, its data members, its documentation and its
-// constructors stay in include/hven/drivers/sqp_driver.h. The members the
+// two constructors, AND of the free functions drivers/sqp_driver.h declares
+// alongside the class -- the evaluation, measurement, subproblem-construction
+// and counter-folding helpers. The class, its data members, all of that
+// documentation and the constructors stay in the header. The members the
 // trust-region UPDATE logic consumes -- map_status, shrink_hits_floor,
 // shrunk_radius, restoration_restart_radius, ssn_engine() -- are defined here
 // too, so the inliner sees across those sites exactly the input it saw when
-// solve_impl lived in the header. FP arithmetic crosses this TU boundary under
-// ONE uniform flag regime on both sides; every asserted counter must be
-// bit-identical across the boundary, so a counter delta here is a FAILED CARVE,
-// to be reverted or redrawn, never a re-derivation.
+// solve_impl lived in the header; the free functions are here for the same
+// reason, since solve_impl is the only in-library caller of any of them. FP
+// arithmetic crosses this TU boundary under ONE uniform flag regime on both
+// sides; every asserted counter must be bit-identical across the boundary, so
+// a counter delta here is a FAILED CARVE, to be reverted or redrawn, never a
+// re-derivation.
+
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <stdexcept>
+
+#include <Eigen/SparseCore>
+#include <fmt/format.h>
 
 #include <hven/drivers/sqp_driver.h>
 
@@ -214,6 +227,417 @@ void record_terminal_kkt(SqpSolution &out, const SqpKkt &kkt) {
 }
 
 } // namespace
+
+// --- THE DRIVER'S FREE FUNCTIONS ------------------------------------------
+//
+// The evaluation, measurement, subproblem-construction and counter-folding
+// helpers declared in drivers/sqp_driver.h, defined here for the same reason
+// the class's own members are: none of them depends on inlining through a
+// template parameter, and every one of them is driver-tier orchestration or
+// instrumentation, which CLAUDE.md §5 places in a .cpp TU. They land in THIS
+// TU rather than one of their own so that solve_impl, which is the only
+// in-library caller of any of them, still sees across the call exactly as it
+// did when they were header siblings. Their DECLARATIONS, and every word of
+// their documentation, stay in the header.
+//
+// Definition order below follows the header's declaration order.
+
+NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
+    const Index n = model.n();
+    if (x.size() != n) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp: x has size {}, expected {} (= model.n())", x.size(), n));
+    }
+    NlpEval ev;
+    ev.f = model.eval_f(x);
+    ev.grad = model.eval_grad(x);
+    if (ev.grad.size() != n) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp: model.eval_grad returned size {}, expected {} (= model.n())",
+                        ev.grad.size(), n));
+    }
+    ev.all_finite = std::isfinite(ev.f) && ev.grad.allFinite();
+
+    if (model.me() > 0) {
+        ev.ce = model.eval_ce(x);
+        if (ev.ce.size() != model.me()) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_ce returned size {}, expected {} (= model.me())",
+                            ev.ce.size(), model.me()));
+        }
+        ev.Je = model.eval_jac_e(x);
+        if (ev.Je.rows() != model.me() || ev.Je.cols() != n) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_jac_e returned a {}x{} matrix, expected {}x{} "
+                            "(= model.me() x model.n())",
+                            ev.Je.rows(), ev.Je.cols(), model.me(), n));
+        }
+        ev.all_finite = ev.all_finite && ev.ce.allFinite();
+    } else {
+        ev.ce = Vec(0);
+        ev.Je = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, n);
+    }
+    if (model.mi() > 0) {
+        ev.ci = model.eval_ci(x);
+        if (ev.ci.size() != model.mi()) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_ci returned size {}, expected {} (= model.mi())",
+                            ev.ci.size(), model.mi()));
+        }
+        ev.Ji = model.eval_jac_i(x);
+        if (ev.Ji.rows() != model.mi() || ev.Ji.cols() != n) {
+            throw std::invalid_argument(
+                fmt::format("eval_nlp: model.eval_jac_i returned a {}x{} matrix, expected {}x{} "
+                            "(= model.mi() x model.n())",
+                            ev.Ji.rows(), ev.Ji.cols(), model.mi(), n));
+        }
+        ev.all_finite = ev.all_finite && ev.ci.allFinite();
+    } else {
+        ev.ci = Vec(0);
+        ev.Ji = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, n);
+    }
+    return ev;
+}
+
+NlpEval eval_nlp_values(const NlpModel &model, const Vec &x) {
+    const Index n = model.n();
+    if (x.size() != n) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp_values: x has size {}, expected {} (= model.n())", x.size(), n));
+    }
+    NlpEval ev;
+    model.eval_values(x, ev.f, ev.ce, ev.ci);
+    // Same return-shape checking as eval_nlp above: eval_values writes cE/cI
+    // through out-parameters, so a model that sizes either one wrong hands
+    // the same out-of-range read to every consumer of this bundle. Checked
+    // unconditionally, because eval_values is a SINGLE call that must produce
+    // both (a 0-row block must come back size 0, just as strictly as a
+    // nonzero one must come back full).
+    if (ev.ce.size() != model.me()) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp_values: model.eval_values returned cE of size {}, expected {} "
+                        "(= model.me())",
+                        ev.ce.size(), model.me()));
+    }
+    if (ev.ci.size() != model.mi()) {
+        throw std::invalid_argument(
+            fmt::format("eval_nlp_values: model.eval_values returned cI of size {}, expected {} "
+                        "(= model.mi())",
+                        ev.ci.size(), model.mi()));
+    }
+    ev.all_finite = std::isfinite(ev.f) && ev.ce.allFinite() && ev.ci.allFinite();
+    ev.grad = Vec::Zero(n);
+    ev.Je = Eigen::SparseMatrix<double, Eigen::RowMajor>(model.me(), n);
+    ev.Ji = Eigen::SparseMatrix<double, Eigen::RowMajor>(model.mi(), n);
+    return ev;
+}
+
+void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev) {
+    const Index n = model.n();
+    ev.grad = model.eval_grad(x);
+    if (ev.grad.size() != n) {
+        throw std::invalid_argument(fmt::format(
+            "upgrade_to_full: model.eval_grad returned size {}, expected {} (= model.n())",
+            ev.grad.size(), n));
+    }
+    if (model.me() > 0) {
+        ev.Je = model.eval_jac_e(x);
+        if (ev.Je.rows() != model.me() || ev.Je.cols() != n) {
+            throw std::invalid_argument(fmt::format(
+                "upgrade_to_full: model.eval_jac_e returned a {}x{} matrix, expected {}x{} "
+                "(= model.me() x model.n())",
+                ev.Je.rows(), ev.Je.cols(), model.me(), n));
+        }
+    }
+    if (model.mi() > 0) {
+        ev.Ji = model.eval_jac_i(x);
+        if (ev.Ji.rows() != model.mi() || ev.Ji.cols() != n) {
+            throw std::invalid_argument(fmt::format(
+                "upgrade_to_full: model.eval_jac_i returned a {}x{} matrix, expected {}x{} "
+                "(= model.mi() x model.n())",
+                ev.Ji.rows(), ev.Ji.cols(), model.mi(), n));
+        }
+    }
+    ev.all_finite = ev.all_finite && ev.grad.allFinite();
+}
+
+double constraint_violation_l1(const NlpEval &ev) {
+    double h = 0.0;
+    for (Index i = 0; i < ev.ce.size(); ++i) {
+        h += std::abs(ev.ce(i));
+    }
+    for (Index j = 0; j < ev.ci.size(); ++j) {
+        // NOT std::max(0.0, v): std::max returns its FIRST argument when the
+        // comparison is false, so max(0.0, NaN) is 0.0 and a NaN inequality row
+        // would be silently dropped -- the exact swallowing this function is
+        // documented not to do. Spelled out so the NaN survives to judge().
+        const double v = ev.ci(j);
+        h += (v > 0.0 || std::isnan(v)) ? v : 0.0;
+    }
+    return h;
+}
+
+namespace detail {
+
+SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
+                         const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                         double bound_tol) {
+    if (x.size() != n) {
+        throw std::invalid_argument(
+            fmt::format("evaluate_kkt: x has size {}, expected {} (= model.n())", x.size(), n));
+    }
+    if (lambda_e.size() != me || lambda_i.size() != mi) {
+        throw std::invalid_argument(
+            fmt::format("evaluate_kkt: multipliers sized ({}, {}), expected ({}, {})",
+                        lambda_e.size(), lambda_i.size(), me, mi));
+    }
+
+    SqpKkt out;
+    out.grad_lag = ev.grad;
+    if (me > 0) {
+        out.grad_lag += ev.Je.transpose() * lambda_e;
+    }
+    if (mi > 0) {
+        out.grad_lag += ev.Ji.transpose() * lambda_i;
+    }
+    out.z = Vec::Zero(n);
+
+    out.finite = ev.all_finite && x.allFinite() && out.grad_lag.allFinite();
+    if (!out.finite) {
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        out.stationarity = nan;
+        out.feasibility = nan;
+        out.complementarity = nan;
+        return out;
+    }
+
+    for (Index i = 0; i < n; ++i) {
+        const bool at_lower = (x(i) - lo(i)) <= bound_tol;
+        const bool at_upper = (up(i) - x(i)) <= bound_tol;
+        const double g = out.grad_lag(i);
+        double s = 0.0;
+        if (at_lower && at_upper) {
+            // A FIXED variable: both sides active at once, so there is no
+            // direction to certify stationarity along and z absorbs the whole
+            // gradient. This arm stays TOLERANT of a crossed box
+            // (lower > upper), deliberately: the function is callable with a
+            // raw NlpModel by callers measuring a single point, which never go
+            // near the bridge that rejects a crossed box at entry.
+            s = 0.0;
+            out.z(i) = g;
+        } else if (at_lower) {
+            s = std::max(0.0, -g); // z(i) = g must be >= 0
+            out.z(i) = g;
+        } else if (at_upper) {
+            s = std::max(0.0, g); // z(i) = g must be <= 0
+            out.z(i) = g;
+        } else {
+            s = std::abs(g);
+        }
+        out.stationarity = std::max(out.stationarity, s);
+    }
+
+    if (me > 0) {
+        out.feasibility = std::max(out.feasibility, ev.ce.lpNorm<Eigen::Infinity>());
+    }
+    for (Index j = 0; j < mi; ++j) {
+        out.feasibility = std::max(out.feasibility, std::max(0.0, ev.ci(j)));
+        out.complementarity = std::max(out.complementarity, std::abs(lambda_i(j) * ev.ci(j)));
+    }
+    for (Index i = 0; i < n; ++i) {
+        out.feasibility = std::max(out.feasibility, std::max(0.0, lo(i) - x(i)));
+        out.feasibility = std::max(out.feasibility, std::max(0.0, x(i) - up(i)));
+    }
+    return out;
+}
+
+} // namespace detail
+
+SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x, const Vec &lambda_e,
+                    const Vec &lambda_i, double bound_tol) {
+    return detail::evaluate_kkt_over(model.n(), model.me(), model.mi(), model.lower(),
+                                     model.upper(), ev, x, lambda_e, lambda_i, bound_tol);
+}
+
+SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                    double bound_tol) {
+    return evaluate_kkt(model, eval_nlp(model, x), x, lambda_e, lambda_i, bound_tol);
+}
+
+QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &x,
+                           const Vec &lambda_e, const Vec &lambda_i, double obj_scale) {
+    QpProblem qp;
+    qp.H = model.eval_hess(x, obj_scale, lambda_e, lambda_i);
+    qp.H.makeCompressed();
+    qp.g = obj_scale * ev.grad;
+
+    qp.Ae = ev.Je;
+    qp.Ae.makeCompressed();
+    qp.be = -ev.ce;
+
+    qp.Ai = ev.Ji;
+    qp.Ai.makeCompressed();
+    qp.bi = -ev.ci;
+
+    qp.lower = model.lower() - x;
+    qp.upper = model.upper() - x;
+    return qp;
+}
+
+QpProblem build_subproblem(const NlpModel &model, const Vec &x, const Vec &lambda_e,
+                           const Vec &lambda_i, double obj_scale) {
+    return build_subproblem(model, eval_nlp(model, x), x, lambda_e, lambda_i, obj_scale);
+}
+
+double predicted_decrease(const QpProblem &qp, const Vec &p) {
+    if (p.size() != qp.n()) {
+        throw std::invalid_argument(fmt::format(
+            "predicted_decrease: p has size {}, expected {} (= qp.n())", p.size(), qp.n()));
+    }
+    const double linear = qp.g.dot(p);
+    const double quadratic = p.dot(qp.H.template selfadjointView<Eigen::Upper>() * p);
+    return -(linear + 0.5 * quadratic);
+}
+
+bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, Index &rows,
+                      Index &bounds) {
+    const Index n = qp.n();
+    const Index mi = qp.mi();
+    rows = 0;
+    bounds = 0;
+
+    seed.x = Vec::Zero(n);
+    seed.bound_state.assign(static_cast<std::size_t>(n), BoundState::kFree);
+    seed.ineq_active.assign(static_cast<std::size_t>(mi), false);
+
+    for (Index j = 0; j < mi; ++j) {
+        if (qp.bi(j) <= feas_tol) { // cI_j(x0) >= -feas_tol
+            seed.ineq_active[static_cast<std::size_t>(j)] = true;
+            ++rows;
+        }
+    }
+    for (Index i = 0; i < n; ++i) {
+        // kAtLower wins a variable that satisfies both tests -- see
+        // SqpOptions::crash_basis for why that choice is arbitrary and
+        // recorded rather than derived.
+        if (qp.lower(i) >= -feas_tol) { // x0(i) - l(i) <= feas_tol
+            seed.bound_state[static_cast<std::size_t>(i)] = BoundState::kAtLower;
+            ++bounds;
+        } else if (qp.upper(i) <= feas_tol) { // u(i) - x0(i) <= feas_tol
+            seed.bound_state[static_cast<std::size_t>(i)] = BoundState::kAtUpper;
+            ++bounds;
+        }
+    }
+    return rows > 0 || bounds > 0;
+}
+
+SqpKkt evaluate_kkt(const AggregateEvalSeam &seam, const NlpEval &ev, const Vec &x,
+                    const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
+    return detail::evaluate_kkt_over(seam.n(), seam.me(), seam.mi(), seam.lower(), seam.upper(), ev,
+                                     x, lambda_e, lambda_i, bound_tol);
+}
+
+bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, double bound_tol) {
+    switch (qs.status) {
+    case QpStatus::kNumericalError:
+    case QpStatus::kMaxIter:
+        break;
+    case QpStatus::kOptimal:
+    case QpStatus::kInfeasible:
+        return false;
+    }
+    if (qs.x.size() != qp.n() || !qs.x.allFinite()) {
+        return false;
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (qs.x(i) < qp.lower(i) - bound_tol || qs.x(i) > qp.upper(i) + bound_tol) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ssn_exit_is_a_usable_step(const SsnResult &res, double fb_tol) {
+    if (res.escape_reason != SsnEscape::kNone || res.status != QpStatus::kOptimal) {
+        return false;
+    }
+    if (res.x.size() == 0 || !res.x.allFinite()) {
+        return false;
+    }
+    return res.tr_violation <= kSsnTrViolationFactor * fb_tol;
+}
+
+QpSolution ssn_result_to_qp_solution(const SsnResult &res) {
+    QpSolution qs;
+    qs.status = QpStatus::kOptimal;
+    qs.x = res.x;
+    qs.lambda_e = res.lambda_e;
+    qs.lambda_i = res.lambda_i;
+    qs.z = res.z;
+    qs.bound_state = res.bound_state;
+    qs.ineq_active = res.ineq_active;
+    qs.tr_active = res.tr_active;
+    qs.counters.factorizations = res.factorizations;
+    qs.counters.symbolic_analyses = res.symbolic_analyses;
+    return qs;
+}
+
+SsnStart ssn_start_from_qp_seed(const QpSolution *seed) {
+    SsnStart start;
+    if (seed == nullptr) {
+        return start;
+    }
+    start.lambda_e = seed->lambda_e;
+    start.lambda_i = seed->lambda_i;
+    start.z = seed->z;
+    start.activity_hint.ineq = seed->ineq_active;
+    start.activity_hint.bounds = seed->bound_state;
+    return start;
+}
+
+double ssn_fb_tol_for(double kkt_tol, double feas_tol) {
+    return ssn_fb_tol_from_kkt_tol(std::min(kkt_tol, feas_tol));
+}
+
+void charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res) {
+    total.factorizations += res.factorizations;
+    total.symbolic_analyses += res.symbolic_analyses;
+}
+
+void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refined,
+                                    Index &ssn_budget_charge) {
+    total.factorizations += refined.counters.factorizations;
+    total.eqp_refine_steps += refined.counters.eqp_refine_steps;
+    total.ssn.ssn_refine_factorizations += refined.counters.factorizations;
+    ++total.ssn.ssn_refine_refused;
+    ssn_budget_charge += refined.counters.factorizations;
+}
+
+void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) {
+    total.ssn_iters += one.ssn_iters;
+    total.ssn_bulk_flips += one.ssn_bulk_flips;
+    total.ssn_backtracks += one.ssn_backtracks;
+    total.ssn_prox_updates += one.ssn_prox_updates;
+    total.ssn_escapes += one.ssn_escapes;
+    total.ssn_refinements += one.ssn_refinements;
+    total.ssn_refine_refused += one.ssn_refine_refused;
+    // The two instrument-counter pairs are driver-scale for exactly the
+    // reason the refinement pair is, and are folded here for the same reason:
+    // no SsnResult ever carries a nonzero one, so these lines are inert on
+    // the per-subproblem call and correct on the restoration fold.
+    total.ssn_refine_factorizations += one.ssn_refine_factorizations;
+    total.ssn_refine_neg_duals += one.ssn_refine_neg_duals;
+    // The escape-reason census. Five of the six sum from the engine's own
+    // writes; `ssn_escape_gate_refused` is driver-scale and is summed here for
+    // the same reason the refinement pair above is.
+    total.ssn_escape_budget += one.ssn_escape_budget;
+    total.ssn_escape_singular += one.ssn_escape_singular;
+    total.ssn_escape_no_contraction += one.ssn_escape_no_contraction;
+    total.ssn_escape_infeasible_suspect += one.ssn_escape_infeasible_suspect;
+    total.ssn_escape_indefinite += one.ssn_escape_indefinite;
+    total.ssn_escape_gate_refused += one.ssn_escape_gate_refused;
+    total.ssn_uncertain_peak = std::max(total.ssn_uncertain_peak, one.ssn_uncertain_peak);
+}
 
 SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
 
