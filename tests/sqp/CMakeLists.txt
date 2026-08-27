@@ -41,6 +41,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_kkt_partial_solve.cpp
     test_ledger.cpp
     test_mesh_transfer.cpp
+    test_nlp_kkt_check.cpp
     test_nlp_model.cpp
     test_parametric_families.cpp
     test_predictor.cpp
