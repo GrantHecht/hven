@@ -31,11 +31,9 @@
 //      built, so a solve started at a solution returns kOptimal having solved
 //      zero QPs (counters.major_iters == 0). This ordering is KLV Algorithm
 //      2's own "if ||d|| = 0 then acceptable <- true // KKT point found"
-//      short-circuit, which runs AHEAD of the acceptance test; globalization.h
-//      says so explicitly and declines to test it, so it must live here. A
-//      NON-FINITE iterate is detected here too -- see evaluate_kkt's note on
-//      why that check must be explicit rather than left to the residual
-//      arithmetic.
+//      short-circuit, which runs AHEAD of the acceptance test. A NON-FINITE
+//      iterate is detected here too -- see evaluate_kkt's note on why that
+//      check must be explicit.
 //   2. MAX-ITER TEST. opts.max_iter bounds SUBPROBLEMS SOLVED (a rejected
 //      trial costs one). The budget is SHARED with the restoration phase, so
 //      the bounded quantity is counters.major_iters +
@@ -59,119 +57,88 @@
 //      RESTORE -> the RESTORATION PHASE; see that note.
 //      A subproblem that FAILED but returned a usable iterate is routed the
 //      same way a kReject is -- see there. SOC is NEVER attempted on that
-//      route: there is no certified step to correct (see SECOND-ORDER
-//      CORRECTION).
+//      route: there is no certified step to correct.
 //
 // --- RADIUS MANAGEMENT ---------------------------------------------------
 //
-// PORTED FROM STANDARD TRUST-REGION PRACTICE, not from [KLV]: the paper's
-// Algorithm 3 leaves the constants unstated, so the three below are the
-// classical ones -- Conn, Gould & Toint, "Trust-Region Methods" (MPS-SIAM
-// Series on Optimization, 2000), Algorithm BTR (Sec. 6.1) and its Table
-// 6.1.1: a very-successful threshold eta_2 = 0.75, an expansion factor
-// gamma_2 = 2 and a contraction factor gamma_1 = 0.5. They are named
-// constants below so a future re-derivation has one place to edit.
+// PORTED FROM STANDARD TRUST-REGION PRACTICE, not from [KLV]: the three
+// constants are the classical ones -- Conn, Gould & Toint, "Trust-Region
+// Methods" (MPS-SIAM, 2000), Algorithm BTR (Sec. 6.1) and Table 6.1.1: a
+// very-successful threshold eta_2 = 0.75, an expansion factor gamma_2 = 2 and
+// a contraction factor gamma_1 = 0.5. They are named constants below.
 //
 //   GROW: Delta <- min(2*Delta, tr_max), but ONLY when BOTH
 //         (i) the radius was ACTIVE at the accepted step (QpSolution::
-//             tr_active anywhere -- growing a radius the step did not even
-//             reach buys nothing and only weakens the next model), and
+//             tr_active anywhere), and
 //         (ii) the step was STRONG: actual/predicted >= kTrGrowThreshold,
-//             with the predicted decrease positive. The ratio is the
-//             classical rho, here on f itself and its QP model. On an h-TYPE
-//             accepted step (KLV Eq. (12)) f may legitimately RISE, so rho is
-//             negative and the radius does not grow: that is deliberate --
-//             the objective model demonstrably did not describe that step, so
-//             there is no evidence for trusting it further.
+//             with the predicted decrease positive. On an h-TYPE accepted
+//             step (KLV Eq. (12)) f may legitimately RISE, so rho is negative
+//             and the radius does not grow.
 //   SHRINK: Delta <- Delta/2 on every kReject, and the SAME subproblem is
 //         re-solved. Nothing else about the iterate changes.
 //
 // THE SHRINK FACTOR IS COUPLED TO globalization.h's kRestoreMinRejections,
-// which is DERIVED from this one (4 = ceil(log2(10)) at a factor of 1/2, so
-// the gate opens only after the radius has fallen by more than an order of
-// magnitude). The derivation lives at that constant; CHANGING EITHER CONSTANT
-// ALONE CHANGES WHAT THE RESTORATION SIGNATURE MEANS.
+// which is DERIVED from this one (4 = ceil(log2(10)) at a factor of 1/2). The
+// derivation lives at that constant; CHANGING EITHER CONSTANT ALONE CHANGES
+// WHAT THE RESTORATION SIGNATURE MEANS.
 //
 // THE RADIUS FLOOR, SqpOptions::tr_min. A shrink that would take Delta below
 // the floor does NOT clamp and re-solve -- it RAISES A RESTORATION REQUEST.
 // This is KLV Algorithm 4's "alpha < alpha_min" trigger in its trust-region
 // form, one of the paper's two AUTHORITATIVE restoration entries (the other,
 // Algorithm 5's infeasible subproblem, is the elastic tier's exhaustion). The
-// floor is not a safety net for a runaway loop -- max_iter already bounds
-// that -- it is a DIAGNOSIS: a radius that small means every direction the
-// model can still see has been tried and rejected, which is a statement about
-// the point, not about the budget.
+// floor is a DIAGNOSIS, not a runaway guard (max_iter already bounds that): a
+// radius that small means every direction the model can still see has been
+// tried and rejected.
 //
 // WHAT A SHRINK FROM +inf DOES: at tr_init = +inf the first rejection lands
-// the radius on tr_max, and every subsequent one halves normally (before that
-// rule existed, inf/2 was inf and a +inf solve could only reject forever).
-// tr_max is the landing value because it is ALREADY the caller's stated
-// ceiling on the radius, so a radius that has to become finite has exactly
-// one value the option set already says is admissible. The growth rule is
-// still skipped while Delta is +inf -- min(inf*2, tr_max) would REDUCE it --
-// so this is the only way a +inf solve acquires a finite radius.
+// the radius on tr_max, and every subsequent one halves normally. tr_max is
+// the landing value because it is ALREADY the caller's stated ceiling. The
+// growth rule is still skipped while Delta is +inf -- min(inf*2, tr_max)
+// would REDUCE it -- so this is the only way a +inf solve acquires a finite
+// radius.
 //
 // CGT'S eta_1 SHRINK-ON-WEAK-ACCEPT BRANCH IS DELIBERATELY NOT PORTED: here
-// ACCEPTANCE IS THE FUNNEL'S, and an h-type acceptance legitimately has rho <
-// 0, so eta_1 would shrink the radius on exactly the steps KLV's proof relies
-// on, after the strategy vouched for them; the growth rule's own conjunct
-// already withholds reward from a weak step. The cost of leaving it out is
-// that a sequence of weak-but-accepted steps keeps a too-large radius until
-// the funnel's next rejection corrects it, one halving at a time.
+// ACCEPTANCE IS THE FUNNEL'S, and an h-type acceptance legitimately has
+// rho < 0, so eta_1 would shrink the radius on exactly the steps KLV's proof
+// relies on. The cost of leaving it out is that a sequence of weak-but-
+// accepted steps keeps a too-large radius until the funnel's next rejection
+// corrects it, one halving at a time.
 //
 // --- MODEL EVALUATION, AND WHAT A REJECTED TRIAL COSTS --------------------
 //
-// Globalization has to look before it leaps: the funnel judges f and h AT THE
-// TRIAL POINT, so every trial costs one model evaluation there. On an
-// ACCEPTANCE that evaluation is not thrown away -- it becomes the next
-// iterate's NlpEval, and the convergence test at the top of the next trial
-// reuses it. So an accepted step costs one full eval_nlp per iterate plus one
-// eval_hess per subproblem built.
+// The funnel judges f and h AT THE TRIAL POINT, so every trial costs one
+// model evaluation there. On an ACCEPTANCE that evaluation becomes the next
+// iterate's NlpEval and the next trial's convergence test reuses it: an
+// accepted step costs one full eval_nlp per iterate plus one eval_hess per
+// subproblem built.
 //
-// A REJECTED trial no longer costs a wasted eval_nlp: the funnel's own judge()
-// reads only f/h (StepContext, globalization.h), never a gradient or a
-// Jacobian, so the trial is evaluated through eval_nlp_values (nlp_model.h's
-// eval_values, this header's own values-only companion to eval_nlp) instead,
-// and STAYS values-only for the rest of that trial's life if the verdict is a
-// reject (or a restore, or an accept that arrived via a promoted SOC
-// correction at a DIFFERENT point). The one case that still needs the
-// derivatives -- a DIRECT acceptance, where this same NlpEval becomes the next
-// iterate's `ev` -- upgrades it in place (upgrade_to_full) the moment that is
-// known, rather than recomputing f/cE/cI a second time. build_subproblem is
-// unchanged; only the three call sites that judge or hash a point without ever
-// building a subproblem from it switched. SqpCounters::evals_full/evals_values
-// is the ledger of which happened; see that struct's own note and
-// tests/sqp/test_sqp_driver.cpp's SqpDriverEvalEconomics battery for the measured
-// reduction on a rejection-heavy fixture.
+// A REJECTED trial costs no full eval_nlp: judge() reads only f/h
+// (StepContext, globalization.h), so the trial is evaluated through
+// eval_nlp_values and STAYS values-only for the rest of that trial's life on
+// a reject, a restore, or an accept that arrived via a promoted SOC
+// correction at a DIFFERENT point. A DIRECT acceptance -- where this same
+// NlpEval becomes the next iterate's `ev` -- upgrades it in place
+// (upgrade_to_full) rather than recomputing f/cE/cI.
+// SqpCounters::evals_full/evals_values is the ledger of which happened.
 //
 // THE ONE eval_hess THIS ACCOUNTING DOES NOT COVER: a solve that exits WITHOUT
 // EVER BUILDING A SUBPROBLEM (converged at its start point, or spent a zero
 // budget) pays ONE eval_hess in make_warm_start, to hash the model's sparsity
-// for the hand-off it emits -- see that function's THE ZERO-MAJOR PROBE note
-// for why it is paid and what it buys. It is the ONLY eval_hess a zero-major
-// solve makes, and a solve that built even one subproblem never makes it, so
-// the two cases are disjoint and the total is bounded by max(1, subproblems
-// built). The third qp_built == false exit (an unevaluable start point) pays
-// nothing: it is not probed at all (THE UNEVALUABLE EXIT).
+// for the hand-off it emits -- see that function's THE ZERO-MAJOR PROBE note.
+// A solve that built even one subproblem never makes it, so the total is
+// bounded by max(1, subproblems built). The third qp_built == false exit (an
+// unevaluable start point) pays nothing (THE UNEVALUABLE EXIT).
 //
 // A rejected trial costs NO eval_hess: the subproblem is not rebuilt. This
-// still holds when SOC is attempted: SOC never calls eval_hess, and its
-// rhs-shift construction (build_soc_subproblem) reads ONLY quantities already
-// in hand -- see the SECOND-ORDER CORRECTION note's own cost accounting for
-// what SOC DOES add.
+// still holds when SOC is attempted -- SOC never calls eval_hess, and
+// build_soc_subproblem reads only quantities already in hand.
 //
-// ONE MORE MODEL-EVALUATION COST, from SOC: whenever an SOC re-solve itself
-// reaches kOptimal (qs_soc.status -- NOT on every attempt; the majority of
-// attempts return kInfeasible and pay nothing further), the driver pays one
-// evaluation at the corrected point (to judge it and, on acceptance, to seed
-// the next iterate's `ev`). That evaluation is VALUES-ONLY TOO, for exactly
-// the same reason as the plain trial: judging soc_ctx never reads a
-// derivative, and most re-solves that do reach kOptimal still have their
-// corrected point rejected by the funnel (measured: 6 of 7 in this file's own
-// suite), so that evaluation used to be a wasted FULL eval_nlp and is now a
-// wasted values-only one -- upgraded to full only on the minority that gets
-// promoted. It is paid regardless, because judging the corrected point is the
-// only way to find out.
+// ONE MORE MODEL-EVALUATION COST, from SOC: whenever an SOC re-solve reaches
+// kOptimal (not on every attempt), the driver pays one evaluation at the
+// corrected point, to judge it and, on acceptance, to seed the next iterate's
+// `ev`. That evaluation is VALUES-ONLY too, upgraded to full only if the
+// corrected point is promoted.
 //
 // --- CONVERGENCE TEST (THE CONTRACT) ------------------------------------
 //
@@ -197,15 +164,12 @@
 // BOUND-MULTIPLIER SIGN CONSISTENCY residual at the active ones. Equivalently
 // it is the classical projected-gradient residual
 // ||x - clamp(x - gL, l, u)||inf wherever that quantity does not saturate
-// against the box, and unlike that form it does not saturate, which matters
+// against the box, and unlike that form it does not saturate -- which matters
 // because this same scalar is what the contraction test reads.
 //
 // feas_tol IS DELIBERATELY REUSED as the activity tolerance rather than
 // introducing a third knob: a variable is "on" a bound exactly when the
-// primal feasibility measure could not tell it from being on the bound, so a
-// separate tolerance could only ever create a window in which a point is
-// simultaneously feasible-at-a-bound and stationary-as-if-free (or the
-// reverse).
+// primal feasibility measure could not tell it from being on the bound.
 //
 //     feasibility := max( ||cE(x)||inf,
 //                         max_j max(0, cI_j(x)),
@@ -213,12 +177,9 @@
 //
 // The bound term is NOT redundant, though it is inert on most rows: the
 // subproblem's box is l - x .. u - x, so every iterate the driver PRODUCES is
-// inside the bounds by construction and the term is zero there up to
-// rounding. It is the CALLER-SUPPLIED x0 that can violate a bound -- solve()
-// does not clamp it -- and then history[0] reports that violation honestly
-// instead of claiming feasibility. (Measured: HS5 started at (10, -9),
-// outside its [-1.5,4] x [-3,3] box, records feasibility = 6 on the first
-// row; the first step pulls x into the box and it is zero from row 1 on.)
+// inside the bounds by construction. It is the CALLER-SUPPLIED x0 that can
+// violate a bound -- solve() does not clamp it -- and then history[0] reports
+// that violation honestly instead of claiming feasibility.
 //
 // CONVERGED := stationarity <= kkt_tol AND feasibility <= feas_tol.
 //
@@ -235,69 +196,33 @@
 // multiplier against a slowly vanishing step) without adding information the
 // stationarity/feasibility pair does not already carry.
 //
-// WHICH KERNEL THAT IDENTITY BELONGS TO, AND WHAT MAKES IT TRUE IN THE OTHER
-// ONE. The identity above is a property of an ACTIVE-SET solve and of nothing
-// else: a row outside the working set is simply ABSENT from the KKT system,
-// so its price is zero to machine precision, and a row inside it is driven to
-// Ai_j p = bi_j. Both halves are exact by construction. Per mode:
-//
-//   qp_mode == kWalk. The identity holds VERBATIM: the walk IS that
-//     active-set solve; nothing below changes for it.
-//
-//   qp_mode == kSsn. The semismooth kernel stops when its Fischer-Burmeister
-//     residual is under `fb_tol`, which is a DIFFERENT statement: phi(a, b)
-//     is approximately min(a, b) up to a bounded factor, so |phi| <= fb_tol
-//     certifies min(s_j, lambda_j) = O(fb_tol) and therefore
-//
-//         s_j * lambda_j  =  min * max  <=  O(fb_tol * ||lambda||inf),
-//
-//     an additive term that does NOT vanish with the step -- the same shape as
-//     THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY's tolerance-scaled bound
-//     below, and for the same underlying reason (an absolute tolerance against
-//     an unbounded multiplier scale). Measured, before the tier-3 refinement
-//     existed: 6.311e-01 on a row with ||lambda||inf = 1e6 at fb_tol = 1e-6,
-//     against a walk reading of 1.0e-04 on the identical fixture.
-//
-//     WHAT RESTORES IT is not a tolerance but THE TIER-3 STABLE-FACE
-//     REFINEMENT: every certifying SSN exit hands its identified face to
-//     QpEngine::refine_on_face for ONE EXACT equality-constrained solve, whose
-//     answer satisfies the identity by construction because that solve IS the
-//     active-set solve this paragraph is written about. On the fixture above
-//     the refined arm reads 1.0000e-04 -- the walk's own value to five figures
-//     (tests/sqp/test_b1_gate.cpp,
-//     KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined).
-//
-//     THE HONEST RESIDUE, stated rather than elided: the refinement can be
-//     REFUSED (a face of deficient rank, a failed inertia gate, or a refined
-//     point outside the subproblem's own box / trust region / inactive rows).
-//     A subproblem whose refinement was refused is back on the fb_tol bound
-//     above, and `SqpCounters::ssn::ssn_refine_refused` is how a reader knows
-//     how often that happened. On the 27-problem HS corpus 24 of 27 problems
-//     take at least one refinement and 12 of 27 have at least one refusal, and
-//     every one of the 27 passes the model-level KKT self-check at 1e-6
-//     including complementarity.
+// WHICH KERNEL THAT IDENTITY BELONGS TO. It is a property of an ACTIVE-SET
+// solve and of nothing else: a row outside the working set is ABSENT from the
+// KKT system, so its price is zero to machine precision, and a row inside it
+// is driven to Ai_j p = bi_j. At qp_mode == kWalk it holds VERBATIM. At kSsn
+// the FB kernel supplies only min(s_j, lambda_j) = O(fb_tol), whose product
+// form carries an additive fb_tol * ||lambda||inf that does NOT vanish with
+// the step; what restores the identity is TIER 3: THE STABLE-FACE REFINEMENT
+// (below, in this file), and what a REFUSED refinement costs is stated there.
 //
 // THAT ARGUMENT IS SUBPROBLEM-SCOPED, AND IT IS VACUOUS AT EXACTLY ONE PLACE
 // -- see THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY below, which
 // REPLACES it there with a geometric bound of the same family as the
 // bound-activity treatment above (a tolerance-scaled bound, not this
-// step-vanishing one -- that section says so explicitly).
+// step-vanishing one).
 //
 // --- THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY ---------------------
 //
 // THE DEFECT THIS REPAIRS. A warm ingest seeds lambda_e/lambda_i FROM A SOLVE
 // OF A DIFFERENT PROBLEM (solve_impl's WARM-START INGEST), and the
-// convergence test above runs at the TOP of the major loop -- before any
-// subproblem of THIS solve exists. The O(||lambda_i|| ||p||) argument above is
-// an identity about THE SUBPROBLEM'S OWN complementarity, so at that first
-// test there is no subproblem for it to be about and it says nothing at all.
-// Consequence, measured: when a previously ACTIVE inequality goes STRICTLY
-// SLACK at the new parameter while its stale, strictly positive multiplier
-// still zeroes gL at the old point, both gated quantities pass and the solve
-// returns kOptimal IN ZERO MAJORS at a point that is not a KKT point of the
-// problem it was asked to solve (HS10 warm from p = 0 to p = 0.5:
-// stationarity 4.2e-08, feasibility 0, COMPLEMENTARITY 0.25, objective 18 %
-// from truth).
+// convergence test runs at the TOP of the major loop -- before any subproblem
+// of THIS solve exists. The O(||lambda_i|| ||p||) argument above is an
+// identity about THE SUBPROBLEM'S OWN complementarity, so at that first test
+// there is no subproblem for it to be about and it says nothing at all.
+// Without a repair, a previously ACTIVE inequality that goes STRICTLY SLACK
+// at the new parameter, while its stale positive multiplier still zeroes gL
+// at the old point, passes both gated quantities and certifies kOptimal in
+// zero majors at a non-KKT point.
 //
 // THE REPAIR, in one sentence: ON A WARM (or hot) INGEST, AND ONLY THERE, ANY
 // INGESTED lambda_i(j) WHOSE ROW IS NOT GEOMETRICALLY ACTIVE AT THE INGESTED x
@@ -307,11 +232,7 @@
 //     lambda_i(j) <- 0                     whenever it is not.
 //
 // This is the SAME TEST, WITH THE SAME TOLERANCE, that the reduced
-// stationarity measure above already applies to BOUNDS: at_lower/at_upper
-// decide activity BY DISTANCE, and a bound that goes slack under a parameter
-// change therefore cannot be masked by a stale z. General inequality rows are
-// the one part of the KKT test that had no such handling -- lambda_i enters
-// gL unconditionally and cI_j's slackness was never tested against it.
+// stationarity measure above already applies to BOUNDS.
 //
 // WHAT IT MAKES TRUE, AND EXACTLY WHAT IT DOES NOT. After the clear, the
 // ingested (x, lambda_e, lambda_i) satisfies complementarity BY CONSTRUCTION,
@@ -321,132 +242,62 @@
 //     max_j |lambda_i(j) cI_j(x)| <= feas_tol * ||lambda_i||inf.
 //
 // **THAT IS A TOLERANCE-SCALED BOUND, NOT THE ONE IT REPLACES.** The vacated
-// argument above bounded the same quantity by O(||lambda_i|| ||p||), which
-// VANISHES WITH THE STEP; this one does not vanish with anything -- it is
-// proportional to ||lambda_i||, exactly as the bound term's own
-// sign-consistency residual is. Measured, on a fixture whose objective is
-// scaled by s with the row released by 0.9 * feas_tol: at ||lambda_i|| = 1e3
-// a zero-major warm certificate carries complementarity 9.0e-4 against
-// kkt_tol = 1e-6. The PRIMAL error stays bounded by feas_tol regardless of
-// that scaling, which is the defensible reading and is precisely the standard
-// this header already holds the bound term to.
+// argument bounded the same quantity by O(||lambda_i|| ||p||), which VANISHES
+// WITH THE STEP; this one is proportional to ||lambda_i||, exactly as the
+// bound term's own sign-consistency residual is. The PRIMAL error stays
+// bounded by feas_tol regardless of that scaling.
 //
 // ON THE FOUR KKT CONDITIONS, ITEMIZED. At the ingested point the driver
 // stands in this position:
 //
 //   stationarity     GATED (kkt_tol), and it is what the clear un-masks.
 //   primal feasib.   GATED (feas_tol).
-//   complementarity  NOT gated, and does not need to be: established BY
-//                    CONSTRUCTION by the clear, to the bound above.
-//   DUAL FEASIBILITY NOT restored by the clear and NOT GATED ANYWHERE.
+//   complementarity  NOT gated by this clear alone: established BY
+//                    CONSTRUCTION to the bound above, and then GATED
+//                    separately -- see the next note.
+//   DUAL FEASIBILITY NOT restored by the clear and NOT GATED at kWarm/kHot.
 //     (lambda_i >= 0) evaluate_kkt folds a sign-consistency residual into the
 //                    reduced stationarity measure for BOUNDS only; a general
 //                    inequality row enters grad_lag unconditionally and is
 //                    never sign-tested. **IT IS AN INGEST PRECONDITION, NOT A
 //                    GUARANTEE** -- warm_start.h's SIGN CONVENTIONS paragraph
-//                    states lambda_i >= 0 as part of what a WarmStart IS, and
-//                    everything below leans on the caller honouring it.
+//                    states lambda_i >= 0 as part of what a WarmStart IS.
 //
-// THE CONSEQUENCE OF VIOLATING THAT PRECONDITION, stated because a reader who
-// hand-assembles a WarmStart deserves to know it. On
-// `min x  s.t.  cI1 = x <= 0, cI2 = -x - 1 <= 0` (n = 1, no bounds, true
-// solution x = -1, f = -1), a hand-built warm object at x = 0 carrying
-// lambda_i = (-1, +0.5) -- a CONTRACT-VIOLATING negative price on the active
-// row plus a stale positive price on the strictly slack one -- returns
-// kOptimal in ZERO majors at f = 0, a 100 %-wrong answer, BECAUSE the clear
-// removed the +0.5 that had been breaking stationarity. Three things scope
-// this and none of them excuses it:
-//   - the input is out of contract. What each producer actually does:
-//       * from_interior_point (warm_start.h) COPIES THE CALLER'S lambda_i
-//         VERBATIM. Its dual_tol sign filter governs only WORKING-SET
-//         MEMBERSHIP -- a row with lambda_i(j) <= dual_tol is left out of
-//         ineq_active/qp_working_set, and its PRICE is carried into the
-//         object unchanged. So a crossover from an interior-point solve that
-//         has not fully converged is a LIVE PRODUCER of a negative price, and
-//         tests/sqp/test_warm_start.cpp's WarmStart.CrossoverWrongSignDualLeaves-
-//         RowFree constructs exactly one (lambda_i = -1e-8 against a slack of
-//         -1e-9, i.e. GEOMETRICALLY ACTIVE -- so the clear does not touch it).
-//       * the predictor's ratio test admits a negative lambda_i only within
-//         kDualSignTol * max(1, |lambda|) = 1e-9 relative.
-//       * mesh_transfer ingests at kSeeded, and at that level THE SEEDED DUAL
-//         CLAMP gates the sign -- so this route cannot deliver an ungated
-//         negative price either.
-//       * every SqpDriver exit is non-negative, though not all for the same
-//         reason: an exit that solved a subproblem carries QP-priced duals; a
-//         ZERO-MAJOR exit re-emits the ingested duals as cleared by this very
-//         block; and a restoration exit carries the sub-solve's own
-//         subgradient selectors. None of the three can go negative.
-//     So the producible magnitude is bounded by the sign violation a producer
-//     can commit -- 1e-9 relative for the predictor (whose output reaches the
-//     clear via solve(), since predict() carries structure_hash forward), and
-//     for the crossover whatever residual sign noise the caller's IP solver
-//     hands over (1e-8 in the shipped fixture). Orders below kkt_tol in both
-//     cases;
-//   - the failure class is NOT NEW: the identical false certificate is
-//     reachable without the clear at all from the adjacent input
-//     lambda_i = (-1, 0). The hole is the ungated dual-sign condition; the
-//     clear widens the set of malformed inputs that land in it;
-//   - the magnitude is bounded by the size of the sign violation.
-// A DRIVER-SIDE `lambda_i >= 0` VALIDATION AT INGEST closes this outright and
-// is cheap: IT EXISTS AS THE SEEDED DUAL CLAMP (this header's note of that
-// name, below). WHAT IS AND IS NOT CLOSED:
-//   - AT kSeeded the condition is GATED. A negative price within
-//     kSeededDualClampTol is clamped to zero and counted; a larger one degrades
-//     the object to kCold.
-//   - AT kWarm AND kHot it remains an INGEST PRECONDITION, deliberately so:
+// THE CONSEQUENCE OF VIOLATING THAT PRECONDITION: a hand-assembled WarmStart
+// carrying a negative price on an active row plus a stale positive price on a
+// strictly slack one can certify kOptimal in zero majors at a wrong answer,
+// because the clear removes the term that had been breaking stationarity. The
+// failure class is not new -- the identical false certificate is reachable
+// without the clear from an adjacent malformed input -- and the magnitude is
+// bounded by the size of the sign violation, which no shipped producer can
+// make large. WHAT IS AND IS NOT CLOSED:
+//   - AT kSeeded the condition is GATED (THE SEEDED DUAL CLAMP, below).
+//   - AT kWarm AND kHot it remains an INGEST PRECONDITION, deliberately:
 //     those levels are hash-gated, and every producer that can clear a hash
 //     gate is non-negative (every SqpDriver exit) or bounded by 1e-9 relative
-//     (the predictor). Widening the clamp there would move pinned trajectories
-//     for a defect no shipped producer can reach.
+//     (the predictor).
 //
-// So: (stationarity, feasibility) is once again a complete test OF THE THREE
+// So (stationarity, feasibility) is once again a complete test OF THE THREE
 // CONDITIONS THE DRIVER OWNS at that point, given a WarmStart that honours its
-// own sign convention. Two things follow:
-//   (1) THE FALSE CERTIFICATE IS GONE. In the HS10 instance the cleared
-//       multiplier stops cancelling grad f, stationarity reads 1.0 against
-//       kkt_tol, the solve does not converge at iter 0 and the sweep moves.
-//   (2) A CERTIFICATE THAT SURVIVES IS REPAIRED RATHER THAN MERELY ALLOWED.
-//       Where clearing the multiplier does NOT move stationarity (a released
-//       row whose constraint gradient is ~0 at x), the zero-major kOptimal is
-//       CORRECT and the quadruple this driver returns is the self-consistent
-//       one: lambda_i(j) = 0 on the slack row is the multiplier the KKT
-//       system actually asks for there. A pure GATE would instead refuse to
-//       certify a genuine KKT point and spend majors rediscovering it.
+// own sign convention. Where clearing the multiplier does NOT move
+// stationarity, the zero-major kOptimal is CORRECT and the quadruple returned
+// is the self-consistent one; a pure GATE would instead refuse to certify a
+// genuine KKT point. NO NEW TOLERANCE KNOB, deliberately: a row is "on" its
+// boundary exactly when the primal feasibility measure could not tell it from
+// being on the boundary.
 //
-// NO NEW TOLERANCE KNOB, deliberately: a row is "on" its boundary exactly when
-// the primal feasibility measure could not tell it from being on the boundary.
-// A separate constant could only create a window in which a row is
-// simultaneously feasible-as-if-active and priced-as-if-slack. feas_tol does
-// the double duty here for the same reason it does it there. WHY NOT THE OTHER
-// REPAIR OPTIONS: "gate the first convergence test on complementarity" needs a
-// tolerance nobody has derived and is the wrong scope anyway -- a solve whose
-// first trial is REJECTED re-enters the loop at the SAME x with the SAME
-// ingested multipliers, so the hole reopens at iter 1 unless the gate tracks
-// whether a subproblem has re-priced the duals yet; "ingest x but not the
-// multipliers" forfeits every legitimate zero-major hand-off; "require
-// major_iters >= 1" forfeits the same feature outright and certifies nothing
-// extra.
-//
-// WHAT IT COSTS, stated rather than waved at:
-//   * IT CHANGES WarmStart INGEST SEMANTICS: the ingested duals are no longer
-//     used verbatim. warm_start.h says so at the field. A caller that hands
-//     back an object it built itself (from_interior_point, a hand-assembled
-//     WarmStart) now has its slack-row prices dropped.
-//   * IT IS NOT TRAJECTORY-NEUTRAL WHERE IT BINDS. The cleared multiplier also
-//     leaves the FIRST subproblem's Lagrangian Hessian, so a warm solve that
-//     releases a row takes a different first step than it did before. That is
-//     the intended blast radius and it is bounded exactly: the clear is a
-//     no-op unless some ingested lambda_i(j) is nonzero on a row that is
-//     strictly slack at the ingested x, so COLD solves (lambda = 0), models
-//     with mi() == 0, and warm solves whose active set survives the parameter
-//     move are all BIT-IDENTICAL. Dropping curvature contributed by a
-//     constraint that is not active is the right direction on its own terms.
-//   * IT DOES NOT TOUCH THE SEEDED WORKING SET. warm.qp_working_set may still
-//     nominate the released row, and that is left alone deliberately: an
-//     active-set seed is a GUESS with its own correction mechanism (the engine
-//     prices it and pivots it out, and qp_engine.h's WINDOW-CONSISTENCY RULE
-//     drops what no longer fits), whereas a multiplier is DATA that the
-//     convergence test reads and acts on directly.
+// WHAT IT COSTS. It CHANGES WarmStart INGEST SEMANTICS -- the ingested duals
+// are no longer used verbatim, and warm_start.h says so at the field. It is
+// NOT TRAJECTORY-NEUTRAL WHERE IT BINDS, since the cleared multiplier also
+// leaves the FIRST subproblem's Lagrangian Hessian; the blast radius is
+// bounded exactly, because the clear is a no-op unless some ingested
+// lambda_i(j) is nonzero on a row that is strictly slack at the ingested x, so
+// COLD solves, models with mi() == 0, and warm solves whose active set
+// survives the parameter move are all BIT-IDENTICAL. It DOES NOT TOUCH THE
+// SEEDED WORKING SET: an active-set seed is a GUESS with its own correction
+// mechanism (the engine prices it out, and qp_engine.h's WINDOW-CONSISTENCY
+// RULE drops what no longer fits), whereas a multiplier is DATA the
+// convergence test reads and acts on.
 //
 // The clear is O(mi) and costs NO model evaluation: it reads the NlpEval the
 // loop is about to take at the ingested x anyway.
@@ -454,30 +305,18 @@
 // --- THE INGESTED CERTIFICATE IS GATED ON COMPLEMENTARITY -----------------
 //
 // THE HOLE THE CLEAR DOES NOT CLOSE, and it is a WRONG-ANSWER hole rather than
-// a quality one. The clear establishes complementarity BY CONSTRUCTION only to
-// the TOLERANCE-SCALED bound stated above,
+// a quality one. The clear establishes complementarity only to the
+// TOLERANCE-SCALED bound stated above,
 //
 //     max_j |lambda_i(j) cI_j(x)| <= feas_tol * ||lambda_i||inf,
 //
-// and that bound's RIGHT-HAND SIDE IS UNBOUNDED IN ||lambda_i||, so an ingest
-// whose surviving price is large enough turns "within feas_tol of the boundary"
+// whose RIGHT-HAND SIDE IS UNBOUNDED IN ||lambda_i||. An ingest whose
+// surviving price is large enough turns "within feas_tol of the boundary"
 // into an arbitrarily large complementarity residual -- and, because that
-// residual is (to first order) the objective the solve gives up by not moving
-// onto the row, into an arbitrarily large OBJECTIVE ERROR under a kOptimal
-// certificate. Reproduced (tests/sqp/test_b1_gate.cpp's
-// B1Gate.AScaledStalePriceIsRefusedAtIngest):
-//
-//     min -1e12 x + 1/2 x^2   s.t.  cI = x - 5e-7 <= 0,  x in [-1, 1]
-//     seed x = 0, lambda_i = 1e12
-//
-// At that seed cI = -5e-7 >= -feas_tol, so the row is GEOMETRICALLY ACTIVE and
-// the clear correctly leaves the price alone; gL = -1e12 + 1e12 = 0 exactly, so
-// stationarity is 0; the point is strictly feasible. Both gated quantities pass
-// and the solve returns kOptimal IN ZERO MAJORS at f = 0 where the truth is
-// f = -5.0e5 -- carrying complementarity 5.0e5, exactly one half of the
-// constructive bound feas_tol * ||lambda_i||inf = 1e6. The bound is honoured
-// and the answer is still wrong, which is the whole finding: the bound is not
-// by itself a certificate.
+// residual is to first order the objective given up by not moving onto the
+// row, into an arbitrarily large OBJECTIVE ERROR under a kOptimal
+// certificate. The bound is honoured and the answer is still wrong: the bound
+// is not by itself a certificate.
 //
 // THE GATE. While the multipliers this solve is standing on are still THE
 // INGESTED ONES, the convergence test carries a THIRD conjunct:
@@ -486,85 +325,48 @@
 //
 // THE TOLERANCE IS kkt_tol, ABSOLUTE, AND THAT IS DERIVED RATHER THAN PICKED.
 // max_j |lambda_i(j) cI_j(x)| has the units of the Lagrangian, i.e. of f, and
-// to first order it IS the objective improvement available by taking up row j's
-// remaining slack at the price the certificate itself quotes. kkt_tol is this
-// driver's absolute first-order optimality standard (it gates ||gL||inf, the
-// other first-order quantity), so holding the third residual to the same
-// absolute standard adds no new user-facing knob. **EVERY
-// ||lambda_i||-RELATIVE FORM WAS REJECTED, and the reproduction is why**: it
-// sits at 0.5 * feas_tol * ||lambda_i||inf, i.e. squarely INSIDE the
-// constructive bound, so any threshold proportional to feas_tol *
-// ||lambda_i||inf is blind to it by construction. An IPOPT-style capped
-// scaling (threshold kkt_tol * max(1, ||lambda_i||inf / 100)) does catch this
-// instance, by a factor of 50 -- a margin the same reproduction defeats by
-// moving the slack two orders in. The absolute form rejects the reproduction
-// by eleven orders.
+// to first order it IS the objective improvement available by taking up row
+// j's remaining slack at the price the certificate itself quotes. kkt_tol is
+// this driver's absolute first-order optimality standard, so holding the third
+// residual to the same absolute standard adds no new user-facing knob. EVERY
+// ||lambda_i||-RELATIVE FORM WAS REJECTED: the wrong-answer class sits inside
+// the constructive bound feas_tol * ||lambda_i||inf, so any threshold
+// proportional to it is blind by construction.
 //
 // THE SCOPE IS "UNTIL A SOLVE OF THIS PROBLEM HAS RE-PRICED THE DUALS", not
-// "the first test" and not "every major". Each of the three is a different
-// claim and only the middle-defensible pairing survives:
-//   * FIRST TEST ONLY is wrong-scope: a solve whose first trial is REJECTED
-//     re-enters the loop at the SAME x with the SAME ingested multipliers, so
-//     the hole reopens at iter 1. `duals_ingested` is exactly the second piece
-//     of state that objection says the gate would need.
-//   * EVERY MAJOR would re-litigate the WHAT IS MEASURED BUT NOT GATED
-//     argument, which is SOUND once a subproblem exists -- the subproblem's own
-//     complementarity gives |lambda_i(j) cI_j| = O(||lambda_i|| ||p||), which
-//     vanishes with the step. Gating there adds the failure mode that paragraph
-//     names (a large multiplier against a slowly vanishing step). **AND IT IS
-//     REFUTED BY THE REPRODUCTION ITSELF, not only argued against**: run the
-//     same model at S = 1e6 and the point this driver converges to and
-//     certifies carries complementarity 1.0e-4 -- the QP lands x a few 1e-10
-//     outside a row priced at 1e6 -- which is 100 * kkt_tol. An every-major
-//     gate would refuse the CORRECT answer to the very problem the gate was
-//     added for. The fixture asserts that reading rather than leaving it as
-//     prose.
-//   * SO THE FLAG IS CLEARED WHEREVER A SOLVE OVERWRITES lambda_e/lambda_i:
-//     an accepted step, a SOC-corrected step, a restoration RESUME (where the
-//     multipliers are zeroed) and a restoration EXIT. The resume's clear is
-//     behaviourally inert -- zeroed multipliers make complementarity 0, so the
-//     armed conjunct would pass regardless -- and is there so the invariant
-//     below is literally true rather than merely harmless. It is also CARRIED
-//     BY THE FULL-STEP WATCHDOG's best-iterate record, because a restore can
-//     put the ingested duals back and the gate must come back with them --
-//     without that, a solve could be refused at iter 0 and then certify the
-//     identical (x, lambda) at iter k.
+// "the first test" (a solve whose first trial is REJECTED re-enters the loop
+// at the SAME x with the SAME ingested multipliers, so the hole reopens at
+// iter 1 -- `duals_ingested` is that second piece of state) and not "every
+// major" (which would re-litigate WHAT IS MEASURED BUT NOT GATED, sound once
+// a subproblem exists, and would refuse correct converged answers whose
+// complementarity is legitimately above kkt_tol). SO THE FLAG IS CLEARED
+// WHEREVER A SOLVE OVERWRITES lambda_e/lambda_i: an accepted step, a
+// SOC-corrected step, a restoration RESUME (where the multipliers are zeroed)
+// and a restoration EXIT. It is also CARRIED BY THE FULL-STEP WATCHDOG's
+// best-iterate record, because a restore can put the ingested duals back and
+// the gate must come back with them.
 //
 // COLD SOLVES ARE UNTOUCHED BY CONSTRUCTION: lambda is zero there, so
-// complementarity is 0 and `duals_ingested` is false from the start. A benign
-// warm/hot hand-off is untouched for the same reason the geometric
-// complementarity clear is -- an ingest that certifies has its slack rows
-// zeroed by the clear and its active rows at |c_j| ~ 1e-12, so the product is
-// orders below kkt_tol.
+// complementarity is 0 and `duals_ingested` is false from the start.
 //
 // **THE EXPOSURE IS NAMED RATHER THAN WAVED AT**: the gate DOES refuse a
 // zero-major certificate whenever ||lambda_i||inf is much larger than
 // kkt_tol / feas_tol and some priced row sits at O(feas_tol) rather than at
-// O(1e-12) -- and the S = 1e6 reproduction's own converged point is exactly
-// that shape, carrying complementarity 1.0e-4 = 100 * kkt_tol. Re-ingesting
-// that solution as a warm start is therefore refused its free certificate and
-// pays majors to re-derive it. THE COST IS MAJORS, NEVER ANSWERS, which is the
-// trade this gate exists to make: the alternative on that same class of point
-// is the false certificate the reproduction demonstrates. The INSIDE case -- a
-// residual at or below kkt_tol still buying its zero-major hand-off -- is
-// pinned by TheComplementarityGateBoundaryIsKktTolOnBothSides, and MEASURED
-// BLAST RADIUS: the full suite (476 pre-existing tests, both build types) and
-// `bench_scale --self-check` are byte-identical across the change; the only
-// behaviour that moves is the reproduction's.
+// O(1e-12). Re-ingesting such a solution as a warm start is refused its free
+// certificate and pays majors to re-derive it. THE COST IS MAJORS, NEVER
+// ANSWERS, which is the trade this gate exists to make.
 //
 // REPORTED BOUND MULTIPLIER. SqpSolution::z is the MODEL-IMPLIED multiplier
 // at the returned point -- z(i) = gL(i) at an active bound, 0 at a free
 // variable -- and NOT the subproblem's QpSolution::z. Two reasons, and the
 // first is disqualifying on its own: qp_problem.h's STATIONARITY CAVEAT says
-// the QP's reported z is FORCED TO 0 at a TR-pinned index, so it does not
-// satisfy stationarity there and a caller checking
-// grad f + Je^T le + Ji^T li - z == 0 against it would see a spurious
+// the QP's reported z is FORCED TO 0 at a TR-pinned index, so a caller
+// checking grad f + Je^T le + Ji^T li - z == 0 against it would see a spurious
 // residual exactly when the radius binds. Second, the z above makes the
 // returned quadruple (x, lambda_e, lambda_i, z) a self-consistent
 // certificate: the stationarity measure this file reports IS the inf-norm of
 // gL - z restricted to where that residual is not absorbed by an active
-// bound. lambda_e/lambda_i are carried out from the subproblem unchanged, per
-// the brief.
+// bound. lambda_e/lambda_i are carried out from the subproblem unchanged.
 //
 // --- SUBPROBLEM FAILURE ROUTING ------------------------------------------
 //
@@ -577,31 +379,24 @@
 //                    smaller radius is guaranteed to fail. THE ELASTIC TIER
 //                    OWNS THIS STATUS ENTIRELY and it never reaches the
 //                    routing below at all: the subproblem is REFORMULATED
-//                    ELASTICALLY and re-solved at the SAME radius, which is a
-//                    different question rather than a smaller version of the
-//                    same one.
+//                    ELASTICALLY and re-solved at the SAME radius.
 //   kNumericalError  the engine reached a point it refuses to certify. The
 //                    canonical case is qp_engine.h section 4b's certification
-//                    branch (an indefinite subproblem at a KKT point whose
-//                    reduced Hessian is trustworthily not PSD), which returns
-//                    the final iterate with the multipliers cleared.
+//                    branch, which returns the final iterate with the
+//                    multipliers cleared.
 //   kMaxIter         the engine ran out of minor iterations. Its x is a
 //                    partial, uncertified answer.
 //
-// The last two are properties OF THIS SUBPROBLEM AT THIS RADIUS -- a
-// different Delta is a different box, a different active-set walk and, on the
-// indefinite path, a different set of second-order-inconsistent vertices to
-// get stuck at. So the driver treats such a result exactly as it treats a
-// REJECTED step: Delta shrinks by kTrShrinkFactor, rejections_at_iterate++,
-// the iterate does not move, the SAME QpProblem is re-solved, and the retry
-// is warm-seeded from the failed solve's ACTIVE SET (never its step -- see
-// WARM SEEDING). The step itself is discarded and never judged: the
-// globalization strategy is not consulted, because there is no certified step
-// to judge.
+// The last two are properties OF THIS SUBPROBLEM AT THIS RADIUS. So the driver
+// treats such a result exactly as it treats a REJECTED step: Delta shrinks by
+// kTrShrinkFactor, rejections_at_iterate++, the iterate does not move, the
+// SAME QpProblem is re-solved, and the retry is warm-seeded from the failed
+// solve's ACTIVE SET (never its step -- see WARM SEEDING). The step itself is
+// discarded and never judged: there is no certified step to judge.
 //
 // WHAT MAKES A RESULT USABLE is qp_failure_is_retryable below: a finite
-// iterate, inside the subproblem's box. See there for why that particular
-// test and not a feasibility one.
+// iterate, inside the subproblem's box. See there for why that test and not a
+// feasibility one.
 //
 // THE RETRY IS ONE-SHOT, counted by qp_failures_in_a_row and reset by any
 // solve that reaches kOptimal. A subproblem that fails AGAIN at the shrunken
@@ -611,24 +406,19 @@
 // (map_status still names kInfeasible -> kInfeasible, and that arm is now
 // UNREACHABLE from this path -- the elastic tier consumes every kInfeasible
 // before the routing is reached. The arm is kept because the mapping is a
-// total function on QpStatus.) An unconverged subproblem's x is not a
-// certified step and this driver has no mechanism to take a partial one
-// safely; but the routing changes what the mapping costs: it fires only after
-// a genuine retry at half the radius also failed, which is the pathological
-// case rather than the first sign of trouble.
+// total function on QpStatus.)
 //
 // WHY THE MULTIPLIERS SURVIVE THIS PATH. The failed subproblem's lambda_e/
 // lambda_i are discarded exactly as a rejected step's are (they price a step
 // that was not taken), and on kNumericalError the engine has already zeroed
-// them anyway. The ITERATE's multipliers -- the last accepted step's -- are
+// them. The ITERATE's multipliers -- the last accepted step's -- are
 // untouched, so the retry rebuilds nothing and the Hessian does not move.
 //
 // WHAT THE FUNNEL SEES: rejections_at_iterate IS incremented on a routed
 // failure, so it counts toward globalization.h's kRestoreMinRejections gate
-// (conjunct (e)). That is deliberate, and it is the honest reading of what the
-// counter means: the radius was shrunk at this iterate without any trial
+// (conjunct (e)). The radius was shrunk at this iterate without any trial
 // escaping the funnel, which is exactly the evidence conjunct (e) stands in
-// for. Nothing about (e) requires the shrink to have been caused by a JUDGED
+// for; nothing about (e) requires the shrink to have been caused by a JUDGED
 // trial.
 //
 // THE ONE-SHOT BOUND IS PER FAILURE CHAIN, NOT PER ITERATE. The two counters
@@ -637,23 +427,16 @@
 //     rejections_at_iterate resets only when a step is ACCEPTED --
 // so an ALTERNATING sequence at one iterate (routed failure, judged kReject,
 // routed failure, ...) starts a fresh chain after every successful solve while
-// the rejection count keeps climbing. MEASURED (HS1 from its published start
-// at tr_init = 12 with opts.qp.max_iter = 2, both algebra modes): accept,
-// then kMaxIter-routed at Delta = 12, judged kReject at 6, kMaxIter-routed at
-// 3 -- rejections_at_iterate = 3 = kRestoreMinRejections, of which TWO are
-// routed QP failures rather than judged trials. So a restoration exit may rest
-// on MAJORITY-QP-FAILURE evidence.
-// SqpDriverQpFailure.RoutedFailuresCanFillTheRestorationGate pins the
-// sequence.
+// the rejection count keeps climbing. A restoration exit may therefore rest on
+// MAJORITY-QP-FAILURE evidence.
 //
 // THESE ARE STILL DISTINCT FROM A REJECTED STEP in the history: a kReject
 // verdict means the subproblem SUCCEEDED and its step was not good enough,
-// while a routed failure row carries a non-kOptimal qp_status. Both are
-// radius events; only the former was judged. SqpIterate::verdict keeps its
-// kReject default on a routed row, which is accurate -- nothing was accepted
-// and the iterate did not move -- and it is what keeps a consumer
-// reconstructing the ITERATE sequence from the history correct across this
-// path.
+// while a routed failure row carries a non-kOptimal qp_status. Both are radius
+// events; only the former was judged. SqpIterate::verdict keeps its kReject
+// default on a routed row, which is accurate -- nothing was accepted and the
+// iterate did not move -- and it is what keeps a consumer reconstructing the
+// ITERATE sequence from the history correct across this path.
 //
 // A FIFTH ROUTE IS NOT AN EXIT AT ALL: StepVerdict::kRestore -> THE
 // RESTORATION PHASE. Three independent sources raise the request, and all
@@ -664,22 +447,19 @@
 //       without escaping -- KLV Lemma 5 case 1's configuration. It is a
 //       heuristic EARLY signal and can miss.
 //   (2) THE ELASTIC TIER'S EXHAUSTION -- the ladder spent with the relaxation
-//       still open and nothing left to reduce (the tier's four-part
-//       signature). KLV Algorithm 5's authoritative trigger.
+//       still open and nothing left to reduce. KLV Algorithm 5's
+//       authoritative trigger.
 //   (3) THE RADIUS FLOOR -- a shrink that would take Delta below
 //       SqpOptions::tr_min. KLV Algorithm 4's authoritative trigger, in its
 //       trust-region form. See RADIUS MANAGEMENT.
 // (1) and (2) are told apart on the triggering history row by
 // SqpIterate::elastic_applied; (3) is told apart by that row's tr_radius
-// sitting at the floor. Nothing propagates a raw QP kInfeasible any more, so
-// the old kReject/kInfeasible shape no longer exists at all.
+// sitting at the floor. Nothing propagates a raw QP kInfeasible any more.
 //
 // WHAT THE PHASE INHERITS: by the time any of the three fires, every CHEAP
 // answer has already been eliminated -- the radius has been shrunk repeatedly
 // (1, 3), elasticity has been tried at penalties up to rho_max (2), and SOC
-// has been attempted on every qualifying rejection along the way. The
-// restoration phase is the expensive instrument and it is asked last, which is
-// exactly the state KLV Algorithm 5 hands to its own.
+// has been attempted on every qualifying rejection along the way.
 //
 // A FOURTH ROUTE does not come from the subproblem at all: an iterate the
 // model cannot be evaluated at (NaN/inf in f, grad f, cE or cI, or in x
@@ -693,11 +473,6 @@
 // A non-finite x0, by contrast, is not a status at all -- it is caller input
 // and solve() throws. See there.
 //
-// NOTHING HERE IS INTERIM: the response to an exhausted elastic tier, to a
-// stalled funnel and to a radius at its floor is one and the same mechanism,
-// and every SqpStatus this driver can return is a statement about the PROBLEM
-// or the BUDGET rather than about a mechanism that does not exist yet.
-//
 // --- SECOND-ORDER CORRECTION ----------------------------------------------
 //
 // WHY THIS EXISTS: THE MARATOS EFFECT. A pure QP linearization can produce a
@@ -705,191 +480,110 @@
 // superlinearly convergent -- and yet, at the actual nonlinear point x + p,
 // BOTH f and the constraint violation h come out WORSE than at x. This is
 // curvature the linearization cannot see (Je is evaluated at x, not along the
-// arc to x + p), and it is the textbook obstruction to plain SQP achieving
-// fast local convergence. The funnel has no way to tell "the model was locally
-// wrong" from "the step was bad" -- both look like a kReject with h_new >
-// h_old. THIS IS THE ENGINE'S DELIBERATE, CHEAP EDGE OVER UNO, WHICH OMITS SOC
-// ENTIRELY: one extra, hot-started QP re-solve buys back exactly the class of
-// rejection this section handles. SqpOptions::enable_soc (default ON) is the
-// A/B lever.
+// arc to x + p). The funnel has no way to tell "the model was locally wrong"
+// from "the step was bad" -- both look like a kReject with h_new > h_old.
+// One extra, hot-started QP re-solve buys back exactly that class of
+// rejection. SqpOptions::enable_soc (default ON) is the A/B lever.
 //
 // THE SIGNATURE THAT TRIGGERS IT, tested ONLY on a strategy-judged kReject
 // (never on a routed QP failure): h_new > h_old, i.e. the trial point is
 // STRICTLY MORE infeasible than the iterate it was taken from. This is
-// necessary-not-sufficient for "curvature, not a bad step" in exactly the way
-// KLV Lemma 5's own hypothesis is -- it is cheap to test, it is the one
-// symptom SOC can actually repair (a constraint-linearization defect), and it
-// excludes the common, unrelated case of an f-type Armijo failure at h == 0
-// dropping to h_new == h_old == 0, where there is no constraint curvature to
-// correct at all.
+// necessary-not-sufficient for "curvature, not a bad step", exactly as KLV
+// Lemma 5's own hypothesis is: it is cheap to test, it is the one symptom SOC
+// can repair, and it excludes the common f-type Armijo failure at
+// h_new == h_old == 0, where there is no constraint curvature to correct.
 //
 // WHY NOT ON A ROUTED QP FAILURE. SUBPROBLEM FAILURE ROUTING discards the
 // QP's returned x entirely -- it is not a certified step, the strategy never
-// judged it, and there is no p to correct: correcting a step that was never a
-// candidate would manufacture evidence out of noise. SOC is therefore gated
-// on `verdict == StepVerdict::kReject`, which by construction excludes every
-// routed-failure row (their verdict is never set by judge()).
+// judged it, and there is no p to correct. SOC is therefore gated on
+// `verdict == StepVerdict::kReject`, which by construction excludes every
+// routed-failure row.
 //
-// THE CORRECTION, KLV/Fletcher's classical construction. Let p be the
-// rejected step, so x_trial = x + p and cE(x_trial) is known (it was just
-// evaluated to build ctx). The ORIGINAL subproblem's linearization enforced
-// Je p = -cE(x), i.e. it predicted cE(x_trial) ~= cE(x) + Je p = 0. The
-// SECOND-ORDER RESIDUAL is exactly how far that prediction missed:
-//
-//     r_e = cE(x_trial) - cE(x) - Je p            (0 to first order; nonzero
-//                                                   here is the curvature)
-//
-// The correction re-solves the SAME QP (same H, g, Ae, Ai, bounds, radius --
-// build_subproblem is not called again, and neither is eval_hess or any
-// Jacobian: the model stays frozen at x) with the rhs shifted to cancel that
-// residual:
-//
-//     be_soc = -cE(x) - r_e = -cE(x_trial) + Je p        (equalities)
-//     bi_soc(j) = -cI(x)(j) - r_i(j) = -cI(x_trial)(j) + Ji p (j),
-//         for j ACTIVE in the rejected solve's qs.ineq_active only --
-//         an inactive row's own linearization was never the thing that
-//         failed, and shifting it risks manufacturing a NEW active row the
-//         correction was never meant to touch.  (inequalities)
-//
-// Both cE(x_trial)/cI(x_trial) are already sitting in `ev_trial`, the NlpEval
-// the driver computed to judge the ORIGINAL trial (a values-only evaluation
-// holds ce/ci) -- so CONSTRUCTING THIS RHS SHIFT COSTS NO EXTRA MODEL
-// EVALUATION AT ALL. This is SCOPED TO THE RHS CONSTRUCTION ONLY -- the
-// re-solve that follows, and the (values-only) evaluation it triggers on
-// success, are a separate, real cost; see the MODEL EVALUATION section.
+// THE CORRECTION, KLV/Fletcher's classical construction. The ORIGINAL
+// subproblem's linearization enforced Je p = -cE(x), i.e. it predicted
+// cE(x + p) = 0; the SECOND-ORDER RESIDUAL is how far that missed. The
+// correction re-solves the SAME QP -- same H, g, Ae, Ai, bounds, radius;
+// build_subproblem is NOT called again, and neither is eval_hess or any
+// Jacobian, so the model stays frozen at x -- with only the rhs shifted to
+// cancel that residual. build_soc_subproblem (detail/globalization/sqp/soc.h)
+// has the two shifted right-hand sides and the ACTIVE-ROWS-ONLY rule for the
+// inequality block. Both cE(x+p)/cI(x+p) are already sitting in `ev_trial`, so
+// CONSTRUCTING THE SHIFT COSTS NO EXTRA MODEL EVALUATION AT ALL -- scoped to
+// the rhs construction only; the re-solve, and the values-only evaluation it
+// triggers on success, are a separate, real cost.
 //
 // THE RE-SOLVED QP'S OWN SOLUTION IS THE TOTAL CORRECTED STEP FROM x, NOT AN
 // INCREMENT ON TOP OF P -- `qs_soc.x` plays EXACTLY the role `p` played for
 // the original QP, over the SAME box l - x .. u - x, and the new iterate is
-// x + qs_soc.x. Because the ORIGINAL QP satisfies Je p = -cE(x) exactly, the
-// second-order residual collapses to r_e = cE(x_trial) exactly, so
-// be_soc = -cE(x) - cE(x_trial); equivalently, in terms of the INCREMENT
-// (qs_soc.x - p), that increment alone satisfies
-// Je(qs_soc.x - p) = -cE(x_trial), i.e. it is a frozen-Jacobian Newton
-// correction FROM the trial point using the Jacobian frozen at x. Both
-// readings are the same arithmetic; the second is why the mechanism repairs
-// exactly the discrepancy the frozen linearization introduced.
+// x + qs_soc.x. Equivalently the INCREMENT (qs_soc.x - p) alone satisfies
+// Je(qs_soc.x - p) = -cE(x + p), a frozen-Jacobian Newton correction FROM the
+// trial point -- which is why the mechanism repairs exactly the discrepancy
+// the frozen linearization introduced.
 //
 // WARM START, NOT A NEW LINEARIZATION. The re-solve is seeded from the
 // REJECTED solve's own QpSolution (its working set, x zeroed -- the WARM
 // SEEDING discipline applies unchanged), on the SAME engine, with
 // SolveOverrides::tr_radius UNCHANGED. qp_engine.h's HOT-START REUSE
-// conditions mostly hold by construction -- H/Ae/Ai byte-identical ((a)/(c);
-// soc_qp is a copy of qp with only be/bi touched) and the seed working set
-// equal to the immediately-preceding solve's exit working set ((b): the SOC
-// re-solve is the very next solve() call on this engine). Condition (d), the
-// effective (primal_delta, dual_mu) pair unchanged, holds because this
-// re-solve ALWAYS BUILDS DEFAULT SolveOverrides (dual_mu at its sentinel,
-// resolving to opts_.qp.dual_mu -- it is never wired to the mu schedule in
-// either mode) WHEN the TRIAL being rescued ALSO ran at that same default:
-// true at iter == 0, and true while adaptive_mu's quantized mu keeps rounding
-// up to kAdaptiveMuMax. Once the residual falls far enough that the schedule
-// quantizes to a SMALLER decade (the convergence tail), the trial ran at a
-// smaller mu while this re-solve's defaults resolve to the engine default: a
-// DIFFERENT effective pair, breaking condition (d) and forcing a K0
-// refactorization. With adaptive_mu OFF (or never reaching the tail),
-// condition (d) holds unconditionally.
-// NEITHER IS EVERY SOC RE-SOLVE FREE EVEN THEN: border_candidate's own checks
-// (perturbed pivots, schur_cap, and -- specific to SOC -- a SUFFICIENTLY LARGE
-// rhs shift making the corrected problem's own active set differ from the
-// rejected solve's, failing condition (b)) can still force a rebuild and
-// MEASURABLY DO on large-residual attempts; the convergence-tail mu mismatch
-// above is a SECOND, independent way condition (d) itself can fail.
-// `HsBattery.AdaptiveMuNeverSharesAMajorWithSocOrElastic` measures that the
-// two mechanisms never share a major on the project's 27-problem battery --
-// an absence that is CIRCUMSTANTIAL, NOT STRUCTURAL.
+// conditions mostly hold by construction: H/Ae/Ai byte-identical ((a)/(c)),
+// and the seed working set equal to the immediately-preceding solve's exit
+// working set ((b)). CONDITION (d) HOLDS ONLY CONDITIONALLY -- this re-solve
+// always builds DEFAULT SolveOverrides, so the pair matches whenever the
+// rescued TRIAL also ran at that default (always with adaptive_mu off; with it
+// on, until the schedule quantizes to a smaller decade in the convergence
+// tail, after which (d) breaks and K0 is refactorized). NEITHER IS EVERY SOC
+// RE-SOLVE FREE EVEN THEN: border_candidate's own checks (perturbed pivots,
+// schur_cap, and -- specific to SOC -- a rhs shift large enough to move the
+// corrected problem's active set, failing (b)) can still force a rebuild.
 //
 // JUDGED AS A FRESH TRIAL, WITH ONE DELIBERATE EXCEPTION. The corrected point
 // x + qs_soc.x gets its OWN StepContext -- fresh h_new/f_new from a
 // values-only eval_nlp_values there (upgraded to a full evaluation only if
-// the verdict below promotes it) -- and its own strategy->judge() call,
-// because it is a genuinely different candidate point that may legitimately
-// be f-type where the original was h-type or vice versa. THE ONE FIELD
-// DELIBERATELY NOT RECOMPUTED is pred_df: the SOC StepContext reuses the
-// ORIGINAL QP's pred_df UNCHANGED. The SOC literature's own framing is that
-// the correction is a CONSTRAINT-RESTORATION step, not a re-optimization;
-// recomputing pred_df from qs_soc.x would credit the correction with an
-// objective claim it never made. KLV Eq. (10)'s switching condition and Eq.
-// (11)'s Armijo test therefore both see EXACTLY the decrease the original,
-// rejected QP promised -- only f_new/h_new differ.
+// the verdict below promotes it) -- and its own strategy->judge() call. THE
+// ONE FIELD DELIBERATELY NOT RECOMPUTED is pred_df: the SOC StepContext
+// reuses the ORIGINAL QP's pred_df UNCHANGED, because the correction is a
+// CONSTRAINT-RESTORATION step, not a re-optimization. KLV Eq. (10)'s
+// switching condition and Eq. (11)'s Armijo test therefore both see EXACTLY
+// the decrease the original, rejected QP promised -- only f_new/h_new differ.
 //
 // GLOBALIZATION.JUDGE() IS THEREFORE CALLED UP TO TWICE FOR THIS ONE ROW,
 // once for the raw trial and once for the corrected one. This is a documented,
 // narrow exception to globalization.h's "called once per trial" comment: it is
 // benign because FunnelStrategy::judge only ever MUTATES state on a kAcceptH
-// verdict, and the first call here is by construction a kReject, which
-// mutates nothing -- so AT MOST ONE mutating verdict is produced for the row.
+// verdict, and the first call here is by construction a kReject.
 //
 // ACCEPT vs REJECT, AND THE ROW THAT RESULTS. If the corrected point's
 // verdict is kAcceptF/kAcceptH: this row's OWN verdict is OVERWRITTEN to that
 // verdict, SqpIterate::soc_applied is set on it, and the driver moves to
 // x + qs_soc.x exactly as it would move to x + p on a plain acceptance --
-// multipliers, seed and `ev` all come from the SOC re-solve, not the original
-// one. If the corrected point is ALSO rejected (or reads kRestore), the
-// ORIGINAL row's kReject stands and the driver falls through to the ORDINARY
-// shrink: ONE rejection is charged to rejections_at_iterate for the pair, not
-// two, because from the funnel's hypothesis-accumulation point of view this
-// was one radius-shrinking event at this iterate. A kRestore read from the
-// SOC judge() call is treated the same as a reject here -- deliberately NOT
-// promoted to an early exit, because the elastic tier and the restoration
-// phase own the authoritative restoration triggers.
+// multipliers, seed and `ev` all come from the SOC re-solve. If the corrected
+// point is ALSO rejected (or reads kRestore), the ORIGINAL row's kReject
+// stands and the driver falls through to the ORDINARY shrink: ONE rejection
+// is charged to rejections_at_iterate for the pair, not two, because from the
+// funnel's hypothesis-accumulation point of view this was one radius-shrinking
+// event at this iterate. A kRestore read from the SOC judge() call is treated
+// as a reject here -- deliberately NOT promoted to an early exit, because the
+// elastic tier and the restoration phase own the authoritative triggers.
 //
-// WHAT COUNTS AS "ONE ATTEMPT". At most one SOC re-solve per REJECTED trial
-// -- there is no retry-of-the-correction, and a corrected point that is
-// itself rejected does NOT chain into a second correction. counters.soc_steps
-// increments on every attempt (success or not); the aggregate
-// counters.qp_minor_iters/factorizations gain the SOC re-solve's own cost;
-// the triggering row's OWN qp_status/qp_minor_iters/qp_factorizations stay
-// exactly the ORIGINAL QP's, preserving every existing reader's assumption
-// that those three fields describe one QpSolution.
+// WHAT COUNTS AS "ONE ATTEMPT". At most one SOC re-solve per REJECTED trial;
+// a corrected point that is itself rejected does NOT chain into a second
+// correction.
 //
-// A FAILED SOC RE-SOLVE (qs_soc.status != kOptimal) is treated exactly like
-// a rejected corrected point: no StepContext is even built for it (there is
-// no certified corrected step to judge), counters.soc_steps still counts the
-// attempt, and the ORIGINAL row's kReject stands.
+// A FAILED SOC RE-SOLVE (qs_soc.status != kOptimal) is treated exactly like a
+// rejected corrected point -- no StepContext is built for it, there being no
+// certified corrected step to judge, and the ORIGINAL row's kReject stands.
+// It is also the MAJORITY outcome, because the rhs perturbation is the FULL
+// second-order residual, so a large violation arrives together with a large,
+// box-busting shift. SOC is cheap to ATTEMPT precisely because it is expected
+// to often fail fast.
 //
-// COUNTERS.SOC_STEPS ALONE DOES NOT TELL THESE OUTCOMES APART: three
-// mutually-exclusive counters -- soc_applied, soc_qp_infeasible, soc_rejected
-// (sqp_types.h's SqpCounters) -- are incremented at exactly the three places
-// above (the accepted-corrected-point branch, the corrected-point-still-
-// rejected/kRestore branch and this failed-re-solve branch, respectively),
-// so soc_steps == soc_applied + soc_qp_infeasible + soc_rejected on every
-// solve and the kInfeasible-heavy measurement below is re-derivable from an
-// SqpSolution.
-//
-// A FAILED RE-SOLVE IS THE MAJORITY OUTCOME, MEASURED. Of the 19 SOC attempts
-// arising incidentally on this file's shipped suite, 15 (79%) returned
-// kInfeasible from the re-solve itself -- no corrected point, no eval_nlp
-// paid. The rhs perturbation is NOT generally small: it is the FULL
-// second-order residual, which scales with h_new -- and h_new > h_old is
-// exactly what triggered SOC, so a LARGE violation and a LARGE, box-busting
-// rhs shift arrive TOGETHER. Measured on HS7 (tr_init = 10, published start):
-// the rejected trial's own h_new is 141 against h_old = 25, and the SOC
-// re-solve is infeasible; on a later, larger violation in the same run:
-// h_old = 48, h_new = 7160. SOC is cheap to ATTEMPT precisely because it is
-// expected to often fail fast; it is not expected to often succeed.
-//
-// WHAT "NEAR-FREE" ACTUALLY SCOPES TO, measured by regime:
-//   SMALL RESIDUAL (the design regime SOC targets -- near a solution, where
-//   the Maratos effect actually lives): 2-3 minor iterations and AT MOST 1
-//   EXTRA factorization, measured across SocDefeatsMaratos (0 extra, asserted
-//   directly) and SocFiresOnACurvedActiveInequalityAndImprovesH's two attempts
-//   (0 and 1) -- though "0 every time" is NOT guaranteed even here
-//   (qp_engine.h's HOT-START REUSE note: its five conditions are necessary,
-//   not sufficient).
-//   LARGE RESIDUAL (far from a solution): re-solves that DO reach kOptimal
-//   still cost 3-5 minor iterations and 1-3 EXTRA factorizations -- a REAL,
-//   FULL extra QP solve; condition (b) of HOT-START REUSE is far more likely
-//   to fail when the rhs shift is this large.
-// So "near-free" is a property of the DESIGN REGIME, not a universal one.
-//
-// A NAMED CANDIDATE, NOT ADOPTED: gate the SOC ATTEMPT itself (not just its
-// success) on the residual's magnitude relative to the current violation
-// (h_raw <= kappa_soc * h_old) -- filterSQP uses exactly this kind of
-// magnitude test before committing to a correction. Not adopted because (a)
-// every attempt measured is CHEAP even when it fails (a handful of minor
-// iterations, at most 3 extra factorizations, bounded at one per rejected
-// trial), and (b) no evidence shows a gate would change any outcome.
+// THE COUNTERS. counters.soc_steps increments on every attempt; the aggregate
+// counters.qp_minor_iters/factorizations gain the SOC re-solve's own cost; the
+// triggering row's OWN qp_status/qp_minor_iters/qp_factorizations stay exactly
+// the ORIGINAL QP's, preserving every reader's assumption that those three
+// fields describe one QpSolution. soc_steps ALONE DOES NOT TELL THE OUTCOMES
+// APART: three mutually-exclusive counters -- soc_applied, soc_qp_infeasible,
+// soc_rejected (sqp_types.h's SqpCounters) -- are incremented at exactly the
+// three branches above, so soc_steps is their sum on every solve.
 //
 // --- THE ELASTIC TIER ------------------------------------------------------
 //
@@ -904,55 +598,29 @@
 // judgment, and only an EXHAUSTED relaxation ends the solve. This is also KLV
 // Algorithm 5's authoritative restoration trigger.
 //
-// THE CONSTRUCTION (build_elastic_subproblem, which has the per-block
-// details). For the subproblem at x,
-//
-//     min  g^T p + 1/2 p^T H p   s.t.  Ae p = be,  Ai p <= bi,  p in box
-//
-// let p_ref = clamp(0, box) -- p = 0 for every iterate the driver produces.
-// Relax exactly the rows VIOLATED at p_ref, one slack each, and price them:
-//
-//     min  g^T p + 1/2 p^T H p + rho * sum_j sigma_j s_j
-//     s.t. Ae p + Sigma_E s_E = be,   Ai p - Sigma_I s_I <= bi,
-//          0 <= s_j <= violation_l1 / sigma_j,   p in box
-//
-// with sigma_j = max(1, |residual_j|) the row's own COLUMN SCALE and
-// Sigma = diag(+/- sigma_j) (signed by the residual on an equality, negative
-// on an inequality). The slack VARIABLE is therefore the row's violation
-// measured in units of sigma_j, and rho * sigma_j * s_j IS rho times the
-// actual violation -- see FINITE, SCALED SLACKS below for why the variable
-// cannot simply BE the violation. NO ENGINE CHANGE IS INVOLVED: this is a
-// plain QpProblem with n + ns variables, the same me and mi (slacks add
-// COLUMNS, not rows), and H extended by an all-zero block.
-//
-// FEASIBLE BY CONSTRUCTION -- the property everything else rests on. The
-// witness point (p, s) = (p_ref, |residual_j| / sigma_j) satisfies every
-// augmented row: a relaxed row is absorbed by its own slack BY THE DEFINITION
-// of the slack's coefficient, an unrelaxed row is satisfied at p_ref BY THE
-// DEFINITION of "not violated there", and the witness is inside the slack box
-// because |r_j| <= sum_k |r_k| = violation_l1.
+// THE CONSTRUCTION lives at build_elastic_subproblem
+// (detail/globalization/sqp/elastic.h), which has the augmented problem, the
+// per-block details and the witness argument. What the driver relies on:
+// exactly the rows VIOLATED at p_ref = clamp(0, box) are relaxed, one slack
+// each, priced at rho * sigma_j with sigma_j = max(1, |residual_j|) the row's
+// own COLUMN SCALE, so rho * sigma_j * s_j IS rho times the actual violation;
+// NO ENGINE CHANGE IS INVOLVED (a plain QpProblem with n + ns variables, the
+// same me and mi -- slacks add COLUMNS, not rows); and the augmented problem
+// is FEASIBLE BY CONSTRUCTION, the property everything below rests on.
 //
 // SO THE ELASTIC QP HAS NO EMPTY-FEASIBLE-SET FAILURE MODE. That is NOT "the
 // elastic solve cannot fail" -- the engine can still decline a feasible
-// problem, which FINITE, SCALED SLACKS below exists to keep out of reach. The
-// honest statement: feasible by construction, AND scaled and bounded so that
-// its solution stays inside the envelope the engine will certify.
+// problem, which FINITE, SCALED SLACKS below exists to keep out of reach.
 //
 // AND CONVERSELY: IF THE SLACKS COME BACK ZERO, THE ORIGINAL QP WAS FEASIBLE.
 // The elastic solution then satisfies every original row, so the kInfeasible
-// that triggered the tier was FALSE. That is a real detection layer:
-//     THE RIDE-LANDING FALSE-kInfeasible: the engine's ride can land somewhere
-//     that reads infeasible when the QP is not. Such a verdict now costs a
-//     second solve instead of the whole NLP solve, and that retry is a problem
-//     with a KNOWN feasible point. The second half -- that the retry recovers
-//     the ORIGINAL subproblem's own answer rather than some relaxed compromise
-//     -- is the l1 EXACT-PENALTY property: for rho above the unrelaxed QP's own
-//     multiplier norm, paying the penalty is strictly worse than satisfying the
-//     row, so s = 0 and the elastic solution IS the unrelaxed solution. THAT is
-//     what the rho ladder searches for. Both halves are pinned by
-//     SqpDriverElastic.ElasticReformulationRecoversAFeasibleQpsSolution (rho =
-//     0.1 < |lambda*| = 0.5 slides to a relaxed answer; rho = 100 recovers the
-//     exact one).
+// that triggered the tier was FALSE -- a real detection layer for the
+// ride-landing false kInfeasible, at the cost of a second solve rather than
+// the whole NLP solve. That the retry recovers the ORIGINAL subproblem's own
+// answer rather than a relaxed compromise is the l1 EXACT-PENALTY property:
+// for rho above the unrelaxed QP's own multiplier norm, paying the penalty is
+// strictly worse than satisfying the row, so s = 0 and the elastic solution IS
+// the unrelaxed solution. THAT is what the rho ladder searches for.
 //
 // FINITE, SCALED SLACKS -- THE TIER'S ONE ARITHMETIC CEILING. qp_engine.h's
 // is_runaway guard reports kNumericalError when a FREE variable exceeds
@@ -961,48 +629,25 @@
 // the LINEARIZED VIOLATION, which scales with the problem's constraint scale,
 // so on a FEASIBLE NLP whose rows are merely scaled up, an unscaled elastic
 // solve can come back kNumericalError and the tier would report "exhausted"
-// on a subproblem it never got to try. MEASURED, on the tier's own fixture
-// with both cI rows multiplied by S:
+// on a subproblem it never got to try.
 //
-//     S      unscaled                                scaled
-//     1e6    kOptimal, 6 escalations                 same
-//     1e7    kOptimal, 6 escalations                 same
-//     1e8    kInfeasible, elastic solve              kOptimal, 6 escalations
-//            = kNumericalError at s = 5e7
-//     1e9    as above                                kOptimal, as above
-//
-// THE FIX IS A CHANGE OF UNITS, not a bound. Scaling the slack COLUMN by
-// sigma_j = max(1, |r_j|) (and its penalty entry to rho*sigma_j, so the
-// objective still prices the actual violation and the exact-penalty threshold
-// is unmoved) makes the witness sit at s_j <= 1 AT ANY CONSTRAINT SCALE.
-// max(1, .) rather than |r_j| because a column must never be scaled UP: a
-// residual below 1 would shrink the column entry and inflate the variable.
-//
-// WHY SCALING WORKS WHERE A BOUND DOES NOT: it is CONDITIONING. On the flat
-// face of that fixture, the constraint-and-penalty magnitudes are O(rho*S)
-// while the objective differential that decides WHERE on the face to stop is
-// O(1); once that ratio passes double precision's reach the tie-break is gone
-// and the corrupted solve reports the symmetric midpoint (the face itself is
-// resolved perfectly at every S; only the POSITION on it is lost). The sigma
-// scaling replaces the badly-mixed row (S, -1) with (S, -S/2), entries of
-// comparable magnitude, after which the hand-KKT endpoint is recovered at
-// every scale from 1e1 to 1e8. The runaway exit was the SYMPTOM; no bound was
-// ever going to repair conditioning.
+// THE FIX IS A CHANGE OF UNITS, not a bound: scaling the slack COLUMN by
+// sigma_j (and its penalty entry to rho*sigma_j, so the objective still prices
+// the actual violation and the exact-penalty threshold is unmoved) puts the
+// witness at s_j <= 1 AT ANY CONSTRAINT SCALE. max(1, .) rather than |r_j|
+// because a column must never be scaled UP. The mechanism is CONDITIONING,
+// not magnitude: it keeps the O(1) objective term that decides WHERE on a flat
+// face to stop from being lost against the O(rho*S) constraint-and-penalty
+// scale.
 //
 // THE FINITE CEILING IS KEPT ALONGSIDE THE SCALING, at violation_l1 in actual
-// units, but on its own merits rather than as the fix: it says the relaxation
-// may not leave the linearization MORE violated in total than it already is
-// at p_ref, it cannot cut off the witness, and a slack that saturates it is
-// reported kAtUpper -- which is_runaway skips outright ("pinned at a bound").
-//
-// WHEN TO SUSPECT THIS CLASS AGAIN: a constructed subproblem whose rows mix
-// magnitudes by more than a few orders, especially where a flat face's
-// position is decided by a much smaller objective term. The remedy is to
-// scale the constructed column to the row it joins -- not to bound the
-// variable, and not to loosen a guard. WHAT REMAINS UNCOVERED: a subproblem
-// whose elastic optimum wants a violation more than ~1e7 times the one it
-// starts with still trips the guard; the engine's own advice there is to tune
-// primal_delta, which SolveOverrides::primal_delta makes reachable per solve.
+// units, on its own merits rather than as the fix: it says the relaxation may
+// not leave the linearization MORE violated in total than it already is at
+// p_ref, it cannot cut off the witness, and a slack that saturates it is
+// reported kAtUpper -- which is_runaway skips outright. WHAT REMAINS
+// UNCOVERED: a subproblem whose elastic optimum wants a violation more than
+// ~1e7 times the one it starts with still trips the guard; the remedy there is
+// SolveOverrides::primal_delta.
 //
 // THE TRUST REGION IS FOLDED INTO THE BOX, NOT PASSED AS SolveOverrides::
 // tr_radius. Correctness requirement, and the least obvious thing in this
@@ -1012,13 +657,11 @@
 // radius; the elastic QP would come back infeasible and the tier a no-op.
 // build_elastic_subproblem computes section 6's own window (about p_ref,
 // which IS the engine's center for a zeroed seed) and applies it to the
-// ORIGINAL block only, passing the default +inf sentinel. MEASURED (mutation):
-// passing the radius as an override instead makes InconsistentBoundedModel's
-// very first elastic QP infeasible. The radius BIT is then re-derived in
-// elastic_project, so SqpIterate::tr_binding and the growth rule behave
-// identically across the paths. ONE CONFIGURATION IS NOT COVERED: an engine
-// constructed with a FINITE QpOptions::tr_radius will ALSO apply its own
-// radius to the slacks (SolveOverrides has no "+inf overriding a finite
+// ORIGINAL block only, passing the default +inf sentinel. The radius BIT is
+// then re-derived in elastic_project, so SqpIterate::tr_binding and the growth
+// rule behave identically across the paths. ONE CONFIGURATION IS NOT COVERED:
+// an engine constructed with a FINITE QpOptions::tr_radius will ALSO apply its
+// own radius to the slacks (SolveOverrides has no "+inf overriding a finite
 // default" sentinel); there a large violation can leave the elastic QP
 // infeasible and the tier degrades to plain failure routing.
 //
@@ -1033,10 +676,7 @@
 // construction; condition (b) (seed working set == immediately preceding
 // solve's exit working set) is earned by CHAINING the seed: each rung is
 // seeded from the previous rung's solution with x zeroed, not from the
-// original kInfeasible solve (re-seeding from the original fails (b) from
-// rung 2 on). MEASURED on InconsistentLinearizationRecovers in border mode:
-// the ladder's share of factorizations went 7 -> 1 (whole-solve 9 -> 3),
-// minor iterations 29 -> 27.
+// original kInfeasible solve.
 //
 // TWO NORMS APPEAR IN THE SLACK TESTS, deliberately: the ladder's stopping
 // test is on the MAX violation ("is any row still materially open"); the
@@ -1046,50 +686,34 @@
 // `closed` is false and the step is judged on the `reduced` arm instead --
 // strictly the more conservative branch. The ladder reads the VIOLATION, not
 // the scaled variable: feas_tol is a tolerance on constraint violation, not
-// on an internal change of units (mutating the test to read the scaled
-// variable leaves the suite green only because every relaxed row here has
-// sigma_j >= 1; the usability comparison has no choice about units).
+// on an internal change of units.
 //
 // THE STALL EARLY-EXIT (SqpOptions::elastic_ladder_early_exit, default FALSE;
-// sqp_types.h carries the full argument, this is the mechanism side).
+// sqp_types.h carries the caller-facing argument, this is the mechanism).
 // kElasticStallScale is a NUMERICAL-ZERO threshold (1e-12 relative, declared
-// alongside kElasticRhoInit/Max/Factor in detail/globalization/sqp/elastic.h,
-// the same value kZeroStepScale uses in trust_region.h) on two consecutive
-// rungs' solutions -- NOT a bit-for-bit test: even on the SAFE class the
-// solution drifts a little every rung (MEASURED |dx|inf 3.6e-13 at rho
-// 1e2->1e3 growing ~10x per escalation to 3.6e-8 by 1e7->1e8, and a working-
-// set flip at rung 2). What makes the exit safe THERE is that the first
-// escalation's drift is already under the threshold and the full-ladder drift
-// stays four orders below feas_tol -- a safety that comes from most relaxed
-// slacks being pinned at a REAL BOUND, which bounds how much of the reduced
-// system CAN read rho. The UNSAFE class is a flat augmented objective: on
-// InfeasibleCircleLineModel the objective is EXACTLY CONSTANT on the entire
-// feasible set at every rho (Lagrangian Hessian identically zero), so a later
-// rung finds nothing a one-repeat test missed -- it is an O(1) tie-break
-// getting lost against rho's growing scale, ending at an ARBITRARY point of
-// many equally optimal ones. Turning the lever on reshapes trajectories
-// (HS15 cold arm: majors 86 -> 63, elastic_activations 48 -> 27; the same
-// fixture through the elastic route: 60 -> 2 majors to the same certificate;
-// HS10 is the opposite, a free 6x escalation cut with identical majors and
-// objective). Every measured configuration still reached a CORRECT answer,
-// all changes in the IMPROVING direction -- the case for off is
-// "unpredictable which arbitrary optimum you get", not measured harm. A cheap
-// general runtime test separating the classes is NOT known: bound_state on
-// the slack columns does NOT do it (both fixtures have a free slack column at
-// the deciding rung); a Hessian-based signal (the flat fixture's H block is
-// identically zero) is a lead, not a proven condition. A looser comparison
-// would only enlarge the false-positive class, hence the tight threshold.
+// alongside kElasticRhoInit/Max/Factor in detail/globalization/sqp/elastic.h)
+// on two consecutive rungs' solutions -- NOT a bit-for-bit test: the solution
+// drifts a little every rung even on the safe class. What makes the exit safe
+// there is that most relaxed slacks are pinned at a REAL BOUND, which bounds
+// how much of the reduced system CAN read rho. The UNSAFE class is a FLAT
+// AUGMENTED OBJECTIVE: where the objective is exactly constant on the feasible
+// set at every rho, a later rung finds nothing a one-repeat test missed -- an
+// O(1) tie-break getting lost against rho's growing scale, ending at an
+// ARBITRARY point of many equally optimal ones. The lever is off because
+// "unpredictable which arbitrary optimum you get", not because of measured
+// harm. A cheap runtime test separating the classes is NOT known: slack
+// bound_state does not do it; a Hessian-based signal is a lead, not a proven
+// condition. A looser comparison would only enlarge the false-positive class.
 //
 // THE STEP IS THEN TAKEN EVEN WHEN THE SLACKS ARE NOT ZERO, deliberately:
 // "escalate until the slacks vanish" cannot be the whole rule because THE
 // SLACKS CANNOT VANISH ON A GENUINELY INCONSISTENT LINEARIZATION -- s = 0
 // implies the original QP was feasible (the converse proved above), so under
 // that rule the tier would take a step only in the false-kInfeasible case and
-// abandon every real one. InconsistentLinearizationRecovers is the worked
-// example: its rows satisfy s1 + s2 >= 1 IDENTICALLY, no rho changes that,
-// and the step taken with s2 = 1 lands exactly on the true feasible set
-// because the TRUE constraints curve where their linearization does not. The
-// funnel then judges that step on the true f and h like any other.
+// abandon every real one. A step taken with a slack still open can land
+// exactly on the true feasible set, because the TRUE constraints curve where
+// their linearization does not; the funnel then judges it on the true f and h
+// like any other step.
 //
 // SO THE EXHAUSTION SIGNATURE IS A CONJUNCTION, shaped like globalization.h's
 // own restoration signature -- on MODEL quantities, because here there is no
@@ -1118,17 +742,12 @@
 //     untolerated; giving only this copy a tolerance would make the SAME
 //     quantity decide "promises a decrease" three different ways.
 // (2) THE KNIFE-EDGE IS IN THE SUBPROBLEM, NOT THE PREDICATE: on a
-//     flat-objective relaxation the two algebra modes land on TWO DIFFERENT,
-//     EQUALLY OPTIMAL points whose pred_df both read as rounding noise near
-//     zero (measured: both negative, -6.44e-15 and -1.11e-15); a tolerance
-//     widens the acceptance window without making the modes agree on WHICH
-//     point to be at, trading one knife-edge for another. Measured elsewhere
-//     on this fixture class, a numerically "helpful-looking" relaxation near
-//     zero reshaped a trajectory by tens of majors while still certifying
-//     correctly. A future tolerance needs a derivation of pred_df's right
-//     SCALE (objective units; the driver has no existing scale-invariant
-//     tolerance for those) and a fixture showing an actual WRONG certificate
-//     from exact zero.
+//     flat-objective relaxation the two algebra modes land on two different,
+//     equally optimal points whose pred_df both read as rounding noise near
+//     zero; a tolerance widens the acceptance window without making the modes
+//     agree on WHICH point to be at. A future tolerance needs a derivation of
+//     pred_df's right SCALE (objective units) and a fixture showing an actual
+//     WRONG certificate from exact zero.
 //
 // WHAT AN EXHAUSTED TIER DOES: raises the kRestore signal, routed into THE
 // RESTORATION PHASE exactly like the funnel's signature and the radius floor.
@@ -1136,19 +755,16 @@
 // MULTIPLIERS ARE NOT CARRIED OUT OF AN OPEN RELAXATION. At an elastic
 // solution with s_j > 0 the row's multiplier is FORCED to rho by stationarity
 // in s_j, and the contamination spreads through shared variables to rows
-// whose own slack is zero; feeding those to eval_hess builds the next
-// Hessian out of the penalty parameter (MEASURED mutation: carrying them on
-// InconsistentLinearizationRecovers gives H = diag(2 - 4e8, 2) at the next
-// iterate and the solve ends kNumericalError). elastic_project zeroes them
-// unless every slack closed -- the same thing qp_engine.h does on its own
+// whose own slack is zero; feeding those to eval_hess would build the next
+// Hessian out of the penalty parameter. elastic_project zeroes them unless
+// every slack closed -- the same thing qp_engine.h does on its own
 // kInfeasible exits, for the same reason.
 //
 // SOC IS NOT ATTEMPTED ON AN ELASTIC ROW: the correction's premise is that a
 // CERTIFIED step was rejected for curvature; here the linearization was
 // inconsistent to begin with and the step came from a relaxed copy of it.
 // Gated on !elastic_applied. NOTHING IN THIS FILE'S SUITE DISTINGUISHES THE
-// GATE (no shipped fixture produces an elastic step rejected with h_new >
-// h_old) -- scoping stated honestly, not a measured necessity.
+// GATE -- scoping stated honestly, not a measured necessity.
 //
 // WHAT IT COSTS, AND WHAT BOUNDS IT. Each activation costs one to seven QP
 // solves and NO model evaluation of its own (built from the QpProblem already
@@ -1156,10 +772,7 @@
 // -- there is no one-shot bound like the routed failure's -- because unlike a
 // shrink-retry it does not repeat the same question: the exhaustion signature
 // terminates the genuinely stuck case and max_iter bounds the rest, so the
-// worst case is max_iter * 7 solves. An obvious stall-test refinement (stop
-// at two identical-rho slacks) is NOT taken: the ladder as specified keeps
-// escalation counts hand-derivable, and the saving is bounded by 6 QP solves
-// per activation.
+// worst case is max_iter * 7 solves.
 //
 // --- THE RESTORATION PHASE -------------------------------------------------
 //
@@ -1176,13 +789,10 @@
 //                        point with the funnel re-based, the radius reset and
 //                        the multipliers dropped (all three below).
 //   h stationary and  -> CERTIFIED SqpStatus::kInfeasible, and the ONLY exit
-//   h > feas_tol         that sets SqpSolution::infeasibility_certified. (The
-//                        decision table below has the other exits, none of
-//                        which set it -- and the flag is the only thing
-//                        that distinguishes them, see sqp_types.h.) There is
-//                        no direction from this point that reduces the
-//                        constraint violation, so the point IS the answer:
-//                        it is returned, with the multipliers that certify it
+//   h > feas_tol         that sets SqpSolution::infeasibility_certified. There
+//                        is no direction from this point that reduces the
+//                        constraint violation, so the point IS the answer: it
+//                        is returned, with the multipliers that certify it
 //                        (sqp_types.h's SqpSolution note). This is the
 //                        Byrd-Curtis-Nocedal rapid-infeasibility-detection
 //                        exit.
@@ -1191,17 +801,14 @@
 // not an NlpModel and cannot be handed to this driver directly. Its standard
 // smooth reformulation is (RestorationModel below):
 //
-//     min   sum_i sigmaE_i (sp_i + sm_i) + sum_j sigmaI_j si_j
-//     s.t.  cE(x) + sigmaE.*(sp - sm) = 0
-//           cI(x) - sigmaI.*si       <= 0
-//           l <= x <= u,   sp, sm, si >= 0
-//
-// in the variables y = (x, sp, sm, si) -- an NlpModel WRAPPER around the
-// caller's own model, whose derivatives are trivial extensions of it (the
-// Jacobians gain constant diagonal blocks, the objective is linear, and the
-// Hessian is the caller's OWN eval_hess called with obj_scale = 0). It is
-// then solved BY THIS SAME CLASS: a nested SqpDriver, with the same funnel,
-// the same trust-region rules, the same elastic tier and the same SOC.
+// RestorationModel (detail/globalization/sqp/restoration.h), in the variables
+// y = (x, sp, sm, si) -- an NlpModel WRAPPER around the caller's own model,
+// whose derivatives are trivial extensions of it (the Jacobians gain constant
+// diagonal blocks, the objective is linear, and the Hessian is the caller's
+// OWN eval_hess called with obj_scale = 0). That header carries the augmented
+// problem itself. It is then solved BY THIS SAME CLASS: a nested SqpDriver,
+// with the same funnel, the same trust-region rules, the same elastic tier and
+// the same SOC.
 //
 // EXACTNESS OF THE REFORMULATION: at any y feasible for the wrapper,
 // sp_i - sm_i = -cE_i/sigmaE_i with both >= 0, so sigmaE_i(sp_i + sm_i)
@@ -1211,19 +818,15 @@
 // entry iterate) has f_w = h(x_entry) exactly. There is no penalty parameter
 // and nothing to escalate: this is the EXACT reformulation.
 //
-// THE SIGMA SCALING IS THE ELASTIC TIER'S CARRY, APPLIED. sigmaE_i = max(1,
-// ||grad cE_i(x_entry)||inf) and likewise sigmaI_j -- the slack COLUMN is
+// THE SIGMA SCALING IS THE ELASTIC TIER'S CARRY, APPLIED: the slack COLUMN is
 // scaled to the JACOBIAN ROW IT JOINS, fixed once at construction so the
-// wrapper's variables have constant units (the elastic tier's own fix history
-// showed a unit slack column next to a row of magnitude S loses the O(1)
-// objective tie-break on a flat face and drifts off the true endpoint as S
-// grows).
-// Both the objective coefficient and the column entry carry sigma, so h is
-// still exactly what is minimized and the multiplier certificate below is
-// untouched by the scaling. A second benefit: the sub-solve's trust region
-// applies to EVERY variable including the slacks (unlike the elastic tier,
-// this problem's radius is a genuine SolveOverrides radius), and in scaled
-// units the slack a row needs moves at the same rate as x.
+// wrapper's variables have constant units. Both the objective coefficient and
+// the column entry carry sigma, so h is still exactly what is minimized and
+// the multiplier certificate below is untouched by the scaling. A second
+// benefit: the sub-solve's trust region applies to EVERY variable including
+// the slacks (unlike the elastic tier, this problem's radius is a genuine
+// SolveOverrides radius), and in scaled units the slack a row needs moves at
+// the same rate as x.
 //
 // WHY THE MULTIPLIERS ARE A CERTIFICATE. Stationarity of the wrapper in
 // sp_i reads sigmaE_i + sigmaE_i*lambda_e(i) - z = 0 with z >= 0 at the
@@ -1256,10 +859,8 @@
 //     re-based on the way back.
 //   NESTED RESTORATION IS NOT ALLOWED. The sub-driver is constructed with
 //     restoration disabled, so a restoration request inside it takes the
-//     plain exit -- SqpStatus::kInfeasible, with the last row's verdict
-//     shaped by whichever source raised it -- and the recursion is one level
-//     deep by construction. A feasibility problem that cannot make progress
-//     on its own feasibility is a genuine dead end.
+//     plain exit -- SqpStatus::kInfeasible -- and the recursion is one level
+//     deep by construction.
 //
 // WHAT RESUMING DOES, in the order it does it:
 //   x       <- the restored point; its NlpEval is RE-EVALUATED on the main
@@ -1273,9 +874,7 @@
 //              tr_init resolves to tr_max first). A DOCUMENTED FRACTION
 //              rather than either extreme: carrying the stalled radius
 //              forward would hobble the resumed loop; restarting at tr_init
-//              would repeat the overshoot at a more delicate point. The
-//              growth rule earns it back within a few accepted steps if the
-//              model deserves it.
+//              would repeat the overshoot at a more delicate point.
 //   lambda  <- ZEROED. The multipliers in hand price the wrapper's
 //              constraints -- they are subgradient selectors in [-1,1], not
 //              NLP prices -- and feeding them to eval_hess would build the
@@ -1300,11 +899,10 @@
 // THE LAST HISTORY ROW'S VERDICT DOES NOT TRACK THIS TABLE AND IS NOT
 // UNIFORM. The funnel's signature and the elastic tier's exhaustion both push
 // their triggering row with verdict == kRestore, but THE RADIUS FLOOR pushes
-// its triggering row with verdict == kReject (both of its routes: the
-// judged-reject push and the routed-QP-failure push) -- entering restoration
-// from the floor is not itself a judged verdict. The floor route is told
-// apart on that SAME row by tr_radius sitting at SqpOptions::tr_min, not by
-// verdict. A caller wanting to know WHICH of the three sources raised a
+// its triggering row with verdict == kReject (both of its routes) -- entering
+// restoration from the floor is not itself a judged verdict. The floor route
+// is told apart on that SAME row by tr_radius sitting at SqpOptions::tr_min,
+// not by verdict. A caller wanting to know WHICH of the three sources raised a
 // given restoration exit should read (elastic_applied, tr_radius) on the last
 // row, never verdict alone.
 //
@@ -1359,58 +957,37 @@
 //   a warm solve. In step variables the SQP trust region must be centered at
 //   p = 0; seeding x0 = p_prev instead re-centers it on the previous step, so
 //   the box becomes p_prev +/- Delta and the driver silently takes steps of
-//   up to |p_prev| + Delta while believing the radius is Delta. MEASURED, on
-//   HS6 from its published start at tr_init = 1.0: with the previous step
-//   left in the seed, major 1 took a step of inf-norm 1.6 at a radius of 1.0
-//   and the solve ended kInfeasible. Zeroing seed.x holds every step to the
-//   radius.
+//   up to |p_prev| + Delta while believing the radius is Delta.
 //
 //   ZEROING seed.x IS NECESSARY BUT NOT SUFFICIENT ON ITS OWN: the rejection
-//   retry re-solves the SAME subproblem, whose box is l - x .. u - x, and a
-//   step that ran into one of those bounds seeds a pin at a NONZERO offset
-//   from p = 0. If the engine materialized that pin onto x0 BEFORE computing
-//   the window about x0, the trust region would re-center on the bound and
-//   zeroed seed.x would be overwritten (measured before the engine-side fix:
-//   HS5 at tr_init = 10 returned the same step bit-identically on all 60
-//   trials while the driver halved to 1.7e-17, ending kMaxIter; 6 of 48
-//   shipped configurations violated step_norm <= tr_radius). The fix is
-//   ENGINE-SIDE -- qp_engine.h's WINDOW-CONSISTENCY RULE computes the window
-//   about the clamped seed primal and drops any seeded pin lying outside it
-//   -- because the driver-side alternative (never sending bound hints) would
+//   retry re-solves the SAME subproblem, and a step that ran into one of its
+//   bounds seeds a pin at a NONZERO offset from p = 0, which would re-center
+//   the trust region if the engine materialized the pin before computing its
+//   window. The fix is ENGINE-SIDE -- qp_engine.h's WINDOW-CONSISTENCY RULE --
+//   because the driver-side alternative (never sending bound hints) would
 //   forfeit the hot start the retry exists to keep.
 //
 // Note what warm seeding does NOT buy on a genuinely nonlinear model:
 // qp_engine.h's HOT-START REUSE fast path additionally requires H/Ae/Ai's
 // VALUES to be unchanged, and they change every major by construction, so K0
 // is rebuilt each time. The win here is minor iterations (the active-set
-// walk), not factorizations -- which is exactly what
-// SqpDriver.WarmSeedingKeepsLateSubproblemsCheap asserts.
+// walk), not factorizations.
 //
 // THE REJECTION RETRY IS THE EXCEPTION, and it is why qp_types.h has
-// SolveOverrides at all. A rejected trial re-solves the SAME QpProblem
-// object -- the iterate did not move, so H, g, Ae, Ai and the box are the
-// same bytes -- with only SolveOverrides::tr_radius changed, on the same
-// engine, seeded from the rejected solve's own working set. That is precisely
-// qp_engine.h's HOT-START REUSE case: values/structural hashes match,
-// tr_radius is deliberately not in the reuse key (bounds never enter K0),
-// and the effective (primal_delta, dual_mu) pair is untouched, so the retry
-// can skip K0's assembly and factorization outright.
-//
+// SolveOverrides at all. A rejected trial re-solves the SAME QpProblem object
+// -- the iterate did not move, so H, g, Ae, Ai and the box are the same bytes
+// -- with only SolveOverrides::tr_radius changed, on the same engine, seeded
+// from the rejected solve's own working set. That is precisely qp_engine.h's
+// HOT-START REUSE case: hashes match, tr_radius is deliberately not in the
+// reuse key (bounds never enter K0), and the effective (primal_delta, dual_mu)
+// pair is untouched, so the retry can skip K0's assembly and factorization.
 // REUSE IS NOT ASSERTED UNCONDITIONALLY, per that header's own warning: the
-// five conditions are NECESSARY, not sufficient (border_candidate's perturbed
-// pivots and schur_cap checks can still force a rebuild), and condition (b)
-// -- seed working set == previous exit working set -- fails by construction
-// on the SECOND consecutive retry, because a TR-pinned index is reported
-// kFree in bound_state (rule (a)) and so cannot be reproduced as a seed hint.
-// SqpDriverTrustRegion.RejectionShrinksAndRetriesHotly therefore asserts the
-// OBSERVED per-trial factorization counts with the conditions spelled out,
-// not a blanket == 0.
+// five conditions are NECESSARY, not sufficient, and condition (b) fails by
+// construction on the SECOND consecutive retry, because a TR-pinned index is
+// reported kFree in bound_state and so cannot be reproduced as a seed hint.
 //
 // THE RETRY MUST NOT RE-CENTER THE TRUST REGION. seed.x is zeroed on the
-// rejection path exactly as on the acceptance path, for the same reason: in
-// step variables the SQP trust region is centered at p = 0, and a retry that
-// seeded the REJECTED step would center the shrunken box on the very step
-// that was just judged too aggressive.
+// rejection path exactly as on the acceptance path, and for the same reason.
 //
 // --- FULL-STEP-FIRST WARM RULE, AND ITS WATCHDOG --------------------------
 //
@@ -1425,13 +1002,11 @@
 // TURNS IT ON, WHAT IS TRACKED WHILE IT IS ON, AND WHAT ENDS IT.
 //
 // IT IS A MODE OF THE STRATEGY, NOT A SECOND MAJOR LOOP, by design. Everything
-// the loop already does around the verdict -- the elastic tier on a
-// kInfeasible subproblem, the failure routing on a kNumericalError one, the
-// radius floor, the restoration phase, the SOC gate, the zero-step
-// short-circuit, the history -- is INHERITED unchanged, because from the
-// loop's point of view a full-step major is just a major whose strategy
-// happened to say kAcceptF. A forked loop would have to re-implement all of
-// it and keep re-implementing it.
+// the loop already does around the verdict -- the elastic tier, the failure
+// routing, the radius floor, the restoration phase, the SOC gate, the
+// zero-step short-circuit, the history -- is INHERITED unchanged, because from
+// the loop's point of view a full-step major is just a major whose strategy
+// happened to say kAcceptF.
 //
 // ENGAGED WHEN ALL THREE HOLD, checked once, at the first measurable iterate:
 //   (1) SqpOptions::warm_full_step (default true; the A/B lever),
@@ -1463,55 +1038,43 @@
 //
 // THE RE-BASING IS THE RESTORATION-RESUME ONE, DELIBERATELY. The exit calls
 // strategy->resume_from_restoration(h at the restored point) -- KLV Eq. (13),
-// tau_+ = (1-kappa)h + kappa*tau, the same call the restoration phase's own
-// resume makes and for the same reason: re-entering the optimality phase at a
-// point some non-funnel mechanism chose must NOT re-initialize the width by
-// Eq. (9), which would push a funnel that had tightened back out to tau_bar =
-// 100 and forfeit monotonicity.
+// the same call the restoration phase's own resume makes and for the same
+// reason: re-entering the optimality phase at a point some non-funnel
+// mechanism chose must NOT re-initialize the width by Eq. (9), which would
+// push a funnel that had tightened back out to tau_bar and forfeit
+// monotonicity.
 //
 // THE SAFETY INVARIANT, STATED AS A PROPERTY OF THIS FILE: the full-step mode
 // CANNOT CERTIFY kOptimal AT A POINT FAILING THE STANDARD KKT CHECK. Nothing
-// in the mode touches the CONVERGENCE TEST above -- `converged` is still
-// kkt.stationarity <= kkt_tol && kkt.feasibility <= feas_tol on the very same
-// SqpKkt the ordinary path uses. What the mode changes is which trials are
-// ACCEPTED (which is what an acceptance test is for); a solve that runs the
-// mode to convergence exits kOptimal through identical code.
+// in the mode touches the CONVERGENCE TEST above. What it changes is which
+// trials are ACCEPTED; a solve that runs the mode to convergence exits
+// kOptimal through identical code.
 //
 // THE TRUST REGION IS NOT SUSPENDED, ONLY THE FUNNEL TEST IS. The subproblem
 // is still solved at a radius, and that radius still evolves by RADIUS
-// MANAGEMENT's ordinary rules -- with one asymmetry worth naming because it
-// is the whole of the "how does Delta evolve under the mode" question:
+// MANAGEMENT's ordinary rules -- with one asymmetry:
 //   * IT NEVER SHRINKS ON A REJECTION, because the mode produces no
-//     rejections. That is [KD]'s intent made mechanical: shrinking is how
-//     globalization damps a step, and damping the full step is precisely the
-//     interference the rule exists to remove. (Delta CAN still shrink on a
-//     ROUTED QP FAILURE -- see SUBPROBLEM FAILURE ROUTING -- because that is
-//     not a judgement about the step but a statement that the subproblem
-//     could not be solved at this radius; the watchdog's stall signal is what
-//     catches a run of them.)
+//     rejections; damping the full step is precisely the interference the rule
+//     exists to remove. (Delta CAN still shrink on a ROUTED QP FAILURE, which
+//     is not a judgement about the step but a statement that the subproblem
+//     could not be solved at this radius.)
 //   * IT STILL GROWS on a trust-region-active step whose actual decrease
-//     matched the model's prediction, unchanged. Growth keeps the radius from
-//     CAPPING a full step that a carried-over warm radius happens to be too
-//     small for -- a cap would silently turn the "full step" into a damped
-//     one and the rule would be inert.
+//     matched the model's prediction, so a carried-over warm radius that is
+//     too small cannot silently CAP the "full step" into a damped one.
 // So under the mode the radius is, in practice, the ingested warm radius,
-// possibly grown: exactly "the warm start's own trust region, not re-derived
-// from cold defaults".
+// possibly grown.
 //
-// INTERACTION WITH THE SUSPECT GATE AND ANY OTHER SUBPROBLEM FAILURE: if a
-// full-step major's QP exits kNumericalError, the driver takes SUBPROBLEM
-// FAILURE ROUTING, which does not consult the strategy AT ALL: no trial point
-// exists, so the mode is never asked and cannot accept anything. The iterate
-// does not move, the radius halves once (the one-shot retry), and the next
-// pass measures THE SAME residual at THE SAME point -- which is not a growth,
-// so signal (a) stays put, but is not a new best either, so signal (b)
-// advances. A subproblem that keeps failing therefore burns the window and
-// the watchdog ends the mode after kWarmFullStepWindow majors, restoring an
-// iterate that (in this case) is the one the driver is already standing on --
-// a no-op move, a real mode exit, and a counted restore (sqp_types.h's
-// watchdog_restores note). A second CONSECUTIVE routed failure ends the solve
-// outright, exactly as it does without the mode. Nothing here is
-// special-cased.
+// INTERACTION WITH THE SUSPECT GATE AND ANY OTHER SUBPROBLEM FAILURE: a
+// full-step major whose QP exits kNumericalError takes SUBPROBLEM FAILURE
+// ROUTING, which does not consult the strategy AT ALL, so the mode is never
+// asked and cannot accept anything. The next pass measures THE SAME residual
+// at THE SAME point -- not a growth, so signal (a) stays put; not a new best
+// either, so signal (b) advances. A subproblem that keeps failing therefore
+// burns the window and the watchdog ends the mode, restoring an iterate that
+// is the one the driver is already standing on: a no-op move, a real mode
+// exit, and a counted restore (sqp_types.h's watchdog_restores note). A second
+// CONSECUTIVE routed failure ends the solve outright, exactly as it does
+// without the mode.
 //
 // ENTERING RESTORATION ENDS THE MODE. All three restoration request sources
 // remain reachable under it except the funnel's own signature (it cannot fire
@@ -1547,7 +1110,7 @@
 // `row` and the eventual history entry describe), never the abandoned point
 // the watchdog moved away from. The comparison is a plain lexicographic one
 // on (violation_l1, f); ties keep the EARLIER candidate (strict `<`, not
-// `<=`), which matters only in that it is deterministic.
+// `<=`).
 //
 // WHAT THE WARM OBJECT DESCRIBES ON THIS EXIT. `qp`/`qp_built` (hence
 // structure_hash) are the same as any other exit's -- structure_hash is a
@@ -1561,10 +1124,9 @@
 // of opts_ with budget_mode forced back to false: this lever's contract is
 // scoped to the MAIN loop only, and the restoration phase running out of ITS
 // OWN slice of the shared max_iter budget already has a designated answer --
-// kMaxIter, "no budget left to restore with" -- that says something different
-// from "here is a usable point" and is not worth overloading. Forcing the
-// sub-solve's own lever off is also what lets the status mapping stay
-// exhaustive with an UNREACHABLE kBudgetExhausted arm.
+// kMaxIter, "no budget left to restore with". Forcing the sub-solve's own
+// lever off is also what lets the status mapping stay exhaustive with an
+// UNREACHABLE kBudgetExhausted arm.
 
 #include <algorithm>
 #include <chrono>
@@ -1600,8 +1162,7 @@ namespace hven::solvers {
 //
 // WHY THIS EXISTS: the convergence test and the subproblem construction read
 // the SAME five derivative quantities at the same x, and evaluating them
-// independently doubles the model's work on every major (measured at 12
-// virtual calls per major where 7 suffice).
+// independently doubles the model's work on every major.
 //
 // THE HESSIAN IS DELIBERATELY NOT IN HERE. It depends on (lambda_e,
 // lambda_i) as well as x, it is the single most expensive thing a model
@@ -1609,13 +1170,10 @@ namespace hven::solvers {
 // separate eval_hess call made once per ACCEPTED iterate, inside
 // build_subproblem.
 //
-// ONE EXCEPTION: make_warm_start is a SECOND eval_hess call site, outside
-// build_subproblem and outside that per-iterate rule. It fires only on a
-// solve that built NO subproblem at all (see this header's MODEL EVALUATION
-// note and make_warm_start's THE ZERO-MAJOR PROBE), which is precisely the
-// "final iterate where no subproblem is ever built" case above -- so the
-// exception costs exactly one Hessian on solves that would otherwise have
-// evaluated none, and zero on every other solve.
+// ONE EXCEPTION: make_warm_start is a SECOND eval_hess call site, and it
+// fires only on a solve that built NO subproblem at all (this header's MODEL
+// EVALUATION note and make_warm_start's THE ZERO-MAJOR PROBE) -- one Hessian
+// on solves that would otherwise have evaluated none, zero on every other.
 /// @brief One model evaluation at one point: the five quantities a major
 ///        iteration reads, taken together so nothing is evaluated twice.
 struct NlpEval {
@@ -1641,14 +1199,10 @@ struct NlpEval {
 ///
 /// THE CALLBACK RETURNS ARE CHECKED, NOT ASSUMED, and this is a wrong-answer
 /// guard rather than a courtesy: the five RETURNS are the MODEL's, and nothing
-/// downstream re-measures them. An eval_ci returning an EMPTY vector on a
-/// model whose mi() is 1 propagates a 0-sized ev.ci past allFinite()
-/// (vacuously true on an empty vector) into evaluate_kkt's `for j <
-/// model.mi()` loop -- an out-of-bounds read in Release, where Eigen's own
-/// asserts are compiled out. Every check below is an O(1) integer comparison
-/// against a dimension the model already declared, and each throw NAMES THE
-/// CALLBACK, because "size 0, expected 1" is not actionable unless the reader
-/// knows which function produced it.
+/// downstream re-measures them. A short return propagates past allFinite()
+/// (vacuously true on an empty vector) into an out-of-bounds read in Release,
+/// where Eigen's own asserts are compiled out. Each check is an O(1) integer
+/// comparison against a declared dimension, and each throw NAMES THE CALLBACK.
 ///
 /// @throws std::invalid_argument if `x` is mis-sized or any callback return's
 ///         shape contradicts the model's declared dimensions.
@@ -1711,20 +1265,16 @@ inline NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
 
 // VALUES ONLY -- f(x), cE(x), cI(x) via NlpModel::eval_values, none of
 // eval_nlp's grad/Je/Ji. Returns an NlpEval shaped exactly like eval_nlp's,
-// so it drops into every helper that only reads f/ce/ci
-// (constraint_violation_l1, build_soc_subproblem) -- grad/Je/Ji are set to
-// n/(me x n)/(mi x n)-SIZED ZEROS (an honestly-empty linearization, NOT
-// eval_nlp's PER-BLOCK 0 x n SKIP -- every model has a real n/me/mi, this
-// NlpEval simply carries no derivative information for any of them), so a
-// caller who mistakenly reads them gets zeros of the RIGHT shape rather than
-// a size mismatch two calls downstream. all_finite covers f/cE/cI only,
-// exactly as its name on eval_nlp's own ev promises for its wider set.
+// so it drops into every helper that only reads f/ce/ci. grad/Je/Ji are set
+// to n/(me x n)/(mi x n)-SIZED ZEROS -- an honestly-empty linearization, NOT
+// eval_nlp's per-block 0 x n skip -- so a caller who mistakenly reads them
+// gets zeros of the RIGHT shape rather than a size mismatch two calls
+// downstream. all_finite covers f/cE/cI only.
 //
 // THE CALLER'S OBLIGATION, not enforced here: use this only where the
 // derivatives genuinely go unread (the rejected-trial funnel evaluation and
-// the warm-resolution probe are the two places that holds), and upgrade to a
-// real eval_nlp the moment a caller decides it needs more -- see solve_impl's
-// own upgrade-on-accept sites.
+// the warm-resolution probe), and upgrade to a real eval_nlp the moment a
+// caller needs more -- see solve_impl's own upgrade-on-accept sites.
 /// @brief Evaluates f, cE and cI at `x` only -- no derivatives.
 /// @param model The problem.
 /// @param x     The point; must have size model.n().
@@ -1775,15 +1325,12 @@ inline NlpEval eval_nlp_values(const NlpModel &model, const Vec &x) {
 // eval_f/eval_ce/eval_ci. Used wherever a values-only trial or SOC-corrected
 // point turns out, after judging, to need its derivatives after all.
 //
-// THIS IS AN EVAL BOUNDARY TOO, and it takes the same three returns eval_nlp
-// takes -- so it checks them the same way, for the same reason: a values-only
-// trial or SOC-corrected point that the funnel judged worth keeping is
-// upgraded here, and the resulting ev is what the NEXT major linearizes from.
-// A short grad reaches evaluate_kkt's grad_lag(i) and a mis-shaped Je/Ji
-// reaches build_subproblem's blocks, both unchecked, both out-of-bounds in
-// Release where Eigen's asserts are gone. The cE/cI half of this bundle is
-// already covered (it can only have come from a checked eval_nlp_values), so
-// exactly the three derivative returns are checked here.
+// THIS IS AN EVAL BOUNDARY TOO, and it checks the same three returns eval_nlp
+// checks, for the same reason: the resulting ev is what the NEXT major
+// linearizes from, and a short grad or a mis-shaped Je/Ji reaches
+// evaluate_kkt and build_subproblem unchecked. The cE/cI half is already
+// covered (it can only have come from a checked eval_nlp_values), so exactly
+// the three derivative returns are checked here.
 /// @brief Fills in the derivatives an eval_nlp_values() bundle is missing,
 ///        leaving its f/cE/cI untouched.
 /// @param model The problem.
@@ -1904,13 +1451,10 @@ struct SqpKkt {
 // wrong-answer bug rather than a robustness nicety. Both measures are folded
 // out of per-entry terms by a running maximum, and IEEE says
 // std::max(a, NaN) == a -- likewise Eigen's maxCoeff-based
-// lpNorm<Infinity>(). A NaN gradient or constraint value is therefore
-// SWALLOWED entry by entry, both measures read 0.0, and
-// `stationarity <= kkt_tol` fires on a point at which nothing was measured at
-// all. Measured before this guard existed: a 1-D model that returns NaN
-// outside |x| <= 1e6 was walked out of its domain by one legitimate full
-// Newton step and the resulting iterate was certified kOptimal with f = nan;
-// and a caller-supplied NaN x0 was certified kOptimal in zero majors.
+// lpNorm<Infinity>(). A NaN gradient or constraint value would therefore be
+// SWALLOWED entry by entry, both measures would read 0.0, and
+// `stationarity <= kkt_tol` would fire on a point at which nothing was
+// measured at all.
 //
 // So finiteness is checked EXPLICITLY, up front, and a non-finite point
 // yields finite == false with every residual set to NaN -- NaN specifically,
@@ -1970,12 +1514,10 @@ inline SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, cons
         if (at_lower && at_upper) {
             // A FIXED variable: both sides active at once, so there is no
             // direction to certify stationarity along and z absorbs the whole
-            // gradient. This function stays TOLERANT of a crossed box
-            // (lower > upper) landing in this arm, deliberately -- it remains
-            // callable with a raw NlpModel by tests and by callers measuring a
-            // single point, which never go near the bridge that rejects a
-            // crossed box at entry, and refusing here would put a solve-path
-            // rule on a measurement that has no solve behind it.
+            // gradient. This arm stays TOLERANT of a crossed box
+            // (lower > upper), deliberately: the function is callable with a
+            // raw NlpModel by callers measuring a single point, which never go
+            // near the bridge that rejects a crossed box at entry.
             s = 0.0;
             out.z(i) = g;
         } else if (at_lower) {
@@ -2061,17 +1603,12 @@ inline SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambd
 // the returned QpProblem is the pure linearization and a caller retrying at a
 // different radius rebuilds nothing.
 //
-// `ev` must have been produced by eval_nlp at THIS x -- the whole point of
-// the bundle is that the five derivative quantities are shared with the
-// convergence test rather than recomputed (see NlpEval). eval_hess is the one
-// call this makes itself. The caller is responsible for not handing a
-// non-finite `ev` through: SqpDriver checks SqpKkt::finite and stops before
-// ever reaching here. THAT PRECONDITION HOLDS FOR THE SECOND CALLER TOO (the
-// zero-major probe in make_warm_start, which builds a throwaway subproblem
-// purely to hash its sparsity): the probe is SKIPPED entirely on the one exit
-// whose `ev` can be non-finite -- the unevaluable start point -- so every
-// subproblem this function is asked to build, hashed or solved, still comes
-// from an evaluation SqpDriver already found finite.
+// `ev` must have been produced by eval_nlp at THIS x (see NlpEval);
+// eval_hess is the one call this makes itself. NON-FINITENESS IS THE CALLER'S
+// OBLIGATION, not checked here: SqpDriver checks SqpKkt::finite and stops
+// before reaching here, and make_warm_start's zero-major probe is SKIPPED
+// entirely on the one exit whose `ev` can be non-finite (THE UNEVALUABLE
+// EXIT).
 /// @brief Builds the SQP subproblem at `x`, in the step variable p, from an
 ///        evaluation already taken at that x.
 /// @param model     The problem.
@@ -2131,12 +1668,10 @@ inline QpProblem build_subproblem(const NlpModel &model, const Vec &x, const Vec
 //
 // THIS IS A MODEL QUANTITY, NOT AN OBSERVED ONE. It is emphatically NOT the
 // actual objective difference f(x) - f(x + p): the two routinely disagree in
-// SIGN (that disagreement is what a rejection IS). The negation in particular
-// makes pred_df <= 0 on every healthy step, so KLV Eq. (10)'s switching
-// condition fails everywhere and the Armijo condition Eq. (11) -- the one KLV
-// Thm. 1 case 2 sums to prove convergence -- is never tested at all. The
-// formula is pinned by a hand-computed unit test
-// (SqpDriverTrustRegion.PredictedDecreaseIsTheQpModelDecrease).
+// SIGN (that disagreement is what a rejection IS). Dropping the negation makes
+// pred_df <= 0 on every healthy step, so KLV Eq. (10)'s switching condition
+// would fail everywhere and the Armijo condition Eq. (11) -- the one KLV
+// Thm. 1 case 2 sums to prove convergence -- would never be tested at all.
 //
 // Sign convention check, for the reader: for an unconstrained convex model the
 // QP's own solution p* = -W^{-1} g gives pred_df = 1/2 g^T W^{-1} g >= 0.
@@ -2194,11 +1729,10 @@ inline double predicted_decrease(const QpProblem &qp, const Vec &p) {
 //
 // Returns true iff it seeded anything at all; `rows`/`bounds` receive the
 // two counts (SqpCounters::crash_seeded_rows/crash_seeded_bounds). A seed
-// that names nothing is NOT offered to the engine by the caller -- passing an
+// that names nothing is NOT offered to the engine by the caller: passing an
 // all-free, no-row seed is observationally identical to passing none, and not
-// offering it keeps the cold path's `engine_.solve(qp, overrides)` call
-// literally unchanged wherever the lever finds nothing, which is what makes
-// the off-default byte-identity claim cheap to believe.
+// offering it keeps the cold path's call literally unchanged wherever the
+// lever finds nothing.
 /// @brief Builds a cold-start active-set seed from the subproblem's own
 ///        geometry, naming the rows and bounds that are already tight at x0.
 /// @param qp       The first subproblem of a cold solve.
@@ -2290,7 +1824,7 @@ inline SqpKkt evaluate_kkt(const AggregateEvalSeam &seam, const NlpEval &ev, con
 // driver shrink the radius and re-solve instead of giving up? See this
 // header's SUBPROBLEM FAILURE ROUTING note for the algorithm; this is the
 // whole of the decision, factored out so it can be tested away from any
-// engine (SqpDriverQpFailure.RetryabilityIsFinitenessAndTheBox).
+// engine.
 //
 // THE STATUS ARM. kOptimal is not a failure. kInfeasible is a failure that
 // shrinking cannot fix and must not be retried: a smaller radius only REMOVES
@@ -2369,16 +1903,15 @@ inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, d
 //       which this driver's elastic tier consumes as one. A driver that
 //       branched on the status rather than on the escape would promote a
 //       suspicion to a certificate at the driver layer.
-//   (2) THE LABEL IS NOT RELIABLE ENOUGH TO BRANCH ON. The safeguarded fix
-//       traded infeasibility RECALL for precision (99.74% -> 56.47%), so
-//       genuinely infeasible subproblems now escape `kNoContraction` or
-//       `kBudget` more often than `kInfeasibleSuspect`: 4 of 5 infeasible
-//       fixtures do. A rule keyed on `kInfeasibleSuspect` would MISS most
-//       infeasible subproblems while ALSO mis-routing the 0.55% false
+//   (2) THE LABEL IS NOT RELIABLE ENOUGH TO BRANCH ON. The safeguard traded
+//       infeasibility RECALL for precision, so genuinely infeasible
+//       subproblems escape `kNoContraction` or `kBudget` more often than
+//       `kInfeasibleSuspect`. A rule keyed on `kInfeasibleSuspect` would MISS
+//       most infeasible subproblems while ALSO mis-routing its false
 //       positives.
 //   (3) UNIFORM ROUTING STILL REACHES THE ELASTIC TIER, and reaches it with
-//       better evidence. An infeasible linearization handed to the walk comes
-//       back `QpStatus::kInfeasible` -- the walk's own certificate -- and the
+//       better evidence: an infeasible linearization handed to the walk comes
+//       back QpStatus::kInfeasible -- the walk's own certificate -- and the
 //       elastic tier fires on it exactly as it always has. The destination is
 //       unchanged; only the authority for the claim improves.
 //
@@ -2423,9 +1956,7 @@ inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, d
 // to an ACTIVE-SET solve and to nothing else; an FB kernel stopping at
 // |phi| <= fb_tol supplies only `min(s, lambda) = O(fb_tol)`, whose product
 // form carries an additive `fb_tol * ||lambda||inf` that does not vanish with
-// the step. Measured, before this tier existed: complementarity 6.311e-01 on a
-// row with ||lambda||inf = 1e6, against the walk's 1.0e-04 on the identical
-// fixture; with it, 1.0000e-04 -- the walk's own value to five figures.
+// the step. The refinement's answer satisfies the identity by construction.
 //
 // IT CAN BE REFUSED, and a refusal is not an error: the caller keeps the
 // certificate the SSN tier already gave it. What it means is that THAT
@@ -2455,15 +1986,12 @@ inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, d
 //     kernels agree on the two conventions that matter (a TR pin reports kFree
 //     plus tr_active; a real lower == upper reports kFixed). THERE IS NO
 //     CAPABILITY GAP: SOC is available in BOTH modes, which is what makes a
-//     mode comparison fair. Measured: HS77 takes 2 SOC re-solves under kSsn
-//     with 0 escapes, i.e. every seed came from the SSN
-//     (TheSecondOrderCorrectionIsReachableUnderKSsnFromAnSsnSeed).
+//     mode comparison fair.
 //
 //   THE RESTORATION SUB-SOLVE runs whatever `qp_mode` its SqpOptions carry,
-//     so it is reset to kWalk EXPLICITLY where the sub-options are built, and
-//     the reset is MEASURED rather than merely documented -- the sub-solve's
-//     own `counters.ssn` is folded, so letting the mode leak back in moves a
-//     pinned number (RestorationStaysOnTheWalkUnderKSsn).
+//     so it is reset to kWalk EXPLICITLY where the sub-options are built. The
+//     sub-solve's own `counters.ssn` is folded, so letting the mode leak back
+//     in moves a pinned number.
 //
 // THE CRASH BASIS likewise stays a walk-only mechanism (SqpOptions::
 // crash_basis): it builds a QpSolution seed, which is what the walk consumes.
@@ -2487,11 +2015,10 @@ inline bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, d
 // certifying exit ssn_engine.h can produce reaches this gate, so no NLP
 // fixture can drive it. It is kept because it is the single point at which a
 // step whose norm the funnel has not been told about could enter the
-// acceptance test. It is made FIXTURABLE through the free predicate below,
-// which tests/sqp/test_sqp_driver.cpp drives in both polarities on a hand-built
-// SsnResult. DERIVED FROM ssn_engine.h's OWN CONSTANT, never restated as a
-// literal (`const double` rather than `constexpr` because the constant it is
-// built from is itself a runtime-initialized `std::sqrt` expression).
+// acceptance test, and it is made fixturable through the free predicate below.
+// DERIVED FROM ssn_engine.h's OWN CONSTANT, never restated as a literal
+// (`const double` rather than `constexpr` because the constant it is built
+// from is itself a runtime-initialized `std::sqrt` expression).
 /// @brief Trust-region slack the SSN certifying exit is allowed, as a multiple
 ///        of `fb_tol`; derived from ssn_engine.h's own constant rather than
 ///        restated as a literal.
@@ -2658,11 +2185,8 @@ inline double ssn_fb_tol_for(double kkt_tol, double feas_tol) {
 // WHY IT IS A FREE FUNCTION RATHER THAN TWO LINES AT ITS ONE CALL SITE. That
 // site is the HAND-OFF, where `qs` becomes the WALK's solution and the escaped
 // SSN attempt's cost therefore reaches no other accumulation path. Getting
-// either field wrong there is silent -- the work simply vanishes -- and the
-// driver-scale fixtures that would notice happen to exercise
-// `factorizations` far more sharply than `symbolic_analyses`. Stating the rule
-// once here makes BOTH fields directly assertable
-// (SqpDriverSsnMode.TheEscapedSubproblemsCostIsChargedInBothFields).
+// either field wrong there is silent -- the work simply vanishes -- so the
+// rule is stated once here, where both fields are directly assertable.
 /// @brief Charges one SSN subproblem's cost to a solve's running totals.
 /// @param total The solve's counters, updated in place.
 /// @param res   The subproblem's result. Only factorizations and symbolic
@@ -2689,10 +2213,8 @@ inline void charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res)
 // branch runs instead -- where the refinement's factorization has no other
 // accumulation site and was simply lost: not in SqpCounters::factorizations,
 // not in `ssn_refine_factorizations`, not in `ssn_refine_refused`, and not in
-// the probe budget it silently under-charged. Unreachable on every shipped
-// corpus (0 withdrawals over the 27-problem HS battery and the 57 corpus
-// cells), and INERT at the shipped default, where nothing is ever deferred
-// and no face solve is ever hoisted.
+// the probe budget it silently under-charged. INERT at the shipped default,
+// where nothing is ever deferred and no face solve is ever hoisted.
 //
 // THE FOUR FIELDS ARE THE FOUR THE CERTIFYING BRANCH WRITES FOR A REFUSAL;
 // `symbolic_analyses` is absent because QpEngine::refine_on_face reports only
@@ -2773,9 +2295,8 @@ inline void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) 
 // error in x down by roughly the SQUARE of that footprint relative to the
 // row's own conditioning -- on a badly scaled active set the fixed engine
 // default dual_mu = 1e-8 still leaves a relative error around 1e-4 in the
-// RETURNED x, well short of kkt_tol/feas_tol's default 1e-6. See
-// AdaptiveMuRecoversTailAccuracy for the measured fixture and its fixed-mu
-// contrast. Shrinking mu attacks the footprint directly (it is linear in mu),
+// RETURNED x, well short of kkt_tol/feas_tol's default 1e-6.
+// Shrinking mu attacks the footprint directly (it is linear in mu),
 // but shrinking it UNCONDITIONALLY is not free: a smaller mu is a
 // worse-conditioned regularized system, a real hazard EARLY in a solve, far
 // from whatever active set the iterate eventually settles on.
@@ -2801,13 +2322,10 @@ inline void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) 
 // major -- including late in a solve, where the driver is taking tiny,
 // warm-started corrective steps and a refactorization is pure waste. Rounding
 // to a decade makes the schedule IDEMPOTENT once the residual stops crossing a
-// decade boundary, so late majors reuse exactly like the fixed-mu driver
-// always did. The clamp happens BEFORE quantization: rounding a value already
-// inside [mu_min, mu_max] to the nearest power of ten can only land ON one of
-// the four decades spanning [1e-12, 1e-8] or exactly at one end -- never
-// outside that range. A non-idempotent mu formula would refactorize MORE than
-// necessary, never less -- the safe direction; quantization makes it also the
-// CHEAP direction.
+// decade boundary. THE CLAMP HAPPENS BEFORE QUANTIZATION: rounding a value
+// already inside [mu_min, mu_max] to the nearest power of ten can only land ON
+// one of the four decades spanning [1e-12, 1e-8] or exactly at one end, never
+// outside it.
 //
 // PRIMAL_DELTA IS DELIBERATELY NOT SCHEDULED: SolveOverrides::primal_delta is
 // left at its own sentinel every major (the engine default), unconditionally.
@@ -2864,19 +2382,18 @@ inline constexpr double kAdaptiveMuMax = 1e-8;
 // ratio test at a weakly active row -- and the honest repair is to say "this
 // row is priced at zero", which is what the KKT system asks for at the
 // boundary anyway. A LARGE negative price is not noise, it is a contradiction:
-// it says a constraint is PAYING the objective to be satisfied. **A
-// wrong-signed price at O(1) is not a seed, it is garbage**, and the level's
-// whole premise -- trust the VALUES, since you cannot check the provenance --
-// fails for it. Degrading is the only answer that neither trusts it nor throws
-// (warm_start.h's "safe even if stale" contract forbids the throw).
+// it says a constraint is PAYING the objective to be satisfied, and the
+// level's whole premise -- trust the VALUES, since you cannot check the
+// provenance -- fails for it. Degrading is the only answer that neither trusts
+// it nor throws (warm_start.h's "safe even if stale" contract forbids the
+// throw).
 //
 // THE VALUE 1e-6 AND ITS DERIVATION:
 //   (1) THE PRODUCIBLE SIGN-VIOLATION CLASS IS ~1e-8. predictor.h's ratio test
 //       admits one only within `kDualSignTol * max(1, |lambda|)` = 1e-9
 //       RELATIVE; warm_start.h's from_interior_point copies its caller's price
-//       verbatim, with the shipped fixture
-//       (WarmStart.CrossoverWrongSignDualLeavesRowFree) at -1e-8 against a
-//       slack of -1e-9.
+//       verbatim, and a crossover from an unconverged IP solve lands around
+//       1e-8.
 //   (2) THAT CLASS SCALES WITH THE PRODUCER'S TOLERANCE, NOT OURS: an IP
 //       method's residual sign noise near convergence sits about an order above
 //       its own stopping tolerance. A producer converged to 1e-7 or better
@@ -2961,8 +2478,7 @@ class SqpDriver {
     // regardless of that shape. The validation call runs the same checks as
     // validate_sqp_options, in the same order with the same messages; its
     // predicates are written as `!(x > 0.0)` because that is the form that
-    // rejects NaN under the build's `-fno-finite-math-only` (that TU's banner
-    // states the premise; the battery pins it by disassembly).
+    // rejects NaN under the build's `-fno-finite-math-only`.
     SqpDriver(const SqpOptions &opts, bool allow_restoration)
         : opts_(opts), engine_(opts.qp), allow_restoration_(allow_restoration) {
         validate_sqp_options(opts_);
@@ -3430,25 +2946,20 @@ class SqpDriver {
     // THE PROBE BUDGET note for the whole contract.
     //
     // Every model quantity this loop reads arrives through `seam`: the
-    // dimensions, the box, the six evaluation moments and the subproblem. There
-    // is no NlpModel in scope here and no `model.eval_*` call anywhere below --
-    // the free functions over NlpModel declared in this header remain for
-    // callers measuring a point of their own; the solve path does not use them.
+    // dimensions, the box, the six evaluation moments and the subproblem.
+    // There is no NlpModel in scope here and no `model.eval_*` call anywhere
+    // below -- the free functions over NlpModel declared in this header remain
+    // for callers measuring a point of their own; the solve path does not use
+    // them.
     //
-    // The one place a model is still named is the restoration phase, which
-    // builds a different NlpModel (RestorationModel, a wrapper in the
-    // variables (x, sp, sm, si)) around the one behind the bridge and solves it
-    // with a nested driver. That wrapper is a Level 1 construction with no
-    // aggregate form of its own, so this entry reaches the model through
-    // the bridge -- an identity read, never an evaluation -- and the nested
-    // solve then wraps the wrapper in its own bridge and seam through the
-    // model-taking overload, exactly as the outer call did.
-    //
-    // WHICH IS WHY `bridge` RIDES ALONGSIDE `seam`: the seam binds the
-    // claim-stream interface, which carries no model, so the one Level 1 read
-    // is taken from the caller's own bridge handle rather than back out of the
-    // seam. Both name the same object; only the restoration phase reads the
-    // second.
+    // WHICH IS WHY `bridge` RIDES ALONGSIDE `seam`: the one place a model is
+    // still named is the restoration phase, which builds a different NlpModel
+    // (RestorationModel, in the variables (x, sp, sm, si)) around the one
+    // behind the bridge and solves it with a nested driver. The seam binds the
+    // claim-stream interface, which carries no model, so that single Level 1
+    // read -- an identity read, never an evaluation -- is taken from the
+    // caller's own bridge handle. Both name the same object; only the
+    // restoration phase reads the second.
     SqpSolution solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                            const WarmStart &warm, Index minor_budget);
 
@@ -3541,12 +3052,10 @@ class SqpDriver {
     //
     // THE COST: one extra eval_hess, nothing else -- `probe_ev` is the bundle
     // the loop already computed at this iterate, so Je/Ji come for free. Paid
-    // ONLY on the qp_built == false exits THAT ARE PROBED AT ALL; a solve
-    // that built even one subproblem hashes that subproblem and evaluates
-    // nothing extra. Those exits spent no major iteration at all, so one
-    // Hessian is the cheapest thing such a solve does; the alternative is the
-    // hand-off being unusable, which costs the NEXT solve a full
-    // re-globalization from cold.
+    // ONLY on the qp_built == false exits THAT ARE PROBED AT ALL. Those exits
+    // spent no major iteration, so one Hessian is the cheapest thing such a
+    // solve does; the alternative is an unusable hand-off, which costs the NEXT
+    // solve a full re-globalization from cold.
     //
     // THE UNEVALUABLE EXIT IS NOT PROBED, AND ITS HAND-OFF IS COLD
     // (`probe_ev == nullptr`). What probed it would miss: the 3-arg solve()
@@ -3554,8 +3063,8 @@ class SqpDriver {
     // hash-valid hand-off from a solve that could not evaluate its own start
     // point pins the NEXT solve back onto that same unevaluable point and
     // DISCARDS the corrected x0 the caller supplied to retry with -- turning
-    // a recovery into a repeat of the same kNumericalError. Measured on
-    // exactly that shape before it was fixed. So that exit passes null, and
+    // a recovery into a repeat of the same kNumericalError. So that exit
+    // passes null, and
     // this function emits a COLD object there: `valid = false`,
     // `structure_hash = 0`, no probe attempted. Both consequences are decided
     // HERE, from the one parameter, so they cannot drift apart at the call
@@ -3564,13 +3073,11 @@ class SqpDriver {
     // called at a point the model has already reported unevaluable).
     //
     // WHERE `probe_ev` AND `probe_x` ARE NOT A MATCHED PAIR, and why it does
-    // not matter. At the RESTORATION exits, `x` may already have been moved
-    // to the restored point while `ev` still describes the point the
-    // restoration was requested from. Those exits pass the pair anyway
-    // because the probe is unreachable there: `qp_built` is unconditionally
-    // true by then (a restoration can only be requested after a subproblem
-    // has been built and solved), so the hash comes from `qp`. Were that ever
-    // to change, the probe would still be CORRECT -- it reads only the
+    // not matter. At the RESTORATION exits, `x` may already have been moved to
+    // the restored point while `ev` still describes the point the restoration
+    // was requested from. Those exits pass the pair anyway because the probe is
+    // unreachable there (`qp_built` is unconditionally true by then), and were
+    // that to change the probe would still be CORRECT -- it reads only the
     // model's sparsity pattern, which is the same at both points.
     //
     // Static (no `this`): every value it needs -- including opts_.qp.
