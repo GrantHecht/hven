@@ -62,10 +62,10 @@
 //
 // **THE ENGINE IS NO LONGER HEADER-ONLY** -- M6 W0.1b carved SsnEngine's member
 // definitions into src/qp/ssn_engine.cpp -- so a patched build takes BOTH
-// files: the header copy carries the constants, the .cpp copy the
-// straight-line code, and the patched .cpp is compiled into the probe binary
-// in place of the library's. EXACT INVOCATION for the no-hysteresis variant
-// (the alpha-only-damping variant is the same recipe with the other sed):
+// files (the header copy carries the constants, the .cpp copy the
+// straight-line code) AND links the built library after them. EXACT INVOCATION
+// for the no-hysteresis variant (the alpha-only-damping variant is the same
+// recipe with the other sed):
 //
 //   rm -rf /tmp/ssn_patch && mkdir -p /tmp/ssn_patch/hven/detail/qp
 //   cp include/hven/detail/qp/ssn_engine.h /tmp/ssn_patch/hven/detail/qp/
@@ -80,11 +80,19 @@
 //   #   'kUncertain) {\n        alpha[k] = detail::kSsnDegenerateFbDeriv;\n'
 //   #   '        beta[k] = detail::kSsnDegenerateFbDeriv;',
 //   #   'kUncertain) {\n        alpha[k] = detail::kSsnDegenerateFbDeriv;'))"
-//   clang++ -DFMT_HEADER_ONLY -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
+//   clang++ \
+//     -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO \
+//     -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 \
+//     -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 \
+//     -DHVEN_VERSION_STRING='"0.1.0"' -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
+//     -fPIC -pthread -mllvm -inline-threshold=225 -fomit-frame-pointer \
+//     -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 \
+//     -march=native -mtune=native -ffast-math -fno-finite-math-only \
 //     -I /tmp/ssn_patch -I include -I tests/sqp \
 //     -isystem dep/eigen -isystem dep/fmt/include \
 //     -isystem /opt/intel/oneapi/mkl/latest/include \
-//     bench/ssn_safeguard_probe.cpp "$C" -o /tmp/ssn_probe \
+//     bench/ssn_safeguard_probe.cpp "$C" build-m5-release/libhven.a \
+//     -o /tmp/ssn_probe \
 //     -Wl,--start-group /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a \
 //     /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a \
 //     /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a -Wl,--end-group \
@@ -92,12 +100,34 @@
 //   MKL_NUM_THREADS=1 LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/lib \
 //     /tmp/ssn_probe band 60794
 //
-// The hven library is NOT linked here, so the patched .cpp is the only
-// definition of any SsnEngine member in the binary and there is no second one
-// to collide with. The `-I /tmp/ssn_patch` ahead of `-I include` resolves ONLY
-// ssn_engine.h to the patched header; nothing in the repository is modified,
-// and no CMake option here can build a patched engine. QpEngine is still
-// header-only, so qp_engine.h needs no counterpart on the command line.
+// THE LIBRARY IS LINKED, AND IT IS LINKED *AFTER* THE PATCHED `$C`. The probe
+// needs SymmetricFactor, detail::analysis_decision/factorize_checked/solve_vec
+// and QpEngine from the library, so the archive is not optional -- without it
+// the link fails on exactly those symbols. The archive's own
+// `ssn_engine.cpp.o` is never extracted, because by the time the linker
+// reaches the archive the patched object has already defined every SsnEngine
+// symbol and no undefined one remains to pull it in (confirmed on a linker
+// map: zero references to `libhven.a(ssn_engine.cpp.o)`). So the patched
+// engine is the only one in the binary.
+//
+// **THE FLAG BLOCK IS LOAD-BEARING, NOT CEREMONY**, and it is CLAUDE.md §7's
+// one-uniform-flag-regime rule applied to a build that links library objects.
+// Two separate failures follow from trimming it: the Eigen/HVEN `-D`s are ABI
+// (`EIGEN_MAX_ALIGN_BYTES` changes object layout, so a mismatched probe
+// SEGFAULTS against the archive), and the numerics flags (`-ffast-math`,
+// `-march=native`, the inline threshold) change results, so a probe built
+// without them prints different digests from the shipped binary and its A/B is
+// measuring the flags rather than the patch.
+//
+// THE RECIPE HAS ITS OWN SELF-TEST: build it once with the copies UNPATCHED.
+// That binary reproduces the in-tree `hven_sqp_ssn_safeguard_probe`'s output
+// digest for digest (verified at `band`, seed 20260807: tau=0.1/0.3
+// fdd87c975aaf7204, tau=0.9 70986492b9bbb335). If the unpatched control does
+// not match, the build is wrong and no A/B taken from it means anything.
+//
+// The `-I /tmp/ssn_patch` ahead of `-I include` resolves ONLY ssn_engine.h to
+// the patched header; nothing in the repository is modified, and no CMake
+// option here can build a patched engine.
 //
 // THE SAME RECOMPILE SERVES TWO MORE ARMS (added in review fix round 2):
 //
@@ -110,8 +140,12 @@
 //     -DHVEN_SQP_PROBE_PREFIX_ENGINE so this file's escape-name switch omits
 //     the one enumerator fix round 1 introduced. That define exists for this
 //     arm alone; no CMake target sets it. **THAT SEED IS A HEADER-ONLY
-//     ENGINE**, so that arm keeps the original one-file recipe: no `$C` on the
-//     command line, `-I /tmp/ssn_prefix` alone.
+//     ENGINE**, so that arm passes no `$C` -- but it still needs the library
+//     on the command line, for the same non-SsnEngine symbols as above. Its
+//     inline definitions leave no undefined SsnEngine symbol either, so
+//     `libhven.a(ssn_engine.cpp.o)` is not extracted there and the archive
+//     cannot override the pre-fix engine (verified the same way, on a
+//     header-only stand-in).
 
 #include <cmath>
 #include <cstdio>

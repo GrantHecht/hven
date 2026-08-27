@@ -422,7 +422,7 @@ namespace detail {
 inline constexpr double kSsnInfBound = 1e20;
 
 // Floor applied to alpha = d phi / d s before it is divided by (banner
-// banner section 2). alpha_f appears in BOTH the FB diagonal and the right-hand
+// section 2). alpha_f appears in BOTH the FB diagonal and the right-hand
 // side, so it CANCELS in the recovered multiplier step:
 //
 //     d lambda_k ~ -(r_k / alpha_f) / (beta_k / alpha_f + mu)
@@ -1121,7 +1121,7 @@ struct SsnResult {
     //     iters <= factorizations <= min(attempts, hard_budget) + 1,
     //
     // where the +1 is the CERTIFYING EXIT's second-order verification (banner
-    // banner section 7b) -- which is why equality on the left is unreachable under
+    // section 7b) -- which is why equality on the left is unreachable under
     // kFull. **UNDER SsnOptions::defer_certification THE +1 IS NOT PAID BY
     // THIS SOLVE**: it moves to finish_deferred_certification(), which adds it
     // to THIS field when the caller runs it, or is never paid at all when the
@@ -1225,7 +1225,7 @@ struct SsnResult {
     //
     // **THE LAST ASSEMBLY**, which under kFull is the RETURNED ITERATE on every
     // certifying exit (the second-order verification classifies there, banner
-    // banner section 7b) and is one iterate back on an escape. The distinction
+    // section 7b) and is one iterate back on an escape. The distinction
     // matters because the classification carries HYSTERESIS: it is a function
     // of the whole trajectory and cannot be recomputed from the final point.
     // On a solve that assembled no Jacobian at all both vectors are all-false

@@ -37,6 +37,12 @@
 // a counter delta here is a FAILED CARVE, to be reverted or redrawn, never a
 // re-derivation.
 
+#include <algorithm>
+#include <limits>
+
+#include <Eigen/SparseCore>
+
+#include <hven/core/pattern_hash.h>
 #include <hven/detail/qp/ssn_engine.h>
 
 namespace hven::solvers {
@@ -580,7 +586,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                 out->escape_detail = fmt::format(
                     "SsnEngine: the point reached at attempt {} satisfies the FB residual "
                     "test (||F||inf = {} <= {}), so it IS a first-order KKT point -- but the "
-                    "second-order VERIFICATION factorization (header section 7b) threw "
+                    "second-order VERIFICATION factorization (banner section 7b) threw "
                     "rather than certifying it: {}",
                     it, nrm.inf_norm, sopts.fb_tol, e.what());
             } else {
