@@ -1,0 +1,216 @@
+# E1 generator verification log
+# date (UTC): 2026-08-27T02:38:38Z
+# host: fedora
+# MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
+
+== (a) referee gate (archived bridge's own, through this workspace's driver) ==
+--- gate eps_abs=1e-10 ---
+piqp_e1_driver gate: N=30 p=0.45 eps_abs=1e-10 piqp_iter=6 wall_s=0.000195579 x_err_inf=1.67634e-07 (threshold 1e-8) ext_stationarity=7.00692e-11 ext_feasibility=2.47857e-13
+piqp_e1_driver: gate: FAIL -- x_err_inf = 1.67634e-07 exceeds 1e-8. HARD STOP: no oracle row may be quoted.
+exit=1
+--- gate eps_abs=1e-12 ---
+piqp_e1_driver gate: N=30 p=0.45 eps_abs=1e-12 piqp_iter=7 wall_s=0.000197499 x_err_inf=1.67635e-09 (threshold 1e-8) ext_stationarity=7.00671e-13 ext_feasibility=2.48412e-15
+piqp_e1_driver: gate: PASS
+exit=0
+--- gate eps_abs=1e-13 ---
+piqp_e1_driver gate: N=30 p=0.45 eps_abs=1e-13 piqp_iter=8 wall_s=0.000223618 x_err_inf=1.67637e-11 (threshold 1e-8) ext_stationarity=7.01022e-15 ext_feasibility=1.42247e-16
+piqp_e1_driver: gate: PASS
+exit=0
+gate (default 1e-12): PASS
+
+== (b) per-class KKT verification at small size (N=200, n=1000, mi=200) ==
+# Each block regenerates a cell of the class, writes it to disk, reads it BACK,
+# and checks the KKT conditions on the re-read data.
+
+generated e1_verify_n200_af01_m1e-2: n=1000 me=600 mi=200 |A|=2 (0.01) margin=0.01 layout=scattered offset=-1 seed=900001 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af01_m1e-2.qp
+VERIFY e1_verify_n200_af01_m1e-2  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=0.01 seed=900001)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.181497e-16 (scale 1.984200e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 2 (want 2)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.100066e-03
+  [PASS] active multipliers STRICTLY positive  min = 1.251412e+00
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 9.895883e-03 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.006334e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.850117e-03, max|D| = 2.000024e+00 over 602 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 602 of 602
+VERIFY e1_verify_n200_af01_m1e-2: ALL CHECKS PASS
+
+generated e1_verify_n200_af01_m1e-4: n=1000 me=600 mi=200 |A|=2 (0.01) margin=0.0001 layout=scattered offset=-1 seed=900002 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af01_m1e-4.qp
+VERIFY e1_verify_n200_af01_m1e-4  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=0.0001 seed=900002)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 3.581120e-16 (scale 1.988665e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 2 (want 2)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.100066e-05
+  [PASS] active multipliers STRICTLY positive  min = 1.041767e+00
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 9.895883e-05 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.002169e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 8.533173e-03, max|D| = 2.000024e+00 over 602 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 602 of 602
+VERIFY e1_verify_n200_af01_m1e-4: ALL CHECKS PASS
+
+generated e1_verify_n200_af01_m1e-6: n=1000 me=600 mi=200 |A|=2 (0.01) margin=1e-06 layout=scattered offset=-1 seed=900003 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af01_m1e-6.qp
+VERIFY e1_verify_n200_af01_m1e-6  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=1e-06 seed=900003)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.419208e-16 (scale 1.924965e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 2 (want 2)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.100066e-07
+  [PASS] active multipliers STRICTLY positive  min = 1.215399e+00
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 9.895883e-07 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.011103e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 8.982495e-03, max|D| = 2.000024e+00 over 602 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 602 of 602
+VERIFY e1_verify_n200_af01_m1e-6: ALL CHECKS PASS
+
+generated e1_verify_n200_af10_m1e-2: n=1000 me=600 mi=200 |A|=20 (0.1) margin=0.01 layout=scattered offset=-1 seed=900004 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af10_m1e-2.qp
+VERIFY e1_verify_n200_af10_m1e-2  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=0.01 seed=900004)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.382345e-16 (scale 1.992173e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 20 (want 20)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.108970e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.373558e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.019373e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.001271e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 7.447321e-05, max|D| = 2.000024e+00 over 620 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 620 of 620
+VERIFY e1_verify_n200_af10_m1e-2: ALL CHECKS PASS
+
+generated e1_verify_n200_af10_m1e-4: n=1000 me=600 mi=200 |A|=20 (0.1) margin=0.0001 layout=scattered offset=-1 seed=900005 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af10_m1e-4.qp
+VERIFY e1_verify_n200_af10_m1e-4  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=0.0001 seed=900005)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.302114e-16 (scale 2.078049e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 20 (want 20)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.108970e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.114600e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.019373e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000471e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.110162e-04, max|D| = 2.000024e+00 over 620 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 620 of 620
+VERIFY e1_verify_n200_af10_m1e-4: ALL CHECKS PASS
+
+generated e1_verify_n200_af10_m1e-6: n=1000 me=600 mi=200 |A|=20 (0.1) margin=1e-06 layout=scattered offset=-1 seed=900006 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af10_m1e-6.qp
+VERIFY e1_verify_n200_af10_m1e-6  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=1e-06 seed=900006)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.825784e-16 (scale 1.937082e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 20 (want 20)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.108970e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.331455e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.019373e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.006824e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.063533e-04, max|D| = 2.000024e+00 over 620 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 620 of 620
+VERIFY e1_verify_n200_af10_m1e-6: ALL CHECKS PASS
+
+generated e1_verify_n200_af30_m1e-2: n=1000 me=600 mi=200 |A|=60 (0.3) margin=0.01 layout=scattered offset=-1 seed=900007 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af30_m1e-2.qp
+VERIFY e1_verify_n200_af30_m1e-2  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=0.01 seed=900007)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 3.885781e-16 (scale 1.899156e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 60 (want 60)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.137056e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.335115e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.024977e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.016690e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.022343e-04, max|D| = 1.819120e+00 over 660 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 660 of 660
+VERIFY e1_verify_n200_af30_m1e-2: ALL CHECKS PASS
+
+generated e1_verify_n200_af30_m1e-4: n=1000 me=600 mi=200 |A|=60 (0.3) margin=0.0001 layout=scattered offset=-1 seed=900008 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af30_m1e-4.qp
+VERIFY e1_verify_n200_af30_m1e-4  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=0.0001 seed=900008)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 7.494005e-16 (scale 2.113522e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 60 (want 60)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.137056e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.089247e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.024977e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.016647e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 8.145523e-05, max|D| = 2.000024e+00 over 660 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 660 of 660
+VERIFY e1_verify_n200_af30_m1e-4: ALL CHECKS PASS
+
+generated e1_verify_n200_af30_m1e-6: n=1000 me=600 mi=200 |A|=60 (0.3) margin=1e-06 layout=scattered offset=-1 seed=900009 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_verify_n200_af30_m1e-6.qp
+VERIFY e1_verify_n200_af30_m1e-6  (n=1000 me=600 mi=200 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=1e-06 seed=900009)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.302114e-16 (scale 1.966734e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 60 (want 60)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.137056e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.119384e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.024977e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000869e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 7.397909e-05, max|D| = 2.000024e+00 over 660 rows
+  [PASS] LICQ (exact): [Ae; Ai_A] has full row rank  rank 660 of 660
+VERIFY e1_verify_n200_af30_m1e-6: ALL CHECKS PASS
+
+per-class KKT verification: ALL 9 CLASSES PASS
+
+== (c) anchor reproduction against the committed oracle artifact ==
+# Committed reference (tycho_sqp prototypes/piqp_bridge/results/oracle_sweep.csv,
+# rows f7_n20000_bound_neutral / f7_n20000_path_neutral):
+#   bound: n=100000 me=60000 mi=20000 status=solved iter=9
+#          ext_stationarity=2.0688919324248507e-12 ext_feasibility=1.0578555514743383e-14
+#   path : n=100000 me=60000 mi=20000 status=solved iter=9
+#          ext_stationarity=2.3507055808231912e-12 ext_feasibility=1.8377463992854531e-14
+# and results/activity_diagnostics.txt records active_ineq=0/20000 on both.
+# NOTE the mapping: this driver's res_dual IS ext_stationarity and its res_primal IS
+# ext_feasibility -- the same recomputation, renamed for the E1 CSV's columns.
+
+generated e1_anchor_f7_n20000_bound_neutral (anchor, window=bound, p=0.45): n=100000 me=60000 mi=20000 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_anchor_f7_n20000_bound_neutral.qp
+e1 run: id=e1_anchor_f7_n20000_bound_neutral n=100000 mi=20000 kind=anchor af=0 margin=-1 status=solved iters=9 factorizations=10 active_true=0 active_found=0 (dual rule 0) recovered=0 false_pos=0 missed=0 res_primal=1.05663e-14 res_dual=2.06889e-12 res_comp=2.49575e-12 x_err_inf=-1 min_box_slack=0.500001 max_ci=-0.275 max|z_u|=6.89956e-12 wall_info_s=0.16023
+exit=0
+generated e1_anchor_f7_n20000_path_neutral (anchor, window=path, p=0.85): n=100000 me=60000 mi=20000 -> /home/ghecht/Projects/hven-e1/dumps/verify/e1_anchor_f7_n20000_path_neutral.qp
+e1 run: id=e1_anchor_f7_n20000_path_neutral n=100000 mi=20000 kind=anchor af=0 margin=-1 status=solved iters=9 factorizations=10 active_true=0 active_found=0 (dual rule 0) recovered=0 false_pos=0 missed=0 res_primal=1.83982e-14 res_dual=2.35071e-12 res_comp=2.75216e-12 x_err_inf=-1 min_box_slack=0.303728 max_ci=-0.210632 max|z_u|=1.24312e-11 wall_info_s=0.16011
+exit=0
+
+== end of verification ==

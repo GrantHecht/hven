@@ -1,0 +1,29 @@
+# E1 contiguous-variant sweep log, started 2026-08-27T02:38:16Z
+--- e1blk_f7_n20000_af01_m1e-2 ---
+e1 run: id=e1blk_f7_n20000_af01_m1e-2 n=100000 mi=20000 kind=constructed af=0.01 margin=0.01 status=solved iters=12 factorizations=13 active_true=200 active_found=200 (dual rule 200) recovered=200 false_pos=0 missed=0 res_primal=3.55285e-13 res_dual=5.32056e-11 res_comp=9.95304e-12 x_err_inf=6.69213e-06 min_box_slack=0.600001 max_ci=8.92619e-14 max|z_u|=1.49901 wall_info_s=0.205496
+exit=0  elapsed_including_parse_s=0.481
+--- e1blk_f7_n20000_af01_m1e-4 ---
+e1 run: id=e1blk_f7_n20000_af01_m1e-4 n=100000 mi=20000 kind=constructed af=0.01 margin=0.0001 status=solved iters=15 factorizations=16 active_true=200 active_found=200 (dual rule 312) recovered=200 false_pos=0 missed=0 res_primal=1.64202e-13 res_dual=2.88229e-11 res_comp=1.9032e-11 x_err_inf=0.000312794 min_box_slack=0.599725 max_ci=9.97813e-15 max|z_u|=1.48492 wall_info_s=0.249312
+exit=0  elapsed_including_parse_s=0.522
+--- e1blk_f7_n20000_af01_m1e-6 ---
+e1 run: id=e1blk_f7_n20000_af01_m1e-6 n=100000 mi=20000 kind=constructed af=0.01 margin=1e-06 status=solved iters=17 factorizations=18 active_true=200 active_found=200 (dual rule 1391) recovered=200 false_pos=0 missed=0 res_primal=1.22569e-13 res_dual=2.09195e-11 res_comp=1.3772e-11 x_err_inf=0.000895115 min_box_slack=0.599645 max_ci=-7.34413e-14 max|z_u|=1.47123 wall_info_s=0.27918
+exit=0  elapsed_including_parse_s=0.554
+--- e1blk_f7_n20000_af10_m1e-2 ---
+e1 run: id=e1blk_f7_n20000_af10_m1e-2 n=100000 mi=20000 kind=constructed af=0.1 margin=0.01 status=solved iters=13 factorizations=14 active_true=2000 active_found=2000 (dual rule 2000) recovered=2000 false_pos=0 missed=0 res_primal=1.00975e-13 res_dual=1.89374e-12 res_comp=1.48618e-13 x_err_inf=1.68274e-06 min_box_slack=0.6 max_ci=4.06342e-14 max|z_u|=1.50197 wall_info_s=0.219989
+exit=0  elapsed_including_parse_s=0.492
+--- e1blk_f7_n20000_af10_m1e-4 ---
+e1 run: id=e1blk_f7_n20000_af10_m1e-4 n=100000 mi=20000 kind=constructed af=0.1 margin=0.0001 status=solved iters=15 factorizations=16 active_true=2000 active_found=2000 (dual rule 2074) recovered=2000 false_pos=0 missed=0 res_primal=2.21045e-13 res_dual=5.13063e-11 res_comp=2.4029e-11 x_err_inf=0.000313434 min_box_slack=0.599871 max_ci=1.3628e-14 max|z_u|=1.5055 wall_info_s=0.250179
+exit=0  elapsed_including_parse_s=0.522
+--- e1blk_f7_n20000_af10_m1e-6 ---
+e1 run: id=e1blk_f7_n20000_af10_m1e-6 n=100000 mi=20000 kind=constructed af=0.1 margin=1e-06 status=solved iters=18 factorizations=19 active_true=2000 active_found=2000 (dual rule 2056) recovered=2000 false_pos=0 missed=0 res_primal=5.31797e-14 res_dual=1.98377e-11 res_comp=8.06239e-13 x_err_inf=0.000170904 min_box_slack=0.600009 max_ci=1.77081e-14 max|z_u|=1.50001 wall_info_s=0.296257
+exit=0  elapsed_including_parse_s=0.570
+--- e1blk_f7_n20000_af30_m1e-2 ---
+e1 run: id=e1blk_f7_n20000_af30_m1e-2 n=100000 mi=20000 kind=constructed af=0.3 margin=0.01 status=solved iters=12 factorizations=13 active_true=6000 active_found=6000 (dual rule 6000) recovered=6000 false_pos=0 missed=0 res_primal=4.0401e-13 res_dual=8.52893e-11 res_comp=4.36684e-12 x_err_inf=9.61938e-06 min_box_slack=0.600009 max_ci=1.26815e-13 max|z_u|=1.5156 wall_info_s=0.210742
+exit=0  elapsed_including_parse_s=0.486
+--- e1blk_f7_n20000_af30_m1e-4 ---
+e1 run: id=e1blk_f7_n20000_af30_m1e-4 n=100000 mi=20000 kind=constructed af=0.3 margin=0.0001 status=solved iters=15 factorizations=16 active_true=6000 active_found=6000 (dual rule 6012) recovered=6000 false_pos=0 missed=0 res_primal=1.14131e-13 res_dual=3.13818e-11 res_comp=1.54292e-11 x_err_inf=0.000220054 min_box_slack=0.599922 max_ci=2.61596e-14 max|z_u|=1.51268 wall_info_s=0.252546
+exit=0  elapsed_including_parse_s=0.525
+--- e1blk_f7_n20000_af30_m1e-6 ---
+e1 run: id=e1blk_f7_n20000_af30_m1e-6 n=100000 mi=20000 kind=constructed af=0.3 margin=1e-06 status=solved iters=17 factorizations=18 active_true=6000 active_found=6000 (dual rule 6595) recovered=6000 false_pos=0 missed=0 res_primal=2.04614e-13 res_dual=4.10452e-11 res_comp=1.0804e-11 x_err_inf=0.000802405 min_box_slack=0.599539 max_ci=1.86032e-14 max|z_u|=1.51082 wall_info_s=0.280278
+exit=0  elapsed_including_parse_s=0.554
+# E1 contiguous-variant sweep finished 2026-08-27T02:38:27Z

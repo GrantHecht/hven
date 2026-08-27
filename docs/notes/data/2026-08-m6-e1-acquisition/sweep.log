@@ -1,0 +1,64 @@
+# E1 sweep log, started 2026-08-27T02:39:49Z
+--- e1_f7_n4000_af01_m1e-2 ---
+e1 run: id=e1_f7_n4000_af01_m1e-2 n=20000 mi=4000 kind=constructed af=0.01 margin=0.01 status=solved iters=15 factorizations=16 active_true=40 active_found=40 (dual rule 40) recovered=40 false_pos=0 missed=0 res_primal=2.88658e-15 res_dual=6.70315e-12 res_comp=2.92761e-11 x_err_inf=1.18528e-07 min_box_slack=0.600071 max_ci=-1.05757e-12 max|z_u|=1.49716 wall_info_s=0.0673731
+exit=0  elapsed_including_parse_s=0.171
+--- e1_f7_n4000_af01_m1e-4 ---
+e1 run: id=e1_f7_n4000_af01_m1e-4 n=20000 mi=4000 kind=constructed af=0.01 margin=0.0001 status=solved iters=14 factorizations=15 active_true=40 active_found=40 (dual rule 236) recovered=40 false_pos=0 missed=0 res_primal=5.36238e-14 res_dual=2.34522e-11 res_comp=1.36153e-10 x_err_inf=0.000112909 min_box_slack=0.599993 max_ci=-1.14214e-13 max|z_u|=1.4784 wall_info_s=0.0632078
+exit=0  elapsed_including_parse_s=0.163
+--- e1_f7_n4000_af01_m1e-6 ---
+e1 run: id=e1_f7_n4000_af01_m1e-6 n=20000 mi=4000 kind=constructed af=0.01 margin=1e-06 status=solved iters=16 factorizations=17 active_true=40 active_found=40 (dual rule 380) recovered=40 false_pos=0 missed=0 res_primal=6.21725e-15 res_dual=4.097e-11 res_comp=1.30364e-12 x_err_inf=2.81133e-05 min_box_slack=0.600047 max_ci=3.19189e-16 max|z_u|=1.47564 wall_info_s=0.0708052
+exit=0  elapsed_including_parse_s=0.170
+--- e1_f7_n4000_af10_m1e-2 ---
+e1 run: id=e1_f7_n4000_af10_m1e-2 n=20000 mi=4000 kind=constructed af=0.1 margin=0.01 status=solved iters=12 factorizations=13 active_true=400 active_found=400 (dual rule 400) recovered=400 false_pos=0 missed=0 res_primal=1.53211e-14 res_dual=3.10375e-11 res_comp=4.54904e-11 x_err_inf=7.51307e-07 min_box_slack=0.600008 max_ci=-4.36581e-13 max|z_u|=1.49928 wall_info_s=0.0551341
+exit=0  elapsed_including_parse_s=0.154
+--- e1_f7_n4000_af10_m1e-4 ---
+e1 run: id=e1_f7_n4000_af10_m1e-4 n=20000 mi=4000 kind=constructed af=0.1 margin=0.0001 status=solved iters=11 factorizations=12 active_true=400 active_found=400 (dual rule 405) recovered=400 false_pos=0 missed=0 res_primal=1.60427e-14 res_dual=4.83269e-12 res_comp=1.3483e-11 x_err_inf=1.70494e-06 min_box_slack=0.600037 max_ci=-2.42306e-14 max|z_u|=1.49826 wall_info_s=0.0549717
+exit=0  elapsed_including_parse_s=0.209
+--- e1_f7_n4000_af10_m1e-6 ---
+e1 run: id=e1_f7_n4000_af10_m1e-6 n=20000 mi=4000 kind=constructed af=0.1 margin=1e-06 status=solved iters=14 factorizations=15 active_true=400 active_found=400 (dual rule 604) recovered=400 false_pos=0 missed=0 res_primal=6.21725e-15 res_dual=6.99592e-11 res_comp=1.00894e-12 x_err_inf=1.29457e-05 min_box_slack=0.600018 max_ci=1.34615e-15 max|z_u|=1.49884 wall_info_s=0.0639075
+exit=0  elapsed_including_parse_s=0.162
+--- e1_f7_n4000_af30_m1e-2 ---
+e1 run: id=e1_f7_n4000_af30_m1e-2 n=20000 mi=4000 kind=constructed af=0.3 margin=0.01 status=solved iters=11 factorizations=12 active_true=1200 active_found=1200 (dual rule 1200) recovered=1200 false_pos=0 missed=0 res_primal=1.88738e-15 res_dual=2.31758e-12 res_comp=1.52312e-12 x_err_inf=4.76978e-08 min_box_slack=0.600008 max_ci=-8.68056e-15 max|z_u|=1.49848 wall_info_s=0.0530923
+exit=0  elapsed_including_parse_s=0.158
+--- e1_f7_n4000_af30_m1e-4 ---
+e1 run: id=e1_f7_n4000_af30_m1e-4 n=20000 mi=4000 kind=constructed af=0.3 margin=0.0001 status=solved iters=10 factorizations=11 active_true=1200 active_found=1200 (dual rule 1200) recovered=1200 false_pos=0 missed=0 res_primal=2.73392e-14 res_dual=2.16523e-12 res_comp=3.86795e-12 x_err_inf=2.72951e-07 min_box_slack=0.600016 max_ci=6.52256e-15 max|z_u|=1.49996 wall_info_s=0.0457479
+exit=0  elapsed_including_parse_s=0.138
+--- e1_f7_n4000_af30_m1e-6 ---
+e1 run: id=e1_f7_n4000_af30_m1e-6 n=20000 mi=4000 kind=constructed af=0.3 margin=1e-06 status=solved iters=13 factorizations=14 active_true=1200 active_found=1200 (dual rule 1312) recovered=1200 false_pos=0 missed=0 res_primal=1.25455e-14 res_dual=6.54108e-11 res_comp=2.48256e-12 x_err_inf=2.74374e-05 min_box_slack=0.600043 max_ci=2.98372e-15 max|z_u|=1.49967 wall_info_s=0.0594767
+exit=0  elapsed_including_parse_s=0.169
+--- e1_f7_n20000_af01_m1e-2 ---
+  disagreement: row 557 MISSED (true-active, not acquired under the slack rule) -- slack 1.524060e-09, row_scale 1.142255e-01, rel 1.334255e-08, threshold 1.142255e-09, z_u 5.293329e-01
+e1 run: id=e1_f7_n20000_af01_m1e-2 n=100000 mi=20000 kind=constructed af=0.01 margin=0.01 status=solved iters=18 factorizations=19 active_true=200 active_found=199 (dual rule 200) recovered=199 false_pos=0 missed=1 res_primal=1.90958e-14 res_dual=6.4348e-12 res_comp=8.06735e-10 x_err_inf=2.22767e-06 min_box_slack=0.600009 max_ci=-5.97508e-14 max|z_u|=1.49956 wall_info_s=0.437906
+exit=0  elapsed_including_parse_s=0.893
+--- e1_f7_n20000_af01_m1e-4 ---
+e1 run: id=e1_f7_n20000_af01_m1e-4 n=100000 mi=20000 kind=constructed af=0.01 margin=0.0001 status=solved iters=15 factorizations=16 active_true=200 active_found=200 (dual rule 555) recovered=200 false_pos=0 missed=0 res_primal=1.08025e-13 res_dual=7.53189e-11 res_comp=2.0886e-10 x_err_inf=0.000126024 min_box_slack=0.600007 max_ci=-1.97925e-12 max|z_u|=1.49806 wall_info_s=0.376244
+exit=0  elapsed_including_parse_s=0.840
+--- e1_f7_n20000_af01_m1e-6 ---
+e1 run: id=e1_f7_n20000_af01_m1e-6 n=100000 mi=20000 kind=constructed af=0.01 margin=1e-06 status=solved iters=17 factorizations=18 active_true=200 active_found=200 (dual rule 1313) recovered=200 false_pos=0 missed=0 res_primal=4.66294e-14 res_dual=1.46797e-11 res_comp=4.24813e-12 x_err_inf=4.07397e-05 min_box_slack=0.599999 max_ci=1.01447e-14 max|z_u|=1.49904 wall_info_s=0.414185
+exit=0  elapsed_including_parse_s=0.876
+--- e1_f7_n20000_af10_m1e-2 ---
+e1 run: id=e1_f7_n20000_af10_m1e-2 n=100000 mi=20000 kind=constructed af=0.1 margin=0.01 status=solved iters=12 factorizations=13 active_true=2000 active_found=2000 (dual rule 2000) recovered=2000 false_pos=0 missed=0 res_primal=3.29181e-14 res_dual=1.97446e-11 res_comp=2.44033e-11 x_err_inf=2.15962e-06 min_box_slack=0.600001 max_ci=-1.88016e-13 max|z_u|=1.49985 wall_info_s=0.301679
+exit=0  elapsed_including_parse_s=0.773
+--- e1_f7_n20000_af10_m1e-4 ---
+e1 run: id=e1_f7_n20000_af10_m1e-4 n=100000 mi=20000 kind=constructed af=0.1 margin=0.0001 status=solved iters=12 factorizations=13 active_true=2000 active_found=2000 (dual rule 2002) recovered=2000 false_pos=0 missed=0 res_primal=3.60822e-14 res_dual=2.60225e-12 res_comp=1.76244e-11 x_err_inf=3.45276e-06 min_box_slack=0.600003 max_ci=-5.67046e-14 max|z_u|=1.49982 wall_info_s=0.296214
+exit=0  elapsed_including_parse_s=0.768
+--- e1_f7_n20000_af10_m1e-6 ---
+e1 run: id=e1_f7_n20000_af10_m1e-6 n=100000 mi=20000 kind=constructed af=0.1 margin=1e-06 status=solved iters=14 factorizations=15 active_true=2000 active_found=2000 (dual rule 2886) recovered=2000 false_pos=0 missed=0 res_primal=2.9865e-14 res_dual=3.14748e-11 res_comp=3.35694e-12 x_err_inf=5.67822e-05 min_box_slack=0.600008 max_ci=6.31439e-15 max|z_u|=1.4995 wall_info_s=0.338108
+exit=0  elapsed_including_parse_s=0.806
+--- e1_f7_n20000_af30_m1e-2 ---
+e1 run: id=e1_f7_n20000_af30_m1e-2 n=100000 mi=20000 kind=constructed af=0.3 margin=0.01 status=solved iters=11 factorizations=12 active_true=6000 active_found=6000 (dual rule 6000) recovered=6000 false_pos=0 missed=0 res_primal=4.49085e-14 res_dual=1.44213e-11 res_comp=8.41582e-12 x_err_inf=1.6822e-06 min_box_slack=0.600013 max_ci=-7.17759e-14 max|z_u|=1.49992 wall_info_s=0.276434
+exit=0  elapsed_including_parse_s=0.737
+--- e1_f7_n20000_af30_m1e-4 ---
+e1 run: id=e1_f7_n20000_af30_m1e-4 n=100000 mi=20000 kind=constructed af=0.3 margin=0.0001 status=solved iters=9 factorizations=10 active_true=6000 active_found=6000 (dual rule 6023) recovered=6000 false_pos=0 missed=0 res_primal=3.51674e-12 res_dual=9.31059e-11 res_comp=5.09461e-11 x_err_inf=9.80543e-06 min_box_slack=0.600018 max_ci=2.2316e-12 max|z_u|=1.49991 wall_info_s=0.237448
+exit=0  elapsed_including_parse_s=0.696
+--- e1_f7_n20000_af30_m1e-6 ---
+e1 run: id=e1_f7_n20000_af30_m1e-6 n=100000 mi=20000 kind=constructed af=0.3 margin=1e-06 status=solved iters=13 factorizations=14 active_true=6000 active_found=6000 (dual rule 6135) recovered=6000 false_pos=0 missed=0 res_primal=2.9976e-14 res_dual=8.44467e-12 res_comp=2.11211e-12 x_err_inf=1.44622e-05 min_box_slack=0.600006 max_ci=9.86711e-15 max|z_u|=1.5 wall_info_s=0.321616
+exit=0  elapsed_including_parse_s=0.776
+--- e1_anchor_f7_n20000_bound_neutral ---
+e1 run: id=e1_anchor_f7_n20000_bound_neutral n=100000 mi=20000 kind=anchor af=0 margin=-1 status=solved iters=9 factorizations=10 active_true=0 active_found=0 (dual rule 0) recovered=0 false_pos=0 missed=0 res_primal=1.05663e-14 res_dual=2.06889e-12 res_comp=2.49575e-12 x_err_inf=-1 min_box_slack=0.500001 max_ci=-0.275 max|z_u|=6.89956e-12 wall_info_s=0.230453
+exit=0  elapsed_including_parse_s=0.653
+--- e1_anchor_f7_n20000_path_neutral ---
+e1 run: id=e1_anchor_f7_n20000_path_neutral n=100000 mi=20000 kind=anchor af=0 margin=-1 status=solved iters=9 factorizations=10 active_true=0 active_found=0 (dual rule 0) recovered=0 false_pos=0 missed=0 res_primal=1.83982e-14 res_dual=2.35071e-12 res_comp=2.75216e-12 x_err_inf=-1 min_box_slack=0.303728 max_ci=-0.210632 max|z_u|=1.24312e-11 wall_info_s=0.24589
+exit=0  elapsed_including_parse_s=0.683
+# E1 sweep finished 2026-08-27T02:40:12Z
+stamped: /home/ghecht/Projects/hven-e1/artifact/PROVENANCE.txt and /home/ghecht/Projects/hven-e1/artifact/e1_cells.csv

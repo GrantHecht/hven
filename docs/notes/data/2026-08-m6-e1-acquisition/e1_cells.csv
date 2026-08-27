@@ -1,0 +1,89 @@
+# E1 barrier active-set acquisition experiment -- PROVENANCE STAMP
+# 
+# date (UTC)                 : 2026-08-27T02:40:12Z
+# host                       : fedora
+# os                         : Fedora release 44 (Forty Four)
+# kernel                     : Linux 7.1.9-200.fc44.x86_64 x86_64
+# cpu model                  : AMD Ryzen 7 5800X3D 8-Core Processor
+# cpu topology               : 8 physical cores, 2 threads/core
+# toolchain                  : clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+#                              target x86_64-redhat-linux-gnu
+# compile flags (both tools) : -O3 -DNDEBUG -std=c++20 -DFMT_HEADER_ONLY
+#                              driver adds -DPIQP_WITH_TEMPLATE_INSTANTIATION
+# 
+# ORACLE
+# piqp version               : v0.6.3 (pinned by the archived build_piqp.sh; see its banner)
+# piqp source commit         : 8279ed73a42ddc55e3a8be561dfab7be9b3146b8
+# piqp source tag            : v0.6.3
+# piqp install prefix        : /home/ghecht/Software/piqp  (EXTERNAL -- never vendored into any repository)
+# piqp libpiqp.so sha256     : 37f54cf5480a196eedf6d1810bf015392bb1a986487af5924260649d8238471b
+# piqp OpenMP                : BUILD_WITH_OPENMP defaults OFF and was never enabled;
+#                              ldd on the driver links no libgomp, no BLAS, no MKL:
+#                                	linux-vdso.so.1 (0x00007efc6937d000)
+#                                	libpiqp.so => /home/ghecht/Software/piqp/lib64/libpiqp.so (0x00007efc692cd000)
+#                                	libstdc++.so.6 => /lib64/libstdc++.so.6 (0x00007efc68e00000)
+#                                	libm.so.6 => /lib64/libm.so.6 (0x00007efc6919a000)
+#                                	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007efc6916d000)
+#                                	libc.so.6 => /lib64/libc.so.6 (0x00007efc68c07000)
+#                                	/lib64/ld-linux-x86-64.so.2 (0x00007efc6937f000)
+# 
+# BRIDGE ORIGIN
+# archive path               : /home/ghecht/Projects/tycho_sqp/prototypes/piqp_bridge/
+# archive git commit         : 91c4ec1c5049efa5eb2489425b489212de40fe71
+# archive git describe       : phase-7-close-27-g91c4ec1
+# archive working tree       : CLEAN
+# copied, never edited in place. The workspace's driver (piqp_e1_driver.cpp)
+# is DERIVED from that archive's piqp_f7_driver.cpp; the generator
+# (e1_generate.cpp) and the dump container (e1_dump.h) are new.
+# piqp_f7_driver.cpp sha256  : 1f7e7efa8bebf8383c76547854bf8dc53cbf7b96647b2073a3ef663e4b3a16c0
+# scale_problems.h sha256    : 8b2fd69b2392f236f00bffe1eab65419f62493f4881f8abce3fa228f93f169d2
+# 
+# PROTOCOL
+# protocol note              : /home/ghecht/Projects/hven/docs/notes/2026-08-26-e1-acquisition-experiment.md
+# protocol note sha256       : f00dca6ce07374b38a936907de3e59db4fdbcdbd9db2a596f2691c993b127728
+# hven HEAD when read        : 31c6f3967737860b4b953f688ccdc96732a1de75
+# 
+# MEASUREMENT TERMS (declared)
+# threads                    : MKL_NUM_THREADS=1, OMP_NUM_THREADS=1 exported for every
+#                              cell. Neither is read by PIQP; the ldd evidence above is
+#                              what carries the single-thread claim.
+# scheduling                 : SEQUENTIAL, one process at a time; no cell co-ran with
+#                              another. The box was not otherwise serialized, which is
+#                              admissible only because NO WALL-CLOCK CLAIM IS MADE from
+#                              this artifact: wall_info_s is informational.
+# per-cell budget            : 120 s hard timeout on the whole run invocation
+#                              (timeout -k 5 120), dump parse included. A timeout is a
+#                              recorded outcome (status=timeout, counters -1).
+# retry policy               : one retry on cell GENERATION failure only. A solve that
+#                              fails is recorded as it failed and never retried.
+# solver tolerance           : eps_abs = 1e-10, eps_rel = 0, duality-gap check OFF,
+#                              max_iter = 200 (the archived driver's own operating
+#                              point; max_iter deliberately generous so the '< 40
+#                              iterations' question is read off info.iter after the
+#                              solve, not enforced as a budget).
+# start                      : NEUTRAL COLD on every cell. PIQP has no primal/dual/slack
+#                              seeding surface at all (solve() takes no arguments), so
+#                              every row here runs its own from-scratch barrier
+#                              initialization -- cold is not a choice, it is the only
+#                              thing the oracle can do.
+id,n,me,mi,kind,active_fraction,margin_class,status,iters,factorizations,factor_retires_final,active_set_size_true,active_set_size_found,active_set_size_found_dual,active_true_recovered,active_false_positive,active_missed,res_primal,res_dual,res_complementarity,x_err_inf,min_box_slack,max_ci,max_abs_z_u,wall_info_s,setup_info_s,threads
+e1_f7_n4000_af01_m1e-2,20000,12000,4000,constructed,0.01,0.01,solved,15,16,0,40,40,40,40,0,0,2.886579864025407e-15,6.7031530878534169e-12,2.9276134806282204e-11,1.185276011228531e-07,0.60007106115931708,-1.0575706976823085e-12,1.4971583901751313,0.067373148,0.030716274,1
+e1_f7_n4000_af01_m1e-4,20000,12000,4000,constructed,0.01,0.0001,solved,14,15,0,40,40,236,40,0,0,5.3623772089395061e-14,2.3452246427438881e-11,1.3615345817281797e-10,0.00011290868449254088,0.59999308761438352,-1.1421419365831298e-13,1.4784013911338554,0.063207809,0.027484601,1
+e1_f7_n4000_af01_m1e-6,20000,12000,4000,constructed,0.01,1e-06,solved,16,17,0,40,40,380,40,0,0,6.2172489379008766e-15,4.0970038646205228e-11,1.3036415507044739e-12,2.8113298230436623e-05,0.60004739985871969,3.1918911957973251e-16,1.475639901550714,0.070805201,0.026438606,1
+e1_f7_n4000_af10_m1e-2,20000,12000,4000,constructed,0.1,0.01,solved,12,13,0,400,400,400,400,0,0,1.532107773982716e-14,3.103747429720114e-11,4.5490412239811771e-11,7.513072560749734e-07,0.60000810549081951,-4.36581326646035e-13,1.4992808040264307,0.055134091,0.025889888,1
+e1_f7_n4000_af10_m1e-4,20000,12000,4000,constructed,0.1,0.0001,solved,11,12,0,400,400,405,400,0,0,1.6042722705833512e-14,4.8326890511303972e-12,1.3483032683788119e-11,1.7049422841308726e-06,0.60003728670059142,-2.4230617512444041e-14,1.498262097343533,0.054971721,0.027620719,1
+e1_f7_n4000_af10_m1e-6,20000,12000,4000,constructed,0.1,1e-06,solved,14,15,0,400,400,604,400,0,0,6.2172489379008766e-15,6.9959159067394252e-11,1.0089382246067842e-12,1.2945743581918578e-05,0.60001820339698586,1.3461454173580023e-15,1.4988421063718194,0.063907536,0.026442795,1
+e1_f7_n4000_af30_m1e-2,20000,12000,4000,constructed,0.3,0.01,solved,11,12,0,1200,1200,1200,1200,0,0,1.8873791418627661e-15,2.3175846614353396e-12,1.523120752369168e-12,4.7697774396837644e-08,0.60000771169756462,-8.6805562737879427e-15,1.4984786230411069,0.053092311,0.026587285,1
+e1_f7_n4000_af30_m1e-4,20000,12000,4000,constructed,0.3,0.0001,solved,10,11,0,1200,1200,1200,1200,0,0,2.733924198139448e-14,2.1652296703045911e-12,3.8679530874368354e-12,2.7295081445055658e-07,0.60001613298271039,6.5225602696727947e-15,1.4999583895561295,0.045747938,0.024473726,1
+e1_f7_n4000_af30_m1e-6,20000,12000,4000,constructed,0.3,1e-06,solved,13,14,0,1200,1200,1312,1200,0,0,1.2545520178264269e-14,6.5410765326931924e-11,2.4825611931011176e-12,2.7437357190490674e-05,0.60004256810791434,2.9837243786801082e-15,1.4996701093649523,0.059476738,0.024858264,1
+e1_f7_n20000_af01_m1e-2,100000,60000,20000,constructed,0.01,0.01,solved,18,19,0,200,199,200,199,0,1,1.9095836023552692e-14,6.4347997400201651e-12,8.0673488295146892e-10,2.2276740109516968e-06,0.60000881550706797,-5.9750815406545144e-14,1.4995643868199409,0.437905508,0.131024265,1
+e1_f7_n20000_af01_m1e-4,100000,60000,20000,constructed,0.01,0.0001,solved,15,16,0,200,200,555,200,0,0,1.0802470029602773e-13,7.5318908217693873e-11,2.0886045419836725e-10,0.00012602400192301966,0.60000716390708442,-1.9792500971504978e-12,1.4980571647447112,0.376244381,0.127960971,1
+e1_f7_n20000_af01_m1e-6,100000,60000,20000,constructed,0.01,1e-06,solved,17,18,0,200,200,1313,200,0,0,4.6629367034256575e-14,1.4679703609725804e-11,4.2481283784841795e-12,4.0739744283702084e-05,0.59999872200343418,1.0144662887512368e-14,1.499042596071368,0.414184758,0.131507833,1
+e1_f7_n20000_af10_m1e-2,100000,60000,20000,constructed,0.1,0.01,solved,12,13,0,2000,2000,2000,2000,0,0,3.2918112680135891e-14,1.9744607809211954e-11,2.4403338717547547e-11,2.159617772612421e-06,0.60000144808204703,-1.8801626922027026e-13,1.4998450085859725,0.301678939,0.134943826,1
+e1_f7_n20000_af10_m1e-4,100000,60000,20000,constructed,0.1,0.0001,solved,12,13,0,2000,2000,2002,2000,0,0,3.6082248300317588e-14,2.6022519614932954e-12,1.7624426175482207e-11,3.452755877875191e-06,0.60000261579198289,-5.670464098272987e-14,1.4998212524063992,0.296214457,0.130725156,1
+e1_f7_n20000_af10_m1e-6,100000,60000,20000,constructed,0.1,1e-06,solved,14,15,0,2000,2000,2886,2000,0,0,2.9864999362416711e-14,3.1474813855178642e-11,3.3569390346047526e-12,5.678223316019082e-05,0.60000831898371354,6.3143934525555778e-15,1.4994974501319962,0.338108265,0.131823151,1
+e1_f7_n20000_af30_m1e-2,100000,60000,20000,constructed,0.3,0.01,solved,11,12,0,6000,6000,6000,6000,0,0,4.4908521346087582e-14,1.4421340625425463e-11,8.4158173468841811e-12,1.6822039588249016e-06,0.60001337394608856,-7.177591854201637e-14,1.4999210980906024,0.276434457,0.129118716,1
+e1_f7_n20000_af30_m1e-4,100000,60000,20000,constructed,0.3,0.0001,solved,9,10,0,6000,6000,6023,6000,0,0,3.5167424528026459e-12,9.310593928275417e-11,5.0946072664210396e-11,9.805428422857837e-06,0.60001764482618014,2.2316037906477959e-12,1.499911682102355,0.237448075,0.128846786,1
+e1_f7_n20000_af30_m1e-6,100000,60000,20000,constructed,0.3,1e-06,solved,13,14,0,6000,6000,6135,6000,0,0,2.9976021664879227e-14,8.4446728944278059e-12,2.1121102466279588e-12,1.4462212009513919e-05,0.60000607198059486,9.8671071313560788e-15,1.4999998824286969,0.321616358,0.129720112,1
+e1_anchor_f7_n20000_bound_neutral,100000,60000,20000,anchor,0,-1,solved,9,10,0,0,0,0,0,0,0,1.0566336217446293e-14,2.0688919324248507e-12,2.4957462571349817e-12,-1,0.50000075997850446,-0.27500000668497687,6.899558049039507e-12,0.230453021,0.13008039,1
+e1_anchor_f7_n20000_path_neutral,100000,60000,20000,anchor,0,-1,solved,9,10,0,0,0,0,0,0,0,1.8398206135666895e-14,2.3507055808231912e-12,2.7521613761865315e-12,-1,0.30372820479211371,-0.21063204621997203,1.2431231668357467e-11,0.245889812,0.134530768,1

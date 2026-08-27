@@ -1,0 +1,387 @@
+# E1 full-size cell KKT verification log
+# Every cell the sweep actually ran was checked, at its OWN size, by
+# direct KKT residual evaluation against the dump as written to disk.
+# The LICQ rank test is affordable only at small n and is recorded as
+# SKIPPED here; run_verification.sh carries it at N = 200 per class.
+# date (UTC): 2026-08-27T02:39:49Z
+
+generated e1_f7_n4000_af01_m1e-2: n=20000 me=12000 mi=4000 |A|=40 (0.01) margin=0.01 layout=scattered offset=-1 seed=20260827 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af01_m1e-2.qp
+VERIFY e1_f7_n4000_af01_m1e-2  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=0.01 seed=20260827)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.433531e-16 (scale 1.989103e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 40 (want 40)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.016246e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.233548e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000873e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000711e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 2.761060e-07, max|D| = 2.000000e+00 over 12040 rows
+  [SKIP] LICQ exact rank check (12040 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af01_m1e-2: ALL CHECKS PASS
+
+generation_s=0.217 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af01_m1e-4: n=20000 me=12000 mi=4000 |A|=40 (0.01) margin=0.0001 layout=scattered offset=-1 seed=20260828 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af01_m1e-4.qp
+VERIFY e1_f7_n4000_af01_m1e-4  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=0.0001 seed=20260828)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.301233e-16 (scale 1.990810e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 40 (want 40)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.016246e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.634705e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000873e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000015e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 2.499344e-06, max|D| = 2.000000e+00 over 12040 rows
+  [SKIP] LICQ exact rank check (12040 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af01_m1e-4: ALL CHECKS PASS
+
+generation_s=0.212 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af01_m1e-6: n=20000 me=12000 mi=4000 |A|=40 (0.01) margin=1e-06 layout=scattered offset=-1 seed=20260829 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af01_m1e-6.qp
+VERIFY e1_f7_n4000_af01_m1e-6  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=1e-06 seed=20260829)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.744265e-16 (scale 1.986508e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 40 (want 40)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.016246e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.279349e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000873e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000403e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 2.775270e-07, max|D| = 2.000000e+00 over 12040 rows
+  [SKIP] LICQ exact rank check (12040 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af01_m1e-6: ALL CHECKS PASS
+
+generation_s=0.233 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af10_m1e-2: n=20000 me=12000 mi=4000 |A|=400 (0.1) margin=0.01 layout=scattered offset=-1 seed=20260830 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af10_m1e-2.qp
+VERIFY e1_f7_n4000_af10_m1e-2  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=0.01 seed=20260830)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 5.273559e-16 (scale 2.140367e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 400 (want 400)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.016683e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.042462e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000960e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000081e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 2.019022e-07, max|D| = 2.000000e+00 over 12400 rows
+  [SKIP] LICQ exact rank check (12400 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af10_m1e-2: ALL CHECKS PASS
+
+generation_s=0.217 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af10_m1e-4: n=20000 me=12000 mi=4000 |A|=400 (0.1) margin=0.0001 layout=scattered offset=-1 seed=20260831 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af10_m1e-4.qp
+VERIFY e1_f7_n4000_af10_m1e-4  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=0.0001 seed=20260831)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.427136e-16 (scale 2.225814e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 400 (want 400)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.016683e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.037152e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000960e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000373e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 2.072407e-07, max|D| = 2.000000e+00 over 12400 rows
+  [SKIP] LICQ exact rank check (12400 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af10_m1e-4: ALL CHECKS PASS
+
+generation_s=0.342 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af10_m1e-6: n=20000 me=12000 mi=4000 |A|=400 (0.1) margin=1e-06 layout=scattered offset=-1 seed=20260832 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af10_m1e-6.qp
+VERIFY e1_f7_n4000_af10_m1e-6  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=1e-06 seed=20260832)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.398207e-16 (scale 2.168362e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 400 (want 400)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.016683e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.002797e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000960e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000178e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.819497e-07, max|D| = 2.000000e+00 over 12400 rows
+  [SKIP] LICQ exact rank check (12400 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af10_m1e-6: ALL CHECKS PASS
+
+generation_s=0.221 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af30_m1e-2: n=20000 me=12000 mi=4000 |A|=1200 (0.3) margin=0.01 layout=scattered offset=-1 seed=20260833 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af30_m1e-2.qp
+VERIFY e1_f7_n4000_af30_m1e-2  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=0.01 seed=20260833)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.996004e-16 (scale 2.197283e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 1200 (want 1200)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.018058e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.003045e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.001234e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000077e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.612784e-07, max|D| = 1.819955e+00 over 13200 rows
+  [SKIP] LICQ exact rank check (13200 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af30_m1e-2: ALL CHECKS PASS
+
+generation_s=0.211 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af30_m1e-4: n=20000 me=12000 mi=4000 |A|=1200 (0.3) margin=0.0001 layout=scattered offset=-1 seed=20260834 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af30_m1e-4.qp
+VERIFY e1_f7_n4000_af30_m1e-4  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=0.0001 seed=20260834)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 6.106227e-16 (scale 2.153259e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 1200 (want 1200)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.018058e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.009488e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.001234e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000161e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.665674e-07, max|D| = 2.000000e+00 over 13200 rows
+  [SKIP] LICQ exact rank check (13200 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af30_m1e-4: ALL CHECKS PASS
+
+generation_s=0.200 (outside the per-cell solve budget)
+
+generated e1_f7_n4000_af30_m1e-6: n=20000 me=12000 mi=4000 |A|=1200 (0.3) margin=1e-06 layout=scattered offset=-1 seed=20260835 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n4000_af30_m1e-6.qp
+VERIFY e1_f7_n4000_af30_m1e-6  (n=20000 me=12000 mi=4000 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=1e-06 seed=20260835)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.996004e-16 (scale 2.177390e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 1200 (want 1200)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.018058e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.018370e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.001234e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000426e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.617992e-07, max|D| = 2.000000e+00 over 13200 rows
+  [SKIP] LICQ exact rank check (13200 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n4000_af30_m1e-6: ALL CHECKS PASS
+
+generation_s=0.206 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af01_m1e-2: n=100000 me=60000 mi=20000 |A|=200 (0.01) margin=0.01 layout=scattered offset=-1 seed=20260836 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af01_m1e-2.qp
+VERIFY e1_f7_n20000_af01_m1e-2  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=0.01 seed=20260836)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 5.397952e-16 (scale 2.094092e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 200 (want 200)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.012747e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.109828e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000174e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000088e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.104423e-08, max|D| = 2.000000e+00 over 60200 rows
+  [SKIP] LICQ exact rank check (60200 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af01_m1e-2: ALL CHECKS PASS
+
+generation_s=1.009 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af01_m1e-4: n=100000 me=60000 mi=20000 |A|=200 (0.01) margin=0.0001 layout=scattered offset=-1 seed=20260837 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af01_m1e-4.qp
+VERIFY e1_f7_n20000_af01_m1e-4  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=0.0001 seed=20260837)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 5.161404e-16 (scale 2.008357e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 200 (want 200)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.012747e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.086288e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000174e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000074e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.107852e-08, max|D| = 2.000000e+00 over 60200 rows
+  [SKIP] LICQ exact rank check (60200 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af01_m1e-4: ALL CHECKS PASS
+
+generation_s=1.034 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af01_m1e-6: n=100000 me=60000 mi=20000 |A|=200 (0.01) margin=1e-06 layout=scattered offset=-1 seed=20260838 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af01_m1e-6.qp
+VERIFY e1_f7_n20000_af01_m1e-6  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.01 margin_class=1e-06 seed=20260838)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.810419e-16 (scale 2.197985e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 200 (want 200)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.012747e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.004663e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000174e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000034e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 1.102780e-08, max|D| = 2.000000e+00 over 60200 rows
+  [SKIP] LICQ exact rank check (60200 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af01_m1e-6: ALL CHECKS PASS
+
+generation_s=0.995 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af10_m1e-2: n=100000 me=60000 mi=20000 |A|=2000 (0.1) margin=0.01 layout=scattered offset=-1 seed=20260839 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af10_m1e-2.qp
+VERIFY e1_f7_n20000_af10_m1e-2  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=0.01 seed=20260839)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 6.522560e-16 (scale 2.184234e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 2000 (want 2000)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.012834e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.024473e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000192e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000014e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 7.397941e-09, max|D| = 2.000000e+00 over 62000 rows
+  [SKIP] LICQ exact rank check (62000 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af10_m1e-2: ALL CHECKS PASS
+
+generation_s=1.006 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af10_m1e-4: n=100000 me=60000 mi=20000 |A|=2000 (0.1) margin=0.0001 layout=scattered offset=-1 seed=20260840 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af10_m1e-4.qp
+VERIFY e1_f7_n20000_af10_m1e-4  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=0.0001 seed=20260840)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 5.434174e-16 (scale 2.237380e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 2000 (want 2000)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.012834e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.006321e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000192e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000026e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 7.341154e-09, max|D| = 2.000000e+00 over 62000 rows
+  [SKIP] LICQ exact rank check (62000 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af10_m1e-4: ALL CHECKS PASS
+
+generation_s=0.991 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af10_m1e-6: n=100000 me=60000 mi=20000 |A|=2000 (0.1) margin=1e-06 layout=scattered offset=-1 seed=20260841 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af10_m1e-6.qp
+VERIFY e1_f7_n20000_af10_m1e-6  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.1 margin_class=1e-06 seed=20260841)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 4.996004e-16 (scale 2.234705e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 2000 (want 2000)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.012834e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.002413e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000192e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000076e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 7.392833e-09, max|D| = 2.000000e+00 over 62000 rows
+  [SKIP] LICQ exact rank check (62000 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af10_m1e-6: ALL CHECKS PASS
+
+generation_s=1.034 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af30_m1e-2: n=100000 me=60000 mi=20000 |A|=6000 (0.3) margin=0.01 layout=scattered offset=-1 seed=20260842 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af30_m1e-2.qp
+VERIFY e1_f7_n20000_af30_m1e-2  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=0.01 seed=20260842)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 7.771561e-16 (scale 2.235748e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 6000 (want 6000)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.013109e-03
+  [PASS] active multipliers STRICTLY positive  min = 5.001141e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000247e-02 vs 1.000000e-02
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000134e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 6.326917e-09, max|D| = 2.000000e+00 over 66000 rows
+  [SKIP] LICQ exact rank check (66000 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af30_m1e-2: ALL CHECKS PASS
+
+generation_s=1.029 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af30_m1e-4: n=100000 me=60000 mi=20000 |A|=6000 (0.3) margin=0.0001 layout=scattered offset=-1 seed=20260843 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af30_m1e-4.qp
+VERIFY e1_f7_n20000_af30_m1e-4  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=0.0001 seed=20260843)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 6.938894e-16 (scale 2.243232e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 6000 (want 6000)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.013109e-05
+  [PASS] active multipliers STRICTLY positive  min = 5.000511e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000247e-04 vs 1.000000e-04
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000177e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 6.341284e-09, max|D| = 1.819991e+00 over 66000 rows
+  [SKIP] LICQ exact rank check (66000 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af30_m1e-4: ALL CHECKS PASS
+
+generation_s=1.005 (outside the per-cell solve budget)
+
+generated e1_f7_n20000_af30_m1e-6: n=100000 me=60000 mi=20000 |A|=6000 (0.3) margin=1e-06 layout=scattered offset=-1 seed=20260844 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_f7_n20000_af30_m1e-6.qp
+VERIFY e1_f7_n20000_af30_m1e-6  (n=100000 me=60000 mi=20000 kind=constructed layout=scattered offset=-1 active_fraction=0.3 margin_class=1e-06 seed=20260844)
+  [PASS] sidecar shapes  
+  [PASS] stationarity ||Hx*+g+Ae'le+Ai'li||_inf  = 6.522560e-16 (scale 2.233200e+00)
+  [PASS] equality feasibility ||Ae x* - be||_inf  = 0.000000e+00
+  [PASS] |A| matches round(active_fraction * mi)  = 6000 (want 6000)
+  [PASS] inequality feasibility max(Ai x* - bi)  = -0.000000e+00
+  [PASS] active rows hold with EQUALITY  max|slack| = 0.000000e+00
+  [PASS] inactive rows have STRICTLY positive slack  min rel slack = 5.013109e-07
+  [PASS] active multipliers STRICTLY positive  min = 5.001646e-01
+  [PASS] inactive multipliers exactly zero  max = 0.000000e+00
+  [PASS] complementarity max|li_j * slack_j|  = 0.000000e+00
+  [PASS] 10th-percentile relative margin == margin_class (within 2x)  decile = 1.000247e-06 vs 1.000000e-06
+  [PASS] box strictly inactive at x* (so z = 0 is admissible)  min box slack = 6.000061e-01
+  [PASS] H is positive definite (sparse Cholesky succeeds)  
+  [PASS] LICQ (cheap, every size): LDL^T of [Ae;Ai_A][Ae;Ai_A]^T is nonsingular  min|D| = 6.159462e-09, max|D| = 2.000000e+00 over 66000 rows
+  [SKIP] LICQ exact rank check (66000 rows > E1_LICQ_MAX_ROWS = 5000; a sparse QR of this staircase is superlinear -- 11-16 s at 6600 rows, 171 s at 16500, past 300 s at 33000 -- so the cheap certificate above is what stands at this size, cross-validated against the exact test wherever the exact test was affordable)
+VERIFY e1_f7_n20000_af30_m1e-6: ALL CHECKS PASS
+
+generation_s=1.003 (outside the per-cell solve budget)
+
+generated e1_anchor_f7_n20000_bound_neutral (anchor, window=bound, p=0.45): n=100000 me=60000 mi=20000 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_anchor_f7_n20000_bound_neutral.qp
+generated e1_anchor_f7_n20000_path_neutral (anchor, window=path, p=0.85): n=100000 me=60000 mi=20000 -> /home/ghecht/Projects/hven-e1/dumps/sweep/e1_anchor_f7_n20000_path_neutral.qp

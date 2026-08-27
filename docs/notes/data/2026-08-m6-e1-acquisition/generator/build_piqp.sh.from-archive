@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# prototypes/piqp_bridge/build_piqp.sh — Phase 7, Task 2.
+#
+# Builds PIQP EXTERNALLY under ~/Software/piqp (default; override with
+# PIQP_DIR). NOTHING PIQP-derived is vendored into this repository -- same
+# discipline as prototypes/uno_bridge/build_uno.sh: this script only
+# clones/builds outside the repo and then compiles this directory's own
+# piqp_f7_driver.cpp against the result. Re-run is IDEMPOTENT: if a healthy
+# install already exists at the pinned version, the clone/configure/build/
+# install steps are all skipped and only the driver is (re)compiled.
+#
+# PINNED TAG: v0.6.3. This is not the latest-at-the-time default choice it
+# looks like -- it is REQUIRED. PIQP's CMakeLists.txt calls, at v0.6.0:
+#
+#     find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+#
+# and this project's own vendored Eigen (../tycho/dep/eigen, installed here
+# as a CMake package at ~/Software/eigen3, EIGEN3_DIR below) is 5.0.1.
+# CMake's Eigen3ConfigVersion.cmake compatibility check for a
+# `find_package(Eigen3 3.3)` request requires the FOUND package's major
+# version to match the REQUESTED major version (CMake's own
+# "AnyNewerVersion"/exact-major convention, the same one every find_package
+# floor uses) -- 5.0.1's major version (5) does not match the requested
+# major (3), so v0.6.0 REJECTS Eigen 5.0.1 even though 5.0.1 > 3.3 in every
+# ordinary sense. v0.6.3 (CHANGELOG.md, commit 8279ed7 "prepare 0.6.3
+# release") drops the floor entirely -- `find_package(Eigen3 REQUIRED
+# NO_MODULE)`, no version argument -- and configures clean against 5.0.1.
+# Verified directly against both tags' own CMakeLists.txt (git show
+# v0.6.0:CMakeLists.txt vs the v0.6.3 checkout) before pinning.
+#
+# Eigen 3.4.0 is ALSO staged at ~/Software/eigen-3.4.0 as an unused fallback
+# (a version that would satisfy v0.6.0's own floor) -- not used here, because
+# tycho_sqp's whole point is measuring against the SAME Eigen it is built
+# with everywhere else in this project (CLAUDE.md: "this sandbox builds
+# against those exact vendored copies so versions stay identical to the
+# incorporation target"); silently solving the version-floor problem by
+# swapping in a different Eigen for just this one external solver would
+# defeat that.
+#
+# LICENSE (see README.md for the full paragraph): PIQP's own top-level
+# license is BSD 2-Clause (LICENSE at this tag). Its SPARSE backend links
+# Timothy Davis's LDL (include/piqp/sparse/LDL_License.txt), LGPL-2.1+ --
+# which is exactly why this script builds PIQP OUTSIDE the repository and
+# this bridge references it by external path (Eigen3_DIR / PIQP_DIR), the
+# same "never vendored" discipline the design spec states for this task and
+# CLAUDE.md states for every third-party dependency in this project.
+#
+# EIGEN: this project's OWN vendored copy (../tycho/dep/eigen), installed as
+# a CMake package at ~/Software/eigen3 (EIGEN3_DIR below) -- NOT a PIQP
+# submodule, NOT downloaded by this script. If that install is missing, this
+# script fails loudly with the exact command to reproduce it rather than
+# silently fetching a different Eigen.
+#
+# COMPILER: clang++ (tycho is ALWAYS built with LLVM, CLAUDE.md). PIQP
+# compiles cleanly under clang++ at this tag -- no patch needed (unlike
+# Uno's BQPD <cstdint> gap, prototypes/uno_bridge/build_uno.sh's own note).
+#
+# BUILD FLAGS: mirror the controller's own prerequisite install exactly
+# (Release, shared libs, the C++ interface library `piqp::piqp` with
+# PIQP_WITH_TEMPLATE_INSTANTIATION -- solver.hpp's own `extern template`
+# declarations require it, or the driver would instantiate SolverBase/
+# SparseSolver itself instead of linking the pre-built symbols in
+# libpiqp.so) -- BUILD_C_INTERFACE=ON (harmless, not used here),
+# BUILD_TESTS=OFF, BUILD_EXAMPLES=OFF (neither needed for this bridge).
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PIQP_SRC_DIR="${PIQP_SRC_DIR:-$HOME/Software/piqp-src}"
+PIQP_DIR="${PIQP_DIR:-$HOME/Software/piqp}"
+EIGEN3_DIR="${EIGEN3_DIR:-$HOME/Software/eigen3/share/eigen3/cmake}"
+PIQP_TAG="v0.6.3"
+TYCHO_DIR="${TYCHO_DIR:-$REPO_ROOT/../tycho}"
+
+echo "== step 0: this project's own vendored Eigen, installed as a CMake package =="
+if [ ! -f "$EIGEN3_DIR/Eigen3Config.cmake" ]; then
+    echo "ERROR: Eigen3 CMake package not found at $EIGEN3_DIR" >&2
+    echo "Reproduce it from tycho's vendored copy, e.g.:" >&2
+    echo "  cmake -S \"$TYCHO_DIR/dep/eigen\" -B /tmp/eigen-build -DCMAKE_INSTALL_PREFIX=\$HOME/Software/eigen3" >&2
+    echo "  cmake --build /tmp/eigen-build --target install" >&2
+    exit 1
+fi
+echo "  found: $EIGEN3_DIR"
+
+echo "== step 1: PIQP @ $PIQP_TAG (BSD-2-Clause top level; see this script's own banner and "
+echo "           README.md for the LGPL-derived sparse-LDL caveat) =="
+ALREADY_HEALTHY=0
+if [ -f "$PIQP_DIR/include/piqp/piqp.hpp" ] && [ -f "$PIQP_DIR/lib64/libpiqp.so" ] && \
+   [ -f "$PIQP_DIR/lib64/cmake/piqp/piqpConfigVersion.cmake" ] && \
+   grep -q 'PACKAGE_VERSION "0.6.3"' "$PIQP_DIR/lib64/cmake/piqp/piqpConfigVersion.cmake"; then
+    ALREADY_HEALTHY=1
+fi
+
+if [ "$ALREADY_HEALTHY" -eq 1 ]; then
+    echo "  already installed and healthy at $PIQP_DIR (v0.6.3) -- skipping clone/build/install."
+else
+    echo "  == step 1a: clone @ $PIQP_TAG =="
+    if [ ! -d "$PIQP_SRC_DIR/.git" ]; then
+        git clone --branch "$PIQP_TAG" --depth 1 https://github.com/PREDICT-EPFL/piqp.git "$PIQP_SRC_DIR"
+    else
+        echo "    already present: $PIQP_SRC_DIR"
+        CURRENT_TAG="$(git -C "$PIQP_SRC_DIR" describe --tags 2>/dev/null || echo '<unknown>')"
+        if [ "$CURRENT_TAG" != "$PIQP_TAG" ]; then
+            echo "    WARNING: $PIQP_SRC_DIR is at '$CURRENT_TAG', not the pinned $PIQP_TAG -- not" >&2
+            echo "    touching it (no destructive git op here); verify by hand before trusting" >&2
+            echo "    the build this script is about to produce." >&2
+        fi
+    fi
+
+    echo "  == step 1b: configure + build + install (Release, clang++, shared, "
+    echo "              PIQP_WITH_TEMPLATE_INSTANTIATION via the piqp::piqp target) =="
+    cmake -S "$PIQP_SRC_DIR" -B "$PIQP_SRC_DIR/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_INSTALL_PREFIX="$PIQP_DIR" \
+        -DEigen3_DIR="$EIGEN3_DIR" \
+        -DBUILD_SHARED_LIBS=ON -DBUILD_C_INTERFACE=ON -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF
+    cmake --build "$PIQP_SRC_DIR/build" --target install --parallel
+fi
+
+echo "== step 2: compile prototypes/piqp_bridge/piqp_f7_driver.cpp =="
+# Out-of-tree, uno-bridge pattern: links tests/support/scale_problems.h's
+# F7CollocationChain (the SAME C++ class tycho_sqp's own solver evaluates)
+# DIRECTLY, header-only. include/tycho_sqp/sqp_driver.h's own build_subproblem
+# is NOT linked (fix round 1, review M3: corrected from an earlier, wrong
+# "DIRECTLY" claim here) -- it is REIMPLEMENTED locally in the driver
+# (piqp_f7_driver.cpp's own banner explains why: sqp_driver.h unconditionally
+# drags in qp_engine.h -> kkt_system.h -> MKL Pardiso headers, with no Linux
+# opt-out, that this out-of-tree driver has no use for). So this build needs
+# only this project's own include/ + tycho's vendored Eigen/fmt (NOT a full
+# CMake build of the tycho_sqp library) -- plus PIQP's own headers and
+# libpiqp.so.
+DRIVER_SRC="$REPO_ROOT/prototypes/piqp_bridge/piqp_f7_driver.cpp"
+DRIVER_OUT="$REPO_ROOT/prototypes/piqp_bridge/piqp_f7_driver"
+clang++ -O3 -DNDEBUG -std=c++20 -DFMT_HEADER_ONLY -DPIQP_WITH_TEMPLATE_INSTANTIATION \
+    -I"$REPO_ROOT/include" \
+    -isystem "$TYCHO_DIR/dep/eigen" -isystem "$TYCHO_DIR/dep/fmt/include" \
+    -isystem "$PIQP_DIR/include" \
+    "$DRIVER_SRC" -o "$DRIVER_OUT" \
+    -L"$PIQP_DIR/lib64" -lpiqp -Wl,-rpath,"$PIQP_DIR/lib64"
+
+echo "== done: $DRIVER_OUT =="
+echo "Sanity check (the referee gate, Step 2 of this task's brief):"
+echo "  MKL_NUM_THREADS=1 $DRIVER_OUT gate"

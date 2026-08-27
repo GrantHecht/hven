@@ -1,0 +1,10 @@
+id,layout,active_offset,block_first_row,block_last_row,block_size,mi
+e1blk_f7_n20000_af01_m1e-2,contiguous,6571,6571,6770,200,20000
+e1blk_f7_n20000_af01_m1e-4,contiguous,4393,4393,4592,200,20000
+e1blk_f7_n20000_af01_m1e-6,contiguous,2196,2196,2395,200,20000
+e1blk_f7_n20000_af10_m1e-2,contiguous,7088,7088,9087,2000,20000
+e1blk_f7_n20000_af10_m1e-4,contiguous,8010,8010,10009,2000,20000
+e1blk_f7_n20000_af10_m1e-6,contiguous,12414,12414,14413,2000,20000
+e1blk_f7_n20000_af30_m1e-2,contiguous,9176,9176,15175,6000,20000
+e1blk_f7_n20000_af30_m1e-4,contiguous,1974,1974,7973,6000,20000
+e1blk_f7_n20000_af30_m1e-6,contiguous,12102,12102,18101,6000,20000
