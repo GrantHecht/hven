@@ -151,6 +151,29 @@ target_include_directories(hven PRIVATE
 #     engine-to-caller, crossed once per QP subproblem. The `detail::` free
 #     functions above QpEngine stay inline in the header: tests, bench and
 #     drivers/sqp_driver.cpp name them directly.
+#
+#   - qp/ssn_engine.cpp: SsnEngine's safeguarded semismooth-Newton iteration --
+#     every member function of it except the constructor and the two trivial
+#     accessors (options(), has_deferred_certification()). The engine is a
+#     plain, non-template class, so section 5's header/templated exception
+#     selects none of it: what is here is orchestration -- the attempt loop,
+#     the FB classification, the KKT pattern cache, the globalization helpers
+#     and the exports. Every member travels into THIS ONE TU deliberately:
+#     select_branch runs once per FB row from inside the attempt loop's own
+#     two row loops, residual() walks every block once per attempt and once
+#     per line-search trial, and for_each_entry's emit callable is invoked
+#     once per stored entry of K from sync_matrix -- so all three must stay
+#     visible to the inliner at exactly the sites that had them as header
+#     siblings. for_each_entry is a member TEMPLATE over that callable and
+#     travels WITH its only two instantiation sites (sync_matrix's rebuild
+#     and refresh lambdas), which is what keeps its type set closed inside
+#     this TU; leaving it behind in the header is the one split that would
+#     have cost inlining. The only boundary this carve introduces is
+#     engine-to-caller -- solve(), finish_deferred_certification(),
+#     discard_deferred_certification() -- crossed at most twice per QP
+#     subproblem. The `detail::` free functions and constants above SsnEngine
+#     stay inline in the header: tests, bench, drivers/sqp_driver.cpp and
+#     warmstart/warm_start.h name them directly.
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -161,6 +184,7 @@ target_sources(hven PRIVATE
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
     qp/qp_engine.cpp
+    qp/ssn_engine.cpp
     warmstart/continuation.cpp
     warmstart/warm_start.cpp
 )
@@ -347,7 +371,16 @@ endif()
 # different header set in a different order from the one src/hven_pch.h
 # prefixes, and that property has failed bar 2 for every SQP-side TU measured
 # so far.
-set(_hven_expected_source_count 35)
+#
+# 36 as of qp/ssn_engine.cpp, the semismooth-Newton iteration carved out of
+# include/hven/detail/qp/ssn_engine.h. It stays OUT on the same footing as the
+# seven above -- no measurement exists for it, and out is the unmeasured
+# default -- and on the SQP-side prior: it includes the SSN engine header,
+# which pulls the KKT call helpers, the QP problem and QP types, the sparse
+# factor, the pattern hash and the SQP types, a different header set in a
+# different order from the one src/hven_pch.h prefixes, and that property has
+# failed bar 2 for every SQP-side TU measured so far.
+set(_hven_expected_source_count 36)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

@@ -152,8 +152,9 @@ inline QpProblem equality_only_qp() {
 // was a real coverage hole rather than an aesthetic one: (a)/(b)/M6/M12 and the
 // non-finite probe have me = 0; box_qp has me = 0; equality_only_qp has
 // mi = mb = 0, so its diagonal-refresh loop body never executes at all. The
-// `+ me` term in ssn_engine.h's positional diagonal write --
-// `vals[outer[n + me + k]]` -- was therefore never exercised by any test, and
+// `+ me` term in the engine's positional diagonal write
+// (`vals[outer[n + me + k]]`, in SsnEngine::solve, src/qp/ssn_engine.cpp) was
+// therefore never exercised by any test, and
 // the reviewer's planted mutant (`outer[n + me + k]` -> `outer[n + k]`, which
 // aims the FB diagonals at the EQUALITY rows) passed the whole 574-test suite
 // while diverging to ||F|| = 7.8e57 on a mixed QP.
