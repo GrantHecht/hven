@@ -348,7 +348,7 @@
 //    WINDOW-CONSISTENCY RULE below):
 //        lo_eff(i) = max(lower(i), x0(i) - Delta),
 //        up_eff(i) = min(upper(i), x0(i) + Delta),   Delta = opts.tr_radius.
-//    Every subsequent bound read in this file sees lo_eff/up_eff, never
+//    Every subsequent bound read in the engine sees lo_eff/up_eff, never
 //    lower/upper directly -- via a SHADOWED QpProblem reference: `qp` inside
 //    run() names either the caller's own problem unchanged (Delta == +inf) or
 //    a local copy with lower/upper replaced, so every function taking
@@ -404,7 +404,7 @@
 //    per-instance const, but every solve() overload also takes a
 //    `const SolveOverrides &` (qp_types.h) resolved ONCE at the top of run()
 //    into effective tr_radius/primal_delta/dual_mu (a sentinel field resolves
-//    to the corresponding opts_ value); every read site below consults those
+//    to the corresponding opts_ value); every read site in qp_engine.cpp consults those
 //    effective values, not opts_ directly. A shrink-radius retry loop
 //    therefore shares one QpEngine across every retry radius and keeps
 //    hot-start reuse wherever the ordinary eligibility conditions allow.
@@ -906,7 +906,7 @@ class QpEngine {
 
     // Cold start with a per-solve override of tr_radius/primal_delta/
     // dual_mu (see qp_types.h's SolveOverrides). Resolved once, at the top of
-    // run(), into the effective values every read site below actually
+    // run(), into the effective values every read site in qp_engine.cpp actually
     // consults.
     QpSolution solve(const QpProblem &qp, const SolveOverrides &overrides) const;
 
@@ -988,7 +988,7 @@ class QpEngine {
   private:
     /// @brief Resolve one call's SolveOverrides against `opts` into the
     ///     effective tr_radius/primal_delta/dual_mu values every read site in
-    ///     this file consults from that point on. Shared with run() so
+    ///     qp_engine.cpp consults from that point on. Shared with run() so
     ///     refine_on_face() cannot resolve them differently.
     /// @param opts the engine's QpOptions; every other field (feas_tol,
     ///     opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra) is
@@ -1455,7 +1455,7 @@ class QpEngine {
     // const: nothing may mutate opts_ after construction; every field it holds
     // is this engine instance's DEFAULT for that field, resolved against a
     // solve()'s own SolveOverrides at the top of run() (`eff_opts`) rather
-    // than read directly by most of the file below.
+    // than read directly by most of the engine.
     const QpOptions opts_;
     Ledger *ledger_ = nullptr;
     std::string label_prefix_;

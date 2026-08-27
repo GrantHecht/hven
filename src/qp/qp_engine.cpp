@@ -153,7 +153,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
         return false;
     }
     if (me + n_working > ws.num_free()) {
-        return false; // THE RANK PRE-SCREEN -- see the note above
+        return false; // THE RANK PRE-SCREEN -- see refine_on_face's header note
     }
 
     // --- One exact solve on that face ---------------------------------
@@ -510,8 +510,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // correctness argument needs (HotState's OWNERSHIP note): a
             // shared object may only ever be safely mutated by an engine
             // whose OWN gate just passed for it (never true in this
-            // branch). Reliable here only under this file's documented
-            // sequential-use contract (THREAD SAFETY).
+            // branch). Reliable here only under the header contract's
+            // THREAD SAFETY note (sequential use).
             if (border_.use_count() > 1) {
                 border_ = std::make_shared<BorderState>();
             } else {
