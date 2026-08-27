@@ -105,9 +105,17 @@ event stream) is versioned v0 here and carried by M7's telemetry, so
 the heuristics never grow a second bookkeeping path for M8's trace
 to replace.
 
-**API break window (committed M6 items):** OptimizationProblemBase
-retirement/fold (consumer-free confirmed by tycho Task 8) + callback
-const-argument redesign — one declared break, together.
+**API break window (committed M6 items):** one declared break
+carrying everything at once: OptimizationProblemBase retirement/fold
+(consumer-free confirmed by tycho Task 8); callback const-argument
+redesign; the model-layer rename, Scheme 1 as owner-decided
+2026-08-21 (NLPProblem → NlpTripletModel, NlpAggregate → NlpAssembly
+with the Assembly* cascade — one proven mechanical sweep,
+P-SYM-class verification, never incremental; HARD CONSTRAINT: the
+"free" deadline is M7-eve, before Python bindings exist); and the
+by-value eval_* deprecation in favour of the in-place virtuals (its
+registered M6 neighbour). Nothing renamed or deprecated
+anticipatorily before the window.
 
 **Quality floor:** drivers coverage 67.8% → parity with the library;
 the five 0% inline headers; census comparator into scripts/ with the
