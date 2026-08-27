@@ -97,6 +97,15 @@ named investigation.
   a switch the solver makes and a switch the user makes are the same
   operation with a different trigger. More user control is good or
   bad depending on the user; hven offers both and forces neither.
+  SETTINGS CONTRACT (owner, 2026-08-26): every switching mode and
+  every heuristic is individually enable/disable-able through the
+  settings surface — nothing adaptive is reachable only as a bundle —
+  with enabled-defaults chosen intelligently from measurement (the
+  M7/M8 suite data, not intuition), so the default user gets the
+  measured-best behavior and a power user can pin any subset for a
+  specific problem. This composes with the labeled-configs item
+  (M8): a labeled config is a curated setting of these same toggles,
+  never a separate mechanism.
 - **Escape-path performance target**: 95.5% of residual
   PSIOPT-envelope wall sits in the 2/9 steps where SSN escaped to the
   walk — the best-localized target P7 produced, and the natural first
