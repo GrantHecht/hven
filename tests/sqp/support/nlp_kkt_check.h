@@ -70,12 +70,49 @@ struct NlpKktResidual {
 // else must be finite. +inf rather than NaN, and all four rather than the one
 // term the poison happened to reach, so that this reading and
 // bench/model_surface_kkt.h's are the same reading on a poisoned row.
+//
+// "NOT THROWN ON" IS WHY THE SWEEP IS IN TWO PARTS. The caller's own data is
+// screened BEFORE the model is evaluated, so a poisoned x is never handed to a
+// model that validates its argument -- otherwise the sentence above would be
+// false by way of the model's exception rather than this function's return.
+// What the model returns at a finite point is screened after. The split is
+// result-identical: both halves return the same +inf quadruple.
+// The one reading a poisoned point gets, whichever half of the sweep catches it.
+inline NlpKktResidual nlp_kkt_unscorable() {
+    const double infinite = std::numeric_limits<double>::infinity();
+    NlpKktResidual r;
+    r.stationarity = infinite;
+    r.primal = infinite;
+    r.dual_sign = infinite;
+    r.complementarity = infinite;
+    return r;
+}
+
 inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpSolution &sol,
                                      double bound_tol) {
     NlpKktResidual r;
     const Index n = model.n();
     const Vec &lo = model.lower();
     const Vec &up = model.upper();
+
+    // THE NON-FINITE SWEEP, PART 1: the caller's own data, before the model is
+    // touched. A direct test rather than something folded into the maxima below
+    // because a max cannot do it: every accumulation there is
+    // std::max(current, term) and every one-sided term is itself a
+    // std::max(0.0, raw) applicability clamp, and BOTH return their finite
+    // argument when handed a NaN. A poisoned point therefore used to score
+    // zeros -- silently, on a row that claimed kOptimal. The clamps and the
+    // at_lower/at_upper/free classification below are correct on finite data
+    // and are reached only with finite data because these two parts return
+    // first.
+    bool bounds_are_nan_free = true;
+    for (Index i = 0; i < n && bounds_are_nan_free; ++i) {
+        bounds_are_nan_free = !std::isnan(lo(i)) && !std::isnan(up(i));
+    }
+    if (!bounds_are_nan_free || !std::isfinite(bound_tol) || !sol.x.allFinite() ||
+        !sol.z.allFinite() || !sol.lambda_e.allFinite() || !sol.lambda_i.allFinite()) {
+        return nlp_kkt_unscorable();
+    }
 
     Vec grad = model.eval_grad(sol.x);
     if (model.me() > 0) {
@@ -84,34 +121,16 @@ inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpSolution &s
     if (model.mi() > 0) {
         grad += model.eval_jac_i(sol.x).transpose() * sol.lambda_i;
     }
-    // Hoisted above the sweep, not moved in cost: exactly the same two calls
-    // the two blocks below used to make, under exactly the same me()/mi()
-    // guards -- the residual blocks are swept for poison before anything reads
-    // them, which is only possible if they exist by then.
+    // Hoisted, not moved in cost: exactly the same two calls the two blocks
+    // below used to make, under exactly the same me()/mi() guards -- the
+    // residual blocks are swept for poison before anything reads them, which is
+    // only possible if they exist by then.
     const Vec ce = model.me() > 0 ? model.eval_ce(sol.x) : Vec(0);
     const Vec ci = model.mi() > 0 ? model.eval_ci(sol.x) : Vec(0);
 
-    // THE NON-FINITE SWEEP. It is a direct test rather than something folded
-    // into the maxima below because a max cannot do it: every accumulation
-    // there is std::max(current, term) and every one-sided term is itself a
-    // std::max(0.0, raw) applicability clamp, and BOTH return their finite
-    // argument when handed a NaN. A poisoned point therefore used to score
-    // zeros -- silently, on a row that claimed kOptimal. The clamps and the
-    // at_lower/at_upper/free classification below are correct on finite data
-    // and are reached only with finite data because this returns first.
-    bool bounds_are_nan_free = true;
-    for (Index i = 0; i < n && bounds_are_nan_free; ++i) {
-        bounds_are_nan_free = !std::isnan(lo(i)) && !std::isnan(up(i));
-    }
-    if (!bounds_are_nan_free || !std::isfinite(bound_tol) || !sol.x.allFinite() ||
-        !sol.z.allFinite() || !sol.lambda_e.allFinite() || !sol.lambda_i.allFinite() ||
-        !grad.allFinite() || !ce.allFinite() || !ci.allFinite()) {
-        const double infinite = std::numeric_limits<double>::infinity();
-        r.stationarity = infinite;
-        r.primal = infinite;
-        r.dual_sign = infinite;
-        r.complementarity = infinite;
-        return r;
+    // PART 2: what the model returned at a point already known to be finite.
+    if (!grad.allFinite() || !ce.allFinite() || !ci.allFinite()) {
+        return nlp_kkt_unscorable();
     }
 
     r.stationarity = (grad - sol.z).lpNorm<Eigen::Infinity>();

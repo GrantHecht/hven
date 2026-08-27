@@ -1993,12 +1993,13 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
 // grounds.
 //
 // EVERY SENTENCE ABOVE WITH A DIRECTION IN IT -- which way the coin lands,
-// which mode gets it "wrong", the single flip -- IS AN OBSERVATION, NOT AN
-// ASSERTION. Nothing below pins one. What is asserted is what holds whichever
-// way the coin lands: the tie is SEEN (ssn_uncertain_peak == 1), the
-// safeguarded engine never exports row 1 as inactive-and-certain, the two
-// modes disagree about that row (second cell), and the flip count stays in a
-// band that separates this trajectory from an orbiting one.
+// which mode gets it "wrong", the single flip, AND WHETHER THE TWO MODES
+// DISAGREE -- IS AN OBSERVATION, NOT AN ASSERTION. Nothing below asserts one;
+// the second cell RECORDS its readings instead. What is asserted is what holds
+// whichever way either coin lands: the tie is SEEN (ssn_uncertain_peak == 1),
+// the safeguarded engine never exports row 1 as inactive-and-certain (from
+// EITHER start), bare mode's uncertain flag is structurally false, and at
+// least one bulk flip happened.
 //
 // WHY NO DIRECTION IS PINNED (M6 W0.4). This fixture used to carry per-backend
 // direction pins -- MKL's ineq_active[1]/ineq_uncertain[1] and
@@ -2014,6 +2015,14 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
 // identical source can break is not evidence about the library, and M3-4's own
 // finding -- at c* = 0 the row IS at its boundary, so the twin readings are
 // both correct readings -- is precisely why there is no direction there to pin.
+// The bare-vs-full CONTRAST went with them, on harder evidence still: the L-1
+// register's occurrence-3 failure table records
+// `bool(bare.ineq_active[1]) != bool(full.ineq_active[1])` failing with actual
+// "true vs true" -- under the flipped reading BOTH modes report the row active,
+// and both then land (active, certain), which is a legitimate reading of the
+// tie on each side. There is no portable contrast to assert, so the second cell
+// records its two readings rather than comparing them.
+//
 // The DIVERGENCE ITSELF stays documented (that is what M3-4 records); only the
 // assertions on it are gone.
 //
@@ -2052,16 +2061,18 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
         EXPECT_TRUE(res.ineq_active[1] || res.ineq_uncertain[1])
             << "the tie was returned inactive AND certain -- a weakly active row "
                "presented as fact";
-        // No oscillation, as a band rather than an equality: at least the one
-        // flip this trajectory legitimately has, and far below the orbiting
-        // regime the cycling fixture in this file reaches (10 and 13 flips).
-        // Every value this cell has produced sits inside it -- 1 (MKL
-        // nominal), 3 (MKL, the 2026-08-26 within-lane flip), 4 (Accelerate) --
-        // and the band still fails on a genuine under-damping regression,
-        // which an exact equality on a tie-decided counter could not
-        // distinguish from the coin.
+        // A LOWER BOUND ONLY: the trajectory does flip at least once. The exact
+        // counts this cell has produced -- 1 (MKL nominal), 3 (MKL, the
+        // 2026-08-26 within-lane flip), 4 (Accelerate) -- are tie resolution,
+        // not algorithm, and are not asserted. NO CEILING, because one cannot
+        // fire: ssn_bulk_flips grows by at most one per pass and the first pass
+        // cannot flip, so `iters == 7` asserted above already bounds it at 6.
+        // `iters == 7` IS the under-damping guard here -- an engine that
+        // oscillated on this cell would spend passes it does not have, the way
+        // the cycling fixture in this file does at its budget -- and a flip
+        // ceiling would only restate it, less directly and on a tie-decided
+        // counter.
         EXPECT_GE(res.counters.ssn_bulk_flips, 1);
-        EXPECT_LE(res.counters.ssn_bulk_flips, 8);
     }
 
     // The coin flip, caught: from x0 = (6, -5) bare mode reports the weakly
@@ -2069,13 +2080,14 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
     // uncertain. Both are "correct" readings of a tie; only one of them says so.
     //
     // ON ACCELERATE BOTH COINS LAND THE OTHER WAY (M3-4): bare reads the row
-    // inactive and the safeguarded engine reads it active. The CONTRAST -- the
-    // two modes disagreeing about a row that is exactly on the boundary --
-    // survives the swap and is what this cell actually demonstrates, so that is
-    // what is asserted. The individual readings are NOT, for the reason this
-    // test's banner gives: the same 2026-08-26 within-MKL flip that retired the
-    // first cell's direction pins retired these, which were the other two
-    // assertion sites the flake class kept landing on.
+    // inactive and the safeguarded engine reads it active. The contrast
+    // survives THAT swap -- but it does not survive the within-lane flip, which
+    // is the failure mode this fixture actually suffers: the L-1 register's
+    // occurrence-3 table records this very comparison failing "true vs true".
+    // So NOTHING about the two readings is asserted here. They are RECORDED
+    // (RecordProperty, visible in the ctest XML) so the cell still reports what
+    // it saw, and only the two properties that hold on either side of either
+    // coin are checked.
     {
         SsnStart start;
         start.x = Vec(2);
@@ -2091,10 +2103,13 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
         full_engine.solve(qp, start, SsnOptions{}, &full);
         EXPECT_EQ(full.status, QpStatus::kOptimal);
 
-        EXPECT_NE(bool(bare.ineq_active[1]), bool(full.ineq_active[1]))
-            << "the point of this start is that the two modes read the tie "
-               "differently; bare.ineq_active[1] = "
-            << bool(bare.ineq_active[1]);
+        // RECORDED, NOT ASSERTED -- see this cell's note. Whether the two modes
+        // read the tie differently is itself a coin, and the L-1 register has
+        // it landing both ways within one lane.
+        RecordProperty("bare_ineq_active_1", bare.ineq_active[1] ? 1 : 0);
+        RecordProperty("full_ineq_active_1", full.ineq_active[1] ? 1 : 0);
+        RecordProperty("full_ineq_uncertain_1", full.ineq_uncertain[1] ? 1 : 0);
+        RecordProperty("full_ssn_bulk_flips", static_cast<int>(full.counters.ssn_bulk_flips));
         // The safeguarded engine owes the same never-inactive-and-certain
         // property from this start as from the cold one.
         EXPECT_TRUE(full.ineq_active[1] || full.ineq_uncertain[1])
