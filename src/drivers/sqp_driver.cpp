@@ -2167,7 +2167,11 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // pair's counters. They are identically zero too --
             // `ropts.qp_mode` is reset to kWalk above, so the sub-solve has no
             // SSN kernel to run -- and folding them is what makes that reset
-            // OBSERVABLE FROM OUTSIDE. With the fold in place a kSsn solve
+            // OBSERVABLE FROM OUTSIDE. THE R6 PAIR IS ZERO FOR A DIFFERENT
+            // REASON, because the sign sweep is NOT conditioned on qp_mode and
+            // does run on this sub-solve: it is zero because the sub-solve is a
+            // WALK solve, and an active-set price is non-negative by the walk's
+            // own drop rule, so there is nothing to clamp. With the fold in place a kSsn solve
             // that entered restoration reports its main loop's SSN work and
             // nothing else, and any future change that let the mode leak back
             // in shows up here as a number instead of as silence. The fold

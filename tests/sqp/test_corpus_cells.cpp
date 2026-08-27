@@ -3039,11 +3039,53 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         close(row.kkt_complementarity, exp9.complementarity, "kkt_complementarity");
 #else
         (void)residuals;
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_residual), w[12]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_stationarity), w[15]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_primal), w[16]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_dual_sign), w[17]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_complementarity), w[18]);
+        // THE DEBUG ARM STAYS BYTE-STRICT AGAINST THE ARTIFACT: Debug
+        // arithmetic did not move at U0 and still reproduces the artifact's
+        // bytes exactly -- f7_n1000_bound_neutral matches 5 of 5, measured
+        // 2026-08-27.
+        //
+        // ONE EXCEPTION, AND IT IS THE R6 RE-PIN'S OWN (M6 W0.3). A cell whose
+        // artifact row was RE-DERIVED under Release cannot be byte-compared
+        // here any more: the bytes on the left are Debug's, the bytes on the
+        // right are now Release's. Measured on f7_n1000_path_neutral, Debug
+        // live against the re-pinned artifact:
+        //     kkt_residual         3.053662878e-10 vs 3.053665099e-10
+        //     kkt_stationarity     3.220925019e-07 vs 3.220916799e-07
+        //     kkt_primal           3.053662878e-10 vs 3.053665099e-10
+        //     kkt_dual_sign        0.000000000e+00 vs 0.000000000e+00 (exact)
+        //     kkt_complementarity  1.271441918e-13 vs 1.271441541e-13
+        // -- 4 of 5 differ, and the SHAPE of the difference is the argument.
+        // Three of them are Debug still reproducing the PRE-re-pin bytes
+        // EXACTLY, so the fork is Release's own last-digit drift and not a
+        // Debug change. The fourth, kkt_stationarity, is R6's repair itself:
+        // the sweep is not config-dependent, so Debug reaches the same
+        // ~3.22e-07 and differs only in the 6th significant digit. dual_sign
+        // is exactly zero in both, because the repair is exact.
+        //
+        // So that cell takes the SAME 1e-5 relative gate the Release arm above
+        // uses, on the same argument; every other cell keeps the byte-compare.
+        // Widest gap here is 2.6e-6 relative (kkt_stationarity) -- inside the
+        // gate with room, and still orders below anything a lever could do.
+        static const std::set<std::string> kR6RePinnedRows = {"f7_n1000_path_neutral"};
+        const bool r6_repinned = kR6RePinnedRows.count(id) == 1;
+        const auto debug_close = [&](double observed, const std::string &artifact,
+                                     const char *what) {
+            const std::string live = fmt::format("{:.9e}", observed);
+            if (!r6_repinned) {
+                EXPECT_EQ(live, artifact) << what << " on cell " << id;
+                return;
+            }
+            const double want = std::stod(artifact);
+            const double scale = std::max(std::abs(want), std::abs(observed));
+            EXPECT_LE(std::abs(observed - want), 1e-5 * scale)
+                << what << " on cell " << id << ": Debug " << live << ", Release-derived artifact "
+                << artifact;
+        };
+        debug_close(row.kkt_residual, w[12], "kkt_residual");
+        debug_close(row.kkt_stationarity, w[15], "kkt_stationarity");
+        debug_close(row.kkt_primal, w[16], "kkt_primal");
+        debug_close(row.kkt_dual_sign, w[17], "kkt_dual_sign");
+        debug_close(row.kkt_complementarity, w[18], "kkt_complementarity");
 #endif
     }
 }

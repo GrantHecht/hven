@@ -967,12 +967,24 @@ struct SqpSolution {
     // (that certificate is the multiplier quadruple, read under this struct's
     // own note above). `z` is the one field of this solution that comes from
     // the restoration problem instead; these four do not.
+    //
+    // ONE QUALIFICATION ON "AT THE RETURNED MULTIPLIERS", and it is exact:
+    // when `counters.ssn.ssn_sign_swept > 0` the R6 sign sweep clamped
+    // negative inequality prices AFTER this measurement was taken, so these
+    // four describe the PRE-SWEEP multipliers and `lambda_i` holds the swept
+    // ones. `stationarity` (and hence `kkt_residual`) is then OPTIMISTIC by at
+    // most `counters.ssn.ssn_sign_sweep_max * ||Ji||inf` over the swept rows;
+    // `complementarity` can only be over-stated, never under-stated, since
+    // clamping removes product terms. Both counters are reported precisely so
+    // this gap is computable; at `ssn_sign_swept == 0` there is no gap.
     /// @brief Reduced/projected ||grad L||inf at the returned point.
     double stationarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(||cE||inf, max(cI)+, bound violation) at the returned point.
     double feasibility = std::numeric_limits<double>::quiet_NaN();
     /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point. Recorded,
-    ///        not gated -- see SqpIterate::complementarity.
+    ///        not gated -- see SqpIterate::complementarity. At
+    ///        `ssn_sign_swept > 0` this is taken at the pre-sweep multipliers
+    ///        and can only be over-stated (see the note above).
     double complementarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(stationarity, feasibility) -- the scalar the convergence
     ///        test gates on.

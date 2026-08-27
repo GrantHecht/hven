@@ -448,7 +448,12 @@ struct SsnCounters {
     // STRUCTURALLY ZERO UNDER kWalk, like the refinement pair above: an
     // active-set price is non-negative by the walk's own drop rule, so the
     // sweep is inert on that arm even though it is not conditioned on the
-    // mode.
+    // mode. That is also why the pair stays zero across a RESTORATION fold --
+    // the sub-solve is walk-only -- rather than because no sweep ran there.
+    //
+    // SCOPE OF THE DRIVER-SCALE VALUES: they span the solve AND its
+    // restoration sub-solve, which `accumulate_ssn_counters` folds in. The
+    // count is that whole solve's total and the peak is its maximum.
 
     /// Strictly negative inequality prices clamped to 0 at export, summed
     /// over rows and over solves; NO TOLERANCE (`< 0.0`).

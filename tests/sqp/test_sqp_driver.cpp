@@ -8221,6 +8221,32 @@ TEST(SqpDriverSsnMode, ARefusedFaceRefinementIsChargedEvenWhenTheCertificateIsWi
 // refine_on_face today, see eqp_solve.h) is still falsifiable, and so the
 // probe-budget charge -- which no SqpSolution column exposes -- is asserted at
 // all.
+TEST(SqpDriverSsnMode, TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore) {
+    QpSolution refined;
+    refined.counters.factorizations = 3;
+    refined.counters.eqp_refine_steps = 2;
+    refined.counters.minor_iters = 7;       // NOT a walk minor -- must not travel
+    refined.counters.symbolic_analyses = 5; // refine_on_face never reports one
+
+    SqpCounters total;
+    Index budget_charge = 10;
+    charge_refused_face_refinement(total, refined, budget_charge);
+
+    EXPECT_EQ(total.factorizations, 3);
+    EXPECT_EQ(total.eqp_refine_steps, 2);
+    EXPECT_EQ(total.ssn.ssn_refine_factorizations, 3);
+    EXPECT_EQ(total.ssn.ssn_refine_refused, 1) << "one refusal, not one per factorization";
+    EXPECT_EQ(budget_charge, 13) << "the probe budget sees the work the driver paid";
+
+    // The three that must NOT move. `minor_iters` is the one that would
+    // corrupt every published figure in this repository (see
+    // ssn_result_to_qp_solution's counter-mapping note); `ssn_refinements` is
+    // the field that would turn a refusal into an acceptance.
+    EXPECT_EQ(total.qp_minor_iters, 0);
+    EXPECT_EQ(total.symbolic_analyses, 0);
+    EXPECT_EQ(total.ssn.ssn_refinements, 0);
+}
+
 // =====================================================================
 // M6 W0.3 -- THE R6 SIGN SWEEP ON EXPORTED FACE PRICES.
 //
@@ -8270,6 +8296,20 @@ TEST(SqpDriverSignSweep, ExactZeroIsNotNegativeAndAnEmptyVectorIsNotAnError) {
     sweep_negative_face_prices(zeros, counters);
     EXPECT_EQ(counters.ssn_sign_swept, 0);
     EXPECT_DOUBLE_EQ(counters.ssn_sign_sweep_max, 0.0);
+
+    // NEGATIVE ZERO IS NOT A NEGATIVE PRICE. `-0.0 < 0.0` is false in IEEE-754,
+    // so the sweep leaves it alone and does not count it -- which is the right
+    // answer twice over: it is numerically zero (already dual feasible, nothing
+    // to repair) and counting it would inflate `ssn_sign_swept` with rows that
+    // were never wrong. Pinned because it is the one input where "is it
+    // negative" and "does it carry a minus sign" disagree.
+    Vec negative_zero(2);
+    negative_zero << -0.0, 0.0;
+    SsnCounters nz_counters;
+    sweep_negative_face_prices(negative_zero, nz_counters);
+    EXPECT_EQ(nz_counters.ssn_sign_swept, 0) << "-0.0 is not a negative price";
+    EXPECT_DOUBLE_EQ(nz_counters.ssn_sign_sweep_max, 0.0);
+    EXPECT_DOUBLE_EQ(negative_zero(0), 0.0) << "and it compares equal to zero either way";
 
     Vec empty;
     sweep_negative_face_prices(empty, counters);
@@ -8359,32 +8399,6 @@ TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEitherKernel) {
                "active-set price is non-negative by the drop rule";
         EXPECT_DOUBLE_EQ(walk.counters.ssn.ssn_sign_sweep_max, 0.0);
     }
-}
-
-TEST(SqpDriverSsnMode, TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore) {
-    QpSolution refined;
-    refined.counters.factorizations = 3;
-    refined.counters.eqp_refine_steps = 2;
-    refined.counters.minor_iters = 7;       // NOT a walk minor -- must not travel
-    refined.counters.symbolic_analyses = 5; // refine_on_face never reports one
-
-    SqpCounters total;
-    Index budget_charge = 10;
-    charge_refused_face_refinement(total, refined, budget_charge);
-
-    EXPECT_EQ(total.factorizations, 3);
-    EXPECT_EQ(total.eqp_refine_steps, 2);
-    EXPECT_EQ(total.ssn.ssn_refine_factorizations, 3);
-    EXPECT_EQ(total.ssn.ssn_refine_refused, 1) << "one refusal, not one per factorization";
-    EXPECT_EQ(budget_charge, 13) << "the probe budget sees the work the driver paid";
-
-    // The three that must NOT move. `minor_iters` is the one that would
-    // corrupt every published figure in this repository (see
-    // ssn_result_to_qp_solution's counter-mapping note); `ssn_refinements` is
-    // the field that would turn a refusal into an acceptance.
-    EXPECT_EQ(total.qp_minor_iters, 0);
-    EXPECT_EQ(total.symbolic_analyses, 0);
-    EXPECT_EQ(total.ssn.ssn_refinements, 0);
 }
 
 // --- The outcome values a consumer's per-solve record needs ---

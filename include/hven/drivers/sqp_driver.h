@@ -1830,14 +1830,12 @@ QpSolution ssn_result_to_qp_solution(const SsnResult &res);
 // on `qs`, or on `lambda_i` before the next subproblem is built -- injects a
 // stationarity floor equal to the clamped magnitude: the row stays on the
 // identified face at zero price, the term the stationarity condition wanted
-// from it is gone, and the next subproblem re-derives the same negative
-// price. Measured on the 27-cell U0 corpus, ssn arm, 2026-08-27: it turned
-// `f7_n800_path_warm` from a two-subproblem kOptimal into a ten-subproblem
-// kMaxIter, stalling at stationarity 3-4e-7 against that cell's own 1e-8
-// tolerance, with nine successive clamps of monotonically growing magnitude.
-// A repair that converts a solved cell into an unsolved one is not a repair.
-// The export boundary moves no counter, no status and no iterate on either
-// arm.
+// from it is gone, and the next subproblem re-derives the same negative price.
+// That costs a corpus cell its certificate outright, turning a converged solve
+// into a budget-exhausted one, so the adoption site is not available to this
+// repair. The export boundary moves no counter, no status and no iterate on
+// either arm. See the M6 ledger's W0.3 entry for the placement measurement and
+// its section 7 declaration.
 //
 // WHAT IT LEAVES, STATED SO IT IS NOT DISCOVERED LATER: `SqpSolution::kkt`
 // was computed at the multipliers the solve actually reached, i.e. BEFORE
@@ -1972,9 +1970,12 @@ void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refine
 
 // One subproblem's SSN work, folded into a whole solve's running total.
 //
-// SEVEN FIELDS SUM AND ONE DOES NOT. `ssn_uncertain_peak` is a PEAK -- the
-// largest uncertain set any single subproblem's Jacobian assembly held -- so
-// it aggregates by max. Summing it would report a quantity with no meaning.
+// TWO PEAKS FOLD BY MAX; EVERYTHING ELSE SUMS. `ssn_uncertain_peak` is the
+// largest uncertain set any single subproblem's Jacobian assembly held, and
+// `ssn_sign_sweep_max` is the largest magnitude the R6 sign sweep clamped.
+// Summing either would report a quantity with no meaning. Stated as a rule
+// rather than a count, so a field added beside them does not silently falsify
+// this paragraph.
 //
 // `ssn_escapes` sums, and at the driver scale it counts SUBPROBLEMS HANDED OFF
 // TO THE WALK. That is one step wider than SsnResult's own reading ("this
@@ -1990,8 +1991,9 @@ void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refine
 // the RESTORATION sub-solve's totals, where they could be nonzero in principle.
 /// @brief Folds one subproblem's SSN counters into a solve's running total.
 /// @param total The running total, updated in place.
-/// @param one   The subproblem's counters. Seven fields sum;
-///              `ssn_uncertain_peak` aggregates by max.
+/// @param one   The subproblem's counters. The two peaks
+///              (`ssn_uncertain_peak`, `ssn_sign_sweep_max`) aggregate by max;
+///              every other field sums.
 void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one);
 
 // =============================================================================

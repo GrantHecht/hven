@@ -760,6 +760,48 @@ TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
 // rule check_against_manufactured_optimum's own note derives from the N^2
 // conditioning law. Do not tighten it to the measured value: that would turn a
 // documented property of the transcription into a machine-specific pin.
+TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
+    constexpr Index kNodes = 200000;
+    constexpr double kP = 0.45;
+    F7CollocationChain model(kNodes, 3, 2, kP, 1.0);
+    ASSERT_EQ(model.n(), 1000000);
+
+    ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
+
+    const SqpOptions opts = f7_smoke_options();
+    SqpDriver driver(opts);
+    Ledger ledger;
+    driver.attach_ledger(&ledger, "f7_1e6_empty");
+
+    const auto t0 = std::chrono::steady_clock::now();
+    const SqpSolution sol = driver.solve(model, model.start_point());
+    const auto t1 = std::chrono::steady_clock::now();
+
+    ASSERT_NO_FATAL_FAILURE(
+        check_against_manufactured_optimum(model, sol, kP, opts, /*x_tol=*/1e-4, "1e6_empty"));
+
+    // Re-derived from the family rather than assumed, exactly as in the n = 10^4
+    // sibling: no path row is active at the optimum, which is the property the
+    // structurally-forced counter pins below rest on.
+    const AnalyticActiveSet analytic = model.active_set(kP);
+    EXPECT_EQ(std::count(analytic.ineq_active.begin(), analytic.ineq_active.end(), 1), 0);
+
+    // The same structurally-forced counters as the n = 10^4 pin above -- which
+    // is the point: on this arm the iteration count is SIZE-INDEPENDENT, so
+    // everything the decade costs is linear algebra.
+    EXPECT_EQ(sol.counters.major_iters, 1);
+    EXPECT_EQ(sol.counters.qp_minor_iters, 2);
+    EXPECT_EQ(sol.counters.factorizations, 1);
+
+    RecordProperty(
+        "wall_ms",
+        fmt::format("{:.1f}", std::chrono::duration<double, std::milli>(t1 - t0).count()));
+    RecordProperty("peak_rss_mib", fmt::format("{:.1f}", test_support::peak_rss_mib()));
+    RecordProperty("x_forward_error_inf",
+                   fmt::format("{:.3e}", (sol.x - model.x_star(kP)).lpNorm<Eigen::Infinity>()));
+    RecordProperty("qp_ledger", ledger.summary_table());
+}
+
 // =====================================================================
 // M6 W0.3 -- THE R6 SIGN SWEEP, END TO END.
 //
@@ -851,6 +893,31 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
                 EXPECT_DOUBLE_EQ(sol->counters.ssn.ssn_sign_sweep_max, 0.0);
             }
         }
+
+        // (d) THE DISCLOSED OPTIMISM GAP, MADE EXECUTABLE. SqpSolution::kkt is
+        // measured BEFORE the sweep, at the multipliers the solve reached, so
+        // on a swept solve an independent re-scoring of the RETURNED point --
+        // which reads the SWEPT lambda_i -- must report a LARGER stationarity.
+        // That inequality is the contract sqp_types.h's terminal-KKT note
+        // states; pinning it here means a future change that moved
+        // record_terminal_kkt to after the sweep would fail loudly instead of
+        // silently changing what these columns mean. Scoped to `hop` because
+        // `model` carries kP now -- scoring `setup` here would score it at the
+        // wrong parameter.
+        if (hop.counters.ssn.ssn_sign_swept > 0) {
+            const hven::solvers::test_support::NlpKktResidual rescored =
+                hven::solvers::test_support::self_check_kkt(model, hop, opts.feas_tol);
+            EXPECT_GT(rescored.stationarity, hop.stationarity)
+                << "the returned point's own stationarity must exceed the reported one whenever "
+                   "prices were swept -- see SqpSolution's terminal-KKT note";
+            EXPECT_LE(rescored.stationarity - hop.stationarity,
+                      hop.counters.ssn.ssn_sign_sweep_max *
+                          std::max(1.0, hop.lambda_i.template lpNorm<Eigen::Infinity>()) * 1e3)
+                << "and the gap must stay within the order the counter bounds it to";
+            EXPECT_GE(rescored.dual_sign, 0.0);
+            EXPECT_LE(rescored.dual_sign, 0.0)
+                << "no negative price survives, so the re-scored dual-sign residual is zero";
+        }
     }
 
     // (a) NOT VACUOUS. If this ever fails the fixture has drifted off the
@@ -860,46 +927,4 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
     EXPECT_GT(swept_over_the_band, 0)
         << "no negative face price was produced anywhere in the band, so nothing above was "
            "exercised; see this test's banner for how the band was chosen";
-}
-
-TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
-    constexpr Index kNodes = 200000;
-    constexpr double kP = 0.45;
-    F7CollocationChain model(kNodes, 3, 2, kP, 1.0);
-    ASSERT_EQ(model.n(), 1000000);
-
-    ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
-
-    const SqpOptions opts = f7_smoke_options();
-    SqpDriver driver(opts);
-    Ledger ledger;
-    driver.attach_ledger(&ledger, "f7_1e6_empty");
-
-    const auto t0 = std::chrono::steady_clock::now();
-    const SqpSolution sol = driver.solve(model, model.start_point());
-    const auto t1 = std::chrono::steady_clock::now();
-
-    ASSERT_NO_FATAL_FAILURE(
-        check_against_manufactured_optimum(model, sol, kP, opts, /*x_tol=*/1e-4, "1e6_empty"));
-
-    // Re-derived from the family rather than assumed, exactly as in the n = 10^4
-    // sibling: no path row is active at the optimum, which is the property the
-    // structurally-forced counter pins below rest on.
-    const AnalyticActiveSet analytic = model.active_set(kP);
-    EXPECT_EQ(std::count(analytic.ineq_active.begin(), analytic.ineq_active.end(), 1), 0);
-
-    // The same structurally-forced counters as the n = 10^4 pin above -- which
-    // is the point: on this arm the iteration count is SIZE-INDEPENDENT, so
-    // everything the decade costs is linear algebra.
-    EXPECT_EQ(sol.counters.major_iters, 1);
-    EXPECT_EQ(sol.counters.qp_minor_iters, 2);
-    EXPECT_EQ(sol.counters.factorizations, 1);
-
-    RecordProperty(
-        "wall_ms",
-        fmt::format("{:.1f}", std::chrono::duration<double, std::milli>(t1 - t0).count()));
-    RecordProperty("peak_rss_mib", fmt::format("{:.1f}", test_support::peak_rss_mib()));
-    RecordProperty("x_forward_error_inf",
-                   fmt::format("{:.3e}", (sol.x - model.x_star(kP)).lpNorm<Eigen::Infinity>()));
-    RecordProperty("qp_ledger", ledger.summary_table());
 }
