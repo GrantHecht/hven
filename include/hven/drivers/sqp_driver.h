@@ -1809,6 +1809,59 @@ bool ssn_exit_is_a_usable_step(const SsnResult &res, double fb_tol);
 ///         export carried across verbatim.
 QpSolution ssn_result_to_qp_solution(const SsnResult &res);
 
+// THE R6 SIGN SWEEP ON EXPORTED FACE PRICES (M6 W0.3).
+//
+// A certifying SSN exit's inequality prices are NOT sign-constrained where
+// they are produced -- the FB kernel bounds them only by
+// `lambda >= -O(fb_tol)`, and the tier-3 refinement's `price(...)` is
+// unbounded in sign outright -- and nothing downstream of this driver
+// re-gates them. This is the gate: every strictly negative price is clamped
+// to 0, which is dual feasible for an inequality row at any activity.
+//
+// CALLED FROM `SqpDriver::finish` AND NOWHERE ELSE. That function is this
+// driver's single export boundary -- every exit of `solve_impl` returns
+// through it but the non-finite-start exit, which zeroes its multipliers
+// outright -- so one call there covers `SqpSolution::lambda_i` and
+// `WarmStart::lambda_i`, hence the currency's `iq_lmults_` and every
+// interior-point seed downstream of it.
+//
+// **NOT AT THE ADOPTION SITE, AND THAT IS A MEASURED RULING RATHER THAN A
+// PREFERENCE.** Sweeping where a face price is adopted INTO THE ITERATION --
+// on `qs`, or on `lambda_i` before the next subproblem is built -- injects a
+// stationarity floor equal to the clamped magnitude: the row stays on the
+// identified face at zero price, the term the stationarity condition wanted
+// from it is gone, and the next subproblem re-derives the same negative
+// price. Measured on the 27-cell U0 corpus, ssn arm, 2026-08-27: it turned
+// `f7_n800_path_warm` from a two-subproblem kOptimal into a ten-subproblem
+// kMaxIter, stalling at stationarity 3-4e-7 against that cell's own 1e-8
+// tolerance, with nine successive clamps of monotonically growing magnitude.
+// A repair that converts a solved cell into an unsolved one is not a repair.
+// The export boundary moves no counter, no status and no iterate on either
+// arm.
+//
+// WHAT IT LEAVES, STATED SO IT IS NOT DISCOVERED LATER: `SqpSolution::kkt`
+// was computed at the multipliers the solve actually reached, i.e. BEFORE
+// this sweep. On a solve with `ssn_sign_swept > 0` the reported stationarity
+// is therefore optimistic by at most `ssn_sign_sweep_max * ||Ji||inf` over
+// the swept rows, and an independent re-scoring of the returned point reads
+// the larger value. The counters are what make that gap computable; see their
+// own note in solver_counters.h.
+//
+// NOT A TOLERANCE TEST: the comparison is `< 0.0`, matching
+// `ssn_refine_neg_duals`. A NaN price compares false and is therefore NOT
+// swept -- the same discipline the B-1 ingest clear states, and for the same
+// reason: it belongs to the non-finite exit, not to a quiet repair.
+//
+// UNCONDITIONAL IN `qp_mode`, and inert under kWalk: an active-set price is
+// non-negative by the walk's own drop rule. The invariant belongs to the
+// exported vector rather than to one kernel's path to it.
+/// @brief Clamp every strictly negative exported inequality price to 0.
+/// @param lambda_i The exported inequality prices, swept IN PLACE.
+/// @param counters Written, never read: `ssn_sign_swept` gains one per row
+///        clamped, `ssn_sign_sweep_max` is raised to the largest magnitude
+///        clamped. Both are cumulative across calls.
+void sweep_negative_face_prices(Vec &lambda_i, SsnCounters &counters);
+
 // The SSN start point for ONE subproblem, built from the walk's own seed
 // object -- the SAME QpSolution the walk would have been handed, so the two
 // kernels are warm-started off identical information by construction and a

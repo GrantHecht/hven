@@ -585,6 +585,16 @@ QpSolution ssn_result_to_qp_solution(const SsnResult &res) {
     return qs;
 }
 
+void sweep_negative_face_prices(Vec &lambda_i, SsnCounters &counters) {
+    for (Index j = 0; j < lambda_i.size(); ++j) {
+        if (lambda_i(j) < 0.0) {
+            counters.ssn_sign_sweep_max = std::max(counters.ssn_sign_sweep_max, -lambda_i(j));
+            lambda_i(j) = 0.0;
+            ++counters.ssn_sign_swept;
+        }
+    }
+}
+
 SsnStart ssn_start_from_qp_seed(const QpSolution *seed) {
     SsnStart start;
     if (seed == nullptr) {
@@ -640,6 +650,10 @@ void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) {
     total.ssn_escape_indefinite += one.ssn_escape_indefinite;
     total.ssn_escape_gate_refused += one.ssn_escape_gate_refused;
     total.ssn_uncertain_peak = std::max(total.ssn_uncertain_peak, one.ssn_uncertain_peak);
+    // R6. The count SUMS like the instruments above it; the magnitude is a
+    // PEAK and folds like `ssn_uncertain_peak` beside it.
+    total.ssn_sign_swept += one.ssn_sign_swept;
+    total.ssn_sign_sweep_max = std::max(total.ssn_sign_sweep_max, one.ssn_sign_sweep_max);
 }
 
 SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
@@ -3260,6 +3274,19 @@ SqpSolution SqpDriver::finish(SqpSolution out, SqpStatus status, const Vec &x, c
     out.x = x;
     out.lambda_e = lambda_e;
     out.lambda_i = lambda_i;
+    // THE R6 SIGN SWEEP (M6 W0.3), AT THE ONE EXPORT BOUNDARY THIS DRIVER
+    // HAS. See sweep_negative_face_prices' own contract (sqp_driver.h) for
+    // the repair, for the measurement that ruled OUT sweeping at the adoption
+    // site instead, and for what this placement leaves behind; only the
+    // mechanics are here.
+    //
+    // BEFORE `record_terminal_kkt` in program order but NOT before the
+    // measurement it records: `kkt` was computed by the caller, at the
+    // multipliers the solve actually reached. That is deliberate and it is
+    // the whole of the cost -- a solve with `ssn_sign_swept > 0` reports a
+    // stationarity taken at prices its own `lambda_i` no longer holds,
+    // optimistic by at most `ssn_sign_sweep_max * ||Ji||inf`.
+    sweep_negative_face_prices(out.lambda_i, out.counters.ssn);
     out.z = kkt.z;
     out.f = f;
     record_terminal_kkt(out, kkt);
@@ -3268,7 +3295,11 @@ SqpSolution SqpDriver::finish(SqpSolution out, SqpStatus status, const Vec &x, c
     // failed solve's point is still safe to carry.
     warm.x = x;
     warm.lambda_e = lambda_e;
-    warm.lambda_i = lambda_i;
+    // THE SWEPT VECTOR, not the parameter: the warm start is the half of this
+    // export that reaches the crossover currency (`WarmStartData::iq_lmults_`)
+    // and, through it, an interior-point inequality seed. Reading `lambda_i`
+    // here would leave exactly the leak R6 exists to close.
+    warm.lambda_i = out.lambda_i;
     warm.z = kkt.z;
     out.warm_start = std::move(warm);
     return out;

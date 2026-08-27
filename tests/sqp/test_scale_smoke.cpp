@@ -760,6 +760,108 @@ TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
 // rule check_against_manufactured_optimum's own note derives from the N^2
 // conditioning law. Do not tighten it to the measured value: that would turn a
 // documented property of the transcription into a machine-specific pin.
+// =====================================================================
+// M6 W0.3 -- THE R6 SIGN SWEEP, END TO END.
+//
+// WHY IT IS HERE AND NOT IN tests/sqp/test_sqp_driver.cpp. The negative face
+// price this repairs is not a hand-buildable condition: it is what the
+// tier-3 refinement's `price(...)` actually returns on a wide-window F7 whose
+// identified face has a weakly active row, and this family does not produce
+// one below roughly N = 580 nodes. That is this file's weight class, not that
+// one's -- the sweep's EXACT semantics are pinned there, on hand-built
+// vectors (SqpDriverSignSweep.*); what is pinned HERE is that the driver
+// really does reach the state, and really does export a dual-feasible point
+// when it does.
+//
+// THE HOP IS THE POINT. A cold solve at p = 0.85 does not produce the
+// condition; the p0 = 0.80 -> p = 0.85 warm hop does, which is exactly the
+// corpus's kFullWarm taxonomy and exactly where the disclosure's own rows
+// (f7_n800_path_warm, f7_n1000_path_warm) live.
+//
+// WHAT IS ASSERTED, AND WHAT IS DELIBERATELY NOT. The COUNTS are not pinned:
+// which rows come out weakly active at which N is a tie-break, and W0.4 has
+// just finished retiring a fixture that pinned exactly that class of number.
+// What is pinned is (a) the band is NOT VACUOUS -- at least one of the three
+// sizes sweeps something, so a sweep that never fired would fail here; (b) the
+// INVARIANT holds on every solve in the band, both exports; and (c) every
+// magnitude swept is below the disclosure's own 3.5e-6 scale, which is what
+// makes "there is no magnitude threshold" observable end to end rather than
+// only on a synthetic vector.
+//
+// MEASURED on clang/MKL/this machine, 2026-08-27: N = 590/600/610 swept
+// 4/(1+3)/4 prices at peak magnitudes 1.27e-06/1.41e-06/1.46e-06, all three
+// solves kOptimal, ~1.0 s for the whole test.
+// =====================================================================
+TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
+    constexpr double kP0 = 0.80;
+    constexpr double kP = 0.85;
+    // The historic disclosure's own peak (M6 register, the SQP lane's
+    // "Multiplier handling" bullet: 14 rows / 2,212 multipliers / max 3.5e-6).
+    constexpr double kDisclosedScale = 3.5e-6;
+
+    Index swept_over_the_band = 0;
+    for (const Index nodes : {Index{590}, Index{600}, Index{610}}) {
+        SCOPED_TRACE(fmt::format("N={}", nodes));
+        F7CollocationChain model(nodes, 3, 2, kP0, 1.0);
+        ASSERT_GT(kP, model.p_activation()) << "the WIDE-window regime, by construction";
+
+        SqpOptions opts;
+        opts.kkt_tol = 1e-8;
+        opts.feas_tol = 1e-8;
+        opts.max_iter = 10;
+        opts.adaptive_mu = false;
+        opts.warm_full_step = true;
+        opts.qp.max_iter = 20000;
+        opts.qp_mode = QpMode::kSsn;
+        SqpDriver driver(opts);
+
+        model.set_parameters(Vec::Constant(1, kP0));
+        const SqpSolution setup = driver.solve(model, model.start_point());
+        ASSERT_EQ(setup.status, SqpStatus::kOptimal) << "the hop's premise";
+
+        model.set_parameters(Vec::Constant(1, kP));
+        const SqpSolution hop = driver.solve(model, setup.warm_start.x, setup.warm_start);
+        EXPECT_EQ(hop.status, SqpStatus::kOptimal)
+            << "the sweep runs at the export boundary and must not cost the hop its certificate";
+
+        for (const SqpSolution *sol : {&setup, &hop}) {
+            // (b) THE INVARIANT, on BOTH halves of the export. lambda_i is
+            // what a caller reads; warm_start.lambda_i is what reaches
+            // WarmStartData::iq_lmults_ and, through it, an interior-point
+            // inequality seed -- the leak R6 exists to close.
+            ASSERT_GT(sol->lambda_i.size(), 0);
+            EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
+                << "no negative price may escape in SqpSolution::lambda_i";
+            ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
+            EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
+                << "nor in WarmStart::lambda_i, which is the half that reaches the currency";
+
+            // (c) EVERY SWEPT MAGNITUDE IS BELOW THE DISCLOSED SCALE. The
+            // counter is exactly the number of prices that WOULD have escaped
+            // before this fix, so a nonzero value here is the defect
+            // reproducing, and the bound is what says the sweep has no
+            // threshold hiding under it.
+            swept_over_the_band += sol->counters.ssn.ssn_sign_swept;
+            if (sol->counters.ssn.ssn_sign_swept > 0) {
+                EXPECT_GT(sol->counters.ssn.ssn_sign_sweep_max, 0.0)
+                    << "a swept row must report a magnitude";
+                EXPECT_LT(sol->counters.ssn.ssn_sign_sweep_max, kDisclosedScale)
+                    << "these prices sit below the historic 3.5e-6 peak and are swept anyway";
+            } else {
+                EXPECT_DOUBLE_EQ(sol->counters.ssn.ssn_sign_sweep_max, 0.0);
+            }
+        }
+    }
+
+    // (a) NOT VACUOUS. If this ever fails the fixture has drifted off the
+    // condition -- widen the band or move it, but do NOT delete the assertion:
+    // without it every check above passes on a solve that never priced
+    // anything negative, and the test stops testing the repair.
+    EXPECT_GT(swept_over_the_band, 0)
+        << "no negative face price was produced anywhere in the band, so nothing above was "
+           "exercised; see this test's banner for how the band was chosen";
+}
+
 TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
     constexpr Index kNodes = 200000;
     constexpr double kP = 0.45;

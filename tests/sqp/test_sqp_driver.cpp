@@ -8221,6 +8221,146 @@ TEST(SqpDriverSsnMode, ARefusedFaceRefinementIsChargedEvenWhenTheCertificateIsWi
 // refine_on_face today, see eqp_solve.h) is still falsifiable, and so the
 // probe-budget charge -- which no SqpSolution column exposes -- is asserted at
 // all.
+// =====================================================================
+// M6 W0.3 -- THE R6 SIGN SWEEP ON EXPORTED FACE PRICES.
+//
+// The defect (tycho_sqp record, accepted-with-disclosure as D2): a certifying
+// SSN exit's inequality prices are not sign-constrained where they are
+// produced, so a NEGATIVE price reaches SqpSolution::lambda_i and
+// WarmStart::lambda_i -- and through the currency's `iq_lmults_` an
+// interior-point inequality seed, where the barrier's own floor absorbs it as
+// though it were near-zero noise. sweep_negative_face_prices clamps it at
+// SqpDriver::finish, this driver's single export boundary.
+//
+// THE SEMANTICS ARE PINNED HERE, ON HAND-BUILT VECTORS, and the end-to-end
+// reproduction lives in tests/sqp/test_scale_smoke.cpp (the family that
+// actually produces the prices runs at N in the hundreds, above this file's
+// weight class). Splitting them that way keeps the EXACT assertions -- no
+// tolerance, NaN untouched, the peak fold -- on a fixture that cannot wobble.
+// =====================================================================
+
+TEST(SqpDriverSignSweep, EveryStrictlyNegativePriceIsClampedAndNothingElseMoves) {
+    Vec lambda_i(6);
+    // Deliberately spanning the historic disclosure's own scale (max 3.5e-6)
+    // and three orders below it: the sweep has NO magnitude threshold, so a
+    // price at 1e-14 is swept exactly as one at 3.5e-6 is.
+    lambda_i << 2.5, 0.0, -3.5e-6, 1.0e-14 * -1.0, -0.75, 4.0e-9;
+    SsnCounters counters;
+
+    sweep_negative_face_prices(lambda_i, counters);
+
+    EXPECT_EQ(counters.ssn_sign_swept, 3);
+    EXPECT_DOUBLE_EQ(counters.ssn_sign_sweep_max, 0.75) << "the PEAK magnitude clamped";
+    EXPECT_DOUBLE_EQ(lambda_i(0), 2.5) << "a positive price is untouched";
+    EXPECT_DOUBLE_EQ(lambda_i(1), 0.0);
+    EXPECT_DOUBLE_EQ(lambda_i(2), 0.0);
+    EXPECT_DOUBLE_EQ(lambda_i(3), 0.0);
+    EXPECT_DOUBLE_EQ(lambda_i(4), 0.0);
+    EXPECT_DOUBLE_EQ(lambda_i(5), 4.0e-9) << "a tiny POSITIVE price is not swept";
+    EXPECT_GE(lambda_i.minCoeff(), 0.0);
+}
+
+TEST(SqpDriverSignSweep, ExactZeroIsNotNegativeAndAnEmptyVectorIsNotAnError) {
+    // The test is `< 0.0`, not `<= 0.0`. Most rows of a solved subproblem are
+    // priced at EXACTLY zero (they are off the identified face), so a
+    // counter testing `<=` would report dozens on every solve -- the same
+    // strictness `ssn_refine_neg_duals` states, pinned the same way.
+    Vec zeros = Vec::Zero(64);
+    SsnCounters counters;
+    sweep_negative_face_prices(zeros, counters);
+    EXPECT_EQ(counters.ssn_sign_swept, 0);
+    EXPECT_DOUBLE_EQ(counters.ssn_sign_sweep_max, 0.0);
+
+    Vec empty;
+    sweep_negative_face_prices(empty, counters);
+    EXPECT_EQ(counters.ssn_sign_swept, 0) << "a problem with no inequality rows sweeps nothing";
+}
+
+TEST(SqpDriverSignSweep, ANonFinitePriceIsLeftForTheNonFiniteExitRatherThanQuietlyRepaired) {
+    // `NaN < 0.0` is false, so a NaN is NOT swept -- the same discipline the
+    // B-1 ingest clear states, and for the same reason: a NaN belongs to the
+    // driver's non-finite exit, which reports it, not to a repair that would
+    // silently turn it into a plausible zero. -inf IS negative and IS swept,
+    // which is what keeps the rule "the sign test decides" rather than "finite
+    // values only".
+    Vec lambda_i(3);
+    lambda_i << std::numeric_limits<double>::quiet_NaN(), -std::numeric_limits<double>::infinity(),
+        1.0;
+    SsnCounters counters;
+
+    sweep_negative_face_prices(lambda_i, counters);
+
+    EXPECT_TRUE(std::isnan(lambda_i(0))) << "the NaN survives to the non-finite exit";
+    EXPECT_DOUBLE_EQ(lambda_i(1), 0.0);
+    EXPECT_EQ(counters.ssn_sign_swept, 1);
+    EXPECT_TRUE(std::isinf(counters.ssn_sign_sweep_max));
+}
+
+TEST(SqpDriverSignSweep, TheCountersAreCumulativeAcrossCallsAndThePeakIsAPeak) {
+    // finish() calls this once per solve, and accumulate_ssn_counters folds
+    // the pair the same way: the COUNT sums, the MAGNITUDE peaks. A sum of two
+    // peaks would not be the peak of the union, and would not be a total of
+    // anything either -- the argument ssn_uncertain_peak already carries.
+    SsnCounters counters;
+    Vec first(2);
+    first << -1.0e-3, 0.5;
+    sweep_negative_face_prices(first, counters);
+    Vec second(2);
+    second << -1.0e-7, -2.0e-4;
+    sweep_negative_face_prices(second, counters);
+
+    EXPECT_EQ(counters.ssn_sign_swept, 3);
+    EXPECT_DOUBLE_EQ(counters.ssn_sign_sweep_max, 1.0e-3) << "the largest over BOTH calls";
+
+    SsnCounters total;
+    SsnCounters a;
+    a.ssn_sign_swept = 4;
+    a.ssn_sign_sweep_max = 2.0e-6;
+    SsnCounters b;
+    b.ssn_sign_swept = 3;
+    b.ssn_sign_sweep_max = 9.0e-7;
+    accumulate_ssn_counters(total, a);
+    accumulate_ssn_counters(total, b);
+    EXPECT_EQ(total.ssn_sign_swept, 7);
+    EXPECT_DOUBLE_EQ(total.ssn_sign_sweep_max, 2.0e-6);
+}
+
+// THE CLEAN-SOLVE PIN (no false sweeping). The Hock-Schittkowski battery under
+// kSsn is the population this project already certifies at 1e-9 dual sign
+// (test 2 of EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn above), so
+// every one of its solves prices correctly and NOTHING may be swept. Without
+// this, a sweep that clamped `<= 0.0`, or one placed where it saw a
+// mid-iteration vector, would still pass every assertion in the sweep's own
+// unit tests.
+TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEitherKernel) {
+    using hven::solvers::test_support::hs_numbers;
+    using hven::solvers::test_support::make_hs;
+
+    for (int number : hs_numbers()) {
+        SCOPED_TRACE(fmt::format("HS{}", number));
+
+        auto ssn_problem = make_hs(number);
+        SqpDriver ssn_driver(ssn_mode_options());
+        const SqpSolution ssn = ssn_driver.solve(*ssn_problem.model);
+        EXPECT_EQ(ssn.counters.ssn.ssn_sign_swept, 0)
+            << "nothing on this battery prices negative, so nothing may be repaired";
+        EXPECT_DOUBLE_EQ(ssn.counters.ssn.ssn_sign_sweep_max, 0.0);
+        if (ssn.lambda_i.size() > 0) {
+            EXPECT_GE(ssn.lambda_i.minCoeff(), 0.0);
+        }
+
+        auto walk_problem = make_hs(number);
+        SqpOptions walk_opts;
+        walk_opts.max_iter = 60;
+        SqpDriver walk_driver(walk_opts);
+        const SqpSolution walk = walk_driver.solve(*walk_problem.model);
+        EXPECT_EQ(walk.counters.ssn.ssn_sign_swept, 0)
+            << "the sweep is unconditional in qp_mode but structurally inert on the walk arm: an "
+               "active-set price is non-negative by the drop rule";
+        EXPECT_DOUBLE_EQ(walk.counters.ssn.ssn_sign_sweep_max, 0.0);
+    }
+}
+
 TEST(SqpDriverSsnMode, TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore) {
     QpSolution refined;
     refined.counters.factorizations = 3;

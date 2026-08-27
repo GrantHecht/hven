@@ -409,6 +409,58 @@ struct SsnCounters {
     /// instrument-only note above.
     Index ssn_refine_neg_duals = 0;
 
+    // THE R6 SIGN SWEEP (M6 W0.3). REPAIR, not instrument -- the only pair
+    // here that reports a value this driver CHANGED.
+    //
+    // WHAT IS WRONG WITHOUT IT. A certifying SSN exit's inequality prices are
+    // not sign-constrained where they are produced: the FB kernel bounds them
+    // only by `lambda >= -O(fb_tol)`, and the tier-3 refinement's `price(...)`
+    // is unbounded in sign outright. Nothing downstream re-gates them, so a
+    // negative price becomes `SqpSolution::lambda_i`, becomes
+    // `WarmStart::lambda_i`, and through the currency's `iq_lmults_` becomes
+    // an interior-point seed -- where the barrier's own
+    // [kSeededIqMultFloor, kSeededMultInitMax] clamp absorbs it as though it
+    // were near-zero noise. That is the leak R6 closes, and it is the one the
+    // `"hven.ipm.polish.v1"` staging refusal already makes loud on the two
+    // BOUND-dual blocks and cannot see on this one.
+    //
+    // WHERE IT RUNS: `SqpDriver::finish`, the single export boundary, on the
+    // solution's and the warm start's multipliers together. NOT at the point
+    // a face price is adopted into the iteration -- see
+    // sqp_driver.h's sweep contract for the measurement that ruled that
+    // placement out.
+    //
+    // NO TOLERANCE, exactly as `ssn_refine_neg_duals` above: the test is
+    // `< 0.0`. A magnitude threshold here would be a tuning constant on a
+    // sign.
+    //
+    // WHAT IT COSTS, AND WHY THE PAIR IS THE ONLY WAY TO SEE IT. Clamping a
+    // price the stationarity condition was using perturbs that condition by at
+    // most `ssn_sign_sweep_max * ||Ji||inf` over the swept rows -- and the
+    // residuals in `SqpSolution::kkt` were computed BEFORE the sweep, at the
+    // multipliers the solver actually reached. So on a solve with
+    // `ssn_sign_swept > 0` the reported stationarity is OPTIMISTIC by at most
+    // that bound, and an independent re-scoring of the returned point (the
+    // corpus row's own model-level `kkt_stationarity`) will read the larger
+    // value. This pair is what makes that gap computable rather than hidden;
+    // a solve reporting `ssn_sign_swept == 0` carries no such gap at all.
+    //
+    // STRUCTURALLY ZERO UNDER kWalk, like the refinement pair above: an
+    // active-set price is non-negative by the walk's own drop rule, so the
+    // sweep is inert on that arm even though it is not conditioned on the
+    // mode.
+
+    /// Strictly negative inequality prices clamped to 0 at export, summed
+    /// over rows and over solves; NO TOLERANCE (`< 0.0`).
+    Index ssn_sign_swept = 0;
+
+    /// The largest magnitude clamped by that sweep (0.0 when nothing was
+    /// swept). A PEAK, folded with `max` like `ssn_uncertain_peak` and unlike
+    /// every summed field beside it -- it is the bound on how far the reported
+    /// stationarity can be optimistic (see the R6 note above), which a sum
+    /// would destroy.
+    double ssn_sign_sweep_max = 0.0;
+
     // THE ESCAPE-REASON CENSUS. OBSERVATIONAL, like every field above.
     //
     // WHY: bare `ssn_escapes` counts hand-offs and says nothing about WHY,
