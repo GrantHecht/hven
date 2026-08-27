@@ -138,6 +138,19 @@ target_include_directories(hven PRIVATE
 #     point crossover's ingest and the continuation sweep. detail::
 #     ip_activity_threshold stays a header template so the ingest can pass an
 #     Eigen expression rather than materialise two n-sized temporaries.
+#
+#   - qp/qp_engine.cpp: QpEngine's primal active-set walk -- every member
+#     function of it except the constructor. The engine is a plain, non-
+#     template class, so section 5's header/templated exception selects none of
+#     it: what is here is orchestration. Every member travels into THIS ONE TU
+#     deliberately -- the walk's per-element helpers (in_working,
+#     row_tolerance, has_border, dropped_directional, mark_{ineq,bound}_seen)
+#     are called from inside the ratio test's and sync_borders' own loops, so
+#     they must stay visible to the inliner at exactly the sites that had them
+#     as header siblings. The only boundary this carve introduces is
+#     engine-to-caller, crossed once per QP subproblem. The `detail::` free
+#     functions above QpEngine stay inline in the header: tests, bench and
+#     drivers/sqp_driver.cpp name them directly.
 ################################################################################
 
 target_sources(hven PRIVATE
@@ -147,6 +160,7 @@ target_sources(hven PRIVATE
     drivers/sqp_print.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
+    qp/qp_engine.cpp
     warmstart/continuation.cpp
     warmstart/warm_start.cpp
 )
@@ -324,7 +338,16 @@ endif()
 # (which pulls the QP types and the working set), the model contract's
 # structure-identity header, and fmt: again a different header set in a
 # different order from the one src/hven_pch.h prefixes.
-set(_hven_expected_source_count 34)
+#
+# 35 as of qp/qp_engine.cpp, the QP walk carved out of
+# include/hven/detail/qp/qp_engine.h. It stays OUT on the same footing as the
+# six above -- no measurement exists for it, and out is the unmeasured default
+# -- and on the SQP-side prior: it includes the QP engine header, which pulls
+# the KKT assembly, the border stack, the sparse factor and the QP types, a
+# different header set in a different order from the one src/hven_pch.h
+# prefixes, and that property has failed bar 2 for every SQP-side TU measured
+# so far.
+set(_hven_expected_source_count 35)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
