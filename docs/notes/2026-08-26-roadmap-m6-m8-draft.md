@@ -72,13 +72,22 @@ named investigation.
 
 ## M7 — adaptivity and the first-order mode
 
-- **Adaptive mode composition** (owner directive, unforced): cold
-  IPQP acquisition → SSN/walk exploitation once the active set
-  settles → stable-face finish, driven by heuristics developed on
-  M6's telemetry. The survey's promote/demote triggers are the
-  starting criteria; "unforced" is the rule — if measurement says a
-  static per-family choice beats switching, the heuristics ship as
-  configuration guidance, not machinery.
+- **Adaptive mode composition** (owner directive, WIDENED
+  2026-08-26, unforced): not only the cold-start case — the question
+  is whether the solver can DETECT characteristics of the problem at
+  the current point (active-set stability / bulk-flip rate,
+  weak-activity fraction, inertia and conditioning evidence the
+  factorizations already produce, progress stagnation, degeneracy
+  indicators) and swap to the better-suited algorithm MID-SOLVE.
+  hven's structural advantage: the M5 warm-start currency IS the swap
+  mechanism — an engine switch is export → stage on declared-space
+  values, a first-class composition rather than an internal hack.
+  The survey's promote/demote triggers are the starting criteria;
+  the M7 lit review covers the switching literature explicitly
+  (Knitro's multi-algorithm selection and IP→active-set crossover
+  being the closest production precedent). "Unforced" is the rule —
+  if measurement says static per-family selection beats switching,
+  the heuristics ship as configuration guidance, not machinery.
 - **Escape-path performance target**: 95.5% of residual
   PSIOPT-envelope wall sits in the 2/9 steps where SSN escaped to the
   walk — the best-localized target P7 produced, and the natural first
@@ -120,13 +129,14 @@ named investigation.
 
 ---
 
-## Open owner decisions carried into the M6 brief
+## Owner decisions (ruled 2026-08-26, direct)
 
-1. Build vs re-register on tycho_sqp P7 G1/G2 — after the
-   precondition experiment reports.
-2. Whether feasibility mode + IPQP are one brief (recommended) or
-   feasibility-first with the IPQP hook named.
-3. Scope extension for the pre-M5 header-prose cleanup pass (rides
-   the TU-conformance opener naturally if granted).
-4. Where the benchmark suite lives (hven bench/ vs a sibling
-   harness repo) — affects M7 planning only.
+1. Build vs re-register on tycho_sqp P7 G1/G2 — OPEN by design:
+   taken after the precondition experiment reports.
+2. Feasibility mode + IPQP: ONE BRIEF.
+3. Header-prose cleanup: scope EXTENDED — the pre-M5 settlement
+   prose rides the M6 TU-conformance opener (each big header touched
+   once).
+4. Benchmark suite: SIBLING HARNESS REPO, PRIVATE for now — problem
+   sets, local SNOPT/IPOPT lanes, and published-result tables stay
+   out of Apache-2.0 hven; hven stays consumable-clean.
