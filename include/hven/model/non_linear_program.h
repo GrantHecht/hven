@@ -35,6 +35,8 @@
 #include "hven/detail/interior/objective_function.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/interior/utils/thread_pool.h"
+#include "hven/detail/model/claim_restatement.h"
+#include "hven/model/claim_stream_source.h"
 #include "hven/model/nlp_aggregate.h"
 
 namespace hven::solvers {
@@ -1085,6 +1087,95 @@ struct NonLinearProgram : public NlpAggregate {
     const RhsLocationTable &equality_residual_table() const { return this->econ_table_; }
     const RhsLocationTable &inequality_residual_table() const { return this->icon_table_; }
 
+    // =======================================================================
+    // THE PUBLISHED CLAIM STREAM -- the same laid slots the arrays above carry,
+    // RESTATED into the claim convention a claim-stream consumer reads.
+    //
+    // WHY IT EXISTS AT ALL. The raw arrays are laid PARTITION-MAJOR, in the
+    // square space the solver factorizes: n + slacks + me + mi on a side, with
+    // Hessian pairs left in the walk order the piece claimed them in. The
+    // claim-stream contract (model/claim_stream_source.h) states its claims in
+    // the DECLARATION's square space -- n + me + mi, no slack block, Hessian
+    // upper triangle -- and wants one contiguous run per domain. A consumer that
+    // wants those claims therefore had to build them itself, per transcription,
+    // out of a copy of these arrays. It does not any more: the layout builds
+    // them once at the lay, and publishes VIEWS.
+    //
+    // WHAT THE VIEWS ARE VALID UNDER is claim_stream_epoch(), which is NOT the
+    // structure epoch -- see its own comment, and the VIEW VALIDITY term in
+    // model/claim_stream_source.h. Nothing here owns storage; every accessor is
+    // a view into one arena.
+    //
+    // THIS IS A SURFACE BESIDE THE RAW ONE, NOT OVER IT. Nothing here renumbers
+    // a raw slot, moves the emission order, or is fed to claim_digest(): the
+    // interior-point engine reaches this layout through get_mat_space /
+    // get_kkt_space and the location tables, and never through these.
+    // =======================================================================
+
+    /// @brief The epoch these published claims are valid under.
+    ///
+    /// Moves when the published stream is REBUILT, and when it is DROPPED
+    /// because the layout on hand can no longer be described in declaration
+    /// space. It does NOT move on a re-lay that leaves the declared claim
+    /// structure standing -- an elimination-only re-lay, which is exactly the
+    /// case a consumer's held view is meant to survive.
+    ///
+    /// Never throws: an epoch read is how a consumer learns that what it holds
+    /// has been superseded, and a reader that has just been told so has to be
+    /// able to hear it. The accessors below are the ones that refuse.
+    StructureEpoch claim_stream_epoch() const { return this->claim_stream_epoch_.current(); }
+
+    /// @brief Claim slot to assembled KKT row, in claim order.
+    /// @throws std::invalid_argument if no claim stream is published -- see
+    ///         require_claim_stream().
+    Eigen::Ref<const Eigen::VectorXi> kkt_claim_rows() const;
+
+    /// @brief Claim slot to assembled KKT column, in claim order.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    Eigen::Ref<const Eigen::VectorXi> kkt_claim_cols() const;
+
+    /// @brief Claim slot to row of the objective-gradient arena, in claim
+    ///        order, in DECLARATION space.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ///
+    /// Retained rather than aliased onto rhs_coeff_rows_: at an unreduced lay
+    /// the two agree element for element, but the point of the retention is the
+    /// lay that does NOT -- an eliminated variable's gradient row is emitted as
+    /// -1, and a declaration-space consumer needs the row the declaration named.
+    Eigen::Ref<const Eigen::VectorXi> objective_gradient_claim_rows() const;
+
+    /// @brief The claim slots the Lagrangian Hessian scatters through.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ClaimBlock hessian_claims() const;
+
+    /// @brief The claim slots the equality Jacobian scatters through.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ClaimBlock equality_jacobian_claims() const;
+
+    /// @brief The claim slots the inequality Jacobian scatters through.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ClaimBlock inequality_jacobian_claims() const;
+
+    /// @brief Where each partition's run sits inside the Hessian domain's own
+    ///        claim block: entries [p] .. [p + 1], relative to that block's
+    ///        start_, num_partitions + 1 long.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ///
+    /// This is the whole per-slot partition attribution, losslessly: each
+    /// domain's run is partition-major by construction, so a table of run
+    /// boundaries says everything a per-slot partition array would, in
+    /// O(partitions) rather than O(slots). An empty partition gives equal
+    /// adjacent entries.
+    Eigen::Ref<const Eigen::VectorXi> hessian_claim_partition_offsets() const;
+
+    /// @brief The same table for the equality Jacobian domain.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    Eigen::Ref<const Eigen::VectorXi> equality_jacobian_claim_partition_offsets() const;
+
+    /// @brief The same table for the inequality Jacobian domain.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    Eigen::Ref<const Eigen::VectorXi> inequality_jacobian_claim_partition_offsets() const;
+
   protected:
     // WHAT THIS PROVIDER'S FIRST-ORDER CANDIDATE SURFACE DOES AND DOES NOT
     // GIVE YOU. Two facts, both easy to read past and either one silently
@@ -1347,9 +1438,13 @@ struct NonLinearProgram : public NlpAggregate {
 
     /// @brief The claim-structure conjunct of the structural key, digested on
     ///        first read after a lay and then held.
-    /// @return The digest of the claim stream as the pieces handed it out.
+    /// @return The digest of the claim slots as the pieces handed them out.
     ///
-    /// Taken over the two index arrays in claim order, UN-CANONICALIZED.
+    /// Taken over the two RAW index arrays in EMISSION order,
+    /// UN-CANONICALIZED, and over nothing else. The restated, domain-contiguous
+    /// claim stream this layout also publishes is NEVER hashed here: it is a
+    /// second sequence over the same slots, and digesting it would key one
+    /// layout twice.
     /// analyze_sparsity derives the canonical endpoint ordering it needs per
     /// element as it goes and leaves these arrays alone, which is what keeps
     /// the stream readable for as long as the layout stands -- and therefore
@@ -1364,6 +1459,97 @@ struct NonLinearProgram : public NlpAggregate {
     /// snapshot (laid_variable_bounds_), so the digest describes the bounds the
     /// structures were LAID WITH and never the staging state as it stands now.
     std::uint64_t bound_digest() const;
+
+    // =======================================================================
+    // THE CLAIM STREAM'S OWN STATE, and the one question it turns on: does the
+    // published stream still describe the layout on hand?
+    //
+    // NOT A DIRTY FLAG SET AT MUTATION SITES. No such set is complete here:
+    // make_nlp() may be re-run at new dimensions, adopt_declaration() with
+    // fixing rows lays TWICE, and configure_variable_treatment() discards and
+    // installs internal rows on paths that also eliminate. Any list of "the
+    // places that invalidate" would be a list someone later adds a path beside.
+    //
+    // INSTEAD, A STAMP the built stream carries and rebuild_structures COMPARES
+    // -- computed after the raw rebuild, when the counts it names are the counts
+    // just laid. Equal means the stream still describes this layout and is
+    // RETAINED, whatever route got here; unequal means it does not.
+    // =======================================================================
+
+    /// @brief What a published claim stream was last built against.
+    ///
+    /// Four numbers, and the first is the load-bearing one: two declarations can
+    /// agree on every dimension and every claim COUNT and still lay different
+    /// SPARSITY, and only a generation counter bumped where the master piece
+    /// lists are replaced separates them. A dimension digest would not: it
+    /// hashes dimensions alone, so an equal-count piece swap collides on it and
+    /// the stream would go quietly stale.
+    struct ClaimStamp {
+        std::uint64_t declaration_generation_ = 0;
+        int user_kkt_elems_ = 0;
+        int pgx_elems_ = 0;
+        int partitions_ = 0;
+
+        friend bool operator==(const ClaimStamp &, const ClaimStamp &) = default;
+    };
+
+    /// The stamp as the layout stands NOW -- read after the raw rebuild, where
+    /// count_elems() and get_mat_space() have already set the counts it names.
+    ClaimStamp current_claim_stamp() const;
+
+    /// Retains, rebuilds, or drops the published stream, per the stamp compare.
+    /// Called from rebuild_structures() and nowhere else.
+    void maintain_claim_stream();
+
+    /// Builds the restated arena and COMMITS it by one swap. Built as a local
+    /// first: a throw part-way leaves the previously published views valid under
+    /// the epoch they were read at, which is the whole of the exception-safety
+    /// term.
+    void restate_claim_stream();
+
+    /// Releases the published stream and bumps its epoch. Reached where the
+    /// layout on hand cannot be restated into declaration space at all: a
+    /// REDUCED layout whose stamp has moved, where a rebuild would have to name
+    /// coordinates the reduced system does not have. The accessors then refuse,
+    /// which is the honest answer -- and the epoch bump is what stops a consumer
+    /// polling only the epoch from holding a view of a layout that is gone.
+    void drop_claim_stream();
+
+    /// @throws std::invalid_argument naming which case applies, when no claim
+    ///         stream is published: never laid, or dropped by the paragraph
+    ///         above.
+    void require_claim_stream() const;
+
+    /// Bumped where the master piece lists are REPLACED -- make_nlp() and
+    /// adopt_declaration(), and nowhere else. Any future path that replaces or
+    /// reorders the master pieces without passing through one of those two must
+    /// bump it, or a stream built against the old pieces is retained over the
+    /// new ones.
+    std::uint64_t declaration_generation_ = 0;
+
+    /// The published stream, one owned arena, and the stamp it was built
+    /// against. `claim_stream_valid_` is what the accessors read: an arena can
+    /// be legitimately EMPTY (a layout that claims nothing at all), and empty is
+    /// not the same answer as absent.
+    detail::ClaimArena claim_arena_;
+    ClaimStamp claim_built_against_{};
+    bool claim_stream_valid_ = false;
+    StructureEpochCounter claim_stream_epoch_;
+
+    /// The intra-partition raw-slot cursor marks get_mat_space() records as it
+    /// lays: 3 * num_partitions_ + 1 entries, delimiting each partition's
+    /// objective / equality / inequality segments. Written at every lay because
+    /// writing them costs a handful of integer stores and deciding at the lay
+    /// whether a restatement will want them does not.
+    VectorXi claim_segment_marks_;
+
+    /// The per-domain split of num_user_kkt_elems_, from the same count_elems()
+    /// pass that produces it: num_kkt_elements is additive in its two flags at
+    /// every implementer, so the split costs no new traversal. It is the
+    /// restatement's SIZING input and also what its own classification is
+    /// checked against, so a piece that breaks that additivity is caught rather
+    /// than trusted.
+    detail::ClaimDomainCounts claim_domain_counts_{};
 
     /// The declaration as of the last lay -- see declaration().
     mutable AggregateDeclaration declaration_;
