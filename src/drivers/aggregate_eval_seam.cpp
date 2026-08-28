@@ -462,14 +462,16 @@ void AggregateEvalSeam::lay() {
     arena_.setConstant(std::max(total_claims, 1), kArenaSeed);
     require_locations_within(kkt_locations_, arena_.size(), "KKT location table");
 
-    // THE PROVIDER'S OWN PUBLISHED ROWS, VIEWED RATHER THAN COPIED. The table is
-    // a non-owning view over them, and what makes that sound is the claim-stream
-    // contract's VIEW VALIDITY term (model/claim_stream_source.h): the published
-    // rows stay put until the provider's CLAIM-STREAM epoch moves, and this seam
-    // re-lays whenever the STRUCTURE epoch moves -- which a claim-stream epoch
-    // bump always accompanies, since a stream is only ever republished from
-    // inside a re-lay. So no evaluation can reach a table bound to rows the
-    // provider has replaced.
+    // THE PROVIDER'S OWN PUBLISHED ROWS, VIEWED RATHER THAN COPIED, and the table
+    // holds that view across every evaluation of this layout. What makes that
+    // sound is one NORMATIVE sentence of the claim-stream contract, quoted here
+    // because the guard below is stated against the OTHER epoch: "a provider
+    // republishes claim-stream storage only from inside a re-lay, so a
+    // claim-stream epoch bump is always accompanied by a structure epoch bump"
+    // (model/claim_stream_source.h, VIEW VALIDITY). This seam re-lays on the
+    // structure epoch (relay_if_stale), which is the coarser of the two signals,
+    // so it re-reads at least as often as the rows can move. No evaluation can
+    // reach a table bound to rows the provider has replaced.
     //
     // The dropped-row sentinel a provider may publish for an eliminated
     // coordinate rides through untouched, exactly as the copy carried it: this

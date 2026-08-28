@@ -30,9 +30,8 @@ namespace {
 
 } // namespace
 
-hven::solvers::detail::ClaimArena
-hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
-                                            const ClaimDomainCounts &counts) {
+void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
+                                                 const ClaimDomainCounts &counts, ClaimArena &out) {
     // ---- What the inputs have to be before a single slot is read -----------
     //
     // Eigen's own bounds asserts are compiled out under NDEBUG, so every index
@@ -76,20 +75,11 @@ hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
             fmt::format("restate_claim_stream: {0} partitions need {1} segment marks, got {2}",
                         partitions, 3 * partitions + 1, raw.segment_marks_.size()));
     }
-    if (raw.segment_marks_[0] != 0 || raw.segment_marks_[3 * partitions] != slots) {
-        // THE ADDITIVITY DETECTOR, and the cheapest one available: the marks
-        // close at however many slots the lay actually handed out, and the
-        // domain counts total however many the element counts predicted. They
-        // disagree exactly when some piece's num_kkt_elements is not additive in
-        // its two flags -- which is the assumption the per-domain split rests on
-        // and the one thing about it worth refusing over.
+    if (raw.segment_marks_[0] != 0) {
         refuse_claim_stream(fmt::format(
-            "restate_claim_stream: the laid slots run [{0}, {1}) but the per-domain claim counts "
-            "total {2} ({3} Hessian + {4} equality Jacobian + {5} inequality Jacobian). Some "
-            "piece's num_kkt_elements is not additive in its two flags: the (jacobian, hessian) "
-            "call must equal the sum of the two single-flag calls",
-            raw.segment_marks_[0], raw.segment_marks_[3 * partitions], slots, counts.hessian_,
-            counts.equality_jacobian_, counts.inequality_jacobian_));
+            "restate_claim_stream: the segment marks open at {0}; a lay's first partition starts "
+            "at claim slot 0",
+            raw.segment_marks_[0]));
     }
     for (int mark = 1; mark <= 3 * partitions; mark++) {
         if (raw.segment_marks_[mark] < raw.segment_marks_[mark - 1]) {
@@ -99,134 +89,157 @@ hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
                 mark, raw.segment_marks_[mark], raw.segment_marks_[mark - 1]));
         }
     }
+    if (raw.segment_marks_[3 * partitions] != slots) {
+        // THE ADDITIVITY DETECTOR, and the cheapest one available: the marks
+        // close at however many slots the lay actually handed out, and the
+        // domain counts total however many the element counts predicted. With
+        // the table's own shape already checked above, the only thing left for
+        // these two to disagree about is some piece's num_kkt_elements not being
+        // additive in its two flags -- which is the assumption the per-domain
+        // split rests on and the one thing about it worth refusing over.
+        refuse_claim_stream(fmt::format(
+            "restate_claim_stream: the lay handed out {0} claim slots but the per-domain claim "
+            "counts total {1} ({2} Hessian + {3} equality Jacobian + {4} inequality Jacobian). "
+            "Some piece's num_kkt_elements is not additive in its two flags: the (jacobian, "
+            "hessian) call must equal the sum of the two single-flag calls",
+            raw.segment_marks_[3 * partitions], slots, counts.hessian_, counts.equality_jacobian_,
+            counts.inequality_jacobian_));
+    }
+
+    // ---- The array-wide refusals, hoisted out of the per-slot walk ---------
+    //
+    // A negative coordinate and an out-of-range column are properties of the
+    // WHOLE array, and asking about them per slot put two unpredictable branches
+    // in the hot loop for a condition that is false on every slot of every sound
+    // layout. Asked here instead, as reductions Eigen vectorizes, and re-walked
+    // scalar-wise ONLY on the failure path -- where naming the offending slot
+    // matters and the cost does not.
+    const auto rows_read = raw.raw_rows_.head(slots);
+    const auto cols_read = raw.raw_cols_.head(slots);
+    const int primal = raw.primal_vars_;
+
+    if ((rows_read.array() < 0).any() || (cols_read.array() < 0).any()) {
+        for (int slot = 0; slot < slots; slot++) {
+            if (rows_read[slot] < 0 || cols_read[slot] < 0) {
+                // A negative coordinate is how a REDUCED layout records a claim
+                // whose variable was eliminated. Nothing is eliminated here --
+                // the caller establishes that before this runs -- so one is the
+                // layout and the reduction state disagreeing, and its domain
+                // could not be told from the row band even if it were tolerated.
+                refuse_claim_stream(fmt::format(
+                    "restate_claim_stream: claim slot {0} names coordinate ({1}, {2}) in a layout "
+                    "that reports no eliminated variables; a negative coordinate is how a layout "
+                    "records an elimination",
+                    slot, rows_read[slot], cols_read[slot]));
+            }
+        }
+    }
+    if ((cols_read.array() >= primal).any()) {
+        for (int slot = 0; slot < slots; slot++) {
+            if (cols_read[slot] >= primal) {
+                refuse_claim_stream(fmt::format(
+                    "restate_claim_stream: claim slot {0} names column {1}, outside the {2} "
+                    "declared variables; every claim's column is a primal coordinate",
+                    slot, cols_read[slot], primal));
+            }
+        }
+    }
+    if (gradient > 0 &&
+        ((raw.gradient_rows_.array() < 0).any() || (raw.gradient_rows_.array() >= primal).any())) {
+        for (int slot = 0; slot < gradient; slot++) {
+            const int row = raw.gradient_rows_[slot];
+            if (row < 0 || row >= primal) {
+                refuse_claim_stream(
+                    fmt::format("restate_claim_stream: objective-gradient claim slot {0} names row "
+                                "{1}, outside the {2} declared variables",
+                                slot, row, primal));
+            }
+        }
+    }
 
     // The claim convention's own space: square, n + me + mi, laid
     // [primal | equality rows | inequality rows]. The slack block the assembled
     // space carries between the primal and equality blocks is exactly what the
     // restatement drops.
-    const int primal = raw.primal_vars_;
     const int equality_base = primal;
     const int inequality_base = primal + raw.equality_rows_;
     const int claim_dim = primal + raw.equality_rows_ + raw.inequality_rows_;
 
-    // ---- The arena, built as a local ---------------------------------------
-    ClaimArena arena;
-    arena.slots_ = slots;
-    arena.gradient_ = gradient;
-    arena.partitions_ = partitions;
-    arena.hessian_ = ClaimBlock{0, counts.hessian_};
-    arena.equality_jacobian_ = ClaimBlock{counts.hessian_, counts.equality_jacobian_};
-    arena.inequality_jacobian_ =
+    // ---- The arena, built into the caller's SPARE buffer -------------------
+    //
+    // RESIZED ONLY WHEN THE WIDTH MOVES. Every word of it is written below
+    // before anything reads one, so a fill on top of the resize would be pure
+    // waste -- and on the common path (a re-lay at the same claim structure) the
+    // width does not move and there is no allocation at all.
+    out.slots_ = slots;
+    out.gradient_ = gradient;
+    out.partitions_ = partitions;
+    out.hessian_ = ClaimBlock{0, counts.hessian_};
+    out.equality_jacobian_ = ClaimBlock{counts.hessian_, counts.equality_jacobian_};
+    out.inequality_jacobian_ =
         ClaimBlock{counts.hessian_ + counts.equality_jacobian_, counts.inequality_jacobian_};
-    arena.storage_.setZero(2 * static_cast<Eigen::Index>(slots) + gradient +
-                           3 * (static_cast<Eigen::Index>(partitions) + 1));
 
-    int *const out_rows = arena.storage_.data();
+    const Eigen::Index width = 2 * static_cast<Eigen::Index>(slots) + gradient +
+                               3 * (static_cast<Eigen::Index>(partitions) + 1);
+    if (out.storage_.size() != width) {
+        out.storage_.resize(width);
+    }
+
+    int *const out_rows = out.storage_.data();
     int *const out_cols = out_rows + slots;
     int *const out_gradient = out_cols + slots;
     int *const offsets_hessian = out_gradient + gradient;
     int *const offsets_equality = offsets_hessian + (partitions + 1);
     int *const offsets_inequality = offsets_equality + (partitions + 1);
 
-    // The three OUTPUT cursors. They start at their own domain's block start, so
-    // an offset sampled from one is domain-relative the moment that start is
-    // subtracted -- and offsets_d[0] == 0 holds by construction rather than by
-    // being written that way.
-    int cursor_hessian = arena.hessian_.start_;
-    int cursor_equality = arena.equality_jacobian_.start_;
-    int cursor_inequality = arena.inequality_jacobian_.start_;
+    // The three OUTPUT cursors, held as plain locals and advanced by name. They
+    // used to be reached through a reference chosen by a conditional, which
+    // forces all three to memory for the whole walk; the equality and inequality
+    // segments below are separate loops for exactly that reason.
+    const int hessian_end = out.hessian_.start_ + out.hessian_.count_;
+    const int equality_end_slot = out.equality_jacobian_.start_ + out.equality_jacobian_.count_;
+    const int inequality_end_slot =
+        out.inequality_jacobian_.start_ + out.inequality_jacobian_.count_;
+    int cursor_hessian = out.hessian_.start_;
+    int cursor_equality = out.equality_jacobian_.start_;
+    int cursor_inequality = out.inequality_jacobian_.start_;
 
-    const auto read_slot = [&](int slot, int &row, int &col) {
-        row = raw.raw_rows_[slot];
-        col = raw.raw_cols_[slot];
-        if (row < 0 || col < 0) {
-            // A negative coordinate is how a REDUCED layout records a claim
-            // whose variable was eliminated. Nothing is eliminated here -- the
-            // caller establishes that before this runs -- so one is the layout
-            // and the reduction state disagreeing, and its domain could not be
-            // told from the row band even if it were tolerated.
-            refuse_claim_stream(fmt::format(
-                "restate_claim_stream: claim slot {0} names coordinate ({1}, {2}) in a layout that "
-                "reports no eliminated variables; a negative coordinate is how a layout records an "
-                "elimination",
-                slot, row, col));
-        }
-        if (col >= primal) {
-            refuse_claim_stream(fmt::format(
-                "restate_claim_stream: claim slot {0} names column {1}, outside the {2} declared "
-                "variables; every claim's column is a primal coordinate",
-                slot, col, primal));
-        }
+    const auto refuse_overrun = [](int have, const char *domain) {
+        throw std::logic_error(fmt::format(
+            "restate_claim_stream: the laid slots classify more than the {0} {1} claims the "
+            "element counts report; num_kkt_elements is not additive in its two flags at some "
+            "piece of this layout",
+            have, domain));
     };
-
-    const auto emit_hessian = [&](int slot, int row, int col) {
-        if (cursor_hessian >= arena.hessian_.start_ + arena.hessian_.count_) {
-            throw std::logic_error(fmt::format(
-                "restate_claim_stream: the laid slots classify more than the {0} Hessian claims "
-                "the "
-                "element counts report; num_kkt_elements is not additive in its two flags at some "
-                "piece of this layout",
-                arena.hessian_.count_));
-        }
-        out_rows[cursor_hessian] = std::min(row, col);
-        out_cols[cursor_hessian] = std::max(row, col);
-        cursor_hessian++;
-        (void)slot;
+    const auto refuse_slack_row = [](int slot, int row) {
+        refuse_claim_stream(fmt::format(
+            "restate_claim_stream: claim slot {0} names KKT row {1}, which is a slack row; the "
+            "claim stream is stated in a space with no slack block",
+            slot, row));
     };
-
-    // One constraint-Jacobian slot, restated. The row the layout recorded counts
-    // from the assembled space's own base, which carries the slack block; the
-    // claim convention's space does not, so the slack width comes back off.
-    const auto emit_jacobian = [&](int slot, int row, int col, bool inequality) {
-        const int claim_row = row - raw.slack_vars_;
-        if (claim_row < primal) {
-            refuse_claim_stream(fmt::format(
-                "restate_claim_stream: claim slot {0} names KKT row {1}, which is a slack row; the "
-                "claim stream is stated in a space with no slack block",
-                slot, row));
-        }
-        const int band_low = inequality ? inequality_base : equality_base;
-        const int band_high = inequality ? claim_dim : inequality_base;
-        if (claim_row < band_low || claim_row >= band_high) {
-            refuse_claim_stream(fmt::format(
-                "restate_claim_stream: claim slot {0} was claimed by {1} piece but restates to row "
-                "{2}, outside that domain's row band [{3}, {4})",
-                slot, inequality ? "an inequality" : "an equality", claim_row, band_low,
-                band_high));
-        }
-        int &cursor = inequality ? cursor_inequality : cursor_equality;
-        const ClaimBlock &block =
-            inequality ? arena.inequality_jacobian_ : arena.equality_jacobian_;
-        if (cursor >= block.start_ + block.count_) {
-            throw std::logic_error(fmt::format(
-                "restate_claim_stream: the laid slots classify more than the {0} {1} Jacobian "
-                "claims the element counts report; num_kkt_elements is not additive in its two "
-                "flags at some piece of this layout",
-                block.count_, inequality ? "inequality" : "equality"));
-        }
-        out_rows[cursor] = claim_row;
-        out_cols[cursor] = col;
-        cursor++;
+    const auto refuse_band = [](int slot, int claim_row, int low, int high, bool inequality) {
+        refuse_claim_stream(fmt::format(
+            "restate_claim_stream: claim slot {0} was claimed by {1} piece but restates to row "
+            "{2}, outside that domain's row band [{3}, {4})",
+            slot, inequality ? "an inequality" : "an equality", claim_row, low, high));
     };
 
     for (int partition = 0; partition < partitions; partition++) {
         // Sampled BEFORE this partition's slots are written, which is what makes
         // the entry the offset of the run that is about to start.
-        offsets_hessian[partition] = cursor_hessian - arena.hessian_.start_;
-        offsets_equality[partition] = cursor_equality - arena.equality_jacobian_.start_;
-        offsets_inequality[partition] = cursor_inequality - arena.inequality_jacobian_.start_;
+        offsets_hessian[partition] = cursor_hessian - out.hessian_.start_;
+        offsets_equality[partition] = cursor_equality - out.equality_jacobian_.start_;
+        offsets_inequality[partition] = cursor_inequality - out.inequality_jacobian_.start_;
 
         const int objective_end = raw.segment_marks_[3 * partition + 1];
         const int equality_end = raw.segment_marks_[3 * partition + 2];
         const int partition_end = raw.segment_marks_[3 * partition + 3];
 
-        int row = 0;
-        int col = 0;
-
         // Objective pieces are asked for Hessian space alone, so every slot they
         // claimed is a Hessian slot and no row test is needed to say so.
         for (int slot = raw.segment_marks_[3 * partition]; slot < objective_end; slot++) {
-            read_slot(slot, row, col);
+            const int row = rows_read[slot];
+            const int col = cols_read[slot];
             if (row >= primal) {
                 refuse_claim_stream(fmt::format(
                     "restate_claim_stream: claim slot {0} was claimed by an objective piece, which "
@@ -234,71 +247,103 @@ hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
                     "variables",
                     slot, row, primal));
             }
-            emit_hessian(slot, row, col);
+            if (cursor_hessian >= hessian_end) {
+                refuse_overrun(out.hessian_.count_, "Hessian");
+            }
+            out_rows[cursor_hessian] = std::min(row, col);
+            out_cols[cursor_hessian] = std::max(row, col);
+            cursor_hessian++;
         }
 
         // The two constraint segments are MIXED: a constraint piece claims its
         // Jacobian slots and, if it owns one, its share of the Lagrangian
         // Hessian, interleaved as that piece chose. One compare against the
         // primal width separates them -- a Hessian claim names two primal
-        // coordinates, and a Jacobian claim's row is a constraint row.
+        // coordinates, and a Jacobian claim's row is a constraint row. The two
+        // segments are written out separately rather than parameterised, so each
+        // loop advances exactly one Jacobian cursor by name.
         for (int slot = objective_end; slot < equality_end; slot++) {
-            read_slot(slot, row, col);
+            const int row = rows_read[slot];
+            const int col = cols_read[slot];
             if (row < primal) {
-                emit_hessian(slot, row, col);
-            } else {
-                emit_jacobian(slot, row, col, false);
+                if (cursor_hessian >= hessian_end) {
+                    refuse_overrun(out.hessian_.count_, "Hessian");
+                }
+                out_rows[cursor_hessian] = std::min(row, col);
+                out_cols[cursor_hessian] = std::max(row, col);
+                cursor_hessian++;
+                continue;
             }
+            const int claim_row = row - raw.slack_vars_;
+            if (claim_row < primal) {
+                refuse_slack_row(slot, row);
+            }
+            if (claim_row < equality_base || claim_row >= inequality_base) {
+                refuse_band(slot, claim_row, equality_base, inequality_base, false);
+            }
+            if (cursor_equality >= equality_end_slot) {
+                refuse_overrun(out.equality_jacobian_.count_, "equality Jacobian");
+            }
+            out_rows[cursor_equality] = claim_row;
+            out_cols[cursor_equality] = col;
+            cursor_equality++;
         }
         for (int slot = equality_end; slot < partition_end; slot++) {
-            read_slot(slot, row, col);
+            const int row = rows_read[slot];
+            const int col = cols_read[slot];
             if (row < primal) {
-                emit_hessian(slot, row, col);
-            } else {
-                emit_jacobian(slot, row, col, true);
+                if (cursor_hessian >= hessian_end) {
+                    refuse_overrun(out.hessian_.count_, "Hessian");
+                }
+                out_rows[cursor_hessian] = std::min(row, col);
+                out_cols[cursor_hessian] = std::max(row, col);
+                cursor_hessian++;
+                continue;
             }
+            const int claim_row = row - raw.slack_vars_;
+            if (claim_row < primal) {
+                refuse_slack_row(slot, row);
+            }
+            if (claim_row < inequality_base || claim_row >= claim_dim) {
+                refuse_band(slot, claim_row, inequality_base, claim_dim, true);
+            }
+            if (cursor_inequality >= inequality_end_slot) {
+                refuse_overrun(out.inequality_jacobian_.count_, "inequality Jacobian");
+            }
+            out_rows[cursor_inequality] = claim_row;
+            out_cols[cursor_inequality] = col;
+            cursor_inequality++;
         }
     }
 
-    offsets_hessian[partitions] = arena.hessian_.count_;
-    offsets_equality[partitions] = arena.equality_jacobian_.count_;
-    offsets_inequality[partitions] = arena.inequality_jacobian_.count_;
+    offsets_hessian[partitions] = out.hessian_.count_;
+    offsets_equality[partitions] = out.equality_jacobian_.count_;
+    offsets_inequality[partitions] = out.inequality_jacobian_.count_;
 
     // THE COUNTS ARE CHECKED IN BOTH DIRECTIONS. The per-slot guards above catch
     // a domain that overruns its run; this catches one that comes up short,
-    // which would otherwise leave the tail of a run at the arena's zero fill and
-    // publish claims on coordinate (0, 0).
-    if (cursor_hessian != arena.hessian_.start_ + arena.hessian_.count_ ||
-        cursor_equality != arena.equality_jacobian_.start_ + arena.equality_jacobian_.count_ ||
-        cursor_inequality !=
-            arena.inequality_jacobian_.start_ + arena.inequality_jacobian_.count_) {
+    // which would otherwise leave the tail of a run holding whatever the reused
+    // spare buffer had in it from a previous layout.
+    if (cursor_hessian != hessian_end || cursor_equality != equality_end_slot ||
+        cursor_inequality != inequality_end_slot) {
         throw std::logic_error(fmt::format(
             "restate_claim_stream: the laid slots classify as {0} Hessian / {1} equality Jacobian "
             "/ {2} inequality Jacobian claims, but the element counts report {3} / {4} / {5}; "
             "num_kkt_elements is not additive in its two flags at some piece of this layout",
-            cursor_hessian - arena.hessian_.start_,
-            cursor_equality - arena.equality_jacobian_.start_,
-            cursor_inequality - arena.inequality_jacobian_.start_, arena.hessian_.count_,
-            arena.equality_jacobian_.count_, arena.inequality_jacobian_.count_));
+            cursor_hessian - out.hessian_.start_, cursor_equality - out.equality_jacobian_.start_,
+            cursor_inequality - out.inequality_jacobian_.start_, out.hessian_.count_,
+            out.equality_jacobian_.count_, out.inequality_jacobian_.count_));
     }
 
-    // The objective-gradient rows, carried over verbatim once every one of them
-    // is known to name a declared variable. At an unreduced lay the layout's own
-    // rhs rows already ARE the declaration-space rows; retaining them is what
-    // makes that still true after an elimination-only re-lay, where the layout's
-    // own array would carry the dropped-row sentinel instead.
-    for (int slot = 0; slot < gradient; slot++) {
-        const int row = raw.gradient_rows_[slot];
-        if (row < 0 || row >= primal) {
-            refuse_claim_stream(
-                fmt::format("restate_claim_stream: objective-gradient claim slot {0} names row "
-                            "{1}, outside the {2} declared variables",
-                            slot, row, primal));
-        }
-        out_gradient[slot] = row;
+    // The objective-gradient rows, carried over verbatim -- every one of them
+    // already known to name a declared variable by the hoisted check above. At an
+    // unreduced lay the layout's own rhs rows already ARE the declaration-space
+    // rows; retaining them is what makes that still true after an
+    // elimination-only re-lay, where the layout's own array would carry the
+    // dropped-row sentinel instead.
+    if (gradient > 0) {
+        Eigen::Map<Eigen::VectorXi>(out_gradient, gradient) = raw.gradient_rows_;
     }
-
-    return arena;
 }
 
 void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
@@ -511,6 +556,21 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // the one restore path that does not (a classification-stage rejection at
     // an NLP that was never reduced) correctly do not bump.
     //
+    // BEFORE THE INVALIDATION, because capture_laid_dimensions() below freezes
+    // the thread mode of every master piece and would erase the evidence: any
+    // piece on a master list that is NOT marked as laid was put there after the
+    // last lay, and a claim stream built against the pieces that WERE laid does
+    // not describe it. Sizes alone cannot see this -- require_master_lists_
+    // unmoved() catches a piece added or dropped, not one written over -- so the
+    // generation is bumped here and the stamp compare at the end of this routine
+    // then rebuilds rather than retaining. O(pieces), and it fires on no
+    // internal path: nothing this library does replaces a master piece without
+    // going through make_nlp, adopt_declaration, or the splice/discard pair,
+    // and all four bump the generation themselves.
+    if (this->ever_laid_ && this->master_lists_hold_an_unlaid_piece()) {
+        this->declaration_generation_++;
+    }
+
     // INVALIDATION FIRST, before the eager scalars are written and before a
     // single array is touched -- see invalidate_laid_state's definition for the
     // two failure modes that ordering shuts. It is idempotent, so the make_nlp
@@ -531,18 +591,24 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
 
     this->laid_partition_count_ = this->num_partitions_;
 
-    // THE CLAIM STREAM, restated or retained, and committed by one swap -- after
-    // the raw rebuild has succeeded, and before either epoch is bumped. A throw
-    // anywhere in here therefore leaves the previously published views valid
-    // under the epoch they were read at, and leaves this call's own structure
-    // epoch unbumped, exactly as every other throw out of this routine does.
-    this->maintain_claim_stream();
-
     // A re-lay resets kkt_locations_ to -1: only analyze_sparsity fills it, and
     // it has not run against this layout yet. The destination binding goes with
     // the offsets it described.
     this->analyzed_kkt_values_ = nullptr;
     this->analyzed_kkt_matrix_ = nullptr;
+
+    // THE CLAIM STREAM, restated or retained, and committed by one swap. LAST
+    // BUT ONE, and the position is load-bearing: this call CAN throw, and the
+    // two statements above cannot. A restatement refusal from any earlier
+    // position would leave the raw arrays rebuilt while the analyzed-destination
+    // capture still described the layout they replaced -- so a caller that
+    // caught the refusal and carried on would scatter through a stale location
+    // table, with Eigen's asserts compiled out and nothing to say so. From here,
+    // a throw leaves a layout that correctly reports itself un-analysed, leaves
+    // the previously published claim views valid under the epoch they were read
+    // at, and leaves the structure epoch unbumped -- which is what tells every
+    // epoch-gated consumer that this re-lay did not happen.
+    this->maintain_claim_stream();
 
     // LAST, and that program order is the substance of the ordering guarantee:
     // no evaluation of these structures is reachable under the previous epoch.
@@ -579,10 +645,42 @@ void hven::solvers::NonLinearProgram::maintain_claim_stream() {
         return;
     }
 
+    // The absence reason is armed BEFORE the attempt, so a refusal leaves behind
+    // an accurate account of why nothing is published. It is read only while
+    // nothing IS published, so leaving it armed after a success costs nothing and
+    // is one fewer statement to get wrong; the drop path sets its own reason.
+    this->claim_absence_ = ClaimStreamAbsence::kRestatementRefused;
     this->restate_claim_stream();
     this->claim_built_against_ = current;
     this->claim_stream_valid_ = true;
     this->claim_stream_epoch_.bump();
+}
+
+bool hven::solvers::NonLinearProgram::master_lists_hold_an_unlaid_piece() const {
+    // A piece a lay partitioned carries the lay marker; a piece a caller wrote
+    // into a master list afterwards does not, because the marker is set only by
+    // the lay and is cleared on every copy handed out as declaration data. That
+    // makes the marker a cheap witness for "these are not the pieces the
+    // published stream was built against".
+    //
+    // NOT A COMPLETE ONE, and the gap is named rather than papered over: a piece
+    // copied from ANOTHER LAID PIECE of the same problem carries the marker with
+    // it, so assigning one master entry from another is invisible here. The
+    // header's own sentence on the three master lists carries that case: a
+    // direct write to a master list is a structural mutation, and re-laying
+    // through make_nlp() is how a caller declares one. This closes the route a
+    // caller is actually likely to take -- building a fresh piece and assigning
+    // it -- for the price of one bool read per piece.
+    const auto any_unlaid = [](const auto &pieces) {
+        for (const auto &piece : pieces) {
+            if (!piece.thread_mode_is_laid()) {
+                return true;
+            }
+        }
+        return false;
+    };
+    return any_unlaid(this->objectives_) || any_unlaid(this->equality_constraints_) ||
+           any_unlaid(this->inequality_constraints_);
 }
 
 void hven::solvers::NonLinearProgram::restate_claim_stream() {
@@ -597,29 +695,57 @@ void hven::solvers::NonLinearProgram::restate_claim_stream() {
         this->inequal_cons_,
         this->laid_partition_count_};
 
-    // BUILT AS A LOCAL, COMMITTED BY ONE SWAP. Everything that can refuse or
-    // allocate happens on the left of the swap; the swap itself cannot throw.
-    detail::ClaimArena built = detail::restate_claim_stream(raw, this->claim_domain_counts_);
-    this->claim_arena_.swap(built);
+    // BUILT INTO THE SPARE, COMMITTED BY ONE SWAP. Everything that can refuse or
+    // allocate happens before the swap, and the swap cannot throw -- so a
+    // refusal leaves the live arena and its epoch exactly as they were.
+    //
+    // AND THE SWAP IS ALSO THE RECYCLE. What was live becomes the spare, so the
+    // next rebuild at the same claim structure writes a buffer that is already
+    // the right width and allocates nothing. That matters more than the word
+    // count suggests: at 22528 claims the arena is 196 KB, over glibc's mmap
+    // threshold, so allocating a fresh one per lay is an mmap/munmap pair and
+    // the page faults that follow it -- which is what made the construct cell
+    // bimodal before this.
+    detail::restate_claim_stream(raw, this->claim_domain_counts_, this->claim_arena_spare_);
+    this->claim_arena_.swap(this->claim_arena_spare_);
 }
 
 void hven::solvers::NonLinearProgram::drop_claim_stream() {
     const bool was_published = this->claim_stream_valid_;
     this->claim_arena_.clear();
     this->claim_stream_valid_ = false;
+    this->claim_absence_ = ClaimStreamAbsence::kReducedAndRestructured;
     if (was_published) {
         this->claim_stream_epoch_.bump();
     }
 }
 
 void hven::solvers::NonLinearProgram::require_claim_stream() const {
-    if (this->claim_stream_valid_) {
+    // TWO CONJUNCTS, and the second is not redundant: the flag records the
+    // DECISION and the arena records the STORAGE, and a state where they
+    // disagree is one no accessor should serve views out of. Cheap enough to
+    // check both every time.
+    if (this->claim_stream_valid_ && !this->claim_arena_.empty()) {
         return;
     }
-    if (!this->ever_laid_) {
+    switch (this->claim_absence_) {
+    case ClaimStreamAbsence::kNeverLaid:
         throw std::invalid_argument(
             "NonLinearProgram: the claim stream is published by a lay, and this problem has not "
             "been laid yet; call make_nlp (or adopt a declaration) first");
+    case ClaimStreamAbsence::kRestatementRefused:
+        // The one case a message about elimination would be a lie: the FIRST lay
+        // over these pieces got as far as the restatement and the restatement
+        // refused, so there has never been a stream to publish and no reduction
+        // is involved at all. The refusal that got us here carried the detail;
+        // this says which layout is in that state.
+        throw std::invalid_argument(
+            "NonLinearProgram: no claim stream is published for this layout. The lay that would "
+            "have published one was refused while restating the laid slots into the claim "
+            "convention -- see the refusal that call threw for which slot and why -- and no "
+            "earlier lay left a stream behind. Fix the layout and re-lay");
+    case ClaimStreamAbsence::kReducedAndRestructured:
+        break;
     }
     throw std::invalid_argument(fmt::format(
         "NonLinearProgram: no claim stream is published for this layout. It was re-laid with {0} "
@@ -1027,6 +1153,13 @@ void hven::solvers::NonLinearProgram::splice_fixed_variable_rows(
     }
     this->internal_fixed_cons_ = count;
     this->equal_cons_ = this->user_equal_cons_ + count;
+
+    // A MASTER PIECE LIST JUST CHANGED, so the generation moves with it. The
+    // element counts move here too, so the claim stamp would catch this one
+    // anyway -- but the rule is "bump where the master lists are replaced", and
+    // a rule with a silent exception in it is one the next path added beside it
+    // will not follow.
+    this->declaration_generation_++;
 }
 
 void hven::solvers::NonLinearProgram::discard_fixed_variable_rows() {
@@ -1044,6 +1177,12 @@ void hven::solvers::NonLinearProgram::discard_fixed_variable_rows() {
     this->equality_constraints_.resize(total - installed);
     this->internal_fixed_cons_ = 0;
     this->equal_cons_ = this->user_equal_cons_;
+
+    // The mirror of the splice, and bumped for the same reason. Both sit AFTER
+    // the early return above, so a discard that had nothing to discard -- which
+    // is what every make_nlp on a treatment-free problem does -- does not bump
+    // and does not turn an elimination-only re-lay into a rebuild.
+    this->declaration_generation_++;
 }
 
 void hven::solvers::NonLinearProgram::clear_function_output_maps() {

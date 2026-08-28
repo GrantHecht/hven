@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -418,6 +419,24 @@ inline std::vector<CorpusCase> corpus_cases() {
     lopsided.objective_mode_ = ThreadingFlags::MainThread;
     cases.push_back(lopsided);
 
+    CorpusCase objective_split;
+    objective_split.name_ = "three partitions, three OBJECTIVE pieces split by application";
+    objective_split.objective_pieces_ = 3;
+    objective_split.equality_pieces_ = 1;
+    objective_split.inequality_pieces_ = 1;
+    objective_split.applications_ = 700;
+    objective_split.requested_partitions_ = 3;
+    // The objective list is the one whose claims are ALL Hessian, and the one
+    // the restatement classifies without reading a row. Splitting it by
+    // application puts an objective-Hessian run in EVERY partition, ahead of two
+    // mixed segments that also contribute Hessian claims -- which is the case
+    // where the Hessian domain's partition offsets have to interleave three
+    // sources correctly rather than trivially.
+    objective_split.objective_mode_ = ThreadingFlags::ByApplication;
+    objective_split.equality_mode_ = ThreadingFlags::Thread1;
+    objective_split.inequality_mode_ = ThreadingFlags::MainThread;
+    cases.push_back(objective_split);
+
     CorpusCase with_fixed;
     with_fixed.name_ = "all three lists with two point-bounded variables";
     with_fixed.objective_pieces_ = 1;
@@ -484,9 +503,14 @@ inline ReferenceStream reference_restatement(const hven::solvers::NonLinearProgr
             push(hessian, std::min(row, col), std::max(row, col), partition);
         } else if (row < primal + slack) {
             // The claim convention's space has no slack block, so this is not a
-            // row a sound layout claims. Left as a hard stop rather than as a
-            // silent domain choice.
-            push(hessian, -1, -1, partition);
+            // row a sound layout claims. A HARD STOP, and it really is one: a
+            // sentinel pushed into a domain run would be compared against the
+            // published stream and reported as an ordinary mismatch, which says
+            // nothing about the layout having claimed a row that cannot exist.
+            throw std::logic_error("reference_restatement: claim slot " + std::to_string(slot) +
+                                   " names KKT row " + std::to_string(row) +
+                                   ", a slack row; the claim convention's space has no slack "
+                                   "block, so no sound layout claims one");
         } else if (row < equality_end) {
             push(equality, row - slack, col, partition);
         } else {

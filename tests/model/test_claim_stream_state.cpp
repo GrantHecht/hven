@@ -412,6 +412,16 @@ namespace {
 using hven::solvers::detail::ClaimDomainCounts;
 using hven::solvers::detail::RawClaimLayout;
 
+/// Builds into a fresh arena and returns it, so the refusal cases below read as
+/// one call. The production caller passes its SPARE arena instead, which is what
+/// makes an equal-width rebuild allocation-free -- pinned separately.
+hven::solvers::detail::ClaimArena restated(const RawClaimLayout &raw,
+                                           const ClaimDomainCounts &counts) {
+    hven::solvers::detail::ClaimArena arena;
+    hven::solvers::detail::restate_claim_stream(raw, counts, arena);
+    return arena;
+}
+
 /// One partition, one objective slot and one equality Jacobian slot, in a space
 /// of two primal variables, one slack, one equality row and one inequality row.
 struct RefusalFixture {
@@ -442,8 +452,7 @@ struct RefusalFixture {
 
 TEST(ClaimStreamRefusals, TheWellFormedFixtureRestates) {
     RefusalFixture fixture;
-    auto arena =
-        hven::solvers::detail::restate_claim_stream(fixture.layout(), RefusalFixture::counts());
+    auto arena = restated(fixture.layout(), RefusalFixture::counts());
     ASSERT_EQ(arena.rows().size(), static_cast<Eigen::Index>(2));
     EXPECT_EQ(arena.rows()[0], 0);
     EXPECT_EQ(arena.cols()[0], 1);
@@ -459,8 +468,7 @@ TEST(ClaimStreamRefusals, AClaimedSlackRowIsRefused) {
     RefusalFixture fixture;
     fixture.rows_[1] = 2; // the slack row, between the primal and equality blocks
     try {
-        (void)hven::solvers::detail::restate_claim_stream(fixture.layout(),
-                                                          RefusalFixture::counts());
+        (void)restated(fixture.layout(), RefusalFixture::counts());
         FAIL() << "a claimed slack row must be refused";
     } catch (const std::invalid_argument &error) {
         EXPECT_NE(std::string(error.what()).find("slack row"), std::string::npos) << error.what();
@@ -472,8 +480,7 @@ TEST(ClaimStreamRefusals, ANegativeCoordinateInAnUnreducedLayoutIsRefused) {
     fixture.rows_[1] = -1;
     fixture.cols_[1] = -1;
     try {
-        (void)hven::solvers::detail::restate_claim_stream(fixture.layout(),
-                                                          RefusalFixture::counts());
+        (void)restated(fixture.layout(), RefusalFixture::counts());
         FAIL() << "a negative coordinate must be refused";
     } catch (const std::invalid_argument &error) {
         EXPECT_NE(std::string(error.what()).find("elimination"), std::string::npos) << error.what();
@@ -484,8 +491,7 @@ TEST(ClaimStreamRefusals, AGradientRowOutsideTheDeclaredVariablesIsRefused) {
     RefusalFixture fixture;
     fixture.gradient_[1] = 2; // one past the two declared variables
     try {
-        (void)hven::solvers::detail::restate_claim_stream(fixture.layout(),
-                                                          RefusalFixture::counts());
+        (void)restated(fixture.layout(), RefusalFixture::counts());
         FAIL() << "a gradient row outside the declared variables must be refused";
     } catch (const std::invalid_argument &error) {
         EXPECT_NE(std::string(error.what()).find("objective-gradient"), std::string::npos)
@@ -496,9 +502,7 @@ TEST(ClaimStreamRefusals, AGradientRowOutsideTheDeclaredVariablesIsRefused) {
 TEST(ClaimStreamRefusals, AColumnOutsideTheDeclaredVariablesIsRefused) {
     RefusalFixture fixture;
     fixture.cols_[0] = 2;
-    EXPECT_THROW((void)hven::solvers::detail::restate_claim_stream(fixture.layout(),
-                                                                   RefusalFixture::counts()),
-                 std::invalid_argument);
+    EXPECT_THROW((void)restated(fixture.layout(), RefusalFixture::counts()), std::invalid_argument);
 }
 
 TEST(ClaimStreamRefusals, AConstraintRowOutsideItsOwnDomainBandIsRefused) {
@@ -507,8 +511,7 @@ TEST(ClaimStreamRefusals, AConstraintRowOutsideItsOwnDomainBandIsRefused) {
     // and the piece list that claimed it disagree about which domain it is.
     fixture.rows_[1] = 4;
     try {
-        (void)hven::solvers::detail::restate_claim_stream(fixture.layout(),
-                                                          RefusalFixture::counts());
+        (void)restated(fixture.layout(), RefusalFixture::counts());
         FAIL() << "a constraint row outside its domain band must be refused";
     } catch (const std::invalid_argument &error) {
         EXPECT_NE(std::string(error.what()).find("row band"), std::string::npos) << error.what();
@@ -520,16 +523,29 @@ TEST(ClaimStreamRefusals, MalformedMarkTablesAreRefused) {
         RefusalFixture fixture;
         fixture.marks_.resize(3);
         fixture.marks_ << 0, 1, 2;
-        EXPECT_THROW((void)hven::solvers::detail::restate_claim_stream(fixture.layout(),
-                                                                       RefusalFixture::counts()),
+        EXPECT_THROW((void)restated(fixture.layout(), RefusalFixture::counts()),
                      std::invalid_argument);
     }
     {
         RefusalFixture fixture;
         fixture.marks_ << 0, 2, 1, 2; // backwards
-        EXPECT_THROW((void)hven::solvers::detail::restate_claim_stream(fixture.layout(),
-                                                                       RefusalFixture::counts()),
+        EXPECT_THROW((void)restated(fixture.layout(), RefusalFixture::counts()),
                      std::invalid_argument);
+    }
+    {
+        // A table that does not OPEN at zero is malformed, and must not be
+        // reported as an additivity failure: nothing about the element counts is
+        // in question here.
+        RefusalFixture fixture;
+        fixture.marks_ << 1, 1, 2, 2;
+        try {
+            (void)restated(fixture.layout(), RefusalFixture::counts());
+            FAIL() << "a mark table that does not open at zero must be refused";
+        } catch (const std::invalid_argument &error) {
+            const std::string message = error.what();
+            EXPECT_NE(message.find("open at"), std::string::npos) << message;
+            EXPECT_EQ(message.find("additive"), std::string::npos) << message;
+        }
     }
     {
         // THE ADDITIVITY DETECTOR. The lay handed out two slots -- the marks say
@@ -546,7 +562,7 @@ TEST(ClaimStreamRefusals, MalformedMarkTablesAreRefused) {
         gradient << 0, 1;
         const RawClaimLayout raw{rows, cols, marks, gradient, 2, 1, 1, 1, 1};
         try {
-            (void)hven::solvers::detail::restate_claim_stream(raw, ClaimDomainCounts{2, 1, 0});
+            (void)restated(raw, ClaimDomainCounts{2, 1, 0});
             FAIL() << "a count/mark disagreement must be refused";
         } catch (const std::invalid_argument &error) {
             EXPECT_NE(std::string(error.what()).find("additive"), std::string::npos)
@@ -562,8 +578,7 @@ TEST(ClaimStreamRefusals, AnEmptyPartitionGivesEqualAdjacentOffsets) {
     fixture.marks_.resize(7);
     fixture.marks_ << 0, 1, 2, 2, 2, 2, 2;
 
-    auto arena =
-        hven::solvers::detail::restate_claim_stream(fixture.layout(2), RefusalFixture::counts());
+    auto arena = restated(fixture.layout(2), RefusalFixture::counts());
     ASSERT_EQ(arena.hessian_offsets().size(), static_cast<Eigen::Index>(3));
     EXPECT_EQ(arena.hessian_offsets()[0], 0);
     EXPECT_EQ(arena.hessian_offsets()[1], 1);
@@ -571,4 +586,108 @@ TEST(ClaimStreamRefusals, AnEmptyPartitionGivesEqualAdjacentOffsets) {
     EXPECT_EQ(arena.inequality_offsets()[0], 0);
     EXPECT_EQ(arena.inequality_offsets()[1], 0);
     EXPECT_EQ(arena.inequality_offsets()[2], 0);
+}
+
+// ---------------------------------------------------------------------------
+// Retain-and-reuse, and the routes that must not retain
+// ---------------------------------------------------------------------------
+
+TEST(ClaimStreamState, AnEqualWidthRebuildAllocatesNothing) {
+    // TWO BUFFERS, ALTERNATING. A rebuild builds into the spare and swaps, so
+    // the buffer that was live comes back as the next rebuild's spare: over four
+    // rebuilds at one claim structure the published storage alternates A, B, A, B
+    // and no third address ever appears. A design that allocated a fresh arena
+    // per rebuild could not produce that pattern except by accident, four times
+    // running.
+    CorpusCase fixture = state_case();
+    fixture.fixed_variables_.clear();
+    auto nlp = build_corpus(fixture);
+
+    std::vector<const int *> storage;
+    storage.push_back(nlp->kkt_claim_rows().data());
+    for (int lay = 0; lay < 3; lay++) {
+        nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
+        storage.push_back(nlp->kkt_claim_rows().data());
+    }
+
+    ASSERT_EQ(storage.size(), 4u);
+    EXPECT_NE(storage[0], storage[1]);
+    EXPECT_EQ(storage[0], storage[2]);
+    EXPECT_EQ(storage[1], storage[3]);
+}
+
+TEST(ClaimStreamState, APieceWrittenIntoAMasterListWithoutARelayIsNotRetainedAcross) {
+    // THE FOOTGUN THIS CLOSES. The three master piece lists are public. A caller
+    // that writes one and then reaches rebuild_structures WITHOUT make_nlp --
+    // through a treatment or a partition renegotiation -- would, on a stamp
+    // compare alone, keep a stream describing the pieces that were laid: same
+    // dimensions, same claim counts, same gradient count, different columns.
+    CorpusCase fixture = state_case();
+    fixture.fixed_variables_.clear();
+    auto nlp = build_corpus(fixture);
+
+    const Eigen::VectorXi cols_before = copy_of(nlp->kkt_claim_cols());
+    const StructureEpoch claim_before = nlp->claim_stream_epoch();
+    const int kkt_before = nlp->num_user_kkt_elems_;
+
+    const int applications = fixture.applications_;
+    Eigen::MatrixXi v_index(2, applications);
+    Eigen::MatrixXi c_index(1, applications);
+    const int last_variable = nlp->primal_vars_ - 1;
+    for (int appl = 0; appl < applications; appl++) {
+        v_index(0, appl) = last_variable - 2 * appl;
+        v_index(1, appl) = last_variable - 2 * appl - 1;
+        c_index(0, appl) = appl;
+    }
+    CorpusConstraintPiece swapped;
+    swapped.owns_hessian_ = true;
+    swapped.kind_ = "corpus_smuggled";
+    nlp->equality_constraints_[0] = hven::solvers::ConstraintFunction(
+        hven::solvers::ConstraintInterface(std::move(swapped)), v_index, c_index);
+
+    // NO make_nlp. A renegotiation to the count already in force re-lays
+    // unconditionally, which is the shortest route to rebuild_structures.
+    ASSERT_EQ(nlp->negotiate_partition_count(nlp->num_partitions_), nlp->num_partitions_);
+
+    ASSERT_EQ(nlp->num_user_kkt_elems_, kkt_before);
+    EXPECT_NE(nlp->claim_stream_epoch(), claim_before);
+    EXPECT_NE(copy_of(nlp->kkt_claim_cols()), cols_before);
+
+    const hven::model_tests::ReferenceStream want = reference_restatement(*nlp);
+    ASSERT_EQ(nlp->kkt_claim_cols().size(), static_cast<Eigen::Index>(want.cols_.size()));
+    for (Eigen::Index slot = 0; slot < nlp->kkt_claim_cols().size(); slot++) {
+        ASSERT_EQ(nlp->kkt_claim_cols()[slot], want.cols_[static_cast<std::size_t>(slot)]);
+    }
+}
+
+TEST(ClaimStreamState, AFirstLayThatCannotRestateSaysThatAndNotSomethingAboutElimination) {
+    // The message a refused FIRST lay leaves behind. Nothing here is eliminated
+    // and nothing was ever published, so an answer about a reduced layout would
+    // be a confident lie about the wrong thing.
+    auto nlp = std::make_shared<NonLinearProgram>(1);
+    constexpr int kApplications = 6;
+    Eigen::MatrixXi v_index(2, kApplications);
+    Eigen::MatrixXi c_index(1, kApplications);
+    for (int appl = 0; appl < kApplications; appl++) {
+        v_index(0, appl) = 2 * appl;
+        v_index(1, appl) = 2 * appl + 1;
+        c_index(0, appl) = appl;
+    }
+    nlp->equality_constraints_.push_back(hven::solvers::ConstraintFunction(
+        hven::solvers::ConstraintInterface(NonAdditivePiece{}), v_index, c_index));
+    for (int i = 0; i < 2 * kApplications; i++) {
+        nlp->set_variable_bound(i, -1.0, 1.0);
+    }
+
+    EXPECT_THROW(nlp->make_nlp(2 * kApplications, kApplications, 0), std::invalid_argument);
+    ASSERT_FALSE(nlp->is_reduced());
+
+    try {
+        (void)nlp->kkt_claim_rows();
+        FAIL() << "a layout whose first restatement was refused publishes nothing";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("restating"), std::string::npos) << message;
+        EXPECT_EQ(message.find("eliminated"), std::string::npos) << message;
+    }
 }

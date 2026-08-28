@@ -58,6 +58,21 @@ template <class FuncType> struct SolverFunctionBase {
         }
     }
 
+    /// @brief How many KKT slots one application of this piece claims when it is
+    ///        asked for Jacobian space, Hessian space, or both.
+    ///
+    /// MUST BE ADDITIVE IN ITS TWO FLAGS: `num_kkt_elements(true, true)` must
+    /// equal `num_kkt_elements(true, false) + num_kkt_elements(false, true)`.
+    /// A layout counts its total with the both-flags call and splits that total
+    /// per domain with the two single-flag calls, in one pass, so a piece that
+    /// answers something else describes two different layouts depending on which
+    /// question it is asked. It is REFUSED rather than trusted: the domain-
+    /// contiguous claim stream a laid layout publishes is sized from the split
+    /// and checked against the slots the lay actually handed out, and the two
+    /// disagreeing is a named refusal
+    /// (detail/model/claim_restatement.h, restate_claim_stream). Nothing else
+    /// sees it, so a non-additive piece breaks the claim stream and never
+    /// quietly moves a layout.
     int num_kkt_elements(bool dojac, bool dohess) {
         return this->function_.num_kkt_elements(dojac, dohess) * this->index_data_.num_appl();
     }
@@ -118,6 +133,13 @@ template <class FuncType> struct SolverFunctionBase {
     ///        declaration data rather than held as part of a layout. Paired
     ///        with mark_thread_mode_laid(), and private for the same reason.
     void clear_thread_mode_laid() { this->thread_mode_laid_ = false; }
+
+    /// @brief Whether a layout has been laid over this piece.
+    ///
+    /// Private with its two setters, and read by the same one type: the layout
+    /// uses it to tell a piece it laid from one a caller wrote into a master list
+    /// afterwards, which is a distinction nothing else has any business drawing.
+    bool thread_mode_is_laid() const { return this->thread_mode_laid_; }
 
     friend struct NonLinearProgram;
 

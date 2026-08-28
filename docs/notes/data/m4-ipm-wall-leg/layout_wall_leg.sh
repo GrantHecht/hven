@@ -37,13 +37,18 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REPS=${1:-9}
 INNER=${2:-15}
 
-# BUILD HEADER. Which binaries produced the rows below, byte for byte, and
-# which source they were built from. A log without this cannot be told apart
-# from one produced by a stale probe -- which is exactly how a probe that
-# printed the convergence flag under the name `iters` outlived the source
-# beside it.
+# BUILD HEADER, and CLAUDE.md §7's four provenance fields in it: TOOLCHAIN,
+# HARDWARE, DATE, COMMIT. Which binaries produced the rows below, byte for byte,
+# and which source and which tree they were built from. A log without this
+# cannot be told apart from one produced by a stale probe -- which is exactly how
+# a probe that printed the convergence flag under the name `iters` outlived the
+# source beside it -- and a log without the four fields is not a §7 artifact at
+# all, however carefully it was run.
 echo "# leg: layout leg"
-echo "# date: $(date -Is)   host: $(uname -sr)"
+echo "# date: $(date -Is)"
+echo "# hardware: $(uname -sr)  $(grep -m1 '^model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2- | sed 's/^ *//')"
+echo "# toolchain: $(/usr/bin/clang++ --version 2>/dev/null | head -1)"
+echo "# commit: $(git -C "$HERE" rev-parse HEAD 2>/dev/null || echo UNKNOWN)  status: $(git -C "$HERE" status --porcelain 2>/dev/null | wc -l) modified path(s)"
 echo "# probe source: $HERE/layout_time.cpp  sha256=$(sha256sum "$HERE/layout_time.cpp" | cut -d' ' -f1)"
 for side in base head; do
   b="$HERE/layout_$side"
@@ -53,7 +58,7 @@ for side in base head; do
     echo "# binary $side: $b  MISSING"
   fi
 done
-echo "# reps=$REPS inner=$INNER  loadavg=$(cut -d' ' -f1-3 /proc/loadavg)"
+echo "# reps=$REPS inner=$INNER  loadavg at start=$(cut -d' ' -f1-3 /proc/loadavg)"
 for arm in serial threaded; do
   echo "=== arm: $arm"
   for r in $(seq 1 "$REPS"); do

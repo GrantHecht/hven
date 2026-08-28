@@ -61,6 +61,17 @@ struct ClaimBlock {
 /// would re-read for nothing; one keyed on the claim-stream epoch holds what it
 /// already has.
 ///
+/// A CLAIM-STREAM EPOCH BUMP IS ALWAYS ACCOMPANIED BY A STRUCTURE EPOCH BUMP.
+/// A provider republishes claim-stream storage only from inside a re-lay, so the
+/// claim-stream epoch never moves on its own; the structure epoch moves whenever
+/// it does, and may also move without it (that is the elimination-only case
+/// above). A consumer that already re-reads on the STRUCTURE epoch -- because it
+/// re-derives other laid state on that signal anyway -- may therefore hold a
+/// claim-stream view across evaluations under that guard alone, and is not
+/// obliged to poll the claim-stream epoch separately. What it may never do is
+/// the reverse: the claim-stream epoch standing still is not a promise that the
+/// structures behind it did.
+///
 /// A provider whose claim stream is rebuilt at every re-lay satisfies this term
 /// by returning its structure epoch -- which is what the default below does, and
 /// what makes the term no new obligation for such a provider. A provider that

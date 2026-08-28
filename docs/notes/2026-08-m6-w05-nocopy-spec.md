@@ -192,6 +192,48 @@ throw). CONTRACT TEXT: `claim_stream_source.h`'s VIEW VALIDITY (:42-45) is amend
 structure epoch there (no eliminating re-lay) and documents that identity. STREAM SHAPE (:35-40) is
 unchanged: claim ORDER does not move.
 
+### §2 AMENDMENT BLOCK (2026-08-28, implementation review round 1)
+
+Two rulings from the round-1 implementation review supersede the corresponding sentences
+above. Both are mechanism, not contract: nothing a consumer can observe changes, and the
+close gate §4(a) is untouched by either.
+
+**R-18 — ARENA RETAIN-AND-REUSE, replacing "built as a fresh local per rebuild".** The
+provider keeps **TWO** arena buffers, LIVE and SPARE. A rebuild builds into the SPARE —
+resized only when the required width DIFFERS from the width it already has, and never
+`setZero`-ed on top of that resize, since every word of it is written before any is read —
+and commits by swapping spare↔live before the epoch bump. R-3 is preserved exactly: a
+throw during the build leaves the live arena, its blocks, its stamp and its epoch
+untouched. The swap is also the RECYCLE: what was live becomes the next rebuild's spare,
+so **an equal-width rebuild performs no allocation at all**.
+
+RATIONALE, from the §4(c) reading. §2's "one allocation per rebuild, allocation-neutral
+against tycho's removed snapshot" was true as arithmetic and wrong as cost. At 22528
+claims the arena is 196 KB, past glibc's `mmap` threshold, so a fresh arena per lay is an
+`mmap`/`munmap` pair and the page faults behind it — which is what made the probe's
+`construct` cell BIMODAL at head only (+77 / +159 µs at n=1024, base unimodal). Reuse
+removes the cycle rather than making the allocation cheaper. The `setZero`-on-top-of-resize
+that C1 found goes with it.
+
+PINS: an equal-width rebuild allocates nothing (the published storage address ALTERNATES
+A, B, A, B across four rebuilds at one claim structure, and no third address appears);
+throw-mid-rebuild leaves the live views standing (the existing R-3 pin).
+
+**R-19 — THE RESTATEMENT LOOP.** Three changes, none of them contract:
+(a) the equality and inequality Jacobian segments are written as SEPARATE loops, each
+advancing one cursor BY NAME — the previous `inequality ? cursor_inequality :
+cursor_equality` reference selection forced all three cursors to memory for the whole
+walk, and that, not the allocation, was ~92% of the +76 µs;
+(b) the array-wide refusals — a negative coordinate, a column outside the declared
+variables, a gradient row outside them — are hoisted OUT of the per-slot walk into Eigen
+reductions taken once, with a scalar re-walk on the failure path alone so the refusal still
+names its slot;
+(c) the per-emit overrun guards STAY: they are the second half of the additivity check and
+they are one predictable compare.
+
+The §4(c) probe is re-run against these (all cells including `construct`, both arms,
+serialized, reps stated); the reading is INFORMATIONAL per CLAUDE.md §7, as before.
+
 ## §3 Per-lay copies — cost and disposition
 
 | # | site | cost per lay | W0.5 |

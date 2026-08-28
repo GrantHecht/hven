@@ -143,6 +143,18 @@ struct NonLinearProgram : public NlpAggregate {
 
     int num_partitions_ = 1;
 
+    // THE THREE MASTER PIECE LISTS ARE PUBLIC, AND WRITING ONE IS A STRUCTURAL
+    // MUTATION. Everything derived from them -- the element counts, the work
+    // partitioning, the claim arrays, the location tables, both digests and the
+    // published claim stream -- describes the lists AS LAID, so a write here is
+    // declared by re-laying: make_nlp(), or adopting a declaration that carries
+    // the new pieces. Reading the declaration or the structural key without one
+    // is REFUSED by name (require_master_lists_unmoved), and the published claim
+    // stream is rebuilt rather than retained at the next lay whenever a piece on
+    // one of these lists is not one this layout laid. Neither guard can see a
+    // master entry assigned FROM ANOTHER LAID PIECE of the same problem, which
+    // is the one case this sentence, and not a mechanism, has to carry.
+    ///
     /// Objective functions that will be partitioned across work partitions
     /// (part_obj_).
     std::vector<ObjectiveFunction> objectives_;
@@ -1493,9 +1505,22 @@ struct NonLinearProgram : public NlpAggregate {
         friend bool operator==(const ClaimStamp &, const ClaimStamp &) = default;
     };
 
+    /// Why nothing is published, for the one accessor that has to say so. Three
+    /// states rather than two, because "never laid" and "the lay that would have
+    /// published one was refused" are different facts about the same problem and
+    /// only one of them is about elimination.
+    enum class ClaimStreamAbsence { kNeverLaid, kRestatementRefused, kReducedAndRestructured };
+
     /// The stamp as the layout stands NOW -- read after the raw rebuild, where
     /// count_elems() and get_mat_space() have already set the counts it names.
     ClaimStamp current_claim_stamp() const;
+
+    /// Whether any master piece is one this layout did not lay -- a piece a
+    /// caller wrote into one of the three public lists since the last lay. Sizes
+    /// cannot see that (require_master_lists_unmoved() catches a piece added or
+    /// dropped, never one written over), and a stream built against the pieces
+    /// that WERE laid does not describe one that was not. O(pieces).
+    bool master_lists_hold_an_unlaid_piece() const;
 
     /// Retains, rebuilds, or drops the published stream, per the stamp compare.
     /// Called from rebuild_structures() and nowhere else.
@@ -1531,9 +1556,18 @@ struct NonLinearProgram : public NlpAggregate {
     /// against. `claim_stream_valid_` is what the accessors read: an arena can
     /// be legitimately EMPTY (a layout that claims nothing at all), and empty is
     /// not the same answer as absent.
+    /// TWO BUFFERS, LIVE AND SPARE. A rebuild writes the spare and swaps, so the
+    /// buffer that was live becomes the next rebuild's spare instead of being
+    /// freed -- which makes a re-lay at the same claim structure allocate
+    /// NOTHING, and makes a refusal part-way through leave the live one
+    /// untouched. At 22528 claims the arena is 196 KB, past glibc's mmap
+    /// threshold, so the allocation this avoids is an mmap/munmap pair and the
+    /// page faults behind it, not a free-list pop.
     detail::ClaimArena claim_arena_;
+    detail::ClaimArena claim_arena_spare_;
     ClaimStamp claim_built_against_{};
     bool claim_stream_valid_ = false;
+    ClaimStreamAbsence claim_absence_ = ClaimStreamAbsence::kNeverLaid;
     StructureEpochCounter claim_stream_epoch_;
 
     /// The intra-partition raw-slot cursor marks get_mat_space() records as it

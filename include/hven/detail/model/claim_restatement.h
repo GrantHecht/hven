@@ -33,12 +33,6 @@
 
 namespace hven::solvers::detail {
 
-class ClaimArena;
-struct ClaimDomainCounts;
-struct RawClaimLayout;
-
-ClaimArena restate_claim_stream(const RawClaimLayout &raw, const ClaimDomainCounts &counts);
-
 /// @brief How many claim slots each domain takes, as the layout's own element
 ///        counts report them.
 ///
@@ -89,8 +83,10 @@ struct RawClaimLayout {
 ///        into the six views the published surface hands out.
 ///
 /// One allocation, not six: every accessor below is a view into `storage_`, so a
-/// rebuild is a single allocation swapped in and a retained stream is a single
-/// block held. The cut is
+/// retained stream is a single block held. Two of these exist per layout -- a
+/// LIVE one and a SPARE -- and a rebuild writes the spare and swaps, so an
+/// equal-width rebuild allocates NOTHING at all and a throw part-way leaves the
+/// live one untouched. The cut is
 ///
 ///     [ rows (N) | cols (N) | gradient rows (G) | offsets_H | offsets_Ae | offsets_Ai ]
 ///
@@ -112,28 +108,34 @@ class ClaimArena {
     int gradient_slots() const { return gradient_; }
     int partitions() const { return partitions_; }
 
-    Eigen::Ref<const Eigen::VectorXi> rows() const { return storage_.segment(0, slots_); }
-    Eigen::Ref<const Eigen::VectorXi> cols() const { return storage_.segment(slots_, slots_); }
-    Eigen::Ref<const Eigen::VectorXi> gradient_rows() const {
-        return storage_.segment(2 * slots_, gradient_);
-    }
+    // EVERY VIEW BELOW GOES THROUGH THE EMPTY GUARD, and the offset tables are why
+    // it is not decoration: a default-constructed or dropped arena has
+    // `partitions_ == 0`, so an unguarded offsets view would be a length-ONE
+    // segment over ZERO storage -- out of bounds, caught by an Eigen assert in
+    // Debug and by nothing at all in Release. An empty arena answers with an
+    // empty view; the accessors that matter refuse before they get here.
+    Eigen::Ref<const Eigen::VectorXi> rows() const { return view(0, slots_); }
+    Eigen::Ref<const Eigen::VectorXi> cols() const { return view(slots_, slots_); }
+    Eigen::Ref<const Eigen::VectorXi> gradient_rows() const { return view(2 * slots_, gradient_); }
     Eigen::Ref<const Eigen::VectorXi> hessian_offsets() const {
-        return storage_.segment(offsets_start(), partitions_ + 1);
+        return view(offsets_start(), partitions_ + 1);
     }
     Eigen::Ref<const Eigen::VectorXi> equality_offsets() const {
-        return storage_.segment(offsets_start() + (partitions_ + 1), partitions_ + 1);
+        return view(offsets_start() + (partitions_ + 1), partitions_ + 1);
     }
     Eigen::Ref<const Eigen::VectorXi> inequality_offsets() const {
-        return storage_.segment(offsets_start() + 2 * (partitions_ + 1), partitions_ + 1);
+        return view(offsets_start() + 2 * (partitions_ + 1), partitions_ + 1);
     }
 
     const ClaimBlock &hessian() const { return hessian_; }
     const ClaimBlock &equality_jacobian() const { return equality_jacobian_; }
     const ClaimBlock &inequality_jacobian() const { return inequality_jacobian_; }
 
-    /// THE COMMIT. A freshly built arena is exchanged with a published one in
-    /// one call that cannot throw, which is what lets a restatement be built as
-    /// a local and committed only once it has succeeded.
+    /// THE COMMIT, and the recycle. A freshly built arena is exchanged with the
+    /// published one in one call that cannot throw -- which is what lets a
+    /// restatement be built into the SPARE and committed only once it has
+    /// succeeded, and what hands the previous live buffer back as the next
+    /// rebuild's spare instead of freeing it.
     void swap(ClaimArena &other) noexcept {
         storage_.swap(other.storage_);
         std::swap(slots_, other.slots_);
@@ -154,9 +156,17 @@ class ClaimArena {
     }
 
   private:
-    friend ClaimArena restate_claim_stream(const RawClaimLayout &, const ClaimDomainCounts &);
+    friend void restate_claim_stream(const RawClaimLayout &, const ClaimDomainCounts &,
+                                     ClaimArena &);
 
     int offsets_start() const { return 2 * slots_ + gradient_; }
+
+    Eigen::Ref<const Eigen::VectorXi> view(int start, int count) const {
+        if (storage_.size() == 0) {
+            return storage_.segment(0, 0);
+        }
+        return storage_.segment(start, count);
+    }
 
     Eigen::VectorXi storage_;
     int slots_ = 0;
@@ -177,9 +187,19 @@ class ClaimArena {
 /// does not, and a Hessian pair is ordered (min, max) into the upper triangle
 /// rather than left in the walk order the piece claimed it in.
 ///
+/// WRITES INTO A CALLER-OWNED BUFFER, and that is the whole of the retain-and-
+/// reuse term: @p out is the SPARE arena, resized only when the width it needs
+/// differs from the width it has, and never zero-filled on top of that resize
+/// (every word of it is written here before it is read anywhere). An equal-width
+/// rebuild therefore performs NO allocation. The caller commits by swapping
+/// @p out with the live arena once this has returned, so a throw from here
+/// leaves the live arena and its epoch exactly as they were.
+///
 /// @param raw    the laid arrays and the declaration's dimensions.
 /// @param counts the per-domain slot counts the layout's element counts report.
-/// @return the restated arena, ready to be swapped into place.
+/// @param out    the spare arena to build into. Left in an unspecified but
+///               destructible state if this throws -- it is the spare, and the
+///               next rebuild overwrites it.
 ///
 /// @throws std::invalid_argument if the inputs do not describe one laid,
 ///         unreduced layout in the claim convention. Every refusal names the
@@ -198,6 +218,7 @@ class ClaimArena {
 /// @throws std::logic_error if the classification's own per-domain slot counts
 ///         disagree with @p counts -- the one way a piece whose
 ///         `num_kkt_elements` is not additive in its two flags shows up.
-ClaimArena restate_claim_stream(const RawClaimLayout &raw, const ClaimDomainCounts &counts);
+void restate_claim_stream(const RawClaimLayout &raw, const ClaimDomainCounts &counts,
+                          ClaimArena &out);
 
 } // namespace hven::solvers::detail
