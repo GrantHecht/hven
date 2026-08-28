@@ -578,6 +578,21 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // of already-empty vectors.
     this->invalidate_laid_state();
 
+    // WITH THE INVALIDATION, not at the end of the rebuild. Everything between
+    // here and the epoch bump can throw -- set_mat_dimensions and
+    // set_rhs_dimensions resize six arrays, get_mat_space allocates a
+    // partitions-by-kkt_dim clash matrix and a mutex vector, capture_laid_
+    // dimensions refuses a piece count past INT_MAX -- and a bad_alloc out of any
+    // of them would otherwise leave the analysed-destination capture describing a
+    // layout whose arrays are already half replaced. There is no state in which
+    // that capture is still true once this routine has begun: the layout it was
+    // taken against is being dismantled either way. Cleared first, so a throw
+    // anywhere below leaves a layout that correctly reports itself un-analysed
+    // and refuses a KKT-bearing assemble by name rather than scattering through
+    // offsets nothing derived.
+    this->analyzed_kkt_values_ = nullptr;
+    this->analyzed_kkt_matrix_ = nullptr;
+
     this->capture_laid_dimensions();
 
     this->set_mat_dimensions();
@@ -591,23 +606,16 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
 
     this->laid_partition_count_ = this->num_partitions_;
 
-    // A re-lay resets kkt_locations_ to -1: only analyze_sparsity fills it, and
-    // it has not run against this layout yet. The destination binding goes with
-    // the offsets it described.
-    this->analyzed_kkt_values_ = nullptr;
-    this->analyzed_kkt_matrix_ = nullptr;
-
     // THE CLAIM STREAM, restated or retained, and committed by one swap. LAST
-    // BUT ONE, and the position is load-bearing: this call CAN throw, and the
-    // two statements above cannot. A restatement refusal from any earlier
-    // position would leave the raw arrays rebuilt while the analyzed-destination
-    // capture still described the layout they replaced -- so a caller that
-    // caught the refusal and carried on would scatter through a stale location
-    // table, with Eigen's asserts compiled out and nothing to say so. From here,
-    // a throw leaves a layout that correctly reports itself un-analysed, leaves
-    // the previously published claim views valid under the epoch they were read
-    // at, and leaves the structure epoch unbumped -- which is what tells every
-    // epoch-gated consumer that this re-lay did not happen.
+    // BUT ONE, and the position is load-bearing in the other direction from the
+    // clearing above: this call CAN throw, and the epoch bump below cannot. A
+    // refusal here leaves a layout that reports itself un-analysed (cleared at
+    // the top), leaves the previously published claim views valid under the
+    // epoch they were read at, and leaves the structure epoch unbumped -- which
+    // is what tells every epoch-gated consumer that this re-lay did not happen.
+    //
+    // A re-lay also resets kkt_locations_ to -1 (set_mat_dimensions does it):
+    // only analyze_sparsity fills it, and it has not run against this layout.
     this->maintain_claim_stream();
 
     // LAST, and that program order is the substance of the ordering guarantee:
@@ -2324,6 +2332,7 @@ void hven::solvers::NonLinearProgram::first_order_kkt_pass(
 // the pinned values in place. Nothing downstream can tell the difference, which
 // is why eliminated variables' contributions to constraint values and to the
 // surviving variables' derivatives need no handling of their own.
+
 
 void hven::solvers::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X,
                                                ConstEigenRef<VectorXd> LE,

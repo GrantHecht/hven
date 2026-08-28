@@ -17,6 +17,7 @@
 // because a refusal reachable only by corrupting a laid layout's public members
 // is one no test could otherwise construct.
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -27,9 +28,12 @@
 #include <gtest/gtest.h>
 
 #include <Eigen/Core>
+#include <Eigen/Sparse>
 
 #include "hven/detail/model/claim_restatement.h"
 #include "hven/model/aggregate_declaration.h"
+#include "hven/model/candidate_point.h"
+#include "hven/model/claim_space.h"
 #include "hven/model/non_linear_program.h"
 
 #include "support/claim_corpus.h"
@@ -370,6 +374,82 @@ template <>
 struct SolverInterfaceAdapter<NonAdditivePiece> : DirectFunctionModel<NonAdditivePiece> {};
 } // namespace hven::solvers
 
+/// Whether the piece below refuses its next claim pass. A file-scope flag rather
+/// than piece state because the partitioner hands every piece out by value, so
+/// nothing written on the instance the test holds reaches the copies that are
+/// actually asked to claim.
+bool g_refuse_next_claim_pass = false;
+
+/// A piece that lays perfectly well and then, once armed, THROWS FROM INSIDE
+/// get_mat_space -- the region between the start of a re-lay and the point the
+/// old ordering cleared the analysed-destination capture at.
+///
+/// It stands in for the failure the ordering fix is actually about: a bad_alloc
+/// out of one of the six array resizes, the clash matrix, or the mutex vector.
+/// Those are unreachable on demand and a piece refusal is reachable, and both
+/// arrive at the same place -- a throw out of a re-lay that has already replaced
+/// the arrays the previous analysis was taken against.
+struct RelayRefusingPiece {
+    std::string name() const { return "relay_refusing"; }
+    int input_rows() const { return 2; }
+    int output_rows() const { return 1; }
+    bool thread_safe() const { return true; }
+
+    int num_kkt_elements(bool dojac, bool) const { return dojac ? 2 : 0; }
+
+    void get_kkt_space(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols,
+                       int &freeloc, int conoffset, bool dojac, bool,
+                       hven::solvers::SolverIndexingData &data) {
+        if (g_refuse_next_claim_pass) {
+            throw std::runtime_error("RelayRefusingPiece: refusing this claim pass");
+        }
+        data.inner_kkt_starts_.resize(data.num_appl());
+        for (int appl = 0; appl < data.num_appl(); appl++) {
+            data.inner_kkt_starts_[appl] = freeloc;
+            if (!dojac) {
+                continue;
+            }
+            const int row = data.c_loc(0, appl) + conoffset;
+            rows[freeloc] = row;
+            cols[freeloc] = data.v_scatter_loc(0, appl);
+            freeloc++;
+            rows[freeloc] = row;
+            cols[freeloc] = data.v_scatter_loc(1, appl);
+            freeloc++;
+        }
+    }
+
+    void constraints(const Eigen::Ref<const Eigen::VectorXd> &, Eigen::Ref<Eigen::VectorXd>,
+                     const hven::solvers::SolverIndexingData &) const {}
+    void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &,
+                                     const Eigen::Ref<const Eigen::VectorXd> &,
+                                     Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
+                                     const hven::solvers::SolverIndexingData &) const {}
+    void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &,
+                              Eigen::Ref<Eigen::VectorXd>,
+                              Eigen::SparseMatrix<double, Eigen::RowMajor> &,
+                              Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
+                              std::vector<std::mutex> &,
+                              const hven::solvers::SolverIndexingData &) const {}
+    void constraints_jacobian_adjointgradient(
+        const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
+        Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
+        Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
+        Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
+        const hven::solvers::SolverIndexingData &) const {}
+    void constraints_jacobian_adjointgradient_adjointhessian(
+        const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
+        Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
+        Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
+        Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
+        const hven::solvers::SolverIndexingData &) const {}
+};
+
+namespace hven::solvers {
+template <>
+struct SolverInterfaceAdapter<RelayRefusingPiece> : DirectFunctionModel<RelayRefusingPiece> {};
+} // namespace hven::solvers
+
 TEST(ClaimStreamState, ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding) {
     CorpusCase fixture = state_case();
     fixture.fixed_variables_.clear();
@@ -396,8 +476,9 @@ TEST(ClaimStreamState, ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding
     EXPECT_THROW(nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_),
                  std::invalid_argument);
 
-    // THE TERM: the arena was built as a local, so nothing was committed, and
-    // the epoch was not bumped either. What a consumer holds still reads.
+    // THE TERM: the restatement writes the SPARE arena and commits by swapping
+    // it with the live one, so a refusal touches nothing that was published --
+    // and the epoch was not bumped either. What a consumer holds still reads.
     EXPECT_EQ(nlp->claim_stream_epoch(), claim_before);
     EXPECT_EQ(copy_of(nlp->kkt_claim_rows()), rows_before);
     EXPECT_EQ(nlp->hessian_claims(), hessian_before);
@@ -689,5 +770,66 @@ TEST(ClaimStreamState, AFirstLayThatCannotRestateSaysThatAndNotSomethingAboutEli
         const std::string message = error.what();
         EXPECT_NE(message.find("restating"), std::string::npos) << message;
         EXPECT_EQ(message.find("eliminated"), std::string::npos) << message;
+    }
+}
+
+TEST(ClaimStreamState, ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed) {
+    // THE OTHER HALF OF THE EXCEPTION-SAFETY TERM, and the half that is about
+    // the ENGINE's surface rather than the claim stream's. A re-lay clears the
+    // analysed-destination capture with its first statements, before anything
+    // that can throw: so a lay that is refused part-way -- here, by a
+    // restatement that cannot describe the slots it was handed -- leaves a
+    // layout that says it has not been analysed, and refuses a KKT-bearing
+    // assemble BY NAME. The failure this closes is the opposite: a layout whose
+    // arrays have been replaced while its location table still claims to be
+    // bound to the destination the previous layout was analysed against, which
+    // Release builds would scatter through in silence.
+    constexpr int kApplications = 8;
+    Eigen::MatrixXi v_index(2, kApplications);
+    Eigen::MatrixXi c_index(1, kApplications);
+    for (int appl = 0; appl < kApplications; appl++) {
+        v_index(0, appl) = 2 * appl;
+        v_index(1, appl) = 2 * appl + 1;
+        c_index(0, appl) = appl;
+    }
+
+    g_refuse_next_claim_pass = false;
+    auto nlp = std::make_shared<NonLinearProgram>(1);
+    nlp->equality_constraints_.push_back(hven::solvers::ConstraintFunction(
+        hven::solvers::ConstraintInterface(RelayRefusingPiece{}), v_index, c_index));
+    for (int i = 0; i < 2 * kApplications; i++) {
+        nlp->set_variable_bound(i, -1.0, 1.0);
+    }
+    nlp->make_nlp(2 * kApplications, kApplications, 0);
+
+    Eigen::SparseMatrix<double, Eigen::RowMajor> kkt;
+    nlp->analyze_sparsity(kkt);
+    ASSERT_NE(nlp->bound_kkt_destination(), nullptr);
+
+    // The re-lay now fails INSIDE get_mat_space, after set_mat_dimensions has
+    // already replaced the arrays the analysis above was taken against.
+    g_refuse_next_claim_pass = true;
+    EXPECT_THROW(nlp->make_nlp(2 * kApplications, kApplications, 0), std::runtime_error);
+    g_refuse_next_claim_pass = false;
+
+    // The capture is gone, and the entry that reads it says so.
+    EXPECT_EQ(nlp->bound_kkt_destination(), nullptr);
+
+    std::vector<double> values(static_cast<std::size_t>(std::max(nlp->num_user_kkt_elems_, 1)),
+                               0.0);
+    const hven::solvers::KktScatterView kkt_view{values.data(), static_cast<int>(values.size()),
+                                                 &nlp->kkt_location_table()};
+    const hven::Vec x = hven::Vec::Zero(nlp->primal_vars_);
+    const hven::Vec no_multipliers = hven::Vec::Zero(0);
+    const hven::solvers::CandidatePoint point{x, no_multipliers, no_multipliers, 1.0};
+
+    try {
+        nlp->assemble(point, hven::solvers::EvalRequest::kConstraintJacobian, kkt_view,
+                      hven::solvers::RhsScatterView{});
+        FAIL() << "a KKT-bearing assemble against an un-analysed layout must be refused";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("has not been laid against any destination"), std::string::npos)
+            << message;
     }
 }

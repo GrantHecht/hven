@@ -1526,10 +1526,13 @@ struct NonLinearProgram : public NlpAggregate {
     /// Called from rebuild_structures() and nowhere else.
     void maintain_claim_stream();
 
-    /// Builds the restated arena and COMMITS it by one swap. Built as a local
-    /// first: a throw part-way leaves the previously published views valid under
-    /// the epoch they were read at, which is the whole of the exception-safety
-    /// term.
+    /// Restates the laid slots into the SPARE arena and COMMITS it by swapping
+    /// spare and live. Nothing is written to the live arena at any point, so a
+    /// throw part-way leaves the previously published views valid under the
+    /// epoch they were read at -- which is the whole of the exception-safety
+    /// term. The swap is also the recycle: what was live becomes the next
+    /// rebuild's spare, so a rebuild at an unchanged claim width allocates
+    /// nothing.
     void restate_claim_stream();
 
     /// Releases the published stream and bumps its epoch. Reached where the
@@ -1541,21 +1544,28 @@ struct NonLinearProgram : public NlpAggregate {
     void drop_claim_stream();
 
     /// @throws std::invalid_argument naming which case applies, when no claim
-    ///         stream is published: never laid, or dropped by the paragraph
-    ///         above.
+    ///         stream is published: never laid, the first lay's restatement
+    ///         refused, or dropped by the paragraph above. Three reasons, and
+    ///         the middle one exists because a message about elimination is a
+    ///         confident lie on a layout that eliminates nothing.
     void require_claim_stream() const;
 
-    /// Bumped where the master piece lists are REPLACED -- make_nlp() and
-    /// adopt_declaration(), and nowhere else. Any future path that replaces or
-    /// reorders the master pieces without passing through one of those two must
-    /// bump it, or a stream built against the old pieces is retained over the
-    /// new ones.
+    /// Bumped wherever the master piece lists are REPLACED, which is four sites
+    /// and not two: make_nlp(), adopt_declaration(), and the
+    /// splice_fixed_variable_rows / discard_fixed_variable_rows pair that a
+    /// fixed-variable treatment installs and drops its internal rows through.
+    /// rebuild_structures() bumps it as well whenever it finds a master piece
+    /// this layout did not lay -- the public-member route, which none of the
+    /// four covers. Any future path that replaces or reorders the master pieces
+    /// must bump it, or a stream built against the old pieces is retained over
+    /// the new ones.
     std::uint64_t declaration_generation_ = 0;
 
-    /// The published stream, one owned arena, and the stamp it was built
-    /// against. `claim_stream_valid_` is what the accessors read: an arena can
-    /// be legitimately EMPTY (a layout that claims nothing at all), and empty is
-    /// not the same answer as absent.
+    /// The published stream and the stamp it was built against.
+    /// `claim_stream_valid_` records the DECISION and the arena records the
+    /// STORAGE; the accessor guard reads both, because a state where they
+    /// disagree is not one to serve views out of.
+    ///
     /// TWO BUFFERS, LIVE AND SPARE. A rebuild writes the spare and swaps, so the
     /// buffer that was live becomes the next rebuild's spare instead of being
     /// freed -- which makes a re-lay at the same claim structure allocate
