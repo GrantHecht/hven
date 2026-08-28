@@ -170,6 +170,17 @@ class NlpModelAggregate final : public ClaimStreamSource {
     ///        in: n + me + mi.
     int kkt_dimension() const { return laid_.kkt_dimension_; }
 
+    // THE CLAIM-STREAM EPOCH IS THIS BRIDGE'S STRUCTURE EPOCH, and that identity
+    // is a fact about the bridge rather than a shortcut. relay() replaces every
+    // laid structure below wholesale and bumps the structure epoch in the same
+    // breath, and there is no re-lay here that leaves the claim structure
+    // standing -- no fixed-variable treatment, no elimination, nothing that
+    // moves the layout without moving what the claims name. So the two epochs
+    // carry the same information, and the base's default (claim_stream_source.h)
+    // returning one for the other states that rather than hiding it. A provider
+    // that RETAINS a published stream across a re-lay is the one that has to
+    // override; this one never retains.
+    //
     /// @brief Claim slot to assembled KKT row, in claim order.
     Eigen::Ref<const Eigen::VectorXi> kkt_claim_rows() const override {
         return laid_.kkt_claim_rows_;
