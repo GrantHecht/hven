@@ -670,6 +670,53 @@ struct SqpOptions {
     /// What turns an SSN infeasibility suspicion into an exit; see
     /// SsnInfeasibilityRule. Same forwarding and same kWalk inertness.
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms;
+
+    // --- Problem scaling (M6 W0.2) ---
+
+    /// THE PROBLEM-SCALING LAYER, OPT-IN. When ON, the engine solves a
+    /// diagonally rescaled problem -- the objective and each constraint row put
+    /// into units taken from the derivatives at the start point -- and maps
+    /// every exported quantity back to the caller's units at the export
+    /// boundary. The declared problem is never modified; see
+    /// detail/drivers/problem_scaling.h for the transformation and its inverse.
+    ///
+    /// DEFAULT FALSE, and off means arithmetically untouched: no factor is
+    /// installed, every apply site in the seam is behind one false predicate,
+    /// and the solve is the one this driver has always run. The `crash_basis`
+    /// pattern, not the `enable_soc` one.
+    ///
+    /// WHY IT SHIPS OFF. The settings contract for this milestone is per-toggle
+    /// with MEASURED defaults, and the measurement that would justify flipping
+    /// this one is a tuning study over a scale-diverse population, which is M8
+    /// scope. What is measured today is the two acceptance cells this layer was
+    /// built for; two cells do not justify a default.
+    ///
+    /// WHAT CHANGES WHEN IT IS ON, stated plainly because it is a real
+    /// contract difference and not only a performance one: the CONVERGENCE TEST
+    /// gates on the SCALED residuals -- that is the entire point of the layer --
+    /// while `SqpSolution`'s four terminal KKT fields report CALLER-scale
+    /// values. Those two can differ, so a kOptimal solve may report a
+    /// caller-scale `kkt_residual` above `kkt_tol`. `SqpScalingReport` carries
+    /// both the factors and the scaled residual the gate actually read, which is
+    /// what makes the gap computable rather than merely disclosed.
+    bool enable_scaling = false;
+
+    /// The inf-norm the scaled objective gradient and each scaled Jacobian row
+    /// are aimed at. Default 100.0, following IPOPT's
+    /// `nlp_scaling_max_gradient` in name and value. Must be finite and > 0.
+    /// Read only when `enable_scaling` is true.
+    double scaling_max_gradient = 100.0;
+
+    /// Symmetric clamp on every factor the rule produces: each is confined to
+    /// [1/scaling_factor_limit, scaling_factor_limit]. Default 1e12 -- twelve
+    /// orders each way. Must be finite and >= 1. Read only when
+    /// `enable_scaling` is true.
+    ///
+    /// It is what bounds the damage from the rule being TWO-SIDED
+    /// (problem_scaling.h): a start point that is genuinely near-stationary has
+    /// its objective gradient AMPLIFIED, and without a ceiling that amplification
+    /// is unbounded.
+    double scaling_factor_limit = 1e12;
 };
 
 /// THE BOUNDARY VALIDATION SqpDriver's constructor runs over SqpOptions.
@@ -932,6 +979,40 @@ struct SqpIterate {
 /// history describes every iterate visited; whether the LAST row is an
 /// iterate row or a failing-subproblem row depends on the exit -- see
 /// SqpCounters.
+/// @brief What the W0.2 problem-scaling layer did to a solve, reported on its
+///        solution.
+///
+/// A DIAGNOSTIC, NOT A COUNTER. It is deliberately not a member of SqpCounters:
+/// that struct's documented aggregation rule is that every field sums except
+/// two peaks, and a unit factor neither sums nor peaks meaningfully across the
+/// restoration fold -- a solve and its restoration sub-solve are two problems,
+/// and the sub-solve runs unscaled by design.
+///
+/// AN INACTIVE REPORT IS THE IDENTITY, field for field, so a reader never has to
+/// branch on `active` before using the factors.
+struct SqpScalingReport {
+    /// True when the solve ran scaled, i.e. `SqpOptions::enable_scaling` was on
+    /// and factors were installed.
+    bool active = false;
+    /// The objective factor `sf`. Multiply a caller-scale objective by it to
+    /// reach the engine's; divide to come back. 1.0 when inactive.
+    double obj = 1.0;
+    /// Largest and smallest constraint-row factor over the equality and
+    /// inequality blocks together, or 1.0 when the problem has no rows (a
+    /// bound-constrained problem has nothing to equilibrate). Their ratio is the
+    /// row conditioning the layer removed.
+    double row_max = 1.0;
+    double row_min = 1.0;
+    /// THE SCALED RESIDUAL THE CONVERGENCE TEST ACTUALLY READ, at the returned
+    /// point -- the counterpart of SqpSolution::kkt_residual, which is on the
+    /// CALLER's scale. On an inactive solve the two are the same number by
+    /// construction. On an active one their difference is exactly the gap
+    /// SqpOptions::enable_scaling discloses, and reporting both is what makes it
+    /// computable. NaN whenever SqpSolution::kkt_residual is NaN, for the same
+    /// reason: nothing was measured.
+    double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
+};
+
 struct SqpSolution {
     /// @brief How the solve ended.
     SqpStatus status = SqpStatus::kOptimal;
@@ -1008,6 +1089,16 @@ struct SqpSolution {
     /// Defaults to 0.0; every public solve() that RETURNS writes a value
     /// >= 0.0 onto the solution it hands back.
     double wall_seconds = 0.0;
+
+    /// @brief What the problem-scaling layer did to this solve; the identity
+    ///        when it was off, which is the shipped default.
+    ///
+    /// READ IT BEFORE COMPARING `f`, the multiplier blocks or the four terminal
+    /// residuals against another solve's: all of those are reported on the
+    /// CALLER's scale whatever this says, so they are directly comparable -- but
+    /// `scaled_kkt_residual` is the number the convergence test gated on, and on
+    /// an active solve it is the one that was required to be <= kkt_tol.
+    SqpScalingReport scaling;
 
     /// TRUE ONLY ON THE CERTIFIED INFEASIBILITY EXIT: the restoration phase
     /// ran to its own KKT test, that test passed (residual <= kkt_tol) and h

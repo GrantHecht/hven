@@ -519,6 +519,105 @@ void AggregateEvalSeam::publish_matrix(const ClaimBlock &block, const SpMatRM &p
     }
 }
 
+// ===========================================================================
+// THE W0.2 PROBLEM-SCALING LAYER'S APPLY SITES.
+//
+// detail/drivers/problem_scaling.h carries the transformation, its inverse and
+// the argument for both. What is here is only the applying, and it is here
+// rather than in that TU because this is where the values are: a scale is one
+// multiply per element on a buffer this seam has just filled and still owns.
+//
+// EVERY SITE IS BEHIND `scaling_.active`. At the shipped default
+// (SqpOptions::enable_scaling == false) no factor is ever installed, every
+// predicate below is false, and this seam does the arithmetic it has always
+// done -- which is what the OFF-path bit-identity pin asserts.
+// ===========================================================================
+
+void AggregateEvalSeam::install_scaling(detail::ProblemScaling scaling) {
+    if (scaling.active) {
+        // Sized against THIS seam's laid row counts, because that is what every
+        // apply site indexes against. A mismatch is a caller error and is
+        // refused here rather than becoming an out-of-range read per major --
+        // CLAUDE.md section 4's boundary rule, and Eigen's own asserts are
+        // compiled out under NDEBUG so they cannot be the guard.
+        if (scaling.eq_rows.size() != equality_rows_ ||
+            scaling.ineq_rows.size() != inequality_rows_) {
+            throw std::invalid_argument(fmt::format(
+                "AggregateEvalSeam::install_scaling: factor blocks are ({}, {}) but this seam is "
+                "laid for ({}, {}) constraint rows",
+                scaling.eq_rows.size(), scaling.ineq_rows.size(), equality_rows_,
+                inequality_rows_));
+        }
+    }
+    scaling_ = std::move(scaling);
+}
+
+void AggregateEvalSeam::scale_jacobian_rows(const Vec &factors, SpMatRM &jac) {
+    // ROW-MAJOR is what makes this one pass with no indirection: a row's stored
+    // entries are contiguous in the outer index, so the factor is loaded once
+    // per row rather than once per entry.
+    for (Index r = 0; r < jac.rows(); ++r) {
+        const double f = factors(r);
+        for (SpMatRM::InnerIterator it(jac, r); it; ++it) {
+            it.valueRef() *= f;
+        }
+    }
+}
+
+void AggregateEvalSeam::scale_values(NlpEval &ev) const {
+    if (!scaling_.active) {
+        return;
+    }
+    ev.f *= scaling_.obj;
+    if (equality_rows_ > 0) {
+        ev.ce.array() *= scaling_.eq_rows.array();
+    }
+    if (inequality_rows_ > 0) {
+        ev.ci.array() *= scaling_.ineq_rows.array();
+    }
+}
+
+void AggregateEvalSeam::scale_derivatives(NlpEval &ev, bool include_gradient) const {
+    if (!scaling_.active) {
+        return;
+    }
+    if (include_gradient) {
+        ev.grad *= scaling_.obj;
+    }
+    if (equality_rows_ > 0) {
+        scale_jacobian_rows(scaling_.eq_rows, ev.Je);
+    }
+    if (inequality_rows_ > 0) {
+        scale_jacobian_rows(scaling_.ineq_rows, ev.Ji);
+    }
+}
+
+void AggregateEvalSeam::to_caller_scale(NlpEval &ev) const {
+    if (!scaling_.active) {
+        return;
+    }
+    // THE SAME REFUSAL EVERY OTHER BUNDLE-TAKING MOMENT MAKES, and for the same
+    // reason: this takes a bundle the CALLER has been holding, possibly across a
+    // re-lay that changed a row count, and it indexes the factor blocks by row.
+    // CLAUDE.md section 4 puts the check here rather than trusting Eigen's,
+    // which are compiled out under NDEBUG.
+    this->require_bundle_matches_layout(ev, "to_caller_scale");
+    // The exact inverse of the two functions above, and it is exact rather than
+    // approximate because every factor is finite and strictly positive by
+    // construction (problem_scaling.h) -- there is no divide-by-zero arm to
+    // guard and no branch on magnitude.
+    ev.f /= scaling_.obj;
+    ev.grad /= scaling_.obj;
+    if (equality_rows_ > 0) {
+        ev.ce.array() /= scaling_.eq_rows.array();
+        scale_jacobian_rows(scaling_.eq_rows.cwiseInverse(), ev.Je);
+    }
+    if (inequality_rows_ > 0) {
+        ev.ci.array() /= scaling_.ineq_rows.array();
+        scale_jacobian_rows(scaling_.ineq_rows.cwiseInverse(), ev.Ji);
+    }
+}
+
 void AggregateEvalSeam::assemble_hessian(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                                          double obj_scale) {
     this->seed_kkt_segment(hessian_);
@@ -570,6 +669,14 @@ NlpEval AggregateEvalSeam::eval_nlp(const Vec &x, const Vec &, const Vec &) {
     this->publish_matrix(equality_jacobian_, equality_pattern_, ev.Je);
     this->publish_matrix(inequality_jacobian_, inequality_pattern_, ev.Ji);
 
+    // BEFORE THE SCREEN, DELIBERATELY. A factor is finite and positive, so it
+    // cannot turn a finite value non-finite by itself -- but the PRODUCT can
+    // overflow, and a screen taken before the multiply would certify a bundle
+    // the driver then reads as infinite. Screening the values the driver will
+    // actually read is the only reading of `all_finite` that means anything.
+    this->scale_values(ev);
+    this->scale_derivatives(ev, /*include_gradient=*/true);
+
     // Exactly eval_nlp's screen. The two residual conjuncts are unconditional
     // here where that function folds them under me()/mi() > 0, which is the
     // same predicate: a zero-row block is empty, and allFinite() on an empty
@@ -590,6 +697,9 @@ NlpEval AggregateEvalSeam::eval_nlp_values(const Vec &x) {
     aggregate_->evaluate_candidate_values(CandidatePoint{x, no_multipliers, no_multipliers, 1.0},
                                           values);
 
+    // The value half only: this moment fills no derivative, and the empty
+    // linearization written below is empty in BOTH spaces.
+    this->scale_values(ev);
     ev.all_finite = std::isfinite(ev.f) && ev.ce.allFinite() && ev.ci.allFinite();
     // The honestly-empty linearization, NOT this seam's claim patterns: a
     // caller that mistakenly reads a derivative here gets zeros of the right
@@ -612,6 +722,9 @@ void AggregateEvalSeam::refresh_derivatives(NlpEval &ev, const Vec &x) {
     if (inequality_rows_ > 0) {
         this->publish_matrix(inequality_jacobian_, inequality_pattern_, ev.Ji);
     }
+    // The derivative half only: this moment deliberately does not re-evaluate
+    // the values, which were scaled when they were produced.
+    this->scale_derivatives(ev, /*include_gradient=*/true);
     ev.all_finite = ev.all_finite && ev.grad.allFinite();
 }
 
@@ -626,6 +739,9 @@ void AggregateEvalSeam::jacobians_only(NlpEval &ev, const Vec &x) {
     if (inequality_rows_ > 0) {
         this->publish_matrix(inequality_jacobian_, inequality_pattern_, ev.Ji);
     }
+    // NOT the gradient: this moment fills none, and the bundle's gradient block
+    // was scaled by whichever moment did fill it.
+    this->scale_derivatives(ev, /*include_gradient=*/false);
 }
 
 QpProblem AggregateEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, const Vec &lambda_e,
@@ -633,11 +749,37 @@ QpProblem AggregateEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, c
     this->relay_if_stale();
     this->require_bundle_matches_layout(ev, "build_subproblem");
 
-    this->assemble_hessian(x, lambda_e, lambda_i, obj_scale);
+    if (scaling_.active) {
+        // THE ONE STEP OF THE W0.2 LAYER THAT IS NOT A PLAIN MULTIPLY, and
+        // problem_scaling.h's THE HESSIAN paragraph carries the derivation.
+        // The provider computes `w*hess(f) + sum_j mu_j*hess(c_j)` from an
+        // objective weight and a multiplier block IN ITS OWN UNITS, so to get
+        // hess(L~) it must be asked for `w = obj_scale * obj` and for the
+        // engine's multipliers mapped back to those units, `mu_j = s_j *
+        // lambda~_j`. Exact at every weight including the restoration weight
+        // 0.0, where hess(f) drops out of both sides.
+        //
+        // The size guards are not defensive noise: they are the same "full
+        // length, or empty meaning no multipliers" contract eval_nlp documents,
+        // and an empty block must stay empty rather than become a zero vector.
+        const Vec mu_e = lambda_e.size() == equality_rows_
+                             ? Vec(lambda_e.array() * scaling_.eq_rows.array())
+                             : lambda_e;
+        const Vec mu_i = lambda_i.size() == inequality_rows_
+                             ? Vec(lambda_i.array() * scaling_.ineq_rows.array())
+                             : lambda_i;
+        this->assemble_hessian(x, mu_e, mu_i, obj_scale * scaling_.obj);
+    } else {
+        this->assemble_hessian(x, lambda_e, lambda_i, obj_scale);
+    }
 
     QpProblem qp;
     this->publish_matrix(hessian_, hessian_pattern_, qp.H);
     qp.H.makeCompressed();
+    // `ev.grad` ALREADY CARRIES the objective factor -- it was applied where the
+    // gradient was produced -- so the layer must not appear a second time here.
+    // What multiplies it is only the caller's own Lagrangian objective weight,
+    // exactly as before the layer existed.
     qp.g = obj_scale * ev.grad;
 
     qp.Ae = ev.Je;

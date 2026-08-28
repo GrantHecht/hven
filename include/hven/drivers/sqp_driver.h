@@ -2811,9 +2811,33 @@ class SqpDriver {
                                      std::shared_ptr<const HotState> hot);
 
     /// Assembles the final SqpSolution (status, x, multipliers, KKT record,
-    /// f, warm start) at an exit.
-    static SqpSolution finish(SqpSolution out, SqpStatus status, const Vec &x, const Vec &lambda_e,
-                              const Vec &lambda_i, const SqpKkt &kkt, double f, WarmStart warm);
+    /// f, warm start) at an exit, AND maps every exported quantity back to the
+    /// caller's units when the solve ran scaled.
+    ///
+    /// NOT STATIC, and it takes the seam, for one reason each: it reads
+    /// `opts_.feas_tol` for the caller-scale re-measurement's bound tolerance,
+    /// and that re-measurement is an EVALUATION, which only the seam can serve.
+    /// Both are inert at the shipped default -- an unscaled solve reads neither.
+    ///
+    /// @param seam the solve's evaluation seam; carries the installed factors.
+    SqpSolution finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatus status, const Vec &x,
+                       const Vec &lambda_e, const Vec &lambda_i, const SqpKkt &kkt, double f,
+                       WarmStart warm);
+
+    /// Computes THIS solve's scaling factors and installs them on @p seam, or
+    /// leaves the seam unscaled when `opts_.enable_scaling` is false.
+    ///
+    /// Called from solve_impl AFTER its argument validation and BEFORE the
+    /// major loop, so a mis-sized or non-finite x0 is still refused with the
+    /// message it has always been refused with rather than through an
+    /// evaluation this layer added. Costs ONE extra model evaluation, and only
+    /// when the toggle is on.
+    ///
+    /// @param seam the solve's evaluation seam, unscaled on entry.
+    /// @param x0   the start point the factors are read at.
+    /// @return the count of extra derivative evaluations spent (0 or 1), for
+    ///         the caller to charge to its own counters.
+    Index install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) const;
 
     SqpOptions opts_;
     // ONE engine for the whole driver, deliberately: it is what makes warm

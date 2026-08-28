@@ -1030,6 +1030,37 @@ void SqpDriver::capture_completed_warm_start(const SqpSolution &out, const Aggre
     solve_completed_ = true;
 }
 
+// ===========================================================================
+// THE W0.2 PROBLEM-SCALING LAYER'S DRIVER-SIDE HALF.
+//
+// detail/drivers/problem_scaling.h carries the transformation and its inverse;
+// drivers/aggregate_eval_seam.cpp applies it. What is here is the three things
+// only the driver can do: decide the factors once per solve, keep the
+// restoration phase out of the scaled space, and map everything back at the one
+// export boundary this driver has.
+// ===========================================================================
+
+Index SqpDriver::install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) const {
+    if (!opts_.enable_scaling) {
+        // Not merely "install the identity": nothing is installed at all, so the
+        // seam keeps the inactive value it was born with and every apply site in
+        // it stays behind a false predicate. This is the shipped default.
+        return 0;
+    }
+    // ONE evaluation, at the start point, and the factors it yields are FIXED
+    // for the solve -- adaptive rescaling is a declared non-goal of W0.2, not an
+    // omission. eval_nlp is used rather than a narrower moment because the rule
+    // reads the gradient AND both Jacobians, which is exactly that moment's
+    // bill; the seam is still unscaled here, so what comes back is in the
+    // caller's units, which is what the rule is defined over.
+    const NlpEval at_x0 = seam.eval_nlp(x0, Vec(), Vec());
+    detail::ScalingRule rule;
+    rule.max_gradient = opts_.scaling_max_gradient;
+    rule.factor_limit = opts_.scaling_factor_limit;
+    seam.install_scaling(detail::compute_problem_scaling(at_x0.grad, at_x0.Je, at_x0.Ji, rule));
+    return 1;
+}
+
 SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                                   const WarmStart &warm, Index minor_budget) {
     const Index n = seam.n();
@@ -1093,6 +1124,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     ssn_prox_center_sigma_out_ = 0.0;
     ssn_prox_center_x_out_ = Vec();
     ssn_prox_center_lambda_out_ = Vec();
+
+    // THE SCALING FACTORS, decided here: after every argument refusal this
+    // function makes (so the layer never changes which message a bad call gets)
+    // and before any evaluation the loop makes (so no moment is ever served at
+    // a different scale from another). The one extra derivative evaluation it
+    // may spend is charged like any other. Inert and free at the shipped
+    // default, where it neither evaluates nor installs anything.
+    out.counters.evals_full += this->install_solve_scaling(seam, x0);
 
     // WARM-START INGEST.
     //
@@ -1295,13 +1334,44 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // kSeeded resolution to kCold after the fact, and this predicate must
     // follow.
     bool warm_ingest = resolved_level != StartLevel::kCold;
+    // THE STATE CARRY IS REFUSED ON A SCALED SOLVE (M6 W0.2), deliberately and
+    // conservatively. What this predicate gates -- the funnel width, the two
+    // regularization parameters and the hot factorization -- lives in the units
+    // of the problem the exporting solve ran on, and none of the four has a
+    // defined image under this layer's map: a funnel width bounds
+    // max_j |s_j c_j|, which no scalar recovers from max_j |c_j|, and a hot
+    // factorization is a factorization of a DIFFERENT KKT matrix. Carrying them
+    // anyway would be a silent unit error, so a scaled solve takes the values
+    // and declines the state. The cost is a demoted start on scaled warm hops;
+    // the alternative was wrong answers, which is not a trade.
     const bool warm_state_ingest =
-        static_cast<int>(resolved_level) >= static_cast<int>(StartLevel::kWarm);
+        static_cast<int>(resolved_level) >= static_cast<int>(StartLevel::kWarm) &&
+        !seam.scaling().active;
     out.counters.n_seeded = resolved_level == StartLevel::kSeeded ? 1 : 0;
 
     Vec x = warm_ingest ? warm.x : x0;
     Vec lambda_e = warm_ingest ? warm.lambda_e : Vec::Zero(seam.me());
     Vec lambda_i = warm_ingest ? warm.lambda_i : Vec::Zero(seam.mi());
+    // THE W0.2 INGEST BOUNDARY, and it is exactly these two vectors. Every
+    // WarmStart this driver emits carries CALLER-scale multipliers (see
+    // `finish`), so a scaled solve must map them into its own units before
+    // adopting them -- lambda~_j = sf * lambda_j / s_j, the CALLER->ENGINE
+    // direction of problem_scaling.h's multiplier map. `x` is untouched because
+    // no variable was scaled, and `warm.z` is not ingested on this path at all.
+    //
+    // NOTHING ABOVE THIS LINE NEEDED THE MAP: the dimension conjuncts, the
+    // finiteness gates and the structural-hash probe are all scale-invariant --
+    // the probe hashes a SPARSITY PATTERN, which a positive diagonal scaling
+    // cannot change.
+    if (warm_ingest && seam.scaling().active) {
+        const detail::ProblemScaling &sc = seam.scaling();
+        if (lambda_e.size() == sc.eq_rows.size()) {
+            lambda_e = (lambda_e.array() * sc.obj / sc.eq_rows.array()).matrix();
+        }
+        if (lambda_i.size() == sc.ineq_rows.size()) {
+            lambda_i = (lambda_i.array() * sc.obj / sc.ineq_rows.array()).matrix();
+        }
+    }
 
     // AN INGEST SEEDS THE ENGINE'S WORKING SET from warm.qp_working_set,
     // through the SAME seed path every other major uses
@@ -1976,7 +2046,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // restoration_moved_x reasoning elsewhere in this loop.
                 const bool best_is_current = row.violation_l1 == mb_best_h && row.f == mb_best_f;
                 return finish(
-                    std::move(out), SqpStatus::kBudgetExhausted, mb_best_x, mb_best_lambda_e,
+                    seam, std::move(out), SqpStatus::kBudgetExhausted, mb_best_x, mb_best_lambda_e,
                     mb_best_lambda_i, mb_best_kkt, mb_best_f,
                     make_warm_start(seam, (best_is_current && have_seed) ? &seed : nullptr, qp,
                                     qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
@@ -1987,8 +2057,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // any) is the most recent QP solved AT this same x -- see
             // the WARM SEEDING note for why it always still describes
             // this x rather than some earlier one.
-            return finish(std::move(out), converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter, x,
-                          lambda_e, lambda_i, kkt, row.f,
+            return finish(seam, std::move(out),
+                          converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter, x, lambda_e,
+                          lambda_i, kkt, row.f,
                           make_warm_start(seam, have_seed ? &seed : nullptr, qp, qp_built, &ev, &x,
                                           delta, last_dual_mu, opts_.qp.primal_delta,
                                           strategy.get(), engine_.hot_state()));
@@ -2054,8 +2125,24 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // seam for the duration of that call, exactly as this solve's entry
             // point did. `feasibility` outlives that call: it is this scope's
             // local and the sub-solve returns before the scope ends.
-            const RestorationModel feasibility(bridge.model(), x, ev);
+            // THE W0.2 UNIT BOUNDARY, and it is a real one rather than a
+            // precaution. RestorationModel wraps the RAW model behind the
+            // bridge while reading THIS bundle for its slack sigmas and its
+            // start point -- so on a scaled solve the bundle must be mapped
+            // back to the model's own units first, or the wrapper would size
+            // its slacks in one space and evaluate its constraints in another.
+            // A no-op, and a copy elided, when the solve is unscaled.
+            NlpEval resto_ev = ev;
+            seam.to_caller_scale(resto_ev);
+            const RestorationModel feasibility(bridge.model(), x, resto_ev);
             SqpOptions ropts = opts_;
+            // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
+            // qp_mode forcings just below and for the same kind of reason: the
+            // restoration problem is a DIFFERENT problem (a feasibility one, in
+            // augmented variables), the factors computed for this solve do not
+            // describe it, and re-deriving factors for it would put a second,
+            // independently-scaled space inside one solve for no measured gain.
+            ropts.enable_scaling = false;
             // The caller's strategy factory is NOT carried; the radius is.
             // See the header note's WHAT IS CARRIED IN.
             ropts.make_strategy = {};
@@ -2822,7 +2909,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // (unless restoration moved x away from what it
                 // describes; see restoration_moved_x's own note).
                 return finish(
-                    std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
+                    seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                     restoration_exit_kkt, restoration_exit_f,
                     make_warm_start(seam, (!restoration_moved_x && have_seed) ? &seed : nullptr, qp,
                                     qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
@@ -2871,8 +2958,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     // around x -- see WARM SEEDING above for why that is
                     // meaningful even though the solve failed. Not used
                     // if restoration moved x away from it.
-                    return finish(std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
-                                  restoration_exit_kkt, restoration_exit_f,
+                    return finish(seam, std::move(out), restoration_exit_status, x, lambda_e,
+                                  lambda_i, restoration_exit_kkt, restoration_exit_f,
                                   make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
                                                   qp_built, &ev, &x, delta, last_dual_mu,
                                                   opts_.qp.primal_delta, strategy.get(),
@@ -2897,10 +2984,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // the pre-trial iterate `qs` was solved at, so its own
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
-            return finish(std::move(out), map_status(qs.status), x, lambda_e, lambda_i, kkt, row.f,
-                          make_warm_start(seam, &qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
-                                          opts_.qp.primal_delta, strategy.get(),
-                                          engine_.hot_state()));
+            return finish(
+                seam, std::move(out), map_status(qs.status), x, lambda_e, lambda_i, kkt, row.f,
+                make_warm_start(seam, &qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
+                                opts_.qp.primal_delta, strategy.get(), engine_.hot_state()));
         }
         qp_failures_in_a_row = 0;
 
@@ -3072,7 +3159,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // still describing the region around x (x has not moved
                 // -- unless restoration itself moved it; see
                 // restoration_moved_x's own note).
-                return finish(std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
+                return finish(seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                               restoration_exit_kkt, restoration_exit_f,
                               make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
                                               qp_built, &ev, &x, delta, last_dual_mu,
@@ -3094,7 +3181,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             }
             // Same reasoning as the kReject/floor exit just above: `qs`
             // still describes x unless restoration moved it.
-            return finish(std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
+            return finish(seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                           restoration_exit_kkt, restoration_exit_f,
                           make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp, qp_built,
                                           &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
@@ -3272,12 +3359,47 @@ WarmStart SqpDriver::make_warm_start(AggregateEvalSeam &seam, const QpSolution *
     return w;
 }
 
-SqpSolution SqpDriver::finish(SqpSolution out, SqpStatus status, const Vec &x, const Vec &lambda_e,
-                              const Vec &lambda_i, const SqpKkt &kkt, double f, WarmStart warm) {
+SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatus status,
+                              const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                              const SqpKkt &kkt, double f, WarmStart warm) {
+    // A VALUE, NOT A REFERENCE INTO THE SEAM, and the distinction is
+    // load-bearing rather than stylistic. The caller-scale re-measurement below
+    // puts the seam back to the identity for the length of one evaluation; a
+    // reference here would ALIAS the member being overwritten, so every later
+    // read of `sc` would see the identity and the restore would hand the
+    // identity back instead of the factors. Free when inactive -- both factor
+    // blocks are then empty.
+    const detail::ProblemScaling sc = seam.scaling();
     out.status = status;
     out.x = x;
     out.lambda_e = lambda_e;
     out.lambda_i = lambda_i;
+    // ===================================================================
+    // THE W0.2 UNSCALE, FIRST AT THIS BOUNDARY (M6 W0.2). Everything below
+    // this block -- the R6 sign sweep, the terminal-KKT record, the warm-start
+    // capture -- then operates on CALLER-scale values, which is what makes
+    // their contracts hold unchanged whether the solve was scaled or not.
+    //
+    // BEFORE THE R6 SIGN SWEEP, DELIBERATELY, and it matters for the
+    // disclosure rather than for the repair. A positive diagonal scaling cannot
+    // change a multiplier's SIGN, so which entries the sweep clamps is the same
+    // either way; but `ssn_sign_sweep_max` records a MAGNITUDE, and W0.3's
+    // disclosure bounds the reported stationarity gap by that magnitude times
+    // ||Ji||inf. Both halves of that product must be in one space for the bound
+    // to mean anything, and the space the stationarity is reported in is the
+    // caller's.
+    // ===================================================================
+    if (sc.active) {
+        // lambda_j = s_j * lambda~_j / sf, z = z~ / sf -- the ENGINE->CALLER
+        // direction of problem_scaling.h's multiplier map. The bound duals
+        // carry only sf because no bound was scaled.
+        if (out.lambda_e.size() == sc.eq_rows.size()) {
+            out.lambda_e = (out.lambda_e.array() * sc.eq_rows.array() / sc.obj).matrix();
+        }
+        if (out.lambda_i.size() == sc.ineq_rows.size()) {
+            out.lambda_i = (out.lambda_i.array() * sc.ineq_rows.array() / sc.obj).matrix();
+        }
+    }
     // THE R6 SIGN SWEEP (M6 W0.3), AT THE ONE EXPORT BOUNDARY THIS DRIVER
     // HAS. See sweep_negative_face_prices' own contract (sqp_driver.h) for
     // the repair, for the measurement that ruled OUT sweeping at the adoption
@@ -3290,21 +3412,89 @@ SqpSolution SqpDriver::finish(SqpSolution out, SqpStatus status, const Vec &x, c
     // the whole of the cost -- a solve with `ssn_sign_swept > 0` reports a
     // stationarity taken at prices its own `lambda_i` no longer holds,
     // optimistic by at most `ssn_sign_sweep_max * ||Ji||inf`.
+    // THE PRE-SWEEP CALLER-SCALE MULTIPLIERS, held for the re-measurement below
+    // so that the four terminal columns mean the SAME thing whether the solve
+    // was scaled or not. sqp_types.h's W0.3 qualification says they describe the
+    // PRE-sweep multipliers; measuring the scaled path at the POST-sweep ones
+    // would quietly make that text false for exactly the solves this layer
+    // touches. Empty, and free, when the solve is unscaled.
+    const Vec pre_sweep_lambda_e = sc.active ? out.lambda_e : Vec();
+    const Vec pre_sweep_lambda_i = sc.active ? out.lambda_i : Vec();
     sweep_negative_face_prices(out.lambda_i, out.counters.ssn);
-    out.z = kkt.z;
-    out.f = f;
-    record_terminal_kkt(out, kkt);
+    out.z = sc.active ? Vec(kkt.z / sc.obj) : kkt.z;
+    out.f = sc.active ? f / sc.obj : f;
+    // THE REPORT, and the two residuals it reconciles. `kkt` was measured in
+    // the space the solve ran in, so on a scaled solve it is the SCALED
+    // residual -- the number the convergence test actually gated on, which is
+    // recorded as such -- and the four terminal fields are then RE-MEASURED at
+    // the caller's scale, because SqpOptions::enable_scaling promises they
+    // describe the problem the caller posed. One extra evaluation, on the
+    // scaled path only.
+    out.scaling.active = sc.active;
+    out.scaling.obj = sc.obj;
+    out.scaling.row_max = sc.row_max();
+    out.scaling.row_min = sc.row_min();
+    out.scaling.scaled_kkt_residual =
+        kkt.finite ? kkt.residual() : std::numeric_limits<double>::quiet_NaN();
+    if (sc.active && kkt.finite && x.allFinite()) {
+        // THE EVALUATION IS TAKEN UNSCALED RATHER THAN SCALED-THEN-INVERTED.
+        // Multiplying by a factor and dividing it back out is NOT the identity
+        // in floating point, and these four columns are compared against
+        // independent measurements of the caller's own model -- so the seam is
+        // put back to the identity for the length of one evaluation and
+        // restored, which makes the result bit-for-bit what an unscaled solve
+        // would have measured. Restored unconditionally: `capture_completed_
+        // warm_start` reads this seam after solve_impl returns.
+        seam.install_scaling(detail::ProblemScaling{});
+        const NlpEval caller_ev = seam.eval_nlp(x, pre_sweep_lambda_e, pre_sweep_lambda_i);
+        ++out.counters.evals_full;
+        record_terminal_kkt(out, evaluate_kkt(seam, caller_ev, x, pre_sweep_lambda_e,
+                                              pre_sweep_lambda_i, opts_.feas_tol));
+        seam.install_scaling(sc);
+    } else {
+        // A NON-FINITE measurement is not re-measured: nothing was measured at
+        // that point in either space, and the NaN row `record_terminal_kkt`
+        // writes says exactly that. An unscaled solve takes this arm always,
+        // and takes it having done no extra work at all.
+        record_terminal_kkt(out, kkt);
+    }
     // The point/multipliers make_warm_start's caller reports are exactly
     // the ones being finished here -- see WarmStart's own note on why a
     // failed solve's point is still safe to carry.
     warm.x = x;
-    warm.lambda_e = lambda_e;
-    // THE SWEPT VECTOR, not the parameter: the warm start is the half of this
-    // export that reaches the crossover currency (`WarmStartData::iq_lmults_`)
-    // and, through it, an interior-point inequality seed. Reading `lambda_i`
-    // here would leave exactly the leak R6 exists to close.
+    // THE EXPORTED VECTORS, not the parameters. `out.lambda_e` is the parameter
+    // mapped back to the caller's units (M6 W0.2) and `out.lambda_i` is that AND
+    // the R6 sign sweep; on an unscaled solve both are the parameters unchanged,
+    // which is why this reads identically at the shipped default.
+    //
+    // THE SWEPT VECTOR for the inequality block specifically: the warm start is
+    // the half of this export that reaches the crossover currency
+    // (`WarmStartData::iq_lmults_`) and, through it, an interior-point
+    // inequality seed. Reading the `lambda_i` PARAMETER here would leave exactly
+    // the leak R6 exists to close -- and, since W0.2, would additionally hand a
+    // consumer engine-scale prices labelled as caller-scale ones.
+    warm.lambda_e = out.lambda_e;
     warm.lambda_i = out.lambda_i;
-    warm.z = kkt.z;
+    warm.z = out.z;
+    if (sc.active) {
+        // THE EXPORTED CURRENCY IS CALLER-SCALE, values and hints only. The
+        // scaled-space ALGORITHMIC state is dropped to the sentinels
+        // warm_start.h already defines for "not carried", rather than exported
+        // in units no consumer can interpret -- the export side of the refusal
+        // solve_impl's `warm_state_ingest` makes, and for the same reason. A
+        // consumer already handles their absence, so this degrades a hop rather
+        // than breaking one.
+        warm.funnel_width = -1.0;
+        warm.primal_delta = -1.0;
+        warm.dual_mu = -1.0;
+        warm.hot = nullptr;
+        warm.prox_center_x = Vec();
+        warm.prox_center_lambda = Vec();
+        warm.prox_sigma = 0.0;
+        warm.has_prox_center = false;
+        // `tr_radius` SURVIVES: it is an l-infinity radius in the variable
+        // space, and this layer scales no variable.
+    }
     out.warm_start = std::move(warm);
     return out;
 }

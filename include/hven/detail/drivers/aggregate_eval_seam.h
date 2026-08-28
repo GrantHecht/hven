@@ -56,6 +56,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/types.h>
+#include <hven/detail/drivers/problem_scaling.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/model/claim_space.h>
 #include <hven/model/claim_stream_source.h>
@@ -192,6 +193,41 @@ class AggregateEvalSeam {
     QpProblem build_subproblem(const NlpEval &ev, const Vec &x, const Vec &lambda_e,
                                const Vec &lambda_i, double obj_scale = 1.0);
 
+    /// @brief Installs the W0.2 problem scaling this seam serves its outputs
+    ///        under, for the rest of the solve.
+    ///
+    /// ONCE PER SOLVE, before the first evaluation moment, and never again --
+    /// the factors are fixed for a solve by design
+    /// (detail/drivers/problem_scaling.h). Installing the default-constructed
+    /// (inactive) value is legal and is exactly the state a seam is born in.
+    ///
+    /// @param scaling factors sized to THIS seam's row counts.
+    /// @throws std::invalid_argument if an active scaling's blocks are not
+    ///         me()- and mi()-sized.
+    void install_scaling(detail::ProblemScaling scaling);
+
+    /// @brief The factors this seam is serving under. Inactive unless
+    ///        install_scaling was given an active value.
+    const detail::ProblemScaling &scaling() const noexcept { return scaling_; }
+
+    /// @brief Maps a bundle THIS seam produced back to the caller's units.
+    ///
+    /// The inverse of what every evaluation moment applies: `f`, `grad`, and
+    /// the two residual/Jacobian row blocks are divided by the factors that
+    /// multiplied them. A no-op when the scaling is inactive.
+    ///
+    /// It exists for ONE caller -- the restoration phase, which builds a
+    /// `RestorationModel` around the RAW model but reads the entry bundle for
+    /// its slack sigmas and its start point (drivers/sqp_driver.cpp). Pairing a
+    /// scaled bundle with an unscaled model there would be a unit error, so the
+    /// bundle is mapped back first.
+    ///
+    /// @param ev a bundle this seam produced, modified in place.
+    /// @throws std::invalid_argument if @p ev's block sizes are not the ones the
+    ///         structures now declare -- the same refusal every other
+    ///         bundle-taking moment makes.
+    void to_caller_scale(NlpEval &ev) const;
+
   private:
     // The permutation-corruption hook the falsification pin needs. DECLARED
     // here and DEFINED only in the test that uses it, so there is no mutation
@@ -242,6 +278,25 @@ class AggregateEvalSeam {
 
     /// The Jacobians-alone shape: the probe's derivative bill.
     void assemble_jacobians(const Vec &x);
+
+    /// Multiplies a freshly-produced bundle's VALUE half -- f, cE, cI -- by the
+    /// installed factors. No-op when the scaling is inactive.
+    void scale_values(NlpEval &ev) const;
+
+    /// Multiplies a freshly-produced bundle's DERIVATIVE half by the installed
+    /// factors: the two Jacobians always, the gradient only when
+    /// @p include_gradient (jacobians_only fills no gradient and must not
+    /// scale the stale one it was handed). No-op when the scaling is inactive.
+    void scale_derivatives(NlpEval &ev, bool include_gradient) const;
+
+    /// Multiplies each row of @p jac by its factor, in place.
+    static void scale_jacobian_rows(const Vec &factors, SpMatRM &jac);
+
+    // THE INSTALLED FACTORS, inactive by default. Every apply site is behind
+    // `scaling_.active`, so a seam that was never given factors runs the
+    // arithmetic it has always run -- which is what makes the shipped default
+    // (SqpOptions::enable_scaling == false) cost nothing at all.
+    detail::ProblemScaling scaling_;
 
     ClaimStreamSource *aggregate_ = nullptr;
 

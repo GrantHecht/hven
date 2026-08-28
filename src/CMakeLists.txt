@@ -125,6 +125,13 @@ target_include_directories(hven PRIVATE
 #     evidence that the carve removed no inlining is in the W0.1c report, not
 #     in that banner.
 #
+#   - drivers/problem_scaling.cpp: the W0.2 problem-scaling layer's factor
+#     computation. Options-shaped code that runs once per solve, so section 5
+#     selects a TU for it on the same ground sqp_options.cpp stands on; it
+#     carries the same `!(x > 0.0)` NaN-rejection idiom and names that file's
+#     banner for the flag premise. The APPLYING of the factors is not here --
+#     it stays beside the values it multiplies, in drivers/aggregate_eval_seam.cpp.
+#
 #   - globalization/sqp/funnel.cpp: FunnelStrategy's acceptance state machine,
 #     the first carve whose arithmetic is re-associable under -ffast-math; its
 #     proof is bit-identity of every asserted counter across the boundary.
@@ -180,6 +187,7 @@ target_include_directories(hven PRIVATE
 
 target_sources(hven PRIVATE
     drivers/aggregate_eval_seam.cpp
+    drivers/problem_scaling.cpp
     drivers/sqp_driver.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
@@ -382,7 +390,15 @@ endif()
 # factor, the pattern hash and the SQP types, a different header set in a
 # different order from the one src/hven_pch.h prefixes, and that property has
 # failed bar 2 for every SQP-side TU measured so far.
-set(_hven_expected_source_count 36)
+#
+# 37 as of drivers/problem_scaling.cpp, the M6 W0.2 problem-scaling layer's
+# factor computation. It stays OUT on the same footing as the eight above --
+# no measurement exists for it, and out is the unmeasured default. It is also
+# the cheapest TU in the target to compile: two standard headers and one
+# self-contained project header (detail/drivers/problem_scaling.h, which pulls
+# only core/types.h), so it shares none of src/hven_pch.h's prefix and has
+# almost nothing for a PCH to save.
+set(_hven_expected_source_count 37)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

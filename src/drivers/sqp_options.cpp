@@ -126,6 +126,23 @@ void validate_sqp_options(const SqpOptions &opts) {
                         "first trial is judged",
                         opts.tr_min, opts.tr_init, opts.tr_max));
     }
+    // THE PROBLEM-SCALING RULE'S TWO PARAMETERS (M6 W0.2). Validated
+    // UNCONDITIONALLY, not under `if (opts.enable_scaling)`: an options object
+    // is a value a caller may flip a bool on later, and a rule that is
+    // nonsensical the moment the toggle moves was already nonsensical when it
+    // was set. Both forms catch NaN, for this file's banner's reason.
+    if (!(opts.scaling_max_gradient > 0.0) || std::isinf(opts.scaling_max_gradient)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: scaling_max_gradient ({}) must be finite and > 0; it is the inf-norm "
+            "the scaled objective gradient and each scaled Jacobian row are aimed at",
+            opts.scaling_max_gradient));
+    }
+    if (!(opts.scaling_factor_limit >= 1.0) || std::isinf(opts.scaling_factor_limit)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: scaling_factor_limit ({}) must be finite and >= 1; it clamps every "
+            "factor to [1/limit, limit], and a limit below 1 inverts that interval",
+            opts.scaling_factor_limit));
+    }
 }
 
 } // namespace hven::solvers
