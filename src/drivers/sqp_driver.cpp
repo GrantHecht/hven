@@ -244,6 +244,35 @@ void record_scaling_report(SqpSolution &out, const detail::ProblemScaling &sc, c
         kkt.finite ? kkt.residual() : std::numeric_limits<double>::quiet_NaN();
 }
 
+// THE SCALED-SPACE STATE A SCALED SOLVE MAY NOT EXPORT, dropped to the
+// sentinels warm_start.h already defines for "not carried".
+//
+// The export side of the refusal `solve_impl`'s `warm_state_ingest` makes, and
+// for the same reason: a funnel width bounds max_j |s_j c_j|, which no scalar
+// recovers from max_j |c_j|; the two regularization parameters are set in the
+// scaled subproblem's units; a hot factorization is a factorization of a
+// DIFFERENT KKT matrix; and the prox block lives in the scaled dual space. A
+// consumer already handles their absence, so this degrades a hop rather than
+// breaking one.
+//
+// ONE BODY, TWO CALL SITES -- `finish` and the non-finite-iterate exit, which
+// builds its own object rather than routing through it. Written once so the two
+// cannot drift: a field dropped at one and exported at the other would hand a
+// consumer scaled-space state labelled as caller-scale.
+//
+// `tr_radius` SURVIVES, and is deliberately not touched here: it is an
+// l-infinity radius in the variable space, and this layer scales no variable.
+void drop_scaled_space_state(WarmStart &warm) {
+    warm.funnel_width = -1.0;
+    warm.primal_delta = -1.0;
+    warm.dual_mu = -1.0;
+    warm.hot = nullptr;
+    warm.prox_center_x = Vec();
+    warm.prox_center_lambda = Vec();
+    warm.prox_sigma = 0.0;
+    warm.has_prox_center = false;
+}
+
 // The two history columns of a SCALED iterate that NO SCALAR RECOVERS, taken
 // where the row vectors still exist.
 //
@@ -1576,7 +1605,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // ONE RESTORATION PER SOLVE (this header's RESTORATION PHASE note).
     bool restoration_used = false;
     // Written by the restoration closure below on the exits it decides,
-    // read only by the three `return finish(...)` sites that follow it.
+    // read only by the four `return finish(...)` sites that follow it.
     SqpStatus restoration_exit_status = SqpStatus::kInfeasible;
     SqpKkt restoration_exit_kkt;
     double restoration_exit_f = std::numeric_limits<double>::quiet_NaN();
@@ -1905,6 +1934,17 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.warm_start.lambda_e = out.lambda_e;
             out.warm_start.lambda_i = out.lambda_i;
             out.warm_start.z = out.z;
+            if (solve_scaling.active) {
+                // THE SAME DROP `finish` APPLIES, so this exit's object is
+                // symmetric with every other one a scaled solve emits (M6 W0.2
+                // fix round 2). Nothing downstream reads these fields off a
+                // COLD object today -- `valid` is false here by construction --
+                // but "benign because a consumer happens not to look" is not a
+                // reason to leave scaled-space state sitting in a field whose
+                // contract says caller-scale, and a future consumer that
+                // inspects a failed solve's object would find it.
+                drop_scaled_space_state(out.warm_start);
+            }
             return out;
         }
 
@@ -3629,23 +3669,10 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatu
     warm.lambda_i = out.lambda_i;
     warm.z = out.z;
     if (sc.active) {
-        // THE EXPORTED CURRENCY IS CALLER-SCALE, values and hints only. The
-        // scaled-space ALGORITHMIC state is dropped to the sentinels
-        // warm_start.h already defines for "not carried", rather than exported
-        // in units no consumer can interpret -- the export side of the refusal
-        // solve_impl's `warm_state_ingest` makes, and for the same reason. A
-        // consumer already handles their absence, so this degrades a hop rather
-        // than breaking one.
-        warm.funnel_width = -1.0;
-        warm.primal_delta = -1.0;
-        warm.dual_mu = -1.0;
-        warm.hot = nullptr;
-        warm.prox_center_x = Vec();
-        warm.prox_center_lambda = Vec();
-        warm.prox_sigma = 0.0;
-        warm.has_prox_center = false;
-        // `tr_radius` SURVIVES: it is an l-infinity radius in the variable
-        // space, and this layer scales no variable.
+        // THE EXPORTED CURRENCY IS CALLER-SCALE, values and hints only; the
+        // scaled-space algorithmic state goes to its sentinels. See
+        // drop_scaled_space_state, which the non-finite-iterate exit shares.
+        drop_scaled_space_state(warm);
     }
     out.warm_start = std::move(warm);
     return out;

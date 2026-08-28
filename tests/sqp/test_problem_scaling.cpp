@@ -927,6 +927,21 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     // as; the multipliers stay cleared, which the map leaves cleared.
     EXPECT_TRUE(std::isnan(sol.kkt_residual));
     EXPECT_TRUE(sol.lambda_i.isZero(0.0));
+
+    // AND THE CURRENCY DROP IS THE ONE `finish` APPLIES (fix round 2). This
+    // exit builds its own WarmStart rather than routing through that boundary,
+    // so the scaled-space state it may not export has to be dropped here too --
+    // otherwise a scaled solve's failed-exit object carries a primal_delta and
+    // a dual_mu set in the SCALED subproblem's units under field names whose
+    // contract says caller-scale. Benign while `valid` is false, which it is
+    // here; pinned anyway, because "no consumer looks today" is not a contract.
+    EXPECT_FALSE(sol.warm_start.valid) << "the unevaluable exit hands back a COLD object";
+    EXPECT_DOUBLE_EQ(-1.0, sol.warm_start.funnel_width);
+    EXPECT_DOUBLE_EQ(-1.0, sol.warm_start.primal_delta);
+    EXPECT_DOUBLE_EQ(-1.0, sol.warm_start.dual_mu);
+    EXPECT_EQ(nullptr, sol.warm_start.hot);
+    EXPECT_FALSE(sol.warm_start.has_prox_center);
+    EXPECT_EQ(0, sol.warm_start.prox_center_x.size());
 }
 
 // ===========================================================================
