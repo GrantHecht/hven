@@ -777,8 +777,9 @@ TEST(ClaimStreamState, ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed) {
     // THE OTHER HALF OF THE EXCEPTION-SAFETY TERM, and the half that is about
     // the ENGINE's surface rather than the claim stream's. A re-lay clears the
     // analysed-destination capture with its first statements, before anything
-    // that can throw: so a lay that is refused part-way -- here, by a
-    // restatement that cannot describe the slots it was handed -- leaves a
+    // that can throw: so a lay that is refused part-way -- here, by a piece
+    // that throws from inside its own claim pass on the second lay, the
+    // reachable stand-in for a bad_alloc in get_mat_space -- leaves a
     // layout that says it has not been analysed, and refuses a KKT-bearing
     // assemble BY NAME. The failure this closes is the opposite: a layout whose
     // arrays have been replaced while its location table still claims to be
