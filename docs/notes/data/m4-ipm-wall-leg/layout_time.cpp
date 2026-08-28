@@ -23,6 +23,12 @@
 //   analyze     the sparsity analysis over a laid program -- the other half
 //               of a transcription, timed apart because it moved the other
 //               way from the layout.
+//   clone       the deep copy of the three master piece lists, alone. The
+//               partitioner refills its per-partition vectors from those lists
+//               at every lay and each push_back deep-clones a type-erased
+//               piece, so some share of `transcribe` is piece cloning and no
+//               one had ever measured which share. INFORMATIONAL, and a LOWER
+//               BOUND -- see the cell.
 //   transcribe+key   the same re-lay, plus ONE model_structure_key() read.
 //   transcribe+decl  the same re-lay, plus ONE declaration() read -- the cell
 //               that prices the deferred PIECE COPY, which is what the first
@@ -657,6 +663,53 @@ void arm(int applications, int reps) {
         }
         report("analyze", applications, reps, s,
                "key=" + std::to_string(p.nlp->model_structure_key().digest()) +
+                   " claims=" + std::to_string(p.nlp->num_user_kkt_elems_));
+    }
+
+    // clone: the deep copy of the three master piece lists, and nothing else.
+    //
+    // WHY IT IS HERE. analyze_partitioning() refills its per-partition vectors
+    // from the master lists at every lay, and each push_back deep-clones a
+    // type-erased piece through TypeStorage's clone_into -- index maps, erased
+    // payload and all. Some share of `transcribe` above is therefore piece
+    // cloning rather than claim laying, and nobody had ever measured which
+    // share. Measuring it is the required first step before anyone designs
+    // around it, and this cell is that step.
+    //
+    // A LOWER BOUND, NOT AN EQUAL. This clones each master list ONCE. The
+    // partitioner clones more: a ByApplication piece is thread_split into one
+    // piece per partition, and every one of those is a clone. Read this as "at
+    // least this much of transcribe is piece cloning", never as "this is all of
+    // it".
+    //
+    // ASSERTED like transcribe+decl, so a cell the optimizer managed to elide
+    // reports nothing rather than reporting a saving nobody gets.
+    {
+        Program p = build(applications, kPartitions);
+        std::vector<double> s;
+        std::size_t pieces = 0;
+        const std::size_t expected = p.nlp->objectives_.size() +
+                                     p.nlp->equality_constraints_.size() +
+                                     p.nlp->inequality_constraints_.size();
+        for (int r = 0; r < reps; r++) {
+            auto t0 = std::chrono::steady_clock::now();
+            std::vector<ObjectiveFunction> objectives = p.nlp->objectives_;
+            std::vector<ConstraintFunction> equalities = p.nlp->equality_constraints_;
+            std::vector<ConstraintFunction> inequalities = p.nlp->inequality_constraints_;
+            const std::size_t copied =
+                objectives.size() + equalities.size() + inequalities.size();
+            s.push_back(seconds_since(t0));
+            pieces = copied;
+            if (copied != expected || copied == 0) {
+                std::fprintf(stderr,
+                             "clone: copied %zu pieces, expected %zu -- the copy did not "
+                             "happen inside the timed region\n",
+                             copied, expected);
+                std::abort();
+            }
+        }
+        report("clone", applications, reps, s,
+               "pieces=" + std::to_string(pieces) +
                    " claims=" + std::to_string(p.nlp->num_user_kkt_elems_));
     }
 
