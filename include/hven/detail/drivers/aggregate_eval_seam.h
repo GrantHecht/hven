@@ -332,9 +332,11 @@ class AggregateEvalSeam {
     ClaimBlock equality_jacobian_;
     ClaimBlock inequality_jacobian_;
 
-    // The objective-gradient arena and the rows the provider published for it.
+    // The objective-gradient arena, and the table VIEWING the rows the provider
+    // published for it. No copy of those rows lives here: the table points into
+    // the provider's own array under the claim-stream contract's view-validity
+    // term, and this seam re-lays whenever the provider's structure epoch moves.
     Vec gradient_arena_;
-    std::vector<int> gradient_rows_;
     RhsLocationTable gradient_table_;
 
     // The three patterns, values unread: each output is a copy of one of these

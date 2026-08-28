@@ -59,9 +59,9 @@ struct DomainClaims {
 /// @param table              the table's name, for the refusal message.
 /// @throws std::invalid_argument naming the table, the offending slot, its
 ///         location and the destination length.
-void require_locations_within(const std::vector<int> &locations, Eigen::Index destination_length,
-                              const char *table) {
-    for (std::size_t slot = 0; slot < locations.size(); ++slot) {
+void require_locations_within(const int *locations, std::size_t count,
+                              Eigen::Index destination_length, const char *table) {
+    for (std::size_t slot = 0; slot < count; ++slot) {
         if (locations[slot] >= destination_length) {
             throw std::invalid_argument(
                 fmt::format("AggregateEvalSeam: the {0}'s slot {1} names location {2}, but the "
@@ -69,6 +69,12 @@ void require_locations_within(const std::vector<int> &locations, Eigen::Index de
                             table, slot, locations[slot], destination_length));
         }
     }
+}
+
+/// The same check over an owned table.
+void require_locations_within(const std::vector<int> &locations, Eigen::Index destination_length,
+                              const char *table) {
+    require_locations_within(locations.data(), locations.size(), destination_length, table);
 }
 
 /// Reads one claim block out of the assembled claim stream and translates it
@@ -456,17 +462,24 @@ void AggregateEvalSeam::lay() {
     arena_.setConstant(std::max(total_claims, 1), kArenaSeed);
     require_locations_within(kkt_locations_, arena_.size(), "KKT location table");
 
-    // The provider's own published rows, copied rather than referenced: the
-    // table is a non-owning view, and the provider's storage moves under a
-    // re-lay. Copying also carries a dropped-row sentinel through verbatim if
-    // a provider ever publishes one.
+    // THE PROVIDER'S OWN PUBLISHED ROWS, VIEWED RATHER THAN COPIED. The table is
+    // a non-owning view over them, and what makes that sound is the claim-stream
+    // contract's VIEW VALIDITY term (model/claim_stream_source.h): the published
+    // rows stay put until the provider's CLAIM-STREAM epoch moves, and this seam
+    // re-lays whenever the STRUCTURE epoch moves -- which a claim-stream epoch
+    // bump always accompanies, since a stream is only ever republished from
+    // inside a re-lay. So no evaluation can reach a table bound to rows the
+    // provider has replaced.
+    //
+    // The dropped-row sentinel a provider may publish for an eliminated
+    // coordinate rides through untouched, exactly as the copy carried it: this
+    // reads the array, it does not interpret it.
     Eigen::Ref<const Eigen::VectorXi> gradient_rows = aggregate_->objective_gradient_claim_rows();
-    gradient_rows_.assign(gradient_rows.data(), gradient_rows.data() + gradient_rows.size());
     gradient_table_ =
-        RhsLocationTable(gradient_rows_.data(), static_cast<int>(gradient_rows_.size()));
+        RhsLocationTable(gradient_rows.data(), static_cast<int>(gradient_rows.size()));
     gradient_arena_.setConstant(primal_vars_, kArenaSeed);
-    require_locations_within(gradient_rows_, gradient_arena_.size(),
-                             "objective-gradient location table");
+    require_locations_within(gradient_rows.data(), static_cast<std::size_t>(gradient_rows.size()),
+                             gradient_arena_.size(), "objective-gradient location table");
 
     // The commit, and the last statement for the reason the read comment above
     // states: nothing after this point can throw, and everything before it can.
