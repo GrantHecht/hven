@@ -43,12 +43,15 @@ INNER=${2:-15}
 # cannot be told apart from one produced by a stale probe -- which is exactly how
 # a probe that printed the convergence flag under the name `iters` outlived the
 # source beside it -- and a log without the four fields is not a §7 artifact at
-# all, however carefully it was run.
+# all, however carefully it was run. The commit field counts TRACKED
+# modifications only: this script's own output file is untracked while it is
+# being written, and a provenance field that reported the log it is inside as a
+# dirty path would be noise in every run.
 echo "# leg: layout leg"
 echo "# date: $(date -Is)"
 echo "# hardware: $(uname -sr)  $(grep -m1 '^model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2- | sed 's/^ *//')"
 echo "# toolchain: $(/usr/bin/clang++ --version 2>/dev/null | head -1)"
-echo "# commit: $(git -C "$HERE" rev-parse HEAD 2>/dev/null || echo UNKNOWN)  status: $(git -C "$HERE" status --porcelain 2>/dev/null | wc -l) modified path(s)"
+echo "# commit: $(git -C "$HERE" rev-parse HEAD 2>/dev/null || echo UNKNOWN)  tracked-modifications: $(git -C "$HERE" status --porcelain --untracked-files=no 2>/dev/null | wc -l)"
 echo "# probe source: $HERE/layout_time.cpp  sha256=$(sha256sum "$HERE/layout_time.cpp" | cut -d' ' -f1)"
 for side in base head; do
   b="$HERE/layout_$side"
