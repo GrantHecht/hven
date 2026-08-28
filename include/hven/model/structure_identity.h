@@ -19,9 +19,19 @@
 // never be compared against one another or substituted for one another:
 //
 //   * ModelStructureKey answers "may I reuse this factorization?". It is taken
-//     over the claim stream a provider handed out, in claim order, plus the
-//     adopted partition count, so it moves when the LAYOUT moves. It is
-//     therefore ENGINE-SPECIFIC and TREATMENT-SPECIFIC.
+//     over the provider's laid claim slots in EMISSION order, plus the adopted
+//     partition count, so it moves when the LAYOUT moves. It is therefore
+//     ENGINE-SPECIFIC and TREATMENT-SPECIFIC.
+//
+//     EMISSION order, said that way deliberately: it is the order the pieces
+//     were handed their slots in as the layout was laid, which for a partitioned
+//     provider is partition-major and within a partition piece-major. A provider
+//     may ALSO publish its claims restated into some other order -- a
+//     domain-contiguous claim stream, say -- and that restatement is a different
+//     sequence over the same slots. This digest is taken over the laid slots, in
+//     the order they were laid, and over nothing else. The VALUE is unchanged by
+//     this sentence; what changes is that the sentence still says which order it
+//     means once a second one exists.
 //
 //   * DeclarationKey answers "does this value describe the problem I am about
 //     to solve?", and is what the warm-start currency stamps with. It is taken
@@ -127,12 +137,12 @@ constexpr void feed_dimensions(Fnv1a &hash, int primal_vars, int equality_rows,
     hash.feed_index(inequality_rows);
 }
 
-/// @brief Feeds THE WHOLE CLAIM STREAM into a running accumulator, in claim
+/// @brief Feeds THE WHOLE CLAIM STREAM into a running accumulator, in EMISSION
 ///        order, after the dimension preamble: claim i is the pair
 ///        (rows[i], cols[i]), and the pairs are fed interleaved.
 /// @param hash   The accumulator, already carrying the dimension preamble.
-/// @param rows   The claim rows, in claim order.
-/// @param cols   The claim columns, in claim order.
+/// @param rows   The claim rows, in emission order.
+/// @param cols   The claim columns, in emission order.
 /// @param count  How many claims the stream carries.
 ///
 /// The digest hashes the DECLARED (row, column) claim stream rather than the
@@ -184,8 +194,12 @@ constexpr void feed_variable_bound(Fnv1a &hash, const VariableBound &bound) noex
 
 /// @brief THE claim-structure conjunct of a declaration's structural key, and
 ///        the only public way to compute one: the dimension preamble, then the
-///        claim stream in claim order. The claims are taken as the two index
-///        arrays a claim arena already holds.
+///        provider's laid claim slots in EMISSION order. The claims are taken as
+///        the two index arrays a claim arena already holds.
+///
+/// EMISSION order, not any restated order a provider may also publish -- see the
+/// ModelStructureKey banner at the top of this header for why the distinction
+/// has to be spelled out. Feeding a restatement here would key a layout twice.
 ///
 /// @throws std::invalid_argument if the two arrays disagree in length: a claim
 ///         is a (row, column) pair, and a stream missing half of one is not a
