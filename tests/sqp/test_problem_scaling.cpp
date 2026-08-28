@@ -27,12 +27,14 @@
 
 #include <cmath>
 #include <limits>
+#include <string>
 
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/problem_scaling.h>
 #include <hven/drivers/sqp_driver.h>
 
+#include "support/claim_stream_double.h"
 #include "support/hs_problems.h"
 
 namespace hven::solvers {
@@ -131,6 +133,208 @@ class UnevenRowModel : public NlpModel {
   private:
     Vec lower_ = Vec::Constant(2, -10.0);
     Vec upper_ = Vec::Constant(2, 10.0);
+};
+
+// A model whose OBJECTIVE and whose EQUALITY ROW are both out of scale, which
+// neither fixture above is: the acceptance cell has a perfectly scaled row and
+// UnevenRowModel has grad f(x0) == 0 (so its objective factor is the identity).
+// Both halves of the map are therefore live here, which is what makes it the
+// fixture for the HISTORY export -- a row exported at engine scale is off by
+// 1e4 in f and by 1e-4 in the violation, in opposite directions.
+//
+//     min  1e6*(0.5*(x0-1)^2 + 0.5*x1^2)
+//     s.t. 1e6*(x0 - 0.5) = 0,  x1 - 2 <= 0,  -10 <= x <= 10,  x_start = 0
+//
+// At the start point: |grad f|inf = 1e6 -> sf = 1e-4; the equality row's
+// Jacobian norm is 1e6 -> 1e-4; the inequality row's is 1 -> 1.0 (one-sided).
+// The solution is x = (0.5, 0), f* = 125000.
+class ScaledUnevenModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override {
+        return 1.0e6 * (0.5 * (x(0) - 1.0) * (x(0) - 1.0) + 0.5 * x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 1.0e6 * (x(0) - 1.0), 1.0e6 * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, 1.0e6 * (x(0) - 0.5)); }
+    Vec eval_ci(const Vec &x) const override { return Vec::Constant(1, x(1) - 2.0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 1.0e6 * obj_scale;
+        h.insert(1, 1) = 1.0e6 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 1.0e6;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return Vec::Zero(2); }
+
+  private:
+    Vec lower_ = Vec::Constant(2, -10.0);
+    Vec upper_ = Vec::Constant(2, 10.0);
+};
+
+// A model the driver can DIFFERENTIATE at the start point but cannot MEASURE
+// there: the derivatives are finite (so the factor rule has real data and
+// produces sf = 1e-4), while the inequality residual is NaN (so the very first
+// evaluate_kkt reports `finite == false` and the driver takes its non-finite
+// iterate exit). That exit is the one path out of solve_impl that does not
+// route through `finish`, which is exactly what makes it a scaling pin.
+class NonFiniteRowModel : public NlpModel {
+  public:
+    Index n() const override { return 1; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override { return 5.0e5 + 1.0e6 * x(0) + 0.5 * x(0) * x(0); }
+    Vec eval_grad(const Vec &x) const override { return Vec::Constant(1, 1.0e6 + x(0)); }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override {
+        return Vec::Constant(1, std::numeric_limits<double>::quiet_NaN());
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(1, 1);
+        h.insert(0, 0) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 1); }
+    SpMatRM eval_jac_i(const Vec &) const override {
+        SpMatRM j(1, 1);
+        j.insert(0, 0) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return Vec::Zero(1); }
+
+  private:
+    Vec lower_ = Vec::Constant(1, -10.0);
+    Vec upper_ = Vec::Constant(1, 10.0);
+};
+
+// THE RESTORATION FIXTURE, copied field for field from test_sqp_restoration.cpp's
+// InfeasibleCircleLineModel (a circle and a line that do not meet), for the same
+// reason ScaledDualModel is copied above: that file pins the certificate itself
+// and this one pins what the SCALING LAYER does to the exit that carries it.
+//
+//     min  x0 + x1   s.t.  x0^2 + x1^2 - 1 = 0,  x0 + x1 - 2 = 0
+//
+// grad f is (1, 1) everywhere, so the objective factor is the full 100 while
+// both row factors are the identity (the row rule never amplifies) -- which is
+// precisely the shape that catches an ENGINE->CALLER map applied to multipliers
+// that never entered the engine's space: the selectors would come back 100x
+// small.
+class InfeasibleCircleLineModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(0) + x(1); }
+    Vec eval_grad(const Vec &) const override { return Vec::Ones(2); }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0, x(0) + x(1) - 2.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &lambda_e, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * lambda_e(0);
+        h.insert(1, 1) = 2.0 * lambda_e(0);
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(2, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.insert(1, 0) = 1.0;
+        j.insert(1, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return Vec::Constant(2, 2.0); }
+
+  private:
+    // The model is unbounded in both coordinates; 1e20 is this suite's
+    // convention for "no bound" (test_sqp_restoration.cpp uses the same value).
+    Vec lower_ = Vec::Constant(2, -1e20);
+    Vec upper_ = Vec::Constant(2, 1e20);
+};
+
+// A model whose solution sits ON A BOUND whose price carries a JACOBIAN term,
+// which neither fixture above does: both of theirs converge to an interior
+// point, where z is identically zero and any treatment of it looks right.
+//
+//     min  1e6*(0.5*(x0-3)^2 + 0.5*(x1-3)^2)
+//     s.t. 1e6*(x0 + 0.3*x1 - 0.5) <= 0,  -10 <= x <= (10, 1),  x_start = 0
+//
+// At the start point |grad f|inf = 3e6 -> sf = 100/3e6, and the row's Jacobian
+// norm is 1e6 -> 1e-4. Hand-derived solution: both the row and x1's upper bound
+// bind, so x* = (0.2, 1), the row price is 2.8, and
+// z1* = grad f(1) + 3e5*2.8 = -2e6 + 8.4e5 = -1.16e6 -- a bound price with a
+// Jacobian term in it, which is what makes a divide-back and a re-measurement
+// numerically distinguishable at all.
+class ScaledBoundActiveModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 1; }
+    double eval_f(const Vec &x) const override {
+        return 1.0e6 * (0.5 * (x(0) - 3.0) * (x(0) - 3.0) + 0.5 * (x(1) - 3.0) * (x(1) - 3.0));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 1.0e6 * (x(0) - 3.0), 1.0e6 * (x(1) - 3.0);
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &x) const override {
+        return Vec::Constant(1, 1.0e6 * (x(0) + 0.3 * x(1) - 0.5));
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 1.0e6 * obj_scale;
+        h.insert(1, 1) = 1.0e6 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 1.0e6;
+        j.insert(0, 1) = 3.0e5;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override { return lower_; }
+    const Vec &upper() const override { return upper_; }
+    Vec start_point() const override { return Vec::Zero(2); }
+
+  private:
+    Vec lower_ = Vec::Constant(2, -10.0);
+    Vec upper_ = (Vec(2) << 10.0, 1.0).finished();
 };
 
 SpMatRM row_matrix(std::initializer_list<std::initializer_list<double>> rows) {
@@ -469,7 +673,13 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     EXPECT_DOUBLE_EQ(independent.complementarity, sol.complementarity);
     EXPECT_DOUBLE_EQ(independent.residual(), sol.kkt_residual);
     ASSERT_EQ(sol.z.size(), independent.z.size());
-    EXPECT_TRUE(sol.z.isApprox(independent.z, 1e-12));
+    // TO THE SAME STANDARD AS THE FOUR RESIDUALS BESIDE IT, not a looser one:
+    // `z` is a coordinate of the same `grad_lag` those were folded out of, and
+    // since fix round 1 it comes from the SAME caller-scale re-measurement
+    // rather than from a divide-back of the engine's own vector.
+    for (Index i = 0; i < sol.z.size(); ++i) {
+        EXPECT_DOUBLE_EQ(independent.z(i), sol.z(i)) << "bound price " << i;
+    }
 
     // AND THE DISCLOSED GAP IS REPORTED, not hidden: the gate read the scaled
     // residual, and it is carried beside the caller-scale one.
@@ -616,6 +826,270 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
     EXPECT_EQ(SqpStatus::kOptimal, sol.status);
     EXPECT_NEAR(model.x_star(), sol.x(0), 1e-9);
     EXPECT_NEAR(1e12, sol.lambda_i(0), 1e-3 * 1e12) << "and it comes back on the caller's scale";
+}
+
+// ===========================================================================
+// FIX ROUND 1, FINDING 1: THE ITERATION HISTORY IS ON THE CALLER'S SCALE.
+//
+// `SqpSolution::f` and the four terminal residuals were mapped back from the
+// first commit; the `history` rows were not, so a scaled solve printed a table
+// (sqp_print.cpp) whose f column was `sf` times the f reported underneath it.
+// The six scale-carrying columns are mapped at the export boundary now.
+// ===========================================================================
+
+TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
+    ScaledUnevenModel model;
+    SqpOptions opts;
+    opts.enable_scaling = true;
+    SqpDriver driver{opts};
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(SqpStatus::kOptimal, sol.status);
+    ASSERT_TRUE(sol.scaling.active);
+    ASSERT_FALSE(sol.history.empty());
+    // Both halves of the map are live on this fixture, which is what makes the
+    // columns below distinguishable from their engine-scale selves.
+    EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.obj);
+    EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.row_min);
+    EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max);
+
+    // THE FIRST ROW IS THE START POINT, where both columns are hand-computable
+    // and the engine-scale answer is four orders away in each direction:
+    // f(x0) = 5e5 (engine: 50) and h(x0) = |1e6 * -0.5| = 5e5 (engine: 50).
+    const SqpIterate &first = sol.history.front();
+    const Vec x0 = model.start_point();
+    EXPECT_DOUBLE_EQ(model.eval_f(x0), first.f);
+    EXPECT_NEAR(5.0e5, first.violation_l1, 1.0e-6 * 5.0e5);
+    EXPECT_GT(first.violation_l1, 1.0e4)
+        << "the engine-scale value would be 50 -- four orders below this floor";
+    // kkt_residual folds the mapped halves, so it carries the mapped violation.
+    EXPECT_GE(first.kkt_residual, 4.0e5);
+
+    // THE LAST ROW AND THE SOLUTION AGREE ON f, EXACTLY. Both are the same
+    // engine-scale double divided by the same factor, so this is bit equality
+    // rather than a tolerance. It does NOT extend to the four residual columns:
+    // the terminal ones are RE-MEASURED on the caller's own model at the export
+    // boundary (an independent evaluation, deliberately -- see finish()), while
+    // a history row is the mapped image of the measurement the iteration made.
+    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
+    EXPECT_DOUBLE_EQ(model.eval_f(sol.x), sol.history.back().f);
+
+    // AND THE PRINTED TABLE IS ONE SCALE WITH ITS OWN TRAILER (finding 7).
+    const std::string table = format_iteration_table(sol);
+    EXPECT_NE(table.find("Scaling: obj="), std::string::npos) << table;
+    EXPECT_NE(table.find("scaled_kkt="), std::string::npos) << table;
+}
+
+TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
+    // The OFF-path half of the same pin: the mapping is behind one predicate,
+    // so an unscaled solve's rows are the measurements themselves, and the
+    // trailer says so in one word.
+    ScaledUnevenModel model;
+    SqpDriver driver{SqpOptions{}};
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(SqpStatus::kOptimal, sol.status);
+    EXPECT_FALSE(sol.scaling.active);
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_DOUBLE_EQ(model.eval_f(model.start_point()), sol.history.front().f);
+    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
+    EXPECT_NE(format_iteration_table(sol).find("Scaling: off"), std::string::npos);
+}
+
+// ===========================================================================
+// FIX ROUND 1, FINDING 2: THE ONE EXIT THAT DOES NOT ROUTE THROUGH finish().
+// ===========================================================================
+
+TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
+    NonFiniteRowModel model;
+    SqpOptions opts;
+    opts.enable_scaling = true;
+    SqpDriver driver{opts};
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(SqpStatus::kNumericalError, sol.status)
+        << "the fixture must reach the non-finite-iterate exit for this pin to mean anything";
+    // THE REPORT IS WRITTEN. Before the fix this exit left it default-
+    // constructed, so a scaled solve claimed `active == false` about itself.
+    EXPECT_TRUE(sol.scaling.active);
+    EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.obj) << "100 / |grad f(x0)|inf = 100 / 1e6";
+    EXPECT_TRUE(std::isnan(sol.scaling.scaled_kkt_residual))
+        << "nothing was measured at this point, in either space";
+
+    // AND f IS THE CALLER'S. The model is finite in f and in every derivative
+    // here -- only the inequality residual is NaN -- so the objective is a real
+    // number and reporting the engine's 50 instead of the caller's 5e5 would be
+    // a silent unit error rather than a NaN.
+    EXPECT_DOUBLE_EQ(model.eval_f(model.start_point()), sol.f);
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
+    // The residual columns stay NaN, which is what "nothing was measured" reads
+    // as; the multipliers stay cleared, which the map leaves cleared.
+    EXPECT_TRUE(std::isnan(sol.kkt_residual));
+    EXPECT_TRUE(sol.lambda_i.isZero(0.0));
+}
+
+// ===========================================================================
+// FIX ROUND 1, FINDING 3: THE RESTORATION SUB-SOLVE'S MULTIPLIERS ARE ALREADY
+// THE CALLER'S, AND MUST NOT BE MAPPED A SECOND TIME.
+// ===========================================================================
+
+TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
+    // The sub-solve runs with scaling forced OFF over the RAW model, so its
+    // subgradient selectors and its bound prices come back in the caller's
+    // units already. Applying the export boundary's ENGINE->CALLER map to them
+    // divides by sf a second time -- at sf = 100 on this fixture, the certified
+    // selectors would read 0.00707 and -0.01 instead of 0.707 and -1.
+    InfeasibleCircleLineModel model;
+
+    SqpOptions off_opts;
+    off_opts.max_iter = 200;
+    SqpDriver off{off_opts};
+    const SqpSolution a = off.solve(model);
+    ASSERT_EQ(SqpStatus::kInfeasible, a.status);
+    ASSERT_TRUE(a.infeasibility_certified);
+
+    SqpOptions on_opts = off_opts;
+    on_opts.enable_scaling = true;
+    SqpDriver on{on_opts};
+    const SqpSolution b = on.solve(model);
+
+    ASSERT_TRUE(b.scaling.active);
+    EXPECT_DOUBLE_EQ(100.0, b.scaling.obj) << "grad f is (1,1) everywhere: the full two-sided lift";
+    EXPECT_DOUBLE_EQ(1.0, b.scaling.row_min) << "the row rule never amplifies";
+    EXPECT_DOUBLE_EQ(1.0, b.scaling.row_max);
+    ASSERT_EQ(SqpStatus::kInfeasible, b.status)
+        << "the scaled solve must still reach the restoration exit this pin is about";
+    EXPECT_TRUE(b.infeasibility_certified);
+
+    // THE SELECTORS ARE THE SUB-SOLVE'S OWN, on the caller's scale, and they
+    // are ADMISSIBLE -- |selector| <= 1 is what makes them a certificate at
+    // all, and it is exactly the property a spurious 1/sf preserves while a
+    // spurious sf destroys. Pinned against the unscaled solve's own answer.
+    const double t = 1.0 / std::sqrt(2.0);
+    EXPECT_NEAR(t, b.lambda_e(0), 1e-5);
+    EXPECT_NEAR(-1.0, b.lambda_e(1), 1e-5);
+    EXPECT_NEAR(a.lambda_e(0), b.lambda_e(0), 1e-5);
+    EXPECT_NEAR(a.lambda_e(1), b.lambda_e(1), 1e-5);
+    EXPECT_LE(b.lambda_e.cwiseAbs().maxCoeff(), 1.0 + 1e-9)
+        << "a selector outside [-1, 1] is not a subgradient of h";
+
+    // AND THE POINT, AND THE CALLER-SCALE RE-MEASUREMENT AT IT. The four
+    // terminal residuals are taken on the caller's own model at exactly these
+    // multipliers, so an independent measurement must reproduce them.
+    EXPECT_NEAR(t, b.x(0), 1e-5);
+    EXPECT_NEAR(t, b.x(1), 1e-5);
+    const SqpKkt independent = evaluate_kkt(model, b.x, b.lambda_e, b.lambda_i, off_opts.feas_tol);
+    EXPECT_DOUBLE_EQ(independent.stationarity, b.stationarity);
+    EXPECT_DOUBLE_EQ(independent.feasibility, b.feasibility);
+    EXPECT_DOUBLE_EQ(independent.residual(), b.kkt_residual);
+    // The bound prices are the FEASIBILITY problem's own (the certificate's,
+    // not grad L's), so they are compared against the unscaled solve's rather
+    // than against a re-measurement -- and they too carry no second factor.
+    ASSERT_EQ(a.z.size(), b.z.size());
+    for (Index i = 0; i < a.z.size(); ++i) {
+        EXPECT_NEAR(a.z(i), b.z(i), 1e-6) << "bound price " << i;
+    }
+}
+
+// ===========================================================================
+// FIX ROUND 1, FINDING 4: THE FACTORS ARE INDEXED BY ROW, SO A RE-LAY THAT
+// CHANGES A ROW COUNT UNDER THEM IS REFUSED RATHER THAN READ PAST.
+//
+// No in-tree provider can do this within one solve -- NlpModelAggregate re-lays
+// only from its own model, whose row counts are fixed for the object's life,
+// and the driver never asks it to. The guard is structural all the same: the
+// apply sites index the factor blocks directly, and Eigen's own bounds asserts
+// are compiled out under NDEBUG (CLAUDE.md section 4), so the alternative to a
+// refusal here is an out-of-range read in Release.
+// ===========================================================================
+
+TEST(ProblemScalingSeam, ARelayThatChangesARowCountUnderActiveFactorsIsRefused) {
+    hven::sqp_tests::SettableClaimStreamSource source(2, 1, 1);
+    source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+    AggregateEvalSeam seam(source);
+
+    detail::ProblemScaling sc;
+    sc.active = true;
+    sc.obj = 0.5;
+    sc.eq_rows = Vec::Constant(1, 0.25);
+    sc.ineq_rows = Vec::Constant(1, 4.0);
+    ASSERT_NO_THROW(seam.install_scaling(sc));
+
+    const Vec x = (Vec(2) << 0.5, -0.25).finished();
+    ASSERT_NO_THROW(seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(1)));
+
+    // A re-lay that keeps the row counts is FINE: the factors still describe
+    // the rows they were computed for.
+    source.set_row_counts(1, 1);
+    ASSERT_NO_THROW(seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(1)));
+
+    // One that changes them is not, and the message names both shapes.
+    source.set_row_counts(1, 2);
+    try {
+        seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(1));
+        FAIL() << "a re-lay to different row counts must be refused while factors are installed";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        EXPECT_NE(message.find("(1, 2)"), std::string::npos) << message;
+        EXPECT_NE(message.find("(1, 1)"), std::string::npos) << message;
+        EXPECT_NE(message.find("scaling"), std::string::npos) << message;
+    }
+}
+
+TEST(ProblemScalingSeam, AnUnscaledSeamStillAcceptsARowCountChange) {
+    // The guard is scoped to an ACTIVE scaling and to nothing else: the seam's
+    // ordinary re-lay behaviour, which every unscaled solve relies on, is
+    // untouched.
+    hven::sqp_tests::SettableClaimStreamSource source(2, 1, 1);
+    source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
+    AggregateEvalSeam seam(source);
+
+    const Vec x = (Vec(2) << 0.5, -0.25).finished();
+    ASSERT_NO_THROW(seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(1)));
+    source.set_row_counts(1, 2);
+    NlpEval ev;
+    ASSERT_NO_THROW(ev = seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(2)));
+    EXPECT_EQ(2, ev.ci.size());
+}
+
+// ===========================================================================
+// FIX ROUND 1, FINDING 5: THE BOUND PRICES COME FROM THE CALLER-SCALE
+// RE-MEASUREMENT, NOT FROM A DIVIDE-BACK OF THE ENGINE'S OWN VECTOR.
+//
+// The four terminal residuals were already re-measured on the caller's model,
+// for a stated floating-point reason -- multiplying by a factor and dividing it
+// back is not the identity. `z` is a coordinate of the very `grad_lag` those
+// were folded out of, so it belongs to the same measurement, and this pin holds
+// it to the same standard: BIT equality with an independent measurement, not a
+// tolerance. It needs a solution ON A BOUND, because an interior optimum has
+// z == 0 and 0/sf == 0 hides the difference.
+// ===========================================================================
+
+TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) {
+    ScaledBoundActiveModel model;
+    SqpOptions opts;
+    opts.enable_scaling = true;
+    SqpDriver driver{opts};
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(SqpStatus::kOptimal, sol.status);
+    ASSERT_TRUE(sol.scaling.active);
+    EXPECT_NEAR(0.2, sol.x(0), 1e-9);
+    EXPECT_NEAR(1.0, sol.x(1), 1e-9) << "x1's upper bound binds";
+    ASSERT_EQ(2, sol.z.size());
+    EXPECT_NEAR(-1.16e6, sol.z(1), 1e-3) << "the hand-derived bound price, on the CALLER's scale";
+
+    const SqpKkt independent =
+        evaluate_kkt(model, sol.x, sol.lambda_e, sol.lambda_i, SqpOptions{}.feas_tol);
+    // EXACT: the same fold, on the same model, at the same point and the same
+    // multipliers. A divide-back of the engine's own vector is a DIFFERENT
+    // computation -- sf*grad and (s_j*Ji)^T*lambda~ summed and then divided --
+    // and it is not required to land on the same bits.
+    for (Index i = 0; i < sol.z.size(); ++i) {
+        EXPECT_EQ(independent.z(i), sol.z(i)) << "bound price " << i;
+    }
+    EXPECT_EQ(independent.stationarity, sol.stationarity);
 }
 
 } // namespace hven::solvers

@@ -234,6 +234,26 @@ void AggregateEvalSeam::lay() {
     const StructureEpoch epoch_read_before_structures = aggregate_->structure_epoch();
 
     const AggregateDeclaration &declared = aggregate_->declaration();
+
+    // THE INSTALLED W0.2 FACTORS ARE INDEXED BY ROW, and a re-lay that changes a
+    // row count would leave every apply site reading past the end of a factor
+    // block -- out of bounds in Release, where Eigen's own asserts are compiled
+    // out (CLAUDE.md section 4). The factors are computed once, from the start
+    // point's derivatives, and are FIXED for the solve by design, so there is no
+    // correct way to carry them across such a re-lay: they describe rows that no
+    // longer exist. Refused here, in the same voice require_bundle_matches_layout
+    // refuses a bundle these structures no longer describe, and BEFORE anything
+    // is written, so the refusal leaves this seam exactly as it was.
+    if (scaling_.active && (scaling_.eq_rows.size() != declared.equality_rows_ ||
+                            scaling_.ineq_rows.size() != declared.inequality_rows_)) {
+        throw std::invalid_argument(fmt::format(
+            "AggregateEvalSeam: the aggregate re-laid to ({}, {}) constraint rows while a problem "
+            "scaling sized for ({}, {}) was installed; the factors are fixed for a solve and "
+            "cannot describe rows that changed under them",
+            declared.equality_rows_, declared.inequality_rows_, scaling_.eq_rows.size(),
+            scaling_.ineq_rows.size()));
+    }
+
     primal_vars_ = declared.primal_vars_;
     equality_rows_ = declared.equality_rows_;
     inequality_rows_ = declared.inequality_rows_;

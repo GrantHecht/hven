@@ -39,16 +39,9 @@ double factor_for(double norm, const ScalingRule &rule, bool two_sided) {
         return 1.0;
     }
     const double raw = rule.max_gradient / norm;
-    // THE ONE-SIDED ARM, and it is the ROW arm. A factor above 1 AMPLIFIES, and
-    // amplifying a constraint row is a different risk from amplifying the
-    // objective: a near-degenerate row -- one whose Jacobian is small at the
-    // start point because the row is nearly inactive there, not because its
-    // units are wrong -- would have its residual multiplied by up to
-    // factor_limit, manufacturing infeasibility out of a row that has none.
-    // Equilibration's actual purpose is removing the SPREAD between rows, and
-    // shrinking the large ones achieves that without ever inventing a residual.
-    // This is IPOPT's rule for rows, and it is deliberately NOT the rule for the
-    // objective -- see compute_problem_scaling.
+    // THE ONE-SIDED ARM, and it is the ROW arm: a factor above 1 AMPLIFIES, and a
+    // row is never amplified. problem_scaling.h's compute_problem_scaling
+    // carries the asymmetry and its reasoning; this is its enforcement.
     if (!two_sided && raw > 1.0) {
         return 1.0;
     }
@@ -102,16 +95,9 @@ ProblemScaling compute_problem_scaling(const Vec &grad, const SpMatRM &Je, const
                                        const ScalingRule &rule) {
     ProblemScaling s;
     s.active = true;
-    // lpNorm<Infinity>() on an empty vector is 0.0, which factor_for maps to the
-    // identity -- the right answer for a model with no variables to speak of.
-    // THE OBJECTIVE IS TWO-SIDED, the rows are not, and the asymmetry is the
-    // design rather than an inconsistency. An objective gradient that is TOO
-    // SMALL is a correctness problem, not a conditioning one: it certifies a KKT
-    // point that is not one (HS25's zero-major kOptimal at f = 32.8 against a
-    // true f* = 0), and only amplification can refuse that certificate. A
-    // constraint row that is too small carries no such false verdict -- the
-    // feasibility test reads its residual directly -- so it is left alone rather
-    // than amplified. See factor_for's ONE-SIDED ARM.
+    // An empty gradient folds to 0.0, which factor_for maps to the identity --
+    // the right answer for a model with no variables to speak of. THE OBJECTIVE
+    // IS TWO-SIDED and the rows are not; the header's declaration carries why.
     s.obj = factor_for(grad.size() > 0 ? grad.cwiseAbs().maxCoeff() : 0.0, rule,
                        /*two_sided=*/true);
 

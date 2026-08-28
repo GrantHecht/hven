@@ -87,6 +87,18 @@ std::string format_iteration_table(const SqpSolution &sol) {
 
     result += fmt::format("\nStatus: {}\n", to_string(sol.status));
     result += fmt::format("Start Level: {}\n", to_string(sol.counters.start_level_used));
+    // THE SCALING LINE (M6 W0.2). Every column of the table above is on the
+    // CALLER's scale whether the solve was scaled or not, so without this line
+    // a reader cannot tell the two apart at all -- and on a scaled solve the
+    // number the convergence test actually gated on (`scaled_kkt_residual`) is
+    // not in the table, by construction. One line, and "off" when it is off.
+    if (sol.scaling.active) {
+        result += fmt::format("Scaling: obj={:.6e} rows=[{:.6e}, {:.6e}] scaled_kkt={:.6e}\n",
+                              sol.scaling.obj, sol.scaling.row_min, sol.scaling.row_max,
+                              sol.scaling.scaled_kkt_residual);
+    } else {
+        result += "Scaling: off\n";
+    }
     return result;
 }
 

@@ -2820,9 +2820,16 @@ class SqpDriver {
     /// Both are inert at the shipped default -- an unscaled solve reads neither.
     ///
     /// @param seam the solve's evaluation seam; carries the installed factors.
+    /// @param multipliers_are_caller_scale TRUE only at the restoration exit
+    ///        that ADOPTS the sub-solve's own multipliers and bound prices.
+    ///        That sub-solve runs unscaled over the raw model, so those blocks
+    ///        are already in the caller's units and the ENGINE->CALLER map is
+    ///        skipped for them -- applying it would divide by `sf` twice. Every
+    ///        other exit leaves it false, including the restoration exits that
+    ///        return the loop's own (or cleared) multipliers.
     SqpSolution finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatus status, const Vec &x,
                        const Vec &lambda_e, const Vec &lambda_i, const SqpKkt &kkt, double f,
-                       WarmStart warm);
+                       WarmStart warm, bool multipliers_are_caller_scale = false);
 
     /// Computes THIS solve's scaling factors and installs them on @p seam, or
     /// leaves the seam unscaled when `opts_.enable_scaling` is false.

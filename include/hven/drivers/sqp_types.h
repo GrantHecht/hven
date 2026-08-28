@@ -685,20 +685,15 @@ struct SqpOptions {
     /// and the solve is the one this driver has always run. The `crash_basis`
     /// pattern, not the `enable_soc` one.
     ///
-    /// WHY IT SHIPS OFF. The settings contract for this milestone is per-toggle
-    /// with MEASURED defaults, and the measurement that would justify flipping
-    /// this one is a tuning study over a scale-diverse population, which is M8
-    /// scope. What is measured today is the two acceptance cells this layer was
-    /// built for; two cells do not justify a default.
-    ///
     /// WHAT CHANGES WHEN IT IS ON, stated plainly because it is a real
     /// contract difference and not only a performance one: the CONVERGENCE TEST
     /// gates on the SCALED residuals -- that is the entire point of the layer --
-    /// while `SqpSolution`'s four terminal KKT fields report CALLER-scale
-    /// values. Those two can differ, so a kOptimal solve may report a
-    /// caller-scale `kkt_residual` above `kkt_tol`. `SqpScalingReport` carries
-    /// both the factors and the scaled residual the gate actually read, which is
-    /// what makes the gap computable rather than merely disclosed.
+    /// while `SqpSolution`'s four terminal KKT fields, its `f`, its multiplier
+    /// blocks and every `history` row report CALLER-scale values. Those two can
+    /// differ, so a kOptimal solve may report a caller-scale `kkt_residual`
+    /// above `kkt_tol`. `SqpScalingReport` carries both the factors and the
+    /// scaled residual the gate actually read, which is what makes the gap
+    /// computable rather than merely disclosed.
     bool enable_scaling = false;
 
     /// The inf-norm the scaled objective gradient and each scaled Jacobian row
@@ -782,6 +777,13 @@ void validate_sqp_options(const SqpOptions &opts);
 /// the rejected row that still describes a real (repeated) iterate, and it
 /// would also drop the final stopped-AT-iterate row, whose verdict field is
 /// meaningless and sits at its kReject default.
+///
+/// EVERY SCALE-CARRYING COLUMN IS ON THE CALLER'S SCALE -- f, stationarity,
+/// feasibility, complementarity, kkt_residual, violation_l1 -- whether or not
+/// the solve ran with `SqpOptions::enable_scaling` on, so a row is directly
+/// comparable with `SqpSolution`'s own terminal fields and with another solve's
+/// history. The number a SCALED solve's convergence test actually gated on is
+/// not in this table; it is `SqpScalingReport::scaled_kkt_residual`.
 struct SqpIterate {
     /// @brief 0-based index of THIS ROW (== subproblem index).
     Index trial = 0;

@@ -1286,6 +1286,7 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
         if (line.empty() || line.find("Trial") != std::string::npos ||
             line.find("Status:") != std::string::npos ||
             line.find("Start Level:") != std::string::npos ||
+            line.find("Scaling:") != std::string::npos ||
             line.find_first_not_of('-') == std::string::npos) {
             continue;
         }

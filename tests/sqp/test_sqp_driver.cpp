@@ -5928,12 +5928,16 @@ TEST(SqpDriverDiagnostics, PrinterContainsPerIterationRowsAndFinalStatus) {
     const std::string table = format_iteration_table(sol);
 
     // One data row per history entry, plus a header line, a separator line,
-    // the trailing blank-then-status lines, and (Task 7) a trailing "Start
-    // Level" line -- counted by newlines rather than by an exact total, so
-    // this does not pin the header's own column widths.
+    // the trailing blank-then-status lines, a trailing "Start Level" line
+    // (Task 7) and a trailing "Scaling" line (M6 W0.2) -- counted by newlines
+    // rather than by an exact total, so this does not pin the header's own
+    // column widths.
     const std::size_t newline_count =
         static_cast<std::size_t>(std::count(table.begin(), table.end(), '\n'));
-    EXPECT_EQ(newline_count, sol.history.size() + 5u);
+    EXPECT_EQ(newline_count, sol.history.size() + 6u);
+    EXPECT_NE(table.find("Scaling: off"), std::string::npos)
+        << "the trailer must say which scale the table is on, even when it is the caller's own\n"
+        << table;
 
     EXPECT_NE(table.find("Trial"), std::string::npos) << table;
     EXPECT_NE(table.find("Verdict"), std::string::npos) << table;

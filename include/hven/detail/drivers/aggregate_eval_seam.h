@@ -201,6 +201,13 @@ class AggregateEvalSeam {
     /// (detail/drivers/problem_scaling.h). Installing the default-constructed
     /// (inactive) value is legal and is exactly the state a seam is born in.
     ///
+    /// THE INVARIANT, held by this seam rather than assumed of its caller: while
+    /// an active scaling is installed, the row counts it was sized against are
+    /// the row counts this seam is laid for. A re-lay that would break it --
+    /// the aggregate bumping its epoch onto a declaration with a different
+    /// number of rows -- is REFUSED by `lay()` rather than silently indexing a
+    /// factor block that no longer covers the rows.
+    ///
     /// @param scaling factors sized to THIS seam's row counts.
     /// @throws std::invalid_argument if an active scaling's blocks are not
     ///         me()- and mi()-sized.
@@ -236,6 +243,10 @@ class AggregateEvalSeam {
     friend struct AggregateEvalSeamTestAccess;
 
     /// Reads the epoch and rebuilds every destination from the claim stream.
+    ///
+    /// @throws std::invalid_argument if an ACTIVE problem scaling is installed
+    ///         and the new declaration's row counts differ from the ones it was
+    ///         sized against -- see install_scaling's invariant.
     void lay();
 
     /// Re-lays when the aggregate's epoch has moved since the last lay. Called

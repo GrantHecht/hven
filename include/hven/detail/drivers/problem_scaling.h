@@ -42,27 +42,16 @@
 // above, read backwards. That composition is exact at every objective weight
 // including the restoration weight 0.0, where hess(f) drops out of both sides.
 //
-// WHAT IS NOT SCALED, and why it is a declared non-goal rather than an
-// oversight: VARIABLE (column) scaling. It would change the variable space, and
-// with it the l-infinity trust region, the bound box, the start point, every
-// step norm, the SSN engine's face geometry and the warm-start currency's x/z
-// and prox-centre blocks. That is a far larger blast radius than either
-// acceptance cell of this task requires, and it needs its own measurement.
+// WHAT IS NOT SCALED: the VARIABLES. Column scaling is a declared non-goal of
+// this layer, not an oversight -- the reasoning is in the W0.2 report.
 //
-// COMPOSITION WITH THE TWO EXISTING `obj_scale` SURFACES, which mean different
-// things and are both left alone:
-//   * `SqpDriver`'s per-subproblem `obj_scale` (drivers/sqp_driver.h) is the
-//     Lagrangian's objective WEIGHT -- 1.0 normally, 0.0 to drop the objective
-//     during restoration. It multiplies ON TOP of `obj` here, as the Hessian
-//     paragraph above spells out, and this layer changes neither its meaning
-//     nor any of its call sites.
-//   * `InteriorPointSolver::Settings::obj_scale_` (drivers/interior_point_solver.h)
-//     is a caller-supplied problem-level objective scale on the OTHER engine,
-//     with its own round-trip. This layer does not reach the IPM.
-//
-// SELF-CONTAINED, unlike its neighbour aggregate_eval_seam.h: the rule reads
-// only a gradient and two Jacobians, so nothing here needs `NlpEval` and this
-// header includes everything it names.
+// THE TWO NEIGHBOURING `obj_scale` SURFACES, neither of which this is and
+// neither of which it changes. `SqpDriver`'s per-subproblem `obj_scale`
+// (drivers/sqp_driver.h) is the Lagrangian's objective WEIGHT -- 1.0 normally,
+// 0.0 to drop the objective during restoration -- and it multiplies ON TOP of
+// `obj` here, exactly as THE HESSIAN above spells out.
+// `InteriorPointSolver::Settings::obj_scale_` is the OTHER engine's
+// caller-supplied problem scale; this layer does not reach the IPM.
 
 #include <hven/core/types.h>
 
