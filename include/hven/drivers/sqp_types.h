@@ -162,17 +162,34 @@ struct IpqpOptions {
 
     /// The (rho, delta) proximal regularization schedule's INITIAL values
     /// (spec 3.2): `rho_0 = ipqp_rho_init`, `delta_0 = ipqp_delta_init`,
-    /// Cipolla-Gondzio's own choice (arXiv:2205.01775). Both terms enter the
-    /// regularized KKT system's right-hand side, never its matrix diagonal
-    /// directly (`detail/globalization/inertia_regularization.h` supplies
-    /// the shift mechanism; W1 supplies the estimates `zeta`/`lambda_est`
-    /// this schedule updates). Default 8.0 each. Each must be finite and lie
-    /// in `[ipqp_reg_floor, ipqp_reg_max]` -- the starting value of a
-    /// quantity the ladder only ever moves within that band must itself
-    /// start inside it.
+    /// Cipolla-Gondzio's own choice (arXiv:2205.01775). (Spec 3.2's OWN TEXT
+    /// literally reads "rho_0 = delta_0 = ipqp_rho_init" -- both from the ONE
+    /// field -- while its section 9 table lists `ipqp_rho_init` and
+    /// `ipqp_delta_init` as two separate settings. The table governs: it is
+    /// the settings-surface contract this file implements, the two fields
+    /// default to the same value so nothing observable changes today, and
+    /// the divergence is recorded as a dated spec-text amendment, plan
+    /// section 7 note (g).) `rho`/`delta` THEMSELVES enter the regularized
+    /// KKT matrix's diagonal blocks (`H + rho I` on the primal block, `-delta
+    /// I` on each dual block -- spec 3.1's Newton system); it is the
+    /// PROXIMAL CENTERING terms `+ rho (x - zeta)` and `- delta (y -
+    /// lambda_est)` that enter the right-hand side
+    /// (`detail/globalization/inertia_regularization.h` supplies the shift
+    /// mechanism; W1 supplies the estimates `zeta`/`lambda_est` this
+    /// schedule updates). Default 8.0 each.
+    ///
+    /// `ipqp_rho_init` must be finite and lie in `[ipqp_reg_floor,
+    /// ipqp_reg_max]` -- the starting value of a quantity the ladder only
+    /// ever moves within that band must itself start inside it (spec 2.2's
+    /// monotone floor is stated for `rho`).
     double ipqp_rho_init = 8.0;
-    /// See `ipqp_rho_init` immediately above; same schedule, same band, the
-    /// dual-block counterpart. Default 8.0.
+    /// The dual-block counterpart of `ipqp_rho_init` immediately above, same
+    /// schedule. RELAXED relative to `ipqp_rho_init`'s own band: spec 2.2's
+    /// monotone floor is stated for `rho` only, so `ipqp_delta_init` need
+    /// only be finite and in `(0, ipqp_reg_max]` -- positive (a
+    /// non-positive delta would not regularize the dual block at all) and no
+    /// larger than the ceiling every regularized quantity in this schedule
+    /// shares, but not tied to `ipqp_reg_floor`. Default 8.0.
     double ipqp_delta_init = 8.0;
 
     /// The absolute floor the (rho, delta) ladder's GATED decrease may never
@@ -206,10 +223,17 @@ struct IpqpOptions {
     double ipqp_tau = 0.995;
 
     /// The RATIO threshold `kappa` of the section 2.3 face-classification
-    /// rule: row `j` is active iff `s_j < kappa * z_j` (scale-free by
-    /// construction, which is the entire point of a ratio rule over an
-    /// absolute one). Default 1e-2. Must be finite and > 0 -- a
-    /// non-positive kappa can never classify anything active.
+    /// rule: row `j` is active iff `s_j < kappa * z_j` and INACTIVE iff the
+    /// REVERSE holds by the same ratio, i.e. `z_j < kappa * s_j` (scale-free
+    /// by construction, which is the entire point of a ratio rule over an
+    /// absolute one). Default 1e-2. Must be finite and lie STRICTLY inside
+    /// (0, 1): a non-positive kappa can never classify anything active, and
+    /// at kappa >= 1 the two tests are not mutually exclusive -- `s_j ==
+    /// z_j` would satisfy `s_j < kappa * z_j` (active) AND `z_j < kappa *
+    /// s_j` (inactive) simultaneously the moment kappa exceeds 1, and at
+    /// exactly 1 satisfies neither test's STRICT inequality but the two
+    /// tests still coincide at equality, leaving no room for the routing
+    /// chain's UNCERTAIN class the rule is built to carve out.
     double ipqp_face_kappa = 1e-2;
 
     /// The barrier-phase convergence target's SLACK factor (spec 2.3 step 1

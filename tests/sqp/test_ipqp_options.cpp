@@ -118,7 +118,9 @@ TEST(IpqpOptions, RegularizationFloorAndCeilingMustBeWellFormed) {
     }
 }
 
-TEST(IpqpOptions, RhoAndDeltaInitMustStartInsideTheRegularizationBand) {
+TEST(IpqpOptions, RhoInitMustStartInsideTheRegularizationBand) {
+    // rho_init IS tied to the floor -- spec section 2.2's monotone floor is
+    // stated for rho.
     SqpOptions o;
     o.ipqp.ipqp_reg_floor = 1e-6;
     o.ipqp.ipqp_reg_max = 1e3;
@@ -128,12 +130,27 @@ TEST(IpqpOptions, RhoAndDeltaInitMustStartInsideTheRegularizationBand) {
     EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
     o.ipqp.ipqp_rho_init = 1.0;
     EXPECT_NO_THROW(validate_sqp_options(o));
+}
 
-    o.ipqp.ipqp_delta_init = 1e-7;
+TEST(IpqpOptions, DeltaInitMustBePositiveAndNoLargerThanTheCeilingButIsNotTiedToTheFloor) {
+    // Fix round 1 (2026-08-30, plan section 7 note g): delta_init is NOT
+    // bound to ipqp_reg_floor -- only rho carries the monotone-floor
+    // invariant (spec 2.2) -- so a value below the (deliberately high) floor
+    // set here must still be ACCEPTED.
+    SqpOptions o;
+    o.ipqp.ipqp_reg_floor = 1e-6;
+    o.ipqp.ipqp_reg_max = 1e3;
+    o.ipqp.ipqp_delta_init = 1e-7; // below the floor, but the floor does not bind delta
+    EXPECT_NO_THROW(validate_sqp_options(o));
+    o.ipqp.ipqp_delta_init = 0.0; // non-positive is still rejected
     EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
-    o.ipqp.ipqp_delta_init = 1e4;
+    o.ipqp.ipqp_delta_init = -1.0;
     EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
-    o.ipqp.ipqp_delta_init = 1.0;
+    o.ipqp.ipqp_delta_init = kNan;
+    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
+    o.ipqp.ipqp_delta_init = 1e4; // above the ceiling is still rejected
+    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
+    o.ipqp.ipqp_delta_init = 1e3; // exactly the ceiling is legal
     EXPECT_NO_THROW(validate_sqp_options(o));
 }
 
@@ -163,12 +180,22 @@ TEST(IpqpOptions, TauMustBeAStrictFractionToBoundaryParameter) {
     EXPECT_NO_THROW(validate_sqp_options(o));
 }
 
-TEST(IpqpOptions, FaceKappaMustBeFiniteAndPositive) {
+TEST(IpqpOptions, FaceKappaMustLieStrictlyBetweenZeroAndOne) {
+    // Fix round 1 (2026-08-30): tightened from "finite and > 0" to strictly
+    // (0, 1) -- at kappa >= 1 the ratio rule's active test (s_j < kappa*z_j)
+    // and inactive test (z_j < kappa*s_j) stop being mutually exclusive, so
+    // equal slack and dual values would satisfy both.
     SqpOptions o;
     o.ipqp.ipqp_face_kappa = 0.0;
     EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
     o.ipqp.ipqp_face_kappa = -1e-2;
     EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
+    o.ipqp.ipqp_face_kappa = 1.0;
+    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument)
+        << "at kappa == 1 the two ratio tests coincide at equality";
+    o.ipqp.ipqp_face_kappa = 2.0;
+    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument)
+        << "above 1 the active and inactive tests overlap";
     o.ipqp.ipqp_face_kappa = kInf;
     EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
     o.ipqp.ipqp_face_kappa = kNan;

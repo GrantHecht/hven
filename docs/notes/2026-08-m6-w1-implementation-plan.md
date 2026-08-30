@@ -540,6 +540,22 @@ declared-change discipline; the spec text itself is amended at W1 close.
   Today neither `validate_staged_polish` (:170-181, vectors only) nor the
   decode (`ipm_polish_extension.cpp:169`, bit-exact NaN/inf round-trip)
   checks it.
+- (g) Spec §3.2/§9 AMENDED (T1 fix round 1, 2026-08-30): §3.2's own prose
+  reads "rho_0 = delta_0 = ipqp_rho_init" — both from the ONE field — while
+  the §9 table lists `ipqp_rho_init` and `ipqp_delta_init` as two separate
+  settings. The TABLE governs, as the settings-surface contract this task
+  implements: `SqpOptions::ipqp` carries both fields, each defaulting to
+  8.0 so nothing observable changes today. Their validation bands also
+  diverge, on the same textual basis: §2.2's monotone floor is stated for
+  `rho` only, so `ipqp_rho_init` is bound to `[ipqp_reg_floor,
+  ipqp_reg_max]` while `ipqp_delta_init` is bound only to `(0,
+  ipqp_reg_max]` — positive and no larger than the shared ceiling, not tied
+  to the floor. Also corrected in the same pass: `rho`/`delta` THEMSELVES
+  enter the regularized KKT matrix's diagonal blocks (`H + rho I`, `-delta
+  I` per spec §3.1's Newton system) — it is the proximal CENTERING terms `+
+  rho (x - zeta)` / `- delta (y - lambda_est)` that enter the right-hand
+  side, not `rho`/`delta` as such; T1's own doc comment had conflated the
+  two.
 
 ## §8. v2/v3 changes (Codex r1 + rulings 1-9; Codex r2 + r3 rulings 1-3)
 

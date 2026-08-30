@@ -167,7 +167,8 @@ void validate_sqp_options(const SqpOptions &opts) {
     if (!(opts.ipqp.ipqp_init_mu > 0.0) || std::isinf(opts.ipqp.ipqp_init_mu)) {
         throw std::invalid_argument(fmt::format(
             "SqpDriver: ipqp.ipqp_init_mu ({}) must be finite and > 0; it is the cold starting "
-            "mu and the ceiling of the mu_0 clamp", opts.ipqp.ipqp_init_mu));
+            "mu and the ceiling of the mu_0 clamp",
+            opts.ipqp.ipqp_init_mu));
     }
     if (!(opts.ipqp.ipqp_min_mu <= opts.ipqp.ipqp_init_mu)) {
         throw std::invalid_argument(fmt::format(
@@ -181,7 +182,8 @@ void validate_sqp_options(const SqpOptions &opts) {
             "floor the (rho, delta) ladder's gated decrease may never cross",
             opts.ipqp.ipqp_reg_floor));
     }
-    if (!(opts.ipqp.ipqp_reg_max >= opts.ipqp.ipqp_reg_floor) || std::isinf(opts.ipqp.ipqp_reg_max)) {
+    if (!(opts.ipqp.ipqp_reg_max >= opts.ipqp.ipqp_reg_floor) ||
+        std::isinf(opts.ipqp.ipqp_reg_max)) {
         throw std::invalid_argument(fmt::format(
             "SqpDriver: ipqp.ipqp_reg_max ({}) must be finite and >= ipqp.ipqp_reg_floor ({}); "
             "it is the ceiling the (rho, delta) ladder's growth may never cross",
@@ -195,13 +197,13 @@ void validate_sqp_options(const SqpOptions &opts) {
             "band must itself start inside it",
             opts.ipqp.ipqp_rho_init, opts.ipqp.ipqp_reg_floor, opts.ipqp.ipqp_reg_max));
     }
-    if (!(opts.ipqp.ipqp_delta_init >= opts.ipqp.ipqp_reg_floor) ||
+    if (!(opts.ipqp.ipqp_delta_init > 0.0) ||
         !(opts.ipqp.ipqp_delta_init <= opts.ipqp.ipqp_reg_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_delta_init ({}) must lie in [ipqp_reg_floor ({}), "
-            "ipqp_reg_max ({})]; same schedule and band as ipqp_rho_init, the dual-block "
-            "counterpart",
-            opts.ipqp.ipqp_delta_init, opts.ipqp.ipqp_reg_floor, opts.ipqp.ipqp_reg_max));
+            "SqpDriver: ipqp.ipqp_delta_init ({}) must lie in (0, ipqp_reg_max ({})]; unlike "
+            "ipqp_rho_init it is NOT tied to ipqp_reg_floor -- spec section 2.2's monotone "
+            "floor is stated for rho only",
+            opts.ipqp.ipqp_delta_init, opts.ipqp.ipqp_reg_max));
     }
     if (!(opts.ipqp.ipqp_reg_decrease > 0.0) || !(opts.ipqp.ipqp_reg_decrease < 1.0)) {
         throw std::invalid_argument(fmt::format(
@@ -217,10 +219,12 @@ void validate_sqp_options(const SqpOptions &opts) {
             "onto or past a bound",
             opts.ipqp.ipqp_tau));
     }
-    if (!(opts.ipqp.ipqp_face_kappa > 0.0) || std::isinf(opts.ipqp.ipqp_face_kappa)) {
+    if (!(opts.ipqp.ipqp_face_kappa > 0.0) || !(opts.ipqp.ipqp_face_kappa < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_face_kappa ({}) must be finite and > 0; a non-positive "
-            "ratio-rule threshold can never classify a row active",
+            "SqpDriver: ipqp.ipqp_face_kappa ({}) must lie strictly in (0, 1); a non-positive "
+            "ratio-rule threshold can never classify a row active, and at kappa >= 1 the "
+            "active test (s_j < kappa*z_j) and the inactive test (z_j < kappa*s_j) stop being "
+            "mutually exclusive -- equal slack and dual values would satisfy both",
             opts.ipqp.ipqp_face_kappa));
     }
     if (!(opts.ipqp.ipqp_converge_slack >= 1.0) || std::isinf(opts.ipqp.ipqp_converge_slack)) {
@@ -249,10 +253,10 @@ void validate_sqp_options(const SqpOptions &opts) {
             opts.ipqp.ipqp_stall_window));
     }
     if (opts.ipqp.ipqp_retire_after <= 0) {
-        throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_retire_after ({}) must be > 0; retiring \"after zero "
-            "consecutive escapes\" is not a count, it disables the tier outright",
-            opts.ipqp.ipqp_retire_after));
+        throw std::invalid_argument(
+            fmt::format("SqpDriver: ipqp.ipqp_retire_after ({}) must be > 0; retiring \"after zero "
+                        "consecutive escapes\" is not a count, it disables the tier outright",
+                        opts.ipqp.ipqp_retire_after));
     }
     // TEMPORARY (M6 W1 task 1): kIpm lands as an enumerator and an options
     // surface only -- no routing chain exists yet to dispatch a subproblem
