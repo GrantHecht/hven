@@ -35,6 +35,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_funnel.cpp
     test_hs_battery.cpp
     test_hs_sweeps.cpp
+    test_ipqp_options.cpp
     test_kkt_assembly.cpp
     test_kkt_calls.cpp
     test_kkt_inertia_probe.cpp

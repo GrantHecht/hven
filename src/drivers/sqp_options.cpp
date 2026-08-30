@@ -143,6 +143,130 @@ void validate_sqp_options(const SqpOptions &opts) {
             "factor to [1/limit, limit], and a limit below 1 inverts that interval",
             opts.scaling_factor_limit));
     }
+    // THE kIpm TIER'S OWN OPTIONS (M6 W1 task 1). Validated UNCONDITIONALLY,
+    // exactly like the scaling fields just above and for the same reason: an
+    // options object is a value whose qp_mode a caller may set later, so a
+    // nonsensical IpqpOptions field was already nonsensical when it was set.
+    // The `Index` (integer) fields below use the same direct form max_iter
+    // does above -- an Index has no NaN to guard against, so the
+    // negation-of-acceptance idiom's NaN-rejection reason does not apply to
+    // them; every `double` field below uses that idiom, for this file's own
+    // reason.
+    if (opts.ipqp.ipqp_hard_iter_cap <= 0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_hard_iter_cap ({}) must be > 0; it is the budget of last "
+            "resort and, unlike ipqp_max_iter, carries no size-derived sentinel reading",
+            opts.ipqp.ipqp_hard_iter_cap));
+    }
+    if (!(opts.ipqp.ipqp_min_mu > 0.0) || std::isinf(opts.ipqp.ipqp_min_mu)) {
+        throw std::invalid_argument(
+            fmt::format("SqpDriver: ipqp.ipqp_min_mu ({}) must be finite and > 0; it is the "
+                        "floor of the mu_0 clamp and the tier's own barrier-decay floor",
+                        opts.ipqp.ipqp_min_mu));
+    }
+    if (!(opts.ipqp.ipqp_init_mu > 0.0) || std::isinf(opts.ipqp.ipqp_init_mu)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_init_mu ({}) must be finite and > 0; it is the cold starting "
+            "mu and the ceiling of the mu_0 clamp", opts.ipqp.ipqp_init_mu));
+    }
+    if (!(opts.ipqp.ipqp_min_mu <= opts.ipqp.ipqp_init_mu)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_min_mu ({}) must be <= ipqp.ipqp_init_mu ({}); the mu_0 "
+            "clamp's band [ipqp_min_mu, ipqp_init_mu] is otherwise inverted",
+            opts.ipqp.ipqp_min_mu, opts.ipqp.ipqp_init_mu));
+    }
+    if (!(opts.ipqp.ipqp_reg_floor > 0.0) || std::isinf(opts.ipqp.ipqp_reg_floor)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_reg_floor ({}) must be finite and > 0; it is the absolute "
+            "floor the (rho, delta) ladder's gated decrease may never cross",
+            opts.ipqp.ipqp_reg_floor));
+    }
+    if (!(opts.ipqp.ipqp_reg_max >= opts.ipqp.ipqp_reg_floor) || std::isinf(opts.ipqp.ipqp_reg_max)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_reg_max ({}) must be finite and >= ipqp.ipqp_reg_floor ({}); "
+            "it is the ceiling the (rho, delta) ladder's growth may never cross",
+            opts.ipqp.ipqp_reg_max, opts.ipqp.ipqp_reg_floor));
+    }
+    if (!(opts.ipqp.ipqp_rho_init >= opts.ipqp.ipqp_reg_floor) ||
+        !(opts.ipqp.ipqp_rho_init <= opts.ipqp.ipqp_reg_max)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_rho_init ({}) must lie in [ipqp_reg_floor ({}), ipqp_reg_max "
+            "({})]; the starting value of a quantity the ladder only ever moves within that "
+            "band must itself start inside it",
+            opts.ipqp.ipqp_rho_init, opts.ipqp.ipqp_reg_floor, opts.ipqp.ipqp_reg_max));
+    }
+    if (!(opts.ipqp.ipqp_delta_init >= opts.ipqp.ipqp_reg_floor) ||
+        !(opts.ipqp.ipqp_delta_init <= opts.ipqp.ipqp_reg_max)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_delta_init ({}) must lie in [ipqp_reg_floor ({}), "
+            "ipqp_reg_max ({})]; same schedule and band as ipqp_rho_init, the dual-block "
+            "counterpart",
+            opts.ipqp.ipqp_delta_init, opts.ipqp.ipqp_reg_floor, opts.ipqp.ipqp_reg_max));
+    }
+    if (!(opts.ipqp.ipqp_reg_decrease > 0.0) || !(opts.ipqp.ipqp_reg_decrease < 1.0)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_reg_decrease ({}) must lie strictly in (0, 1); it is a "
+            "gated multiplicative decrease -- 0 would collapse the regularization in one "
+            "gated step and >= 1 would never decrease it",
+            opts.ipqp.ipqp_reg_decrease));
+    }
+    if (!(opts.ipqp.ipqp_tau > 0.0) || !(opts.ipqp.ipqp_tau < 1.0)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_tau ({}) must lie strictly in (0, 1); it is the "
+            "fraction-to-boundary parameter -- 0 permits no step and >= 1 permits stepping "
+            "onto or past a bound",
+            opts.ipqp.ipqp_tau));
+    }
+    if (!(opts.ipqp.ipqp_face_kappa > 0.0) || std::isinf(opts.ipqp.ipqp_face_kappa)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_face_kappa ({}) must be finite and > 0; a non-positive "
+            "ratio-rule threshold can never classify a row active",
+            opts.ipqp.ipqp_face_kappa));
+    }
+    if (!(opts.ipqp.ipqp_converge_slack >= 1.0) || std::isinf(opts.ipqp.ipqp_converge_slack)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_converge_slack ({}) must be finite and >= 1; a slack below "
+            "1 would ask the barrier phase for more accuracy than tier 3's own finish, "
+            "inverting the two-tier division of labor",
+            opts.ipqp.ipqp_converge_slack));
+    }
+    if (opts.ipqp.ipqp_warm_iter_budget < 0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_warm_iter_budget ({}) must be >= 0; 0 is legal (every warm "
+            "restart is killed on its first iteration) but a negative budget is not a count",
+            opts.ipqp.ipqp_warm_iter_budget));
+    }
+    if (!(opts.ipqp.ipqp_mu_adopt_factor >= 0.0) || std::isinf(opts.ipqp.ipqp_mu_adopt_factor)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_mu_adopt_factor ({}) must be finite and >= 0; 0 is a legal, "
+            "deliberate reading (adoption disabled), a negative one is not",
+            opts.ipqp.ipqp_mu_adopt_factor));
+    }
+    if (opts.ipqp.ipqp_stall_window <= 0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_stall_window ({}) must be > 0; a zero-width window can "
+            "never accumulate the whole-window evidence the early-stall test is built on",
+            opts.ipqp.ipqp_stall_window));
+    }
+    if (opts.ipqp.ipqp_retire_after <= 0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: ipqp.ipqp_retire_after ({}) must be > 0; retiring \"after zero "
+            "consecutive escapes\" is not a count, it disables the tier outright",
+            opts.ipqp.ipqp_retire_after));
+    }
+    // TEMPORARY (M6 W1 task 1): kIpm lands as an enumerator and an options
+    // surface only -- no routing chain exists yet to dispatch a subproblem
+    // through it. Checked LAST, after every IpqpOptions field above, so a
+    // caller who has also mis-set a field sees that diagnosis first; removed
+    // in the later W1 task that lands the routing chain, per that task's own
+    // "no half-wired state ever ships" requirement.
+    if (opts.qp_mode == QpMode::kIpm) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: qp_mode == QpMode::kIpm is not yet dispatchable -- the IPQP options "
+            "surface lands in M6 W1 task 1, inert by construction, and the routing chain that "
+            "lets the driver actually solve a subproblem through this mode arrives in a later "
+            "W1 task"));
+    }
 }
 
 } // namespace hven::solvers

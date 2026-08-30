@@ -29,7 +29,14 @@ namespace hven::solvers {
 /// (ssn_engine.h): a Newton method on a Fischer-Burmeister reformulation of
 /// the QP's own KKT conditions, whose step changes the whole implied active
 /// set AT ONCE (the PDAS "bulk flip") -- the property whose value shows up in
-/// the NUMBER of minors, not in the cost of one.
+/// the NUMBER of minors, not in the cost of one. kIpm is the INTERIOR-POINT
+/// tier (M6 W1, `detail/qp/ipqp_engine.h`): an IP-PMM (Cipolla-Gondzio)
+/// Mehrotra predictor-corrector that acquires the whole active set from an
+/// interior start rather than walking or flipping onto it, then hands a
+/// converged iterate to the tier-3 exact face refinement. **LANDS INERT IN
+/// W1 TASK 1**: `validate_sqp_options` rejects it with "not yet dispatchable"
+/// until the routing chain (a later W1 task) exists to run it -- selecting it
+/// today is refused at construction, not left to fail silently mid-solve.
 ///
 /// THE DEFAULT IS kWalk AND MUST STAY SO absent an explicit ruling otherwise:
 /// the walk is what every pin, battery and published figure in this
@@ -37,6 +44,7 @@ namespace hven::solvers {
 enum class QpMode {
     kWalk,
     kSsn,
+    kIpm,
 };
 
 // Declared HERE rather than in ssn_engine.h for the same reason QpMode is:
@@ -98,6 +106,185 @@ enum class SsnHintRule {
 enum class SsnInfeasibilityRule {
     kSymptoms = 0,
     kFarkasGated = 1,
+};
+
+/// THE `kIpm` TIER'S OWN SETTINGS (M6 W1, spec `docs/notes/2026-08-m6-w1-ipqp-spec.md`
+/// section 9). Declared HERE for the same reason `QpMode` and the three
+/// `Ssn*Rule` enums are: `SqpOptions` carries this struct as `ipqp`, and
+/// `sqp_types.h` is the header the engine (`detail/qp/ipqp_engine.h`)
+/// includes, not the reverse. Full mechanism for each field is derived at
+/// the engine that consumes it, landing in later W1 tasks; this struct only
+/// declares the alphabet and the shipped defaults, exactly as this file does
+/// for the SSN levers. Forwarded onto the tier verbatim, as the SSN levers
+/// are onto `SsnOptions`.
+///
+/// EVERY DEFAULT BELOW IS THE SPEC'S OWN TABLE VALUE. `qp_mode` stays `kWalk`
+/// by default (above), so nothing here is reachable in M6 until a caller
+/// opts in AND the routing chain (a later W1 task) exists to run it --
+/// `validate_sqp_options` refuses `kIpm` unconditionally until then.
+struct IpqpOptions {
+    /// Iteration budget for the tier's own Mehrotra loop. `<= 0` is a
+    /// SENTINEL meaning "size-derived", mirroring `QpOptions::max_iter`'s own
+    /// `detail::effective_qp_max_iter` discipline (`qp_engine.h:499-517`) --
+    /// so every `Index` value is legal and nothing here is validated.
+    Index ipqp_max_iter = 0;
+
+    /// The hard cap of LAST RESORT (spec 3.4/6.1's `IpqpEscape::kBudget`):
+    /// fires only when the early-stall detector (6.2) should have fired
+    /// first but did not. Unlike `ipqp_max_iter` this is not a
+    /// size-derived budget and has no sentinel reading, so it must be a
+    /// genuine, positive iteration count. Default 60. Must be > 0.
+    Index ipqp_hard_iter_cap = 60;
+
+    /// Factorization budget for the tier. `<= 0` is a SENTINEL meaning
+    /// "3 x the effective `ipqp_max_iter`" (one iteration costs one
+    /// factorization plus ladder rungs) -- every `Index` value is legal and
+    /// nothing here is validated, exactly like `ipqp_max_iter` above.
+    Index ipqp_max_factorizations = 0;
+
+    /// The COLD starting barrier parameter (spec 5.6: `mu_0 = ipqp_init_mu`
+    /// on a cold start) and the CEILING of the warm-restart clamp (spec 5.3:
+    /// `mu_0 = clamp(max(mu_meas, kappa_mu * mu_payload), ipqp_min_mu,
+    /// ipqp_init_mu)` on a warm one) -- a SETTING in both readings, never
+    /// overwritten by payload evidence, only clamped against it. Default 0.1,
+    /// a PLACEHOLDER pending the measured sweep over
+    /// `{1e-3, 1e-2, 1e-1, 1}` registered at spec section 10 Q4 (W1 task 10).
+    /// Must be finite, > 0, and >= `ipqp_min_mu` (the clamp band below is
+    /// otherwise inverted).
+    double ipqp_init_mu = 0.1;
+
+    /// The FLOOR of the `mu_0` clamp above, and the tier's own barrier-decay
+    /// floor thereafter. Matches `Settings::min_mu_`'s own default
+    /// (`interior_point_solver.h:366`) so the two barrier engines agree on
+    /// how low `mu` is ever allowed to go. Default 1e-12. Must be finite,
+    /// > 0, and <= `ipqp_init_mu`.
+    double ipqp_min_mu = 1e-12;
+
+    /// The (rho, delta) proximal regularization schedule's INITIAL values
+    /// (spec 3.2): `rho_0 = ipqp_rho_init`, `delta_0 = ipqp_delta_init`,
+    /// Cipolla-Gondzio's own choice (arXiv:2205.01775). Both terms enter the
+    /// regularized KKT system's right-hand side, never its matrix diagonal
+    /// directly (`detail/globalization/inertia_regularization.h` supplies
+    /// the shift mechanism; W1 supplies the estimates `zeta`/`lambda_est`
+    /// this schedule updates). Default 8.0 each. Each must be finite and lie
+    /// in `[ipqp_reg_floor, ipqp_reg_max]` -- the starting value of a
+    /// quantity the ladder only ever moves within that band must itself
+    /// start inside it.
+    double ipqp_rho_init = 8.0;
+    /// See `ipqp_rho_init` immediately above; same schedule, same band, the
+    /// dual-block counterpart. Default 8.0.
+    double ipqp_delta_init = 8.0;
+
+    /// The absolute floor the (rho, delta) ladder's GATED decrease may never
+    /// cross, matching `detail::kProxRegFloor`
+    /// (`inertia_regularization.h:46`, Cipolla-Gondzio eq. 19). Default
+    /// 1e-10. Must be finite and > 0.
+    double ipqp_reg_floor = 1e-10;
+
+    /// The ceiling the (rho, delta) ladder's inertia-demanded growth may
+    /// never cross, matching `detail::kSsnProxMax` (`ssn_engine.h:576`) --
+    /// the tier inherits SSN's relative cap-slack exhaustion guard
+    /// (`detail::kSsnProxCapSlack`, `ssn_engine.h:577`) along with the
+    /// constant, not just the number. Default 1e6. Must be finite and >=
+    /// `ipqp_reg_floor`.
+    double ipqp_reg_max = 1e6;
+
+    /// The (rho, delta) ladder's GATED decrease factor: applied only after
+    /// the regularized residuals have contracted by the required amount
+    /// (spec 3.2), never unconditionally the way `prox_reg_decay`'s geometric
+    /// decay is -- this is a fraction the schedule multiplies the current
+    /// value by, so it must lie strictly inside (0, 1): 0 would collapse the
+    /// regularization in one gated step and >= 1 would never decrease it.
+    /// Default 0.1.
+    double ipqp_reg_decrease = 0.1;
+
+    /// The fraction-to-boundary parameter (`tau`/`bfrac`) both the affine
+    /// and corrector steps are clipped by (spec 3.1). A standard IPM
+    /// literature constant, meaningful only strictly inside (0, 1): 0 would
+    /// permit no step at all and >= 1 would permit stepping onto or past a
+    /// bound. Default 0.995.
+    double ipqp_tau = 0.995;
+
+    /// The RATIO threshold `kappa` of the section 2.3 face-classification
+    /// rule: row `j` is active iff `s_j < kappa * z_j` (scale-free by
+    /// construction, which is the entire point of a ratio rule over an
+    /// absolute one). Default 1e-2. Must be finite and > 0 -- a
+    /// non-positive kappa can never classify anything active.
+    double ipqp_face_kappa = 1e-2;
+
+    /// The barrier-phase convergence target's SLACK factor (spec 2.3 step 1
+    /// / 3.4): the tier converges to `ipqp_converge_slack x` the QP layer's
+    /// own relative tolerances, deliberately LOOSER than the 1e-10 tier-3
+    /// exact refinement owns the last two decades of. Default 100. Must be
+    /// finite and >= 1 -- a slack below 1 would ask the barrier phase for
+    /// MORE accuracy than tier 3's own finish, inverting the division of
+    /// labor the two-tier design rests on.
+    double ipqp_converge_slack = 1e2;
+
+    /// Ruiz equilibration (spec 4.3) inside the tier, unscaled on export.
+    /// Default true. A plain A/B lever; every asserted pin is on unscaled
+    /// quantities either way.
+    bool ipqp_ruiz = true;
+
+    /// The warm-seed repair (spec 5.2): strict-positivity clamps plus the
+    /// two-scalar `(delta_p, delta_d)` shift, applied before a warm restart
+    /// is trusted. Default true.
+    bool ipqp_warm_repair = true;
+
+    /// The WARM-KILL rule's (spec 5.5) iteration budget: a warm-started
+    /// solve overrunning this many iterations is restarted COLD exactly
+    /// once. THE EFFECTIVE BUDGET IS CLAMPED (a dated spec section 9
+    /// amendment, plan section 7 note c): `min(ipqp_warm_iter_budget,
+    /// effective ipqp_max_iter)`, so a caller-chosen value larger than the
+    /// solve's own iteration budget can never itself become the binding
+    /// limit. Default 15, approximately the measured cold median. Must be
+    /// >= 0 (0 is a legal, if extreme, choice: every warm restart is killed
+    /// on its first iteration).
+    Index ipqp_warm_iter_budget = 15;
+
+    /// `kappa_mu` in the section 5.3 `mu_0` clamp rule: `mu_0 =
+    /// clamp(max(mu_meas, ipqp_mu_adopt_factor * mu_payload), ipqp_min_mu,
+    /// ipqp_init_mu)`. 0 DISABLES ADOPTION (the clamp then reads only
+    /// `mu_meas`), which is a deliberate, documented reading of this field
+    /// rather than a degenerate one, so it stays legal. Default 1.0. Must be
+    /// finite and >= 0.
+    double ipqp_mu_adopt_factor = 1.0;
+
+    /// The early-stall detector's (spec 6.2) window width in ACCEPTED
+    /// iterations, matching `detail::kSsnStallWindow` (`ssn_engine.h:641`)
+    /// for the reason its own banner gives: an order of magnitude above the
+    /// local regime, so no healthy trajectory reaches it. Default 5. Must be
+    /// > 0 -- a zero-width window can never accumulate the whole-window
+    /// evidence the test is built on.
+    Index ipqp_stall_window = 5;
+
+    /// The escape ladder's retirement threshold (spec 6.1): after this many
+    /// CONSECUTIVE escapes within one SQP solve the tier is retired for the
+    /// remainder of that solve; any success resets the count. Default 3.
+    /// Must be > 0 -- retiring "after zero consecutive escapes" is not a
+    /// count, it is disabling the tier outright, which this field does not
+    /// exist to express.
+    Index ipqp_retire_after = 3;
+
+    /// Optional Farkas corroboration (spec 6.3) of an infeasible-suspect
+    /// escape: one matvec plus O(m), no factorization. It may ARM the
+    /// evidence block; it never certifies. Default true.
+    bool ipqp_farkas_gate = true;
+
+    /// Cross-major symbolic reuse (spec 4.1) kill switch: while true, the
+    /// tier hoists its analysis/verify work across majors whose
+    /// `AggregateEvalSeam::epoch()` is unchanged (plan section 7 note a).
+    /// Default true; false forces a fresh symbolic pass every major.
+    bool ipqp_hoist_symbolic = true;
+
+    /// THE REQUIRED FINAL UNREGULARIZED INERTIA READ (spec 2.2 item 4, the
+    /// owner's Q5 ruling): when true, a certifying exit pays one extra
+    /// unregularized factorization to confirm the inertia the regularized
+    /// solve reported; a WRONG read downgrades the certificate rather than
+    /// reporting `kOptimal`. Default true. FALSE means every certificate is
+    /// downgraded unconditionally -- an explicit, documented weakening for a
+    /// caller who wants to skip the extra factorization, never a silent one.
+    bool ipqp_require_final_inertia = true;
 };
 
 // THE FULL-STEP-FIRST WARM RULE'S TWO CONSTANTS. Both are WATCHDOG thresholds:
@@ -572,8 +759,16 @@ struct SqpOptions {
 
     /// WHICH QP KERNEL THE DRIVER'S SUBPROBLEMS GO THROUGH. kWalk is the
     /// shipped primal active-set walk (qp_engine.h) and is the DEFAULT;
-    /// kSsn selects the semismooth-Newton kernel (ssn_engine.h).
+    /// kSsn selects the semismooth-Newton kernel (ssn_engine.h); kIpm selects
+    /// the interior-point tier (detail/qp/ipqp_engine.h) but is NOT YET
+    /// DISPATCHABLE -- see QpMode::kIpm's own doc comment above.
     QpMode qp_mode = QpMode::kWalk;
+
+    /// THE kIpm TIER'S OWN SETTINGS, forwarded verbatim onto the tier exactly
+    /// as the SSN levers below are forwarded onto SsnOptions. Inert at
+    /// `qp_mode != QpMode::kIpm`, and `kIpm` itself is not yet dispatchable
+    /// in M6 W1 task 1 -- see QpMode::kIpm and IpqpOptions' own doc comments.
+    IpqpOptions ipqp;
 
     /// READ THE PROXIMAL CARRY OFF AN INGESTED WarmStart.
     ///
@@ -731,8 +926,13 @@ struct SqpOptions {
 /// @throws std::invalid_argument, with a message naming the option and the
 /// value it had, on any option the driver cannot honour: a non-positive or
 /// NaN kkt_tol/feas_tol, a negative max_iter, a non-positive or NaN tr_init,
-/// a tr_max below tr_init (a +inf tr_init is exempt from that one check), or a
-/// tr_min that is non-positive or above either end of the range it floors.
+/// a tr_max below tr_init (a +inf tr_init is exempt from that one check), a
+/// tr_min that is non-positive or above either end of the range it floors,
+/// an ill-formed `IpqpOptions` field (see each field's own doc comment for
+/// its acceptance condition -- validated UNCONDITIONALLY, like the scaling
+/// fields, since `qp_mode` is a value a caller may change later), or (M6 W1
+/// task 1, TEMPORARY, removed once the routing chain lands) `opts.qp_mode ==
+/// QpMode::kIpm` itself, not yet dispatchable.
 void validate_sqp_options(const SqpOptions &opts);
 
 /// One row of the per-major history -- the record of ONE ITERATE and of the
