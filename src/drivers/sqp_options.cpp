@@ -222,9 +222,12 @@ void validate_sqp_options(const SqpOptions &opts) {
     if (!(opts.ipqp.ipqp_face_kappa > 0.0) || !(opts.ipqp.ipqp_face_kappa < 1.0)) {
         throw std::invalid_argument(fmt::format(
             "SqpDriver: ipqp.ipqp_face_kappa ({}) must lie strictly in (0, 1); a non-positive "
-            "ratio-rule threshold can never classify a row active, and at kappa >= 1 the "
-            "active test (s_j < kappa*z_j) and the inactive test (z_j < kappa*s_j) stop being "
-            "mutually exclusive -- equal slack and dual values would satisfy both",
+            "ratio-rule threshold can never classify a row active, and at kappa >= 1 the active "
+            "test (s_j < kappa*z_j) and the inactive test (z_j < kappa*s_j) can no longer "
+            "partition: at kappa == 1 an exact tie (s_j == z_j) satisfies NEITHER strict "
+            "inequality (both tests false, so every tie becomes UNCERTAIN with no genuine "
+            "margin), and above 1 the two tests can both fire on the same pair (a contradictory "
+            "active-AND-inactive verdict)",
             opts.ipqp.ipqp_face_kappa));
     }
     if (!(opts.ipqp.ipqp_converge_slack >= 1.0) || std::isinf(opts.ipqp.ipqp_converge_slack)) {
