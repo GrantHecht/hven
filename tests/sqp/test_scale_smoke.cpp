@@ -948,12 +948,18 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 // though its own barrier duals never reach the export.
 //
 // NO WARM HOP HERE, unlike the kSsn test above, and the difference is
-// measured rather than assumed: under kIpm it is the COLD solve at p0 that
-// produces the negative price (N = 600 and N = 610 sweep 7 and 6 prices
-// respectively; N = 590 sweeps none, which is why the assertion is over a
-// BAND). The hop adds ~140 s of Debug runtime and sweeps nothing, so it is
-// left out -- the tier starts cold on every major until task 7's seed lands,
-// which is what makes a kIpm solve of this family expensive.
+// measured rather than assumed: under kIpm it is the solve at p0 that produces
+// the negative price. The hop adds ~140 s of Debug runtime and sweeps nothing.
+//
+// THE BAND WAS RE-DERIVED AT M6 W1 T7 (declared, CLAUDE.md section 7). Task 6's
+// band -- N = 600 / 610, sweeping 7 and 6 prices -- was measured while the tier
+// started COLD on every major, which task 7's cross-major carry ends: the
+// tier's iterates moved, and nothing in 100..650 sweeps any longer. Re-measured
+// on the same instrument in BOTH flag regimes: N = 850 and N = 900 sweep 1 and
+// 2 prices (Debug and Release agreeing to ~1e-11 relative on the magnitudes),
+// while N = 800 and N = 1000 sweep none -- which is why the assertion is over a
+// BAND rather than at a point. The magnitudes still sit below the historic
+// 3.5e-6 peak, so the disclosed scale is unchanged.
 //
 // MEASURED on clang/MKL/this machine, 2026-08-31.
 // =====================================================================
@@ -962,7 +968,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
     constexpr double kDisclosedScale = 3.5e-6;
 
     Index swept_over_the_band = 0;
-    for (const Index nodes : {Index{600}, Index{610}}) {
+    for (const Index nodes : {Index{850}, Index{900}}) {
         SCOPED_TRACE(fmt::format("N={}", nodes));
         F7CollocationChain model(nodes, 3, 2, kP0, 1.0);
 
