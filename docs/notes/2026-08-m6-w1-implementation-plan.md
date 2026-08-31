@@ -676,6 +676,50 @@ declared-change discipline; the spec text itself is amended at W1 close.
   the trust-region WINDOW held at the tier's clamp-centred box (§2.3 item 4);
   the W2 hook receives `IpqpInfeasibilityEvidence` (plan §4).
 
+- (r) T4b fix-round rulings (2026-08-31, settler, tri-review record): (1)
+  gate 8 REPAIRED, not shipped negative — at the §2.2 item 4 read, and only
+  there, a bound SIDE whose slack and multiplier are both `<=
+  kIpqpWeakActiveFactor * sqrt(mu)` (factor 10, complementarity geometry)
+  contributes no curvature; the failure direction is a spurious downgrade,
+  never a false certificate; the `weak_scale <= 0` path reproduces the
+  ordinary kernel exactly, which keeps every iteration's assembly
+  bit-identical. Exact census pinned MKL-scoped (8 dropped-and-downgraded /
+  1 kept-and-stood / 1 skipped tie on the ten-member sweep). RESIDUAL C1:
+  beyond `z > 10 sqrt(mu)` a saddle held by a barrier-resolved bound still
+  certifies (Sigma ~ 250 member) — an accuracy/stopping question registered
+  for M7; owner accepted-with-disclosure ruling PENDING. (2) The
+  perturbed-pivot re-route is BOUNDED: after 2 consecutive primal
+  escalations fail to clear the report, the iteration latches to the dual
+  route (no alternation; fresh primal attempts next iteration); both routes
+  counted; contract pinned through the seam, and route counters are NEVER
+  pinned on ordinary QP fixtures (backend perturbation-report thresholds are
+  flag-regime-sensitive — measured, Debug 1 vs Release 0 on identical
+  trajectories). (3) REVERSED from the initial ratification: `build_rhs`
+  receives `delta_sched` — the ladder-escalated `delta` enters the
+  `-delta I` diagonal blocks ONLY (the dual-side completion of §2.1's
+  separation); proven inert on convex cells by byte-identical KKT/RHS dumps
+  and discriminating at the `skip_first = 4` seam placement (11/13 vs the
+  old wiring's 13/15). A TRANSIENT matrix-vs-RHS delta mismatch remains on
+  perturbed iterations (matrix carries the escalated delta) — bounded,
+  per-pass, registered. (4) A perturbed-driven escalation is NEVER a
+  reclimb (`!perturbed` guards the charge): a pivot report is not a
+  curvature statement; the two costs stay separable for T9. (5) The gate-7
+  observed-threshold instrument runs at `ipqp_ruiz = false`, where the
+  schedule/demand shift spaces coincide exactly (`write_diagonals` computes
+  `(H + rho_sched + Sigma) * dsq_i + rho_dem`, so they are interchangeable
+  only at `dsq == 1`); the shipped configuration keeps the weaker band
+  property (C10/C11 registered — rung-exactness needs a rho_dem seam or a
+  total-shift diagnostic, a T7/T9 surface question). (6) Every exact
+  trajectory pin in the T4b tests is MKL-scoped with an UNOBSERVED
+  Accelerate arm; structural assertions stay unconditional. (7) Evidence
+  rule for comment-only changes: the gate is OBJECT BYTE-IDENTITY (library
+  cmp against the prior build); prior test/replay evidence then carries
+  over by identity; any differing byte requires the full gates. (8) R5's
+  minus-one merge precondition is concretely undischarged (gate-8
+  counterexample: the face read is decided by where the barrier stopped,
+  not by geometry) — merge stays OFF. Full arguments in
+  `.superpowers/w1-t4b-report.md` (FIX ROUND 1-3) and the ledger entry.
+
 ## §8. v2/v3 changes (Codex r1 + rulings 1-9; Codex r2 + r3 rulings 1-3)
 
 1. (Critical 1) T3.a added: additive `KktFactorization::inertia_evidence()`
