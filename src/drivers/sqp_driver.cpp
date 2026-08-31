@@ -3481,10 +3481,27 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // carry. A seed whose blocks do not match THIS subproblem is
             // dropped rather than refused: the tier's degrade is cold.
             const IpqpSeed *ipqp_seed = nullptr;
+            IpqpSeed ipqp_carry_across_majors;
             if (ipqp_staged_seed_.has_value()) {
                 ipqp_seed = &*ipqp_staged_seed_;
-            } else {
-                ipqp_seed = ipqp_engine().warm_carry();
+            } else if (const IpqpSeed *carry = ipqp_engine().warm_carry(); carry != nullptr) {
+                // ACROSS A MAJOR, THE DUALS CARRY AND THE STEP DOES NOT. The
+                // tier's `x` is a STEP in the subproblem's own step space, and
+                // that space MOVES when a major is accepted -- the previous
+                // major's step is not an estimate of this one's, which is near
+                // zero on a converging solve. The dual and barrier blocks are
+                // stated over constraints that did not move, so they carry.
+                // Within a major a shrink-retry re-solves the SAME subproblem
+                // in the SAME space, so there the whole state carries verbatim
+                // (spec 5.1 amendment D). Measured, both path_warm cells:
+                // report section 8.
+                ipqp_seed = carry;
+                if (!tr_shrink_retry) {
+                    ipqp_carry_across_majors = *carry;
+                    ipqp_carry_across_majors.x.setZero();
+                    ipqp_carry_across_majors.zeta.setZero();
+                    ipqp_seed = &ipqp_carry_across_majors;
+                }
             }
             if (ipqp_seed != nullptr &&
                 (ipqp_seed->x.size() != qp.n() || ipqp_seed->lambda_e.size() != qp.me() ||
