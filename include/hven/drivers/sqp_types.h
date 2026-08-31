@@ -136,10 +136,17 @@ struct IpqpOptions {
     /// genuine, positive iteration count. Default 60. Must be > 0.
     Index ipqp_hard_iter_cap = 60;
 
-    /// Factorization budget for the tier. `<= 0` is a SENTINEL meaning
-    /// "3 x the effective `ipqp_max_iter`" (one iteration costs one
-    /// factorization plus ladder rungs) -- every `Index` value is legal and
-    /// nothing here is validated, exactly like `ipqp_max_iter` above.
+    /// Factorization budget for the tier, enforced BEFORE EVERY
+    /// factorization -- ladder rungs and the section 2.2 item 4 final
+    /// inertia read included, not merely once per iteration. `<= 0` is a
+    /// SENTINEL meaning "3 x the tier's EFFECTIVE ITERATION BUDGET", which is
+    /// `min(effective ipqp_max_iter, ipqp_hard_iter_cap)` and therefore 180
+    /// at the shipped defaults -- NOT 3 x the size-derived `ipqp_max_iter`
+    /// (M6 W1 task 4 fix round 1, M3: this row previously described the
+    /// wrong one of the two). Three per iteration is the ladder headroom the
+    /// sentinel grants before it calls a solve pathological; one iteration
+    /// costs one factorization plus its rungs. Every `Index` value is legal
+    /// and nothing here is validated, exactly like `ipqp_max_iter` above.
     Index ipqp_max_factorizations = 0;
 
     /// The COLD starting barrier parameter (spec 5.6: `mu_0 = ipqp_init_mu`

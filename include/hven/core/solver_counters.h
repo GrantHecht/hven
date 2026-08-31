@@ -582,18 +582,37 @@ struct IpqpCounters {
     /// by any other QP kernel (walk, SSN) in the same solve.
     Index ipqp_symbolic_analyses = 0;
 
-    /// Backend triangular solves: 2 per iteration nominal (predictor RHS,
-    /// corrector RHS), more when a ladder rung or the final inertia read
-    /// adds a factorization of its own. Excludes triangular solves paid by
-    /// any other QP kernel (walk, SSN) or by the tier-3 `refine_on_face`
+    /// Backend triangular solves: EXACTLY 2 per completed iteration
+    /// (predictor RHS, corrector RHS, both against the one numeric
+    /// factorization that iteration paid for). Regularization-ladder rungs
+    /// and the section 2.2 item 4 final inertia read add FACTORIZATIONS but
+    /// NO solves -- they factorize to read an inertia and never
+    /// back-substitute -- so `ipqp_solves == 2 * ipqp_iters` on a solve that
+    /// completed every iteration it started, and the gap between this field
+    /// and `2 * ipqp_factorizations` is exactly the ladder-plus-certification
+    /// cost. (M6 W1 task 4 fix round 1: the earlier wording claimed those
+    /// paths could add solves; they cannot.) Excludes triangular solves paid
+    /// by any other QP kernel (walk, SSN) or by the tier-3 `refine_on_face`
     /// hand-off, which pays its own solve outside this struct.
     Index ipqp_solves = 0;
 
     /// Backend pattern-verify calls (mirrors
     /// `SymmetricFactor::Counters::pattern_verify_count`). Proves the plan
-    /// section 7 note a discipline: exactly 1 per tier entry, every other
-    /// factorization in that entry running `kAssumeAnalyzed`. Excludes
-    /// pattern-verify calls paid by any other QP kernel in the same solve.
+    /// section 7 note a discipline.
+    ///
+    /// THE CONTRACT IS "EXACTLY ONE OF {1 VERIFY, 1 ANALYZE} PER TIER ENTRY",
+    /// not "exactly 1 verify" (M6 W1 task 4 fix round 1, I3 -- the code was
+    /// right and this text was wrong). An entry that RE-ENTERS on an already
+    /// laid pattern pays the one-time O(nnz) verify here and 0 analyses; the
+    /// entry that LAYS the pattern pays 1 analysis and 0 verifies, because
+    /// `KktFactorization::compute()` factorizes without verifying -- which is
+    /// note (a)'s own premise, so the literal "+1 verify every entry" form is
+    /// unsatisfiable. `IpqpOptions::ipqp_hoist_symbolic == false` forces every
+    /// entry into the second state, which is how the OFF reading is pinned.
+    /// Either way every LATER factorization in the entry, ladder rungs and the
+    /// final inertia read included, runs `kAssumeAnalyzed` and moves neither
+    /// count. Excludes pattern-verify calls paid by any other QP kernel in the
+    /// same solve.
     Index ipqp_pattern_verifies = 0;
 
     /// The inertia-demanded `rho`'s HIGH-WATER MARK across every ladder rung
@@ -617,24 +636,54 @@ struct IpqpCounters {
     /// readings are tracked, per the same spec row).
     double ipqp_rho_demanded_last = 0.0;
 
-    /// Factorizations REJECTED on wrong inertia (the section 2.2 gate).
-    /// Excludes the section 2.2 item 4 REQUIRED final read -- that read's
-    /// own outcome is `ipqp_final_inertia_read`, not this field, even when
-    /// the final read itself comes back wrong.
+    /// Factorizations REJECTED on wrong OR EVIDENCE-INVALID inertia (the
+    /// section 2.2 gate). M6 W1 task 4 fix round 1 (M2/I8) settled both
+    /// halves of this against the code, which counts them alike because the
+    /// gate refuses them alike: a WRONG reading (observed, disagreed with the
+    /// required signature) and a PERTURBED one (observed, but describing a
+    /// matrix the backend perturbed rather than the one assembled -- section
+    /// 2.2's evidence-failure policy, so not evidence about this system at
+    /// all) both cost a factorization the tier could not use and both are
+    /// answered by a ladder rung. THE LADDER'S LAST, CEILING-TERMINATED
+    /// factorization counts too: it was rejected on exactly the same grounds
+    /// as every rung before it, and returning without counting it lost one
+    /// rejection per exhausted ladder. Excludes the section 2.2 item 4
+    /// REQUIRED final read -- that read's own outcome is
+    /// `ipqp_final_inertia_read`, not this field, even when the final read
+    /// itself comes back wrong.
     Index ipqp_inertia_retries = 0;
 
-    /// Iterations taken with `rho` above the schedule's own residual-implied
-    /// level, i.e. before section 3.2's gated decrease could be applied.
-    /// Excludes iterations already at or below the residual-implied level,
-    /// where no decrease was pending.
+    /// Iterations whose step was TAKEN with `rho` above the schedule's own
+    /// residual-implied level, i.e. with the section 2.2 inertia-demanded
+    /// floor -- not section 3.2's schedule -- setting the working value.
+    /// Measured AFTER that iteration's ladder settles, so the iteration in
+    /// which the ladder FIRST raises the floor is counted (M6 W1 task 4 fix
+    /// round 1, I4: sampling before the ladder ran made this off by one, low,
+    /// on every solve that ever armed the ladder). Excludes iterations whose
+    /// step ran at the schedule's own level, where no elevation was in force.
     Index ipqp_iters_at_elevated_rho = 0;
 
-    /// Monotone-floor violations ATTEMPTED: down-then-up cycles on `rho` or
-    /// `delta` (section 2.2's monotone floor). Counts the attempt, not a
-    /// move, since the floor refuses the move itself. Excludes a gated
-    /// decrease that succeeded (`ipqp_reg_decreases`) and any
-    /// inertia-demanded increase (`ipqp_reg_increases`), neither of which is
-    /// a floor violation.
+    /// MONOTONE-floor violations ATTEMPTED: section 3.2 gated decreases of
+    /// `rho` that would have taken it below the INERTIA-DEMANDED floor
+    /// section 2.2 item 3 established, i.e. down-then-up cycles. Counts the
+    /// attempt, not a move, since the floor refuses the move itself.
+    ///
+    /// THE MONOTONE FLOOR ONLY, never the absolute `ipqp_reg_floor` (M6 W1
+    /// task 4 fix round 1, I2). The two are different objects: the monotone
+    /// floor is evidence about THIS subproblem's curvature and starts at 0, so
+    /// a convex subproblem -- where section 2.2's ladder is provably inert --
+    /// structurally reports 0 here; the absolute floor is a setting every
+    /// schedule decays onto, and counting it would report a "down-then-up
+    /// cycle" on a solve that never had a monotone floor and would co-fire
+    /// with the `ipqp_reg_decreases` this comment excludes. `delta` carries no
+    /// monotone floor at all (plan section 7 note (g): section 2.2 states the
+    /// floor for `rho` only), so it can never contribute here.
+    ///
+    /// Excludes a gated decrease that succeeded (`ipqp_reg_decreases` -- the
+    /// two remain mutually exclusive for `rho`, though one gated advance can
+    /// flap on `rho` while still applying a decrease to `delta`) and any
+    /// inertia-demanded increase (`ipqp_reg_increases`), neither of which is a
+    /// floor violation.
     Index ipqp_rho_flaps = 0;
 
     /// Outcome of the section 2.2 item 4 REQUIRED final unregularized
@@ -645,17 +694,27 @@ struct IpqpCounters {
     /// `accumulate_ipqp_counters`, the `SqpCounters::start_level_used`
     /// convention, not an additive quantity.
     ///
-    /// SETTLER RULING (fix round 2, Codex co-review I2): the three values
-    /// map onto the escape census exactly, closing the
-    /// indefinite/numerical boundary this field and its two escape
-    /// counters used to leave open. `0` -- the reading was taken and
-    /// AGREED with the required signature: the certificate stands, no
+    /// SETTLER RULING (fix round 2, Codex co-review I2; extended by M6 W1
+    /// task 4 fix round 1, I5): the values map onto the escape census
+    /// exactly, closing the indefinite/numerical boundary this field and its
+    /// two escape counters used to leave open. `0` -- the reading was taken
+    /// and AGREED with the required signature: the certificate stands, no
     /// escape. `1` -- the reading was taken and DISAGREED (at the item 4
     /// final certification factorization, or when the monotone ladder
     /// reached `ipqp_reg_max` with the reading still wrong): a saddle-
     /// suspect certificate downgrade, `ipqp_escape_indefinite`. `2` --
-    /// UNREADABLE: no evidence state was observed to compare against the
-    /// required signature at all, `ipqp_escape_numerical`. A solve-wide
+    /// UNREADABLE: the read was ATTEMPTED and no usable evidence came back --
+    /// no observed state at all, or a PERTURBED-pivot report, which section
+    /// 2.2's evidence-failure policy says is not evidence about the assembled
+    /// matrix and therefore is not a disagreement either --
+    /// `ipqp_escape_numerical`. `3` -- NOT PERFORMED: the read was DECLINED
+    /// because `IpqpOptions::ipqp_require_final_inertia` is false. That is a
+    /// DOWNGRADE AND NOT AN ESCAPE (spec section 9's own row, "off =
+    /// certificate always downgraded"): the certificate does not stand, but
+    /// no census entry is made and no section 6.1 K = 3 retirement charge is
+    /// incurred, because a caller choosing to skip one factorization has not
+    /// hit a failure. `3` is kept distinct from `2` so the census cannot
+    /// confuse a declined read with a failed one. A solve-wide
     /// "was any subproblem's read ever unreliable" question reads the
     /// escape census (`ipqp_escape_indefinite` + `ipqp_escape_numerical`)
     /// rather than this per-subproblem field. Structurally `0` (its
@@ -665,9 +724,16 @@ struct IpqpCounters {
     /// never reports.
     Index ipqp_final_inertia_read = 0;
 
-    /// `(rho, delta)` schedule GATED decreases actually applied. Excludes a
-    /// decrease attempt the monotone floor refused, which is
-    /// `ipqp_rho_flaps` instead.
+    /// `(rho, delta)` schedule GATED decreases actually applied: +1 per
+    /// gated advance that moved EITHER `rho` or `delta` (M6 W1 task 4 fix
+    /// round 1, I7 -- the field is the SCHEDULE'S, and an advance that moved
+    /// `delta` alone is an applied decrease of the schedule; reading it as
+    /// `rho`-only reported "no decrease applied" on a monotone-floor fixture
+    /// while `delta` went 8 -> 0.8). Never more than 1 per advance, so it is
+    /// bounded by `ipqp_prox_center_updates`. Excludes an advance the floors
+    /// refused entirely -- both quantities already at their floors -- which
+    /// moves nothing and is `ipqp_rho_flaps` instead when the MONOTONE floor
+    /// was the one that refused.
     Index ipqp_reg_decreases = 0;
 
     /// `(rho, delta)` schedule inertia-demanded increases. Excludes the

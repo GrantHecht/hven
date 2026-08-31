@@ -314,7 +314,12 @@ struct IpqpBounds {
     /// True iff this subproblem is inside the tier's domain, i.e. no zero-width
     /// pair. `false` is a DECLINE, not a failure -- see the zero-width rule
     /// above.
-    bool in_domain() const { return zero_width_index < 0; }
+    ///
+    /// Defined in the .cpp, not here: it is a predicate consulted ONCE per
+    /// solve at the domain gate, not a per-element hot loop, so CLAUDE.md
+    /// section 5's inlining criterion does not apply to it and this header's
+    /// declarations-and-inline-constexpr-only budget does.
+    bool in_domain() const;
 };
 
 /// @brief The tier's own iterate, carried across majors by task 7's
@@ -382,10 +387,14 @@ struct IpqpResult {
     IpqpCounters counters;
 
     /// True iff the domain gate declined this subproblem pre-solve
-    /// (IpqpBounds' zero-width rule). NOTHING ELSE in this struct is
-    /// meaningful when it is set: no iterate, no face, no residual -- the
-    /// tier never ran. `counters.ipqp_declined_pinned` is 1 and every other
-    /// counter is at its default.
+    /// (IpqpBounds' zero-width rule). `counters.ipqp_declined_pinned` is 1 and
+    /// every other counter is at its default.
+    ///
+    /// EXACTLY ONE OTHER FIELD IS MEANINGFUL ON THAT PATH, and naming it
+    /// matters because the routing chain reads it: `box` IS populated -- the
+    /// decline is DERIVED from it, so it has to be -- and it carries
+    /// `zero_width_index`, which is the index that caused the decline. No
+    /// iterate, no face, no residual: the tier never ran.
     bool declined_pinned = false;
 
     /// True iff the certificate was DOWNGRADED (spec 2.2 item 4): the final
@@ -464,7 +473,10 @@ class IpqpEngine {
     IpqpEngine(const IpqpEngine &) = delete;
     IpqpEngine &operator=(const IpqpEngine &) = delete;
 
-    const QpOptions &options() const { return opts_; }
+    /// Defined in the .cpp for the same reason `IpqpBounds::in_domain()` is:
+    /// a const accessor is not a per-element hot loop, and this header carries
+    /// declarations and `inline constexpr` only.
+    const QpOptions &options() const;
 
     /// Attach a ledger for instrumentation (nullptr = off, default off).
     /// `QpEngine::attach_ledger`'s contract verbatim, including its
