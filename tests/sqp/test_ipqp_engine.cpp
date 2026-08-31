@@ -377,6 +377,60 @@ TEST(IpqpLadderTest, TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap) {
     EXPECT_GT(c.counters.ipqp_reg_decreases, 0);
 }
 
+TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
+    // THE CERTIFICATION READ IS ONE FACTORIZATION, NOT A LADDER, and this is
+    // the fixture that says why. H = diag(2, -1) with g = 0 and a SYMMETRIC
+    // box makes the origin an exact KKT point of the barrier problem at every
+    // mu -- the two bound multipliers balance -- so the tier converges to it
+    // in three iterations without ever moving x. It is a SADDLE.
+    //
+    // The section 3.2 schedule has decayed `rho` to 0.8 by then, and the
+    // in-loop ladder has raised the working `rho` to 80, at which
+    // `H + rho I + Sigma_b` is positive definite and the inertia reads
+    // correct. A certification read that CLIMBED the same ladder would
+    // therefore find the inertia it was looking for and report the
+    // certificate as standing -- a saddle point certified as a minimum, which
+    // is exactly the wrong-answer class ssn_engine.h:24 warns about for its
+    // own kernel. Dropping to the SCHEDULE'S level and reading ONCE is what
+    // catches it.
+    QpProblem qp = box_qp(-10.0, 10.0);
+    qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
+    qp.g = vec({0.0, 0.0});
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+
+    // It converged: the iteration count is small and the residuals are inside
+    // the target, so this is a CERTIFYING exit that was then downgraded, not a
+    // solve that fell over.
+    EXPECT_LE(r.counters.ipqp_iters, 10);
+    EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+    EXPECT_NEAR(r.x(0), 0.0, 1e-9);
+    EXPECT_NEAR(r.x(1), 0.0, 1e-9);
+
+    // ... and the certificate did NOT stand.
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
+    EXPECT_TRUE(r.certificate_downgraded);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
+    EXPECT_EQ(r.status, QpStatus::kNumericalError);
+    // The ladder DID fire and DID reach a rho at which the inertia reads
+    // right -- which is precisely the value a climbing certification read
+    // would have certified at.
+    EXPECT_GT(r.counters.ipqp_rho_demanded_max, r.rho);
+
+    // MUTATION NON-VACUITY: the same fixture with the sign of the second
+    // curvature flipped is convex, converges to the same point, and the same
+    // read STANDS.
+    QpProblem convex = qp;
+    convex.H = dense_upper({{2.0, 0.0}, {0.0, 1.0}});
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult c = tier2.solve(convex, nullptr, IpqpOptions{}, SolveOverrides{});
+    EXPECT_EQ(c.status, QpStatus::kOptimal);
+    EXPECT_EQ(c.counters.ipqp_final_inertia_read, 0);
+    EXPECT_FALSE(c.certificate_downgraded);
+    EXPECT_DOUBLE_EQ(c.counters.ipqp_rho_demanded_max, 0.0);
+}
+
 TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefinite) {
     QpProblem qp = box_qp(-10.0, 10.0);
     // Curvature no regularization below the 1e6 ceiling can dominate.

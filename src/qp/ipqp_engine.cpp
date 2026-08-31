@@ -700,10 +700,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         first_factorization = false;
     };
 
-    // Assemble at (rho, delta) and factorize, climbing the Wachter-Biegler
-    // ladder until the inertia is the section 4.1 target or the ceiling is
-    // reached. Returns the reading the caller must act on.
-    auto factorize_with_ladder = [&](double &rho, double &delta, bool count_ladder) {
+    // Assemble the section 3.1 system at (rho, delta) from scratch: refresh the
+    // condensed bound curvature, re-scatter H/Ae/Ai through the layout's plan,
+    // write the four diagonal families, and (when equilibration is on) compute
+    // and apply the Ruiz diagonal.
+    //
+    // THE RUIZ DIAGONAL IS FIXED FOR THE WHOLE LADDER, deliberately. A rung
+    // rewrites only the four diagonal families, each pre-multiplied by its own
+    // `dsq`, so a rung stays an O(n) assignment; recomputing the equilibration
+    // per rung would move the matrix under the ladder and the ladder's
+    // monotone comparison would no longer be about one system.
+    auto assemble = [&](double rho, double delta) {
         w.sigma.setZero();
         detail::ipqp_accumulate_bound_sigma(w.x, bounds.lower, bounds.upper, w.zl, w.zu, n,
                                             w.sigma);
@@ -721,11 +728,46 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         } else {
             w.dscale.setOnes(w.dim);
         }
+    };
+
+    auto factor_and_read = [&]() {
+        factorize_once();
+        return classify_inertia(kkt_.inertia_evidence(), expect_pos, expect_neg);
+    };
+
+    // ONE FACTORIZATION AND ONE READING, with the section 2.2 perturbed-pivot
+    // policy and NOTHING ELSE -- no ladder. This is the section 2.2 item 4
+    // certification read's entry point, and the absence of a ladder is the
+    // whole point of having it separate: a certification read that CLIMBED
+    // would raise `rho` until the inertia came back right and then report the
+    // certificate as standing, which is precisely how a saddle point gets
+    // certified as a minimum. The perturbed retry is not a ladder rung -- a
+    // perturbed factorization is not evidence about the assembled matrix at
+    // all (section 2.2's evidence-failure policy), so re-reading it at a
+    // larger `delta` asks the SAME question again rather than a weaker one,
+    // and it is bounded at one retry.
+    auto factorize_and_read_once = [&](double rho, double delta) {
+        assemble(rho, delta);
+        InertiaRead read = factor_and_read();
+        if (read == InertiaRead::kPerturbed) {
+            const double bumped = std::min(delta * detail::kIpqpRhoGrowth, iopts.ipqp_reg_max);
+            if (bumped > delta) {
+                assemble(rho, bumped);
+                read = factor_and_read();
+            }
+        }
+        return read;
+    };
+
+    // Assemble at (rho, delta) and factorize, climbing the Wachter-Biegler
+    // ladder until the inertia is the section 4.1 target or the ceiling is
+    // reached. Returns the reading the caller must act on. `rho`/`delta` are
+    // in/out, so the caller sees where the ladder stopped.
+    auto factorize_with_ladder = [&](double &rho, double &delta) {
+        assemble(rho, delta);
 
         for (;;) {
-            factorize_once();
-            const InertiaRead read =
-                classify_inertia(kkt_.inertia_evidence(), expect_pos, expect_neg);
+            const InertiaRead read = factor_and_read();
             if (read == InertiaRead::kOk || read == InertiaRead::kUnreadable) {
                 return read;
             }
@@ -761,26 +803,22 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 if (rho >= cap) {
                     rho = iopts.ipqp_reg_max;
                 }
-                if (count_ladder) {
-                    rho_floor = std::max(rho_floor, rho);
-                    rho_demanded_last = rho;
-                }
+                rho_floor = std::max(rho_floor, rho);
+                rho_demanded_last = rho;
             }
-            if (count_ladder) {
-                ++out.counters.ipqp_inertia_retries;
-                ++out.counters.ipqp_reg_increases;
-            }
-            if (out.counters.ipqp_factorizations +
-                    (kkt_.counters().factorize_count - before.factorize_count) >
-                2 * fact_budget) {
-                // Belt-and-braces against an unbounded ladder; the real
-                // budget check is the caller's, below.
+            ++out.counters.ipqp_inertia_retries;
+            ++out.counters.ipqp_reg_increases;
+            if (kkt_.counters().factorize_count - before.factorize_count > 2 * fact_budget) {
+                // Belt-and-braces against a ladder that somehow fails to
+                // terminate on its own ceiling; the budget check that is meant
+                // to fire is the caller's, at the top of the loop.
                 return InertiaRead::kUnreadable;
             }
-            w.dsq.setOnes(w.dim);
-            if (iopts.ipqp_ruiz) {
-                w.dsq = w.dscale.array().square();
-            }
+            // A RUNG IS AN ASSIGNMENT, NOT A RE-SCATTER: `dsq` and the layout's
+            // `primal_diag_source()` snapshot are both still the ones
+            // `assemble()` established, so writing the four diagonal families
+            // at the new (rho, delta) is all a rung costs beyond its
+            // factorization.
             write_diagonals(rho, delta);
         }
     };
@@ -987,7 +1025,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             ++out.counters.ipqp_iters_at_elevated_rho;
         }
 
-        const InertiaRead read = factorize_with_ladder(rho, delta, /*count_ladder=*/true);
+        const InertiaRead read = factorize_with_ladder(rho, delta);
         if (read == InertiaRead::kUnreadable) {
             // Plan section 7 note (h): no evidence state was observed, so no
             // reading exists to disagree with the required signature. That is
@@ -1126,10 +1164,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // A subproblem that needed the ladder will therefore fail this
             // read, and reporting it as saddle-suspect is the correct answer,
             // not a false negative.
-            double rho_c = rho_sched;
-            double delta_c = delta_sched;
             refresh_distances();
-            const InertiaRead read = factorize_with_ladder(rho_c, delta_c, /*count_ladder=*/false);
+            const InertiaRead read = factorize_and_read_once(rho_sched, delta_sched);
             if (read == InertiaRead::kOk) {
                 out.counters.ipqp_final_inertia_read = 0;
             } else if (read == InertiaRead::kUnreadable) {
