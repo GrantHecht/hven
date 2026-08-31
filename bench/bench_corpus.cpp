@@ -150,7 +150,7 @@ using hven::solvers::SsnInfeasibilityRule;
 using hven::solvers::SsnSigmaRule;
 
 constexpr const char *kUsage =
-    "usage: hven_sqp_corpus --engine walk|ssn --cells all|<id1,id2,...> --csv <path> "
+    "usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> "
     "[--score-gates]\n"
     "       hven_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
     "       hven_sqp_corpus --dump-qp <cell> --dump-qp-out <path>\n"
@@ -179,7 +179,7 @@ constexpr const char *kUsage =
     "                    `--engine walk` DNF, it is simply silence.\n"
     "  --dump-qp-out <path>  required with --dump-qp; the output file.\n"
     "\n"
-    "  --engine ARM      walk | ssn. walk replays through the ordinary SqpDriver\n"
+    "  --engine ARM      walk | ssn | ipm. walk replays through the ordinary SqpDriver\n"
     "                    (the only engine that exists today) under a PER-PHASE\n"
     "                    WALL DEADLINE (see this file's own banner; the deadline\n"
     "                    itself is corpus_cells.h's wall_budget_for_cell, whose\n"
@@ -387,8 +387,8 @@ Args parse_args(int argc, char **argv) {
             a.score_model_surface_out = next_value(arg);
         } else if (arg == "--engine") {
             const std::string v = next_value(arg);
-            if (v != "walk" && v != "ssn") {
-                throw_usage(fmt::format("--engine: '{}' is not one of walk|ssn", v));
+            if (v != "walk" && v != "ssn" && v != "ipm") {
+                throw_usage(fmt::format("--engine: '{}' is not one of walk|ssn|ipm", v));
             }
             a.engine = v;
         } else if (arg == "--cells") {

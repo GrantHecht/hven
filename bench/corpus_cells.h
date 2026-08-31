@@ -1770,8 +1770,18 @@ inline CorpusRow run_cell(const CorpusCell &cell, const std::string &engine,
         cfg.qp_mode = QpMode::kSsn;
         return detail::run_cell_engine(cell, cfg, on_setup_complete);
     }
+    // M6 W1 TASK 6 WIRED "ipm" UP, on exactly the terms task 6 of phase 7
+    // wired "ssn" up: the third arm differs from the other two in EXACTLY the
+    // one field, so an arm comparison stays a comparison rather than three
+    // studies. IT IS NOT A BASELINE ARM. The tier is opt-in and default-off
+    // for M6 (spec section 9), and no pinned artifact is measured on it -- the
+    // acceptance battery that will is task 9's.
+    if (engine == "ipm") {
+        cfg.qp_mode = QpMode::kIpm;
+        return detail::run_cell_engine(cell, cfg, on_setup_complete);
+    }
     throw std::invalid_argument(
-        fmt::format("run_cell: '{}' is not a known engine (expected walk|ssn)", engine));
+        fmt::format("run_cell: '{}' is not a known engine (expected walk|ssn|ipm)", engine));
 }
 
 } // namespace hven::solvers::corpus
