@@ -556,6 +556,22 @@ declared-change discipline; the spec text itself is amended at W1 close.
   rho (x - zeta)` / `- delta (y - lambda_est)` that enter the right-hand
   side, not `rho`/`delta` as such; T1's own doc comment had conflated the
   two.
+- (h) Spec §2.2/§2.3/§7 CLARIFIED (T2 fix round 2, 2026-08-30): the
+  `ipqp_escape_indefinite` / `ipqp_escape_numerical` boundary, which the
+  five-way census needs to be a partition. An inertia reading that was READ
+  (`InertiaEvidence::state` observed) and DISAGREED with the required
+  signature — at §2.2 item 4's final certification factorization, or when
+  the monotone ladder reaches `ipqp_reg_max` with the reading still wrong —
+  is `kIndefinite` (saddle-suspect; §2.3 item 4's SSN warm-grade route).
+  Every other non-convergence stop that is not budget / stall /
+  infeasible-suspect is `kNumerical`: a factorization failure, an UNREADABLE
+  inertia (evidence state not observed), a non-finite iterate, residual, or
+  step. Hence `ipqp_final_inertia_read`: 0 → certificate stands, 1 →
+  indefinite escape, 2 → numerical escape. Ruling is written into the three
+  fields' doc comments in `solver_counters.h`; T4/T5 implement it. Still
+  open for T4 to confirm: `ipqp_iters` counts COMPLETED predictor+corrector
+  pairs only (a predictor attempt that fails before its corrector is
+  excluded).
 
 ## §8. v2/v3 changes (Codex r1 + rulings 1-9; Codex r2 + r3 rulings 1-3)
 
