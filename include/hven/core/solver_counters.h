@@ -738,6 +738,16 @@ struct IpqpCounters {
     /// exit, since the read is paid only there. Excludes every inertia
     /// read paid mid-ladder (`ipqp_inertia_retries`), which this field
     /// never reports.
+    ///
+    /// `0`'S ONE CAVEAT (M6 W1 task 5): `0` says THIS READ AGREED, which is
+    /// not by itself the statement that the certificate stands. Section
+    /// 2.2's evidence-failure policy downgrades a certificate FOR THE WHOLE
+    /// SOLVE when any earlier factorization succeeded and could not report
+    /// usable inertia evidence -- the tier then steps at a conservative
+    /// `rho` floor and carries the downgrade to the end -- so `0` can pair
+    /// with `IpqpResult::certificate_downgraded == true` and
+    /// `escape_reason == kNone`. The certificate is read off
+    /// `certificate_downgraded`, never off this field alone.
     Index ipqp_final_inertia_read = 0;
 
     /// `(rho, delta)` schedule GATED decreases actually applied: +1 per

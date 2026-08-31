@@ -95,7 +95,22 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 /// downgrading the certificate and is `ipqp_final_inertia_read == 2`
 /// (numerical), not `== 1` (indefinite). Splitting the existing verdict is
 /// therefore a refinement of the precedent, not a second copy of it.
-enum class InertiaRead { kOk, kWrong, kPerturbed, kUnreadable };
+///
+/// `kFactorFailed` IS TASK 5'S FIFTH VALUE, and it is not a refinement of the
+/// verdict helper at all -- it is the state in which there is no verdict to
+/// refine. Task 4 folded a FAILED numeric factorization into `kUnreadable`,
+/// which was harmless while both terminated the solve; task 5 gives them
+/// DIFFERENT remedies, so they can no longer share a value. Section 2.2's
+/// evidence-failure policy applies to a factorization that SUCCEEDED and
+/// could not report its inertia ("a step is permitted only at a conservative
+/// rho floor and the certificate is downgraded for the whole solve"); a
+/// factorization that did not succeed produced no factor to step against, and
+/// plan section 7 note (h) lists "a factorization failure" among the plain
+/// `kNumerical` stops. Reading the two apart is `KktFactorization::info()`,
+/// which is why this classification is taken at the call site rather than
+/// inside `classify_inertia` -- the evidence struct alone cannot tell them
+/// apart (a failed factorization leaves `state == kUnavailable` too).
+enum class InertiaRead { kOk, kWrong, kPerturbed, kUnreadable, kFactorFailed };
 
 InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expected_pos,
                              Index expected_neg) {
@@ -631,6 +646,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Raised by `factorize_once` when the factorization cap refused a call, so
     // a caller can tell "no factorization was taken" from any inertia verdict.
     bool fact_budget_hit = false;
+    // Section 2.2's evidence-failure policy, ARMED ONCE PER SOLVE: a
+    // factorization succeeded and reported no usable inertia evidence, so the
+    // monotone floor was raised to a conservative level, the steps from there
+    // on are taken at that floor, and the certificate is downgraded for the
+    // WHOLE SOLVE. Once armed it never disarms -- "for the whole solve" is
+    // the specification's own scope, not this iteration's.
+    bool evidence_failed = false;
     double mu_meas = mu0;
 
     // ---- the local operations the loop below is written in terms of -------
@@ -809,6 +831,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         if (!factorize_once()) {
             return InertiaRead::kUnreadable;
         }
+        // THE FACTORIZATION'S OWN OUTCOME IS READ BEFORE ITS EVIDENCE, and
+        // that ordering carries task 5's evidence/failure split: section 2.2's
+        // evidence-failure policy permits a step at a conservative floor
+        // against a factor that EXISTS but could not be interrogated, and
+        // there is no factor at all here. `info()` is the linear layer's own
+        // reporting-only status; nothing else in this engine turns on it,
+        // which is exactly why it is the honest discriminator.
+        if (kkt_.info() != Eigen::Success) {
+            return InertiaRead::kFactorFailed;
+        }
         return classify_inertia(kkt_.inertia_evidence(), expect_pos, expect_neg);
     };
 
@@ -844,7 +876,59 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         for (;;) {
             const InertiaRead read = factor_and_read();
-            if (fact_budget_hit || read == InertiaRead::kOk || read == InertiaRead::kUnreadable) {
+            if (fact_budget_hit || read == InertiaRead::kOk || read == InertiaRead::kFactorFailed) {
+                return read;
+            }
+            if (read == InertiaRead::kUnreadable) {
+                // SECTION 2.2'S EVIDENCE-FAILURE POLICY, VERBATIM: "a step is
+                // permitted ONLY at a conservative `rho` floor AND the
+                // certificate is downgraded for the whole solve. The counts
+                // are never zero-filled or inferred."
+                //
+                // TASK 4 TERMINATED HERE (-> kNumerical) and recorded the
+                // question as open; the spec text settles it, so the step is
+                // taken. The distinction matters most on the backend this
+                // branch actually describes: Accelerate can report
+                // `kUnavailable` for a perfectly good factorization, and
+                // refusing to step on it would retire the tier on that
+                // platform for a reason that is about the QUERY, not the
+                // subproblem. (That arm stays UNOBSERVED under CLAUDE.md
+                // section 6's never-fabricate rule until real Mac hardware
+                // runs it; what is implemented here is the policy, and the
+                // seam-injected pins are what exercise it.)
+                //
+                // "CONSERVATIVE" IS THE TIER'S OWN LADDER, TAKEN ONCE. There
+                // is no finite `rho` that is PROVABLY sufficient without an
+                // inertia reading -- that is precisely what the missing
+                // evidence would have told us -- so no invented magnitude
+                // could be honest here. What can be said is that the floor
+                // should be strictly above what the schedule would have used
+                // and at the magnitude this tier already trusts for an
+                // inertia repair, which is the ladder's own first rung. It is
+                // applied ONCE (a second unreadable reading finds
+                // `evidence_failed` already armed and steps) because a ladder
+                // has no stopping criterion when the reading can never come
+                // back right: climbing would spend the whole ceiling's worth
+                // of factorizations and still have to take the same step.
+                if (evidence_failed) {
+                    return read;
+                }
+                evidence_failed = true;
+                const double conservative =
+                    std::min(std::max(rho * detail::kIpqpRhoGrowth, detail::kIpqpRhoLadderInit),
+                             iopts.ipqp_reg_max);
+                if (conservative > rho) {
+                    // This factorization WAS rejected -- on evidence the tier
+                    // could not use, which `ipqp_inertia_retries` covers
+                    // ("wrong OR evidence-invalid", fix round 1's M2).
+                    ++out.counters.ipqp_inertia_retries;
+                    ++out.counters.ipqp_reg_increases;
+                    rho = conservative;
+                    rho_floor = std::max(rho_floor, conservative);
+                    rho_demanded_last = conservative;
+                    write_diagonals(rho, delta);
+                    continue;
+                }
                 return read;
             }
             // The ceiling test carries SsnEngine::escalate_prox's relative
@@ -1183,7 +1267,14 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             escape = IpqpEscape::kBudget;
             break;
         }
-        if (read != InertiaRead::kOk) {
+        if (read == InertiaRead::kUnreadable) {
+            // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder). The
+            // ladder has already raised the monotone floor to its conservative
+            // level and re-factorized there, so the step below runs at that
+            // floor. NOT an escape and NOT a break: the solve continues, and
+            // what it can no longer produce is a STANDING CERTIFICATE, which
+            // is what `evidence_failed` carries to the outcome block.
+        } else if (read != InertiaRead::kOk) {
             // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. There used to be
             // a solve-scoped `saw_readable_wrong` flag here, set by ANY ladder
             // rung anywhere in the solve -- including rungs the ladder then
@@ -1373,16 +1464,37 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 out.certificate_downgraded = true;
                 escape = IpqpEscape::kIndefinite;
             } else {
-                // C0b: UNREADABLE **or** PERTURBED. A perturbed factorization
-                // is not evidence about the assembled matrix at all, so it is
-                // not "a reading that disagreed" -- it is no reading. Note
-                // (h)'s `== 2`, numerical, exactly as the mid-ladder path
-                // already treats an unobservable state.
+                // C0b: UNREADABLE, PERTURBED, **or** a factorization that
+                // FAILED. A perturbed factorization is not evidence about the
+                // assembled matrix at all, so it is not "a reading that
+                // disagreed" -- it is no reading; a failed one is not even a
+                // factor. Note (h)'s `== 2`, numerical, for all three.
+                //
+                // SECTION 2.2'S EVIDENCE-FAILURE POLICY DOES NOT REACH HERE,
+                // and that is the ruling rather than an oversight. The policy
+                // permits A STEP at a conservative floor; the item 4 read
+                // takes no step. There is nothing left to permit -- the
+                // question the read exists to ask ("is the converged point a
+                // minimum of the PROBLEM") simply has no answer -- so the
+                // certificate cannot stand and the escape is the numerical
+                // class note (h) assigns to an unreadable inertia.
                 out.counters.ipqp_final_inertia_read = 2;
                 out.certificate_downgraded = true;
                 escape = IpqpEscape::kNumerical;
             }
         }
+    }
+
+    // SECTION 2.2'S WHOLE-SOLVE DOWNGRADE. Applied AFTER the item 4 block and
+    // never conditioned on it: the policy's own scope is "the certificate is
+    // downgraded FOR THE WHOLE SOLVE", so a final read that came back clean
+    // (`ipqp_final_inertia_read == 0`) does not undo an evidence failure at
+    // iteration 3, and an escaped solve carries the flag too -- it has no
+    // certificate to downgrade, and saying so costs nothing while a
+    // conditional would make the field mean two things.
+    if (evidence_failed) {
+        out.inertia_evidence_failed = true;
+        out.certificate_downgraded = true;
     }
 
     // --- outcome ----------------------------------------------------------
@@ -1402,14 +1514,62 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         break;
     }
     if (out.certificate_downgraded && out.escape_reason == IpqpEscape::kNone) {
-        // A DOWNGRADE WITHOUT AN ESCAPE (I5's ruling, reachable only through
-        // `ipqp_require_final_inertia == false`). Spec 2.2 item 4 forbids
-        // `kOptimal` for a downgraded certificate, and `QpStatus` has no word
-        // for "converged but uncertified", so this borrows the walk's own
-        // bucket for a trusted-but-not-optimal exit. THE STATUS VOCABULARY FOR
-        // A DOWNGRADED-WITHOUT-ESCAPE OUTCOME IS TASK 5'S RULING; what is
-        // settled here is only that it is not `kOptimal` and not an escape.
+        // A DOWNGRADE WITHOUT AN ESCAPE. Two ways in: the option-off read
+        // (I5's ruling, `ipqp_final_inertia_read == 3`), and a mid-solve
+        // evidence failure whose final read nonetheless came back clean
+        // (`read == 0`). TASK 5'S STATUS RULING, argued in full in
+        // ipqp_engine.h's own STATUS VOCABULARY note: `kNumericalError`, the
+        // spelling the walk and SSN already use for a converged point whose
+        // second-order certificate could not be established, and NOT a new
+        // `QpStatus` enumerator -- spec 2.2 item 4 asks for one certification
+        // vocabulary across all three kernels, and the certificate itself
+        // travels on `certificate_downgraded` / `escape_reason`, never on
+        // `status`.
         out.status = QpStatus::kNumericalError;
+    }
+
+    // --- THE FIVE-WAY ESCAPE CENSUS (spec section 7) -----------------------
+    //
+    // Written ONCE, from the single classified `escape_reason`, so the census
+    // is a PARTITION by construction rather than by five call sites agreeing:
+    // exactly one branch below can run, and each runs `ipqp_escapes` with it,
+    // which is the whole content of the sum-to-`ipqp_escapes` invariant
+    // (tests/sqp/support/ipqp_test_support.h asserts it on every fixture).
+    //
+    // THREE OUTCOMES DELIBERATELY CONTRIBUTE NOTHING HERE, each for a reason
+    // already settled elsewhere:
+    //   * `kNone` on a clean solve -- there is no escape.
+    //   * `kNone` on a DOWNGRADED solve (`ipqp_final_inertia_read == 3`, or a
+    //     mid-solve evidence failure) -- plan section 7 note (j): "a
+    //     downgrade, not an escape ... no census entry, no section 6.1 K=3
+    //     charge". The census must NOT fold `3` into
+    //     `ipqp_escape_numerical`; there is no escape to count.
+    //   * A DECLINED-PINNED subproblem, which returns far above this point
+    //     with `ipqp_declined_pinned == 1` and every other counter at its
+    //     default -- the tier never ran.
+    switch (out.escape_reason) {
+    case IpqpEscape::kNone:
+        break;
+    case IpqpEscape::kBudget:
+        ++out.counters.ipqp_escapes;
+        ++out.counters.ipqp_escape_budget;
+        break;
+    case IpqpEscape::kStall:
+        ++out.counters.ipqp_escapes;
+        ++out.counters.ipqp_escape_stall;
+        break;
+    case IpqpEscape::kIndefinite:
+        ++out.counters.ipqp_escapes;
+        ++out.counters.ipqp_escape_indefinite;
+        break;
+    case IpqpEscape::kNumerical:
+        ++out.counters.ipqp_escapes;
+        ++out.counters.ipqp_escape_numerical;
+        break;
+    case IpqpEscape::kInfeasibleSuspect:
+        ++out.counters.ipqp_escapes;
+        ++out.counters.ipqp_escape_infeasible_suspect;
+        break;
     }
 
     out.x = w.x;

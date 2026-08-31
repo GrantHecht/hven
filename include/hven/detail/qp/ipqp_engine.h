@@ -20,11 +20,10 @@
 // Globalization here is fraction-to-boundary and nothing else (spec 3.1 item
 // 3). It is a sibling of SsnEngine.
 //
-// REACHABILITY. As of M6 W1 task 4 this engine is reachable from TESTS ONLY.
+// REACHABILITY. As of M6 W1 task 5 this engine is reachable from TESTS ONLY.
 // QpMode::kIpm is still refused at validate_sqp_options (task 1's temporary
-// refusal), the routing chain is task 6's, and the certification/escape census
-// is task 5's -- see THE TASK-4 BOUNDARY below for exactly which parts of the
-// specification this file implements today.
+// refusal) and the routing chain is task 6's -- see THE TASK-5 BOUNDARY below
+// for exactly which parts of the specification this file implements today.
 //
 // TU PLACEMENT (CLAUDE.md section 5). This header carries declarations, enums
 // and `inline constexpr` constants ONLY. The iteration, the ladder, the
@@ -35,7 +34,7 @@
 // the opposite reason -- see that file's own TU-placement note.
 //
 // -------------------------------------------------------------------------
-// THE TASK-4 BOUNDARY -- what this file does and does not do yet
+// THE TASK-5 BOUNDARY -- what this file does and does not do yet
 // -------------------------------------------------------------------------
 //
 // IMPLEMENTED HERE (task 4): the clamp-centred box and its domain gate
@@ -46,15 +45,16 @@
 // (3.4), the required final unregularized inertia read (2.2 item 4), the
 // budget/factorization caps, and the ratio face classification (2.3 item 2).
 //
+// ADDED HERE (task 5): the CERTIFICATION vocabulary built on top of task 4's
+// final read (the status ruling below), section 2.2's evidence-failure policy
+// (a step at a conservative `rho` floor plus a whole-solve downgrade when the
+// inertia evidence cannot be read at all), the section 6.2 early-stall test
+// and the section 6.3 infeasible-suspect test with their evidence blocks, the
+// optional Farkas corroboration, the FIVE-WAY ESCAPE CENSUS, and the section
+// 6.1 escape ladder (`IpqpEscapeLadder`: K consecutive escapes retire the
+// tier for the remainder of an SQP solve).
+//
 // NOT HERE YET, and deliberately so:
-//   * THE ESCAPE CENSUS. `IpqpCounters::ipqp_escapes` and its five-way census
-//     are TASK 5's. This engine sets `IpqpResult::escape_reason` -- correctly
-//     classified per plan section 7 note (h) -- and leaves the six census
-//     counters at 0, which keeps the sum-to-`ipqp_escapes` invariant true
-//     (0 == 0) rather than half-populated.
-//   * THE EARLY-STALL TEST (6.2) and INFEASIBLE-SUSPECT (6.3). Task 5.
-//     IpqpEscape carries their enumerators so the vocabulary is fixed once;
-//     nothing in this task returns them.
 //   * THE WARM RESTART (section 5's repair, mu clamp and warm-kill). TASK 7.
 //     `solve()` takes an `IpqpSeed *` so the signature does not move under
 //     task 7, and REFUSES a non-null one with std::invalid_argument rather
@@ -62,9 +62,58 @@
 //     without section 5.2's repair is the "worse than neutral" hazard the
 //     specification names, so accepting one unrepaired would be the wrong
 //     kind of quiet.
-//   * THE ROUTING CHAIN (2.3 items 3-5), tier-3 hand-off, and the K = 3
-//     retirement ladder (6.1). Task 6. This engine reports the face
-//     classification the chain reads; it never routes.
+//   * THE ROUTING CHAIN (2.3 items 3-5) and the tier-3 hand-off. Task 6.
+//     This engine reports the face classification the chain reads, and owns
+//     the escape ladder the chain DRIVES, but it never routes and it never
+//     decides which major it is on.
+//
+// -------------------------------------------------------------------------
+// THE STATUS VOCABULARY FOR A DOWNGRADED CERTIFICATE -- task 5's ruling
+// -------------------------------------------------------------------------
+//
+// Plan section 7 note (j) left this open: "today's QpStatus has no such
+// value ... the status vocabulary for a downgraded-without-escape result is
+// T5's ruling, as the owner of certification." RULED, AGAINST THE SPEC TEXT
+// AND WITHOUT WIDENING `QpStatus`:
+//
+//   A DOWNGRADED CERTIFICATE REPORTS `QpStatus::kNumericalError`. The
+//   certification currency is `IpqpResult::certificate_downgraded` and
+//   `IpqpResult::escape_reason`, never `status`.
+//
+// THREE GROUNDS, each from the specification rather than from taste:
+//
+// 1. Section 2.2 item 4's own closing line: "CERTIFICATION VOCABULARY IS
+//    SSN'S, so the driver's KKT gate reads one thing from all three kernels."
+//    SSN maps every non-certifying, non-budget exit -- kIndefinite,
+//    kNoContraction, kSingular -- onto `QpStatus::kNumericalError`
+//    (ssn_engine.h's own status note), and the WALK maps its trusted
+//    wrong-inertia exit there too (qp_engine.h's termination note: "the
+//    answer is the regularization talking, not an optimum"). A converged
+//    point whose second-order certificate could not be established is
+//    already spelled `kNumericalError` by both existing kernels. Adding a
+//    fourth spelling for this tier alone is exactly what that line forbids.
+// 2. THE OTHER THREE VALUES ARE EACH A FALSE STATEMENT. `kOptimal` is
+//    forbidden outright by section 2.2 item 4 ("the result is never
+//    kOptimal"). `kInfeasible` is a CERTIFICATE this tier can never issue
+//    (section 6.3). `kMaxIter` would claim the iteration cap stopped a solve
+//    that converged.
+// 3. WIDENING `QpStatus` WOULD PUT THE CERTIFICATE ON THE WRONG CHANNEL.
+//    Section 7's trace schema already carries `downgraded` as its own field
+//    on the `ipqp.certify` event, separate from `qp.mode`'s three outcomes
+//    (`optimal|routed|escaped`); and `IpqpResult`'s own rule is BRANCH ON
+//    `escape_reason`, NEVER ON `status`. A new enumerator would invite a
+//    consumer to read the certificate off `status` -- the one thing every
+//    kernel's result contract in this tree tells it not to do -- and would
+//    ripple through a core, shared enum that the SQP driver, the ledger and
+//    the corpus CSV all read.
+//
+// THE CONSEQUENCE, STATED SO IT IS NOT A SURPRISE: a caller who sets
+// `ipqp_require_final_inertia = false` gets `kNumericalError` on a solve that
+// converged cleanly. That is the option's own documented weakening ("FALSE
+// means every certificate is downgraded unconditionally"), it is the SAFE
+// direction for anything that gates on `status == kOptimal`, and
+// `escape_reason == kNone` with `certificate_downgraded == true` is what
+// separates it from a genuine failure.
 
 #include <cstdint>
 #include <string>
@@ -164,6 +213,26 @@ inline constexpr Index kIpqpFactorizationsPerIter = 3;
 /// three sweeps.
 inline constexpr Index kIpqpRuizSweeps = 10;
 inline constexpr double kIpqpRuizTol = 1.0e-3;
+
+/// @brief Section 6.2 conjunct (i): the factor by which `mu` must have been
+/// reduced ACROSS the window for the window not to be a stall.
+///
+/// The barrier form of SSN's own "improvement is demanded over the whole
+/// window, not per step". Two is the smallest factor that is unambiguously a
+/// reduction rather than noise, and it is deliberately feeble for the same
+/// reason `kSsnStallImproveFactor`'s 1% is: the test must not fire on a
+/// trajectory that is merely slow, only on one that is not moving. A healthy
+/// Mehrotra iteration reduces `mu` by an order of magnitude or more per step,
+/// so five accepted steps that together cannot halve it are not a slow solve.
+inline constexpr double kIpqpStallMuFactor = 2.0;
+
+/// @brief Section 6.2 conjunct (iii): the fraction-to-boundary step below
+/// which a step counts as "dying", demanded on EVERY step of the window.
+///
+/// Spec 6.2 states the value (`1e-2`). It is a WHOLE-WINDOW property by
+/// construction -- "never abort on one tiny-alpha iteration" -- so a single
+/// healthy step anywhere in the window disarms the conjunct.
+inline constexpr double kIpqpStallAlpha = 1.0e-2;
 
 } // namespace detail
 
@@ -376,6 +445,126 @@ struct IpqpResiduals {
     double worst() const;
 };
 
+/// @brief THE SECTION 6.2 STALL ESCAPE'S EVIDENCE BLOCK.
+///
+/// Plan section 7 note (b), FINAL (r3): the spec v2 draft's three
+/// `ipqp_stall_reason_*` counters are DROPPED as ill-posed -- all three
+/// conjuncts hold at EVERY stall escape by construction, so a partition among
+/// them is degenerate and a "which one fired" census would be an invented
+/// answer to a question the test does not ask. The information travels here
+/// instead: the three conjunct VALUES at the moment the window closed, so a
+/// reader sees HOW stalled the trajectory was rather than a fabricated
+/// attribution.
+///
+/// Populated ONLY on a `IpqpEscape::kStall` escape; `fired` is the flag that
+/// says so, and every numeric field is 0 otherwise rather than carrying a
+/// stale window's values.
+struct IpqpStallEvidence {
+    bool fired = false;
+
+    /// Accepted steps in the closed window (`IpqpOptions::ipqp_stall_window`).
+    Index window = 0;
+
+    /// CONJUNCT (i): `mu(window start) / mu(window end)` -- the factor by
+    /// which the barrier parameter was reduced ACROSS the window. The
+    /// conjunct holds (i.e. contributes to a stall) iff this is
+    /// `< detail::kIpqpStallMuFactor`. `+inf` if `mu` reached exactly 0,
+    /// which cannot be a stall.
+    double mu_ratio = 0.0;
+
+    /// CONJUNCT (ii): `1 - res(end)/res(start)` on `max(primal_inf,
+    /// dual_inf)` -- the RELATIVE improvement across the window, which the
+    /// conjunct holds iff it is `< 1 - detail::kSsnStallImproveFactor`
+    /// (1%). Negative when the residual grew.
+    double residual_improvement = 0.0;
+
+    /// The SMALLEST `min(alpha_p, alpha_d)` over the window -- plan section 7
+    /// note (b)'s named "min alpha".
+    double min_alpha = 0.0;
+
+    /// CONJUNCT (iii)'s ACTUAL TEST VALUE, and it is deliberately a second
+    /// field rather than a replacement for `min_alpha` above. The conjunct is
+    /// "`min(alpha_p, alpha_d) < 1e-2` on EVERY step in the window", so what
+    /// decides it is the LARGEST per-step `min(alpha_p, alpha_d)`: the
+    /// conjunct holds iff even the healthiest step in the window was below
+    /// `detail::kIpqpStallAlpha`. `min_alpha` alone cannot witness a
+    /// whole-window property -- one dying step would satisfy it while four
+    /// full steps sat beside it -- which is exactly the "never abort on one
+    /// tiny-alpha iteration" rule section 6.2 states. Both are carried
+    /// because the plan names the first and the test uses the second.
+    double max_step_alpha = 0.0;
+};
+
+/// @brief THE SECTION 6.3 INFEASIBLE-SUSPECT ESCAPE'S EVIDENCE BLOCK.
+///
+/// **A SIGNATURE, NEVER A PROOF** (section 6: IP-PMM has no homogeneous
+/// self-dual embedding and therefore no infeasibility certificate). The tier
+/// emits `IpqpEscape::kInfeasibleSuspect` carrying this block and NEVER
+/// `QpStatus::kInfeasible`; promoting the suspicion to a certificate is the
+/// driver-layer failure the SSN contract exists to prevent.
+///
+/// Section 6.3 names three things this block must carry -- "each signal with
+/// its value, the window, and the least-infeasible point" -- and they are the
+/// three groups below.
+struct IpqpInfeasibilityEvidence {
+    bool fired = false;
+
+    /// True iff the EXHAUSTION route fired (the tier ran out of budget with
+    /// the signature standing) rather than the standing windowed route. The
+    /// two measure the growth conjunct differently -- see `dual_growth` and
+    /// `dual_step_growth` -- for `ssn_engine.h`'s own reason: on the
+    /// exhaustion route the divergence and the last progress are the SAME
+    /// accepted step, so a windowed growth reference would read 1.
+    bool exhaustion_route = false;
+
+    /// Accepted steps in the window the signals were measured over.
+    Index window = 0;
+
+    // --- signal (a): the primal residual, flat on a positive floor ---------
+
+    double primal_start = 0.0; ///< `max(primal_eq, primal_iq)` at window start.
+    double primal_end = 0.0;   ///< ... and at the window's end.
+    /// `1 - primal_end/primal_start`; the conjunct holds iff this is below
+    /// `1 - detail::kSsnStallImproveFactor` AND `primal_end` is above the
+    /// solve's own feasibility target -- "flat ON A POSITIVE FLOOR", both
+    /// halves.
+    double primal_improvement = 0.0;
+
+    // --- signal (b): multiplier norm growth --------------------------------
+
+    double dual_norm_start = 0.0; ///< `||(y, z)||inf` at the reference point.
+    double dual_norm_end = 0.0;   ///< ... and at the window's end.
+    /// `dual_norm_end / max(1, dual_norm_start)`, floored at 1 so a
+    /// zero-multiplier reference is measured absolutely
+    /// (`detail::kSsnDualGrowthFactor`'s own convention). The conjunct holds
+    /// iff this is `>= detail::kSsnDualGrowthFactor`.
+    double dual_growth = 0.0;
+    /// Growth across the MOST RECENTLY ACCEPTED STEP alone. Read only on the
+    /// exhaustion route, where the conjunct additionally demands
+    /// `>= detail::kSsnDualStepGrowth`; 0 on the standing route.
+    double dual_step_growth = 0.0;
+
+    // --- optional Farkas corroboration (IpqpOptions::ipqp_farkas_gate) -----
+
+    /// True iff the Farkas test (one matvec plus O(m), no factorization) on
+    /// the window's normalized dual INCREMENT, projected onto the sign cone,
+    /// corroborated the signature. **IT NEVER CERTIFIES** (section 6.3): a
+    /// false here is a report that was not corroborated, not a report that
+    /// was withdrawn, and the escape fires either way.
+    bool farkas_corroborated = false;
+    double farkas_residual = 0.0; ///< Relative `||A^T y||inf`; 0 when the gate is off.
+    double farkas_gap = 0.0;      ///< Relative `<b, y>`; 0 when the gate is off.
+
+    // --- the least-infeasible point ---------------------------------------
+
+    /// n. The iterate with the SMALLEST `max(primal_eq, primal_iq)` seen in
+    /// this solve -- section 6.3's own third requirement, and the point a
+    /// feasibility-mode fallback (the W2 hook) wants to start from. Empty
+    /// when the block did not fire.
+    Vec least_infeasible_x;
+    double least_infeasible_primal = 0.0; ///< That point's own primal residual.
+};
+
 /// @brief One tier solve's outcome.
 ///
 /// **BRANCH ON `escape_reason`, NEVER ON `status`** -- SsnResult's rule,
@@ -400,9 +589,10 @@ struct IpqpResult {
     /// True iff the certificate was DOWNGRADED (spec 2.2 item 4). A downgraded
     /// solve never reports `kOptimal`.
     ///
-    /// FOUR WAYS TO GET HERE, and they are not all failures -- `escape_reason`
+    /// FIVE WAYS TO GET HERE, and they are not all failures -- `escape_reason`
     /// is what separates them, which is why the driver branches on THAT and
-    /// never on `status`. Each pairs with one `ipqp_final_inertia_read` value:
+    /// never on `status`. The first four pair with one
+    /// `ipqp_final_inertia_read` value each:
     ///   * the read was taken and DISAGREED (`read == 1`, `kIndefinite`);
     ///   * the read was taken and no usable evidence came back -- no observed
     ///     state, or a perturbed-pivot report (`read == 2`, `kNumerical`);
@@ -412,9 +602,30 @@ struct IpqpResult {
     ///   * the read was REFUSED by the factorization budget before it could
     ///     run (`read == 3` likewise -- it never happened -- with escape
     ///     `kBudget`).
-    /// Always false on a solve that certified, and on a declined-pinned one,
-    /// which never reaches the read at all.
+    /// The FIFTH is task 5's, and it is the one case where the final read's
+    /// own value says nothing about the downgrade:
+    ///   * A MID-SOLVE EVIDENCE FAILURE. Section 2.2's evidence-failure policy
+    ///     states that an `InertiaEvidence::state != kObserved` permits a step
+    ///     "only at a conservative `rho` floor AND the certificate is
+    ///     downgraded FOR THE WHOLE SOLVE". The downgrade is therefore a
+    ///     property of the solve's history, not of its last factorization: a
+    ///     solve that read unusable evidence at iteration 3, took its
+    ///     conservative-floor steps, converged, and then passed a perfectly
+    ///     readable final inertia read reports `read == 0` AND
+    ///     `certificate_downgraded == true`, with `escape_reason == kNone`.
+    ///     "For the whole solve" is what makes that the correct pair.
+    /// Always false on a solve that certified with no evidence failure, and on
+    /// a declined-pinned one, which never reaches the read at all.
     bool certificate_downgraded = false;
+
+    /// True iff section 2.2's evidence-failure policy was invoked ANYWHERE in
+    /// this solve: some factorization succeeded but reported an
+    /// `InertiaEvidence::state` other than `kObserved`, so the tier raised its
+    /// monotone floor to a conservative level, took its steps there, and
+    /// downgraded the certificate for the whole solve. Implies
+    /// `certificate_downgraded`. Distinct from a FAILED factorization, which
+    /// is not an evidence failure at all and escapes `kNumerical` at once.
+    bool inertia_evidence_failed = false;
 
     // --- the point ---------------------------------------------------------
 
@@ -461,6 +672,15 @@ struct IpqpResult {
     // --- evidence ----------------------------------------------------------
 
     IpqpResiduals residuals;
+
+    /// The section 6.2 stall escape's three conjunct values. `fired` is false
+    /// on every other outcome; see IpqpStallEvidence for why this is an
+    /// evidence block rather than a three-way counter census.
+    IpqpStallEvidence stall_evidence;
+
+    /// The section 6.3 infeasible-suspect escape's signals, window and
+    /// least-infeasible point. `fired` is false on every other outcome.
+    IpqpInfeasibilityEvidence infeasibility_evidence;
 
     /// The box this solve ran in -- the answer to "which window was this point
     /// gated against", which tier 3's hand-off needs and which is exactly the
@@ -549,6 +769,82 @@ class IpqpEngine {
     Ledger *ledger_ = nullptr;
     std::string label_prefix_;
     Index solve_counter_ = 0;
+};
+
+/// @brief THE SECTION 6.1 ESCAPE LADDER: K consecutive escapes retire the tier
+/// for the remainder of ONE SQP solve.
+///
+/// SEPARATE FROM `IpqpEngine` DELIBERATELY, and not merely for testability.
+/// Section 6.1's decision is ACROSS subproblems -- "after K = 3 consecutive
+/// escapes WITHIN ONE SQP SOLVE the tier is retired for the REMAINDER of that
+/// solve" -- and no single subproblem's own solve can observe it. The engine
+/// is per-subproblem and stateful only in its factorization cache; putting a
+/// cross-major tally on it would make two majors of the same SQP solve share
+/// state through an object whose lifetime is not the solve's. The routing
+/// chain (task 6) owns one of these per SQP solve, feeds it every tier
+/// outcome, and writes `SqpCounters::ipqp.ipqp_tier_retired_after` from it --
+/// which is exactly what that counter's "DRIVER-SCALE ONLY" doc comment
+/// describes.
+///
+/// THE THREE RULES, EACH FROM SECTION 6.1'S OWN TEXT:
+///
+/// * **Fresh decision every major. No memory.** There is no bench, no backoff
+///   and no penalty carried from one subproblem to the next; the ONLY state
+///   is the consecutive-escape tally and the retirement flag.
+/// * **Any success resets the count.** A solve that did not escape
+///   (`escape_reason == kNone`) resets the tally to 0 -- INCLUDING a solve
+///   whose certificate was downgraded without an escape. RULED, and stated
+///   because the two readings differ: plan section 7 note (j) is explicit
+///   that such a solve carries "no census entry, no section 6.1 K=3 charge",
+///   so it cannot be an escape; and section 6.1's own word for the
+///   alternative is "success", which a converged solve is. Treating it as
+///   neutral instead would let three consecutive clean solves under
+///   `ipqp_require_final_inertia = false` sit on top of an old tally.
+/// * **A DECLINE IS NEUTRAL** -- neither an escape nor a success. RULED, on
+///   `IpqpCounters::ipqp_declined_pinned`'s own settled text ("a decline is
+///   not an escape: the tier never ran, so this never counts toward
+///   `ipqp_escapes` or the K=3 retirement threshold"). It cannot advance the
+///   tally; and it cannot RESET one either, because the tier produced no
+///   evidence of suitability -- a zero-width box says nothing about whether
+///   the previous two escapes were a pattern.
+///
+/// RETIREMENT FIRES AT MOST ONCE (`IpqpCounters::ipqp_tier_retired_after`'s
+/// marker-not-a-count discipline): once retired, `record()` keeps returning
+/// true and `retired_after()` keeps naming the major it happened at, whatever
+/// arrives afterwards.
+class IpqpEscapeLadder {
+  public:
+    /// @param iopts the tier's settings; only `ipqp_retire_after` is read
+    ///              (validated `> 0` by `validate_sqp_options`, re-checked
+    ///              here because this type is reachable without a driver).
+    /// @throws std::invalid_argument if `ipqp_retire_after <= 0`.
+    explicit IpqpEscapeLadder(const IpqpOptions &iopts);
+
+    /// Record one tier outcome, observed at SQP major `major` (1-based, the
+    /// index `ipqp_tier_retired_after` reports).
+    /// @return true iff the tier is retired for the remainder of this solve.
+    /// @throws std::invalid_argument if `major <= 0` -- a retirement marker of
+    ///         0 means "never retired", so major 0 is not a representable
+    ///         place for retirement to have happened.
+    bool record(const IpqpResult &result, Index major);
+
+    /// True once retirement has fired. The routing chain must stop entering
+    /// the tier for this SQP solve.
+    bool retired() const;
+
+    /// The major retirement fired at, or 0 if it never did -- the value
+    /// `SqpCounters::ipqp.ipqp_tier_retired_after` takes.
+    Index retired_after() const;
+
+    /// The current consecutive-escape tally. Exposed for the pins and for the
+    /// trace; it is not part of any counter contract.
+    Index consecutive_escapes() const;
+
+  private:
+    Index retire_after_ = 3;
+    Index consecutive_ = 0;
+    Index retired_after_ = 0;
+    bool retired_ = false;
 };
 
 // ---------------------------------------------------------------------------

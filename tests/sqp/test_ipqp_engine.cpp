@@ -28,6 +28,8 @@
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
 
+#include "support/ipqp_test_support.h"
+
 namespace hven::solvers {
 namespace {
 
@@ -1114,20 +1116,30 @@ TEST(IpqpCounterTest, TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreTasksSixAnd
     EXPECT_GT(r.counters.ipqp_prox_center_updates, 0);
 }
 
-TEST(IpqpCounterTest, TheEscapeCensusStaysAtZeroBecauseItIsTaskFives) {
-    // Stated as a pin rather than left implicit: this task classifies the
-    // escape REASON and leaves the six census counters at 0, which keeps the
-    // sum-to-`ipqp_escapes` invariant TRUE rather than half-populated.
+TEST(IpqpCounterTest, TheEscapeCensusCountsABudgetEscapeExactlyOnce) {
+    // WAS `TheEscapeCensusStaysAtZeroBecauseItIsTaskFives` -- task 4's
+    // deliberate boundary pin, replaced (not deleted) now that task 5 owns
+    // the census. The invariant it guarded is unchanged and is asserted
+    // through the shared helper; what changed is that it now holds at 1 == 1
+    // instead of trivially at 0 == 0.
     IpqpOptions io;
     io.ipqp_hard_iter_cap = 1;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
     ASSERT_EQ(r.escape_reason, IpqpEscape::kBudget);
-    EXPECT_EQ(r.counters.ipqp_escapes, 0);
-    EXPECT_EQ(r.counters.ipqp_escape_budget + r.counters.ipqp_escape_stall +
-                  r.counters.ipqp_escape_indefinite + r.counters.ipqp_escape_numerical +
-                  r.counters.ipqp_escape_infeasible_suspect,
-              r.counters.ipqp_escapes);
+    EXPECT_EQ(r.counters.ipqp_escapes, 1);
+    EXPECT_EQ(r.counters.ipqp_escape_budget, 1);
+    EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+
+    // NON-VACUITY: the same fixture with the cap lifted escapes nothing, so
+    // the census above is a measurement of THIS solve and not a constant.
+    IpqpEngine clean(tight_opts());
+    const IpqpResult ok =
+        clean.solve(general_qp(true, true), nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(ok.escape_reason, IpqpEscape::kNone);
+    EXPECT_EQ(ok.counters.ipqp_escapes, 0);
+    EXPECT_EQ(ok.counters.ipqp_escape_budget, 0);
+    EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(ok.counters));
 }
 
 TEST(IpqpCounterTest, TheAlphaFloorsAreObservedAndStayInsideTheUnitInterval) {
