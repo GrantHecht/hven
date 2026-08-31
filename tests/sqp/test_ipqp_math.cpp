@@ -25,7 +25,10 @@
 // Every pin is written so that it can fail: each is paired with a
 // non-vacuity check that perturbs an input and requires the result to move.
 
+#include <bit>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <vector>
 
@@ -37,6 +40,8 @@
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/qp/ipqp_math.h"
+#include "hven/detail/qp/qp_engine.h"
+#include "hven/detail/qp/ssn_engine.h"
 
 namespace {
 
@@ -128,6 +133,11 @@ BoundDualState dual_state_of(const Bounds &b, const BoundSet &s) {
 
 constexpr double kMu = 0.125;
 
+// Bit-level comparison, for the one pin whose whole point is that two
+// groupings of the same arithmetic round differently: EXPECT_DOUBLE_EQ (4 ULP)
+// and even EXPECT_EQ would pass values this test has to separate.
+std::uint64_t bits(double v) { return std::bit_cast<std::uint64_t>(v); }
+
 // ---------------------------------------------------------------------------
 // The five mirrors.
 // ---------------------------------------------------------------------------
@@ -140,9 +150,29 @@ TEST(IpqpMathTest, BoundBarrierObjectiveMirrorsTheNlpKernel) {
     const double want = ip::bound_barrier_objective(b.x, s, kMu);
 
     EXPECT_DOUBLE_EQ(got, want);
-    // The damping is actually in there: the fixture has two one-sided
-    // variables, so dropping kappa_d would move the answer.
-    EXPECT_NE(got, ip::bound_barrier_objective(b.x, BoundSet{}, kMu));
+
+    // And against arithmetic, in the kernel's own order -- lowers ascending,
+    // then uppers -- so the pin does not rest on two implementations agreeing
+    // with each other. Distances: var0 lower 1.5, var1 lower 1.25, var0 upper
+    // 2.5, var2 upper 2.25; var3 is free. Damping rides the two one-sided
+    // entries only.
+    const double undamped =
+        -kMu * std::log(1.5) + -kMu * std::log(1.25) + -kMu * std::log(2.5) + -kMu * std::log(2.25);
+    const double damping = ip::kIpqpKappaD * kMu * 1.25 + ip::kIpqpKappaD * kMu * 2.25;
+    EXPECT_NEAR(got, undamped + damping, 1e-14);
+
+    // THE DAMPING PIN. Making both one-sided variables two-sided -- with the
+    // second bound placed so its own log term is known and subtracted off --
+    // removes exactly the damping and nothing else. A kernel that dropped
+    // kappa_d would make these two agree.
+    Bounds two_sided = b;
+    two_sided.u[1] = 2.25 + 1.25; // var1 gains an upper bound at distance 1.25
+    two_sided.l[2] = -1.5 - 2.25; // var2 gains a lower bound at distance 2.25
+    const double two_sided_psi =
+        ip::ipqp_bound_barrier_objective(two_sided.x, two_sided.l, two_sided.u, kMu, two_sided.n);
+    const double added_logs = -kMu * std::log(1.25) + -kMu * std::log(2.25);
+    EXPECT_NEAR(got - (two_sided_psi - added_logs), damping, 1e-14);
+    EXPECT_GT(damping, 0.0);
 }
 
 TEST(IpqpMathTest, BoundBarrierObjectiveMovesWhenAnInputMoves) {
@@ -193,7 +223,7 @@ TEST(IpqpMathTest, BoundDualTermsMirrorTheNlpKernel) {
     Eigen::VectorXd got = base;
     Eigen::VectorXd want = base;
 
-    ip::ipqp_accumulate_bound_dual_terms(b.zl, b.zu, b.n, got);
+    ip::ipqp_accumulate_bound_dual_terms(b.l, b.u, b.zl, b.zu, b.n, got);
     ip::accumulate_bound_dual_terms(s, z, want);
 
     for (Index i = 0; i < b.n; ++i) {
@@ -207,6 +237,76 @@ TEST(IpqpMathTest, BoundDualTermsMirrorTheNlpKernel) {
     Eigen::VectorXd mu_form = base;
     ip::ipqp_accumulate_bound_barrier_gradient(b.x, b.l, b.u, kMu, b.n, mu_form);
     EXPECT_NE(mu_form[1], got[1]);
+}
+
+// I2(a). The kernel's grouping is part of the mirror. `gx += (zU - zL)` and
+// `(gx + (-zL)) + zU` are not the same computation: at gx = 1e16, zL = 1e16,
+// zU = 1 the subtraction 1 - 1e16 rounds back to -1e16 and the fused form
+// returns 0 where the mirror returns 1. A dual-residual norm built from this
+// kernel feeds a convergence decision, so this pin compares BITS -- 0 and 1
+// are 4 ULP apart nowhere, but a 2-ULP regrouping would slip past
+// EXPECT_DOUBLE_EQ, which is how the first round's version of this kernel got
+// through.
+TEST(IpqpMathTest, BoundDualTermsReproduceTheMirrorsGroupingBitForBit) {
+    Bounds b;
+    b.n = 1;
+    b.x.resize(1);
+    b.l.resize(1);
+    b.u.resize(1);
+    b.zl.resize(1);
+    b.zu.resize(1);
+    b.x << 0.5;
+    b.l << -1.0; // two-sided, so BOTH terms land on the same accumulator
+    b.u << 3.0;
+    b.zl << 1e16;
+    b.zu << 1.0;
+
+    const BoundSet s = bound_set_of(b);
+    const BoundDualState z = dual_state_of(b, s);
+
+    Eigen::VectorXd got(1), want(1);
+    got << 1e16;
+    want << 1e16;
+    ip::ipqp_accumulate_bound_dual_terms(b.l, b.u, b.zl, b.zu, b.n, got);
+    ip::accumulate_bound_dual_terms(s, z, want);
+
+    EXPECT_EQ(bits(got[0]), bits(want[0]));
+    // And what that value IS, so the pin does not rest on two implementations
+    // agreeing: (1e16 - 1e16) + 1 == 1.
+    EXPECT_EQ(bits(got[0]), bits(1.0));
+    // The grouping this kernel must NOT have. Stated as an expression rather
+    // than described, so the pin names the defect it excludes.
+    EXPECT_NE(bits(got[0]), bits(1e16 + (b.zu[0] - b.zl[0])));
+}
+
+// I2(b). The one kernel in this file whose NLP mirror is structurally immune
+// to a stale multiplier -- it walks index lists, so an unbounded variable is
+// unreachable. A dense loop is not immune unless it asks l/u, and T4.b's
+// IpqpBounds may well hand through a reused buffer.
+TEST(IpqpMathTest, BoundDualTermsIgnoreWhateverSitsAtAnAbsentBound) {
+    Bounds b = fixture();
+    // var3 is free; var1 has no upper bound; var2 has no lower bound. Fill
+    // every absent slot with a value that would be impossible to miss.
+    b.zl[2] = -1e300;
+    b.zl[3] = 7e11;
+    b.zu[1] = 3e299;
+    b.zu[3] = -5e10;
+
+    const BoundSet s = bound_set_of(b);
+    const BoundDualState z = dual_state_of(b, s);
+
+    Eigen::VectorXd base(4);
+    base << 1.0, -2.0, 0.5, 3.0;
+    Eigen::VectorXd got = base;
+    Eigen::VectorXd want = base;
+    ip::ipqp_accumulate_bound_dual_terms(b.l, b.u, b.zl, b.zu, b.n, got);
+    ip::accumulate_bound_dual_terms(s, z, want);
+
+    for (Index i = 0; i < b.n; ++i) {
+        EXPECT_EQ(bits(got[i]), bits(want[i])) << "component " << i;
+    }
+    // The free variable in particular is untouched, not merely close.
+    EXPECT_EQ(bits(got[3]), bits(base[3]));
 }
 
 TEST(IpqpMathTest, BoundSigmaMirrorsTheNlpKernel) {
@@ -341,6 +441,11 @@ TEST(IpqpMathTest, TheTwoReductionsComposeIntoOneUnionAggregate) {
 
 TEST(IpqpMathTest, TheAbsentBoundSentinelMatchesTheEnginesOwn) {
     EXPECT_EQ(ip::kIpqpInfBound, 1e20);
+    // The header claims identity with BOTH engines' own restatements, so both
+    // are pinned: a change to either would otherwise drift silently, which is
+    // the whole failure mode a restated constant has.
+    EXPECT_EQ(ip::kIpqpInfBound, ip::kEngineInfBound);
+    EXPECT_EQ(ip::kIpqpInfBound, ip::kSsnInfBound);
     EXPECT_EQ(ip::kIpqpKappaD, hven::solvers::kKappaD);
 
     // At the sentinel exactly, and beyond it, a bound is ABSENT.

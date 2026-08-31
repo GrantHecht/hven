@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
@@ -42,15 +43,15 @@ std::size_t locate(const SpMatRM &k, Index row, Index col) {
 } // namespace
 
 template <typename Emit>
-void IpqpKktLayout::for_each_entry(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai,
-                                   Emit emit) const {
-    const Index eq_off = n_ + mi_;
-    const Index iq_off = n_ + mi_ + me_;
+void IpqpKktLayout::for_each_entry(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Index n,
+                                   Index me, Index mi, Emit emit) {
+    const Index eq_off = n + mi;
+    const Index iq_off = n + mi + me;
 
     // (1,1): H's stored upper triangle. sync() has already refused a
     // below-diagonal entry, so every emission here is on or above the
     // diagonal.
-    for (Index i = 0; i < n_; ++i) {
+    for (Index i = 0; i < n; ++i) {
         for (SpMatRM::InnerIterator it(H, i); it; ++it) {
             emit(i, it.col(), it.value());
         }
@@ -58,13 +59,13 @@ void IpqpKktLayout::for_each_entry(const SpMatRM &H, const SpMatRM &Ae, const Sp
     // (1,3): Ae', emitted by walking Ae's rows -- row r of Ae, column c,
     // becomes the upper-triangle entry (c, eq_off + r). c < n <= eq_off + r,
     // so it is always above the diagonal.
-    for (Index r = 0; r < me_; ++r) {
+    for (Index r = 0; r < me; ++r) {
         for (SpMatRM::InnerIterator it(Ae, r); it; ++it) {
             emit(it.col(), eq_off + r, it.value());
         }
     }
     // (1,4): Ai', the same way.
-    for (Index j = 0; j < mi_; ++j) {
+    for (Index j = 0; j < mi; ++j) {
         for (SpMatRM::InnerIterator it(Ai, j); it; ++it) {
             emit(it.col(), iq_off + j, it.value());
         }
@@ -94,7 +95,20 @@ bool IpqpKktLayout::matches(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
     return structure_hash(H, Ae, Ai, n, me, mi) == structure_key_;
 }
 
+void IpqpKktLayout::require_structure(const char *what) const {
+    if (!has_structure_) {
+        // Not merely defensive. The slot accessors range-check against
+        // n_/me_/mi_, so "no plan yet" and "a plan for other dimensions" would
+        // both pass that check while the tables behind it were empty or stale,
+        // and the value returned is used directly as an index into
+        // k.valuePtr(). Release compiles asserts out, so this is a throw.
+        throw std::logic_error(fmt::format(
+            "IpqpKktLayout::{}: no pattern has been laid out yet -- call sync() first", what));
+    }
+}
+
 std::size_t IpqpKktLayout::diag_slot(Index base, Index offset, Index count) const {
+    require_structure("diag_slot");
     if (offset < 0 || offset >= count) {
         throw std::out_of_range(fmt::format(
             "IpqpKktLayout: diagonal index {} is outside [0, {}) for this block", offset, count));
@@ -103,6 +117,7 @@ std::size_t IpqpKktLayout::diag_slot(Index base, Index offset, Index count) cons
 }
 
 std::size_t IpqpKktLayout::slack_coupling_slot(Index j) const {
+    require_structure("slack_coupling_slot");
     if (j < 0 || j >= mi_) {
         throw std::out_of_range(
             fmt::format("IpqpKktLayout: coupling index {} is outside [0, {})", j, mi_));
@@ -155,13 +170,27 @@ bool IpqpKktLayout::sync(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai,
 
     // ---------------------------------------------------------------------
     // Structure changed (or this is the first sync): full layout.
+    //
+    // EVERYTHING below is built into LOCALS and committed in one step at the
+    // end. Three sites here can throw -- reserve() and setFromTriplets() may
+    // bad_alloc, and locate() raises on an entry the assembly does not carry
+    // -- and a partial commit would be worse than a failed one: the slot
+    // accessors bounds-check against n_/me_/mi_, so storing the NEW dimensions
+    // beside the OLD tables would leave every in-range index reading past the
+    // end of a shorter vector, in Release, silently, with the result used as
+    // an index into k.valuePtr(). Committing at the end means a throw leaves
+    // this object entirely on its previous plan, and leaves `k` untouched.
+    //
+    // AND the object is marked planless FIRST, so the protection does not rest
+    // on the ordering below staying right forever: if anything here throws,
+    // every slot accessor refuses with std::logic_error rather than
+    // range-checking a stale table. The caller's recovery is to sync again;
+    // the previous plan is not resumed, because from here nothing can tell a
+    // caller who still wants it from one whose problem has moved.
     // ---------------------------------------------------------------------
     has_structure_ = false;
-    n_ = n;
-    me_ = me;
-    mi_ = mi;
-    dim_ = n + 2 * mi + me;
 
+    const Index dim = n + 2 * mi + me;
     const Index slack_off = n;
     const Index eq_off = n + mi;
     const Index iq_off = n + mi + me;
@@ -172,7 +201,7 @@ bool IpqpKktLayout::sync(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai,
 
     // The source nonzeros, in for_each_entry's order -- the order value_pos_
     // is indexed by.
-    for_each_entry(H, Ae, Ai,
+    for_each_entry(H, Ae, Ai, n, me, mi,
                    [&trips](Index r, Index c, double v) { trips.emplace_back(r, c, v); });
     const std::size_t source_count = trips.size();
 
@@ -195,32 +224,45 @@ bool IpqpKktLayout::sync(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai,
         trips.emplace_back(iq_off + j, iq_off + j, 0.0);
     }
 
-    k = SpMatRM(dim_, dim_);
-    k.setFromTriplets(trips.begin(), trips.end());
-    k.makeCompressed();
+    SpMatRM built(dim, dim);
+    built.setFromTriplets(trips.begin(), trips.end());
+    built.makeCompressed();
 
-    value_pos_.assign(source_count, 0);
+    std::vector<std::size_t> value_pos(source_count, 0);
     for (std::size_t t = 0; t < source_count; ++t) {
-        value_pos_[t] = locate(k, trips[t].row(), trips[t].col());
+        value_pos[t] = locate(built, trips[t].row(), trips[t].col());
     }
 
-    diag_pos_.assign(static_cast<std::size_t>(dim_), 0);
-    for (Index d = 0; d < dim_; ++d) {
-        diag_pos_[static_cast<std::size_t>(d)] = locate(k, d, d);
+    std::vector<std::size_t> diag_pos(static_cast<std::size_t>(dim), 0);
+    for (Index d = 0; d < dim; ++d) {
+        diag_pos[static_cast<std::size_t>(d)] = locate(built, d, d);
     }
-    coupling_pos_.assign(static_cast<std::size_t>(mi), 0);
+    std::vector<std::size_t> coupling_pos(static_cast<std::size_t>(mi), 0);
     for (Index j = 0; j < mi; ++j) {
-        coupling_pos_[static_cast<std::size_t>(j)] = locate(k, slack_off + j, iq_off + j);
+        coupling_pos[static_cast<std::size_t>(j)] = locate(built, slack_off + j, iq_off + j);
     }
 
-    primal_diag_source_.assign(static_cast<std::size_t>(n), 0.0);
+    std::vector<double> primal_diag_source(static_cast<std::size_t>(n), 0.0);
     for (Index i = 0; i < n; ++i) {
-        primal_diag_source_[static_cast<std::size_t>(i)] =
-            k.valuePtr()[diag_pos_[static_cast<std::size_t>(i)]];
+        primal_diag_source[static_cast<std::size_t>(i)] =
+            built.valuePtr()[diag_pos[static_cast<std::size_t>(i)]];
     }
 
+    const std::uint64_t key = structure_hash(H, Ae, Ai, n, me, mi);
+
+    // --- commit. Nothing below allocates or can throw: the vector moves are
+    // pointer swaps and the rest are scalar stores.
+    k = std::move(built);
+    value_pos_ = std::move(value_pos);
+    diag_pos_ = std::move(diag_pos);
+    coupling_pos_ = std::move(coupling_pos);
+    primal_diag_source_ = std::move(primal_diag_source);
+    n_ = n;
+    me_ = me;
+    mi_ = mi;
+    dim_ = dim;
     nnz_ = k.nonZeros();
-    structure_key_ = structure_hash(H, Ae, Ai, n, me, mi);
+    structure_key_ = key;
     has_structure_ = true;
     return true;
 }
@@ -231,7 +273,7 @@ void IpqpKktLayout::scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
 
     std::size_t t = 0;
     const std::size_t expected = value_pos_.size();
-    for_each_entry(H, Ae, Ai, [&](Index, Index, double v) {
+    for_each_entry(H, Ae, Ai, n_, me_, mi_, [&](Index, Index, double v) {
         if (t >= expected) {
             // The structure-key collision guard, in SsnEngine::sync_matrix's
             // exact shape: a hash match is a probabilistic claim, and writing

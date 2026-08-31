@@ -164,19 +164,46 @@ inline void ipqp_accumulate_bound_barrier_gradient(const Eigen::Ref<const Eigen:
 }
 
 /// @brief MIRRORS `accumulate_bound_dual_terms` (barrier_math.h). QP shape:
-/// dense per-variable multiplier vectors (zero at an absent bound) in place of
-/// a BoundDualState's two compact arrays.
+/// dense per-variable multiplier vectors in place of a BoundDualState's two
+/// compact arrays.
 ///
 /// z-FORM primal gradient terms: gx_i += -zL_i, += +zU_i. This is the DUAL
 /// INFEASIBILITY contribution -- the residual whose norm the convergence check
 /// consumes. It agrees with the mu-form above only where bound complementarity
 /// holds exactly; away from the central path they differ, which is why both
 /// exist. Undamped, deliberately.
-inline void ipqp_accumulate_bound_dual_terms(const Eigen::Ref<const Eigen::VectorXd> &zl,
+///
+/// TWO GUARDED LOOPS, NOT ONE FUSED SUBTRACTION, on two independent grounds.
+///
+/// FIRST, rounding. `gx += (zU - zL)` is not `(gx + (-zL)) + zU`: with
+/// gx = 1e16, zL = 1e16, zU = 1 the mirror returns 1 and the fused form
+/// returns 0, because 1 - 1e16 rounds back to -1e16. A dual-residual norm
+/// built from this kernel feeds a convergence decision, so that is a
+/// difference that can change an answer, not only a last digit. The mirror's
+/// order -- all lowers, then all uppers, ascending index -- is reproduced
+/// exactly.
+///
+/// SECOND, the absent-bound guard. The NLP kernel is structurally immune to a
+/// stale multiplier: it walks the two index lists, so an unbounded variable is
+/// unreachable. A dense loop over all n has no such immunity, and this kernel
+/// is the one whose result would otherwise depend on the CALLER having zeroed
+/// zl/zu at absent bounds rather than on l/u. It therefore asks l and u the
+/// same question every other kernel in this file asks, and a free variable
+/// contributes nothing whatever zl/zu happen to hold.
+inline void ipqp_accumulate_bound_dual_terms(const Eigen::Ref<const Eigen::VectorXd> &l,
+                                             const Eigen::Ref<const Eigen::VectorXd> &u,
+                                             const Eigen::Ref<const Eigen::VectorXd> &zl,
                                              const Eigen::Ref<const Eigen::VectorXd> &zu, Index n,
                                              Eigen::Ref<Eigen::VectorXd> gx) {
     for (Index i = 0; i < n; ++i) {
-        gx[i] += zu[i] - zl[i];
+        if (ipqp_has_lower(l[i])) {
+            gx[i] += -zl[i];
+        }
+    }
+    for (Index i = 0; i < n; ++i) {
+        if (ipqp_has_upper(u[i])) {
+            gx[i] += zu[i];
+        }
     }
 }
 
@@ -229,10 +256,10 @@ inline void ipqp_slack_complementarity(const Eigen::Ref<const Eigen::VectorXd> &
     if (mi <= 0) {
         return;
     }
-    double sum = 0.0;
-    double lo = s[0] * lam[0];
-    double hi = lo;
-    for (Index j = 0; j < mi; ++j) {
+    double sum = s[0] * lam[0];
+    double lo = sum;
+    double hi = sum;
+    for (Index j = 1; j < mi; ++j) {
         const double pair = s[j] * lam[j];
         sum += pair;
         lo = std::min(lo, pair);

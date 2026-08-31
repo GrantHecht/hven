@@ -86,6 +86,45 @@ class IpqpKktLayout {
     /// write; see `primal_diag_source()` for the one that is not simply
     /// overwritten.
     ///
+    /// ONE LAYOUT SERVES ONE BUFFER. A plan is a map into a specific value
+    /// array, so a given IpqpKktLayout must be handed the SAME `k` for its
+    /// whole life. The reuse guard checks rows, cols, `nonZeros()` and
+    /// `isCompressed()`, which is strictly more than SsnEngine::sync_matrix
+    /// checks (that class owns its matrix outright) -- but a shape-and-count
+    /// match is not a PATTERN match: two matrices of identical dimensions and
+    /// identical entry counts, with different patterns, both pass, and the
+    /// scatter would then write through a map built for the other one. The
+    /// structure key covers the PROBLEM; nothing here can cover a swapped
+    /// buffer, so the caller must not swap one.
+    ///
+    /// DEGENERATE CASE. `n == me == mi == 0` is accepted and lays out a 0x0
+    /// matrix with empty tables: `dim() == 0`, every slot accessor refuses,
+    /// and a reuse sync is a no-op. It is legal here and rejected downstream
+    /// -- the linear layer will not analyze an empty matrix -- so a caller
+    /// reaching it has a problem this class is not the right place to
+    /// diagnose.
+    ///
+    /// EXCEPTION SAFETY, in two layers because the inner one is not reachable
+    /// from any fixture and so cannot be kept honest by a test.
+    ///
+    /// A VALIDATION failure (everything under @throws below) is raised before
+    /// anything is read or written: the object and `k` are untouched, and a
+    /// previously laid-out plan stays valid and addressable.
+    ///
+    /// A failure INSIDE the layout -- `bad_alloc` from the triplet reserve or
+    /// from `setFromTriplets`, or the internal-consistency throw from the
+    /// position lookup -- fails CLOSED: `has_structure()` goes false first, so
+    /// every slot accessor then refuses with `std::logic_error`, and the
+    /// caller's recovery is to sync again. This matters because the accessors
+    /// are bounds-checked against `n_`/`me_`/`mi_` and nothing else: a state
+    /// with the new dimensions stored beside the old tables would pass that
+    /// check and index out of range, in Release, silently, with the result
+    /// used as an index into `k.valuePtr()`. The layout therefore ALSO builds
+    /// every product into locals and commits them in one step at the end, so
+    /// the dimensions and the tables they describe can never disagree -- but
+    /// the planless-first flag is what makes the guarantee independent of that
+    /// ordering staying right.
+    ///
     /// @throws std::invalid_argument on a dimension disagreement, a negative
     ///         dimension, or a below-diagonal entry in H. These are validated
     ///         here rather than left to Eigen's asserts, which are compiled
@@ -122,7 +161,11 @@ class IpqpKktLayout {
     // Both spellings are O(1) and neither touches the pattern.
 
     /// Each row's diagonal position in the value array, in row order.
-    const std::vector<std::size_t> &diag_pos() const { return diag_pos_; }
+    /// @throws std::logic_error if no plan has been laid out.
+    const std::vector<std::size_t> &diag_pos() const {
+        require_structure("diag_pos");
+        return diag_pos_;
+    }
 
     /// Index into `diag_pos()` of the (1,1) primal block's first diagonal.
     Index primal_diag_base() const { return 0; }
@@ -132,6 +175,12 @@ class IpqpKktLayout {
     Index eq_pivot_base() const { return n_ + mi_; }
     /// Index into `diag_pos()` of the inequality block's first pivot.
     Index iq_pivot_base() const { return n_ + mi_ + me_; }
+
+    // Every accessor below refuses with std::logic_error when no plan has been
+    // laid out, BEFORE it range-checks its index. The two guards answer
+    // different questions -- "is there a table" and "is this index inside the
+    // block" -- and only the pair of them makes the returned value safe to use
+    // as an index into `k.valuePtr()`.
 
     /// @brief Position in `k.valuePtr()` of primal diagonal `i` -- the slot
     /// carrying H(i,i) + rho + Sigma_b(i). `i` in [0, n).
@@ -169,7 +218,18 @@ class IpqpKktLayout {
     /// is `values[primal_diag_slot(i)] = primal_diag_source()[i] + rho +
     /// sigma[i]` -- an assignment, not a read-modify-write, so a rung never
     /// compounds the previous rung's regularization.
-    const std::vector<double> &primal_diag_source() const { return primal_diag_source_; }
+    ///
+    /// A SNAPSHOT TAKEN AT SYNC TIME, deliberately: it records what the
+    /// scatter put in those slots, and it goes stale the instant the caller
+    /// writes a primal diagonal -- which is the point, since what the ladder
+    /// needs back is precisely the value from BEFORE its own writes. It is
+    /// refreshed by every `sync()`, layout or reuse, and by nothing else.
+    ///
+    /// @throws std::logic_error if no plan has been laid out.
+    const std::vector<double> &primal_diag_source() const {
+        require_structure("primal_diag_source");
+        return primal_diag_source_;
+    }
 
   private:
     /// @brief Zero-fills `k`'s value array and re-scatters H/Ae/Ai through the
@@ -184,8 +244,17 @@ class IpqpKktLayout {
     /// The emission order both the layout and the scatter walk. Defined in the
     /// .cpp, where both call sites live: ONE emission order by construction,
     /// which is what makes the cached position map meaningful.
+    ///
+    /// Takes its dimensions as arguments rather than reading `n_`/`me_`/`mi_`:
+    /// the layout branch runs it BEFORE those members are committed, which is
+    /// what lets the commit happen in one step at the end.
     template <typename Emit>
-    void for_each_entry(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Emit emit) const;
+    static void for_each_entry(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Index n,
+                               Index me, Index mi, Emit emit);
+
+    /// Refuses, with std::logic_error, an accessor called before any plan
+    /// exists. `what` names the accessor in the message.
+    void require_structure(const char *what) const;
 
     std::uint64_t structure_hash(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Index n,
                                  Index me, Index mi) const;

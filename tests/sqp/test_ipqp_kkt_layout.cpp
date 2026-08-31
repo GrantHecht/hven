@@ -19,8 +19,11 @@
 //     change that broke `KktFactorization::solve`'s constness fails loudly
 //     here instead of silently corrupting a corrector step.
 
+#include <bit>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <stdexcept>
 #include <vector>
 
@@ -94,13 +97,36 @@ void expect_identical(const SpMatRM &got, const SpMatRM &want) {
     for (Index r = 0; r <= got.rows(); ++r) {
         EXPECT_EQ(got.outerIndexPtr()[r], want.outerIndexPtr()[r]) << "outer index " << r;
     }
+    // BITWISE, not `==`. The claim is byte identity, and `==` equates +0.0
+    // with -0.0 -- exactly the pair a zero-fill-then-accumulate could produce
+    // where a single-triplet assembly kept a stored -0.0. Comparing the bits
+    // makes the claim in the header the claim the test actually checks; if it
+    // ever fails on a signed zero, that is a real difference between the two
+    // assembly routes and belongs in the contract, not in a looser comparison.
     for (Index t = 0; t < got.nonZeros(); ++t) {
         EXPECT_EQ(got.innerIndexPtr()[t], want.innerIndexPtr()[t]) << "inner index " << t;
-        // Exact equality, not a tolerance: the claim is that the scatter
-        // reproduces the reference's BYTES, and every value here is one
-        // source datum copied (or summed with a structural 0.0) into place.
-        EXPECT_EQ(got.valuePtr()[t], want.valuePtr()[t]) << "value " << t;
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(got.valuePtr()[t]),
+                  std::bit_cast<std::uint64_t>(want.valuePtr()[t]))
+            << "value " << t << " (got " << got.valuePtr()[t] << ", want " << want.valuePtr()[t]
+            << ")";
     }
+    // And the whole array in one comparison, so the claim is stated the way it
+    // is worded: the two value arrays are the same bytes.
+    EXPECT_EQ(std::memcmp(got.valuePtr(), want.valuePtr(),
+                          static_cast<std::size_t>(got.nonZeros()) * sizeof(double)),
+              0);
+}
+
+// Same pattern, different values: every stored entry scaled, so the sparsity
+// structure is bit-for-bit the one the plan was laid out for while no value
+// survives. This is what a new major with an unchanged structure hands the
+// tier, and it is what the reuse scatter has to reproduce.
+SpMatRM revalued(const SpMatRM &m, double factor, double shift) {
+    SpMatRM out = m;
+    for (Index t = 0; t < out.nonZeros(); ++t) {
+        out.valuePtr()[t] = out.valuePtr()[t] * factor + shift;
+    }
+    return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,15 +207,47 @@ TEST(IpqpKktLayoutTest, DimensionAndBlockBasesFollowTheKktVectorOrder) {
     EXPECT_TRUE(layout.has_structure());
 }
 
-TEST(IpqpKktLayoutTest, TheLaidOutMatrixIsByteIdenticalToASetFromTripletsReference) {
+// EVERY fixture goes through BOTH paths: the setFromTriplets layout, then the
+// reuse scatter with fresh values. Checking only the fully populated fixture
+// on the reuse path would leave a scatter that unconditionally touched an
+// equality or coupling offset passing the advertised empty-block coverage.
+TEST(IpqpKktLayoutTest, BothAssemblyPathsAreByteIdenticalToASetFromTripletsReference) {
+    int layouts = 0;
+    int reuses = 0;
     for (const Fixture &f :
          {general_fixture(), missing_h_diagonal_fixture(), no_equalities_fixture(),
           no_inequalities_fixture(), bound_only_fixture()}) {
         IpqpKktLayout layout;
         SpMatRM k;
+
         ASSERT_TRUE(layout.sync(f.H, f.Ae, f.Ai, f.n, f.me, f.mi, k));
+        ++layouts;
         expect_identical(k, reference_kkt(f.H, f.Ae, f.Ai, f.n, f.me, f.mi));
+
+        // The caller's per-iteration diagonal writes, which the scatter's
+        // zero-fill has to clear.
+        for (Index i = 0; i < f.n; ++i) {
+            k.valuePtr()[layout.primal_diag_slot(i)] += 17.0;
+        }
+        for (Index j = 0; j < f.mi; ++j) {
+            k.valuePtr()[layout.slack_diag_slot(j)] = 5.0;
+            k.valuePtr()[layout.slack_coupling_slot(j)] = -9.0;
+        }
+        for (Index r = 0; r < f.me; ++r) {
+            k.valuePtr()[layout.eq_pivot_slot(r)] = -3.0;
+        }
+
+        const SpMatRM h2 = revalued(f.H, -1.5, 0.25);
+        const SpMatRM ae2 = revalued(f.Ae, 2.0, -0.75);
+        const SpMatRM ai2 = revalued(f.Ai, 0.5, 4.0);
+        ASSERT_TRUE(layout.matches(h2, ae2, ai2, f.n, f.me, f.mi));
+        ASSERT_FALSE(layout.sync(h2, ae2, ai2, f.n, f.me, f.mi, k));
+        ++reuses;
+        expect_identical(k, reference_kkt(h2, ae2, ai2, f.n, f.me, f.mi));
     }
+    // Non-vacuity for the loop itself: five fixtures, both paths each.
+    EXPECT_EQ(layouts, 5);
+    EXPECT_EQ(reuses, 5);
 }
 
 TEST(IpqpKktLayoutTest, AReusedPlanScattersNewValuesWithoutRelayingOutThePattern) {
@@ -442,6 +500,94 @@ TEST(IpqpKktLayoutTest, MalformedInputsAreRefusedAtTheBoundary) {
     // rejected by the linear layer with a diagnostic naming the wrong layer.
     const SpMatRM lower = sparse_from(3, 3, {{0, 0, 2.0}, {1, 0, 0.5}, {1, 1, 3.0}, {2, 2, 4.0}});
     EXPECT_THROW(layout.sync(lower, f.Ae, f.Ai, f.n, f.me, f.mi, k), std::invalid_argument);
+}
+
+// I1. The slot accessors range-check their index against n_/me_/mi_, and that
+// check is only meaningful if the tables behind it belong to those dimensions.
+// Before any sync there are no tables at all, so every accessor refuses --
+// with std::logic_error, distinguishable from the std::out_of_range an
+// in-range-but-wrong index gets.
+TEST(IpqpKktLayoutTest, AFreshLayoutRefusesEverySlotAccessor) {
+    const IpqpKktLayout layout;
+
+    EXPECT_FALSE(layout.has_structure());
+    EXPECT_THROW((void)layout.diag_pos(), std::logic_error);
+    EXPECT_THROW((void)layout.primal_diag_source(), std::logic_error);
+    EXPECT_THROW((void)layout.primal_diag_slot(0), std::logic_error);
+    EXPECT_THROW((void)layout.slack_diag_slot(0), std::logic_error);
+    EXPECT_THROW((void)layout.eq_pivot_slot(0), std::logic_error);
+    EXPECT_THROW((void)layout.iq_pivot_slot(0), std::logic_error);
+    EXPECT_THROW((void)layout.slack_coupling_slot(0), std::logic_error);
+}
+
+// I1, the half that has a reachable throw site. A sync that fails leaves the
+// object entirely on its previous plan: the dimensions are committed WITH the
+// tables, at the end, so there is no window in which the accessors' bounds
+// check answers for the new n while the tables are still the old ones. Were
+// the dimensions stored first, `primal_diag_slot(3)` below would pass its
+// bounds check against n_ == 6 and read three elements past the end of a
+// 3-element vector -- in Release, silently, with the result used as an index
+// into k.valuePtr().
+TEST(IpqpKktLayoutTest, AFailedResyncLeavesTheObjectOnItsPreviousPlan) {
+    const Fixture f = general_fixture(); // n = 3, me = 1, mi = 2
+    IpqpKktLayout layout;
+    SpMatRM k;
+    ASSERT_TRUE(layout.sync(f.H, f.Ae, f.Ai, f.n, f.me, f.mi, k));
+
+    const Index dim_before = layout.dim();
+    const Index nnz_before = k.nonZeros();
+    std::vector<std::size_t> slots_before;
+    for (Index i = 0; i < f.n; ++i) {
+        slots_before.push_back(layout.primal_diag_slot(i));
+    }
+
+    // A re-sync at a LARGER n that throws at the deepest validation there is
+    // -- the upper-triangle scan, which runs after every shape check has
+    // passed.
+    const SpMatRM big_h =
+        sparse_from(6, 6, {{0, 0, 1.0}, {3, 1, 2.0}, {4, 4, 1.0}, {5, 5, 1.0}}); // (3,1) is lower
+    const SpMatRM big_ae = sparse_from(1, 6, {{0, 0, 1.0}});
+    const SpMatRM big_ai = sparse_from(2, 6, {{0, 0, 1.0}, {1, 5, 1.0}});
+    EXPECT_THROW(layout.sync(big_h, big_ae, big_ai, 6, 1, 2, k), std::invalid_argument);
+
+    // Everything still describes the n = 3 plan.
+    EXPECT_TRUE(layout.has_structure());
+    EXPECT_EQ(layout.dim(), dim_before);
+    EXPECT_EQ(k.nonZeros(), nnz_before); // the caller's buffer was not touched
+    ASSERT_EQ(static_cast<Index>(layout.primal_diag_source().size()), f.n);
+    for (Index i = 0; i < f.n; ++i) {
+        EXPECT_EQ(layout.primal_diag_slot(i), slots_before[static_cast<std::size_t>(i)]);
+    }
+    // And an index that would have been in range for the ATTEMPTED n is
+    // refused rather than read out of bounds.
+    EXPECT_THROW((void)layout.primal_diag_slot(3), std::out_of_range);
+    EXPECT_THROW((void)layout.primal_diag_slot(5), std::out_of_range);
+
+    // The object is still usable on its old plan: a reuse scatter succeeds and
+    // still reproduces the reference.
+    ASSERT_FALSE(layout.sync(f.H, f.Ae, f.Ai, f.n, f.me, f.mi, k));
+    expect_identical(k, reference_kkt(f.H, f.Ae, f.Ai, f.n, f.me, f.mi));
+}
+
+// M7. The degenerate shape is legal here and rejected downstream; pinned so
+// the behaviour is recorded rather than discovered.
+TEST(IpqpKktLayoutTest, TheEmptyProblemLaysOutAnEmptyMatrix) {
+    IpqpKktLayout layout;
+    SpMatRM k;
+    const SpMatRM h0 = sparse_from(0, 0, {});
+    const SpMatRM a0 = sparse_from(0, 0, {});
+
+    ASSERT_TRUE(layout.sync(h0, a0, a0, 0, 0, 0, k));
+    EXPECT_EQ(layout.dim(), 0);
+    EXPECT_EQ(k.rows(), 0);
+    EXPECT_EQ(k.nonZeros(), 0);
+    EXPECT_TRUE(layout.diag_pos().empty());
+    EXPECT_TRUE(layout.primal_diag_source().empty());
+    // Every block is empty, so every slot index is out of range.
+    EXPECT_THROW((void)layout.primal_diag_slot(0), std::out_of_range);
+    EXPECT_THROW((void)layout.slack_coupling_slot(0), std::out_of_range);
+    // A reuse sync is a no-op that still reports "not relaid".
+    EXPECT_FALSE(layout.sync(h0, a0, a0, 0, 0, 0, k));
 }
 
 TEST(IpqpKktLayoutTest, ADiagonalIndexOutsideItsBlockIsRefused) {

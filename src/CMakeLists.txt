@@ -402,10 +402,13 @@ endif()
 #
 # 38 as of qp/ipqp_kkt_layout.cpp, the M6 W1 interior-point QP tier's KKT
 # scatter plan. It stays OUT on the same footing as the nine above -- no
-# measurement exists for it, and out is the unmeasured default -- and on the
-# SQP-side prior: it includes the QP types and the pattern hash, a different
-# header set in a different order from the one src/hven_pch.h prefixes, and
-# that property has failed bar 2 for every SQP-side TU measured so far.
+# measurement exists for it, and out is the unmeasured default. Its include
+# set is small and shares little with src/hven_pch.h's prefix: its own header
+# (which pulls only core/types.h), Eigen/SparseCore, fmt/format.h,
+# core/pattern_hash.h, and three standard headers. It names no QP engine or
+# QP problem type at all -- the layout is written against the three sparse
+# blocks and their dimensions, not against QpProblem -- so there is even less
+# for a shared PCH to save here than for the SQP-side TUs above it.
 set(_hven_expected_source_count 38)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
