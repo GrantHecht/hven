@@ -26,6 +26,7 @@
 
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
+#include <hven/detail/qp/ssn_engine.h>
 
 #include "support/ipqp_test_support.h"
 
@@ -341,6 +342,288 @@ TEST(IpqpCertificationTest, AHealthySolveNeverArmsTheEvidenceFailurePath) {
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         EXPECT_FALSE(r.inertia_evidence_failed);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Section 6.2 -- the early-stall test
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// THE STALL FIXTURE'S MECHANISM, stated here rather than repeated per test.
+///
+/// Five CONSECUTIVE accepted steps with `min(alpha_p, alpha_d) < 1e-2` is a
+/// hard thing to provoke, and that is section 6.2's own claim about itself:
+/// "five accepted steps is an order of magnitude above the local regime, so no
+/// healthy trajectory reaches it." Every naturally-jamming fixture tried --
+/// razor-thin feasible slivers, an equality landing exactly on a bound, twelve
+/// decades of Hessian spread against a huge gradient -- produces ONE tiny step
+/// and then recovers, which is exactly the behaviour conjunct (iii) exists to
+/// tolerate. (Two of them are the non-vacuity partners below.)
+///
+/// So the stall is provoked THROUGH A SHIPPED OPTION rather than through a
+/// contrived problem: `ipqp_tau`, the fraction-to-boundary parameter, at
+/// `1e-3`. That is legal (`validate_sqp_options` admits any value in `(0, 1)`)
+/// and it manufactures precisely the trajectory section 6.2 describes -- every
+/// blocked step capped at a thousandth, `mu` therefore barely moving, and the
+/// residual therefore barely moving -- on a problem the tier otherwise solves
+/// in eleven iterations. The fixture is honest about what it is: a caller who
+/// asks for a crawl gets a STALL DIAGNOSIS at ten iterations instead of a
+/// sixty-iteration budget burn, which is the whole point of section 6.1's
+/// "budget of LAST resort".
+IpqpOptions crawling_opts(double tau) {
+    IpqpOptions io;
+    io.ipqp_tau = tau;
+    return io;
+}
+
+/// A feasible QP whose Newton direction overshoots its box by ten decades on
+/// the first step: `H` spans fourteen decades and the gradient is `1e10`, so
+/// `alpha_p` is ~8e-10 once and ~1 thereafter. The healthy-solve partner for
+/// conjunct (iii).
+QpProblem one_tiny_step_qp() {
+    QpProblem qp;
+    qp.H = dense_upper({{1e-14, 0.0}, {0.0, 1.0}});
+    qp.g = vec({1e10, 0.0});
+    qp.Ae = dense_rows({}, 2);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({}, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec({-1.0, -1.0});
+    qp.upper = vec({1.0, 1.0});
+    return qp;
+}
+
+/// A feasible QP whose single equality row lands EXACTLY on a variable bound,
+/// so the barrier can approach `x0 = 1` only asymptotically: one step at
+/// `alpha_p ~ 3e-3`, then recovery. The second healthy-solve partner.
+QpProblem equality_on_the_bound_qp() {
+    QpProblem qp;
+    qp.H = dense_upper({{1.0, 0.0}, {0.0, 1.0}});
+    qp.g = vec({0.0, 0.0});
+    qp.Ae = dense_rows({{1.0, 0.0}}, 2);
+    qp.be = vec({1.0});
+    qp.Ai = dense_rows({}, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec({-1.0, -1.0});
+    qp.upper = vec({1.0, 1.0});
+    return qp;
+}
+
+/// An INFEASIBLE QP: `x0 + x1 <= -2` and `x0 + x1 >= 2` on a box containing
+/// neither. The primal residual is flat on a positive floor and the
+/// multipliers price the contradiction without limit -- section 6.3's two
+/// signals, from a problem that genuinely has them.
+QpProblem infeasible_rows_qp() {
+    QpProblem qp = convex_qp();
+    qp.Ai = dense_rows({{1.0, 1.0}, {-1.0, -1.0}}, 2);
+    qp.bi = vec({-2.0, -2.0});
+    return qp;
+}
+
+/// A one-variable infeasible QP: `x <= -5` and `x >= 5`.
+QpProblem infeasible_scalar_qp() {
+    QpProblem qp;
+    qp.H = dense_upper({{1.0}});
+    qp.g = vec({0.0});
+    qp.Ae = dense_rows({}, 1);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({{1.0}, {-1.0}}, 1);
+    qp.bi = vec({-5.0, -5.0});
+    qp.lower = vec({-10.0});
+    qp.upper = vec({10.0});
+    return qp;
+}
+
+} // namespace
+
+TEST(IpqpStallTest, TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBlock) {
+    // PLAN SECTION 7 NOTE (b), FINAL: the three `ipqp_stall_reason_*`
+    // counters are DROPPED as ill-posed -- all three conjuncts hold at every
+    // stall escape, so a partition among them is degenerate -- and the three
+    // VALUES travel in the escape's own evidence block instead. This is that
+    // note's ONE pin, replacing v2's three per-reason fixtures.
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, crawling_opts(1e-3), SolveOverrides{});
+
+    ASSERT_EQ(r.escape_reason, IpqpEscape::kStall);
+    EXPECT_EQ(r.status, QpStatus::kNumericalError);
+    EXPECT_EQ(r.counters.ipqp_escapes, 1);
+    EXPECT_EQ(r.counters.ipqp_escape_stall, 1);
+    EXPECT_EQ(census_entries(r.counters), 1);
+    EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+
+    // THE EVIDENCE BLOCK CARRIES ALL THREE, and each value satisfies its own
+    // conjunct -- which is what makes the block a record of the test rather
+    // than three numbers that happen to be present.
+    const IpqpStallEvidence &ev = r.stall_evidence;
+    ASSERT_TRUE(ev.fired);
+    EXPECT_EQ(ev.window, IpqpOptions{}.ipqp_stall_window);
+    EXPECT_LT(ev.mu_ratio, detail::kIpqpStallMuFactor); // conjunct (i)
+    EXPECT_GT(ev.mu_ratio, 0.0);
+    EXPECT_LT(ev.residual_improvement, 1.0 - detail::kSsnStallImproveFactor); // (ii)
+    EXPECT_LT(ev.max_step_alpha, detail::kIpqpStallAlpha);                    // (iii)
+    EXPECT_LE(ev.min_alpha, ev.max_step_alpha);
+    EXPECT_GT(ev.min_alpha, 0.0);
+
+    // SECTION 6.1'S "BUDGET OF LAST RESORT", MEASURED: the stall fires far
+    // inside the 60-iteration cap. The number is the pin -- if the ordering
+    // ever moves so budget wins, this reads 60.
+    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+    EXPECT_EQ(r.counters.ipqp_escape_budget, 0);
+
+    // MUTATION PARTNER: `tau = 1e-2` on the same problem crawls too, but its
+    // steps sit at ~6.5e-3 to ~3.3e-1 -- so conjunct (iii)'s WHOLE-WINDOW
+    // demand is not met and the solve pays the full budget instead. The stall
+    // escape is therefore a statement about the trajectory and not about the
+    // option.
+    IpqpEngine slow(tight_opts());
+    const IpqpResult s = slow.solve(convex_qp(), nullptr, crawling_opts(1e-2), SolveOverrides{});
+    EXPECT_EQ(s.escape_reason, IpqpEscape::kBudget);
+    EXPECT_FALSE(s.stall_evidence.fired);
+    EXPECT_EQ(s.counters.ipqp_escape_stall, 0);
+}
+
+TEST(IpqpStallTest, AHealthySolveNeverTripsConjunctThreeOnOneTinyAlphaStep) {
+    // "NEVER ABORT ON ONE TINY-ALPHA ITERATION" (spec 6.2) -- conjunct (iii)
+    // is a whole-window property BY CONSTRUCTION, and these two fixtures are
+    // what makes that testable: both take a genuinely tiny step (the pin
+    // asserts it, so the fixture cannot silently stop being one) and both
+    // certify.
+    for (const QpProblem &qp : {one_tiny_step_qp(), equality_on_the_bound_qp()}) {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        // The premise: a step BELOW the conjunct's own threshold was taken.
+        ASSERT_LT(r.counters.ipqp_alpha_p_min, detail::kIpqpStallAlpha);
+        // The conclusion: it certified anyway.
+        EXPECT_EQ(r.status, QpStatus::kOptimal);
+        EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+        EXPECT_FALSE(r.stall_evidence.fired);
+        EXPECT_EQ(r.counters.ipqp_escape_stall, 0);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Section 6.3 -- infeasible-suspect
+// ---------------------------------------------------------------------------
+
+TEST(IpqpInfeasibleSuspectTest, TheSignatureEscapesAsASUSPICIONAndNeverAsACertificate) {
+    // SPEC 6.3'S HARD RULE: "It never returns `QpStatus::kInfeasible`" -- that
+    // is a CERTIFICATE word in this driver (solver_status.h; under kSsn a
+    // `kInfeasible` can only have come from the walk), and IP-PMM has no
+    // homogeneous self-dual embedding and therefore no infeasibility
+    // certificate at all.
+    for (const QpProblem &qp : {infeasible_rows_qp(), infeasible_scalar_qp()}) {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+
+        ASSERT_EQ(r.escape_reason, IpqpEscape::kInfeasibleSuspect);
+        EXPECT_NE(r.status, QpStatus::kInfeasible);
+        EXPECT_EQ(r.status, QpStatus::kNumericalError);
+        EXPECT_EQ(r.counters.ipqp_escapes, 1);
+        EXPECT_EQ(r.counters.ipqp_escape_infeasible_suspect, 1);
+        EXPECT_EQ(census_entries(r.counters), 1);
+        EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+
+        // THE EVIDENCE BLOCK: each signal with its value, the window, and the
+        // least-infeasible point -- section 6.3's own three requirements.
+        const IpqpInfeasibilityEvidence &ev = r.infeasibility_evidence;
+        ASSERT_TRUE(ev.fired);
+        EXPECT_FALSE(ev.exhaustion_route);
+        EXPECT_EQ(ev.window, IpqpOptions{}.ipqp_stall_window);
+        // (a) flat on a POSITIVE floor.
+        EXPECT_GT(ev.primal_end, 0.0);
+        EXPECT_LT(ev.primal_improvement, 1.0 - detail::kSsnStallImproveFactor);
+        // (b) the multipliers grew without limit over the same window.
+        EXPECT_GE(ev.dual_growth, detail::kSsnDualGrowthFactor);
+        EXPECT_DOUBLE_EQ(ev.dual_step_growth, 0.0); // standing route: unread
+        // the least-infeasible point.
+        EXPECT_EQ(ev.least_infeasible_x.size(), qp.n());
+        EXPECT_LE(ev.least_infeasible_primal, ev.primal_end);
+
+        // The tier stopped WELL short of the budget.
+        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+    }
+}
+
+TEST(IpqpInfeasibleSuspectTest, TheFarkasGateArmsTheReportAndNeverWithdrawsIt) {
+    // "Optional Farkas corroboration may ARM the report; IT NEVER CERTIFIES"
+    // (spec 6.3). Both arms of the option therefore produce the SAME escape;
+    // the only difference is whether the block carries a corroboration.
+    IpqpEngine on(tight_opts());
+    const IpqpResult armed =
+        on.solve(infeasible_rows_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(armed.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    EXPECT_TRUE(armed.infeasibility_evidence.farkas_corroborated);
+    EXPECT_LE(armed.infeasibility_evidence.farkas_residual, detail::kSsnFarkasResidualTol);
+    EXPECT_LE(armed.infeasibility_evidence.farkas_gap, -detail::kSsnFarkasGapTol);
+
+    IpqpOptions off;
+    off.ipqp_farkas_gate = false;
+    IpqpEngine tier(tight_opts());
+    const IpqpResult bare = tier.solve(infeasible_rows_qp(), nullptr, off, SolveOverrides{});
+    EXPECT_EQ(bare.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    EXPECT_EQ(bare.counters.ipqp_escape_infeasible_suspect, 1);
+    EXPECT_FALSE(bare.infeasibility_evidence.farkas_corroborated);
+    EXPECT_DOUBLE_EQ(bare.infeasibility_evidence.farkas_residual, 0.0);
+    EXPECT_DOUBLE_EQ(bare.infeasibility_evidence.farkas_gap, 0.0);
+    // The escape itself is UNCHANGED by the gate -- which is the pin.
+    EXPECT_EQ(bare.counters.ipqp_iters, armed.counters.ipqp_iters);
+}
+
+TEST(IpqpInfeasibleSuspectTest, TheExhaustionRouteMeasuresGrowthPerStepAgainstTheStartPoint) {
+    // SPEC 6.3'S EXHAUSTION VARIANT. Reached by capping the iteration budget
+    // so the solve stops BETWEEN window closures: the standing route has not
+    // fired, the windowed growth reference is only two steps old, and the
+    // route falls back on the start-point reference plus
+    // `kSsnDualStepGrowth` across the most recently accepted step.
+    //
+    // THE CAP IS TRAJECTORY-DEPENDENT AND IS PINNED AS SUCH. 12 is where this
+    // fixture's divergence and the budget stop coincide; if the trajectory
+    // ever moves, this fails loudly rather than silently testing the standing
+    // route again -- which the `exhaustion_route` assertion below is what
+    // makes true.
+    IpqpOptions io;
+    io.ipqp_hard_iter_cap = 12;
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(infeasible_rows_qp(), nullptr, io, SolveOverrides{});
+
+    ASSERT_EQ(r.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    const IpqpInfeasibilityEvidence &ev = r.infeasibility_evidence;
+    ASSERT_TRUE(ev.fired);
+    ASSERT_TRUE(ev.exhaustion_route);
+    EXPECT_LT(ev.window, IpqpOptions{}.ipqp_stall_window); // a PARTIAL window
+    EXPECT_GE(ev.window, 1);
+    EXPECT_GE(ev.dual_growth, detail::kSsnDualGrowthFactor);
+    EXPECT_GE(ev.dual_step_growth, detail::kSsnDualStepGrowth);
+    EXPECT_EQ(r.counters.ipqp_escape_infeasible_suspect, 1);
+    EXPECT_EQ(r.counters.ipqp_escape_budget, 0);
+
+    // MUTATION PARTNER: one more iteration and the per-step growth conjunct is
+    // no longer met, so the same stop is a PLAIN BUDGET escape. Without this
+    // the pin above could pass on an engine that relabelled every budget stop
+    // as a suspicion.
+    IpqpOptions io2;
+    io2.ipqp_hard_iter_cap = 13;
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult r2 = tier2.solve(infeasible_rows_qp(), nullptr, io2, SolveOverrides{});
+    EXPECT_EQ(r2.escape_reason, IpqpEscape::kBudget);
+    EXPECT_FALSE(r2.infeasibility_evidence.fired);
+    EXPECT_EQ(r2.counters.ipqp_escape_budget, 1);
+}
+
+TEST(IpqpInfeasibleSuspectTest, AFeasibleSolveNeverRaisesTheSignature) {
+    // The non-vacuity partner for the whole section: on a feasible,
+    // well-posed subproblem neither signal is ever raised, whatever the
+    // outcome. A suspicion generator that fires on healthy problems would
+    // route every subproblem to the W2 feasibility hook.
+    for (const QpProblem &qp : {convex_qp(), one_tiny_step_qp(), saddle_qp()}) {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        EXPECT_FALSE(r.infeasibility_evidence.fired);
+        EXPECT_EQ(r.counters.ipqp_escape_infeasible_suspect, 0);
+        EXPECT_EQ(r.infeasibility_evidence.least_infeasible_x.size(), 0);
     }
 }
 

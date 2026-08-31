@@ -139,6 +139,119 @@ InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expec
     return InertiaRead::kUnreadable;
 }
 
+/// THE SECTION 6.3 FARKAS CORROBORATION -- one matvec plus O(m + n), no
+/// factorization.
+///
+/// `SsnEngine::farkas_certificate`'s shape, re-implemented rather than reused
+/// for the reason plan section 7 note (d) withdrew the other SSN reuse rows:
+/// that function is a PRIVATE MEMBER bound to `SsnEngine::bound_rows_`, the
+/// engine's own materialized bound-row list, and this tier has no such list --
+/// its bounds are the dense effective `(lower, upper)` with presence decided
+/// per index. The DISCIPLINE is identical and deliberately so: project the
+/// dual INCREMENT onto the sign cone, normalize it, and test the two Farkas
+/// conditions RELATIVELY, each against a `max(1, .)` floor so a near-zero
+/// denominator cannot manufacture a certificate.
+///
+/// **IT ARMS, IT NEVER CERTIFIES** (spec 6.3). The caller reports
+/// `IpqpEscape::kInfeasibleSuspect` whether this returns true or false; all
+/// this changes is `IpqpInfeasibilityEvidence::farkas_corroborated` and the
+/// two numbers beside it. A tier that withdrew its report on a false here
+/// would be treating the absence of a certificate as evidence of feasibility,
+/// which is the same category error in the other direction.
+///
+/// The system tested is {Ae x = be, Ai x <= bi, -x <= -lower, x <= upper}:
+/// infeasible iff there is `(ye free, yi >= 0, zl >= 0, zu >= 0)` with
+/// `Ae' ye + Ai' yi - zl + zu = 0` and `be' ye + bi' yi - lower' zl +
+/// upper' zu < 0` (Farkas). Absent bound sides contribute nothing -- their
+/// multipliers are structurally 0 and their `+/-kIpqpInfBound` sentinel is
+/// not a row.
+bool ipqp_farkas_corroborates(const QpProblem &qp, const IpqpBounds &bounds, const Vec &dye,
+                              const Vec &dyi, const Vec &dzl, const Vec &dzu, double *resid_out,
+                              double *gap_out) {
+    const Index n = qp.n();
+    const Index me = qp.me();
+    const Index mi = qp.mi();
+
+    Vec ye = me > 0 ? dye : Vec(0);
+    Vec yi = mi > 0 ? Vec(dyi.cwiseMax(0.0)) : Vec(0);
+    Vec zl = dzl.cwiseMax(0.0);
+    Vec zu = dzu.cwiseMax(0.0);
+    for (Index i = 0; i < n; ++i) {
+        if (!detail::ipqp_has_lower(bounds.lower(i))) {
+            zl(i) = 0.0;
+        }
+        if (!detail::ipqp_has_upper(bounds.upper(i))) {
+            zu(i) = 0.0;
+        }
+    }
+
+    double scale = std::max(zl.lpNorm<Eigen::Infinity>(), zu.lpNorm<Eigen::Infinity>());
+    if (me > 0) {
+        scale = std::max(scale, ye.lpNorm<Eigen::Infinity>());
+    }
+    if (mi > 0) {
+        scale = std::max(scale, yi.lpNorm<Eigen::Infinity>());
+    }
+    if (!(scale > 0.0) || !std::isfinite(scale)) {
+        return false;
+    }
+    if (me > 0) {
+        ye /= scale;
+    }
+    if (mi > 0) {
+        yi /= scale;
+    }
+    zl /= scale;
+    zu /= scale;
+
+    Vec r = Vec::Zero(n);
+    Vec r_abs = Vec::Zero(n);
+    double gap = 0.0;
+    double gap_abs = 0.0;
+    for (Index k = 0; k < me; ++k) {
+        const double y = ye(k);
+        for (SpMatRM::InnerIterator it(qp.Ae, k); it; ++it) {
+            r(it.col()) += it.value() * y;
+            r_abs(it.col()) += std::abs(it.value() * y);
+        }
+        gap += qp.be(k) * y;
+        gap_abs += std::abs(qp.be(k) * y);
+    }
+    for (Index k = 0; k < mi; ++k) {
+        const double y = yi(k);
+        for (SpMatRM::InnerIterator it(qp.Ai, k); it; ++it) {
+            r(it.col()) += it.value() * y;
+            r_abs(it.col()) += std::abs(it.value() * y);
+        }
+        gap += qp.bi(k) * y;
+        gap_abs += std::abs(qp.bi(k) * y);
+    }
+    for (Index i = 0; i < n; ++i) {
+        if (zl(i) != 0.0) {
+            r(i) -= zl(i);
+            r_abs(i) += zl(i);
+            gap += -bounds.lower(i) * zl(i);
+            gap_abs += std::abs(bounds.lower(i) * zl(i));
+        }
+        if (zu(i) != 0.0) {
+            r(i) += zu(i);
+            r_abs(i) += zu(i);
+            gap += bounds.upper(i) * zu(i);
+            gap_abs += std::abs(bounds.upper(i) * zu(i));
+        }
+    }
+
+    const double rel_resid =
+        n > 0 ? r.cwiseAbs().maxCoeff() / std::max(1.0, r_abs.maxCoeff()) : 0.0;
+    const double rel_gap = gap / std::max(1.0, gap_abs);
+    *resid_out = rel_resid;
+    *gap_out = rel_gap;
+    if (!std::isfinite(rel_resid) || !std::isfinite(rel_gap)) {
+        return false;
+    }
+    return rel_resid <= detail::kSsnFarkasResidualTol && rel_gap <= -detail::kSsnFarkasGapTol;
+}
+
 /// Ruiz equilibration of a symmetric matrix stored as its UPPER TRIANGLE in
 /// row-major CSR (spec 4.3).
 ///
@@ -655,6 +768,49 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     bool evidence_failed = false;
     double mu_meas = mu0;
 
+    // --- THE SECTION 6.2 / 6.3 WINDOW -------------------------------------
+    //
+    // ONE WINDOW SERVES BOTH TESTS, and that is the design rather than a
+    // saving: section 6.2's stall and section 6.3's infeasible-suspect are
+    // both statements about "a window over which nothing improved", differing
+    // only in which OTHER signal they pair that with (dying steps vs
+    // diverging multipliers). Two independently advanced windows would be two
+    // answers to "how long has nothing been improving".
+    //
+    // SSN's three window properties, adopted verbatim in kind (spec 6.2):
+    //   * IT ADVANCES ON ACCEPTED STEPS ONLY -- `win_steps` is incremented
+    //     beside `ipqp_iters`, behind every rejection.
+    //   * IMPROVEMENT IS DEMANDED OVER THE WHOLE WINDOW, not per step -- every
+    //     conjunct compares the CURRENT state against the reference captured
+    //     when the window was armed.
+    //   * ANY REGULARIZATION CHANGE DISCARDS THE WINDOW ("slow progress under
+    //     a sigma that just changed is the safeguard's doing, not the
+    //     problem's", ssn_engine.h:620). Here that is any move of
+    //     `rho_sched`, `delta_sched` or the monotone `rho_floor`.
+    const Index stall_w = iopts.ipqp_stall_window;
+    bool win_armed = false;
+    Index win_steps = 0;
+    double win_mu0 = 0.0;
+    double win_res0 = 0.0;
+    double win_primal0 = 0.0;
+    double win_dual0 = 0.0;
+    double win_alpha_min = kInf;
+    double win_alpha_max = 0.0;
+    Vec win_ye, win_yi, win_zl, win_zu;
+    // The multiplier norm BEFORE the most recently accepted step, and the
+    // multiplier state at the SOLVE'S OWN START POINT. Both exist for section
+    // 6.3's exhaustion route, which cannot use a windowed growth reference at
+    // all -- there the divergence and the last progress are the SAME accepted
+    // step, so a windowed ratio would read 1 (ssn_engine.h's own reasoning for
+    // `kSsnDualStepGrowth`).
+    double dual_prev = 0.0;
+    double dual_start = 0.0;
+    Vec start_ye, start_yi, start_zl, start_zu;
+    bool have_start = false;
+    // Section 6.3's third required item: the LEAST-INFEASIBLE point seen.
+    double best_primal = kInf;
+    Vec best_x;
+
     // ---- the local operations the loop below is written in terms of -------
 
     // Refresh dL/dU from the current x. +inf at an absent side (see Workspace).
@@ -740,6 +896,127 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // a re-scatter. `dsq` is all ones when equilibration is off, and a
     // multiplication by exactly 1.0 is exact, so the two arms are bit-identical
     // in that case rather than merely close.
+    // `||(y, z)||inf` at the current iterate -- section 6.3's growth signal.
+    // Guarded per block because an infinity norm of an EMPTY Eigen vector is
+    // an assert, not a 0, and a QP with no rows at all is legal here.
+    auto dual_norm_now = [&]() {
+        double d = std::max(w.zl.lpNorm<Eigen::Infinity>(), w.zu.lpNorm<Eigen::Infinity>());
+        if (me > 0) {
+            d = std::max(d, w.ye.lpNorm<Eigen::Infinity>());
+        }
+        if (mi > 0) {
+            d = std::max(d, w.yi.lpNorm<Eigen::Infinity>());
+        }
+        return d;
+    };
+
+    // Capture the window's reference state at the CURRENT iterate. Called on
+    // the first pass, after any regularization change, and after any window
+    // that closed without firing -- a window is a measurement, and a
+    // measurement that has been read is spent.
+    auto arm_window = [&](const IpqpResiduals &r) {
+        win_armed = true;
+        win_steps = 0;
+        win_mu0 = mu_meas;
+        win_res0 = std::max({r.primal_eq, r.primal_iq, r.stationarity});
+        win_primal0 = std::max(r.primal_eq, r.primal_iq);
+        win_dual0 = dual_norm_now();
+        win_alpha_min = kInf;
+        win_alpha_max = 0.0;
+        win_ye = w.ye;
+        win_yi = w.yi;
+        win_zl = w.zl;
+        win_zu = w.zu;
+        if (!have_start) {
+            have_start = true;
+            dual_start = win_dual0;
+            dual_prev = win_dual0;
+            start_ye = w.ye;
+            start_yi = w.yi;
+            start_zl = w.zl;
+            start_zu = w.zu;
+        }
+    };
+
+    // Signal (a) of section 6.3, shared by both routes: the primal residual is
+    // FLAT ON A POSITIVE FLOOR over the window. Both halves are load-bearing
+    // -- "flat" alone is what a CONVERGED solve looks like, and "on a positive
+    // floor" alone is what every unconverged iteration looks like.
+    auto primal_flat_on_floor = [&](const IpqpResiduals &r, double feas_target,
+                                    double *primal_now_out, double *impr_out) {
+        const double primal_now = std::max(r.primal_eq, r.primal_iq);
+        const double impr = win_primal0 > 0.0 ? 1.0 - primal_now / win_primal0 : 0.0;
+        *primal_now_out = primal_now;
+        *impr_out = impr;
+        return primal_now > feas_target && impr < (1.0 - detail::kSsnStallImproveFactor);
+    };
+
+    // Fill the escape's evidence block. `reference_*` is whichever multiplier
+    // snapshot the ROUTE selected -- the window's for the standing route, the
+    // solve's start point for the exhaustion route -- so the Farkas direction
+    // is the same increment the growth conjunct measured.
+    auto fill_infeasibility_evidence =
+        [&](const IpqpResiduals &r, bool exhaustion, double primal_now, double impr,
+            double dual_now, double growth, double step_growth, const Vec &ref_ye,
+            const Vec &ref_yi, const Vec &ref_zl, const Vec &ref_zu) {
+            IpqpInfeasibilityEvidence &ev = out.infeasibility_evidence;
+            ev.fired = true;
+            ev.exhaustion_route = exhaustion;
+            ev.window = win_steps;
+            ev.primal_start = win_primal0;
+            ev.primal_end = primal_now;
+            ev.primal_improvement = impr;
+            ev.dual_norm_start = exhaustion ? dual_start : win_dual0;
+            ev.dual_norm_end = dual_now;
+            ev.dual_growth = growth;
+            ev.dual_step_growth = step_growth;
+            ev.least_infeasible_x = best_x.size() > 0 ? best_x : w.x;
+            ev.least_infeasible_primal =
+                best_x.size() > 0 ? best_primal : std::max(r.primal_eq, r.primal_iq);
+            if (iopts.ipqp_farkas_gate) {
+                const Vec dye = me > 0 ? Vec(w.ye - ref_ye) : Vec(0);
+                const Vec dyi = mi > 0 ? Vec(w.yi - ref_yi) : Vec(0);
+                ev.farkas_corroborated =
+                    ipqp_farkas_corroborates(qp, bounds, dye, dyi, w.zl - ref_zl, w.zu - ref_zu,
+                                             &ev.farkas_residual, &ev.farkas_gap);
+            }
+        };
+
+    // SECTION 6.3'S EXHAUSTION-ROUTE VARIANT, consulted at every budget stop.
+    //
+    // The growth conjunct is measured against the SOLVE'S START POINT and is
+    // ADDITIONALLY required to have multiplied by `kSsnDualStepGrowth` across
+    // the most recently accepted step -- `ssn_engine.h`'s own two-part rule
+    // for this route, and for its reason: a windowed reference is meaningless
+    // when the divergence and the last progress are the same step, while a
+    // start-point reference alone would be vacuous for any feasible QP whose
+    // true multipliers exceed the growth factor. "An order of magnitude in one
+    // step is not multipliers settling, it is multipliers with no limit to
+    // settle onto."
+    //
+    // Returns false -- leaving the escape as `kBudget` -- unless BOTH
+    // conjuncts and the per-step ratio hold, which is what keeps a plain
+    // budget exhaustion from being relabelled as a suspicion.
+    auto exhaustion_infeasible = [&](const IpqpResiduals &r, double feas_target) {
+        if (!win_armed || win_steps < 1 || !have_start) {
+            return false;
+        }
+        double primal_now = 0.0;
+        double primal_impr = 0.0;
+        if (!primal_flat_on_floor(r, feas_target, &primal_now, &primal_impr)) {
+            return false;
+        }
+        const double dual_now = dual_norm_now();
+        const double growth = dual_now / std::max(1.0, dual_start);
+        const double step_growth = dual_now / std::max(1.0, dual_prev);
+        if (growth < detail::kSsnDualGrowthFactor || step_growth < detail::kSsnDualStepGrowth) {
+            return false;
+        }
+        fill_infeasibility_evidence(r, /*exhaustion=*/true, primal_now, primal_impr, dual_now,
+                                    growth, step_growth, start_ye, start_yi, start_zl, start_zu);
+        return true;
+    };
+
     auto write_diagonals = [&](double rho, double delta) {
         double *vals = kkt_.matrix().valuePtr();
         const std::vector<double> &src = layout_.primal_diag_source();
@@ -1106,14 +1383,129 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             break;
         }
 
+        // --- the least-infeasible point (spec 6.3's third required item) ---
+        {
+            const double primal_now = std::max(res.primal_eq, res.primal_iq);
+            if (primal_now < best_primal) {
+                best_primal = primal_now;
+                best_x = w.x;
+            }
+        }
+
+        // --- SECTIONS 6.2 AND 6.3, THE STANDING ROUTES ---------------------
+        //
+        // EVALUATED BEFORE THE BUDGET CHECKS, which is section 6.1's "budget
+        // ... OF LAST RESORT: the stall test below should fire first on
+        // anything that is genuinely stuck" made structural rather than
+        // hoped for.
+        if (!win_armed) {
+            arm_window(res);
+        } else if (win_steps >= stall_w) {
+            const double mu_ratio =
+                mu_meas > 0.0 ? win_mu0 / mu_meas : std::numeric_limits<double>::infinity();
+            const double res_now = std::max({res.primal_eq, res.primal_iq, res.stationarity});
+            const double res_impr = win_res0 > 0.0 ? 1.0 - res_now / win_res0 : 0.0;
+            double primal_now = 0.0;
+            double primal_impr = 0.0;
+            const bool flat = primal_flat_on_floor(res, feas_target, &primal_now, &primal_impr);
+            const double dual_now = dual_norm_now();
+            const double growth = dual_now / std::max(1.0, win_dual0);
+
+            // SECTION 6.3 IS TESTED FIRST, and the order is a ruling rather
+            // than an accident. A subproblem can satisfy both signatures at
+            // once -- an infeasible QP stalls, and its steps die as the
+            // multipliers diverge -- and the two escapes go to different
+            // places: `kStall` routes onward as a difficult subproblem, while
+            // `kInfeasibleSuspect` is the one the W2 feasibility hook exists
+            // to answer. The more specific diagnosis is the more useful one,
+            // and reporting the generic one first would make the specific
+            // test unreachable on exactly the problems it was written for.
+            if (flat && growth >= detail::kSsnDualGrowthFactor) {
+                fill_infeasibility_evidence(res, /*exhaustion=*/false, primal_now, primal_impr,
+                                            dual_now, growth, 0.0, win_ye, win_yi, win_zl, win_zu);
+                escape = IpqpEscape::kInfeasibleSuspect;
+                break;
+            }
+
+            // "RESET ON A MEHROTRA TARGET CHANGE THAT ACTUALLY DROPPED `mu`"
+            // (spec 6.2) IS CONJUNCT (i) READ AS A RESET, and implementing it
+            // that way rather than as a second mechanism is deliberate: a
+            // window across which `mu` genuinely halved IS a window in which
+            // the barrier target changed and the change took. Reading it as
+            // "reset whenever mu moved at all" would re-arm on every healthy
+            // step and make the stall test unreachable; reading it as a
+            // separate trigger would give two answers to one question.
+            if (mu_ratio >= detail::kIpqpStallMuFactor) {
+                arm_window(res);
+            } else if (res_impr < (1.0 - detail::kSsnStallImproveFactor) &&
+                       win_alpha_max < detail::kIpqpStallAlpha) {
+                // ALL THREE CONJUNCTS HOLD. Conjunct (iii) is tested on
+                // `win_alpha_max` -- the LARGEST per-step `min(alpha_p,
+                // alpha_d)` in the window -- because the specification demands
+                // it "on EVERY step in the window": one healthy step anywhere
+                // disarms it, which is the "never abort on one tiny-alpha
+                // iteration" rule stated as code.
+                IpqpStallEvidence &ev = out.stall_evidence;
+                ev.fired = true;
+                ev.window = win_steps;
+                ev.mu_ratio = mu_ratio;
+                ev.residual_improvement = res_impr;
+                ev.min_alpha = win_alpha_min;
+                ev.max_step_alpha = win_alpha_max;
+                escape = IpqpEscape::kStall;
+                break;
+            } else {
+                // The window closed and fired nothing. A measurement that has
+                // been read is spent: re-arm at the current state so the next
+                // `stall_w` steps are measured against where the trajectory
+                // actually is, rather than accumulating improvement against a
+                // reference that keeps receding.
+                arm_window(res);
+            }
+        }
+
         if (out.counters.ipqp_iters >= iter_budget) {
-            escape = IpqpEscape::kBudget;
+            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
+                                                             : IpqpEscape::kBudget;
             break;
         }
         if (kkt_.counters().factorize_count - before.factorize_count >= fact_budget) {
-            escape = IpqpEscape::kBudget;
+            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
+                                                             : IpqpEscape::kBudget;
             break;
         }
+
+        // The SAFEGUARD's state this pass started from, so a change to it
+        // discards the window (spec 6.2's third adopted property). Sampled
+        // here rather than beside each move: the floor rises in two places
+        // (the inertia ladder and the evidence-failure branch) and two
+        // separate "and reset the window" statements would be two places to
+        // forget.
+        //
+        // "ANY REGULARIZATION CHANGE" IS READ AS "ANY SAFEGUARD CHANGE", i.e.
+        // a move of the INERTIA-DEMANDED MONOTONE FLOOR, and NOT as a move of
+        // the section 3.2 schedule. DECLARED, because the two readings are not
+        // equivalent and the literal one deletes the test:
+        //
+        //  * The rule's own justification names the safeguard --
+        //    ssn_engine.h:620, quoted by spec 6.2: "slow progress under a
+        //    sigma that JUST CHANGED is THE SAFEGUARD'S DOING, not the
+        //    problem's." In this tier the safeguard is section 2.2's ladder;
+        //    `rho_floor` is the only quantity it moves.
+        //  * The section 3.2 schedule is not a safeguard. It is the method's
+        //    ordinary outer iteration, it is GATED ON MEASURED PROGRESS, and
+        //    it moves regularization DOWNWARD -- toward the caller's own QP.
+        //    Slow progress under a decreasing regularization is the problem's
+        //    doing, which is exactly the case the rule does NOT exempt.
+        //  * MEASURED: with the literal reading the stall test is
+        //    structurally unreachable. The gate advances on nearly every
+        //    iteration of every solve (its second clause fires whenever the
+        //    regularized residual is already inside the target, which on a
+        //    stalled or infeasible subproblem it always is), so the window is
+        //    discarded before it can ever reach `ipqp_stall_window`. Every
+        //    candidate fixture ran its full 60-iteration budget with the
+        //    window never once filling.
+        const double rho_floor_pre = rho_floor;
 
         // THE GATED DECREASE (spec 3.2), evaluated BEFORE the assembly so an
         // iteration runs at the schedule the previous iteration's progress
@@ -1263,8 +1655,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         if (fact_budget_hit) {
             // The cap refused a factorization. That is a BUDGET stop, and it
             // is deliberately tested before the reading: no factorization ran,
-            // so there is no inertia verdict to classify.
-            escape = IpqpEscape::kBudget;
+            // so there is no inertia verdict to classify. Section 6.3's
+            // exhaustion route gets the same look it gets at the two caps
+            // above -- running out of factorizations with the infeasibility
+            // signature standing is the same event as running out of
+            // iterations with it standing.
+            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
+                                                             : IpqpEscape::kBudget;
             break;
         }
         if (read == InertiaRead::kUnreadable) {
@@ -1347,6 +1744,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         out.counters.ipqp_alpha_p_min = std::min(out.counters.ipqp_alpha_p_min, alpha_p);
         out.counters.ipqp_alpha_d_min = std::min(out.counters.ipqp_alpha_d_min, alpha_d);
 
+        // The multiplier norm BEFORE this step, so section 6.3's exhaustion
+        // route can measure growth ACROSS one accepted step. Taken here, not
+        // after: once the step is applied the previous norm is gone.
+        dual_prev = dual_norm_now();
+
         // 4. THE STEP. No line search: globalization is fraction-to-boundary
         //    and nothing else (spec 3.1 item 3).
         w.x += alpha_p * w.dx;
@@ -1395,6 +1797,21 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         ++out.counters.ipqp_iters;
         if (elevated) {
             ++out.counters.ipqp_iters_at_elevated_rho;
+        }
+
+        // THE WINDOW ADVANCES ON ACCEPTED STEPS ONLY (spec 6.2), so it is
+        // advanced here, beside `ipqp_iters` and behind every rejection above.
+        ++win_steps;
+        const double step_alpha = std::min(alpha_p, alpha_d);
+        win_alpha_min = std::min(win_alpha_min, step_alpha);
+        win_alpha_max = std::max(win_alpha_max, step_alpha);
+
+        // ... AND A SAFEGUARD CHANGE DISCARDS IT (see the sampling site above
+        // for why that, and not every schedule move, is the reading). The next
+        // pass finds `win_armed == false` and arms a fresh window at the point
+        // the ladder actually left the trajectory at.
+        if (rho_floor != rho_floor_pre) {
+            win_armed = false;
         }
     }
 

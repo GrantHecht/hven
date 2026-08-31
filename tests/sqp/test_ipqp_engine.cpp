@@ -377,8 +377,18 @@ TEST(IpqpLadderTest, AnIndefiniteSubproblemArmsTheLadderAndDoesNotCertify) {
     // tier converges to the modified problem, the gate (correctly, at
     // `rho_sched`) sees no contraction on the real one, and the solve runs out
     // its iteration budget. That is the honest outcome and section 2.3 routes
-    // it onward; the early-stall test of section 6.2 (task 5) is what will
-    // shorten the 60 iterations to ~5.
+    // it onward.
+    //
+    // TASK 4 EXPECTED SECTION 6.2'S STALL TEST TO SHORTEN THIS TO ~5
+    // ITERATIONS. IT DOES NOT, and the number stays 60 with that recorded
+    // rather than quietly re-expected. Task 5 measured why: this trajectory
+    // takes FULL fraction-to-boundary steps (`alpha_p == 1`) all the way to
+    // the cap, so section 6.2's conjunct (iii) -- `min(alpha_p, alpha_d) <
+    // 1e-2` on EVERY step of the window -- is never met. The test is about
+    // DYING STEPS, and this subproblem's steps are healthy; what is wrong
+    // with it is where they are going, which is exactly what the section 2.2
+    // item 4 read catches on the instances that converge. Registered in the
+    // task 5 report as a cost item rather than papered over.
     EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
     // ... and the required final read was never paid, because no certifying
     // exit was reached. `ipqp_final_inertia_read` is structurally 0 there --
