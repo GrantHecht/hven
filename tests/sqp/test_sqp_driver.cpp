@@ -8376,7 +8376,14 @@ TEST(SqpDriverSignSweep, TheCountersAreCumulativeAcrossCallsAndThePeakIsAPeak) {
 // this, a sweep that clamped `<= 0.0`, or one placed where it saw a
 // mid-iteration vector, would still pass every assertion in the sweep's own
 // unit tests.
-TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEitherKernel) {
+//
+// THREE KERNELS SINCE M6 W1 TASK 6 (spec section 9's Amendment E), and the
+// extension IS the R6 registration's executable half: the interior-point tier
+// is the THIRD producer of exported inequality face prices, so the guard that
+// says "this driver has ONE export boundary and every producer passes through
+// it" has to be measured on three modes rather than two. The kIpm arm reaches
+// the same sweep, at the same place, and sweeps the same nothing.
+TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEveryKernel) {
     using hven::solvers::test_support::hs_numbers;
     using hven::solvers::test_support::make_hs;
 
@@ -8402,6 +8409,22 @@ TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEitherKernel) {
             << "the sweep is unconditional in qp_mode but structurally inert on the walk arm: an "
                "active-set price is non-negative by the drop rule";
         EXPECT_DOUBLE_EQ(walk.counters.ssn.ssn_sign_sweep_max, 0.0);
+
+        auto ipm_problem = make_hs(number);
+        SqpOptions ipm_opts;
+        ipm_opts.max_iter = 60;
+        ipm_opts.qp_mode = QpMode::kIpm;
+        SqpDriver ipm_driver(ipm_opts);
+        const SqpSolution ipm = ipm_driver.solve(*ipm_problem.model);
+        EXPECT_EQ(ipm.counters.ssn.ssn_sign_swept, 0)
+            << "THE THIRD PRODUCER (R6, Amendment E): a kIpm solve's prices come from the tier's "
+               "own face -- through refine_on_face's pricing, or verbatim on a refusal -- and "
+               "reach the SAME single export boundary, where this battery gives them nothing to "
+               "repair";
+        EXPECT_DOUBLE_EQ(ipm.counters.ssn.ssn_sign_sweep_max, 0.0);
+        if (ipm.lambda_i.size() > 0) {
+            EXPECT_GE(ipm.lambda_i.minCoeff(), 0.0);
+        }
     }
 }
 

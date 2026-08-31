@@ -42,4 +42,39 @@ inline ::testing::AssertionResult assert_ipqp_escape_census_sums(const IpqpCount
     return ::testing::AssertionSuccess();
 }
 
+/// Asserts the section 2.3 ROUTING PARTITION: every subproblem the routing
+/// chain disposed of went to exactly one successor, and the two `ipqp_to_*`
+/// counters say which.
+///
+/// The two identities are the routing table read as arithmetic (M6 W1 task 6):
+///
+///   `ipqp_to_ssn  == ipqp_refine_refused + ipqp_escape_indefinite`
+///       -- section 2.3's TWO routes into the SSN warm grade, item 4's own
+///          pair: a refused refinement, and a saddle-suspect exit.
+///   `ipqp_to_walk == (ipqp_escapes - ipqp_escape_indefinite)
+///                    + ipqp_declined_pinned`
+///       -- item 5's genuine escapes MINUS the indefinite ones (which went to
+///          SSN instead), PLUS the domain gate's pre-solve declines, which
+///          `ipqp_to_walk`'s own doc comment names as its second contributor.
+///
+/// A subproblem the tier-3 refinement ACCEPTED is in neither: it was not
+/// routed onward at all, and `ipqp_refine_accepted` counts it.
+inline ::testing::AssertionResult assert_ipqp_routing_partition(const IpqpCounters &c) {
+    const Index to_ssn = c.ipqp_refine_refused + c.ipqp_escape_indefinite;
+    if (c.ipqp_to_ssn != to_ssn) {
+        return ::testing::AssertionFailure()
+               << "assert_ipqp_routing_partition: ipqp_to_ssn " << c.ipqp_to_ssn
+               << " != refine_refused " << c.ipqp_refine_refused << " + escape_indefinite "
+               << c.ipqp_escape_indefinite;
+    }
+    const Index to_walk = c.ipqp_escapes - c.ipqp_escape_indefinite + c.ipqp_declined_pinned;
+    if (c.ipqp_to_walk != to_walk) {
+        return ::testing::AssertionFailure()
+               << "assert_ipqp_routing_partition: ipqp_to_walk " << c.ipqp_to_walk
+               << " != (escapes " << c.ipqp_escapes << " - escape_indefinite "
+               << c.ipqp_escape_indefinite << ") + declined_pinned " << c.ipqp_declined_pinned;
+    }
+    return ::testing::AssertionSuccess();
+}
+
 } // namespace hven::solvers::test_support

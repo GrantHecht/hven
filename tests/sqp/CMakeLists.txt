@@ -37,6 +37,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_hs_sweeps.cpp
     test_ipqp_certification.cpp
     test_ipqp_counters.cpp
+    test_ipqp_dispatch.cpp
     test_ipqp_engine.cpp
     test_ipqp_kkt_layout.cpp
     test_ipqp_math.cpp

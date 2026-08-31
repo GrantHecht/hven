@@ -8,10 +8,13 @@
 //   (1) IpqpOptions' fields are boundary-validated in validate_sqp_options,
 //       one pin per predicate class, following test_problem_scaling.cpp's
 //       ProblemScalingOptions.TheRuleIsValidatedAtTheBoundary pattern.
-//   (2) qp_mode == QpMode::kIpm is TEMPORARILY refused at validate_sqp_options
-//       ("not yet dispatchable") -- removed once the routing chain lands in a
-//       later W1 task. This is the pin that must be DELETED (not just
-//       adjusted) when that happens, so its own name says so.
+//   (2) qp_mode == QpMode::kIpm was TEMPORARILY refused at
+//       validate_sqp_options ("not yet dispatchable"). THAT PIN IS GONE (M6
+//       W1 task 6, as its own name asked): the routing chain landed, the
+//       refusal was removed with it, and the dispatch pin that replaced it is
+//       tests/sqp/test_ipqp_dispatch.cpp's IpqpDispatch.KIpmValidatesAndSolves.
+//       What remains in THIS file is (1), which was never conditional on the
+//       mode being reachable.
 
 #include <limits>
 #include <stdexcept>
@@ -27,27 +30,30 @@ constexpr double kNan = std::numeric_limits<double>::quiet_NaN();
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
 // ===========================================================================
-// (2) THE TEMPORARY kIpm GATE.
+// (1) IpqpOptions FIELD VALIDATION, ONE PREDICATE CLASS PER PIN.
+//
+// Every arm below leaves qp_mode at its kWalk DEFAULT, and that is still the
+// point of the arrangement even now that kIpm is dispatchable: these fields
+// are validated UNCONDITIONALLY, at every mode, so each pin isolates the field
+// predicate it names without a mode gate in the way.
 // ===========================================================================
 
-TEST(IpqpOptions, KIpmIsNotYetDispatchableDeleteThisPinWhenTheRoutingChainLands) {
-    SqpOptions o;
-    o.qp_mode = QpMode::kIpm;
-    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
+TEST(IpqpOptions, TheFieldsAreValidatedAtEveryModeIncludingTheDefault) {
+    // The mode itself is accepted -- task 1's temporary refusal is gone (see
+    // this file's banner) -- and the fields are refused at kWalk, where no
+    // solve will ever read them.
+    SqpOptions ipm;
+    ipm.qp_mode = QpMode::kIpm;
+    EXPECT_NO_THROW(validate_sqp_options(ipm));
 
-    // The default stays kWalk, and a default-constructed IpqpOptions changes
-    // nothing about that: qp_mode alone is what the temporary gate reads.
     SqpOptions defaulted;
     EXPECT_EQ(defaulted.qp_mode, QpMode::kWalk);
     EXPECT_NO_THROW(validate_sqp_options(defaulted));
-}
 
-// ===========================================================================
-// (1) IpqpOptions FIELD VALIDATION, ONE PREDICATE CLASS PER PIN.
-//
-// Every arm below leaves qp_mode at its kWalk default, so the temporary kIpm
-// gate above never fires and each pin isolates the field predicate it names.
-// ===========================================================================
+    SqpOptions bad_at_kwalk;
+    bad_at_kwalk.ipqp.ipqp_hard_iter_cap = 0;
+    EXPECT_THROW(validate_sqp_options(bad_at_kwalk), std::invalid_argument);
+}
 
 TEST(IpqpOptions, HardIterCapMustBePositive) {
     SqpOptions o;
