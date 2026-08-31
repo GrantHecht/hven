@@ -640,6 +640,41 @@ declared-change discipline; the spec text itself is amended at W1 close.
   as the target "taking" is the ≥ 2× one conjunct (i) already names.
   Evaluated at window close (a drop early in the window re-arms at most W
   accepted steps later; never fires falsely).
+- (p) Spec §2.2 items 2–3, §3.2 bullet 3, §3.1, §7 AMENDED (owner-approved
+  T4b plan, 2026-08-31): see docs/notes/2026-08-31-m6-w1-t4b-ladder-plan.md
+  §2 — the proximal schedule `(rho_sched, zeta)` and the inertia-demanded
+  modification `rho_dem` are two quantities (RHS/gate/prox-centre use the
+  schedule only; `rho_dem` is diagonal-only, additive, uniform in the
+  Ruiz-scaled system); the monotone-per-solve floor is DELETED in favour of
+  Algorithm IC's memory as Ipopt implements it (declared adaptations: hven's
+  reg_floor/reg_max bounds; zero-trial skipped after three consecutive
+  modified iterations); `ipqp_rho_flaps` → `ipqp_ladder_reclimbs`; new
+  `ipqp_iters_ladder_armed_no_advance`; the NLP-driver sentence corrected to
+  "IC-derived". Folded into the spec at W1 close.
+- (q) Spec §2.3 / §6.1 routing CLARIFIED (T6 fix round 1, 2026-08-31, six
+  settler rulings): (1) a `kBudget` exit with `ipqp_final_inertia_read == 3`
+  and residuals met (a converged iterate whose final read the budget
+  refused) is routed as a downgraded certificate — `refine_on_face`, then the
+  ordinary chain — and is NOT charged to §6.1's K = 3 ladder (it resets the
+  tally like any success; the engine's census still counts
+  `ipqp_escape_budget` — census and ladder answer different questions);
+  (2) after the SSN warm grade returns a usable exit, `refine_on_face` runs
+  on SSN's face exactly as the kSsn arm does — §2.3 item 1's "tier 3 owns
+  the last two decades" governs; a refusal is not a polish, so "one polish
+  per subproblem" holds; (3) `adaptive_mu` is disabled only for subproblems
+  the tier solves (and the SSN warm grade that follows a tier exit); walk
+  subproblems reached by a decline, by retirement, or by a cold escape run
+  with the caller's configured walk levers — under kIpm the walk can be the
+  entire solve; (4) the proximal carry participates on kIpm's SSN warm-grade
+  path exactly as under kSsn (`warm_start.h:264`'s "maximum over any SSN
+  subproblem" governs); R5 deferred certification stays off there; (5) the
+  A9 symbolic-hoist key is per SQP solve in W1 (one analysis per solve, per
+  note (k)); cross-solve reuse is a T7/W3 continuation item gated on the
+  DeclarationKey stamp; (6) a `kNone` result carrying a non-finite point is
+  an engine-invariant violation and throws — it is not a routing row.
+  Also settled: the SSN warm grade starts from the tier's `(x, lambda)` with
+  the trust-region WINDOW held at the tier's clamp-centred box (§2.3 item 4);
+  the W2 hook receives `IpqpInfeasibilityEvidence` (plan §4).
 
 ## §8. v2/v3 changes (Codex r1 + rulings 1-9; Codex r2 + r3 rulings 1-3)
 
