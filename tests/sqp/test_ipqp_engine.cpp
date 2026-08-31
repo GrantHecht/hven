@@ -551,8 +551,7 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
     // setting every schedule decays onto, not evidence about this subproblem's
     // curvature, so it earns no counter.
     // The advance counts are exact trajectory pins and are MKL-scoped; the
-    // residual's sign is not (T4b fix round 2, F5). The reclimb zero is
-    // asserted above.
+    // residual's sign is not (T4b F5).
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_absolute_floor_accelerate",
                    "UNOBSERVED -- the exact advance counts are MKL-only");
@@ -657,8 +656,7 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // DIVERGE is the cap-1 budget one, which arms the ladder and then takes no
     // step at all: see
     // `TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderRungsIncluded`.
-    // The counts are MKL-scoped; the identity between them is not
-    // (T4b fix round 2, F5).
+    // The counts are MKL-scoped; the identity between them is not (T4b F5).
 #ifndef USE_ACCELERATE_SPARSE
     EXPECT_EQ(r.counters.ipqp_iters, 3);
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 3);
@@ -685,7 +683,7 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // factorizations because the monotone floor made the first climb's 800
     // permanent and no later iteration ever probed below it.
     // The derivation above is what the counts mean; the counts themselves are
-    // one backend's measurement, so they are MKL-scoped (T4b fix round 2, F5).
+    // one backend's measurement, so they are MKL-scoped (T4b F5).
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_saddle_trajectory_accelerate",
                    "UNOBSERVED -- the exact ladder trajectory is MKL-only");
@@ -702,10 +700,9 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, 100.0 / 3.0 / 3.0);
 #endif
     // `ipqp_pivot_reroute_primal` is not pinned here: an exact count would pin
-    // the backend's perturbation threshold, which concern C3 forbids. The
-    // fallback is structural -- it needs two consecutive failed primal rungs --
-    // so it stays. The re-route's contract is pinned in test_ipqp_seams.cpp.
-    // (T4b fix round 2, F4.)
+    // the backend's perturbation threshold (concern C3). The fallback needs two
+    // consecutive failed primal rungs, so it is structural and stays.
+    // (T4b F4; `.superpowers/w1-t4b-report.md`.)
     EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_DOUBLE_EQ(r.rho_mod, r.counters.ipqp_rho_demanded_last)
         << "`rho_mod` is the modification the LAST step ran at, which on this fixture is also "

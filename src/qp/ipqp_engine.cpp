@@ -1788,14 +1788,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                         trying_memory_value = !evidence_failed;
                     }
                 } else {
-                    // Only a WRONG reading charges a reclimb: this block is
-                    // also reached by a perturbed report on the primal route,
-                    // which is a backend fact, not curvature, and is charged to
-                    // `ipqp_pivot_reroute_primal` instead. `trying_memory_value`
-                    // is not cleared -- a later wrong rung above the memory
-                    // still proves the memory too small.
-                    // (T4b fix round 2, F2; argument in
-                    // `.superpowers/w1-t4b-report.md`.)
+                    // Only a WRONG reading charges a reclimb: a perturbed
+                    // report on the primal route reaches this block too, and it
+                    // is a backend fact, not curvature.
+                    // (T4b F2; `.superpowers/w1-t4b-report.md`.)
                     if (trying_memory_value && !reclimb_charged && !perturbed) {
                         ++out.counters.ipqp_ladder_reclimbs;
                         reclimb_charged = true;

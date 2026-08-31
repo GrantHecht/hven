@@ -519,7 +519,7 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
                        std::to_string(r.counters.ipqp_factorizations));
 #ifdef USE_ACCELERATE_SPARSE
         // The admissible list is an exact trajectory pin, so it is MKL-scoped
-        // and UNOBSERVED elsewhere (CLAUDE.md section 6; T4b fix round 2, F5).
+        // and UNOBSERVED elsewhere (CLAUDE.md section 6; T4b F5).
         RecordProperty(std::string(c.name) + "_accelerate",
                        "UNOBSERVED -- the exact trajectory is MKL-only");
 #else
@@ -796,17 +796,10 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
     // threshold instead: record the smallest sufficient shift and assert
     // `rho_d_settled <= kIpqpLadderUp x` it.
     //
-    // HOW THE THRESHOLD IS MEASURED. No boundary knob sets `rho_dem`, so the
-    // probe reaches the same diagonal through `ipqp_rho_init`: a solve capped
-    // at one iteration reports `ipqp_inertia_retries == 0` iff that shift
-    // already sufficed at iteration 0. `write_diagonals` makes the two
-    // interchangeable only where `dsq[i] == 1`, so BOTH sides run with
-    // equilibration off; the default solve keeps the weaker round-1 property
-    // beside them. Descending powers of two bracket the threshold to a factor
-    // of two, which is what `2 * kIpqpLadderUp` carries, along with the fact
-    // that the threshold is read at iteration 0 and the settled value at a
-    // later one. (T4b fix round 2, F3; argument, the measured table and the two
-    // residual concerns in `.superpowers/w1-t4b-report.md`.)
+    // HOW THE THRESHOLD IS MEASURED. No knob sets `rho_dem`, so the probe
+    // reaches the same diagonal through `ipqp_rho_init` -- interchangeable only
+    // where `dsq == 1`, which is why both sides run equilibration off.
+    // (T4b F3; `.superpowers/w1-t4b-report.md`.)
     int hs_row = 0;
     for (const QpProblem &qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
@@ -898,8 +891,8 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
         const IpqpResult r = tier.solve(saddle, nullptr, IpqpOptions{}, SolveOverrides{});
 
         // The family's invariants, so the sweep is one experiment with one
-        // variable moving. The iteration count is an exact trajectory value and
-        // is MKL-scoped (T4b fix round 2, F5).
+        // variable moving. The iteration count is an exact trajectory value,
+        // so it is MKL-scoped (T4b F5).
 #ifdef USE_ACCELERATE_SPARSE
         RecordProperty("t4b_gate8_iters_accelerate",
                        "UNOBSERVED -- the exact iteration count is MKL-only");
@@ -972,10 +965,9 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
                        " skipped_ties=" + std::to_string(skipped_ties));
 
     // The exact split, not just its existence: a drift in WHICH members are
-    // weak moves a member between the two branches and leaves every `> 0` form
-    // true. Eight, not nine, because `s = 1.58e-4` is skipped as a tie before
-    // it is classified. (T4b fix round 2, F1; reconciliation with the report's
-    // FR-2 table in `.superpowers/w1-t4b-report.md`.)
+    // weak moves one between the branches and leaves every `> 0` form true.
+    // Eight, not nine: `s = 1.58e-4` is skipped as a tie before classifying.
+    // (T4b F1; `.superpowers/w1-t4b-report.md`.)
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_gate8_census_accelerate",
                    "UNOBSERVED -- which members are weak depends on the mu the backend converges "
