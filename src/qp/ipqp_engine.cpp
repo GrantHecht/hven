@@ -403,6 +403,68 @@ IpqpBox make_ipqp_box(const QpProblem &qp, double radius) {
 
 bool IpqpBounds::in_domain() const { return zero_width_index < 0; }
 
+// ---------------------------------------------------------------------------
+// The section 6.1 escape ladder
+// ---------------------------------------------------------------------------
+
+IpqpEscapeLadder::IpqpEscapeLadder(const IpqpOptions &iopts)
+    : retire_after_(iopts.ipqp_retire_after) {
+    // Re-checked HERE and not only in `validate_sqp_options`, for the reason
+    // `IpqpEngine::solve` re-validates its own options: this type is reachable
+    // without a driver, and a retirement threshold of 0 would retire the tier
+    // before it had ever run.
+    if (retire_after_ <= 0) {
+        throw std::invalid_argument(
+            fmt::format("IpqpEscapeLadder: ipqp_retire_after ({}) must be > 0; retiring "
+                        "\"after zero consecutive escapes\" is not a count, it is disabling "
+                        "the tier outright, which that field does not exist to express.",
+                        retire_after_));
+    }
+}
+
+bool IpqpEscapeLadder::record(const IpqpResult &result, Index major) {
+    if (major <= 0) {
+        throw std::invalid_argument(fmt::format(
+            "IpqpEscapeLadder::record: major ({}) must be > 0; "
+            "IpqpCounters::ipqp_tier_retired_after uses 0 to mean \"never retired\", so "
+            "major 0 is not a representable place for retirement to have happened.",
+            major));
+    }
+    if (result.declined_pinned) {
+        // A DECLINE IS NEUTRAL. It cannot advance the tally (the tier never
+        // ran, so it produced no evidence of unsuitability -- that is
+        // `ipqp_declined_pinned`'s own settled text), and it cannot reset one
+        // either (it produced no evidence of suitability, so it says nothing
+        // about whether the previous escapes were a pattern).
+        return retired_;
+    }
+    if (result.escape_reason == IpqpEscape::kNone) {
+        // "ANY SUCCESS RESETS THE COUNT" (spec 6.1). A converged solve whose
+        // CERTIFICATE was downgraded without an escape is a success here --
+        // plan section 7 note (j) is explicit that it carries no section 6.1
+        // K = 3 charge, and section 6.1's own word for the alternative to an
+        // escape is "success".
+        consecutive_ = 0;
+        return retired_;
+    }
+    ++consecutive_;
+    if (!retired_ && consecutive_ >= retire_after_) {
+        // FIRES AT MOST ONCE (`ipqp_tier_retired_after`'s marker-not-a-count
+        // discipline): section 6.1 retires the tier "for the REMAINDER of that
+        // solve", and "any success resets the count" resets the tally toward a
+        // FUTURE retirement, not an already-fired one.
+        retired_ = true;
+        retired_after_ = major;
+    }
+    return retired_;
+}
+
+bool IpqpEscapeLadder::retired() const { return retired_; }
+
+Index IpqpEscapeLadder::retired_after() const { return retired_after_; }
+
+Index IpqpEscapeLadder::consecutive_escapes() const { return consecutive_; }
+
 IpqpBounds make_ipqp_bounds(const IpqpBox &box) {
     // CLAUDE.md section 4, at a PUBLIC boundary: this function takes an
     // IpqpBox by reference, so a hand-built box (task 6's routing chain will

@@ -20,6 +20,7 @@
 
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -625,6 +626,178 @@ TEST(IpqpInfeasibleSuspectTest, AFeasibleSolveNeverRaisesTheSignature) {
         EXPECT_EQ(r.counters.ipqp_escape_infeasible_suspect, 0);
         EXPECT_EQ(r.infeasibility_evidence.least_infeasible_x.size(), 0);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Section 6.1 -- the escape ladder
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// A tier outcome shaped by hand. The ladder reads exactly two fields, and
+/// building results directly rather than by solving keeps the ladder's own
+/// rules separable from the engine's classification -- which is the point of
+/// `IpqpEscapeLadder` being a type and not a member.
+IpqpResult escaped(IpqpEscape why) {
+    IpqpResult r;
+    r.escape_reason = why;
+    r.status = QpStatus::kNumericalError;
+    return r;
+}
+
+IpqpResult succeeded() { return IpqpResult{}; }
+
+IpqpResult downgraded_without_escape() {
+    IpqpResult r;
+    r.status = QpStatus::kNumericalError;
+    r.certificate_downgraded = true;
+    r.escape_reason = IpqpEscape::kNone;
+    return r;
+}
+
+IpqpResult declined() {
+    IpqpResult r;
+    r.declined_pinned = true;
+    r.status = QpStatus::kNumericalError;
+    r.escape_reason = IpqpEscape::kNone;
+    r.counters.ipqp_declined_pinned = 1;
+    return r;
+}
+
+} // namespace
+
+TEST(IpqpEscapeLadderTest, ThreeConsecutiveEscapesRetireTheTierAtThatMajor) {
+    IpqpEscapeLadder ladder{IpqpOptions{}};
+    EXPECT_FALSE(ladder.retired());
+    EXPECT_EQ(ladder.retired_after(), 0);
+
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kBudget), 1));
+    EXPECT_EQ(ladder.consecutive_escapes(), 1);
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kStall), 2));
+    EXPECT_EQ(ladder.consecutive_escapes(), 2);
+    // K = 3 (IpqpOptions::ipqp_retire_after's default).
+    EXPECT_TRUE(ladder.record(escaped(IpqpEscape::kIndefinite), 3));
+    EXPECT_TRUE(ladder.retired());
+    EXPECT_EQ(ladder.retired_after(), 3);
+
+    // FIRES AT MOST ONCE: a fourth escape does not move the marker to major 4.
+    EXPECT_TRUE(ladder.record(escaped(IpqpEscape::kNumerical), 4));
+    EXPECT_EQ(ladder.retired_after(), 3);
+    // ... and neither does a later SUCCESS un-retire it. "Any success resets
+    // the count" resets the tally toward a FUTURE retirement, not a fired one.
+    EXPECT_TRUE(ladder.record(succeeded(), 5));
+    EXPECT_TRUE(ladder.retired());
+    EXPECT_EQ(ladder.retired_after(), 3);
+}
+
+TEST(IpqpEscapeLadderTest, AnySuccessResetsTheCountIncludingADowngradedOne) {
+    IpqpEscapeLadder ladder{IpqpOptions{}};
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kBudget), 1));
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kBudget), 2));
+    EXPECT_EQ(ladder.consecutive_escapes(), 2);
+
+    // ONE success clears the tally, so the two escapes above are no longer
+    // "consecutive" with anything that follows.
+    EXPECT_FALSE(ladder.record(succeeded(), 3));
+    EXPECT_EQ(ladder.consecutive_escapes(), 0);
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kBudget), 4));
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kBudget), 5));
+    EXPECT_FALSE(ladder.retired());
+
+    // A DOWNGRADED-WITHOUT-ESCAPE SOLVE IS A SUCCESS HERE (task 5's ruling,
+    // from plan section 7 note (j): "no census entry, no section 6.1 K = 3
+    // charge"). Without this rule, three clean solves under
+    // `ipqp_require_final_inertia = false` would sit on top of an old tally.
+    EXPECT_FALSE(ladder.record(downgraded_without_escape(), 6));
+    EXPECT_EQ(ladder.consecutive_escapes(), 0);
+    EXPECT_FALSE(ladder.retired());
+}
+
+TEST(IpqpEscapeLadderTest, ADeclineIsNeutralAndNeitherAdvancesNorResetsTheTally) {
+    // `ipqp_declined_pinned`'s settled text: "the tier never ran, so this
+    // never counts toward `ipqp_escapes` or the K=3 retirement threshold".
+    // The other half is task 5's ruling and is what this fixture separates
+    // from the reset rule: a decline is not a SUCCESS either.
+    IpqpEscapeLadder ladder{IpqpOptions{}};
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kBudget), 1));
+    EXPECT_FALSE(ladder.record(escaped(IpqpEscape::kBudget), 2));
+    EXPECT_EQ(ladder.consecutive_escapes(), 2);
+
+    // NEUTRAL: the tally survives a decline...
+    EXPECT_FALSE(ladder.record(declined(), 3));
+    EXPECT_EQ(ladder.consecutive_escapes(), 2);
+    EXPECT_FALSE(ladder.retired());
+    // ... and the NEXT escape is still the third.
+    EXPECT_TRUE(ladder.record(escaped(IpqpEscape::kBudget), 4));
+    EXPECT_EQ(ladder.retired_after(), 4);
+
+    // MUTATION PARTNER: had the decline been treated as a success, the run
+    // above would have needed three more escapes. This asserts the other
+    // reading is genuinely different rather than merely differently spelled.
+    IpqpEscapeLadder reset_ladder{IpqpOptions{}};
+    EXPECT_FALSE(reset_ladder.record(escaped(IpqpEscape::kBudget), 1));
+    EXPECT_FALSE(reset_ladder.record(escaped(IpqpEscape::kBudget), 2));
+    EXPECT_FALSE(reset_ladder.record(succeeded(), 3));
+    EXPECT_FALSE(reset_ladder.record(escaped(IpqpEscape::kBudget), 4));
+    EXPECT_FALSE(reset_ladder.retired());
+}
+
+TEST(IpqpEscapeLadderTest, TheThresholdIsTheOptionAndIsValidatedAtTheBoundary) {
+    IpqpOptions io;
+    io.ipqp_retire_after = 1;
+    IpqpEscapeLadder eager{io};
+    EXPECT_TRUE(eager.record(escaped(IpqpEscape::kStall), 7));
+    EXPECT_EQ(eager.retired_after(), 7);
+
+    io.ipqp_retire_after = 5;
+    IpqpEscapeLadder patient{io};
+    for (Index k = 1; k <= 4; ++k) {
+        EXPECT_FALSE(patient.record(escaped(IpqpEscape::kStall), k));
+    }
+    EXPECT_TRUE(patient.record(escaped(IpqpEscape::kStall), 5));
+    EXPECT_EQ(patient.retired_after(), 5);
+
+    // BOUNDARY VALIDATION (CLAUDE.md section 4): this type is reachable
+    // without a driver, so it re-checks the band `validate_sqp_options` owns
+    // rather than trusting a caller that may never have run one.
+    IpqpOptions bad;
+    bad.ipqp_retire_after = 0;
+    EXPECT_THROW(IpqpEscapeLadder{bad}, std::invalid_argument);
+    IpqpEscapeLadder ok{IpqpOptions{}};
+    EXPECT_THROW(ok.record(escaped(IpqpEscape::kBudget), 0), std::invalid_argument);
+}
+
+TEST(IpqpEscapeLadderTest, TheLadderIsDrivenByRealTierOutcomesAndNotOnlyByHandBuiltOnes) {
+    // The three fixtures above build `IpqpResult`s directly, which keeps the
+    // ladder's rules separable -- but a ladder that only ever saw hand-built
+    // results could be reading fields the engine never sets. This drives it
+    // from three REAL solves: two escapes and one certifying solve, in the
+    // order that must NOT retire, then three escapes in a row, which must.
+    IpqpOptions budget_io;
+    budget_io.ipqp_hard_iter_cap = 1;
+
+    IpqpEscapeLadder ladder{IpqpOptions{}};
+    Index major = 0;
+    for (int k = 0; k < 2; ++k) {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(convex_qp(), nullptr, budget_io, SolveOverrides{});
+        ASSERT_EQ(r.escape_reason, IpqpEscape::kBudget);
+        EXPECT_FALSE(ladder.record(r, ++major));
+    }
+    {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+        ASSERT_EQ(r.escape_reason, IpqpEscape::kNone);
+        EXPECT_FALSE(ladder.record(r, ++major));
+        EXPECT_EQ(ladder.consecutive_escapes(), 0);
+    }
+    for (int k = 0; k < 3; ++k) {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(convex_qp(), nullptr, budget_io, SolveOverrides{});
+        ladder.record(r, ++major);
+    }
+    EXPECT_TRUE(ladder.retired());
+    EXPECT_EQ(ladder.retired_after(), 6);
 }
 
 } // namespace hven::solvers
