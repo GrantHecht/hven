@@ -152,6 +152,34 @@ TEST(AccumulateIpqpCounters, RestartShiftMaxFoldsByMaxAcrossSubproblems) {
     EXPECT_EQ(total.ipqp_restart_shift_max, 0.09) << "the true max, not the last-folded value";
 }
 
+TEST(AccumulateIpqpCounters, TierRetiredAfterFoldsByMaxNotSumOrOverwrite) {
+    // Fix round 1 (Codex co-review I1): ipqp_tier_retired_after is a
+    // once-per-solve MAJOR INDEX, not a count, so it must fold by MAX, the
+    // same discipline as the peak fields above -- not by sum (which would
+    // report the impossible "major 11" from folding 4 and 7) and not by
+    // overwrite (which would erase 7 down to 0 on the third fold). Values
+    // chosen so all three candidate fold rules disagree at each step:
+    // MUTATION CHECK: after folding 4 then 7, sum gives 11 and overwrite
+    // gives 7 by accident (matches max here) but diverges at the next step;
+    // folding 0 third distinguishes overwrite (would give 0) from max
+    // (stays 7) unambiguously.
+    IpqpCounters total;
+    IpqpCounters p1;
+    p1.ipqp_tier_retired_after = 4;
+    IpqpCounters p2;
+    p2.ipqp_tier_retired_after = 7;
+    IpqpCounters p3;
+    p3.ipqp_tier_retired_after = 0; // a later subproblem where the tier was never retired
+
+    accumulate_ipqp_counters(total, p1);
+    EXPECT_EQ(total.ipqp_tier_retired_after, 4);
+    accumulate_ipqp_counters(total, p2);
+    EXPECT_EQ(total.ipqp_tier_retired_after, 7) << "the true max; sum would give the impossible 11";
+    accumulate_ipqp_counters(total, p3);
+    EXPECT_EQ(total.ipqp_tier_retired_after, 7)
+        << "still 7: folding a later 0 must not overwrite the true retirement major";
+}
+
 TEST(AccumulateIpqpCounters, AlphaPMinFoldsByMinAcrossSubproblems) {
     // MUTATION CHECK: an "ignore one" bug would leave total at +infinity
     // forever; an "assign one" bug would leave total at the LAST value,
@@ -249,7 +277,10 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     a.ipqp_mu_adopted = 1;
     a.ipqp_warm_restart_abandoned = 0;
     a.ipqp_declined_pinned = 7;
-    a.ipqp_tier_retired_after = 0; // driver-scale only; see its own doc comment
+    // ipqp_tier_retired_after deliberately NOT set here: it is max-folded,
+    // not summed (fix round 1), so it has its own discriminating test below
+    // (TierRetiredAfterFoldsByMaxAcrossSubproblems) rather than sharing this
+    // sum-only fixture.
     a.ipqp_face_uncertain = 12;
     a.ipqp_refine_accepted = 4;
     a.ipqp_refine_refused = 1;
@@ -278,7 +309,6 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     b.ipqp_mu_adopted = 0;
     b.ipqp_warm_restart_abandoned = 1;
     b.ipqp_declined_pinned = 2;
-    b.ipqp_tier_retired_after = 4; // the one subproblem where retirement fires
     b.ipqp_face_uncertain = 6;
     b.ipqp_refine_accepted = 3;
     b.ipqp_refine_refused = 0;
@@ -310,8 +340,6 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     EXPECT_EQ(total.ipqp_mu_adopted, 1);
     EXPECT_EQ(total.ipqp_warm_restart_abandoned, 1);
     EXPECT_EQ(total.ipqp_declined_pinned, 9);
-    EXPECT_EQ(total.ipqp_tier_retired_after, 4)
-        << "summed harmlessly like ssn_escape_gate_refused, per its own doc comment";
     EXPECT_EQ(total.ipqp_face_uncertain, 18);
     EXPECT_EQ(total.ipqp_refine_accepted, 7);
     EXPECT_EQ(total.ipqp_refine_refused, 1);

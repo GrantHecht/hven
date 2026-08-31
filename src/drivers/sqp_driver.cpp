@@ -771,9 +771,14 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_mu_adopted += one.ipqp_mu_adopted;
     total.ipqp_warm_restart_abandoned += one.ipqp_warm_restart_abandoned;
     total.ipqp_declined_pinned += one.ipqp_declined_pinned;
-    // Driver-scale only; summed harmlessly, exactly like
-    // ssn_escape_gate_refused above -- see IpqpCounters' own doc comment.
-    total.ipqp_tier_retired_after += one.ipqp_tier_retired_after;
+    // MARKER, NOT A COUNT (fix round 1, Codex co-review I1): max-folded, not
+    // summed -- a once-per-solve major index, and 0 (never retired) is the
+    // fold identity, same discipline as the peak fields above. Summing two
+    // nonzero readings would report an impossible major -- see
+    // IpqpCounters' own doc comment
+    // (docs/notes/2026-08-m6-w1-ipqp-spec.md:615-617).
+    total.ipqp_tier_retired_after =
+        std::max(total.ipqp_tier_retired_after, one.ipqp_tier_retired_after);
     total.ipqp_face_uncertain += one.ipqp_face_uncertain;
     total.ipqp_refine_accepted += one.ipqp_refine_accepted;
     total.ipqp_refine_refused += one.ipqp_refine_refused;

@@ -548,17 +548,25 @@ struct SsnCounters {
 /// solve's counters never carry it.
 ///
 /// FOLD RULE, stated once here rather than per field: every `Index` field
-/// SUMS across subproblems, exactly like `accumulate_ssn_counters`, with two
-/// PER-SUBPROBLEM STATUS fields excepted (`ipqp_rho_demanded_last`,
-/// `ipqp_final_inertia_read` -- OVERWRITTEN, the `SqpCounters::
-/// start_level_used` convention for a categorical reading rather than an
-/// additive one) and one PEAK-STYLE `double` pair max-folded
+/// SUMS across subproblems, exactly like `accumulate_ssn_counters`, with
+/// FOUR exceptions -- two PER-SUBPROBLEM STATUS fields, OVERWRITTEN (the
+/// `SqpCounters::start_level_used` convention for a categorical reading
+/// rather than an additive one): `ipqp_rho_demanded_last` and
+/// `ipqp_final_inertia_read`. One `double` PEAK pair max-folded
 /// (`ipqp_rho_demanded_max`, `ipqp_restart_shift_max`, model:
 /// `ssn_sign_sweep_max` above) plus one min-folded pair
-/// (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`). Each exception is restated at
-/// its own field below.
+/// (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`). And one `Index` MARKER
+/// max-folded: `ipqp_tier_retired_after` (fix round 1: max, not sum, since
+/// it is a once-per-solve major index, not a count, and summing two nonzero
+/// readings would report an impossible major). Each exception is restated
+/// at its own field below, along with what each field COUNTS and EXCLUDES.
 struct IpqpCounters {
-    /// IPQP iterations taken: one predictor+corrector pair each.
+    /// IPQP iterations taken: one predictor+corrector pair each (spec
+    /// section 3.1's Mehrotra predictor-corrector: one factorization, an
+    /// affine solve, a corrector solve). Excludes a predictor attempt that
+    /// fails before its corrector runs -- section 3.1 does not address the
+    /// partial case, and the natural boundary is a completed pair only
+    /// (T4 confirms).
     Index ipqp_iters = 0;
 
     /// Numeric factorizations paid. `>= ipqp_iters`, exceeding it by
@@ -576,13 +584,16 @@ struct IpqpCounters {
 
     /// Backend triangular solves: 2 per iteration nominal (predictor RHS,
     /// corrector RHS), more when a ladder rung or the final inertia read
-    /// adds a factorization of its own.
+    /// adds a factorization of its own. Excludes triangular solves paid by
+    /// any other QP kernel (walk, SSN) or by the tier-3 `refine_on_face`
+    /// hand-off, which pays its own solve outside this struct.
     Index ipqp_solves = 0;
 
     /// Backend pattern-verify calls (mirrors
     /// `SymmetricFactor::Counters::pattern_verify_count`). Proves the plan
     /// section 7 note a discipline: exactly 1 per tier entry, every other
-    /// factorization in that entry running `kAssumeAnalyzed`.
+    /// factorization in that entry running `kAssumeAnalyzed`. Excludes
+    /// pattern-verify calls paid by any other QP kernel in the same solve.
     Index ipqp_pattern_verifies = 0;
 
     /// The inertia-demanded `rho`'s HIGH-WATER MARK across every ladder rung
@@ -594,12 +605,16 @@ struct IpqpCounters {
     double ipqp_rho_demanded_max = 0.0;
 
     /// The inertia-demanded `rho` at the LAST ladder rung this subproblem
-    /// paid. OVERWRITTEN (not summed or folded) by `accumulate_ipqp_counters`
-    /// -- a categorical "as of the most recently folded subproblem" reading,
-    /// the same convention `SqpCounters::start_level_used` uses for a
-    /// per-solve status rather than an additive count. Summing values drawn
-    /// from many subproblems' own "last rho" would report a quantity with no
-    /// meaning.
+    /// paid -- spec section 7's table row
+    /// (`docs/notes/2026-08-m6-w1-ipqp-spec.md:713`) calls this reading
+    /// "final" in so many words, which is what makes OVERWRITE (not summed
+    /// or folded) the normative fold here, not merely this struct's own
+    /// convention: the same `SqpCounters::start_level_used` convention for a
+    /// per-solve categorical status rather than an additive count. Summing
+    /// values drawn from many subproblems' own "last rho" would report a
+    /// quantity with no meaning. Excludes `delta`'s own last value, which
+    /// carries no separate field (only `rho`'s high-water and final
+    /// readings are tracked, per the same spec row).
     double ipqp_rho_demanded_last = 0.0;
 
     /// Factorizations REJECTED on wrong inertia (the section 2.2 gate),
@@ -610,31 +625,46 @@ struct IpqpCounters {
 
     /// Iterations taken with `rho` above the schedule's own residual-implied
     /// level, i.e. before section 3.2's gated decrease could be applied.
+    /// Excludes iterations already at or below the residual-implied level,
+    /// where no decrease was pending.
     Index ipqp_iters_at_elevated_rho = 0;
 
     /// Monotone-floor violations ATTEMPTED: down-then-up cycles on `rho` or
     /// `delta` (section 2.2's monotone floor). Counts the attempt, not a
-    /// move, since the floor refuses the move itself.
+    /// move, since the floor refuses the move itself. Excludes a gated
+    /// decrease that succeeded (`ipqp_reg_decreases`) and any
+    /// inertia-demanded increase (`ipqp_reg_increases`), neither of which is
+    /// a floor violation.
     Index ipqp_rho_flaps = 0;
 
     /// Outcome of the section 2.2 item 4 REQUIRED final unregularized
     /// inertia read on a certifying exit: `0` right, `1` wrong (certificate
-    /// downgraded), `2` unreadable. OVERWRITTEN by `accumulate_ipqp_counters`
-    /// -- same convention as `ipqp_rho_demanded_last` above, a categorical
-    /// status rather than an additive quantity; a solve-wide "was any
+    /// downgraded), `2` unreadable -- spec section 7's table row
+    /// (`docs/notes/2026-08-m6-w1-ipqp-spec.md:717`) sits two lines below
+    /// `ipqp_rho_demanded_last`'s own "final" row (`:713`), and the same
+    /// per-solve categorical reading is normative here: OVERWRITTEN by
+    /// `accumulate_ipqp_counters`, the `SqpCounters::start_level_used`
+    /// convention, not an additive quantity. A solve-wide "was any
     /// subproblem's read ever unreliable" question is answered by
     /// `ipqp_escape_indefinite` instead. Structurally `0` (its "right"
     /// value) on a subproblem that never reached a certifying exit, since
-    /// the read is paid only there.
+    /// the read is paid only there. Excludes every inertia read paid
+    /// mid-ladder (`ipqp_inertia_retries`), which this field never reports.
     Index ipqp_final_inertia_read = 0;
 
-    /// `(rho, delta)` schedule GATED decreases actually applied.
+    /// `(rho, delta)` schedule GATED decreases actually applied. Excludes a
+    /// decrease attempt the monotone floor refused, which is
+    /// `ipqp_rho_flaps` instead.
     Index ipqp_reg_decreases = 0;
 
-    /// `(rho, delta)` schedule inertia-demanded increases.
+    /// `(rho, delta)` schedule inertia-demanded increases. Excludes the
+    /// initial `rho_0`/`delta_0` assignment at subproblem start (section
+    /// 3.2), which is not an increase.
     Index ipqp_reg_increases = 0;
 
-    /// Proximal-estimate (`zeta`/`lambda_est`) advances.
+    /// Proximal-estimate (`zeta`/`lambda_est`) advances. Excludes the
+    /// initial `zeta_0 = x_0`, `lambda_est_0 = y_0` assignment (section
+    /// 3.2), which is not an advance.
     Index ipqp_prox_center_updates = 0;
 
     /// Warm restarts (section 5.2) whose repair moved at least one
@@ -647,19 +677,25 @@ struct IpqpCounters {
     /// to any component of any warm restart's seed; `0.0` when no restart
     /// was ever repaired. MAX-FOLDED across subproblems in
     /// `accumulate_ipqp_counters` (model: `ssn_sign_sweep_max`) -- the
-    /// honest-magnitude field, not a sum, exactly like that field.
+    /// honest-magnitude field, not a sum, exactly like that field. Excludes
+    /// a cold-started subproblem, which pays no repair and never touches
+    /// this field.
     double ipqp_restart_shift_max = 0.0;
 
     /// `1` iff the payload `mu` raised `mu_0` off the measured floor
     /// (section 5.3's clamp: `mu_0 = clamp(max(mu_meas, kappa*mu_payload),
     /// min, init)`, and the payload term was the binding one), else `0`. A
     /// per-subproblem flag SUMMED like a count, exactly the convention
-    /// `SqpCounters::n_seeded` uses for a per-solve flag.
+    /// `SqpCounters::n_seeded` uses for a per-solve flag. Excludes a
+    /// cold-started subproblem, which has no payload `mu` to adopt and is
+    /// structurally `0` here.
     Index ipqp_mu_adopted = 0;
 
     /// `1` iff the section 5.5 warm-kill fired on this subproblem (a warm
     /// restart overran its clamped budget and was restarted cold exactly
-    /// once), else `0`.
+    /// once), else `0`. Excludes a cold-started subproblem (structurally
+    /// `0`, no warm restart to abandon) and a warm restart that stayed
+    /// inside its budget.
     Index ipqp_warm_restart_abandoned = 0;
 
     /// Subproblems the section 2.3/4b domain gate DECLINED pre-solve because
@@ -671,39 +707,69 @@ struct IpqpCounters {
     /// however it then concluded.
     Index ipqp_declined_pinned = 0;
 
-    /// The major at which K=3 consecutive escapes retired the tier for the
-    /// remainder of this solve; `0` if the tier was never retired.
+    /// The major at which K = 3 consecutive escapes retired the tier for the
+    /// remainder of this solve (spec section 6.1,
+    /// `docs/notes/2026-08-m6-w1-ipqp-spec.md:615-617`); `0` if the tier was
+    /// never retired.
+    ///
+    /// A MARKER, NOT A COUNT (fix round 1, Codex co-review I1): retirement
+    /// fires AT MOST ONCE PER SOLVE -- section 6.1 is unambiguous ("after
+    /// K = 3 consecutive escapes ... the tier is retired for the REMAINDER
+    /// of that solve"), and "any success resets the count" resets only the
+    /// consecutive-escape tally toward a future retirement, not an
+    /// already-fired one; nothing in section 6.1 contradicts once-per-solve.
+    /// FOLDED BY MAX in `accumulate_ipqp_counters`, the same discipline as
+    /// the peak fields above (`ipqp_rho_demanded_max`,
+    /// `ipqp_restart_shift_max`): order-independent, and `0` (never retired)
+    /// is the fold identity. Summing two nonzero readings would report an
+    /// impossible major -- e.g. majors 4 and 7 summing to the impossible
+    /// "major 11" -- so max is the only fold that stays a real major index.
+    ///
     /// DRIVER-SCALE ONLY, the `ssn_escape_gate_refused` convention: no
     /// per-subproblem read of this struct ever carries it nonzero (retiring
     /// the tier is bookkeeping ACROSS subproblems, which no single
     /// subproblem's own solve can observe) -- the driver writes the
-    /// `SqpCounters::ipqp` field directly when retirement fires. Summed here
-    /// for the same reason `ssn_escape_gate_refused` is: harmless on an
-    /// always-zero per-subproblem contribution.
+    /// `SqpCounters::ipqp` field directly when retirement fires. Max-folded
+    /// here anyway for the same reason `ssn_escape_gate_refused` is summed:
+    /// harmless on an always-zero per-subproblem contribution, and correct
+    /// on the one real call site (a restoration sub-solve's own totals
+    /// folding onto an already-populated running total, mirroring
+    /// `accumulate_ssn_counters`). Excludes every major before retirement
+    /// fired, which never sets this field, and excludes a solve where the
+    /// tier was declined-pinned throughout (`ipqp_declined_pinned`) without
+    /// ever accumulating three consecutive genuine escapes.
     Index ipqp_tier_retired_after = 0;
 
     /// Rows/bounds the section 2.3 ratio rule left UNCERTAIN (neither
     /// classification test satisfied), handed to `refine_on_face` for exact
-    /// resolution rather than asserted either way.
+    /// resolution rather than asserted either way. Excludes rows/bounds the
+    /// ratio rule classified definitively active or inactive, which never
+    /// reach `refine_on_face`.
     Index ipqp_face_uncertain = 0;
 
-    /// Tier-3 `refine_on_face` hand-offs ACCEPTED as the step.
+    /// Tier-3 `refine_on_face` hand-offs ACCEPTED as the step. Excludes a
+    /// subproblem that never reached tier-3 (no rows left uncertain), and
+    /// excludes a refusal, which is `ipqp_refine_refused` instead.
     Index ipqp_refine_accepted = 0;
 
     /// Tier-3 `refine_on_face` hand-offs REFUSED (empty/rank-deficient face,
     /// a failed inertia gate, or the refined point leaving the box/TR/
     /// inactive rows) -- the certificate the tier already had stands; see
     /// `SsnCounters::ssn_refine_refused` for the identical convention on the
-    /// SSN tier.
+    /// SSN tier. Excludes an acceptance, which is `ipqp_refine_accepted`
+    /// instead, and a subproblem that never reached tier-3.
     Index ipqp_refine_refused = 0;
 
     /// Routing outcomes handed to the SSN warm-grade path after a
-    /// `refine_on_face` refusal.
+    /// `refine_on_face` refusal. Excludes a `refine_on_face` acceptance
+    /// (`ipqp_refine_accepted`), which never reaches this routing step.
     Index ipqp_to_ssn = 0;
 
     /// Routing outcomes handed to the COLD walk: a genuine tier escape, or a
     /// declined-pinned subproblem (`ipqp_declined_pinned` above) re-routed
     /// pre-solve. Should be rare by design -- the routing chain's own note.
+    /// Excludes a hand-off to SSN (`ipqp_to_ssn`), the other routing
+    /// destination.
     Index ipqp_to_walk = 0;
 
     /// Subproblems the tier ESCAPED (any of the five reasons below), summed
@@ -714,7 +780,9 @@ struct IpqpCounters {
     // THE FIVE-WAY ESCAPE CENSUS. The five MUST SUM TO `ipqp_escapes`
     // (`SsnCounters`:522-527's discipline, restated here for this tier): each
     // subproblem escape increments exactly one of the five below and
-    // `ipqp_escapes` together.
+    // `ipqp_escapes` together. Each field's own doc comment states its
+    // count and, per the block discipline above, what it excludes -- always
+    // "the other four", stated once here rather than repeated five times.
     //
     // Plan section 7 note b (FINAL, r3): the spec v2 draft's three
     // stall-reason sub-counters under `ipqp_escape_stall` are DROPPED as
@@ -723,10 +791,40 @@ struct IpqpCounters {
     // escape-COUNT only; the three conjunct VALUES (mu ratio over the
     // window, relative residual improvement, min alpha) travel instead in
     // the stall escape's own evidence block (T5), never as counters here.
+
+    /// Escapes via the section 6.1 hard iteration cap, `IpqpEscape::kBudget`
+    /// -- of LAST RESORT (section 6.1: the stall test below should fire
+    /// first on anything genuinely stuck).
     Index ipqp_escape_budget = 0;
+
+    /// Escapes via the section 6.2 early-stall test (the `mu`/residual/
+    /// min-alpha window, all three conjuncts required). Excludes the
+    /// DROPPED `ipqp_stall_reason_mu/_residual/_alpha` sub-counters (note
+    /// b) -- the three conjunct values travel in the stall escape's own
+    /// evidence block instead, never as counters here.
     Index ipqp_escape_stall = 0;
+
+    /// Escapes via `IpqpEscape::kIndefinite` (section 2.2 item 4): the
+    /// REQUIRED final unregularized inertia read came back wrong on an
+    /// otherwise-converged point, downgrading the certificate. Excludes an
+    /// inertia-gate failure mid-ladder, which is `ipqp_inertia_retries`
+    /// instead and retries rather than escaping.
     Index ipqp_escape_indefinite = 0;
+
+    /// Escapes on a numerical failure the ladder could not recover from
+    /// (section 2.3 item 5's "numerical error" class). Excludes an
+    /// indefinite-certificate escape (`ipqp_escape_indefinite` above) -- a
+    /// distinct reason even though both can stem from a factorization or
+    /// inertia reading; the precise boundary between the two is left to the
+    /// engine author (T4 confirms).
     Index ipqp_escape_numerical = 0;
+
+    /// Escapes via `IpqpEscape::kInfeasibleSuspect` (section 6.3's
+    /// two-conjunct test: primal residual flat on a positive floor AND
+    /// `||(y, z)||` growth over the window), carried with its own evidence
+    /// block (`IpqpResult::infeasibility_evidence`). Excludes a
+    /// certificate: the tier never returns `QpStatus::kInfeasible` (section
+    /// 6.3) -- only this escape signature.
     Index ipqp_escape_infeasible_suspect = 0;
 
     /// The smallest PRIMAL fraction-to-boundary step taken, across every
@@ -737,11 +835,14 @@ struct IpqpCounters {
     /// `(0, 1]`, so a `0.0` default would be indistinguishable from, and
     /// would defeat, an observed step and would make `std::min` never move
     /// off it. `+infinity` reads as "no step observed yet" and folds
-    /// correctly with `std::min`.
+    /// correctly with `std::min`. Excludes a declined-pinned subproblem
+    /// (`ipqp_declined_pinned`), which the tier never enters and so never
+    /// takes a fraction-to-boundary step.
     double ipqp_alpha_p_min = std::numeric_limits<double>::infinity();
 
     /// The DUAL-side counterpart of `ipqp_alpha_p_min`: same fold, same
-    /// `+infinity` default and the same reason for it.
+    /// `+infinity` default and the same reason for it, including the same
+    /// exclusion of a declined-pinned subproblem.
     double ipqp_alpha_d_min = std::numeric_limits<double>::infinity();
 };
 

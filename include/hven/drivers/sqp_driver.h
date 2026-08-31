@@ -2003,14 +2003,20 @@ void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one);
 // THE FOLD RULE (`IpqpCounters`'s own doc comment states it in full):
 // - `ipqp_rho_demanded_max`, `ipqp_restart_shift_max` fold by MAX (the
 //   `ssn_sign_sweep_max` model);
+// - `ipqp_tier_retired_after` also folds by MAX (fix round 1, Codex
+//   co-review I1): it is a once-per-solve MAJOR INDEX, not a count, so
+//   summing two nonzero readings (e.g. majors 4 and 7) would report an
+//   impossible major ("11"); 0 (never retired) is the fold identity, same
+//   as the peak fields above. Driver-scale only -- no `IpqpCounters`
+//   produced by a real subproblem solve ever carries it nonzero -- but
+//   max-folded anyway for the one real call site (a restoration sub-solve's
+//   totals onto an already-populated running total);
 // - `ipqp_alpha_p_min`, `ipqp_alpha_d_min` fold by MIN (the same model,
 //   mirrored);
 // - `ipqp_rho_demanded_last`, `ipqp_final_inertia_read` are OVERWRITTEN by
 //   `one`'s value -- categorical per-subproblem status, not an additive
 //   quantity, the `SqpCounters::start_level_used` convention;
-// - every other field SUMS, including the five-way escape census and the
-//   driver-scale-only `ipqp_tier_retired_after` (harmless: no `IpqpCounters`
-//   produced by a real subproblem solve ever carries the latter nonzero).
+// - every other field SUMS, including the five-way escape census.
 /// @brief Folds one subproblem's IPQP counters into a solve's running total.
 /// @param total The running total, updated in place.
 /// @param one   The subproblem's counters; see the fold rule above.
