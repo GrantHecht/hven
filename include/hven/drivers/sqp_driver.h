@@ -1133,7 +1133,6 @@
 #include <cmath>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -2061,6 +2060,39 @@ QpSolution ipqp_result_to_qp_solution(const IpqpResult &res);
 /// @param res   The abandoned tier result.
 void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res);
 
+// THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item 5,
+// section 6.3's Amendment C registration).
+//
+// TODAY ITS BODY IS THE COLD WALK, and that is the whole of it: a genuine tier
+// escape -- numerical, infeasible-suspect, or early stall -- discards the IPQP
+// iterate and re-solves this subproblem from cold. COLD rather than seeded is
+// spec 2.3 item 5's own ruling, and the code fact behind it is
+// `crash_basis_seed`'s signature: it takes only a `QpProblem` and begins
+// `seed.x = Vec::Zero(n)`, so there is no surface through which an interior
+// iterate could be transferred, and W1 does not build one.
+//
+// IT EXISTS AS A NAMED FUNCTION BECAUSE W2 REPLACES ITS BODY, not its call
+// site, and it is FREE rather than a member for the reason the three seam
+// functions above are: it can then be pinned without constructing a driver.
+// `ev`, `seed` and `evidence` are UNUSED today and are named rather than
+// omitted so the seam does not move when the body arrives -- `evidence` in
+// particular is section 6.3's own block (the least-infeasible point and the
+// optional Farkas corroboration), which is what lets W2's elastic
+// l1-penalized reformulation answer "is this subproblem infeasible" by
+// SOLVING something always-feasible rather than by accumulating symptoms.
+/// @brief The escape branch's single entry: today, the COLD walk.
+/// @param engine    the walk, which owns the answer today.
+/// @param qp        the subproblem.
+/// @param ev        the NLP evaluation at the current iterate (W2).
+/// @param seed      the seed the ordinary walk would have had, or nullptr (W2).
+/// @param evidence  the escaped solve's section 6.3 evidence block (W2).
+/// @param overrides the walk's per-solve overrides, the caller's own levers.
+/// @return the walk's solution.
+QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
+                                          const QpSolution *seed,
+                                          const IpqpInfeasibilityEvidence &evidence,
+                                          const SolveOverrides &overrides);
+
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:
 // SqpOptions::adaptive_mu (sqp_types.h) and SqpIterate::mu (same file); this
@@ -2821,27 +2853,6 @@ class SqpDriver {
     // false on every entry.
     IpqpOptions ipqp_options(bool structure_epoch_moved) const;
 
-    // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item
-    // 5, section 6.3's Amendment C registration).
-    //
-    // TODAY ITS BODY IS THE COLD WALK, and that is the whole of it: a genuine
-    // tier escape -- numerical, infeasible-suspect, or early stall -- discards
-    // the IPQP iterate and re-solves this subproblem from cold. COLD rather
-    // than seeded is spec 2.3 item 5's own ruling, and the code fact behind it
-    // is `crash_basis_seed`'s signature: it takes only a `QpProblem` and
-    // begins `seed.x = Vec::Zero(n)`, so there is no surface through which an
-    // interior iterate could be transferred, and W1 does not build one.
-    //
-    // IT EXISTS AS A NAMED FUNCTION BECAUSE W2 REPLACES ITS BODY, not its call
-    // site: the elastic l1-penalized QP -- an always-feasible reformulation --
-    // is the QP-level answer to a suspected-infeasible subproblem, and it
-    // needs the NLP evaluation and the seed this signature already carries.
-    // Both are UNUSED today and are named rather than omitted so the seam does
-    // not move when the body arrives.
-    QpSolution certified_feasibility_fallback(const QpProblem &qp, const NlpEval &ev,
-                                              const QpSolution *seed,
-                                              const SolveOverrides &overrides);
-
     // SECTION 2.3 ITEM 4's SECOND-CHOICE SUCCESSOR: the SSN tier, warm-graded
     // from the interior-point tier's own (x, lambda).
     //
@@ -2856,26 +2867,33 @@ class SqpDriver {
     // subproblem is in STEP variables and the trust region is centred on
     // p = 0, so a remembered primal would move that centre.
     //
-    // TWO SETTINGS ARE DELIBERATELY NOT THE kSsn ARM'S. The R5 deferred
-    // certification lever is forced OFF (it is a kSsn-mode research lever, and
-    // its pending-evidence state has no owner on this path), and the proximal
-    // carry is neither spent nor exported here (it is documented as the max
-    // over "this solve's SSN subproblems", which under kIpm are fall-backs
-    // rather than the tier).
+    // ONE SETTING IS DELIBERATELY NOT THE kSsn ARM'S, and one that used to be
+    // is no longer. The R5 deferred-certification lever is forced OFF (a
+    // kSsn-mode research lever whose pending-evidence state has no owner on
+    // this path). The PROXIMAL CARRY, by contrast, participates exactly as it
+    // does on the kSsn arm -- consume an incoming carry once, export the max
+    // over every subproblem, stamp the centre only from a usable exit --
+    // because `warm_start.h`'s own contract scopes it to "any SSN subproblem"
+    // and one reached through this chain is one.
+    //
+    // A USABLE EXIT IS THEN REFINED ON ITS OWN FACE, as the kSsn arm refines
+    // every certifying exit; see the definition's note for the parity rule.
     //
     /// @brief Routes one subproblem to the SSN tier, warm-graded from a
     ///        finished IPQP solve.
     /// @param qp       the subproblem.
     /// @param ires     the tier's result, the warm grade's source.
     /// @param delta    this trial's trust-region radius.
+    /// @param ssn_prox_ingested the solve's one-shot proximal carry, CONSUMED
+    ///        (set to 0) whether or not the ladder used it.
     /// @param ssn_budget_charge the probe budget's SSN accumulator, charged.
     /// @param counters the solve's running counters, updated.
     /// @param qs       written with the SSN's step iff one was usable.
     /// @return true iff the walk owns this subproblem after all (the SSN exit
     ///         was not usable), i.e. `walk_owns_this_qp`.
     bool route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires, double delta,
-                                      Index &ssn_budget_charge, SqpCounters &counters,
-                                      QpSolution &qs);
+                                      double &ssn_prox_ingested, Index &ssn_budget_charge,
+                                      SqpCounters &counters, QpSolution &qs);
 
     // WARM-START POPULATION. Builds the WarmStart every exit of solve_impl
     // attaches to SqpSolution::warm_start.
@@ -3029,17 +3047,6 @@ class SqpDriver {
     // solve" observable at all, since the analysis and the IpqpKktLayout
     // scatter plan live on the instance.
     std::unique_ptr<IpqpEngine> ipqp_engine_;
-    // THE STRUCTURE EPOCH THE HELD ANALYSIS WAS TAKEN AT (spec 4.1's hoisting
-    // rule, plan section 7 note a). The M5 R6 rule of record is that reuse
-    // keyed on the structure epoch is answer-neutral BY CONSTRUCTION; this
-    // member is the key. `has_value() == false` means the tier has not been
-    // entered on this driver yet, so the next entry analyses.
-    //
-    // ON THE DRIVER RATHER THAN ON THE ENGINE, deliberately: the epoch is the
-    // MODEL's identity and the engine is handed a `QpProblem`, which carries
-    // none. Putting the key where the identity is visible is what keeps the
-    // gate from degenerating into "the pattern looked the same".
-    std::optional<StructureEpoch> ipqp_analysis_epoch_;
     // The proximal level to EXPORT on this solve's WarmStart, and the point it
     // was reached at -- warm_start.h's `prox_sigma` / `prox_center_*` block,
     // whose own note carries the whole contract (max over the solve's SSN
