@@ -57,6 +57,16 @@ using hven::solvers::test_support::hs_numbers;
 using hven::solvers::test_support::HsProblem;
 using hven::solvers::test_support::make_hs;
 
+// How many subproblems the tier was CONSULTED on, for the routing-partition
+// helper: plan section 7 note (k)'s discipline is exactly one of {1 analyze,
+// 1 verify} per TIER ENTRY, so their sum IS the entry count. Derived at the
+// call sites rather than inside the helper so the two invariants stay
+// separately diagnosable -- if this relation ever breaks, A9's own pin is
+// what fails first.
+Index tier_entries(const IpqpCounters &c) {
+    return c.ipqp_symbolic_analyses + c.ipqp_pattern_verifies;
+}
+
 SqpOptions ipm_options() {
     SqpOptions o;
     o.qp_mode = QpMode::kIpm;
@@ -77,6 +87,15 @@ SqpOptions walk_options() {
 // default would defeat their own min-fold), and hard-coding that here would
 // duplicate a decision solver_counters.h already made.
 ::testing::AssertionResult every_ipqp_counter_is_at_its_default(const IpqpCounters &c) {
+    // THE FIELD LIST BELOW IS HAND-WRITTEN, so it needs a guard that fails
+    // when the struct grows: 29 `Index` fields and 5 `double` fields, all
+    // 8 bytes, no padding. A W2 field added without a line here would
+    // otherwise drop silently out of A7's coverage -- which is the one
+    // assertion that says the shipped default touches none of them.
+    static_assert(sizeof(IpqpCounters) == 34 * 8,
+                  "IpqpCounters changed size: add the new field to "
+                  "every_ipqp_counter_is_at_its_default below (A7's coverage is this list) and "
+                  "update this assertion.");
     const IpqpCounters d;
     std::vector<std::string> moved;
     auto check = [&](const char *name, double got, double want) {
@@ -128,6 +147,8 @@ SqpOptions walk_options() {
           static_cast<double>(d.ipqp_refine_accepted));
     check("ipqp_refine_refused", static_cast<double>(c.ipqp_refine_refused),
           static_cast<double>(d.ipqp_refine_refused));
+    check("ipqp_to_refine", static_cast<double>(c.ipqp_to_refine),
+          static_cast<double>(d.ipqp_to_refine));
     check("ipqp_to_ssn", static_cast<double>(c.ipqp_to_ssn), static_cast<double>(d.ipqp_to_ssn));
     check("ipqp_to_walk", static_cast<double>(c.ipqp_to_walk), static_cast<double>(d.ipqp_to_walk));
     check("ipqp_escapes", static_cast<double>(c.ipqp_escapes), static_cast<double>(d.ipqp_escapes));
@@ -312,7 +333,7 @@ TEST(IpqpDispatch, AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing) {
     EXPECT_EQ(c.ipqp_iters, 0);
     EXPECT_EQ(c.ipqp_factorizations, 0);
     EXPECT_EQ(c.ipqp_symbolic_analyses, 0) << "the gate runs BEFORE the engine is entered at all";
-    EXPECT_TRUE(assert_ipqp_routing_partition(c));
+    EXPECT_TRUE(assert_ipqp_routing_partition(c, tier_entries(c)));
 
     // NON-VACUITY: the same model with variable 0's box widened declines
     // nothing and runs the tier.
@@ -357,7 +378,7 @@ TEST(IpqpDispatch, TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve) {
         // than about the routing. The comparison that belongs to this task is
         // against the WALK, and it is its own test below.
         EXPECT_TRUE(assert_ipqp_escape_census_sums(c));
-        EXPECT_TRUE(assert_ipqp_routing_partition(c));
+        EXPECT_TRUE(assert_ipqp_routing_partition(c, tier_entries(c)));
 
         refine_accepted += c.ipqp_refine_accepted;
         refine_refused += c.ipqp_refine_refused;
@@ -506,12 +527,17 @@ TEST(IpqpDispatch, OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry) {
         << "the hoist is doing real work, not describing a build where every entry analysed anyway";
 }
 
-// A SECOND SOLVE ON THE SAME DRIVER REUSES THE FIRST SOLVE'S ANALYSIS, which
-// is the cross-SOLVE half of the same rule: the engine holds its analysis on
-// the instance, and the driver's epoch gate leaves it alone while the model's
-// structure epoch has not moved. Every entry of the second solve is then a
-// VERIFY and none is an analysis.
-TEST(IpqpDispatch, TheHeldAnalysisSurvivesIntoASecondSolveOnTheSameDriver) {
+// THE HOIST KEY IS PER SQP SOLVE, so a SECOND solve on the same driver
+// analyses again (settler ruling, fix round 1, C4). "One symbolic analysis per
+// SQP solve" is spec 4.1's own executable claim and A9's; making the key a
+// per-solve local is what makes it true BY CONSTRUCTION rather than by an
+// epoch comparison two different aggregates could satisfy by coincidence.
+//
+// THE ENGINE'S CACHE WOULD PHYSICALLY ALLOW THE REUSE -- it holds the analysis
+// on the instance -- and taking it is a real optimisation. It is deliberately
+// NOT taken in W1: it needs an identity a numeric epoch cannot supply (the
+// DeclarationKey stamp), and it is registered as a T7/W3 continuation item.
+TEST(IpqpDispatch, EverySqpSolveAnalysesOnceOnItsOwnAccount) {
     auto p = make_hs(26);
     SqpDriver driver(ipm_options());
     const SqpSolution first = driver.solve(*p.model);
@@ -520,22 +546,36 @@ TEST(IpqpDispatch, TheHeldAnalysisSurvivesIntoASecondSolveOnTheSameDriver) {
     const SqpSolution second = driver.solve(*p.model);
     const IpqpCounters &c = second.counters.ipqp;
     ASSERT_GT(second.counters.major_iters, 0);
-    EXPECT_EQ(c.ipqp_symbolic_analyses, 0)
-        << "the pattern was laid by the first solve and the structure epoch has not moved";
-    EXPECT_EQ(c.ipqp_pattern_verifies, second.counters.major_iters)
-        << "so every entry of this solve pays the verify instead";
+    EXPECT_EQ(c.ipqp_symbolic_analyses, 1)
+        << "the key is a per-solve local, so this solve's FIRST tier entry analyses on its own "
+           "account rather than inheriting the previous solve's";
+    EXPECT_EQ(c.ipqp_pattern_verifies, second.counters.major_iters - 1)
+        << "and every LATER entry of it verifies";
+    EXPECT_EQ(c.ipqp_symbolic_analyses + c.ipqp_pattern_verifies, second.counters.major_iters)
+        << "exactly one of {analyze, verify} per tier entry, in this solve as in the first";
 }
 
 // ===========================================================================
 // R6 -- THE EXPORT BOUNDARY, WITH THE TIER AS THE THIRD PRODUCER.
 // ===========================================================================
 
-// The tier's ratio-rule face is what `refine_on_face` is handed under kIpm, so
-// the tier decides which rows that producer prices; and on a refusal the face
-// comes back VERBATIM as the caller's own. Either way the result reaches
-// SqpDriver::finish's single sign sweep -- there is no second export boundary
-// for a third producer to have missed, which is the whole content of the
-// registration.
+// WHAT THE TIER PRODUCES, STATED PRECISELY (fix round 1, CM2 -- the first
+// round's narrative overclaimed). The tier's RAW barrier prices never reach
+// `finish()`: every route replaces them. What the tier produces is the FACE --
+// its section 2.3 ratio-rule classification -- and that face is what
+// `refine_on_face` is handed under kIpm, so the tier decides which rows that
+// producer prices and therefore which prices are exported. On a refusal the
+// subproblem goes to the SSN warm grade and the prices become SSN's; on an
+// escape they become the walk's. So the third-producer pin measures the
+// CERTIFIED/DOWNGRADED refine-accepted path, which is the only one where the
+// tier's own decision reaches the export.
+//
+// Either way the result reaches SqpDriver::finish's single sign sweep -- there
+// is no second export boundary for a third producer to have missed, which is
+// the whole content of the registration. The MUTATION PARTNER (a kIpm solve
+// that really does produce a negative price for the sweep to repair) lives in
+// tests/sqp/test_scale_smoke.cpp, at the F7 weight class where such prices
+// actually occur.
 TEST(IpqpDispatch, NoNegativeFacePriceEscapesUnderKIpmEither) {
     for (int number : hs_numbers()) {
         SCOPED_TRACE(fmt::format("HS{}", number));
@@ -581,6 +621,312 @@ TEST(IpqpDispatch, TheSsnWarmGradeRouteIsReachableAndPricesOnlyRealBounds) {
     EXPECT_GT(s.counters.ssn.ssn_iters, 0)
         << "and the SSN tier really ran -- ipqp_to_ssn is a routing count, this is the work";
     EXPECT_NEAR(s.f, p.f_star, 1e-6);
+}
+
+// ===========================================================================
+// THE FIX-ROUND-1 SETTLER RULINGS (plan section 7 note q).
+// ===========================================================================
+
+// An NLP whose QP subproblem carries T4's diag(2, -1) SADDLE Hessian: convex
+// in x0, concave in x1, both variables inside a real box so the tier has an
+// interior to start from. Used for the kIndefinite route.
+class SaddleBoxModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override { return x(0) * x(0) - x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 2.0 * x(0), -2.0 * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * obj_scale;
+        h.insert(1, 1) = -2.0 * obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -2.0);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, 2.0);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 0.5); }
+};
+
+// ROW 4 END TO END -- the saddle-suspect route, through the driver, with a
+// mutation partner (fix round 1, C7a).
+//
+// WHY THE LADDER CEILING IS LOWERED. `kIndefinite` means a reading WAS taken
+// and DISAGREED (plan note h), which needs the monotone ladder to run out of
+// room: at the shipped `ipqp_reg_max = 1e6` the ladder lifts `rho` until the
+// inertia signature is right and the subproblem then stops on its BUDGET
+// instead (that is the Q-O2 frozen-fixed-point behaviour T5 diagnosed, and it
+// is why no HS member reaches this row). Capping the ceiling is the tier's own
+// documented lever for exactly this: the ladder reaches `ipqp_reg_max` with
+// the reading still wrong, which IS the escape's definition.
+TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
+    SaddleBoxModel model;
+    SqpOptions o = ipm_options();
+    o.ipqp.ipqp_reg_max = 1.0e-2;
+    o.ipqp.ipqp_rho_init = 1.0e-4;
+    o.ipqp.ipqp_delta_init = 1.0e-4;
+    SqpDriver driver(o);
+    const SqpSolution s = driver.solve(model);
+    const IpqpCounters &c = s.counters.ipqp;
+
+    ASSERT_GT(c.ipqp_escape_indefinite, 0)
+        << "the fixture must produce a saddle-suspect exit, or nothing is tested";
+    EXPECT_EQ(c.ipqp_escapes, c.ipqp_escape_indefinite) << "and only that kind, on this fixture";
+    // THE MUTATION PARTNER: redirecting kIndefinite to the walk with the other
+    // escapes moves BOTH of these, in opposite directions.
+    EXPECT_EQ(c.ipqp_to_ssn, c.ipqp_escape_indefinite)
+        << "section 2.3 item 4: a saddle-suspect exit goes to the SSN warm grade DIRECTLY, with "
+           "no refinement attempt -- SSN's bulk flip changes the whole implied active set at once, "
+           "which is what a saddle-suspect face needs";
+    EXPECT_EQ(c.ipqp_to_walk, 0) << "and NOT to the walk, which would only re-derive the face";
+    EXPECT_EQ(c.ipqp_to_refine, c.ipqp_refine_accepted + c.ipqp_refine_refused);
+    EXPECT_TRUE(assert_ipqp_routing_partition(c, tier_entries(c)));
+    EXPECT_TRUE(assert_ipqp_escape_census_sums(c));
+    // `ssn_iters` IS NOT ASSERTED HERE, and the omission is deliberate: on a
+    // two-variable saddle the SSN kernel can reach its own exit without taking
+    // a Newton step, so a zero there is a legitimate outcome of the route
+    // rather than evidence the route was not taken. The route's own counters
+    // above are what this fixture pins; that the SSN tier does real work on
+    // this path is pinned on HS3 below.
+    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+}
+
+// RULING 1 (decision 2, REVERSED IN PART): a converged `kBudget` exit whose
+// section 2.2 item 4 certification read the factorization budget refused is a
+// SUCCESS for the section 6.1 ladder -- no K charge, and it RESETS the tally.
+// The CENSUS still counts it as `ipqp_escape_budget`: the two answer different
+// questions, and this test is the one place both answers are read at once.
+//
+// K IS LOWERED TO 1, which makes the pin unambiguous: if such an exit were
+// charged at all, the FIRST one would retire the tier. Three of them occur
+// here and the tier is never retired.
+TEST(IpqpDispatch, AConvergedBudgetExitIsACensusEscapeAndALadderSuccess) {
+    auto p = make_hs(7);
+    SqpOptions o = ipm_options();
+    // Tight enough that the item 4 read is refused on a converged solve, loose
+    // enough that the solve still converges -- the row's whole premise.
+    o.ipqp.ipqp_max_factorizations = 12;
+    o.ipqp.ipqp_retire_after = 1;
+    SqpDriver driver(o);
+    const SqpSolution s = driver.solve(*p.model);
+    const IpqpCounters &c = s.counters.ipqp;
+
+    ASSERT_GE(c.ipqp_escape_budget, 1) << "the fixture must produce the row, or nothing is tested";
+    EXPECT_EQ(c.ipqp_escapes, c.ipqp_escape_budget) << "and only that kind, on this fixture";
+    EXPECT_EQ(c.ipqp_to_walk, 0)
+        << "every one of them was ROUTED as a converged iterate, to the refinement -- not to the "
+           "cold walk an iteration-cap budget exit takes";
+    EXPECT_EQ(c.ipqp_to_refine, s.counters.major_iters)
+        << "so every major's tier exit reached tier 3";
+    EXPECT_EQ(c.ipqp_tier_retired_after, 0)
+        << "AND NONE OF THEM WAS CHARGED. At ipqp_retire_after = 1 a single charged escape retires "
+           "the tier; the tier is still live at the last major, which is only possible if the "
+           "ladder read these as successes (settler ruling, fix round 1)";
+    EXPECT_TRUE(assert_ipqp_escape_census_sums(c))
+        << "the census is unchanged: it says what stopped the tier, not whether the tier is suited";
+    EXPECT_TRUE(assert_ipqp_routing_partition(c, tier_entries(c)));
+    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+
+    // NON-VACUITY, on the same model and the same K: a TIGHTER cap produces a
+    // genuine escape (the solve does not converge inside it), which IS charged
+    // and retires the tier at the first one.
+    auto q = make_hs(7);
+    SqpOptions tight = o;
+    tight.ipqp.ipqp_max_factorizations = 9;
+    SqpDriver tight_driver(tight);
+    const SqpSolution t = tight_driver.solve(*q.model);
+    EXPECT_GT(t.counters.ipqp.ipqp_to_walk, 0) << "a genuine escape takes the cold walk";
+    EXPECT_EQ(t.counters.ipqp.ipqp_tier_retired_after, 1)
+        << "and IS charged: at K = 1 it retires the tier at the major it happened on";
+}
+
+// RULING 2 (decision 3, REVERSED): a usable SSN warm-grade exit is refined on
+// its own face, exactly as the kSsn arm refines every certifying SSN exit.
+// PARITY WITH kSsn IS THE RULE, so the counters are the SSN tier's own pair.
+TEST(IpqpDispatch, AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace) {
+    // HS3 routes to the SSN warm grade on three of its four majors (measured),
+    // and every one of those exits is usable.
+    auto p = make_hs(3);
+    SqpDriver driver(ipm_options());
+    const SqpSolution s = driver.solve(*p.model);
+    const SsnCounters &ssn = s.counters.ssn;
+
+    ASSERT_GT(s.counters.ipqp.ipqp_to_ssn, 0)
+        << "the fixture must reach the SSN warm grade, or nothing is tested";
+    EXPECT_EQ(ssn.ssn_refinements + ssn.ssn_refine_refused, s.counters.ipqp.ipqp_to_ssn)
+        << "EVERY usable SSN exit on this route is handed to tier 3 and reports exactly one of "
+           "accepted/refused -- the kSsn arm's own discipline, applied to the same kernel reached "
+           "through the kIpm chain (settler ruling, fix round 1)";
+    EXPECT_GT(ssn.ssn_iters, 0) << "and the SSN tier really did the work";
+    // `ssn_refine_factorizations` is NOT asserted positive: `refine_on_face`
+    // refuses an empty or rank-deficient face on its own PRE-SCREEN, before
+    // anything is factorized, and all three of this fixture's refusals are
+    // that kind. The charge site is the kSsn arm's line for line; what this
+    // pin holds is that every usable exit reaches tier 3, which is the parity
+    // the ruling asked for.
+    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+}
+
+// RULING 3 (decision 8, NARROWED): `adaptive_mu` is off only for the
+// subproblems the TIER solves. A model whose every major DECLINES is solved
+// entirely by the ordinary walk under kIpm, so it must be bit-identical to the
+// same model at kWalk -- a lever the caller never touched may not be disabled
+// by a mode selection whose tier never ran.
+TEST(IpqpDispatch, ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers) {
+    SqpOptions walk_opts = walk_options();
+    ASSERT_TRUE(walk_opts.adaptive_mu) << "the schedule is ON by default -- that is the premise";
+
+    PinnedVariableModel walk_model(true);
+    SqpDriver walk_driver(walk_opts);
+    const SqpSolution walk = walk_driver.solve(walk_model);
+
+    PinnedVariableModel ipm_model(true);
+    SqpDriver ipm_driver(ipm_options());
+    const SqpSolution ipm = ipm_driver.solve(ipm_model);
+
+    ASSERT_GT(ipm.counters.ipqp.ipqp_declined_pinned, 0) << "every major declines, by construction";
+    EXPECT_EQ(ipm.counters.ipqp.ipqp_declined_pinned, ipm.counters.major_iters);
+    EXPECT_EQ(ipm.status, walk.status);
+    EXPECT_EQ(ipm.counters.major_iters, walk.counters.major_iters)
+        << "the same walk, run the same number of times";
+    EXPECT_EQ(ipm.counters.qp_minor_iters, walk.counters.qp_minor_iters)
+        << "AND WITH THE SAME LEVERS: a suppressed adaptive-mu schedule changes the walk's "
+           "regularization and with it its minor count (settler ruling, fix round 1)";
+    EXPECT_EQ(ipm.counters.factorizations, walk.counters.factorizations);
+    EXPECT_DOUBLE_EQ(ipm.f, walk.f);
+    ASSERT_EQ(ipm.x.size(), walk.x.size());
+    EXPECT_EQ(ipm.x, walk.x) << "bit-identical, not merely close";
+    ASSERT_FALSE(ipm.history.empty());
+    ASSERT_EQ(ipm.history.size(), walk.history.size());
+    for (std::size_t k = 0; k < ipm.history.size(); ++k) {
+        EXPECT_DOUBLE_EQ(ipm.history[k].mu, walk.history[k].mu)
+            << "row " << k
+            << ": SqpIterate::mu reports what the kernel that solved the row used, "
+               "and the kernel here is the walk in both modes";
+    }
+}
+
+// RULING 4 (decision 7b, REVERSED): the SSN warm grade participates in the
+// proximal carry, because `warm_start.h` scopes `prox_sigma` to "the maximum
+// over any SSN subproblem" and one reached through this chain is one.
+TEST(IpqpDispatch, TheSsnWarmGradeExportsTheProximalCarry) {
+    // HS43 routes to the SSN warm grade once, and that subproblem's ladder
+    // raises sigma (measured) -- which is exactly the evidence the carry
+    // exists to transmit.
+    auto p = make_hs(43);
+    SqpDriver driver(ipm_options());
+    const SqpSolution s = driver.solve(*p.model);
+
+    ASSERT_GT(s.counters.ipqp.ipqp_to_ssn, 0)
+        << "the fixture must reach the SSN warm grade, or nothing is tested";
+    ASSERT_GT(s.counters.ssn.ssn_prox_updates, 0)
+        << "and that subproblem's proximal ladder must have moved, or there is no level to carry";
+    EXPECT_GT(s.warm_start.prox_sigma, 0.0)
+        << "the level reaches the exported currency. Before the fix-round-1 ruling this path was "
+           "excluded from the carry and this read 0, so a continuation loop alternating kSsn and "
+           "kIpm re-climbed the ladder with no diagnostic";
+}
+
+// THE CLOSED ROUTING PARTITION, PINNED ON HAND-BUILT COUNTERS -- the two rows
+// that falsified the first round's two-term identity, neither of which the HS
+// battery reaches at the shipped budgets.
+TEST(IpqpDispatch, TheRoutingPartitionHelperHoldsOnTheRowsFixturesDoNotReach) {
+    // Three entries: one clean refine-accept, one converged-budget exit routed
+    // to the refinement (an escape that does NOT reach the walk), and one
+    // saddle-suspect exit routed to SSN (an escape that does not either).
+    IpqpCounters c;
+    c.ipqp_refine_accepted = 2;
+    c.ipqp_refine_refused = 0;
+    c.ipqp_to_refine = 2;
+    c.ipqp_escape_indefinite = 1;
+    c.ipqp_to_ssn = 1;
+    c.ipqp_to_walk = 0;
+    c.ipqp_escapes = 2;
+    c.ipqp_escape_budget = 1;
+    EXPECT_TRUE(assert_ipqp_routing_partition(c, 3));
+    EXPECT_TRUE(assert_ipqp_escape_census_sums(c));
+
+    // A DECLINE lands in `ipqp_to_walk` without the tier having run, so it is
+    // subtracted from the first-destination sum rather than counted in it.
+    IpqpCounters d = c;
+    d.ipqp_declined_pinned = 4;
+    d.ipqp_to_walk = 4;
+    EXPECT_TRUE(assert_ipqp_routing_partition(d, 3));
+
+    // AND THE HELPER REALLY FAILS. One unrouted entry, one destination
+    // double-counted, and one `to_refine` that disagrees with its outcomes.
+    EXPECT_FALSE(assert_ipqp_routing_partition(c, 4));
+    IpqpCounters lost = c;
+    lost.ipqp_to_walk = 1;
+    EXPECT_FALSE(assert_ipqp_routing_partition(lost, 3));
+    IpqpCounters mismatched = c;
+    mismatched.ipqp_to_refine = 3;
+    EXPECT_FALSE(assert_ipqp_routing_partition(mismatched, 3));
+}
+
+// THE W2 HOOK CARRIES SECTION 6.3's EVIDENCE (fix round 1, C2). A FREE
+// function for the reason the other seams are: it can be called without a
+// driver, so the seam's shape -- what W2 will find in its hands -- is pinnable
+// rather than merely readable.
+TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndIsTheColdWalkToday) {
+    QpProblem qp;
+    qp.H.resize(1, 1);
+    qp.H.insert(0, 0) = 1.0;
+    qp.H.makeCompressed();
+    qp.g = (Vec(1) << -2.0).finished();
+    qp.Ae.resize(0, 1);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, 1);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(1, -10.0);
+    qp.upper = Vec::Constant(1, 10.0);
+
+    QpOptions qopts;
+    QpEngine engine(qopts);
+    SolveOverrides overrides;
+
+    // A POPULATED evidence block: the least-infeasible point and its
+    // corroboration, which is what makes W2's elastic reformulation possible.
+    IpqpInfeasibilityEvidence evidence;
+    evidence.fired = true;
+    evidence.least_infeasible_x = (Vec(1) << 0.25).finished();
+
+    NlpEval ev;
+    const QpSolution taken =
+        certified_feasibility_fallback(engine, qp, ev, nullptr, evidence, overrides);
+    EXPECT_EQ(taken.status, QpStatus::kOptimal);
+    ASSERT_EQ(taken.x.size(), 1);
+    EXPECT_NEAR(taken.x(0), 2.0, 1e-9) << "the unconstrained minimum of 0.5 x^2 - 2x";
+
+    // W1's BODY IS THE COLD WALK, and "cold" is what this second call says: a
+    // seed is accepted by the signature and ignored by the body, so the answer
+    // is the same one an unseeded call gives.
+    QpSolution seed;
+    seed.x = (Vec(1) << -9.0).finished();
+    seed.bound_state.assign(1, BoundState::kFree);
+    const QpSolution seeded =
+        certified_feasibility_fallback(engine, qp, ev, &seed, evidence, overrides);
+    EXPECT_EQ(seeded.x, taken.x);
 }
 
 // ===========================================================================

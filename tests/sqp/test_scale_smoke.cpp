@@ -928,3 +928,84 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         << "no negative face price was produced anywhere in the band, so nothing above was "
            "exercised; see this test's banner for how the band was chosen";
 }
+
+// =====================================================================
+// M6 W1 TASK 6 -- THE THIRD PRODUCER, WITH A MUTATION PARTNER.
+//
+// THE R6 REGISTRATION'S MISSING HALF (fix round 1, reviewer C7b). The
+// driver-level kIpm export pins run on the HS battery, where NOTHING prices
+// negative under any kernel -- so they pass on a build that bypassed the
+// capture and the sweep entirely. This test supplies the case that does not:
+// the SAME F7 family, at the SAME weight class, solved through the kIpm chain,
+// really does hand `SqpDriver::finish` a negative inequality price, and the
+// single sign sweep at that one export boundary is what repairs it.
+//
+// WHERE THE PRICE COMES FROM under kIpm, stated because it is not the same
+// producer as the kSsn arm's: the tier's section 2.3 ratio rule identifies the
+// face, `refine_on_face` prices it, and on a wide-window F7 with a weakly
+// active row that pricing can come back negative -- which is precisely why
+// Amendment E calls the tier a THIRD PRODUCER of exported face prices even
+// though its own barrier duals never reach the export.
+//
+// NO WARM HOP HERE, unlike the kSsn test above, and the difference is
+// measured rather than assumed: under kIpm it is the COLD solve at p0 that
+// produces the negative price (N = 600 and N = 610 sweep 7 and 6 prices
+// respectively; N = 590 sweeps none, which is why the assertion is over a
+// BAND). The hop adds ~140 s of Debug runtime and sweeps nothing, so it is
+// left out -- the tier starts cold on every major until task 7's seed lands,
+// which is what makes a kIpm solve of this family expensive.
+//
+// MEASURED on clang/MKL/this machine, 2026-08-31.
+// =====================================================================
+TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFacePrices) {
+    constexpr double kP0 = 0.80;
+    constexpr double kDisclosedScale = 3.5e-6;
+
+    Index swept_over_the_band = 0;
+    for (const Index nodes : {Index{600}, Index{610}}) {
+        SCOPED_TRACE(fmt::format("N={}", nodes));
+        F7CollocationChain model(nodes, 3, 2, kP0, 1.0);
+
+        SqpOptions opts;
+        opts.kkt_tol = 1e-8;
+        opts.feas_tol = 1e-8;
+        opts.max_iter = 10;
+        opts.adaptive_mu = false;
+        opts.warm_full_step = true;
+        opts.qp.max_iter = 20000;
+        opts.qp_mode = QpMode::kIpm;
+        SqpDriver driver(opts);
+
+        model.set_parameters(Vec::Constant(1, kP0));
+        const SqpSolution setup = driver.solve(model, model.start_point());
+        ASSERT_EQ(setup.status, SqpStatus::kOptimal);
+        ASSERT_GT(setup.counters.ipqp.ipqp_to_refine, 0)
+            << "the tier must have reached tier 3, or the producer under test never ran";
+
+        for (const SqpSolution *sol : {&setup}) {
+            ASSERT_GT(sol->lambda_i.size(), 0);
+            EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
+                << "no negative price may escape in SqpSolution::lambda_i";
+            ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
+            EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
+                << "nor in WarmStart::lambda_i, which is the half that reaches the currency";
+
+            swept_over_the_band += sol->counters.ssn.ssn_sign_swept;
+            if (sol->counters.ssn.ssn_sign_swept > 0) {
+                EXPECT_GT(sol->counters.ssn.ssn_sign_sweep_max, 0.0)
+                    << "a swept row must report a magnitude";
+                EXPECT_LT(sol->counters.ssn.ssn_sign_sweep_max, kDisclosedScale)
+                    << "these prices sit below the historic 3.5e-6 peak and are swept anyway";
+            } else {
+                EXPECT_DOUBLE_EQ(sol->counters.ssn.ssn_sign_sweep_max, 0.0);
+            }
+        }
+    }
+
+    // NOT VACUOUS, and this is the assertion the whole test exists for: a
+    // build that bypassed kIpm's export capture or its sweep fails HERE, where
+    // the HS-battery pins cannot.
+    EXPECT_GT(swept_over_the_band, 0)
+        << "no negative face price was produced anywhere in the band under kIpm, so the third "
+           "producer's export path was not exercised; see this test's banner for the band";
+}

@@ -1009,6 +1009,72 @@ TEST(IpqpFaceTest, ATrustRegionPinIsReportedThroughTrActiveAndNotThroughBoundSta
     EXPECT_DOUBLE_EQ(r.z(0), 0.0);
 }
 
+// THE TWO EXPORT INVARIANTS THIS TIER RE-DERIVES (M6 W1 task 6 fix round 1).
+//
+// `qp_engine.h`'s export contract states both against `QpSolution` and says in
+// as many words that "a third producer must re-derive the invariant rather
+// than assume it is inherited". These pin the re-derivation DIRECTLY, on the
+// engine, rather than through a driver fixture whose numerics could drift off
+// the condition.
+TEST(IpqpFaceTest, AFreeVariableCarriesExactlyZeroAndAnAbsentBoundIsNeverPriced) {
+    // A WIDE box with a FINITE trust region -- the configuration that makes
+    // both invariants non-trivial. Under a finite radius every variable has
+    // finite EFFECTIVE bounds, so the barrier carries a (zl, zu) pair at every
+    // index whatever the QP's own box says, and the optimum (1, 2) is strictly
+    // inside the real box.
+    const QpProblem qp = box_qp(-10.0, 10.0);
+    QpOptions o = tight_opts();
+    o.tr_radius = 20.0; // finite, but wide enough not to pin anything
+    IpqpEngine tier(o);
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(r.status, QpStatus::kOptimal);
+
+    // (6b) `bound_state[i] == kFree ==> z(i) == 0.0`, EXACTLY -- not "small".
+    // The barrier residue at an inactive bound is ~ mu / distance, which is
+    // nonzero at every finite tolerance; the invariant is an equality.
+    for (Index i = 0; i < qp.n(); ++i) {
+        ASSERT_EQ(r.bound_state[static_cast<std::size_t>(i)], BoundState::kFree)
+            << "index " << i << ": the fixture's premise is that nothing is active";
+        EXPECT_DOUBLE_EQ(r.z(i), 0.0)
+            << "index " << i << ": a free variable carries no bound multiplier";
+    }
+    // NON-VACUITY: the residue really is there to be dropped. An ACTIVE bound
+    // on the same objective is priced, so the zeros above are the invariant's
+    // doing rather than an all-zero barrier block.
+    IpqpEngine pinned(o);
+    const IpqpResult active =
+        pinned.solve(box_qp(-10.0, 0.5), nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(active.status, QpStatus::kOptimal);
+    ASSERT_EQ(active.bound_state[0], BoundState::kAtUpper);
+    EXPECT_LT(active.z(0), 0.0);
+}
+
+TEST(IpqpFaceTest, AnAbsentRealBoundIsNeverPricedEvenWhenTheTrustRegionSuppliesOne) {
+    // NO LOWER BOUND AT ALL (the +/-1e20 absent sentinel), a finite radius,
+    // and an optimum ON the upper bound -- so the variable IS active, the
+    // upper side IS priced, and the lower side's effective bound exists only
+    // because the trust region made it. `SsnEngine::solve` REFUSES a start
+    // whose z prices an absent bound ("there is no row for that multiplier"),
+    // which is how this defect first surfaced: the section 2.3 item 4 route
+    // threw on the first HS problem that took it.
+    const QpProblem qp = box_qp(-1e20, 0.5);
+    QpOptions o = tight_opts();
+    o.tr_radius = 1.0;
+    IpqpEngine tier(o);
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(r.status, QpStatus::kOptimal);
+
+    ASSERT_EQ(r.bound_state[0], BoundState::kAtUpper) << "the fixture's premise";
+    EXPECT_LT(r.z(0), 0.0) << "the REAL upper bound is priced, with QpSolution's sign convention";
+    // And the absent lower side contributes NOTHING to it: the exported price
+    // is the upper block alone, so `zl` -- whatever the barrier put there
+    // against the trust region's own lower wall -- does not appear.
+    EXPECT_DOUBLE_EQ(r.z(0), -r.zu(0))
+        << "the absent-side test reads the REAL bound, so an absent lower side contributes 0 "
+           "however large its raw zl is (the residue there is a trust-region dual, and TR duals "
+           "are internal -- qp_problem.h)";
+}
+
 // ---------------------------------------------------------------------------
 // Boundary refusals and instrumentation
 // ---------------------------------------------------------------------------
@@ -1091,12 +1157,18 @@ TEST(IpqpBoundaryTest, TheLedgerRecordsOneRowPerSolveAndNoneForAThrow) {
     EXPECT_EQ(ledger.records()[2].counters.factorizations, 0);
 }
 
-TEST(IpqpCounterTest, TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreTasksSixAndSeven) {
-    // FIX ROUND 1, CM3. The report claims the routing and warm counter groups
-    // are left untouched by this task; only the escape census had an
+TEST(IpqpCounterTest, TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreDriverScale) {
+    // T4 FIX ROUND 1, CM3. The report claims the routing and warm counter
+    // groups are left untouched by this ENGINE; only the escape census had an
     // executable pin for it. This is that claim, group-wide -- so a later task
     // that starts writing one of these fields without moving its own pins
     // fails here rather than in a sweep column nobody is watching.
+    //
+    // STILL TRUE AFTER TASK 6, and the name is amended to say WHY rather than
+    // WHEN: the routing group is written by the DRIVER'S routing chain, which
+    // is the only thing that can observe a route, and the warm group by task
+    // 7's seed path. An `IpqpResult` returned by `solve()` never carries any
+    // of them, whatever the routing then does with it.
     const QpProblem qp = general_qp(true, true);
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
@@ -1106,6 +1178,7 @@ TEST(IpqpCounterTest, TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreTasksSixAnd
     // never routes, never hands off to tier 3, and never retires itself.
     EXPECT_EQ(r.counters.ipqp_refine_accepted, 0);
     EXPECT_EQ(r.counters.ipqp_refine_refused, 0);
+    EXPECT_EQ(r.counters.ipqp_to_refine, 0);
     EXPECT_EQ(r.counters.ipqp_to_ssn, 0);
     EXPECT_EQ(r.counters.ipqp_to_walk, 0);
     EXPECT_EQ(r.counters.ipqp_tier_retired_after, 0);

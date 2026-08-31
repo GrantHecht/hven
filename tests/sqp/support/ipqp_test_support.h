@@ -42,37 +42,71 @@ inline ::testing::AssertionResult assert_ipqp_escape_census_sums(const IpqpCount
     return ::testing::AssertionSuccess();
 }
 
-/// Asserts the section 2.3 ROUTING PARTITION: every subproblem the routing
-/// chain disposed of went to exactly one successor, and the two `ipqp_to_*`
-/// counters say which.
+/// Asserts the section 2.3 ROUTING PARTITION IS CLOSED: every subproblem the
+/// routing chain disposed of went to exactly one FIRST destination, and the
+/// three `ipqp_to_*` counters say which.
 ///
-/// The two identities are the routing table read as arithmetic (M6 W1 task 6):
+/// @param c            the solve's folded IPQP counters.
+/// @param tier_entries how many subproblems the tier was CONSULTED on, i.e.
+///        entered the engine: neither retired-past nor declined by the domain
+///        gate. The counters cannot express this on their own -- a retired
+///        major writes nothing at all -- so the caller supplies it. Under the
+///        hoisting discipline of plan section 7 note (k) it is exactly
+///        `ipqp_symbolic_analyses + ipqp_pattern_verifies` (one of {analyze,
+///        verify} per entry), which is how the driver-level fixtures get it;
+///        naming it here rather than deriving it inside keeps the two
+///        invariants from smearing into one diagnosis.
 ///
-///   `ipqp_to_ssn  == ipqp_refine_refused + ipqp_escape_indefinite`
-///       -- section 2.3's TWO routes into the SSN warm grade, item 4's own
-///          pair: a refused refinement, and a saddle-suspect exit.
-///   `ipqp_to_walk == (ipqp_escapes - ipqp_escape_indefinite)
-///                    + ipqp_declined_pinned`
-///       -- item 5's genuine escapes MINUS the indefinite ones (which went to
-///          SSN instead), PLUS the domain gate's pre-solve declines, which
-///          `ipqp_to_walk`'s own doc comment names as its second contributor.
+/// FOUR IDENTITIES, and the first is the closed one:
 ///
-/// A subproblem the tier-3 refinement ACCEPTED is in neither: it was not
-/// routed onward at all, and `ipqp_refine_accepted` counts it.
-inline ::testing::AssertionResult assert_ipqp_routing_partition(const IpqpCounters &c) {
-    const Index to_ssn = c.ipqp_refine_refused + c.ipqp_escape_indefinite;
-    if (c.ipqp_to_ssn != to_ssn) {
+///   `to_refine + escape_indefinite + (to_walk - declined_pinned)`
+///       `== tier_entries`
+///       -- every subproblem the tier actually ran on left by exactly one
+///          FIRST destination: the tier-3 refinement (item 3), the SSN warm
+///          grade directly (item 4's saddle-suspect route), or the cold walk
+///          (item 5). `declined_pinned` is subtracted because a decline also
+///          lands in `to_walk` -- the counter's own settled text -- without
+///          the tier having run.
+///   `to_refine == refine_accepted + refine_refused`
+///       -- the refinement's two outcomes, so `to_refine` counts hand-offs.
+///   `to_ssn == refine_refused + escape_indefinite`
+///       -- item 4's TWO feeders; a refusal reaches SSN as a SECOND
+///          destination, which is why `to_ssn` is not in the closed sum.
+///   `to_walk >= declined_pinned`.
+///
+/// WHY THE CLOSED FORM NEEDS `to_refine` AT ALL (M6 W1 task 6 fix round 1):
+/// the two-term version `to_walk == escapes - escape_indefinite +
+/// declined_pinned` is FALSE on the converged-`kBudget` row, which increments
+/// `ipqp_escape_budget` and routes to the refinement.
+inline ::testing::AssertionResult assert_ipqp_routing_partition(const IpqpCounters &c,
+                                                                Index tier_entries) {
+    if (c.ipqp_to_refine != c.ipqp_refine_accepted + c.ipqp_refine_refused) {
+        return ::testing::AssertionFailure()
+               << "assert_ipqp_routing_partition: ipqp_to_refine " << c.ipqp_to_refine
+               << " != refine_accepted " << c.ipqp_refine_accepted << " + refine_refused "
+               << c.ipqp_refine_refused;
+    }
+    if (c.ipqp_to_ssn != c.ipqp_refine_refused + c.ipqp_escape_indefinite) {
         return ::testing::AssertionFailure()
                << "assert_ipqp_routing_partition: ipqp_to_ssn " << c.ipqp_to_ssn
                << " != refine_refused " << c.ipqp_refine_refused << " + escape_indefinite "
                << c.ipqp_escape_indefinite;
     }
-    const Index to_walk = c.ipqp_escapes - c.ipqp_escape_indefinite + c.ipqp_declined_pinned;
-    if (c.ipqp_to_walk != to_walk) {
+    if (c.ipqp_to_walk < c.ipqp_declined_pinned) {
         return ::testing::AssertionFailure()
                << "assert_ipqp_routing_partition: ipqp_to_walk " << c.ipqp_to_walk
-               << " != (escapes " << c.ipqp_escapes << " - escape_indefinite "
-               << c.ipqp_escape_indefinite << ") + declined_pinned " << c.ipqp_declined_pinned;
+               << " is below ipqp_declined_pinned " << c.ipqp_declined_pinned
+               << ", but every decline routes to the walk";
+    }
+    const Index first_destinations =
+        c.ipqp_to_refine + c.ipqp_escape_indefinite + (c.ipqp_to_walk - c.ipqp_declined_pinned);
+    if (first_destinations != tier_entries) {
+        return ::testing::AssertionFailure()
+               << "assert_ipqp_routing_partition: first destinations " << first_destinations
+               << " (to_refine=" << c.ipqp_to_refine
+               << " escape_indefinite=" << c.ipqp_escape_indefinite << " to_walk=" << c.ipqp_to_walk
+               << " declined_pinned=" << c.ipqp_declined_pinned << ") != tier entries "
+               << tier_entries;
     }
     return ::testing::AssertionSuccess();
 }
