@@ -1133,6 +1133,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -1143,6 +1144,7 @@
 #include <hven/core/ledger.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/globalization/sqp/trust_region.h>
+#include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/ssn_engine.h>
@@ -2022,6 +2024,43 @@ void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one);
 /// @param one   The subproblem's counters; see the fold rule above.
 void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one);
 
+// THE INTERIOR-POINT TIER'S SEAM FUNCTIONS, one for one with the SSN set
+// declared above (spec section 9). Free functions for the same reason those
+// are: each is a pure mapping between two published shapes, so each is
+// testable without constructing a driver.
+
+// The gate on a tier exit, section 2.3 item 1. DIFFERENT IN KIND from
+// `ssn_exit_is_a_usable_step` and deliberately: the SSN gate re-checks a
+// trust-region violation because that kernel solves the TR as a penalty and
+// can exit outside it, while this tier keeps the radius as a HARD BOX no
+// iterate ever leaves. It does NOT read `status` -- `IpqpResult`'s standing
+// rule -- so a downgraded certificate (`kNumericalError`, `escape_reason ==
+// kNone`) is usable, which is exactly what a downgrade means: the point
+// converged, the second-order certificate did not stand.
+/// @brief True iff this tier exit is a step the routing chain may use.
+/// @param res   The tier's result.
+/// @param opts  The QpOptions the tier ran under -- its tolerances.
+/// @param iopts The IpqpOptions it ran under; `ipqp_converge_slack` is read.
+bool ipqp_exit_is_a_usable_step(const IpqpResult &res, const QpOptions &opts,
+                                const IpqpOptions &iopts);
+
+// The tier's answer in the QP layer's currency. `status` is forced to
+// kOptimal exactly as the SSN mapping forces it: the caller has already judged
+// the exit usable, and the tier's own `status` is not the currency the
+// driver's routing reads (`certificate_downgraded` and `escape_reason` are).
+/// @brief Maps a usable tier exit onto the QpSolution the driver routes.
+/// @param res The tier's result, already judged usable.
+QpSolution ipqp_result_to_qp_solution(const IpqpResult &res);
+
+// The cost an abandoned tier subproblem paid, charged to the solve's totals --
+// `charge_ssn_subproblem_cost`'s counterpart, the same two fields and the same
+// rule: charged ONLY where the tier's own answer is discarded, because on the
+// adopted path the two travel across inside `ipqp_result_to_qp_solution`.
+/// @brief Charges an abandoned tier subproblem's factorization cost.
+/// @param total The solve's running counters, updated in place.
+/// @param res   The abandoned tier result.
+void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res);
+
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:
 // SqpOptions::adaptive_mu (sqp_types.h) and SqpIterate::mu (same file); this
@@ -2755,6 +2794,89 @@ class SqpDriver {
     // warm_start.h's `prox_sigma` note for the whole rule.
     SsnOptions ssn_options(double prox_sigma_init) const;
 
+    // The interior-point tier's engine, constructed on first use -- the
+    // `ssn_engine_` discipline verbatim, and for exactly the same reason (see
+    // the member's own note). `opts_.qp` is the SAME QpOptions the walk and
+    // the SSN tier were constructed with, so all three kernels read one
+    // tolerance pair and one regularization pair.
+    IpqpEngine &ipqp_engine();
+
+    // The IpqpOptions ONE subproblem is solved under.
+    //
+    // FORWARDED, NOT DERIVED, with exactly one exception. Every field is the
+    // caller's own `SqpOptions::ipqp` value, already boundary-validated by
+    // `validate_sqp_options`; unlike `ssn_options` there is no driver-side
+    // tolerance derivation to do, because the tier reads its targets from
+    // `opts_.qp` directly (spec 3.4) rather than from a kernel tolerance of
+    // its own.
+    //
+    // THE EXCEPTION IS THE SYMBOLIC HOIST, and it is a NARROWING never a
+    // widening: `ipqp_hoist_symbolic` is forced FALSE for one entry when the
+    // model's structure epoch has moved since the analysis the engine holds
+    // was taken. Spec 4.1 hoists the analysis across majors "whenever the
+    // model's structure epoch has not moved"; the engine cannot see the epoch
+    // (it is handed a `QpProblem`, which has no identity), so the driver --
+    // which can -- turns the hoist off for the one entry that must re-analyze
+    // and back on afterwards. A caller who set the kill switch false keeps it
+    // false on every entry.
+    IpqpOptions ipqp_options(bool structure_epoch_moved) const;
+
+    // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item
+    // 5, section 6.3's Amendment C registration).
+    //
+    // TODAY ITS BODY IS THE COLD WALK, and that is the whole of it: a genuine
+    // tier escape -- numerical, infeasible-suspect, or early stall -- discards
+    // the IPQP iterate and re-solves this subproblem from cold. COLD rather
+    // than seeded is spec 2.3 item 5's own ruling, and the code fact behind it
+    // is `crash_basis_seed`'s signature: it takes only a `QpProblem` and
+    // begins `seed.x = Vec::Zero(n)`, so there is no surface through which an
+    // interior iterate could be transferred, and W1 does not build one.
+    //
+    // IT EXISTS AS A NAMED FUNCTION BECAUSE W2 REPLACES ITS BODY, not its call
+    // site: the elastic l1-penalized QP -- an always-feasible reformulation --
+    // is the QP-level answer to a suspected-infeasible subproblem, and it
+    // needs the NLP evaluation and the seed this signature already carries.
+    // Both are UNUSED today and are named rather than omitted so the seam does
+    // not move when the body arrives.
+    QpSolution certified_feasibility_fallback(const QpProblem &qp, const NlpEval &ev,
+                                              const QpSolution *seed,
+                                              const SolveOverrides &overrides);
+
+    // SECTION 2.3 ITEM 4's SECOND-CHOICE SUCCESSOR: the SSN tier, warm-graded
+    // from the interior-point tier's own (x, lambda).
+    //
+    // ONE FUNCTION FOR BOTH ROUTES INTO IT -- a refused refinement and a
+    // saddle-suspect (kIndefinite) exit -- because they are the same hand-off
+    // and section 2.3 gives them the same successor. "SSN's uncertain band is
+    // designed to absorb exactly the tie rows the ratio rule left UNCERTAIN,
+    // and its bulk flip changes the whole implied active set at once."
+    //
+    // THE GRADE IS THE DUALS AND THE ACTIVITY, NOT THE PRIMAL, and that is
+    // `ssn_start_from_qp_seed`'s own rule rather than a choice made here: the
+    // subproblem is in STEP variables and the trust region is centred on
+    // p = 0, so a remembered primal would move that centre.
+    //
+    // TWO SETTINGS ARE DELIBERATELY NOT THE kSsn ARM'S. The R5 deferred
+    // certification lever is forced OFF (it is a kSsn-mode research lever, and
+    // its pending-evidence state has no owner on this path), and the proximal
+    // carry is neither spent nor exported here (it is documented as the max
+    // over "this solve's SSN subproblems", which under kIpm are fall-backs
+    // rather than the tier).
+    //
+    /// @brief Routes one subproblem to the SSN tier, warm-graded from a
+    ///        finished IPQP solve.
+    /// @param qp       the subproblem.
+    /// @param ires     the tier's result, the warm grade's source.
+    /// @param delta    this trial's trust-region radius.
+    /// @param ssn_budget_charge the probe budget's SSN accumulator, charged.
+    /// @param counters the solve's running counters, updated.
+    /// @param qs       written with the SSN's step iff one was usable.
+    /// @return true iff the walk owns this subproblem after all (the SSN exit
+    ///         was not usable), i.e. `walk_owns_this_qp`.
+    bool route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires, double delta,
+                                      Index &ssn_budget_charge, SqpCounters &counters,
+                                      QpSolution &qs);
+
     // WARM-START POPULATION. Builds the WarmStart every exit of solve_impl
     // attaches to SqpSolution::warm_start.
     //
@@ -2897,6 +3019,27 @@ class SqpDriver {
     // structure" property observable at all. A fresh engine per subproblem
     // would pay a phase-11 analysis on every major.
     std::unique_ptr<SsnEngine> ssn_engine_;
+    // The interior-point tier's engine, LAZILY CONSTRUCTED and never touched
+    // at the shipped default -- `ssn_engine_`'s note above is this member's
+    // note verbatim, including its two reasons: an IpqpEngine owns a live
+    // KktFactorization (and through it a backend session), so making it a
+    // plain member would allocate that state on every SqpDriver including the
+    // overwhelming majority that never leave kWalk; and ONE engine for the
+    // whole driver is what makes spec 4.1's "one symbolic analysis per SQP
+    // solve" observable at all, since the analysis and the IpqpKktLayout
+    // scatter plan live on the instance.
+    std::unique_ptr<IpqpEngine> ipqp_engine_;
+    // THE STRUCTURE EPOCH THE HELD ANALYSIS WAS TAKEN AT (spec 4.1's hoisting
+    // rule, plan section 7 note a). The M5 R6 rule of record is that reuse
+    // keyed on the structure epoch is answer-neutral BY CONSTRUCTION; this
+    // member is the key. `has_value() == false` means the tier has not been
+    // entered on this driver yet, so the next entry analyses.
+    //
+    // ON THE DRIVER RATHER THAN ON THE ENGINE, deliberately: the epoch is the
+    // MODEL's identity and the engine is handed a `QpProblem`, which carries
+    // none. Putting the key where the identity is visible is what keeps the
+    // gate from degenerating into "the pattern looked the same".
+    std::optional<StructureEpoch> ipqp_analysis_epoch_;
     // The proximal level to EXPORT on this solve's WarmStart, and the point it
     // was reached at -- warm_start.h's `prox_sigma` / `prox_center_*` block,
     // whose own note carries the whole contract (max over the solve's SSN

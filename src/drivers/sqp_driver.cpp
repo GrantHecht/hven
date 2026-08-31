@@ -746,6 +746,136 @@ void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) {
     total.ssn_sign_sweep_max = std::max(total.ssn_sign_sweep_max, one.ssn_sign_sweep_max);
 }
 
+// ---------------------------------------------------------------------------
+// THE INTERIOR-POINT TIER'S SEAM FUNCTIONS -- one for one with the SSN set
+// above (spec section 9's "Seam functions the tier mirrors one-for-one"), in
+// the same order, so the two dispatch arms read as the same shape.
+// ---------------------------------------------------------------------------
+
+// `ssn_exit_is_a_usable_step`'s counterpart. THE PREDICATE IS DIFFERENT IN
+// KIND and deliberately so: the SSN gate re-checks a trust-region violation
+// because its kernel solves the TR as a penalty and can exit outside it, while
+// this tier keeps the radius as a HARD BOX (`IpqpBox`) that no iterate ever
+// leaves -- fraction-to-boundary is the only globalization there is (spec 3.1
+// item 3). What is left to check is what section 2.3 item 1 actually asks: the
+// solve finished, it did not escape, and the point is finite.
+//
+// IT DOES NOT READ `status`, which is `IpqpResult`'s own standing rule
+// (T5's status ruling): a downgraded certificate reports
+// `QpStatus::kNumericalError` with `escape_reason == kNone`, and it is a
+// USABLE converged iterate -- the downgrade is about the second-order
+// certificate, not about the point.
+bool ipqp_exit_is_a_usable_step(const IpqpResult &res, const QpOptions &opts,
+                                const IpqpOptions &iopts) {
+    if (res.declined_pinned) {
+        return false;
+    }
+    // TWO EXITS LEAVE A CONVERGED ITERATE IN HAND, and the second one is the
+    // routing hazard T5 raised (Claude co-review I-4).
+    //
+    //   * NO ESCAPE. Includes a DOWNGRADED certificate -- `escape_reason ==
+    //     kNone` with `certificate_downgraded`, from `ipqp_require_final_
+    //     inertia = false` or from a mid-solve evidence failure. Plan section
+    //     7 note (j) is explicit that a downgrade is not an escape; the point
+    //     converged, only its second-order certificate did not stand, and
+    //     section 2.3's answer to an uncertified converged point is the tier-3
+    //     refinement whose own inertia gate can supply the certificate.
+    //
+    //   * kBudget WITH THE FINAL READ REFUSED. Section 2.2 item 4's
+    //     certification factorization was refused by the factorization cap on
+    //     an otherwise-converged solve: `ipqp_final_inertia_read == 3` (the
+    //     read did not happen -- NOT the attempted-and-unusable 2),
+    //     `certificate_downgraded`, and residuals that MET the barrier phase's
+    //     target. That is a downgraded certificate, not budget exhaustion at
+    //     the iteration cap, and section 2.3 item 5's "the iterate is
+    //     discarded" would throw away a converged point over a bookkeeping
+    //     refusal. DISTINGUISHED BY `read == 3` AND THE RESIDUALS, never by
+    //     the escape alone -- an iteration-cap kBudget fails the residual
+    //     test and routes to the cold walk like any other escape.
+    const bool budget_refused_the_final_read =
+        res.escape_reason == IpqpEscape::kBudget && res.counters.ipqp_final_inertia_read == 3 &&
+        res.certificate_downgraded && ipqp_residuals_meet_target(res.residuals, opts, iopts);
+    if (res.escape_reason != IpqpEscape::kNone && !budget_refused_the_final_read) {
+        return false;
+    }
+    if (res.x.size() == 0 || !res.x.allFinite()) {
+        return false;
+    }
+    return res.lambda_e.allFinite() && res.lambda_i.allFinite() && res.z.allFinite();
+}
+
+// THE HAND-OFF ASSERTION (T4.a's contract, plan ruling 2), taken at the ONE
+// place the tier's point crosses into `refine_on_face`.
+//
+// WHAT IT ASSERTS AND WHY IT IS NOT DECORATION. `refine_on_face` takes NO
+// centre parameter and gates its refined point against a window centred on the
+// CLAMPED ORIGIN, `clamp(0, l, u)` (qp_engine.h's public-API precondition,
+// which says in as many words that a caller seeding from a non-zeroed point
+// gets a window gated about the wrong centre, SILENTLY). `IpqpBox` shares that
+// rule so the two agree by construction -- and the contract that keeps them
+// agreeing is that a warm iterate lives INSIDE the box and never redefines it:
+// `IpqpSeed::x` is never the centre. This compares the window the tier
+// actually ran in against the one the driver derived from `qp` and the radius
+// alone, which is exactly the window `refine_on_face` will gate against. They
+// are computed by the same free function from the same inputs, so equality is
+// EXACT and any difference means a seed moved the centre.
+//
+// A THROW RATHER THAN AN ASSERT, CLAUDE.md section 4: Eigen's asserts are
+// compiled out under NDEBUG, and this is precisely a condition whose failure
+// is silent.
+void assert_ipqp_hand_off_window(const IpqpBox &driver_box, const IpqpResult &res) {
+    const bool same_shape = res.box.centre.size() == driver_box.centre.size() &&
+                            res.box.lo_eff.size() == driver_box.lo_eff.size() &&
+                            res.box.up_eff.size() == driver_box.up_eff.size();
+    const bool same_window = same_shape && res.box.radius == driver_box.radius &&
+                             (res.box.centre.array() == driver_box.centre.array()).all() &&
+                             (res.box.lo_eff.array() == driver_box.lo_eff.array()).all() &&
+                             (res.box.up_eff.array() == driver_box.up_eff.array()).all();
+    if (!same_window) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: the IPQP tier's window is not the one refine_on_face will gate against "
+            "(radius {} vs {}, centre length {} vs {}) -- IpqpBox's centre is clamp(0, l, u) and "
+            "a warm iterate lives INSIDE that box, so IpqpSeed::x may never redefine it (see "
+            "IpqpBox's contract and QpEngine::refine_on_face's public-API precondition)",
+            res.box.radius, driver_box.radius, res.box.centre.size(), driver_box.centre.size()));
+    }
+}
+
+// `ssn_result_to_qp_solution`'s counterpart, field for field.
+//
+// `status` IS FORCED TO kOptimal exactly as the SSN mapping forces it, and for
+// the same reason: this function is called only where the caller has ALREADY
+// judged the exit usable, and QpSolution's status is the SUBPROBLEM's verdict
+// the driver's own routing then reads. The tier's own `status` (which may be
+// kNumericalError on a downgraded certificate) is not the currency here --
+// `IpqpResult::certificate_downgraded` is, and the routing has read it before
+// this call.
+QpSolution ipqp_result_to_qp_solution(const IpqpResult &res) {
+    QpSolution qs;
+    qs.status = QpStatus::kOptimal;
+    qs.x = res.x;
+    qs.lambda_e = res.lambda_e;
+    qs.lambda_i = res.lambda_i;
+    qs.z = res.z;
+    qs.bound_state = res.bound_state;
+    qs.ineq_active = res.ineq_active;
+    qs.tr_active = res.tr_active;
+    qs.counters.factorizations = res.counters.ipqp_factorizations;
+    qs.counters.symbolic_analyses = res.counters.ipqp_symbolic_analyses;
+    return qs;
+}
+
+// `charge_ssn_subproblem_cost`'s counterpart: the TWO fields that mean the
+// same physical thing in every kernel, charged on the path where the tier's
+// own answer is abandoned and its costs would otherwise reach no accumulation
+// site at all. On the adopted path the same two travel across inside
+// `ipqp_result_to_qp_solution`, so this is charged in exactly one place and
+// never double-counts.
+void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res) {
+    total.factorizations += res.counters.ipqp_factorizations;
+    total.symbolic_analyses += res.counters.ipqp_symbolic_analyses;
+}
+
 void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_iters += one.ipqp_iters;
     total.ipqp_factorizations += one.ipqp_factorizations;
@@ -1259,6 +1389,21 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // one named bool keeps "is this an SSN solve" from being three
     // independently maintained expressions.
     const bool ssn_mode = opts_.qp_mode == QpMode::kSsn;
+    // ... and the same read for the interior-point tier. TWO NAMED BOOLS
+    // RATHER THAN ONE MODE VARIABLE because the two arms are not symmetric:
+    // `ssn_mode` also gates the adaptive-mu schedule below, and the dispatch
+    // itself is a `switch` over `opts_.qp_mode` (exhaustive, the `map_status`
+    // convention) rather than a chain of these.
+    const bool ipm_mode = opts_.qp_mode == QpMode::kIpm;
+    // THE SECTION 6.1 ESCAPE LADDER, ONE PER SQP SOLVE AND OWNED HERE.
+    // Section 6.1's decision is ACROSS subproblems -- K = 3 consecutive
+    // escapes retire the tier for the REMAINDER of this solve -- and no
+    // single subproblem's own solve can observe it, which is why the ladder
+    // is a separate object from the engine (its own doc comment has the
+    // reasoning). Constructed unconditionally: it is four integers, it holds
+    // no backend state, and a mode-conditional lifetime would buy nothing
+    // that `ipqp_engine_`'s laziness does not already buy.
+    IpqpEscapeLadder ipqp_ladder(opts_.ipqp);
     // The proximal EXPORT accumulator, cleared per solve so nothing leaks
     // from a previous solve() call on this same driver. See the members.
     ssn_prox_sigma_out_ = 0.0;
@@ -1645,6 +1790,13 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // branch of the dispatch -- so the budget test below reduces to the
     // plain `qp_minor_iters` expression.
     Index ssn_budget_charge = 0;
+    // THE SAME ACCUMULATOR FOR THE INTERIOR-POINT TIER, kept SEPARATE rather
+    // than folded into the one above so a reader of either mode's budget stop
+    // can see which kernel bought it. Both are identically zero at kWalk --
+    // each is written only inside its own arm of the dispatch -- so the
+    // budget test below still reduces to the plain `qp_minor_iters`
+    // expression at the shipped default.
+    Index ipqp_budget_charge = 0;
     Index rejections_at_iterate = 0;
     // CONSECUTIVE failed subproblems, reset by any solve that reaches
     // kOptimal. Caps the shrink-retry of SUBPROBLEM FAILURE ROUTING at one
@@ -2237,7 +2389,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // yet).
         const bool probe_exhausted =
             !converged && minor_budget > 0 &&
-            out.counters.qp_minor_iters + ssn_budget_charge >= minor_budget;
+            out.counters.qp_minor_iters + ssn_budget_charge + ipqp_budget_charge >= minor_budget;
         if (converged || probe_exhausted ||
             iter + out.counters.restoration_iters >= opts_.max_iter) {
             push_history(row);
@@ -2495,6 +2647,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // reset -- dies on this fixture with or without this line,
             // since the folded FACTORIZATIONS move too (234 -> 247).
             accumulate_ssn_counters(out.counters.ssn, rs.counters.ssn);
+            // AND THE IPQP TIER'S, folded for exactly the same reason and
+            // subject to exactly the same argument: `ropts.qp_mode` is kWalk,
+            // so `rs.counters.ipqp` is all-zero (bar the two min-folded alpha
+            // fields, which fold their +inf identity), and this line changes
+            // no observable of the shipped code. What it preserves is the
+            // MEASUREMENT: it is only with the fold present that letting the
+            // mode leak back in would move the tier's counters.
+            accumulate_ipqp_counters(out.counters.ipqp, rs.counters.ipqp);
             // The full-step-mode counters are deliberately absent from this
             // fold, and they are absent because they are IDENTICALLY ZERO
             // on the sub-solve: it runs the 2-arg solve() on a fresh
@@ -2666,12 +2826,25 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // major's" residual by the time this trial is solved.
         //
         // The second conjunct is a MODE gate: at `qp_mode == QpMode::kWalk`
-        // -- the shipped default -- `ssn_mode` is false and this expression
-        // is exactly `opts_.adaptive_mu`. Under kSsn the schedule is off for
-        // the whole solve; see this header's WHY THE ADAPTIVE-mu SCHEDULE IS
-        // OFF UNDER kSsn note for the derivation and for why the scope is
-        // the solve rather than the SSN call alone.
-        const bool adaptive_mu_active = opts_.adaptive_mu && !ssn_mode;
+        // -- the shipped default -- neither tier bool is set and this
+        // expression is exactly `opts_.adaptive_mu`. Under kSsn the schedule
+        // is off for the whole solve; see this header's WHY THE ADAPTIVE-mu
+        // SCHEDULE IS OFF UNDER kSsn note for the derivation and for why the
+        // scope is the solve rather than the SSN call alone.
+        //
+        // kIpm FOLLOWS kSsn, ON THAT NOTE'S OWN ARGUMENT (M6 W1 task 6).
+        // `adaptive_mu` exists because the WALK's answer carries an
+        // irreducible `dual_mu * |lambda|` footprint; the interior-point tier
+        // has none -- `(rho, delta)` perturb the Newton system only, its
+        // residual test is taken on the UNREGULARIZED problem (ipqp_engine.h's
+        // IpqpResiduals note), and `SolveOverrides::dual_mu` is a field this
+        // tier validates and then deliberately does not read. So the schedule
+        // would cost iterations and buy nothing. OFF FOR THE WHOLE SOLVE,
+        // walk fall-backs included, exactly as under kSsn and for the same
+        // reason that note gives: `SqpIterate::mu` then reports one value on
+        // every row of the solve, which is the truth about what every kernel
+        // on it was handed.
+        const bool adaptive_mu_active = opts_.adaptive_mu && !ssn_mode && !ipm_mode;
         if (adaptive_mu_active) {
             const double mu_raw = (iter == 0)
                                       ? kAdaptiveMuMax
@@ -2715,19 +2888,34 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.counters.crash_seeded_bounds += seeded_bounds;
         }
 
-        // THE QP KERNEL DISPATCH.
+        // THE QP KERNEL DISPATCH -- THE SECTION 2.3 ROUTING CHAIN.
         //
-        // See this header's THE SEMISMOOTH-NEWTON TIER note for the whole
-        // contract; only the mechanics are here.
+        // See this header's THE SEMISMOOTH-NEWTON TIER note and the IPQP
+        // tier's spec (docs/notes/2026-08-m6-w1-ipqp-spec.md section 2.3, as
+        // amended) for the whole contract; only the mechanics are here.
         //
-        // AT kWalk THIS BLOCK IS INERT AND STRUCTURALLY SO: `ssn_mode` is
-        // false, so `walk_owns_this_qp` is true from its initializer, the
-        // SSN branch is not entered, no SsnEngine is ever constructed, and
-        // the walk call below is the same four-way select, with the same
-        // arguments in the same order.
+        // A `switch` RATHER THAN A CHAIN OF `if`s, the `map_status`
+        // convention: every mode is enumerated, so a fourth kernel cannot be
+        // added without this site refusing to compile.
+        //
+        // THE WALK IS THE LAST BRANCH, NEVER THE ORDINARY SUCCESSOR (Amendment
+        // A). Under kSsn a hand-off reaches it; under kIpm it is reached only
+        // by a decline, by a genuine escape (COLD, through
+        // `certified_feasibility_fallback`), or after the SSN warm grade has
+        // also refused. `walk_owns_this_qp` is what says so.
+        //
+        // AT kWalk THIS BLOCK IS INERT AND STRUCTURALLY SO: the kWalk arm sets
+        // `walk_owns_this_qp` and does nothing else -- no SsnEngine and no
+        // IpqpEngine is ever constructed, no tier code runs, and the walk call
+        // below is the same four-way select, with the same arguments in the
+        // same order.
         QpSolution qs;
-        bool walk_owns_this_qp = !ssn_mode;
-        if (ssn_mode) {
+        bool walk_owns_this_qp = false;
+        switch (opts_.qp_mode) {
+        case QpMode::kWalk:
+            walk_owns_this_qp = true;
+            break;
+        case QpMode::kSsn: {
             // THE PROXIMAL CARRY, spent HERE and only here -- first
             // subproblem of the solve, once. `ssn_prox_ingested` is
             // consumed (set to 0) whether or not the ladder used it, so a
@@ -2958,6 +3146,175 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // no double count.
                 charge_ssn_subproblem_cost(out.counters, sres);
             }
+            break;
+        }
+        case QpMode::kIpm: {
+            // === THE INTERIOR-POINT TIER, SECTION 2.3 AS AMENDED ==========
+            //
+            // The chain in order, and the order IS the contract:
+            //
+            //   0. RETIRED (section 6.1)   -> the walk, nothing consulted and
+            //                                 nothing charged.
+            //   1. DECLINED (T4.b gate)    -> the walk, ORDINARY seed. Not an
+            //                                 escape, no K=3 charge.
+            //   2. a converged iterate     -> refine_on_face on the tier's own
+            //                                 face, in the tier's own window.
+            //   3. refinement REFUSED      -> the SSN warm grade from
+            //                                 (x, lambda).
+            //   4. kIndefinite             -> the same SSN warm grade
+            //                                 (saddle-suspect, item 4).
+            //   5. any other escape        -> the walk COLD, iterate
+            //                                 discarded, through the W2 hook.
+            //
+            // THE DRIVER BRANCHES ON `escape_reason`, NEVER ON `status`
+            // (IpqpResult's standing rule): `status` alone would let this
+            // routing promote a suspicion to a certificate, and a downgraded
+            // certificate reports kNumericalError while being a perfectly
+            // usable converged point.
+            SolveOverrides ipqp_overrides;
+            ipqp_overrides.tr_radius = delta;
+            // primal_delta/dual_mu are LEFT AT THEIR SENTINELS for the reason
+            // the SSN arm leaves them: this tier validates them and then
+            // deliberately does not read them (ipqp_engine.h's solve()
+            // contract) -- it carries its own (rho, delta).
+
+            // --- 0. RETIREMENT (section 6.1) -------------------------------
+            //
+            // Checked FIRST, ahead of even the domain gate: "retired for the
+            // remainder of that solve" means the remaining majors go to the
+            // default engine without consulting the tier, and a decline
+            // counted here would be a consultation.
+            if (ipqp_ladder.retired()) {
+                walk_owns_this_qp = true;
+                break;
+            }
+
+            // --- 1. THE DOMAIN GATE (T4.b), PRE-SOLVE ----------------------
+            //
+            // Re-derived HERE, from the tier's own two free functions, so the
+            // decline happens before the engine is entered at all. The box is
+            // a function of the RESOLVED radius, which is why that resolution
+            // is exported too -- two spellings of the sentinel rule could
+            // disagree on exactly the configurations that leave the override
+            // at its default.
+            //
+            // A DECLINE IS NOT AN ESCAPE (IpqpCounters::ipqp_declined_pinned's
+            // own settled text): the tier never ran, so it charges nothing
+            // toward the K=3 tally, and the walk solves the subproblem exactly
+            // -- from its ORDINARY seed, not cold, because there is no failed
+            // iterate to discard.
+            const IpqpBox ipqp_box =
+                make_ipqp_box(qp, ipqp_effective_tr_radius(opts_.qp, ipqp_overrides));
+            if (!make_ipqp_bounds(ipqp_box).in_domain()) {
+                ++out.counters.ipqp.ipqp_declined_pinned;
+                ++out.counters.ipqp.ipqp_to_walk;
+                walk_owns_this_qp = true;
+                break;
+            }
+
+            // --- THE SOLVE -------------------------------------------------
+            //
+            // THE SYMBOLIC HOIST'S EPOCH GATE (spec 4.1, plan section 7 note
+            // a). The analysis is reused across majors only while the model's
+            // structure epoch is the one it was taken at; the engine cannot
+            // see that epoch, so the driver hands it the one-entry narrowing
+            // and then records where the analysis now stands. Recorded
+            // unconditionally, including after an entry whose analysis
+            // FAILED: the engine's own `analyzed_` flag is the authority on
+            // compute-vs-refactorize and stays false in that case, so the next
+            // entry analyses again on its own account.
+            const bool structure_epoch_moved =
+                !ipqp_analysis_epoch_.has_value() || *ipqp_analysis_epoch_ != seam.epoch();
+            const IpqpOptions iopts = ipqp_options(structure_epoch_moved);
+            // TASK 7 LANDS THE SEED. Until it does the tier starts cold on
+            // every entry -- `nullptr` is the contract, not an omission.
+            const IpqpResult ires = ipqp_engine().solve(qp, nullptr, iopts, ipqp_overrides);
+            ipqp_analysis_epoch_ = seam.epoch();
+            accumulate_ipqp_counters(out.counters.ipqp, ires.counters);
+            // THE PROBE BUDGET'S TIER CHARGE, the `ssn_budget_charge` rule
+            // verbatim (spec 3.4: "the tier's factorizations charge the
+            // driver's probe budget the way ssn_budget_charge does"). Paid
+            // whether this subproblem is adopted or abandoned -- an escape's
+            // factorizations were spent either way.
+            ipqp_budget_charge += ires.counters.ipqp_factorizations;
+            // THE SECTION 6.1 TALLY, FED EVERY OUTCOME. The ladder's rules are
+            // its own (escape advances, any success including a downgraded one
+            // resets, a decline is neutral); this site only records the major
+            // retirement fired at. Note that the ROUTE and the LADDER CHARGE
+            // are independent by design: a kBudget exit whose only failure was
+            // the refused final read is routed as a converged iterate below
+            // and still charges the tally, because hitting the factorization
+            // cap IS evidence about the tier's suitability.
+            if (ipqp_ladder.record(ires, iter + 1)) {
+                out.counters.ipqp.ipqp_tier_retired_after = ipqp_ladder.retired_after();
+            }
+
+            if (ipqp_exit_is_a_usable_step(ires, opts_.qp, iopts)) {
+                // --- 2. THE TIER-3 REFINEMENT (section 2.3 item 3) ---------
+                //
+                // THE SAME SHARED POLISH STEP THE SSN ARM RUNS, not a fourth
+                // engine (Amendment A). One exact solve on the face the tier
+                // identified, whose accepted-path inertia gate (n_f, m_f, 0)
+                // is positive definiteness of the reduced Hessian on that face
+                // -- i.e. it is ALSO a certificate, which is why a downgraded
+                // tier certificate is routed here rather than to the walk.
+                QpSolution face = ipqp_result_to_qp_solution(ires);
+                // THE HAND-OFF ASSERTION (T4.a's contract, plan ruling 2).
+                assert_ipqp_hand_off_window(ipqp_box, ires);
+                QpSolution refined;
+                const bool took = engine_.refine_on_face(qp, face, ipqp_overrides, refined);
+                const Index refine_facts = refined.counters.factorizations;
+                const Index refine_steps = refined.counters.eqp_refine_steps;
+                if (took) {
+                    ++out.counters.ipqp.ipqp_refine_accepted;
+                    // `face.counters` (the TIER's own cost) is preserved across
+                    // the swap for the reason the SSN arm preserves it:
+                    // refine_on_face reports only what ITS call paid.
+                    refined.counters = face.counters;
+                    qs = std::move(refined);
+                    qs.counters.factorizations += refine_facts;
+                    qs.counters.eqp_refine_steps += refine_steps;
+                    ipqp_budget_charge += refine_facts;
+                } else {
+                    // --- 3. REFUSED -> THE SSN WARM GRADE (item 4) --------
+                    ++out.counters.ipqp.ipqp_refine_refused;
+                    // The refusal's own cost, which no other site can see: on
+                    // the accepted path the same two fields travel across
+                    // inside `qs`, so this is charged exactly once.
+                    out.counters.factorizations += refine_facts;
+                    out.counters.eqp_refine_steps += refine_steps;
+                    ipqp_budget_charge += refine_facts;
+                    charge_ipqp_subproblem_cost(out.counters, ires);
+                    walk_owns_this_qp = route_through_ssn_warm_grade(
+                        qp, ires, delta, ssn_budget_charge, out.counters, qs);
+                }
+            } else if (ires.escape_reason == IpqpEscape::kIndefinite) {
+                // --- 4. SADDLE-SUSPECT -> THE SSN WARM GRADE (item 4) -----
+                //
+                // A reading WAS taken and disagreed (plan section 7 note h).
+                // SSN's uncertain band absorbs exactly the tie rows the ratio
+                // rule left UNCERTAIN and its bulk flip changes the whole
+                // implied active set at once, which is what a saddle-suspect
+                // face needs; the walk would only re-derive the same face.
+                charge_ipqp_subproblem_cost(out.counters, ires);
+                walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_budget_charge,
+                                                                 out.counters, qs);
+            } else {
+                // --- 5. A GENUINE ESCAPE -> THE WALK, COLD (item 5) -------
+                //
+                // Numerical, infeasible-suspect, early stall, and budget
+                // exhaustion at the iteration cap. THE ITERATE IS DISCARDED:
+                // nothing below reads `ires` again, and the walk starts from
+                // zero rather than from a point the tier could not certify.
+                // `kNone` is enumerated here too, and it is not dead: it is
+                // the defensive arm for a non-finite point that reported no
+                // escape, which is a numerical failure in all but name.
+                ++out.counters.ipqp.ipqp_to_walk;
+                charge_ipqp_subproblem_cost(out.counters, ires);
+                qs = certified_feasibility_fallback(qp, ev, have_seed ? &seed : nullptr, overrides);
+            }
+            break;
+        }
         }
         if (walk_owns_this_qp) {
             qs = offer_hot   ? engine_.solve(qp, seed, overrides, warm.hot)
@@ -3517,6 +3874,73 @@ SsnOptions SqpDriver::ssn_options(double prox_sigma_init) const {
     return sopts;
 }
 
+IpqpEngine &SqpDriver::ipqp_engine() {
+    if (ipqp_engine_ == nullptr) {
+        ipqp_engine_ = std::make_unique<IpqpEngine>(opts_.qp);
+    }
+    return *ipqp_engine_;
+}
+
+IpqpOptions SqpDriver::ipqp_options(bool structure_epoch_moved) const {
+    IpqpOptions iopts = opts_.ipqp;
+    // A NARROWING ONLY (see the declaration's own note): the caller's kill
+    // switch, ANDed with "the analysis this engine holds was taken at the
+    // structure epoch we are still in". `&&` rather than assignment is the
+    // whole of it -- a caller who turned hoisting off never has it turned
+    // back on by a stationary epoch.
+    iopts.ipqp_hoist_symbolic = iopts.ipqp_hoist_symbolic && !structure_epoch_moved;
+    return iopts;
+}
+
+QpSolution SqpDriver::certified_feasibility_fallback(const QpProblem &qp, const NlpEval &ev,
+                                                     const QpSolution *seed,
+                                                     const SolveOverrides &overrides) {
+    // W2 REPLACES THIS BODY. Today: the COLD walk, spec 2.3 item 5 -- no seed,
+    // no crash basis, no hot handle. The two unused parameters are the ones
+    // the elastic l1-penalized reformulation will need; naming them now is
+    // what keeps the call site from moving when it arrives.
+    (void)ev;
+    (void)seed;
+    return engine_.solve(qp, overrides);
+}
+
+bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires,
+                                             double delta, Index &ssn_budget_charge,
+                                             SqpCounters &counters, QpSolution &qs) {
+    ++counters.ipqp.ipqp_to_ssn;
+    SsnOptions sopts = ssn_options(0.0);
+    // THE R5 LEVER, FORCED OFF ON THIS PATH (see the declaration's note): a
+    // deferred certification leaves pending evidence on the engine that some
+    // call site must then finish or discard, and the kSsn arm's hoisted face
+    // solve -- the thing that owns it -- is not on this route.
+    sopts.defer_certification = false;
+    SolveOverrides ssn_overrides;
+    ssn_overrides.tr_radius = delta;
+    // The warm grade, through the SAME seeding function the kSsn arm uses on a
+    // previous major's QpSolution: duals, bound prices and the binary activity
+    // both halves, with the primal deliberately left at zero.
+    const QpSolution grade = ipqp_result_to_qp_solution(ires);
+    SsnResult sres;
+    ssn_engine().solve(qp, ssn_start_from_qp_seed(&grade), sopts, ssn_overrides, &sres);
+    accumulate_ssn_counters(counters.ssn, sres.counters);
+    ssn_budget_charge += sres.factorizations;
+    if (ssn_exit_is_a_usable_step(sres, sopts.fb_tol)) {
+        qs = ssn_result_to_qp_solution(sres);
+        return false;
+    }
+    // THE SSN TIER'S OWN HAND-OFF, counted in the SSN tier's own census and
+    // not in the IPQP routing pair. `ipqp_to_ssn` records where the routing
+    // chain SENT this subproblem; what the SSN tier then did with it is
+    // `ssn_escapes`' business, exactly as it is under kSsn -- including the
+    // sixth bucket for a certifying exit the trust-region gate refused.
+    if (sres.escape_reason == SsnEscape::kNone) {
+        ++counters.ssn.ssn_escapes;
+        ++counters.ssn.ssn_escape_gate_refused;
+    }
+    charge_ssn_subproblem_cost(counters, sres);
+    return true;
+}
+
 WarmStart SqpDriver::make_warm_start(AggregateEvalSeam &seam, const QpSolution *activity,
                                      const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
                                      const Vec *probe_x, double delta, double dual_mu_eff,
@@ -3637,6 +4061,25 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatu
     // the repair, for the measurement that ruled OUT sweeping at the adoption
     // site instead, and for what this placement leaves behind; only the
     // mechanics are here.
+    //
+    // THREE PRODUCERS SINCE M6 W1 TASK 6 (spec section 9, Amendment E), and
+    // the registration is this line plus the placement it describes:
+    //   1. `ssn_result_to_qp_solution` -- a certifying SSN exit's own prices;
+    //   2. `QpEngine::refine_on_face`  -- the tier-3 face pricing, which is
+    //      where the historic negative prices actually came from;
+    //   3. the INTERIOR-POINT TIER -- whose ratio-rule face (section 2.3 item
+    //      2) is what refine_on_face is handed under kIpm, so its
+    //      classification decides which rows get priced there, and whose own
+    //      barrier duals are the export on the path where the refinement is
+    //      refused verbatim back to the caller's face.
+    // ALL THREE PASS THROUGH THIS ONE CALL, and that is the whole of what
+    // makes the disclosed caveat below ("terminal KKT is measured at PRE-sweep
+    // multipliers") true with three producers rather than two: there is no
+    // second export boundary for a third producer to have missed. The
+    // executable guard is tests/sqp/test_sqp_driver.cpp's
+    // SqpDriverSignSweep.ACorrectlySignedSolveSweepsNothingUnderEveryKernel,
+    // which now runs all three modes, and the kIpm arm of
+    // test_ipqp_dispatch.cpp's export pins.
     //
     // BEFORE `record_terminal_kkt` in program order but NOT before the
     // measurement it records: `kkt` was computed by the caller, at the

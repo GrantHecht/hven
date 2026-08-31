@@ -261,19 +261,12 @@ void validate_sqp_options(const SqpOptions &opts) {
                         "consecutive escapes\" is not a count, it disables the tier outright",
                         opts.ipqp.ipqp_retire_after));
     }
-    // TEMPORARY (M6 W1 task 1): kIpm lands as an enumerator and an options
-    // surface only -- no routing chain exists yet to dispatch a subproblem
-    // through it. Checked LAST, after every IpqpOptions field above, so a
-    // caller who has also mis-set a field sees that diagnosis first; removed
-    // in the later W1 task that lands the routing chain, per that task's own
-    // "no half-wired state ever ships" requirement.
-    if (opts.qp_mode == QpMode::kIpm) {
-        throw std::invalid_argument(fmt::format(
-            "SqpDriver: qp_mode == QpMode::kIpm is not yet dispatchable -- the IPQP options "
-            "surface lands in M6 W1 task 1, inert by construction, and the routing chain that "
-            "lets the driver actually solve a subproblem through this mode arrives in a later "
-            "W1 task"));
-    }
+    // TASK 1's TEMPORARY kIpm REFUSAL WAS HERE, AND IS GONE (M6 W1 task 6).
+    // The routing chain it was waiting on now dispatches the mode
+    // (sqp_driver.cpp's THE QP KERNEL DISPATCH), so the mode is reachable and
+    // nothing here refuses it. The IpqpOptions predicates above are validated
+    // UNCONDITIONALLY, at every mode, exactly as they were: a field is
+    // out of range whether or not this solve will read it.
 }
 
 } // namespace hven::solvers
