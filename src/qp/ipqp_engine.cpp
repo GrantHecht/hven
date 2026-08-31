@@ -468,6 +468,13 @@ IpqpEscapeLadder::IpqpEscapeLadder(const IpqpOptions &iopts)
 }
 
 bool IpqpEscapeLadder::record(const IpqpResult &result, Index major) {
+    return record(result.declined_pinned                      ? IpqpLadderOutcome::kDeclined
+                  : result.escape_reason == IpqpEscape::kNone ? IpqpLadderOutcome::kSuccess
+                                                              : IpqpLadderOutcome::kEscape,
+                  major);
+}
+
+bool IpqpEscapeLadder::record(IpqpLadderOutcome outcome, Index major) {
     if (major <= 0) {
         throw std::invalid_argument(fmt::format(
             "IpqpEscapeLadder::record: major ({}) must be > 0; "
@@ -475,7 +482,7 @@ bool IpqpEscapeLadder::record(const IpqpResult &result, Index major) {
             "major 0 is not a representable place for retirement to have happened.",
             major));
     }
-    if (result.declined_pinned) {
+    if (outcome == IpqpLadderOutcome::kDeclined) {
         // A DECLINE IS NEUTRAL. It cannot advance the tally (the tier never
         // ran, so it produced no evidence of unsuitability -- that is
         // `ipqp_declined_pinned`'s own settled text), and it cannot reset one
@@ -483,7 +490,7 @@ bool IpqpEscapeLadder::record(const IpqpResult &result, Index major) {
         // about whether the previous escapes were a pattern).
         return retired_;
     }
-    if (result.escape_reason == IpqpEscape::kNone) {
+    if (outcome == IpqpLadderOutcome::kSuccess) {
         // "ANY SUCCESS RESETS THE COUNT" (spec 6.1). A converged solve whose
         // CERTIFICATE was downgraded without an escape is a success here --
         // plan section 7 note (j) is explicit that it carries no section 6.1
@@ -2253,26 +2260,42 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         } else if (at_upper) {
             out.bound_state[u] = BoundState::kAtUpper;
         }
-        // THE ABSENT-SIDE TEST READS THE REAL BOUND, NOT THE EFFECTIVE ONE --
-        // `SsnEngine::split_bound_multipliers`' rule verbatim, and it is a
-        // requirement rather than a nicety (M6 W1 task 6). Under a FINITE
-        // radius every variable has finite EFFECTIVE bounds, so the barrier
-        // carries a `zl`/`zu` pair at every index whatever the caller's own
-        // box says; exporting that difference unconditionally prices a bound
-        // the QP does not have. `QpSolution::z`'s contract -- which this field
-        // claims verbatim -- is that a caller reading z back sees multipliers
-        // of the QP's OWN bounds only, whatever radius the solve ran under,
-        // and `SsnEngine::solve` REFUSES a start whose z prices an absent
-        // bound ("there is no row for that multiplier"). The residue at such
-        // an index is a trust-region dual, and TR duals are internal
-        // (qp_problem.h), so dropping it is the contract rather than a loss.
+        // ---- THE TWO EXPORT INVARIANTS THIS TIER MUST RE-DERIVE ----------
         //
-        // The at-a-TR-bound ACTIVE case is already handled above by
-        // `tr_active`; this is its inactive counterpart, where the pair is
-        // small rather than zero and therefore easy to miss.
-        const double z_lower = detail::ipqp_has_lower(qp.lower(i)) ? w.zl(i) : 0.0;
-        const double z_upper = detail::ipqp_has_upper(qp.upper(i)) ? w.zu(i) : 0.0;
-        out.z(i) = z_lower - z_upper;
+        // qp_engine.h's export contract states both against `QpSolution`, and
+        // states in as many words that "a third producer must re-derive the
+        // invariant rather than assume it is inherited". This tier is that
+        // third producer (M6 W1 task 6).
+        //
+        // (6b) `bound_state[i] == kFree ==> z(i) == 0.0`, ON EVERY STATUS.
+        // A barrier method carries a (zl, zu) pair at EVERY index with a
+        // finite effective bound, and at an INACTIVE bound that pair is the
+        // barrier residue (~ mu / distance) -- small, nonzero, and a price on
+        // a bound this point is not standing on. Exporting it would put this
+        // tier in the docket-D0 defect class the walk's own pins guard
+        // against, so the price is written only where the classifier put the
+        // variable ON a bound; every other index exports an exact 0. A
+        // TR-PINNED index took the `continue` above and is already 0.
+        //
+        // (real-bound-only) THE ABSENT-SIDE TEST READS THE REAL BOUND, NOT THE
+        // EFFECTIVE ONE -- `SsnEngine::split_bound_multipliers`' rule
+        // verbatim. Under a FINITE radius every variable has finite EFFECTIVE
+        // bounds whatever the caller's own box says, so a side gated on the
+        // effective bound would price a bound the QP does not have;
+        // `SsnEngine::solve` REFUSES such a start outright ("there is no row
+        // for that multiplier"). The residue at an absent side is a
+        // trust-region dual, and TR duals are internal (qp_problem.h), so
+        // dropping it is the contract rather than a loss.
+        if (at_lower || at_upper) {
+            const double z_lower =
+                (at_lower && detail::ipqp_has_lower(qp.lower(i))) ? w.zl(i) : 0.0;
+            const double z_upper =
+                (at_upper && detail::ipqp_has_upper(qp.upper(i))) ? w.zu(i) : 0.0;
+            out.z(i) = z_lower - z_upper;
+        }
+        // else: `bound_state[u]` is kFree and `out.z(i)` stays the 0 that
+        // `out.z.setZero(n)` above put there -- invariant 6b, by construction
+        // rather than by a second write.
     }
 
     // --- counters that mirror the backend's own ---------------------------

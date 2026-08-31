@@ -848,15 +848,21 @@ struct IpqpCounters {
     Index ipqp_tier_retired_after = 0;
 
     /// Rows/bounds the section 2.3 ratio rule left UNCERTAIN (neither
-    /// classification test satisfied), handed to `refine_on_face` for exact
-    /// resolution rather than asserted either way. Excludes rows/bounds the
-    /// ratio rule classified definitively active or inactive, which never
-    /// reach `refine_on_face`.
+    /// classification test satisfied), rather than asserted either way.
+    /// ACCUMULATED ON EVERY EXIT, including escapes: the classifier runs on
+    /// the returned point whatever the outcome was, so this is the population
+    /// the RULE left uncertain, and the population `refine_on_face` was
+    /// actually handed is the subset that reached it (the routing's rows 2a-2c
+    /// -- an escaped subproblem's face is never handed on). Excludes
+    /// rows/bounds the ratio rule classified definitively active or inactive.
     Index ipqp_face_uncertain = 0;
 
-    /// Tier-3 `refine_on_face` hand-offs ACCEPTED as the step. Excludes a
-    /// subproblem that never reached tier-3 (no rows left uncertain), and
-    /// excludes a refusal, which is `ipqp_refine_refused` instead.
+    /// Tier-3 `refine_on_face` hand-offs ACCEPTED as the step. EVERY usable
+    /// tier exit is handed on (section 2.3 item 3 -- tier 3 owns the last two
+    /// decades, whether or not the ratio rule left anything uncertain), so
+    /// this excludes only a subproblem that never produced a usable exit: a
+    /// decline, a retired-tier major, or a genuine escape. A refusal is
+    /// `ipqp_refine_refused` instead.
     Index ipqp_refine_accepted = 0;
 
     /// Tier-3 `refine_on_face` hand-offs REFUSED (empty/rank-deficient face,
@@ -867,16 +873,43 @@ struct IpqpCounters {
     /// instead, and a subproblem that never reached tier-3.
     Index ipqp_refine_refused = 0;
 
-    /// Routing outcomes handed to the SSN warm-grade path after a
-    /// `refine_on_face` refusal. Excludes a `refine_on_face` acceptance
-    /// (`ipqp_refine_accepted`), which never reaches this routing step.
+    /// Subproblems the routing chain handed to the tier-3 `refine_on_face`
+    /// step (section 2.3 item 3) -- the FIRST destination of every usable tier
+    /// exit, which is exactly `ipqp_refine_accepted + ipqp_refine_refused`.
+    ///
+    /// IT EXISTS TO CLOSE THE ROUTING PARTITION. Without it the group has no
+    /// term for the refinement destination, so "every consulted subproblem
+    /// went somewhere" cannot be stated as arithmetic -- and two rows falsify
+    /// the two-term version: a converged `kBudget` exit whose section 2.2 item
+    /// 4 read the factorization budget refused is counted in
+    /// `ipqp_escape_budget` and routed HERE, not to the walk. Excludes a
+    /// declined or retired-major subproblem (the tier produced no exit to
+    /// refine) and a genuine escape (`ipqp_to_walk`, or `ipqp_to_ssn` for the
+    /// saddle-suspect one).
+    Index ipqp_to_refine = 0;
+
+    /// Subproblems handed to the SSN warm-grade path -- section 2.3 item 4's
+    /// TWO feeders, so this is exactly `ipqp_refine_refused +
+    /// ipqp_escape_indefinite`: a `refine_on_face` refusal, and a
+    /// saddle-suspect (`IpqpEscape::kIndefinite`) exit, which goes to SSN
+    /// directly without a refinement attempt. Excludes a `refine_on_face`
+    /// acceptance (`ipqp_refine_accepted`), which is the step and reaches no
+    /// further routing step.
     Index ipqp_to_ssn = 0;
 
-    /// Routing outcomes handed to the COLD walk: a genuine tier escape, or a
+    /// Routing outcomes handed to the walk: a genuine tier escape, which goes
+    /// COLD with the iterate discarded (section 2.3 item 5), or a
     /// declined-pinned subproblem (`ipqp_declined_pinned` above) re-routed
-    /// pre-solve. Should be rare by design -- the routing chain's own note.
-    /// Excludes a hand-off to SSN (`ipqp_to_ssn`), the other routing
-    /// destination.
+    /// pre-solve, which goes to the ORDINARY seeded walk because the tier
+    /// never ran and there is no iterate to discard. Should be rare by design
+    /// -- the routing chain's own note. Excludes a hand-off to SSN
+    /// (`ipqp_to_ssn`) and to the refinement (`ipqp_to_refine`); excludes a
+    /// SADDLE-SUSPECT escape, which is an escape that goes to SSN rather than
+    /// here; and excludes the CONVERGED `kBudget` exit of `ipqp_to_refine`'s
+    /// note, which is counted in the escape census and routed to the
+    /// refinement. `ipqp_escapes - ipqp_to_walk` is therefore not a
+    /// meaningful quantity on its own -- the closed statement is the
+    /// three-term one `ipqp_to_refine + ipqp_to_ssn + ipqp_to_walk`.
     Index ipqp_to_walk = 0;
 
     /// Subproblems the tier ESCAPED (any of the five reasons below), summed
@@ -1516,11 +1549,15 @@ struct SqpCounters {
     ///
     /// **ZERO ON EVERY SOLVE RUN AT THE SHIPPED DEFAULT**
     /// (`SqpOptions::qp_mode == QpMode::kWalk`): no IPQP subproblem is
-    /// solved there, so nothing writes here. LANDS INERT IN THIS TASK (M6 W1
-    /// task 2): `QpMode::kIpm` is not yet dispatchable at all (task 1's
-    /// temporary `validate_sqp_options` throw), so this field is dead
-    /// weight -- present, zero-initialized, and unreachable from any solve
-    /// -- until task 6 wires the routing chain that populates it.
+    /// solved there, so nothing writes here -- structurally, not by
+    /// arithmetic (the dispatch's kWalk arm constructs no `IpqpEngine`), and
+    /// pinned as such by `IpqpDispatch.EveryIpqpCounterIsStructurallyZeroAt
+    /// KWalkAndKSsn`. **LIVE SINCE M6 W1 TASK 6**, which wired the section
+    /// 2.3 routing chain: at `qp_mode == QpMode::kIpm` every field below is
+    /// written from a real solve. Two of the routing fields are DRIVER-SCALE
+    /// and have no per-subproblem contribution at all
+    /// (`ipqp_tier_retired_after`, `ipqp_declined_pinned`); see each field's
+    /// own note.
     IpqpCounters ipqp;
 };
 

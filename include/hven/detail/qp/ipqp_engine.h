@@ -862,6 +862,26 @@ class IpqpEngine {
 /// marker-not-a-count discipline): once retired, `record()` keeps returning
 /// true and `retired_after()` keeps naming the major it happened at, whatever
 /// arrives afterwards.
+/// @brief What ONE tier outcome is, in the section 6.1 ladder's own currency.
+///
+/// THREE VALUES, BECAUSE §6.1 HAS THREE RULES, and the mapping from an
+/// `IpqpResult` to one of them is the ROUTING CHAIN'S, not the ladder's. The
+/// convenience overload `record(const IpqpResult &, Index)` applies the
+/// obvious mapping (`declined_pinned` -> kDeclined, `escape_reason == kNone`
+/// -> kSuccess, anything else -> kEscape), and that is the right mapping for
+/// every outcome but one: a `kBudget` exit whose §2.2 item 4 certification
+/// read the factorization budget refused on an OTHERWISE CONVERGED iterate is
+/// an escape to the CENSUS and a SUCCESS to the ladder. The census answers
+/// "what stopped the tier"; the ladder answers "is this tier suited to this
+/// problem", and a tier that keeps producing usable steps is suited to it
+/// whatever the bookkeeping refused. The driver names that case explicitly
+/// through this enum rather than lying to the convenience overload.
+enum class IpqpLadderOutcome {
+    kSuccess = 0,  ///< Resets the consecutive-escape tally.
+    kEscape = 1,   ///< Advances it, and may retire the tier.
+    kDeclined = 2, ///< Neutral: neither advances nor resets.
+};
+
 class IpqpEscapeLadder {
   public:
     /// @param iopts the tier's settings; only `ipqp_retire_after` is read
@@ -877,6 +897,13 @@ class IpqpEscapeLadder {
     ///         0 means "never retired", so major 0 is not a representable
     ///         place for retirement to have happened.
     bool record(const IpqpResult &result, Index major);
+
+    /// Record one tier outcome whose ladder classification the CALLER has
+    /// made -- see `IpqpLadderOutcome` for the one case where it differs from
+    /// the convenience overload's mapping. Same contract otherwise.
+    /// @return true iff the tier is retired for the remainder of this solve.
+    /// @throws std::invalid_argument if `major <= 0`.
+    bool record(IpqpLadderOutcome outcome, Index major);
 
     /// True once retirement has fired. The routing chain must stop entering
     /// the tier for this SQP solve.

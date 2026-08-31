@@ -33,10 +33,13 @@ namespace hven::solvers {
 /// tier (M6 W1, `detail/qp/ipqp_engine.h`): an IP-PMM (Cipolla-Gondzio)
 /// Mehrotra predictor-corrector that acquires the whole active set from an
 /// interior start rather than walking or flipping onto it, then hands a
-/// converged iterate to the tier-3 exact face refinement. **LANDS INERT IN
-/// W1 TASK 1**: `validate_sqp_options` rejects it with "not yet dispatchable"
-/// until the routing chain (a later W1 task) exists to run it -- selecting it
-/// today is refused at construction, not left to fail silently mid-solve.
+/// converged iterate to the tier-3 exact face refinement. **DISPATCHABLE
+/// SINCE W1 TASK 6**, which landed the section 2.3 routing chain and removed
+/// task 1's temporary "not yet dispatchable" refusal from
+/// `validate_sqp_options`: selecting it runs the tier on the MAIN subproblem
+/// of every major, with the SSN warm grade and the walk as its successors.
+/// **OPT-IN AND DEFAULT-OFF FOR M6** (spec section 9): no pinned artifact is
+/// measured on it, and the acceptance battery is W1 task 9's.
 ///
 /// THE DEFAULT IS kWalk AND MUST STAY SO absent an explicit ruling otherwise:
 /// the walk is what every pin, battery and published figure in this
@@ -120,8 +123,8 @@ enum class SsnInfeasibilityRule {
 ///
 /// EVERY DEFAULT BELOW IS THE SPEC'S OWN TABLE VALUE. `qp_mode` stays `kWalk`
 /// by default (above), so nothing here is reachable in M6 until a caller
-/// opts in AND the routing chain (a later W1 task) exists to run it --
-/// `validate_sqp_options` refuses `kIpm` unconditionally until then.
+/// opts in -- but the fields are VALIDATED UNCONDITIONALLY at every mode,
+/// because a field is out of range whether or not this solve will read it.
 struct IpqpOptions {
     /// Iteration budget for the tier's own Mehrotra loop. `<= 0` is a
     /// SENTINEL meaning "size-derived", mirroring `QpOptions::max_iter`'s own
@@ -791,14 +794,16 @@ struct SqpOptions {
     /// WHICH QP KERNEL THE DRIVER'S SUBPROBLEMS GO THROUGH. kWalk is the
     /// shipped primal active-set walk (qp_engine.h) and is the DEFAULT;
     /// kSsn selects the semismooth-Newton kernel (ssn_engine.h); kIpm selects
-    /// the interior-point tier (detail/qp/ipqp_engine.h) but is NOT YET
-    /// DISPATCHABLE -- see QpMode::kIpm's own doc comment above.
+    /// the interior-point tier (detail/qp/ipqp_engine.h), dispatchable since
+    /// M6 W1 task 6 -- see QpMode::kIpm's own doc comment above.
     QpMode qp_mode = QpMode::kWalk;
 
     /// THE kIpm TIER'S OWN SETTINGS, forwarded verbatim onto the tier exactly
     /// as the SSN levers below are forwarded onto SsnOptions. Inert at
-    /// `qp_mode != QpMode::kIpm`, and `kIpm` itself is not yet dispatchable
-    /// in M6 W1 task 1 -- see QpMode::kIpm and IpqpOptions' own doc comments.
+    /// `qp_mode != QpMode::kIpm` and read on every subproblem at kIpm -- see
+    /// QpMode::kIpm and IpqpOptions' own doc comments. The one field the
+    /// driver narrows rather than forwards is `ipqp_hoist_symbolic`; see
+    /// `SqpDriver::ipqp_options`.
     IpqpOptions ipqp;
 
     /// READ THE PROXIMAL CARRY OFF AN INGESTED WarmStart.
@@ -961,9 +966,9 @@ struct SqpOptions {
 /// tr_min that is non-positive or above either end of the range it floors,
 /// an ill-formed `IpqpOptions` field (see each field's own doc comment for
 /// its acceptance condition -- validated UNCONDITIONALLY, like the scaling
-/// fields, since `qp_mode` is a value a caller may change later), or (M6 W1
-/// task 1, TEMPORARY, removed once the routing chain lands) `opts.qp_mode ==
-/// QpMode::kIpm` itself, not yet dispatchable.
+/// fields, since `qp_mode` is a value a caller may change later). Task 1's
+/// TEMPORARY refusal of `opts.qp_mode == QpMode::kIpm` was removed by W1 task
+/// 6, which landed the routing chain: no `qp_mode` value is refused here.
 void validate_sqp_options(const SqpOptions &opts);
 
 /// One row of the per-major history -- the record of ONE ITERATE and of the
