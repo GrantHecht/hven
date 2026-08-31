@@ -897,13 +897,53 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     //   * IMPROVEMENT IS DEMANDED OVER THE WHOLE WINDOW, not per step -- every
     //     conjunct compares the CURRENT state against the reference captured
     //     when the window was armed.
-    //   * A SAFEGUARD CHANGE DISCARDS THE WINDOW -- here, and ONLY here, a
-    //     move of the inertia-demanded monotone `rho_floor`. NOT a move of
-    //     the section 3.2 schedule (`rho_sched` / `delta_sched`). That is a
-    //     DATED AMENDMENT of section 6.2's "any regularization change",
-    //     argued in full at the sampling site below (search DECLARED READING
-    //     1) and ledgered as plan section 7 note (l); do not restate the
-    //     rule anywhere else.
+    //   * A SAFEGUARD CHANGE DISCARDS THE WINDOW.
+    //
+    // THE WINDOW-DISCARD RULE, STATED ONCE AND ONLY HERE. Every other site
+    // that touches it -- `arm_window` below, the sampling site in the loop,
+    // and the discard itself -- carries a POINTER BACK TO THIS PARAGRAPH and
+    // nothing more. Two statements of one rule is how a maintainer ends up
+    // trusting the wrong one (co-review I-1, twice).
+    //
+    //     A window is discarded when, and only when, the INERTIA-DEMANDED
+    //     MONOTONE FLOOR `rho_floor` moves. A move of the section 3.2
+    //     schedule (`rho_sched` / `delta_sched`) does NOT discard it.
+    //
+    // THAT IS A DATED AMENDMENT OF SECTION 6.2'S TEXT -- which says "any
+    // regularization change discards the window" -- AND NOT A CLARIFICATION
+    // OF IT. It is labelled as one (settler ruling, plan section 7 note (l)):
+    // the spec's wording is not itself ambiguous enough to exclude
+    // `rho_sched` and `delta_sched`, so narrowing it is an amendment, and
+    // calling it a reading of the words would be dishonest. It is a CHOSEN
+    // reading, ratified on two grounds, NEITHER OF THEM EMPIRICAL:
+    //
+    //  * THE RULE IS IMPORTED WITH ITS JUSTIFICATION, AND THE JUSTIFICATION
+    //    NAMES THE SAFEGUARD -- ssn_engine.h:620, quoted by spec 6.2 itself:
+    //    "slow progress under a sigma that JUST CHANGED is THE SAFEGUARD'S
+    //    DOING, not the problem's." In this tier the safeguard is section
+    //    2.2's ladder, and `rho_floor` is the only quantity it moves. The
+    //    section 3.2 schedule is not a safeguard: it is the method's ordinary
+    //    outer iteration, it is GATED ON MEASURED PROGRESS, and it moves
+    //    regularization DOWNWARD, toward the caller's own QP. Slow progress
+    //    under a DECREASING regularization is the problem's doing, which is
+    //    exactly the case the rule does not exempt.
+    //  * PRECEDENT: SSN's own window dirties on safeguard INCREASES only
+    //    (`ssn_engine.cpp`'s proximal-escalation path), so the amendment
+    //    aligns this tier with the kernel the rule was imported from rather
+    //    than diverging from it.
+    //
+    // NO UNREACHABILITY CLAIM IS MADE, and one was WITHDRAWN. An earlier draft
+    // argued that the literal reading leaves the stall test structurally
+    // unreachable. That is false, and it was RE-MEASURED rather than merely
+    // conceded: with the literal value-change predicate (`rho_sched != pre ||
+    // delta_sched != pre || rho_floor != pre`) built behind a scratch toggle,
+    // the window reaches the full five accepted steps on thirteen of the
+    // suite's own IPQP solves, and the stall fixture still fires at the same
+    // ten iterations. The original measurement had counted GATE ADVANCES
+    // rather than VALUE CHANGES -- the gate's outcome (c) advances the
+    // proximal centre while moving neither quantity. The amendment is
+    // therefore a CHOSEN reading resting on the two grounds above, never a
+    // forced one.
     const Index stall_w = iopts.ipqp_stall_window;
     bool win_armed = false;
     Index win_steps = 0;
@@ -1028,9 +1068,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     };
 
     // Capture the window's reference state at the CURRENT iterate. Called on
-    // the first pass, after any regularization change, and after any window
-    // that closed without firing -- a window is a measurement, and a
-    // measurement that has been read is spent.
+    // the first pass, after a window discard (see the rule at the
+    // stall-window declarations above), and after any window that closed
+    // without firing -- a window is a measurement, and a measurement that has
+    // been read is spent.
     auto arm_window = [&](const IpqpResiduals &r) {
         win_armed = true;
         win_steps = 0;
@@ -1617,53 +1658,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             break;
         }
 
-        // The SAFEGUARD's state this pass started from, so a change to it
-        // discards the window (spec 6.2's third adopted property). Sampled
-        // here rather than beside each move: the floor rises in two places
-        // (the inertia ladder and the evidence-failure branch) and two
+        // The safeguard's state this pass started from. Window discard: see
+        // the rule at the stall-window declarations above. Sampled here
+        // rather than beside each move because the floor rises in TWO places
+        // (the inertia ladder and the evidence-failure branch), and two
         // separate "and reset the window" statements would be two places to
         // forget.
-        //
-        // DECLARED READING 1 -- "ANY REGULARIZATION CHANGE" IS READ AS "ANY
-        // SAFEGUARD CHANGE", i.e. a move of the INERTIA-DEMANDED MONOTONE
-        // FLOOR, and NOT as a move of the section 3.2 schedule.
-        //
-        // THIS IS A DATED AMENDMENT OF SECTION 6.2'S TEXT, NOT A CLARIFICATION
-        // OF IT, and it is labelled as one (settler ruling, plan section 7
-        // note (l)). The wording "any regularization change" is not itself
-        // ambiguous enough to exclude `rho_sched` and `delta_sched`, so
-        // narrowing it is an amendment and calling it a reading of the words
-        // would be dishonest. It is a CHOSEN reading, ratified on two
-        // grounds, neither of them empirical:
-        //
-        //  * THE RULE IS IMPORTED WITH ITS JUSTIFICATION, AND THE
-        //    JUSTIFICATION NAMES THE SAFEGUARD -- ssn_engine.h:620, quoted by
-        //    spec 6.2 itself: "slow progress under a sigma that JUST CHANGED
-        //    is THE SAFEGUARD'S DOING, not the problem's." In this tier the
-        //    safeguard is section 2.2's ladder, and `rho_floor` is the only
-        //    quantity it moves. The section 3.2 schedule is not a safeguard:
-        //    it is the method's ordinary outer iteration, it is GATED ON
-        //    MEASURED PROGRESS, and it moves regularization DOWNWARD, toward
-        //    the caller's own QP. Slow progress under a DECREASING
-        //    regularization is the problem's doing, which is exactly the case
-        //    the rule does not exempt.
-        //  * PRECEDENT: SSN's own window dirties on safeguard INCREASES only
-        //    (`ssn_engine.cpp`'s proximal-escalation path), so the amendment
-        //    aligns this tier with the kernel the rule was imported from
-        //    rather than diverging from it.
-        //
-        // NO UNREACHABILITY CLAIM IS MADE, and one was WITHDRAWN. An earlier
-        // draft argued that the literal reading leaves the stall test
-        // structurally unreachable. That is false, and it was RE-MEASURED
-        // rather than merely conceded: with the literal value-change predicate
-        // (`rho_sched != pre || delta_sched != pre || rho_floor != pre`) built
-        // behind a scratch toggle, the window reaches the full five accepted
-        // steps on thirteen of the suite's own IPQP solves, and the stall
-        // fixture still fires at the same ten iterations. The original
-        // measurement had counted GATE ADVANCES rather than VALUE CHANGES --
-        // the gate's outcome (c) advances the proximal centre while moving
-        // neither quantity. The amendment above is therefore a CHOSEN reading
-        // resting on the two grounds above, never a forced one.
         const double rho_floor_pre = rho_floor;
 
         // THE GATED DECREASE (spec 3.2), evaluated BEFORE the assembly so an
@@ -1965,10 +1965,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         win_alpha_min = std::min(win_alpha_min, step_alpha);
         win_alpha_max = std::max(win_alpha_max, step_alpha);
 
-        // ... AND A SAFEGUARD CHANGE DISCARDS IT (see the sampling site above
-        // for why that, and not every schedule move, is the reading). The next
-        // pass finds `win_armed == false` and arms a fresh window at the point
-        // the ladder actually left the trajectory at.
+        // ... and here it is discarded. Window discard: see the rule at the
+        // stall-window declarations above. The next pass finds
+        // `win_armed == false` and arms a fresh window at the point the ladder
+        // actually left the trajectory at.
         if (rho_floor != rho_floor_pre) {
             win_armed = false;
         }

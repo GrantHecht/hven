@@ -324,17 +324,52 @@ TEST(IpqpA11Test, TheIndefiniteFamilyArmsTheGateClimbsMonotonelyAndNeverCertifie
     // leaving an `if` that nothing enters, and if a future change makes a
     // member converge, this fires and whoever made it converge gets to
     // strengthen the block above. The final read's own A11 coverage is
-    // `TheA11SetReachesTheFinalReadOnAConstrainedIndefiniteKkt` below, which
+    // `TheFinalReadIsReachedOnAConstrainedIndefiniteKkt` below, which
     // exists precisely because this number is 0.
     EXPECT_EQ(reached_read, 0);
 }
 
-TEST(IpqpA11Test, TheA11SetReachesTheFinalReadOnAConstrainedIndefiniteKkt) {
-    // A11'S ROW HALF (plan section 8: "HS indefinite rows + the parametric
-    // IndefiniteBoxModel family"). The parametric family above is box-only --
-    // its KKT signature counts no rows at all -- so on its own it cannot
-    // exercise the part of section 2.2 item 4 that depends on `expect_pos =
-    // n + mi` and `expect_neg = me + mi` being nonzero in the row blocks.
+TEST(IpqpA11Test, TheHSIndefiniteRowsArmTheGateAndClimbMonotonelyButNeverReachTheRead) {
+    // A11'S ROW HALF (spec section 8.4: "A11 -- HS indefinite-Hessian rows
+    // with the final-inertia certificate asserted ... asserts: the inertia
+    // gate fires, the ladder is monotone within the solve, THE REQUIRED FINAL
+    // UNREGULARIZED INERTIA READ HAPPENS, and a wrong read downgrades the
+    // certificate rather than reporting kOptimal"). The parametric family
+    // above is box-only -- its KKT signature counts no rows at all -- so on
+    // its own it cannot exercise the part of section 2.2 item 4 that depends
+    // on `expect_pos = n + mi` and `expect_neg = me + mi` being nonzero in the
+    // row blocks.
+    //
+    // =====================================================================
+    // A11'S HS HALF IS **NOT MET** BY THE ENGINE AS BUILT AT W1 HEAD.
+    // =====================================================================
+    //
+    // SETTLER RULING (fix round 2): this is an ENGINE DEFICIENCY TO BE
+    // SURFACED, not a fixture to be tuned. **NO HS indefinite row reaches the
+    // section 2.2 item 4 read at all.** Measured on all three, at the 60-
+    // iteration default cap AND at a 400-iteration cap: every one runs its
+    // budget out and returns `kBudget` with `ipqp_final_inertia_read == 0`.
+    // The third of A11's four claims -- "the required final unregularized
+    // inertia read happens" -- therefore has no HS witness, and the fourth
+    // ("a wrong read downgrades") cannot be reached on an HS row either.
+    //
+    // WHAT THIS TEST DOES ABOUT IT. It asserts what IS true and load-bearing
+    // on each HS row (claims one and two, plus never-kOptimal), and it PINS
+    // THE DEFICIENCY at `reached_read_hs == 0` so the day the engine starts
+    // reaching the read is the day this test FAILS LOUDLY and someone must
+    // flip the assertion to `== 3`. Budgets are NOT raised and tolerances are
+    // NOT weakened to manufacture a read; a read manufactured that way would
+    // assert the fixture rather than the engine, and would hide exactly the
+    // thing that needs to stay visible.
+    //
+    // THE MECHANISM, from the fix-round-2 diagnosis (informational, in the
+    // report and the ledger): the ladder's first escalation lands `rho_floor`
+    // at a value FAR above the inertia-demanded minimum, the floor is monotone
+    // per solve so it never comes back down, and the iteration degenerates
+    // into a damped-gradient crawl whose step is O(1/rho). The unregularized
+    // residual the stopping rule reads is then dominated by `rho (x - zeta)`
+    // and converges only at the proximal outer rate, which 400 iterations do
+    // not reach.
     //
     // THE ROW FIXTURES ARE THE SUITE'S OWN, NOT NEW ONES. All three come from
     // `tests/sqp/support/indefinite_fixtures.h`, which is where
@@ -342,74 +377,115 @@ TEST(IpqpA11Test, TheA11SetReachesTheFinalReadOnAConstrainedIndefiniteKkt) {
     // shared by both consumers, with their multiplier derivations attached.
     // Two carry an equality row, two carry an inequality row, and one has two
     // negative eigenvalues.
-    struct Case {
+    RecordProperty("a11_hs_half",
+                   "NOT MET -- no HS indefinite row reaches the section 2.2 item 4 read at W1 "
+                   "head; see the M6 W1 ledger and the T5 fix-round-2 diagnosis");
+
+    struct HsCase {
         const char *name;
         QpProblem qp;
-        bool expect_converges;
+    };
+    const std::vector<HsCase> hs = {
+        {"hs_indefinite_equality", test_support::indefinite_equality_qp()},
+        {"hs_indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp()},
+        {"hs_two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()},
     };
 
-    // The two CONVERGING indefinite fixtures. `saddle_qp()` is task 4's own
-    // (H = diag(2, -1), g = 0, symmetric box: the origin is an exact KKT point
-    // of the barrier problem at every `mu`, so the tier converges to a SADDLE
-    // in three iterations and the item 4 read is what catches it). The second
-    // is that same fixture carrying ONE EQUALITY ROW satisfied at the origin,
-    // which is what puts a row into the inertia signature while keeping the
-    // convergence property -- and it is included for a measured reason, not a
-    // stylistic one: NONE of the three HS row fixtures converges (each runs
-    // its whole budget, at a 400-iteration cap as well as at 60), so without
-    // it A11 would have no constrained KKT reaching the final read at all.
-    QpProblem saddle_with_row = saddle_qp();
-    saddle_with_row.Ae = dense_rows({{1.0, 0.0}}, 2);
-    saddle_with_row.be = vec({0.0});
-
-    std::vector<Case> cases = {
-        {"hs_indefinite_equality", test_support::indefinite_equality_qp(), false},
-        {"hs_indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp(), false},
-        {"hs_two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp(), false},
-        {"saddle", saddle_qp(), true},
-        {"saddle_with_equality_row", saddle_with_row, true},
-    };
-
-    Index reached_read = 0;
-    for (const Case &c : cases) {
+    Index reached_read_hs = 0;
+    for (const HsCase &c : hs) {
         SCOPED_TRACE(c.name);
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(c.qp, nullptr, IpqpOptions{}, SolveOverrides{});
 
-        // Common to every member: an indefinite subproblem NEVER certifies,
-        // and whatever stopped it is censused exactly once.
+        // A11 CLAIM 1 -- THE INERTIA GATE FIRES on a CONSTRAINED indefinite
+        // KKT. Both counters, because either alone can be satisfied without
+        // the other being meaningful: `inertia_retries` is the count of
+        // factorizations the gate REFUSED, `rho_demanded_max` is the level it
+        // demanded, and both start at 0 on a convex subproblem.
+        EXPECT_GT(r.counters.ipqp_inertia_retries, 0);
+        EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
+
+        // A11 CLAIM 2 -- THE LADDER IS MONOTONE WITHIN THE SOLVE. The floor
+        // only ever rises, so its LAST value is also its high-water mark, and
+        // no down-then-up cycle was attempted (`ipqp_rho_flaps`, which counts
+        // exactly that). A ladder that fell back would break the first; a
+        // schedule that pushed under the floor and was refused would show in
+        // the second.
+        EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+        EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
+        EXPECT_GT(r.counters.ipqp_iters_at_elevated_rho, 0);
+
+        // NEVER kOptimal -- the claim that survives whatever else happens.
         EXPECT_NE(r.status, QpStatus::kOptimal);
         EXPECT_NE(r.escape_reason, IpqpEscape::kNone);
+        EXPECT_FALSE(r.certificate_downgraded);
+
+        // WHAT ACTUALLY STOPS THEM, pinned rather than described: the budget.
+        EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
+        EXPECT_EQ(r.status, QpStatus::kMaxIter);
         EXPECT_EQ(r.counters.ipqp_escapes, 1);
+        EXPECT_EQ(r.counters.ipqp_escape_budget, 1);
         EXPECT_EQ(census_entries(r.counters), 1);
         EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+        EXPECT_EQ(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
 
-        if (c.expect_converges) {
-            // NON-VACUOUS BY CONSTRUCTION (co-review I-5): for a member
-            // EXPECTED to converge the read is asserted to have happened, so
-            // a regression to a budget escape fails here rather than skipping
-            // the assertion.
-            ++reached_read;
-            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
-            EXPECT_TRUE(r.certificate_downgraded);
-            EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
-            EXPECT_EQ(r.counters.ipqp_escape_indefinite, 1);
-            EXPECT_LE(r.counters.ipqp_iters, 10);
-        } else {
-            // The three HS row fixtures: the gate fires on a CONSTRAINED
-            // indefinite KKT -- which is the row coverage A11 asks for -- and
-            // the solve then pays its budget rather than converging to a
-            // biased point and certifying it.
-            EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
-            EXPECT_GT(r.counters.ipqp_inertia_retries, 0);
-            EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
-            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+        if (r.counters.ipqp_final_inertia_read != 0) {
+            ++reached_read_hs;
         }
     }
 
-    // THE COUNT: exactly the two members expected to, and at least one.
+    // THE DEFICIENCY, PINNED. **THE DAY THIS FAILS IS THE DAY A11'S HS HALF IS
+    // MET** -- and whoever makes the engine reach the read on these rows must
+    // flip this to `EXPECT_EQ(reached_read_hs, 3)`, add A11's claims three and
+    // four to the loop above (`read == 1`, `certificate_downgraded`,
+    // `kIndefinite`), delete the RecordProperty, and close the ledger item.
+    // Until then the pin is the honest statement of where the tier is.
+    EXPECT_EQ(reached_read_hs, 0)
+        << "A11 HS half NOT MET -- no HS indefinite row reaches the section 2.2 item 4 read at "
+           "W1 head; see ledger. If this now passes the read, flip the pin to 3 and assert the "
+           "read's own outcome.";
+}
+
+TEST(IpqpA11Test, TheFinalReadIsReachedOnAConstrainedIndefiniteKkt) {
+    // A11'S CLAIMS THREE AND FOUR -- "the required final unregularized inertia
+    // read HAPPENS, and a wrong read DOWNGRADES the certificate rather than
+    // reporting kOptimal" -- on a CONSTRAINED indefinite KKT, since the test
+    // above records that no HS row reaches them.
+    //
+    // THIS IS NOT AN HS WITNESS AND IS NOT OFFERED AS ONE. It is the coverage
+    // that exists today for the read itself; A11's HS half stays open above.
+    //
+    // `saddle_qp()` is task 4's own fixture (H = diag(2, -1), g = 0, symmetric
+    // box: the origin is an exact KKT point of the barrier problem at every
+    // `mu`, so the tier converges to a SADDLE in three iterations and the item
+    // 4 read is what catches it). The second member is that same fixture
+    // carrying ONE EQUALITY ROW satisfied at the origin, which is what puts a
+    // row into the inertia signature (`expect_neg = me + mi` becomes nonzero)
+    // while keeping the convergence property.
+    QpProblem saddle_with_row = saddle_qp();
+    saddle_with_row.Ae = dense_rows({{1.0, 0.0}}, 2);
+    saddle_with_row.be = vec({0.0});
+
+    Index reached_read = 0;
+    for (const QpProblem &qp : {saddle_qp(), saddle_with_row}) {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+
+        // NON-VACUOUS BY CONSTRUCTION: the read is ASSERTED to have happened,
+        // so a regression to a budget escape fails here rather than skipping
+        // the assertion (co-review I-5).
+        ASSERT_NE(r.counters.ipqp_final_inertia_read, 0);
+        ++reached_read;
+        EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
+        EXPECT_TRUE(r.certificate_downgraded);
+        EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
+        EXPECT_NE(r.status, QpStatus::kOptimal);
+        EXPECT_EQ(r.counters.ipqp_escape_indefinite, 1);
+        EXPECT_EQ(census_entries(r.counters), 1);
+        EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+        EXPECT_LE(r.counters.ipqp_iters, 10);
+    }
     EXPECT_EQ(reached_read, 2);
-    EXPECT_GT(reached_read, 0);
 }
 
 TEST(IpqpA11Test, TheConvexTwinOfTheFamilyCertifiesAndLeavesTheLadderInert) {
