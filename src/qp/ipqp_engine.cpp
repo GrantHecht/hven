@@ -1199,12 +1199,56 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return true;
     };
 
-    auto write_diagonals = [&](double rho, double delta) {
+    // THE TWO PRIMAL REGULARIZATIONS ARE DIFFERENT OBJECTS AND ENTER THE
+    // MATRIX DIFFERENTLY (spec 2.2 items 2-3 / 3.1 / 3.2 as amended by the T4b
+    // plan of record, plan section 7 note (p)):
+    //
+    //   `rho_sched` is section 3.2's PROXIMAL term. It defines the subproblem
+    //   -- `min Q(x) + (rho_sched/2)||x - zeta||^2` -- so it enters the
+    //   diagonal AND the right-hand side (`build_rhs`) AND the gate's
+    //   regularized residual, all anchored at the same prox centre. It lives
+    //   on the CALLER'S scale, alongside `src[i]` and `sigma[i]`, and is
+    //   therefore multiplied by `dsq` with them.
+    //
+    //   `rho_dem` is section 2.2's inertia-demanded MODIFICATION (Ipopt's
+    //   `delta_w`). It is NOT part of the subproblem: its proximal anchor is
+    //   the CURRENT ITERATE, so its gradient contribution at `x_k` is zero and
+    //   it must never reach the right-hand side. It is ADDED to the proximal
+    //   Hessian rather than maxed with it -- with `max`, a trial below
+    //   `rho_sched` would be a no-op the ladder's memory would nonetheless
+    //   record, and "`rho_dem == 0` means unmodified" would stop being exact.
+    //
+    // AND IT IS APPLIED IN THE RUIZ-SCALED SYSTEM, which is the system the
+    // inertia is read on. `assemble` computes the equilibration on the
+    // UNMODIFIED matrix and this function then writes `(...) * dsq(i) +
+    // rho_dem`, so the shift is `rho_dem` UNIFORMLY in every scaled
+    // coordinate -- equivalently `rho_dem / d_i^2` on the unscaled diagonal.
+    // A uniform shift in UNSCALED space would be the non-uniform shift
+    // `rho_dem * d_i^2` in the scaled system: a coordinate with a tiny `d_i`
+    // would receive almost nothing and the ladder would have to climb far past
+    // every other coordinate to cover it. Ipopt adds `delta_w` after its own
+    // scaling for the same reason, and Algorithm IC's constants are
+    // scale-free only under this choice. `ipqp_reg_max` therefore caps
+    // `rho_dem`, the scaled uniform value, not the total.
+    //
+    // THE `rho_dem == 0` BRANCH IS EXPLICIT AND MUST STAY THAT WAY. Folding a
+    // `+ rho_dem` into the sum would re-associate the expression and move the
+    // last bits of every convex solve in the tree -- the branch is what makes
+    // the convex corpus BIT-IDENTICAL across this change (T4b close gate 4).
+    auto write_diagonals = [&](double rho_sched, double rho_dem, double delta) {
         double *vals = kkt_.matrix().valuePtr();
         const std::vector<double> &src = layout_.primal_diag_source();
-        for (Index i = 0; i < n; ++i) {
-            vals[layout_.primal_diag_slot(i)] =
-                (src[static_cast<std::size_t>(i)] + rho + w.sigma(i)) * w.dsq(i);
+        if (rho_dem == 0.0) {
+            for (Index i = 0; i < n; ++i) {
+                vals[layout_.primal_diag_slot(i)] =
+                    (src[static_cast<std::size_t>(i)] + rho_sched + w.sigma(i)) * w.dsq(i);
+            }
+        } else {
+            for (Index i = 0; i < n; ++i) {
+                vals[layout_.primal_diag_slot(i)] =
+                    (src[static_cast<std::size_t>(i)] + rho_sched + w.sigma(i)) * w.dsq(i) +
+                    rho_dem;
+            }
         }
         for (Index j = 0; j < mi; ++j) {
             vals[layout_.slack_diag_slot(j)] = (w.yi(j) / w.s(j)) * w.dsq(n + j);
@@ -1262,7 +1306,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // `dsq`, so a rung stays an O(n) assignment; recomputing the equilibration
     // per rung would move the matrix under the ladder and the ladder's
     // monotone comparison would no longer be about one system.
-    auto assemble = [&](double rho, double delta) {
+    //
+    // THE EQUILIBRATION IS COMPUTED ON THE UNMODIFIED SYSTEM (`rho_dem = 0`),
+    // then the modification is written into the scaled matrix. Two reasons,
+    // and they point the same way. The Ruiz diagonal must not move under the
+    // ladder -- a rung that changed `D` would leave the ladder comparing two
+    // different systems -- and `rho_dem` is a UNIFORM shift of the SCALED
+    // matrix (see `write_diagonals`), so letting it participate in computing
+    // `D` would make `D` a function of the rung. On the `rho_dem == 0` path
+    // the second `write_diagonals` call is skipped entirely, so the assembled
+    // values are bit-for-bit what they were before the separation.
+    auto assemble = [&](double rho_sched, double rho_dem, double delta) {
         w.sigma.setZero();
         detail::ipqp_accumulate_bound_sigma(w.x, bounds.lower, bounds.upper, w.zl, w.zu, n,
                                             w.sigma);
@@ -1273,12 +1327,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
 
         w.dsq.setOnes(w.dim);
-        write_diagonals(rho, delta);
+        write_diagonals(rho_sched, 0.0, delta);
         if (iopts.ipqp_ruiz) {
             ruiz_equilibrate(kkt_.matrix(), w.dscale, w.ruiz_work);
             w.dsq = w.dscale.array().square();
         } else {
             w.dscale.setOnes(w.dim);
+        }
+        if (rho_dem != 0.0) {
+            write_diagonals(rho_sched, rho_dem, delta);
         }
     };
 
@@ -1321,8 +1378,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // (h)'s `ipqp_final_inertia_read == 2`, numerical -- rather than a second
     // question whose clean answer could stand a certificate the first answer
     // could not support.
-    auto factorize_and_read_once = [&](double rho, double delta) {
-        assemble(rho, delta);
+    //
+    // NO INERTIA-DEMANDED MODIFICATION EITHER (T4b): the read is taken at
+    // `rho_dem = 0` BY CONSTRUCTION, not by whatever the ladder's memory
+    // happens to hold. Seeding it from `rho_dem_last` would ask the item 4
+    // question about the modified system rather than about the caller's QP,
+    // which is the same wrong-answer bug as reading at an elevated schedule
+    // value; a mutation that does so must fail A11's final-read pins.
+    auto factorize_and_read_once = [&](double rho_sched, double delta) {
+        assemble(rho_sched, /*rho_dem=*/0.0, delta);
         return factor_and_read(/*final_read=*/true);
     };
 
@@ -1330,8 +1394,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // ladder until the inertia is the section 4.1 target or the ceiling is
     // reached. Returns the reading the caller must act on. `rho`/`delta` are
     // in/out, so the caller sees where the ladder stopped.
-    auto factorize_with_ladder = [&](double &rho, double &delta) {
-        assemble(rho, delta);
+    auto factorize_with_ladder = [&](double rho_sched, double &rho_dem, double &delta) {
+        assemble(rho_sched, rho_dem, delta);
 
         for (;;) {
             const InertiaRead read = factor_and_read(/*final_read=*/false);
@@ -1403,14 +1467,14 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // unregularized once `rho_sched` fell below it.
                 rho_floor = std::max(rho_floor, conservative);
                 rho_demanded_last = rho_floor;
-                if (conservative > rho) {
+                if (conservative > rho_dem) {
                     // This factorization WAS rejected -- on evidence the tier
                     // could not use, which `ipqp_inertia_retries` covers
                     // ("wrong OR evidence-invalid", fix round 1's M2).
                     ++out.counters.ipqp_inertia_retries;
                     ++out.counters.ipqp_reg_increases;
-                    rho = conservative;
-                    write_diagonals(rho, delta);
+                    rho_dem = conservative;
+                    write_diagonals(rho_sched, rho_dem, delta);
                     continue;
                 }
                 return read;
@@ -1441,18 +1505,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     delta = iopts.ipqp_reg_max;
                 }
             } else {
-                if (rho >= cap) {
+                if (rho_dem >= cap) {
                     ++out.counters.ipqp_inertia_retries; // I8, as above.
                     return read;
                 }
                 const double next =
-                    std::max(rho * detail::kIpqpRhoGrowth, detail::kIpqpRhoLadderInit);
-                rho = std::min(next, iopts.ipqp_reg_max);
-                if (rho >= cap) {
-                    rho = iopts.ipqp_reg_max;
+                    std::max(rho_dem * detail::kIpqpRhoGrowth, detail::kIpqpRhoLadderInit);
+                rho_dem = std::min(next, iopts.ipqp_reg_max);
+                if (rho_dem >= cap) {
+                    rho_dem = iopts.ipqp_reg_max;
                 }
-                rho_floor = std::max(rho_floor, rho);
-                rho_demanded_last = rho;
+                rho_floor = std::max(rho_floor, rho_dem);
+                rho_demanded_last = rho_dem;
             }
             ++out.counters.ipqp_inertia_retries;
             ++out.counters.ipqp_reg_increases;
@@ -1467,7 +1531,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // `assemble()` established, so writing the four diagonal families
             // at the new (rho, delta) is all a rung costs beyond its
             // factorization.
-            write_diagonals(rho, delta);
+            write_diagonals(rho_sched, rho_dem, delta);
         }
     };
 
@@ -1488,11 +1552,21 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Build the right-hand side for one step. `mu_t` is the uniform
     // complementarity target (0 on the affine step); `corrector` adds
     // Mehrotra's second-order term from the affine step already in hand.
-    auto build_rhs = [&](double rho, double delta, double mu_t, bool corrector) {
+    //
+    // `rho_sched` / `delta` ARE THE SCHEDULE'S, ALWAYS. This function defines
+    // which subproblem the step solves, and section 3.2's proximal terms --
+    // `rho_sched (x - zeta)` on stationarity, `delta (y - lambda_est)` on the
+    // dual blocks -- are the whole of it. Section 2.2's inertia-demanded
+    // modification has no place here: its anchor is the current iterate, so
+    // its gradient at `x_k` is zero, and passing the TOTAL shift instead is
+    // exactly the defect T4b removes (the step then converges to the KKT point
+    // of the modified problem while the gate measures the schedule's, so the
+    // gate falls silent forever -- see the call sites).
+    auto build_rhs = [&](double rho_sched, double delta, double mu_t, bool corrector) {
         w.bgrad.setZero();
         detail::ipqp_accumulate_bound_barrier_gradient(w.x, bounds.lower, bounds.upper, mu_t, n,
                                                        w.bgrad);
-        w.rhs.head(n) = -(w.grad + rho * (w.x - w.zeta) + w.bgrad);
+        w.rhs.head(n) = -(w.grad + rho_sched * (w.x - w.zeta) + w.bgrad);
         if (corrector) {
             for (Index i = 0; i < n; ++i) {
                 if (detail::ipqp_has_lower(bounds.lower(i))) {
@@ -1823,10 +1897,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         }
 
-        double rho = std::max(rho_sched, rho_floor);
+        // THE TWO REGULARIZATIONS, SELECTED SEPARATELY (T4b). `rho_sched` is
+        // the subproblem's own proximal weight and is NOT touched here;
+        // `rho_dem` is the inertia-demanded modification this iteration starts
+        // its ladder from. They are ADDITIVE in the matrix and only
+        // `rho_sched` reaches the right-hand side.
+        double rho_dem = rho_floor;
         double delta = delta_sched;
 
-        const InertiaRead read = factorize_with_ladder(rho, delta);
+        const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
 
         // I4 + N1: READ AFTER THE LADDER SETTLES, COUNTED ONLY IF A STEP IS
         // ACTUALLY TAKEN. `rho` is an in/out parameter, so this reads the
@@ -1838,7 +1917,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // armed the ladder and was then refused a factorization by the budget
         // is not an iteration taken at elevated rho; it is not an iteration at
         // all.
-        const bool elevated = rho > rho_sched;
+        const bool elevated = rho_dem > 0.0;
 
         if (fact_budget_hit) {
             // The cap refused a factorization. That is a BUDGET stop, and it
@@ -1878,7 +1957,14 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
 
         // 1. THE AFFINE (PREDICTOR) STEP -- mu target 0.
-        build_rhs(rho, delta, 0.0, /*corrector=*/false);
+        // MECHANISM 4'S FIX (T4b): the right-hand side is built from the
+        // SCHEDULE'S subproblem -- `rho_sched`, anchored at `zeta` -- and
+        // never from the inertia-demanded modification, whose anchor is the
+        // current iterate and whose gradient contribution here is therefore
+        // zero. Before the separation this used the total, so the iterate
+        // converged to the KKT point of a DIFFERENT problem than the one the
+        // section 3.2 gate measures, and the gate never advanced again.
+        build_rhs(rho_sched, delta, 0.0, /*corrector=*/false);
         solve_system();
         recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
         if (!w.sol.allFinite()) {
@@ -1918,7 +2004,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         //    does not mutate the factor, so two solves against one
         //    factorization are well-formed -- W1 asserts this executably
         //    rather than assuming it).
-        build_rhs(rho, delta, mu_t, /*corrector=*/true);
+        build_rhs(rho_sched, delta, mu_t, /*corrector=*/true);
         solve_system();
         recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
         if (!w.sol.allFinite()) {
