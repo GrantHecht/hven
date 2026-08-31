@@ -600,6 +600,46 @@ declared-change discipline; the spec text itself is amended at W1 close.
   entry)} per tier entry", and the `ipqp_hoist_symbolic` kill switch pins
   the OFF state. The `ipqp_pattern_verifies` doc comment is amended to
   match; the code was already right.
+- (l) Spec §6.2 AMENDED (T5, 2026-08-31; flagged for owner review at the
+  W1-close spec fold): "any regularization change discards the window" →
+  any SAFEGUARD change — a move of §2.2's inertia-demanded monotone
+  `rho_floor` — not a §3.2 schedule move. The rule is imported from SSN
+  together with its justification, which names the safeguard
+  (`ssn_engine.h:620`), and SSN's own window dirties on safeguard increases
+  only (`ssn_engine.cpp:381-412`); the §3.2 schedule is the method's gated
+  outer iteration moving regularization DOWNWARD toward the caller's QP, so
+  slow progress under it is the problem's doing. Both reviewers agree the
+  policy; Codex correctly notes the original wording is not ambiguous, so
+  this is an amendment, labelled as one. The implementer's "the literal
+  reading is structurally unreachable" claim is WITHDRAWN from the
+  justification: gate-advance had been measured, not value-change, and
+  the fix-round re-measurement (literal value-change predicate behind a
+  scratch-only toggle, never shipped) shows the literal window FILLS on 13
+  of the suite's own IPQP solves and the stall fixture still fires at the
+  same iteration — the reading is chosen on text and precedent, not forced.
+- (m) Spec §6.2/§6.3 CLARIFIED (same round): when both predicates hold on
+  one subproblem, §6.3 (infeasible-suspect) is tested first — the more
+  specific diagnosis wins; the spec is silent on order and this is the
+  only fill that keeps §6.3 reachable on the problems it was written for.
+  Recorded because it changes observable routing (W2's hook).
+- (n) Spec §2.2 evidence-failure floor CLARIFIED (same round): the
+  "conservative rho floor" a step is permitted at when inertia evidence is
+  UNAVAILABLE is an ABSOLUTE magnitude (`kIpqpEvidenceFailureRhoFloor`, a
+  minimum under `max(rho_sched, rho_floor)`, initially equal to the
+  ladder's first rung 1e-4), not a level-proportional ladder rung — a rung
+  compounds without bound under a backend that never reports inertia
+  (measured: a permanent floor of 800 drove an Accelerate-shaped solve to
+  the proximally biased point). §2.2 names no sizing; the whole-solve
+  certificate DOWNGRADE, not the shift, carries the honesty claim, and the
+  ruling rests on that argument rather than on the word "conservative".
+- (o) Spec §6.2 reset CLARIFIED (same round; flagged with (l) for owner
+  review): "reset on a Mehrotra target change that actually dropped mu" IS
+  conjunct (i) at the 2× threshold evaluated across the window, not a
+  second mechanism — a reset on ANY μ drop would re-arm on every healthy
+  step and make conjunct (i) vacuous; the only drop that coherently counts
+  as the target "taking" is the ≥ 2× one conjunct (i) already names.
+  Evaluated at window close (a drop early in the window re-arms at most W
+  accepted steps later; never fires falsely).
 
 ## §8. v2/v3 changes (Codex r1 + rulings 1-9; Codex r2 + r3 rulings 1-3)
 
