@@ -617,8 +617,8 @@ struct IpqpCounters {
     /// readings are tracked, per the same spec row).
     double ipqp_rho_demanded_last = 0.0;
 
-    /// Factorizations REJECTED on wrong inertia (the section 2.2 gate),
-    /// excluding the section 2.2 item 4 REQUIRED final read -- that read's
+    /// Factorizations REJECTED on wrong inertia (the section 2.2 gate).
+    /// Excludes the section 2.2 item 4 REQUIRED final read -- that read's
     /// own outcome is `ipqp_final_inertia_read`, not this field, even when
     /// the final read itself comes back wrong.
     Index ipqp_inertia_retries = 0;
@@ -638,18 +638,31 @@ struct IpqpCounters {
     Index ipqp_rho_flaps = 0;
 
     /// Outcome of the section 2.2 item 4 REQUIRED final unregularized
-    /// inertia read on a certifying exit: `0` right, `1` wrong (certificate
-    /// downgraded), `2` unreadable -- spec section 7's table row
+    /// inertia read on a certifying exit -- spec section 7's table row
     /// (`docs/notes/2026-08-m6-w1-ipqp-spec.md:717`) sits two lines below
     /// `ipqp_rho_demanded_last`'s own "final" row (`:713`), and the same
     /// per-solve categorical reading is normative here: OVERWRITTEN by
     /// `accumulate_ipqp_counters`, the `SqpCounters::start_level_used`
-    /// convention, not an additive quantity. A solve-wide "was any
-    /// subproblem's read ever unreliable" question is answered by
-    /// `ipqp_escape_indefinite` instead. Structurally `0` (its "right"
-    /// value) on a subproblem that never reached a certifying exit, since
-    /// the read is paid only there. Excludes every inertia read paid
-    /// mid-ladder (`ipqp_inertia_retries`), which this field never reports.
+    /// convention, not an additive quantity.
+    ///
+    /// SETTLER RULING (fix round 2, Codex co-review I2): the three values
+    /// map onto the escape census exactly, closing the
+    /// indefinite/numerical boundary this field and its two escape
+    /// counters used to leave open. `0` -- the reading was taken and
+    /// AGREED with the required signature: the certificate stands, no
+    /// escape. `1` -- the reading was taken and DISAGREED (at the item 4
+    /// final certification factorization, or when the monotone ladder
+    /// reached `ipqp_reg_max` with the reading still wrong): a saddle-
+    /// suspect certificate downgrade, `ipqp_escape_indefinite`. `2` --
+    /// UNREADABLE: no evidence state was observed to compare against the
+    /// required signature at all, `ipqp_escape_numerical`. A solve-wide
+    /// "was any subproblem's read ever unreliable" question reads the
+    /// escape census (`ipqp_escape_indefinite` + `ipqp_escape_numerical`)
+    /// rather than this per-subproblem field. Structurally `0` (its
+    /// "agreed" value) on a subproblem that never reached a certifying
+    /// exit, since the read is paid only there. Excludes every inertia
+    /// read paid mid-ladder (`ipqp_inertia_retries`), which this field
+    /// never reports.
     Index ipqp_final_inertia_read = 0;
 
     /// `(rho, delta)` schedule GATED decreases actually applied. Excludes a
@@ -794,7 +807,12 @@ struct IpqpCounters {
 
     /// Escapes via the section 6.1 hard iteration cap, `IpqpEscape::kBudget`
     /// -- of LAST RESORT (section 6.1: the stall test below should fire
-    /// first on anything genuinely stuck).
+    /// first on anything genuinely stuck). Excludes an escape whose stall
+    /// test fired first, which is `ipqp_escape_stall` instead (section 6.1
+    /// states budget is of last resort precisely so stall pre-empts it),
+    /// and excludes the section 5.5 warm-kill budget -- a warm restart's
+    /// own budget, not the tier's iteration cap, and tracked separately as
+    /// `ipqp_warm_restart_abandoned`, which is not an escape at all.
     Index ipqp_escape_budget = 0;
 
     /// Escapes via the section 6.2 early-stall test (the `mu`/residual/
@@ -804,19 +822,36 @@ struct IpqpCounters {
     /// evidence block instead, never as counters here.
     Index ipqp_escape_stall = 0;
 
-    /// Escapes via `IpqpEscape::kIndefinite` (section 2.2 item 4): the
-    /// REQUIRED final unregularized inertia read came back wrong on an
-    /// otherwise-converged point, downgrading the certificate. Excludes an
-    /// inertia-gate failure mid-ladder, which is `ipqp_inertia_retries`
-    /// instead and retries rather than escaping.
+    /// Escapes via `IpqpEscape::kIndefinite` (section 2.2 item 4): an
+    /// inertia reading was READ (an evidence state was actually observed)
+    /// and DISAGREED with the required signature -- at the item 4 final
+    /// certification factorization on an otherwise-converged point, or
+    /// when the monotone regularization ladder reached `ipqp_reg_max` with
+    /// the reading still wrong. SETTLER RULING (fix round 2, Codex
+    /// co-review I2): this is `ipqp_final_inertia_read == 1`, a
+    /// saddle-suspect certificate downgrade that routes to SSN warm-grade
+    /// per section 2.3 item 4. Excludes an inertia-gate failure mid-ladder
+    /// before the final read (`ipqp_inertia_retries` instead, which
+    /// retries rather than escaping), and excludes an UNREADABLE reading
+    /// (no evidence state observed at all) -- that is
+    /// `ipqp_escape_numerical` (`ipqp_final_inertia_read == 2`) instead,
+    /// the field immediately below.
     Index ipqp_escape_indefinite = 0;
 
-    /// Escapes on a numerical failure the ladder could not recover from
-    /// (section 2.3 item 5's "numerical error" class). Excludes an
-    /// indefinite-certificate escape (`ipqp_escape_indefinite` above) -- a
-    /// distinct reason even though both can stem from a factorization or
-    /// inertia reading; the precise boundary between the two is left to the
-    /// engine author (T4 confirms).
+    /// Escapes that stop the tier for a non-convergence reason other than
+    /// budget, stall, or infeasible-suspect (section 2.3 item 5's
+    /// "numerical error" class): a factorization failure, an UNREADABLE
+    /// inertia reading (`ipqp_final_inertia_read == 2` -- no evidence
+    /// state was observed to compare against the required signature at
+    /// all), or a non-finite iterate/residual/step. SETTLER RULING (fix
+    /// round 2, Codex co-review I2): this is the complement of
+    /// `ipqp_escape_indefinite` within "the reading was inertia-related" --
+    /// indefinite means a reading WAS taken and disagreed, numerical means
+    /// either no reading could be taken at all or the failure was not an
+    /// inertia reading in the first place. Excludes an
+    /// indefinite-certificate escape (`ipqp_escape_indefinite` above,
+    /// `ipqp_final_inertia_read == 1`) -- a reading that WAS taken and
+    /// disagreed is never double-counted here.
     Index ipqp_escape_numerical = 0;
 
     /// Escapes via `IpqpEscape::kInfeasibleSuspect` (section 6.3's
@@ -840,9 +875,11 @@ struct IpqpCounters {
     /// takes a fraction-to-boundary step.
     double ipqp_alpha_p_min = std::numeric_limits<double>::infinity();
 
-    /// The DUAL-side counterpart of `ipqp_alpha_p_min`: same fold, same
-    /// `+infinity` default and the same reason for it, including the same
-    /// exclusion of a declined-pinned subproblem.
+    /// The DUAL-side counterpart of `ipqp_alpha_p_min`: same fold and same
+    /// `+infinity` default, for the same reason. Excludes a declined-pinned
+    /// subproblem (`ipqp_declined_pinned`), which the tier never enters and
+    /// so never takes a fraction-to-boundary step -- the same exclusion
+    /// `ipqp_alpha_p_min` states for itself.
     double ipqp_alpha_d_min = std::numeric_limits<double>::infinity();
 };
 

@@ -155,14 +155,12 @@ TEST(AccumulateIpqpCounters, RestartShiftMaxFoldsByMaxAcrossSubproblems) {
 TEST(AccumulateIpqpCounters, TierRetiredAfterFoldsByMaxNotSumOrOverwrite) {
     // Fix round 1 (Codex co-review I1): ipqp_tier_retired_after is a
     // once-per-solve MAJOR INDEX, not a count, so it must fold by MAX, the
-    // same discipline as the peak fields above -- not by sum (which would
-    // report the impossible "major 11" from folding 4 and 7) and not by
-    // overwrite (which would erase 7 down to 0 on the third fold). Values
-    // chosen so all three candidate fold rules disagree at each step:
-    // MUTATION CHECK: after folding 4 then 7, sum gives 11 and overwrite
-    // gives 7 by accident (matches max here) but diverges at the next step;
-    // folding 0 third distinguishes overwrite (would give 0) from max
-    // (stays 7) unambiguously.
+    // same discipline as the peak fields above -- not by sum, not by
+    // overwrite. MUTATION CHECK, one step at a time: after folding 4 then
+    // 7, sum gives the impossible 11 while max and overwrite happen to
+    // agree at 7 (overwrite has not yet been distinguished from max);
+    // folding a later 0 third is what distinguishes them -- overwrite
+    // would erase the total to 0, while max (the correct rule) stays 7.
     IpqpCounters total;
     IpqpCounters p1;
     p1.ipqp_tier_retired_after = 4;
@@ -278,8 +276,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     a.ipqp_warm_restart_abandoned = 0;
     a.ipqp_declined_pinned = 7;
     // ipqp_tier_retired_after deliberately NOT set here: it is max-folded,
-    // not summed (fix round 1), so it has its own discriminating test below
-    // (TierRetiredAfterFoldsByMaxAcrossSubproblems) rather than sharing this
+    // not summed (fix round 1), so it has its own discriminating test above
+    // (TierRetiredAfterFoldsByMaxNotSumOrOverwrite) rather than sharing this
     // sum-only fixture.
     a.ipqp_face_uncertain = 12;
     a.ipqp_refine_accepted = 4;
