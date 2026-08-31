@@ -398,19 +398,20 @@ TEST(IpqpLadderTest, TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap) {
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
 
-    EXPECT_GT(r.counters.ipqp_rho_flaps, 0);
+    EXPECT_EQ(r.counters.ipqp_rho_flaps, 1);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
-    // THE FLOOR REFUSED *RHO*, AND ONLY RHO. `delta` carries no monotone
+    // A FLAP AND ONLY A FLAP (fix round 2, I2). `delta` carries no monotone
     // floor (plan section 7 note (g)), so the very advance whose `rho` move
-    // was refused still moved `delta` 8 -> 0.8 -- and `ipqp_reg_decreases` is
-    // the `(rho, delta)` SCHEDULE's counter, so that advance IS an applied
-    // decrease (fix round 1, I7). The earlier reading called it 0 and was
-    // describing `rho` alone under the schedule's name.
-    EXPECT_GT(r.counters.ipqp_reg_decreases, 0);
-    // The two counts are bounded by the advances that produced them: at most
-    // one decrease and at most one flap per gated advance.
-    EXPECT_LE(r.counters.ipqp_reg_decreases, r.counters.ipqp_prox_center_updates);
-    EXPECT_LE(r.counters.ipqp_rho_flaps, r.counters.ipqp_prox_center_updates);
+    // the floor refused still moved `delta` 8 -> 0.8 -- and the rule chosen,
+    // stated on both counters' doc comments, is that ONE ADVANCE IS ONE
+    // CLASSIFICATION: the refusal is the defining event, so this advance
+    // scores a flap and NOT also a decrease. Round 1 counted both and broke
+    // the exclusivity the two fields document.
+    EXPECT_EQ(r.counters.ipqp_reg_decreases, 0);
+    // THE IDENTITY, structural on any solve whose schedule has not bottomed
+    // out: every gated advance is classified exactly once.
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates,
+              r.counters.ipqp_reg_decreases + r.counters.ipqp_rho_flaps);
 
     // MUTATION NON-VACUITY: the same solve on a CONVEX Hessian raises no
     // floor, so the same gate produces decreases and no flaps at all.
@@ -420,6 +421,8 @@ TEST(IpqpLadderTest, TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap) {
     ASSERT_EQ(c.status, QpStatus::kOptimal);
     EXPECT_EQ(c.counters.ipqp_rho_flaps, 0);
     EXPECT_GT(c.counters.ipqp_reg_decreases, 0);
+    EXPECT_EQ(c.counters.ipqp_prox_center_updates,
+              c.counters.ipqp_reg_decreases + c.counters.ipqp_rho_flaps);
 }
 
 TEST(IpqpLadderTest, TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease) {
@@ -441,16 +444,64 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease) {
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
 
     ASSERT_EQ(r.status, QpStatus::kOptimal);
-    // The schedule really did land on the floor and keep advancing afterwards:
-    // more proximal-centre advances than applied decreases is exactly the
-    // state that used to be miscounted.
-    ASSERT_GT(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
     EXPECT_DOUBLE_EQ(r.rho, io.ipqp_reg_floor);
     EXPECT_DOUBLE_EQ(r.delta, io.ipqp_reg_floor);
     // A CONVEX subproblem has no monotone floor at all, so no advance here can
-    // be a monotone-floor violation however many hit the absolute one.
+    // be a monotone-floor violation however many hit the absolute one. This is
+    // I2's whole content.
     EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0);
+
+    // THE EXACT THREE-WAY ACCOUNTING, pinned as three numbers rather than as
+    // an inequality (fix round 2: "do not pin a gap"). Four gated advances:
+    // the first two still had room to move -- `1e-9 * 0.1` does not land on
+    // `1e-10` exactly in binary, so the schedule takes two steps to settle on
+    // the floor -- and the last two moved NOTHING, which is class (c): neither
+    // a decrease (nothing moved) nor a flap (the ABSOLUTE floor is a setting,
+    // not evidence about this subproblem's curvature).
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates, 4);
+    EXPECT_EQ(r.counters.ipqp_reg_decreases, 2);
+    EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
+    // ... so the identity's residual IS the class-(c) count, and it is 2 here.
+    // The section 7 counter table has no field for that class and this task
+    // does not invent one, so it is pinned by arithmetic on the three that do
+    // exist rather than left unstated.
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases -
+                  r.counters.ipqp_rho_flaps,
+              2);
+}
+
+TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveWithNoMonotoneFloor) {
+    // THE SECOND, INDEPENDENT WITNESS for I2, run at a tight tolerance and a
+    // raised cap so the solve takes materially more iterations than any other
+    // fixture in this file (13 against the usual 5-11) and the section 3.2
+    // gate gets many more chances to fire.
+    //
+    // WHY THIS IS NOT THE "PAST THE 11TH GATED ADVANCE" FIXTURE, said plainly:
+    // the gate is a CONTRACTION test, so gated advances are far rarer than
+    // iterations -- this solve takes 13 iterations and 5 advances. Reaching a
+    // 12th advance on a convex fixture is not a matter of running longer; it
+    // is a matter of the residual halving twelve times before convergence,
+    // which at these tolerances does not happen. THE STATE that a past-11
+    // fixture was a proxy for -- both quantities parked on the absolute floor
+    // with the gate still firing -- is reached deterministically by the
+    // fixture above instead, by starting the schedule two steps from the floor
+    // rather than eleven. The state is what the pin is about; the trip length
+    // is not.
+    IpqpOptions io;
+    io.ipqp_converge_slack = 1.0; // the tightest the band allows
+    io.ipqp_hard_iter_cap = 400;
+    io.ipqp_min_mu = 1e-16;
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
+
+    ASSERT_EQ(r.status, QpStatus::kOptimal);
+    ASSERT_GT(r.counters.ipqp_iters, 11);
+    ASSERT_GT(r.counters.ipqp_prox_center_updates, 0);
+    EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates,
+              r.counters.ipqp_reg_decreases + r.counters.ipqp_rho_flaps);
 }
 
 TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
@@ -501,9 +552,20 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // earlier code -- returned 2, missing the iteration whose own ladder
     // first raised the floor, which is exactly the off-by-one this pin
     // exists to hold down.
+    // FIX ROUND 2, N1: STILL 3, and the reason is worth recording rather
+    // than leaving the unchanged number to look like an oversight. N1 moved
+    // the increment behind the step, so only iterations that actually complete
+    // are counted -- and on this fixture all three armed iterations do
+    // complete, so the count is unmoved. The fixture where the two readings
+    // DIVERGE is the cap-1 budget one, which arms the ladder and then takes no
+    // step at all: see
+    // `TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderRungsIncluded`.
     EXPECT_EQ(r.counters.ipqp_iters, 3);
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 3);
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, r.counters.ipqp_iters);
+    // The gated advances are classified exactly once each (I2).
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates,
+              r.counters.ipqp_reg_decreases + r.counters.ipqp_rho_flaps);
     // Three iterations, one ladder rung, one certification read.
     EXPECT_EQ(r.counters.ipqp_factorizations, 5);
     EXPECT_EQ(r.counters.ipqp_inertia_retries, 1);
@@ -585,6 +647,16 @@ TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderR
     EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
     EXPECT_EQ(r.status, QpStatus::kMaxIter);
     EXPECT_EQ(r.counters.ipqp_iters, 0);
+    // FIX ROUND 2, N1, AND THIS IS ITS DISCRIMINATING FIXTURE. The one
+    // factorization this solve paid read WRONG, so the ladder raised `rho` to
+    // 800 -- elevated by any reading of the word -- and the cap then refused
+    // the rung's own factorization. No step was taken. The counter says
+    // "iterations TAKEN", and there were none: this must be 0. Counting it
+    // where round 1 did (right after the ladder settles, before the budget and
+    // terminal-read rejections) returned 1 for an iteration that never
+    // happened.
+    EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 0);
+    EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0); // the ladder DID arm.
 
     // MUTATION NON-VACUITY: the same fixture with the cap lifted really does
     // want more than one factorization, so the pin above is measuring the cap
@@ -719,6 +791,51 @@ TEST(IpqpBudgetTest, TheFactorizationCapBindsIndependentlyOfTheIterationCap) {
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
     EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
     EXPECT_LT(r.counters.ipqp_iters, io.ipqp_hard_iter_cap);
+}
+
+TEST(IpqpBudgetTest, AFinalReadTheBudgetREFUSEDIsNotPerformedRatherThanUnreadable) {
+    // FIX ROUND 2, N2 (settler ruling). The 0/1/2/3 contract defines `2` as
+    // ATTEMPTED-and-unusable, which is why it maps to the numerical class. A
+    // certification factorization the cap refused was never attempted, so it
+    // belongs with the option-off case: `3`, not performed.
+    //
+    // The cap is calibrated from the solve itself rather than hard-coded, so
+    // the fixture stays honest if the trajectory ever moves: run once at the
+    // defaults to learn the iteration count, then re-run with exactly that
+    // many factorizations -- enough for every iteration, one short of the
+    // final read.
+    const QpProblem qp = general_qp(true, true);
+    IpqpEngine calib(tight_opts());
+    const IpqpResult base = calib.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(base.status, QpStatus::kOptimal);
+    ASSERT_EQ(base.counters.ipqp_factorizations, base.counters.ipqp_iters + 1);
+
+    IpqpOptions io;
+    io.ipqp_max_factorizations = base.counters.ipqp_iters;
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
+
+    // Every iteration ran; only the certification read was refused.
+    EXPECT_EQ(r.counters.ipqp_iters, base.counters.ipqp_iters);
+    EXPECT_EQ(r.counters.ipqp_factorizations, io.ipqp_max_factorizations);
+    // A READ THAT NEVER HAPPENED IS 3 -- kept apart from `2`, which the census
+    // routes to `ipqp_escape_numerical` and which would misattribute a budget
+    // stop as a numerical failure.
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 3);
+    EXPECT_TRUE(r.certificate_downgraded);
+    // ... and the escape is still the budget, because the budget is genuinely
+    // why this solve stopped. `3` is never its own escape class.
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
+    EXPECT_NE(r.status, QpStatus::kOptimal);
+
+    // MUTATION NON-VACUITY: one more factorization and the same solve pays the
+    // read, gets 0, and certifies.
+    io.ipqp_max_factorizations = base.counters.ipqp_iters + 1;
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult ok = tier2.solve(qp, nullptr, io, SolveOverrides{});
+    EXPECT_EQ(ok.counters.ipqp_final_inertia_read, 0);
+    EXPECT_FALSE(ok.certificate_downgraded);
+    EXPECT_EQ(ok.status, QpStatus::kOptimal);
 }
 
 TEST(IpqpDeterminismTest, TwoColdSolvesOfTheSameProblemAgreeBitForBit) {

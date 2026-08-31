@@ -1094,29 +1094,62 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // monotone floor, AND co-fired with `ipqp_reg_decreases`,
                 // which the field's own doc comment excludes. The CLAMP still
                 // honours both floors; only the COUNT is monotone-only.
-                if (proposed < rho_floor) {
-                    ++out.counters.ipqp_rho_flaps;
-                }
+                // THE MOVES FIRST, THE CLASSIFICATION ONCE, AFTERWARDS. Fix
+                // round 2 (I2, still open after round 1): incrementing the
+                // flap inline, before the decrease was classified, let a
+                // single advance be counted as BOTH -- `rho` refused by the
+                // monotone floor while `delta` still fell 8 -> 0.8 scored one
+                // flap and one decrease, which the two fields' own doc
+                // comments call mutually exclusive.
+                const bool monotone_refused = proposed < rho_floor;
                 const double target = std::max(proposed, std::max(iopts.ipqp_reg_floor, rho_floor));
-                bool applied = false;
+                bool moved = false;
                 if (target < rho_sched) {
                     rho_sched = target;
-                    applied = true;
+                    moved = true;
                 }
-                // I7: THE COUNTER IS THE `(rho, delta)` SCHEDULE'S, not rho's.
-                // `delta` carries no monotone floor (plan section 7 note (g):
-                // section 2.2 states the floor for `rho` only), so it falls to
-                // the absolute floor on its own -- and an advance that moved
-                // delta alone IS an applied decrease of the schedule. Reading
-                // it otherwise reported "no decrease applied" on the
-                // monotone-floor fixture while delta went 8 -> 0.8.
+                // I7: `delta` carries no monotone floor at all (plan section 7
+                // note (g): section 2.2 states the floor for `rho` only), so it
+                // falls to the absolute floor on its own.
                 const double dtarget =
                     std::max(delta_sched * iopts.ipqp_reg_decrease, iopts.ipqp_reg_floor);
                 if (dtarget < delta_sched) {
                     delta_sched = dtarget;
-                    applied = true;
+                    moved = true;
                 }
-                if (applied) {
+                // THE THREE OUTCOMES OF A GATED ADVANCE, MUTUALLY EXCLUSIVE
+                // AND CLASSIFIED EXACTLY ONCE. The order is the rule:
+                //
+                //  (a) THE MONOTONE FLOOR REFUSED `rho` -> FLAP, and only a
+                //      flap. THE RULE CHOSEN, stated because the fix brief
+                //      left it open: a `delta` move on such an advance does
+                //      NOT also score a decrease. I7's "either" rule governs
+                //      which quantity can earn a decrease, not whether an
+                //      advance can be two things at once; exclusivity is I2's
+                //      own requirement and the defining event of this advance
+                //      is that the inertia-demanded floor turned the schedule
+                //      down.
+                //  (b) `rho` and/or `delta` MOVED -> DECREASE (I7's rule:
+                //      the counter is the `(rho, delta)` SCHEDULE's, so an
+                //      advance that moved delta alone is an applied decrease
+                //      of the schedule).
+                //  (c) NOTHING MOVED because both quantities already sit on
+                //      the ABSOLUTE floor -> NEITHER. Not a flap: the absolute
+                //      floor is a setting every schedule decays onto, not
+                //      evidence about this subproblem's curvature, which is
+                //      the whole of I2.
+                //
+                // So `ipqp_prox_center_updates == ipqp_reg_decreases +
+                // ipqp_rho_flaps` holds on every solve until the schedule
+                // bottoms out, and past that point the difference is exactly
+                // the number of (c) advances -- a quantity the section 7
+                // counter table has no field for and this task does not
+                // invent one for. The tests pin the EXACT accounting rather
+                // than the inequality; see
+                // `TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease`.
+                if (monotone_refused) {
+                    ++out.counters.ipqp_rho_flaps;
+                } else if (moved) {
                     ++out.counters.ipqp_reg_decreases;
                 }
                 w.zeta = w.x;
@@ -1131,15 +1164,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         const InertiaRead read = factorize_with_ladder(rho, delta);
 
-        // I4: COUNTED AFTER THE LADDER SETTLES, not before it runs. `rho` is
-        // an in/out parameter, so this reads the level the step is ACTUALLY
-        // taken at. Sampling before the ladder missed the iteration in which
-        // the ladder first raises the floor -- entry has rho == rho_sched
-        // there, the ladder then climbs, and the step is taken elevated. Off
-        // by one, low, on every solve that ever arms the ladder.
-        if (rho > rho_sched) {
-            ++out.counters.ipqp_iters_at_elevated_rho;
-        }
+        // I4 + N1: READ AFTER THE LADDER SETTLES, COUNTED ONLY IF A STEP IS
+        // ACTUALLY TAKEN. `rho` is an in/out parameter, so this reads the
+        // level the step would run at -- sampling BEFORE the ladder missed the
+        // iteration whose own ladder first raises the floor (I4, off by one
+        // low). But the counter's doc says "iterations TAKEN", and every
+        // rejection below leaves the loop without a step, so the increment
+        // itself waits until the step has been applied (N1). An iteration that
+        // armed the ladder and was then refused a factorization by the budget
+        // is not an iteration taken at elevated rho; it is not an iteration at
+        // all.
+        const bool elevated = rho > rho_sched;
 
         if (fact_budget_hit) {
             // The cap refused a factorization. That is a BUDGET stop, and it
@@ -1264,8 +1299,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         // A COMPLETED PREDICTOR+CORRECTOR PAIR, and only that, is one
         // iteration -- see IpqpCounters::ipqp_iters. Every break above leaves
-        // this line unreached, which IS the exclusion the field documents.
+        // these two lines unreached, which IS the exclusion both fields
+        // document ("iterations taken", N1).
         ++out.counters.ipqp_iters;
+        if (elevated) {
+            ++out.counters.ipqp_iters_at_elevated_rho;
+        }
     }
 
     // --- section 2.2 item 4: the required final inertia read ---------------
@@ -1314,10 +1353,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             refresh_distances();
             const InertiaRead read = factorize_and_read_once(iopts.ipqp_reg_floor, delta_sched);
             if (fact_budget_hit) {
-                // The cap refused the certification factorization, so no
-                // reading exists. Honest census value 2, and the reason the
-                // read never happened is the budget.
-                out.counters.ipqp_final_inertia_read = 2;
+                // N2 (SETTLER RULING, fix round 2): A READ THAT NEVER HAPPENED
+                // IS `3`, NOT `2`. The 0/1/2/3 contract defines `2` as
+                // ATTEMPTED-and-unusable, which is why it maps to the
+                // numerical escape class; a factorization the budget refused
+                // was never attempted, so it belongs with the option-off case.
+                // The ESCAPE stays `kBudget` -- the budget is genuinely why
+                // this solve stopped -- and the certificate is downgraded,
+                // because an unread certificate does not stand.
+                out.counters.ipqp_final_inertia_read = 3;
                 out.certificate_downgraded = true;
                 escape = IpqpEscape::kBudget;
             } else if (read == InertiaRead::kOk) {

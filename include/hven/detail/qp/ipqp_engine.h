@@ -397,9 +397,23 @@ struct IpqpResult {
     /// iterate, no face, no residual: the tier never ran.
     bool declined_pinned = false;
 
-    /// True iff the certificate was DOWNGRADED (spec 2.2 item 4): the final
-    /// unregularized inertia read disagreed, or no evidence state could be
-    /// observed at all. A downgraded solve never reports `kOptimal`.
+    /// True iff the certificate was DOWNGRADED (spec 2.2 item 4). A downgraded
+    /// solve never reports `kOptimal`.
+    ///
+    /// FOUR WAYS TO GET HERE, and they are not all failures -- `escape_reason`
+    /// is what separates them, which is why the driver branches on THAT and
+    /// never on `status`. Each pairs with one `ipqp_final_inertia_read` value:
+    ///   * the read was taken and DISAGREED (`read == 1`, `kIndefinite`);
+    ///   * the read was taken and no usable evidence came back -- no observed
+    ///     state, or a perturbed-pivot report (`read == 2`, `kNumerical`);
+    ///   * the read was DECLINED because `ipqp_require_final_inertia` is false
+    ///     (`read == 3`, escape `kNone` -- a downgrade with NO escape, no
+    ///     census entry and no section 6.1 retirement charge);
+    ///   * the read was REFUSED by the factorization budget before it could
+    ///     run (`read == 3` likewise -- it never happened -- with escape
+    ///     `kBudget`).
+    /// Always false on a solve that certified, and on a declined-pinned one,
+    /// which never reaches the read at all.
     bool certificate_downgraded = false;
 
     // --- the point ---------------------------------------------------------

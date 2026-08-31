@@ -679,11 +679,17 @@ struct IpqpCounters {
     /// monotone floor at all (plan section 7 note (g): section 2.2 states the
     /// floor for `rho` only), so it can never contribute here.
     ///
-    /// Excludes a gated decrease that succeeded (`ipqp_reg_decreases` -- the
-    /// two remain mutually exclusive for `rho`, though one gated advance can
-    /// flap on `rho` while still applying a decrease to `delta`) and any
-    /// inertia-demanded increase (`ipqp_reg_increases`), neither of which is a
-    /// floor violation.
+    /// MUTUALLY EXCLUSIVE WITH `ipqp_reg_decreases`, without exception (M6 W1
+    /// task 4 fix round 2, I2). A gated advance is classified EXACTLY ONCE,
+    /// in this order: the monotone floor refused `rho` -> flap; else `rho`
+    /// and/or `delta` moved -> decrease; else (both already on the ABSOLUTE
+    /// floor) neither. THE RULE ON THE ONE AMBIGUOUS CASE, stated rather than
+    /// left to be inferred: an advance whose `rho` move the monotone floor
+    /// refused is a FLAP AND ONLY A FLAP, even when `delta` moved on the same
+    /// advance -- `ipqp_reg_decreases`' "either quantity" rule says which
+    /// quantity can earn a decrease, not that one advance may be two things.
+    /// Excludes any inertia-demanded increase (`ipqp_reg_increases`), which is
+    /// not a floor violation.
     Index ipqp_rho_flaps = 0;
 
     /// Outcome of the section 2.2 item 4 REQUIRED final unregularized
@@ -707,14 +713,24 @@ struct IpqpCounters {
     /// no observed state at all, or a PERTURBED-pivot report, which section
     /// 2.2's evidence-failure policy says is not evidence about the assembled
     /// matrix and therefore is not a disagreement either --
-    /// `ipqp_escape_numerical`. `3` -- NOT PERFORMED: the read was DECLINED
-    /// because `IpqpOptions::ipqp_require_final_inertia` is false. That is a
-    /// DOWNGRADE AND NOT AN ESCAPE (spec section 9's own row, "off =
-    /// certificate always downgraded"): the certificate does not stand, but
-    /// no census entry is made and no section 6.1 K = 3 retirement charge is
-    /// incurred, because a caller choosing to skip one factorization has not
-    /// hit a failure. `3` is kept distinct from `2` so the census cannot
-    /// confuse a declined read with a failed one. A solve-wide
+    /// `ipqp_escape_numerical`. `3` -- NOT PERFORMED: no factorization was
+    /// ever taken for this read, on either of the two ways that happens --
+    /// the read was DECLINED because
+    /// `IpqpOptions::ipqp_require_final_inertia` is false, or it was REFUSED
+    /// by `ipqp_max_factorizations` before it could run (M6 W1 task 4 fix
+    /// round 2, N2: a cap-refused read used to record `2`, which the
+    /// partition above defines as ATTEMPTED-and-unusable and therefore maps
+    /// to the numerical class -- but a factorization the budget refused was
+    /// never attempted). `3` IS ALWAYS A DOWNGRADE AND NEVER ITS OWN ESCAPE:
+    /// the certificate does not stand either way, and the escape (if any)
+    /// comes from whatever else stopped the solve -- `kNone` on the option-off
+    /// path (spec section 9's own row, "off = certificate always downgraded":
+    /// no census entry and no section 6.1 K = 3 retirement charge, because a
+    /// caller choosing to skip one factorization has not hit a failure), and
+    /// `kBudget` on the cap-refused path, where the budget is genuinely why
+    /// the solve stopped. `3` is kept distinct from `2` so the census cannot
+    /// confuse a read that never ran with one that ran and failed. A
+    /// solve-wide
     /// "was any subproblem's read ever unreliable" question reads the
     /// escape census (`ipqp_escape_indefinite` + `ipqp_escape_numerical`)
     /// rather than this per-subproblem field. Structurally `0` (its
@@ -730,10 +746,12 @@ struct IpqpCounters {
     /// `delta` alone is an applied decrease of the schedule; reading it as
     /// `rho`-only reported "no decrease applied" on a monotone-floor fixture
     /// while `delta` went 8 -> 0.8). Never more than 1 per advance, so it is
-    /// bounded by `ipqp_prox_center_updates`. Excludes an advance the floors
-    /// refused entirely -- both quantities already at their floors -- which
-    /// moves nothing and is `ipqp_rho_flaps` instead when the MONOTONE floor
-    /// was the one that refused.
+    /// bounded by `ipqp_prox_center_updates`, and MUTUALLY EXCLUSIVE with
+    /// `ipqp_rho_flaps` -- see that field for the one-classification-per-
+    /// advance rule. Excludes an advance on which nothing moved because both
+    /// quantities already sit on the ABSOLUTE floor: that is neither a
+    /// decrease nor a flap, and it is the only reason
+    /// `ipqp_prox_center_updates` can exceed the sum of the two.
     Index ipqp_reg_decreases = 0;
 
     /// `(rho, delta)` schedule inertia-demanded increases. Excludes the
