@@ -101,7 +101,11 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
     // The bound rows depend on the START POINT through the trust region, so
     // they are built after the seed is resolved and before anything reads
     // bound_rows_ (the multiplier split is the first such reader).
-    build_bound_rows(qp, out->x, tr_radius);
+    // THE WINDOW'S CENTRE: the caller's when it supplied one, the resolved
+    // start point otherwise (SsnStart::box_center's own note has the reason
+    // the two can differ). `out->x` is already resolved above, so the
+    // fall-back is the historical expression unchanged.
+    build_bound_rows(qp, start.box_center.has_value() ? *start.box_center : out->x, tr_radius);
     const Index mb = static_cast<Index>(bound_rows_.size());
     out->lambda_e = seed_vector(start.lambda_e, me, "lambda_e");
     out->lambda_i = seed_vector(start.lambda_i, mi, "lambda_i");
@@ -970,6 +974,24 @@ void SsnEngine::validate_options(const SsnOptions &s) {
 
 void SsnEngine::validate_start(const QpProblem &qp, const SsnStart &start) const {
     check_size(start.x, qp.n(), "x");
+    // NOT THROUGH check_size, which treats 0 as "absent": an ENGAGED optional
+    // of the wrong length is a caller error whatever that length is, and an
+    // engaged empty one on an n > 0 problem is the likeliest spelling of it.
+    if (start.box_center.has_value()) {
+        if (start.box_center->size() != qp.n()) {
+            throw std::invalid_argument(
+                fmt::format("SsnEngine::solve: start.box_center has size {}, expected {} "
+                            "(= qp.n()); leave it disengaged for \"centre the trust region on "
+                            "the start point\"",
+                            start.box_center->size(), qp.n()));
+        }
+        if (!start.box_center->allFinite()) {
+            throw std::invalid_argument(
+                "SsnEngine::solve: start.box_center must be finite -- a non-finite centre would "
+                "put every effective bound at a non-finite value, exactly as a non-finite radius "
+                "would (Eigen's own asserts are compiled out under NDEBUG)");
+        }
+    }
     check_size(start.lambda_e, qp.me(), "lambda_e");
     check_size(start.lambda_i, qp.mi(), "lambda_i");
     check_size(start.z, qp.n(), "z");
@@ -1002,7 +1024,8 @@ Vec SsnEngine::seed_vector(const Vec &v, Index want, const char *) {
     return v.size() == want ? v : Vec::Zero(want);
 }
 
-void SsnEngine::build_bound_rows(const QpProblem &qp, const Vec &x0, double tr_radius) {
+void SsnEngine::build_bound_rows(const QpProblem &qp, const Vec &centre, double tr_radius) {
+    const Vec &x0 = centre;
     bound_rows_.clear();
     const Index n = qp.n();
     // The QP's OWN bounds, kept for the export's structurally-fixed test

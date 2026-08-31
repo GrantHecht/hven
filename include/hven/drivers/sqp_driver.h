@@ -2862,10 +2862,18 @@ class SqpDriver {
     // designed to absorb exactly the tie rows the ratio rule left UNCERTAIN,
     // and its bulk flip changes the whole implied active set at once."
     //
-    // THE GRADE IS THE DUALS AND THE ACTIVITY, NOT THE PRIMAL, and that is
-    // `ssn_start_from_qp_seed`'s own rule rather than a choice made here: the
-    // subproblem is in STEP variables and the trust region is centred on
-    // p = 0, so a remembered primal would move that centre.
+    // THE GRADE IS (x, lambda), section 2.3 item 4's own words -- the duals,
+    // the bound prices, the binary activity AND the tier's primal iterate,
+    // handed to SSN inside the TIER'S window through `SsnStart::box_center`
+    // (settler ruling, fix round 2). That is the one place this route departs
+    // from `ssn_start_from_qp_seed`'s rule for the kSsn arm, and the reason is
+    // that the two seeds are different objects: the kSsn arm's is the PREVIOUS
+    // major's answer, in a subproblem whose trust region is centred on p = 0,
+    // so carrying its primal would move that centre; this one is THIS
+    // subproblem's own iterate, reached inside THIS subproblem's window, and
+    // starting at the origin instead throws away the acquisition the tier just
+    // paid for. The window stays the tier's either way, which is what
+    // `box_center` is for and what `assert_ssn_warm_grade_window` checks.
     //
     // ONE SETTING IS DELIBERATELY NOT THE kSsn ARM'S, and one that used to be
     // is no longer. The R5 deferred-certification lever is forced OFF (a

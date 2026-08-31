@@ -841,6 +841,48 @@ bool ipqp_exit_is_a_usable_step(const IpqpResult &res, const QpOptions &opts,
 // actually ran in -- at which point this comparison becomes live with no
 // change here -- or the guard must be re-pointed at the iterate's own clamp
 // reference. Do not read a passing assertion today as coverage of that.
+// THE SECOND HAND-OFF GUARD, AND THE ONE THAT CAN ACTUALLY FAIL (fix round 2;
+// reviewer I3's "give the assertion something real to check").
+//
+// `assert_ipqp_hand_off_window` below compares two derivations of the SAME
+// pure function and therefore cannot fail while task 4's engine is the one
+// running -- its own note says so and hands the gap to task 7. THIS one
+// compares two DIFFERENT things: the window the tier ran in, and the window
+// the SSN warm grade is about to run in, which is built from the `SsnStart`
+// this driver is passing. A mutation that drops `box_center` -- i.e. one that
+// lets `SsnEngine` centre the window on `start.x`, the historical rule -- is
+// caught here, because a warm grade whose start is `ires.x` and whose centre
+// is `ires.box.centre` is precisely the case where those two vectors differ.
+//
+// THE RADIUS IS CHECKED THROUGH THE SAME RESOLUTION THE TIER USED, not by
+// comparing `SolveOverrides::tr_radius` literally: both kernels take the +inf
+// sentinel to mean "use the engine's own", so two calls carrying the same
+// sentinel can still run at different radii if the two engines were
+// constructed differently. They are not -- `ssn_engine()` and `ipqp_engine()`
+// are both constructed with `opts_.qp` -- and this is what says so.
+void assert_ssn_warm_grade_window(const IpqpResult &res, const SsnStart &start,
+                                  const SolveOverrides &overrides, const QpOptions &opts) {
+    const double radius = ipqp_effective_tr_radius(opts, overrides);
+    const bool centre_held = start.box_center.has_value() &&
+                             start.box_center->size() == res.box.centre.size() &&
+                             (start.box_center->array() == res.box.centre.array()).all();
+    if (!centre_held || radius != res.box.radius) {
+        throw std::invalid_argument(fmt::format(
+            "SqpDriver: the SSN warm grade would run in a different window than the IPQP tier "
+            "did (centre supplied: {}, radius {} vs the tier's {}) -- section 2.3 item 4 grades "
+            "SSN from the tier's (x, lambda) IN THE TIER'S OWN WINDOW, which is the clamp-centred "
+            "one QpEngine::refine_on_face also gates against; without SsnStart::box_center the "
+            "window would silently recentre on the iterate",
+            start.box_center.has_value(), radius, res.box.radius));
+    }
+    if (start.x.size() != res.x.size() || !(start.x.array() == res.x.array()).all()) {
+        throw std::invalid_argument(
+            "SqpDriver: the SSN warm grade's start is not the tier's iterate -- section 2.3 item "
+            "4 grades SSN from (x, lambda), and the primal half is the acquisition the tier just "
+            "paid for");
+    }
+}
+
 void assert_ipqp_hand_off_window(const IpqpBox &driver_box, const IpqpResult &res) {
     const bool same_shape = res.box.centre.size() == driver_box.centre.size() &&
                             res.box.lo_eff.size() == driver_box.lo_eff.size() &&
@@ -4063,22 +4105,35 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     // The warm grade, through the SAME seeding function the kSsn arm uses on a
     // previous major's QpSolution: duals, bound prices and the binary activity
     // both halves.
-    //
-    // THE PRIMAL IS NOT CARRIED, AND THAT IS AN OPEN ITEM RATHER THAN A
-    // CHOICE (fix round 1, C1 -- returned as NEEDS_CONTEXT). Spec 2.3 item 4
-    // says the grade is "(x, lambda)", but `SsnEngine::solve` derives its
-    // trust-region box AS `[start.x - Delta, start.x + Delta]` intersected
-    // with the QP's own bounds (`src/qp/ssn_engine.cpp:1004-1039`, called at
-    // :104 on the resolved seed), and neither `SsnStart`, `SsnOptions` nor
-    // `SolveOverrides` carries a centre or a box. Passing `ires.x` would
-    // therefore RECENTRE the window away from the clamp-centred `IpqpBox`
-    // that `refine_on_face` gates against -- the exact silent-wrong-window
-    // failure `qp_engine.h`'s public-API precondition warns about. Until that
-    // is settled the grade is the duals and the activity, which is also
-    // `ssn_start_from_qp_seed`'s own documented rule for the kSsn arm.
     const QpSolution grade = ipqp_result_to_qp_solution(ires);
+    SsnStart start = ssn_start_from_qp_seed(&grade);
+    // ... AND THE PRIMAL, which section 2.3 item 4 asks for in as many words
+    // ("SSN from (x, lambda)") and which the kSsn arm deliberately does NOT
+    // carry. The two cases differ, and the difference is the whole of the
+    // reason `SsnStart::box_center` exists (settler ruling, fix round 2):
+    //
+    //   * THE kSsn ARM's seed is the PREVIOUS major's answer, in a subproblem
+    //     whose trust region is centred on p = 0. A remembered step from
+    //     another major would move that centre, so `ssn_start_from_qp_seed`
+    //     leaves the primal empty and says so.
+    //   * HERE the seed is THIS subproblem's own iterate, reached by the tier
+    //     inside THIS subproblem's window. Starting at the origin instead
+    //     discards the acquisition the tier just paid for, and after a
+    //     refinement refusal at nonzero p that is exactly the information
+    //     worth keeping.
+    //
+    // THE WINDOW IS THE TIER'S, NOT THE ITERATE'S, and that separation is the
+    // point: `SsnEngine` centres its trust region on `box_center` when one is
+    // supplied and on `start.x` otherwise, so this hands it the tier's
+    // clamp-centred `IpqpBox` centre -- the same window `refine_on_face` gates
+    // against (qp_engine.h's public-API precondition; IpqpBox's own contract).
+    // Passing the iterate WITHOUT the centre would silently recentre the
+    // window on it, which is the failure that precondition warns about.
+    start.x = ires.x;
+    start.box_center = ires.box.centre;
+    assert_ssn_warm_grade_window(ires, start, ssn_overrides, opts_.qp);
     SsnResult sres;
-    ssn_engine().solve(qp, ssn_start_from_qp_seed(&grade), sopts, ssn_overrides, &sres);
+    ssn_engine().solve(qp, start, sopts, ssn_overrides, &sres);
     accumulate_ssn_counters(counters.ssn, sres.counters);
     ssn_budget_charge += sres.factorizations;
     // THE EXPORT SIDE OF THE CARRY, over EVERY subproblem including escaped

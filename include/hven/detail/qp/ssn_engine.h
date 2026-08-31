@@ -395,6 +395,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -883,6 +884,40 @@ struct SsnStart {
     // a warm proximal sequence today uses SsnOptions::prox_sigma_init.
     Vec prox_center_x;      // n, or empty
     Vec prox_center_lambda; // me + mi, or empty
+
+    // **THE TRUST REGION'S CENTRE, AND IT IS HONOURED** -- which is the whole
+    // reason it sits beside two fields that are not, and carries a different
+    // shape from every other field in this struct.
+    //
+    // WHAT IT DOES. The trust region is built as `[c - Delta, c + Delta]`
+    // intersected with the QP's own bounds (build_bound_rows). `c` is
+    // `start.x` when this is empty -- the historical rule, unchanged -- and
+    // the value here when it is set. NOTHING ELSE READS IT: it is not a
+    // starting iterate, not a proximal anchor, and not part of the structure
+    // key (the window's SHAPE is, through SsnBoundRow, exactly as a radius
+    // change already was).
+    //
+    // WHY IT EXISTS (M6 W1 task 6 fix round 2). A caller that has already
+    // solved this subproblem in ITS OWN window and wants SSN to continue from
+    // the point it reached needs to say "start HERE, in THAT window" -- and
+    // those are two different vectors. The interior-point tier is that
+    // caller: section 2.3 item 4 hands SSN the finished IPQP iterate as a
+    // warm grade, while the window both kernels and `QpEngine::refine_on_face`
+    // must agree on is the CLAMP-CENTRED one, `c = clamp(0, l, u)`
+    // (detail/qp/ipqp_engine.h's IpqpBox contract, and qp_engine.h's
+    // refine_on_face precondition). Without this field, passing the iterate
+    // would silently recentre the window on it -- the exact failure that
+    // precondition warns about.
+    //
+    // `std::optional` RATHER THAN THIS STRUCT'S EMPTY-VECTOR CONVENTION, and
+    // the difference is load-bearing: everywhere else here "empty" means "zero
+    // of the right size", and for a CENTRE the origin is a perfectly
+    // legitimate value a caller may want. Absent and "at the origin" have to
+    // be distinguishable.
+    //
+    // Validated for size when engaged (`solve()` throws on a mismatch); a
+    // non-finite entry is refused for the same reason a radius is.
+    std::optional<Vec> box_center; // n, or nullopt
 
     SsnActivityHint activity_hint;
 };
@@ -1374,7 +1409,11 @@ class SsnEngine {
     // radius changes. That is what makes a shrink-retry loop free: only bound
     // VALUES move, and values are not structure. Delta = +inf reproduces the
     // real-bound list exactly, bit for bit (max(lower, -inf) is lower).
-    void build_bound_rows(const QpProblem &qp, const Vec &x0, double tr_radius);
+    // `centre` is the trust region's centre -- `SsnStart::box_center` when the
+    // caller supplied one, the resolved start point otherwise. The two are the
+    // same vector on every caller that does not set the field, which is what
+    // makes the addition byte-identical for them.
+    void build_bound_rows(const QpProblem &qp, const Vec &centre, double tr_radius);
 
     // A kFixed hint marks BOTH of a variable's rows active, which is right for
     // a genuinely fixed variable (l == u) and is a DOCUMENTED DEGRADED MODE

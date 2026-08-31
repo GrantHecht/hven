@@ -778,6 +778,17 @@ TEST(IpqpDispatch, AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace) {
            "accepted/refused -- the kSsn arm's own discipline, applied to the same kernel reached "
            "through the kIpm chain (settler ruling, fix round 1)";
     EXPECT_GT(ssn.ssn_iters, 0) << "and the SSN tier really did the work";
+    // THE GRADE IS (x, lambda) IN THE TIER'S WINDOW (settler ruling, fix
+    // round 2), and this solve is its live mutation partner. The route calls
+    // `assert_ssn_warm_grade_window` before every SSN hand-off, which THROWS
+    // unless the start it is about to pass carries the tier's iterate AND the
+    // tier's clamp-centred box centre -- so a build that dropped either half,
+    // or that let `SsnEngine` centre the window on `start.x` the historical
+    // way, fails HERE rather than silently gating tier 3 against the wrong
+    // window. `SsnStart::box_center`'s own behaviour is pinned directly in
+    // test_ssn_engine.cpp (honoured, disengaged-is-bit-identical, validated).
+    EXPECT_EQ(s.status, SqpStatus::kOptimal)
+        << "the warm-grade window guard did not fire on any of this fixture's hand-offs";
     // `ssn_refine_factorizations` is NOT asserted positive: `refine_on_face`
     // refuses an empty or rank-deficient face on its own PRE-SCREEN, before
     // anything is factorized, and all three of this fixture's refusals are

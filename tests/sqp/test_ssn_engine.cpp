@@ -704,6 +704,174 @@ QpProblem tr_probe_qp() {
 
 } // namespace
 
+// =====================================================================
+// M6 W1 TASK 6 FIX ROUND 2 -- `SsnStart::box_center`.
+//
+// A caller that has already solved this subproblem in ITS OWN window and wants
+// SSN to continue from the point it reached has to say two different things:
+// START HERE, and USE THAT WINDOW. The interior-point tier is that caller
+// (spec 2.3 item 4's warm grade), and the window both kernels and
+// `QpEngine::refine_on_face` must agree on is the clamp-centred one -- never
+// the iterate. These pin the separation from both sides.
+// =====================================================================
+
+TEST(SsnEngineLocal, TheBoxCentreIsHonouredAndIsNotTheStartPoint) {
+    const QpProblem qp = tr_probe_qp();
+    SolveOverrides ov;
+    ov.tr_radius = 1.0;
+
+    // START AT (0, 3), WINDOW CENTRED AT THE ORIGIN. The objective pulls
+    // variable 1 upward without limit, so the answer is whatever the window
+    // permits -- and the two spellings permit different things: centred on the
+    // ORIGIN it is 1.0, centred on the START it would be 4.0. That gap is what
+    // makes this a pin rather than a restatement.
+    SsnEngine engine(default_opts());
+    SsnStart start;
+    start.x = (Vec(2) << 0.0, 3.0).finished();
+    start.box_center = Vec::Zero(2);
+    SsnOptions sopts;
+    SsnResult res;
+    engine.solve(qp, start, sopts, ov, &res);
+
+    ASSERT_EQ(res.status, QpStatus::kOptimal);
+    EXPECT_NEAR(res.x(1), 1.0, 1e-6)
+        << "the window is [centre - Delta, centre + Delta] = [-1, 1], so the trust-region face is "
+           "at 1.0 -- the START point does not move it";
+    EXPECT_NEAR(res.x(0), 0.5, 1e-6) << "and the real bound still binds, as it always did";
+    ASSERT_EQ(static_cast<Index>(res.tr_active.size()), 2);
+    EXPECT_TRUE(res.tr_active[1]);
+
+    // THE MUTATION PARTNER, spelled out rather than described: the SAME start
+    // with the centre DISENGAGED falls back to the historical rule and lands
+    // 3.0 away, at the start-centred face. A build that ignored `box_center`
+    // would produce this answer for the call above.
+    SsnEngine centreless(default_opts());
+    SsnStart at_start = start;
+    at_start.box_center.reset();
+    SsnResult from_start;
+    centreless.solve(qp, at_start, sopts, ov, &from_start);
+    ASSERT_EQ(from_start.status, QpStatus::kOptimal);
+    EXPECT_NEAR(from_start.x(1), 4.0, 1e-6)
+        << "centred on the start point, which is exactly what the field exists to override";
+}
+
+TEST(SsnEngineLocal, ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoint) {
+    // THE COMPATIBILITY CLAIM, MADE EXECUTABLE. Every existing caller leaves
+    // the field disengaged, so the addition must be a no-op for them -- and
+    // "no-op" is stronger than "same answer": the same counters, the same
+    // residual, the same iterate, bit for bit.
+    const QpProblem qp = tr_probe_qp();
+    SolveOverrides ov;
+    ov.tr_radius = 1.0;
+    SsnOptions sopts;
+
+    SsnEngine a(default_opts());
+    SsnStart disengaged;
+    disengaged.x = Vec::Zero(2);
+    SsnResult without;
+    a.solve(qp, disengaged, sopts, ov, &without);
+
+    SsnEngine b(default_opts());
+    SsnStart explicit_centre = disengaged;
+    explicit_centre.box_center = Vec::Zero(2); // == start.x, the fall-back
+    SsnResult with;
+    b.solve(qp, explicit_centre, sopts, ov, &with);
+
+    EXPECT_EQ(with.status, without.status);
+    EXPECT_EQ(with.iters, without.iters);
+    EXPECT_EQ(with.factorizations, without.factorizations);
+    EXPECT_EQ(with.escape_reason, without.escape_reason);
+    EXPECT_DOUBLE_EQ(with.fb_residual, without.fb_residual);
+    ASSERT_EQ(with.x.size(), without.x.size());
+    EXPECT_EQ(with.x, without.x) << "bit-identical, not merely close";
+    EXPECT_EQ(with.z, without.z);
+    EXPECT_EQ(with.tr_active, without.tr_active);
+    EXPECT_EQ(with.bound_state, without.bound_state);
+}
+
+TEST(SsnEngineLocal, AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite) {
+    const QpProblem qp = tr_probe_qp();
+    SolveOverrides ov;
+    SsnOptions sopts;
+    SsnResult res;
+    SsnEngine engine(default_opts());
+
+    // ENGAGED-BUT-EMPTY is the likeliest spelling of the mistake, and it is
+    // refused rather than read as "absent": this field does not share the
+    // struct's empty-means-absent convention, because for a CENTRE the origin
+    // is a legitimate value.
+    SsnStart empty_centre;
+    empty_centre.x = Vec::Zero(2);
+    empty_centre.box_center = Vec();
+    EXPECT_THROW(engine.solve(qp, empty_centre, sopts, ov, &res), std::invalid_argument);
+
+    SsnStart wrong_size;
+    wrong_size.x = Vec::Zero(2);
+    wrong_size.box_center = Vec::Zero(3);
+    EXPECT_THROW(engine.solve(qp, wrong_size, sopts, ov, &res), std::invalid_argument);
+
+    SsnStart nan_centre;
+    nan_centre.x = Vec::Zero(2);
+    nan_centre.box_center = Vec::Constant(2, std::numeric_limits<double>::quiet_NaN());
+    EXPECT_THROW(engine.solve(qp, nan_centre, sopts, ov, &res), std::invalid_argument);
+
+    // And the disengaged default is accepted, so the three refusals above are
+    // about the value rather than about the field existing.
+    SsnStart fine;
+    fine.x = Vec::Zero(2);
+    EXPECT_NO_THROW(engine.solve(qp, fine, sopts, ov, &res));
+}
+
+TEST(SsnEngineLocal, TheStartPointIsTheFirstIterate) {
+    // (a) OF THE FIX-ROUND-2 PINS. `SsnStart::x` IS where the solve begins --
+    // the property the kIpm warm grade now relies on to carry the tier's
+    // acquisition across from the interior-point tier.
+    //
+    // OBSERVED AT ZERO ITERATIONS, which is the only unambiguous reading: an
+    // UNCONSTRAINED strictly convex QP whose optimum is (3, -2), started
+    // exactly there with zero multipliers, has an identically zero FB residual
+    // -- so a solve that begins at `start.x` stops immediately and returns it
+    // UNCHANGED, while the same solve from the origin has to walk there.
+    QpProblem qp;
+    qp.H =
+        Eigen::MatrixXd::Identity(2, 2).triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = (Vec(2) << -3.0, 2.0).finished(); // minimizer of 1/2||x||^2 + g'x is -g
+    qp.Ae.resize(0, 2);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -100.0);
+    qp.upper = Vec::Constant(2, 100.0);
+
+    SolveOverrides ov; // +inf radius: no trust region, so no window in the way
+    SsnOptions sopts;
+
+    SsnEngine warm(default_opts());
+    SsnStart at_the_answer;
+    at_the_answer.x = (Vec(2) << 3.0, -2.0).finished();
+    SsnResult from_answer;
+    warm.solve(qp, at_the_answer, sopts, ov, &from_answer);
+
+    ASSERT_EQ(from_answer.status, QpStatus::kOptimal);
+    EXPECT_EQ(from_answer.iters, 0)
+        << "the residual at the start point is already zero, so the solve takes no step";
+    EXPECT_EQ(from_answer.x, at_the_answer.x)
+        << "and returns the start point BIT-IDENTICALLY -- it is the first iterate, not a hint";
+
+    // NON-VACUITY: the same solve from the origin does take steps, so the zero
+    // above is the start point's doing rather than the problem's.
+    SsnEngine cold(default_opts());
+    SsnStart origin;
+    SsnResult from_origin;
+    cold.solve(qp, origin, sopts, ov, &from_origin);
+    ASSERT_EQ(from_origin.status, QpStatus::kOptimal);
+    EXPECT_GT(from_origin.iters, 0);
+    // At the kernel's own `fb_tol`, not at machine precision: the cold solve
+    // stops on its residual, which is the whole reason starting AT the answer
+    // is worth anything.
+    EXPECT_NEAR(from_origin.x(0), 3.0, 1e-6) << "and lands on the same answer";
+}
+
 TEST(SsnEngineLocal, TrustRegionPinsAreSeparatedFromRealBounds) {
     const QpProblem qp = tr_probe_qp();
     SolveOverrides ov;
