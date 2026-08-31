@@ -209,6 +209,97 @@ TEST(KktFactorizationTest, ChangingTheThreadCountKeepsTheAnalysisToo) {
 }
 
 // ---------------------------------------------------------------------------
+// The unprojected inertia evidence (M6 W1 T3.a).
+//
+// The three cached ints above are a deliberately LOSSY projection of what the
+// linear layer reports -- faithful to the shapes the engine had before the
+// linear layer existed, which is the point. inertia_evidence() hands back the
+// evidence itself, for a consumer that has to tell an observed inertia from an
+// unobserved one and a counted zero from an absent count. Every pin below is
+// stated against the SAME factorization the cached ints describe, so the two
+// cannot silently drift apart.
+// ---------------------------------------------------------------------------
+
+TEST(KktFactorizationTest, InertiaEvidenceIsUnavailableBeforeAnyFactorization) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+
+    // Not a zeroed evidence block that would read as an OBSERVED empty
+    // inertia: nothing has been observed, and the accessor says so.
+    const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
+    EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kUnavailable);
+    EXPECT_LT(ev.n_pos, 0);
+    EXPECT_LT(ev.n_neg, 0);
+    EXPECT_LT(ev.n_zero, 0);
+    EXPECT_FALSE(ev.perturbed_pivots.has_value());
+}
+
+TEST(KktFactorizationTest, InertiaEvidenceAgreesWithTheCachedIntsAfterASuccessfulFactorization) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+
+    const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
+    ASSERT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
+    EXPECT_EQ(ev.n_pos, kkt.peigs());
+    EXPECT_EQ(ev.n_neg, kkt.neigs());
+    // The three counts partition the dimension, whichever backend produced
+    // them -- derived on one, reported natively on the other.
+    EXPECT_EQ(ev.n_pos + ev.n_neg + ev.n_zero, kkt.matrix().rows());
+
+#if defined(USE_ACCELERATE_SPARSE)
+    // Accelerate reports all three counts natively and keeps no
+    // perturbed-pivot counter at all.
+    EXPECT_FALSE(ev.zero_is_derived);
+    EXPECT_FALSE(ev.perturbed_pivots.has_value());
+#else
+    // MKL Pardiso reports the positive and negative counts and nothing else,
+    // so the zero class is inferred rather than measured -- and it does count
+    // perturbed pivots, so the count is present and is exactly what ppivs()
+    // projects.
+    EXPECT_TRUE(ev.zero_is_derived);
+    ASSERT_TRUE(ev.perturbed_pivots.has_value());
+    EXPECT_EQ(*ev.perturbed_pivots, kkt.ppivs());
+#endif
+}
+
+// Non-vacuity for the pin above: the evidence TRACKS the last factorization
+// rather than being written once. Same object, same pattern, an inertia moved
+// by a value change -- both the projection and the evidence move with it.
+TEST(KktFactorizationTest, InertiaEvidenceFollowsTheLastFactorization) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+    ASSERT_EQ(kkt.inertia_evidence().n_pos, 1);
+    ASSERT_EQ(kkt.inertia_evidence().n_neg, 1);
+
+    kkt.matrix().coeffRef(1, 1) = 5.0;
+    kkt.refactorize();
+
+    EXPECT_EQ(kkt.inertia_evidence().n_pos, 2);
+    EXPECT_EQ(kkt.inertia_evidence().n_neg, 0);
+    EXPECT_EQ(kkt.inertia_evidence().n_pos, kkt.peigs());
+    EXPECT_EQ(kkt.inertia_evidence().n_neg, kkt.neigs());
+}
+
+TEST(KktFactorizationTest, ReleaseAndReconfigureClearTheInertiaEvidence) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+    ASSERT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kObserved);
+
+    kkt.release();
+    EXPECT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kUnavailable);
+
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+    ASSERT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kObserved);
+
+    kkt.reconfigure(mkl_like_options());
+    EXPECT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kUnavailable);
+}
+
+// ---------------------------------------------------------------------------
 // Settings the sparse linear surface cannot carry.
 //
 // Each of these had a real effect through the backend interface the engine

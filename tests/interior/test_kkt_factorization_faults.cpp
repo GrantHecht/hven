@@ -99,6 +99,36 @@ TEST(KktFactorizationFaultTest, SymbolicFailureIsRecordedRatherThanPropagated) {
     EXPECT_EQ(kkt.factor_flops(), 0);
 }
 
+// M6 W1 T3.a. The projection's THIRD lossy step -- an absent perturbed-pivot
+// count read as the integer 0 -- is the one no fixture can exhibit on the MKL
+// backend, because a real MKL factorization always counts. The seam produces
+// it: a factorization that did not happen leaves no pivot count at all, and
+// the two accessors must disagree about it. ppivs() reads 0, which on a
+// backend that DOES count means "none were perturbed"; the evidence reads
+// absent, which is the honest answer and the one a consumer gating on
+// evidence quality needs.
+TEST(KktFactorizationFaultTest, AnAbsentPerturbedPivotCountSurfacesAsNulloptNotZero) {
+    KktFactorization kkt(fault_probe_options());
+    kkt.matrix() = fault_probe_matrix();
+
+    // Non-vacuity: a real factorization first, so the absence below is
+    // demonstrably produced by the failure rather than never written. On MKL
+    // the count is present here; on Accelerate it is absent on both paths,
+    // which is why the state is asserted alongside it.
+    kkt.compute();
+    ASSERT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kObserved);
+
+    {
+        ArmedAnalyzeFault armed;
+        kkt.compute();
+    }
+
+    EXPECT_EQ(kkt.ppivs(), 0);
+    EXPECT_FALSE(kkt.inertia_evidence().perturbed_pivots.has_value());
+    // And the state the projection has no room for at all.
+    EXPECT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kUnavailable);
+}
+
 TEST(KktFactorizationFaultTest, SymbolicFailureLeavesTheObjectAnalyzableAgain) {
     KktFactorization kkt(fault_probe_options());
     kkt.matrix() = fault_probe_matrix();
@@ -239,6 +269,13 @@ TEST(KktFactorizationFaultTest, PardisoFailedFactorizationReportsNoInertia) {
     EXPECT_LT(kkt.peigs(), 0);
     EXPECT_LT(kkt.neigs(), 0);
     EXPECT_EQ(kkt.ppivs(), 0);
+
+    // M6 W1 T3.a: the same failure, read through the unprojected accessor.
+    // ppivs()'s 0 above is the value_or(0) collapse, not a count; the evidence
+    // says so, and also carries the state the three ints have no room for.
+    EXPECT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kUnavailable);
+    EXPECT_FALSE(kkt.inertia_evidence().perturbed_pivots.has_value());
+    EXPECT_LT(kkt.inertia_evidence().n_zero, 0);
 }
 
 #endif

@@ -123,12 +123,21 @@ void KktFactorization::clear_evidence() {
     n_pos_ = 0;
     n_neg_ = 0;
     perturbed_pivots_ = 0;
+    // Back to "nothing has been observed" -- kUnavailable with invalid counts
+    // -- rather than to a zeroed evidence block that would read as an observed
+    // empty inertia.
+    inertia_ = hven::linear::InertiaEvidence{};
     info_ = Eigen::Success;
     factor_mem_ = 0;
     factor_flops_ = 0;
 }
 
 void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
+    // The unprojected evidence, kept before the projection below runs and on
+    // both of its branches: the accessor's contract is "the last outcome's
+    // inertia, verbatim", which includes the outcomes the projection collapses.
+    inertia_ = outcome.inertia;
+
     info_ = computation_info_of(outcome.backend_code);
 
     if (outcome.status != hven::linear::FactorizeOutcome::Status::kOk) {
@@ -178,8 +187,12 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
 #endif
 }
 
-void KktFactorization::record_failed_factorization(
-    [[maybe_unused]] const hven::linear::FactorizeOutcome &outcome) {
+void KktFactorization::record_failed_factorization(const hven::linear::FactorizeOutcome &outcome) {
+    // Also stored here, not only in record(): compute() calls this directly,
+    // with a default-constructed outcome, when the BACKEND SYMBOLIC phase
+    // fails, and that path never passes through record().
+    inertia_ = outcome.inertia;
+
 #ifdef USE_ACCELERATE_SPARSE
     // This projection ZEROES the inertia counts and both factor metrics on a
     // failed factorization: the engine reads them as DEFINED values, so the zeros

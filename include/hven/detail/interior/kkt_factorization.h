@@ -138,6 +138,31 @@ class KktFactorization {
     /// a backend that keeps no such counter.
     int ppivs() const { return perturbed_pivots_; }
 
+    /// @brief The last factorization's inertia evidence, exactly as the linear
+    ///        layer reported it.
+    ///
+    /// ADDITIVE to the three cached ints above, which are unchanged and remain
+    /// the NLP engine's only inertia input: this accessor exists for a consumer
+    /// that must distinguish what the projection above deliberately collapses.
+    /// The projection is faithful to the pre-linear-layer shapes on purpose
+    /// (see the file banner) and therefore lossy in three ways -- `state` is
+    /// dropped, so a kQueryFailed or kUnavailable factorization is
+    /// indistinguishable from an observed one; `n_zero` and `zero_is_derived`
+    /// are dropped entirely; and an ABSENT perturbed-pivot count reads as the
+    /// integer 0, which on a backend that does count pivots means "none were
+    /// perturbed". A consumer that gates on evidence QUALITY rather than on the
+    /// counts alone needs all four back, and reads them here.
+    ///
+    /// Stored verbatim on every path that observes a FactorizeOutcome:
+    /// successful and failed numeric factorizations alike, and the
+    /// default-constructed outcome compute() records for a backend symbolic
+    /// failure (state kUnavailable, counts -1, no pivot count). Cleared to a
+    /// default-constructed InertiaEvidence by reconfigure() and release(),
+    /// alongside the cached ints. Before any factorization it therefore reads
+    /// `state == kUnavailable` -- "nothing has been observed" -- rather than a
+    /// plausible-looking zero.
+    const hven::linear::InertiaEvidence &inertia_evidence() const { return inertia_; }
+
     /// Reporting-only status of the last factorization. No control flow in the
     /// engine turns on it; it is surfaced in the exit statistics.
     Eigen::ComputationInfo info() const { return info_; }
@@ -166,6 +191,10 @@ class KktFactorization {
     int n_pos_ = 0;
     int n_neg_ = 0;
     int perturbed_pivots_ = 0;
+    // The unprojected evidence behind the three ints above. Kept beside them
+    // rather than replacing them: the projection is what the NLP engine reads
+    // and it does not move.
+    hven::linear::InertiaEvidence inertia_{};
     Eigen::ComputationInfo info_ = Eigen::Success;
     int factor_mem_ = 0;
     int factor_flops_ = 0;

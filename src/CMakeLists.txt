@@ -193,6 +193,7 @@ target_sources(hven PRIVATE
     drivers/sqp_print.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
+    qp/ipqp_kkt_layout.cpp
     qp/qp_engine.cpp
     qp/ssn_engine.cpp
     warmstart/continuation.cpp
@@ -398,7 +399,14 @@ endif()
 # self-contained project header (detail/drivers/problem_scaling.h, which pulls
 # only core/types.h), so it shares none of src/hven_pch.h's prefix and has
 # almost nothing for a PCH to save.
-set(_hven_expected_source_count 37)
+#
+# 38 as of qp/ipqp_kkt_layout.cpp, the M6 W1 interior-point QP tier's KKT
+# scatter plan. It stays OUT on the same footing as the nine above -- no
+# measurement exists for it, and out is the unmeasured default -- and on the
+# SQP-side prior: it includes the QP types and the pattern hash, a different
+# header set in a different order from the one src/hven_pch.h prefixes, and
+# that property has failed bar 2 for every SQP-side TU measured so far.
+set(_hven_expected_source_count 38)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
