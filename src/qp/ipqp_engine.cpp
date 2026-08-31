@@ -1519,10 +1519,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // seam-injected pins are what exercise it.)
                 //
                 // THE FLOOR IS `detail::kIpqpEvidenceFailureRhoFloor`, AN
-                // ABSOLUTE MINIMUM APPLIED ONCE AND NEVER CLIMBED. That
-                // constant's own banner carries the full argument and is where
-                // a change to this policy belongs; the two decisions behind it
-                // are restated here because they are what this branch does:
+                // ABSOLUTE MINIMUM AND NEVER A RUNG. It is applied HERE the
+                // first time evidence goes missing and, from then on, by
+                // `ladder_trial` at the top of every later iteration -- which
+                // is what keeps an always-unavailable backend at ONE
+                // factorization per iteration now that no floor variable
+                // carries the level across iterations (T4b). That constant's
+                // own banner carries the full argument and is where a change
+                // to this policy belongs; the two decisions behind it are
+                // restated here because they are what this branch does:
                 //
                 // 1. IT IS AN ABSOLUTE MAGNITUDE, NOT A MULTIPLE OF THE
                 //    CURRENT `rho`. The branch this policy exists for is the
@@ -1540,7 +1545,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 //    magnitude this tier regards as a real inertia correction
                 //    at all -- everything below being "far too small to change
                 //    any inertia" -- which is why the constant is DEFINED
-                //    equal to `kIpqpRhoLadderInit` while carrying its own name
+                //    equal to `kIpqpLadderInit` while carrying its own name
                 //    and its own contract (co-review I-3: sharing the symbol
                 //    let a ladder retune move this policy silently).
                 // 2. WHAT CARRIES THE HONESTY IS THE DOWNGRADE, NOT THE SIZE
@@ -1586,11 +1591,39 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // that raises the regularization by 2.3e-10 relative and buys a
             // whole numeric factorization for it.
             const double cap = iopts.ipqp_reg_max * (1.0 - detail::kSsnProxCapSlack);
-            if (read == InertiaRead::kPerturbed) {
+            if (read == InertiaRead::kPerturbed && rho_dem == 0.0) {
                 // Spec 2.2's evidence-failure policy: a perturbed
                 // factorization describes a DIFFERENT matrix, so its inertia
                 // is not evidence about this one. The remedy is a larger
                 // DUAL shift, never reading it as right.
+                //
+                // ... AND THAT REMEDY IS THE RIGHT ONE ONLY WHILE THE PRIMAL
+                // LADDER IS UNARMED (T4b, `rho_dem == 0` above). MEASURED, on
+                // `H = diag(2, -1000)`, `g = (-2, -4)` on `[-10, 10]^2` at the
+                // shipped defaults: the tier reads WRONG at `rho_dem` 0, 1e-4
+                // and 1e-2, and PERTURBED at `rho_dem = 1` -- because Ruiz
+                // normalizes that coordinate's scaled diagonal to almost
+                // exactly `-1` and the UNIFORM scaled shift of `+1` annihilates
+                // it. The pivot is zero in the PRIMAL block, so climbing
+                // `delta` 8 -> 800 -> 80000 -> 1e6 cannot touch it: the solve
+                // spent four more factorizations and escaped `kNumerical` with
+                // ZERO iterations taken. Rung `1.0` against a Ruiz-normalized
+                // `-1` diagonal is not a coincidence to be tuned away, it is a
+                // structural consequence of applying IC's own rungs in a
+                // system whose diagonal has been normalized to unit magnitude.
+                //
+                // THE RULE, therefore: while the ladder is armed, a perturbed
+                // pivot is a statement that THIS RUNG did not produce a
+                // system with the target inertia -- a zero pivot is neither a
+                // positive nor a negative eigenvalue -- so the ladder advances
+                // its own quantity, exactly as it does on a wrong reading. It
+                // is still never read as right, and the TERMINAL reading still
+                // classifies the escape (a ladder that exhausts on perturbed
+                // readings reports `kNumerical`, not `kIndefinite`, per plan
+                // section 7 note (h)). An amendment of section 2.2's
+                // evidence-failure remedy, declared as one and carried in the
+                // T4b report; the unarmed path is untouched, which is what
+                // keeps the convex corpus bit-identical.
                 if (delta >= cap) {
                     // I8: THE TERMINAL REJECTION IS STILL A REJECTION. This
                     // factorization was refused on evidence the tier could not

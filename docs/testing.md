@@ -500,8 +500,12 @@ executable.
 **Cost to the production build: measured zero.** `src/qp/ipqp_engine.cpp` was
 compiled twice from the same path with the project's own Release command — once
 as shipped, once with the `#include` and the `#ifdef HVEN_TESTING` block
-textually removed — and the two objects are **byte-identical** (343336 bytes,
-`cmp` clean, 2026-08-31, clang 22.1.8, `build-m5-release`'s exact flags).
+textually removed — and the two objects are **byte-identical** (346344 bytes,
+`cmp` clean, re-verified 2026-08-31 after M6 W1 T4b changed this TU; clang
+22.1.8, the project's own Release command for this TU, compiled twice from the
+same path so no embedded source path can differ. The recorded size moves with
+the TU -- it was 343336 bytes at the T5 measurement -- and what the check
+asserts is the CMP, not the number).
 `nm -C libhven.a` reports no `IpqpInertia*` symbol. The production library and
 `hven_sqp_tests` are therefore exactly what they would be if this seam did not
 exist.

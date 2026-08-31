@@ -451,9 +451,19 @@ TEST(IpqpDispatch, AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook) {
 // `engine_.solve(qp, overrides)`. This task's report records that as a
 // coverage gap rather than claiming a pin it does not have.
 TEST(IpqpDispatch, AnEscapedSubproblemIsAnsweredByTheWalkAndItsCostIsStillCharged) {
-    // HS24: measured to escape on EVERY major of a cold solve, so the whole
+    // HS10: measured to escape on EVERY major of a cold solve, so the whole
     // solve is the escape route and no refinement cost is mixed in.
-    auto p = make_hs(24);
+    //
+    // THE ROW MOVED FROM HS24 TO HS10 AT T4b, and the reason is the change
+    // rather than a fixture preference: HS24's subproblems used to escape
+    // because the ladder froze on them (the pre-T4b monotone floor), and with
+    // the freeze gone the tier now FINISHES every one of them -- six entries,
+    // five refinements accepted, zero escapes. A test whose premise is "the
+    // fixture must escape" has to move to a fixture that still does. HS10
+    // escapes on all three of its entries (two section 6.3
+    // infeasible-suspect, one numerical), routes all three to the walk and
+    // none to SSN, which is exactly the shape this row asserts.
+    auto p = make_hs(10);
     SqpDriver driver(ipm_options());
     const SqpSolution s = driver.solve(*p.model);
     const IpqpCounters &c = s.counters.ipqp;
@@ -1189,6 +1199,26 @@ TEST(IpqpDispatch, KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery) {
         SqpDriver ipm_driver(ipm_options());
         const SqpSolution ipm = ipm_driver.solve(*ipm_p.model);
         ASSERT_EQ(ipm.status, SqpStatus::kOptimal);
+
+        // HS33 IS A DECLARED EXCEPTION, AND IT IS THE TIER WINNING (T4b).
+        // HS33 is nonconvex with more than one KKT point, and the two kernels
+        // now stop at different ones: the walk at a local minimizer with
+        // `f = -4`, the tier at `f = sqrt(2) - 6 = -4.5857864376269...`, which
+        // is HS33'S PUBLISHED OPTIMUM. Before T4b both arms returned `-4`,
+        // because the tier's indefinite subproblems froze and were handed to
+        // the walk. Asserting agreement here would now be asserting that the
+        // tier must give up its better answer, so the row is pinned as the
+        // two VALUES it actually reaches, and the equivalence claim is stated
+        // for what it is: the two modes solve the same NLP to the same
+        // STATUS, and agree on the answer wherever the NLP has one answer.
+        if (number == 33) {
+            EXPECT_NEAR(ipm.f, std::sqrt(2.0) - 6.0, 1e-6)
+                << "the kIpm arm reaches HS33's published optimum";
+            EXPECT_NEAR(walk.f, -4.0, 1e-6) << "and the walk arm a different KKT point";
+            EXPECT_LT(ipm.f, walk.f) << "the tier's point is the better of the two, which is why "
+                                        "this row is an exception rather than a regression";
+            continue;
+        }
 
         EXPECT_NEAR(ipm.f, walk.f, 1e-6 * std::max(1.0, std::abs(walk.f)))
             << "the two modes solve the same NLP and must agree on its value";

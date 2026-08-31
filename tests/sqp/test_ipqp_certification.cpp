@@ -21,6 +21,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -265,71 +266,115 @@ TEST(IpqpCensusTest, ADeclinedSubproblemIsNotAnEscapeAndCensusesNothing) {
 // A11, engine half: the parametric indefinite family
 // ---------------------------------------------------------------------------
 
-TEST(IpqpA11Test, TheIndefiniteFamilyArmsTheGateClimbsMonotonelyAndNeverCertifies) {
-    // A11's four claims, one fixture family: the inertia GATE FIRES, the
-    // ladder is MONOTONE, the final read HAPPENS at a certifying exit, and a
-    // WRONG read produces NOT-kOptimal AND `kIndefinite`.
+TEST(IpqpA11Test, TheIndefiniteFamilyRidesNegativeCurvatureToABoundAndCertifiesHonestly) {
+    // A11's four claims on the parametric family, RE-DERIVED AT T4b. Before
+    // T4b every member of this family burnt its whole 60-iteration budget at
+    // an exact frozen fixed point of the modified problem, and this test
+    // pinned that (`reached_read == 0`). With section 3.2's schedule and
+    // section 2.2's modification separated, the step's right-hand side and the
+    // gate describe the SAME subproblem again, and every member now walks the
+    // negative curvature to its bound and reaches the section 2.2 item 4 read.
+    //
+    // WHAT MAKES THE FAMILY SHARP, restated because it is now being used the
+    // other way round. `indefinite_box_qp(c)` has a vanishing KKT residual at
+    // BOTH `(c, -1)` (a bound minimizer) and `(c, 1/8)` (an INTERIOR SADDLE),
+    // so no residual-based test separates them. What this test asserts is that
+    // the tier lands on a BOUND -- a genuine local minimizer of the QP -- and
+    // never on the saddle, and that the read it then takes agrees. Both ends
+    // of the box are local minimizers of a concave one-dimensional section, so
+    // "which end" is not asserted: A11 is about the HONESTY of the
+    // certificate, not about global optimality (T4b plan section 5, risk 3).
     //
     // The family is swept over `c` so the pins are properties of the
-    // MECHANISM rather than of one instance: `c` moves the minimizer along
-    // x0 and moves the saddle with it, and none of the four claims may depend
-    // on where that is.
+    // MECHANISM rather than of one instance: `c` moves the minimizer along x0
+    // and moves the saddle with it, and no claim may depend on where that is.
     Index reached_read = 0;
+    Index armed = 0;
+    Index non_monotone = 0;
     for (const double c : {0.0, 0.25, 0.5, 0.75, 1.0}) {
         SCOPED_TRACE(c);
         IpqpEngine tier(tight_opts());
         const IpqpResult r =
             tier.solve(indefinite_box_qp(c), nullptr, IpqpOptions{}, SolveOverrides{});
 
-        // (1) THE GATE FIRED. `rho_demanded_max` is the inertia-demanded
-        // floor's high-water mark and starts at 0, so a nonzero reading is
-        // the gate having refused a factorization on its inertia.
+        // (1) THE GATE FIRED. `rho_demanded_max` is the modification's
+        // high-water mark and starts at 0, so a nonzero reading is the gate
+        // having refused a factorization on its inertia.
         EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
         EXPECT_GT(r.counters.ipqp_inertia_retries, 0);
+        ++armed;
 
-        // (2) THE LADDER IS MONOTONE. The floor only ever rises, so the LAST
-        // value it took is also its high-water mark. A ladder that fell back
-        // would show `last < max`.
-        EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
-
-        // (3) IT NEVER CERTIFIES. Whatever stopped it, the answer is not
-        // `kOptimal` -- the whole point of the fixture is that a
-        // residual-based test cannot separate the minimizer from the saddle.
-        EXPECT_NE(r.status, QpStatus::kOptimal);
-        EXPECT_NE(r.escape_reason, IpqpEscape::kNone);
-        EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
-        EXPECT_EQ(r.counters.ipqp_escapes, 1);
-
-        // (4) WHERE A CERTIFYING EXIT IS REACHED, the final read HAPPENED and
-        // came back WRONG -- the pair (`read == 1`, `kIndefinite`) plan
-        // section 7 note (h) demands.
-        if (r.counters.ipqp_final_inertia_read != 0) {
-            ++reached_read;
-            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
-            EXPECT_TRUE(r.certificate_downgraded);
-            EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
-            EXPECT_EQ(r.counters.ipqp_escape_indefinite, 1);
+        // (2) THE LADDER IS ALGORITHM IC'S, NOT A MONOTONE FLOOR. This line
+        // used to read `EXPECT_DOUBLE_EQ(last, max)` -- the executable form of
+        // "the floor only ever rises". The memory is now free to fall, and on
+        // four of the five members it ends orders of magnitude below the
+        // solve's own peak. `<=` is asserted on every member (a memory ABOVE
+        // the high-water mark would be a bookkeeping bug); the strict
+        // inequality is counted, so the non-monotone claim is a measurement
+        // rather than a possibility.
+        EXPECT_LE(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+        if (r.counters.ipqp_rho_demanded_last < r.counters.ipqp_rho_demanded_max) {
+            ++non_monotone;
         }
+
+        // (3) IT CONVERGES, AND THE CERTIFICATE IT REPORTS IS HONEST. The
+        // point is at a BOUND of the negative-curvature coordinate, where
+        // `H + Sigma` really is positive definite, and it is NOT the interior
+        // saddle at `x1 = 1/8` -- which is the discriminating assertion this
+        // fixture was built for and which nothing could satisfy before T4b.
+        EXPECT_EQ(r.status, QpStatus::kOptimal);
+        EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+        EXPECT_FALSE(r.certificate_downgraded);
+        EXPECT_EQ(r.counters.ipqp_escapes, 0);
+        EXPECT_EQ(census_entries(r.counters), 0);
+        EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+        EXPECT_NEAR(r.x(0), c, 1e-5);
+        EXPECT_NEAR(std::abs(r.x(1)), 1.0, 1e-6) << "landed at a bound, not in the interior";
+        EXPECT_GT(std::abs(r.x(1) - 0.125), 0.5) << "and specifically NOT at the interior saddle";
+        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+
+        // (4) THE FINAL READ HAPPENED AND AGREED. `0` is both "agreed" and the
+        // structural value on a solve that never reached the read, so the
+        // certifying exit above is what makes it unambiguous here; the
+        // option-off partner below turns the same solve's read into a `3` and
+        // is what proves the factorization is genuinely being paid.
+        EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+        ++reached_read;
+
+        // (5) THE MODIFICATION IS ABSENT FROM THE ANSWER. `rho` is the
+        // schedule's final value and `rho_mod` the modification the last step
+        // ran at; the read itself is taken at `rho_dem = 0` by construction,
+        // which is what makes `read == 0` a statement about the caller's QP.
+        EXPECT_LT(r.rho, IpqpOptions{}.ipqp_rho_init);
+        EXPECT_GE(r.rho_mod, 0.0);
+        EXPECT_LE(r.rho_mod, r.counters.ipqp_rho_demanded_max);
     }
 
-    // THE COUNT, ASSERTED, so the conditional above cannot be vacuous
-    // (co-review I-5). MEASURED TODAY: **no member of this family reaches the
-    // final read at all.** Every one runs its 60-iteration budget out, because
-    // the ladder's monotone floor biases the proximal problem and the
-    // UNREGULARIZED residual the stopping rule reads never reaches target --
-    // T4 concern 1's mechanism, seen here on the whole family (confirmed at a
-    // 400-iteration budget too: still every member).
-    //
-    // Pinning the 0 is the point. It says what actually happens instead of
-    // leaving an `if` that nothing enters, and if a future change makes a
-    // member converge, this fires and whoever made it converge gets to
-    // strengthen the block above. The final read's own A11 coverage is
-    // `TheFinalReadIsReachedOnAConstrainedIndefiniteKkt` below, which
-    // exists precisely because this number is 0.
-    EXPECT_EQ(reached_read, 0);
+    EXPECT_EQ(armed, 5);
+    EXPECT_EQ(reached_read, 5) << "every member reaches the section 2.2 item 4 read";
+    EXPECT_GT(non_monotone, 0) << "and at least one settles below its own peak -- the executable "
+                                  "statement that the monotone floor is gone";
+
+    // THE READ IS REALLY BEING PAID, and this is how that is proved rather
+    // than assumed: the same fixture with `ipqp_require_final_inertia` off
+    // reports `3` (NOT PERFORMED), a downgrade with no escape, and one
+    // factorization fewer. Without this partner, `read == 0` above would be
+    // compatible with an engine that never took the read at all.
+    IpqpOptions off;
+    off.ipqp_require_final_inertia = false;
+    IpqpEngine on_tier(tight_opts());
+    IpqpEngine off_tier(tight_opts());
+    const IpqpResult on =
+        on_tier.solve(indefinite_box_qp(0.5), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult offr = off_tier.solve(indefinite_box_qp(0.5), nullptr, off, SolveOverrides{});
+    EXPECT_EQ(offr.counters.ipqp_final_inertia_read, 3);
+    EXPECT_TRUE(offr.certificate_downgraded);
+    EXPECT_EQ(offr.escape_reason, IpqpEscape::kNone);
+    EXPECT_EQ(on.counters.ipqp_factorizations, offr.counters.ipqp_factorizations + 1)
+        << "exactly one factorization is the item 4 read's whole cost";
 }
 
-TEST(IpqpA11Test, TheHSIndefiniteRowsArmTheGateAndClimbMonotonelyButNeverReachTheRead) {
+TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
     // A11'S ROW HALF (spec section 8.4: "A11 -- HS indefinite-Hessian rows
     // with the final-inertia certificate asserted ... asserts: the inertia
     // gate fires, the ladder is monotone within the solve, THE REQUIRED FINAL
@@ -341,67 +386,87 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsArmTheGateAndClimbMonotonelyButNeverReachTh
     // row blocks.
     //
     // =====================================================================
-    // A11'S HS HALF IS **NOT MET** BY THE ENGINE AS BUILT AT W1 HEAD.
+    // A11'S HS HALF IS **MET** AS OF M6 W1 T4b. IT WAS NOT AT W1 HEAD.
     // =====================================================================
     //
-    // SETTLER RULING (fix round 2): this is an ENGINE DEFICIENCY TO BE
-    // SURFACED, not a fixture to be tuned. **NO HS indefinite row reaches the
-    // section 2.2 item 4 read at all.** Measured on all three, at the 60-
-    // iteration default cap AND at a 400-iteration cap: every one runs its
-    // budget out and returns `kBudget` with `ipqp_final_inertia_read == 0`.
-    // The third of A11's four claims -- "the required final unregularized
-    // inertia read happens" -- therefore has no HS witness, and the fourth
-    // ("a wrong read downgrades") cannot be reached on an HS row either.
+    // WHAT THIS TEST USED TO SAY, kept because the delta is the evidence:
+    // "NO HS indefinite row reaches the section 2.2 item 4 read at all",
+    // measured on all three at the 60-iteration default cap AND at a
+    // 400-iteration cap -- every one ran its budget out and returned
+    // `kBudget` with `ipqp_final_inertia_read == 0`, at an EXACT FROZEN FIXED
+    // POINT (full steps, `|dx|` at 1e-17, a bit-identical residual for the
+    // last ~55 iterations). The pin was `reached_read_hs == 0`, written so
+    // that the day the engine reached the read this test would fail loudly.
+    // It did.
     //
-    // WHAT THIS TEST DOES ABOUT IT. It asserts what IS true and load-bearing
-    // on each HS row (claims one and two, plus never-kOptimal), and it PINS
-    // THE DEFICIENCY at `reached_read_hs == 0` so the day the engine starts
-    // reaching the read is the day this test FAILS LOUDLY and someone must
-    // flip the assertion to `== 3`. Budgets are NOT raised and tolerances are
-    // NOT weakened to manufacture a read; a read manufactured that way would
-    // assert the fixture rather than the engine, and would hide exactly the
-    // thing that needs to stay visible.
+    // WHAT CHANGED (T4b, plan section 7 note (p)). The tier carried TWO
+    // regularizations and used ONE number for both. The step's right-hand side
+    // was built with the total `max(rho_sched, rho_floor)` while the section
+    // 3.2 gate measured the residual of the subproblem `rho_sched` defines, so
+    // the iterate converged to the KKT point of a DIFFERENT problem than the
+    // gate was watching -- the gate's residual then sat at a nonzero constant
+    // (`0.99 x` the stopping residual, traced and pinned in
+    // docs/notes/2026-08-31-m6-w1-t4b-step0-trace.md) that could not contract
+    // because `x` did not move, so the schedule never advanced again and the
+    // monotone floor made the first climb's overshoot permanent. T4b separates
+    // the two, deletes the monotone floor in favour of Algorithm IC's memory,
+    // and applies the modification uniformly in the Ruiz-scaled system.
     //
-    // THE MECHANISM, MEASURED (fix-round-2 diagnosis; full per-iteration trace
-    // and the three rows' numbers in the T5 report, "Fix round 2" section S3
-    // -- informational, and on the ledger for the owner): the section 3.2
-    // gated decrease runs BEFORE the ladder, so `rho_sched` has already
-    // decayed past sufficiency when the inertia is read; the ladder's first
-    // rung is then `100 x` that decayed value and overshoots the
-    // inertia-demanded minimum by 8x to 40x; the monotone-per-solve floor
-    // makes that permanent; and at the overshot level the iterate reaches a
-    // point where the REGULARIZED Newton right-hand side is exactly zero, so
-    // the solve sits on an EXACT FROZEN FIXED POINT of the regularized
-    // subproblem -- full steps (`alpha` ~ 1), `|dx|` at machine zero and a
-    // bit-identical residual for the remaining ~55 iterations.
+    // ALL THREE ROWS NOW CONVERGE TO A LOCAL MINIMIZER, REACH THE READ, AND
+    // REPORT AN HONEST STANDING CERTIFICATE. Each returned point is one of the
+    // minimizers derived by hand in `support/indefinite_fixtures.h`'s own
+    // header comments -- which is what makes "honest" checkable rather than
+    // asserted.
     //
-    // IT IS NOT A DAMPED-GRADIENT CRAWL, and this comment used to say it was
-    // (co-review N-1). A crawl would take steps of order `1/rho` times the
-    // Newton step; the measured steps are 1e-17, and the residual does not
-    // move at all. Nor is the residual dominated by `rho (x - zeta)`: at the
-    // fixed point `zeta == x`, so that term is exactly 0 and what the
-    // stopping rule reads is the genuine unregularized stationarity of a
-    // point that is a KKT point of `H + rho I` and not of the caller's QP --
-    // section 2.2's own retracted convergence claim, observed.
-    //
-    // THE ROW FIXTURES ARE THE SUITE'S OWN, NOT NEW ONES. All three come from
-    // `tests/sqp/support/indefinite_fixtures.h`, which is where
-    // test_qp_engine_indefinite.cpp's battery keeps them -- one implementation
-    // shared by both consumers, with their multiplier derivations attached.
-    // Two carry an equality row, two carry an inequality row, and one has two
-    // negative eigenvalues.
-    RecordProperty("a11_hs_half",
-                   "NOT MET -- no HS indefinite row reaches the section 2.2 item 4 read at W1 "
-                   "head; see the M6 W1 ledger and the T5 fix-round-2 diagnosis");
+    // THE ROW FIXTURES ARE THE SUITE'S OWN, NOT NEW ONES: two carry an
+    // equality row, two an inequality row, one has two negative eigenvalues.
+    RecordProperty("a11_hs_half", "MET at M6 W1 T4b: all three HS indefinite rows converge, reach "
+                                  "the section 2.2 item 4 read and certify at a derived local "
+                                  "minimizer");
 
+    // THE ADMISSIBLE TRAJECTORIES, EXACT, ONE ROW PER MEASURED OUTCOME.
+    //
+    // WHY TWO ENTRIES FOR THE FIRST ROW, said plainly rather than hidden in a
+    // loose bound. `indefinite_equality_qp` has TWO local minimizers -- its own
+    // header derives both, `(1, -2, 2)` at objective -6 and `(1, 2, -2)` at
+    // -4 -- and which one a negative-curvature walk reaches is decided early,
+    // by which of two nearly-tied inertia readings comes back first. That
+    // decision is not stable across FLAG REGIMES: Debug reaches `(1, -2, 2)`
+    // in 27 iterations and 42 factorizations, Release reaches `(1, 2, -2)` in
+    // 24 and 36, and both are correct answers with a standing certificate.
+    // Rather than weaken the pin to a bound, both trajectories are written
+    // out and the result must match ONE OF THEM EXACTLY -- so a change to the
+    // ladder still fails here, and the sensitivity is documented instead of
+    // being absorbed. The other two rows reach the same point with the same
+    // counts in both regimes and have one entry each. Recorded as a T4b
+    // finding: an inertia ladder near its own threshold is flag-sensitive on
+    // a fixture with tied minimizers, which T9 should measure rather than be
+    // surprised by.
+    struct Outcome {
+        Index iters;
+        Index facts;
+        Vec x;
+    };
     struct HsCase {
         const char *name;
         QpProblem qp;
+        std::vector<Outcome> admissible;
     };
     const std::vector<HsCase> hs = {
-        {"hs_indefinite_equality", test_support::indefinite_equality_qp()},
-        {"hs_indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp()},
-        {"hs_two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()},
+        {"hs_indefinite_equality",
+         test_support::indefinite_equality_qp(),
+         {{27, 42, vec({1.0, -2.0, 2.0})}, {24, 36, vec({1.0, 2.0, -2.0})}}},
+        // x = (1, -2, -0.5), objective -1.375: the second of that fixture's
+        // two derived minimizers, x1 at LOWER and the general row active.
+        {"hs_indefinite_equality_and_row",
+         test_support::indefinite_equality_and_row_qp(),
+         {{22, 31, vec({1.0, -2.0, -0.5})}}},
+        // x = (-2, -2, -0.1), objective -4.205: one of the five vertices that
+        // fixture's header enumerates, row slack. A LOCAL and not the global
+        // minimizer, which is exactly what that fixture exists to accept.
+        {"hs_two_negative_eigenvalue_row",
+         test_support::two_negative_eigenvalue_row_qp(),
+         {{50, 75, vec({-2.0, -2.0, -0.1})}}},
     };
 
     Index reached_read_hs = 0;
@@ -412,51 +477,87 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsArmTheGateAndClimbMonotonelyButNeverReachTh
 
         // A11 CLAIM 1 -- THE INERTIA GATE FIRES on a CONSTRAINED indefinite
         // KKT. Both counters, because either alone can be satisfied without
-        // the other being meaningful: `inertia_retries` is the count of
-        // factorizations the gate REFUSED, `rho_demanded_max` is the level it
-        // demanded, and both start at 0 on a convex subproblem.
+        // the other being meaningful: `inertia_retries` counts factorizations
+        // the gate REFUSED, `rho_demanded_max` is the level it demanded, and
+        // both start at 0 on a convex subproblem.
         EXPECT_GT(r.counters.ipqp_inertia_retries, 0);
         EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
 
-        // A11 CLAIM 2 -- THE LADDER IS MONOTONE WITHIN THE SOLVE. The floor
-        // only ever rises, so its LAST value is also its high-water mark, and
-        // no down-then-up cycle was attempted (`ipqp_ladder_reclimbs`, which counts
-        // exactly that). A ladder that fell back would break the first; a
-        // schedule that pushed under the floor and was refused would show in
-        // the second.
-        EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
-        EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
+        // A11 CLAIM 2 -- THE LADDER IS ALGORITHM IC'S. This used to assert
+        // `last == max` (the monotone floor's executable form). The memory now
+        // ends BELOW the peak on every one of these rows, which is the
+        // property that lets the walk finish: a floor pinned at the first
+        // climb's overshoot is what froze them.
+        EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
         EXPECT_GT(r.counters.ipqp_iters_at_elevated_rho, 0);
 
-        // NEVER kOptimal -- the claim that survives whatever else happens.
-        EXPECT_NE(r.status, QpStatus::kOptimal);
-        EXPECT_NE(r.escape_reason, IpqpEscape::kNone);
+        // A11 CLAIMS 3 AND 4 -- THE READ HAPPENS, AND THE CERTIFICATE IT
+        // REPORTS IS HONEST. Here it STANDS, because each row really does
+        // converge to a local minimizer; the "a wrong read downgrades" half of
+        // claim 4 is carried by
+        // `TheFinalReadIsReachedOnAConstrainedIndefiniteKkt` below and by the
+        // settled-band fixture, both of which converge to genuine saddles.
+        EXPECT_EQ(r.status, QpStatus::kOptimal);
+        EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
         EXPECT_FALSE(r.certificate_downgraded);
-
-        // WHAT ACTUALLY STOPS THEM, pinned rather than described: the budget.
-        EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
-        EXPECT_EQ(r.status, QpStatus::kMaxIter);
-        EXPECT_EQ(r.counters.ipqp_escapes, 1);
-        EXPECT_EQ(r.counters.ipqp_escape_budget, 1);
-        EXPECT_EQ(census_entries(r.counters), 1);
+        EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+        EXPECT_EQ(r.counters.ipqp_escapes, 0);
+        EXPECT_EQ(census_entries(r.counters), 0);
         EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
-        EXPECT_EQ(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+        ++reached_read_hs;
 
-        if (r.counters.ipqp_final_inertia_read != 0) {
-            ++reached_read_hs;
+        // WHERE IT LANDED, AND WHAT IT COST -- matched as ONE WHOLE
+        // TRAJECTORY against the admissible list, so the point and its exact
+        // iteration and factorization counts are pinned together and a change
+        // in the ladder cannot be absorbed by a loose bound on either.
+        // "Honest certificate" is checked against arithmetic done by hand in
+        // the fixture's own header rather than against whatever the engine
+        // produced.
+        Index matched = 0;
+        for (const Outcome &o : c.admissible) {
+            ASSERT_EQ(r.x.size(), o.x.size());
+            if ((r.x - o.x).lpNorm<Eigen::Infinity>() < 1e-6 && r.counters.ipqp_iters == o.iters &&
+                r.counters.ipqp_factorizations == o.facts) {
+                ++matched;
+            }
         }
+        EXPECT_EQ(matched, 1) << "x = " << r.x.transpose() << ", iters = " << r.counters.ipqp_iters
+                              << ", factorizations = " << r.counters.ipqp_factorizations
+                              << " matches no admissible trajectory";
+        RecordProperty(std::string(c.name) + "_iters", std::to_string(r.counters.ipqp_iters));
+        RecordProperty(std::string(c.name) + "_factorizations",
+                       std::to_string(r.counters.ipqp_factorizations));
+        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap)
+            << "and none of them is stopped by the budget any more";
     }
 
-    // THE DEFICIENCY, PINNED. **THE DAY THIS FAILS IS THE DAY A11'S HS HALF IS
-    // MET** -- and whoever makes the engine reach the read on these rows must
-    // flip this to `EXPECT_EQ(reached_read_hs, 3)`, add A11's claims three and
-    // four to the loop above (`read == 1`, `certificate_downgraded`,
-    // `kIndefinite`), delete the RecordProperty, and close the ledger item.
-    // Until then the pin is the honest statement of where the tier is.
-    EXPECT_EQ(reached_read_hs, 0)
-        << "A11 HS half NOT MET -- no HS indefinite row reaches the section 2.2 item 4 read at "
-           "W1 head; see ledger. If this now passes the read, flip the pin to 3 and assert the "
-           "read's own outcome.";
+    // **THE FLIPPED PIN.** This line read `EXPECT_EQ(reached_read_hs, 0)` at
+    // W1 head, with a comment saying the day it failed was the day A11's HS
+    // half was met. That day was T4b.
+    EXPECT_EQ(reached_read_hs, 3)
+        << "A11 HS half: all three HS indefinite rows reach the section 2.2 item 4 read";
+
+    // NON-VACUITY FOR THE READ ITSELF, on the HS rows specifically: with
+    // `ipqp_require_final_inertia` off the same row reports `3` (NOT
+    // PERFORMED) and a downgrade, and pays exactly one factorization fewer. A
+    // `read == 0` that came from a solve which never took the read would be
+    // indistinguishable without this.
+    IpqpOptions off;
+    off.ipqp_require_final_inertia = false;
+    IpqpEngine off_tier(tight_opts());
+    IpqpEngine on_tier(tight_opts());
+    const IpqpResult offr =
+        off_tier.solve(test_support::indefinite_equality_qp(), nullptr, off, SolveOverrides{});
+    const IpqpResult onr = on_tier.solve(test_support::indefinite_equality_qp(), nullptr,
+                                         IpqpOptions{}, SolveOverrides{});
+    EXPECT_EQ(offr.counters.ipqp_final_inertia_read, 3);
+    EXPECT_TRUE(offr.certificate_downgraded);
+    EXPECT_NE(offr.status, QpStatus::kOptimal);
+    EXPECT_EQ(offr.counters.ipqp_iters, onr.counters.ipqp_iters)
+        << "the option changes only the read, so the iteration the trajectory takes is the same";
+    EXPECT_EQ(offr.counters.ipqp_factorizations, onr.counters.ipqp_factorizations - 1)
+        << "exactly one factorization is the item 4 read's whole cost";
 }
 
 TEST(IpqpA11Test, TheFinalReadIsReachedOnAConstrainedIndefiniteKkt) {
@@ -519,6 +620,382 @@ TEST(IpqpA11Test, TheConvexTwinOfTheFamilyCertifiesAndLeavesTheLadderInert) {
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
     EXPECT_FALSE(r.certificate_downgraded);
     EXPECT_EQ(r.counters.ipqp_escapes, 0);
+}
+
+// ---------------------------------------------------------------------------
+// T4b close gates 7-10: what the separated ladder is and is not
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// T4b close gate 7's fixture: INDEFINITE ON THE EQUALITY'S NULL SPACE, WITH
+/// NO ACTIVE BOUND.
+///
+///     min 1/2 (x0^2 + lam x1^2)   s.t.  x0 = 0.5,  x in [-10, 10]^2
+///
+/// The equality eliminates x0, so `null(A) = span(e1)` and the REDUCED Hessian
+/// is the scalar `lam` -- known analytically, which is the whole point: on a
+/// fixture with active bounds the threshold is set by the assembled Schur
+/// complement with `Sigma` and a finite `delta_sched` and no closed form is
+/// available. `g1 = 0` and a SYMMETRIC box make `x1 = 0` an exact KKT point of
+/// the barrier problem at every `mu` (the two bound terms cancel), so the tier
+/// converges there with the bounds ten units away and `Sigma ~ 2 mu / 100`,
+/// i.e. numerically absent from the inertia. It is a SADDLE, so the section
+/// 2.2 item 4 read must also downgrade.
+QpProblem equality_null_space_indefinite_qp(double lam) {
+    QpProblem qp;
+    qp.H = dense_upper({{1.0, 0.0}, {0.0, lam}});
+    qp.g = vec({0.0, 0.0});
+    qp.Ae = dense_rows({{1.0, 0.0}}, 2);
+    qp.be = vec({0.5});
+    qp.Ai = dense_rows({}, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec({-10.0, -10.0});
+    qp.upper = vec({10.0, 10.0});
+    return qp;
+}
+
+/// T4b close gate 8's fixture (the R5 precondition): an indefinite direction
+/// whose binding bounds are WEAKLY active. `H = diag(2, -1)`, `g = 0`, and a
+/// SYMMETRIC box of half-width `s` on the negative-curvature coordinate, so
+/// `x1 = 0` is an exact KKT point of the barrier problem at every `mu` and the
+/// tier converges there with `x1 - l = s`, `z = mu / s` and
+/// `Sigma = 2 mu / s^2`. Sweeping `s` sweeps `Sigma` across 1, which is
+/// exactly `|H11|`: the regime where "`H + Sigma` at the point" neither masks
+/// nor exposes the curvature.
+QpProblem weakly_active_indefinite_qp(double s) {
+    QpProblem qp;
+    qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
+    qp.g = vec({0.0, 0.0});
+    qp.Ae = dense_rows({}, 2);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({}, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec({-10.0, -s});
+    qp.upper = vec({10.0, s});
+    return qp;
+}
+
+/// T4b close gate 10's fixture: an ADVERSARIAL long negative-curvature walk.
+///
+///     min 1/2 (2 x0^2 - 0.1 x1^2) - 2 x0 - 0.01 x1   on [-100, 100]^2
+///
+/// Three properties, each chosen to make the walk as long as the design
+/// allows. The additional shift's threshold is SMALL (`theta = 0.1 -
+/// rho_sched`, about 0.099 once the schedule has decayed), so the ladder is
+/// armed at a level that buys very little curvature; the binding bound is 100
+/// units away FROM THE START, so the walk down the negative-curvature
+/// direction is long; and the objective's slope along that direction is small,
+/// so nothing hurries it. While the ladder is armed the section 3.2 gate is
+/// SILENT by construction -- the schedule's residual GROWS along a direction
+/// of negative reduced curvature -- so this is the fixture that says how long
+/// "silent" can get and whether section 6.2 mistakes it for a stall.
+QpProblem long_negative_curvature_walk_qp() {
+    QpProblem qp;
+    qp.H = dense_upper({{2.0, 0.0}, {0.0, -0.1}});
+    qp.g = vec({-2.0, -0.01});
+    qp.Ae = dense_rows({}, 2);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({}, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec({-100.0, -100.0});
+    qp.upper = vec({100.0, 100.0});
+    return qp;
+}
+
+/// The bound curvature `Sigma_i` the section 2.2 item 4 read sees at index
+/// `i`, recomputed from the RESULT rather than from inside the engine -- the
+/// same `zl/(x-l) + zu/(u-x)` the tier accumulates.
+double sigma_at(const IpqpResult &r, const QpProblem &qp, Index i) {
+    double sig = 0.0;
+    if (std::isfinite(qp.lower(i))) {
+        sig += r.zl(i) / (r.x(i) - qp.lower(i));
+    }
+    if (std::isfinite(qp.upper(i))) {
+        sig += r.zu(i) / (qp.upper(i) - r.x(i));
+    }
+    return sig;
+}
+
+} // namespace
+
+TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
+    // T4b CLOSE GATE 7. On a fixture whose reduced Hessian is known in closed
+    // form, the shift the ladder SETTLES at must sit inside the band Algorithm
+    // IC's two factors define: it is refused below the threshold and accepted
+    // at most `kIpqpLadderUp` times a refused value, so
+    //
+    //     theta < rho_dem_settled <= kIpqpLadderUp * theta,
+    //     theta = |lambda_min(reduced H)| - rho_sched.
+    //
+    // WHY THIS GATE EXISTS. "The A11 pin flips 0 -> 3" is compatible with a
+    // ladder that settles at 40 when 2 would do -- the solve would still
+    // converge, just expensively, and the counter table would not say so. The
+    // band is the statement that the /3 probe really does walk the shift back
+    // down to the smallest value the curvature needs.
+    const double lam = -2.0;
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(equality_null_space_indefinite_qp(lam), nullptr, IpqpOptions{},
+                                    SolveOverrides{});
+
+    // THE PRECONDITIONS THE ANALYTIC BAND RESTS ON, asserted rather than
+    // assumed. (a) it converged, so there IS a settled value; (b) the point is
+    // the one the fixture was built around; (c) NO BOUND IS ACTIVE, so the
+    // reduced Hessian really is the analytic `lam` and not `lam + Sigma`.
+    ASSERT_EQ(r.counters.ipqp_iters, 30);
+    EXPECT_NEAR(r.x(0), 0.5, 1e-9);
+    EXPECT_NEAR(r.x(1), 0.0, 1e-6);
+    EXPECT_LT(sigma_at(r, equality_null_space_indefinite_qp(lam), 1), 1e-6)
+        << "no active bound: Sigma must be numerically absent from the read";
+
+    const double theta = std::abs(lam) - r.rho;
+    EXPECT_GT(r.rho_mod, theta) << "a settled value at or below the threshold would have been "
+                                   "refused by the inertia gate";
+    EXPECT_LE(r.rho_mod, detail::kIpqpLadderUp * theta)
+        << "and one above 8 x the threshold means the ladder never walked its first climb's "
+           "overshoot back down";
+    RecordProperty("t4b_gate7_theta", std::to_string(theta));
+    RecordProperty("t4b_gate7_rho_mod", std::to_string(r.rho_mod));
+    RecordProperty("t4b_gate7_rho_demanded_max", std::to_string(r.counters.ipqp_rho_demanded_max));
+
+    // THE FIRST CLIMB IS *NOT* IN THE BAND, and that is the non-vacuity
+    // partner: the solve's PEAK is the two-decade first climb's landing point,
+    // far outside `(theta, 8 theta]`. If the band pin ever passed by accident
+    // -- because the peak happened to be small -- this would fail first.
+    EXPECT_GT(r.counters.ipqp_rho_demanded_max, detail::kIpqpLadderUp * theta)
+        << "the first climb overshoots by construction; the band is a claim about where the "
+           "ladder SETTLES, not about where it starts";
+
+    // ... AND THE POINT IS A SADDLE, so the section 2.2 item 4 read must
+    // downgrade. `x1 = 0` maximizes `-x1^2` on a symmetric box.
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
+    EXPECT_TRUE(r.certificate_downgraded);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
+    EXPECT_NE(r.status, QpStatus::kOptimal);
+
+    // THE HS ROWS GET THE OBSERVED-THRESHOLD FORM INSTEAD (gate 7's own
+    // scoping). With bounds active, a finite `delta_sched` and Ruiz on, the
+    // target inertia is `G + A'A/delta > 0` rather than "G positive definite
+    // on null(A)", so the analytic band is NOT valid there. What IS asserted
+    // is Algorithm IC's own descent property: the memory ends at least one
+    // `/3` step below the solve's peak, i.e. the ladder demonstrably walked
+    // back down rather than parking on its first climb.
+    for (const QpProblem &qp :
+         {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
+          test_support::two_negative_eigenvalue_row_qp()}) {
+        IpqpEngine hs_tier(tight_opts());
+        const IpqpResult h = hs_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        ASSERT_GT(h.counters.ipqp_rho_demanded_max, 0.0);
+        EXPECT_LE(h.counters.ipqp_rho_demanded_last,
+                  h.counters.ipqp_rho_demanded_max / detail::kIpqpLadderDown);
+    }
+}
+
+TEST(IpqpCertificationTest, AWeaklyActiveBoundIsExactlyWhereTheFinalReadStopsBeingDecisive) {
+    // T4b CLOSE GATE 8 -- THE R5 PRECONDITION, AND THE ANSWER IS NO.
+    //
+    // R5 proposes reading the second-order certificate off the tier-3 FACE
+    // factorization instead of paying section 2.2 item 4's extra one, and it
+    // carries its own precondition: a weak-active-indefinite fixture showing
+    // the merge is sound. This is that fixture, and what it shows is that the
+    // item 4 read is EXACTLY a statement about `H + Sigma` AT THE POINT and
+    // carries no information beyond it -- so where `Sigma` is an artefact of
+    // where the barrier stopped rather than of the geometry, the read is
+    // decided by the artefact.
+    //
+    // THE SWEEP. `x1 = 0` is an exact KKT point of the barrier problem at
+    // every `mu` on a symmetric box of half-width `s`, so the tier always
+    // converges there, always in three iterations, and always WITHOUT arming
+    // the ladder (`rho_0 = 8` covers `|H11| = 1` from the start). Only
+    // `Sigma = 2 mu / s^2` moves. `x1 = 0` is the MAXIMUM of `-x1^2 / 2` on
+    // that box, so on every member the certificate SHOULD NOT STAND.
+    //
+    // MEASURED: it stands wherever `Sigma > |H11| = 1`. The boundary is not
+    // approximate -- it is `Sigma = 1` to the digit, because that is where
+    // `H + Sigma` changes sign.
+    //
+    // NOTHING HERE IS CHANGED BY T4b: the ladder never arms on this family, so
+    // the same sweep on the pre-T4b engine gives the same answers. The gate is
+    // a measurement of section 2.2 item 4, not of the separated ladder, and
+    // the finding is recorded as R5's precondition being UNDISCHARGED.
+    Index stood = 0;
+    Index downgraded = 0;
+    for (const double s : {5.0e-4, 3.0e-4, 2.0e-4, 1.8e-4, 1.58e-4, 1.4e-4, 1.2e-4, 1.0e-4}) {
+        SCOPED_TRACE(s);
+        const QpProblem qp = weakly_active_indefinite_qp(s);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+
+        // The family's own invariants, so the sweep is one experiment with one
+        // variable moving.
+        ASSERT_EQ(r.counters.ipqp_iters, 3);
+        EXPECT_NEAR(r.x(1), 0.0, 1e-12);
+        EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0)
+            << "the ladder never arms here -- rho_0 = 8 covers |H11| = 1 from the first "
+               "factorization, which is what makes this a test of the READ";
+
+        const double sigma = sigma_at(r, qp, 1);
+        const bool masked = sigma > 1.0;
+        // THE WEAK-ACTIVE REGIME ITSELF: `x1 - l` and `z` are both of order
+        // `sqrt(mu)`, which is what makes `Sigma` of order 1.
+        EXPECT_NEAR(std::log10((r.x(1) - qp.lower(1)) / std::sqrt(r.mu)), 0.0, 0.7);
+        EXPECT_NEAR(std::log10(r.zl(1) / std::sqrt(r.mu)), 0.0, 0.7);
+
+        if (masked) {
+            // `H + Sigma > 0`: the read agrees with the required signature and
+            // the certificate STANDS -- at a point that is not a minimizer.
+            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+            EXPECT_FALSE(r.certificate_downgraded);
+            EXPECT_EQ(r.status, QpStatus::kOptimal);
+            ++stood;
+        } else {
+            // `H + Sigma < 0`: the read disagrees and the certificate is
+            // DOWNGRADED, which is the outcome gate 8 wanted everywhere.
+            EXPECT_NE(r.counters.ipqp_final_inertia_read, 0);
+            EXPECT_TRUE(r.certificate_downgraded);
+            EXPECT_NE(r.status, QpStatus::kOptimal);
+            ++downgraded;
+        }
+    }
+
+    // BOTH BRANCHES OCCUR, so neither half of the pin is vacuous, and the
+    // sweep really does cross the boundary rather than sitting on one side.
+    EXPECT_GT(stood, 0) << "the masking side of Sigma = 1 -- R5's precondition is NOT discharged";
+    EXPECT_GT(downgraded, 0) << "the exposing side";
+    RecordProperty("t4b_gate8", "R5 precondition UNDISCHARGED: the item 4 read is exactly a "
+                                "statement about H + Sigma at the point, and a weakly active "
+                                "bound with Sigma > |H| stands a certificate at a saddle");
+}
+
+TEST(IpqpLadderTest, AFixedPointOfTheExecutedMapIsAPointTheGateCanSee) {
+    // T4b CLOSE GATE 9 -- MECHANISM 4'S INVARIANT, in the form the tier's
+    // public result can carry.
+    //
+    // THE INVARIANT, STATED: under the separation, the right-hand side a step
+    // is built from IS the section 3.2 subproblem's own residual, so a point
+    // where the step vanishes is a point where THAT residual is zero -- and
+    // the gate, which measures exactly that residual, advances there. The
+    // schedule then decays and the solve moves on. A fixed point cannot be
+    // frozen.
+    //
+    // WHAT IS AND IS NOT ASSERTED HERE, said plainly. The literal per-step
+    // form -- "at any accepted step with `||(dx, ds, dy, dz)||inf < 1e-12` the
+    // regularized KKT residual is within the stopping tolerance" -- is not
+    // observable through `IpqpResult`, which publishes no step norms, and T4b
+    // does not add a counter for one. What IS observable is the invariant's
+    // whole-solve consequence, and it is the consequence that was violated
+    // before T4b on every one of these fixtures: a solve that reaches a fixed
+    // point either CONVERGES or is stopped by something other than the
+    // iteration budget. Every fixture below burnt its full budget at a frozen
+    // point at W1 head. The per-step form was checked by SOURCE MUTATION
+    // (re-introducing the total shift in `build_rhs`), recorded in the T4b
+    // report with the measurements; it is not runnable from here.
+    struct Case {
+        const char *name;
+        QpProblem qp;
+    };
+    const std::vector<Case> cases = {
+        {"hs_indefinite_equality", test_support::indefinite_equality_qp()},
+        {"hs_indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp()},
+        {"hs_two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()},
+        {"indefinite_box_family_c0", indefinite_box_qp(0.0)},
+        {"indefinite_box_family_c1", indefinite_box_qp(1.0)},
+        {"equality_null_space", equality_null_space_indefinite_qp(-2.0)},
+        {"saddle", saddle_qp()},
+    };
+    for (const Case &c : cases) {
+        SCOPED_TRACE(c.name);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(c.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        EXPECT_NE(r.escape_reason, IpqpEscape::kBudget)
+            << "a budget stop on an indefinite fixture is the signature of the freeze T4b removed";
+        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+        // Every one of them reached a CERTIFYING exit -- the read was taken,
+        // whatever it then said.
+        EXPECT_TRUE(r.escape_reason == IpqpEscape::kNone ||
+                    r.escape_reason == IpqpEscape::kIndefinite);
+        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+    }
+
+    // THE SECOND HALF OF GATE 9: the item 4 read runs at `rho_dem = 0` and
+    // `rho_sched = ipqp_reg_floor` BY CONSTRUCTION, never at the ladder's
+    // memory. The saddle fixture is the witness: its ladder reaches a shift at
+    // which the inertia reads RIGHT (`rho_demanded_max = 100`), and the read
+    // still comes back WRONG -- which it could not do if it were seeded from
+    // `rho_dem_last`.
+    IpqpEngine saddle_tier(tight_opts());
+    const IpqpResult sr = saddle_tier.solve(saddle_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_GT(sr.counters.ipqp_rho_demanded_max, 1.0);
+    ASSERT_GT(sr.counters.ipqp_rho_demanded_last, 1.0);
+    EXPECT_EQ(sr.counters.ipqp_final_inertia_read, 1)
+        << "a read seeded from the ladder's memory would find the inertia it was looking for and "
+           "certify a saddle as a minimum";
+    EXPECT_EQ(sr.escape_reason, IpqpEscape::kIndefinite);
+}
+
+TEST(IpqpLadderTest, ALongArmedWalkWithNoGateAdvanceStillConvergesInsideTheBudget) {
+    // T4b CLOSE GATE 10 -- THE ADVERSARIAL LONG WALK.
+    //
+    // THE GAP THIS FIXTURE EXISTS TO TEST (T4b plan 2.1). Separating the two
+    // regularizations makes the inner iteration a descent method on the
+    // schedule's barrier-proximal subproblem, but its RESIDUAL IS NOT
+    // MONOTONE: along a direction where `H + rho_sched I + Sigma` still has
+    // negative curvature the residual GROWS, by a factor
+    // `rho_dem / (lambda_i + rho_sched + rho_dem) > 1`. The section 3.2 gate
+    // measures residual CONTRACTION, so it is SILENT for the whole walk to the
+    // bound face -- `zeta` pinned, `rho_sched` pinned -- and resumes only when
+    // the curvature turns positive and `rho_dem` falls back to 0.
+    //
+    // THE TWO RISKS, and which one is real. Section 6.2's stall test needs all
+    // three conjuncts, and conjunct (iii) demands `min(alpha_p, alpha_d) <
+    // 1e-2` on EVERY step of the window -- which a full-step walk cannot
+    // satisfy -- so section 6.2 was PREDICTED not to fire. The real risk is
+    // the iteration BUDGET. This fixture is built to make both as hard as the
+    // design allows (see the fixture's own banner) and then measures.
+    //
+    // RESULT: 26 armed iterations with no gate advance, and the solve
+    // converges in 31 of its 60, at the minimizer, with a standing
+    // certificate. Section 6.2 does NOT fire, so plan 2.1(a)'s phi-decrease
+    // window reset is NOT built -- the condition on it was "only if section
+    // 6.2 fires on this fixture".
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r =
+        tier.solve(long_negative_curvature_walk_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+
+    // THE WALK IS REAL AND IT IS LONG. Both halves matter: armed (so the gap's
+    // precondition holds at all) and silent (so it is the gap and not an
+    // ordinary solve).
+    EXPECT_EQ(r.counters.ipqp_iters_ladder_armed_no_advance, 26);
+    EXPECT_GE(r.counters.ipqp_iters_ladder_armed_no_advance, 10)
+        << "fewer than ten armed silent iterations and this fixture licenses nothing";
+    EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 29);
+    EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
+
+    // ... AND IT FINISHES, INSIDE THE BUDGET, AT THE ANSWER.
+    EXPECT_EQ(r.counters.ipqp_iters, 31);
+    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+    EXPECT_NEAR(r.x(0), 1.0, 1e-6);
+    EXPECT_NEAR(r.x(1), -100.0, 1e-6);
+
+    // SECTION 6.2 DID NOT FIRE -- the pin the phi-reset decision rests on.
+    EXPECT_EQ(r.counters.ipqp_escape_stall, 0);
+    EXPECT_FALSE(r.stall_evidence.fired);
+    EXPECT_EQ(r.counters.ipqp_escapes, 0);
+
+    // NON-VACUITY: the same problem with the sign of the second curvature
+    // flipped is convex, never arms the ladder, and the counter that measures
+    // the walk is structurally zero.
+    QpProblem convex = long_negative_curvature_walk_qp();
+    convex.H = dense_upper({{2.0, 0.0}, {0.0, 0.1}});
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult c = tier2.solve(convex, nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(c.status, QpStatus::kOptimal);
+    EXPECT_EQ(c.counters.ipqp_iters_ladder_armed_no_advance, 0);
+    EXPECT_EQ(c.counters.ipqp_iters_at_elevated_rho, 0);
+    EXPECT_DOUBLE_EQ(c.counters.ipqp_rho_demanded_max, 0.0);
 }
 
 TEST(IpqpCertificationTest, AHealthySolveNeverArmsTheEvidenceFailurePath) {

@@ -353,96 +353,131 @@ TEST(IpqpLadderTest, AConvexSubproblemLeavesTheInertiaMachineryProvablyInert) {
     EXPECT_FALSE(r.certificate_downgraded);
 }
 
-TEST(IpqpLadderTest, AnIndefiniteSubproblemArmsTheLadderAndDoesNotCertify) {
+TEST(IpqpLadderTest, AnIndefiniteSubproblemArmsTheLadderAndWalksToTheBound) {
     QpProblem qp = box_qp(-10.0, 10.0);
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1000.0}});
 
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
 
-    // THE NON-VACUITY PARTNER of the pin above: the same three counters that
-    // are structurally zero on a convex subproblem are nonzero here, so
-    // "provably inert" is a measurement rather than an absence.
+    // THE NON-VACUITY PARTNER of the convex-inertness pin above: the three
+    // counters that are structurally zero on a convex subproblem are nonzero
+    // here, so "provably inert" is a measurement rather than an absence.
     EXPECT_GT(r.counters.ipqp_inertia_retries, 0);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
-    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
     EXPECT_GT(r.counters.ipqp_iters_at_elevated_rho, 0);
     EXPECT_NE(r.status, QpStatus::kOptimal);
 
-    // WHAT THIS FIXTURE DOES *NOT* CLAIM, stated because the shape of the
-    // outcome is worth pinning even though nothing certifies it. Spec 2.2
-    // RETRACTS any convergence claim for a nonconvex QP -- the proximal terms
-    // do not convexify it, and the inertia-demanded shift is a MODIFICATION,
-    // not part of the proximal problem the section 3.2 gate measures. So the
-    // tier converges to the modified problem, the gate (correctly, at
-    // `rho_sched`) sees no contraction on the real one, and the solve runs out
-    // its iteration budget. That is the honest outcome and section 2.3 routes
-    // it onward.
-    //
-    // TASK 4 EXPECTED SECTION 6.2'S STALL TEST TO SHORTEN THIS TO ~5
-    // ITERATIONS. IT DOES NOT, and the number stays 60 with that recorded
-    // rather than quietly re-expected. Task 5 measured why: this trajectory
-    // takes FULL fraction-to-boundary steps (`alpha_p == 1`) all the way to
-    // the cap, so section 6.2's conjunct (iii) -- `min(alpha_p, alpha_d) <
-    // 1e-2` on EVERY step of the window -- is never met. The test is about
-    // DYING STEPS, and this subproblem's steps are healthy; what is wrong
-    // with it is where they are going, which is exactly what the section 2.2
-    // item 4 read catches on the instances that converge. Registered in the
-    // task 5 report as a cost item rather than papered over.
-    EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
-    // ... and the required final read was never paid, because no certifying
-    // exit was reached. `ipqp_final_inertia_read` is structurally 0 there --
-    // its own doc comment says so, and this is that statement exercised.
-    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+    // THE LADDER IS NOT MONOTONE, AND THIS IS WHERE THAT IS PINNED (T4b).
+    // Before T4b `ipqp_rho_demanded_last == ipqp_rho_demanded_max` held on
+    // every armed solve BY CONSTRUCTION -- the floor only rose. Algorithm IC
+    // retries `rho_dem_last / 3` at every iteration, so the memory ends far
+    // BELOW the solve's own peak, and the strict inequality is the executable
+    // statement that the monotone rule is gone.
+    EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+    EXPECT_GT(r.counters.ipqp_ladder_reclimbs, 0)
+        << "and the /3 probe really is being refused and re-climbed here";
+
+    // WHERE IT GOES, AND WHY THAT IS THE HONEST OUTCOME. `H = diag(2, -1000)`
+    // with `g = (-2, -4)` on `[-10, 10]^2` has its minimizers at the ENDS of
+    // the negative-curvature coordinate, and `x1 = +10` is the better of them.
+    // Before T4b this fixture never got there: it froze at an exact fixed
+    // point of the modified problem and burnt its whole 60-iteration budget
+    // (`kBudget`). It now rides the negative curvature to the bound and
+    // arrives at the minimizer.
+    EXPECT_NEAR(r.x(0), 1.0, 1e-6);
+    EXPECT_NEAR(r.x(1), 10.0, 1e-9);
+    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap)
+        << "the budget is no longer what stops it -- mechanism 4's freeze is gone";
+    EXPECT_NE(r.escape_reason, IpqpEscape::kBudget);
+
+    // ... AND WHAT STOPS IT INSTEAD, pinned rather than described, because it
+    // is a REGISTERED COST ITEM and not a success. The barrier endgame on a
+    // ride INTO a bound at curvature this large ends at the strict-positivity
+    // guard: fraction-to-boundary keeps `x < u` in exact arithmetic, but once
+    // `u - x` falls below `ulp(u)` the update `x + alpha dx` rounds to `u`
+    // exactly and the guard fires. The returned point IS the minimizer
+    // (asserted above) and the residual is 7.3e-5, so this is a missed
+    // CERTIFICATE, not a wrong answer -- section 2.3 routes it to the walk.
+    // Registered in the T4b report as an endgame item for T9/M7; T4b does not
+    // change the barrier endgame.
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0)
+        << "no certifying exit was reached, so the required read was never paid";
 }
 
-TEST(IpqpLadderTest, TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap) {
-    // A MILDLY indefinite Hessian and a SMALL `rho_0`, chosen so the ladder
-    // fires early (raising the monotone floor to 1) and the section 3.2 gate
-    // then earns a decrease the floor must refuse. Both halves matter: without
-    // the ladder there is no floor to violate, and without the gate firing
-    // there is no decrease to refuse.
+TEST(IpqpLadderTest, TheICTrialIsRefusedAndTheReclimbIsCounted) {
+    // WHAT THIS TEST USED TO BE, and why it could not survive T4b: it was
+    // `TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap`, and it asserted
+    // that section 2.2 item 3's monotone-per-solve floor refused a section 3.2
+    // gated decrease and scored the refusal as `ipqp_rho_flaps`. T4b DELETES
+    // that floor -- Wachter-Biegler's Algorithm IC, which section 2.2 cites by
+    // name, restarts each trial at a third of the last shift and has no
+    // monotone rule -- so the event has no referent. `ipqp_ladder_reclimbs`
+    // replaces the counter and this fixture replaces the claim.
+    //
+    // A STRONGLY indefinite coordinate with a distant bound, so the ladder
+    // arms on the first iteration, builds a memory, and then spends a long
+    // walk probing BELOW that memory. Every probe the reduced curvature
+    // refuses is a reclimb; the accepted values cycle inside the
+    // `(theta, 8 theta]` band Algorithm IC's `/3` and `x8` define.
+    //
+    // WHY THIS FIXTURE AND NOT A MILDER ONE. A fixture whose curvature sits
+    // near a rung boundary decides its trajectory on nearly-tied inertia
+    // readings and is FLAG-SENSITIVE -- the first draft of this test used
+    // `H = diag(2, -1)` with `rho_0 = 1e-2` and counted three reclimbs in
+    // Debug and none in Release, because the two regimes took different walks
+    // to different (both correct) minimizers. An exact counter pin has to be
+    // taken on a trajectory that is the same in both, which this one is.
     QpProblem qp = box_qp(-10.0, 10.0);
-    qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
-    IpqpOptions io;
-    io.ipqp_rho_init = 1.0e-2;
+    qp.H = dense_upper({{2.0, 0.0}, {0.0, -1000.0}});
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
 
-    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 1);
+    // THE RECLIMBS, AS AN EXACT COUNT: eight iterations of this solve start
+    // from IC's memory -- the skip rule licenses that only after three
+    // consecutive modified iterations -- and have their `/3` probe refused.
+    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 8);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
-    // A FLAP AND ONLY A FLAP (fix round 2, I2). `delta` carries no monotone
-    // floor (plan section 7 note (g)), so the very advance whose `rho` move
-    // the floor refused still moved `delta` 8 -> 0.8 -- and the rule chosen,
-    // stated on both counters' doc comments, is that ONE ADVANCE IS ONE
-    // CLASSIFICATION: the refusal is the defining event, so this advance
-    // scores a flap and NOT also a decrease. Round 1 counted both and broke
-    // the exclusivity the two fields document.
-    EXPECT_EQ(r.counters.ipqp_reg_decreases, 0);
-    // THE IDENTITY, structural on any solve whose schedule has not bottomed
-    // out: every gated advance is classified exactly once.
-    EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
+    // ... and the memory ends far below the peak, which is the non-monotone
+    // statement again, here beside the counter that measures its cost.
+    EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+    // A RECLIMB IS AN ITERATION, NOT A RUNG: it can never exceed the number of
+    // iterations that ran the ladder at all.
+    EXPECT_LE(r.counters.ipqp_ladder_reclimbs, r.counters.ipqp_iters_at_elevated_rho);
+    // ... and each one costs at least the refused factorization plus its
+    // replacement, so the rejection count dominates it.
+    EXPECT_LE(r.counters.ipqp_ladder_reclimbs, r.counters.ipqp_inertia_retries);
 
-    // MUTATION NON-VACUITY: the same solve on a CONVEX Hessian raises no
-    // floor, so the same gate produces decreases and no flaps at all.
+    // THE T4b IDENTITY. Class (a) (a decrease the monotone floor refused) no
+    // longer exists, so every gated advance is either a decrease or a class
+    // (c) advance that moved nothing. This solve's advances all moved.
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates, 7);
+
+    // MUTATION NON-VACUITY: the same solve on a CONVEX Hessian never arms the
+    // ladder, so there is no memory to probe and no reclimb to count, while
+    // the same gate still produces decreases.
     QpProblem convex = box_qp(-10.0, 10.0);
     IpqpEngine tier2(tight_opts());
-    const IpqpResult c = tier2.solve(convex, nullptr, io, SolveOverrides{});
+    const IpqpResult c = tier2.solve(convex, nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(c.status, QpStatus::kOptimal);
     EXPECT_EQ(c.counters.ipqp_ladder_reclimbs, 0);
+    EXPECT_DOUBLE_EQ(c.counters.ipqp_rho_demanded_max, 0.0);
     EXPECT_GT(c.counters.ipqp_reg_decreases, 0);
-    EXPECT_EQ(c.counters.ipqp_prox_center_updates,
-              c.counters.ipqp_reg_decreases + c.counters.ipqp_ladder_reclimbs);
+    EXPECT_EQ(c.counters.ipqp_prox_center_updates, c.counters.ipqp_reg_decreases);
 }
 
-TEST(IpqpLadderTest, TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease) {
-    // FIX ROUND 1, I2. The flap counter reads the MONOTONE (inertia-demanded)
-    // floor only. Reading `max(reg_floor, rho_floor)` instead made the
-    // ABSOLUTE floor -- a setting every schedule decays onto -- look like a
-    // down-then-up cycle on a solve that never had a monotone floor, and it
-    // co-fired with the `ipqp_reg_decreases` the field's doc comment excludes.
+TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
+    // FIX ROUND 1, I2, RE-PINNED AT T4b. The question this fixture answers is
+    // what happens on a gated advance whose quantities are ALREADY on the
+    // absolute `ipqp_reg_floor`: it is a class (c) advance -- the prox centre
+    // moves, nothing else does, and no counter fires. Before T4b there was a
+    // third class (a monotone-floor refusal, `ipqp_rho_flaps`) that this
+    // fixture also had to exclude; T4b deletes the floor and the class with
+    // it, so the identity is now two-way and the arithmetic below is the same
+    // arithmetic with one term removed.
     //
     // At the shipped defaults that state is only reached past the 11th gated
     // advance, which no fixture in this file gets to. Rather than build a
@@ -458,32 +493,30 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease) {
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_DOUBLE_EQ(r.rho, io.ipqp_reg_floor);
     EXPECT_DOUBLE_EQ(r.delta, io.ipqp_reg_floor);
-    // A CONVEX subproblem has no monotone floor at all, so no advance here can
-    // be a monotone-floor violation however many hit the absolute one. This is
-    // I2's whole content.
+    // A CONVEX subproblem never arms the ladder at all, so there is no IC
+    // memory and nothing to reclimb however many advances hit the absolute
+    // floor.
     EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0);
 
-    // THE EXACT THREE-WAY ACCOUNTING, pinned as three numbers rather than as
-    // an inequality (fix round 2: "do not pin a gap"). Four gated advances:
-    // the first two still had room to move -- `1e-9 * 0.1` does not land on
-    // `1e-10` exactly in binary, so the schedule takes two steps to settle on
-    // the floor -- and the last two moved NOTHING, which is class (c): neither
-    // a decrease (nothing moved) nor a flap (the ABSOLUTE floor is a setting,
-    // not evidence about this subproblem's curvature).
+    // THE EXACT ACCOUNTING, pinned as numbers rather than as an inequality
+    // (fix round 2: "do not pin a gap"). Four gated advances: the first two
+    // still had room to move -- `1e-9 * 0.1` does not land on `1e-10` exactly
+    // in binary, so the schedule takes two steps to settle on the floor -- and
+    // the last two moved NOTHING, which is class (c). The ABSOLUTE floor is a
+    // setting every schedule decays onto, not evidence about this subproblem's
+    // curvature, so it earns no counter.
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, 4);
     EXPECT_EQ(r.counters.ipqp_reg_decreases, 2);
     EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
     // ... so the identity's residual IS the class-(c) count, and it is 2 here.
-    // The section 7 counter table has no field for that class and this task
-    // does not invent one, so it is pinned by arithmetic on the three that do
-    // exist rather than left unstated.
-    EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases -
-                  r.counters.ipqp_ladder_reclimbs,
-              2);
+    // The section 7 counter table has no field for that class and T4b does not
+    // invent one, so it is pinned by arithmetic on the fields that do exist
+    // rather than left unstated.
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases, 2);
 }
 
-TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveWithNoMonotoneFloor) {
+TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveThatNeverArmsTheLadder) {
     // THE SECOND, INDEPENDENT WITNESS for I2, run at a tight tolerance and a
     // raised cap so the solve takes materially more iterations than any other
     // fixture in this file (13 against the usual 5-11) and the section 3.2
@@ -512,8 +545,8 @@ TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveWithNoMonotoneFloor) {
     ASSERT_GT(r.counters.ipqp_iters, 11);
     ASSERT_GT(r.counters.ipqp_prox_center_updates, 0);
     EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
-    EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
+    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0);
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
 }
 
 TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
@@ -558,12 +591,11 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, r.rho);
 
     // FIX ROUND 1, I4: AN EXACT COUNT, not `> 0`. Every one of this
-    // fixture's three iterations takes its step at the inertia-demanded
-    // floor rather than at the schedule's own level, so the counter must
-    // equal the iteration count. Sampling it BEFORE the ladder ran -- the
-    // earlier code -- returned 2, missing the iteration whose own ladder
-    // first raised the floor, which is exactly the off-by-one this pin
-    // exists to hold down.
+    // fixture's three iterations takes its step with a nonzero
+    // inertia-demanded modification in force, so the counter must equal the
+    // iteration count. Sampling it BEFORE the ladder ran -- the earlier code
+    // -- returned 2, missing the iteration whose own ladder first demanded
+    // one, which is exactly the off-by-one this pin exists to hold down.
     // FIX ROUND 2, N1: STILL 3, and the reason is worth recording rather
     // than leaving the unchanged number to look like an oversight. N1 moved
     // the increment behind the step, so only iterations that actually complete
@@ -576,11 +608,35 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 3);
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, r.counters.ipqp_iters);
     // The gated advances are classified exactly once each (I2).
-    EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
-    // Three iterations, one ladder rung, one certification read.
-    EXPECT_EQ(r.counters.ipqp_factorizations, 5);
-    EXPECT_EQ(r.counters.ipqp_inertia_retries, 1);
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
+
+    // ALGORITHM IC'S OWN TRAJECTORY, PINNED RUNG BY RUNG (T4b). The exact
+    // ladder this fixture walks, measured:
+    //
+    //   it 0  no memory -> try 0 (WRONG) -> 1e-4, 1e-2, 1 (all WRONG)
+    //         -> 100 OK.        5 factorizations, 4 rejections, memory <- 100
+    //   it 1  1 consecutive modified iteration < kIpqpLadderSkipAfter, so
+    //         IC-1 still tries 0 (WRONG) -> 100/3 = 33.33 OK.
+    //                           2 factorizations, 1 rejection, memory <- 33.33
+    //   it 2  same again: 0 (WRONG) -> 33.33/3 = 11.11 OK.
+    //                           2 factorizations, 1 rejection, memory <- 11.11
+    //   the section 2.2 item 4 read: 1 factorization.
+    //
+    // Nine plus one is ten, and four plus one plus one is six. The two decades
+    // through the whole first climb and the `/3` after it are Wachter-Biegler's
+    // `bar kappa_w^+` and `kappa_w^-`; before T4b this fixture paid FIVE
+    // factorizations because the monotone floor made the first climb's 800
+    // permanent and no later iteration ever probed below it.
+    EXPECT_EQ(r.counters.ipqp_factorizations, 10);
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, 6);
+    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0)
+        << "no iteration here ever starts from the memory -- the skip rule needs three "
+           "consecutive modified iterations and this solve takes three in total";
+    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 100.0);
+    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, 100.0 / 3.0 / 3.0);
+    EXPECT_DOUBLE_EQ(r.rho_mod, r.counters.ipqp_rho_demanded_last)
+        << "`rho_mod` is the modification the LAST step ran at, which on this fixture is also "
+           "the memory's final value";
 
     // MUTATION NON-VACUITY: the same fixture with the sign of the second
     // curvature flipped is convex, converges to the same point, and the same
@@ -677,7 +733,18 @@ TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderR
     IpqpEngine tier2(tight_opts());
     const IpqpResult r2 = tier2.solve(qp, nullptr, loose, SolveOverrides{});
     EXPECT_GT(r2.counters.ipqp_factorizations, 1);
-    EXPECT_EQ(r2.escape_reason, IpqpEscape::kIndefinite);
+    // WITHOUT the cap the same subproblem takes many steps and CONVERGES: it
+    // rides the negative curvature to the bound and certifies there. The
+    // reading that matters for the pin above is only that the cap changed the
+    // outcome, which it plainly did. (Before T4b this line read `kIndefinite`,
+    // because the uncapped solve exhausted the ladder at `1e6` -- the ladder
+    // was applied in UNSCALED space then, so `-1e12` of curvature really did
+    // need `1e12` of shift. T4b applies it in the Ruiz-scaled system, where
+    // the same coordinate is `-1` and a shift of ~7 covers it: IC's constants
+    // being scale-free is exactly what that change buys.)
+    EXPECT_NE(r2.escape_reason, IpqpEscape::kBudget);
+    EXPECT_EQ(r2.status, QpStatus::kOptimal);
+    EXPECT_GT(r2.counters.ipqp_iters, 1);
 }
 
 TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefinite) {
@@ -685,7 +752,17 @@ TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefini
     // Curvature no regularization below the 1e6 ceiling can dominate.
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0e12}});
 
+    // EQUILIBRATION OFF, AND THAT IS THE FIXTURE (T4b). The modification is a
+    // UNIFORM shift of the RUIZ-SCALED system, so with equilibration ON this
+    // coordinate's `-1e12` is scaled to `-1` and a shift of about 7 covers it
+    // -- the ladder never comes near its ceiling and this test would be
+    // asserting nothing. Turning Ruiz off puts the ladder back in the caller's
+    // own units, where `-1e12` really is beyond a `1e6` ceiling, which is the
+    // state the exhaustion guard exists for. That the SAME Hessian exhausts
+    // the ladder unscaled and is handled comfortably scaled is the point of
+    // applying IC's scale-free constants in scaled space.
     IpqpOptions io;
+    io.ipqp_ruiz = false;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
 
@@ -1249,8 +1326,7 @@ TEST(IpqpCounterTest, TheGatedScheduleMovesAndAdvancesTheProximalCentre) {
     // The decrease is GATED, so it fires only on measured contraction -- but
     // it must fire on a solve that converges, or the gate is unreachable.
     EXPECT_GT(r.counters.ipqp_reg_decreases, 0);
-    EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
     EXPECT_LT(r.rho, IpqpOptions{}.ipqp_rho_init);
     EXPECT_GE(r.rho, IpqpOptions{}.ipqp_reg_floor);
 }
