@@ -572,6 +572,34 @@ declared-change discipline; the spec text itself is amended at W1 close.
   open for T4 to confirm: `ipqp_iters` counts COMPLETED predictor+corrector
   pairs only (a predictor attempt that fails before its corrector is
   excluded).
+- (i) Spec §2.2 item 4 CLARIFIED (T4 fix round 1, 2026-08-31): "rho is
+  dropped to the schedule's residual level" means the level the §3.2
+  schedule DECAYS TO — the final certification read is taken at
+  `rho = ipqp_reg_floor` (with `delta` at its current schedule value; the
+  dual proximal term does not enter the primal block's inertia count), not
+  at wherever `rho_sched` happens to sit. Reading at a still-elevated
+  schedule value certifies a concave subproblem (H = [-1], free variable:
+  H + 8I reads positive at the converged origin). The read is exactly ONE
+  factorization: perturbed pivots or unreadable evidence there are
+  `ipqp_final_inertia_read = 2` → kNumerical (note (h)); there is no retry
+  and no ladder inside the read.
+- (j) Spec §9 `ipqp_require_final_inertia` CLARIFIED (same round): "off =
+  certificate always downgraded" is a DOWNGRADE, not an escape.
+  `certificate_downgraded = true`, `escape = kNone`,
+  `ipqp_final_inertia_read = 3` ("not performed"); no census entry, no
+  §6.1 K=3 charge. Value 3 also covers a final read the factorization
+  budget refused (fix round 2): the escape there is kBudget and the
+  certificate is downgraded, but the read did not happen, so it is not
+  the attempted-and-unusable 2 that note (h) maps to kNumerical. The status vocabulary for a
+  downgraded-without-escape result (today's QpStatus has no such value) is
+  T5's ruling, as the owner of certification.
+- (k) Note (a) REFINED (same round): "exactly 1 verify per tier entry" is
+  unsatisfiable on the entry that lays the pattern — `compute()` analyses
+  and does not verify, which is note (a)'s own premise. The discipline is
+  "exactly one of {1 verify (re-entry on a laid pattern), 1 analyze (first
+  entry)} per tier entry", and the `ipqp_hoist_symbolic` kill switch pins
+  the OFF state. The `ipqp_pattern_verifies` doc comment is amended to
+  match; the code was already right.
 
 ## §8. v2/v3 changes (Codex r1 + rulings 1-9; Codex r2 + r3 rulings 1-3)
 
