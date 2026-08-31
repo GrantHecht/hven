@@ -961,6 +961,61 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     return engine.solve(qp, overrides);
 }
 
+// THE SECTION 5.4 GRADE, DECIDED (plan ruling 4). Full warm when the value
+// carries `hven.ipm.polish.v1` (zL/zU/mu read directly); base warm from the
+// core alone, whose SIGNED bound price splits lossily at a two-sided bound and
+// is documented as a degradation, not an equivalent; `nullopt` = the cold
+// grade, which the caller reads as "start the tier cold".
+//
+// THE PRIMAL BLOCK IS THE STEP-SPACE ORIGIN, and that is the honest value
+// rather than a placeholder: the payload's `primal_` is the NLP point, which
+// flow (a) already consumed as this solve's `x0`, so the tier's first
+// subproblem starts at the step it would start at cold. What the extension
+// adds -- and what the flattening would have destroyed -- is the DUAL and
+// BARRIER state. Argument: `.superpowers/w1-t7-report.md` section 3.
+std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStartData &data, Index n, Index me,
+                                               Index mi) {
+    // The currency states its equality block over the DECLARED rows; a
+    // provider whose treatment appends its own rows would key clean and still
+    // be a different me. Degrade rather than hand the engine a block it must
+    // refuse.
+    if (data.eq_lmults_.size() != me) {
+        return std::nullopt;
+    }
+    IpqpSeed seed;
+    seed.x = Vec::Zero(n);
+    seed.s = Vec::Zero(mi);
+    seed.lambda_e = data.eq_lmults_;
+    seed.lambda_i = data.iq_lmults_;
+    seed.zeta = Vec::Zero(n);
+    seed.lambda_est_e = Vec::Zero(me);
+    seed.lambda_est_i = Vec::Zero(mi);
+
+    const WarmExtension *extension = find_ipm_polish(data);
+    if (extension == nullptr) {
+        seed.grade = IpqpRestartGrade::kBaseWarm;
+        seed.zl = data.bound_lmults_.cwiseMax(0.0);
+        seed.zu = (-data.bound_lmults_).cwiseMax(0.0);
+        seed.mu = 0.0; // absent: the 5.3 clamp then reads the measured floor only.
+        return seed;
+    }
+    // The find and the decode cannot fail here -- a duplicated tag and an
+    // unreadable payload were refused at staging.
+    const IpmPolishData polish = deserialize_ipm_polish(extension->payload_);
+    // PLAN SECTION 7 NOTE (f): staging finiteness-checks the three polish
+    // VECTORS but not `mu_`, and the decode round-trips NaN/inf bit-exactly.
+    // A non-finite `mu_` marks the extension MALFORMED -- the tier degrades
+    // cold, mode-local; the core staging throw is unchanged.
+    if (!std::isfinite(polish.mu_)) {
+        return std::nullopt;
+    }
+    seed.grade = IpqpRestartGrade::kFullWarm;
+    seed.zl = polish.z_lower_;
+    seed.zu = polish.z_upper_;
+    seed.mu = polish.mu_;
+    return seed;
+}
+
 void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_iters += one.ipqp_iters;
     total.ipqp_factorizations += one.ipqp_factorizations;
@@ -1218,6 +1273,10 @@ void SqpDriver::refuse_two_warm_sources() const {
 
 WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
                                                const NlpModelAggregate &bridge) {
+    // The tier's seed is per solve and spent once; nothing may leak from the
+    // previous one.
+    ipqp_staged_seed_.reset();
+
     // THE COLD PATH IS ONE BOOL TEST, and the object it returns is the
     // default-constructed WarmStart the 2-argument overload has always passed --
     // so a driver nobody stages into runs exactly the solve it always ran.
@@ -1251,6 +1310,24 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
     // disagreeing about one declaration. The other three widths have no
     // treatment that moves them.
     const Index declared_eq = declaration.equality_rows_ - declaration.fixing_rows_;
+
+    // --- THE MODE-LOCAL COLD DEGRADE (plan ruling 4; spec 5.4) -------------
+    //
+    // Under kIpm a stamp or dimension mismatch DEGRADES this solve to cold
+    // rather than throwing: spec 5.4 lists both as the cold grade, and the
+    // tier's answer to a value describing a different problem is to not use
+    // it. The throws below stand unchanged for kWalk and kSsn -- and for
+    // non-finite staged CORE data in every mode, which `require_finite_core`
+    // already refused at staging as a caller error.
+    if (opts_.qp_mode == QpMode::kIpm) {
+        const bool dimensions_agree =
+            data.primal_.size() == seam.n() && data.eq_lmults_.size() == declared_eq &&
+            data.iq_lmults_.size() == seam.mi() && data.bound_lmults_.size() == seam.n();
+        if (!dimensions_agree || !(data.structure_key_ == declaration_key(declaration))) {
+            return WarmStart{};
+        }
+    }
+
     const auto check_size = [](const char *block, Index held, Index declared) {
         if (held != declared) {
             throw std::invalid_argument(fmt::format(
@@ -1284,6 +1361,17 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
             "staged start is refused rather than silently dropped; re-export and re-stage against "
             "the current declaration.",
             data.structure_key_.digest(), live.digest()));
+    }
+
+    // --- THE PRESERVED-SEED INGEST (plan ruling 4) -------------------------
+    //
+    // Built HERE, beside the crossover and never through it: the tier reads
+    // `zL`/`zU`/`mu` unflattened, while `to_sqp_warm_start` below necessarily
+    // collapses them into `WarmStart`'s single SIGNED `z`, which is lossy at a
+    // two-sided bound. Flow (a) -- the solve-level ingest -- is untouched in
+    // every mode; this is flow (b)'s own input (spec 5.1).
+    if (opts_.qp_mode == QpMode::kIpm) {
+        ipqp_staged_seed_ = build_ipqp_staged_seed(data, seam.n(), seam.me(), seam.mi());
     }
 
     // THE CROSSOVER, when the value carries the interior-point engine's own
@@ -1493,6 +1581,12 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // no backend state, and a mode-conditional lifetime would buy nothing
     // that `ipqp_engine_`'s laziness does not already buy.
     IpqpEscapeLadder ipqp_ladder(opts_.ipqp);
+    // The cross-major carry is scoped to ONE SQP solve (spec 5.1 flow (b)),
+    // while the engine outlives the solve; dropped here so a second solve on
+    // this driver never restarts from the first one's last iterate.
+    if (ipm_mode && ipqp_engine_ != nullptr) {
+        ipqp_engine_->reset_warm_carry();
+    }
     // THE SYMBOLIC HOIST'S KEY, AND IT IS PER SQP SOLVE (settler ruling, fix
     // round 1, C4). A LOCAL rather than a member, which is what makes "one
     // symbolic analysis per SQP solve" -- spec 4.1's own executable claim, and
@@ -2918,6 +3012,12 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // very object -- same H/g bytes, so the engine's hot-start reuse
         // key survives the retry (see WARM SEEDING) and no eval_hess is
         // paid for it.
+        // A TRUST-REGION SHRINK-RETRY IS EXACTLY A PASS THAT DID NOT REBUILD:
+        // same H/g bytes, smaller `delta`. Spec 5.1's amendment D makes it a
+        // warm restart rather than a fresh subproblem, so the tier re-enters
+        // with the previous attempt's state and the retry charges nothing to
+        // the section 6.1 ladder.
+        const bool tr_shrink_retry = !subproblem_is_stale;
         if (subproblem_is_stale) {
             qp = seam.build_subproblem(ev, x, lambda_e, lambda_i, 1.0);
             subproblem_is_stale = false;
@@ -3374,9 +3474,25 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             const bool structure_epoch_moved =
                 !ipqp_analysis_epoch.has_value() || *ipqp_analysis_epoch != seam.epoch();
             const IpqpOptions iopts = ipqp_options(structure_epoch_moved);
-            // TASK 7 LANDS THE SEED. Until it does the tier starts cold on
-            // every entry -- `nullptr` is the contract, not an omission.
-            const IpqpResult ires = ipqp_engine().solve(qp, nullptr, iopts, ipqp_overrides);
+            // THE SEED (spec 5.1 flow (b)). The staged payload seeds the
+            // FIRST tier entry of the solve and is spent there; every later
+            // entry -- including a trust-region shrink-retry, which is why
+            // this needs no case of its own -- restarts from the engine's own
+            // carry. A seed whose blocks do not match THIS subproblem is
+            // dropped rather than refused: the tier's degrade is cold.
+            const IpqpSeed *ipqp_seed = nullptr;
+            if (ipqp_staged_seed_.has_value()) {
+                ipqp_seed = &*ipqp_staged_seed_;
+            } else {
+                ipqp_seed = ipqp_engine().warm_carry();
+            }
+            if (ipqp_seed != nullptr &&
+                (ipqp_seed->x.size() != qp.n() || ipqp_seed->lambda_e.size() != qp.me() ||
+                 ipqp_seed->lambda_i.size() != qp.mi())) {
+                ipqp_seed = nullptr;
+            }
+            const IpqpResult ires = ipqp_engine().solve(qp, ipqp_seed, iopts, ipqp_overrides);
+            ipqp_staged_seed_.reset();
             ipqp_analysis_epoch = seam.epoch();
             accumulate_ipqp_counters(out.counters.ipqp, ires.counters);
             // THE PROBE BUDGET'S TIER CHARGE, the `ssn_budget_charge` rule
@@ -3422,7 +3538,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                                                          ? IpqpLadderOutcome::kDeclined
                                                      : usable ? IpqpLadderOutcome::kSuccess
                                                               : IpqpLadderOutcome::kEscape;
-            if (ipqp_ladder.record(ladder_outcome, iter + 1)) {
+            if (!tr_shrink_retry && ipqp_ladder.record(ladder_outcome, iter + 1)) {
                 out.counters.ipqp.ipqp_tier_retired_after = ipqp_ladder.retired_after();
             }
 
@@ -3500,6 +3616,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // on) -- settler ruling, fix round 1: only the subproblems the
                 // TIER solves have the schedule suppressed.
                 ++out.counters.ipqp.ipqp_to_walk;
+                // "The iterate is DISCARDED" is the carry's rule too: the next
+                // major restarts the tier cold rather than from a point this
+                // one could not certify.
+                ipqp_engine().reset_warm_carry();
                 charge_ipqp_subproblem_cost(out.counters, ires);
                 qs = certified_feasibility_fallback(engine_, qp, ev, have_seed ? &seed : nullptr,
                                                     ires.infeasibility_evidence, overrides, row);

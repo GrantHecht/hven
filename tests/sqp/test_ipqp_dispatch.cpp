@@ -765,6 +765,58 @@ TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
     EXPECT_EQ(s.status, SqpStatus::kOptimal);
 }
 
+// T7 -- THE CROSS-MAJOR CARRY (spec 5.1 flow (b)) IS LIVE, AND IT PAYS. The
+// instrument is the warm budget's documented extreme: at 0 every warm entry is
+// killed before it can take a step, so the same solve runs the COLD trajectory
+// on every major and the difference between the two runs is exactly what the
+// carry bought.
+TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
+    auto warm_p = make_hs(77);
+    SqpDriver warm_driver(ipm_options());
+    const SqpSolution warm = warm_driver.solve(*warm_p.model);
+    const IpqpCounters &wc = warm.counters.ipqp;
+
+    auto cold_p = make_hs(77);
+    SqpOptions cold_opts = ipm_options();
+    cold_opts.ipqp.ipqp_warm_iter_budget = 0;
+    SqpDriver cold_driver(cold_opts);
+    const SqpSolution cold = cold_driver.solve(*cold_p.model);
+    const IpqpCounters &cc = cold.counters.ipqp;
+
+    ASSERT_EQ(warm.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    ASSERT_GT(tier_entries(wc), 1) << "the fixture must enter the tier more than once";
+    ASSERT_EQ(tier_entries(wc), tier_entries(cc)) << "same route, same number of tier entries";
+
+    // EVERY ENTRY AFTER THE FIRST STARTED WARM -- the kill can only fire on a
+    // warm one, and the only entries it cannot reach are the first (cold) and
+    // any whose seed already met the target before the budget was tested.
+    EXPECT_GT(cc.ipqp_warm_restart_abandoned, 0);
+    EXPECT_LE(cc.ipqp_warm_restart_abandoned, tier_entries(cc) - 1);
+    EXPECT_EQ(wc.ipqp_warm_restart_abandoned, 0) << "at the shipped budget nothing is abandoned";
+
+    // AND THE CARRY IS WORTH HAVING: strictly fewer barrier iterations and
+    // strictly fewer factorizations for the same answer.
+    EXPECT_LT(wc.ipqp_iters, cc.ipqp_iters);
+    EXPECT_LT(wc.ipqp_factorizations, cc.ipqp_factorizations);
+}
+
+// ... AND IT IS SCOPED TO ONE SQP SOLVE. The engine outlives the solve, so a
+// second solve on the same driver must start its first major cold; otherwise
+// two solves of one model would not be two solves of one model.
+TEST(IpqpDispatch, TheCarryDoesNotLeakBetweenSolvesOnOneDriver) {
+    auto p = make_hs(77);
+    SqpOptions o = ipm_options();
+    SqpDriver driver(o);
+    const SqpSolution first = driver.solve(*p.model);
+    const SqpSolution second = driver.solve(*p.model);
+    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    ASSERT_EQ(second.status, SqpStatus::kOptimal);
+    EXPECT_EQ(second.counters.ipqp.ipqp_iters, first.counters.ipqp.ipqp_iters);
+    EXPECT_EQ(second.counters.ipqp.ipqp_factorizations, first.counters.ipqp.ipqp_factorizations);
+    EXPECT_EQ(second.counters.ipqp.ipqp_restart_repairs, first.counters.ipqp.ipqp_restart_repairs);
+}
+
 // RULING 1 (decision 2, REVERSED IN PART): a converged `kBudget` exit whose
 // section 2.2 item 4 certification read the factorization budget refused is a
 // SUCCESS for the section 6.1 ladder -- no K charge, and it RESETS the tally.
@@ -796,6 +848,13 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     // Tight enough that the item 4 read is refused on a converged solve, loose
     // enough that the solve still converges -- the row's whole premise.
     o.ipqp.ipqp_max_factorizations = 7;
+    // T7: THE FIXTURE IS HELD COLD ON EVERY MAJOR, through the documented
+    // extreme of the warm budget (0 = every warm restart is killed on its
+    // first iteration, before it can take a step). This row is about the
+    // section 6.1 ladder, not about warm-start quality; left warm, the carry
+    // converges majors 2-3 inside the cap and the premise -- three consecutive
+    // converged BUDGET exits -- disappears.
+    o.ipqp.ipqp_warm_iter_budget = 0;
     SqpDriver driver(o);
     const SqpSolution s = driver.solve(*p.model);
     const IpqpCounters &c = s.counters.ipqp;

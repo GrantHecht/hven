@@ -54,18 +54,16 @@
 // 6.1 escape ladder (`IpqpEscapeLadder`: K consecutive escapes retire the
 // tier for the remainder of an SQP solve).
 //
-// NOT HERE YET, and deliberately so:
-//   * THE WARM RESTART (section 5's repair, mu clamp and warm-kill). TASK 7.
-//     `solve()` takes an `IpqpSeed *` so the signature does not move under
-//     task 7, and REFUSES a non-null one with std::invalid_argument rather
-//     than silently ignoring it -- a primal-only near-solution consumed
-//     without section 5.2's repair is the "worse than neutral" hazard the
-//     specification names, so accepting one unrepaired would be the wrong
-//     kind of quiet.
-//   * THE ROUTING CHAIN (2.3 items 3-5) and the tier-3 hand-off. Task 6.
-//     This engine reports the face classification the chain reads, and owns
-//     the escape ladder the chain DRIVES, but it never routes and it never
-//     decides which major it is on.
+// ADDED HERE (task 7): the SUBPROBLEM-LEVEL WARM RESTART of section 5 -- the
+// 5.2 repair, the 5.3 `mu_0` clamp, the 5.4 grade reported on the result, the
+// 5.5 warm-kill, and the cross-major carry this instance holds
+// (`warm_carry()`). A non-null `IpqpSeed` is now CONSUMED rather than refused.
+// Full argument: `.superpowers/w1-t7-report.md`.
+//
+// NOT HERE, and deliberately so: THE ROUTING CHAIN (2.3 items 3-5) and the
+// tier-3 hand-off, which are task 6's. This engine reports the face
+// classification the chain reads, and owns the escape ladder the chain
+// DRIVES, but it never routes and it never decides which major it is on.
 //
 // -------------------------------------------------------------------------
 // THE STATUS VOCABULARY FOR A DOWNGRADED CERTIFICATE -- task 5's ruling
@@ -288,6 +286,30 @@ inline constexpr double kIpqpBoundPushRel = 1.0e-2;
 /// @brief The cold start's slack floor (spec 5.6: `s_0 = max(bi - Ai x_0, 1)`).
 inline constexpr double kIpqpSlackInit = 1.0;
 
+/// @brief THE WARM RESTART'S REPAIR CONSTANTS (spec 5.2). Each is a factor on
+/// `mu_0`, never an absolute: a strict-positivity floor stated in absolute
+/// units would be a second, unit-dependent tolerance beside the tier's own.
+///
+/// `kIpqpRepairEps` is the floor every complementary component is clamped to
+/// (`eps = kIpqpRepairEps * mu_0`, spec 5.2 item 1 and 5.4's base-warm row);
+/// `kIpqpRepairSlackEps` the same for the recomputed slack. The SAY shift of
+/// item 2 is applied only to a seed that is not already centred --
+/// `min pair product < kIpqpSayCentralityFactor * mu_0` -- so a good warm seed
+/// pays nothing and `ipqp_restart_repairs` stays 0 on it.
+inline constexpr double kIpqpRepairEps = 1.0e-8;
+inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
+inline constexpr double kIpqpSayCentralityFactor = 1.0e-1;
+
+/// @brief The SAY (Skajaa-Andersen-Ye) two-scalar shift's target fraction:
+/// `delta_p = kIpqpSayTargetFraction * mu_0 / z_avg`, `delta_d =
+/// kIpqpSayTargetFraction * mu_0 / d_avg`. Mehrotra's own second-stage
+/// coefficient, with the measured complementarity replaced by the section 5.3
+/// target -- which is what makes the shift push pairs toward `mu_0` rather
+/// than toward twice their own average. AVERAGES, never a per-pair maximum: a
+/// genuinely active bound carries a tiny distance, and a max-based shift would
+/// blow up on exactly the seeds worth warm-starting from.
+inline constexpr double kIpqpSayTargetFraction = 0.5;
+
 /// @brief The (rho, delta) schedule's DECREASE GATE (spec 3.2's
 /// bounded-decrease condition), as a CONTRACTION FACTOR: the regularized
 /// problem's RELATIVE residual must have fallen to this multiple of its value
@@ -437,6 +459,21 @@ enum class IpqpFace {
     kUncertain = 2,
 };
 
+/// @brief THE SECTION 5.4 PAYLOAD GRADE this solve started at, reported on
+/// `IpqpResult::restart_grade` and carried into task 8's `ipqp.restart` event.
+///
+/// `kBaseWarm` is a DOCUMENTED DEGRADATION, not an equivalent: it is built by
+/// splitting the currency's SIGNED bound price (`WarmStartData::bound_lmults_`)
+/// into `(zL, zU)`, which is lossy at a two-sided bound -- exactly the loss the
+/// `hven.ipm.polish.v1` extension exists to avoid. The CROSS-MAJOR CARRY
+/// reports `kFullWarm`: it carries `zL`/`zU`/`mu` unflattened, which is what
+/// "full" names.
+enum class IpqpRestartGrade {
+    kCold = 0,
+    kBaseWarm = 1,
+    kFullWarm = 2,
+};
+
 /// @brief THE IMMUTABLE CLAMP-CENTRED BOX (T4.a; spec 2.1, plan ruling 2).
 ///
 /// Computed ONCE at solve entry from the effective trust-region radius and
@@ -549,26 +586,36 @@ struct IpqpBounds {
 /// @brief The tier's own iterate, carried across majors by task 7's
 /// subproblem-level warm restart (spec 5.1 flow (b)).
 ///
-/// Declared in full here so `solve()`'s signature is final at task 4 and does
-/// not move under task 7. **Task 4 REFUSES a non-null seed** -- see the
-/// TASK-4 BOUNDARY note at the top of this file for why refusing beats
-/// silently ignoring.
-///
 /// Deliberately NOT routed through `QpSolution`, which has no slack and no
 /// barrier block and whose shape is published: the tier carries its state the
 /// way `QpEngine` carries `BorderState`/`HotState`, as engine-internal
 /// currency.
+///
+/// EVERY BLOCK IS VALIDATED AT `solve()`'s BOUNDARY and a malformed one THROWS
+/// (CLAUDE.md section 4). The section 5.4 COLD DEGRADE is the DRIVER's, taken
+/// before a seed is built at all: by the time one reaches this engine it is a
+/// caller's assertion about this problem's dimensions.
 struct IpqpSeed {
-    Vec x;            ///< n, INSIDE the box (never the box's centre -- see IpqpBox).
-    Vec s;            ///< mi, > 0.
-    Vec lambda_e;     ///< me.
-    Vec lambda_i;     ///< mi, > 0.
-    Vec zl;           ///< n, >= 0 (0 where the lower bound is absent).
-    Vec zu;           ///< n, >= 0 (0 where the upper bound is absent).
-    double mu = 0.0;  ///< The seed's own barrier parameter (spec 5.3's clamp input).
+    Vec x;        ///< n. Repaired INTO the box (never the box's centre -- see IpqpBox).
+    Vec s;        ///< mi, > 0. Spec 5.2 item 1 RECOMPUTES this from `bi - Ai x`
+                  ///< unless `ipqp_warm_repair` is off, in which case it is used as given.
+    Vec lambda_e; ///< me.
+    Vec lambda_i; ///< mi, > 0.
+    Vec zl;       ///< n, >= 0 (0 where the lower bound is absent).
+    Vec zu;       ///< n, >= 0 (0 where the upper bound is absent).
+
+    /// The seed's own barrier parameter (spec 5.3's clamp input). `<= 0` means
+    /// ABSENT -- the base-warm grade has no payload `mu`, so its clamp reads
+    /// only the repaired point's own measured complementarity.
+    double mu = 0.0;
+
     Vec zeta;         ///< n, the proximal primal estimate.
     Vec lambda_est_e; ///< me, the proximal dual estimate.
     Vec lambda_est_i; ///< mi, the proximal dual estimate.
+
+    /// Which section 5.4 grade this seed was built at, reported unchanged on
+    /// `IpqpResult::restart_grade`. Never `kCold`: a cold solve passes no seed.
+    IpqpRestartGrade grade = IpqpRestartGrade::kFullWarm;
 };
 
 /// @brief The relative KKT residual the tier converges on (T4.d, plan ruling 5).
@@ -745,6 +792,13 @@ struct IpqpResult {
     IpqpEscape escape_reason = IpqpEscape::kNone;
     IpqpCounters counters;
 
+    /// The section 5.4 grade this solve STARTED at: `kCold` when no seed was
+    /// passed, otherwise the seed's own grade. Unchanged by a warm-kill --
+    /// the kill is reported by `counters.ipqp_warm_restart_abandoned`, and the
+    /// pair (grade, abandoned) is what says a warm attempt was made and
+    /// dropped.
+    IpqpRestartGrade restart_grade = IpqpRestartGrade::kCold;
+
     /// True iff the domain gate declined this subproblem pre-solve
     /// (IpqpBounds' zero-width rule). `counters.ipqp_declined_pinned` is 1 and
     /// every other counter is at its default.
@@ -918,8 +972,11 @@ class IpqpEngine {
     /// @brief Solve `qp` by the interior-point tier.
     ///
     /// @param qp        the subproblem. Validated (`QpProblem::validate`).
-    /// @param seed      TASK 7's warm restart. **Must be nullptr in task 4**;
-    ///                  a non-null seed throws (see the TASK-4 BOUNDARY note).
+    /// @param seed      the section 5 warm restart, or `nullptr` for a COLD
+    ///                  solve. `nullptr` IS COLD unconditionally -- this call
+    ///                  never silently consumes `warm_carry()` on the caller's
+    ///                  behalf, so which start a solve ran from is a property
+    ///                  of the call and not of the instance's history.
     /// @param iopts     the tier's own settings (validated by
     ///                  `validate_sqp_options`; re-checked here at the API
     ///                  boundary, because this engine is reachable without a
@@ -937,11 +994,26 @@ class IpqpEngine {
     ///
     /// @throws std::invalid_argument for CALLER errors -- a malformed
     ///         `QpProblem`, an out-of-range `IpqpOptions` or `SolveOverrides`
-    ///         field, a non-null seed. A solve that cannot make progress
+    ///         field, a seed whose blocks are wrongly sized or non-finite. A
+    ///         solve that cannot make progress
     ///         reports a status and an `IpqpEscape` and does NOT throw; that
     ///         separation is `SsnEngine::solve`'s and is kept exactly.
     IpqpResult solve(const QpProblem &qp, const IpqpSeed *seed, const IpqpOptions &iopts,
                      const SolveOverrides &overrides);
+
+    /// @brief THE CROSS-MAJOR CARRY (spec 5.1 flow (b)): the state the last
+    /// solve on this instance finished at, or `nullptr` when none is armed.
+    ///
+    /// The caller passes it straight back to `solve()` for the next major, and
+    /// never inspects it -- it is engine-internal currency, exactly as
+    /// `QpEngine`'s border cache is. A solve that produced no usable state
+    /// LEAVES THE PREVIOUS CARRY STANDING, which is what makes spec 5.1's
+    /// "a trust-region shrink-retry ... does not reset the seed" true.
+    const IpqpSeed *warm_carry() const;
+
+    /// Drop the carry. The driver calls this at SQP-solve entry and after a
+    /// genuine escape, whose iterate spec 2.3 item 5 discards.
+    void reset_warm_carry();
 
   private:
     struct Workspace;
@@ -955,6 +1027,12 @@ class IpqpEngine {
     /// layout currently describes. Drives spec 4.1's compute()-vs-refactorize()
     /// decision and, with it, the section 7 note (a) verify-once discipline.
     bool analyzed_ = false;
+
+    /// The spec 5.1 flow (b) carry and its armed flag. Committed at the END of
+    /// a solve that produced a finite iterate, so an unusable solve cannot
+    /// overwrite a good carry.
+    IpqpSeed carry_;
+    bool carry_armed_ = false;
 
     Ledger *ledger_ = nullptr;
     std::string label_prefix_;

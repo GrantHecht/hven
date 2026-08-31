@@ -62,6 +62,7 @@ using hven::solvers::NlpModelAggregate;
 using hven::solvers::NLPProblem;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPSolver;
+using hven::solvers::QpMode;
 using hven::solvers::serialize_ipm_polish;
 using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
@@ -1255,4 +1256,172 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
 
     expect_same_answer(hot, cold);
     expect_same_counters(hot.counters, cold.counters);
+}
+
+// ===========================================================================
+// M6 W1 TASK 7 -- the preserved-seed ingest and the mode-local cold degrade
+// ===========================================================================
+//
+// PLAN RULING 4. Under `QpMode::kIpm` the interior-point tier's MAIN-subproblem
+// seed is built here, from the validated staged value and its polish payload,
+// WITHOUT the signed-z flattening the crossover necessarily performs -- and the
+// two refusals below (stamp, dimensions) become COLD DEGRADES, mode-locally,
+// because spec section 5.4 lists both as the cold grade. Everything the other
+// two modes see is unchanged, which is what each pair of tests asserts.
+
+namespace {
+
+SqpOptions ipm_currency_options() {
+    SqpOptions o;
+    o.qp_mode = QpMode::kIpm;
+    return o;
+}
+
+// The fixture's own converged value, moved off the solution so the next solve
+// has to build at least one subproblem for the tier to enter.
+WarmStartData perturbed_core(const SqpSolution &sol, const NlpModelAggregate &bridge) {
+    WarmStartData data = core_payload(sol, bridge);
+    data.primal_(0) += 0.5;
+    return data;
+}
+
+} // namespace
+
+TEST(SqpWarmCurrency, KIpmDegradesAWrongSizedStagedValueColdWhereKWalkThrows) {
+    const auto narrow = std::make_shared<CurrencyModel>();
+    const auto narrow_bridge = make_bridge(narrow);
+    const auto wide = std::make_shared<CurrencyWiderModel>();
+    const auto wide_bridge = make_bridge(wide);
+    const SqpSolution sol = solve_fixture_cold(*narrow);
+    const WarmStartData payload = core_payload(sol, *narrow_bridge);
+
+    // kWalk: unchanged. The 3-wide payload is refused against the 4-variable
+    // problem, loudly, naming the block.
+    SqpDriver walker{SqpOptions{}};
+    ASSERT_NO_THROW(walker.stage_warm_start(payload));
+    EXPECT_THROW((void)walker.solve(*wide_bridge, wide->start_point()), std::invalid_argument);
+
+    // kIpm: the same value on the same problem DEGRADES COLD and the solve runs.
+    SqpDriver ipm{ipm_currency_options()};
+    ASSERT_NO_THROW(ipm.stage_warm_start(payload));
+    SqpSolution out;
+    ASSERT_NO_THROW(out = ipm.solve(*wide_bridge, wide->start_point()));
+    EXPECT_EQ(out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold)
+        << "the cold grade is the whole solve's, not the tier's alone: a value at the wrong "
+           "dimensions cannot seed flow (a) either";
+}
+
+TEST(SqpWarmCurrency, KIpmDegradesAStampMismatchColdWhereKWalkThrows) {
+    const auto original = std::make_shared<CurrencyModel>(/*lower_x0_finite=*/true);
+    const auto original_bridge = make_bridge(original);
+    const auto rekeyed = std::make_shared<CurrencyModel>(/*lower_x0_finite=*/false);
+    const auto rekeyed_bridge = make_bridge(rekeyed);
+    ASSERT_EQ(original->n(), rekeyed->n()) << "same sizes, so only the stamp can refuse";
+
+    const SqpSolution sol = solve_fixture_cold(*original);
+    const WarmStartData payload = core_payload(sol, *original_bridge);
+
+    SqpDriver walker{SqpOptions{}};
+    ASSERT_NO_THROW(walker.stage_warm_start(payload));
+    EXPECT_THROW((void)walker.solve(*rekeyed_bridge, rekeyed->start_point()),
+                 std::invalid_argument);
+
+    SqpDriver ipm{ipm_currency_options()};
+    ASSERT_NO_THROW(ipm.stage_warm_start(payload));
+    SqpSolution out;
+    ASSERT_NO_THROW(out = ipm.solve(*rekeyed_bridge, rekeyed->start_point()));
+    EXPECT_EQ(out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold);
+}
+
+// PLAN SECTION 7 NOTE (f). Staging finiteness-checks the extension's three
+// VECTORS but not `mu_`, and the decode round-trips NaN bit-exactly -- so the
+// check belongs at the tier's own ingest, where a non-finite `mu_` marks the
+// extension MALFORMED and the tier degrades COLD. The core staging throw is
+// unchanged: the value still stages in every mode.
+//
+// THREE SIGNATURES, ONE FIXTURE. Cold pays no repair and adopts no mu; the
+// base grade repairs (the re-split leaves exact zeros) and adopts nothing;
+// the full grade does both. That is what separates "degraded cold" from
+// "degraded to base" from "used".
+TEST(SqpWarmCurrency, ANonFiniteExtensionMuDegradesTheTierColdAndStagesInEveryMode) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    IpmPolishData usable = fixture_polish(sol);
+    usable.mu_ = 0.1; // binds the section 5.3 clamp from above, so adoption fires
+    IpmPolishData malformed = usable;
+    malformed.mu_ = std::numeric_limits<double>::quiet_NaN();
+
+    const auto run = [&](const IpmPolishData *polish) {
+        WarmStartData data = perturbed_core(sol, *bridge);
+        if (polish != nullptr) {
+            data.extensions_.push_back(polish_extension(*polish));
+        }
+        SqpDriver driver{ipm_currency_options()};
+        // THE STAGING CONTRACT IS UNCHANGED IN EVERY MODE, malformed `mu_`
+        // included -- that is what note (f) means by "the core staging throw is
+        // unchanged".
+        EXPECT_NO_THROW(driver.stage_warm_start(data));
+        return driver.solve(*bridge, data.primal_);
+    };
+
+    const SqpSolution full = run(&usable);
+    const SqpSolution base = run(nullptr);
+    const SqpSolution cold_tier = run(&malformed);
+
+    ASSERT_EQ(full.status, SqpStatus::kOptimal);
+    ASSERT_EQ(base.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold_tier.status, SqpStatus::kOptimal);
+
+    EXPECT_GT(full.counters.ipqp.ipqp_mu_adopted, 0) << "the full grade reads the payload mu";
+    EXPECT_GT(full.counters.ipqp.ipqp_restart_repairs, 0);
+
+    EXPECT_EQ(base.counters.ipqp.ipqp_mu_adopted, 0) << "the base grade has no payload mu";
+    EXPECT_GT(base.counters.ipqp.ipqp_restart_repairs, 0)
+        << "but it is still a WARM restart -- the re-split's exact zeros are repaired";
+
+    EXPECT_EQ(cold_tier.counters.ipqp.ipqp_mu_adopted, 0);
+    EXPECT_EQ(cold_tier.counters.ipqp.ipqp_restart_repairs, 0)
+        << "a malformed extension degrades the tier COLD, not to the base grade: a cold first "
+           "subproblem pays no repair at all";
+
+    // The solve-level ingest is untouched by the malformed extension -- flow
+    // (a) never reads `mu_`, so all three resolve at the same level.
+    EXPECT_EQ(full.counters.start_level_used, StartLevel::kSeeded);
+    EXPECT_EQ(base.counters.start_level_used, StartLevel::kSeeded);
+    EXPECT_EQ(cold_tier.counters.start_level_used, StartLevel::kSeeded);
+}
+
+// M5 R5, RESTATED FOR THE TIER (fixture A8's determinism half): the same
+// payload staged twice from cold produces bit-identical first iterates AND
+// bit-identical tier counters. Compared with EXPECT_EQ throughout -- a
+// near-comparison would pass on a seed that had drifted.
+TEST(SqpWarmCurrency, TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    WarmStartData data = perturbed_core(sol, *bridge);
+    data.extensions_.push_back(polish_extension(fixture_polish(sol)));
+
+    SqpDriver a{ipm_currency_options()};
+    a.stage_warm_start(data);
+    const SqpSolution first = a.solve(*bridge, data.primal_);
+
+    SqpDriver b{ipm_currency_options()};
+    b.stage_warm_start(data);
+    const SqpSolution second = b.solve(*bridge, data.primal_);
+
+    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    expect_same_first_iterate(first, second);
+    EXPECT_EQ(first.x, second.x);
+    EXPECT_EQ(first.counters.ipqp.ipqp_iters, second.counters.ipqp.ipqp_iters);
+    EXPECT_EQ(first.counters.ipqp.ipqp_factorizations, second.counters.ipqp.ipqp_factorizations);
+    EXPECT_EQ(first.counters.ipqp.ipqp_restart_repairs, second.counters.ipqp.ipqp_restart_repairs);
+    EXPECT_EQ(first.counters.ipqp.ipqp_restart_shift_max,
+              second.counters.ipqp.ipqp_restart_shift_max);
+    EXPECT_EQ(first.counters.ipqp.ipqp_mu_adopted, second.counters.ipqp.ipqp_mu_adopted);
 }

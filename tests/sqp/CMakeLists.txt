@@ -42,6 +42,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_ipqp_kkt_layout.cpp
     test_ipqp_math.cpp
     test_ipqp_options.cpp
+    test_ipqp_warm_restart.cpp
     test_kkt_assembly.cpp
     test_kkt_calls.cpp
     test_kkt_inertia_probe.cpp
