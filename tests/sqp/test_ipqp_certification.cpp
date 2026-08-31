@@ -362,14 +362,27 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsArmTheGateAndClimbMonotonelyButNeverReachTh
     // assert the fixture rather than the engine, and would hide exactly the
     // thing that needs to stay visible.
     //
-    // THE MECHANISM, from the fix-round-2 diagnosis (informational, in the
-    // report and the ledger): the ladder's first escalation lands `rho_floor`
-    // at a value FAR above the inertia-demanded minimum, the floor is monotone
-    // per solve so it never comes back down, and the iteration degenerates
-    // into a damped-gradient crawl whose step is O(1/rho). The unregularized
-    // residual the stopping rule reads is then dominated by `rho (x - zeta)`
-    // and converges only at the proximal outer rate, which 400 iterations do
-    // not reach.
+    // THE MECHANISM, MEASURED (fix-round-2 diagnosis; full per-iteration trace
+    // and the three rows' numbers in the T5 report, "Fix round 2" section S3
+    // -- informational, and on the ledger for the owner): the section 3.2
+    // gated decrease runs BEFORE the ladder, so `rho_sched` has already
+    // decayed past sufficiency when the inertia is read; the ladder's first
+    // rung is then `100 x` that decayed value and overshoots the
+    // inertia-demanded minimum by 8x to 40x; the monotone-per-solve floor
+    // makes that permanent; and at the overshot level the iterate reaches a
+    // point where the REGULARIZED Newton right-hand side is exactly zero, so
+    // the solve sits on an EXACT FROZEN FIXED POINT of the regularized
+    // subproblem -- full steps (`alpha` ~ 1), `|dx|` at machine zero and a
+    // bit-identical residual for the remaining ~55 iterations.
+    //
+    // IT IS NOT A DAMPED-GRADIENT CRAWL, and this comment used to say it was
+    // (co-review N-1). A crawl would take steps of order `1/rho` times the
+    // Newton step; the measured steps are 1e-17, and the residual does not
+    // move at all. Nor is the residual dominated by `rho (x - zeta)`: at the
+    // fixed point `zeta == x`, so that term is exactly 0 and what the
+    // stopping rule reads is the genuine unregularized stationarity of a
+    // point that is a KKT point of `H + rho I` and not of the caller's QP --
+    // section 2.2's own retracted convergence claim, observed.
     //
     // THE ROW FIXTURES ARE THE SUITE'S OWN, NOT NEW ONES. All three come from
     // `tests/sqp/support/indefinite_fixtures.h`, which is where
