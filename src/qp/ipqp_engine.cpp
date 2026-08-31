@@ -165,6 +165,10 @@ const hven::linear::InertiaEvidence &evidence_for_read([[maybe_unused]] const Kk
     if (Injector::active && eligible) {
         if (Injector::skip_first > 0) {
             --Injector::skip_first;
+        } else if (Injector::max_injections >= 0 &&
+                   Injector::injections >= Injector::max_injections) {
+            // The injection WINDOW has closed -- fall through to the real
+            // reading so a fixture can observe the tier recovering.
         } else {
             ++Injector::injections;
             if (Observer::active) {
@@ -922,7 +926,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     bool fact_budget_hit = false;
     // Section 2.2's evidence-failure policy, ARMED ONCE PER SOLVE: a
     // factorization succeeded and reported no usable inertia evidence, so the
-    // monotone floor was raised to a conservative level, the steps from there
+    // modification was raised to a conservative floor, the steps from there
     // on are taken at that floor, and the certificate is downgraded for the
     // WHOLE SOLVE. Once armed it never disarms -- "for the whole solve" is
     // the specification's own scope, not this iteration's.
@@ -1275,6 +1279,24 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // `+ rho_dem` into the sum would re-associate the expression and move the
     // last bits of every convex solve in the tree -- the branch is what makes
     // the convex corpus BIT-IDENTICAL across this change (T4b close gate 4).
+    // The primal diagonal alone -- the only family a `rho_dem` rung moves.
+    auto write_primal_diagonal = [&](double rho_sched, double rho_dem) {
+        double *vals = kkt_.matrix().valuePtr();
+        const std::vector<double> &src = layout_.primal_diag_source();
+        if (rho_dem == 0.0) {
+            for (Index i = 0; i < n; ++i) {
+                vals[layout_.primal_diag_slot(i)] =
+                    (src[static_cast<std::size_t>(i)] + rho_sched + w.sigma(i)) * w.dsq(i);
+            }
+        } else {
+            for (Index i = 0; i < n; ++i) {
+                vals[layout_.primal_diag_slot(i)] =
+                    (src[static_cast<std::size_t>(i)] + rho_sched + w.sigma(i)) * w.dsq(i) +
+                    rho_dem;
+            }
+        }
+    };
+
     auto write_diagonals = [&](double rho_sched, double rho_dem, double delta) {
         double *vals = kkt_.matrix().valuePtr();
         const std::vector<double> &src = layout_.primal_diag_source();
@@ -1345,7 +1367,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // rewrites only the four diagonal families, each pre-multiplied by its own
     // `dsq`, so a rung stays an O(n) assignment; recomputing the equilibration
     // per rung would move the matrix under the ladder and the ladder's
-    // monotone comparison would no longer be about one system.
+    // rung-to-rung comparison would no longer be about one system.
     //
     // THE EQUILIBRATION IS COMPUTED ON THE UNMODIFIED SYSTEM (`rho_dem = 0`),
     // then the modification is written into the scaled matrix. Two reasons,
@@ -1356,10 +1378,14 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // `D` would make `D` a function of the rung. On the `rho_dem == 0` path
     // the second `write_diagonals` call is skipped entirely, so the assembled
     // values are bit-for-bit what they were before the separation.
-    auto assemble = [&](double rho_sched, double rho_dem, double delta) {
+    auto assemble = [&](double rho_sched, double rho_dem, double delta, double weak_scale) {
         w.sigma.setZero();
-        detail::ipqp_accumulate_bound_sigma(w.x, bounds.lower, bounds.upper, w.zl, w.zu, n,
-                                            w.sigma);
+        // `weak_scale <= 0` is the ordinary path and reproduces
+        // `ipqp_accumulate_bound_sigma` exactly -- same loops, same order, same
+        // `+=` -- which is what keeps every iteration's assembly, and the
+        // convex corpus with it, bit-identical across the critical-cone rule.
+        detail::ipqp_accumulate_bound_sigma_critical_cone(w.x, bounds.lower, bounds.upper, w.zl,
+                                                          w.zu, n, weak_scale, w.sigma);
 
         const bool relaid = layout_.sync(qp.H, qp.Ae, qp.Ai, n, me, mi, kkt_.matrix());
         if (relaid) {
@@ -1375,7 +1401,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             w.dscale.setOnes(w.dim);
         }
         if (rho_dem != 0.0) {
-            write_diagonals(rho_sched, rho_dem, delta);
+            // PRIMAL ONLY. The slack and pivot families were already written
+            // with `dsq == 1` above and then scaled in place by Ruiz, so
+            // rewriting them here would recompute identical values; the shift
+            // touches the primal diagonal and nothing else.
+            write_primal_diagonal(rho_sched, rho_dem);
         }
     };
 
@@ -1426,7 +1456,28 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // which is the same wrong-answer bug as reading at an elevated schedule
     // value; a mutation that does so must fail A11's final-read pins.
     auto factorize_and_read_once = [&](double rho_sched, double delta) {
-        assemble(rho_sched, /*rho_dem=*/0.0, delta);
+        // THE READ IS TAKEN ON THE CRITICAL CONE (fix round 1, settler ruling
+        // R1). Second-order conditions are stated on the critical cone, and at
+        // a bound whose multiplier is essentially zero the direction moving OFF
+        // that bound IS in the cone -- so the read must VERIFY that direction,
+        // not let the barrier's own `z / gap` curvature mask it. The full
+        // derivation, the three activity regimes and why the test needs BOTH
+        // halves live on `detail::ipqp_accumulate_bound_sigma_critical_cone`;
+        // the scale is `kIpqpWeakActiveFactor * sqrt(mu_measured)`, built out of
+        // the solve's own barrier level rather than out of a new absolute knob.
+        //
+        // WHAT IT COSTS: nothing. Same single factorization, one extra
+        // comparison per bound side. What it BUYS is the wrong-answer class
+        // gate 8 measured: before this, `H = diag(2, -1)` on a symmetric box
+        // narrow enough that `2 mu / s^2 > 1` certified `x = 0` -- a SADDLE --
+        // as `kOptimal`.
+        //
+        // A DROPPED SIDE CAN ONLY COST A DOWNGRADE, NEVER A FALSE CERTIFICATE,
+        // which is why the rule errs toward dropping: removing curvature can
+        // turn a right reading wrong (a spurious `kIndefinite`, routed to SSN)
+        // but can never turn a wrong reading right.
+        const double weak_scale = detail::kIpqpWeakActiveFactor * std::sqrt(std::max(mu_meas, 0.0));
+        assemble(rho_sched, /*rho_dem=*/0.0, delta, weak_scale);
         return factor_and_read(/*final_read=*/true);
     };
 
@@ -1480,11 +1531,31 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // One charge per iteration: the question the counter answers is "did
         // the memory's guess come back too small", not "how many rungs did the
         // recovery take".
-        // (While an evidence failure stands the trial is the POLICY FLOOR,
-        // not IC's probe, so its refusal is not a reclimb.)
-        const bool trial_from_memory = rho_dem > 0.0 && !evidence_failed;
+        // WHETHER A `rho_dem_last / kIpqpLadderDown` VALUE IS CURRENTLY BEING
+        // TRIED, and whether its refusal has already been charged as a reclimb.
+        // ONE CHARGE PER ITERATION: the question the counter answers is "did
+        // the memory's guess come back too small", not "how many rungs did the
+        // recovery take".
+        //
+        // TWO ROUTES REACH THAT VALUE and both must be charged (fix round 1,
+        // I2 / CX4). It is this iteration's FIRST trial once the skip rule has
+        // licensed it -- the flag starts true below -- and it is the rung that
+        // ANSWERS a refused zero-trial before then, which is the common regime
+        // on a short solve and which round 1 charged not at all: the
+        // three-iteration saddle family reported ZERO reclimbs while paying
+        // 3.33 factorizations per iteration, i.e. the counter was blind to
+        // exactly the cost it exists to show.
+        //
+        // (While an evidence failure stands the trial is the POLICY FLOOR, not
+        // IC's probe, so its refusal is not a reclimb.)
+        bool trying_memory_value = rho_dem > 0.0 && !evidence_failed;
         bool reclimb_charged = false;
-        assemble(rho_sched, rho_dem, delta);
+        // Consecutive primal escalations spent on an unresolved perturbed-pivot
+        // report, and whether this iteration has given up on the primal route;
+        // see `kIpqpPivotReroutePrimalMax`.
+        int perturbed_primal_run = 0;
+        bool perturbed_dual_latched = false;
+        assemble(rho_sched, rho_dem, delta, /*weak_scale=*/0.0);
 
         for (;;) {
             const InertiaRead read = factor_and_read(/*final_read=*/false);
@@ -1591,14 +1662,40 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // that raises the regularization by 2.3e-10 relative and buys a
             // whole numeric factorization for it.
             const double cap = iopts.ipqp_reg_max * (1.0 - detail::kSsnProxCapSlack);
-            if (read == InertiaRead::kPerturbed && rho_dem == 0.0) {
+            // THE PERTURBED-PIVOT ROUTE, AND ITS BOUND (fix round 1, settler
+            // ruling R2). A perturbed report is answered by the PRIMAL ladder
+            // while it is ARMED and the primal route has not already been
+            // abandoned on this iteration; otherwise by the DUAL shift, which
+            // is the pre-T4b rule. The LATCH matters: once
+            // `kIpqpPivotReroutePrimalMax` primal escalations in a row have
+            // failed to clear the report, this iteration stays on the dual
+            // route rather than alternating between the two, and the next
+            // iteration's ladder starts with fresh primal attempts.
+            const bool perturbed = read == InertiaRead::kPerturbed;
+            if (perturbed && rho_dem > 0.0 && !perturbed_dual_latched &&
+                perturbed_primal_run >= detail::kIpqpPivotReroutePrimalMax) {
+                perturbed_dual_latched = true;
+                ++out.counters.ipqp_pivot_reroute_dual_fallback;
+            }
+            const bool primal_route = perturbed && rho_dem > 0.0 && !perturbed_dual_latched;
+            if (primal_route) {
+                ++perturbed_primal_run;
+                ++out.counters.ipqp_pivot_reroute_primal;
+            }
+            if (!perturbed) {
+                // "Consecutive" means consecutive within ONE unresolved
+                // perturbation: a reading the ladder could use resets the run.
+                perturbed_primal_run = 0;
+            }
+            if (perturbed && !primal_route) {
                 // Spec 2.2's evidence-failure policy: a perturbed
                 // factorization describes a DIFFERENT matrix, so its inertia
                 // is not evidence about this one. The remedy is a larger
                 // DUAL shift, never reading it as right.
                 //
-                // ... AND THAT REMEDY IS THE RIGHT ONE ONLY WHILE THE PRIMAL
-                // LADDER IS UNARMED (T4b, `rho_dem == 0` above). MEASURED, on
+                // ... AND THAT REMEDY IS THE RIGHT ONE WHILE THE PRIMAL LADDER
+                // IS UNARMED, AND AGAIN ONCE THE PRIMAL ROUTE HAS BEEN TRIED
+                // AND FAILED (T4b, bounded in fix round 1). MEASURED, on
                 // `H = diag(2, -1000)`, `g = (-2, -4)` on `[-10, 10]^2` at the
                 // shipped defaults: the tier reads WRONG at `rho_dem` 0, 1e-4
                 // and 1e-2, and PERTURBED at `rho_dem = 1` -- because Ruiz
@@ -1624,6 +1721,26 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // evidence-failure remedy, declared as one and carried in the
                 // T4b report; the unarmed path is untouched, which is what
                 // keeps the convex corpus bit-identical.
+                //
+                // AND IT IS BOUNDED (fix round 1, settler ruling R2). A
+                // perturbed pivot whose cause is DUAL -- near-dependent
+                // equality or inequality rows -- is cleared by NO primal rung,
+                // and an unbounded primal re-route would ride the ladder to
+                // `ipqp_reg_max` and escape on exhaustion to reach an answer
+                // the dual escalation gives in one factorization. After
+                // `kIpqpPivotReroutePrimalMax` consecutive primal escalations
+                // have failed to clear the report, control arrives HERE.
+                //
+                // THE HONEST INSTRUMENT WOULD BE PIVOT PROVENANCE, AND THE
+                // BACKEND DOES NOT CARRY IT: `hven::linear::InertiaEvidence`
+                // reports pivot COUNTS (positive / negative / zero, the
+                // perturbed count, the evidence state) and no pivot LOCATIONS,
+                // so nothing here can ask whether the perturbed pivot sat in
+                // the primal block or a row block. Two failed primal
+                // escalations is the practical approximation of that question,
+                // written as an approximation; `ipqp_pivot_reroute_primal` and
+                // `ipqp_pivot_reroute_dual_fallback` are what let T9 measure
+                // how often the approximation guesses wrong.
                 if (delta >= cap) {
                     // I8: THE TERMINAL REJECTION IS STILL A REJECTION. This
                     // factorization was refused on evidence the tier could not
@@ -1640,14 +1757,19 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             } else {
                 if (rho_dem >= cap) {
                     ++out.counters.ipqp_inertia_retries; // I8, as above.
-                    // The ceiling rung WAS paid, so it is the last rung this
-                    // subproblem paid and IC's memory records it. The solve
-                    // escapes from here (`kIndefinite`, plan section 7 note
-                    // (h)), so nothing reads the memory again -- recording it
-                    // keeps `ipqp_rho_demanded_last` meaning "the last rung
-                    // paid" on the one path where that is not the same as
-                    // "the last rung that worked".
-                    rho_dem_last = rho_dem;
+                    // THE CEILING RUNG IS REFUSED, SO IT DOES NOT ENTER THE
+                    // MEMORY (fix round 1, CX3). Round 1 recorded it here, on
+                    // the argument that it was "the last rung this subproblem
+                    // paid"; that is the wrong reading of a field whose whole
+                    // job is to seed the next trial. `ipqp_reg_max` produced no
+                    // successful modified factorization, so a warm carry
+                    // seeded from it (T7's registered cross-major carry) would
+                    // descend from KNOWN-FAILED evidence, and the counter would
+                    // report `1e6` as the level the tier settled at when it
+                    // settled at nothing. Algorithm IC's own rule -- the memory
+                    // is written by a SUCCESSFUL modified factorization and by
+                    // nothing else -- is the rule, and the high-water mark
+                    // (`ipqp_rho_demanded_max`) is where the ceiling shows up.
                     return read;
                 }
                 // ALGORITHM IC'S ESCALATION (plan 2.2's pseudocode, normative).
@@ -1655,13 +1777,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     // IC-2: the unmodified trial was refused. With no memory
                     // this is `delta_w^0`; with a memory it is the memory's
                     // own /3 probe, which the skip rule had not yet licensed
-                    // as this iteration's first trial.
-                    rho_dem = (rho_dem_last == 0.0)
-                                  ? std::min(detail::kIpqpLadderInit, iopts.ipqp_reg_max)
-                                  : std::max(iopts.ipqp_reg_floor,
-                                             rho_dem_last / detail::kIpqpLadderDown);
+                    // as this iteration's first trial -- and which, from here
+                    // on, is a memory value like any other for the reclimb
+                    // charge below.
+                    if (rho_dem_last == 0.0) {
+                        rho_dem = std::min(detail::kIpqpLadderInit, iopts.ipqp_reg_max);
+                    } else {
+                        rho_dem =
+                            std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
+                        trying_memory_value = !evidence_failed;
+                    }
                 } else {
-                    if (trial_from_memory && !reclimb_charged) {
+                    if (trying_memory_value && !reclimb_charged) {
                         ++out.counters.ipqp_ladder_reclimbs;
                         reclimb_charged = true;
                     }
@@ -1715,16 +1842,28 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // complementarity target (0 on the affine step); `corrector` adds
     // Mehrotra's second-order term from the affine step already in hand.
     //
-    // `rho_sched` / `delta` ARE THE SCHEDULE'S, ALWAYS. This function defines
-    // which subproblem the step solves, and section 3.2's proximal terms --
-    // `rho_sched (x - zeta)` on stationarity, `delta (y - lambda_est)` on the
-    // dual blocks -- are the whole of it. Section 2.2's inertia-demanded
-    // modification has no place here: its anchor is the current iterate, so
-    // its gradient at `x_k` is zero, and passing the TOTAL shift instead is
-    // exactly the defect T4b removes (the step then converges to the KKT point
-    // of the modified problem while the gate measures the schedule's, so the
-    // gate falls silent forever -- see the call sites).
-    auto build_rhs = [&](double rho_sched, double delta, double mu_t, bool corrector) {
+    // BOTH ARGUMENTS ARE THE SCHEDULE'S, ALWAYS. This function defines which
+    // subproblem the step solves, and section 3.2's proximal terms --
+    // `rho_sched (x - zeta)` on stationarity, `delta_sched (y - lambda_est)` on
+    // the dual blocks -- are the whole of it. Neither of section 2.2's
+    // inertia-demanded modifications has a place here: each is anchored at the
+    // CURRENT ITERATE, so each contributes zero gradient at `(x_k, y_k)`, and
+    // passing a modified value instead is exactly the defect T4b removes -- the
+    // step then converges to the KKT point of a problem the section 3.2 gate is
+    // not watching, and the gate falls silent forever.
+    //
+    // THE DUAL SIDE IS THE SYMMETRIC COMPLETION OF THAT, AND IT WAS THE SECOND
+    // HALF OF THE FIX (fix round 1, settler ruling R3). T4b round 1 passed the
+    // LADDER-SETTLED `delta` here while the gate measured at `delta_sched`, so
+    // an iteration whose perturbed-pivot branch raised `delta` from 8 to 800
+    // solved the 800 dual-proximal system while the gate watched the 8 one --
+    // mechanism 4's exact shape on the dual side. It was bounded where the
+    // primal one was not (`delta` is re-initialized to `delta_sched` at the top
+    // of every pass, so nothing carried it forward) and it was unchanged from
+    // the pre-T4b engine, but "bounded and pre-existing" is not "correct". The
+    // escalated `delta` now enters the DIAGONAL only, exactly as `rho_dem`
+    // does.
+    auto build_rhs = [&](double rho_sched, double delta_sched, double mu_t, bool corrector) {
         w.bgrad.setZero();
         detail::ipqp_accumulate_bound_barrier_gradient(w.x, bounds.lower, bounds.upper, mu_t, n,
                                                        w.bgrad);
@@ -1747,10 +1886,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         }
         if (me > 0) {
-            w.rhs.segment(n + mi, me) = -(w.r_pe - delta * (w.ye - w.lam_est_e));
+            w.rhs.segment(n + mi, me) = -(w.r_pe - delta_sched * (w.ye - w.lam_est_e));
         }
         if (mi > 0) {
-            w.rhs.segment(n + mi + me, mi) = -(w.r_pi - delta * (w.yi - w.lam_est_i));
+            w.rhs.segment(n + mi + me, mi) = -(w.r_pi - delta_sched * (w.yi - w.lam_est_i));
         }
     };
 
@@ -2087,11 +2226,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
         if (read == InertiaRead::kUnreadable) {
             // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder). The
-            // ladder has already raised the monotone floor to its conservative
-            // level and re-factorized there, so the step below runs at that
-            // floor. NOT an escape and NOT a break: the solve continues, and
-            // what it can no longer produce is a STANDING CERTIFICATE, which
-            // is what `evidence_failed` carries to the outcome block.
+            // ladder has already raised this iteration's modification to its
+            // conservative floor and re-factorized there, so the step below runs
+            // at that floor (and `ladder_trial` re-applies it every later
+            // iteration, since no floor variable carries it any more). NOT an escape and NOT a
+            // break: the solve continues, and what it can no longer produce is a STANDING
+            // CERTIFICATE, which is what `evidence_failed` carries to the outcome block.
         } else if (read != InertiaRead::kOk) {
             // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. There used to be
             // a solve-scoped `saw_readable_wrong` flag here, set by ANY ladder
@@ -2118,7 +2258,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // zero. Before the separation this used the total, so the iterate
         // converged to the KKT point of a DIFFERENT problem than the one the
         // section 3.2 gate measures, and the gate never advanced again.
-        build_rhs(rho_sched, delta, 0.0, /*corrector=*/false);
+        build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
         solve_system();
         recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
         if (!w.sol.allFinite()) {
@@ -2158,7 +2298,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         //    does not mutate the factor, so two solves against one
         //    factorization are well-formed -- W1 asserts this executably
         //    rather than assuming it).
-        build_rhs(rho_sched, delta, mu_t, /*corrector=*/true);
+        build_rhs(rho_sched, delta_sched, mu_t, /*corrector=*/true);
         solve_system();
         recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
         if (!w.sol.allFinite()) {

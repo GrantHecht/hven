@@ -218,9 +218,9 @@ TEST_F(IpqpSeamTest, AnUnusableEvidenceStateStepsAtAConservativeFloorAndDowngrad
         EXPECT_GT(r.counters.ipqp_iters, 0);
         EXPECT_NE(r.escape_reason, IpqpEscape::kNumerical);
 
-        // AT A CONSERVATIVE FLOOR: the monotone floor was armed at the
+        // AT A CONSERVATIVE FLOOR: the conservative floor was armed at the
         // POLICY'S own constant and never climbed from there. Pinned against
-        // `kIpqpEvidenceFailureRhoFloor` and NOT against `kIpqpRhoLadderInit`,
+        // `kIpqpEvidenceFailureRhoFloor` and NOT against `kIpqpLadderInit`,
         // which happens to hold the same value today: a retune of the ladder's
         // first rung on ladder evidence must FAIL this pin rather than move the
         // evidence-failure policy along with it (co-review I-3).
@@ -343,6 +343,177 @@ TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZe
     EXPECT_EQ(r2.escape_reason, IpqpEscape::kNumerical);
     EXPECT_FALSE(r2.certificate_downgraded);
     EXPECT_EQ(r2.counters.ipqp_escape_numerical, 1);
+}
+
+// ---------------------------------------------------------------------------
+// The BOUNDED perturbed-pivot re-route (T4b fix round 1, settler ruling R2)
+// ---------------------------------------------------------------------------
+
+/// An indefinite box QP whose ladder arms on the first iteration: `x1 = 0` is
+/// an exact KKT point of the barrier problem at every `mu` on a symmetric box,
+/// so the tier converges there in three iterations and the section 2.2 item 4
+/// read catches the saddle. Used here only for its LADDER, which is what the
+/// re-route rides.
+QpProblem armed_saddle_qp() {
+    QpProblem qp;
+    qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
+    qp.g = vec({0.0, 0.0});
+    qp.Ae = dense_rows({}, 2);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({}, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec({-10.0, -10.0});
+    qp.upper = vec({10.0, 10.0});
+    return qp;
+}
+
+TEST_F(IpqpSeamTest, AnUNCLEARABLEPerturbationFallsBackToTheDualShiftAfterTwoPrimalRungs) {
+    // T4b FIX ROUND 1, SETTLER RULING R2 -- THE RE-ROUTE'S BOUND, AND THE
+    // DUAL-CAUSE CASE IT EXISTS FOR.
+    //
+    // T4b re-routed a perturbed-pivot report to the PRIMAL ladder while that
+    // ladder is armed, because a uniform shift of the Ruiz-scaled system can
+    // ANNIHILATE a scaled diagonal (Ruiz normalizes a dominant diagonal to
+    // almost exactly `-1`, and `rho_dem = 1` is a rung of Algorithm IC's own
+    // first climb) and that singularity is primal. But a perturbation whose
+    // cause is DUAL -- near-dependent equality or inequality rows -- is cleared
+    // by NO primal rung, and an unbounded re-route would ride the ladder to
+    // `ipqp_reg_max` and escape on exhaustion to reach an answer the dual
+    // escalation gives in one factorization.
+    //
+    // WHY THIS IS A SEAM TEST AND NOT A QP. The honest instrument would be the
+    // pivot BLOCK the backend perturbed, and
+    // `hven::linear::InertiaEvidence` does not carry pivot LOCATIONS -- only
+    // counts. So the engine cannot ask, and neither can a fixture: no legal
+    // QP in this suite produces a perturbation the primal ladder cannot clear
+    // (MKL's static pivoting resolves the row-degenerate cases through the
+    // tier's own `delta`, which is why this header exists at all). The
+    // scenario is reached by injecting a reading of that shape, which is a
+    // POLICY witness in this header's own vocabulary: it pins what the tier
+    // DOES with an unclearable perturbation, not that a backend produces one.
+    Injector::active = true;
+    Injector::skip_first = 2; // let the ladder ARM on two real wrong readings
+    Injector::evidence = perturbed(/*n_pos=*/2, /*n_neg=*/0);
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(armed_saddle_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+
+    ASSERT_GT(Injector::injections, 0) << "the injection must have applied, or nothing is tested";
+
+    // THE BOUND, EXACTLY: two primal escalations, then the fallback. Not one,
+    // not the whole ladder.
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_primal, detail::kIpqpPivotReroutePrimalMax);
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 1);
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_primal, 2)
+        << "the constant is two, and the pin names the number as well as the constant so a "
+           "retune is visible here";
+
+    // ... AND THE FALLBACK COSTS EXACTLY TWO EXTRA FACTORIZATIONS over the
+    // pre-T4b always-dual rule, which is the price the ruling accepted.
+    Injector::reset();
+    Observer::reset();
+    Injector::active = true;
+    Injector::skip_first = 2;
+    Injector::evidence = perturbed(/*n_pos=*/2, /*n_neg=*/0);
+    Injector::on_iteration_reads = true;
+    IpqpOptions capped;
+    capped.ipqp_max_factorizations = 3; // the two real reads plus one
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult r2 = tier2.solve(armed_saddle_qp(), nullptr, capped, SolveOverrides{});
+    EXPECT_EQ(r2.counters.ipqp_factorizations, 3);
+    EXPECT_LE(r2.counters.ipqp_pivot_reroute_primal, detail::kIpqpPivotReroutePrimalMax);
+
+    // A PERTURBATION AT AN UNARMED LADDER IS NOT RE-ROUTED AT ALL -- the
+    // pre-T4b dual rule, unchanged, and the reason the convex corpus is
+    // bit-identical across T4b. Neither route counter fires.
+    Injector::reset();
+    Observer::reset();
+    Injector::active = true;
+    Injector::evidence = perturbed(/*n_pos=*/3, /*n_neg=*/2);
+    IpqpEngine tier3(tight_opts());
+    const IpqpResult r3 = tier3.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    EXPECT_EQ(r3.counters.ipqp_pivot_reroute_primal, 0);
+    EXPECT_EQ(r3.counters.ipqp_pivot_reroute_dual_fallback, 0);
+    EXPECT_EQ(r3.escape_reason, IpqpEscape::kNumerical);
+}
+
+TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta) {
+    // T4b FIX ROUND 1, SETTLER RULING R3 -- THE DUAL HALF OF THE 2.1
+    // SEPARATION, PINNED ON A STEP THAT ACTUALLY GETS TAKEN.
+    //
+    // Round 1 passed the LADDER-SETTLED `delta` to `build_rhs` while the
+    // section 3.2 gate measured at `delta_sched`, so an iteration whose
+    // perturbed branch raised `delta` from 8 to 800 solved the 800
+    // dual-proximal system while the gate watched the 8 one -- mechanism 4's
+    // shape on the dual side. R3 reverses that: the escalated `delta` enters
+    // the DIAGONAL only.
+    //
+    // WHY THE INJECTION WINDOW. A perturbation injected FOREVER can only be
+    // observed at a terminal state, and no step is ever taken there, so it
+    // cannot distinguish the two wirings. `max_injections` closes the window
+    // after ONE replacement: the first iteration's read is perturbed (so
+    // `delta` escalates once), the next read is the real one (so the ladder
+    // succeeds and a STEP IS TAKEN), and that step is built from whichever
+    // `delta` the code passes. The two wirings give different iterates and
+    // therefore different iteration counts, which is what this pin holds down.
+    // THE INJECTION LANDS MID-SOLVE, NOT AT ITERATION 0, and that placement is
+    // load-bearing AND MEASURED. The dual proximal term is
+    // `delta (y - lambda_est)`, and wherever the gate has just advanced the two
+    // are equal, so the term is ZERO and the two wirings are indistinguishable.
+    // A placement scan over `skip_first` (run out of tree against both wirings)
+    // shows 0, 1, 3 and 7 give identical trajectories and 2, 4, 5, 6 and 8 do
+    // not; `4` is taken because its separation is the widest -- the round-1
+    // wiring reaches the optimum in 13 iterations and 15 factorizations there,
+    // this one in 11 and 13.
+    Injector::active = true;
+    Injector::on_final_read = false;
+    Injector::skip_first = 4;
+    Injector::max_injections = 1;
+    Injector::evidence = perturbed(/*n_pos=*/3, /*n_neg=*/2);
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+
+    EXPECT_EQ(Injector::injections, 1) << "exactly one read was corrupted";
+    // The escalation really happened: one extra rejection and one extra
+    // factorization over the un-injected solve, and NO primal re-route (the
+    // ladder was unarmed, which is the ordinary dual route).
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, 1);
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_primal, 0);
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
+    // The solve then recovers and certifies.
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+    // THE SCHEDULE'S OWN DUAL VALUE IS WHAT LEAVES THE SOLVE, never the
+    // escalated one.
+    EXPECT_LE(r.delta, IpqpOptions{}.ipqp_delta_init);
+
+    // THE PIN IS THE INJECTED SOLVE'S EXACT TRAJECTORY. The escalation changes
+    // the MATRIX of the recovering factorization legitimately (that is what
+    // `delta` is for), so the injected solve is NOT expected to reach the clean
+    // solve's iterate -- what is pinned is that it reaches THIS one, which is
+    // the trajectory the schedule's `delta` in the right-hand side produces. A
+    // source mutation passing the LADDER-SETTLED `delta` to `build_rhs` -- the
+    // round-1 wiring -- moves it; that mutation was run out of tree and is
+    // recorded with its numbers in the T4b fix-round-1 report, exactly as
+    // gate 9's two mutations are. It is not runnable from here.
+    IpqpEngine clean_tier(tight_opts());
+    Injector::reset();
+    Observer::reset();
+    const IpqpResult clean =
+        clean_tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(clean.x.size(), r.x.size());
+    EXPECT_EQ(clean.counters.ipqp_inertia_retries, 0)
+        << "the clean solve pays no rejection -- the injection is the whole difference";
+    EXPECT_LT((r.x - clean.x).lpNorm<Eigen::Infinity>(), 1e-6)
+        << "both solves reach the same optimum; only the route differs";
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("t4b_r3_accelerate", "UNOBSERVED -- the exact injected trajectory is MKL-only");
+#else
+    EXPECT_EQ(r.counters.ipqp_iters, 11)
+        << "the round-1 wiring (the ladder-settled delta in build_rhs) reaches 13 here";
+    EXPECT_EQ(r.counters.ipqp_factorizations, 13) << "the round-1 wiring reaches 15 here";
+#endif
 }
 
 // ---------------------------------------------------------------------------

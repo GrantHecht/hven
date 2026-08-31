@@ -110,6 +110,17 @@ struct IpqpInertiaEvidenceInjector {
     // the reading that decides its certificate.
     static inline Index skip_first = 0;
 
+    // Stop injecting after this many replacements; negative means unlimited.
+    // With `skip_first` this makes a WINDOW, which is what a fixture needs to
+    // pin a fault the tier RECOVERS from rather than one it dies on: a fault
+    // injected forever can only ever be observed at a terminal state, and the
+    // interesting contracts (which quantity a recovery step was built from,
+    // how many factorizations a bounded re-route spends before it gives up)
+    // are about what happens AFTER the reading comes good again. Added in M6
+    // W1 T4b fix round 1 for exactly two such pins; it costs the production
+    // build nothing, like the rest of this header.
+    static inline Index max_injections = -1;
+
     // What the tier is told it read.
     static inline hven::linear::InertiaEvidence evidence{};
 
@@ -123,6 +134,7 @@ struct IpqpInertiaEvidenceInjector {
         on_iteration_reads = true;
         on_final_read = true;
         skip_first = 0;
+        max_injections = -1;
         evidence = hven::linear::InertiaEvidence{};
         injections = 0;
     }

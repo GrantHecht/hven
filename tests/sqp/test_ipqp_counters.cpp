@@ -38,6 +38,8 @@ TEST(IpqpCounters, DefaultConstructedIsZeroInitialized) {
     EXPECT_EQ(c.ipqp_iters_at_elevated_rho, 0);
     EXPECT_EQ(c.ipqp_ladder_reclimbs, 0);
     EXPECT_EQ(c.ipqp_iters_ladder_armed_no_advance, 0);
+    EXPECT_EQ(c.ipqp_pivot_reroute_primal, 0);
+    EXPECT_EQ(c.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_EQ(c.ipqp_final_inertia_read, 0);
     EXPECT_EQ(c.ipqp_reg_decreases, 0);
     EXPECT_EQ(c.ipqp_reg_increases, 0);
@@ -270,6 +272,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     a.ipqp_iters_at_elevated_rho = 8;
     a.ipqp_ladder_reclimbs = 1;
     a.ipqp_iters_ladder_armed_no_advance = 6;
+    a.ipqp_pivot_reroute_primal = 3;
+    a.ipqp_pivot_reroute_dual_fallback = 1;
     a.ipqp_reg_decreases = 9;
     a.ipqp_reg_increases = 2;
     a.ipqp_prox_center_updates = 11;
@@ -303,6 +307,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     b.ipqp_iters_at_elevated_rho = 1;
     b.ipqp_ladder_reclimbs = 4;
     b.ipqp_iters_ladder_armed_no_advance = 2;
+    b.ipqp_pivot_reroute_primal = 5;
+    b.ipqp_pivot_reroute_dual_fallback = 2;
     b.ipqp_reg_decreases = 1;
     b.ipqp_reg_increases = 6;
     b.ipqp_prox_center_updates = 5;
@@ -335,6 +341,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     EXPECT_EQ(total.ipqp_iters_at_elevated_rho, 9);
     EXPECT_EQ(total.ipqp_ladder_reclimbs, 5);
     EXPECT_EQ(total.ipqp_iters_ladder_armed_no_advance, 8);
+    EXPECT_EQ(total.ipqp_pivot_reroute_primal, 8);
+    EXPECT_EQ(total.ipqp_pivot_reroute_dual_fallback, 3);
     EXPECT_EQ(total.ipqp_reg_decreases, 10);
     EXPECT_EQ(total.ipqp_reg_increases, 8);
     EXPECT_EQ(total.ipqp_prox_center_updates, 16);

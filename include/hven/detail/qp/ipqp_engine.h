@@ -39,8 +39,8 @@
 //
 // IMPLEMENTED HERE (task 4): the clamp-centred box and its domain gate
 // (IpqpBox / IpqpBounds), the cold start (spec 5.6), the Mehrotra
-// predictor-corrector iteration (3.1), the gated (rho, delta) schedule with
-// its monotone floor (3.2), the inertia gate and the W-B ladder (2.2), Ruiz
+// predictor-corrector iteration (3.1), the gated (rho, delta) schedule (3.2),
+// the inertia gate and the Algorithm IC ladder with its memory (2.2), Ruiz
 // equilibration with unscale-on-export (4.3), the relative-KKT stopping rule
 // (3.4), the required final unregularized inertia read (2.2 item 4), the
 // budget/factorization caps, and the ratio face classification (2.3 item 2).
@@ -218,6 +218,48 @@ inline constexpr double kIpqpLadderDown = 3.0;
 /// (ii) in the banner above.
 inline constexpr int kIpqpLadderSkipAfter = 3;
 
+/// @brief How many CONSECUTIVE primal escalations may answer a perturbed-pivot
+/// report before the ladder falls back to escalating the DUAL shift instead
+/// (M6 W1 T4b fix round 1, settler ruling R2).
+///
+/// THE RE-ROUTE IS RIGHT FOR THE CASE THAT MOTIVATED IT AND HAS TO BE BOUNDED
+/// FOR THE CASE IT CAN MIS-ROUTE. A uniform shift of the Ruiz-scaled system can
+/// annihilate a scaled diagonal -- Ruiz normalizes a dominant diagonal to
+/// almost exactly `-1` and `rho_dem = 1` is a rung of Algorithm IC's own first
+/// climb -- and that singularity is PRIMAL, so no dual shift can clear it. But
+/// a perturbed pivot whose cause is DUAL (near-dependent equality or inequality
+/// rows) is not cleared by ANY primal rung, and an unbounded primal re-route
+/// would ride the ladder to `ipqp_reg_max` and escape on exhaustion, spending
+/// the whole ceiling's worth of factorizations to reach an answer the dual
+/// escalation gives in one.
+///
+/// WHY A COUNT AND NOT PIVOT PROVENANCE. The honest instrument would be the
+/// pivot BLOCK the backend perturbed -- primal rows say "climb `rho_dem`", dual
+/// rows say "climb `delta`". `hven::linear::InertiaEvidence` does not carry
+/// pivot locations: it carries COUNTS (positive/negative/zero, the perturbed
+/// count and the evidence state) and nothing indexed. Two consecutive failed
+/// primal escalations is the practical approximation of that provenance, and it
+/// is written here as an approximation rather than as a rule with a reason. If
+/// a future backend surface exposes pivot indices, this constant and its branch
+/// are what that change replaces.
+inline constexpr int kIpqpPivotReroutePrimalMax = 2;
+
+/// @brief The SECTION 2.2 ITEM 4 READ'S WEAK-ACTIVITY SCALE, as a multiple of
+/// `sqrt(mu_measured)` (settler ruling R1; the rule itself and its derivation
+/// live on `detail::ipqp_accumulate_bound_sigma_critical_cone`).
+///
+/// TEN, and the value is chosen by the geometry rather than tuned. Because
+/// complementarity ties `z * gap ~ mu`, requiring BOTH `z <= f sqrt(mu)` and
+/// `gap <= f sqrt(mu)` confines a dropped bound side to a band of width `f^2`
+/// around `sqrt(mu)`. At `f = 10` and a converged `mu = 1e-12` the multiplier
+/// threshold is `1e-5`: every multiplier a real solution actually carries
+/// survives it, and every multiplier that is barrier noise does not. A larger
+/// factor would start dropping genuinely priced bounds -- which costs a false
+/// DOWNGRADE, never a false certificate, so the failure direction is the safe
+/// one -- and a factor at or below 1 would sit on the knife edge the rule
+/// exists to move away from.
+inline constexpr double kIpqpWeakActiveFactor = 10.0;
+
 /// @brief Growth per rung for the DUAL shift `delta` on a perturbed-pivot
 /// report -- `detail::kSsnProxGrowth`'s value, adopted for the reason that
 /// ladder's own banner gives: at a 1e6 ceiling two decades per rung gives a
@@ -363,7 +405,7 @@ inline constexpr double kIpqpStallAlpha = 1.0e-2;
 ///   * `kIndefinite` -- an inertia reading WAS taken (an
 ///     `InertiaEvidence::State` was actually observed) and DISAGREED with the
 ///     required signature: at the section 2.2 item 4 final certification
-///     factorization, or when the monotone ladder reached `ipqp_reg_max` with
+///     factorization, or when the ladder reached `ipqp_reg_max` with
 ///     the reading still wrong. Saddle-suspect; section 2.3 item 4 routes it
 ///     to the SSN warm grade.
 ///   * `kNumerical` -- everything else that is not budget, stall or
@@ -749,7 +791,7 @@ struct IpqpResult {
     /// True iff section 2.2's evidence-failure policy was invoked ANYWHERE in
     /// this solve: some factorization succeeded but reported an
     /// `InertiaEvidence::state` other than `kObserved`, so the tier raised its
-    /// monotone floor to a conservative level, took its steps there, and
+    /// modification to a conservative floor, took its steps there, and
     /// downgraded the certificate for the whole solve. Implies
     /// `certificate_downgraded`. Distinct from a FAILED factorization, which
     /// is not an evidence failure at all and escapes `kNumerical` at once.

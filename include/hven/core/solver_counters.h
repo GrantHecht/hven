@@ -681,12 +681,22 @@ struct IpqpCounters {
     /// statement without the max.)
     Index ipqp_iters_at_elevated_rho = 0;
 
-    /// LADDER RECLIMBS: iterations whose Algorithm IC trial
-    /// (`rho_dem_last / kIpqpLadderDown`) was REJECTED on a wrong inertia and
-    /// had to re-escalate. ONE PER ITERATION, never per rung -- an iteration
-    /// that climbed three rungs off a rejected trial is one reclimb, because
-    /// the quantity being measured is "how often did the memory's guess come
-    /// back too small", not how far the climb then went.
+    /// LADDER RECLIMBS: iterations on which a `rho_dem_last / kIpqpLadderDown`
+    /// value was REJECTED on a wrong inertia and the ladder had to re-escalate
+    /// past it. ONE PER ITERATION, never per rung -- an iteration that climbed
+    /// three rungs off a rejected `/3` value is one reclimb, because the
+    /// quantity being measured is "how often did the memory's guess come back
+    /// too small", not how far the climb then went.
+    ///
+    /// **THE `/3` VALUE, WHEREVER IT IS TRIED** (M6 W1 T4b fix round 1, I2 /
+    /// CX4). Algorithm IC reaches `rho_dem_last / 3` by two routes: as this
+    /// iteration's FIRST trial, once `kIpqpLadderSkipAfter` consecutive
+    /// iterations have needed a modification; and as the rung that ANSWERS a
+    /// refused zero-trial before then, which is the common regime on a short
+    /// solve. The first draft of this counter charged only the first route, so
+    /// the three-iteration saddle family reported ZERO reclimbs while paying
+    /// 3.33 factorizations per iteration -- the exact cost the field exists to
+    /// make visible. Both routes are charged.
     ///
     /// THE COST SIGNAL, AND IT IS AN EXPECTED COST, NOT A FAULT (M6 W1 T4b).
     /// Algorithm IC deliberately re-tries a SMALLER shift than the one that
@@ -709,12 +719,66 @@ struct IpqpCounters {
     /// field is M6-new and reaches no CSV schema before task 9.
     ///
     /// STRUCTURALLY 0 ON A CONVEX SUBPROBLEM, where the ladder never arms and
-    /// there is no trial to reject. Excludes the FIRST climb of a solve (there
-    /// is no memory to have guessed with), an iteration whose trial was
-    /// accepted, an iteration whose first reading was a PERTURBED pivot (that
-    /// escalates `delta`, not `rho_dem`), and every inertia-demanded increase
-    /// as such (`ipqp_reg_increases`).
+    /// there is no `/3` value to reject. Excludes the FIRST climb of a solve
+    /// (there is no memory to have guessed with), an iteration whose `/3` value
+    /// was accepted, and every inertia-demanded increase as such
+    /// (`ipqp_reg_increases`).
+    ///
+    /// **EXCLUDES A PERTURBED-DRIVEN ESCALATION** (M6 W1 T4b fix round 1, I1).
+    /// Since T4b, a perturbed-pivot report received while the primal ladder is
+    /// ARMED escalates `rho_dem` rather than `delta` -- but that escalation is
+    /// not a statement about curvature at all, so charging it here would let a
+    /// backend's pivot perturbation inflate a signal T9 reads as the cost of
+    /// the `/3` band. It is visible instead through
+    /// `ipqp_pivot_reroute_primal`. The first draft of this field's doc said
+    /// perturbed readings escalate `delta` and are therefore excluded; that
+    /// stopped being true when the re-route landed, and the exclusion is now
+    /// enforced in the code rather than asserted in prose.
     Index ipqp_ladder_reclimbs = 0;
+
+    /// Ladder rungs taken because a PERTURBED-PIVOT report arrived while the
+    /// primal ladder was ARMED, i.e. answered by escalating `rho_dem` rather
+    /// than `delta` (M6 W1 T4b fix round 1, settler ruling R2). Counts RUNGS,
+    /// not iterations: the question it answers for T9 is how much
+    /// factorization budget the re-route spends.
+    ///
+    /// WHY THE RE-ROUTE EXISTS. The section 2.2 modification is a UNIFORM shift
+    /// of the Ruiz-scaled system, and Ruiz normalizes a dominant diagonal to
+    /// almost exactly `-1` while `rho_dem = 1` is a rung of Algorithm IC's own
+    /// first climb -- so a rung can ANNIHILATE a scaled pivot. That singularity
+    /// is PRIMAL; measured on `H = diag(2, -1000)`, the pre-T4b rule ("a
+    /// perturbed pivot means a larger DUAL shift") climbed `delta` from 8 to
+    /// `1e6` for four wasted factorizations and escaped `kNumerical` with ZERO
+    /// iterations taken.
+    ///
+    /// Structurally 0 on any solve whose ladder never arms, and 0 on any
+    /// backend that never reports a perturbed pivot. Excludes a perturbed
+    /// report received at `rho_dem == 0`, which takes the ordinary dual route
+    /// and is not counted anywhere; excludes the rungs the FALLBACK then takes
+    /// (`ipqp_pivot_reroute_dual_fallback`); and excludes every wrong-inertia
+    /// rung, which is `ipqp_inertia_retries`' business.
+    Index ipqp_pivot_reroute_primal = 0;
+
+    /// Times the bounded primal re-route above GAVE UP and fell back to
+    /// escalating `delta` -- `kIpqpPivotReroutePrimalMax` consecutive primal
+    /// escalations failed to clear the perturbation report (M6 W1 T4b fix
+    /// round 1, settler ruling R2). Counts FALLBACK EVENTS, one per exhausted
+    /// run of primal attempts, not the dual rungs that follow.
+    ///
+    /// THE BOUND IS AN APPROXIMATION OF PIVOT PROVENANCE, AND THIS FIELD IS
+    /// HOW ITS ACCURACY IS MEASURED. A perturbed pivot whose cause is DUAL
+    /// (near-dependent equality or inequality rows) is not cleared by any
+    /// primal rung, and an unbounded re-route would ride the ladder to
+    /// `ipqp_reg_max` to reach an answer the dual escalation gives in one.
+    /// `hven::linear::InertiaEvidence` carries pivot COUNTS and no pivot
+    /// LOCATIONS, so two consecutive failed primal escalations stands in for
+    /// asking which block was perturbed. Read against
+    /// `ipqp_pivot_reroute_primal`: a high ratio of fallbacks to primal
+    /// re-routes says the heuristic is guessing wrong often enough to be worth
+    /// replacing with real provenance.
+    ///
+    /// Structurally 0 wherever `ipqp_pivot_reroute_primal` is 0.
+    Index ipqp_pivot_reroute_dual_fallback = 0;
 
     /// Iterations that ARMED the ladder (`rho_dem > 0` at the settled reading,
     /// step taken) and on which the section 3.2 gate did NOT advance.

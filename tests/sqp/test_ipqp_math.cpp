@@ -457,4 +457,72 @@ TEST(IpqpMathTest, TheAbsentBoundSentinelMatchesTheEnginesOwn) {
     EXPECT_TRUE(ip::ipqp_has_upper(1e19));
 }
 
+// ---------------------------------------------------------------------------
+// The section 2.2 item 4 read's critical-cone bound curvature (T4b fix round 1)
+// ---------------------------------------------------------------------------
+
+TEST(IpqpMathTest, TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse) {
+    // FOUR INDICES, ONE PER REGIME, so the rule is exercised as a partition
+    // rather than as one case. `weak_scale = 1e-3` throughout.
+    //
+    //   0  STRONGLY ACTIVE at LOWER: gap 1e-9 (tiny), z 2.0 (priced).
+    //      The multiplier test fails -> curvature KEPT.
+    //   1  WEAKLY ACTIVE at LOWER:   gap 1e-6, z 1e-6. Both below -> DROPPED.
+    //   2  INACTIVE:                 gap 5.0, z 1e-9. The gap test fails ->
+    //      KEPT (and negligible anyway).
+    //   3  MIXED: strongly active at LOWER, weakly active at UPPER. The rule is
+    //      PER SIDE, so the lower side's curvature survives and the upper's
+    //      does not -- which is what the critical cone actually says.
+    const double kInfB = ip::kIpqpInfBound;
+    hven::Vec x(4), l(4), u(4), zl(4), zu(4);
+    x << 1.0e-9, 1.0e-6, 5.0, 1.0e-9;
+    l << 0.0, 0.0, 0.0, 0.0;
+    u << kInfB, kInfB, 10.0, 1.0e-6;
+    zl << 2.0, 1.0e-6, 1.0e-9, 3.0;
+    zu << 0.0, 0.0, 1.0e-9, 1.0e-6;
+
+    hven::Vec plain = hven::Vec::Zero(4);
+    ip::ipqp_accumulate_bound_sigma(x, l, u, zl, zu, 4, plain);
+
+    // `weak_scale <= 0` REPRODUCES THE ORDINARY KERNEL EXACTLY -- same loops,
+    // same order, same `+=`. This is the property the convex corpus's
+    // bit-identity rests on, so it is pinned as an exact equality rather than
+    // as a tolerance.
+    hven::Vec off = hven::Vec::Zero(4);
+    ip::ipqp_accumulate_bound_sigma_critical_cone(x, l, u, zl, zu, 4, 0.0, off);
+    for (hven::Index i = 0; i < 4; ++i) {
+        EXPECT_DOUBLE_EQ(off(i), plain(i)) << "i = " << i;
+    }
+    hven::Vec negative = hven::Vec::Zero(4);
+    ip::ipqp_accumulate_bound_sigma_critical_cone(x, l, u, zl, zu, 4, -1.0, negative);
+    for (hven::Index i = 0; i < 4; ++i) {
+        EXPECT_DOUBLE_EQ(negative(i), plain(i)) << "i = " << i;
+    }
+
+    hven::Vec cone = hven::Vec::Zero(4);
+    ip::ipqp_accumulate_bound_sigma_critical_cone(x, l, u, zl, zu, 4, 1.0e-3, cone);
+
+    // 0 -- strongly active: kept, unchanged.
+    EXPECT_DOUBLE_EQ(cone(0), plain(0));
+    EXPECT_GT(cone(0), 1.0e8);
+    // 1 -- weakly active: dropped to nothing.
+    EXPECT_DOUBLE_EQ(cone(1), 0.0);
+    EXPECT_DOUBLE_EQ(plain(1), 1.0); // and it really was order ONE before
+    // 2 -- inactive: kept, unchanged.
+    EXPECT_DOUBLE_EQ(cone(2), plain(2));
+    // 3 -- mixed: the LOWER side survives, the UPPER does not.
+    EXPECT_DOUBLE_EQ(cone(3), zl(3) / (x(3) - l(3)));
+    EXPECT_LT(cone(3), plain(3));
+    // (The difference is checked RELATIVELY, not by exact subtraction: the
+    // lower side's curvature here is 3e9 and the upper's is 1, so the
+    // difference of the two totals is not representable to the last bit.)
+    EXPECT_NEAR(plain(3) - cone(3), zu(3) / (u(3) - x(3)), 1.0e-6);
+
+    // AN ABSENT BOUND IS NEVER "WEAK": the sentinel guard runs first, so an
+    // index with no bound at all contributes nothing on either path and cannot
+    // be miscounted as a dropped side.
+    EXPECT_DOUBLE_EQ(cone(0), zl(0) / (x(0) - l(0)))
+        << "index 0 has no upper bound and the upper loop must have skipped it";
+}
+
 } // namespace

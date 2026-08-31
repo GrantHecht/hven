@@ -233,6 +233,75 @@ inline void ipqp_accumulate_bound_sigma(const Eigen::Ref<const Eigen::VectorXd> 
     }
 }
 
+/// @brief The SECTION 2.2 ITEM 4 FINAL READ'S bound curvature: the same
+/// accumulation with the WEAKLY ACTIVE sides left out.
+///
+/// WHY THE FINAL READ CANNOT USE THE ORDINARY `Sigma` (M6 W1 T4b fix round 1,
+/// settler ruling R1). The item 4 read asks whether the converged point is a
+/// second-order point of the CALLER'S QP, and second-order conditions are
+/// stated on the CRITICAL CONE. At a bound whose multiplier is essentially
+/// zero, the direction moving OFF that bound IS in the critical cone -- so the
+/// read must VERIFY that direction, not mask it. The barrier's own curvature
+/// `z / gap` masks it: at a weakly active bound both `z` and `gap` are of order
+/// `sqrt(mu)`, so `Sigma` is of order ONE and can cancel a genuinely negative
+/// eigenvalue. Measured before this function existed: `H = diag(2, -1)` on a
+/// symmetric box of half-width `s`, `x = 0` (a SADDLE), certified `kOptimal`
+/// for every `s` with `2 mu / s^2 > 1`. That is a `kOptimal`-at-a-non-minimizer,
+/// the exact wrong-answer class task 4 closed for the SSN kernel.
+///
+/// WHAT COUNTS AS WEAKLY ACTIVE, and why the test needs BOTH halves.
+/// Complementarity gives `z * gap ~ mu` at every bound, so the three regimes
+/// separate cleanly at `sqrt(mu)`:
+///   * STRONGLY ACTIVE -- `z -> z* > 0`, so `gap ~ mu / z*`, far BELOW
+///     `sqrt(mu)`. The multiplier test fails, `Sigma` is kept: the direction is
+///     NOT in the critical cone and its curvature is genuinely constrained.
+///   * INACTIVE -- `gap = O(1)`, far ABOVE `sqrt(mu)`. The gap test fails,
+///     `Sigma` is kept (it is negligible anyway).
+///   * WEAKLY ACTIVE -- both at `sqrt(mu)`. Both tests pass and the side's
+///     contribution is dropped.
+/// The AND is what makes the rule safe: a wrong verdict needs BOTH a small
+/// multiplier and a small gap, and the two are inversely related through
+/// complementarity, so a bound has to sit in a `factor^2` band around
+/// `sqrt(mu)` to be dropped.
+///
+/// THE SCALE IS THE SOLVE'S OWN, NOT A NEW ABSOLUTE KNOB (the
+/// `IpCrossoverOptions::activity_rel_tol` precedent, `warm_start.h:408`, which
+/// builds its threshold out of the hand-off's own `mu_hat` and dual norm rather
+/// than out of a fixed magnitude): `weak_scale` is a caller-supplied multiple of
+/// `sqrt(mu_measured)`. Pass `0.0` to disable, which reproduces
+/// `ipqp_accumulate_bound_sigma` EXACTLY -- same two loops, same order, same
+/// `+=`, so a read with nothing weak is bit-identical to the read before this
+/// existed.
+///
+/// PER SIDE, NOT PER VARIABLE: a variable pinned strongly at its lower bound
+/// and weakly at its upper keeps the lower side's curvature and drops the
+/// upper's, which is what the critical cone actually says.
+///
+/// @param weak_scale The activity scale (a multiple of `sqrt(mu)`); `<= 0`
+/// disables the rule entirely.
+inline void ipqp_accumulate_bound_sigma_critical_cone(const Eigen::Ref<const Eigen::VectorXd> &x,
+                                                      const Eigen::Ref<const Eigen::VectorXd> &l,
+                                                      const Eigen::Ref<const Eigen::VectorXd> &u,
+                                                      const Eigen::Ref<const Eigen::VectorXd> &zl,
+                                                      const Eigen::Ref<const Eigen::VectorXd> &zu,
+                                                      Index n, double weak_scale,
+                                                      Eigen::Ref<Eigen::VectorXd> sigma) {
+    if (!(weak_scale > 0.0)) {
+        ipqp_accumulate_bound_sigma(x, l, u, zl, zu, n, sigma);
+        return;
+    }
+    for (Index i = 0; i < n; ++i) {
+        if (ipqp_has_lower(l[i]) && !(x[i] - l[i] <= weak_scale && zl[i] <= weak_scale)) {
+            sigma[i] += zl[i] / (x[i] - l[i]);
+        }
+    }
+    for (Index i = 0; i < n; ++i) {
+        if (ipqp_has_upper(u[i]) && !(u[i] - x[i] <= weak_scale && zu[i] <= weak_scale)) {
+            sigma[i] += zu[i] / (u[i] - x[i]);
+        }
+    }
+}
+
 /// @brief The tier's OWN slack/multiplier complementarity reduction.
 ///
 /// DELIBERATELY NOT SHARED with the NLP engine (section 3.5's "explicitly not

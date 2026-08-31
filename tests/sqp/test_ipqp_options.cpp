@@ -146,7 +146,8 @@ TEST(IpqpOptions, RegularizationFloorAndCeilingMustBeWellFormed) {
 }
 
 TEST(IpqpOptions, RhoInitMustStartInsideTheRegularizationBand) {
-    // rho_init IS tied to the floor -- spec section 2.2's monotone floor is
+    // rho_init IS tied to the floor -- spec section 2.2's (M6 W1 T4b-deleted)
+    // monotone floor was
     // stated for rho.
     SqpOptions o;
     o.ipqp.ipqp_reg_floor = 1e-6;
@@ -161,7 +162,7 @@ TEST(IpqpOptions, RhoInitMustStartInsideTheRegularizationBand) {
 
 TEST(IpqpOptions, DeltaInitMustBePositiveAndNoLargerThanTheCeilingButIsNotTiedToTheFloor) {
     // Fix round 1 (2026-08-30, plan section 7 note g): delta_init is NOT
-    // bound to ipqp_reg_floor -- only rho carries the monotone-floor
+    // bound to ipqp_reg_floor -- only rho carried the monotone-floor
     // invariant (spec 2.2) -- so a value below the (deliberately high) floor
     // set here must still be ACCEPTED.
     SqpOptions o;

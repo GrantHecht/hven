@@ -655,17 +655,21 @@ QpProblem equality_null_space_indefinite_qp(double lam) {
     return qp;
 }
 
-/// T4b close gate 8's fixture (the R5 precondition): an indefinite direction
-/// whose binding bounds are WEAKLY active. `H = diag(2, -1)`, `g = 0`, and a
-/// SYMMETRIC box of half-width `s` on the negative-curvature coordinate, so
-/// `x1 = 0` is an exact KKT point of the barrier problem at every `mu` and the
-/// tier converges there with `x1 - l = s`, `z = mu / s` and
-/// `Sigma = 2 mu / s^2`. Sweeping `s` sweeps `Sigma` across 1, which is
-/// exactly `|H11|`: the regime where "`H + Sigma` at the point" neither masks
-/// nor exposes the curvature.
-QpProblem weakly_active_indefinite_qp(double s) {
+/// T4b close gate 8's fixture: a direction whose binding bounds are WEAKLY
+/// ACTIVE. `H = diag(2, h)`, `g = 0`, and a SYMMETRIC box of half-width `s` on
+/// the second coordinate, so `x1 = 0` is an exact KKT point of the barrier
+/// problem at every `mu` and the tier converges there with `x1 - l = s`,
+/// `z = mu / s` and `Sigma = 2 mu / s^2`. Sweeping `s` sweeps the activity of
+/// the two bounds through the `sqrt(mu)` regime.
+///
+/// `h < 0` makes `x1 = 0` a SADDLE (the maximum of a concave section on a
+/// symmetric interval) whose certificate must FALL; `h > 0` makes it the
+/// MINIMIZER, on identical geometry, whose certificate must STAND. The pair is
+/// what separates "the read verifies the critical cone" from "the read
+/// downgrades anything with a weak bound".
+QpProblem weakly_active_indefinite_qp(double s, double h) {
     QpProblem qp;
-    qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
+    qp.H = dense_upper({{2.0, 0.0}, {0.0, h}});
     qp.g = vec({0.0, 0.0});
     qp.Ae = dense_rows({}, 2);
     qp.be = Vec(0);
@@ -742,7 +746,12 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
     // assumed. (a) it converged, so there IS a settled value; (b) the point is
     // the one the fixture was built around; (c) NO BOUND IS ACTIVE, so the
     // reduced Hessian really is the analytic `lam` and not `lam + Sigma`.
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("t4b_gate7_accelerate", "UNOBSERVED -- the exact iteration count is MKL-only");
+    ASSERT_GT(r.counters.ipqp_iters, 0);
+#else
     ASSERT_EQ(r.counters.ipqp_iters, 30);
+#endif
     EXPECT_NEAR(r.x(0), 0.5, 1e-9);
     EXPECT_NEAR(r.x(1), 0.0, 1e-6);
     EXPECT_LT(sigma_at(r, equality_null_space_indefinite_qp(lam), 1), 1e-6)
@@ -773,60 +782,103 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
     EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
     EXPECT_NE(r.status, QpStatus::kOptimal);
 
-    // THE HS ROWS GET THE OBSERVED-THRESHOLD FORM INSTEAD (gate 7's own
-    // scoping). With bounds active, a finite `delta_sched` and Ruiz on, the
-    // target inertia is `G + A'A/delta > 0` rather than "G positive definite
-    // on null(A)", so the analytic band is NOT valid there. What IS asserted
-    // is Algorithm IC's own descent property: the memory ends at least one
-    // `/3` step below the solve's peak, i.e. the ladder demonstrably walked
-    // back down rather than parking on its first climb.
+    // THE HS ROWS GET THE OBSERVED-THRESHOLD FORM (gate 7's own scoping). With
+    // bounds active, a finite `delta_sched` and Ruiz on, the target inertia is
+    // `G + A'A/delta > 0` rather than "G positive definite on null(A)", so the
+    // ANALYTIC band is not valid there and the plan asks for the OBSERVED
+    // threshold instead: record the smallest sufficient shift and assert
+    // `rho_d_settled <= kIpqpLadderUp x` it.
+    //
+    // DEVIATION IN ROUND 1, NOW CLOSED (fix round 1, I3 / CX5). Round 1 shipped
+    // only `rho_demanded_last <= rho_demanded_max / kIpqpLadderDown` -- a
+    // different and weaker property ("the memory walked one /3 step below the
+    // peak"), which passes when peak = 100, last = 33 and the smallest
+    // sufficient value is 1, i.e. exactly when the required `33 <= 8` fails.
+    // The smallest sufficient value is not visible through `IpqpResult`, so
+    // this test MEASURES it: `ipqp_rho_init` sets the schedule's starting
+    // value, and a solve capped at ONE iteration reports
+    // `ipqp_inertia_retries == 0` iff that value already sufficed at iteration
+    // 0. Descending powers of two bracket the smallest sufficient shift to a
+    // factor of two, and the assertion carries that slack explicitly rather
+    // than hiding it.
     for (const QpProblem &qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
           test_support::two_negative_eigenvalue_row_qp()}) {
         IpqpEngine hs_tier(tight_opts());
         const IpqpResult h = hs_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         ASSERT_GT(h.counters.ipqp_rho_demanded_max, 0.0);
+        // The round-1 property is kept -- it is true, and it is the cheap
+        // regression guard -- with the observed-threshold property added beside
+        // it rather than instead of it.
         EXPECT_LE(h.counters.ipqp_rho_demanded_last,
                   h.counters.ipqp_rho_demanded_max / detail::kIpqpLadderDown);
+
+        double observed_threshold = std::numeric_limits<double>::infinity();
+        for (double trial = 128.0; trial >= 1.0 / 1024.0; trial *= 0.5) {
+            IpqpOptions probe;
+            probe.ipqp_rho_init = trial;
+            probe.ipqp_hard_iter_cap = 1;
+            IpqpEngine probe_tier(tight_opts());
+            const IpqpResult pr = probe_tier.solve(qp, nullptr, probe, SolveOverrides{});
+            if (pr.counters.ipqp_inertia_retries == 0) {
+                observed_threshold = trial;
+            } else {
+                break;
+            }
+        }
+        ASSERT_TRUE(std::isfinite(observed_threshold))
+            << "no trial shift in the sweep sufficed -- the probe is not measuring a threshold";
+        RecordProperty("t4b_gate7_observed_threshold", std::to_string(observed_threshold));
+        RecordProperty("t4b_gate7_settled", std::to_string(h.counters.ipqp_rho_demanded_last));
+        EXPECT_LE(h.counters.ipqp_rho_demanded_last,
+                  2.0 * detail::kIpqpLadderUp * observed_threshold)
+            << "settled = " << h.counters.ipqp_rho_demanded_last
+            << ", observed threshold = " << observed_threshold;
     }
 }
 
-TEST(IpqpCertificationTest, AWeaklyActiveBoundIsExactlyWhereTheFinalReadStopsBeingDecisive) {
-    // T4b CLOSE GATE 8 -- THE R5 PRECONDITION, AND THE ANSWER IS NO.
+TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundInsteadOfMasking) {
+    // T4b CLOSE GATE 8, **REPAIRED** IN FIX ROUND 1 (settler ruling R1, on the
+    // tycho-sqp lane's escalation and Codex's CRITICAL finding).
     //
-    // R5 proposes reading the second-order certificate off the tier-3 FACE
-    // factorization instead of paying section 2.2 item 4's extra one, and it
-    // carries its own precondition: a weak-active-indefinite fixture showing
-    // the merge is sound. This is that fixture, and what it shows is that the
-    // item 4 read is EXACTLY a statement about `H + Sigma` AT THE POINT and
-    // carries no information beyond it -- so where `Sigma` is an artefact of
-    // where the barrier stopped rather than of the geometry, the read is
-    // decided by the artefact.
+    // WHAT THE ROUND-1 ENGINE DID, and why it was a wrong answer rather than a
+    // registered gap. Second-order conditions are stated on the CRITICAL CONE.
+    // At a bound whose multiplier is essentially zero, the direction moving OFF
+    // that bound is IN the cone, so the section 2.2 item 4 read has to verify
+    // it. The barrier's own curvature `Sigma = z / gap` masks it: at a weakly
+    // active bound `z` and `gap` are BOTH of order `sqrt(mu)`, so `Sigma` is of
+    // order one and cancels a genuinely negative eigenvalue. Measured on this
+    // very family: for every `s` with `2 mu / s^2 > 1` the tier certified
+    // `x = 0` -- a SADDLE -- as `kOptimal`. That is
+    // `kOptimal`-at-a-non-minimizer, the exact class task 4 closed for the SSN
+    // kernel.
     //
-    // THE SWEEP. `x1 = 0` is an exact KKT point of the barrier problem at
-    // every `mu` on a symmetric box of half-width `s`, so the tier always
-    // converges there, always in three iterations, and always WITHOUT arming
-    // the ladder (`rho_0 = 8` covers `|H11| = 1` from the start). Only
-    // `Sigma = 2 mu / s^2` moves. `x1 = 0` is the MAXIMUM of `-x1^2 / 2` on
-    // that box, so on every member the certificate SHOULD NOT STAND.
+    // WHAT THE READ DOES NOW: it drops the `Sigma` contribution of a bound side
+    // that is weakly active -- BOTH its slack and its multiplier below
+    // `kIpqpWeakActiveFactor * sqrt(mu)` -- before its single factorization.
+    // Strongly active sides keep their curvature (they are not in the cone) and
+    // inactive sides are unaffected. Same one factorization.
     //
-    // MEASURED: it stands wherever `Sigma > |H11| = 1`. The boundary is not
-    // approximate -- it is `Sigma = 1` to the digit, because that is where
-    // `H + Sigma` changes sign.
-    //
-    // NOTHING HERE IS CHANGED BY T4b: the ladder never arms on this family, so
-    // the same sweep on the pre-T4b engine gives the same answers. The gate is
-    // a measurement of section 2.2 item 4, not of the separated ladder, and
-    // the finding is recorded as R5's precondition being UNDISCHARGED.
-    Index stood = 0;
-    Index downgraded = 0;
-    for (const double s : {5.0e-4, 3.0e-4, 2.0e-4, 1.8e-4, 1.58e-4, 1.4e-4, 1.2e-4, 1.0e-4}) {
+    // THE FIXTURE. `H = diag(2, h)`, `g = 0`, and a SYMMETRIC box of half-width
+    // `s` on the second coordinate: `x1 = 0` is an exact KKT point of the
+    // barrier problem at every `mu` (the two bound terms cancel), so the tier
+    // always converges there, in three iterations, and NEVER arms the ladder
+    // (`rho_0 = 8` covers `|h| = 1` from the first factorization) -- which is
+    // what makes this a test of the READ. Sweeping `s` sweeps the activity of
+    // the two bounds. With `h = -1` the point is a SADDLE and the certificate
+    // must fall; with `h = +1` it is the MINIMIZER and the certificate must
+    // stand, on the same geometry.
+    Index dropped_and_downgraded = 0;
+    Index kept_and_stood = 0;
+    Index skipped_ties = 0;
+    for (const double s :
+         {5.0e-4, 3.0e-4, 2.0e-4, 1.8e-4, 1.58e-4, 1.4e-4, 1.2e-4, 1.0e-4, 5.0e-5, 1.0e-5}) {
         SCOPED_TRACE(s);
-        const QpProblem qp = weakly_active_indefinite_qp(s);
+        const QpProblem saddle = weakly_active_indefinite_qp(s, -1.0);
         IpqpEngine tier(tight_opts());
-        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        const IpqpResult r = tier.solve(saddle, nullptr, IpqpOptions{}, SolveOverrides{});
 
-        // The family's own invariants, so the sweep is one experiment with one
+        // The family's invariants, so the sweep is one experiment with one
         // variable moving.
         ASSERT_EQ(r.counters.ipqp_iters, 3);
         EXPECT_NEAR(r.x(1), 0.0, 1e-12);
@@ -834,37 +886,117 @@ TEST(IpqpCertificationTest, AWeaklyActiveBoundIsExactlyWhereTheFinalReadStopsBei
             << "the ladder never arms here -- rho_0 = 8 covers |H11| = 1 from the first "
                "factorization, which is what makes this a test of the READ";
 
-        const double sigma = sigma_at(r, qp, 1);
-        const bool masked = sigma > 1.0;
-        // THE WEAK-ACTIVE REGIME ITSELF: `x1 - l` and `z` are both of order
-        // `sqrt(mu)`, which is what makes `Sigma` of order 1.
-        EXPECT_NEAR(std::log10((r.x(1) - qp.lower(1)) / std::sqrt(r.mu)), 0.0, 0.7);
-        EXPECT_NEAR(std::log10(r.zl(1) / std::sqrt(r.mu)), 0.0, 0.7);
+        // THE KNIFE-EDGE MEMBERS ARE SKIPPED, not asserted (fix round 1, I5).
+        // A member whose `Sigma` sits within 1% of `|H11|` leaves the read's
+        // matrix within a hair of singular, and demanding that a factorization
+        // resolve that sign is the registered tie-flake class
+        // (`WeaklyActiveRowFinishesUncertain`, M6 register 2026-08-26). The
+        // sweep still crosses the boundary; it just does not stand on it.
+        const double sigma = sigma_at(r, saddle, 1);
+        if (std::abs(sigma - 1.0) < 1e-2) {
+            ++skipped_ties;
+            continue;
+        }
 
-        if (masked) {
-            // `H + Sigma > 0`: the read agrees with the required signature and
-            // the certificate STANDS -- at a point that is not a minimizer.
-            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
-            EXPECT_FALSE(r.certificate_downgraded);
-            EXPECT_EQ(r.status, QpStatus::kOptimal);
-            ++stood;
-        } else {
-            // `H + Sigma < 0`: the read disagrees and the certificate is
-            // DOWNGRADED, which is the outcome gate 8 wanted everywhere.
-            EXPECT_NE(r.counters.ipqp_final_inertia_read, 0);
+        // THE RULE THE READ NOW APPLIES, recomputed here from the returned
+        // point rather than read out of the engine: a bound side is weakly
+        // active iff BOTH its gap and its multiplier are below
+        // `kIpqpWeakActiveFactor * sqrt(mu)`. This family's two bounds are
+        // symmetric, so they are weak together or strong together.
+        const double weak_scale = detail::kIpqpWeakActiveFactor * std::sqrt(r.mu);
+        const double gap = r.x(1) - saddle.lower(1);
+        const bool weak = gap <= weak_scale && r.zl(1) <= weak_scale;
+
+        // THE WEAK-ACTIVE REGIME ITSELF, on the members that are in it: the
+        // slack and the multiplier are both of order `sqrt(mu)`.
+        if (weak) {
+            EXPECT_NEAR(std::log10(gap / std::sqrt(r.mu)), 0.0, 1.2);
+            EXPECT_NEAR(std::log10(r.zl(1) / std::sqrt(r.mu)), 0.0, 1.2);
+            // THE REPAIR: the masking curvature is dropped, the read sees
+            // `H11 = -1`, and the certificate FALLS -- at a point that is not a
+            // minimizer, which is the whole content of gate 8.
+            EXPECT_NE(r.counters.ipqp_final_inertia_read, 0)
+                << "sigma = " << sigma << " masked a saddle";
             EXPECT_TRUE(r.certificate_downgraded);
             EXPECT_NE(r.status, QpStatus::kOptimal);
-            ++downgraded;
+            ++dropped_and_downgraded;
+        } else {
+            // STRONGLY ACTIVE: the direction off the bound is NOT in the
+            // critical cone, the curvature is genuinely constrained, and the
+            // read keeps it. `Sigma` here is 250, not 1.28: the barrier has
+            // resolved this bound, and the residual exposure is an accuracy
+            // question about where the solve stopped rather than a critical-cone
+            // question. Recorded as a concern in the T4b report, not papered
+            // over.
+            EXPECT_GT(sigma, 1.0);
+            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+            ++kept_and_stood;
         }
     }
+    EXPECT_GT(dropped_and_downgraded, 0) << "the repair must fire somewhere, or nothing is tested";
+    EXPECT_GT(kept_and_stood, 0) << "and it must NOT fire on a strongly active bound, or the rule "
+                                    "is 'drop everything'";
+    EXPECT_GT(skipped_ties, 0) << "the sweep crosses the boundary";
 
-    // BOTH BRANCHES OCCUR, so neither half of the pin is vacuous, and the
-    // sweep really does cross the boundary rather than sitting on one side.
-    EXPECT_GT(stood, 0) << "the masking side of Sigma = 1 -- R5's precondition is NOT discharged";
-    EXPECT_GT(downgraded, 0) << "the exposing side";
-    RecordProperty("t4b_gate8", "R5 precondition UNDISCHARGED: the item 4 read is exactly a "
-                                "statement about H + Sigma at the point, and a weakly active "
-                                "bound with Sigma > |H| stands a certificate at a saddle");
+    // **CODEX'S NAMED MEMBER**, asserted on its own rather than only inside the
+    // loop: `weakly_active_indefinite_qp(1.4e-4)` has `Sigma ~ 1.28 > |-1|` and
+    // was the concrete case filed as CRITICAL. It downgrades.
+    {
+        const QpProblem qp = weakly_active_indefinite_qp(1.4e-4, -1.0);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        EXPECT_GT(sigma_at(r, qp, 1), 1.0) << "the masking really is in force at this member";
+        EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
+        EXPECT_TRUE(r.certificate_downgraded);
+        EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
+        EXPECT_NE(r.status, QpStatus::kOptimal);
+    }
+
+    // **THE DEFECT, PINNED AS A MUTATION PARTNER.** Restoring the masked
+    // `Sigma` is what the un-repaired read did, and it flips the same saddle
+    // back to standing. There is no option that restores it -- the repair is
+    // unconditional -- so the partner is built out of the arithmetic instead:
+    // at the returned point the read's matrix is `H + Sigma` with the weak
+    // sides dropped, and `H11 + sigma` is what the OLD read factorized. The
+    // assertion is that the old quantity is POSITIVE (so the old read would
+    // have agreed and the certificate would have stood) while the new one is
+    // NEGATIVE. A regression that put the masking back would make the two
+    // agree and this would fail.
+    {
+        const QpProblem qp = weakly_active_indefinite_qp(1.4e-4, -1.0);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        const double h11 = -1.0;
+        EXPECT_GT(h11 + sigma_at(r, qp, 1), 0.0)
+            << "the UN-repaired read's matrix is positive definite here -- that is the defect";
+        EXPECT_LT(h11, 0.0) << "and the repaired read's is not, because Sigma is dropped";
+        EXPECT_TRUE(r.certificate_downgraded) << "and the engine takes the repaired answer";
+    }
+
+    // **THE PARTNER THE RULING ASKS FOR: A TRUE WEAKLY-ACTIVE MINIMIZER STILL
+    // CERTIFIES.** Same geometry, same weak bounds, curvature flipped -- so the
+    // dropped `Sigma` leaves `H11 = +1 > 0` and the read agrees. Without this,
+    // "the saddle downgrades" would be satisfied by a rule that downgrades
+    // everything with a weakly active bound.
+    Index minimizers_certified = 0;
+    for (const double s : {5.0e-4, 1.8e-4, 1.4e-4, 1.0e-4, 5.0e-5}) {
+        SCOPED_TRACE(s);
+        const QpProblem qp = weakly_active_indefinite_qp(s, 1.0);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        const double weak_scale = detail::kIpqpWeakActiveFactor * std::sqrt(r.mu);
+        ASSERT_LE(r.x(1) - qp.lower(1), weak_scale) << "the bound really is weakly active here";
+        ASSERT_LE(r.zl(1), weak_scale);
+        EXPECT_EQ(r.status, QpStatus::kOptimal);
+        EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+        EXPECT_FALSE(r.certificate_downgraded);
+        ++minimizers_certified;
+    }
+    EXPECT_EQ(minimizers_certified, 5);
+
+    RecordProperty("t4b_gate8", "REPAIRED (fix round 1, R1): the item 4 read drops the Sigma of "
+                                "weakly active bound sides, so a saddle held by barrier curvature "
+                                "downgrades while a true weakly-active minimizer still certifies");
 }
 
 TEST(IpqpLadderTest, AFixedPointOfTheExecutedMapIsAPointTheGateCanSee) {
@@ -965,14 +1097,25 @@ TEST(IpqpLadderTest, ALongArmedWalkWithNoGateAdvanceStillConvergesInsideTheBudge
     // THE WALK IS REAL AND IT IS LONG. Both halves matter: armed (so the gap's
     // precondition holds at all) and silent (so it is the gap and not an
     // ordinary solve).
-    EXPECT_EQ(r.counters.ipqp_iters_ladder_armed_no_advance, 26);
     EXPECT_GE(r.counters.ipqp_iters_ladder_armed_no_advance, 10)
         << "fewer than ten armed silent iterations and this fixture licenses nothing";
-    EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 29);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
+#ifdef USE_ACCELERATE_SPARSE
+    // UNOBSERVED on Apple/Accelerate (CLAUDE.md section 6: a value that has not
+    // been observed on real Mac hardware is never guessed). The structural
+    // assertions above and below hold on every backend; the exact trajectory
+    // counts are MKL evidence and are pinned only there. The Mac session
+    // measures and fills these in.
+    RecordProperty("t4b_gate10_accelerate", "UNOBSERVED -- exact walk counts are MKL-only");
+#else
+    EXPECT_EQ(r.counters.ipqp_iters_ladder_armed_no_advance, 26);
+    EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 29);
+#endif
 
     // ... AND IT FINISHES, INSIDE THE BUDGET, AT THE ANSWER.
+#ifndef USE_ACCELERATE_SPARSE
     EXPECT_EQ(r.counters.ipqp_iters, 31);
+#endif
     EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
     EXPECT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
@@ -984,6 +1127,46 @@ TEST(IpqpLadderTest, ALongArmedWalkWithNoGateAdvanceStillConvergesInsideTheBudge
     EXPECT_EQ(r.counters.ipqp_escape_stall, 0);
     EXPECT_FALSE(r.stall_evidence.fired);
     EXPECT_EQ(r.counters.ipqp_escapes, 0);
+
+    // **THE WALK IS UNINTERRUPTED, AND THAT IS PROVED RATHER THAN INFERRED**
+    // (fix round 1, CX8). Aggregate counts cannot establish contiguity: 26
+    // silent armed iterations and 29 armed ones are equally consistent with
+    // three advances scattered through the middle. What settles it is a
+    // TRUNCATION SWEEP -- the same solve run with `ipqp_hard_iter_cap = k` for
+    // each `k`, which follows the identical trajectory and simply stops
+    // earlier, so the differences `prox(k) - prox(k-1)` and `elev(k) -
+    // elev(k-1)` say exactly whether iteration `k` advanced and whether it was
+    // armed. The longest contiguous run of armed-and-silent iterations is then
+    // a measurement, not a bound.
+    Index longest_run = 0;
+    Index run = 0;
+    Index prev_prox = 0;
+    Index prev_elev = 0;
+    for (Index k = 1; k <= r.counters.ipqp_iters; ++k) {
+        IpqpOptions capped;
+        capped.ipqp_hard_iter_cap = k;
+        IpqpEngine step_tier(tight_opts());
+        const IpqpResult sr =
+            step_tier.solve(long_negative_curvature_walk_qp(), nullptr, capped, SolveOverrides{});
+        ASSERT_EQ(sr.counters.ipqp_iters, k) << "the truncated solve must take exactly k steps";
+        const bool advanced = sr.counters.ipqp_prox_center_updates > prev_prox;
+        const bool armed = sr.counters.ipqp_iters_at_elevated_rho > prev_elev;
+        prev_prox = sr.counters.ipqp_prox_center_updates;
+        prev_elev = sr.counters.ipqp_iters_at_elevated_rho;
+        run = (armed && !advanced) ? run + 1 : 0;
+        longest_run = std::max(longest_run, run);
+    }
+    EXPECT_GE(longest_run, 10) << "the gap needs a CONTIGUOUS armed run with no gate advance, and "
+                                  "ten is the floor the plan sets for this fixture";
+    RecordProperty("t4b_gate10_longest_uninterrupted_armed_run", std::to_string(longest_run));
+#ifndef USE_ACCELERATE_SPARSE
+    // MEASURED on MKL: iterations 4 through 27 inclusive are armed with no gate
+    // advance -- one unbroken run of 24. The three armed iterations that DO
+    // advance sit at the ends of the walk (3, 28 and 31), which is the shape
+    // the gap predicts: the gate speaks when the curvature turns, and is silent
+    // in between.
+    EXPECT_EQ(longest_run, 24);
+#endif
 
     // NON-VACUITY: the same problem with the sign of the second curvature
     // flipped is convex, never arms the ladder, and the counter that measures

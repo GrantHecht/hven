@@ -387,6 +387,32 @@ TEST(IpqpLadderTest, AnIndefiniteSubproblemArmsTheLadderAndWalksToTheBound) {
     // arrives at the minimizer.
     EXPECT_NEAR(r.x(0), 1.0, 1e-6);
     EXPECT_NEAR(r.x(1), 10.0, 1e-9);
+    // THIS IS THE FIXTURE WHOSE MEASURED FAILURE MOTIVATED THE PERTURBED-PIVOT
+    // RE-ROUTE: Ruiz normalizes the `-1000` coordinate's scaled diagonal to
+    // almost exactly `-1`, Algorithm IC's rung `1.0` annihilates the pivot, and
+    // the pre-T4b always-dual rule then spent four factorizations climbing
+    // `delta` to `1e6` and escaped `kNumerical` with ZERO iterations taken (the
+    // mutation reproducing that is recorded in the T4b fix-round-1 report).
+    // What is asserted here is the OUTCOME the re-route buys -- the solve takes
+    // steps and reaches the minimizer.
+    //
+    // THE ROUTE COUNTERS ARE **NOT** PINNED ON THIS FIXTURE, and the reason is
+    // a measurement rather than caution: whether the backend REPORTS a
+    // perturbed pivot at that rung depends on how close to zero the annihilated
+    // pivot lands, and that is flag-regime-sensitive. Measured:
+    // `ipqp_pivot_reroute_primal == 1` under Debug and `== 0` under Release,
+    // with an IDENTICAL trajectory either way (29 iterations, 44
+    // factorizations), because the re-route rung simply replaces a rung the
+    // wrong-inertia path would have taken. A counter pin here would be pinning
+    // the backend's perturbation threshold. The re-route's own contract --
+    // two primal rungs then the bounded dual fallback -- is pinned exactly and
+    // deterministically in `tests/sqp/test_ipqp_seams.cpp`, through the
+    // injector this suite keeps for faults no legal fixture reaches reliably.
+    EXPECT_GT(r.counters.ipqp_iters, 0)
+        << "the solve TAKES STEPS -- the pre-T4b rule's zero-iteration kNumerical is the failure "
+           "the re-route exists to remove";
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0)
+        << "whatever the primal route did here, it was never exhausted";
     EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap)
         << "the budget is no longer what stops it -- mechanism 4's freeze is gone";
     EXPECT_NE(r.escape_reason, IpqpEscape::kBudget);
@@ -435,11 +461,27 @@ TEST(IpqpLadderTest, TheICTrialIsRefusedAndTheReclimbIsCounted) {
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
 
-    // THE RECLIMBS, AS AN EXACT COUNT: eight iterations of this solve start
-    // from IC's memory -- the skip rule licenses that only after three
-    // consecutive modified iterations -- and have their `/3` probe refused.
-    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 8);
+    // THE RECLIMBS, AS AN EXACT COUNT: eight iterations of this solve have a
+    // `rho_dem_last / kIpqpLadderDown` value refused and have to re-escalate
+    // past it. BOTH ROUTES TO THAT VALUE COUNT (fix round 1, I2 / CX4) -- it is
+    // this iteration's first trial once the skip rule licenses it, and it is
+    // the rung that answers a refused zero-trial before then.
+    //
+    // AND A PERTURBED-DRIVEN ESCALATION IS NOT ONE (fix round 1, I1). A
+    // perturbed-pivot report answered by the primal ladder is a statement about
+    // a backend pivot, not about curvature, so it is counted as a re-route and
+    // never as a reclimb -- which is what keeps the two costs separable for T9.
+    // The reclimb count below is the same eight under Debug (where this fixture
+    // does take one re-route rung) and under Release (where it takes none), and
+    // that invariance IS the exclusion, measured.
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("t4b_reclimb_accelerate", "UNOBSERVED -- the exact reclimb count is MKL-only");
+    EXPECT_GT(r.counters.ipqp_ladder_reclimbs, 0);
+#else
+    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 8);
+#endif
     // ... and the memory ends far below the peak, which is the non-monotone
     // statement again, here beside the counter that measures its cost.
     EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
@@ -454,7 +496,9 @@ TEST(IpqpLadderTest, TheICTrialIsRefusedAndTheReclimbIsCounted) {
     // longer exists, so every gated advance is either a decrease or a class
     // (c) advance that moved nothing. This solve's advances all moved.
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
+#ifndef USE_ACCELERATE_SPARSE
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, 7);
+#endif
 
     // MUTATION NON-VACUITY: the same solve on a CONVEX Hessian never arms the
     // ladder, so there is no memory to probe and no reclimb to count, while
@@ -630,8 +674,13 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     EXPECT_EQ(r.counters.ipqp_factorizations, 10);
     EXPECT_EQ(r.counters.ipqp_inertia_retries, 6);
     EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0)
-        << "no iteration here ever starts from the memory -- the skip rule needs three "
-           "consecutive modified iterations and this solve takes three in total";
+        << "the /3 value is ACCEPTED on both of the iterations that try it (100/3 and 100/9), so "
+           "there is nothing to re-escalate past -- and after fix round 1 widened the charge to "
+           "cover the zero-trial route as well, a zero here is a measurement rather than a blind "
+           "spot: this fixture's cost is the retried ZERO-trial, which `ipqp_inertia_retries` "
+           "already carries";
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_primal, 0);
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 100.0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, 100.0 / 3.0 / 3.0);
     EXPECT_DOUBLE_EQ(r.rho_mod, r.counters.ipqp_rho_demanded_last)
@@ -776,6 +825,35 @@ TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefini
     // then the DOCUMENTED ceiling exactly, which is what this asserts.
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, io.ipqp_reg_max);
     EXPECT_GE(r.counters.ipqp_rho_demanded_max, io.ipqp_reg_max * (1.0 - detail::kSsnProxCapSlack));
+
+    // **THE REFUSED CEILING RUNG DOES NOT ENTER IC'S MEMORY** (fix round 1,
+    // CX3). `ipqp_rho_demanded_last` is the memory: the shift the last
+    // SUCCESSFUL MODIFIED factorization ran at, and the value a warm carry
+    // would seed the next solve's trial from. `ipqp_reg_max` here produced no
+    // successful factorization at all -- the ladder was refused there and the
+    // solve escaped -- so recording it would report `1e6` as the level the tier
+    // settled at when it settled at nothing, and would hand T7's registered
+    // cross-major carry known-FAILED evidence to descend from. Round 1
+    // recorded it; this is the pin that says it must not.
+    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, 0.0)
+        << "no modified factorization on this solve ever succeeded, so the memory stays empty";
+    EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+    EXPECT_DOUBLE_EQ(r.rho_mod, 0.0) << "and no step was taken at any modification either";
+
+    // NON-VACUITY: a solve whose ladder DOES succeed at a modified value
+    // records exactly that value, so the pin above is about the refused rung
+    // and not about the field being dead.
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult ok =
+        tier2.solve(box_qp(-10.0, 10.0), nullptr, IpqpOptions{}, SolveOverrides{});
+    EXPECT_DOUBLE_EQ(ok.counters.ipqp_rho_demanded_last, 0.0) << "convex: never armed";
+    QpProblem saddle = box_qp(-10.0, 10.0);
+    saddle.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
+    saddle.g = vec({0.0, 0.0});
+    IpqpEngine tier3(tight_opts());
+    const IpqpResult sd = tier3.solve(saddle, nullptr, IpqpOptions{}, SolveOverrides{});
+    EXPECT_GT(sd.counters.ipqp_rho_demanded_last, 0.0)
+        << "and a solve whose modified factorizations DID succeed records the last of them";
 }
 
 // ---------------------------------------------------------------------------

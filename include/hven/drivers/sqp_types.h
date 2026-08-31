@@ -206,11 +206,13 @@ struct IpqpOptions {
     /// `ipqp_rho_init` must be finite and lie in `[ipqp_reg_floor,
     /// ipqp_reg_max]` -- the starting value of a quantity the ladder only
     /// ever moves within that band must itself start inside it (spec 2.2's
-    /// monotone floor is stated for `rho`).
+    /// monotone floor was stated for `rho`; M6 W1 T4b deleted that floor,
+    /// and the band survives it because it is the SCHEDULE's band).
     double ipqp_rho_init = 8.0;
     /// The dual-block counterpart of `ipqp_rho_init` immediately above, same
     /// schedule. RELAXED relative to `ipqp_rho_init`'s own band: spec 2.2's
-    /// monotone floor is stated for `rho` only, so `ipqp_delta_init` need
+    /// monotone floor was stated for `rho` only (and M6 W1 T4b deleted it
+    /// outright), so `ipqp_delta_init` need
     /// only be finite and in `(0, ipqp_reg_max]` -- positive (a
     /// non-positive delta would not regularize the dual block at all) and no
     /// larger than the ceiling every regularized quantity in this schedule

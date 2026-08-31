@@ -414,11 +414,16 @@ two `static inline` structs under `hven::solvers::detail::testing`, entirely
 guarded by `#ifdef HVEN_TESTING`:
 
 - `IpqpInertiaEvidenceInjector` — `active`, `on_iteration_reads`,
-  `on_final_read`, `skip_first`, `evidence`, `injections`. Substitutes the
-  `hven::linear::InertiaEvidence` the interior-point QP tier *reads* for a
-  factorization that really ran. The factorization itself is untouched: the
-  backend session, the factor and `KktFactorization::info()` are all exactly
-  what the real call produced.
+  `on_final_read`, `skip_first`, `max_injections`, `evidence`, `injections`.
+  Substitutes the `hven::linear::InertiaEvidence` the interior-point QP tier
+  *reads* for a factorization that really ran. The factorization itself is
+  untouched: the backend session, the factor and `KktFactorization::info()` are
+  all exactly what the real call produced. `skip_first` and `max_injections`
+  together make an injection WINDOW (M6 W1 T4b fix round 1): a fault injected
+  forever can only ever be observed at a terminal state, so a window is what
+  lets a fixture pin what the tier does AFTER the reading comes good again —
+  which quantity a recovery step was built from, how many factorizations a
+  bounded re-route spends before it gives up.
 - `IpqpInertiaReadObserver` — `active`, `reads`, `final_reads`, `last`,
   `last_final`, `last_injected`. NOT an injector; a read-only observer, the
   `PardisoIparmObserver` arrangement one layer up.
@@ -500,12 +505,12 @@ executable.
 **Cost to the production build: measured zero.** `src/qp/ipqp_engine.cpp` was
 compiled twice from the same path with the project's own Release command — once
 as shipped, once with the `#include` and the `#ifdef HVEN_TESTING` block
-textually removed — and the two objects are **byte-identical** (346344 bytes,
-`cmp` clean, re-verified 2026-08-31 after M6 W1 T4b changed this TU; clang
-22.1.8, the project's own Release command for this TU, compiled twice from the
-same path so no embedded source path can differ. The recorded size moves with
-the TU -- it was 343336 bytes at the T5 measurement -- and what the check
-asserts is the CMP, not the number).
+textually removed — and the two objects are **byte-identical** (346696 bytes,
+`cmp` clean, re-verified 2026-08-31 after M6 W1 T4b and its fix round 1 changed
+this TU; clang 22.1.8, the project's own Release command for this TU, compiled
+twice from the same path so no embedded source path can differ. The recorded
+size moves with the TU -- 343336 bytes at the T5 measurement, 346344 at T4b
+round 1 -- and what the check asserts is the CMP, not the number).
 `nm -C libhven.a` reports no `IpqpInertia*` symbol. The production library and
 `hven_sqp_tests` are therefore exactly what they would be if this seam did not
 exist.
