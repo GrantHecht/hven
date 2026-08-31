@@ -397,6 +397,39 @@ TEST(IpqpDispatch, TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve) {
     EXPECT_GT(retirements, 0) << "section 6.1 fired at least once";
 }
 
+// THE SECTION 6.3 EVIDENCE ARRIVES AT THE W2 HOOK, END TO END (fix round 3).
+//
+// The hook's SIGNATURE is pinned on hand-built inputs below; what this pins is
+// that a real `kInfeasibleSuspect` exit's own evidence -- not a
+// default-constructed block, and not one rebuilt at the call site -- is what
+// reaches it. HS10 produces such an exit (measured), and the two headline
+// scalars land on that major's history row.
+TEST(IpqpDispatch, AnInfeasibleSuspectExitsEvidenceReachesTheW2Hook) {
+    auto p = make_hs(10);
+    SqpDriver driver(ipm_options());
+    const SqpSolution s = driver.solve(*p.model);
+    const IpqpCounters &c = s.counters.ipqp;
+
+    ASSERT_GT(c.ipqp_escape_infeasible_suspect, 0)
+        << "the fixture must produce a section 6.3 escape, or nothing is tested";
+
+    Index rows_with_evidence = 0;
+    for (const SqpIterate &row : s.history) {
+        if (row.ipqp_least_infeasible_primal > 0.0 || row.ipqp_farkas_corroborated) {
+            ++rows_with_evidence;
+            EXPECT_GT(row.ipqp_least_infeasible_primal, 0.0)
+                << "the least-infeasible point's own primal residual is positive on a solve that "
+                   "suspected infeasibility -- a zero here would be the default block";
+        }
+    }
+    EXPECT_GT(rows_with_evidence, 0)
+        << "the escaped major's evidence reached the hook and was recorded. A call site that "
+           "substituted a default-constructed IpqpInfeasibilityEvidence would leave every row at "
+           "0/false and fail here, which is the whole reason these two fields exist";
+    EXPECT_LE(rows_with_evidence, c.ipqp_escapes)
+        << "and only escaped majors carry it -- the hook is the escape branch's single entry";
+}
+
 // ROW 5 -- THE ESCAPED SUBPROBLEM'S ANSWER IS THE WALK'S, AND ITS COST IS
 // STILL PAID.
 //
@@ -717,47 +750,85 @@ TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
 // The CENSUS still counts it as `ipqp_escape_budget`: the two answer different
 // questions, and this test is the one place both answers are read at once.
 //
-// K IS LOWERED TO 1, which makes the pin unambiguous: if such an exit were
-// charged at all, the FIRST one would retire the tier. Three of them occur
-// here and the tier is never retired.
-TEST(IpqpDispatch, AConvergedBudgetExitIsACensusEscapeAndALadderSuccess) {
-    auto p = make_hs(7);
+// THREE CONSECUTIVE OF THEM, which is what the ruling actually says, and the
+// fixture is built so that "three" and "consecutive" are both readable off
+// solve-level counters (fix round 3 -- the first spelling asserted only
+// `>= 1`). HS77 at a factorization cap of 7, capped at THREE MAJORS: all three
+// majors escape `kBudget`, all three route to the refinement, none routes to
+// the walk. Since the solve has exactly three majors, "all three" IS
+// "consecutive", with no per-major channel needed to say so.
+//
+// AND THE PREMISE IS DERIVED, NOT ASSUMED. `ipqp_final_inertia_read` is a
+// per-subproblem STATUS that the fold overwrites, so it cannot be read per
+// major from a solve total. It does not need to be: an ESCAPED exit reaches
+// `ipqp_to_refine` through exactly one branch of `ipqp_exit_is_a_usable_step`,
+// and that branch requires `kBudget` AND `read == 3` AND
+// `certificate_downgraded` AND residuals that met the target. So
+// `escape_budget == 3` together with `to_refine == 3` and `to_walk == 0` on a
+// three-major solve says all three had `read == 3` -- there is no other way
+// for those three numbers to hold at once. `refine_accepted == 3` is asserted
+// beside it, so all three were accepted as the step.
+TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
+    auto p = make_hs(77);
     SqpOptions o = ipm_options();
+    o.max_iter = 3;
     // Tight enough that the item 4 read is refused on a converged solve, loose
     // enough that the solve still converges -- the row's whole premise.
-    o.ipqp.ipqp_max_factorizations = 12;
-    o.ipqp.ipqp_retire_after = 1;
+    o.ipqp.ipqp_max_factorizations = 7;
     SqpDriver driver(o);
     const SqpSolution s = driver.solve(*p.model);
     const IpqpCounters &c = s.counters.ipqp;
 
-    ASSERT_GE(c.ipqp_escape_budget, 1) << "the fixture must produce the row, or nothing is tested";
-    EXPECT_EQ(c.ipqp_escapes, c.ipqp_escape_budget) << "and only that kind, on this fixture";
-    EXPECT_EQ(c.ipqp_to_walk, 0)
-        << "every one of them was ROUTED as a converged iterate, to the refinement -- not to the "
-           "cold walk an iteration-cap budget exit takes";
-    EXPECT_EQ(c.ipqp_to_refine, s.counters.major_iters)
-        << "so every major's tier exit reached tier 3";
+    ASSERT_EQ(s.counters.major_iters, 3) << "three majors, so 'all' and 'consecutive' coincide";
+    ASSERT_EQ(c.ipqp_escapes, 3);
+    ASSERT_EQ(c.ipqp_escape_budget, 3) << "and every one of them is a BUDGET escape";
+    ASSERT_EQ(c.ipqp_to_refine, 3)
+        << "each routed to the tier-3 refinement, which an escaped exit can only do through the "
+           "converged-budget branch of the usability gate -- so each had read == 3, a downgraded "
+           "certificate and residuals that met the target";
+    ASSERT_EQ(c.ipqp_refine_accepted, 3) << "and each was ACCEPTED as the step";
+    ASSERT_EQ(c.ipqp_to_walk, 0) << "none took the cold walk an iteration-cap budget exit takes";
+
     EXPECT_EQ(c.ipqp_tier_retired_after, 0)
-        << "AND NONE OF THEM WAS CHARGED. At ipqp_retire_after = 1 a single charged escape retires "
-           "the tier; the tier is still live at the last major, which is only possible if the "
-           "ladder read these as successes (settler ruling, fix round 1)";
+        << "THREE CONSECUTIVE 2c EXITS DO NOT RETIRE THE TIER at the shipped K = 3: each is a "
+           "ladder SUCCESS that RESETS the tally, so the tally never reaches 1, let alone K "
+           "(settler ruling, fix round 1)";
     EXPECT_TRUE(assert_ipqp_escape_census_sums(c))
         << "the census is unchanged: it says what stopped the tier, not whether the tier is suited";
     EXPECT_TRUE(assert_ipqp_routing_partition(c, tier_entries(c)));
-    EXPECT_EQ(s.status, SqpStatus::kOptimal);
 
-    // NON-VACUITY, on the same model and the same K: a TIGHTER cap produces a
-    // genuine escape (the solve does not converge inside it), which IS charged
-    // and retires the tier at the first one.
-    auto q = make_hs(7);
-    SqpOptions tight = o;
-    tight.ipqp.ipqp_max_factorizations = 9;
-    SqpDriver tight_driver(tight);
-    const SqpSolution t = tight_driver.solve(*q.model);
-    EXPECT_GT(t.counters.ipqp.ipqp_to_walk, 0) << "a genuine escape takes the cold walk";
-    EXPECT_EQ(t.counters.ipqp.ipqp_tier_retired_after, 1)
-        << "and IS charged: at K = 1 it retires the tier at the major it happened on";
+    // AND AT K = 1, where a single charge would fire immediately. This is the
+    // sharper reading of "no charge": not merely "fewer than three", but none.
+    auto q = make_hs(77);
+    SqpOptions k1 = o;
+    k1.ipqp.ipqp_retire_after = 1;
+    SqpDriver k1_driver(k1);
+    const SqpSolution t = k1_driver.solve(*q.model);
+    ASSERT_EQ(t.counters.ipqp.ipqp_escape_budget, 3) << "the same three exits";
+    ASSERT_EQ(t.counters.ipqp.ipqp_to_refine, 3);
+    EXPECT_EQ(t.counters.ipqp.ipqp_tier_retired_after, 0)
+        << "at ipqp_retire_after = 1 a single CHARGED escape retires the tier at the major it "
+           "happened on; the tier is still live after three, which is only possible if none of "
+           "them was charged";
+
+    // THE MUTATION PARTNER, on the SAME problem: three consecutive GENUINE
+    // budget escapes -- the ITERATION cap rather than the factorization cap,
+    // so the solves do not converge and the exits are not 2c -- ARE charged
+    // and DO retire the tier at major 3.
+    auto r = make_hs(77);
+    SqpOptions genuine = ipm_options();
+    genuine.max_iter = 6;
+    genuine.ipqp.ipqp_hard_iter_cap = 2; // stops mid-descent, every major
+    SqpDriver genuine_driver(genuine);
+    const SqpSolution g = genuine_driver.solve(*r.model);
+    const IpqpCounters &gc = g.counters.ipqp;
+    ASSERT_EQ(gc.ipqp_escape_budget, 3) << "three budget escapes here too";
+    EXPECT_EQ(gc.ipqp_to_refine, 0) << "but NOT converged, so none reaches the refinement";
+    EXPECT_EQ(gc.ipqp_to_walk, 3) << "each takes the cold walk instead";
+    EXPECT_EQ(gc.ipqp_tier_retired_after, 3)
+        << "and the third one retires the tier -- which is what says the K = 3 charge is live and "
+           "the pin above is about the 2c exemption rather than about a ladder that never fires";
+    EXPECT_TRUE(assert_ipqp_routing_partition(gc, tier_entries(gc)));
 }
 
 // RULING 2 (decision 3, REVERSED): a usable SSN warm-grade exit is refined on
@@ -921,10 +992,13 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndIsTheColdWalkToday) {
     IpqpInfeasibilityEvidence evidence;
     evidence.fired = true;
     evidence.least_infeasible_x = (Vec(1) << 0.25).finished();
+    evidence.least_infeasible_primal = 0.125;
+    evidence.farkas_corroborated = true;
 
     NlpEval ev;
+    SqpIterate row;
     const QpSolution taken =
-        certified_feasibility_fallback(engine, qp, ev, nullptr, evidence, overrides);
+        certified_feasibility_fallback(engine, qp, ev, nullptr, evidence, overrides, row);
     EXPECT_EQ(taken.status, QpStatus::kOptimal);
     ASSERT_EQ(taken.x.size(), 1);
     EXPECT_NEAR(taken.x(0), 2.0, 1e-9) << "the unconstrained minimum of 0.5 x^2 - 2x";
@@ -935,9 +1009,28 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndIsTheColdWalkToday) {
     QpSolution seed;
     seed.x = (Vec(1) << -9.0).finished();
     seed.bound_state.assign(1, BoundState::kFree);
+    SqpIterate seeded_row;
     const QpSolution seeded =
-        certified_feasibility_fallback(engine, qp, ev, &seed, evidence, overrides);
+        certified_feasibility_fallback(engine, qp, ev, &seed, evidence, overrides, seeded_row);
     EXPECT_EQ(seeded.x, taken.x);
+
+    // AND THE EVIDENCE IS RECORDED, not merely accepted (fix round 3): W1's
+    // body acts on none of it, so without these two the whole payload would be
+    // unobservable and a caller passing a default-constructed block would be
+    // indistinguishable from one passing the real thing.
+    EXPECT_DOUBLE_EQ(row.ipqp_least_infeasible_primal, evidence.least_infeasible_primal);
+    EXPECT_EQ(row.ipqp_farkas_corroborated, evidence.farkas_corroborated);
+
+    // THE MUTATION PARTNER, spelled out: a DEFAULT block records zero/false,
+    // so the call site's argument is what these two report.
+    SqpIterate default_row;
+    const IpqpInfeasibilityEvidence unset;
+    certified_feasibility_fallback(engine, qp, ev, nullptr, unset, overrides, default_row);
+    EXPECT_DOUBLE_EQ(default_row.ipqp_least_infeasible_primal, 0.0);
+    EXPECT_FALSE(default_row.ipqp_farkas_corroborated);
+    EXPECT_NE(row.ipqp_least_infeasible_primal, default_row.ipqp_least_infeasible_primal)
+        << "the fixture's evidence must differ from a default one, or the pin cannot see the "
+           "substitution it exists to catch";
 }
 
 // ===========================================================================

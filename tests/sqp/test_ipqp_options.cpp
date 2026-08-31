@@ -21,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
 
 namespace hven::solvers {
@@ -53,6 +54,26 @@ TEST(IpqpOptions, TheFieldsAreValidatedAtEveryModeIncludingTheDefault) {
     SqpOptions bad_at_kwalk;
     bad_at_kwalk.ipqp.ipqp_hard_iter_cap = 0;
     EXPECT_THROW(validate_sqp_options(bad_at_kwalk), std::invalid_argument);
+
+    // AND THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3). It is a
+    // legal `QpMode` value that names no kernel -- it exists so a fourth mode
+    // cannot be added without an arm in the driver's dispatch -- so it is
+    // refused here, at construction, like any other out-of-range setting
+    // rather than at the dispatch it can then never reach.
+    SqpOptions sentinel;
+    sentinel.qp_mode = QpMode::kQpModeCount;
+    EXPECT_THROW(validate_sqp_options(sentinel), std::invalid_argument);
+    EXPECT_THROW(SqpDriver{sentinel}, std::invalid_argument)
+        << "and the constructor validates, so no solve can carry it";
+
+    // The three real modes are all accepted, so the refusal above is about the
+    // sentinel rather than about `qp_mode` being validated at all.
+    for (QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+        SqpOptions real;
+        real.qp_mode = mode;
+        EXPECT_NO_THROW(validate_sqp_options(real))
+            << "mode " << static_cast<int>(mode) << " names a kernel";
+    }
 }
 
 TEST(IpqpOptions, HardIterCapMustBePositive) {

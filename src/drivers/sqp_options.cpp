@@ -261,6 +261,17 @@ void validate_sqp_options(const SqpOptions &opts) {
                         "consecutive escapes\" is not a count, it disables the tier outright",
                         opts.ipqp.ipqp_retire_after));
     }
+    // THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3). It is a
+    // legal `QpMode` value naming no kernel, so it is refused here rather than
+    // left to reach the dispatch, where the arm that enumerates it throws --
+    // a caller who sets it gets the diagnosis at construction, which is where
+    // every other out-of-range setting gets it.
+    if (opts.qp_mode == QpMode::kQpModeCount) {
+        throw std::invalid_argument(
+            "SqpDriver: qp_mode == QpMode::kQpModeCount is the enumerator-count sentinel, not a "
+            "kernel -- it exists so a fourth QpMode cannot be added without an arm in the QP "
+            "kernel dispatch. Use kWalk, kSsn or kIpm");
+    }
     // TASK 1's TEMPORARY kIpm REFUSAL WAS HERE, AND IS GONE (M6 W1 task 6).
     // The routing chain it was waiting on now dispatches the mode
     // (sqp_driver.cpp's THE QP KERNEL DISPATCH), so the mode is reachable and

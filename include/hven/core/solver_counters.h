@@ -908,8 +908,27 @@ struct IpqpCounters {
     /// here; and excludes the CONVERGED `kBudget` exit of `ipqp_to_refine`'s
     /// note, which is counted in the escape census and routed to the
     /// refinement. `ipqp_escapes - ipqp_to_walk` is therefore not a
-    /// meaningful quantity on its own -- the closed statement is the
-    /// three-term one `ipqp_to_refine + ipqp_to_ssn + ipqp_to_walk`.
+    /// meaningful quantity on its own.
+    ///
+    /// THE CLOSED STATEMENT IS OVER FIRST DESTINATIONS, and it is NOT the raw
+    /// three-term sum (corrected, fix round 3):
+    ///
+    ///     ipqp_to_refine + ipqp_escape_indefinite
+    ///                    + (ipqp_to_walk - ipqp_declined_pinned)
+    ///         == the subproblems the tier was CONSULTED on
+    ///            (entered the engine: neither retired-past nor declined)
+    ///
+    /// `ipqp_to_ssn` cannot stand in that sum: a refinement REFUSAL reaches
+    /// SSN as a SECOND destination and is already counted in
+    /// `ipqp_to_refine`, so adding `ipqp_to_ssn` would count it twice.
+    /// `ipqp_escape_indefinite` is the only route that reaches SSN FIRST.
+    /// And `ipqp_declined_pinned` is subtracted because a decline is counted
+    /// here -- the walk really is where it goes -- without the tier having
+    /// run, so it is not one of the consulted subproblems the sum is over.
+    /// `tests/sqp/support/ipqp_test_support.h`'s
+    /// `assert_ipqp_routing_partition` asserts exactly this, together with
+    /// `ipqp_to_refine == accepted + refused` and
+    /// `ipqp_to_ssn == refused + escape_indefinite`.
     Index ipqp_to_walk = 0;
 
     /// Subproblems the tier ESCAPED (any of the five reasons below), summed

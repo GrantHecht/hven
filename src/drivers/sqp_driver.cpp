@@ -939,7 +939,7 @@ void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res) {
 QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
                                           const QpSolution *seed,
                                           const IpqpInfeasibilityEvidence &evidence,
-                                          const SolveOverrides &overrides) {
+                                          const SolveOverrides &overrides, SqpIterate &row) {
     // W2 REPLACES THIS BODY, NOT ITS CALL SITE. Today: the COLD walk, spec 2.3
     // item 5 -- no seed, no crash basis, no hot handle. The three unused
     // parameters are exactly the ones the elastic l1-penalized reformulation
@@ -948,9 +948,16 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     // least-infeasible point and its optional Farkas corroboration, which is
     // the whole reason W2's answer can be "solve something always-feasible"
     // rather than "accumulate more symptoms".
+    // THE EVIDENCE ARRIVES, AND SAYS SO. W1's body does not ACT on the block,
+    // so without this the whole payload would be unobservable and a call site
+    // that passed a default-constructed one would be indistinguishable from
+    // one that passed the real thing. Recorded BEFORE the fallback runs, and
+    // from the parameter rather than from any other source, so that what is
+    // recorded is exactly what this function was handed.
+    row.ipqp_least_infeasible_primal = evidence.least_infeasible_primal;
+    row.ipqp_farkas_corroborated = evidence.farkas_corroborated;
     (void)ev;
     (void)seed;
-    (void)evidence;
     return engine.solve(qp, overrides);
 }
 
@@ -3034,16 +3041,18 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // Every walk subproblem under kIpm keeps the adaptive value already in
         // `row.mu`.
         bool ipqp_chain_owns_the_step = false;
-        // THE ENUMERATOR COUNT, PINNED. `QpMode` has exactly three values and
-        // this switch handles three; a fourth added without an arm here would
-        // otherwise take the walk silently (the safe initializer above), which
-        // is the right RUNTIME behaviour and the wrong build behaviour.
-        static_assert(static_cast<int>(QpMode::kIpm) == 2,
-                      "QpMode gained an enumerator: give it an arm in the QP kernel dispatch "
-                      "below, then update this assertion. The dispatch has no `default:` label "
-                      "on purpose (it would defeat -Wswitch), and the `walk_owns_this_qp` "
-                      "initializer above sends an unhandled mode to the walk rather than to a "
-                      "default-constructed QpSolution.");
+        // THE ENUMERATOR COUNT, PINNED -- and it is a COUNT, not a spot check
+        // on the last name (fix round 3). `QpMode::kQpModeCount` sits at the
+        // end of the enum for this one purpose, so a mode appended ABOVE it
+        // moves this value and stops the build; an assertion on `kIpm == 2`
+        // could not do that, because appending AFTER kIpm left kIpm alone.
+        static_assert(static_cast<int>(QpMode::kQpModeCount) == 3,
+                      "add a case to the qp_mode switch: QpMode gained an enumerator, so this "
+                      "dispatch no longer handles every mode. Give the new one an arm below and "
+                      "then update this count. The switch has no `default:` label on purpose (it "
+                      "would defeat -Wswitch, which is what flags the missing arm), and the "
+                      "`walk_owns_this_qp` initializer above sends an unhandled mode to the walk "
+                      "rather than to a default-constructed QpSolution.");
         switch (opts_.qp_mode) {
         case QpMode::kWalk:
             break;
@@ -3490,10 +3499,19 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 ++out.counters.ipqp.ipqp_to_walk;
                 charge_ipqp_subproblem_cost(out.counters, ires);
                 qs = certified_feasibility_fallback(engine_, qp, ev, have_seed ? &seed : nullptr,
-                                                    ires.infeasibility_evidence, overrides);
+                                                    ires.infeasibility_evidence, overrides, row);
             }
             break;
         }
+        case QpMode::kQpModeCount:
+            // NOT A MODE, enumerated so `-Wswitch` stays live on a real fourth
+            // one (see the sentinel's own doc comment). Unreachable: the
+            // constructor's `validate_sqp_options` refuses this value, and
+            // `qp_mode` cannot change during a solve.
+            throw std::invalid_argument(
+                "SqpDriver: qp_mode == QpMode::kQpModeCount reached the QP kernel dispatch -- it "
+                "is the enumerator-count sentinel and names no kernel, and validate_sqp_options "
+                "refuses it at construction");
         }
         // `SqpIterate::mu` REPORTS WHAT THE KERNEL THAT SOLVED THIS ROW USED
         // (settler ruling, fix round 1). Under kIpm the schedule stays on for
@@ -4328,9 +4346,14 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatu
     //      where the historic negative prices actually came from;
     //   3. the INTERIOR-POINT TIER -- whose ratio-rule face (section 2.3 item
     //      2) is what refine_on_face is handed under kIpm, so its
-    //      classification decides which rows get priced there, and whose own
-    //      barrier duals are the export on the path where the refinement is
-    //      refused verbatim back to the caller's face.
+    //      classification decides which rows get priced there.
+    // WHAT THE TIER DOES NOT DO IS EXPORT ITS OWN BARRIER DUALS (corrected,
+    // fix round 3): every route replaces them. A refused refinement goes on to
+    // the SSN warm grade, whose prices are producer 1's; an escape goes to the
+    // walk, whose prices are the walk's. The tier is a producer of the FACE,
+    // and the third-producer pin therefore measures the certified/downgraded
+    // refine-ACCEPTED path -- the one where the tier's classification decides
+    // what producer 2 prices.
     // ALL THREE PASS THROUGH THIS ONE CALL, and that is the whole of what
     // makes the disclosed caveat below ("terminal KKT is measured at PRE-sweep
     // multipliers") true with three producers rather than two: there is no

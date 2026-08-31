@@ -2074,24 +2074,29 @@ void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res);
 // IT EXISTS AS A NAMED FUNCTION BECAUSE W2 REPLACES ITS BODY, not its call
 // site, and it is FREE rather than a member for the reason the three seam
 // functions above are: it can then be pinned without constructing a driver.
-// `ev`, `seed` and `evidence` are UNUSED today and are named rather than
-// omitted so the seam does not move when the body arrives -- `evidence` in
-// particular is section 6.3's own block (the least-infeasible point and the
-// optional Farkas corroboration), which is what lets W2's elastic
-// l1-penalized reformulation answer "is this subproblem infeasible" by
-// SOLVING something always-feasible rather than by accumulating symptoms.
+// `ev` and `seed` are UNUSED today and are named rather than omitted so the
+// seam does not move when the body arrives. `evidence` is section 6.3's own
+// block -- the least-infeasible point and the optional Farkas corroboration --
+// which is what lets W2's elastic l1-penalized reformulation answer "is this
+// subproblem infeasible" by SOLVING something always-feasible rather than by
+// accumulating symptoms; W1's body does not act on it, but it RECORDS its two
+// headline scalars on the major's history row, so "the evidence reached the
+// hook" is an observable rather than a signature.
 /// @brief The escape branch's single entry: today, the COLD walk.
 /// @param engine    the walk, which owns the answer today.
 /// @param qp        the subproblem.
 /// @param ev        the NLP evaluation at the current iterate (W2).
 /// @param seed      the seed the ordinary walk would have had, or nullptr (W2).
-/// @param evidence  the escaped solve's section 6.3 evidence block (W2).
+/// @param evidence  the escaped solve's section 6.3 evidence block. Its two
+///        headline scalars are RECORDED on `row` before the fallback runs, so
+///        the arrival is observable while W1's body still ignores the rest.
 /// @param overrides the walk's per-solve overrides, the caller's own levers.
+/// @param row       this major's history row, annotated with the evidence.
 /// @return the walk's solution.
 QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
                                           const QpSolution *seed,
                                           const IpqpInfeasibilityEvidence &evidence,
-                                          const SolveOverrides &overrides);
+                                          const SolveOverrides &overrides, SqpIterate &row);
 
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:

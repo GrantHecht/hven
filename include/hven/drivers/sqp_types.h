@@ -48,6 +48,21 @@ enum class QpMode {
     kWalk,
     kSsn,
     kIpm,
+
+    /// **NOT A MODE. THE ENUMERATOR COUNT**, and the only thing in this tree
+    /// that can catch a fourth kernel added without an arm in the driver's QP
+    /// kernel dispatch (M6 W1 task 6 fix round 3). A `static_assert` beside
+    /// that switch pins this value; appending a real mode ABOVE this line
+    /// moves it and stops the build, which is what an assertion on `kIpm == 2`
+    /// could not do -- a value appended after `kIpm` left it untouched.
+    ///
+    /// It is a legal `QpMode` value that names no kernel, so
+    /// `validate_sqp_options` REFUSES it like any other out-of-range setting,
+    /// and the dispatch enumerates it in an arm that throws rather than
+    /// omitting it (an omission would make `-Wswitch` warn on every build, and
+    /// a `default:` label would silence the warning this sentinel exists to
+    /// keep alive).
+    kQpModeCount,
 };
 
 // Declared HERE rather than in ssn_engine.h for the same reason QpMode is:
@@ -968,7 +983,9 @@ struct SqpOptions {
 /// its acceptance condition -- validated UNCONDITIONALLY, like the scaling
 /// fields, since `qp_mode` is a value a caller may change later). Task 1's
 /// TEMPORARY refusal of `opts.qp_mode == QpMode::kIpm` was removed by W1 task
-/// 6, which landed the routing chain: no `qp_mode` value is refused here.
+/// 6, which landed the routing chain, so every mode that names a kernel is
+/// accepted; `QpMode::kQpModeCount` names none and is refused (see its own
+/// doc comment).
 void validate_sqp_options(const SqpOptions &opts);
 
 /// One row of the per-major history -- the record of ONE ITERATE and of the
@@ -1080,6 +1097,29 @@ struct SqpIterate {
     double step_norm = 0.0;
     /// @brief False on a stopped-AT-iterate row (see above).
     bool qp_solved = false;
+
+    // --- THE INTERIOR-POINT TIER'S SECTION 6.3 EVIDENCE, WHERE IT ARRIVES ---
+    //
+    // TWO SCALARS OFF `IpqpInfeasibilityEvidence`, written by the escape
+    // branch's W2 hook (`certified_feasibility_fallback`) on the major it
+    // fires on, and zero/false on every other row -- including every row of a
+    // kWalk or kSsn solve, where no tier runs at all.
+    //
+    // WHY THEY ARE HERE (M6 W1 task 6 fix round 3). The hook RECEIVES the
+    // whole evidence block, because W2's elastic reformulation needs the
+    // least-infeasible point to start from and the Farkas corroboration to
+    // read; but W1's body is the cold walk, which uses neither, so nothing
+    // downstream could tell a real evidence block from a default-constructed
+    // one. These two make the arrival OBSERVABLE: they are the block's own
+    // headline scalars, and a call site that substituted default evidence
+    // would report 0 and false here.
+    //
+    // NOT A CERTIFICATE, and the field names say so rather than the values:
+    // section 6.3's signature is a SUSPICION, `farkas_corroborated == false`
+    // means "not corroborated" rather than "withdrawn", and the escape fires
+    // either way. Read them as telemetry about why a subproblem was handed on.
+    double ipqp_least_infeasible_primal = 0.0;
+    bool ipqp_farkas_corroborated = false;
     /// @brief Meaningful iff qp_solved.
     QpStatus qp_status = QpStatus::kOptimal;
     /// @brief Meaningful iff qp_solved.
