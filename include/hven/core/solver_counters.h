@@ -915,6 +915,12 @@ struct IpqpCounters {
     /// `SqpCounters::n_seeded` uses for a per-solve flag. Excludes a
     /// cold-started subproblem, which has no payload `mu` to adopt and is
     /// structurally `0` here.
+    ///
+    /// A STATEMENT ABOUT THE CLAMP, NOT ABOUT THE TRAJECTORY: `mu_0` reaches
+    /// the iteration only through the 5.2 repair floor and the SAY shift's
+    /// centrality gate, so an adoption that binds can still leave the solve
+    /// bit-identical. Never read it as "the payload's barrier level moved this
+    /// solve".
     Index ipqp_mu_adopted = 0;
 
     /// `1` iff the section 5.5 warm-kill fired on this subproblem (a warm

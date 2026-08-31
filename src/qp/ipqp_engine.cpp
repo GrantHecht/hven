@@ -412,10 +412,13 @@ void validate_seed(const IpqpSeed &seed, Index n, Index me, Index mi) {
         throw std::invalid_argument(
             fmt::format("IpqpEngine::solve: warm seed mu ({}) must be finite", seed.mu));
     }
-    if (seed.grade == IpqpRestartGrade::kCold) {
-        throw std::invalid_argument(
-            "IpqpEngine::solve: a warm seed may not carry IpqpRestartGrade::kCold -- a cold solve "
-            "is a null seed, not a seed labelled cold");
+    // BOUNDS-CHECKED like every other field: an out-of-range enumerator is a
+    // caller error, and `kCold` names "no seed" rather than a seed.
+    if (seed.grade != IpqpRestartGrade::kBaseWarm && seed.grade != IpqpRestartGrade::kFullWarm) {
+        throw std::invalid_argument(fmt::format(
+            "IpqpEngine::solve: warm seed grade ({}) must be kBaseWarm or kFullWarm -- a cold "
+            "solve is a null seed, not a seed labelled cold",
+            static_cast<int>(seed.grade)));
     }
 }
 
@@ -769,7 +772,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // THE SEED IS A CALLER ASSERTION ABOUT THIS PROBLEM, so a wrongly sized or
     // non-finite block is a caller error and throws; spec 5.4's cold DEGRADE
     // is the driver's, taken before a seed is built (report section 3).
-    const bool started_warm = seed != nullptr;
+    bool started_warm = seed != nullptr;
     if (started_warm) {
         validate_seed(*seed, n, me, mi);
     }
@@ -972,12 +975,54 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- the warm restart (spec 5.2/5.3) ----------------------------------
     //
+    // The section 5.3 clamp, ON EVERY BRANCH so the counter's iff contract
+    // holds on the repair-off arm too (fix round 1, F2). `mu` is adopted as
+    // STATE, never as a setting: the payload can only raise `mu_0` off the
+    // repaired point's own measured floor, never below it and never above the
+    // cold default.
+    auto clamp_mu0 = [&](double payload_mu) {
+        double lo_pair = 0.0;
+        measure_complementarity(mu_meas, lo_pair);
+        const double floor_only = std::clamp(mu_meas, iopts.ipqp_min_mu, iopts.ipqp_init_mu);
+        mu0 = std::clamp(std::max(mu_meas, iopts.ipqp_mu_adopt_factor * std::max(payload_mu, 0.0)),
+                         iopts.ipqp_min_mu, iopts.ipqp_init_mu);
+        if (mu0 > floor_only) {
+            out.counters.ipqp_mu_adopted = 1;
+        }
+        return lo_pair;
+    };
+
+    // THE DOMAIN GATE ON AN UNREPAIRED SEED (fix round 1, ruling R1).
+    // `ipqp_warm_repair` disables the REPAIR, never the validation: a seed
+    // that breaks the tier's own invariants is degraded COLD, mode-local and
+    // visible in `restart_grade`, rather than consumed raw. `s` all-zero is
+    // the ABSENT convention both producers use, and absent is not repaired
+    // when the repair is off -- so it degrades here.
+    auto seed_needs_the_repair = [&](const IpqpSeed &sd) {
+        for (Index j = 0; j < mi; ++j) {
+            if (!(sd.s(j) > 0.0) || !(sd.lambda_i(j) > 0.0)) {
+                return true;
+            }
+        }
+        for (Index i = 0; i < n; ++i) {
+            if (detail::ipqp_has_lower(bounds.lower(i)) &&
+                (!(sd.x(i) > bounds.lower(i)) || !(sd.zl(i) > 0.0))) {
+                return true;
+            }
+            if (detail::ipqp_has_upper(bounds.upper(i)) &&
+                (!(sd.x(i) < bounds.upper(i)) || !(sd.zu(i) > 0.0))) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     // Section 5.2 in three steps -- strict positivity, the SAY two-scalar
     // shift, proximal re-centering -- with the 5.3 clamp between the first
-    // and the second, because the shift's target IS `mu_0`. O(n + mi) and no
-    // factorization. Argument and the two chosen readings (which components
-    // the primal scalar can move, and why the shift is average-based) are in
-    // `.superpowers/w1-t7-report.md` section 4.
+    // and the second, because the shift's target IS `mu_0`. O(n + mi), no
+    // factorization. Every move is folded into `shift_max`, the box clamp and
+    // the slack recompute included (fix round 1, F4).
+    // Full argument: `.superpowers/w1-t7-report.md` section 4.
     auto warm_start_from = [&](const IpqpSeed &sd) {
         w.x = sd.x;
         clamp_seed_into_box();
@@ -987,7 +1032,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         w.zu = sd.zu;
         w.s = sd.s;
 
-        double shift_max = 0.0;
+        // The clamp above is a repair move like any other: the seed named a
+        // point the tier may not start from, and the tier moved it.
+        double shift_max = (w.x - sd.x).lpNorm<Eigen::Infinity>();
         const auto raise = [&shift_max](double &v, double floor) {
             if (v < floor) {
                 shift_max = std::max(shift_max, floor - v);
@@ -995,34 +1042,25 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         };
 
-        if (!iopts.ipqp_warm_repair) {
-            // The repair is a documented A/B lever. Off, the seed is taken as
-            // given and only `mu_0` is clamped -- the tier still may not start
-            // outside its own box, which `clamp_seed_into_box` enforced.
-            double lo_pair = 0.0;
-            measure_complementarity(mu_meas, lo_pair);
-            mu0 = std::clamp(std::max(mu_meas, iopts.ipqp_mu_adopt_factor * std::max(sd.mu, 0.0)),
-                             iopts.ipqp_min_mu, iopts.ipqp_init_mu);
-            w.zeta = sd.zeta;
-            w.lam_est_e = sd.lambda_est_e;
-            w.lam_est_i = sd.lambda_est_i;
-            return;
-        }
-
         // 1. STRICT POSITIVITY (5.2 item 1). The slack is RECOMPUTED from
-        //    `bi - Ai x` rather than carried: the seed's own `s` belongs to
-        //    the previous subproblem's `(Ai, bi)`, and 5.2 item 1 states the
-        //    rule as `s_i <- max(bi_i - (Ai x)_i, eps_s)`.
+        //    `bi - Ai x`: the seed's own `s` belongs to the previous
+        //    subproblem's `(Ai, bi)`, and item 1 states the rule that way.
+        //    A recompute off an ABSENT (all-zero) block moves nothing that
+        //    was ever asserted, so only a PRESENT block's move is counted.
         if (mi > 0) {
-            w.s = (qp.bi - qp.Ai * w.x).cwiseMax(detail::kIpqpRepairSlackEps);
+            const Vec s_new = (qp.bi - qp.Ai * w.x).cwiseMax(detail::kIpqpRepairSlackEps);
+            if (sd.s.squaredNorm() > 0.0) {
+                shift_max = std::max(shift_max, (s_new - sd.s).lpNorm<Eigen::Infinity>());
+            }
+            w.s = s_new;
             for (Index j = 0; j < mi; ++j) {
                 raise(w.yi(j), detail::kIpqpRepairEps);
             }
         }
         for (Index i = 0; i < n; ++i) {
-            // A price on an ABSENT side is not a pair: it is forced to 0 and
-            // that is NOT a repair shift -- the seed may legitimately carry a
-            // trust-region residue there, and TR duals are internal.
+            // A price on an ABSENT side is not a pair: forced to 0, and that
+            // is NOT a repair shift -- the residue there is a trust-region
+            // dual, and TR duals are internal.
             if (detail::ipqp_has_lower(bounds.lower(i))) {
                 raise(w.zl(i), 0.0);
             } else {
@@ -1035,33 +1073,38 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         }
 
-        // 2. THE 5.3 CLAMP, on the repaired point's own measured
-        //    complementarity. `mu` is never adopted as a SETTING: the payload
-        //    can only raise `mu_0` off the measured floor, never below what
-        //    the repaired point supports and never above the cold default.
-        double lo_pair = 0.0;
-        measure_complementarity(mu_meas, lo_pair);
-        const double mu_floor_only = std::clamp(mu_meas, iopts.ipqp_min_mu, iopts.ipqp_init_mu);
-        mu0 = std::clamp(std::max(mu_meas, iopts.ipqp_mu_adopt_factor * std::max(sd.mu, 0.0)),
-                         iopts.ipqp_min_mu, iopts.ipqp_init_mu);
-        if (mu0 > mu_floor_only) {
-            out.counters.ipqp_mu_adopted = 1;
-        }
+        // 2. THE 5.3 CLAMP, on the repaired point's own complementarity.
+        double lo_pair = clamp_mu0(sd.mu);
 
-        // The strict-positivity FLOOR is `eps` derived from `mu_0` (5.4's
-        // base-warm row states it that way), so it is applied once `mu_0` is
-        // known. A price at exact 0 is legitimate in a polish payload -- 0
-        // where a side is infinite, eliminated or unpriced -- which is why the
-        // clamp exists at all rather than a refusal.
+        // The mu_0-relative floor of 5.2 item 1, applied once `mu_0` is known.
+        // A price at exact 0 is legitimate in a polish payload (0 where a side
+        // is infinite, eliminated or unpriced), which is why this is a clamp
+        // and not a refusal. THE BASE GRADE TAKES IT ADDITIVELY instead --
+        // 5.4's own form, `max(z, 0) + eps` (fix round 1, ruling R6).
         const double eps = detail::kIpqpRepairEps * mu0;
+        const bool additive_eps = sd.grade == IpqpRestartGrade::kBaseWarm;
         for (Index j = 0; j < mi; ++j) {
             raise(w.yi(j), eps);
         }
         for (Index i = 0; i < n; ++i) {
-            if (detail::ipqp_has_lower(bounds.lower(i))) {
+            const bool hl = detail::ipqp_has_lower(bounds.lower(i));
+            const bool hu = detail::ipqp_has_upper(bounds.upper(i));
+            if (additive_eps) {
+                if (hl) {
+                    w.zl(i) += eps;
+                }
+                if (hu) {
+                    w.zu(i) += eps;
+                }
+                if (hl || hu) {
+                    shift_max = std::max(shift_max, eps);
+                }
+                continue;
+            }
+            if (hl) {
                 raise(w.zl(i), eps);
             }
-            if (detail::ipqp_has_upper(bounds.upper(i))) {
+            if (hu) {
                 raise(w.zu(i), eps);
             }
         }
@@ -1092,11 +1135,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 sum_d > 0.0 ? detail::kIpqpSayTargetFraction * mu0 * npd / sum_d : 0.0;
             const double delta_p =
                 sum_z > 0.0 ? detail::kIpqpSayTargetFraction * mu0 * npd / sum_z : 0.0;
-            // THE PRIMAL SCALAR MOVES THE SLACKS ONLY. A variable's two bound
-            // distances are both functions of one `x`, so no single scalar can
-            // raise them together; the bound pairs are centred on the dual
-            // side alone, and their primal distance is what the box push above
-            // already made strictly positive.
+            // THE PRIMAL SCALAR MOVES THE SLACKS ONLY: a variable's two bound
+            // distances are both functions of one `x`, so no scalar can raise
+            // them together. Bound pairs are centred on the dual side alone.
             if (mi > 0 && delta_p > 0.0) {
                 w.s.array() += delta_p;
                 shift_max = std::max(shift_max, delta_p);
@@ -1124,21 +1165,47 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
 
         // 4. PROXIMAL RE-CENTERING (5.2 item 3): the estimates are the
-        //    REPAIRED point, not the seed's own -- a proximal centre inherited
-        //    from another subproblem would anchor this one somewhere its own
-        //    data never named.
+        //    REPAIRED point, never the seed's own -- a centre inherited from
+        //    another subproblem would anchor this one where its data never
+        //    named.
         w.zeta = w.x;
         w.lam_est_e = w.ye;
         w.lam_est_i = w.yi;
     };
 
+    // The repair-off arm. The seed is taken as given and only `mu_0` is
+    // clamped; a seed that would have NEEDED the repair degraded cold above
+    // (ruling R1), so nothing here consumes a zero slack or a zero price.
+    auto warm_start_unrepaired = [&](const IpqpSeed &sd) {
+        w.x = sd.x;
+        w.ye = sd.lambda_e;
+        w.yi = sd.lambda_i;
+        w.zl = sd.zl;
+        w.zu = sd.zu;
+        w.s = sd.s;
+        w.zeta = sd.zeta;
+        w.lam_est_e = sd.lambda_est_e;
+        w.lam_est_i = sd.lambda_est_i;
+        (void)clamp_mu0(sd.mu);
+    };
+
+    // COPIED FIRST: the driver hands this call `warm_carry()`, a pointer into
+    // this instance, and the commit at the end of the solve writes that same
+    // object.
     if (started_warm) {
-        // COPIED FIRST: the driver hands this call `warm_carry()`, a pointer
-        // into this instance, and the commit at the end of the solve writes
-        // that same object.
         const IpqpSeed seed_copy = *seed;
-        out.restart_grade = seed_copy.grade;
-        warm_start_from(seed_copy);
+        if (iopts.ipqp_warm_repair) {
+            out.restart_grade = seed_copy.grade;
+            warm_start_from(seed_copy);
+        } else if (seed_needs_the_repair(seed_copy)) {
+            // RULING R1: repair off is not a licence to consume a defective
+            // seed. Degrade cold, mode-local, reported as `kCold`.
+            started_warm = false;
+            cold_start();
+        } else {
+            out.restart_grade = seed_copy.grade;
+            warm_start_unrepaired(seed_copy);
+        }
     } else {
         cold_start();
     }
@@ -2267,7 +2334,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // final certification read the factorization budget refused is routed
         // as a downgraded certificate, not as budget exhaustion), and two
         // statements of one rule could drift.
-        if (ipqp_residuals_meet_target(res, opts_, iopts)) {
+        // SECTION 5.5's TRUST THRESHOLD, the half the relative predicate
+        // cannot carry (fix round 1, F3): warm DATA is trusted only if its raw
+        // barrier level is inside the tier's own target too. At the warm ENTRY
+        // alone -- after a step the point is this solve's, not the seed's.
+        const bool untrusted_warm_seed = warm_live && out.counters.ipqp_iters == iters_base &&
+                                         mu_meas > iopts.ipqp_converge_slack * opts_.opt_tol;
+        if (!untrusted_warm_seed && ipqp_residuals_meet_target(res, opts_, iopts)) {
             converged = true;
             break;
         }
@@ -2353,28 +2426,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         }
 
-        if (out.counters.ipqp_iters - iters_base >= iter_budget) {
-            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
-                                                             : IpqpEscape::kBudget;
-            break;
-        }
-        if (kkt_.counters().factorize_count - facts_base >= fact_budget) {
-            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
-                                                             : IpqpEscape::kBudget;
-            break;
-        }
-
         // --- SECTION 5.5: THE WARM-KILL ------------------------------------
         //
-        // A warm restart that is going badly must not spend a whole budget
-        // proving it: at the clamped warm budget the solve restarts COLD,
-        // exactly once, and everything the warm attempt spent stays spent
-        // (`ipqp_iters` is a solve total). AFTER the two ordinary budgets, so
-        // the kill cannot fire when there is no budget left to restart into --
-        // which is the `min(...)` of plan section 7 note (c) read to its end.
-        // An escape reached before the budget is an escape; the kill is an
-        // OVERRUN rule and nothing else, and the alternative reading is
-        // registered in `.superpowers/w1-t7-report.md` section 5.
+        // AHEAD of the two ordinary budget tests (fix round 1, ruling R2):
+        // while the attempt is WARM, budget exhaustion is 5.5's overrun and
+        // takes the exactly-once cold restart, including when the clamped warm
+        // budget equals the whole budget. The cold attempt then owns ordinary
+        // escapes, and its caps re-base here. Report section 5.
         if (warm_live && out.counters.ipqp_iters - iters_base >= warm_budget) {
             warm_live = false;
             out.counters.ipqp_warm_restart_abandoned = 1;
@@ -2394,6 +2452,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             best_x = Vec();
             have_start = false;
             continue;
+        }
+
+        if (out.counters.ipqp_iters - iters_base >= iter_budget) {
+            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
+                                                             : IpqpEscape::kBudget;
+            break;
+        }
+        if (kkt_.counters().factorize_count - facts_base >= fact_budget) {
+            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
+                                                             : IpqpEscape::kBudget;
+            break;
         }
 
         // The safeguard's state this pass started from. Window discard: see

@@ -12,7 +12,6 @@
 // that asserts a counter or an ingested value also asserts a neighbouring
 // fixture where the same assertion would fail.
 
-#include <cmath>
 #include <limits>
 #include <vector>
 
@@ -83,6 +82,21 @@ QpProblem stale_qp() {
     qp.bi = Vec(0);
     qp.lower = vec({-5.0, -5.0});
     qp.upper = vec({5.0, 5.0});
+    return qp;
+}
+
+/// min |x - (1, 2)|^2 over [-5, 5]^2 with one inequality row -- the shape the
+/// repair-off fixtures need, because `s` and `lambda_i` are what the lever's
+/// domain gate is about.
+QpProblem row_qp() {
+    QpProblem qp = stale_qp();
+    SpMatRM ai(1, 2);
+    std::vector<Eigen::Triplet<double>> t;
+    t.emplace_back(0, 0, 1.0);
+    ai.setFromTriplets(t.begin(), t.end());
+    ai.makeCompressed();
+    qp.Ai = ai;
+    qp.bi = vec({3.0});
     return qp;
 }
 
@@ -321,12 +335,14 @@ TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
     EXPECT_EQ(ok.status, QpStatus::kOptimal);
 }
 
-// PLAN SECTION 7 NOTE (c): the effective warm budget is
-// `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`, so a caller value
+// PLAN SECTION 7 NOTE (c) + FIX ROUND 1 RULING R2. The effective warm budget
+// is `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`, so a caller value
 // larger than the solve's own budget can never itself be the binding limit --
-// and when the two coincide there is nothing left to restart cold into, so the
-// ordinary budget escape is what happens.
-TEST(IpqpWarmRestart, TheWarmBudgetIsClampedByTheSolvesOwnIterationBudget) {
+// and at the edge where the clamp makes the two EQUAL the warm-kill still
+// preempts the ordinary escape: while the attempt is warm, exhaustion is 5.5's
+// overrun and takes the exactly-once cold restart. (This row's earlier
+// spelling asserted the opposite ordering; re-derived under R2.)
+TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
     const QpProblem qp = stale_qp();
     IpqpSeed stale = seed_for(qp);
     stale.x = vec({-4.9, -4.9});
@@ -339,17 +355,19 @@ TEST(IpqpWarmRestart, TheWarmBudgetIsClampedByTheSolvesOwnIterationBudget) {
     clamped.ipqp_hard_iter_cap = 2;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, &stale, clamped, SolveOverrides{});
-    EXPECT_EQ(r.counters.ipqp_warm_restart_abandoned, 0)
-        << "the clamped warm budget equals the iteration budget, so the ordinary escape wins";
-    EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
-    EXPECT_LE(r.counters.ipqp_iters, 2);
+    EXPECT_EQ(r.counters.ipqp_warm_restart_abandoned, 1)
+        << "the clamped warm budget equals the iteration budget, and the kill still fires";
+    // AND THE COLD ATTEMPT RAN: its own budget re-based at the kill, so the
+    // solve took more iterations than the single clamped budget allows.
+    EXPECT_GT(r.counters.ipqp_iters, clamped.ipqp_hard_iter_cap);
 
-    // NON-VACUITY: one below the cap, and the kill is reachable again.
-    IpqpOptions kills = clamped;
-    kills.ipqp_warm_iter_budget = 1;
-    IpqpEngine tier2(tight_opts());
-    const IpqpResult k = tier2.solve(qp, &stale, kills, SolveOverrides{});
-    EXPECT_EQ(k.counters.ipqp_warm_restart_abandoned, 1);
+    // NON-VACUITY: a COLD solve under the same cap escapes on budget, so the
+    // extra iterations above are the restart's and not the cap's slack.
+    IpqpEngine cold_tier(tight_opts());
+    const IpqpResult c = cold_tier.solve(qp, nullptr, clamped, SolveOverrides{});
+    EXPECT_EQ(c.escape_reason, IpqpEscape::kBudget);
+    EXPECT_EQ(c.counters.ipqp_warm_restart_abandoned, 0);
+    EXPECT_LE(c.counters.ipqp_iters, clamped.ipqp_hard_iter_cap);
 }
 
 // THE BUDGETS ARE PER ATTEMPT. Section 5.5 gives the warm attempt "an
@@ -460,6 +478,140 @@ TEST(IpqpWarmRestart, ASolveThatProducedNothingLeavesThePreviousCarryStanding) {
 
     ASSERT_NE(tier.warm_carry(), nullptr);
     EXPECT_EQ(tier.warm_carry()->x, carried);
+}
+
+// ---------------------------------------------------------------------------
+// The repair lever (fix round 1, ruling R1)
+// ---------------------------------------------------------------------------
+
+// `ipqp_warm_repair = false` DISABLES THE REPAIR, NEVER THE VALIDATION. A seed
+// the repair would have had to fix -- here the staged path's own ABSENT (zero)
+// slack block, which under the default is recomputed from `bi - Ai x` -- is
+// degraded COLD rather than consumed raw, so the tier can never divide by a
+// zero slack or start at a zero price.
+TEST(IpqpWarmRestart, RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt) {
+    const QpProblem qp = row_qp();
+    IpqpSeed absent_slack = seed_for(qp);
+    absent_slack.zl = vec({1.0e-3, 1.0e-3});
+    absent_slack.zu = vec({1.0e-3, 1.0e-3});
+    absent_slack.lambda_i = vec({1.0e-3});
+    absent_slack.s = vec({0.0}); // the ABSENT convention both producers use
+    absent_slack.mu = 1.0e-3;
+
+    IpqpOptions off;
+    off.ipqp_warm_repair = false;
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, &absent_slack, off, SolveOverrides{});
+    EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kCold) << "the seed was degraded, not consumed";
+    EXPECT_EQ(r.status, QpStatus::kOptimal) << "and the cold solve is a real solve";
+    EXPECT_TRUE(r.x.allFinite());
+    EXPECT_EQ(r.counters.ipqp_restart_repairs, 0);
+    EXPECT_EQ(r.counters.ipqp_mu_adopted, 0);
+
+    // NON-VACUITY, the same payload with the repair ON: the absent slack is
+    // recomputed from `bi - Ai x` and the seed IS consumed, at its own grade.
+    IpqpEngine repaired(tight_opts());
+    const IpqpResult ok = repaired.solve(qp, &absent_slack, IpqpOptions{}, SolveOverrides{});
+    EXPECT_EQ(ok.restart_grade, IpqpRestartGrade::kFullWarm);
+    EXPECT_EQ(ok.status, QpStatus::kOptimal);
+    // ... and the DEGRADED run really ran the cold path: same iterate, bitwise,
+    // as a solve that was never handed a seed at all.
+    IpqpEngine plain(tight_opts());
+    const IpqpResult c = plain.solve(qp, nullptr, off, SolveOverrides{});
+    EXPECT_EQ(r.counters.ipqp_iters, c.counters.ipqp_iters);
+    EXPECT_EQ(r.x, c.x);
+    EXPECT_EQ(r.zl, c.zl);
+
+    // AND A SEED THAT NEEDS NOTHING IS STILL CONSUMED with the repair off --
+    // so the degrade above is about the defect, not about the lever.
+    IpqpSeed clean = seed_for(qp);
+    clean.zl = vec({1.0e-3, 1.0e-3});
+    clean.zu = vec({1.0e-3, 1.0e-3});
+    clean.lambda_i = vec({1.0e-3});
+    clean.s = vec({1.0});
+    clean.mu = 1.0e-3;
+    IpqpEngine unrepaired(tight_opts());
+    const IpqpResult u = unrepaired.solve(qp, &clean, off, SolveOverrides{});
+    EXPECT_EQ(u.restart_grade, IpqpRestartGrade::kFullWarm);
+    EXPECT_EQ(u.counters.ipqp_restart_repairs, 0) << "the repair did not run";
+}
+
+// F2: the section 5.3 clamp counts on EVERY branch, the repair-off one
+// included -- a path that clamps without counting is a hole in the currency
+// section 7 makes the asserted evidence for T7.4.
+TEST(IpqpWarmRestart, AdoptionIsCountedOnTheRepairOffBranchToo) {
+    const QpProblem qp = row_qp();
+    IpqpSeed clean = seed_for(qp);
+    clean.zl = vec({1.0e-9, 1.0e-9});
+    clean.zu = vec({1.0e-9, 1.0e-9});
+    clean.lambda_i = vec({1.0e-9});
+    clean.s = vec({1.0});
+    clean.mu = 1.0e-4; // binds the clamp from above
+
+    IpqpOptions off;
+    off.ipqp_warm_repair = false;
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, &clean, off, SolveOverrides{});
+    ASSERT_EQ(r.restart_grade, IpqpRestartGrade::kFullWarm) << "the seed must be consumed";
+    EXPECT_EQ(r.counters.ipqp_mu_adopted, 1);
+
+    // NON-VACUITY on the same branch: a payload below the measured floor
+    // adopts nothing.
+    IpqpSeed low = clean;
+    low.mu = 1.0e-15;
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult t = tier2.solve(qp, &low, off, SolveOverrides{});
+    ASSERT_EQ(t.restart_grade, IpqpRestartGrade::kFullWarm);
+    EXPECT_EQ(t.counters.ipqp_mu_adopted, 0);
+}
+
+// F3: section 5.5's trust threshold has TWO halves, and the relative predicate
+// carries only one. A seed whose residuals scale small but whose raw barrier
+// level is far above the tier's target is NOT trusted at iteration zero.
+TEST(IpqpWarmRestart, AHighBarrierSeedIsNotTrustedAtIterationZero) {
+    const QpProblem qp = interior_qp();
+    IpqpSeed high = seed_for(qp);
+    // Equal prices, so the stationarity residual cancels exactly and the
+    // relative complementarity divides by the multiplier scale -- both halves
+    // of the relative test pass while mu itself is 1e-2.
+    high.zl = vec({1.0e-2});
+    high.zu = vec({1.0e-2});
+    high.mu = 1.0e-2;
+    high.grade = IpqpRestartGrade::kFullWarm;
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, &high, IpqpOptions{}, SolveOverrides{});
+    EXPECT_GT(r.counters.ipqp_iters, 0)
+        << "an untrusted warm seed may not be adopted as converged before it takes a step";
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+
+    // NON-VACUITY: the SAME shape at a barrier level inside the target IS
+    // trusted and finishes at iteration zero.
+    const IpqpSeed trusted = centred_full_seed();
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult t = tier2.solve(qp, &trusted, IpqpOptions{}, SolveOverrides{});
+    EXPECT_EQ(t.counters.ipqp_iters, 0);
+}
+
+// F4: the box clamp and the slack recompute are repairs like any other -- a
+// repair that moved the ingested seed may not report zero.
+TEST(IpqpWarmRestart, TheBoxClampCountsAsARepair) {
+    const QpProblem qp = interior_qp();
+    IpqpSeed outside = centred_full_seed();
+    outside.x = vec({-5.0}); // outside the declared box entirely
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, &outside, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.counters.ipqp_restart_repairs, 1);
+    EXPECT_GT(r.counters.ipqp_restart_shift_max, 3.0)
+        << "the clamp moved x by about 4, and the honest-magnitude field must say so";
+
+    // NON-VACUITY: the same seed already inside the box pays no clamp.
+    const IpqpSeed inside = centred_full_seed();
+    IpqpEngine tier2(tight_opts());
+    const IpqpResult t = tier2.solve(qp, &inside, IpqpOptions{}, SolveOverrides{});
+    EXPECT_EQ(t.counters.ipqp_restart_repairs, 0);
 }
 
 // ---------------------------------------------------------------------------

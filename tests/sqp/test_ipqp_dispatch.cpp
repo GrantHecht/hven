@@ -801,6 +801,41 @@ TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
     EXPECT_LT(wc.ipqp_factorizations, cc.ipqp_factorizations);
 }
 
+// FIX ROUND 1, RULING R3: the carry is dropped after EVERY genuine escape,
+// `kIndefinite` included -- a point the tier classified as a saddle suspect
+// does not seed the next major. The instrument is the warm budget's 0 extreme,
+// which fires the kill on every entry that started WARM: if the carry
+// survived a saddle-suspect exit, later entries would be warm and the counter
+// would move.
+TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
+    SaddleBoxModel model;
+    SqpOptions o = ipm_options();
+    o.ipqp.ipqp_reg_max = 1.0e-2;
+    o.ipqp.ipqp_rho_init = 1.0e-4;
+    o.ipqp.ipqp_delta_init = 1.0e-4;
+    o.ipqp.ipqp_warm_iter_budget = 0;
+    SqpDriver driver(o);
+    const SqpSolution s = driver.solve(model);
+    const IpqpCounters &c = s.counters.ipqp;
+
+    ASSERT_GT(c.ipqp_escape_indefinite, 0) << "the fixture must produce saddle-suspect exits";
+    ASSERT_EQ(c.ipqp_escapes, c.ipqp_escape_indefinite) << "and only that kind";
+    ASSERT_GT(tier_entries(c), 1) << "and must enter the tier more than once";
+    EXPECT_EQ(c.ipqp_warm_restart_abandoned, 0)
+        << "every entry after an indefinite escape started COLD, so no warm attempt existed to "
+           "abandon";
+
+    // NON-VACUITY: the same instrument on a fixture that does NOT escape sees
+    // the carry survive and the kill fire.
+    auto p = make_hs(77);
+    SqpOptions k = ipm_options();
+    k.ipqp.ipqp_warm_iter_budget = 0;
+    SqpDriver hs(k);
+    const SqpSolution t = hs.solve(*p.model);
+    ASSERT_EQ(t.counters.ipqp.ipqp_escapes, 0);
+    EXPECT_GT(t.counters.ipqp.ipqp_warm_restart_abandoned, 0);
+}
+
 // ... AND IT IS SCOPED TO ONE SQP SOLVE. The engine outlives the solve, so a
 // second solve on the same driver must start its first major cold; otherwise
 // two solves of one model would not be two solves of one model.

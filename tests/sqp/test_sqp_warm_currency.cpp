@@ -1425,3 +1425,81 @@ TEST(SqpWarmCurrency, TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves) {
               second.counters.ipqp.ipqp_restart_shift_max);
     EXPECT_EQ(first.counters.ipqp.ipqp_mu_adopted, second.counters.ipqp.ipqp_mu_adopted);
 }
+
+// FIX ROUND 1, F1: the tier seed is cleared on EVERY solve entry, not only on
+// the path that arms it. A kIpm solve that stages a value and then never
+// enters the tier -- here one whose staged point IS the solution, so it
+// converges before a subproblem is built -- must not leave that seed armed for
+// the next solve, which reaches the driver through an overload that consumes
+// no staged value at all.
+TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    WarmStartData data = core_payload(sol, *bridge); // AT the solution, unperturbed
+    IpmPolishData polish = fixture_polish(sol);
+    polish.mu_ = 0.1; // binds the section 5.3 clamp, so a live seed is visible
+    data.extensions_.push_back(polish_extension(polish));
+
+    SqpDriver driver{ipm_currency_options()};
+    driver.stage_warm_start(data);
+    const SqpSolution stalled = driver.solve(*bridge, data.primal_);
+    ASSERT_EQ(stalled.status, SqpStatus::kOptimal);
+    ASSERT_EQ(stalled.counters.ipqp.ipqp_symbolic_analyses, 0)
+        << "the fixture's premise: this solve entered the tier not at all, so the seed it armed "
+           "was never spent";
+
+    // THE NEXT SOLVE, from a perturbed point and through the overload that
+    // never consults staged state. It does build subproblems, so a leaked seed
+    // would reach the tier and its payload `mu` would bind the clamp.
+    Vec moved = data.primal_;
+    moved(0) += 0.5;
+    const SqpSolution after = driver.solve(*bridge, moved, WarmStart{}, /*minor_budget=*/0);
+    ASSERT_GT(after.counters.ipqp.ipqp_symbolic_analyses, 0)
+        << "and this one DID enter the tier, or the assertion below is vacuous";
+    EXPECT_EQ(after.counters.ipqp.ipqp_mu_adopted, 0)
+        << "a stale staged seed must not reach the next solve's first subproblem";
+}
+
+// CODEX 8: the exact zL/zU pin in test_ipqp_warm_restart.cpp constructs an
+// IpqpSeed directly, so it cannot see a flattening introduced in the STAGED
+// path. This is that half: the polish payload's two-sided split reaches the
+// tier unflattened, asserted through `stage_warm_start` itself.
+TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    // BOTH sides priced on one variable -- the configuration a signed `z`
+    // cannot represent, and the only one that can tell the two paths apart.
+    IpmPolishData polish = fixture_polish(sol);
+    polish.z_lower_ = Vec::Constant(model->n(), 3.0e-3);
+    polish.z_upper_ = Vec::Constant(model->n(), 1.0e-3);
+    polish.mu_ = 0.1;
+
+    const auto run = [&](bool with_extension) {
+        WarmStartData data = perturbed_core(sol, *bridge);
+        if (with_extension) {
+            data.extensions_.push_back(polish_extension(polish));
+        }
+        SqpDriver driver{ipm_currency_options()};
+        driver.stage_warm_start(data);
+        return driver.solve(*bridge, data.primal_);
+    };
+
+    const SqpSolution full = run(true);
+    const SqpSolution base = run(false);
+    ASSERT_EQ(full.status, SqpStatus::kOptimal);
+    ASSERT_EQ(base.status, SqpStatus::kOptimal);
+
+    // The payload's `mu_` binds the clamp only on the full grade, and the two
+    // solves are different solves -- if the staged path flattened `zL`/`zU`
+    // through the signed `z`, the extension would carry nothing but `mu_` and
+    // this pair would be far harder to move apart.
+    EXPECT_GT(full.counters.ipqp.ipqp_mu_adopted, 0);
+    EXPECT_EQ(base.counters.ipqp.ipqp_mu_adopted, 0);
+    EXPECT_NE(full.counters.ipqp.ipqp_iters, 0);
+    EXPECT_NE(full.counters.ipqp.ipqp_restart_shift_max, base.counters.ipqp.ipqp_restart_shift_max)
+        << "the two grades ingest different prices, so their repair magnitudes differ";
+}

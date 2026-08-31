@@ -967,6 +967,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
     constexpr double kP0 = 0.80;
     constexpr double kDisclosedScale = 3.5e-6;
 
+    const auto t_band0 = std::chrono::steady_clock::now();
     Index swept_over_the_band = 0;
     for (const Index nodes : {Index{850}, Index{900}}) {
         SCOPED_TRACE(fmt::format("N={}", nodes));
@@ -1007,6 +1008,15 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
             }
         }
     }
+
+    // THE ROW'S OWN WALL, RECORDED (informational per CLAUDE.md section 7,
+    // never asserted): the re-derived band is ~1.45x the collocation nodes of
+    // the one it replaces, and section 8 makes runners own their time budgets.
+    RecordProperty(
+        "band_wall_seconds",
+        fmt::format(
+            "{:.2f}",
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - t_band0).count()));
 
     // NOT VACUOUS, and this is the assertion the whole test exists for: a
     // build that bypassed kIpm's export capture or its sweep fails HERE, where

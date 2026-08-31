@@ -286,28 +286,24 @@ inline constexpr double kIpqpBoundPushRel = 1.0e-2;
 /// @brief The cold start's slack floor (spec 5.6: `s_0 = max(bi - Ai x_0, 1)`).
 inline constexpr double kIpqpSlackInit = 1.0;
 
-/// @brief THE WARM RESTART'S REPAIR CONSTANTS (spec 5.2). Each is a factor on
-/// `mu_0`, never an absolute: a strict-positivity floor stated in absolute
-/// units would be a second, unit-dependent tolerance beside the tier's own.
-///
-/// `kIpqpRepairEps` is the floor every complementary component is clamped to
-/// (`eps = kIpqpRepairEps * mu_0`, spec 5.2 item 1 and 5.4's base-warm row);
-/// `kIpqpRepairSlackEps` the same for the recomputed slack. The SAY shift of
-/// item 2 is applied only to a seed that is not already centred --
-/// `min pair product < kIpqpSayCentralityFactor * mu_0` -- so a good warm seed
-/// pays nothing and `ipqp_restart_repairs` stays 0 on it.
+/// @brief THE WARM RESTART'S REPAIR FLOORS (spec 5.2 item 1). Both are
+/// ABSOLUTE, deliberately: a payload slack or price below ~1e-8 is noise at
+/// any `mu` this tier runs, whatever the units. `kIpqpRepairEps` is ALSO used
+/// mu-relative (`eps = kIpqpRepairEps * mu_0`) once `mu_0` is known -- so the
+/// pre-clamp floor is absolute and the post-clamp one scales. Fix round 1
+/// ruling R4; the asymmetry is argued in `.superpowers/w1-t7-report.md` F4.
 inline constexpr double kIpqpRepairEps = 1.0e-8;
 inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
+
+/// @brief The SAY shift of 5.2 item 2 is applied ONLY to a seed that is not
+/// already centred (`min pair product < this * mu_0`), so a good warm seed
+/// pays nothing and `ipqp_restart_repairs` stays a signal.
 inline constexpr double kIpqpSayCentralityFactor = 1.0e-1;
 
-/// @brief The SAY (Skajaa-Andersen-Ye) two-scalar shift's target fraction:
-/// `delta_p = kIpqpSayTargetFraction * mu_0 / z_avg`, `delta_d =
-/// kIpqpSayTargetFraction * mu_0 / d_avg`. Mehrotra's own second-stage
-/// coefficient, with the measured complementarity replaced by the section 5.3
-/// target -- which is what makes the shift push pairs toward `mu_0` rather
-/// than toward twice their own average. AVERAGES, never a per-pair maximum: a
-/// genuinely active bound carries a tiny distance, and a max-based shift would
-/// blow up on exactly the seeds worth warm-starting from.
+/// @brief The Skajaa-Andersen-Ye two-scalar shift's target fraction:
+/// `delta_p = this * mu_0 / z_avg`, `delta_d = this * mu_0 / d_avg`. Mehrotra's
+/// second-stage coefficient with the measured complementarity replaced by the
+/// 5.3 target; AVERAGES, never a per-pair maximum -- report section 4(b).
 inline constexpr double kIpqpSayTargetFraction = 0.5;
 
 /// @brief The (rho, delta) schedule's DECREASE GATE (spec 3.2's
@@ -460,14 +456,10 @@ enum class IpqpFace {
 };
 
 /// @brief THE SECTION 5.4 PAYLOAD GRADE this solve started at, reported on
-/// `IpqpResult::restart_grade` and carried into task 8's `ipqp.restart` event.
-///
-/// `kBaseWarm` is a DOCUMENTED DEGRADATION, not an equivalent: it is built by
-/// splitting the currency's SIGNED bound price (`WarmStartData::bound_lmults_`)
-/// into `(zL, zU)`, which is lossy at a two-sided bound -- exactly the loss the
-/// `hven.ipm.polish.v1` extension exists to avoid. The CROSS-MAJOR CARRY
-/// reports `kFullWarm`: it carries `zL`/`zU`/`mu` unflattened, which is what
-/// "full" names.
+/// `IpqpResult::restart_grade`. `kBaseWarm` is a DOCUMENTED DEGRADATION: it
+/// splits the currency's SIGNED bound price, which is lossy at a two-sided
+/// bound, and takes 5.4's ADDITIVE `eps`. The cross-major carry reports
+/// `kFullWarm` -- it carries `zL`/`zU`/`mu` unflattened.
 enum class IpqpRestartGrade {
     kCold = 0,
     kBaseWarm = 1,
@@ -596,9 +588,11 @@ struct IpqpBounds {
 /// before a seed is built at all: by the time one reaches this engine it is a
 /// caller's assertion about this problem's dimensions.
 struct IpqpSeed {
-    Vec x;        ///< n. Repaired INTO the box (never the box's centre -- see IpqpBox).
-    Vec s;        ///< mi, > 0. Spec 5.2 item 1 RECOMPUTES this from `bi - Ai x`
-                  ///< unless `ipqp_warm_repair` is off, in which case it is used as given.
+    Vec x; ///< n. Repaired INTO the box (never the box's centre -- see IpqpBox).
+    /// mi, > 0, or ALL-ZERO meaning ABSENT. Spec 5.2 item 1 recomputes it from
+    /// `bi - Ai x`; with `ipqp_warm_repair` off a seed whose `s` is not
+    /// strictly positive degrades COLD rather than being consumed (ruling R1).
+    Vec s;
     Vec lambda_e; ///< me.
     Vec lambda_i; ///< mi, > 0.
     Vec zl;       ///< n, >= 0 (0 where the lower bound is absent).
@@ -1003,12 +997,9 @@ class IpqpEngine {
 
     /// @brief THE CROSS-MAJOR CARRY (spec 5.1 flow (b)): the state the last
     /// solve on this instance finished at, or `nullptr` when none is armed.
-    ///
-    /// The caller passes it straight back to `solve()` for the next major, and
-    /// never inspects it -- it is engine-internal currency, exactly as
-    /// `QpEngine`'s border cache is. A solve that produced no usable state
-    /// LEAVES THE PREVIOUS CARRY STANDING, which is what makes spec 5.1's
-    /// "a trust-region shrink-retry ... does not reset the seed" true.
+    /// Engine-internal currency the caller passes straight back and never
+    /// inspects. A solve that produced no usable state LEAVES IT STANDING,
+    /// which is what makes 5.1's "a shrink-retry does not reset the seed" true.
     const IpqpSeed *warm_carry() const;
 
     /// Drop the carry. The driver calls this at SQP-solve entry and after a

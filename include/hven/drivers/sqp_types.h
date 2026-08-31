@@ -152,6 +152,10 @@ struct IpqpOptions {
     /// first but did not. Unlike `ipqp_max_iter` this is not a
     /// size-derived budget and has no sentinel reading, so it must be a
     /// genuine, positive iteration count. Default 60. Must be > 0.
+    ///
+    /// PER ATTEMPT, not per subproblem (M6 W1 task 7): the section 5.5
+    /// warm-kill re-bases both caps at the cold restart, so a subproblem whose
+    /// warm attempt was abandoned may total up to 2 x this value.
     Index ipqp_hard_iter_cap = 60;
 
     /// Factorization budget for the tier, enforced BEFORE EVERY
@@ -165,6 +169,9 @@ struct IpqpOptions {
     /// sentinel grants before it calls a solve pathological; one iteration
     /// costs one factorization plus its rungs. Every `Index` value is legal
     /// and nothing here is validated, exactly like `ipqp_max_iter` above.
+    /// PER ATTEMPT for the same reason `ipqp_hard_iter_cap` is: a warm-killed
+    /// subproblem may total up to 2 x this value, and every factorization is
+    /// charged to the driver's probe budget either way.
     Index ipqp_max_factorizations = 0;
 
     /// The COLD starting barrier parameter (spec 5.6: `mu_0 = ipqp_init_mu`
@@ -279,7 +286,9 @@ struct IpqpOptions {
 
     /// The warm-seed repair (spec 5.2): strict-positivity clamps plus the
     /// two-scalar `(delta_p, delta_d)` shift, applied before a warm restart
-    /// is trusted. Default true.
+    /// is trusted. Default true. OFF DISABLES THE REPAIR, NEVER THE
+    /// VALIDATION: a seed the repair would have had to fix degrades COLD
+    /// instead, mode-local and visible in the grade (M6 W1 T7 ruling R1).
     bool ipqp_warm_repair = true;
 
     /// The WARM-KILL rule's (spec 5.5) iteration budget: a warm-started
