@@ -514,6 +514,15 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
         // "Honest certificate" is checked against arithmetic done by hand in
         // the fixture's own header rather than against whatever the engine
         // produced.
+        RecordProperty(std::string(c.name) + "_iters", std::to_string(r.counters.ipqp_iters));
+        RecordProperty(std::string(c.name) + "_factorizations",
+                       std::to_string(r.counters.ipqp_factorizations));
+#ifdef USE_ACCELERATE_SPARSE
+        // The admissible list is an exact trajectory pin, so it is MKL-scoped
+        // and UNOBSERVED elsewhere (CLAUDE.md section 6; T4b fix round 2, F5).
+        RecordProperty(std::string(c.name) + "_accelerate",
+                       "UNOBSERVED -- the exact trajectory is MKL-only");
+#else
         Index matched = 0;
         for (const Outcome &o : c.admissible) {
             ASSERT_EQ(r.x.size(), o.x.size());
@@ -525,9 +534,7 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
         EXPECT_EQ(matched, 1) << "x = " << r.x.transpose() << ", iters = " << r.counters.ipqp_iters
                               << ", factorizations = " << r.counters.ipqp_factorizations
                               << " matches no admissible trajectory";
-        RecordProperty(std::string(c.name) + "_iters", std::to_string(r.counters.ipqp_iters));
-        RecordProperty(std::string(c.name) + "_factorizations",
-                       std::to_string(r.counters.ipqp_factorizations));
+#endif
         EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap)
             << "and none of them is stopped by the budget any more";
     }
@@ -789,33 +796,44 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
     // threshold instead: record the smallest sufficient shift and assert
     // `rho_d_settled <= kIpqpLadderUp x` it.
     //
-    // DEVIATION IN ROUND 1, NOW CLOSED (fix round 1, I3 / CX5). Round 1 shipped
-    // only `rho_demanded_last <= rho_demanded_max / kIpqpLadderDown` -- a
-    // different and weaker property ("the memory walked one /3 step below the
-    // peak"), which passes when peak = 100, last = 33 and the smallest
-    // sufficient value is 1, i.e. exactly when the required `33 <= 8` fails.
-    // The smallest sufficient value is not visible through `IpqpResult`, so
-    // this test MEASURES it: `ipqp_rho_init` sets the schedule's starting
-    // value, and a solve capped at ONE iteration reports
-    // `ipqp_inertia_retries == 0` iff that value already sufficed at iteration
-    // 0. Descending powers of two bracket the smallest sufficient shift to a
-    // factor of two, and the assertion carries that slack explicitly rather
-    // than hiding it.
+    // HOW THE THRESHOLD IS MEASURED. No boundary knob sets `rho_dem`, so the
+    // probe reaches the same diagonal through `ipqp_rho_init`: a solve capped
+    // at one iteration reports `ipqp_inertia_retries == 0` iff that shift
+    // already sufficed at iteration 0. `write_diagonals` makes the two
+    // interchangeable only where `dsq[i] == 1`, so BOTH sides run with
+    // equilibration off; the default solve keeps the weaker round-1 property
+    // beside them. Descending powers of two bracket the threshold to a factor
+    // of two, which is what `2 * kIpqpLadderUp` carries, along with the fact
+    // that the threshold is read at iteration 0 and the settled value at a
+    // later one. (T4b fix round 2, F3; argument, the measured table and the two
+    // residual concerns in `.superpowers/w1-t4b-report.md`.)
+    int hs_row = 0;
     for (const QpProblem &qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
           test_support::two_negative_eigenvalue_row_qp()}) {
+        // One suffix per row: a bare key records only the last fixture.
+        const std::string row = "_hs" + std::to_string(hs_row++);
+        SCOPED_TRACE(row);
         IpqpEngine hs_tier(tight_opts());
         const IpqpResult h = hs_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         ASSERT_GT(h.counters.ipqp_rho_demanded_max, 0.0);
-        // The round-1 property is kept -- it is true, and it is the cheap
-        // regression guard -- with the observed-threshold property added beside
-        // it rather than instead of it.
         EXPECT_LE(h.counters.ipqp_rho_demanded_last,
                   h.counters.ipqp_rho_demanded_max / detail::kIpqpLadderDown);
+        RecordProperty("t4b_gate7_settled_default" + row,
+                       std::to_string(h.counters.ipqp_rho_demanded_last));
+
+        // The comparison, both sides at `dsq == 1`.
+        IpqpOptions unscaled;
+        unscaled.ipqp_ruiz = false;
+        IpqpEngine ref_tier(tight_opts());
+        const IpqpResult ref = ref_tier.solve(qp, nullptr, unscaled, SolveOverrides{});
+        ASSERT_GT(ref.counters.ipqp_rho_demanded_max, 0.0)
+            << "the reference solve must arm the ladder, or there is no settled value to bound";
 
         double observed_threshold = std::numeric_limits<double>::infinity();
         for (double trial = 128.0; trial >= 1.0 / 1024.0; trial *= 0.5) {
             IpqpOptions probe;
+            probe.ipqp_ruiz = false;
             probe.ipqp_rho_init = trial;
             probe.ipqp_hard_iter_cap = 1;
             IpqpEngine probe_tier(tight_opts());
@@ -828,11 +846,12 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
         }
         ASSERT_TRUE(std::isfinite(observed_threshold))
             << "no trial shift in the sweep sufficed -- the probe is not measuring a threshold";
-        RecordProperty("t4b_gate7_observed_threshold", std::to_string(observed_threshold));
-        RecordProperty("t4b_gate7_settled", std::to_string(h.counters.ipqp_rho_demanded_last));
-        EXPECT_LE(h.counters.ipqp_rho_demanded_last,
+        RecordProperty("t4b_gate7_observed_threshold" + row, std::to_string(observed_threshold));
+        RecordProperty("t4b_gate7_settled_unscaled" + row,
+                       std::to_string(ref.counters.ipqp_rho_demanded_last));
+        EXPECT_LE(ref.counters.ipqp_rho_demanded_last,
                   2.0 * detail::kIpqpLadderUp * observed_threshold)
-            << "settled = " << h.counters.ipqp_rho_demanded_last
+            << "settled = " << ref.counters.ipqp_rho_demanded_last
             << ", observed threshold = " << observed_threshold;
     }
 }
@@ -879,8 +898,15 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
         const IpqpResult r = tier.solve(saddle, nullptr, IpqpOptions{}, SolveOverrides{});
 
         // The family's invariants, so the sweep is one experiment with one
-        // variable moving.
+        // variable moving. The iteration count is an exact trajectory value and
+        // is MKL-scoped (T4b fix round 2, F5).
+#ifdef USE_ACCELERATE_SPARSE
+        RecordProperty("t4b_gate8_iters_accelerate",
+                       "UNOBSERVED -- the exact iteration count is MKL-only");
+        ASSERT_GT(r.counters.ipqp_iters, 0);
+#else
         ASSERT_EQ(r.counters.ipqp_iters, 3);
+#endif
         EXPECT_NEAR(r.x(1), 0.0, 1e-12);
         EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0)
             << "the ladder never arms here -- rho_0 = 8 covers |H11| = 1 from the first "
@@ -933,10 +959,32 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
             ++kept_and_stood;
         }
     }
+    // The existence forms, unconditional on every backend.
     EXPECT_GT(dropped_and_downgraded, 0) << "the repair must fire somewhere, or nothing is tested";
     EXPECT_GT(kept_and_stood, 0) << "and it must NOT fire on a strongly active bound, or the rule "
                                     "is 'drop everything'";
     EXPECT_GT(skipped_ties, 0) << "the sweep crosses the boundary";
+    EXPECT_EQ(dropped_and_downgraded + kept_and_stood + skipped_ties, 10)
+        << "every swept member is classified exactly once -- structural, and true on any backend";
+    RecordProperty("t4b_gate8_census",
+                   "dropped_and_downgraded=" + std::to_string(dropped_and_downgraded) +
+                       " kept_and_stood=" + std::to_string(kept_and_stood) +
+                       " skipped_ties=" + std::to_string(skipped_ties));
+
+    // The exact split, not just its existence: a drift in WHICH members are
+    // weak moves a member between the two branches and leaves every `> 0` form
+    // true. Eight, not nine, because `s = 1.58e-4` is skipped as a tie before
+    // it is classified. (T4b fix round 2, F1; reconciliation with the report's
+    // FR-2 table in `.superpowers/w1-t4b-report.md`.)
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("t4b_gate8_census_accelerate",
+                   "UNOBSERVED -- which members are weak depends on the mu the backend converges "
+                   "to; the split is MKL-only");
+#else
+    EXPECT_EQ(dropped_and_downgraded, 8);
+    EXPECT_EQ(kept_and_stood, 1);
+    EXPECT_EQ(skipped_ties, 1);
+#endif
 
     // **CODEX'S NAMED MEMBER**, asserted on its own rather than only inside the
     // loop: `weakly_active_indefinite_qp(1.4e-4)` has `Sigma ~ 1.28 > |-1|` and

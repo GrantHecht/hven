@@ -550,14 +550,23 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
     // the last two moved NOTHING, which is class (c). The ABSOLUTE floor is a
     // setting every schedule decays onto, not evidence about this subproblem's
     // curvature, so it earns no counter.
+    // The advance counts are exact trajectory pins and are MKL-scoped; the
+    // residual's sign is not (T4b fix round 2, F5). The reclimb zero is
+    // asserted above.
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("t4b_absolute_floor_accelerate",
+                   "UNOBSERVED -- the exact advance counts are MKL-only");
+#else
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, 4);
     EXPECT_EQ(r.counters.ipqp_reg_decreases, 2);
-    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
     // ... so the identity's residual IS the class-(c) count, and it is 2 here.
     // The section 7 counter table has no field for that class and T4b does not
     // invent one, so it is pinned by arithmetic on the fields that do exist
     // rather than left unstated.
     EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases, 2);
+#endif
+    EXPECT_GE(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases)
+        << "the class-(c) residual is a count and is never negative";
 }
 
 TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveThatNeverArmsTheLadder) {
@@ -648,8 +657,12 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // DIVERGE is the cap-1 budget one, which arms the ladder and then takes no
     // step at all: see
     // `TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderRungsIncluded`.
+    // The counts are MKL-scoped; the identity between them is not
+    // (T4b fix round 2, F5).
+#ifndef USE_ACCELERATE_SPARSE
     EXPECT_EQ(r.counters.ipqp_iters, 3);
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 3);
+#endif
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, r.counters.ipqp_iters);
     // The gated advances are classified exactly once each (I2).
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
@@ -671,6 +684,12 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // `bar kappa_w^+` and `kappa_w^-`; before T4b this fixture paid FIVE
     // factorizations because the monotone floor made the first climb's 800
     // permanent and no later iteration ever probed below it.
+    // The derivation above is what the counts mean; the counts themselves are
+    // one backend's measurement, so they are MKL-scoped (T4b fix round 2, F5).
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("t4b_saddle_trajectory_accelerate",
+                   "UNOBSERVED -- the exact ladder trajectory is MKL-only");
+#else
     EXPECT_EQ(r.counters.ipqp_factorizations, 10);
     EXPECT_EQ(r.counters.ipqp_inertia_retries, 6);
     EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0)
@@ -679,10 +698,15 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
            "cover the zero-trial route as well, a zero here is a measurement rather than a blind "
            "spot: this fixture's cost is the retried ZERO-trial, which `ipqp_inertia_retries` "
            "already carries";
-    EXPECT_EQ(r.counters.ipqp_pivot_reroute_primal, 0);
-    EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 100.0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, 100.0 / 3.0 / 3.0);
+#endif
+    // `ipqp_pivot_reroute_primal` is not pinned here: an exact count would pin
+    // the backend's perturbation threshold, which concern C3 forbids. The
+    // fallback is structural -- it needs two consecutive failed primal rungs --
+    // so it stays. The re-route's contract is pinned in test_ipqp_seams.cpp.
+    // (T4b fix round 2, F4.)
+    EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_DOUBLE_EQ(r.rho_mod, r.counters.ipqp_rho_demanded_last)
         << "`rho_mod` is the modification the LAST step ran at, which on this fixture is also "
            "the memory's final value";

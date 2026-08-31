@@ -733,7 +733,7 @@ struct IpqpCounters {
     /// `ipqp_pivot_reroute_primal`. The first draft of this field's doc said
     /// perturbed readings escalate `delta` and are therefore excluded; that
     /// stopped being true when the re-route landed, and the exclusion is now
-    /// enforced in the code rather than asserted in prose.
+    /// enforced at the charge itself (fix round 2, F2).
     Index ipqp_ladder_reclimbs = 0;
 
     /// Ladder rungs taken because a PERTURBED-PIVOT report arrived while the
