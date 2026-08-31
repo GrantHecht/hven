@@ -193,6 +193,7 @@ target_sources(hven PRIVATE
     drivers/sqp_print.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
+    qp/ipqp_engine.cpp
     qp/ipqp_kkt_layout.cpp
     qp/qp_engine.cpp
     qp/ssn_engine.cpp
@@ -409,7 +410,20 @@ endif()
 # QP problem type at all -- the layout is written against the three sparse
 # blocks and their dimensions, not against QpProblem -- so there is even less
 # for a shared PCH to save here than for the SQP-side TUs above it.
-set(_hven_expected_source_count 38)
+#
+# 39 as of qp/ipqp_engine.cpp, the M6 W1 interior-point QP tier's iteration:
+# the clamp-centred box, the Mehrotra predictor-corrector, the monotone
+# (rho, delta) ladder and the relative-KKT stopping rule. It stays OUT on the
+# same footing as the ten above -- no measurement exists for it, and out is the
+# unmeasured default -- and on the SQP-side prior: it includes the tier's own
+# header (which pulls the QP problem, the QP types, the SQP types, the KKT
+# factorization and the scatter plan), the QP engine header and the SSN engine
+# header (for the InertiaVerdict perturbed-pivot policy and the ladder's
+# cap-slack constants, both reused verbatim rather than re-derived), a
+# different header set in a different order from the one src/hven_pch.h
+# prefixes, and that property has failed bar 2 for every SQP-side TU measured
+# so far.
+set(_hven_expected_source_count 39)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
