@@ -974,7 +974,8 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_rho_demanded_last = one.ipqp_rho_demanded_last;
     total.ipqp_inertia_retries += one.ipqp_inertia_retries;
     total.ipqp_iters_at_elevated_rho += one.ipqp_iters_at_elevated_rho;
-    total.ipqp_rho_flaps += one.ipqp_rho_flaps;
+    total.ipqp_ladder_reclimbs += one.ipqp_ladder_reclimbs;
+    total.ipqp_iters_ladder_armed_no_advance += one.ipqp_iters_ladder_armed_no_advance;
     // Status, overwritten, not summed -- see IpqpCounters' own doc comment.
     total.ipqp_final_inertia_read = one.ipqp_final_inertia_read;
     total.ipqp_reg_decreases += one.ipqp_reg_decreases;

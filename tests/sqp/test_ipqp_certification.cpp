@@ -420,12 +420,12 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsArmTheGateAndClimbMonotonelyButNeverReachTh
 
         // A11 CLAIM 2 -- THE LADDER IS MONOTONE WITHIN THE SOLVE. The floor
         // only ever rises, so its LAST value is also its high-water mark, and
-        // no down-then-up cycle was attempted (`ipqp_rho_flaps`, which counts
+        // no down-then-up cycle was attempted (`ipqp_ladder_reclimbs`, which counts
         // exactly that). A ladder that fell back would break the first; a
         // schedule that pushed under the floor and was refused would show in
         // the second.
         EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
-        EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
+        EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
         EXPECT_GT(r.counters.ipqp_iters_at_elevated_rho, 0);
 
         // NEVER kOptimal -- the claim that survives whatever else happens.

@@ -135,23 +135,100 @@ namespace hven::solvers {
 
 namespace detail {
 
-/// @brief The FIRST rung of the inertia ladder, as an absolute floor: Ipopt's
-/// `delta_w_0` (Wachter-Biegler 2006, Algorithm IC).
-///
-/// The ladder multiplies, so without a floor a ladder starting from a decayed
-/// schedule value (`rho` reaches `kProxRegFloor = 1e-10` on a healthy solve)
-/// would spend six rungs -- six numeric factorizations -- at magnitudes far
-/// too small to change any inertia before reaching a value that can. The
-/// first rung is therefore `max(rho * kIpqpRhoGrowth, kIpqpRhoLadderInit)`.
-inline constexpr double kIpqpRhoLadderInit = 1.0e-4;
+// ===========================================================================
+// THE INERTIA LADDER: WACHTER-BIEGLER 2006 ALGORITHM IC, WITH TWO DECLARED
+// ADAPTATIONS
+// ===========================================================================
+//
+// Source: A. Wachter and L. T. Biegler, "On the implementation of an
+// interior-point filter line-search algorithm for large-scale nonlinear
+// programming", Mathematical Programming 106(1):25-57, 2006 -- Algorithm IC
+// ("Inertia Correction"), p. 10, and its four constants:
+//
+//     delta_w^0     = 1e-4     -> kIpqpLadderInit
+//     bar kappa_w^+ = 100      -> kIpqpLadderUpFirst   (the FIRST climb only)
+//     kappa_w^+     = 8        -> kIpqpLadderUp        (every later climb)
+//     kappa_w^-     = 1/3      -> kIpqpLadderDown      (the next trial)
+//
+// The rule, in full, is implemented in `IpqpEngine::solve`'s
+// `factorize_with_ladder` and its trial selector; this banner exists so the
+// four numbers are read together with the paper they come from, and so the
+// places hven DEPARTS from the paper are stated here rather than discovered.
+//
+// IT IS NOT "VERBATIM", AND SAYING SO WOULD BE FALSE ON TWO POINTS:
+//
+//  (i) BOUNDS. The paper's `delta_w^min = 1e-20` and `delta_w^max = 1e40` are
+//      hven's `ipqp_reg_floor` (1e-10, Cipolla-Gondzio's `kProxRegFloor`) and
+//      `ipqp_reg_max` (1e6, `detail::kSsnProxMax`) -- the spec's own section
+//      3.2 bounds, which the tier shares with the SSN kernel's proximal cap
+//      and its relative cap-slack rule. A ladder that ran to 1e40 would
+//      contradict the exhaustion guard the spec writes for this tier.
+//
+// (ii) THE UNMODIFIED TRIAL. IC-1 tries the unmodified system EVERY iteration.
+//      hven skips that trial only after `kIpqpLadderSkipAfter` CONSECUTIVE
+//      iterations have needed a modification -- the deviation Ipopt's own
+//      implementation documents (paper p. 10, "in our implementation") --
+//      never from the first modification on. Skipping earlier would make the
+//      "try zero first" property, which is what lets `rho_dem` fall to 0 the
+//      moment the reduced curvature turns positive and one Newton step land
+//      the residual at machine precision, unreachable on exactly the rows it
+//      matters for.
+//
+// THE CONSTANTS ARE THE PAPER'S, NOT THE IN-TREE NLP DRIVER'S (1e-5, x8, /3
+// plus a cycling guard; `interior_point_solver.h:419-425`). Three reasons, and
+// none of them is "the driver is wrong": the shift is SCALE-RELATIVE and the
+// two act on differently scaled matrices (the driver on the Lagrangian
+// Hessian at its own scaling, this tier on the Ruiz-scaled QP matrix), so the
+// same numbers would not be the same behaviour; the driver's cycling guard
+// exists because an NLP's Hessian changes every iteration and a stale memory
+// can mislead, whereas a QP's `H` is FIXED for the whole solve; and
+// source parity between the two engines is about CONTRACTS, not about shared
+// tuning constants. Registered for M7 (one line): measure the paper's
+// constants against the driver's on the same instrumented fixtures rather
+// than settling it by fiat. Ipopt's four numbers are twenty years of CUTEst
+// -- do not tune them on three HS rows.
 
-/// @brief Ladder growth per rung, TWO DECADES -- `detail::kSsnProxGrowth`'s
-/// value, adopted for the reason that ladder's own banner gives: at a 1e6
-/// ceiling two decades per rung gives a ladder short enough that exhausting
-/// it is bounded work, and one decade per rung doubles the factorization bill
-/// to buy resolution no fixture has ever needed. Applied to `rho` on a wrong
-/// inertia and to `delta` on a perturbed-pivot report.
-inline constexpr double kIpqpRhoGrowth = 100.0;
+/// @brief IC's `delta_w^0`: the first rung of a climb that starts from no
+/// memory at all. An ABSOLUTE magnitude, not a multiple of anything -- the
+/// smallest shift this tier regards as a real inertia correction.
+inline constexpr double kIpqpLadderInit = 1.0e-4;
+
+/// @brief IC's `bar kappa_w^+`: the growth factor for the WHOLE of a solve's
+/// FIRST climb, i.e. while the memory `rho_dem_last` is still zero. Two
+/// decades per rung, because on the first climb there is no scale information
+/// about the subproblem at all and a short ladder is what makes exhausting it
+/// bounded work.
+inline constexpr double kIpqpLadderUpFirst = 100.0;
+
+/// @brief IC's `kappa_w^+`: the growth factor once a memory exists. Eight,
+/// not a hundred -- with `rho_dem_last` in hand the ladder is refining a value
+/// it already knows the order of, and overshooting it is the whole defect the
+/// two-decade rung produced before T4b.
+inline constexpr double kIpqpLadderUp = 8.0;
+
+/// @brief IC's `1 / kappa_w^-`: the next iteration's trial is
+/// `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`. The ladder is
+/// therefore NOT monotone within a solve, deliberately: a monotone floor makes
+/// the first climb's overshoot permanent, and Algorithm IC -- which spec 2.2
+/// cites by name -- has no such rule.
+inline constexpr double kIpqpLadderDown = 3.0;
+
+/// @brief How many CONSECUTIVE preceding iterations must have needed a
+/// modification before the unmodified trial (IC-1) is skipped. Adaptation
+/// (ii) in the banner above.
+inline constexpr int kIpqpLadderSkipAfter = 3;
+
+/// @brief Growth per rung for the DUAL shift `delta` on a perturbed-pivot
+/// report -- `detail::kSsnProxGrowth`'s value, adopted for the reason that
+/// ladder's own banner gives: at a 1e6 ceiling two decades per rung gives a
+/// ladder short enough that exhausting it is bounded work, and one decade per
+/// rung doubles the factorization bill to buy resolution no fixture has ever
+/// needed.
+///
+/// THE PRIMAL LADDER NO LONGER USES THIS (T4b): `rho_dem` climbs on Algorithm
+/// IC's own two factors above. `delta`'s escalation is a quasi-definiteness
+/// repair with no inertia memory behind it and is unchanged.
+inline constexpr double kIpqpDeltaGrowth = 100.0;
 
 /// @brief The interior push's two Ipopt constants (`bound_push` /
 /// `bound_frac`): the cold start's `x_0` is moved to
@@ -218,7 +295,7 @@ inline constexpr double kIpqpRuizTol = 1.0e-3;
 /// level a step is permitted at when a factorization SUCCEEDED but could not
 /// report usable inertia evidence.
 ///
-/// ITS OWN NAME, EQUAL TODAY TO `kIpqpRhoLadderInit` BUT NOT THE SAME CONTRACT
+/// ITS OWN NAME, EQUAL TODAY TO `kIpqpLadderInit` BUT NOT THE SAME CONTRACT
 /// (co-review I-3). The ladder constant is a STEP SIZE -- where the
 /// Wachter-Biegler climb starts when an inertia reading says the system needs
 /// shifting. This one is a MINIMUM MAGNITUDE under a solve that has no reading
@@ -227,8 +304,9 @@ inline constexpr double kIpqpRuizTol = 1.0e-3;
 /// catching it; two names is how the two contracts stay separable.
 ///
 /// AN ABSOLUTE MAGNITUDE, NOT A MULTIPLE OF THE WORKING `rho`, and it is a
-/// MINIMUM rather than the level the factorization runs at (that stays
-/// `max(rho_sched, rho_floor)`). Section 2.2 names no sizing at all, so the
+/// MINIMUM rather than the level the factorization runs at (that is
+/// `max(this iteration's IC trial, this floor)`). Section 2.2 names no sizing
+/// at all, so the
 /// choice is implementation latitude; what settles it is the branch the clause
 /// exists for. On a backend reporting `kUnavailable` for EVERY factorization
 /// -- the Accelerate case section 2.2 names -- a level-proportional floor
@@ -247,7 +325,7 @@ inline constexpr double kIpqpRuizTol = 1.0e-3;
 /// argument (settler ruling, plan section 7 note (n)) and NOT under the word
 /// "conservative", whose plain Wachter-Biegler sense would point at a LARGER
 /// shift than the ladder's smallest rung.
-inline constexpr double kIpqpEvidenceFailureRhoFloor = kIpqpRhoLadderInit;
+inline constexpr double kIpqpEvidenceFailureRhoFloor = kIpqpLadderInit;
 
 /// @brief Section 6.2 conjunct (i): the factor by which `mu` must have been
 /// reduced ACROSS the window for the window not to be a stall.
@@ -700,6 +778,26 @@ struct IpqpResult {
     double mu = 0.0;    ///< The measured complementarity at the returned point.
     double rho = 0.0;   ///< The (rho, delta) schedule's final primal value.
     double delta = 0.0; ///< ... and its final dual value.
+
+    /// The SECTION 2.2 INERTIA-DEMANDED MODIFICATION in force at the last step
+    /// this solve took -- `0.0` when that step ran on the unmodified system,
+    /// which is every step of every convex subproblem.
+    ///
+    /// A SECOND QUANTITY BESIDE `rho`, NOT A COMPONENT OF IT (T4b). `rho` is
+    /// the section 3.2 PROXIMAL schedule: it defines the subproblem, enters
+    /// the right-hand side, and is what the gate measures against. This is
+    /// Ipopt's `delta_w`: a diagonal-only modification of the Newton matrix,
+    /// additive on top of `rho`, applied uniformly in the Ruiz-scaled system,
+    /// and absent from the right-hand side entirely. Reporting their sum in
+    /// one field would lose exactly the distinction the tier was rebuilt to
+    /// make, which is why task 8's `ipqp.reg` event carries both.
+    ///
+    /// NOT the solve's high-water mark (`counters.ipqp_rho_demanded_max`) and
+    /// NOT the ladder's memory (`counters.ipqp_rho_demanded_last`): it is the
+    /// working value of the last step, so a solve whose ladder armed early and
+    /// disarmed later reports `0.0` here and a nonzero max, which is the
+    /// honest pair. Structurally `0.0` on a solve that took no step at all.
+    double rho_mod = 0.0;
 
     // --- the face blocks (spec 2.3 item 2; the routing chain's input) -------
 

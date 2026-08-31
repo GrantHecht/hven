@@ -615,16 +615,30 @@ struct IpqpCounters {
     /// same solve.
     Index ipqp_pattern_verifies = 0;
 
-    /// The inertia-demanded `rho`'s HIGH-WATER MARK across every ladder rung
-    /// this subproblem paid. MAX-FOLDED across subproblems in
-    /// `accumulate_ipqp_counters` (model: `ssn_sign_sweep_max`), so the
-    /// `SqpCounters`-scale reading is the largest `rho` ANY subproblem in
-    /// the solve was ever forced to. Excludes `delta`, which carries no
-    /// separate high-water field.
+    /// The inertia-demanded modification `rho_dem`'s HIGH-WATER MARK across
+    /// every ladder rung this subproblem paid. MAX-FOLDED across subproblems
+    /// in `accumulate_ipqp_counters` (model: `ssn_sign_sweep_max`), so the
+    /// `SqpCounters`-scale reading is the largest modification ANY subproblem
+    /// in the solve was ever forced to. Excludes `delta`, which carries no
+    /// separate high-water field, and excludes the section 3.2 schedule
+    /// `rho_sched`, which is not a modification at all.
+    ///
+    /// A HIGH-WATER MARK IS NOT A LEVEL THE SOLVE ENDED AT (T4b). Before T4b
+    /// the ladder was monotone per solve, so this equalled the working shift
+    /// at every later iteration and `ipqp_rho_demanded_last` equalled it too.
+    /// Algorithm IC's memory retries `rho_dem_last / 3` at every iteration, so
+    /// under T4b a solve routinely settles well BELOW its own peak and the two
+    /// fields differ. Still structurally `0.0` on a convex subproblem, where
+    /// the ladder never arms -- which is the convex-inertness pin.
     double ipqp_rho_demanded_max = 0.0;
 
-    /// The inertia-demanded `rho` at the LAST ladder rung this subproblem
-    /// paid -- spec section 7's table row
+    /// The inertia-demanded modification at the LAST ladder rung this
+    /// subproblem paid, which is Algorithm IC's own memory `rho_dem_last`: the
+    /// shift the last SUCCESSFUL MODIFIED factorization ran at (or, on an
+    /// exhausted ladder, the ceiling rung the tier was refused at). An
+    /// iteration that succeeded on the UNMODIFIED system paid no rung and
+    /// leaves this untouched, exactly as IC leaves its memory untouched
+    /// there -- spec section 7's table row
     /// (`docs/notes/2026-08-m6-w1-ipqp-spec.md:713`) calls this reading
     /// "final" in so many words, which is what makes OVERWRITE (not summed
     /// or folded) the normative fold here, not merely this struct's own
@@ -653,44 +667,77 @@ struct IpqpCounters {
     /// itself comes back wrong.
     Index ipqp_inertia_retries = 0;
 
-    /// Iterations whose step was TAKEN with `rho` above the schedule's own
-    /// residual-implied level, i.e. with the section 2.2 inertia-demanded
-    /// floor -- not section 3.2's schedule -- setting the working value.
+    /// Iterations whose step was TAKEN with a nonzero section 2.2
+    /// INERTIA-DEMANDED MODIFICATION in force -- `rho_dem > 0`, i.e. the
+    /// Newton matrix carried a shift the section 3.2 schedule did not ask for.
     /// Measured AFTER that iteration's ladder settles, so the iteration in
-    /// which the ladder FIRST raises the floor is counted (M6 W1 task 4 fix
-    /// round 1, I4: sampling before the ladder ran made this off by one, low,
-    /// on every solve that ever armed the ladder). Excludes iterations whose
-    /// step ran at the schedule's own level, where no elevation was in force.
+    /// which the ladder first demands a modification is counted (M6 W1 task 4
+    /// fix round 1, I4: sampling before the ladder ran made this off by one,
+    /// low, on every solve that ever armed the ladder). Excludes iterations
+    /// whose step ran on the unmodified system, which is every iteration of
+    /// every convex subproblem. (Before T4b the predicate was
+    /// `max(rho_sched, rho_floor) > rho_sched`; with the two quantities
+    /// separated and ADDITIVE it is simply `rho_dem > 0`, which is the same
+    /// statement without the max.)
     Index ipqp_iters_at_elevated_rho = 0;
 
-    /// MONOTONE-floor violations ATTEMPTED: section 3.2 gated decreases of
-    /// `rho` that would have taken it below the INERTIA-DEMANDED floor
-    /// section 2.2 item 3 established, i.e. down-then-up cycles. Counts the
-    /// attempt, not a move, since the floor refuses the move itself.
+    /// LADDER RECLIMBS: iterations whose Algorithm IC trial
+    /// (`rho_dem_last / kIpqpLadderDown`) was REJECTED on a wrong inertia and
+    /// had to re-escalate. ONE PER ITERATION, never per rung -- an iteration
+    /// that climbed three rungs off a rejected trial is one reclimb, because
+    /// the quantity being measured is "how often did the memory's guess come
+    /// back too small", not how far the climb then went.
     ///
-    /// THE MONOTONE FLOOR ONLY, never the absolute `ipqp_reg_floor` (M6 W1
-    /// task 4 fix round 1, I2). The two are different objects: the monotone
-    /// floor is evidence about THIS subproblem's curvature and starts at 0, so
-    /// a convex subproblem -- where section 2.2's ladder is provably inert --
-    /// structurally reports 0 here; the absolute floor is a setting every
-    /// schedule decays onto, and counting it would report a "down-then-up
-    /// cycle" on a solve that never had a monotone floor and would co-fire
-    /// with the `ipqp_reg_decreases` this comment excludes. `delta` carries no
-    /// monotone floor at all (plan section 7 note (g): section 2.2 states the
-    /// floor for `rho` only), so it can never contribute here.
+    /// THE COST SIGNAL, AND IT IS AN EXPECTED COST, NOT A FAULT (M6 W1 T4b).
+    /// Algorithm IC deliberately re-tries a SMALLER shift than the one that
+    /// last worked, so on a subproblem whose curvature sits near the ladder's
+    /// threshold the accepted values cycle inside `(theta, 8 theta]` with a
+    /// reclimb every second iteration or so -- roughly half an extra
+    /// factorization per iteration. That is Ipopt's own behaviour, accepted by
+    /// Ipopt, and the alternative (a monotone floor) is the defect T4b
+    /// removed. Read it against `ipqp_reg_increases` and
+    /// `ipqp_reg_decreases`: every scheduled decrease of `rho_sched` by `d` on
+    /// a boundary-curvature row demands `rho_dem += d`, so reclimbs correlate
+    /// with decreases on a nonconvex row by construction.
     ///
-    /// MUTUALLY EXCLUSIVE WITH `ipqp_reg_decreases`, without exception (M6 W1
-    /// task 4 fix round 2, I2). A gated advance is classified EXACTLY ONCE,
-    /// in this order: the monotone floor refused `rho` -> flap; else `rho`
-    /// and/or `delta` moved -> decrease; else (both already on the ABSOLUTE
-    /// floor) neither. THE RULE ON THE ONE AMBIGUOUS CASE, stated rather than
-    /// left to be inferred: an advance whose `rho` move the monotone floor
-    /// refused is a FLAP AND ONLY A FLAP, even when `delta` moved on the same
-    /// advance -- `ipqp_reg_decreases`' "either quantity" rule says which
-    /// quantity can earn a decrease, not that one advance may be two things.
-    /// Excludes any inertia-demanded increase (`ipqp_reg_increases`), which is
-    /// not a floor violation.
-    Index ipqp_rho_flaps = 0;
+    /// THIS FIELD REPLACES `ipqp_rho_flaps`, WHICH IS GONE WITH THE RULE IT
+    /// MEASURED. That field counted section 3.2 gated decreases refused by
+    /// section 2.2 item 3's MONOTONE-PER-SOLVE FLOOR; the T4b plan of record
+    /// (plan section 7 note (p)) deletes that floor -- Wachter-Biegler's
+    /// Algorithm IC, which section 2.2 cites by name, has no such rule -- so
+    /// the event has no referent any more. The rename is free because the
+    /// field is M6-new and reaches no CSV schema before task 9.
+    ///
+    /// STRUCTURALLY 0 ON A CONVEX SUBPROBLEM, where the ladder never arms and
+    /// there is no trial to reject. Excludes the FIRST climb of a solve (there
+    /// is no memory to have guessed with), an iteration whose trial was
+    /// accepted, an iteration whose first reading was a PERTURBED pivot (that
+    /// escalates `delta`, not `rho_dem`), and every inertia-demanded increase
+    /// as such (`ipqp_reg_increases`).
+    Index ipqp_ladder_reclimbs = 0;
+
+    /// Iterations that ARMED the ladder (`rho_dem > 0` at the settled reading,
+    /// step taken) and on which the section 3.2 gate did NOT advance.
+    ///
+    /// THE DIRECT INSTRUMENT FOR THE NEGATIVE-CURVATURE WALK (T4b plan 2.1's
+    /// declared gap). Once the two regularizations are separated, the inner
+    /// iteration is a descent method on the schedule's barrier-proximal
+    /// subproblem whose RESIDUAL IS NOT MONOTONE: along a direction where
+    /// `H + rho_sched I + Sigma` still has negative curvature the residual
+    /// GROWS, and it keeps growing until a bound approaches or an equality row
+    /// removes the direction. The gate measures residual CONTRACTION, so it is
+    /// silent for the whole walk -- `zeta` and `rho_sched` pinned -- and then
+    /// advances in one step when the curvature turns and `rho_dem` falls to 0.
+    /// That is not a freeze (`x` moves, `mu` falls, steps are full), but it is
+    /// a walk whose length nothing else in the counter table would show. Task
+    /// 9 reads this field.
+    ///
+    /// Structurally 0 on a convex subproblem, where the ladder never arms.
+    /// Excludes an armed iteration on which the gate DID advance, an unarmed
+    /// iteration whether or not the gate advanced, and any iteration whose
+    /// step was not taken (the same "iterations taken" exclusion
+    /// `ipqp_iters_at_elevated_rho` documents).
+    Index ipqp_iters_ladder_armed_no_advance = 0;
 
     /// Outcome of the section 2.2 item 4 REQUIRED final unregularized
     /// inertia read on a certifying exit -- spec section 7's table row
@@ -706,8 +753,8 @@ struct IpqpCounters {
     /// two escape counters used to leave open. `0` -- the reading was taken
     /// and AGREED with the required signature: the certificate stands, no
     /// escape. `1` -- the reading was taken and DISAGREED (at the item 4
-    /// final certification factorization, or when the monotone ladder
-    /// reached `ipqp_reg_max` with the reading still wrong): a saddle-
+    /// final certification factorization, or when the ladder reached
+    /// `ipqp_reg_max` with the reading still wrong): a saddle-
     /// suspect certificate downgrade, `ipqp_escape_indefinite`. `2` --
     /// UNREADABLE: the read was ATTEMPTED and no usable evidence came back --
     /// no observed state at all, or a PERTURBED-pivot report, which section
@@ -756,12 +803,20 @@ struct IpqpCounters {
     /// `delta` alone is an applied decrease of the schedule; reading it as
     /// `rho`-only reported "no decrease applied" on a monotone-floor fixture
     /// while `delta` went 8 -> 0.8). Never more than 1 per advance, so it is
-    /// bounded by `ipqp_prox_center_updates`, and MUTUALLY EXCLUSIVE with
-    /// `ipqp_rho_flaps` -- see that field for the one-classification-per-
-    /// advance rule. Excludes an advance on which nothing moved because both
-    /// quantities already sit on the ABSOLUTE floor: that is neither a
-    /// decrease nor a flap, and it is the only reason
-    /// `ipqp_prox_center_updates` can exceed the sum of the two.
+    /// bounded by `ipqp_prox_center_updates`.
+    ///
+    /// THE IDENTITY, RE-PINNED AT T4b: `ipqp_prox_center_updates ==
+    /// ipqp_reg_decreases + (advances that moved nothing)`. The third class
+    /// this field used to share the partition with -- a decrease REFUSED by
+    /// section 2.2 item 3's monotone floor, counted as `ipqp_rho_flaps` -- no
+    /// longer exists: T4b deletes that floor, so no gated advance can be
+    /// refused by anything except the ABSOLUTE `ipqp_reg_floor`, which is the
+    /// remaining "nothing moved" class. That class is a setting every schedule
+    /// decays onto rather than evidence about this subproblem's curvature, so
+    /// it earns no counter of its own; it is the only reason
+    /// `ipqp_prox_center_updates` can exceed this field. The inertia ladder
+    /// cannot contribute to either side of the identity now -- it moves
+    /// `rho_dem`, which the schedule never sees.
     Index ipqp_reg_decreases = 0;
 
     /// `(rho, delta)` schedule inertia-demanded increases. Excludes the

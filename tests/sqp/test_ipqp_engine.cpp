@@ -410,7 +410,7 @@ TEST(IpqpLadderTest, TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap) {
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
 
-    EXPECT_EQ(r.counters.ipqp_rho_flaps, 1);
+    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 1);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
     // A FLAP AND ONLY A FLAP (fix round 2, I2). `delta` carries no monotone
     // floor (plan section 7 note (g)), so the very advance whose `rho` move
@@ -423,7 +423,7 @@ TEST(IpqpLadderTest, TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap) {
     // THE IDENTITY, structural on any solve whose schedule has not bottomed
     // out: every gated advance is classified exactly once.
     EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_rho_flaps);
+              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
 
     // MUTATION NON-VACUITY: the same solve on a CONVEX Hessian raises no
     // floor, so the same gate produces decreases and no flaps at all.
@@ -431,10 +431,10 @@ TEST(IpqpLadderTest, TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap) {
     IpqpEngine tier2(tight_opts());
     const IpqpResult c = tier2.solve(convex, nullptr, io, SolveOverrides{});
     ASSERT_EQ(c.status, QpStatus::kOptimal);
-    EXPECT_EQ(c.counters.ipqp_rho_flaps, 0);
+    EXPECT_EQ(c.counters.ipqp_ladder_reclimbs, 0);
     EXPECT_GT(c.counters.ipqp_reg_decreases, 0);
     EXPECT_EQ(c.counters.ipqp_prox_center_updates,
-              c.counters.ipqp_reg_decreases + c.counters.ipqp_rho_flaps);
+              c.counters.ipqp_reg_decreases + c.counters.ipqp_ladder_reclimbs);
 }
 
 TEST(IpqpLadderTest, TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease) {
@@ -461,7 +461,7 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease) {
     // A CONVEX subproblem has no monotone floor at all, so no advance here can
     // be a monotone-floor violation however many hit the absolute one. This is
     // I2's whole content.
-    EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
+    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0);
 
     // THE EXACT THREE-WAY ACCOUNTING, pinned as three numbers rather than as
@@ -473,13 +473,13 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease) {
     // not evidence about this subproblem's curvature).
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, 4);
     EXPECT_EQ(r.counters.ipqp_reg_decreases, 2);
-    EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
+    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
     // ... so the identity's residual IS the class-(c) count, and it is 2 here.
     // The section 7 counter table has no field for that class and this task
     // does not invent one, so it is pinned by arithmetic on the three that do
     // exist rather than left unstated.
     EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases -
-                  r.counters.ipqp_rho_flaps,
+                  r.counters.ipqp_ladder_reclimbs,
               2);
 }
 
@@ -511,9 +511,9 @@ TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveWithNoMonotoneFloor) {
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     ASSERT_GT(r.counters.ipqp_iters, 11);
     ASSERT_GT(r.counters.ipqp_prox_center_updates, 0);
-    EXPECT_EQ(r.counters.ipqp_rho_flaps, 0);
+    EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
     EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_rho_flaps);
+              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
 }
 
 TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
@@ -577,7 +577,7 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, r.counters.ipqp_iters);
     // The gated advances are classified exactly once each (I2).
     EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_rho_flaps);
+              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
     // Three iterations, one ladder rung, one certification read.
     EXPECT_EQ(r.counters.ipqp_factorizations, 5);
     EXPECT_EQ(r.counters.ipqp_inertia_retries, 1);
@@ -1250,7 +1250,7 @@ TEST(IpqpCounterTest, TheGatedScheduleMovesAndAdvancesTheProximalCentre) {
     // it must fire on a solve that converges, or the gate is unreachable.
     EXPECT_GT(r.counters.ipqp_reg_decreases, 0);
     EXPECT_EQ(r.counters.ipqp_prox_center_updates,
-              r.counters.ipqp_reg_decreases + r.counters.ipqp_rho_flaps);
+              r.counters.ipqp_reg_decreases + r.counters.ipqp_ladder_reclimbs);
     EXPECT_LT(r.rho, IpqpOptions{}.ipqp_rho_init);
     EXPECT_GE(r.rho, IpqpOptions{}.ipqp_reg_floor);
 }

@@ -36,7 +36,8 @@ TEST(IpqpCounters, DefaultConstructedIsZeroInitialized) {
     EXPECT_EQ(c.ipqp_rho_demanded_last, 0.0);
     EXPECT_EQ(c.ipqp_inertia_retries, 0);
     EXPECT_EQ(c.ipqp_iters_at_elevated_rho, 0);
-    EXPECT_EQ(c.ipqp_rho_flaps, 0);
+    EXPECT_EQ(c.ipqp_ladder_reclimbs, 0);
+    EXPECT_EQ(c.ipqp_iters_ladder_armed_no_advance, 0);
     EXPECT_EQ(c.ipqp_final_inertia_read, 0);
     EXPECT_EQ(c.ipqp_reg_decreases, 0);
     EXPECT_EQ(c.ipqp_reg_increases, 0);
@@ -267,7 +268,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     a.ipqp_pattern_verifies = 2;
     a.ipqp_inertia_retries = 5;
     a.ipqp_iters_at_elevated_rho = 8;
-    a.ipqp_rho_flaps = 1;
+    a.ipqp_ladder_reclimbs = 1;
+    a.ipqp_iters_ladder_armed_no_advance = 6;
     a.ipqp_reg_decreases = 9;
     a.ipqp_reg_increases = 2;
     a.ipqp_prox_center_updates = 11;
@@ -299,7 +301,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     b.ipqp_pattern_verifies = 0;
     b.ipqp_inertia_retries = 2;
     b.ipqp_iters_at_elevated_rho = 1;
-    b.ipqp_rho_flaps = 4;
+    b.ipqp_ladder_reclimbs = 4;
+    b.ipqp_iters_ladder_armed_no_advance = 2;
     b.ipqp_reg_decreases = 1;
     b.ipqp_reg_increases = 6;
     b.ipqp_prox_center_updates = 5;
@@ -330,7 +333,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     EXPECT_EQ(total.ipqp_pattern_verifies, 2);
     EXPECT_EQ(total.ipqp_inertia_retries, 7);
     EXPECT_EQ(total.ipqp_iters_at_elevated_rho, 9);
-    EXPECT_EQ(total.ipqp_rho_flaps, 5);
+    EXPECT_EQ(total.ipqp_ladder_reclimbs, 5);
+    EXPECT_EQ(total.ipqp_iters_ladder_armed_no_advance, 8);
     EXPECT_EQ(total.ipqp_reg_decreases, 10);
     EXPECT_EQ(total.ipqp_reg_increases, 8);
     EXPECT_EQ(total.ipqp_prox_center_updates, 16);

@@ -861,22 +861,45 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- the (rho, delta) schedule (spec 3.2) -----------------------------
     //
-    // TWO LEVELS, KEPT APART, because the counters distinguish them and the
-    // certification factorization drops to one of them:
-    //   rho_sched / delta_sched -- what the GATED SCHEDULE has decayed to.
-    //   rho_floor               -- the INERTIA-DEMANDED monotone floor
-    //                              (section 2.2 item 3), which starts at 0 and
-    //                              only ever rises. `ipqp_rho_demanded_max`
-    //                              is its high-water mark, so a convex
-    //                              subproblem -- where the ladder never fires
-    //                              -- reports 0 there, which is the
-    //                              convex-inertness pin.
-    // The value a factorization actually carries is max(rho_sched, rho_floor);
-    // an iteration where those differ is one taken AT ELEVATED RHO.
+    // TWO QUANTITIES, KEPT APART, because they are different things and T4b
+    // exists because the code used to treat them as one number:
+    //
+    //   rho_sched / delta_sched -- section 3.2's PROXIMAL schedule, gated on
+    //                              measured contraction. This IS the
+    //                              subproblem: it enters the matrix, the
+    //                              right-hand side and the gate's residual,
+    //                              all anchored at (zeta, lambda_est).
+    //   rho_dem                  -- section 2.2's inertia-demanded
+    //                              MODIFICATION, chosen fresh every iteration
+    //                              by Algorithm IC (below). Matrix only,
+    //                              additive, uniform in the Ruiz-scaled
+    //                              system. A per-iteration local, NOT a
+    //                              solve-scoped floor: the monotone-per-solve
+    //                              floor of the pre-T4b design is DELETED
+    //                              (plan section 7 note (p)).
+    //
+    // THE LADDER'S SOLVE-SCOPED STATE IS ITS MEMORY, NOT A FLOOR:
+    //
+    //   rho_dem_last  -- Algorithm IC's own memory. Set ONLY by a SUCCESSFUL
+    //                    MODIFIED factorization (and by the exhausted-ladder
+    //                    and evidence-failure paths, which are escapes or
+    //                    downgrades either way); a success on the UNMODIFIED
+    //                    system leaves it exactly as IC leaves it. Reported
+    //                    as `ipqp_rho_demanded_last`.
+    //   rho_dem_max   -- the high-water mark across every rung the solve paid,
+    //                    reported as `ipqp_rho_demanded_max`. It rises and
+    //                    never falls, so it is also the SAFEGUARD LEVEL the
+    //                    section 6.2 window-discard rule watches (see there).
+    //                    A convex subproblem never arms the ladder and reports
+    //                    0, which is the convex-inertness pin.
+    //   consec_modified -- how many CONSECUTIVE preceding iterations needed a
+    //                    modification, for IC-1's skip rule.
     double rho_sched = iopts.ipqp_rho_init;
     double delta_sched = iopts.ipqp_delta_init;
-    double rho_floor = 0.0;
-    double rho_demanded_last = 0.0;
+    double rho_dem_last = 0.0;
+    double rho_dem_max = 0.0;
+    double rho_dem_final = 0.0;
+    int consec_modified = 0;
     // The regularized relative residual at the last estimate advance -- the
     // contraction gate's reference. NaN until the first iteration measures it,
     // so the gate cannot fire before there is anything to contract against.
@@ -930,8 +953,25 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // trusting the wrong one (co-review I-1, twice).
     //
     //     A window is discarded when, and only when, the INERTIA-DEMANDED
-    //     MONOTONE FLOOR `rho_floor` moves. A move of the section 3.2
-    //     schedule (`rho_sched` / `delta_sched`) does NOT discard it.
+    //     SAFEGUARD REACHES A LEVEL IT HAD NOT REACHED BEFORE -- i.e. when
+    //     `rho_dem_max`, the high-water mark of section 2.2's modification,
+    //     RISES. A move of the section 3.2 schedule (`rho_sched` /
+    //     `delta_sched`) does NOT discard it, and neither does the ordinary
+    //     up-and-down cycling of `rho_dem` inside a band the ladder has
+    //     already visited.
+    //
+    // THE HIGH-WATER READING IS T4b'S, AND IT IS THE LITERAL SUCCESSOR OF THE
+    // PRE-T4b PREDICATE, not a new policy: before T4b the safeguard was a
+    // MONOTONE floor, so "the floor moved" and "the safeguard reached a new
+    // level" were the same event, and this rule read the floor. Algorithm IC
+    // is deliberately non-monotone -- it retries `rho_dem_last / 3` every
+    // iteration -- so a predicate on the WORKING value would discard the
+    // window every second iteration of any armed walk and make section 6.2
+    // structurally unreachable on exactly the nonconvex rows it was written
+    // for. SSN's own rule, which spec 6.2 imports together with its
+    // justification, dirties on safeguard INCREASES only
+    // (`ssn_engine.cpp:381-412`); the high-water predicate is that rule,
+    // stated for a safeguard that can now come back down.
     //
     // THAT IS A DATED AMENDMENT OF SECTION 6.2'S TEXT -- which says "any
     // regularization change discards the window" -- AND NOT A CLARIFICATION
@@ -945,7 +985,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     //    NAMES THE SAFEGUARD -- ssn_engine.h:620, quoted by spec 6.2 itself:
     //    "slow progress under a sigma that JUST CHANGED is THE SAFEGUARD'S
     //    DOING, not the problem's." In this tier the safeguard is section
-    //    2.2's ladder, and `rho_floor` is the only quantity it moves. The
+    //    2.2's ladder, and `rho_dem` is the only quantity it moves. The
     //    section 3.2 schedule is not a safeguard: it is the method's ordinary
     //    outer iteration, it is GATED ON MEASURED PROGRESS, and it moves
     //    regularization DOWNWARD, toward the caller's own QP. Slow progress
@@ -960,7 +1000,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // argued that the literal reading leaves the stall test structurally
     // unreachable. That is false, and it was RE-MEASURED rather than merely
     // conceded: with the literal value-change predicate (`rho_sched != pre ||
-    // delta_sched != pre || rho_floor != pre`) built behind a scratch toggle,
+    // delta_sched != pre || safeguard != pre`) built behind a scratch toggle,
     // the window reaches the full five accepted steps on thirteen of the
     // suite's own IPQP solves, and the stall fixture still fires at the same
     // ten iterations. The original measurement had counted GATE ADVANCES
@@ -1390,16 +1430,74 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return factor_and_read(/*final_read=*/true);
     };
 
-    // Assemble at (rho, delta) and factorize, climbing the Wachter-Biegler
-    // ladder until the inertia is the section 4.1 target or the ceiling is
-    // reached. Returns the reading the caller must act on. `rho`/`delta` are
-    // in/out, so the caller sees where the ladder stopped.
+    // ALGORITHM IC'S FIRST TRIAL for this iteration (Wachter-Biegler 2006,
+    // step IC-1 / IC-2; the four constants and hven's two declared adaptations
+    // are in `detail`'s ladder banner).
+    //
+    //   * NO MEMORY, or fewer than `kIpqpLadderSkipAfter` consecutive
+    //     preceding iterations needed a modification -> TRY ZERO. This is
+    //     IC-1, and it is not a nicety: it is the only thing that lets
+    //     `rho_dem` fall back to 0 the moment the reduced curvature at the
+    //     iterate turns positive, at which point one exact Newton step lands
+    //     the residual at machine precision and the section 3.2 gate
+    //     advances. A design that never retries zero converges to the
+    //     modified problem instead.
+    //   * OTHERWISE -> `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`.
+    //     Deliberately SMALLER than the shift that last worked: the ladder is
+    //     probing for the smallest sufficient value rather than defending a
+    //     floor. When the probe is refused, that is a RECLIMB and is counted.
+    //
+    // THE EVIDENCE-FAILURE FLOOR RIDES THE TRIAL, NOT THE LADDER, once armed.
+    // Section 2.2's policy permits a step at a conservative floor when a
+    // factorization succeeds and reports no usable inertia evidence; on the
+    // backend that clause exists for, EVERY factorization reports that. Adding
+    // the floor here means such a solve pays ONE factorization per iteration
+    // at the floor -- what the pre-T4b monotone floor delivered -- instead of
+    // paying a rejected trial and a corrective rung every iteration. IC-1's
+    // "try zero first" is skipped outright while `evidence_failed` stands,
+    // because a reading that can never come back cannot reward the attempt.
+    auto ladder_trial = [&]() {
+        double trial = 0.0;
+        if (rho_dem_last > 0.0 && consec_modified >= detail::kIpqpLadderSkipAfter) {
+            trial = std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
+        }
+        if (evidence_failed) {
+            trial =
+                std::max(trial, std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.ipqp_reg_max));
+        }
+        return trial;
+    };
+
+    // Assemble at `(rho_sched, rho_dem, delta)` and factorize, climbing
+    // Algorithm IC's ladder until the inertia is the section 4.1 target or the
+    // ceiling is reached. Returns the reading the caller must act on.
+    // `rho_dem`/`delta` are in/out, so the caller sees where the ladder
+    // stopped; `rho_sched` is the caller's subproblem and the ladder never
+    // touches it.
     auto factorize_with_ladder = [&](double rho_sched, double &rho_dem, double &delta) {
+        // Whether this iteration STARTED from IC's memory rather than from
+        // zero, and whether that start has already been charged as a reclimb.
+        // One charge per iteration: the question the counter answers is "did
+        // the memory's guess come back too small", not "how many rungs did the
+        // recovery take".
+        // (While an evidence failure stands the trial is the POLICY FLOOR,
+        // not IC's probe, so its refusal is not a reclimb.)
+        const bool trial_from_memory = rho_dem > 0.0 && !evidence_failed;
+        bool reclimb_charged = false;
         assemble(rho_sched, rho_dem, delta);
 
         for (;;) {
             const InertiaRead read = factor_and_read(/*final_read=*/false);
             if (fact_budget_hit || read == InertiaRead::kOk || read == InertiaRead::kFactorFailed) {
+                if (read == InertiaRead::kOk && rho_dem > 0.0) {
+                    // IC UPDATES ITS MEMORY ONLY ON A SUCCESSFUL **MODIFIED**
+                    // FACTORIZATION. A success at `rho_dem == 0` leaves it
+                    // untouched -- exactly as the paper does -- so the next
+                    // iteration that does need a modification still descends
+                    // from the last value that was actually sufficient rather
+                    // than restarting the whole first climb.
+                    rho_dem_last = rho_dem;
+                }
                 return read;
             }
             if (read == InertiaRead::kUnreadable) {
@@ -1455,25 +1553,27 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 //    has no stopping criterion when the reading can never come
                 //    back right, so it would spend the whole ceiling's worth
                 //    of factorizations and take the same step at the end.
-                if (evidence_failed) {
-                    return read;
-                }
                 evidence_failed = true;
                 const double conservative =
                     std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.ipqp_reg_max);
-                // The floor is recorded whether or not THIS iteration needed
-                // to move: the schedule decays past it later, and a floor that
-                // only existed while it bound would let a solve step
-                // unregularized once `rho_sched` fell below it.
-                rho_floor = std::max(rho_floor, conservative);
-                rho_demanded_last = rho_floor;
-                if (conservative > rho_dem) {
+                // THE ITERATION RUNS AT `max(trial, floor)` and THAT value is
+                // what IC's memory records (T4b plan 2.2's evidence-failure
+                // rule, which had to be re-stated once `rho_floor` was gone:
+                // later trials descend /3 from it and `ladder_trial` floors
+                // them again while evidence stays unavailable, so an
+                // always-unavailable backend runs at a constant floor exactly
+                // as it did before). The floor never raises the shift above
+                // that maximum.
+                const double floored = std::max(rho_dem, conservative);
+                rho_dem_last = floored;
+                rho_dem_max = std::max(rho_dem_max, floored);
+                if (floored > rho_dem) {
                     // This factorization WAS rejected -- on evidence the tier
                     // could not use, which `ipqp_inertia_retries` covers
                     // ("wrong OR evidence-invalid", fix round 1's M2).
                     ++out.counters.ipqp_inertia_retries;
                     ++out.counters.ipqp_reg_increases;
-                    rho_dem = conservative;
+                    rho_dem = floored;
                     write_diagonals(rho_sched, rho_dem, delta);
                     continue;
                 }
@@ -1500,23 +1600,52 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     ++out.counters.ipqp_inertia_retries;
                     return read;
                 }
-                delta = std::min(delta * detail::kIpqpRhoGrowth, iopts.ipqp_reg_max);
+                delta = std::min(delta * detail::kIpqpDeltaGrowth, iopts.ipqp_reg_max);
                 if (delta >= cap) {
                     delta = iopts.ipqp_reg_max;
                 }
             } else {
                 if (rho_dem >= cap) {
                     ++out.counters.ipqp_inertia_retries; // I8, as above.
+                    // The ceiling rung WAS paid, so it is the last rung this
+                    // subproblem paid and IC's memory records it. The solve
+                    // escapes from here (`kIndefinite`, plan section 7 note
+                    // (h)), so nothing reads the memory again -- recording it
+                    // keeps `ipqp_rho_demanded_last` meaning "the last rung
+                    // paid" on the one path where that is not the same as
+                    // "the last rung that worked".
+                    rho_dem_last = rho_dem;
                     return read;
                 }
-                const double next =
-                    std::max(rho_dem * detail::kIpqpRhoGrowth, detail::kIpqpRhoLadderInit);
-                rho_dem = std::min(next, iopts.ipqp_reg_max);
+                // ALGORITHM IC'S ESCALATION (plan 2.2's pseudocode, normative).
+                if (rho_dem == 0.0) {
+                    // IC-2: the unmodified trial was refused. With no memory
+                    // this is `delta_w^0`; with a memory it is the memory's
+                    // own /3 probe, which the skip rule had not yet licensed
+                    // as this iteration's first trial.
+                    rho_dem = (rho_dem_last == 0.0)
+                                  ? std::min(detail::kIpqpLadderInit, iopts.ipqp_reg_max)
+                                  : std::max(iopts.ipqp_reg_floor,
+                                             rho_dem_last / detail::kIpqpLadderDown);
+                } else {
+                    if (trial_from_memory && !reclimb_charged) {
+                        ++out.counters.ipqp_ladder_reclimbs;
+                        reclimb_charged = true;
+                    }
+                    // TWO DECADES THROUGH THE WHOLE FIRST CLIMB, EIGHT AFTER.
+                    // `rho_dem_last == 0` means this solve has never had a
+                    // successful modified factorization, so nothing is known
+                    // about the subproblem's scale and W-B's `bar kappa_w^+`
+                    // governs; once a memory exists the ladder is refining a
+                    // value whose order it already knows and `kappa_w^+` does.
+                    const double up =
+                        (rho_dem_last == 0.0) ? detail::kIpqpLadderUpFirst : detail::kIpqpLadderUp;
+                    rho_dem = std::min(rho_dem * up, iopts.ipqp_reg_max);
+                }
                 if (rho_dem >= cap) {
                     rho_dem = iopts.ipqp_reg_max;
                 }
-                rho_floor = std::max(rho_floor, rho_dem);
-                rho_demanded_last = rho_dem;
+                rho_dem_max = std::max(rho_dem_max, rho_dem);
             }
             ++out.counters.ipqp_inertia_retries;
             ++out.counters.ipqp_reg_increases;
@@ -1763,11 +1892,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         // The safeguard's state this pass started from. Window discard: see
         // the rule at the stall-window declarations above. Sampled here
-        // rather than beside each move because the floor rises in TWO places
-        // (the inertia ladder and the evidence-failure branch), and two
-        // separate "and reset the window" statements would be two places to
-        // forget.
-        const double rho_floor_pre = rho_floor;
+        // rather than beside each move because the high-water mark rises in
+        // TWO places (the inertia ladder and the evidence-failure branch), and
+        // two separate "and reset the window" statements would be two places
+        // to forget.
+        const double rho_dem_max_pre = rho_dem_max;
+
+        // Whether THIS iteration's section 3.2 gate advanced, for
+        // `ipqp_iters_ladder_armed_no_advance`. Read off the prox-centre
+        // counter rather than a second flag: an advance is exactly a
+        // prox-centre update, by the gate's own construction, and one source
+        // of truth is what keeps the two from drifting.
+        const Index prox_updates_pre = out.counters.ipqp_prox_center_updates;
 
         // THE GATED DECREASE (spec 3.2), evaluated BEFORE the assembly so an
         // iteration runs at the schedule the previous iteration's progress
@@ -1817,30 +1953,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             if (R <= std::max(detail::kIpqpRegGateContract * reg_gate_ref, inner_target)) {
                 reg_gate_ref = R;
                 const double proposed = rho_sched * iopts.ipqp_reg_decrease;
-                // THE MONOTONE FLOOR OVERRIDES THE DECREASE (spec 2.2 item
-                // 3). A refused move is a FLAP -- counted as the attempt it
-                // was, not as a move, exactly as IpqpCounters says.
-                //
-                // I2: THE FLAP TEST READS THE MONOTONE FLOOR ONLY. `rho_floor`
-                // is the inertia-demanded level and starts at 0, so on a
-                // convex subproblem -- where section 2.2's ladder is provably
-                // inert -- nothing here can fire. The earlier version compared
-                // against `max(reg_floor, rho_floor)`, which made the ABSOLUTE
-                // floor a "monotone-floor violation": at the defaults the 11th
-                // gated advance proposes 8e-11 against a 1e-10 floor and was
-                // counted as a down-then-up cycle on a solve that never had a
-                // monotone floor, AND co-fired with `ipqp_reg_decreases`,
-                // which the field's own doc comment excludes. The CLAMP still
-                // honours both floors; only the COUNT is monotone-only.
-                // THE MOVES FIRST, THE CLASSIFICATION ONCE, AFTERWARDS. Fix
-                // round 2 (I2, still open after round 1): incrementing the
-                // flap inline, before the decrease was classified, let a
-                // single advance be counted as BOTH -- `rho` refused by the
-                // monotone floor while `delta` still fell 8 -> 0.8 scored one
-                // flap and one decrease, which the two fields' own doc
-                // comments call mutually exclusive.
-                const bool monotone_refused = proposed < rho_floor;
-                const double target = std::max(proposed, std::max(iopts.ipqp_reg_floor, rho_floor));
+                // NOTHING OVERRIDES THE DECREASE ANY MORE EXCEPT THE ABSOLUTE
+                // FLOOR (T4b). Section 2.2 item 3's monotone-per-solve floor
+                // is DELETED -- Algorithm IC, which section 2.2 cites by name,
+                // restarts each trial at a third of the last shift and has no
+                // such rule -- and with it goes the "flap" class this block
+                // used to classify. The schedule is now free to decay toward
+                // the caller's own QP exactly as section 3.2 says it does; the
+                // inertia ladder answers each iteration's curvature on its own
+                // per-iteration `rho_dem`, which the schedule never sees.
+                const double target = std::max(proposed, iopts.ipqp_reg_floor);
                 bool moved = false;
                 if (target < rho_sched) {
                     rho_sched = target;
@@ -1855,39 +1977,26 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     delta_sched = dtarget;
                     moved = true;
                 }
-                // THE THREE OUTCOMES OF A GATED ADVANCE, MUTUALLY EXCLUSIVE
-                // AND CLASSIFIED EXACTLY ONCE. The order is the rule:
+                // THE TWO OUTCOMES OF A GATED ADVANCE, CLASSIFIED EXACTLY
+                // ONCE (T4b re-pin; class (a) below is deleted with the
+                // monotone floor):
                 //
-                //  (a) THE MONOTONE FLOOR REFUSED `rho` -> FLAP, and only a
-                //      flap. THE RULE CHOSEN, stated because the fix brief
-                //      left it open: a `delta` move on such an advance does
-                //      NOT also score a decrease. I7's "either" rule governs
-                //      which quantity can earn a decrease, not whether an
-                //      advance can be two things at once; exclusivity is I2's
-                //      own requirement and the defining event of this advance
-                //      is that the inertia-demanded floor turned the schedule
-                //      down.
-                //  (b) `rho` and/or `delta` MOVED -> DECREASE (I7's rule:
-                //      the counter is the `(rho, delta)` SCHEDULE's, so an
-                //      advance that moved delta alone is an applied decrease
-                //      of the schedule).
+                //  (b) `rho` and/or `delta` MOVED -> DECREASE (I7's rule: the
+                //      counter is the `(rho, delta)` SCHEDULE's, so an advance
+                //      that moved `delta` alone is an applied decrease of the
+                //      schedule).
                 //  (c) NOTHING MOVED because both quantities already sit on
-                //      the ABSOLUTE floor -> NEITHER. Not a flap: the absolute
-                //      floor is a setting every schedule decays onto, not
-                //      evidence about this subproblem's curvature, which is
-                //      the whole of I2.
+                //      the ABSOLUTE floor -> NEITHER. The absolute floor is a
+                //      setting every schedule decays onto, not evidence about
+                //      this subproblem's curvature, which is the whole of I2.
                 //
                 // So `ipqp_prox_center_updates == ipqp_reg_decreases +
-                // ipqp_rho_flaps` holds on every solve until the schedule
-                // bottoms out, and past that point the difference is exactly
-                // the number of (c) advances -- a quantity the section 7
-                // counter table has no field for and this task does not
-                // invent one for. The tests pin the EXACT accounting rather
-                // than the inequality; see
-                // `TheABSOLUTEFloorIsNotAFlapAndDoesNotCoFireWithADecrease`.
-                if (monotone_refused) {
-                    ++out.counters.ipqp_rho_flaps;
-                } else if (moved) {
+                // (class (c) advances)` holds on every solve; the difference
+                // is exactly the number of advances taken with the schedule
+                // already on the floor -- a quantity the section 7 counter
+                // table has no field for and T4b does not invent one for. The
+                // tests pin the EXACT accounting rather than the inequality.
+                if (moved) {
                     ++out.counters.ipqp_reg_decreases;
                 }
                 w.zeta = w.x;
@@ -1899,10 +2008,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         // THE TWO REGULARIZATIONS, SELECTED SEPARATELY (T4b). `rho_sched` is
         // the subproblem's own proximal weight and is NOT touched here;
-        // `rho_dem` is the inertia-demanded modification this iteration starts
-        // its ladder from. They are ADDITIVE in the matrix and only
-        // `rho_sched` reaches the right-hand side.
-        double rho_dem = rho_floor;
+        // `rho_dem` is the inertia-demanded modification, chosen fresh by
+        // Algorithm IC every iteration. They are ADDITIVE in the matrix and
+        // only `rho_sched` reaches the right-hand side.
+        double rho_dem = ladder_trial();
+        if (rho_dem > 0.0) {
+            rho_dem_max = std::max(rho_dem_max, rho_dem);
+        }
         double delta = delta_sched;
 
         const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
@@ -1918,6 +2030,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // is not an iteration taken at elevated rho; it is not an iteration at
         // all.
         const bool elevated = rho_dem > 0.0;
+        // IC-1'S SKIP RULE COUNTS ITERATIONS, NOT RUNGS: an iteration "needed
+        // a modification" iff the reading the tier acted on was taken with
+        // `rho_dem > 0`. Updated here, once the ladder has settled and before
+        // any of the rejection paths below can leave the loop.
+        if (elevated) {
+            ++consec_modified;
+        } else {
+            consec_modified = 0;
+        }
 
         if (fact_budget_hit) {
             // The cap refused a factorization. That is a BUDGET stop, and it
@@ -2069,8 +2190,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // these two lines unreached, which IS the exclusion both fields
         // document ("iterations taken", N1).
         ++out.counters.ipqp_iters;
+        rho_dem_final = rho_dem;
         if (elevated) {
             ++out.counters.ipqp_iters_at_elevated_rho;
+            if (out.counters.ipqp_prox_center_updates == prox_updates_pre) {
+                // THE ARMED WALK, COUNTED (T4b plan 2.1's declared gap). The
+                // ladder is armed and the section 3.2 gate did not advance:
+                // `zeta` and `rho_sched` are pinned while the iterate walks
+                // down a negative-curvature direction whose residual is
+                // GROWING. Expected, bounded by the walk's own geometry, and
+                // measured rather than assumed.
+                ++out.counters.ipqp_iters_ladder_armed_no_advance;
+            }
         }
 
         // THE WINDOW ADVANCES ON ACCEPTED STEPS ONLY (spec 6.2), so it is
@@ -2084,7 +2215,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // stall-window declarations above. The next pass finds
         // `win_armed == false` and arms a fresh window at the point the ladder
         // actually left the trajectory at.
-        if (rho_floor != rho_floor_pre) {
+        if (rho_dem_max != rho_dem_max_pre) {
             win_armed = false;
         }
     }
@@ -2272,6 +2403,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     out.mu = mu_meas;
     out.rho = rho_sched;
     out.delta = delta_sched;
+    out.rho_mod = rho_dem_final;
 
     // --- the face classification (spec 2.3 item 2) -------------------------
     //
@@ -2395,8 +2527,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     out.counters.ipqp_solves = after.solve_count - before.solve_count;
     out.counters.ipqp_symbolic_analyses = after.analyze_count - before.analyze_count;
     out.counters.ipqp_pattern_verifies = after.pattern_verify_count - before.pattern_verify_count;
-    out.counters.ipqp_rho_demanded_max = rho_floor;
-    out.counters.ipqp_rho_demanded_last = rho_demanded_last;
+    out.counters.ipqp_rho_demanded_max = rho_dem_max;
+    out.counters.ipqp_rho_demanded_last = rho_dem_last;
 
     emit_ledger();
 

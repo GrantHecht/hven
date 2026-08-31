@@ -88,11 +88,12 @@ SqpOptions walk_options() {
 // duplicate a decision solver_counters.h already made.
 ::testing::AssertionResult every_ipqp_counter_is_at_its_default(const IpqpCounters &c) {
     // THE FIELD LIST BELOW IS HAND-WRITTEN, so it needs a guard that fails
-    // when the struct grows: 29 `Index` fields and 5 `double` fields, all
-    // 8 bytes, no padding. A W2 field added without a line here would
-    // otherwise drop silently out of A7's coverage -- which is the one
-    // assertion that says the shipped default touches none of them.
-    static_assert(sizeof(IpqpCounters) == 34 * 8,
+    // when the struct grows: 30 `Index` fields and 5 `double` fields, all
+    // 8 bytes, no padding (T4b: +`ipqp_iters_ladder_armed_no_advance`;
+    // `ipqp_rho_flaps` was RENAMED, not removed). A W2 field added without a
+    // line here would otherwise drop silently out of A7's coverage -- which is
+    // the one assertion that says the shipped default touches none of them.
+    static_assert(sizeof(IpqpCounters) == 35 * 8,
                   "IpqpCounters changed size: add the new field to "
                   "every_ipqp_counter_is_at_its_default below (A7's coverage is this list) and "
                   "update this assertion.");
@@ -120,8 +121,11 @@ SqpOptions walk_options() {
           static_cast<double>(d.ipqp_inertia_retries));
     check("ipqp_iters_at_elevated_rho", static_cast<double>(c.ipqp_iters_at_elevated_rho),
           static_cast<double>(d.ipqp_iters_at_elevated_rho));
-    check("ipqp_rho_flaps", static_cast<double>(c.ipqp_rho_flaps),
-          static_cast<double>(d.ipqp_rho_flaps));
+    check("ipqp_ladder_reclimbs", static_cast<double>(c.ipqp_ladder_reclimbs),
+          static_cast<double>(d.ipqp_ladder_reclimbs));
+    check("ipqp_iters_ladder_armed_no_advance",
+          static_cast<double>(c.ipqp_iters_ladder_armed_no_advance),
+          static_cast<double>(d.ipqp_iters_ladder_armed_no_advance));
     check("ipqp_final_inertia_read", static_cast<double>(c.ipqp_final_inertia_read),
           static_cast<double>(d.ipqp_final_inertia_read));
     check("ipqp_reg_decreases", static_cast<double>(c.ipqp_reg_decreases),
