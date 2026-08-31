@@ -73,6 +73,7 @@
 #include <hven/detail/globalization/inertia_regularization.h>
 #include <hven/detail/interior/barrier_math.h>
 #include <hven/detail/qp/ipqp_engine.h>
+#include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/detail/qp/ipqp_math.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
@@ -137,6 +138,57 @@ InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expec
         return InertiaRead::kWrong;
     }
     return InertiaRead::kUnreadable;
+}
+
+/// THE TIER'S ONE INERTIA-EVIDENCE READ, and therefore the tier's one test
+/// seam (docs/testing.md; the declarations are in
+/// hven/detail/qp/ipqp_fault_injection.h, which compiles to nothing without
+/// HVEN_TESTING).
+///
+/// EVERY reading the tier acts on comes through here -- the ladder's, the
+/// evidence-failure branch's, and the section 2.2 item 4 certification read's
+/// -- which is what makes ONE hook enough and what keeps the injected
+/// scenarios from having to be maintained in three places. `final_read`
+/// separates the two KINDS of read because section 2.2 gives them different
+/// policies.
+///
+/// THE HOOK IS AT THE BOUNDARY, not inside anything derived (CLAUDE.md section
+/// 6): this file is Apache-2.0 and written here, the fact injected is what
+/// this tier believes it read, and no session file is involved. In a build
+/// without HVEN_TESTING the whole body is `return kkt.inertia_evidence();`.
+const hven::linear::InertiaEvidence &evidence_for_read([[maybe_unused]] const KktFactorization &kkt,
+                                                       [[maybe_unused]] bool final_read) {
+#ifdef HVEN_TESTING
+    using Observer = detail::testing::IpqpInertiaReadObserver;
+    using Injector = detail::testing::IpqpInertiaEvidenceInjector;
+    const bool eligible = final_read ? Injector::on_final_read : Injector::on_iteration_reads;
+    if (Injector::active && eligible) {
+        if (Injector::skip_first > 0) {
+            --Injector::skip_first;
+        } else {
+            ++Injector::injections;
+            if (Observer::active) {
+                ++Observer::reads;
+                Observer::last = Injector::evidence;
+                Observer::last_injected = Injector::evidence;
+                if (final_read) {
+                    ++Observer::final_reads;
+                    Observer::last_final = Injector::evidence;
+                }
+            }
+            return Injector::evidence;
+        }
+    }
+    if (Observer::active) {
+        ++Observer::reads;
+        Observer::last = kkt.inertia_evidence();
+        if (final_read) {
+            ++Observer::final_reads;
+            Observer::last_final = kkt.inertia_evidence();
+        }
+    }
+#endif
+    return kkt.inertia_evidence();
 }
 
 /// THE SECTION 6.3 FARKAS CORROBORATION -- one matvec plus O(m + n), no
@@ -1166,7 +1218,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // call -- `kUnreadable` with `fact_budget_hit` raised. Callers must test
     // the flag FIRST: a budget stop is `kBudget`, never a numerical or
     // indefinite verdict about a factorization that never ran.
-    auto factor_and_read = [&]() {
+    auto factor_and_read = [&](bool final_read) {
         if (!factorize_once()) {
             return InertiaRead::kUnreadable;
         }
@@ -1180,7 +1232,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         if (kkt_.info() != Eigen::Success) {
             return InertiaRead::kFactorFailed;
         }
-        return classify_inertia(kkt_.inertia_evidence(), expect_pos, expect_neg);
+        return classify_inertia(evidence_for_read(kkt_, final_read), expect_pos, expect_neg);
     };
 
     // EXACTLY ONE FACTORIZATION AND ONE READING (spec 2.2 item 4's own cost
@@ -1203,7 +1255,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // could not support.
     auto factorize_and_read_once = [&](double rho, double delta) {
         assemble(rho, delta);
-        return factor_and_read();
+        return factor_and_read(/*final_read=*/true);
     };
 
     // Assemble at (rho, delta) and factorize, climbing the Wachter-Biegler
@@ -1214,7 +1266,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         assemble(rho, delta);
 
         for (;;) {
-            const InertiaRead read = factor_and_read();
+            const InertiaRead read = factor_and_read(/*final_read=*/false);
             if (fact_budget_hit || read == InertiaRead::kOk || read == InertiaRead::kFactorFailed) {
                 return read;
             }
@@ -1236,26 +1288,51 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // runs it; what is implemented here is the policy, and the
                 // seam-injected pins are what exercise it.)
                 //
-                // "CONSERVATIVE" IS THE TIER'S OWN LADDER, TAKEN ONCE. There
-                // is no finite `rho` that is PROVABLY sufficient without an
-                // inertia reading -- that is precisely what the missing
-                // evidence would have told us -- so no invented magnitude
-                // could be honest here. What can be said is that the floor
-                // should be strictly above what the schedule would have used
-                // and at the magnitude this tier already trusts for an
-                // inertia repair, which is the ladder's own first rung. It is
-                // applied ONCE (a second unreadable reading finds
-                // `evidence_failed` already armed and steps) because a ladder
-                // has no stopping criterion when the reading can never come
-                // back right: climbing would spend the whole ceiling's worth
-                // of factorizations and still have to take the same step.
+                // "CONSERVATIVE" IS `kIpqpRhoLadderInit`, THE LADDER'S OWN
+                // ABSOLUTE FIRST RUNG -- Ipopt's `delta_w_0` -- APPLIED ONCE
+                // AS A FLOOR AND NEVER CLIMBED. Two decisions, both DECLARED
+                // because the word "conservative" admits a reading that does
+                // not work:
+                //
+                // 1. IT IS AN ABSOLUTE MAGNITUDE, NOT A MULTIPLE OF THE
+                //    CURRENT `rho`. The branch this policy exists for is the
+                //    Accelerate one, where `kUnavailable` is reported for
+                //    EVERY factorization, not for one unlucky pivot. A floor
+                //    proportional to the current level compounds under that:
+                //    measured on a two-row convex fixture, `rho * 100` at the
+                //    schedule's start put a permanent floor of 800 under the
+                //    solve, which then converged to the PROXIMALLY BIASED
+                //    point (x = 0.0026 where the answer is 0.75) and ran out
+                //    its whole 60-iteration budget doing it. Section 2.2's
+                //    clause says a step IS PERMITTED; a floor that makes the
+                //    tier unusable on the platform the clause names is not an
+                //    implementation of it. `kIpqpRhoLadderInit`'s own banner
+                //    is what makes it the right absolute value: it is the
+                //    smallest magnitude this tier regards as a real inertia
+                //    correction at all, everything below being "far too small
+                //    to change any inertia".
+                // 2. WHAT CARRIES THE HONESTY IS THE DOWNGRADE, NOT THE SIZE
+                //    OF THE SHIFT. No finite `rho` is PROVABLY sufficient
+                //    without a reading -- that is precisely what the missing
+                //    evidence would have told us -- which is why section 2.2
+                //    pairs "a step is permitted" with "the certificate is
+                //    downgraded for the whole solve" rather than with a
+                //    magnitude. A ladder would be worse than useless here: it
+                //    has no stopping criterion when the reading can never come
+                //    back right, so it would spend the whole ceiling's worth
+                //    of factorizations and take the same step at the end.
                 if (evidence_failed) {
                     return read;
                 }
                 evidence_failed = true;
                 const double conservative =
-                    std::min(std::max(rho * detail::kIpqpRhoGrowth, detail::kIpqpRhoLadderInit),
-                             iopts.ipqp_reg_max);
+                    std::min(detail::kIpqpRhoLadderInit, iopts.ipqp_reg_max);
+                // The floor is recorded whether or not THIS iteration needed
+                // to move: the schedule decays past it later, and a floor that
+                // only existed while it bound would let a solve step
+                // unregularized once `rho_sched` fell below it.
+                rho_floor = std::max(rho_floor, conservative);
+                rho_demanded_last = rho_floor;
                 if (conservative > rho) {
                     // This factorization WAS rejected -- on evidence the tier
                     // could not use, which `ipqp_inertia_retries` covers
@@ -1263,8 +1340,6 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     ++out.counters.ipqp_inertia_retries;
                     ++out.counters.ipqp_reg_increases;
                     rho = conservative;
-                    rho_floor = std::max(rho_floor, conservative);
-                    rho_demanded_last = conservative;
                     write_diagonals(rho, delta);
                     continue;
                 }

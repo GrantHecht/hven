@@ -260,6 +260,84 @@ target_compile_options(hven_fault_injection_tests PRIVATE ${COMPILE_FLAGS})
 gtest_discover_tests(hven_fault_injection_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 ################################################################################
+# IPQP tier seam tests (docs/testing.md: the same HVEN_TESTING convention the
+# fault-injection target above uses, applied one layer up). A SEPARATE,
+# standalone executable that recompiles the interior-point QP tier's own
+# sources -- plus the transitive closure they need to link -- a SECOND time,
+# with HVEN_TESTING defined ONLY on that second copy's compile.
+#
+# WHAT IT COVERS AND WHY NOTHING ELSE CAN. The specification's
+# evidence-failure policy (section 2.2: an InertiaEvidence state other than
+# kObserved permits a step only at a conservative rho floor and downgrades the
+# certificate for the whole solve) and the two terminal inertia states the
+# section 2.2 item 4 certification read can report (PERTURBED, UNREADABLE) are
+# unreachable from any legal subproblem on this backend -- MKL's static pivot
+# perturbation is resolved by the ladder's own delta growth before a terminal
+# reading, and no MKL path declines to report inertia at all. The kUnavailable
+# case the specification names is an Accelerate path, which under CLAUDE.md §6's
+# never-fabricate rule stays UNOBSERVED here until real Mac hardware runs it.
+#
+# The hook is ONE function in src/qp/ipqp_engine.cpp -- an Apache-2.0 file this
+# repository wrote, at the single line where the tier reads
+# KktFactorization::inertia_evidence(). §6's boundary preference is satisfied
+# with NO deviation: no session file is touched, nothing MPL-derived is
+# involved, and the production object is byte-identical with the seam removed
+# (measured; see docs/testing.md).
+#
+# This target does NOT link hven::hven, for the same two reasons the
+# fault-injection target does not: it is what keeps the production library's
+# own compiled objects (and hven_sqp_tests, which links them) completely
+# untouched by HVEN_TESTING, and both this target's freshly-compiled sources
+# and libhven.a's own define the same symbols, which would be a duplicate
+# definition if both were linked into one binary.
+################################################################################
+
+add_executable(hven_ipqp_seam_tests
+    ${HVEN_SRC_DIR}/core/enum_names.cpp
+    ${HVEN_SRC_DIR}/core/ledger.cpp
+    ${HVEN_SRC_DIR}/core/pattern_hash.cpp
+    ${HVEN_SRC_DIR}/drivers/sqp_options.cpp
+    ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
+    ${HVEN_SRC_DIR}/qp/ipqp_engine.cpp
+    ${HVEN_SRC_DIR}/qp/ipqp_kkt_layout.cpp
+    sqp/test_ipqp_seams.cpp
+)
+
+if(NOT APPLE)
+    target_sources(hven_ipqp_seam_tests PRIVATE
+        ${HVEN_SRC_DIR}/linear/pardiso_session.cpp
+        ${HVEN_SRC_DIR}/linear/symmetric_factor_mkl.cpp
+    )
+else()
+    target_sources(hven_ipqp_seam_tests PRIVATE
+        ${HVEN_SRC_DIR}/linear/accelerate_session.cpp
+        ${HVEN_SRC_DIR}/linear/symmetric_factor_accelerate.cpp
+    )
+endif()
+
+# Target-wide, not per-source-file: the injector and the observer in
+# hven/detail/qp/ipqp_fault_injection.h must be visible both to the tier TU
+# that guards its one call site with `#ifdef HVEN_TESTING` and to this target's
+# own test source, which arms and reads them. No other target ever defines
+# HVEN_TESTING -- see the block comment above and the one above the
+# fault-injection target.
+target_compile_definitions(hven_ipqp_seam_tests PRIVATE HVEN_TESTING=1)
+
+target_include_directories(hven_ipqp_seam_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_link_libraries(hven_ipqp_seam_tests PRIVATE
+    Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main
+)
+target_include_directories(hven_ipqp_seam_tests PRIVATE ${INCLUDE_DIRS})
+target_link_libraries(hven_ipqp_seam_tests PRIVATE ${LINK_LIBS})
+if(APPLE)
+    target_link_libraries(hven_ipqp_seam_tests PRIVATE AccelerateSparse::AccelerateSparse)
+endif()
+target_compile_options(hven_ipqp_seam_tests PRIVATE ${COMPILE_FLAGS})
+
+gtest_discover_tests(hven_ipqp_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+
+################################################################################
 # The golden-numerics rig: the harness, the seam adapters, the traces, the
 # expected-table machinery, and the consumed-surface audit tooling. Its native
 # arms need nothing beyond this repository and run here on every build; its two

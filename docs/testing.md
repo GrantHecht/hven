@@ -381,12 +381,16 @@ boundary carries everything else, so the boundary is where it stays.
 
 ## How to use it for a new fault path
 
-1. Confirm the fault path lives in an adapter file (Apache-2.0), not a
-   session file (MPL-2.0). If the failure can only be reached from inside
-   the session, this convention does not apply as-is — raise it rather than
+1. Confirm the fault path lives in an Apache-2.0 file this repository wrote —
+   an adapter file, or a layer above it such as the IPQP tier — and not a
+   session file (MPL-2.0). If the failure can only be reached from inside the
+   session, this convention does not apply as-is — raise it rather than
    improvising a session-side hook.
 2. Add a small `static inline`-member struct to `fault_injection.h`, guarded
-   by `#ifdef HVEN_TESTING`, following the two existing ones' shape.
+   by `#ifdef HVEN_TESTING`, following the two existing ones' shape — or, if
+   the consumer lives above the linear layer, to that layer's own seam header
+   on the same terms (`hven/detail/qp/ipqp_fault_injection.h` is the worked
+   example; do not put a consumer's injector into a lower layer's header).
 3. Wrap the ONE call site with the same `#ifdef HVEN_TESTING` / `active`
    check pattern shown above. Keep the branch as small as the two existing
    ones — a local variable substitution, not a re-implementation of the
@@ -401,6 +405,88 @@ boundary carries everything else, so the boundary is where it stays.
    a real call is faithful only where the skipped call's absence is
    indistinguishable from a real failure on every observable being asserted
    — work that out per fault path, do not assume it transfers.
+
+## A second seam, one layer up: the IPQP tier's inertia read
+
+`hven/detail/qp/ipqp_fault_injection.h` is the same convention applied above
+the linear layer, and it is the first use of it outside `linear/`. It declares
+two `static inline` structs under `hven::solvers::detail::testing`, entirely
+guarded by `#ifdef HVEN_TESTING`:
+
+- `IpqpInertiaEvidenceInjector` — `active`, `on_iteration_reads`,
+  `on_final_read`, `skip_first`, `evidence`, `injections`. Substitutes the
+  `hven::linear::InertiaEvidence` the interior-point QP tier *reads* for a
+  factorization that really ran. The factorization itself is untouched: the
+  backend session, the factor and `KktFactorization::info()` are all exactly
+  what the real call produced.
+- `IpqpInertiaReadObserver` — `active`, `reads`, `final_reads`, `last`,
+  `last_final`, `last_injected`. NOT an injector; a read-only observer, the
+  `PardisoIparmObserver` arrangement one layer up.
+
+**Why a second header rather than a row in `fault_injection.h`.** That file is
+the LINEAR LAYER's seam — everything in it lives in
+`hven::linear::detail::testing` and is consumed by the two backend adapter TUs.
+This one is consumed by `src/qp/ipqp_engine.cpp` and is about the tier's own
+reading of an already-computed factorization, not about a backend call. A
+`hven::solvers` injector inside a `hven::linear` header would make the linear
+layer's seam header depend on a consumer above it. The CONVENTION is the shared
+thing, and it is followed exactly.
+
+**It needs no deviation, and adds no `notices/` entry.** The hook is ONE
+function (`evidence_for_read`) in `src/qp/ipqp_engine.cpp` — an Apache-2.0 file
+this repository wrote — at the single line where the tier reads
+`KktFactorization::inertia_evidence()`. No session file is touched and nothing
+MPL-derived is involved, so the two sanctioned inside-the-session-file
+deviations listed above are still the only two. Every reading the tier acts on
+(the inertia gate's, the Wächter–Biegler ladder's, and the §2.2 item 4
+certification read's) passes through that one function, which is what makes one
+hook sufficient; the `final_read` argument separates the two KINDS of read
+because §2.2 gives them different policies.
+
+**Why it is needed.** M6 W1 task 4 could pin neither terminal inertia state the
+IPQP specification's evidence-failure policy is written for:
+
+- a terminal **PERTURBED**-pivot report — MKL's static pivot perturbation fires
+  on matrices the ladder's own `delta` growth resolves before any terminal
+  reading, so no legal subproblem reaches the ladder's ceiling still perturbed;
+- an `InertiaEvidence::State` other than `kObserved` — no MKL path declines to
+  report inertia at all, and the `kUnavailable` case the specification names is
+  an **Accelerate** path. Under CLAUDE.md §6's never-fabricate rule that arm
+  stays UNOBSERVED until real Mac hardware runs it; what the seam pins is the
+  POLICY the tier applies when it is told that state, which is a different and
+  checkable claim.
+
+Without the seam, §2.2's evidence-failure policy — a step at a conservative
+`rho` floor plus a whole-solve certificate downgrade — is code no fixture can
+reach.
+
+**What it is deliberately NOT able to do.** It cannot fake a FAILED
+factorization. That state is read off `KktFactorization::info()`, which this
+injector does not touch, and faking it here would produce a scenario no backend
+can present: a successful factor whose status says otherwise. The
+failed-factorization path keeps its own seam one layer down
+(`FactorizeFaultInjector`), and the tier's classification reads the two apart
+(`InertiaRead::kFactorFailed` vs `kUnreadable`) precisely because §2.2 gives
+them different remedies.
+
+**The target**: `hven_ipqp_seam_tests` (`tests/CMakeLists.txt`), a standalone
+executable on exactly the same terms as `hven_fault_injection_tests` — it
+recompiles the tier's own sources plus the transitive closure they need
+(`ipqp_engine.cpp`, `ipqp_kkt_layout.cpp`, `kkt_factorization.cpp`,
+`sqp_options.cpp`, `ledger.cpp`, `pattern_hash.cpp`, `enum_names.cpp`, and the
+platform's session + adapter TUs) with `HVEN_TESTING` defined target-wide, and
+does **not** link `hven::hven`. Its tests live in `tests/sqp/test_ipqp_seams.cpp`
+and it is registered with `gtest_discover_tests` like every other ctest
+executable.
+
+**Cost to the production build: measured zero.** `src/qp/ipqp_engine.cpp` was
+compiled twice from the same path with the project's own Release command — once
+as shipped, once with the `#include` and the `#ifdef HVEN_TESTING` block
+textually removed — and the two objects are **byte-identical** (343336 bytes,
+`cmp` clean, 2026-08-31, clang 22.1.8, `build-m5-release`'s exact flags).
+`nm -C libhven.a` reports no `IpqpInertia*` symbol. The production library and
+`hven_sqp_tests` are therefore exactly what they would be if this seam did not
+exist.
 
 ## Alternatives considered and rejected
 

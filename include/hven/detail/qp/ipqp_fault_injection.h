@@ -1,0 +1,150 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+#pragma once
+
+// The IPQP tier's test seam -- the same convention as
+// hven/detail/linear/fault_injection.h, applied one layer up. See
+// docs/testing.md for the full design rationale; the summary that matters
+// here:
+//
+// WHY A SECOND HEADER RATHER THAN A ROW IN THE FIRST. fault_injection.h is the
+// LINEAR LAYER's seam: everything it declares lives in
+// `hven::linear::detail::testing` and is consumed by the two backend adapter
+// TUs. What this file declares is consumed by the QP tier
+// (src/qp/ipqp_engine.cpp) and is about the tier's own reading of an
+// already-computed factorization, not about a backend call. Putting a
+// `hven::solvers` injector inside a `hven::linear` header would make the
+// linear layer's seam header depend on a consumer above it. The CONVENTION is
+// the shared thing, and it is followed exactly (CLAUDE.md section 8: "use this
+// convention for any new need rather than inventing another").
+//
+// WHERE THE HOOK GOES: src/qp/ipqp_engine.cpp -- an APACHE-2.0 FILE THIS
+// REPOSITORY WROTE, at the one line where the tier reads
+// `KktFactorization::inertia_evidence()`. CLAUDE.md section 6's boundary
+// preference is satisfied WITHOUT a deviation: the fact being injected (what
+// evidence the tier believes it received) is observable exactly at that
+// boundary, no session file is touched, and nothing MPL-derived is involved.
+// This seam therefore adds NO new entry to notices/ and no new sanctioned
+// inside-the-session-file deviation; docs/testing.md records it as a third
+// injection point under the existing convention.
+//
+// WHY IT IS NEEDED. Task 4 could pin neither terminal inertia state the
+// specification's evidence-failure policy is written for:
+//
+//   * a terminal PERTURBED-pivot report -- MKL's static pivot perturbation
+//     fires on matrices the ladder's own `delta` growth resolves first, so no
+//     legal subproblem reaches the ladder's ceiling still perturbed;
+//   * an `InertiaEvidence::State` other than `kObserved` -- no MKL path
+//     declines to report inertia at all, and the `kUnavailable` case the
+//     specification names is an ACCELERATE path this machine cannot run
+//     (CLAUDE.md section 6's never-fabricate rule: that arm stays UNOBSERVED
+//     until real Mac hardware runs it).
+//
+// Section 2.2's evidence-failure policy -- a step at a conservative `rho`
+// floor plus a whole-solve certificate downgrade -- is therefore code no legal
+// fixture can reach. That is exactly the coverage gap this convention exists
+// for.
+//
+// It compiles to NOTHING unless HVEN_TESTING is defined, so including it from
+// a normal build of any TU is provably inert: the production `hven` library
+// target's compiled `ipqp_engine.cpp.o` is byte-for-byte what it would be if
+// this header did not exist, which docs/testing.md records the measurement
+// for. HVEN_TESTING is defined ONLY target-wide on the standalone
+// hven_ipqp_seam_tests executable (tests/CMakeLists.txt), which recompiles the
+// tier's own sources a second time and does NOT link hven::hven.
+
+#ifdef HVEN_TESTING
+
+#include <hven/core/types.h>
+#include <hven/linear/symmetric_factor.h>
+
+namespace hven::solvers::detail::testing {
+
+// Substitutes the inertia evidence the tier READS for a factorization that
+// really ran. The factorization itself is untouched -- the backend session,
+// the factor, and `KktFactorization::info()` are all exactly what the real
+// call produced -- which is what makes every injected scenario FAITHFUL: the
+// tier is being told a different thing about a real factor, which is precisely
+// the situation `InertiaEvidence::State::kQueryFailed` and `kUnavailable`
+// describe (the query failed, or this backend cannot answer it; the factor is
+// fine either way).
+//
+// It is deliberately NOT able to fake a FAILED factorization: that state is
+// read off `info()`, which this injector does not touch, and faking it here
+// would produce a scenario no backend can present (a successful factor whose
+// status says otherwise). The failed-factorization path has its own seam one
+// layer down -- `hven::linear::detail::testing::FactorizeFaultInjector`.
+struct IpqpInertiaEvidenceInjector {
+    static inline bool active = false;
+
+    // WHICH READS THE INJECTION APPLIES TO. The tier takes two KINDS of
+    // inertia reading and section 2.2 gives them different policies, so a
+    // seam that could not tell them apart could not pin either: an
+    // iteration/ladder reading feeds the evidence-failure policy (a step at a
+    // conservative floor), while the section 2.2 item 4 final certification
+    // reading feeds `ipqp_final_inertia_read` and takes no step at all.
+    static inline bool on_iteration_reads = true;
+    static inline bool on_final_read = true;
+
+    // Let this many ELIGIBLE reads through untouched before injecting. Exists
+    // so a fixture can let a solve converge normally and then corrupt only
+    // the reading that decides its certificate.
+    static inline Index skip_first = 0;
+
+    // What the tier is told it read.
+    static inline hven::linear::InertiaEvidence evidence{};
+
+    // How many reads were actually replaced -- a fixture asserts this so an
+    // injection that silently stopped applying fails its own pin rather than
+    // passing as a clean solve.
+    static inline Index injections = 0;
+
+    static void reset() {
+        active = false;
+        on_iteration_reads = true;
+        on_final_read = true;
+        skip_first = 0;
+        evidence = hven::linear::InertiaEvidence{};
+        injections = 0;
+    }
+};
+
+// NOT a fault injector -- a pure OBSERVER riding the same seam, the
+// `PardisoIparmObserver` arrangement one layer up. It records WHAT THE TIER
+// READ, which nothing outside the solve can otherwise see: `IpqpResult`
+// carries counters and a classification, never the evidence behind them.
+//
+// It exists for one claim the counters cannot make on their own -- section
+// 2.2's "the counts are never zero-filled or inferred". An ABSENT
+// perturbed-pivot count (`std::nullopt`, Accelerate's honest state) must reach
+// the tier's classifier AS ABSENT and not as the integer 0, which on a backend
+// that does count pivots means "none were perturbed". The difference is
+// invisible in every output the tier produces, so it is observed here.
+struct IpqpInertiaReadObserver {
+    static inline bool active = false;
+    static inline Index reads = 0;
+    static inline Index final_reads = 0;
+    static inline hven::linear::InertiaEvidence last{};
+    static inline hven::linear::InertiaEvidence last_final{};
+
+    // The last evidence that was SUBSTITUTED, kept apart from `last` because
+    // a fixture that injects only the iteration reads still has a REAL final
+    // read overwriting `last` afterwards -- and the claim being checked (that
+    // an injected `-1`/`nullopt` reaches the classifier unaltered) is about
+    // the substituted one.
+    static inline hven::linear::InertiaEvidence last_injected{};
+
+    static void reset() {
+        active = false;
+        reads = 0;
+        final_reads = 0;
+        last = hven::linear::InertiaEvidence{};
+        last_final = hven::linear::InertiaEvidence{};
+        last_injected = hven::linear::InertiaEvidence{};
+    }
+};
+
+} // namespace hven::solvers::detail::testing
+
+#endif // HVEN_TESTING
