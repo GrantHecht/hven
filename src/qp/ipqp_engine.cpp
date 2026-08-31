@@ -1152,6 +1152,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     const Index warm_budget = std::min(iopts.ipqp_warm_iter_budget, iter_budget);
     bool warm_live = started_warm;
 
+    // THE BUDGETS ARE PER ATTEMPT, and section 5.5's own words are the reason:
+    // the warm attempt "gets an iteration budget of ~the cold median", and
+    // after the kill "a second overrun is an ORDINARY budget escape" -- the
+    // ordinary budget, not its remainder. Charging the abandoned attempt to
+    // the cold restart measurably converts a recoverable subproblem into an
+    // escape (report section 8: f7_n1000_path_warm). The counters stay solve
+    // totals, so the abandoned cost is still visible; only the CAP re-bases.
+    Index iters_base = 0;
+    Index facts_base = before.factorize_count;
+
     // --- the (rho, delta) schedule (spec 3.2) -----------------------------
     //
     // TWO QUANTITIES, KEPT APART, because they are different things and T4b
@@ -1620,7 +1630,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // the flag rather than the reading, because "no factorization was taken"
     // is not an inertia verdict.
     auto factorize_once = [&]() {
-        if (kkt_.counters().factorize_count - before.factorize_count >= fact_budget) {
+        if (kkt_.counters().factorize_count - facts_base >= fact_budget) {
             fact_budget_hit = true;
             return false;
         }
@@ -2343,12 +2353,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         }
 
-        if (out.counters.ipqp_iters >= iter_budget) {
+        if (out.counters.ipqp_iters - iters_base >= iter_budget) {
             escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
                                                              : IpqpEscape::kBudget;
             break;
         }
-        if (kkt_.counters().factorize_count - before.factorize_count >= fact_budget) {
+        if (kkt_.counters().factorize_count - facts_base >= fact_budget) {
             escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
                                                              : IpqpEscape::kBudget;
             break;
@@ -2365,9 +2375,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // An escape reached before the budget is an escape; the kill is an
         // OVERRUN rule and nothing else, and the alternative reading is
         // registered in `.superpowers/w1-t7-report.md` section 5.
-        if (warm_live && out.counters.ipqp_iters >= warm_budget) {
+        if (warm_live && out.counters.ipqp_iters - iters_base >= warm_budget) {
             warm_live = false;
             out.counters.ipqp_warm_restart_abandoned = 1;
+            iters_base = out.counters.ipqp_iters;
+            facts_base = kkt_.counters().factorize_count;
             cold_start();
             rho_sched = iopts.ipqp_rho_init;
             delta_sched = iopts.ipqp_delta_init;

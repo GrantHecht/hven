@@ -352,6 +352,40 @@ TEST(IpqpWarmRestart, TheWarmBudgetIsClampedByTheSolvesOwnIterationBudget) {
     EXPECT_EQ(k.counters.ipqp_warm_restart_abandoned, 1);
 }
 
+// THE BUDGETS ARE PER ATTEMPT. Section 5.5 gives the warm attempt "an
+// iteration budget of ~the cold median" and says a SECOND overrun is "an
+// ordinary budget escape" -- the ordinary budget, not its remainder. The
+// fixture calibrates itself: the cold solve's own iteration count IS the cap,
+// so a shared pool would escape by exactly the abandoned attempt's cost and a
+// per-attempt one converges.
+TEST(IpqpWarmRestart, TheColdRestartGetsTheOrdinaryBudgetAndNotItsRemainder) {
+    const QpProblem qp = stale_qp();
+    IpqpEngine measure(tight_opts());
+    const IpqpResult cold = measure.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(cold.status, QpStatus::kOptimal);
+    ASSERT_GT(cold.counters.ipqp_iters, 0);
+
+    IpqpSeed stale = seed_for(qp);
+    stale.x = vec({-4.9, -4.9});
+    stale.zl = vec({1.0e-9, 1.0e-9});
+    stale.zu = vec({1.0e-9, 1.0e-9});
+    stale.mu = 1.0e-9;
+
+    IpqpOptions o;
+    o.ipqp_warm_iter_budget = 1;
+    o.ipqp_hard_iter_cap = cold.counters.ipqp_iters; // exactly what cold needs
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(qp, &stale, o, SolveOverrides{});
+
+    EXPECT_EQ(r.counters.ipqp_warm_restart_abandoned, 1);
+    EXPECT_EQ(r.status, QpStatus::kOptimal)
+        << "the cold restart had the whole ordinary budget, so it converged";
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+    // AND THE ABANDONED COST IS STILL VISIBLE: the counters are solve totals,
+    // so the warm attempt's one iteration is reported, not hidden.
+    EXPECT_EQ(r.counters.ipqp_iters, cold.counters.ipqp_iters + 1);
+}
+
 // THE EXTREME OF THE FIELD'S OWN BAND, which the section 6.1 ladder fixtures
 // rely on to hold themselves cold: budget 0 kills before the warm attempt can
 // take a step, so the trajectory is the cold one.
