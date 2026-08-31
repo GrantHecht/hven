@@ -4,8 +4,11 @@
 #pragma once
 
 // The solver counter contract's types: QpCounters (one QP engine solve),
-// SsnCounters (the semismooth-Newton kernel's own work) and SqpCounters (one
-// whole SQP driver solve, which aggregates both).
+// SsnCounters (the semismooth-Newton kernel's own work), IpqpCounters (the
+// IP-PMM interior-point tier's own work) and SqpCounters (one whole SQP
+// driver solve, which aggregates all three).
+
+#include <limits>
 
 #include <hven/core/start_level.h>
 
@@ -525,6 +528,221 @@ struct SsnCounters {
     Index ssn_escape_infeasible_suspect = 0;
     Index ssn_escape_indefinite = 0;
     Index ssn_escape_gate_refused = 0;
+};
+
+/// Work counters for the IP-PMM interior-point tier (M6 W1,
+/// `docs/notes/2026-08-m6-w1-ipqp-spec.md` section 7, as amended by the plan
+/// section 7 notes b/e). One instance describes ONE tier subproblem solve,
+/// exactly as QpCounters/SsnCounters do; a second lives inside SqpCounters as
+/// `ipqp`, aggregated over every subproblem of a whole SQP solve by
+/// `accumulate_ipqp_counters` (`sqp_driver.cpp`), mirroring
+/// `accumulate_ssn_counters`.
+///
+/// LANDS INERT (M6 W1 task 2): nothing writes these fields yet. Populated
+/// from task 4 onward; dispatched from task 6 onward.
+///
+/// DNF SENTINEL (spec section 7): a sweep row for a subproblem that did not
+/// finish records its double-valued fields here as `1e6`, never left blank.
+/// That is a convention for the sweep/CSV boundary a later task writes, not
+/// logic this struct or `accumulate_ipqp_counters` implements -- a live
+/// solve's counters never carry it.
+///
+/// FOLD RULE, stated once here rather than per field: every `Index` field
+/// SUMS across subproblems, exactly like `accumulate_ssn_counters`, with two
+/// PER-SUBPROBLEM STATUS fields excepted (`ipqp_rho_demanded_last`,
+/// `ipqp_final_inertia_read` -- OVERWRITTEN, the `SqpCounters::
+/// start_level_used` convention for a categorical reading rather than an
+/// additive one) and one PEAK-STYLE `double` pair max-folded
+/// (`ipqp_rho_demanded_max`, `ipqp_restart_shift_max`, model:
+/// `ssn_sign_sweep_max` above) plus one min-folded pair
+/// (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`). Each exception is restated at
+/// its own field below.
+struct IpqpCounters {
+    /// IPQP iterations taken: one predictor+corrector pair each.
+    Index ipqp_iters = 0;
+
+    /// Numeric factorizations paid. `>= ipqp_iters`, exceeding it by
+    /// regularization-ladder rungs plus the section 2.2 required final
+    /// unregularized inertia read. Excludes the tier-3 `refine_on_face`
+    /// hand-off's own factorization, which lands in
+    /// `SqpCounters::factorizations` like every other QP-engine refinement.
+    Index ipqp_factorizations = 0;
+
+    /// Symbolic analyses paid. `1` per SQP solve under the section 4.1
+    /// cross-major hoisting rule (plan section 7 note a) while
+    /// `AggregateEvalSeam::epoch()` stays unchanged. Excludes analyses paid
+    /// by any other QP kernel (walk, SSN) in the same solve.
+    Index ipqp_symbolic_analyses = 0;
+
+    /// Backend triangular solves: 2 per iteration nominal (predictor RHS,
+    /// corrector RHS), more when a ladder rung or the final inertia read
+    /// adds a factorization of its own.
+    Index ipqp_solves = 0;
+
+    /// Backend pattern-verify calls (mirrors
+    /// `SymmetricFactor::Counters::pattern_verify_count`). Proves the plan
+    /// section 7 note a discipline: exactly 1 per tier entry, every other
+    /// factorization in that entry running `kAssumeAnalyzed`.
+    Index ipqp_pattern_verifies = 0;
+
+    /// The inertia-demanded `rho`'s HIGH-WATER MARK across every ladder rung
+    /// this subproblem paid. MAX-FOLDED across subproblems in
+    /// `accumulate_ipqp_counters` (model: `ssn_sign_sweep_max`), so the
+    /// `SqpCounters`-scale reading is the largest `rho` ANY subproblem in
+    /// the solve was ever forced to. Excludes `delta`, which carries no
+    /// separate high-water field.
+    double ipqp_rho_demanded_max = 0.0;
+
+    /// The inertia-demanded `rho` at the LAST ladder rung this subproblem
+    /// paid. OVERWRITTEN (not summed or folded) by `accumulate_ipqp_counters`
+    /// -- a categorical "as of the most recently folded subproblem" reading,
+    /// the same convention `SqpCounters::start_level_used` uses for a
+    /// per-solve status rather than an additive count. Summing values drawn
+    /// from many subproblems' own "last rho" would report a quantity with no
+    /// meaning.
+    double ipqp_rho_demanded_last = 0.0;
+
+    /// Factorizations REJECTED on wrong inertia (the section 2.2 gate),
+    /// excluding the section 2.2 item 4 REQUIRED final read -- that read's
+    /// own outcome is `ipqp_final_inertia_read`, not this field, even when
+    /// the final read itself comes back wrong.
+    Index ipqp_inertia_retries = 0;
+
+    /// Iterations taken with `rho` above the schedule's own residual-implied
+    /// level, i.e. before section 3.2's gated decrease could be applied.
+    Index ipqp_iters_at_elevated_rho = 0;
+
+    /// Monotone-floor violations ATTEMPTED: down-then-up cycles on `rho` or
+    /// `delta` (section 2.2's monotone floor). Counts the attempt, not a
+    /// move, since the floor refuses the move itself.
+    Index ipqp_rho_flaps = 0;
+
+    /// Outcome of the section 2.2 item 4 REQUIRED final unregularized
+    /// inertia read on a certifying exit: `0` right, `1` wrong (certificate
+    /// downgraded), `2` unreadable. OVERWRITTEN by `accumulate_ipqp_counters`
+    /// -- same convention as `ipqp_rho_demanded_last` above, a categorical
+    /// status rather than an additive quantity; a solve-wide "was any
+    /// subproblem's read ever unreliable" question is answered by
+    /// `ipqp_escape_indefinite` instead. Structurally `0` (its "right"
+    /// value) on a subproblem that never reached a certifying exit, since
+    /// the read is paid only there.
+    Index ipqp_final_inertia_read = 0;
+
+    /// `(rho, delta)` schedule GATED decreases actually applied.
+    Index ipqp_reg_decreases = 0;
+
+    /// `(rho, delta)` schedule inertia-demanded increases.
+    Index ipqp_reg_increases = 0;
+
+    /// Proximal-estimate (`zeta`/`lambda_est`) advances.
+    Index ipqp_prox_center_updates = 0;
+
+    /// Warm restarts (section 5.2) whose repair moved at least one
+    /// component of the ingested seed (a strict-positivity clamp or the
+    /// two-scalar shift). Excludes a warm restart whose seed needed no
+    /// repair at all.
+    Index ipqp_restart_repairs = 0;
+
+    /// The LARGEST repair shift (section 5.2's `(delta_p, delta_d)`) applied
+    /// to any component of any warm restart's seed; `0.0` when no restart
+    /// was ever repaired. MAX-FOLDED across subproblems in
+    /// `accumulate_ipqp_counters` (model: `ssn_sign_sweep_max`) -- the
+    /// honest-magnitude field, not a sum, exactly like that field.
+    double ipqp_restart_shift_max = 0.0;
+
+    /// `1` iff the payload `mu` raised `mu_0` off the measured floor
+    /// (section 5.3's clamp: `mu_0 = clamp(max(mu_meas, kappa*mu_payload),
+    /// min, init)`, and the payload term was the binding one), else `0`. A
+    /// per-subproblem flag SUMMED like a count, exactly the convention
+    /// `SqpCounters::n_seeded` uses for a per-solve flag.
+    Index ipqp_mu_adopted = 0;
+
+    /// `1` iff the section 5.5 warm-kill fired on this subproblem (a warm
+    /// restart overran its clamped budget and was restarted cold exactly
+    /// once), else `0`.
+    Index ipqp_warm_restart_abandoned = 0;
+
+    /// Subproblems the section 2.3/4b domain gate DECLINED pre-solve because
+    /// the effective box (T4.b's `IpqpBounds`) contained a zero-width pair
+    /// (plan section 7 note e). A DECLINE IS NOT AN ESCAPE: the tier never
+    /// ran, so this never counts toward `ipqp_escapes` or the K=3
+    /// retirement threshold, and the walk solves the declined subproblem
+    /// exactly. Excludes every subproblem the tier actually entered,
+    /// however it then concluded.
+    Index ipqp_declined_pinned = 0;
+
+    /// The major at which K=3 consecutive escapes retired the tier for the
+    /// remainder of this solve; `0` if the tier was never retired.
+    /// DRIVER-SCALE ONLY, the `ssn_escape_gate_refused` convention: no
+    /// per-subproblem read of this struct ever carries it nonzero (retiring
+    /// the tier is bookkeeping ACROSS subproblems, which no single
+    /// subproblem's own solve can observe) -- the driver writes the
+    /// `SqpCounters::ipqp` field directly when retirement fires. Summed here
+    /// for the same reason `ssn_escape_gate_refused` is: harmless on an
+    /// always-zero per-subproblem contribution.
+    Index ipqp_tier_retired_after = 0;
+
+    /// Rows/bounds the section 2.3 ratio rule left UNCERTAIN (neither
+    /// classification test satisfied), handed to `refine_on_face` for exact
+    /// resolution rather than asserted either way.
+    Index ipqp_face_uncertain = 0;
+
+    /// Tier-3 `refine_on_face` hand-offs ACCEPTED as the step.
+    Index ipqp_refine_accepted = 0;
+
+    /// Tier-3 `refine_on_face` hand-offs REFUSED (empty/rank-deficient face,
+    /// a failed inertia gate, or the refined point leaving the box/TR/
+    /// inactive rows) -- the certificate the tier already had stands; see
+    /// `SsnCounters::ssn_refine_refused` for the identical convention on the
+    /// SSN tier.
+    Index ipqp_refine_refused = 0;
+
+    /// Routing outcomes handed to the SSN warm-grade path after a
+    /// `refine_on_face` refusal.
+    Index ipqp_to_ssn = 0;
+
+    /// Routing outcomes handed to the COLD walk: a genuine tier escape, or a
+    /// declined-pinned subproblem (`ipqp_declined_pinned` above) re-routed
+    /// pre-solve. Should be rare by design -- the routing chain's own note.
+    Index ipqp_to_walk = 0;
+
+    /// Subproblems the tier ESCAPED (any of the five reasons below), summed
+    /// across the whole solve. Excludes declined-pinned subproblems -- see
+    /// `ipqp_declined_pinned` above, which the tier never entered.
+    Index ipqp_escapes = 0;
+
+    // THE FIVE-WAY ESCAPE CENSUS. The five MUST SUM TO `ipqp_escapes`
+    // (`SsnCounters`:522-527's discipline, restated here for this tier): each
+    // subproblem escape increments exactly one of the five below and
+    // `ipqp_escapes` together.
+    //
+    // Plan section 7 note b (FINAL, r3): the spec v2 draft's three
+    // stall-reason sub-counters under `ipqp_escape_stall` are DROPPED as
+    // ill-posed -- all three conjuncts hold at every stall escape, so a
+    // partition among them is degenerate. `ipqp_escape_stall` below is
+    // escape-COUNT only; the three conjunct VALUES (mu ratio over the
+    // window, relative residual improvement, min alpha) travel instead in
+    // the stall escape's own evidence block (T5), never as counters here.
+    Index ipqp_escape_budget = 0;
+    Index ipqp_escape_stall = 0;
+    Index ipqp_escape_indefinite = 0;
+    Index ipqp_escape_numerical = 0;
+    Index ipqp_escape_infeasible_suspect = 0;
+
+    /// The smallest PRIMAL fraction-to-boundary step taken, across every
+    /// iteration of every subproblem -- the acquisition-health signal.
+    /// MIN-FOLDED across subproblems in `accumulate_ipqp_counters` (the
+    /// minimum counterpart of `ssn_sign_sweep_max`'s max-fold). Defaults to
+    /// `+infinity`, NOT `0.0`: valid fraction-to-boundary steps lie in
+    /// `(0, 1]`, so a `0.0` default would be indistinguishable from, and
+    /// would defeat, an observed step and would make `std::min` never move
+    /// off it. `+infinity` reads as "no step observed yet" and folds
+    /// correctly with `std::min`.
+    double ipqp_alpha_p_min = std::numeric_limits<double>::infinity();
+
+    /// The DUAL-side counterpart of `ipqp_alpha_p_min`: same fold, same
+    /// `+infinity` default and the same reason for it.
+    double ipqp_alpha_d_min = std::numeric_limits<double>::infinity();
 };
 
 /// Aggregate work counters for a whole solve.
@@ -1058,6 +1276,20 @@ struct SqpCounters {
     /// solved there, so nothing writes here. Populated when the solve runs
     /// `QpMode::kSsn`.
     SsnCounters ssn;
+
+    /// The IP-PMM interior-point tier's work, folded over every subproblem
+    /// of this solve by `accumulate_ipqp_counters` -- the `ssn` field's own
+    /// aggregation, for the third QP kernel (M6 W1). See `IpqpCounters`'s
+    /// own doc comment for the fold rule.
+    ///
+    /// **ZERO ON EVERY SOLVE RUN AT THE SHIPPED DEFAULT**
+    /// (`SqpOptions::qp_mode == QpMode::kWalk`): no IPQP subproblem is
+    /// solved there, so nothing writes here. LANDS INERT IN THIS TASK (M6 W1
+    /// task 2): `QpMode::kIpm` is not yet dispatchable at all (task 1's
+    /// temporary `validate_sqp_options` throw), so this field is dead
+    /// weight -- present, zero-initialized, and unreachable from any solve
+    /// -- until task 6 wires the routing chain that populates it.
+    IpqpCounters ipqp;
 };
 
 } // namespace hven::solvers

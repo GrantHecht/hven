@@ -1996,6 +1996,26 @@ void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refine
 ///              every other field sums.
 void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one);
 
+// One subproblem's IP-PMM tier work, folded into a whole solve's running
+// total -- the `accumulate_ssn_counters` of M6 W1's third QP kernel, same
+// shape. LANDS INERT (task 2): unreachable from any dispatch until task 6.
+//
+// THE FOLD RULE (`IpqpCounters`'s own doc comment states it in full):
+// - `ipqp_rho_demanded_max`, `ipqp_restart_shift_max` fold by MAX (the
+//   `ssn_sign_sweep_max` model);
+// - `ipqp_alpha_p_min`, `ipqp_alpha_d_min` fold by MIN (the same model,
+//   mirrored);
+// - `ipqp_rho_demanded_last`, `ipqp_final_inertia_read` are OVERWRITTEN by
+//   `one`'s value -- categorical per-subproblem status, not an additive
+//   quantity, the `SqpCounters::start_level_used` convention;
+// - every other field SUMS, including the five-way escape census and the
+//   driver-scale-only `ipqp_tier_retired_after` (harmless: no `IpqpCounters`
+//   produced by a real subproblem solve ever carries the latter nonzero).
+/// @brief Folds one subproblem's IPQP counters into a solve's running total.
+/// @param total The running total, updated in place.
+/// @param one   The subproblem's counters; see the fold rule above.
+void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one);
+
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:
 // SqpOptions::adaptive_mu (sqp_types.h) and SqpIterate::mu (same file); this

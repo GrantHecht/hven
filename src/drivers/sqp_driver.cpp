@@ -746,6 +746,52 @@ void accumulate_ssn_counters(SsnCounters &total, const SsnCounters &one) {
     total.ssn_sign_sweep_max = std::max(total.ssn_sign_sweep_max, one.ssn_sign_sweep_max);
 }
 
+void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
+    total.ipqp_iters += one.ipqp_iters;
+    total.ipqp_factorizations += one.ipqp_factorizations;
+    total.ipqp_symbolic_analyses += one.ipqp_symbolic_analyses;
+    total.ipqp_solves += one.ipqp_solves;
+    total.ipqp_pattern_verifies += one.ipqp_pattern_verifies;
+    // Peak/last: rho_demanded_max folds by max, rho_demanded_last is a
+    // per-subproblem status overwritten by the most recently folded value --
+    // see IpqpCounters' own doc comment for why summing "last" is wrong.
+    total.ipqp_rho_demanded_max = std::max(total.ipqp_rho_demanded_max, one.ipqp_rho_demanded_max);
+    total.ipqp_rho_demanded_last = one.ipqp_rho_demanded_last;
+    total.ipqp_inertia_retries += one.ipqp_inertia_retries;
+    total.ipqp_iters_at_elevated_rho += one.ipqp_iters_at_elevated_rho;
+    total.ipqp_rho_flaps += one.ipqp_rho_flaps;
+    // Status, overwritten, not summed -- see IpqpCounters' own doc comment.
+    total.ipqp_final_inertia_read = one.ipqp_final_inertia_read;
+    total.ipqp_reg_decreases += one.ipqp_reg_decreases;
+    total.ipqp_reg_increases += one.ipqp_reg_increases;
+    total.ipqp_prox_center_updates += one.ipqp_prox_center_updates;
+    total.ipqp_restart_repairs += one.ipqp_restart_repairs;
+    total.ipqp_restart_shift_max =
+        std::max(total.ipqp_restart_shift_max, one.ipqp_restart_shift_max);
+    total.ipqp_mu_adopted += one.ipqp_mu_adopted;
+    total.ipqp_warm_restart_abandoned += one.ipqp_warm_restart_abandoned;
+    total.ipqp_declined_pinned += one.ipqp_declined_pinned;
+    // Driver-scale only; summed harmlessly, exactly like
+    // ssn_escape_gate_refused above -- see IpqpCounters' own doc comment.
+    total.ipqp_tier_retired_after += one.ipqp_tier_retired_after;
+    total.ipqp_face_uncertain += one.ipqp_face_uncertain;
+    total.ipqp_refine_accepted += one.ipqp_refine_accepted;
+    total.ipqp_refine_refused += one.ipqp_refine_refused;
+    total.ipqp_to_ssn += one.ipqp_to_ssn;
+    total.ipqp_to_walk += one.ipqp_to_walk;
+    total.ipqp_escapes += one.ipqp_escapes;
+    // The five-way escape census. Each sums; the sum-to-ipqp_escapes
+    // invariant is asserted by callers (see the reusable test helper), not
+    // enforced here.
+    total.ipqp_escape_budget += one.ipqp_escape_budget;
+    total.ipqp_escape_stall += one.ipqp_escape_stall;
+    total.ipqp_escape_indefinite += one.ipqp_escape_indefinite;
+    total.ipqp_escape_numerical += one.ipqp_escape_numerical;
+    total.ipqp_escape_infeasible_suspect += one.ipqp_escape_infeasible_suspect;
+    total.ipqp_alpha_p_min = std::min(total.ipqp_alpha_p_min, one.ipqp_alpha_p_min);
+    total.ipqp_alpha_d_min = std::min(total.ipqp_alpha_d_min, one.ipqp_alpha_d_min);
+}
+
 SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
 
 void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
