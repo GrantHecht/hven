@@ -64,11 +64,29 @@ namespace hven::solvers::detail::testing {
 // Substitutes the inertia evidence the tier READS for a factorization that
 // really ran. The factorization itself is untouched -- the backend session,
 // the factor, and `KktFactorization::info()` are all exactly what the real
-// call produced -- which is what makes every injected scenario FAITHFUL: the
-// tier is being told a different thing about a real factor, which is precisely
-// the situation `InertiaEvidence::State::kQueryFailed` and `kUnavailable`
-// describe (the query failed, or this backend cannot answer it; the factor is
-// fine either way).
+// call produced.
+//
+// WHAT IS AND IS NOT FAITHFUL, stated per scenario rather than claimed for all
+// of them (co-review CM-1). The convention's own rule is that an injector is
+// faithful only where the injection is indistinguishable from the real thing
+// on every observable being asserted, and that is worked out per fault path,
+// never assumed to transfer:
+//
+//   * `kQueryFailed` / `kUnavailable` -- FAITHFUL END TO END. The scenario IS
+//     "a real factor whose inertia could not be reported", so leaving the
+//     factor untouched and changing only what the query returns reproduces it
+//     exactly. Nothing about a real occurrence would look different.
+//   * An OBSERVED reading with different counts, or with a perturbed-pivot
+//     report, on a factor that is really convex and really unperturbed --
+//     NOT a backend end-to-end witness. Such evidence is deliberately
+//     INCONSISTENT with the factor the tier is holding, which no backend
+//     would produce. These are POLICY AND CLASSIFICATION witnesses: they pin
+//     what the tier DOES with a reading of that shape (which class it
+//     assigns, which census bucket it lands in, what it does to the
+//     certificate), and they say nothing about whether a backend correlates
+//     evidence with factors correctly. The tests that use them say so at
+//     their own sites, and docs/testing.md records the limit beside the
+//     failed-factorization one.
 //
 // It is deliberately NOT able to fake a FAILED factorization: that state is
 // read off `info()`, which this injector does not touch, and faking it here

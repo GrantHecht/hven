@@ -214,6 +214,41 @@ inline constexpr Index kIpqpFactorizationsPerIter = 3;
 inline constexpr Index kIpqpRuizSweeps = 10;
 inline constexpr double kIpqpRuizTol = 1.0e-3;
 
+/// @brief SECTION 2.2'S CONSERVATIVE `rho` FLOOR ON AN EVIDENCE FAILURE -- the
+/// level a step is permitted at when a factorization SUCCEEDED but could not
+/// report usable inertia evidence.
+///
+/// ITS OWN NAME, EQUAL TODAY TO `kIpqpRhoLadderInit` BUT NOT THE SAME CONTRACT
+/// (co-review I-3). The ladder constant is a STEP SIZE -- where the
+/// Wachter-Biegler climb starts when an inertia reading says the system needs
+/// shifting. This one is a MINIMUM MAGNITUDE under a solve that has no reading
+/// at all. Sharing the symbol made a ladder retune silently move an
+/// evidence-failure policy, with the seam pins tracking the change rather than
+/// catching it; two names is how the two contracts stay separable.
+///
+/// AN ABSOLUTE MAGNITUDE, NOT A MULTIPLE OF THE WORKING `rho`, and it is a
+/// MINIMUM rather than the level the factorization runs at (that stays
+/// `max(rho_sched, rho_floor)`). Section 2.2 names no sizing at all, so the
+/// choice is implementation latitude; what settles it is the branch the clause
+/// exists for. On a backend reporting `kUnavailable` for EVERY factorization
+/// -- the Accelerate case section 2.2 names -- a level-proportional floor
+/// compounds without bound: measured on a two-row convex fixture, `rho * 100`
+/// at the schedule's start left a permanent floor of 800 under the solve,
+/// which then converged to the PROXIMALLY BIASED point (x = 0.0026 where the
+/// answer is 0.75) and spent its entire 60-iteration budget doing it. Section
+/// 2.2 says a step IS PERMITTED; a floor that makes the tier unusable on the
+/// platform the clause names is not an implementation of it.
+///
+/// AND THE HONESTY IS CARRIED BY THE DOWNGRADE, NOT BY THE SHIFT. No finite
+/// `rho` is provably sufficient without a reading -- that is precisely what
+/// the missing evidence would have told us -- which is why section 2.2 pairs
+/// "a step is permitted" with "the certificate is downgraded FOR THE WHOLE
+/// SOLVE" rather than with a magnitude. This constant is ledgered under that
+/// argument (settler ruling, plan section 7 note (n)) and NOT under the word
+/// "conservative", whose plain Wachter-Biegler sense would point at a LARGER
+/// shift than the ladder's smallest rung.
+inline constexpr double kIpqpEvidenceFailureRhoFloor = kIpqpRhoLadderInit;
+
 /// @brief Section 6.2 conjunct (i): the factor by which `mu` must have been
 /// reduced ACROSS the window for the window not to be a stall.
 ///
@@ -470,6 +505,21 @@ struct IpqpStallEvidence {
     /// conjunct holds (i.e. contributes to a stall) iff this is
     /// `< detail::kIpqpStallMuFactor`. `+inf` if `mu` reached exactly 0,
     /// which cannot be a stall.
+    ///
+    /// THIS CONJUNCT ALSO CARRIES SECTION 6.2'S "RESET ON A MEHROTRA TARGET
+    /// CHANGE THAT ACTUALLY DROPPED `mu`" (settler ruling, plan section 7
+    /// note (o)): a reset on ANY `mu` drop would re-arm on every healthy step
+    /// and make this conjunct vacuous, so the only drop that coherently counts
+    /// as the target "taking" is the `kIpqpStallMuFactor` one the conjunct
+    /// already names, and the reset IS this conjunct failing.
+    ///
+    /// ONE DEFERRAL, STATED RATHER THAN INFERRED: the ratio is evaluated only
+    /// when the window CLOSES, so a genuine 10x `mu` drop at accepted step 2
+    /// does not re-arm the window until step `ipqp_stall_window`. That is
+    /// conservative in the safe direction and cannot produce a false stall --
+    /// the ratio is measured across the WHOLE window, so a drop anywhere
+    /// inside it still resets -- it only delays a re-arm by at most one
+    /// window.
     double mu_ratio = 0.0;
 
     /// CONJUNCT (ii): `1 - res(end)/res(start)` on `max(primal_inf,

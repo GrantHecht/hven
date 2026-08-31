@@ -84,7 +84,7 @@ namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
-/// The four-way inertia reading the tier acts on.
+/// The five-way inertia reading the tier acts on.
 ///
 /// REFINES `detail::inertia_verdict` (qp_engine.h), which is reused verbatim
 /// for the kOk/kWrong decision and is the spec's own named precedent for the
@@ -897,10 +897,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     //   * IMPROVEMENT IS DEMANDED OVER THE WHOLE WINDOW, not per step -- every
     //     conjunct compares the CURRENT state against the reference captured
     //     when the window was armed.
-    //   * ANY REGULARIZATION CHANGE DISCARDS THE WINDOW ("slow progress under
-    //     a sigma that just changed is the safeguard's doing, not the
-    //     problem's", ssn_engine.h:620). Here that is any move of
-    //     `rho_sched`, `delta_sched` or the monotone `rho_floor`.
+    //   * A SAFEGUARD CHANGE DISCARDS THE WINDOW -- here, and ONLY here, a
+    //     move of the inertia-demanded monotone `rho_floor`. NOT a move of
+    //     the section 3.2 schedule (`rho_sched` / `delta_sched`). That is a
+    //     DATED AMENDMENT of section 6.2's "any regularization change",
+    //     argued in full at the sampling site below (search DECLARED READING
+    //     1) and ledgered as plan section 7 note (l); do not restate the
+    //     rule anywhere else.
     const Index stall_w = iopts.ipqp_stall_window;
     bool win_armed = false;
     Index win_steps = 0;
@@ -1288,11 +1291,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // runs it; what is implemented here is the policy, and the
                 // seam-injected pins are what exercise it.)
                 //
-                // "CONSERVATIVE" IS `kIpqpRhoLadderInit`, THE LADDER'S OWN
-                // ABSOLUTE FIRST RUNG -- Ipopt's `delta_w_0` -- APPLIED ONCE
-                // AS A FLOOR AND NEVER CLIMBED. Two decisions, both DECLARED
-                // because the word "conservative" admits a reading that does
-                // not work:
+                // THE FLOOR IS `detail::kIpqpEvidenceFailureRhoFloor`, AN
+                // ABSOLUTE MINIMUM APPLIED ONCE AND NEVER CLIMBED. That
+                // constant's own banner carries the full argument and is where
+                // a change to this policy belongs; the two decisions behind it
+                // are restated here because they are what this branch does:
                 //
                 // 1. IT IS AN ABSOLUTE MAGNITUDE, NOT A MULTIPLE OF THE
                 //    CURRENT `rho`. The branch this policy exists for is the
@@ -1306,11 +1309,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 //    its whole 60-iteration budget doing it. Section 2.2's
                 //    clause says a step IS PERMITTED; a floor that makes the
                 //    tier unusable on the platform the clause names is not an
-                //    implementation of it. `kIpqpRhoLadderInit`'s own banner
-                //    is what makes it the right absolute value: it is the
-                //    smallest magnitude this tier regards as a real inertia
-                //    correction at all, everything below being "far too small
-                //    to change any inertia".
+                //    implementation of it. The VALUE is the smallest
+                //    magnitude this tier regards as a real inertia correction
+                //    at all -- everything below being "far too small to change
+                //    any inertia" -- which is why the constant is DEFINED
+                //    equal to `kIpqpRhoLadderInit` while carrying its own name
+                //    and its own contract (co-review I-3: sharing the symbol
+                //    let a ladder retune move this policy silently).
                 // 2. WHAT CARRIES THE HONESTY IS THE DOWNGRADE, NOT THE SIZE
                 //    OF THE SHIFT. No finite `rho` is PROVABLY sufficient
                 //    without a reading -- that is precisely what the missing
@@ -1326,7 +1331,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 }
                 evidence_failed = true;
                 const double conservative =
-                    std::min(detail::kIpqpRhoLadderInit, iopts.ipqp_reg_max);
+                    std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.ipqp_reg_max);
                 // The floor is recorded whether or not THIS iteration needed
                 // to move: the schedule decays past it later, and a floor that
                 // only existed while it bound would let a solve step
@@ -1619,29 +1624,46 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // separate "and reset the window" statements would be two places to
         // forget.
         //
-        // "ANY REGULARIZATION CHANGE" IS READ AS "ANY SAFEGUARD CHANGE", i.e.
-        // a move of the INERTIA-DEMANDED MONOTONE FLOOR, and NOT as a move of
-        // the section 3.2 schedule. DECLARED, because the two readings are not
-        // equivalent and the literal one deletes the test:
+        // DECLARED READING 1 -- "ANY REGULARIZATION CHANGE" IS READ AS "ANY
+        // SAFEGUARD CHANGE", i.e. a move of the INERTIA-DEMANDED MONOTONE
+        // FLOOR, and NOT as a move of the section 3.2 schedule.
         //
-        //  * The rule's own justification names the safeguard --
-        //    ssn_engine.h:620, quoted by spec 6.2: "slow progress under a
-        //    sigma that JUST CHANGED is THE SAFEGUARD'S DOING, not the
-        //    problem's." In this tier the safeguard is section 2.2's ladder;
-        //    `rho_floor` is the only quantity it moves.
-        //  * The section 3.2 schedule is not a safeguard. It is the method's
-        //    ordinary outer iteration, it is GATED ON MEASURED PROGRESS, and
-        //    it moves regularization DOWNWARD -- toward the caller's own QP.
-        //    Slow progress under a decreasing regularization is the problem's
-        //    doing, which is exactly the case the rule does NOT exempt.
-        //  * MEASURED: with the literal reading the stall test is
-        //    structurally unreachable. The gate advances on nearly every
-        //    iteration of every solve (its second clause fires whenever the
-        //    regularized residual is already inside the target, which on a
-        //    stalled or infeasible subproblem it always is), so the window is
-        //    discarded before it can ever reach `ipqp_stall_window`. Every
-        //    candidate fixture ran its full 60-iteration budget with the
-        //    window never once filling.
+        // THIS IS A DATED AMENDMENT OF SECTION 6.2'S TEXT, NOT A CLARIFICATION
+        // OF IT, and it is labelled as one (settler ruling, plan section 7
+        // note (l)). The wording "any regularization change" is not itself
+        // ambiguous enough to exclude `rho_sched` and `delta_sched`, so
+        // narrowing it is an amendment and calling it a reading of the words
+        // would be dishonest. It is a CHOSEN reading, ratified on two
+        // grounds, neither of them empirical:
+        //
+        //  * THE RULE IS IMPORTED WITH ITS JUSTIFICATION, AND THE
+        //    JUSTIFICATION NAMES THE SAFEGUARD -- ssn_engine.h:620, quoted by
+        //    spec 6.2 itself: "slow progress under a sigma that JUST CHANGED
+        //    is THE SAFEGUARD'S DOING, not the problem's." In this tier the
+        //    safeguard is section 2.2's ladder, and `rho_floor` is the only
+        //    quantity it moves. The section 3.2 schedule is not a safeguard:
+        //    it is the method's ordinary outer iteration, it is GATED ON
+        //    MEASURED PROGRESS, and it moves regularization DOWNWARD, toward
+        //    the caller's own QP. Slow progress under a DECREASING
+        //    regularization is the problem's doing, which is exactly the case
+        //    the rule does not exempt.
+        //  * PRECEDENT: SSN's own window dirties on safeguard INCREASES only
+        //    (`ssn_engine.cpp`'s proximal-escalation path), so the amendment
+        //    aligns this tier with the kernel the rule was imported from
+        //    rather than diverging from it.
+        //
+        // NO UNREACHABILITY CLAIM IS MADE, and one was WITHDRAWN. An earlier
+        // draft argued that the literal reading leaves the stall test
+        // structurally unreachable. That is false, and it was RE-MEASURED
+        // rather than merely conceded: with the literal value-change predicate
+        // (`rho_sched != pre || delta_sched != pre || rho_floor != pre`) built
+        // behind a scratch toggle, the window reaches the full five accepted
+        // steps on thirteen of the suite's own IPQP solves, and the stall
+        // fixture still fires at the same ten iterations. The original
+        // measurement had counted GATE ADVANCES rather than VALUE CHANGES --
+        // the gate's outcome (c) advances the proximal centre while moving
+        // neither quantity. The amendment above is therefore a CHOSEN reading
+        // resting on the two grounds above, never a forced one.
         const double rho_floor_pre = rho_floor;
 
         // THE GATED DECREASE (spec 3.2), evaluated BEFORE the assembly so an

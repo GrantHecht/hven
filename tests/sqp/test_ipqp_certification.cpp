@@ -29,6 +29,7 @@
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
 
+#include "support/indefinite_fixtures.h"
 #include "support/ipqp_test_support.h"
 
 namespace hven::solvers {
@@ -273,6 +274,7 @@ TEST(IpqpA11Test, TheIndefiniteFamilyArmsTheGateClimbsMonotonelyAndNeverCertifie
     // MECHANISM rather than of one instance: `c` moves the minimizer along
     // x0 and moves the saddle with it, and none of the four claims may depend
     // on where that is.
+    Index reached_read = 0;
     for (const double c : {0.0, 0.25, 0.5, 0.75, 1.0}) {
         SCOPED_TRACE(c);
         IpqpEngine tier(tight_opts());
@@ -298,20 +300,116 @@ TEST(IpqpA11Test, TheIndefiniteFamilyArmsTheGateClimbsMonotonelyAndNeverCertifie
         EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
         EXPECT_EQ(r.counters.ipqp_escapes, 1);
 
-        // (4) IF a certifying exit was reached, the final read HAPPENED and
-        // came back WRONG, and the pair (`read == 1`, `kIndefinite`) is what
-        // plan section 7 note (h) demands. Conditional because the family's
-        // outcome legitimately depends on `c` -- some instances converge to
-        // the saddle and are caught by the read, others run out their budget
-        // first -- and asserting one branch unconditionally would pin the
-        // TRAJECTORY rather than the certification rule.
+        // (4) WHERE A CERTIFYING EXIT IS REACHED, the final read HAPPENED and
+        // came back WRONG -- the pair (`read == 1`, `kIndefinite`) plan
+        // section 7 note (h) demands.
         if (r.counters.ipqp_final_inertia_read != 0) {
+            ++reached_read;
             EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
             EXPECT_TRUE(r.certificate_downgraded);
             EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
             EXPECT_EQ(r.counters.ipqp_escape_indefinite, 1);
         }
     }
+
+    // THE COUNT, ASSERTED, so the conditional above cannot be vacuous
+    // (co-review I-5). MEASURED TODAY: **no member of this family reaches the
+    // final read at all.** Every one runs its 60-iteration budget out, because
+    // the ladder's monotone floor biases the proximal problem and the
+    // UNREGULARIZED residual the stopping rule reads never reaches target --
+    // T4 concern 1's mechanism, seen here on the whole family (confirmed at a
+    // 400-iteration budget too: still every member).
+    //
+    // Pinning the 0 is the point. It says what actually happens instead of
+    // leaving an `if` that nothing enters, and if a future change makes a
+    // member converge, this fires and whoever made it converge gets to
+    // strengthen the block above. The final read's own A11 coverage is
+    // `TheA11SetReachesTheFinalReadOnAConstrainedIndefiniteKkt` below, which
+    // exists precisely because this number is 0.
+    EXPECT_EQ(reached_read, 0);
+}
+
+TEST(IpqpA11Test, TheA11SetReachesTheFinalReadOnAConstrainedIndefiniteKkt) {
+    // A11'S ROW HALF (plan section 8: "HS indefinite rows + the parametric
+    // IndefiniteBoxModel family"). The parametric family above is box-only --
+    // its KKT signature counts no rows at all -- so on its own it cannot
+    // exercise the part of section 2.2 item 4 that depends on `expect_pos =
+    // n + mi` and `expect_neg = me + mi` being nonzero in the row blocks.
+    //
+    // THE ROW FIXTURES ARE THE SUITE'S OWN, NOT NEW ONES. All three come from
+    // `tests/sqp/support/indefinite_fixtures.h`, which is where
+    // test_qp_engine_indefinite.cpp's battery keeps them -- one implementation
+    // shared by both consumers, with their multiplier derivations attached.
+    // Two carry an equality row, two carry an inequality row, and one has two
+    // negative eigenvalues.
+    struct Case {
+        const char *name;
+        QpProblem qp;
+        bool expect_converges;
+    };
+
+    // The two CONVERGING indefinite fixtures. `saddle_qp()` is task 4's own
+    // (H = diag(2, -1), g = 0, symmetric box: the origin is an exact KKT point
+    // of the barrier problem at every `mu`, so the tier converges to a SADDLE
+    // in three iterations and the item 4 read is what catches it). The second
+    // is that same fixture carrying ONE EQUALITY ROW satisfied at the origin,
+    // which is what puts a row into the inertia signature while keeping the
+    // convergence property -- and it is included for a measured reason, not a
+    // stylistic one: NONE of the three HS row fixtures converges (each runs
+    // its whole budget, at a 400-iteration cap as well as at 60), so without
+    // it A11 would have no constrained KKT reaching the final read at all.
+    QpProblem saddle_with_row = saddle_qp();
+    saddle_with_row.Ae = dense_rows({{1.0, 0.0}}, 2);
+    saddle_with_row.be = vec({0.0});
+
+    std::vector<Case> cases = {
+        {"hs_indefinite_equality", test_support::indefinite_equality_qp(), false},
+        {"hs_indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp(), false},
+        {"hs_two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp(), false},
+        {"saddle", saddle_qp(), true},
+        {"saddle_with_equality_row", saddle_with_row, true},
+    };
+
+    Index reached_read = 0;
+    for (const Case &c : cases) {
+        SCOPED_TRACE(c.name);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(c.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+
+        // Common to every member: an indefinite subproblem NEVER certifies,
+        // and whatever stopped it is censused exactly once.
+        EXPECT_NE(r.status, QpStatus::kOptimal);
+        EXPECT_NE(r.escape_reason, IpqpEscape::kNone);
+        EXPECT_EQ(r.counters.ipqp_escapes, 1);
+        EXPECT_EQ(census_entries(r.counters), 1);
+        EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+
+        if (c.expect_converges) {
+            // NON-VACUOUS BY CONSTRUCTION (co-review I-5): for a member
+            // EXPECTED to converge the read is asserted to have happened, so
+            // a regression to a budget escape fails here rather than skipping
+            // the assertion.
+            ++reached_read;
+            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
+            EXPECT_TRUE(r.certificate_downgraded);
+            EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
+            EXPECT_EQ(r.counters.ipqp_escape_indefinite, 1);
+            EXPECT_LE(r.counters.ipqp_iters, 10);
+        } else {
+            // The three HS row fixtures: the gate fires on a CONSTRAINED
+            // indefinite KKT -- which is the row coverage A11 asks for -- and
+            // the solve then pays its budget rather than converging to a
+            // biased point and certifying it.
+            EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
+            EXPECT_GT(r.counters.ipqp_inertia_retries, 0);
+            EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+            EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+        }
+    }
+
+    // THE COUNT: exactly the two members expected to, and at least one.
+    EXPECT_EQ(reached_read, 2);
+    EXPECT_GT(reached_read, 0);
 }
 
 TEST(IpqpA11Test, TheConvexTwinOfTheFamilyCertifiesAndLeavesTheLadderInert) {
@@ -468,10 +566,17 @@ TEST(IpqpStallTest, TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBloc
     EXPECT_LE(ev.min_alpha, ev.max_step_alpha);
     EXPECT_GT(ev.min_alpha, 0.0);
 
-    // SECTION 6.1'S "BUDGET OF LAST RESORT", MEASURED: the stall fires far
-    // inside the 60-iteration cap. The number is the pin -- if the ordering
-    // ever moves so budget wins, this reads 60.
-    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+    // SECTION 6.1'S "BUDGET OF LAST RESORT", MEASURED AND BOUNDED TIGHTLY.
+    // `< 60` is far too weak a form of the claim -- 59 would pass it -- so the
+    // pin is the STRUCTURAL bound the mechanism implies: the window can close
+    // at most twice before firing here (once evaluated and re-armed on the
+    // first close, once fired on the second), so `2 * ipqp_stall_window` is
+    // the ceiling and a stall that crept toward the cap fails.
+    EXPECT_LE(r.counters.ipqp_iters, 2 * IpqpOptions{}.ipqp_stall_window);
+    EXPECT_GE(r.counters.ipqp_iters, IpqpOptions{}.ipqp_stall_window);
+    // ... and the exact measured value, so a trajectory move is VISIBLE rather
+    // than silently absorbed by the bound above. 10 == two closed windows.
+    EXPECT_EQ(r.counters.ipqp_iters, 10);
     EXPECT_EQ(r.counters.ipqp_escape_budget, 0);
 
     // MUTATION PARTNER: `tau = 1e-2` on the same problem crawls too, but its

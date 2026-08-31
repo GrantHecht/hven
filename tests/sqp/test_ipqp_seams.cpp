@@ -218,9 +218,13 @@ TEST_F(IpqpSeamTest, AnUnusableEvidenceStateStepsAtAConservativeFloorAndDowngrad
         EXPECT_GT(r.counters.ipqp_iters, 0);
         EXPECT_NE(r.escape_reason, IpqpEscape::kNumerical);
 
-        // AT A CONSERVATIVE FLOOR: the monotone floor was armed at the tier's
-        // own absolute first ladder rung and never climbed from there.
-        EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpRhoLadderInit);
+        // AT A CONSERVATIVE FLOOR: the monotone floor was armed at the
+        // POLICY'S own constant and never climbed from there. Pinned against
+        // `kIpqpEvidenceFailureRhoFloor` and NOT against `kIpqpRhoLadderInit`,
+        // which happens to hold the same value today: a retune of the ladder's
+        // first rung on ladder evidence must FAIL this pin rather than move the
+        // evidence-failure policy along with it (co-review I-3).
+        EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpEvidenceFailureRhoFloor);
         EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
 
         // AND THE CERTIFICATE IS DOWNGRADED FOR THE WHOLE SOLVE.
@@ -270,7 +274,7 @@ TEST_F(IpqpSeamTest, TheConservativeFloorIsPaidOnceAndTheSolveStillFinishes) {
     // content of decision 1 at the branch: measured with `rho * 100` instead,
     // this fixture converged to x = (0.0026, 0.0049) against (0.75, 0.25) and
     // burned its entire 60-iteration budget.
-    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpRhoLadderInit);
+    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpEvidenceFailureRhoFloor);
     EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
     EXPECT_NEAR(r.x(0), c.x(0), 1e-6);
     EXPECT_NEAR(r.x(1), c.x(1), 1e-6);

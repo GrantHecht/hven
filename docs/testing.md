@@ -469,6 +469,24 @@ failed-factorization path keeps its own seam one layer down
 (`InertiaRead::kFactorFailed` vs `kUnreadable`) precisely because §2.2 gives
 them different remedies.
 
+**Faithfulness is per scenario, not per injector, and the two halves differ.**
+The convention's rule ("state explicitly what scenario the injection is and is
+NOT faithful for") applies here as it does one layer down:
+
+- **`kQueryFailed` / `kUnavailable` are faithful end to end.** The scenario IS
+  "a real factor whose inertia could not be reported", so leaving the factor
+  untouched and changing only what the query returns reproduces it exactly.
+- **An OBSERVED reading with different counts, or carrying a perturbed-pivot
+  report, on a factor that is really convex and really unperturbed, is NOT a
+  backend end-to-end witness.** That evidence is deliberately inconsistent with
+  the factor the tier holds, which no backend would produce. Those fixtures are
+  POLICY AND CLASSIFICATION witnesses — they pin what the tier does with a
+  reading of that shape (its class, its census bucket, its effect on the
+  certificate) — and they say nothing about whether a backend correlates
+  evidence with factors correctly. Whether MKL ever reports a terminal
+  perturbed reading at all remains, as recorded above, unreachable from any
+  legal fixture.
+
 **The target**: `hven_ipqp_seam_tests` (`tests/CMakeLists.txt`), a standalone
 executable on exactly the same terms as `hven_fault_injection_tests` — it
 recompiles the tier's own sources plus the transitive closure they need

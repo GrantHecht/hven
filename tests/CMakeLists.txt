@@ -241,8 +241,10 @@ endif()
 # adapter TU that guards its one call site with `#ifdef HVEN_TESTING`, to the
 # MKL session TU that records the two did-the-write-execute flags under the
 # same guard, and to this target's own test_fault_injection.cpp, which reads
-# and resets them. No other target ever defines HVEN_TESTING -- see the block
-# comment above.
+# and resets them. EXACTLY TWO TARGETS IN THIS TREE DEFINE HVEN_TESTING -- this
+# one and hven_ipqp_seam_tests below -- and both are standalone executables
+# that do not link hven::hven, which is what keeps the production library and
+# every ordinary test binary untouched by it. See the block comment above.
 target_compile_definitions(hven_fault_injection_tests PRIVATE HVEN_TESTING=1)
 
 target_include_directories(hven_fault_injection_tests PRIVATE
@@ -318,9 +320,11 @@ endif()
 # Target-wide, not per-source-file: the injector and the observer in
 # hven/detail/qp/ipqp_fault_injection.h must be visible both to the tier TU
 # that guards its one call site with `#ifdef HVEN_TESTING` and to this target's
-# own test source, which arms and reads them. No other target ever defines
-# HVEN_TESTING -- see the block comment above and the one above the
-# fault-injection target.
+# own test source, which arms and reads them. This is the SECOND and last
+# target in this tree that defines HVEN_TESTING (hven_fault_injection_tests
+# above is the first); both are standalone executables that do not link
+# hven::hven, which is the property that matters -- see the block comment above
+# and the one above the fault-injection target.
 target_compile_definitions(hven_ipqp_seam_tests PRIVATE HVEN_TESTING=1)
 
 target_include_directories(hven_ipqp_seam_tests PRIVATE
