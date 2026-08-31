@@ -917,4 +917,33 @@ IpqpBox make_ipqp_box(const QpProblem &qp, double radius);
 /// @brief Derive the tier's effective bounds and its domain verdict from a box.
 IpqpBounds make_ipqp_bounds(const IpqpBox &box);
 
+/// @brief Resolve one call's trust-region radius exactly as `solve()` does.
+///
+/// EXPOSED FOR THE ROUTING CHAIN (task 6), for the same reason
+/// `make_ipqp_box` is: the driver runs the domain gate BEFORE entering the
+/// tier, so it must build the SAME box -- and the box is a function of the
+/// RESOLVED radius, not of `SolveOverrides::tr_radius` as written. Two
+/// resolutions of the sentinel convention (`qp_types.h`: +inf means "use the
+/// engine's own `tr_radius`") could disagree on exactly the configurations
+/// where the caller left the override at its default, which is most of them.
+/// One implementation, used by `solve()` itself.
+double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides);
+
+/// @brief The tier's stopping rule as a predicate on a residual block.
+///
+/// EXPOSED FOR THE ROUTING CHAIN (task 6). Section 2.3's routing needs to tell
+/// a solve that CONVERGED and then had its certificate refused by the
+/// factorization budget (escape `kBudget`, `ipqp_final_inertia_read == 3`,
+/// `certificate_downgraded`) from one the ITERATION CAP stopped mid-descent:
+/// the first is a converged, uncertified iterate and belongs at the tier-3
+/// refinement; the second is a genuine escape and belongs at the cold walk.
+/// The distinguishing fact is "did the residuals meet the barrier phase's
+/// target", which is this predicate -- and it is exported rather than
+/// re-derived at the driver so the two readings cannot drift apart.
+///
+/// `solve()`'s own stopping rule IS this call, so the answer here is the same
+/// answer the engine acted on.
+bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
+                                const IpqpOptions &iopts);
+
 } // namespace hven::solvers

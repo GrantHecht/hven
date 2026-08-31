@@ -363,13 +363,6 @@ void ruiz_equilibrate(SpMatRM &k, Vec &d, Vec &work) {
     }
 }
 
-/// The walk's own trust-region resolution, unchanged (`qp_types.h`'s
-/// SolveOverrides sentinel convention): +inf on the override means "use the
-/// engine's own radius".
-double resolve_tr_radius(const QpOptions &opts, const SolveOverrides &ov) {
-    return std::isinf(ov.tr_radius) && ov.tr_radius > 0.0 ? opts.tr_radius : ov.tr_radius;
-}
-
 /// `SsnEngine::validate_overrides`' rule, applied unchanged: a negative or NaN
 /// radius would silently cross `lo_eff`/`up_eff` behind an assert a Release
 /// build compiles out, and NaN in either regularizer is absorbable by no
@@ -544,6 +537,30 @@ IpqpBounds make_ipqp_bounds(const IpqpBox &box) {
         }
     }
     return b;
+}
+
+// The walk's own trust-region resolution, unchanged (`qp_types.h`'s
+// SolveOverrides sentinel convention): +inf on the override means "use the
+// engine's own radius". DECLARED IN THE HEADER since task 6, because the
+// routing chain's pre-solve domain gate has to build the same box this
+// function's answer defines -- see the declaration's own note.
+double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides) {
+    return std::isinf(overrides.tr_radius) && overrides.tr_radius > 0.0 ? opts.tr_radius
+                                                                        : overrides.tr_radius;
+}
+
+// THE STOPPING RULE (spec 2.3 step 1 / 3.4), and the ONLY statement of it: the
+// QP layer's own relative tolerances, loosened by `ipqp_converge_slack`. The
+// tier does not chase the last two decades -- that is tier 3's job -- and the
+// slack factor is what makes the division of labour a setting rather than a
+// hard-coded convention. `solve()`'s loop calls this, so a caller reading it
+// back off an IpqpResult reads the same answer the engine acted on.
+bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
+                                const IpqpOptions &iopts) {
+    const double opt_target = opts.opt_tol * iopts.ipqp_converge_slack;
+    const double feas_target = opts.feas_tol * iopts.ipqp_converge_slack;
+    return residuals.stationarity <= opt_target && residuals.primal_eq <= feas_target &&
+           residuals.primal_iq <= feas_target && residuals.complementarity <= opt_target;
 }
 
 // ---------------------------------------------------------------------------
@@ -731,7 +748,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         ledger_->record(std::move(rec));
     };
 
-    out.box = make_ipqp_box(qp, resolve_tr_radius(opts_, overrides));
+    out.box = make_ipqp_box(qp, ipqp_effective_tr_radius(opts_, overrides));
     const IpqpBounds bounds = make_ipqp_bounds(out.box);
 
     // --- T4.b: the domain gate --------------------------------------------
@@ -1553,15 +1570,20 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             break;
         }
 
-        // THE STOPPING RULE (spec 2.3 step 1 / 3.4): the QP layer's own
-        // relative tolerances, loosened by `ipqp_converge_slack`. The tier
-        // does not chase the last two decades -- that is tier 3's job -- and
-        // the slack factor is what makes the division of labour a setting
-        // rather than a hard-coded convention.
+        // The two targets, named once for the tests below that also read
+        // them (the section 6.2 window, section 6.3's positive floor, and the
+        // inner-loop target); the stopping rule itself is the exported
+        // predicate, which reads the same two from the same two fields.
         const double opt_target = opts_.opt_tol * iopts.ipqp_converge_slack;
         const double feas_target = opts_.feas_tol * iopts.ipqp_converge_slack;
-        if (res.stationarity <= opt_target && res.primal_eq <= feas_target &&
-            res.primal_iq <= feas_target && res.complementarity <= opt_target) {
+
+        // THE STOPPING RULE (spec 2.3 step 1 / 3.4), through the exported
+        // predicate rather than inline: task 6's routing chain has to ask the
+        // same question of a returned IpqpResult (a converged iterate whose
+        // final certification read the factorization budget refused is routed
+        // as a downgraded certificate, not as budget exhaustion), and two
+        // statements of one rule could drift.
+        if (ipqp_residuals_meet_target(res, opts_, iopts)) {
             converged = true;
             break;
         }
@@ -2231,7 +2253,26 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         } else if (at_upper) {
             out.bound_state[u] = BoundState::kAtUpper;
         }
-        out.z(i) = w.zl(i) - w.zu(i);
+        // THE ABSENT-SIDE TEST READS THE REAL BOUND, NOT THE EFFECTIVE ONE --
+        // `SsnEngine::split_bound_multipliers`' rule verbatim, and it is a
+        // requirement rather than a nicety (M6 W1 task 6). Under a FINITE
+        // radius every variable has finite EFFECTIVE bounds, so the barrier
+        // carries a `zl`/`zu` pair at every index whatever the caller's own
+        // box says; exporting that difference unconditionally prices a bound
+        // the QP does not have. `QpSolution::z`'s contract -- which this field
+        // claims verbatim -- is that a caller reading z back sees multipliers
+        // of the QP's OWN bounds only, whatever radius the solve ran under,
+        // and `SsnEngine::solve` REFUSES a start whose z prices an absent
+        // bound ("there is no row for that multiplier"). The residue at such
+        // an index is a trust-region dual, and TR duals are internal
+        // (qp_problem.h), so dropping it is the contract rather than a loss.
+        //
+        // The at-a-TR-bound ACTIVE case is already handled above by
+        // `tr_active`; this is its inactive counterpart, where the pair is
+        // small rather than zero and therefore easy to miss.
+        const double z_lower = detail::ipqp_has_lower(qp.lower(i)) ? w.zl(i) : 0.0;
+        const double z_upper = detail::ipqp_has_upper(qp.upper(i)) ? w.zu(i) : 0.0;
+        out.z(i) = z_lower - z_upper;
     }
 
     // --- counters that mirror the backend's own ---------------------------
