@@ -365,3 +365,38 @@ history; per-mode tuning is M8's labelled-config mechanism) and an M7 scoping
 read (M9a covers it). tycho-side: no timeline pressure — tycho's design premise
 is cheap exact Hessians through the partitioned engine; first-order is external
 positioning.
+
+
+---
+
+## M7 items registered at M6 W1 close (2026-09-01)
+
+Accumulated from W1's task closes (arguments in the M6 ledger and the W1 spec
+§12); listed here so M7's planning window starts from the full set:
+
+- **Stopping-mu vs bound geometry** (C1's accuracy/stopping coupling; the
+  gate-8 Sigma ~ 250 fixture and T10's `e1_f7_n20000_af30_m1e-6` — an
+  active-set margin equal to the tier's contracted accuracy floor — are its
+  two motivating cases).
+- **`ipqp_converge_slack` as an adaptivity lever** (measured price of slack 1:
+  +47 iterations over 29 cells; the 1e2 hand-off to tier 3 is the ruled
+  composition).
+- **Complementarity-derived `mu_0`** after the starting heuristic
+  (Mehrotra/PIQP style), with the fixed measured default as fallback;
+  per-family defaults (HS prefers 1e-3, everything else 1e-2 — T10's sweep).
+- **Sticky trial** (NOT ADOPTED in W1: freeze class); **IC constants
+  measurement**; **barrier endgame at the guard**; **`kIpqpLadderSkipAfter`**
+  (T9 lever).
+- **Tier-solved elastic rung** (owner: robustness over architectural purity —
+  deferred, not declined).
+- **Restoration seed generalization** beyond `clamp(x + p_elastic, box)`.
+- **Dropped warm carry on a disproval** (T7/T9: carry DECLINED at 0-26%
+  measured saving with the /3-descent hazard; revisit only with new evidence).
+- **Structured per-piece convexification** (needs a second seam view —
+  sized as such, spec §2.2).
+- **A certification fixture class that survives barrier-default moves**
+  (T10's gate-8 lesson: fixtures constructed from `Sigma = 2 mu_stop / s^2`,
+  not tuned to where the barrier happens to stop).
+- **A real tier envelope population**: cells the walk finds hard at
+  `nx = 1e5` (the current corpus has none — T10's A13 substitute measures a
+  one-factorization-walk population).

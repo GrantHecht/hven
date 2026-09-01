@@ -125,12 +125,17 @@ argument. (Amendment B.) What the tier actually does:
    NOT a proximal-point method.** The solved Hessian is `H + rho I`;
    mathematically `rho` is Ipopt's `delta_w`. It is a *modification* that buys
    a descent direction, not a *proximal term* that buys convergence theory.
-3. **The ladder is MONOTONE per solve.** Within one QP solve `rho` never falls
-   below the inertia-demanded floor established so far; §3.2's `(rho, delta)`
-   schedule gains that floor as a hard constraint on its decrease. A solve that
-   raises then lowers then raises again is a **flap** and is counted
-   (`ipqp_rho_flaps`, §7) — flapping is a signal about the subproblem, not a
-   free operation.
+3. **The ladder carries Algorithm IC's MEMORY, as Ipopt implements it**
+   (AMENDED at W1 close, §12 item 1; the monotone-per-solve floor of the draft
+   is DELETED). The schedule quantity `(rho_sched, zeta)` and the
+   inertia-demanded modification `rho_dem` are TWO quantities: RHS, gate and
+   prox centre use the schedule only; `rho_dem` is diagonal-only, additive,
+   uniform in the Ruiz-scaled system (a SCALED quantity — T4b CX9). Declared
+   adaptations: hven's `reg_floor`/`reg_max` bounds; the zero-trial is skipped
+   after three consecutive modified iterations. A re-escalation after the
+   memory's first-trial value proves insufficient is a **reclimb** and is
+   counted (`ipqp_ladder_reclimbs`, §7); a perturbed-pivot-driven escalation is
+   NEVER a reclimb (§12 item 3).
 4. **REQUIRED at convergence: one extra factorization to read the
    unregularized reduced inertia.** At the converged point `rho` is dropped to
    the schedule's residual level and the system is factorized once more.
@@ -284,8 +289,11 @@ fails loudly instead of silently corrupting the corrector.
   `lambda_est <- y_k`). This bounded-decrease condition is what the paper's
   convergence result rests on, and it is why copying `prox_reg_decay`'s
   unconditional geometric decay would be wrong.
-- **The monotone floor of §2.2 overrides the decrease**: within a solve,
-  `rho` never falls below the inertia-demanded floor reached so far.
+- **§2.2's ladder memory is a separate quantity** (AMENDED at W1 close, §12
+  item 1): the schedule's decrease moves `(rho_sched, delta_sched)` only;
+  `rho_dem` rides additively and remembers per Algorithm IC. `delta_sched`
+  enters the `-delta I` blocks only (`build_rhs` receives the schedule's
+  delta — §12 item 3).
 - Floor `kProxRegFloor = 1e-10` (Cipolla–Gondzio, arXiv:2205.01775 eq. 19).
   **Ceiling `ipqp_reg_max = 1e6 = detail::kSsnProxMax`**, and the tier adopts
   SSN's **relative cap-slack lesson**: an exact `>= kSsnProxMax` comparison is
@@ -356,7 +364,7 @@ reduction — `barrier_math.h`'s banner warns its `.sum()` order feeds `mu` and
 is ULP-load-bearing.
 
 **New:** `IpqpKktLayout` (§4); the Mehrotra `sigma` oracle; the `(rho, delta)`
-schedule with its monotone floor; Ruiz equilibration (§4.3); the starting point
+schedule with Algorithm IC's ladder memory (§12 item 1); Ruiz equilibration (§4.3); the starting point
 and warm repair (§5); the relative-KKT test; the ratio face-thresholding and
 routing chain (§2.3); `IpqpCounters` — `include/hven/core/solver_counters.h`
 has **no IPM counter struct at all** (the NLP IPM predates the counters
@@ -571,6 +579,11 @@ repaired point supports, never above the cold default. Observable via
 | Stamp mismatch / wrong dimensions / non-finite | **cold** | the driver's existing ingest already degrades these; the tier sees no warm data |
 | Foreign / unknown extension tags | ignored | M5 R3 capability downgrade, unchanged |
 
+W1-close note (T7, §12 item 7): the full-warm row's `iq_values_` are NLP-space
+quantities while the tier's `qp.bi` is step-space — the repair validates and
+consumes them through the documented transform, never raw; a repair-off
+configuration must still never consume raw payload values.
+
 ### 5.5 The WARM-KILL rule (Amendment D)
 
 A warm restart that is going badly must not spend a whole budget proving it:
@@ -624,9 +637,12 @@ certificate**. Infeasibility is a *signature*, never a proof.
 
 Built on SSN's three window properties, which are adopted verbatim in kind:
 **the window advances on ACCEPTED steps only**; **improvement is demanded over
-the whole window, not per step**; **any regularization change discards the
-window and starts a fresh one** ("slow progress under a sigma that just changed
-is the safeguard's doing, not the problem's" — `ssn_engine.h:620`). The barrier
+the whole window, not per step**; **any SAFEGUARD change discards the
+window and starts a fresh one** — a move of §2.2's inertia-demanded `rho_dem`,
+not a §3.2 schedule move (AMENDED at W1 close, owner-ruled; §12 item 4: the
+schedule is the method's own gated outer iteration, so slow progress under it
+is the problem's doing; "slow progress under a sigma that just changed is the
+safeguard's doing, not the problem's" — `ssn_engine.h:620`). The barrier
 form:
 
 > `W = 5` accepted iterations. **Stall iff ALL of:**
@@ -637,13 +653,22 @@ form:
 >      noise);
 > (iii) `min(alpha_p, alpha_d) < 1e-2` on **every** step in the window.
 >
-> **Reset** on a Mehrotra target change that actually dropped `mu`.
+> **Reset** on a Mehrotra target change that actually dropped `mu` —
+> CLARIFIED at W1 close (owner-ruled, §12 item 4): this IS conjunct (i) at the
+> 2x threshold evaluated at window CLOSE, not a second mechanism; a reset on
+> any drop would re-arm on every healthy step and make conjunct (i) vacuous.
 > **Never abort on one tiny-`alpha` iteration** — conjunct (iii) is a
 > whole-window property by construction.
 
 `W = 5` matches `detail::kSsnStallWindow`, for the same reason its banner
 gives: five accepted steps is an order of magnitude above the local regime, so
 no healthy trajectory reaches it.
+
+REGISTERED at W1 close (T5, §12 item 5), not widened: a FROZEN trajectory at
+`ipqp_min_mu` (`mu_ratio == 1`, `res_impr == 0`, `alpha == 1` every step) is
+not a stall — conjunct (iii) fails — and pays its whole budget; likewise a
+nonconvex frozen fixed point of the regularized system. Both are §6.2 cost
+items for M7's stopping-mu design, not detection failures.
 
 ### 6.3 Infeasible-suspect
 
@@ -668,6 +693,21 @@ only consumer. Promoting a suspicion to a certificate at the driver layer is
 precisely the failure the SSN contract exists to prevent. Optional Farkas
 corroboration (`ipqp_farkas_gate`, one matvec + O(m), no factorization) may arm
 the report; it never certifies.
+
+**C1 DISCLOSURE (owner-accepted at W1 close, §12 item 6).** Beyond
+`z > 10 sqrt(mu)` a saddle held by a barrier-resolved bound still certifies
+(the Sigma ~ 250 member of the gate-8 sweep): §2.2 item 4's weak-side drop
+(both slack and multiplier `<= kIpqpWeakActiveFactor * sqrt(mu)`, factor 10)
+cannot see it, by construction. Accuracy/stopping coupling; registered for
+M7's stopping-mu item (T10's `e1_f7_n20000_af30_m1e-6` is its second case).
+The shipped instrument (T4c): `ipqp_read_kept_tight_sides` counts sides in the
+ambiguous band `10 sqrt(mu) < z <= 1000 sqrt(mu)` at the final read;
+`ipqp_read_barrier_noise_sides` counts sides whose across-iterate exponent
+`log(z_k/z_{k-1}) / log(mu_k/mu_{k-1}) >= 0.5` marks barrier-tracking decay;
+`IpqpResult::read_kept_tight` folds them ("ambiguous, never wrong" — the
+false-positive class is disclosure, not misclassification). Fallbacks: fewer
+than two accepted iterates, or a `mu` ratio `> 0.5`, mark the exponent test
+uninformative rather than fabricating a verdict.
 
 ### 6.4 The W2 hook, and a W2 registration
 
@@ -713,7 +753,10 @@ for a cell that did not finish, so a sweep row is never silently blank.
 | `ipqp_rho_demanded_max`, `ipqp_rho_demanded_last` (double) | the inertia-demanded `rho`, high-water and final |
 | `ipqp_inertia_retries` | factorizations rejected on wrong inertia |
 | `ipqp_iters_at_elevated_rho` | iterations taken with `rho` above the schedule's residual level |
-| `ipqp_rho_flaps` | monotone-floor violations attempted, i.e. down-then-up cycles |
+| `ipqp_ladder_reclimbs` | re-escalations after the IC memory's first trial proved insufficient (REPLACES `ipqp_rho_flaps`, gone with the monotone rule — §12 item 1) |
+| `ipqp_iters_ladder_armed_no_advance` | iterations where the armed ladder produced no estimate advance |
+| `ipqp_pivot_reroute_primal` / `ipqp_pivot_reroute_dual_fallback` | bounded perturbed-pivot re-route (2 primal escalations then dual latch; §12 item 3); never pinned on ordinary QP fixtures |
+| `ipqp_read_kept_tight_sides` / `ipqp_read_barrier_noise_sides` | §6.3's T4c instrument: ambiguous-band and barrier-noise side counts at the final read |
 | `ipqp_final_inertia_read` | outcome of §2.2's required extra factorization: `0` right, `1` wrong (certificate downgraded), `2` unreadable |
 | `ipqp_reg_decreases` / `ipqp_reg_increases` | `(rho, delta)` schedule moves |
 | `ipqp_prox_center_updates` | proximal-estimate advances |
@@ -763,9 +806,12 @@ reuses the existing seam — one `SolveRecord` per tier subproblem via
 
 - **A1 — block placement at real F7 junctions, two-junction structure.** E1's
   contiguous variant fixed *layout* but drew the offset uniformly on
-  `[1, mi-k]`. A1 takes F7's own junction windows from a real bound-arc hop
-  (`bench/corpus_cells.h`'s `f7_*_bound_*` cells) so the active set is **two**
-  blocks at the geometry's own locations. Assert exact recovery under the
+  `[1, mi-k]`. A1 takes F7's own junction windows from a real
+  PATH-INTERFACE cell at `p = kPathInterfaceP = 0.85` (RE-ANCHORED at W1
+  close, §12 item 8: ruling 9's original bound-arc read is unsatisfiable —
+  bound-arc cells carry no active ROW, `corpus_cells.h:167-173`) so the active
+  set is ONE window with junctions at both ends at the geometry's own
+  locations. Assert exact recovery under the
   ratio rule of §2.3 (with E1's Rule-A/Rule-B counts reported alongside for
   comparability) and iterations inside the gate.
 - **A2 — a real trajectory hop (not a manufactured `x*`).** E1's `g/be/bi` are
@@ -830,7 +876,9 @@ reuses the existing seam — one `SolveRecord` per tier subproblem via
   §2.2 at all**. A11 runs the Hock–Schittkowski problems with indefinite
   Hessians (and the parametric `IndefiniteBoxModel` family used by
   `tests/sqp/test_qp_engine_indefinite.cpp`) and asserts: the inertia gate
-  fires, the ladder is monotone within the solve, the required final
+  fires, the ladder behaves per §2.2's IC memory (NOT monotone within the
+  solve — the T4b amendment, §12 item 1, governs; A11 asserts no
+  monotonicity), the required final
   unregularized inertia read happens, and a wrong read **downgrades the
   certificate rather than reporting `kOptimal`**.
 - **A12 — the perturbed-continuation re-solve with the warm-kill rule
@@ -939,8 +987,10 @@ recommendations carried from the draft; Q5 per the owner, per §2.2.
 5. **Indefinite `H`: hand off, or convexify and report?** **RULED (owner):**
    neither as previously framed. The proximal-point-convergence claim is
    retracted; the mechanism is the inertia gate → inertia-demanded
-   Wächter–Biegler `rho` on a current-iterate anchor → monotone-per-solve
-   ladder → **required final unregularized inertia read**, with a wrong read
+   Wächter–Biegler `rho` on a current-iterate anchor → the Algorithm IC
+   ladder as Ipopt implements it, with declared adaptations (§2.2 item 3 as
+   amended at W1 close)
+   → **required final unregularized inertia read**, with a wrong read
    **downgrading the certificate** rather than reporting `kOptimal`. §2.2 is
    the ruled text.
 6. **The tier's `SymmetricFactor::Options`.** **RULED:** its own,
@@ -1005,3 +1055,83 @@ assertion, the base-currency-only warm split, the warm-kill rule's tycho Task 13
 evidence, the tail/DNF and cap-slack counter conventions, and the A11–A14
 acceptance cells. Both passes adopted by the owner; this document is the
 amended result.
+
+
+---
+
+## 12. W1-close amendment record (2026-09-01)
+
+Every W1-close change to this spec's text is listed here; the in-place edits
+above cite these items. Arguments live in the plan's §7 notes, the task
+reports (`.superpowers/w1-t*-report.md`), and the M6 ledger
+(`docs/notes/2026-08-m6-ledger.md`); this record is deliberately terse.
+
+1. **Ladder memory (plan notes (p), (r); T4b, owner-approved).** §2.2 item 3,
+   §3.2, §3.5, §7, §8.4 A11, §10 item 5: the monotone-per-solve floor is
+   DELETED for Algorithm IC's memory as Ipopt implements it; `rho_sched` /
+   `rho_dem` are two quantities (schedule in RHS/gate/prox centre; `rho_dem`
+   diagonal-only, additive, uniform in the Ruiz-scaled system);
+   `ipqp_rho_flaps` → `ipqp_ladder_reclimbs`; new
+   `ipqp_iters_ladder_armed_no_advance`. The mechanism sentence reads
+   "Ipopt-as-implemented with declared adaptations", never "IC-derived".
+2. **Routing rulings (plan note (q); T6 fix round 1, six settler rulings).**
+   §2.3/§6.1 as written are clarified by: converged-but-budget-refused final
+   read routes as a downgraded certificate and is NOT charged to the K = 3
+   ladder; SSN-warm-grade exits get `refine_on_face` exactly as kSsn ("one
+   polish per subproblem" holds; a refusal is not a polish); `adaptive_mu`
+   is disabled only for tier-solved subproblems (+ the SSN warm grade that
+   follows); the proximal carry participates on kIpm's SSN path as under
+   kSsn; the A9 symbolic-hoist key is per SQP solve in W1; a `kNone` result
+   carrying a non-finite point throws.
+3. **T4b fix-round rulings (plan note (r)).** Gate 8 repaired via the
+   critical-cone weak-side drop at `kIpqpWeakActiveFactor * sqrt(mu)`
+   (factor 10), failure direction spurious-downgrade-only; the
+   perturbed-pivot re-route is bounded (2 primal escalations, then dual
+   latch, fresh primal next iteration) and its counters are never pinned on
+   ordinary QP fixtures; `build_rhs` receives `delta_sched` (the `-delta I`
+   blocks only; a transient matrix-vs-RHS delta mismatch on perturbed
+   iterations is bounded, per-pass, registered); a perturbed-driven
+   escalation is never a reclimb; gate-7's observed-threshold instrument
+   runs at `ipqp_ruiz = false` where shift spaces coincide (C10/C11
+   registered); exact trajectory pins are MKL-scoped, structural assertions
+   unconditional; comment-only changes gate on object byte-identity; R5's
+   `-1` merge stays OFF (gate-8 counterexample).
+4. **§6.2 discard and reset (plan notes (l), (o); T5; owner-ruled
+   2026-09-01).** Discard on SAFEGUARD (`rho_dem`) changes only — a chosen
+   amendment, labelled as one: the literal any-change window is NOT
+   structurally unreachable (it fills on 13 suite IPQP solves; the stall
+   fixture fires at the same iteration either way). Reset = conjunct (i) at
+   2x, evaluated at window close — a clarification, not a second mechanism.
+5. **§6.2 registered costs (T5).** Frozen-at-`ipqp_min_mu` trajectories and
+   nonconvex frozen fixed points of the regularized system are not stalls
+   and pay their budget; M7 stopping-mu items. Status vocabulary for a
+   downgraded-without-escape result: `QpStatus::kNumericalError`, `QpStatus`
+   NOT widened — the certificate rides `IpqpResult::certificate_downgraded`
+   + `escape_reason`, never `status`. §2.2's mid-solve evidence-failure
+   downgrade means `ipqp_final_inertia_read == 0` can pair with
+   `certificate_downgraded == true`.
+6. **C1 (T4b residual; owner accepted-with-disclosure) + the T4c
+   instrument.** §6.3 carries the disclosure and the band/exponent
+   definitions; the tycho-sqp draft instrument (`z > 10 sqrt(mu)` implying
+   `gap < sqrt(mu)/10`) was vacuous and is superseded.
+7. **§5.4 (T7).** `iq_values_` (NLP space) vs `qp.bi` (step space)
+   divergence: warm payloads are consumed only through the documented
+   transform; repair-off never consumes raw values. Base-warm `eps` is
+   additive; carry drops on every genuine escape; `rho_dem` cross-major
+   carry DECLINED.
+8. **A1 re-anchor (T9; plan ruling 9 corrected).** "Bound-arc" junction
+   read → PATH-INTERFACE at `p = kPathInterfaceP = 0.85`; bound-arc cells
+   carry no active row (`corpus_cells.h:167-173`); §8.1's "two blocks" is
+   one window with junctions at both ends. HS10 pays no final read
+   (`ipqp.certify` count 0) — asserted, with the nonempty routing chain, as
+   the honest direction.
+9. **Schema v0 (T8).** `v`/`ev` are the serializer envelope's fields, not
+   event payload; inertia is an optional `(n_pos, n_neg, n_zero)` triple and
+   perturbed pivots an optional count — absent is absent, never zero-filled;
+   `evidence` is nested. Five events in `IpqpEngine`, two in `SqpDriver`;
+   null sink default; the trace `major` field is driver-set (`iter + 1`).
+10. **A4/Q4 outcome (T10; ledger 0053055).** A4 is RED at the shipped
+    defaults (the gate is executable via `HVEN_A4_GATE`); the measured
+    default is `ipqp_init_mu = 1e-2` (Ruiz-scaled), NOT yet adopted — the
+    adoption, the tier-contract + end-to-end recovery scoring, and every
+    moved pin are T10b's declared break, recorded in the ledger when taken.
