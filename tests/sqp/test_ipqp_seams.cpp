@@ -115,6 +115,20 @@ QpProblem weakly_active_indefinite_qp(double s, double h) {
     return qp;
 }
 
+/// THE SAME FAMILY AT A TARGET `Sigma` (T4b: `Sigma = 2 mu_stop / s^2`), and this family's
+/// stopping `mu`, measured -- `x1 = 0` is an exact barrier KKT point at every `mu`, so one
+/// probe fixes it. A fixed half-width leaves the regime when the barrier default moves.
+QpProblem weakly_active_indefinite_qp_at(double sigma, double h, double mu_stop) {
+    return weakly_active_indefinite_qp(std::sqrt(2.0 * mu_stop / sigma), h);
+}
+
+double gate8_mu_stop() {
+    IpqpEngine probe(tight_opts());
+    return probe
+        .solve(weakly_active_indefinite_qp(1.0e-4, -1.0), nullptr, IpqpOptions{}, SolveOverrides{})
+        .mu;
+}
+
 /// Evidence in a state OTHER than kObserved, counts left at the linear layer's invalid sentinel
 /// `-1` -- section 2.2's "the counts are never zero-filled or inferred", so the fixture hands
 /// the tier exactly what a real failed query hands it and nothing more plausible-looking.
@@ -560,13 +574,15 @@ TEST_F(IpqpSeamTest, TheSkipCountLetsASolveConvergeBeforeItsLastReadingIsCorrupt
 // injection (on_final_read=false) leaves the final read clean; the whole-solve downgrade must
 // still force the flag false with both counters populated. See `.superpowers/w1-t4c-report.md`.
 TEST_F(IpqpSeamTest, AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesTheCountersPopulated) {
+    // MEASURED BEFORE THE INJECTOR IS ARMED, so the probe solve is clean: the member is the
+    // STRONGLY active one (`Sigma = 250`), whose final read stands (T10b).
+    const QpProblem strong = weakly_active_indefinite_qp_at(250.0, -1.0, gate8_mu_stop());
     Injector::active = true;
     Injector::on_final_read = false;
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(weakly_active_indefinite_qp(1.0e-5, -1.0), nullptr,
-                                    IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(strong, nullptr, IpqpOptions{}, SolveOverrides{});
 
     ASSERT_GT(Injector::injections, 0);
     ASSERT_TRUE(r.certificate_downgraded);

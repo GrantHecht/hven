@@ -538,6 +538,23 @@ QpProblem weakly_active_indefinite_qp(double s, double h) {
     return qp;
 }
 
+/// THE SAME FAMILY AT A TARGET `Sigma`, which is what the gate is really about: T4b's own
+/// `Sigma = 2 mu_stop / s^2` inverted. A fixed half-width drops out of the weak-active regime
+/// the moment the barrier default moves; a target `Sigma` does not.
+QpProblem weakly_active_indefinite_qp_at(double sigma, double h, double mu_stop) {
+    return weakly_active_indefinite_qp(std::sqrt(2.0 * mu_stop / sigma), h);
+}
+
+/// This family's stopping `mu`, MEASURED rather than assumed: `x1 = 0` is an exact barrier KKT
+/// point at every `mu`, so the trajectory -- and therefore `mu_stop` -- is independent of both
+/// `s` and `h`, and one probe solve fixes the whole ladder. `.superpowers/w1-t4b-report.md`.
+double gate8_mu_stop() {
+    IpqpEngine probe(tight_opts());
+    return probe
+        .solve(weakly_active_indefinite_qp(1.0e-4, -1.0), nullptr, IpqpOptions{}, SolveOverrides{})
+        .mu;
+}
+
 /// T4b close gate 10's fixture: min 1/2 (2 x0^2 - 0.1 x1^2) - 2 x0 - 0.01 x1 on [-100, 100]^2,
 /// built to make the negative-curvature walk as long as the design allows (small additional-
 /// shift threshold, bound 100 units away, shallow slope) and the section 3.2 gate silent.
@@ -700,10 +717,13 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
     Index dropped_and_downgraded = 0;
     Index kept_and_stood = 0;
     Index skipped_ties = 0;
-    for (const double s :
-         {5.0e-4, 3.0e-4, 2.0e-4, 1.8e-4, 1.58e-4, 1.4e-4, 1.2e-4, 1.0e-4, 5.0e-5, 1.0e-5}) {
-        SCOPED_TRACE(s);
-        const QpProblem saddle = weakly_active_indefinite_qp(s, -1.0);
+    // THE SWEEP IS IN `Sigma`, NOT IN `s` (T10b): the same ten members as T4b measured, now
+    // CONSTRUCTED at those curvatures instead of at half-widths that only produced them at the
+    // 0.1 placeholder's `mu_stop`. `.superpowers/w1-t4b-report.md`.
+    const double mu_stop = gate8_mu_stop();
+    for (const double target : {0.1, 0.28, 0.63, 0.77, 1.0, 1.28, 1.74, 2.5, 10.0, 250.0}) {
+        SCOPED_TRACE(target);
+        const QpProblem saddle = weakly_active_indefinite_qp_at(target, -1.0, mu_stop);
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(saddle, nullptr, IpqpOptions{}, SolveOverrides{});
 
@@ -725,7 +745,10 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
         // THE KNIFE-EDGE MEMBERS ARE SKIPPED, not asserted (fix round 1, I5): a member whose
         // `Sigma` sits within 1% of `|H11|` leaves the read's matrix near-singular -- the
         // registered tie-flake class. The sweep crosses the boundary; it never stands on it.
+        // THE REGIME IS ASSERTED BEFORE THE READ IS: the member must actually sit at the
+        // curvature it was built for, or a moved `mu_stop` -- not the read -- is the variable.
         const double sigma = sigma_at(r, saddle, 1);
+        EXPECT_NEAR(sigma / target, 1.0, 1e-2) << "the construction did not hold";
         if (std::abs(sigma - 1.0) < 1e-2) {
             ++skipped_ties;
             continue;
@@ -737,6 +760,10 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
         const double weak_scale = detail::kIpqpWeakActiveFactor * std::sqrt(r.mu);
         const double gap = r.x(1) - saddle.lower(1);
         const bool weak = gap <= weak_scale && r.zl(1) <= weak_scale;
+        // ... AND THE BAND THAT RULE IS, IN `Sigma`: `gap = s`, `z = mu/s`, so a side is weak
+        // exactly when `Sigma` lies in `[2/F^2, 2 F^2]` for the shipped factor `F`.
+        constexpr double kF = detail::kIpqpWeakActiveFactor;
+        EXPECT_EQ(weak, sigma >= 2.0 / (kF * kF) && sigma <= 2.0 * kF * kF);
 
         // THE WEAK-ACTIVE REGIME ITSELF, on the members that are in it: the
         // slack and the multiplier are both of order `sqrt(mu)`.
@@ -760,7 +787,7 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
             // T4c, gate-8 residual C1 (`s = 1e-5`): band-counted AND exponent-suspect, so the
             // flag fires on the DISCRIMINATING count. R3: MKL-scoped -- the margin (11.18 vs
             // floor 10) is boundary-sensitive. See `.superpowers/w1-t4c-report.md`.
-            if (s == 1.0e-5) {
+            if (target == 250.0) {
 #ifdef USE_ACCELERATE_SPARSE
                 RecordProperty("t4c_c1_exposed_accelerate",
                                "UNOBSERVED -- band/exponent trigger on this narrow-margin member "
@@ -810,10 +837,10 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
 #endif
 
     // **CODEX'S NAMED MEMBER**, asserted on its own rather than only inside the
-    // loop: `weakly_active_indefinite_qp(1.4e-4)` has `Sigma ~ 1.28 > |-1|` and
-    // was the concrete case filed as CRITICAL. It downgrades.
+    // loop: the `Sigma = 1.28 > |-1|` member (T4b measured it at s = 1.4e-4) was
+    // the concrete case filed as CRITICAL. It downgrades.
     {
-        const QpProblem qp = weakly_active_indefinite_qp(1.4e-4, -1.0);
+        const QpProblem qp = weakly_active_indefinite_qp_at(1.28, -1.0, mu_stop);
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         EXPECT_GT(sigma_at(r, qp, 1), 1.0) << "the masking really is in force at this member";
@@ -827,7 +854,7 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
     // partner is built from the arithmetic: at the returned point the OLD read's `H11 + sigma`
     // must be POSITIVE while the new one is NEGATIVE. Putting the masking back fails here.
     {
-        const QpProblem qp = weakly_active_indefinite_qp(1.4e-4, -1.0);
+        const QpProblem qp = weakly_active_indefinite_qp_at(1.28, -1.0, mu_stop);
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         const double h11 = -1.0;
@@ -841,9 +868,9 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
     // geometry, same weak bounds, curvature flipped, so the dropped `Sigma` leaves `H11 = +1`
     // and the read agrees -- else "the saddle downgrades" is met by downgrading everything.
     Index minimizers_certified = 0;
-    for (const double s : {5.0e-4, 1.8e-4, 1.4e-4, 1.0e-4, 5.0e-5}) {
-        SCOPED_TRACE(s);
-        const QpProblem qp = weakly_active_indefinite_qp(s, 1.0);
+    for (const double target : {0.1, 0.77, 1.28, 2.5, 10.0}) {
+        SCOPED_TRACE(target);
+        const QpProblem qp = weakly_active_indefinite_qp_at(target, 1.0, mu_stop);
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         const double weak_scale = detail::kIpqpWeakActiveFactor * std::sqrt(r.mu);
@@ -1477,9 +1504,13 @@ TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
 // `0.5 |h| min(s, sqrt(mu))^2 <= mu`, the O(mu_stop) bound the owner ruling
 // asks for. See `.superpowers/w1-t4c-report.md`.
 TEST(IpqpCertificationTest, T4cFGapBoundedByMuStop) {
-    for (const double s : {1.0e-5, 5.0e-6, 1.0e-6}) {
-        SCOPED_TRACE(s);
+    // The three STANDING members, constructed at their curvatures (T10b) rather than at the
+    // half-widths that produced them under the 0.1 placeholder: `Sigma = 2 mu_stop / s^2`.
+    const double mu_stop = gate8_mu_stop();
+    for (const double target : {250.0, 1000.0, 25000.0}) {
+        SCOPED_TRACE(target);
         const double h = -1.0;
+        const double s = std::sqrt(2.0 * mu_stop / target);
         const QpProblem qp = weakly_active_indefinite_qp(s, h);
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
@@ -1488,7 +1519,7 @@ TEST(IpqpCertificationTest, T4cFGapBoundedByMuStop) {
         // R3 (fix round 2): the exposed-regime flag and T1's e pin are both
         // exact trajectory values on this family, so both are MKL-scoped.
 #ifdef USE_ACCELERATE_SPARSE
-        RecordProperty("t4c_fgap_accelerate_s" + fmt::format("{:.0e}", s),
+        RecordProperty("t4c_fgap_accelerate_sigma" + fmt::format("{:.0e}", target),
                        "UNOBSERVED -- the exposed-regime trigger and e are MKL-only");
 #else
         ASSERT_TRUE(r.read_kept_tight) << "and specifically about the exposed regime";
@@ -1499,8 +1530,9 @@ TEST(IpqpCertificationTest, T4cFGapBoundedByMuStop) {
         const double delta = std::min(s, std::sqrt(r.mu));
         const double fgap = 0.5 * std::abs(h) * delta * delta;
         EXPECT_LE(fgap, r.mu);
-        RecordProperty("t4c_fgap_s" + fmt::format("{:.0e}", s), fmt::format("{:.6e}", fgap));
-        RecordProperty("t4c_mu_s" + fmt::format("{:.0e}", s), fmt::format("{:.6e}", r.mu));
+        RecordProperty("t4c_fgap_sigma" + fmt::format("{:.0e}", target),
+                       fmt::format("{:.6e}", fgap));
+        RecordProperty("t4c_mu_sigma" + fmt::format("{:.0e}", target), fmt::format("{:.6e}", r.mu));
     }
 }
 
@@ -1508,7 +1540,7 @@ TEST(IpqpCertificationTest, T4cFGapBoundedByMuStop) {
 // leaves < 2 accepted iterates, so the flag must come from the BAND path -- noise structurally
 // absent. See `.superpowers/w1-t4c-report.md`.
 TEST(IpqpCertificationTest, FewerThanTwoAcceptedIteratesFallsBackToTheBandPath) {
-    const QpProblem qp = weakly_active_indefinite_qp(1.0e-5, -1.0);
+    const QpProblem qp = weakly_active_indefinite_qp_at(250.0, -1.0, gate8_mu_stop());
     IpqpEngine cold_tier(tight_opts());
     const IpqpResult cold = cold_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
@@ -1539,7 +1571,7 @@ TEST(IpqpCertificationTest, FewerThanTwoAcceptedIteratesFallsBackToTheBandPath) 
 // as an EQUIVALENCE, not by iteration count -- a literal <=1-step cold segment is unreachable on
 // this family. See `.superpowers/w1-t4c-report.md`.
 TEST(IpqpCertificationTest, AKilledWarmAttemptsHistoryNeverReachesTheColdRestartsRead) {
-    const QpProblem qp = weakly_active_indefinite_qp(1.0e-5, -1.0);
+    const QpProblem qp = weakly_active_indefinite_qp_at(250.0, -1.0, gate8_mu_stop());
 
     IpqpEngine baseline_tier(tight_opts());
     const IpqpResult baseline = baseline_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
