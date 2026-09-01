@@ -846,11 +846,9 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
             }
         }
         const std::string where = fmt::format("--from-csv '{}' line {}", path, line_no);
-        // A trailing empty field is dropped by getline when the line ends with
-        // the separator; pad so the fixed indices below are safe. A TASK-1-ERA
-        // artifact (14 columns, the committed walk baseline) reads exactly as
-        // it always did and gets `unchecked` for the Task-6 tail -- see
-        // write_header's own note on why the tail is appended, not interleaved.
+        // A TASK-1-ERA artifact (14 columns, the committed walk baseline) reads
+        // exactly as it always did and gets `unchecked` for the Task-6 tail;
+        // nothing is padded any more -- the width test below is exact.
         // EXACT WIDTH PER GENERATION (fix round 1, Codex 2): a `>=` test read a
         // 38-to-75-column row as schema 37 and silently DISCARDED its partial
         // IPQP tail, re-emitting all 39 counters as absent `-1`.

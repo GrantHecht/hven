@@ -330,12 +330,16 @@ IpqpSeed base_warm_seed_from(const bench_cli::QpDumpV2 &d) {
 
 TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWithTheWalk) {
     constexpr Index kNodes = 40;
-    constexpr Index kMajor = 3;
+    // `max_iter` COMPLETES that many majors, so the subproblem built from the
+    // iterate it stopped at is the one the driver would build at the NEXT one
+    // -- the dump's label is derived from that, never asserted (fix round 2).
+    constexpr Index kCompletedMajors = 3;
+    constexpr Index kDumpMajor = kCompletedMajors + 1;
 
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWideP, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, kWideP));
     SqpOptions truncated;
-    truncated.max_iter = kMajor;
+    truncated.max_iter = kCompletedMajors;
     SqpDriver driver(truncated);
     const SqpSolution mid = driver.solve(model);
     ASSERT_NE(mid.status, SqpStatus::kOptimal) << "the point must be MID-solve, not the answer";
@@ -345,14 +349,14 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
     dumped.family = "F7";
     dumped.status = "MidSolve";
     dumped.n_flag = kNodes;
-    dumped.major = kMajor;
+    dumped.major = kDumpMajor;
     dumped.p = kWideP;
     dumped.qp = build_subproblem(model, mid.x, mid.lambda_e, mid.lambda_i);
     dumped.lambda_e = mid.lambda_e;
     dumped.lambda_i = mid.lambda_i;
     dumped.z = mid.z;
 
-    const std::string path = ::testing::TempDir() + "hven_a2_mid_solve_major3.qpdump";
+    const std::string path = ::testing::TempDir() + "hven_a2_mid_solve_next_major.qpdump";
     {
         std::ofstream out = bench_cli::open_output_or_throw(kA2Usage, "--dump-qp-out", path);
         bench_cli::write_qp_dump_v2(out, dumped);
@@ -365,7 +369,7 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
 
     // THE SEAM CARRIED THE SUBPROBLEM, not a resemblance of it: the reader's
     // QP is bit-identical to the writer's on every block.
-    ASSERT_EQ(got.major, kMajor);
+    ASSERT_EQ(got.major, kDumpMajor);
     ASSERT_EQ(got.qp.n(), dumped.qp.n());
     ASSERT_EQ(got.qp.me(), dumped.qp.me());
     ASSERT_EQ(got.qp.mi(), dumped.qp.mi());

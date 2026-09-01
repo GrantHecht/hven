@@ -252,6 +252,18 @@ std::string dumped_text(const QpDumpV2 &d) {
     return os.str();
 }
 
+// `EXPECT_THROW` alone would accept an unrelated throw -- QpProblem::validate
+// runs on the same path -- so each refusal below names the message it wants.
+void expect_refused(const std::string &text, const std::string &wanted) {
+    std::istringstream in(text);
+    try {
+        (void)read_qp_dump_v2(in);
+        FAIL() << "read_qp_dump_v2 accepted a malformed dump; wanted: " << wanted;
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find(wanted), std::string::npos) << e.what();
+    }
+}
+
 void expect_vec_bitwise(const hven::Vec &a, const hven::Vec &b, const char *what) {
     ASSERT_EQ(a.size(), b.size()) << what;
     for (hven::Index i = 0; i < a.size(); ++i) {
@@ -313,6 +325,32 @@ TEST(BenchQpDumpV2, ACountThatDisagreesWithItsBlockIsRefused) {
     text.replace(at, std::string("G_VEC 2\n").size(), "G_VEC 3\n");
     std::istringstream in(text);
     EXPECT_THROW(read_qp_dump_v2(in), std::invalid_argument);
+}
+
+TEST(BenchQpDumpV2, AFractionalCoordinateIsRefusedRatherThanTruncated) {
+    // A coordinate is an INDEX: `std::stod` read "0.5" as 0.5 and the old
+    // truncation silently made it row 0 (fix round 2, Codex).
+    std::string text = dumped_text(sample_dump());
+    const std::size_t at = text.find("AI_NNZ 1\n0 0 -1");
+    ASSERT_NE(at, std::string::npos) << text;
+    text.replace(at, std::string("AI_NNZ 1\n0 0 -1").size(), "AI_NNZ 1\n0.5 0 -1");
+    expect_refused(text, "'0.5' is not a non-negative index (AI row)");
+}
+
+TEST(BenchQpDumpV2, ATrailingTripletTokenIsRefused) {
+    std::string text = dumped_text(sample_dump());
+    const std::size_t at = text.find("AI_NNZ 1\n0 0 -1");
+    ASSERT_NE(at, std::string::npos) << text;
+    text.replace(at, std::string("AI_NNZ 1\n0 0 -1").size(), "AI_NNZ 1\n0 0 -1 9");
+    expect_refused(text, "trailing token '9'");
+}
+
+TEST(BenchQpDumpV2, ADualBlockWidthThatContradictsTheHeaderIsRefused) {
+    // QpProblem::validate covers the QP alone, so v2's own three dual blocks
+    // are checked by the reader or by nothing.
+    QpDumpV2 d = sample_dump();
+    d.lambda_i = vec({0.75, 0.25}); // mi is 1
+    expect_refused(dumped_text(d), "LAMBDA_I_VEC carries 2 entries, expected 1");
 }
 
 TEST(BenchQpDumpV2, AnOutOfRangeTripletIsRefused) {

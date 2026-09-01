@@ -29,6 +29,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <fmt/format.h>
@@ -260,6 +261,20 @@ inline double parse_dump_double(const std::string &value, const std::string &wha
     }
 }
 
+// A COORDINATE IS AN INDEX, not a number: `std::stod` would read "0.5" as 0.5
+// and the old truncation turned that into row 0. Digits only -- no sign, no
+// fraction, no exponent -- and the whole token must be consumed.
+inline long long parse_dump_index(const std::string &value, const std::string &what) {
+    if (value.empty() || value.find_first_not_of("0123456789") != std::string::npos) {
+        throw_dump(fmt::format("'{}' is not a non-negative index ({})", value, what));
+    }
+    try {
+        return std::stoll(value);
+    } catch (const std::exception &) {
+        throw_dump(fmt::format("'{}' is out of range for an index ({})", value, what));
+    }
+}
+
 inline hven::Vec read_vec_block(std::istream &is, const std::string &tag) {
     const long long m = tagged_count(is, tag + "_VEC");
     hven::Vec v(static_cast<hven::Index>(m));
@@ -277,13 +292,17 @@ inline void read_sparse_block(std::istream &is, const std::string &tag, hven::In
     for (long long k = 0; k < nnz; ++k) {
         const std::string line = next_token_line(is, tag);
         std::istringstream ls(line);
-        std::string rs, cs, vs;
+        std::string rs, cs, vs, extra;
         if (!(ls >> rs >> cs >> vs)) {
             throw_dump(fmt::format("expected '<row> <col> <value>' in {}, found '{}'", tag, line));
         }
-        const long long r = static_cast<long long>(parse_dump_double(rs, tag));
-        const long long c = static_cast<long long>(parse_dump_double(cs, tag));
-        if (r < 0 || c < 0 || r >= rows || c >= cols) {
+        if (ls >> extra) {
+            throw_dump(
+                fmt::format("{} triplet '{}' carries a trailing token '{}'", tag, line, extra));
+        }
+        const long long r = parse_dump_index(rs, tag + " row");
+        const long long c = parse_dump_index(cs, tag + " col");
+        if (r >= rows || c >= cols) {
             throw_dump(fmt::format("{} triplet ({}, {}) is outside {}x{}", tag, r, c, rows, cols));
         }
         trips.emplace_back(static_cast<int>(r), static_cast<int>(c), parse_dump_double(vs, tag));
@@ -295,9 +314,9 @@ inline void read_sparse_block(std::istream &is, const std::string &tag, hven::In
 
 } // namespace detail
 
-/// Read a version-2 dump, throwing `std::invalid_argument` on a wrong banner,
-/// a count that disagrees with the lines after it, an out-of-range triplet, a
-/// block width that contradicts the header, or a missing `END`.
+/// Read a version-2 dump, throwing `std::invalid_argument` on a wrong banner, a
+/// count that disagrees with the lines after it, a non-integer or out-of-range
+/// coordinate, a trailing triplet token, a bad block width, or a missing `END`.
 inline QpDumpV2 read_qp_dump_v2(std::istream &is) {
     QpDumpV2 d;
     const std::string banner = detail::next_token_line(is, "the version banner");
@@ -330,6 +349,15 @@ inline QpDumpV2 read_qp_dump_v2(std::istream &is) {
     if (d.qp.g.size() != n) {
         detail::throw_dump(
             fmt::format("G_VEC carries {} entries, expected n = {}", d.qp.g.size(), n));
+    }
+    // The three dual blocks are v2's own addition, so `QpProblem::validate`
+    // below says nothing about them; their widths are checked here.
+    for (const auto &[tag, got, want] :
+         {std::tuple{"LAMBDA_E_VEC", d.lambda_e.size(), me},
+          std::tuple{"LAMBDA_I_VEC", d.lambda_i.size(), mi}, std::tuple{"Z_VEC", d.z.size(), n}}) {
+        if (got != want) {
+            detail::throw_dump(fmt::format("{} carries {} entries, expected {}", tag, got, want));
+        }
     }
     d.qp.validate();
     return d;
