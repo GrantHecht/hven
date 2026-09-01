@@ -173,15 +173,48 @@ the gate package." The 30.15× figure it would be re-read against is a
 tycho_sqp P7 number and has no in-tree source.
 
 **Substituted, under the Q6a precedent and declared as a substitution**: the
-hven-side walk-vs-tier wall envelope at `nx = 1e5` on F7's own bound-arc
-window, one occasion, both engines, `envelope-*.csv`. This is a *contemporary
-in-tree envelope*, not a PSIOPT re-read, and no number here may be compared
-against the 30.15× figure. If the settler wants the literal A13, it needs the
-tycho lane and a built psiopt at the pinned commit.
+hven-side walk-vs-tier wall envelope at `nx = 1e5`, one occasion, both
+engines. This is a *contemporary in-tree envelope*, not a PSIOPT re-read, and
+no number here may be compared against the 30.15x figure. If the settler wants
+the literal A13, it needs the tycho lane and a built psiopt at the pinned
+commit.
+
+Taken from the same solo replay occasion (§8), the five `f7_n20000_*` corpus
+cells at `nx = 1e5` — SOLO, serialized, `taskset -c 2`,
+`MKL_NUM_THREADS=1`, one solve at a time, so this wall IS asserting:
+
+| cell (`nx = 1e5`) | walk s | tier s | ratio | walk facts | tier facts |
+|---|---|---|---|---|---|
+| `f7_n20000_bound_activity` | 0.649 | 1.675 | 2.58 | 1 | 11 |
+| `f7_n20000_bound_corrupted` | 0.617 | 1.715 | 2.78 | 1 | 13 |
+| `f7_n20000_bound_neutral` | 0.647 | 1.815 | 2.81 | 1 | 13 |
+| `f7_n20000_bound_physics` | 0.649 | 1.671 | 2.57 | 1 | 11 |
+| `f7_n20000_bound_warm` | 0.612 | 1.636 | 2.67 | 1 | 12 |
+| **total** | **3.174** | **8.512** | **2.68** | 5 | 60 |
+
+**Read this with its caveat.** The walk finishes every one of these cells in
+ONE factorization — its active set is essentially right at the start — so this
+population is not the one the tier exists to help, and 2.68x is the cost of
+the tier on cells that never needed it, not a statement about acquisition. The
+tier's own hard population is the A4 taxonomy (§2), where the walk has no
+measured arm at all. `envelope-a13-substitute-solo-1thread.csv` carries a
+second, single-cell reading of the same shape (walk 0.646 s, tier 1.747 s).
 
 **A14** (LTO-on / threads-on context leg) is **INFORMATIONAL and is not a
-gate** — spec §8.4 says so and nothing in this artifact depends on it. See
-`envelope-*.csv` for what was taken.
+gate** — spec §8.4 says so, and nothing in this artifact depends on it.
+`envelope-a14-threads8-informational.csv`: the same cell at
+`MKL_NUM_THREADS=8` runs walk 0.388 s / tier 0.836 s against the pinned
+single-thread 0.646 / 1.747 — the ratio is unchanged at 2.15 vs 2.70, i.e.
+both engines take the same multi-thread benefit and no conclusion here turns
+on it. **The LTO-on leg was NOT run**: `HVEN_LINK_TIME_OPT` is reachable only
+through `BUILD_HVEN_WHEEL` in `cmake/hven_compile_options.cmake:122`, a
+registered-buggy path, and A14 is by its own definition never a gate — so it
+is recorded as NOT RUN rather than run badly.
+
+The W0.1b scatter-inlining CARRY (plan §6 R6) is **not re-examined here** and
+is carried forward: the tier's own bench is this arm, and this arm's finding
+is that the tier's defaults, not its inlining, are what bound its cost. See
+`.superpowers/w1-t10-report.md`.
 
 ---
 
@@ -226,3 +259,43 @@ The standing mechanism for clearing these is the O12 Mac session
 3. **It does not retire the proxy caveat.** A4 is red at the shipped
    defaults (§2). Under (`1e-2`, `1`) it is one cell short of green, and that
    cell is the hardest corner of the taxonomy.
+
+---
+
+## 8. A6 — replay and suite
+
+BASE `a142a13` (a detached worktree) vs HEAD `7378325`, two independent
+Release builds, same flags. `libhven.a` **byte-identical** between them
+(`cmp`) — no `include/` or `src/` file changed — so nothing the library
+computes could have moved, and the replay is a check on that rather than a
+hope.
+
+The 27-cell U0 replay set read verbatim from `.scratch/w05/cells.txt`. THREE
+arms against both binaries: 6 runs, each **SOLO** — one at a time, alone on
+the machine, `taskset -c 2`, `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`. The SMT
+sibling of core 2 is core 10; `/proc/stat`'s `cpu10` row read before and after
+the whole sequence: busy **0.31 %** across the window, i.e. measured idle.
+Binary stamp `73783258a030` on the HEAD side.
+
+```
+=== base-walk vs head-walk === cells compared: 27  columns compared: 75  differences: 0
+=== base-ssn  vs head-ssn  === cells compared: 27  columns compared: 75  differences: 0
+=== base-ipm  vs head-ipm  === cells compared: 27  columns compared: 75  differences: 0
+=== COMMITTED ipm baseline vs head-ipm === cells compared: 27  columns compared: 75  differences: 0
+```
+
+All four at 0 differences on all 75 asserted columns (`wall_s` excluded as
+informational). The fourth is the DECLARED schema-76 kIpm baseline
+`bench/baselines/2026-09-01-t9-ipm/ipm_baseline.csv`, re-run independently.
+
+**Suite**, split per the standing rule (`ctest -j4 -E
+ProbeBudgetBoundsAFailingProposal`, then that test alone):
+
+| build | main set | solo | total |
+|---|---|---|---|
+| Debug (`build-debug`) | 2174 / 2174 (363.01 s) | passed, 733.28 s | **2175 / 2175** |
+| Release | 2174 / 2174 (40.32 s) | passed, 12.87 s | **2175 / 2175** |
+
+BASE carried 2172; this task adds the two `IpqpAcceptanceA4.*` gate tests.
+Pre-existing non-failures in both: 1 skipped (`FailByDesignControl.*`), 2
+disabled (`EqpRefinementAb.*`).
