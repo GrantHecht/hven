@@ -1022,9 +1022,9 @@ TEST(CorpusRunnerProcess, WallDeadlineEmitsADnfBudgetRowWhenTheSOLVEPhaseIsForce
     const std::vector<std::string> rows = runner_test::data_rows(csv);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> cols = runner_test::split_all(rows[0]);
-    // 14 Task-1 columns + Task 6's 17 + Phase-7 Task 6b's 6 (the escape-reason
-    // census). A SCHEMA-GENERATION pin, moved deliberately with the schema.
-    ASSERT_EQ(cols.size(), 37u) << rows[0];
+    // 14 Task-1 columns + Task 6's 17 + Task 6b's 6 + M6 W1 T9's 39 IPQP
+    // counters. A SCHEMA-GENERATION pin, moved deliberately with the schema.
+    ASSERT_EQ(cols.size(), 76u) << rows[0];
     EXPECT_EQ(cols[0], "f7_n20000_bound_neutral");
     EXPECT_EQ(cols[6], "dnf_budget") << rows[0];
     for (const std::size_t i : {7u, 8u, 9u, 10u}) {
@@ -1053,9 +1053,9 @@ TEST(CorpusRunnerProcess, WallDeadlineEmitsADnfSetupRowWhenTheSETUPPhaseIsForced
     const std::vector<std::string> rows = runner_test::data_rows(csv);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> cols = runner_test::split_all(rows[0]);
-    // 14 Task-1 columns + Task 6's 17 + Phase-7 Task 6b's 6 (the escape-reason
-    // census). A SCHEMA-GENERATION pin, moved deliberately with the schema.
-    ASSERT_EQ(cols.size(), 37u) << rows[0];
+    // 14 Task-1 columns + Task 6's 17 + Task 6b's 6 + M6 W1 T9's 39 IPQP
+    // counters. A SCHEMA-GENERATION pin, moved deliberately with the schema.
+    ASSERT_EQ(cols.size(), 76u) << rows[0];
     EXPECT_EQ(cols[6], "dnf_setup") << rows[0];
     std::remove(csv.c_str());
 }
@@ -1071,9 +1071,9 @@ TEST(CorpusRunnerProcess, WallDeadlineDoesNotFireAtTheRealBudgetOnAFastCell) {
     const std::vector<std::string> rows = runner_test::data_rows(csv);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> cols = runner_test::split_all(rows[0]);
-    // 14 Task-1 columns + Task 6's 17 + Phase-7 Task 6b's 6 (the escape-reason
-    // census). A SCHEMA-GENERATION pin, moved deliberately with the schema.
-    ASSERT_EQ(cols.size(), 37u) << rows[0];
+    // 14 Task-1 columns + Task 6's 17 + Task 6b's 6 + M6 W1 T9's 39 IPQP
+    // counters. A SCHEMA-GENERATION pin, moved deliberately with the schema.
+    ASSERT_EQ(cols.size(), 76u) << rows[0];
     EXPECT_EQ(cols[6], "Optimal") << rows[0];
     EXPECT_NE(cols[7], "-1") << "a real solve must report a real factorization count: " << rows[0];
     EXPECT_NE(cols[10], "0") << "and at least one QP subproblem: " << rows[0];
@@ -1167,7 +1167,7 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     const std::vector<std::string> cols_on = runner_test::split_all(rows_on[0]);
     const std::vector<std::string> cols_off = runner_test::split_all(rows_off[0]);
     ASSERT_EQ(cols_on.size(), cols_off.size());
-    ASSERT_EQ(cols_on.size(), 37u) << rows_on[0];
+    ASSERT_EQ(cols_on.size(), 76u) << rows_on[0];
     for (std::size_t i = 0; i < cols_on.size(); ++i) {
         if (i == 13) {
             continue; // wall_s
@@ -1382,10 +1382,13 @@ TEST(CorpusRunnerProcess, FromCsvAcceptsBothSchemasAndCallsAnAbsentCensusAbsent)
     const std::vector<std::string> rows = runner_test::data_rows(merged);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> col = runner_test::split_all(rows[0]);
-    ASSERT_EQ(col.size(), 37u) << "the merge writes the CURRENT schema";
-    for (std::size_t i = 31; i < 37; ++i) {
-        EXPECT_EQ(col[i], "-1") << "column " << i
-                                << ": an unmeasured census is ABSENT, never a measured zero";
+    ASSERT_EQ(col.size(), 76u) << "the merge writes the CURRENT schema";
+    // Compared as a VALUE: the IPQP tail's five double columns print the same
+    // absent -1 in scientific form, and "-1.000000000e+00" is the same
+    // statement as "-1".
+    for (std::size_t i = 31; i < 76; ++i) {
+        EXPECT_DOUBLE_EQ(std::stod(col[i]), -1.0)
+            << "column " << i << ": an unmeasured census is ABSENT, never a measured zero";
     }
     std::remove(old_schema.c_str());
     std::remove(merged.c_str());

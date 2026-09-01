@@ -289,6 +289,11 @@ struct CorpusRow {
     // by convention: no SSN subproblem is ever solved there.
     SsnCounters ssn{};
 
+    // The IPQP tier's own counters, verbatim off SqpCounters::ipqp. All at
+    // their defaults under `walk`/`ssn` -- structurally, no IpqpEngine is
+    // constructed there.
+    IpqpCounters ipqp{};
+
     // =========================================================================
     // THE MODEL-SURFACE CENSUS HOOK'S OWN COLUMNS (docs/notes/2026-08-21-m4-
     // task5-design.md).
@@ -1515,6 +1520,7 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpSolution &so
     // so nothing can escape); Task 6 is what makes this field move.
     row.escapes = static_cast<int>(sol.counters.ssn.ssn_escapes);
     row.ssn = sol.counters.ssn;
+    row.ipqp = sol.counters.ipqp;
     row.status = sol.status;
     row.kkt_residual = last_kkt_residual(sol);
     row.wall_s = wall_s;

@@ -516,6 +516,11 @@ std::vector<const CorpusCell *> resolve_cells(const std::string &spec) {
 // never has to count commas to know which generation it holds.
 constexpr int kTask6bColumns = 37;
 
+// M6 W1 T9: THIRTY-NINE MORE on the same optional-tail contract -- all of
+// IpqpCounters, one column per field, so the kIpm arm's replay ASSERTS the
+// tier's census. Declared move 37 -> 76; nothing existing moves.
+constexpr int kIpqpColumns = 76;
+
 // The reviewer's biggest cannot-verify on the first baseline was "did all 57
 // rows come from ONE sweep under the final binary and the final budget
 // table?" -- the CSV carried nothing to answer it. It does now: the binary's
@@ -551,7 +556,7 @@ void write_provenance(std::ostream &os, int argc, char **argv, const EngineLever
     // task's escape-reason census. The reader accepts all three; the committed
     // 14- and 31-column artifacts are pinned evidence and are NOT regenerated,
     // so an artifact without this line is one of those two older generations.
-    os << fmt::format("# schema: {}\n", kTask6bColumns);
+    os << fmt::format("# schema: {}\n", kIpqpColumns);
     os << fmt::format("# budget_table_hash: {:#018x}\n", budget_table_hash());
     os << fmt::format("# invocation: {}\n", invocation);
     os << fmt::format("# MKL_NUM_THREADS: {}\n", mkl == nullptr ? "<unset>" : mkl);
@@ -605,7 +610,20 @@ void write_header(std::ostream &os) {
           "ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,ssn_refine_facts,"
           "ssn_refine_neg_duals,"
           "esc_budget,esc_singular,esc_no_contraction,esc_infeasible_suspect,esc_indefinite,"
-          "esc_gate_refused\n";
+          "esc_gate_refused,"
+          "ipqp_iters,ipqp_factorizations,ipqp_symbolic_analyses,ipqp_solves,ipqp_pattern_verifies,"
+          "ipqp_rho_demanded_max,ipqp_rho_demanded_last,ipqp_inertia_retries,"
+          "ipqp_iters_at_elevated_rho,ipqp_ladder_reclimbs,ipqp_pivot_reroute_primal,"
+          "ipqp_pivot_reroute_dual_fallback,ipqp_iters_ladder_armed_no_advance,"
+          "ipqp_final_inertia_read,"
+          "ipqp_reg_decreases,ipqp_reg_increases,ipqp_prox_center_updates,ipqp_restart_repairs,"
+          "ipqp_restart_shift_max,ipqp_mu_adopted,ipqp_warm_restart_abandoned,ipqp_declined_pinned,"
+          "ipqp_tier_retired_after,ipqp_face_uncertain,ipqp_refine_accepted,ipqp_refine_refused,"
+          "ipqp_to_refine,ipqp_to_ssn,ipqp_to_walk,ipqp_escapes,ipqp_escape_budget,"
+          "ipqp_escape_stall,"
+          "ipqp_escape_indefinite,ipqp_escape_numerical,ipqp_escape_infeasible_suspect,"
+          "ipqp_alpha_p_min,ipqp_alpha_d_min,ipqp_read_kept_tight_sides,"
+          "ipqp_read_barrier_noise_sides\n";
 }
 
 std::string join_qp_factorizations(const std::vector<int> &v) {
@@ -633,7 +651,9 @@ void write_outcome(std::ostream &os, const CorpusOutcome &out) {
         // measured past the kill. ABSENT, not zero, and not "ok".
         os << fmt::format("{},{},{},{},{},{},{},-1,-1,-1,-1,,-1.0,{:.9f},"
                           "unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,"
-                          "-1,-1,-1,-1,-1,-1\n",
+                          "-1,-1,-1,-1,-1,-1,"
+                          "-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,"
+                          "-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1\n",
                           cell.id, to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
                           to_string(cell.start), cell.degenerate ? 1 : 0,
                           out.engine_error ? hven::solvers::corpus::kEngineErrorStatusString
@@ -642,23 +662,43 @@ void write_outcome(std::ostream &os, const CorpusOutcome &out) {
         return;
     }
     const CorpusRow &row = out.row;
-    os << fmt::format("{},{},{},{},{},{},{},{},{},{},{},{},{:.9e},{:.9f},"
-                      "{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{},"
-                      "{},{},{},{},{},{},{},{},{},"
-                      "{},{},{},{},{},{}\n",
-                      row.cell_id, to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
-                      to_string(cell.start), cell.degenerate ? 1 : 0, to_string(row.status),
-                      row.factorizations, row.qp_minors, row.escapes, row.qp_factorizations.size(),
-                      join_qp_factorizations(row.qp_factorizations), row.kkt_residual, row.wall_s,
-                      to_string(kkt_gate_verdict(row)), row.kkt_stationarity, row.kkt_primal,
-                      row.kkt_dual_sign, row.kkt_complementarity, row.dual_scale, row.x_scale,
-                      row.neg_ineq_duals, row.ssn.ssn_iters, row.ssn.ssn_bulk_flips,
-                      row.ssn.ssn_backtracks, row.ssn.ssn_prox_updates, row.ssn.ssn_uncertain_peak,
-                      row.ssn.ssn_refinements, row.ssn.ssn_refine_refused,
-                      row.ssn.ssn_refine_factorizations, row.ssn.ssn_refine_neg_duals,
-                      row.ssn.ssn_escape_budget, row.ssn.ssn_escape_singular,
-                      row.ssn.ssn_escape_no_contraction, row.ssn.ssn_escape_infeasible_suspect,
-                      row.ssn.ssn_escape_indefinite, row.ssn.ssn_escape_gate_refused);
+    os << fmt::format(
+        "{},{},{},{},{},{},{},{},{},{},{},{},{:.9e},{:.9f},"
+        "{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{},"
+        "{},{},{},{},{},{},{},{},{},"
+        "{},{},{},{},{},{},"
+        "{},{},{},{},{},{:.9e},{:.9e},{},{},{},{},{},"
+        "{},{},{},{},{},{},{:.9e},{},{},{},{},{},"
+        "{},{},{},{},{},{},{},{},{},{},{},{:.9e},"
+        "{:.9e},{},{}\n",
+        row.cell_id, to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
+        to_string(cell.start), cell.degenerate ? 1 : 0, to_string(row.status), row.factorizations,
+        row.qp_minors, row.escapes, row.qp_factorizations.size(),
+        join_qp_factorizations(row.qp_factorizations), row.kkt_residual, row.wall_s,
+        to_string(kkt_gate_verdict(row)), row.kkt_stationarity, row.kkt_primal, row.kkt_dual_sign,
+        row.kkt_complementarity, row.dual_scale, row.x_scale, row.neg_ineq_duals, row.ssn.ssn_iters,
+        row.ssn.ssn_bulk_flips, row.ssn.ssn_backtracks, row.ssn.ssn_prox_updates,
+        row.ssn.ssn_uncertain_peak, row.ssn.ssn_refinements, row.ssn.ssn_refine_refused,
+        row.ssn.ssn_refine_factorizations, row.ssn.ssn_refine_neg_duals, row.ssn.ssn_escape_budget,
+        row.ssn.ssn_escape_singular, row.ssn.ssn_escape_no_contraction,
+        row.ssn.ssn_escape_infeasible_suspect, row.ssn.ssn_escape_indefinite,
+        row.ssn.ssn_escape_gate_refused, row.ipqp.ipqp_iters, row.ipqp.ipqp_factorizations,
+        row.ipqp.ipqp_symbolic_analyses, row.ipqp.ipqp_solves, row.ipqp.ipqp_pattern_verifies,
+        row.ipqp.ipqp_rho_demanded_max, row.ipqp.ipqp_rho_demanded_last,
+        row.ipqp.ipqp_inertia_retries, row.ipqp.ipqp_iters_at_elevated_rho,
+        row.ipqp.ipqp_ladder_reclimbs, row.ipqp.ipqp_pivot_reroute_primal,
+        row.ipqp.ipqp_pivot_reroute_dual_fallback, row.ipqp.ipqp_iters_ladder_armed_no_advance,
+        row.ipqp.ipqp_final_inertia_read, row.ipqp.ipqp_reg_decreases, row.ipqp.ipqp_reg_increases,
+        row.ipqp.ipqp_prox_center_updates, row.ipqp.ipqp_restart_repairs,
+        row.ipqp.ipqp_restart_shift_max, row.ipqp.ipqp_mu_adopted,
+        row.ipqp.ipqp_warm_restart_abandoned, row.ipqp.ipqp_declined_pinned,
+        row.ipqp.ipqp_tier_retired_after, row.ipqp.ipqp_face_uncertain,
+        row.ipqp.ipqp_refine_accepted, row.ipqp.ipqp_refine_refused, row.ipqp.ipqp_to_refine,
+        row.ipqp.ipqp_to_ssn, row.ipqp.ipqp_to_walk, row.ipqp.ipqp_escapes,
+        row.ipqp.ipqp_escape_budget, row.ipqp.ipqp_escape_stall, row.ipqp.ipqp_escape_indefinite,
+        row.ipqp.ipqp_escape_numerical, row.ipqp.ipqp_escape_infeasible_suspect,
+        row.ipqp.ipqp_alpha_p_min, row.ipqp.ipqp_alpha_d_min, row.ipqp.ipqp_read_kept_tight_sides,
+        row.ipqp.ipqp_read_barrier_noise_sides);
 }
 
 // =============================================================================
@@ -815,6 +855,7 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
         // write_header's own note on why the tail is appended, not interleaved.
         const bool has_task6_tail = col.size() >= static_cast<std::size_t>(kAllColumns);
         const bool has_task6b_tail = col.size() >= static_cast<std::size_t>(kTask6bColumns);
+        const bool has_ipqp_tail = col.size() >= static_cast<std::size_t>(kIpqpColumns);
         if (col.size() < static_cast<std::size_t>(kTask1Columns)) {
             col.resize(static_cast<std::size_t>(kTask1Columns));
         }
@@ -937,6 +978,135 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
                     "{}: the escape-reason census sums to {} but `escapes` says {} -- the "
                     "artifact is internally inconsistent and must not be scored",
                     where, census, o.row.escapes));
+            }
+        }
+        // The IPQP census on the SAME optional-tail contract: an older
+        // artifact carries no IPQP columns and reads ABSENT (-1), never the
+        // zero that would say "the tier ran and did nothing".
+        if (!has_ipqp_tail) {
+            o.row.ipqp.ipqp_iters = -1;
+            o.row.ipqp.ipqp_factorizations = -1;
+            o.row.ipqp.ipqp_symbolic_analyses = -1;
+            o.row.ipqp.ipqp_solves = -1;
+            o.row.ipqp.ipqp_pattern_verifies = -1;
+            o.row.ipqp.ipqp_rho_demanded_max = -1.0;
+            o.row.ipqp.ipqp_rho_demanded_last = -1.0;
+            o.row.ipqp.ipqp_inertia_retries = -1;
+            o.row.ipqp.ipqp_iters_at_elevated_rho = -1;
+            o.row.ipqp.ipqp_ladder_reclimbs = -1;
+            o.row.ipqp.ipqp_pivot_reroute_primal = -1;
+            o.row.ipqp.ipqp_pivot_reroute_dual_fallback = -1;
+            o.row.ipqp.ipqp_iters_ladder_armed_no_advance = -1;
+            o.row.ipqp.ipqp_final_inertia_read = -1;
+            o.row.ipqp.ipqp_reg_decreases = -1;
+            o.row.ipqp.ipqp_reg_increases = -1;
+            o.row.ipqp.ipqp_prox_center_updates = -1;
+            o.row.ipqp.ipqp_restart_repairs = -1;
+            o.row.ipqp.ipqp_restart_shift_max = -1.0;
+            o.row.ipqp.ipqp_mu_adopted = -1;
+            o.row.ipqp.ipqp_warm_restart_abandoned = -1;
+            o.row.ipqp.ipqp_declined_pinned = -1;
+            o.row.ipqp.ipqp_tier_retired_after = -1;
+            o.row.ipqp.ipqp_face_uncertain = -1;
+            o.row.ipqp.ipqp_refine_accepted = -1;
+            o.row.ipqp.ipqp_refine_refused = -1;
+            o.row.ipqp.ipqp_to_refine = -1;
+            o.row.ipqp.ipqp_to_ssn = -1;
+            o.row.ipqp.ipqp_to_walk = -1;
+            o.row.ipqp.ipqp_escapes = -1;
+            o.row.ipqp.ipqp_escape_budget = -1;
+            o.row.ipqp.ipqp_escape_stall = -1;
+            o.row.ipqp.ipqp_escape_indefinite = -1;
+            o.row.ipqp.ipqp_escape_numerical = -1;
+            o.row.ipqp.ipqp_escape_infeasible_suspect = -1;
+            o.row.ipqp.ipqp_alpha_p_min = -1.0;
+            o.row.ipqp.ipqp_alpha_d_min = -1.0;
+            o.row.ipqp.ipqp_read_kept_tight_sides = -1;
+            o.row.ipqp.ipqp_read_barrier_noise_sides = -1;
+        } else {
+            o.row.ipqp.ipqp_iters = parse_int_field(where + " column ipqp_iters", col[37]);
+            o.row.ipqp.ipqp_factorizations =
+                parse_int_field(where + " column ipqp_factorizations", col[38]);
+            o.row.ipqp.ipqp_symbolic_analyses =
+                parse_int_field(where + " column ipqp_symbolic_analyses", col[39]);
+            o.row.ipqp.ipqp_solves = parse_int_field(where + " column ipqp_solves", col[40]);
+            o.row.ipqp.ipqp_pattern_verifies =
+                parse_int_field(where + " column ipqp_pattern_verifies", col[41]);
+            o.row.ipqp.ipqp_rho_demanded_max =
+                parse_double_field(where + " column ipqp_rho_demanded_max", col[42]);
+            o.row.ipqp.ipqp_rho_demanded_last =
+                parse_double_field(where + " column ipqp_rho_demanded_last", col[43]);
+            o.row.ipqp.ipqp_inertia_retries =
+                parse_int_field(where + " column ipqp_inertia_retries", col[44]);
+            o.row.ipqp.ipqp_iters_at_elevated_rho =
+                parse_int_field(where + " column ipqp_iters_at_elevated_rho", col[45]);
+            o.row.ipqp.ipqp_ladder_reclimbs =
+                parse_int_field(where + " column ipqp_ladder_reclimbs", col[46]);
+            o.row.ipqp.ipqp_pivot_reroute_primal =
+                parse_int_field(where + " column ipqp_pivot_reroute_primal", col[47]);
+            o.row.ipqp.ipqp_pivot_reroute_dual_fallback =
+                parse_int_field(where + " column ipqp_pivot_reroute_dual_fallback", col[48]);
+            o.row.ipqp.ipqp_iters_ladder_armed_no_advance =
+                parse_int_field(where + " column ipqp_iters_ladder_armed_no_advance", col[49]);
+            o.row.ipqp.ipqp_final_inertia_read =
+                parse_int_field(where + " column ipqp_final_inertia_read", col[50]);
+            o.row.ipqp.ipqp_reg_decreases =
+                parse_int_field(where + " column ipqp_reg_decreases", col[51]);
+            o.row.ipqp.ipqp_reg_increases =
+                parse_int_field(where + " column ipqp_reg_increases", col[52]);
+            o.row.ipqp.ipqp_prox_center_updates =
+                parse_int_field(where + " column ipqp_prox_center_updates", col[53]);
+            o.row.ipqp.ipqp_restart_repairs =
+                parse_int_field(where + " column ipqp_restart_repairs", col[54]);
+            o.row.ipqp.ipqp_restart_shift_max =
+                parse_double_field(where + " column ipqp_restart_shift_max", col[55]);
+            o.row.ipqp.ipqp_mu_adopted =
+                parse_int_field(where + " column ipqp_mu_adopted", col[56]);
+            o.row.ipqp.ipqp_warm_restart_abandoned =
+                parse_int_field(where + " column ipqp_warm_restart_abandoned", col[57]);
+            o.row.ipqp.ipqp_declined_pinned =
+                parse_int_field(where + " column ipqp_declined_pinned", col[58]);
+            o.row.ipqp.ipqp_tier_retired_after =
+                parse_int_field(where + " column ipqp_tier_retired_after", col[59]);
+            o.row.ipqp.ipqp_face_uncertain =
+                parse_int_field(where + " column ipqp_face_uncertain", col[60]);
+            o.row.ipqp.ipqp_refine_accepted =
+                parse_int_field(where + " column ipqp_refine_accepted", col[61]);
+            o.row.ipqp.ipqp_refine_refused =
+                parse_int_field(where + " column ipqp_refine_refused", col[62]);
+            o.row.ipqp.ipqp_to_refine = parse_int_field(where + " column ipqp_to_refine", col[63]);
+            o.row.ipqp.ipqp_to_ssn = parse_int_field(where + " column ipqp_to_ssn", col[64]);
+            o.row.ipqp.ipqp_to_walk = parse_int_field(where + " column ipqp_to_walk", col[65]);
+            o.row.ipqp.ipqp_escapes = parse_int_field(where + " column ipqp_escapes", col[66]);
+            o.row.ipqp.ipqp_escape_budget =
+                parse_int_field(where + " column ipqp_escape_budget", col[67]);
+            o.row.ipqp.ipqp_escape_stall =
+                parse_int_field(where + " column ipqp_escape_stall", col[68]);
+            o.row.ipqp.ipqp_escape_indefinite =
+                parse_int_field(where + " column ipqp_escape_indefinite", col[69]);
+            o.row.ipqp.ipqp_escape_numerical =
+                parse_int_field(where + " column ipqp_escape_numerical", col[70]);
+            o.row.ipqp.ipqp_escape_infeasible_suspect =
+                parse_int_field(where + " column ipqp_escape_infeasible_suspect", col[71]);
+            o.row.ipqp.ipqp_alpha_p_min =
+                parse_double_field(where + " column ipqp_alpha_p_min", col[72]);
+            o.row.ipqp.ipqp_alpha_d_min =
+                parse_double_field(where + " column ipqp_alpha_d_min", col[73]);
+            o.row.ipqp.ipqp_read_kept_tight_sides =
+                parse_int_field(where + " column ipqp_read_kept_tight_sides", col[74]);
+            o.row.ipqp.ipqp_read_barrier_noise_sides =
+                parse_int_field(where + " column ipqp_read_barrier_noise_sides", col[75]);
+            // THE FIVE-WAY ESCAPE CENSUS MAY NOT DISAGREE WITH ITS OWN TOTAL,
+            // for the reason the SSN census may not (spec section 7).
+            const hven::Index ipqp_census =
+                o.row.ipqp.ipqp_escape_budget + o.row.ipqp.ipqp_escape_stall +
+                o.row.ipqp.ipqp_escape_indefinite + o.row.ipqp.ipqp_escape_numerical +
+                o.row.ipqp.ipqp_escape_infeasible_suspect;
+            if (ipqp_census != o.row.ipqp.ipqp_escapes) {
+                throw std::invalid_argument(fmt::format(
+                    "{}: the IPQP escape census sums to {} but `ipqp_escapes` says {} -- the "
+                    "artifact is internally inconsistent and must not be scored",
+                    where, ipqp_census, o.row.ipqp.ipqp_escapes));
             }
         }
         out.push_back(std::move(o));
