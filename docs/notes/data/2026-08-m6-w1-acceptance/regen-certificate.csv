@@ -1,8 +1,8 @@
 # artifact: hven IPQP E1 acceptance arm (M6 W1 T10, spec section 8 A4/Q4/A13/A14)
 # producer: bench/ipqp_e1_arm.cpp (hven_sqp_ipqp_e1_arm)
-# git describe: 61b59fc4e976
+# git describe: 4f6b7ee67337
 # mode: regen
-# date (UTC): 2026-09-01T16:13:38Z
+# date (UTC): 2026-09-01T16:39:35Z
 # MKL_NUM_THREADS: 1
 # OMP_NUM_THREADS: 1
 # cell recipe: docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp

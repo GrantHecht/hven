@@ -94,8 +94,9 @@ reassociation flags as well as to contraction. Only the full generator regime
 reproduces 225/225. The file keeps its round-1 name, which is therefore
 narrower than what it records.
 
-Both certificates are now regenerated from a committed tree (`61b59fc`) and
-stamp a real commit; the shipped-regime file's data is byte-for-byte what
+Both certificates are now regenerated from a committed tree (fix round 2,
+`4f6b7ee`, from a `git worktree` at that commit) and stamp a real, non-`-dirty`
+commit; the shipped-regime file's data is byte-for-byte what
 round 1 recorded, so nothing moved but the stamp (fix round 1, items B and D).
 
 ### The qualification, stated rather than buried
