@@ -306,11 +306,8 @@ struct IpqpBounds {
     Index zero_width_index = -1;
 
     /// True iff this subproblem is inside the tier's domain, i.e. no zero-width
-    /// pair. `false` is a DECLINE, not a failure -- see the zero-width rule
-    /// above.
-    /// Defined in the .cpp, not here: a predicate consulted ONCE per solve at the domain gate
-    /// and not a per-element hot loop, so this header's declarations-only budget applies
-    /// (CLAUDE.md section 5).
+    /// pair. `false` is a DECLINE, not a failure. Defined in the .cpp: a
+    /// per-solve predicate, not a hot loop (CLAUDE.md section 5).
     bool in_domain() const;
 };
 
@@ -383,11 +380,9 @@ struct IpqpStallEvidence {
     /// Accepted steps in the closed window (`IpqpOptions::ipqp_stall_window`).
     Index window = 0;
 
-    /// CONJUNCT (i): `mu(window start) / mu(window end)` -- the factor by
-    /// which the barrier parameter was reduced ACROSS the window. The
-    /// conjunct holds (i.e. contributes to a stall) iff this is
-    /// `< detail::kIpqpStallMuFactor`. `+inf` if `mu` reached exactly 0,
-    /// which cannot be a stall.
+    /// CONJUNCT (i): `mu(window start) / mu(window end)`, the barrier's ACROSS-WINDOW
+    /// reduction; holds (contributes to a stall) iff `< detail::kIpqpStallMuFactor`.
+    /// `+inf` if `mu` reached exactly 0, which cannot be a stall.
     ///
     /// This conjunct ALSO carries section 6.2's reset (plan section 7 note (o)): a reset on any
     /// `mu` drop would re-arm on every healthy step, so the only coherent reset IS this
@@ -494,11 +489,9 @@ struct IpqpResult {
     /// True iff the certificate was DOWNGRADED (spec 2.2 item 4). A downgraded
     /// solve never reports `kOptimal`.
     ///
-    /// FIVE WAYS TO GET HERE, not all failures: four pair with an `ipqp_final_inertia_read`
-    /// value (1 = disagreed, 2 = unusable evidence, 3 = declined or budget-refused); the fifth
-    /// is a MID-SOLVE evidence failure, a whole-solve property. `.superpowers/w1-t5-report.md`.
-    /// Always false on a solve that certified with no evidence failure, and on
-    /// a declined-pinned one, which never reaches the read at all.
+    /// FIVE WAYS TO GET HERE: four pair with an `ipqp_final_inertia_read` value
+    /// (1 disagreed, 2 unusable evidence, 3 declined/budget-refused); the fifth is a
+    /// MID-SOLVE evidence failure. `.superpowers/w1-t5-report.md`.
     bool certificate_downgraded = false;
 
     /// True iff section 2.2's evidence-failure policy was invoked ANYWHERE in this solve: some
@@ -606,10 +599,8 @@ class IpqpEngine {
     /// declarations and `inline constexpr` only.
     const QpOptions &options() const;
 
-    /// Attach a ledger for instrumentation (nullptr = off, default off).
-    /// `QpEngine::attach_ledger`'s contract verbatim, including its
-    /// failure-path rule: a `solve()` that THROWS emits no record and does not advance the
-    /// per-solve counter, so the next successful solve gets the label it would have had.
+    /// Attach a ledger for instrumentation. `QpEngine::attach_ledger`'s
+    /// contract verbatim (qp_engine.h): a THROWING `solve()` emits no record.
     ///
     /// The emitted `SolveRecord` carries a QP-SHAPED PROJECTION of this tier's work
     /// (`minor_iters` <- `ipqp_iters`, and so on for factorizations and symbolic analyses) so

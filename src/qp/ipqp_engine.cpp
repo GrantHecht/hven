@@ -92,10 +92,9 @@ InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expec
     return InertiaRead::kUnreadable;
 }
 
-/// THE TIER'S ONE INERTIA-EVIDENCE READ, and therefore the tier's one test
-/// seam (docs/testing.md; the declarations are in
-/// hven/detail/qp/ipqp_fault_injection.h, which compiles to nothing without
-/// HVEN_TESTING).
+/// THE TIER'S ONE INERTIA-EVIDENCE READ, and therefore the tier's one test seam
+/// (docs/testing.md; declarations in ipqp_fault_injection.h, compiles to nothing
+/// without HVEN_TESTING).
 ///
 /// EVERY reading the tier acts on comes through here -- the ladder's, the evidence-failure
 /// branch's, and the section 2.2 item 4 certification read's -- which makes ONE hook enough.
@@ -1668,12 +1667,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // step IC-1 / IC-2; the four constants and hven's two declared adaptations
     // are in `detail`'s ladder banner).
     //
-    //   * NO MEMORY, or fewer than `kIpqpLadderSkipAfter` consecutive preceding iterations needed
-    //     a modification -> TRY ZERO. That is IC-1, and it is the only thing that lets `rho_dem`
-    //     fall back to 0 the moment the reduced curvature at the iterate turns positive.
-    //   * OTHERWISE -> `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`.
-    //     Deliberately SMALLER than the shift that last worked: the ladder probes for the
-    //     smallest sufficient value. A refused probe is a RECLIMB and is counted.
+    //   * NO MEMORY, or fewer than `kIpqpLadderSkipAfter` consecutive modified iterations:
+    //     TRY ZERO (IC-1). OTHERWISE: `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`,
+    //     probing down for the smallest sufficient value; a refused probe is a RECLIMB.
     //
     // THE EVIDENCE-FAILURE FLOOR RIDES THE TRIAL, NOT THE LADDER, once armed: on the backend that
     // clause exists for EVERY factorization reports no usable evidence, so this keeps such a
@@ -1725,10 +1721,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 return read;
             }
             if (read == InertiaRead::kUnreadable) {
-                // SECTION 2.2'S EVIDENCE-FAILURE POLICY, VERBATIM: "a step is
-                // permitted ONLY at a conservative `rho` floor AND the
-                // certificate is downgraded for the whole solve. The counts
-                // are never zero-filled or inferred."
+                // SECTION 2.2'S EVIDENCE-FAILURE POLICY (spec 2.2, `InertiaEvidence::State !=
+                // kObserved`): a step is permitted only at a conservative `rho` floor, with the
+                // certificate downgraded for the whole solve.
                 //
                 // TASK 4 TERMINATED HERE (-> kNumerical) and recorded the question as open; the
                 // spec text settles it, so the step is taken. Accelerate can report `kUnavailable`
@@ -1793,10 +1788,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 perturbed_primal_run = 0;
             }
             if (perturbed && !primal_route) {
-                // Spec 2.2's evidence-failure policy: a perturbed
-                // factorization describes a DIFFERENT matrix, so its inertia
-                // is not evidence about this one. The remedy is a larger
-                // DUAL shift, never reading it as right.
+                // SPEC 2.2'S PERTURBED-PIVOT RULE: a perturbed factorization describes a
+                // DIFFERENT matrix, so its inertia isn't evidence here; remedy is a larger
+                // DUAL shift, never read as right.
                 //
                 // ... AND THAT REMEDY IS THE RIGHT ONE WHILE THE PRIMAL LADDER IS UNARMED, AND
                 // AGAIN ONCE THE PRIMAL ROUTE HAS BEEN TRIED AND FAILED (T4b). Ruiz normalizes a
@@ -2010,6 +2004,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // THE STOPPING RULE (spec 2.3 step 1 / 3.4), through the EXPORTED predicate rather than
         // inline: task 6's routing chain asks the same question of a returned IpqpResult, and two
         // statements of one rule could drift.
+        //
         // SECTION 5.5's TRUST THRESHOLD (fix round 1, F3): warm DATA is trusted only if its raw
         // barrier level is inside the target too, at the warm ENTRY alone -- after a step the
         // point is this solve's. `.superpowers/w1-t7-report.md` FIX ROUND 2.
@@ -2451,10 +2446,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             out.certificate_downgraded = true;
             // escape stays kNone -- see the status note at the outcome switch.
         } else {
-            // C0, SETTLER RULING on section 2.2 item 4's "the schedule's
-            // residual level": it is the level the schedule DECAYS TO, i.e.
-            // `ipqp_reg_floor`, not whatever `rho_sched` happens to hold when
-            // the solve stops.
+            // C0, SETTLER RULING: section 2.2 item 4's "schedule's residual level" is the level
+            // the schedule DECAYS TO (`ipqp_reg_floor`), not wherever `rho_sched` sits when the
+            // solve stops. `.superpowers/w1-t4-report.md:495` (F1).
             //
             // The distinction is a wrong-answer bug, not a nicety: a solve can converge BEFORE the
             // schedule ever advances (H = [-1], g = 0 is stationary at iteration 0 with

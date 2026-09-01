@@ -136,11 +136,8 @@ class IpqpKktLayout {
     /// was not laid out for is exactly the corruption the structure key exists to prevent.
     void scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, SpMatRM &k);
 
-    /// The emission order both the layout and the scatter walk. Defined in the
-    /// .cpp, where both call sites live: ONE emission order by construction,
-    /// which is what makes the cached position map meaningful.
-    /// Takes its dimensions as arguments rather than reading `n_`/`me_`/`mi_`: the layout
-    /// branch runs it BEFORE those members are committed, so the commit happens in one step.
+    /// The emission order both the layout and the scatter walk share, defined
+    /// in the .cpp for the one-step-commit reason: `.superpowers/w1-t3-report.md:403-421`.
     template <typename Emit>
     static void for_each_entry(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Index n,
                                Index me, Index mi, Emit emit);
