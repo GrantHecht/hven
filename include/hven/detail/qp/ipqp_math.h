@@ -322,11 +322,10 @@ inline void ipqp_accumulate_bound_sigma_critical_cone(
     }
 }
 
-/// @brief T4c fix round 2 (tycho fold T2): the exponent test as a pure,
-/// per-side function of the last two ACCEPTED iterates, unit-testable apart
-/// from a solve. `kUninformative` on any non-finite or non-positive input,
-/// on `z_prev == 0` (a side that just went active, per fold T3), or on a mu
-/// ratio too close to 1 to trust. See `.superpowers/w1-t4c-report.md`.
+/// @brief T4c: the exponent test, a pure per-side function of the last two
+/// ACCEPTED iterates. `kUninformative` on any non-finite/non-positive
+/// input, `z_prev == 0` (T3), an underflowed ratio (round 3), or a mu
+/// ratio too close to 1. See `.superpowers/w1-t4c-report.md`.
 enum class IpqpBarrierNoiseClass { kUninformative, kPriced, kSuspect };
 
 struct IpqpBarrierNoiseVerdict {
@@ -338,15 +337,31 @@ inline IpqpBarrierNoiseVerdict ipqp_classify_barrier_noise(double z_prev, double
                                                            double mu_prev, double mu_cur) {
     const bool finite = std::isfinite(z_prev) && std::isfinite(z_cur) && std::isfinite(mu_prev) &&
                         std::isfinite(mu_cur);
-    if (!finite || !(z_prev > 0.0) || !(z_cur > 0.0) || !(mu_prev > 0.0) || !(mu_cur > 0.0) ||
-        !(mu_cur / mu_prev <= 0.5)) {
+    if (!finite || !(z_prev > 0.0) || !(z_cur > 0.0) || !(mu_prev > 0.0) || !(mu_cur > 0.0)) {
         return {};
     }
-    const double e = std::log(z_cur / z_prev) / std::log(mu_cur / mu_prev);
+    const double z_ratio = z_cur / z_prev;
+    const double mu_ratio = mu_cur / mu_prev;
+    // ROUND 3: `> 0.0` rather than `>= 0.0`, so an underflowed ratio (finite
+    // 0) is rejected here rather than reaching `log` and producing a finite
+    // but meaningless `e` (e.g. `-0`) that would misclassify as `kPriced`.
+    if (!(z_ratio > 0.0) || !(mu_ratio > 0.0) || !(mu_ratio <= 0.5)) {
+        return {};
+    }
+    const double e = std::log(z_ratio) / std::log(mu_ratio);
     if (!std::isfinite(e)) {
         return {};
     }
     return {e >= 0.5 ? IpqpBarrierNoiseClass::kSuspect : IpqpBarrierNoiseClass::kPriced, e};
+}
+
+/// @brief T4c fix round 3 (settler ruling on T3/F2): folds per-side verdicts
+/// into the flag. An UNINFORMATIVE side is ambiguous, never cleared -- it
+/// fires the flag even though it is not `kSuspect`. Uninformative history
+/// falls back to the band count alone. See `.superpowers/w1-t4c-report.md`.
+inline bool ipqp_barrier_noise_flag(bool informative, Index noise_count,
+                                    bool any_side_uninformative, Index band_count) {
+    return informative ? (noise_count > 0 || any_side_uninformative) : (band_count > 0);
 }
 
 /// @brief The tier's OWN slack/multiplier complementarity reduction.

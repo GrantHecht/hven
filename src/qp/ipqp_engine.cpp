@@ -59,6 +59,7 @@
 // a caller who disables the radius entirely, which is the case it exists for.
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -1282,6 +1283,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // band-counted sides' indices; every ladder rung's `weak_scale == 0`
     // call never touches them. See `.superpowers/w1-t4c-report.md`.
     std::vector<Index> band_lower_idx, band_upper_idx;
+    // T4c fix round 3 (T4): the `mu_measured` the band read itself used,
+    // captured at that one call site -- asserted equal to `mu_meas` at the
+    // exponent test below, so a future second `mu` cannot silently diverge.
+    double mu_at_band_read = std::numeric_limits<double>::quiet_NaN();
     // Section 2.2's evidence-failure policy, ARMED ONCE PER SOLVE: a
     // factorization succeeded and reported no usable inertia evidence, so the
     // modification was raised to a conservative floor, the steps from there
@@ -1849,6 +1854,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // turn a right reading wrong (a spurious `kIndefinite`, routed to SSN)
         // but can never turn a wrong reading right.
         const double weak_scale = detail::kIpqpWeakActiveFactor * std::sqrt(std::max(mu_meas, 0.0));
+        mu_at_band_read = mu_meas; // T4c T4: what this read's own scale used.
         // T4c fix round 1: cleared here, the read's own one call site, so a
         // stale index from an earlier read can never survive into this one.
         band_lower_idx.clear();
@@ -2886,22 +2892,22 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             } else if (read == InertiaRead::kOk) {
                 out.counters.ipqp_final_inertia_read = 0;
                 // T4c disclosure (R4): exposure exists only in a certificate
-                // this tier issues STANDING ALONE at mu_stop -- the driver's
-                // stable-face composition closes it exactly downstream; a
-                // stopping-mu/bound-geometry rule is M7 (cites this
-                // fixture). See `.superpowers/w1-t4c-report.md`.
+                // issued STANDING ALONE at mu_stop -- composition downstream
+                // closes it; a stopping-mu/geometry rule is M7. See
+                // `.superpowers/w1-t4c-report.md`.
                 const Index band_count =
                     static_cast<Index>(band_lower_idx.size() + band_upper_idx.size());
                 out.counters.ipqp_read_kept_tight_sides = band_count;
 
-                // T4 (tycho fold): the SAME `mu_meas` the weak-active rule
-                // read building `band_lower_idx`/`band_upper_idx` above --
-                // never a pending step's target. "Informative" needs >= 2
-                // accepted iterates this attempt and a mu ratio <= 0.5;
-                // per-side guards (T3) live in the classifier itself.
+                // T4: the exponent test reads the SAME mu the band read
+                // itself used -- asserted, not just argued (see
+                // `mu_at_band_read`'s own declaration).
+                assert((std::isnan(mu_at_band_read) || mu_at_band_read == mu_meas) &&
+                       "T4c: band read and exponent test must share mu_measured");
                 const bool informative = have_prev_accepted && prev_mu > 0.0 && mu_meas > 0.0 &&
                                          !(mu_meas / prev_mu > 0.5);
                 Index noise_count = 0;
+                bool any_side_uninformative = false;
                 double e_min = std::numeric_limits<double>::quiet_NaN();
                 double e_max = std::numeric_limits<double>::quiet_NaN();
                 if (informative) {
@@ -2910,6 +2916,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                             detail::ipqp_classify_barrier_noise(zp, zc, prev_mu, mu_meas);
                         if (v.cls == detail::IpqpBarrierNoiseClass::kSuspect) {
                             ++noise_count;
+                        } else if (v.cls == detail::IpqpBarrierNoiseClass::kUninformative) {
+                            any_side_uninformative = true;
                         }
                         if (std::isfinite(v.exponent)) {
                             e_min = std::isnan(e_min) ? v.exponent : std::min(e_min, v.exponent);
@@ -2926,7 +2934,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 out.counters.ipqp_read_barrier_noise_sides = informative ? noise_count : 0;
                 out.read_barrier_noise_exponent_min = e_min;
                 out.read_barrier_noise_exponent_max = e_max;
-                kept_tight_raw = informative ? (noise_count > 0) : (band_count > 0);
+                kept_tight_raw = detail::ipqp_barrier_noise_flag(
+                    informative, noise_count, any_side_uninformative, band_count);
             } else if (read == InertiaRead::kWrong) {
                 // A reading WAS observed and DISAGREED -- plan section 7 note
                 // (h)'s saddle-suspect class.

@@ -950,13 +950,10 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
             // over.
             EXPECT_GT(sigma, 1.0);
             EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
-            // T4c, gate-8 residual C1: `s = 1e-5` is the pinned exposed
-            // member -- band-counted AND exponent-suspect (e ~ 1, both
-            // sides), so the flag fires on the DISCRIMINATING count, not
-            // the fallback. R3 (fix round 2): MKL-scoped -- the margin
-            // (11.18 against a floor of 10) is boundary-sensitive enough
-            // that a different backend's trajectory is not ruled out here.
-            // See `.superpowers/w1-t4c-report.md`.
+            // T4c, gate-8 residual C1 (`s = 1e-5`): band-counted AND
+            // exponent-suspect, so the flag fires on the DISCRIMINATING
+            // count. R3: MKL-scoped -- the margin (11.18 vs floor 10) is
+            // boundary-sensitive. See `.superpowers/w1-t4c-report.md`.
             if (s == 1.0e-5) {
 #ifdef USE_ACCELERATE_SPARSE
                 RecordProperty("t4c_c1_exposed_accelerate",
@@ -968,10 +965,8 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
                 EXPECT_EQ(r.counters.ipqp_read_barrier_noise_sides, 2)
                     << "the exponent test must find this member informative and suspect, not "
                        "fall back to the band";
-                // T1 (tycho fold): e pinned AS A VALUE, not only via the
-                // discretized count -- both sides track the barrier exactly
-                // on this member (z = mu / s), so e ~ 1 within a stated
-                // tolerance.
+                // T1: e pinned AS A VALUE, not only the discretized count --
+                // both sides track the barrier exactly here (z = mu / s).
                 EXPECT_GE(r.read_barrier_noise_exponent_min, 0.9);
                 EXPECT_LE(r.read_barrier_noise_exponent_max, 1.1);
                 RecordProperty("t4c_c1_exposed_kept_tight_sides",
@@ -1725,11 +1720,10 @@ TEST(IpqpEscapeLadderTest, TheLadderIsDrivenByRealTierOutcomesAndNotOnlyByHandBu
     EXPECT_EQ(ladder.retired_after(), 6);
 }
 
-// T4c non-vacuity, both ways. `convex_qp()` is this file's own bound-
-// inactive control fixture: no side is ever kept-and-tight, so the flag
-// must be structurally FALSE. Fix round 1 makes the HS rows a MEANINGFUL
-// second FALSE case (round 0's literal trigger fired on them too -- see
-// `.superpowers/w1-t4c-report.md`'s round-0 section for that finding).
+// T4c non-vacuity: `convex_qp()` (no active bound) is structurally FALSE;
+// fix round 1 makes the HS rows a MEANINGFUL second FALSE case (round 0's
+// literal trigger fired on them too). See
+// `.superpowers/w1-t4c-report.md`.
 TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
     {
         IpqpEngine tier(tight_opts());
@@ -1746,7 +1740,7 @@ TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
     // 1e5-1e6 range -- three to four decades above the band's `1000`
     // ceiling -- so the band correctly excludes them as genuinely priced,
     // not barrier noise.
-    const double max_ratio[3] = {5.0e5, 1.5e6, 2.3e6}; // measured lower bounds on the margin
+    [[maybe_unused]] const double max_ratio[3] = {5.0e5, 1.5e6, 2.3e6}; // MKL-only margin bound
     Index i = 0;
     for (const QpProblem &qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
@@ -1755,36 +1749,35 @@ TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0);
-        // M1 / R3 (fix round 2): margin here is 3-4 decades, but the pin is
-        // still an exact trajectory value, so it is MKL-scoped like every
-        // other one in this file.
-#ifdef USE_ACCELERATE_SPARSE
-        RecordProperty("t4c_hs_accelerate_" + std::to_string(i),
-                       "UNOBSERVED -- the exact band/noise counts are MKL-only");
-#else
-        EXPECT_FALSE(r.read_kept_tight);
-        EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 0);
-        EXPECT_EQ(r.counters.ipqp_read_barrier_noise_sides, 0);
-#endif
-        // The margin claim, checked rather than merely asserted: the
-        // ACTIVE bound's own `z / sqrt(mu)` really does clear the ceiling
-        // (the row's other, near-zero sides are inactive and excluded).
+        // The margin claim's own inputs, computed unconditionally (data,
+        // not a pin): the ACTIVE bound's own `z / sqrt(mu)` (the row's
+        // other, near-zero sides are inactive and excluded).
         double max_seen = 0.0;
         for (Index j = 0; j < r.x.size(); ++j) {
             max_seen = std::max({max_seen, r.zl(j) / std::sqrt(r.mu), r.zu(j) / std::sqrt(r.mu)});
         }
+        // M1 / R3: every exact value below (the counts, the flag, and the
+        // margin bound itself) is a trajectory value, so both this and the
+        // `max_seen` bound are MKL-scoped like every other one in this file.
+#ifdef USE_ACCELERATE_SPARSE
+        RecordProperty("t4c_hs_accelerate_" + std::to_string(i),
+                       "UNOBSERVED (max_seen measured " + std::to_string(max_seen) +
+                           ") -- the exact band/noise counts and margin are MKL-only");
+#else
+        EXPECT_FALSE(r.read_kept_tight);
+        EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 0);
+        EXPECT_EQ(r.counters.ipqp_read_barrier_noise_sides, 0);
         EXPECT_GT(max_seen, max_ratio[i]);
         RecordProperty("t4c_hs_kept_tight_" + std::to_string(i),
                        std::to_string(r.counters.ipqp_read_kept_tight_sides));
+#endif
         ++i;
     }
 }
 
-// T4c pin (c): the f-gap bound. On the exposed sub-range where `s` (the box
-// half-width) stays below the barrier's own excursion scale `sqrt(mu)`, the
-// reachable second-order descent along the masked direction is CONFINED by
-// the box: `0.5 |h| min(s, sqrt(mu))^2 <= mu`, the O(mu_stop) bound the
-// owner ruling asks for (`docs/notes/2026-08-m6-ledger.md`, T4c entry).
+// T4c pin (c): the f-gap bound -- confined by the box while `s <= sqrt(mu)`,
+// `0.5 |h| min(s, sqrt(mu))^2 <= mu`, the O(mu_stop) bound the owner ruling
+// asks for. See `.superpowers/w1-t4c-report.md`.
 TEST(IpqpCertificationTest, T4cFGapBoundedByMuStop) {
     for (const double s : {1.0e-5, 5.0e-6, 1.0e-6}) {
         SCOPED_TRACE(s);
@@ -1813,10 +1806,9 @@ TEST(IpqpCertificationTest, T4cFGapBoundedByMuStop) {
     }
 }
 
-// R1 pin (a) / tycho fold T2's solve-level pin: warm-starting the gate-8
-// exposed member FROM ITS OWN CONVERGED POINT leaves fewer than two accepted
-// iterates behind, so the flag must come from the BAND path -- the noise
-// count structurally absent, never computed against the seed. See
+// R1 pin (a) / T2's solve-level pin: warm-starting from the gate-8 member's
+// OWN CONVERGED POINT leaves < 2 accepted iterates, so the flag must come
+// from the BAND path -- noise structurally absent. See
 // `.superpowers/w1-t4c-report.md`.
 TEST(IpqpCertificationTest, FewerThanTwoAcceptedIteratesFallsBackToTheBandPath) {
     const QpProblem qp = weakly_active_indefinite_qp(1.0e-5, -1.0);
@@ -1828,14 +1820,17 @@ TEST(IpqpCertificationTest, FewerThanTwoAcceptedIteratesFallsBackToTheBandPath) 
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, cold_tier.warm_carry(), IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
-    ASSERT_LE(r.counters.ipqp_iters, 1) << "the whole point of seeding from convergence";
     ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0);
 
+    // R3 (fix round 3): `ipqp_iters <= 1` is itself an exact trajectory
+    // value -- a different backend's warm-repair path is not ruled out to
+    // land there too -- so it is MKL-scoped along with what it gates.
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4c_band_fallback_accelerate",
-                   "UNOBSERVED -- whether this member still band-counts after a different "
-                   "backend's warm trajectory is MKL-only");
+                   "UNOBSERVED -- whether this member still converges in <= 1 step and band-counts "
+                   "after a different backend's warm trajectory is MKL-only");
 #else
+    ASSERT_LE(r.counters.ipqp_iters, 1) << "the whole point of seeding from convergence";
     EXPECT_GT(r.counters.ipqp_read_kept_tight_sides, 0);
     EXPECT_EQ(r.counters.ipqp_read_barrier_noise_sides, 0)
         << "fewer than two accepted iterates -- the exponent count must stay structurally absent";
@@ -1843,12 +1838,10 @@ TEST(IpqpCertificationTest, FewerThanTwoAcceptedIteratesFallsBackToTheBandPath) 
 #endif
 }
 
-// R1 pin (b) / Codex finding 1: a warm attempt that gets KILLED must not
-// leave its own accepted-iterate history for the cold restart to read. Pinned
-// as an EQUIVALENCE rather than by iteration count -- gate-8's cold_start()
-// always needs mu decayed from 0.1, so no cold restart on this family can
-// itself reach <=1 step, the dispatch's literal wording; the report's own
-// section explains why and why the equivalence still exercises the reset.
+// R1 pin (b) / Codex 1: a killed warm attempt's history must not reach
+// the cold restart. Pinned as an EQUIVALENCE, not by iteration count --
+// see the report for why a literal <=1-step cold segment is unreachable
+// on this family. See `.superpowers/w1-t4c-report.md`.
 TEST(IpqpCertificationTest, AKilledWarmAttemptsHistoryNeverReachesTheColdRestartsRead) {
     const QpProblem qp = weakly_active_indefinite_qp(1.0e-5, -1.0);
 
@@ -1856,16 +1849,10 @@ TEST(IpqpCertificationTest, AKilledWarmAttemptsHistoryNeverReachesTheColdRestart
     const IpqpResult baseline = baseline_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(baseline.status, QpStatus::kOptimal);
 
-    // A hand-built STALE seed rather than another member's own carry: every
-    // member of this family shares the SAME unconstrained optimum (`x* = 0`,
-    // since `g = 0`), so a real converged carry from elsewhere in the family
-    // is already (near-)optimal here too and the warm attempt never takes
-    // enough steps to hit the kill. `x0 = 3` is off that optimum along the
-    // UNBOUNDED direction (`H00 = 2`, so `x0* = 0` there too) without
-    // touching the tiny `x1` box, giving the warm attempt real corrector
-    // work at a `mu` two decades above this member's own -- history at a
-    // genuinely different scale, per R1's "not a comparison against the warm
-    // trajectory" pin.
+    // A hand-built STALE seed: `x0 = 3` is off this family's shared optimum
+    // (`x* = 0`) along the UNBOUNDED direction, forcing real corrector work
+    // at a `mu` two decades above this member's own before the kill. See
+    // `.superpowers/w1-t4c-report.md` for the full construction rationale.
     IpqpSeed stale;
     stale.x = vec({3.0, 0.0});
     stale.s = Vec(0);

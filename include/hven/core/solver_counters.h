@@ -1151,18 +1151,16 @@ struct IpqpCounters {
     /// `ipqp_alpha_p_min` states for itself.
     double ipqp_alpha_d_min = std::numeric_limits<double>::infinity();
 
-    /// M6 W1 T4c: KEPT bound sides the item 4 read finds in the disclosure
-    /// band (`kIpqpTightBandFactor`'s own doc). Nonzero only where the
-    /// certificate STANDS; AMBIGUOUS not WRONG (`ipqp_read_barrier_noise_
-    /// sides` is the discriminating refinement). Additive fold. See
+    /// T4c: KEPT bound sides in the item 4 read's disclosure band. Additive
+    /// fold. U0 corpus 0/0 is EXPECTED (near-equality-constrained first
+    /// QPs), meaningful only on activity-taxonomy/path-bound cells. See
     /// `.superpowers/w1-t4c-report.md`.
     Index ipqp_read_kept_tight_sides = 0;
 
-    /// M6 W1 T4c: of the band-counted sides above, those the exponent test
-    /// (`ipqp_classify_barrier_noise`, ipqp_math.h) classifies `kSuspect`
-    /// over the last two ACCEPTED iterates. Reports `0` on the band-only
-    /// fallback (fewer than two accepted iterates, or an uninformative mu
-    /// ratio). Additive fold. See `.superpowers/w1-t4c-report.md`.
+    /// T4c: band-counted sides `ipqp_classify_barrier_noise` (ipqp_math.h)
+    /// classifies `kSuspect`; `0` on the band-only fallback. Additive fold;
+    /// same U0 corpus caveat as `ipqp_read_kept_tight_sides` above. See
+    /// `.superpowers/w1-t4c-report.md`.
     Index ipqp_read_barrier_noise_sides = 0;
 };
 

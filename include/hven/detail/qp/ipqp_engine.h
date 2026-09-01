@@ -252,11 +252,9 @@ inline constexpr int kIpqpPivotReroutePrimalMax = 2;
 /// exists to move away from.
 inline constexpr double kIpqpWeakActiveFactor = 10.0;
 
-/// @brief T4c disclosure-band ceiling: a KEPT side is band-counted
-/// (`ipqp_read_kept_tight_sides`) iff its multiplier sits in
-/// `(weak_scale, kIpqpTightBandFactor * weak_scale]`. AMBIGUOUS, NOT WRONG
-/// -- see `.superpowers/w1-t4c-report.md` for the Sigma-band derivation and
-/// the false-positive class.
+/// @brief T4c disclosure-band ceiling: a KEPT side is band-counted iff its
+/// multiplier sits in `(weak_scale, kIpqpTightBandFactor * weak_scale]`.
+/// AMBIGUOUS, NOT WRONG. See `.superpowers/w1-t4c-report.md`.
 inline constexpr double kIpqpTightBandFactor = 100.0;
 
 /// @brief Growth per rung for the DUAL shift `delta` on a perturbed-pivot
@@ -842,12 +840,10 @@ struct IpqpResult {
     /// is not an evidence failure at all and escapes `kNumerical` at once.
     bool inertia_evidence_failed = false;
 
-    /// M6 W1 T4c: true iff the item 4 read AGREED, the disclosure fired
-    /// (`ipqp_read_barrier_noise_sides > 0` when the exponent history is
-    /// informative, `ipqp_read_kept_tight_sides > 0` otherwise), AND the
-    /// certificate still stands once every downgrade below is applied (R2,
-    /// fix round 2) -- set only after `certificate_downgraded`'s final
-    /// value is known. See `.superpowers/w1-t4c-report.md`.
+    /// M6 W1 T4c: true iff the item 4 read AGREED and, once every downgrade
+    /// below is applied (R2), the disclosure still fires -- informative
+    /// history via noise > 0 OR an ambiguous per-side verdict (R3), the
+    /// band count otherwise. See `.superpowers/w1-t4c-report.md`.
     bool read_kept_tight = false;
 
     /// T4c fix round 2 (tycho fold T1): the raw exponent(s) behind

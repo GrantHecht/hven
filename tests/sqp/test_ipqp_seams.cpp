@@ -641,12 +641,10 @@ TEST_F(IpqpSeamTest, TheSkipCountLetsASolveConvergeBeforeItsLastReadingIsCorrupt
     EXPECT_LT(Injector::skip_first, 1000);
 }
 
-// T4c R2 (settler ruling): `read_kept_tight` means a certificate that STANDS
-// at the end of the solve. Inject the mid-solve evidence failure ONLY
-// (on_final_read=false) on the gate-8 exposed member so the final read
-// genuinely comes back kOk with a nonzero band count, then confirm the
-// whole-solve downgrade still forces the flag false with the counters left
-// populated. See `.superpowers/w1-t4c-report.md`.
+// T4c R2: `read_kept_tight` needs a certificate that STANDS at the end.
+// The mid-solve-only injection (on_final_read=false) leaves the final
+// read clean; the whole-solve downgrade must still force the flag false
+// with both counters populated. See `.superpowers/w1-t4c-report.md`.
 TEST_F(IpqpSeamTest, AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesTheCountersPopulated) {
     Injector::active = true;
     Injector::on_final_read = false;
@@ -661,6 +659,7 @@ TEST_F(IpqpSeamTest, AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesThe
     ASSERT_TRUE(r.inertia_evidence_failed);
     ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0) << "the final read itself was never injected";
     EXPECT_GT(r.counters.ipqp_read_kept_tight_sides, 0) << "counters stay populated, undowngraded";
+    EXPECT_GT(r.counters.ipqp_read_barrier_noise_sides, 0) << "both counters, per dispatch";
     EXPECT_FALSE(r.read_kept_tight) << "but the flag reports the certificate as it actually stands";
 }
 

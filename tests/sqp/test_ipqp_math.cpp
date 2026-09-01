@@ -585,4 +585,52 @@ TEST(IpqpBarrierNoiseTest, NonfiniteInputsAreUninformative) {
               ip::IpqpBarrierNoiseClass::kUninformative);
 }
 
+// T4c fix round 3 (Codex re-review issue 1): a finite ratio that UNDERFLOWS
+// to exactly 0.0 must not reach `log` -- it produced a finite `e` (a signed
+// zero) under the round-2 formula, misclassified as `kPriced`.
+
+TEST(IpqpBarrierNoiseTest, MuRatioUnderflowIsUninformativeNotAFiniteNegativeZero) {
+    // z_ratio = 2 > 1 (log positive): the naive formula's `e` here is a
+    // finite `-0.0`, not NaN -- exactly the defect this guard closes.
+    const auto v = ip::ipqp_classify_barrier_noise(1.0, 2.0, std::numeric_limits<double>::max(),
+                                                   std::numeric_limits<double>::min());
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kUninformative);
+    EXPECT_TRUE(std::isnan(v.exponent));
+}
+
+TEST(IpqpBarrierNoiseTest, MuRatioUnderflowWithADecreasingZStillClassifiesUninformative) {
+    // The mirror sign: z_ratio < 1 (log negative) makes the naive `e` a
+    // finite `+0.0` instead -- both signs must be caught, not just one.
+    const auto v = ip::ipqp_classify_barrier_noise(2.0, 1.0, std::numeric_limits<double>::max(),
+                                                   std::numeric_limits<double>::min());
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kUninformative);
+}
+
+TEST(IpqpBarrierNoiseTest, ZRatioUnderflowIsUninformative) {
+    const auto v = ip::ipqp_classify_barrier_noise(
+        std::numeric_limits<double>::max(), std::numeric_limits<double>::min(), 1.0e-6, 1.0e-8);
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kUninformative);
+}
+
+TEST(IpqpBarrierNoiseTest, BothRatiosUnderflowIsUninformative) {
+    const double lo = std::numeric_limits<double>::min();
+    const double hi = std::numeric_limits<double>::max();
+    const auto v = ip::ipqp_classify_barrier_noise(hi, lo, hi, lo);
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kUninformative);
+}
+
+// T4c fix round 3 (settler ruling on T3/F2): `ipqp_barrier_noise_flag` is
+// the exact function `ipqp_engine.cpp`'s kOk branch calls, so this pins the
+// wiring directly rather than paralleling it.
+
+TEST(IpqpBarrierNoiseFlagTest, AnAmbiguousPerSideVerdictFiresEvenInAnInformativeSolve) {
+    EXPECT_TRUE(ip::ipqp_barrier_noise_flag(/*informative=*/true, /*noise_count=*/0,
+                                            /*any_side_uninformative=*/true, /*band_count=*/2));
+    EXPECT_FALSE(ip::ipqp_barrier_noise_flag(true, 0, false, 2))
+        << "non-vacuity: no suspect side and no ambiguity must NOT fire";
+    EXPECT_FALSE(ip::ipqp_barrier_noise_flag(false, 5, true, 0))
+        << "uninformative history reads the band count alone, ignoring noise/ambiguity";
+    EXPECT_TRUE(ip::ipqp_barrier_noise_flag(false, 0, false, 3));
+}
+
 } // namespace
