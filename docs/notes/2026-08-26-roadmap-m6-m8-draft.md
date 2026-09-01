@@ -318,3 +318,50 @@ M6–M8:
 4. Benchmark suite: SIBLING HARNESS REPO, PRIVATE for now — problem
    sets, local SNOPT/IPOPT lanes, and published-result tables stay
    out of Apache-2.0 hven; hven stays consumable-clean.
+
+## Amendment (2026-08-31, owner-approved; tycho-sqp lane reviewed): first-order mode moves to M9
+
+Ruling (Grant, direct, after settler proposal and tycho-sqp review): the
+first-order (Hessian-approximation) mode leaves M7 and becomes its own
+milestone, split into a reading/design gate and an implementation:
+
+- **M7 = adaptivity heuristics + benchmark suite v1.** First-order mode
+  REMOVED. Two constraints carried so M9 does not have to reopen M7's work:
+  (1) *Don't foreclose* — no heuristic reads the model Hessian outside the
+  provider path; nothing assumes H's sparsity is fixed by the model; the KKT
+  consumer takes H from an engine-owned "current Hessian" handle of which the
+  provider-laid arena is ONE source, and heuristics/telemetry read the handle,
+  never the arena. (2) *Cost model* — any heuristic pricing factorizations
+  against evaluations carries curvature acquisition as its own cost line and
+  never reads `eval_hess` (zero under a first-order mode); telemetry keyed on
+  the bridge-lay `+1 eval_hess` identity is tagged exact-Hessian-specific;
+  every curvature-reading heuristic (ladder counters, rho demanded, the item-4
+  read, SSN certification tiers) is labelled with the curvature source it
+  assumes — no decision, a label. Benchmark suite v1 carries a
+  `hessian_provenance` column (exact / family-tag / none) from its first
+  schema.
+- **M8 = tuning + labelled configs + SNOPT/IPOPT/Knitro comparison + trace
+  upgrade**, with the comparison EXPLICITLY scoped "second derivatives
+  available" (SNOPT cannot accept a Hessian, so the like-for-like claim is not
+  attempted in M8). The accuracy-matching rule is defined ONCE here under the
+  owner's standing ruling (natural tolerance is the bar, matched accuracy is
+  context) so M9b inherits it; the calibration grid's absent cell (no external
+  solver on a non-F7 problem) is filled in M8, and M8's comparison set is chosen
+  so M9b's like-for-like set is a SUBSET of it.
+- **M9a = first-order literature review + design + owner ruling** on the
+  approximation family and on what "beat SNOPT" concretely means and on which
+  set — reusing the ratified two-clause band (coverage within fixed budgets +
+  speed at K) as its template, with the clause-(b) vacuity lesson written in.
+- **M9b = first-order implementation + the like-for-like SNOPT pass.**
+
+Rationale: first-order mode is the least de-risked roadmap item; M8 must
+measure the exact-Hessian engines in isolation (one variable, not two); M8's
+results tell M9a where hven loses to SNOPT so the design is targeted; the
+M9a/M9b gate is the precondition-experiment pattern M6 used. Two settler
+proposals were RETRACTED under owner challenge and confirmed retracted by the
+tycho-sqp lane: a Hessian-provider seam reserved in M7 (a seam now would guess
+M9a's answer; the tagged-extension currency already carries quasi-Newton
+history; per-mode tuning is M8's labelled-config mechanism) and an M7 scoping
+read (M9a covers it). tycho-side: no timeline pressure — tycho's design premise
+is cheap exact Hessians through the partitioned engine; first-order is external
+positioning.
