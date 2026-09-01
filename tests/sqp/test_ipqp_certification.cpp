@@ -333,12 +333,16 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
     const std::vector<HsCase> hs = {
         {"hs_indefinite_equality",
          test_support::indefinite_equality_qp(),
-         {{14, 20, vec({1.0, -2.0, 2.0})},
-          {24, 36, vec({1.0, 2.0, -2.0})},
-          // T10b: at the measured `ipqp_init_mu` this row's trajectory is no longer
-          // build-invariant -- Debug's unvectorized arithmetic takes 31/42 to the SAME
-          // point Release reaches in 14/20. Both are admissible; neither is the other.
-          {31, 42, vec({1.0, -2.0, 2.0})}}},
+         // FIX ROUND 1: T10b's Debug/Release split is BUILD-SCOPED, not admitted cross-build --
+         // Debug takes 31/42 to the SAME point Release reaches in 14/20, and neither build may
+         // regress to the other's cost unnoticed. `.superpowers/w1-t10b-fix1-report.md` item D.
+         {
+#ifdef NDEBUG
+             {14, 20, vec({1.0, -2.0, 2.0})},
+#else
+             {31, 42, vec({1.0, -2.0, 2.0})},
+#endif
+             {24, 36, vec({1.0, 2.0, -2.0})}}},
         // x = (1, -2, -0.5), objective -1.375: the second of that fixture's
         // two derived minimizers, x1 at LOWER and the general row active.
         {"hs_indefinite_equality_and_row",
@@ -742,17 +746,19 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
             << "the ladder never arms here -- rho_0 = 8 covers |H11| = 1 from the first "
                "factorization, which is what makes this a test of the READ";
 
-        // THE KNIFE-EDGE MEMBERS ARE SKIPPED, not asserted (fix round 1, I5): a member whose
-        // `Sigma` sits within 1% of `|H11|` leaves the read's matrix near-singular -- the
-        // registered tie-flake class. The sweep crosses the boundary; it never stands on it.
-        // THE REGIME IS ASSERTED BEFORE THE READ IS: the member must actually sit at the
-        // curvature it was built for, or a moved `mu_stop` -- not the read -- is the variable.
-        const double sigma = sigma_at(r, saddle, 1);
-        EXPECT_NEAR(sigma / target, 1.0, 1e-2) << "the construction did not hold";
-        if (std::abs(sigma - 1.0) < 1e-2) {
+        // THE KNIFE-EDGE MEMBER IS SKIPPED STRUCTURALLY, by the target it was BUILT at rather
+        // than by where its measured `Sigma` landed (fix round 1, Claude F8): `Sigma == |H11|`
+        // leaves the read's matrix near-singular -- the registered tie-flake class.
+        if (target == 1.0) {
             ++skipped_ties;
             continue;
         }
+
+        // THE REGIME IS ASSERTED BEFORE THE READ IS, and fatally: an asserted member that did
+        // not land at the curvature it was built for makes a moved `mu_stop`, not the read,
+        // the variable -- so the sweep stops rather than reporting the read's verdict.
+        const double sigma = sigma_at(r, saddle, 1);
+        ASSERT_NEAR(sigma / target, 1.0, 1e-2) << "the construction did not hold";
 
         // THE RULE THE READ NOW APPLIES, recomputed here from the returned point rather than
         // read out of the engine: a bound side is weakly active iff BOTH its gap and its
@@ -824,8 +830,8 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
                        " skipped_ties=" + std::to_string(skipped_ties));
 
     // The exact split, not just its existence: a drift in WHICH members are weak moves one
-    // between the branches and leaves every `> 0` form true. Eight, not nine: `s = 1.58e-4` is
-    // skipped as a tie before classifying. (T4b F1; `.superpowers/w1-t4b-report.md`.)
+    // between the branches and leaves every `> 0` form true. Eight, not nine: the `Sigma = 1`
+    // target is skipped as a tie before classifying. (T4b F1; `.superpowers/w1-t4b-report.md`.)
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_gate8_census_accelerate",
                    "UNOBSERVED -- which members are weak depends on the mu the backend converges "

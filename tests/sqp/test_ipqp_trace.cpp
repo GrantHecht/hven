@@ -45,6 +45,16 @@ SpMatRM dense_upper(const std::vector<std::vector<double>> &a) {
 SpMatRM dense_rows(const std::vector<std::vector<double>> &a, Index cols) {
     const Index rows = static_cast<Index>(a.size());
     SpMatRM m(rows, cols);
+    std::vector<Eigen::Triplet<double>> t;
+    for (Index i = 0; i < rows; ++i) {
+        for (Index j = 0; j < cols; ++j) {
+            if (a[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)] != 0.0) {
+                t.emplace_back(static_cast<int>(i), static_cast<int>(j),
+                               a[static_cast<std::size_t>(i)][static_cast<std::size_t>(j)]);
+            }
+        }
+    }
+    m.setFromTriplets(t.begin(), t.end());
     m.makeCompressed();
     return m;
 }
@@ -454,11 +464,14 @@ TEST(IpqpTrace, EscapeEventCarriesTheFullEvidenceBlockVerbatim) {
         RecordingTraceSink sink;
         tier.attach_trace(&sink);
         const IpqpResult r =
-            tier.solve(convex_qp(), nullptr, crawling_opts(1e-4), SolveOverrides{});
-        // THE CRAWL RATE IS RE-DERIVED at T10b's measured `ipqp_init_mu`: at 1e-3
-        // this fixture now improves ~2%/window, above section 6.2's 1% floor, so
-        // it honestly exits on budget. At 1e-4 it improves 0.25%/window.
+            tier.solve(convex_qp(), nullptr, crawling_opts(1e-3), SolveOverrides{});
+        // T10b MOVED THIS CRAWL RATE TO 1e-4 AND FIX ROUND 1 MOVES IT BACK: on the REPAIRED
+        // fixture the second window improves 0.18% at the shipped `ipqp_init_mu` (0.25% at
+        // 0.1), both under 6.2's 1% floor. `.superpowers/w1-t10b-fix1-report.md` item A.
         ASSERT_EQ(r.escape_reason, IpqpEscape::kStall);
+        // AND ITS COST, so a drift back toward the budget escape fails here rather than
+        // silently re-reading the same reason off a different trajectory (Codex, medium 1).
+        EXPECT_EQ(r.counters.ipqp_iters, 10);
         ASSERT_EQ(sink.escapes.size(), 1u);
         EXPECT_EQ(sink.escapes[0].reason, IpqpTraceEscapeReason::kStall);
         ASSERT_TRUE(r.stall_evidence.fired) << "the fixture must actually fire, or this is vacuous";

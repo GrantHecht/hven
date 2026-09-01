@@ -635,8 +635,8 @@ TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderR
     IpqpEngine tier2(tight_opts());
     const IpqpResult r2 = tier2.solve(qp, nullptr, loose, SolveOverrides{});
     EXPECT_GT(r2.counters.ipqp_factorizations, 1);
-    // WITHOUT the cap the same subproblem takes many steps and CONVERGES, so the cap
-    // plainly changed the outcome. (Before T4b this line read `kIndefinite`: the
+    // WITHOUT the cap the same subproblem takes many steps and stops for a reason of its
+    // own, so the cap plainly changed the outcome. (Before T4b this read `kIndefinite`: the
     // ladder was applied unscaled then. `.superpowers/w1-t4b-report.md`.)
     // T10b: at the measured `ipqp_init_mu` this extreme fixture (H22 = -1e12) ends
     // kOptimal in Release and kNumericalError in Debug -- a knife-edge the status

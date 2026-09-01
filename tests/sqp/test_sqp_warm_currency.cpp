@@ -1524,3 +1524,65 @@ TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
     EXPECT_EQ(base.counters.ipqp.ipqp_mu_adopted, 0);
     EXPECT_NE(full.counters.ipqp.ipqp_iters, 0);
 }
+
+// FIX ROUND 1, tycho F1(a): SECTION 5.3'S CEILING READ OFF THE ARITHMETIC, not off a fixture's
+// own knob -- one staged payload, two ceilings, and the ceiling is the ONLY variable.
+// `.superpowers/w1-t10b-fix1-report.md` item C.
+TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    IpmPolishData polish = fixture_polish(sol);
+    polish.mu_ = 0.1;
+    ASSERT_GT(polish.mu_, SqpOptions{}.ipqp.ipqp_init_mu) << "the premise: ABOVE the ceiling";
+
+    const auto run = [&](double ceiling) {
+        WarmStartData data = core_payload(sol, *bridge);
+        data.primal_(0) -= 0.2;
+        data.primal_(2) += 0.3;
+        data.extensions_.push_back(polish_extension(polish));
+        SqpOptions o = ipm_currency_options();
+        o.ipqp.ipqp_init_mu = ceiling;
+        SqpDriver driver{o};
+        driver.stage_warm_start(data);
+        return driver.solve(*bridge, data.primal_);
+    };
+
+    const SqpSolution shipped = run(SqpOptions{}.ipqp.ipqp_init_mu);
+    const SqpSolution raised = run(polish.mu_);
+    ASSERT_EQ(shipped.status, SqpStatus::kOptimal);
+    ASSERT_EQ(raised.status, SqpStatus::kOptimal);
+    // Non-vacuity: both arms reached the tier, so the counter below reads a clamp and not
+    // the absence of a subproblem to clamp.
+    ASSERT_GT(shipped.counters.ipqp.ipqp_symbolic_analyses, 0);
+    ASSERT_GT(raised.counters.ipqp.ipqp_symbolic_analyses, 0);
+
+    EXPECT_GT(raised.counters.ipqp.ipqp_mu_adopted, 0);
+    EXPECT_EQ(shipped.counters.ipqp.ipqp_mu_adopted, 0);
+}
+
+// FIX ROUND 1, tycho F1(b): AND THE CEILING IS NOT A BLANKET REFUSAL -- a payload two decades
+// under it is adopted at the SHIPPED default, no fixture-local knob. The seed moves 1e-6, not
+// 0.2, so its own measured complementarity sits BELOW the payload; item C measures both.
+TEST(SqpWarmCurrency, APolishMuUnderTheShippedCeilingIsStillAdopted) {
+    const auto model = std::make_shared<CurrencyModel>();
+    const auto bridge = make_bridge(model);
+    const SqpSolution sol = solve_fixture_cold(*model);
+
+    IpmPolishData polish = fixture_polish(sol);
+    polish.mu_ = 1e-4;
+    ASSERT_LT(polish.mu_, SqpOptions{}.ipqp.ipqp_init_mu) << "the premise: UNDER the ceiling";
+
+    WarmStartData data = core_payload(sol, *bridge);
+    data.primal_(0) -= 1e-6;
+    data.primal_(2) += 1.5e-6;
+    data.extensions_.push_back(polish_extension(polish));
+
+    SqpDriver driver{ipm_currency_options()};
+    driver.stage_warm_start(data);
+    const SqpSolution r = driver.solve(*bridge, data.primal_);
+    ASSERT_EQ(r.status, SqpStatus::kOptimal);
+    ASSERT_GT(r.counters.ipqp.ipqp_symbolic_analyses, 0) << "or the adoption pin is vacuous";
+    EXPECT_GT(r.counters.ipqp.ipqp_mu_adopted, 0);
+}
