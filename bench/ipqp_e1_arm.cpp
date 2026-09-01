@@ -1,20 +1,16 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// ipqp_e1_arm -- CLI glue for spec section 8's A4 (the tier on E1's 29 cells),
-// the Q4 `ipqp_init_mu` sweep, and the A13/A14 wall legs.
-// The arm itself is bench/ipqp_e1_arm.h; its gate is test_ipqp_acceptance.cpp.
-
-// NOT ctest-registered: one A4 pass is tens of minutes at `nx = 1e5`. Every
-// mode writes a provenance-stamped CSV and each run's terms are the caller's
-// (`taskset`, `MKL_NUM_THREADS`), stamped into the header rather than assumed.
+// ipqp_e1_arm -- CLI glue for spec section 8's A4, the Q4 `ipqp_init_mu`
+// sweep, and the A13/A14 wall legs. `--gate` is the ctest entry labelled
+// `a4_gate`; the arm is ipqp_e1_arm.h, the argument is the acceptance README.
 
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -34,8 +30,15 @@ using namespace hven;
 using namespace hven::solvers;
 
 constexpr const char *kUsage =
-    "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope> --out FILE\n"
-    "                            [--mu VALUE] [--sizes 20000,100000] [--nodes N] [--p P]\n";
+    "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope|--gate>\n"
+    "                            --out FILE [--mu VALUE] [--converge-slack VALUE]\n"
+    "                            [--hard-cap N] [--sizes 20000,100000] [--nodes N] [--p P]\n"
+    "\n"
+    "  --gate   the A4 acceptance gate: all 29 cells at both sizes, shipped\n"
+    "           options, scored against E1's four pre-registered criteria.\n"
+    "           EXITS NONZERO on any RED criterion. Run it SOLO.\n"
+    "  --sizes  selects by variable count n (= 5 x nodes); an unknown value\n"
+    "           is an error, never an empty artifact.\n";
 
 std::string utc_now() {
     const std::time_t t = std::time(nullptr);
@@ -70,6 +73,19 @@ void stamp(std::ostream &os, const std::string &mode, const std::string &extra) 
 }
 
 std::string fnum(double v) { return fmt::format("{:.6e}", v); }
+
+/// Every option this binary can move, stamped into EVERY mode's header: a
+/// reader must be able to tell a shipped-default run from a lever run without
+/// leaving the file. Sentinels are printed as the sentinel, not resolved.
+std::string option_stamp(const IpqpOptions &o) {
+    return fmt::format("# ipqp_init_mu: {}\n# ipqp_converge_slack: {}\n"
+                       "# ipqp_hard_iter_cap: {}\n# ipqp_max_iter: {}\n"
+                       "# ipqp_max_factorizations: {}\n"
+                       "# (shipped defaults: 1.000000e-01 / 1.000000e+02 / 60 / 0 / 0;\n"
+                       "#  0 is the size-derived sentinel, NOT an unbounded budget)\n",
+                       fnum(o.ipqp_init_mu), fnum(o.ipqp_converge_slack), o.ipqp_hard_iter_cap,
+                       o.ipqp_max_iter, o.ipqp_max_factorizations);
+}
 
 const char *status_name(QpStatus s) {
     switch (s) {
@@ -126,10 +142,24 @@ std::string counters_row(const IpqpCounters &c) {
 
 std::vector<e1arm::CellSpec> selected(const std::vector<Index> &sizes) {
     std::vector<e1arm::CellSpec> out;
+    std::vector<Index> known;
     for (const e1arm::CellSpec &s : e1arm::taxonomy()) {
         const Index n = s.nodes * (e1arm::kStates + e1arm::kControls);
+        if (std::find(known.begin(), known.end(), n) == known.end()) {
+            known.push_back(n);
+        }
         if (sizes.empty() || std::find(sizes.begin(), sizes.end(), n) != sizes.end()) {
             out.push_back(s);
+        }
+    }
+    // A --sizes value the taxonomy does not have is an ERROR: a header-only
+    // CSV that exits 0 is the shape of artifact nobody notices is empty.
+    for (const Index want : sizes) {
+        if (std::find(known.begin(), known.end(), want) == known.end()) {
+            throw std::invalid_argument(
+                fmt::format("--sizes {}: the taxonomy has no cell at that variable count "
+                            "(it has {} and {})",
+                            want, known.front(), known.back()));
         }
     }
     return out;
@@ -160,7 +190,7 @@ int run_regen(std::ostream &os, const std::vector<Index> &sizes) {
 }
 
 int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Index hard_cap,
-              double converge_slack) {
+              double converge_slack, std::vector<e1arm::SolveRow> *collect = nullptr) {
     IpqpOptions iopts;
     if (mu > 0.0) {
         iopts.ipqp_init_mu = mu;
@@ -173,12 +203,7 @@ int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Inde
         iopts.ipqp_max_iter = hard_cap;
         iopts.ipqp_max_factorizations = 4 * hard_cap;
     }
-    stamp(os, "sweep",
-          fmt::format("# ipqp_init_mu: {}\n# ipqp_hard_iter_cap: {}\n"
-                      "# ipqp_converge_slack: {}\n"
-                      "# wall_s is INFORMATIONAL (CLAUDE.md section 7).\n",
-                      fnum(iopts.ipqp_init_mu), iopts.ipqp_hard_iter_cap,
-                      fnum(iopts.ipqp_converge_slack)));
+    stamp(os, "sweep", option_stamp(iopts) + "# wall_s is INFORMATIONAL (CLAUDE.md section 7).\n");
     os << "id,layout,n,me,mi,active_fraction,margin_class,status,active_true,active_found,"
           "misclassified,uncertain,rule_a,rule_b,rule_a_missed,rule_a_false_positive,"
           "res_primal,res_dual,res_comp,x_err_inf,wall_s,"
@@ -196,6 +221,9 @@ int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Inde
             r.rule_a_missed, r.rule_a_false_positive, fnum(r.res_primal), fnum(r.res_dual),
             fnum(r.res_comp), fnum(r.x_err_inf), fnum(r.wall_s), counters_row(r.counters));
         os.flush();
+        if (collect != nullptr) {
+            collect->push_back(r);
+        }
         std::fprintf(stderr, "sweep %s: %s iters=%lld facts=%lld wall=%.2fs\n", r.id.c_str(),
                      status_name(r.status), static_cast<long long>(r.counters.ipqp_iters),
                      static_cast<long long>(r.counters.ipqp_factorizations), r.wall_s);
@@ -203,15 +231,82 @@ int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Inde
     return 0;
 }
 
+/// A4's four pre-registered criteria (Amendment F), scored over one sweep.
+/// `exact_recovery` counts CONSTRUCTED cells only: an anchor carries no
+/// constructed ground truth and its Rule-A columns are the not-scored sentinel.
+struct A4Verdict {
+    Index cells = 0, constructed = 0;
+    Index converged = 0, under_iter_gate = 0, exact_recovery = 0;
+    bool no_blow_up = true;
+    std::string blow_up_detail;
+    bool red() const {
+        return converged != cells || under_iter_gate != cells || exact_recovery != constructed ||
+               !no_blow_up;
+    }
+};
+
+/// The blow-up criterion is read ACROSS the active-fraction axis at a fixed
+/// (size, layout, margin): E1 asks whether iterations grow with the fraction,
+/// so a strictly increasing triple in the fraction is the failure.
+A4Verdict score_a4(const std::vector<e1arm::SolveRow> &rows,
+                   const std::vector<e1arm::CellSpec> &specs) {
+    A4Verdict v;
+    std::map<std::string, std::vector<std::pair<double, Index>>> tracks;
+    for (std::size_t k = 0; k < rows.size(); ++k) {
+        const e1arm::SolveRow &r = rows[k];
+        const e1arm::CellSpec &spec = specs.at(k);
+        ++v.cells;
+        v.converged += r.status == QpStatus::kOptimal ? 1 : 0;
+        v.under_iter_gate += r.counters.ipqp_iters < e1arm::kIterGate ? 1 : 0;
+        if (spec.layout == e1arm::Layout::kAnchor) {
+            continue;
+        }
+        ++v.constructed;
+        v.exact_recovery += (r.rule_a_missed == 0 && r.rule_a_false_positive == 0) ? 1 : 0;
+        tracks[fmt::format("{}/{}/{}", r.n,
+                           spec.layout == e1arm::Layout::kContiguous ? "contiguous" : "scattered",
+                           fnum(spec.margin))]
+            .emplace_back(spec.active_fraction, r.counters.ipqp_iters);
+    }
+    for (auto &kv : tracks) {
+        std::sort(kv.second.begin(), kv.second.end());
+        bool strictly_up = kv.second.size() > 1;
+        for (std::size_t i = 1; i < kv.second.size(); ++i) {
+            strictly_up = strictly_up && kv.second[i].second > kv.second[i - 1].second;
+        }
+        if (strictly_up) {
+            v.no_blow_up = false;
+            v.blow_up_detail += " " + kv.first;
+        }
+    }
+    return v;
+}
+
+/// The A4 gate as an EXECUTABLE check: the 29 cells at both sizes, shipped
+/// options, exit nonzero on any RED criterion. Registered as the `a4_gate`
+/// ctest entry, which is excluded from the default run by label.
+int run_gate(std::ostream &os, const std::vector<Index> &sizes) {
+    std::vector<e1arm::SolveRow> rows;
+    run_sweep(os, sizes, /*mu=*/-1.0, /*hard_cap=*/0, /*converge_slack=*/-1.0, &rows);
+    const A4Verdict v = score_a4(rows, selected(sizes));
+    const auto line = [](const char *what, Index got, Index want) {
+        std::fprintf(stderr, "  [%s] %-34s %lld / %lld\n", got == want ? "PASS" : "RED", what,
+                     static_cast<long long>(got), static_cast<long long>(want));
+    };
+    std::fprintf(stderr, "\nA4 GATE (Amendment F), %lld cells:\n", static_cast<long long>(v.cells));
+    line("every cell converges", v.converged, v.cells);
+    line("iterations < 40", v.under_iter_gate, v.cells);
+    line("exact recovery (E1 Rule A)", v.exact_recovery, v.constructed);
+    std::fprintf(stderr, "  [%s] %-34s%s\n", v.no_blow_up ? "PASS" : "RED",
+                 "no blow-up across active fraction", v.no_blow_up ? "" : v.blow_up_detail.c_str());
+    std::fprintf(stderr, "A4 VERDICT: %s\n", v.red() ? "RED" : "GREEN");
+    return v.red() ? 1 : 0;
+}
+
 /// The nonconvex family and the two `path_warm` corpus cells, which the mu
 /// decision is taken on beside the A4 cells (settler amendment (b)).
 int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_cap) {
     const double mus[4] = {1e-3, 1e-2, 1e-1, 1.0};
-    stamp(os, "mu-sweep",
-          "# family: e1 = tier-direct A4 cell; hs/corpus = SqpDriver under kIpm;\n"
-          "# indefinite = tier-direct nonconvex QP fixture.\n");
-    os << "mu,family,id,status,wall_s," << counters_header() << "\n";
-
     const auto opts_at = [&](double mu) {
         IpqpOptions o;
         o.ipqp_init_mu = mu;
@@ -222,6 +317,12 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
         }
         return o;
     };
+    stamp(os, "mu-sweep",
+          option_stamp(opts_at(mus[0])) +
+              "# ipqp_init_mu above is the FIRST level only; the mu column is authoritative.\n"
+              "# family: e1 = tier-direct A4 cell; hs/corpus = SqpDriver under kIpm;\n"
+              "# indefinite = tier-direct nonconvex QP fixture.\n");
+    os << "mu,family,id,status,wall_s," << counters_header() << "\n";
 
     // EACH CELL IS BUILT ONCE and solved at all four levels: construction
     // dominates the arm's wall at `nx = 1e5`, and building it four times would
@@ -297,9 +398,15 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
 /// A13/A14's wall leg: the same F7 cell solved by the walk and by the tier on
 /// one occasion. WALL-ASSERTING -- the caller must run it solo and serialized.
 int run_envelope(std::ostream &os, Index nodes, double p) {
+    // M1: the banner must describe THIS invocation -- a multi-threaded run is
+    // informational (CLAUDE.md section 7) and may never be quoted as a wall.
+    const bool one_thread = env_or("MKL_NUM_THREADS", "") == "1";
     stamp(os, "envelope",
-          "# WALL-ASSERTING leg: run SOLO, serialized, one solve at a time.\n"
-          "# The engine column is the only difference between the two rows.\n");
+          option_stamp(IpqpOptions{}) +
+              (one_thread
+                   ? "# WALL-ASSERTING only if the caller ran it SOLO and serialized.\n"
+                   : "# INFORMATIONAL: MKL_NUM_THREADS != 1, so this wall is NOT asserting.\n") +
+              "# The engine column is the only difference between the two rows.\n");
     os << "engine,nodes,n,p,status,majors,wall_s,qp_iters,ipqp_iters,ipqp_factorizations\n";
     for (const char *engine : {"walk", "ipm"}) {
         test_support::F7CollocationChain model(nodes, e1arm::kStates, e1arm::kControls, p,
@@ -342,7 +449,8 @@ int main(int argc, char **argv) {
                 }
                 return std::string(argv[++i]);
             };
-            if (a == "--regen" || a == "--sweep" || a == "--mu-sweep" || a == "--envelope") {
+            if (a == "--regen" || a == "--sweep" || a == "--mu-sweep" || a == "--envelope" ||
+                a == "--gate") {
                 mode = a.substr(2);
             } else if (a == "--out") {
                 out = next("--out");
@@ -391,6 +499,9 @@ int main(int argc, char **argv) {
         }
         if (mode == "mu-sweep") {
             return run_mu_sweep(os, sizes, hard_cap);
+        }
+        if (mode == "gate") {
+            return run_gate(os, sizes);
         }
         return run_envelope(os, nodes, p_window);
     } catch (const std::exception &e) {

@@ -3,17 +3,9 @@
 
 #pragma once
 
-// ipqp_e1_arm.h -- the E1 taxonomy's 29 cells, rebuilt in tree, and the IPQP
-// tier's solve arm over them (spec section 8.1 A4).
-// Recipe source: docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp.
-
-// THE REPRODUCTION IS DRAW-FOR-DRAW, not merely recipe-for-recipe: the same
-// mt19937_64 seeds, the same distribution objects in the same order, the same
-// vector orderings. `certify()` below is what proves it against the artifact.
-
-// The generator itself cannot be rebuilt here -- it compiles against the
-// origin project's headers and its dumps were deleted by the sweep script --
-// so the identity evidence is its recorded KKT-VERIFICATION log, not a diff.
+// ipqp_e1_arm.h -- E1's 29 cells rebuilt draw for draw (same seeds, same
+// distribution order) and solved by the IPQP tier: spec section 8.1 A4.
+// What that claim is worth: docs/notes/data/2026-08-m6-w1-acceptance/README.md.
 
 #include <algorithm>
 #include <chrono>
@@ -95,6 +87,12 @@ inline F7CollocationChain make_model(Index nodes, double p) {
 /// order the generator's `active_jacobian` builds them in.
 inline Eigen::SparseMatrix<double> active_jacobian(const QpProblem &qp,
                                                    const std::vector<Index> &active) {
+    // Eigen::Triplet's default index type is `int`; refuse a size that would
+    // narrow rather than build a silently wrong matrix.
+    if (qp.g.size() > std::numeric_limits<int>::max()) {
+        throw std::invalid_argument(fmt::format(
+            "e1arm::active_jacobian: n = {} exceeds the triplet index type", qp.g.size()));
+    }
     std::vector<Eigen::Triplet<double>> t;
     t.reserve(static_cast<std::size_t>(qp.Ae.nonZeros() + qp.Ai.nonZeros()));
     for (Index r = 0; r < qp.Ae.rows(); ++r) {
@@ -198,6 +196,29 @@ inline std::vector<CellSpec> taxonomy() {
 /// Builds one cell. Throws `std::invalid_argument` when no offset admits LICQ
 /// (the generator's "infeasible by construction" outcome, which never fired).
 inline Cell build(const CellSpec &spec) {
+    if (spec.nodes < 3) {
+        throw std::invalid_argument(
+            fmt::format("e1arm::build('{}'): nodes = {} -- F7CollocationChain needs at least 3",
+                        spec.id, spec.nodes));
+    }
+    if (spec.layout != Layout::kAnchor) {
+        // `active_fraction >= 1` would leave no inactive row to draw a margin
+        // on and would build an empty/inverted distribution range below.
+        if (!(spec.active_fraction >= 0.0) || !(spec.active_fraction < 1.0)) {
+            throw std::invalid_argument(
+                fmt::format("e1arm::build('{}'): active_fraction = {:.17g} is outside [0, 1)",
+                            spec.id, spec.active_fraction));
+        }
+        if (!(spec.margin > 0.0) || !std::isfinite(spec.margin)) {
+            throw std::invalid_argument(
+                fmt::format("e1arm::build('{}'): margin = {:.17g} must be finite and > 0", spec.id,
+                            spec.margin));
+        }
+    } else if (!(spec.anchor_p > 0.0) || !std::isfinite(spec.anchor_p)) {
+        throw std::invalid_argument(
+            fmt::format("e1arm::build('{}'): anchor_p = {:.17g} must be finite and > 0", spec.id,
+                        spec.anchor_p));
+    }
     Cell cell;
     cell.spec = spec;
     const double p = spec.layout == Layout::kAnchor ? spec.anchor_p : kBoundArcP;
@@ -320,9 +341,9 @@ inline Cell build(const CellSpec &spec) {
     return cell;
 }
 
-/// The seven quantities the generator's own verifier printed per cell, plus
-/// the contiguous offset. Each is compared against the recorded log, so a
-/// drifted draw sequence shows up as a differing digit rather than silently.
+/// The eight quantities the generator's verifier printed per cell, plus the
+/// contiguous offset; `compare_regen_to_e1.py` diffs them against the recorded
+/// log. What the comparison establishes: the acceptance artifact's README.
 struct RegenCertificate {
     double stat_inf = 0.0, stat_scale = 0.0;
     double min_inactive_slack_rel = 0.0, min_active_multiplier = 0.0;
@@ -332,6 +353,12 @@ struct RegenCertificate {
 };
 
 inline RegenCertificate certify(const Cell &cell) {
+    if (cell.x_star.size() == 0 || cell.row_scale.size() != cell.qp.bi.size()) {
+        throw std::invalid_argument(fmt::format(
+            "e1arm::certify('{}'): the cell carries no constructed ground truth -- an anchor "
+            "is E1's own first QP and has nothing to certify against",
+            cell.spec.id));
+    }
     RegenCertificate out;
     out.active_offset = cell.active_offset;
     const Index n = cell.qp.g.size();
@@ -362,6 +389,12 @@ inline RegenCertificate certify(const Cell &cell) {
             out.min_active_multiplier = std::min(out.min_active_multiplier, cell.lambda_i_star(j));
             continue;
         }
+        if (!(cell.row_scale(j) > 0.0)) {
+            throw std::invalid_argument(fmt::format(
+                "e1arm::certify('{}'): row {} has row scale {:.17g} -- a relative margin on it "
+                "would be meaningless",
+                cell.spec.id, j, cell.row_scale(j)));
+        }
         const double rel = slack(j) / cell.row_scale(j);
         inactive_rel.push_back(rel);
         out.min_inactive_slack_rel = std::min(out.min_inactive_slack_rel, rel);
@@ -390,7 +423,11 @@ struct SolveRow {
     IpqpCounters counters;
     Index active_true = 0, active_found = 0;
     Index misclassified = 0, uncertain = 0;
-    Index rule_a = 0, rule_b = 0, rule_a_missed = 0, rule_a_false_positive = 0;
+    // NOT-SCORED IS A SENTINEL, never a zero: an anchor carries no constructed
+    // ground truth, and a silent 0 there would read as "recovered exactly".
+    static constexpr Index kNotScored = -1;
+    Index rule_a = kNotScored, rule_b = kNotScored;
+    Index rule_a_missed = kNotScored, rule_a_false_positive = kNotScored;
     double res_primal = 0.0, res_dual = 0.0, res_comp = 0.0, x_err_inf = -1.0;
     double wall_s = 0.0;
 };
@@ -413,6 +450,12 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
     const IpqpResult r = tier.solve(cell.qp, nullptr, iopts, SolveOverrides{});
     row.wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
+    if (static_cast<Index>(r.ineq_face.size()) != row.mi) {
+        throw std::invalid_argument(
+            fmt::format("e1arm::solve('{}'): the engine returned {} face entries for {} "
+                        "inequality rows",
+                        cell.spec.id, r.ineq_face.size(), row.mi));
+    }
     row.status = r.status;
     row.counters = r.counters;
     std::vector<char> truth(static_cast<std::size_t>(row.mi), 0);
@@ -455,6 +498,10 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
     // A4 table is comparable with the artifact's CSV columns. Rule A's
     // absolute 1e-8 threshold is the artifact the ratio rule exists to retire.
     if (cell.row_scale.size() == row.mi) {
+        row.rule_a = 0;
+        row.rule_b = 0;
+        row.rule_a_missed = 0;
+        row.rule_a_false_positive = 0;
         double dual_scale = 1.0;
         if (r.lambda_i.size() > 0) {
             dual_scale = std::max(1.0, r.lambda_i.lpNorm<Eigen::Infinity>());

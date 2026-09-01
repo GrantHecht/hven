@@ -156,6 +156,12 @@ endif()
 # phase gate. See the banners in test_scale_problems.cpp, test_scale_smoke.cpp
 # and test_warm_start_battery.cpp for each member's measured cost and why a
 # per-commit-excluded assertion is one nobody watches by default.
+# The A4 record test reads the COMMITTED gate CSV rather than re-running the
+# 40-minute sweep, so it needs the artifact's path at compile time (the same
+# device HVEN_SQP_CORPUS_BINARY uses for the corpus subprocess tests).
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_A4_GATE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../docs/notes/data/2026-08-m6-w1-acceptance/a4-gate-shipped-defaults.csv")
+
 gtest_discover_tests(hven_sqp_tests
     TEST_FILTER "-ScaleF7Slow.*"
     DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})

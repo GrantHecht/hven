@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -812,9 +813,9 @@ TEST(IpqpAcceptanceCensus, TheNaturalStallIsChargedToASubproblemThatNeverArmedTh
            "charged an armed run (T4b C7)";
 }
 
-// A4 -- the E1 taxonomy arm's in-tree gate. The sweep itself is
-// bench/hven_sqp_ipqp_e1_arm (tens of minutes at nx = 1e5); registered here is
-// that the arm builds the cells E1 ran, from E1's own seeds.
+// A4 -- NOT the acceptance gate. The gate is the `a4_gate` ctest entry
+// (`hven_sqp_ipqp_e1_arm --gate`), which is RED today; these three record the
+// taxonomy, the arm's mechanics, and the committed gate CSV's own scoring.
 
 TEST(IpqpAcceptanceA4, TheArmsTaxonomyIsE1sOwnTwentyNineCellsWithTheSweepScriptsSeeds) {
     const std::vector<e1arm::CellSpec> cells = e1arm::taxonomy();
@@ -845,10 +846,10 @@ TEST(IpqpAcceptanceA4, TheArmsTaxonomyIsE1sOwnTwentyNineCellsWithTheSweepScripts
     EXPECT_EQ(anchors, 2);
 }
 
-TEST(IpqpAcceptanceA4, AContiguousCellIsBuiltAtAnLicqAdmissibleOffsetAndTheTierRecoversItsBlock) {
-    // The taxonomy's own sizes cost minutes to build; this is the same
-    // `build()` path at a size a test can afford, which is what makes the
-    // contiguous branch (the LICQ offset search) a covered branch.
+TEST(IpqpAcceptanceA4, ATwoHundredNodeSmokeOfTheArmsMechanicsWhichIsNotTheGate) {
+    // A SMOKE OF THE MECHANICS, not acceptance: a 200-node cell that is NOT in
+    // the taxonomy, run so the contiguous LICQ offset search is a covered
+    // branch. A4's own verdict is the `a4_gate` entry's, and it is RED.
     e1arm::CellSpec spec;
     spec.id = "a4_gate_contiguous";
     spec.nodes = 200;
@@ -872,6 +873,114 @@ TEST(IpqpAcceptanceA4, AContiguousCellIsBuiltAtAnLicqAdmissibleOffsetAndTheTierR
     EXPECT_LT(r.counters.ipqp_iters, e1arm::kIterGate);
     EXPECT_EQ(r.misclassified, 0) << "the ratio rule recovers the block exactly at this margin";
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
+}
+
+namespace {
+
+/// One row of the committed gate CSV, reduced to the columns A4 scores on.
+struct GateRow {
+    std::string id, layout, status;
+    Index n = 0, iters = 0;
+    Index rule_a_missed = 0, rule_a_false_positive = 0;
+    double active_fraction = 0.0, margin = 0.0;
+};
+
+/// Reads the COMMITTED artifact. Throws rather than returning an empty vector:
+/// a record test that silently scores zero rows would pass by vacuity.
+std::vector<GateRow> read_committed_gate_csv() {
+    std::ifstream in(HVEN_A4_GATE_CSV);
+    if (!in) {
+        throw std::runtime_error(fmt::format("cannot open {}", HVEN_A4_GATE_CSV));
+    }
+    std::vector<std::string> header;
+    std::vector<GateRow> rows;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+        std::vector<std::string> f;
+        for (std::size_t p = 0; p <= line.size();) {
+            const std::size_t c = line.find(',', p);
+            f.push_back(line.substr(p, c == std::string::npos ? c : c - p));
+            if (c == std::string::npos) {
+                break;
+            }
+            p = c + 1;
+        }
+        if (header.empty()) {
+            header = f;
+            continue;
+        }
+        const auto at = [&](const char *name) {
+            const auto it = std::find(header.begin(), header.end(), name);
+            if (it == header.end()) {
+                throw std::runtime_error(fmt::format("gate CSV has no '{}' column", name));
+            }
+            return f.at(static_cast<std::size_t>(it - header.begin()));
+        };
+        GateRow r;
+        r.id = at("id");
+        r.layout = at("layout");
+        r.status = at("status");
+        r.n = std::stoll(at("n"));
+        r.iters = std::stoll(at("ipqp_iters"));
+        r.rule_a_missed = std::stoll(at("rule_a_missed"));
+        r.rule_a_false_positive = std::stoll(at("rule_a_false_positive"));
+        r.active_fraction = std::stod(at("active_fraction"));
+        r.margin = std::stod(at("margin_class"));
+        rows.push_back(r);
+    }
+    if (rows.empty()) {
+        throw std::runtime_error("the committed gate CSV carried no data rows");
+    }
+    return rows;
+}
+
+} // namespace
+
+TEST(IpqpAcceptanceA4, TheCommittedGateCsvScoresRedOnThreeOfFourAtTheShippedDefaults) {
+    // A RECORD of the artifact's scoring, recomputed from its raw columns --
+    // not an acceptance pass. It fails if a future edit silently moves the
+    // committed numbers, or if the arm stops writing a column A4 scores on.
+    const std::vector<GateRow> rows = read_committed_gate_csv();
+    ASSERT_EQ(rows.size(), 29u);
+
+    Index converged = 0, under_gate = 0, constructed = 0, exact = 0, anchors_not_scored = 0;
+    std::map<std::string, std::vector<std::pair<double, Index>>> tracks;
+    for (const GateRow &r : rows) {
+        converged += r.status == "optimal" ? 1 : 0;
+        under_gate += r.iters < kE1IterGate ? 1 : 0;
+        if (r.layout == "anchor") {
+            // NOT SCORED: an anchor is E1's own first QP and carries no
+            // constructed ground truth. The committed CSV predates the -1
+            // sentinel and writes 0 here -- README §2's dated correction.
+            EXPECT_TRUE(r.rule_a_missed == 0 || r.rule_a_missed == -1) << r.id;
+            ++anchors_not_scored;
+            continue;
+        }
+        ++constructed;
+        exact += (r.rule_a_missed == 0 && r.rule_a_false_positive == 0) ? 1 : 0;
+        tracks[fmt::format("{}/{}/{:.0e}", r.n, r.layout, r.margin)].emplace_back(r.active_fraction,
+                                                                                  r.iters);
+    }
+
+    EXPECT_EQ(anchors_not_scored, 2) << "both anchors carry no constructed ground truth";
+    EXPECT_EQ(converged, 14) << "A4 criterion 1 is RED: 14 of 29 converge";
+    EXPECT_EQ(under_gate, 5) << "A4 criterion 2 is RED: 5 of 29 are under 40 iterations";
+    EXPECT_EQ(constructed, 27);
+    EXPECT_EQ(exact, 1) << "A4 criterion 3 is RED: 1 of 27 CONSTRUCTED cells recovers exactly";
+
+    // Criterion 4 is the one that PASSES: iterations do not grow monotonically
+    // with the active fraction at a fixed size, layout and margin class.
+    for (auto &kv : tracks) {
+        std::sort(kv.second.begin(), kv.second.end());
+        ASSERT_EQ(kv.second.size(), 3u) << kv.first;
+        const bool strictly_up =
+            kv.second[1].second > kv.second[0].second && kv.second[2].second > kv.second[1].second;
+        EXPECT_FALSE(strictly_up) << "monotone blow-up across the active fraction at " << kv.first;
+    }
+    EXPECT_EQ(tracks.size(), 9u) << "3 margins x (2 scattered sizes + 1 contiguous size)";
 }
 
 } // namespace hven::solvers

@@ -140,12 +140,38 @@ target_compile_definitions(hven_sqp_crossover PRIVATE
 # 29 constructed cells (A4), the Q4 `ipqp_init_mu` sweep and the A13/A14 wall
 # legs. The arm lives in bench/ipqp_e1_arm.h (a header, for the same reason
 # corpus_cells.h is one: tests/sqp/test_ipqp_acceptance.cpp gates exactly this
-# implementation rather than a bench-only copy). NOT ctest-registered: one A4
-# pass at nx = 1e5 runs for tens of minutes. It stamps the same configure-time
-# git description hven_sqp_corpus does, so every CSV names its own commit.
+# implementation rather than a bench-only copy). Its `--gate` mode IS
+# ctest-registered, below, under a label the default run excludes; the sweep
+# modes are not (one A4 pass at nx = 1e5 runs for tens of minutes).
 add_executable(hven_sqp_ipqp_e1_arm ipqp_e1_arm.cpp)
 target_link_libraries(hven_sqp_ipqp_e1_arm PRIVATE hven::hven)
 target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
 target_compile_definitions(hven_sqp_ipqp_e1_arm PRIVATE
     HVEN_SQP_E1_ARM_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
+
+# HVEN_BENCH_FP_CONTRACT_OFF — the arm's MATCHED-ARITHMETIC build, and the ONLY
+# documented producer of regen-certificate-fpcontract-off.csv. E1's generator
+# compiled at plain -O3; this repository's uniform regime (CLAUDE.md §7) adds
+# FMA contraction, which moves the constructed `g` and the verifier's own
+# cancellation residual by their last bits. Turning contraction off for THIS
+# TARGET ONLY reproduces the artifact's recorded digits exactly (225/225).
+# Default OFF: the shipped arm is never built this way, and the uniform regime
+# is not weakened. Never set it for a measurement CSV other than the
+# certificate — see docs/notes/data/2026-08-m6-w1-acceptance/README.md §1.
+option(HVEN_BENCH_FP_CONTRACT_OFF
+       "Build hven_sqp_ipqp_e1_arm with -ffp-contract=off (regeneration certificate only)" OFF)
+if(HVEN_BENCH_FP_CONTRACT_OFF)
+    target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE -ffp-contract=off)
+endif()
+
+# The A4 gate, EXECUTABLE. Labelled `a4_gate` and excluded from the per-commit
+# cadence the way the other minutes-long assertions are (the documented
+# invocation is `ctest -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal`).
+# IT IS EXPECTED TO FAIL TODAY: A4 is RED at the shipped defaults, and this
+# entry is what makes that verdict executable instead of prose.
+add_test(NAME A4Gate.TheTaxonomyAtBothSizesUnderTheShippedDefaults
+         COMMAND hven_sqp_ipqp_e1_arm --gate --out
+                 "${CMAKE_CURRENT_BINARY_DIR}/a4-gate-run.csv")
+set_tests_properties(A4Gate.TheTaxonomyAtBothSizesUnderTheShippedDefaults PROPERTIES
+    LABELS "a4_gate" TIMEOUT 5400 RUN_SERIAL TRUE)

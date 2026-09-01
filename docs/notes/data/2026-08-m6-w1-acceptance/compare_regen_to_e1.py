@@ -1,5 +1,8 @@
-import re, sys, csv
-D='docs/notes/data/2026-08-m6-e1-acquisition/'
+import re, sys, csv, os
+# Resolved against THIS FILE, not the caller's cwd: the comparison must
+# give the same answer from anywhere in the tree.
+D=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+               '..', '2026-08-m6-e1-acquisition') + os.sep
 ref={}
 for log in ('KKT-VERIFICATION-full-size.log','VARIANT-CONTIGUOUS-VERIFICATION.log'):
     cur=None
@@ -38,3 +41,18 @@ for r in csv.DictReader(rows):
             nd+=1; print(f'DIFF {i}.active_offset: artifact={lay[i]} arm={r["active_offset"]}')
 print(f'cells compared: {len(rows)-1}  reference cells found: {len(rows)-1-len(miss)}  values compared: {nc}  differences: {nd}')
 if miss: print('NO REFERENCE:',miss)
+
+# EXIT NONZERO on anything that would make a green run meaningless: a
+# difference, a missing reference, a duplicate id, or an incomplete cell set.
+# 27 constructed cells; the two anchors carry no construction to certify.
+seen=[r['id'] for r in csv.DictReader(rows)]
+dupes=sorted({i for i in seen if seen.count(i)>1})
+problems=[]
+if nd: problems.append(f'{nd} value difference(s)')
+if miss: problems.append(f'{len(miss)} cell(s) with no reference: {miss}')
+if dupes: problems.append(f'duplicate id(s): {dupes}')
+if len(seen)!=27: problems.append(f'{len(seen)} rows, expected 27 constructed cells')
+if problems:
+    print('FAIL: ' + '; '.join(problems))
+    sys.exit(1)
+print('PASS: 27 constructed cells, every recorded value reproduced.')

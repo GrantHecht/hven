@@ -1,0 +1,20 @@
+# artifact: hven IPQP acceptance arm -- A13 SUBSTITUTE (M6 W1 T10 fix round 1)
+# producer: bench/bench_corpus.cpp (hven_sqp_corpus), --engine walk and --engine ipm
+# date (UTC): 2026-09-01
+# WALL-ASSERTING: SOLO, serialized, taskset -c 2, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1,
+#   one process at a time, nothing else on the machine (CLAUDE.md section 7).
+# NOT a PSIOPT-envelope re-read -- psiopt is not in this repository; substituted under
+#   the M3 phase-C plan section 12 Q6a precedent. See README.md section 5.
+# The walk column's factorizations are 1 per cell: this population is NOT the one the
+#   tier exists to help, and the ratio is not a statement about acquisition.
+engine,cell_id,status,factorizations,qp_minors,wall_s,kkt_residual
+walk,f7_n20000_bound_activity,Optimal,1,2,0.644336383,2.015847636e-15
+ipm,f7_n20000_bound_activity,Optimal,11,0,1.667118758,2.015847636e-15
+walk,f7_n20000_bound_corrupted,Optimal,1,2,0.612466389,1.838068087e-13
+ipm,f7_n20000_bound_corrupted,Optimal,13,0,1.716207069,1.838068087e-13
+walk,f7_n20000_bound_neutral,Optimal,1,2,0.645988555,1.259925399e-12
+ipm,f7_n20000_bound_neutral,Optimal,13,0,1.812015340,1.259925399e-12
+walk,f7_n20000_bound_physics,Optimal,1,2,0.650816921,2.015847636e-15
+ipm,f7_n20000_bound_physics,Optimal,11,0,1.669034668,2.015847636e-15
+walk,f7_n20000_bound_warm,Optimal,1,2,0.611409594,8.390643067e-14
+ipm,f7_n20000_bound_warm,Optimal,12,0,1.634748516,8.390643067e-14
