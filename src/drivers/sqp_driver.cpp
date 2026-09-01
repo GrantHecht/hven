@@ -1079,6 +1079,25 @@ void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     engine_.attach_ledger(ledger, label_prefix_ + "_qp");
 }
 
+void SqpDriver::attach_trace(IpqpTraceSink *sink) {
+    ipqp_trace_ = sink;
+    if (ipqp_engine_ != nullptr) {
+        ipqp_engine_->attach_trace(sink);
+    }
+}
+
+void SqpDriver::emit_trace_route(const IpqpTraceRouteEvent &event) const {
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_ipqp_route(event);
+    }
+}
+
+void SqpDriver::emit_trace_qp_mode(const QpModeTraceEvent &event) const {
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_qp_mode(event);
+    }
+}
+
 // The two model-taking overloads are wrappers. Each validates the model's box,
 // borrows it into a bridge that lives exactly as long as the call, and delegates
 // to its bridge-taking twin: the same argument checks fire in the same order
@@ -3501,6 +3520,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                  ipqp_seed->lambda_i.size() != qp.mi())) {
                 ipqp_seed = nullptr;
             }
+            // task 8: the trace `major` field -- the one fact the engine
+            // cannot know on its own (no `major` parameter on solve()).
+            ipqp_engine().set_trace_major(iter + 1);
             const IpqpResult ires = ipqp_engine().solve(qp, ipqp_seed, iopts, ipqp_overrides);
             ipqp_staged_seed_.reset();
             ipqp_analysis_epoch = seam.epoch();
@@ -3558,6 +3580,37 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 ipqp_engine().reset_warm_carry();
             }
 
+            // task 8: `ipqp.route`/`qp.mode`'s shared face facts -- the
+            // tier's own classification, valid on all three branches below
+            // (populated unconditionally at the end of solve(), escape
+            // included).
+            Index ipqp_trace_face_rows = 0;
+            Index ipqp_trace_face_bounds = 0;
+            if (ipqp_trace_ != nullptr) {
+                for (bool active : ires.ineq_active) {
+                    ipqp_trace_face_rows += active ? 1 : 0;
+                }
+                for (BoundState bs : ires.bound_state) {
+                    ipqp_trace_face_bounds += (bs != BoundState::kFree) ? 1 : 0;
+                }
+            }
+            const auto emit_ipqp_route_and_mode = [&](IpqpTraceRouteTo to,
+                                                      IpqpTraceOutcome outcome) {
+                if (ipqp_trace_ == nullptr) {
+                    return;
+                }
+                IpqpTraceRouteEvent rev;
+                rev.to = to;
+                rev.uncertain = ires.counters.ipqp_face_uncertain;
+                rev.face_rows = ipqp_trace_face_rows;
+                rev.face_bounds = ipqp_trace_face_bounds;
+                emit_trace_route(rev);
+                QpModeTraceEvent mev;
+                mev.outcome = outcome;
+                mev.iters = ires.counters.ipqp_iters;
+                emit_trace_qp_mode(mev);
+            };
+
             if (usable) {
                 // --- 2. THE TIER-3 REFINEMENT (section 2.3 item 3) ---------
                 //
@@ -3590,6 +3643,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     qs.counters.factorizations += refine_facts;
                     qs.counters.eqp_refine_steps += refine_steps;
                     ipqp_budget_charge += refine_facts;
+                    emit_ipqp_route_and_mode(IpqpTraceRouteTo::kRefine, IpqpTraceOutcome::kOptimal);
                 } else {
                     // --- 3. REFUSED -> THE SSN WARM GRADE (item 4) --------
                     ++out.counters.ipqp.ipqp_refine_refused;
@@ -3603,6 +3657,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     walk_owns_this_qp = route_through_ssn_warm_grade(
                         qp, ires, delta, ssn_prox_ingested, ssn_budget_charge, out.counters, qs);
                     ipqp_chain_owns_the_step = !walk_owns_this_qp;
+                    emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
                 }
             } else if (ires.escape_reason == IpqpEscape::kIndefinite) {
                 // --- 4. SADDLE-SUSPECT -> THE SSN WARM GRADE (item 4) -----
@@ -3616,6 +3671,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 walk_owns_this_qp = route_through_ssn_warm_grade(
                     qp, ires, delta, ssn_prox_ingested, ssn_budget_charge, out.counters, qs);
                 ipqp_chain_owns_the_step = !walk_owns_this_qp;
+                emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
             } else {
                 // --- 5. A GENUINE ESCAPE -> THE WALK, COLD (item 5) -------
                 //
@@ -3635,6 +3691,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 charge_ipqp_subproblem_cost(out.counters, ires);
                 qs = certified_feasibility_fallback(engine_, qp, ev, have_seed ? &seed : nullptr,
                                                     ires.infeasibility_evidence, overrides, row);
+                emit_ipqp_route_and_mode(IpqpTraceRouteTo::kWalk, IpqpTraceOutcome::kEscaped);
             }
             break;
         }
@@ -4217,6 +4274,10 @@ SsnOptions SqpDriver::ssn_options(double prox_sigma_init) const {
 IpqpEngine &SqpDriver::ipqp_engine() {
     if (ipqp_engine_ == nullptr) {
         ipqp_engine_ = std::make_unique<IpqpEngine>(opts_.qp);
+        // task 8: apply the standing trace attachment (a no-op when unset)
+        // now that the engine exists -- `attach_trace` cannot reach an engine
+        // that has not been constructed yet.
+        ipqp_engine_->attach_trace(ipqp_trace_);
     }
     return *ipqp_engine_;
 }

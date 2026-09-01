@@ -125,6 +125,17 @@
 
 namespace hven::solvers {
 
+// Forward-declared, not included: ipqp_trace.h (task 8, the W4 hook) needs
+// IpqpStallEvidence/IpqpInfeasibilityEvidence FROM this header, so this
+// header cannot include that one back. `IpqpEngine` only needs a pointer and
+// const-reference parameters, which a forward declaration satisfies.
+class IpqpTraceSink;
+struct IpqpTraceIterEvent;
+struct IpqpTraceRegEvent;
+struct IpqpTraceRestartEvent;
+struct IpqpTraceCertifyEvent;
+struct IpqpTraceEscapeEvent;
+
 namespace detail {
 
 // ===========================================================================
@@ -971,6 +982,25 @@ class IpqpEngine {
     /// `IpqpCounters` travel on `IpqpResult`, never through this projection.
     void attach_ledger(Ledger *ledger, std::string label_prefix);
 
+    /// Attach a trace sink for the W4 machine-trace hook (task 8; spec
+    /// section 7; nullptr = off, default off). Five of the seven schema v0
+    /// event points are emitted here (`ipqp.iter/.reg/.restart/.certify/
+    /// .escape`); `ipqp.route`/`qp.mode` are the driver's
+    /// (`sqp_driver.h::attach_trace`), because the engine has no notion of
+    /// refine/ssn/walk or of the driver's own dispatch outcome.
+    void attach_trace(IpqpTraceSink *sink);
+
+    /// The SQP major the NEXT solve() call belongs to, for the trace's
+    /// `major` field only -- the engine has no other way to know it (no
+    /// `major` parameter on solve() itself). 0 (default) outside a driver.
+    void set_trace_major(Index major);
+
+    /// The trace `solve` id the most recently completed solve() call used
+    /// (0 if none has run with a sink attached), so a caller emitting its
+    /// OWN events for that same subproblem (the driver's route/qp.mode) can
+    /// correlate them with this engine's own stream.
+    Index last_trace_solve_id() const;
+
     /// @brief Solve `qp` by the interior-point tier.
     ///
     /// @param qp        the subproblem. Validated (`QpProblem::validate`).
@@ -1036,6 +1066,22 @@ class IpqpEngine {
     Ledger *ledger_ = nullptr;
     std::string label_prefix_;
     Index solve_counter_ = 0;
+
+    // --- task 8: the W4 trace hook -----------------------------------------
+    IpqpTraceSink *trace_ = nullptr;
+    Index trace_major_ = 0;
+    Index trace_solve_counter_ = 0;
+    Index last_trace_solve_id_ = 0;
+
+    // Five named private emit sites (task 8): one no-op-when-unattached call
+    // each, so the call SITE inside solve() only ever builds an event struct
+    // and hands it here. `ipqp.route`/`qp.mode` are the driver's own, for the
+    // reason attach_trace's doc comment gives.
+    void emit_trace_iter(const IpqpTraceIterEvent &event) const;
+    void emit_trace_reg(const IpqpTraceRegEvent &event) const;
+    void emit_trace_restart(const IpqpTraceRestartEvent &event) const;
+    void emit_trace_certify(const IpqpTraceCertifyEvent &event) const;
+    void emit_trace_escape(const IpqpTraceEscapeEvent &event) const;
 };
 
 /// @brief THE SECTION 6.1 ESCAPE LADDER: K consecutive escapes retire the tier

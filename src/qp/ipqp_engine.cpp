@@ -76,6 +76,7 @@
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/detail/qp/ipqp_math.h>
+#include <hven/detail/qp/ipqp_trace.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
 
@@ -747,6 +748,44 @@ void IpqpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
     solve_counter_ = 0;
 }
 
+void IpqpEngine::attach_trace(IpqpTraceSink *sink) {
+    trace_ = sink;
+    trace_solve_counter_ = 0;
+}
+
+void IpqpEngine::set_trace_major(Index major) { trace_major_ = major; }
+
+Index IpqpEngine::last_trace_solve_id() const { return last_trace_solve_id_; }
+
+// task 8: five no-op-when-unattached emit sites, one per event this engine
+// owns. Each call site guards the STRUCT BUILD too, not just this call, so
+// an unattached sink costs one pointer compare per event point.
+void IpqpEngine::emit_trace_iter(const IpqpTraceIterEvent &event) const {
+    if (trace_ != nullptr) {
+        trace_->on_ipqp_iter(event);
+    }
+}
+void IpqpEngine::emit_trace_reg(const IpqpTraceRegEvent &event) const {
+    if (trace_ != nullptr) {
+        trace_->on_ipqp_reg(event);
+    }
+}
+void IpqpEngine::emit_trace_restart(const IpqpTraceRestartEvent &event) const {
+    if (trace_ != nullptr) {
+        trace_->on_ipqp_restart(event);
+    }
+}
+void IpqpEngine::emit_trace_certify(const IpqpTraceCertifyEvent &event) const {
+    if (trace_ != nullptr) {
+        trace_->on_ipqp_certify(event);
+    }
+}
+void IpqpEngine::emit_trace_escape(const IpqpTraceEscapeEvent &event) const {
+    if (trace_ != nullptr) {
+        trace_->on_ipqp_escape(event);
+    }
+}
+
 IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const IpqpOptions &iopts,
                              const SolveOverrides &overrides) {
     // --- boundary validation (CLAUDE.md section 4) -------------------------
@@ -778,6 +817,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     }
 
     IpqpResult out;
+
+    // task 8: this solve's trace `solve` id, numbered like `emit_ledger`'s
+    // label counter (advanced only while a sink is attached, so re-attaching
+    // restarts the numbering exactly as attach_ledger's own counter does).
+    const Index trace_solve_id = trace_solve_counter_;
+    if (trace_ != nullptr) {
+        ++trace_solve_counter_;
+    }
+    last_trace_solve_id_ = trace_solve_id;
 
     // ONE ROW PER NON-THROWING SOLVE, and that includes a DECLINE (I9). The
     // emitter lives here, above the domain gate, because the gate returns
@@ -1181,11 +1229,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         (void)clamp_mu0(sd.mu);
     };
 
+    // task 8: the seed's OWN `mu`, captured before any repair touches it --
+    // the trace's `mu_payload` field (`ipqp.restart`, emitted near this
+    // solve's end once `mu0`/the repair counters are all final too).
+    double trace_payload_mu = 0.0;
+
     // COPIED FIRST: the driver hands this call `warm_carry()`, a pointer into
     // this instance, and the commit at the end of the solve writes that same
     // object.
     if (started_warm) {
         const IpqpSeed seed_copy = *seed;
+        trace_payload_mu = seed_copy.mu;
         if (iopts.ipqp_warm_repair) {
             out.restart_grade = seed_copy.grade;
             warm_start_from(seed_copy);
@@ -2030,6 +2084,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     // ("wrong OR evidence-invalid", fix round 1's M2).
                     ++out.counters.ipqp_inertia_retries;
                     ++out.counters.ipqp_reg_increases;
+                    // task 8: `ipqp.reg`, the evidence-failure conservative
+                    // floor -- the one increase reason with no ladder rung
+                    // behind it.
+                    if (trace_ != nullptr) {
+                        IpqpTraceRegEvent ev;
+                        ev.dir = IpqpTraceRegDir::kUp;
+                        ev.rho = rho_sched + floored;
+                        ev.delta = delta;
+                        ev.reason = IpqpTraceRegReason::kFloor;
+                        emit_trace_reg(ev);
+                    }
                     rho_dem = floored;
                     write_diagonals(rho_sched, rho_dem, delta);
                     continue;
@@ -2194,6 +2259,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
             ++out.counters.ipqp_inertia_retries;
             ++out.counters.ipqp_reg_increases;
+            // task 8: `ipqp.reg`, the ladder's own climb -- covers both the
+            // primal and the perturbed-pivot dual route; the unmoved
+            // quantity reports its unchanged value.
+            if (trace_ != nullptr) {
+                IpqpTraceRegEvent ev;
+                ev.dir = IpqpTraceRegDir::kUp;
+                ev.rho = rho_sched + rho_dem;
+                ev.delta = delta;
+                ev.reason = IpqpTraceRegReason::kInertia;
+                emit_trace_reg(ev);
+            }
             // (The emergency `> 2 * fact_budget` guard that used to sit here
             // went with fix round 1's I6: `factorize_once` now refuses a
             // factorization the budget cannot pay for, so the ladder can no
@@ -2594,6 +2670,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // tests pin the EXACT accounting rather than the inequality.
                 if (moved) {
                     ++out.counters.ipqp_reg_decreases;
+                    // task 8: `ipqp.reg`, the section 3.2 gate's own
+                    // decrease. Reported at rho_sched/delta_sched alone
+                    // (rho_dem is 0 outside the ladder, which this gate never
+                    // touches).
+                    if (trace_ != nullptr) {
+                        IpqpTraceRegEvent ev;
+                        ev.dir = IpqpTraceRegDir::kDown;
+                        ev.rho = rho_sched;
+                        ev.delta = delta_sched;
+                        ev.reason = IpqpTraceRegReason::kAccept;
+                        emit_trace_reg(ev);
+                    }
                 }
                 w.zeta = w.x;
                 w.lam_est_e = w.ye;
@@ -2798,6 +2886,35 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         ++out.counters.ipqp_iters;
         ++attempt_accepted; // R1: this attempt's own accepted-step count.
         rho_dem_final = rho_dem;
+
+        // task 8: `ipqp.iter`, one per completed predictor+corrector pair.
+        // `kkt_.inertia_evidence()` is the just-accepted factorization's own
+        // cached reading (an accessor, not a re-factorization), so this costs
+        // nothing beyond what the iteration already paid.
+        if (trace_ != nullptr) {
+            const hven::linear::InertiaEvidence &iev = kkt_.inertia_evidence();
+            IpqpTraceIterEvent ev;
+            ev.solve = trace_solve_id;
+            ev.major = trace_major_;
+            ev.it = out.counters.ipqp_iters;
+            ev.mu = mu_meas;
+            ev.rho = rho_sched + rho_dem;
+            ev.delta = delta;
+            ev.res_p = std::max(res.primal_eq, res.primal_iq);
+            ev.res_d = res.stationarity;
+            ev.res_c = res.complementarity;
+            ev.sigma = sigma_m;
+            ev.alpha_p = alpha_p;
+            ev.alpha_d = alpha_d;
+            if (iev.state == hven::linear::InertiaEvidence::State::kObserved) {
+                ev.inertia_pos = iev.n_pos;
+                ev.inertia_neg = iev.n_neg;
+                ev.inertia_zero = iev.n_zero;
+                ev.zero_derived = iev.zero_is_derived;
+                ev.perturbed = iev.perturbed_pivots.has_value() && *iev.perturbed_pivots != 0;
+            }
+            emit_trace_iter(ev);
+        }
         if (elevated) {
             ++out.counters.ipqp_iters_at_elevated_rho;
             if (out.counters.ipqp_prox_center_updates == prox_updates_pre) {
@@ -2977,6 +3094,37 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // counters left populated. See `.superpowers/w1-t4c-report.md`.
     out.read_kept_tight = kept_tight_raw && !out.certificate_downgraded;
 
+    // task 8: `ipqp.restart`/`ipqp.certify`, emitted here because every fact
+    // either needs is already final by this point -- see the report for why
+    // that lets one place read them rather than threading a partial event.
+    if (trace_ != nullptr) {
+        IpqpTraceRestartEvent rev;
+        rev.grade = out.restart_grade == IpqpRestartGrade::kFullWarm ? IpqpTraceRestartGrade::kFull
+                    : out.restart_grade == IpqpRestartGrade::kBaseWarm
+                        ? IpqpTraceRestartGrade::kBase
+                        : IpqpTraceRestartGrade::kCold;
+        rev.repaired = out.counters.ipqp_restart_repairs != 0;
+        rev.shift_p = out.counters.ipqp_restart_shift_max;
+        rev.shift_d = out.counters.ipqp_restart_shift_max; // see this struct's own doc comment.
+        rev.mu0 = mu0;
+        rev.mu_payload = trace_payload_mu;
+        rev.adopted = out.counters.ipqp_mu_adopted != 0;
+        rev.abandoned = out.counters.ipqp_warm_restart_abandoned != 0;
+        emit_trace_restart(rev);
+    }
+    // `ipqp.certify` fires only when a read was actually attempted -- schema
+    // v0's `final_inertia` has no "not performed" value, matching
+    // `ipqp_final_inertia_read`'s 0/1/2 states and excluding its `3`.
+    if (trace_ != nullptr && converged && out.counters.ipqp_final_inertia_read != 3) {
+        IpqpTraceCertifyEvent cev;
+        cev.final_inertia = out.counters.ipqp_final_inertia_read == 0 ? IpqpTraceFinalInertia::kOk
+                            : out.counters.ipqp_final_inertia_read == 1
+                                ? IpqpTraceFinalInertia::kWrong
+                                : IpqpTraceFinalInertia::kUnreadable;
+        cev.downgraded = out.certificate_downgraded;
+        emit_trace_certify(cev);
+    }
+
     // --- outcome ----------------------------------------------------------
 
     out.escape_reason = escape;
@@ -3050,6 +3198,34 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         ++out.counters.ipqp_escapes;
         ++out.counters.ipqp_escape_infeasible_suspect;
         break;
+    }
+
+    // task 8: `ipqp.escape`, one per genuine escape -- `kNone` (clean or
+    // downgraded-without-escape) never fires it, matching the census above.
+    if (trace_ != nullptr && out.escape_reason != IpqpEscape::kNone) {
+        IpqpTraceEscapeEvent eev;
+        switch (out.escape_reason) {
+        case IpqpEscape::kNone:
+            break; // unreachable (guarded above); silences -Wswitch.
+        case IpqpEscape::kBudget:
+            eev.reason = IpqpTraceEscapeReason::kBudget;
+            break;
+        case IpqpEscape::kStall:
+            eev.reason = IpqpTraceEscapeReason::kStall;
+            break;
+        case IpqpEscape::kIndefinite:
+            eev.reason = IpqpTraceEscapeReason::kIndefinite;
+            break;
+        case IpqpEscape::kNumerical:
+            eev.reason = IpqpTraceEscapeReason::kNumerical;
+            break;
+        case IpqpEscape::kInfeasibleSuspect:
+            eev.reason = IpqpTraceEscapeReason::kInfeasibleSuspect;
+            break;
+        }
+        eev.stall = out.stall_evidence;
+        eev.infeasibility = out.infeasibility_evidence;
+        emit_trace_escape(eev);
     }
 
     out.x = w.x;
