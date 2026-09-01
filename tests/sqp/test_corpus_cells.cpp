@@ -1394,6 +1394,22 @@ TEST(CorpusRunnerProcess, FromCsvAcceptsBothSchemasAndCallsAnAbsentCensusAbsent)
     std::remove(merged.c_str());
 }
 
+TEST(CorpusRunnerProcess, FromCsvRefusesAWidthThatIsNoKnownSchema) {
+    // M6 W1 T9 FIX ROUND 1 (Codex 2). A `>=`-style generation test read any
+    // width in [38, 75] as schema 37 and DISCARDED its partial IPQP tail,
+    // re-emitting all 39 counters as absent. Exact widths only, or refuse.
+    const std::string partial = runner_test::temp_path("corpus_partial_tail.csv");
+    {
+        std::ofstream out(partial);
+        out << "f7_n1000_path_warm,F7,1000,path,warm,0,Optimal,3,12,0,2,1;2,1.0e-10,0.1,"
+               "ok,1e-10,1e-10,0.0,1e-10,1.0,1.0,0,0,0,0,0,0,0,0,0,0,"
+               "0,0,0,0,0,0,7\n";
+    }
+    EXPECT_NE(runner_test::run_binary(fmt::format("--from-csv {} --score-gates", partial)), 0)
+        << "38 fields is neither schema 37 nor schema 76 and must not be scored";
+    std::remove(partial.c_str());
+}
+
 TEST(CorpusRunnerProcess, FromCsvRejectsACensusThatDoesNotPartitionTheEscapeCount) {
     // Same contract as the qp_subproblems and kkt_verdict checks above: an
     // artifact whose own numbers contradict each other is refused, not scored.

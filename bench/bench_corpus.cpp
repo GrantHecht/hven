@@ -512,8 +512,8 @@ std::vector<const CorpusCell *> resolve_cells(const std::string &spec) {
 // PINNED evidence; they keep reading and re-scoring through this same reader,
 // which treats each tail as optional and reports the absent census as `-1`
 // (ABSENT, not zero -- the same convention every other absent column uses).
-// The provenance header of a NEW artifact records `schema: 37` so a reader
-// never has to count commas to know which generation it holds.
+// The provenance header of a NEW artifact records its schema width (76 since
+// M6 W1 T9) so a reader never has to count commas to know its generation.
 constexpr int kTask6bColumns = 37;
 
 // M6 W1 T9: THIRTY-NINE MORE on the same optional-tail contract -- all of
@@ -551,11 +551,9 @@ void write_provenance(std::ostream &os, int argc, char **argv, const EngineLever
     }
     os << "# hven_sqp_corpus provenance\n";
     os << fmt::format("# binary: {}\n", HVEN_SQP_CORPUS_GIT_DESCRIBE);
-    // PHASE-7 TASK 6b: the CSV SCHEMA GENERATION, stated rather than counted.
-    // 14 = Task 1's baseline, 31 = Task 6's KKT gate + SSN counters, 37 = this
-    // task's escape-reason census. The reader accepts all three; the committed
-    // 14- and 31-column artifacts are pinned evidence and are NOT regenerated,
-    // so an artifact without this line is one of those two older generations.
+    // THE SCHEMA GENERATION, stated rather than counted: 14, 31, 37 and (T9)
+    // 76, which the reader accepts AT EXACTLY THOSE WIDTHS. The older
+    // committed artifacts are pinned evidence and are NOT regenerated.
     os << fmt::format("# schema: {}\n", kIpqpColumns);
     os << fmt::format("# budget_table_hash: {:#018x}\n", budget_table_hash());
     os << fmt::format("# invocation: {}\n", invocation);
@@ -853,12 +851,22 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
         // artifact (14 columns, the committed walk baseline) reads exactly as
         // it always did and gets `unchecked` for the Task-6 tail -- see
         // write_header's own note on why the tail is appended, not interleaved.
-        const bool has_task6_tail = col.size() >= static_cast<std::size_t>(kAllColumns);
-        const bool has_task6b_tail = col.size() >= static_cast<std::size_t>(kTask6bColumns);
-        const bool has_ipqp_tail = col.size() >= static_cast<std::size_t>(kIpqpColumns);
-        if (col.size() < static_cast<std::size_t>(kTask1Columns)) {
-            col.resize(static_cast<std::size_t>(kTask1Columns));
+        // EXACT WIDTH PER GENERATION (fix round 1, Codex 2): a `>=` test read a
+        // 38-to-75-column row as schema 37 and silently DISCARDED its partial
+        // IPQP tail, re-emitting all 39 counters as absent `-1`.
+        const std::size_t width = col.size();
+        if (width != static_cast<std::size_t>(kTask1Columns) &&
+            width != static_cast<std::size_t>(kAllColumns) &&
+            width != static_cast<std::size_t>(kTask6bColumns) &&
+            width != static_cast<std::size_t>(kIpqpColumns)) {
+            throw std::invalid_argument(fmt::format(
+                "{}: {} fields is not a known corpus CSV schema (14, 31, 37 or {}) -- a partial "
+                "tail must never be scored",
+                where, width, kIpqpColumns));
         }
+        const bool has_task6_tail = width >= static_cast<std::size_t>(kAllColumns);
+        const bool has_task6b_tail = width >= static_cast<std::size_t>(kTask6bColumns);
+        const bool has_ipqp_tail = width >= static_cast<std::size_t>(kIpqpColumns);
         const CorpusCell *cell = find_cell(col[0]);
         if (cell == nullptr) {
             throw std::invalid_argument(fmt::format(
