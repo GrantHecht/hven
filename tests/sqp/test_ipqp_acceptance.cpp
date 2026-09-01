@@ -43,6 +43,10 @@ constexpr Index kE1IterGate = 40;
 constexpr Index kA2Iters = 18;
 constexpr Index kA2Factorizations = 19;
 
+/// A5's, likewise.
+constexpr Index kA5Iters = 11;
+constexpr Index kA5Factorizations = 12;
+
 QpOptions tight_opts() {
     QpOptions o;
     o.tr_radius = std::numeric_limits<double>::infinity();
@@ -426,6 +430,12 @@ TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
     RecordProperty("a5_iters", static_cast<int>(r.counters.ipqp_iters));
     RecordProperty("a5_factorizations", static_cast<int>(r.counters.ipqp_factorizations));
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("a5_accelerate", "UNOBSERVED -- the exact trajectory is MKL-only");
+#else
+    EXPECT_EQ(r.counters.ipqp_iters, kA5Iters);
+    EXPECT_EQ(r.counters.ipqp_factorizations, kA5Factorizations);
+#endif
 
     QpEngine walk(tight_opts());
     const QpSolution w = walk.solve(qp);
