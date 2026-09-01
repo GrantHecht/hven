@@ -199,6 +199,52 @@ const hven::linear::InertiaEvidence &evidence_for_read([[maybe_unused]] const Kk
     return kkt.inertia_evidence();
 }
 
+#ifdef HVEN_TESTING
+/// The two M6 W1 T9 OBSERVERS, on the same seam as `evidence_for_read`. Both
+/// they and their call sites are `#ifdef`-guarded, so the production build
+/// carries neither the code nor the call.
+void capture_first_iterate(const Vec &x, const Vec &s, const Vec &ye, const Vec &yi, const Vec &zl,
+                           const Vec &zu, double mu) {
+    using Obs = detail::testing::IpqpFirstIterateObserver;
+    if (!Obs::active || Obs::captures > 0) {
+        return;
+    }
+    ++Obs::captures;
+    Obs::x = x;
+    Obs::s = s;
+    Obs::ye = ye;
+    Obs::yi = yi;
+    Obs::zl = zl;
+    Obs::zu = zu;
+    Obs::mu = mu;
+}
+
+/// Gate 9's per-step form: the Newton DIRECTION's inf-norm beside the
+/// regularized residual at the iterate the step is taken from. A direction
+/// that vanishes where the gate still says "not converged" is a freeze.
+void observe_accepted_step(const Vec &dx, const Vec &ds, const Vec &dye, const Vec &dyi,
+                           const Vec &dzl, const Vec &dzu, double res_worst, bool met_target) {
+    using Obs = detail::testing::IpqpStepObserver;
+    if (!Obs::active) {
+        return;
+    }
+    double step_inf = 0.0;
+    for (const Vec *v : {&dx, &ds, &dye, &dyi, &dzl, &dzu}) {
+        if (v->size() > 0) {
+            step_inf = std::max(step_inf, v->template lpNorm<Eigen::Infinity>());
+        }
+    }
+    ++Obs::steps;
+    Obs::last_step_inf = step_inf;
+    Obs::last_res = res_worst;
+    if (step_inf < Obs::min_step_inf) {
+        Obs::min_step_inf = step_inf;
+        Obs::res_at_min_step = res_worst;
+        Obs::met_target_at_min_step = met_target;
+    }
+}
+#endif // HVEN_TESTING
+
 /// THE SECTION 6.3 FARKAS CORROBORATION -- one matvec plus O(m + n), no
 /// factorization.
 ///
@@ -2433,6 +2479,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                       step_to_boundary(w.zu, dzu, tau, n)});
     };
 
+#ifdef HVEN_TESTING
+    capture_first_iterate(w.x, w.s, w.ye, w.yi, w.zl, w.zu, mu_meas);
+#endif
+
     // --- the iteration (spec 3.1) -----------------------------------------
 
     for (;;) {
@@ -2867,6 +2917,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             prev_mu = mu_meas;
             have_prev_accepted = true;
         }
+
+#ifdef HVEN_TESTING
+        observe_accepted_step(w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu, out.residuals.worst(),
+                              ipqp_residuals_meet_target(out.residuals, opts_, iopts));
+#endif
 
         // 4. THE STEP. No line search: globalization is fraction-to-boundary
         //    and nothing else (spec 3.1 item 3).

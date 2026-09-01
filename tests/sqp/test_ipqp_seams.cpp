@@ -31,11 +31,14 @@
 #include <optional>
 #include <vector>
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/detail/qp/ipqp_trace.h>
+
+#include "support/indefinite_fixtures.h"
 
 namespace hven::solvers {
 namespace {
@@ -43,6 +46,8 @@ namespace {
 using hven::linear::InertiaEvidence;
 using Injector = detail::testing::IpqpInertiaEvidenceInjector;
 using Observer = detail::testing::IpqpInertiaReadObserver;
+using FirstIterate = detail::testing::IpqpFirstIterateObserver;
+using StepObserver = detail::testing::IpqpStepObserver;
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
@@ -177,10 +182,14 @@ class IpqpSeamTest : public ::testing::Test {
     void SetUp() override {
         Injector::reset();
         Observer::reset();
+        FirstIterate::reset();
+        StepObserver::reset();
     }
     void TearDown() override {
         Injector::reset();
         Observer::reset();
+        FirstIterate::reset();
+        StepObserver::reset();
     }
 };
 
@@ -738,6 +747,158 @@ TEST_F(IpqpSeamTest, AnUnavailableMidSolveReadingReachesTheTraceAsAbsentAndNeigh
         << "the iteration before the injected one used a real read";
     EXPECT_TRUE(sink.iters[*absent_index + 1].inertia.has_value())
         << "the iteration after the injected one used a real read";
+}
+
+// ---------------------------------------------------------------------------
+// T9 item 8 -- the first-iterate observer: T7's staged-split proof, bitwise.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// A seed built from a real converged solve of the same QP, so every component
+/// is a point the tier itself produced.
+IpqpSeed seed_from(const IpqpResult &r) {
+    IpqpSeed seed;
+    seed.x = r.x;
+    seed.s = r.s;
+    seed.lambda_e = r.lambda_e;
+    seed.lambda_i = r.lambda_i;
+    seed.zl = r.zl;
+    seed.zu = r.zu;
+    seed.mu = r.mu;
+    seed.zeta = r.x;
+    seed.lambda_est_e = r.lambda_e;
+    seed.lambda_est_i = r.lambda_i;
+    seed.grade = IpqpRestartGrade::kFullWarm;
+    return seed;
+}
+
+struct CapturedIterate {
+    Vec x, s, ye, yi, zl, zu;
+    double mu = 0.0;
+};
+
+CapturedIterate stage_once(const QpProblem &qp, const IpqpSeed &seed) {
+    FirstIterate::reset();
+    FirstIterate::active = true;
+    IpqpEngine tier(tight_opts());
+    (void)tier.solve(qp, &seed, IpqpOptions{}, SolveOverrides{});
+    CapturedIterate c;
+    c.x = FirstIterate::x;
+    c.s = FirstIterate::s;
+    c.ye = FirstIterate::ye;
+    c.yi = FirstIterate::yi;
+    c.zl = FirstIterate::zl;
+    c.zu = FirstIterate::zu;
+    c.mu = FirstIterate::mu;
+    FirstIterate::reset();
+    return c;
+}
+
+void expect_bitwise_equal(const Vec &a, const Vec &b, const char *what) {
+    ASSERT_EQ(a.size(), b.size()) << what;
+    for (Index i = 0; i < a.size(); ++i) {
+        EXPECT_EQ(a(i), b(i)) << what << " component " << i;
+    }
+}
+
+} // namespace
+
+TEST_F(IpqpSeamTest, StagingOneSeedTwiceFromColdGivesABitwiseIdenticalFirstIterate) {
+    // M5 R5 / spec A8, now asserted on the ITERATE rather than through T7's
+    // zero-repair invariant: the observer is the only thing that can see it.
+    const QpProblem qp = convex_qp();
+    IpqpEngine cold(tight_opts());
+    const IpqpResult base = cold.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(base.status, QpStatus::kOptimal);
+
+    const IpqpSeed seed = seed_from(base);
+    const CapturedIterate a = stage_once(qp, seed);
+    const CapturedIterate b = stage_once(qp, seed);
+
+    ASSERT_GT(a.x.size(), 0) << "non-vacuity: the observer really fired";
+    expect_bitwise_equal(a.x, b.x, "x");
+    expect_bitwise_equal(a.s, b.s, "s");
+    expect_bitwise_equal(a.ye, b.ye, "lambda_e");
+    expect_bitwise_equal(a.yi, b.yi, "lambda_i");
+    expect_bitwise_equal(a.zl, b.zl, "zl");
+    expect_bitwise_equal(a.zu, b.zu, "zu");
+    EXPECT_EQ(a.mu, b.mu);
+}
+
+TEST_F(IpqpSeamTest, AnUnrepairedSeedReachesTheFirstIterateWithItsBoundDualsUNTOUCHED) {
+    // The claim T7 could only make through repair counters: the first
+    // iterate's zl/zu ARE the seed's, bit for bit, no signed-z flattening. A
+    // MID-PATH seed, because at convergence the repair legitimately fires.
+    const QpProblem qp = convex_qp();
+    IpqpOptions short_run;
+    short_run.ipqp_hard_iter_cap = 3;
+    IpqpEngine cold(tight_opts());
+    const IpqpResult base = cold.solve(qp, nullptr, short_run, SolveOverrides{});
+    ASSERT_GT(base.counters.ipqp_iters, 0);
+
+    const IpqpSeed seed = seed_from(base);
+    FirstIterate::reset();
+    FirstIterate::active = true;
+    IpqpOptions no_repair;
+    no_repair.ipqp_warm_repair = false;
+    IpqpEngine warm(tight_opts());
+    const IpqpResult r = warm.solve(qp, &seed, no_repair, SolveOverrides{});
+    ASSERT_EQ(FirstIterate::captures, 1);
+    // Repair OFF still VALIDATES (T7 ruling R1), so a full-warm grade here is
+    // the proof the seed was consumed rather than degraded to cold.
+    ASSERT_EQ(r.restart_grade, IpqpRestartGrade::kFullWarm);
+    ASSERT_EQ(r.counters.ipqp_restart_repairs, 0);
+    expect_bitwise_equal(FirstIterate::zl, seed.zl, "zl");
+    expect_bitwise_equal(FirstIterate::zu, seed.zu, "zu");
+}
+
+// ---------------------------------------------------------------------------
+// T9 item 9 -- gate 9's PER-STEP form (T4b C8/I6).
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// Gate 9's floor. A Newton direction below this at a non-converged iterate is
+/// a fixed point of the executed map that the stopping gate cannot see -- the
+/// shape mechanism 4's freeze had.
+constexpr double kGate9StepFloor = 1e-12;
+
+} // namespace
+
+TEST_F(IpqpSeamTest, NoAcceptedStepIsAFixedPointTheStoppingGateCannotSee) {
+    struct Row {
+        const char *name;
+        QpProblem qp;
+    };
+    std::vector<Row> rows;
+    rows.push_back({"convex", convex_qp()});
+    rows.push_back({"weakly_active_indefinite", weakly_active_indefinite_qp(1e-5, 1.0)});
+    rows.push_back({"armed_saddle", armed_saddle_qp()});
+    rows.push_back({"indefinite_equality", test_support::indefinite_equality_qp()});
+    rows.push_back({"indefinite_equality_and_row", test_support::indefinite_equality_and_row_qp()});
+    rows.push_back({"two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()});
+
+    for (Row &row : rows) {
+        SCOPED_TRACE(row.name);
+        StepObserver::reset();
+        StepObserver::active = true;
+        IpqpEngine tier(tight_opts());
+        (void)tier.solve(row.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+
+        EXPECT_GT(StepObserver::steps, 0) << "non-vacuity: steps were observed";
+        RecordProperty(row.name,
+                       fmt::format("steps={} min_step={:.6e} res={:.6e}", StepObserver::steps,
+                                   StepObserver::min_step_inf, StepObserver::res_at_min_step));
+        // The invariant, in the form the observer can state it: either every
+        // accepted direction is above the floor, or the one that was not was
+        // taken at an iterate the gate already called converged.
+        EXPECT_TRUE(StepObserver::min_step_inf >= kGate9StepFloor ||
+                    StepObserver::met_target_at_min_step)
+            << "min ||d||inf = " << StepObserver::min_step_inf << " at regularized residual "
+            << StepObserver::res_at_min_step;
+        StepObserver::reset();
+    }
 }
 
 } // namespace hven::solvers

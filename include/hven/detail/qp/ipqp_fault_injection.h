@@ -56,6 +56,8 @@
 
 #ifdef HVEN_TESTING
 
+#include <limits>
+
 #include <hven/core/types.h>
 #include <hven/linear/symmetric_factor.h>
 
@@ -172,6 +174,51 @@ struct IpqpInertiaReadObserver {
         last = hven::linear::InertiaEvidence{};
         last_final = hven::linear::InertiaEvidence{};
         last_injected = hven::linear::InertiaEvidence{};
+    }
+};
+
+// THE FIRST ITERATE, VERBATIM -- an observer, not an injector (T9, registered
+// by T7). `IpqpResult` publishes only the FINAL iterate, so T7's staged-split
+// ingest proof was an invariant about repair shifts; this makes it bitwise.
+struct IpqpFirstIterateObserver {
+    static inline bool active = false;
+    static inline Index captures = 0;
+    static inline Vec x{}, s{}, ye{}, yi{}, zl{}, zu{};
+    static inline double mu = 0.0;
+
+    static void reset() {
+        active = false;
+        captures = 0;
+        x = Vec{};
+        s = Vec{};
+        ye = Vec{};
+        yi = Vec{};
+        zl = Vec{};
+        zu = Vec{};
+        mu = 0.0;
+    }
+};
+
+// GATE 9's PER-STEP FORM (T9, registered as T4b C8/I6): the EXECUTED map must
+// have no fixed point the stopping gate cannot see. Neither the direction nor
+// the regularized residual leaves the solve, so both are observed here.
+struct IpqpStepObserver {
+    static inline bool active = false;
+    static inline Index steps = 0;
+    static inline double min_step_inf = std::numeric_limits<double>::infinity();
+    static inline double res_at_min_step = std::numeric_limits<double>::infinity();
+    static inline bool met_target_at_min_step = false;
+    static inline double last_step_inf = std::numeric_limits<double>::infinity();
+    static inline double last_res = std::numeric_limits<double>::infinity();
+
+    static void reset() {
+        active = false;
+        steps = 0;
+        min_step_inf = std::numeric_limits<double>::infinity();
+        res_at_min_step = std::numeric_limits<double>::infinity();
+        met_target_at_min_step = false;
+        last_step_inf = std::numeric_limits<double>::infinity();
+        last_res = std::numeric_limits<double>::infinity();
     }
 };
 

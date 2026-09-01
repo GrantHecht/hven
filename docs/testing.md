@@ -427,6 +427,28 @@ guarded by `#ifdef HVEN_TESTING`:
 - `IpqpInertiaReadObserver` — `active`, `reads`, `final_reads`, `last`,
   `last_final`, `last_injected`. NOT an injector; a read-only observer, the
   `PardisoIparmObserver` arrangement one layer up.
+- `IpqpFirstIterateObserver` (M6 W1 T9) — `active`, `captures`, and a verbatim
+  copy of the first iterate's `x/s/ye/yi/zl/zu` plus its `mu`. NOT an injector.
+  `IpqpResult` publishes only the FINAL iterate, so T7's staged-split ingest
+  proof could compare two stagings only through a zero-repair invariant; with
+  the first iterate in hand the pin is bitwise. FAITHFUL without qualification:
+  it copies state the solve really holds and changes nothing.
+- `IpqpStepObserver` (M6 W1 T9) — `active`, `steps`, `min_step_inf`,
+  `res_at_min_step`, `met_target_at_min_step`, `last_step_inf`, `last_res`.
+  NOT an injector. Gate 9's per-step form (T4b C8/I6): the Newton DIRECTION's
+  inf-norm beside the regularized residual at the iterate the step was taken
+  from, neither of which leaves the solve. WHAT IT DOES AND DOES NOT CATCH,
+  measured: a build with the direction scaled by `1e-16` fails the pin on all
+  six fixtures (min `||d||inf` 1e-19..1e-12 at residuals 1e-5..2.0), while the
+  mechanism-4 mutation T4b ran (`build_rhs(rho_sched + rho_dem, …)`) does NOT
+  — its freeze shows as a budget escape with directions no smaller than 4.7e-7,
+  not as a vanishing one. The pin covers the vanishing-direction class only.
+
+Both T9 observers hang off their own `#ifdef HVEN_TESTING` call sites in
+`src/qp/ipqp_engine.cpp` rather than riding `evidence_for_read`: they observe
+different facts at different points in the iteration, and guarding the call
+site as well as the body is what keeps the production build free of even an
+empty call.
 
 **Why a second header rather than a row in `fault_injection.h`.** That file is
 the LINEAR LAYER's seam — everything in it lives in
