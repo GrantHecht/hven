@@ -1382,6 +1382,17 @@ TEST(SqpWarmCurrency, ANonFiniteExtensionMuDegradesTheTierColdAndStagesInEveryMo
     EXPECT_GT(base.counters.ipqp.ipqp_restart_repairs, 0)
         << "but it is still a WARM restart -- the re-split's exact zeros are repaired";
 
+    // T9 HARDENING (T7 registered it): the `> 0` arms above are satisfiable by
+    // any later cross-major carry that happens to repair once, so the two
+    // discriminating counts are pinned EXACTLY as well.
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("three_signature_accelerate", "UNOBSERVED -- the exact counts are MKL-only");
+#else
+    EXPECT_EQ(full.counters.ipqp.ipqp_restart_repairs, 1);
+    EXPECT_EQ(full.counters.ipqp.ipqp_mu_adopted, 1);
+    EXPECT_EQ(base.counters.ipqp.ipqp_restart_repairs, 1);
+#endif
+
     EXPECT_EQ(cold_tier.counters.ipqp.ipqp_mu_adopted, 0);
     EXPECT_EQ(cold_tier.counters.ipqp.ipqp_restart_repairs, 0)
         << "a malformed extension degrades the tier COLD, not to the base grade: a cold first "
