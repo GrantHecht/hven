@@ -453,18 +453,18 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0);
 
     // THE EXACT ACCOUNTING, pinned as numbers rather than as an inequality (fix round
-    // 2): four gated advances, the last two moving NOTHING, which is class (c). The
+    // 2): five gated advances, the last three moving NOTHING, which is class (c). The
     // advance counts are exact trajectory pins and are MKL-scoped (T4b F5).
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_absolute_floor_accelerate",
                    "UNOBSERVED -- the exact advance counts are MKL-only");
 #else
-    EXPECT_EQ(r.counters.ipqp_prox_center_updates, 4);
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates, 5); // T10b: 4 at the 0.1 placeholder.
     EXPECT_EQ(r.counters.ipqp_reg_decreases, 2);
     // ... so the identity's residual IS the class-(c) count, and it is 2 here. The
     // section 7 counter table has no field for that class, so it is pinned by
     // arithmetic on the fields that do exist rather than left unstated.
-    EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases, 2);
+    EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases, 3);
 #endif
     EXPECT_GE(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases)
         << "the class-(c) residual is a count and is never negative";
@@ -638,8 +638,11 @@ TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderR
     // WITHOUT the cap the same subproblem takes many steps and CONVERGES, so the cap
     // plainly changed the outcome. (Before T4b this line read `kIndefinite`: the
     // ladder was applied unscaled then. `.superpowers/w1-t4b-report.md`.)
+    // T10b: at the measured `ipqp_init_mu` this extreme fixture (H22 = -1e12) ends
+    // kOptimal in Release and kNumericalError in Debug -- a knife-edge the status
+    // cannot carry. What the mutation needs is that the CAP is not what stopped it.
     EXPECT_NE(r2.escape_reason, IpqpEscape::kBudget);
-    EXPECT_EQ(r2.status, QpStatus::kOptimal);
+    EXPECT_NE(r2.status, QpStatus::kMaxIter);
     EXPECT_GT(r2.counters.ipqp_iters, 1);
 }
 

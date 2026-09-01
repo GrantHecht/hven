@@ -2408,6 +2408,9 @@ TEST(CorpusBaseline, TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows)
     // M6 W1 T9 FIX ROUND 1 (review I2 / Codex 3). T7 measured the two
     // path_warm cells' kIpm cost and registered T9 as the owner of the pin;
     // this is the pin, read off the committed schema-76 artifact itself.
+    // T10b RE-DERIVES both rows at the measured `ipqp_init_mu` (60/62 and
+    // 46/48 at the 0.1 placeholder) and re-points the define at its own dated
+    // baseline dir. `.superpowers/w1-t10b-report.md`.
     const std::string log = runner_test::temp_path("corpus_ipm_baseline_score.log");
     ASSERT_EQ(runner_test::run_binary(
                   fmt::format("--from-csv {} --score-gates", HVEN_SQP_IPM_BASELINE_CSV), log),
@@ -2432,7 +2435,7 @@ TEST(CorpusBaseline, TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows)
         const char *facts;
     };
     for (const Pin &pin :
-         {Pin{"f7_n800_path_warm", "60", "62"}, Pin{"f7_n1000_path_warm", "46", "48"}}) {
+         {Pin{"f7_n800_path_warm", "37", "39"}, Pin{"f7_n1000_path_warm", "31", "33"}}) {
         SCOPED_TRACE(pin.cell);
         const auto it = by_cell.find(pin.cell);
         ASSERT_NE(it, by_cell.end());

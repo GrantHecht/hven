@@ -1495,7 +1495,12 @@ TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
         if (with_extension) {
             data.extensions_.push_back(polish_extension(polish));
         }
-        SqpDriver driver{ipm_currency_options()};
+        // THE CEILING IS THE FIXTURE'S OWN, not the shipped one: T10b's default
+        // (1e-2) sits BELOW this payload's `mu_`, so the section 5.3 clamp would
+        // cap the adoption out of existence and the pin below would go vacuous.
+        SqpOptions o = ipm_currency_options();
+        o.ipqp.ipqp_init_mu = polish.mu_;
+        SqpDriver driver{o};
         driver.stage_warm_start(data);
         return driver.solve(*bridge, data.primal_);
     };

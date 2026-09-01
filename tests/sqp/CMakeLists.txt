@@ -123,8 +123,10 @@ target_compile_definitions(hven_sqp_tests PRIVATE
 # M6 W1 T9 fix round 1: the DECLARED schema-76 kIpm baseline over the 27-cell
 # U0 replay set — the artifact the two path_warm acceptance rows are pinned in,
 # and the one the replay's ipm arm compares all 76 columns against.
+# T10b RE-POINTS IT at the measured `ipqp_init_mu`'s own dated dir; the T9 one
+# stays on disk, unrewritten, as the 0.1 placeholder's record.
 target_compile_definitions(hven_sqp_tests PRIVATE
-    HVEN_SQP_IPM_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-01-t9-ipm/ipm_baseline.csv")
+    HVEN_SQP_IPM_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv")
 
 # The SNOPT bridge's referee gate, added to the test binary ONLY when the
 # root-level SNOPT detection succeeded (see the block above the tests

@@ -951,17 +951,17 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 // measured rather than assumed: under kIpm it is the solve at p0 that produces
 // the negative price. The hop adds ~140 s of Debug runtime and sweeps nothing.
 //
-// THE BAND WAS RE-DERIVED AT M6 W1 T7 (declared, CLAUDE.md section 7). Task 6's
+// THE BAND WAS RE-DERIVED AT T7 AND AGAIN AT T10b (declared, section 7). Task 6's
 // band -- N = 600 / 610, sweeping 7 and 6 prices -- was measured while the tier
 // started COLD on every major, which task 7's cross-major carry ends: the
 // tier's iterates moved, and nothing in 100..650 sweeps any longer. Re-measured
-// on the same instrument in BOTH flag regimes: N = 850 and N = 900 sweep 1 and
-// 2 prices (Debug and Release agreeing to ~1e-11 relative on the magnitudes),
-// while N = 800 and N = 1000 sweep none -- which is why the assertion is over a
+// at T7 as N = 850 / 900. T10b's measured `ipqp_init_mu` moves it again: those
+// two now sweep none, and a plateau runs from N = 950 up, so the band is
+// N = 1000 / 1050, 2 prices each -- which is why the assertion is over a
 // BAND rather than at a point. The magnitudes still sit below the historic
 // 3.5e-6 peak, so the disclosed scale is unchanged.
 //
-// MEASURED on clang/MKL/this machine, 2026-08-31.
+// MEASURED on clang/MKL/this machine, 2026-09-01 (`.superpowers/w1-t10b-report.md`).
 // =====================================================================
 TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFacePrices) {
     constexpr double kP0 = 0.80;
@@ -969,7 +969,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
 
     const auto t_band0 = std::chrono::steady_clock::now();
     Index swept_over_the_band = 0;
-    for (const Index nodes : {Index{850}, Index{900}}) {
+    for (const Index nodes : {Index{1000}, Index{1050}}) {
         SCOPED_TRACE(fmt::format("N={}", nodes));
         F7CollocationChain model(nodes, 3, 2, kP0, 1.0);
 

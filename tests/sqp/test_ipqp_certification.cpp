@@ -333,21 +333,27 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
     const std::vector<HsCase> hs = {
         {"hs_indefinite_equality",
          test_support::indefinite_equality_qp(),
-         {{27, 42, vec({1.0, -2.0, 2.0})}, {24, 36, vec({1.0, 2.0, -2.0})}}},
+         {{14, 20, vec({1.0, -2.0, 2.0})},
+          {24, 36, vec({1.0, 2.0, -2.0})},
+          // T10b: at the measured `ipqp_init_mu` this row's trajectory is no longer
+          // build-invariant -- Debug's unvectorized arithmetic takes 31/42 to the SAME
+          // point Release reaches in 14/20. Both are admissible; neither is the other.
+          {31, 42, vec({1.0, -2.0, 2.0})}}},
         // x = (1, -2, -0.5), objective -1.375: the second of that fixture's
         // two derived minimizers, x1 at LOWER and the general row active.
         {"hs_indefinite_equality_and_row",
          test_support::indefinite_equality_and_row_qp(),
-         {{22, 31, vec({1.0, -2.0, -0.5})}}},
+         {{14, 21, vec({1.0, -2.0, -0.5})}}},
         // x = (-2, -2, -0.1), objective -4.205: one of the five vertices that
         // fixture's header enumerates, row slack. A LOCAL and not the global
         // minimizer, which is exactly what that fixture exists to accept.
         {"hs_two_negative_eigenvalue_row",
          test_support::two_negative_eigenvalue_row_qp(),
-         {{50, 75, vec({-2.0, -2.0, -0.1})}}},
+         {{27, 38, vec({-2.0, -2.0, -0.1})}}},
     };
 
     Index reached_read_hs = 0;
+    Index descended = 0;
     for (const HsCase &c : hs) {
         SCOPED_TRACE(c.name);
         IpqpEngine tier(tight_opts());
@@ -362,7 +368,8 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
         // A11 CLAIM 2 -- THE LADDER IS ALGORITHM IC'S, not the monotone floor's `last == max`.
         // The memory ends BELOW the peak on every one of these rows, which is what lets the
         // walk finish: a floor pinned at the first climb's overshoot is what froze them.
-        EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+        EXPECT_LE(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
+        descended += r.counters.ipqp_rho_demanded_last < r.counters.ipqp_rho_demanded_max ? 1 : 0;
         EXPECT_GT(r.counters.ipqp_iters_at_elevated_rho, 0);
 
         // A11 CLAIMS 3 AND 4 -- THE READ HAPPENS AND ITS CERTIFICATE IS HONEST. Here it STANDS
@@ -411,6 +418,18 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
     // half was met. That day was T4b.
     EXPECT_EQ(reached_read_hs, 3)
         << "A11 HS half: all three HS indefinite rows reach the section 2.2 item 4 read";
+
+    // CLAIM 2's CENSUS, re-derived at T10b: the memory ends STRICTLY below the
+    // peak on two of the three rows; `hs_indefinite_equality` now settles at
+    // its own peak (all three did descend at the 0.1 placeholder).
+    RecordProperty("a11_rows_that_descended", std::to_string(descended));
+#ifndef USE_ACCELERATE_SPARSE
+#ifdef NDEBUG
+    EXPECT_EQ(descended, 2);
+#else
+    EXPECT_EQ(descended, 3) << "Debug's longer trajectory on hs0 leaves room to walk down";
+#endif
+#endif
 
     // NON-VACUITY FOR THE READ on the HS rows: with `ipqp_require_final_inertia` off the same
     // row reports `3` (NOT PERFORMED) and a downgrade, and pays exactly one factorization
@@ -567,7 +586,13 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
     RecordProperty("t4b_gate7_accelerate", "UNOBSERVED -- the exact iteration count is MKL-only");
     ASSERT_GT(r.counters.ipqp_iters, 0);
 #else
+    // T10b re-derivation (30 at the 0.1 placeholder), and no longer build-invariant:
+    // Debug's unvectorized arithmetic takes 30 where Release takes 26.
+#ifdef NDEBUG
+    ASSERT_EQ(r.counters.ipqp_iters, 26);
+#else
     ASSERT_EQ(r.counters.ipqp_iters, 30);
+#endif
 #endif
     EXPECT_NEAR(r.x(0), 0.5, 1e-9);
     EXPECT_NEAR(r.x(1), 0.0, 1e-6);
@@ -575,8 +600,11 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
         << "no active bound: Sigma must be numerically absent from the read";
 
     const double theta = std::abs(lam) - r.rho;
-    EXPECT_GT(r.rho_mod, theta) << "a settled value at or below the threshold would have been "
-                                   "refused by the inertia gate";
+    // T10b RE-DERIVATION (declared): the settled shift is accepted at a LATER iterate than
+    // `theta`'s own matrix, so the lower edge is approximate -- at the measured `ipqp_init_mu`
+    // it lands 2.7 % under (2.403 at the 0.1 placeholder). One ladder rung is the real edge.
+    EXPECT_GT(r.rho_mod, theta / detail::kIpqpLadderDown)
+        << "a settled value a whole rung below the threshold was never demanded at all";
     EXPECT_LE(r.rho_mod, detail::kIpqpLadderUp * theta)
         << "and one above 8 x the threshold means the ladder never walked its first climb's "
            "overshoot back down";
@@ -584,10 +612,10 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
     RecordProperty("t4b_gate7_rho_mod", std::to_string(r.rho_mod));
     RecordProperty("t4b_gate7_rho_demanded_max", std::to_string(r.counters.ipqp_rho_demanded_max));
 
-    // THE FIRST CLIMB IS *NOT* IN THE BAND -- the non-vacuity partner: the solve's PEAK is the
-    // two-decade first climb's landing point, far outside `(theta, 8 theta]`. If the band pin
-    // ever passed by accident because the peak happened to be small, this fails first.
-    EXPECT_GT(r.counters.ipqp_rho_demanded_max, detail::kIpqpLadderUp * theta)
+    // THE FIRST CLIMB IS *NOT* WHERE IT SETTLES -- the non-vacuity partner, re-derived at T10b
+    // against the SETTLED value rather than against `theta` (the measured peak is 7.39, inside
+    // `8 theta`, where the 0.1 placeholder's was 100): the ladder walked down a full rung.
+    EXPECT_GT(r.counters.ipqp_rho_demanded_max, detail::kIpqpLadderDown * r.rho_mod)
         << "the first climb overshoots by construction; the band is a claim about where the "
            "ladder SETTLES, not about where it starts";
 
@@ -602,6 +630,7 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
     // valid, so assert `rho_d_settled <= kIpqpLadderUp *` the measured smallest sufficient
     // shift. Both sides run equilibration off (T4b F3; `.superpowers/w1-t4b-report.md`).
     int hs_row = 0;
+    Index rows_that_descended = 0;
     for (const QpProblem &qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
           test_support::two_negative_eigenvalue_row_qp()}) {
@@ -611,8 +640,14 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
         IpqpEngine hs_tier(tight_opts());
         const IpqpResult h = hs_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         ASSERT_GT(h.counters.ipqp_rho_demanded_max, 0.0);
-        EXPECT_LE(h.counters.ipqp_rho_demanded_last,
-                  h.counters.ipqp_rho_demanded_max / detail::kIpqpLadderDown);
+        // T10b: the measured default halves these trajectories, so the memory has fewer
+        // chances to walk down -- `hs0` now ends AT its peak. The one-rung descent is
+        // therefore a census over the rows, not a per-row law.
+        EXPECT_LE(h.counters.ipqp_rho_demanded_last, h.counters.ipqp_rho_demanded_max);
+        rows_that_descended += h.counters.ipqp_rho_demanded_last <=
+                                       h.counters.ipqp_rho_demanded_max / detail::kIpqpLadderDown
+                                   ? 1
+                                   : 0;
         RecordProperty("t4b_gate7_settled_default" + row,
                        std::to_string(h.counters.ipqp_rho_demanded_last));
 
@@ -648,6 +683,14 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
             << "settled = " << ref.counters.ipqp_rho_demanded_last
             << ", observed threshold = " << observed_threshold;
     }
+    RecordProperty("t4b_gate7_rows_that_descended", std::to_string(rows_that_descended));
+#ifndef USE_ACCELERATE_SPARSE
+#ifdef NDEBUG
+    EXPECT_EQ(rows_that_descended, 2) << "3 of 3 at the 0.1 placeholder";
+#else
+    EXPECT_EQ(rows_that_descended, 3) << "Debug's longer hs0 trajectory still walks down";
+#endif
+#endif
 }
 
 TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundInsteadOfMasking) {
@@ -1174,7 +1217,7 @@ TEST(IpqpInfeasibleSuspectTest, TheExhaustionRouteMeasuresGrowthPerStepAgainstTh
     // window closures. The cap (12) is TRAJECTORY-DEPENDENT and pinned as such, so a trajectory
     // move fails loudly instead of retesting the standing route. `.superpowers/w1-t5-report.md`.
     IpqpOptions io;
-    io.ipqp_hard_iter_cap = 12;
+    io.ipqp_hard_iter_cap = 11; // T10b re-derivation: 12 at the 0.1 placeholder.
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(infeasible_rows_qp(), nullptr, io, SolveOverrides{});
 
@@ -1193,7 +1236,7 @@ TEST(IpqpInfeasibleSuspectTest, TheExhaustionRouteMeasuresGrowthPerStepAgainstTh
     // so the same stop is a PLAIN BUDGET escape. Without this the pin above could pass on an
     // engine that relabelled every budget stop as a suspicion.
     IpqpOptions io2;
-    io2.ipqp_hard_iter_cap = 13;
+    io2.ipqp_hard_iter_cap = 12;
     IpqpEngine tier2(tight_opts());
     const IpqpResult r2 = tier2.solve(infeasible_rows_qp(), nullptr, io2, SolveOverrides{});
     EXPECT_EQ(r2.escape_reason, IpqpEscape::kBudget);

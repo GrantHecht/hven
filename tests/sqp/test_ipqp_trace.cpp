@@ -454,7 +454,10 @@ TEST(IpqpTrace, EscapeEventCarriesTheFullEvidenceBlockVerbatim) {
         RecordingTraceSink sink;
         tier.attach_trace(&sink);
         const IpqpResult r =
-            tier.solve(convex_qp(), nullptr, crawling_opts(1e-3), SolveOverrides{});
+            tier.solve(convex_qp(), nullptr, crawling_opts(1e-4), SolveOverrides{});
+        // THE CRAWL RATE IS RE-DERIVED at T10b's measured `ipqp_init_mu`: at 1e-3
+        // this fixture now improves ~2%/window, above section 6.2's 1% floor, so
+        // it honestly exits on budget. At 1e-4 it improves 0.25%/window.
         ASSERT_EQ(r.escape_reason, IpqpEscape::kStall);
         ASSERT_EQ(sink.escapes.size(), 1u);
         EXPECT_EQ(sink.escapes[0].reason, IpqpTraceEscapeReason::kStall);

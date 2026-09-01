@@ -178,12 +178,12 @@ struct IpqpOptions {
     /// on a cold start) and the CEILING of the warm-restart clamp (spec 5.3:
     /// `mu_0 = clamp(max(mu_meas, kappa_mu * mu_payload), ipqp_min_mu,
     /// ipqp_init_mu)` on a warm one) -- a SETTING in both readings, never
-    /// overwritten by payload evidence, only clamped against it. Default 0.1,
-    /// a PLACEHOLDER pending the measured sweep over
-    /// `{1e-3, 1e-2, 1e-1, 1}` registered at spec section 10 Q4 (W1 task 10).
+    /// overwritten by payload evidence, only clamped against it. Default 1e-2,
+    /// the Q4 sweep's measured winner and RUIZ-SCALED (measured with the
+    /// shipped equilibration on): docs/notes/data/2026-08-m6-w1-acceptance/.
     /// Must be finite, > 0, and >= `ipqp_min_mu` (the clamp band below is
     /// otherwise inverted).
-    double ipqp_init_mu = 0.1;
+    double ipqp_init_mu = 1e-2;
 
     /// The FLOOR of the `mu_0` clamp above, and the tier's own barrier-decay
     /// floor thereafter. Matches `Settings::min_mu_`'s own default

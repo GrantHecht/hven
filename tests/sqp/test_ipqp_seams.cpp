@@ -452,9 +452,10 @@ TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_r3_accelerate", "UNOBSERVED -- the exact injected trajectory is MKL-only");
 #else
-    EXPECT_EQ(r.counters.ipqp_iters, 11)
-        << "the round-1 wiring (the ladder-settled delta in build_rhs) reaches 13 here";
-    EXPECT_EQ(r.counters.ipqp_factorizations, 13) << "the round-1 wiring reaches 15 here";
+    // RE-DERIVED at T10b's measured `ipqp_init_mu` (11/13 at the 0.1 placeholder).
+    EXPECT_EQ(r.counters.ipqp_iters, 10) << "the round-1 wiring (the ladder-settled delta in "
+                                            "build_rhs) reaches a different count here";
+    EXPECT_EQ(r.counters.ipqp_factorizations, 12);
 #endif
 }
 
