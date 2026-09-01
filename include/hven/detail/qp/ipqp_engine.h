@@ -107,6 +107,7 @@
 // `escape_reason == kNone` with `certificate_downgraded == true` is what
 // separates it from a genuine failure.
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -251,26 +252,11 @@ inline constexpr int kIpqpPivotReroutePrimalMax = 2;
 /// exists to move away from.
 inline constexpr double kIpqpWeakActiveFactor = 10.0;
 
-/// @brief T4c fix round 1's DISCLOSURE BAND ceiling, as a multiple of
-/// `kIpqpWeakActiveFactor * sqrt(mu)` (the drop rule's own floor). A KEPT
-/// side is band-counted (`ipqp_read_kept_tight_sides`) iff its multiplier
-/// sits in `(weak_scale, kIpqpTightBandFactor * weak_scale]`.
-///
-/// ONE HUNDRED, from the Sigma this band names. `z / sqrt(mu) = sqrt(Sigma)`
-/// (complementarity), so the band `10 sqrt(mu) < z <= 1000 sqrt(mu)` is
-/// exactly `Sigma` in `(1e2, 1e6]`: strong enough to mask an O(1)-scaled
-/// negative eigenvalue, small enough to still be barrier noise at a real
-/// stopping `mu` (a genuinely priced multiplier `z* >= 0.1` sits at
-/// `Sigma = z*^2 / mu >= 1e8` for `mu = 1e-8`, above the ceiling; the
-/// gate-8 exposed member sits at `Sigma = mu / s^2 <= 1e6` for `s >= 1e-7`).
-///
-/// AMBIGUOUS, NOT WRONG. A correctly priced bound with `z* < 1e3 sqrt(mu)`
-/// -- a real multiplier the solve just hasn't driven far from the barrier
-/// scale yet, e.g. a collocation path constraint's typically-small price --
-/// IS counted here too; the band cannot separate that case from the gate-8
-/// exposure on magnitude alone, which is exactly why `ipqp_read_
-/// barrier_noise_sides`'s exponent test exists as the discriminating
-/// refinement. See `.superpowers/w1-t4c-report.md`.
+/// @brief T4c disclosure-band ceiling: a KEPT side is band-counted
+/// (`ipqp_read_kept_tight_sides`) iff its multiplier sits in
+/// `(weak_scale, kIpqpTightBandFactor * weak_scale]`. AMBIGUOUS, NOT WRONG
+/// -- see `.superpowers/w1-t4c-report.md` for the Sigma-band derivation and
+/// the false-positive class.
 inline constexpr double kIpqpTightBandFactor = 100.0;
 
 /// @brief Growth per rung for the DUAL shift `delta` on a perturbed-pivot
@@ -856,14 +842,20 @@ struct IpqpResult {
     /// is not an evidence failure at all and escapes `kNumerical` at once.
     bool inertia_evidence_failed = false;
 
-    /// M6 W1 T4c, fix round 1: true iff the item 4 critical-cone read AGREED
-    /// AND the disclosure fired -- `counters.ipqp_read_barrier_noise_sides >
-    /// 0` when the exponent-test history is informative,
-    /// `counters.ipqp_read_kept_tight_sides > 0` otherwise (the band-only
-    /// fallback both counters' own doc comments state). See
-    /// `.superpowers/w1-t4c-report.md`. Always false on a downgraded or
-    /// declined-pinned solve.
+    /// M6 W1 T4c: true iff the item 4 read AGREED, the disclosure fired
+    /// (`ipqp_read_barrier_noise_sides > 0` when the exponent history is
+    /// informative, `ipqp_read_kept_tight_sides > 0` otherwise), AND the
+    /// certificate still stands once every downgrade below is applied (R2,
+    /// fix round 2) -- set only after `certificate_downgraded`'s final
+    /// value is known. See `.superpowers/w1-t4c-report.md`.
     bool read_kept_tight = false;
+
+    /// T4c fix round 2 (tycho fold T1): the raw exponent(s) behind
+    /// `ipqp_read_barrier_noise_sides`, min/max over the band-counted sides,
+    /// NaN when uninformative -- lets a pin state a numeric tolerance rather
+    /// than only the discretized count. See `.superpowers/w1-t4c-report.md`.
+    double read_barrier_noise_exponent_min = std::numeric_limits<double>::quiet_NaN();
+    double read_barrier_noise_exponent_max = std::numeric_limits<double>::quiet_NaN();
 
     // --- the point ---------------------------------------------------------
 

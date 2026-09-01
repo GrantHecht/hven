@@ -1289,6 +1289,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // WHOLE SOLVE. Once armed it never disarms -- "for the whole solve" is
     // the specification's own scope, not this iteration's.
     bool evidence_failed = false;
+    // T4c fix round 2 (R2, settler ruling): the item 4 read's RAW verdict --
+    // `out.read_kept_tight` is set from this only once every downgrade path
+    // below (including `evidence_failed`'s whole-solve rule) has run, so a
+    // clean read that a later downgrade overrides reports FALSE.
+    bool kept_tight_raw = false;
 
     // --- THE SECTION 6.2 / 6.3 WINDOW -------------------------------------
     //
@@ -1389,13 +1394,14 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     double dual_start = 0.0;
     Vec start_ye, start_yi, start_zl, start_zu;
     bool have_start = false;
-    // T4c fix round 1's exponent test: the bound duals and mu at the
-    // SECOND-TO-LAST accepted iterate, one vector copy per step taken (same
-    // precedent as `dual_prev` above). False only when the solve never took
-    // a step -- the counter doc states this as the band-only fallback.
+    // T4c exponent test: the bound duals and mu at the SECOND-TO-LAST
+    // accepted iterate. R1 (fix round 2): `attempt_accepted` counts ACCEPTED
+    // steps in THIS ATTEMPT only, so the snapshot below never treats the
+    // seed as z_{k-1} and both are reset on a warm-kill (see there).
     Vec prev_zl, prev_zu;
     double prev_mu = 0.0;
     bool have_prev_accepted = false;
+    Index attempt_accepted = 0;
     // Section 6.3's third required item: the LEAST-INFEASIBLE point seen.
     double best_primal = kInf;
     Vec best_x;
@@ -2456,6 +2462,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             best_primal = kInf;
             best_x = Vec();
             have_start = false;
+            // R1 (settler ruling, fix round 2): the abandoned warm attempt's
+            // accepted-iterate history is CLEARED, not carried into the cold
+            // attempt -- the cold attempt starts with none, same precedent
+            // as `have_start` above.
+            have_prev_accepted = false;
+            attempt_accepted = 0;
             continue;
         }
 
@@ -2725,13 +2737,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // after: once the step is applied the previous norm is gone.
         dual_prev = dual_norm_now();
 
-        // T4c fix round 1's exponent-test snapshot, same reasoning as
-        // `dual_prev` immediately above: taken BEFORE the step, since once
-        // it is applied the prior iterate's duals and mu are gone.
-        prev_zl = w.zl;
-        prev_zu = w.zu;
-        prev_mu = mu_meas;
-        have_prev_accepted = true;
+        // T4c exponent-test snapshot, same reasoning as `dual_prev`
+        // immediately above (taken BEFORE the step). R1: only once a PRIOR
+        // accepted step in this attempt already made `w.zl`/`mu_meas` an
+        // accepted iterate -- the first step of an attempt leaves the seed
+        // in `w.zl`, which is never treated as `z_{k-1}`.
+        if (attempt_accepted > 0) {
+            prev_zl = w.zl;
+            prev_zu = w.zu;
+            prev_mu = mu_meas;
+            have_prev_accepted = true;
+        }
 
         // 4. THE STEP. No line search: globalization is fraction-to-boundary
         //    and nothing else (spec 3.1 item 3).
@@ -2779,6 +2795,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // these two lines unreached, which IS the exclusion both fields
         // document ("iterations taken", N1).
         ++out.counters.ipqp_iters;
+        ++attempt_accepted; // R1: this attempt's own accepted-step count.
         rho_dem_final = rho_dem;
         if (elevated) {
             ++out.counters.ipqp_iters_at_elevated_rho;
@@ -2868,37 +2885,48 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 escape = IpqpEscape::kBudget;
             } else if (read == InertiaRead::kOk) {
                 out.counters.ipqp_final_inertia_read = 0;
-                // T4c fix round 1, gate-8 C1 disclosure: the certificate
-                // STANDS here, so a nonzero band count is the exposed
-                // regime made visible, not an error. See counter docs.
+                // T4c disclosure (R4): exposure exists only in a certificate
+                // this tier issues STANDING ALONE at mu_stop -- the driver's
+                // stable-face composition closes it exactly downstream; a
+                // stopping-mu/bound-geometry rule is M7 (cites this
+                // fixture). See `.superpowers/w1-t4c-report.md`.
                 const Index band_count =
                     static_cast<Index>(band_lower_idx.size() + band_upper_idx.size());
                 out.counters.ipqp_read_kept_tight_sides = band_count;
 
-                // The exponent test: informative iff a second accepted
-                // iterate exists and mu moved by more than half over the
-                // last step (band-only fallback otherwise, per the counter
-                // doc). e = log(z_k/z_{k-1}) / log(mu_k/mu_{k-1}) >= 0.5.
+                // T4 (tycho fold): the SAME `mu_meas` the weak-active rule
+                // read building `band_lower_idx`/`band_upper_idx` above --
+                // never a pending step's target. "Informative" needs >= 2
+                // accepted iterates this attempt and a mu ratio <= 0.5;
+                // per-side guards (T3) live in the classifier itself.
                 const bool informative = have_prev_accepted && prev_mu > 0.0 && mu_meas > 0.0 &&
                                          !(mu_meas / prev_mu > 0.5);
                 Index noise_count = 0;
+                double e_min = std::numeric_limits<double>::quiet_NaN();
+                double e_max = std::numeric_limits<double>::quiet_NaN();
                 if (informative) {
-                    const double log_mu_ratio = std::log(mu_meas / prev_mu);
-                    for (Index i : band_lower_idx) {
-                        if (prev_zl(i) > 0.0 && w.zl(i) > 0.0 &&
-                            std::log(w.zl(i) / prev_zl(i)) / log_mu_ratio >= 0.5) {
+                    const auto fold = [&](double zp, double zc) {
+                        const detail::IpqpBarrierNoiseVerdict v =
+                            detail::ipqp_classify_barrier_noise(zp, zc, prev_mu, mu_meas);
+                        if (v.cls == detail::IpqpBarrierNoiseClass::kSuspect) {
                             ++noise_count;
                         }
+                        if (std::isfinite(v.exponent)) {
+                            e_min = std::isnan(e_min) ? v.exponent : std::min(e_min, v.exponent);
+                            e_max = std::isnan(e_max) ? v.exponent : std::max(e_max, v.exponent);
+                        }
+                    };
+                    for (Index i : band_lower_idx) {
+                        fold(prev_zl(i), w.zl(i));
                     }
                     for (Index i : band_upper_idx) {
-                        if (prev_zu(i) > 0.0 && w.zu(i) > 0.0 &&
-                            std::log(w.zu(i) / prev_zu(i)) / log_mu_ratio >= 0.5) {
-                            ++noise_count;
-                        }
+                        fold(prev_zu(i), w.zu(i));
                     }
                 }
                 out.counters.ipqp_read_barrier_noise_sides = informative ? noise_count : 0;
-                out.read_kept_tight = informative ? (noise_count > 0) : (band_count > 0);
+                out.read_barrier_noise_exponent_min = e_min;
+                out.read_barrier_noise_exponent_max = e_max;
+                kept_tight_raw = informative ? (noise_count > 0) : (band_count > 0);
             } else if (read == InertiaRead::kWrong) {
                 // A reading WAS observed and DISAGREED -- plan section 7 note
                 // (h)'s saddle-suspect class.
@@ -2938,6 +2966,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         out.inertia_evidence_failed = true;
         out.certificate_downgraded = true;
     }
+
+    // R2 (settler ruling, fix round 2): the flag is set HERE, once the
+    // downgrade above (and every earlier one) has had its say -- a clean
+    // item 4 read that this whole-solve rule later overrides reports FALSE,
+    // counters left populated. See `.superpowers/w1-t4c-report.md`.
+    out.read_kept_tight = kept_tight_raw && !out.certificate_downgraded;
 
     // --- outcome ----------------------------------------------------------
 

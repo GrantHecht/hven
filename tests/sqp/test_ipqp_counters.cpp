@@ -296,6 +296,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     a.ipqp_escape_indefinite = 0;
     a.ipqp_escape_numerical = 1;
     a.ipqp_escape_infeasible_suspect = 0;
+    a.ipqp_read_kept_tight_sides = 2;
+    a.ipqp_read_barrier_noise_sides = 1;
 
     IpqpCounters b;
     b.ipqp_iters = 10;
@@ -327,6 +329,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     b.ipqp_escape_indefinite = 1;
     b.ipqp_escape_numerical = 0;
     b.ipqp_escape_infeasible_suspect = 1;
+    b.ipqp_read_kept_tight_sides = 5;
+    b.ipqp_read_barrier_noise_sides = 3;
 
     IpqpCounters total;
     accumulate_ipqp_counters(total, a);
@@ -361,6 +365,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     EXPECT_EQ(total.ipqp_escape_indefinite, 1);
     EXPECT_EQ(total.ipqp_escape_numerical, 1);
     EXPECT_EQ(total.ipqp_escape_infeasible_suspect, 1);
+    EXPECT_EQ(total.ipqp_read_kept_tight_sides, 7);
+    EXPECT_EQ(total.ipqp_read_barrier_noise_sides, 4);
 
     // The census invariant holds on the folded total too, using the same
     // reusable helper live solves will call later.

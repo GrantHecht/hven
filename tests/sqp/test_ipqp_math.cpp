@@ -525,4 +525,64 @@ TEST(IpqpMathTest, TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse) {
         << "index 0 has no upper bound and the upper loop must have skipped it";
 }
 
+// T4c fix round 2 (tycho fold T2/T3): `ipqp_classify_barrier_noise` exercised
+// as a pure function, apart from any solve. See
+// `.superpowers/w1-t4c-report.md`.
+
+TEST(IpqpBarrierNoiseTest, ASideTrackingTheBarrierExactlyIsSuspectWithExponentOne) {
+    // z = mu / s at a fixed box half-width s -- the gate-8 exposed member's
+    // own identity -- so z_cur / z_prev == mu_cur / mu_prev exactly and
+    // e == 1 exactly, well inside T1's [0.9, 1.1] pin.
+    const double s = 1.0e-5;
+    const auto v = ip::ipqp_classify_barrier_noise(1.0e-6 / s, 1.0e-8 / s, 1.0e-6, 1.0e-8);
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kSuspect);
+    EXPECT_NEAR(v.exponent, 1.0, 1.0e-9);
+}
+
+TEST(IpqpBarrierNoiseTest, ASideHoldingItsPriceIsPricedWithExponentNearZero) {
+    // z ~ z* CONSTANT across a real mu change -- an HS row's own multiplier
+    // behaviour (T1's "one HS row e in [-0.1, 0.1]" pin, synthesized here
+    // since a real HS row never band-counts and so never reaches this test
+    // through a solve).
+    const auto v = ip::ipqp_classify_barrier_noise(0.5, 0.5, 1.0e-6, 1.0e-8);
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kPriced);
+    EXPECT_GE(v.exponent, -0.1);
+    EXPECT_LE(v.exponent, 0.1);
+}
+
+TEST(IpqpBarrierNoiseTest, NoPriorAcceptedIterateIsUninformative) {
+    // `prev_mu <= 0` is the sentinel a fresh attempt (fewer than two
+    // accepted iterates, R1) leaves behind -- the classifier itself must
+    // never treat that as data.
+    const auto v = ip::ipqp_classify_barrier_noise(1.0, 1.0, 0.0, 1.0e-8);
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kUninformative);
+    EXPECT_TRUE(std::isnan(v.exponent));
+}
+
+TEST(IpqpBarrierNoiseTest, AMuRatioAboveOneHalfIsUninformative) {
+    // mu moved by less than half over the step -- too close to trust the
+    // exponent (fold's own fallback rule), including the unit-ratio case.
+    EXPECT_EQ(ip::ipqp_classify_barrier_noise(1.0, 1.0, 1.0e-6, 6.0e-7).cls,
+              ip::IpqpBarrierNoiseClass::kUninformative);
+    EXPECT_EQ(ip::ipqp_classify_barrier_noise(1.0, 1.0, 1.0e-6, 1.0e-6).cls,
+              ip::IpqpBarrierNoiseClass::kUninformative)
+        << "unit mu ratio";
+}
+
+TEST(IpqpBarrierNoiseTest, ASideThatJustBecameActiveIsUninformativeNeverSuspectNeverPriced) {
+    // T3: z_prev == 0 at k-1 with z_cur > 0 at k -- the side was NOT active
+    // one iterate ago, so there is no ratio to read.
+    const auto v = ip::ipqp_classify_barrier_noise(0.0, 0.5, 1.0e-6, 1.0e-8);
+    EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kUninformative);
+}
+
+TEST(IpqpBarrierNoiseTest, NonfiniteInputsAreUninformative) {
+    const double kNaN = std::numeric_limits<double>::quiet_NaN();
+    const double kInfin = std::numeric_limits<double>::infinity();
+    EXPECT_EQ(ip::ipqp_classify_barrier_noise(kNaN, 0.5, 1.0e-6, 1.0e-8).cls,
+              ip::IpqpBarrierNoiseClass::kUninformative);
+    EXPECT_EQ(ip::ipqp_classify_barrier_noise(0.5, kInfin, 1.0e-6, 1.0e-8).cls,
+              ip::IpqpBarrierNoiseClass::kUninformative);
+}
+
 } // namespace

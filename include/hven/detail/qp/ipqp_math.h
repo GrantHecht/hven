@@ -54,6 +54,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 #include <Eigen/Core>
@@ -280,19 +281,11 @@ inline void ipqp_accumulate_bound_sigma(const Eigen::Ref<const Eigen::VectorXd> 
 ///
 /// @param weak_scale The activity scale (a multiple of `sqrt(mu)`); `<= 0`
 /// disables the rule entirely.
-/// @param band_upper M6 W1 T4c fix round 1's disclosure BAND ceiling (an
-/// absolute value, `kIpqpTightBandFactor * weak_scale`; `<= 0` disables the
-/// band). Round 1 REPLACES the original trigger (`gap <= weak_scale AND z >
-/// weak_scale`), which the spec author confirmed degenerates to "any
-/// strongly active side" by the `z * gap ~ mu` identity -- see
-/// `kIpqpTightBandFactor`'s own doc comment and
-/// `.superpowers/w1-t4c-report.md`. A KEPT side is band-counted iff
-/// `weak_scale < z <= band_upper`; no `gap` test, deliberately (the identity
-/// makes it redundant once `z` is bounded both ways).
+/// @param band_upper T4c disclosure BAND ceiling (`kIpqpTightBandFactor *
+/// weak_scale`; `<= 0` disables it). A KEPT side is band-counted iff
+/// `weak_scale < z <= band_upper`. See `.superpowers/w1-t4c-report.md`.
 /// @param band_lower_idx / @param band_upper_idx receive the index of each
-/// band-counted lower/upper side (`nullptr` to skip), so the caller can run
-/// the exponent-test refinement on exactly those sides rather than
-/// re-deriving the band.
+/// band-counted lower/upper side (`nullptr` to skip).
 inline void ipqp_accumulate_bound_sigma_critical_cone(
     const Eigen::Ref<const Eigen::VectorXd> &x, const Eigen::Ref<const Eigen::VectorXd> &l,
     const Eigen::Ref<const Eigen::VectorXd> &u, const Eigen::Ref<const Eigen::VectorXd> &zl,
@@ -327,6 +320,33 @@ inline void ipqp_accumulate_bound_sigma_critical_cone(
             }
         }
     }
+}
+
+/// @brief T4c fix round 2 (tycho fold T2): the exponent test as a pure,
+/// per-side function of the last two ACCEPTED iterates, unit-testable apart
+/// from a solve. `kUninformative` on any non-finite or non-positive input,
+/// on `z_prev == 0` (a side that just went active, per fold T3), or on a mu
+/// ratio too close to 1 to trust. See `.superpowers/w1-t4c-report.md`.
+enum class IpqpBarrierNoiseClass { kUninformative, kPriced, kSuspect };
+
+struct IpqpBarrierNoiseVerdict {
+    IpqpBarrierNoiseClass cls = IpqpBarrierNoiseClass::kUninformative;
+    double exponent = std::numeric_limits<double>::quiet_NaN();
+};
+
+inline IpqpBarrierNoiseVerdict ipqp_classify_barrier_noise(double z_prev, double z_cur,
+                                                           double mu_prev, double mu_cur) {
+    const bool finite = std::isfinite(z_prev) && std::isfinite(z_cur) && std::isfinite(mu_prev) &&
+                        std::isfinite(mu_cur);
+    if (!finite || !(z_prev > 0.0) || !(z_cur > 0.0) || !(mu_prev > 0.0) || !(mu_cur > 0.0) ||
+        !(mu_cur / mu_prev <= 0.5)) {
+        return {};
+    }
+    const double e = std::log(z_cur / z_prev) / std::log(mu_cur / mu_prev);
+    if (!std::isfinite(e)) {
+        return {};
+    }
+    return {e >= 0.5 ? IpqpBarrierNoiseClass::kSuspect : IpqpBarrierNoiseClass::kPriced, e};
 }
 
 /// @brief The tier's OWN slack/multiplier complementarity reduction.

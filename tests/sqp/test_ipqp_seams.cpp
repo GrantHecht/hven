@@ -109,6 +109,23 @@ QpProblem convex_qp() {
     return qp;
 }
 
+/// T4c's gate-8 exposed member, local to this file per the file's own
+/// convention (`convex_qp()` above): `H = diag(2, h)`, `g = 0`, a symmetric
+/// box of half-width `s` on `x1`. See `test_ipqp_certification.cpp`'s own
+/// copy for the family's full derivation.
+QpProblem weakly_active_indefinite_qp(double s, double h) {
+    QpProblem qp;
+    qp.H = dense_upper({{2.0, 0.0}, {0.0, h}});
+    qp.g = vec({0.0, 0.0});
+    qp.Ae = dense_rows({}, 2);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({}, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec({-10.0, -s});
+    qp.upper = vec({10.0, s});
+    return qp;
+}
+
 /// Evidence in a state OTHER than kObserved, with the counts left at the
 /// linear layer's own invalid sentinel `-1`. Section 2.2: "the counts are
 /// never zero-filled or inferred" -- so the fixture hands the tier exactly
@@ -622,6 +639,29 @@ TEST_F(IpqpSeamTest, TheSkipCountLetsASolveConvergeBeforeItsLastReadingIsCorrupt
     EXPECT_FALSE(r.certificate_downgraded);
     EXPECT_GT(Injector::skip_first, 0); // and the budget was consumed, not ignored
     EXPECT_LT(Injector::skip_first, 1000);
+}
+
+// T4c R2 (settler ruling): `read_kept_tight` means a certificate that STANDS
+// at the end of the solve. Inject the mid-solve evidence failure ONLY
+// (on_final_read=false) on the gate-8 exposed member so the final read
+// genuinely comes back kOk with a nonzero band count, then confirm the
+// whole-solve downgrade still forces the flag false with the counters left
+// populated. See `.superpowers/w1-t4c-report.md`.
+TEST_F(IpqpSeamTest, AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesTheCountersPopulated) {
+    Injector::active = true;
+    Injector::on_final_read = false;
+    Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(weakly_active_indefinite_qp(1.0e-5, -1.0), nullptr,
+                                    IpqpOptions{}, SolveOverrides{});
+
+    ASSERT_GT(Injector::injections, 0);
+    ASSERT_TRUE(r.certificate_downgraded);
+    ASSERT_TRUE(r.inertia_evidence_failed);
+    ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0) << "the final read itself was never injected";
+    EXPECT_GT(r.counters.ipqp_read_kept_tight_sides, 0) << "counters stay populated, undowngraded";
+    EXPECT_FALSE(r.read_kept_tight) << "but the flag reports the certificate as it actually stands";
 }
 
 } // namespace hven::solvers
