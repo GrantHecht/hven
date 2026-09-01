@@ -196,6 +196,14 @@ inline std::vector<CellSpec> taxonomy() {
 /// Builds one cell. Throws `std::invalid_argument` when no offset admits LICQ
 /// (the generator's "infeasible by construction" outcome, which never fired).
 inline Cell build(const CellSpec &spec) {
+    // Validated up front so neither branch below (kAnchor vs. not, then
+    // kScattered vs. kContiguous) can fall through silently on a bad value.
+    if (spec.layout != Layout::kScattered && spec.layout != Layout::kContiguous &&
+        spec.layout != Layout::kAnchor) {
+        throw std::invalid_argument(fmt::format("e1arm::build('{}'): layout enumerator {} is not "
+                                                "kScattered/kContiguous/kAnchor",
+                                                spec.id, static_cast<int>(spec.layout)));
+    }
     if (spec.nodes < 3) {
         throw std::invalid_argument(
             fmt::format("e1arm::build('{}'): nodes = {} -- F7CollocationChain needs at least 3",

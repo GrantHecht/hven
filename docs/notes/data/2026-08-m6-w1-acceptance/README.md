@@ -6,11 +6,14 @@ protocol: `PROVENANCE.txt` (read it first — it governs every number here).
 The arm is `bench/ipqp_e1_arm.h` (implementation) + `bench/ipqp_e1_arm.cpp`
 (CLI), built as `hven_sqp_ipqp_e1_arm`.
 
-**The A4 gate is executable** (fix round 1, item A). It is a ctest entry
-carrying the label `a4_gate`, which the per-commit cadence excludes:
+**The A4 gate is executable** (fix round 1, item A), and **registered only
+behind `-DHVEN_A4_GATE=ON`** (fix round 2, item A): CI's bare `ctest
+--timeout 300` runs with no such flag, so the default configure never
+registers a RED entry into it.
 
 ```
-ctest -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal   # the default run
+cmake -S . -B build -DHVEN_BUILD_BENCH=ON -DHVEN_A4_GATE=ON  # opt in, once
+ctest -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal    # the default run
 ctest -L a4_gate --output-on-failure                          # the A4 gate, solo
 ```
 

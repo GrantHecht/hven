@@ -1,6 +1,10 @@
 # artifact: hven IPQP acceptance arm -- A13 SUBSTITUTE (M6 W1 T10 fix round 1)
 # producer: bench/bench_corpus.cpp (hven_sqp_corpus), --engine walk and --engine ipm
 # date (UTC): 2026-09-01
+# git describe: n/a -- DERIVED, not an independently stamped fresh measurement.
+#   source: the replay's corpus-runner CSVs (hven_sqp_corpus --engine
+#   walk|ipm), binary stamp 73783258a030 (README.md section 8). See
+#   PROVENANCE.txt COMMIT STAMPS for the fix-round-2 correction this records.
 # WALL-ASSERTING: SOLO, serialized, taskset -c 2, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1,
 #   one process at a time, nothing else on the machine (CLAUDE.md section 7).
 # NOT a PSIOPT-envelope re-read -- psiopt is not in this repository; substituted under
