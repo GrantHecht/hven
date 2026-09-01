@@ -1733,13 +1733,8 @@ TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
         EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 0);
     }
 
-    // FIX ROUND 1's band trigger is now meaningful here (round 0's literal
-    // "z > weak_scale" fired on every strongly active bound, HS rows
-    // included -- see `.superpowers/w1-t4c-report.md`'s round-0 section).
-    // These bounds' multipliers are ORDER ONE, `z / sqrt(mu)` in the
-    // 1e5-1e6 range -- three to four decades above the band's `1000`
-    // ceiling -- so the band correctly excludes them as genuinely priced,
-    // not barrier noise.
+    // HS multipliers are O(1): z / sqrt(mu) sits 3-4 decades above the band
+    // ceiling, so the band excludes them as priced (T4c report, fix round 1).
     [[maybe_unused]] const double max_ratio[3] = {5.0e5, 1.5e6, 2.3e6}; // MKL-only margin bound
     Index i = 0;
     for (const QpProblem &qp :

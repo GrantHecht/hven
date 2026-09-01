@@ -1294,10 +1294,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // WHOLE SOLVE. Once armed it never disarms -- "for the whole solve" is
     // the specification's own scope, not this iteration's.
     bool evidence_failed = false;
-    // T4c fix round 2 (R2, settler ruling): the item 4 read's RAW verdict --
-    // `out.read_kept_tight` is set from this only once every downgrade path
-    // below (including `evidence_failed`'s whole-solve rule) has run, so a
-    // clean read that a later downgrade overrides reports FALSE.
+    // Raw item-4 verdict; `out.read_kept_tight` is derived from it only after
+    // every downgrade path has run (T4c R2, report).
     bool kept_tight_raw = false;
 
     // --- THE SECTION 6.2 / 6.3 WINDOW -------------------------------------
@@ -2743,11 +2741,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // after: once the step is applied the previous norm is gone.
         dual_prev = dual_norm_now();
 
-        // T4c exponent-test snapshot, same reasoning as `dual_prev`
-        // immediately above (taken BEFORE the step). R1: only once a PRIOR
-        // accepted step in this attempt already made `w.zl`/`mu_meas` an
-        // accepted iterate -- the first step of an attempt leaves the seed
-        // in `w.zl`, which is never treated as `z_{k-1}`.
+        // Exponent-test snapshot, taken before the step like `dual_prev`; only
+        // a prior accepted step of this attempt qualifies -- never the seed (T4c R1).
         if (attempt_accepted > 0) {
             prev_zl = w.zl;
             prev_zu = w.zu;

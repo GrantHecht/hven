@@ -540,10 +540,8 @@ TEST(IpqpBarrierNoiseTest, ASideTrackingTheBarrierExactlyIsSuspectWithExponentOn
 }
 
 TEST(IpqpBarrierNoiseTest, ASideHoldingItsPriceIsPricedWithExponentNearZero) {
-    // z ~ z* CONSTANT across a real mu change -- an HS row's own multiplier
-    // behaviour (T1's "one HS row e in [-0.1, 0.1]" pin, synthesized here
-    // since a real HS row never band-counts and so never reaches this test
-    // through a solve).
+    // z ~ z* constant across a mu change: the HS-row e-pin, synthesized because
+    // no real HS row band-counts (T4c report, fix round 2).
     const auto v = ip::ipqp_classify_barrier_noise(0.5, 0.5, 1.0e-6, 1.0e-8);
     EXPECT_EQ(v.cls, ip::IpqpBarrierNoiseClass::kPriced);
     EXPECT_GE(v.exponent, -0.1);
