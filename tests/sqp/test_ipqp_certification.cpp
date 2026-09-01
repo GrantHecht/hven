@@ -950,15 +950,20 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
             // over.
             EXPECT_GT(sigma, 1.0);
             EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
-            // T4c, gate-8 residual C1 (owner ruling, accepted with
-            // disclosure): `s = 1e-5` is the pinned exposed member -- a
-            // standing certificate whose kept side is barrier-resolved but
-            // still geometrically tight. See `.superpowers/w1-t4c-report.md`.
+            // T4c fix round 1, gate-8 residual C1: `s = 1e-5` is the pinned
+            // exposed member -- band-counted AND exponent-suspect (e ~ 1,
+            // both sides), so the flag fires on the DISCRIMINATING count,
+            // not the fallback. See `.superpowers/w1-t4c-report.md`.
             if (s == 1.0e-5) {
                 EXPECT_TRUE(r.read_kept_tight);
                 EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 2);
+                EXPECT_EQ(r.counters.ipqp_read_barrier_noise_sides, 2)
+                    << "the exponent test must find this member informative and suspect, not "
+                       "fall back to the band";
                 RecordProperty("t4c_c1_exposed_kept_tight_sides",
                                std::to_string(r.counters.ipqp_read_kept_tight_sides));
+                RecordProperty("t4c_c1_exposed_barrier_noise_sides",
+                               std::to_string(r.counters.ipqp_read_barrier_noise_sides));
             }
             ++kept_and_stood;
         }
@@ -1705,11 +1710,11 @@ TEST(IpqpEscapeLadderTest, TheLadderIsDrivenByRealTierOutcomesAndNotOnlyByHandBu
     EXPECT_EQ(ladder.retired_after(), 6);
 }
 
-// T4c non-vacuity, both ways (brief pin (b)). `convex_qp()` is this file's
-// own bound-inactive control fixture: no side is ever kept-and-tight, so the
-// flag must be structurally FALSE -- otherwise the instrument is hardwired
-// on. See `.superpowers/w1-t4c-report.md` for the measured HS-row finding
-// this test also carries (a correction to the brief's own FALSE guess there).
+// T4c non-vacuity, both ways. `convex_qp()` is this file's own bound-
+// inactive control fixture: no side is ever kept-and-tight, so the flag
+// must be structurally FALSE. Fix round 1 makes the HS rows a MEANINGFUL
+// second FALSE case (round 0's literal trigger fired on them too -- see
+// `.superpowers/w1-t4c-report.md`'s round-0 section for that finding).
 TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
     {
         IpqpEngine tier(tight_opts());
@@ -1719,13 +1724,14 @@ TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
         EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 0);
     }
 
-    // MEASURED, NOT THE BRIEF'S GUESS: all three HS rows certify with a
-    // strongly active bound whose gap is, by `z * gap ~ mu`, structurally
-    // BELOW `10 sqrt(mu)` whenever `z` is order one and `mu` is small --
-    // which is every converged active bound, not a narrow exposed band. The
-    // brief's "(b) ... certified HS rows: flag FALSE" does not hold; T4c's
-    // report records this as a concern rather than forcing a false pin.
-    const Index expect_kept_tight[3] = {2, 1, 2};
+    // FIX ROUND 1's band trigger is now meaningful here (round 0's literal
+    // "z > weak_scale" fired on every strongly active bound, HS rows
+    // included -- see `.superpowers/w1-t4c-report.md`'s round-0 section).
+    // These bounds' multipliers are ORDER ONE, `z / sqrt(mu)` in the
+    // 1e5-1e6 range -- three to four decades above the band's `1000`
+    // ceiling -- so the band correctly excludes them as genuinely priced,
+    // not barrier noise.
+    const double max_ratio[3] = {5.0e5, 1.5e6, 2.3e6}; // measured lower bounds on the margin
     Index i = 0;
     for (const QpProblem &qp :
          {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
@@ -1734,8 +1740,17 @@ TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0);
-        EXPECT_TRUE(r.read_kept_tight);
-        EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, expect_kept_tight[i]);
+        EXPECT_FALSE(r.read_kept_tight);
+        EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 0);
+        EXPECT_EQ(r.counters.ipqp_read_barrier_noise_sides, 0);
+        // The margin claim, checked rather than merely asserted: the
+        // ACTIVE bound's own `z / sqrt(mu)` really does clear the ceiling
+        // (the row's other, near-zero sides are inactive and excluded).
+        double max_seen = 0.0;
+        for (Index j = 0; j < r.x.size(); ++j) {
+            max_seen = std::max({max_seen, r.zl(j) / std::sqrt(r.mu), r.zu(j) / std::sqrt(r.mu)});
+        }
+        EXPECT_GT(max_seen, max_ratio[i]);
         RecordProperty("t4c_hs_kept_tight_" + std::to_string(i),
                        std::to_string(r.counters.ipqp_read_kept_tight_sides));
         ++i;

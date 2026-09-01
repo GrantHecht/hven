@@ -1151,16 +1151,34 @@ struct IpqpCounters {
     /// `ipqp_alpha_p_min` states for itself.
     double ipqp_alpha_d_min = std::numeric_limits<double>::infinity();
 
-    /// M6 W1 T4c, the gate-8 C1 disclosure instrument: bound sides the
-    /// section 2.2 item 4 critical-cone read KEEPS (curvature folded into
-    /// `Sigma`) while geometrically TIGHT -- `slack <= kIpqpWeakActiveFactor *
-    /// sqrt(mu)` and `z > kIpqpWeakActiveFactor * sqrt(mu)`, the strongly-
-    /// active regime `ipqp_accumulate_bound_sigma_critical_cone` already
-    /// classifies, counted rather than newly thresholded. Nonzero only where
-    /// the read's own certificate STANDS (`IpqpResult::read_kept_tight`); see
-    /// that flag and `.superpowers/w1-t4c-report.md` for the exposure this
-    /// discloses. SUMMED across subproblems, the ordinary fold.
+    /// M6 W1 T4c fix round 1, the gate-8 C1 disclosure instrument: bound
+    /// sides the section 2.2 item 4 critical-cone read KEEPS whose
+    /// multiplier sits in the DISCLOSURE BAND `kIpqpWeakActiveFactor *
+    /// sqrt(mu) < z <= kIpqpTightBandFactor * kIpqpWeakActiveFactor *
+    /// sqrt(mu)` -- see `kIpqpTightBandFactor`'s own doc comment for the
+    /// Sigma-band derivation. Nonzero only where the read's own certificate
+    /// STANDS. AMBIGUOUS, NOT WRONG: a genuinely priced bound with a small
+    /// multiplier is counted here too (the band cannot tell the two apart on
+    /// magnitude alone) -- `ipqp_read_barrier_noise_sides` is the
+    /// discriminating refinement. Round 1 replaces the original trigger
+    /// (`slack <= ... AND z > ...`), which the spec author confirmed
+    /// degenerated to "any strongly active bound" by the `z * gap ~ mu`
+    /// identity -- see `.superpowers/w1-t4c-report.md`'s fix-round-1
+    /// section. SUMMED across subproblems, the ordinary fold.
     Index ipqp_read_kept_tight_sides = 0;
+
+    /// M6 W1 T4c fix round 1's discriminating refinement: of the band-
+    /// counted sides above, those whose exponent `e = log(z_k / z_{k-1}) /
+    /// log(mu_k / mu_{k-1})` (over the last two ACCEPTED iterates) is `>=
+    /// 0.5` -- barrier-noise-suspect, since a genuinely priced multiplier
+    /// holds `z ~ z*` constant (`e ~ 0`) while a side tracking the barrier
+    /// (`z = mu / s`, `s` fixed) has `e ~ 1`. `IpqpResult::read_kept_tight`
+    /// fires on THIS count when the history is informative, on the band
+    /// count above otherwise. FALLBACK TO BAND-ONLY (this field reports `0`
+    /// then): fewer than two accepted iterates, or `mu_k / mu_{k-1} > 0.5`
+    /// on the last step (the ratio too close to 1 to trust the exponent).
+    /// See `.superpowers/w1-t4c-report.md`. SUMMED, the ordinary fold.
+    Index ipqp_read_barrier_noise_sides = 0;
 };
 
 /// Aggregate work counters for a whole solve.

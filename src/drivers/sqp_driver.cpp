@@ -1067,6 +1067,7 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_alpha_d_min = std::min(total.ipqp_alpha_d_min, one.ipqp_alpha_d_min);
     // T4c disclosure instrument: SUMMED, the ordinary fold.
     total.ipqp_read_kept_tight_sides += one.ipqp_read_kept_tight_sides;
+    total.ipqp_read_barrier_noise_sides += one.ipqp_read_barrier_noise_sides;
 }
 
 SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
