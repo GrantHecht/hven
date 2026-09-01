@@ -23,6 +23,7 @@
 
 #include "../../bench/bench_cli.h"
 #include "../../bench/corpus_cells.h"
+#include "../../bench/ipqp_e1_arm.h"
 #include "support/e1_cells.h"
 #include "support/hs_problems.h"
 #include "support/indefinite_fixtures.h"
@@ -809,6 +810,68 @@ TEST(IpqpAcceptanceCensus, TheNaturalStallIsChargedToASubproblemThatNeverArmedTh
         through.ipqp_iters_ladder_armed_no_advance - before.ipqp_iters_ladder_armed_no_advance, 0)
         << "no subproblem of the stalling major armed the ladder, so section 6.2 cannot have "
            "charged an armed run (T4b C7)";
+}
+
+// A4 -- the E1 taxonomy arm's in-tree gate. The sweep itself is
+// bench/hven_sqp_ipqp_e1_arm (tens of minutes at nx = 1e5); registered here is
+// that the arm builds the cells E1 ran, from E1's own seeds.
+
+TEST(IpqpAcceptanceA4, TheArmsTaxonomyIsE1sOwnTwentyNineCellsWithTheSweepScriptsSeeds) {
+    const std::vector<e1arm::CellSpec> cells = e1arm::taxonomy();
+    ASSERT_EQ(cells.size(), 29u) << "20 pre-registered + 9 contiguous (spec section 8.1 A4)";
+    // `run_sweep.sh`'s own seed arithmetic (20260826 + idx) and cell ids, and
+    // `run_variant_contiguous.sh`'s (20260827 + sidx) -- the two numbers the
+    // regeneration stands on, so a typo in either fails here rather than later.
+    EXPECT_EQ(cells.front().id, "e1_f7_n4000_af01_m1e-2");
+    EXPECT_EQ(cells.front().seed, 20260827u);
+    EXPECT_EQ(cells[8].id, "e1_f7_n4000_af30_m1e-6");
+    EXPECT_EQ(cells[8].seed, 20260835u);
+    EXPECT_EQ(cells[17].id, "e1_f7_n20000_af30_m1e-6");
+    EXPECT_EQ(cells[17].seed, 20260844u);
+    EXPECT_EQ(cells[18].id, "e1_anchor_f7_n20000_bound_neutral");
+    EXPECT_EQ(cells[20].id, "e1blk_f7_n20000_af01_m1e-2");
+    EXPECT_EQ(cells[20].seed, 20260828u);
+    EXPECT_EQ(cells.back().id, "e1blk_f7_n20000_af30_m1e-6");
+    EXPECT_EQ(cells.back().seed, 20260836u);
+
+    Index scattered = 0, contiguous = 0, anchors = 0;
+    for (const e1arm::CellSpec &c : cells) {
+        scattered += c.layout == e1arm::Layout::kScattered ? 1 : 0;
+        contiguous += c.layout == e1arm::Layout::kContiguous ? 1 : 0;
+        anchors += c.layout == e1arm::Layout::kAnchor ? 1 : 0;
+    }
+    EXPECT_EQ(scattered, 18);
+    EXPECT_EQ(contiguous, 9);
+    EXPECT_EQ(anchors, 2);
+}
+
+TEST(IpqpAcceptanceA4, AContiguousCellIsBuiltAtAnLicqAdmissibleOffsetAndTheTierRecoversItsBlock) {
+    // The taxonomy's own sizes cost minutes to build; this is the same
+    // `build()` path at a size a test can afford, which is what makes the
+    // contiguous branch (the LICQ offset search) a covered branch.
+    e1arm::CellSpec spec;
+    spec.id = "a4_gate_contiguous";
+    spec.nodes = 200;
+    spec.active_fraction = 0.1;
+    spec.margin = 1e-2;
+    spec.seed = 20260901;
+    spec.layout = e1arm::Layout::kContiguous;
+    const e1arm::Cell cell = e1arm::build(spec);
+    ASSERT_EQ(cell.active.size(), 20u) << "round(0.1 * mi) with mi = 200";
+    EXPECT_GE(cell.active_offset, 1) << "row 0 is structurally excluded (LICQ)";
+    EXPECT_EQ(cell.active.back() - cell.active.front(), 19) << "the block is contiguous";
+
+    const e1arm::RegenCertificate c = e1arm::certify(cell);
+    EXPECT_LE(c.stat_inf, 1e-12 * c.stat_scale) << "the KKT inversion actually inverted";
+    EXPECT_GT(c.min_inactive_slack_rel, 0.0);
+    EXPECT_GT(c.min_active_multiplier, 0.0);
+    EXPECT_GT(c.licq_d_min, 0.0) << "the offset the search chose admits LICQ";
+
+    const e1arm::SolveRow r = e1arm::solve(cell, IpqpOptions{});
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_LT(r.counters.ipqp_iters, e1arm::kIterGate);
+    EXPECT_EQ(r.misclassified, 0) << "the ratio rule recovers the block exactly at this margin";
+    EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
 }
 
 } // namespace hven::solvers

@@ -1,0 +1,46 @@
+# M6 W1 T10 -- IPQP acceptance arm (A4 / Q4 / A8 / A13 / A14)
+# PROVENANCE STAMP. hven-native: this artifact was produced in this
+# repository by this repository's own binaries. Nothing here is inherited
+# from an origin-era CSV, so CLAUDE.md section 1's frozen-header exception
+# does not apply and is not invoked.
+
+date (UTC)          : 2026-09-01
+repository          : hven, branch m6
+producer            : bench/ipqp_e1_arm.cpp -> hven_sqp_ipqp_e1_arm
+                      bench/ipqp_e1_arm.h  (the arm; gated by
+                      tests/sqp/test_ipqp_acceptance.cpp IpqpAcceptanceA4.*)
+commit stamped in   : each CSV's own "# git describe:" line
+host                : fedora
+os                  : Fedora release 44 (Forty Four)
+kernel              : Linux 7.1.9-200.fc44.x86_64 x86_64
+cpu model           : AMD Ryzen 7 5800X3D 8-Core Processor
+cpu topology        : 8 physical cores, 16 threads (SMT sibling of core 2 is core 10)
+toolchain           : clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+linear algebra      : Intel MKL, /opt/intel/oneapi/mkl/latest
+build               : -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+                      -DHVEN_BUILD_BENCH=ON, the uniform flag regime
+                      (CLAUDE.md section 7); no per-target flag exception.
+
+# DECLARED PROTOCOL
+#
+# SERIAL, SOLO. Every run below was executed one at a time, alone on the
+# machine, `taskset -c 2`, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1. No cell ever
+# co-ran with another and no cell co-ran with a build. `pgrep` was checked
+# for other solver/build processes before each wall-asserting leg.
+#
+# WALL. `wall_s` in the sweep CSVs is INFORMATIONAL and is never quoted as a
+# measurement (CLAUDE.md section 7). The only wall-ASSERTING leg is the
+# envelope leg, which was run under the serial rule above and says so in its
+# own header.
+#
+# BUDGETS. Every mode is bounded: the tier's own `ipqp_hard_iter_cap` bounds
+# each solve, and each CSV's header records the cap in force. No unbounded
+# cell was run.
+#
+# PIQP. NEVER run, linked, or read as source. Its committed CSVs under
+# docs/notes/data/2026-08-m6-e1-acquisition/ are the oracle this arm is
+# compared against, and only as data (CLAUDE.md section 6).
+#
+# APPLE / ACCELERATE. No Mac hardware ran any leg here. Every Accelerate-side
+# number is UNOBSERVED and is recorded as such in README.md; none is
+# zero-filled or interpolated (CLAUDE.md section 6).

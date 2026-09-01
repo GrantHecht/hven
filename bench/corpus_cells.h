@@ -1336,6 +1336,11 @@ struct EngineConfig {
     SsnHintRule ssn_hint_rule = SsnHintRule::kIterationZeroFree; // R2
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms; // R4
 
+    // M6 W1 T10: the tier's own option block, forwarded verbatim so the Q4
+    // `ipqp_init_mu` sweep is a lever on the runner rather than a patched
+    // recompile. Default-constructed = the shipped default, so `{}` is inert.
+    IpqpOptions ipqp{};
+
     // The model-surface census hook's opt-in flag.
     // UNLIKE every field above, this is NOT an SqpOptions/SsnOptions field --
     // it never reaches options_for_cell below -- because it selects whether
@@ -1361,6 +1366,7 @@ inline SqpOptions options_for_cell(const CorpusCell &cell, const EngineConfig &c
     opts.ssn_sigma_rule = cfg.ssn_sigma_rule;
     opts.ssn_hint_rule = cfg.ssn_hint_rule;
     opts.ssn_infeasibility_rule = cfg.ssn_infeasibility_rule;
+    opts.ipqp = cfg.ipqp;
     return opts;
 }
 

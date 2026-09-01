@@ -135,3 +135,17 @@ target_include_directories(hven_sqp_crossover PRIVATE "${CMAKE_CURRENT_SOURCE_DI
 # reason: every CSV this runner writes says which binary produced its rows.
 target_compile_definitions(hven_sqp_crossover PRIVATE
     HVEN_SQP_CROSSOVER_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
+
+# hven_sqp_ipqp_e1_arm — M6 W1 T10's acceptance arm: the IPQP tier over E1's
+# 29 constructed cells (A4), the Q4 `ipqp_init_mu` sweep and the A13/A14 wall
+# legs. The arm lives in bench/ipqp_e1_arm.h (a header, for the same reason
+# corpus_cells.h is one: tests/sqp/test_ipqp_acceptance.cpp gates exactly this
+# implementation rather than a bench-only copy). NOT ctest-registered: one A4
+# pass at nx = 1e5 runs for tens of minutes. It stamps the same configure-time
+# git description hven_sqp_corpus does, so every CSV names its own commit.
+add_executable(hven_sqp_ipqp_e1_arm ipqp_e1_arm.cpp)
+target_link_libraries(hven_sqp_ipqp_e1_arm PRIVATE hven::hven)
+target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE ${COMPILE_FLAGS})
+target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_compile_definitions(hven_sqp_ipqp_e1_arm PRIVATE
+    HVEN_SQP_E1_ARM_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
