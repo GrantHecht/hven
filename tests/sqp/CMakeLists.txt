@@ -161,8 +161,12 @@ endif()
 # The A4 record test reads the COMMITTED gate CSV rather than re-running the
 # 40-minute sweep, so it needs the artifact's path at compile time (the same
 # device HVEN_SQP_CORPUS_BINARY uses for the corpus subprocess tests).
+# T10b adds the SECOND record: the same 29 cells at the measured `ipqp_init_mu`.
+# The shipped-defaults CSV above is NOT regenerated -- it is the placeholder's
+# record and a pin is never rewritten (CLAUDE.md section 7).
 target_compile_definitions(hven_sqp_tests PRIVATE
-    HVEN_A4_GATE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../docs/notes/data/2026-08-m6-w1-acceptance/a4-gate-shipped-defaults.csv")
+    HVEN_A4_GATE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../docs/notes/data/2026-08-m6-w1-acceptance/a4-gate-shipped-defaults.csv"
+    HVEN_A4_GATE_MU1E2_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../docs/notes/data/2026-08-m6-w1-acceptance/a4-gate-mu1e-2.csv")
 
 gtest_discover_tests(hven_sqp_tests
     TEST_FILTER "-ScaleF7Slow.*"

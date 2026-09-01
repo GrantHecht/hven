@@ -438,3 +438,103 @@ ProbeBudgetBoundsAFailingProposal`, then that test alone):
 BASE carried 2172; this task adds the two `IpqpAcceptanceA4.*` gate tests.
 Pre-existing non-failures in both: 1 skipped (`FailByDesignControl.*`), 2
 disabled (`EqpRefinementAb.*`).
+
+---
+
+## 9. Dated amendment — T10b, 2026-09-01: the measured default is ADOPTED, and A4 is re-scored
+
+Owner ruling 2026-09-01: take the measured `ipqp_init_mu = 1e-2` now, as ONE
+knob (cold start and the warm-restart `mu_0` ceiling stay the same setting);
+leave `ipqp_converge_slack` at 1e2, because spec §2.3 step 1 gives tier 3 the
+last two decades; and score A4's recovery **at the tier's contract plus an
+end-to-end column**. §2's table above is NOT rewritten: it is the 0.1
+placeholder's record, and a pin is never rewritten (CLAUDE.md §7).
+
+### 9.1 New files in this directory
+
+| file | what it is |
+|---|---|
+| `a4-gate-mu1e-2.csv` | the 29 cells at the measured default, six new columns |
+| `a4-gate-mu1e-2-repeat.csv` | an independent second run of the same sweep |
+
+Both were produced SOLO — one process alone on the machine, `taskset -c 2`,
+`MKL_NUM_THREADS=1 OMP_NUM_THREADS=1` — by `hven_sqp_ipqp_e1_arm --gate`.
+The two agree on **1885 values over 29 cells, 0 differences** (`wall_s`
+excluded as informational), which is A8's determinism reading at the new
+default.
+
+**Commit stamp, precisely.** Both stamp `0798af1600ec-dirty`: BASE plus T10b's
+own then-uncommitted change. Fix round 2 above scheduled "T10b regenerates the
+gate from a committed tree"; that is not achievable as worded, because a file
+committed WITH the code that produced it cannot stamp its own commit. What
+stands in its place is the reproduction check recorded in
+`.superpowers/w1-t10b-report.md`: the gate re-run from the committed T10b head,
+solo, reproducing these rows.
+
+### 9.2 The six new columns
+
+`e2e_usable` / `e2e_polished` / `e2e_rule_a` / `e2e_rule_a_missed` /
+`e2e_rule_a_false_positive` / `e2e_factorizations`.
+
+The END-TO-END leg is the driver's own item-3 route, run by the arm exactly as
+`SqpDriver` runs it: the tier's face through `ipqp_result_to_qp_solution` into
+`QpEngine::refine_on_face`, then E1's Rule A again on the polished point. The
+anchors carry the same `-1` not-scored sentinel the Rule-A columns carry.
+
+### 9.3 The verdict at the measured default
+
+| criterion | shipped 0.1 | measured 1e-2 |
+|---|---|---|
+| every cell converges | 14 / 29 | **28 / 29** |
+| `< 40` iterations | 5 / 29 | **28 / 29** |
+| no monotone blow-up across the active fraction | PASSES | **PASSES** |
+| tier-contract recovery (§2.3 ratio rule at the hand-off) | — | 13 / 27 |
+| END-TO-END recovery (Rule A after the tier-3 polish) | — | 12 / 27 |
+| exact recovery at the tier's exit (E1 Rule A) | 1 / 27 | 9 / 27 |
+| total tier iterations | 1471 | **690** |
+
+**The ONE cell that fails a convergence criterion is
+`e1_f7_n20000_af30_m1e-6`** — `nx = 1e5`, 30 % active, the tightest margin
+class, which is the tier's own accuracy floor. It is named in the arm
+(`e1arm::kNamedRedCell`), asserted RED by name in `IpqpAcceptanceA4`, and never
+skipped silently. A second red name fails the gate.
+
+**Why the recovery readings are recorded and not gated.** E1's Rule A is an
+absolute `1e-8 x row_scale` threshold. At the `1e-4` and `1e-6` margin classes
+the constructed ground truth sits at or below the tier's own stopping
+resolution (`ipqp_converge_slack x qp_tol = 1e-7` relative), so what Rule A
+measures there is accuracy, not acquisition. The `a4_gate` ctest entry
+therefore carries E1 criteria 1/2/4 in its exit code and prints the three
+recovery counts; `IpqpAcceptanceA4` pins the counts against this CSV.
+
+### 9.4 What the polish buys, and the proxy caveat
+
+The tier-3 polish costs **0 or 1 factorization per cell, 28 over the 29** (718
+tier factorizations, 746 tier + polish). It was ACCEPTED on 20 of 29 cells; it
+REFUSED on 9, all of them cells where the tier's committed face is over-large
+at the tight margin classes and `refine_on_face`'s rank pre-screen turns it
+away. Where it runs, it is decisive: cells whose tier exit missed 955, 4757 and
+2554 rows under Rule A recover them **exactly** after the polish.
+
+So the tier-vs-PIQP comparison, stated in the terms T10 owed: the tier at the
+shipped `ipqp_converge_slack = 1e2` takes a **median 22 iterations** per cell
+(total 690, range 11–60), and the whole chain costs a **median 24
+factorizations** per cell (total 746, range 13–60), against **PIQP's 9–18
+iterations** on the same cells with exact recovery.
+
+**The proxy caveat does NOT retire for acceptance.** The end-to-end column is
+exact on 12 of the 27 constructed cells, not on all 26 non-named ones. It
+retires only the narrower claim it was raised against — that the tier's exit
+Rule-A misses are the tier failing to acquire the face — which they are not:
+the polish recovers them exactly wherever it runs. The caveat stands for the
+iteration-count comparison, unchanged.
+
+### 9.5 The kIpm baseline moved, declared
+
+`bench/baselines/2026-09-01-t9-ipm/ipm_baseline.csv` is the 0.1 placeholder's
+record and is NOT rewritten. The measured default's baseline is the new dated
+dir `bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv`, and
+`tests/sqp/CMakeLists.txt` re-points at it. Over the 27-cell U0 replay set the
+two differ in **153 values across 17 columns on all 27 cells**; no status
+moved, and the two rows the artifact exists for went `f7_n800_path_warm`
+60/62 → 37/39 and `f7_n1000_path_warm` 46/48 → 31/33.

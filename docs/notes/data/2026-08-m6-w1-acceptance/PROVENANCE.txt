@@ -105,3 +105,23 @@ build               : -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/c
 # this round) instead names its actual source: the replay's corpus-runner
 # CSVs at binary stamp 73783258a030, i.e. derived, not an independently
 # stamped fresh measurement. Rows are unchanged.
+
+# AMENDMENT (T10b, 2026-09-01). Two new CSVs join this directory --
+# a4-gate-mu1e-2.csv and a4-gate-mu1e-2-repeat.csv -- produced by the SAME
+# producer named above, extended with six end-to-end columns, at the measured
+# `ipqp_init_mu = 1e-2` this task adopts. Same machine, same toolchain, same
+# build description; both legs SOLO under the declared protocol above.
+#
+# THE FIX SCHEDULED ABOVE IS NOT ACHIEVABLE AS WORDED, and saying so is the
+# correction. "T10b regenerates the gate from a committed tree ... and stamps a
+# real commit" cannot hold for an artifact committed WITH the code that
+# produced it: the stamp is taken at write time, before the commit exists.
+# Both new CSVs therefore stamp "0798af1600ec-dirty" -- BASE 0798af1 plus
+# T10b's own then-uncommitted change -- exactly as the round-1 measurements do.
+# What replaces the promise is a REPRODUCTION check: the gate re-run from the
+# committed T10b head, solo, against these bytes, recorded in
+# `.superpowers/w1-t10b-report.md`. The `a4_gate` ctest entry remains the
+# vehicle, and it now exits 0 (README section 9.3).
+#
+# APPLE / ACCELERATE, unchanged: no Mac hardware ran any T10b leg either.
+# Every Accelerate-side number stays UNOBSERVED; none is zero-filled.

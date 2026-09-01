@@ -893,15 +893,17 @@ struct GateRow {
     std::string id, layout, status;
     Index n = 0, iters = 0;
     Index rule_a_missed = 0, rule_a_false_positive = 0;
+    // T10b's two readings; absent from the shipped-defaults CSV, which predates them.
+    Index misclassified = 0, e2e_missed = 0, e2e_false_positive = 0, e2e_factorizations = 0;
     double active_fraction = 0.0, margin = 0.0;
 };
 
 /// Reads the COMMITTED artifact. Throws rather than returning an empty vector:
 /// a record test that silently scores zero rows would pass by vacuity.
-std::vector<GateRow> read_committed_gate_csv() {
-    std::ifstream in(HVEN_A4_GATE_CSV);
+std::vector<GateRow> read_committed_gate_csv(const char *path = HVEN_A4_GATE_CSV) {
+    std::ifstream in(path);
     if (!in) {
-        throw std::runtime_error(fmt::format("cannot open {}", HVEN_A4_GATE_CSV));
+        throw std::runtime_error(fmt::format("cannot open {}", path));
     }
     std::vector<std::string> header;
     std::vector<GateRow> rows;
@@ -940,6 +942,16 @@ std::vector<GateRow> read_committed_gate_csv() {
         r.rule_a_false_positive = std::stoll(at("rule_a_false_positive"));
         r.active_fraction = std::stod(at("active_fraction"));
         r.margin = std::stod(at("margin_class"));
+        r.misclassified = std::stoll(at("misclassified"));
+        // The T10b columns, OPTIONAL: the shipped-defaults record predates them.
+        const auto has = [&](const char *name) {
+            return std::find(header.begin(), header.end(), name) != header.end();
+        };
+        if (has("e2e_rule_a_missed")) {
+            r.e2e_missed = std::stoll(at("e2e_rule_a_missed"));
+            r.e2e_false_positive = std::stoll(at("e2e_rule_a_false_positive"));
+            r.e2e_factorizations = std::stoll(at("e2e_factorizations"));
+        }
         rows.push_back(r);
     }
     if (rows.empty()) {
@@ -992,6 +1004,69 @@ TEST(IpqpAcceptanceA4, TheCommittedGateCsvScoresRedOnThreeOfFourAtTheShippedDefa
         EXPECT_FALSE(strictly_up) << "monotone blow-up across the active fraction at " << kv.first;
     }
     EXPECT_EQ(tracks.size(), 9u) << "3 margins x (2 scattered sizes + 1 contiguous size)";
+}
+
+TEST(IpqpAcceptanceA4, TheGateAtTheMeasuredDefaultIsGreenButForOneNamedCell) {
+    // T10b's DECLARED verdict, recomputed from the committed CSV's raw columns. E1's criteria
+    // 1/2/4 are met on every cell but the named one; the three recovery readings are RECORDED
+    // rather than gated (why: the acceptance artifact's README, dated T10b block).
+    const std::vector<GateRow> rows = read_committed_gate_csv(HVEN_A4_GATE_MU1E2_CSV);
+    ASSERT_EQ(rows.size(), 29u);
+
+    Index converged = 0, under_gate = 0, constructed = 0;
+    Index tier_contract = 0, e2e_exact = 0, exact = 0, e2e_facts = 0;
+    std::vector<std::string> red;
+    std::map<std::string, std::vector<std::pair<double, Index>>> tracks;
+    for (const GateRow &r : rows) {
+        const bool ok = r.status == "optimal" && r.iters < kE1IterGate;
+        converged += r.status == "optimal" ? 1 : 0;
+        under_gate += r.iters < kE1IterGate ? 1 : 0;
+        e2e_facts += r.e2e_factorizations;
+        if (!ok) {
+            red.push_back(r.id);
+        }
+        if (r.layout == "anchor") {
+            // NOT SCORED: an anchor carries no constructed ground truth, and this CSV writes
+            // the -1 sentinel there rather than a 0 that would read as exact recovery.
+            EXPECT_EQ(r.rule_a_missed, -1) << r.id;
+            EXPECT_EQ(r.e2e_missed, -1) << r.id;
+            continue;
+        }
+        ++constructed;
+        tier_contract += r.misclassified == 0 ? 1 : 0;
+        e2e_exact += (r.e2e_missed == 0 && r.e2e_false_positive == 0) ? 1 : 0;
+        exact += (r.rule_a_missed == 0 && r.rule_a_false_positive == 0) ? 1 : 0;
+        tracks[fmt::format("{}/{}/{:.0e}", r.n, r.layout, r.margin)].emplace_back(r.active_fraction,
+                                                                                  r.iters);
+    }
+
+    // THE NAMED EXCEPTION, asserted BY NAME and as the ONLY one: its margin class is the tier's
+    // own accuracy floor, so it reaches the cap. A second name here is a regression.
+    std::string red_names;
+    for (const std::string &id : red) {
+        red_names += " " + id;
+    }
+    ASSERT_EQ(red.size(), 1u) << red_names;
+    EXPECT_EQ(red.front(), "e1_f7_n20000_af30_m1e-6");
+    EXPECT_EQ(converged, 28);
+    EXPECT_EQ(under_gate, 28);
+    EXPECT_EQ(constructed, 27);
+
+    // THE RECOVERY READINGS, pinned as the measurement they are: the tier's own ratio rule at
+    // the hand-off, then Rule A after the tier-3 polish, then E1's Rule A at the tier's exit.
+    EXPECT_EQ(tier_contract, 13);
+    EXPECT_EQ(e2e_exact, 12);
+    EXPECT_EQ(exact, 9) << "the polish is what moves 9 to 12, not the tier";
+    EXPECT_EQ(e2e_facts, 746) << "tier + polish factorizations, against PIQP's 9-18 per cell";
+
+    for (auto &kv : tracks) {
+        std::sort(kv.second.begin(), kv.second.end());
+        ASSERT_EQ(kv.second.size(), 3u) << kv.first;
+        const bool strictly_up =
+            kv.second[1].second > kv.second[0].second && kv.second[2].second > kv.second[1].second;
+        EXPECT_FALSE(strictly_up) << "monotone blow-up across the active fraction at " << kv.first;
+    }
+    EXPECT_EQ(tracks.size(), 9u);
 }
 
 } // namespace hven::solvers

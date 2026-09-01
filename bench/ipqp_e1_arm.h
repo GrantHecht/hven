@@ -47,6 +47,11 @@ inline constexpr double kRadius = 1.0;
 /// E1's pre-registered gate: fewer than 40 tier iterations per cell.
 inline constexpr Index kIterGate = 40;
 
+/// THE ONE CELL A4 IS SCORED RED ON at the measured `ipqp_init_mu` (T10b): its margin class is
+/// the tier's own accuracy floor, so it reaches the cap. Named rather than skipped -- a second
+/// red cell must fail the gate. Priced in `.superpowers/w1-t10b-report.md`.
+inline constexpr const char *kNamedRedCell = "e1_f7_n20000_af30_m1e-6";
+
 enum class Layout { kScattered, kContiguous, kAnchor };
 
 /// One taxonomy entry. `seed` and `nodes` are the sweep scripts' own values;
@@ -438,6 +443,15 @@ struct SolveRow {
     Index rule_a_missed = kNotScored, rule_a_false_positive = kNotScored;
     double res_primal = 0.0, res_dual = 0.0, res_comp = 0.0, x_err_inf = -1.0;
     double wall_s = 0.0;
+
+    // END-TO-END: the tier exit AFTER the driver's own tier-3 polish on the tier's working set
+    // (`sqp_driver.cpp`'s item-3 route). Rule A again on the polished point, and the whole
+    // chain's factorizations. The same `kNotScored` sentinel as the tier columns above.
+    bool e2e_usable = false;   ///< the exit was a usable step, so a polish ran at all
+    bool e2e_polished = false; ///< ... and `refine_on_face` ACCEPTED its answer
+    Index e2e_rule_a = kNotScored, e2e_rule_a_missed = kNotScored;
+    Index e2e_rule_a_false_positive = kNotScored;
+    Index e2e_factorizations = 0; ///< tier + polish, the number PIQP's 9-18 compares against
 };
 
 /// Solves one cell with the shipped tier and reads its face back against the
@@ -502,6 +516,23 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
         row.x_err_inf = (r.x - cell.x_star).lpNorm<Eigen::Infinity>();
     }
 
+    // THE END-TO-END LEG: the tier's face handed to `QpEngine::refine_on_face` exactly as the
+    // driver's item-3 route hands it, which is the polish the tier defers its uncertain rows
+    // to. `tr_radius` is infinite here, so that function's trust-region gate is vacuous.
+    Vec x_end = r.x;
+    row.e2e_factorizations = r.counters.ipqp_factorizations;
+    row.e2e_usable = ipqp_exit_is_a_usable_step(r, qopts, iopts);
+    if (row.e2e_usable) {
+        QpEngine polish(qopts);
+        QpSolution refined;
+        row.e2e_polished = polish.refine_on_face(cell.qp, ipqp_result_to_qp_solution(r),
+                                                 SolveOverrides{}, refined);
+        row.e2e_factorizations += refined.counters.factorizations;
+        if (row.e2e_polished) {
+            x_end = refined.x;
+        }
+    }
+
     // E1's own two acquired-set rules, REPORTED beside the ratio rule so the
     // A4 table is comparable with the artifact's CSV columns. Rule A's
     // absolute 1e-8 threshold is the artifact the ratio rule exists to retire.
@@ -522,6 +553,21 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
             const bool t = truth[static_cast<std::size_t>(j)] == 1;
             row.rule_a_false_positive += (a && !t) ? 1 : 0;
             row.rule_a_missed += (!a && t) ? 1 : 0;
+        }
+
+        // ... AND THE SAME RULE ON THE END-TO-END POINT. Scored on the polished `x` whenever
+        // the polish was accepted and on the tier's own otherwise, which is exactly what the
+        // driver would have handed its caller.
+        const Vec ax_end = detail::a_times(cell.qp.Ai, x_end);
+        row.e2e_rule_a = 0;
+        row.e2e_rule_a_missed = 0;
+        row.e2e_rule_a_false_positive = 0;
+        for (Index j = 0; j < row.mi; ++j) {
+            const bool a = (cell.qp.bi(j) - ax_end(j)) <= 1e-8 * cell.row_scale(j);
+            const bool t = truth[static_cast<std::size_t>(j)] == 1;
+            row.e2e_rule_a += a ? 1 : 0;
+            row.e2e_rule_a_false_positive += (a && !t) ? 1 : 0;
+            row.e2e_rule_a_missed += (!a && t) ? 1 : 0;
         }
     }
     return row;

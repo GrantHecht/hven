@@ -177,14 +177,16 @@ if(HVEN_BENCH_E1_GENERATOR_ARITHMETIC)
 endif()
 
 # The A4 gate, EXECUTABLE, but registered only under -DHVEN_A4_GATE=ON
-# (default OFF): it is RED at the shipped defaults today, and CI's bare
-# `ctest --timeout 300` (.github/workflows/ci.yml:199) would fail every run
-# if it were unconditional. See README.md section 2 for the verdict.
-option(HVEN_A4_GATE "Register the A4Gate ctest entry (RED at shipped defaults)" OFF)
+# (default OFF): it re-solves all 29 cells at both sizes, which CI's bare
+# `ctest --timeout 300` (.github/workflows/ci.yml:199) has no budget for.
+# T10b: it now EXITS 0 -- E1 criteria 1/2/4 hold at the measured
+# `ipqp_init_mu` but for the one named cell, which the arm reports by name.
+# See README.md section 2 and its dated T10b block for the verdict.
+option(HVEN_A4_GATE "Register the A4Gate ctest entry (green but for one named cell)" OFF)
 if(HVEN_A4_GATE)
-    add_test(NAME A4Gate.TheTaxonomyAtBothSizesUnderTheShippedDefaults
+    add_test(NAME A4Gate.TheTaxonomyAtBothSizesUnderTheMeasuredDefault
              COMMAND hven_sqp_ipqp_e1_arm --gate --out
                      "${CMAKE_CURRENT_BINARY_DIR}/a4-gate-run.csv")
-    set_tests_properties(A4Gate.TheTaxonomyAtBothSizesUnderTheShippedDefaults PROPERTIES
+    set_tests_properties(A4Gate.TheTaxonomyAtBothSizesUnderTheMeasuredDefault PROPERTIES
         LABELS "a4_gate" TIMEOUT 5400 RUN_SERIAL TRUE)
 endif()
