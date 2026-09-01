@@ -3,60 +3,30 @@
 
 // ipqp_engine.cpp -- the IP-PMM interior-point QP tier's iteration.
 //
-// The header carries the contracts; this file carries the algorithm. Read
-// include/hven/detail/qp/ipqp_engine.h first -- in particular its TASK-4
-// BOUNDARY note, which says which parts of
-// docs/notes/2026-08-m6-w1-ipqp-spec.md this file implements and which are
-// later tasks'.
-//
-// THE SYSTEM, once, so every sign below can be checked against one statement
-// rather than re-derived per block. Slack form, in KKTVector's block order
-// [primals(n) | slacks(mi) | eq_lmults(me) | iq_lmults(mi)], with
-// s = bi - Ai x >= 0 and lambda_i >= 0; variable bounds are CONDENSED into
-// the (1,1) diagonal and add no rows:
+// The header carries the contracts; this file carries the algorithm. Slack form, in
+// KKTVector's block order [primals(n) | slacks(mi) | eq_lmults(me) | iq_lmults(mi)], with
+// s = bi - Ai x >= 0, lambda_i >= 0, and variable bounds CONDENSED into the (1,1) diagonal:
 //
 //     [ H + rho I + Sigma_b     0        Ae'       Ai'    ]
 //     [      0            Lam S^-1        0        -I     ]
 //     [     Ae                  0     -delta I      0     ]
 //     [     Ai                 -I          0     -delta I ]
 //
-// THE SLACK BLOCK'S UNKNOWN IS -ds, NOT ds, and that is forced by the matrix
-// rather than chosen: the (iq, s) coupling is -I, so the inequality row reads
-// `Ai dx - v_s - delta dyi`, while the linearized constraint
-// `Ai x + s - bi - delta(yi - lambda_est) = 0` reads `Ai dx + ds - delta dyi`.
-// Hence v_s = -ds. Stated here because it is the one place a sign error would
-// produce a plausible-looking iteration that converges to the wrong point on
-// exactly the problems with active inequalities.
+// THE SLACK BLOCK'S UNKNOWN IS -ds, NOT ds, forced by the matrix: the (iq, s) coupling is -I,
+// so the inequality row reads `Ai dx - v_s - delta dyi` while the linearized constraint reads
+// `Ai dx + ds - delta dyi`. A sign error here converges plausibly to the wrong point.
 //
-// THE CONDENSED BOUND ALGEBRA, likewise once. With dL = x - l, dU = u - x and
-// per-index complementarity targets (tl, tu),
+// THE CONDENSED BOUND ALGEBRA: eliminating dzl/dzu contributes Sigma_b_i = zl_i/dL_i +
+// zu_i/dU_i (exactly `ipqp_accumulate_bound_sigma`) and moves `tl/dL - tu/dU` to the RHS.
+// Derivation: docs/notes/data/2026-08-m6-w1-acceptance/comment-trim-sidecar.md.
 //
-//     dzl_i = [ tl_i - dL_i zl_i - zl_i dx_i ] / dL_i
-//     dzu_i = [ tu_i - dU_i zu_i + zu_i dx_i ] / dU_i
+// For a UNIFORM target that RHS term is precisely the NEGATIVE of ipqp_math.h's mu-form bound
+// gradient -- hence the kernel call, and hence no special case for the AFFINE (mu = 0) RHS.
+// ONE DEVIATION: the Mehrotra corrector's second-order target term is written separately.
 //
-// so eliminating them from stationarity contributes
-// Sigma_b_i = zl_i/dL_i + zu_i/dU_i to the (1,1) diagonal (which is exactly
-// ipqp_accumulate_bound_sigma) and moves `tl/dL - tu/dU` to the right-hand
-// side. For a UNIFORM target tl = tu = mu that right-hand-side term is
-// precisely the NEGATIVE of ipqp_math.h's mu-form bound gradient, which is
-// why the RHS below is assembled by calling that kernel rather than by a
-// hand-written loop -- and why the AFFINE (mu = 0) right-hand side needs no
-// special case: every term of the mu-form gradient carries a factor mu.
-//
-// ONE DEVIATION FROM "UNIFORM": the Mehrotra corrector's target is
-// tl_i = sigma*mu - dx_aff_i * dzl_aff_i, tu_i = sigma*mu + dx_aff_i *
-// dzu_aff_i. The uniform part goes through the kernel; the second-order
-// correction is a separate, explicitly written term. That is not a duplicate
-// of the kernel's loop -- it is a term the kernel does not model.
-//
-// BOUND DAMPING IS STRUCTURALLY INERT ON THE DRIVER'S PATH, and it is worth
-// saying so rather than leaving a reader to wonder whether the tier inherited
-// an NLP-shaped bias. ipqp_accumulate_bound_barrier_gradient carries Ipopt's
-// one-sided damping term (kIpqpKappaD * mu on a variable bounded on ONE side
-// only). Under a FINITE trust-region radius the clamp-centred box makes every
-// variable two-sided, so the damping indicator is identically zero and the
-// kernel reduces to the exact linearization above. The term survives only for
-// a caller who disables the radius entirely, which is the case it exists for.
+// BOUND DAMPING IS STRUCTURALLY INERT ON THE DRIVER'S PATH: under a FINITE trust-region
+// radius the clamp-centred box makes every variable two-sided, so Ipopt's one-sided damping
+// indicator is identically zero. The term survives only for a caller who disables the radius.
 
 #include <algorithm>
 #include <array>
@@ -90,31 +60,13 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 
 /// The five-way inertia reading the tier acts on.
 ///
-/// REFINES `detail::inertia_verdict` (qp_engine.h), which is reused verbatim
-/// for the kOk/kWrong decision and is the spec's own named precedent for the
-/// perturbed-pivot policy. That helper collapses "the backend perturbed
-/// pivots" and "no evidence state was observed" into one `kSuspect`; this tier
-/// must keep them apart because spec section 2.2 gives them DIFFERENT
-/// remedies -- a perturbed factorization describes a different matrix and is
-/// answered by raising `delta`, while an unobservable state is answered by
-/// downgrading the certificate and is `ipqp_final_inertia_read == 2`
-/// (numerical), not `== 1` (indefinite). Splitting the existing verdict is
-/// therefore a refinement of the precedent, not a second copy of it.
+/// REFINES `detail::inertia_verdict` (qp_engine.h), reused verbatim for the kOk/kWrong
+/// decision: that helper collapses "perturbed pivots" and "no evidence state" into one
+/// `kSuspect`, and spec 2.2 gives them DIFFERENT remedies (raise `delta` vs downgrade).
 ///
-/// `kFactorFailed` IS TASK 5'S FIFTH VALUE, and it is not a refinement of the
-/// verdict helper at all -- it is the state in which there is no verdict to
-/// refine. Task 4 folded a FAILED numeric factorization into `kUnreadable`,
-/// which was harmless while both terminated the solve; task 5 gives them
-/// DIFFERENT remedies, so they can no longer share a value. Section 2.2's
-/// evidence-failure policy applies to a factorization that SUCCEEDED and
-/// could not report its inertia ("a step is permitted only at a conservative
-/// rho floor and the certificate is downgraded for the whole solve"); a
-/// factorization that did not succeed produced no factor to step against, and
-/// plan section 7 note (h) lists "a factorization failure" among the plain
-/// `kNumerical` stops. Reading the two apart is `KktFactorization::info()`,
-/// which is why this classification is taken at the call site rather than
-/// inside `classify_inertia` -- the evidence struct alone cannot tell them
-/// apart (a failed factorization leaves `state == kUnavailable` too).
+/// `kFactorFailed` IS TASK 5'S FIFTH VALUE and not a refinement at all: the evidence-failure
+/// policy applies to a factorization that SUCCEEDED, while a failed one is a plain
+/// `kNumerical` stop (plan section 7 note (h)); only `KktFactorization::info()` separates them.
 enum class InertiaRead { kOk, kWrong, kPerturbed, kUnreadable, kFactorFailed };
 
 InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expected_pos,
@@ -132,13 +84,9 @@ InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expec
     case detail::InertiaVerdict::kWrong:
         return InertiaRead::kWrong;
     case detail::InertiaVerdict::kSuspect:
-        // The two kSuspect causes above are already handled, so what reaches
-        // here is the SHORT-SUM case: n_pos + n_neg != dim, i.e. the
-        // factorization reported a zero eigenvalue. That IS a disagreement
-        // with the required signature (n + mi, me + mi, 0) taken from a
-        // reading that WAS observed, so it is kWrong -- plan section 7 note
-        // (h)'s "read and disagreed" -- and the ladder answers it by raising
-        // the regularization, which is the one move that can remove a zero.
+        // What reaches here is the SHORT-SUM case (n_pos + n_neg != dim): a zero eigenvalue,
+        // read from an OBSERVED state, so it is a disagreement -- plan section 7 note (h)'s
+        // "read and disagreed" -- and raising the regularization is the move that removes it.
         return InertiaRead::kWrong;
     }
     return InertiaRead::kUnreadable;
@@ -149,17 +97,12 @@ InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expec
 /// hven/detail/qp/ipqp_fault_injection.h, which compiles to nothing without
 /// HVEN_TESTING).
 ///
-/// EVERY reading the tier acts on comes through here -- the ladder's, the
-/// evidence-failure branch's, and the section 2.2 item 4 certification read's
-/// -- which is what makes ONE hook enough and what keeps the injected
-/// scenarios from having to be maintained in three places. `final_read`
-/// separates the two KINDS of read because section 2.2 gives them different
-/// policies.
+/// EVERY reading the tier acts on comes through here -- the ladder's, the evidence-failure
+/// branch's, and the section 2.2 item 4 certification read's -- which makes ONE hook enough.
+/// `final_read` separates the two KINDS of read, which section 2.2 gives different policies.
 ///
-/// THE HOOK IS AT THE BOUNDARY, not inside anything derived (CLAUDE.md section
-/// 6): this file is Apache-2.0 and written here, the fact injected is what
-/// this tier believes it read, and no session file is involved. In a build
-/// without HVEN_TESTING the whole body is `return kkt.inertia_evidence();`.
+/// THE HOOK IS AT THE BOUNDARY (CLAUDE.md section 6): this file is Apache-2.0 and no session
+/// file is involved. Without HVEN_TESTING the whole body is `return kkt.inertia_evidence();`.
 const hven::linear::InertiaEvidence &evidence_for_read([[maybe_unused]] const KktFactorization &kkt,
                                                        [[maybe_unused]] bool final_read) {
 #ifdef HVEN_TESTING
@@ -254,29 +197,17 @@ void observe_accepted_step(const Vec &dx, const Vec &ds, const Vec &dye, const V
 /// THE SECTION 6.3 FARKAS CORROBORATION -- one matvec plus O(m + n), no
 /// factorization.
 ///
-/// `SsnEngine::farkas_certificate`'s shape, re-implemented rather than reused
-/// for the reason plan section 7 note (d) withdrew the other SSN reuse rows:
-/// that function is a PRIVATE MEMBER bound to `SsnEngine::bound_rows_`, the
-/// engine's own materialized bound-row list, and this tier has no such list --
-/// its bounds are the dense effective `(lower, upper)` with presence decided
-/// per index. The DISCIPLINE is identical and deliberately so: project the
-/// dual INCREMENT onto the sign cone, normalize it, and test the two Farkas
-/// conditions RELATIVELY, each against a `max(1, .)` floor so a near-zero
-/// denominator cannot manufacture a certificate.
+/// `SsnEngine::farkas_certificate`'s shape, re-implemented because that one is a PRIVATE member
+/// bound to `bound_rows_` (plan section 7 note d). The DISCIPLINE is identical: project the dual
+/// INCREMENT onto the sign cone, normalize, and test RELATIVELY against a `max(1, .)` floor.
 ///
-/// **IT ARMS, IT NEVER CERTIFIES** (spec 6.3). The caller reports
-/// `IpqpEscape::kInfeasibleSuspect` whether this returns true or false; all
-/// this changes is `IpqpInfeasibilityEvidence::farkas_corroborated` and the
-/// two numbers beside it. A tier that withdrew its report on a false here
-/// would be treating the absence of a certificate as evidence of feasibility,
-/// which is the same category error in the other direction.
+/// **IT ARMS, IT NEVER CERTIFIES** (spec 6.3): the caller reports `kInfeasibleSuspect` whether
+/// this returns true or false, and all that changes is `farkas_corroborated` and the two
+/// numbers beside it.
 ///
-/// The system tested is {Ae x = be, Ai x <= bi, -x <= -lower, x <= upper}:
-/// infeasible iff there is `(ye free, yi >= 0, zl >= 0, zu >= 0)` with
-/// `Ae' ye + Ai' yi - zl + zu = 0` and `be' ye + bi' yi - lower' zl +
-/// upper' zu < 0` (Farkas). Absent bound sides contribute nothing -- their
-/// multipliers are structurally 0 and their `+/-kIpqpInfBound` sentinel is
-/// not a row.
+/// The system tested is {Ae x = be, Ai x <= bi, -x <= -lower, x <= upper}: infeasible iff some
+/// `(ye free, yi >= 0, zl >= 0, zu >= 0)` has `Ae' ye + Ai' yi - zl + zu = 0` and
+/// `be' ye + bi' yi - lower' zl + upper' zu < 0`. Absent bound sides contribute nothing.
 bool ipqp_farkas_corroborates(const QpProblem &qp, const IpqpBounds &bounds, const Vec &dye,
                               const Vec &dyi, const Vec &dzl, const Vec &dzu, double *resid_out,
                               double *gap_out) {
@@ -367,17 +298,12 @@ bool ipqp_farkas_corroborates(const QpProblem &qp, const IpqpBounds &bounds, con
 /// Ruiz equilibration of a symmetric matrix stored as its UPPER TRIANGLE in
 /// row-major CSR (spec 4.3).
 ///
-/// Returns the accumulated diagonal `d` with `D K D` written back into `k`.
-/// Both triangles' contributions to a row norm are recovered from the stored
-/// half: one pass over the stored entries updates the norm of BOTH the row and
-/// the column an entry sits in.
+/// Returns the accumulated diagonal `d` with `D K D` written back into `k`. One pass over the
+/// stored half updates the norm of BOTH the row and the column an entry sits in.
 ///
-/// A SYMMETRIC diagonal scaling PRESERVES INERTIA (Sylvester's law), which is
-/// what makes the section 2.2 inertia gate readable off the scaled factor at
-/// all. The tier's residuals, multipliers and counters are all stated on the
-/// UNSCALED quantities -- the scaling never leaves this function and its
-/// inverse never has to be applied to anything the caller sees, because the
-/// right-hand side is scaled going in and the solution scaled coming out.
+/// A SYMMETRIC diagonal scaling PRESERVES INERTIA (Sylvester's law), which is what makes the
+/// section 2.2 gate readable off the scaled factor at all. Residuals, multipliers and counters
+/// are all stated UNSCALED: the scaling never leaves this function.
 void ruiz_equilibrate(SpMatRM &k, Vec &d, Vec &work) {
     const Index dim = k.rows();
     d.setOnes(dim);
@@ -423,10 +349,9 @@ void ruiz_equilibrate(SpMatRM &k, Vec &d, Vec &work) {
     }
 }
 
-/// `SsnEngine::validate_overrides`' rule, applied unchanged: a negative or NaN
-/// radius would silently cross `lo_eff`/`up_eff` behind an assert a Release
-/// build compiles out, and NaN in either regularizer is absorbable by no
-/// downstream arithmetic.
+/// `SsnEngine::validate_overrides`' rule, applied unchanged: a negative or NaN radius would
+/// silently cross `lo_eff`/`up_eff` behind an assert a Release build compiles out, and NaN in
+/// either regularizer is absorbable by no downstream arithmetic.
 void validate_overrides(const SolveOverrides &ov) {
     if (std::isnan(ov.tr_radius) || (ov.tr_radius < 0.0 && !std::isinf(ov.tr_radius))) {
         throw std::invalid_argument(
@@ -515,11 +440,9 @@ IpqpBox make_ipqp_box(const QpProblem &qp, double radius) {
     box.lo_eff.resize(n);
     box.up_eff.resize(n);
 
-    // A radius of +inf disables the window EXACTLY: lo_eff == lower and
-    // up_eff == upper, bit for bit, with no arithmetic performed on them.
-    // `c - Delta` at Delta == +inf would be -inf rather than `lower`, which is
-    // a different (and, on a +/-1e20-sentinel problem, differently
-    // classified) value.
+    // A radius of +inf disables the window EXACTLY: `lo_eff == lower` and `up_eff == upper`,
+    // bit for bit, with no arithmetic performed on them. `c - Delta` at Delta == +inf would be
+    // -inf rather than `lower` -- a different value, and differently classified.
     const bool windowed = std::isfinite(radius);
 
     for (Index i = 0; i < n; ++i) {
@@ -529,10 +452,8 @@ IpqpBox make_ipqp_box(const QpProblem &qp, double radius) {
             throw std::invalid_argument(
                 fmt::format("make_ipqp_box: bound {} is NaN (lower={}, upper={})", i, lo, up));
         }
-        // THE CENTRE RULE IS refine_on_face's OWN, character for character
-        // (src/qp/qp_engine.cpp's gate: `c = min(max(0, lo), up)`). See
-        // IpqpBox's doc comment for why sharing it is load-bearing rather
-        // than tidy.
+        // THE CENTRE RULE IS refine_on_face's OWN, character for character (qp_engine.cpp's
+        // gate: `c = min(max(0, lo), up)`). Why sharing it is load-bearing: IpqpBox's doc.
         const double c = std::min(std::max(0.0, lo), up);
         box.centre(i) = c;
         box.lo_eff(i) = windowed ? std::max(lo, c - radius) : lo;
@@ -552,10 +473,8 @@ bool IpqpBounds::in_domain() const { return zero_width_index < 0; }
 
 IpqpEscapeLadder::IpqpEscapeLadder(const IpqpOptions &iopts)
     : retire_after_(iopts.ipqp_retire_after) {
-    // Re-checked HERE and not only in `validate_sqp_options`, for the reason
-    // `IpqpEngine::solve` re-validates its own options: this type is reachable
-    // without a driver, and a retirement threshold of 0 would retire the tier
-    // before it had ever run.
+    // Re-checked HERE and not only in `validate_sqp_options`: this type is reachable without a
+    // driver, and a retirement threshold of 0 would retire the tier before it had ever run.
     if (retire_after_ <= 0) {
         throw std::invalid_argument(
             fmt::format("IpqpEscapeLadder: ipqp_retire_after ({}) must be > 0; retiring "
@@ -581,28 +500,21 @@ bool IpqpEscapeLadder::record(IpqpLadderOutcome outcome, Index major) {
             major));
     }
     if (outcome == IpqpLadderOutcome::kDeclined) {
-        // A DECLINE IS NEUTRAL. It cannot advance the tally (the tier never
-        // ran, so it produced no evidence of unsuitability -- that is
-        // `ipqp_declined_pinned`'s own settled text), and it cannot reset one
-        // either (it produced no evidence of suitability, so it says nothing
-        // about whether the previous escapes were a pattern).
+        // A DECLINE IS NEUTRAL: it cannot advance the tally (the tier never ran) and cannot
+        // reset one either (it produced no evidence of suitability). `ipqp_declined_pinned`.
         return retired_;
     }
     if (outcome == IpqpLadderOutcome::kSuccess) {
-        // "ANY SUCCESS RESETS THE COUNT" (spec 6.1). A converged solve whose
-        // CERTIFICATE was downgraded without an escape is a success here --
-        // plan section 7 note (j) is explicit that it carries no section 6.1
-        // K = 3 charge, and section 6.1's own word for the alternative to an
-        // escape is "success".
+        // "ANY SUCCESS RESETS THE COUNT" (spec 6.1). A converged solve whose CERTIFICATE was
+        // downgraded without an escape is a success here -- plan section 7 note (j) gives it
+        // no section 6.1 charge, and 6.1's own word for the alternative to an escape is that.
         consecutive_ = 0;
         return retired_;
     }
     ++consecutive_;
     if (!retired_ && consecutive_ >= retire_after_) {
-        // FIRES AT MOST ONCE (`ipqp_tier_retired_after`'s marker-not-a-count
-        // discipline): section 6.1 retires the tier "for the REMAINDER of that
-        // solve", and "any success resets the count" resets the tally toward a
-        // FUTURE retirement, not an already-fired one.
+        // FIRES AT MOST ONCE (`ipqp_tier_retired_after` is a marker, not a count): 6.1 retires
+        // for the REMAINDER of the solve, and a reset aims at a FUTURE retirement, not this.
         retired_ = true;
         retired_after_ = major;
     }
@@ -616,12 +528,9 @@ Index IpqpEscapeLadder::retired_after() const { return retired_after_; }
 Index IpqpEscapeLadder::consecutive_escapes() const { return consecutive_; }
 
 IpqpBounds make_ipqp_bounds(const IpqpBox &box) {
-    // CLAUDE.md section 4, at a PUBLIC boundary: this function takes an
-    // IpqpBox by reference, so a hand-built box (task 6's routing chain will
-    // build one, and tests already do) can present blocks of different
-    // lengths. The loop below indexes `upper(i)` with `lower`'s length;
-    // Eigen's own assert is compiled out under NDEBUG, so without this check
-    // a mismatch is an out-of-bounds READ in Release, silently.
+    // CLAUDE.md section 4, at a PUBLIC boundary: this function takes an IpqpBox by reference, so
+    // a hand-built box can present blocks of different lengths. Without this check the loop
+    // below is an out-of-bounds READ in Release, where Eigen's own assert is compiled out.
     if (box.lo_eff.size() != box.up_eff.size() || box.centre.size() != box.lo_eff.size()) {
         throw std::invalid_argument(
             fmt::format("make_ipqp_bounds: IpqpBox blocks disagree -- centre {}, lo_eff {}, "
@@ -644,22 +553,17 @@ IpqpBounds make_ipqp_bounds(const IpqpBox &box) {
     return b;
 }
 
-// The walk's own trust-region resolution, unchanged (`qp_types.h`'s
-// SolveOverrides sentinel convention): +inf on the override means "use the
-// engine's own radius". DECLARED IN THE HEADER since task 6, because the
-// routing chain's pre-solve domain gate has to build the same box this
-// function's answer defines -- see the declaration's own note.
+// The walk's own trust-region resolution, unchanged (`qp_types.h`'s SolveOverrides sentinel:
+// +inf on the override means "use the engine's own radius"). DECLARED IN THE HEADER since
+// task 6, because the routing chain's pre-solve domain gate builds the same box.
 double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides) {
     return std::isinf(overrides.tr_radius) && overrides.tr_radius > 0.0 ? opts.tr_radius
                                                                         : overrides.tr_radius;
 }
 
-// THE STOPPING RULE (spec 2.3 step 1 / 3.4), and the ONLY statement of it: the
-// QP layer's own relative tolerances, loosened by `ipqp_converge_slack`. The
-// tier does not chase the last two decades -- that is tier 3's job -- and the
-// slack factor is what makes the division of labour a setting rather than a
-// hard-coded convention. `solve()`'s loop calls this, so a caller reading it
-// back off an IpqpResult reads the same answer the engine acted on.
+// THE STOPPING RULE (spec 2.3 step 1 / 3.4), and the ONLY statement of it: the QP layer's own
+// relative tolerances, loosened by `ipqp_converge_slack`. `solve()`'s loop calls this, so a
+// caller reading it back off an IpqpResult reads the same answer the engine acted on.
 bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
                                 const IpqpOptions &iopts) {
     const double opt_target = opts.opt_tol * iopts.ipqp_converge_slack;
@@ -674,12 +578,9 @@ bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions 
 
 /// Every vector one solve needs, allocated once at entry.
 ///
-/// A plain member-per-block struct rather than a set of engine members: the
-/// tier is re-entrant per solve and holding these across solves would make the
-/// engine's state depend on the previous subproblem's SIZE, which is exactly
-/// the class of coupling `IpqpKktLayout`'s structure key exists to make
-/// explicit. The cache that IS worth holding across solves -- the symbolic
-/// analysis and the scatter plan -- is held, on the engine.
+/// A plain member-per-block struct rather than engine members: holding these across solves
+/// would make the engine's state depend on the previous subproblem's SIZE. What IS worth
+/// holding across solves -- the symbolic analysis and the scatter plan -- is held.
 struct IpqpEngine::Workspace {
     Index n = 0, me = 0, mi = 0, dim = 0;
 
@@ -701,21 +602,18 @@ struct IpqpEngine::Workspace {
     // The linear system.
     Vec rhs, sol, dscale, dsq, ruiz_work;
 
-    // The three `max(1, ...)` folds the relative residual divides by, kept so
-    // the SCHEDULE'S gate can be stated on the same scale as the STOPPING
-    // rule. Two absolute quantities compared against each other is what made
-    // the first version of that gate scale-dependent -- see
-    // kIpqpRegGateContract.
+    // The three `max(1, ...)` folds the relative residual divides by, kept so the SCHEDULE'S
+    // gate can be stated on the same scale as the STOPPING rule -- see kIpqpRegGateContract for
+    // what comparing two absolute quantities cost the first version of that gate.
     double scale_d = 1.0, scale_pe = 1.0, scale_pi = 1.0;
 
     // Steps.
     Vec dx, ds, dye, dyi, dzl, dzu;
     Vec dx_a, ds_a, dyi_a, dzl_a, dzu_a;
 
-    // Fraction-to-boundary scratch. `detail::max_step_to_boundary` takes
-    // NON-CONST `Eigen::Ref`s, so every block handed to it needs a mutable
-    // vector of its own -- including the direction, which is why `ft_dx` is
-    // here rather than a fresh copy of `dx` twice per iteration.
+    // Fraction-to-boundary scratch. `detail::max_step_to_boundary` takes NON-CONST
+    // `Eigen::Ref`s, so every block handed to it needs a mutable vector of its own --
+    // including the direction, which is why `ft_dx` is here.
     Vec neg_dx, ft_dx, ft_dL, ft_dU;
 
     // Trial point for mu_aff.
@@ -773,20 +671,13 @@ struct IpqpEngine::Workspace {
 const QpOptions &IpqpEngine::options() const { return opts_; }
 
 IpqpEngine::IpqpEngine(const QpOptions &opts) : opts_(opts) {
-    // THE TIER'S OWN BACKEND OPTIONS, NOT detail::sqp_kkt_options() (spec
-    // 4.4). Default-constructed and left alone, which is what makes this
-    // commit Accelerate-safe and free of an IPARM-SURFACE label: on Apple
-    // Accelerate a non-default `weighted_matching`, `matrix_scaling`,
-    // `pivot_strategy`, `factorization_algorithm`, `solve_parallelism` or a
-    // positive `cnr_threads` throws std::invalid_argument at construction, and
-    // every field that maps to a Pardiso iparm slot (`pivot_perturb_exp` ->
-    // iparm[9], `max_refinement_iters` -> iparm[7], the ordering) stays at the
-    // value pardisoinit itself chose. Nothing here moves an iparm surface, so
-    // CLAUDE.md section 6's labelling rule has nothing to bind on.
+    // THE TIER'S OWN BACKEND OPTIONS, NOT detail::sqp_kkt_options() (spec 4.4).
+    // Default-constructed and left alone: every field that maps to a Pardiso iparm slot stays
+    // at the value pardisoinit chose, so CLAUDE.md section 6's labelling rule has nothing to
     //
-    // The DEFAULT-CONSTRUCTED KktFactorization member does exactly this; the
-    // constructor body is the place to record WHY it is left alone, since
-    // "no code" is otherwise indistinguishable from "not thought about".
+    // bind on, and the Accelerate backend (which throws on several non-default fields at
+    // construction) is safe. Recorded here because "no code" is otherwise indistinguishable
+    // from "not thought about".
 }
 
 const IpqpSeed *IpqpEngine::warm_carry() const { return carry_armed_ ? &carry_ : nullptr; }
@@ -853,13 +744,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     qp.validate();
     validate_overrides(overrides);
     {
-        // THE SAME CODE THE DRIVER RUNS, not a second copy of the same rules:
-        // `validate_sqp_options` owns every IpqpOptions band (task 1), and a
-        // re-derivation here could drift from it silently. This engine is
-        // reachable without a driver (tests today, and any future direct
-        // consumer), so the check must happen here too -- but it happens by
-        // CALLING the owner, with the tier's options dropped into an otherwise
-        // default SqpOptions whose remaining fields are valid by construction.
+        // THE SAME CODE THE DRIVER RUNS, not a second copy of the rules: `validate_sqp_options`
+        // owns every IpqpOptions band (task 1), and this engine is reachable without a driver,
+        // so the check happens here by CALLING the owner with an otherwise default SqpOptions.
         SqpOptions probe;
         probe.ipqp = iopts;
         validate_sqp_options(probe);
@@ -883,12 +770,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // complete_trace_solve below for why the counter itself advances later.
     const Index trace_solve_id = trace_solve_counter_;
 
-    // ONE ROW PER NON-THROWING SOLVE, and that includes a DECLINE (I9). The
-    // emitter lives here, above the domain gate, because the gate returns
-    // early and a decline is an OUTCOME, not a non-event: task 6's routing
-    // chain wants to see the subproblems the tier refused just as much as the
-    // ones it solved, and a decline that consumed no label would make the
-    // ledger's labels stop counting solves.
+    // ONE ROW PER NON-THROWING SOLVE, and that includes a DECLINE (I9). The emitter sits above
+    // the domain gate because the gate returns early and a decline is an OUTCOME, not a
+    // non-event: a decline consuming no label would make the ledger's labels stop counting.
     auto emit_ledger = [&]() {
         if (ledger_ == nullptr) {
             return;
@@ -897,11 +781,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         rec.label = fmt::format("{}{}", label_prefix_, solve_counter_++);
         rec.warm = started_warm; // the section 5.4 grade this solve started at.
         rec.status = out.status;
-        // THE QP-SHAPED PROJECTION (see attach_ledger's contract). Only the
-        // three fields that mean the same thing on all three kernels are
-        // filled; the rest stay at their defaults rather than being given a
-        // plausible-looking value this tier did not measure. On a decline all
-        // three are 0, which is the correct reading -- the tier never ran.
+        // THE QP-SHAPED PROJECTION (see attach_ledger's contract). Only the three fields that
+        // mean the same thing on all three kernels are filled; the rest stay at their defaults
+        // rather than carrying a plausible value this tier did not measure. All 0 on a decline.
         rec.counters.minor_iters = out.counters.ipqp_iters;
         rec.counters.factorizations = out.counters.ipqp_factorizations;
         rec.counters.symbolic_analyses = out.counters.ipqp_symbolic_analyses;
@@ -923,11 +805,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- T4.b: the domain gate --------------------------------------------
     if (!bounds.in_domain()) {
-        // A DECLINE, NOT AN ESCAPE. The tier never ran, so nothing here
-        // touches `ipqp_escapes` or the K = 3 retirement tally, and every
-        // other counter stays at its default. The routing chain (task 6)
-        // sends the subproblem to the walk, which solves an exact pin
-        // exactly.
+        // A DECLINE, NOT AN ESCAPE: nothing here touches `ipqp_escapes` or the K = 3 tally and
+        // every other counter stays at its default. The routing chain sends it to the walk.
         out.declined_pinned = true;
         out.status = QpStatus::kNumericalError;
         out.escape_reason = IpqpEscape::kNone;
@@ -944,21 +823,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- budgets (spec 3.4) -----------------------------------------------
     //
-    // `ipqp_max_iter`'s sentinel discipline is `QpOptions::max_iter`'s own,
-    // through the walk's own helper so the two cannot derive different caps
-    // for the same subproblem. The HARD CAP is then the binding one at the
-    // shipped defaults (60 against a derived 500+), which is exactly what
-    // Amendment C intends: the hard cap is the budget of LAST RESORT.
+    // `ipqp_max_iter`'s sentinel discipline is `QpOptions::max_iter`'s own, taken through the
+    // walk's own helper. BOTH CAPS BIND -- the `min` is the point, so a caller who raises
+    // `ipqp_max_iter` alone still gets the hard cap, Amendment C's budget of LAST RESORT.
     //
-    // BOTH CAPS BIND, so a caller who raises `ipqp_max_iter` alone still gets
-    // 60 -- the `min` is the point, not an accident, and `ipqp_hard_iter_cap`
-    // has to move too.
-    //
-    // The FACTORIZATION cap's sentinel is three times the budget ABOVE, i.e.
-    // three times `min(derived, hard cap)` rather than three times the
-    // size-derived number: one iteration costs one factorization plus ladder
-    // rungs, and the budget the iterations actually run under is the clamped
-    // one.
+    // The FACTORIZATION cap's sentinel is three times the budget ABOVE, i.e. three times the
+    // CLAMPED one: an iteration costs one factorization plus ladder rungs.
     const Index derived = detail::effective_qp_max_iter(qp, iopts.ipqp_max_iter);
     const Index iter_budget = std::min(derived, iopts.ipqp_hard_iter_cap);
     const Index fact_budget = iopts.ipqp_max_factorizations > 0
@@ -973,10 +843,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     double mu0 = iopts.ipqp_init_mu;
     double mu_meas = mu0;
 
-    // Push x strictly inside the effective box (Ipopt's bound_push/bound_frac
-    // rule). The box has strictly positive width everywhere (the domain gate
-    // above), so the push always lands strictly inside; both sides move by at
-    // most kIpqpBoundPushRel of the width, so they cannot cross.
+    // Push x strictly inside the effective box (Ipopt's bound_push/bound_frac rule). The box has
+    // strictly positive width everywhere (the domain gate above), so the push always lands
+    // strictly inside; both sides move by at most kIpqpBoundPushRel of the width.
     auto push_into_box = [&]() {
         for (Index i = 0; i < n; ++i) {
             const double lo = bounds.lower(i);
@@ -1000,12 +869,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
     };
 
-    // Move a WARM x just inside the effective box. A DIFFERENT rule from the
-    // cold push above, and the difference is the point: the cold push is
-    // Ipopt's bound_push (1e-2 of the width), and applying it to a converged
-    // warm iterate would shove an active bound off its own solution. This
-    // moves by the repair floor instead -- enough for a strict interior, small
-    // enough that a good seed is not perturbed.
+    // Move a WARM x just inside the effective box -- a DIFFERENT rule from the cold push above,
+    // and the difference is the point: Ipopt's bound_push would shove an active bound off its
+    // own solution. This moves by the repair floor instead.
     auto clamp_seed_into_box = [&]() {
         for (Index i = 0; i < n; ++i) {
             const double lo = bounds.lower(i);
@@ -1047,13 +913,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- cold start (spec 5.6) --------------------------------------------
     //
-    // x_0 is the SQP's own start point -- the step-space origin -- which the
-    // box already carries as its CENTRE (`clamp(0, lower, upper)`), so the
-    // tier's start point and the tier's window are derived from one value
-    // rather than two that could disagree.
+    // x_0 is the SQP's own start point -- the step-space origin -- which the box already carries
+    // as its CENTRE, so the start point and the window derive from one value, not two.
     //
-    // A LAMBDA because spec 5.5's warm-kill RE-RUNS it in place: a second
-    // spelling of the cold start could drift from this one.
+    // A LAMBDA because spec 5.5's warm-kill RE-RUNS it in place: a second spelling of the cold
+    // start could drift from this one.
     auto cold_start = [&]() {
         mu0 = iopts.ipqp_init_mu;
         w.x = out.box.centre;
@@ -1065,15 +929,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             w.s = (qp.bi - qp.Ai * w.x).cwiseMax(detail::kIpqpSlackInit);
             w.yi = mu0 * w.s.cwiseInverse();
         }
-        // THE COLD DUALS ARE PLACED SO THAT EVERY COMPLEMENTARY PAIR EQUALS
-        // mu_0 EXACTLY. Spec 5.6 words this as "lambda_0 = 0 shifted positive
-        // by the same [Skajaa-Andersen-Ye] rule"; the SAY shift's job is to
-        // push every pair toward mu_0, and from a zero multiplier the shift
-        // that achieves it is mu_0 / distance in closed form. Writing it that
-        // way rather than shifting-then-measuring makes `mu_measured ==
-        // ipqp_init_mu` at the cold start a property of the code instead of an
-        // approximation of it, which is what the cold-start determinism pin
-        // asserts.
+        // THE COLD DUALS ARE PLACED SO EVERY COMPLEMENTARY PAIR EQUALS mu_0 EXACTLY. Spec 5.6
+        // words this as the SAY shift from `lambda_0 = 0`; from a zero multiplier that shift is
+        // `mu_0 / distance` in closed form, which makes `mu_measured == ipqp_init_mu` exact.
         for (Index i = 0; i < n; ++i) {
             if (detail::ipqp_has_lower(bounds.lower(i))) {
                 w.zl(i) = mu0 / (w.x(i) - bounds.lower(i));
@@ -1090,9 +948,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- the warm restart (spec 5.2/5.3) ----------------------------------
     //
-    // The section 5.3 clamp, ON EVERY BRANCH so the counter's iff contract
-    // holds on the repair-off arm too (fix round 1, F2). `mu` is adopted as
-    // STATE, bounded by the measured floor and the cold default.
+    // The section 5.3 clamp, ON EVERY BRANCH so the counter's iff contract holds on the
+    // repair-off arm too (fix round 1, F2). `mu` is adopted as STATE, bounded by the measured
+    // floor and the cold default.
     auto clamp_mu0 = [&](double payload_mu) {
         double lo_pair = 0.0;
         measure_complementarity(mu_meas, lo_pair);
@@ -1105,10 +963,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return lo_pair;
     };
 
-    // THE DOMAIN GATE ON AN UNREPAIRED SEED (fix round 1, R1):
-    // `ipqp_warm_repair` disables the REPAIR, never the validation, so an
-    // invariant-breaking seed degrades COLD rather than being consumed raw.
-    // `.superpowers/w1-t7-report.md` FIX ROUND 2.
+    // THE DOMAIN GATE ON AN UNREPAIRED SEED (fix round 1, R1): `ipqp_warm_repair` disables the
+    // REPAIR, never the validation, so an invariant-breaking seed degrades COLD rather than
+    // being consumed raw. `.superpowers/w1-t7-report.md` FIX ROUND 2.
     auto seed_needs_the_repair = [&](const IpqpSeed &sd) {
         for (Index j = 0; j < mi; ++j) {
             if (!(sd.s(j) > 0.0) || !(sd.lambda_i(j) > 0.0)) {
@@ -1134,10 +991,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     double trace_restart_shift_p = 0.0;
     double trace_restart_shift_d = 0.0;
 
-    // Section 5.2 in three steps -- strict positivity, the SAY shift, proximal
-    // re-centering -- with the 5.3 clamp between the first two, since the
-    // shift's target IS `mu_0`. Every move folds into `shift_max` (F4).
-    // `.superpowers/w1-t7-report.md` FIX ROUND 2, section 4.
+    // Section 5.2 in three steps -- strict positivity, the SAY shift, proximal re-centering --
+    // with the 5.3 clamp between the first two, since the shift's target IS `mu_0`. Every move
+    // folds into `shift_max`. `.superpowers/w1-t7-report.md` FIX ROUND 2, section 4.
     auto warm_start_from = [&](const IpqpSeed &sd) {
         w.x = sd.x;
         clamp_seed_into_box();
@@ -1157,10 +1013,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         };
 
-        // 1. STRICT POSITIVITY (5.2 item 1). The slack is RECOMPUTED from
-        //    `bi - Ai x`, since the seed's `s` belongs to the previous
-        //    subproblem's `(Ai, bi)`; a recompute off an ABSENT block is not
-        //    counted. `.superpowers/w1-t7-report.md` FIX ROUND 2.
+        // 1. STRICT POSITIVITY (5.2 item 1). The slack is RECOMPUTED from `bi - Ai x`, since the
+        //    seed's `s` belongs to the previous subproblem's `(Ai, bi)`; a recompute off an
+        //    ABSENT block is not counted. `.superpowers/w1-t7-report.md` FIX ROUND 2.
         if (mi > 0) {
             const Vec s_new = (qp.bi - qp.Ai * w.x).cwiseMax(detail::kIpqpRepairSlackEps);
             if (sd.s.squaredNorm() > 0.0) {
@@ -1190,9 +1045,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // 2. THE 5.3 CLAMP, on the repaired point's own complementarity.
         double lo_pair = clamp_mu0(sd.mu);
 
-        // The mu_0-relative floor of 5.2 item 1 (a clamp, not a refusal: a
-        // price at exact 0 is legitimate). THE BASE GRADE TAKES IT ADDITIVELY
-        // instead -- `max(z, 0) + eps` (fix round 1, R6).
+        // The mu_0-relative floor of 5.2 item 1 -- a clamp, not a refusal, since a price at exact
+        // 0 is legitimate. THE BASE GRADE TAKES IT ADDITIVELY instead: `max(z, 0) + eps`.
         // `.superpowers/w1-t7-report.md` FIX ROUND 2.
         const double eps = detail::kIpqpRepairEps * mu0;
         const bool additive_eps = sd.grade == IpqpRestartGrade::kBaseWarm;
@@ -1279,10 +1133,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             out.counters.ipqp_restart_shift_max = shift_max;
         }
 
-        // 4. PROXIMAL RE-CENTERING (5.2 item 3): the estimates are the
-        //    REPAIRED point, never the seed's own -- a centre inherited from
-        //    another subproblem would anchor this one where its data never
-        //    named.
+        // 4. PROXIMAL RE-CENTERING (5.2 item 3): the estimates are the REPAIRED point, never the
+        //    seed's own -- a centre inherited from another subproblem would anchor this one
+        //    where its data never named.
         w.zeta = w.x;
         w.lam_est_e = w.ye;
         w.lam_est_i = w.yi;
@@ -1332,11 +1185,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     }
 
     // Spec 5.5 as amended by plan section 7 note (c): the warm budget is
-    // `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`, so a caller value
-    // larger than the solve's own budget can never itself be the binding
-    // limit. `warm_live` falls once the kill has fired -- the restart is COLD
-    // and gets the ordinary budget, which is what "a second overrun is an
-    // ordinary budget escape" says.
+    // `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`, so a caller value larger than the
+    // solve's own budget can never itself bind. `warm_live` falls once the kill has fired.
     const Index warm_budget = std::min(iopts.ipqp_warm_iter_budget, iter_budget);
     bool warm_live = started_warm;
 
@@ -1348,39 +1198,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- the (rho, delta) schedule (spec 3.2) -----------------------------
     //
-    // TWO QUANTITIES, KEPT APART, because they are different things and T4b
-    // exists because the code used to treat them as one number:
+    // TWO QUANTITIES, KEPT APART (T4b exists because the code once treated them as one number):
+    // `rho_sched`/`delta_sched` are section 3.2's PROXIMAL schedule and ARE the subproblem --
+    // matrix, RHS and gate; `rho_dem` is 2.2's per-iteration MODIFICATION, matrix-only.
     //
-    //   rho_sched / delta_sched -- section 3.2's PROXIMAL schedule, gated on
-    //                              measured contraction. This IS the
-    //                              subproblem: it enters the matrix, the
-    //                              right-hand side and the gate's residual,
-    //                              all anchored at (zeta, lambda_est).
-    //   rho_dem                  -- section 2.2's inertia-demanded
-    //                              MODIFICATION, chosen fresh every iteration
-    //                              by Algorithm IC (below). Matrix only,
-    //                              additive, uniform in the Ruiz-scaled
-    //                              system. A per-iteration local, NOT a
-    //                              solve-scoped floor: the monotone-per-solve
-    //                              floor of the pre-T4b design is DELETED
-    //                              (plan section 7 note (p)).
-    //
-    // THE LADDER'S SOLVE-SCOPED STATE IS ITS MEMORY, NOT A FLOOR:
-    //
-    //   rho_dem_last  -- Algorithm IC's own memory. Set ONLY by a SUCCESSFUL
-    //                    MODIFIED factorization (and by the exhausted-ladder
-    //                    and evidence-failure paths, which are escapes or
-    //                    downgrades either way); a success on the UNMODIFIED
-    //                    system leaves it exactly as IC leaves it. Reported
-    //                    as `ipqp_rho_demanded_last`.
-    //   rho_dem_max   -- the high-water mark across every rung the solve paid,
-    //                    reported as `ipqp_rho_demanded_max`. It rises and
-    //                    never falls, so it is also the SAFEGUARD LEVEL the
-    //                    section 6.2 window-discard rule watches (see there).
-    //                    A convex subproblem never arms the ladder and reports
-    //                    0, which is the convex-inertness pin.
-    //   consec_modified -- how many CONSECUTIVE preceding iterations needed a
-    //                    modification, for IC-1's skip rule.
+    // THE LADDER'S SOLVE-SCOPED STATE IS ITS MEMORY, NOT A FLOOR (plan section 7 note (p)):
+    // `rho_dem_last` is IC's memory, `rho_dem_max` the high-water mark the 6.2 window-discard
+    // rule watches, `consec_modified` the count IC-1's skip rule reads.
     double rho_sched = iopts.ipqp_rho_init;
     double delta_sched = iopts.ipqp_delta_init;
     double rho_dem_last = 0.0;
@@ -1407,21 +1231,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Raised by `factorize_once` when the factorization cap refused a call, so
     // a caller can tell "no factorization was taken" from any inertia verdict.
     bool fact_budget_hit = false;
-    // T4c fix round 1's disclosure band: the item 4 read's own `assemble`
-    // call (`weak_scale > 0`, exactly once per solve) fills these with the
-    // band-counted sides' indices; every ladder rung's `weak_scale == 0`
-    // call never touches them. See `.superpowers/w1-t4c-report.md`.
+    // T4c's disclosure band: the item 4 read's own `assemble` call (`weak_scale > 0`, exactly
+    // once per solve) fills these with the band-counted sides' indices; every ladder rung's
+    // `weak_scale == 0` call never touches them. See `.superpowers/w1-t4c-report.md`.
     std::vector<Index> band_lower_idx, band_upper_idx;
     // T4c fix round 3 (T4): the `mu_measured` the band read itself used,
     // captured at that one call site -- asserted equal to `mu_meas` at the
     // exponent test below, so a future second `mu` cannot silently diverge.
     double mu_at_band_read = std::numeric_limits<double>::quiet_NaN();
-    // Section 2.2's evidence-failure policy, ARMED ONCE PER SOLVE: a
-    // factorization succeeded and reported no usable inertia evidence, so the
-    // modification was raised to a conservative floor, the steps from there
-    // on are taken at that floor, and the certificate is downgraded for the
-    // WHOLE SOLVE. Once armed it never disarms -- "for the whole solve" is
-    // the specification's own scope, not this iteration's.
+    // Section 2.2's evidence-failure policy, ARMED ONCE PER SOLVE: a factorization succeeded and
+    // reported no usable inertia, so steps from there on are taken at a conservative floor and
+    // the certificate is downgraded. Once armed it never disarms -- "for the WHOLE SOLVE".
     bool evidence_failed = false;
     // Raw item-4 verdict; `out.read_kept_tight` is derived from it only after
     // every downgrade path has run (T4c R2, report).
@@ -1429,83 +1249,20 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- THE SECTION 6.2 / 6.3 WINDOW -------------------------------------
     //
-    // ONE WINDOW SERVES BOTH TESTS, and that is the design rather than a
-    // saving: section 6.2's stall and section 6.3's infeasible-suspect are
-    // both statements about "a window over which nothing improved", differing
-    // only in which OTHER signal they pair that with (dying steps vs
-    // diverging multipliers). Two independently advanced windows would be two
-    // answers to "how long has nothing been improving".
+    // ONE WINDOW SERVES BOTH TESTS by design: 6.2's stall and 6.3's infeasible-suspect are both
+    // "a window over which nothing improved", differing only in the other signal they pair it
+    // with. SSN's three properties hold: accepted steps only, whole-window, safeguard discards.
     //
-    // SSN's three window properties, adopted verbatim in kind (spec 6.2):
-    //   * IT ADVANCES ON ACCEPTED STEPS ONLY -- `win_steps` is incremented
-    //     beside `ipqp_iters`, behind every rejection.
-    //   * IMPROVEMENT IS DEMANDED OVER THE WHOLE WINDOW, not per step -- every
-    //     conjunct compares the CURRENT state against the reference captured
-    //     when the window was armed.
-    //   * A SAFEGUARD CHANGE DISCARDS THE WINDOW.
+    // THE WINDOW-DISCARD RULE, STATED ONCE AND ONLY HERE; every other site that touches it
+    // points back to this paragraph and says nothing more (co-review I-1, twice).
     //
-    // THE WINDOW-DISCARD RULE, STATED ONCE AND ONLY HERE. Every other site
-    // that touches it -- `arm_window` below, the sampling site in the loop,
-    // and the discard itself -- carries a POINTER BACK TO THIS PARAGRAPH and
-    // nothing more. Two statements of one rule is how a maintainer ends up
-    // trusting the wrong one (co-review I-1, twice).
+    //     A window is discarded when, and only when, the INERTIA-DEMANDED SAFEGUARD REACHES A
+    //     LEVEL IT HAD NOT REACHED BEFORE -- i.e. when `rho_dem_max` RISES. A move of the
+    //     3.2 schedule does NOT discard it, nor does `rho_dem` cycling inside a visited band.
     //
-    //     A window is discarded when, and only when, the INERTIA-DEMANDED
-    //     SAFEGUARD REACHES A LEVEL IT HAD NOT REACHED BEFORE -- i.e. when
-    //     `rho_dem_max`, the high-water mark of section 2.2's modification,
-    //     RISES. A move of the section 3.2 schedule (`rho_sched` /
-    //     `delta_sched`) does NOT discard it, and neither does the ordinary
-    //     up-and-down cycling of `rho_dem` inside a band the ladder has
-    //     already visited.
-    //
-    // THE HIGH-WATER READING IS T4b'S, AND IT IS THE LITERAL SUCCESSOR OF THE
-    // PRE-T4b PREDICATE, not a new policy: before T4b the safeguard was a
-    // MONOTONE floor, so "the floor moved" and "the safeguard reached a new
-    // level" were the same event, and this rule read the floor. Algorithm IC
-    // is deliberately non-monotone -- it retries `rho_dem_last / 3` every
-    // iteration -- so a predicate on the WORKING value would discard the
-    // window every second iteration of any armed walk and make section 6.2
-    // structurally unreachable on exactly the nonconvex rows it was written
-    // for. SSN's own rule, which spec 6.2 imports together with its
-    // justification, dirties on safeguard INCREASES only
-    // (`ssn_engine.cpp:381-412`); the high-water predicate is that rule,
-    // stated for a safeguard that can now come back down.
-    //
-    // THAT IS A DATED AMENDMENT OF SECTION 6.2'S TEXT -- which says "any
-    // regularization change discards the window" -- AND NOT A CLARIFICATION
-    // OF IT. It is labelled as one (settler ruling, plan section 7 note (l)):
-    // the spec's wording is not itself ambiguous enough to exclude
-    // `rho_sched` and `delta_sched`, so narrowing it is an amendment, and
-    // calling it a reading of the words would be dishonest. It is a CHOSEN
-    // reading, ratified on two grounds, NEITHER OF THEM EMPIRICAL:
-    //
-    //  * THE RULE IS IMPORTED WITH ITS JUSTIFICATION, AND THE JUSTIFICATION
-    //    NAMES THE SAFEGUARD -- ssn_engine.h:620, quoted by spec 6.2 itself:
-    //    "slow progress under a sigma that JUST CHANGED is THE SAFEGUARD'S
-    //    DOING, not the problem's." In this tier the safeguard is section
-    //    2.2's ladder, and `rho_dem` is the only quantity it moves. The
-    //    section 3.2 schedule is not a safeguard: it is the method's ordinary
-    //    outer iteration, it is GATED ON MEASURED PROGRESS, and it moves
-    //    regularization DOWNWARD, toward the caller's own QP. Slow progress
-    //    under a DECREASING regularization is the problem's doing, which is
-    //    exactly the case the rule does not exempt.
-    //  * PRECEDENT: SSN's own window dirties on safeguard INCREASES only
-    //    (`ssn_engine.cpp`'s proximal-escalation path), so the amendment
-    //    aligns this tier with the kernel the rule was imported from rather
-    //    than diverging from it.
-    //
-    // NO UNREACHABILITY CLAIM IS MADE, and one was WITHDRAWN. An earlier draft
-    // argued that the literal reading leaves the stall test structurally
-    // unreachable. That is false, and it was RE-MEASURED rather than merely
-    // conceded: with the literal value-change predicate (`rho_sched != pre ||
-    // delta_sched != pre || safeguard != pre`) built behind a scratch toggle,
-    // the window reaches the full five accepted steps on thirteen of the
-    // suite's own IPQP solves, and the stall fixture still fires at the same
-    // ten iterations. The original measurement had counted GATE ADVANCES
-    // rather than VALUE CHANGES -- the gate's outcome (c) advances the
-    // proximal centre while moving neither quantity. The amendment is
-    // therefore a CHOSEN reading resting on the two grounds above, never a
-    // forced one.
+    // The high-water reading is T4b's and the literal successor of the pre-T4b monotone floor.
+    // It is a DATED AMENDMENT of 6.2's text, not a clarification, ratified on two non-empirical
+    // grounds; both, and the WITHDRAWN unreachability claim, are plan section 7 note (l).
     const Index stall_w = iopts.ipqp_stall_window;
     bool win_armed = false;
     Index win_steps = 0;
@@ -1516,20 +1273,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     double win_alpha_min = kInf;
     double win_alpha_max = 0.0;
     Vec win_ye, win_yi, win_zl, win_zu;
-    // The multiplier norm BEFORE the most recently accepted step, and the
-    // multiplier state at the SOLVE'S OWN START POINT. Both exist for section
-    // 6.3's exhaustion route, which cannot use a windowed growth reference at
-    // all -- there the divergence and the last progress are the SAME accepted
-    // step, so a windowed ratio would read 1 (ssn_engine.h's own reasoning for
-    // `kSsnDualStepGrowth`).
+    // The multiplier norm BEFORE the most recently accepted step, and the state at the SOLVE'S
+    // OWN START POINT. Both exist for section 6.3's exhaustion route, where the divergence and
+    // the last progress are the SAME accepted step, so a windowed ratio would read 1.
     double dual_prev = 0.0;
     double dual_start = 0.0;
     Vec start_ye, start_yi, start_zl, start_zu;
     bool have_start = false;
-    // T4c exponent test: the bound duals and mu at the SECOND-TO-LAST
-    // accepted iterate. R1 (fix round 2): `attempt_accepted` counts ACCEPTED
-    // steps in THIS ATTEMPT only, so the snapshot below never treats the
-    // seed as z_{k-1} and both are reset on a warm-kill (see there).
+    // T4c exponent test: the bound duals and mu at the SECOND-TO-LAST accepted iterate. R1 (fix
+    // round 2): `attempt_accepted` counts ACCEPTED steps in THIS ATTEMPT only, so the snapshot
+    // never treats the seed as z_{k-1}, and both are reset on a warm-kill (see there).
     Vec prev_zl, prev_zu;
     double prev_mu = 0.0;
     bool have_prev_accepted = false;
@@ -1607,9 +1360,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         complementarity(w.x, w.s, w.yi, w.zl, w.zu, avg, lo, hi);
         mu_meas = npairs > 0 ? avg : 0.0;
         // RELATIVE, against the MULTIPLIER scale: a complementarity product is
-        // distance * multiplier, so dividing by the largest multiplier turns
-        // the test into "how close to the boundary is the pair", which is
-        // scale-free in the objective the way the stationarity fold above is.
+        // distance * multiplier, so dividing by the largest multiplier asks "how close to the
+        // boundary is the pair" -- scale-free in the objective, like the stationarity fold above.
         const double sc =
             std::max({1.0, w.yi.lpNorm<Eigen::Infinity>(), w.zl.lpNorm<Eigen::Infinity>(),
                       w.zu.lpNorm<Eigen::Infinity>()});
@@ -1617,15 +1369,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return r;
     };
 
-    // The four diagonal families, written by assignment from
-    // `primal_diag_source()` (never read-modify-write), each pre-multiplied by
-    // its own Ruiz factor so a ladder rung stays an O(n) assignment instead of
-    // a re-scatter. `dsq` is all ones when equilibration is off, and a
-    // multiplication by exactly 1.0 is exact, so the two arms are bit-identical
-    // in that case rather than merely close.
-    // `||(y, z)||inf` at the current iterate -- section 6.3's growth signal.
-    // Guarded per block because an infinity norm of an EMPTY Eigen vector is
-    // an assert, not a 0, and a QP with no rows at all is legal here.
+    // `||(y, z)||inf` at the current iterate -- section 6.3's growth signal. Guarded per block
+    // because an infinity norm of an EMPTY Eigen vector is an assert, not a 0, and a QP with no
+    // rows at all is legal here.
     auto dual_norm_now = [&]() {
         double d = std::max(w.zl.lpNorm<Eigen::Infinity>(), w.zu.lpNorm<Eigen::Infinity>());
         if (me > 0) {
@@ -1637,11 +1383,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return d;
     };
 
-    // Capture the window's reference state at the CURRENT iterate. Called on
-    // the first pass, after a window discard (see the rule at the
-    // stall-window declarations above), and after any window that closed
-    // without firing -- a window is a measurement, and a measurement that has
-    // been read is spent.
+    // Capture the window's reference state at the CURRENT iterate. Called on the first pass,
+    // after a window discard (the rule is at the stall-window declarations above), and after any
+    // window that closed without firing -- a measurement that has been read is spent.
     auto arm_window = [&](const IpqpResiduals &r) {
         win_armed = true;
         win_steps = 0;
@@ -1666,10 +1410,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
     };
 
-    // Signal (a) of section 6.3, shared by both routes: the primal residual is
-    // FLAT ON A POSITIVE FLOOR over the window. Both halves are load-bearing
-    // -- "flat" alone is what a CONVERGED solve looks like, and "on a positive
-    // floor" alone is what every unconverged iteration looks like.
+    // Signal (a) of section 6.3, shared by both routes: the primal residual is FLAT ON A POSITIVE
+    // FLOOR over the window. Both halves are load-bearing -- "flat" alone is what a CONVERGED
+    // solve looks like, "on a positive floor" what every unconverged iteration looks like.
     auto primal_flat_on_floor = [&](const IpqpResiduals &r, double feas_target,
                                     double *primal_now_out, double *impr_out) {
         const double primal_now = std::max(r.primal_eq, r.primal_iq);
@@ -1679,10 +1422,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return primal_now > feas_target && impr < (1.0 - detail::kSsnStallImproveFactor);
     };
 
-    // Fill the escape's evidence block. `reference_*` is whichever multiplier
-    // snapshot the ROUTE selected -- the window's for the standing route, the
-    // solve's start point for the exhaustion route -- so the Farkas direction
-    // is the same increment the growth conjunct measured.
+    // Fill the escape's evidence block. `reference_*` is whichever multiplier snapshot the ROUTE
+    // selected -- the window's for the standing route, the solve's start point for the exhaustion
+    // route -- so the Farkas direction is the same increment the growth conjunct measured.
     auto fill_infeasibility_evidence =
         [&](const IpqpResiduals &r, bool exhaustion, double primal_now, double impr,
             double dual_now, double growth, double step_growth, const Vec &ref_ye,
@@ -1712,19 +1454,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // SECTION 6.3'S EXHAUSTION-ROUTE VARIANT, consulted at every budget stop.
     //
-    // The growth conjunct is measured against the SOLVE'S START POINT and is
-    // ADDITIONALLY required to have multiplied by `kSsnDualStepGrowth` across
-    // the most recently accepted step -- `ssn_engine.h`'s own two-part rule
-    // for this route, and for its reason: a windowed reference is meaningless
-    // when the divergence and the last progress are the same step, while a
-    // start-point reference alone would be vacuous for any feasible QP whose
-    // true multipliers exceed the growth factor. "An order of magnitude in one
-    // step is not multipliers settling, it is multipliers with no limit to
-    // settle onto."
+    // The growth conjunct is measured against the SOLVE'S START POINT and must ADDITIONALLY have
+    // multiplied by `kSsnDualStepGrowth` across the last accepted step -- `ssn_engine.h`'s own
+    // two-part rule: a windowed reference is meaningless here, a start-point one alone vacuous.
     //
-    // Returns false -- leaving the escape as `kBudget` -- unless BOTH
-    // conjuncts and the per-step ratio hold, which is what keeps a plain
-    // budget exhaustion from being relabelled as a suspicion.
+    // Returns false -- leaving the escape as `kBudget` -- unless BOTH conjuncts and the per-step
+    // ratio hold, which keeps a plain budget exhaustion from being relabelled as a suspicion.
     auto exhaustion_infeasible = [&](const IpqpResiduals &r, double feas_target) {
         if (!win_armed || win_steps < 1 || !have_start) {
             return false;
@@ -1749,39 +1484,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // MATRIX DIFFERENTLY (spec 2.2 items 2-3 / 3.1 / 3.2 as amended by the T4b
     // plan of record, plan section 7 note (p)):
     //
-    //   `rho_sched` is section 3.2's PROXIMAL term. It defines the subproblem
-    //   -- `min Q(x) + (rho_sched/2)||x - zeta||^2` -- so it enters the
-    //   diagonal AND the right-hand side (`build_rhs`) AND the gate's
-    //   regularized residual, all anchored at the same prox centre. It lives
-    //   on the CALLER'S scale, alongside `src[i]` and `sigma[i]`, and is
-    //   therefore multiplied by `dsq` with them.
+    //   `rho_sched` is 3.2's PROXIMAL term and DEFINES the subproblem: diagonal, right-hand side
+    //   and gate residual alike, on the CALLER'S scale (hence `dsq`). `rho_dem` is 2.2's
+    //   MODIFICATION: anchored at the CURRENT iterate, so it NEVER reaches the RHS, and ADDED.
     //
-    //   `rho_dem` is section 2.2's inertia-demanded MODIFICATION (Ipopt's
-    //   `delta_w`). It is NOT part of the subproblem: its proximal anchor is
-    //   the CURRENT ITERATE, so its gradient contribution at `x_k` is zero and
-    //   it must never reach the right-hand side. It is ADDED to the proximal
-    //   Hessian rather than maxed with it -- with `max`, a trial below
-    //   `rho_sched` would be a no-op the ladder's memory would nonetheless
-    //   record, and "`rho_dem == 0` means unmodified" would stop being exact.
+    // AND IT IS APPLIED IN THE RUIZ-SCALED SYSTEM, the system the inertia is read on: `assemble`
+    // equilibrates the UNMODIFIED matrix and this writes `(...) * dsq(i) + rho_dem`, a UNIFORM
+    // shift in every scaled coordinate. `ipqp_reg_max` caps `rho_dem`, the scaled value.
     //
-    // AND IT IS APPLIED IN THE RUIZ-SCALED SYSTEM, which is the system the
-    // inertia is read on. `assemble` computes the equilibration on the
-    // UNMODIFIED matrix and this function then writes `(...) * dsq(i) +
-    // rho_dem`, so the shift is `rho_dem` UNIFORMLY in every scaled
-    // coordinate -- equivalently `rho_dem / d_i^2` on the unscaled diagonal.
-    // A uniform shift in UNSCALED space would be the non-uniform shift
-    // `rho_dem * d_i^2` in the scaled system: a coordinate with a tiny `d_i`
-    // would receive almost nothing and the ladder would have to climb far past
-    // every other coordinate to cover it. Ipopt adds `delta_w` after its own
-    // scaling for the same reason, and Algorithm IC's constants are
-    // scale-free only under this choice. `ipqp_reg_max` therefore caps
-    // `rho_dem`, the scaled uniform value, not the total.
-    //
-    // THE `rho_dem == 0` BRANCH IS EXPLICIT AND MUST STAY THAT WAY. Folding a
-    // `+ rho_dem` into the sum would re-associate the expression and move the
-    // last bits of every convex solve in the tree -- the branch is what makes
-    // the convex corpus BIT-IDENTICAL across this change (T4b close gate 4).
-    // The primal diagonal alone -- the only family a `rho_dem` rung moves.
+    // THE `rho_dem == 0` BRANCH IS EXPLICIT AND MUST STAY THAT WAY: folding `+ rho_dem` into the
+    // sum would re-associate the expression and move the last bits of every convex solve -- the
+    // branch is what keeps the convex corpus BIT-IDENTICAL (T4b close gate 4). Primal only.
     auto write_primal_diagonal = [&](double rho_sched, double rho_dem) {
         double *vals = kkt_.matrix().valuePtr();
         const std::vector<double> &src = layout_.primal_diag_source();
@@ -1825,14 +1538,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
     };
 
-    // I6 / spec 3.4's SEPARATE FACTORIZATION CAP, enforced BEFORE every
-    // factorization rather than once per iteration. A ladder rung is a
-    // factorization like any other, so a cap checked only at the top of the
-    // loop is not a cap: measured at cap 1 on a strongly indefinite Hessian,
-    // the first ladder paid three factorizations before anything stopped it.
-    // The check returns false and raises the flag; every call site consults
-    // the flag rather than the reading, because "no factorization was taken"
-    // is not an inertia verdict.
+    // I6 / spec 3.4's SEPARATE FACTORIZATION CAP, enforced BEFORE every factorization, not once
+    // per iteration: a ladder rung is a factorization too, and at cap 1 the first ladder paid
+    // three before anything stopped it. Call sites consult the flag, never the reading.
     auto factorize_once = [&]() {
         if (kkt_.counters().factorize_count - facts_base >= fact_budget) {
             fact_budget_hit = true;
@@ -1840,18 +1548,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
         if (!analyzed_) {
             kkt_.compute();
-            // A backend SYMBOLIC failure does not propagate out of compute();
-            // it is reported as InvalidInput. Leaving `analyzed_` false on
-            // that path is what keeps the next entry from calling
-            // refactorize() against an analysis that does not exist.
+            // A backend SYMBOLIC failure does not propagate out of compute(); it is reported as
+            // InvalidInput, and leaving `analyzed_` false is what stops the next refactorize().
             analyzed_ = (kkt_.info() != Eigen::InvalidInput);
         } else if (first_factorization) {
-            // THE ONE-TIME O(nnz) PAYMENT per tier entry (plan section 7 note
-            // a): the first factorization of an entry re-checks that the
-            // buffer still carries the analyzed pattern, and every later one
-            // in the same entry declares it. The declaration is licensed by a
-            // named mechanism, not by hope -- IpqpKktLayout is the only writer
-            // into this buffer and it writes from a fixed plan.
+            // THE ONE-TIME O(nnz) PAYMENT per tier entry (plan section 7 note a): the first
+            // factorization re-checks that the buffer still carries the analyzed pattern, every
+            // later one declares it -- licensed by IpqpKktLayout being the buffer's only writer.
             kkt_.refactorize(KktFactorization::PatternCheck::kVerify);
         } else {
             kkt_.refactorize(KktFactorization::PatternCheck::kAssumeAnalyzed);
@@ -1860,33 +1563,23 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return true;
     };
 
-    // Assemble the section 3.1 system at (rho, delta) from scratch: refresh the
-    // condensed bound curvature, re-scatter H/Ae/Ai through the layout's plan,
-    // write the four diagonal families, and (when equilibration is on) compute
-    // and apply the Ruiz diagonal.
+    // Assemble the section 3.1 system at (rho, delta) from scratch: refresh the condensed bound
+    // curvature, re-scatter H/Ae/Ai through the layout's plan, write the four diagonal families,
+    // and (when equilibration is on) compute and apply the Ruiz diagonal.
     //
-    // THE RUIZ DIAGONAL IS FIXED FOR THE WHOLE LADDER, deliberately. A rung
-    // rewrites only the four diagonal families, each pre-multiplied by its own
-    // `dsq`, so a rung stays an O(n) assignment; recomputing the equilibration
-    // per rung would move the matrix under the ladder and the ladder's
-    // rung-to-rung comparison would no longer be about one system.
+    // THE RUIZ DIAGONAL IS FIXED FOR THE WHOLE LADDER, deliberately: a rung rewrites only the
+    // four diagonal families, each pre-multiplied by its own `dsq`, so recomputing the
+    // equilibration per rung would move the matrix under the ladder.
     //
-    // THE EQUILIBRATION IS COMPUTED ON THE UNMODIFIED SYSTEM (`rho_dem = 0`),
-    // then the modification is written into the scaled matrix. Two reasons,
-    // and they point the same way. The Ruiz diagonal must not move under the
-    // ladder -- a rung that changed `D` would leave the ladder comparing two
-    // different systems -- and `rho_dem` is a UNIFORM shift of the SCALED
-    // matrix (see `write_diagonals`), so letting it participate in computing
-    // `D` would make `D` a function of the rung. On the `rho_dem == 0` path
-    // the second `write_diagonals` call is skipped entirely, so the assembled
-    // values are bit-for-bit what they were before the separation.
+    // THE EQUILIBRATION IS COMPUTED ON THE UNMODIFIED SYSTEM (`rho_dem = 0`) and the modification
+    // is written into the scaled matrix: `rho_dem` is a UNIFORM shift of the SCALED matrix, so
+    // letting it participate in computing `D` would make `D` a function of the rung.
     auto assemble = [&](double rho_sched, double rho_dem, double delta, double weak_scale,
                         double band_upper = 0.0) {
         w.sigma.setZero();
-        // `weak_scale <= 0` is the ordinary path and reproduces
-        // `ipqp_accumulate_bound_sigma` exactly -- same loops, same order, same
-        // `+=` -- which is what keeps every iteration's assembly, and the
-        // convex corpus with it, bit-identical across the critical-cone rule.
+        // `weak_scale <= 0` is the ordinary path and reproduces `ipqp_accumulate_bound_sigma`
+        // exactly, which is what keeps every iteration's assembly -- and the convex corpus with
+        // it -- bit-identical across the critical-cone rule.
         detail::ipqp_accumulate_bound_sigma_critical_cone(w.x, bounds.lower, bounds.upper, w.zl,
                                                           w.zu, n, weak_scale, w.sigma, band_upper,
                                                           &band_lower_idx, &band_upper_idx);
@@ -1905,10 +1598,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             w.dscale.setOnes(w.dim);
         }
         if (rho_dem != 0.0) {
-            // PRIMAL ONLY. The slack and pivot families were already written
-            // with `dsq == 1` above and then scaled in place by Ruiz, so
-            // rewriting them here would recompute identical values; the shift
-            // touches the primal diagonal and nothing else.
+            // PRIMAL ONLY: the slack and pivot families were written with `dsq == 1` above and
+            // then scaled in place by Ruiz, so rewriting them would recompute identical values.
             write_primal_diagonal(rho_sched, rho_dem);
         }
     };
@@ -1918,21 +1609,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // second unseamed one. Copied only when a sink is attached.
     hven::linear::InertiaEvidence trace_last_evidence{};
 
-    // Returns the reading, or -- when the factorization budget refused the
-    // call -- `kUnreadable` with `fact_budget_hit` raised. Callers must test
-    // the flag FIRST: a budget stop is `kBudget`, never a numerical or
-    // indefinite verdict about a factorization that never ran.
+    // Returns the reading, or -- when the factorization budget refused the call -- `kUnreadable`
+    // with `fact_budget_hit` raised. Callers must test the flag FIRST: a budget stop is
+    // `kBudget`, never a verdict about a factorization that never ran.
     auto factor_and_read = [&](bool final_read) {
         if (!factorize_once()) {
             return InertiaRead::kUnreadable;
         }
-        // THE FACTORIZATION'S OWN OUTCOME IS READ BEFORE ITS EVIDENCE, and
-        // that ordering carries task 5's evidence/failure split: section 2.2's
-        // evidence-failure policy permits a step at a conservative floor
-        // against a factor that EXISTS but could not be interrogated, and
-        // there is no factor at all here. `info()` is the linear layer's own
-        // reporting-only status; nothing else in this engine turns on it,
-        // which is exactly why it is the honest discriminator.
+        // THE FACTORIZATION'S OWN OUTCOME IS READ BEFORE ITS EVIDENCE, and that ordering carries
+        // task 5's split: 2.2's policy permits a step against a factor that EXISTS but could not
+        // be interrogated, and there is no factor at all here. `info()` is the discriminator.
         if (kkt_.info() != Eigen::Success) {
             return InertiaRead::kFactorFailed;
         }
@@ -1947,48 +1633,26 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // statement: "+1 factorization per certified guarded solve"). No ladder,
     // and -- fix round 1, C0b -- no perturbed retry either.
     //
-    // The ABSENCE OF A LADDER is the whole point of having this separate from
-    // `factorize_with_ladder`: a certification read that CLIMBED would raise
-    // `rho` until the inertia came back right and then report the certificate
-    // as standing, which is precisely how a saddle point gets certified as a
-    // minimum.
+    // The ABSENCE OF A LADDER is the point of keeping this separate from `factorize_with_ladder`:
+    // a certification read that CLIMBED is precisely how a saddle gets certified as a minimum.
     //
-    // THE PERTURBED RETRY WENT for two reasons that point the same way. It
-    // made the "one extra factorization" two, which is a cost the spec states
-    // as a number; and a perturbed reading is not evidence about the
-    // assembled matrix AT ALL (section 2.2's evidence-failure policy), so the
-    // honest outcome is the same as an unreadable one -- plan section 7 note
-    // (h)'s `ipqp_final_inertia_read == 2`, numerical -- rather than a second
-    // question whose clean answer could stand a certificate the first answer
-    // could not support.
+    // THE PERTURBED RETRY WENT for two reasons pointing the same way: it made the spec's "one
+    // extra factorization" two, and a perturbed reading is not evidence about the assembled
+    // matrix at all -- so the honest outcome is note (h)'s `ipqp_final_inertia_read == 2`.
     //
-    // NO INERTIA-DEMANDED MODIFICATION EITHER (T4b): the read is taken at
-    // `rho_dem = 0` BY CONSTRUCTION, not by whatever the ladder's memory
-    // happens to hold. Seeding it from `rho_dem_last` would ask the item 4
-    // question about the modified system rather than about the caller's QP,
-    // which is the same wrong-answer bug as reading at an elevated schedule
-    // value; a mutation that does so must fail A11's final-read pins.
+    // NO INERTIA-DEMANDED MODIFICATION EITHER (T4b): the read is taken at `rho_dem = 0` BY
+    // CONSTRUCTION, never from the ladder's memory. Seeding it would ask the item 4 question
+    // about the MODIFIED system; a mutation that does so must fail A11's final-read pins.
     auto factorize_and_read_once = [&](double rho_sched, double delta) {
-        // THE READ IS TAKEN ON THE CRITICAL CONE (fix round 1, settler ruling
-        // R1). Second-order conditions are stated on the critical cone, and at
-        // a bound whose multiplier is essentially zero the direction moving OFF
-        // that bound IS in the cone -- so the read must VERIFY that direction,
-        // not let the barrier's own `z / gap` curvature mask it. The full
-        // derivation, the three activity regimes and why the test needs BOTH
-        // halves live on `detail::ipqp_accumulate_bound_sigma_critical_cone`;
-        // the scale is `kIpqpWeakActiveFactor * sqrt(mu_measured)`, built out of
-        // the solve's own barrier level rather than out of a new absolute knob.
+        // THE READ IS TAKEN ON THE CRITICAL CONE (fix round 1, settler ruling R1): at a bound
+        // whose multiplier is essentially zero the off-bound direction IS in the cone, so the
+        // read must verify it. Rule and derivation: `ipqp_accumulate_bound_sigma_critical_cone`.
         //
-        // WHAT IT COSTS: nothing. Same single factorization, one extra
-        // comparison per bound side. What it BUYS is the wrong-answer class
-        // gate 8 measured: before this, `H = diag(2, -1)` on a symmetric box
-        // narrow enough that `2 mu / s^2 > 1` certified `x = 0` -- a SADDLE --
-        // as `kOptimal`.
+        // WHAT IT COSTS: nothing -- the same single factorization, one extra comparison per bound
+        // side. What it BUYS is the wrong-answer class gate 8 measured (w1-t4b-report.md).
         //
-        // A DROPPED SIDE CAN ONLY COST A DOWNGRADE, NEVER A FALSE CERTIFICATE,
-        // which is why the rule errs toward dropping: removing curvature can
-        // turn a right reading wrong (a spurious `kIndefinite`, routed to SSN)
-        // but can never turn a wrong reading right.
+        // A DROPPED SIDE CAN ONLY COST A DOWNGRADE, NEVER A FALSE CERTIFICATE: removing curvature
+        // can turn a right reading wrong, but can never turn a wrong reading right.
         const double weak_scale = detail::kIpqpWeakActiveFactor * std::sqrt(std::max(mu_meas, 0.0));
         mu_at_band_read = mu_meas; // T4c T4: what this read's own scale used.
         // T4c fix round 1: cleared here, the read's own one call site, so a
@@ -2004,28 +1668,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // step IC-1 / IC-2; the four constants and hven's two declared adaptations
     // are in `detail`'s ladder banner).
     //
-    //   * NO MEMORY, or fewer than `kIpqpLadderSkipAfter` consecutive
-    //     preceding iterations needed a modification -> TRY ZERO. This is
-    //     IC-1, and it is not a nicety: it is the only thing that lets
-    //     `rho_dem` fall back to 0 the moment the reduced curvature at the
-    //     iterate turns positive, at which point one exact Newton step lands
-    //     the residual at machine precision and the section 3.2 gate
-    //     advances. A design that never retries zero converges to the
-    //     modified problem instead.
+    //   * NO MEMORY, or fewer than `kIpqpLadderSkipAfter` consecutive preceding iterations needed
+    //     a modification -> TRY ZERO. That is IC-1, and it is the only thing that lets `rho_dem`
+    //     fall back to 0 the moment the reduced curvature at the iterate turns positive.
     //   * OTHERWISE -> `max(ipqp_reg_floor, rho_dem_last / kIpqpLadderDown)`.
-    //     Deliberately SMALLER than the shift that last worked: the ladder is
-    //     probing for the smallest sufficient value rather than defending a
-    //     floor. When the probe is refused, that is a RECLIMB and is counted.
+    //     Deliberately SMALLER than the shift that last worked: the ladder probes for the
+    //     smallest sufficient value. A refused probe is a RECLIMB and is counted.
     //
-    // THE EVIDENCE-FAILURE FLOOR RIDES THE TRIAL, NOT THE LADDER, once armed.
-    // Section 2.2's policy permits a step at a conservative floor when a
-    // factorization succeeds and reports no usable inertia evidence; on the
-    // backend that clause exists for, EVERY factorization reports that. Adding
-    // the floor here means such a solve pays ONE factorization per iteration
-    // at the floor -- what the pre-T4b monotone floor delivered -- instead of
-    // paying a rejected trial and a corrective rung every iteration. IC-1's
-    // "try zero first" is skipped outright while `evidence_failed` stands,
-    // because a reading that can never come back cannot reward the attempt.
+    // THE EVIDENCE-FAILURE FLOOR RIDES THE TRIAL, NOT THE LADDER, once armed: on the backend that
+    // clause exists for EVERY factorization reports no usable evidence, so this keeps such a
+    // solve at ONE factorization per iteration. IC-1's zero trial is skipped while it stands.
     auto ladder_trial = [&]() {
         double trial = 0.0;
         if (rho_dem_last > 0.0 && consec_modified >= detail::kIpqpLadderSkipAfter) {
@@ -2038,35 +1690,20 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return trial;
     };
 
-    // Assemble at `(rho_sched, rho_dem, delta)` and factorize, climbing
-    // Algorithm IC's ladder until the inertia is the section 4.1 target or the
-    // ceiling is reached. Returns the reading the caller must act on.
-    // `rho_dem`/`delta` are in/out, so the caller sees where the ladder
-    // stopped; `rho_sched` is the caller's subproblem and the ladder never
-    // touches it.
+    // Assemble at `(rho_sched, rho_dem, delta)` and factorize, climbing Algorithm IC's ladder
+    // until the inertia is the section 4.1 target or the ceiling is reached. `rho_dem`/`delta`
+    // are in/out so the caller sees where the ladder stopped; `rho_sched` is never touched.
     auto factorize_with_ladder = [&](double rho_sched, double &rho_dem, double &delta) {
-        // Whether this iteration STARTED from IC's memory rather than from
-        // zero, and whether that start has already been charged as a reclimb.
-        // One charge per iteration: the question the counter answers is "did
-        // the memory's guess come back too small", not "how many rungs did the
-        // recovery take".
-        // WHETHER A `rho_dem_last / kIpqpLadderDown` VALUE IS CURRENTLY BEING
-        // TRIED, and whether its refusal has already been charged as a reclimb.
-        // ONE CHARGE PER ITERATION: the question the counter answers is "did
-        // the memory's guess come back too small", not "how many rungs did the
-        // recovery take".
+        // WHETHER A `rho_dem_last / kIpqpLadderDown` VALUE IS CURRENTLY BEING TRIED, and whether
+        // its refusal has already been charged as a reclimb. ONE CHARGE PER ITERATION: the
+        // counter answers "did the memory's guess come back too small", not "how many rungs".
         //
-        // TWO ROUTES REACH THAT VALUE and both must be charged (fix round 1,
-        // I2 / CX4). It is this iteration's FIRST trial once the skip rule has
-        // licensed it -- the flag starts true below -- and it is the rung that
-        // ANSWERS a refused zero-trial before then, which is the common regime
-        // on a short solve and which round 1 charged not at all: the
-        // three-iteration saddle family reported ZERO reclimbs while paying
-        // 3.33 factorizations per iteration, i.e. the counter was blind to
-        // exactly the cost it exists to show.
+        // TWO ROUTES REACH THAT VALUE and both must be charged (fix round 1, I2 / CX4): this
+        // iteration's FIRST trial once the skip rule licenses it, and the rung that ANSWERS a
+        // refused zero-trial before then -- which round 1 charged not at all.
         //
-        // (While an evidence failure stands the trial is the POLICY FLOOR, not
-        // IC's probe, so its refusal is not a reclimb.)
+        // (While an evidence failure stands the trial is the POLICY FLOOR, not IC's probe, so its
+        // refusal is not a reclimb.)
         bool trying_memory_value = rho_dem > 0.0 && !evidence_failed;
         bool reclimb_charged = false;
         // Consecutive primal escalations spent on an unresolved perturbed-pivot
@@ -2080,12 +1717,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             const InertiaRead read = factor_and_read(/*final_read=*/false);
             if (fact_budget_hit || read == InertiaRead::kOk || read == InertiaRead::kFactorFailed) {
                 if (read == InertiaRead::kOk && rho_dem > 0.0) {
-                    // IC UPDATES ITS MEMORY ONLY ON A SUCCESSFUL **MODIFIED**
-                    // FACTORIZATION. A success at `rho_dem == 0` leaves it
-                    // untouched -- exactly as the paper does -- so the next
-                    // iteration that does need a modification still descends
-                    // from the last value that was actually sufficient rather
-                    // than restarting the whole first climb.
+                    // IC UPDATES ITS MEMORY ONLY ON A SUCCESSFUL **MODIFIED** FACTORIZATION. A
+                    // success at `rho_dem == 0` leaves it untouched, exactly as the paper does,
+                    // so the next iteration that needs one descends from a sufficient value.
                     rho_dem_last = rho_dem;
                 }
                 return read;
@@ -2096,69 +1730,19 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // certificate is downgraded for the whole solve. The counts
                 // are never zero-filled or inferred."
                 //
-                // TASK 4 TERMINATED HERE (-> kNumerical) and recorded the
-                // question as open; the spec text settles it, so the step is
-                // taken. The distinction matters most on the backend this
-                // branch actually describes: Accelerate can report
-                // `kUnavailable` for a perfectly good factorization, and
-                // refusing to step on it would retire the tier on that
-                // platform for a reason that is about the QUERY, not the
-                // subproblem. (That arm stays UNOBSERVED under CLAUDE.md
-                // section 6's never-fabricate rule until real Mac hardware
-                // runs it; what is implemented here is the policy, and the
-                // seam-injected pins are what exercise it.)
+                // TASK 4 TERMINATED HERE (-> kNumerical) and recorded the question as open; the
+                // spec text settles it, so the step is taken. Accelerate can report `kUnavailable`
+                // for a good factorization; that arm stays UNOBSERVED (CLAUDE.md section 6).
                 //
-                // THE FLOOR IS `detail::kIpqpEvidenceFailureRhoFloor`, AN
-                // ABSOLUTE MINIMUM AND NEVER A RUNG. It is applied HERE the
-                // first time evidence goes missing and, from then on, by
-                // `ladder_trial` at the top of every later iteration -- which
-                // is what keeps an always-unavailable backend at ONE
-                // factorization per iteration now that no floor variable
-                // carries the level across iterations (T4b). That constant's
-                // own banner carries the full argument and is where a change
-                // to this policy belongs; the two decisions behind it are
-                // restated here because they are what this branch does:
-                //
-                // 1. IT IS AN ABSOLUTE MAGNITUDE, NOT A MULTIPLE OF THE
-                //    CURRENT `rho`. The branch this policy exists for is the
-                //    Accelerate one, where `kUnavailable` is reported for
-                //    EVERY factorization, not for one unlucky pivot. A floor
-                //    proportional to the current level compounds under that:
-                //    measured on a two-row convex fixture, `rho * 100` at the
-                //    schedule's start put a permanent floor of 800 under the
-                //    solve, which then converged to the PROXIMALLY BIASED
-                //    point (x = 0.0026 where the answer is 0.75) and ran out
-                //    its whole 60-iteration budget doing it. Section 2.2's
-                //    clause says a step IS PERMITTED; a floor that makes the
-                //    tier unusable on the platform the clause names is not an
-                //    implementation of it. The VALUE is the smallest
-                //    magnitude this tier regards as a real inertia correction
-                //    at all -- everything below being "far too small to change
-                //    any inertia" -- which is why the constant is DEFINED
-                //    equal to `kIpqpLadderInit` while carrying its own name
-                //    and its own contract (co-review I-3: sharing the symbol
-                //    let a ladder retune move this policy silently).
-                // 2. WHAT CARRIES THE HONESTY IS THE DOWNGRADE, NOT THE SIZE
-                //    OF THE SHIFT. No finite `rho` is PROVABLY sufficient
-                //    without a reading -- that is precisely what the missing
-                //    evidence would have told us -- which is why section 2.2
-                //    pairs "a step is permitted" with "the certificate is
-                //    downgraded for the whole solve" rather than with a
-                //    magnitude. A ladder would be worse than useless here: it
-                //    has no stopping criterion when the reading can never come
-                //    back right, so it would spend the whole ceiling's worth
-                //    of factorizations and take the same step at the end.
+                // THE FLOOR IS `detail::kIpqpEvidenceFailureRhoFloor`, AN ABSOLUTE MINIMUM AND
+                // NEVER A RUNG, applied here the first time and by `ladder_trial` thereafter.
+                // Its own banner carries the argument: the honesty is the downgrade, not the size.
                 evidence_failed = true;
                 const double conservative =
                     std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.ipqp_reg_max);
-                // THE ITERATION RUNS AT `max(trial, floor)` and THAT value is
-                // what IC's memory records (T4b plan 2.2's evidence-failure
-                // rule, which had to be re-stated once `rho_floor` was gone:
-                // later trials descend /3 from it and `ladder_trial` floors
-                // them again while evidence stays unavailable, so an
-                // always-unavailable backend runs at a constant floor exactly
-                // as it did before). The floor never raises the shift above
-                // that maximum.
+                // THE ITERATION RUNS AT `max(trial, floor)` and THAT value is what IC's memory
+                // records: later trials descend /3 from it and `ladder_trial` floors them again
+                // while evidence stays unavailable, so such a backend runs at a constant floor.
                 const double floored = std::max(rho_dem, conservative);
                 rho_dem_last = floored;
                 rho_dem_max = std::max(rho_dem_max, floored);
@@ -2185,22 +1769,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 }
                 return read;
             }
-            // The ceiling test carries SsnEngine::escalate_prox's relative
-            // slack verbatim, and for its reason: repeated multiplication does
-            // not reproduce 1e6 exactly (the sequence ends at
-            // 999999.9999999998), so an exact `>=` guard grants a final rung
-            // that raises the regularization by 2.3e-10 relative and buys a
-            // whole numeric factorization for it.
+            // The ceiling test carries SsnEngine::escalate_prox's relative slack verbatim, and for
+            // its reason: repeated multiplication does not reproduce 1e6 exactly, so an exact `>=`
+            // guard grants a final rung worth 2.3e-10 relative and a whole numeric factorization.
             const double cap = iopts.ipqp_reg_max * (1.0 - detail::kSsnProxCapSlack);
-            // THE PERTURBED-PIVOT ROUTE, AND ITS BOUND (fix round 1, settler
-            // ruling R2). A perturbed report is answered by the PRIMAL ladder
-            // while it is ARMED and the primal route has not already been
-            // abandoned on this iteration; otherwise by the DUAL shift, which
-            // is the pre-T4b rule. The LATCH matters: once
-            // `kIpqpPivotReroutePrimalMax` primal escalations in a row have
-            // failed to clear the report, this iteration stays on the dual
-            // route rather than alternating between the two, and the next
-            // iteration's ladder starts with fresh primal attempts.
+            // THE PERTURBED-PIVOT ROUTE, AND ITS BOUND (fix round 1, settler ruling R2). Answered
+            // by the PRIMAL ladder while it is ARMED and the primal route has not been abandoned
+            // this iteration; otherwise by the DUAL shift. The LATCH lasts one iteration.
             const bool perturbed = read == InertiaRead::kPerturbed;
             if (perturbed && rho_dem > 0.0 && !perturbed_dual_latched &&
                 perturbed_primal_run >= detail::kIpqpPivotReroutePrimalMax) {
@@ -2223,60 +1798,24 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // is not evidence about this one. The remedy is a larger
                 // DUAL shift, never reading it as right.
                 //
-                // ... AND THAT REMEDY IS THE RIGHT ONE WHILE THE PRIMAL LADDER
-                // IS UNARMED, AND AGAIN ONCE THE PRIMAL ROUTE HAS BEEN TRIED
-                // AND FAILED (T4b, bounded in fix round 1). MEASURED, on
-                // `H = diag(2, -1000)`, `g = (-2, -4)` on `[-10, 10]^2` at the
-                // shipped defaults: the tier reads WRONG at `rho_dem` 0, 1e-4
-                // and 1e-2, and PERTURBED at `rho_dem = 1` -- because Ruiz
-                // normalizes that coordinate's scaled diagonal to almost
-                // exactly `-1` and the UNIFORM scaled shift of `+1` annihilates
-                // it. The pivot is zero in the PRIMAL block, so climbing
-                // `delta` 8 -> 800 -> 80000 -> 1e6 cannot touch it: the solve
-                // spent four more factorizations and escaped `kNumerical` with
-                // ZERO iterations taken. Rung `1.0` against a Ruiz-normalized
-                // `-1` diagonal is not a coincidence to be tuned away, it is a
-                // structural consequence of applying IC's own rungs in a
-                // system whose diagonal has been normalized to unit magnitude.
+                // ... AND THAT REMEDY IS THE RIGHT ONE WHILE THE PRIMAL LADDER IS UNARMED, AND
+                // AGAIN ONCE THE PRIMAL ROUTE HAS BEEN TRIED AND FAILED (T4b). Ruiz normalizes a
+                // diagonal to -1 and rung 1.0 annihilates it: `.superpowers/w1-t4b-report.md`.
                 //
-                // THE RULE, therefore: while the ladder is armed, a perturbed
-                // pivot is a statement that THIS RUNG did not produce a
-                // system with the target inertia -- a zero pivot is neither a
-                // positive nor a negative eigenvalue -- so the ladder advances
-                // its own quantity, exactly as it does on a wrong reading. It
-                // is still never read as right, and the TERMINAL reading still
-                // classifies the escape (a ladder that exhausts on perturbed
-                // readings reports `kNumerical`, not `kIndefinite`, per plan
-                // section 7 note (h)). An amendment of section 2.2's
-                // evidence-failure remedy, declared as one and carried in the
-                // T4b report; the unarmed path is untouched, which is what
-                // keeps the convex corpus bit-identical.
+                // THE RULE: while the ladder is armed a perturbed pivot says THIS RUNG did not
+                // produce the target inertia, so the ladder advances its own quantity. It is never
+                // read as right, and the TERMINAL reading classifies the escape (note (h)).
                 //
-                // AND IT IS BOUNDED (fix round 1, settler ruling R2). A
-                // perturbed pivot whose cause is DUAL -- near-dependent
-                // equality or inequality rows -- is cleared by NO primal rung,
-                // and an unbounded primal re-route would ride the ladder to
-                // `ipqp_reg_max` and escape on exhaustion to reach an answer
-                // the dual escalation gives in one factorization. After
-                // `kIpqpPivotReroutePrimalMax` consecutive primal escalations
-                // have failed to clear the report, control arrives HERE.
+                // AND IT IS BOUNDED (fix round 1, settler ruling R2): a perturbed pivot whose
+                // cause is DUAL is cleared by NO primal rung, and an unbounded re-route would ride
+                // the ladder to `ipqp_reg_max` for an answer the dual escalation gives in one.
                 //
-                // THE HONEST INSTRUMENT WOULD BE PIVOT PROVENANCE, AND THE
-                // BACKEND DOES NOT CARRY IT: `hven::linear::InertiaEvidence`
-                // reports pivot COUNTS (positive / negative / zero, the
-                // perturbed count, the evidence state) and no pivot LOCATIONS,
-                // so nothing here can ask whether the perturbed pivot sat in
-                // the primal block or a row block. Two failed primal
-                // escalations is the practical approximation of that question,
-                // written as an approximation; `ipqp_pivot_reroute_primal` and
-                // `ipqp_pivot_reroute_dual_fallback` are what let T9 measure
-                // how often the approximation guesses wrong.
+                // THE HONEST INSTRUMENT WOULD BE PIVOT PROVENANCE, AND THE BACKEND DOES NOT CARRY
+                // IT: `InertiaEvidence` reports pivot COUNTS, never LOCATIONS. Two failed primal
+                // escalations is the approximation; the two reroute counters measure its misses.
                 if (delta >= cap) {
-                    // I8: THE TERMINAL REJECTION IS STILL A REJECTION. This
-                    // factorization was refused on evidence the tier could not
-                    // use, exactly like every rung before it; returning
-                    // without counting it lost one rejection per exhausted
-                    // ladder.
+                    // I8: THE TERMINAL REJECTION IS STILL A REJECTION -- refused on evidence the
+                    // tier could not use, exactly like every rung before it.
                     ++out.counters.ipqp_inertia_retries;
                     return read;
                 }
@@ -2287,29 +1826,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             } else {
                 if (rho_dem >= cap) {
                     ++out.counters.ipqp_inertia_retries; // I8, as above.
-                    // THE CEILING RUNG IS REFUSED, SO IT DOES NOT ENTER THE
-                    // MEMORY (fix round 1, CX3). Round 1 recorded it here, on
-                    // the argument that it was "the last rung this subproblem
-                    // paid"; that is the wrong reading of a field whose whole
-                    // job is to seed the next trial. `ipqp_reg_max` produced no
-                    // successful modified factorization, so a warm carry
-                    // seeded from it (T7's registered cross-major carry) would
-                    // descend from KNOWN-FAILED evidence, and the counter would
-                    // report `1e6` as the level the tier settled at when it
-                    // settled at nothing. Algorithm IC's own rule -- the memory
-                    // is written by a SUCCESSFUL modified factorization and by
-                    // nothing else -- is the rule, and the high-water mark
-                    // (`ipqp_rho_demanded_max`) is where the ceiling shows up.
+                    // THE CEILING RUNG IS REFUSED, SO IT DOES NOT ENTER THE MEMORY (fix round 1,
+                    // CX3): the memory's whole job is to seed the NEXT trial, and `ipqp_reg_max`
+                    // produced no successful modified factorization. The high-water mark shows it.
                     return read;
                 }
                 // ALGORITHM IC'S ESCALATION (plan 2.2's pseudocode, normative).
                 if (rho_dem == 0.0) {
-                    // IC-2: the unmodified trial was refused. With no memory
-                    // this is `delta_w^0`; with a memory it is the memory's
-                    // own /3 probe, which the skip rule had not yet licensed
-                    // as this iteration's first trial -- and which, from here
-                    // on, is a memory value like any other for the reclimb
-                    // charge below.
+                    // IC-2: the unmodified trial was refused. With no memory this is `delta_w^0`;
+                    // with a memory it is the memory's own /3 probe, which the skip rule had not
+                    // yet licensed -- and which is a memory value for the reclimb charge below.
                     if (rho_dem_last == 0.0) {
                         rho_dem = std::min(detail::kIpqpLadderInit, iopts.ipqp_reg_max);
                     } else {
@@ -2318,20 +1844,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                         trying_memory_value = !evidence_failed;
                     }
                 } else {
-                    // Only a WRONG reading charges a reclimb: a perturbed
-                    // report on the primal route reaches this block too, and it
-                    // is a backend fact, not curvature.
+                    // Only a WRONG reading charges a reclimb: a perturbed report on the primal
+                    // route reaches this block too, and it is a backend fact, not curvature.
                     // (T4b F2; `.superpowers/w1-t4b-report.md`.)
                     if (trying_memory_value && !reclimb_charged && !perturbed) {
                         ++out.counters.ipqp_ladder_reclimbs;
                         reclimb_charged = true;
                     }
-                    // TWO DECADES THROUGH THE WHOLE FIRST CLIMB, EIGHT AFTER.
-                    // `rho_dem_last == 0` means this solve has never had a
-                    // successful modified factorization, so nothing is known
-                    // about the subproblem's scale and W-B's `bar kappa_w^+`
-                    // governs; once a memory exists the ladder is refining a
-                    // value whose order it already knows and `kappa_w^+` does.
+                    // TWO DECADES THROUGH THE WHOLE FIRST CLIMB, EIGHT AFTER. `rho_dem_last == 0`
+                    // means this solve has never had a successful modified factorization, so
+                    // nothing is known about its scale and W-B's `bar kappa_w^+` governs.
                     const double up =
                         (rho_dem_last == 0.0) ? detail::kIpqpLadderUpFirst : detail::kIpqpLadderUp;
                     rho_dem = std::min(rho_dem * up, iopts.ipqp_reg_max);
@@ -2354,25 +1876,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 ev.reason = IpqpTraceRegReason::kInertia;
                 emit_trace_reg(ev);
             }
-            // (The emergency `> 2 * fact_budget` guard that used to sit here
-            // went with fix round 1's I6: `factorize_once` now refuses a
-            // factorization the budget cannot pay for, so the ladder can no
-            // longer outrun the cap and there is nothing left for a second,
-            // looser guard to catch.)
+            // (The emergency `> 2 * fact_budget` guard went with fix round 1's I6:
+            // `factorize_once` now refuses a factorization the budget cannot pay for.)
             //
             // A RUNG IS AN ASSIGNMENT, NOT A RE-SCATTER: `dsq` and the layout's
-            // `primal_diag_source()` snapshot are both still the ones
-            // `assemble()` established, so writing the four diagonal families
-            // at the new (rho, delta) is all a rung costs beyond its
-            // factorization.
+            // `primal_diag_source()` snapshot are both still the ones `assemble()` established.
             write_diagonals(rho_sched, rho_dem, delta);
         }
     };
 
-    // One backend solve: scale the right-hand side in, unscale the solution
-    // out. `D K D u = D b` gives `u = D^-1 v` for `K v = b`, so the recovered
-    // step is `D u` -- and every quantity that leaves this lambda is on the
-    // caller's own scale, which is spec 4.3's non-negotiable clause.
+    // One backend solve: scale the right-hand side in, unscale the solution out. `D K D u = D b`
+    // gives `u = D^-1 v` for `K v = b`, so the recovered step is `D u` -- and everything leaving
+    // this lambda is on the caller's own scale, spec 4.3's non-negotiable clause.
     auto solve_system = [&]() {
         if (iopts.ipqp_ruiz) {
             w.rhs.array() *= w.dscale.array();
@@ -2383,31 +1898,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
     };
 
-    // Build the right-hand side for one step. `mu_t` is the uniform
-    // complementarity target (0 on the affine step); `corrector` adds
-    // Mehrotra's second-order term from the affine step already in hand.
+    // Build the right-hand side for one step. `mu_t` is the uniform complementarity target (0 on
+    // the affine step); `corrector` adds Mehrotra's second-order term from the affine step.
     //
-    // BOTH ARGUMENTS ARE THE SCHEDULE'S, ALWAYS. This function defines which
-    // subproblem the step solves, and section 3.2's proximal terms --
-    // `rho_sched (x - zeta)` on stationarity, `delta_sched (y - lambda_est)` on
-    // the dual blocks -- are the whole of it. Neither of section 2.2's
-    // inertia-demanded modifications has a place here: each is anchored at the
-    // CURRENT ITERATE, so each contributes zero gradient at `(x_k, y_k)`, and
-    // passing a modified value instead is exactly the defect T4b removes -- the
-    // step then converges to the KKT point of a problem the section 3.2 gate is
-    // not watching, and the gate falls silent forever.
+    // BOTH ARGUMENTS ARE THE SCHEDULE'S, ALWAYS. This function defines which subproblem the step
+    // solves, and section 3.2's proximal terms are the whole of it. Neither of 2.2's
+    // modifications belongs here: each is anchored at the CURRENT iterate, contributing zero.
     //
-    // THE DUAL SIDE IS THE SYMMETRIC COMPLETION OF THAT, AND IT WAS THE SECOND
-    // HALF OF THE FIX (fix round 1, settler ruling R3). T4b round 1 passed the
-    // LADDER-SETTLED `delta` here while the gate measured at `delta_sched`, so
-    // an iteration whose perturbed-pivot branch raised `delta` from 8 to 800
-    // solved the 800 dual-proximal system while the gate watched the 8 one --
-    // mechanism 4's exact shape on the dual side. It was bounded where the
-    // primal one was not (`delta` is re-initialized to `delta_sched` at the top
-    // of every pass, so nothing carried it forward) and it was unchanged from
-    // the pre-T4b engine, but "bounded and pre-existing" is not "correct". The
-    // escalated `delta` now enters the DIAGONAL only, exactly as `rho_dem`
-    // does.
+    // THE DUAL SIDE IS THE SYMMETRIC COMPLETION OF THAT (fix round 1, settler ruling R3): round 1
+    // passed the LADDER-SETTLED `delta` here while the gate measured at `delta_sched`. The
+    // escalated `delta` now enters the DIAGONAL only, exactly as `rho_dem` does.
     auto build_rhs = [&](double rho_sched, double delta_sched, double mu_t, bool corrector) {
         w.bgrad.setZero();
         detail::ipqp_accumulate_bound_barrier_gradient(w.x, bounds.lower, bounds.upper, mu_t, n,
@@ -2501,23 +2001,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             break;
         }
 
-        // The two targets, named once for the tests below that also read
-        // them (the section 6.2 window, section 6.3's positive floor, and the
-        // inner-loop target); the stopping rule itself is the exported
-        // predicate, which reads the same two from the same two fields.
+        // The two targets, named once for the tests below that also read them (the 6.2 window,
+        // 6.3's positive floor, the inner-loop target). The stopping rule itself is the exported
+        // predicate, which reads the same two fields.
         const double opt_target = opts_.opt_tol * iopts.ipqp_converge_slack;
         const double feas_target = opts_.feas_tol * iopts.ipqp_converge_slack;
 
-        // THE STOPPING RULE (spec 2.3 step 1 / 3.4), through the exported
-        // predicate rather than inline: task 6's routing chain has to ask the
-        // same question of a returned IpqpResult (a converged iterate whose
-        // final certification read the factorization budget refused is routed
-        // as a downgraded certificate, not as budget exhaustion), and two
+        // THE STOPPING RULE (spec 2.3 step 1 / 3.4), through the EXPORTED predicate rather than
+        // inline: task 6's routing chain asks the same question of a returned IpqpResult, and two
         // statements of one rule could drift.
-        // SECTION 5.5's TRUST THRESHOLD (fix round 1, F3): warm DATA is
-        // trusted only if its raw barrier level is inside the target too, at
-        // the warm ENTRY alone -- after a step the point is this solve's.
-        // `.superpowers/w1-t7-report.md` FIX ROUND 2.
+        // SECTION 5.5's TRUST THRESHOLD (fix round 1, F3): warm DATA is trusted only if its raw
+        // barrier level is inside the target too, at the warm ENTRY alone -- after a step the
+        // point is this solve's. `.superpowers/w1-t7-report.md` FIX ROUND 2.
         const bool untrusted_warm_seed = warm_live && out.counters.ipqp_iters == iters_base &&
                                          mu_meas > iopts.ipqp_converge_slack * opts_.opt_tol;
         if (!untrusted_warm_seed && ipqp_residuals_meet_target(res, opts_, iopts)) {
@@ -2536,10 +2031,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         // --- SECTIONS 6.2 AND 6.3, THE STANDING ROUTES ---------------------
         //
-        // EVALUATED BEFORE THE BUDGET CHECKS, which is section 6.1's "budget
-        // ... OF LAST RESORT: the stall test below should fire first on
-        // anything that is genuinely stuck" made structural rather than
-        // hoped for.
+        // EVALUATED BEFORE THE BUDGET CHECKS, which makes section 6.1's "budget ... OF LAST
+        // RESORT: the stall test should fire first on anything genuinely stuck" structural.
         if (!win_armed) {
             arm_window(res);
         } else if (win_steps >= stall_w) {
@@ -2553,15 +2046,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             const double dual_now = dual_norm_now();
             const double growth = dual_now / std::max(1.0, win_dual0);
 
-            // SECTION 6.3 IS TESTED FIRST, and the order is a ruling rather
-            // than an accident. A subproblem can satisfy both signatures at
-            // once -- an infeasible QP stalls, and its steps die as the
-            // multipliers diverge -- and the two escapes go to different
-            // places: `kStall` routes onward as a difficult subproblem, while
-            // `kInfeasibleSuspect` is the one the W2 feasibility hook exists
-            // to answer. The more specific diagnosis is the more useful one,
-            // and reporting the generic one first would make the specific
-            // test unreachable on exactly the problems it was written for.
+            // SECTION 6.3 IS TESTED FIRST, and the order is a ruling. A subproblem can satisfy
+            // both signatures at once, and the two escapes go to different places: `kStall`
+            // routes onward, `kInfeasibleSuspect` is what the W2 feasibility hook answers.
             if (flat && growth >= detail::kSsnDualGrowthFactor) {
                 fill_infeasibility_evidence(res, /*exhaustion=*/false, primal_now, primal_impr,
                                             dual_now, growth, 0.0, win_ye, win_yi, win_zl, win_zu);
@@ -2569,24 +2056,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 break;
             }
 
-            // "RESET ON A MEHROTRA TARGET CHANGE THAT ACTUALLY DROPPED `mu`"
-            // (spec 6.2) IS CONJUNCT (i) READ AS A RESET, and implementing it
-            // that way rather than as a second mechanism is deliberate: a
-            // window across which `mu` genuinely halved IS a window in which
-            // the barrier target changed and the change took. Reading it as
-            // "reset whenever mu moved at all" would re-arm on every healthy
-            // step and make the stall test unreachable; reading it as a
-            // separate trigger would give two answers to one question.
+            // "RESET ON A MEHROTRA TARGET CHANGE THAT ACTUALLY DROPPED `mu`" (spec 6.2) IS
+            // CONJUNCT (i) READ AS A RESET: a window across which `mu` genuinely halved IS one in
+            // which the target changed and took. "Reset whenever mu moved" would re-arm always.
             if (mu_ratio >= detail::kIpqpStallMuFactor) {
                 arm_window(res);
             } else if (res_impr < (1.0 - detail::kSsnStallImproveFactor) &&
                        win_alpha_max < detail::kIpqpStallAlpha) {
-                // ALL THREE CONJUNCTS HOLD. Conjunct (iii) is tested on
-                // `win_alpha_max` -- the LARGEST per-step `min(alpha_p,
-                // alpha_d)` in the window -- because the specification demands
-                // it "on EVERY step in the window": one healthy step anywhere
-                // disarms it, which is the "never abort on one tiny-alpha
-                // iteration" rule stated as code.
+                // ALL THREE CONJUNCTS HOLD. Conjunct (iii) is tested on `win_alpha_max` -- the
+                // LARGEST per-step `min(alpha_p, alpha_d)` -- because the spec demands it "on
+                // EVERY step": one healthy step anywhere in the window disarms it.
                 IpqpStallEvidence &ev = out.stall_evidence;
                 ev.fired = true;
                 ev.window = win_steps;
@@ -2597,21 +2076,18 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 escape = IpqpEscape::kStall;
                 break;
             } else {
-                // The window closed and fired nothing. A measurement that has
-                // been read is spent: re-arm at the current state so the next
-                // `stall_w` steps are measured against where the trajectory
-                // actually is, rather than accumulating improvement against a
-                // reference that keeps receding.
+                // The window closed and fired nothing. A measurement that has been read is spent:
+                // re-arm at the current state so the next `stall_w` steps are measured against
+                // where the trajectory actually is.
                 arm_window(res);
             }
         }
 
         // --- SECTION 5.5: THE WARM-KILL ------------------------------------
         //
-        // AHEAD of the two ordinary budget tests (fix round 1, R2): while
-        // WARM, budget exhaustion is 5.5's overrun and takes the
-        // exactly-once cold restart; the cold attempt owns ordinary escapes.
-        // `.superpowers/w1-t7-report.md` FIX ROUND 2, section 5.
+        // AHEAD of the two ordinary budget tests (fix round 1, R2): while WARM, budget exhaustion
+        // is 5.5's overrun and takes the exactly-once cold restart; the cold attempt owns
+        // ordinary escapes. `.superpowers/w1-t7-report.md` FIX ROUND 2, section 5.
         if (warm_live && out.counters.ipqp_iters - iters_base >= warm_budget) {
             warm_live = false;
             out.counters.ipqp_warm_restart_abandoned = 1;
@@ -2630,10 +2106,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             best_primal = kInf;
             best_x = Vec();
             have_start = false;
-            // R1 (settler ruling, fix round 2): the abandoned warm attempt's
-            // accepted-iterate history is CLEARED, not carried into the cold
-            // attempt -- the cold attempt starts with none, same precedent
-            // as `have_start` above.
+            // R1 (settler ruling, fix round 2): the abandoned warm attempt's accepted-iterate
+            // history is CLEARED, not carried into the cold attempt -- same precedent as
+            // `have_start` above.
             have_prev_accepted = false;
             attempt_accepted = 0;
             continue;
@@ -2650,33 +2125,23 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             break;
         }
 
-        // The safeguard's state this pass started from. Window discard: see
-        // the rule at the stall-window declarations above. Sampled here
-        // rather than beside each move because the high-water mark rises in
-        // TWO places (the inertia ladder and the evidence-failure branch), and
-        // two separate "and reset the window" statements would be two places
-        // to forget.
+        // The safeguard's state this pass started from. Window discard: see the rule at the
+        // stall-window declarations above. Sampled here rather than beside each move because the
+        // high-water mark rises in TWO places, and two "reset the window" statements is two.
         const double rho_dem_max_pre = rho_dem_max;
 
         // Whether THIS iteration's section 3.2 gate advanced, for
-        // `ipqp_iters_ladder_armed_no_advance`. Read off the prox-centre
-        // counter rather than a second flag: an advance is exactly a
-        // prox-centre update, by the gate's own construction, and one source
-        // of truth is what keeps the two from drifting.
+        // `ipqp_iters_ladder_armed_no_advance`. Read off the prox-centre counter rather than a
+        // second flag: an advance IS a prox-centre update, by the gate's own construction.
         const Index prox_updates_pre = out.counters.ipqp_prox_center_updates;
 
-        // THE GATED DECREASE (spec 3.2), evaluated BEFORE the assembly so an
-        // iteration runs at the schedule the previous iteration's progress
-        // earned. The gate is on the REGULARIZED residuals -- the ones the
-        // proximal subproblem is actually being solved to -- while the
-        // stopping rule above is on the unregularized ones. Conflating the
-        // two is the mistake that makes a proximal method either never
-        // decrease or decrease unconditionally.
+        // THE GATED DECREASE (spec 3.2), evaluated BEFORE the assembly so an iteration runs at the
+        // schedule the previous iteration's progress earned. The gate is on the REGULARIZED
+        // residuals; the stopping rule above is on the unregularized ones, never both at once.
         //
-        // Relative on BOTH sides (kIpqpRegGateContract carries why): the
-        // regularized residual is divided by the same `max(1, ...)` folds the
-        // stopping rule uses, and compared against its own value at the last
-        // advance.
+        // Relative on BOTH sides (kIpqpRegGateContract carries why): the regularized residual is
+        // divided by the same `max(1, ...)` folds the stopping rule uses, and compared against
+        // its own value at the last advance.
         {
             Vec rd_reg = w.grad + rho_sched * (w.x - w.zeta);
             detail::ipqp_accumulate_bound_dual_terms(bounds.lower, bounds.upper, w.zl, w.zu, n,
@@ -2695,33 +2160,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             if (!std::isfinite(reg_gate_ref)) {
                 reg_gate_ref = R;
             }
-            // TWO WAYS TO EARN AN ADVANCE, and the second is not a loophole in
-            // the first: the proximal-point outer iteration advances when its
-            // INNER (regularized) problem is SOLVED, and contraction is the
-            // proxy for that while the inner residual is still large. Once the
-            // inner residual is already below the accuracy this solve is
-            // aiming at, demanding further contraction is demanding progress
-            // that no longer exists -- and the deadlock is not theoretical:
-            // with the contraction test alone a well-scaled fixture converged
-            // to a relative primal residual of 1.09e-7 against a 1e-7 target
-            // and then STOPPED, because the residual it could not contract any
-            // further was `delta * (y - lambda_est)` -- the very quantity a
-            // stalled schedule refuses to shrink. Measured at 60 iterations
-            // and a budget escape; with this clause, 11 iterations and a
-            // certificate.
+            // TWO WAYS TO EARN AN ADVANCE, and the second is not a loophole: the outer iteration
+            // advances when its INNER problem is SOLVED, and contraction is only the proxy for
+            // that while the inner residual is large. Deadlock measured: w1-t4-report.md.
             const double inner_target = std::min(opt_target, feas_target);
             if (R <= std::max(detail::kIpqpRegGateContract * reg_gate_ref, inner_target)) {
                 reg_gate_ref = R;
                 const double proposed = rho_sched * iopts.ipqp_reg_decrease;
-                // NOTHING OVERRIDES THE DECREASE ANY MORE EXCEPT THE ABSOLUTE
-                // FLOOR (T4b). Section 2.2 item 3's monotone-per-solve floor
-                // is DELETED -- Algorithm IC, which section 2.2 cites by name,
-                // restarts each trial at a third of the last shift and has no
-                // such rule -- and with it goes the "flap" class this block
-                // used to classify. The schedule is now free to decay toward
-                // the caller's own QP exactly as section 3.2 says it does; the
-                // inertia ladder answers each iteration's curvature on its own
-                // per-iteration `rho_dem`, which the schedule never sees.
+                // NOTHING OVERRIDES THE DECREASE ANY MORE EXCEPT THE ABSOLUTE FLOOR (T4b): section
+                // 2.2 item 3's monotone-per-solve floor is DELETED, so the schedule decays toward
+                // the caller's QP while the ladder answers curvature on its own `rho_dem`.
                 const double target = std::max(proposed, iopts.ipqp_reg_floor);
                 bool moved = false;
                 if (target < rho_sched) {
@@ -2737,25 +2185,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     delta_sched = dtarget;
                     moved = true;
                 }
-                // THE TWO OUTCOMES OF A GATED ADVANCE, CLASSIFIED EXACTLY
-                // ONCE (T4b re-pin; class (a) below is deleted with the
-                // monotone floor):
+                // THE TWO OUTCOMES OF A GATED ADVANCE, CLASSIFIED EXACTLY ONCE (T4b re-pin; class
+                // (a) is deleted with the monotone floor):
                 //
-                //  (b) `rho` and/or `delta` MOVED -> DECREASE (I7's rule: the
-                //      counter is the `(rho, delta)` SCHEDULE's, so an advance
-                //      that moved `delta` alone is an applied decrease of the
-                //      schedule).
-                //  (c) NOTHING MOVED because both quantities already sit on
-                //      the ABSOLUTE floor -> NEITHER. The absolute floor is a
-                //      setting every schedule decays onto, not evidence about
-                //      this subproblem's curvature, which is the whole of I2.
+                //  (b) `rho` and/or `delta` MOVED -> DECREASE (I7: the counter is the SCHEDULE's,
+                //      so an advance that moved `delta` alone is an applied decrease of it).
+                //  (c) NOTHING MOVED, both already on the ABSOLUTE floor -> NEITHER (I2).
                 //
-                // So `ipqp_prox_center_updates == ipqp_reg_decreases +
-                // (class (c) advances)` holds on every solve; the difference
-                // is exactly the number of advances taken with the schedule
-                // already on the floor -- a quantity the section 7 counter
-                // table has no field for and T4b does not invent one for. The
-                // tests pin the EXACT accounting rather than the inequality.
+                // So `ipqp_prox_center_updates == ipqp_reg_decreases + (class (c) advances)` on
+                // every solve; the difference is the advances taken with the schedule already on
+                // the floor. The tests pin the EXACT accounting rather than the inequality.
                 if (moved) {
                     ++out.counters.ipqp_reg_decreases;
                     // task 8: `ipqp.reg`, the gate's own decrease -- rho_dem
@@ -2776,11 +2215,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
         }
 
-        // THE TWO REGULARIZATIONS, SELECTED SEPARATELY (T4b). `rho_sched` is
-        // the subproblem's own proximal weight and is NOT touched here;
-        // `rho_dem` is the inertia-demanded modification, chosen fresh by
-        // Algorithm IC every iteration. They are ADDITIVE in the matrix and
-        // only `rho_sched` reaches the right-hand side.
+        // THE TWO REGULARIZATIONS, SELECTED SEPARATELY (T4b): `rho_sched` is the subproblem's own
+        // proximal weight and is NOT touched here; `rho_dem` is the inertia-demanded modification
+        // chosen fresh every iteration. Additive in the matrix; only `rho_sched` reaches the RHS.
         double rho_dem = ladder_trial();
         if (rho_dem > 0.0) {
             rho_dem_max = std::max(rho_dem_max, rho_dem);
@@ -2789,21 +2226,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
 
-        // I4 + N1: READ AFTER THE LADDER SETTLES, COUNTED ONLY IF A STEP IS
-        // ACTUALLY TAKEN. `rho` is an in/out parameter, so this reads the
-        // level the step would run at -- sampling BEFORE the ladder missed the
-        // iteration whose own ladder first raises the floor (I4, off by one
-        // low). But the counter's doc says "iterations TAKEN", and every
-        // rejection below leaves the loop without a step, so the increment
-        // itself waits until the step has been applied (N1). An iteration that
-        // armed the ladder and was then refused a factorization by the budget
-        // is not an iteration taken at elevated rho; it is not an iteration at
-        // all.
+        // I4 + N1: READ AFTER THE LADDER SETTLES, COUNTED ONLY IF A STEP IS ACTUALLY TAKEN. `rho`
+        // is in/out, so this reads the level the step would run at; the increment waits until the
+        // step has been applied, since the counter's doc says "iterations TAKEN".
         const bool elevated = rho_dem > 0.0;
-        // IC-1'S SKIP RULE COUNTS ITERATIONS, NOT RUNGS: an iteration "needed
-        // a modification" iff the reading the tier acted on was taken with
-        // `rho_dem > 0`. Updated here, once the ladder has settled and before
-        // any of the rejection paths below can leave the loop.
+        // IC-1'S SKIP RULE COUNTS ITERATIONS, NOT RUNGS: an iteration "needed a modification" iff
+        // the reading the tier acted on was taken with `rho_dem > 0`. Updated here, once the
+        // ladder has settled and before any rejection path below can leave the loop.
         if (elevated) {
             ++consec_modified;
         } else {
@@ -2811,51 +2240,29 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
 
         if (fact_budget_hit) {
-            // The cap refused a factorization. That is a BUDGET stop, and it
-            // is deliberately tested before the reading: no factorization ran,
-            // so there is no inertia verdict to classify. Section 6.3's
-            // exhaustion route gets the same look it gets at the two caps
-            // above -- running out of factorizations with the infeasibility
-            // signature standing is the same event as running out of
-            // iterations with it standing.
+            // The cap refused a factorization: a BUDGET stop, tested before the reading because no
+            // factorization ran and there is no verdict to classify. Section 6.3's exhaustion
+            // route gets the same look it gets at the two caps above.
             escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
                                                              : IpqpEscape::kBudget;
             break;
         }
         if (read == InertiaRead::kUnreadable) {
-            // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder). The
-            // ladder has already raised this iteration's modification to its
-            // conservative floor and re-factorized there, so the step below runs
-            // at that floor (and `ladder_trial` re-applies it every later
-            // iteration, since no floor variable carries it any more). NOT an escape and NOT a
-            // break: the solve continues, and what it can no longer produce is a STANDING
-            // CERTIFICATE, which is what `evidence_failed` carries to the outcome block.
+            // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder): this iteration's
+            // modification is already at the conservative floor and re-factorized there. NOT an
+            // escape and NOT a break -- what the solve can no longer produce is a CERTIFICATE.
         } else if (read != InertiaRead::kOk) {
-            // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. There used to be
-            // a solve-scoped `saw_readable_wrong` flag here, set by ANY ladder
-            // rung anywhere in the solve -- including rungs the ladder then
-            // successfully corrected -- so a terminal PERTURBED or UNREADABLE
-            // stop after an earlier corrected wrong reading came out
-            // `kIndefinite`. Plan section 7 note (h) is explicit that an
-            // evidence-invalid terminal state is NUMERICAL ("no evidence state
-            // observed to compare against"), and the difference is not
-            // cosmetic: task 6 routes `kIndefinite` to SSN as a saddle-suspect
-            // and `kNumerical` to the cold walk, and task 5's census stops
-            // being a partition of causes. The terminal `read` already carries
-            // the whole answer, so the flag is gone rather than re-scoped.
+            // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. A solve-scoped `saw_readable_wrong`
+            // flag used to make a terminal PERTURBED/UNREADABLE stop come out `kIndefinite`; plan
+            // section 7 note (h) makes an evidence-invalid terminal state NUMERICAL.
             escape =
                 (read == InertiaRead::kWrong) ? IpqpEscape::kIndefinite : IpqpEscape::kNumerical;
             break;
         }
 
         // 1. THE AFFINE (PREDICTOR) STEP -- mu target 0.
-        // MECHANISM 4'S FIX (T4b): the right-hand side is built from the
-        // SCHEDULE'S subproblem -- `rho_sched`, anchored at `zeta` -- and
-        // never from the inertia-demanded modification, whose anchor is the
-        // current iterate and whose gradient contribution here is therefore
-        // zero. Before the separation this used the total, so the iterate
-        // converged to the KKT point of a DIFFERENT problem than the one the
-        // section 3.2 gate measures, and the gate never advanced again.
+        // MECHANISM 4'S FIX (T4b): the RHS is built from the SCHEDULE'S subproblem, anchored at
+        // `zeta`, never from the inertia-demanded modification, whose gradient here is zero.
         build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
         solve_system();
         recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
@@ -2891,11 +2298,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             mu_t = std::clamp(sigma_m * mu_meas, iopts.ipqp_min_mu, iopts.ipqp_init_mu);
         }
 
-        // 3. THE CORRECTOR, against the SAME numeric factorization (Amendment
-        //    E's re-entrancy assertion: KktFactorization::solve is const and
-        //    does not mutate the factor, so two solves against one
-        //    factorization are well-formed -- W1 asserts this executably
-        //    rather than assuming it).
+        // 3. THE CORRECTOR, against the SAME numeric factorization (Amendment E's re-entrancy
+        //    assertion: `KktFactorization::solve` is const and does not mutate the factor, so two
+        //    solves against one factorization are well-formed; W1 asserts this executably).
         build_rhs(rho_sched, delta_sched, mu_t, /*corrector=*/true);
         solve_system();
         recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
@@ -2951,13 +2356,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             escape = IpqpEscape::kNumerical;
             break;
         }
-        // STRICT POSITIVITY IS A THEOREM OF THE FRACTION-TO-BOUNDARY RULE
-        // (tau < 1 leaves every positive quantity at >= (1-tau) of its old
-        // value), so this guard should be unreachable. It is written anyway,
-        // in every build configuration: the alternative to catching a
-        // non-positive slack here is a logarithm of a non-positive number
-        // deep inside a kernel that documents its caller's invariant and does
-        // not re-check it.
+        // STRICT POSITIVITY IS A THEOREM OF THE FRACTION-TO-BOUNDARY RULE (tau < 1 leaves every
+        // positive quantity at >= (1-tau) of its old value), so this guard should be unreachable.
+        // Written anyway: the alternative is a logarithm of a non-positive number in a kernel.
         bool positive = (mi == 0) || (w.s.minCoeff() > 0.0 && w.yi.minCoeff() > 0.0);
         for (Index i = 0; positive && i < n; ++i) {
             if (detail::ipqp_has_lower(bounds.lower(i)) &&
@@ -2974,10 +2375,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             break;
         }
 
-        // A COMPLETED PREDICTOR+CORRECTOR PAIR, and only that, is one
-        // iteration -- see IpqpCounters::ipqp_iters. Every break above leaves
-        // these two lines unreached, which IS the exclusion both fields
-        // document ("iterations taken", N1).
+        // A COMPLETED PREDICTOR+CORRECTOR PAIR, and only that, is one iteration -- see
+        // `IpqpCounters::ipqp_iters`. Every break above leaves these two lines unreached, which
+        // IS the exclusion both fields document ("iterations taken", N1).
         ++out.counters.ipqp_iters;
         ++attempt_accepted; // R1: this attempt's own accepted-step count.
         rho_dem_final = rho_dem;
@@ -3015,12 +2415,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         if (elevated) {
             ++out.counters.ipqp_iters_at_elevated_rho;
             if (out.counters.ipqp_prox_center_updates == prox_updates_pre) {
-                // THE ARMED WALK, COUNTED (T4b plan 2.1's declared gap). The
-                // ladder is armed and the section 3.2 gate did not advance:
-                // `zeta` and `rho_sched` are pinned while the iterate walks
-                // down a negative-curvature direction whose residual is
-                // GROWING. Expected, bounded by the walk's own geometry, and
-                // measured rather than assumed.
+                // THE ARMED WALK, COUNTED (T4b plan 2.1's declared gap): the ladder is armed and
+                // the 3.2 gate did not advance, so `zeta` and `rho_sched` are pinned while the
+                // iterate walks a negative-curvature direction. Measured rather than assumed.
                 ++out.counters.ipqp_iters_ladder_armed_no_advance;
             }
         }
@@ -3032,10 +2429,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         win_alpha_min = std::min(win_alpha_min, step_alpha);
         win_alpha_max = std::max(win_alpha_max, step_alpha);
 
-        // ... and here it is discarded. Window discard: see the rule at the
-        // stall-window declarations above. The next pass finds
-        // `win_armed == false` and arms a fresh window at the point the ladder
-        // actually left the trajectory at.
+        // ... and here it is discarded. Window discard: see the rule at the stall-window
+        // declarations above. The next pass finds `win_armed == false` and arms a fresh window
+        // where the ladder actually left the trajectory.
         if (rho_dem_max != rho_dem_max_pre) {
             win_armed = false;
         }
@@ -3045,18 +2441,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     if (converged) {
         if (!iopts.ipqp_require_final_inertia) {
-            // I5, SETTLER RULING (spec section 9's own row: "off = certificate
-            // always downgraded"). A DOWNGRADE, NOT AN ESCAPE. The earlier
-            // reading issued `kNumerical` here, which turned an option-driven
-            // choice to skip one factorization into a census entry and a
-            // section 6.1 K = 3 retirement charge on a solve that converged
-            // cleanly. `certificate_downgraded` alone already delivers exactly
-            // what the option's text promises.
+            // I5, SETTLER RULING (spec section 9's own row: "off = certificate always
+            // downgraded"). A DOWNGRADE, NOT AN ESCAPE -- the earlier `kNumerical` turned an
+            // option-driven skip into a census entry and a K = 3 charge on a clean solve.
             //
-            // `ipqp_final_inertia_read == 3` is the distinct "NOT PERFORMED
-            // (option off)" value, kept apart from `2` (attempted, evidence
-            // unreadable) so the census cannot confuse a declined read with a
-            // failed one.
+            // `ipqp_final_inertia_read == 3` is the distinct "NOT PERFORMED (option off)" value,
+            // kept apart from `2` (attempted, evidence unreadable).
             out.counters.ipqp_final_inertia_read = 3;
             out.certificate_downgraded = true;
             // escape stays kNone -- see the status note at the outcome switch.
@@ -3066,44 +2456,29 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // `ipqp_reg_floor`, not whatever `rho_sched` happens to hold when
             // the solve stops.
             //
-            // The distinction is a wrong-answer bug, not a nicety. A solve can
-            // converge BEFORE the schedule ever advances -- a one-variable QP
-            // with H = [-1], g = 0 and no rows or bounds is stationary at the
-            // origin on iteration 0 -- and `rho_sched` is then still
-            // `ipqp_rho_init` = 8. Reading the certificate off `H + 8 I` = [7]
-            // finds the target inertia (1, 0, 0) and certifies a CONCAVE,
-            // unbounded problem as optimal at its maximum. Dropping to the
-            // floor asks the question item 4 exists to ask: is the converged
-            // point a minimum of the PROBLEM, or only of the modification that
-            // got us here.
+            // The distinction is a wrong-answer bug, not a nicety: a solve can converge BEFORE the
+            // schedule ever advances (H = [-1], g = 0 is stationary at iteration 0 with
+            // `rho_sched` still 8), and reading `H + 8 I` = [7] certifies a CONCAVE problem.
             //
-            // `delta` stays at `delta_sched`: it is a DUAL proximal term, it
-            // enters only the `-delta I` blocks, and it cannot change the
-            // primal block's contribution to the inertia count.
+            // `delta` stays at `delta_sched`: a DUAL proximal term entering only the `-delta I`
+            // blocks cannot change the primal block's contribution to the inertia count.
             //
-            // A subproblem that needed the ladder will therefore fail this
-            // read, and reporting it as saddle-suspect is the correct answer,
-            // not a false negative.
+            // A subproblem that needed the ladder will therefore fail this read, and reporting it
+            // as saddle-suspect is the correct answer, not a false negative.
             refresh_distances();
             const InertiaRead read = factorize_and_read_once(iopts.ipqp_reg_floor, delta_sched);
             if (fact_budget_hit) {
-                // N2 (SETTLER RULING, fix round 2): A READ THAT NEVER HAPPENED
-                // IS `3`, NOT `2`. The 0/1/2/3 contract defines `2` as
-                // ATTEMPTED-and-unusable, which is why it maps to the
-                // numerical escape class; a factorization the budget refused
-                // was never attempted, so it belongs with the option-off case.
-                // The ESCAPE stays `kBudget` -- the budget is genuinely why
-                // this solve stopped -- and the certificate is downgraded,
-                // because an unread certificate does not stand.
+                // N2 (SETTLER RULING, fix round 2): A READ THAT NEVER HAPPENED IS `3`, NOT `2` --
+                // `2` is ATTEMPTED-and-unusable. The ESCAPE stays `kBudget`, and the certificate
+                // is downgraded because an unread certificate does not stand.
                 out.counters.ipqp_final_inertia_read = 3;
                 out.certificate_downgraded = true;
                 escape = IpqpEscape::kBudget;
             } else if (read == InertiaRead::kOk) {
                 out.counters.ipqp_final_inertia_read = 0;
-                // T4c disclosure (R4): exposure exists only in a certificate
-                // issued STANDING ALONE at mu_stop -- composition downstream
-                // closes it; a stopping-mu/geometry rule is M7. See
-                // `.superpowers/w1-t4c-report.md`.
+                // T4c disclosure (R4): exposure exists only in a certificate issued STANDING ALONE
+                // at mu_stop -- composition downstream closes it, and a stopping-mu/geometry rule
+                // is M7. See `.superpowers/w1-t4c-report.md`.
                 const Index band_count =
                     static_cast<Index>(band_lower_idx.size() + band_upper_idx.size());
                 out.counters.ipqp_read_kept_tight_sides = band_count;
@@ -3152,20 +2527,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 out.certificate_downgraded = true;
                 escape = IpqpEscape::kIndefinite;
             } else {
-                // C0b: UNREADABLE, PERTURBED, **or** a factorization that
-                // FAILED. A perturbed factorization is not evidence about the
-                // assembled matrix at all, so it is not "a reading that
-                // disagreed" -- it is no reading; a failed one is not even a
-                // factor. Note (h)'s `== 2`, numerical, for all three.
+                // C0b: UNREADABLE, PERTURBED, **or** a factorization that FAILED. A perturbed
+                // factorization is no reading at all and a failed one is not even a factor;
+                // note (h)'s `== 2`, numerical, covers all three.
                 //
-                // SECTION 2.2'S EVIDENCE-FAILURE POLICY DOES NOT REACH HERE,
-                // and that is the ruling rather than an oversight. The policy
-                // permits A STEP at a conservative floor; the item 4 read
-                // takes no step. There is nothing left to permit -- the
-                // question the read exists to ask ("is the converged point a
-                // minimum of the PROBLEM") simply has no answer -- so the
-                // certificate cannot stand and the escape is the numerical
-                // class note (h) assigns to an unreadable inertia.
+                // SECTION 2.2'S EVIDENCE-FAILURE POLICY DOES NOT REACH HERE, and that is the
+                // ruling rather than an oversight: the policy permits A STEP at a conservative
+                // floor, and the item 4 read takes no step. So the certificate cannot stand.
                 out.counters.ipqp_final_inertia_read = 2;
                 out.certificate_downgraded = true;
                 escape = IpqpEscape::kNumerical;
@@ -3173,22 +2541,17 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
     }
 
-    // SECTION 2.2'S WHOLE-SOLVE DOWNGRADE. Applied AFTER the item 4 block and
-    // never conditioned on it: the policy's own scope is "the certificate is
-    // downgraded FOR THE WHOLE SOLVE", so a final read that came back clean
-    // (`ipqp_final_inertia_read == 0`) does not undo an evidence failure at
-    // iteration 3, and an escaped solve carries the flag too -- it has no
-    // certificate to downgrade, and saying so costs nothing while a
-    // conditional would make the field mean two things.
+    // SECTION 2.2'S WHOLE-SOLVE DOWNGRADE. Applied AFTER the item 4 block and never conditioned on
+    // it: the policy's own scope is "downgraded FOR THE WHOLE SOLVE", so a clean final read does
+    // not undo an evidence failure at iteration 3, and an escaped solve carries the flag too.
     if (evidence_failed) {
         out.inertia_evidence_failed = true;
         out.certificate_downgraded = true;
     }
 
-    // R2 (settler ruling, fix round 2): the flag is set HERE, once the
-    // downgrade above (and every earlier one) has had its say -- a clean
-    // item 4 read that this whole-solve rule later overrides reports FALSE,
-    // counters left populated. See `.superpowers/w1-t4c-report.md`.
+    // R2 (settler ruling, fix round 2): the flag is set HERE, once the downgrade above (and every
+    // earlier one) has had its say -- a clean item 4 read that this whole-solve rule later
+    // overrides reports FALSE, counters left populated. See `.superpowers/w1-t4c-report.md`.
     out.read_kept_tight = kept_tight_raw && !out.certificate_downgraded;
 
     // task 8: `ipqp.restart`/`ipqp.certify`, emitted here because every fact
@@ -3239,39 +2602,21 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         break;
     }
     if (out.certificate_downgraded && out.escape_reason == IpqpEscape::kNone) {
-        // A DOWNGRADE WITHOUT AN ESCAPE. Two ways in: the option-off read
-        // (I5's ruling, `ipqp_final_inertia_read == 3`), and a mid-solve
-        // evidence failure whose final read nonetheless came back clean
-        // (`read == 0`). TASK 5'S STATUS RULING, argued in full in
-        // ipqp_engine.h's own STATUS VOCABULARY note: `kNumericalError`, the
-        // spelling the walk and SSN already use for a converged point whose
-        // second-order certificate could not be established, and NOT a new
-        // `QpStatus` enumerator -- spec 2.2 item 4 asks for one certification
-        // vocabulary across all three kernels, and the certificate itself
-        // travels on `certificate_downgraded` / `escape_reason`, never on
-        // `status`.
+        // A DOWNGRADE WITHOUT AN ESCAPE. Two ways in: the option-off read (I5's ruling,
+        // `ipqp_final_inertia_read == 3`) and a mid-solve evidence failure whose final read came
+        // back clean. TASK 5'S STATUS RULING, argued in ipqp_engine.h's STATUS VOCABULARY note.
         out.status = QpStatus::kNumericalError;
     }
 
     // --- THE FIVE-WAY ESCAPE CENSUS (spec section 7) -----------------------
     //
-    // Written ONCE, from the single classified `escape_reason`, so the census
-    // is a PARTITION by construction rather than by five call sites agreeing:
-    // exactly one branch below can run, and each runs `ipqp_escapes` with it,
-    // which is the whole content of the sum-to-`ipqp_escapes` invariant
-    // (tests/sqp/support/ipqp_test_support.h asserts it on every fixture).
+    // Written ONCE, from the single classified `escape_reason`, so the census is a PARTITION by
+    // construction: exactly one branch below can run, and each runs `ipqp_escapes` with it --
+    // the whole of the sum invariant `tests/sqp/support/ipqp_test_support.h` asserts.
     //
-    // THREE OUTCOMES DELIBERATELY CONTRIBUTE NOTHING HERE, each for a reason
-    // already settled elsewhere:
-    //   * `kNone` on a clean solve -- there is no escape.
-    //   * `kNone` on a DOWNGRADED solve (`ipqp_final_inertia_read == 3`, or a
-    //     mid-solve evidence failure) -- plan section 7 note (j): "a
-    //     downgrade, not an escape ... no census entry, no section 6.1 K=3
-    //     charge". The census must NOT fold `3` into
-    //     `ipqp_escape_numerical`; there is no escape to count.
-    //   * A DECLINED-PINNED subproblem, which returns far above this point
-    //     with `ipqp_declined_pinned == 1` and every other counter at its
-    //     default -- the tier never ran.
+    // THREE OUTCOMES DELIBERATELY CONTRIBUTE NOTHING: `kNone` on a clean solve; `kNone` on a
+    // DOWNGRADED solve (plan section 7 note (j): "a downgrade, not an escape ... no census entry,
+    // no section 6.1 K=3 charge"); and a DECLINED-PINNED subproblem, which returns far above.
     switch (out.escape_reason) {
     case IpqpEscape::kNone:
         break;
@@ -3338,10 +2683,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- THE CROSS-MAJOR CARRY (spec 5.1 flow (b)) -------------------------
     //
-    // COMMITTED ONLY ON A FINITE STATE, and it is the LAST write: a solve that
-    // produced nothing usable leaves the previous carry standing, which is
-    // what makes "a trust-region shrink-retry ... does not reset the seed"
-    // true without the retry path having to say so.
+    // COMMITTED ONLY ON A FINITE STATE, and it is the LAST write: a solve that produced nothing
+    // usable leaves the previous carry standing, which is what makes "a trust-region shrink-retry
+    // does not reset the seed" true without the retry path having to say so.
     if (w.x.allFinite() && w.s.allFinite() && w.ye.allFinite() && w.yi.allFinite() &&
         w.zl.allFinite() && w.zu.allFinite() && std::isfinite(mu_meas)) {
         carry_.x = w.x;
@@ -3360,10 +2704,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- the face classification (spec 2.3 item 2) -------------------------
     //
-    // A RATIO rule, applied to the returned point whatever the outcome was:
-    // like SsnResult's implied active set it describes where the solve
-    // STOPPED and certifies nothing. An UNCERTAIN verdict is never forced --
-    // it is counted and handed on.
+    // A RATIO rule, applied to the returned point whatever the outcome was: like SsnResult's
+    // implied active set it describes where the solve STOPPED and certifies nothing. An UNCERTAIN
+    // verdict is never forced -- it is counted and handed on.
     refresh_distances();
     const double kappa = iopts.ipqp_face_kappa;
     const double mu_scale = std::max(mu_meas, 0.0);
@@ -3413,11 +2756,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 ++out.counters.ipqp_face_uncertain;
             }
         }
-        // TR-PINNED, `QpSolution::tr_active`'s contract verbatim: the
-        // variable is held by an effective bound that is TIGHTER than the
-        // real one, so its multiplier is a trust-region dual and is internal.
-        // A coincidental tie (`lo_eff == lower`) is attributed to the REAL
-        // bound, which is the walk's own tie-breaking rule.
+        // TR-PINNED, `QpSolution::tr_active`'s contract verbatim: the variable is held by an
+        // effective bound TIGHTER than the real one, so its multiplier is a trust-region dual and
+        // internal. A coincidental tie is attributed to the REAL bound -- the walk's own rule.
         const bool tr_lo = at_lower && bounds.lower(i) > qp.lower(i);
         const bool tr_up = at_upper && bounds.upper(i) < qp.upper(i);
         if (tr_lo || tr_up) {
@@ -3433,30 +2774,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
         // ---- THE TWO EXPORT INVARIANTS THIS TIER MUST RE-DERIVE ----------
         //
-        // qp_engine.h's export contract states both against `QpSolution`, and
-        // states in as many words that "a third producer must re-derive the
-        // invariant rather than assume it is inherited". This tier is that
-        // third producer (M6 W1 task 6).
+        // qp_engine.h's export contract states both against `QpSolution`, and says in as many
+        // words that a third producer must RE-DERIVE them. This tier is that third producer.
         //
-        // (6b) `bound_state[i] == kFree ==> z(i) == 0.0`, ON EVERY STATUS.
-        // A barrier method carries a (zl, zu) pair at EVERY index with a
-        // finite effective bound, and at an INACTIVE bound that pair is the
-        // barrier residue (~ mu / distance) -- small, nonzero, and a price on
-        // a bound this point is not standing on. Exporting it would put this
-        // tier in the docket-D0 defect class the walk's own pins guard
-        // against, so the price is written only where the classifier put the
-        // variable ON a bound; every other index exports an exact 0. A
-        // TR-PINNED index took the `continue` above and is already 0.
+        // (6b) `bound_state[i] == kFree ==> z(i) == 0.0`, ON EVERY STATUS. A barrier method carries
+        // a (zl, zu) pair at every finite effective bound, and at an INACTIVE bound that pair is
+        // barrier residue, so the price is written only where the classifier put the variable ON.
         //
-        // (real-bound-only) THE ABSENT-SIDE TEST READS THE REAL BOUND, NOT THE
-        // EFFECTIVE ONE -- `SsnEngine::split_bound_multipliers`' rule
-        // verbatim. Under a FINITE radius every variable has finite EFFECTIVE
-        // bounds whatever the caller's own box says, so a side gated on the
-        // effective bound would price a bound the QP does not have;
-        // `SsnEngine::solve` REFUSES such a start outright ("there is no row
-        // for that multiplier"). The residue at an absent side is a
-        // trust-region dual, and TR duals are internal (qp_problem.h), so
-        // dropping it is the contract rather than a loss.
+        // (real-bound-only) THE ABSENT-SIDE TEST READS THE REAL BOUND, NOT THE EFFECTIVE ONE --
+        // `SsnEngine::split_bound_multipliers`' rule verbatim: under a FINITE radius every variable
+        // has finite effective bounds, and the residue at an absent side is an internal TR dual.
         if (at_lower || at_upper) {
             const double z_lower =
                 (at_lower && detail::ipqp_has_lower(qp.lower(i))) ? w.zl(i) : 0.0;
@@ -3471,10 +2798,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- counters that mirror the backend's own ---------------------------
     //
-    // Taken as DELTAS off SymmetricFactor::Counters rather than tallied here,
-    // so `ipqp_pattern_verifies` is literally the backend's own count (the
-    // field's doc comment says "mirrors", and this is what makes that a fact
-    // rather than a claim) and so the four cannot drift from each other.
+    // Taken as DELTAS off `SymmetricFactor::Counters` rather than tallied here, so
+    // `ipqp_pattern_verifies` is literally the backend's own count -- which is what makes the
+    // field's "mirrors" a fact rather than a claim -- and so the four cannot drift.
     const KktFactorization::Counters after = kkt_.counters();
     out.counters.ipqp_factorizations = after.factorize_count - before.factorize_count;
     out.counters.ipqp_solves = after.solve_count - before.solve_count;

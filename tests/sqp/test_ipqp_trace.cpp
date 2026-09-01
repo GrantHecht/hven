@@ -479,12 +479,9 @@ TEST(IpqpTrace, EscapeEventCarriesTheFullEvidenceBlockVerbatim) {
     }
 }
 
-// ipqp.route / qp.mode -- driver-emitted, so this pin runs the DRIVER, not
-// the bare engine. Three HS members, measured (test_ipqp_dispatch.cpp), take
-// three different rows of the section 2.3 table: HS6 refines and certifies
-// on every major, HS3 reaches the SSN warm grade via a refusal, HS10 escapes
-// on every major. Together they exercise all three `to` values and all three
-// `qp.mode` outcomes on one fixture set.
+// ipqp.route / qp.mode are DRIVER-emitted, so this pin runs the driver, not the bare engine.
+// Three measured HS members take three different section 2.3 rows -- HS6 refines, HS3 reaches
+// SSN via a refusal, HS10 escapes -- covering all three `to` values and `qp.mode` outcomes.
 TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     RecordingTraceSink sink;
     Index refine_accepted = 0;

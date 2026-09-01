@@ -1,23 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// The interior-point QP tier's KKT scatter plan (M6 W1 T3.b).
-//
-// Three claims are pinned here, and each is pinned so that it can FAIL:
-//
-//  1. The scattered values are what a plain setFromTriplets assembly of the
-//     same system produces -- BYTE-identical, not merely close. The reference
-//     below is written independently, in a DIFFERENT emission order, so an
-//     off-by-one in the position map does not cancel out against itself.
-//  2. The recorded diagonal slots address the entries they claim to. Checked
-//     twice over: against the reference matrix's own coefficients, and --
-//     the non-vacuity half -- by perturbing a recorded slot and watching the
-//     FACTORIZATION's observed inertia move. A slot table that pointed
-//     somewhere else would leave the inertia where it was.
-//  3. Amendment E's re-entrancy assertion: predictor and corrector solves
-//     against ONE numeric factorization, both residuals checked, so a backend
-//     change that broke `KktFactorization::solve`'s constness fails loudly
-//     here instead of silently corrupting a corrector step.
+// The interior-point QP tier's KKT scatter plan (M6 W1 T3.b). Three claims pinned so each can
+// FAIL: byte-identity against an independently ordered setFromTriplets reference, the diagonal
+// slot table (mutation non-vacuity), and Amendment E re-entrancy. `.superpowers/w1-t3-report.md`.
 
 #include <bit>
 #include <cmath>
@@ -50,11 +36,9 @@ SpMatRM sparse_from(Index rows, Index cols, const std::vector<Eigen::Triplet<dou
     return m;
 }
 
-// The oracle. Same system, same upper-triangle convention, assembled the
-// obvious way -- one triplet vector, one setFromTriplets -- and emitted in an
-// order deliberately unlike the layout's (blocks reversed, H rows walked
-// backwards) so that agreement is evidence about the POSITION MAP rather than
-// about two copies of one loop.
+// The oracle. Same system and upper-triangle convention, assembled with one setFromTriplets and
+// emitted in a deliberately different order (blocks reversed, H rows walked backwards), so
+// agreement is evidence about the POSITION MAP. `.superpowers/w1-t3-report.md`.
 SpMatRM reference_kkt(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Index n, Index me,
                       Index mi) {
     const Index dim = n + 2 * mi + me;
@@ -97,12 +81,9 @@ void expect_identical(const SpMatRM &got, const SpMatRM &want) {
     for (Index r = 0; r <= got.rows(); ++r) {
         EXPECT_EQ(got.outerIndexPtr()[r], want.outerIndexPtr()[r]) << "outer index " << r;
     }
-    // BITWISE, not `==`. The claim is byte identity, and `==` equates +0.0
-    // with -0.0 -- exactly the pair a zero-fill-then-accumulate could produce
-    // where a single-triplet assembly kept a stored -0.0. Comparing the bits
-    // makes the claim in the header the claim the test actually checks; if it
-    // ever fails on a signed zero, that is a real difference between the two
-    // assembly routes and belongs in the contract, not in a looser comparison.
+    // BITWISE, not `==`: `==` equates +0.0 with -0.0, the pair a zero-fill-then-accumulate
+    // could produce where single-triplet assembly kept a stored -0.0. It passes bitwise on
+    // all five fixtures, both paths -- do not loosen. `.superpowers/w1-t3-report.md` C2.
     for (Index t = 0; t < got.nonZeros(); ++t) {
         EXPECT_EQ(got.innerIndexPtr()[t], want.innerIndexPtr()[t]) << "inner index " << t;
         EXPECT_EQ(std::bit_cast<std::uint64_t>(got.valuePtr()[t]),
@@ -117,10 +98,9 @@ void expect_identical(const SpMatRM &got, const SpMatRM &want) {
               0);
 }
 
-// Same pattern, different values: every stored entry scaled, so the sparsity
-// structure is bit-for-bit the one the plan was laid out for while no value
-// survives. This is what a new major with an unchanged structure hands the
-// tier, and it is what the reuse scatter has to reproduce.
+// Same pattern, different values: every stored entry scaled, so the sparsity structure is
+// bit-for-bit the one the plan was laid out for while no value survives -- what a new major
+// with an unchanged structure hands the tier, and what the reuse scatter has to reproduce.
 SpMatRM revalued(const SpMatRM &m, double factor, double shift) {
     SpMatRM out = m;
     for (Index t = 0; t < out.nonZeros(); ++t) {
@@ -130,9 +110,7 @@ SpMatRM revalued(const SpMatRM &m, double factor, double shift) {
 }
 
 // ---------------------------------------------------------------------------
-// Fixtures. n = 3 throughout, with a shared-column pattern in H and in Ai (two
-// rows both touching variable 1) so a position map that keyed on the column
-// alone would collide.
+// Fixtures. n = 3; H and Ai share a column so a column-keyed position map would collide.
 // ---------------------------------------------------------------------------
 
 struct Fixture {
@@ -207,10 +185,9 @@ TEST(IpqpKktLayoutTest, DimensionAndBlockBasesFollowTheKktVectorOrder) {
     EXPECT_TRUE(layout.has_structure());
 }
 
-// EVERY fixture goes through BOTH paths: the setFromTriplets layout, then the
-// reuse scatter with fresh values. Checking only the fully populated fixture
-// on the reuse path would leave a scatter that unconditionally touched an
-// equality or coupling offset passing the advertised empty-block coverage.
+// EVERY fixture goes through BOTH paths: the setFromTriplets layout, then the reuse scatter
+// with fresh values. Running only the fully populated fixture on the reuse path would let a
+// scatter that unconditionally touched an equality or coupling offset pass.
 TEST(IpqpKktLayoutTest, BothAssemblyPathsAreByteIdenticalToASetFromTripletsReference) {
     int layouts = 0;
     int reuses = 0;
@@ -351,16 +328,12 @@ TEST(IpqpKktLayoutTest, PrimalDiagSourceCarriesHsOwnDiagonalAndZeroWhereHHasNone
 }
 
 // ---------------------------------------------------------------------------
-// The factorization-side pins: the assembled system's inertia, the
-// mutation-non-vacuity cross-check on the diagonal slots, and Amendment E.
+// Factorization-side pins: inertia, diagonal-slot mutation non-vacuity, Amendment E.
 // ---------------------------------------------------------------------------
 
-// The proximal and dual regularizations the fixtures factorize under. delta is
-// deliberately O(1) rather than the small value a converged tier would carry:
-// eliminating the -delta I blocks contributes B' (1/delta) B to the primal
-// block, so a tiny delta makes that term dominate everything else and no
-// perturbation of a primal diagonal short of 1/delta could move the inertia --
-// which would make the non-vacuity pin below vacuous for the wrong reason.
+// The regularizations the fixtures factorize under. delta is deliberately O(1): eliminating
+// the -delta I blocks contributes B' (1/delta) B to the primal block, so a tiny delta would
+// make the non-vacuity pin below vacuous. `.superpowers/w1-t3-report.md`.
 constexpr double kRho = 8.0;
 constexpr double kDelta = 1.0;
 
@@ -371,10 +344,9 @@ KktFactorization::Options factor_options() {
     return opts;
 }
 
-// Fills the four diagonal families so the system is quasi-definite: the
-// primal block H + rho I + Sigma positive definite, the slack block
-// Lambda S^-1 positive, both multiplier blocks -delta. Section 4.1's inertia
-// target for this layout is then (n + mi, me + mi, 0).
+// Fills the four diagonal families so the system is quasi-definite: primal H + rho I + Sigma
+// positive definite, slack Lambda S^-1 positive, both multiplier blocks -delta. Spec section
+// 4.1's inertia target for this layout is then (n + mi, me + mi, 0).
 void install_quasidefinite_diagonals(const IpqpKktLayout &layout, const Fixture &f, double rho,
                                      double delta, SpMatRM &k) {
     double *const v = k.valuePtr();
@@ -408,11 +380,9 @@ TEST(IpqpKktLayoutTest, TheAssembledSystemFactorizesToTheSpecifiedInertiaTarget)
     EXPECT_EQ(ev.n_zero, 0);
 }
 
-// MUTATION NON-VACUITY (W0.3 precedent) for the diagonal slot table: a value
-// written through a recorded primal slot has to reach the factorization. Drive
-// one primal diagonal strongly negative and the observed inertia must move by
-// exactly one eigenvalue. A slot table pointing at the wrong entry -- an
-// off-diagonal, another block's diagonal -- would not produce this.
+// MUTATION NON-VACUITY for the diagonal slot table: a value written through a recorded primal
+// slot has to reach the factorization, so driving one primal diagonal strongly negative must
+// move the observed inertia by exactly one eigenvalue. `.superpowers/w1-t3-report.md`.
 TEST(IpqpKktLayoutTest, PerturbingARecordedDiagonalSlotMovesTheObservedInertia) {
     const Fixture f = general_fixture();
     IpqpKktLayout layout;
@@ -482,8 +452,7 @@ TEST(IpqpKktLayoutTest, PredictorAndCorrectorSolveAgainstOneFactorization) {
 }
 
 // ---------------------------------------------------------------------------
-// Boundary validation. Eigen's asserts are compiled out in Release, so each of
-// these is the only guard against a malformed assembly.
+// Boundary validation: in Release these are the only guard on a malformed assembly.
 // ---------------------------------------------------------------------------
 
 TEST(IpqpKktLayoutTest, MalformedInputsAreRefusedAtTheBoundary) {
@@ -502,11 +471,9 @@ TEST(IpqpKktLayoutTest, MalformedInputsAreRefusedAtTheBoundary) {
     EXPECT_THROW(layout.sync(lower, f.Ae, f.Ai, f.n, f.me, f.mi, k), std::invalid_argument);
 }
 
-// I1. The slot accessors range-check their index against n_/me_/mi_, and that
-// check is only meaningful if the tables behind it belong to those dimensions.
-// Before any sync there are no tables at all, so every accessor refuses --
-// with std::logic_error, distinguishable from the std::out_of_range an
-// in-range-but-wrong index gets.
+// I1. The slot accessors' range check is meaningful only if the tables behind it belong to
+// those dimensions; before any sync there are no tables, so every accessor refuses with
+// std::logic_error -- distinct from the std::out_of_range a wrong in-range index gets.
 TEST(IpqpKktLayoutTest, AFreshLayoutRefusesEverySlotAccessor) {
     const IpqpKktLayout layout;
 
@@ -520,14 +487,9 @@ TEST(IpqpKktLayoutTest, AFreshLayoutRefusesEverySlotAccessor) {
     EXPECT_THROW((void)layout.slack_coupling_slot(0), std::logic_error);
 }
 
-// I1, the half that has a reachable throw site. A sync that fails leaves the
-// object entirely on its previous plan: the dimensions are committed WITH the
-// tables, at the end, so there is no window in which the accessors' bounds
-// check answers for the new n while the tables are still the old ones. Were
-// the dimensions stored first, `primal_diag_slot(3)` below would pass its
-// bounds check against n_ == 6 and read three elements past the end of a
-// 3-element vector -- in Release, silently, with the result used as an index
-// into k.valuePtr().
+// I1, the half with a reachable throw site: a failed sync leaves the object entirely on its
+// previous plan -- the dimensions are committed WITH the tables, at the end, so an accessor
+// can never bounds-check a new n against a stale table. `.superpowers/w1-t3-report.md` I1.
 TEST(IpqpKktLayoutTest, AFailedResyncLeavesTheObjectOnItsPreviousPlan) {
     const Fixture f = general_fixture(); // n = 3, me = 1, mi = 2
     IpqpKktLayout layout;

@@ -57,10 +57,9 @@ struct IpqpTraceRegEvent {
     IpqpTraceRegReason reason = IpqpTraceRegReason::kInertia;
 };
 
-/// @brief The section 5 warm restart this solve started from (schema
-/// `ipqp.restart`). `shift_p`/`shift_d` are the SAY shift's own
-/// `delta_p`/`delta_d` (`warm_start_from`), 0.0 when that shift never ran.
-/// See .superpowers/w1-t8-report.md for why this differs from `shift_max`.
+/// @brief The section 5 warm restart this solve started from (schema `ipqp.restart`).
+/// `shift_p`/`shift_d` are the SAY shift's own `delta_p`/`delta_d` (`warm_start_from`),
+/// 0.0 when that shift never ran. See `.superpowers/w1-t8-report.md`.
 struct IpqpTraceRestartEvent {
     IpqpTraceRestartGrade grade = IpqpTraceRestartGrade::kCold;
     bool repaired = false;

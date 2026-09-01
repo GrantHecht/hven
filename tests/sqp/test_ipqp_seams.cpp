@@ -1,30 +1,14 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_ipqp_seams.cpp -- the M6 W1 task 5 pins for the code paths no
-// LEGAL subproblem can reach on this backend: section 2.2's evidence-failure
-// policy, and the two terminal inertia states the section 2.2 item 4
-// certification read can report.
+// tests/sqp/test_ipqp_seams.cpp -- M6 W1 task 5 pins for paths no LEGAL subproblem reaches on
+// this backend: section 2.2's evidence-failure policy and the two terminal inertia states the
+// item 4 certification read can report. Measurements: `.superpowers/w1-t4-report.md` F8.
 //
-// THIS FILE RUNS ONLY ON THE `hven_ipqp_seam_tests` TARGET
-// (tests/CMakeLists.txt), which recompiles the tier's own sources with
-// HVEN_TESTING and does NOT link hven::hven. See docs/testing.md for the
-// convention and tests/linear/test_fault_injection.cpp for the layer below.
+// RUNS ONLY ON THE `hven_ipqp_seam_tests` TARGET, which recompiles the tier with HVEN_TESTING
+// and does NOT link hven::hven; see docs/testing.md for the convention.
 //
-// WHY THESE PATHS NEED A SEAM, in the words of the measurements that found
-// them (task 4's report, section F8): MKL's static pivot perturbation fires on
-// matrices the ladder's own `delta` growth resolves BEFORE any terminal
-// reading, so no legal subproblem reaches the ladder's ceiling still
-// perturbed; and no MKL path declines to report inertia at all, so
-// `InertiaEvidence::State::kQueryFailed` never arrives. The `kUnavailable`
-// state the specification names is an ACCELERATE path this machine cannot run
-// -- under CLAUDE.md section 6's never-fabricate rule that arm stays
-// UNOBSERVED on real hardware, and what is pinned here is the POLICY the tier
-// applies when it is told that state, which is a different (and checkable)
-// claim.
-//
-// EVERY INJECTION IS ASSERTED TO HAVE HAPPENED. `IpqpInertiaEvidenceInjector::
-// injections` is checked in every fixture, so an injector that silently
+// EVERY FIXTURE ASSERTS `IpqpInertiaEvidenceInjector::injections`, so an injector that silently
 // stopped applying fails its own pin instead of passing as a clean solve.
 
 #include <limits>
@@ -115,10 +99,9 @@ QpProblem convex_qp() {
     return qp;
 }
 
-/// T4c's gate-8 exposed member, local to this file per the file's own
-/// convention (`convex_qp()` above): `H = diag(2, h)`, `g = 0`, a symmetric
-/// box of half-width `s` on `x1`. See `test_ipqp_certification.cpp`'s own
-/// copy for the family's full derivation.
+/// T4c's gate-8 exposed member, local to this file per `convex_qp()` above: `H = diag(2, h)`,
+/// `g = 0`, a symmetric box of half-width `s` on `x1`. Full derivation of the family:
+/// `test_ipqp_certification.cpp`'s own copy.
 QpProblem weakly_active_indefinite_qp(double s, double h) {
     QpProblem qp;
     qp.H = dense_upper({{2.0, 0.0}, {0.0, h}});
@@ -132,10 +115,9 @@ QpProblem weakly_active_indefinite_qp(double s, double h) {
     return qp;
 }
 
-/// Evidence in a state OTHER than kObserved, with the counts left at the
-/// linear layer's own invalid sentinel `-1`. Section 2.2: "the counts are
-/// never zero-filled or inferred" -- so the fixture hands the tier exactly
-/// what a real failed query hands it, and nothing more plausible-looking.
+/// Evidence in a state OTHER than kObserved, counts left at the linear layer's invalid sentinel
+/// `-1` -- section 2.2's "the counts are never zero-filled or inferred", so the fixture hands
+/// the tier exactly what a real failed query hands it and nothing more plausible-looking.
 InertiaEvidence unusable(InertiaEvidence::State state) {
     InertiaEvidence e;
     e.state = state;
@@ -147,11 +129,9 @@ InertiaEvidence unusable(InertiaEvidence::State state) {
     return e;
 }
 
-/// A perfectly good reading that ALSO reports perturbed pivots. Section 2.2:
-/// "the inertia is not evidence about the assembled matrix -- the backend
-/// factorized a different one." The counts are the RIGHT ones on purpose, so
-/// the pin cannot pass by the tier rejecting the numbers instead of the
-/// perturbation.
+/// A perfectly good reading that ALSO reports perturbed pivots. Section 2.2: the inertia is not
+/// evidence about the assembled matrix. The counts are the RIGHT ones on purpose, so the pin
+/// cannot pass by the tier rejecting the numbers instead of the perturbation.
 InertiaEvidence perturbed(Index n_pos, Index n_neg) {
     InertiaEvidence e;
     e.state = InertiaEvidence::State::kObserved;
@@ -228,14 +208,9 @@ TEST_F(IpqpSeamTest, WithNothingInjectedTheTierSolvesExactlyAsItDoesInProduction
 // ---------------------------------------------------------------------------
 
 TEST_F(IpqpSeamTest, AnUnusableEvidenceStateStepsAtAConservativeFloorAndDowngradesTheSolve) {
-    // SECTION 2.2, VERBATIM: "InertiaEvidence::State != kObserved
-    // (kQueryFailed, or kUnavailable as on some Accelerate paths): a step is
-    // permitted ONLY at a conservative rho floor AND the certificate is
-    // downgraded for the whole solve."
-    //
-    // BOTH STATES, because section 2.2 names both and the tier must not
-    // distinguish them: a query that failed and a backend that cannot answer
-    // leave the tier with exactly the same amount of evidence, which is none.
+    // SECTION 2.2, VERBATIM: a non-kObserved InertiaEvidence::State permits a step ONLY at a
+    // conservative rho floor AND downgrades the certificate for the whole solve. BOTH states are
+    // looped because the tier must not distinguish them -- neither leaves it any evidence.
     for (const InertiaEvidence::State state :
          {InertiaEvidence::State::kQueryFailed, InertiaEvidence::State::kUnavailable}) {
         SCOPED_TRACE(static_cast<int>(state));
@@ -258,12 +233,9 @@ TEST_F(IpqpSeamTest, AnUnusableEvidenceStateStepsAtAConservativeFloorAndDowngrad
         EXPECT_GT(r.counters.ipqp_iters, 0);
         EXPECT_NE(r.escape_reason, IpqpEscape::kNumerical);
 
-        // AT A CONSERVATIVE FLOOR: the conservative floor was armed at the
-        // POLICY'S own constant and never climbed from there. Pinned against
-        // `kIpqpEvidenceFailureRhoFloor` and NOT against `kIpqpLadderInit`,
-        // which happens to hold the same value today: a retune of the ladder's
-        // first rung on ladder evidence must FAIL this pin rather than move the
-        // evidence-failure policy along with it (co-review I-3).
+        // AT A CONSERVATIVE FLOOR: armed at the POLICY'S own constant and never climbed. Pinned
+        // against `kIpqpEvidenceFailureRhoFloor`, NOT `kIpqpLadderInit` (same value today), so a
+        // ladder retune FAILS this pin rather than moving the policy with it (co-review I-3).
         EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpEvidenceFailureRhoFloor);
         EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
 
@@ -280,20 +252,16 @@ TEST_F(IpqpSeamTest, AnUnusableEvidenceStateStepsAtAConservativeFloorAndDowngrad
         EXPECT_EQ(Observer::last_injected.n_neg, -1);
         EXPECT_EQ(Observer::last_injected.n_zero, -1);
         EXPECT_FALSE(Observer::last_injected.perturbed_pivots.has_value());
-        // The section 2.2 item 4 read was NOT injected on this arm, and the
-        // observer proves it: what the tier read there is the backend's own
-        // observed evidence, which is what makes the outcome above a
-        // statement about the MID-SOLVE policy alone.
+        // The item 4 read was NOT injected on this arm and the observer proves it, which is what
+        // makes the outcome above a statement about the MID-SOLVE policy alone.
         EXPECT_EQ(Observer::last_final.state, InertiaEvidence::State::kObserved);
     }
 }
 
 TEST_F(IpqpSeamTest, TheConservativeFloorIsPaidOnceAndTheSolveStillFinishes) {
-    // THE COST CLAIM, and it is why the policy is "a step at a conservative
-    // floor" rather than "a ladder". A ladder has no stopping criterion when
-    // the reading can never come back right, so it would spend the whole
-    // ceiling's worth of factorizations and take the same step at the end.
-    // One extra factorization is the price.
+    // THE COST CLAIM, and why the policy is a step at a conservative floor rather than a ladder:
+    // a ladder has no stopping criterion when the reading can never come back right. One extra
+    // factorization is the price. Derivation: `.superpowers/w1-t5-report.md`.
     Injector::active = true;
     Injector::on_final_read = false;
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
@@ -308,12 +276,9 @@ TEST_F(IpqpSeamTest, TheConservativeFloorIsPaidOnceAndTheSolveStillFinishes) {
     const IpqpResult c = clean.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(c.status, QpStatus::kOptimal);
 
-    // THE FLOOR IS THE LADDER'S ABSOLUTE FIRST RUNG, and the solve still
-    // reaches the SAME ANSWER as the clean one rather than the proximally
-    // biased point a level-proportional floor produces. That is the whole
-    // content of decision 1 at the branch: measured with `rho * 100` instead,
-    // this fixture converged to x = (0.0026, 0.0049) against (0.75, 0.25) and
-    // burned its entire 60-iteration budget.
+    // THE FLOOR IS THE LADDER'S ABSOLUTE FIRST RUNG, and the solve still reaches the SAME ANSWER
+    // as the clean one rather than the proximally biased point a level-proportional floor gives.
+    // Decision 1 and the `rho * 100` measurement behind it: `.superpowers/w1-t5-report.md`.
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpEvidenceFailureRhoFloor);
     EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
     EXPECT_NEAR(r.x(0), c.x(0), 1e-6);
@@ -326,16 +291,9 @@ TEST_F(IpqpSeamTest, TheConservativeFloorIsPaidOnceAndTheSolveStillFinishes) {
 }
 
 TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZero) {
-    // SECTION 2.2'S HONESTY RULE, and T3.a's whole reason for existing:
-    // `KktFactorization`'s three cached ints collapse an ABSENT pivot count
-    // to the integer 0, which on a backend that does count pivots means "none
-    // were perturbed". The tier reads `inertia_evidence()` instead, and the
-    // difference is invisible in every output the tier produces -- so the
-    // observer is what makes it checkable.
-    //
-    // The injected reading is a GOOD one with the pivot count absent
-    // (Accelerate's honest state). The tier must certify: absent is not a
-    // perturbation report.
+    // SECTION 2.2'S HONESTY RULE: `KktFactorization`'s cached ints collapse an ABSENT pivot count
+    // to 0, which reads as "none were perturbed"; the tier reads `inertia_evidence()` instead, so
+    // only the observer makes it checkable. Injected here: a GOOD reading with the count absent.
     InertiaEvidence e;
     e.state = InertiaEvidence::State::kObserved;
     e.n_pos = 3; // n + mi = 2 + 1
@@ -361,10 +319,9 @@ TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZe
     EXPECT_FALSE(r.certificate_downgraded);
     EXPECT_EQ(r.status, QpStatus::kOptimal);
 
-    // MUTATION PARTNER: the SAME reading with the count PRESENT and nonzero
-    // is a perturbation report, and the outcome inverts. Absent and zero and
-    // nonzero are three states, and this pair is what proves the tier reads
-    // all three apart.
+    // MUTATION PARTNER: the SAME reading with the count PRESENT and nonzero is a perturbation
+    // report, and the outcome inverts. Absent, zero and nonzero are three states, and this pair
+    // proves the tier reads all three apart.
     Injector::reset();
     Observer::reset();
     InertiaEvidence p = e;
@@ -374,12 +331,9 @@ TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZe
     IpqpEngine tier2(tight_opts());
     const IpqpResult r2 = tier2.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
     EXPECT_NE(r2.status, QpStatus::kOptimal);
-    // A perturbed reading on EVERY factorization exhausts the `delta` ladder
-    // -- section 2.2's remedy for a perturbed pivot is a larger DUAL shift,
-    // and there is no shift at which a fabricated perturbation report stops --
-    // so the solve stops before it can reach the section 2.2 item 4 read at
-    // all. `certificate_downgraded` is therefore FALSE here and that is
-    // correct rather than a gap: there was no certifying exit to downgrade.
+    // A perturbed reading on EVERY factorization exhausts the `delta` ladder -- no shift stops a
+    // fabricated perturbation report -- so the solve never reaches the item 4 read at all.
+    // `certificate_downgraded` is FALSE and correct: no certifying exit existed to downgrade.
     EXPECT_EQ(r2.escape_reason, IpqpEscape::kNumerical);
     EXPECT_FALSE(r2.certificate_downgraded);
     EXPECT_EQ(r2.counters.ipqp_escape_numerical, 1);
@@ -389,11 +343,9 @@ TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZe
 // The BOUNDED perturbed-pivot re-route (T4b fix round 1, settler ruling R2)
 // ---------------------------------------------------------------------------
 
-/// An indefinite box QP whose ladder arms on the first iteration: `x1 = 0` is
-/// an exact KKT point of the barrier problem at every `mu` on a symmetric box,
-/// so the tier converges there in three iterations and the section 2.2 item 4
-/// read catches the saddle. Used here only for its LADDER, which is what the
-/// re-route rides.
+/// An indefinite box QP whose ladder arms on the first iteration: `x1 = 0` is an exact KKT point
+/// of the barrier problem at every `mu` on a symmetric box, so the tier converges in three
+/// iterations and the item 4 read catches the saddle. Used here only for its LADDER.
 QpProblem armed_saddle_qp() {
     QpProblem qp;
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
@@ -408,29 +360,9 @@ QpProblem armed_saddle_qp() {
 }
 
 TEST_F(IpqpSeamTest, AnUNCLEARABLEPerturbationFallsBackToTheDualShiftAfterTwoPrimalRungs) {
-    // T4b FIX ROUND 1, SETTLER RULING R2 -- THE RE-ROUTE'S BOUND, AND THE
-    // DUAL-CAUSE CASE IT EXISTS FOR.
-    //
-    // T4b re-routed a perturbed-pivot report to the PRIMAL ladder while that
-    // ladder is armed, because a uniform shift of the Ruiz-scaled system can
-    // ANNIHILATE a scaled diagonal (Ruiz normalizes a dominant diagonal to
-    // almost exactly `-1`, and `rho_dem = 1` is a rung of Algorithm IC's own
-    // first climb) and that singularity is primal. But a perturbation whose
-    // cause is DUAL -- near-dependent equality or inequality rows -- is cleared
-    // by NO primal rung, and an unbounded re-route would ride the ladder to
-    // `ipqp_reg_max` and escape on exhaustion to reach an answer the dual
-    // escalation gives in one factorization.
-    //
-    // WHY THIS IS A SEAM TEST AND NOT A QP. The honest instrument would be the
-    // pivot BLOCK the backend perturbed, and
-    // `hven::linear::InertiaEvidence` does not carry pivot LOCATIONS -- only
-    // counts. So the engine cannot ask, and neither can a fixture: no legal
-    // QP in this suite produces a perturbation the primal ladder cannot clear
-    // (MKL's static pivoting resolves the row-degenerate cases through the
-    // tier's own `delta`, which is why this header exists at all). The
-    // scenario is reached by injecting a reading of that shape, which is a
-    // POLICY witness in this header's own vocabulary: it pins what the tier
-    // DOES with an unclearable perturbation, not that a backend produces one.
+    // T4b R2 -- THE RE-ROUTE'S BOUND: a perturbed pivot re-routes to the PRIMAL ladder while
+    // armed, but a DUAL cause is cleared by no primal rung, so the re-route is bounded. A seam,
+    // not a QP: InertiaEvidence carries pivot COUNTS, no locations. w1-t4b-report.md has both.
     Injector::active = true;
     Injector::skip_first = 2; // let the ladder ARM on two real wrong readings
     Injector::evidence = perturbed(/*n_pos=*/2, /*n_neg=*/0);
@@ -478,33 +410,9 @@ TEST_F(IpqpSeamTest, AnUNCLEARABLEPerturbationFallsBackToTheDualShiftAfterTwoPri
 }
 
 TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta) {
-    // T4b FIX ROUND 1, SETTLER RULING R3 -- THE DUAL HALF OF THE 2.1
-    // SEPARATION, PINNED ON A STEP THAT ACTUALLY GETS TAKEN.
-    //
-    // Round 1 passed the LADDER-SETTLED `delta` to `build_rhs` while the
-    // section 3.2 gate measured at `delta_sched`, so an iteration whose
-    // perturbed branch raised `delta` from 8 to 800 solved the 800
-    // dual-proximal system while the gate watched the 8 one -- mechanism 4's
-    // shape on the dual side. R3 reverses that: the escalated `delta` enters
-    // the DIAGONAL only.
-    //
-    // WHY THE INJECTION WINDOW. A perturbation injected FOREVER can only be
-    // observed at a terminal state, and no step is ever taken there, so it
-    // cannot distinguish the two wirings. `max_injections` closes the window
-    // after ONE replacement: the first iteration's read is perturbed (so
-    // `delta` escalates once), the next read is the real one (so the ladder
-    // succeeds and a STEP IS TAKEN), and that step is built from whichever
-    // `delta` the code passes. The two wirings give different iterates and
-    // therefore different iteration counts, which is what this pin holds down.
-    // THE INJECTION LANDS MID-SOLVE, NOT AT ITERATION 0, and that placement is
-    // load-bearing AND MEASURED. The dual proximal term is
-    // `delta (y - lambda_est)`, and wherever the gate has just advanced the two
-    // are equal, so the term is ZERO and the two wirings are indistinguishable.
-    // A placement scan over `skip_first` (run out of tree against both wirings)
-    // shows 0, 1, 3 and 7 give identical trajectories and 2, 4, 5, 6 and 8 do
-    // not; `4` is taken because its separation is the widest -- the round-1
-    // wiring reaches the optimum in 13 iterations and 15 factorizations there,
-    // this one in 11 and 13.
+    // T4b R3 -- THE DUAL HALF OF THE 2.1 SEPARATION, pinned on a step that gets taken: the
+    // escalated `delta` enters the DIAGONAL only, never `build_rhs`. `max_injections = 1` opens a
+    // one-read window at the widest placement `skip_first = 4`. See w1-t4b-report.md.
     Injector::active = true;
     Injector::on_final_read = false;
     Injector::skip_first = 4;
@@ -528,15 +436,9 @@ TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta
     // escalated one.
     EXPECT_LE(r.delta, IpqpOptions{}.ipqp_delta_init);
 
-    // THE PIN IS THE INJECTED SOLVE'S EXACT TRAJECTORY. The escalation changes
-    // the MATRIX of the recovering factorization legitimately (that is what
-    // `delta` is for), so the injected solve is NOT expected to reach the clean
-    // solve's iterate -- what is pinned is that it reaches THIS one, which is
-    // the trajectory the schedule's `delta` in the right-hand side produces. A
-    // source mutation passing the LADDER-SETTLED `delta` to `build_rhs` -- the
-    // round-1 wiring -- moves it; that mutation was run out of tree and is
-    // recorded with its numbers in the T4b fix-round-1 report, exactly as
-    // gate 9's two mutations are. It is not runnable from here.
+    // THE PIN IS THE INJECTED SOLVE'S EXACT TRAJECTORY, not the clean solve's -- `delta`
+    // legitimately changes the recovering factorization's matrix. The round-1 wiring moves it;
+    // that mutation ran out of tree, with its numbers in `.superpowers/w1-t4b-report.md`.
     IpqpEngine clean_tier(tight_opts());
     Injector::reset();
     Observer::reset();
@@ -561,14 +463,9 @@ TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta
 // ---------------------------------------------------------------------------
 
 TEST_F(IpqpSeamTest, ATerminalUNREADABLEFinalReadIsTwoAndEscapesNumerical) {
-    // PLAN SECTION 7 NOTE (h): "an UNREADABLE inertia (evidence state not
-    // observed)" is `ipqp_final_inertia_read == 2` and the NUMERICAL escape
-    // class -- never `1`, which is reserved for a reading that WAS taken and
-    // disagreed and which routes to SSN as a saddle-suspect instead.
-    //
-    // THE EVIDENCE-FAILURE POLICY DOES NOT REACH THIS BRANCH, which is task
-    // 5's own ruling: the policy permits A STEP, and the item 4 read takes no
-    // step. There is nothing left to permit, so the certificate falls.
+    // PLAN SECTION 7 NOTE (h): an unreadable inertia is `ipqp_final_inertia_read == 2` and the
+    // NUMERICAL class -- never `1`, which is reserved for a reading that WAS taken and disagreed.
+    // The evidence-failure policy permits A STEP, and the item 4 read takes none, so it is unused.
     Injector::active = true;
     Injector::on_iteration_reads = false; // let the solve converge normally
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
@@ -588,12 +485,9 @@ TEST_F(IpqpSeamTest, ATerminalUNREADABLEFinalReadIsTwoAndEscapesNumerical) {
 }
 
 TEST_F(IpqpSeamTest, ATerminalPERTURBEDFinalReadIsAlsoTwoAndAlsoEscapesNumerical) {
-    // FIX ROUND 1'S C0b, PINNED END TO END FOR THE FIRST TIME. A perturbed
-    // factorization "is not evidence about the assembled matrix" (spec 2.2),
-    // so it is not "a reading that disagreed" -- it is NO reading, and the
-    // honest outcome is note (h)'s `2` plus kNumerical, exactly as for an
-    // unobservable state. The injected counts are the CORRECT ones, so this
-    // cannot pass by the tier rejecting the numbers.
+    // FIX ROUND 1'S C0b, PINNED END TO END. A perturbed factorization is not evidence about the
+    // assembled matrix (spec 2.2), so it is NO reading rather than a disagreeing one: note (h)'s
+    // `2` plus kNumerical. The counts injected are CORRECT, so this cannot pass by rejecting them.
     Injector::active = true;
     Injector::on_iteration_reads = false;
     Injector::evidence = perturbed(/*n_pos=*/3, /*n_neg=*/2);
@@ -606,10 +500,9 @@ TEST_F(IpqpSeamTest, ATerminalPERTURBEDFinalReadIsAlsoTwoAndAlsoEscapesNumerical
     EXPECT_TRUE(r.certificate_downgraded);
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
     EXPECT_EQ(r.counters.ipqp_escape_numerical, 1);
-    // AND EXACTLY ONE FACTORIZATION was spent on the read -- fix round 1
-    // deleted the perturbed retry, and this is the cost statement section 2.2
-    // item 4 makes as a number ("+1 factorization per certified guarded
-    // solve") held down on the perturbed path too.
+    // AND EXACTLY ONE FACTORIZATION was spent on the read -- fix round 1 deleted the perturbed
+    // retry. This holds section 2.2 item 4's cost statement (+1 factorization per certified
+    // guarded solve) down on the perturbed path too.
     Injector::reset();
     IpqpEngine clean(tight_opts());
     const IpqpResult c = clean.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
@@ -617,10 +510,9 @@ TEST_F(IpqpSeamTest, ATerminalPERTURBEDFinalReadIsAlsoTwoAndAlsoEscapesNumerical
 }
 
 TEST_F(IpqpSeamTest, AWrongTerminalReadStaysIndefiniteAndIsNotFoldedIntoNumerical) {
-    // THE PARTITION'S OTHER SIDE, pinned beside the two above so the boundary
-    // note (h) draws is exercised from both directions: a reading that WAS
-    // observed and DISAGREED is `1` and kIndefinite, and it must not drift
-    // into the numerical class that the two unusable states above land in.
+    // THE PARTITION'S OTHER SIDE, so note (h)'s boundary is exercised from both directions: a
+    // reading that WAS observed and DISAGREED is `1` and kIndefinite, and must not drift into
+    // the numerical class the two unusable states above land in.
     InertiaEvidence wrong;
     wrong.state = InertiaEvidence::State::kObserved;
     wrong.n_pos = 2; // one short of n + mi = 3, and n_pos + n_neg still == dim
@@ -644,11 +536,9 @@ TEST_F(IpqpSeamTest, AWrongTerminalReadStaysIndefiniteAndIsNotFoldedIntoNumerica
 }
 
 TEST_F(IpqpSeamTest, TheSkipCountLetsASolveConvergeBeforeItsLastReadingIsCorrupted) {
-    // The seam's own contract, exercised: `skip_first` counts ELIGIBLE reads,
-    // so a fixture can leave the trajectory untouched and corrupt only what
-    // decides the certificate. This is also the pin that the two flags and
-    // the skip counter compose -- three knobs that silently disagreed would
-    // make every fixture above ambiguous about what it injected.
+    // The seam's own contract, exercised: `skip_first` counts ELIGIBLE reads, so a fixture can
+    // leave the trajectory untouched and corrupt only what decides the certificate. Also pins
+    // that the two flags and the skip counter compose; silent disagreement would hide that.
     Injector::active = true;
     Injector::on_iteration_reads = true;
     Injector::on_final_read = true;
@@ -665,10 +555,9 @@ TEST_F(IpqpSeamTest, TheSkipCountLetsASolveConvergeBeforeItsLastReadingIsCorrupt
     EXPECT_LT(Injector::skip_first, 1000);
 }
 
-// T4c R2: `read_kept_tight` needs a certificate that STANDS at the end.
-// The mid-solve-only injection (on_final_read=false) leaves the final
-// read clean; the whole-solve downgrade must still force the flag false
-// with both counters populated. See `.superpowers/w1-t4c-report.md`.
+// T4c R2: `read_kept_tight` needs a certificate that STANDS at the end. The mid-solve-only
+// injection (on_final_read=false) leaves the final read clean; the whole-solve downgrade must
+// still force the flag false with both counters populated. See `.superpowers/w1-t4c-report.md`.
 TEST_F(IpqpSeamTest, AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesTheCountersPopulated) {
     Injector::active = true;
     Injector::on_final_read = false;

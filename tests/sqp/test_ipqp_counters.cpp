@@ -1,11 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_ipqp_counters.cpp — M6 W1 task 2: the IP-PMM tier's counters surface.
-// Nothing calls accumulate_ipqp_counters yet (dead code until task 6), so
-// this file is the whole exercise of it: default construction, the fold
-// rule for every field class (sum / max / min / overwrite), and the
-// five-way escape-census invariant's own reusable helper.
+// test_ipqp_counters.cpp -- M6 W1 task 2: the IP-PMM tier's counters surface. Pins default
+// construction, the fold rule for every field class (sum / max / min / overwrite), and the
+// five-way escape-census invariant's reusable helper. See `.superpowers/w1-t2-report.md`.
 
 #include <limits>
 
@@ -78,11 +76,7 @@ TEST(IpqpCounters, SqpCountersCarriesAZeroInitializedIpqpFieldBesideSsn) {
 }
 
 // ===========================================================================
-// THE ESCAPE-CENSUS INVARIANT, AS A REUSABLE HELPER
-// (test_support::assert_ipqp_escape_census_sums, tests/sqp/support/
-// ipqp_test_support.h). Later tasks (T5 certification, T6 routing, T9
-// acceptance) re-assert this SAME helper on live solves rather than
-// re-deriving the check.
+// THE ESCAPE-CENSUS INVARIANT, as the reusable helper in tests/sqp/support/ipqp_test_support.h.
 // ===========================================================================
 
 TEST(IpqpCounters, EscapeCensusHelperAcceptsAConsistentCensus) {
@@ -102,10 +96,9 @@ TEST(IpqpCounters, EscapeCensusHelperAcceptsTheVacuousAllZeroCase) {
 }
 
 TEST(IpqpCounters, EscapeCensusHelperCatchesAViolation) {
-    // MUTATION CHECK: a census that under-counts (a field an accounting bug
-    // dropped) must be REJECTED, not silently accepted -- this is the pin
-    // that proves the helper is falsifiable, per test_ipqp_counters.cpp's own
-    // banner and the derivative_check.h precedent it follows.
+    // MUTATION CHECK: a census that under-counts (a field an accounting bug dropped) must be
+    // REJECTED, not silently accepted -- the pin that proves the helper is falsifiable, per the
+    // derivative_check.h precedent this file follows.
     IpqpCounters c;
     c.ipqp_escape_budget = 2;
     c.ipqp_escape_stall = 1;
@@ -118,10 +111,9 @@ TEST(IpqpCounters, EscapeCensusHelperCatchesAViolation) {
 // ===========================================================================
 
 TEST(AccumulateIpqpCounters, RhoDemandedMaxFoldsByMaxAcrossSubproblems) {
-    // Three subproblems folded in order small, large, medium. MUTATION
-    // CHECK: an "ignore one" bug would leave total at its 0.0 default
-    // forever (fails the first step); an "assign one" (overwrite) bug would
-    // leave total at the LAST value, 5.0, not the true max, 7.0.
+    // Three subproblems folded small, large, medium. MUTATION CHECK: an ignore-one bug leaves
+    // total at its 0.0 default (fails the first step); an assign-one (overwrite) bug leaves it
+    // at the LAST value 5.0, not the true max 7.0.
     IpqpCounters total;
     IpqpCounters p1;
     p1.ipqp_rho_demanded_max = 3.0;
@@ -156,14 +148,9 @@ TEST(AccumulateIpqpCounters, RestartShiftMaxFoldsByMaxAcrossSubproblems) {
 }
 
 TEST(AccumulateIpqpCounters, TierRetiredAfterFoldsByMaxNotSumOrOverwrite) {
-    // Fix round 1 (Codex co-review I1): ipqp_tier_retired_after is a
-    // once-per-solve MAJOR INDEX, not a count, so it must fold by MAX, the
-    // same discipline as the peak fields above -- not by sum, not by
-    // overwrite. MUTATION CHECK, one step at a time: after folding 4 then
-    // 7, sum gives the impossible 11 while max and overwrite happen to
-    // agree at 7 (overwrite has not yet been distinguished from max);
-    // folding a later 0 third is what distinguishes them -- overwrite
-    // would erase the total to 0, while max (the correct rule) stays 7.
+    // Fix round 1 (Codex co-review I1): ipqp_tier_retired_after is a once-per-solve MAJOR INDEX,
+    // so it folds by MAX -- not sum, not overwrite. Folding 4 then 7 rules out sum (11 is an
+    // impossible major); folding a 0 third rules out overwrite. See w1-t2-report.md I1.
     IpqpCounters total;
     IpqpCounters p1;
     p1.ipqp_tier_retired_after = 4;
@@ -281,9 +268,8 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
     a.ipqp_mu_adopted = 1;
     a.ipqp_warm_restart_abandoned = 0;
     a.ipqp_declined_pinned = 7;
-    // ipqp_tier_retired_after deliberately NOT set here: it is max-folded,
-    // not summed (fix round 1), so it has its own discriminating test above
-    // (TierRetiredAfterFoldsByMaxNotSumOrOverwrite) rather than sharing this
+    // ipqp_tier_retired_after deliberately NOT set here: it is max-folded, not summed (fix round
+    // 1), so TierRetiredAfterFoldsByMaxNotSumOrOverwrite above discriminates it rather than this
     // sum-only fixture.
     a.ipqp_face_uncertain = 12;
     a.ipqp_refine_accepted = 4;
@@ -374,12 +360,9 @@ TEST(AccumulateIpqpCounters, EveryOtherIndexFieldSumsAcrossSubproblems) {
 }
 
 TEST(AccumulateIpqpCounters, TotalStartingFromANonzeroBaseFoldsCorrectly) {
-    // A second call site (finish() folding a restoration sub-solve's own
-    // IpqpCounters onto an already-populated total, mirroring
-    // accumulate_ssn_counters' restoration fold) starts from a NONZERO
-    // total rather than a fresh default -- pinned separately from the
-    // fresh-total case above so a fold that only works from zero cannot
-    // pass silently.
+    // A second call site (finish() folding a restoration sub-solve's IpqpCounters onto an
+    // already-populated total, mirroring accumulate_ssn_counters' restoration fold) starts from
+    // a NONZERO total, pinned separately so a fold that only works from zero cannot pass.
     IpqpCounters total;
     total.ipqp_iters = 100;
     total.ipqp_rho_demanded_max = 4.0;

@@ -3,20 +3,9 @@
 
 #pragma once
 
-// tests/sqp/support/ipqp_test_support.h — test-support only, NOT part of the
-// public library surface. The IPQP tier's escape-census invariant, factored
-// out so every task that produces a real IpqpCounters (T5's certification
-// ladder, T6's routing chain, T9's acceptance battery) re-asserts the SAME
-// check rather than re-deriving it -- task 2's own requirement, since this
-// task's counters are dead code and the invariant is otherwise unexercised
-// until a later task writes a real escape.
-//
-// Returns ::testing::AssertionResult (gtest's predicate-assertion idiom, the
-// derivative_check.h convention) rather than asserting directly, so a call
-// site chooses EXPECT_TRUE/ASSERT_TRUE and the checker itself stays pinnable
-// by a mutation self-test (test_ipqp_counters.cpp's own
-// EscapeCensusHelperCatchesAViolation) -- a helper that asserted directly
-// could not be exercised that way.
+// tests/sqp/support/ipqp_test_support.h -- test-support only, NOT part of the public library
+// surface. Shared IPQP counter predicates; AssertionResult, not a direct assert, so the checker
+// stays mutation-pinnable by test_ipqp_counters.cpp. Requirement: `.superpowers/w1-t2-report.md`.
 
 #include <gtest/gtest.h>
 
@@ -47,37 +36,25 @@ inline ::testing::AssertionResult assert_ipqp_escape_census_sums(const IpqpCount
 /// three `ipqp_to_*` counters say which.
 ///
 /// @param c            the solve's folded IPQP counters.
-/// @param tier_entries how many subproblems the tier was CONSULTED on, i.e.
-///        entered the engine: neither retired-past nor declined by the domain
-///        gate. The counters cannot express this on their own -- a retired
-///        major writes nothing at all -- so the caller supplies it. Under the
-///        hoisting discipline of plan section 7 note (k) it is exactly
-///        `ipqp_symbolic_analyses + ipqp_pattern_verifies` (one of {analyze,
-///        verify} per entry), which is how the driver-level fixtures get it;
-///        naming it here rather than deriving it inside keeps the two
-///        invariants from smearing into one diagnosis.
+/// @param tier_entries subproblems that ENTERED the tier (neither retired-past nor declined);
+///        the counters cannot express it, so the caller supplies it. Driver fixtures derive it
+///        as `ipqp_symbolic_analyses + ipqp_pattern_verifies` -- plan section 7 note (k).
 ///
 /// FOUR IDENTITIES, and the first is the closed one:
 ///
 ///   `to_refine + escape_indefinite + (to_walk - declined_pinned)`
 ///       `== tier_entries`
-///       -- every subproblem the tier actually ran on left by exactly one
-///          FIRST destination: the tier-3 refinement (item 3), the SSN warm
-///          grade directly (item 4's saddle-suspect route), or the cold walk
-///          (item 5). `declined_pinned` is subtracted because a decline also
-///          lands in `to_walk` -- the counter's own settled text -- without
-///          the tier having run.
+///       -- one FIRST destination each: the tier-3 refinement, the SSN warm grade
+///          (saddle-suspect), or the cold walk. A decline also lands in `to_walk`
+///          without the tier having run, so it is subtracted.
 ///   `to_refine == refine_accepted + refine_refused`
 ///       -- the refinement's two outcomes, so `to_refine` counts hand-offs.
 ///   `to_ssn == refine_refused + escape_indefinite`
-///       -- item 4's TWO feeders; a refusal reaches SSN as a SECOND
-///          destination, which is why `to_ssn` is not in the closed sum.
+///       -- item 4's TWO feeders; a refusal reaches SSN SECOND, so `to_ssn` is not in the sum.
 ///   `to_walk >= declined_pinned`.
 ///
-/// WHY THE CLOSED FORM NEEDS `to_refine` AT ALL (M6 W1 task 6 fix round 1):
-/// the two-term version `to_walk == escapes - escape_indefinite +
-/// declined_pinned` is FALSE on the converged-`kBudget` row, which increments
-/// `ipqp_escape_budget` and routes to the refinement.
+/// The closed form needs `to_refine`: the two-term version is FALSE on the converged-`kBudget`
+/// row. Derivation: `.superpowers/w1-t6-report.md` section R2.
 inline ::testing::AssertionResult assert_ipqp_routing_partition(const IpqpCounters &c,
                                                                 Index tier_entries) {
     if (c.ipqp_to_refine != c.ipqp_refine_accepted + c.ipqp_refine_refused) {

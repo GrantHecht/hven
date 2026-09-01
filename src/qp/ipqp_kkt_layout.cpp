@@ -16,10 +16,8 @@ namespace hven::solvers {
 
 namespace {
 
-// The position of (row, col) in a COMPRESSED row-major matrix's value array.
-// Every row's inner indices are sorted after makeCompressed(), so this is a
-// binary search per entry -- the same lookup SsnEngine::sync_matrix does when
-// it records its own position map.
+// The position of (row, col) in a COMPRESSED row-major matrix's value array: a binary
+// search per entry, the same lookup SsnEngine::sync_matrix does for its own position map.
 std::size_t locate(const SpMatRM &k, Index row, Index col) {
     using StorageIndex = SpMatRM::StorageIndex;
     const StorageIndex *const outer = k.outerIndexPtr();
@@ -28,10 +26,8 @@ std::size_t locate(const SpMatRM &k, Index row, Index col) {
     const StorageIndex *const end = inner + outer[row + 1];
     const StorageIndex *const hit = std::lower_bound(begin, end, static_cast<StorageIndex>(col));
     if (hit == end || *hit != static_cast<StorageIndex>(col)) {
-        // Unreachable for a matrix just built from these very triplets;
-        // checked rather than asserted because Release compiles an assert out
-        // entirely and a wrong position would corrupt the KKT matrix silently
-        // on every later scatter.
+        // Unreachable for a matrix just built from these triplets; a throw, not an assert,
+        // because Release compiles asserts out and a wrong position corrupts k silently.
         throw std::runtime_error(
             fmt::format("IpqpKktLayout: internal error -- entry ({}, {}) is missing from the "
                         "matrix just assembled from it",
@@ -97,11 +93,8 @@ bool IpqpKktLayout::matches(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
 
 void IpqpKktLayout::require_structure(const char *what) const {
     if (!has_structure_) {
-        // Not merely defensive. The slot accessors range-check against
-        // n_/me_/mi_, so "no plan yet" and "a plan for other dimensions" would
-        // both pass that check while the tables behind it were empty or stale,
-        // and the value returned is used directly as an index into
-        // k.valuePtr(). Release compiles asserts out, so this is a throw.
+        // The slot accessors range-check against n_/me_/mi_ only, so "no plan" and "a plan
+        // for other dimensions" both pass while the tables are empty or stale.
         throw std::logic_error(fmt::format(
             "IpqpKktLayout::{}: no pattern has been laid out yet -- call sync() first", what));
     }
@@ -146,11 +139,8 @@ bool IpqpKktLayout::sync(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai,
         throw std::invalid_argument(fmt::format("IpqpKktLayout::sync: Ai is {}x{}, expected {}x{}",
                                                 Ai.rows(), Ai.cols(), mi, n));
     }
-    // H must store ONLY its upper triangle, the convention QpProblem::validate
-    // enforces and every consumer reads H under. A below-diagonal entry would
-    // be emitted below the KKT diagonal and rejected by the linear layer as a
-    // malformed buffer -- a diagnostic pointing at the wrong layer -- so it is
-    // named here instead.
+    // H must store ONLY its upper triangle (QpProblem::validate's convention). Named here
+    // so the diagnostic points at this layer, not at the linear layer's malformed buffer.
     for (Index i = 0; i < n; ++i) {
         for (SpMatRM::InnerIterator it(H, i); it; ++it) {
             if (it.row() > it.col()) {
@@ -171,22 +161,9 @@ bool IpqpKktLayout::sync(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai,
     // ---------------------------------------------------------------------
     // Structure changed (or this is the first sync): full layout.
     //
-    // EVERYTHING below is built into LOCALS and committed in one step at the
-    // end. Three sites here can throw -- reserve() and setFromTriplets() may
-    // bad_alloc, and locate() raises on an entry the assembly does not carry
-    // -- and a partial commit would be worse than a failed one: the slot
-    // accessors bounds-check against n_/me_/mi_, so storing the NEW dimensions
-    // beside the OLD tables would leave every in-range index reading past the
-    // end of a shorter vector, in Release, silently, with the result used as
-    // an index into k.valuePtr(). Committing at the end means a throw leaves
-    // this object entirely on its previous plan, and leaves `k` untouched.
-    //
-    // AND the object is marked planless FIRST, so the protection does not rest
-    // on the ordering below staying right forever: if anything here throws,
-    // every slot accessor refuses with std::logic_error rather than
-    // range-checking a stale table. The caller's recovery is to sync again;
-    // the previous plan is not resumed, because from here nothing can tell a
-    // caller who still wants it from one whose problem has moved.
+    // Everything is built into LOCALS and committed in one step, and the object is marked
+    // planless FIRST: a throw from reserve()/setFromTriplets()/locate() then leaves this
+    // object on no plan and `k` untouched. See `.superpowers/w1-t3-report.md`.
     // ---------------------------------------------------------------------
     has_structure_ = false;
 
@@ -205,11 +182,9 @@ bool IpqpKktLayout::sync(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai,
                    [&trips](Index r, Index c, double v) { trips.emplace_back(r, c, v); });
     const std::size_t source_count = trips.size();
 
-    // The structural entries the plan owns: a diagonal in every row (the
-    // linear layer requires one, and all four families carry values the caller
-    // writes per iteration) plus the (s, iq) coupling -I. Emitted with their
-    // resting values -- 0 for the diagonals, -1 for the coupling -- so a
-    // freshly laid-out matrix and a freshly scattered one agree.
+    // The structural entries the plan owns: a diagonal in every row plus the (s, iq)
+    // coupling -I, emitted with their RESTING values (0, -1) so a freshly laid-out matrix
+    // and a freshly scattered one agree.
     for (Index i = 0; i < n; ++i) {
         trips.emplace_back(i, i, 0.0);
     }
@@ -275,12 +250,9 @@ void IpqpKktLayout::scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
     const std::size_t expected = value_pos_.size();
     for_each_entry(H, Ae, Ai, n_, me_, mi_, [&](Index, Index, double v) {
         if (t >= expected) {
-            // The structure-key collision guard, in SsnEngine::sync_matrix's
-            // exact shape: a hash match is a probabilistic claim, and writing
-            // past the cached position map on a collision would corrupt the
-            // KKT matrix silently. Both halves are needed -- this one catches
-            // a colliding pattern that emits MORE entries, the count check
-            // below one that emits fewer.
+            // The structure-key collision guard, in SsnEngine::sync_matrix's exact shape.
+            // Both halves are needed: this one catches a colliding pattern that emits MORE
+            // entries, the count check below one that emits fewer.
             throw std::runtime_error(fmt::format(
                 "IpqpKktLayout: structure-key collision detected -- the reused pattern expects "
                 "{} entries but this problem emits more; refusing to write past the cached "
@@ -296,10 +268,8 @@ void IpqpKktLayout::scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
             expected, t));
     }
 
-    // The coupling block's resting value, re-established after the zero-fill.
-    // The diagonals are deliberately left at zero (the primal family at
-    // whatever H's own diagonal contributed): they are the caller's per-
-    // iteration write.
+    // The coupling block's resting value, re-established after the zero-fill. The diagonals
+    // stay at zero (the primal family at H's own contribution): the caller writes those.
     for (std::size_t j = 0; j < coupling_pos_.size(); ++j) {
         values[coupling_pos_[j]] = -1.0;
     }

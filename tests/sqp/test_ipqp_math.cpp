@@ -1,29 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// The interior-point QP tier's barrier kernels (M6 W1 T3.b, ipqp_math.h).
-//
-// Each kernel in ipqp_math.h claims to MIRROR a named kernel in
-// barrier_math.h -- same arithmetic, QP shape instead of the NLP engine's
-// reduced-space BoundSet. That claim is testable, so it is tested: every pin
-// below builds the BoundSet/BoundDualState the QP data is equivalent to, runs
-// BOTH kernels, and requires them to agree to within 4 ULP (EXPECT_DOUBLE_EQ)
-// -- close enough that a changed FORMULA fails, loose enough that the build's
-// fast-math regime is allowed to reassociate two differently-shaped loops over
-// identical arithmetic. The kernels state their accumulation order anyway
-// (lowers then uppers, ascending index, matching the NLP kernels' list walk),
-// so the mirror claim is about the arithmetic, not about a tolerance absorbing
-// a real difference: a dropped damping term, a sign, or a missing bound class
-// moves these by far more than 4 ULP, and each pin is paired with a
-// non-vacuity check that proves it can move at all.
-//
-// The exception is the complementarity reduction, which has no mirror on
-// purpose (barrier_math.h's banner: the NLP reduction's .sum() order feeds mu
-// and is ULP-load-bearing). It is pinned against a hand-computed value
-// instead.
-//
-// Every pin is written so that it can fail: each is paired with a
-// non-vacuity check that perturbs an input and requires the result to move.
+// The interior-point QP tier's barrier kernels (M6 W1 T3.b, ipqp_math.h). Each kernel MIRRORS a
+// named barrier_math.h kernel: both are run and must agree to 4 ULP, and every pin is paired
+// with a non-vacuity check. The complementarity reduction has no mirror: see w1-t3-report.md.
 
 #include <bit>
 #include <cmath>
@@ -53,11 +33,8 @@ namespace ip = hven::solvers::detail;
 
 constexpr double kInf = 1e20;
 
-// The fixture: four variables covering every bound class the tier can meet.
-//   0  two-sided        -> no damping on either side
-//   1  lower-only       -> damped on the lower side
-//   2  upper-only       -> damped on the upper side
-//   3  free             -> no barrier term at all
+// The fixture: four variables covering every bound class the tier can meet -- 0 two-sided (no
+// damping), 1 lower-only (damped low), 2 upper-only (damped high), 3 free (no barrier term).
 struct Bounds {
     Eigen::VectorXd x, l, u, zl, zu;
     Index n = 4;
@@ -151,20 +128,17 @@ TEST(IpqpMathTest, BoundBarrierObjectiveMirrorsTheNlpKernel) {
 
     EXPECT_DOUBLE_EQ(got, want);
 
-    // And against arithmetic, in the kernel's own order -- lowers ascending,
-    // then uppers -- so the pin does not rest on two implementations agreeing
-    // with each other. Distances: var0 lower 1.5, var1 lower 1.25, var0 upper
-    // 2.5, var2 upper 2.25; var3 is free. Damping rides the two one-sided
-    // entries only.
+    // And against arithmetic, in the kernel's own order (lowers ascending, then uppers), so the
+    // pin does not rest on two implementations agreeing. Distances: var0 lower 1.5, var1 lower
+    // 1.25, var0 upper 2.5, var2 upper 2.25; var3 free. Damping rides the one-sided entries only.
     const double undamped =
         -kMu * std::log(1.5) + -kMu * std::log(1.25) + -kMu * std::log(2.5) + -kMu * std::log(2.25);
     const double damping = ip::kIpqpKappaD * kMu * 1.25 + ip::kIpqpKappaD * kMu * 2.25;
     EXPECT_NEAR(got, undamped + damping, 1e-14);
 
-    // THE DAMPING PIN. Making both one-sided variables two-sided -- with the
-    // second bound placed so its own log term is known and subtracted off --
-    // removes exactly the damping and nothing else. A kernel that dropped
-    // kappa_d would make these two agree.
+    // THE DAMPING PIN. Making both one-sided variables two-sided -- second bound placed so its
+    // own log term is known and subtracted off -- removes exactly the damping and nothing else.
+    // A kernel that dropped kappa_d would make these two agree.
     Bounds two_sided = b;
     two_sided.u[1] = 2.25 + 1.25; // var1 gains an upper bound at distance 1.25
     two_sided.l[2] = -1.5 - 2.25; // var2 gains a lower bound at distance 2.25
@@ -239,14 +213,9 @@ TEST(IpqpMathTest, BoundDualTermsMirrorTheNlpKernel) {
     EXPECT_NE(mu_form[1], got[1]);
 }
 
-// I2(a). The kernel's grouping is part of the mirror. `gx += (zU - zL)` and
-// `(gx + (-zL)) + zU` are not the same computation: at gx = 1e16, zL = 1e16,
-// zU = 1 the subtraction 1 - 1e16 rounds back to -1e16 and the fused form
-// returns 0 where the mirror returns 1. A dual-residual norm built from this
-// kernel feeds a convergence decision, so this pin compares BITS -- 0 and 1
-// are 4 ULP apart nowhere, but a 2-ULP regrouping would slip past
-// EXPECT_DOUBLE_EQ, which is how the first round's version of this kernel got
-// through.
+// I2(a). The kernel's grouping is part of the mirror: `gx += (zU - zL)` and `(gx + (-zL)) + zU`
+// differ (at gx = zL = 1e16, zU = 1 the fused form gives 0 where the mirror gives 1), and this
+// feeds a convergence decision, so the pin compares BITS. See `.superpowers/w1-t3-report.md` I2.
 TEST(IpqpMathTest, BoundDualTermsReproduceTheMirrorsGroupingBitForBit) {
     Bounds b;
     b.n = 1;
@@ -279,10 +248,9 @@ TEST(IpqpMathTest, BoundDualTermsReproduceTheMirrorsGroupingBitForBit) {
     EXPECT_NE(bits(got[0]), bits(1e16 + (b.zu[0] - b.zl[0])));
 }
 
-// I2(b). The one kernel in this file whose NLP mirror is structurally immune
-// to a stale multiplier -- it walks index lists, so an unbounded variable is
-// unreachable. A dense loop is not immune unless it asks l/u, and T4.b's
-// IpqpBounds may well hand through a reused buffer.
+// I2(b). The one kernel whose NLP mirror is structurally immune to a stale multiplier -- it
+// walks index lists, so an unbounded variable is unreachable. A dense loop is not immune unless
+// it asks l/u, and T4.b's IpqpBounds may well hand through a reused buffer.
 TEST(IpqpMathTest, BoundDualTermsIgnoreWhateverSitsAtAnAbsentBound) {
     Bounds b = fixture();
     // var3 is free; var1 has no upper bound; var2 has no lower bound. Fill
@@ -408,10 +376,9 @@ TEST(IpqpMathTest, SlackComplementarityOnAnEmptyBlockIsZero) {
     EXPECT_EQ(hi, 0.0);
 }
 
-// The two reductions compose the way the tier uses them: slacks first, bounds
-// folded in, and the slack aggregates are NOT re-reduced by the fold. Pinned
-// against pairs computed by hand from the fixture, so the composition is
-// checked against arithmetic rather than against itself.
+// The two reductions compose the way the tier uses them: slacks first, bounds folded in, and the
+// slack aggregates are NOT re-reduced by the fold. Pinned against pairs computed by hand from
+// the fixture, so the composition is checked against arithmetic rather than against itself.
 TEST(IpqpMathTest, TheTwoReductionsComposeIntoOneUnionAggregate) {
     const Bounds b = fixture();
     Eigen::VectorXd s(2), lam(2);
@@ -423,12 +390,9 @@ TEST(IpqpMathTest, TheTwoReductionsComposeIntoOneUnionAggregate) {
     ASSERT_DOUBLE_EQ(avg, 3.0); // (2.0 + 4.0) / 2
     ip::ipqp_augment_bound_complementarity(b.x, b.l, b.u, b.zl, b.zu, b.n, 2, avg, lo, hi);
 
-    // FOUR bound pairs, lowers then uppers:
-    //   var0 lower (0.5+1.0)*0.4   = 0.6
-    //   var1 lower (2.25-1.0)*1.25 = 1.5625
-    //   var0 upper (3.0-0.5)*0.9   = 2.25
-    //   var2 upper (0.75+1.5)*2.5  = 5.625
-    // var3 is free and contributes none.
+    // FOUR bound pairs, lowers then uppers: var0 lower (0.5+1.0)*0.4 = 0.6, var1 lower
+    // (2.25-1.0)*1.25 = 1.5625, var0 upper (3.0-0.5)*0.9 = 2.25, var2 upper (0.75+1.5)*2.5 =
+    // 5.625. var3 is free and contributes none.
     const double bound_sum = 0.6 + 1.5625 + 2.25 + 5.625;
     EXPECT_DOUBLE_EQ(avg, (3.0 * 2.0 + bound_sum) / 6.0);
     EXPECT_DOUBLE_EQ(lo, 0.6);   // min-of-mins: the bound side wins
@@ -462,17 +426,9 @@ TEST(IpqpMathTest, TheAbsentBoundSentinelMatchesTheEnginesOwn) {
 // ---------------------------------------------------------------------------
 
 TEST(IpqpMathTest, TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse) {
-    // FOUR INDICES, ONE PER REGIME, so the rule is exercised as a partition
-    // rather than as one case. `weak_scale = 1e-3` throughout.
-    //
-    //   0  STRONGLY ACTIVE at LOWER: gap 1e-9 (tiny), z 2.0 (priced).
-    //      The multiplier test fails -> curvature KEPT.
-    //   1  WEAKLY ACTIVE at LOWER:   gap 1e-6, z 1e-6. Both below -> DROPPED.
-    //   2  INACTIVE:                 gap 5.0, z 1e-9. The gap test fails ->
-    //      KEPT (and negligible anyway).
-    //   3  MIXED: strongly active at LOWER, weakly active at UPPER. The rule is
-    //      PER SIDE, so the lower side's curvature survives and the upper's
-    //      does not -- which is what the critical cone actually says.
+    // FOUR INDICES, ONE PER REGIME (`weak_scale = 1e-3`): 0 strongly active low (gap 1e-9, z 2.0,
+    // multiplier test fails -> KEPT); 1 weakly active low (gap 1e-6, z 1e-6, both below ->
+    // DROPPED); 2 inactive (gap 5.0 -> KEPT); 3 mixed -- the rule is PER SIDE, lower survives.
     const double kInfB = ip::kIpqpInfBound;
     hven::Vec x(4), l(4), u(4), zl(4), zu(4);
     x << 1.0e-9, 1.0e-6, 5.0, 1.0e-9;
@@ -484,10 +440,9 @@ TEST(IpqpMathTest, TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse) {
     hven::Vec plain = hven::Vec::Zero(4);
     ip::ipqp_accumulate_bound_sigma(x, l, u, zl, zu, 4, plain);
 
-    // `weak_scale <= 0` REPRODUCES THE ORDINARY KERNEL EXACTLY -- same loops,
-    // same order, same `+=`. This is the property the convex corpus's
-    // bit-identity rests on, so it is pinned as an exact equality rather than
-    // as a tolerance.
+    // `weak_scale <= 0` REPRODUCES THE ORDINARY KERNEL EXACTLY -- same loops, same order, same
+    // `+=`. The convex corpus's bit-identity rests on this, so it is pinned as an exact equality
+    // rather than as a tolerance.
     hven::Vec off = hven::Vec::Zero(4);
     ip::ipqp_accumulate_bound_sigma_critical_cone(x, l, u, zl, zu, 4, 0.0, off);
     for (hven::Index i = 0; i < 4; ++i) {

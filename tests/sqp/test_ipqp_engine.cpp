@@ -5,17 +5,9 @@
 // interior-point QP tier's cold solve, its clamp-centred box, its domain gate
 // and its (rho, delta) ladder.
 //
-// THE ORACLE IS THE WALK. `QpEngine` is the tier's cross-check on every convex
-// fixture here: two independently written kernels, two independently written
-// relative-KKT residual implementations (plan ruling 5 gave this tier its own
-// on purpose), agreeing on the same point at the QP layer's own tolerances is
-// a stronger statement than either kernel agreeing with a hand-computed
-// answer.
-//
-// EVERY VALUE PIN IS SHOWN FALLIBLE. Each block below that asserts a counter
-// or a classification also asserts a NEIGHBOURING fixture where the same
-// assertion would fail, so a pin that silently stopped measuring anything is
-// caught by its own partner rather than by a later reader.
+// THE ORACLE IS THE WALK: `QpEngine` cross-checks the tier on every convex
+// fixture here -- two independently written kernels and two residual
+// implementations. EVERY VALUE PIN IS SHOWN FALLIBLE by a neighbouring fixture.
 
 #include <cmath>
 #include <limits>
@@ -107,9 +99,8 @@ QpProblem general_qp(bool with_eq, bool with_iq) {
 }
 
 /// A BADLY SCALED but well-posed three-variable QP: the Hessian's blocks span
-/// `S^2`, and both constraint rows carry the same spread. `S = 1e6` is the
-/// value the pins below use, so the Ruiz diagonal is far from 1 in every
-/// block and a missing unscale-on-export could not possibly go unnoticed.
+/// `S^2` and both constraint rows carry the same spread, so at the pins' `S = 1e6`
+/// a missing unscale-on-export could not possibly go unnoticed.
 QpProblem scaled_qp(double S) {
     QpProblem qp;
     qp.H = dense_upper({{2.0 / S, 0.0, 0.0}, {0.0, 2.0, 0.0}, {0.0, 0.0, 2.0 * S}});
@@ -123,11 +114,9 @@ QpProblem scaled_qp(double S) {
     return qp;
 }
 
-/// Codex's C0 fixture: ONE variable, no rows, ABSENT bounds, `g = 0`. The
-/// origin is stationary on iteration 0, so the solve converges before section
-/// 3.2's schedule has advanced even once and `rho_sched` is still
-/// `ipqp_rho_init`. `c` is the whole Hessian: negative makes the problem
-/// concave and unbounded, positive makes it a one-dimensional least squares.
+/// Codex's C0 fixture: ONE variable, no rows, ABSENT bounds, `g = 0`. The origin
+/// is stationary on iteration 0, so the solve converges with `rho_sched` still at
+/// `ipqp_rho_init`. `c` is the whole Hessian: negative makes the problem concave.
 QpProblem free_scalar_qp(double c) {
     QpProblem qp;
     qp.H = dense_upper({{c}});
@@ -171,14 +160,9 @@ TEST(IpqpBoxTest, TheCentreIsRefineOnFacesOwnClampedOrigin) {
     EXPECT_DOUBLE_EQ(box.up_eff(1), -2.0);
     EXPECT_EQ(box.zero_width_index, -1);
 
-    // MUTATION NON-VACUITY: a PLAIN-ORIGIN centre would give a different
-    // window on this very problem, which is the silent disagreement with
-    // refine_on_face that the clamp rule exists to prevent. Show that the two
-    // rules genuinely differ here rather than asserting the equality of two
-    // things that happen to coincide.
-    // A plain-origin window would be [max(3, -1), min(7, 1)] = [3, 1] on
-    // variable 0 and [max(-8, -1), min(-2, 1)] = [-1, -2] on variable 1: both
-    // CROSSED, and both different from what the clamp rule produced.
+    // MUTATION NON-VACUITY: a PLAIN-ORIGIN centre would give a different window on
+    // this very problem ([3, 1] and [-1, -2], both CROSSED), which is the silent
+    // disagreement with refine_on_face that the clamp rule exists to prevent.
     EXPECT_NE(box.up_eff(0), std::min(qp.upper(0), 0.0 + 1.0));
     EXPECT_NE(box.lo_eff(1), std::max(qp.lower(1), 0.0 - 1.0));
 }
@@ -196,12 +180,9 @@ TEST(IpqpBoxTest, AnInfiniteRadiusReproducesTheDeclaredBoxExactly) {
 }
 
 TEST(IpqpBoxTest, MakeIpqpBoundsRefusesABoxWhoseBlocksDisagree) {
-    // FIX ROUND 1, CM2 / CLAUDE.md section 4. `make_ipqp_bounds` is PUBLIC and
-    // takes an IpqpBox by reference, so a hand-built one -- task 6's routing
-    // chain will build one, and this test does -- can present blocks of
-    // different lengths. The count loop indexes `up_eff` with `lo_eff`'s
-    // length, and Eigen's own assert is compiled out under NDEBUG, so without
-    // an explicit guard this is an out-of-bounds READ in Release.
+    // FIX ROUND 1, CM2 / CLAUDE.md section 4. `make_ipqp_bounds` is PUBLIC and takes
+    // an IpqpBox by reference, so blocks of different lengths can arrive; Eigen's own
+    // assert is compiled out under NDEBUG, so the explicit guard is the only guard.
     IpqpBox box;
     box.centre = vec({0.0, 0.0});
     box.lo_eff = vec({-1.0, -1.0});
@@ -368,46 +349,21 @@ TEST(IpqpLadderTest, AnIndefiniteSubproblemArmsTheLadderAndWalksToTheBound) {
     EXPECT_GT(r.counters.ipqp_iters_at_elevated_rho, 0);
     EXPECT_NE(r.status, QpStatus::kOptimal);
 
-    // THE LADDER IS NOT MONOTONE, AND THIS IS WHERE THAT IS PINNED (T4b).
-    // Before T4b `ipqp_rho_demanded_last == ipqp_rho_demanded_max` held on
-    // every armed solve BY CONSTRUCTION -- the floor only rose. Algorithm IC
-    // retries `rho_dem_last / 3` at every iteration, so the memory ends far
-    // BELOW the solve's own peak, and the strict inequality is the executable
-    // statement that the monotone rule is gone.
+    // THE LADDER IS NOT MONOTONE, AND THIS IS WHERE THAT IS PINNED (T4b). Algorithm
+    // IC retries `rho_dem_last / 3` at every iteration, so the memory ends BELOW the
+    // solve's own peak. `.superpowers/w1-t4b-report.md`.
     EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
     EXPECT_GT(r.counters.ipqp_ladder_reclimbs, 0)
         << "and the /3 probe really is being refused and re-climbed here";
 
-    // WHERE IT GOES, AND WHY THAT IS THE HONEST OUTCOME. `H = diag(2, -1000)`
-    // with `g = (-2, -4)` on `[-10, 10]^2` has its minimizers at the ENDS of
-    // the negative-curvature coordinate, and `x1 = +10` is the better of them.
-    // Before T4b this fixture never got there: it froze at an exact fixed
-    // point of the modified problem and burnt its whole 60-iteration budget
-    // (`kBudget`). It now rides the negative curvature to the bound and
-    // arrives at the minimizer.
+    // WHERE IT GOES: `H = diag(2, -1000)` with `g = (-2, -4)` on `[-10, 10]^2` has
+    // its minimizers at the ENDS of the negative-curvature coordinate. Before T4b
+    // this fixture froze at a fixed point and burnt its budget (`kBudget`).
     EXPECT_NEAR(r.x(0), 1.0, 1e-6);
     EXPECT_NEAR(r.x(1), 10.0, 1e-9);
-    // THIS IS THE FIXTURE WHOSE MEASURED FAILURE MOTIVATED THE PERTURBED-PIVOT
-    // RE-ROUTE: Ruiz normalizes the `-1000` coordinate's scaled diagonal to
-    // almost exactly `-1`, Algorithm IC's rung `1.0` annihilates the pivot, and
-    // the pre-T4b always-dual rule then spent four factorizations climbing
-    // `delta` to `1e6` and escaped `kNumerical` with ZERO iterations taken (the
-    // mutation reproducing that is recorded in the T4b fix-round-1 report).
-    // What is asserted here is the OUTCOME the re-route buys -- the solve takes
-    // steps and reaches the minimizer.
-    //
-    // THE ROUTE COUNTERS ARE **NOT** PINNED ON THIS FIXTURE, and the reason is
-    // a measurement rather than caution: whether the backend REPORTS a
-    // perturbed pivot at that rung depends on how close to zero the annihilated
-    // pivot lands, and that is flag-regime-sensitive. Measured:
-    // `ipqp_pivot_reroute_primal == 1` under Debug and `== 0` under Release,
-    // with an IDENTICAL trajectory either way (29 iterations, 44
-    // factorizations), because the re-route rung simply replaces a rung the
-    // wrong-inertia path would have taken. A counter pin here would be pinning
-    // the backend's perturbation threshold. The re-route's own contract --
-    // two primal rungs then the bounded dual fallback -- is pinned exactly and
-    // deterministically in `tests/sqp/test_ipqp_seams.cpp`, through the
-    // injector this suite keeps for faults no legal fixture reaches reliably.
+    // THE FIXTURE WHOSE MEASURED FAILURE MOTIVATED THE PERTURBED-PIVOT RE-ROUTE. What
+    // is asserted is the OUTCOME, not the route counters: whether the backend reports
+    // a perturbed pivot here is flag-sensitive. `.superpowers/w1-t4b-report.md`.
     EXPECT_GT(r.counters.ipqp_iters, 0)
         << "the solve TAKES STEPS -- the pre-T4b rule's zero-iteration kNumerical is the failure "
            "the re-route exists to remove";
@@ -417,44 +373,18 @@ TEST(IpqpLadderTest, AnIndefiniteSubproblemArmsTheLadderAndWalksToTheBound) {
         << "the budget is no longer what stops it -- mechanism 4's freeze is gone";
     EXPECT_NE(r.escape_reason, IpqpEscape::kBudget);
 
-    // ... AND WHAT STOPS IT INSTEAD, pinned rather than described, because it
-    // is a REGISTERED COST ITEM and not a success. The barrier endgame on a
-    // ride INTO a bound at curvature this large ends at the strict-positivity
-    // guard: fraction-to-boundary keeps `x < u` in exact arithmetic, but once
-    // `u - x` falls below `ulp(u)` the update `x + alpha dx` rounds to `u`
-    // exactly and the guard fires. The returned point IS the minimizer
-    // (asserted above) and the residual is 7.3e-5, so this is a missed
-    // CERTIFICATE, not a wrong answer -- section 2.3 routes it to the walk.
-    // Registered in the T4b report as an endgame item for T9/M7; T4b does not
-    // change the barrier endgame.
+    // ... AND WHAT STOPS IT INSTEAD, pinned rather than described: the barrier
+    // endgame ends at the strict-positivity guard once `u - x` falls below `ulp(u)`.
+    // A missed CERTIFICATE, not a wrong answer. `.superpowers/w1-t4b-report.md`.
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0)
         << "no certifying exit was reached, so the required read was never paid";
 }
 
 TEST(IpqpLadderTest, TheICTrialIsRefusedAndTheReclimbIsCounted) {
-    // WHAT THIS TEST USED TO BE, and why it could not survive T4b: it was
-    // `TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap`, and it asserted
-    // that section 2.2 item 3's monotone-per-solve floor refused a section 3.2
-    // gated decrease and scored the refusal as `ipqp_rho_flaps`. T4b DELETES
-    // that floor -- Wachter-Biegler's Algorithm IC, which section 2.2 cites by
-    // name, restarts each trial at a third of the last shift and has no
-    // monotone rule -- so the event has no referent. `ipqp_ladder_reclimbs`
-    // replaces the counter and this fixture replaces the claim.
-    //
-    // A STRONGLY indefinite coordinate with a distant bound, so the ladder
-    // arms on the first iteration, builds a memory, and then spends a long
-    // walk probing BELOW that memory. Every probe the reduced curvature
-    // refuses is a reclimb; the accepted values cycle inside the
-    // `(theta, 8 theta]` band Algorithm IC's `/3` and `x8` define.
-    //
-    // WHY THIS FIXTURE AND NOT A MILDER ONE. A fixture whose curvature sits
-    // near a rung boundary decides its trajectory on nearly-tied inertia
-    // readings and is FLAG-SENSITIVE -- the first draft of this test used
-    // `H = diag(2, -1)` with `rho_0 = 1e-2` and counted three reclimbs in
-    // Debug and none in Release, because the two regimes took different walks
-    // to different (both correct) minimizers. An exact counter pin has to be
-    // taken on a trajectory that is the same in both, which this one is.
+    // THIS REPLACES `TheMonotoneFloorRefusesADecreaseAndCountsItAsAFlap`: T4b deletes
+    // the monotone floor, so `ipqp_ladder_reclimbs` replaces `ipqp_rho_flaps`. The
+    // fixture is chosen flag-stable: `.superpowers/w1-t4b-report.md`.
     QpProblem qp = box_qp(-10.0, 10.0);
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1000.0}});
 
@@ -462,18 +392,8 @@ TEST(IpqpLadderTest, TheICTrialIsRefusedAndTheReclimbIsCounted) {
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
 
     // THE RECLIMBS, AS AN EXACT COUNT: eight iterations of this solve have a
-    // `rho_dem_last / kIpqpLadderDown` value refused and have to re-escalate
-    // past it. BOTH ROUTES TO THAT VALUE COUNT (fix round 1, I2 / CX4) -- it is
-    // this iteration's first trial once the skip rule licenses it, and it is
-    // the rung that answers a refused zero-trial before then.
-    //
-    // AND A PERTURBED-DRIVEN ESCALATION IS NOT ONE (fix round 1, I1). A
-    // perturbed-pivot report answered by the primal ladder is a statement about
-    // a backend pivot, not about curvature, so it is counted as a re-route and
-    // never as a reclimb -- which is what keeps the two costs separable for T9.
-    // The reclimb count below is the same eight under Debug (where this fixture
-    // does take one re-route rung) and under Release (where it takes none), and
-    // that invariance IS the exclusion, measured.
+    // `rho_dem_last / kIpqpLadderDown` value refused and re-escalate past it. A
+    // perturbed-driven escalation is NOT one. `.superpowers/w1-t4b-report.md`.
     EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
 #ifdef USE_ACCELERATE_SPARSE
@@ -514,20 +434,9 @@ TEST(IpqpLadderTest, TheICTrialIsRefusedAndTheReclimbIsCounted) {
 }
 
 TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
-    // FIX ROUND 1, I2, RE-PINNED AT T4b. The question this fixture answers is
-    // what happens on a gated advance whose quantities are ALREADY on the
-    // absolute `ipqp_reg_floor`: it is a class (c) advance -- the prox centre
-    // moves, nothing else does, and no counter fires. Before T4b there was a
-    // third class (a monotone-floor refusal, `ipqp_rho_flaps`) that this
-    // fixture also had to exclude; T4b deletes the floor and the class with
-    // it, so the identity is now two-way and the arithmetic below is the same
-    // arithmetic with one term removed.
-    //
-    // At the shipped defaults that state is only reached past the 11th gated
-    // advance, which no fixture in this file gets to. Rather than build a
-    // fixture long enough to stumble into it, this one starts the schedule
-    // two advances above the floor, so BOTH quantities sit on the absolute
-    // floor for the rest of a perfectly ordinary convex solve.
+    // FIX ROUND 1, I2, RE-PINNED AT T4b: a gated advance whose quantities are already
+    // on the absolute `ipqp_reg_floor` is a class (c) advance -- the prox centre
+    // moves, nothing else does, and no counter fires. The fixture starts near it.
     IpqpOptions io;
     io.ipqp_rho_init = 1.0e-9;   // reg_floor * 10
     io.ipqp_delta_init = 1.0e-9; // ... and the dual side with it
@@ -543,25 +452,18 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
     EXPECT_EQ(r.counters.ipqp_ladder_reclimbs, 0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 0.0);
 
-    // THE EXACT ACCOUNTING, pinned as numbers rather than as an inequality
-    // (fix round 2: "do not pin a gap"). Four gated advances: the first two
-    // still had room to move -- `1e-9 * 0.1` does not land on `1e-10` exactly
-    // in binary, so the schedule takes two steps to settle on the floor -- and
-    // the last two moved NOTHING, which is class (c). The ABSOLUTE floor is a
-    // setting every schedule decays onto, not evidence about this subproblem's
-    // curvature, so it earns no counter.
-    // The advance counts are exact trajectory pins and are MKL-scoped; the
-    // residual's sign is not (T4b F5).
+    // THE EXACT ACCOUNTING, pinned as numbers rather than as an inequality (fix round
+    // 2): four gated advances, the last two moving NOTHING, which is class (c). The
+    // advance counts are exact trajectory pins and are MKL-scoped (T4b F5).
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_absolute_floor_accelerate",
                    "UNOBSERVED -- the exact advance counts are MKL-only");
 #else
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, 4);
     EXPECT_EQ(r.counters.ipqp_reg_decreases, 2);
-    // ... so the identity's residual IS the class-(c) count, and it is 2 here.
-    // The section 7 counter table has no field for that class and T4b does not
-    // invent one, so it is pinned by arithmetic on the fields that do exist
-    // rather than left unstated.
+    // ... so the identity's residual IS the class-(c) count, and it is 2 here. The
+    // section 7 counter table has no field for that class, so it is pinned by
+    // arithmetic on the fields that do exist rather than left unstated.
     EXPECT_EQ(r.counters.ipqp_prox_center_updates - r.counters.ipqp_reg_decreases, 2);
 #endif
     EXPECT_GE(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases)
@@ -569,22 +471,9 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
 }
 
 TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveThatNeverArmsTheLadder) {
-    // THE SECOND, INDEPENDENT WITNESS for I2, run at a tight tolerance and a
-    // raised cap so the solve takes materially more iterations than any other
-    // fixture in this file (13 against the usual 5-11) and the section 3.2
-    // gate gets many more chances to fire.
-    //
-    // WHY THIS IS NOT THE "PAST THE 11TH GATED ADVANCE" FIXTURE, said plainly:
-    // the gate is a CONTRACTION test, so gated advances are far rarer than
-    // iterations -- this solve takes 13 iterations and 5 advances. Reaching a
-    // 12th advance on a convex fixture is not a matter of running longer; it
-    // is a matter of the residual halving twelve times before convergence,
-    // which at these tolerances does not happen. THE STATE that a past-11
-    // fixture was a proxy for -- both quantities parked on the absolute floor
-    // with the gate still firing -- is reached deterministically by the
-    // fixture above instead, by starting the schedule two steps from the floor
-    // rather than eleven. The state is what the pin is about; the trip length
-    // is not.
+    // THE SECOND, INDEPENDENT WITNESS for I2, at a tight tolerance and a raised cap so
+    // the section 3.2 gate gets more chances to fire. It is NOT the "past the 11th
+    // advance" fixture: the gate is a CONTRACTION test, so advances stay rare.
     IpqpOptions io;
     io.ipqp_converge_slack = 1.0; // the tightest the band allows
     io.ipqp_hard_iter_cap = 400;
@@ -602,21 +491,9 @@ TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveThatNeverArmsTheLadder) {
 }
 
 TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
-    // THE CERTIFICATION READ IS ONE FACTORIZATION, NOT A LADDER, and this is
-    // the fixture that says why. H = diag(2, -1) with g = 0 and a SYMMETRIC
-    // box makes the origin an exact KKT point of the barrier problem at every
-    // mu -- the two bound multipliers balance -- so the tier converges to it
-    // in three iterations without ever moving x. It is a SADDLE.
-    //
-    // The section 3.2 schedule has decayed `rho` to 0.8 by then, and the
-    // in-loop ladder has raised the working `rho` to 80, at which
-    // `H + rho I + Sigma_b` is positive definite and the inertia reads
-    // correct. A certification read that CLIMBED the same ladder would
-    // therefore find the inertia it was looking for and report the
-    // certificate as standing -- a saddle point certified as a minimum, which
-    // is exactly the wrong-answer class ssn_engine.h:24 warns about for its
-    // own kernel. Dropping to the SCHEDULE'S level and reading ONCE is what
-    // catches it.
+    // THE CERTIFICATION READ IS ONE FACTORIZATION, NOT A LADDER, and this fixture is
+    // why: the origin is an exact KKT point of the barrier problem at every mu, so a
+    // read that CLIMBED the ladder would certify this SADDLE as a minimum.
     QpProblem qp = box_qp(-10.0, 10.0);
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0}});
     qp.g = vec({0.0, 0.0});
@@ -642,21 +519,9 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // would have certified at.
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, r.rho);
 
-    // FIX ROUND 1, I4: AN EXACT COUNT, not `> 0`. Every one of this
-    // fixture's three iterations takes its step with a nonzero
-    // inertia-demanded modification in force, so the counter must equal the
-    // iteration count. Sampling it BEFORE the ladder ran -- the earlier code
-    // -- returned 2, missing the iteration whose own ladder first demanded
-    // one, which is exactly the off-by-one this pin exists to hold down.
-    // FIX ROUND 2, N1: STILL 3, and the reason is worth recording rather
-    // than leaving the unchanged number to look like an oversight. N1 moved
-    // the increment behind the step, so only iterations that actually complete
-    // are counted -- and on this fixture all three armed iterations do
-    // complete, so the count is unmoved. The fixture where the two readings
-    // DIVERGE is the cap-1 budget one, which arms the ladder and then takes no
-    // step at all: see
-    // `TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderRungsIncluded`.
-    // The counts are MKL-scoped; the identity between them is not (T4b F5).
+    // FIX ROUND 1, I4: AN EXACT COUNT, not `> 0` -- every iteration takes its step
+    // with a nonzero inertia-demanded modification, so the counter equals the
+    // iteration count. Unmoved by fix round 2's N1: `.superpowers/w1-t4-report.md`.
 #ifndef USE_ACCELERATE_SPARSE
     EXPECT_EQ(r.counters.ipqp_iters, 3);
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 3);
@@ -665,25 +530,9 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // The gated advances are classified exactly once each (I2).
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
 
-    // ALGORITHM IC'S OWN TRAJECTORY, PINNED RUNG BY RUNG (T4b). The exact
-    // ladder this fixture walks, measured:
-    //
-    //   it 0  no memory -> try 0 (WRONG) -> 1e-4, 1e-2, 1 (all WRONG)
-    //         -> 100 OK.        5 factorizations, 4 rejections, memory <- 100
-    //   it 1  1 consecutive modified iteration < kIpqpLadderSkipAfter, so
-    //         IC-1 still tries 0 (WRONG) -> 100/3 = 33.33 OK.
-    //                           2 factorizations, 1 rejection, memory <- 33.33
-    //   it 2  same again: 0 (WRONG) -> 33.33/3 = 11.11 OK.
-    //                           2 factorizations, 1 rejection, memory <- 11.11
-    //   the section 2.2 item 4 read: 1 factorization.
-    //
-    // Nine plus one is ten, and four plus one plus one is six. The two decades
-    // through the whole first climb and the `/3` after it are Wachter-Biegler's
-    // `bar kappa_w^+` and `kappa_w^-`; before T4b this fixture paid FIVE
-    // factorizations because the monotone floor made the first climb's 800
-    // permanent and no later iteration ever probed below it.
-    // The derivation above is what the counts mean; the counts themselves are
-    // one backend's measurement, so they are MKL-scoped (T4b F5).
+    // ALGORITHM IC'S OWN TRAJECTORY, PINNED RUNG BY RUNG (T4b): ten factorizations
+    // and six rejections over three iterations, one backend's measurement and so
+    // MKL-scoped (T4b F5). Rung-by-rung: `.superpowers/w1-t4b-report.md`.
 #ifdef USE_ACCELERATE_SPARSE
     RecordProperty("t4b_saddle_trajectory_accelerate",
                    "UNOBSERVED -- the exact ladder trajectory is MKL-only");
@@ -699,10 +548,9 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, 100.0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, 100.0 / 3.0 / 3.0);
 #endif
-    // `ipqp_pivot_reroute_primal` is not pinned here: an exact count would pin
-    // the backend's perturbation threshold (concern C3). The fallback needs two
-    // consecutive failed primal rungs, so it is structural and stays.
-    // (T4b F4; `.superpowers/w1-t4b-report.md`.)
+    // `ipqp_pivot_reroute_primal` is not pinned here: an exact count would pin the
+    // backend's perturbation threshold (concern C3). The fallback needs two failed
+    // primal rungs, so it is structural. (T4b F4; `.superpowers/w1-t4b-report.md`.)
     EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_DOUBLE_EQ(r.rho_mod, r.counters.ipqp_rho_demanded_last)
         << "`rho_mod` is the modification the LAST step ran at, which on this fixture is also "
@@ -723,18 +571,9 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
 }
 
 TEST(IpqpLadderTest, TheFinalReadDropsToTheSCHEDULEFLOORNotToWhereverTheScheduleStopped) {
-    // FIX ROUND 1, C0 (Codex critical; settler ruling on section 2.2 item 4's
-    // "the schedule's residual level" = the level the schedule DECAYS TO,
-    // i.e. `ipqp_reg_floor`).
-    //
-    // H = [-1], g = 0, no rows, no bounds. The origin is stationary on
-    // ITERATION 0 -- every residual is exactly zero there -- so the solve
-    // converges before the section 3.2 gate has advanced the schedule even
-    // once, and `rho_sched` is still `ipqp_rho_init` = 8. Reading the
-    // certificate off `H + rho_sched I` = [7] finds the target inertia
-    // (1, 0, 0) and certifies a CONCAVE, UNBOUNDED problem as optimal at its
-    // MAXIMUM. Dropping to the floor instead reads [-1 + 1e-10] and catches
-    // it.
+    // FIX ROUND 1, C0 (Codex critical): section 2.2 item 4's "the schedule's residual
+    // level" is the level the schedule DECAYS TO, `ipqp_reg_floor`. Reading off
+    // `H + rho_sched I` instead would certify a concave problem at its MAXIMUM.
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(free_scalar_qp(-1.0), nullptr, IpqpOptions{}, SolveOverrides{});
 
@@ -753,10 +592,9 @@ TEST(IpqpLadderTest, TheFinalReadDropsToTheSCHEDULEFLOORNotToWhereverTheSchedule
     // it at, on a solve that took no iterations at all.
     EXPECT_EQ(r.counters.ipqp_factorizations, 1);
 
-    // MUTATION NON-VACUITY: the convex twin reaches the same final read by the
-    // same route -- converged at iteration 0, schedule untouched -- and
-    // CERTIFIES. So the pin above is about the curvature, not about the
-    // fixture being degenerate.
+    // MUTATION NON-VACUITY: the convex twin reaches the same final read by the same
+    // route -- converged at iteration 0, schedule untouched -- and CERTIFIES, so the
+    // pin above is about the curvature, not about the fixture being degenerate.
     IpqpEngine tier2(tight_opts());
     const IpqpResult c = tier2.solve(free_scalar_qp(1.0), nullptr, IpqpOptions{}, SolveOverrides{});
     EXPECT_EQ(c.counters.ipqp_iters, 0);
@@ -767,10 +605,9 @@ TEST(IpqpLadderTest, TheFinalReadDropsToTheSCHEDULEFLOORNotToWhereverTheSchedule
 }
 
 TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderRungsIncluded) {
-    // FIX ROUND 1, I6. The cap used to be consulted once per iteration, so a
-    // single ladder could outrun it: measured at cap 1 on a strongly
-    // indefinite Hessian, the first ladder paid THREE factorizations before
-    // anything stopped it. A cap that a ladder can walk through is not a cap.
+    // FIX ROUND 1, I6: the cap used to be consulted once per iteration, so a single
+    // ladder could outrun it. A cap that a ladder can walk through is not a cap.
+    // `.superpowers/w1-t4-report.md`.
     QpProblem qp = box_qp(-10.0, 10.0);
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0e12}});
     IpqpOptions io;
@@ -785,14 +622,9 @@ TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderR
     EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
     EXPECT_EQ(r.status, QpStatus::kMaxIter);
     EXPECT_EQ(r.counters.ipqp_iters, 0);
-    // FIX ROUND 2, N1, AND THIS IS ITS DISCRIMINATING FIXTURE. The one
-    // factorization this solve paid read WRONG, so the ladder raised `rho` to
-    // 800 -- elevated by any reading of the word -- and the cap then refused
-    // the rung's own factorization. No step was taken. The counter says
-    // "iterations TAKEN", and there were none: this must be 0. Counting it
-    // where round 1 did (right after the ladder settles, before the budget and
-    // terminal-read rejections) returned 1 for an iteration that never
-    // happened.
+    // FIX ROUND 2, N1, AND THIS IS ITS DISCRIMINATING FIXTURE: the ladder raised
+    // `rho` and the cap then refused the rung's own factorization, so no step was
+    // taken. The counter says "iterations TAKEN", and there were none: this is 0.
     EXPECT_EQ(r.counters.ipqp_iters_at_elevated_rho, 0);
     EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0); // the ladder DID arm.
 
@@ -803,15 +635,9 @@ TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderR
     IpqpEngine tier2(tight_opts());
     const IpqpResult r2 = tier2.solve(qp, nullptr, loose, SolveOverrides{});
     EXPECT_GT(r2.counters.ipqp_factorizations, 1);
-    // WITHOUT the cap the same subproblem takes many steps and CONVERGES: it
-    // rides the negative curvature to the bound and certifies there. The
-    // reading that matters for the pin above is only that the cap changed the
-    // outcome, which it plainly did. (Before T4b this line read `kIndefinite`,
-    // because the uncapped solve exhausted the ladder at `1e6` -- the ladder
-    // was applied in UNSCALED space then, so `-1e12` of curvature really did
-    // need `1e12` of shift. T4b applies it in the Ruiz-scaled system, where
-    // the same coordinate is `-1` and a shift of ~7 covers it: IC's constants
-    // being scale-free is exactly what that change buys.)
+    // WITHOUT the cap the same subproblem takes many steps and CONVERGES, so the cap
+    // plainly changed the outcome. (Before T4b this line read `kIndefinite`: the
+    // ladder was applied unscaled then. `.superpowers/w1-t4b-report.md`.)
     EXPECT_NE(r2.escape_reason, IpqpEscape::kBudget);
     EXPECT_EQ(r2.status, QpStatus::kOptimal);
     EXPECT_GT(r2.counters.ipqp_iters, 1);
@@ -822,15 +648,9 @@ TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefini
     // Curvature no regularization below the 1e6 ceiling can dominate.
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0e12}});
 
-    // EQUILIBRATION OFF, AND THAT IS THE FIXTURE (T4b). The modification is a
-    // UNIFORM shift of the RUIZ-SCALED system, so with equilibration ON this
-    // coordinate's `-1e12` is scaled to `-1` and a shift of about 7 covers it
-    // -- the ladder never comes near its ceiling and this test would be
-    // asserting nothing. Turning Ruiz off puts the ladder back in the caller's
-    // own units, where `-1e12` really is beyond a `1e6` ceiling, which is the
-    // state the exhaustion guard exists for. That the SAME Hessian exhausts
-    // the ladder unscaled and is handled comfortably scaled is the point of
-    // applying IC's scale-free constants in scaled space.
+    // EQUILIBRATION OFF, AND THAT IS THE FIXTURE (T4b): the modification is a uniform
+    // shift of the RUIZ-SCALED system, so with equilibration ON the ladder never comes
+    // near its ceiling and this test would be asserting nothing.
     IpqpOptions io;
     io.ipqp_ruiz = false;
     IpqpEngine tier(tight_opts());
@@ -838,24 +658,15 @@ TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefini
 
     EXPECT_EQ(r.escape_reason, IpqpEscape::kIndefinite);
     EXPECT_EQ(r.status, QpStatus::kNumericalError);
-    // THE CAP-SLACK LESSON, INHERITED AS A FIX AND NOT ONLY AS A CONSTANT
-    // (spec 3.2, Amendment G): repeated multiplication by 100 lands on
-    // 999999.9999999998 rather than on 1e6, so an exact `>=` ceiling test
-    // grants one more rung -- a whole numeric factorization -- for a 2.3e-10
-    // relative increase. The relative guard closes it, and the top rung is
-    // then the DOCUMENTED ceiling exactly, which is what this asserts.
+    // THE CAP-SLACK LESSON (spec 3.2, Amendment G): repeated multiplication by 100
+    // lands on 999999.9999999998 rather than on 1e6, so an exact `>=` ceiling test
+    // grants one more rung. The relative guard closes it and the top rung is exact.
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, io.ipqp_reg_max);
     EXPECT_GE(r.counters.ipqp_rho_demanded_max, io.ipqp_reg_max * (1.0 - detail::kSsnProxCapSlack));
 
-    // **THE REFUSED CEILING RUNG DOES NOT ENTER IC'S MEMORY** (fix round 1,
-    // CX3). `ipqp_rho_demanded_last` is the memory: the shift the last
-    // SUCCESSFUL MODIFIED factorization ran at, and the value a warm carry
-    // would seed the next solve's trial from. `ipqp_reg_max` here produced no
-    // successful factorization at all -- the ladder was refused there and the
-    // solve escaped -- so recording it would report `1e6` as the level the tier
-    // settled at when it settled at nothing, and would hand T7's registered
-    // cross-major carry known-FAILED evidence to descend from. Round 1
-    // recorded it; this is the pin that says it must not.
+    // THE REFUSED CEILING RUNG DOES NOT ENTER IC'S MEMORY (fix round 1, CX3).
+    // `ipqp_rho_demanded_last` is the shift the last SUCCESSFUL modified
+    // factorization ran at; the ceiling produced none, so it must not be recorded.
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_last, 0.0)
         << "no modified factorization on this solve ever succeeded, so the memory stays empty";
     EXPECT_LT(r.counters.ipqp_rho_demanded_last, r.counters.ipqp_rho_demanded_max);
@@ -887,10 +698,9 @@ TEST(IpqpFactorizationTest, EachTierEntryPaysExactlyOneSymbolicPassOrOnePatternV
 
     const IpqpResult first = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(first.status, QpStatus::kOptimal);
-    // The entry that LAYS OUT the pattern pays the analysis; compute() does
-    // not verify (kkt_factorization.cpp), so its verify count is 0. That is
-    // plan section 7 note (a)'s own premise, applied to the one entry the
-    // note's "+1" cannot describe.
+    // The entry that LAYS OUT the pattern pays the analysis; compute() does not verify
+    // (kkt_factorization.cpp), so its verify count is 0. That is plan section 7 note
+    // (a)'s own premise, applied to the one entry the note's "+1" cannot describe.
     EXPECT_EQ(first.counters.ipqp_symbolic_analyses, 1);
     EXPECT_EQ(first.counters.ipqp_pattern_verifies, 0);
 
@@ -937,11 +747,9 @@ TEST(IpqpFactorizationTest,
 
     EXPECT_TRUE(r.certificate_downgraded);
     EXPECT_NE(r.status, QpStatus::kOptimal);
-    // FIX ROUND 1, I5 (settler ruling): a DOWNGRADE, NOT AN ESCAPE. Turning
-    // the read off to save one factorization must not manufacture a census
-    // entry and a section 6.1 K = 3 retirement charge on a solve that
-    // converged cleanly. `3` is the distinct "not performed (option off)"
-    // value, kept apart from `2` (attempted, evidence unusable).
+    // FIX ROUND 1, I5 (settler ruling): a DOWNGRADE, NOT AN ESCAPE. Turning the read
+    // off to save a factorization must not manufacture a census entry or a section
+    // 6.1 K = 3 charge. `3` is "not performed (option off)", kept apart from `2`.
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 3);
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
     EXPECT_EQ(r.counters.ipqp_escape_indefinite, 0); // the census is task 5's.
@@ -982,16 +790,9 @@ TEST(IpqpBudgetTest, TheFactorizationCapBindsIndependentlyOfTheIterationCap) {
 }
 
 TEST(IpqpBudgetTest, AFinalReadTheBudgetREFUSEDIsNotPerformedRatherThanUnreadable) {
-    // FIX ROUND 2, N2 (settler ruling). The 0/1/2/3 contract defines `2` as
-    // ATTEMPTED-and-unusable, which is why it maps to the numerical class. A
-    // certification factorization the cap refused was never attempted, so it
-    // belongs with the option-off case: `3`, not performed.
-    //
-    // The cap is calibrated from the solve itself rather than hard-coded, so
-    // the fixture stays honest if the trajectory ever moves: run once at the
-    // defaults to learn the iteration count, then re-run with exactly that
-    // many factorizations -- enough for every iteration, one short of the
-    // final read.
+    // FIX ROUND 2, N2 (settler ruling): `2` is ATTEMPTED-and-unusable, so a
+    // certification factorization the cap refused belongs with the option-off case,
+    // `3`. The cap is calibrated from the solve itself rather than hard-coded.
     const QpProblem qp = general_qp(true, true);
     IpqpEngine calib(tight_opts());
     const IpqpResult base = calib.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
@@ -1058,24 +859,15 @@ TEST(IpqpRuizTest, EquilibrationRoundTripsAndBothArmsLandOnTheWalksOwnPoint) {
 
     ASSERT_EQ(ra.status, QpStatus::kOptimal);
     ASSERT_EQ(rb.status, QpStatus::kOptimal);
-    // EVERY PIN IS ON UNSCALED QUANTITIES (spec 4.3, non-negotiable). This is
-    // the pin's own fallibility argument, not a restatement of it: the
-    // equilibration diagonal on this fixture spans six decades in every block,
-    // so a right-hand side scaled going in and NOT unscaled coming out --
-    // the one mistake the round trip can make -- would move the returned
-    // point by those six decades. Landing on the walk's own answer is only
-    // possible if the round trip is exact.
+    // EVERY PIN IS ON UNSCALED QUANTITIES (spec 4.3, non-negotiable). The
+    // equilibration diagonal spans six decades in every block here, so a right-hand
+    // side scaled going in and not unscaled coming out would move the answer.
     EXPECT_LT((ra.x - ref.x).lpNorm<Eigen::Infinity>(), 1e-7);
     EXPECT_LT((rb.x - ref.x).lpNorm<Eigen::Infinity>(), 1e-7);
     EXPECT_LT((ra.x - rb.x).lpNorm<Eigen::Infinity>(), 1e-9);
-    // ANSWER-NEUTRALITY IS THE CLAIM, AND IT IS WHAT WAS MEASURED: on every
-    // fixture in this file the two arms take the same number of iterations and
-    // the same number of factorizations, differing only in the last digit or
-    // two of the residual. That is section 4.3's own statement ("it changes
-    // nothing the SQP sees") observed rather than assumed. A fixture on which
-    // the equilibration changes the TRAJECTORY has not been found at this
-    // scale; task 9's acceptance battery, which runs real collocation-sized
-    // subproblems, is where one would show up.
+    // ANSWER-NEUTRALITY IS THE CLAIM, AND IT IS WHAT WAS MEASURED: on every fixture
+    // in this file the two arms take the same iterations and factorizations. No
+    // trajectory-changing fixture exists at this scale; task 9's battery is where.
     EXPECT_EQ(ra.counters.ipqp_iters, rb.counters.ipqp_iters);
 }
 
@@ -1094,22 +886,9 @@ TEST(IpqpRuizTest, ABadlyScaledSubproblemStillAgreesWithTheWalk) {
 }
 
 TEST(IpqpRuizTest, TheRelativeStoppingRuleIsFOLDEDGLOBALLYAndThatHasAMeasuredPrice) {
-    // A DOCUMENTED LIMIT, PINNED SO A CHANGE TO IT IS VISIBLE -- not a bug.
-    // The residual contract (plan ruling 5) folds ONE `max(1, ...)` scale over
-    // the whole stationarity residual, which is exactly the discipline
-    // detail::free_block_stationarity models. On a subproblem whose Hessian
-    // blocks span twelve decades that fold is dominated by the LARGE block, so
-    // a coordinate with tiny curvature can stop far from its optimum in
-    // ABSOLUTE terms while the relative test reads converged.
-    //
-    // Measured here: the tier certifies at x2 = 5.4e-5 where the answer is
-    // ~1.0. The certificate is not false -- the objective is within 3e-12
-    // RELATIVE of optimal -- and section 2.3's routing chain is what closes
-    // the gap: the tier converges to `ipqp_converge_slack x` the QP
-    // tolerances and hands the face to the exact tier-3 refinement, which owns
-    // the last two decades. This test pins the SHAPE of that hand-off's input,
-    // so a future change to the fold (a per-block scale is the obvious
-    // candidate, and it is a SPEC change, not a code change) shows up here.
+    // A DOCUMENTED LIMIT, PINNED SO A CHANGE TO IT IS VISIBLE -- not a bug: the ONE
+    // globally-folded `max(1, ...)` scale (plan ruling 5) lets a coordinate of tiny
+    // curvature stop far out in ABSOLUTE terms. `.superpowers/w1-t4-report.md`.
     QpProblem qp;
     qp.H = dense_upper({{2.0e6, 0.0}, {0.0, 2.0e-6}});
     qp.g = vec({-2.0e6, -4.0e-6});
@@ -1186,18 +965,12 @@ TEST(IpqpFaceTest, ATrustRegionPinIsReportedThroughTrActiveAndNotThroughBoundSta
 }
 
 // THE TWO EXPORT INVARIANTS THIS TIER RE-DERIVES (M6 W1 task 6 fix round 1).
-//
-// `qp_engine.h`'s export contract states both against `QpSolution` and says in
-// as many words that "a third producer must re-derive the invariant rather
-// than assume it is inherited". These pin the re-derivation DIRECTLY, on the
-// engine, rather than through a driver fixture whose numerics could drift off
-// the condition.
+// `qp_engine.h`'s export contract says a third producer must RE-DERIVE rather than
+// inherit; these pin the re-derivation directly on the engine, not via a driver.
 TEST(IpqpFaceTest, AFreeVariableCarriesExactlyZeroAndAnAbsentBoundIsNeverPriced) {
-    // A WIDE box with a FINITE trust region -- the configuration that makes
-    // both invariants non-trivial. Under a finite radius every variable has
-    // finite EFFECTIVE bounds, so the barrier carries a (zl, zu) pair at every
-    // index whatever the QP's own box says, and the optimum (1, 2) is strictly
-    // inside the real box.
+    // A WIDE box with a FINITE trust region -- the configuration that makes both
+    // invariants non-trivial: under a finite radius the barrier carries a (zl, zu)
+    // pair at every index, and the optimum (1, 2) is strictly inside the real box.
     const QpProblem qp = box_qp(-10.0, 10.0);
     QpOptions o = tight_opts();
     o.tr_radius = 20.0; // finite, but wide enough not to pin anything
@@ -1226,13 +999,9 @@ TEST(IpqpFaceTest, AFreeVariableCarriesExactlyZeroAndAnAbsentBoundIsNeverPriced)
 }
 
 TEST(IpqpFaceTest, AnAbsentRealBoundIsNeverPricedEvenWhenTheTrustRegionSuppliesOne) {
-    // NO LOWER BOUND AT ALL (the +/-1e20 absent sentinel), a finite radius,
-    // and an optimum ON the upper bound -- so the variable IS active, the
-    // upper side IS priced, and the lower side's effective bound exists only
-    // because the trust region made it. `SsnEngine::solve` REFUSES a start
-    // whose z prices an absent bound ("there is no row for that multiplier"),
-    // which is how this defect first surfaced: the section 2.3 item 4 route
-    // threw on the first HS problem that took it.
+    // NO LOWER BOUND AT ALL (the +/-1e20 absent sentinel), a finite radius, and an
+    // optimum ON the upper bound. `SsnEngine::solve` REFUSES a start whose z prices
+    // an absent bound, which is how this defect first surfaced.
     const QpProblem qp = box_qp(-1e20, 0.5);
     QpOptions o = tight_opts();
     o.tr_radius = 1.0;
@@ -1314,12 +1083,9 @@ TEST(IpqpBoundaryTest, TheLedgerRecordsOneRowPerSolveAndNoneForAThrow) {
     EXPECT_EQ(ledger.records()[1].label, "ipqp-1");
     EXPECT_EQ(again.status, QpStatus::kOptimal);
 
-    // FIX ROUND 1, I9: A DECLINE IS AN OUTCOME AND EMITS ITS ROW. It returns
-    // before the solve loop, but it returns NORMALLY, and the contract is one
-    // row per non-throwing solve -- task 6's routing chain wants to see the
-    // subproblems the tier refused just as much as the ones it solved, and a
-    // decline that consumed no label would make the labels stop counting
-    // solves.
+    // FIX ROUND 1, I9: A DECLINE IS AN OUTCOME AND EMITS ITS ROW. It returns before
+    // the solve loop, but it returns NORMALLY, and the contract is one row per
+    // non-throwing solve -- a decline that consumed no label would stop the count.
     SolveOverrides pinned;
     pinned.tr_radius = 0.0;
     const IpqpResult declined = tier.solve(qp, nullptr, IpqpOptions{}, pinned);
@@ -1334,17 +1100,9 @@ TEST(IpqpBoundaryTest, TheLedgerRecordsOneRowPerSolveAndNoneForAThrow) {
 }
 
 TEST(IpqpCounterTest, TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreDriverScale) {
-    // T4 FIX ROUND 1, CM3. The report claims the routing and warm counter
-    // groups are left untouched by this ENGINE; only the escape census had an
-    // executable pin for it. This is that claim, group-wide -- so a later task
-    // that starts writing one of these fields without moving its own pins
-    // fails here rather than in a sweep column nobody is watching.
-    //
-    // STILL TRUE AFTER TASK 6, and the name is amended to say WHY rather than
-    // WHEN: the routing group is written by the DRIVER'S routing chain, which
-    // is the only thing that can observe a route, and the warm group by task
-    // 7's seed path. An `IpqpResult` returned by `solve()` never carries any
-    // of them, whatever the routing then does with it.
+    // T4 FIX ROUND 1, CM3: the routing and warm counter groups are left untouched by
+    // this ENGINE, group-wide. Still true after task 6 -- routing is written by the
+    // DRIVER's chain and the warm group by task 7's seed path.
     const QpProblem qp = general_qp(true, true);
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
@@ -1376,11 +1134,9 @@ TEST(IpqpCounterTest, TheRoutingAndWarmGroupsStayAtZeroBecauseTheyAreDriverScale
 }
 
 TEST(IpqpCounterTest, TheEscapeCensusCountsABudgetEscapeExactlyOnce) {
-    // WAS `TheEscapeCensusStaysAtZeroBecauseItIsTaskFives` -- task 4's
-    // deliberate boundary pin, replaced (not deleted) now that task 5 owns
-    // the census. The invariant it guarded is unchanged and is asserted
-    // through the shared helper; what changed is that it now holds at 1 == 1
-    // instead of trivially at 0 == 0.
+    // WAS `TheEscapeCensusStaysAtZeroBecauseItIsTaskFives` -- task 4's boundary pin,
+    // replaced (not deleted) now that task 5 owns the census. The invariant is
+    // unchanged; it now holds at 1 == 1 instead of trivially at 0 == 0.
     IpqpOptions io;
     io.ipqp_hard_iter_cap = 1;
     IpqpEngine tier(tight_opts());

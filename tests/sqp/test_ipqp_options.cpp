@@ -1,20 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_ipqp_options.cpp — M6 W1 task 1: the mode/options surface for the
-// kIpm tier. Landed inert -- no engine, no counters, no dispatch -- so this
-// file pins exactly the two things that exist yet:
-//
-//   (1) IpqpOptions' fields are boundary-validated in validate_sqp_options,
-//       one pin per predicate class, following test_problem_scaling.cpp's
-//       ProblemScalingOptions.TheRuleIsValidatedAtTheBoundary pattern.
-//   (2) qp_mode == QpMode::kIpm was TEMPORARILY refused at
-//       validate_sqp_options ("not yet dispatchable"). THAT PIN IS GONE (M6
-//       W1 task 6, as its own name asked): the routing chain landed, the
-//       refusal was removed with it, and the dispatch pin that replaced it is
-//       tests/sqp/test_ipqp_dispatch.cpp's IpqpDispatch.KIpmValidatesAndSolves.
-//       What remains in THIS file is (1), which was never conditional on the
-//       mode being reachable.
+// test_ipqp_options.cpp -- M6 W1 task 1: the mode/options surface for the kIpm tier. What this
+// file pins is IpqpOptions field validation in validate_sqp_options, one pin per predicate
+// class; the kIpm dispatch pin now lives in tests/sqp/test_ipqp_dispatch.cpp (task 6 landed it).
 
 #include <limits>
 #include <stdexcept>
@@ -31,18 +20,12 @@ constexpr double kNan = std::numeric_limits<double>::quiet_NaN();
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
 // ===========================================================================
-// (1) IpqpOptions FIELD VALIDATION, ONE PREDICATE CLASS PER PIN.
-//
-// Every arm below leaves qp_mode at its kWalk DEFAULT, and that is still the
-// point of the arrangement even now that kIpm is dispatchable: these fields
-// are validated UNCONDITIONALLY, at every mode, so each pin isolates the field
-// predicate it names without a mode gate in the way.
+// (1) IpqpOptions FIELD VALIDATION -- one pin per predicate class, validated at EVERY mode.
 // ===========================================================================
 
 TEST(IpqpOptions, TheFieldsAreValidatedAtEveryModeIncludingTheDefault) {
-    // The mode itself is accepted -- task 1's temporary refusal is gone (see
-    // this file's banner) -- and the fields are refused at kWalk, where no
-    // solve will ever read them.
+    // The mode itself is accepted -- task 1's temporary refusal is gone, since task 6 landed the
+    // dispatch -- and the fields are refused at kWalk, where no solve will ever read them.
     SqpOptions ipm;
     ipm.qp_mode = QpMode::kIpm;
     EXPECT_NO_THROW(validate_sqp_options(ipm));
@@ -55,11 +38,9 @@ TEST(IpqpOptions, TheFieldsAreValidatedAtEveryModeIncludingTheDefault) {
     bad_at_kwalk.ipqp.ipqp_hard_iter_cap = 0;
     EXPECT_THROW(validate_sqp_options(bad_at_kwalk), std::invalid_argument);
 
-    // AND THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3). It is a
-    // legal `QpMode` value that names no kernel -- it exists so a fourth mode
-    // cannot be added without an arm in the driver's dispatch -- so it is
-    // refused here, at construction, like any other out-of-range setting
-    // rather than at the dispatch it can then never reach.
+    // AND THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3): a legal `QpMode` value that
+    // names no kernel, existing so a fourth mode cannot be added without a dispatch arm. It is
+    // refused here at construction, not at a dispatch it can then never reach.
     SqpOptions sentinel;
     sentinel.qp_mode = QpMode::kQpModeCount;
     EXPECT_THROW(validate_sqp_options(sentinel), std::invalid_argument);
@@ -161,10 +142,9 @@ TEST(IpqpOptions, RhoInitMustStartInsideTheRegularizationBand) {
 }
 
 TEST(IpqpOptions, DeltaInitMustBePositiveAndNoLargerThanTheCeilingButIsNotTiedToTheFloor) {
-    // Fix round 1 (2026-08-30, plan section 7 note g): delta_init is NOT
-    // bound to ipqp_reg_floor -- only rho carried the monotone-floor
-    // invariant (spec 2.2) -- so a value below the (deliberately high) floor
-    // set here must still be ACCEPTED.
+    // Fix round 1 (plan section 7 note g): delta_init is NOT bound to ipqp_reg_floor -- only rho
+    // carries the monotone-floor invariant (spec 2.2) -- so a value below the deliberately high
+    // floor set here must still be ACCEPTED.
     SqpOptions o;
     o.ipqp.ipqp_reg_floor = 1e-6;
     o.ipqp.ipqp_reg_max = 1e3;
@@ -209,10 +189,9 @@ TEST(IpqpOptions, TauMustBeAStrictFractionToBoundaryParameter) {
 }
 
 TEST(IpqpOptions, FaceKappaMustLieStrictlyBetweenZeroAndOne) {
-    // Fix round 1 (2026-08-30): tightened from "finite and > 0" to strictly
-    // (0, 1) -- at kappa >= 1 the ratio rule's active test (s_j < kappa*z_j)
-    // and inactive test (z_j < kappa*s_j) stop being mutually exclusive, so
-    // equal slack and dual values would satisfy both.
+    // Fix round 1: tightened from finite-and-positive to strictly (0, 1) -- at kappa >= 1 the
+    // ratio rule's active test (s_j < kappa*z_j) and inactive test (z_j < kappa*s_j) stop being
+    // mutually exclusive, so equal slack and dual values would satisfy both.
     SqpOptions o;
     o.ipqp.ipqp_face_kappa = 0.0;
     EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);

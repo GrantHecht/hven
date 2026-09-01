@@ -6,48 +6,13 @@
 // ipqp_kkt_layout.h -- the value-only re-valuation plan for the interior-point
 // QP tier's KKT matrix.
 //
-// WHY THIS EXISTS. The SQP side has no value-only path onto a KKT assembly:
-// detail/kkt/kkt_assembly.h::assemble_kkt_core builds a triplet vector and
-// calls setFromTriplets() + makeCompressed() on EVERY call, structure and
-// values together, and its matrix is WORKING-SET shaped (only active
-// inequality rows appear) -- the wrong shape for a barrier method that carries
-// every row every iteration. The interior engine's own answer
-// (NonLinearProgram::analyze_sparsity + KktLocationTable) is
-// NonLinearProgram's and cannot be pointed at a QpProblem.
+// WHY. The SQP side has no value-only path onto a KKT assembly (kkt_assembly.h rebuilds
+// structure and values on every call, working-set shaped) and the interior engine's own
+// answer is NonLinearProgram's. The mechanism is SsnEngine::sync_matrix, re-derived here.
 //
-// THE TEMPLATE IS SsnEngine::sync_matrix (include/hven/detail/qp/ssn_engine.h,
-// src/qp/ssn_engine.cpp): cache each emitted entry's position in the value
-// array, in emission order, behind a structure-key guard with an explicit
-// entry-count collision check; zero-fill and re-scatter on a match, rebuild by
-// triplets otherwise. This class is that mechanism re-derived for the
-// interior-point tier's own (fixed, non-working-set) block pattern.
-//
-// THE SYSTEM. Slack form, in KKTVector's block order
-// (include/hven/detail/interior/kkt_vector.h: [primals | slacks | eq_lmults |
-// iq_lmults]), with s = bi - Ai x >= 0 and lambda_i >= 0. Variable bounds are
-// CONDENSED into the (1,1) diagonal and add no rows, so
-//
-//     dim = n + mi + me + mi = n + 2*mi + me
-//
-// and the Newton system is
-//
-//     [ H + rho I + Sigma_b     0        Ae'       Ai'    ]
-//     [      0            Lam S^-1        0        -I     ]
-//     [     Ae                  0     -delta I      0     ]
-//     [     Ai                 -I          0     -delta I ]
-//
-// quasi-definite for rho, delta > 0. Only the UPPER TRIANGLE is stored, in the
-// row-major CSR convention hven::linear::SymmetricFactor requires (a
-// structural diagonal in every row, nothing below it) -- so Ae and Ai appear
-// once each, as the (x, eq) and (x, iq) transposed blocks, and the (s, iq)
-// coupling -I appears once.
-//
-// WHAT MOVES PER ITERATION. Nothing structural: within a subproblem only the
-// four diagonal families and the -I coupling carry iteration-dependent values,
-// and across majors the source values change but the pattern does not. That is
-// what licenses PatternCheck::kAssumeAnalyzed on the tier's refactorize()
-// calls -- the tier alone writes into the buffer, from this fixed plan, so it
-// can NAME the mechanism keeping the pattern fixed rather than assert it.
+// THE SYSTEM is spec section 3.1's, slack form, dim = n + 2*mi + me, UPPER TRIANGLE only
+// in the row-major CSR convention SymmetricFactor requires. Nothing STRUCTURAL moves per
+// iteration -- which is what licenses `kAssumeAnalyzed` on the tier's refactorize() calls.
 
 #include <cstddef>
 #include <cstdint>
@@ -61,16 +26,9 @@ namespace hven::solvers {
 /// matrix, plus the per-iteration scatter plan that refills it without
 /// touching the pattern.
 ///
-/// Lifecycle: `sync()` on every entry with the current (H, Ae, Ai, n, me, mi).
-/// The first call, and any call whose structure key differs from the cached
-/// one, LAYS OUT the pattern (one setFromTriplets + makeCompressed) and
-/// records the plan; every other call is an O(nnz) zero-fill-and-scatter with
-/// no allocation, no re-sort and no setFromTriplets. Either way the caller
-/// then writes the four diagonal families through the offset accessors below.
-///
-/// The matrix is passed in by reference on every call rather than owned:
-/// its home is KktFactorization::matrix(), the buffer the linear layer takes
-/// by reference at analyze()/factorize().
+/// Lifecycle: `sync()` on every entry. A first call, or a structure-key miss, LAYS OUT the
+/// pattern and records the plan; every other call is an O(nnz) zero-fill-and-scatter. The
+/// matrix is passed by reference, never owned -- its home is KktFactorization::matrix().
 class IpqpKktLayout {
   public:
     /// @brief Brings `k` up to date for (H, Ae, Ai) at the given dimensions.
@@ -78,52 +36,13 @@ class IpqpKktLayout {
     ///         caller must re-`compute()` its factorization rather than
     ///         `refactorize()`.
     ///
-    /// After the call, `k` holds: H's stored (upper-triangle) values in the
-    /// (1,1) block, Ae' and Ai' in the (1,3) and (1,4) blocks, -1 in each
-    /// (s_k, iq_k) coupling slot, H(i,i) in each primal diagonal slot (0 where
-    /// H stores no diagonal entry), and ZERO in the slack, eq-pivot and
-    /// iq-pivot diagonal slots. The four diagonal families are the caller's to
-    /// write; see `primal_diag_source()` for the one that is not simply
-    /// overwritten.
+    /// After the call `k` holds H's stored upper triangle, Ae'/Ai', -1 in each coupling slot
+    /// and H(i,i) in each primal diagonal; the four diagonal families are the caller's to
+    /// write. ONE LAYOUT SERVES ONE BUFFER -- hand it the SAME `k` for its whole life.
     ///
-    /// ONE LAYOUT SERVES ONE BUFFER. A plan is a map into a specific value
-    /// array, so a given IpqpKktLayout must be handed the SAME `k` for its
-    /// whole life. The reuse guard checks rows, cols, `nonZeros()` and
-    /// `isCompressed()`, which is strictly more than SsnEngine::sync_matrix
-    /// checks (that class owns its matrix outright) -- but a shape-and-count
-    /// match is not a PATTERN match: two matrices of identical dimensions and
-    /// identical entry counts, with different patterns, both pass, and the
-    /// scatter would then write through a map built for the other one. The
-    /// structure key covers the PROBLEM; nothing here can cover a swapped
-    /// buffer, so the caller must not swap one.
-    ///
-    /// DEGENERATE CASE. `n == me == mi == 0` is accepted and lays out a 0x0
-    /// matrix with empty tables: `dim() == 0`, every slot accessor refuses,
-    /// and a reuse sync is a no-op. It is legal here and rejected downstream
-    /// -- the linear layer will not analyze an empty matrix -- so a caller
-    /// reaching it has a problem this class is not the right place to
-    /// diagnose.
-    ///
-    /// EXCEPTION SAFETY, in two layers because the inner one is not reachable
-    /// from any fixture and so cannot be kept honest by a test.
-    ///
-    /// A VALIDATION failure (everything under @throws below) is raised before
-    /// anything is read or written: the object and `k` are untouched, and a
-    /// previously laid-out plan stays valid and addressable.
-    ///
-    /// A failure INSIDE the layout -- `bad_alloc` from the triplet reserve or
-    /// from `setFromTriplets`, or the internal-consistency throw from the
-    /// position lookup -- fails CLOSED: `has_structure()` goes false first, so
-    /// every slot accessor then refuses with `std::logic_error`, and the
-    /// caller's recovery is to sync again. This matters because the accessors
-    /// are bounds-checked against `n_`/`me_`/`mi_` and nothing else: a state
-    /// with the new dimensions stored beside the old tables would pass that
-    /// check and index out of range, in Release, silently, with the result
-    /// used as an index into `k.valuePtr()`. The layout therefore ALSO builds
-    /// every product into locals and commits them in one step at the end, so
-    /// the dimensions and the tables they describe can never disagree -- but
-    /// the planless-first flag is what makes the guarantee independent of that
-    /// ordering staying right.
+    /// A VALIDATION failure leaves the object and `k` untouched. A failure INSIDE the layout
+    /// fails CLOSED -- `has_structure()` goes false first, every slot accessor then refuses,
+    /// and the caller's recovery is to sync again. See `.superpowers/w1-t3-report.md`.
     ///
     /// @throws std::invalid_argument on a dimension disagreement, a negative
     ///         dimension, or a below-diagonal entry in H. These are validated
@@ -134,9 +53,8 @@ class IpqpKktLayout {
 
     /// @brief Whether a cached plan exists AND keys to (H, Ae, Ai, n, me, mi).
     ///
-    /// The same predicate `sync()` uses. Exposed so a caller can decide
-    /// between compute() and refactorize() before spending the scatter, and so
-    /// the guard is testable on its own.
+    /// The same predicate `sync()` uses, exposed so a caller can choose compute() over
+    /// refactorize() before spending the scatter, and so the guard is testable on its own.
     bool matches(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Index n, Index me,
                  Index mi) const;
 
@@ -151,14 +69,9 @@ class IpqpKktLayout {
     // Diagonal slot addressing
     // ---------------------------------------------------------------------
     //
-    // `diag_pos()` is a dim-length table of each row's DIAGONAL position in
-    // `k.valuePtr()`, in row order; the four bases below partition it by
-    // block, in KKTVector's order. A caller writes
-    //
-    //     k.valuePtr()[layout.diag_pos()[layout.primal_diag_base() + i]] = ...
-    //
-    // or, equivalently and more briefly, through the four slot accessors.
-    // Both spellings are O(1) and neither touches the pattern.
+    // `diag_pos()` is a dim-length table of each row's DIAGONAL position in `k.valuePtr()`,
+    // in row order; the four bases below partition it by block, in KKTVector's order. The
+    // four slot accessors are the same map, O(1), spelled shorter. Neither touches pattern.
 
     /// Each row's diagonal position in the value array, in row order.
     /// @throws std::logic_error if no plan has been laid out.
@@ -176,11 +89,8 @@ class IpqpKktLayout {
     /// Index into `diag_pos()` of the inequality block's first pivot.
     Index iq_pivot_base() const { return n_ + mi_ + me_; }
 
-    // Every accessor below refuses with std::logic_error when no plan has been
-    // laid out, BEFORE it range-checks its index. The two guards answer
-    // different questions -- "is there a table" and "is this index inside the
-    // block" -- and only the pair of them makes the returned value safe to use
-    // as an index into `k.valuePtr()`.
+    // Every accessor below refuses with std::logic_error when no plan has been laid out,
+    // BEFORE it range-checks its index; only the pair makes the result safe as an index.
 
     /// @brief Position in `k.valuePtr()` of primal diagonal `i` -- the slot
     /// carrying H(i,i) + rho + Sigma_b(i). `i` in [0, n).
@@ -201,30 +111,16 @@ class IpqpKktLayout {
     /// @brief Position of the (s_j, iq_j) coupling slot -- the -I block.
     /// `j` in [0, mi).
     ///
-    /// A fifth family, off the diagonal and therefore not in `diag_pos()`.
-    /// `sync()` writes -1 there; a caller that equilibrates its system (spec
-    /// section 4.3's Ruiz scaling) overwrites it through this accessor rather
-    /// than re-scattering.
+    /// A fifth family, off the diagonal and so not in `diag_pos()`. `sync()` writes -1 there;
+    /// a caller that equilibrates (spec section 4.3) overwrites it through this accessor.
     std::size_t slack_coupling_slot(Index j) const;
 
     /// @brief H's own diagonal contribution, H(i,i), captured by the last
     /// `sync()`; 0 where H stores no diagonal entry. Length n.
     ///
-    /// The inertia ladder rewrites the primal diagonal several times per
-    /// iteration with a new rho, and each rewrite needs H's contribution back:
-    /// without this the ladder would have to re-scatter H (O(nnz)) to recover
-    /// what a previous rung overwrote, or read it back out of a slot it is
-    /// about to clobber. Recorded once per layout/scatter instead, so a rung
-    /// is `values[primal_diag_slot(i)] = primal_diag_source()[i] + rho +
-    /// sigma[i]` -- an assignment, not a read-modify-write, so a rung never
-    /// compounds the previous rung's regularization.
-    ///
-    /// A SNAPSHOT TAKEN AT SYNC TIME, deliberately: it records what the
-    /// scatter put in those slots, and it goes stale the instant the caller
-    /// writes a primal diagonal -- which is the point, since what the ladder
-    /// needs back is precisely the value from BEFORE its own writes. It is
-    /// refreshed by every `sync()`, layout or reuse, and by nothing else.
-    ///
+    /// The inertia ladder rewrites the primal diagonal once per rung and needs H's own
+    /// contribution back each time, so a rung is an ASSIGNMENT, never a read-modify-write,
+    /// and never compounds the previous rung's rho. A snapshot: refreshed only by `sync()`.
     /// @throws std::logic_error if no plan has been laid out.
     const std::vector<double> &primal_diag_source() const {
         require_structure("primal_diag_source");
@@ -236,18 +132,15 @@ class IpqpKktLayout {
     /// cached position map, then re-establishes the coupling block's -1 and
     /// re-reads `primal_diag_source_`.
     ///
-    /// Private: `sync()` is the entry point, and calling this against a
-    /// `k` the cached plan was not laid out for is exactly the corruption the
-    /// structure key exists to prevent.
+    /// Private: `sync()` is the entry point, and calling this against a `k` the cached plan
+    /// was not laid out for is exactly the corruption the structure key exists to prevent.
     void scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, SpMatRM &k);
 
     /// The emission order both the layout and the scatter walk. Defined in the
     /// .cpp, where both call sites live: ONE emission order by construction,
     /// which is what makes the cached position map meaningful.
-    ///
-    /// Takes its dimensions as arguments rather than reading `n_`/`me_`/`mi_`:
-    /// the layout branch runs it BEFORE those members are committed, which is
-    /// what lets the commit happen in one step at the end.
+    /// Takes its dimensions as arguments rather than reading `n_`/`me_`/`mi_`: the layout
+    /// branch runs it BEFORE those members are committed, so the commit happens in one step.
     template <typename Emit>
     static void for_each_entry(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &Ai, Index n,
                                Index me, Index mi, Emit emit);
@@ -277,10 +170,8 @@ class IpqpKktLayout {
     std::vector<std::size_t> coupling_pos_;
     std::vector<double> primal_diag_source_;
 
-    /// The laid-out matrix's stored-entry count. Part of the reuse guard: a
-    /// caller hands the matrix in by reference on every call, so "same
-    /// dimensions, same structure key" is checked against the buffer actually
-    /// presented, not only against the problem.
+    /// The laid-out matrix's stored-entry count. Part of the reuse guard, so the key is
+    /// checked against the buffer actually presented and not only against the problem.
     Index nnz_ = 0;
 
     std::uint64_t structure_key_ = 0;

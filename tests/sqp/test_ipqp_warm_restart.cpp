@@ -1,16 +1,9 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_ipqp_warm_restart.cpp -- the M6 W1 task 7 pins for the
-// interior-point tier's SUBPROBLEM-LEVEL warm restart (spec section 5): the
-// 5.2 repair, the 5.3 mu_0 clamp, the 5.4 grades, the 5.5 warm-kill and the
-// cross-major carry. The DRIVER half of task 7 -- the preserved-seed ingest
-// and the mode-local cold degrade -- is pinned in test_sqp_warm_currency.cpp,
-// beside the staging contract it extends.
-//
-// EVERY VALUE PIN IS SHOWN FALLIBLE, this file's siblings' rule: each block
-// that asserts a counter or an ingested value also asserts a neighbouring
-// fixture where the same assertion would fail.
+// tests/sqp/test_ipqp_warm_restart.cpp -- M6 W1 task 7 pins for the interior-point tier's
+// SUBPROBLEM-LEVEL warm restart (spec section 5). The DRIVER half is in
+// test_sqp_warm_currency.cpp. Every value pin is shown fallible by a neighbouring fixture.
 
 #include <limits>
 #include <vector>
@@ -53,10 +46,9 @@ QpOptions tight_opts() {
     return o;
 }
 
-/// min 0.5 x^2 over x in [-1, 1]. The minimiser is the INTERIOR point x = 0,
-/// so a seed can carry a positive price on BOTH sides of the same bound and
-/// still be converged -- which is exactly the configuration the signed-z
-/// flattening cannot represent.
+/// min 0.5 x^2 over x in [-1, 1]. The minimiser is the INTERIOR point x = 0, so a seed can carry
+/// a positive price on BOTH sides of the same bound and still be converged -- exactly the
+/// configuration the signed-z flattening cannot represent.
 QpProblem interior_qp() {
     QpProblem qp;
     qp.H = diag_upper({1.0});
@@ -115,10 +107,9 @@ IpqpSeed seed_for(const QpProblem &qp) {
     return seed;
 }
 
-/// The converged, two-sided-price seed the split pins are built on: at x = 0
-/// both bound distances are 1, so the pair products ARE the two prices, the
-/// point is centred within the section 5.2 test, and the tier converges at
-/// iteration 0 without repairing anything.
+/// The converged, two-sided-price seed the split pins are built on: at x = 0 both bound
+/// distances are 1, so the pair products ARE the two prices, the point is centred within the
+/// section 5.2 test, and the tier converges at iteration 0 without repairing anything.
 IpqpSeed centred_full_seed() {
     IpqpSeed seed = seed_for(interior_qp());
     seed.zl = vec({3.0e-9});
@@ -200,11 +191,9 @@ TEST(IpqpWarmRestart, AColdSolveReportsTheColdGradeAndTouchesNoWarmCounter) {
 // Section 5.4 -- the grades, and what the flattening costs
 // ---------------------------------------------------------------------------
 
-// THE FULL GRADE DELIVERS THE PAYLOAD'S SPLIT UNCHANGED. The seed is centred
-// and already meets this problem's own relative target, so the tier converges
-// before it takes a step and the exported prices ARE the ingested ones --
-// bitwise, which is what makes this a statement about the ingest rather than
-// about the solve.
+// THE FULL GRADE DELIVERS THE PAYLOAD'S SPLIT UNCHANGED. The seed is centred and already meets
+// this problem's relative target, so the tier converges before it steps and the exported prices
+// ARE the ingested ones, bitwise -- a statement about the ingest rather than about the solve.
 TEST(IpqpWarmRestart, TheFullGradeCarriesTheTwoSidedSplitUnflattened) {
     const QpProblem qp = interior_qp();
     const IpqpSeed seed = centred_full_seed();
@@ -294,10 +283,9 @@ TEST(IpqpWarmRestart, ThePayloadMuCanNeverRaiseMuAboveTheColdDefault) {
 // Section 5.5 -- the warm-kill (fixture A12's mechanism)
 // ---------------------------------------------------------------------------
 
-// A12, AS THE MECHANISM RATHER THAN AS TYCHO'S NUMBERS (plan risk R7). A stale
-// primal seed on a perturbed problem: the warm attempt is abandoned at the
-// clamped budget, the counter fires exactly once, and the COLD path recovers
-// the answer the tier would have reached from cold in the first place.
+// A12, AS THE MECHANISM RATHER THAN AS TYCHO'S NUMBERS (plan risk R7). A stale primal seed on a
+// perturbed problem: the warm attempt is abandoned at the clamped budget, the counter fires
+// exactly once, and the COLD path recovers the answer the tier would have reached from cold.
 TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
     const QpProblem qp = stale_qp();
     IpqpEngine tier(tight_opts());
@@ -336,9 +324,8 @@ TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
 }
 
 // PLAN SECTION 7 NOTE (c) + FIX ROUND 1 R2: the effective warm budget is
-// `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`; even where the clamp
-// makes the two EQUAL, the warm-kill still preempts the ordinary escape.
-// `.superpowers/w1-t7-report.md` FIX ROUND 2.
+// `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`; even where the clamp makes the two
+// EQUAL, the warm-kill still preempts the ordinary escape. `.superpowers/w1-t7-report.md`.
 TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
     const QpProblem qp = stale_qp();
     IpqpSeed stale = seed_for(qp);
@@ -367,12 +354,9 @@ TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
     EXPECT_LE(c.counters.ipqp_iters, clamped.ipqp_hard_iter_cap);
 }
 
-// THE BUDGETS ARE PER ATTEMPT. Section 5.5 gives the warm attempt "an
-// iteration budget of ~the cold median" and says a SECOND overrun is "an
-// ordinary budget escape" -- the ordinary budget, not its remainder. The
-// fixture calibrates itself: the cold solve's own iteration count IS the cap,
-// so a shared pool would escape by exactly the abandoned attempt's cost and a
-// per-attempt one converges.
+// THE BUDGETS ARE PER ATTEMPT, not a shared pool: section 5.5 makes a SECOND overrun an ordinary
+// budget escape -- the ordinary budget, not its remainder. The fixture calibrates itself: the
+// cold solve's own iteration count IS the cap, so a shared pool would escape and this converges.
 TEST(IpqpWarmRestart, TheColdRestartGetsTheOrdinaryBudgetAndNotItsRemainder) {
     const QpProblem qp = stale_qp();
     IpqpEngine measure(tight_opts());
@@ -455,10 +439,9 @@ TEST(IpqpWarmRestart, TheCarryIsArmedByASolveAndSpentByTheNextOne) {
     EXPECT_EQ(tier.warm_carry(), nullptr);
 }
 
-// "A trust-region shrink-retry ... does not reset the seed" (spec 5.1
-// amendment D) rests on this: a solve that produced nothing usable leaves the
-// previous carry standing rather than clearing it. A DECLINED subproblem is
-// the reachable case -- the tier returns before it has a workspace at all.
+// A trust-region shrink-retry does not reset the seed (spec 5.1 amendment D), and that rests on
+// this: a solve that produced nothing usable leaves the previous carry standing. A DECLINED
+// subproblem is the reachable case -- the tier returns before it has a workspace at all.
 TEST(IpqpWarmRestart, ASolveThatProducedNothingLeavesThePreviousCarryStanding) {
     IpqpEngine tier(tight_opts());
     const IpqpResult first = tier.solve(stale_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
@@ -672,12 +655,9 @@ TEST(IpqpWarmRestart, TheRepairClampsAWrongSignedPriceAndRecordsItsLargestShift)
 // A12 -- the perturbed-continuation cell, at the driver
 // ---------------------------------------------------------------------------
 
-// FIXTURE A12 IN ITS hven SHAPE (plan section 3; risk R7 -- the MECHANISM, not
-// tycho's numbers). F3's spring chain has a bound-activation threshold at
-// p = 0.5: a value exported on the FREE branch and re-staged on the CLAMPED one
-// is stale in exactly the way tycho Task 13 recorded -- a primal that no longer
-// respects the active set the new problem has. The tier restarts from it, the
-// warm attempt overruns its clamped budget, and the COLD restart recovers.
+// FIXTURE A12 IN ITS hven SHAPE (plan section 3; risk R7 -- the MECHANISM, not tycho's numbers).
+// F3's spring chain has a bound-activation threshold at p = 0.5, so a value exported on the FREE
+// branch and re-staged on the CLAMPED one is stale. See `.superpowers/w1-t7-report.md`.
 TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandonedAndRecovers) {
     const auto solve_continuation = [](Index warm_budget) {
         test_support::F3SpringChain model(20, 0.5, 0.25);
