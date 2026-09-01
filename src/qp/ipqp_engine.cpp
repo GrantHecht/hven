@@ -59,10 +59,12 @@
 // a caller who disables the radius entirely, which is the case it exists for.
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -751,9 +753,16 @@ void IpqpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
 void IpqpEngine::attach_trace(IpqpTraceSink *sink) {
     trace_ = sink;
     trace_solve_counter_ = 0;
+    last_trace_solve_id_ = 0; // R5: a reattach must not leak the prior attach's id.
 }
 
-void IpqpEngine::set_trace_major(Index major) { trace_major_ = major; }
+void IpqpEngine::set_trace_major(Index major) {
+    if (major < 0) {
+        throw std::invalid_argument(
+            fmt::format("IpqpEngine::set_trace_major: major must be >= 0, got {}", major));
+    }
+    trace_major_ = major;
+}
 
 Index IpqpEngine::last_trace_solve_id() const { return last_trace_solve_id_; }
 
@@ -818,14 +827,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     IpqpResult out;
 
-    // task 8: this solve's trace `solve` id, numbered like `emit_ledger`'s
-    // label counter (advanced only while a sink is attached, so re-attaching
-    // restarts the numbering exactly as attach_ledger's own counter does).
+    // task 8: this solve's trace `solve` id, READ only -- see
+    // complete_trace_solve below for why the counter itself advances later.
     const Index trace_solve_id = trace_solve_counter_;
-    if (trace_ != nullptr) {
-        ++trace_solve_counter_;
-    }
-    last_trace_solve_id_ = trace_solve_id;
 
     // ONE ROW PER NON-THROWING SOLVE, and that includes a DECLINE (I9). The
     // emitter lives here, above the domain gate, because the gate returns
@@ -852,6 +856,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         ledger_->record(std::move(rec));
     };
 
+    // R5: a solve is marked "completed" (the id becomes observable through
+    // last_trace_solve_id()) only at the two points past which this call
+    // cannot throw -- alongside emit_ledger(), never at entry.
+    auto complete_trace_solve = [&]() {
+        if (trace_ != nullptr) {
+            ++trace_solve_counter_;
+            last_trace_solve_id_ = trace_solve_id;
+        }
+    };
+
     out.box = make_ipqp_box(qp, ipqp_effective_tr_radius(opts_, overrides));
     const IpqpBounds bounds = make_ipqp_bounds(out.box);
 
@@ -867,6 +881,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         out.escape_reason = IpqpEscape::kNone;
         out.counters.ipqp_declined_pinned = 1;
         emit_ledger();
+        complete_trace_solve();
         return out;
     }
 
@@ -1061,6 +1076,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return false;
     };
 
+    // R4 (settler ruling, fix round 1): the SAY shift's own delta_p/delta_d,
+    // captured for `ipqp.restart` only -- report values, no trajectory
+    // change. 0.0 when the SAY shift never runs.
+    double trace_restart_shift_p = 0.0;
+    double trace_restart_shift_d = 0.0;
+
     // Section 5.2 in three steps -- strict positivity, the SAY shift, proximal
     // re-centering -- with the 5.3 clamp between the first two, since the
     // shift's target IS `mu_0`. Every move folds into `shift_max` (F4).
@@ -1175,6 +1196,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 sum_d > 0.0 ? detail::kIpqpSayTargetFraction * mu0 * npd / sum_d : 0.0;
             const double delta_p =
                 sum_z > 0.0 ? detail::kIpqpSayTargetFraction * mu0 * npd / sum_z : 0.0;
+            trace_restart_shift_p = delta_p; // R4: report-only, ahead of the moves below.
+            trace_restart_shift_d = delta_d;
             // THE PRIMAL SCALAR MOVES THE SLACKS ONLY: a variable's two bound
             // distances are both functions of one `x`, so no scalar can raise
             // them together. Bound pairs are centred on the dual side alone.
@@ -2670,10 +2693,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // tests pin the EXACT accounting rather than the inequality.
                 if (moved) {
                     ++out.counters.ipqp_reg_decreases;
-                    // task 8: `ipqp.reg`, the section 3.2 gate's own
-                    // decrease. Reported at rho_sched/delta_sched alone
-                    // (rho_dem is 0 outside the ladder, which this gate never
-                    // touches).
+                    // task 8: `ipqp.reg`, the gate's own decrease -- rho_dem
+                    // is 0 outside the ladder, which this gate never touches.
                     if (trace_ != nullptr) {
                         IpqpTraceRegEvent ev;
                         ev.dir = IpqpTraceRegDir::kDown;
@@ -2887,10 +2908,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         ++attempt_accepted; // R1: this attempt's own accepted-step count.
         rho_dem_final = rho_dem;
 
-        // task 8: `ipqp.iter`, one per completed predictor+corrector pair.
-        // `kkt_.inertia_evidence()` is the just-accepted factorization's own
-        // cached reading (an accessor, not a re-factorization), so this costs
-        // nothing beyond what the iteration already paid.
+        // task 8: `ipqp.iter`. `kkt_.inertia_evidence()` is a cached-field
+        // accessor, not a re-factorization -- no added cost. R1: absent
+        // evidence stays absent, never zero-filled.
         if (trace_ != nullptr) {
             const hven::linear::InertiaEvidence &iev = kkt_.inertia_evidence();
             IpqpTraceIterEvent ev;
@@ -2907,12 +2927,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             ev.alpha_p = alpha_p;
             ev.alpha_d = alpha_d;
             if (iev.state == hven::linear::InertiaEvidence::State::kObserved) {
-                ev.inertia_pos = iev.n_pos;
-                ev.inertia_neg = iev.n_neg;
-                ev.inertia_zero = iev.n_zero;
+                ev.inertia = std::array<Index, 3>{iev.n_pos, iev.n_neg, iev.n_zero};
                 ev.zero_derived = iev.zero_is_derived;
-                ev.perturbed = iev.perturbed_pivots.has_value() && *iev.perturbed_pivots != 0;
-            }
+            } // else: ev.inertia stays nullopt -- unavailable/unreadable, R1.
+            ev.perturbed = iev.perturbed_pivots; // absent on Accelerate, R1.
             emit_trace_iter(ev);
         }
         if (elevated) {
@@ -3104,8 +3122,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                         ? IpqpTraceRestartGrade::kBase
                         : IpqpTraceRestartGrade::kCold;
         rev.repaired = out.counters.ipqp_restart_repairs != 0;
-        rev.shift_p = out.counters.ipqp_restart_shift_max;
-        rev.shift_d = out.counters.ipqp_restart_shift_max; // see this struct's own doc comment.
+        rev.shift_p = trace_restart_shift_p; // R4: the SAY shift's own split, not the max-fold.
+        rev.shift_d = trace_restart_shift_d;
         rev.mu0 = mu0;
         rev.mu_payload = trace_payload_mu;
         rev.adopted = out.counters.ipqp_mu_adopted != 0;
@@ -3223,8 +3241,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             eev.reason = IpqpTraceEscapeReason::kInfeasibleSuspect;
             break;
         }
-        eev.stall = out.stall_evidence;
-        eev.infeasibility = out.infeasibility_evidence;
+        eev.evidence.stall = out.stall_evidence;
+        eev.evidence.infeasibility = out.infeasibility_evidence;
         emit_trace_escape(eev);
     }
 
@@ -3387,6 +3405,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     out.counters.ipqp_rho_demanded_last = rho_dem_last;
 
     emit_ledger();
+    complete_trace_solve();
 
     return out;
 }

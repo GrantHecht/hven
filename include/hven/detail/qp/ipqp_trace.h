@@ -3,14 +3,12 @@
 
 #pragma once
 
-// ipqp_trace.h -- the IPQP tier's machine-trace schema v0 (M6 W1 task 8, the
-// W4 hook: docs/notes/2026-08-m6-w1-ipqp-spec.md section 7, :733-749). The
-// SEVEN event structs and the sink interface the private emit sites call;
-// W1 ships structs + call sites, W4 the JSON-lines serializer. Field names
-// match the schema's JSON keys (`inertia:[np,nn,nz]` split into three named
-// fields; `v`/`ev` are the serializer's envelope, not carried here). See the
-// task's report for the `facts` field's undefined-by-spec status.
+// ipqp_trace.h -- the IPQP tier's machine-trace schema v0 (spec section 7,
+// :733-749). Seven event structs + sink interface; `v`/`ev` are the
+// serializer's envelope, not carried on any struct here.
 
+#include <array>
+#include <optional>
 #include <string>
 
 #include <hven/core/types.h>
@@ -41,12 +39,14 @@ struct IpqpTraceIterEvent {
     double sigma = 0.0; ///< Mehrotra's centering parameter.
     double alpha_p = 0.0;
     double alpha_d = 0.0;
-    Index inertia_pos = 0;
-    Index inertia_neg = 0;
-    Index inertia_zero = 0;
-    bool zero_derived = false; ///< InertiaEvidence::zero_is_derived.
-    bool perturbed = false;    ///< This iteration's accepted read reported a perturbed pivot.
-    std::string facts;         ///< See this header's banner.
+    /// {n_pos, n_neg, n_zero}; absent (not zero-filled) when the read was
+    /// unavailable or unreadable -- CLAUDE.md section 6.
+    std::optional<std::array<Index, 3>> inertia;
+    bool zero_derived = false; ///< InertiaEvidence::zero_is_derived; set iff inertia has_value().
+    /// Perturbed-pivot count; absent when the backend does not report one
+    /// (Accelerate), never zero-filled.
+    std::optional<Index> perturbed;
+    std::string facts; ///< Opaque, undefined by spec v0; always empty from W1.
 };
 
 /// @brief One (rho, delta) schedule move (schema `ipqp.reg`).
@@ -58,13 +58,9 @@ struct IpqpTraceRegEvent {
 };
 
 /// @brief The section 5 warm restart this solve started from (schema
-/// `ipqp.restart`).
-///
-/// `shift_p`/`shift_d` BOTH carry `IpqpCounters::ipqp_restart_shift_max`: the
-/// engine tracks one undifferentiated repair magnitude across every primal
-/// and dual move the restart makes (`shift_max` in `warm_start_from`), not a
-/// primal/dual split, and inventing one here would fabricate a distinction
-/// the engine does not measure.
+/// `ipqp.restart`). `shift_p`/`shift_d` are the SAY shift's own
+/// `delta_p`/`delta_d` (`warm_start_from`), 0.0 when that shift never ran.
+/// See .superpowers/w1-t8-report.md for why this differs from `shift_max`.
 struct IpqpTraceRestartEvent {
     IpqpTraceRestartGrade grade = IpqpTraceRestartGrade::kCold;
     bool repaired = false;
@@ -94,36 +90,35 @@ struct IpqpTraceCertifyEvent {
     bool downgraded = false;
 };
 
-/// @brief One tier escape (schema `ipqp.escape`). The schema's single
-/// `evidence` object is the union of the two evidence blocks `IpqpResult`
-/// already carries -- reused rather than re-invented; `stall` is populated
-/// iff `reason == kStall`, `infeasibility` iff `reason == kInfeasibleSuspect`.
-struct IpqpTraceEscapeEvent {
-    IpqpTraceEscapeReason reason = IpqpTraceEscapeReason::kBudget;
+/// @brief The schema's single `evidence` object (R2), nesting the two typed
+/// blocks `IpqpResult` already carries. `stall.fired` iff `reason==kStall`,
+/// `infeasibility.fired` iff `reason==kInfeasibleSuspect`.
+struct IpqpTraceEscapeEvidence {
     IpqpStallEvidence stall;
     IpqpInfeasibilityEvidence infeasibility;
 };
 
-/// @brief The driver dispatch's own outcome for one subproblem (schema
-/// `qp.mode`). Driver-emitted, in the kIpm arm only -- the one place a mode's
-/// dispatch knows whether the subproblem was solved outright, routed onward,
-/// or escaped.
+/// @brief One tier escape (schema `ipqp.escape`).
+struct IpqpTraceEscapeEvent {
+    IpqpTraceEscapeReason reason = IpqpTraceEscapeReason::kBudget;
+    IpqpTraceEscapeEvidence evidence;
+};
+
+/// @brief The driver dispatch's outcome for one subproblem (schema
+/// `qp.mode`), driver-emitted in the kIpm arm only.
 struct QpModeTraceEvent {
     IpqpTraceQpMode mode = IpqpTraceQpMode::kIpqp;
     IpqpTraceOutcome outcome = IpqpTraceOutcome::kOptimal;
-    std::string facts; ///< See this header's banner.
+    std::string facts; ///< Opaque, undefined by spec v0; always empty from W1.
     Index iters = 0;
 };
 
-/// @brief The W4 hook: one sink, seven event methods, no default
-/// implementation -- a concrete subclass (W4's JSON-lines writer, or a test
-/// double) must answer all seven. `attach_trace(nullptr)` (the default on
-/// both `IpqpEngine` and `SqpDriver`) is the off state every emit site checks
-/// before building its argument struct, so an unattached sink costs one
-/// pointer compare per event point.
+/// @brief The W4 hook: one sink, seven pure-virtual methods. `nullptr` is
+/// the off state every emit site checks before building its argument
+/// struct. Destructor out-of-line (ipqp_trace.cpp, CLAUDE.md section 5).
 class IpqpTraceSink {
   public:
-    virtual ~IpqpTraceSink() = default;
+    virtual ~IpqpTraceSink();
     virtual void on_ipqp_iter(const IpqpTraceIterEvent &event) = 0;
     virtual void on_ipqp_reg(const IpqpTraceRegEvent &event) = 0;
     virtual void on_ipqp_restart(const IpqpTraceRestartEvent &event) = 0;

@@ -3580,10 +3580,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 ipqp_engine().reset_warm_carry();
             }
 
-            // task 8: `ipqp.route`/`qp.mode`'s shared face facts -- the
-            // tier's own classification, valid on all three branches below
-            // (populated unconditionally at the end of solve(), escape
-            // included).
+            // task 8: `ipqp.route`/`qp.mode`'s shared face facts, valid on
+            // all three branches below (populated even on an escape).
             Index ipqp_trace_face_rows = 0;
             Index ipqp_trace_face_bounds = 0;
             if (ipqp_trace_ != nullptr) {
@@ -3606,6 +3604,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 rev.face_bounds = ipqp_trace_face_bounds;
                 emit_trace_route(rev);
                 QpModeTraceEvent mev;
+                mev.mode = IpqpTraceQpMode::kIpqp; // M4: explicit -- this arm's only mode.
                 mev.outcome = outcome;
                 mev.iters = ires.counters.ipqp_iters;
                 emit_trace_qp_mode(mev);

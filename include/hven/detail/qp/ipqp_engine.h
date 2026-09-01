@@ -125,10 +125,8 @@
 
 namespace hven::solvers {
 
-// Forward-declared, not included: ipqp_trace.h (task 8, the W4 hook) needs
-// IpqpStallEvidence/IpqpInfeasibilityEvidence FROM this header, so this
-// header cannot include that one back. `IpqpEngine` only needs a pointer and
-// const-reference parameters, which a forward declaration satisfies.
+// Forward-declared, not included: ipqp_trace.h needs types FROM this header,
+// so this one cannot include it back; a pointer/const-ref suffices here.
 class IpqpTraceSink;
 struct IpqpTraceIterEvent;
 struct IpqpTraceRegEvent;
@@ -982,23 +980,19 @@ class IpqpEngine {
     /// `IpqpCounters` travel on `IpqpResult`, never through this projection.
     void attach_ledger(Ledger *ledger, std::string label_prefix);
 
-    /// Attach a trace sink for the W4 machine-trace hook (task 8; spec
-    /// section 7; nullptr = off, default off). Five of the seven schema v0
-    /// event points are emitted here (`ipqp.iter/.reg/.restart/.certify/
-    /// .escape`); `ipqp.route`/`qp.mode` are the driver's
-    /// (`sqp_driver.h::attach_trace`), because the engine has no notion of
-    /// refine/ssn/walk or of the driver's own dispatch outcome.
+    /// Attach a trace sink (spec section 7; nullptr = off, default off).
+    /// Five of seven events fire here; the other two are the driver's own.
+    /// Reattach clears last_trace_solve_id() back to 0 (R5).
     void attach_trace(IpqpTraceSink *sink);
 
-    /// The SQP major the NEXT solve() call belongs to, for the trace's
-    /// `major` field only -- the engine has no other way to know it (no
-    /// `major` parameter on solve() itself). 0 (default) outside a driver.
+    /// The SQP major the NEXT solve() call belongs to (no other way to know
+    /// it); 0 outside a driver.
+    /// @throws std::invalid_argument if major < 0 (R5, CLAUDE.md section 4).
     void set_trace_major(Index major);
 
-    /// The trace `solve` id the most recently completed solve() call used
-    /// (0 if none has run with a sink attached), so a caller emitting its
-    /// OWN events for that same subproblem (the driver's route/qp.mode) can
-    /// correlate them with this engine's own stream.
+    /// The trace `solve` id of the most recently COMPLETED solve() call (0 if
+    /// none has, R5), for correlating with a caller's own events for the
+    /// same subproblem (the driver's route/qp.mode).
     Index last_trace_solve_id() const;
 
     /// @brief Solve `qp` by the interior-point tier.
@@ -1073,10 +1067,8 @@ class IpqpEngine {
     Index trace_solve_counter_ = 0;
     Index last_trace_solve_id_ = 0;
 
-    // Five named private emit sites (task 8): one no-op-when-unattached call
-    // each, so the call SITE inside solve() only ever builds an event struct
-    // and hands it here. `ipqp.route`/`qp.mode` are the driver's own, for the
-    // reason attach_trace's doc comment gives.
+    // Five named private emit sites (task 8), each a no-op when unattached.
+    // `ipqp.route`/`qp.mode` are the driver's own -- see attach_trace's doc.
     void emit_trace_iter(const IpqpTraceIterEvent &event) const;
     void emit_trace_reg(const IpqpTraceRegEvent &event) const;
     void emit_trace_restart(const IpqpTraceRestartEvent &event) const;

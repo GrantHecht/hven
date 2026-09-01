@@ -2343,13 +2343,9 @@ class SqpDriver {
     /// re-solves.
     void attach_ledger(Ledger *ledger, std::string label_prefix);
 
-    /// Attach a trace sink for the W4 machine-trace hook (task 8; nullptr =
-    /// off, default off). Forwards to the internal `IpqpEngine` -- eagerly if
-    /// it already exists, and at its lazy construction otherwise
-    /// (`ipqp_engine()`) -- so one sink attached here captures that engine's
-    /// five event points too. This driver additionally emits `ipqp.route`
-    /// and `qp.mode` directly, in the kIpm dispatch arm: the two event points
-    /// only the driver's own routing decision and dispatch outcome can know.
+    /// Attach a trace sink (task 8; nullptr = off, default off). Forwards to
+    /// the internal `IpqpEngine` (its five events); this driver additionally
+    /// emits `ipqp.route`/`qp.mode` itself, in the kIpm dispatch arm.
     void attach_trace(IpqpTraceSink *sink);
 
     /// Solves from an explicit start point; thin wrapper around solve_impl

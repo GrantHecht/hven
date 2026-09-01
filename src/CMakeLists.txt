@@ -195,6 +195,7 @@ target_sources(hven PRIVATE
     globalization/sqp/soc_elastic_restoration.cpp
     qp/ipqp_engine.cpp
     qp/ipqp_kkt_layout.cpp
+    qp/ipqp_trace.cpp
     qp/qp_engine.cpp
     qp/ssn_engine.cpp
     warmstart/continuation.cpp
@@ -423,7 +424,12 @@ endif()
 # different header set in a different order from the one src/hven_pch.h
 # prefixes, and that property has failed bar 2 for every SQP-side TU measured
 # so far.
-set(_hven_expected_source_count 39)
+#
+# 40 as of qp/ipqp_trace.cpp (M6 W1 task 8 fix round 1, R6): one out-of-line
+# defaulted destructor for IpqpTraceSink, one include. Stays OUT on the same
+# unmeasured-default footing as the eleven above -- there is nothing here for
+# a shared PCH to save.
+set(_hven_expected_source_count 40)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
