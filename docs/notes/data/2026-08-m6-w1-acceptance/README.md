@@ -69,18 +69,31 @@ cmake --build build --target hven_sqp_ipqp_e1_arm
 build/bench/hven_sqp_ipqp_e1_arm --regen --out regen-certificate.csv
 
 # the MATCHED-ARITHMETIC arm (this option exists only for this certificate)
-cmake -S . -B build-fpc -DCMAKE_BUILD_TYPE=Release -DHVEN_BUILD_BENCH=ON \
-      -DHVEN_BENCH_FP_CONTRACT_OFF=ON
-cmake --build build-fpc --target hven_sqp_ipqp_e1_arm
-build-fpc/bench/hven_sqp_ipqp_e1_arm --regen --out regen-certificate-fpcontract-off.csv
+cmake -S . -B build-gen -DCMAKE_BUILD_TYPE=Release -DHVEN_BUILD_BENCH=ON \
+      -DHVEN_BENCH_E1_GENERATOR_ARITHMETIC=ON
+cmake --build build-gen --target hven_sqp_ipqp_e1_arm
+build-gen/bench/hven_sqp_ipqp_e1_arm --regen --out regen-certificate-fpcontract-off.csv
 ```
 
-`HVEN_BENCH_FP_CONTRACT_OFF` (`bench/CMakeLists.txt`) adds `-ffp-contract=off`
-to **this one target**, defaults OFF, and is documented there as never valid
-for a measurement CSV other than the certificate. Round 1 produced the
-matched-arithmetic file by a hand invocation stamped `probe`; both files are
-now regenerated from a committed tree and stamp a real commit (fix round 1,
-items B and D).
+`HVEN_BENCH_E1_GENERATOR_ARITHMETIC` (`bench/CMakeLists.txt`) puts **this one
+target** back on E1's generator's own arithmetic — `-ffp-contract=off
+-fno-fast-math -march=x86-64 -mtune=generic`, i.e. the plain `-O3` of
+`build_e1.sh` — defaults OFF, and is documented there as never valid for a
+measurement CSV other than the certificate.
+
+**A correction found by doing this** (fix round 1): round 1 described its
+matched-arithmetic file as "an arm TU compiled with `-ffp-contract=off`". That
+was imprecise — the hand invocation also dropped `-march=native` and
+`-ffast-math`, and **all three matter**. Rebuilding with `-ffp-contract=off`
+alone, on top of the uniform regime, leaves **14 `licq_d_min` cells still
+differing** (measured); Eigen's `SimplicialLDLT` responds to the ISA and
+reassociation flags as well as to contraction. Only the full generator regime
+reproduces 225/225. The file keeps its round-1 name, which is therefore
+narrower than what it records.
+
+Both certificates are now regenerated from a committed tree (`61b59fc`) and
+stamp a real commit; the shipped-regime file's data is byte-for-byte what
+round 1 recorded, so nothing moved but the stamp (fix round 1, items B and D).
 
 ### The qualification, stated rather than buried
 

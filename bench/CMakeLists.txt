@@ -150,19 +150,30 @@ target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_
 target_compile_definitions(hven_sqp_ipqp_e1_arm PRIVATE
     HVEN_SQP_E1_ARM_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
 
-# HVEN_BENCH_FP_CONTRACT_OFF — the arm's MATCHED-ARITHMETIC build, and the ONLY
-# documented producer of regen-certificate-fpcontract-off.csv. E1's generator
-# compiled at plain -O3; this repository's uniform regime (CLAUDE.md §7) adds
-# FMA contraction, which moves the constructed `g` and the verifier's own
-# cancellation residual by their last bits. Turning contraction off for THIS
-# TARGET ONLY reproduces the artifact's recorded digits exactly (225/225).
-# Default OFF: the shipped arm is never built this way, and the uniform regime
+# HVEN_BENCH_E1_GENERATOR_ARITHMETIC — the arm's MATCHED-ARITHMETIC build, and
+# the ONLY documented producer of regen-certificate-fpcontract-off.csv.
+#
+# E1's generator was compiled at plain `-O3 -DNDEBUG -std=c++20`
+# (docs/notes/data/2026-08-m6-e1-acquisition/generator/build_e1.sh): baseline
+# ISA, no fast-math, no FMA contraction. This repository's uniform regime
+# (CLAUDE.md §7) adds `-march=native -ffast-math`, and all three differences
+# matter — contraction moves the constructed `g` and the verifier's
+# cancellation residual, while the ISA and reassociation flags move Eigen's
+# SimplicialLDLT and hence `licq_d_min`. Turning ALL of them off for THIS
+# TARGET ONLY reproduces the artifact's recorded digits exactly (225/225);
+# `-ffp-contract=off` alone leaves 14 `licq_d_min` cells differing, measured.
+#
+# Default OFF: the shipped arm is never built this way and the uniform regime
 # is not weakened. Never set it for a measurement CSV other than the
 # certificate — see docs/notes/data/2026-08-m6-w1-acceptance/README.md §1.
-option(HVEN_BENCH_FP_CONTRACT_OFF
-       "Build hven_sqp_ipqp_e1_arm with -ffp-contract=off (regeneration certificate only)" OFF)
-if(HVEN_BENCH_FP_CONTRACT_OFF)
-    target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE -ffp-contract=off)
+option(HVEN_BENCH_E1_GENERATOR_ARITHMETIC
+       "Build hven_sqp_ipqp_e1_arm at E1's generator arithmetic (regeneration certificate only)"
+       OFF)
+if(HVEN_BENCH_E1_GENERATOR_ARITHMETIC)
+    target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE -ffp-contract=off -fno-fast-math)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+        target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE -march=x86-64 -mtune=generic)
+    endif()
 endif()
 
 # The A4 gate, EXECUTABLE. Labelled `a4_gate` and excluded from the per-commit
