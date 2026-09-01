@@ -447,8 +447,9 @@ guarded by `#ifdef HVEN_TESTING`:
   runs 2.5e-07..2.6e-05 against a `1e-12` floor. WHAT IT DOES AND DOES NOT
   CATCH, measured: a build with the step scaled by `1e-16` fails the pin on all
   six fixtures, while the mechanism-4 mutation T4b ran (`build_rhs(rho_sched +
-  rho_dem, …)`) does NOT — its freeze shows as a budget escape with
-  ordinary-sized steps, not as a vanishing one. The pin covers the
+  rho_dem, …)`) does NOT — re-measured under the executed-step form, its
+  smallest update on those six is 4.9e-07, so that freeze shows as a budget
+  escape with ordinary-sized steps, not as a vanishing one. The pin covers the
   vanishing-step class only, and `IpqpStepObserver`'s own doc comment says so.
 
 Both T9 observers hang off their own `#ifdef HVEN_TESTING` call sites in
