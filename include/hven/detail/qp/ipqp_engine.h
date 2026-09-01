@@ -54,16 +54,10 @@
 // 6.1 escape ladder (`IpqpEscapeLadder`: K consecutive escapes retire the
 // tier for the remainder of an SQP solve).
 //
-// ADDED HERE (task 7): the SUBPROBLEM-LEVEL WARM RESTART of section 5 -- the
-// 5.2 repair, the 5.3 `mu_0` clamp, the 5.4 grade reported on the result, the
-// 5.5 warm-kill, and the cross-major carry this instance holds
-// (`warm_carry()`). A non-null `IpqpSeed` is now CONSUMED rather than refused.
-// Full argument: `.superpowers/w1-t7-report.md`.
-//
-// NOT HERE, and deliberately so: THE ROUTING CHAIN (2.3 items 3-5) and the
-// tier-3 hand-off, which are task 6's. This engine reports the face
-// classification the chain reads, and owns the escape ladder the chain
-// DRIVES, but it never routes and it never decides which major it is on.
+// ADDED HERE (task 7): the subproblem-level warm restart of section 5, and
+// the cross-major carry this instance holds (`warm_carry()`). NOT here: the
+// routing chain and the tier-3 hand-off, which are task 6's.
+// `.superpowers/w1-t7-report.md` FIX ROUND 3.
 //
 // -------------------------------------------------------------------------
 // THE STATUS VOCABULARY FOR A DOWNGRADED CERTIFICATE -- task 5's ruling

@@ -1210,13 +1210,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     const Index warm_budget = std::min(iopts.ipqp_warm_iter_budget, iter_budget);
     bool warm_live = started_warm;
 
-    // THE BUDGETS ARE PER ATTEMPT, and section 5.5's own words are the reason:
-    // the warm attempt "gets an iteration budget of ~the cold median", and
-    // after the kill "a second overrun is an ORDINARY budget escape" -- the
-    // ordinary budget, not its remainder. Charging the abandoned attempt to
-    // the cold restart measurably converts a recoverable subproblem into an
-    // escape (report section 8: f7_n1000_path_warm). The counters stay solve
-    // totals, so the abandoned cost is still visible; only the CAP re-bases.
+    // THE BUDGETS ARE PER ATTEMPT (spec 5.5): a second overrun after the kill
+    // is an ORDINARY budget escape against the ordinary budget, not the
+    // abandoned attempt's remainder. `.superpowers/w1-t7-report.md` FIX ROUND 3.
     Index iters_base = 0;
     Index facts_base = before.factorize_count;
 

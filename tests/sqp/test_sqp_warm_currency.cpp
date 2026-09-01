@@ -1494,10 +1494,20 @@ TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
     ASSERT_EQ(full.status, SqpStatus::kOptimal);
     ASSERT_EQ(base.status, SqpStatus::kOptimal);
 
-    // EXACT PRESERVATION, not an indirect counter difference: F4 proved
-    // `repairs == 0, shift_max == 0.0` means EVERY component ingested
-    // bit-for-bit equal to the payload's split. `.superpowers/w1-t7-report.md`
-    // FIX ROUND 2.
+    // THE PRECONDITION THAT MAKES `repairs == 0` A WHOLE-VECTOR PROOF (fix
+    // round 3): an absent side is zeroed WITHOUT touching either counter
+    // (ipqp_engine.cpp ~:1053-1064), so the proof below is unsound in
+    // general -- it holds here only because this fixture has no absent side
+    // to hide behind. Checked, not assumed. `.superpowers/w1-t7-report.md`
+    // FIX ROUND 3.
+    ASSERT_TRUE(model->lower().array().isFinite().all());
+    ASSERT_TRUE(model->upper().array().isFinite().all());
+
+    // EXACT PRESERVATION, not an indirect counter difference: given the
+    // precondition above, F4's invariant (`ipqp_restart_repairs`/
+    // `shift_max` fold EVERY component that moved at ingest) makes
+    // `repairs == 0, shift_max == 0.0` a proof that the full grade's zL/zU
+    // ingested bit-for-bit equal to the payload's split.
     EXPECT_EQ(full.counters.ipqp.ipqp_restart_repairs, 0);
     EXPECT_DOUBLE_EQ(full.counters.ipqp.ipqp_restart_shift_max, 0.0);
     EXPECT_GT(base.counters.ipqp.ipqp_restart_repairs, 0);

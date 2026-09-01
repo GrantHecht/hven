@@ -3061,12 +3061,10 @@ class SqpDriver {
     // solve" observable at all, since the analysis and the IpqpKktLayout
     // scatter plan live on the instance.
     std::unique_ptr<IpqpEngine> ipqp_engine_;
-    // TASK 7's PRESERVED-SEED INGEST (plan ruling 4): the tier's seed for the
-    // FIRST main subproblem of this solve, built under kIpm from the validated
-    // staged currency and its `hven.ipm.polish.v1` payload -- zL/zU/mu never
-    // pass through `WarmStart`'s signed-z flattening. Empty when nothing was
-    // staged, when the mode is not kIpm, or when the section 5.4 grade came
-    // out COLD. Written by consume_staged_warm_start, spent once.
+    // TASK 7's PRESERVED-SEED INGEST (plan ruling 4): the FIRST kIpm
+    // subproblem's seed, built from the staged currency's unflattened
+    // zL/zU/mu. Empty when nothing staged, not kIpm, or graded COLD.
+    // `.superpowers/w1-t7-report.md` FIX ROUND 3.
     std::optional<IpqpSeed> ipqp_staged_seed_;
     // The proximal level to EXPORT on this solve's WarmStart, and the point it
     // was reached at -- warm_start.h's `prox_sigma` / `prox_center_*` block,
