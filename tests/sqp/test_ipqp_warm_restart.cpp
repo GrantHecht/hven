@@ -335,13 +335,10 @@ TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
     EXPECT_EQ(ok.status, QpStatus::kOptimal);
 }
 
-// PLAN SECTION 7 NOTE (c) + FIX ROUND 1 RULING R2. The effective warm budget
-// is `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`, so a caller value
-// larger than the solve's own budget can never itself be the binding limit --
-// and at the edge where the clamp makes the two EQUAL the warm-kill still
-// preempts the ordinary escape: while the attempt is warm, exhaustion is 5.5's
-// overrun and takes the exactly-once cold restart. (This row's earlier
-// spelling asserted the opposite ordering; re-derived under R2.)
+// PLAN SECTION 7 NOTE (c) + FIX ROUND 1 R2: the effective warm budget is
+// `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`; even where the clamp
+// makes the two EQUAL, the warm-kill still preempts the ordinary escape.
+// `.superpowers/w1-t7-report.md` FIX ROUND 2.
 TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
     const QpProblem qp = stale_qp();
     IpqpSeed stale = seed_for(qp);
@@ -484,11 +481,9 @@ TEST(IpqpWarmRestart, ASolveThatProducedNothingLeavesThePreviousCarryStanding) {
 // The repair lever (fix round 1, ruling R1)
 // ---------------------------------------------------------------------------
 
-// `ipqp_warm_repair = false` DISABLES THE REPAIR, NEVER THE VALIDATION. A seed
-// the repair would have had to fix -- here the staged path's own ABSENT (zero)
-// slack block, which under the default is recomputed from `bi - Ai x` -- is
-// degraded COLD rather than consumed raw, so the tier can never divide by a
-// zero slack or start at a zero price.
+// `ipqp_warm_repair = false` DISABLES THE REPAIR, NEVER THE VALIDATION: a
+// seed the repair would have had to fix degrades COLD instead of being
+// consumed raw. `.superpowers/w1-t7-report.md` FIX ROUND 2.
 TEST(IpqpWarmRestart, RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt) {
     const QpProblem qp = row_qp();
     IpqpSeed absent_slack = seed_for(qp);

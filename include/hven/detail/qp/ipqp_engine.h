@@ -113,7 +113,6 @@
 // `escape_reason == kNone` with `certificate_downgraded == true` is what
 // separates it from a genuine failure.
 
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -286,12 +285,10 @@ inline constexpr double kIpqpBoundPushRel = 1.0e-2;
 /// @brief The cold start's slack floor (spec 5.6: `s_0 = max(bi - Ai x_0, 1)`).
 inline constexpr double kIpqpSlackInit = 1.0;
 
-/// @brief THE WARM RESTART'S REPAIR FLOORS (spec 5.2 item 1). Both are
-/// ABSOLUTE, deliberately: a payload slack or price below ~1e-8 is noise at
-/// any `mu` this tier runs, whatever the units. `kIpqpRepairEps` is ALSO used
-/// mu-relative (`eps = kIpqpRepairEps * mu_0`) once `mu_0` is known -- so the
-/// pre-clamp floor is absolute and the post-clamp one scales. Fix round 1
-/// ruling R4; the asymmetry is argued in `.superpowers/w1-t7-report.md` F4.
+/// @brief THE WARM RESTART'S REPAIR FLOORS (spec 5.2 item 1): absolute
+/// epsilons for a payload slack/price, and for `eps = kIpqpRepairEps * mu_0`
+/// once `mu_0` is known. Asymmetry (fix round 1, R4) argued in
+/// `.superpowers/w1-t7-report.md` FIX ROUND 2, F4.
 inline constexpr double kIpqpRepairEps = 1.0e-8;
 inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
 
@@ -300,10 +297,9 @@ inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
 /// pays nothing and `ipqp_restart_repairs` stays a signal.
 inline constexpr double kIpqpSayCentralityFactor = 1.0e-1;
 
-/// @brief The Skajaa-Andersen-Ye two-scalar shift's target fraction:
-/// `delta_p = this * mu_0 / z_avg`, `delta_d = this * mu_0 / d_avg`. Mehrotra's
-/// second-stage coefficient with the measured complementarity replaced by the
-/// 5.3 target; AVERAGES, never a per-pair maximum -- report section 4(b).
+/// @brief The Skajaa-Andersen-Ye shift's target fraction: `delta_p = this *
+/// mu_0 / z_avg`, `delta_d = this * mu_0 / d_avg` -- AVERAGES, never a
+/// per-pair maximum. `.superpowers/w1-t7-report.md` FIX ROUND 2, section 4(b).
 inline constexpr double kIpqpSayTargetFraction = 0.5;
 
 /// @brief The (rho, delta) schedule's DECREASE GATE (spec 3.2's
@@ -456,10 +452,9 @@ enum class IpqpFace {
 };
 
 /// @brief THE SECTION 5.4 PAYLOAD GRADE this solve started at, reported on
-/// `IpqpResult::restart_grade`. `kBaseWarm` is a DOCUMENTED DEGRADATION: it
-/// splits the currency's SIGNED bound price, which is lossy at a two-sided
-/// bound, and takes 5.4's ADDITIVE `eps`. The cross-major carry reports
-/// `kFullWarm` -- it carries `zL`/`zU`/`mu` unflattened.
+/// `IpqpResult::restart_grade`. `kBaseWarm` splits the currency's SIGNED
+/// bound price (lossy at a two-sided bound); `kFullWarm` carries `zL`/`zU`/
+/// `mu` unflattened. `.superpowers/w1-t7-report.md` FIX ROUND 2.
 enum class IpqpRestartGrade {
     kCold = 0,
     kBaseWarm = 1,

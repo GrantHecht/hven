@@ -677,7 +677,6 @@ struct IpqpEngine::Workspace {
         yi.setZero(mi);
         zl.setZero(n);
         zu.setZero(n);
-        zeta.setZero(n);
         lam_est_e.setZero(me);
         lam_est_i.setZero(mi);
         dL.setZero(n);
@@ -977,9 +976,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     //
     // The section 5.3 clamp, ON EVERY BRANCH so the counter's iff contract
     // holds on the repair-off arm too (fix round 1, F2). `mu` is adopted as
-    // STATE, never as a setting: the payload can only raise `mu_0` off the
-    // repaired point's own measured floor, never below it and never above the
-    // cold default.
+    // STATE, bounded by the measured floor and the cold default.
     auto clamp_mu0 = [&](double payload_mu) {
         double lo_pair = 0.0;
         measure_complementarity(mu_meas, lo_pair);
@@ -992,12 +989,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return lo_pair;
     };
 
-    // THE DOMAIN GATE ON AN UNREPAIRED SEED (fix round 1, ruling R1).
-    // `ipqp_warm_repair` disables the REPAIR, never the validation: a seed
-    // that breaks the tier's own invariants is degraded COLD, mode-local and
-    // visible in `restart_grade`, rather than consumed raw. `s` all-zero is
-    // the ABSENT convention both producers use, and absent is not repaired
-    // when the repair is off -- so it degrades here.
+    // THE DOMAIN GATE ON AN UNREPAIRED SEED (fix round 1, R1):
+    // `ipqp_warm_repair` disables the REPAIR, never the validation, so an
+    // invariant-breaking seed degrades COLD rather than being consumed raw.
+    // `.superpowers/w1-t7-report.md` FIX ROUND 2.
     auto seed_needs_the_repair = [&](const IpqpSeed &sd) {
         for (Index j = 0; j < mi; ++j) {
             if (!(sd.s(j) > 0.0) || !(sd.lambda_i(j) > 0.0)) {
@@ -1017,12 +1012,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         return false;
     };
 
-    // Section 5.2 in three steps -- strict positivity, the SAY two-scalar
-    // shift, proximal re-centering -- with the 5.3 clamp between the first
-    // and the second, because the shift's target IS `mu_0`. O(n + mi), no
-    // factorization. Every move is folded into `shift_max`, the box clamp and
-    // the slack recompute included (fix round 1, F4).
-    // Full argument: `.superpowers/w1-t7-report.md` section 4.
+    // Section 5.2 in three steps -- strict positivity, the SAY shift, proximal
+    // re-centering -- with the 5.3 clamp between the first two, since the
+    // shift's target IS `mu_0`. Every move folds into `shift_max` (F4).
+    // `.superpowers/w1-t7-report.md` FIX ROUND 2, section 4.
     auto warm_start_from = [&](const IpqpSeed &sd) {
         w.x = sd.x;
         clamp_seed_into_box();
@@ -1043,10 +1036,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         };
 
         // 1. STRICT POSITIVITY (5.2 item 1). The slack is RECOMPUTED from
-        //    `bi - Ai x`: the seed's own `s` belongs to the previous
-        //    subproblem's `(Ai, bi)`, and item 1 states the rule that way.
-        //    A recompute off an ABSENT (all-zero) block moves nothing that
-        //    was ever asserted, so only a PRESENT block's move is counted.
+        //    `bi - Ai x`, since the seed's `s` belongs to the previous
+        //    subproblem's `(Ai, bi)`; a recompute off an ABSENT block is not
+        //    counted. `.superpowers/w1-t7-report.md` FIX ROUND 2.
         if (mi > 0) {
             const Vec s_new = (qp.bi - qp.Ai * w.x).cwiseMax(detail::kIpqpRepairSlackEps);
             if (sd.s.squaredNorm() > 0.0) {
@@ -1076,11 +1068,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // 2. THE 5.3 CLAMP, on the repaired point's own complementarity.
         double lo_pair = clamp_mu0(sd.mu);
 
-        // The mu_0-relative floor of 5.2 item 1, applied once `mu_0` is known.
-        // A price at exact 0 is legitimate in a polish payload (0 where a side
-        // is infinite, eliminated or unpriced), which is why this is a clamp
-        // and not a refusal. THE BASE GRADE TAKES IT ADDITIVELY instead --
-        // 5.4's own form, `max(z, 0) + eps` (fix round 1, ruling R6).
+        // The mu_0-relative floor of 5.2 item 1 (a clamp, not a refusal: a
+        // price at exact 0 is legitimate). THE BASE GRADE TAKES IT ADDITIVELY
+        // instead -- `max(z, 0) + eps` (fix round 1, R6).
+        // `.superpowers/w1-t7-report.md` FIX ROUND 2.
         const double eps = detail::kIpqpRepairEps * mu0;
         const bool additive_eps = sd.grade == IpqpRestartGrade::kBaseWarm;
         for (Index j = 0; j < mi; ++j) {
@@ -2334,10 +2325,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // final certification read the factorization budget refused is routed
         // as a downgraded certificate, not as budget exhaustion), and two
         // statements of one rule could drift.
-        // SECTION 5.5's TRUST THRESHOLD, the half the relative predicate
-        // cannot carry (fix round 1, F3): warm DATA is trusted only if its raw
-        // barrier level is inside the tier's own target too. At the warm ENTRY
-        // alone -- after a step the point is this solve's, not the seed's.
+        // SECTION 5.5's TRUST THRESHOLD (fix round 1, F3): warm DATA is
+        // trusted only if its raw barrier level is inside the target too, at
+        // the warm ENTRY alone -- after a step the point is this solve's.
+        // `.superpowers/w1-t7-report.md` FIX ROUND 2.
         const bool untrusted_warm_seed = warm_live && out.counters.ipqp_iters == iters_base &&
                                          mu_meas > iopts.ipqp_converge_slack * opts_.opt_tol;
         if (!untrusted_warm_seed && ipqp_residuals_meet_target(res, opts_, iopts)) {
@@ -2428,11 +2419,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         // --- SECTION 5.5: THE WARM-KILL ------------------------------------
         //
-        // AHEAD of the two ordinary budget tests (fix round 1, ruling R2):
-        // while the attempt is WARM, budget exhaustion is 5.5's overrun and
-        // takes the exactly-once cold restart, including when the clamped warm
-        // budget equals the whole budget. The cold attempt then owns ordinary
-        // escapes, and its caps re-base here. Report section 5.
+        // AHEAD of the two ordinary budget tests (fix round 1, R2): while
+        // WARM, budget exhaustion is 5.5's overrun and takes the
+        // exactly-once cold restart; the cold attempt owns ordinary escapes.
+        // `.superpowers/w1-t7-report.md` FIX ROUND 2, section 5.
         if (warm_live && out.counters.ipqp_iters - iters_base >= warm_budget) {
             warm_live = false;
             out.counters.ipqp_warm_restart_abandoned = 1;

@@ -54,7 +54,6 @@ using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 using hven::solvers::declaration_key;
-using hven::solvers::DeclarationKey;
 using hven::solvers::IpmPolishData;
 using hven::solvers::kIpmPolishTag;
 using hven::solvers::NlpModel;
@@ -1426,12 +1425,9 @@ TEST(SqpWarmCurrency, TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves) {
     EXPECT_EQ(first.counters.ipqp.ipqp_mu_adopted, second.counters.ipqp.ipqp_mu_adopted);
 }
 
-// FIX ROUND 1, F1: the tier seed is cleared on EVERY solve entry, not only on
-// the path that arms it. A kIpm solve that stages a value and then never
-// enters the tier -- here one whose staged point IS the solution, so it
-// converges before a subproblem is built -- must not leave that seed armed for
-// the next solve, which reaches the driver through an overload that consumes
-// no staged value at all.
+// FIX ROUND 1, F1: the tier seed is cleared on EVERY solve entry, not only the
+// path that arms it -- here a staged point that IS the solution, so no
+// subproblem is ever built. `.superpowers/w1-t7-report.md` FIX ROUND 2.
 TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -1462,10 +1458,9 @@ TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
         << "a stale staged seed must not reach the next solve's first subproblem";
 }
 
-// CODEX 8: the exact zL/zU pin in test_ipqp_warm_restart.cpp constructs an
-// IpqpSeed directly, so it cannot see a flattening introduced in the STAGED
-// path. This is that half: the polish payload's two-sided split reaches the
-// tier unflattened, asserted through `stage_warm_start` itself.
+// CODEX 8: the direct-construction zL/zU pin cannot see a flattening
+// introduced in the STAGED path; this is that half, asserted through
+// `stage_warm_start` itself. `.superpowers/w1-t7-report.md` FIX ROUND 2.
 TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -1474,12 +1469,18 @@ TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
     // BOTH sides priced on one variable -- the configuration a signed `z`
     // cannot represent, and the only one that can tell the two paths apart.
     IpmPolishData polish = fixture_polish(sol);
-    polish.z_lower_ = Vec::Constant(model->n(), 3.0e-3);
-    polish.z_upper_ = Vec::Constant(model->n(), 1.0e-3);
+    polish.z_lower_ = Vec::Constant(model->n(), 0.06);
+    polish.z_upper_ = Vec::Constant(model->n(), 0.04);
     polish.mu_ = 0.1;
 
+    // A hand-rolled perturbation, not `perturbed_core`: both offsets avoid a
+    // structural repair floor (the inequality's slack, x2's own lower bound)
+    // that would fire regardless of the payload. `.superpowers/w1-t7-report.md`
+    // FIX ROUND 2.
     const auto run = [&](bool with_extension) {
-        WarmStartData data = perturbed_core(sol, *bridge);
+        WarmStartData data = core_payload(sol, *bridge);
+        data.primal_(0) -= 0.2;
+        data.primal_(2) += 0.3;
         if (with_extension) {
             data.extensions_.push_back(polish_extension(polish));
         }
@@ -1493,13 +1494,14 @@ TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
     ASSERT_EQ(full.status, SqpStatus::kOptimal);
     ASSERT_EQ(base.status, SqpStatus::kOptimal);
 
-    // The payload's `mu_` binds the clamp only on the full grade, and the two
-    // solves are different solves -- if the staged path flattened `zL`/`zU`
-    // through the signed `z`, the extension would carry nothing but `mu_` and
-    // this pair would be far harder to move apart.
+    // EXACT PRESERVATION, not an indirect counter difference: F4 proved
+    // `repairs == 0, shift_max == 0.0` means EVERY component ingested
+    // bit-for-bit equal to the payload's split. `.superpowers/w1-t7-report.md`
+    // FIX ROUND 2.
+    EXPECT_EQ(full.counters.ipqp.ipqp_restart_repairs, 0);
+    EXPECT_DOUBLE_EQ(full.counters.ipqp.ipqp_restart_shift_max, 0.0);
+    EXPECT_GT(base.counters.ipqp.ipqp_restart_repairs, 0);
     EXPECT_GT(full.counters.ipqp.ipqp_mu_adopted, 0);
     EXPECT_EQ(base.counters.ipqp.ipqp_mu_adopted, 0);
     EXPECT_NE(full.counters.ipqp.ipqp_iters, 0);
-    EXPECT_NE(full.counters.ipqp.ipqp_restart_shift_max, base.counters.ipqp.ipqp_restart_shift_max)
-        << "the two grades ingest different prices, so their repair magnitudes differ";
 }

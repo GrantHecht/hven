@@ -27,7 +27,6 @@
 // injections` is checked in every fixture, so an injector that silently
 // stopped applying fails its own pin instead of passing as a clean solve.
 
-#include <cmath>
 #include <limits>
 #include <optional>
 #include <vector>

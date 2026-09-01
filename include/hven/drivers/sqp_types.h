@@ -153,9 +153,9 @@ struct IpqpOptions {
     /// size-derived budget and has no sentinel reading, so it must be a
     /// genuine, positive iteration count. Default 60. Must be > 0.
     ///
-    /// PER ATTEMPT, not per subproblem (M6 W1 task 7): the section 5.5
-    /// warm-kill re-bases both caps at the cold restart, so a subproblem whose
-    /// warm attempt was abandoned may total up to 2 x this value.
+    /// PER ATTEMPT, not per subproblem: the section 5.5 warm-kill re-bases
+    /// both caps at the cold restart, so an abandoned attempt may total up
+    /// to 2x this value. `.superpowers/w1-t7-report.md` FIX ROUND 2.
     Index ipqp_hard_iter_cap = 60;
 
     /// Factorization budget for the tier, enforced BEFORE EVERY

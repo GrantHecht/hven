@@ -801,12 +801,10 @@ TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
     EXPECT_LT(wc.ipqp_factorizations, cc.ipqp_factorizations);
 }
 
-// FIX ROUND 1, RULING R3: the carry is dropped after EVERY genuine escape,
-// `kIndefinite` included -- a point the tier classified as a saddle suspect
-// does not seed the next major. The instrument is the warm budget's 0 extreme,
-// which fires the kill on every entry that started WARM: if the carry
-// survived a saddle-suspect exit, later entries would be warm and the counter
-// would move.
+// FIX ROUND 1, R3: the carry drops after EVERY genuine escape, `kIndefinite`
+// included. Instrument: the warm budget's 0 extreme fires the kill on every
+// WARM entry, so a surviving carry would show as a later warm entry.
+// `.superpowers/w1-t7-report.md` FIX ROUND 2.
 TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
     SaddleBoxModel model;
     SqpOptions o = ipm_options();

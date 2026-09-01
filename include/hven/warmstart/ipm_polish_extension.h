@@ -39,11 +39,10 @@ inline constexpr std::string_view kIpmPolishTag = "hven.ipm.polish.v1";
 /// on the two price blocks is part of the contract, not a convention: both
 /// engines' staging refuses a negative entry, naming this tag.
 struct IpmPolishData {
-    /// Barrier parameter at exit, on the caller's objective scale (so
-    /// mu_ ~ z * distance holds against the blocks below). The crossover does
-    /// not read it and the NLP interior-point engine deliberately refuses it
-    /// (a value may not rewrite a setting); the SQP driver's IPQP tier adopts
-    /// it as initial STATE only, through spec 5.3's clamp (M6 W1 task 7).
+    /// Barrier parameter at exit, on the caller's objective scale. The
+    /// crossover and the NLP engine refuse it; the SQP driver's IPQP tier
+    /// adopts it as initial STATE only, through spec 5.3's clamp.
+    /// `.superpowers/w1-t7-report.md` FIX ROUND 2.
     double mu_ = 0.0;
     /// n, >= 0: prices lower(i) <= x(i). 0 where that side is not finite, where
     /// a fixed-variable treatment eliminated the variable, or where the side is

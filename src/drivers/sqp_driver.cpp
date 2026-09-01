@@ -965,10 +965,9 @@ namespace {
 
 // THE SECTION 5.4 GRADE, DECIDED (plan ruling 4): full warm from the
 // `hven.ipm.polish.v1` payload, base warm from the core's signed price alone,
-// `nullopt` = the cold grade. The PRIMAL block is the step-space origin -- the
-// payload's `primal_` is the NLP point and flow (a) already consumed it as
-// `x0`; what the extension adds is the DUAL and BARRIER state.
-// Report `.superpowers/w1-t7-report.md` section 3.
+// `nullopt` = the cold grade. The extension adds the DUAL and BARRIER state;
+// flow (a) already consumed `primal_` as `x0`. `.superpowers/w1-t7-report.md`
+// FIX ROUND 2, section 3.
 std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStartData &data, Index n, Index me,
                                                Index mi) {
     // Sizes: `primal_`, `iq_lmults_` and `bound_lmults_` were checked against
@@ -3474,19 +3473,17 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             const IpqpOptions iopts = ipqp_options(structure_epoch_moved);
             // THE SEED (spec 5.1 flow (b)): the staged payload seeds the FIRST
             // tier entry and is spent there; every later entry restarts from
-            // the engine's own carry. A seed whose blocks do not match THIS
-            // subproblem is dropped rather than refused -- the degrade is cold.
+            // the engine's own carry, dropped rather than refused if a block's
+            // size does not match THIS subproblem (degrade cold).
             const IpqpSeed *ipqp_seed = nullptr;
             IpqpSeed ipqp_carry_across_majors;
             if (ipqp_staged_seed_.has_value()) {
                 ipqp_seed = &*ipqp_staged_seed_;
             } else if (const IpqpSeed *carry = ipqp_engine().warm_carry(); carry != nullptr) {
-                // ACROSS A MAJOR THE DUALS CARRY AND THE PRIMAL BLOCK DOES
-                // NOT: `x`, `s` and the proximal centre `zeta` live in the
-                // step space, and an accepted major moves it. Within a major a
-                // shrink-retry re-solves the SAME subproblem in the SAME space
-                // and the whole state carries (spec 5.1 amendment D).
-                // Measured, both path_warm cells: report section 8.
+                // ACROSS A MAJOR THE DUALS CARRY, THE PRIMAL BLOCK DOES NOT
+                // (spec 5.1 amendment D): a shrink-retry re-solves the SAME
+                // subproblem, so the whole state carries there instead.
+                // `.superpowers/w1-t7-report.md` FIX ROUND 2, section 8.
                 ipqp_seed = carry;
                 if (!tr_shrink_retry) {
                     ipqp_carry_across_majors = *carry;
@@ -3551,10 +3548,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             if (!tr_shrink_retry && ipqp_ladder.record(ladder_outcome, iter + 1)) {
                 out.counters.ipqp.ipqp_tier_retired_after = ipqp_ladder.retired_after();
             }
-            // THE CARRY DROPS ON EVERY GENUINE ESCAPE (fix round 1, ruling
-            // R3), keyed on the same classification the ladder is charged
-            // with: a point the tier could not certify does not seed the next
-            // major, whichever kernel picks the subproblem up.
+            // THE CARRY DROPS ON EVERY GENUINE ESCAPE (fix round 1, R3): a
+            // point the tier could not certify does not seed the next major.
+            // `.superpowers/w1-t7-report.md` FIX ROUND 2.
             if (ladder_outcome == IpqpLadderOutcome::kEscape) {
                 ipqp_engine().reset_warm_carry();
             }
