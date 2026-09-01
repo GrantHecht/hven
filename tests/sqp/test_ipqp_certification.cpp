@@ -1113,6 +1113,15 @@ TEST(IpqpLadderTest, AFixedPointOfTheExecutedMapIsAPointTheGateCanSee) {
         EXPECT_TRUE(r.escape_reason == IpqpEscape::kNone ||
                     r.escape_reason == IpqpEscape::kIndefinite);
         EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+        // T4b GATE 5's COST TABLE, re-readable at any head (M6 W1 T9 item 10).
+        RecordProperty(std::string(c.name) + "_cost",
+                       fmt::format("it={} fac={} reclimbs={} retries={} armed_no_adv={} "
+                                   "rho_dem_max={:.6g} rho_dem_last={:.6g}",
+                                   r.counters.ipqp_iters, r.counters.ipqp_factorizations,
+                                   r.counters.ipqp_ladder_reclimbs, r.counters.ipqp_inertia_retries,
+                                   r.counters.ipqp_iters_ladder_armed_no_advance,
+                                   r.counters.ipqp_rho_demanded_max,
+                                   r.counters.ipqp_rho_demanded_last));
     }
 
     // THE SECOND HALF OF GATE 9: the item 4 read runs at `rho_dem = 0` and

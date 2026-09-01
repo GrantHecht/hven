@@ -32,6 +32,7 @@ using test_support::E1Cell;
 using test_support::E1RuleCounts;
 using test_support::E1Spec;
 using test_support::F7CollocationChain;
+using test_support::hs_numbers;
 using test_support::HsProblem;
 using test_support::make_e1_cell;
 using test_support::make_hs;
@@ -562,6 +563,66 @@ TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKills
     EXPECT_EQ(wc.ipqp_escapes, 0);
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(wc));
     EXPECT_NEAR(warm.f, cold.f, 1e-6 * std::max(1.0, std::abs(cold.f)));
+}
+
+// ---------------------------------------------------------------------------
+// T4b C7 / T9 item 5 -- the armed-no-advance watch across the whole battery.
+// ---------------------------------------------------------------------------
+
+TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery) {
+    Index rows_with_armed = 0;
+    Index armed_peak = 0;
+    Index stalls = 0;
+    Index rows_with_rejections = 0;
+    std::string armed_detail;
+    std::string stall_detail;
+    for (const int number : test_support::hs_numbers()) {
+        const HsProblem p = make_hs(number);
+        SqpDriver driver(ipm_options());
+        const SqpSolution sol = driver.solve(*p.model);
+        const IpqpCounters &c = sol.counters.ipqp;
+        stalls += c.ipqp_escape_stall;
+        if (c.ipqp_escape_stall > 0) {
+            stall_detail += fmt::format(" hs{}={}", number, c.ipqp_escape_stall);
+        }
+        if (c.ipqp_iters_ladder_armed_no_advance > 0) {
+            ++rows_with_armed;
+            armed_detail += fmt::format(" hs{}={}", number, c.ipqp_iters_ladder_armed_no_advance);
+        }
+        armed_peak = std::max(armed_peak, c.ipqp_iters_ladder_armed_no_advance);
+        // TR-SHRINK-RETRY REACHABILITY under kIpm (T7 registered the question):
+        // a rejected major IS a shrink-and-re-solve, so a row with one is the
+        // fixture T7 could not find.
+        if (sol.counters.rejected_steps > 0) {
+            ++rows_with_rejections;
+        }
+        EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(c));
+    }
+    RecordProperty("armed_rows", static_cast<int>(rows_with_armed));
+    RecordProperty("armed_peak", static_cast<int>(armed_peak));
+    RecordProperty("armed_detail", armed_detail);
+    RecordProperty("rows_with_rejections", static_cast<int>(rows_with_rejections));
+    // SECTION 6.2 NEVER CHARGES AN ARMED RUN AS A STALL. Non-vacuous: the
+    // battery really does arm the ladder, on more than one row.
+    RecordProperty("stall_detail", stall_detail);
+    RecordProperty("stalls", static_cast<int>(stalls));
+    EXPECT_GT(rows_with_armed, 0) << armed_detail;
+    EXPECT_GT(armed_peak, 10) << armed_detail;
+    EXPECT_GT(rows_with_rejections, 0)
+        << "a TR shrink-and-retry under kIpm is reachable on this battery";
+
+    // THE NATURAL STALL (T9 item 5), found rather than injected: HS38 reaches
+    // section 6.2's exit through a real trajectory, AND runs 51 armed
+    // iterations with no gate advance -- charged ONE stall, not 51 (T4b C7).
+    EXPECT_GE(stalls, 1) << "the battery must still contain a real stall";
+#ifdef USE_ACCELERATE_SPARSE
+    RecordProperty("census_accelerate", "UNOBSERVED -- the exact census is MKL-only");
+#else
+    EXPECT_EQ(stalls, 1);
+    EXPECT_EQ(stall_detail, " hs38=1");
+    EXPECT_EQ(armed_peak, 65);
+    EXPECT_EQ(rows_with_armed, 6);
+#endif
 }
 
 } // namespace hven::solvers
