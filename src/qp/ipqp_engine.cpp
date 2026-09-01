@@ -219,19 +219,25 @@ void capture_first_iterate(const Vec &x, const Vec &s, const Vec &ye, const Vec 
     Obs::mu = mu;
 }
 
-/// Gate 9's per-step form: the Newton DIRECTION's inf-norm beside the
-/// regularized residual at the iterate the step is taken from. A direction
-/// that vanishes where the gate still says "not converged" is a freeze.
+/// Gate 9's per-step form: the EXECUTED iterate update's inf-norm -- the
+/// alpha-scaled step the solve actually applies, not the raw Newton direction
+/// (fix round 1, Codex 1) -- beside the regularized residual it was taken at.
 void observe_accepted_step(const Vec &dx, const Vec &ds, const Vec &dye, const Vec &dyi,
-                           const Vec &dzl, const Vec &dzu, double res_worst, bool met_target) {
+                           const Vec &dzl, const Vec &dzu, double alpha_p, double alpha_d,
+                           double res_worst, bool met_target) {
     using Obs = detail::testing::IpqpStepObserver;
     if (!Obs::active) {
         return;
     }
     double step_inf = 0.0;
-    for (const Vec *v : {&dx, &ds, &dye, &dyi, &dzl, &dzu}) {
+    // The two scalings are the step's own: alpha_p on the primal blocks
+    // (`x`, `s`), alpha_d on every dual block -- exactly as applied below.
+    const std::pair<const Vec *, double> blocks[] = {{&dx, alpha_p},  {&ds, alpha_p},
+                                                     {&dye, alpha_d}, {&dyi, alpha_d},
+                                                     {&dzl, alpha_d}, {&dzu, alpha_d}};
+    for (const auto &[v, alpha] : blocks) {
         if (v->size() > 0) {
-            step_inf = std::max(step_inf, v->template lpNorm<Eigen::Infinity>());
+            step_inf = std::max(step_inf, alpha * v->lpNorm<Eigen::Infinity>());
         }
     }
     ++Obs::steps;
@@ -2919,8 +2925,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
 
 #ifdef HVEN_TESTING
-        observe_accepted_step(w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu, out.residuals.worst(),
-                              ipqp_residuals_meet_target(out.residuals, opts_, iopts));
+        // The gate is the WHOLE stopping rule, section 5.5's warm-trust guard
+        // included (fix round 1, review M7): on an untrusted warm entry the
+        // solve does not stop even where the residual predicate holds.
+        observe_accepted_step(
+            w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu, alpha_p, alpha_d, out.residuals.worst(),
+            !untrusted_warm_seed && ipqp_residuals_meet_target(out.residuals, opts_, iopts));
 #endif
 
         // 4. THE STEP. No line search: globalization is fraction-to-boundary

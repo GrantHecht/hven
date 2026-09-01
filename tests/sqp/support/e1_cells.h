@@ -156,6 +156,17 @@ inline E1Cell make_e1_cell(const E1Spec &spec) {
         zu(i) = u_li(rng);
     }
 
+    // THE BOX IS A PRECONDITION, not an implicit coupling (fix round 1, M6):
+    // the draw above is inside F7's control box today, but a change to either
+    // must fail HERE rather than as a confusing face mismatch downstream.
+    for (Index i = 0; i < n; ++i) {
+        if (x_star(i) < cell.qp.lower(i) || x_star(i) > cell.qp.upper(i)) {
+            throw std::invalid_argument(fmt::format(
+                "make_e1_cell('{}'): x_star({}) = {:.17g} is outside its box [{:.17g}, {:.17g}]",
+                spec.id, i, x_star(i), cell.qp.lower(i), cell.qp.upper(i)));
+        }
+    }
+
     Vec lambda_e(me);
     for (Index i = 0; i < me; ++i) {
         lambda_e(i) = u_le(rng);

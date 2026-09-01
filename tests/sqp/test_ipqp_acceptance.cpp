@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -14,10 +16,13 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/ipqp_engine.h>
+#include <hven/detail/qp/ipqp_trace.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
 
+#include "../../bench/bench_cli.h"
+#include "../../bench/corpus_cells.h"
 #include "support/e1_cells.h"
 #include "support/hs_problems.h"
 #include "support/indefinite_fixtures.h"
@@ -32,7 +37,6 @@ using test_support::E1Cell;
 using test_support::E1RuleCounts;
 using test_support::E1Spec;
 using test_support::F7CollocationChain;
-using test_support::hs_numbers;
 using test_support::HsProblem;
 using test_support::make_e1_cell;
 using test_support::make_hs;
@@ -40,13 +44,23 @@ using test_support::make_hs;
 /// E1's own gate: every cell converges in fewer than 40 tier iterations.
 constexpr Index kE1IterGate = 40;
 
-/// A2's MKL-scoped trajectory pin, measured at T9's head.
-constexpr Index kA2Iters = 18;
-constexpr Index kA2Factorizations = 19;
+/// F7's OWN path-interface geometry, tied to the corpus rather than restated:
+/// A1/A2/A3/A5 stand on the `p` the corpus's own cells run at, and the warm
+/// hop below is the corpus's continuation source (fix round 1, M4).
+constexpr double kWideP = corpus::detail::kPathInterfaceP;
+constexpr double kWarmP0 = corpus::detail::kPathInterfaceP0;
+
+/// A2's MKL-scoped trajectory pin, measured at the fix-round-1 head, WARM
+/// from the dumped state (cold through the same seam was 18 / 19).
+constexpr Index kA2Iters = 5;
+constexpr Index kA2Factorizations = 6;
 
 /// A5's, likewise.
 constexpr Index kA5Iters = 11;
 constexpr Index kA5Factorizations = 12;
+
+/// The HS row whose real trajectory reaches the section 6.2 stall exit.
+constexpr int kStallRow = 38;
 
 QpOptions tight_opts() {
     QpOptions o;
@@ -117,22 +131,22 @@ RealizedFace solve_and_read_face(Index nodes, double p) {
 }
 
 /// The junction READ, cached: one walk solve, and every A1 cell below places
-/// its blocks at the indices it returns.
+/// its blocks at the indices it returns. `blocks` is carried rather than
+/// asserted here -- see the test that owns the claim (fix round 1, M8).
 struct JunctionRead {
     Index nodes = 0;
     Index left = 0;  ///< first active row index
     Index right = 0; ///< last active row index
+    std::size_t blocks = 0;
 };
 
 const JunctionRead &junction_read() {
     static const JunctionRead read = [] {
         constexpr Index kNodes = 40;
-        constexpr double kWideP = 0.85;
         const RealizedFace face = solve_and_read_face(kNodes, kWideP);
-        EXPECT_EQ(face.row_blocks.size(), 1u)
-            << "F7's own geometry produces ONE window bounded by TWO junctions";
         JunctionRead r;
         r.nodes = kNodes;
+        r.blocks = face.row_blocks.size();
         if (!face.row_blocks.empty()) {
             r.left = face.row_blocks.front().first;
             r.right = face.row_blocks.front().second;
@@ -177,26 +191,27 @@ FaceVerdict check_row_face(const E1Cell &cell, const IpqpResult &r) {
 
 } // namespace
 
-TEST(IpqpAcceptanceA1, TheBoundArcRegimeHasNoJunctionToReadAndTheWideWindowHasTwo) {
+TEST(IpqpAcceptanceA1, TheBoundArcRegimeHasNoJunctionToReadAndThePathInterfaceWindowHasTwo) {
     // RULING 9's REAL SURFACE, measured rather than assumed: at `p <= R/2` the
     // two junctions coincide at `t = 1/2` and NOTHING is active at the
-    // solution, so the indices must be read where the window exists.
-    F7CollocationChain model(40, 3, 2, 0.45, 1.0);
-    EXPECT_DOUBLE_EQ(model.junction_left(0.45), 0.5);
-    EXPECT_DOUBLE_EQ(model.junction_right(0.45), 0.5);
+    // solution, so the indices must be read at the PATH-INTERFACE `p`.
+    F7CollocationChain model(40, 3, 2, test_support::kE1BoundArcP, 1.0);
+    EXPECT_DOUBLE_EQ(model.junction_left(test_support::kE1BoundArcP), 0.5);
+    EXPECT_DOUBLE_EQ(model.junction_right(test_support::kE1BoundArcP), 0.5);
 
-    const RealizedFace bound_arc = solve_and_read_face(40, 0.45);
+    const RealizedFace bound_arc = solve_and_read_face(40, test_support::kE1BoundArcP);
     EXPECT_EQ(bound_arc.active_rows, 0) << "the empty-window regime is empty at the solution";
     EXPECT_EQ(bound_arc.active_bounds, 0) << "and F7's box is inactive at x* by construction";
 
     const JunctionRead &read = junction_read();
-    F7CollocationChain wide(read.nodes, 3, 2, 0.85, 1.0);
-    const Index jl = static_cast<Index>(
-        std::llround(wide.junction_left(0.85) * static_cast<double>(read.nodes - 1)));
-    const Index jr = static_cast<Index>(
-        std::llround(wide.junction_right(0.85) * static_cast<double>(read.nodes - 1)));
-    // The realized window is the analytic one inset by the strict inequality:
-    // the two nodes ON the junction are not active.
+    ASSERT_EQ(read.blocks, 1u) << "F7's own geometry produces ONE window bounded by TWO junctions";
+    F7CollocationChain wide(read.nodes, 3, 2, kWideP, 1.0);
+    const double span = static_cast<double>(read.nodes - 1);
+    // The realized window is `[floor(a) + 1, ceil(b) - 1]` -- the analytic
+    // window inset by the strict inequality `psi > R`, discretized. Stated
+    // this way it holds at any node count, not only where llround agrees.
+    const auto jl = static_cast<Index>(std::floor(wide.junction_left(kWideP) * span));
+    const auto jr = static_cast<Index>(std::ceil(wide.junction_right(kWideP) * span));
     EXPECT_EQ(read.left, jl + 1);
     EXPECT_EQ(read.right, jr - 1);
 }
@@ -278,19 +293,43 @@ TEST(IpqpAcceptanceA1, TwoBlocksOneAtEachJunctionAreRecoveredExactly) {
 }
 
 // ---------------------------------------------------------------------------
-// A2 -- a REAL mid-solve F7 subproblem, not a manufactured x*.
+// A2 -- a REAL mid-solve F7 subproblem, THROUGH THE BENCH DUMP SEAM.
 // ---------------------------------------------------------------------------
 
-// Q-S5 ANSWERED: --dump-solution carries ONE dense vector and no matrix at
-// all; --dump-qp carries the whole QP but only a cell's FIRST one. Neither
-// reaches a mid-solve major.
+namespace {
 
-// So A2 runs the driver to major k and rebuilds that major's subproblem from
-// the iterate it stopped at, through the same `build_subproblem` the driver
-// itself calls. See .superpowers/w1-t9-report.md.
-TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemIsSolvedAndAgreesWithTheWalk) {
+// Q-S5 ANSWERED, AND THE FORMAT EXTENDED (fix round 1, R1): --dump-solution
+// carries one dense vector and no matrix; --dump-qp carries a whole QP but
+// only a cell's FIRST one. Neither reaches a mid-solve major.
+
+// bench_cli.h's version-2 dump does: the whole QP plus the major's dual
+// state, so A2 writes a real mid-solve subproblem through the seam, reads it
+// back, and solves it WARM the way the driver enters it.
+constexpr const char *kA2Usage = "tests/sqp/test_ipqp_acceptance.cpp -- A2's dump round trip\n";
+
+/// The base-warm grade `sqp_driver.cpp`'s `build_ipqp_staged_seed` builds from
+/// a major's signed prices, here from the dumped ones.
+IpqpSeed base_warm_seed_from(const bench_cli::QpDumpV2 &d) {
+    const Index n = d.qp.n(), me = d.qp.me(), mi = d.qp.mi();
+    IpqpSeed seed;
+    seed.x = Vec::Zero(n);
+    seed.s = Vec::Zero(mi);
+    seed.lambda_e = d.lambda_e;
+    seed.lambda_i = d.lambda_i;
+    seed.zl = d.z.cwiseMax(0.0);
+    seed.zu = (-d.z).cwiseMax(0.0);
+    seed.zeta = Vec::Zero(n);
+    seed.lambda_est_e = Vec::Zero(me);
+    seed.lambda_est_i = Vec::Zero(mi);
+    seed.mu = 0.0;
+    seed.grade = IpqpRestartGrade::kBaseWarm;
+    return seed;
+}
+
+} // namespace
+
+TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWithTheWalk) {
     constexpr Index kNodes = 40;
-    constexpr double kWideP = 0.85;
     constexpr Index kMajor = 3;
 
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWideP, /*radius=*/1.0);
@@ -302,14 +341,48 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemIsSolvedAndAgreesWithTheWalk) {
     ASSERT_NE(mid.status, SqpStatus::kOptimal) << "the point must be MID-solve, not the answer";
     ASSERT_TRUE(mid.x.allFinite());
 
-    const QpProblem qp = build_subproblem(model, mid.x, mid.lambda_e, mid.lambda_i);
+    bench_cli::QpDumpV2 dumped;
+    dumped.family = "F7";
+    dumped.status = "MidSolve";
+    dumped.n_flag = kNodes;
+    dumped.major = kMajor;
+    dumped.p = kWideP;
+    dumped.qp = build_subproblem(model, mid.x, mid.lambda_e, mid.lambda_i);
+    dumped.lambda_e = mid.lambda_e;
+    dumped.lambda_i = mid.lambda_i;
+    dumped.z = mid.z;
+
+    const std::string path = ::testing::TempDir() + "hven_a2_mid_solve_major3.qpdump";
+    {
+        std::ofstream out = bench_cli::open_output_or_throw(kA2Usage, "--dump-qp-out", path);
+        bench_cli::write_qp_dump_v2(out, dumped);
+    }
+    std::ifstream in(path);
+    ASSERT_TRUE(in.good()) << path;
+    const bench_cli::QpDumpV2 got = bench_cli::read_qp_dump_v2(in);
+    in.close();
+    std::remove(path.c_str());
+
+    // THE SEAM CARRIED THE SUBPROBLEM, not a resemblance of it: the reader's
+    // QP is bit-identical to the writer's on every block.
+    ASSERT_EQ(got.major, kMajor);
+    ASSERT_EQ(got.qp.n(), dumped.qp.n());
+    ASSERT_EQ(got.qp.me(), dumped.qp.me());
+    ASSERT_EQ(got.qp.mi(), dumped.qp.mi());
+    EXPECT_EQ((got.qp.H.toDense() - dumped.qp.H.toDense()).cwiseAbs().maxCoeff(), 0.0);
+    EXPECT_EQ((got.qp.Ai.toDense() - dumped.qp.Ai.toDense()).cwiseAbs().maxCoeff(), 0.0);
+    EXPECT_EQ((got.qp.g - dumped.qp.g).cwiseAbs().maxCoeff(), 0.0);
+    EXPECT_EQ((got.qp.bi - dumped.qp.bi).cwiseAbs().maxCoeff(), 0.0);
+
+    const IpqpSeed seed = base_warm_seed_from(got);
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(got.qp, &seed, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kBaseWarm) << "the dumped state was consumed";
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
 
     QpEngine walk(tight_opts());
-    const QpSolution w = walk.solve(qp);
+    const QpSolution w = walk.solve(got.qp);
     ASSERT_EQ(w.status, QpStatus::kOptimal);
 
     // THE TIER'S OWN BAND (spec section 2.3 step 1): it stops at the QP
@@ -369,7 +442,10 @@ TEST(IpqpAcceptanceA3, BothSetsAndTheBoundMultiplierSignsAreRecoveredAtEveryMarg
         const FaceVerdict v = check_row_face(cell, r);
         const Index allowed = margin <= 1e-6 ? 1 : 0;
         EXPECT_LE(v.misclassified, allowed) << v.detail;
-#ifndef USE_ACCELERATE_SPARSE
+#ifdef USE_ACCELERATE_SPARSE
+        RecordProperty(fmt::format("a3_margin_{:g}_accelerate", margin),
+                       "UNOBSERVED -- the exact false-positive count is MKL-only");
+#else
         EXPECT_EQ(v.misclassified, allowed) << v.detail;
 #endif
 
@@ -416,7 +492,6 @@ TEST(IpqpAcceptanceA3, BothSetsAndTheBoundMultiplierSignsAreRecoveredAtEveryMarg
 
 TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
     constexpr Index kNodes = 1000; // nx = 5000, the surrogate's size
-    constexpr double kWideP = 0.85;
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWideP, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, kWideP));
     const Vec x0 = model.start_point();
@@ -449,20 +524,78 @@ TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
 // A11 -- the HS leg under kIpm on the INDEFINITE rows, plus the QP family.
 // ---------------------------------------------------------------------------
 
+namespace {
+
+/// The certification reads and the escapes, each escape tagged with the major
+/// the last `ipqp.iter` event named -- which is how a solve-level census gets
+/// back to the SUBPROBLEM a stall was charged to (fix round 1, R4).
+class AcceptanceTraceSink : public IpqpTraceSink {
+  public:
+    struct TaggedEscape {
+        IpqpTraceEscapeReason reason;
+        Index major;
+    };
+    std::vector<IpqpTraceCertifyEvent> certifies;
+    std::vector<TaggedEscape> escapes;
+    Index last_major = 0;
+
+    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { last_major = e.major; }
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override { certifies.push_back(e); }
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override {
+        escapes.push_back({e.reason, last_major});
+    }
+    void on_qp_mode(const QpModeTraceEvent &) override {}
+};
+
+/// R5's POSITIVE witness that the section 2.2 item 4 read HAPPENED: the
+/// `ipqp.certify` event fires ONLY on an attempted read (values 0/1/2, never
+/// the "not performed" 3), which the counter's 0 cannot say on its own.
+::testing::AssertionResult every_final_read_agreed(const AcceptanceTraceSink &sink) {
+    for (std::size_t k = 0; k < sink.certifies.size(); ++k) {
+        const IpqpTraceCertifyEvent &e = sink.certifies[k];
+        if (e.final_inertia != IpqpTraceFinalInertia::kOk || e.downgraded) {
+            return ::testing::AssertionFailure()
+                   << "certify event " << k << " read " << static_cast<int>(e.final_inertia)
+                   << " with downgraded=" << e.downgraded;
+        }
+    }
+    return ::testing::AssertionSuccess();
+}
+
+/// The folded IPQP counters of the same solve truncated to `majors` majors.
+/// The trajectory to a major does not depend on the budget that stops it, so
+/// a difference of two of these is one major's own subproblems.
+IpqpCounters counters_through_major(NlpModel &model, Index majors) {
+    if (majors <= 0) {
+        return IpqpCounters{};
+    }
+    SqpDriver driver(ipm_options(majors));
+    return driver.solve(model).counters.ipqp;
+}
+
+} // namespace
+
 TEST(IpqpAcceptanceA11, TheIndefiniteHsRowsSolveUnderKIpmAndCertifyHonestly) {
     struct Row {
         int number;
         const char *why;
+        bool certifies; ///< MEASURED: does any subproblem reach a certifying exit?
     };
     // hs_problems.h's own classification: HS10/HS24 are indefinite through the
     // OBJECTIVE, HS33 through a reverse-convex row with a positive multiplier.
-    const std::vector<Row> rows = {{10, "linear objective, H = li * hess(cI1)"},
-                                   {24, "cubic x quadratic objective, polyhedral set"},
-                                   {33, "reverse-convex row, negative-definite contribution"}};
+    const std::vector<Row> rows = {
+        {10, "linear objective, H = li * hess(cI1)", false},
+        {24, "cubic x quadratic objective, polyhedral set", true},
+        {33, "reverse-convex row, negative-definite contribution", true}};
     for (const Row &row : rows) {
         SCOPED_TRACE(fmt::format("HS{} -- {}", row.number, row.why));
         const HsProblem p = make_hs(row.number);
+        AcceptanceTraceSink sink;
         SqpDriver driver(ipm_options());
+        driver.attach_trace(&sink);
         const SqpSolution sol = driver.solve(*p.model);
         ASSERT_EQ(sol.status, SqpStatus::kOptimal);
         EXPECT_NEAR(sol.f, p.f_star, 1e-6 * std::max(1.0, std::abs(p.f_star)));
@@ -471,9 +604,21 @@ TEST(IpqpAcceptanceA11, TheIndefiniteHsRowsSolveUnderKIpmAndCertifyHonestly) {
         EXPECT_GT(c.ipqp_iters, 0) << "the tier really solved the subproblems";
         EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(c));
         EXPECT_TRUE(test_support::assert_ipqp_routing_partition(c, tier_entries(c)));
-        // THE REQUIRED FINAL READ (section 2.2 item 4) HAPPENED, and read
-        // RIGHT: a wrong or unreadable one downgrades the certificate, which
-        // the seam tests pin from the other side.
+        // THE REQUIRED FINAL READ (section 2.2 item 4), witnessed POSITIVELY by
+        // the certify event -- 0 below is ALSO the field's never-read default,
+        // so the field alone cannot say a read happened (fix round 1, R5).
+        EXPECT_TRUE(every_final_read_agreed(sink));
+        RecordProperty(fmt::format("a11_hs{}_certify_events", row.number),
+                       static_cast<int>(sink.certifies.size()));
+        if (row.certifies) {
+            EXPECT_FALSE(sink.certifies.empty()) << "a read must have been ATTEMPTED here";
+        } else {
+            // MEASURED, and it is why the QP-family leg below carries the
+            // claim: every HS10 subproblem leaves by the routing chain, so no
+            // final read is ever paid and the field stays at its default.
+            EXPECT_TRUE(sink.certifies.empty());
+            EXPECT_GT(c.ipqp_to_walk + c.ipqp_to_ssn + c.ipqp_to_refine, 0);
+        }
         EXPECT_EQ(c.ipqp_final_inertia_read, 0);
         RecordProperty(fmt::format("a11_hs{}_iters", row.number), static_cast<int>(c.ipqp_iters));
         RecordProperty(fmt::format("a11_hs{}_facts", row.number),
@@ -501,13 +646,19 @@ TEST(IpqpAcceptanceA11, TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead
 
     for (Row &row : rows) {
         SCOPED_TRACE(row.name);
+        AcceptanceTraceSink sink;
         IpqpEngine tier(tight_opts());
+        tier.attach_trace(&sink);
         const IpqpResult r = tier.solve(row.qp, nullptr, IpqpOptions{}, SolveOverrides{});
         ASSERT_EQ(r.status, QpStatus::kOptimal);
         // THE INERTIA GATE FIRED: an indefinite Hessian cannot be stepped on
         // without a demanded modification, so the high-water mark is positive.
         EXPECT_GT(r.counters.ipqp_rho_demanded_max, 0.0);
         EXPECT_GT(r.counters.ipqp_inertia_retries, 0);
+        // The read HAPPENED (the event fired) and AGREED, then the field and
+        // the flag say the same thing from the result side.
+        EXPECT_TRUE(every_final_read_agreed(sink));
+        EXPECT_FALSE(sink.certifies.empty()) << "a read must have been ATTEMPTED here";
         EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
         EXPECT_FALSE(r.certificate_downgraded);
         EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
@@ -530,16 +681,14 @@ TEST(IpqpAcceptanceA11, TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead
 
 TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKillsNothing) {
     constexpr Index kNodes = 40;
-    constexpr double kP0 = 0.80;
-    constexpr double kP1 = 0.85;
 
-    F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kP0, /*radius=*/1.0);
-    model.set_parameters(Vec::Constant(1, kP0));
+    F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWarmP0, /*radius=*/1.0);
+    model.set_parameters(Vec::Constant(1, kWarmP0));
     SqpDriver seed_driver(ipm_options());
     const SqpSolution seed = seed_driver.solve(model, model.start_point());
     ASSERT_EQ(seed.status, SqpStatus::kOptimal);
 
-    model.set_parameters(Vec::Constant(1, kP1));
+    model.set_parameters(Vec::Constant(1, kWideP));
     SqpDriver warm_driver(ipm_options());
     const SqpSolution warm = warm_driver.solve(model, seed.warm_start.x, seed.warm_start);
     ASSERT_EQ(warm.status, SqpStatus::kOptimal);
@@ -619,10 +768,43 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
     RecordProperty("census_accelerate", "UNOBSERVED -- the exact census is MKL-only");
 #else
     EXPECT_EQ(stalls, 1);
-    EXPECT_EQ(stall_detail, " hs38=1");
+    EXPECT_EQ(stall_detail, fmt::format(" hs{}=1", kStallRow));
     EXPECT_EQ(armed_peak, 65);
     EXPECT_EQ(rows_with_armed, 6);
 #endif
+}
+
+TEST(IpqpAcceptanceCensus, TheNaturalStallIsChargedToASubproblemThatNeverArmedTheLadder) {
+    // T4b C7 ON THE STALLING SUBPROBLEM, not on the solve aggregate (fix round
+    // 1, R4): an aggregate cannot tell one stalled-and-unarmed subproblem from
+    // a stalled one beside an armed one.
+    const HsProblem p = make_hs(kStallRow);
+    AcceptanceTraceSink sink;
+    SqpDriver driver(ipm_options());
+    driver.attach_trace(&sink);
+    const SqpSolution full = driver.solve(*p.model);
+    ASSERT_GE(full.counters.ipqp.ipqp_escape_stall, 1) << "the natural stall must still fire";
+
+    std::vector<Index> stall_majors;
+    for (const AcceptanceTraceSink::TaggedEscape &e : sink.escapes) {
+        if (e.reason == IpqpTraceEscapeReason::kStall) {
+            stall_majors.push_back(e.major);
+        }
+    }
+    ASSERT_EQ(stall_majors.size(), 1u) << "exactly one ipqp.escape event names a stall";
+    const Index major = stall_majors.front();
+    RecordProperty("stall_major", static_cast<int>(major));
+
+    const IpqpCounters through = counters_through_major(*p.model, major);
+    const IpqpCounters before = counters_through_major(*p.model, major - 1);
+    // THE PREFIX IS STABLE, or the difference below means nothing.
+    ASSERT_GE(through.ipqp_iters, before.ipqp_iters);
+    EXPECT_EQ(through.ipqp_escape_stall - before.ipqp_escape_stall, 1)
+        << "the stall belongs to major " << major;
+    EXPECT_EQ(
+        through.ipqp_iters_ladder_armed_no_advance - before.ipqp_iters_ladder_armed_no_advance, 0)
+        << "no subproblem of the stalling major armed the ladder, so section 6.2 cannot have "
+           "charged an armed run (T4b C7)";
 }
 
 } // namespace hven::solvers

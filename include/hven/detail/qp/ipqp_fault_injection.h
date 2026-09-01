@@ -200,11 +200,17 @@ struct IpqpFirstIterateObserver {
 };
 
 // GATE 9's PER-STEP FORM (T9, registered as T4b C8/I6): the EXECUTED map must
-// have no fixed point the stopping gate cannot see. Neither the direction nor
-// the regularized residual leaves the solve, so both are observed here.
+// have no fixed point the stopping gate cannot see. `min_step_inf` is the
+// ALPHA-SCALED iterate update, not the Newton direction (fix round 1).
+
+// NOT FAITHFUL FOR a re-introduced TOTAL shift (T4b mechanism 4): that freeze
+// shows as a budget exit with ordinary-sized steps, so this observer covers
+// the vanishing-step class alone. Numbers in docs/testing.md.
 struct IpqpStepObserver {
     static inline bool active = false;
     static inline Index steps = 0;
+    /// inf-norm of the executed update: max over the primal blocks scaled by
+    /// `alpha_p` and the dual blocks scaled by `alpha_d`.
     static inline double min_step_inf = std::numeric_limits<double>::infinity();
     static inline double res_at_min_step = std::numeric_limits<double>::infinity();
     static inline bool met_target_at_min_step = false;

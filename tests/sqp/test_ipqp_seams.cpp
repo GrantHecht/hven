@@ -859,9 +859,9 @@ TEST_F(IpqpSeamTest, AnUnrepairedSeedReachesTheFirstIterateWithItsBoundDualsUNTO
 
 namespace {
 
-/// Gate 9's floor. A Newton direction below this at a non-converged iterate is
-/// a fixed point of the executed map that the stopping gate cannot see -- the
-/// shape mechanism 4's freeze had.
+/// Gate 9's floor, on the EXECUTED (alpha-scaled) update: an iterate update
+/// below this at a non-converged iterate is a fixed point of the executed map
+/// the stopping gate cannot see -- the shape mechanism 4's freeze had.
 constexpr double kGate9StepFloor = 1e-12;
 
 } // namespace
@@ -891,11 +891,11 @@ TEST_F(IpqpSeamTest, NoAcceptedStepIsAFixedPointTheStoppingGateCannotSee) {
                        fmt::format("steps={} min_step={:.6e} res={:.6e}", StepObserver::steps,
                                    StepObserver::min_step_inf, StepObserver::res_at_min_step));
         // The invariant, in the form the observer can state it: either every
-        // accepted direction is above the floor, or the one that was not was
+        // executed update is above the floor, or the one that was not was
         // taken at an iterate the gate already called converged.
         EXPECT_TRUE(StepObserver::min_step_inf >= kGate9StepFloor ||
                     StepObserver::met_target_at_min_step)
-            << "min ||d||inf = " << StepObserver::min_step_inf << " at regularized residual "
+            << "min ||alpha d||inf = " << StepObserver::min_step_inf << " at regularized residual "
             << StepObserver::res_at_min_step;
         StepObserver::reset();
     }

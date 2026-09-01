@@ -410,7 +410,7 @@ boundary carries everything else, so the boundary is where it stays.
 
 `hven/detail/qp/ipqp_fault_injection.h` is the same convention applied above
 the linear layer, and it is the first use of it outside `linear/`. It declares
-two `static inline` structs under `hven::solvers::detail::testing`, entirely
+four `static inline` structs under `hven::solvers::detail::testing`, entirely
 guarded by `#ifdef HVEN_TESTING`:
 
 - `IpqpInertiaEvidenceInjector` — `active`, `on_iteration_reads`,
@@ -435,14 +435,21 @@ guarded by `#ifdef HVEN_TESTING`:
   it copies state the solve really holds and changes nothing.
 - `IpqpStepObserver` (M6 W1 T9) — `active`, `steps`, `min_step_inf`,
   `res_at_min_step`, `met_target_at_min_step`, `last_step_inf`, `last_res`.
-  NOT an injector. Gate 9's per-step form (T4b C8/I6): the Newton DIRECTION's
-  inf-norm beside the regularized residual at the iterate the step was taken
-  from, neither of which leaves the solve. WHAT IT DOES AND DOES NOT CATCH,
-  measured: a build with the direction scaled by `1e-16` fails the pin on all
-  six fixtures (min `||d||inf` 1e-19..1e-12 at residuals 1e-5..2.0), while the
-  mechanism-4 mutation T4b ran (`build_rhs(rho_sched + rho_dem, …)`) does NOT
-  — its freeze shows as a budget escape with directions no smaller than 4.7e-7,
-  not as a vanishing one. The pin covers the vanishing-direction class only.
+  NOT an injector. Gate 9's per-step form (T4b C8/I6). WHAT IT MEASURES (fix
+  round 1, Codex 1): the EXECUTED iterate update — `max` over the primal blocks
+  scaled by the step's own `alpha_p` and the dual blocks scaled by `alpha_d`,
+  exactly the quantity `w.x += alpha_p * w.dx` and its five siblings apply —
+  beside the regularized residual at the iterate the step was taken from, and
+  the WHOLE stopping rule's verdict there (§5.5's warm-trust guard included).
+  The raw Newton direction would not establish the fixed-point property at all:
+  a collapsing `alpha` with a large `d` is a vanishing update that a
+  direction-norm pin passes. Measured on the six fixtures, min `||alpha d||inf`
+  runs 2.5e-07..2.6e-05 against a `1e-12` floor. WHAT IT DOES AND DOES NOT
+  CATCH, measured: a build with the step scaled by `1e-16` fails the pin on all
+  six fixtures, while the mechanism-4 mutation T4b ran (`build_rhs(rho_sched +
+  rho_dem, …)`) does NOT — its freeze shows as a budget escape with
+  ordinary-sized steps, not as a vanishing one. The pin covers the
+  vanishing-step class only, and `IpqpStepObserver`'s own doc comment says so.
 
 Both T9 observers hang off their own `#ifdef HVEN_TESTING` call sites in
 `src/qp/ipqp_engine.cpp` rather than riding `evidence_for_read`: they observe
