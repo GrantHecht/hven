@@ -245,7 +245,8 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
         EXPECT_GT(ev.mu, 0.0);
         EXPECT_GT(ev.res_d, 0.0) << "never exactly 0 on a real solve -- catches a zero-fill";
         EXPECT_GT(ev.res_c, 0.0);
-        EXPECT_NE(ev.res_d, ev.res_c) << "catches a res_d/res_c swap on this fixture";
+        EXPECT_NE(ev.res_d, ev.res_c) << "non-vacuity only -- the exact cold-start pin below is "
+                                         "what actually catches a res_d/res_c swap";
         EXPECT_EQ(ev.res_p, 0.0) << "box_qp has mi == me == 0, so primal_eq/primal_iq are 0";
         EXPECT_EQ(ev.facts, "");
         ASSERT_TRUE(ev.inertia.has_value()) << "a real MKL read observes on this fixture";
@@ -262,6 +263,11 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
     }
     EXPECT_DOUBLE_EQ(min_alpha_p, first.counters.ipqp_alpha_p_min);
     EXPECT_DOUBLE_EQ(min_alpha_d, first.counters.ipqp_alpha_d_min);
+    // Cold-start duals make res_c bit-exact against ipqp_init_mu here (x0 ==
+    // box centre, unit distances); a res_d/res_c swap breaks this. See
+    // .superpowers/w1-t8-report.md FIX ROUND 3.
+    EXPECT_DOUBLE_EQ(sink.iters.front().res_c, IpqpOptions{}.ipqp_init_mu)
+        << "cold-start complementarity is exactly mu_0 by construction on this fixture";
     // `it` is a dense 1..N sequence, one entry per completed iteration.
     for (std::size_t i = 0; i < sink.iters.size(); ++i) {
         EXPECT_EQ(sink.iters[i].it, static_cast<Index>(i) + 1);
@@ -561,6 +567,120 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     EXPECT_EQ(escaped_count, to_walk_real);
     // R3: an exact fold-sum against the aggregated ipqp_iters counter.
     EXPECT_EQ(iters_sum, total_iters);
+}
+
+// Fix round 3 -- face_rows/face_bounds swap-falsifiability; see
+// .superpowers/w1-t8-report.md FIX ROUND 3.
+
+/// n=2, mi=0, box [-1,1]^2, unconstrained min (3,3) -- both bounds bind.
+/// face_rows is structurally 0 (no inequality row exists).
+class BoundActiveOnlyModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override {
+        return x(0) * x(0) - 6.0 * x(0) + x(1) * x(1) - 6.0 * x(1);
+    }
+    Vec eval_grad(const Vec &x) const override { return vec({2.0 * x(0) - 6.0, 2.0 * x(1) - 6.0}); }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        return obj_scale * dense_upper({{2.0, 0.0}, {0.0, 2.0}});
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = vec({-1.0, -1.0});
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = vec({1.0, 1.0});
+        return u;
+    }
+    Vec start_point() const override { return Vec::Zero(2); }
+};
+
+/// n=2, mi=1, no finite bound anywhere -- face_bounds is structurally 0.
+/// x1+x2>=1 binds at x*=(0.5,0.5); unconstrained min (0,0) violates it.
+class RowActiveOnlyModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 1; }
+
+    double eval_f(const Vec &x) const override { return x(0) * x(0) + x(1) * x(1); }
+    Vec eval_grad(const Vec &x) const override { return vec({2.0 * x(0), 2.0 * x(1)}); }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &x) const override { return vec({1.0 - x(0) - x(1)}); }
+
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        return obj_scale * dense_upper({{2.0, 0.0}, {0.0, 2.0}});
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        std::vector<Eigen::Triplet<double>> t{{0, 0, -1.0}, {0, 1, -1.0}};
+        j.setFromTriplets(t.begin(), t.end());
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override {
+        static const Vec l = vec({-1e20, -1e20}); // "no bound", ipqp_math.h's kIpqpInfBound
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = vec({1e20, 1e20});
+        return u;
+    }
+    Vec start_point() const override { return vec({1.0, 1.0}); } // feasible: 1-1-1 <= 0
+};
+
+TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
+    {
+        RecordingTraceSink sink;
+        SqpOptions o;
+        o.qp_mode = QpMode::kIpm;
+        SqpDriver driver(o);
+        driver.attach_trace(&sink);
+        BoundActiveOnlyModel model;
+        const SqpSolution s = driver.solve(model);
+        ASSERT_EQ(s.status, SqpStatus::kOptimal);
+        ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
+        Index face_rows_sum = 0, face_bounds_sum = 0;
+        for (const IpqpTraceRouteEvent &ev : sink.routes) {
+            face_rows_sum += ev.face_rows;
+            face_bounds_sum += ev.face_bounds;
+        }
+        EXPECT_EQ(face_rows_sum, 0) << "mi == 0 here -- no inequality row can ever be active";
+        EXPECT_GT(face_bounds_sum, 0) << "both variables bind their bound -- non-vacuous";
+    }
+    {
+        RecordingTraceSink sink;
+        SqpOptions o;
+        o.qp_mode = QpMode::kIpm;
+        SqpDriver driver(o);
+        driver.attach_trace(&sink);
+        RowActiveOnlyModel model;
+        const SqpSolution s = driver.solve(model);
+        ASSERT_EQ(s.status, SqpStatus::kOptimal);
+        ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
+        Index face_rows_sum = 0, face_bounds_sum = 0;
+        for (const IpqpTraceRouteEvent &ev : sink.routes) {
+            face_rows_sum += ev.face_rows;
+            face_bounds_sum += ev.face_bounds;
+        }
+        EXPECT_EQ(face_bounds_sum, 0) << "no finite bound anywhere -- bound_state is kFree always";
+        EXPECT_GT(face_rows_sum, 0) << "the inequality row binds -- non-vacuous";
+    }
 }
 
 } // namespace

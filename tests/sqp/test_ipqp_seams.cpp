@@ -702,28 +702,42 @@ TEST_F(IpqpSeamTest, AnUnavailableMidSolveReadingReachesTheTraceAsAbsentAndNeigh
     ASSERT_FALSE(sink.iters.empty());
 
     Index absent_count = 0, observed_count = 0;
+    std::optional<std::size_t> absent_index;
     for (std::size_t i = 0; i < sink.iters.size(); ++i) {
         const IpqpTraceIterEvent &ev = sink.iters[i];
         if (!ev.inertia.has_value()) {
             ++absent_count;
-            EXPECT_FALSE(ev.perturbed.has_value())
-                << "an unavailable read reports no pivot count either -- never zero-filled";
+            absent_index = i;
+            // BOTH-absent is unconditional on every backend: an unavailable
+            // read reports no pivot count either -- never zero-filled.
+            EXPECT_FALSE(ev.perturbed.has_value());
             EXPECT_FALSE(ev.zero_derived);
-            if (i > 0) {
-                EXPECT_TRUE(sink.iters[i - 1].inertia.has_value())
-                    << "the iteration before the injected one used a real read";
-            }
-            if (i + 1 < sink.iters.size()) {
-                EXPECT_TRUE(sink.iters[i + 1].inertia.has_value())
-                    << "the iteration after the injected one used a real read";
-            }
         } else {
             ++observed_count;
+            // perturbed is MKL-only (Accelerate: nullopt by design); see
+            // .superpowers/w1-t8-report.md FIX ROUND 3.
+#ifndef USE_ACCELERATE_SPARSE
             EXPECT_TRUE(ev.perturbed.has_value()) << "MKL always reports a pivot count";
+#else
+            if (!ev.perturbed.has_value()) {
+                RecordProperty("perturbed_unobserved_on_accelerate", "UNOBSERVED");
+            }
+#endif
         }
     }
     EXPECT_EQ(absent_count, 1) << "exactly one iteration's read was corrupted";
     EXPECT_GT(observed_count, 0) << "the rest of the solve used real reads -- non-vacuous";
+
+    // Neighbour existence asserted unconditionally, not skipped at an edge;
+    // see .superpowers/w1-t8-report.md FIX ROUND 3.
+    ASSERT_TRUE(absent_index.has_value());
+    ASSERT_GT(*absent_index, 0u) << "need a real iteration before the injected one";
+    ASSERT_LT(*absent_index + 1, sink.iters.size())
+        << "need a real iteration after the injected one";
+    EXPECT_TRUE(sink.iters[*absent_index - 1].inertia.has_value())
+        << "the iteration before the injected one used a real read";
+    EXPECT_TRUE(sink.iters[*absent_index + 1].inertia.has_value())
+        << "the iteration after the injected one used a real read";
 }
 
 } // namespace hven::solvers
