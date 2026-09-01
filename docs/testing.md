@@ -505,12 +505,16 @@ executable.
 **Cost to the production build: measured zero.** `src/qp/ipqp_engine.cpp` was
 compiled twice from the same path with the project's own Release command — once
 as shipped, once with the `#include` and the `#ifdef HVEN_TESTING` block
-textually removed — and the two objects are **byte-identical** (346696 bytes,
-`cmp` clean, re-verified 2026-08-31 after M6 W1 T4b and its fix rounds 1 and 2
-changed this TU; clang 22.1.8, the project's own Release command for this TU, compiled
-twice from the same path so no embedded source path can differ. The recorded
-size moves with the TU -- 343336 bytes at the T5 measurement, 346344 at T4b
-round 1 -- and what the check asserts is the CMP, not the number).
+textually removed — and the two objects are **byte-identical** (388864 bytes,
+`cmp` clean, re-verified 2026-09-01 after M6 W1 T8 fix round 2 changed this TU
+again (R1 completion: `evidence_for_read`'s result now also feeds the
+`ipqp.iter` trace, an unconditional call outside the `#ifdef` block, so the
+byte count moved but the seam's own claim did not); clang 22.1.8, the
+project's own Release command for this TU, compiled twice from the same path
+so no embedded source path can differ. The recorded size moves with the TU --
+343336 bytes at the T5 measurement, 346344 at T4b round 1, 346696 at T4b's
+subsequent rounds through M6 W1 T8 fix round 1 -- and what the check asserts
+is the CMP, not the number).
 `nm -C libhven.a` reports no `IpqpInertia*` symbol. The production library and
 `hven_sqp_tests` are therefore exactly what they would be if this seam did not
 exist.

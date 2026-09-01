@@ -1861,6 +1861,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
     };
 
+    // R1 (fix round 2): what `evidence_for_read` actually returned (injected
+    // or real), so `ipqp.iter` reports the algorithm's own read, not a
+    // second unseamed one. Copied only when a sink is attached.
+    hven::linear::InertiaEvidence trace_last_evidence{};
+
     // Returns the reading, or -- when the factorization budget refused the
     // call -- `kUnreadable` with `fact_budget_hit` raised. Callers must test
     // the flag FIRST: a budget stop is `kBudget`, never a numerical or
@@ -1879,7 +1884,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         if (kkt_.info() != Eigen::Success) {
             return InertiaRead::kFactorFailed;
         }
-        return classify_inertia(evidence_for_read(kkt_, final_read), expect_pos, expect_neg);
+        const hven::linear::InertiaEvidence &ev = evidence_for_read(kkt_, final_read);
+        if (trace_ != nullptr && !final_read) {
+            trace_last_evidence = ev; // R1: the same object classify_inertia sees.
+        }
+        return classify_inertia(ev, expect_pos, expect_neg);
     };
 
     // EXACTLY ONE FACTORIZATION AND ONE READING (spec 2.2 item 4's own cost
@@ -2908,11 +2917,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         ++attempt_accepted; // R1: this attempt's own accepted-step count.
         rho_dem_final = rho_dem;
 
-        // task 8: `ipqp.iter`. `kkt_.inertia_evidence()` is a cached-field
-        // accessor, not a re-factorization -- no added cost. R1: absent
-        // evidence stays absent, never zero-filled.
+        // task 8: `ipqp.iter`. `trace_last_evidence` is what
+        // `evidence_for_read` returned for this iteration's accepted read --
+        // the injection seam's own value when active, R1 fix round 2.
         if (trace_ != nullptr) {
-            const hven::linear::InertiaEvidence &iev = kkt_.inertia_evidence();
+            const hven::linear::InertiaEvidence &iev = trace_last_evidence;
             IpqpTraceIterEvent ev;
             ev.solve = trace_solve_id;
             ev.major = trace_major_;
@@ -2926,10 +2935,15 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             ev.sigma = sigma_m;
             ev.alpha_p = alpha_p;
             ev.alpha_d = alpha_d;
+            // R1: absence is DERIVED from the read's own state, explicitly
+            // both ways -- never left to a default that happens to agree.
             if (iev.state == hven::linear::InertiaEvidence::State::kObserved) {
                 ev.inertia = std::array<Index, 3>{iev.n_pos, iev.n_neg, iev.n_zero};
                 ev.zero_derived = iev.zero_is_derived;
-            } // else: ev.inertia stays nullopt -- unavailable/unreadable, R1.
+            } else {
+                ev.inertia = std::nullopt;
+                ev.zero_derived = false;
+            }
             ev.perturbed = iev.perturbed_pivots; // absent on Accelerate, R1.
             emit_trace_iter(ev);
         }

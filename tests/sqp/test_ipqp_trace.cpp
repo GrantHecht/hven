@@ -240,12 +240,21 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
         EXPECT_LE(ev.alpha_p, 1.0);
         EXPECT_GT(ev.alpha_d, 0.0);
         EXPECT_LE(ev.alpha_d, 1.0);
+        EXPECT_GT(ev.sigma, 0.0) << "Mehrotra's centering parameter, defined in (0, 1]";
+        EXPECT_LE(ev.sigma, 1.0);
+        EXPECT_GT(ev.mu, 0.0);
+        EXPECT_GT(ev.res_d, 0.0) << "never exactly 0 on a real solve -- catches a zero-fill";
+        EXPECT_GT(ev.res_c, 0.0);
+        EXPECT_NE(ev.res_d, ev.res_c) << "catches a res_d/res_c swap on this fixture";
         EXPECT_EQ(ev.res_p, 0.0) << "box_qp has mi == me == 0, so primal_eq/primal_iq are 0";
         EXPECT_EQ(ev.facts, "");
         ASSERT_TRUE(ev.inertia.has_value()) << "a real MKL read observes on this fixture";
         EXPECT_EQ((*ev.inertia)[0], 2) << "n=2, positive definite, mi=0";
         EXPECT_EQ((*ev.inertia)[1], 0);
         EXPECT_EQ((*ev.inertia)[2], 0);
+#ifndef USE_ACCELERATE_SPARSE
+        EXPECT_TRUE(ev.zero_derived) << "MKL Pardiso always derives n_zero by subtraction";
+#endif
         ASSERT_TRUE(ev.perturbed.has_value()) << "MKL always reports a pivot count";
         EXPECT_EQ(*ev.perturbed, 0) << "well-conditioned fixture, no perturbation";
         min_alpha_p = std::min(min_alpha_p, ev.alpha_p);
@@ -260,6 +269,12 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
     EXPECT_EQ(sink.iters.back().it, first.counters.ipqp_iters);
     EXPECT_DOUBLE_EQ(sink.iters.back().rho, first.rho);
     EXPECT_DOUBLE_EQ(sink.iters.back().delta, first.delta);
+    // IpqpResult is one more residual/mu probe past the last emitted event,
+    // so it can only be MORE converged -- exact ordering, not a bound
+    // picked to pass. See w1-t8-report.md FIX ROUND 2 for the trace.
+    EXPECT_LT(first.mu, sink.iters.back().mu);
+    EXPECT_LT(first.residuals.stationarity, sink.iters.back().res_d);
+    EXPECT_LT(first.residuals.complementarity, sink.iters.back().res_c);
 
     tier.set_trace_major(7);
     const IpqpResult second =
@@ -276,6 +291,9 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
     ASSERT_FALSE(second_events.empty());
     EXPECT_DOUBLE_EQ(second_events.back().rho, second.rho);
     EXPECT_DOUBLE_EQ(second_events.back().delta, second.delta);
+    EXPECT_LT(second.mu, second_events.back().mu);
+    EXPECT_LT(second.residuals.stationarity, second_events.back().res_d);
+    EXPECT_LT(second.residuals.complementarity, second_events.back().res_c);
 }
 
 // H = diag(2, -1000) on [-10, 10]^2 (test_ipqp_engine.cpp's own indefinite
@@ -341,11 +359,12 @@ TEST(IpqpTrace, RestartEventReportsTheGradeAndTheRepairFactsAsMeasured) {
     EXPECT_EQ(sink.restarts[0].mu_payload, 0.0);
 
     // ALIASING: `warm_carry()` points INTO the engine, and solve() commits
-    // new state through that same pointer -- read `mu` before that call,
-    // never after (ipqp_engine.cpp's own "COPIED FIRST" comment).
+    // new state through that same pointer -- read `mu`/`zl`/`zu` before that
+    // call, never after (ipqp_engine.cpp's own "COPIED FIRST" comment).
     const IpqpSeed *carry = tier.warm_carry();
     ASSERT_NE(carry, nullptr) << "a finite converged solve arms the cross-major carry";
     const double carry_mu_before = carry->mu;
+    const double carry_sum_z_before = carry->zl.sum() + carry->zu.sum();
     const IpqpResult warm = tier.solve(qp, carry, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(warm.status, QpStatus::kOptimal);
     ASSERT_EQ(sink.restarts.size(), 2u);
@@ -355,11 +374,19 @@ TEST(IpqpTrace, RestartEventReportsTheGradeAndTheRepairFactsAsMeasured) {
     EXPECT_DOUBLE_EQ(rev.mu_payload, carry_mu_before);
     EXPECT_GE(rev.mu0, IpqpOptions{}.ipqp_min_mu);
     EXPECT_LE(rev.mu0, IpqpOptions{}.ipqp_init_mu);
-    // R4: shift_p/shift_d are the SAY shift's own delta_p/delta_d, not a
-    // shared max-fold -- on this fixture they are provably distinct, which
-    // is exactly the falsifiability the original shared-value bug lacked.
-    EXPECT_GE(rev.shift_p, 0.0);
-    EXPECT_GE(rev.shift_d, 0.0);
+    // R3/R4: shift_p/shift_d recomputed from the SAY formula, not merely
+    // bounded -- npd=4 and sum_d=upper-lower are dimension-derived; sum_z
+    // uses the seed's raw prices. See w1-t8-report.md FIX ROUND 2's derivation.
+    constexpr double kSayFraction = detail::kIpqpSayTargetFraction; // 0.5, ipqp_engine.h
+    const double npd = 4.0;
+    const double sum_d = 2.0 * (qp.upper(0) - qp.lower(0)); // both sides finite on both variables
+    const double predicted_shift_d = kSayFraction * rev.mu0 * npd / sum_d;
+    EXPECT_DOUBLE_EQ(rev.shift_d, predicted_shift_d);
+    if (carry_sum_z_before > 0.0) {
+        const double predicted_shift_p = kSayFraction * rev.mu0 * npd / carry_sum_z_before;
+        EXPECT_DOUBLE_EQ(rev.shift_p, predicted_shift_p)
+            << "fails if the repair actually moved a price -- see this block's own note";
+    }
     EXPECT_NE(rev.shift_p, rev.shift_d) << "R4: distinct, not the shared shift_max";
     EXPECT_EQ(rev.adopted, warm.counters.ipqp_mu_adopted != 0);
     EXPECT_EQ(rev.abandoned, warm.counters.ipqp_warm_restart_abandoned != 0);
@@ -481,6 +508,7 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
 
     Index refine_events = 0, ssn_events = 0, walk_events = 0;
     Index uncertain_sum = 0;
+    Index face_rows_sum = 0, face_bounds_sum = 0;
     for (const IpqpTraceRouteEvent &ev : sink.routes) {
         switch (ev.to) {
         case IpqpTraceRouteTo::kRefine:
@@ -496,7 +524,14 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
         EXPECT_GE(ev.face_rows, 0);
         EXPECT_GE(ev.face_bounds, 0);
         uncertain_sum += ev.uncertain;
+        face_rows_sum += ev.face_rows;
+        face_bounds_sum += ev.face_bounds;
     }
+    // No aggregated counter exists to fold-sum against (unlike below) --
+    // `ires.ineq_active`/`bound_state` never reach any caller. NON-VACUITY
+    // is what's reachable: a mutation that always reports 0 fails this.
+    EXPECT_GT(face_bounds_sum, 0) << "HS6/HS10 box-constrain variables -- some face must show one";
+    EXPECT_GT(face_rows_sum, 0) << "HS3's inequality rows put some face_rows > 0 too";
     EXPECT_EQ(refine_events, refine_accepted);
     EXPECT_EQ(ssn_events, to_ssn);
     EXPECT_EQ(walk_events, to_walk_real);

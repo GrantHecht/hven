@@ -302,6 +302,7 @@ add_executable(hven_ipqp_seam_tests
     ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
     ${HVEN_SRC_DIR}/qp/ipqp_engine.cpp
     ${HVEN_SRC_DIR}/qp/ipqp_kkt_layout.cpp
+    ${HVEN_SRC_DIR}/qp/ipqp_trace.cpp
     sqp/test_ipqp_seams.cpp
 )
 

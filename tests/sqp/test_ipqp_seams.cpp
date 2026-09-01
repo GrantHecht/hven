@@ -35,6 +35,7 @@
 
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
+#include <hven/detail/qp/ipqp_trace.h>
 
 namespace hven::solvers {
 namespace {
@@ -156,6 +157,20 @@ InertiaEvidence perturbed(Index n_pos, Index n_neg) {
     e.perturbed_pivots = 3;
     return e;
 }
+
+/// R1 fix round 2: a minimal trace sink, this file's own (not
+/// test_ipqp_trace.cpp's), so the seam pin below stays self-contained.
+class RecordingIterSink : public IpqpTraceSink {
+  public:
+    std::vector<IpqpTraceIterEvent> iters;
+    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { iters.push_back(e); }
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const QpModeTraceEvent &) override {}
+};
 
 class IpqpSeamTest : public ::testing::Test {
   protected:
@@ -661,6 +676,54 @@ TEST_F(IpqpSeamTest, AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesThe
     EXPECT_GT(r.counters.ipqp_read_kept_tight_sides, 0) << "counters stay populated, undowngraded";
     EXPECT_GT(r.counters.ipqp_read_barrier_noise_sides, 0) << "both counters, per dispatch";
     EXPECT_FALSE(r.read_kept_tight) << "but the flag reports the certificate as it actually stands";
+}
+
+// ---------------------------------------------------------------------------
+// R1 fix round 2 -- the ipqp.iter trace event's inertia/perturbed absence
+// ---------------------------------------------------------------------------
+
+TEST_F(IpqpSeamTest, AnUnavailableMidSolveReadingReachesTheTraceAsAbsentAndNeighboursStayObserved) {
+    // The emit site must derive absence from the SAME read the classifier
+    // saw (evidence_for_read), not a second, unseamed access -- and this
+    // seam is the only place kUnavailable/kQueryFailed is reachable at all.
+    Injector::active = true;
+    Injector::on_final_read = false;
+    Injector::skip_first = 2;     // real iterations first, for a real neighbour before
+    Injector::max_injections = 2; // the read plus its evidence-failure floor retry
+    Injector::evidence = unusable(InertiaEvidence::State::kUnavailable);
+
+    IpqpEngine tier(tight_opts());
+    RecordingIterSink sink;
+    tier.attach_trace(&sink);
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+
+    ASSERT_EQ(Injector::injections, 2) << "both reads of the affected iteration were corrupted";
+    ASSERT_TRUE(r.inertia_evidence_failed);
+    ASSERT_FALSE(sink.iters.empty());
+
+    Index absent_count = 0, observed_count = 0;
+    for (std::size_t i = 0; i < sink.iters.size(); ++i) {
+        const IpqpTraceIterEvent &ev = sink.iters[i];
+        if (!ev.inertia.has_value()) {
+            ++absent_count;
+            EXPECT_FALSE(ev.perturbed.has_value())
+                << "an unavailable read reports no pivot count either -- never zero-filled";
+            EXPECT_FALSE(ev.zero_derived);
+            if (i > 0) {
+                EXPECT_TRUE(sink.iters[i - 1].inertia.has_value())
+                    << "the iteration before the injected one used a real read";
+            }
+            if (i + 1 < sink.iters.size()) {
+                EXPECT_TRUE(sink.iters[i + 1].inertia.has_value())
+                    << "the iteration after the injected one used a real read";
+            }
+        } else {
+            ++observed_count;
+            EXPECT_TRUE(ev.perturbed.has_value()) << "MKL always reports a pivot count";
+        }
+    }
+    EXPECT_EQ(absent_count, 1) << "exactly one iteration's read was corrupted";
+    EXPECT_GT(observed_count, 0) << "the rest of the solve used real reads -- non-vacuous";
 }
 
 } // namespace hven::solvers
