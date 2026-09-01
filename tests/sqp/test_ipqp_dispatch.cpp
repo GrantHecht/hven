@@ -88,14 +88,14 @@ SqpOptions walk_options() {
 // duplicate a decision solver_counters.h already made.
 ::testing::AssertionResult every_ipqp_counter_is_at_its_default(const IpqpCounters &c) {
     // THE FIELD LIST BELOW IS HAND-WRITTEN, so it needs a guard that fails
-    // when the struct grows: 32 `Index` fields and 5 `double` fields, all
+    // when the struct grows: 33 `Index` fields and 5 `double` fields, all
     // 8 bytes, no padding (T4b: +`ipqp_iters_ladder_armed_no_advance`, and
     // `ipqp_rho_flaps` RENAMED not removed; T4b fix round 1:
-    // +`ipqp_pivot_reroute_primal`, +`ipqp_pivot_reroute_dual_fallback`). A W2
-    // field added without a line here would otherwise drop silently out of
-    // A7's coverage -- which is the one assertion that says the shipped
-    // default touches none of them.
-    static_assert(sizeof(IpqpCounters) == 37 * 8,
+    // +`ipqp_pivot_reroute_primal`, +`ipqp_pivot_reroute_dual_fallback`; T4c:
+    // +`ipqp_read_kept_tight_sides`). A W2 field added without a line here
+    // would otherwise drop silently out of A7's coverage -- which is the one
+    // assertion that says the shipped default touches none of them.
+    static_assert(sizeof(IpqpCounters) == 38 * 8,
                   "IpqpCounters changed size: add the new field to "
                   "every_ipqp_counter_is_at_its_default below (A7's coverage is this list) and "
                   "update this assertion.");
@@ -175,6 +175,8 @@ SqpOptions walk_options() {
           static_cast<double>(d.ipqp_escape_infeasible_suspect));
     check("ipqp_alpha_p_min", c.ipqp_alpha_p_min, d.ipqp_alpha_p_min);
     check("ipqp_alpha_d_min", c.ipqp_alpha_d_min, d.ipqp_alpha_d_min);
+    check("ipqp_read_kept_tight_sides", static_cast<double>(c.ipqp_read_kept_tight_sides),
+          static_cast<double>(d.ipqp_read_kept_tight_sides));
     if (!moved.empty()) {
         return ::testing::AssertionFailure() << "IpqpCounters is not at its default: "
                                              << fmt::format("{}", fmt::join(moved, "; "));

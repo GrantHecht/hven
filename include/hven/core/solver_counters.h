@@ -1150,6 +1150,17 @@ struct IpqpCounters {
     /// so never takes a fraction-to-boundary step -- the same exclusion
     /// `ipqp_alpha_p_min` states for itself.
     double ipqp_alpha_d_min = std::numeric_limits<double>::infinity();
+
+    /// M6 W1 T4c, the gate-8 C1 disclosure instrument: bound sides the
+    /// section 2.2 item 4 critical-cone read KEEPS (curvature folded into
+    /// `Sigma`) while geometrically TIGHT -- `slack <= kIpqpWeakActiveFactor *
+    /// sqrt(mu)` and `z > kIpqpWeakActiveFactor * sqrt(mu)`, the strongly-
+    /// active regime `ipqp_accumulate_bound_sigma_critical_cone` already
+    /// classifies, counted rather than newly thresholded. Nonzero only where
+    /// the read's own certificate STANDS (`IpqpResult::read_kept_tight`); see
+    /// that flag and `.superpowers/w1-t4c-report.md` for the exposure this
+    /// discloses. SUMMED across subproblems, the ordinary fold.
+    Index ipqp_read_kept_tight_sides = 0;
 };
 
 /// Aggregate work counters for a whole solve.

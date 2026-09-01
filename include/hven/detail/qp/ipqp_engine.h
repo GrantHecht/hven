@@ -834,6 +834,14 @@ struct IpqpResult {
     /// is not an evidence failure at all and escapes `kNumerical` at once.
     bool inertia_evidence_failed = false;
 
+    /// M6 W1 T4c: true iff the item 4 critical-cone read AGREED
+    /// (`counters.ipqp_final_inertia_read == 0`) with
+    /// `counters.ipqp_read_kept_tight_sides > 0` -- a certificate that
+    /// STANDS while carrying the gate-8 C1 exposure this instrument
+    /// discloses. See `.superpowers/w1-t4c-report.md`. Always false on a
+    /// downgraded or declined-pinned solve.
+    bool read_kept_tight = false;
+
     // --- the point ---------------------------------------------------------
 
     Vec x;        ///< n.

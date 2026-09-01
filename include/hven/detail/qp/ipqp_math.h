@@ -279,25 +279,45 @@ inline void ipqp_accumulate_bound_sigma(const Eigen::Ref<const Eigen::VectorXd> 
 ///
 /// @param weak_scale The activity scale (a multiple of `sqrt(mu)`); `<= 0`
 /// disables the rule entirely.
+/// @param kept_tight_count M6 W1 T4c's disclosure instrument, or `nullptr`
+/// to skip it (the ladder's ordinary rungs pass `weak_scale == 0` and never
+/// reach the loop below). Incremented once per KEPT side that is also
+/// geometrically tight -- `gap <= weak_scale` -- i.e. the STRONGLY ACTIVE
+/// regime documented above: kept for a genuine reason, but close enough to
+/// the weak-active band to be the exposure the gate-8 owner ruling
+/// discloses. See `.superpowers/w1-t4c-report.md`.
 inline void ipqp_accumulate_bound_sigma_critical_cone(const Eigen::Ref<const Eigen::VectorXd> &x,
                                                       const Eigen::Ref<const Eigen::VectorXd> &l,
                                                       const Eigen::Ref<const Eigen::VectorXd> &u,
                                                       const Eigen::Ref<const Eigen::VectorXd> &zl,
                                                       const Eigen::Ref<const Eigen::VectorXd> &zu,
                                                       Index n, double weak_scale,
-                                                      Eigen::Ref<Eigen::VectorXd> sigma) {
+                                                      Eigen::Ref<Eigen::VectorXd> sigma,
+                                                      Index *kept_tight_count = nullptr) {
     if (!(weak_scale > 0.0)) {
         ipqp_accumulate_bound_sigma(x, l, u, zl, zu, n, sigma);
         return;
     }
     for (Index i = 0; i < n; ++i) {
-        if (ipqp_has_lower(l[i]) && !(x[i] - l[i] <= weak_scale && zl[i] <= weak_scale)) {
-            sigma[i] += zl[i] / (x[i] - l[i]);
+        if (ipqp_has_lower(l[i])) {
+            const double gap = x[i] - l[i];
+            if (!(gap <= weak_scale && zl[i] <= weak_scale)) {
+                sigma[i] += zl[i] / gap;
+                if (kept_tight_count != nullptr && gap <= weak_scale) {
+                    ++*kept_tight_count;
+                }
+            }
         }
     }
     for (Index i = 0; i < n; ++i) {
-        if (ipqp_has_upper(u[i]) && !(u[i] - x[i] <= weak_scale && zu[i] <= weak_scale)) {
-            sigma[i] += zu[i] / (u[i] - x[i]);
+        if (ipqp_has_upper(u[i])) {
+            const double gap = u[i] - x[i];
+            if (!(gap <= weak_scale && zu[i] <= weak_scale)) {
+                sigma[i] += zu[i] / gap;
+                if (kept_tight_count != nullptr && gap <= weak_scale) {
+                    ++*kept_tight_count;
+                }
+            }
         }
     }
 }

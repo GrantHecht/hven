@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/ipqp_engine.h>
@@ -949,6 +950,16 @@ TEST(IpqpCertificationTest, TheFinalReadVerifiesDirectionsOffAWeaklyActiveBoundI
             // over.
             EXPECT_GT(sigma, 1.0);
             EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
+            // T4c, gate-8 residual C1 (owner ruling, accepted with
+            // disclosure): `s = 1e-5` is the pinned exposed member -- a
+            // standing certificate whose kept side is barrier-resolved but
+            // still geometrically tight. See `.superpowers/w1-t4c-report.md`.
+            if (s == 1.0e-5) {
+                EXPECT_TRUE(r.read_kept_tight);
+                EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 2);
+                RecordProperty("t4c_c1_exposed_kept_tight_sides",
+                               std::to_string(r.counters.ipqp_read_kept_tight_sides));
+            }
             ++kept_and_stood;
         }
     }
@@ -1692,6 +1703,67 @@ TEST(IpqpEscapeLadderTest, TheLadderIsDrivenByRealTierOutcomesAndNotOnlyByHandBu
     }
     EXPECT_TRUE(ladder.retired());
     EXPECT_EQ(ladder.retired_after(), 6);
+}
+
+// T4c non-vacuity, both ways (brief pin (b)). `convex_qp()` is this file's
+// own bound-inactive control fixture: no side is ever kept-and-tight, so the
+// flag must be structurally FALSE -- otherwise the instrument is hardwired
+// on. See `.superpowers/w1-t4c-report.md` for the measured HS-row finding
+// this test also carries (a correction to the brief's own FALSE guess there).
+TEST(IpqpCertificationTest, T4cKeptTightNonVacuity) {
+    {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+        ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0);
+        EXPECT_FALSE(r.read_kept_tight);
+        EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, 0);
+    }
+
+    // MEASURED, NOT THE BRIEF'S GUESS: all three HS rows certify with a
+    // strongly active bound whose gap is, by `z * gap ~ mu`, structurally
+    // BELOW `10 sqrt(mu)` whenever `z` is order one and `mu` is small --
+    // which is every converged active bound, not a narrow exposed band. The
+    // brief's "(b) ... certified HS rows: flag FALSE" does not hold; T4c's
+    // report records this as a concern rather than forcing a false pin.
+    const Index expect_kept_tight[3] = {2, 1, 2};
+    Index i = 0;
+    for (const QpProblem &qp :
+         {test_support::indefinite_equality_qp(), test_support::indefinite_equality_and_row_qp(),
+          test_support::two_negative_eigenvalue_row_qp()}) {
+        SCOPED_TRACE(i);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0);
+        EXPECT_TRUE(r.read_kept_tight);
+        EXPECT_EQ(r.counters.ipqp_read_kept_tight_sides, expect_kept_tight[i]);
+        RecordProperty("t4c_hs_kept_tight_" + std::to_string(i),
+                       std::to_string(r.counters.ipqp_read_kept_tight_sides));
+        ++i;
+    }
+}
+
+// T4c pin (c): the f-gap bound. On the exposed sub-range where `s` (the box
+// half-width) stays below the barrier's own excursion scale `sqrt(mu)`, the
+// reachable second-order descent along the masked direction is CONFINED by
+// the box: `0.5 |h| min(s, sqrt(mu))^2 <= mu`, the O(mu_stop) bound the
+// owner ruling asks for (`docs/notes/2026-08-m6-ledger.md`, T4c entry).
+TEST(IpqpCertificationTest, T4cFGapBoundedByMuStop) {
+    for (const double s : {1.0e-5, 5.0e-6, 1.0e-6}) {
+        SCOPED_TRACE(s);
+        const double h = -1.0;
+        const QpProblem qp = weakly_active_indefinite_qp(s, h);
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0)
+            << "the f-gap bound is a statement about a STANDING certificate";
+        ASSERT_TRUE(r.read_kept_tight) << "and specifically about the exposed regime";
+
+        const double delta = std::min(s, std::sqrt(r.mu));
+        const double fgap = 0.5 * std::abs(h) * delta * delta;
+        EXPECT_LE(fgap, r.mu);
+        RecordProperty("t4c_fgap_s" + fmt::format("{:.0e}", s), fmt::format("{:.6e}", fgap));
+        RecordProperty("t4c_mu_s" + fmt::format("{:.0e}", s), fmt::format("{:.6e}", r.mu));
+    }
 }
 
 } // namespace hven::solvers

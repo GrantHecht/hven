@@ -1277,6 +1277,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Raised by `factorize_once` when the factorization cap refused a call, so
     // a caller can tell "no factorization was taken" from any inertia verdict.
     bool fact_budget_hit = false;
+    // T4c disclosure instrument: written only by the item 4 read's own
+    // `assemble` call (`weak_scale > 0`, exactly once per solve); every
+    // ladder rung's `weak_scale == 0` call never touches it, so 0 is the
+    // correct value everywhere the read never happens.
+    Index kept_tight_count = 0;
     // Section 2.2's evidence-failure policy, ARMED ONCE PER SOLVE: a
     // factorization succeeded and reported no usable inertia evidence, so the
     // modification was raised to a conservative floor, the steps from there
@@ -1737,7 +1742,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // `+=` -- which is what keeps every iteration's assembly, and the
         // convex corpus with it, bit-identical across the critical-cone rule.
         detail::ipqp_accumulate_bound_sigma_critical_cone(w.x, bounds.lower, bounds.upper, w.zl,
-                                                          w.zu, n, weak_scale, w.sigma);
+                                                          w.zu, n, weak_scale, w.sigma,
+                                                          &kept_tight_count);
 
         const bool relaid = layout_.sync(qp.H, qp.Ae, qp.Ai, n, me, mi, kkt_.matrix());
         if (relaid) {
@@ -2841,6 +2847,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 escape = IpqpEscape::kBudget;
             } else if (read == InertiaRead::kOk) {
                 out.counters.ipqp_final_inertia_read = 0;
+                // T4c, gate-8 C1 disclosure (owner ruling, accepted with
+                // disclosure): the certificate STANDS here, so a nonzero
+                // count is the exposed regime made visible, not an error.
+                out.counters.ipqp_read_kept_tight_sides = kept_tight_count;
+                out.read_kept_tight = kept_tight_count > 0;
             } else if (read == InertiaRead::kWrong) {
                 // A reading WAS observed and DISAGREED -- plan section 7 note
                 // (h)'s saddle-suspect class.
