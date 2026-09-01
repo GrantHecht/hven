@@ -48,6 +48,9 @@
 #ifndef HVEN_SQP_SSN_BATTERY_CSV
 #error "HVEN_SQP_SSN_BATTERY_CSV must be defined by tests/CMakeLists.txt"
 #endif
+#ifndef HVEN_SQP_IPM_BASELINE_CSV
+#error "HVEN_SQP_IPM_BASELINE_CSV must be defined by tests/sqp/CMakeLists.txt"
+#endif
 #ifndef HVEN_SQP_WALK_RESWEPT_CSV
 #error "HVEN_SQP_WALK_RESWEPT_CSV must be defined by tests/CMakeLists.txt"
 #endif
@@ -2400,6 +2403,46 @@ TEST(CorpusGatePopulation, G1G2ReportBothKCorruptedReadingsFromTheSameRows) {
 // Task 6 will use pins BOTH the artifact and the evaluator against drift, and
 // costs milliseconds because nothing is re-solved.
 // =============================================================================
+
+TEST(CorpusBaseline, TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows) {
+    // M6 W1 T9 FIX ROUND 1 (review I2 / Codex 3). T7 measured the two
+    // path_warm cells' kIpm cost and registered T9 as the owner of the pin;
+    // this is the pin, read off the committed schema-76 artifact itself.
+    const std::string log = runner_test::temp_path("corpus_ipm_baseline_score.log");
+    ASSERT_EQ(runner_test::run_binary(
+                  fmt::format("--from-csv {} --score-gates", HVEN_SQP_IPM_BASELINE_CSV), log),
+              0)
+        << "the committed kIpm baseline must re-score offline through the same reader";
+    std::remove(log.c_str());
+
+    const std::vector<std::string> rows = runner_test::data_rows(HVEN_SQP_IPM_BASELINE_CSV);
+    ASSERT_EQ(rows.size(), 27u) << "the 27-cell U0 replay set";
+    std::map<std::string, std::vector<std::string>> by_cell;
+    for (const std::string &row : rows) {
+        std::vector<std::string> col = runner_test::split_all(row);
+        ASSERT_EQ(col.size(), 76u) << row;
+        by_cell[col[0]] = std::move(col);
+    }
+
+    // Column 37 is `ipqp_iters` and 38 `ipqp_factorizations` (0-based): the
+    // 39-column IPQP tail starts right after `esc_gate_refused` at 36.
+    struct Pin {
+        const char *cell;
+        const char *iters;
+        const char *facts;
+    };
+    for (const Pin &pin :
+         {Pin{"f7_n800_path_warm", "60", "62"}, Pin{"f7_n1000_path_warm", "46", "48"}}) {
+        SCOPED_TRACE(pin.cell);
+        const auto it = by_cell.find(pin.cell);
+        ASSERT_NE(it, by_cell.end());
+        EXPECT_EQ(it->second[6], "Optimal");
+        EXPECT_EQ(it->second[37], pin.iters) << "barrier iterations";
+        EXPECT_EQ(it->second[38], pin.facts) << "factorizations";
+        EXPECT_EQ(it->second[57], "0") << "ipqp_warm_restart_abandoned: no warm kill";
+        EXPECT_EQ(it->second[66], "0") << "ipqp_escapes";
+    }
+}
 
 TEST(CorpusBaseline, TheCommittedWalkBaselineScoresToItsDocumentedVerdict) {
     const std::string log = runner_test::temp_path("corpus_baseline_score.log");

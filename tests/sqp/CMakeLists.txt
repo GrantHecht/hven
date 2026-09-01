@@ -120,6 +120,12 @@ target_compile_definitions(hven_sqp_tests PRIVATE
     HVEN_SQP_TASK6B_SSN_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep/ssn_resweep.csv"
     HVEN_SQP_TASK6B_WALK_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep-walk/walk_resweep.csv")
 
+# M6 W1 T9 fix round 1: the DECLARED schema-76 kIpm baseline over the 27-cell
+# U0 replay set — the artifact the two path_warm acceptance rows are pinned in,
+# and the one the replay's ipm arm compares all 76 columns against.
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_SQP_IPM_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-01-t9-ipm/ipm_baseline.csv")
+
 # The SNOPT bridge's referee gate, added to the test binary ONLY when the
 # root-level SNOPT detection succeeded (see the block above the tests
 # subdirectory in the root CMakeLists.txt for why the detection lives there).
