@@ -463,23 +463,41 @@ The two agree on **1885 values over 29 cells, 0 differences** (`wall_s`
 excluded as informational), which is A8's determinism reading at the new
 default.
 
-**Commit stamp, precisely.** Both stamp `0798af1600ec-dirty`: BASE plus T10b's
-own then-uncommitted change. Fix round 2 above scheduled "T10b regenerates the
-gate from a committed tree"; that is not achievable as worded, because a file
-committed WITH the code that produced it cannot stamp its own commit. What
-stands in its place is the reproduction check recorded in
-`.superpowers/w1-t10b-report.md`: the gate re-run from the committed T10b head,
-solo, reproducing these rows.
+**Commit stamp, precisely — CORRECTED, fix round 1 (2026-09-01).** Round 1
+committed both CSVs stamped `0798af1600ec` (their `# git describe:` line; the
+round-1 text here and in PROVENANCE said `-dirty`, which the bytes did not
+say — a configure-time stamp taken while the tree was still clean at BASE).
+Round 1 also argued that an artifact committed WITH the code that produced it
+cannot stamp its own commit; it can, in two commits, and that is what this
+round does. **Both CSVs were re-emitted from the CLEAN tree at `64136af53153`**
+— the fix-round-1 test commit — solo under the protocol above, and they
+reproduce round 1's rows exactly: 29 cells, **1885 asserted values, 0
+differences** each, `wall_s` excluded as informational and the only column that
+moved. Their stamps now name a commit a reader can check out and re-run.
+
+**The trap that produced the wrong stamp**, so it is not walked into again:
+`HVEN_SQP_CORPUS_GIT_DESCRIBE` is resolved at CMake CONFIGURE time
+(`bench/CMakeLists.txt`), not at build or run time, so a build tree configured
+while the tree was clean and then rebuilt after an edit emits a stale stamp.
+**Re-configure (`cmake -S . -B <tree>`) before producing any measurement CSV.**
 
 ### 9.2 The six new columns
 
 `e2e_usable` / `e2e_polished` / `e2e_rule_a` / `e2e_rule_a_missed` /
 `e2e_rule_a_false_positive` / `e2e_factorizations`.
 
-The END-TO-END leg is the driver's own item-3 route, run by the arm exactly as
-`SqpDriver` runs it: the tier's face through `ipqp_result_to_qp_solution` into
-`QpEngine::refine_on_face`, then E1's Rule A again on the polished point. The
-anchors carry the same `-1` not-scored sentinel the Rule-A columns carry.
+The END-TO-END leg is the driver's own item-3 route — the tier's face through
+`ipqp_result_to_qp_solution` into `QpEngine::refine_on_face`, reusing the
+driver's own `ipqp_exit_is_a_usable_step` predicate — then E1's Rule A again on
+the polished point. The anchors carry the same `-1` not-scored sentinel the
+Rule-A columns carry.
+
+**CORRECTED, fix round 1: this column is an UPPER BOUND on what an in-driver
+polish would accept, not a replay of one** (Claude F5). The arm passes
+`SolveOverrides{}` where `SqpDriver` passes `ipqp_overrides`; it does not run
+`assert_ipqp_hand_off_window` first; and it does not continue to the SSN warm
+grade on a refusal, as `sqp_driver.cpp` does. Each of those can only remove
+acceptances, never add them.
 
 ### 9.3 The verdict at the measured default
 
@@ -505,16 +523,28 @@ the constructed ground truth sits at or below the tier's own stopping
 resolution (`ipqp_converge_slack x qp_tol = 1e-7` relative), so what Rule A
 measures there is accuracy, not acquisition. The `a4_gate` ctest entry
 therefore carries E1 criteria 1/2/4 in its exit code and prints the three
-recovery counts; `IpqpAcceptanceA4` pins the counts against this CSV.
+recovery counts; `IpqpAcceptanceA4` **pins the committed record** — it reads
+these bytes, so it fails when the CSV is edited without the numbers being
+re-derived. **CORRECTED, fix round 1: recovery has NO live guard** (Claude F3).
+`bench/ipqp_e1_arm.cpp`'s `red_beyond_the_named_cell()` deliberately dropped E1
+criterion 3, so the `a4_gate` exit code does not consult `exact_recovery`
+either: a runtime recovery regression fails nothing until someone re-runs the
+arm and compares. Whether recovery should get a live guard — and at what
+tolerance, given the accuracy limit above — is registered with the §2.3 item
+below.
 
 ### 9.4 What the polish buys, and the proxy caveat
 
 The tier-3 polish costs **0 or 1 factorization per cell, 28 over the 29** (718
-tier factorizations, 746 tier + polish). It was ACCEPTED on 20 of 29 cells; it
-REFUSED on 9, all of them cells where the tier's committed face is over-large
-at the tight margin classes and `refine_on_face`'s rank pre-screen turns it
-away. Where it runs, it is decisive: cells whose tier exit missed 955, 4757 and
-2554 rows under Rule A recover them **exactly** after the polish.
+tier factorizations, 746 tier + polish). It was ACCEPTED on 20 of 29 cells.
+**CORRECTED, fix round 1 (Claude F4): it was REFUSED on 8, not 9** — the eight
+`m1e-6` cells that reached `refine_on_face` with a usable step and were turned
+away by its rank pre-screen (`e2e_usable = 1, e2e_polished = 0`), the tier's
+committed face being over-large at that margin class. The ninth cell counted in
+round 1, `e1_f7_n20000_af30_m1e-6`, has `e2e_usable = 0`: its `max_iter` exit
+was never a usable step, so the polish was never offered it and the pre-screen
+never ran. Where the polish does run, it is decisive: cells whose tier exit
+missed 955, 4757 and 2554 rows under Rule A recover them **exactly** after it.
 
 So the tier-vs-PIQP comparison, stated in the terms T10 owed: the tier at the
 shipped `ipqp_converge_slack = 1e2` takes a **median 22 iterations** per cell
@@ -529,12 +559,38 @@ Rule-A misses are the tier failing to acquire the face — which they are not:
 the polish recovers them exactly wherever it runs. The caveat stands for the
 iteration-count comparison, unchanged.
 
+**Why end-to-end (12/27) reads BELOW tier-contract (13/27)** (fix round 1,
+tycho F2). The two disagree on exactly one kind of row: one the §2.3 ratio rule
+declined to commit as active while it truly was active. Declining is not a
+misclassification at the tier's contract, so the tier-contract criterion counts
+that cell as recovered; but the row is then absent from the face handed to the
+polish, so Rule A at the polished point still misses it. **The polish cannot
+recover what was never handed to it.** The end-to-end column is therefore the
+stricter of the two readings, and the 13 → 12 gap is the cost of
+under-committing, not evidence of the polish undoing work.
+
+**ONE REGISTERED §2.3 ITEM, both ends of the same dial** (fix round 1, merging
+round 1's concern 5 with tycho F2). At tight margins the ratio rule
+**over-commits** — it hands `refine_on_face` more working rows than free
+variables, and the rank pre-screen refuses on 8 cells — and it
+**under-commits** — it declines rows that are truly active, which is the 13 → 12
+gap above. Both are the same threshold read at the same accuracy floor, and
+tightening it in one direction moves the other. This is the single largest
+lever left on the end-to-end column and it is a §2.3 question, not a `mu`
+question. The live-guard question from §9.3 rides with it: any guard on the
+recovery counts has to be set against whatever this rule is retuned to.
+
 ### 9.5 The kIpm baseline moved, declared
 
 `bench/baselines/2026-09-01-t9-ipm/ipm_baseline.csv` is the 0.1 placeholder's
 record and is NOT rewritten. The measured default's baseline is the new dated
 dir `bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv`, and
-`tests/sqp/CMakeLists.txt` re-points at it. Over the 27-cell U0 replay set the
+`tests/sqp/CMakeLists.txt` re-points at it. **The dir name is not the
+measurement date** (fix round 1, Claude F11): the brief prescribed
+`2026-09-02`; the rows were measured, and re-emitted, on 2026-09-01 UTC, which
+the file's own `# generated:` line states. **That file was re-emitted from the
+clean tree at `64136af53153` too**, reproducing round 1's rows on 27 cells and
+**2025 asserted values with 0 differences**; its header carries the correction. Over the 27-cell U0 replay set the
 two differ in **153 values across 17 columns on all 27 cells**; no status
 moved, and the two rows the artifact exists for went `f7_n800_path_warm`
 60/62 → 37/39 and `f7_n1000_path_warm` 46/48 → 31/33.

@@ -125,3 +125,34 @@ build               : -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/c
 #
 # APPLE / ACCELERATE, unchanged: no Mac hardware ran any T10b leg either.
 # Every Accelerate-side number stays UNOBSERVED; none is zero-filled.
+
+# CORRECTION (T10b fix round 1, 2026-09-01). The T10b amendment above is wrong
+# in two places, and neither is edited out -- this record is append-only.
+#
+# 1. THE STAMP. The amendment asserts both new CSVs stamp "0798af1600ec-dirty".
+#    They did not: their "# git describe:" line read "0798af1600ec", with no
+#    "-dirty", because HVEN_SQP_CORPUS_GIT_DESCRIBE (bench/CMakeLists.txt) is
+#    resolved at CMake CONFIGURE time -- the build tree had been configured
+#    while the tree was still clean at BASE, and rebuilding after the edit did
+#    not re-resolve it. The artifact therefore named a commit that could not
+#    have produced it.
+#
+# 2. THE "NOT ACHIEVABLE AS WORDED" CLAIM. It is achievable, in two commits.
+#    This round lands the code first and re-emits the artifacts from the
+#    resulting clean tree. Both a4-gate CSVs and
+#    bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv now stamp
+#    "64136af53153" -- a commit a reader can check out and re-run -- and each
+#    reproduces round 1's rows exactly: 1885 asserted values per gate CSV and
+#    2025 for the baseline, 0 differences, wall_s excluded as informational and
+#    the only column that moved. Rows are otherwise unchanged.
+#
+# Same machine, same toolchain, same solo protocol as the amendment above:
+# taskset -c 2, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1, one process at a time; the
+# SMT sibling (cpu10) measured 0.31% busy across the regeneration window.
+#
+# PROCEDURAL NOTE so the trap is not walked into again: RE-CONFIGURE the build
+# tree (cmake -S . -B <tree>) before producing any measurement CSV, or the
+# stamp it carries is whatever the tree was at configure time.
+#
+# APPLE / ACCELERATE, unchanged: no Mac hardware ran any leg of this round
+# either. Every Accelerate-side number stays UNOBSERVED; none is zero-filled.

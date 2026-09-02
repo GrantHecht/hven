@@ -77,6 +77,10 @@ target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/
 # degrades to the literal string "unknown" rather than failing the configure.
 # `--dirty` is deliberately included: a baseline produced from an uncommitted
 # tree must say so.
+#
+# THE TRAP THIS CARRIES, and it bit once (T10b fix round 1): a tree configured
+# while clean and REBUILT after an edit emits the stale, clean stamp. Re-configure
+# before producing a measurement CSV -- the acceptance dir's PROVENANCE.txt.
 execute_process(
     COMMAND git describe --always --dirty --abbrev=12
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
