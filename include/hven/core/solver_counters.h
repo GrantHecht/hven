@@ -1313,8 +1313,8 @@ struct IpqpCounters {
 /// elastic_escalations counts rho ESCALATIONS (x10 re-solves of the SAME
 /// elastic subproblem), summed over every activation -- NOT the number of
 /// elastic solves, which is elastic_activations + elastic_escalations. It is
-/// bounded by 6 per activation -- kElasticRhoInit = 1e2 to kElasticRhoMax = 1e8, and FEWER when
-/// infeasibility evidence places the first rung higher (capped at that same 1e8) -- at
+/// bounded by 6 per activation -- kElasticRhoInit = 1e2 to kElasticRhoMax = 1e8, at most that
+/// when infeasibility evidence places the first rung higher (capped at that same 1e8) -- at
 /// SqpOptions::elastic_ladder_early_exit's default (false, i.e. the
 /// ladder always spends every rung). With the early exit opted in, that bound
 /// is an UPPER bound only: an activation whose ladder stalls (a rung's
