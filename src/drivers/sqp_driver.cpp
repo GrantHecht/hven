@@ -1075,15 +1075,50 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
                                           const QpSolution *seed,
                                           const IpqpInfeasibilityEvidence &evidence,
-                                          const SolveOverrides &overrides, SqpIterate &row) {
-    // W2 REPLACES THIS BODY, NOT ITS CALL SITE. Today the COLD walk (spec 2.3 item 5); the
-    // three unused parameters are NAMED so the seam does not move when W2's body arrives.
-    // The evidence block is recorded from the PARAMETER, before the fallback runs.
+                                          const SolveOverrides &overrides, const SqpOptions &opts,
+                                          double window, SqpCounters &out, SqpIterate &row,
+                                          std::optional<ElasticLadderReport> &fallback_report) {
+    // THE EVIDENCE IS RECORDED FROM THE PARAMETER, before anything runs and whichever rung
+    // answers: these two are telemetry on this row, never an input to the verdict (pin P7).
     row.ipqp_least_infeasible_primal = evidence.least_infeasible_primal;
     row.ipqp_farkas_corroborated = evidence.farkas_corroborated;
+    fallback_report.reset();
     (void)ev;
     (void)seed;
-    return engine.solve(qp, overrides);
+    // RUNG B DIRECTLY, WITHOUT ENTERING RUNG A AT ALL: a block that never FIRED is not
+    // evidence, so a caller carrying none gets W1's body exactly -- one cold walk, no
+    // activation charged (pin P5).
+    if (!evidence.fired) {
+        return engine.solve(qp, overrides);
+    }
+
+    // RUNG A -- THE ELASTIC QP, ALWAYS. Feasible by construction, so the suspicion is answered
+    // by SOLVING something rather than by accumulating symptoms (this header's ELASTIC TIER
+    // note). The EVIDENCE arm: the tier escaped with no QpSolution to map a seed from.
+    const ElasticSeedSource elastic_seed_source{nullptr, &evidence};
+    ElasticLadderReport report =
+        run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out);
+    // RUNG B -- THE COLD WALK, ON A RUNG A THE ENGINE DECLINED. The engine can still refuse a
+    // feasible problem, and W1's body is what carries that refusal: the walk's solution goes
+    // back UNCHANGED, with no report, so the routing chain behaves exactly as it did (pin P4).
+    if (report.qp_status != QpStatus::kOptimal) {
+        return engine.solve(qp, overrides);
+    }
+
+    QpSolution qs =
+        elastic_project(report.elastic, qp, report.qs_e, /*carry_multipliers=*/report.closed);
+    if (!report.usable) {
+        // THE EXHAUSTION CERTIFICATE, and the only kInfeasible this function can produce: the
+        // relaxation is still open at the ladder's ceiling. The projected block travels for
+        // SHAPE only -- this status is what forbids taking it as a step.
+        qs.status = QpStatus::kInfeasible;
+    }
+    // THE RUNGS' COUNTERS ARE ALREADY IN `out` -- run_elastic_ladder folds every one of them
+    // there -- so the returned solution carries NONE: the driver accumulates whatever it is
+    // handed, and a second copy would double-charge this major's minor iters and factorizations.
+    qs.counters = QpCounters{};
+    fallback_report = std::move(report);
+    return qs;
 }
 
 namespace {
@@ -3226,6 +3261,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // `walk_owns_this_qp` is what says so. `qs`'s initializer is SAFE rather than
         // convenient: an unhandled mode falls to the walk, not to a default kOptimal `qs`.
         QpSolution qs;
+        // RUNG A's REPORT, BESIDE `qs` BECAUSE IT IS PART OF THIS ANSWER: engaged only when the
+        // certified fallback's elastic rung owns `qs`, and consumed by the elastic branch below.
+        std::optional<ElasticLadderReport> fallback_report;
         bool walk_owns_this_qp = true;
         // WHICH KERNEL PRODUCED THIS ROW'S STEP, for `SqpIterate::mu` alone: true iff the IPQP
         // tier's own answer, or the SSN warm grade's, is the step -- both run at
@@ -3687,8 +3725,12 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // TIER solves have the schedule suppressed.
                 ++out.counters.ipqp.ipqp_to_walk;
                 charge_ipqp_subproblem_cost(out.counters, ires);
+                // The window is the elastic branch's own (see its note below): the radius THIS
+                // solve was given, which is what rung A folds into its box.
                 qs = certified_feasibility_fallback(engine_, qp, ev, have_seed ? &seed : nullptr,
-                                                    ires.infeasibility_evidence, overrides, row);
+                                                    ires.infeasibility_evidence, overrides, opts_,
+                                                    std::min(delta, opts_.qp.tr_radius),
+                                                    out.counters, row, fallback_report);
                 emit_ipqp_route_and_mode(IpqpTraceRouteTo::kWalk, IpqpTraceOutcome::kEscaped);
             }
             break;
@@ -3769,8 +3811,12 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // FINITE on the shipped path: `delta` starts at tr_init.
             const double window = std::min(delta, opts_.qp.tr_radius);
             const ElasticSeedSource elastic_seed_source{&qs, nullptr};
+            // CONSUMED, NEVER RE-RUN: `++elastic_activations` lives inside the ladder, so a
+            // second run on the fallback's own report would double-charge the activation.
             const ElasticLadderReport report =
-                run_elastic_ladder(engine_, qp, elastic_seed_source, window, opts_, out.counters);
+                fallback_report ? std::move(*fallback_report)
+                                : run_elastic_ladder(engine_, qp, elastic_seed_source, window,
+                                                     opts_, out.counters);
 
             if (!report.usable) {
                 row.qp_solved = true;

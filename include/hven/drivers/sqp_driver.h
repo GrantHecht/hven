@@ -2119,40 +2119,45 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item 5,
 // section 6.3's Amendment C registration).
 //
-// TODAY ITS BODY IS THE COLD WALK, and that is the whole of it: a genuine tier
-// escape -- numerical, infeasible-suspect, or early stall -- discards the IPQP
-// iterate and re-solves this subproblem from cold. COLD rather than seeded is
-// spec 2.3 item 5's own ruling, and the code fact behind it is
-// `crash_basis_seed`'s signature: it takes only a `QpProblem` and begins
-// `seed.x = Vec::Zero(n)`, so there is no surface through which an interior
-// iterate could be transferred, and W1 does not build one.
+// ITS BODY IS A BOUNDED TWO-RUNG LADDER (W2 plan section 2): RUNG A is the
+// elastic QP at the evidence's own rho_0, always; RUNG B is W1's COLD walk,
+// reached only on a rung A the engine DECLINED, and the refusal path's carrier.
 //
+// REFUSAL COSTS ONE EXTRA DECLINED SOLVE, and if rung B's walk then certifies
+// kInfeasible the driver runs its OWN ladder: two activations, one subproblem.
 // IT EXISTS AS A NAMED FUNCTION BECAUSE W2 REPLACES ITS BODY, not its call
 // site, and it is FREE rather than a member for the reason the three seam
 // functions above are: it can then be pinned without constructing a driver.
-// `ev` and `seed` are UNUSED today and are named rather than omitted so the
-// seam does not move when the body arrives. `evidence` is section 6.3's own
+// `ev` and `seed` are UNUSED STILL -- rung A seeds from the evidence, rung B
+// is COLD -- and are named rather than omitted. `evidence` is section 6.3's own
 // block -- the least-infeasible point and the optional Farkas corroboration --
 // which is what lets W2's elastic l1-penalized reformulation answer "is this
 // subproblem infeasible" by SOLVING something always-feasible rather than by
-// accumulating symptoms; W1's body does not act on it, but it RECORDS its two
-// headline scalars on the major's history row, so "the evidence reached the
-// hook" is an observable rather than a signature.
-/// @brief The escape branch's single entry: today, the COLD walk.
-/// @param engine    the walk, which owns the answer today.
+// accumulating symptoms. `fired` gates rung A, the point seeds it and
+// `dual_norm_start` places rho_0; NOTHING else is read (pin P7's mutation loop).
+
+/// @brief The escape branch's single entry: the two-rung ladder above.
+/// @param engine    the engine BOTH rungs solve with.
 /// @param qp        the subproblem.
 /// @param ev        the NLP evaluation at the current iterate (W2).
 /// @param seed      the seed the ordinary walk would have had, or nullptr (W2).
-/// @param evidence  the escaped solve's section 6.3 evidence block. Its two
-///        headline scalars are RECORDED on `row` before the fallback runs, so
-///        the arrival is observable while W1's body still ignores the rest.
+/// @param evidence  the escaped solve's section 6.3 evidence block: `fired` gates
+///        rung A, its point seeds it and `dual_norm_start` places rho_0. Its two
+///        headline scalars are RECORDED on `row`, and never judged.
 /// @param overrides the walk's per-solve overrides, the caller's own levers.
+/// @param opts      the driver's options -- rung A's tolerances and seed rule.
+/// @param window    the radius THIS solve was given, folded into rung A's box.
+/// @param out       the running counters; every rung of rung A folds into them.
 /// @param row       this major's history row, annotated with the evidence.
-/// @return the walk's solution.
+/// @param fallback_report  rung A's report, ENGAGED iff rung A owns the returned
+///        solution: the escape branch consumes it rather than running a second ladder.
+/// @return rung A's step in the ORIGINAL variables, or rung B's walk solution unchanged.
 QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
                                           const QpSolution *seed,
                                           const IpqpInfeasibilityEvidence &evidence,
-                                          const SolveOverrides &overrides, SqpIterate &row);
+                                          const SolveOverrides &overrides, const SqpOptions &opts,
+                                          double window, SqpCounters &out, SqpIterate &row,
+                                          std::optional<ElasticLadderReport> &fallback_report);
 
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:
