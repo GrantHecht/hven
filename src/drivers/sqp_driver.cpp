@@ -848,6 +848,118 @@ void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res) {
     total.symbolic_analyses += res.counters.ipqp_symbolic_analyses;
 }
 
+ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
+                                       const QpSolution &failed, double window,
+                                       const SqpOptions &opts, SqpCounters &out) {
+    ++out.elastic_activations;
+
+    ElasticQp elastic = build_elastic_subproblem(qp, window, kElasticRhoInit, opts.feas_tol);
+    QpSolution seed_elastic = elastic_seed(elastic, failed);
+
+    QpSolution qs_e;
+    // THE STALL EARLY-EXIT's own state: the PREVIOUS rung's
+    // augmented solution, valid once has_prev_rung is true
+    // (i.e. from the second solve on), so it can be compared
+    // against the CURRENT rung's -- see THE STALL EARLY-EXIT
+    // note above for the derivation.
+    QpSolution qs_e_prev;
+    bool has_prev_rung = false;
+    double rho = kElasticRhoInit;
+    for (;;) {
+        // DEFAULT OVERRIDES: the +inf tr_radius sentinel, because
+        // the radius is already in the box above -- passing it
+        // here would cap the SLACKS at Delta too.
+        const SolveOverrides elastic_overrides;
+        qs_e = engine.solve(elastic.qp, seed_elastic, elastic_overrides);
+        out.qp_minor_iters += qs_e.counters.minor_iters;
+        out.factorizations += qs_e.counters.factorizations;
+        out.eqp_refine_steps += qs_e.counters.eqp_refine_steps;
+        out.border_refine_steps += qs_e.counters.border_refine_steps;
+        out.suspect_escalations += qs_e.counters.suspect_escalations;
+        out.symbolic_analyses += qs_e.counters.symbolic_analyses;
+        if (qs_e.status != QpStatus::kOptimal) {
+            break;
+        }
+        // MATERIALLY NONZERO IS MEASURED ON THE VIOLATION, not on
+        // the scaled variable: feas_tol is a tolerance on
+        // constraint violation, and sigma_j is a change of units.
+        const Vec v = elastic.slack_violations(qs_e.x);
+        const double v_max = v.size() > 0 ? v.maxCoeff() : 0.0;
+        if (v_max <= opts.feas_tol || !(rho < kElasticRhoMax)) {
+            break;
+        }
+        // THE STALL EARLY-EXIT. This rung left the augmented
+        // solution where the PREVIOUS one left it -- so, per THE
+        // STALL EARLY-EXIT note above, escalating further only
+        // re-solves the same reduced system at a larger rho it
+        // never reads. Stop here instead of paying for rungs
+        // whose answer is already in hand. Compared on the FULL
+        // augmented x (original block AND slacks), not just the
+        // slack violations `v` above: a stall is "this rung
+        // changed nothing", and the slacks alone cannot rule out
+        // a p that moved while s happened not to.
+        if (opts.elastic_ladder_early_exit && has_prev_rung &&
+            (qs_e.x - qs_e_prev.x).lpNorm<Eigen::Infinity>() <=
+                kElasticStallScale * std::max(1.0, qs_e_prev.x.lpNorm<Eigen::Infinity>())) {
+            break;
+        }
+        rho = std::min(rho * kElasticRhoFactor, kElasticRhoMax);
+        set_elastic_penalty(elastic, rho);
+        ++out.elastic_escalations;
+        qs_e_prev = qs_e;
+        has_prev_rung = true;
+        // CHAIN THE SEED. Only g changes between rungs, so
+        // H/Ae/Ai's hashes and the effective (primal_delta,
+        // dual_mu) pair are already unchanged -- but qp_engine.h's
+        // HOT-START REUSE condition (b) needs the seed working set
+        // to equal the IMMEDIATELY PRECEDING solve's exit working
+        // set, and re-seeding every rung from the original
+        // kInfeasible solve fails it on rung 2 and after.
+        // Measured: one K0 rebuild per rung (7 factorizations for
+        // the ladder) against 1 with the chain. seed.x is zeroed
+        // for the standing reason (see WARM SEEDING): it is the
+        // engine's window CENTER.
+        seed_elastic = qs_e;
+        seed_elastic.x.setZero();
+    }
+
+    // THE EXHAUSTION SIGNATURE (see the note): the ladder is
+    // spent and the tier has nothing to offer -- the relaxation
+    // is still materially open, no admissible step reduces the
+    // LINEARIZED violation, and the model promises no objective
+    // decrease either.
+    const Vec s_final =
+        qs_e.status == QpStatus::kOptimal ? elastic.slack_violations(qs_e.x) : Vec::Zero(0);
+    const double slack_l1 = s_final.size() > 0 ? s_final.lpNorm<1>() : 0.0;
+    const Vec p_elastic =
+        qs_e.status == QpStatus::kOptimal ? Vec(qs_e.x.head(qp.n())) : Vec::Zero(qp.n());
+    const bool closed = slack_l1 <= opts.feas_tol;
+    const bool reduced = slack_l1 <= elastic.violation_l1 - opts.feas_tol;
+    // EXACT ZERO, DELIBERATELY: see THE KNIFE-EDGE RULING above
+    // for why a tolerance was considered and not added here.
+    const bool promises_f =
+        qs_e.status == QpStatus::kOptimal && predicted_decrease(qp, p_elastic) > 0.0;
+    const bool usable = qs_e.status == QpStatus::kOptimal && (closed || reduced || promises_f);
+
+    // ONE STRUCT-FILL, NO RE-DERIVATION: each field is the expression the driver
+    // read in place. `elastic` and `qs_e` move out LAST, after p_elastic, the
+    // flags and the three row fields have read them.
+    ElasticLadderReport report;
+    report.slack_l1 = slack_l1;
+    report.p_elastic = p_elastic;
+    report.closed = closed;
+    report.reduced = reduced;
+    report.promises_f = promises_f;
+    report.usable = usable;
+    report.qp_status = qs_e.status;
+    report.qp_minor_iters = qs_e.counters.minor_iters;
+    report.qp_factorizations = qs_e.counters.factorizations;
+    report.step_norm = p_elastic.size() > 0 ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0;
+    report.elastic = std::move(elastic);
+    report.qs_e = std::move(qs_e);
+    return report;
+}
+
 QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
                                           const QpSolution *seed,
                                           const IpqpInfeasibilityEvidence &evidence,
@@ -3538,113 +3650,24 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // driver.
         bool elastic_applied = false;
         if (qs.status == QpStatus::kInfeasible) {
-            ++out.counters.elastic_activations;
-
             // The window the ORIGINAL solve was given, folded into the
             // elastic problem's own box: `delta` is what the driver
             // passed through SolveOverrides, and opts_.qp.tr_radius is
             // what the engine would have resolved the +inf sentinel to.
             // Both are +inf in the ordinary configuration.
             const double window = std::min(delta, opts_.qp.tr_radius);
-            ElasticQp elastic =
-                build_elastic_subproblem(qp, window, kElasticRhoInit, opts_.feas_tol);
-            QpSolution seed_elastic = elastic_seed(elastic, qs);
+            const ElasticLadderReport report =
+                run_elastic_ladder(engine_, qp, qs, window, opts_, out.counters);
 
-            QpSolution qs_e;
-            // THE STALL EARLY-EXIT's own state: the PREVIOUS rung's
-            // augmented solution, valid once has_prev_rung is true
-            // (i.e. from the second solve on), so it can be compared
-            // against the CURRENT rung's -- see THE STALL EARLY-EXIT
-            // note above for the derivation.
-            QpSolution qs_e_prev;
-            bool has_prev_rung = false;
-            double rho = kElasticRhoInit;
-            for (;;) {
-                // DEFAULT OVERRIDES: the +inf tr_radius sentinel, because
-                // the radius is already in the box above -- passing it
-                // here would cap the SLACKS at Delta too.
-                const SolveOverrides elastic_overrides;
-                qs_e = engine_.solve(elastic.qp, seed_elastic, elastic_overrides);
-                out.counters.qp_minor_iters += qs_e.counters.minor_iters;
-                out.counters.factorizations += qs_e.counters.factorizations;
-                out.counters.eqp_refine_steps += qs_e.counters.eqp_refine_steps;
-                out.counters.border_refine_steps += qs_e.counters.border_refine_steps;
-                out.counters.suspect_escalations += qs_e.counters.suspect_escalations;
-                out.counters.symbolic_analyses += qs_e.counters.symbolic_analyses;
-                if (qs_e.status != QpStatus::kOptimal) {
-                    break;
-                }
-                // MATERIALLY NONZERO IS MEASURED ON THE VIOLATION, not on
-                // the scaled variable: feas_tol is a tolerance on
-                // constraint violation, and sigma_j is a change of units.
-                const Vec v = elastic.slack_violations(qs_e.x);
-                const double v_max = v.size() > 0 ? v.maxCoeff() : 0.0;
-                if (v_max <= opts_.feas_tol || !(rho < kElasticRhoMax)) {
-                    break;
-                }
-                // THE STALL EARLY-EXIT. This rung left the augmented
-                // solution where the PREVIOUS one left it -- so, per THE
-                // STALL EARLY-EXIT note above, escalating further only
-                // re-solves the same reduced system at a larger rho it
-                // never reads. Stop here instead of paying for rungs
-                // whose answer is already in hand. Compared on the FULL
-                // augmented x (original block AND slacks), not just the
-                // slack violations `v` above: a stall is "this rung
-                // changed nothing", and the slacks alone cannot rule out
-                // a p that moved while s happened not to.
-                if (opts_.elastic_ladder_early_exit && has_prev_rung &&
-                    (qs_e.x - qs_e_prev.x).lpNorm<Eigen::Infinity>() <=
-                        kElasticStallScale * std::max(1.0, qs_e_prev.x.lpNorm<Eigen::Infinity>())) {
-                    break;
-                }
-                rho = std::min(rho * kElasticRhoFactor, kElasticRhoMax);
-                set_elastic_penalty(elastic, rho);
-                ++out.counters.elastic_escalations;
-                qs_e_prev = qs_e;
-                has_prev_rung = true;
-                // CHAIN THE SEED. Only g changes between rungs, so
-                // H/Ae/Ai's hashes and the effective (primal_delta,
-                // dual_mu) pair are already unchanged -- but qp_engine.h's
-                // HOT-START REUSE condition (b) needs the seed working set
-                // to equal the IMMEDIATELY PRECEDING solve's exit working
-                // set, and re-seeding every rung from the original
-                // kInfeasible solve fails it on rung 2 and after.
-                // Measured: one K0 rebuild per rung (7 factorizations for
-                // the ladder) against 1 with the chain. seed.x is zeroed
-                // for the standing reason (see WARM SEEDING): it is the
-                // engine's window CENTER.
-                seed_elastic = qs_e;
-                seed_elastic.x.setZero();
-            }
-
-            // THE EXHAUSTION SIGNATURE (see the note): the ladder is
-            // spent and the tier has nothing to offer -- the relaxation
-            // is still materially open, no admissible step reduces the
-            // LINEARIZED violation, and the model promises no objective
-            // decrease either.
-            const Vec s_final =
-                qs_e.status == QpStatus::kOptimal ? elastic.slack_violations(qs_e.x) : Vec::Zero(0);
-            const double slack_l1 = s_final.size() > 0 ? s_final.lpNorm<1>() : 0.0;
-            const Vec p_elastic =
-                qs_e.status == QpStatus::kOptimal ? Vec(qs_e.x.head(n)) : Vec::Zero(n);
-            const bool closed = slack_l1 <= opts_.feas_tol;
-            const bool reduced = slack_l1 <= elastic.violation_l1 - opts_.feas_tol;
-            // EXACT ZERO, DELIBERATELY: see THE KNIFE-EDGE RULING above
-            // for why a tolerance was considered and not added here.
-            const bool promises_f =
-                qs_e.status == QpStatus::kOptimal && predicted_decrease(qp, p_elastic) > 0.0;
-            const bool usable =
-                qs_e.status == QpStatus::kOptimal && (closed || reduced || promises_f);
-
-            if (!usable) {
+            if (!report.usable) {
                 row.qp_solved = true;
                 row.elastic_applied = true;
-                row.qp_status = qs_e.status;
-                row.qp_minor_iters = qs_e.counters.minor_iters;
-                row.qp_factorizations = qs_e.counters.factorizations;
+                row.qp_status = report.qp_status;
+                row.qp_minor_iters = report.qp_minor_iters;
+                row.qp_factorizations = report.qp_factorizations;
                 // DIAGNOSTIC ONLY, exactly as on a routed-failure row: no
                 // step was taken from here.
-                row.step_norm = p_elastic.size() > 0 ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0;
+                row.step_norm = report.step_norm;
                 row.verdict = StepVerdict::kRestore;
                 push_history(row);
                 // KLV Algorithm 5's authoritative trigger.
@@ -3665,7 +3688,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     restoration_exit_multipliers_are_caller_scale);
             }
 
-            qs = elastic_project(elastic, qp, qs_e, /*carry_multipliers=*/closed);
+            qs = elastic_project(report.elastic, qp, report.qs_e,
+                                 /*carry_multipliers=*/report.closed);
             elastic_applied = true;
         }
 

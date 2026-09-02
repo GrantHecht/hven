@@ -2062,6 +2062,35 @@ QpSolution ipqp_result_to_qp_solution(const IpqpResult &res);
 /// @param res   The abandoned tier result.
 void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res);
 
+// THE ELASTIC LADDER AND ITS JUDGE, one implementation serving the driver's
+// elastic tier and W2's certified fallback both. Every design choice below is
+// this header's ELASTIC TIER / STALL EARLY-EXIT / EXHAUSTION SIGNATURE notes.
+
+/// @brief One ladder run's result: the subproblem it built, the rung it stopped
+/// on, and the four-flag verdict on that rung. The history-row fields are
+/// carried as values so a consumer needs no second read of `qs_e`.
+struct ElasticLadderReport {
+    ElasticQp elastic;       ///< The augmented problem, at the LAST rung's rho.
+    QpSolution qs_e;         ///< The rung the ladder stopped on, AUGMENTED space.
+    Vec p_elastic;           ///< Its original-variable block, or Zero(n) if not kOptimal.
+    double slack_l1 = 0.0;   ///< l1 of the ACTUAL violations sigma_j*s_j at qs_e.
+    bool closed = false;     ///< slack_l1 <= feas_tol: the relaxation shut.
+    bool reduced = false;    ///< slack_l1 <= violation_l1 - feas_tol.
+    bool promises_f = false; ///< kOptimal and predicted_decrease(qp, p_elastic) > 0.
+    bool usable = false;     ///< kOptimal && (closed || reduced || promises_f).
+    QpStatus qp_status = QpStatus::kOptimal; ///< qs_e.status, for the history row.
+    Index qp_minor_iters = 0;                ///< qs_e's own count, for the row.
+    Index qp_factorizations = 0;             ///< qs_e's own count, for the row.
+    double step_norm = 0.0;                  ///< inf-norm of p_elastic, diagnostic.
+};
+
+/// @brief Runs the rho ladder to exhaustion and judges the rung it stopped on.
+/// `failed` is the kInfeasible unrelaxed solve the seed maps from, `window` the
+/// radius folded into the elastic box; every rung's counters fold into `out`.
+ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
+                                       const QpSolution &failed, double window,
+                                       const SqpOptions &opts, SqpCounters &out);
+
 // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item 5,
 // section 6.3's Amendment C registration).
 //
