@@ -8521,3 +8521,242 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementOnACertifiedInfeasibleExitMeasu
     EXPECT_TRUE(std::isfinite(sol.complementarity));
     EXPECT_GE(sol.wall_seconds, 0.0);
 }
+
+// ===========================================================================
+// M6 W2 T2 -- the ladder's evidence-informed rho_0 and its WORKING-SET seed.
+// ===========================================================================
+
+namespace {
+
+/// An equality the BOX cannot reach: `x0 + x1 = 5` on `[-b, b]^2`. The tier escapes it as an
+/// infeasible suspect from iterates pressed against the upper bounds, so its least-infeasible
+/// point carries a working set the elastic solution shares -- both bounds tight.
+QpProblem w2_box_blocked_qp(double b) {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.H.makeCompressed();
+    qp.g = Vec::Zero(2);
+    qp.Ae = SpMatRM(1, 2);
+    qp.Ae.insert(0, 0) = 1.0;
+    qp.Ae.insert(0, 1) = 1.0;
+    qp.Ae.makeCompressed();
+    qp.be = Vec(1);
+    qp.be << 5.0;
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -b);
+    qp.upper = Vec::Constant(2, b);
+    return qp;
+}
+
+/// Two rows that contradict each other outright: `x0 + x1 <= -2` against `-x0 - x1 <= -2`.
+QpProblem w2_inconsistent_rows_qp() {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.H.makeCompressed();
+    qp.g = Vec(2);
+    qp.g << -2.0, -4.0;
+    qp.Ae = SpMatRM(1, 2);
+    qp.Ae.insert(0, 0) = 1.0;
+    qp.Ae.insert(0, 1) = -1.0;
+    qp.Ae.makeCompressed();
+    qp.be = Vec(1);
+    qp.be << 0.5;
+    qp.Ai = SpMatRM(2, 2);
+    qp.Ai.insert(0, 0) = 1.0;
+    qp.Ai.insert(0, 1) = 1.0;
+    qp.Ai.insert(1, 0) = -1.0;
+    qp.Ai.insert(1, 1) = -1.0;
+    qp.Ai.makeCompressed();
+    qp.bi = Vec(2);
+    qp.bi << -2.0, -2.0;
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return qp;
+}
+
+/// The scalar analogue: `x <= -5` against `-x <= -5`.
+QpProblem w2_inconsistent_scalar_qp() {
+    QpProblem qp;
+    qp.H = SpMatRM(1, 1);
+    qp.H.insert(0, 0) = 1.0;
+    qp.H.makeCompressed();
+    qp.g = Vec::Zero(1);
+    qp.Ae = SpMatRM(0, 1);
+    qp.be = Vec(0);
+    qp.Ai = SpMatRM(2, 1);
+    qp.Ai.insert(0, 0) = 1.0;
+    qp.Ai.insert(1, 0) = -1.0;
+    qp.Ai.makeCompressed();
+    qp.bi = Vec(2);
+    qp.bi << -5.0, -5.0;
+    qp.lower = Vec::Constant(1, -10.0);
+    qp.upper = Vec::Constant(1, 10.0);
+    return qp;
+}
+
+/// The tier's own escape on `qp`, with its section 6.3 evidence block filled.
+IpqpResult w2_escaped(const QpProblem &qp) {
+    QpOptions qopts;
+    qopts.tr_radius = std::numeric_limits<double>::infinity();
+    IpqpEngine tier(qopts);
+    return tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+}
+
+/// One ladder run through the evidence arm (or, with `evidence == nullptr`, through no arm at
+/// all), reported with the counters it charged.
+struct W2LadderRun {
+    ElasticLadderReport report;
+    SqpCounters counters;
+};
+
+W2LadderRun w2_run_ladder(const QpProblem &qp, const IpqpInfeasibilityEvidence *evidence) {
+    const SqpOptions opts;
+    QpEngine engine(opts.qp);
+    W2LadderRun run;
+    const ElasticSeedSource source{nullptr, evidence};
+    run.report = run_elastic_ladder(engine, qp, source, std::numeric_limits<double>::infinity(),
+                                    opts, run.counters);
+    return run;
+}
+
+/// The penalty the ladder's LAST rung ran at, given where it started and how far it climbed.
+double w2_final_rho(double rho_0, Index escalations) {
+    double rho = rho_0;
+    for (Index k = 0; k < escalations; ++k) {
+        rho = std::min(rho * kElasticRhoFactor, kElasticRhoMax);
+    }
+    return rho;
+}
+
+} // namespace
+
+TEST(SqpDriverElasticSeed, TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence) {
+    // AMENDMENT H, Q-S4 AT c = 1. `rho_0 = max(kElasticRhoInit, dual_norm_start)`, moving BOTH
+    // hard-wired sites -- the construction's slack-block penalty AND the ladder's escalating
+    // `rho` -- because a ladder that started at one and escalated from the other is not a ladder.
+    const QpProblem qp = w2_box_blocked_qp(0.5);
+    const IpqpResult ires = w2_escaped(qp);
+    ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    const IpqpInfeasibilityEvidence &ev = ires.infeasibility_evidence;
+    ASSERT_TRUE(ev.fired);
+    ASSERT_GT(ev.dual_norm_start, kElasticRhoInit)
+        << "the fixture must actually exercise the max(), or the pin is vacuous";
+
+    const W2LadderRun placed = w2_run_ladder(qp, &ev);
+    ASSERT_EQ(placed.report.elastic.ns, 1);
+    const double rho_0 = std::max(kElasticRhoInit, ev.dual_norm_start);
+    EXPECT_DOUBLE_EQ(placed.report.elastic.qp.g(placed.report.elastic.n_orig),
+                     w2_final_rho(rho_0, placed.counters.elastic_escalations) *
+                         placed.report.elastic.slack_scale(0));
+
+    // THE FLOOR, FROM THE OTHER SIDE: with no evidence arm the ladder is entered at exactly W1's
+    // penalty, which is what keeps every W1 call site's replay where it was.
+    const W2LadderRun w1 = w2_run_ladder(qp, nullptr);
+    EXPECT_DOUBLE_EQ(w1.report.elastic.qp.g(w1.report.elastic.n_orig),
+                     w2_final_rho(kElasticRhoInit, w1.counters.elastic_escalations) *
+                         w1.report.elastic.slack_scale(0));
+    EXPECT_GT(rho_0, kElasticRhoInit) << "and the two starts really are different here";
+}
+
+TEST(SqpDriverElasticSeed, TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations) {
+    // AMENDMENT B's OWN BAR. The seed is a WORKING SET, so it may change what the solve COSTS and
+    // must not change what it FINDS. Both arms run at the SAME rho_0 -- the unseeded partner is
+    // the same evidence block with its POINT removed -- so the seed is the only thing that moves.
+    struct Row {
+        const char *name;
+        QpProblem qp;
+    };
+    const std::vector<Row> rows{{"box_1", w2_box_blocked_qp(1.0)},
+                                {"box_0p5", w2_box_blocked_qp(0.5)},
+                                {"rows", w2_inconsistent_rows_qp()},
+                                {"scalar", w2_inconsistent_scalar_qp()}};
+    Index improved = 0;
+    for (const Row &row : rows) {
+        SCOPED_TRACE(row.name);
+        const IpqpResult ires = w2_escaped(row.qp);
+        ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+        const IpqpInfeasibilityEvidence &seeded_ev = ires.infeasibility_evidence;
+        ASSERT_EQ(seeded_ev.least_infeasible_x.size(), row.qp.n());
+        IpqpInfeasibilityEvidence bare_ev = seeded_ev;
+        bare_ev.least_infeasible_x = Vec();
+
+        const W2LadderRun seeded = w2_run_ladder(row.qp, &seeded_ev);
+        const W2LadderRun bare = w2_run_ladder(row.qp, &bare_ev);
+        ASSERT_EQ(seeded.report.qp_status, QpStatus::kOptimal);
+        ASSERT_EQ(bare.report.qp_status, QpStatus::kOptimal);
+
+        // SOLUTION-IDENTICAL TO THE QP TOLERANCE, in the original variables, in the l1 of the
+        // relaxation, and in every one of the four verdict flags the driver acts on.
+        const SqpOptions opts;
+        EXPECT_LT((seeded.report.p_elastic - bare.report.p_elastic).lpNorm<Eigen::Infinity>(),
+                  opts.qp.opt_tol);
+        EXPECT_NEAR(seeded.report.slack_l1, bare.report.slack_l1, opts.qp.opt_tol);
+        EXPECT_EQ(seeded.report.closed, bare.report.closed);
+        EXPECT_EQ(seeded.report.reduced, bare.report.reduced);
+        EXPECT_EQ(seeded.report.promises_f, bare.report.promises_f);
+        EXPECT_EQ(seeded.report.usable, bare.report.usable);
+        EXPECT_EQ(seeded.counters.elastic_escalations, bare.counters.elastic_escalations);
+
+        // AND IT EARNS SOMETHING, or it is complexity with no counter behind it.
+        EXPECT_LE(seeded.counters.qp_minor_iters, bare.counters.qp_minor_iters);
+        improved += seeded.counters.qp_minor_iters < bare.counters.qp_minor_iters ? 1 : 0;
+        RecordProperty(std::string("w2t2_minor_seeded_") + row.name,
+                       std::to_string(seeded.counters.qp_minor_iters));
+        RecordProperty(std::string("w2t2_minor_unseeded_") + row.name,
+                       std::to_string(bare.counters.qp_minor_iters));
+    }
+    EXPECT_GE(improved, 1) << "the seed must be strictly cheaper on at least one fixture";
+}
+
+TEST(SqpDriverElasticSeed, AbsentDualsDegradeToGEOMETRICActivityRatherThanNoSeedAtAll) {
+    // THE STATED FALLBACK, a decision rather than a gap: with the point but WITHOUT the duals the
+    // ratio rule cannot be applied, so activity is read off distance against feas_tol alone. A
+    // barrier iterate stands off its bounds, so the degraded arm identifies less -- never wrong.
+    for (const QpProblem &qp : {w2_box_blocked_qp(1.0), w2_inconsistent_rows_qp()}) {
+        const IpqpResult ires = w2_escaped(qp);
+        ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+        IpqpInfeasibilityEvidence geometric = ires.infeasibility_evidence;
+        geometric.least_infeasible_s = Vec();
+        geometric.least_infeasible_lambda_i = Vec();
+        geometric.least_infeasible_zl = Vec();
+        geometric.least_infeasible_zu = Vec();
+
+        const W2LadderRun ratio = w2_run_ladder(qp, &ires.infeasibility_evidence);
+        const W2LadderRun geom = w2_run_ladder(qp, &geometric);
+        ASSERT_EQ(geom.report.qp_status, QpStatus::kOptimal);
+
+        const SqpOptions opts;
+        EXPECT_LT((ratio.report.p_elastic - geom.report.p_elastic).lpNorm<Eigen::Infinity>(),
+                  opts.qp.opt_tol);
+        EXPECT_EQ(ratio.report.usable, geom.report.usable);
+        EXPECT_EQ(ratio.counters.elastic_escalations, geom.counters.elastic_escalations);
+        RecordProperty("w2t2_minor_ratio_" + std::to_string(qp.mi()),
+                       std::to_string(ratio.counters.qp_minor_iters));
+        RecordProperty("w2t2_minor_geometric_" + std::to_string(qp.mi()),
+                       std::to_string(geom.counters.qp_minor_iters));
+    }
+}
+
+TEST(SqpDriverElasticSeed, ADefaultConstructedEvidenceBlockIsW1sLadderExactly) {
+    // P5's shape, one task early: a caller with nothing to say gets W1's behaviour -- the same
+    // penalty, the same (absent) seed, the same verdict, the same counters. An evidence arm that
+    // never fired can only be W1, or the fallback would have changed the tier it replaced.
+    const QpProblem qp = w2_inconsistent_rows_qp();
+    const IpqpInfeasibilityEvidence empty;
+    const W2LadderRun w1 = w2_run_ladder(qp, nullptr);
+    const W2LadderRun degraded = w2_run_ladder(qp, &empty);
+
+    EXPECT_EQ(w1.report.qp_status, degraded.report.qp_status);
+    EXPECT_EQ(w1.report.usable, degraded.report.usable);
+    EXPECT_DOUBLE_EQ(w1.report.slack_l1, degraded.report.slack_l1);
+    EXPECT_EQ(w1.counters.qp_minor_iters, degraded.counters.qp_minor_iters);
+    EXPECT_EQ(w1.counters.factorizations, degraded.counters.factorizations);
+    EXPECT_EQ(w1.counters.elastic_escalations, degraded.counters.elastic_escalations);
+    EXPECT_DOUBLE_EQ(w1.report.elastic.qp.g(w1.report.elastic.n_orig),
+                     degraded.report.elastic.qp.g(degraded.report.elastic.n_orig));
+}

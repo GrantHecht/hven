@@ -848,13 +848,109 @@ void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res) {
     total.symbolic_analyses += res.counters.ipqp_symbolic_analyses;
 }
 
+namespace {
+
+// AMENDMENT H, Q-S4 AT c = 1: the escaped solve's own multiplier norm places the first rung,
+// FLOORED at today's start so the ladder is never entered cheaper than W1 entered it. The norm
+// is on the caller's scale by the engine's own write-site assert (spec 4.3).
+double elastic_initial_rho(const ElasticSeedSource &seed) {
+    if (seed.evidence == nullptr || !std::isfinite(seed.evidence->dual_norm_start)) {
+        return kElasticRhoInit;
+    }
+    return std::max(kElasticRhoInit, seed.evidence->dual_norm_start);
+}
+
+// THE EVIDENCE ARM'S SEED (amendment B): a WORKING SET, not a point. Which rows and bounds are
+// TIGHT at the least-infeasible iterate by spec 2.3 item 2's RATIO rule on that iterate's own
+// duals, and which slack columns start CLOSED because their row is no longer violated there.
+QpSolution elastic_evidence_seed(const ElasticQp &e, const QpProblem &qp,
+                                 const IpqpInfeasibilityEvidence &ev, const SqpOptions &opts) {
+    const Index n = e.n_orig;
+    const Index me = qp.me();
+    const Index mi = qp.mi();
+    QpSolution s;
+    s.status = QpStatus::kOptimal;
+    // THE PRIMAL IS ZEROED, exactly as in elastic_seed: it is the engine's window CENTRE, and in
+    // step variables that centre is p = 0. Everything this function carries is the WORKING SET.
+    s.x = Vec::Zero(e.qp.n());
+    s.bound_state.assign(static_cast<std::size_t>(e.qp.n()), BoundState::kFree);
+    s.ineq_active.assign(static_cast<std::size_t>(mi), false);
+    if (ev.least_infeasible_x.size() != n) {
+        return s;
+    }
+    const Vec &x = ev.least_infeasible_x;
+    // THE STATED FALLBACK, not a gap: without the duals at that iterate the ratio rule cannot be
+    // applied, so activity is decided GEOMETRICALLY -- distance against feas_tol alone.
+    const bool have_duals =
+        ev.least_infeasible_s.size() == mi && ev.least_infeasible_lambda_i.size() == mi &&
+        ev.least_infeasible_zl.size() == n && ev.least_infeasible_zu.size() == n;
+    const double kappa = opts.ipqp.ipqp_face_kappa;
+    const double mu = std::max(ev.least_infeasible_mu, 0.0);
+    // Spec 2.3 item 2, three-way and never forced: a pair whose members are both tiny is
+    // UNCERTAIN, and an uncertain index is simply left OUT of the seed's working set.
+    auto tight = [&](double distance, double dual) {
+        return have_duals ? (distance < kappa * dual && dual > mu) : distance <= opts.feas_tol;
+    };
+
+    const Vec eq_resid = me > 0 ? Vec(qp.be - qp.Ae * x) : Vec(0);
+    const Vec iq_slack = mi > 0 ? Vec(qp.bi - qp.Ai * x) : Vec(0);
+    for (Index j = 0; j < mi; ++j) {
+        const double distance = have_duals ? ev.least_infeasible_s(j) : iq_slack(j);
+        const double dual = have_duals ? ev.least_infeasible_lambda_i(j) : 0.0;
+        s.ineq_active[static_cast<std::size_t>(j)] = tight(distance, dual);
+    }
+    for (Index i = 0; i < n; ++i) {
+        const bool has_lo = std::isfinite(qp.lower(i));
+        const bool has_up = std::isfinite(qp.upper(i));
+        const bool at_lo =
+            has_lo && tight(x(i) - qp.lower(i), have_duals ? ev.least_infeasible_zl(i) : 0.0);
+        const bool at_up =
+            has_up && tight(qp.upper(i) - x(i), have_duals ? ev.least_infeasible_zu(i) : 0.0);
+        const auto u = static_cast<std::size_t>(i);
+        if (at_lo && at_up) {
+            s.bound_state[u] = BoundState::kFixed;
+        } else if (at_lo) {
+            s.bound_state[u] = BoundState::kAtLower;
+        } else if (at_up) {
+            s.bound_state[u] = BoundState::kAtUpper;
+        }
+    }
+
+    // THE SLACK COLUMNS, the one thing no failed-solve seed can say: a row RELAXED at p_ref
+    // (build_elastic_subproblem's own point) may be satisfied at THIS one, and its slack then
+    // starts CLOSED at its lower bound instead of free. Geometric by nature -- there is no dual.
+    for (Index k = 0; k < me; ++k) {
+        if (e.eq_slack[static_cast<std::size_t>(k)] != kNoSlack &&
+            std::abs(eq_resid(k)) <= opts.feas_tol) {
+            s.bound_state[static_cast<std::size_t>(e.eq_slack[static_cast<std::size_t>(k)])] =
+                BoundState::kAtLower;
+        }
+    }
+    for (Index j = 0; j < mi; ++j) {
+        if (e.ineq_slack[static_cast<std::size_t>(j)] != kNoSlack &&
+            iq_slack(j) >= -opts.feas_tol) {
+            s.bound_state[static_cast<std::size_t>(e.ineq_slack[static_cast<std::size_t>(j)])] =
+                BoundState::kAtLower;
+        }
+    }
+    return s;
+}
+
+} // namespace
+
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
-                                       const QpSolution &failed, double window,
+                                       const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out) {
     ++out.elastic_activations;
 
-    ElasticQp elastic = build_elastic_subproblem(qp, window, kElasticRhoInit, opts.feas_tol);
-    QpSolution seed_elastic = elastic_seed(elastic, failed);
+    // BOTH HARD-WIRED SITES MOVE TOGETHER -- the construction's penalty and the ladder's own
+    // `rho` -- or the ladder would start at one penalty and escalate from another.
+    const double rho_0 = elastic_initial_rho(seed);
+    ElasticQp elastic = build_elastic_subproblem(qp, window, rho_0, opts.feas_tol);
+    QpSolution seed_elastic =
+        seed.evidence != nullptr
+            ? elastic_evidence_seed(elastic, qp, *seed.evidence, opts)
+            : elastic_seed(elastic, seed.failed != nullptr ? *seed.failed : QpSolution{});
 
     QpSolution qs_e;
     // THE STALL EARLY-EXIT's own state: the PREVIOUS rung's
@@ -864,7 +960,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     // note above for the derivation.
     QpSolution qs_e_prev;
     bool has_prev_rung = false;
-    double rho = kElasticRhoInit;
+    double rho = rho_0;
     for (;;) {
         // DEFAULT OVERRIDES: the +inf tr_radius sentinel, because
         // the radius is already in the box above -- passing it
@@ -3660,8 +3756,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // what the engine would have resolved the +inf sentinel to.
             // Both are +inf in the ordinary configuration.
             const double window = std::min(delta, opts_.qp.tr_radius);
+            const ElasticSeedSource elastic_seed_source{&qs, nullptr};
             const ElasticLadderReport report =
-                run_elastic_ladder(engine_, qp, qs, window, opts_, out.counters);
+                run_elastic_ladder(engine_, qp, elastic_seed_source, window, opts_, out.counters);
 
             if (!report.usable) {
                 row.qp_solved = true;

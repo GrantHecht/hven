@@ -2084,16 +2084,32 @@ struct ElasticLadderReport {
     double step_norm = 0.0;                  ///< inf-norm of p_elastic, diagnostic.
 };
 
+/// @brief Where `run_elastic_ladder` takes its FIRST rung's seed from -- a SOURCE, not a mapped
+/// point, because the mapping needs the `ElasticQp` the ladder builds inside itself. At most one
+/// arm is set; both null is legal and means no hint. NON-OWNING: both must outlive the call.
+struct ElasticSeedSource {
+    /// The elastic tier's arm: THIS `qp`'s own kInfeasible solve, mapped index-for-index by
+    /// `elastic_seed`. A size mismatch degrades to no hint rather than throwing.
+    const QpSolution *failed = nullptr;
+    /// The certified fallback's arm: the tier escaped with no QpSolution at all, so the seed is
+    /// the WORKING SET at the evidence's least-infeasible point (spec 2.3 item 2's ratio rule on
+    /// its retained duals, geometric activity when they are absent).
+    const IpqpInfeasibilityEvidence *evidence = nullptr;
+};
+
 // PRECONDITIONS, DOCUMENTED NOT VALIDATED (the sibling free seams' convention,
-// and this is an extraction): `failed` is either THIS `qp`'s kInfeasible solve
-// or default-constructed -- elastic_seed degrades a size mismatch to no hint.
+// and this is an extraction): every arm of `seed` degrades to "no hint" on a
+// size it cannot use, and the ladder never reads the evidence for a VERDICT.
 
 /// @brief Runs the rho ladder to exhaustion and judges the rung it stopped on.
 /// `window` is the radius folded into the elastic box: nonnegative -- 0 is
 /// legal (`tr_radius` permits it), +inf in the ordinary configuration. Every
 /// rung's counters fold into `out`.
+/// THE FIRST RUNG'S PENALTY is `max(kElasticRhoInit, evidence->dual_norm_start)`
+/// (amendment H): today's start as a FLOOR, so the ladder is never entered
+/// cheaper than W1's, and `kElasticRhoInit` exactly when there is no evidence arm.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
-                                       const QpSolution &failed, double window,
+                                       const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out);
 
 // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item 5,
