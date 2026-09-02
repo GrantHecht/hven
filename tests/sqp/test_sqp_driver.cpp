@@ -8948,12 +8948,17 @@ struct W2FallbackRun {
 W2FallbackRun w2_run_fallback(const QpProblem &qp, const IpqpInfeasibilityEvidence &evidence,
                               double window = std::numeric_limits<double>::infinity(),
                               double engine_tr = std::numeric_limits<double>::infinity(),
-                              const SqpIterate &row_in = SqpIterate{}) {
+                              const SqpIterate &row_in = SqpIterate{}, bool prime = false) {
     SqpOptions opts;
     opts.qp.tr_radius = engine_tr;
     QpEngine engine(opts.qp);
     const NlpEval ev;
     const SolveOverrides overrides;
+    // PRIMED: the engine has already solved THIS qp once, which is the state the driver's own
+    // engine is in when it reaches the fallback (X-5). The analysed pattern is then retained.
+    if (prime) {
+        (void)engine.solve(qp, overrides);
+    }
     W2FallbackRun run;
     run.row = row_in;
     run.qs = certified_feasibility_fallback(engine, qp, ev, nullptr, evidence, overrides, opts,
@@ -8964,10 +8969,14 @@ W2FallbackRun w2_run_fallback(const QpProblem &qp, const IpqpInfeasibilityEviden
 /// W1's BODY, on its own engine: `engine.solve(qp, overrides)` and nothing else. P4 compares
 /// against this rather than against pinned literals.
 QpSolution w2_cold_walk(const QpProblem &qp,
-                        double engine_tr = std::numeric_limits<double>::infinity()) {
+                        double engine_tr = std::numeric_limits<double>::infinity(),
+                        bool prime = false) {
     SqpOptions opts;
     opts.qp.tr_radius = engine_tr;
     QpEngine engine(opts.qp);
+    if (prime) {
+        (void)engine.solve(qp, SolveOverrides{});
+    }
     return engine.solve(qp, SolveOverrides{});
 }
 
@@ -9013,15 +9022,149 @@ auto w2_row_identity(const SqpIterate &r) {
     return std::tie(r.trial, r.f, r.stationarity, r.feasibility, r.complementarity, r.kkt_residual,
                     r.violation_l1, r.tr_radius, r.mu, r.step_norm, r.qp_solved, r.qp_status,
                     r.qp_minor_iters, r.qp_factorizations, r.tr_binding, r.verdict, r.soc_applied,
-                    r.elastic_applied, r.watchdog_restored);
+                    r.elastic_applied, r.elastic_rho0_ceiling_hit, r.watchdog_restored);
 }
 
-/// THE COUNTERS THIS CALL CAN MOVE -- the ladder's own two plus the six the rungs fold in.
-/// Every other SqpCounters field is written by the driver, never by this function.
-auto w2_counter_identity(const SqpCounters &c) {
-    return std::tie(c.elastic_activations, c.elastic_escalations, c.qp_minor_iters,
-                    c.factorizations, c.eqp_refine_steps, c.border_refine_steps,
-                    c.suspect_escalations, c.symbolic_analyses);
+/// FIELD-COMPLETE IDENTITY (T3-B, X-4): every member of the output objects, listed explicitly
+/// and IN DECLARATION ORDER -- keep in sync with the structs they mirror. A handful-of-fields
+/// comparator lets an evidence-conditioned write to any other field through.
+void w2_expect_same_ssn_counters(const SsnCounters &a, const SsnCounters &b,
+                                 const std::string &tag) {
+    EXPECT_EQ(a.ssn_iters, b.ssn_iters) << tag << " ssn_iters";
+    EXPECT_EQ(a.ssn_bulk_flips, b.ssn_bulk_flips) << tag << " ssn_bulk_flips";
+    EXPECT_EQ(a.ssn_backtracks, b.ssn_backtracks) << tag << " ssn_backtracks";
+    EXPECT_EQ(a.ssn_prox_updates, b.ssn_prox_updates) << tag << " ssn_prox_updates";
+    EXPECT_EQ(a.ssn_escapes, b.ssn_escapes) << tag << " ssn_escapes";
+    EXPECT_EQ(a.ssn_uncertain_peak, b.ssn_uncertain_peak) << tag << " ssn_uncertain_peak";
+    EXPECT_EQ(a.ssn_refinements, b.ssn_refinements) << tag << " ssn_refinements";
+    EXPECT_EQ(a.ssn_refine_refused, b.ssn_refine_refused) << tag << " ssn_refine_refused";
+    EXPECT_EQ(a.ssn_refine_factorizations, b.ssn_refine_factorizations)
+        << tag << " ssn_refine_factorizations";
+    EXPECT_EQ(a.ssn_refine_neg_duals, b.ssn_refine_neg_duals) << tag << " ssn_refine_neg_duals";
+    EXPECT_EQ(a.ssn_sign_swept, b.ssn_sign_swept) << tag << " ssn_sign_swept";
+    EXPECT_EQ(a.ssn_sign_sweep_max, b.ssn_sign_sweep_max) << tag << " ssn_sign_sweep_max";
+    EXPECT_EQ(a.ssn_escape_budget, b.ssn_escape_budget) << tag << " ssn_escape_budget";
+    EXPECT_EQ(a.ssn_escape_singular, b.ssn_escape_singular) << tag << " ssn_escape_singular";
+    EXPECT_EQ(a.ssn_escape_no_contraction, b.ssn_escape_no_contraction)
+        << tag << " ssn_escape_no_contraction";
+    EXPECT_EQ(a.ssn_escape_infeasible_suspect, b.ssn_escape_infeasible_suspect)
+        << tag << " ssn_escape_infeasible_suspect";
+    EXPECT_EQ(a.ssn_escape_indefinite, b.ssn_escape_indefinite) << tag << " ssn_escape_indefinite";
+    EXPECT_EQ(a.ssn_escape_gate_refused, b.ssn_escape_gate_refused)
+        << tag << " ssn_escape_gate_refused";
+}
+
+void w2_expect_same_ipqp_counters(const IpqpCounters &a, const IpqpCounters &b,
+                                  const std::string &tag) {
+    EXPECT_EQ(a.ipqp_iters, b.ipqp_iters) << tag << " ipqp_iters";
+    EXPECT_EQ(a.ipqp_factorizations, b.ipqp_factorizations) << tag << " ipqp_factorizations";
+    EXPECT_EQ(a.ipqp_symbolic_analyses, b.ipqp_symbolic_analyses)
+        << tag << " ipqp_symbolic_analyses";
+    EXPECT_EQ(a.ipqp_solves, b.ipqp_solves) << tag << " ipqp_solves";
+    EXPECT_EQ(a.ipqp_pattern_verifies, b.ipqp_pattern_verifies) << tag << " ipqp_pattern_verifies";
+    EXPECT_EQ(a.ipqp_rho_demanded_max, b.ipqp_rho_demanded_max) << tag << " ipqp_rho_demanded_max";
+    EXPECT_EQ(a.ipqp_rho_demanded_last, b.ipqp_rho_demanded_last)
+        << tag << " ipqp_rho_demanded_last";
+    EXPECT_EQ(a.ipqp_inertia_retries, b.ipqp_inertia_retries) << tag << " ipqp_inertia_retries";
+    EXPECT_EQ(a.ipqp_iters_at_elevated_rho, b.ipqp_iters_at_elevated_rho)
+        << tag << " ipqp_iters_at_elevated_rho";
+    EXPECT_EQ(a.ipqp_ladder_reclimbs, b.ipqp_ladder_reclimbs) << tag << " ipqp_ladder_reclimbs";
+    EXPECT_EQ(a.ipqp_pivot_reroute_primal, b.ipqp_pivot_reroute_primal)
+        << tag << " ipqp_pivot_reroute_primal";
+    EXPECT_EQ(a.ipqp_pivot_reroute_dual_fallback, b.ipqp_pivot_reroute_dual_fallback)
+        << tag << " ipqp_pivot_reroute_dual_fallback";
+    EXPECT_EQ(a.ipqp_iters_ladder_armed_no_advance, b.ipqp_iters_ladder_armed_no_advance)
+        << tag << " ipqp_iters_ladder_armed_no_advance";
+    EXPECT_EQ(a.ipqp_final_inertia_read, b.ipqp_final_inertia_read)
+        << tag << " ipqp_final_inertia_read";
+    EXPECT_EQ(a.ipqp_reg_decreases, b.ipqp_reg_decreases) << tag << " ipqp_reg_decreases";
+    EXPECT_EQ(a.ipqp_reg_increases, b.ipqp_reg_increases) << tag << " ipqp_reg_increases";
+    EXPECT_EQ(a.ipqp_prox_center_updates, b.ipqp_prox_center_updates)
+        << tag << " ipqp_prox_center_updates";
+    EXPECT_EQ(a.ipqp_restart_repairs, b.ipqp_restart_repairs) << tag << " ipqp_restart_repairs";
+    EXPECT_EQ(a.ipqp_restart_shift_max, b.ipqp_restart_shift_max)
+        << tag << " ipqp_restart_shift_max";
+    EXPECT_EQ(a.ipqp_mu_adopted, b.ipqp_mu_adopted) << tag << " ipqp_mu_adopted";
+    EXPECT_EQ(a.ipqp_warm_restart_abandoned, b.ipqp_warm_restart_abandoned)
+        << tag << " ipqp_warm_restart_abandoned";
+    EXPECT_EQ(a.ipqp_declined_pinned, b.ipqp_declined_pinned) << tag << " ipqp_declined_pinned";
+    EXPECT_EQ(a.ipqp_tier_retired_after, b.ipqp_tier_retired_after)
+        << tag << " ipqp_tier_retired_after";
+    EXPECT_EQ(a.ipqp_face_uncertain, b.ipqp_face_uncertain) << tag << " ipqp_face_uncertain";
+    EXPECT_EQ(a.ipqp_refine_accepted, b.ipqp_refine_accepted) << tag << " ipqp_refine_accepted";
+    EXPECT_EQ(a.ipqp_refine_refused, b.ipqp_refine_refused) << tag << " ipqp_refine_refused";
+    EXPECT_EQ(a.ipqp_to_refine, b.ipqp_to_refine) << tag << " ipqp_to_refine";
+    EXPECT_EQ(a.ipqp_to_ssn, b.ipqp_to_ssn) << tag << " ipqp_to_ssn";
+    EXPECT_EQ(a.ipqp_to_walk, b.ipqp_to_walk) << tag << " ipqp_to_walk";
+    EXPECT_EQ(a.ipqp_escapes, b.ipqp_escapes) << tag << " ipqp_escapes";
+    EXPECT_EQ(a.ipqp_escape_budget, b.ipqp_escape_budget) << tag << " ipqp_escape_budget";
+    EXPECT_EQ(a.ipqp_escape_stall, b.ipqp_escape_stall) << tag << " ipqp_escape_stall";
+    EXPECT_EQ(a.ipqp_escape_indefinite, b.ipqp_escape_indefinite)
+        << tag << " ipqp_escape_indefinite";
+    EXPECT_EQ(a.ipqp_escape_numerical, b.ipqp_escape_numerical) << tag << " ipqp_escape_numerical";
+    EXPECT_EQ(a.ipqp_escape_infeasible_suspect, b.ipqp_escape_infeasible_suspect)
+        << tag << " ipqp_escape_infeasible_suspect";
+    EXPECT_EQ(a.ipqp_alpha_p_min, b.ipqp_alpha_p_min) << tag << " ipqp_alpha_p_min";
+    EXPECT_EQ(a.ipqp_alpha_d_min, b.ipqp_alpha_d_min) << tag << " ipqp_alpha_d_min";
+    EXPECT_EQ(a.ipqp_read_kept_tight_sides, b.ipqp_read_kept_tight_sides)
+        << tag << " ipqp_read_kept_tight_sides";
+    EXPECT_EQ(a.ipqp_read_barrier_noise_sides, b.ipqp_read_barrier_noise_sides)
+        << tag << " ipqp_read_barrier_noise_sides";
+}
+
+void w2_expect_same_sqp_counters(const SqpCounters &a, const SqpCounters &b,
+                                 const std::string &tag) {
+    EXPECT_EQ(a.major_iters, b.major_iters) << tag << " major_iters";
+    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters) << tag << " qp_minor_iters";
+    EXPECT_EQ(a.factorizations, b.factorizations) << tag << " factorizations";
+    EXPECT_EQ(a.steps_accepted, b.steps_accepted) << tag << " steps_accepted";
+    EXPECT_EQ(a.rejected_steps, b.rejected_steps) << tag << " rejected_steps";
+    EXPECT_EQ(a.soc_steps, b.soc_steps) << tag << " soc_steps";
+    EXPECT_EQ(a.soc_applied, b.soc_applied) << tag << " soc_applied";
+    EXPECT_EQ(a.soc_qp_infeasible, b.soc_qp_infeasible) << tag << " soc_qp_infeasible";
+    EXPECT_EQ(a.soc_rejected, b.soc_rejected) << tag << " soc_rejected";
+    EXPECT_EQ(a.elastic_activations, b.elastic_activations) << tag << " elastic_activations";
+    EXPECT_EQ(a.elastic_escalations, b.elastic_escalations) << tag << " elastic_escalations";
+    EXPECT_EQ(a.restoration_iters, b.restoration_iters) << tag << " restoration_iters";
+    EXPECT_EQ(a.eqp_refine_steps, b.eqp_refine_steps) << tag << " eqp_refine_steps";
+    EXPECT_EQ(a.border_refine_steps, b.border_refine_steps) << tag << " border_refine_steps";
+    EXPECT_EQ(a.suspect_escalations, b.suspect_escalations) << tag << " suspect_escalations";
+    EXPECT_EQ(a.symbolic_analyses, b.symbolic_analyses) << tag << " symbolic_analyses";
+    EXPECT_EQ(a.start_level_used, b.start_level_used) << tag << " start_level_used";
+    EXPECT_EQ(a.full_step_majors, b.full_step_majors) << tag << " full_step_majors";
+    EXPECT_EQ(a.watchdog_restores, b.watchdog_restores) << tag << " watchdog_restores";
+    EXPECT_EQ(a.evals_full, b.evals_full) << tag << " evals_full";
+    EXPECT_EQ(a.evals_values, b.evals_values) << tag << " evals_values";
+    EXPECT_EQ(a.probe_budget_stops, b.probe_budget_stops) << tag << " probe_budget_stops";
+    EXPECT_EQ(a.crash_seeded_rows, b.crash_seeded_rows) << tag << " crash_seeded_rows";
+    EXPECT_EQ(a.crash_seeded_bounds, b.crash_seeded_bounds) << tag << " crash_seeded_bounds";
+    EXPECT_EQ(a.n_seeded, b.n_seeded) << tag << " n_seeded";
+    EXPECT_EQ(a.seeded_clamped, b.seeded_clamped) << tag << " seeded_clamped";
+    EXPECT_EQ(a.ip_activity_inferred, b.ip_activity_inferred) << tag << " ip_activity_inferred";
+    w2_expect_same_ssn_counters(a.ssn, b.ssn, tag);
+    w2_expect_same_ipqp_counters(a.ipqp, b.ipqp, tag);
+}
+
+void w2_expect_same_qp_counters(const QpCounters &a, const QpCounters &b, const std::string &tag) {
+    EXPECT_EQ(a.factorizations, b.factorizations) << tag << " factorizations";
+    EXPECT_EQ(a.schur_updates, b.schur_updates) << tag << " schur_updates";
+    EXPECT_EQ(a.minor_iters, b.minor_iters) << tag << " minor_iters";
+    EXPECT_EQ(a.eqp_refine_steps, b.eqp_refine_steps) << tag << " eqp_refine_steps";
+    EXPECT_EQ(a.border_refine_steps, b.border_refine_steps) << tag << " border_refine_steps";
+    EXPECT_EQ(a.suspect_escalations, b.suspect_escalations) << tag << " suspect_escalations";
+    EXPECT_EQ(a.k0_reused, b.k0_reused) << tag << " k0_reused";
+    EXPECT_EQ(a.symbolic_analyses, b.symbolic_analyses) << tag << " symbolic_analyses";
+    EXPECT_EQ(a.ws_adds, b.ws_adds) << tag << " ws_adds";
+    EXPECT_EQ(a.ws_drops, b.ws_drops) << tag << " ws_drops";
+    EXPECT_EQ(a.shift_adds, b.shift_adds) << tag << " shift_adds";
+    EXPECT_EQ(a.degenerate_steps, b.degenerate_steps) << tag << " degenerate_steps";
+    EXPECT_EQ(a.degenerate_run_max, b.degenerate_run_max) << tag << " degenerate_run_max";
+    EXPECT_EQ(a.ws_adds_bound, b.ws_adds_bound) << tag << " ws_adds_bound";
+    EXPECT_EQ(a.ws_drops_bound, b.ws_drops_bound) << tag << " ws_drops_bound";
+    EXPECT_EQ(a.distinct_ineq_added, b.distinct_ineq_added) << tag << " distinct_ineq_added";
+    EXPECT_EQ(a.distinct_bound_added, b.distinct_bound_added) << tag << " distinct_bound_added";
+    EXPECT_EQ(a.drop_ties, b.drop_ties) << tag << " drop_ties";
+    EXPECT_EQ(a.ratio_ties, b.ratio_ties) << tag << " ratio_ties";
 }
 
 void w2_expect_same_solution(const QpSolution &a, const QpSolution &b, const std::string &tag) {
@@ -9033,26 +9176,57 @@ void w2_expect_same_solution(const QpSolution &a, const QpSolution &b, const std
     EXPECT_EQ(a.bound_state, b.bound_state) << tag;
     EXPECT_EQ(a.ineq_active, b.ineq_active) << tag;
     EXPECT_EQ(a.tr_active, b.tr_active) << tag;
-    EXPECT_EQ(a.counters.minor_iters, b.counters.minor_iters) << tag;
-    EXPECT_EQ(a.counters.factorizations, b.counters.factorizations) << tag;
+    w2_expect_same_qp_counters(a.counters, b.counters, tag + " counters");
+}
+
+void w2_expect_same_sparse(const SpMatRM &a, const SpMatRM &b, const std::string &tag) {
+    ASSERT_EQ(a.rows(), b.rows()) << tag;
+    ASSERT_EQ(a.cols(), b.cols()) << tag;
+    EXPECT_EQ(a.nonZeros(), b.nonZeros()) << tag;
+    // GUARDED: Eigen's sum() asserts on a 0-row/0-col matrix in Debug, and these fixtures carry
+    // empty Ai blocks -- an empty pair is already settled by the two dimension asserts.
+    if (a.rows() > 0 && a.cols() > 0) {
+        EXPECT_EQ((a - b).norm(), 0.0) << tag;
+    }
+}
+
+void w2_expect_same_qp(const QpProblem &a, const QpProblem &b, const std::string &tag) {
+    w2_expect_same_sparse(a.H, b.H, tag + " H");
+    w2_expect_same_sparse(a.Ae, b.Ae, tag + " Ae");
+    w2_expect_same_sparse(a.Ai, b.Ai, tag + " Ai");
+    EXPECT_EQ(a.g, b.g) << tag << " g";
+    EXPECT_EQ(a.be, b.be) << tag << " be";
+    EXPECT_EQ(a.bi, b.bi) << tag << " bi";
+    EXPECT_EQ(a.lower, b.lower) << tag << " lower";
+    EXPECT_EQ(a.upper, b.upper) << tag << " upper";
+}
+
+void w2_expect_same_elastic(const ElasticQp &a, const ElasticQp &b, const std::string &tag) {
+    w2_expect_same_qp(a.qp, b.qp, tag + " qp");
+    EXPECT_EQ(a.n_orig, b.n_orig) << tag << " n_orig";
+    EXPECT_EQ(a.ns, b.ns) << tag << " ns";
+    EXPECT_EQ(a.eq_slack, b.eq_slack) << tag << " eq_slack";
+    EXPECT_EQ(a.ineq_slack, b.ineq_slack) << tag << " ineq_slack";
+    EXPECT_EQ(a.violation_l1, b.violation_l1) << tag << " violation_l1";
+    EXPECT_EQ(a.p_ref, b.p_ref) << tag << " p_ref";
+    EXPECT_EQ(a.slack_scale, b.slack_scale) << tag << " slack_scale";
 }
 
 void w2_expect_same_report(const ElasticLadderReport &a, const ElasticLadderReport &b,
                            const std::string &tag) {
-    EXPECT_EQ(a.qp_status, b.qp_status) << tag;
-    EXPECT_EQ(a.closed, b.closed) << tag;
-    EXPECT_EQ(a.reduced, b.reduced) << tag;
-    EXPECT_EQ(a.promises_f, b.promises_f) << tag;
-    EXPECT_EQ(a.usable, b.usable) << tag;
-    EXPECT_EQ(a.rho0_ceiling_hit, b.rho0_ceiling_hit) << tag;
-    EXPECT_DOUBLE_EQ(a.slack_l1, b.slack_l1) << tag;
-    EXPECT_DOUBLE_EQ(a.step_norm, b.step_norm) << tag;
-    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters) << tag;
-    EXPECT_EQ(a.qp_factorizations, b.qp_factorizations) << tag;
-    EXPECT_EQ(a.p_elastic, b.p_elastic) << tag;
-    EXPECT_EQ(a.qs_e.x, b.qs_e.x) << tag;
-    EXPECT_EQ(a.elastic.ns, b.elastic.ns) << tag;
-    EXPECT_EQ(a.elastic.qp.g, b.elastic.qp.g) << tag;
+    w2_expect_same_elastic(a.elastic, b.elastic, tag + " elastic");
+    w2_expect_same_solution(a.qs_e, b.qs_e, tag + " qs_e");
+    EXPECT_EQ(a.p_elastic, b.p_elastic) << tag << " p_elastic";
+    EXPECT_EQ(a.slack_l1, b.slack_l1) << tag << " slack_l1";
+    EXPECT_EQ(a.closed, b.closed) << tag << " closed";
+    EXPECT_EQ(a.reduced, b.reduced) << tag << " reduced";
+    EXPECT_EQ(a.promises_f, b.promises_f) << tag << " promises_f";
+    EXPECT_EQ(a.usable, b.usable) << tag << " usable";
+    EXPECT_EQ(a.qp_status, b.qp_status) << tag << " qp_status";
+    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters) << tag << " qp_minor_iters";
+    EXPECT_EQ(a.qp_factorizations, b.qp_factorizations) << tag << " qp_factorizations";
+    EXPECT_EQ(a.step_norm, b.step_norm) << tag << " step_norm";
+    EXPECT_EQ(a.rho0_ceiling_hit, b.rho0_ceiling_hit) << tag << " rho0_ceiling_hit";
 }
 
 /// The penalty a report's ladder ran its LAST rung at. It is the FIRST rung's only where the
@@ -9142,6 +9316,29 @@ TEST(SqpDriverCertifiedFallback, P2ClosedSlacksDisproveTheSuspicionAndCarryTheMu
     EXPECT_GT(std::abs(walk.lambda_e(0)), 1.0) << "a zeroed carry must be visible here";
 }
 
+TEST(SqpDriverCertifiedFallback, P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED) {
+    // PLAN SECTION 2's CONTRACT ROW 2, the one P2 does not reach: the relaxation is USABLE but
+    // still OPEN, so the step is judged normally and the prices are penalty parameters rather
+    // than the subproblem's own -- `elastic_project` zeroes them, and that is the pin.
+    const QpProblem qp = w2_box_blocked_qp(0.5);
+    const IpqpResult ires = w2_escaped(qp);
+    ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    const W2FallbackRun run = w2_run_fallback(qp, ires.infeasibility_evidence);
+
+    ASSERT_TRUE(run.report.has_value());
+    EXPECT_TRUE(run.report->usable);
+    EXPECT_FALSE(run.report->closed) << "row 2 is the OPEN one, or this is P2 again";
+    EXPECT_TRUE(run.report->reduced);
+    EXPECT_GT(run.report->slack_l1, SqpOptions{}.feas_tol);
+    EXPECT_EQ(run.qs.status, QpStatus::kOptimal);
+    // ZEROED, NOT CARRIED: `carry_multipliers` is `closed`, and a body that used `usable` here
+    // would feed lambda_e forced to rho by stationarity in s_j straight into eval_hess.
+    ASSERT_GT(run.qs.lambda_e.size(), 0);
+    EXPECT_TRUE(run.qs.lambda_e.isZero(0.0)) << run.qs.lambda_e.transpose();
+    EXPECT_TRUE(run.qs.z.isZero(0.0)) << run.qs.z.transpose();
+    EXPECT_EQ(run.counters.elastic_activations, 1);
+}
+
 TEST(SqpDriverCertifiedFallback, P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached) {
     // P3 ON PLAN SECTION 6's F-1 SHAPE (antiparallel equality rows): the relaxation is still
     // materially open at the ladder's ceiling, so the fallback returns the elastic tier's OWN
@@ -9177,10 +9374,9 @@ TEST(SqpDriverCertifiedFallback, P3TheEscapeBranchCONSUMESTheAttachedLadderRathe
     ASSERT_TRUE(run.report.has_value());
     ASSERT_EQ(run.counters.elastic_activations, 1);
 
-    const ElasticLadderReport consumed = *run.report;
-    EXPECT_EQ(run.counters.elastic_activations, 1) << "consumption charges nothing";
-    w2_expect_same_report(consumed, *run.report, "consumed");
-
+    // WHAT THIS PINS IS THE COST DIFFERENCE, not the driver's branch: no fixture drives
+    // SqpDriver's escape branch onto an ATTACHED report (measured -- the ternary is reached only
+    // with an empty optional), so the ternary itself is verified by reading. Registered T7.
     SqpOptions opts;
     QpEngine engine(opts.qp);
     const ElasticSeedSource failed_arm{&run.qs, nullptr};
@@ -9214,6 +9410,54 @@ TEST(SqpDriverCertifiedFallback, P4ARefusedRungAReturnsTheColdWalkCounterForCoun
     EXPECT_EQ(run.counters.elastic_activations, 1);
     EXPECT_GT(walk.counters.minor_iters, 0);
     EXPECT_GT(walk.counters.factorizations, 0);
+}
+
+TEST(SqpDriverCertifiedFallback, P4bTheCeilingDeclineHandsAJUDGEDStepBackFromTheColdWalk) {
+    // THE REFUSAL CASE THE RULE EXISTS FOR: rung A DECLINED on a problem the walk still SOLVES,
+    // so the walk's step is genuinely taken and judged rather than merely routed. Provoked by
+    // entering rung A at the ceiling, where the penalty column dominates the H block.
+    const QpProblem qp = w2_box_blocked_qp(10.0);
+    IpqpInfeasibilityEvidence at_ceiling = w2_hand_built_evidence();
+    at_ceiling.dual_norm_start = kElasticRhoMax;
+    const W2FallbackRun run = w2_run_fallback(qp, at_ceiling);
+    const QpSolution walk = w2_cold_walk(qp);
+
+    // THE DECLINE IS A kInfeasible FROM THE WALK on the ELASTIC copy -- a false certificate under
+    // dual regularization at rho = 1e8, not a kNumericalError (tycho's measured dual_mu * rho
+    // law). It is contained here: rung B answers the ORIGINAL problem and is right.
+    ASSERT_FALSE(run.report.has_value()) << "the refusal path attaches NOTHING";
+    ASSERT_EQ(walk.status, QpStatus::kOptimal) << "the walk must SUCCEED, or this is P4 again";
+    EXPECT_EQ(run.qs.status, QpStatus::kOptimal);
+    EXPECT_EQ(run.qs.counters.minor_iters, walk.counters.minor_iters);
+    EXPECT_EQ(run.qs.counters.factorizations, walk.counters.factorizations);
+    EXPECT_EQ(run.qs.counters.symbolic_analyses, walk.counters.symbolic_analyses);
+    ASSERT_EQ(run.qs.x.size(), walk.x.size());
+    EXPECT_LT((run.qs.x - walk.x).lpNorm<Eigen::Infinity>(), SqpOptions{}.qp.opt_tol);
+    EXPECT_EQ(run.counters.elastic_activations, 1) << "rung A really ran and was really declined";
+    EXPECT_GT(walk.counters.minor_iters, 0);
+}
+
+TEST(SqpDriverCertifiedFallback, P4OnAPrimedEngineCostsTheAnalysisRungADisplaces) {
+    // X-5: rung B runs on the engine rung A JUST MUTATED, while P4's W1 arm is a FRESH engine.
+    // On a PRIMED engine -- the state the driver's own is in -- W1 re-solves the retained pattern
+    // at zero analyses while rung B must re-analyse the original after rung A's augmented one.
+    const double engine_tr = 1.0e-3;
+    const QpProblem qp = w2_box_blocked_qp(0.5);
+    const IpqpResult ires = w2_escaped(qp);
+    const W2FallbackRun run =
+        w2_run_fallback(qp, ires.infeasibility_evidence, std::numeric_limits<double>::infinity(),
+                        engine_tr, SqpIterate{}, /*prime=*/true);
+    const QpSolution walk = w2_cold_walk(qp, engine_tr, /*prime=*/true);
+
+    ASSERT_FALSE(run.report.has_value());
+    EXPECT_EQ(run.qs.status, walk.status);
+    EXPECT_EQ(run.qs.counters.minor_iters, walk.counters.minor_iters);
+    EXPECT_EQ(run.qs.counters.factorizations, walk.counters.factorizations);
+    EXPECT_LT((run.qs.x - walk.x).lpNorm<Eigen::Infinity>(), SqpOptions{}.qp.opt_tol);
+    // THE ONE COUNTER THAT DOES NOT MATCH, DECLARED rather than hidden: it is the contract's own
+    // cost -- rung A displaces the analysed pattern, so rung B pays one analysis W1 does not.
+    EXPECT_EQ(run.qs.counters.symbolic_analyses, 1);
+    EXPECT_EQ(walk.counters.symbolic_analyses, 0);
 }
 
 TEST(SqpDriverCertifiedFallback, T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations) {
@@ -9353,8 +9597,7 @@ TEST(SqpDriverCertifiedFallback, P7TheVerdictReadsNothingFromTheEvidenceBeyondIt
             w2_expect_same_solution(base.qs, run.qs, tag);
             ASSERT_TRUE(run.report.has_value()) << tag;
             w2_expect_same_report(*base.report, *run.report, tag);
-            EXPECT_TRUE(w2_counter_identity(base.counters) == w2_counter_identity(run.counters))
-                << tag;
+            w2_expect_same_sqp_counters(base.counters, run.counters, tag);
             EXPECT_TRUE(w2_row_identity(base.row) == w2_row_identity(run.row)) << tag;
             // THE TWO TELEMETRY FIELDS ARE THE EXCEPTION, and they are PASS-THROUGHS: recorded
             // from the mutated block itself, never judged (T3-B).
@@ -9372,4 +9615,55 @@ TEST(SqpDriverCertifiedFallback, P7TheVerdictReadsNothingFromTheEvidenceBeyondIt
         EXPECT_FALSE(base.report->rho0_ceiling_hit) << f.name;
         EXPECT_NE(capped.counters.elastic_escalations, base.counters.elastic_escalations) << f.name;
     }
+}
+
+TEST(SqpDriverCertifiedFallback, ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints) {
+    // CLAUDE.md section 4 at the two public free seams: an unvalidated window crosses the elastic
+    // box silently (`lo = max(lower, p_ref - w)`, `up = min(upper, p_ref + w)`). P6's "no evidence
+    // CONTENT throws" is untouched -- this is the WINDOW, not the block.
+    const QpProblem qp = w2_antiparallel_eq_qp();
+    const IpqpInfeasibilityEvidence fired = w2_escaped(qp).infeasibility_evidence;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    for (const double bad : {-1.0, nan}) {
+        EXPECT_THROW(w2_run_fallback(qp, fired, bad), std::invalid_argument);
+        SqpOptions opts;
+        QpEngine engine(opts.qp);
+        SqpCounters out;
+        const ElasticSeedSource no_hint;
+        EXPECT_THROW((void)run_elastic_ladder(engine, qp, no_hint, bad, opts, out),
+                     std::invalid_argument);
+        EXPECT_EQ(out.elastic_activations, 0) << "a refused window charges nothing";
+    }
+    // +inf STAYS LEGAL, or the guard would have banned the unbounded-radius call the pins use.
+    EXPECT_NO_THROW(w2_run_fallback(qp, fired, std::numeric_limits<double>::infinity()));
+}
+
+TEST(SqpDriverCertifiedFallback, ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHistory) {
+    // THE ROW CONTRACT AT THE DRIVER (C-F1 / X-1). HS11 at kIpm escapes twice and rung A owns
+    // both answers. `elastic_applied` is a BRANCH INPUT -- SOC is gated on `!elastic_applied` --
+    // so a row reporting false here would send a relaxed step to a correction that forbids it.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(11);
+    SqpDriver driver(opts);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    ASSERT_EQ(sol.counters.ipqp.ipqp_to_walk, 2) << "the fixture must reach the fallback at all";
+    EXPECT_EQ(sol.counters.elastic_activations, 2) << "one ladder per escape";
+    Index elastic_rows = 0;
+    for (const SqpIterate &h : sol.history) {
+        if (!h.elastic_applied) {
+            EXPECT_FALSE(h.elastic_rho0_ceiling_hit) << "trial " << h.trial;
+            continue;
+        }
+        ++elastic_rows;
+        EXPECT_EQ(h.qp_status, QpStatus::kOptimal) << "trial " << h.trial;
+        // THE LADDER'S OWN COUNTS: the fallback clears the returned solution's counters to keep
+        // the totals exact, so a row fed from them would read 0 on exactly these majors.
+        EXPECT_GT(h.qp_minor_iters, 0) << "trial " << h.trial;
+        EXPECT_FALSE(h.elastic_rho0_ceiling_hit)
+            << "measured: every corpus placement is far below kElasticRhoMax";
+    }
+    EXPECT_EQ(elastic_rows, 2) << "both rung-A-owned majors are marked as elastic rows";
 }
