@@ -850,19 +850,22 @@ void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res) {
 
 namespace {
 
-// AMENDMENT H, Q-S4 AT c = 1: the escaped solve's own multiplier norm places the first rung,
-// FLOORED at today's start so the ladder is never entered cheaper than W1 entered it. The norm
-// is on the caller's scale by the engine's own write-site assert (spec 4.3).
-double elastic_initial_rho(const ElasticSeedSource &seed) {
-    if (seed.evidence == nullptr || !std::isfinite(seed.evidence->dual_norm_start)) {
+// AMENDMENT H, Q-S4 AT c = 1: a FIRED block's own multiplier norm places the first rung, FLOORED
+// at today's start so the ladder is never entered cheaper than W1's, and CAPPED at kElasticRhoMax
+// so it never starts above the ceiling the escalation bound is stated against.
+double elastic_initial_rho(const ElasticSeedSource &seed, bool &ceiling_hit) {
+    ceiling_hit = false;
+    if (seed.evidence == nullptr || !seed.evidence->fired ||
+        !std::isfinite(seed.evidence->dual_norm_start)) {
         return kElasticRhoInit;
     }
-    return std::max(kElasticRhoInit, seed.evidence->dual_norm_start);
+    ceiling_hit = seed.evidence->dual_norm_start >= kElasticRhoMax;
+    return std::min(kElasticRhoMax, std::max(kElasticRhoInit, seed.evidence->dual_norm_start));
 }
 
-// THE EVIDENCE ARM'S SEED (amendment B): a WORKING SET, not a point. Which rows and bounds are
-// TIGHT at the least-infeasible iterate by spec 2.3 item 2's RATIO rule on that iterate's own
-// duals, and which slack columns start CLOSED because their row is no longer violated there.
+// THE EVIDENCE ARM'S SEED: a WORKING SET, not a point. Which rows and bounds are TIGHT at the
+// least-infeasible iterate by spec 2.3 item 2's RATIO rule on that iterate's own duals, and
+// which slack columns start CLOSED because their row is no longer violated there.
 QpSolution elastic_evidence_seed(const ElasticQp &e, const QpProblem &qp,
                                  const IpqpInfeasibilityEvidence &ev, const SqpOptions &opts) {
     const Index n = e.n_orig;
@@ -875,15 +878,19 @@ QpSolution elastic_evidence_seed(const ElasticQp &e, const QpProblem &qp,
     s.x = Vec::Zero(e.qp.n());
     s.bound_state.assign(static_cast<std::size_t>(e.qp.n()), BoundState::kFree);
     s.ineq_active.assign(static_cast<std::size_t>(mi), false);
-    if (ev.least_infeasible_x.size() != n) {
+    // A BLOCK THAT NEVER FIRED IS NOT EVIDENCE, however its fields are sized: no hint at all,
+    // which with elastic_initial_rho's own floor makes a non-fired arm W1's ladder exactly.
+    if (!ev.fired || ev.least_infeasible_x.size() != n) {
         return s;
     }
     const Vec &x = ev.least_infeasible_x;
-    // THE STATED FALLBACK, not a gap: without the duals at that iterate the ratio rule cannot be
-    // applied, so activity is decided GEOMETRICALLY -- distance against feas_tol alone.
-    const bool have_duals =
-        ev.least_infeasible_s.size() == mi && ev.least_infeasible_lambda_i.size() == mi &&
-        ev.least_infeasible_zl.size() == n && ev.least_infeasible_zu.size() == n;
+    // THE STATED FALLBACK, not a gap: without the duals the ratio rule cannot be applied, so
+    // activity is GEOMETRIC -- distance against feas_tol. On a row that distance is the TRUE
+    // residual, negative and so always active, where the ratio arm reads the barrier slack.
+    const bool have_duals = ev.least_infeasible_s.size() == mi &&
+                            ev.least_infeasible_lambda_i.size() == mi &&
+                            ev.least_infeasible_zl.size() == n &&
+                            ev.least_infeasible_zu.size() == n && ev.least_infeasible_mu > 0.0;
     const double kappa = opts.ipqp.ipqp_face_kappa;
     const double mu = std::max(ev.least_infeasible_mu, 0.0);
     // Spec 2.3 item 2, three-way and never forced: a pair whose members are both tiny is
@@ -899,13 +906,16 @@ QpSolution elastic_evidence_seed(const ElasticQp &e, const QpProblem &qp,
         const double dual = have_duals ? ev.least_infeasible_lambda_i(j) : 0.0;
         s.ineq_active[static_cast<std::size_t>(j)] = tight(distance, dual);
     }
+    // THE EFFECTIVE BOX, never the original bounds: zl/zu are the multipliers of the
+    // WINDOW-CLAMPED bounds the escaped solve actually carried, and `e.qp`'s own original block
+    // IS that same clamp -- so a variable pressed on a trust-region face is seen, not skipped.
     for (Index i = 0; i < n; ++i) {
-        const bool has_lo = std::isfinite(qp.lower(i));
-        const bool has_up = std::isfinite(qp.upper(i));
-        const bool at_lo =
-            has_lo && tight(x(i) - qp.lower(i), have_duals ? ev.least_infeasible_zl(i) : 0.0);
-        const bool at_up =
-            has_up && tight(qp.upper(i) - x(i), have_duals ? ev.least_infeasible_zu(i) : 0.0);
+        const double lo_eff = e.qp.lower(i);
+        const double up_eff = e.qp.upper(i);
+        const bool at_lo = std::isfinite(lo_eff) &&
+                           tight(x(i) - lo_eff, have_duals ? ev.least_infeasible_zl(i) : 0.0);
+        const bool at_up = std::isfinite(up_eff) &&
+                           tight(up_eff - x(i), have_duals ? ev.least_infeasible_zu(i) : 0.0);
         const auto u = static_cast<std::size_t>(i);
         if (at_lo && at_up) {
             s.bound_state[u] = BoundState::kFixed;
@@ -945,7 +955,8 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 
     // BOTH HARD-WIRED SITES MOVE TOGETHER -- the construction's penalty and the ladder's own
     // `rho` -- or the ladder would start at one penalty and escalate from another.
-    const double rho_0 = elastic_initial_rho(seed);
+    bool rho0_ceiling_hit = false;
+    const double rho_0 = elastic_initial_rho(seed, rho0_ceiling_hit);
     ElasticQp elastic = build_elastic_subproblem(qp, window, rho_0, opts.feas_tol);
     QpSolution seed_elastic =
         seed.evidence != nullptr
@@ -1055,6 +1066,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     report.qp_minor_iters = qs_e.counters.minor_iters;
     report.qp_factorizations = qs_e.counters.factorizations;
     report.step_norm = p_elastic.size() > 0 ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0;
+    report.rho0_ceiling_hit = rho0_ceiling_hit;
     report.elastic = std::move(elastic);
     report.qs_e = std::move(qs_e);
     return report;
@@ -3754,7 +3766,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // elastic problem's own box: `delta` is what the driver
             // passed through SolveOverrides, and opts_.qp.tr_radius is
             // what the engine would have resolved the +inf sentinel to.
-            // Both are +inf in the ordinary configuration.
+            // FINITE on the shipped path: `delta` starts at tr_init.
             const double window = std::min(delta, opts_.qp.tr_radius);
             const ElasticSeedSource elastic_seed_source{&qs, nullptr};
             const ElasticLadderReport report =

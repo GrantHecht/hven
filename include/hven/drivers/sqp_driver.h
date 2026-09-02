@@ -2082,6 +2082,10 @@ struct ElasticLadderReport {
     Index qp_minor_iters = 0;                ///< qs_e's own count, for the row.
     Index qp_factorizations = 0;             ///< qs_e's own count, for the row.
     double step_norm = 0.0;                  ///< inf-norm of p_elastic, diagnostic.
+    /// True iff the evidence arm's `dual_norm_start` reached kElasticRhoMax and the placement was
+    /// CLAMPED to it -- the first rung then starts at the ceiling and no escalation is possible,
+    /// which a judge of this report should be able to see rather than infer from `escalations`.
+    bool rho0_ceiling_hit = false;
 };
 
 /// @brief Where `run_elastic_ladder` takes its FIRST rung's seed from -- a SOURCE, not a mapped
@@ -2098,16 +2102,16 @@ struct ElasticSeedSource {
 };
 
 // PRECONDITIONS, DOCUMENTED NOT VALIDATED (the sibling free seams' convention,
-// and this is an extraction): every arm of `seed` degrades to "no hint" on a
-// size it cannot use, and the ladder never reads the evidence for a VERDICT.
+// and this is an extraction): every arm of `seed` degrades to "no hint" on a size
+// it cannot use or a block that never FIRED; the ladder never reads it for a VERDICT.
 
 /// @brief Runs the rho ladder to exhaustion and judges the rung it stopped on.
 /// `window` is the radius folded into the elastic box: nonnegative -- 0 is
-/// legal (`tr_radius` permits it), +inf in the ordinary configuration. Every
+/// legal (`tr_radius` permits it), FINITE on the shipped path. Every
 /// rung's counters fold into `out`.
-/// THE FIRST RUNG'S PENALTY is `max(kElasticRhoInit, evidence->dual_norm_start)`
-/// (amendment H): today's start as a FLOOR, so the ladder is never entered
-/// cheaper than W1's, and `kElasticRhoInit` exactly when there is no evidence arm.
+/// THE FIRST RUNG'S PENALTY is `min(kElasticRhoMax, max(kElasticRhoInit,
+/// evidence->dual_norm_start))` (amendment H): today's start as a FLOOR and the
+/// ladder's ceiling as a CAP; `kElasticRhoInit` when no arm FIRED at all.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out);

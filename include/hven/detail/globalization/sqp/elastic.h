@@ -29,9 +29,9 @@
 
 namespace hven::solvers {
 
-// The penalty ladder: rho starts at kElasticRhoInit and is multiplied by
-// kElasticRhoFactor until the relaxation closes or rho reaches kElasticRhoMax
-// -- six escalations at these values, so at most SEVEN solves per activation.
+// The penalty ladder: rho STARTS at kElasticRhoInit, or -- when infeasibility evidence prices the
+// violation higher -- at that norm CAPPED at kElasticRhoMax, and is multiplied by kElasticRhoFactor
+// until the relaxation closes or rho reaches it: six escalations from the floor, SEVEN solves.
 //
 // WHY A LADDER AT ALL, and why these endpoints. The elastic subproblem is an
 // l1 EXACT PENALTY reformulation, and the exact-penalty threshold is the
