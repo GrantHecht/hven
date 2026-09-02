@@ -104,7 +104,9 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <Eigen/SparseCore>
@@ -8924,4 +8926,450 @@ TEST(SqpDriverElasticSeed, ADefaultConstructedEvidenceBlockIsW1sLadderExactly) {
     EXPECT_EQ(w1.counters.elastic_escalations, degraded.counters.elastic_escalations);
     EXPECT_DOUBLE_EQ(w1.report.elastic.qp.g(w1.report.elastic.n_orig),
                      degraded.report.elastic.qp.g(degraded.report.elastic.n_orig));
+}
+
+// ===========================================================================
+// W2 T3 -- THE CERTIFIED FALLBACK'S CONTRACT: plan section 2's pins P1-P7, on hand-built inputs.
+// ===========================================================================
+
+namespace {
+
+/// One direct call to the fallback, with everything it can write back.
+struct W2FallbackRun {
+    QpSolution qs;
+    std::optional<ElasticLadderReport> report;
+    SqpCounters counters;
+    SqpIterate row;
+};
+
+/// `engine_tr` is the ENGINE's own radius: finite, it caps the elastic slacks too and is how a
+/// rung A the engine DECLINES is provoked (sqp_driver.h's ELASTIC TIER note, "one configuration
+/// is not covered"). `window` is the driver's own `min(delta, tr_radius)`.
+W2FallbackRun w2_run_fallback(const QpProblem &qp, const IpqpInfeasibilityEvidence &evidence,
+                              double window = std::numeric_limits<double>::infinity(),
+                              double engine_tr = std::numeric_limits<double>::infinity(),
+                              const SqpIterate &row_in = SqpIterate{}) {
+    SqpOptions opts;
+    opts.qp.tr_radius = engine_tr;
+    QpEngine engine(opts.qp);
+    const NlpEval ev;
+    const SolveOverrides overrides;
+    W2FallbackRun run;
+    run.row = row_in;
+    run.qs = certified_feasibility_fallback(engine, qp, ev, nullptr, evidence, overrides, opts,
+                                            window, run.counters, run.row, run.report);
+    return run;
+}
+
+/// W1's BODY, on its own engine: `engine.solve(qp, overrides)` and nothing else. P4 compares
+/// against this rather than against pinned literals.
+QpSolution w2_cold_walk(const QpProblem &qp,
+                        double engine_tr = std::numeric_limits<double>::infinity()) {
+    SqpOptions opts;
+    opts.qp.tr_radius = engine_tr;
+    QpEngine engine(opts.qp);
+    return engine.solve(qp, SolveOverrides{});
+}
+
+/// Two antiparallel EQUALITY rows -- plan section 6's F-1 shape: `x0 + x1 = 1` against
+/// `-x0 - x1 = 1`, inconsistent at every point of a box that reaches both.
+QpProblem w2_antiparallel_eq_qp() {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.H.makeCompressed();
+    qp.g = Vec::Zero(2);
+    qp.Ae = SpMatRM(2, 2);
+    qp.Ae.insert(0, 0) = 1.0;
+    qp.Ae.insert(0, 1) = 1.0;
+    qp.Ae.insert(1, 0) = -1.0;
+    qp.Ae.insert(1, 1) = -1.0;
+    qp.Ae.makeCompressed();
+    qp.be = Vec(2);
+    qp.be << 1.0, 1.0;
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return qp;
+}
+
+/// A FEASIBLE subproblem carrying a hand-built FIRED block: plan section 6's F-3a, the false
+/// suspicion. The point is a real interior one, the norm an ordinary mid-ladder value.
+IpqpInfeasibilityEvidence w2_hand_built_evidence() {
+    IpqpInfeasibilityEvidence ev;
+    ev.fired = true;
+    ev.least_infeasible_x = (Vec(2) << 2.0, 2.0).finished();
+    ev.least_infeasible_primal = 1.0;
+    ev.farkas_corroborated = true;
+    ev.dual_norm_start = 3.0;
+    return ev;
+}
+
+/// THE ROW'S IDENTITY SET (T3-B): every SqpIterate field EXCEPT the two telemetry scalars the
+/// fallback copies from the evidence, which are asserted separately as pass-throughs.
+auto w2_row_identity(const SqpIterate &r) {
+    return std::tie(r.trial, r.f, r.stationarity, r.feasibility, r.complementarity, r.kkt_residual,
+                    r.violation_l1, r.tr_radius, r.mu, r.step_norm, r.qp_solved, r.qp_status,
+                    r.qp_minor_iters, r.qp_factorizations, r.tr_binding, r.verdict, r.soc_applied,
+                    r.elastic_applied, r.watchdog_restored);
+}
+
+/// THE COUNTERS THIS CALL CAN MOVE -- the ladder's own two plus the six the rungs fold in.
+/// Every other SqpCounters field is written by the driver, never by this function.
+auto w2_counter_identity(const SqpCounters &c) {
+    return std::tie(c.elastic_activations, c.elastic_escalations, c.qp_minor_iters,
+                    c.factorizations, c.eqp_refine_steps, c.border_refine_steps,
+                    c.suspect_escalations, c.symbolic_analyses);
+}
+
+void w2_expect_same_solution(const QpSolution &a, const QpSolution &b, const std::string &tag) {
+    EXPECT_EQ(a.status, b.status) << tag;
+    EXPECT_EQ(a.x, b.x) << tag;
+    EXPECT_EQ(a.lambda_e, b.lambda_e) << tag;
+    EXPECT_EQ(a.lambda_i, b.lambda_i) << tag;
+    EXPECT_EQ(a.z, b.z) << tag;
+    EXPECT_EQ(a.bound_state, b.bound_state) << tag;
+    EXPECT_EQ(a.ineq_active, b.ineq_active) << tag;
+    EXPECT_EQ(a.tr_active, b.tr_active) << tag;
+    EXPECT_EQ(a.counters.minor_iters, b.counters.minor_iters) << tag;
+    EXPECT_EQ(a.counters.factorizations, b.counters.factorizations) << tag;
+}
+
+void w2_expect_same_report(const ElasticLadderReport &a, const ElasticLadderReport &b,
+                           const std::string &tag) {
+    EXPECT_EQ(a.qp_status, b.qp_status) << tag;
+    EXPECT_EQ(a.closed, b.closed) << tag;
+    EXPECT_EQ(a.reduced, b.reduced) << tag;
+    EXPECT_EQ(a.promises_f, b.promises_f) << tag;
+    EXPECT_EQ(a.usable, b.usable) << tag;
+    EXPECT_EQ(a.rho0_ceiling_hit, b.rho0_ceiling_hit) << tag;
+    EXPECT_DOUBLE_EQ(a.slack_l1, b.slack_l1) << tag;
+    EXPECT_DOUBLE_EQ(a.step_norm, b.step_norm) << tag;
+    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters) << tag;
+    EXPECT_EQ(a.qp_factorizations, b.qp_factorizations) << tag;
+    EXPECT_EQ(a.p_elastic, b.p_elastic) << tag;
+    EXPECT_EQ(a.qs_e.x, b.qs_e.x) << tag;
+    EXPECT_EQ(a.elastic.ns, b.elastic.ns) << tag;
+    EXPECT_EQ(a.elastic.qp.g, b.elastic.qp.g) << tag;
+}
+
+/// The penalty a report's ladder ran its LAST rung at. It is the FIRST rung's only where the
+/// ladder did not escalate -- the ceiling CLAMPS, so a climbed ladder is not invertible.
+double w2_last_rung_rho(const ElasticLadderReport &r) {
+    return r.elastic.qp.g(r.elastic.n_orig) / r.elastic.slack_scale(0);
+}
+
+} // namespace
+
+TEST(SqpDriverCertifiedFallback, P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling) {
+    // P1 AT BOTH ENDS. rho_0 = min(kElasticRhoMax, max(kElasticRhoInit, dual_norm_start)): the
+    // FLOOR keeps the fallback's ladder from being entered cheaper than W1's, the CEILING keeps
+    // it from starting past the rung the escalation bound is stated against.
+    const QpProblem feasible = w2_box_blocked_qp(10.0);
+    IpqpInfeasibilityEvidence below = w2_hand_built_evidence();
+    below.dual_norm_start = 1.0;
+    IpqpInfeasibilityEvidence between = below;
+    between.dual_norm_start = 1.0e5;
+
+    const W2FallbackRun floored = w2_run_fallback(feasible, below);
+    const W2FallbackRun placed = w2_run_fallback(feasible, between);
+    ASSERT_TRUE(floored.report.has_value());
+    ASSERT_TRUE(placed.report.has_value());
+    // THIS FIXTURE'S LADDER SHUTS ON ITS FIRST RUNG, which is what makes the penalty carried on
+    // the report the FIRST rung's and rho_0 readable exactly rather than up to the clamp.
+    ASSERT_EQ(floored.counters.elastic_escalations, 0);
+    ASSERT_EQ(placed.counters.elastic_escalations, 0);
+
+    EXPECT_DOUBLE_EQ(w2_last_rung_rho(*floored.report), kElasticRhoInit);
+    EXPECT_DOUBLE_EQ(w2_last_rung_rho(*placed.report), between.dual_norm_start);
+    EXPECT_FALSE(floored.report->rho0_ceiling_hit);
+    EXPECT_FALSE(placed.report->rho0_ceiling_hit);
+
+    // THE CEILING ARM ON THE INFEASIBLE FIXTURE, where a start AT the ceiling is exactly the
+    // configuration the cap exists for: the ladder's own `!(rho < kElasticRhoMax)` break then
+    // bars every escalation, so this report's rung is again its first.
+    const QpProblem blocked = w2_box_blocked_qp(0.5);
+    IpqpInfeasibilityEvidence above = w2_escaped(blocked).infeasibility_evidence;
+    above.dual_norm_start = 1.0e12;
+    const W2FallbackRun capped = w2_run_fallback(blocked, above);
+    ASSERT_TRUE(capped.report.has_value());
+    EXPECT_EQ(capped.counters.elastic_escalations, 0);
+    EXPECT_DOUBLE_EQ(w2_last_rung_rho(*capped.report), kElasticRhoMax);
+    EXPECT_TRUE(capped.report->rho0_ceiling_hit);
+
+    // THE MEASURED BLOCK, ON THE SAME FIXTURE, through the forward map: a ladder that climbs
+    // saturates, so its start is pinned by where it ENDS given the rungs it spent.
+    const IpqpResult ires = w2_escaped(blocked);
+    ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    const IpqpInfeasibilityEvidence &measured = ires.infeasibility_evidence;
+    ASSERT_GT(measured.dual_norm_start, kElasticRhoInit);
+    ASSERT_LT(measured.dual_norm_start, kElasticRhoMax) << "the measured arm must be a middle";
+    const W2FallbackRun climbed = w2_run_fallback(blocked, measured);
+    ASSERT_TRUE(climbed.report.has_value());
+    const Index rungs = climbed.counters.elastic_escalations;
+    EXPECT_DOUBLE_EQ(w2_last_rung_rho(*climbed.report),
+                     w2_final_rho(measured.dual_norm_start, rungs));
+    EXPECT_NE(w2_final_rho(measured.dual_norm_start, rungs), w2_final_rho(kElasticRhoInit, rungs))
+        << "at these rungs the evidence's placement must still be distinguishable from W1's";
+}
+
+TEST(SqpDriverCertifiedFallback, P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers) {
+    // P2 = plan section 6's F-3a, the FALSE suspicion, and it needs no driver and no provoked
+    // escape: a demonstrably FEASIBLE subproblem with a hand-built fired block. Rung A shuts the
+    // relaxation, so the answer IS the unrelaxed subproblem's -- the l1 exact-penalty property.
+    const QpProblem qp = w2_box_blocked_qp(10.0);
+    const W2FallbackRun run = w2_run_fallback(qp, w2_hand_built_evidence());
+    ASSERT_TRUE(run.report.has_value());
+    EXPECT_EQ(run.qs.status, QpStatus::kOptimal);
+    EXPECT_TRUE(run.report->closed);
+    EXPECT_EQ(run.counters.elastic_activations, 1);
+
+    const SqpOptions opts;
+    const Vec slacks = run.report->elastic.slack_violations(run.report->qs_e.x);
+    ASSERT_EQ(run.report->elastic.ns, 1) << "the row IS relaxed at p_ref, or nothing is pinned";
+    EXPECT_LE(slacks.lpNorm<Eigen::Infinity>(), opts.feas_tol);
+    EXPECT_LE(run.report->slack_l1, opts.feas_tol);
+
+    const QpSolution walk = w2_cold_walk(qp);
+    ASSERT_EQ(walk.status, QpStatus::kOptimal);
+    EXPECT_LT((run.qs.x - walk.x).lpNorm<Eigen::Infinity>(), opts.qp.opt_tol);
+    // THE MULTIPLIERS ARE CARRIED, not zeroed: `closed` is exactly the condition under which they
+    // are the unrelaxed subproblem's own prices rather than penalty parameters.
+    ASSERT_EQ(run.qs.lambda_e.size(), 1);
+    EXPECT_LT((run.qs.lambda_e - walk.lambda_e).lpNorm<Eigen::Infinity>(), opts.qp.opt_tol);
+    EXPECT_GT(std::abs(walk.lambda_e(0)), 1.0) << "a zeroed carry must be visible here";
+}
+
+TEST(SqpDriverCertifiedFallback, P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached) {
+    // P3 ON PLAN SECTION 6's F-1 SHAPE (antiparallel equality rows): the relaxation is still
+    // materially open at the ladder's ceiling, so the fallback returns the elastic tier's OWN
+    // certificate class -- never the barrier kernel's signature promoted to one.
+    const QpProblem qp = w2_antiparallel_eq_qp();
+    const IpqpResult ires = w2_escaped(qp);
+    ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    const W2FallbackRun run = w2_run_fallback(qp, ires.infeasibility_evidence);
+
+    ASSERT_TRUE(run.report.has_value());
+    EXPECT_EQ(run.qs.status, QpStatus::kInfeasible);
+    EXPECT_EQ(run.report->qp_status, QpStatus::kOptimal) << "exhausted, not declined";
+    EXPECT_FALSE(run.report->usable);
+    EXPECT_FALSE(run.report->closed);
+    EXPECT_FALSE(run.report->reduced);
+    EXPECT_GT(run.report->slack_l1, SqpOptions{}.feas_tol);
+    EXPECT_EQ(run.counters.elastic_activations, 1);
+    EXPECT_GT(run.counters.elastic_escalations, 0);
+    // THE RETURNED SOLUTION CARRIES NO COUNTERS: every rung is already in `counters`, and the
+    // driver adds whatever it is handed to the same totals.
+    EXPECT_EQ(run.qs.counters.minor_iters, 0);
+    EXPECT_EQ(run.qs.counters.factorizations, 0);
+    EXPECT_GT(run.counters.qp_minor_iters, 0);
+}
+
+TEST(SqpDriverCertifiedFallback, P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt) {
+    // THE TERNARY, PINNED AS A VALUE. `++elastic_activations` lives inside run_elastic_ladder, so
+    // the driver consuming the attached report and the driver re-running the ladder differ by
+    // exactly one activation -- and both halves are exercised here so neither is an inference.
+    const QpProblem qp = w2_antiparallel_eq_qp();
+    const IpqpResult ires = w2_escaped(qp);
+    W2FallbackRun run = w2_run_fallback(qp, ires.infeasibility_evidence);
+    ASSERT_TRUE(run.report.has_value());
+    ASSERT_EQ(run.counters.elastic_activations, 1);
+
+    const ElasticLadderReport consumed = *run.report;
+    EXPECT_EQ(run.counters.elastic_activations, 1) << "consumption charges nothing";
+    w2_expect_same_report(consumed, *run.report, "consumed");
+
+    SqpOptions opts;
+    QpEngine engine(opts.qp);
+    const ElasticSeedSource failed_arm{&run.qs, nullptr};
+    const ElasticLadderReport rerun = run_elastic_ladder(
+        engine, qp, failed_arm, std::numeric_limits<double>::infinity(), opts, run.counters);
+    EXPECT_EQ(run.counters.elastic_activations, 2) << "a second run is what the ternary avoids";
+    EXPECT_FALSE(rerun.usable);
+}
+
+TEST(SqpDriverCertifiedFallback, P4ARefusedRungAReturnsTheColdWalkCounterForCounter) {
+    // P4 = plan section 6's F-4, COUNTERS-identical rather than byte-identical (amendment C).
+    // A finite ENGINE radius caps the elastic slacks too, so rung A comes back non-kOptimal on a
+    // problem the walk itself can still judge -- the uncovered class sqp_driver.h names.
+    const double engine_tr = 1.0e-3;
+    const QpProblem qp = w2_box_blocked_qp(0.5);
+    const IpqpResult ires = w2_escaped(qp);
+    ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    const W2FallbackRun run = w2_run_fallback(qp, ires.infeasibility_evidence,
+                                              std::numeric_limits<double>::infinity(), engine_tr);
+    const QpSolution walk = w2_cold_walk(qp, engine_tr);
+
+    EXPECT_FALSE(run.report.has_value()) << "the refusal path attaches NOTHING";
+    EXPECT_EQ(run.qs.status, walk.status);
+    EXPECT_EQ(run.qs.counters.minor_iters, walk.counters.minor_iters);
+    EXPECT_EQ(run.qs.counters.factorizations, walk.counters.factorizations);
+    EXPECT_EQ(run.qs.counters.symbolic_analyses, walk.counters.symbolic_analyses);
+    ASSERT_EQ(run.qs.x.size(), walk.x.size());
+    EXPECT_LT((run.qs.x - walk.x).lpNorm<Eigen::Infinity>(), SqpOptions{}.qp.opt_tol);
+    // NON-VACUOUS AT BOTH ENDS: rung A really ran and was really declined, and rung B really
+    // solved something -- a zero-cost walk would make the three counter pins meaningless.
+    EXPECT_EQ(run.counters.elastic_activations, 1);
+    EXPECT_GT(walk.counters.minor_iters, 0);
+    EXPECT_GT(walk.counters.factorizations, 0);
+}
+
+TEST(SqpDriverCertifiedFallback, T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations) {
+    // T3-A, ACCEPTED WITH DISCLOSURE. The refusal attaches no report, so a rung B that itself
+    // certifies kInfeasible leaves the driver's escape branch with an empty optional and it runs
+    // W1's own ladder -- differently seeded, at the FLOOR rho. Two activations, one subproblem.
+    const double engine_tr = 1.0e-3;
+    const QpProblem qp = w2_box_blocked_qp(0.5);
+    const IpqpResult ires = w2_escaped(qp);
+    W2FallbackRun run = w2_run_fallback(qp, ires.infeasibility_evidence,
+                                        std::numeric_limits<double>::infinity(), engine_tr);
+    ASSERT_FALSE(run.report.has_value());
+    ASSERT_EQ(run.qs.status, QpStatus::kInfeasible);
+    ASSERT_EQ(run.counters.elastic_activations, 1);
+
+    SqpOptions opts;
+    QpEngine engine(opts.qp);
+    const ElasticSeedSource failed_arm{&run.qs, nullptr};
+    const ElasticLadderReport second = run_elastic_ladder(
+        engine, qp, failed_arm, std::numeric_limits<double>::infinity(), opts, run.counters);
+    EXPECT_EQ(run.counters.elastic_activations, 2);
+    EXPECT_DOUBLE_EQ(second.elastic.qp.g(second.elastic.n_orig) / second.elastic.slack_scale(0),
+                     w2_final_rho(kElasticRhoInit, run.counters.elastic_escalations));
+}
+
+TEST(SqpDriverCertifiedFallback, P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll) {
+    // P5 IS STRONGER THAN THE LADDER'S OWN FIRED GATE: not "rung A at the floor with no seed",
+    // but rung A NOT ENTERED -- no activation charged, no report, W1's single cold walk.
+    const QpProblem qp = w2_antiparallel_eq_qp();
+    const IpqpInfeasibilityEvidence unfired;
+    ASSERT_FALSE(unfired.fired);
+    const W2FallbackRun run = w2_run_fallback(qp, unfired);
+    const QpSolution walk = w2_cold_walk(qp);
+
+    EXPECT_EQ(run.counters.elastic_activations, 0);
+    EXPECT_EQ(run.counters.elastic_escalations, 0);
+    EXPECT_FALSE(run.report.has_value());
+    EXPECT_EQ(run.qs.status, walk.status);
+    EXPECT_EQ(run.qs.counters.minor_iters, walk.counters.minor_iters);
+    EXPECT_EQ(run.qs.counters.factorizations, walk.counters.factorizations);
+    EXPECT_EQ(run.qs.x, walk.x);
+
+    // THE FIRED PARTNER, or the pin would pass on a fallback that never ran a ladder at all.
+    IpqpInfeasibilityEvidence fired = w2_escaped(qp).infeasibility_evidence;
+    ASSERT_TRUE(fired.fired);
+    EXPECT_EQ(w2_run_fallback(qp, fired).counters.elastic_activations, 1);
+}
+
+TEST(SqpDriverCertifiedFallback, P6NoEvidenceContentMakesTheFallbackThrow) {
+    // P6. The block is a PRECONDITION-FREE input: every arm degrades to "no hint" on a size or a
+    // value it cannot use (the sibling free seams' convention), so no content is a throw.
+    const QpProblem infeasible = w2_antiparallel_eq_qp();
+    const QpProblem feasible = w2_box_blocked_qp(10.0);
+    const IpqpInfeasibilityEvidence measured = w2_escaped(infeasible).infeasibility_evidence;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+
+    std::vector<std::pair<const char *, IpqpInfeasibilityEvidence>> blocks;
+    blocks.emplace_back("default", IpqpInfeasibilityEvidence{});
+    blocks.emplace_back("measured", measured);
+    IpqpInfeasibilityEvidence fired_empty;
+    fired_empty.fired = true;
+    blocks.emplace_back("fired but empty", fired_empty);
+    IpqpInfeasibilityEvidence wrong_size = measured;
+    wrong_size.least_infeasible_x = Vec::Zero(7);
+    wrong_size.least_infeasible_s = Vec::Zero(3);
+    blocks.emplace_back("wrong-sized point and duals", wrong_size);
+    IpqpInfeasibilityEvidence nan_norm = measured;
+    nan_norm.dual_norm_start = nan;
+    nan_norm.least_infeasible_mu = nan;
+    blocks.emplace_back("NaN norm and mu", nan_norm);
+    IpqpInfeasibilityEvidence inf_norm = measured;
+    inf_norm.dual_norm_start = inf;
+    blocks.emplace_back("infinite norm", inf_norm);
+    IpqpInfeasibilityEvidence nan_point = measured;
+    nan_point.least_infeasible_x = Vec::Constant(infeasible.n(), nan);
+    blocks.emplace_back("NaN point", nan_point);
+    IpqpInfeasibilityEvidence negative = measured;
+    negative.dual_norm_start = -1.0e9;
+    negative.least_infeasible_mu = -1.0;
+    blocks.emplace_back("negative norm and mu", negative);
+
+    Index reached_rung_a = 0;
+    for (const auto &[name, block] : blocks) {
+        for (const QpProblem *qp : {&infeasible, &feasible}) {
+            W2FallbackRun run;
+            EXPECT_NO_THROW(run = w2_run_fallback(*qp, block)) << name;
+            reached_rung_a += run.counters.elastic_activations;
+        }
+    }
+    EXPECT_GT(reached_rung_a, 0) << "a loop that never entered rung A pins nothing about it";
+}
+
+TEST(SqpDriverCertifiedFallback, P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs) {
+    // P7 BY MUTATION (amendment E), and it is what keeps section 6.3's signature from becoming a
+    // certificate by the back door: `fired` selects the rung, the point seeds it, dual_norm_start
+    // places rho_0 -- every OTHER field is inert on the QpSolution, the report and the counters.
+    struct Fixture {
+        const char *name;
+        QpProblem qp;
+    };
+    const std::vector<Fixture> fixtures{{"exhausts", w2_antiparallel_eq_qp()},
+                                        {"relaxes", w2_box_blocked_qp(0.5)}};
+    for (const Fixture &f : fixtures) {
+        const IpqpInfeasibilityEvidence base_block = w2_escaped(f.qp).infeasibility_evidence;
+        ASSERT_TRUE(base_block.fired) << f.name;
+        SqpIterate row_in;
+        row_in.trial = 3;
+        row_in.f = -1.5;
+        row_in.verdict = StepVerdict::kAcceptF;
+        row_in.elastic_applied = true;
+        const W2FallbackRun base = w2_run_fallback(f.qp, base_block, 1.0, 1.0e6, row_in);
+        ASSERT_TRUE(base.report.has_value()) << f.name;
+
+        std::vector<std::pair<const char *, IpqpInfeasibilityEvidence>> mutated;
+        auto add = [&](const char *what, auto &&edit) {
+            IpqpInfeasibilityEvidence m = base_block;
+            edit(m);
+            mutated.emplace_back(what, m);
+        };
+        add("farkas_corroborated", [](auto &m) { m.farkas_corroborated = !m.farkas_corroborated; });
+        add("exhaustion_route", [](auto &m) { m.exhaustion_route = !m.exhaustion_route; });
+        add("primal_start", [](auto &m) { m.primal_start = 123.0; });
+        add("primal_end", [](auto &m) { m.primal_end = 456.0; });
+        add("primal_improvement", [](auto &m) { m.primal_improvement = 0.75; });
+        add("dual_growth", [](auto &m) { m.dual_growth = 99.0; });
+        add("dual_norm_end", [](auto &m) { m.dual_norm_end = 1.0e7; });
+        add("dual_step_growth", [](auto &m) { m.dual_step_growth = 5.0; });
+        add("window", [](auto &m) { m.window = 41; });
+        add("least_infeasible_primal", [](auto &m) { m.least_infeasible_primal = 8.25; });
+        add("farkas_residual", [](auto &m) { m.farkas_residual = 0.5; });
+        add("farkas_gap", [](auto &m) { m.farkas_gap = 0.25; });
+
+        for (const auto &[what, block] : mutated) {
+            const std::string tag = std::string(f.name) + " / " + what;
+            const W2FallbackRun run = w2_run_fallback(f.qp, block, 1.0, 1.0e6, row_in);
+            w2_expect_same_solution(base.qs, run.qs, tag);
+            ASSERT_TRUE(run.report.has_value()) << tag;
+            w2_expect_same_report(*base.report, *run.report, tag);
+            EXPECT_TRUE(w2_counter_identity(base.counters) == w2_counter_identity(run.counters))
+                << tag;
+            EXPECT_TRUE(w2_row_identity(base.row) == w2_row_identity(run.row)) << tag;
+            // THE TWO TELEMETRY FIELDS ARE THE EXCEPTION, and they are PASS-THROUGHS: recorded
+            // from the mutated block itself, never judged (T3-B).
+            EXPECT_DOUBLE_EQ(run.row.ipqp_least_infeasible_primal, block.least_infeasible_primal)
+                << tag;
+            EXPECT_EQ(run.row.ipqp_farkas_corroborated, block.farkas_corroborated) << tag;
+        }
+        // AND THE ONE FIELD THAT IS NOT INERT, so the loop above is a statement about the others:
+        // moving dual_norm_start moves rho_0, and with it the ladder the report describes.
+        IpqpInfeasibilityEvidence moved = base_block;
+        moved.dual_norm_start = kElasticRhoMax * 10.0;
+        const W2FallbackRun capped = w2_run_fallback(f.qp, moved, 1.0, 1.0e6, row_in);
+        ASSERT_TRUE(capped.report.has_value()) << f.name;
+        EXPECT_TRUE(capped.report->rho0_ceiling_hit) << f.name;
+        EXPECT_FALSE(base.report->rho0_ceiling_hit) << f.name;
+        EXPECT_NE(capped.counters.elastic_escalations, base.counters.elastic_escalations) << f.name;
+    }
 }

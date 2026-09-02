@@ -11,6 +11,7 @@
 
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -919,7 +920,7 @@ TEST(IpqpDispatch, TheRoutingPartitionHelperHoldsOnTheRowsFixturesDoNotReach) {
 // THE W2 HOOK CARRIES SECTION 6.3's EVIDENCE (fix round 1, C2). A FREE function
 // for the reason the other seams are: it can be called without a driver, so the
 // seam's shape is pinnable rather than merely readable.
-TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndIsTheColdWalkToday) {
+TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
     QpProblem qp;
     qp.H.resize(1, 1);
     qp.H.insert(0, 0) = 1.0;
@@ -946,36 +947,55 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndIsTheColdWalkToday) {
 
     NlpEval ev;
     SqpIterate row;
-    const QpSolution taken =
-        certified_feasibility_fallback(engine, qp, ev, nullptr, evidence, overrides, row);
+    const SqpOptions opts;
+    SqpCounters counters;
+    std::optional<ElasticLadderReport> report;
+    const double window = std::numeric_limits<double>::infinity();
+    const QpSolution taken = certified_feasibility_fallback(
+        engine, qp, ev, nullptr, evidence, overrides, opts, window, counters, row, report);
     EXPECT_EQ(taken.status, QpStatus::kOptimal);
     ASSERT_EQ(taken.x.size(), 1);
     EXPECT_NEAR(taken.x(0), 2.0, 1e-9) << "the unconstrained minimum of 0.5 x^2 - 2x";
+    // RUNG A OWNS THIS ANSWER, and it DISPROVES the suspicion: a subproblem with no rows at all
+    // relaxes nothing, so the ladder's slacks are shut and the fallback returns the walk's own
+    // minimum with the report attached (plan section 2's row 1).
+    ASSERT_TRUE(report.has_value());
+    EXPECT_TRUE(report->closed);
+    EXPECT_EQ(counters.elastic_activations, 1);
 
-    // W1's BODY IS THE COLD WALK, and "cold" is what this second call says: a
-    // seed is accepted by the signature and ignored by the body, so the answer
-    // is the same one an unseeded call gives.
+    // THE SEED IS STILL IGNORED: it is accepted by the signature and read by neither rung, so
+    // the answer is the one an unseeded call gives.
     QpSolution seed;
     seed.x = (Vec(1) << -9.0).finished();
     seed.bound_state.assign(1, BoundState::kFree);
     SqpIterate seeded_row;
+    SqpCounters seeded_counters;
+    std::optional<ElasticLadderReport> seeded_report;
     const QpSolution seeded =
-        certified_feasibility_fallback(engine, qp, ev, &seed, evidence, overrides, seeded_row);
+        certified_feasibility_fallback(engine, qp, ev, &seed, evidence, overrides, opts, window,
+                                       seeded_counters, seeded_row, seeded_report);
     EXPECT_EQ(seeded.x, taken.x);
 
-    // AND THE EVIDENCE IS RECORDED, not merely accepted (fix round 3): W1's body acts
-    // on none of it, so without these two a caller passing a default-constructed
-    // block would be indistinguishable from one passing the real thing.
+    // AND THE EVIDENCE IS RECORDED, not merely accepted (fix round 3): the verdict reads none
+    // of it, so without these two a caller passing a default-constructed block would be
+    // indistinguishable from one passing the real thing.
     EXPECT_DOUBLE_EQ(row.ipqp_least_infeasible_primal, evidence.least_infeasible_primal);
     EXPECT_EQ(row.ipqp_farkas_corroborated, evidence.farkas_corroborated);
 
-    // THE MUTATION PARTNER, spelled out: a DEFAULT block records zero/false,
-    // so the call site's argument is what these two report.
+    // THE MUTATION PARTNER, spelled out: a DEFAULT block records zero/false, and being
+    // UNFIRED it never enters rung A at all -- the cold walk, and no report.
     SqpIterate default_row;
+    SqpCounters default_counters;
+    std::optional<ElasticLadderReport> default_report;
     const IpqpInfeasibilityEvidence unset;
-    certified_feasibility_fallback(engine, qp, ev, nullptr, unset, overrides, default_row);
+    const QpSolution unfired =
+        certified_feasibility_fallback(engine, qp, ev, nullptr, unset, overrides, opts, window,
+                                       default_counters, default_row, default_report);
     EXPECT_DOUBLE_EQ(default_row.ipqp_least_infeasible_primal, 0.0);
     EXPECT_FALSE(default_row.ipqp_farkas_corroborated);
+    EXPECT_FALSE(default_report.has_value());
+    EXPECT_EQ(default_counters.elastic_activations, 0);
+    EXPECT_NEAR(unfired.x(0), 2.0, 1e-9);
     EXPECT_NE(row.ipqp_least_infeasible_primal, default_row.ipqp_least_infeasible_primal)
         << "the fixture's evidence must differ from a default one, or the pin cannot see the "
            "substitution it exists to catch";
