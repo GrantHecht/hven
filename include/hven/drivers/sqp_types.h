@@ -1164,24 +1164,20 @@ struct SqpIterate {
     /// does not get a field of its own). Always false when
     /// SqpOptions::enable_soc is false.
     bool soc_applied = false;
-    /// True iff this trial's subproblem was ELASTICALLY REFORMULATED, i.e.
-    /// the plain QP at this iterate returned kInfeasible and the driver
-    /// re-solved an augmented copy of it with penalized slacks on the
-    /// violated linearized rows (sqp_driver.h's ELASTIC TIER note). Set on
+    /// True iff AN ELASTIC SOLVE SUPPLIED THIS MAJOR: the elastic tier's re-solve after a plain
+    /// QP returned kInfeasible, OR the certified fallback's rung A after a kIpm escape (see
+    /// sqp_driver.h's ELASTIC TIER note and `certified_feasibility_fallback`). Set on
     /// BOTH outcomes -- the row whose step came from the elastic solve, and
-    /// the row that ended the solve because the elastic tier was exhausted
-    /// (verdict kRestore) -- so it is an exact marker of "the linearization
-    /// here was inconsistent", which is the diagnosis the restoration phase
-    /// consumes.
+    /// the row that ended the solve because the ladder was exhausted
+    /// (verdict kRestore). It is the branch input SOC is gated on.
     ///
     /// ON SUCH A ROW THE qp_* FIELDS DESCRIBE THE FINAL ELASTIC SOLVE, not
     /// the kInfeasible one that triggered it: qp_status is that solve's
     /// status (kOptimal on every row whose step was taken), and
     /// qp_minor_iters/qp_factorizations are its own counts, with the
     /// ESCALATION re-solves' costs folded into SqpCounters' aggregates only
-    /// (the SOC convention, ported). The triggering kInfeasible is not lost
-    /// -- it is exactly what this flag records, since the tier activates on
-    /// nothing else.
+    /// (the SOC convention, ported). On a rung-A-owned major the qp_*
+    /// fields are the LADDER's own counts, read from its report.
     ///
     /// tr_binding IS STILL MEANINGFUL on such a row: the elastic solve gets
     /// its trust region as REAL bounds on the original variables rather

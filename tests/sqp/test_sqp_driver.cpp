@@ -9145,7 +9145,10 @@ void w2_expect_same_sqp_counters(const SqpCounters &a, const SqpCounters &b,
     w2_expect_same_ipqp_counters(a.ipqp, b.ipqp, tag);
 }
 
-void w2_expect_same_qp_counters(const QpCounters &a, const QpCounters &b, const std::string &tag) {
+// `skip_symbolic`: the P4-primed-engine arm's OWN cost claim (rung A displaces the analysed
+// pattern) makes symbolic_analyses differ by construction -- skip just that field there.
+void w2_expect_same_qp_counters(const QpCounters &a, const QpCounters &b, const std::string &tag,
+                                bool skip_symbolic = false) {
     EXPECT_EQ(a.factorizations, b.factorizations) << tag << " factorizations";
     EXPECT_EQ(a.schur_updates, b.schur_updates) << tag << " schur_updates";
     EXPECT_EQ(a.minor_iters, b.minor_iters) << tag << " minor_iters";
@@ -9153,7 +9156,9 @@ void w2_expect_same_qp_counters(const QpCounters &a, const QpCounters &b, const 
     EXPECT_EQ(a.border_refine_steps, b.border_refine_steps) << tag << " border_refine_steps";
     EXPECT_EQ(a.suspect_escalations, b.suspect_escalations) << tag << " suspect_escalations";
     EXPECT_EQ(a.k0_reused, b.k0_reused) << tag << " k0_reused";
-    EXPECT_EQ(a.symbolic_analyses, b.symbolic_analyses) << tag << " symbolic_analyses";
+    if (!skip_symbolic) {
+        EXPECT_EQ(a.symbolic_analyses, b.symbolic_analyses) << tag << " symbolic_analyses";
+    }
     EXPECT_EQ(a.ws_adds, b.ws_adds) << tag << " ws_adds";
     EXPECT_EQ(a.ws_drops, b.ws_drops) << tag << " ws_drops";
     EXPECT_EQ(a.shift_adds, b.shift_adds) << tag << " shift_adds";
@@ -9175,8 +9180,8 @@ void w2_expect_same_solution(const QpSolution &a, const QpSolution &b, const std
     EXPECT_EQ(a.z, b.z) << tag;
     EXPECT_EQ(a.bound_state, b.bound_state) << tag;
     EXPECT_EQ(a.ineq_active, b.ineq_active) << tag;
-    EXPECT_EQ(a.tr_active, b.tr_active) << tag;
     w2_expect_same_qp_counters(a.counters, b.counters, tag + " counters");
+    EXPECT_EQ(a.tr_active, b.tr_active) << tag;
 }
 
 void w2_expect_same_sparse(const SpMatRM &a, const SpMatRM &b, const std::string &tag) {
@@ -9192,9 +9197,9 @@ void w2_expect_same_sparse(const SpMatRM &a, const SpMatRM &b, const std::string
 
 void w2_expect_same_qp(const QpProblem &a, const QpProblem &b, const std::string &tag) {
     w2_expect_same_sparse(a.H, b.H, tag + " H");
+    EXPECT_EQ(a.g, b.g) << tag << " g";
     w2_expect_same_sparse(a.Ae, b.Ae, tag + " Ae");
     w2_expect_same_sparse(a.Ai, b.Ai, tag + " Ai");
-    EXPECT_EQ(a.g, b.g) << tag << " g";
     EXPECT_EQ(a.be, b.be) << tag << " be";
     EXPECT_EQ(a.bi, b.bi) << tag << " bi";
     EXPECT_EQ(a.lower, b.lower) << tag << " lower";
@@ -9365,18 +9370,18 @@ TEST(SqpDriverCertifiedFallback, P3AnExhaustedLadderCertifiesInfeasibleWithItsRe
 }
 
 TEST(SqpDriverCertifiedFallback, P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt) {
-    // THE TERNARY, PINNED AS A VALUE. `++elastic_activations` lives inside run_elastic_ladder, so
-    // the driver consuming the attached report and the driver re-running the ladder differ by
-    // exactly one activation -- and both halves are exercised here so neither is an inference.
+    // WHAT THIS PINS: the ONE-ACTIVATION COST DIFFERENCE between consuming the attached
+    // report and re-running the ladder, on the FREE FUNCTION (`++elastic_activations`
+    // lives inside run_elastic_ladder) -- not the driver's own ternary.
     const QpProblem qp = w2_antiparallel_eq_qp();
     const IpqpResult ires = w2_escaped(qp);
     W2FallbackRun run = w2_run_fallback(qp, ires.infeasibility_evidence);
     ASSERT_TRUE(run.report.has_value());
     ASSERT_EQ(run.counters.elastic_activations, 1);
 
-    // WHAT THIS PINS IS THE COST DIFFERENCE, not the driver's branch: no fixture drives
-    // SqpDriver's escape branch onto an ATTACHED report (measured -- the ternary is reached only
-    // with an empty optional), so the ternary itself is verified by reading. Registered T7.
+    // THE DRIVER'S TERNARY ITSELF is verified by reading, not exercised here: no fixture
+    // drives SqpDriver's escape branch onto an ATTACHED report (measured -- the ternary is
+    // reached only with an empty optional). Its driver-level pin is registered for T7.
     SqpOptions opts;
     QpEngine engine(opts.qp);
     const ElasticSeedSource failed_arm{&run.qs, nullptr};
@@ -9400,9 +9405,7 @@ TEST(SqpDriverCertifiedFallback, P4ARefusedRungAReturnsTheColdWalkCounterForCoun
 
     EXPECT_FALSE(run.report.has_value()) << "the refusal path attaches NOTHING";
     EXPECT_EQ(run.qs.status, walk.status);
-    EXPECT_EQ(run.qs.counters.minor_iters, walk.counters.minor_iters);
-    EXPECT_EQ(run.qs.counters.factorizations, walk.counters.factorizations);
-    EXPECT_EQ(run.qs.counters.symbolic_analyses, walk.counters.symbolic_analyses);
+    w2_expect_same_qp_counters(run.qs.counters, walk.counters, "P4");
     ASSERT_EQ(run.qs.x.size(), walk.x.size());
     EXPECT_LT((run.qs.x - walk.x).lpNorm<Eigen::Infinity>(), SqpOptions{}.qp.opt_tol);
     // NON-VACUOUS AT BOTH ENDS: rung A really ran and was really declined, and rung B really
@@ -9428,9 +9431,7 @@ TEST(SqpDriverCertifiedFallback, P4bTheCeilingDeclineHandsAJUDGEDStepBackFromThe
     ASSERT_FALSE(run.report.has_value()) << "the refusal path attaches NOTHING";
     ASSERT_EQ(walk.status, QpStatus::kOptimal) << "the walk must SUCCEED, or this is P4 again";
     EXPECT_EQ(run.qs.status, QpStatus::kOptimal);
-    EXPECT_EQ(run.qs.counters.minor_iters, walk.counters.minor_iters);
-    EXPECT_EQ(run.qs.counters.factorizations, walk.counters.factorizations);
-    EXPECT_EQ(run.qs.counters.symbolic_analyses, walk.counters.symbolic_analyses);
+    w2_expect_same_qp_counters(run.qs.counters, walk.counters, "P4b");
     ASSERT_EQ(run.qs.x.size(), walk.x.size());
     EXPECT_LT((run.qs.x - walk.x).lpNorm<Eigen::Infinity>(), SqpOptions{}.qp.opt_tol);
     EXPECT_EQ(run.counters.elastic_activations, 1) << "rung A really ran and was really declined";
@@ -9451,8 +9452,7 @@ TEST(SqpDriverCertifiedFallback, P4OnAPrimedEngineCostsTheAnalysisRungADisplaces
 
     ASSERT_FALSE(run.report.has_value());
     EXPECT_EQ(run.qs.status, walk.status);
-    EXPECT_EQ(run.qs.counters.minor_iters, walk.counters.minor_iters);
-    EXPECT_EQ(run.qs.counters.factorizations, walk.counters.factorizations);
+    w2_expect_same_qp_counters(run.qs.counters, walk.counters, "P4 primed", /*skip_symbolic=*/true);
     EXPECT_LT((run.qs.x - walk.x).lpNorm<Eigen::Infinity>(), SqpOptions{}.qp.opt_tol);
     // THE ONE COUNTER THAT DOES NOT MATCH, DECLARED rather than hidden: it is the contract's own
     // cost -- rung A displaces the analysed pattern, so rung B pays one analysis W1 does not.
@@ -9662,6 +9662,7 @@ TEST(SqpDriverCertifiedFallback, ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHi
         // THE LADDER'S OWN COUNTS: the fallback clears the returned solution's counters to keep
         // the totals exact, so a row fed from them would read 0 on exactly these majors.
         EXPECT_GT(h.qp_minor_iters, 0) << "trial " << h.trial;
+        EXPECT_FALSE(h.soc_applied) << "trial " << h.trial << ": SOC is gated on !elastic_applied";
         EXPECT_FALSE(h.elastic_rho0_ceiling_hit)
             << "measured: every corpus placement is far below kElasticRhoMax";
     }
