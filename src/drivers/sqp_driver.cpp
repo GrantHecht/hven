@@ -951,6 +951,12 @@ QpSolution elastic_evidence_seed(const ElasticQp &e, const QpProblem &qp,
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out) {
+    // VALIDATED AT THE BOUNDARY (CLAUDE.md section 4): a negative or NaN window crosses the
+    // elastic box silently -- `build_elastic_subproblem` clamps lo/up against it with no check.
+    if (!(window >= 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("run_elastic_ladder: window is {}, expected >= 0 (+inf legal)", window));
+    }
     ++out.elastic_activations;
 
     // BOTH HARD-WIRED SITES MOVE TOGETHER -- the construction's penalty and the ladder's own
@@ -1078,6 +1084,12 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           const SolveOverrides &overrides, const SqpOptions &opts,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report) {
+    // VALIDATED AT THE BOUNDARY, on the same terms as the ladder's own (CLAUDE.md section 4).
+    // P6's "no evidence CONTENT throws" is untouched: this is the window, not the block.
+    if (!(window >= 0.0)) {
+        throw std::invalid_argument(fmt::format(
+            "certified_feasibility_fallback: window is {}, expected >= 0 (+inf legal)", window));
+    }
     // THE EVIDENCE IS RECORDED FROM THE PARAMETER, before anything runs and whichever rung
     // answers: these two are telemetry on this row, never an input to the verdict (pin P7).
     row.ipqp_least_infeasible_primal = evidence.least_infeasible_primal;
@@ -1108,9 +1120,9 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     QpSolution qs =
         elastic_project(report.elastic, qp, report.qs_e, /*carry_multipliers=*/report.closed);
     if (!report.usable) {
-        // THE EXHAUSTION CERTIFICATE, and the only kInfeasible this function can produce: the
-        // relaxation is still open at the ladder's ceiling. The projected block travels for
-        // SHAPE only -- this status is what forbids taking it as a step.
+        // THE EXHAUSTION CERTIFICATE, and the only kInfeasible this function SYNTHESIZES (rung
+        // B's own passes through verbatim): the relaxation is still open at the ladder's
+        // ceiling. The projected block travels for SHAPE only -- the status forbids taking it.
         qs.status = QpStatus::kInfeasible;
     }
     // THE RUNGS' COUNTERS ARE ALREADY IN `out` -- run_elastic_ladder folds every one of them
@@ -3802,7 +3814,11 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // for every design choice below; only the mechanics are here.
         // This is the ONLY consumer of QpStatus::kInfeasible in the
         // driver.
-        bool elastic_applied = false;
+        // A RUNG-A-OWNED MAJOR IS AN ELASTIC MAJOR TOO: the certified fallback's own ladder
+        // answered, so the row marks it (SOC is gated on !elastic_applied) and reads the
+        // ladder's counts below. `fallback_report` is engaged here iff that happened.
+        bool elastic_applied = fallback_report.has_value();
+        bool rho0_ceiling_hit = fallback_report && fallback_report->rho0_ceiling_hit;
         if (qs.status == QpStatus::kInfeasible) {
             // The window the ORIGINAL solve was given, folded into the
             // elastic problem's own box: `delta` is what the driver
@@ -3817,10 +3833,12 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 fallback_report ? std::move(*fallback_report)
                                 : run_elastic_ladder(engine_, qp, elastic_seed_source, window,
                                                      opts_, out.counters);
+            rho0_ceiling_hit = report.rho0_ceiling_hit;
 
             if (!report.usable) {
                 row.qp_solved = true;
                 row.elastic_applied = true;
+                row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
                 row.qp_status = report.qp_status;
                 row.qp_minor_iters = report.qp_minor_iters;
                 row.qp_factorizations = report.qp_factorizations;
@@ -3854,9 +3872,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 
         row.qp_solved = true;
         row.elastic_applied = elastic_applied;
+        row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
         row.qp_status = qs.status;
-        row.qp_minor_iters = qs.counters.minor_iters;
-        row.qp_factorizations = qs.counters.factorizations;
+        // THE LADDER'S OWN COUNTS ON A RUNG-A-OWNED MAJOR: the fallback clears `qs.counters` to
+        // keep the totals exact, so the report is where this row's two diagnostics live.
+        row.qp_minor_iters =
+            fallback_report ? fallback_report->qp_minor_iters : qs.counters.minor_iters;
+        row.qp_factorizations =
+            fallback_report ? fallback_report->qp_factorizations : qs.counters.factorizations;
         row.step_norm = qs.x.size() > 0 ? qs.x.lpNorm<Eigen::Infinity>() : 0.0;
         row.tr_binding =
             std::any_of(qs.tr_active.begin(), qs.tr_active.end(), [](bool b) { return b; });

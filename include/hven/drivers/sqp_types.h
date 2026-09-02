@@ -1118,8 +1118,8 @@ struct SqpIterate {
     //
     // WHY THEY ARE HERE (M6 W1 task 6 fix round 3). The hook RECEIVES the
     // whole evidence block, because W2's elastic reformulation needs the
-    // least-infeasible point to start from and the Farkas corroboration to
-    // read; but W1's body is the cold walk, which uses neither, so nothing
+    // least-infeasible point to start from and RECORDS, NEVER JUDGES, the
+    // Farkas corroboration; but W1's body is the cold walk, which uses neither, so nothing
     // downstream could tell a real evidence block from a default-constructed
     // one. These two make the arrival OBSERVABLE: they are the block's own
     // headline scalars, and a call site that substituted default evidence
@@ -1189,6 +1189,10 @@ struct SqpIterate {
     /// slacks -- see the ELASTIC TIER note), and the driver re-derives the
     /// radius bit exactly as qp_engine.h's section 6 would have.
     bool elastic_applied = false;
+    /// True iff THIS row's elastic ladder started AT kElasticRhoMax because the
+    /// evidence-informed placement was CLAMPED to it -- no escalation was then
+    /// possible (ElasticLadderReport::rho0_ceiling_hit). False on every other row.
+    bool elastic_rho0_ceiling_hit = false;
     /// True iff the FULL-STEP WATCHDOG (SqpOptions::warm_full_step)
     /// restored an earlier best-||KKT||inf iterate ON THIS PASS, i.e. this
     /// row's f/stationarity/feasibility/kkt_residual/violation_l1 describe

@@ -2106,9 +2106,9 @@ struct ElasticSeedSource {
 // it cannot use or a block that never FIRED; the ladder never reads it for a VERDICT.
 
 /// @brief Runs the rho ladder to exhaustion and judges the rung it stopped on.
-/// `window` is the radius folded into the elastic box: nonnegative -- 0 is
-/// legal (`tr_radius` permits it), FINITE on the shipped path. Every
-/// rung's counters fold into `out`.
+/// `window` is the radius folded into the elastic box: nonnegative -- 0 is legal
+/// (`tr_radius` permits it), FINITE on the shipped path, and VALIDATED (a negative
+/// or NaN one throws std::invalid_argument). Every rung's counters fold into `out`.
 /// THE FIRST RUNG'S PENALTY is `min(kElasticRhoMax, max(kElasticRhoInit,
 /// evidence->dual_norm_start))` (amendment H): today's start as a FLOOR and the
 /// ladder's ceiling as a CAP; `kElasticRhoInit` when no arm FIRED at all.
@@ -2133,20 +2133,22 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 // block -- the least-infeasible point and the optional Farkas corroboration --
 // which is what lets W2's elastic l1-penalized reformulation answer "is this
 // subproblem infeasible" by SOLVING something always-feasible rather than by
-// accumulating symptoms. `fired` gates rung A, the point seeds it and
-// `dual_norm_start` places rho_0; NOTHING else is read (pin P7's mutation loop).
+// accumulating symptoms. `fired` gates rung A, the least-infeasible point AND
+// ITS DUALS seed it, and `dual_norm_start` places rho_0; nothing else is read
+// (P7 mutates the verdict-side fields only).
 
 /// @brief The escape branch's single entry: the two-rung ladder above.
 /// @param engine    the engine BOTH rungs solve with.
 /// @param qp        the subproblem.
 /// @param ev        the NLP evaluation at the current iterate (W2).
 /// @param seed      the seed the ordinary walk would have had, or nullptr (W2).
-/// @param evidence  the escaped solve's section 6.3 evidence block: `fired` gates
-///        rung A, its point seeds it and `dual_norm_start` places rho_0. Its two
-///        headline scalars are RECORDED on `row`, and never judged.
+/// @param evidence  section 6.3's block: `fired` gates rung A, the least-infeasible point AND
+///        ITS DUALS seed it, `dual_norm_start` places rho_0; nothing else is read (P7 mutates
+///        the verdict-side fields only). Its two headline scalars are RECORDED on `row`.
 /// @param overrides the walk's per-solve overrides, the caller's own levers.
 /// @param opts      the driver's options -- rung A's tolerances and seed rule.
-/// @param window    the radius THIS solve was given, folded into rung A's box.
+/// @param window    the radius THIS solve was given, folded into rung A's box;
+///        VALIDATED -- a negative or NaN one throws std::invalid_argument.
 /// @param out       the running counters; every rung of rung A folds into them.
 /// @param row       this major's history row, annotated with the evidence.
 /// @param fallback_report  rung A's report, ENGAGED iff rung A owns the returned
