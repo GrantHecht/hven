@@ -1123,6 +1123,22 @@ QpProblem badly_scaled_infeasible_qp(double S) {
     return qp;
 }
 
+/// W2.T2 FIX2. `badly_scaled_infeasible_qp` cancels `Ai' lambda_i` exactly (antisymmetric rows).
+/// `bi` asymmetry alone does not fix it (still cancels in Debug); `x1` carries the SAME `+1` on
+/// both rows here, so its `Ai' lambda_i` term is `lambda_i1 + lambda_i2` -- nonzero regardless.
+QpProblem badly_scaled_coupled_infeasible_qp(double S) {
+    QpProblem qp;
+    qp.H = dense_upper({{1.0, 0.0}, {0.0, 1.0}});
+    qp.g = vec({0.0, 0.0});
+    qp.Ae = dense_rows({}, 2);
+    qp.be = Vec(0);
+    qp.Ai = dense_rows({{S, 1.0}, {-S, 1.0}}, 2);
+    qp.bi = vec({-5.0 * S, -5.0 * S});
+    qp.lower = vec({-10.0, -10.0});
+    qp.upper = vec({10.0, 10.0});
+    return qp;
+}
+
 /// The inf-norm of the multipliers the tier EXPORTS -- spec 4.3's "duals are unscaled on export",
 /// and therefore the caller-scale reading the evidence block's own norms must match.
 double exported_dual_norm(const IpqpResult &r) {
@@ -1442,6 +1458,44 @@ TEST(IpqpInfeasibleSuspectTest, TheEvidencesDualNormsAreRecordedAFTERTheRuizUnsc
     RecordProperty("w2t2_dual_norm_start_bad",
                    std::to_string(bad.infeasibility_evidence.dual_norm_start));
     EXPECT_NEAR(recomputed, reported, kCallerUnitStationarityTol);
+}
+
+TEST(IpqpInfeasibleSuspectTest, TheCallerUnitPinSeesALambdaIRescaleOnANonAntisymmetricFixture) {
+    // W2.T2 FIX2 (fix1 report S2.3): on `badly_scaled_infeasible_qp`, `Ai' lambda_i` is ZERO
+    // identically, so the caller-unit stationarity pin cannot see a `lambda_i` rescale -- only
+    // the pre-existing dual-NORM pin does. This fixture's `Ai' lambda_i` does not cancel.
+    const double S = 1.0e6;
+    const QpProblem qp = badly_scaled_coupled_infeasible_qp(S);
+    IpqpEngine tier(tight_opts());
+    const IpqpResult bad = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(bad.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    ASSERT_TRUE(bad.infeasibility_evidence.fired);
+
+    // NON-DEGENERACY: `||Ai' lambda_i||_inf` must be MATERIAL against the same "largest term
+    // seen" denominator `caller_unit_stationarity` uses, not a rounding residual near it -- the
+    // floor a genuinely vanishing coupling could never clear.
+    const Vec ai_term = qp.Ai.transpose() * bad.lambda_i;
+    const double ai_term_norm = ai_term.lpNorm<Eigen::Infinity>();
+    const double hx_norm =
+        (qp.H.selfadjointView<Eigen::Upper>() * bad.x + qp.g).lpNorm<Eigen::Infinity>();
+    const double z_norm =
+        std::max(bad.zl.lpNorm<Eigen::Infinity>(), bad.zu.lpNorm<Eigen::Infinity>());
+    const double dominant = std::max({1.0, hx_norm, z_norm});
+    RecordProperty("w2t2f2_ai_lambda_i_norm", fmt::format("{:.17g}", ai_term_norm));
+    RecordProperty("w2t2f2_dominant_term_norm", fmt::format("{:.17g}", dominant));
+    EXPECT_GT(ai_term_norm, 1.0e-2 * dominant);
+
+    // THE CALLER-UNIT PIN ITSELF, on the fixture that can actually feel a `lambda_i` rescale.
+    const double reported = bad.residuals.stationarity;
+    const double recomputed = caller_unit_stationarity(qp, bad);
+    RecordProperty("w2t2f2_stationarity_reported", fmt::format("{:.17g}", reported));
+    RecordProperty("w2t2f2_stationarity_caller_units", fmt::format("{:.17g}", recomputed));
+    EXPECT_NEAR(recomputed, reported, kCallerUnitStationarityTol);
+
+    // THE RECORD == EXPORT EQUALITY, same as the antisymmetric fixture's pin.
+    const double bad_norm = bad.infeasibility_evidence.dual_norm_end;
+    RecordProperty("w2t2f2_dual_norm_caller_scale", fmt::format("{:.17g}", bad_norm));
+    EXPECT_DOUBLE_EQ(bad_norm, exported_dual_norm(bad));
 }
 
 // ---------------------------------------------------------------------------
