@@ -1113,6 +1113,29 @@ QpProblem infeasible_scalar_qp() {
     return qp;
 }
 
+/// `infeasible_scalar_qp` with BOTH rows MULTIPLIED by S -- the same (empty) feasible set, in row
+/// units six decades off the H block at S = 1e6. That spread is exactly what Ruiz equilibration
+/// removes from the KKT, and it moves this solve's multipliers by five decades.
+QpProblem badly_scaled_infeasible_qp(double S) {
+    QpProblem qp = infeasible_scalar_qp();
+    qp.Ai = dense_rows({{S}, {-S}}, 1);
+    qp.bi = vec({-5.0 * S, -5.0 * S});
+    return qp;
+}
+
+/// The inf-norm of the multipliers the tier EXPORTS -- spec 4.3's "duals are unscaled on export",
+/// and therefore the caller-scale reading the evidence block's own norms must match.
+double exported_dual_norm(const IpqpResult &r) {
+    double d = std::max(r.zl.lpNorm<Eigen::Infinity>(), r.zu.lpNorm<Eigen::Infinity>());
+    if (r.lambda_e.size() > 0) {
+        d = std::max(d, r.lambda_e.lpNorm<Eigen::Infinity>());
+    }
+    if (r.lambda_i.size() > 0) {
+        d = std::max(d, r.lambda_i.lpNorm<Eigen::Infinity>());
+    }
+    return d;
+}
+
 } // namespace
 
 TEST(IpqpStallTest, TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBlock) {
@@ -1288,6 +1311,78 @@ TEST(IpqpInfeasibleSuspectTest, AFeasibleSolveNeverRaisesTheSignature) {
         EXPECT_EQ(r.counters.ipqp_escape_infeasible_suspect, 0);
         EXPECT_EQ(r.infeasibility_evidence.least_infeasible_x.size(), 0);
     }
+}
+
+TEST(IpqpInfeasibleSuspectTest, TheEvidenceCarriesTheDualsOfTheLeastInfeasiblePointITSELF) {
+    // W2's working-set seed classifies the LEAST-INFEASIBLE point with spec 2.3 item 2's ratio
+    // rule, so the block must carry that point's own (s, lambda_i, zl, zu) and the `mu` they are
+    // stated against -- retained WITH `least_infeasible_x`, never taken from the final iterate.
+    for (const QpProblem &qp : {infeasible_rows_qp(), infeasible_scalar_qp()}) {
+        IpqpEngine tier(tight_opts());
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        ASSERT_EQ(r.escape_reason, IpqpEscape::kInfeasibleSuspect);
+        const IpqpInfeasibilityEvidence &ev = r.infeasibility_evidence;
+        ASSERT_TRUE(ev.fired);
+
+        EXPECT_EQ(ev.least_infeasible_s.size(), qp.mi());
+        EXPECT_EQ(ev.least_infeasible_lambda_i.size(), qp.mi());
+        EXPECT_EQ(ev.least_infeasible_zl.size(), qp.n());
+        EXPECT_EQ(ev.least_infeasible_zu.size(), qp.n());
+        EXPECT_GT(ev.least_infeasible_mu, 0.0);
+        // A BARRIER ITERATE, not a stored zero: both sides of every pair are strictly interior,
+        // which is the property the ratio rule's `s < kappa*z` comparison needs to mean anything.
+        EXPECT_GT(ev.least_infeasible_s.minCoeff(), 0.0);
+        EXPECT_GT(ev.least_infeasible_lambda_i.minCoeff(), 0.0);
+
+        // ONE ITERATE, NOT A MIXTURE: the duals move with the point they were retained beside.
+        // Storing the FINAL iterate's duals against an EARLIER `least_infeasible_x` breaks this.
+        const bool x_is_final = (ev.least_infeasible_x.array() == r.x.array()).all();
+        const bool duals_are_final =
+            (ev.least_infeasible_lambda_i.array() == r.lambda_i.array()).all() &&
+            (ev.least_infeasible_zl.array() == r.zl.array()).all();
+        EXPECT_EQ(x_is_final, duals_are_final);
+        RecordProperty("w2t2_least_infeasible_is_final", x_is_final ? "1" : "0");
+    }
+}
+
+TEST(IpqpInfeasibleSuspectTest, TheEvidencesDualNormsAreRecordedAFTERTheRuizUnscale) {
+    // W2.T2's ASSERTED PRECONDITION. `rho_0 = max(kElasticRhoInit, dual_norm_start)` prices the
+    // ACTUAL violation, so a norm taken inside the equilibrated system would be a number about a
+    // different problem. The engine asserts it at the write site; this is the fixture behind it.
+    const double S = 1.0e6;
+    IpqpEngine tier(tight_opts());
+    const IpqpResult bad =
+        tier.solve(badly_scaled_infeasible_qp(S), nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(bad.escape_reason, IpqpEscape::kInfeasibleSuspect);
+    ASSERT_TRUE(bad.infeasibility_evidence.fired);
+
+    IpqpEngine unit_tier(tight_opts());
+    const IpqpResult unit =
+        unit_tier.solve(infeasible_scalar_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    ASSERT_EQ(unit.escape_reason, IpqpEscape::kInfeasibleSuspect);
+
+    // THE GAP THAT MAKES THE PIN NON-VACUOUS: the same solve stated in the caller's units and in
+    // the unit-row units Ruiz drives every row toward differ by more than three decades here.
+    const double bad_norm = bad.infeasibility_evidence.dual_norm_end;
+    const double unit_norm = unit.infeasibility_evidence.dual_norm_end;
+    RecordProperty("w2t2_dual_norm_caller_scale", std::to_string(bad_norm));
+    RecordProperty("w2t2_dual_norm_unit_rows", std::to_string(unit_norm));
+    EXPECT_GE(std::max(bad_norm, unit_norm) / std::min(bad_norm, unit_norm), 1.0e3);
+
+    // AND THE RECORD IS THE CALLER-SCALE ONE, to the bit: the multipliers the tier exports are
+    // unscaled (spec 4.3), and the evidence's own norms are norms of exactly those.
+    EXPECT_DOUBLE_EQ(bad_norm, exported_dual_norm(bad));
+    EXPECT_DOUBLE_EQ(unit_norm, exported_dual_norm(unit));
+
+    // NEITHER NORM MOVES WITH THE EQUILIBRATION, which is the same statement from the other side:
+    // Ruiz spans decades on this fixture and the record does not notice.
+    IpqpOptions off;
+    off.ipqp_ruiz = false;
+    IpqpEngine off_tier(tight_opts());
+    const IpqpResult bad_off =
+        off_tier.solve(badly_scaled_infeasible_qp(S), nullptr, off, SolveOverrides{});
+    ASSERT_TRUE(bad_off.infeasibility_evidence.fired);
+    EXPECT_LT(std::abs(bad_off.infeasibility_evidence.dual_norm_end - bad_norm) / bad_norm, 1.0e-9);
 }
 
 // ---------------------------------------------------------------------------

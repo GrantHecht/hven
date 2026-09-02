@@ -160,6 +160,13 @@ void expect_stall_evidence_eq(const IpqpStallEvidence &a, const IpqpStallEvidenc
     EXPECT_DOUBLE_EQ(a.max_step_alpha, b.max_step_alpha);
 }
 
+void expect_vec_eq(const Vec &a, const Vec &b) {
+    ASSERT_EQ(a.size(), b.size());
+    if (a.size() > 0) {
+        EXPECT_TRUE((a.array() == b.array()).all());
+    }
+}
+
 void expect_infeasibility_evidence_eq(const IpqpInfeasibilityEvidence &a,
                                       const IpqpInfeasibilityEvidence &b) {
     EXPECT_EQ(a.fired, b.fired);
@@ -176,10 +183,12 @@ void expect_infeasibility_evidence_eq(const IpqpInfeasibilityEvidence &a,
     EXPECT_DOUBLE_EQ(a.farkas_residual, b.farkas_residual);
     EXPECT_DOUBLE_EQ(a.farkas_gap, b.farkas_gap);
     EXPECT_DOUBLE_EQ(a.least_infeasible_primal, b.least_infeasible_primal);
-    ASSERT_EQ(a.least_infeasible_x.size(), b.least_infeasible_x.size());
-    if (a.least_infeasible_x.size() > 0) {
-        EXPECT_TRUE((a.least_infeasible_x.array() == b.least_infeasible_x.array()).all());
-    }
+    EXPECT_DOUBLE_EQ(a.least_infeasible_mu, b.least_infeasible_mu);
+    expect_vec_eq(a.least_infeasible_x, b.least_infeasible_x);
+    expect_vec_eq(a.least_infeasible_s, b.least_infeasible_s);
+    expect_vec_eq(a.least_infeasible_lambda_i, b.least_infeasible_lambda_i);
+    expect_vec_eq(a.least_infeasible_zl, b.least_infeasible_zl);
+    expect_vec_eq(a.least_infeasible_zu, b.least_infeasible_zu);
 }
 
 // ===========================================================================

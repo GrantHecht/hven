@@ -461,6 +461,17 @@ struct IpqpInfeasibilityEvidence {
     /// hook) wants to start from. Empty when the block did not fire.
     Vec least_infeasible_x;
     double least_infeasible_primal = 0.0; ///< That point's own primal residual.
+
+    /// THAT SAME POINT'S SLACKS AND DUALS -- `s` and `lambda_i` (mi), `zl`/`zu` (n). W2's
+    /// working-set seed classifies the point with spec 2.3 item 2's RATIO rule, which needs both
+    /// sides of every pair; empty exactly when `least_infeasible_x` is.
+    Vec least_infeasible_s;
+    Vec least_infeasible_lambda_i;
+    Vec least_infeasible_zl;
+    Vec least_infeasible_zu;
+    /// The barrier level at that point: the scale the ratio rule's `z > mu` conjunct is stated
+    /// against, so an absent one degrades the seed to GEOMETRIC activity alone.
+    double least_infeasible_mu = 0.0;
 };
 
 /// @brief One tier solve's outcome.

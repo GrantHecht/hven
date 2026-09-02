@@ -1289,6 +1289,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Section 6.3's third required item: the LEAST-INFEASIBLE point seen.
     double best_primal = kInf;
     Vec best_x;
+    // ITS SLACKS AND DUALS, retained with it: W2's working-set seed classifies THAT point, and
+    // the ratio rule needs both sides of every pair plus the `mu` they are stated against.
+    Vec best_s, best_yi, best_zl, best_zu;
+    double best_mu = 0.0;
 
     // ---- the local operations the loop below is written in terms of -------
 
@@ -1371,15 +1375,43 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // `||(y, z)||inf` at the current iterate -- section 6.3's growth signal. Guarded per block
     // because an infinity norm of an EMPTY Eigen vector is an assert, not a 0, and a QP with no
     // rows at all is legal here.
-    auto dual_norm_now = [&]() {
-        double d = std::max(w.zl.lpNorm<Eigen::Infinity>(), w.zu.lpNorm<Eigen::Infinity>());
+    auto dual_norm_of = [&](const Vec &ye, const Vec &yi, const Vec &zl, const Vec &zu) {
+        double d = std::max(zl.lpNorm<Eigen::Infinity>(), zu.lpNorm<Eigen::Infinity>());
         if (me > 0) {
-            d = std::max(d, w.ye.lpNorm<Eigen::Infinity>());
+            d = std::max(d, ye.lpNorm<Eigen::Infinity>());
         }
         if (mi > 0) {
-            d = std::max(d, w.yi.lpNorm<Eigen::Infinity>());
+            d = std::max(d, yi.lpNorm<Eigen::Infinity>());
         }
         return d;
+    };
+    auto dual_norm_now = [&]() { return dual_norm_of(w.ye, w.yi, w.zl, w.zu); };
+
+    // SPEC 4.3, ASSERTED AND NOT ASSUMED: W2's `rho_0` prices the ACTUAL violation, so a norm
+    // taken inside the Ruiz-equilibrated system is a number about a different problem. `dscale`
+    // never leaves `solve_kkt`, so the multipliers this solve EXPORTS must reproduce the record.
+    auto assert_caller_scale = [](const char *which, double recorded, double recomputed) {
+        if (recorded != recomputed) {
+            throw std::logic_error(fmt::format(
+                "IpqpEngine::solve: the section 6.3 evidence block's {} dual norm is {}, but the "
+                "multipliers this solve exports give {} -- the record is not on the caller's own "
+                "scale (spec 4.3), so W2's rho_0 would price a different problem's violation.",
+                which, recorded, recomputed));
+        }
+    };
+
+    // The least-infeasible point, its own slacks and duals, and the `mu` they are stated against
+    // -- one iterate, never a mixture. `w.*` is the fallback for a solve whose best iterate was
+    // cleared by a warm-kill and never re-established.
+    auto fill_least_infeasible = [&](IpqpInfeasibilityEvidence &ev, const IpqpResiduals &r) {
+        const bool have_best = best_x.size() > 0;
+        ev.least_infeasible_x = have_best ? best_x : w.x;
+        ev.least_infeasible_primal = have_best ? best_primal : std::max(r.primal_eq, r.primal_iq);
+        ev.least_infeasible_s = have_best ? best_s : w.s;
+        ev.least_infeasible_lambda_i = have_best ? best_yi : w.yi;
+        ev.least_infeasible_zl = have_best ? best_zl : w.zl;
+        ev.least_infeasible_zu = have_best ? best_zu : w.zu;
+        ev.least_infeasible_mu = have_best ? best_mu : mu_meas;
     };
 
     // Capture the window's reference state at the CURRENT iterate. Called on the first pass,
@@ -1439,9 +1471,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             ev.dual_norm_end = dual_now;
             ev.dual_growth = growth;
             ev.dual_step_growth = step_growth;
-            ev.least_infeasible_x = best_x.size() > 0 ? best_x : w.x;
-            ev.least_infeasible_primal =
-                best_x.size() > 0 ? best_primal : std::max(r.primal_eq, r.primal_iq);
+            fill_least_infeasible(ev, r);
+            assert_caller_scale("start", ev.dual_norm_start,
+                                dual_norm_of(ref_ye, ref_yi, ref_zl, ref_zu));
+            assert_caller_scale("end", ev.dual_norm_end, dual_norm_of(w.ye, w.yi, w.zl, w.zu));
             if (iopts.ipqp_farkas_gate) {
                 const Vec dye = me > 0 ? Vec(w.ye - ref_ye) : Vec(0);
                 const Vec dyi = mi > 0 ? Vec(w.yi - ref_yi) : Vec(0);
@@ -2021,6 +2054,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             if (primal_now < best_primal) {
                 best_primal = primal_now;
                 best_x = w.x;
+                best_s = w.s;
+                best_yi = w.yi;
+                best_zl = w.zl;
+                best_zu = w.zu;
+                best_mu = mu_meas;
             }
         }
 
@@ -2100,6 +2138,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             win_armed = false;
             best_primal = kInf;
             best_x = Vec();
+            best_s = Vec();
+            best_yi = Vec();
+            best_zl = Vec();
+            best_zu = Vec();
+            best_mu = 0.0;
             have_start = false;
             // R1 (settler ruling, fix round 2): the abandoned warm attempt's accepted-iterate
             // history is CLEARED, not carried into the cold attempt -- same precedent as
