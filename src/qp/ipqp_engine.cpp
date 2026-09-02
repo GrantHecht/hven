@@ -1387,9 +1387,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     };
     auto dual_norm_now = [&]() { return dual_norm_of(w.ye, w.yi, w.zl, w.zu); };
 
-    // SPEC 4.3, ASSERTED AND NOT ASSUMED: W2's `rho_0` prices the ACTUAL violation, so a norm
-    // taken inside the Ruiz-equilibrated system is a number about a different problem. `dscale`
-    // never leaves `solve_kkt`, so the multipliers this solve EXPORTS must reproduce the record.
+    // NO MIXTURE, ASSERTED ON BOTH ROUTES: the record IS the inf-norm of that same iterate's own
+    // (ye, yi, zl, zu). Caller scale then follows STRUCTURALLY -- `dscale` is applied only inside
+    // `solve_system` (rhs in, sol out) and export is a plain copy, so `w.*` is never scaled.
     auto assert_caller_scale = [](const char *which, double recorded, double recomputed) {
         if (recorded != recomputed) {
             throw std::logic_error(fmt::format(

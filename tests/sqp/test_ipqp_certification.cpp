@@ -1136,6 +1136,42 @@ double exported_dual_norm(const IpqpResult &r) {
     return d;
 }
 
+/// The bar for that recompute: both sides are the SAME relative residual over the SAME exported
+/// doubles, so their difference is float RE-ASSOCIATION -- a few eps of an inf-norm ratio. At
+/// 1e-14, a 1e-9 relative error in the exported bound multipliers already misses by 1e-12.
+constexpr double kCallerUnitStationarityTol = 1.0e-14;
+
+/// The tier's OWN relative stationarity, recomputed in CALLER units from the EXPORTED point and
+/// multipliers alone -- `ipqp_engine.cpp`'s `residuals` lambda, term for term and scale for
+/// scale. A record left in Ruiz units would be off by the row scale, not by rounding.
+double caller_unit_stationarity(const QpProblem &qp, const IpqpResult &r) {
+    const Vec hx = qp.H.selfadjointView<Eigen::Upper>() * r.x;
+    Vec rd = hx + qp.g;
+    double scale = std::max({1.0, hx.lpNorm<Eigen::Infinity>(), qp.g.lpNorm<Eigen::Infinity>()});
+    if (qp.me() > 0) {
+        const Vec t = qp.Ae.transpose() * r.lambda_e;
+        rd += t;
+        scale = std::max(scale, t.lpNorm<Eigen::Infinity>());
+    }
+    if (qp.mi() > 0) {
+        const Vec t = qp.Ai.transpose() * r.lambda_i;
+        rd += t;
+        scale = std::max(scale, t.lpNorm<Eigen::Infinity>());
+    }
+    // `Ai x <= bi` with lambda_i >= 0, and the SIGNED bound pair: -zl at a lower bound, +zu at an
+    // upper one, accumulated only where that bound exists (`ipqp_accumulate_bound_dual_terms`).
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (std::isfinite(qp.lower(i))) {
+            rd(i) -= r.zl(i);
+        }
+        if (std::isfinite(qp.upper(i))) {
+            rd(i) += r.zu(i);
+        }
+    }
+    scale = std::max({scale, r.zl.lpNorm<Eigen::Infinity>(), r.zu.lpNorm<Eigen::Infinity>()});
+    return rd.lpNorm<Eigen::Infinity>() / scale;
+}
+
 } // namespace
 
 TEST(IpqpStallTest, TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBlock) {
@@ -1317,7 +1353,14 @@ TEST(IpqpInfeasibleSuspectTest, TheEvidenceCarriesTheDualsOfTheLeastInfeasiblePo
     // W2's working-set seed classifies the LEAST-INFEASIBLE point with spec 2.3 item 2's ratio
     // rule, so the block must carry that point's own (s, lambda_i, zl, zu) and the `mu` they are
     // stated against -- retained WITH `least_infeasible_x`, never taken from the final iterate.
-    for (const QpProblem &qp : {infeasible_rows_qp(), infeasible_scalar_qp()}) {
+    struct Named {
+        const char *name;
+        QpProblem qp;
+    };
+    for (const Named &f :
+         std::vector<Named>{{"rows", infeasible_rows_qp()}, {"scalar", infeasible_scalar_qp()}}) {
+        SCOPED_TRACE(f.name);
+        const QpProblem &qp = f.qp;
         IpqpEngine tier(tight_opts());
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
         ASSERT_EQ(r.escape_reason, IpqpEscape::kInfeasibleSuspect);
@@ -1341,7 +1384,8 @@ TEST(IpqpInfeasibleSuspectTest, TheEvidenceCarriesTheDualsOfTheLeastInfeasiblePo
             (ev.least_infeasible_lambda_i.array() == r.lambda_i.array()).all() &&
             (ev.least_infeasible_zl.array() == r.zl.array()).all();
         EXPECT_EQ(x_is_final, duals_are_final);
-        RecordProperty("w2t2_least_infeasible_is_final", x_is_final ? "1" : "0");
+        RecordProperty(std::string("w2t2_least_infeasible_is_final_") + f.name,
+                       x_is_final ? "1" : "0");
     }
 }
 
@@ -1361,8 +1405,9 @@ TEST(IpqpInfeasibleSuspectTest, TheEvidencesDualNormsAreRecordedAFTERTheRuizUnsc
         unit_tier.solve(infeasible_scalar_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(unit.escape_reason, IpqpEscape::kInfeasibleSuspect);
 
-    // THE GAP THAT MAKES THE PIN NON-VACUOUS: the same solve stated in the caller's units and in
-    // the unit-row units Ruiz drives every row toward differ by more than three decades here.
+    // WHAT THIS GATE ACTUALLY SAYS (C-F3): `bad` and `unit` are two DIFFERENT problems, so it is
+    // not a scaled/unscaled pairing of one solve. It says the FIXTURE FAMILY spans three decades
+    // in multiplier magnitude, which is what makes the export equalities below non-trivial.
     const double bad_norm = bad.infeasibility_evidence.dual_norm_end;
     const double unit_norm = unit.infeasibility_evidence.dual_norm_end;
     RecordProperty("w2t2_dual_norm_caller_scale", std::to_string(bad_norm));
@@ -1386,6 +1431,17 @@ TEST(IpqpInfeasibleSuspectTest, TheEvidencesDualNormsAreRecordedAFTERTheRuizUnsc
     EXPECT_DOUBLE_EQ(bad_off.infeasibility_evidence.dual_norm_end, exported_dual_norm(bad_off));
     RecordProperty("w2t2_dual_norm_ruiz_off",
                    std::to_string(bad_off.infeasibility_evidence.dual_norm_end));
+
+    // THE CALLER-UNIT PIN (T-F2 fold 2): the tier's own relative stationarity, rebuilt from the
+    // EXPORTED (x, lam_e, lam_i, zl, zu) against the CALLER's own g/H/Ae/Ai. Its VALUE is
+    // trajectory-dependent -- that the record and the export agree in caller units is not.
+    const double reported = bad.residuals.stationarity;
+    const double recomputed = caller_unit_stationarity(badly_scaled_infeasible_qp(S), bad);
+    RecordProperty("w2t2_stationarity_reported", fmt::format("{:.17g}", reported));
+    RecordProperty("w2t2_stationarity_caller_units", fmt::format("{:.17g}", recomputed));
+    RecordProperty("w2t2_dual_norm_start_bad",
+                   std::to_string(bad.infeasibility_evidence.dual_norm_start));
+    EXPECT_NEAR(recomputed, reported, kCallerUnitStationarityTol);
 }
 
 // ---------------------------------------------------------------------------
