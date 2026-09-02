@@ -2089,7 +2089,7 @@ struct ElasticLadderReport {
 // or default-constructed -- elastic_seed degrades a size mismatch to no hint.
 
 /// @brief Runs the rho ladder to exhaustion and judges the rung it stopped on.
-/// `window` is the radius folded into the elastic box: positive, and +inf in
+/// `window` is the radius folded into the elastic box: nonnegative — 0 is legal (`tr_radius` permits it), and +inf in
 /// the ordinary configuration. Every rung's counters fold into `out`.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const QpSolution &failed, double window,
