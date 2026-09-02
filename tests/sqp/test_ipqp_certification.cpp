@@ -1374,15 +1374,18 @@ TEST(IpqpInfeasibleSuspectTest, TheEvidencesDualNormsAreRecordedAFTERTheRuizUnsc
     EXPECT_DOUBLE_EQ(bad_norm, exported_dual_norm(bad));
     EXPECT_DOUBLE_EQ(unit_norm, exported_dual_norm(unit));
 
-    // NEITHER NORM MOVES WITH THE EQUILIBRATION, which is the same statement from the other side:
-    // Ruiz spans decades on this fixture and the record does not notice.
+    // AND IT HOLDS ON THE RUIZ-OFF ARM TOO. The two arms are NOT the same trajectory here -- a
+    // preconditioner on a six-decade fixture changes which iterate the escape fires at, so their
+    // norms differ -- but each record is still its OWN solve's exported multipliers, to the bit.
     IpqpOptions off;
     off.ipqp_ruiz = false;
     IpqpEngine off_tier(tight_opts());
     const IpqpResult bad_off =
         off_tier.solve(badly_scaled_infeasible_qp(S), nullptr, off, SolveOverrides{});
     ASSERT_TRUE(bad_off.infeasibility_evidence.fired);
-    EXPECT_LT(std::abs(bad_off.infeasibility_evidence.dual_norm_end - bad_norm) / bad_norm, 1.0e-9);
+    EXPECT_DOUBLE_EQ(bad_off.infeasibility_evidence.dual_norm_end, exported_dual_norm(bad_off));
+    RecordProperty("w2t2_dual_norm_ruiz_off",
+                   std::to_string(bad_off.infeasibility_evidence.dual_norm_end));
 }
 
 // ---------------------------------------------------------------------------
