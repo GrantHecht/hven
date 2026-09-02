@@ -933,8 +933,12 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     const double slack_l1 = s_final.size() > 0 ? s_final.lpNorm<1>() : 0.0;
     const Vec p_elastic =
         qs_e.status == QpStatus::kOptimal ? Vec(qs_e.x.head(qp.n())) : Vec::Zero(qp.n());
-    const bool closed = slack_l1 <= opts.feas_tol;
-    const bool reduced = slack_l1 <= elastic.violation_l1 - opts.feas_tol;
+    // GUARDED LIKE promises_f/usable (fix round 1): on a non-kOptimal rung s_final
+    // is Zero(0), so an unguarded `closed` would read TRUE off a VACUOUS zero --
+    // inert at today's call site, a landmine for T3's consumer of the report.
+    const bool closed = qs_e.status == QpStatus::kOptimal && slack_l1 <= opts.feas_tol;
+    const bool reduced =
+        qs_e.status == QpStatus::kOptimal && slack_l1 <= elastic.violation_l1 - opts.feas_tol;
     // EXACT ZERO, DELIBERATELY: see THE KNIFE-EDGE RULING above
     // for why a tolerance was considered and not added here.
     const bool promises_f =

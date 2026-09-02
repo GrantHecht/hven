@@ -2073,9 +2073,9 @@ struct ElasticLadderReport {
     ElasticQp elastic;       ///< The augmented problem, at the LAST rung's rho.
     QpSolution qs_e;         ///< The rung the ladder stopped on, AUGMENTED space.
     Vec p_elastic;           ///< Its original-variable block, or Zero(n) if not kOptimal.
-    double slack_l1 = 0.0;   ///< l1 of the ACTUAL violations sigma_j*s_j at qs_e.
-    bool closed = false;     ///< slack_l1 <= feas_tol: the relaxation shut.
-    bool reduced = false;    ///< slack_l1 <= violation_l1 - feas_tol.
+    double slack_l1 = 0.0;   ///< l1 of the ACTUAL violations at qs_e; 0.0 when not kOptimal.
+    bool closed = false;     ///< kOptimal && slack_l1 <= feas_tol: the relaxation shut.
+    bool reduced = false;    ///< kOptimal && slack_l1 <= violation_l1 - feas_tol.
     bool promises_f = false; ///< kOptimal and predicted_decrease(qp, p_elastic) > 0.
     bool usable = false;     ///< kOptimal && (closed || reduced || promises_f).
     QpStatus qp_status = QpStatus::kOptimal; ///< qs_e.status, for the history row.
@@ -2084,9 +2084,13 @@ struct ElasticLadderReport {
     double step_norm = 0.0;                  ///< inf-norm of p_elastic, diagnostic.
 };
 
+// PRECONDITIONS, DOCUMENTED NOT VALIDATED (the sibling free seams' convention,
+// and this is an extraction): `failed` is either THIS `qp`'s kInfeasible solve
+// or default-constructed -- elastic_seed degrades a size mismatch to no hint.
+
 /// @brief Runs the rho ladder to exhaustion and judges the rung it stopped on.
-/// `failed` is the kInfeasible unrelaxed solve the seed maps from, `window` the
-/// radius folded into the elastic box; every rung's counters fold into `out`.
+/// `window` is the radius folded into the elastic box: positive, and +inf in
+/// the ordinary configuration. Every rung's counters fold into `out`.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const QpSolution &failed, double window,
                                        const SqpOptions &opts, SqpCounters &out);
