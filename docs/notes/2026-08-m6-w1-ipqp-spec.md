@@ -911,7 +911,7 @@ reuses the existing seam — one `SolveRecord` per tier subproblem via
 | `Index ipqp_max_iter` | `0` | `<= 0` = size-derived sentinel |
 | `Index ipqp_hard_iter_cap` | `60` | kBudget of last resort |
 | `Index ipqp_max_factorizations` | `0` | `<= 0` → `3 x` effective `ipqp_max_iter` |
-| `double ipqp_init_mu` | `0.1` | measured default, see §10 Q4 |
+| `double ipqp_init_mu` | `1e-2` | MEASURED default (Ruiz-scaled), adopted at T10b as a declared break — §12 item 10; `0.1` was the placeholder |
 | `double ipqp_min_mu` | `1e-12` | matches `Settings::min_mu_` |
 | `double ipqp_rho_init`, `ipqp_delta_init` | `8.0` | the paper's |
 | `double ipqp_reg_floor` | `1e-10` | `kProxRegFloor` |
@@ -1132,6 +1132,9 @@ reports (`.superpowers/w1-t*-report.md`), and the M6 ledger
    null sink default; the trace `major` field is driver-set (`iter + 1`).
 10. **A4/Q4 outcome (T10; ledger 0053055).** A4 is RED at the shipped
     defaults (the gate is executable via `HVEN_A4_GATE`); the measured
-    default is `ipqp_init_mu = 1e-2` (Ruiz-scaled), NOT yet adopted — the
-    adoption, the tier-contract + end-to-end recovery scoring, and every
-    moved pin are T10b's declared break, recorded in the ledger when taken.
+    default is `ipqp_init_mu = 1e-2` (Ruiz-scaled), ADOPTED at T10b
+    (owner-ruled 2026-09-01; one knob — cold init = warm mu_0 ceiling): the
+    declared break, the parametric gate-8 rebuild, the tier-contract +
+    end-to-end recovery scoring, and every moved pin are in T10b's ledger
+    entry; the §9 table row is amended to match. A4 at the adopted default:
+    28/29 with one named RED cell; the proxy caveat did NOT retire.
