@@ -2,10 +2,12 @@
 // (see LICENSE).
 
 // test_ipqp_trace.cpp -- M6 W1 task 8: the IPQP tier's ledger-record pin and
-// the seven schema v0 event-struct pins, via a small recording IpqpTraceSink.
+// the seven schema v0 event-struct pins, via a small recording IpqpTraceSink,
+// plus W2 T5's driver-side eighth event (`fallback.verdict`).
 // See .superpowers/w1-t8-report.md FIX ROUND 1 for the falsifiability evidence.
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
 #include <vector>
 
@@ -707,6 +709,47 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
         EXPECT_EQ(face_bounds_sum, 0) << "no finite bound anywhere -- bound_state is kFree always";
         EXPECT_GT(face_rows_sum, 0) << "the inequality row binds -- non-vacuous";
     }
+}
+
+TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter) {
+    // THE EIGHTH EVENT, at the driver (W2 T5 fix round 1). Its `verdict` alone must reproduce the
+    // counters: kUnfired is the entry no rung A was entered for, and the four partition values
+    // are the FIRED entries -- which is the escape counter's ACTIVATIONS minus the floor retries.
+    RecordingTraceSink sink;
+    Index disproved = 0, rung_b = 0, from_escape = 0, retries = 0, entries = 0;
+    for (int number : {10, 38}) {
+        auto p = test_support::make_hs(number);
+        SqpOptions o;
+        o.qp_mode = QpMode::kIpm;
+        o.max_iter = 60;
+        SqpDriver driver(o);
+        driver.attach_trace(&sink);
+        const SqpSolution s = driver.solve(*p.model);
+        disproved += s.counters.ipqp_suspicion_disproved;
+        rung_b += s.counters.ipqp_fallback_rung_b;
+        from_escape += s.counters.elastic_from_ipqp_escape;
+        retries += s.counters.elastic_floor_retries;
+        // A PINNED DECLINE IS NOT AN ESCAPE: it routes to the walk without entering the
+        // fallback at all, so the event count is the escaping half of `ipqp_to_walk`.
+        entries += s.counters.ipqp.ipqp_to_walk - s.counters.ipqp.ipqp_declined_pinned;
+    }
+    ASSERT_GT(entries, 0) << "HS10 must escape, or every count below is vacuously 0";
+    ASSERT_EQ(sink.fallbacks.size(), static_cast<std::size_t>(entries))
+        << "one event per fallback entry, fired or not";
+
+    Index unfired_events = 0, disproved_events = 0, rung_b_events = 0, fired_events = 0;
+    for (const SqpFallbackVerdictTraceEvent &ev : sink.fallbacks) {
+        unfired_events += ev.verdict == SqpFallbackVerdict::kUnfired ? 1 : 0;
+        disproved_events += ev.verdict == SqpFallbackVerdict::kDisproved ? 1 : 0;
+        rung_b_events += ev.verdict == SqpFallbackVerdict::kRungB ? 1 : 0;
+        fired_events += ev.entered_rung_a ? 1 : 0;
+        EXPECT_EQ(ev.rho_0.has_value(), ev.entered_rung_a);
+        EXPECT_EQ(ev.verdict == SqpFallbackVerdict::kUnfired, !ev.entered_rung_a);
+    }
+    ASSERT_GT(unfired_events, 0) << "HS38's entry never fires -- the kUnfired arm is real";
+    EXPECT_EQ(disproved_events, disproved);
+    EXPECT_EQ(rung_b_events, rung_b);
+    EXPECT_EQ(fired_events, from_escape - retries);
 }
 
 } // namespace

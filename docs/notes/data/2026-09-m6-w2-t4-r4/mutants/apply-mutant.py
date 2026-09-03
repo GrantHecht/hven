@@ -1,8 +1,11 @@
 import sys, shutil, subprocess
 name=sys.argv[1]
 # The pristine source is the measured code head a14ad96, read from git so this stays runnable.
+# M8 was added in W2 T5's fix round 1 and needs THAT tree (a14ad96 predates T5's test file):
+# pass its ref as the optional second argument.
+ref=sys.argv[2] if len(sys.argv)>2 else 'a14ad96'
 dst='src/drivers/sqp_driver.cpp'
-s=subprocess.run(['git','show','a14ad96:src/drivers/sqp_driver.cpp'],capture_output=True,text=True,check=True).stdout
+s=subprocess.run(['git','show',ref+':src/drivers/sqp_driver.cpp'],capture_output=True,text=True,check=True).stdout
 GATE="            if (cand.x != nullptr && cand.x->size() == x.size() && cand.x->allFinite()) {"
 def rep(a,b):
     global s
@@ -46,6 +49,10 @@ elif name=='M7_no_jacobian_screen':
         "take = ev_cand.all_finite &&")
     rep("if (cand.values_ev->all_finite && jacobian_values_finite(*cand.values_ev)) {",
         "if (cand.values_ev->all_finite) {")
+elif name=='M8_nan_h_discriminator':
+    rep("                if (cand.values_ev == nullptr) {",
+        "                if (cand.values_ev == nullptr ||\n"
+        "                    !std::isfinite(constraint_violation_l1(*cand.values_ev))) {")
 elif name=='CLEAN':
     pass
 else:

@@ -1501,7 +1501,7 @@ class ScaledRowSpreadModel : public NlpModel {
     }
     Vec start_point() const override {
         Vec x(2);
-        x << x0_, 0.5;
+        x << 0.5, 0.5;
         return x;
     }
 
@@ -1509,11 +1509,7 @@ class ScaledRowSpreadModel : public NlpModel {
     static constexpr double kFlat = 90.0;
 
   protected:
-    explicit ScaledRowSpreadModel(double x0) : x0_(x0) {}
     ScaledRowSpreadModel() = default;
-
-  private:
-    double x0_ = 0.5;
 };
 
 // The same model, watching every point the solve evaluates it at -- which is

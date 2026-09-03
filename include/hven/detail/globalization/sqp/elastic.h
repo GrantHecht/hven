@@ -49,11 +49,17 @@ inline constexpr double kElasticRhoMax = 1e8;
 inline constexpr double kElasticRhoFactor = 10.0;
 
 /// THE PLACEMENT SAFETY MARGIN (W2 T5): an evidence-placed first rung is additionally capped at
-/// `kElasticRhoDualMuSafety / QpOptions::dual_mu`. The walk's `worst_structural_violation` reads a
-/// FALSE kInfeasible off a feasible elastic copy once `dual_mu * rho` grows -- measured
-/// 6.5e-8 ok at rho 1e6 against 6.5e-7 INF at rho 1e7, both at dual_mu 1e-8, so the misfire
-/// threshold is ~1e-1 in the product and ~1e-2 is the safe side. It is a MARGIN, not the fix: the
-/// misfire itself is W2 T6b. At the shipped dual_mu = 1e-8 the cap is 1e6.
+/// `kElasticRhoDualMuSafety / QpOptions::dual_mu`, SUBJECT TO the `kElasticRhoInit` floor, which
+/// outranks it. The walk's `worst_structural_violation` reads a FALSE kInfeasible off a feasible
+/// elastic copy once `dual_mu * rho` grows -- measured 6.5e-8 ok at rho 1e6 against 6.5e-7 INF at
+/// rho 1e7, both at dual_mu 1e-8, so the misfire threshold is ~1e-1 in the product and ~1e-2 is
+/// the safe side. At the shipped dual_mu = 1e-8 the cap is 1e6.
+///
+/// IT IS A MARGIN ON THE FIRST RUNG, not the fix and not a property of the ladder: the rungs
+/// above escalate to `kElasticRhoMax` regardless (product 1 at the shipped dual_mu), and at
+/// `dual_mu >= 1e-4` the cap sits below the floor, so the floor wins and no achievable placement
+/// keeps the product under the margin at all. W2 T6b removes the misfire and is the only cover
+/// for both residues.
 inline constexpr double kElasticRhoDualMuSafety = 1e-2;
 
 /// The stall early-exit tolerance: two consecutive rungs' augmented solutions

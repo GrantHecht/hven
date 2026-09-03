@@ -35,3 +35,12 @@ lines of each run.
                               AJacobianPoisonedCandidateIsRefusedNotTaken (k = 20 both
                               configs on InfeasibleCircleLineModel(2.0, 2.0),
                               ws_algebra = kRefactorize).
+
+  M8_nan_h_discriminator   the arm discriminator taken on the MEASURED h instead of on the
+                           OFFER's shape (the pre-fix routing this file's A1 change replaced)
+                           -> DIES both configs: ANonFiniteEvaluationAtTheCandidateIsRefused
+                              (evals_full reads 4 against the pin's 3 -- the NaN-h trial goes
+                              down the unmeasured arm and spends a fresh full query there).
+                              ADDED IN W2 T5's FIX ROUND 1 (registered item Z-6) and run against
+                              THAT tree: pass its ref as apply-mutant.py's optional second
+                              argument, since the default a14ad96 predates T5's test file.

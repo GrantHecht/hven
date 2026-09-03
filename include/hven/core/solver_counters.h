@@ -1312,13 +1312,17 @@ struct IpqpCounters {
 ///
 /// SINCE M6 W2 THAT IS THE WALK ROUTE ONLY: the certified fallback reformulates on the IPQP
 /// tier's infeasibility EVIDENCE instead, with no kInfeasible QP in front of it, and charges
-/// activations of its own. The four counters below the first group split the total.
+/// activations of its own -- `elastic_from_ipqp_escape` counts every one of them, so that
+/// counter and the walk-route remainder split this total (the identity is stated on it). The
+/// other three counters below classify the fallback's ENTRIES rather than its activations.
 ///
 /// elastic_escalations counts rho ESCALATIONS (x10 re-solves of the SAME
 /// elastic subproblem), summed over every activation -- NOT the number of
 /// elastic solves, which is elastic_activations + elastic_escalations. It is
 /// bounded by 6 per activation -- kElasticRhoInit = 1e2 to kElasticRhoMax = 1e8, at most that
-/// when infeasibility evidence places the first rung higher (capped at that same 1e8) -- at
+/// when infeasibility evidence places the first rung higher (capped by THE PLACEMENT BOUND,
+/// sqp_driver.h: the escalation headroom 1e7 and the dual_mu safety margin, so an evidence
+/// placement always leaves at least one rung above it) -- at
 /// SqpOptions::elastic_ladder_early_exit's default (false, i.e. the
 /// ladder always spends every rung). With the early exit opted in, that bound
 /// is an UPPER bound only: an activation whose ladder stalls (a rung's
@@ -1366,42 +1370,37 @@ struct SqpCounters {
     Index elastic_escalations = 0;
     Index restoration_iters = 0;
 
-    // THE CERTIFIED FALLBACK'S PARTITION (M6 W2 T5, plan amendment G). The four counters below
-    // classify every entry into `certified_feasibility_fallback` -- the ONE judge, and the only
+    // THE CERTIFIED FALLBACK'S PARTITION (M6 W2 T5, plan amendment G). The counters below are
+    // written by `certified_feasibility_fallback` -- the ONE judge, and the only
     // site that writes any of them. Their block discipline is the five-way escape census's
-    // (:1062-1072), restated for this partition:
+    // (:1062-1072), restated for this partition over ENTRIES:
     //
     //     ipqp_suspicion_disproved + <relaxed> + <exhausted> + ipqp_fallback_rung_b
     //         == the fallback entries whose evidence block FIRED
+    //         == elastic_from_ipqp_escape - elastic_floor_retries
     //
     // where <relaxed> and <exhausted> are the rung-A-owned outcomes that carry no counter of
     // their own -- they are read off the returned `qp_status` (kOptimal vs the synthesized
     // kInfeasible), which is why plan section 5 states the partition "with qp_status alongside".
-    // The two named arms plus that pair are exactly `elastic_from_ipqp_escape`:
-    //
-    //     elastic_from_ipqp_escape == ipqp_suspicion_disproved + <relaxed> + <exhausted>
-    //     elastic_from_ipqp_escape + ipqp_fallback_rung_b == the FIRED entries
     //
     // AN ENTRY WHOSE BLOCK NEVER FIRED CHARGES NONE OF THEM: it is W1's single cold walk, with
     // no rung A entered and no activation charged, so it is outside the partition by
     // construction rather than by arithmetic.
 
     /// Elastic ACTIVATIONS THIS SOLVE OWES TO THE CERTIFIED FALLBACK rather than to a walk
-    /// `kInfeasible` -- one per fallback entry whose rung A OWNED the answer (its ladder came
-    /// back kOptimal, whatever the verdict on it then was: closed, reduced/promises_f, or
-    /// exhausted). Both routes into the elastic tier increment `elastic_activations`, so without
-    /// this counter W2's whole effect on the currency is invisible.
+    /// `kInfeasible`: every ladder the fallback ran -- an entry's first attempt AND its floor
+    /// retry -- whatever the engine then did with it. Both routes into the elastic tier
+    /// increment `elastic_activations`, so without this counter W2's whole effect on the
+    /// currency is invisible, and with it the total splits in TWO terms:
     ///
-    /// EXCLUDES the fallback entries rung B answered (`ipqp_fallback_rung_b`), the floor retries
-    /// (`elastic_floor_retries`), and every activation the driver's own elastic branch raised on
-    /// a walk `kInfeasible`. Those three and this one partition `elastic_activations`:
-    ///
-    ///     elastic_activations == <walk-route activations>
-    ///                            + elastic_from_ipqp_escape
-    ///                            + ipqp_fallback_rung_b
-    ///                            + elastic_floor_retries
+    ///     elastic_activations == <walk-route activations> + elastic_from_ipqp_escape
     ///
     /// so the walk-route count is that difference -- the reading this counter exists to enable.
+    ///
+    /// EXCLUDES every activation the driver's own elastic branch raised on a walk `kInfeasible`,
+    /// and an entry whose block never FIRED (no rung A was entered for it at all). It counts
+    /// ACTIVATIONS, not entries: the ENTRY partition above is this counter MINUS
+    /// `elastic_floor_retries`, and a rung-B entry is charged here as well as there.
     Index elastic_from_ipqp_escape = 0;
 
     /// Fallback entries whose rung A came back with CLOSED slacks -- the suspicion was FALSE and
@@ -1429,16 +1428,20 @@ struct SqpCounters {
     /// headroom cap `kElasticRhoMax / kElasticRhoFactor`, or the dual-regularization safety cap
     /// `kElasticRhoDualMuSafety / dual_mu` (sqp_driver.h's THE PLACEMENT BOUND).
     ///
-    /// EXCLUDES the ordinary placements, which is every activation on today's corpus (measured
-    /// 0/5 at W2 T3): a nonzero reading is the frequency signal the telemetry was added for, not
-    /// a statistic. Identically 0 on the no-evidence route, which is placed at the floor.
+    /// EXCLUDES the ordinary placements. MEASURED ON TWO DIFFERENT SETS, which is why the two
+    /// figures differ: 0/5 over W2 T3's five `w2_*` UNIT-fixture placements (the largest is
+    /// 5.556e5, under the 1e6 cap), and 2/6 over the DRIVER fixtures HS10/HS11/HS15 at kIpm,
+    /// whose fired escapes price 1e-2, 1e-2, 2.558e6 (HS10), 1.785e7, 5.754e4 (HS11) and 2.776e5
+    /// (HS15) -- the two above 1e6 clamp. A nonzero reading is the frequency signal the
+    /// telemetry was added for, not a statistic. Identically 0 on the no-evidence route, which
+    /// is placed at the floor.
     Index elastic_rho0_ceiling_hits = 0;
 
     /// Rung-A RETRIES AT THE FLOOR: entries where a DECLINED rung A placed above
     /// `kElasticRhoInit` was re-run once at the floor before rung B was considered. Each retry
-    /// is a second, real activation and is counted in `elastic_activations` too -- the extra
-    /// cost the rule is worth reporting -- while the partition above counts the RETRY's own
-    /// outcome, never the declined first attempt as well.
+    /// is a second, real activation and is counted in `elastic_activations` and in
+    /// `elastic_from_ipqp_escape` too -- the extra cost the rule is worth reporting -- while the
+    /// ENTRY partition above counts the RETRY's own outcome, never the declined attempt as well.
     ///
     /// EXCLUDES a decline already AT the floor (there is nothing to retry) and every rung A the
     /// engine did not decline. Bounded by 1 per fallback entry.
