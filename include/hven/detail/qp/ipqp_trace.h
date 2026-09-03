@@ -4,8 +4,9 @@
 #pragma once
 
 // ipqp_trace.h -- the IPQP tier's machine-trace schema v0 (spec section 7,
-// :733-749). Seven event structs + sink interface; `v`/`ev` are the
-// serializer's envelope, not carried on any struct here.
+// :733-749), plus W2's driver-side `fallback.verdict`. Eight event
+// structs + sink interface; `v`/`ev` are the serializer's envelope, not
+// carried on any struct here.
 
 #include <array>
 #include <optional>
@@ -112,7 +113,28 @@ struct QpModeTraceEvent {
     Index iters = 0;
 };
 
-/// @brief The W4 hook: one sink, seven pure-virtual methods. `nullptr` is
+/// @brief The certified fallback's own outcome for one escaped subproblem (schema
+/// `fallback.verdict`, M6 W2 T5), driver-emitted in the kIpm arm beside `ipqp.escape`. The four
+/// values are `SqpCounters`' four-way partition: kDisproved and kRungB carry counters of their
+/// own, kRelaxed and kExhausted are the rung-A-owned pair told apart by the returned status.
+enum class SqpFallbackVerdict { kDisproved, kRelaxed, kExhausted, kRungB };
+
+/// @brief One entry into `certified_feasibility_fallback` (schema `fallback.verdict`).
+/// An entry whose evidence never FIRED reports `entered_rung_a == false` with `verdict ==
+/// kRungB`: it ran W1's cold walk directly and charges no counter in the partition.
+struct SqpFallbackVerdictTraceEvent {
+    bool entered_rung_a = false;
+    SqpFallbackVerdict verdict = SqpFallbackVerdict::kRungB;
+    /// The first rung's penalty, of the ladder whose outcome `verdict` reports (the RETRY's when
+    /// `floor_retry`). Absent -- not zero-filled -- when no rung A was entered.
+    std::optional<double> rho_0;
+    bool rho0_ceiling_hit = false; ///< That ladder's placement was CLAMPED (headroom or dual_mu).
+    bool floor_retry = false;      ///< A declined rung A above the floor was re-run once at it.
+    Index qp_minor_iters = 0;      ///< That ladder's own stopping rung's counts; 0 with no rung A.
+    Index qp_factorizations = 0;
+};
+
+/// @brief The W4 hook: one sink, eight pure-virtual methods. `nullptr` is
 /// the off state every emit site checks before building its argument
 /// struct. Destructor out-of-line (ipqp_trace.cpp, CLAUDE.md section 5).
 class IpqpTraceSink {
@@ -125,6 +147,7 @@ class IpqpTraceSink {
     virtual void on_ipqp_certify(const IpqpTraceCertifyEvent &event) = 0;
     virtual void on_ipqp_escape(const IpqpTraceEscapeEvent &event) = 0;
     virtual void on_qp_mode(const QpModeTraceEvent &event) = 0;
+    virtual void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) = 0;
 };
 
 } // namespace hven::solvers

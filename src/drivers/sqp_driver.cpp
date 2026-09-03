@@ -963,6 +963,9 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     // `rho` -- or the ladder would start at one penalty and escalate from another.
     bool rho0_ceiling_hit = false;
     const double rho_0 = elastic_initial_rho(seed, rho0_ceiling_hit);
+    if (rho0_ceiling_hit) {
+        ++out.elastic_rho0_ceiling_hits;
+    }
     ElasticQp elastic = build_elastic_subproblem(qp, window, rho_0, opts.feas_tol);
     QpSolution seed_elastic =
         seed.evidence != nullptr
@@ -1083,7 +1086,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           const IpqpInfeasibilityEvidence &evidence,
                                           const SolveOverrides &overrides, const SqpOptions &opts,
                                           double window, SqpCounters &out, SqpIterate &row,
-                                          std::optional<ElasticLadderReport> &fallback_report) {
+                                          std::optional<ElasticLadderReport> &fallback_report,
+                                          SqpFallbackVerdictTraceEvent &verdict) {
     // VALIDATED AT THE BOUNDARY, on the same terms as the ladder's own (CLAUDE.md section 4).
     // P6's "no evidence CONTENT throws" is untouched: this is the window, not the block.
     if (!(window >= 0.0)) {
@@ -1095,11 +1099,14 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     row.ipqp_least_infeasible_primal = evidence.least_infeasible_primal;
     row.ipqp_farkas_corroborated = evidence.farkas_corroborated;
     fallback_report.reset();
+    // ONE EVENT PER ENTRY, RESET FIRST: an entry that returns early still describes itself, and
+    // a stale event from the previous major would describe the wrong one.
+    verdict = SqpFallbackVerdictTraceEvent{};
     (void)ev;
     (void)seed;
     // RUNG B DIRECTLY, WITHOUT ENTERING RUNG A AT ALL: a block that never FIRED is not
     // evidence, so a caller carrying none gets W1's body exactly -- one cold walk, no
-    // activation charged (pin P5).
+    // activation charged and NO counter in the partition (pin P5).
     if (!evidence.fired) {
         return engine.solve(qp, overrides);
     }
@@ -1110,12 +1117,21 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     const ElasticSeedSource elastic_seed_source{nullptr, &evidence};
     ElasticLadderReport report =
         run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out);
+    verdict.entered_rung_a = true;
+    verdict.rho0_ceiling_hit = report.rho0_ceiling_hit;
+    verdict.qp_minor_iters = report.qp_minor_iters;
+    verdict.qp_factorizations = report.qp_factorizations;
     // RUNG B -- THE COLD WALK, ON A RUNG A THE ENGINE DECLINED. The engine can still refuse a
     // feasible problem, and W1's body is what carries that refusal: the walk's solution goes
     // back UNCHANGED, with no report, so the routing chain behaves exactly as it did (pin P4).
     if (report.qp_status != QpStatus::kOptimal) {
+        ++out.ipqp_fallback_rung_b;
+        verdict.verdict = SqpFallbackVerdict::kRungB;
         return engine.solve(qp, overrides);
     }
+    // RUNG A OWNS THE ANSWER, whichever verdict it carries: the activation this function raised
+    // is charged to the escape route here, once, and the three arms below split it.
+    ++out.elastic_from_ipqp_escape;
 
     QpSolution qs =
         elastic_project(report.elastic, qp, report.qs_e, /*carry_multipliers=*/report.closed);
@@ -1124,6 +1140,14 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
         // B's own passes through verbatim): the relaxation is still open at the ladder's
         // ceiling. The projected block travels for SHAPE only -- the status forbids taking it.
         qs.status = QpStatus::kInfeasible;
+        verdict.verdict = SqpFallbackVerdict::kExhausted;
+    } else if (report.closed) {
+        // A FALSE SUSPICION, and the counter that grades section 6.3's detector: the relaxation
+        // shut, so this answer IS the unrelaxed subproblem's.
+        ++out.ipqp_suspicion_disproved;
+        verdict.verdict = SqpFallbackVerdict::kDisproved;
+    } else {
+        verdict.verdict = SqpFallbackVerdict::kRelaxed;
     }
     // THE RUNGS' COUNTERS ARE ALREADY IN `out` -- run_elastic_ladder folds every one of them
     // there -- so the returned solution carries NONE: the driver accumulates whatever it is
@@ -1276,6 +1300,12 @@ void SqpDriver::emit_trace_route(const IpqpTraceRouteEvent &event) const {
 void SqpDriver::emit_trace_qp_mode(const QpModeTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_qp_mode(event);
+    }
+}
+
+void SqpDriver::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const {
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_fallback_verdict(event);
     }
 }
 
@@ -3031,6 +3061,14 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.counters.soc_rejected += rs.counters.soc_rejected;
             out.counters.elastic_activations += rs.counters.elastic_activations;
             out.counters.elastic_escalations += rs.counters.elastic_escalations;
+            // The fallback partition folds exactly as the two above do: a sub-solve that reached
+            // the certified fallback spent those entries, and the partition is stated over a
+            // whole solve.
+            out.counters.elastic_from_ipqp_escape += rs.counters.elastic_from_ipqp_escape;
+            out.counters.ipqp_suspicion_disproved += rs.counters.ipqp_suspicion_disproved;
+            out.counters.ipqp_fallback_rung_b += rs.counters.ipqp_fallback_rung_b;
+            out.counters.elastic_rho0_ceiling_hits += rs.counters.elastic_rho0_ceiling_hits;
+            out.counters.elastic_floor_retries += rs.counters.elastic_floor_retries;
             // The VALUES-only counters ARE folded, exactly like every other
             // WORK counter above (qp_minor_iters, factorizations, ...):
             // the sub-solve's own solve_impl runs through the SAME three
@@ -3816,10 +3854,12 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 charge_ipqp_subproblem_cost(out.counters, ires);
                 // The window is the elastic branch's own (see its note below): the radius THIS
                 // solve was given, which is what rung A folds into its box.
-                qs = certified_feasibility_fallback(engine_, qp, ev, have_seed ? &seed : nullptr,
-                                                    ires.infeasibility_evidence, overrides, opts_,
-                                                    std::min(delta, opts_.qp.tr_radius),
-                                                    out.counters, row, fallback_report);
+                SqpFallbackVerdictTraceEvent fallback_verdict;
+                qs = certified_feasibility_fallback(
+                    engine_, qp, ev, have_seed ? &seed : nullptr, ires.infeasibility_evidence,
+                    overrides, opts_, std::min(delta, opts_.qp.tr_radius), out.counters, row,
+                    fallback_report, fallback_verdict);
+                emit_trace_fallback_verdict(fallback_verdict);
                 emit_ipqp_route_and_mode(IpqpTraceRouteTo::kWalk, IpqpTraceOutcome::kEscaped);
             }
             break;

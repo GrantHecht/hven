@@ -2090,6 +2090,7 @@ struct ElasticLadderReport {
     /// True iff the evidence arm's `dual_norm_start` reached kElasticRhoMax and the placement was
     /// CLAMPED to it -- the first rung then starts at the ceiling and no escalation is possible,
     /// which a judge of this report should be able to see rather than infer from `escalations`.
+    /// Aggregated over a solve by `SqpCounters::elastic_rho0_ceiling_hits`.
     bool rho0_ceiling_hit = false;
 };
 
@@ -2127,6 +2128,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 // ITS BODY IS A BOUNDED TWO-RUNG LADDER (W2 plan section 2): RUNG A is the
 // elastic QP at the evidence's own rho_0, always; RUNG B is W1's COLD walk,
 // reached only on a rung A the engine DECLINED, and the refusal path's carrier.
+
 //
 // REFUSAL COSTS ONE EXTRA DECLINED SOLVE, and if rung B's walk then certifies
 // kInfeasible the driver runs its OWN ladder: two activations, one subproblem.
@@ -2158,13 +2160,17 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 /// @param row       this major's history row, annotated with the evidence.
 /// @param fallback_report  rung A's report, ENGAGED iff rung A owns the returned
 ///        solution: the escape branch consumes it rather than running a second ladder.
+/// @param verdict   OVERWRITTEN on every entry, fired or not: this entry's own
+///        `fallback.verdict` trace event, which the caller emits (the counters' partition,
+///        the placement, and the retry flag, for one entry).
 /// @return rung A's step in the ORIGINAL variables, or rung B's walk solution unchanged.
 QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
                                           const QpSolution *seed,
                                           const IpqpInfeasibilityEvidence &evidence,
                                           const SolveOverrides &overrides, const SqpOptions &opts,
                                           double window, SqpCounters &out, SqpIterate &row,
-                                          std::optional<ElasticLadderReport> &fallback_report);
+                                          std::optional<ElasticLadderReport> &fallback_report,
+                                          SqpFallbackVerdictTraceEvent &verdict);
 
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:
@@ -3142,6 +3148,7 @@ class SqpDriver {
     // comment): `ipqp.route`/`qp.mode`, the kIpm dispatch arm's own facts.
     void emit_trace_route(const IpqpTraceRouteEvent &event) const;
     void emit_trace_qp_mode(const QpModeTraceEvent &event) const;
+    void emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const;
     // TASK 7's PRESERVED-SEED INGEST (plan ruling 4): the FIRST kIpm
     // subproblem's seed, built from the staged currency's unflattened
     // zL/zU/mu. Empty when nothing staged, not kIpm, or graded COLD.

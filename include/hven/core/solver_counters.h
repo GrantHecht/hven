@@ -1310,6 +1310,10 @@ struct IpqpCounters {
 /// met, since EVERY one of them is reformulated -- see sqp_driver.h's ELASTIC
 /// TIER note.
 ///
+/// SINCE M6 W2 THAT IS THE WALK ROUTE ONLY: the certified fallback reformulates on the IPQP
+/// tier's infeasibility EVIDENCE instead, with no kInfeasible QP in front of it, and charges
+/// activations of its own. The four counters below the first group split the total.
+///
 /// elastic_escalations counts rho ESCALATIONS (x10 re-solves of the SAME
 /// elastic subproblem), summed over every activation -- NOT the number of
 /// elastic solves, which is elastic_activations + elastic_escalations. It is
@@ -1361,6 +1365,84 @@ struct SqpCounters {
     Index elastic_activations = 0;
     Index elastic_escalations = 0;
     Index restoration_iters = 0;
+
+    // THE CERTIFIED FALLBACK'S PARTITION (M6 W2 T5, plan amendment G). The four counters below
+    // classify every entry into `certified_feasibility_fallback` -- the ONE judge, and the only
+    // site that writes any of them. Their block discipline is the five-way escape census's
+    // (:1062-1072), restated for this partition:
+    //
+    //     ipqp_suspicion_disproved + <relaxed> + <exhausted> + ipqp_fallback_rung_b
+    //         == the fallback entries whose evidence block FIRED
+    //
+    // where <relaxed> and <exhausted> are the rung-A-owned outcomes that carry no counter of
+    // their own -- they are read off the returned `qp_status` (kOptimal vs the synthesized
+    // kInfeasible), which is why plan section 5 states the partition "with qp_status alongside".
+    // The two named arms plus that pair are exactly `elastic_from_ipqp_escape`:
+    //
+    //     elastic_from_ipqp_escape == ipqp_suspicion_disproved + <relaxed> + <exhausted>
+    //     elastic_from_ipqp_escape + ipqp_fallback_rung_b == the FIRED entries
+    //
+    // AN ENTRY WHOSE BLOCK NEVER FIRED CHARGES NONE OF THEM: it is W1's single cold walk, with
+    // no rung A entered and no activation charged, so it is outside the partition by
+    // construction rather than by arithmetic.
+
+    /// Elastic ACTIVATIONS THIS SOLVE OWES TO THE CERTIFIED FALLBACK rather than to a walk
+    /// `kInfeasible` -- one per fallback entry whose rung A OWNED the answer (its ladder came
+    /// back kOptimal, whatever the verdict on it then was: closed, reduced/promises_f, or
+    /// exhausted). Both routes into the elastic tier increment `elastic_activations`, so without
+    /// this counter W2's whole effect on the currency is invisible.
+    ///
+    /// EXCLUDES the fallback entries rung B answered (`ipqp_fallback_rung_b`), the floor retries
+    /// (`elastic_floor_retries`), and every activation the driver's own elastic branch raised on
+    /// a walk `kInfeasible`. Those three and this one partition `elastic_activations`:
+    ///
+    ///     elastic_activations == <walk-route activations>
+    ///                            + elastic_from_ipqp_escape
+    ///                            + ipqp_fallback_rung_b
+    ///                            + elastic_floor_retries
+    ///
+    /// so the walk-route count is that difference -- the reading this counter exists to enable.
+    Index elastic_from_ipqp_escape = 0;
+
+    /// Fallback entries whose rung A came back with CLOSED slacks -- the suspicion was FALSE and
+    /// the elastic answer IS the unrelaxed subproblem's (the l1 exact-penalty property). The one
+    /// number that says whether spec section 6.3's two-conjunct detector is calibrated:
+    /// `ipqp.ipqp_escape_infeasible_suspect` counts the SUSPICION, this counts its FATE.
+    ///
+    /// EXCLUDES the other three arms of the partition above -- in particular a rung B that
+    /// disproves the suspicion on its own (its walk solves the original QP and returns
+    /// kOptimal), which this counter cannot see and `ipqp_fallback_rung_b` counts instead.
+    Index ipqp_suspicion_disproved = 0;
+
+    /// Fallback entries that fell through to RUNG B, the cold walk: rung A was DECLINED by the
+    /// engine (a non-kOptimal ladder exit), and -- when the placement was above the floor -- so
+    /// was its one retry there. The refusal path's own frequency, and the fourth arm of the
+    /// partition above.
+    ///
+    /// EXCLUDES an entry whose evidence never FIRED (rung B runs, but rung A was never entered,
+    /// so the entry is outside the partition) and the other three arms.
+    Index ipqp_fallback_rung_b = 0;
+
+    /// Ladders entered at a CLAMPED first rung -- `ElasticLadderReport::rho0_ceiling_hit` summed
+    /// over every activation, on BOTH routes into `run_elastic_ladder`. A clamp means the
+    /// evidence priced the violation above what the placement rule allows: the escalation
+    /// headroom cap `kElasticRhoMax / kElasticRhoFactor`, or the dual-regularization safety cap
+    /// `kElasticRhoDualMuSafety / dual_mu` (sqp_driver.h's THE PLACEMENT BOUND).
+    ///
+    /// EXCLUDES the ordinary placements, which is every activation on today's corpus (measured
+    /// 0/5 at W2 T3): a nonzero reading is the frequency signal the telemetry was added for, not
+    /// a statistic. Identically 0 on the no-evidence route, which is placed at the floor.
+    Index elastic_rho0_ceiling_hits = 0;
+
+    /// Rung-A RETRIES AT THE FLOOR: entries where a DECLINED rung A placed above
+    /// `kElasticRhoInit` was re-run once at the floor before rung B was considered. Each retry
+    /// is a second, real activation and is counted in `elastic_activations` too -- the extra
+    /// cost the rule is worth reporting -- while the partition above counts the RETRY's own
+    /// outcome, never the declined first attempt as well.
+    ///
+    /// EXCLUDES a decline already AT the floor (there is nothing to retry) and every rung A the
+    /// engine did not decline. Bounded by 1 per fallback entry.
+    Index elastic_floor_retries = 0;
 
     /// EQP refinement work, summed over every QP solve this driver spent --
     /// subproblems, SOC re-solves, elastic rungs and the restoration
