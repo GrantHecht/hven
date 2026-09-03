@@ -1189,6 +1189,10 @@ struct SqpIterate {
     /// evidence-informed placement was CLAMPED to it -- no escalation was then
     /// possible (ElasticLadderReport::rho0_ceiling_hit). False on every other row.
     bool elastic_rho0_ceiling_hit = false;
+    /// True iff THIS row's restoration request started the phase at a CANDIDATE point rather
+    /// than at the iterate -- the candidate's MEASURED violation was lower (sqp_driver.h's
+    /// RESTORATION PHASE note). False on every other row, INCLUDING a degraded-to-x seed.
+    bool restoration_seed_used = false;
     /// True iff the FULL-STEP WATCHDOG (SqpOptions::warm_full_step)
     /// restored an earlier best-||KKT||inf iterate ON THIS PASS, i.e. this
     /// row's f/stationarity/feasibility/kkt_residual/violation_l1 describe

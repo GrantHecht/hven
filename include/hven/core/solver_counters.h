@@ -1507,6 +1507,9 @@ struct SqpCounters {
     // REJECTED trial's evaluation (including one that went through SOC and
     // was still not promoted), the warm-resolution probe's f/cE/cI fetch
     // (sqp_driver.h's WARM-START INGEST note), and nothing else today.
+    // ONE EXCEPTION, W2 T4: a rejected trial that RESTORATION TOOK AS ITS
+    // SEED is upgraded in place at the request site, so that query moves to
+    // evals_full and out of evals_values -- the partition stays exact.
     //
     // BOTH ARE ZERO ON A SOLVE THAT NEVER MEASURED THE MODEL AT ALL -- there
     // is no such solve today (every solve_impl call evaluates at least the

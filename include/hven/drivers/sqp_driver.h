@@ -846,6 +846,9 @@
 //     (resolved to tr_max if it was +inf): a statement about how far the
 //     MODEL is trusted at this point, which does not change because the
 //     objective did.
+//   THE START POINT: the entry x, unless a request site offered a CANDIDATE
+//     whose measured h is lower (W2 T4) -- x + p_elastic clamped on the
+//     exhausted-ladder route, the rejected trial itself at the two floors.
 //   BUDGET: carried, and shared -- the sub-solve gets what is left of
 //     max_iter (see SqpCounters), so restoration cannot double a solve's
 //     worst-case cost.
