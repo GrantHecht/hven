@@ -1,0 +1,8 @@
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode (188 ms)
+[  FAILED  ] SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep (92 ms)
+[  FAILED  ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (3 ms)
+[==========] 49 tests from 5 test suites ran. (871 ms total)
+[  PASSED  ] 46 tests.
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode
+[  FAILED  ] SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep
+[  FAILED  ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale

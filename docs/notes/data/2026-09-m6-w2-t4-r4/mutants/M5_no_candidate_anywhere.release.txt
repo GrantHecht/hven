@@ -1,0 +1,14 @@
+[  FAILED  ] SqpDriverRestorationSeed.TheTakenCandidateIsRecordedOnTheRequestingRow (43 ms)
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode (189 ms)
+[  FAILED  ] SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep (40 ms)
+[  FAILED  ] SqpDriverRestorationSeed.TheRadiusFloorSeedsFromTheRejectedTrial (36 ms)
+[  FAILED  ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale (1 ms)
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce (59 ms)
+[==========] 49 tests from 5 test suites ran. (811 ms total)
+[  PASSED  ] 43 tests.
+[  FAILED  ] SqpDriverRestorationSeed.TheTakenCandidateIsRecordedOnTheRequestingRow
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedIsNotGatedOnTheQpMode
+[  FAILED  ] SqpDriverRestorationSeed.TheExhaustedLadderSiteSeedsFromItsOwnStep
+[  FAILED  ] SqpDriverRestorationSeed.TheRadiusFloorSeedsFromTheRejectedTrial
+[  FAILED  ] SqpDriverRestorationSeed.TheGuardAndThePhaseRunOnTheCallerScale
+[  FAILED  ] SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce
