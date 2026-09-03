@@ -9450,6 +9450,10 @@ TEST(SqpDriverCertifiedFallback, P4ARefusedRungAReturnsTheColdWalkCounterForCoun
     ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect);
     // AT THE FLOOR, so W2 T5's retry has nothing to retry and the identity is the one T3 landed:
     // one activation, one decline, rung B. The retry arm is the second half of this test.
+    //
+    // THE DECLINE IS THE ENGINE'S OWN (W2 T6b): the finite radius caps the SLACKS too, so the
+    // elastic copy is genuinely infeasible inside the window and kInfeasible is the right
+    // answer -- this refusal pin never rested on the misfire T6b covers.
     IpqpInfeasibilityEvidence floored = ires.infeasibility_evidence;
     floored.dual_norm_start = kElasticRhoInit;
     const W2FallbackRun run =
@@ -10058,4 +10062,516 @@ TEST(SqpDriverCertifiedFallback, TheDriverEmitsOneFallbackVerdictPerEscapeAndHS3
         EXPECT_EQ(sol.counters.elastic_from_ipqp_escape, 0);
         EXPECT_EQ(sol.counters.ipqp_fallback_rung_b, 0) << "an unfired entry is outside it";
     }
+}
+
+// ===========================================================================
+// M6 W2 T6b fix round 1 -- the VERDICT-SITE FACE REFINEMENT, mode-paired.
+//
+// Every pin below asserts the SAME verdict under both `ws_algebra` values.
+// That invariant is the finding: the misfire this task removes existed only
+// in kSchurBorder, and kRefactorize was the oracle that said so.
+// ===========================================================================
+
+namespace {
+
+/// `w2_box_blocked_qp`'s INEQUALITY sibling: `-x0 - x1 <= -5` on the same box. The row is
+/// VIOLATED at the elastic builder's reference point, so it is the inequality branch of
+/// `worst_structural_violation` that judges the slack it closes against.
+QpProblem w2_box_blocked_ineq_qp(double b) {
+    QpProblem qp = w2_box_blocked_qp(b);
+    qp.Ae = SpMatRM(0, 2);
+    qp.be = Vec(0);
+    qp.Ai = SpMatRM(1, 2);
+    qp.Ai.insert(0, 0) = -1.0;
+    qp.Ai.insert(0, 1) = -1.0;
+    qp.Ai.makeCompressed();
+    qp.bi = Vec(1);
+    qp.bi << -5.0;
+    return qp;
+}
+
+/// `w2_box_blocked_qp(10)` under curvature `c`: still CONSISTENT, but its row multiplier is
+/// -5c, so the exact penalty cannot shut the relaxation until rho*slack_scale passes it and the
+/// ladder has to climb. c = 4e5 puts |lambda*| at 2e6 and the closing rung at 1e7.
+QpProblem w2_stiff_consistent_qp(double c) {
+    QpProblem qp = w2_box_blocked_qp(10.0);
+    qp.H.coeffRef(0, 0) = 2.0 * c;
+    qp.H.coeffRef(1, 1) = 2.0 * c;
+    return qp;
+}
+
+/// THE UNCONTAINED ROUTE'S fixture: an inconsistent pair on x2 that NO penalty closes (so the
+/// ladder climbs to the ceiling) beside the consistent `x0 + x1 = 5` that closes there. The walk
+/// certifies the subproblem kInfeasible, which is what puts W1's IN-BRANCH ladder on it.
+QpProblem w2_mixed_blocked_consistent_qp() {
+    QpProblem qp;
+    qp.H = SpMatRM(3, 3);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.H.insert(2, 2) = 2.0;
+    qp.H.makeCompressed();
+    qp.g = Vec::Zero(3);
+    qp.Ae = SpMatRM(3, 3);
+    qp.Ae.insert(0, 0) = 1.0;
+    qp.Ae.insert(0, 1) = 1.0;
+    qp.Ae.insert(1, 2) = 1.0;
+    qp.Ae.insert(2, 2) = -1.0;
+    qp.Ae.makeCompressed();
+    qp.be = Vec(3);
+    qp.be << 5.0, 1.0, 1.0;
+    qp.Ai = SpMatRM(0, 3);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(3, -10.0);
+    qp.upper = Vec::Constant(3, 10.0);
+    return qp;
+}
+
+/// GUARD FIXTURE 1 (co-review F2): the antiparallel contradiction with ONE unrelated variable
+/// pinned at [1,1] carrying curvature `h22`. A global stationarity norm reads `h22` here while
+/// nothing in the data prices the contradicted rows, so any absorbency built on that norm
+/// certifies a violation of 1.0 on a unit row kOptimal once `h22` is large enough.
+QpProblem w2_antiparallel_with_pin_qp(double h22) {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(3, 3);
+    Hd(0, 0) = 2.0;
+    Hd(1, 1) = 2.0;
+    Hd(2, 2) = h22;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(3);
+    Eigen::MatrixXd Aed(2, 3);
+    Aed << 1.0, 1.0, 0.0, -1.0, -1.0, 0.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec::Constant(2, 1.0);
+    qp.Ai = SpMatRM(0, 3);
+    qp.bi = Vec(0);
+    qp.lower = Vec(3);
+    qp.lower << -10.0, -10.0, 1.0;
+    qp.upper = Vec(3);
+    qp.upper << 10.0, 10.0, 1.0;
+    return qp;
+}
+
+/// GUARD FIXTURE 2 (co-review F1): a FLAT contradiction of size `gap` on two unit rows in x0,
+/// plus one unrelated variable pinned at [1,1] carrying curvature `h11`. Ordinary SQP scales --
+/// a 1e-4 contradiction against a Hessian entry of 1e8 -- and the violation is 5e-5 on a row of
+/// scale 1, which no accuracy argument may absorb.
+QpProblem w2_pinned_contradiction_qp(double gap, double h11) {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(3, 3);
+    Hd(0, 0) = 1.0;
+    Hd(1, 1) = 1.0;
+    Hd(2, 2) = h11;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(3);
+    Eigen::MatrixXd Aed(2, 3);
+    Aed << 1.0, 0.0, 0.0, 1.0, 0.0, 0.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec(2);
+    qp.be << 0.0, gap;
+    qp.Ai = SpMatRM(0, 3);
+    qp.bi = Vec(0);
+    qp.lower = Vec(3);
+    qp.lower << -10.0, -10.0, 1.0;
+    qp.upper = Vec(3);
+    qp.upper << 10.0, 10.0, 1.0;
+    return qp;
+}
+
+/// One FRESH cold walk of `qp`'s elastic copy at penalty `rho`, regularization `dual_mu` and
+/// working-set algebra `alg` -- entry form (ii) of the defect report, the walk alone with no
+/// ladder around it.
+struct W2ElasticWalk {
+    QpStatus status = QpStatus::kOptimal;
+    double worst_resid = 0.0;       ///< max violation over the relaxed rows, original units.
+    double signed_ineq_resid = 0.0; ///< SIGNED max of Ai x - bi: negative means satisfied.
+    double slack_l1 = 0.0;
+    Index verdict_refine_steps = 0;
+    Index border_refine_steps = 0;
+    Vec x_orig;
+};
+
+W2ElasticWalk w2_walk_elastic(const QpProblem &qp, double rho, double dual_mu,
+                              WorkingSetLinearAlgebra alg) {
+    SqpOptions opts;
+    opts.qp.dual_mu = dual_mu;
+    opts.qp.ws_algebra = alg;
+    const ElasticQp e =
+        build_elastic_subproblem(qp, std::numeric_limits<double>::infinity(), rho, opts.feas_tol);
+    const QpSolution s = QpEngine(opts.qp).solve(e.qp, SolveOverrides{});
+    W2ElasticWalk out;
+    out.status = s.status;
+    out.slack_l1 = e.ns > 0 ? e.slack_violations(s.x).lpNorm<1>() : 0.0;
+    out.verdict_refine_steps = s.counters.verdict_refine_steps;
+    out.border_refine_steps = s.counters.border_refine_steps;
+    out.x_orig = s.x.head(e.n_orig);
+    if (e.qp.me() > 0) {
+        out.worst_resid =
+            std::max(out.worst_resid, (e.qp.Ae * s.x - e.qp.be).lpNorm<Eigen::Infinity>());
+    }
+    if (e.qp.mi() > 0) {
+        out.signed_ineq_resid = (e.qp.Ai * s.x - e.qp.bi).maxCoeff();
+        out.worst_resid = std::max(out.worst_resid, out.signed_ineq_resid);
+    }
+    return out;
+}
+
+QpStatus w2_plain_verdict(const QpProblem &qp, double dual_mu, WorkingSetLinearAlgebra alg) {
+    QpOptions opts;
+    opts.dual_mu = dual_mu;
+    opts.ws_algebra = alg;
+    return QpEngine(opts).solve(qp, SolveOverrides{}).status;
+}
+
+/// BOTH working-set algebras, in the order every mode-paired pin below reports them.
+const std::vector<WorkingSetLinearAlgebra> &w2_t6b_algebras() {
+    static const std::vector<WorkingSetLinearAlgebra> v{WorkingSetLinearAlgebra::kSchurBorder,
+                                                        WorkingSetLinearAlgebra::kRefactorize};
+    return v;
+}
+
+/// The census's regularization set, extended UP from the T6b package's on the co-review's
+/// finding: the driver's own schedule stops at 1e-8 but `QpOptions::dual_mu` is a caller
+/// setting, and 1e-3/1e-4 is where an unbounded absorbency would first bite.
+const std::vector<double> &w2_t6b_dual_mus() {
+    static const std::vector<double> v{1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6, 1.0e-8};
+    return v;
+}
+
+const std::vector<double> &w2_t6b_rhos() {
+    static const std::vector<double> v{1.0e6, 1.0e7, 1.0e8};
+    return v;
+}
+
+const char *w2_t6b_mode_name(WorkingSetLinearAlgebra alg) {
+    return alg == WorkingSetLinearAlgebra::kSchurBorder ? "kSchurBorder" : "kRefactorize";
+}
+
+} // namespace
+
+TEST(QpEngineStructuralViolation, T6bTrueInfeasibilityStillReadsKInfeasibleInBothAlgebras) {
+    // PIN 2, AND IT COMES FIRST (brief addendum 3): the population the fix must not touch is the
+    // one whose multipliers the data does NOT price. Every fixture here is genuinely infeasible
+    // at every point of its box, and every cell reads kInfeasible under BOTH algebras.
+    struct Fixture {
+        const char *name;
+        QpProblem qp;
+    };
+    const std::vector<Fixture> fixtures{{"antiparallel equalities", w2_antiparallel_eq_qp()},
+                                        {"inconsistent rows", w2_inconsistent_rows_qp()},
+                                        {"inconsistent scalar", w2_inconsistent_scalar_qp()},
+                                        {"box-blocked equality", w2_box_blocked_qp(0.5)},
+                                        {"box-blocked inequality", w2_box_blocked_ineq_qp(0.5)}};
+    for (const Fixture &f : fixtures) {
+        for (const double mu : w2_t6b_dual_mus()) {
+            for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+                SCOPED_TRACE(std::string(f.name) + " dual_mu " + std::to_string(mu) + " " +
+                             w2_t6b_mode_name(alg));
+                EXPECT_EQ(w2_plain_verdict(f.qp, mu, alg), QpStatus::kInfeasible);
+            }
+        }
+    }
+}
+
+TEST(QpEngineStructuralViolation, T6bTheGuardContradictionsAreNotAbsorbedInEitherAlgebra) {
+    // THE TWO ADVERSARIAL SHAPES the withdrawn absorbency failed on, kept as standing guards:
+    // a contradiction whose rows nothing prices beside a hugely-curved unrelated pin, and an
+    // ordinary badly-scaled SQP subproblem whose contradiction is small.
+    struct Fixture {
+        const char *name;
+        QpProblem qp;
+    };
+    const std::vector<Fixture> fixtures{
+        {"antiparallel + pin H22 = 1e13", w2_antiparallel_with_pin_qp(1.0e13)},
+        {"antiparallel + pin H22 = 1e14", w2_antiparallel_with_pin_qp(1.0e14)},
+        {"gap 1e-2, H11 = 1e10", w2_pinned_contradiction_qp(1.0e-2, 1.0e10)},
+        {"gap 1e-4, H11 = 1e8", w2_pinned_contradiction_qp(1.0e-4, 1.0e8)},
+        {"gap 1e-4, H11 = 1e10", w2_pinned_contradiction_qp(1.0e-4, 1.0e10)}};
+    for (const Fixture &f : fixtures) {
+        for (const double mu : w2_t6b_dual_mus()) {
+            for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+                SCOPED_TRACE(std::string(f.name) + " dual_mu " + std::to_string(mu) + " " +
+                             w2_t6b_mode_name(alg));
+                EXPECT_EQ(w2_plain_verdict(f.qp, mu, alg), QpStatus::kInfeasible);
+            }
+        }
+    }
+}
+
+TEST(QpEngineStructuralViolation, T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible) {
+    // PIN 1, THE DEFECT ITSELF, and the mode-pairing that identifies it. At BASE the walk read
+    // kInfeasible on 8 of these 30 border-mode cells and on NONE of the 30 refactorize ones;
+    // after the verdict-site refinement the two algebras agree on all 30.
+    const QpProblem qp = w2_box_blocked_qp(10.0);
+    const QpSolution walk = w2_cold_walk(qp);
+    ASSERT_EQ(walk.status, QpStatus::kOptimal);
+    for (const double mu : {1.0e-5, 1.0e-6, 1.0e-8}) {
+        for (const double rho : w2_t6b_rhos()) {
+            for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+                SCOPED_TRACE("dual_mu " + std::to_string(mu) + " rho " + std::to_string(rho) + " " +
+                             w2_t6b_mode_name(alg));
+                const W2ElasticWalk run = w2_walk_elastic(qp, rho, mu, alg);
+                EXPECT_EQ(run.status, QpStatus::kOptimal);
+                EXPECT_LE(run.slack_l1, SqpOptions{}.feas_tol) << "the row must CLOSE";
+                EXPECT_LE(run.worst_resid, 1.0e-3);
+                EXPECT_LT((run.x_orig - walk.x).lpNorm<Eigen::Infinity>(), 1.0e-3);
+            }
+        }
+    }
+    // THE T3 CELLS, two-sided at the shipped dual_mu -- the exact pair the W2 T3 review measured
+    // as 6.5e-7 and 6.5e-6 kInfeasible. Border mode now lands within a factor 20 of refactorize's
+    // own residual instead of nine decades above it.
+    for (const double rho : {1.0e7, 1.0e8}) {
+        SCOPED_TRACE("T3 cell rho " + std::to_string(rho));
+        const W2ElasticWalk bordered =
+            w2_walk_elastic(qp, rho, 1.0e-8, WorkingSetLinearAlgebra::kSchurBorder);
+        EXPECT_EQ(bordered.status, QpStatus::kOptimal);
+        EXPECT_LT(bordered.worst_resid, 1.0e-10);
+        EXPECT_GT(bordered.verdict_refine_steps, 0) << "and the refinement is what bought it";
+    }
+    // AND THE ELIMINATED PATH PAYS NOTHING: it never had the residue, so it never enters.
+    EXPECT_EQ(w2_walk_elastic(qp, 1.0e8, 1.0e-8, WorkingSetLinearAlgebra::kRefactorize)
+                  .verdict_refine_steps,
+              0);
+}
+
+TEST(QpEngineStructuralViolation, T6bTheStiffFamilyClosesInBothAlgebras) {
+    // ADDENDUM 2's ESCALATION SIDE, NOW MET. The residue's constant is the HESSIAN's scale, so
+    // no bound read off `g + H x` could ever cover this family -- but the refinement fixes the
+    // POINT, and the whole c x rho grid closes with the two algebras agreeing on every cell.
+    for (const double c : {1.0, 10.0, 30.0, 1.0e2, 1.0e3, 1.0e4, 4.0e5}) {
+        const QpProblem qp = w2_stiff_consistent_qp(c);
+        for (const double rho : w2_t6b_rhos()) {
+            for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+                SCOPED_TRACE("c " + std::to_string(c) + " rho " + std::to_string(rho) + " " +
+                             w2_t6b_mode_name(alg));
+                const W2ElasticWalk run = w2_walk_elastic(qp, rho, SqpOptions{}.qp.dual_mu, alg);
+                EXPECT_EQ(run.status, QpStatus::kOptimal);
+                EXPECT_LE(run.worst_resid, 1.0e-3);
+            }
+        }
+    }
+    // THE CELL ADDENDUM 2 NAMED, |lambda*| = 2e6 with its closing rung at 1e7: kInfeasible at
+    // BASE with residual 1.7e-1, and the ladder's own top rung 2.1e0. Both close now.
+    const QpProblem stiff = w2_stiff_consistent_qp(4.0e5);
+    ASSERT_GT(std::abs(w2_cold_walk(stiff).lambda_e(0)), 1.0e6);
+    for (double rho = kElasticRhoInit; rho <= kElasticRhoMax; rho *= kElasticRhoFactor) {
+        SCOPED_TRACE("climbing rung rho " + std::to_string(rho));
+        EXPECT_EQ(w2_walk_elastic(stiff, rho, SqpOptions{}.qp.dual_mu,
+                                  WorkingSetLinearAlgebra::kSchurBorder)
+                      .status,
+                  QpStatus::kOptimal);
+    }
+}
+
+TEST(QpEngineStructuralViolation, T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide) {
+    // THE ADDENDUM'S SIBLING, AND WHAT MEASURING IT SETTLED. A working-set inequality's residue
+    // lands on the SATISFIED side, so `worst_structural_violation`'s `v > 0` guard short-circuits
+    // and the elastic route cannot drive that branch at all. Pinned by its SIGN, not narrated.
+    const QpProblem qp = w2_box_blocked_ineq_qp(10.0);
+    const QpSolution walk = w2_cold_walk(qp);
+    ASSERT_EQ(walk.status, QpStatus::kOptimal);
+    // THE SIGN ITSELF, strictly, where it was measured: the border route at the shipped dual_mu.
+    for (const double rho : w2_t6b_rhos()) {
+        SCOPED_TRACE("signed residue at rho " + std::to_string(rho));
+        const W2ElasticWalk bordered = w2_walk_elastic(qp, rho, SqpOptions{}.qp.dual_mu,
+                                                       WorkingSetLinearAlgebra::kSchurBorder);
+        EXPECT_LE(bordered.signed_ineq_resid, 0.0);
+        EXPECT_DOUBLE_EQ(bordered.worst_resid, 0.0) << "so `v > 0` short-circuits the branch";
+    }
+    for (const double mu : {1.0e-5, 1.0e-6, 1.0e-8}) {
+        for (const double rho : w2_t6b_rhos()) {
+            for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+                SCOPED_TRACE("dual_mu " + std::to_string(mu) + " rho " + std::to_string(rho) + " " +
+                             w2_t6b_mode_name(alg));
+                const W2ElasticWalk run = w2_walk_elastic(qp, rho, mu, alg);
+                EXPECT_EQ(run.status, QpStatus::kOptimal);
+                EXPECT_LE(run.slack_l1, SqpOptions{}.feas_tol);
+                EXPECT_LE(run.signed_ineq_resid, SqpOptions{}.feas_tol)
+                    << "the residue is on the SATISFIED side, up to the eliminated path's 5e-12";
+                EXPECT_LT((run.x_orig - walk.x).lpNorm<Eigen::Infinity>(), 1.0e4 * mu * mu * rho);
+            }
+        }
+    }
+}
+
+TEST(QpEngineStructuralViolation, T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN) {
+    // PIN 3. `w2_box_blocked_qp(0.5)` is infeasible, so its elastic copy's slack stays OPEN at
+    // every rho -- the row is priced BY THE PENALTY and the residual stays at the solve's own
+    // noise. Nothing here moved, in either algebra, and the pin says so at both ends.
+    const QpProblem qp = w2_box_blocked_qp(0.5);
+    for (const double rho : w2_t6b_rhos()) {
+        for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+            SCOPED_TRACE("rho " + std::to_string(rho) + " " + w2_t6b_mode_name(alg));
+            const W2ElasticWalk run = w2_walk_elastic(qp, rho, SqpOptions{}.qp.dual_mu, alg);
+            EXPECT_EQ(run.status, QpStatus::kOptimal);
+            EXPECT_GT(run.slack_l1, SqpOptions{}.feas_tol) << "open, or this is the wrong sibling";
+            EXPECT_EQ(run.verdict_refine_steps, 0) << "a kOptimal dead end never enters it";
+        }
+    }
+}
+
+TEST(QpEngineStructuralViolation, T6bTheMisfireCensusOverBothPopulationsAndBothAlgebras) {
+    // PIN 5, BOTH POPULATIONS, BOTH ALGEBRAS. One sweep, two counts: a FEASIBLE subproblem whose
+    // elastic copy is certified kInfeasible, and an INCONSISTENT subproblem the walk lets through
+    // as kOptimal. The second is the direction a widened tolerance would have regressed.
+    //
+    // THE BASE COLUMN IS ASSERTED, not a tautology: the same sweep against the 23e884a binary
+    // reads 12 and 0, all 12 of them in kSchurBorder (5 on the boxed equality, 5 on its c = 1e2
+    // stiffening, 2 on c = 4e5). That is what makes this guard able to fail.
+    Index feasible_certified_infeasible = 0;
+    Index inconsistent_certified_optimal = 0;
+    Index cells = 0;
+    const std::vector<QpProblem> feasible{w2_box_blocked_qp(10.0), w2_box_blocked_ineq_qp(10.0),
+                                          w2_stiff_consistent_qp(1.0e2)};
+    const std::vector<QpProblem> inconsistent{w2_antiparallel_eq_qp(),
+                                              w2_inconsistent_rows_qp(),
+                                              w2_inconsistent_scalar_qp(),
+                                              w2_box_blocked_qp(0.5),
+                                              w2_box_blocked_ineq_qp(0.5),
+                                              w2_antiparallel_with_pin_qp(1.0e13),
+                                              w2_pinned_contradiction_qp(1.0e-4, 1.0e8),
+                                              w2_pinned_contradiction_qp(1.0e-2, 1.0e10)};
+    for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+        for (const double rho : w2_t6b_rhos()) {
+            for (const double mu : {1.0e-6, 1.0e-8}) {
+                for (const QpProblem &qp : feasible) {
+                    ++cells;
+                    feasible_certified_infeasible +=
+                        w2_walk_elastic(qp, rho, mu, alg).status == QpStatus::kInfeasible ? 1 : 0;
+                }
+            }
+            // c = 4e5 at the SHIPPED dual_mu only: above it this fixture leaves the class this
+            // census is about and enters the pre-existing one the disclosure pin below carries.
+            ++cells;
+            feasible_certified_infeasible +=
+                w2_walk_elastic(w2_stiff_consistent_qp(4.0e5), rho, 1.0e-8, alg).status ==
+                        QpStatus::kInfeasible
+                    ? 1
+                    : 0;
+        }
+    }
+    for (const double mu : w2_t6b_dual_mus()) {
+        for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+            for (const QpProblem &qp : inconsistent) {
+                ++cells;
+                inconsistent_certified_optimal +=
+                    w2_plain_verdict(qp, mu, alg) == QpStatus::kOptimal ? 1 : 0;
+            }
+        }
+    }
+    EXPECT_EQ(feasible_certified_infeasible, 0);
+    EXPECT_EQ(inconsistent_certified_optimal, 0);
+    EXPECT_EQ(cells, 122) << "the census population itself is the pin's other half";
+}
+
+TEST(QpEngineStructuralViolation, T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED) {
+    // THE RESIDUE T6b DOES NOT TOUCH, disclosed so the census's population reads honestly. Above
+    // the shipped dual_mu a stiff elastic copy sends the BORDER walk to a box corner: the row is
+    // off by 15 with the slack SHUT, and kInfeasible is read off a point, not off a tolerance.
+    //
+    // It is the WALK'S trajectory, not the classification -- the face at that corner is
+    // over-determined and the refinement correctly declines to adopt anything. Byte-stable
+    // against 23e884a in both directions, and kRefactorize walks elsewhere and says kOptimal.
+    const QpProblem qp = w2_stiff_consistent_qp(1.0e3);
+    const W2ElasticWalk bordered =
+        w2_walk_elastic(qp, 1.0e6, 1.0e-5, WorkingSetLinearAlgebra::kSchurBorder);
+    EXPECT_EQ(bordered.status, QpStatus::kInfeasible);
+    EXPECT_DOUBLE_EQ(bordered.worst_resid, 15.0);
+    EXPECT_LE(bordered.slack_l1, SqpOptions{}.feas_tol);
+    EXPECT_EQ(bordered.verdict_refine_steps, 0) << "nothing was adopted, so nothing was counted";
+    EXPECT_EQ(w2_walk_elastic(qp, 1.0e6, 1.0e-5, WorkingSetLinearAlgebra::kRefactorize).status,
+              QpStatus::kOptimal);
+}
+
+TEST(SqpDriverElasticSeed, T6bAClimbingConsistentLadderClosesAtEveryRung) {
+    // ADDENDUM 2's ESCALATION SIDE at the LADDER, not at the walk. A ladder climbs only while
+    // the relaxation is OPEN, so a stiff consistent row FORCES the climb -- and a top cap on rho
+    // would turn it into a false EXHAUSTION into restoration.
+    const QpProblem qp = w2_stiff_consistent_qp(1.0e4);
+    const QpSolution walk = w2_cold_walk(qp);
+    ASSERT_EQ(walk.status, QpStatus::kOptimal);
+    ASSERT_GT(std::abs(walk.lambda_e(0)), 1.0e4) << "the fixture must be stiff, or it never climbs";
+    const W2LadderRun climbed = w2_run_ladder(qp, nullptr);
+    EXPECT_EQ(climbed.report.qp_status, QpStatus::kOptimal);
+    EXPECT_TRUE(climbed.report.closed) << "the exact penalty closes a consistent row";
+    EXPECT_TRUE(climbed.report.usable);
+    EXPECT_EQ(climbed.counters.elastic_escalations, 3) << "floor 1e2 -> 1e5, and it really climbed";
+}
+
+TEST(SqpDriverElasticSeed, T6bTheLadderAboveLambda1e6ClosesToo) {
+    // ADDENDUM 2's ITEM AS WRITTEN: |lambda*| >= 1e6, whose closing rung sits at 1e7 -- inside
+    // the band the T6b package could not cover and registered as an unfixable residue. It is
+    // covered now, because the refinement moves the POINT rather than widening a tolerance.
+    const QpProblem qp = w2_stiff_consistent_qp(4.0e5);
+    ASSERT_GT(std::abs(w2_cold_walk(qp).lambda_e(0)), 1.0e6);
+    const W2LadderRun climbed = w2_run_ladder(qp, nullptr);
+    EXPECT_EQ(climbed.report.qp_status, QpStatus::kOptimal);
+    EXPECT_TRUE(climbed.report.closed);
+    EXPECT_TRUE(climbed.report.usable);
+    EXPECT_EQ(climbed.counters.elastic_escalations, 5) << "floor 1e2 -> 1e7, the closing rung";
+}
+
+TEST(SqpDriverElasticSeed, T6bTheUncontainedInBranchRouteNoLongerDeclines) {
+    // ADDENDUM 2's UNCONTAINED ROUTE. In the certified fallback a misfire is contained (decline
+    // -> floor retry -> rung B); on W1's IN-BRANCH route it is not -- walk kInfeasible -> ladder
+    // -> false DECLINE -> !usable -> restoration off a false signal.
+    //
+    // BEFORE, MEASURED against the 23e884a binary rather than inferred: this ladder reported
+    // qp_status kInfeasible and usable == false. The fields the driver actually branches on are
+    // `usable` and `closed`, so both are pinned here.
+    const QpProblem qp = w2_mixed_blocked_consistent_qp();
+    const QpSolution failed = w2_cold_walk(qp);
+    ASSERT_EQ(failed.status, QpStatus::kInfeasible) << "or W1's in-branch route is never entered";
+
+    SqpOptions opts;
+    QpEngine engine(opts.qp);
+    SqpCounters counters;
+    const ElasticSeedSource failed_arm{&failed, nullptr};
+    const ElasticLadderReport report = run_elastic_ladder(
+        engine, qp, failed_arm, std::numeric_limits<double>::infinity(), opts, counters);
+    EXPECT_EQ(report.qp_status, QpStatus::kOptimal) << "EXHAUSTED is a verdict; DECLINED was a bug";
+    EXPECT_TRUE(report.usable) << "the field the driver branches on, not the status";
+    EXPECT_FALSE(report.closed) << "the inconsistent pair on x2 can never shut";
+    EXPECT_GT(counters.elastic_escalations, 0) << "the ladder must reach the band it misfired in";
+    EXPECT_DOUBLE_EQ(w2_last_rung_rho(report), kElasticRhoMax);
+}
+
+TEST(SqpDriverElasticSeed, T6bCoversTheBandWhereThePlacementMarginIsUnachievable) {
+    // ADDENDUM 2's LAST RESIDUE, NAMED HONESTLY. T5's bound is
+    // `kElasticRhoDualMuSafety / dual_mu` SUBJECT TO the kElasticRhoInit floor, so at
+    // dual_mu >= 1e-4 the floor wins and the product is >= 1e-2 at the cheapest placement.
+    //
+    // What T6b delivers there is the FIRST RUNG, measured: the ladder closes at the floor with a
+    // row residual of 1.6e-6 (border) against 6.1e-4 at BASE. It does NOT make every rung of
+    // that band usable -- see the disclosure pin below.
+    const double mu = 1.0e-4;
+    ASSERT_LE(kElasticRhoDualMuSafety / mu, kElasticRhoInit) << "the margin must be unachievable";
+    const QpProblem qp = w2_box_blocked_qp(10.0);
+    for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+        SCOPED_TRACE(w2_t6b_mode_name(alg));
+        const W2ElasticWalk floor_rung = w2_walk_elastic(qp, kElasticRhoInit, mu, alg);
+        EXPECT_EQ(floor_rung.status, QpStatus::kOptimal);
+        EXPECT_LE(floor_rung.slack_l1, SqpOptions{}.feas_tol);
+        EXPECT_LT(floor_rung.worst_resid, 1.0e-5);
+    }
+    const W2LadderRun run = w2_run_ladder(qp, nullptr, std::numeric_limits<double>::infinity(), mu);
+    EXPECT_EQ(run.report.qp_status, QpStatus::kOptimal);
+    EXPECT_TRUE(run.report.closed);
+    EXPECT_DOUBLE_EQ(w2_last_rung_rho(run.report), kElasticRhoInit);
+}
+
+TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue) {
+    // THE DISCLOSURE the band pin must not swallow. At dual_mu >= 1e-4 and rho >= 1e7 the walk
+    // takes a different working set entirely and reports kOptimal on a point whose row is off by
+    // 15 with the slack SHUT -- condition (b)'s blind spot, not the misfire T6b covers.
+    //
+    // UNCHANGED by this task, in both directions: the same cell reads the same way at 23e884a.
+    // It is pinned so nobody reads "the band is covered" off the pin above.
+    const QpProblem qp = w2_box_blocked_qp(10.0);
+    const W2ElasticWalk high =
+        w2_walk_elastic(qp, 1.0e8, 1.0e-4, WorkingSetLinearAlgebra::kSchurBorder);
+    EXPECT_EQ(high.status, QpStatus::kOptimal);
+    EXPECT_LE(high.slack_l1, SqpOptions{}.feas_tol) << "the slack is shut and the row is still off";
+    EXPECT_GT(high.worst_resid, 1.0) << "a residual no verdict should be read off";
+    EXPECT_EQ(high.verdict_refine_steps, 0) << "the classifier never called it structural";
 }

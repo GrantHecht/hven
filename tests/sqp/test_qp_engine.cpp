@@ -842,6 +842,41 @@ TEST(QpEngine, ObjectiveInflatedMultiplierHidesASmallContradiction) {
               QpStatus::kOptimal); // KNOWN MISS: contradiction hidden by footprint
 }
 
+TEST(QpEngine, T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras) {
+    // M6 W2 T6b fix round 1: the (ii)-direction fixture, MODE-PAIRED. It carries no border at
+    // the classified point, so the two algebras must agree cell for cell -- and this family is
+    // where a widened tolerance would first certify a contradiction kOptimal.
+    for (const WorkingSetLinearAlgebra alg :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        QpOptions opts;
+        opts.ws_algebra = alg;
+        SCOPED_TRACE(alg == WorkingSetLinearAlgebra::kSchurBorder ? "kSchurBorder"
+                                                                  : "kRefactorize");
+        EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-2, 3e-4)).status,
+                  QpStatus::kInfeasible);
+        EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(3e-3, 3e-4)).status,
+                  QpStatus::kInfeasible);
+        EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-3, 3e-4)).status,
+                  QpStatus::kOptimal); // the KNOWN MISS above, in both algebras
+    }
+}
+
+TEST(QpEngine, T6bANonFiniteDualMuLeavesTheRowToleranceFinite) {
+    // `dual_mu` is validated against NaN and negatives but +inf is a legal setting the SQP
+    // driver branches on, and `row_tolerance`'s CAP is what keeps the tolerance finite there
+    // (at lambda == 0 the resulting NaN loses to feas_tol*row_scale in the max).
+    //
+    // Regression guard for any future absorbency that multiplies by dual_mu without a cap: an
+    // infinite tolerance makes kInfeasible unreachable engine-wide, silently and totally.
+    QpOptions opts;
+    opts.dual_mu = std::numeric_limits<double>::infinity();
+    // MEASURED, and it is kMaxIter rather than kInfeasible on both: an infinite dual_mu poisons
+    // the factorization long before the classification, so the walk exhausts its budget. What
+    // this pins is that neither problem is CERTIFIED, which an infinite tolerance would do.
+    EXPECT_EQ(QpEngine{opts}.solve(inconsistent_equalities_qp()).status, QpStatus::kMaxIter);
+    EXPECT_EQ(QpEngine{opts}.solve(infeasible_bounds_qp()).status, QpStatus::kMaxIter);
+}
+
 TEST(QpEngine, LargeButLegitimateSolutionsAreOptimalNotNumericalError) {
     // The runaway guard must be BOUND-RELATIVE. A large ||x|| is only
     // suspicious when nothing bounds the component it grew in; a variable
