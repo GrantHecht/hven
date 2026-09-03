@@ -1,10 +1,12 @@
-hven M6 W2 T4 fix round 1 -- mutation runs (both configs).
+hven M6 W2 T4 fix rounds 1-2 -- mutation runs (both configs).
 
 apply-mutant.py rewrites src/drivers/sqp_driver.cpp from a pristine copy; each run is
     ninja -C build-w02/<cfg> hven_sqp_tests
     ./build-w02/<cfg>/tests/sqp/hven_sqp_tests \
         --gtest_filter='SqpDriverRestoration*:SqpDriverRadius*:SqpDriverSsnMode*:RestorationModel*'
-(49 tests). The files here are the FAILED/PASSED lines of each run.
+(49 tests through fix round 1; 50 from fix round 2's
+AJacobianPoisonedCandidateIsRefusedNotTaken onward). The files here are the FAILED/PASSED
+lines of each run.
 
   M1_qp_mode_gate          the candidate block gated on qp_mode == kWalk (the scope
                            decision owner ruling Q-O3 overturned)
@@ -23,10 +25,13 @@ apply-mutant.py rewrites src/drivers/sqp_driver.cpp from a pristine copy; each r
   M6_engine_scale_guard    the guard reverted to the ENGINE-scale h on both sides
                            -> DIES both configs: TheGuardAndThePhaseRunOnTheCallerScale
   M7_no_jacobian_screen    jacobian_values_finite() dropped from both arms
-                           -> SURVIVES both configs. Declared: no fixture in this
-                              repository can offer a candidate with finite values and a
-                              non-finite Jacobian without also poisoning the ENTRY
-                              bundle (the same non-screening hole is pre-existing at the
-                              entry), and every construction tried exits kNumericalError
-                              before restoration is ever requested. Registered for T7,
-                              where an HVEN_TESTING seam is the mechanism.
+                           -> NO LONGER A SURVIVOR (fix round 2): the round 1 declaration
+                              (no fixture can offer a finite-values/non-finite-Jacobian
+                              candidate) was refuted by an ORDINAL-KEYED poison --
+                              JacobianPoisonedAtOrdinalModel poisons the k-th DISTINCT
+                              point eval_jac_e is queried at, not a spatial predicate, so
+                              the candidate's OWN Jacobian (not its values bundle) goes
+                              non-finite without touching the entry. DIES both configs:
+                              AJacobianPoisonedCandidateIsRefusedNotTaken (k = 20 both
+                              configs on InfeasibleCircleLineModel(2.0, 2.0),
+                              ws_algebra = kRefactorize).

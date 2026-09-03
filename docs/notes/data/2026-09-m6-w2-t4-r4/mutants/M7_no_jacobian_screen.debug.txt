@@ -1,2 +1,5 @@
-[==========] 49 tests from 5 test suites ran. (2995 ms total)
+[  FAILED  ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken (3600 ms)
+[==========] 50 tests from 5 test suites ran. (6622 ms total)
 [  PASSED  ] 49 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken

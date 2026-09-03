@@ -1422,6 +1422,40 @@ class NanAwayFromStartModel final : public InfeasibleCircleLineModel {
     }
 };
 
+// The circle/line fixture with the JACOBIAN (not the values) poisoned to NaN
+// at the k-th DISTINCT point eval_jac_e is queried at -- ordinal-keyed, no
+// driver knowledge: a point re-queried (the values-then-full upgrade) counts once.
+class JacobianPoisonedAtOrdinalModel final : public InfeasibleCircleLineModel {
+  public:
+    explicit JacobianPoisonedAtOrdinalModel(Index k) : InfeasibleCircleLineModel(2.0, 2.0), k_(k) {}
+
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j = InfeasibleCircleLineModel::eval_jac_e(x);
+        Index ord = -1;
+        for (Index i = 0; i < static_cast<Index>(points_.size()); ++i) {
+            if (points_[i].size() == x.size() && points_[i] == x) {
+                ord = i + 1;
+                break;
+            }
+        }
+        if (ord < 0) {
+            points_.push_back(x);
+            ord = static_cast<Index>(points_.size());
+        }
+        if (ord == k_) {
+            j.valuePtr()[0] = std::numeric_limits<double>::quiet_NaN();
+            ++poisoned;
+        }
+        return j;
+    }
+
+    mutable Index poisoned = 0;
+
+  private:
+    Index k_;
+    mutable std::vector<Vec> points_;
+};
+
 // ROW FACTORS THAT ACTUALLY SPREAD, inside a box: row 0's Jacobian is 1e4 and
 // rows 1-2's are 90, so W0.2 scales row 0 by 1e-2 and leaves the others at 1
 // (measured row_min 0.01, row_max 1) -- min 1/2||x||^2 on 0 <= x <= 1.
@@ -1674,6 +1708,46 @@ TEST(SqpDriverRestorationSeed, ANonFiniteEvaluationAtTheCandidateIsRefused) {
     // THE NON-FINITE-POINT GUARD (`cand.x->allFinite()`) IS DELIBERATELY
     // UNPINNED and disowned here: no kOptimal elastic rung and no judged trial
     // can produce a non-finite POINT, so it is defensive, not reachable.
+}
+
+// A CANDIDATE WITH A NON-FINITE JACOBIAN (values finite): jacobian_values_finite
+// (sqp_driver.cpp) is the only screen against it. k sweeps [1, 40) -- EXISTS a
+// refused-candidate k (certifies, no seed) and NO k with M7's taken-then-died signature.
+TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
+    // THE CANDIDATE'S OWN k is build-arithmetic-dependent in general; every
+    // OTHER k is unaffected by the M7 mutation below, since the guard is read
+    // only inside the candidate-seeding block enter_restoration owns.
+    bool found_refused_signature = false;
+    Index refused_at_k = -1;
+    for (Index k = 1; k < 40; ++k) {
+        SCOPED_TRACE(fmt::format("k = {}", k));
+        JacobianPoisonedAtOrdinalModel model(k);
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        SqpDriver driver(opts);
+        const SqpSolution sol = driver.solve(model);
+
+        const bool refused_signature = sol.status == SqpStatus::kInfeasible &&
+                                       sol.infeasibility_certified && seeded_rows(sol) == 0 &&
+                                       sol.counters.restoration_iters >= 1 && model.poisoned == 1;
+        // THE KILL: mutant M7 (jacobian_values_finite dropped) reaches this
+        // signature at the candidate's own k -- taken, poisoned, sub-solve dies.
+        const bool m7_signature = seeded_rows(sol) == 1 && model.poisoned >= 1 &&
+                                  sol.status == SqpStatus::kNumericalError &&
+                                  sol.counters.restoration_iters == 0;
+        EXPECT_FALSE(m7_signature) << "the Jacobian screen let a poisoned candidate through and "
+                                      "the sub-solve died on it (M7's signature)";
+        if (refused_signature) {
+            found_refused_signature = true;
+            refused_at_k = k;
+        }
+    }
+    EXPECT_TRUE(found_refused_signature)
+        << "no k in [1, 40) produced the refused-candidate signature";
+    // NAMED so a re-derive has a number to check, not only the existential
+    // claim: measured k = 20 in BOTH configs on this fixture.
+    EXPECT_EQ(20, refused_at_k);
 }
 
 // THE RADIUS FLOOR'S SITE, whose candidate is the REJECTED TRIAL and whose
