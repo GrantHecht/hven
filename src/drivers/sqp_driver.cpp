@@ -850,17 +850,26 @@ void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res) {
 
 namespace {
 
-// AMENDMENT H, Q-S4 AT c = 1: a FIRED block's own multiplier norm places the first rung, FLOORED
-// at today's start so the ladder is never entered cheaper than W1's, and CAPPED at kElasticRhoMax
-// so it never starts above the ceiling the escalation bound is stated against.
-double elastic_initial_rho(const ElasticSeedSource &seed, bool &ceiling_hit) {
+// AMENDMENT H, Q-S4 AT c = 1, WITH W2 T5's TWO CAPS: the FIRED block's multiplier norm places the
+// first rung, FLOORED at today's start and capped by the escalation headroom and the
+// dual-regularization safety margin -- sqp_driver.h's THE PLACEMENT BOUND has the rule.
+double elastic_initial_rho(const ElasticSeedSource &seed, double dual_mu, bool &ceiling_hit) {
     ceiling_hit = false;
     if (seed.evidence == nullptr || !seed.evidence->fired ||
         !std::isfinite(seed.evidence->dual_norm_start)) {
         return kElasticRhoInit;
     }
-    ceiling_hit = seed.evidence->dual_norm_start >= kElasticRhoMax;
-    return std::min(kElasticRhoMax, std::max(kElasticRhoInit, seed.evidence->dual_norm_start));
+    const double priced = std::max(kElasticRhoInit, seed.evidence->dual_norm_start);
+    double cap = kElasticRhoMax / kElasticRhoFactor;
+    // A dual_mu of zero or worse prices nothing -- the walk's misfire is proportional to the
+    // product, so no product means no cap, and the headroom one still stands.
+    if (std::isfinite(dual_mu) && dual_mu > 0.0) {
+        cap = std::min(cap, kElasticRhoDualMuSafety / dual_mu);
+    }
+    ceiling_hit = priced > cap;
+    // THE FLOOR OUTRANKS BOTH CAPS: a cap below kElasticRhoInit would enter the ladder cheaper
+    // than W1's own start, which amendment H's floor exists to forbid.
+    return std::max(kElasticRhoInit, std::min(priced, cap));
 }
 
 // THE EVIDENCE ARM'S SEED: a WORKING SET, not a point. Which rows and bounds are TIGHT at the
@@ -950,7 +959,8 @@ QpSolution elastic_evidence_seed(const ElasticQp &e, const QpProblem &qp,
 
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
-                                       const SqpOptions &opts, SqpCounters &out) {
+                                       const SqpOptions &opts, SqpCounters &out,
+                                       std::optional<double> rho_0_override) {
     // VALIDATED AT THE BOUNDARY (CLAUDE.md section 4): a negative or NaN window crosses the
     // elastic box silently -- `build_elastic_subproblem` clamps lo/up against it with no check.
     if (!(window >= 0.0)) {
@@ -962,7 +972,11 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     // BOTH HARD-WIRED SITES MOVE TOGETHER -- the construction's penalty and the ladder's own
     // `rho` -- or the ladder would start at one penalty and escalate from another.
     bool rho0_ceiling_hit = false;
-    const double rho_0 = elastic_initial_rho(seed, rho0_ceiling_hit);
+    // AN OVERRIDDEN PLACEMENT IS THE CALLER'S OWN, not a reading of the evidence: it is clamped
+    // into the ladder's own range and reported as UNCLAMPED, because no cap refused anything.
+    const double rho_0 = rho_0_override.has_value()
+                             ? std::min(kElasticRhoMax, std::max(kElasticRhoInit, *rho_0_override))
+                             : elastic_initial_rho(seed, opts.qp.dual_mu, rho0_ceiling_hit);
     if (rho0_ceiling_hit) {
         ++out.elastic_rho0_ceiling_hits;
     }
@@ -1075,6 +1089,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     report.qp_minor_iters = qs_e.counters.minor_iters;
     report.qp_factorizations = qs_e.counters.factorizations;
     report.step_norm = p_elastic.size() > 0 ? p_elastic.lpNorm<Eigen::Infinity>() : 0.0;
+    report.rho_0 = rho_0;
     report.rho0_ceiling_hit = rho0_ceiling_hit;
     report.elastic = std::move(elastic);
     report.qs_e = std::move(qs_e);
@@ -1117,7 +1132,17 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     const ElasticSeedSource elastic_seed_source{nullptr, &evidence};
     ElasticLadderReport report =
         run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out);
+    // THE RETRY AT THE FLOOR (W2 T5): a price the engine declined is a failed hint, not a
+    // verdict on the reformulation, so W1's own penalty gets one attempt before rung B. It is
+    // charged as the second activation it is, and the partition reads THIS ladder's outcome.
+    if (report.qp_status != QpStatus::kOptimal && report.rho_0 > kElasticRhoInit) {
+        ++out.elastic_floor_retries;
+        verdict.floor_retry = true;
+        report =
+            run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out, kElasticRhoInit);
+    }
     verdict.entered_rung_a = true;
+    verdict.rho_0 = report.rho_0;
     verdict.rho0_ceiling_hit = report.rho0_ceiling_hit;
     verdict.qp_minor_iters = report.qp_minor_iters;
     verdict.qp_factorizations = report.qp_factorizations;

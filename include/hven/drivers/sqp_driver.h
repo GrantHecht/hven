@@ -2087,10 +2087,12 @@ struct ElasticLadderReport {
     Index qp_minor_iters = 0;                ///< qs_e's own count, for the row.
     Index qp_factorizations = 0;             ///< qs_e's own count, for the row.
     double step_norm = 0.0;                  ///< inf-norm of p_elastic, diagnostic.
-    /// True iff the evidence arm's `dual_norm_start` reached kElasticRhoMax and the placement was
-    /// CLAMPED to it -- the first rung then starts at the ceiling and no escalation is possible,
-    /// which a judge of this report should be able to see rather than infer from `escalations`.
-    /// Aggregated over a solve by `SqpCounters::elastic_rho0_ceiling_hits`.
+    /// The FIRST rung's penalty, as THE PLACEMENT BOUND below resolved it. Not invertible from
+    /// the report's `elastic` block once the ladder has climbed, and the retry rule's own input.
+    double rho_0 = 0.0;
+    /// True iff the placement was CLAMPED -- headroom or dual_mu (THE PLACEMENT BOUND) -- i.e.
+    /// the evidence priced the violation above the rung the rule allows. Aggregated over a solve
+    /// by `SqpCounters::elastic_rho0_ceiling_hits`.
     bool rho0_ceiling_hit = false;
 };
 
@@ -2115,12 +2117,27 @@ struct ElasticSeedSource {
 /// `window` is the radius folded into the elastic box: nonnegative -- 0 is legal
 /// (`tr_radius` permits it), FINITE on the shipped path, and VALIDATED (a negative
 /// or NaN one throws std::invalid_argument). Every rung's counters fold into `out`.
-/// THE FIRST RUNG'S PENALTY is `min(kElasticRhoMax, max(kElasticRhoInit,
-/// evidence->dual_norm_start))` (amendment H): today's start as a FLOOR and the
-/// ladder's ceiling as a CAP; `kElasticRhoInit` when no arm FIRED at all.
+/// THE FIRST RUNG'S PENALTY is THE PLACEMENT BOUND below, or `rho_0_override`
+/// clamped into `[kElasticRhoInit, kElasticRhoMax]` when the caller names one --
+/// the retry rule's route back to the floor, which reads no evidence at all and
+/// leaves `rho0_ceiling_hit` false.
+///
+/// THE PLACEMENT BOUND (amendment H, plus W2 T5's safety margin):
+///     rho_0 = max(kElasticRhoInit,
+///                 min(evidence-priced start,
+///                     kElasticRhoMax / kElasticRhoFactor,
+///                     kElasticRhoDualMuSafety / opts.qp.dual_mu))
+/// with the evidence-priced start `max(kElasticRhoInit, evidence->dual_norm_start)` and
+/// `kElasticRhoInit` when no arm FIRED at all. The FLOOR keeps the ladder from being entered
+/// cheaper than W1's; the headroom cap leaves at least one escalation above the placement, where
+/// amendment H's ceiling left none; the dual_mu cap is a MARGIN against the walk's false
+/// `kInfeasible` on the elastic copy (elastic.h's `kElasticRhoDualMuSafety` carries the measured
+/// law, W2 T6b carries the misfire itself). A non-finite or non-positive `dual_mu` disables that
+/// cap rather than degrading the placement. Either cap binding sets `rho0_ceiling_hit`.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
-                                       const SqpOptions &opts, SqpCounters &out);
+                                       const SqpOptions &opts, SqpCounters &out,
+                                       std::optional<double> rho_0_override = std::nullopt);
 
 // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item 5,
 // section 6.3's Amendment C registration).
@@ -2128,7 +2145,10 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 // ITS BODY IS A BOUNDED TWO-RUNG LADDER (W2 plan section 2): RUNG A is the
 // elastic QP at the evidence's own rho_0, always; RUNG B is W1's COLD walk,
 // reached only on a rung A the engine DECLINED, and the refusal path's carrier.
-
+//
+// A DECLINED RUNG A PLACED ABOVE THE FLOOR IS RETRIED THERE ONCE (W2 T5) before rung B is
+// considered: the evidence's price is a hint, and a hint that costs a solve is worth one
+// re-entry at W1's own penalty. The retry is a second activation and is counted as one.
 //
 // REFUSAL COSTS ONE EXTRA DECLINED SOLVE, and if rung B's walk then certifies
 // kInfeasible the driver runs its OWN ladder: two activations, one subproblem.
