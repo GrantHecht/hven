@@ -56,10 +56,15 @@ inline constexpr double kElasticRhoFactor = 10.0;
 /// the safe side. At the shipped dual_mu = 1e-8 the cap is 1e6.
 ///
 /// IT IS A MARGIN ON THE FIRST RUNG, not the fix and not a property of the ladder: the rungs
-/// above escalate to `kElasticRhoMax` regardless (product 1 at the shipped dual_mu), and at
-/// `dual_mu >= 1e-4` the cap sits below the floor, so the floor wins and no achievable placement
-/// keeps the product under the margin at all. W2 T6b removes the misfire and is the only cover
-/// for both residues.
+/// above escalate to `kElasticRhoMax` regardless, and at `dual_mu >= 1e-4` the cap sits below
+/// the floor, so the floor wins and no achievable placement keeps the product under the margin
+/// at all. The measured law above is a BASE-era reading of border mode, where the misfire lived;
+/// `ws_algebra == kRefactorize` read this family kOptimal at every cell of the same grid.
+///
+/// W2 T6b covers it at the verdict site (qp_engine.h section 5's VERDICT-SITE FACE REFINEMENT),
+/// in border mode only, and the margin remains what it always was: a cheap first-rung placement
+/// that keeps the walk away from the residue rather than removing it. Measured after T6b, border
+/// mode: the whole `dual_mu` x rho grid of this family reads kOptimal, product 1 included.
 inline constexpr double kElasticRhoDualMuSafety = 1e-2;
 
 /// The stall early-exit tolerance: two consecutive rungs' augmented solutions

@@ -51,6 +51,29 @@ struct QpCounters {
     Index eqp_refine_steps = 0;
     Index border_refine_steps = 0;
 
+    /// Refinement steps kept by the VERDICT-SITE FACE REFINEMENT (qp_engine.h
+    /// section 5) across this solve. A THIRD, disjoint quantity, deliberately
+    /// not folded into border_refine_steps: those two count the refinement
+    /// every EQP solve pays, this one counts refinement bought at a
+    /// would-be-kInfeasible dead end to decide a verdict.
+    ///
+    /// COUNTS: steps KEPT, in the same sense as the two fields above -- a
+    /// candidate rejected by the strict-decrease safeguard is discarded and
+    /// not counted, and a refinement whose result the engine then declines to
+    /// adopt contributes nothing at all.
+    ///
+    /// EXCLUDES: every refinement step taken inside an EQP solve (those are
+    /// border_refine_steps/eqp_refine_steps); every dead end reached under
+    /// QpOptions::ws_algebra == kRefactorize, where the eliminated path leaves
+    /// no bordering residue to remove and the refinement is never entered; and
+    /// every dead end whose classification was going to be kOptimal anyway,
+    /// which is why an ordinary solve reads 0 here.
+    ///
+    /// ZERO IS THE OVERWHELMINGLY COMMON READING and a nonzero one says the
+    /// walk was about to certify infeasibility and paid for a closer look --
+    /// which the verdict then either overturned or confirmed.
+    Index verdict_refine_steps = 0;
+
     /// Rungs of the SUSPECT-STALL ESCALATION LADDER this solve spent (see
     /// qp_engine.h's section 4b). Each rung multiplies the effective
     /// primal_delta by detail::kSuspectDeltaFactor after a would-be-kOptimal
@@ -1463,6 +1486,11 @@ struct SqpCounters {
     /// one stays as that A/B's standing invariant.
     Index eqp_refine_steps = 0;
     Index border_refine_steps = 0;
+
+    /// Verdict-site face refinement steps kept, summed over the same set of QP
+    /// solves as the two fields above; QpCounters::verdict_refine_steps
+    /// carries the meaning unchanged, COUNTS and EXCLUDES included.
+    Index verdict_refine_steps = 0;
 
     /// Rungs of the QP engine's SUSPECT-STALL ESCALATION LADDER
     /// (qp_engine.h's section 4b), summed over every QP solve this driver

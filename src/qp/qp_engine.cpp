@@ -616,8 +616,24 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // (adding rows only shrinks the null space, so a kOk read
                 // cannot become kWrong), but a kWrong read can be one
                 // iteration stale.
-                if (worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                               lambda_e, eff_opts) > 0.0) {
+                double worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
+                                                          ae_row_norm1, lambda_e, eff_opts);
+                // THE VERDICT-SITE FACE REFINEMENT, border mode and a
+                // would-be kInfeasible only; `eqp.refine_steps > 0` witnesses
+                // the bordered path -- see refine_face_for_verdict, section 5.
+                if (worst > 0.0 && opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
+                    eqp.refine_steps > 0 &&
+                    refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
+                                            lambda_e, *border_, counters, eff_opts)) {
+                    // x moved: restore this loop's invariants, then re-read
+                    // the verdict off the refined point -- which is also what
+                    // a kInfeasible exit now returns.
+                    refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen,
+                                   eff_opts);
+                    worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
+                                                       ae_row_norm1, lambda_e, eff_opts);
+                }
+                if (worst > 0.0) {
                     status = QpStatus::kInfeasible;
                 } else if (is_runaway(qp, x, ws, eff_opts)) {
                     status = QpStatus::kNumericalError;
@@ -1036,6 +1052,119 @@ double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, c
         }
     }
     return worst;
+}
+
+double QpEngine::face_row_target(double row_scale, double lambda, const QpOptions &opts) const {
+    return std::max(detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts),
+                    detail::kVerdictRefineRelFloor * row_scale);
+}
+
+double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                      const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
+                                      const Vec &ae_row_norm1, const Vec &lambda_e,
+                                      const QpOptions &opts) const {
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    double worst = 0.0;
+    if (qp.me() > 0) {
+        const Vec resid = qp.Ae * x - qp.be;
+        for (Index j = 0; j < qp.me(); ++j) {
+            const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
+            worst =
+                std::max(worst, std::abs(resid(j)) / face_row_target(row_scale, lambda_e(j), opts));
+        }
+    }
+    for (const Index j : ws.active_ineq()) {
+        const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
+        worst = std::max(worst, std::abs(Aix(j) - qp.bi(j)) /
+                                    face_row_target(row_scale, lambda_i(j), opts));
+    }
+    return worst;
+}
+
+bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
+                                       const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
+                                       const Vec &ae_row_norm1, const Vec &lambda_e,
+                                       BorderState &border, QpCounters &counters,
+                                       const QpOptions &opts) const {
+    if (!border.schur.has_value() || border.schur->needs_refactorization()) {
+        return false; // nothing trustworthy to re-form -- see the declaration
+    }
+    const Index n = qp.n();
+    const BorderedSystem sys =
+        build_bordered_system(qp, border.k0, border.k0_rows, border.ledger, ws, opts);
+
+    // solve_bordered_eqp's own scatter, and where the residue enters: the
+    // exact bound is written over a pin the solve satisfies only to
+    // O(dual_mu*|y|) -- see bordered_eqp.h's note on pinned variables.
+    const auto point_of = [&](const Vec &sol) {
+        Vec xc = sol.head(n);
+        for (Index i = 0; i < n; ++i) {
+            const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+            if (st != BoundState::kFree) {
+                xc(i) = pinned_value(qp, st, i);
+            }
+        }
+        return xc;
+    };
+    const auto measure_of = [&](const Vec &xc) {
+        const Vec Ai_xc = qp.mi() > 0 ? Vec(qp.Ai * xc) : Vec(Aix);
+        return working_face_measure(qp, ws, xc, Ai_xc, ai_row_norm1, lambda_i, ae_row_norm1,
+                                    lambda_e, opts);
+    };
+
+    Vec best;
+    Vec best_x;
+    double best_measure = 0.0;
+    Index steps = 0;
+    try {
+        // Replay the incumbent: schur.solve plus the loop solve_bordered_eqp
+        // itself ran, so this starts exactly where the walk is and every step
+        // below is one the shipped stopping rule declined to take.
+        best = border.schur->solve(sys.rhs);
+        best = refine_bordered_solve_iterated(border.k0.K, n, sys.border_v, sys.border_d,
+                                              *border.schur, sys.rhs, best, opts);
+        best_x = point_of(best);
+        best_measure = measure_of(best_x);
+        for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {
+            const Vec r =
+                bordered_residual(border.k0.K, n, sys.border_v, sys.border_d, sys.rhs, best, opts);
+            const Vec candidate = best + border.schur->solve(r);
+            Vec candidate_x = point_of(candidate);
+            const double candidate_measure = measure_of(candidate_x);
+            if (!(candidate_measure < best_measure)) {
+                break; // stagnated, diverging, or NaN -- keep the better point
+            }
+            best = candidate;
+            best_x = std::move(candidate_x);
+            best_measure = candidate_measure;
+            ++steps;
+        }
+    } catch (const std::runtime_error &) {
+        // A singular Schur complement is a degradation this branch answers by
+        // declining to refine; anything else is a genuine backend fault the
+        // engine must not hide -- border_solve_or_fall_back's discriminator.
+        if (!border.schur->needs_refactorization()) {
+            throw;
+        }
+        return false;
+    }
+    if (steps == 0) {
+        return false; // the face was already inside its target, or would not move
+    }
+    // CLOSED, OR NOTHING: a refinement that ran out of budget with the face
+    // still open has shown the face is not closable, which is evidence FOR the
+    // classifier -- see refine_face_for_verdict's declaration for the cost.
+    if (!(best_measure <= 1.0)) {
+        return false;
+    }
+    const double before =
+        working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts);
+    if (!(best_measure < before)) {
+        return false; // strict decrease against the WALK's own point, or nothing
+    }
+    x = std::move(best_x);
+    counters.verdict_refine_steps += steps;
+    return true;
 }
 
 bool QpEngine::is_runaway(const QpProblem &qp, const Vec &x, const WorkingSet &ws,

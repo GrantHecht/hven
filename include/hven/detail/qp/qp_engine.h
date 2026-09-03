@@ -324,10 +324,31 @@
 //    prices.
 //
 //    TRUSTWORTHY RANGE, both directions, both known and accepted:
-//    (i) FALSE kInfeasible on a feasible but ill-scaled row whose refined
-//        residual still clears kStructuralResidualFrac. Bites once |lambda|
-//        exceeds roughly 1e6*row_scale, where the regularized answer is
-//        itself percent-level wrong.
+//    (i) FALSE kInfeasible on a feasible row whose residual at the classified
+//        point still clears kStructuralResidualFrac. MEASURED at M6 W2 T6b, it
+//        bit at |lambda| = 5 on a well-scaled elastic penalty subproblem --
+//        nowhere near any large-multiplier regime, and with
+//        kInfeasibilityAbsorbTol's cap never binding (row_tolerance's min()
+//        selected dual_mu*|lambda| = 5e-8 against a cap of 1.75e-5). The
+//        residue was BORDER MODE'S ALONE: solve_bordered_eqp writes each
+//        pinned variable's exact bound value over a solve that only satisfies
+//        it to O(dual_mu*|y|), and its refinement loop stops on a footprint
+//        and a floor measured in the PENALTY'S units, so on an elastic copy
+//        that displacement survives into a row read in the ROW'S units.
+//        kRefactorize eliminates a pinned variable exactly and left residual
+//        0 on the whole family.
+//        COVERED at M6 W2 T6b by the VERDICT-SITE FACE REFINEMENT below.
+//        Measured after it, border mode, at the classified point: the elastic
+//        copy of a boxed equality reads kOptimal on all 30 cells of
+//        dual_mu in {1e-3..1e-8} x rho in {1e2..1e8}, and the same fixture
+//        stiffened by c in {1, 10, 30, 1e2, 1e3, 1e4, 4e5} reads kOptimal on
+//        all 21 cells of c x rho in {1e6, 1e7, 1e8} -- the Hessian-scale
+//        direction included, because the refinement fixes the POINT and needs
+//        no bound read off the data.
+//        STILL UNCOVERED: kRefactorize, which never had this residue but has
+//        its own (i) cases the refinement is not offered for; and any (i) case
+//        whose face the refinement cannot close inside the budget, which is
+//        left to the classifier exactly as before.
 //    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
 //        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
 //        catch it re-breaks (i). The SQP driver is the second detection
@@ -338,6 +359,16 @@
 //        kUnboundedArtifactFactor/primal_delta. A caller expecting very large
 //        optima should tune primal_delta rather than treat this
 //        kNumericalError as load-bearing.
+//
+//    THE VERDICT-SITE FACE REFINEMENT (M6 W2 T6b) runs between the two: once
+//    the classification above has said kInfeasible, and only in border mode,
+//    the closed working face is refined further -- against the same
+//    unregularized bordered system solve_bordered_eqp targets, but to a target
+//    stated in ROW units (see refine_face_for_verdict, working_face_measure and
+//    face_row_target). The refined point is adopted only if the face CLOSES,
+//    and it is then both what the classifier re-reads and what a kInfeasible
+//    exit returns. Nothing else in the walk can reach it: a solve that never
+//    dead-ends, and every dead end already headed for kOptimal, is untouched.
 //
 // 6. TRUST-REGION SOFT BOUNDS -- an l-infinity trust region around the
 //    current SQP iterate, expressed the same way every other bound is.
@@ -549,6 +580,13 @@ constexpr double kInfeasibilityMarginFactor = 10.0;
 // must reach before it counts as STRUCTURAL rather than solver noise
 // (condition (b); see violation_is_structural).
 constexpr double kStructuralResidualFrac = 0.1;
+// Hard floor, relative to the row's own scale, beneath the verdict-site face
+// refinement's per-row target (see QpEngine::face_row_target). A residual
+// flattens out at ~1e-16 of the row's scale and then oscillates in the last
+// bit, so this stops the loop rather than spending Schur solves on rounding
+// noise. It is a backstop, not the rule: at any sane feas_tol the classifier's
+// own tolerance is orders above it and is what actually ends the loop.
+constexpr double kVerdictRefineRelFloor = 1e-14;
 
 // --- Inertia gate (see the header contract's section 4b) ---
 
@@ -1192,6 +1230,56 @@ class QpEngine {
                                       const Vec &ai_row_norm1, const Vec &lambda_i,
                                       const Vec &ae_row_norm1, const Vec &lambda_e,
                                       const QpOptions &opts) const;
+
+    // The residual the VERDICT-SITE FACE REFINEMENT drives one row to, in that
+    // row's own units: the classifier's own threshold,
+    // kInfeasibilityMarginFactor * row_tolerance, floored at
+    // kVerdictRefineRelFloor * row_scale. Reaching it is exactly what makes
+    // condition (a) stop calling the row's residual evidence, so the loop asks
+    // for the least accuracy that settles the verdict and no more.
+    double face_row_target(double row_scale, double lambda, const QpOptions &opts) const;
+
+    // How far outside its target the worst row of the CLOSED WORKING FACE sits
+    // -- max |residual| / face_row_target over every equality row and every
+    // active inequality row, so 1.0 is the boundary and below it the face is
+    // as accurate as the verdict needs. The acceptance test for a refined
+    // point: a candidate is adopted only if it strictly lowers this.
+    //
+    // Rows OUTSIDE the working set are deliberately absent: they are not what
+    // the refinement solves, and a genuine violation on one of them must reach
+    // the classifier untouched.
+    double working_face_measure(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
+                                const Vec &ae_row_norm1, const Vec &lambda_e,
+                                const QpOptions &opts) const;
+
+    // THE VERDICT-SITE FACE REFINEMENT (section 5's dead-end classification).
+    // Re-forms the live bordered system, refines it against a target expressed
+    // in ROW units rather than the bordered loop's penalty-scaled footprint,
+    // and OVERWRITES `x` with the result -- returning true iff it did.
+    //
+    // BORDER MODE ONLY, and only at a dead end whose classification would
+    // otherwise be kInfeasible: the caller gates on both. The eliminated path
+    // leaves no bordering residue to remove (the two modes solve DIFFERENT
+    // regularized problems on a closed face -- kRefactorize eliminates a
+    // pinned variable exactly, border mode realizes it as a -dual_mu row), and
+    // a point already headed for kOptimal has no verdict to buy.
+    //
+    // CLOSED, OR NOTHING. A candidate is adopted only if the face reaches its
+    // target AND strictly improves on the walk's own point. A refinement that
+    // spends its budget with the face still open has shown the face is not
+    // closable, which is evidence FOR the classifier: adopting the better-but-
+    // still-open point would push the violation under condition (b)'s fraction
+    // of the footprint without making the row feasible, certifying a genuine
+    // contradiction kOptimal. That rule is what keeps the whole inconsistent
+    // population's verdicts identical to BASE, measured.
+    //
+    // It never touches a solve that does not reach that branch, so every
+    // trajectory the walk reports elsewhere is untouched by construction.
+    bool refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x, const Vec &Aix,
+                                 const Vec &ai_row_norm1, const Vec &lambda_i,
+                                 const Vec &ae_row_norm1, const Vec &lambda_e, BorderState &border,
+                                 QpCounters &counters, const QpOptions &opts) const;
 
     // Is ||x|| large in a way that only an unbounded direction explains?
     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run

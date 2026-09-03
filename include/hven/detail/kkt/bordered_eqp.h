@@ -65,6 +65,7 @@
 // construction rather than by the refinement's good behavior.
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 #include <vector>
 
@@ -255,6 +256,75 @@ inline double pinned_value(const QpProblem &qp, BoundState state, Index i) {
     return state == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
 }
 
+// The bordered system's right-hand side and border columns, rebuilt from the
+// ledger -- the single source of truth for what `schur` currently holds.
+//
+// Split out of solve_bordered_eqp so the VERDICT-SITE face refinement
+// (qp_engine.h section 5) can re-form the SAME system from the same live
+// border stack without duplicating the ledger's conventions. It is a pure
+// function of its arguments and its result depends on `ws` only through
+// bound_state(), which nothing between an EQP solve and that verdict moves.
+struct BorderedSystem {
+    Vec rhs;
+    std::vector<Vec> border_v;
+    std::vector<double> border_d;
+    // One flag per k0_rows entry, true iff a kRowDelete border has pinned that
+    // K0 row's dual to zero. Such a row's residual entry is the border's to
+    // absorb, not that row's own reading.
+    std::vector<bool> k0_row_deleted;
+};
+
+inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssembly &k0,
+                                            const std::vector<Index> &k0_rows,
+                                            const std::vector<BorderLedgerEntry> &ledger,
+                                            const WorkingSet &ws, const QpOptions &opts) {
+    const Index n = qp.n();
+    const Index me = qp.me();
+    const Index n0 = k0.K.rows();
+    const Index nw0 = static_cast<Index>(k0_rows.size());
+    const Index m = static_cast<Index>(ledger.size());
+    const std::vector<BoundState> &bound_state = ws.bound_state();
+
+    BorderedSystem sys;
+    // rhs head: [-g | be | bi over K0's own working rows]. rhs_shift is
+    // all-zero in full mode, so there is nothing to subtract.
+    sys.rhs = Vec::Zero(n0 + m);
+    sys.rhs.head(n) = -qp.g;
+    for (Index r = 0; r < me; ++r) {
+        sys.rhs(n + r) = qp.be(r);
+    }
+    for (Index k = 0; k < nw0; ++k) {
+        sys.rhs(n + me + k) = qp.bi(k0_rows[static_cast<std::size_t>(k)]);
+    }
+
+    sys.border_v.reserve(static_cast<std::size_t>(m));
+    sys.border_d.reserve(static_cast<std::size_t>(m));
+    sys.k0_row_deleted.assign(static_cast<std::size_t>(nw0), false);
+    for (Index b = 0; b < m; ++b) {
+        const BorderLedgerEntry &e = ledger[static_cast<std::size_t>(b)];
+        switch (e.kind) {
+        case BorderLedgerEntry::Kind::kVarPin:
+            sys.border_v.push_back(BorderOps::pin_variable(e.target, n0));
+            sys.border_d.push_back(-opts.dual_mu);
+            sys.rhs(n0 + b) =
+                pinned_value(qp, bound_state[static_cast<std::size_t>(e.target)], e.target);
+            break;
+        case BorderLedgerEntry::Kind::kRowDelete:
+            sys.border_v.push_back(BorderOps::delete_k0_row(e.target, me, n, n0));
+            sys.border_d.push_back(0.0);
+            sys.rhs(n0 + b) = 0.0;
+            sys.k0_row_deleted[static_cast<std::size_t>(e.target - me)] = true;
+            break;
+        case BorderLedgerEntry::Kind::kIneqRow:
+            sys.border_v.push_back(BorderOps::add_ineq_row(qp, e.target, n0));
+            sys.border_d.push_back(-opts.dual_mu);
+            sys.rhs(n0 + b) = qp.bi(e.target);
+            break;
+        }
+    }
+    return sys;
+}
+
 // Solves the EQP for `ws`'s working set through the bordered K0 described
 // above. `k0` is assemble_kkt_full's output for the working set K0 was built
 // from, `k0_rows` that working set's active_ineq() (sorted), `schur` the live
@@ -271,56 +341,14 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const Index n = qp.n();
     const Index me = qp.me();
     const Index n0 = k0.K.rows();
-    const Index nw0 = static_cast<Index>(k0_rows.size());
     const Index m = static_cast<Index>(ledger.size());
     const std::vector<BoundState> &bound_state = ws.bound_state();
+    const BorderedSystem sys = build_bordered_system(qp, k0, k0_rows, ledger, ws, opts);
 
-    // rhs head: [-g | be | bi over K0's own working rows]. rhs_shift is
-    // all-zero in full mode, so there is nothing to subtract.
-    Vec rhs = Vec::Zero(n0 + m);
-    rhs.head(n) = -qp.g;
-    for (Index r = 0; r < me; ++r) {
-        rhs(n + r) = qp.be(r);
-    }
-    for (Index k = 0; k < nw0; ++k) {
-        rhs(n + me + k) = qp.bi(k0_rows[static_cast<std::size_t>(k)]);
-    }
-
-    // Rebuild each live border's column and diagonal from the ledger (the
-    // ledger is the single source of truth for what `schur` currently holds),
-    // and fill in its rhs entry.
-    std::vector<Vec> border_v;
-    std::vector<double> border_d;
-    border_v.reserve(static_cast<std::size_t>(m));
-    border_d.reserve(static_cast<std::size_t>(m));
-    std::vector<bool> k0_row_deleted(static_cast<std::size_t>(nw0), false);
-    for (Index b = 0; b < m; ++b) {
-        const BorderLedgerEntry &e = ledger[static_cast<std::size_t>(b)];
-        switch (e.kind) {
-        case BorderLedgerEntry::Kind::kVarPin:
-            border_v.push_back(BorderOps::pin_variable(e.target, n0));
-            border_d.push_back(-opts.dual_mu);
-            rhs(n0 + b) =
-                pinned_value(qp, bound_state[static_cast<std::size_t>(e.target)], e.target);
-            break;
-        case BorderLedgerEntry::Kind::kRowDelete:
-            border_v.push_back(BorderOps::delete_k0_row(e.target, me, n, n0));
-            border_d.push_back(0.0);
-            rhs(n0 + b) = 0.0;
-            k0_row_deleted[static_cast<std::size_t>(e.target - me)] = true;
-            break;
-        case BorderLedgerEntry::Kind::kIneqRow:
-            border_v.push_back(BorderOps::add_ineq_row(qp, e.target, n0));
-            border_d.push_back(-opts.dual_mu);
-            rhs(n0 + b) = qp.bi(e.target);
-            break;
-        }
-    }
-
-    Vec sol = schur.solve(rhs);
+    Vec sol = schur.solve(sys.rhs);
     Index refine_steps = 0;
-    sol = refine_bordered_solve_iterated(k0.K, n, border_v, border_d, schur, rhs, sol, opts,
-                                         &refine_steps);
+    sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
+                                         opts, &refine_steps);
 
     EqpResult res;
     res.refine_steps = refine_steps;
@@ -340,7 +368,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         const auto it = std::lower_bound(k0_rows.begin(), k0_rows.end(), row);
         if (it != k0_rows.end() && *it == row) {
             const auto p = static_cast<std::size_t>(it - k0_rows.begin());
-            if (!k0_row_deleted[p]) {
+            if (!sys.k0_row_deleted[p]) {
                 res.lambda_w(static_cast<Index>(k)) = sol(n + me + static_cast<Index>(p));
                 continue;
             }

@@ -1017,6 +1017,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         out.factorizations += qs_e.counters.factorizations;
         out.eqp_refine_steps += qs_e.counters.eqp_refine_steps;
         out.border_refine_steps += qs_e.counters.border_refine_steps;
+        out.verdict_refine_steps += qs_e.counters.verdict_refine_steps;
         out.suspect_escalations += qs_e.counters.suspect_escalations;
         out.symbolic_analyses += qs_e.counters.symbolic_analyses;
         if (qs_e.status != QpStatus::kOptimal) {
@@ -3102,6 +3103,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.counters.factorizations += rs.counters.factorizations;
             out.counters.eqp_refine_steps += rs.counters.eqp_refine_steps;
             out.counters.border_refine_steps += rs.counters.border_refine_steps;
+            out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
             out.counters.suspect_escalations += rs.counters.suspect_escalations;
             out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
             out.counters.soc_steps += rs.counters.soc_steps;
@@ -3973,6 +3975,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         out.counters.factorizations += qs.counters.factorizations;
         out.counters.eqp_refine_steps += qs.counters.eqp_refine_steps;
         out.counters.border_refine_steps += qs.counters.border_refine_steps;
+        out.counters.verdict_refine_steps += qs.counters.verdict_refine_steps;
         out.counters.suspect_escalations += qs.counters.suspect_escalations;
         out.counters.symbolic_analyses += qs.counters.symbolic_analyses;
 
@@ -4209,6 +4212,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.counters.factorizations += qs_soc.counters.factorizations;
             out.counters.eqp_refine_steps += qs_soc.counters.eqp_refine_steps;
             out.counters.border_refine_steps += qs_soc.counters.border_refine_steps;
+            out.counters.verdict_refine_steps += qs_soc.counters.verdict_refine_steps;
             out.counters.suspect_escalations += qs_soc.counters.suspect_escalations;
             out.counters.symbolic_analyses += qs_soc.counters.symbolic_analyses;
 

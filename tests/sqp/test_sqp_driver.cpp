@@ -9521,9 +9521,13 @@ TEST(SqpDriverCertifiedFallback, P4bTheCeilingDeclineIsGONEUnderThePlacementBoun
     EXPECT_DOUBLE_EQ(small_mu.report->rho_0, kElasticRhoMax / kElasticRhoFactor);
     EXPECT_TRUE(small_mu.report->closed);
 
-    // THE LAW'S DECLINING SIDE, unreachable through the evidence under the bound: this FEASIBLE
-    // fixture at rho_0 = 1e7 and the shipped dual_mu = 1e-8 is product 1e-1, where the walk reads
-    // a FALSE kInfeasible off a copy it can solve. The defect itself -- W2 T6b FLIPS this pin.
+    // WHERE THE MISFIRE WAS. This FEASIBLE fixture at rho_0 = 1e7 and the shipped dual_mu = 1e-8
+    // read a FALSE kInfeasible off a copy it can solve, unreachable through the evidence under
+    // T5's bound but reachable through an override.
+    //
+    // DECLARED BREAK, M6 W2 T6b fix round 1: EXPECT_NE(kOptimal) -> EXPECT_EQ(kOptimal), and the
+    // ladder now CLOSES. The verdict-site face refinement removes border mode's own residue at
+    // the classified point (row residual 6.5e-7 -> 1.7e-13, one refinement step).
     SqpOptions opts;
     QpEngine engine(opts.qp);
     SqpCounters counters;
@@ -9531,7 +9535,8 @@ TEST(SqpDriverCertifiedFallback, P4bTheCeilingDeclineIsGONEUnderThePlacementBoun
     const ElasticLadderReport misfire =
         run_elastic_ladder(engine, qp, evidence_arm, std::numeric_limits<double>::infinity(), opts,
                            counters, /*rho_0_override=*/1.0e7);
-    EXPECT_NE(misfire.qp_status, QpStatus::kOptimal) << "T6b flips this: the copy IS feasible";
+    EXPECT_EQ(misfire.qp_status, QpStatus::kOptimal) << "the copy IS feasible";
+    EXPECT_TRUE(misfire.closed) << "and the relaxation shuts, so the answer is the original's";
     EXPECT_FALSE(misfire.rho0_ceiling_hit) << "an override is the caller's own, never a clamp";
     EXPECT_EQ(counters.elastic_rho0_ceiling_hits, 0);
 }

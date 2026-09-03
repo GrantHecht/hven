@@ -2136,7 +2136,7 @@ struct ElasticSeedSource {
 /// cheaper than W1's; the headroom cap leaves at least one escalation above the placement, where
 /// amendment H's ceiling left none; the dual_mu cap is a MARGIN against the walk's false
 /// `kInfeasible` on the elastic copy (elastic.h's `kElasticRhoDualMuSafety` carries the measured
-/// law, W2 T6b carries the misfire itself). A non-finite or non-positive `dual_mu` disables that
+/// law, W2 T6b carries the cover for it). A non-finite or non-positive `dual_mu` disables that
 /// cap rather than degrading the placement. Either cap binding sets `rho0_ceiling_hit`, which is
 /// read off the RESULT: where the floor outranks a cap (`dual_mu >= 1e-4`, whose cap is below
 /// `kElasticRhoInit`) AND the evidence's own price is at the floor, nothing was clamped and the
@@ -2144,10 +2144,11 @@ struct ElasticSeedSource {
 ///
 /// THE MARGIN BINDS THE FIRST RUNG ONLY. The ladder escalates x10 with no knowledge of the cap,
 /// so a clamped ladder still climbs to `kElasticRhoMax` -- product 1 at the shipped `dual_mu`,
-/// inside the measured misfiring band -- and the retry buys a solve, not safety. Capping the
-/// ladder's TOP is deliberately NOT done here: a ladder climbs only while the relaxation is
-/// OPEN, so a top cap would turn a closable row into an EXHAUSTION and send it to restoration
-/// off a false signal. W2 T6b removes the misfire itself; that residue is its.
+/// which was inside the BASE-era misfiring band and, measured after W2 T6b, is not -- and the
+/// retry buys a solve, not safety. Capping the ladder's TOP is deliberately NOT done here: a
+/// ladder climbs only while the relaxation is OPEN, so a top cap would turn a closable row into
+/// an EXHAUSTION and send it to restoration off a false signal. W2 T6b covers the misfire at the
+/// QP engine's own verdict site, in border mode; the margin is the cheaper first-rung guard.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
