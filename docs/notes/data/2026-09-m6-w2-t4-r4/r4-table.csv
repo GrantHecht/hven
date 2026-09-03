@@ -1,5 +1,6 @@
 # hven M6 W2 T4 fix round 1 -- the R4 gate, measured BOTH ways at the fix head.
-# commit: c36a5247abb5448272ebd53a91eb5ae7809eb107
+# commit: a14ad96539ceee42331a0e0c72586f2239e46ada (the code head measured; evidence docs commit ed617c8)
+# stamp corrected at ledger close: the original stamp named a dangling pre-amend docs commit whose code tree is a14ad96's
 # toolchain: clang version 22.1.8 (Fedora 22.1.8-4.fc44); CMake Debug and Release, one uniform flag regime
 # hardware: x86_64, Linux 7.1.9-200.fc44.x86_64
 # backend: Intel MKL Pardiso, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1, one process at a time

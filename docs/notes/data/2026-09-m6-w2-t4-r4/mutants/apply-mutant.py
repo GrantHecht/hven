@@ -1,8 +1,8 @@
-import sys, shutil
+import sys, shutil, subprocess
 name=sys.argv[1]
-src='.scratch/w2t4fix1-r4/mutants/sqp_driver.cpp.orig'
+# The pristine source is the measured code head a14ad96, read from git so this stays runnable.
 dst='src/drivers/sqp_driver.cpp'
-s=open(src).read()
+s=subprocess.run(['git','show','a14ad96:src/drivers/sqp_driver.cpp'],capture_output=True,text=True,check=True).stdout
 GATE="            if (cand.x != nullptr && cand.x->size() == x.size() && cand.x->allFinite()) {"
 def rep(a,b):
     global s

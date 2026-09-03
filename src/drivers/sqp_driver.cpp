@@ -2906,8 +2906,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                            constraint_violation_l1(ev_cand) < h_entry;
                 } else if (cand.values_ev->all_finite) {
                     // MEASURED (a rejected trial): the guard reads a MAPPED COPY of
-                    // the trial's own values bundle -- no model query, and every
-                    // refusal below it therefore costs nothing at all.
+                    // the trial's own values bundle -- no model query, so a refusal
+                    // HERE costs nothing at all.
                     NlpEval probe = *cand.values_ev;
                     seam.to_caller_scale(probe);
                     if (constraint_violation_l1(probe) < h_entry) {
@@ -2917,6 +2917,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                         seam.refresh_derivatives(*cand.values_ev, *cand.x);
                         ++out.counters.evals_full;
                         --out.counters.evals_values;
+                        // Charged even if the finiteness screen below then refuses:
+                        // the query really did fetch the derivatives.
                         if (cand.values_ev->all_finite && jacobian_values_finite(*cand.values_ev)) {
                             ev_cand = std::move(*cand.values_ev);
                             seam.to_caller_scale(ev_cand);
@@ -2929,8 +2931,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     resto_ev = std::move(ev_cand);
                     // The requesting row is `back()`: all four call sites
                     // push_history BEFORE calling (the judged floor and the funnel
-                    // share the verdict row pushed just above them), so an empty
-                    // history here is a broken call site, not a missing row.
+                    // share the verdict row pushed just above them). Checked on the
+                    // WRITE only -- an empty history here is a broken call site.
                     if (out.history.empty()) {
                         throw std::logic_error(
                             "SqpDriver: a restoration request reached the seeding decision with "
