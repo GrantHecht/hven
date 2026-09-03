@@ -114,29 +114,38 @@ struct QpModeTraceEvent {
 };
 
 /// @brief The certified fallback's own outcome for one escaped subproblem (schema
-/// `fallback.verdict`, M6 W2 T5), driver-emitted in the kIpm arm beside `ipqp.escape`. The four
-/// values are `SqpCounters`' four-way partition: kDisproved and kRungB carry counters of their
-/// own, kRelaxed and kExhausted are the rung-A-owned pair told apart by the returned status.
-enum class SqpFallbackVerdict { kDisproved, kRelaxed, kExhausted, kRungB };
+/// `fallback.verdict`, M6 W2 T5), driver-emitted in the kIpm arm beside `ipqp.escape`. The first
+/// four values are `SqpCounters`' four-way ENTRY partition: kDisproved and kRungB carry counters
+/// of their own, kRelaxed and kExhausted are the rung-A-owned pair told apart by the returned
+/// status. kUnfired is OUTSIDE that partition and charges nothing -- it is its own value (fix
+/// round 1) so that summing the stream by `verdict` reproduces the counters without also
+/// filtering on `entered_rung_a`.
+enum class SqpFallbackVerdict { kDisproved, kRelaxed, kExhausted, kRungB, kUnfired };
 
 /// @brief One entry into `certified_feasibility_fallback` (schema `fallback.verdict`).
 /// An entry whose evidence never FIRED reports `entered_rung_a == false` with `verdict ==
-/// kRungB`: it ran W1's cold walk directly and charges no counter in the partition.
+/// kUnfired`: it ran W1's cold walk directly and charges no counter in the partition.
 struct SqpFallbackVerdictTraceEvent {
     bool entered_rung_a = false;
-    SqpFallbackVerdict verdict = SqpFallbackVerdict::kRungB;
-    /// The first rung's penalty, of the ladder whose outcome `verdict` reports (the RETRY's when
-    /// `floor_retry`). Absent -- not zero-filled -- when no rung A was entered.
+    SqpFallbackVerdict verdict = SqpFallbackVerdict::kUnfired;
+    /// The LAST rung-A attempt's first-rung penalty -- the RETRY's when `floor_retry`, since the
+    /// retry replaces the declined attempt. Absent -- not zero-filled -- with no rung A.
     std::optional<double> rho_0;
-    bool rho0_ceiling_hit = false; ///< That ladder's placement was CLAMPED (headroom or dual_mu).
-    bool floor_retry = false;      ///< A declined rung A above the floor was re-run once at it.
-    Index qp_minor_iters = 0;      ///< That ladder's own stopping rung's counts; 0 with no rung A.
+    /// THIS ENTRY's placement was CLAMPED (headroom or dual_mu), including a clamp whose ladder
+    /// was then declined and retried at the floor -- where `rho_0` is the floor's.
+    bool rho0_ceiling_hit = false;
+    bool floor_retry = false; ///< A declined rung A above the floor was re-run once at it.
+    /// The reported ladder's own stopping rung's counts; 0 with no rung A. A CLASSIFICATION, not
+    /// a cost record: rung B's walk and a declined first attempt are not priced here.
+    Index qp_minor_iters = 0;
     Index qp_factorizations = 0;
 };
 
 /// @brief The W4 hook: one sink, eight pure-virtual methods. `nullptr` is
-/// the off state every emit site checks before building its argument
-/// struct. Destructor out-of-line (ipqp_trace.cpp, CLAUDE.md section 5).
+/// the off state every emit site checks before EMITTING; the seven tier
+/// events are also built there, while `fallback.verdict` is the judge's own
+/// out-param and is filled whether or not a sink is attached (a handful of
+/// scalars). Destructor out-of-line (ipqp_trace.cpp, CLAUDE.md section 5).
 class IpqpTraceSink {
   public:
     virtual ~IpqpTraceSink();

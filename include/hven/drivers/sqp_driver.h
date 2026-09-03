@@ -2090,9 +2090,11 @@ struct ElasticLadderReport {
     /// The FIRST rung's penalty, as THE PLACEMENT BOUND below resolved it. Not invertible from
     /// the report's `elastic` block once the ladder has climbed, and the retry rule's own input.
     double rho_0 = 0.0;
-    /// True iff the placement was CLAMPED -- headroom or dual_mu (THE PLACEMENT BOUND) -- i.e.
-    /// the evidence priced the violation above the rung the rule allows. Aggregated over a solve
-    /// by `SqpCounters::elastic_rho0_ceiling_hits`.
+    /// True iff THIS LADDER's placement was CLAMPED -- headroom or dual_mu (THE PLACEMENT BOUND)
+    /// -- i.e. the evidence priced the violation above the rung the rule allows. Aggregated over
+    /// a solve by `SqpCounters::elastic_rho0_ceiling_hits`. On the report the certified fallback
+    /// returns, it is THE ENTRY's clamp: a declined clamped attempt retried at the floor carries
+    /// its flag onto the retry's report, which is what the row and the trace event then read.
     bool rho0_ceiling_hit = false;
 };
 
@@ -2120,7 +2122,9 @@ struct ElasticSeedSource {
 /// THE FIRST RUNG'S PENALTY is THE PLACEMENT BOUND below, or `rho_0_override`
 /// clamped into `[kElasticRhoInit, kElasticRhoMax]` when the caller names one --
 /// the retry rule's route back to the floor, which reads no evidence at all and
-/// leaves `rho0_ceiling_hit` false.
+/// leaves `rho0_ceiling_hit` false. An override is VALIDATED like `window`: NaN
+/// or non-positive throws std::invalid_argument rather than resolving silently
+/// to the floor (+inf is legal, and clamps to `kElasticRhoMax`).
 ///
 /// THE PLACEMENT BOUND (amendment H, plus W2 T5's safety margin):
 ///     rho_0 = max(kElasticRhoInit,
@@ -2133,7 +2137,16 @@ struct ElasticSeedSource {
 /// amendment H's ceiling left none; the dual_mu cap is a MARGIN against the walk's false
 /// `kInfeasible` on the elastic copy (elastic.h's `kElasticRhoDualMuSafety` carries the measured
 /// law, W2 T6b carries the misfire itself). A non-finite or non-positive `dual_mu` disables that
-/// cap rather than degrading the placement. Either cap binding sets `rho0_ceiling_hit`.
+/// cap rather than degrading the placement. Either cap binding sets `rho0_ceiling_hit`, which is
+/// read off the RESULT: where the floor outranks a cap (`dual_mu >= 1e-4`, whose cap is below
+/// `kElasticRhoInit`) nothing was clamped and the flag is false.
+///
+/// THE MARGIN BINDS THE FIRST RUNG ONLY. The ladder escalates x10 with no knowledge of the cap,
+/// so a clamped ladder still climbs to `kElasticRhoMax` -- product 1 at the shipped `dual_mu`,
+/// inside the measured misfiring band -- and the retry buys a solve, not safety. Capping the
+/// ladder's TOP is deliberately NOT done here: a ladder climbs only while the relaxation is
+/// OPEN, so a top cap would turn a closable row into an EXHAUSTION and send it to restoration
+/// off a false signal. W2 T6b removes the misfire itself; that residue is its.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,

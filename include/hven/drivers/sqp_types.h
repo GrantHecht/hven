@@ -1185,9 +1185,10 @@ struct SqpIterate {
     /// slacks -- see the ELASTIC TIER note), and the driver re-derives the
     /// radius bit exactly as qp_engine.h's section 6 would have.
     bool elastic_applied = false;
-    /// True iff THIS row's elastic ladder started AT kElasticRhoMax because the
-    /// evidence-informed placement was CLAMPED to it -- no escalation was then
-    /// possible (ElasticLadderReport::rho0_ceiling_hit). False on every other row.
+    /// True iff THIS row's elastic ladder started at a CLAMPED placement -- the evidence priced
+    /// the violation above the escalation headroom or above the dual_mu safety margin
+    /// (sqp_driver.h's THE PLACEMENT BOUND, `ElasticLadderReport::rho0_ceiling_hit`), including
+    /// a clamp whose declined ladder was then retried at the floor. False on every other row.
     bool elastic_rho0_ceiling_hit = false;
     /// True iff THIS row's restoration request started the phase at a CANDIDATE point rather
     /// than at the iterate -- the candidate's MEASURED violation was lower (sqp_driver.h's

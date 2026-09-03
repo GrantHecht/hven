@@ -866,10 +866,14 @@ double elastic_initial_rho(const ElasticSeedSource &seed, double dual_mu, bool &
     if (std::isfinite(dual_mu) && dual_mu > 0.0) {
         cap = std::min(cap, kElasticRhoDualMuSafety / dual_mu);
     }
-    ceiling_hit = priced > cap;
     // THE FLOOR OUTRANKS BOTH CAPS: a cap below kElasticRhoInit would enter the ladder cheaper
     // than W1's own start, which amendment H's floor exists to forbid.
-    return std::max(kElasticRhoInit, std::min(priced, cap));
+    const double rho_0 = std::max(kElasticRhoInit, std::min(priced, cap));
+    // CLAMPED IS READ OFF THE RESULT, NOT OFF THE CAP (fix round 1): at dual_mu >= 1e-4 the
+    // margin's cap sits BELOW the floor, the floor wins, and `priced > cap` would report a clamp
+    // on a placement that is exactly W1's own.
+    ceiling_hit = rho_0 < priced;
+    return rho_0;
 }
 
 // THE EVIDENCE ARM'S SEED: a WORKING SET, not a point. Which rows and bounds are TIGHT at the
@@ -966,6 +970,14 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     if (!(window >= 0.0)) {
         throw std::invalid_argument(
             fmt::format("run_elastic_ladder: window is {}, expected >= 0 (+inf legal)", window));
+    }
+    // AND THE OVERRIDE ON THE SAME TERMS (fix round 1): it is CLAMPED rather than read, so a NaN
+    // would resolve silently to the floor and a caller's mistake would look like a placement.
+    if (rho_0_override.has_value() && !(*rho_0_override > 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("run_elastic_ladder: rho_0_override is {}, expected > 0 (+inf legal, "
+                        "clamped to kElasticRhoMax)",
+                        *rho_0_override));
     }
     ++out.elastic_activations;
 
@@ -1130,17 +1142,28 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     // by SOLVING something rather than by accumulating symptoms (this header's ELASTIC TIER
     // note). The EVIDENCE arm: the tier escaped with no QpSolution to map a seed from.
     const ElasticSeedSource elastic_seed_source{nullptr, &evidence};
+    // EVERY ACTIVATION THIS ROUTE RAISED, whatever the engine then did with it (fix round 1):
+    // the counter is named for activations, so the first attempt is charged here and the retry
+    // below charges its own -- `elastic_activations == walk-route + elastic_from_ipqp_escape`.
+    ++out.elastic_from_ipqp_escape;
     ElasticLadderReport report =
         run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out);
+    // THE ENTRY'S CLAMP, kept across the retry below: an OVERRIDE placement reads UNCLAMPED, and
+    // a clamp the engine then declined is the most interesting row this telemetry has.
+    const bool entry_ceiling_hit = report.rho0_ceiling_hit;
     // THE RETRY AT THE FLOOR (W2 T5): a price the engine declined is a failed hint, not a
     // verdict on the reformulation, so W1's own penalty gets one attempt before rung B. It is
     // charged as the second activation it is, and the partition reads THIS ladder's outcome.
     if (report.qp_status != QpStatus::kOptimal && report.rho_0 > kElasticRhoInit) {
         ++out.elastic_floor_retries;
+        ++out.elastic_from_ipqp_escape;
         verdict.floor_retry = true;
         report =
             run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out, kElasticRhoInit);
     }
+    // ONE BOOL ACROSS THE RETRY, so the row, the event and `elastic_rho0_ceiling_hits` all read
+    // THIS ENTRY's placement rather than the surviving ladder's.
+    report.rho0_ceiling_hit = entry_ceiling_hit || report.rho0_ceiling_hit;
     verdict.entered_rung_a = true;
     verdict.rho_0 = report.rho_0;
     verdict.rho0_ceiling_hit = report.rho0_ceiling_hit;
@@ -1154,10 +1177,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
         verdict.verdict = SqpFallbackVerdict::kRungB;
         return engine.solve(qp, overrides);
     }
-    // RUNG A OWNS THE ANSWER, whichever verdict it carries: the activation this function raised
-    // is charged to the escape route here, once, and the three arms below split it.
-    ++out.elastic_from_ipqp_escape;
-
+    // RUNG A OWNS THE ANSWER, whichever verdict it carries: the three arms below are the
+    // rung-A-owned side of the ENTRY partition, whose fourth arm is the rung-B return above.
     QpSolution qs =
         elastic_project(report.elastic, qp, report.qs_e, /*carry_multipliers=*/report.closed);
     if (!report.usable) {
@@ -2963,6 +2984,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     // MEASURED (a rejected trial): the guard reads a MAPPED COPY of
                     // the trial's own values bundle -- no model query, so a refusal
                     // HERE costs nothing at all.
+                    // THE FINITENESS SCREENS ARE TAKEN AT ENGINE SCALE HERE and after the map on
+                    // the arm above: `to_caller_scale` multiplies by POSITIVE FINITE factors, and
+                    // finiteness is invariant under those, so the two arms screen one predicate.
                     NlpEval probe = *cand.values_ev;
                     seam.to_caller_scale(probe);
                     if (constraint_violation_l1(probe) < h_entry) {
