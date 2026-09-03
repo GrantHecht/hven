@@ -3110,9 +3110,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             out.counters.soc_rejected += rs.counters.soc_rejected;
             out.counters.elastic_activations += rs.counters.elastic_activations;
             out.counters.elastic_escalations += rs.counters.elastic_escalations;
-            // The fallback partition folds exactly as the two above do: a sub-solve that reached
-            // the certified fallback spent those entries, and the partition is stated over a
-            // whole solve.
+            // The fallback partition folds exactly as the two above do, so the identities stay
+            // stated over a WHOLE solve. Today the five are identically zero here: restoration
+            // runs at kWalk (`ropts.qp_mode`), which never reaches the certified fallback.
             out.counters.elastic_from_ipqp_escape += rs.counters.elastic_from_ipqp_escape;
             out.counters.ipqp_suspicion_disproved += rs.counters.ipqp_suspicion_disproved;
             out.counters.ipqp_fallback_rung_b += rs.counters.ipqp_fallback_rung_b;

@@ -1313,8 +1313,9 @@ struct IpqpCounters {
 /// SINCE M6 W2 THAT IS THE WALK ROUTE ONLY: the certified fallback reformulates on the IPQP
 /// tier's infeasibility EVIDENCE instead, with no kInfeasible QP in front of it, and charges
 /// activations of its own -- `elastic_from_ipqp_escape` counts every one of them, so that
-/// counter and the walk-route remainder split this total (the identity is stated on it). The
-/// other three counters below classify the fallback's ENTRIES rather than its activations.
+/// counter and the walk-route remainder split this total (the identity is stated on it).
+/// `ipqp_suspicion_disproved`, `ipqp_fallback_rung_b` and `elastic_floor_retries` classify the
+/// fallback's ENTRIES rather than its activations; `elastic_rho0_ceiling_hits` counts LADDERS.
 ///
 /// elastic_escalations counts rho ESCALATIONS (x10 re-solves of the SAME
 /// elastic subproblem), summed over every activation -- NOT the number of
@@ -1431,8 +1432,10 @@ struct SqpCounters {
     /// EXCLUDES the ordinary placements. MEASURED ON TWO DIFFERENT SETS, which is why the two
     /// figures differ: 0/5 over W2 T3's five `w2_*` UNIT-fixture placements (the largest is
     /// 5.556e5, under the 1e6 cap), and 2/6 over the DRIVER fixtures HS10/HS11/HS15 at kIpm,
-    /// whose fired escapes price 1e-2, 1e-2, 2.558e6 (HS10), 1.785e7, 5.754e4 (HS11) and 2.776e5
-    /// (HS15) -- the two above 1e6 clamp. A nonzero reading is the frequency signal the
+    /// whose fired escapes price 1e-2, 1e-2, 2.558e6 (HS10), 1.784e7, 5.754e4 (HS11) and 2.776e5
+    /// (HS15) -- the two above 1e6 clamp. The driver figures were measured at W2 T5's fix round 1
+    /// by a temporary instrumented run; only HS11's clamp is pinned in the tree (HS11's driver
+    /// test). A nonzero reading is the frequency signal the
     /// telemetry was added for, not a statistic. Identically 0 on the no-evidence route, which
     /// is placed at the floor.
     Index elastic_rho0_ceiling_hits = 0;

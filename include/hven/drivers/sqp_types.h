@@ -1189,6 +1189,9 @@ struct SqpIterate {
     /// the violation above the escalation headroom or above the dual_mu safety margin
     /// (sqp_driver.h's THE PLACEMENT BOUND, `ElasticLadderReport::rho0_ceiling_hit`), including
     /// a clamp whose declined ladder was then retried at the floor. False on every other row.
+    /// Per-ENTRY, where `elastic_rho0_ceiling_hits` is per-ladder; they agree only because the
+    /// retry's override placement can never clamp. The clamped-and-retried ROW itself is unpinned:
+    /// it needs a retry that SUCCEEDS at the floor, which the placement bound forbids until T6b.
     bool elastic_rho0_ceiling_hit = false;
     /// True iff THIS row's restoration request started the phase at a CANDIDATE point rather
     /// than at the iterate -- the candidate's MEASURED violation was lower (sqp_driver.h's

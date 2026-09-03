@@ -9898,6 +9898,9 @@ TEST(SqpDriverCertifiedFallback, ADeclinedRungAAboveTheFloorIsRETRIEDThereExactl
     // THE CLAMPED-AND-RETRIED ENTRY (fix round 1): the retry runs at an OVERRIDE placement, whose
     // own flag is always false -- so a flag read off the surviving ladder would drop the clamp on
     // exactly the entry the telemetry exists to find. It is THE ENTRY's clamp that is reported.
+    // Pinned here for the EVENT and the COUNTER only: the ROW half needs a retry that SUCCEEDS at
+    // the floor (this fixture ends at rung B, where no row exists), which the bound forbids until
+    // T6b.
     IpqpInfeasibilityEvidence clamped = measured;
     clamped.dual_norm_start = 1.0e12;
     const W2FallbackRun clamped_retry =
@@ -9974,7 +9977,7 @@ TEST(SqpDriverCertifiedFallback, ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHi
         EXPECT_FALSE(h.soc_applied) << "trial " << h.trial << ": SOC is gated on !elastic_applied";
     }
     EXPECT_EQ(elastic_rows, 2) << "both rung-A-owned majors are marked as elastic rows";
-    // W2 T5 DECLARED BREAK, MEASURED AT THE DRIVER: this fixture's two escapes price 1.785e7 and
+    // W2 T5 DECLARED BREAK, MEASURED AT THE DRIVER: this fixture's two escapes price 1.784e7 and
     // 5.754e4, so the first row's placement is clamped to 1e6 and the second is not. T3's "0/5
     // unclamped" was over the w2_* UNIT fixtures, whose largest placement is 5.556e5.
     EXPECT_EQ(clamped_rows, 1);

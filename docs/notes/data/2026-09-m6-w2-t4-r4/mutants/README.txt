@@ -42,5 +42,5 @@ lines of each run.
                               (evals_full reads 4 against the pin's 3 -- the NaN-h trial goes
                               down the unmeasured arm and spends a fresh full query there).
                               ADDED IN W2 T5's FIX ROUND 1 (registered item Z-6) and run against
-                              THAT tree: pass its ref as apply-mutant.py's optional second
-                              argument, since the default a14ad96 predates T5's test file.
+                              THAT tree: pass its ref (8f4f062) as apply-mutant.py's optional
+                              second argument, since the default a14ad96 predates T5's test file.

@@ -2,7 +2,7 @@ import sys, shutil, subprocess
 name=sys.argv[1]
 # The pristine source is the measured code head a14ad96, read from git so this stays runnable.
 # M8 was added in W2 T5's fix round 1 and needs THAT tree (a14ad96 predates T5's test file):
-# pass its ref as the optional second argument.
+# pass its ref (8f4f062, the fix-round driver head) as the optional second argument.
 ref=sys.argv[2] if len(sys.argv)>2 else 'a14ad96'
 dst='src/drivers/sqp_driver.cpp'
 s=subprocess.run(['git','show',ref+':src/drivers/sqp_driver.cpp'],capture_output=True,text=True,check=True).stdout
