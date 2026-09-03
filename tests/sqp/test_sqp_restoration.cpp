@@ -1422,6 +1422,94 @@ class NanAwayFromStartModel final : public InfeasibleCircleLineModel {
     }
 };
 
+// ROW FACTORS THAT ACTUALLY SPREAD, inside a box: row 0's Jacobian is 1e4 and
+// rows 1-2's are 90, so W0.2 scales row 0 by 1e-2 and leaves the others at 1
+// (measured row_min 0.01, row_max 1) -- min 1/2||x||^2 on 0 <= x <= 1.
+class ScaledRowSpreadModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 3; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override { return 0.5 * x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(3);
+        c << kSteep * (x(0) - 5.0), kFlat * (x(0) + 0.001 * x(1)), kFlat * (x(0) - 0.001 * x(1));
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(3, 2);
+        j.insert(0, 0) = kSteep;
+        j.insert(1, 0) = kFlat;
+        j.insert(1, 1) = 0.001 * kFlat;
+        j.insert(2, 0) = kFlat;
+        j.insert(2, 1) = -0.001 * kFlat;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Zero(2);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Ones(2);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << x0_, 0.5;
+        return x;
+    }
+
+    static constexpr double kSteep = 1.0e4;
+    static constexpr double kFlat = 90.0;
+
+  protected:
+    explicit ScaledRowSpreadModel(double x0) : x0_(x0) {}
+    ScaledRowSpreadModel() = default;
+
+  private:
+    double x0_ = 0.5;
+};
+
+// The same model, watching every point the solve evaluates it at -- which is
+// how the restoration START is observed from outside the driver, the seeded
+// candidate included.
+class BoxWatchingSpreadModel final : public ScaledRowSpreadModel {
+  public:
+    BoxWatchingSpreadModel() = default;
+
+    double eval_f(const Vec &x) const override {
+        this->watch(x);
+        return ScaledRowSpreadModel::eval_f(x);
+    }
+    Vec eval_ce(const Vec &x) const override {
+        this->watch(x);
+        return ScaledRowSpreadModel::eval_ce(x);
+    }
+
+    mutable double worst_excursion = 0.0;
+    mutable Index points = 0;
+
+  private:
+    void watch(const Vec &x) const {
+        ++points;
+        const double out_lo = (lower() - x).maxCoeff();
+        const double out_hi = (x - upper()).maxCoeff();
+        worst_excursion = std::max(worst_excursion, std::max(out_lo, out_hi));
+    }
+};
+
 Index seeded_rows(const SqpSolution &sol) {
     Index k = 0;
     for (const SqpIterate &row : sol.history) {
@@ -1459,11 +1547,10 @@ TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
     const SqpIterate *row = seeded_row(sol);
     ASSERT_NE(nullptr, row);
     EXPECT_TRUE(row->elastic_applied) << "an elastic solve supplied this major either way";
+    EXPECT_GE(sol.counters.restoration_iters, 1) << "and the phase RAN from the taken candidate";
     // WHICH SITE offered it is build-arithmetic-dependent on this knife-edge
-    // fixture -- Release reaches the ladder's exhaustion (kRestore), Debug the
-    // radius floor (kReject) -- and the rule is the same at both.
-    EXPECT_TRUE(row->verdict == StepVerdict::kRestore || row->verdict == StepVerdict::kReject)
-        << "verdict was " << static_cast<int>(row->verdict);
+    // fixture -- Release reaches the ladder's exhaustion, Debug the radius floor
+    // -- so the site is pinned elsewhere, on fixtures that agree in both.
 
     // AND THE ANSWER IS UNCHANGED by the better start.
     EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
@@ -1473,25 +1560,56 @@ TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
     EXPECT_NEAR(sol.x(1), t, 1e-5);
 }
 
-// AND THE SEED IS NOT GATED ON THE KERNEL (owner ruling Q-O3): the same
-// fixture certifies at the same point in all three modes, each of which
-// reaches the phase through its own tier and seeds by the same rule.
+// AND THE SEED IS NOT GATED ON THE KERNEL (owner ruling Q-O3). The fixture is
+// the refactorize arm of InfeasibleNlpCertifies, MEASURED to take a trial-site
+// candidate in all three modes in BOTH configs -- so EQ(1) is falsifiable.
 TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
+    for (const QpMode mode : kSeedModes) {
+        SCOPED_TRACE(seed_mode_name(mode));
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        opts.qp_mode = mode;
+        SqpDriver driver(opts);
+        const SqpSolution sol = driver.solve(model);
+
+        // EQ, NOT LE: a `qp_mode == kWalk` gate on the candidate block leaves
+        // this at 0 on the other two kernels, in both configs (mutation-run
+        // evidence in docs/notes/data/2026-09-m6-w2-t4-r4/).
+        EXPECT_EQ(1, seeded_rows(sol)) << "the seed is taken in EVERY mode on this fixture";
+        EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+    }
+}
+
+// THE EXHAUSTED-LADDER SITE'S OWN TAKEN PIN, site-specific and config-stable:
+// the requesting row carries the ladder's kRestore verdict, so this is the
+// elastic route's arm and not the radius floor's.
+TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
         opts.max_iter = 200;
         opts.qp_mode = mode;
+        // Scaling is what makes the ROUTE config-stable on this knife-edge
+        // fixture (measured: kRestore in both configs with it, kReject in Debug
+        // without); the seeding rule itself is the same at either site.
+        opts.enable_scaling = true;
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(model);
 
-        EXPECT_LE(seeded_rows(sol), 1) << "at most one restoration, so at most one seed";
+        ASSERT_EQ(1, seeded_rows(sol));
+        const SqpIterate *row = seeded_row(sol);
+        ASSERT_NE(nullptr, row);
+        EXPECT_EQ(StepVerdict::kRestore, row->verdict) << "the ladder's exhaustion, not the floor";
+        EXPECT_TRUE(row->elastic_applied);
         EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
-        const double t = 1.0 / std::sqrt(2.0);
-        EXPECT_NEAR(sol.x(0), t, 1e-5);
-        EXPECT_NEAR(sol.x(1), t, 1e-5);
     }
 }
 
@@ -1526,16 +1644,20 @@ TEST(SqpDriverRestorationSeed, AZeroElasticStepIsNotACandidate) {
         const SqpSolution sol = driver.solve(model);
 
         EXPECT_EQ(0, seeded_rows(sol));
+        // WHAT THE ZERO-STEP CHECK BUYS is not the refusal (a candidate equal to
+        // x fails the strict guard anyway) but NOT PAYING for the guard query:
+        // deleting it spends a sixth full evaluation here. Measured, both configs.
+        EXPECT_EQ(5, sol.counters.evals_full) << "no guard evaluation was spent on a zero step";
         EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
     }
 }
 
-// A CANDIDATE THE MODEL CANNOT MEASURE IS REFUSED: every offer's violation is
-// NaN here, and NaN < h is false, so the comparison IS the guard. The phase
-// still runs, from the entry point, and nothing throws.
-TEST(SqpDriverRestorationSeed, ANonFiniteCandidateIsRefused) {
+// A CANDIDATE THE MODEL CANNOT MEASURE IS REFUSED: every offer here is a
+// TRIAL whose bundle is non-finite, so the site refuses it on the bundle --
+// before any query, and without reclassifying the trial's own.
+TEST(SqpDriverRestorationSeed, ANonFiniteEvaluationAtTheCandidateIsRefused) {
     NanAwayFromStartModel model;
     SqpOptions opts;
     opts.max_iter = 60;
@@ -1543,8 +1665,15 @@ TEST(SqpDriverRestorationSeed, ANonFiniteCandidateIsRefused) {
     const SqpSolution sol = driver.solve(model);
 
     EXPECT_EQ(0, seeded_rows(sol));
+    // THE COUNT IS THE PIN: discriminating on the measured h instead of on the
+    // OFFER's shape sent this NaN-h trial down the unmeasured arm and spent a
+    // fresh full query there. Measured at 3 in both configs.
+    EXPECT_EQ(3, sol.counters.evals_full) << "a measured non-finite trial is refused for FREE";
     EXPECT_GE(sol.counters.restoration_iters, 1) << "fixture premise: the phase RAN";
     ASSERT_FALSE(sol.history.empty());
+    // THE NON-FINITE-POINT GUARD (`cand.x->allFinite()`) IS DELIBERATELY
+    // UNPINNED and disowned here: no kOptimal elastic rung and no judged trial
+    // can produce a non-finite POINT, so it is defensive, not reachable.
 }
 
 // THE RADIUS FLOOR'S SITE, whose candidate is the REJECTED TRIAL and whose
@@ -1567,41 +1696,74 @@ TEST(SqpDriverRestorationSeed, TheRadiusFloorSeedsFromTheRejectedTrial) {
     EXPECT_TRUE(sol.infeasibility_certified);
 }
 
-// THE CLAMP IS IN THE MODEL'S OWN UNITS, pinned on a SCALED solve: W0.2
-// scales the objective and the constraint ROWS and never the variables, so x,
-// p_elastic and the wrapper's box are one space (problem_scaling.h).
-TEST(SqpDriverRestorationSeed, TheClampHoldsOnAScaledSolve) {
-    InfeasibleCircleLineModel model(2.0, 1.999999);
-    SqpOptions opts;
-    opts.max_iter = 200;
-    opts.enable_scaling = true;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+// THE GUARD, AND THE PHASE, ARE ON THE CALLER'S SCALE, pinned where the two
+// scales genuinely differ: row 0 carries the factor 1e-2 and rows 1-2 carry 1,
+// so engine-scale h and caller-scale h rank this box's two ends oppositely.
+TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
+    for (const QpMode mode : kSeedModes) {
+        SCOPED_TRACE(seed_mode_name(mode));
+        BoxWatchingSpreadModel model;
+        SqpOptions opts;
+        opts.max_iter = 60;
+        opts.qp_mode = mode;
+        opts.enable_scaling = true;
+        SqpDriver driver(opts);
+        const SqpSolution sol = driver.solve(model);
 
-    EXPECT_EQ(1, seeded_rows(sol));
-    EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
-    EXPECT_TRUE(sol.infeasibility_certified);
-    const double t = 1.0 / std::sqrt(2.0);
-    EXPECT_NEAR(sol.x(0), t, 1e-5);
-    EXPECT_NEAR(sol.x(1), t, 1e-5);
+        // THE FIXTURE'S PREMISE, asserted rather than assumed: scaling ran and
+        // the row factors are NON-UNIFORM by two orders.
+        ASSERT_TRUE(sol.scaling.active);
+        EXPECT_NEAR(sol.scaling.row_min, 0.01, 1e-12);
+        EXPECT_NEAR(sol.scaling.row_max, 1.0, 1e-12);
+
+        ASSERT_EQ(1, seeded_rows(sol));
+        const SqpIterate *row = seeded_row(sol);
+        ASSERT_NE(nullptr, row);
+        EXPECT_EQ(StepVerdict::kRestore, row->verdict);
+        // AND THE TWO SCALES ORDER THE OFFER OPPOSITELY, which is what makes
+        // this pin bite: measured caller 50000 -> 49999.999999992513 (taken) and
+        // engine 500 -> 500.00000000006105 (refused), on a tiny x0 displacement.
+        EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+        // The phase minimizes that SAME caller-scale h and lands at x0 = 1, where
+        // the engine-scale measure would have stopped at x0 = 0.
+        EXPECT_TRUE(sol.infeasibility_certified);
+        EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
+        EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
+
+        // AND NO POINT THE SOLVE EVALUATED LEFT THE BOX, the seeded start
+        // included. The QP carries the box (build_subproblem), so the clamp on
+        // x + p_elastic is DEFENSIVE and is deliberately left unpinned.
+        EXPECT_GT(model.points, 0);
+        EXPECT_LE(model.worst_excursion, 1e-9) << "worst box excursion over every evaluated point";
+    }
 }
 
 // THE SEED'S EVALUATION IS COUNTED ONCE. A taken TRIAL candidate is an
 // UPGRADE of a query already charged values-only, so it is RECLASSIFIED
-// (--values, ++full) -- a second charge would break the partition below.
+// (--values, ++full) -- both halves are pinned separately below.
 TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
-    SeedCountingModel model(2.0, 1.999999);
+    SeedCountingModel model(2.0, 2.0);
     SqpOptions opts;
     opts.max_iter = 200;
+    opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
     SqpDriver driver(opts);
     const SqpSolution sol = driver.solve(model);
 
     ASSERT_EQ(1, seeded_rows(sol)) << "fixture premise: a candidate was TAKEN";
+    // FULL IS EXACT AND CONFIG-STABLE (measured 27 in both): dropping the
+    // reclassification leaves 26, and the seeded trial then stays counted as a
+    // values-only query it no longer is.
+    EXPECT_EQ(27, sol.counters.evals_full);
+    // VALUES IS THE OTHER HALF, one lower than the un-upgraded count would be.
+    // The trajectory's length differs by one rejected trial between the configs
+    // (measured 41 Debug / 40 Release), so both observations are named here.
+    EXPECT_TRUE(sol.counters.evals_values == 41 || sol.counters.evals_values == 40)
+        << "evals_values was " << sol.counters.evals_values;
     // n_grad and n_jac_e do NOT equal evals_full (the wrapper's gradient is
     // constant, so a sub-solve's full query never reaches the inner one), which
-    // is why the PARTITION is the cross-check rather than a per-block equality.
+    // is why the PARTITION is the independent cross-check.
     EXPECT_EQ(sol.counters.evals_full + sol.counters.evals_values, model.n_ce)
-        << "the two counters PARTITION the model queries -- an upgraded trial moved BETWEEN "
-           "them and was not counted twice";
+        << "the two counters PARTITION the model queries -- a fresh eval_nlp in place of the "
+           "in-place upgrade adds an eval_ce and breaks this";
     EXPECT_GT(model.n_jac_e, 0);
 }
