@@ -5,7 +5,8 @@ name=sys.argv[1]
 # pass its ref (8f4f062, the fix-round driver head) as the optional second argument.
 ref=sys.argv[2] if len(sys.argv)>2 else 'a14ad96'
 dst='src/drivers/sqp_driver.cpp'
-s=subprocess.run(['git','show',ref+':src/drivers/sqp_driver.cpp'],capture_output=True,text=True,check=True).stdout
+s=subprocess.run(['git','show',ref+':'+dst],
+                 capture_output=True,text=True,check=True).stdout
 GATE="            if (cand.x != nullptr && cand.x->size() == x.size() && cand.x->allFinite()) {"
 def rep(a,b):
     global s

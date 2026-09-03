@@ -2990,6 +2990,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     // finiteness is invariant under those, so the two arms screen one predicate.
                     NlpEval probe = *cand.values_ev;
                     seam.to_caller_scale(probe);
+                    // AND THE MAP CANNOT MANUFACTURE A TAKE: the row factors are positive, so an
+                    // overflow there can only RAISE this probe's h, which the comparison refuses.
                     if (constraint_violation_l1(probe) < h_entry) {
                         // The values-only query already charged is UPGRADED in
                         // place -- one query RECLASSIFIED, never a second one

@@ -10576,3 +10576,622 @@ TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue) {
     EXPECT_GT(high.worst_resid, 1.0) << "a residual no verdict should be read off";
     EXPECT_EQ(high.verdict_refine_steps, 0) << "the classifier never called it structural";
 }
+
+// ===========================================================================
+// M6 W2 T7 -- the REGISTERED PINS. `.superpowers/w2-t7-report.md` section 2.
+// ===========================================================================
+
+namespace {
+
+/// THE DRIVER-LEVEL EXHAUSTION FIXTURE (T3's honest gap, Codex X-2). Antiparallel-in-VALUE
+/// equality rows scaled by `s`: both rows carry the gradient `(s, s)` while demanding
+/// `x0 + x1 = 2` and `x0 + x1 = -2`, so no step of any length satisfies both and no penalty
+/// closes the relaxation. At `s = 1e8` on the unit box from `(2.5, 2.5)` the IPQP tier escapes
+/// `kInfeasibleSuspect` and the certified fallback's rung A EXHAUSTS -- the one shape measured
+/// (2484 driver cells swept, `.superpowers/w2-t7-report.md` section 1) that puts an ATTACHED
+/// report into the escape branch's ternary.
+class W2T7ScaledInconsistentEqualitiesModel : public NlpModel {
+  public:
+    W2T7ScaledInconsistentEqualitiesModel(double s, double b, double a) : s_(s), b_(b), a_(a) {}
+
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override { return 0.5 * x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << s_ * (x(0) + x(1) - 2.0), s_ * (x(0) + x(1) + 2.0);
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(2, 2);
+        j.insert(0, 0) = s_;
+        j.insert(0, 1) = s_;
+        j.insert(1, 0) = s_;
+        j.insert(1, 1) = s_;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        lo_ = Vec::Constant(2, -b_);
+        return lo_;
+    }
+    const Vec &upper() const override {
+        up_ = Vec::Constant(2, b_);
+        return up_;
+    }
+    Vec start_point() const override { return Vec::Constant(2, a_); }
+
+  private:
+    double s_, b_, a_;
+    mutable Vec lo_, up_;
+};
+
+/// THE T3-A ROUTE'S DRIVER FIXTURE: `s*(x0 - r) = 0` on the unit box, which the box forbids at
+/// any radius. At `s = 1e8`, `r = 5` from `(0.25, 0.25)` the fallback REFUSES on major 1 (rung A
+/// declined, rung B's walk certifies kInfeasible, so the escape branch runs W1's own second
+/// ladder) and EXHAUSTS on major 2. Byte-identical in both configs -- see the T7 report.
+class W2T7BoxBlockedRowModel : public NlpModel {
+  public:
+    W2T7BoxBlockedRowModel(double s, double r, double a) : s_(s), r_(r), a_(a) {}
+
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override { return 0.5 * x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << s_ * (x(0) - r_);
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = s_;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Zero(2);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Ones(2);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, a_); }
+
+  private:
+    double s_, r_, a_;
+};
+
+/// Collects `fallback.verdict` through the ordinary sink, as the T5 driver pins do.
+class W2T7FallbackSink : public IpqpTraceSink {
+  public:
+    std::vector<SqpFallbackVerdictTraceEvent> fallbacks;
+    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &e) override {
+        fallbacks.push_back(e);
+    }
+};
+
+Index w2t7_count(const std::vector<SqpFallbackVerdictTraceEvent> &fb, SqpFallbackVerdict v) {
+    Index k = 0;
+    for (const SqpFallbackVerdictTraceEvent &e : fb) {
+        k += e.verdict == v ? 1 : 0;
+    }
+    return k;
+}
+
+} // namespace
+
+TEST(SqpDriverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver) {
+    // T3'S REGISTERED GAP, CLOSED (Codex X-2). At T3 no fixture and no U0 cell drove SqpDriver's
+    // escape-branch ternary onto an ATTACHED report: instrumented over the 27 HS models at kIpm
+    // plus the two inconsistent ones, it was reached nine times, always with an EMPTY optional.
+    //
+    // `elastic_activations` IS the discriminator, because `++elastic_activations` lives inside
+    // run_elastic_ladder: the two ENTERED rung As charge two, and a ternary that re-ran the
+    // ladder instead of consuming the report would charge three.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
+    SqpDriver driver(opts);
+    W2T7FallbackSink sink;
+    driver.attach_trace(&sink);
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(sink.fallbacks.size(), 3u) << "three fallback entries, the last one exhausted";
+    EXPECT_EQ(w2t7_count(sink.fallbacks, SqpFallbackVerdict::kExhausted), 1);
+    EXPECT_EQ(w2t7_count(sink.fallbacks, SqpFallbackVerdict::kRelaxed), 1);
+    EXPECT_EQ(w2t7_count(sink.fallbacks, SqpFallbackVerdict::kUnfired), 1);
+    EXPECT_EQ(sink.fallbacks.back().verdict, SqpFallbackVerdict::kExhausted);
+
+    EXPECT_EQ(sol.counters.elastic_from_ipqp_escape, 2) << "two entries fired, one did not";
+    EXPECT_EQ(sol.counters.elastic_activations, 2)
+        << "exactly the entered rung As -- a re-run inside the ternary would read 3";
+    EXPECT_EQ(sol.counters.ipqp_fallback_rung_b, 0);
+    EXPECT_EQ(sol.counters.elastic_floor_retries, 0);
+    EXPECT_EQ(sol.counters.ipqp_suspicion_disproved, 0);
+    EXPECT_EQ(sol.counters.major_iters, 3);
+
+    // AND WHAT THE CONSUMED REPORT DROVE: the exhaustion row is an elastic row carrying the
+    // ladder's own kOptimal, and it routes through the funnel's kRestore exit into restoration.
+    ASSERT_FALSE(sol.history.empty());
+    const SqpIterate &last = sol.history.back();
+    EXPECT_TRUE(last.elastic_applied);
+    EXPECT_EQ(last.qp_status, QpStatus::kOptimal) << "exhausted, not declined";
+    EXPECT_EQ(last.verdict, StepVerdict::kRestore);
+    EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+    EXPECT_TRUE(sol.infeasibility_certified);
+    EXPECT_EQ(sol.counters.restoration_iters, 1);
+}
+
+TEST(SqpDriverCertifiedFallback, T7TheCeilingFlagsTRUEArmOnADriverRowIsThePricedOne) {
+    // T3 REGISTERED, T5 MADE REACHABLE: HS11's FIRST escape prices 1.784456e7 above T5's
+    // dual_mu-aware cap, so the flag's TRUE arm means what it says -- the evidence priced the
+    // violation ABOVE what the placement rule allows. Provenance: T7 report section 2, item 3.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(11);
+    SqpDriver driver(opts);
+    W2T7FallbackSink sink;
+    driver.attach_trace(&sink);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    const double cap = kElasticRhoDualMuSafety / opts.qp.dual_mu;
+    ASSERT_EQ(sink.fallbacks.size(), 2u);
+    ASSERT_TRUE(sink.fallbacks[0].rho_0.has_value());
+    ASSERT_TRUE(sink.fallbacks[1].rho_0.has_value());
+    EXPECT_TRUE(sink.fallbacks[0].rho0_ceiling_hit) << "priced 1.784456e7, clamped to the cap";
+    EXPECT_FALSE(sink.fallbacks[1].rho0_ceiling_hit) << "priced 5.753543e4, below the cap";
+    EXPECT_DOUBLE_EQ(*sink.fallbacks[0].rho_0, cap) << "the clamped placement IS the cap";
+    EXPECT_LT(*sink.fallbacks[1].rho_0, cap);
+
+    // AND THE PRODUCTION CONSUMER, row by row: exactly one elastic row reads the flag true, and
+    // it is the first -- no non-elastic row carries it, and the counter agrees with the rows.
+    Index elastic_rows = 0;
+    Index clamped_rows = 0;
+    bool first_elastic_clamped = false;
+    for (const SqpIterate &h : sol.history) {
+        if (!h.elastic_applied) {
+            EXPECT_FALSE(h.elastic_rho0_ceiling_hit) << "trial " << h.trial;
+            continue;
+        }
+        if (elastic_rows == 0) {
+            first_elastic_clamped = h.elastic_rho0_ceiling_hit;
+        }
+        ++elastic_rows;
+        clamped_rows += h.elastic_rho0_ceiling_hit ? 1 : 0;
+    }
+    EXPECT_EQ(elastic_rows, 2);
+    EXPECT_EQ(clamped_rows, 1);
+    EXPECT_TRUE(first_elastic_clamped);
+    EXPECT_EQ(sol.counters.elastic_rho0_ceiling_hits, clamped_rows);
+}
+
+TEST(SqpDriverCertifiedFallback, T7TheDisprovedSuspicionCalibrationOverTheHsCorpusIsZERO) {
+    // T5 REGISTERED, MEASURED END TO END: over all 27 HS models at kIpm the fallback is entered
+    // nine times, six with a FIRED block, and not one closes its slacks -- every fired entry is
+    // RELAXED. The mechanism and the population are in T7 report section 2, item 4.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    Index entries = 0;
+    Index fired = 0;
+    Index disproved = 0;
+    Index relaxed = 0;
+    Index exhausted = 0;
+    Index rung_b = 0;
+    for (const int number : hven::solvers::test_support::hs_numbers()) {
+        const HsProblem p = make_hs(number);
+        SqpDriver driver(opts);
+        W2T7FallbackSink sink;
+        driver.attach_trace(&sink);
+        const SqpSolution sol = driver.solve(*p.model);
+        entries += static_cast<Index>(sink.fallbacks.size());
+        for (const SqpFallbackVerdictTraceEvent &e : sink.fallbacks) {
+            fired += e.entered_rung_a ? 1 : 0;
+        }
+        disproved += w2t7_count(sink.fallbacks, SqpFallbackVerdict::kDisproved);
+        relaxed += w2t7_count(sink.fallbacks, SqpFallbackVerdict::kRelaxed);
+        exhausted += w2t7_count(sink.fallbacks, SqpFallbackVerdict::kExhausted);
+        rung_b += w2t7_count(sink.fallbacks, SqpFallbackVerdict::kRungB);
+        EXPECT_EQ(sol.counters.ipqp_suspicion_disproved, 0) << "hs" << number;
+    }
+    EXPECT_EQ(entries, 9) << "the population itself is half the calibration";
+    EXPECT_EQ(fired, 6);
+    EXPECT_EQ(disproved, 0) << "NO HS cell disproves its own suspicion at kIpm";
+    EXPECT_EQ(relaxed, 6);
+    EXPECT_EQ(exhausted, 0) << "and none exhausts either -- T7's own fixture is the exhaustion";
+    EXPECT_EQ(rung_b, 0);
+}
+
+TEST(SqpDriverCertifiedFallback, T7TheDisplacedPatternCostsONEAnalysisOnTheFollowingMajor) {
+    // T3 REGISTERED, MEASURED AT THE DRIVER: an elastic major leaves the AUGMENTED pattern
+    // installed, so the next original-pattern solve pays one analysis. SqpIterate has no such
+    // field, so the per-major reading is PREFIX TRUNCATION -- T7 report section 2, item 5.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    std::vector<Index> per_major;
+    Index previous = 0;
+    for (Index k = 1; k <= 14; ++k) {
+        SqpOptions truncated = opts;
+        truncated.max_iter = k;
+        const HsProblem p = make_hs(10);
+        SqpDriver driver(truncated);
+        const SqpSolution sol = driver.solve(*p.model);
+        ASSERT_EQ(sol.counters.major_iters, k) << "the prefix must be a prefix";
+        per_major.push_back(sol.counters.symbolic_analyses - previous);
+        previous = sol.counters.symbolic_analyses;
+    }
+    ASSERT_EQ(per_major.size(), 14u);
+
+    // THE MEASURED PROFILE: majors 1-3 are the escapes (the tier owns the original solve, so
+    // only the elastic pattern is analysed), 4-8 the retired tier alternating both patterns at 2
+    // apiece, MAJOR 9 the registered number, 10-14 the retained pattern. T7 report, item 5.
+    const std::vector<Index> expected{2, 0, 0, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0};
+    EXPECT_EQ(per_major, expected);
+    EXPECT_EQ(previous, 13) << "and they sum to the whole solve's own counter";
+
+    const HsProblem p = make_hs(10);
+    SqpOptions full = opts;
+    full.max_iter = 60;
+    SqpDriver driver(full);
+    const SqpSolution sol = driver.solve(*p.model);
+    EXPECT_EQ(sol.counters.symbolic_analyses, 13);
+    EXPECT_EQ(sol.counters.ipqp.ipqp_to_walk, 3) << "the three escapes the T3 review named";
+}
+
+TEST(SqpDriverCertifiedFallback, T7AnInfiniteOverridePlacesTheLadderAtItsCeiling) {
+    // T5 Y-8: the `+inf` clause of `rho_0_override`'s boundary was pinned only through 1e30, so
+    // a validation rewritten as `std::isfinite(*rho_0_override)` would have passed. A literal
+    // infinity is LEGAL and clamps to kElasticRhoMax, exactly as the finite 1e30 arm does.
+    const QpProblem qp = w2_box_blocked_qp(10.0);
+    const IpqpInfeasibilityEvidence evidence = w2_hand_built_evidence();
+    const ElasticSeedSource arm{nullptr, &evidence};
+    const double inf = std::numeric_limits<double>::infinity();
+    SqpOptions opts;
+    QpEngine engine(opts.qp);
+    SqpCounters counters;
+    const ElasticLadderReport infinite =
+        run_elastic_ladder(engine, qp, arm, inf, opts, counters, inf);
+    EXPECT_DOUBLE_EQ(infinite.rho_0, kElasticRhoMax);
+    EXPECT_FALSE(infinite.rho0_ceiling_hit) << "the caller named the rung; no cap refused it";
+    EXPECT_EQ(counters.elastic_rho0_ceiling_hits, 0);
+    EXPECT_EQ(counters.elastic_activations, 1);
+}
+
+namespace {
+
+/// test_qp_engine.cpp's `objective_inflated_lambda_qp`, transcribed for T6b's owed Z-8 pin:
+/// `a(x0+x1) = 1` against `a(x0+x1) <= 1 - gap`, infeasible by `gap` in row units while the
+/// multiplier is inflated by the OBJECTIVE as 1/(2a^2).
+QpProblem w2t7_objective_inflated_qp(double a, double gap) {
+    QpProblem qp;
+    qp.H =
+        Eigen::MatrixXd::Identity(2, 2).triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(2);
+    Eigen::MatrixXd Aed(1, 2);
+    Aed << a, a;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec::Constant(1, 1.0);
+    Eigen::MatrixXd Aid(1, 2);
+    Aid << a, a;
+    qp.Ai = Aid.sparseView();
+    qp.bi = Vec::Constant(1, 1.0 - gap);
+    qp.lower = Vec::Constant(2, -1e20);
+    qp.upper = Vec::Constant(2, 1e20);
+    return qp;
+}
+
+/// The plain (non-elastic) walk, reporting the RETURNED point's own worst row residual -- which
+/// is what a caller reading a kInfeasible exit's `x` actually gets.
+struct W2T7PlainWalk {
+    QpStatus status = QpStatus::kOptimal;
+    double worst_resid = 0.0;
+    Index verdict_refine_steps = 0;
+};
+
+W2T7PlainWalk w2t7_plain_walk(const QpProblem &qp, double dual_mu, WorkingSetLinearAlgebra alg) {
+    QpOptions opts;
+    opts.dual_mu = dual_mu;
+    opts.ws_algebra = alg;
+    const QpSolution s = QpEngine(opts).solve(qp, SolveOverrides{});
+    W2T7PlainWalk out;
+    out.status = s.status;
+    out.verdict_refine_steps = s.counters.verdict_refine_steps;
+    if (qp.me() > 0) {
+        out.worst_resid =
+            std::max(out.worst_resid, (qp.Ae * s.x - qp.be).lpNorm<Eigen::Infinity>());
+    }
+    if (qp.mi() > 0) {
+        out.worst_resid = std::max(out.worst_resid, (qp.Ai * s.x - qp.bi).maxCoeff());
+    }
+    return out;
+}
+
+} // namespace
+
+TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleBorderExitRETURNSTheRefinedPoint) {
+    // T6b Z-8, OWED AND NOW PINNED: "a certified-infeasible exit returns the REFINED point" was
+    // stated, not guarded. The point a caller receives IS the measurement -- 1.111111e-1 before
+    // adoption, 2.943550e-4 after. The three adopting cells are in T7 report section 2, item 7.
+    //
+    // kRefactorize is the CONTROL and it reads the unrefined value, which is also T6b disclosure
+    // (c) in the (i)-direction: on this cell border is MORE accurate than its own oracle.
+    const QpProblem qp = w2t7_objective_inflated_qp(1.0e-2, 3.0e-4);
+    const W2T7PlainWalk bordered =
+        w2t7_plain_walk(qp, 1.0e-4, WorkingSetLinearAlgebra::kSchurBorder);
+    const W2T7PlainWalk eliminated =
+        w2t7_plain_walk(qp, 1.0e-4, WorkingSetLinearAlgebra::kRefactorize);
+
+    EXPECT_EQ(bordered.status, QpStatus::kInfeasible);
+    EXPECT_EQ(eliminated.status, QpStatus::kInfeasible) << "the VERDICT is still mode-paired";
+    EXPECT_GT(bordered.verdict_refine_steps, 0) << "the loop ran and adopted";
+    EXPECT_EQ(eliminated.verdict_refine_steps, 0) << "the eliminated path has no such loop";
+    EXPECT_NEAR(bordered.worst_resid, 2.943550e-4, 1.0e-9) << "the REFINED point came back";
+    EXPECT_NEAR(eliminated.worst_resid, 1.111111e-1, 1.0e-7);
+    EXPECT_LT(bordered.worst_resid, eliminated.worst_resid / 100.0)
+        << "the adopted point is what a kInfeasible exit returns, not just what it re-read";
+}
+
+TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
+    // T6b Z-4, OWED. The in-suite census runs its FEASIBLE half at dual_mu in {1e-6, 1e-8}, a
+    // DECLARED narrowing; this runs it over the full set and says what is up there rather than
+    // widening the census's own zero. The cell-by-cell table is T7 report section 2, item 8.
+    //
+    // THE DISCRIMINATOR IS THE SLACK, not the verdict: a kInfeasible whose relaxation is still
+    // OPEN is the misfire T6b removed, while a SHUT slack is the disclosed corner-point residue
+    // -- a point, not a tolerance, and byte-stable against 23e884a.
+    struct Fixture {
+        const char *name;
+        QpProblem qp;
+    };
+    const std::vector<Fixture> feasible{{"box_blocked(10)", w2_box_blocked_qp(10.0)},
+                                        {"box_blocked_ineq(10)", w2_box_blocked_ineq_qp(10.0)},
+                                        {"stiff(1e2)", w2_stiff_consistent_qp(1.0e2)},
+                                        {"stiff(4e5)", w2_stiff_consistent_qp(4.0e5)}};
+    Index cells = 0;
+    Index open_relaxation_certified_infeasible = 0;
+    Index shut_slack_residue = 0;
+    for (const Fixture &f : feasible) {
+        for (const double rho : w2_t6b_rhos()) {
+            for (const double mu : w2_t6b_dual_mus()) {
+                for (const WorkingSetLinearAlgebra alg : w2_t6b_algebras()) {
+                    ++cells;
+                    const W2ElasticWalk w = w2_walk_elastic(f.qp, rho, mu, alg);
+                    if (w.status != QpStatus::kInfeasible) {
+                        continue;
+                    }
+                    SCOPED_TRACE(fmt::format("{} rho={:g} mu={:g} {}", f.name, rho, mu,
+                                             w2_t6b_mode_name(alg)));
+                    if (w.slack_l1 > SqpOptions{}.feas_tol) {
+                        ++open_relaxation_certified_infeasible;
+                    } else {
+                        ++shut_slack_residue;
+                        EXPECT_GT(w.worst_resid, 1.0e-2) << "a residue is a POINT, not a tolerance";
+                        EXPECT_EQ(w.verdict_refine_steps, 0) << "nothing was adopted there";
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_EQ(cells, 120);
+    EXPECT_EQ(open_relaxation_certified_infeasible, 0)
+        << "the census's own claim, and it holds at every dual_mu";
+    // ASSERTED AS RESIDUE, NOT AS CLOSED (Z-4's own instruction). Two of the thirteen are the
+    // kSchurBorder corner point the disclosure pin already carries; the other eleven are the
+    // stiff family's, nine of them under kRefactorize, which the fix never touched.
+    EXPECT_EQ(shut_slack_residue, 13);
+}
+
+TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture) {
+    // T6b REGISTERED (tycho): the verdict loop's cost AT SCALE. THE DISTRIBUTION, measured: 0 on
+    // all 27 HS models at kIpm, 0 on the inconsistent-linearization and exhaustion fixtures, and
+    // 15 on the T3-A fixture in all three modes and both configs. T7 report section 2, item 10.
+    //
+    // WHY THAT ONE: its elastic copies are the only driver-reachable subproblems here whose
+    // BORDERED dead end classifies structural. 15 steps over two majors is under two full
+    // budgets (`kMaxVerdictRefineSteps` is 10 PER ENTRY), so the loop CLOSES rather than runs out.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    Index worst = 0;
+    for (const int number : hven::solvers::test_support::hs_numbers()) {
+        const HsProblem p = make_hs(number);
+        SqpDriver driver(opts);
+        const SqpSolution sol = driver.solve(*p.model);
+        EXPECT_EQ(sol.counters.verdict_refine_steps, 0) << "hs" << number;
+        worst = std::max(worst, sol.counters.verdict_refine_steps);
+    }
+    {
+        W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
+        SqpDriver driver(opts);
+        const SqpSolution sol = driver.solve(model);
+        EXPECT_EQ(sol.counters.verdict_refine_steps, 0) << "the exhaustion fixture pays nothing";
+    }
+    // THE RESTORATION-HEAVY HALF, mode by mode: the counter folds through the restoration
+    // sub-solve, so this reading includes the phase's own subproblems.
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+        SCOPED_TRACE(mode == QpMode::kWalk ? "walk" : (mode == QpMode::kSsn ? "ssn" : "ipm"));
+        SqpOptions m = opts;
+        m.qp_mode = mode;
+        m.max_iter = 200;
+        {
+            W2T7BoxBlockedRowModel model(1.0e8, 5.0, 0.25);
+            SqpDriver driver(m);
+            const SqpSolution sol = driver.solve(model);
+            EXPECT_EQ(sol.counters.verdict_refine_steps, 15) << "mode-independent, config-stable";
+            EXPECT_EQ(sol.counters.restoration_iters, 1);
+            worst = std::max(worst, sol.counters.verdict_refine_steps);
+        }
+        {
+            InconsistentLinearizationModel model;
+            SqpDriver driver(m);
+            const SqpSolution sol = driver.solve(model);
+            EXPECT_EQ(sol.counters.verdict_refine_steps, 0);
+        }
+    }
+    EXPECT_EQ(worst, 15) << "the ceiling on the fixture set";
+}
+
+TEST(SqpDriverCertifiedFallback, T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder) {
+    // T3-A, ACCEPTED WITH DISCLOSURE AT T3 AND REACHED AT THE DRIVER HERE. A refusal attaches no
+    // report, so a rung B that itself certifies kInfeasible leaves the ternary an EMPTY optional
+    // and W1's own ladder runs -- one activation beyond the entered rung As.
+    //
+    // AND WHY THE REGISTERED REMEDY WAS MEASURED THEN STOPPED (T7 item 6): the second ladder
+    // SUCCEEDS here -- major 1 takes a relaxed step, h falls 4.75e8 -> 4.0e8 -- so routing to
+    // restoration on the refused report would replace it. `.superpowers/w2-t7-report.md`.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    W2T7BoxBlockedRowModel model(1.0e8, 5.0, 0.25);
+    SqpDriver driver(opts);
+    W2T7FallbackSink sink;
+    driver.attach_trace(&sink);
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(sink.fallbacks.size(), 2u);
+    EXPECT_EQ(sink.fallbacks[0].verdict, SqpFallbackVerdict::kRungB) << "major 1 REFUSED";
+    EXPECT_EQ(sink.fallbacks[1].verdict, SqpFallbackVerdict::kExhausted);
+    EXPECT_EQ(sol.counters.ipqp_fallback_rung_b, 1);
+    EXPECT_EQ(sol.counters.elastic_from_ipqp_escape, 2) << "one rung A per entry";
+    EXPECT_EQ(sol.counters.elastic_activations, 3)
+        << "the two rung As plus the SECOND ladder the empty optional forced";
+
+    ASSERT_EQ(sol.history.size(), 2u);
+    EXPECT_TRUE(sol.history[0].elastic_applied) << "the second ladder's own relaxed step";
+    EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptH);
+    EXPECT_TRUE(sol.history[1].elastic_applied);
+    EXPECT_EQ(sol.history[1].verdict, StepVerdict::kRestore);
+    EXPECT_GT(sol.history[0].violation_l1, sol.history[1].violation_l1)
+        << "the step the remedy would have skipped";
+    EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+    EXPECT_TRUE(sol.infeasibility_certified);
+}
+
+TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDINGNotAMargin) {
+    // T7 item 2, MEASURED AND REPORTED RATHER THAN PINNED AS A TAKE: T4 asked for a fixture
+    // seeding restoration from the ATTACHED report's point, and the sweep found no take that is
+    // config-stable. The structural reason is below; the sweep is T7 report section 2, item 2.
+    //
+    // A ladder EXHAUSTS only with the relaxation open at the ceiling, which here leaves the
+    // iterate pressed against its bound: `p_elastic` is exactly ZERO (the zero-step pin's case)
+    // or, as here, at ROUNDING -- so T4's elastic-site offer has no wide-margin fixture.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
+    SqpDriver driver(opts);
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_FALSE(sol.history.empty());
+    const SqpIterate &requesting = sol.history.back();
+    ASSERT_EQ(requesting.verdict, StepVerdict::kRestore) << "the exhausted row raised the request";
+    EXPECT_GT(requesting.step_norm, 0.0) << "an offer WAS made -- this is not the zero-step case";
+    EXPECT_LT(requesting.step_norm, 1.0e-12)
+        << "and it is at rounding against a violation of 4e8, which is why no take is stable";
+    EXPECT_EQ(sol.counters.restoration_iters, 1) << "the phase runs from one start or the other";
+    EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+}
+
+TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeModes) {
+    // PLAN SECTION 6's F-1, AS ONE TEST ON ONE FIXTURE (T7 item 12's audit). T3/T5 landed F-1's
+    // shape at the QP level and its partition at the driver, but nothing asserted the THREE-MODE
+    // expectation together, and nothing asserted its counter comparison at all.
+    //
+    // THE ROUTES: kWalk certifies the subproblem kInfeasible and enters the tier; kSsn escapes
+    // kInfeasibleSuspect to the walk, which does the same; kIpm escapes to the certified
+    // fallback, whose rung A IS the ladder -- so the walk never sees the original QP.
+    struct Arm {
+        QpMode mode;
+        const char *name;
+        SqpCounters counters;
+        SqpStatus status = SqpStatus::kOptimal;
+    };
+    std::vector<Arm> arms{
+        {QpMode::kWalk, "walk", {}}, {QpMode::kSsn, "ssn", {}}, {QpMode::kIpm, "ipm", {}}};
+    for (Arm &arm : arms) {
+        SqpOptions opts;
+        opts.qp_mode = arm.mode;
+        opts.max_iter = 60;
+        W2T7ScaledInconsistentEqualitiesModel model(1.0e2, 2.0, 0.5);
+        SqpDriver driver(opts);
+        const SqpSolution sol = driver.solve(model);
+        arm.counters = sol.counters;
+        arm.status = sol.status;
+        SCOPED_TRACE(arm.name);
+        EXPECT_EQ(sol.status, SqpStatus::kInfeasible) << "the same answer in every mode";
+        EXPECT_EQ(sol.counters.elastic_activations, sol.counters.major_iters)
+            << "one ladder per major, whichever route reached it";
+    }
+    const SqpCounters &walk = arms[0].counters;
+    const SqpCounters &ssn = arms[1].counters;
+    const SqpCounters &ipm = arms[2].counters;
+    const Index majors = walk.major_iters;
+
+    // THE ESCAPE CENSUS, one mode at a time: each route is reached through its OWN kernel's
+    // kInfeasibleSuspect signal and no other's.
+    EXPECT_EQ(walk.ssn.ssn_escape_infeasible_suspect, 0);
+    EXPECT_EQ(walk.elastic_from_ipqp_escape, 0);
+    EXPECT_EQ(ssn.ssn.ssn_escape_infeasible_suspect, majors) << "kSsn escapes every major";
+    EXPECT_EQ(ssn.elastic_from_ipqp_escape, 0);
+    EXPECT_EQ(ipm.ssn.ssn_escape_infeasible_suspect, 0);
+    EXPECT_EQ(ipm.elastic_from_ipqp_escape, majors) << "and kIpm on every major";
+    EXPECT_EQ(ipm.ipqp.ipqp_to_walk, majors);
+    EXPECT_EQ(ipm.ipqp_fallback_rung_b, 0) << "rung A owned every one of them";
+    EXPECT_EQ(ipm.ipqp_suspicion_disproved, 0);
+
+    // AND THE TRAJECTORY IS THE SAME TRAJECTORY: the three modes agree on the major count and on
+    // the restoration the exhaustion then asks for, so the counter comparison below is a
+    // comparison of ROUTES rather than of two different solves.
+    EXPECT_EQ(ssn.major_iters, majors);
+    EXPECT_EQ(ipm.major_iters, majors);
+    EXPECT_EQ(ssn.restoration_iters, walk.restoration_iters);
+    EXPECT_EQ(ipm.restoration_iters, walk.restoration_iters);
+
+    // F-1'S COUNTER COMPARISON, "one fewer walk solve than kWalk's path", read through
+    // `symbolic_analyses` -- the walk factor's pattern installs, alternating original/elastic
+    // under kWalk and elastic-only under kIpm. Measured 5/6/3 and 7/8/3; T7 report, item 12.
+    EXPECT_EQ(walk.symbolic_analyses, 2 * majors + 1)
+        << "original and elastic, strictly alternating";
+    EXPECT_EQ(ssn.symbolic_analyses, walk.symbolic_analyses + 1) << "plus the escaped subproblem";
+    EXPECT_LT(ipm.symbolic_analyses, walk.symbolic_analyses);
+    EXPECT_GE(walk.symbolic_analyses - ipm.symbolic_analyses, majors)
+        << "at least one original-pattern walk solve saved per major -- F-1's expectation";
+}
