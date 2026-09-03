@@ -326,13 +326,8 @@
 //    TRUSTWORTHY RANGE, both directions, both known and accepted:
 //    (i) FALSE kInfeasible on a feasible but ill-scaled row whose refined
 //        residual still clears kStructuralResidualFrac. Bites once |lambda|
-//        exceeds roughly 1e6*row_scale. NARROWED at M6 W2 T6b by the
-//        PRICE SCALE below, which covers the elastic tier's penalty
-//        subproblems (a data scale of 5e8 against a row multiplier of 5).
-//        STILL UNCOVERED THERE: the residue grows with the HESSIAN's scale
-//        as well (measured proportional to it), which nothing read off
-//        g + H x can see, so a stiff consistent row misfires again past the
-//        rung that closes it.
+//        exceeds roughly 1e6*row_scale, where the regularized answer is
+//        itself percent-level wrong.
 //    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
 //        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
 //        catch it re-breaks (i). The SQP driver is the second detection
@@ -343,15 +338,6 @@
 //        kUnboundedArtifactFactor/primal_delta. A caller expecting very large
 //        optima should tune primal_delta rather than treat this
 //        kNumericalError as load-bearing.
-//
-//    THE PRICE SCALE (M6 W2 T6b) bounds the multiplier the problem's own
-//    DATA can price on a row, ||g + H x||inf/||a_j||_1; the tolerance
-//    absorbs dual_mu^2 times it, the residue one refined regularized solve
-//    can leave at that scale.
-//
-//    It vanishes exactly where a large |lambda| is priced by cancellation
-//    alone (g + H x ~ 0, |lambda| ~ 1/dual_mu), so an inconsistent system
-//    still reads kInfeasible. violation_is_structural has the derivation.
 //
 // 6. TRUST-REGION SOFT BOUNDS -- an l-infinity trust region around the
 //    current SQP iterate, expressed the same way every other bound is.
@@ -559,24 +545,6 @@ inline double unbounded_artifact_scale(const QpOptions &opts) {
 // considered as evidence of infeasibility (condition (a); see
 // violation_is_structural).
 constexpr double kInfeasibilityMarginFactor = 10.0;
-// Coefficient on the DATA-DERIVED absorbency dual_mu^2 * price_scale the row
-// tolerance carries (M6 W2 T6b; see violation_is_structural and
-// row_price_scale).
-//
-// SECOND order in the regularization, not first: solve_eqp refines once
-// against the UNREGULARIZED system, so what survives is the regularization
-// entering twice (eqp_solve.h's iterative-refinement note). MEASURED with
-// primal_delta held fixed while dual_mu moved four decades, so the power is
-// dual_mu's own and not the two together.
-//
-// Calibrated between two measured laws, both pinned. The elastic tier's
-// penalty family lands at 650*dual_mu^2*rho, needing a coefficient above 91;
-// at dual_mu = 1e-6 the a = 1e-3 contradiction of
-// ObjectiveInflatedMultiplierHidesASmallContradiction is absorbed once the
-// coefficient passes ~5e4. 1e3 is 11x above that floor and 50x beneath that
-// ceiling, and beneath the a = 1e-2 gap there as well -- so the absorbency
-// is never the reason a contradiction goes missing.
-constexpr double kInfeasibilityPriceFactor = 1e3;
 // Fraction of the regularization footprint dual_mu*|lambda| that a violation
 // must reach before it counts as STRUCTURAL rather than solver noise
 // (condition (b); see violation_is_structural).
@@ -1199,19 +1167,6 @@ class QpEngine {
     // so a contradiction cannot fund its own tolerance.
     double row_tolerance(double row_scale, double lambda, const QpOptions &opts) const;
 
-    // THE PRICE THE PROBLEM'S OWN DATA SUPPORTS on one row: the largest
-    // |lambda_j| stationarity could balance if this row carried the whole of
-    // g + H x, i.e. ||g + H x||inf / ||a_j||_1.
-    //
-    // `stat_scale` is ||g + H x||inf at the classified point and `row_norm1`
-    // the row's 1-norm, which the walk already carries; a zero or non-finite
-    // row norm returns 0 (nothing in the data prices that row).
-    //
-    // The 1-norm rather than the inf-norm deliberately: it is the larger of
-    // the two, so the bound it produces is the SMALLER, and the quantity is
-    // already computed once per solve.
-    static double row_price_scale(double stat_scale, double row_norm1);
-
     // Is a single row's violation genuine evidence of infeasibility, rather
     // than the regularized solve's own noise? Both conditions must hold.
     //
@@ -1226,16 +1181,7 @@ class QpEngine {
     // Testing the RATIO rather than |lambda| against a fixed scale matters: a
     // contradiction with a small gap produces a correspondingly small lambda
     // and would slip under any absolute multiplier threshold.
-    //
-    // (a) ALSO ABSORBS kInfeasibilityPriceFactor*dual_mu^2*price_scale (M6 W2
-    // T6b): the residue one refined regularized solve leaves on a row is set
-    // by the DATA's scale, not the row's own -- see row_price_scale and the
-    // loop contract's range note (i).
-    //
-    // The term enters (a)'s tolerance through a max, so it only WIDENS: no
-    // violation that read as noise before can become structural now. (b) is
-    // untouched, and remains the guard on rows whose lambda IS data-priced.
-    bool violation_is_structural(double v, double row_scale, double lambda, double price_scale,
+    bool violation_is_structural(double v, double row_scale, double lambda,
                                  const QpOptions &opts) const;
 
     // Largest violation across BOTH constraint blocks that qualifies as

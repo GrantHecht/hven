@@ -1004,19 +1004,9 @@ double QpEngine::row_tolerance(double row_scale, double lambda, const QpOptions 
         std::min(opts.dual_mu * std::abs(lambda), detail::kInfeasibilityAbsorbTol * row_scale));
 }
 
-double QpEngine::row_price_scale(double stat_scale, double row_norm1) {
-    if (!(row_norm1 > 0.0) || !std::isfinite(row_norm1) || !std::isfinite(stat_scale)) {
-        return 0.0; // nothing in the data prices this row -- see the header
-    }
-    return stat_scale / row_norm1;
-}
-
 bool QpEngine::violation_is_structural(double v, double row_scale, double lambda,
-                                       double price_scale, const QpOptions &opts) const {
-    const double tol =
-        std::max(row_tolerance(row_scale, lambda, opts),
-                 detail::kInfeasibilityPriceFactor * opts.dual_mu * opts.dual_mu * price_scale);
-    if (v <= detail::kInfeasibilityMarginFactor * tol) {
+                                       const QpOptions &opts) const {
+    if (v <= detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts)) {
         return false; // (a) within tolerance, nothing to explain
     }
     return v >= detail::kStructuralResidualFrac * opts.dual_mu * std::abs(lambda);
@@ -1027,16 +1017,11 @@ double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, c
                                             const Vec &ae_row_norm1, const Vec &lambda_e,
                                             const QpOptions &opts) const {
     const double xmag = x.lpNorm<Eigen::Infinity>();
-    // The data scale every row's price_scale is measured against. One matvec,
-    // paid only at the walk's dead ends -- see violation_is_structural.
-    const Vec stat = qp.H.selfadjointView<Eigen::Upper>() * x + qp.g;
-    const double stat_scale = stat.lpNorm<Eigen::Infinity>();
     double worst = 0.0;
     for (Index j = 0; j < qp.mi(); ++j) {
         const double v = Aix(j) - qp.bi(j);
         const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
-        const double price = row_price_scale(stat_scale, ai_row_norm1(j));
-        if (v > 0.0 && violation_is_structural(v, row_scale, lambda_i(j), price, opts)) {
+        if (v > 0.0 && violation_is_structural(v, row_scale, lambda_i(j), opts)) {
             worst = std::max(worst, v);
         }
     }
@@ -1045,8 +1030,7 @@ double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, c
         for (Index j = 0; j < qp.me(); ++j) {
             const double v = std::abs(resid(j));
             const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
-            const double price = row_price_scale(stat_scale, ae_row_norm1(j));
-            if (violation_is_structural(v, row_scale, lambda_e(j), price, opts)) {
+            if (violation_is_structural(v, row_scale, lambda_e(j), opts)) {
                 worst = std::max(worst, v);
             }
         }
