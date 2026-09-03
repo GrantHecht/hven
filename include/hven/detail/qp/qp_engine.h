@@ -339,8 +339,11 @@
 //        0 on the whole family.
 //        COVERED at M6 W2 T6b by the VERDICT-SITE FACE REFINEMENT below.
 //        Measured after it, border mode, at the classified point: the elastic
-//        copy of a boxed equality reads kOptimal on all 30 cells of
-//        dual_mu in {1e-3..1e-8} x rho in {1e2..1e8}, and the same fixture
+//        copy of a boxed equality CLOSES under the refinement on 25 of the 30
+//        cells of dual_mu in {1e-3..1e-8} x rho in {1e2..1e8}; the other 5
+//        (dual_mu >= 1e-4 with rho >= 1e6) read kOptimal on a corner point
+//        whose row is off by 15, via (ii)'s blind spot -- a residue, pinned as
+//        one (the band's HIGH-rung pin), not coverage. The same fixture
 //        stiffened by c in {1, 10, 30, 1e2, 1e3, 1e4, 4e5} reads kOptimal on
 //        all 21 cells of c x rho in {1e6, 1e7, 1e8} -- the Hessian-scale
 //        direction included, because the refinement fixes the POINT and needs
@@ -367,7 +370,9 @@
 //    stated in ROW units (see refine_face_for_verdict, working_face_measure and
 //    face_row_target). The refined point is adopted only if the face CLOSES,
 //    and it is then both what the classifier re-reads and what a kInfeasible
-//    exit returns. Nothing else in the walk can reach it: a solve that never
+//    exit returns. An ADOPTING dead end re-enters the ordinary would-be-kOptimal
+//    path -- refresh_shifts, the zero-multiplier probe, the runaway guard --
+//    and may continue the walk; that is the intent. A solve that never
 //    dead-ends, and every dead end already headed for kOptimal, is untouched.
 //
 // 6. TRUST-REGION SOFT BOUNDS -- an l-infinity trust region around the

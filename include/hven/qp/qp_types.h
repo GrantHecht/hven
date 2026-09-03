@@ -67,7 +67,12 @@ enum class BoundState {
 /// trajectories (visible as a status difference only under a too-small
 /// budget). Read the equivalence claim as "the same optimal VALUE, and the
 /// same point wherever that point is unique". Every cross-mode battery solves
-/// a strictly convex H and is unaffected.
+/// a strictly convex H and is unaffected. The claim is scoped to those
+/// batteries: outside them, at `dual_mu` above the driver's own schedule, the
+/// two modes can DISAGREE on a verdict (M6 W2 T6b pins one such cell as a
+/// pre-existing walk-trajectory residue), and at a border-mode dead end the
+/// verdict-site face refinement can leave border MORE accurate than the
+/// oracle on that point (qp_engine.h section 5).
 enum class WorkingSetLinearAlgebra {
     kRefactorize,
     kSchurBorder,

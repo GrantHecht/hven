@@ -179,6 +179,11 @@ inline Vec refine_bordered_solve(const SpMatRM &K0, Index var_count,
 // Refining past the footprint where border and refactorize already agree
 // would make border mode strictly more accurate than its own equivalence
 // oracle (qp_engine.h's cross-mode batteries), so the rule stops at it.
+// ONE EXCEPTION, M6 W2 T6b: at a DEAD END the classifier is about to certify
+// kInfeasible from, the engine refines the closed face past this footprint to
+// the classifier's own row-unit tolerance (qp_engine.h section 5's
+// VERDICT-SITE FACE REFINEMENT) -- confined there because a wrong verdict
+// costs more than out-refining the oracle on that one point.
 //
 // At schur.dim() == 0 the loop is skipped outright: there is no border
 // stack, schur.solve degenerates to a plain K0 solve, and the computation IS

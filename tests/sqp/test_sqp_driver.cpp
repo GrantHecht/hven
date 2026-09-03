@@ -10299,8 +10299,9 @@ TEST(QpEngineStructuralViolation, T6bTheGuardContradictionsAreNotAbsorbedInEithe
 
 TEST(QpEngineStructuralViolation, T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible) {
     // PIN 1, THE DEFECT ITSELF, and the mode-pairing that identifies it. At BASE the walk read
-    // kInfeasible on 8 of these 30 border-mode cells and on NONE of the 30 refactorize ones;
-    // after the verdict-site refinement the two algebras agree on all 30.
+    // kInfeasible on 8 of the header's 30 border-mode cells and on NONE of the 30 refactorize
+    // ones; after the verdict-site refinement the two algebras agree on all 30. This test runs
+    // the 9-cell mu x rho core of that grid plus the two T3 cells.
     const QpProblem qp = w2_box_blocked_qp(10.0);
     const QpSolution walk = w2_cold_walk(qp);
     ASSERT_EQ(walk.status, QpStatus::kOptimal);

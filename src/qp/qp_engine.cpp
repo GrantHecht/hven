@@ -1081,6 +1081,9 @@ double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws,
     return worst;
 }
 
+// Only x is refined: the multipliers stay the incumbent's by design, so the
+// per-row target is built from the same lambda the classifier prices with and
+// the target IS the classifier's own threshold. See the declaration.
 bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
                                        const Vec &Aix, const Vec &ai_row_norm1, const Vec &lambda_i,
                                        const Vec &ae_row_norm1, const Vec &lambda_e,

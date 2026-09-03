@@ -64,7 +64,9 @@ inline constexpr double kElasticRhoFactor = 10.0;
 /// W2 T6b covers it at the verdict site (qp_engine.h section 5's VERDICT-SITE FACE REFINEMENT),
 /// in border mode only, and the margin remains what it always was: a cheap first-rung placement
 /// that keeps the walk away from the residue rather than removing it. Measured after T6b, border
-/// mode: the whole `dual_mu` x rho grid of this family reads kOptimal, product 1 included.
+/// mode: 25 of the 30 `dual_mu` x rho cells of this family CLOSE under the refinement, product 1
+/// included; the 5 at `dual_mu >= 1e-4` with rho >= 1e6 read kOptimal on a corner point whose row
+/// is off by 15 -- the pre-existing high-rung residue, pinned as such, not covered.
 inline constexpr double kElasticRhoDualMuSafety = 1e-2;
 
 /// The stall early-exit tolerance: two consecutive rungs' augmented solutions
