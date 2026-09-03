@@ -70,9 +70,11 @@ enum class BoundState {
 /// a strictly convex H and is unaffected. The claim is scoped to those
 /// batteries: outside them, at `dual_mu` above the driver's own schedule, the
 /// two modes can DISAGREE on a verdict (M6 W2 T6b pins one such cell as a
-/// pre-existing walk-trajectory residue), and at a border-mode dead end the
-/// verdict-site face refinement can leave border MORE accurate than the
-/// oracle on that point (qp_engine.h section 5).
+/// pre-existing walk-trajectory residue). The accuracy half of that caveat is
+/// RETIRED as of M6 W2 T7: BOTH algebras now refine at a would-be-kInfeasible
+/// dead end, against the same row-unit target and under the same
+/// closed-or-nothing rule, so neither can out-refine the other there
+/// (qp_engine.h section 5, and both refine_*_for_verdict declarations).
 enum class WorkingSetLinearAlgebra {
     kRefactorize,
     kSchurBorder,

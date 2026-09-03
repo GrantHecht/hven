@@ -10946,13 +10946,14 @@ W2T7PlainWalk w2t7_plain_walk(const QpProblem &qp, double dual_mu, WorkingSetLin
 
 } // namespace
 
-TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleBorderExitRETURNSTheRefinedPoint) {
-    // T6b Z-8, OWED AND NOW PINNED: "a certified-infeasible exit returns the REFINED point" was
-    // stated, not guarded. The point a caller receives IS the measurement -- 1.111111e-1 before
-    // adoption, 2.943550e-4 after. The three adopting cells are in T7 report section 2, item 7.
+TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleExitRETURNSTheRefinedPointInBothAlgebras) {
+    // T6b Z-8, OWED AND NOW PINNED, and the DECLARED BREAK T7 item 11 spends on it: until this
+    // task only kSchurBorder refined, so the ELIMINATED oracle came back at 1.111111e-1 while
+    // border came back at 2.943550e-4 -- T6b disclosure (c), border out-refining its oracle.
     //
-    // kRefactorize is the CONTROL and it reads the unrefined value, which is also T6b disclosure
-    // (c) in the (i)-direction: on this cell border is MORE accurate than its own oracle.
+    // BOTH ALGEBRAS NOW REFINE at the verdict site, so the point a caller receives is the same
+    // point cell for cell -- the verdict is unchanged in both, which is what makes this an
+    // ACCURACY change and not a classification one.
     const QpProblem qp = w2t7_objective_inflated_qp(1.0e-2, 3.0e-4);
     const W2T7PlainWalk bordered =
         w2t7_plain_walk(qp, 1.0e-4, WorkingSetLinearAlgebra::kSchurBorder);
@@ -10961,12 +10962,12 @@ TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleBorderExitRETURNSTheRefi
 
     EXPECT_EQ(bordered.status, QpStatus::kInfeasible);
     EXPECT_EQ(eliminated.status, QpStatus::kInfeasible) << "the VERDICT is still mode-paired";
-    EXPECT_GT(bordered.verdict_refine_steps, 0) << "the loop ran and adopted";
-    EXPECT_EQ(eliminated.verdict_refine_steps, 0) << "the eliminated path has no such loop";
+    EXPECT_EQ(bordered.verdict_refine_steps, 9) << "the loop ran and adopted";
+    EXPECT_EQ(eliminated.verdict_refine_steps, 9) << "and so did its twin -- T7 item 11";
     EXPECT_NEAR(bordered.worst_resid, 2.943550e-4, 1.0e-9) << "the REFINED point came back";
-    EXPECT_NEAR(eliminated.worst_resid, 1.111111e-1, 1.0e-7);
-    EXPECT_LT(bordered.worst_resid, eliminated.worst_resid / 100.0)
-        << "the adopted point is what a kInfeasible exit returns, not just what it re-read";
+    EXPECT_NEAR(eliminated.worst_resid, 2.943550e-4, 1.0e-9);
+    EXPECT_DOUBLE_EQ(bordered.worst_resid, eliminated.worst_resid)
+        << "neither algebra can out-refine the other at a dead end any more";
 }
 
 TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
@@ -10976,7 +10977,7 @@ TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
     //
     // THE DISCRIMINATOR IS THE SLACK, not the verdict: a kInfeasible whose relaxation is still
     // OPEN is the misfire T6b removed, while a SHUT slack is the disclosed corner-point residue
-    // -- a point, not a tolerance, and byte-stable against 23e884a.
+    // -- a point, not a tolerance. T7 item 11 closed two of the thirteen it used to hold.
     struct Fixture {
         const char *name;
         QpProblem qp;
@@ -11013,10 +11014,10 @@ TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
     EXPECT_EQ(cells, 120);
     EXPECT_EQ(open_relaxation_certified_infeasible, 0)
         << "the census's own claim, and it holds at every dual_mu";
-    // ASSERTED AS RESIDUE, NOT AS CLOSED (Z-4's own instruction). Two of the thirteen are the
-    // kSchurBorder corner point the disclosure pin already carries; the other eleven are the
-    // stiff family's, nine of them under kRefactorize, which the fix never touched.
-    EXPECT_EQ(shut_slack_residue, 13);
+    // ASSERTED AS RESIDUE, NOT AS CLOSED (Z-4's own instruction). DECLARED BREAK, T7 item 11:
+    // 13 before the eliminated twin landed, 11 after -- the two that left are stiff(4e5)'s
+    // kRefactorize cells at dual_mu = 1e-6, FEASIBLE problems the oracle used to certify.
+    EXPECT_EQ(shut_slack_residue, 11);
 }
 
 TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture) {

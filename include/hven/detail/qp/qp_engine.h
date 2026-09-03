@@ -348,10 +348,12 @@
 //        all 21 cells of c x rho in {1e6, 1e7, 1e8} -- the Hessian-scale
 //        direction included, because the refinement fixes the POINT and needs
 //        no bound read off the data.
-//        STILL UNCOVERED: kRefactorize, which never had this residue but has
-//        its own (i) cases the refinement is not offered for; and any (i) case
-//        whose face the refinement cannot close inside the budget, which is
-//        left to the classifier exactly as before.
+//        kRefactorize HAD ITS OWN (i) CASES -- eight at the shipped dual_mu,
+//        from the dual regularization the two modes share rather than from any
+//        bordering residue -- and M6 W2 T7 covers them with the SYMMETRIC
+//        refinement (refine_eliminated_face_for_verdict). STILL UNCOVERED: any
+//        (i) case whose face the refinement cannot close inside the budget,
+//        which is left to the classifier exactly as before.
 //    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
 //        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
 //        catch it re-breaks (i). The SQP driver is the second detection
@@ -363,17 +365,18 @@
 //        optima should tune primal_delta rather than treat this
 //        kNumericalError as load-bearing.
 //
-//    THE VERDICT-SITE FACE REFINEMENT (M6 W2 T6b) runs between the two: once
-//    the classification above has said kInfeasible, and only in border mode,
-//    the closed working face is refined further -- against the same
-//    unregularized bordered system solve_bordered_eqp targets, but to a target
-//    stated in ROW units (see refine_face_for_verdict, working_face_measure and
-//    face_row_target). The refined point is adopted only if the face CLOSES,
-//    and it is then both what the classifier re-reads and what a kInfeasible
-//    exit returns. An ADOPTING dead end re-enters the ordinary would-be-kOptimal
-//    path -- refresh_shifts, the zero-multiplier probe, the runaway guard --
-//    and may continue the walk; that is the intent. A solve that never
-//    dead-ends, and every dead end already headed for kOptimal, is untouched.
+//    THE VERDICT-SITE FACE REFINEMENT (M6 W2 T6b, extended to BOTH ALGEBRAS at
+//    M6 W2 T7) runs between the two: once the classification above has said
+//    kInfeasible, the closed working face is refined further -- against the
+//    same unregularized system the mode's own candidate solve targets, but to
+//    a target stated in ROW units (see refine_face_for_verdict, its eliminated
+//    twin, working_face_measure and face_row_target). The refined point is
+//    adopted only if the face CLOSES, and it is then both what the classifier
+//    re-reads and what a kInfeasible exit returns. An ADOPTING dead end
+//    re-enters the ordinary would-be-kOptimal path -- refresh_shifts, the
+//    zero-multiplier probe, the runaway guard -- and may continue the walk;
+//    that is the intent. A solve that never dead-ends, and every dead end
+//    already headed for kOptimal, is untouched.
 //
 // 6. TRUST-REGION SOFT BOUNDS -- an l-infinity trust region around the
 //    current SQP iterate, expressed the same way every other bound is.
@@ -1285,6 +1288,36 @@ class QpEngine {
                                  const Vec &ai_row_norm1, const Vec &lambda_i,
                                  const Vec &ae_row_norm1, const Vec &lambda_e, BorderState &border,
                                  QpCounters &counters, const QpOptions &opts) const;
+
+    /// @brief `refine_face_for_verdict`'s ELIMINATED twin (M6 W2 T7, DECLARED
+    /// contract change). Same entry condition, same target, same
+    /// closed-or-nothing adoption rule, same counter -- reached under
+    /// kRefactorize instead of kSchurBorder.
+    ///
+    /// WHY IT EXISTS. The border twin's own note says the eliminated path
+    /// "leaves no bordering residue to remove", and that is true: there is no
+    /// SCATTER here, because a pinned variable is eliminated exactly rather
+    /// than realized as a `-dual_mu` row. What the two paths DO share is the
+    /// dual regularization on the working rows, whose footprint is
+    /// `dual_mu * |lambda|` on a row residual -- and `solve_eqp` takes exactly
+    /// ONE step of iterative refinement against it, which on a face whose
+    /// multipliers are inflated by the objective is not enough. Measured: at
+    /// the SHIPPED `dual_mu` the ill-scaled feasible family reads kInfeasible
+    /// under kRefactorize while kSchurBorder, post-T6b, reads kOptimal --
+    /// eight cells in which the EQUIVALENCE ORACLE is the less accurate of the
+    /// two. Iterating the step `solve_eqp` already takes closes all eight.
+    ///
+    /// THE COST IT DOES CHARGE: one factorization, counted like any other.
+    /// `refresh_shifts` can add a working row between the candidate solve and
+    /// this call, so the incumbent factorization cannot be reused here the way
+    /// the border twin reuses its Schur complement; the system is re-assembled
+    /// from the CURRENT working set and re-factorized. That is a real cost at
+    /// a dead end and is reported rather than hidden.
+    bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
+                                            const Vec &Aix, const Vec &ai_row_norm1,
+                                            const Vec &lambda_i, const Vec &ae_row_norm1,
+                                            const Vec &lambda_e, QpCounters &counters,
+                                            const QpOptions &opts) const;
 
     // Is ||x|| large in a way that only an unbounded direction explains?
     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run

@@ -618,13 +618,20 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // iteration stale.
                 double worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
                                                           ae_row_norm1, lambda_e, eff_opts);
-                // THE VERDICT-SITE FACE REFINEMENT, border mode and a
-                // would-be kInfeasible only; `eqp.refine_steps > 0` witnesses
-                // the bordered path -- see refine_face_for_verdict, section 5.
-                if (worst > 0.0 && opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
-                    eqp.refine_steps > 0 &&
-                    refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
-                                            lambda_e, *border_, counters, eff_opts)) {
+                // THE VERDICT-SITE FACE REFINEMENT, at a would-be kInfeasible
+                // only, and BOTH ALGEBRAS since M6 W2 T7 -- see the two
+                // refine_*_for_verdict declarations, section 5.
+                const bool refined =
+                    worst > 0.0 &&
+                    (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder
+                         ? eqp.refine_steps > 0 &&
+                               refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i,
+                                                       ae_row_norm1, lambda_e, *border_, counters,
+                                                       eff_opts)
+                         : refine_eliminated_face_for_verdict(qp, ws, x, Aix, ai_row_norm1,
+                                                              lambda_i, ae_row_norm1, lambda_e,
+                                                              counters, eff_opts));
+                if (refined) {
                     // x moved: restore this loop's invariants, then re-read
                     // the verdict off the refined point -- which is also what
                     // a kInfeasible exit now returns.
@@ -1159,6 +1166,107 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
     // classifier -- see refine_face_for_verdict's declaration for the cost.
     if (!(best_measure <= 1.0)) {
         return false;
+    }
+    const double before =
+        working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts);
+    if (!(best_measure < before)) {
+        return false; // strict decrease against the WALK's own point, or nothing
+    }
+    x = std::move(best_x);
+    counters.verdict_refine_steps += steps;
+    return true;
+}
+
+bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
+                                                  const Vec &Aix, const Vec &ai_row_norm1,
+                                                  const Vec &lambda_i, const Vec &ae_row_norm1,
+                                                  const Vec &lambda_e, QpCounters &counters,
+                                                  const QpOptions &opts) const {
+    const Index n = qp.n();
+    const Index me = qp.me();
+    const std::vector<Index> &aw = ws.active_ineq();
+    const Index n_working = static_cast<Index>(aw.size());
+    if (ws.num_free() == 0 && me == 0 && aw.empty()) {
+        return false; // the empty system eliminated_candidate short-circuits
+    }
+
+    // THE SYSTEM solve_eqp SOLVES, re-derived for the CURRENT working set. The rhs below is
+    // eqp_solve.h's, and the two must stay in step: a divergence would refine a system the walk
+    // never solved, which the strict-decrease rule would then reject rather than adopt.
+    const KktAssembly asm_ = assemble_kkt(qp, ws, opts);
+    const Index n_free = static_cast<Index>(asm_.free_of_full.size());
+    const Index dim = n_free + me + n_working;
+
+    Vec x_fixed = Vec::Zero(n);
+    for (Index i = 0; i < n; ++i) {
+        const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+        if (st != BoundState::kFree) {
+            x_fixed(i) = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+        }
+    }
+    Vec rhs(dim);
+    for (Index k = 0; k < n_free; ++k) {
+        rhs(k) = -qp.g(asm_.free_of_full[static_cast<std::size_t>(k)]) - asm_.rhs_shift(k);
+    }
+    for (Index r = 0; r < me; ++r) {
+        rhs(n_free + r) = qp.be(r) - asm_.rhs_shift(n_free + r);
+    }
+    for (Index k = 0; k < n_working; ++k) {
+        rhs(n_free + me + k) =
+            qp.bi(aw[static_cast<std::size_t>(k)]) - asm_.rhs_shift(n_free + me + k);
+    }
+
+    Vec reg = Vec::Zero(dim);
+    reg.head(n_free).setConstant(opts.primal_delta);
+    reg.segment(n_free, me + n_working).setConstant(-opts.dual_mu);
+    const auto residual_of = [&](const Vec &yy) {
+        const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
+        return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
+    };
+    const auto point_of = [&](const Vec &yy) {
+        Vec xc = x_fixed;
+        for (Index k = 0; k < n_free; ++k) {
+            xc(asm_.free_of_full[static_cast<std::size_t>(k)]) = yy(k);
+        }
+        return xc;
+    };
+    const auto measure_of = [&](const Vec &xc) {
+        const Vec Ai_xc = qp.mi() > 0 ? Vec(qp.Ai * xc) : Vec(Aix);
+        return working_face_measure(qp, ws, xc, Ai_xc, ai_row_norm1, lambda_i, ae_row_norm1,
+                                    lambda_e, opts);
+    };
+
+    detail::KktFactor local;
+    Vec best;
+    Vec best_x;
+    double best_measure = 0.0;
+    Index steps = 0;
+    try {
+        ++counters.factorizations;
+        detail::factorize_checked(local, asm_.K);
+        // Replay the incumbent EXACTLY: solve_eqp's own solve plus its one mandatory refinement
+        // step, so the loop below starts where the walk is and every step is one it declined.
+        best = detail::solve_vec(local, rhs);
+        best = best + detail::solve_vec(local, residual_of(best));
+        best_x = point_of(best);
+        best_measure = measure_of(best_x);
+        for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {
+            const Vec candidate = best + detail::solve_vec(local, residual_of(best));
+            Vec candidate_x = point_of(candidate);
+            const double candidate_measure = measure_of(candidate_x);
+            if (!(candidate_measure < best_measure)) {
+                break; // stagnated, diverging, or NaN -- keep the better point
+            }
+            best = candidate;
+            best_x = std::move(candidate_x);
+            best_measure = candidate_measure;
+            ++steps;
+        }
+    } catch (const std::runtime_error &) {
+        return false; // a degradation this branch answers by declining to refine
+    }
+    if (steps == 0 || !(best_measure <= 1.0)) {
+        return false; // CLOSED, OR NOTHING -- the border twin's rule, verbatim
     }
     const double before =
         working_face_measure(qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts);
