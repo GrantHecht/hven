@@ -842,6 +842,23 @@ TEST(QpEngine, ObjectiveInflatedMultiplierHidesASmallContradiction) {
               QpStatus::kOptimal); // KNOWN MISS: contradiction hidden by footprint
 }
 
+TEST(QpEngine, TheDataDerivedAbsorbencyStaysBeneathThisContradictionAtALargerDualMu) {
+    // M6 W2 T6b's CEILING PIN. The absorbency kInfeasibilityPriceFactor * dual_mu^2 *
+    // price_scale is 1e4 times larger here than at the shipped dual_mu, so this is where a
+    // coefficient chosen too generously first absorbs a contradiction instead of catching it.
+    //
+    // Every verdict below is the one the engine gave before the absorbency existed; the
+    // a = 1e-3 row flips once the coefficient passes ~5e4, which is what fixes the ceiling.
+    QpOptions opts;
+    opts.dual_mu = 1e-6;
+    EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-2, 3e-4)).status,
+              QpStatus::kOptimal); // already missed at BASE, by kStructuralResidualFrac
+    EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(3e-3, 3e-4)).status,
+              QpStatus::kOptimal); // likewise
+    EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-3, 3e-4)).status,
+              QpStatus::kInfeasible); // CAUGHT, and it is the absorbency's ceiling that says so
+}
+
 TEST(QpEngine, LargeButLegitimateSolutionsAreOptimalNotNumericalError) {
     // The runaway guard must be BOUND-RELATIVE. A large ||x|| is only
     // suspicious when nothing bounds the component it grew in; a variable
