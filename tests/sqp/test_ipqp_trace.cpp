@@ -138,6 +138,7 @@ class RecordingTraceSink : public IpqpTraceSink {
     std::vector<IpqpTraceCertifyEvent> certifies;
     std::vector<IpqpTraceEscapeEvent> escapes;
     std::vector<QpModeTraceEvent> modes;
+    std::vector<SqpFallbackVerdictTraceEvent> fallbacks;
 
     void on_ipqp_iter(const IpqpTraceIterEvent &e) override { iters.push_back(e); }
     void on_ipqp_reg(const IpqpTraceRegEvent &e) override { regs.push_back(e); }
@@ -146,6 +147,9 @@ class RecordingTraceSink : public IpqpTraceSink {
     void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override { certifies.push_back(e); }
     void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override { escapes.push_back(e); }
     void on_qp_mode(const QpModeTraceEvent &e) override { modes.push_back(e); }
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &e) override {
+        fallbacks.push_back(e);
+    }
 };
 
 // R3: the escape evidence block is a verbatim copy of IpqpResult's own two

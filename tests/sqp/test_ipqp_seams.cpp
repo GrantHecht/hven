@@ -169,6 +169,7 @@ class RecordingIterSink : public IpqpTraceSink {
     void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
     void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
 };
 
 class IpqpSeamTest : public ::testing::Test {

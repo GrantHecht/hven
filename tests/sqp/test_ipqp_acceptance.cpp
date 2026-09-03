@@ -560,6 +560,7 @@ class AcceptanceTraceSink : public IpqpTraceSink {
         escapes.push_back({e.reason, last_major});
     }
     void on_qp_mode(const QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
 };
 
 /// R5's POSITIVE witness that the section 2.2 item 4 read HAPPENED: the

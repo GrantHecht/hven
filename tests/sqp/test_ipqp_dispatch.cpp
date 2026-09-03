@@ -950,9 +950,10 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
     const SqpOptions opts;
     SqpCounters counters;
     std::optional<ElasticLadderReport> report;
+    SqpFallbackVerdictTraceEvent verdict;
     const double window = std::numeric_limits<double>::infinity();
     const QpSolution taken = certified_feasibility_fallback(
-        engine, qp, ev, nullptr, evidence, overrides, opts, window, counters, row, report);
+        engine, qp, ev, nullptr, evidence, overrides, opts, window, counters, row, report, verdict);
     EXPECT_EQ(taken.status, QpStatus::kOptimal);
     ASSERT_EQ(taken.x.size(), 1);
     EXPECT_NEAR(taken.x(0), 2.0, 1e-9) << "the unconstrained minimum of 0.5 x^2 - 2x";
@@ -971,9 +972,10 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
     SqpIterate seeded_row;
     SqpCounters seeded_counters;
     std::optional<ElasticLadderReport> seeded_report;
+    SqpFallbackVerdictTraceEvent seeded_verdict;
     const QpSolution seeded =
         certified_feasibility_fallback(engine, qp, ev, &seed, evidence, overrides, opts, window,
-                                       seeded_counters, seeded_row, seeded_report);
+                                       seeded_counters, seeded_row, seeded_report, seeded_verdict);
     EXPECT_EQ(seeded.x, taken.x);
 
     // AND THE EVIDENCE IS RECORDED, not merely accepted (fix round 3): the verdict reads none
@@ -987,10 +989,11 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
     SqpIterate default_row;
     SqpCounters default_counters;
     std::optional<ElasticLadderReport> default_report;
+    SqpFallbackVerdictTraceEvent default_verdict;
     const IpqpInfeasibilityEvidence unset;
-    const QpSolution unfired =
-        certified_feasibility_fallback(engine, qp, ev, nullptr, unset, overrides, opts, window,
-                                       default_counters, default_row, default_report);
+    const QpSolution unfired = certified_feasibility_fallback(
+        engine, qp, ev, nullptr, unset, overrides, opts, window, default_counters, default_row,
+        default_report, default_verdict);
     EXPECT_DOUBLE_EQ(default_row.ipqp_least_infeasible_primal, 0.0);
     EXPECT_FALSE(default_row.ipqp_farkas_corroborated);
     EXPECT_FALSE(default_report.has_value());
