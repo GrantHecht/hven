@@ -782,8 +782,9 @@
 //
 //     h(x) = ||cE(x)||_1 + sum_j max(0, cI_j(x)),      subject to l <= x <= u,
 //
-// from the iterate where the request was raised. Two things can happen, and
-// they are the two outcomes KLV Sec. 5.1 names:
+// from the iterate where the request was raised, or from a measured-better
+// candidate that site offered (THE START POINT below). Two things can happen,
+// and they are the two outcomes KLV Sec. 5.1 names:
 //
 //   h < feas_tol      -> RESUME. The main loop restarts from the restored
 //                        point with the funnel re-based, the radius reset and
@@ -815,7 +816,8 @@
 // >= |cE_i|; likewise sigmaI_j si_j >= max(0, cI_j). Hence f_w(y) >= h(x)
 // always, with equality exactly when the slacks are minimal -- so minimizing
 // f_w minimizes h, and the START POINT (slacks set to the violations at the
-// entry iterate) has f_w = h(x_entry) exactly. There is no penalty parameter
+// iterate the phase STARTS from, in CALLER units -- the W2 T4 guard's own
+// measure) has f_w = h(x_start) exactly. There is no penalty parameter
 // and nothing to escalate: this is the EXACT reformulation.
 //
 // THE SIGMA SCALING IS THE ELASTIC TIER'S CARRY, APPLIED: the slack COLUMN is
@@ -847,8 +849,8 @@
 //     MODEL is trusted at this point, which does not change because the
 //     objective did.
 //   THE START POINT: the entry x, unless a request site offered a CANDIDATE
-//     whose measured h is lower (W2 T4) -- x + p_elastic clamped on the
-//     exhausted-ladder route, the rejected trial itself at the two floors.
+//     whose CALLER-scale h is lower (W2 T4) -- x + p_elastic clamped on the
+//     exhausted-ladder route, the rejected trial at the judged floor and kRestore.
 //   BUDGET: carried, and shared -- the sub-solve gets what is left of
 //     max_iter (see SqpCounters), so restoration cannot double a solve's
 //     worst-case cost.

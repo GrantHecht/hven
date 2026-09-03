@@ -1179,6 +1179,21 @@ std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStartData &data, Index 
     return seed;
 }
 
+// NlpEval::all_finite screens f/grad/cE/cI and NOT the Jacobians (sqp_driver.h's
+// NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
+// start candidate's STORED Je/Ji values are screened by this instead.
+bool jacobian_values_finite(const NlpEval &ev) {
+    const auto stored_finite = [](const Eigen::SparseMatrix<double, Eigen::RowMajor> &m) {
+        for (Eigen::Index k = 0; k < m.nonZeros(); ++k) {
+            if (!std::isfinite(m.valuePtr()[k])) {
+                return false;
+            }
+        }
+        return true;
+    };
+    return stored_finite(ev.Je) && stored_finite(ev.Ji);
+}
+
 } // namespace
 
 void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
@@ -2800,8 +2815,9 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // here. Defined at this point in the loop because it reads `kkt`
         // and `ev` (the requesting iterate's own measurement, used on the
         // exits where the phase does not run at all), and called from the
-        // THREE request sites further down -- the funnel's kRestore
-        // verdict, the elastic tier's exhaustion, and the radius floor.
+        // FOUR request sites further down -- three SOURCES: the funnel's
+        // kRestore verdict, the elastic tier's exhaustion, and the radius floor,
+        // reached from a judged rejection and from a routed failure alike.
         //
         // Returns true iff the main loop is to RESUME, in which case every
         // piece of loop state it touches (x, ev, the multipliers, the
@@ -2809,12 +2825,11 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // the caller's only job is `continue`. On false it has written
         // restoration_exit_{status,kkt,f} and, where the phase actually
         // ran, x/lambda_e/lambda_i, for the caller's `return finish(...)`.
-        // A START CANDIDATE (W2 T4) is what a request site OFFERS: the point,
-        // its measured violation there (NaN when the site has none), and the
-        // values-only bundle at it, upgraded in place if the point is taken.
+        // A START CANDIDATE (W2 T4) is what a request site OFFERS: the point and,
+        // when the site has ALREADY MEASURED it, its values-only bundle there. A
+        // null `values_ev` is the unmeasured route, the only arm that may query.
         struct RestorationCandidate {
             const Vec *x = nullptr;
-            double h = std::numeric_limits<double>::quiet_NaN();
             NlpEval *values_ev = nullptr;
         };
         auto enter_restoration = [&](RestorationCandidate cand = {}) -> bool {
@@ -2871,43 +2886,59 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // its slacks in one space and evaluate its constraints in another.
             // A no-op, and a copy elided, when the solve is unscaled.
             NlpEval resto_ev = ev;
-            // THE START, ADOPTED ONLY ON MEASURED EVIDENCE (W2 T4): the phase
-            // starts at an offered candidate iff h THERE is below h at the
-            // entry, on this driver's own h; every other case starts at x.
+            seam.to_caller_scale(resto_ev);
+            // THE START, ADOPTED ONLY ON MEASURED EVIDENCE (W2 T4): the phase starts
+            // at an offered candidate iff h THERE is below h at the entry, both read
+            // off the CALLER-scale bundles the wrapper is built from (header note).
             const Vec *x_start = &x;
             if (cand.x != nullptr && cand.x->size() == x.size() && cand.x->allFinite()) {
-                const double h_entry = constraint_violation_l1(ev);
+                const double h_entry = constraint_violation_l1(resto_ev);
                 NlpEval ev_cand;
                 bool take = false;
-                if (std::isnan(cand.h)) {
+                if (cand.values_ev == nullptr) {
                     // UNMEASURED (the elastic route): the evaluation that
                     // supplies h is the one the wrapper needs anyway, so the
                     // guard costs one full eval whether or not it passes.
                     ev_cand = seam.eval_nlp(*cand.x, lambda_e, lambda_i);
                     ++out.counters.evals_full;
-                    take = ev_cand.all_finite && constraint_violation_l1(ev_cand) < h_entry;
-                } else if (cand.h < h_entry && cand.values_ev != nullptr) {
-                    // MEASURED (a rejected trial): the guard is free and the
-                    // trial's own values-only bundle is UPGRADED in place --
-                    // one query RECLASSIFIED, never a second one charged.
-                    seam.refresh_derivatives(*cand.values_ev, *cand.x);
-                    ++out.counters.evals_full;
-                    --out.counters.evals_values;
-                    ev_cand = *cand.values_ev;
-                    take = ev_cand.all_finite;
+                    seam.to_caller_scale(ev_cand);
+                    take = ev_cand.all_finite && jacobian_values_finite(ev_cand) &&
+                           constraint_violation_l1(ev_cand) < h_entry;
+                } else if (cand.values_ev->all_finite) {
+                    // MEASURED (a rejected trial): the guard reads a MAPPED COPY of
+                    // the trial's own values bundle -- no model query, and every
+                    // refusal below it therefore costs nothing at all.
+                    NlpEval probe = *cand.values_ev;
+                    seam.to_caller_scale(probe);
+                    if (constraint_violation_l1(probe) < h_entry) {
+                        // The values-only query already charged is UPGRADED in
+                        // place -- one query RECLASSIFIED, never a second one
+                        // charged (solver_counters.h's EVAL ECONOMICS exception).
+                        seam.refresh_derivatives(*cand.values_ev, *cand.x);
+                        ++out.counters.evals_full;
+                        --out.counters.evals_values;
+                        if (cand.values_ev->all_finite && jacobian_values_finite(*cand.values_ev)) {
+                            ev_cand = std::move(*cand.values_ev);
+                            seam.to_caller_scale(ev_cand);
+                            take = true;
+                        }
+                    }
                 }
                 if (take) {
                     x_start = cand.x;
                     resto_ev = std::move(ev_cand);
                     // The requesting row is `back()`: all four call sites
-                    // push_history BEFORE calling (the two floors and the funnel
-                    // share the verdict row pushed just above them).
-                    if (!out.history.empty()) {
-                        out.history.back().restoration_seed_used = true;
+                    // push_history BEFORE calling (the judged floor and the funnel
+                    // share the verdict row pushed just above them), so an empty
+                    // history here is a broken call site, not a missing row.
+                    if (out.history.empty()) {
+                        throw std::logic_error(
+                            "SqpDriver: a restoration request reached the seeding decision with "
+                            "an empty history -- every request site pushes its row first");
                     }
+                    out.history.back().restoration_seed_used = true;
                 }
             }
-            seam.to_caller_scale(resto_ev);
             const RestorationModel feasibility(bridge.model(), *x_start, resto_ev);
             SqpOptions ropts = opts_;
             // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
@@ -4018,7 +4049,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // rejected-then-SOC-rejected one) -- on a rejection-heavy
         // fixture this is the entire saving, since the rejected majority
         // never pays for a gradient or a Jacobian it was always going to
-        // throw away. THE ONE EXCEPTION IS AN ACCEPTANCE: an accepted
+        // throw away. ONE EXCEPTION IS AN ACCEPTANCE (a second, the
+        // restoration seed, is at the request sites below): an accepted
         // trial's `ev_trial` becomes the next iterate's `ev` (see MODEL
         // EVALUATION), which the convergence test and the next
         // subproblem both need in full -- so the direct-accept branch
@@ -4143,7 +4175,8 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         // accepted WITHOUT a promoted SOC correction; every other
         // outcome -- rejected, restored, or accepted THROUGH SOC (whose
         // OWN ev_soc, evaluated at a DIFFERENT point, becomes the next
-        // `ev` instead) -- leaves `ev_trial` values-only forever.
+        // `ev` instead) -- leaves `ev_trial` values-only, unless restoration
+        // takes that trial as its seed and upgrades it there (W2 T4).
         if (soc_applied ||
             !(verdict == StepVerdict::kAcceptF || verdict == StepVerdict::kAcceptH)) {
             ++out.counters.evals_values;
@@ -4167,10 +4200,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // NOT clamped: crossing the floor IS the request. See RADIUS
             // MANAGEMENT.
             if (shrink_hits_floor(delta)) {
-                // THE REJECTED TRIAL IS THE OFFER, and its violation is already
-                // judged: `ctx.h_new` is the ORIGINAL trial's here, since a
-                // PROMOTED SOC correction would have left `verdict` an accept.
-                if (enter_restoration({&x_trial, ctx.h_new, &ev_trial})) {
+                // THE REJECTED TRIAL IS THE OFFER, and its own values bundle is the
+                // measurement -- the ORIGINAL trial's, since a PROMOTED SOC
+                // correction would have left `verdict` an accept.
+                if (enter_restoration({&x_trial, &ev_trial})) {
                     continue;
                 }
                 // `qs` is the REJECTED trial's own (kOptimal) solution,
@@ -4196,7 +4229,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             // The funnel's own restoration signature (globalization.h's
             // five conjuncts). Same offer as the floor site above, and SOC is
             // equally out of the picture here (it is gated on kReject).
-            if (enter_restoration({&x_trial, ctx.h_new, &ev_trial})) {
+            if (enter_restoration({&x_trial, &ev_trial})) {
                 continue;
             }
             // Same reasoning as the kReject/floor exit just above: `qs`

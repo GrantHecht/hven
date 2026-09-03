@@ -1501,14 +1501,16 @@ struct SqpCounters {
     //
     // evals_full COUNTS: the first iterate's evaluation, every ACCEPTED
     // trial (direct or via a promoted SOC correction -- exactly one full
-    // eval per acceptance, whichever point it lands on), and a restoration
+    // eval per acceptance, whichever point it lands on), a restoration
     // exit's re-evaluation of the main model at the point restoration
-    // reached (when that point is finite). evals_values COUNTS: every
+    // reached (when that point is finite), and the restoration seed's own
+    // guard query at the exhausted-ladder site, charged whether the guard
+    // passes or fails (W2 T4). evals_values COUNTS: every
     // REJECTED trial's evaluation (including one that went through SOC and
     // was still not promoted), the warm-resolution probe's f/cE/cI fetch
     // (sqp_driver.h's WARM-START INGEST note), and nothing else today.
-    // ONE EXCEPTION, W2 T4: a rejected trial that RESTORATION TOOK AS ITS
-    // SEED is upgraded in place at the request site, so that query moves to
+    // ONE EXCEPTION, W2 T4: a rejected trial that restoration UPGRADED AT
+    // THE REQUEST SITE (the seeding guard passed there) moves to
     // evals_full and out of evals_values -- the partition stays exact.
     //
     // BOTH ARE ZERO ON A SOLVE THAT NEVER MEASURED THE MODEL AT ALL -- there
