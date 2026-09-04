@@ -100,9 +100,25 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     /// it reads 0 again once the outermost `sqp.solve.end` is written.
     Index depth() const { return depth_; }
 
+    /// @brief Forget the nesting a THROWING solve left open.
+    ///
+    /// `sqp.solve.end` is deliberately not written while an exception is in
+    /// flight, so a solve that threw mid-body leaves this sink one level open
+    /// and every later stream on it would read `"depth":1`. A caller that
+    /// intends to keep using the sink calls this after catching.
+    ///
+    /// `seq` IS NOT RESET: the artifact's line numbering is the artifact's, and
+    /// renumbering it would hide the lines the abandoned solve did write.
+    void reset_nesting();
+
+  private:
     /// @brief Nested-solve entry: the restoration sub-solve's own events then
     /// read one level deeper, with no stack in the reader and no field on any
     /// event.
+    ///
+    /// PRIVATE since W4 T2 fix round 1 (R3(c)): `on_sqp_solve_begin`/`_end` own
+    /// the nesting now, and a caller moving `depth_` without moving
+    /// `open_solves_` would desynchronize the two permanently.
     void push_depth();
 
     /// @brief Nested-solve exit. Saturates at 0 rather than going negative: an
@@ -110,7 +126,6 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     /// would be a fabricated reading of one.
     void pop_depth();
 
-  private:
     /// Wraps `body` -- the event's own keys, comma-separated, no braces -- in
     /// this line's envelope, writes it, and advances `seq_`.
     void write_line(const char *ev, const std::string &body);

@@ -306,6 +306,22 @@ const char *to_json(SqpStatus v) {
     return "unknown";
 }
 
+// LOWER SNAKE, NOT core's display `to_string` (fix round 1, R2): plan section 2
+// rule 8 governs the schema's alphabet, and `to_string` names a printed column.
+const char *to_json(StartLevel v) {
+    switch (v) {
+    case StartLevel::kCold:
+        return "cold";
+    case StartLevel::kSeeded:
+        return "seeded";
+    case StartLevel::kWarm:
+        return "warm";
+    case StartLevel::kHot:
+        return "hot";
+    }
+    return "unknown";
+}
+
 const char *to_json(WorkingSetLinearAlgebra v) {
     switch (v) {
     case WorkingSetLinearAlgebra::kRefactorize:
@@ -318,35 +334,52 @@ const char *to_json(WorkingSetLinearAlgebra v) {
 
 // --- the counters object, GENERATED from solver_counters.h's tables -------
 //
-// One overload per field type, so a table entry is just a name: `Index` is an
-// integer and `double` goes through rule 3.
+// One overload per field type, so a table entry is just a name and a predicate:
+// `Index` is an integer, `double` goes through rule 3, `start_level_used` is an
+// enum with its own lower-snake spelling.
 //
-// `start_level_used` is written by the library's OWN `to_string` (brief T2(d)):
-// the one field in the schema spelled in the display alphabet, not lower snake.
-void key_value(std::string &s, bool &first, const char *k, Index v) { key_index(s, first, k, v); }
+// THE PREDICATE IS THE TABLE'S (fix round 1, R7): a field whose doc names a
+// sentinel meaning "never measured" is written `null` per rule 5, and which
+// fields those are is a property of the counter, not of the serializer.
+void key_value(std::string &s, bool &first, const char *k, Index v, bool absent) {
+    key(s, first, k);
+    if (absent) {
+        s += "null";
+    } else {
+        append_index(s, v);
+    }
+}
 
-void key_value(std::string &s, bool &first, const char *k, double v) { key_double(s, first, k, v); }
+void key_value(std::string &s, bool &first, const char *k, double v, bool absent) {
+    key(s, first, k);
+    if (absent) {
+        s += "null";
+    } else {
+        append_double(s, v);
+    }
+}
 
-void key_value(std::string &s, bool &first, const char *k, StartLevel v) {
-    key_enum(s, first, k, to_string(v));
+void key_value(std::string &s, bool &first, const char *k, StartLevel v, bool) {
+    key_enum(s, first, k, to_json(v));
 }
 
 std::string counters_object(const SqpCounters &c) {
     std::string b;
     bool first = true;
-#define HVEN_TRACE_WRITE_FIELD(f) key_value(b, first, #f, c.f);
+#define HVEN_TRACE_WRITE_FIELD(f, absent) key_value(b, first, #f, c.f, absent(c.f));
     HVEN_SQP_COUNTERS_FIELDS(HVEN_TRACE_WRITE_FIELD)
 #undef HVEN_TRACE_WRITE_FIELD
 
     std::string ssn;
     bool ssn_first = true;
-#define HVEN_TRACE_WRITE_FIELD(f) key_value(ssn, ssn_first, #f, c.ssn.f);
+#define HVEN_TRACE_WRITE_FIELD(f, absent) key_value(ssn, ssn_first, #f, c.ssn.f, absent(c.ssn.f));
     HVEN_SSN_COUNTERS_FIELDS(HVEN_TRACE_WRITE_FIELD)
 #undef HVEN_TRACE_WRITE_FIELD
 
     std::string ipqp;
     bool ipqp_first = true;
-#define HVEN_TRACE_WRITE_FIELD(f) key_value(ipqp, ipqp_first, #f, c.ipqp.f);
+#define HVEN_TRACE_WRITE_FIELD(f, absent)                                                          \
+    key_value(ipqp, ipqp_first, #f, c.ipqp.f, absent(c.ipqp.f));
     HVEN_IPQP_COUNTERS_FIELDS(HVEN_TRACE_WRITE_FIELD)
 #undef HVEN_TRACE_WRITE_FIELD
 
@@ -415,6 +448,11 @@ JsonLinesTraceSink::JsonLinesTraceSink(std::ostream &out) : out_(out) {}
 JsonLinesTraceSink::~JsonLinesTraceSink() = default;
 
 void JsonLinesTraceSink::push_depth() { ++depth_; }
+
+void JsonLinesTraceSink::reset_nesting() {
+    depth_ = 0;
+    open_solves_ = 0;
+}
 
 void JsonLinesTraceSink::pop_depth() {
     if (depth_ > 0) {

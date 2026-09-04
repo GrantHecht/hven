@@ -157,7 +157,6 @@ struct QpCounters {
     // a working set of W members having started from a seed of S:
     //
     //     ws_adds - ws_drops + shift_adds  ==  W - S   (net identity)
-    //
     // so `ws_drops` is the CHURN: a monotone identification walk that never
     // backtracks has ws_drops == 0 and ws_adds ~ W - S, while a walk that
     // pays k re-discoveries of the same rows has ws_adds ~ (W - S) + k and
@@ -565,7 +564,6 @@ struct SsnCounters {
 // ===========================================================================
 // THE FIELD TABLES (M6 W4 T2(d)) -- one X-macro per aggregate
 // ===========================================================================
-//
 // The trace's `sqp.solve.end` counters object is GENERATED from these, in table
 // order, so the JSON's key order is the declaration order and a field added to
 // a struct without a table entry does not silently vanish from the stream.
@@ -578,28 +576,69 @@ struct SsnCounters {
 // SAME POSITION, and the assert passes again. Nothing else needs editing.
 
 #define HVEN_SSN_COUNTERS_FIELDS(X)                                                                \
-    X(ssn_iters)                                                                                   \
-    X(ssn_bulk_flips)                                                                              \
-    X(ssn_backtracks)                                                                              \
-    X(ssn_prox_updates)                                                                            \
-    X(ssn_escapes)                                                                                 \
-    X(ssn_uncertain_peak)                                                                          \
-    X(ssn_refinements)                                                                             \
-    X(ssn_refine_refused)                                                                          \
-    X(ssn_refine_factorizations)                                                                   \
-    X(ssn_refine_neg_duals)                                                                        \
-    X(ssn_sign_swept)                                                                              \
-    X(ssn_sign_sweep_max)                                                                          \
-    X(ssn_escape_budget)                                                                           \
-    X(ssn_escape_singular)                                                                         \
-    X(ssn_escape_no_contraction)                                                                   \
-    X(ssn_escape_infeasible_suspect)                                                               \
-    X(ssn_escape_indefinite)                                                                       \
-    X(ssn_escape_gate_refused)
+    X(ssn_iters, counter_never_absent)                                                             \
+    X(ssn_bulk_flips, counter_never_absent)                                                        \
+    X(ssn_backtracks, counter_never_absent)                                                        \
+    X(ssn_prox_updates, counter_never_absent)                                                      \
+    X(ssn_escapes, counter_never_absent)                                                           \
+    X(ssn_uncertain_peak, counter_never_absent)                                                    \
+    X(ssn_refinements, counter_never_absent)                                                       \
+    X(ssn_refine_refused, counter_never_absent)                                                    \
+    X(ssn_refine_factorizations, counter_never_absent)                                             \
+    X(ssn_refine_neg_duals, counter_never_absent)                                                  \
+    X(ssn_sign_swept, counter_never_absent)                                                        \
+    X(ssn_sign_sweep_max, counter_never_absent)                                                    \
+    X(ssn_escape_budget, counter_never_absent)                                                     \
+    X(ssn_escape_singular, counter_never_absent)                                                   \
+    X(ssn_escape_no_contraction, counter_never_absent)                                             \
+    X(ssn_escape_infeasible_suspect, counter_never_absent)                                         \
+    X(ssn_escape_indefinite, counter_never_absent)                                                 \
+    X(ssn_escape_gate_refused, counter_never_absent)
+
+// --- the tables' second column: ABSENCE ----------------------------------
+// Plan section 2 rule 5 -- absence is `null`, never a value -- needs a per-FIELD
+// answer: a counter's own doc says whether a reading is a value or a sentinel.
+//
+// These predicates are that answer, carried IN the table so the serializer has
+// no special cases.
+//
+// THE SWEEP (fix round 1, R7) found three: `ipqp_alpha_p_min` and
+// `ipqp_alpha_d_min`, whose `+infinity` default is documented "no step observed
+// yet", and `ipqp_tier_retired_after`, whose `0` is "never retired".
+//
+// `ipqp_final_inertia_read`'s `3` is NOT one: its doc keeps `3` distinct from
+// `2` as a categorical outcome, and `0` is structurally reported where no read
+// was due, so `null` would erase a distinction the census depends on.
+inline bool counter_never_absent(Index) { return false; }
+inline bool counter_never_absent(double) { return false; }
+inline bool counter_never_absent(StartLevel) { return false; }
+
+/// `+infinity` as "never measured" (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`).
+inline bool counter_absent_at_pos_inf(double v) {
+    return v == std::numeric_limits<double>::infinity();
+}
+
+/// `0` as "no such major" (`ipqp_tier_retired_after`, recorded 1-based).
+inline bool counter_absent_at_zero(Index v) { return v == 0; }
 
 /// Turns one table entry into `+1`, so each table's own entry count is the
 /// table itself rather than a hand-kept number beside it.
-#define HVEN_COUNTERS_COUNT_ONE(f) +1
+#define HVEN_COUNTERS_COUNT_ONE(f, absent) +1
+
+/// @brief Are the offsets strictly increasing across a table's entries?
+///
+/// THE COUNT ASSERT CANNOT SEE A REORDER (fix round 1, R8(b)): a field INSERTED
+/// mid-struct whose `X()` entry is appended at the tail keeps the count right
+/// and silently emits a JSON key order that is no longer declaration order.
+/// Walking `offsetof` closes that direction at compile time.
+constexpr bool counters_offsets_increase(const std::size_t *offsets, std::size_t count) {
+    for (std::size_t i = 1; i < count; ++i) {
+        if (!(offsets[i] > offsets[i - 1])) {
+            return false;
+        }
+    }
+    return true;
+}
 
 /// @brief `HVEN_SSN_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kSsnCountersFieldCount =
@@ -607,6 +646,17 @@ inline constexpr std::size_t kSsnCountersFieldCount =
 static_assert(::hven::detail::kAggregateArity<SsnCounters> == kSsnCountersFieldCount,
               "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position (and the trace's golden line moves with it).");
+
+/// The SsnCounters table's field offsets, in table order.
+inline constexpr std::size_t kOffsetsSsnCounters[] = {
+#define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(SsnCounters, f),
+    HVEN_SSN_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
+#undef HVEN_COUNTERS_OFFSET_ONE
+};
+static_assert(counters_offsets_increase(kOffsetsSsnCounters, kSsnCountersFieldCount),
+              "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
+              "declaration position. The JSON key order is the table's, so this must be the "
+              "struct's.");
 
 /// Work counters for the IP-PMM interior-point tier (M6 W1,
 /// `docs/notes/2026-08-m6-w1-ipqp-spec.md` section 7, as amended by the plan
@@ -1243,45 +1293,45 @@ struct IpqpCounters {
 };
 
 #define HVEN_IPQP_COUNTERS_FIELDS(X)                                                               \
-    X(ipqp_iters)                                                                                  \
-    X(ipqp_factorizations)                                                                         \
-    X(ipqp_symbolic_analyses)                                                                      \
-    X(ipqp_solves)                                                                                 \
-    X(ipqp_pattern_verifies)                                                                       \
-    X(ipqp_rho_demanded_max)                                                                       \
-    X(ipqp_rho_demanded_last)                                                                      \
-    X(ipqp_inertia_retries)                                                                        \
-    X(ipqp_iters_at_elevated_rho)                                                                  \
-    X(ipqp_ladder_reclimbs)                                                                        \
-    X(ipqp_pivot_reroute_primal)                                                                   \
-    X(ipqp_pivot_reroute_dual_fallback)                                                            \
-    X(ipqp_iters_ladder_armed_no_advance)                                                          \
-    X(ipqp_final_inertia_read)                                                                     \
-    X(ipqp_reg_decreases)                                                                          \
-    X(ipqp_reg_increases)                                                                          \
-    X(ipqp_prox_center_updates)                                                                    \
-    X(ipqp_restart_repairs)                                                                        \
-    X(ipqp_restart_shift_max)                                                                      \
-    X(ipqp_mu_adopted)                                                                             \
-    X(ipqp_warm_restart_abandoned)                                                                 \
-    X(ipqp_declined_pinned)                                                                        \
-    X(ipqp_tier_retired_after)                                                                     \
-    X(ipqp_face_uncertain)                                                                         \
-    X(ipqp_refine_accepted)                                                                        \
-    X(ipqp_refine_refused)                                                                         \
-    X(ipqp_to_refine)                                                                              \
-    X(ipqp_to_ssn)                                                                                 \
-    X(ipqp_to_walk)                                                                                \
-    X(ipqp_escapes)                                                                                \
-    X(ipqp_escape_budget)                                                                          \
-    X(ipqp_escape_stall)                                                                           \
-    X(ipqp_escape_indefinite)                                                                      \
-    X(ipqp_escape_numerical)                                                                       \
-    X(ipqp_escape_infeasible_suspect)                                                              \
-    X(ipqp_alpha_p_min)                                                                            \
-    X(ipqp_alpha_d_min)                                                                            \
-    X(ipqp_read_kept_tight_sides)                                                                  \
-    X(ipqp_read_barrier_noise_sides)
+    X(ipqp_iters, counter_never_absent)                                                            \
+    X(ipqp_factorizations, counter_never_absent)                                                   \
+    X(ipqp_symbolic_analyses, counter_never_absent)                                                \
+    X(ipqp_solves, counter_never_absent)                                                           \
+    X(ipqp_pattern_verifies, counter_never_absent)                                                 \
+    X(ipqp_rho_demanded_max, counter_never_absent)                                                 \
+    X(ipqp_rho_demanded_last, counter_never_absent)                                                \
+    X(ipqp_inertia_retries, counter_never_absent)                                                  \
+    X(ipqp_iters_at_elevated_rho, counter_never_absent)                                            \
+    X(ipqp_ladder_reclimbs, counter_never_absent)                                                  \
+    X(ipqp_pivot_reroute_primal, counter_never_absent)                                             \
+    X(ipqp_pivot_reroute_dual_fallback, counter_never_absent)                                      \
+    X(ipqp_iters_ladder_armed_no_advance, counter_never_absent)                                    \
+    X(ipqp_final_inertia_read, counter_never_absent)                                               \
+    X(ipqp_reg_decreases, counter_never_absent)                                                    \
+    X(ipqp_reg_increases, counter_never_absent)                                                    \
+    X(ipqp_prox_center_updates, counter_never_absent)                                              \
+    X(ipqp_restart_repairs, counter_never_absent)                                                  \
+    X(ipqp_restart_shift_max, counter_never_absent)                                                \
+    X(ipqp_mu_adopted, counter_never_absent)                                                       \
+    X(ipqp_warm_restart_abandoned, counter_never_absent)                                           \
+    X(ipqp_declined_pinned, counter_never_absent)                                                  \
+    X(ipqp_tier_retired_after, counter_absent_at_zero)                                             \
+    X(ipqp_face_uncertain, counter_never_absent)                                                   \
+    X(ipqp_refine_accepted, counter_never_absent)                                                  \
+    X(ipqp_refine_refused, counter_never_absent)                                                   \
+    X(ipqp_to_refine, counter_never_absent)                                                        \
+    X(ipqp_to_ssn, counter_never_absent)                                                           \
+    X(ipqp_to_walk, counter_never_absent)                                                          \
+    X(ipqp_escapes, counter_never_absent)                                                          \
+    X(ipqp_escape_budget, counter_never_absent)                                                    \
+    X(ipqp_escape_stall, counter_never_absent)                                                     \
+    X(ipqp_escape_indefinite, counter_never_absent)                                                \
+    X(ipqp_escape_numerical, counter_never_absent)                                                 \
+    X(ipqp_escape_infeasible_suspect, counter_never_absent)                                        \
+    X(ipqp_alpha_p_min, counter_absent_at_pos_inf)                                                 \
+    X(ipqp_alpha_d_min, counter_absent_at_pos_inf)                                                 \
+    X(ipqp_read_kept_tight_sides, counter_never_absent)                                            \
+    X(ipqp_read_barrier_noise_sides, counter_never_absent)
 
 /// @brief `HVEN_IPQP_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kIpqpCountersFieldCount =
@@ -1289,6 +1339,17 @@ inline constexpr std::size_t kIpqpCountersFieldCount =
 static_assert(::hven::detail::kAggregateArity<IpqpCounters> == kIpqpCountersFieldCount,
               "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree: give the new field an X() "
               "entry in its declaration position (and the trace's golden line moves with it).");
+
+/// The IpqpCounters table's field offsets, in table order.
+inline constexpr std::size_t kOffsetsIpqpCounters[] = {
+#define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(IpqpCounters, f),
+    HVEN_IPQP_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
+#undef HVEN_COUNTERS_OFFSET_ONE
+};
+static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersFieldCount),
+              "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
+              "declaration position. The JSON key order is the table's, so this must be the "
+              "struct's.");
 
 /// Aggregate work counters for a whole solve.
 ///
@@ -1505,7 +1566,6 @@ struct SqpCounters {
     //     ipqp_suspicion_disproved + <relaxed> + <exhausted> + ipqp_fallback_rung_b
     //         == the fallback entries whose evidence block FIRED
     //         == elastic_from_ipqp_escape - elastic_floor_retries
-    //
     // where <relaxed> and <exhausted> are the rung-A-owned outcomes that carry no counter of
     // their own -- they are read off the returned `qp_status` (kOptimal vs the synthesized
     // kInfeasible), which is why plan section 5 states the partition "with qp_status alongside".
@@ -1941,39 +2001,39 @@ struct SqpCounters {
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
-    X(major_iters)                                                                                 \
-    X(qp_minor_iters)                                                                              \
-    X(factorizations)                                                                              \
-    X(steps_accepted)                                                                              \
-    X(rejected_steps)                                                                              \
-    X(soc_steps)                                                                                   \
-    X(soc_applied)                                                                                 \
-    X(soc_qp_infeasible)                                                                           \
-    X(soc_rejected)                                                                                \
-    X(elastic_activations)                                                                         \
-    X(elastic_escalations)                                                                         \
-    X(restoration_iters)                                                                           \
-    X(elastic_from_ipqp_escape)                                                                    \
-    X(ipqp_suspicion_disproved)                                                                    \
-    X(ipqp_fallback_rung_b)                                                                        \
-    X(elastic_rho0_ceiling_hits)                                                                   \
-    X(elastic_floor_retries)                                                                       \
-    X(eqp_refine_steps)                                                                            \
-    X(border_refine_steps)                                                                         \
-    X(verdict_refine_steps)                                                                        \
-    X(suspect_escalations)                                                                         \
-    X(symbolic_analyses)                                                                           \
-    X(start_level_used)                                                                            \
-    X(full_step_majors)                                                                            \
-    X(watchdog_restores)                                                                           \
-    X(evals_full)                                                                                  \
-    X(evals_values)                                                                                \
-    X(probe_budget_stops)                                                                          \
-    X(crash_seeded_rows)                                                                           \
-    X(crash_seeded_bounds)                                                                         \
-    X(n_seeded)                                                                                    \
-    X(seeded_clamped)                                                                              \
-    X(ip_activity_inferred)
+    X(major_iters, counter_never_absent)                                                           \
+    X(qp_minor_iters, counter_never_absent)                                                        \
+    X(factorizations, counter_never_absent)                                                        \
+    X(steps_accepted, counter_never_absent)                                                        \
+    X(rejected_steps, counter_never_absent)                                                        \
+    X(soc_steps, counter_never_absent)                                                             \
+    X(soc_applied, counter_never_absent)                                                           \
+    X(soc_qp_infeasible, counter_never_absent)                                                     \
+    X(soc_rejected, counter_never_absent)                                                          \
+    X(elastic_activations, counter_never_absent)                                                   \
+    X(elastic_escalations, counter_never_absent)                                                   \
+    X(restoration_iters, counter_never_absent)                                                     \
+    X(elastic_from_ipqp_escape, counter_never_absent)                                              \
+    X(ipqp_suspicion_disproved, counter_never_absent)                                              \
+    X(ipqp_fallback_rung_b, counter_never_absent)                                                  \
+    X(elastic_rho0_ceiling_hits, counter_never_absent)                                             \
+    X(elastic_floor_retries, counter_never_absent)                                                 \
+    X(eqp_refine_steps, counter_never_absent)                                                      \
+    X(border_refine_steps, counter_never_absent)                                                   \
+    X(verdict_refine_steps, counter_never_absent)                                                  \
+    X(suspect_escalations, counter_never_absent)                                                   \
+    X(symbolic_analyses, counter_never_absent)                                                     \
+    X(start_level_used, counter_never_absent)                                                      \
+    X(full_step_majors, counter_never_absent)                                                      \
+    X(watchdog_restores, counter_never_absent)                                                     \
+    X(evals_full, counter_never_absent)                                                            \
+    X(evals_values, counter_never_absent)                                                          \
+    X(probe_budget_stops, counter_never_absent)                                                    \
+    X(crash_seeded_rows, counter_never_absent)                                                     \
+    X(crash_seeded_bounds, counter_never_absent)                                                   \
+    X(n_seeded, counter_never_absent)                                                              \
+    X(seeded_clamped, counter_never_absent)                                                        \
+    X(ip_activity_inferred, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -1987,5 +2047,16 @@ static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldC
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
               "table of its own and raise the + 2 here.");
+
+/// The SqpCounters table's field offsets, in table order.
+inline constexpr std::size_t kOffsetsSqpCounters[] = {
+#define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(SqpCounters, f),
+    HVEN_SQP_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
+#undef HVEN_COUNTERS_OFFSET_ONE
+};
+static_assert(counters_offsets_increase(kOffsetsSqpCounters, kSqpCountersFieldCount),
+              "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
+              "declaration position. The JSON key order is the table's, so this must be the "
+              "struct's.");
 
 } // namespace hven::solvers

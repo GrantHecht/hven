@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <exception>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -81,7 +80,6 @@ void require_declared_box(const NlpModel &model) {
 }
 
 // --- WARM-START CURRENCY: THE STAGING-TIME CHECKS ---
-//
 // The three questions a staged value can be asked BEFORE a problem exists to
 // ask them against. The block lengths and the stamp need one, so they are
 // asked at solve entry, in consume_staged_warm_start.
@@ -322,7 +320,6 @@ CallerScaleRowMeasures caller_scale_row_measures(const Vec &lo, const Vec &up, c
 } // namespace
 
 // --- THE DRIVER'S FREE FUNCTIONS ------------------------------------------
-//
 // The evaluation, measurement, subproblem-construction and counter-folding
 // helpers declared in drivers/sqp_driver.h, defined here for the same reason
 // the class's own members are: none of them depends on inlining through a
@@ -1256,50 +1253,25 @@ IpqpTraceQpMode trace_mode_of(QpMode mode) {
     return IpqpTraceQpMode::kWalk;
 }
 
-/// @brief The `sqp.solve` begin/end pair, as ONE scope over the solve.
+/// @brief The `sqp.solve.begin` payload for this solve.
 ///
-/// `end` FIRES ON THE NORMAL RETURN ONLY. An exception in flight is detected by
-/// comparing `std::uncaught_exceptions()` against the count at construction, and
-/// nothing is written: a solve that threw did not end, and a `begin` with no
-/// `end` is the honest record of one. It is also why the depth is left as it
-/// stands there -- a sink is not reusable across a throwing solve.
+/// Built ONLY when a sink is attached -- the O(n) census is nobody's cost
+/// otherwise. The `end` payload is three fields and is built at its own site.
 ///
-/// COSTS NOTHING WITHOUT A SINK: with `sink == nullptr` the constructor returns
-/// before the O(n) census and the destructor before the counters object.
-class SolveTraceScope {
-  public:
-    SolveTraceScope(IpqpTraceSink *sink, const SqpSolution &out, const SqpOptions &opts,
-                    const AggregateEvalSeam &seam)
-        : sink_(sink), out_(out), uncaught_at_entry_(std::uncaught_exceptions()) {
-        if (sink_ == nullptr) {
-            return;
-        }
-        SqpSolveBeginTraceEvent ev;
-        ev.n = seam.n();
-        ev.me = seam.me();
-        ev.mi = seam.mi();
-        census_variable_bounds(seam.lower(), seam.upper(), ev);
-        ev.qp_mode = trace_mode_of(opts.qp_mode);
-        ev.ws_algebra = opts.qp.ws_algebra;
-        sink_->on_sqp_solve_begin(ev);
-    }
-
-    ~SolveTraceScope() {
-        if (sink_ == nullptr || std::uncaught_exceptions() > uncaught_at_entry_) {
-            return;
-        }
-        sink_->on_sqp_solve_end(
-            SqpSolveEndTraceEvent{out_.status, out_.counters.major_iters, out_.counters});
-    }
-
-    SolveTraceScope(const SolveTraceScope &) = delete;
-    SolveTraceScope &operator=(const SolveTraceScope &) = delete;
-
-  private:
-    IpqpTraceSink *sink_;
-    const SqpSolution &out_;
-    int uncaught_at_entry_;
-};
+/// NOT AN RAII SCOPE any more (fix round 1, R1): the pair is written by two
+/// explicit statements in `solve_impl`, so the last write of a solve is not
+/// inside a `noexcept` destructor.
+SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts,
+                                               const AggregateEvalSeam &seam) {
+    SqpSolveBeginTraceEvent ev;
+    ev.n = seam.n();
+    ev.me = seam.me();
+    ev.mi = seam.mi();
+    census_variable_bounds(seam.lower(), seam.upper(), ev);
+    ev.qp_mode = trace_mode_of(opts.qp_mode);
+    ev.ws_algebra = opts.qp.ws_algebra;
+    return ev;
+}
 
 // THE SECTION 5.4 GRADE (plan ruling 4): full warm from the `hven.ipm.polish.v1` payload,
 // base warm from the core's signed price alone, `nullopt` = cold; flow (a) already consumed
@@ -1693,7 +1665,6 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
     const Index declared_eq = declaration.equality_rows_ - declaration.fixing_rows_;
 
     // --- THE MODE-LOCAL COLD DEGRADE (plan ruling 4; spec 5.4) -------------
-    //
     // Under kIpm a stamp or dimension mismatch is spec 5.4's COLD grade, not a
     // refusal; the throws below stand byte-for-byte for kWalk and kSsn, and
     // `require_finite_core` still refuses non-finite CORE data in every mode.
@@ -1742,7 +1713,6 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
     }
 
     // --- THE PRESERVED-SEED INGEST (plan ruling 4) -------------------------
-    //
     // Built HERE and never through `to_sqp_warm_start`, which collapses `zL`/`zU` into
     // `WarmStart`'s single SIGNED `z` -- lossy at a two-sided bound. Flow (a) is untouched in
     // every mode; this is flow (b)'s own input (spec 5.1).
@@ -1887,17 +1857,15 @@ Index SqpDriver::install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) c
 
 SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                                   const WarmStart &warm, Index minor_budget) {
-    // `out` IS DECLARED FIRST so the scope -- declared second -- is destroyed
-    // FIRST, while the finished solution it reads is still alive. That ordering
-    // is the whole mechanism; see the declaration in sqp_driver.h.
-    SqpSolution out;
-    const SolveTraceScope trace_scope(ipqp_trace_, out, opts_, seam);
-    out = solve_impl_body(seam, bridge, x0, warm, minor_budget);
-    return out;
-}
-
-SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge,
-                                       const Vec &x0, const WarmStart &warm, Index minor_budget) {
+    // THE ARGUMENT REFUSALS RUN FIRST, ahead of the `begin` line, and the
+    // ordering is the contract rather than a preference (fix round 1, R3(a)).
+    //
+    // They are recoverable API refusals, so a refused call must write NOTHING.
+    // Emitting first and throwing second left the sink's open-solve count
+    // raised, and every later solve on it then reported `"depth":1`.
+    //
+    // `begin` now means "the arguments were accepted and the solve was
+    // entered". The block below is the body's own validation, moved VERBATIM.
     const Index n = seam.n();
     // The seam and the bridge must name ONE provider. Restoration builds its
     // feasibility model from the bridge while every evaluation goes through the
@@ -1945,6 +1913,34 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             "SqpDriver::solve: SqpOptions::make_strategy returned a null strategy; leave it "
             "empty for the default funnel rather than returning nullptr");
     }
+
+    // THE SEQUENCING, EXPLICIT AND NOT RAII (fix round 1, R1): `begin`, the
+    // body, then `end` read off the RETURNED object while it is unambiguously
+    // alive -- no destructor reads a local the return has begun to move from.
+    //
+    // An exception from the body skips `end` for free, with no
+    // `std::uncaught_exceptions()` bookkeeping.
+    //
+    // Decisively, the write is no longer inside a destructor: a destructor is
+    // implicitly `noexcept`, so under the armed mask T1 ruled must PROPAGATE, a
+    // failure on this last line called `std::terminate` instead.
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
+    }
+    SqpSolution out = solve_impl_body(seam, bridge, x0, warm, minor_budget, std::move(strategy));
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_sqp_solve_end(
+            SqpSolveEndTraceEvent{out.status, out.counters.major_iters, out.counters});
+    }
+    return out;
+}
+
+SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge,
+                                       const Vec &x0, const WarmStart &warm, Index minor_budget,
+                                       std::unique_ptr<GlobalizationStrategy> strategy) {
+    // THE ARGUMENTS WERE VALIDATED BY `solve_impl`, the only caller, which
+    // refuses before anything is written; `strategy` is the one it built.
+    const Index n = seam.n();
 
     SqpSolution out;
 
@@ -3134,16 +3130,13 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 if (take) {
                     x_start = cand.x;
                     resto_ev = std::move(ev_cand);
-                    // The requesting row is `back()`: all four call sites
-                    // push_history BEFORE calling (the judged floor and the funnel
-                    // share the verdict row pushed just above them). Checked on the
-                    // WRITE only -- an empty history here is a broken call site.
-                    if (out.history.empty()) {
-                        throw std::logic_error(
-                            "SqpDriver: a restoration request reached the seeding decision with "
-                            "an empty history -- every request site pushes its row first");
-                    }
-                    out.history.back().restoration_seed_used = true;
+                    // THE FLAG IS WRITTEN ON THE ROW, NOT ON `history.back()`
+                    // (fix round 1, R9): every request site now pushes AFTER
+                    // this call, so the row carries its final value.
+                    //
+                    // Writing it to the ALREADY-PUSHED row left the emitted
+                    // `sqp.major` line stale by one field.
+                    row.restoration_seed_used = true;
                 }
             }
             const RestorationModel feasibility(bridge.model(), *x_start, resto_ev);
@@ -3710,7 +3703,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 }
                 qs = ssn_result_to_qp_solution(sres);
                 // --- TIER 3: THE STABLE-FACE REFINEMENT ----------------
-                //
                 // See this header's THE SEMISMOOTH-NEWTON TIER note and
                 // QpEngine::refine_on_face's own contract for the design;
                 // only the mechanics are here. ONE exact solve on the face
@@ -3839,7 +3831,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
         case QpMode::kIpm: {
             walk_owns_this_qp = false;
             // === THE INTERIOR-POINT TIER, SECTION 2.3 AS AMENDED ==========
-            //
             // The chain in order IS the contract, and the numbered banners below mark its
             // steps (spec section 2.3). THE DRIVER BRANCHES ON `escape_reason`, NEVER ON
             // `status`, which would let the routing promote a suspicion to a certificate.
@@ -3850,7 +3841,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // contract) -- it carries its own (rho, delta).
 
             // --- 0. RETIREMENT (section 6.1) -------------------------------
-            //
             // Checked FIRST, ahead of even the domain gate: "retired for the remainder of
             // that solve" means the rest go to the default engine unconsulted, and a decline
             // counted here would be a consultation.
@@ -3860,7 +3850,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             }
 
             // --- 1. THE DOMAIN GATE (T4.b), PRE-SOLVE ----------------------
-            //
             // Re-derived HERE from the tier's own two free functions, so the decline happens
             // before the engine is entered at all. A DECLINE IS NOT AN ESCAPE: nothing is
             // charged to the K = 3 tally and the walk runs from its ORDINARY seed, not cold.
@@ -3874,7 +3863,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             }
 
             // --- THE SOLVE -------------------------------------------------
-            //
             // THE SYMBOLIC HOIST'S EPOCH GATE (spec 4.1, plan section 7 note (a)): the
             // analysis is reused across majors OF THIS SOLVE only while the structure epoch
             // holds. Recorded unconditionally -- the engine's `analyzed_` is the authority.
@@ -3979,7 +3967,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
 
             if (usable) {
                 // --- 2. THE TIER-3 REFINEMENT (section 2.3 item 3) ---------
-                //
                 // THE SAME SHARED POLISH STEP THE SSN ARM RUNS, not a fourth engine
                 // (Amendment A). Its accepted-path inertia gate (n_f, m_f, 0) is ALSO a
                 // certificate, which is why a downgraded tier certificate routes here.
@@ -4023,7 +4010,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 }
             } else if (ires.escape_reason == IpqpEscape::kIndefinite) {
                 // --- 4. SADDLE-SUSPECT -> THE SSN WARM GRADE (item 4) -----
-                //
                 // A reading WAS taken and disagreed (plan section 7 note (h)). SSN's uncertain
                 // band absorbs the tie rows the ratio rule left UNCERTAIN and flips the whole
                 // implied active set at once; the walk would only re-derive the same face.
@@ -4035,7 +4021,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
             } else {
                 // --- 5. A GENUINE ESCAPE -> THE WALK, COLD (item 5) -------
-                //
                 // Numerical, infeasible-suspect, early stall, and iteration-cap budget. THE
                 // ITERATE IS DISCARDED: nothing below reads `ires` again, and the walk starts
                 // from zero rather than from a point the tier could not certify.
@@ -4168,7 +4153,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // step was taken from here.
                 row.step_norm = report.step_norm;
                 row.verdict = StepVerdict::kRestore;
-                push_history(row);
                 // THE ELASTIC CANDIDATE (amendment F): `p_elastic` is a STEP,
                 // so the offer is x + p clamped into the wrapper's own box; a
                 // ZERO step is no offer -- it IS x, and "taken" would be a lie.
@@ -4185,7 +4169,13 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // T3-A: after a refusal that walked to kInfeasible, `report` is
                 // the SECOND ladder's (floor rho), so this offer is its step.
                 // KLV Algorithm 5's authoritative trigger.
-                if (enter_restoration(elastic_cand)) {
+                //
+                // PUSHED AFTER THE CALL (R9): the call decides
+                // `row.restoration_seed_used`, and the row must reach both
+                // `history` and the stream with its final value.
+                const bool elastic_restored = enter_restoration(elastic_cand);
+                push_history(row);
+                if (elastic_restored) {
                     continue;
                 }
                 // qs_e (the elastic re-solve) is in the AUGMENTED
@@ -4235,14 +4225,16 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 ++qp_failures_in_a_row;
                 ++rejections_at_iterate;
                 ++out.counters.rejected_steps;
-                push_history(row);
                 // THE RADIUS FLOOR applies to a ROUTED failure
                 // exactly as to a judged rejection: both are "the radius
                 // was shrunk here and the iterate did not move", and the
                 // floor is a statement about the radius, not about which
                 // mechanism last lowered it.
                 if (shrink_hits_floor(delta)) {
-                    if (enter_restoration()) {
+                    // PUSHED AFTER THE CALL (R9), as at every request site.
+                    const bool restored = enter_restoration();
+                    push_history(row);
+                    if (restored) {
                         continue;
                     }
                     // `qs` is THIS failed solve's own activity, in the
@@ -4258,6 +4250,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                                                   engine_.hot_state()),
                                   restoration_exit_multipliers_are_caller_scale);
                 }
+                push_history(row);
                 delta = shrunk_radius(delta);
                 // Seeded from the FAILED solve's ACTIVE SET. On
                 // kNumericalError the engine clears the multipliers
@@ -4432,8 +4425,9 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
 
         row.verdict = verdict;
         row.soc_applied = soc_applied;
-        push_history(row);
-
+        // THE PUSH IS PER-BRANCH (R9): the two branches that may request
+        // restoration must call first, because the call decides
+        // `row.restoration_seed_used` and a pushed row is already in the stream.
         if (verdict == StepVerdict::kReject) {
             // SHRINK AND RE-SOLVE THE SAME ITERATE. The multipliers this
             // subproblem priced are DISCARDED -- they belong to a step
@@ -4451,7 +4445,9 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // THE REJECTED TRIAL IS THE OFFER, and its own values bundle is the
                 // measurement -- the ORIGINAL trial's, since a PROMOTED SOC
                 // correction would have left `verdict` an accept.
-                if (enter_restoration({&x_trial, &ev_trial})) {
+                const bool restored = enter_restoration({&x_trial, &ev_trial});
+                push_history(row);
+                if (restored) {
                     continue;
                 }
                 // `qs` is the REJECTED trial's own (kOptimal) solution,
@@ -4466,6 +4462,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                                               engine_.hot_state()),
                               restoration_exit_multipliers_are_caller_scale);
             }
+            push_history(row);
             delta = shrunk_radius(delta);
             seed = std::move(qs);
             seed.x.setZero(); // never re-center the radius; see WARM SEEDING
@@ -4477,7 +4474,9 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // The funnel's own restoration signature (globalization.h's
             // five conjuncts). Same offer as the floor site above, and SOC is
             // equally out of the picture here (it is gated on kReject).
-            if (enter_restoration({&x_trial, &ev_trial})) {
+            const bool restored = enter_restoration({&x_trial, &ev_trial});
+            push_history(row);
+            if (restored) {
                 continue;
             }
             // Same reasoning as the kReject/floor exit just above: `qs`
@@ -4489,6 +4488,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                                           strategy.get(), engine_.hot_state()),
                           restoration_exit_multipliers_are_caller_scale);
         }
+
+        push_history(row);
 
         // ACCEPTED (kAcceptF or kAcceptH), possibly via SOC. The radius
         // grows only on the evidence described in RADIUS MANAGEMENT, and
@@ -4671,7 +4672,6 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     }
     qs = ssn_result_to_qp_solution(sres);
     // --- TIER 3, ON THE SSN's OWN FACE -------------------------------------
-    //
     // PARITY WITH THE kSsn ARM IS THE RULE (settler ruling, fix round 1): that arm refines
     // EVERY certifying SSN exit, and reaching SSN through the IPQP chain does not stop
     // section 2.3 item 1 applying. THE COUNTERS ARE THE SSN TIER'S, not the IPQP pair's.

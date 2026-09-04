@@ -110,12 +110,21 @@ struct IpqpTraceEscapeEvent {
     IpqpTraceEscapeEvidence evidence;
 };
 
-/// @brief One KERNEL INVOCATION on one subproblem (schema `qp.mode`),
-/// driver-emitted in all three arms since M6 W4 T2(b).
+/// @brief ONE DISPATCH DECISION on one subproblem (schema `qp.mode`),
+/// driver-emitted from the three dispatch arms since M6 W4 T2(b).
 ///
-/// ONE LINE PER INVOCATION, NOT PER SUBPROBLEM: a hand-off writes two, the
-/// handing kernel's and its successor's, so the chain a major walked is
-/// readable rather than inferred. The kIpm arm's own line is unchanged from W2.
+/// EXACTLY THREE SITES EMIT, and they are the dispatch's own arms: the walk
+/// invocation the dispatch makes, the kSsn arm, and the kIpm arm's routing
+/// chain. A hand-off between ARMS therefore writes two lines -- the handing
+/// arm's and its successor's -- so the chain a major walked is readable.
+///
+/// FOUR WALK INVOCATIONS WRITE NO LINE, and naming them is the point of this
+/// paragraph (fix round 1, R12): the certified fallback's rung-B walk inside
+/// `certified_feasibility_fallback`, the SSN warm grade the kIpm arm routes to,
+/// the driver-level elastic ladder's re-solve, and the second-order
+/// correction's re-solve. Each runs a kernel INSIDE an arm that has already
+/// written its own line; a reader counting kernel invocations from this stream
+/// undercounts by exactly those. All four are REGISTERED for T5's ruling.
 ///
 /// THE OUTCOME MAP, per arm, is the driver's and is stated here because the
 /// three arms report three different objects:
@@ -182,9 +191,20 @@ struct SqpMajorTraceEvent {
     /// This row's index in `SqpSolution::history` -- the value `history.size()`
     /// had before the push, so the stream and the vector share one numbering.
     Index major = 0;
-    /// The arm that OWNED this row's QP. On a row with `qp_solved == false` no
-    /// kernel ran and this reports the solve's CONFIGURED mode instead; the
-    /// same line's `qp_solved` is what tells the two apart.
+    /// THE ARM THAT PRODUCED THIS ROW'S STEP, which is not the same reading as
+    /// `qp.mode`'s: that event records a DISPATCH DECISION, this field records
+    /// an outcome.
+    ///
+    /// They agree at kWalk and kSsn. Under kIpm they DIFFER on exactly the
+    /// majors the tier routes to the SSN warm grade: the row reads `ssn`
+    /// (the grade produced the step) while no `ssn` `qp.mode` line exists (the
+    /// grade is not the kSsn arm). A walk that runs INSIDE the kIpm arm -- the
+    /// fallback's rung B, the elastic ladder, the SOC re-solve -- leaves the
+    /// reading at `ipqp`, because no other ARM owned the major.
+    ///
+    /// On a row with `qp_solved == false` no kernel ran and this reports the
+    /// solve's CONFIGURED mode; the same line's `qp_solved` tells the two
+    /// apart.
     IpqpTraceQpMode mode = IpqpTraceQpMode::kWalk;
 };
 

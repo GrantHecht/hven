@@ -2889,20 +2889,32 @@ class SqpDriver {
     // read -- an identity read, never an evaluation -- is taken from the
     // caller's own bridge handle. Both name the same object; only the
     // restoration phase reads the second.
-    /// @brief The solve, WRAPPED: emits the `sqp.solve` pair around the body
-    /// through one RAII scope, so the pair cannot miss an exit.
+    /// @brief The solve, WRAPPED: validates the arguments, writes
+    /// `sqp.solve.begin`, runs the body, writes `sqp.solve.end` from the
+    /// RESULT, and returns it.
     ///
-    /// The body below has SIXTEEN returns; a hand-placed `end` at each would be
-    /// sixteen chances to miss one, and a seventeenth added later would miss it
-    /// silently. The scope emits `end` from the RESULT -- which is why the body
-    /// is a separate function: only here is the finished `SqpSolution` visible.
+    /// THE BODY HAS EIGHT FUNCTION-SCOPE RETURNS, and this wrapper is what
+    /// turns them into the one exit an `end` line can be written at -- which is
+    /// why the body is a separate function: only here is the finished
+    /// `SqpSolution` a value with a name.
+    ///
+    /// The two emits are explicit statements, NOT a destructor (fix round 1):
+    /// a destructor is implicitly `noexcept`, so a stream failure on the last
+    /// line of a solve would call `std::terminate` instead of propagating as
+    /// T1 ruled it must. An exception from the body skips the `end` emit by
+    /// construction, which is "exceptions excluded" with no bookkeeping.
+    ///
+    /// VALIDATION BEFORE `begin`: the argument refusals are recoverable API
+    /// errors, so a refused call must write nothing at all.
     SqpSolution solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                            const WarmStart &warm, Index minor_budget);
 
-    /// @brief The major loop itself. Every exit of the solve is an exit of THIS
-    /// function; nothing here emits the whole-solve events.
+    /// @brief The major loop itself, entered only with validated arguments and
+    /// the strategy its caller built. Nothing here emits the whole-solve
+    /// events.
     SqpSolution solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
-                                const WarmStart &warm, Index minor_budget);
+                                const WarmStart &warm, Index minor_budget,
+                                std::unique_ptr<GlobalizationStrategy> strategy);
 
     // See this header's SUBPROBLEM FAILURE ROUTING note. Reached only after the
     // one-shot retry has already been spent -- and never with kInfeasible (the

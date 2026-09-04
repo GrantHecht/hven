@@ -59,10 +59,17 @@ constexpr bool aggregate_initializable_with(std::index_sequence<I...>) {
 
 /// @brief The largest N for which `T` is brace-initializable with N arguments.
 ///
-/// Linear from 0 upward rather than a binary search: initializability is NOT
-/// monotone in general (a struct with a reference member refuses N < arity),
-/// and the climb stops at the first refusal, which for an aggregate with all
-/// members initializable is its field count.
+/// A LINEAR CLIMB THAT STOPS AT THE FIRST REFUSAL, which is exactly the field
+/// count for an aggregate of scalars and nested aggregates -- the shape the
+/// counter structs have.
+///
+/// WHAT IT DOES NOT SUPPORT, corrected at W4 T2 fix round 1 (co-review M-2): a
+/// struct with a REFERENCE member refuses N = 0 and so reads 0, not its field
+/// count (loud, since the assert then compares 0 against the table); a RAW
+/// ARRAY member overcounts through brace elision (`double v[3]` reads as
+/// three); and a `std::optional` member makes clang warn `-Wundefined-inline`
+/// on the conversion operator below. None of the three occurs in the structs
+/// this pins, and a future one must be checked here first.
 template <class T, std::size_t N = 0> constexpr std::size_t aggregate_arity() {
     if constexpr (aggregate_initializable_with<T>(std::make_index_sequence<N + 1>{})) {
         return aggregate_arity<T, N + 1>();
