@@ -55,6 +55,41 @@
 # one comment line only.
 # commit: c8df3147c7f9106ff3f8605b26fb71c1bad56739
 # generated: 2026-09-03
+#
+# ---------------------------------------------------------------------------
+# CORRECTION, 2026-09-04 (M6 W2 T7 fix round 1, item B1). THE DATA BELOW IS
+# UNCHANGED AND IS THE PIN; this block corrects what the header above SAYS
+# about it, which three reviewers recomputed and found false in one clause.
+# Nothing above this line is edited and no row is touched -- a provenance
+# header records what ran, and rewriting one would be the silent pin mutation
+# CLAUDE.md section 7 forbids.
+#
+# WRONG: "every escape column is 0". NINE kIpm rows carry ipqp_escapes = 1 --
+#   (100,0.68,physics) (100,0.75,neutral) (100,0.9999,corrupted)
+#   (200,0.68,warm) (200,0.85,neutral) (200,0.9,corrupted)
+#   (200,0.9999,warm) (400,0.9,corrupted) (400,0.9,warm).
+# RIGHT, and it is the column the census turns on:
+#   ipqp_escape_infeasible_suspect == 0 on all 450 kIpm rows, and on all 1200;
+#   ssn_escape_infeasible_suspect == 0 on all 1200; elastic_activations == 0
+#   on every row that carries it; status == Optimal on all 1200. Rung A is
+#   entered IFF the evidence fired, so nine escapes with the evidence UNFIRED
+#   take pin P5's branch (W1's cold walk, no activation charged) and are NOT
+#   census point (c). The NEGATIVE RESULT IS UNAFFECTED.
+#
+# ALSO CORRECTED: the grid block says "only the (N, p) pairs are swept". The
+# sweep also fixes ConstraintFamily (kPathInterface above p = 0.5, kBoundArc
+# at or below), p0 = p - 0.05 for the taxonomies that hop, and
+# degenerate = false -- see reachability-sweep.cpp's banner.
+#
+# AND THE REPRODUCER NOW REPRODUCES THESE BYTES. As committed at c8df314 its
+# N grid could not emit the 75 kIpm N = 400 rows and it printed a fixed-width
+# table rather than CSV. reachability-sweep.cpp beside this file restores the
+# kIpm 400 leg (the walk/ssn arms stop at 200 under the sweep-budget rule,
+# encoded with its reason) and writes CSV directly. Re-run solo on
+# 2026-09-04, `taskset -c 2`, MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, one arm at
+# a time, against the fix-round-1 tree: all 1200 rows and the column header
+# BYTE-IDENTICAL to the bytes below.
+# ---------------------------------------------------------------------------
 arm,n_nodes,p,taxonomy,status,ipqp_escapes,ipqp_escape_infeasible_suspect,ssn_escape_infeasible_suspect,elastic_activations,elastic_from_ipqp_escape,fallback_rung_b,suspicion_disproved,restoration_iters,restoration_seed_rows
 ipm,10,0.02,neutral,Optimal,0,0,0,0,0,0,0,0,0
 ipm,10,0.02,physics,Optimal,0,0,0,0,0,0,0,0,0
