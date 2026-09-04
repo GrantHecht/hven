@@ -156,9 +156,11 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     EXPECT_EQ(k.factor.counters().factorize_count, 3);
 }
 
-// M6 W2 T7 fix 2, and the measurement the eliminated twin's MISS-branch decline
-// rests on: what an EXACTLY SINGULAR KKT does under sqp_kkt_options(). It is
-// the `dual_mu = 0` case -- a working row dependent on the face, zero (2,2).
+// M6 W2 T7, and the measurement that says NO decline exists on the eliminated
+// twin's MISS branch: what an EXACTLY SINGULAR KKT (`dual_mu = 0`, a working
+// row dependent on the face, zero (2,2)) does under sqp_kkt_options().
+//
+// Red here = qp_engine.h's twin declaration is owed a re-read.
 TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
     // K = [[I, A^T], [A, 0]] with A = [[1, 0], [1, 0]]: rank 1, so K is exactly
     // singular. Upper triangle only, with the structural diagonal the backend
@@ -174,14 +176,16 @@ TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
 
     KktFactor k;
 #if defined(__APPLE__)
-    // UNOBSERVED on Accelerate (CLAUDE.md §6): a backend that reports a
-    // singular factorization as an error instead of perturbing would make
-    // factorize_checked throw here, which is the twin's decline path.
+    // ABSENT EVIDENCE IS REPORTED ABSENT (CLAUDE.md section 6), never as a
+    // green no-op: this has not been run on real Mac hardware.
     (void)k;
+    GTEST_SKIP() << "UNOBSERVED on Accelerate: whether it perturbs an exactly singular KKT or "
+                    "reports the singularity as an error has not been observed on real Mac "
+                    "hardware (CLAUDE.md section 6).";
 #else
     // MKL Pardiso's default static pivoting perturbs the tiny pivots and
-    // returns success, so factorize_checked does NOT throw and the twin's
-    // decline is NOT reached by this route. The fix-2 report says so.
+    // returns success, so factorize_checked does NOT throw -- which is why the
+    // twin has no decline to reach and a throw there is a real fault (fix 3).
     ASSERT_NO_THROW(factorize_checked(k, K));
     const hven::linear::InertiaEvidence ev = k.factor.inertia();
     EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);

@@ -46,6 +46,20 @@ using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 
+namespace hven::solvers {
+// M6 W2 T7 fix 3 (Y-5). The named friend of QpEngine, DEFINED here so R5's
+// first pin can be read off `probe_inertia` itself instead of only off its
+// consequence in the counters. Nothing else in this file may use it.
+struct QpEngineTestAccess {
+    static detail::InertiaVerdict probe(const QpEngine &eng, const QpProblem &qp,
+                                        const WorkingSet &ws, detail::KktFactor &kkt,
+                                        EliminatedFace &face, BorderState &border,
+                                        QpCounters &counters, const QpOptions &opts) {
+        return eng.probe_inertia(qp, ws, kkt, face, border, counters, opts);
+    }
+};
+} // namespace hven::solvers
+
 namespace {
 
 // hven's SymmetricFactor validates the STRUCTURAL diagonal at analyze() --
@@ -2565,6 +2579,10 @@ TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
 // M6 W2 T7 fix 2. The verdict-site face key follows the FACTOR, not only the
 // working set: `probe_inertia` re-factorizes the loop's `kkt` for a
 // HYPOTHETICAL set, so a key that recorded only the set could still "hold".
+//
+// FIX-3 CORRECTION: this fixture is the WHOLE falsifier for that conjunct.
+// Threading the key through the probe already closes every stale cell the tree
+// walks -- no walk cell needs the epoch, which is a structural guarantee.
 TEST(QpEngineIndefinite, T7Fix2TheFaceKeyIsInvalidatedByAnyRefactorizationOfKkt) {
     SpMatRM K(3, 3);
     K.insert(0, 0) = 2.0;
@@ -2602,6 +2620,55 @@ TEST(QpEngineIndefinite, T7Fix2TheFaceKeyIsInvalidatedByAnyRefactorizationOfKkt)
 
     ws.add_ineq(0);
     EXPECT_FALSE(face.holds(ws, kkt));
+}
+
+// M6 W2 T7 fix 3 (Y-5). R5's first pin, read DIRECTLY off `probe_inertia`
+// rather than off its counter consequence: the key it leaves behind is either
+// captured on the PROBED set or disarmed, and never on the pre-probe one.
+TEST(QpEngineIndefinite, T7Fix3ProbeInertiaLeavesTheKeyOnTheProbedSetOrDisarmed) {
+    const QpProblem qp = saddle_box_qp();
+
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        QpOptions opts;
+        opts.ws_algebra = algebra;
+        const QpEngine eng{opts};
+
+        WorkingSet pre(qp.n(), qp.mi());
+        detail::KktFactor kkt;
+        EliminatedFace face;
+        BorderState border;
+        QpCounters counters;
+
+        // The loop's own candidate, on the LIVE set: the elimination path arms
+        // the key here, the border path leaves it disarmed.
+        (void)QpEngineTestAccess::probe(eng, qp, pre, kkt, face, border, counters, opts);
+        const EliminatedFace armed_on_pre = face;
+
+        // ... and now the HYPOTHETICAL one the repair would try.
+        WorkingSet probed(qp.n(), qp.mi());
+        probed.bound_state()[0] = BoundState::kAtLower;
+        (void)QpEngineTestAccess::probe(eng, qp, probed, kkt, face, border, counters, opts);
+
+        if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+            EXPECT_FALSE(armed_on_pre.holds(pre, kkt))
+                << "the pre-probe key still claims a factorization the probe overwrote";
+            EXPECT_TRUE(face.factorized);
+            EXPECT_TRUE(face.holds(probed, kkt));
+            EXPECT_FALSE(face.holds(pre, kkt));
+            // The captured half is the factor's own live identity, not a stamp.
+            EXPECT_EQ(face.session_id, kkt.factor.session_id());
+            EXPECT_EQ(face.epoch, kkt.factor.epoch());
+        } else {
+            // eqp_candidate disarms on entry and the border path never
+            // re-arms, so the verdict site cannot reuse anything here.
+            EXPECT_FALSE(armed_on_pre.factorized);
+            EXPECT_FALSE(face.factorized);
+            EXPECT_FALSE(face.holds(pre, kkt));
+            EXPECT_FALSE(face.holds(probed, kkt));
+        }
+    }
 }
 
 // The FAILED iteration-0 start repair, with a structural dead end in the same
@@ -2652,6 +2719,10 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
         // THE PRICE OF THE MISS (fix 1's rider 4): under kRefactorize the probes
         // move the epoch, so the twin buys its own factorization and analysis
         // instead of reusing a factorization of a differently-SIZED system.
+        //
+        // The 3 is candidate + ONE probe + the twin's miss, and the middle term
+        // is this fixture's: x1 is unbounded below in H and x0 is the only
+        // pinnable candidate, so the repair probes exactly once.
         if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
             EXPECT_EQ(warm.counters.factorizations, 3);
             EXPECT_EQ(warm.counters.symbolic_analyses, 1);

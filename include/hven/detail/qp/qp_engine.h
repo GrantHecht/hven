@@ -1112,6 +1112,11 @@ class QpEngine {
                         const SolveOverrides &overrides, QpSolution &out) const;
 
   private:
+    // R5's PIN TAKEN DIRECTLY: probe_inertia is private, and the test that
+    // reads the face it leaves behind needs a name here. Declared only, defined
+    // in the test -- aggregate_eval_seam.h's convention, no shipped surface.
+    friend struct QpEngineTestAccess;
+
     /// @brief Resolve one call's SolveOverrides against `opts` into the
     ///     effective tr_radius/primal_delta/dual_mu values every read site in
     ///     qp_engine.cpp consults from that point on. Shared with run() so
