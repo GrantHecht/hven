@@ -21,6 +21,9 @@
 // `seq` and `depth` are SINK-owned -- no event struct carries either. Off by
 // default: nothing in the library constructs one, so an unattached solve pays
 // exactly what it paid before (W4 T1 pin (iv)).
+//
+// W4 T2 added the three SQP whole-solve events and W4 T4 the three interior-
+// point ones, so "eight" above is the schema's W1/W2 core, not the method count.
 
 #include <iosfwd>
 #include <string>
@@ -73,6 +76,9 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     void on_sqp_major(const SqpMajorTraceEvent &event) override;
     void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event) override;
     void on_sqp_solve_end(const SqpSolveEndTraceEvent &event) override;
+    void on_ipm_iter(const IpmIterTraceEvent &event) override;
+    void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) override;
+    void on_ipm_solve_end(const IpmSolveEndTraceEvent &event) override;
 
     /// Lines ATTEMPTED, which is also the `seq` the last line carried (`seq`
     /// starts at 1). Compared against the artifact's own line count it gives the
@@ -98,6 +104,10 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     /// of ENCLOSING solves, which is what lets a reader separate the two streams
     /// with no stack of its own. Balanced by construction over a normal solve;
     /// it reads 0 again once the outermost `sqp.solve.end` is written.
+    ///
+    /// THE `ipm.solve` PAIR DOES NOT MOVE IT (W4 T4): the interior-point driver
+    /// nests no driver of its own, so an IPM stream reads depth 0 throughout and
+    /// a mixed stream reports the SQP side's nesting only.
     Index depth() const { return depth_; }
 
     /// @brief Forget the nesting a THROWING solve left open.

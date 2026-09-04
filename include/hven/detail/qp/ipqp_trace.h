@@ -14,6 +14,8 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
+#include <hven/detail/drivers/interior_point_solver_fwd.h>
+#include <hven/detail/interior/iterate_info.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/qp/qp_types.h>
@@ -220,6 +222,32 @@ struct SqpMajorTraceEvent {
     IpqpTraceQpMode mode = IpqpTraceQpMode::kWalk;
 };
 
+/// @brief The variable box's own five-way census: exhaustive and disjoint over
+/// the n variables, and the SAME reading for both engines' `begin` line.
+///
+/// ONE COPY, NOT TWO (M6 W4 T4): `sqp.solve.begin` and `ipm.solve.begin` both
+/// report this census, so it is computed here rather than once per driver --
+/// otherwise "free" could come to mean two different things in one stream.
+struct VariableBoundCensus {
+    Index vars_free = 0;       ///< Both sides infinite.
+    Index vars_lower_only = 0; ///< Finite lower, infinite upper.
+    Index vars_upper_only = 0; ///< Infinite lower, finite upper.
+    Index vars_ranged = 0;     ///< Both finite and NOT equal.
+    Index vars_fixed = 0;      ///< Both finite and equal (a zero-width box).
+};
+
+/// @brief Censuses `n` variables against the declared box.
+///
+/// An infinite side is unbounded there (every finite value is a real bound) and
+/// both-finite splits on equality. A SIZE-0 vector means "no variable is bounded
+/// on that side" -- the interior-point NLP materializes its bound vectors only
+/// once a bound has been declared, and an empty vector is that problem's honest
+/// reading, not a missing input.
+///
+/// @throws std::invalid_argument if `n` is negative, or if either vector's size
+///         is neither `n` nor 0.
+VariableBoundCensus census_variable_bounds(const Vec &lower, const Vec &upper, Index n);
+
 /// @brief The solve's opening line (schema `sqp.solve.begin`, M6 W4 T2).
 ///
 /// THE ROW COUNTS ARE THE SPLIT FORM'S OWN: `NlpModel` carries `eval_ce` (= 0)
@@ -254,6 +282,98 @@ struct SqpSolveEndTraceEvent {
     const SqpCounters &counters;
 };
 
+/// @brief One interior-point iteration record (schema `ipm.iter`, M6 W4 T4).
+///
+/// THE RECORD IS HELD BY REFERENCE, exactly as `sqp.major` holds its row: the
+/// serializer writes `IterateInfo`'s own fields in DECLARATION ORDER with the
+/// trailing underscores dropped, and a `static_assert` on the record's aggregate
+/// arity fails the build until a field added there gets a key.
+///
+/// EMITTED AT BOTH OF `alg_impl`'s LATE-CALLBACK SITES, immediately before the
+/// callback itself, so the late callback is the event's oracle: what a caller
+/// with a callback sees is what the stream carries.
+///
+/// THE TWO SITES ARE ONE LOOP'S TWO EXITS: the converge-check early exit, which
+/// leaves the iterate unfactorized, and the ordinary end-of-iteration site. A
+/// line from the first carries `barr_obj`, `merit_val` and `ls_iters` at 0 with
+/// all three alphas at 1 -- the fields `fill_iter_info` never got to write. NOT
+/// `h_facs`, which counts inertia-perturbation ladder steps, not
+/// factorizations, and reads 0 at both sites on a cell that needs none.
+///
+/// `XSL`/`RHS` -- the two vectors the callback also receives -- are NOT carried:
+/// schema v0 has no vector-valued field anywhere.
+struct IpmIterTraceEvent {
+    /// The iteration record, valid for the duration of the `on_ipm_iter` call
+    /// only.
+    const IterateInfo &iterate;
+    /// THE PHASE this iteration belongs to, 0-based over the phase sequence the
+    /// call requested. Carried because `IterateInfo::iter_` restarts at 0 in
+    /// every phase, so on a multi-phase entry point (`solve_optimize`, ...) it
+    /// is not a key on its own.
+    Index phase = 0;
+};
+
+/// @brief The interior-point solve's opening line (schema `ipm.solve.begin`,
+/// M6 W4 T4), written once per public entry point.
+///
+/// THE CENSUS IS THE DECLARED BOX'S, shared with `sqp.solve.begin` through
+/// `census_variable_bounds`. `n` is the caller's own variable count and
+/// `n_reduced` the space the solver iterates in; they differ exactly when the
+/// fixed-variable treatment eliminated a variable.
+struct IpmSolveBeginTraceEvent {
+    Index n = 0;         ///< Declared primal variables (the caller's space).
+    Index n_reduced = 0; ///< Primal variables the solver iterates in.
+    /// Equality rows the solver will factorize -- the caller's own, PLUS the
+    /// internal fixing rows under the MakeConstraint treatment.
+    Index me = 0;
+    Index mi = 0; ///< Inequality rows.
+    /// The declared box's census, FLAT and in `sqp.solve.begin`'s own five keys
+    /// rather than nested: the arity net that pins this struct's field list
+    /// cannot see through a nested aggregate (brace elision), and the two
+    /// engines' openers are easier to read side by side this way. Filled from
+    /// `census_variable_bounds`, which is still the only copy of the arithmetic.
+    Index vars_free = 0;
+    Index vars_lower_only = 0;
+    Index vars_upper_only = 0;
+    Index vars_ranged = 0;
+    Index vars_fixed = 0;
+    /// Phase steps this entry point REQUESTED; a conditional step that is later
+    /// skipped still counts.
+    Index phases = 0;
+    Index max_iters = 0;     ///< Settings::max_iters_, the per-phase cap.
+    Index max_acc_iters = 0; ///< Settings::max_acc_iters_, the ACCEPTABLE run length.
+    double kkt_tol = 0.0;    ///< Settings::kkt_tol_.
+    double econ_tol = 0.0;   ///< Settings::econ_tol_.
+    double icon_tol = 0.0;   ///< Settings::icon_tol_.
+    double bar_tol = 0.0;    ///< Settings::bar_tol_.
+    double init_mu = 0.0;    ///< Settings::init_mu_, the barrier start.
+    double obj_scale = 1.0;  ///< Settings::obj_scale_, captured for this call.
+    InertiaModes inertia_mode = InertiaModes::classic;
+    RestorationModes restoration_mode = RestorationModes::off;
+};
+
+/// @brief The interior-point solve's closing line (schema `ipm.solve.end`,
+/// M6 W4 T4).
+///
+/// EVERY `_s` FIELD IS WALL-CLOCK AND INFORMATIONAL (plan section 2 rule 7,
+/// CLAUDE.md section 7): no pin reads one. They are the driver's own
+/// `SolveResult` timing set in full -- a hand-picked subset would let a reader
+/// believe the parts summed to the whole.
+///
+/// Written on the entry point's single normal return; a call that leaves by an
+/// exception writes its `begin` and no `end`.
+struct IpmSolveEndTraceEvent {
+    ConvergenceFlags status = ConvergenceFlags::NOTCONVERGED;
+    Index iters = 0; ///< `SolveResult::iter_num_`, summed over the phases.
+    double total_time_s = 0.0;
+    double pre_time_s = 0.0;
+    double func_time_s = 0.0;
+    double kkt_time_s = 0.0;
+    double print_time_s = 0.0;
+    double solver_init_time_s = 0.0;
+    double misc_time_s = 0.0; ///< `SolveResult::misc_time()`, the derived remainder.
+};
+
 /// @brief The W4 hook: one sink; the eight W1/W2 methods are PURE, and every
 /// method W4 adds is non-pure with an empty default (Q-S3). `nullptr` is
 /// the off state every emit site checks before EMITTING; the seven tier
@@ -281,6 +401,19 @@ class IpqpTraceSink {
     /// and at `on_sqp_solve_end`; no event carries a depth of its own.
     virtual void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event);
     virtual void on_sqp_solve_end(const SqpSolveEndTraceEvent &event);
+
+    /// @brief One interior-point iteration. NON-PURE with an empty out-of-line
+    /// default, on the same terms as the three above (plan section 6 Q-S3).
+    virtual void on_ipm_iter(const IpmIterTraceEvent &event);
+
+    /// @brief The interior-point solve's opening and closing lines.
+    ///
+    /// THESE DO NOT MOVE A SINK'S `depth` and must not: the interior-point
+    /// driver has no nested driver of its own, so every line it writes belongs
+    /// to whatever nesting level the SQP-side pair last established -- 0 for a
+    /// stream that is only ever an IPM's.
+    virtual void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event);
+    virtual void on_ipm_solve_end(const IpmSolveEndTraceEvent &event);
 };
 
 } // namespace hven::solvers

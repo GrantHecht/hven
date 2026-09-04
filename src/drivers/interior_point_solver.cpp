@@ -26,6 +26,7 @@
 #include <stdexcept>
 
 #include "hven/detail/interior/aggregate_views.h"
+#include "hven/detail/qp/ipqp_trace.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
 #include "hven/detail/interior/utils/timer.h"
@@ -261,6 +262,8 @@ bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
 }
 
 // Release
+
+void hven::solvers::InteriorPointSolver::attach_trace(IpqpTraceSink *sink) { trace_ = sink; }
 
 void hven::solvers::InteriorPointSolver::release() {
     this->kkt_sol_.release();
@@ -2375,6 +2378,12 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             if (settings_.return_best_ && !(this->restoration_ && this->restoration_->is_active()))
                 this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
 
+            // SITE 1 OF 2 (`ipm.iter`, M6 W4 T4): the CONVERGE-CHECK EARLY EXIT,
+            // reached before this iterate is factorized, so its line carries the
+            // fresh defaults for everything a factorization would have written.
+            if (this->trace_ != nullptr) {
+                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+            }
             if (this->late_callback_enabled_) {
                 CBtimer.start();
                 this->late_callback_(iters.back(), XSL, RHS);
@@ -3108,6 +3117,12 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         if (settings_.return_best_ && !(this->restoration_ && this->restoration_->is_active()))
             this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
 
+        // SITE 2 OF 2 (`ipm.iter`): the ORDINARY END-OF-ITERATION site, after
+        // fill_iter_info. Emitted immediately before the late callback at both
+        // sites, so the callback is the event's oracle.
+        if (this->trace_ != nullptr) {
+            this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+        }
         if (this->late_callback_enabled_) {
             CBtimer.start();
             this->late_callback_(iters.back(), XSL, RHS);
@@ -4309,6 +4324,38 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // configuration step can narrow the problem.
     this->rebuild_globalization_components();
 
+    // THE SOLVE'S OPENING LINE (`ipm.solve.begin`, M6 W4 T4), placed after every
+    // argument refusal and after the variable treatment settled the dimensions:
+    // a REFUSED call writes nothing, and n/n_reduced are what the phases run at.
+    //
+    // Built only when a sink is attached, so the O(n) census is nobody's cost.
+    if (this->trace_ != nullptr) {
+        IpmSolveBeginTraceEvent begin_event;
+        begin_event.n = this->full_primal_vars_;
+        begin_event.n_reduced = this->primal_vars_;
+        begin_event.me = this->equal_cons_;
+        begin_event.mi = this->inequal_cons_;
+        const VariableBoundCensus box = census_variable_bounds(
+            this->nlp_->x_lower_, this->nlp_->x_upper_, this->full_primal_vars_);
+        begin_event.vars_free = box.vars_free;
+        begin_event.vars_lower_only = box.vars_lower_only;
+        begin_event.vars_upper_only = box.vars_upper_only;
+        begin_event.vars_ranged = box.vars_ranged;
+        begin_event.vars_fixed = box.vars_fixed;
+        begin_event.phases = static_cast<Index>(steps.size());
+        begin_event.max_iters = settings_.max_iters_;
+        begin_event.max_acc_iters = settings_.max_acc_iters_;
+        begin_event.kkt_tol = settings_.kkt_tol_;
+        begin_event.econ_tol = settings_.econ_tol_;
+        begin_event.icon_tol = settings_.icon_tol_;
+        begin_event.bar_tol = settings_.bar_tol_;
+        begin_event.init_mu = settings_.init_mu_;
+        begin_event.obj_scale = this->solve_obj_scale_;
+        begin_event.inertia_mode = settings_.inertia_mode_;
+        begin_event.restoration_mode = settings_.restoration_mode_;
+        this->trace_->on_ipm_solve_begin(begin_event);
+    }
+
     if (settings_.print_level_ == 0)
         print_stats();
     if (settings_.print_level_ < 2) {
@@ -4374,6 +4421,9 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         // below, so a skipped conditional step still keeps phase_idx aligned
         // with the position first_opt_phase_idx was computed against.
         const int current_phase_idx = phase_idx++;
+        // Instrumentation only: the `ipm.iter` lines this phase writes carry it,
+        // because IterateInfo::iter_ restarts at 0 in every phase.
+        this->trace_phase_ = current_phase_idx;
 
         // Single application site: whichever XSL is current when the loop
         // reaches the first OPT/OPTNO-mode phase -- the entry init_impl's
@@ -4546,6 +4596,25 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // that returns, so a call that threw leaves the previous capture standing
     // and never claims a completion of its own.
     this->capture_completed_warm_start();
+
+    // THE SOLVE'S CLOSING LINE, at this function's SINGLE RETURN and written as
+    // an explicit statement, not from a scope guard (the W4 T2 ruling: a
+    // destructor is noexcept, so under an armed stream mask it would terminate).
+    //
+    // Every throw above skips it -- the honest record of a solve that stopped.
+    if (this->trace_ != nullptr) {
+        IpmSolveEndTraceEvent end_event;
+        end_event.status = result_.converge_flag_;
+        end_event.iters = result_.iter_num_;
+        end_event.total_time_s = result_.total_time_;
+        end_event.pre_time_s = result_.pre_time_;
+        end_event.func_time_s = result_.func_time_;
+        end_event.kkt_time_s = result_.kkt_time_;
+        end_event.print_time_s = result_.print_time_;
+        end_event.solver_init_time_s = result_.solver_init_time_;
+        end_event.misc_time_s = result_.misc_time();
+        this->trace_->on_ipm_solve_end(end_event);
+    }
 
     return result_.primals_;
 }

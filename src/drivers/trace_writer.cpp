@@ -333,6 +333,47 @@ const char *to_json(WorkingSetLinearAlgebra v) {
     return "unknown";
 }
 
+// THE INTERIOR-POINT DRIVER'S OWN THREE (W4 T4). `ConvergenceFlags` is the
+// driver's exit status -- its own enum, not an invented one -- and the two mode
+// selectors shape the run `ipm.solve.begin` announces.
+const char *to_json(ConvergenceFlags v) {
+    switch (v) {
+    case ConvergenceFlags::CONVERGED:
+        return "converged";
+    case ConvergenceFlags::ACCEPTABLE:
+        return "acceptable";
+    case ConvergenceFlags::NOTCONVERGED:
+        return "not_converged";
+    case ConvergenceFlags::DIVERGING:
+        return "diverging";
+    case ConvergenceFlags::SINGULAR_KKT:
+        return "singular_kkt";
+    }
+    return "unknown";
+}
+
+const char *to_json(InertiaModes v) {
+    switch (v) {
+    case InertiaModes::classic:
+        return "classic";
+    case InertiaModes::proximal_regularization:
+        return "proximal_regularization";
+    }
+    return "unknown";
+}
+
+const char *to_json(RestorationModes v) {
+    switch (v) {
+    case RestorationModes::off:
+        return "off";
+    case RestorationModes::proximal_switch:
+        return "proximal_switch";
+    case RestorationModes::l1_nested:
+        return "l1_nested";
+    }
+    return "unknown";
+}
+
 // --- the counters object, GENERATED from solver_counters.h's tables -------
 //
 // One overload per field type, so a table entry is just a name and a predicate:
@@ -467,6 +508,44 @@ static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent
               "SqpSolveEndTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_sqp_solve_end, re-derive the golden line, and update "
               "these two counts.");
+
+// --- the `ipm.iter` record and the `ipm.solve` pair (W4 T4) ---------------
+//
+// 27 is `IterateInfo`'s own declared field count. The record is serialized in
+// DECLARATION ORDER with the trailing underscores dropped, so a field added
+// there stops the build here until it gets a key.
+constexpr std::size_t kIterateInfoFieldCount = 27;
+static_assert(::hven::detail::kAggregateArity<IterateInfo> == kIterateInfoFieldCount,
+              "IterateInfo's field count moved: give the new field a key in "
+              "JsonLinesTraceSink::on_ipm_iter (in DECLARATION order, ahead of `phase`), "
+              "re-derive the ipm.iter golden line, and then update this count.");
+
+// `IpmIterTraceEvent` HOLDS A REFERENCE, so `kAggregateArity` reads 0 for it --
+// the two-sided form is the exact net for that shape, exactly as for
+// `SqpSolveEndTraceEvent` above.
+static_assert(::hven::detail::aggregate_initializable_with<IpmIterTraceEvent>(
+                  std::make_index_sequence<2>{}) &&
+                  !::hven::detail::aggregate_initializable_with<IpmIterTraceEvent>(
+                      std::make_index_sequence<3>{}),
+              "IpmIterTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_ipm_iter, re-derive the golden line, and update these "
+              "two counts.");
+
+// 20 = 4 dimensions + the flat five-key census + `phases` + the 10 run-shaping
+// settings. The census is FLAT on the struct so this count can see it: the
+// arity helper reads a NESTED aggregate's members through brace elision.
+static_assert(::hven::detail::kAggregateArity<IpmSolveBeginTraceEvent> == 20,
+              "IpmSolveBeginTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_ipm_solve_begin, re-derive the golden line, and update "
+              "this count.");
+static_assert(::hven::detail::kAggregateArity<VariableBoundCensus> == 5,
+              "VariableBoundCensus gained or lost a field: give it a key in BOTH "
+              "JsonLinesTraceSink::on_sqp_solve_begin and ::on_ipm_solve_begin, re-derive both "
+              "golden lines, and update this count.");
+static_assert(::hven::detail::kAggregateArity<IpmSolveEndTraceEvent> == 9,
+              "IpmSolveEndTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_ipm_solve_end, re-derive the golden line, and update "
+              "this count.");
 
 } // namespace
 
@@ -708,6 +787,93 @@ void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
     if (open_solves_ > 0) {
         pop_depth();
     }
+}
+
+void JsonLinesTraceSink::on_ipm_iter(const IpmIterTraceEvent &event) {
+    const IterateInfo &r = event.iterate;
+    std::string b;
+    bool first = true;
+    key_index(b, first, "iter", r.iter_);
+    key_double(b, first, "mu", r.mu_);
+    key_double(b, first, "prim_obj", r.prim_obj_);
+    key_double(b, first, "barr_obj", r.barr_obj_);
+    key_double(b, first, "kkt_inf", r.kkt_inf_);
+    key_double(b, first, "barr_inf", r.barr_inf_);
+    key_double(b, first, "econ_inf", r.econ_inf_);
+    key_double(b, first, "icon_inf", r.icon_inf_);
+    key_double(b, first, "pen_par1", r.pen_par1_);
+    key_double(b, first, "pen_par2", r.pen_par2_);
+    key_index(b, first, "ls_iters", r.ls_iters_);
+    key_double(b, first, "alpha_p", r.alpha_p_);
+    key_double(b, first, "alpha_d", r.alpha_d_);
+    key_double(b, first, "alpha_t", r.alpha_t_);
+    key_double(b, first, "h_pert", r.h_pert_);
+    key_index(b, first, "h_facs", r.h_facs_);
+    key_double(b, first, "h_pert_cum", r.h_pert_cum_);
+    // Rule 5, SENTINEL ONE OF TWO: negative is "proximal mode off", not a shift
+    // of -1. The classic path writes it on every iteration.
+    key_value(b, first, "prox_reg_primal", r.prox_reg_primal_, r.prox_reg_primal_ < 0.0);
+    key_value(b, first, "prox_reg_dual", r.prox_reg_dual_, r.prox_reg_dual_ < 0.0);
+    key_index(b, first, "p_pivots", r.p_pivots_);
+    key_double(b, first, "max_e_mult", r.max_e_mult_);
+    key_double(b, first, "max_i_mult", r.max_i_mult_);
+    key_double(b, first, "merit_val", r.merit_val_);
+    key_bool(b, first, "accepted", r.accepted_);
+    // Rule 5, SENTINEL TWO OF TWO -- a DIFFERENT absence: "no rejection was
+    // recorded this line search", which is why the doc names the meaning per
+    // field rather than saying "-1 is null" once.
+    key_value(b, first, "first_rejection_iter", static_cast<Index>(r.first_rejection_iter_),
+              r.first_rejection_iter_ < 0);
+    key_value(b, first, "theta_at_first_rejection", r.theta_at_first_rejection_,
+              r.theta_at_first_rejection_ < 0.0);
+    key_index(b, first, "eval_exceptions", r.eval_exceptions_);
+    key_index(b, first, "phase", event.phase);
+    write_line("ipm.iter", b);
+}
+
+void JsonLinesTraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_index(b, first, "n", event.n);
+    key_index(b, first, "n_reduced", event.n_reduced);
+    key_index(b, first, "me", event.me);
+    key_index(b, first, "mi", event.mi);
+    // THE SAME FIVE KEYS, IN THE SAME ORDER, AS `sqp.solve.begin` -- one census,
+    // one spelling, so a reader comparing the two engines' openers compares like
+    // with like.
+    key_index(b, first, "vars_free", event.vars_free);
+    key_index(b, first, "vars_lower_only", event.vars_lower_only);
+    key_index(b, first, "vars_upper_only", event.vars_upper_only);
+    key_index(b, first, "vars_ranged", event.vars_ranged);
+    key_index(b, first, "vars_fixed", event.vars_fixed);
+    key_index(b, first, "phases", event.phases);
+    key_index(b, first, "max_iters", event.max_iters);
+    key_index(b, first, "max_acc_iters", event.max_acc_iters);
+    key_double(b, first, "kkt_tol", event.kkt_tol);
+    key_double(b, first, "econ_tol", event.econ_tol);
+    key_double(b, first, "icon_tol", event.icon_tol);
+    key_double(b, first, "bar_tol", event.bar_tol);
+    key_double(b, first, "init_mu", event.init_mu);
+    key_double(b, first, "obj_scale", event.obj_scale);
+    key_enum(b, first, "inertia_mode", to_json(event.inertia_mode));
+    key_enum(b, first, "restoration_mode", to_json(event.restoration_mode));
+    write_line("ipm.solve.begin", b);
+}
+
+void JsonLinesTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_enum(b, first, "status", to_json(event.status));
+    key_index(b, first, "iters", event.iters);
+    // Rule 7: every `_s` below is WALL-CLOCK and informational. No pin reads one.
+    key_double(b, first, "total_time_s", event.total_time_s);
+    key_double(b, first, "pre_time_s", event.pre_time_s);
+    key_double(b, first, "func_time_s", event.func_time_s);
+    key_double(b, first, "kkt_time_s", event.kkt_time_s);
+    key_double(b, first, "print_time_s", event.print_time_s);
+    key_double(b, first, "solver_init_time_s", event.solver_init_time_s);
+    key_double(b, first, "misc_time_s", event.misc_time_s);
+    write_line("ipm.solve.end", b);
 }
 
 } // namespace hven::solvers

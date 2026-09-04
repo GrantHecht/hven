@@ -1204,29 +1204,6 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
 
 namespace {
 
-/// @brief The variable box's own five-way census, for `sqp.solve.begin`.
-///
-/// EXHAUSTIVE AND DISJOINT over the n variables: an infinite side is
-/// unbounded there (nlp_model.h writes it -inf/+inf and treats every finite
-/// value as a real bound), and both-finite splits on equality.
-void census_variable_bounds(const Vec &lower, const Vec &upper, SqpSolveBeginTraceEvent &ev) {
-    for (Index j = 0; j < lower.size(); ++j) {
-        const bool has_lo = std::isfinite(lower(j));
-        const bool has_hi = std::isfinite(upper(j));
-        if (!has_lo && !has_hi) {
-            ++ev.vars_free;
-        } else if (has_lo && !has_hi) {
-            ++ev.vars_lower_only;
-        } else if (!has_lo && has_hi) {
-            ++ev.vars_upper_only;
-        } else if (lower(j) == upper(j)) {
-            ++ev.vars_fixed;
-        } else {
-            ++ev.vars_ranged;
-        }
-    }
-}
-
 /// @brief The WALK's own exit, in the trace's alphabet (the map is stated at
 /// `QpModeTraceEvent`): the walk has no successor kernel, so every non-optimal
 /// exit is an escape rather than a route.
@@ -1267,7 +1244,15 @@ SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts,
     ev.n = seam.n();
     ev.me = seam.me();
     ev.mi = seam.mi();
-    census_variable_bounds(seam.lower(), seam.upper(), ev);
+    // The census MOVED, unchanged, to `ipqp_trace.cpp` at W4 T4, when the
+    // interior-point driver's own `begin` line became its second caller. Same
+    // arithmetic, one copy; this line's golden pin did not move.
+    const VariableBoundCensus box = census_variable_bounds(seam.lower(), seam.upper(), seam.n());
+    ev.vars_free = box.vars_free;
+    ev.vars_lower_only = box.vars_lower_only;
+    ev.vars_upper_only = box.vars_upper_only;
+    ev.vars_ranged = box.vars_ranged;
+    ev.vars_fixed = box.vars_fixed;
     ev.qp_mode = trace_mode_of(opts.qp_mode);
     ev.ws_algebra = opts.qp.ws_algebra;
     return ev;
