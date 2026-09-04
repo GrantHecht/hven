@@ -71,6 +71,8 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     void on_qp_mode(const QpModeTraceEvent &event) override;
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override;
     void on_sqp_major(const SqpMajorTraceEvent &event) override;
+    void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event) override;
+    void on_sqp_solve_end(const SqpSolveEndTraceEvent &event) override;
 
     /// Lines ATTEMPTED, which is also the `seq` the last line carried (`seq`
     /// starts at 1). Compared against the artifact's own line count it gives the
@@ -88,9 +90,14 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     /// failed run still yields a countable gap rather than a renumbered stream.
     bool failed() const { return failed_; }
 
-    /// The value the NEXT line's `depth` will carry. 0 for the whole of W4 T1:
-    /// the `sqp.solve` begin/end pair that moves it is T2's, and the two hooks
-    /// below exist NOW so that task wires calls rather than fields.
+    /// @brief The value the NEXT line's `depth` will carry.
+    ///
+    /// THE TOP-LEVEL SOLVE IS DEPTH 0, and the nested restoration sub-solve's
+    /// lines -- its own `sqp.solve` pair included -- are depth 1. So the counter
+    /// moves on the SECOND solve to open, not the first: `depth` is the number
+    /// of ENCLOSING solves, which is what lets a reader separate the two streams
+    /// with no stack of its own. Balanced by construction over a normal solve;
+    /// it reads 0 again once the outermost `sqp.solve.end` is written.
     Index depth() const { return depth_; }
 
     /// @brief Nested-solve entry: the restoration sub-solve's own events then
@@ -111,6 +118,10 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     std::ostream &out_;
     Index seq_ = 0;
     Index depth_ = 0;
+    /// Solves currently OPEN on this sink. `depth_` is this minus one, floored
+    /// at 0; keeping the two separate is what makes the outermost solve depth 0
+    /// while `push_depth`/`pop_depth` stay usable on their own.
+    Index open_solves_ = 0;
     bool failed_ = false;
 };
 

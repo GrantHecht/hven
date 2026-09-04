@@ -1116,8 +1116,9 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
     // A REPLAY-CLASS PIN, RE-DERIVED AT W4 T2 (declared). T1 recorded that the
     // walk arm wrote NOTHING.
     //
-    // T2(a) gives it one `sqp.major` line per history row and T2(b) one
-    // `qp.mode` line per major, so the pin records the line census too.
+    // T2 gives it a `sqp.solve` pair, one `sqp.major` line per history row and
+    // one `qp.mode` line per major, so the pin now records the whole line
+    // census beside the unchanged counters.
     SqpOptions opts;
     opts.qp_mode = QpMode::kWalk;
     opts.max_iter = 60;
@@ -1139,9 +1140,11 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
     const std::map<std::string, Index> by_ev = census(os.str());
     EXPECT_EQ(by_ev.at("sqp.major"), static_cast<Index>(with.history.size()));
     EXPECT_EQ(by_ev.at("qp.mode"), with.counters.major_iters);
-    EXPECT_EQ(by_ev.size(), 2u) << "the walk arm's whole alphabet after W4 T2(b)";
+    EXPECT_EQ(by_ev.at("sqp.solve.begin"), 1);
+    EXPECT_EQ(by_ev.at("sqp.solve.end"), 1);
+    EXPECT_EQ(by_ev.size(), 4u) << "a walk solve's whole alphabet after W4 T2";
     EXPECT_EQ(json.lines_written(),
-              static_cast<Index>(with.history.size()) + with.counters.major_iters);
+              static_cast<Index>(with.history.size()) + with.counters.major_iters + 2);
 }
 
 // ===========================================================================
@@ -2132,6 +2135,367 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
     EXPECT_EQ(::hven::detail::kAggregateArity<SqpCounters>, kSqpCountersFieldCount + 2);
+}
+
+// ===========================================================================
+// W4 T2 (c) -- `sqp.solve` begin/end
+// ===========================================================================
+
+void expect_counter_field(const std::string &line, const char *k, Index v) {
+    EXPECT_EQ(raw_field(line, k), std::to_string(v)) << k;
+}
+
+void expect_counter_field(const std::string &line, const char *k, double v) {
+    expect_double_field(line, k, v);
+}
+
+void expect_counter_field(const std::string &line, const char *k, StartLevel v) {
+    EXPECT_EQ(raw_field(line, k), std::string("\"") + to_string(v) + "\"") << k;
+}
+
+/// @brief The whole counters object against the solution's own counters.
+///
+/// GENERATED FROM THE SAME TABLES the writer uses, so the pin cannot fall
+/// behind the struct: a field added without a table entry fails the header's
+/// `static_assert`, and one added WITH an entry is compared here automatically.
+void expect_end_line_counters(const std::string &line, const SqpCounters &c) {
+#define HVEN_TEST_CHECK_FIELD(f) expect_counter_field(line, #f, c.f);
+    HVEN_SQP_COUNTERS_FIELDS(HVEN_TEST_CHECK_FIELD)
+#undef HVEN_TEST_CHECK_FIELD
+#define HVEN_TEST_CHECK_FIELD(f) expect_counter_field(line, #f, c.ssn.f);
+    HVEN_SSN_COUNTERS_FIELDS(HVEN_TEST_CHECK_FIELD)
+#undef HVEN_TEST_CHECK_FIELD
+#define HVEN_TEST_CHECK_FIELD(f) expect_counter_field(line, #f, c.ipqp.f);
+    HVEN_IPQP_COUNTERS_FIELDS(HVEN_TEST_CHECK_FIELD)
+#undef HVEN_TEST_CHECK_FIELD
+}
+
+/// The one line of a stream carrying `ev`, at `depth`.
+std::string only_line(const std::string &stream, const char *ev, const char *depth = "0") {
+    std::string found;
+    Index hits = 0;
+    for (const std::string &l : split_lines(stream)) {
+        if (event_name(l) == ev && raw_field(l, "depth") == depth) {
+            found = l;
+            ++hits;
+        }
+    }
+    EXPECT_EQ(hits, 1) << ev << " at depth " << depth;
+    return found;
+}
+
+TEST(JsonLinesTraceSink, SqpSolveEndCarriesTheWholeCountersObject) {
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(38);
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    const std::string end = only_line(os.str(), "sqp.solve.end");
+    ASSERT_FALSE(end.empty());
+    EXPECT_EQ(raw_field(end, "majors"), std::to_string(sol.counters.major_iters));
+    // A kIpm cell so the two NESTED aggregates are not all-zero: HS38 escapes.
+    ASSERT_GT(sol.counters.ipqp.ipqp_iters, 0);
+    expect_end_line_counters(end, sol.counters);
+
+    const std::string begin = only_line(os.str(), "sqp.solve.begin");
+    EXPECT_EQ(raw_field(begin, "n"), std::to_string(p.model->n()));
+    EXPECT_EQ(raw_field(begin, "me"), std::to_string(p.model->me()));
+    EXPECT_EQ(raw_field(begin, "mi"), std::to_string(p.model->mi()));
+    EXPECT_EQ(raw_field(begin, "qp_mode"), "\"ipqp\"");
+    EXPECT_EQ(raw_field(begin, "ws_algebra"), "\"schur_border\"");
+    // THE VARIABLE-BOUND CENSUS IS EXHAUSTIVE AND DISJOINT, so its five counts
+    // sum to n whatever the model's box looks like.
+    Index total = 0;
+    for (const char *k :
+         {"vars_free", "vars_lower_only", "vars_upper_only", "vars_ranged", "vars_fixed"}) {
+        total += std::stoll(raw_field(begin, k));
+    }
+    EXPECT_EQ(total, p.model->n());
+    EXPECT_EQ(json.depth(), 0) << "the pair is balanced";
+}
+
+TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguous) {
+    // TYCHO RIDER 2: one sink, two solves. `seq` is per-SINK, so it runs
+    // 1..N across both, and every line of solve k lies inside solve k's own
+    // pair -- which is what makes the pair a partition rather than a marker.
+    SqpOptions opts;
+    opts.max_iter = 60;
+    const HsProblem p24 = make_hs(24);
+    const HsProblem p11 = make_hs(11);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+
+    SqpDriver a(opts);
+    a.attach_trace(&json);
+    const SqpSolution first = a.solve(*p24.model);
+    SqpDriver b(opts);
+    b.attach_trace(&json);
+    const SqpSolution second = b.solve(*p11.model);
+
+    const std::vector<std::string> lines = split_lines(os.str());
+    ASSERT_GT(lines.size(), 4u);
+    Index open = 0;
+    Index pairs = 0;
+    Index lines_inside = 0;
+    Index expected_seq = 0;
+    for (const std::string &l : lines) {
+        ++expected_seq;
+        EXPECT_EQ(raw_field(l, "seq"), std::to_string(expected_seq)) << l;
+        EXPECT_EQ(raw_field(l, "depth"), "0");
+        const std::string ev = event_name(l);
+        if (ev == "sqp.solve.begin") {
+            EXPECT_EQ(open, 0) << "a second begin before the first end";
+            ++open;
+            continue;
+        }
+        if (ev == "sqp.solve.end") {
+            EXPECT_EQ(open, 1) << "an end with no begin";
+            --open;
+            ++pairs;
+            continue;
+        }
+        EXPECT_EQ(open, 1) << "a line outside every pair: " << l;
+        ++lines_inside;
+    }
+    EXPECT_EQ(open, 0);
+    EXPECT_EQ(pairs, 2);
+    EXPECT_EQ(lines_inside,
+              static_cast<Index>(first.history.size() + second.history.size() +
+                                 first.counters.major_iters + second.counters.major_iters))
+        << "one row and one walk qp.mode line per major, and nothing else on a walk cell";
+    EXPECT_EQ(json.lines_written(), static_cast<Index>(lines.size()));
+    EXPECT_EQ(json.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
+    // TYCHO RIDER 1. Every `qp.mode` and `fallback.verdict` line belongs to the
+    // major whose `sqp.major` line comes NEXT: the row is pushed at the end of
+    // its own major, so the bracket is (previous row, this row].
+    //
+    // DEPTH 0 ONLY. A nested restoration sub-solve writes its own lines into
+    // the same stream at depth 1, and they belong to its own brackets.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(38);
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    Index brackets = 0;
+    Index pending = 0;
+    Index trailing = 0;
+    bool inside = false;
+    for (const std::string &l : split_lines(os.str())) {
+        if (raw_field(l, "depth") != "0") {
+            continue;
+        }
+        const std::string ev = event_name(l);
+        if (ev == "sqp.solve.begin") {
+            inside = true;
+            continue;
+        }
+        if (ev == "sqp.solve.end") {
+            inside = false;
+            trailing = pending;
+            continue;
+        }
+        EXPECT_TRUE(inside) << "outside the solve's own pair: " << l;
+        if (ev == "sqp.major") {
+            ++brackets;
+            pending = 0;
+            continue;
+        }
+        if (ev == "qp.mode" || ev == "fallback.verdict") {
+            ++pending;
+        }
+    }
+    EXPECT_EQ(brackets, static_cast<Index>(sol.history.size()));
+    EXPECT_EQ(trailing, 0) << "every qp.mode/fallback.verdict line has a row after it";
+    ASSERT_GT(sol.counters.ipqp.ipqp_escapes, 0) << "non-vacuous: the cell escapes and falls back";
+}
+
+/// @brief An NLP with NO feasible point: the unit circle meets the line x0 = 3
+/// nowhere.
+///
+/// WRITTEN HERE, NOT LIFTED. `tests/sqp/test_sqp_restoration.cpp` has a
+/// circle/line fixture of its own, and copying it would be a FOURTH replication
+/// of a driver fixture (T1's registered item). This one exists for two lines of
+/// the stream: the kInfeasible exit, and the nested restoration solve those two
+/// pins need.
+class CircleAndFarLineModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override {
+        return 0.5 * ((x(0) - 2.0) * (x(0) - 2.0) + x(1) * x(1));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << x(0) - 2.0, x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0, x(0) - 3.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        const double d = obj_scale + 2.0 * lambda_e(0);
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = d;
+        h.insert(1, 1) = d;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(2, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.insert(1, 0) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec v = Vec::Constant(2, -std::numeric_limits<double>::infinity());
+        return v;
+    }
+    const Vec &upper() const override {
+        static const Vec v = Vec::Constant(2, std::numeric_limits<double>::infinity());
+        return v;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 0.5); }
+};
+
+TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkipFinish) {
+    // THREE DISTINCT EXITS, one per shape the guard has to survive: the ordinary
+    // `finish` return, the budget exit, and the restoration-driven kInfeasible
+    // exit -- which is also the one that runs a NESTED solve first.
+    //
+    // The guard is RAII over the whole function, so this is a demonstration
+    // rather than an enumeration of the sixteen returns; what it shows is that
+    // the three shapes all reach it.
+    struct Leg {
+        const char *name;
+        SqpStatus status;
+    };
+    {
+        SqpOptions opts;
+        opts.max_iter = 60;
+        const HsProblem p = make_hs(24);
+        SqpDriver driver(opts);
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        driver.attach_trace(&json);
+        const SqpSolution sol = driver.solve(*p.model);
+        ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+        EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"optimal\"");
+        EXPECT_EQ(json.depth(), 0);
+    }
+    {
+        SqpOptions opts;
+        opts.max_iter = 1;
+        const HsProblem p = make_hs(38);
+        SqpDriver driver(opts);
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        driver.attach_trace(&json);
+        const SqpSolution sol = driver.solve(*p.model);
+        ASSERT_EQ(sol.status, SqpStatus::kMaxIter);
+        EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"max_iter\"");
+        EXPECT_EQ(json.depth(), 0);
+    }
+    {
+        CircleAndFarLineModel model;
+        SqpOptions opts;
+        opts.max_iter = 200;
+        SqpDriver driver(opts);
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        driver.attach_trace(&json);
+        const SqpSolution sol = driver.solve(model);
+        ASSERT_EQ(sol.status, SqpStatus::kInfeasible);
+        EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"infeasible\"");
+        EXPECT_EQ(json.depth(), 0);
+    }
+}
+
+TEST(JsonLinesTraceSink, TheNestedRestorationSolveIsBracketedAtDepthOne) {
+    // PLAN AMENDMENT A. The restoration sub-driver is attached to the SAME sink,
+    // and its lines are told apart by the sink-owned `depth` alone -- no field on
+    // any event, no stack in the reader.
+    CircleAndFarLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SqpStatus::kInfeasible);
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+
+    Index depth1_begins = 0;
+    Index depth1_ends = 0;
+    Index depth1_rows = 0;
+    Index depth1_other = 0;
+    bool in_nested = false;
+    std::string nested_end;
+    for (const std::string &l : split_lines(os.str())) {
+        const std::string ev = event_name(l);
+        const std::string depth = raw_field(l, "depth");
+        if (depth == "0") {
+            EXPECT_FALSE(in_nested) << "a depth-0 line inside the nested pair: " << l;
+            continue;
+        }
+        EXPECT_EQ(depth, "1") << "v0 nests exactly one level: " << l;
+        if (ev == "sqp.solve.begin") {
+            ++depth1_begins;
+            in_nested = true;
+            continue;
+        }
+        if (ev == "sqp.solve.end") {
+            ++depth1_ends;
+            nested_end = l;
+            in_nested = false;
+            continue;
+        }
+        EXPECT_TRUE(in_nested) << "a depth-1 line outside the nested pair: " << l;
+        if (ev == "sqp.major") {
+            ++depth1_rows;
+        } else {
+            ++depth1_other;
+        }
+    }
+    EXPECT_EQ(depth1_begins, 1);
+    EXPECT_EQ(depth1_ends, 1);
+    ASSERT_FALSE(nested_end.empty());
+    // THE SUB-SOLVE'S MAJORS ARE THE OUTER SOLVE'S `restoration_iters`: the fold
+    // is `restoration_iters += rs.counters.major_iters`, and the phase runs once
+    // (the sub-driver is built with allow_restoration = false).
+    EXPECT_EQ(raw_field(nested_end, "majors"), std::to_string(sol.counters.restoration_iters));
+    // ONE walk `qp.mode` line per sub-MAJOR. The sub-solve has one row MORE
+    // than that -- the stopped-AT-iterate row, which no subproblem produced.
+    EXPECT_EQ(depth1_other, sol.counters.restoration_iters);
+    EXPECT_GT(depth1_rows, depth1_other);
+    // THE BALANCE, PINNED DIRECTLY (tycho rider 3) rather than left to
+    // `pop_depth`'s saturation.
+    EXPECT_EQ(json.depth(), 0);
 }
 
 } // namespace

@@ -12,9 +12,11 @@
 #include <optional>
 #include <string>
 
+#include <hven/core/solver_status.h>
 #include <hven/core/types.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/drivers/sqp_types.h>
+#include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
 
@@ -186,6 +188,40 @@ struct SqpMajorTraceEvent {
     IpqpTraceQpMode mode = IpqpTraceQpMode::kWalk;
 };
 
+/// @brief The solve's opening line (schema `sqp.solve.begin`, M6 W4 T2).
+///
+/// THE ROW COUNTS ARE THE SPLIT FORM'S OWN: `NlpModel` carries `eval_ce` (= 0)
+/// and `eval_ci` (<= 0) with `me()`/`mi()` and has NO row bounds, so there is no
+/// five-kind row census to derive here and none is invented (settler ruling,
+/// 2026-09-04). `lower()`/`upper()` are on VARIABLES, and the five counts below
+/// are that box's own census -- exhaustive and disjoint over the n variables.
+struct SqpSolveBeginTraceEvent {
+    Index n = 0;
+    Index me = 0; ///< Equality rows (`eval_ce`).
+    Index mi = 0; ///< Inequality rows (`eval_ci`).
+    /// Both sides infinite.
+    Index vars_free = 0;
+    Index vars_lower_only = 0;                        ///< Finite lower, infinite upper.
+    Index vars_upper_only = 0;                        ///< Infinite lower, finite upper.
+    Index vars_ranged = 0;                            ///< Both finite and NOT equal.
+    Index vars_fixed = 0;                             ///< Both finite and equal (a zero-width box).
+    IpqpTraceQpMode qp_mode = IpqpTraceQpMode::kWalk; ///< The SETTING, not an outcome.
+    WorkingSetLinearAlgebra ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+};
+
+/// @brief The solve's closing line (schema `sqp.solve.end`, M6 W4 T2).
+///
+/// THE COUNTERS ARE HELD BY REFERENCE and serialized through
+/// `solver_counters.h`'s three field tables, so the object is generated from the
+/// structs rather than hand-typed. Emitted on every NORMAL exit of the solve; a
+/// solve that leaves by an exception writes its `begin` and no `end`, which is
+/// the honest record of one.
+struct SqpSolveEndTraceEvent {
+    SqpStatus status = SqpStatus::kOptimal;
+    Index majors = 0; ///< `SqpCounters::major_iters`, the currency's own count.
+    const SqpCounters &counters;
+};
+
 /// @brief The W4 hook: one sink; the eight W1/W2 methods are PURE, and every
 /// method W4 adds is non-pure with an empty default (Q-S3). `nullptr` is
 /// the off state every emit site checks before EMITTING; the seven tier
@@ -208,6 +244,11 @@ class IpqpTraceSink {
     /// default (plan section 6 Q-S3): the four recording sinks W1/W2 left in
     /// the tests do not want this event and are not touched by its arrival.
     virtual void on_sqp_major(const SqpMajorTraceEvent &event);
+
+    /// @brief The solve's opening line. A sink that counts nesting does it here
+    /// and at `on_sqp_solve_end`; no event carries a depth of its own.
+    virtual void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event);
+    virtual void on_sqp_solve_end(const SqpSolveEndTraceEvent &event);
 };
 
 } // namespace hven::solvers

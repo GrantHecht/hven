@@ -2889,8 +2889,20 @@ class SqpDriver {
     // read -- an identity read, never an evaluation -- is taken from the
     // caller's own bridge handle. Both name the same object; only the
     // restoration phase reads the second.
+    /// @brief The solve, WRAPPED: emits the `sqp.solve` pair around the body
+    /// through one RAII scope, so the pair cannot miss an exit.
+    ///
+    /// The body below has SIXTEEN returns; a hand-placed `end` at each would be
+    /// sixteen chances to miss one, and a seventeenth added later would miss it
+    /// silently. The scope emits `end` from the RESULT -- which is why the body
+    /// is a separate function: only here is the finished `SqpSolution` visible.
     SqpSolution solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                            const WarmStart &warm, Index minor_budget);
+
+    /// @brief The major loop itself. Every exit of the solve is an exit of THIS
+    /// function; nothing here emits the whole-solve events.
+    SqpSolution solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
+                                const WarmStart &warm, Index minor_budget);
 
     // See this header's SUBPROBLEM FAILURE ROUTING note. Reached only after the
     // one-shot retry has already been spent -- and never with kInfeasible (the

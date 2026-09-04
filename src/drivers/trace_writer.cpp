@@ -290,6 +290,69 @@ const char *to_json(SqpFallbackVerdict v) {
     return "unknown";
 }
 
+const char *to_json(SqpStatus v) {
+    switch (v) {
+    case SqpStatus::kOptimal:
+        return "optimal";
+    case SqpStatus::kMaxIter:
+        return "max_iter";
+    case SqpStatus::kInfeasible:
+        return "infeasible";
+    case SqpStatus::kNumericalError:
+        return "numerical_error";
+    case SqpStatus::kBudgetExhausted:
+        return "budget_exhausted";
+    }
+    return "unknown";
+}
+
+const char *to_json(WorkingSetLinearAlgebra v) {
+    switch (v) {
+    case WorkingSetLinearAlgebra::kRefactorize:
+        return "refactorize";
+    case WorkingSetLinearAlgebra::kSchurBorder:
+        return "schur_border";
+    }
+    return "unknown";
+}
+
+// --- the counters object, GENERATED from solver_counters.h's tables -------
+//
+// One overload per field type, so a table entry is just a name: `Index` is an
+// integer and `double` goes through rule 3.
+//
+// `start_level_used` is written by the library's OWN `to_string` (brief T2(d)):
+// the one field in the schema spelled in the display alphabet, not lower snake.
+void key_value(std::string &s, bool &first, const char *k, Index v) { key_index(s, first, k, v); }
+
+void key_value(std::string &s, bool &first, const char *k, double v) { key_double(s, first, k, v); }
+
+void key_value(std::string &s, bool &first, const char *k, StartLevel v) {
+    key_enum(s, first, k, to_string(v));
+}
+
+std::string counters_object(const SqpCounters &c) {
+    std::string b;
+    bool first = true;
+#define HVEN_TRACE_WRITE_FIELD(f) key_value(b, first, #f, c.f);
+    HVEN_SQP_COUNTERS_FIELDS(HVEN_TRACE_WRITE_FIELD)
+#undef HVEN_TRACE_WRITE_FIELD
+
+    std::string ssn;
+    bool ssn_first = true;
+#define HVEN_TRACE_WRITE_FIELD(f) key_value(ssn, ssn_first, #f, c.ssn.f);
+    HVEN_SSN_COUNTERS_FIELDS(HVEN_TRACE_WRITE_FIELD)
+#undef HVEN_TRACE_WRITE_FIELD
+
+    std::string ipqp;
+    bool ipqp_first = true;
+#define HVEN_TRACE_WRITE_FIELD(f) key_value(ipqp, ipqp_first, #f, c.ipqp.f);
+    HVEN_IPQP_COUNTERS_FIELDS(HVEN_TRACE_WRITE_FIELD)
+#undef HVEN_TRACE_WRITE_FIELD
+
+    return "{" + b + ",\"ssn\":{" + ssn + "},\"ipqp\":{" + ipqp + "}}";
+}
+
 // --- rule 4/5: the escape event's one nested object ------------------------
 //
 // Field names are the C++ members', in DECLARATION order, so a reader of
@@ -534,6 +597,46 @@ void JsonLinesTraceSink::on_sqp_major(const SqpMajorTraceEvent &event) {
     key_index(b, first, "major", event.major);
     key_enum(b, first, "mode", to_json(event.mode));
     write_line("sqp.major", b);
+}
+
+void JsonLinesTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event) {
+    // THE DEPTH MOVES BEFORE THE LINE IS WRITTEN, so a nested solve's own
+    // `begin` already reads 1; the OUTERMOST solve pushes nothing, which is what
+    // keeps a top-level stream entirely at depth 0.
+    if (open_solves_ > 0) {
+        push_depth();
+    }
+    ++open_solves_;
+    std::string b;
+    bool first = true;
+    key_index(b, first, "n", event.n);
+    key_index(b, first, "me", event.me);
+    key_index(b, first, "mi", event.mi);
+    key_index(b, first, "vars_free", event.vars_free);
+    key_index(b, first, "vars_lower_only", event.vars_lower_only);
+    key_index(b, first, "vars_upper_only", event.vars_upper_only);
+    key_index(b, first, "vars_ranged", event.vars_ranged);
+    key_index(b, first, "vars_fixed", event.vars_fixed);
+    key_enum(b, first, "qp_mode", to_json(event.qp_mode));
+    key_enum(b, first, "ws_algebra", to_json(event.ws_algebra));
+    write_line("sqp.solve.begin", b);
+}
+
+void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_enum(b, first, "status", to_json(event.status));
+    key_index(b, first, "majors", event.majors);
+    key(b, first, "counters");
+    b += counters_object(event.counters);
+    write_line("sqp.solve.end", b);
+    // Written FIRST, then unwound: this line belongs to the solve it closes.
+    if (open_solves_ > 0) {
+        --open_solves_;
+    }
+    if (open_solves_ > 0) {
+        pop_depth();
+    }
 }
 
 } // namespace hven::solvers

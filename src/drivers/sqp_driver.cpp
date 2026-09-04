@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <exception>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -1206,6 +1207,29 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
 
 namespace {
 
+/// @brief The variable box's own five-way census, for `sqp.solve.begin`.
+///
+/// EXHAUSTIVE AND DISJOINT over the n variables: an infinite side is
+/// unbounded there (nlp_model.h writes it -inf/+inf and treats every finite
+/// value as a real bound), and both-finite splits on equality.
+void census_variable_bounds(const Vec &lower, const Vec &upper, SqpSolveBeginTraceEvent &ev) {
+    for (Index j = 0; j < lower.size(); ++j) {
+        const bool has_lo = std::isfinite(lower(j));
+        const bool has_hi = std::isfinite(upper(j));
+        if (!has_lo && !has_hi) {
+            ++ev.vars_free;
+        } else if (has_lo && !has_hi) {
+            ++ev.vars_lower_only;
+        } else if (!has_lo && has_hi) {
+            ++ev.vars_upper_only;
+        } else if (lower(j) == upper(j)) {
+            ++ev.vars_fixed;
+        } else {
+            ++ev.vars_ranged;
+        }
+    }
+}
+
 /// @brief The WALK's own exit, in the trace's alphabet (the map is stated at
 /// `QpModeTraceEvent`): the walk has no successor kernel, so every non-optimal
 /// exit is an escape rather than a route.
@@ -1231,6 +1255,51 @@ IpqpTraceQpMode trace_mode_of(QpMode mode) {
     }
     return IpqpTraceQpMode::kWalk;
 }
+
+/// @brief The `sqp.solve` begin/end pair, as ONE scope over the solve.
+///
+/// `end` FIRES ON THE NORMAL RETURN ONLY. An exception in flight is detected by
+/// comparing `std::uncaught_exceptions()` against the count at construction, and
+/// nothing is written: a solve that threw did not end, and a `begin` with no
+/// `end` is the honest record of one. It is also why the depth is left as it
+/// stands there -- a sink is not reusable across a throwing solve.
+///
+/// COSTS NOTHING WITHOUT A SINK: with `sink == nullptr` the constructor returns
+/// before the O(n) census and the destructor before the counters object.
+class SolveTraceScope {
+  public:
+    SolveTraceScope(IpqpTraceSink *sink, const SqpSolution &out, const SqpOptions &opts,
+                    const AggregateEvalSeam &seam)
+        : sink_(sink), out_(out), uncaught_at_entry_(std::uncaught_exceptions()) {
+        if (sink_ == nullptr) {
+            return;
+        }
+        SqpSolveBeginTraceEvent ev;
+        ev.n = seam.n();
+        ev.me = seam.me();
+        ev.mi = seam.mi();
+        census_variable_bounds(seam.lower(), seam.upper(), ev);
+        ev.qp_mode = trace_mode_of(opts.qp_mode);
+        ev.ws_algebra = opts.qp.ws_algebra;
+        sink_->on_sqp_solve_begin(ev);
+    }
+
+    ~SolveTraceScope() {
+        if (sink_ == nullptr || std::uncaught_exceptions() > uncaught_at_entry_) {
+            return;
+        }
+        sink_->on_sqp_solve_end(
+            SqpSolveEndTraceEvent{out_.status, out_.counters.major_iters, out_.counters});
+    }
+
+    SolveTraceScope(const SolveTraceScope &) = delete;
+    SolveTraceScope &operator=(const SolveTraceScope &) = delete;
+
+  private:
+    IpqpTraceSink *sink_;
+    const SqpSolution &out_;
+    int uncaught_at_entry_;
+};
 
 // THE SECTION 5.4 GRADE (plan ruling 4): full warm from the `hven.ipm.polish.v1` payload,
 // base warm from the core's signed price alone, `nullopt` = cold; flow (a) already consumed
@@ -1818,6 +1887,17 @@ Index SqpDriver::install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) c
 
 SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                                   const WarmStart &warm, Index minor_budget) {
+    // `out` IS DECLARED FIRST so the scope -- declared second -- is destroyed
+    // FIRST, while the finished solution it reads is still alive. That ordering
+    // is the whole mechanism; see the declaration in sqp_driver.h.
+    SqpSolution out;
+    const SolveTraceScope trace_scope(ipqp_trace_, out, opts_, seam);
+    out = solve_impl_body(seam, bridge, x0, warm, minor_budget);
+    return out;
+}
+
+SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge,
+                                       const Vec &x0, const WarmStart &warm, Index minor_budget) {
     const Index n = seam.n();
     // The seam and the bridge must name ONE provider. Restoration builds its
     // feasibility model from the bridge while every evaluation goes through the
@@ -3127,6 +3207,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             ropts.tr_max = std::max(opts_.tr_max, ropts.tr_init);
             ropts.max_iter = opts_.max_iter - spent;
             SqpDriver sub(ropts, /*allow_restoration=*/false);
+            // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
+            // sub-solve's own `sqp.solve` pair, rows and tier events land in the
+            // same stream, told apart by the sink-owned `depth`.
+            sub.attach_trace(ipqp_trace_);
             const SqpSolution rs = sub.solve(feasibility, feasibility.start_point());
 
             // EVERY WORK counter the sub-solve moved is folded in: the
