@@ -10807,6 +10807,10 @@ TEST(SqpDriverCertifiedFallback, T7TheDisprovedSuspicionCalibrationOverTheHsCorp
     // T5 REGISTERED, MEASURED END TO END: over all 27 HS models at kIpm the fallback is entered
     // nine times, six with a FIRED block, and not one closes its slacks -- every fired entry is
     // RELAXED. The mechanism and the population are in T7 report section 2, item 4.
+    //
+    // READ IT AS AN OBSERVATION, NOT AS A SPECIFICITY ESTIMATE: six fired entries on three
+    // problems is "no false fire OBSERVED on HS". The detector does not fire at all on the F7
+    // corpus (Part 1), so its false-fire rate AT SCALE is UNMEASURED, not zero.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
@@ -10918,22 +10922,57 @@ QpProblem w2t7_objective_inflated_qp(double a, double gap) {
     return qp;
 }
 
+/// The ILL-SCALED FEASIBLE family (`1/2||x||^2` s.t. `a(x0+x1) <= -1`, exact `x0 = -1/(2a)`)
+/// PADDED with `npin` genuinely fixed variables. Past `schur_cap` those pins make border mode
+/// LATCH, so the iteration is served by the elimination path -- the route T7's first cut left
+/// refining neither way (fix round 1, R1).
+QpProblem w2t7_padded_ill_scaled_qp(double a, Index npin) {
+    const Index n = 2 + npin;
+    QpProblem qp;
+    qp.H = Eigen::MatrixXd(Eigen::MatrixXd::Identity(n, n))
+               .triangularView<Eigen::Upper>()
+               .toDenseMatrix()
+               .sparseView();
+    qp.g = Vec::Zero(n);
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    Eigen::MatrixXd Aid(1, n);
+    Aid.setZero();
+    Aid(0, 0) = a;
+    Aid(0, 1) = a;
+    qp.Ai = Aid.sparseView();
+    qp.bi = Vec::Constant(1, -1.0);
+    qp.lower = Vec::Constant(n, -1e20);
+    qp.upper = Vec::Constant(n, 1e20);
+    for (Index i = 2; i < n; ++i) {
+        qp.lower(i) = 0.0;
+        qp.upper(i) = 0.0;
+    }
+    return qp;
+}
+
 /// The plain (non-elastic) walk, reporting the RETURNED point's own worst row residual -- which
 /// is what a caller reading a kInfeasible exit's `x` actually gets.
 struct W2T7PlainWalk {
     QpStatus status = QpStatus::kOptimal;
     double worst_resid = 0.0;
+    double x0 = 0.0;
     Index verdict_refine_steps = 0;
+    Index factorizations = 0;
 };
 
-W2T7PlainWalk w2t7_plain_walk(const QpProblem &qp, double dual_mu, WorkingSetLinearAlgebra alg) {
+W2T7PlainWalk w2t7_plain_walk(const QpProblem &qp, double dual_mu, WorkingSetLinearAlgebra alg,
+                              Index schur_cap = QpOptions{}.schur_cap) {
     QpOptions opts;
     opts.dual_mu = dual_mu;
     opts.ws_algebra = alg;
+    opts.schur_cap = schur_cap;
     const QpSolution s = QpEngine(opts).solve(qp, SolveOverrides{});
     W2T7PlainWalk out;
     out.status = s.status;
+    out.x0 = s.x(0);
     out.verdict_refine_steps = s.counters.verdict_refine_steps;
+    out.factorizations = s.counters.factorizations;
     if (qp.me() > 0) {
         out.worst_resid =
             std::max(out.worst_resid, (qp.Ae * s.x - qp.be).lpNorm<Eigen::Infinity>());
@@ -10966,8 +11005,40 @@ TEST(QpEngineStructuralViolation, T7ACertifiedInfeasibleExitRETURNSTheRefinedPoi
     EXPECT_EQ(eliminated.verdict_refine_steps, 9) << "and so did its twin -- T7 item 11";
     EXPECT_NEAR(bordered.worst_resid, 2.943550e-4, 1.0e-9) << "the REFINED point came back";
     EXPECT_NEAR(eliminated.worst_resid, 2.943550e-4, 1.0e-9);
-    EXPECT_DOUBLE_EQ(bordered.worst_resid, eliminated.worst_resid)
-        << "neither algebra can out-refine the other at a dead end any more";
+    // A TOLERANCE, NOT BIT-EQUALITY (fix round 1, A7): 1e-10 is five orders below the UNREFINED
+    // 1.111111e-1 this pin excludes, and bit-agreement across two linear-algebra paths is not a
+    // contract -- CLAUDE.md section 7's own caveat is that MKL's kernels are address-sensitive.
+    EXPECT_NEAR(bordered.worst_resid, eliminated.worst_resid, 1.0e-10)
+        << "neither path can out-refine the other at a dead end any more";
+
+    // AND THE FALLEN-BACK ROUTE IS MODE-PAIRED TOO (fix round 1, R1 + tycho T8): 130 pins past
+    // the SHIPPED schur_cap = 128 latch border mode onto the elimination path, where T7's first
+    // cut refined NEITHER way and left the DEFAULT mode certifying a FEASIBLE problem infeasible.
+    const QpProblem padded = w2t7_padded_ill_scaled_qp(1.0e-4, 130);
+    const W2T7PlainWalk latched_border =
+        w2t7_plain_walk(padded, 1.0e-8, WorkingSetLinearAlgebra::kSchurBorder);
+    const W2T7PlainWalk latched_elim =
+        w2t7_plain_walk(padded, 1.0e-8, WorkingSetLinearAlgebra::kRefactorize);
+    EXPECT_EQ(latched_border.status, QpStatus::kOptimal) << "DECLARED BREAK: kInfeasible before";
+    EXPECT_EQ(latched_elim.status, QpStatus::kOptimal);
+    EXPECT_EQ(latched_border.verdict_refine_steps, 9) << "the twin ran on the LATCHED route";
+    EXPECT_EQ(latched_elim.verdict_refine_steps, 9);
+    EXPECT_NEAR(latched_border.x0, -4.999972e3, 1.0e-1) << "the exact optimum is -1/(2a) = -5000";
+    EXPECT_NEAR(latched_border.x0, latched_elim.x0, 1.0e-10) << "and the same point in both";
+    // THE REUSE RULE, PINNED AS A COST (fix round 1, R4): the twin solves through the incumbent
+    // factorization, so a latched dead end costs the SAME factorizations it cost before the
+    // refinement was extended to this route. A regression to a fresh factor per entry reads 4.
+    EXPECT_EQ(latched_border.factorizations, 3) << "the twin bought no factorization of its own";
+
+    // THE REVERSE, which is what identifies the LATCH rather than the fixture as the mechanism:
+    // a schur_cap above the pin count keeps border mode on its own path, and the BORDER twin
+    // refines the same cell to the same point.
+    const W2T7PlainWalk uncapped =
+        w2t7_plain_walk(padded, 1.0e-8, WorkingSetLinearAlgebra::kSchurBorder, 1000);
+    EXPECT_EQ(uncapped.status, QpStatus::kOptimal);
+    EXPECT_EQ(uncapped.verdict_refine_steps, 9);
+    EXPECT_NEAR(uncapped.x0, latched_border.x0, 1.0e-10);
+    EXPECT_EQ(uncapped.factorizations, 1) << "one K0, no fallback: the border twin's own route";
 }
 
 TEST(QpEngineStructuralViolation, T7TheFeasibleCensusHalfOverTheFULLDualMuSet) {
@@ -11028,6 +11099,10 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
     // WHY THAT ONE: its elastic copies are the only driver-reachable subproblems here whose
     // BORDERED dead end classifies structural. 15 steps over two majors is under two full
     // budgets (`kMaxVerdictRefineSteps` is 10 PER ENTRY), so the loop CLOSES rather than runs out.
+    //
+    // 15 IS A CEILING ON THIS FIXTURE SET AND NOTHING WIDER. The reading AT SCALE is 0 -- 1200
+    // corpus sweep cells and 81 replay cells never enter the loop at all -- so what transfers is
+    // the PER-ENTRY bound (`kMaxVerdictRefineSteps`), not this total.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
@@ -11071,7 +11146,9 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
 }
 
 TEST(SqpDriverCertifiedFallback, T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder) {
-    // T3-A, ACCEPTED WITH DISCLOSURE AT T3 AND REACHED AT THE DRIVER HERE. A refusal attaches no
+    // T3-A, ACCEPTED WITH DISCLOSURE AT T3, REACHED AT THE DRIVER HERE, AND THE REGISTRATION
+    // REFUTED AT T7 (its registrant concurring): the fixture and the ruling travel together.
+    // A refusal attaches no
     // report, so a rung B that itself certifies kInfeasible leaves the ternary an EMPTY optional
     // and W1's own ladder runs -- one activation beyond the entered rung As.
     //
@@ -11114,6 +11191,10 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     // A ladder EXHAUSTS only with the relaxation open at the ceiling, which here leaves the
     // iterate pressed against its bound: `p_elastic` is exactly ZERO (the zero-step pin's case)
     // or, as here, at ROUNDING -- so T4's elastic-site offer has no wide-margin fixture.
+    //
+    // ALL THREE TAKE-CELLS ARE NOW MEASURED IN BOTH CONFIGS (fix round 1, A9): every Release
+    // take REFUSES the seed in Debug, so "no config-stable take" is 3 of 3, and the offers differ
+    // between configs at the last bits (1.006140e-16 against 4.510281e-17) -- the mechanism.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
@@ -11186,9 +11267,9 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
     EXPECT_EQ(ssn.restoration_iters, walk.restoration_iters);
     EXPECT_EQ(ipm.restoration_iters, walk.restoration_iters);
 
-    // F-1'S COUNTER COMPARISON, "one fewer walk solve than kWalk's path", read through
-    // `symbolic_analyses` -- the walk factor's pattern installs, alternating original/elastic
-    // under kWalk and elastic-only under kIpm. Measured 5/6/3 and 7/8/3; T7 report, item 12.
+    // F-1'S COUNTER COMPARISON, "one fewer walk solve than kWalk's path". There is NO walk-solve
+    // counter: `symbolic_analyses` (the walk factor's PATTERN INSTALLS) is the PROXY, exact in the
+    // two relations below and only an INEQUALITY across modes -- T7 report item 12 for why.
     EXPECT_EQ(walk.symbolic_analyses, 2 * majors + 1)
         << "original and elastic, strictly alternating";
     EXPECT_EQ(ssn.symbolic_analyses, walk.symbolic_analyses + 1) << "plus the escaped subproblem";
