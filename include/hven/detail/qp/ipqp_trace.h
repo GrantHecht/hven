@@ -108,8 +108,26 @@ struct IpqpTraceEscapeEvent {
     IpqpTraceEscapeEvidence evidence;
 };
 
-/// @brief The driver dispatch's outcome for one subproblem (schema
-/// `qp.mode`), driver-emitted in the kIpm arm only.
+/// @brief One KERNEL INVOCATION on one subproblem (schema `qp.mode`),
+/// driver-emitted in all three arms since M6 W4 T2(b).
+///
+/// ONE LINE PER INVOCATION, NOT PER SUBPROBLEM: a hand-off writes two, the
+/// handing kernel's and its successor's, so the chain a major walked is
+/// readable rather than inferred. The kIpm arm's own line is unchanged from W2.
+///
+/// THE OUTCOME MAP, per arm, is the driver's and is stated here because the
+/// three arms report three different objects:
+///   * `kWalk` -- `QpStatus::kOptimal` is `kOptimal`; kMaxIter, kInfeasible and
+///     kNumericalError are all `kEscaped`. The walk has no successor kernel, so
+///     nothing it exits with is a route; a kInfeasible walk hands to the
+///     ELASTIC tier, which is the same kernel again.
+///   * `kSsn` -- a usable, certified exit is `kOptimal`; every other exit
+///     (engine escape or the trust-region gate's refusal) is `kRouted`, since
+///     the walk re-solves the subproblem. `kEscaped` is UNREACHABLE in this arm
+///     today: no SSN exit ends a subproblem.
+///   * `kIpqp` -- unchanged (W2): `kOptimal` on the refine route, `kRouted` to
+///     the SSN warm grade, `kEscaped` on a genuine escape to the walk.
+/// `iters` is the invocation's own minor count.
 struct QpModeTraceEvent {
     IpqpTraceQpMode mode = IpqpTraceQpMode::kIpqp;
     IpqpTraceOutcome outcome = IpqpTraceOutcome::kOptimal;

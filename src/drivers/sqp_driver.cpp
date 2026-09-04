@@ -1206,6 +1206,13 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
 
 namespace {
 
+/// @brief The WALK's own exit, in the trace's alphabet (the map is stated at
+/// `QpModeTraceEvent`): the walk has no successor kernel, so every non-optimal
+/// exit is an escape rather than a route.
+IpqpTraceOutcome trace_outcome_of(QpStatus status) {
+    return status == QpStatus::kOptimal ? IpqpTraceOutcome::kOptimal : IpqpTraceOutcome::kEscaped;
+}
+
 /// @brief The CONFIGURED mode, in the trace's own alphabet.
 ///
 /// `kIpm` maps to `kIpqp` because the schema names the KERNEL (spec section 7)
@@ -3732,6 +3739,17 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 // no double count.
                 charge_ssn_subproblem_cost(out.counters, sres);
             }
+            // ONE LINE FOR THIS ARM'S INVOCATION, whichever branch above ran:
+            // a hand-off is `kRouted` (the walk re-solves it and writes its own
+            // line below), a usable certified exit is `kOptimal`.
+            if (ipqp_trace_ != nullptr) {
+                QpModeTraceEvent mev;
+                mev.mode = IpqpTraceQpMode::kSsn;
+                mev.outcome =
+                    walk_owns_this_qp ? IpqpTraceOutcome::kRouted : IpqpTraceOutcome::kOptimal;
+                mev.iters = sres.counters.ssn_iters;
+                emit_trace_qp_mode(mev);
+            }
             break;
         }
         case QpMode::kIpm: {
@@ -3977,6 +3995,16 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                  : have_seed ? engine_.solve(qp, seed, overrides)
                  : use_crash ? engine_.solve(qp, crash_seed, overrides)
                              : engine_.solve(qp, overrides);
+            // THE WALK'S OWN LINE, at the invocation and not at the `kWalk`
+            // dispatch arm: this is where the kernel has actually run, so the
+            // status and the minor count are the ones it produced.
+            if (ipqp_trace_ != nullptr) {
+                QpModeTraceEvent mev;
+                mev.mode = IpqpTraceQpMode::kWalk;
+                mev.outcome = trace_outcome_of(qs.status);
+                mev.iters = qs.counters.minor_iters;
+                emit_trace_qp_mode(mev);
+            }
         }
         if (offer_hot) {
             // start_level_used RECORDS WHAT WAS OBSERVED, not merely what was

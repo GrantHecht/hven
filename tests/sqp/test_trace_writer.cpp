@@ -1113,9 +1113,11 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
 }
 
 TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
-    // A REPLAY-CLASS PIN, RE-DERIVED AT W4 T2(a) (declared). T1 recorded that
-    // the walk arm wrote NOTHING; it now writes one `sqp.major` line per
-    // history row, and the pin records that count beside the counters.
+    // A REPLAY-CLASS PIN, RE-DERIVED AT W4 T2 (declared). T1 recorded that the
+    // walk arm wrote NOTHING.
+    //
+    // T2(a) gives it one `sqp.major` line per history row and T2(b) one
+    // `qp.mode` line per major, so the pin records the line census too.
     SqpOptions opts;
     opts.qp_mode = QpMode::kWalk;
     opts.max_iter = 60;
@@ -1136,8 +1138,10 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
     EXPECT_EQ(without.history.size(), with.history.size());
     const std::map<std::string, Index> by_ev = census(os.str());
     EXPECT_EQ(by_ev.at("sqp.major"), static_cast<Index>(with.history.size()));
-    EXPECT_EQ(by_ev.size(), 1u) << "the walk arm's only W4 T2(a) event is the row";
-    EXPECT_EQ(json.lines_written(), static_cast<Index>(with.history.size()));
+    EXPECT_EQ(by_ev.at("qp.mode"), with.counters.major_iters);
+    EXPECT_EQ(by_ev.size(), 2u) << "the walk arm's whole alphabet after W4 T2(b)";
+    EXPECT_EQ(json.lines_written(),
+              static_cast<Index>(with.history.size()) + with.counters.major_iters);
 }
 
 // ===========================================================================
@@ -1967,6 +1971,147 @@ TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
         SCOPED_TRACE("row " + std::to_string(i));
         expect_major_line_is_row(rows[i], sol.history[i], static_cast<Index>(i),
                                  IpqpTraceQpMode::kWalk);
+    }
+}
+
+// ===========================================================================
+// W4 T2 (b) -- `qp.mode` IN ALL THREE ARMS
+// ===========================================================================
+//
+// ONE LINE PER KERNEL INVOCATION (the rule stated at `QpModeTraceEvent`), so a
+// hand-off writes two: the handing kernel's `routed` line and its successor's.
+//
+// The counts below are therefore INVOCATION counts, each asserted against a
+// counter rather than against the stream.
+
+/// The `mode` tokens of a stream's `qp.mode` lines, counted.
+std::map<std::string, Index> qp_mode_census(const std::string &stream) {
+    std::map<std::string, Index> by_mode;
+    for (const std::string &l : split_lines(stream)) {
+        if (event_name(l) == "qp.mode") {
+            ++by_mode[raw_field(l, "mode")];
+        }
+    }
+    return by_mode;
+}
+
+Index rows_with_a_qp(const SqpSolution &sol) {
+    Index rows = 0;
+    for (const SqpIterate &r : sol.history) {
+        rows += r.qp_solved ? 1 : 0;
+    }
+    return rows;
+}
+
+TEST(JsonLinesTraceSink, QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk) {
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kWalk;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(24);
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
+    ASSERT_GT(sol.counters.major_iters, 1);
+    EXPECT_EQ(by_mode.size(), 1u) << "one arm, one mode string";
+    // THE WALK IS INVOKED ONCE PER MAJOR, so its line count is `major_iters`
+    // (the counter is `iter + 1` at the dispatch, i.e. the dispatch count).
+    EXPECT_EQ(by_mode.at("\"walk\""), sol.counters.major_iters);
+    // AND ON THIS CELL that is also the row count, because no subproblem
+    // FAILED: a routed QP failure re-dispatches at a shrunken radius without
+    // pushing a row, which is the one way the two counts can differ.
+    EXPECT_EQ(by_mode.at("\"walk\""), rows_with_a_qp(sol));
+}
+
+TEST(JsonLinesTraceSink, QpModeOnAnSsnCellCountsTheArmAndItsHandOffs) {
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kSsn;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(33);
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
+    const auto at = [&](const char *k) {
+        const auto it = by_mode.find(k);
+        return it == by_mode.end() ? Index{0} : it->second;
+    };
+    ASSERT_GT(sol.counters.major_iters, 1);
+    // THE ARM RUNS ON EVERY SUBPROBLEM, so its own count is the dispatch count.
+    EXPECT_EQ(at("\"ssn\""), sol.counters.major_iters);
+    // AND EVERY HAND-OFF IS A WALK INVOCATION. `ssn_escapes` at driver scale is
+    // exactly "subproblems handed off" -- engine escapes plus the trust-region
+    // gate's refusals (solver_counters.h's own note).
+    EXPECT_EQ(at("\"walk\""), sol.counters.ssn.ssn_escapes);
+
+    Index routed = 0;
+    for (const std::string &l : split_lines(os.str())) {
+        if (event_name(l) == "qp.mode" && raw_field(l, "mode") == "\"ssn\"") {
+            routed += (raw_field(l, "outcome") == "\"routed\"") ? 1 : 0;
+        }
+    }
+    EXPECT_EQ(routed, sol.counters.ssn.ssn_escapes) << "the routed lines ARE the hand-offs";
+}
+
+TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk) {
+    // TWO LEGS, because the kIpm arm reaches the walk two different ways and
+    // only ONE of them is a dispatch-level invocation.
+    //
+    // HS38 ESCAPES, and an escape is serviced by `certified_feasibility_fallback`,
+    // which runs its own walk INSIDE itself -- so `ipqp_to_walk` moves while the
+    // dispatch's walk site never runs and writes no line.
+    //
+    // That is a real gap in the stream (registered for T5's doc), and it is
+    // pinned here rather than papered over.
+    //
+    // THE PINNED-VARIABLE MODEL DECLINES instead: the domain gate refuses the
+    // subproblem before the engine is entered, `walk_owns_this_qp` becomes true,
+    // and the dispatch's own walk runs and writes its line.
+    {
+        SqpOptions opts;
+        opts.qp_mode = QpMode::kIpm;
+        opts.max_iter = 60;
+        const HsProblem p = make_hs(38);
+        SqpDriver driver(opts);
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        TeeSink tee(json);
+        driver.attach_trace(&tee);
+        const SqpSolution sol = driver.solve(*p.model);
+
+        const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
+        const auto at = [&](const char *k) {
+            const auto it = by_mode.find(k);
+            return it == by_mode.end() ? Index{0} : it->second;
+        };
+        EXPECT_EQ(at("\"ipqp\"") + at("\"walk\"") + at("\"ssn\""), tee.modes);
+        ASSERT_GT(at("\"ipqp\""), 0);
+        ASSERT_GT(sol.counters.ipqp.ipqp_to_walk, 0) << "non-vacuous: the cell really escapes";
+        EXPECT_EQ(at("\"walk\""), 0) << "the fallback's own walk is not a dispatch invocation";
+        EXPECT_EQ(at("\"ssn\""), 0) << "the kSsn ARM did not run; the warm grade is not it";
+    }
+    {
+        PinnedVariableModel model;
+        SqpOptions opts;
+        opts.qp_mode = QpMode::kIpm;
+        opts.max_iter = 60;
+        SqpDriver driver(opts);
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        driver.attach_trace(&json);
+        const SqpSolution sol = driver.solve(model);
+
+        const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
+        ASSERT_GT(sol.counters.ipqp.ipqp_declined_pinned, 0) << "non-vacuous: it really declines";
+        EXPECT_EQ(by_mode.size(), 1u) << "a declined subproblem never enters the tier";
+        EXPECT_EQ(by_mode.at("\"walk\""), sol.counters.major_iters);
+        EXPECT_EQ(sol.counters.ipqp.ipqp_declined_pinned, sol.counters.major_iters);
     }
 }
 
