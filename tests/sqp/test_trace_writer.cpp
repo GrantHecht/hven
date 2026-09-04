@@ -18,20 +18,30 @@
 //   (iv)  NULL SINK: attaching the writer to a walk-arm solve moves no counter
 //         and writes no line.
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <ios>
 #include <limits>
 #include <map>
+#include <optional>
 #include <sstream>
+#include <streambuf>
 #include <string>
 #include <vector>
 
+#include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include <hven/detail/globalization/sqp/elastic.h>
+#include <hven/detail/qp/ipqp_engine.h>
+#include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/trace_writer.h>
+#include <hven/model/nlp_model.h>
 
 #include "support/hs_problems.h"
 
@@ -354,19 +364,168 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull) {
                         "\"qp_factorizations\":0}\n");
 }
 
+// ===========================================================================
+// R1(c) -- THE COMPILE-TIME NET the production TU cannot provide
+// ===========================================================================
+//
+// `-Wswitch` in `src/drivers/trace_writer.cpp` only WARNS: this tree carries no
+// `-Werror`, so an enumerator added without a spelling ships a `"unknown"`.
+//
+// Here it is an ERROR, over one exhaustive switch per enum. An added enumerator
+// therefore fails to COMPILE this file, and the spellings below are the ORACLE
+// the sink is checked against -- an independent copy, in the test.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic error "-Wswitch"
+#endif
+
+const char *spec_spelling(IpqpTraceRegDir v) {
+    switch (v) {
+    case IpqpTraceRegDir::kDown:
+        return "\"down\"";
+    case IpqpTraceRegDir::kUp:
+        return "\"up\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(IpqpTraceRegReason v) {
+    switch (v) {
+    case IpqpTraceRegReason::kAccept:
+        return "\"accept\"";
+    case IpqpTraceRegReason::kInertia:
+        return "\"inertia\"";
+    case IpqpTraceRegReason::kStall:
+        return "\"stall\"";
+    case IpqpTraceRegReason::kFloor:
+        return "\"floor\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(IpqpTraceRestartGrade v) {
+    switch (v) {
+    case IpqpTraceRestartGrade::kCold:
+        return "\"cold\"";
+    case IpqpTraceRestartGrade::kBase:
+        return "\"base\"";
+    case IpqpTraceRestartGrade::kFull:
+        return "\"full\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(IpqpTraceRouteTo v) {
+    switch (v) {
+    case IpqpTraceRouteTo::kRefine:
+        return "\"refine\"";
+    case IpqpTraceRouteTo::kSsn:
+        return "\"ssn\"";
+    case IpqpTraceRouteTo::kWalk:
+        return "\"walk\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(IpqpTraceFinalInertia v) {
+    switch (v) {
+    case IpqpTraceFinalInertia::kOk:
+        return "\"ok\"";
+    case IpqpTraceFinalInertia::kWrong:
+        return "\"wrong\"";
+    case IpqpTraceFinalInertia::kUnreadable:
+        return "\"unreadable\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(IpqpTraceEscapeReason v) {
+    switch (v) {
+    case IpqpTraceEscapeReason::kBudget:
+        return "\"budget\"";
+    case IpqpTraceEscapeReason::kStall:
+        return "\"stall\"";
+    case IpqpTraceEscapeReason::kIndefinite:
+        return "\"indefinite\"";
+    case IpqpTraceEscapeReason::kNumerical:
+        return "\"numerical\"";
+    case IpqpTraceEscapeReason::kInfeasibleSuspect:
+        return "\"infeasible_suspect\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(IpqpTraceQpMode v) {
+    switch (v) {
+    case IpqpTraceQpMode::kIpqp:
+        return "\"ipqp\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(IpqpTraceOutcome v) {
+    switch (v) {
+    case IpqpTraceOutcome::kOptimal:
+        return "\"optimal\"";
+    case IpqpTraceOutcome::kRouted:
+        return "\"routed\"";
+    case IpqpTraceOutcome::kEscaped:
+        return "\"escaped\"";
+    }
+    return nullptr;
+}
+
+const char *spec_spelling(SqpFallbackVerdict v) {
+    switch (v) {
+    case SqpFallbackVerdict::kDisproved:
+        return "\"disproved\"";
+    case SqpFallbackVerdict::kRelaxed:
+        return "\"relaxed\"";
+    case SqpFallbackVerdict::kExhausted:
+        return "\"exhausted\"";
+    case SqpFallbackVerdict::kRungB:
+        return "\"rung_b\"";
+    case SqpFallbackVerdict::kUnfired:
+        return "\"unfired\"";
+    }
+    return nullptr;
+}
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
-    // The nine enums' 27 values, read off one line each. A renamed or
-    // reordered spelling fails here rather than silently in an exemplar.
+    // The nine enums' 27 values, read off one line each and compared against
+    // `spec_spelling` above -- the spec's strings in an independent copy, under
+    // a `-Wswitch`-as-ERROR region (R1(c)).
+    //
+    // The `static_assert`s are the third net: they pin each enum's hand-stated
+    // enumerator COUNT through its last value, so an enumerator INSERTED among
+    // the existing ones (which the switch would still cover) also fails.
+    //
+    // BUMP THE COUNT AND ADD A CASE ABOVE WHEN YOU ADD A SPELLING.
+    static_assert(static_cast<int>(IpqpTraceRegDir::kUp) == 2 - 1, "2 dir spellings");
+    static_assert(static_cast<int>(IpqpTraceRegReason::kFloor) == 4 - 1, "4 reg reasons");
+    static_assert(static_cast<int>(IpqpTraceRestartGrade::kFull) == 3 - 1, "3 grades");
+    static_assert(static_cast<int>(IpqpTraceRouteTo::kWalk) == 3 - 1, "3 route destinations");
+    static_assert(static_cast<int>(IpqpTraceFinalInertia::kUnreadable) == 3 - 1, "3 readings");
+    static_assert(static_cast<int>(IpqpTraceEscapeReason::kInfeasibleSuspect) == 5 - 1,
+                  "5 escape reasons");
+    static_assert(static_cast<int>(IpqpTraceQpMode::kIpqp) == 1 - 1, "1 QP mode (T2 adds two)");
+    static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
+    static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
+
     const auto reg_dir = [](IpqpTraceRegDir d) {
         IpqpTraceRegEvent e;
         e.dir = d;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_reg(e);
-        return raw_field(os.str(), "dir");
+        EXPECT_EQ(raw_field(os.str(), "dir"), spec_spelling(d));
     };
-    EXPECT_EQ(reg_dir(IpqpTraceRegDir::kDown), "\"down\"");
-    EXPECT_EQ(reg_dir(IpqpTraceRegDir::kUp), "\"up\"");
+    reg_dir(IpqpTraceRegDir::kDown);
+    reg_dir(IpqpTraceRegDir::kUp);
 
     const auto reg_reason = [](IpqpTraceRegReason r) {
         IpqpTraceRegEvent e;
@@ -374,12 +533,12 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_reg(e);
-        return raw_field(os.str(), "reason");
+        EXPECT_EQ(raw_field(os.str(), "reason"), spec_spelling(r));
     };
-    EXPECT_EQ(reg_reason(IpqpTraceRegReason::kAccept), "\"accept\"");
-    EXPECT_EQ(reg_reason(IpqpTraceRegReason::kInertia), "\"inertia\"");
-    EXPECT_EQ(reg_reason(IpqpTraceRegReason::kStall), "\"stall\"");
-    EXPECT_EQ(reg_reason(IpqpTraceRegReason::kFloor), "\"floor\"");
+    reg_reason(IpqpTraceRegReason::kAccept);
+    reg_reason(IpqpTraceRegReason::kInertia);
+    reg_reason(IpqpTraceRegReason::kStall);
+    reg_reason(IpqpTraceRegReason::kFloor);
 
     const auto grade = [](IpqpTraceRestartGrade g) {
         IpqpTraceRestartEvent e;
@@ -387,11 +546,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_restart(e);
-        return raw_field(os.str(), "grade");
+        EXPECT_EQ(raw_field(os.str(), "grade"), spec_spelling(g));
     };
-    EXPECT_EQ(grade(IpqpTraceRestartGrade::kFull), "\"full\"");
-    EXPECT_EQ(grade(IpqpTraceRestartGrade::kBase), "\"base\"");
-    EXPECT_EQ(grade(IpqpTraceRestartGrade::kCold), "\"cold\"");
+    grade(IpqpTraceRestartGrade::kFull);
+    grade(IpqpTraceRestartGrade::kBase);
+    grade(IpqpTraceRestartGrade::kCold);
 
     const auto route = [](IpqpTraceRouteTo t) {
         IpqpTraceRouteEvent e;
@@ -399,11 +558,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_route(e);
-        return raw_field(os.str(), "to");
+        EXPECT_EQ(raw_field(os.str(), "to"), spec_spelling(t));
     };
-    EXPECT_EQ(route(IpqpTraceRouteTo::kRefine), "\"refine\"");
-    EXPECT_EQ(route(IpqpTraceRouteTo::kSsn), "\"ssn\"");
-    EXPECT_EQ(route(IpqpTraceRouteTo::kWalk), "\"walk\"");
+    route(IpqpTraceRouteTo::kRefine);
+    route(IpqpTraceRouteTo::kSsn);
+    route(IpqpTraceRouteTo::kWalk);
 
     const auto certify = [](IpqpTraceFinalInertia f) {
         IpqpTraceCertifyEvent e;
@@ -411,11 +570,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_certify(e);
-        return raw_field(os.str(), "final_inertia");
+        EXPECT_EQ(raw_field(os.str(), "final_inertia"), spec_spelling(f));
     };
-    EXPECT_EQ(certify(IpqpTraceFinalInertia::kOk), "\"ok\"");
-    EXPECT_EQ(certify(IpqpTraceFinalInertia::kWrong), "\"wrong\"");
-    EXPECT_EQ(certify(IpqpTraceFinalInertia::kUnreadable), "\"unreadable\"");
+    certify(IpqpTraceFinalInertia::kOk);
+    certify(IpqpTraceFinalInertia::kWrong);
+    certify(IpqpTraceFinalInertia::kUnreadable);
 
     const auto escape = [](IpqpTraceEscapeReason r) {
         IpqpTraceEscapeEvent e;
@@ -423,13 +582,13 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_escape(e);
-        return raw_field(os.str(), "reason");
+        EXPECT_EQ(raw_field(os.str(), "reason"), spec_spelling(r));
     };
-    EXPECT_EQ(escape(IpqpTraceEscapeReason::kBudget), "\"budget\"");
-    EXPECT_EQ(escape(IpqpTraceEscapeReason::kStall), "\"stall\"");
-    EXPECT_EQ(escape(IpqpTraceEscapeReason::kIndefinite), "\"indefinite\"");
-    EXPECT_EQ(escape(IpqpTraceEscapeReason::kNumerical), "\"numerical\"");
-    EXPECT_EQ(escape(IpqpTraceEscapeReason::kInfeasibleSuspect), "\"infeasible_suspect\"");
+    escape(IpqpTraceEscapeReason::kBudget);
+    escape(IpqpTraceEscapeReason::kStall);
+    escape(IpqpTraceEscapeReason::kIndefinite);
+    escape(IpqpTraceEscapeReason::kNumerical);
+    escape(IpqpTraceEscapeReason::kInfeasibleSuspect);
 
     const auto outcome = [](IpqpTraceOutcome o) {
         QpModeTraceEvent e;
@@ -437,18 +596,12 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_qp_mode(e);
-        return raw_field(os.str(), "outcome");
+        EXPECT_EQ(raw_field(os.str(), "outcome"), spec_spelling(o));
+        EXPECT_EQ(raw_field(os.str(), "mode"), spec_spelling(e.mode));
     };
-    EXPECT_EQ(outcome(IpqpTraceOutcome::kOptimal), "\"optimal\"");
-    EXPECT_EQ(outcome(IpqpTraceOutcome::kRouted), "\"routed\"");
-    EXPECT_EQ(outcome(IpqpTraceOutcome::kEscaped), "\"escaped\"");
-    {
-        QpModeTraceEvent e;
-        std::ostringstream os;
-        JsonLinesTraceSink s(os);
-        s.on_qp_mode(e);
-        EXPECT_EQ(raw_field(os.str(), "mode"), "\"ipqp\"");
-    }
+    outcome(IpqpTraceOutcome::kOptimal);
+    outcome(IpqpTraceOutcome::kRouted);
+    outcome(IpqpTraceOutcome::kEscaped);
 
     const auto verdict = [](SqpFallbackVerdict v) {
         SqpFallbackVerdictTraceEvent e;
@@ -456,13 +609,13 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_fallback_verdict(e);
-        return raw_field(os.str(), "verdict");
+        EXPECT_EQ(raw_field(os.str(), "verdict"), spec_spelling(v));
     };
-    EXPECT_EQ(verdict(SqpFallbackVerdict::kDisproved), "\"disproved\"");
-    EXPECT_EQ(verdict(SqpFallbackVerdict::kRelaxed), "\"relaxed\"");
-    EXPECT_EQ(verdict(SqpFallbackVerdict::kExhausted), "\"exhausted\"");
-    EXPECT_EQ(verdict(SqpFallbackVerdict::kRungB), "\"rung_b\"");
-    EXPECT_EQ(verdict(SqpFallbackVerdict::kUnfired), "\"unfired\"");
+    verdict(SqpFallbackVerdict::kDisproved);
+    verdict(SqpFallbackVerdict::kRelaxed);
+    verdict(SqpFallbackVerdict::kExhausted);
+    verdict(SqpFallbackVerdict::kRungB);
+    verdict(SqpFallbackVerdict::kUnfired);
 }
 
 TEST(JsonLinesTraceSink, StringEscapingIsRfc8259AndUtf8PassesThrough) {
@@ -695,6 +848,9 @@ std::map<std::string, Index> census(const std::string &stream) {
         EXPECT_EQ(raw_field(l, "seq"), std::to_string(expected_seq)) << l;
         EXPECT_EQ(raw_field(l, "v"), "0") << l;
         EXPECT_EQ(raw_field(l, "depth"), "0") << "T1 emits nothing that moves depth";
+        // R1(b): the enum fallthrough is REACHABLE (the tree has no -Werror), so
+        // the stream itself asserts no out-of-schema value ever reached it.
+        EXPECT_EQ(l.find("\"unknown\""), std::string::npos) << l;
         ++by_ev[event_name(l)];
     }
     return by_ev;
@@ -810,10 +966,66 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     EXPECT_EQ(a.n_seeded, b.n_seeded);
     EXPECT_EQ(a.seeded_clamped, b.seeded_clamped);
     EXPECT_EQ(a.ip_activity_inferred, b.ip_activity_inferred);
+    // R6: the two nested aggregates IN FULL -- 18 + 39 fields. Two of each was
+    // enough on a walk cell where they are all zero; the kIpm leg is exactly
+    // where they are not.
     EXPECT_EQ(a.ssn.ssn_iters, b.ssn.ssn_iters);
+    EXPECT_EQ(a.ssn.ssn_bulk_flips, b.ssn.ssn_bulk_flips);
+    EXPECT_EQ(a.ssn.ssn_backtracks, b.ssn.ssn_backtracks);
+    EXPECT_EQ(a.ssn.ssn_prox_updates, b.ssn.ssn_prox_updates);
     EXPECT_EQ(a.ssn.ssn_escapes, b.ssn.ssn_escapes);
+    EXPECT_EQ(a.ssn.ssn_uncertain_peak, b.ssn.ssn_uncertain_peak);
+    EXPECT_EQ(a.ssn.ssn_refinements, b.ssn.ssn_refinements);
+    EXPECT_EQ(a.ssn.ssn_refine_refused, b.ssn.ssn_refine_refused);
+    EXPECT_EQ(a.ssn.ssn_refine_factorizations, b.ssn.ssn_refine_factorizations);
+    EXPECT_EQ(a.ssn.ssn_refine_neg_duals, b.ssn.ssn_refine_neg_duals);
+    EXPECT_EQ(a.ssn.ssn_sign_swept, b.ssn.ssn_sign_swept);
+    EXPECT_EQ(a.ssn.ssn_sign_sweep_max, b.ssn.ssn_sign_sweep_max);
+    EXPECT_EQ(a.ssn.ssn_escape_budget, b.ssn.ssn_escape_budget);
+    EXPECT_EQ(a.ssn.ssn_escape_singular, b.ssn.ssn_escape_singular);
+    EXPECT_EQ(a.ssn.ssn_escape_no_contraction, b.ssn.ssn_escape_no_contraction);
+    EXPECT_EQ(a.ssn.ssn_escape_infeasible_suspect, b.ssn.ssn_escape_infeasible_suspect);
+    EXPECT_EQ(a.ssn.ssn_escape_indefinite, b.ssn.ssn_escape_indefinite);
+    EXPECT_EQ(a.ssn.ssn_escape_gate_refused, b.ssn.ssn_escape_gate_refused);
     EXPECT_EQ(a.ipqp.ipqp_iters, b.ipqp.ipqp_iters);
+    EXPECT_EQ(a.ipqp.ipqp_factorizations, b.ipqp.ipqp_factorizations);
+    EXPECT_EQ(a.ipqp.ipqp_symbolic_analyses, b.ipqp.ipqp_symbolic_analyses);
+    EXPECT_EQ(a.ipqp.ipqp_solves, b.ipqp.ipqp_solves);
+    EXPECT_EQ(a.ipqp.ipqp_pattern_verifies, b.ipqp.ipqp_pattern_verifies);
+    EXPECT_EQ(a.ipqp.ipqp_rho_demanded_max, b.ipqp.ipqp_rho_demanded_max);
+    EXPECT_EQ(a.ipqp.ipqp_rho_demanded_last, b.ipqp.ipqp_rho_demanded_last);
+    EXPECT_EQ(a.ipqp.ipqp_inertia_retries, b.ipqp.ipqp_inertia_retries);
+    EXPECT_EQ(a.ipqp.ipqp_iters_at_elevated_rho, b.ipqp.ipqp_iters_at_elevated_rho);
+    EXPECT_EQ(a.ipqp.ipqp_ladder_reclimbs, b.ipqp.ipqp_ladder_reclimbs);
+    EXPECT_EQ(a.ipqp.ipqp_pivot_reroute_primal, b.ipqp.ipqp_pivot_reroute_primal);
+    EXPECT_EQ(a.ipqp.ipqp_pivot_reroute_dual_fallback, b.ipqp.ipqp_pivot_reroute_dual_fallback);
+    EXPECT_EQ(a.ipqp.ipqp_iters_ladder_armed_no_advance, b.ipqp.ipqp_iters_ladder_armed_no_advance);
+    EXPECT_EQ(a.ipqp.ipqp_final_inertia_read, b.ipqp.ipqp_final_inertia_read);
+    EXPECT_EQ(a.ipqp.ipqp_reg_decreases, b.ipqp.ipqp_reg_decreases);
+    EXPECT_EQ(a.ipqp.ipqp_reg_increases, b.ipqp.ipqp_reg_increases);
+    EXPECT_EQ(a.ipqp.ipqp_prox_center_updates, b.ipqp.ipqp_prox_center_updates);
+    EXPECT_EQ(a.ipqp.ipqp_restart_repairs, b.ipqp.ipqp_restart_repairs);
+    EXPECT_EQ(a.ipqp.ipqp_restart_shift_max, b.ipqp.ipqp_restart_shift_max);
+    EXPECT_EQ(a.ipqp.ipqp_mu_adopted, b.ipqp.ipqp_mu_adopted);
+    EXPECT_EQ(a.ipqp.ipqp_warm_restart_abandoned, b.ipqp.ipqp_warm_restart_abandoned);
+    EXPECT_EQ(a.ipqp.ipqp_declined_pinned, b.ipqp.ipqp_declined_pinned);
+    EXPECT_EQ(a.ipqp.ipqp_tier_retired_after, b.ipqp.ipqp_tier_retired_after);
+    EXPECT_EQ(a.ipqp.ipqp_face_uncertain, b.ipqp.ipqp_face_uncertain);
+    EXPECT_EQ(a.ipqp.ipqp_refine_accepted, b.ipqp.ipqp_refine_accepted);
+    EXPECT_EQ(a.ipqp.ipqp_refine_refused, b.ipqp.ipqp_refine_refused);
+    EXPECT_EQ(a.ipqp.ipqp_to_refine, b.ipqp.ipqp_to_refine);
+    EXPECT_EQ(a.ipqp.ipqp_to_ssn, b.ipqp.ipqp_to_ssn);
+    EXPECT_EQ(a.ipqp.ipqp_to_walk, b.ipqp.ipqp_to_walk);
     EXPECT_EQ(a.ipqp.ipqp_escapes, b.ipqp.ipqp_escapes);
+    EXPECT_EQ(a.ipqp.ipqp_escape_budget, b.ipqp.ipqp_escape_budget);
+    EXPECT_EQ(a.ipqp.ipqp_escape_stall, b.ipqp.ipqp_escape_stall);
+    EXPECT_EQ(a.ipqp.ipqp_escape_indefinite, b.ipqp.ipqp_escape_indefinite);
+    EXPECT_EQ(a.ipqp.ipqp_escape_numerical, b.ipqp.ipqp_escape_numerical);
+    EXPECT_EQ(a.ipqp.ipqp_escape_infeasible_suspect, b.ipqp.ipqp_escape_infeasible_suspect);
+    EXPECT_EQ(a.ipqp.ipqp_alpha_p_min, b.ipqp.ipqp_alpha_p_min);
+    EXPECT_EQ(a.ipqp.ipqp_alpha_d_min, b.ipqp.ipqp_alpha_d_min);
+    EXPECT_EQ(a.ipqp.ipqp_read_kept_tight_sides, b.ipqp.ipqp_read_kept_tight_sides);
+    EXPECT_EQ(a.ipqp.ipqp_read_barrier_noise_sides, b.ipqp.ipqp_read_barrier_noise_sides);
 }
 
 TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesNoLine) {
@@ -840,6 +1052,509 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesNoLine) {
     EXPECT_EQ(without.history.size(), with.history.size());
     EXPECT_EQ(os.str(), "") << "the walk arm emits nothing in W4 T1";
     EXPECT_EQ(json.lines_written(), 0);
+}
+
+// ===========================================================================
+// R5 -- BOOL FALSIFIERS: a distinct signature ACROSS lines for every bool
+// ===========================================================================
+//
+// One golden line cannot tell two `true` bools apart. Proven by mutation:
+// swapping repaired/adopted, rho0_ceiling_hit/floor_retry or
+// infeasibility.fired/farkas_corroborated left round 1's lines BYTE-IDENTICAL.
+//
+// The lines below give every bool in every event a signature no other bool in
+// the same event shares.
+//
+// The same-typed-and-equal sweep over the other structs found nothing else:
+// every Index and every double already differs from its siblings, and
+// `ipqp.iter`'s five zeroed doubles are separated by the present line.
+
+TEST(JsonLinesTraceSink, GoldenLineIpqpRestartSecondBoolSignature) {
+    // Catches the repaired <-> adopted swap: (T,T) vs (T,F), with abandoned (F,F).
+    IpqpTraceRestartEvent e;
+    e.grade = IpqpTraceRestartGrade::kBase;
+    e.repaired = true;
+    e.shift_p = 1.0;
+    e.shift_d = 2.0;
+    e.mu0 = 4.0;
+    e.mu_payload = 8.0;
+    e.adopted = false;
+    e.abandoned = false;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipqp_restart(e);
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"ipqp.restart\",\"seq\":1,\"depth\":0,\"grade\":\"base\","
+                        "\"repaired\":true,\"shift_p\":1,\"shift_d\":2,\"mu0\":4,\"mu_payload\":8,"
+                        "\"adopted\":false,\"abandoned\":false}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictClampedWithoutARetry) {
+    // With the two lines above, entered_rung_a is (T,F,T,T), rho0_ceiling_hit
+    // (T,F,T,F) and floor_retry (T,F,F,T) -- so this line and the next catch the
+    // rho0_ceiling_hit <-> floor_retry swap, and both against entered_rung_a.
+    SqpFallbackVerdictTraceEvent e;
+    e.entered_rung_a = true;
+    e.verdict = SqpFallbackVerdict::kDisproved;
+    e.rho_0 = 250.0;
+    e.rho0_ceiling_hit = true;
+    e.floor_retry = false;
+    e.qp_minor_iters = 5;
+    e.qp_factorizations = 2;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_fallback_verdict(e);
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"fallback.verdict\",\"seq\":1,\"depth\":0,"
+                        "\"entered_rung_a\":true,\"verdict\":\"disproved\",\"rho_0\":250,"
+                        "\"rho0_ceiling_hit\":true,\"floor_retry\":false,\"qp_minor_iters\":5,"
+                        "\"qp_factorizations\":2}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp) {
+    // The retry's placement IS the floor (kElasticRhoInit), which is why 100 is
+    // the value here rather than an arbitrary one.
+    SqpFallbackVerdictTraceEvent e;
+    e.entered_rung_a = true;
+    e.verdict = SqpFallbackVerdict::kExhausted;
+    e.rho_0 = kElasticRhoInit;
+    e.rho0_ceiling_hit = false;
+    e.floor_retry = true;
+    e.qp_minor_iters = 11;
+    e.qp_factorizations = 6;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_fallback_verdict(e);
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"fallback.verdict\",\"seq\":1,\"depth\":0,"
+                        "\"entered_rung_a\":true,\"verdict\":\"exhausted\",\"rho_0\":100,"
+                        "\"rho0_ceiling_hit\":false,\"floor_retry\":true,\"qp_minor_iters\":11,"
+                        "\"qp_factorizations\":6}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpqpEscapeStallBranch) {
+    // The `stall.fired == true` branch, which round 1 never reached. Across the
+    // three escape lines: stall.fired (F,T,F), infeasibility.fired (T,F,T),
+    // exhaustion_route (F,F,T), farkas_corroborated (T,F,F) -- all distinct.
+    IpqpTraceEscapeEvent e;
+    e.reason = IpqpTraceEscapeReason::kStall;
+    e.evidence.stall.fired = true;
+    e.evidence.stall.window = 2;
+    e.evidence.stall.mu_ratio = 0.5;
+    e.evidence.stall.residual_improvement = 0.0625;
+    e.evidence.stall.min_alpha = 0.03125;
+    e.evidence.stall.max_step_alpha = 0.015625;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipqp_escape(e);
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipqp.escape\",\"seq\":1,\"depth\":0,\"reason\":\"stall\","
+              "\"evidence\":{\"stall\":{\"fired\":true,\"window\":2,\"mu_ratio\":0.5,"
+              "\"residual_improvement\":0.0625,\"min_alpha\":0.03125,\"max_step_alpha\":0.015625},"
+              "\"infeasibility\":{\"fired\":false,\"exhaustion_route\":false,\"window\":0,"
+              "\"primal_start\":0,\"primal_end\":0,\"primal_improvement\":0,\"dual_norm_start\":0,"
+              "\"dual_norm_end\":0,\"dual_growth\":0,\"dual_step_growth\":0,"
+              "\"farkas_corroborated\":false,\"farkas_residual\":0,\"farkas_gap\":0,"
+              "\"least_infeasible_primal\":0,\"least_infeasible_mu\":0}}}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas) {
+    // The exhaustion route with the Farkas gate off -- the two zeroed Farkas
+    // scalars are the gate's own convention, not an absence.
+    IpqpTraceEscapeEvent e;
+    e.reason = IpqpTraceEscapeReason::kInfeasibleSuspect;
+    IpqpInfeasibilityEvidence &i = e.evidence.infeasibility;
+    i.fired = true;
+    i.exhaustion_route = true;
+    i.window = 7;
+    i.primal_start = 3.0;
+    i.primal_end = 2.75;
+    i.primal_improvement = 0.0625;
+    i.dual_norm_start = 20.0;
+    i.dual_norm_end = 4e6;
+    i.dual_growth = 2e5;
+    i.dual_step_growth = 1.5;
+    i.farkas_corroborated = false;
+    i.least_infeasible_primal = 2.5;
+    i.least_infeasible_mu = 0.0078125;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipqp_escape(e);
+    EXPECT_EQ(
+        os.str(),
+        "{\"v\":0,\"ev\":\"ipqp.escape\",\"seq\":1,\"depth\":0,\"reason\":\"infeasible_suspect\","
+        "\"evidence\":{\"stall\":{\"fired\":false,\"window\":0,\"mu_ratio\":0,"
+        "\"residual_improvement\":0,\"min_alpha\":0,\"max_step_alpha\":0},"
+        "\"infeasibility\":{\"fired\":true,\"exhaustion_route\":true,\"window\":7,"
+        "\"primal_start\":3,\"primal_end\":2.75,\"primal_improvement\":0.0625,"
+        "\"dual_norm_start\":20,\"dual_norm_end\":4000000,\"dual_growth\":200000,"
+        "\"dual_step_growth\":1.5,\"farkas_corroborated\":false,\"farkas_residual\":0,"
+        "\"farkas_gap\":0,\"least_infeasible_primal\":2.5,"
+        "\"least_infeasible_mu\":0.0078125}}}\n");
+}
+
+// ===========================================================================
+// R3 -- THE FAILURE PREDICATE, and the two exception cases
+// ===========================================================================
+
+/// @brief A `streambuf` that accepts `budget` bytes and then refuses everything.
+///
+/// A short `xsputn` is what a real `filebuf` hitting ENOSPC reports, and it is
+/// what sets `badbit` on the ostream above it. `taken` is the artifact that
+/// actually reached the "file".
+class FailAfterBuf : public std::streambuf {
+  public:
+    explicit FailAfterBuf(std::streamsize budget) : left_(budget) {}
+    std::string taken;
+
+  protected:
+    std::streamsize xsputn(const char *s, std::streamsize n) override {
+        const std::streamsize k = std::min(n, left_);
+        taken.append(s, static_cast<std::size_t>(k));
+        left_ -= k;
+        return k;
+    }
+    int_type overflow(int_type c) override {
+        if (traits_type::eq_int_type(c, traits_type::eof())) {
+            return traits_type::not_eof(c);
+        }
+        if (left_ <= 0) {
+            return traits_type::eof();
+        }
+        taken.push_back(static_cast<char>(c));
+        --left_;
+        return c;
+    }
+
+  private:
+    std::streamsize left_;
+};
+
+Index count_lines(const std::string &s) {
+    return static_cast<Index>(std::count(s.begin(), s.end(), '\n'));
+}
+
+TEST(JsonLinesTraceSink, FailedIsStickyAndSeqKeepsAdvancingPastTheFailure) {
+    // A HEALTHY stream first, so the predicate is not vacuously true.
+    {
+        std::ostringstream ok;
+        JsonLinesTraceSink sink(ok);
+        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        EXPECT_FALSE(sink.failed());
+        EXPECT_EQ(sink.lines_written(), 1);
+    }
+    FailAfterBuf buf(20); // shorter than one line, so the first write fails
+    std::ostream out(&buf);
+    JsonLinesTraceSink sink(out);
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    EXPECT_TRUE(sink.failed());
+    EXPECT_EQ(sink.lines_written(), 1);
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    EXPECT_TRUE(sink.failed()) << "sticky: it never reads back false";
+    EXPECT_EQ(sink.lines_written(), 3) << "seq advances, so the gap counts the lost lines";
+    EXPECT_LT(count_lines(buf.taken), sink.lines_written());
+}
+
+TEST(JsonLinesTraceSink, AStreamThatFailsMidSolveDoesNotChangeTheSolve) {
+    // THE INSTRUMENTATION INVARIANT, under the DEFAULT exception mask: the solve
+    // completes and its counters are the bare solve's, byte for byte, while the
+    // artifact is short and `failed()` says so.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(38);
+
+    SqpDriver bare(opts);
+    const SqpSolution without = bare.solve(*p.model);
+
+    FailAfterBuf buf(4096); // a few lines in, then ENOSPC
+    std::ostream out(&buf);
+    SqpDriver traced(opts);
+    JsonLinesTraceSink json(out);
+    traced.attach_trace(&json);
+    const SqpSolution with = traced.solve(*p.model);
+
+    ASSERT_EQ(without.status, with.status);
+    expect_counters_identical(without.counters, with.counters);
+    EXPECT_TRUE(json.failed());
+    ASSERT_GT(count_lines(buf.taken), 0) << "non-vacuous: the failure is MID-solve";
+    EXPECT_LT(count_lines(buf.taken), json.lines_written()) << "the gap is the lines lost";
+}
+
+TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
+    // THE SECOND CASE. A caller who arms a mask has ASKED for exceptions; the
+    // sink neither swallows nor re-labels one, and nothing in the driver catches
+    // it. This is the header's contract, pinned.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(38);
+    FailAfterBuf buf(4096);
+    std::ostream out(&buf);
+    out.exceptions(std::ios::badbit);
+    SqpDriver traced(opts);
+    JsonLinesTraceSink json(out);
+    traced.attach_trace(&json);
+    EXPECT_THROW(traced.solve(*p.model), std::ios_base::failure);
+}
+
+// ===========================================================================
+// R6 -- the null-sink comparison on the arm where the sink actually writes
+// ===========================================================================
+
+TEST(JsonLinesTraceSink, OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNoCounter) {
+    // The kWalk pin below records that the walk arm emits nothing. THIS one is
+    // the question the brief actually asks: attaching a sink to the arm where it
+    // formats every event moves no counter either.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(38);
+
+    SqpDriver bare(opts);
+    const SqpSolution without = bare.solve(*p.model);
+
+    SqpDriver traced(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    traced.attach_trace(&json);
+    const SqpSolution with = traced.solve(*p.model);
+
+    ASSERT_EQ(without.status, with.status);
+    ASSERT_GT(json.lines_written(), 0) << "non-vacuous: the sink really ran";
+    ASSERT_GT(without.counters.ipqp.ipqp_iters, 0);
+    ASSERT_GT(without.counters.ipqp.ipqp_escapes, 0) << "the cell moves the escape census too";
+    expect_counters_identical(without.counters, with.counters);
+    EXPECT_EQ(without.history.size(), with.history.size());
+    EXPECT_FALSE(json.failed());
+}
+
+// ===========================================================================
+// R7 -- the identities on populations that make every term non-zero
+// ===========================================================================
+
+/// @brief A model whose variable 0 has a zero-width box.
+///
+/// REPLICATED, unchanged in behaviour, from `PinnedVariableModel` in
+/// tests/sqp/test_ipqp_dispatch.cpp:156 (which pins the decline itself). It is
+/// here because it is the only in-tree population with
+/// `ipqp_declined_pinned > 0`, and that is the term the entry identity
+/// subtracts. Neither that test nor its fixture was modified.
+class PinnedVariableModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 1; }
+
+    double eval_f(const Vec &x) const override {
+        return 0.5 * ((x(0) - 1.0) * (x(0) - 1.0) + (x(1) - 2.0) * (x(1) - 2.0));
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << x(0) - 1.0, x(1) - 2.0;
+        return g;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) + x(1) - 3.0;
+        return c;
+    }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    const Vec &lower() const override {
+        static const Vec v = (Vec(2) << 0.5, -5.0).finished();
+        return v;
+    }
+    const Vec &upper() const override {
+        static const Vec v = (Vec(2) << 0.5, 5.0).finished();
+        return v;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 0.25); }
+};
+
+TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned) {
+    // On HS11 and HS38 `ipqp_declined_pinned` is 0, so the whole-solve pin's
+    // subtraction is never exercised there. HERE every walk route IS a decline,
+    // so the stream carries ZERO entries against a positive `ipqp_to_walk`.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    PinnedVariableModel model;
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(model);
+
+    const IpqpCounters &c = sol.counters.ipqp;
+    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_GT(c.ipqp_declined_pinned, 0) << "variable 0's declared bounds are equal";
+    ASSERT_EQ(c.ipqp_to_walk, c.ipqp_declined_pinned) << "every walk route here is a decline";
+    EXPECT_EQ(c.ipqp_escapes, 0) << "A DECLINE IS NOT AN ESCAPE";
+
+    const std::map<std::string, Index> by_ev = census(os.str());
+    const auto at = [&](const char *k) {
+        const auto it = by_ev.find(k);
+        return it == by_ev.end() ? Index{0} : it->second;
+    };
+    const Index entries = c.ipqp_to_walk - c.ipqp_declined_pinned;
+    EXPECT_EQ(entries, 0);
+    EXPECT_EQ(at("fallback.verdict"), entries)
+        << "without the subtraction this reads " << c.ipqp_to_walk;
+    EXPECT_EQ(at("ipqp.iter"), c.ipqp_iters);
+    EXPECT_EQ(at("ipqp.escape"), c.ipqp_escapes);
+}
+
+// --- the five-verdict population, replicated from test_sqp_driver.cpp ------
+//
+// `w2_box_blocked_qp` (:8536), `w2_antiparallel_eq_qp` (:9023) and `w2_escaped`
+// (:8631) are file-local there, so they are REPLICATED here unchanged rather
+// than lifted -- that test and its fixture are not touched at all.
+
+QpProblem w2_box_blocked_qp(double b) {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.H.makeCompressed();
+    qp.g = Vec::Zero(2);
+    qp.Ae = SpMatRM(1, 2);
+    qp.Ae.insert(0, 0) = 1.0;
+    qp.Ae.insert(0, 1) = 1.0;
+    qp.Ae.makeCompressed();
+    qp.be = Vec(1);
+    qp.be << 5.0;
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -b);
+    qp.upper = Vec::Constant(2, b);
+    return qp;
+}
+
+QpProblem w2_antiparallel_eq_qp() {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.H.makeCompressed();
+    qp.g = Vec::Zero(2);
+    qp.Ae = SpMatRM(2, 2);
+    qp.Ae.insert(0, 0) = 1.0;
+    qp.Ae.insert(0, 1) = 1.0;
+    qp.Ae.insert(1, 0) = -1.0;
+    qp.Ae.insert(1, 1) = -1.0;
+    qp.Ae.makeCompressed();
+    qp.be = Vec(2);
+    qp.be << 1.0, 1.0;
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return qp;
+}
+
+IpqpInfeasibilityEvidence w2_escaped_evidence(const QpProblem &qp) {
+    QpOptions qopts;
+    qopts.tr_radius = std::numeric_limits<double>::infinity();
+    IpqpEngine tier(qopts);
+    return tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{}).infeasibility_evidence;
+}
+
+TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation) {
+    // W2 T5's own five-class population (test_sqp_driver.cpp:9806), driven
+    // through the sink the way the driver drives it (sqp_driver.cpp:3915: the
+    // judge fills the out-param, the caller emits it).
+    //
+    // Plus a SIXTH entry declined ABOVE the floor, so `elastic_floor_retries` is
+    // non-zero. Round 1 asserted this partition only on HS11/HS38, where
+    // disproved, rung_b and floor_retries are all 0 -- four times `0 == 0`.
+    const QpProblem feasible = w2_box_blocked_qp(10.0);
+    const QpProblem blocked = w2_box_blocked_qp(0.5);
+    const QpProblem antiparallel = w2_antiparallel_eq_qp();
+    const IpqpInfeasibilityEvidence blocked_ev = w2_escaped_evidence(blocked);
+    const IpqpInfeasibilityEvidence antiparallel_ev = w2_escaped_evidence(antiparallel);
+    IpqpInfeasibilityEvidence floored = blocked_ev;
+    floored.dual_norm_start = kElasticRhoInit;
+    ASSERT_GT(blocked_ev.dual_norm_start, kElasticRhoInit) << "or the retry entry is vacuous";
+
+    const double inf = std::numeric_limits<double>::infinity();
+    struct Entry {
+        const char *name;
+        const QpProblem *qp;
+        const IpqpInfeasibilityEvidence *evidence;
+        double engine_tr;
+    };
+    const IpqpInfeasibilityEvidence unfired;
+    const std::vector<Entry> entries{{"disproved", &feasible, &blocked_ev, inf},
+                                     {"relaxed", &blocked, &blocked_ev, inf},
+                                     {"exhausted", &antiparallel, &antiparallel_ev, inf},
+                                     {"rung_b", &blocked, &floored, 1.0e-3},
+                                     {"unfired", &blocked, &unfired, inf},
+                                     {"floor_retry", &blocked, &blocked_ev, 1.0e-3}};
+
+    SqpCounters out;
+    const NlpEval nlp_ev;
+    const SolveOverrides overrides;
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    for (const Entry &e : entries) {
+        SqpOptions opts;
+        opts.qp.tr_radius = e.engine_tr;
+        QpEngine engine(opts.qp);
+        SqpIterate row;
+        std::optional<ElasticLadderReport> report;
+        SqpFallbackVerdictTraceEvent verdict;
+        certified_feasibility_fallback(engine, *e.qp, nlp_ev, nullptr, *e.evidence, overrides, opts,
+                                       inf, out, row, report, verdict);
+        json.on_fallback_verdict(verdict);
+    }
+
+    const std::map<std::string, Index> by_ev = census(os.str());
+    ASSERT_EQ(by_ev.at("fallback.verdict"), static_cast<Index>(entries.size()));
+
+    Index unfired_n = 0, disproved_n = 0, relaxed_n = 0, exhausted_n = 0, rung_b_n = 0;
+    Index retry_lines = 0;
+    for (const std::string &l : split_lines(os.str())) {
+        const std::string v = raw_field(l, "verdict");
+        unfired_n += (v == "\"unfired\"") ? 1 : 0;
+        disproved_n += (v == "\"disproved\"") ? 1 : 0;
+        relaxed_n += (v == "\"relaxed\"") ? 1 : 0;
+        exhausted_n += (v == "\"exhausted\"") ? 1 : 0;
+        rung_b_n += (v == "\"rung_b\"") ? 1 : 0;
+        retry_lines += (raw_field(l, "floor_retry") == "true") ? 1 : 0;
+        EXPECT_EQ(raw_field(l, "rho_0") == "null", raw_field(l, "entered_rung_a") == "false") << l;
+    }
+
+    // ALL FIVE SPELLINGS ARE PRODUCED BY A REAL JUDGE, not a hand-filled struct.
+    EXPECT_EQ(disproved_n, 1);
+    EXPECT_EQ(relaxed_n, 1);
+    EXPECT_EQ(exhausted_n, 1);
+    EXPECT_EQ(rung_b_n, 2) << "the declined entry and the declined-above-the-floor retry";
+    EXPECT_EQ(unfired_n, 1);
+    EXPECT_EQ(retry_lines, 1) << "and the retry flag is on exactly the sixth entry";
+
+    // T5's identities, now with EVERY term non-zero.
+    const Index fired = disproved_n + relaxed_n + exhausted_n + rung_b_n;
+    const Index n = static_cast<Index>(entries.size());
+    EXPECT_EQ(disproved_n, out.ipqp_suspicion_disproved);
+    EXPECT_EQ(rung_b_n, out.ipqp_fallback_rung_b);
+    EXPECT_GT(out.elastic_floor_retries, 0) << "the subtracted term is live here";
+    EXPECT_EQ(fired, out.elastic_from_ipqp_escape - out.elastic_floor_retries);
+    EXPECT_EQ(unfired_n, n - fired);
 }
 
 } // namespace
