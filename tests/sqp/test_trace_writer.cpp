@@ -574,6 +574,44 @@ const char *spec_spelling(SqpFallbackVerdict v) {
     return kUnspelled;
 }
 
+const char *spec_spelling(hven::ConvergenceFlags v) {
+    switch (v) {
+    case hven::ConvergenceFlags::CONVERGED:
+        return "\"converged\"";
+    case hven::ConvergenceFlags::ACCEPTABLE:
+        return "\"acceptable\"";
+    case hven::ConvergenceFlags::NOTCONVERGED:
+        return "\"not_converged\"";
+    case hven::ConvergenceFlags::DIVERGING:
+        return "\"diverging\"";
+    case hven::ConvergenceFlags::SINGULAR_KKT:
+        return "\"singular_kkt\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(InertiaModes v) {
+    switch (v) {
+    case InertiaModes::classic:
+        return "\"classic\"";
+    case InertiaModes::proximal_regularization:
+        return "\"proximal_regularization\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(RestorationModes v) {
+    switch (v) {
+    case RestorationModes::off:
+        return "\"off\"";
+    case RestorationModes::proximal_switch:
+        return "\"proximal_switch\"";
+    case RestorationModes::l1_nested:
+        return "\"l1_nested\"";
+    }
+    return kUnspelled;
+}
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
@@ -604,6 +642,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(StartLevel::kHot) == 4 - 1, "4 start levels");
     static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
     static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
+    static_assert(static_cast<int>(hven::ConvergenceFlags::SINGULAR_KKT) == 5 - 1,
+                  "5 convergence flags");
+    static_assert(static_cast<int>(InertiaModes::proximal_regularization) == 2 - 1,
+                  "2 inertia modes");
+    static_assert(static_cast<int>(RestorationModes::l1_nested) == 3 - 1, "3 restoration modes");
 
     const auto reg_dir = [](IpqpTraceRegDir d) {
         IpqpTraceRegEvent e;
@@ -783,6 +826,45 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     start_level(StartLevel::kSeeded);
     start_level(StartLevel::kWarm);
     start_level(StartLevel::kHot);
+
+    // W4 T4: the interior-point driver's three alphabets. `ConvergenceFlags` is
+    // that driver's own exit status; the two mode selectors shape the run.
+    const auto ipm_status = [](hven::ConvergenceFlags st) {
+        IpmSolveEndTraceEvent e;
+        e.status = st;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_ipm_solve_end(e);
+        EXPECT_EQ(raw_field(os.str(), "status"), spec_spelling(st));
+    };
+    ipm_status(hven::ConvergenceFlags::CONVERGED);
+    ipm_status(hven::ConvergenceFlags::ACCEPTABLE);
+    ipm_status(hven::ConvergenceFlags::NOTCONVERGED);
+    ipm_status(hven::ConvergenceFlags::DIVERGING);
+    ipm_status(hven::ConvergenceFlags::SINGULAR_KKT);
+
+    const auto inertia_mode = [](InertiaModes m) {
+        IpmSolveBeginTraceEvent e;
+        e.inertia_mode = m;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_ipm_solve_begin(e);
+        EXPECT_EQ(raw_field(os.str(), "inertia_mode"), spec_spelling(m));
+    };
+    inertia_mode(InertiaModes::classic);
+    inertia_mode(InertiaModes::proximal_regularization);
+
+    const auto restoration_mode = [](RestorationModes m) {
+        IpmSolveBeginTraceEvent e;
+        e.restoration_mode = m;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_ipm_solve_begin(e);
+        EXPECT_EQ(raw_field(os.str(), "restoration_mode"), spec_spelling(m));
+    };
+    restoration_mode(RestorationModes::off);
+    restoration_mode(RestorationModes::proximal_switch);
+    restoration_mode(RestorationModes::l1_nested);
 }
 
 TEST(JsonLinesTraceSink, StringEscapingIsRfc8259AndUtf8PassesThrough) {
@@ -3110,6 +3192,231 @@ TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor)
     ASSERT_GT(first_row_after, 0) << "the requesting row must be written at all";
     EXPECT_GT(first_row_after, nested_end_seq)
         << "the requesting row is written after the solve it asked for";
+}
+
+// ===========================================================================
+// W4 T4 -- the interior-point events' golden lines
+// ===========================================================================
+//
+// The DRIVER-side pins (both emit sites, the count identity, the callback as
+// the oracle, the null sink, the two exit statuses, the mixed stream) are in
+// tests/interior/test_ipm_trace.cpp; these four are the serializer's.
+
+/// @brief The classic path's record: every field distinct, and BOTH -1
+/// conventions active -- `prox_reg_*` at "proximal mode off" and the rejection
+/// pair at "no rejection recorded". Four `null`s, two different meanings.
+IterateInfo golden_ipm_iter_sentinels() {
+    IterateInfo r;
+    r.iter_ = 7;
+    r.mu_ = 0.25;
+    r.prim_obj_ = 1.5;
+    r.barr_obj_ = 2.25;
+    r.kkt_inf_ = 0.5;
+    r.barr_inf_ = 0.125;
+    r.econ_inf_ = 0.0625;
+    r.icon_inf_ = 0.03125;
+    r.pen_par1_ = 3.5;
+    r.pen_par2_ = 4.75;
+    r.ls_iters_ = 2;
+    r.alpha_p_ = 0.9;
+    r.alpha_d_ = 0.8;
+    r.alpha_t_ = 0.7;
+    r.h_pert_ = 1e-8;
+    r.h_facs_ = 3;
+    r.h_pert_cum_ = 2e-8;
+    r.prox_reg_primal_ = -1.0;
+    r.prox_reg_dual_ = -1.0;
+    r.p_pivots_ = 5;
+    r.max_e_mult_ = 11.0;
+    r.max_i_mult_ = 12.5;
+    r.merit_val_ = 13.25;
+    r.accepted_ = false;
+    r.first_rejection_iter_ = -1;
+    r.theta_at_first_rejection_ = -1.0;
+    r.eval_exceptions_ = 4;
+    return r;
+}
+
+/// @brief The same record with every sentinel-bearing field carrying a REAL
+/// value, including the two the boundary is easiest to get wrong:
+/// `first_rejection_iter_ == 0` (the FIRST trial was rejected) and
+/// `theta_at_first_rejection_ == 0.0` (a feasible reading). Both are numbers,
+/// not `null`, which is what makes the `< 0` predicate falsifiable.
+IterateInfo golden_ipm_iter_present() {
+    IterateInfo r;
+    r.iter_ = 1;
+    r.mu_ = 0.1;
+    r.prim_obj_ = -0.5;
+    r.barr_obj_ = -0.25;
+    r.kkt_inf_ = std::numeric_limits<double>::quiet_NaN();
+    r.barr_inf_ = std::numeric_limits<double>::infinity();
+    r.econ_inf_ = -std::numeric_limits<double>::infinity();
+    r.icon_inf_ = -0.0;
+    r.pen_par1_ = 100.0;
+    r.pen_par2_ = 1000.0;
+    r.ls_iters_ = 1;
+    r.alpha_p_ = 0.5;
+    r.alpha_d_ = 0.25;
+    r.alpha_t_ = 0.125;
+    r.h_pert_ = 1e-4;
+    r.h_facs_ = 2;
+    r.h_pert_cum_ = 3e-4;
+    r.prox_reg_primal_ = 1e-6;
+    r.prox_reg_dual_ = 2e-6;
+    r.p_pivots_ = 9;
+    r.max_e_mult_ = 1e3;
+    r.max_i_mult_ = 1e4;
+    r.merit_val_ = 0.1;
+    r.accepted_ = true;
+    r.first_rejection_iter_ = 0;
+    r.theta_at_first_rejection_ = 0.0;
+    r.eval_exceptions_ = 0;
+    return r;
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmIterWithBothMinusOneConventionsActive) {
+    const IterateInfo r = golden_ipm_iter_sentinels();
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_iter(IpmIterTraceEvent{r, 1});
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.iter\",\"seq\":1,\"depth\":0,\"iter\":7,\"mu\":0.25,"
+              "\"prim_obj\":1.5,\"barr_obj\":2.25,\"kkt_inf\":0.5,\"barr_inf\":0.125,"
+              "\"econ_inf\":0.0625,\"icon_inf\":0.03125,\"pen_par1\":3.5,\"pen_par2\":4.75,"
+              "\"ls_iters\":2,\"alpha_p\":0.90000000000000002,\"alpha_d\":0.80000000000000004,"
+              "\"alpha_t\":0.69999999999999996,\"h_pert\":1e-08,\"h_facs\":3,\"h_pert_cum\":2e-08,"
+              "\"prox_reg_primal\":null,\"prox_reg_dual\":null,\"p_pivots\":5,\"max_e_mult\":11,"
+              "\"max_i_mult\":12.5,\"merit_val\":13.25,\"accepted\":false,"
+              "\"first_rejection_iter\":null,\"theta_at_first_rejection\":null,"
+              "\"eval_exceptions\":4,\"phase\":1}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmIterWithEverySentinelBearingFieldPresent) {
+    const IterateInfo r = golden_ipm_iter_present();
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_iter(IpmIterTraceEvent{r, 0});
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.iter\",\"seq\":1,\"depth\":0,\"iter\":1,"
+              "\"mu\":0.10000000000000001,\"prim_obj\":-0.5,\"barr_obj\":-0.25,\"kkt_inf\":\"nan\","
+              "\"barr_inf\":\"inf\",\"econ_inf\":\"-inf\",\"icon_inf\":-0,\"pen_par1\":100,"
+              "\"pen_par2\":1000,\"ls_iters\":1,\"alpha_p\":0.5,\"alpha_d\":0.25,\"alpha_t\":0.125,"
+              "\"h_pert\":0.0001,\"h_facs\":2,\"h_pert_cum\":0.00029999999999999997,"
+              "\"prox_reg_primal\":9.9999999999999995e-07,\"prox_reg_dual\":1.9999999999999999e-06,"
+              "\"p_pivots\":9,\"max_e_mult\":1000,\"max_i_mult\":10000,"
+              "\"merit_val\":0.10000000000000001,\"accepted\":true,\"first_rejection_iter\":0,"
+              "\"theta_at_first_rejection\":0,\"eval_exceptions\":0,\"phase\":0}\n");
+}
+
+TEST(JsonLinesTraceSink, TheTwoIpmIterGoldenLinesDifferInEveryBoolAndSentinelSlot) {
+    // FALSIFIABILITY, the T1 convention: two lines that differ in the `accepted`
+    // bool AND in all four sentinel slots, so a swapped key or a dropped
+    // predicate cannot leave both golden lines passing.
+    std::ostringstream a_os;
+    JsonLinesTraceSink a(a_os);
+    a.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_sentinels(), 1});
+    std::ostringstream b_os;
+    JsonLinesTraceSink b(b_os);
+    b.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_present(), 0});
+    EXPECT_NE(a_os.str(), b_os.str());
+    EXPECT_EQ(raw_field(a_os.str(), "accepted"), "false");
+    EXPECT_EQ(raw_field(b_os.str(), "accepted"), "true");
+    for (const char *k :
+         {"prox_reg_primal", "prox_reg_dual", "first_rejection_iter", "theta_at_first_rejection"}) {
+        EXPECT_EQ(raw_field(a_os.str(), k), "null") << k;
+        EXPECT_NE(raw_field(b_os.str(), k), "null") << k;
+    }
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
+    IpmSolveBeginTraceEvent e;
+    e.n = 15;
+    e.n_reduced = 10;
+    e.me = 6;
+    e.mi = 7;
+    e.vars_free = 1;
+    e.vars_lower_only = 2;
+    e.vars_upper_only = 3;
+    e.vars_ranged = 4;
+    e.vars_fixed = 5;
+    e.phases = 3;
+    e.max_iters = 200;
+    e.max_acc_iters = 25;
+    e.kkt_tol = 1e-6;
+    e.econ_tol = 2e-6;
+    e.icon_tol = 3e-6;
+    e.bar_tol = 4e-6;
+    e.init_mu = 0.001;
+    e.obj_scale = 2.5;
+    e.inertia_mode = InertiaModes::proximal_regularization;
+    e.restoration_mode = RestorationModes::l1_nested;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_solve_begin(e);
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"ipm.solve.begin\",\"seq\":1,\"depth\":0,\"n\":15,"
+                        "\"n_reduced\":10,\"me\":6,\"mi\":7,\"vars_free\":1,\"vars_lower_only\":2,"
+                        "\"vars_upper_only\":3,\"vars_ranged\":4,\"vars_fixed\":5,\"phases\":3,"
+                        "\"max_iters\":200,\"max_acc_iters\":25,\"kkt_tol\":9.9999999999999995e-07,"
+                        "\"econ_tol\":1.9999999999999999e-06,\"icon_tol\":3.0000000000000001e-06,"
+                        "\"bar_tol\":3.9999999999999998e-06,\"init_mu\":0.001,\"obj_scale\":2.5,"
+                        "\"inertia_mode\":\"proximal_regularization\","
+                        "\"restoration_mode\":\"l1_nested\"}\n");
+    // The pair moves NO depth: this driver nests no driver of its own.
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmSolveEnd) {
+    IpmSolveEndTraceEvent e;
+    e.status = hven::ConvergenceFlags::ACCEPTABLE;
+    e.iters = 42;
+    e.total_time_s = 1.5;
+    e.pre_time_s = 0.25;
+    e.func_time_s = 0.125;
+    e.kkt_time_s = 0.0625;
+    e.print_time_s = 0.03125;
+    e.solver_init_time_s = 0.015625;
+    e.misc_time_s = 1.015625;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_solve_end(e);
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"acceptable\","
+              "\"iters\":42,\"total_time_s\":1.5,\"pre_time_s\":0.25,\"func_time_s\":0.125,"
+              "\"kkt_time_s\":0.0625,\"print_time_s\":0.03125,\"solver_init_time_s\":0.015625,"
+              "\"misc_time_s\":1.015625}\n");
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, TheIpmPairMovesNoDepthAndDoesNotDisturbTheSqpNesting) {
+    // The two engines share one sink. An `ipm.solve` pair written between an
+    // SQP pair's begin and end must leave the SQP nesting exactly as it found
+    // it -- so it neither pushes nor pops.
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    const SqpCounters counters;
+    sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
+    sink.on_ipm_solve_begin(IpmSolveBeginTraceEvent{});
+    sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_sentinels(), 0});
+    sink.on_ipm_solve_end(IpmSolveEndTraceEvent{});
+    EXPECT_EQ(sink.depth(), 0);
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+    EXPECT_EQ(sink.depth(), 0);
+    for (const std::string &l : split_lines(os.str())) {
+        EXPECT_EQ(raw_field(l, "depth"), "0") << l;
+    }
+    EXPECT_EQ(sink.lines_written(), 5);
+}
+
+TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
+    // The production `to_json` has no `default` label and this tree has no
+    // `-Werror`, so `"unknown"` is reachable from a library-only build. Here it
+    // never is.
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_solve_begin(IpmSolveBeginTraceEvent{});
+    sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_present(), 0});
+    sink.on_ipm_solve_end(IpmSolveEndTraceEvent{});
+    EXPECT_EQ(os.str().find("unknown"), std::string::npos);
 }
 
 } // namespace

@@ -9,6 +9,10 @@
 
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/model/nlp_problem_model.h"
+// The adapter above only FORWARD-DECLARES NonLinearProgram, and this file
+// dereferences one (the psiopt-era unity batch happened to supply the
+// definition from a neighbouring TU; M6 W4 T4 re-batched the suite).
+#include "hven/model/non_linear_program.h"
 
 // UNITY-BUILD NOTE: this suite is compiled with UNITY_BUILD ON, so an anonymous
 // namespace does not isolate these helpers from the other test TUs merged into
