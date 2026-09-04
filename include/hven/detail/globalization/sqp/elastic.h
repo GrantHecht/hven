@@ -61,9 +61,10 @@ inline constexpr double kElasticRhoFactor = 10.0;
 /// at all. The measured law above is a BASE-era reading of border mode, where the misfire lived;
 /// `ws_algebra == kRefactorize` read this family kOptimal at every cell of the same grid.
 ///
-/// W2 T6b covers it at the verdict site (qp_engine.h section 5's VERDICT-SITE FACE REFINEMENT),
-/// in border mode only, and the margin remains what it always was: a cheap first-rung placement
-/// that keeps the walk away from the residue rather than removing it. Measured after T6b, border
+/// W2 T6b covers it at the verdict site (qp_engine.h section 5's VERDICT-SITE FACE REFINEMENT) —
+/// in border mode then, and in BOTH algebras since W2 T7 — and the margin remains what it always
+/// was: a cheap first-rung placement that keeps the walk away from the residue rather than
+/// removing it. Measured after T6b, border
 /// mode: 25 of the 30 `dual_mu` x rho cells of this family CLOSE under the refinement, product 1
 /// included; the 5 at `dual_mu >= 1e-4` with rho >= 1e6 read kOptimal on a corner point whose row
 /// is off by 15 -- the pre-existing high-rung residue, pinned as such, not covered.

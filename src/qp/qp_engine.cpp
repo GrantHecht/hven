@@ -447,6 +447,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // because that call is itself a source of counters.shift_adds, which
     // QpCounters documents as included. Nothing else reads it this early.
     detail::KktFactor kkt;
+    // The face `kkt` holds, for the verdict-site refinement's reuse guard.
+    EliminatedFace face;
     QpCounters counters;
     WalkSeen seen{std::vector<std::uint8_t>(static_cast<std::size_t>(mi), 0),
                   std::vector<std::uint8_t>(static_cast<std::size_t>(n), 0)};
@@ -568,7 +570,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         probe.refresh(ws);
 
         detail::InertiaVerdict verdict = detail::InertiaVerdict::kOk;
-        const EqpResult eqp = eqp_candidate(qp, ws, kkt, *border_, counters, verdict, eff_opts);
+        const EqpResult eqp =
+            eqp_candidate(qp, ws, kkt, face, *border_, counters, verdict, eff_opts);
 
         // INERTIA GATE / TEMPORARY-VERTEX START REPAIR (section 4b). Only
         // at the start: a trustworthy wrong inertia here means the seed
@@ -619,18 +622,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 double worst = worst_structural_violation(qp, x, Aix, ai_row_norm1, lambda_i,
                                                           ae_row_norm1, lambda_e, eff_opts);
                 // THE VERDICT-SITE FACE REFINEMENT, at a would-be kInfeasible
-                // only, and BOTH ALGEBRAS since M6 W2 T7 -- see the two
-                // refine_*_for_verdict declarations, section 5.
+                // only, and on whichever twin the CANDIDATE'S PROVENANCE picks
+                // -- section 5, and the two refine_*_for_verdict declarations.
                 const bool refined =
-                    worst > 0.0 &&
-                    (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder
-                         ? eqp.refine_steps > 0 &&
-                               refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1, lambda_i,
-                                                       ae_row_norm1, lambda_e, *border_, counters,
-                                                       eff_opts)
-                         : refine_eliminated_face_for_verdict(qp, ws, x, Aix, ai_row_norm1,
-                                                              lambda_i, ae_row_norm1, lambda_e,
-                                                              counters, eff_opts));
+                    worst > 0.0 && (eqp.refine_steps > 0
+                                        ? refine_face_for_verdict(qp, ws, x, Aix, ai_row_norm1,
+                                                                  lambda_i, ae_row_norm1, lambda_e,
+                                                                  *border_, counters, eff_opts)
+                                        : refine_eliminated_face_for_verdict(
+                                              qp, ws, x, Aix, ai_row_norm1, lambda_i, ae_row_norm1,
+                                              lambda_e, kkt, face, counters, eff_opts));
                 if (refined) {
                     // x moved: restore this loop's invariants, then re-read
                     // the verdict off the refined point -- which is also what
@@ -1180,12 +1181,19 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
 bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
                                                   const Vec &Aix, const Vec &ai_row_norm1,
                                                   const Vec &lambda_i, const Vec &ae_row_norm1,
-                                                  const Vec &lambda_e, QpCounters &counters,
+                                                  const Vec &lambda_e, const detail::KktFactor &kkt,
+                                                  const EliminatedFace &face, QpCounters &counters,
                                                   const QpOptions &opts) const {
     const Index n = qp.n();
     const Index me = qp.me();
     const std::vector<Index> &aw = ws.active_ineq();
     const Index n_working = static_cast<Index>(aw.size());
+    if (!face.factorized) {
+        // Nothing this iteration solved through `kkt`: only the empty-system
+        // short-circuit reaches here, a bordered candidate being the border
+        // twin's by the caller's provenance test. See the declaration.
+        return false;
+    }
     if (ws.num_free() == 0 && me == 0 && aw.empty()) {
         return false; // the empty system eliminated_candidate short-circuits
     }
@@ -1193,40 +1201,40 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     // THE SYSTEM solve_eqp SOLVES, re-derived for the CURRENT working set. The rhs below is
     // eqp_solve.h's, and the two must stay in step: a divergence would refine a system the walk
     // never solved, which the strict-decrease rule would then reject rather than adopt.
-    const KktAssembly asm_ = assemble_kkt(qp, ws, opts);
-    const Index n_free = static_cast<Index>(asm_.free_of_full.size());
+    const KktAssembly assembly = assemble_kkt(qp, ws, opts);
+    const Index n_free = static_cast<Index>(assembly.free_of_full.size());
     const Index dim = n_free + me + n_working;
 
     Vec x_fixed = Vec::Zero(n);
     for (Index i = 0; i < n; ++i) {
         const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
         if (st != BoundState::kFree) {
-            x_fixed(i) = st == BoundState::kAtUpper ? qp.upper(i) : qp.lower(i);
+            x_fixed(i) = pinned_value(qp, st, i);
         }
     }
     Vec rhs(dim);
     for (Index k = 0; k < n_free; ++k) {
-        rhs(k) = -qp.g(asm_.free_of_full[static_cast<std::size_t>(k)]) - asm_.rhs_shift(k);
+        rhs(k) = -qp.g(assembly.free_of_full[static_cast<std::size_t>(k)]) - assembly.rhs_shift(k);
     }
     for (Index r = 0; r < me; ++r) {
-        rhs(n_free + r) = qp.be(r) - asm_.rhs_shift(n_free + r);
+        rhs(n_free + r) = qp.be(r) - assembly.rhs_shift(n_free + r);
     }
     for (Index k = 0; k < n_working; ++k) {
         rhs(n_free + me + k) =
-            qp.bi(aw[static_cast<std::size_t>(k)]) - asm_.rhs_shift(n_free + me + k);
+            qp.bi(aw[static_cast<std::size_t>(k)]) - assembly.rhs_shift(n_free + me + k);
     }
 
     Vec reg = Vec::Zero(dim);
     reg.head(n_free).setConstant(opts.primal_delta);
     reg.segment(n_free, me + n_working).setConstant(-opts.dual_mu);
     const auto residual_of = [&](const Vec &yy) {
-        const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
+        const Vec Kyy = assembly.K.template selfadjointView<Eigen::Upper>() * yy;
         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
     };
     const auto point_of = [&](const Vec &yy) {
         Vec xc = x_fixed;
         for (Index k = 0; k < n_free; ++k) {
-            xc(asm_.free_of_full[static_cast<std::size_t>(k)]) = yy(k);
+            xc(assembly.free_of_full[static_cast<std::size_t>(k)]) = yy(k);
         }
         return xc;
     };
@@ -1236,34 +1244,45 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
                                     lambda_e, opts);
     };
 
-    detail::KktFactor local;
-    Vec best;
-    Vec best_x;
-    double best_measure = 0.0;
-    Index steps = 0;
-    try {
-        ++counters.factorizations;
-        detail::factorize_checked(local, asm_.K);
-        // Replay the incumbent EXACTLY: solve_eqp's own solve plus its one mandatory refinement
-        // step, so the loop below starts where the walk is and every step is one it declined.
-        best = detail::solve_vec(local, rhs);
-        best = best + detail::solve_vec(local, residual_of(best));
-        best_x = point_of(best);
-        best_measure = measure_of(best_x);
-        for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {
-            const Vec candidate = best + detail::solve_vec(local, residual_of(best));
-            Vec candidate_x = point_of(candidate);
-            const double candidate_measure = measure_of(candidate_x);
-            if (!(candidate_measure < best_measure)) {
-                break; // stagnated, diverging, or NaN -- keep the better point
-            }
-            best = candidate;
-            best_x = std::move(candidate_x);
-            best_measure = candidate_measure;
-            ++steps;
+    // THE REUSE GUARD: `kkt` already holds this face's factorization unless the
+    // working set moved since the candidate solve, so the common case buys no
+    // factorization at all. See the declaration.
+    detail::KktFactor fresh;
+    const bool reuse = face.holds(ws);
+    const detail::KktFactor &fac = reuse ? kkt : fresh;
+    if (!reuse) {
+        // rebuild_k0's accounting rule: the decision is taken BEFORE the
+        // factorize and handed to it, so one factorization costs one pattern
+        // hash. `fresh` has never been analyzed, so the analysis is needed.
+        const detail::AnalysisDecision analysis = detail::analysis_decision(fresh, assembly.K);
+        if (analysis.needed) {
+            ++counters.symbolic_analyses;
         }
-    } catch (const std::runtime_error &) {
-        return false; // a degradation this branch answers by declining to refine
+        ++counters.factorizations;
+        detail::factorize_checked(fresh, assembly.K, analysis);
+    }
+    // NOTHING IS SWALLOWED HERE: this path has no degradation to absorb the way
+    // the border twin absorbs a singular Schur complement, so a throw is the
+    // backend fault solve_eqp reports one call earlier. See the declaration.
+    //
+    // Replay the CURRENT face's own incumbent -- solve_eqp's solve plus its one
+    // mandatory step -- so every step below is one the walk declined.
+    Vec best = detail::solve_vec(fac, rhs);
+    best = best + detail::solve_vec(fac, residual_of(best));
+    Vec best_x = point_of(best);
+    double best_measure = measure_of(best_x);
+    Index steps = 0;
+    for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {
+        const Vec candidate = best + detail::solve_vec(fac, residual_of(best));
+        Vec candidate_x = point_of(candidate);
+        const double candidate_measure = measure_of(candidate_x);
+        if (!(candidate_measure < best_measure)) {
+            break; // stagnated, diverging, or NaN -- keep the better point
+        }
+        best = candidate;
+        best_x = std::move(candidate_x);
+        best_measure = candidate_measure;
+        ++steps;
     }
     if (steps == 0 || !(best_measure <= 1.0)) {
         return false; // CLOSED, OR NOTHING -- the border twin's rule, verbatim
@@ -1300,17 +1319,21 @@ bool QpEngine::in_working(const WorkingSet &ws, Index row) {
 }
 
 EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                                  BorderState &border, QpCounters &counters,
+                                  EliminatedFace &face, BorderState &border, QpCounters &counters,
                                   detail::InertiaVerdict &verdict, const QpOptions &opts) const {
+    // Invalidated HERE, so only the path that actually factorizes `kkt` this
+    // iteration re-arms it: the verdict site refuses to reuse a factorization
+    // no call of this iteration produced.
+    face.factorized = false;
     if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
-        return border_candidate(qp, ws, kkt, border, counters, verdict, opts);
+        return border_candidate(qp, ws, kkt, face, border, counters, verdict, opts);
     }
-    return eliminated_candidate(qp, ws, kkt, counters, verdict, opts);
+    return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
 }
 
 EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &ws,
-                                         detail::KktFactor &kkt, QpCounters &counters,
-                                         detail::InertiaVerdict &verdict,
+                                         detail::KktFactor &kkt, EliminatedFace &face,
+                                         QpCounters &counters, detail::InertiaVerdict &verdict,
                                          const QpOptions &opts) const {
     const bool empty_system = ws.num_free() == 0 && qp.me() == 0 && ws.active_ineq().empty();
     if (empty_system) {
@@ -1328,6 +1351,9 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     }
     ++counters.factorizations;
     EqpResult res = solve_eqp(qp, ws, kkt, opts);
+    // Armed only now: solve_eqp has returned, so `kkt` really does hold this
+    // face's factorization and the verdict site may solve through it.
+    face.capture(ws);
     // EXTRA steps only, i.e. identically 0 (solver_counters.h): the eliminated path
     // takes its one mandatory step and has no iterated loop.
     counters.eqp_refine_steps += res.refine_steps;
@@ -1340,9 +1366,9 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
 }
 
 EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
-                                     detail::KktFactor &kkt, BorderState &border,
-                                     QpCounters &counters, detail::InertiaVerdict &verdict,
-                                     const QpOptions &opts) const {
+                                     detail::KktFactor &kkt, EliminatedFace &face,
+                                     BorderState &border, QpCounters &counters,
+                                     detail::InertiaVerdict &verdict, const QpOptions &opts) const {
     // LATCHED: bordering has been abandoned for this working-set shape
     // (see border_solve_or_fall_back). Do not sync -- the whole point is
     // that every border added here would be discarded unused, and adding
@@ -1350,7 +1376,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
     // work the dominant cost.
     if (border.latched) {
         if (latch_still_holds(ws)) {
-            return eliminated_candidate(qp, ws, kkt, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
         }
         // The pin count fell back to schur_cap or below, so bordering is
         // possible again. The stale stack cannot be incrementally repaired
@@ -1360,7 +1386,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
         border.latched = false;
         rebuild_k0(qp, ws, border, counters, opts);
         sync_borders(qp, ws, border, counters, opts);
-        return border_solve_or_fall_back(qp, ws, kkt, border, counters, verdict,
+        return border_solve_or_fall_back(qp, ws, kkt, face, border, counters, verdict,
                                          /*rebuilt=*/true, opts);
     }
 
@@ -1386,13 +1412,14 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
         rebuilt = true;
     }
     sync_borders(qp, ws, border, counters, opts);
-    return border_solve_or_fall_back(qp, ws, kkt, border, counters, verdict, rebuilt, opts);
+    return border_solve_or_fall_back(qp, ws, kkt, face, border, counters, verdict, rebuilt, opts);
 }
 
 EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
-                                              detail::KktFactor &kkt, BorderState &border,
-                                              QpCounters &counters, detail::InertiaVerdict &verdict,
-                                              bool rebuilt, const QpOptions &opts) const {
+                                              detail::KktFactor &kkt, EliminatedFace &face,
+                                              BorderState &border, QpCounters &counters,
+                                              detail::InertiaVerdict &verdict, bool rebuilt,
+                                              const QpOptions &opts) const {
     if (border.schur->needs_refactorization()) {
         // Rebuilding re-derives K0 from the CURRENT working set, folding
         // the working ROWS that triggered it back into K0. It cannot do
@@ -1406,19 +1433,19 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // eliminable, and stop maintaining a border stack nothing reads.
         if (rebuild_would_be_noop(ws, border)) {
             border.latched = true;
-            return eliminated_candidate(qp, ws, kkt, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
         }
         // A rebuild that has already been spent this iteration, or one
         // that did not clear the flag, also falls back -- but only latches
         // if the state it left behind is the pins-only dead end.
         if (rebuilt) {
-            return eliminated_candidate(qp, ws, kkt, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
         }
         rebuild_k0(qp, ws, border, counters, opts);
         sync_borders(qp, ws, border, counters, opts);
         if (border.schur->needs_refactorization()) {
             border.latched = rebuild_would_be_noop(ws, border);
-            return eliminated_candidate(qp, ws, kkt, counters, verdict, opts);
+            return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
         }
     }
 
@@ -1451,7 +1478,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         if (!border.schur->needs_refactorization()) {
             throw;
         }
-        return eliminated_candidate(qp, ws, kkt, counters, verdict, opts);
+        return eliminated_candidate(qp, ws, kkt, face, counters, verdict, opts);
     }
 }
 
@@ -1500,7 +1527,10 @@ detail::InertiaVerdict QpEngine::probe_inertia(const QpProblem &qp, const Workin
                                                detail::KktFactor &kkt, BorderState &border,
                                                QpCounters &counters, const QpOptions &opts) const {
     detail::InertiaVerdict verdict = detail::InertiaVerdict::kOk;
-    (void)eqp_candidate(qp, ws, kkt, border, counters, verdict, opts);
+    // A THROWAWAY face key: this call re-factorizes `kkt` for a HYPOTHETICAL
+    // working set, and the loop's own key must not be re-armed on it.
+    EliminatedFace probe_face;
+    (void)eqp_candidate(qp, ws, kkt, probe_face, border, counters, verdict, opts);
     return verdict;
 }
 

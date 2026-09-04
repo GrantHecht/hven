@@ -71,10 +71,17 @@ enum class BoundState {
 /// batteries: outside them, at `dual_mu` above the driver's own schedule, the
 /// two modes can DISAGREE on a verdict (M6 W2 T6b pins one such cell as a
 /// pre-existing walk-trajectory residue). The accuracy half of that caveat is
-/// RETIRED as of M6 W2 T7: BOTH algebras now refine at a would-be-kInfeasible
-/// dead end, against the same row-unit target and under the same
-/// closed-or-nothing rule, so neither can out-refine the other there
-/// (qp_engine.h section 5, and both refine_*_for_verdict declarations).
+/// RETIRED as of M6 W2 T7 (fix round 1): at a would-be-kInfeasible dead end
+/// reached by EITHER PATH the closed face is refined, against the same row-unit
+/// target and under the same closed-or-nothing rule, so neither mode can
+/// out-refine the other there — including the border-mode iterations a fallback
+/// or the latch serves from the elimination path, which the first cut of that
+/// change left refining neither way. WHAT IS NOT SYMMETRIC IS THE COST: the
+/// border twin re-forms its system through the Schur complement it already
+/// holds, while the eliminated twin reuses the incumbent factorization only
+/// while the working set has not moved since the candidate solve, and buys a
+/// factorization plus a symbolic analysis when it has (qp_engine.h section 5,
+/// and both refine_*_for_verdict declarations).
 enum class WorkingSetLinearAlgebra {
     kRefactorize,
     kSchurBorder,

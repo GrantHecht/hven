@@ -105,7 +105,18 @@
 //    factorizations counts K0 factorizations plus elimination-path fallbacks
 //    (a single iteration can spend two), and schur_updates counts individual
 //    add_border/drop_border calls INCLUDING re-adds after a rebuild, but not
-//    the rebuild's own wholesale clear. 4c's ride costs one minor_iter like
+//    the rebuild's own wholesale clear.
+//    ONE FURTHER CONTRIBUTOR, ON EITHER MODE (M6 W2 T7, amended by its fix
+//    round 1): the verdict-site face refinement's ELIMINATED twin charges one
+//    factorization -- and one symbolic_analyses -- when its working-set guard
+//    MISSES and it has to assemble and factorize a system of its own. On a
+//    guard HIT it reuses the incumbent factorization and charges NEITHER, and
+//    a solve that never dead-ends charges neither because the twin never runs.
+//    So the identities above are exact per major iteration and become "+1 per
+//    guard miss" over a whole solve; the miss is rare by construction (only a
+//    working-set change between the candidate solve and the verdict) and was
+//    measured at zero over the whole suite when the rule landed.
+//    4c's ride costs one minor_iter like
 //    any other step. 4b's repair costs one EXTRA minor_iter (the kWrong
 //    iteration is counted, then retried) plus, per pin/release it probes,
 //    schur_updates under kSchurBorder or one factorization under
@@ -351,7 +362,10 @@
 //        kRefactorize HAD ITS OWN (i) CASES -- eight at the shipped dual_mu,
 //        from the dual regularization the two modes share rather than from any
 //        bordering residue -- and M6 W2 T7 covers them with the SYMMETRIC
-//        refinement (refine_eliminated_face_for_verdict). STILL UNCOVERED: any
+//        refinement (refine_eliminated_face_for_verdict). So does a BORDER-mode
+//        solve that fell back or LATCHED to the elimination path, which T7's
+//        first cut left refining neither way: the dispatch keys on the PATH
+//        that produced the candidate, not on ws_algebra. STILL UNCOVERED: any
 //        (i) case whose face the refinement cannot close inside the budget,
 //        which is left to the classifier exactly as before.
 //    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
@@ -365,12 +379,18 @@
 //        optima should tune primal_delta rather than treat this
 //        kNumericalError as load-bearing.
 //
-//    THE VERDICT-SITE FACE REFINEMENT (M6 W2 T6b, extended to BOTH ALGEBRAS at
+//    THE VERDICT-SITE FACE REFINEMENT (M6 W2 T6b, extended to BOTH PATHS at
 //    M6 W2 T7) runs between the two: once the classification above has said
 //    kInfeasible, the closed working face is refined further -- against the
-//    same unregularized system the mode's own candidate solve targets, but to
-//    a target stated in ROW units (see refine_face_for_verdict, its eliminated
-//    twin, working_face_measure and face_row_target). The refined point is
+//    same unregularized system the candidate solve targets, but to a target
+//    stated in ROW units (see refine_face_for_verdict, its eliminated twin,
+//    working_face_measure and face_row_target). WHICH TWIN RUNS IS DECIDED BY
+//    PROVENANCE, NOT BY ws_algebra: EqpResult::refine_steps is >= 1 on every
+//    bordered candidate (solve_bordered_eqp counts its mandatory step) and is
+//    identically 0 on every eliminated one (solve_eqp sets it so), so it is an
+//    exact witness of the path that produced the candidate -- and a border-mode
+//    iteration served by the elimination path is refined by the ELIMINATED
+//    twin, on the system it was actually solved from. The refined point is
 //    adopted only if the face CLOSES, and it is then both what the classifier
 //    re-reads and what a kInfeasible exit returns. An ADOPTING dead end
 //    re-enters the ordinary would-be-kOptimal path -- refresh_shifts, the
@@ -868,6 +888,41 @@ struct BorderState {
     // nothing. See QpEngine::run()'s reuse condition (e).
 };
 
+// THE FACE THE ELIMINATION PATH'S `kkt` CURRENTLY HOLDS (M6 W2 T7 fix 1).
+// Captured where solve_eqp factorizes, read at the verdict site so the face
+// refinement can REUSE that factorization instead of buying its own.
+//
+// assemble_kkt keys K on exactly two things once the problem and the effective
+// (primal_delta, dual_mu) are fixed: which variables are FREE -- the
+// elimination partition, everything else being substituted out -- and which
+// inequality rows are working, in order. Both are recorded WHOLE rather than
+// as counts: refresh_shifts ADDS rows and drop_worst REMOVES them, and neither
+// changes n, so no pair of sizes distinguishes the faces.
+//
+// `factorized` is the second half of the guard and is the stronger half: it is
+// true only on an iteration whose candidate came from solve_eqp on THIS `kkt`.
+// A bordered candidate leaves it false (`kkt` then holds whatever the last
+// fallback left, which is not the current system even when the working set
+// matches), and so does solve_eqp's empty-reduced-system short-circuit, which
+// factorizes nothing at all.
+struct EliminatedFace {
+    bool factorized = false;
+    std::vector<BoundState> bound_state;
+    std::vector<Index> rows;
+
+    // Assignment reuses the vectors' capacity, so steady state allocates
+    // nothing.
+    void capture(const WorkingSet &ws) {
+        bound_state = ws.bound_state();
+        rows = ws.active_ineq();
+        factorized = true;
+    }
+
+    bool holds(const WorkingSet &ws) const {
+        return factorized && bound_state == ws.bound_state() && rows == ws.active_ineq();
+    }
+};
+
 // HOT-START LEVEL. The opaque handle behind warm_start.h's WarmStart::hot --
 // forward-declared there and DEFINED here. A frozen copy of the
 // fingerprint/exit-state members QpEngine::run() tracks per instance, plus
@@ -1266,12 +1321,15 @@ class QpEngine {
     // in ROW units rather than the bordered loop's penalty-scaled footprint,
     // and OVERWRITES `x` with the result -- returning true iff it did.
     //
-    // BORDER MODE ONLY, and only at a dead end whose classification would
-    // otherwise be kInfeasible: the caller gates on both. The eliminated path
-    // leaves no bordering residue to remove (the two modes solve DIFFERENT
-    // regularized problems on a closed face -- kRefactorize eliminates a
-    // pinned variable exactly, border mode realizes it as a -dual_mu row), and
-    // a point already headed for kOptimal has no verdict to buy.
+    // ON A BORDERED CANDIDATE ONLY (EqpResult::refine_steps > 0), and only at a
+    // dead end whose classification would otherwise be kInfeasible: the caller
+    // gates on both. An iteration that reached the elimination path -- under
+    // kRefactorize, or through any of border mode's fallbacks and its latch --
+    // is the eliminated twin's, because the residue this one removes is the
+    // BORDERING residue (the two paths solve DIFFERENT regularized problems on
+    // a closed face: elimination pins a variable exactly, border mode realizes
+    // it as a -dual_mu row). A point already headed for kOptimal has no verdict
+    // to buy.
     //
     // CLOSED, OR NOTHING. A candidate is adopted only if the face reaches its
     // target AND strictly improves on the walk's own point. A refinement that
@@ -1290,9 +1348,11 @@ class QpEngine {
                                  QpCounters &counters, const QpOptions &opts) const;
 
     /// @brief `refine_face_for_verdict`'s ELIMINATED twin (M6 W2 T7, DECLARED
-    /// contract change). Same entry condition, same target, same
-    /// closed-or-nothing adoption rule, same counter -- reached under
-    /// kRefactorize instead of kSchurBorder.
+    /// contract change; the dispatch and the cost rule amended by its fix
+    /// round 1). Same entry condition, same target, same closed-or-nothing
+    /// adoption rule, same counter -- reached whenever the candidate came off
+    /// `solve_eqp`, which is every kRefactorize iteration AND every border-mode
+    /// iteration served by a fallback or by the latch.
     ///
     /// WHY IT EXISTS. The border twin's own note says the eliminated path
     /// "leaves no bordering residue to remove", and that is true: there is no
@@ -1307,16 +1367,42 @@ class QpEngine {
     /// eight cells in which the EQUIVALENCE ORACLE is the less accurate of the
     /// two. Iterating the step `solve_eqp` already takes closes all eight.
     ///
-    /// THE COST IT DOES CHARGE: one factorization, counted like any other.
-    /// `refresh_shifts` can add a working row between the candidate solve and
-    /// this call, so the incumbent factorization cannot be reused here the way
-    /// the border twin reuses its Schur complement; the system is re-assembled
-    /// from the CURRENT working set and re-factorized. That is a real cost at
-    /// a dead end and is reported rather than hidden.
+    /// WHAT IT COSTS, AND WHEN. The system is re-assembled from the CURRENT
+    /// working set -- `assemble_kkt` is a triplet build over H/Ae/Ai's working
+    /// rows plus one sort, no backend call and no session, so the assembly is
+    /// not the cost. The FACTORIZATION is, and it is bought only when it has
+    /// to be: `kkt` still holds this iteration's own factorization of this
+    /// face, so the twin REUSES it and pays `solve_vec` calls alone whenever
+    /// `face` still describes the live working set. The one thing that can
+    /// break that is a working-set change between the candidate solve and this
+    /// call -- `refresh_shifts` adding a row, which is exactly what `face`
+    /// detects -- and on such a MISS the twin assembles and factorizes its own
+    /// `KktFactor`, charging one `factorizations` and one `symbolic_analyses`
+    /// (rebuild_k0's accounting rule: the decision taken before the factorize
+    /// and handed to it). A hit charges NEITHER.
+    ///
+    /// WHY REUSE IS SOUND, AND WHAT WOULD BREAK IT. `assemble_kkt` keys K on
+    /// the elimination partition and the working rows -- which `face` records
+    /// whole -- and on the problem and the effective (primal_delta, dual_mu),
+    /// which are FIXED across one iteration: the suspect-stall ladder's
+    /// `eff_opts.primal_delta *= kSuspectDeltaFactor` fires in the
+    /// would-be-kOptimal branch, strictly AFTER this classification, and then
+    /// restarts the iteration. A future reorder that moved an options change
+    /// ahead of the verdict site would silently break the identity, so it must
+    /// not: `face` guards the working set, not the options.
+    ///
+    /// D1/D4, AND THEY NOW HOLD IN BOTH ALGEBRAS (M6 W2 T6b's clauses, carried
+    /// here): a kInfeasible exit RETURNS the refined point when it was adopted,
+    /// so D1's consumers -- the elastic seed, the refusal return and the
+    /// restoration trial -- read the refined point on either path; "closed" is
+    /// the CLASSIFIER's own tolerance and nothing tighter; and DUALS ARE NOT
+    /// REFINED, `best`'s multipliers being discarded exactly as the border
+    /// twin discards its own.
     bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
                                             const Vec &Aix, const Vec &ai_row_norm1,
                                             const Vec &lambda_i, const Vec &ae_row_norm1,
-                                            const Vec &lambda_e, QpCounters &counters,
+                                            const Vec &lambda_e, const detail::KktFactor &kkt,
+                                            const EliminatedFace &face, QpCounters &counters,
                                             const QpOptions &opts) const;
 
     // Is ||x|| large in a way that only an unbounded direction explains?
@@ -1342,7 +1428,7 @@ class QpEngine {
     // K, on either mode. It is an out-parameter rather than a member so the
     // verdict can never outlive the factorization it describes.
     EqpResult eqp_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                            BorderState &border, QpCounters &counters,
+                            EliminatedFace &face, BorderState &border, QpCounters &counters,
                             detail::InertiaVerdict &verdict, const QpOptions &opts) const;
 
     // One solve_eqp against a freshly assembled+factorized, bound-ELIMINATED
@@ -1351,8 +1437,9 @@ class QpEngine {
     // also why a border-mode fallback on an all-variables-pinned working set
     // costs no factorization at all.
     EqpResult eliminated_candidate(const QpProblem &qp, const WorkingSet &ws,
-                                   detail::KktFactor &kkt, QpCounters &counters,
-                                   detail::InertiaVerdict &verdict, const QpOptions &opts) const;
+                                   detail::KktFactor &kkt, EliminatedFace &face,
+                                   QpCounters &counters, detail::InertiaVerdict &verdict,
+                                   const QpOptions &opts) const;
 
     // Border-mode counterpart of eqp_candidate (header contract, step 4):
     // bring K0's border stack in line with `ws`, rebuild K0 if that stack can
@@ -1360,7 +1447,7 @@ class QpEngine {
     // short-circuit above has no counterpart here and needs none -- K0 spans
     // all n variables whatever the working set does.
     EqpResult border_candidate(const QpProblem &qp, const WorkingSet &ws, detail::KktFactor &kkt,
-                               BorderState &border, QpCounters &counters,
+                               EliminatedFace &face, BorderState &border, QpCounters &counters,
                                detail::InertiaVerdict &verdict, const QpOptions &opts) const;
 
     // Shared tail of both entry paths above: decide whether the border stack
@@ -1369,9 +1456,10 @@ class QpEngine {
     // when it is not. `opts` is the effective options this solve resolved
     // (see run()'s `eff_opts`).
     EqpResult border_solve_or_fall_back(const QpProblem &qp, const WorkingSet &ws,
-                                        detail::KktFactor &kkt, BorderState &border,
-                                        QpCounters &counters, detail::InertiaVerdict &verdict,
-                                        bool rebuilt, const QpOptions &opts) const;
+                                        detail::KktFactor &kkt, EliminatedFace &face,
+                                        BorderState &border, QpCounters &counters,
+                                        detail::InertiaVerdict &verdict, bool rebuilt,
+                                        const QpOptions &opts) const;
 
     // The inertia gate for the BORDERED system K0 + live border stack (see
     // the header contract's section 4b for the derivation of both sides).

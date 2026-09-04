@@ -63,11 +63,18 @@ struct QpCounters {
     /// adopt contributes nothing at all.
     ///
     /// EXCLUDES: every refinement step taken inside an EQP solve (those are
-    /// border_refine_steps/eqp_refine_steps); every dead end reached under
-    /// QpOptions::ws_algebra == kRefactorize, where the eliminated path leaves
-    /// no bordering residue to remove and the refinement is never entered; and
-    /// every dead end whose classification was going to be kOptimal anyway,
-    /// which is why an ordinary solve reads 0 here.
+    /// border_refine_steps/eqp_refine_steps); and every dead end whose
+    /// classification was going to be kOptimal anyway, which is why an ordinary
+    /// solve reads 0 here. NOTHING IS EXCLUDED BY ALGEBRA (M6 W2 T7 and its fix
+    /// round 1): both paths refine at a would-be-kInfeasible dead end, and
+    /// which twin runs is decided by the candidate's provenance rather than by
+    /// QpOptions::ws_algebra, so a border-mode solve served by a fallback or by
+    /// the latch counts here too.
+    ///
+    /// THE PER-ENTRY BOUND IS THE READING THAT TRANSFERS, not any observed
+    /// total: at most detail::kMaxVerdictRefineSteps steps are bought per dead
+    /// end, and a whole-solve figure is only as large as the fixture's dead
+    /// ends make it.
     ///
     /// ZERO IS THE OVERWHELMINGLY COMMON READING and a nonzero one says the
     /// walk was about to certify infeasibility and paid for a closer look --
