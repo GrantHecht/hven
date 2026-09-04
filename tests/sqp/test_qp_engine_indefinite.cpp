@@ -2561,3 +2561,143 @@ TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
         EXPECT_LE(sol.x.lpNorm<Eigen::Infinity>(), 2.0 + 1e-12);
     }
 }
+
+// M6 W2 T7 fix 2. The verdict-site face key follows the FACTOR, not only the
+// working set: `probe_inertia` re-factorizes the loop's `kkt` for a
+// HYPOTHETICAL set, so a key that recorded only the set could still "hold".
+TEST(QpEngineIndefinite, T7Fix2TheFaceKeyIsInvalidatedByAnyRefactorizationOfKkt) {
+    SpMatRM K(3, 3);
+    K.insert(0, 0) = 2.0;
+    K.insert(0, 2) = 1.0;
+    K.insert(1, 1) = 3.0;
+    K.insert(1, 2) = 1.0;
+    K.insert(2, 2) = 0.0;
+    K.makeCompressed();
+
+    detail::KktFactor kkt;
+    WorkingSet ws(/*n=*/2, /*mi=*/1);
+    detail::factorize_checked(kkt, K);
+    EliminatedFace face;
+    face.capture(ws, kkt);
+
+    // The captured state: same set, same factorization.
+    EXPECT_TRUE(face.holds(ws, kkt));
+
+    // THE Z-1 CASE, and the one a set-only key got wrong: the working set is
+    // untouched, but `kkt` has been re-factorized underneath the key. The
+    // epoch the FACTOR advances inside its own factorize is what catches it.
+    detail::factorize_checked(kkt, K);
+    EXPECT_FALSE(face.holds(ws, kkt));
+
+    // Re-capturing after that re-factorization arms it again -- which is what
+    // `probe_inertia` now does, on the PROBED set rather than the pre-probe one.
+    face.capture(ws, kkt);
+    EXPECT_TRUE(face.holds(ws, kkt));
+
+    // The other half of the signature still bites on its own.
+    ws.bound_state()[0] = BoundState::kAtLower;
+    EXPECT_FALSE(face.holds(ws, kkt));
+    ws.bound_state()[0] = BoundState::kFree;
+    EXPECT_TRUE(face.holds(ws, kkt));
+
+    ws.add_ineq(0);
+    EXPECT_FALSE(face.holds(ws, kkt));
+}
+
+// The FAILED iteration-0 start repair, with a structural dead end in the same
+// iteration -- the path the throwaway probe key left armed on the last PROBED
+// factorization. BASE 99aedaf read kInfeasible here; 48d9fb4 threw.
+TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFactorization) {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(2, 2);
+    Hd(0, 0) = -1.0;
+    Hd(1, 1) = -1.0;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(2);
+
+    // Ae has RANK 1 and inconsistent right-hand sides, so the verdict site sees
+    // a structural violation on a face the walk cannot leave; x1 is unbounded
+    // below in H, so the iteration-0 repair runs, probes, and FAILS.
+    Eigen::MatrixXd Aed(2, 2);
+    Aed << 1.0, 0.0, 1.0, 0.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec(2);
+    qp.be << 0.0, 1.0;
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec(2);
+    qp.lower << -1.0, -1e20;
+    qp.upper = Vec(2);
+    qp.upper << 1.0, 1e20;
+
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        QpOptions opts;
+        opts.ws_algebra = algebra;
+        QpEngine eng{opts};
+
+        const QpSolution cold = eng.solve(qp);
+        EXPECT_EQ(cold.status, QpStatus::kInfeasible);
+
+        // The WARM re-solve is the cell: at BASE it returned this status, and
+        // the stale-key defect turned it into a throw out of the public API.
+        QpSolution warm;
+        ASSERT_NO_THROW(warm = eng.solve(qp, cold));
+        EXPECT_EQ(warm.status, QpStatus::kInfeasible);
+        EXPECT_NEAR(warm.x(0), 0.5, 1e-9);
+        EXPECT_EQ(warm.x(1), 0.0);
+        EXPECT_EQ(warm.counters.verdict_refine_steps, 0);
+
+        // THE PRICE OF THE MISS (fix 1's rider 4): under kRefactorize the probes
+        // move the epoch, so the twin buys its own factorization and analysis
+        // instead of reusing a factorization of a differently-SIZED system.
+        if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+            EXPECT_EQ(warm.counters.factorizations, 3);
+            EXPECT_EQ(warm.counters.symbolic_analyses, 1);
+        } else {
+            EXPECT_EQ(warm.counters.factorizations, 1);
+            EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+        }
+    }
+}
+
+// `dual_mu = 0` is legal (qp_types.h: 0 means no dual regularization), and with
+// a rank-deficient Ae every K the walk and the twin factorize is EXACTLY
+// singular. Nothing escapes solve() -- see the fix-2 report on why not.
+TEST(QpEngineIndefinite, T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve) {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(2, 2);
+    Hd(0, 0) = -1.0;
+    Hd(1, 1) = -1.0;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(2);
+    Eigen::MatrixXd Aed(2, 2);
+    Aed << 1.0, 0.0, 1.0, 0.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec(2);
+    qp.be << 0.0, 1.0;
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec(2);
+    qp.lower << -1.0, -1e20;
+    qp.upper = Vec(2);
+    qp.upper << 1.0, 1e20;
+
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        QpOptions opts;
+        opts.ws_algebra = algebra;
+        opts.dual_mu = 0.0;
+        QpEngine eng{opts};
+
+        QpSolution cold;
+        ASSERT_NO_THROW(cold = eng.solve(qp));
+        EXPECT_EQ(cold.status, QpStatus::kInfeasible);
+        QpSolution warm;
+        ASSERT_NO_THROW(warm = eng.solve(qp, cold));
+        EXPECT_EQ(warm.status, QpStatus::kInfeasible);
+        EXPECT_TRUE(warm.x.allFinite());
+    }
+}

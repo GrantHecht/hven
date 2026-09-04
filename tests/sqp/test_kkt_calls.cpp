@@ -155,3 +155,37 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     EXPECT_EQ(k.factor.counters().analyze_count, symbolic_analyses);
     EXPECT_EQ(k.factor.counters().factorize_count, 3);
 }
+
+// M6 W2 T7 fix 2, and the measurement the eliminated twin's MISS-branch decline
+// rests on: what an EXACTLY SINGULAR KKT does under sqp_kkt_options(). It is
+// the `dual_mu = 0` case -- a working row dependent on the face, zero (2,2).
+TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
+    // K = [[I, A^T], [A, 0]] with A = [[1, 0], [1, 0]]: rank 1, so K is exactly
+    // singular. Upper triangle only, with the structural diagonal the backend
+    // requires in every row.
+    SpMatRM K(4, 4);
+    K.insert(0, 0) = 1.0;
+    K.insert(0, 2) = 1.0;
+    K.insert(0, 3) = 1.0;
+    K.insert(1, 1) = 1.0;
+    K.insert(2, 2) = 0.0;
+    K.insert(3, 3) = 0.0;
+    K.makeCompressed();
+
+    KktFactor k;
+#if defined(__APPLE__)
+    // UNOBSERVED on Accelerate (CLAUDE.md §6): a backend that reports a
+    // singular factorization as an error instead of perturbing would make
+    // factorize_checked throw here, which is the twin's decline path.
+    (void)k;
+#else
+    // MKL Pardiso's default static pivoting perturbs the tiny pivots and
+    // returns success, so factorize_checked does NOT throw and the twin's
+    // decline is NOT reached by this route. The fix-2 report says so.
+    ASSERT_NO_THROW(factorize_checked(k, K));
+    const hven::linear::InertiaEvidence ev = k.factor.inertia();
+    EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
+    EXPECT_EQ(ev.n_zero, 0);
+    EXPECT_GT(ev.perturbed_pivots.value_or(0), 0);
+#endif
+}

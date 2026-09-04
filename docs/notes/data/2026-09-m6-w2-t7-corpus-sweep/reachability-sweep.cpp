@@ -7,6 +7,10 @@
 // header and then one CSV row per cell, exactly the bytes below `arm,n_nodes,...` in
 // reachability-sweep.csv (whose `#` block is the operator's, recording the run, not the program).
 //
+// COMPOSING THE COMMITTED FILE (M6 W2 T7 fix 2, Z-6): each arm emits its OWN header line, so the
+// committed CSV is the ipm arm whole plus the walk and ssn arms' BODIES -- `tail -n +2` on those
+// two. That strip is the only transform between this program and the pinned bytes.
+//
 // It calls bench/corpus_cells.h's OWN generators, starts, options and budgets. What the sweep
 // chooses is the (N, p) grid and the three cell fields those imply: ConstraintFamily
 // (kPathInterface above p = 0.5, kBoundArc at or below -- where the window regime splits),
