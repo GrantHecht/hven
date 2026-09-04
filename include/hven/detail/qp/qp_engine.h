@@ -1419,20 +1419,27 @@ class QpEngine {
     /// ahead of the verdict site would silently break the identity, so it must
     /// not: `face` guards the working set and the factor, not the options.
     ///
-    /// THE MISS BRANCH MAY DECLINE, THE HIT BRANCH MAY NOT. On a hit the
-    /// factor already succeeded, so there is nothing to fail and nothing is
-    /// caught. On a miss the twin factorizes a system THE WALK NEVER SOLVED --
-    /// the candidate's face plus whatever `refresh_shifts` added -- and that
-    /// system can be exactly singular at a LEGAL setting: `dual_mu = 0` means
-    /// no dual regularization, so a row dependent on the face leaves K
-    /// singular rather than quasi-definite. That is the twin's OWN system
-    /// failing, the border twin's singular-Schur degradation class and not
-    /// section 4's never-swallow class, so `factorize_checked`'s
-    /// std::runtime_error (its backend-error class, discriminated -- a
-    /// std::logic_error is a contract breach and still propagates) DECLINES
-    /// the refinement. The attempted factorization stays charged, which is
-    /// eliminated_candidate's convention and the one that keeps a decline's
-    /// cost visible; nothing else is counted.
+    /// NEITHER BRANCH DECLINES, AND NEITHER SWALLOWS. On a miss the twin
+    /// factorizes a system THE WALK NEVER SOLVED -- the candidate's face plus
+    /// whatever `refresh_shifts` added -- and that system can be exactly
+    /// singular at a LEGAL setting: `dual_mu = 0` means no dual
+    /// regularization, so a row dependent on the face leaves K singular rather
+    /// than quasi-definite. NO DECLINE EXISTS FOR THAT, because the backend
+    /// never reports it: `FactorizeOutcome::Status` is kOk or kBackendError
+    /// with nothing between them, and MKL Pardiso's default static pivoting
+    /// PERTURBS an exactly singular K and returns success -- measured by
+    /// test_kkt_calls.cpp's
+    /// `SqpKktOptions.ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend`,
+    /// with the walk-level `dual_mu = 0` cell pinning that nothing escapes
+    /// `solve()` either. What is left in `factorize_checked`'s
+    /// std::runtime_error here is therefore GENUINE backend fault alone (out
+    /// of memory, reordering, a failed `analyze()`) -- section 4's
+    /// never-swallow class -- so it PROPAGATES, as does the hit branch's
+    /// `solve_vec`. REGISTERED: a backend that reports singularity AS A STATUS
+    /// gets the decline back, discriminated on that status the way the border
+    /// twin discriminates on `needs_refactorization()`; Accelerate's behaviour
+    /// on an exactly singular KKT is UNOBSERVED (macOS lane). The attempted
+    /// factorization stays charged, eliminated_candidate's convention.
     ///
     /// D1/D4, AND THEY NOW HOLD IN BOTH ALGEBRAS (M6 W2 T6b's clauses, carried
     /// here): a kInfeasible exit RETURNS the refined point when it was adopted,

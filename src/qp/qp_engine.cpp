@@ -1259,20 +1259,13 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         if (analysis.needed) {
             ++counters.symbolic_analyses;
         }
-        // Charged for the ATTEMPT (eliminated_candidate's convention), so the
-        // decline below stays visible in the counters.
+        // Charged for the ATTEMPT, eliminated_candidate's convention.
         ++counters.factorizations;
-        try {
-            detail::factorize_checked(fresh, assembly.K, analysis);
-        } catch (const std::runtime_error &) {
-            // THE MISS BRANCH'S OWN DEGRADATION, discriminated: this system is
-            // the twin's, never the walk's, so declining it is the border
-            // twin's class. A logic_error still propagates. See the declaration.
-            return false;
-        }
+        detail::factorize_checked(fresh, assembly.K, analysis);
     }
-    // NOTHING IS SWALLOWED ON THE HIT PATH: `fac` is then a factorization that
-    // already succeeded, so there is nothing left to fail. See the declaration.
+    // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
+    // reports a singular K as a status, so a throw from here is a genuine
+    // backend fault the engine must not hide. See the declaration.
     //
     // Replay the CURRENT face's own incumbent -- solve_eqp's solve plus its one
     // mandatory step -- so every step below is one the walk declined.
