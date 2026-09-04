@@ -1334,6 +1334,66 @@ bool jacobian_values_finite(const NlpEval &ev) {
 
 } // namespace
 
+// SIZE-GUARDED RATHER THAN ASSERTED, one predicate per half: an export whose
+// activity vector does not match the problem contributes 0 to that half instead
+// of indexing past its end. Cost O(n + mi + nnz(Ai)), no factorization.
+void census_major_activity(const QpProblem &qp, const QpSolution &qs,
+                           const std::vector<bool> &prev_ineq_active,
+                           const std::vector<BoundState> &prev_bound_state, Vec &slack,
+                           SqpIterate &row) {
+    const Index n = qp.n();
+    const Index mi = qp.mi();
+    const bool have_rows = static_cast<Index>(qs.ineq_active.size()) == mi;
+    const bool have_bounds = static_cast<Index>(qs.bound_state.size()) == n;
+    Index delta = 0;
+
+    if (have_rows) {
+        for (Index k = 0; k < mi; ++k) {
+            const auto kk = static_cast<std::size_t>(k);
+            const bool now = qs.ineq_active[kk];
+            // A SHORT (or empty) previous vector IS the empty set, which is
+            // exactly what the first reporting major must compare against.
+            const bool before = kk < prev_ineq_active.size() && prev_ineq_active[kk];
+            delta += (now != before) ? 1 : 0;
+            row.active_rows += now ? 1 : 0;
+        }
+    }
+    if (have_bounds) {
+        for (Index j = 0; j < n; ++j) {
+            const auto jj = static_cast<std::size_t>(j);
+            const BoundState now = qs.bound_state[jj];
+            const BoundState before =
+                jj < prev_bound_state.size() ? prev_bound_state[jj] : BoundState::kFree;
+            delta += (now != before) ? 1 : 0;
+            row.active_lower_sides +=
+                (now == BoundState::kAtLower || now == BoundState::kFixed) ? 1 : 0;
+            row.active_upper_sides +=
+                (now == BoundState::kAtUpper || now == BoundState::kFixed) ? 1 : 0;
+        }
+    }
+    row.active_set_delta = delta;
+
+    if (have_rows && mi > 0 && qs.lambda_i.size() == mi) {
+        const double gate =
+            kWeakActivityMargin * std::max(1.0, qs.lambda_i.lpNorm<Eigen::Infinity>());
+        for (Index k = 0; k < mi; ++k) {
+            if (qs.ineq_active[static_cast<std::size_t>(k)] && std::abs(qs.lambda_i(k)) <= gate) {
+                ++row.weak_active_rows;
+            }
+        }
+    }
+    if (have_rows && mi > 0 && qs.x.size() == n) {
+        slack.noalias() = qp.Ai * qs.x;
+        slack = qp.bi - slack;
+        const double gate = kWeakActivityMargin * std::max(1.0, slack.lpNorm<Eigen::Infinity>());
+        for (Index k = 0; k < mi; ++k) {
+            if (!qs.ineq_active[static_cast<std::size_t>(k)] && slack(k) <= gate) {
+                ++row.near_active_rows;
+            }
+        }
+    }
+}
+
 void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_iters += one.ipqp_iters;
     total.ipqp_factorizations += one.ipqp_factorizations;
@@ -2583,6 +2643,14 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     Index rows_pushed = 0;
     Index rows_at_major_entry = 0;
 
+    // THE PREVIOUS MAJOR'S QP ACTIVE SET (M6 W4 T3), and the scratch the row
+    // slack is computed into. Both EMPTY here, which is precisely the empty set
+    // `SqpIterate::active_set_delta` says the first reporting major counts
+    // against; a non-reporting major leaves all three untouched.
+    std::vector<bool> prev_ineq_active;
+    std::vector<BoundState> prev_bound_state;
+    Vec activity_slack;
+
     for (Index iter = 0;; ++iter) {
         if (iter > 0 && rows_pushed != rows_at_major_entry + 1) {
             throw std::logic_error(fmt::format(
@@ -2680,6 +2748,19 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                     out.history.size(), rows_pushed));
             }
         };
+        // THE LAST MAJOR'S OWN EXACTLY-ONCE CHECK (W4 T3, the T2 close's tycho
+        // rider). The loop-entry check above never sees the major the solve
+        // LEAVES from, because there is no next entry; this is that check, and
+        // every `return` out of this loop must call it first.
+        auto check_major_pushed_once = [&](Index at_major) {
+            if (rows_pushed != rows_at_major_entry + 1) {
+                throw std::logic_error(fmt::format(
+                    "SqpDriver::solve: major {} pushed {} history rows before the solve returned, "
+                    "expected exactly 1 -- every path through a major records its iterate exactly "
+                    "once, and the exit taken here did not",
+                    at_major, rows_pushed - rows_at_major_entry));
+            }
+        };
         measure_iterate();
 
         // NON-FINITE ITERATE. The model cannot be evaluated at x (or
@@ -2752,6 +2833,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // inspects a failed solve's object would find it.
                 drop_scaled_space_state(out.warm_start);
             }
+            check_major_pushed_once(iter);
             return out;
         }
 
@@ -3016,6 +3098,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // point the returned x has moved away from, exactly the
                 // restoration_moved_x reasoning elsewhere in this loop.
                 const bool best_is_current = row.violation_l1 == mb_best_h && row.f == mb_best_f;
+                check_major_pushed_once(iter);
                 return finish(
                     seam, std::move(out), SqpStatus::kBudgetExhausted, mb_best_x, mb_best_lambda_e,
                     mb_best_lambda_i, mb_best_kkt, mb_best_f,
@@ -3028,6 +3111,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // any) is the most recent QP solved AT this same x -- see
             // the WARM SEEDING note for why it always still describes
             // this x rather than some earlier one.
+            check_major_pushed_once(iter);
             return finish(seam, std::move(out),
                           converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter, x, lambda_e,
                           lambda_i, kkt, row.f,
@@ -4213,6 +4297,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // valid activity source here -- fall back to `seed`
                 // (unless restoration moved x away from what it
                 // describes; see restoration_moved_x's own note).
+                check_major_pushed_once(iter);
                 return finish(
                     seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                     restoration_exit_kkt, restoration_exit_f,
@@ -4240,6 +4325,21 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
         row.step_norm = qs.x.size() > 0 ? qs.x.lpNorm<Eigen::Infinity>() : 0.0;
         row.tr_binding =
             std::any_of(qs.tr_active.begin(), qs.tr_active.end(), [](bool b) { return b; });
+
+        // THE MODE-SELECTION TELEMETRY (M6 W4 T3), here because THIS is where
+        // `qs` is this major's answer -- the same statement block that gives
+        // `tr_binding` its meaning, which is the rule the six fields carry.
+        // Read-only in `qs` and `qp`; nothing below branches on any of it.
+        census_major_activity(qp, qs, prev_ineq_active, prev_bound_state, activity_slack, row);
+        prev_ineq_active = qs.ineq_active;
+        prev_bound_state = qs.bound_state;
+        out.counters.active_set_delta_total += row.active_set_delta;
+        out.counters.active_set_delta_peak =
+            std::max(out.counters.active_set_delta_peak, row.active_set_delta);
+        out.counters.weak_active_peak =
+            std::max(out.counters.weak_active_peak, row.weak_active_rows);
+        out.counters.near_active_peak =
+            std::max(out.counters.near_active_peak, row.near_active_rows);
 
         if (qs.status != QpStatus::kOptimal) {
             // SUBPROBLEM FAILURE ROUTING (see this header's note). A
@@ -4272,6 +4372,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                     // around x -- see WARM SEEDING above for why that is
                     // meaningful even though the solve failed. Not used
                     // if restoration moved x away from it.
+                    check_major_pushed_once(iter);
                     return finish(seam, std::move(out), restoration_exit_status, x, lambda_e,
                                   lambda_i, restoration_exit_kkt, restoration_exit_f,
                                   make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
@@ -4300,6 +4401,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // the pre-trial iterate `qs` was solved at, so its own
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
+            check_major_pushed_once(iter);
             return finish(
                 seam, std::move(out), map_status(qs.status), x, lambda_e, lambda_i, kkt, row.f,
                 make_warm_start(seam, &qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
@@ -4484,6 +4586,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // still describing the region around x (x has not moved
                 // -- unless restoration itself moved it; see
                 // restoration_moved_x's own note).
+                check_major_pushed_once(iter);
                 return finish(seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                               restoration_exit_kkt, restoration_exit_f,
                               make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
@@ -4511,6 +4614,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             }
             // Same reasoning as the kReject/floor exit just above: `qs`
             // still describes x unless restoration moved it.
+            check_major_pushed_once(iter);
             return finish(seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                           restoration_exit_kkt, restoration_exit_f,
                           make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp, qp_built,

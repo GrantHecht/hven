@@ -1976,6 +1976,35 @@ void charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res);
 void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refined,
                                     Index &ssn_budget_charge);
 
+/// @brief Writes the six mode-selection telemetry fields (M6 W4 T3) onto a
+///        history row from the QpSolution that IS that major's answer.
+///
+/// EVERY DEFINITION IS `SqpIterate`'s -- the delta's per-variable-state-change
+/// rule, the empty-set first major, the nonnegative slack `s = bi - Ai p`, and
+/// why a TR-held variable is not a bound side here. Nothing is decided in the
+/// function that is not stated on the fields.
+///
+/// EXPOSED RATHER THAN FILE-LOCAL so the arithmetic can be pinned on hand-built
+/// active-set pairs, where the two sets are known by construction instead of
+/// predicted from a trajectory. The driver calls it at exactly one site.
+///
+/// @param qp The subproblem `qs` solves; read for `Ai`, `bi`, `n` and `mi`.
+/// @param qs This major's answer. A half whose activity vector does not match
+///           @p qp contributes 0 to that half rather than being indexed.
+/// @param prev_ineq_active The previous REPORTING major's row activity; empty
+///                         (or short) means the empty set, which is what the
+///                         first reporting major of a solve compares against.
+/// @param prev_bound_state The previous reporting major's bound states; a
+///                         missing entry reads `kFree`, same rule.
+/// @param slack A caller-owned reused buffer, resized here.
+/// @param row The row to write; the six fields are ASSIGNED, not accumulated,
+///            except the three census counts, which are incremented from
+///            whatever the row already holds (0 on a fresh row).
+void census_major_activity(const QpProblem &qp, const QpSolution &qs,
+                           const std::vector<bool> &prev_ineq_active,
+                           const std::vector<BoundState> &prev_bound_state, Vec &slack,
+                           SqpIterate &row);
+
 // One subproblem's SSN work, folded into a whole solve's running total.
 //
 // TWO PEAKS FOLD BY MAX; EVERYTHING ELSE SUMS. `ssn_uncertain_peak` is the

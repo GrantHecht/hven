@@ -389,6 +389,29 @@ inline constexpr Index kWarmResidualGrowthMax = 2;
 /// the full-step mode before it restores the best iterate.
 inline constexpr Index kWarmFullStepWindow = 5;
 
+/// Relative margin below which an active row's multiplier -- or an inactive
+/// row's slack -- counts as weak/near activity in the per-major census
+/// (`SqpIterate::weak_active_rows`, `near_active_rows`).
+///
+/// A CONSTANT, NOT A SETTING (M6 W4 T3). Nothing in this library reads or
+/// branches on either count, so there is no behaviour for a caller to tune; a
+/// future heuristic that DOES act on them is what would promote it.
+///
+/// WHAT IT MEASURES: strict complementarity, BY MAGNITUDE. A row is weakly
+/// active when it is in the working set at a price negligible beside the
+/// largest one, and nearly active when it is out of the working set at a slack
+/// negligible beside the largest one -- `min(s_k, lambda_k)` small in a
+/// RELATIVE sense, on both sides of the pair.
+///
+/// IT IS NOT THE SSN's UNCERTAIN SET, and the two are not interchangeable.
+/// That set is the dimensionless kink band `|(lambda - s)/rho| <=
+/// kSsnUncertainEnter` with leave hysteresis (ssn_engine.h), which reads a
+/// PURE state at `s == 0` for any lambda and so never flags a small multiplier
+/// on an active row. The two readings coincide only where both halves vanish
+/// -- which is exactly the tie fixture, and is why both flag it there for
+/// different reasons.
+inline constexpr double kWeakActivityMargin = 1e-6;
+
 /// Driver options for the whole SQP solve.
 ///
 /// TOLERANCES. kkt_tol gates the STATIONARITY measure and feas_tol gates the
@@ -1220,6 +1243,73 @@ struct SqpIterate {
     /// read per-row, not solve-wide, so a future relaxation of that bound
     /// needs no format change here.
     bool watchdog_restored = false;
+
+    // --- THE MODE-SELECTION TELEMETRY (M6 W4 T3) ---
+    //
+    // Six counts off this major's own QpSolution, read by nothing in this
+    // library; the shared reading rules are on `active_set_delta` below.
+
+    /// The symmetric-difference count between THIS major's QP active set and
+    /// the previous REPORTING major's: one for every inequality row that
+    /// entered or left `QpSolution::ineq_active`, plus one for every variable
+    /// whose `bound_state` changed at all (lower <-> upper <-> free <-> fixed
+    /// counts ONCE, not twice -- it is a per-variable state change, not a
+    /// two-element set edit). The MAJOR-level reading of the bulk flip that
+    /// `SsnCounters::ssn_bulk_flips` measures one level down, inside a single
+    /// SSN solve.
+    ///
+    /// THE FIRST REPORTING MAJOR COUNTS AGAINST THE EMPTY SET -- every active
+    /// row and every non-free variable -- so a solve's first row is a census of
+    /// where the first subproblem landed rather than a 0. The restoration
+    /// sub-solve is a SEPARATE sequence with its own empty start, because it is
+    /// a separate `solve()` on a different (wrapper) problem.
+    ///
+    /// ALL SIX FIELDS ARE MEANINGFUL EXACTLY WHERE `tr_binding` IS, which is
+    /// the rule the qp_* fields above already carry: they read 0 on any row
+    /// whose `QpSolution` never became this major's answer -- the
+    /// stopped-AT-iterate and non-finite-iterate rows (`qp_solved == false`),
+    /// and the EXHAUSTED-LADDER row, whose qp_* fields describe the ladder
+    /// while the solution in hand describes the original kInfeasible
+    /// subproblem. Such a row also leaves the previous set UNCHANGED, so the
+    /// next reporting row's delta is measured against the last set that was
+    /// really solved for.
+    ///
+    /// A TR-HELD VARIABLE IS NOT A BOUND SIDE HERE, and this is the reader's
+    /// separator rather than a choice made here: every producer of a
+    /// `QpSolution` reports `kFree` in `bound_state` for a variable held by a
+    /// TR-tight effective bound and flags it in `tr_active` instead
+    /// (qp_engine.h's section 6 reporting exclusions, re-derived by
+    /// `ssn_engine.cpp`'s TR/real split, by `ipqp_engine.cpp` and by
+    /// `elastic_project`). So these fields count REAL bound sides only, and
+    /// `tr_binding` on the same row is the separate reading of "the radius was
+    /// binding somewhere". A change of radius that moves a variable between a
+    /// real bound and a TR pin therefore DOES move this delta.
+    Index active_set_delta = 0;
+    /// Active inequality rows whose price is negligible beside the largest one:
+    /// `|lambda_i(k)| <= kWeakActivityMargin * max(1, ||lambda_i||inf)`. See
+    /// that constant for what the measure is and for what it is NOT.
+    ///
+    /// THE RELATIVE SCALING IS THE POINT AND ALSO THE CAVEAT: on an ill-scaled
+    /// family a row priced at 10 reads weak beside one priced at 5e7. Accepted
+    /// for telemetry, and stated so a reader does not take it for an absolute.
+    Index weak_active_rows = 0;
+    /// INACTIVE inequality rows whose slack is negligible beside the largest
+    /// one: `s(k) <= kWeakActivityMargin * max(1, ||s||inf)`, where
+    /// `s = bi - Ai p` is the QP's OWN nonnegative row slack (`qp_problem.h`'s
+    /// `Ai x <= bi`) -- the units `ineq_active` is decided in, NOT the NLP row
+    /// values `NlpEval::ci` carries.
+    ///
+    /// A VIOLATED ROW (`s(k) < 0`, reachable only on a non-optimal exit) is
+    /// counted: it is at or past its own boundary, which is what this field
+    /// reports about.
+    Index near_active_rows = 0;
+    /// Active inequality rows (`ineq_active` entries set).
+    Index active_rows = 0;
+    /// Variables at their real LOWER bound: `kAtLower`, plus `kFixed`, which is
+    /// at both sides at once and so is counted in both census fields.
+    Index active_lower_sides = 0;
+    /// Variables at their real UPPER bound (`kAtUpper`, plus `kFixed`).
+    Index active_upper_sides = 0;
 };
 
 /// Result of a whole SQP solve.

@@ -1979,6 +1979,34 @@ struct SqpCounters {
     /// row is still counted here.
     Index ip_activity_inferred = 0;
 
+    /// Sum of `SqpIterate::active_set_delta` over this solve's REPORTING
+    /// majors -- the total working-set churn the QP sequence went through,
+    /// counting the first major's census against the empty set (M6 W4 T3).
+    ///
+    /// INSTRUMENTATION ONLY: nothing in this library reads it.
+    ///
+    /// NOT FOLDED FROM THE RESTORATION SUB-SOLVE, and that is the
+    /// `steps_accepted` / `rejected_steps` argument rather than the
+    /// `qp_minor_iters` one: an active-set delta is a statement about WHICH
+    /// constraints of THIS problem were in the working set, and the sub-solve's
+    /// QP lives in the feasibility wrapper's own variables and rows. Summing
+    /// the two would report a churn over a set that never existed. The
+    /// sub-solve's own value is on its own `SqpSolution` and in the trace at
+    /// depth 1.
+    Index active_set_delta_total = 0;
+    /// The largest `SqpIterate::active_set_delta` any single major of this
+    /// solve reported. A PEAK, folded with `max` like `ssn_uncertain_peak`, and
+    /// not folded from the restoration sub-solve for the reason above.
+    Index active_set_delta_peak = 0;
+    /// The largest `SqpIterate::weak_active_rows` any single major reported --
+    /// how close to a degenerate (non-strictly-complementary) active set this
+    /// solve's QP sequence ever got. A PEAK; see `kWeakActivityMargin`.
+    Index weak_active_peak = 0;
+    /// The largest `SqpIterate::near_active_rows` any single major reported --
+    /// how many rows were sitting on the boundary WITHOUT being in the working
+    /// set. A PEAK; see `kWeakActivityMargin`.
+    Index near_active_peak = 0;
+
     /// The semismooth-Newton kernel's work, summed over every subproblem of
     /// this solve -- the same aggregation set qp_minor_iters and
     /// factorizations above use, and empty for the same reason they would
@@ -2042,7 +2070,11 @@ struct SqpCounters {
     X(crash_seeded_bounds, counter_never_absent)                                                   \
     X(n_seeded, counter_never_absent)                                                              \
     X(seeded_clamped, counter_never_absent)                                                        \
-    X(ip_activity_inferred, counter_never_absent)
+    X(ip_activity_inferred, counter_never_absent)                                                  \
+    X(active_set_delta_total, counter_never_absent)                                                \
+    X(active_set_delta_peak, counter_never_absent)                                                 \
+    X(weak_active_peak, counter_never_absent)                                                      \
+    X(near_active_peak, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -2051,7 +2083,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 33 direct fields and the struct takes 35 initializers.
+// the table holds the 37 direct fields and the struct takes 39 initializers.
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
