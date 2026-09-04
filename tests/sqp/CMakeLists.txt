@@ -22,6 +22,7 @@
 # want of one.
 set(HVEN_SQP_TEST_SOURCES
     test_accelerate_probes.cpp
+    test_activity_telemetry.cpp
     test_aggregate_eval_seam.cpp
     test_b1_gate.cpp
     test_bench_dump.cpp

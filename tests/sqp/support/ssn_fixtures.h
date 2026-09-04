@@ -260,7 +260,7 @@ inline QpProblem cycling_qp_2var() {
 
 // The stated start for cycling_qp_2var: a wrong activity hint. Stated as a
 // function so the test and the cycle detector cannot drift apart.
-SsnStart cycling_start_2var() {
+inline SsnStart cycling_start_2var() {
     SsnStart s;
     s.activity_hint.ineq = {false, true};
     s.activity_hint.bounds = {BoundState::kAtLower, BoundState::kAtUpper};
