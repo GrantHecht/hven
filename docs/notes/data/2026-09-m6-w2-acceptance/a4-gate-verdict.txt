@@ -1,0 +1,11 @@
+A4 GATE (Amendment F), 29 cells:
+  [RED] every cell converges               28 / 29
+  [RED] iterations < 40                    28 / 29
+  [RED] tier-contract recovery             13 / 27
+  [RED] end-to-end recovery                12 / 27
+  [RED] exact recovery (E1 Rule A)         9 / 27
+  [PASS] no blow-up across active fraction 
+  factorizations: tier 718, tier+polish 746 (PIQP: 9-18 iters/cell)
+  RED CELL: e1_f7_n20000_af30_m1e-6  (the ONE named exception)
+A4 VERDICT: GREEN but for the named exception
+a4 arm exit status: 0
