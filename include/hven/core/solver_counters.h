@@ -8,8 +8,10 @@
 // IP-PMM interior-point tier's own work) and SqpCounters (one whole SQP
 // driver solve, which aggregates all three).
 
+#include <cstddef>
 #include <limits>
 
+#include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/start_level.h>
 
 namespace hven::solvers {
@@ -559,6 +561,52 @@ struct SsnCounters {
     Index ssn_escape_indefinite = 0;
     Index ssn_escape_gate_refused = 0;
 };
+
+// ===========================================================================
+// THE FIELD TABLES (M6 W4 T2(d)) -- one X-macro per aggregate
+// ===========================================================================
+//
+// The trace's `sqp.solve.end` counters object is GENERATED from these, in table
+// order, so the JSON's key order is the declaration order and a field added to
+// a struct without a table entry does not silently vanish from the stream.
+//
+// EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-ARITY static_assert (plan
+// amendment E): the largest N for which the struct is brace-initializable with
+// N arguments. Not sizeof, which is padding-dependent.
+//
+// TO ADD A COUNTER: declare it in the struct, add its `X(name)` here IN THE
+// SAME POSITION, and the assert passes again. Nothing else needs editing.
+
+#define HVEN_SSN_COUNTERS_FIELDS(X)                                                                \
+    X(ssn_iters)                                                                                   \
+    X(ssn_bulk_flips)                                                                              \
+    X(ssn_backtracks)                                                                              \
+    X(ssn_prox_updates)                                                                            \
+    X(ssn_escapes)                                                                                 \
+    X(ssn_uncertain_peak)                                                                          \
+    X(ssn_refinements)                                                                             \
+    X(ssn_refine_refused)                                                                          \
+    X(ssn_refine_factorizations)                                                                   \
+    X(ssn_refine_neg_duals)                                                                        \
+    X(ssn_sign_swept)                                                                              \
+    X(ssn_sign_sweep_max)                                                                          \
+    X(ssn_escape_budget)                                                                           \
+    X(ssn_escape_singular)                                                                         \
+    X(ssn_escape_no_contraction)                                                                   \
+    X(ssn_escape_infeasible_suspect)                                                               \
+    X(ssn_escape_indefinite)                                                                       \
+    X(ssn_escape_gate_refused)
+
+/// Turns one table entry into `+1`, so each table's own entry count is the
+/// table itself rather than a hand-kept number beside it.
+#define HVEN_COUNTERS_COUNT_ONE(f) +1
+
+/// @brief `HVEN_SSN_COUNTERS_FIELDS`' entry count.
+inline constexpr std::size_t kSsnCountersFieldCount =
+    0 HVEN_SSN_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
+static_assert(::hven::detail::kAggregateArity<SsnCounters> == kSsnCountersFieldCount,
+              "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree: give the new field an X() entry "
+              "in its declaration position (and the trace's golden line moves with it).");
 
 /// Work counters for the IP-PMM interior-point tier (M6 W1,
 /// `docs/notes/2026-08-m6-w1-ipqp-spec.md` section 7, as amended by the plan
@@ -1193,6 +1241,54 @@ struct IpqpCounters {
     /// `.superpowers/w1-t4c-report.md`.
     Index ipqp_read_barrier_noise_sides = 0;
 };
+
+#define HVEN_IPQP_COUNTERS_FIELDS(X)                                                               \
+    X(ipqp_iters)                                                                                  \
+    X(ipqp_factorizations)                                                                         \
+    X(ipqp_symbolic_analyses)                                                                      \
+    X(ipqp_solves)                                                                                 \
+    X(ipqp_pattern_verifies)                                                                       \
+    X(ipqp_rho_demanded_max)                                                                       \
+    X(ipqp_rho_demanded_last)                                                                      \
+    X(ipqp_inertia_retries)                                                                        \
+    X(ipqp_iters_at_elevated_rho)                                                                  \
+    X(ipqp_ladder_reclimbs)                                                                        \
+    X(ipqp_pivot_reroute_primal)                                                                   \
+    X(ipqp_pivot_reroute_dual_fallback)                                                            \
+    X(ipqp_iters_ladder_armed_no_advance)                                                          \
+    X(ipqp_final_inertia_read)                                                                     \
+    X(ipqp_reg_decreases)                                                                          \
+    X(ipqp_reg_increases)                                                                          \
+    X(ipqp_prox_center_updates)                                                                    \
+    X(ipqp_restart_repairs)                                                                        \
+    X(ipqp_restart_shift_max)                                                                      \
+    X(ipqp_mu_adopted)                                                                             \
+    X(ipqp_warm_restart_abandoned)                                                                 \
+    X(ipqp_declined_pinned)                                                                        \
+    X(ipqp_tier_retired_after)                                                                     \
+    X(ipqp_face_uncertain)                                                                         \
+    X(ipqp_refine_accepted)                                                                        \
+    X(ipqp_refine_refused)                                                                         \
+    X(ipqp_to_refine)                                                                              \
+    X(ipqp_to_ssn)                                                                                 \
+    X(ipqp_to_walk)                                                                                \
+    X(ipqp_escapes)                                                                                \
+    X(ipqp_escape_budget)                                                                          \
+    X(ipqp_escape_stall)                                                                           \
+    X(ipqp_escape_indefinite)                                                                      \
+    X(ipqp_escape_numerical)                                                                       \
+    X(ipqp_escape_infeasible_suspect)                                                              \
+    X(ipqp_alpha_p_min)                                                                            \
+    X(ipqp_alpha_d_min)                                                                            \
+    X(ipqp_read_kept_tight_sides)                                                                  \
+    X(ipqp_read_barrier_noise_sides)
+
+/// @brief `HVEN_IPQP_COUNTERS_FIELDS`' entry count.
+inline constexpr std::size_t kIpqpCountersFieldCount =
+    0 HVEN_IPQP_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
+static_assert(::hven::detail::kAggregateArity<IpqpCounters> == kIpqpCountersFieldCount,
+              "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree: give the new field an X() "
+              "entry in its declaration position (and the trace's golden line moves with it).");
 
 /// Aggregate work counters for a whole solve.
 ///
@@ -1843,5 +1939,53 @@ struct SqpCounters {
     /// own note.
     IpqpCounters ipqp;
 };
+
+#define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
+    X(major_iters)                                                                                 \
+    X(qp_minor_iters)                                                                              \
+    X(factorizations)                                                                              \
+    X(steps_accepted)                                                                              \
+    X(rejected_steps)                                                                              \
+    X(soc_steps)                                                                                   \
+    X(soc_applied)                                                                                 \
+    X(soc_qp_infeasible)                                                                           \
+    X(soc_rejected)                                                                                \
+    X(elastic_activations)                                                                         \
+    X(elastic_escalations)                                                                         \
+    X(restoration_iters)                                                                           \
+    X(elastic_from_ipqp_escape)                                                                    \
+    X(ipqp_suspicion_disproved)                                                                    \
+    X(ipqp_fallback_rung_b)                                                                        \
+    X(elastic_rho0_ceiling_hits)                                                                   \
+    X(elastic_floor_retries)                                                                       \
+    X(eqp_refine_steps)                                                                            \
+    X(border_refine_steps)                                                                         \
+    X(verdict_refine_steps)                                                                        \
+    X(suspect_escalations)                                                                         \
+    X(symbolic_analyses)                                                                           \
+    X(start_level_used)                                                                            \
+    X(full_step_majors)                                                                            \
+    X(watchdog_restores)                                                                           \
+    X(evals_full)                                                                                  \
+    X(evals_values)                                                                                \
+    X(probe_budget_stops)                                                                          \
+    X(crash_seeded_rows)                                                                           \
+    X(crash_seeded_bounds)                                                                         \
+    X(n_seeded)                                                                                    \
+    X(seeded_clamped)                                                                              \
+    X(ip_activity_inferred)
+
+/// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
+inline constexpr std::size_t kSqpCountersFieldCount =
+    0 HVEN_SQP_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
+#undef HVEN_COUNTERS_COUNT_ONE
+
+// PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
+// initializer by the arity trick and serialized through its own table above, so
+// the table holds the 33 direct fields and the struct takes 35 initializers.
+static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
+              "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
+              "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
+              "table of its own and raise the + 2 here.");
 
 } // namespace hven::solvers

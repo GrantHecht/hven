@@ -2115,5 +2115,24 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
     }
 }
 
+// ===========================================================================
+// W4 T2 (d) -- THE COUNTERS FIELD TABLES
+// ===========================================================================
+
+TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
+    // THE PIN IS THE `static_assert`S IN solver_counters.h, which fire at
+    // COMPILE time in every TU that includes the header.
+    //
+    // These read the same numbers back at run time, so a reader sees what they
+    // are and a table edited to a different length is named here too.
+    EXPECT_EQ(kSsnCountersFieldCount, 18u);
+    EXPECT_EQ(kIpqpCountersFieldCount, 39u);
+    EXPECT_EQ(kSqpCountersFieldCount, 33u);
+    EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
+    EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
+    // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
+    EXPECT_EQ(::hven::detail::kAggregateArity<SqpCounters>, kSqpCountersFieldCount + 2);
+}
+
 } // namespace
 } // namespace hven::solvers
