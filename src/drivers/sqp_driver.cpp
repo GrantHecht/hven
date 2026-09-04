@@ -2571,7 +2571,27 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     // already zeroed the duals and unwound the ingest) leaves it false.
     bool duals_ingested = warm_ingest;
 
+    // THE PUSH INVARIANT, GUARDED (fix round 2, F1). R9 moved the verdict
+    // block's single push into its branches, so "exactly one row per major" is
+    // no longer true by construction.
+    //
+    // `rows_pushed` counts what `push_history` pushed; `rows_at_major_entry`
+    // is its value when the current major began.
+    //
+    // A branch added later that returns or continues without pushing trips the
+    // check below.
+    Index rows_pushed = 0;
+    Index rows_at_major_entry = 0;
+
     for (Index iter = 0;; ++iter) {
+        if (iter > 0 && rows_pushed != rows_at_major_entry + 1) {
+            throw std::logic_error(fmt::format(
+                "SqpDriver::solve: major {} pushed {} history rows, expected exactly 1 -- every "
+                "path through a major records its iterate exactly once, and the branch that "
+                "returned or continued here did not",
+                iter - 1, rows_pushed - rows_at_major_entry));
+        }
+        rows_at_major_entry = rows_pushed;
         // NOT const: the full-step watchdog below may restore
         // an EARLIER iterate before this pass records or tests anything,
         // and the row and the convergence test must then describe the
@@ -2649,6 +2669,16 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                     exported, static_cast<Index>(out.history.size()), row_qp_mode});
             }
             out.history.push_back(std::move(exported));
+            ++rows_pushed;
+            // AND NOTHING ELSE MAY PUSH: the identity is what makes
+            // `rows_pushed` a reading of `history` rather than of this lambda.
+            if (rows_pushed != static_cast<Index>(out.history.size())) {
+                throw std::logic_error(fmt::format(
+                    "SqpDriver::solve: the history holds {} rows after {} pushes -- something "
+                    "other than push_history wrote to it, so the trace stream and the history "
+                    "no longer describe the same rows",
+                    out.history.size(), rows_pushed));
+            }
         };
         measure_iterate();
 

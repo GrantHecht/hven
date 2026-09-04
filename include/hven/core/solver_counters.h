@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <limits>
+#include <type_traits>
 
 #include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/start_level.h>
@@ -647,7 +648,11 @@ static_assert(::hven::detail::kAggregateArity<SsnCounters> == kSsnCountersFieldC
               "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position (and the trace's golden line moves with it).");
 
-/// The SsnCounters table's field offsets, in table order.
+/// The SsnCounters table's field offsets, in table order. `offsetof` is only
+/// portable on a standard-layout type, so that is asserted first.
+static_assert(std::is_standard_layout_v<SsnCounters>,
+              "SsnCounters must stay standard-layout for the "
+              "offsetof order check below to be portable.");
 inline constexpr std::size_t kOffsetsSsnCounters[] = {
 #define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(SsnCounters, f),
     HVEN_SSN_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
@@ -1340,7 +1345,11 @@ static_assert(::hven::detail::kAggregateArity<IpqpCounters> == kIpqpCountersFiel
               "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree: give the new field an X() "
               "entry in its declaration position (and the trace's golden line moves with it).");
 
-/// The IpqpCounters table's field offsets, in table order.
+/// The IpqpCounters table's field offsets, in table order. `offsetof` is only
+/// portable on a standard-layout type, so that is asserted first.
+static_assert(std::is_standard_layout_v<IpqpCounters>,
+              "IpqpCounters must stay standard-layout for the "
+              "offsetof order check below to be portable.");
 inline constexpr std::size_t kOffsetsIpqpCounters[] = {
 #define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(IpqpCounters, f),
     HVEN_IPQP_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
@@ -2048,7 +2057,11 @@ static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldC
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
               "table of its own and raise the + 2 here.");
 
-/// The SqpCounters table's field offsets, in table order.
+/// The SqpCounters table's field offsets, in table order. `offsetof` is only
+/// portable on a standard-layout type, so that is asserted first.
+static_assert(std::is_standard_layout_v<SqpCounters>,
+              "SqpCounters must stay standard-layout for the "
+              "offsetof order check below to be portable.");
 inline constexpr std::size_t kOffsetsSqpCounters[] = {
 #define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(SqpCounters, f),
     HVEN_SQP_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)

@@ -118,13 +118,25 @@ struct IpqpTraceEscapeEvent {
 /// chain. A hand-off between ARMS therefore writes two lines -- the handing
 /// arm's and its successor's -- so the chain a major walked is readable.
 ///
-/// FOUR WALK INVOCATIONS WRITE NO LINE, and naming them is the point of this
-/// paragraph (fix round 1, R12): the certified fallback's rung-B walk inside
-/// `certified_feasibility_fallback`, the SSN warm grade the kIpm arm routes to,
-/// the driver-level elastic ladder's re-solve, and the second-order
-/// correction's re-solve. Each runs a kernel INSIDE an arm that has already
-/// written its own line; a reader counting kernel invocations from this stream
-/// undercounts by exactly those. All four are REGISTERED for T5's ruling.
+/// SIX KERNEL CALL SITES RUN INSIDE AN ARM THAT HAS ALREADY WRITTEN ITS LINE,
+/// and write none of their own (fix round 2, F2 -- the fix-round-1 list said
+/// "four walk invocations" and was wrong in both halves). Enumerated from every
+/// `QpEngine::solve` and SSN `solve` call site in `sqp_driver.cpp`:
+///
+///   * `route_through_ssn_warm_grade` -- an SSN kernel call, NOT a walk, that
+///     the kIpm arm's routing chain makes once per routed subproblem;
+///   * `certified_feasibility_fallback`'s rung-B WALK, at its two call sites
+///     (the evidence never fired; rung A was declined);
+///   * `run_elastic_ladder`'s WALK on the elastic QP, ONCE PER RUNG of its
+///     climb, reached from the fallback's rung A (entry and floor retry) and
+///     from the driver's own elastic branch -- so this one is UNBOUNDED per
+///     major, which is why the stream cannot be read as an invocation count;
+///   * the second-order correction's WALK re-solve.
+///
+/// All six are REGISTERED for T5's ruling. The restoration sub-solve is NOT one
+/// of them: it is a whole nested SQP solve and writes its own stream at depth 1.
+/// `QpEngine::refine_on_face` is excluded by kind -- it is the tier-3 face EQP,
+/// not a kernel the dispatch chooses between.
 ///
 /// THE OUTCOME MAP, per arm, is the driver's and is stated here because the
 /// three arms report three different objects:
@@ -198,9 +210,9 @@ struct SqpMajorTraceEvent {
     /// They agree at kWalk and kSsn. Under kIpm they DIFFER on exactly the
     /// majors the tier routes to the SSN warm grade: the row reads `ssn`
     /// (the grade produced the step) while no `ssn` `qp.mode` line exists (the
-    /// grade is not the kSsn arm). A walk that runs INSIDE the kIpm arm -- the
-    /// fallback's rung B, the elastic ladder, the SOC re-solve -- leaves the
-    /// reading at `ipqp`, because no other ARM owned the major.
+    /// grade is not the kSsn arm). A kernel that runs INSIDE the kIpm arm --
+    /// the fallback's rung B, either elastic ladder, the SOC re-solve --
+    /// leaves the reading at `ipqp`, because no other ARM owned the major.
     ///
     /// On a row with `qp_solved == false` no kernel ran and this reports the
     /// solve's CONFIGURED mode; the same line's `qp_solved` tells the two

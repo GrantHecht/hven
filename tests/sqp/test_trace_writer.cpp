@@ -820,6 +820,17 @@ TEST(JsonLinesTraceSink, SeqCountsFromOneAndTheSolvePairMovesTheEnvelope) {
     }
     EXPECT_EQ(sink.lines_written(), 7);
     EXPECT_EQ(sink.depth(), 0) << "the pair is balanced";
+
+    // THE SATURATION LEG, restored at fix round 2 (F4(i)): T1 pinned that an
+    // unbalanced POP cannot fabricate a negative depth. Through the begin/end
+    // path the same statement is that a stray `end` leaves depth at 0, not -1.
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    const std::vector<std::string> after = split_lines(os.str());
+    ASSERT_EQ(after.size(), 9u);
+    EXPECT_EQ(raw_field(after[7], "depth"), "0") << after[7];
+    EXPECT_EQ(raw_field(after[8], "depth"), "0") << after[8];
+    EXPECT_EQ(sink.depth(), 0);
 }
 
 // ===========================================================================
@@ -3022,9 +3033,6 @@ TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade)
 
     ASSERT_GT(sol.counters.ipqp.ipqp_to_ssn, 0) << "non-vacuous: the grade must be reached";
     Index rows_reading_ssn = 0;
-    for (const SqpIterate &r : sol.history) {
-        rows_reading_ssn += (r.qp_solved && !r.elastic_applied) ? 0 : 0;
-    }
     for (const std::string &l : split_lines(os.str())) {
         if (event_name(l) == "sqp.major" && raw_field(l, "mode") == "\"ssn\"") {
             ++rows_reading_ssn;
@@ -3033,6 +3041,42 @@ TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade)
     EXPECT_GT(rows_reading_ssn, 0) << "some row's step came from the warm grade";
     EXPECT_EQ(qp_mode_census(os.str()).count("\"ssn\""), 0u)
         << "and no ssn dispatch record exists: the two readings are different questions";
+}
+
+TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor) {
+    // FIX ROUND 2, F4(iv). R9 pushes the requesting row AFTER the restoration
+    // call, so its `sqp.major` line now FOLLOWS the whole depth-1 solve.
+    //
+    // `history` is unaffected -- nothing else pushes to the outer vector during
+    // a restoration -- but the stream order moved, and a reader joining on
+    // `seq` must know that a depth-0 bracket can contain a depth-1 solve.
+    CircleAndFarLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(model);
+    ASSERT_GE(sol.counters.restoration_iters, 1);
+
+    Index nested_end_seq = 0;
+    Index first_row_after = 0;
+    for (const std::string &l : split_lines(os.str())) {
+        const Index seq = static_cast<Index>(std::stoll(raw_field(l, "seq")));
+        if (raw_field(l, "depth") == "1" && event_name(l) == "sqp.solve.end") {
+            nested_end_seq = seq;
+            continue;
+        }
+        if (nested_end_seq != 0 && first_row_after == 0 && raw_field(l, "depth") == "0" &&
+            event_name(l) == "sqp.major") {
+            first_row_after = seq;
+        }
+    }
+    ASSERT_GT(nested_end_seq, 0) << "the fixture must really restore";
+    ASSERT_GT(first_row_after, 0) << "the requesting row must be written at all";
+    EXPECT_GT(first_row_after, nested_end_seq)
+        << "the requesting row is written after the solve it asked for";
 }
 
 } // namespace

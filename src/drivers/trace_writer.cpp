@@ -21,6 +21,7 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -359,8 +360,16 @@ void key_value(std::string &s, bool &first, const char *k, double v, bool absent
     }
 }
 
-void key_value(std::string &s, bool &first, const char *k, StartLevel v, bool) {
-    key_enum(s, first, k, to_json(v));
+void key_value(std::string &s, bool &first, const char *k, StartLevel v, bool absent) {
+    // HONOURED, not ignored (fix round 2, F4(ii)): no enum field carries an
+    // absence predicate today, and a silently dropped argument is how the first
+    // one would go unnoticed.
+    key(s, first, k);
+    if (absent) {
+        s += "null";
+    } else {
+        append_string(s, to_json(v));
+    }
 }
 
 std::string counters_object(const SqpCounters &c) {
@@ -440,6 +449,24 @@ static_assert(::hven::detail::kAggregateArity<SqpIterate> == kSqpIterateFieldCou
               "SqpIterate's field count moved: give the new field a key in "
               "JsonLinesTraceSink::on_sqp_major (in DECLARATION order, ahead of `major`), "
               "re-derive the sqp.major golden line, and then update this count.");
+
+// THE SAME NET ON THE PAIR'S OWN STRUCTS (fix round 2, F3). Both are written key
+// by key below, so a field added to either would be silently dropped from a line
+// the golden pins compare byte for byte -- and the pin would still pass.
+static_assert(::hven::detail::kAggregateArity<SqpSolveBeginTraceEvent> == 10,
+              "SqpSolveBeginTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_sqp_solve_begin, re-derive the golden line, and update "
+              "this count. The variable-bound census is the part most likely to grow.");
+// THE END EVENT HOLDS A REFERENCE (`counters`), and `kAggregateArity` reads 0
+// for such a struct -- it refuses N = 0 and the climb stops there (the helper's
+// own note). The two-sided form below is the exact net for that shape.
+static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
+                  std::make_index_sequence<3>{}) &&
+                  !::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
+                      std::make_index_sequence<4>{}),
+              "SqpSolveEndTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_sqp_solve_end, re-derive the golden line, and update "
+              "these two counts.");
 
 } // namespace
 
