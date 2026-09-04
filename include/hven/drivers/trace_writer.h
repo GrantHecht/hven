@@ -14,6 +14,10 @@
 // "-inf"; absence is `null`, never zero-filled (CLAUDE.md section 6); strings
 // escaped per RFC 8259 section 7.
 //
+// SCHEMA v0 CARRIES NO VECTOR-VALUED FIELD ANYWHERE (settler ruling, W4 T1 fix
+// round 1), so `IpqpInfeasibilityEvidence`'s five `Vec` members are out and
+// `ipqp.escape` carries the least-infeasible point's two scalars, not the point.
+//
 // `seq` and `depth` are SINK-owned -- no event struct carries either. Off by
 // default: nothing in the library constructs one, so an unattached solve pays
 // exactly what it paid before (W4 T1 pin (iv)).
@@ -29,11 +33,27 @@ namespace hven::solvers {
 /// @brief Writes one JSON object per line to a caller-owned `std::ostream`.
 ///
 /// THE STREAM IS BORROWED, NOT OWNED: it must outlive the sink, and the sink
-/// neither opens, closes nor flushes it beyond what `operator<<` does. Nothing
-/// here throws on a failed stream -- a trace sink that aborted a solve because a
-/// disk filled would make instrumentation load-bearing, which CLAUDE.md section
-/// 7 forbids; the caller reads the stream's own state to learn whether the
-/// artifact is complete.
+/// neither opens, closes nor flushes it -- not even at destruction, so a caller
+/// reading the file before the `ofstream` is closed sees a short artifact.
+///
+/// EXCEPTIONS -- TWO CASES, and the instrumentation invariant holds only in the
+/// first. Under the DEFAULT exception mask the sink never throws and can never
+/// end a solve: it constructs none of its own, and `operator<<` on a failed
+/// stream sets state bits rather than throwing. Under a mask the caller ARMED
+/// (`exceptions(std::ios::badbit)`) `std::ios_base::failure` propagates out of
+/// the emitting `on_*` call and therefore out of the solve -- BY DESIGN, since
+/// swallowing it would silently defeat the caller's own request. A caller who
+/// wants a solve that its trace can never end must not arm one. (`bad_alloc` on
+/// the per-line buffer is the process's, not the sink's.)
+///
+/// `facts` IS CALLER TEXT AND MUST BE VALID UTF-8: the sink escapes `"`, `\` and
+/// the C0 range and passes every other byte through, so a caller that hands it
+/// ill-formed UTF-8 gets a line that is not JSON text (RFC 8259 section 8.1).
+/// Nothing in the library sets the field.
+///
+/// THREADING: one sink serves one solve at a time on one thread. `seq_`,
+/// `depth_` and the write are unsynchronized; T2's nested restoration driver
+/// shares the sink SEQUENTIALLY, which is the only sharing v0 supports.
 class JsonLinesTraceSink final : public IpqpTraceSink {
   public:
     explicit JsonLinesTraceSink(std::ostream &out);
@@ -51,9 +71,21 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     void on_qp_mode(const QpModeTraceEvent &event) override;
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override;
 
-    /// Lines written so far, which is also the `seq` the LAST line carried
-    /// (`seq` starts at 1, so a reader can prove it saw every line).
+    /// Lines ATTEMPTED, which is also the `seq` the last line carried (`seq`
+    /// starts at 1). Compared against the artifact's own line count it gives the
+    /// number of lines lost, process-side; the `seq` gap gives the same number
+    /// artifact-side.
     Index lines_written() const { return seq_; }
+
+    /// @brief THE PROCESS-SIDE FAILURE PREDICATE: the stream reported failure at
+    /// or before one of this sink's writes.
+    ///
+    /// Read from the stream's state after EVERY write and sticky from the first
+    /// failure. It CANNOT attribute the failure to this sink -- another writer
+    /// on the same stream produces the same reading -- and it never resets, even
+    /// if the caller clears the stream. `seq_` keeps advancing either way, so a
+    /// failed run still yields a countable gap rather than a renumbered stream.
+    bool failed() const { return failed_; }
 
     /// The value the NEXT line's `depth` will carry. 0 for the whole of W4 T1:
     /// the `sqp.solve` begin/end pair that moves it is T2's, and the two hooks
@@ -78,6 +110,7 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     std::ostream &out_;
     Index seq_ = 0;
     Index depth_ = 0;
+    bool failed_ = false;
 };
 
 } // namespace hven::solvers

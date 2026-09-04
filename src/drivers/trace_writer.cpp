@@ -93,43 +93,52 @@ void append_string(std::string &s, std::string_view v) {
     s += '"';
 }
 
-/// Opens the next key of an object body built without braces: the comma is
-/// emitted iff something precedes it, which is what keeps key order the
-/// schema's and the line free of padding (rule 1).
-void key(std::string &s, const char *k) {
-    if (!s.empty()) {
+/// Opens the next key of an object body built without braces (rule 1: key order
+/// is the schema's, the line carries no padding).
+///
+/// `first` is EXPLICIT, not inferred from `s.empty()`: that inference is right
+/// only while an object's first key is unconditional, and T2 adds events whose
+/// first key may be an absent optional -- which would then leave the SECOND key
+/// comma-less.
+void key(std::string &s, bool &first, const char *k) {
+    if (!first) {
         s += ',';
     }
+    first = false;
     s += '"';
     s += k;
     s += "\":";
 }
 
-void key_double(std::string &s, const char *k, double v) {
-    key(s, k);
+void key_double(std::string &s, bool &first, const char *k, double v) {
+    key(s, first, k);
     append_double(s, v);
 }
 
-void key_index(std::string &s, const char *k, Index v) {
-    key(s, k);
+void key_index(std::string &s, bool &first, const char *k, Index v) {
+    key(s, first, k);
     append_index(s, v);
 }
 
-void key_bool(std::string &s, const char *k, bool v) {
-    key(s, k);
+void key_bool(std::string &s, bool &first, const char *k, bool v) {
+    key(s, first, k);
     s += v ? "true" : "false";
 }
 
-void key_enum(std::string &s, const char *k, const char *v) {
-    key(s, k);
+void key_enum(std::string &s, bool &first, const char *k, const char *v) {
+    key(s, first, k);
     append_string(s, v);
 }
 
 // --- rule 8: the enum strings, verbatim from spec section 7 ---------------
 //
-// No `default` label anywhere below, so `-Wswitch` fails the build if an
-// enumerator is added without a spelling. The trailing return is the house
-// pattern (src/core/enum_names.cpp) and is unreachable.
+// No `default` label anywhere below, so `-Wswitch` WARNS when an enumerator is
+// added without a spelling. It does NOT fail the build -- this tree carries no
+// `-Werror` -- so the trailing `"unknown"` is REACHABLE.
+//
+// The net is in the tests: `-Wswitch` is an ERROR there, over one exhaustive
+// switch per enum, and no emitted line may contain `"unknown"`
+// (tests/sqp/test_trace_writer.cpp).
 const char *to_json(IpqpTraceRegDir v) {
     switch (v) {
     case IpqpTraceRegDir::kDown:
@@ -245,34 +254,39 @@ const char *to_json(SqpFallbackVerdict v) {
 // --- rule 4/5: the escape event's one nested object ------------------------
 //
 // Field names are the C++ members', in DECLARATION order, so a reader of
-// ipqp_engine.h reads the schema. The infeasibility block's five `Vec` members
-// are absent by the no-vectors rule (plan section 7 amendment G).
+// ipqp_engine.h reads the schema.
+//
+// v0 CARRIES NO VECTOR-VALUED FIELD (settler ruling, fix round 1), so the
+// infeasibility block's five `Vec` members are absent and `ipqp.escape` carries
+// spec section 6.3's least-infeasible point's TWO SCALARS, not the point.
 std::string evidence_object(const IpqpTraceEscapeEvidence &e) {
     std::string stall;
-    key_bool(stall, "fired", e.stall.fired);
-    key_index(stall, "window", e.stall.window);
-    key_double(stall, "mu_ratio", e.stall.mu_ratio);
-    key_double(stall, "residual_improvement", e.stall.residual_improvement);
-    key_double(stall, "min_alpha", e.stall.min_alpha);
-    key_double(stall, "max_step_alpha", e.stall.max_step_alpha);
+    bool stall_first = true;
+    key_bool(stall, stall_first, "fired", e.stall.fired);
+    key_index(stall, stall_first, "window", e.stall.window);
+    key_double(stall, stall_first, "mu_ratio", e.stall.mu_ratio);
+    key_double(stall, stall_first, "residual_improvement", e.stall.residual_improvement);
+    key_double(stall, stall_first, "min_alpha", e.stall.min_alpha);
+    key_double(stall, stall_first, "max_step_alpha", e.stall.max_step_alpha);
 
     const IpqpInfeasibilityEvidence &i = e.infeasibility;
     std::string infeas;
-    key_bool(infeas, "fired", i.fired);
-    key_bool(infeas, "exhaustion_route", i.exhaustion_route);
-    key_index(infeas, "window", i.window);
-    key_double(infeas, "primal_start", i.primal_start);
-    key_double(infeas, "primal_end", i.primal_end);
-    key_double(infeas, "primal_improvement", i.primal_improvement);
-    key_double(infeas, "dual_norm_start", i.dual_norm_start);
-    key_double(infeas, "dual_norm_end", i.dual_norm_end);
-    key_double(infeas, "dual_growth", i.dual_growth);
-    key_double(infeas, "dual_step_growth", i.dual_step_growth);
-    key_bool(infeas, "farkas_corroborated", i.farkas_corroborated);
-    key_double(infeas, "farkas_residual", i.farkas_residual);
-    key_double(infeas, "farkas_gap", i.farkas_gap);
-    key_double(infeas, "least_infeasible_primal", i.least_infeasible_primal);
-    key_double(infeas, "least_infeasible_mu", i.least_infeasible_mu);
+    bool infeas_first = true;
+    key_bool(infeas, infeas_first, "fired", i.fired);
+    key_bool(infeas, infeas_first, "exhaustion_route", i.exhaustion_route);
+    key_index(infeas, infeas_first, "window", i.window);
+    key_double(infeas, infeas_first, "primal_start", i.primal_start);
+    key_double(infeas, infeas_first, "primal_end", i.primal_end);
+    key_double(infeas, infeas_first, "primal_improvement", i.primal_improvement);
+    key_double(infeas, infeas_first, "dual_norm_start", i.dual_norm_start);
+    key_double(infeas, infeas_first, "dual_norm_end", i.dual_norm_end);
+    key_double(infeas, infeas_first, "dual_growth", i.dual_growth);
+    key_double(infeas, infeas_first, "dual_step_growth", i.dual_step_growth);
+    key_bool(infeas, infeas_first, "farkas_corroborated", i.farkas_corroborated);
+    key_double(infeas, infeas_first, "farkas_residual", i.farkas_residual);
+    key_double(infeas, infeas_first, "farkas_gap", i.farkas_gap);
+    key_double(infeas, infeas_first, "least_infeasible_primal", i.least_infeasible_primal);
+    key_double(infeas, infeas_first, "least_infeasible_mu", i.least_infeasible_mu);
 
     return "{\"stall\":{" + stall + "},\"infeasibility\":{" + infeas + "}}";
 }
@@ -307,25 +321,32 @@ void JsonLinesTraceSink::write_line(const char *ev, const std::string &body) {
     }
     line += "}\n";
     out_ << line;
+    // R3(b): the stream's own state, read after every write and sticky. It says
+    // "failed at or before one of this sink's writes" and cannot say whose write
+    // it was; `seq_` advances regardless, so the gap counts the lines lost.
+    if (!out_) {
+        failed_ = true;
+    }
 }
 
 void JsonLinesTraceSink::on_ipqp_iter(const IpqpTraceIterEvent &event) {
     std::string b;
-    key_index(b, "solve", event.solve);
-    key_index(b, "major", event.major);
-    key_index(b, "it", event.it);
-    key_double(b, "mu", event.mu);
-    key_double(b, "rho", event.rho);
-    key_double(b, "delta", event.delta);
-    key_double(b, "res_p", event.res_p);
-    key_double(b, "res_d", event.res_d);
-    key_double(b, "res_c", event.res_c);
-    key_double(b, "sigma", event.sigma);
-    key_double(b, "alpha_p", event.alpha_p);
-    key_double(b, "alpha_d", event.alpha_d);
+    bool first = true;
+    key_index(b, first, "solve", event.solve);
+    key_index(b, first, "major", event.major);
+    key_index(b, first, "it", event.it);
+    key_double(b, first, "mu", event.mu);
+    key_double(b, first, "rho", event.rho);
+    key_double(b, first, "delta", event.delta);
+    key_double(b, first, "res_p", event.res_p);
+    key_double(b, first, "res_d", event.res_d);
+    key_double(b, first, "res_c", event.res_c);
+    key_double(b, first, "sigma", event.sigma);
+    key_double(b, first, "alpha_p", event.alpha_p);
+    key_double(b, first, "alpha_d", event.alpha_d);
     // Rule 5: an unavailable or unreadable inertia is `null`, NEVER [0,0,0] --
     // a zero-filled read would be indistinguishable from a real one.
-    key(b, "inertia");
+    key(b, first, "inertia");
     if (event.inertia.has_value()) {
         b += '[';
         append_index(b, (*event.inertia)[0]);
@@ -337,88 +358,95 @@ void JsonLinesTraceSink::on_ipqp_iter(const IpqpTraceIterEvent &event) {
     } else {
         b += "null";
     }
-    key_bool(b, "zero_derived", event.zero_derived);
-    key(b, "perturbed");
+    key_bool(b, first, "zero_derived", event.zero_derived);
+    key(b, first, "perturbed");
     if (event.perturbed.has_value()) {
         append_index(b, *event.perturbed);
     } else {
         b += "null";
     }
-    key(b, "facts");
+    key(b, first, "facts");
     append_string(b, event.facts);
     write_line("ipqp.iter", b);
 }
 
 void JsonLinesTraceSink::on_ipqp_reg(const IpqpTraceRegEvent &event) {
     std::string b;
-    key_enum(b, "dir", to_json(event.dir));
-    key_double(b, "rho", event.rho);
-    key_double(b, "delta", event.delta);
-    key_enum(b, "reason", to_json(event.reason));
+    bool first = true;
+    key_enum(b, first, "dir", to_json(event.dir));
+    key_double(b, first, "rho", event.rho);
+    key_double(b, first, "delta", event.delta);
+    key_enum(b, first, "reason", to_json(event.reason));
     write_line("ipqp.reg", b);
 }
 
 void JsonLinesTraceSink::on_ipqp_restart(const IpqpTraceRestartEvent &event) {
     std::string b;
-    key_enum(b, "grade", to_json(event.grade));
-    key_bool(b, "repaired", event.repaired);
-    key_double(b, "shift_p", event.shift_p);
-    key_double(b, "shift_d", event.shift_d);
-    key_double(b, "mu0", event.mu0);
-    key_double(b, "mu_payload", event.mu_payload);
-    key_bool(b, "adopted", event.adopted);
-    key_bool(b, "abandoned", event.abandoned);
+    bool first = true;
+    key_enum(b, first, "grade", to_json(event.grade));
+    key_bool(b, first, "repaired", event.repaired);
+    key_double(b, first, "shift_p", event.shift_p);
+    key_double(b, first, "shift_d", event.shift_d);
+    key_double(b, first, "mu0", event.mu0);
+    key_double(b, first, "mu_payload", event.mu_payload);
+    key_bool(b, first, "adopted", event.adopted);
+    key_bool(b, first, "abandoned", event.abandoned);
     write_line("ipqp.restart", b);
 }
 
 void JsonLinesTraceSink::on_ipqp_route(const IpqpTraceRouteEvent &event) {
     std::string b;
-    key_enum(b, "to", to_json(event.to));
-    key_index(b, "uncertain", event.uncertain);
-    key_index(b, "face_rows", event.face_rows);
-    key_index(b, "face_bounds", event.face_bounds);
+    bool first = true;
+    key_enum(b, first, "to", to_json(event.to));
+    key_index(b, first, "uncertain", event.uncertain);
+    key_index(b, first, "face_rows", event.face_rows);
+    key_index(b, first, "face_bounds", event.face_bounds);
     write_line("ipqp.route", b);
 }
 
 void JsonLinesTraceSink::on_ipqp_certify(const IpqpTraceCertifyEvent &event) {
     std::string b;
-    key_enum(b, "final_inertia", to_json(event.final_inertia));
-    key_bool(b, "downgraded", event.downgraded);
+    bool first = true;
+    key_enum(b, first, "final_inertia", to_json(event.final_inertia));
+    key_bool(b, first, "downgraded", event.downgraded);
     write_line("ipqp.certify", b);
 }
 
 void JsonLinesTraceSink::on_ipqp_escape(const IpqpTraceEscapeEvent &event) {
     std::string b;
-    key_enum(b, "reason", to_json(event.reason));
-    key(b, "evidence");
+    bool first = true;
+    key_enum(b, first, "reason", to_json(event.reason));
+    key(b, first, "evidence");
     b += evidence_object(event.evidence);
     write_line("ipqp.escape", b);
 }
 
 void JsonLinesTraceSink::on_qp_mode(const QpModeTraceEvent &event) {
     std::string b;
-    key_enum(b, "mode", to_json(event.mode));
-    key_enum(b, "outcome", to_json(event.outcome));
-    key(b, "facts");
+    bool first = true;
+    key_enum(b, first, "mode", to_json(event.mode));
+    key_enum(b, first, "outcome", to_json(event.outcome));
+    key(b, first, "facts");
     append_string(b, event.facts);
-    key_index(b, "iters", event.iters);
+    key_index(b, first, "iters", event.iters);
     write_line("qp.mode", b);
 }
 
 void JsonLinesTraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) {
     std::string b;
-    key_bool(b, "entered_rung_a", event.entered_rung_a);
-    key_enum(b, "verdict", to_json(event.verdict));
-    key(b, "rho_0");
+    bool first = true;
+    key_bool(b, first, "entered_rung_a", event.entered_rung_a);
+    key_enum(b, first, "verdict", to_json(event.verdict));
+    key(b, first, "rho_0");
     if (event.rho_0.has_value()) {
         append_double(b, *event.rho_0);
     } else {
         b += "null";
     }
-    key_bool(b, "rho0_ceiling_hit", event.rho0_ceiling_hit);
-    key_bool(b, "floor_retry", event.floor_retry);
-    key_index(b, "qp_minor_iters", event.qp_minor_iters);
-    key_index(b, "qp_factorizations", event.qp_factorizations);
+    key_bool(b, first, "rho0_ceiling_hit", event.rho0_ceiling_hit);
+    key_bool(b, first, "floor_retry", event.floor_retry);
+    key_index(b, first, "qp_minor_iters", event.qp_minor_iters);
+    key_index(b, first, "qp_factorizations", event.qp_factorizations);
     write_line("fallback.verdict", b);
 }
 
