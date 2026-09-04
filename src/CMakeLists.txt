@@ -109,6 +109,12 @@ target_include_directories(hven PRIVATE
 #
 #   - drivers/sqp_print.cpp: the printing surface.
 #
+#   - drivers/trace_writer.cpp: JsonLinesTraceSink, the machine-trace schema
+#     v0 serializer (M6 W4). Printing code by any reading -- one ostream, one
+#     line per event, no arithmetic on the values it formats -- so section 5
+#     selects a TU for it on exactly the ground sqp_print.cpp stands on. It is
+#     off by default: nothing in the library constructs one.
+#
 #   - drivers/sqp_options.cpp: SqpOptions boundary validation. Its banner
 #     carries the ONE flag premise in this tree that a comparison's spelling
 #     depends on -- `-fno-finite-math-only`, without which `!(x > 0.0)` may be
@@ -191,6 +197,7 @@ target_sources(hven PRIVATE
     drivers/sqp_driver.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
+    drivers/trace_writer.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
     qp/ipqp_engine.cpp
@@ -429,7 +436,14 @@ endif()
 # defaulted destructor for IpqpTraceSink, one include. Stays OUT on the same
 # unmeasured-default footing as the eleven above -- there is nothing here for
 # a shared PCH to save.
-set(_hven_expected_source_count 40)
+#
+# 41 as of drivers/trace_writer.cpp (M6 W4 task 1): the machine-trace schema v0
+# serializer. Stays OUT on the same unmeasured-default footing as the twelve
+# above. It includes its own header (core/types.h plus detail/qp/ipqp_trace.h),
+# fmt/format.h and four standard headers -- a different set in a different
+# order from the one src/hven_pch.h prefixes, which is the SQP-side prior that
+# has failed bar 2 for every such TU measured so far.
+set(_hven_expected_source_count 41)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
