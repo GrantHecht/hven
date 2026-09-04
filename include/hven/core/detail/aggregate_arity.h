@@ -8,20 +8,24 @@
 // claims to enumerate (M6 W4 T2(d), plan amendment E).
 //
 // NOT sizeof: sizeof is padding-dependent and moves for reasons that have
-// nothing to do with the field list. This counts INITIALIZERS -- the largest N
-// for which `T{a1, ..., aN}` is well-formed with each `a` convertible to
-// anything -- which is exactly the number of fields aggregate initialization
-// addresses.
+// nothing to do with the field list.
+//
+// This counts INITIALIZERS -- the largest N for which `T{a1, ..., aN}` is
+// well-formed with each `a` convertible to anything -- which is exactly the
+// number of fields aggregate initialization addresses.
 //
 // A NESTED AGGREGATE COUNTS AS ONE FIELD here, because `AggregateAnyInit`
 // converts to the nested type directly and that conversion is preferred over
-// brace elision. The counts the tables assert are stated at their own
-// static_asserts, which is where a reader can check the arithmetic.
+// brace elision.
 //
-// UNDER core/, NOT detail/, and that is the layering rule rather than a
-// preference: `core/solver_counters.h` holds the field tables this pins, and
-// `CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier` forbids a core/ header
-// from including `hven/detail/`. The namespace stays `hven::detail`.
+// The counts the tables assert are stated at their own static_asserts, which is
+// where a reader can check the arithmetic.
+//
+// UNDER core/, NOT detail/: `core/solver_counters.h` holds the field tables
+// this pins, and `CoreLayering.NoCoreHeaderDependsUpwardOnAnotherTier` forbids
+// a core/ header from including `hven/detail/`.
+//
+// The namespace stays `hven::detail`.
 
 #include <cstddef>
 #include <type_traits>

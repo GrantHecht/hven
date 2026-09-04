@@ -577,8 +577,10 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     //
     // The WALK now writes its own `qp.mode` line at the invocation, so a
     // subproblem the tier declines or retires past adds a walk line with no
-    // route beside it. The TIER's own pairing is unchanged and is what is
-    // asserted; the walk's lines are counted separately below.
+    // route beside it.
+    //
+    // The TIER's own pairing is unchanged and is what is asserted; the walk's
+    // lines are counted separately below.
     Index ipqp_mode_events = 0, walk_mode_events = 0;
     for (const QpModeTraceEvent &ev : sink.modes) {
         if (ev.mode == IpqpTraceQpMode::kIpqp) {
