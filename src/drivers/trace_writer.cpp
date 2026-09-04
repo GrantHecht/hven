@@ -6,14 +6,15 @@
 // header.
 //
 // The contract is docs/notes/2026-09-m6-w4-plan.md section 2, quoted where each
-// rule is executed below. Two decisions this file makes that the plan leaves to
-// the implementer, both argued at their site:
+// rule is executed below. Two of its rules are worth naming here:
 //
-//   - the five `Vec` members of `IpqpInfeasibilityEvidence` are NOT written
-//     (v0 carries no vectors -- plan section 7 amendment G);
+//   - the five `Vec` members of `IpqpInfeasibilityEvidence` are NOT written.
+//     That is the SETTLER'S RULE -- schema v0 carries no vector-valued field
+//     anywhere, plan section 2 rule 4 as amended at the T1 ledger.
 //
-//   - a write to a failed stream is not an error here (instrumentation must not
-//     be able to end a solve -- CLAUDE.md section 7).
+//   - the stream is the CALLER'S, and exceptions have TWO cases: under the
+//     default mask the sink never throws and never ends a solve, under an armed
+//     mask the caller's choice propagates by design. Stated in trace_writer.h.
 
 #include <cmath>
 #include <iterator>

@@ -208,9 +208,9 @@ IpqpTraceEscapeEvent golden_escape() {
     i.farkas_gap = -3.5;
     i.least_infeasible_primal = 1.25;
     i.least_infeasible_mu = 0.001;
-    // NON-VACUITY for the no-vectors rule: the five Vec members are POPULATED
-    // here, so the golden line below fails if any of them ever reaches the
-    // stream (plan section 7 amendment G).
+    // NON-VACUITY for the settler's rule that v0 carries no vector-valued field
+    // anywhere: the five Vec members are POPULATED here, so the golden line
+    // fails if any of them ever reaches the stream.
     i.least_infeasible_x = Vec::Constant(3, 7.0);
     i.least_infeasible_s = Vec::Constant(2, 8.0);
     i.least_infeasible_lambda_i = Vec::Constant(2, 9.0);
@@ -374,10 +374,20 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull) {
 // Here it is an ERROR, over one exhaustive switch per enum. An added enumerator
 // therefore fails to COMPILE this file, and the spellings below are the ORACLE
 // the sink is checked against -- an independent copy, in the test.
+//
+// CLANG-FAMILY ONLY, which is every lane this project builds: linux clang,
+// AppleClang and clang-cl all define `__clang__`. On gcc or MSVC the net is
+// absent and an appended enumerator meets only the no-`"unknown"` assertion.
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic error "-Wswitch"
 #endif
+
+/// The total oracle's out-of-range answer. A `nullptr` here would make
+/// `EXPECT_EQ(std::string, nullptr)` undefined behaviour on the very failure
+/// the switches exist to report; this reads as a value instead, and matches no
+/// spelling the sink can produce.
+const char *const kUnspelled = "\"UNSPELLED\"";
 
 const char *spec_spelling(IpqpTraceRegDir v) {
     switch (v) {
@@ -386,7 +396,7 @@ const char *spec_spelling(IpqpTraceRegDir v) {
     case IpqpTraceRegDir::kUp:
         return "\"up\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(IpqpTraceRegReason v) {
@@ -400,7 +410,7 @@ const char *spec_spelling(IpqpTraceRegReason v) {
     case IpqpTraceRegReason::kFloor:
         return "\"floor\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(IpqpTraceRestartGrade v) {
@@ -412,7 +422,7 @@ const char *spec_spelling(IpqpTraceRestartGrade v) {
     case IpqpTraceRestartGrade::kFull:
         return "\"full\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(IpqpTraceRouteTo v) {
@@ -424,7 +434,7 @@ const char *spec_spelling(IpqpTraceRouteTo v) {
     case IpqpTraceRouteTo::kWalk:
         return "\"walk\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(IpqpTraceFinalInertia v) {
@@ -436,7 +446,7 @@ const char *spec_spelling(IpqpTraceFinalInertia v) {
     case IpqpTraceFinalInertia::kUnreadable:
         return "\"unreadable\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(IpqpTraceEscapeReason v) {
@@ -452,7 +462,7 @@ const char *spec_spelling(IpqpTraceEscapeReason v) {
     case IpqpTraceEscapeReason::kInfeasibleSuspect:
         return "\"infeasible_suspect\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(IpqpTraceQpMode v) {
@@ -460,7 +470,7 @@ const char *spec_spelling(IpqpTraceQpMode v) {
     case IpqpTraceQpMode::kIpqp:
         return "\"ipqp\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(IpqpTraceOutcome v) {
@@ -472,7 +482,7 @@ const char *spec_spelling(IpqpTraceOutcome v) {
     case IpqpTraceOutcome::kEscaped:
         return "\"escaped\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 const char *spec_spelling(SqpFallbackVerdict v) {
@@ -488,7 +498,7 @@ const char *spec_spelling(SqpFallbackVerdict v) {
     case SqpFallbackVerdict::kUnfired:
         return "\"unfired\"";
     }
-    return nullptr;
+    return kUnspelled;
 }
 
 #if defined(__clang__)
@@ -1282,7 +1292,11 @@ TEST(JsonLinesTraceSink, AStreamThatFailsMidSolveDoesNotChangeTheSolve) {
 TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
     // THE SECOND CASE. A caller who arms a mask has ASKED for exceptions; the
     // sink neither swallows nor re-labels one, and nothing in the driver catches
-    // it. This is the header's contract, pinned.
+    // it today.
+    //
+    // NO RULE FORBIDS ONE. `sqp_driver.cpp:1746`'s `catch (const std::exception
+    // &)` would already swallow `std::ios_base::failure` if an emit site ever
+    // moved inside its try, and THIS PIN is the only thing that would notice.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
@@ -1333,11 +1347,13 @@ TEST(JsonLinesTraceSink, OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNo
 
 /// @brief A model whose variable 0 has a zero-width box.
 ///
-/// REPLICATED, unchanged in behaviour, from `PinnedVariableModel` in
-/// tests/sqp/test_ipqp_dispatch.cpp:156 (which pins the decline itself). It is
-/// here because it is the only in-tree population with
-/// `ipqp_declined_pinned > 0`, and that is the term the entry identity
-/// subtracts. Neither that test nor its fixture was modified.
+/// BEHAVIOUR-FAITHFUL FOR THE PINNED CASE, from `PinnedVariableModel` in
+/// tests/sqp/test_ipqp_dispatch.cpp:156 (which pins the decline itself). Not a
+/// byte copy: the origin's `pin` constructor flag and its unpinned box are
+/// dropped, since only the pinned case is wanted here. It is here because it is
+/// the only in-tree population with `ipqp_declined_pinned > 0`, and that is the
+/// term the entry identity subtracts. Neither that test nor its fixture was
+/// modified.
 class PinnedVariableModel final : public NlpModel {
   public:
     Index n() const override { return 2; }
@@ -1421,9 +1437,13 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
 
 // --- the five-verdict population, replicated from test_sqp_driver.cpp ------
 //
-// `w2_box_blocked_qp` (:8536), `w2_antiparallel_eq_qp` (:9023) and `w2_escaped`
-// (:8631) are file-local there, so they are REPLICATED here unchanged rather
-// than lifted -- that test and its fixture are not touched at all.
+// `w2_box_blocked_qp` (:8536) and `w2_antiparallel_eq_qp` (:9023) are file-local
+// there and are copied here with BYTE-IDENTICAL bodies; that test and its
+// fixture are not touched at all.
+//
+// `w2_escaped_evidence` is ADAPTED from `w2_escaped` (:8631), not copied:
+// renamed, narrowed to the evidence block, and with the radius fixed at +inf
+// rather than defaulted.
 
 QpProblem w2_box_blocked_qp(double b) {
     QpProblem qp;
