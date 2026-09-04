@@ -28,6 +28,7 @@
 #include <limits>
 #include <map>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <streambuf>
 #include <string>
@@ -368,7 +369,6 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull) {
 // ===========================================================================
 // R1(c) -- THE COMPILE-TIME NET the production TU cannot provide
 // ===========================================================================
-//
 // `-Wswitch` in `src/drivers/trace_writer.cpp` only WARNS: this tree carries no
 // `-Werror`, so an enumerator added without a spelling ships a `"unknown"`.
 //
@@ -492,6 +492,46 @@ const char *spec_spelling(QpStatus v) {
     return kUnspelled;
 }
 
+const char *spec_spelling(SqpStatus v) {
+    switch (v) {
+    case SqpStatus::kOptimal:
+        return "\"optimal\"";
+    case SqpStatus::kMaxIter:
+        return "\"max_iter\"";
+    case SqpStatus::kInfeasible:
+        return "\"infeasible\"";
+    case SqpStatus::kNumericalError:
+        return "\"numerical_error\"";
+    case SqpStatus::kBudgetExhausted:
+        return "\"budget_exhausted\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(WorkingSetLinearAlgebra v) {
+    switch (v) {
+    case WorkingSetLinearAlgebra::kRefactorize:
+        return "\"refactorize\"";
+    case WorkingSetLinearAlgebra::kSchurBorder:
+        return "\"schur_border\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(StartLevel v) {
+    switch (v) {
+    case StartLevel::kCold:
+        return "\"cold\"";
+    case StartLevel::kSeeded:
+        return "\"seeded\"";
+    case StartLevel::kWarm:
+        return "\"warm\"";
+    case StartLevel::kHot:
+        return "\"hot\"";
+    }
+    return kUnspelled;
+}
+
 const char *spec_spelling(StepVerdict v) {
     switch (v) {
     case StepVerdict::kAcceptF:
@@ -558,6 +598,10 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(IpqpTraceQpMode::kSsn) == 3 - 1, "3 QP modes");
     static_assert(static_cast<int>(QpStatus::kNumericalError) == 4 - 1, "4 QP statuses");
     static_assert(static_cast<int>(StepVerdict::kRestore) == 4 - 1, "4 step verdicts");
+    static_assert(static_cast<int>(SqpStatus::kBudgetExhausted) == 5 - 1, "5 solve statuses");
+    static_assert(static_cast<int>(WorkingSetLinearAlgebra::kSchurBorder) == 2 - 1,
+                  "2 working-set algebras");
+    static_assert(static_cast<int>(StartLevel::kHot) == 4 - 1, "4 start levels");
     static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
     static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
 
@@ -700,6 +744,45 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     step_verdict(StepVerdict::kAcceptH);
     step_verdict(StepVerdict::kReject);
     step_verdict(StepVerdict::kRestore);
+
+    // W4 T2 fix round 1 (R6): part (c)'s three alphabets, which shipped with a
+    // `to_json` case and no net at all.
+    const auto solve_status = [](SqpStatus st) {
+        const SqpCounters counters;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_solve_end(SqpSolveEndTraceEvent{st, 0, counters});
+        EXPECT_EQ(raw_field(os.str(), "status"), spec_spelling(st));
+    };
+    solve_status(SqpStatus::kOptimal);
+    solve_status(SqpStatus::kMaxIter);
+    solve_status(SqpStatus::kInfeasible);
+    solve_status(SqpStatus::kNumericalError);
+    solve_status(SqpStatus::kBudgetExhausted);
+
+    const auto ws_algebra = [](WorkingSetLinearAlgebra a) {
+        SqpSolveBeginTraceEvent e;
+        e.ws_algebra = a;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_solve_begin(e);
+        EXPECT_EQ(raw_field(os.str(), "ws_algebra"), spec_spelling(a));
+    };
+    ws_algebra(WorkingSetLinearAlgebra::kRefactorize);
+    ws_algebra(WorkingSetLinearAlgebra::kSchurBorder);
+
+    const auto start_level = [](StartLevel lv) {
+        SqpCounters counters;
+        counters.start_level_used = lv;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+        EXPECT_EQ(raw_field(os.str(), "start_level_used"), spec_spelling(lv));
+    };
+    start_level(StartLevel::kCold);
+    start_level(StartLevel::kSeeded);
+    start_level(StartLevel::kWarm);
+    start_level(StartLevel::kHot);
 }
 
 TEST(JsonLinesTraceSink, StringEscapingIsRfc8259AndUtf8PassesThrough) {
@@ -711,27 +794,32 @@ TEST(JsonLinesTraceSink, StringEscapingIsRfc8259AndUtf8PassesThrough) {
     EXPECT_EQ(raw_field(os.str(), "facts"), "\"\\u0001\\u001f\\b\\f\\r\\t\xc3\xa9ok\"");
 }
 
-TEST(JsonLinesTraceSink, SeqCountsFromOneAndDepthHooksMoveTheEnvelopeSaturatingAtZero) {
+TEST(JsonLinesTraceSink, SeqCountsFromOneAndTheSolvePairMovesTheEnvelope) {
+    // RE-POINTED AT THE BEGIN/END PATH (W4 T2 fix round 1, R3(c)), which is
+    // the real mechanism now.
+    //
+    // T1's `push_depth`/`pop_depth` are private: a caller moving `depth_`
+    // without the open-solve count would desynchronize the two permanently.
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
+    const SqpCounters counters;
     EXPECT_EQ(sink.depth(), 0);
+    sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
-    sink.push_depth();
+    sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
-    sink.pop_depth();
-    // T2 wires the calls; T1 pins that an unbalanced pop cannot fabricate a
-    // negative depth in the artifact.
-    sink.pop_depth();
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
     sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
     const std::vector<std::string> lines = split_lines(os.str());
-    ASSERT_EQ(lines.size(), 3u);
-    EXPECT_EQ(raw_field(lines[0], "seq"), "1");
-    EXPECT_EQ(raw_field(lines[0], "depth"), "0");
-    EXPECT_EQ(raw_field(lines[1], "seq"), "2");
-    EXPECT_EQ(raw_field(lines[1], "depth"), "1");
-    EXPECT_EQ(raw_field(lines[2], "seq"), "3");
-    EXPECT_EQ(raw_field(lines[2], "depth"), "0");
-    EXPECT_EQ(sink.lines_written(), 3);
+    ASSERT_EQ(lines.size(), 7u);
+    const char *const kDepths[] = {"0", "0", "1", "1", "1", "0", "0"};
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        EXPECT_EQ(raw_field(lines[i], "seq"), std::to_string(i + 1));
+        EXPECT_EQ(raw_field(lines[i], "depth"), kDepths[i]) << lines[i];
+    }
+    EXPECT_EQ(sink.lines_written(), 7);
+    EXPECT_EQ(sink.depth(), 0) << "the pair is balanced";
 }
 
 // ===========================================================================
@@ -1150,7 +1238,6 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
 // ===========================================================================
 // R5 -- BOOL FALSIFIERS: a distinct signature ACROSS lines for every bool
 // ===========================================================================
-//
 // One golden line cannot tell two `true` bools apart. Proven by mutation:
 // swapping repaired/adopted, rho0_ceiling_hit/floor_retry or
 // infeasibility.fired/farkas_corroborated left round 1's lines BYTE-IDENTICAL.
@@ -1519,7 +1606,6 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
 }
 
 // --- the five-verdict population, replicated from test_sqp_driver.cpp ------
-//
 // `w2_box_blocked_qp` (:8536) and `w2_antiparallel_eq_qp` (:9023) are file-local
 // there and are copied here with BYTE-IDENTICAL bodies; that test and its
 // fixture are not touched at all.
@@ -1675,7 +1761,6 @@ IpqpTraceQpMode mode_of_token(const std::string &token) {
 // ===========================================================================
 // W4 T2 (a) -- `sqp.major`: THE ROW, IN CALLER UNITS
 // ===========================================================================
-//
 // THE GOLDEN LINES ARE DECLARED RE-DERIVABLE AT T3 (plan section 2 rule 6):
 // that task ADDS `SqpIterate` fields, and the writer's arity `static_assert`
 // stops the build until they get keys.
@@ -1980,7 +2065,6 @@ TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
 // ===========================================================================
 // W4 T2 (b) -- `qp.mode` IN ALL THREE ARMS
 // ===========================================================================
-//
 // ONE LINE PER KERNEL INVOCATION (the rule stated at `QpModeTraceEvent`), so a
 // hand-off writes two: the handing kernel's `routed` line and its successor's.
 //
@@ -2141,16 +2225,24 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
 // W4 T2 (c) -- `sqp.solve` begin/end
 // ===========================================================================
 
-void expect_counter_field(const std::string &line, const char *k, Index v) {
+void expect_counter_field(const std::string &line, const char *k, Index v, bool absent) {
+    if (absent) {
+        EXPECT_EQ(raw_field(line, k), "null") << k;
+        return;
+    }
     EXPECT_EQ(raw_field(line, k), std::to_string(v)) << k;
 }
 
-void expect_counter_field(const std::string &line, const char *k, double v) {
+void expect_counter_field(const std::string &line, const char *k, double v, bool absent) {
+    if (absent) {
+        EXPECT_EQ(raw_field(line, k), "null") << k;
+        return;
+    }
     expect_double_field(line, k, v);
 }
 
-void expect_counter_field(const std::string &line, const char *k, StartLevel v) {
-    EXPECT_EQ(raw_field(line, k), std::string("\"") + to_string(v) + "\"") << k;
+void expect_counter_field(const std::string &line, const char *k, StartLevel v, bool) {
+    EXPECT_EQ(raw_field(line, k), spec_spelling(v)) << k;
 }
 
 /// @brief The whole counters object against the solution's own counters.
@@ -2159,13 +2251,13 @@ void expect_counter_field(const std::string &line, const char *k, StartLevel v) 
 /// behind the struct: a field added without a table entry fails the header's
 /// `static_assert`, and one added WITH an entry is compared here automatically.
 void expect_end_line_counters(const std::string &line, const SqpCounters &c) {
-#define HVEN_TEST_CHECK_FIELD(f) expect_counter_field(line, #f, c.f);
+#define HVEN_TEST_CHECK_FIELD(f, absent) expect_counter_field(line, #f, c.f, absent(c.f));
     HVEN_SQP_COUNTERS_FIELDS(HVEN_TEST_CHECK_FIELD)
 #undef HVEN_TEST_CHECK_FIELD
-#define HVEN_TEST_CHECK_FIELD(f) expect_counter_field(line, #f, c.ssn.f);
+#define HVEN_TEST_CHECK_FIELD(f, absent) expect_counter_field(line, #f, c.ssn.f, absent(c.ssn.f));
     HVEN_SSN_COUNTERS_FIELDS(HVEN_TEST_CHECK_FIELD)
 #undef HVEN_TEST_CHECK_FIELD
-#define HVEN_TEST_CHECK_FIELD(f) expect_counter_field(line, #f, c.ipqp.f);
+#define HVEN_TEST_CHECK_FIELD(f, absent) expect_counter_field(line, #f, c.ipqp.f, absent(c.ipqp.f));
     HVEN_IPQP_COUNTERS_FIELDS(HVEN_TEST_CHECK_FIELD)
 #undef HVEN_TEST_CHECK_FIELD
 }
@@ -2180,7 +2272,11 @@ std::string only_line(const std::string &stream, const char *ev, const char *dep
             ++hits;
         }
     }
-    EXPECT_EQ(hits, 1) << ev << " at depth " << depth;
+    if (hits != 1) {
+        ADD_FAILURE() << "expected exactly one " << ev << " line at depth " << depth << ", found "
+                      << hits;
+        return {};
+    }
     return found;
 }
 
@@ -2273,9 +2369,9 @@ TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguo
 }
 
 TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
-    // TYCHO RIDER 1. Every `qp.mode` and `fallback.verdict` line belongs to the
-    // major whose `sqp.major` line comes NEXT: the row is pushed at the end of
-    // its own major, so the bracket is (previous row, this row].
+    // TYCHO RIDER 1. Every event line belongs to the major whose `sqp.major`
+    // line comes NEXT: the row is pushed at the end of its own major, so the
+    // bracket is (previous row, this row].
     //
     // DEPTH 0 ONLY. A nested restoration sub-solve writes its own lines into
     // the same stream at depth 1, and they belong to its own brackets.
@@ -2313,12 +2409,13 @@ TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
             pending = 0;
             continue;
         }
-        if (ev == "qp.mode" || ev == "fallback.verdict") {
-            ++pending;
-        }
+        // EVERY non-row, non-pair event (co-review M-4): the tier's own
+        // `ipqp.*` lines belong to a major's bracket too, and counting only
+        // the two driver events would let an `ipqp.iter` trail the last row.
+        ++pending;
     }
     EXPECT_EQ(brackets, static_cast<Index>(sol.history.size()));
-    EXPECT_EQ(trailing, 0) << "every qp.mode/fallback.verdict line has a row after it";
+    EXPECT_EQ(trailing, 0) << "every event line has a row after it";
     ASSERT_GT(sol.counters.ipqp.ipqp_escapes, 0) << "non-vacuous: the cell escapes and falls back";
 }
 
@@ -2496,6 +2593,446 @@ TEST(JsonLinesTraceSink, TheNestedRestorationSolveIsBracketedAtDepthOne) {
     // THE BALANCE, PINNED DIRECTLY (tycho rider 3) rather than left to
     // `pop_depth`'s saturation.
     EXPECT_EQ(json.depth(), 0);
+}
+
+// ===========================================================================
+// W4 T2 fix round 1 -- the whole-solve line's own golden lines and pins
+// ===========================================================================
+
+/// Assigns a DISTINCT value to each counter, so a swapped, duplicated or
+/// dropped key changes the golden line's bytes.
+void assign_distinct(Index &field, Index &next) { field = next++; }
+void assign_distinct(double &field, Index &next) { field = static_cast<double>(next++); }
+void assign_distinct(StartLevel &field, Index &next) {
+    field = StartLevel::kHot;
+    ++next;
+}
+
+/// @brief `SqpCounters` with every field distinct, filled THROUGH the tables.
+///
+/// A loop over the tables rather than 90 hand-written lines: the golden line
+/// below is the thing being maintained, and it must move when a field is added.
+SqpCounters distinct_counters() {
+    SqpCounters c;
+    Index next = 1;
+#define HVEN_TEST_FILL(f, absent) assign_distinct(c.f, next);
+    HVEN_SQP_COUNTERS_FIELDS(HVEN_TEST_FILL)
+#undef HVEN_TEST_FILL
+#define HVEN_TEST_FILL(f, absent) assign_distinct(c.ssn.f, next);
+    HVEN_SSN_COUNTERS_FIELDS(HVEN_TEST_FILL)
+#undef HVEN_TEST_FILL
+#define HVEN_TEST_FILL(f, absent) assign_distinct(c.ipqp.f, next);
+    HVEN_IPQP_COUNTERS_FIELDS(HVEN_TEST_FILL)
+#undef HVEN_TEST_FILL
+    return c;
+}
+
+SqpSolveBeginTraceEvent golden_begin() {
+    SqpSolveBeginTraceEvent e;
+    e.n = 11;
+    e.me = 3;
+    e.mi = 5;
+    e.vars_free = 1;
+    e.vars_lower_only = 2;
+    e.vars_upper_only = 4;
+    e.vars_ranged = 6;
+    e.vars_fixed = 7;
+    e.qp_mode = IpqpTraceQpMode::kSsn;
+    e.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    return e;
+}
+
+/// The KEYS of the `counters` object, in stream order, nesting included.
+std::vector<std::string> counters_keys(const std::string &line) {
+    const std::string token = raw_field(line, "counters");
+    std::vector<std::string> keys;
+    for (std::size_t i = 0; i + 1 < token.size(); ++i) {
+        if (token[i] != '"') {
+            continue;
+        }
+        const std::size_t close = token.find('"', i + 1);
+        if (close == std::string::npos || close + 1 >= token.size() || token[close + 1] != ':') {
+            continue;
+        }
+        keys.push_back(token.substr(i + 1, close - i - 1));
+        i = close;
+    }
+    return keys;
+}
+
+TEST(JsonLinesTraceSink, GoldenLineSqpSolveBegin) {
+    // BYTE-EXACT, from a hand-filled struct with every field DISTINCT.
+    //
+    // Nothing else in the suite tests key ORDER on this line: every other check
+    // is a key lookup, generated from the same table as the writer.
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_sqp_solve_begin(golden_begin());
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"sqp.solve.begin\",\"seq\":1,\"depth\":0,\"n\":11,\"me\":3,\"mi\":5"
+              ",\"vars_free\":1,\"vars_lower_only\":2,\"vars_upper_only\":4,\"vars_ranged\":6,\"var"
+              "s_fixed\":7,\"qp_mode\":\"ssn\",\"ws_algebra\":\"refactorize\"}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
+    // THE 90 COUNTERS IN TABLE ORDER, each carrying its own number, so a
+    // reorder, a duplicate or a dropped entry moves these bytes.
+    //
+    // Declared re-derivable while v0 is open (plan section 2 rule 6).
+    const SqpCounters c = distinct_counters();
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kBudgetExhausted, 42, c});
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exhauste"
+              "d\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"factorizati"
+              "ons\":3,\"steps_accepted\":4,\"rejected_steps\":5,\"soc_steps\":6,\"soc_applied\":7,"
+              "\"soc_qp_infeasible\":8,\"soc_rejected\":9,\"elastic_activations\":10,\"elastic_esca"
+              "lations\":11,\"restoration_iters\":12,\"elastic_from_ipqp_escape\":13,\"ipqp_suspici"
+              "on_disproved\":14,\"ipqp_fallback_rung_b\":15,\"elastic_rho0_ceiling_hits\":16,\"ela"
+              "stic_floor_retries\":17,\"eqp_refine_steps\":18,\"border_refine_steps\":19,\"verdict"
+              "_refine_steps\":20,\"suspect_escalations\":21,\"symbolic_analyses\":22,\"start_level"
+              "_used\":\"hot\",\"full_step_majors\":24,\"watchdog_restores\":25,\"evals_full\":26,"
+              "\"evals_values\":27,\"probe_budget_stops\":28,\"crash_seeded_rows\":29,\"crash_seede"
+              "d_bounds\":30,\"n_seeded\":31,\"seeded_clamped\":32,\"ip_activity_inferred\":33,\"ss"
+              "n\":{\"ssn_iters\":34,\"ssn_bulk_flips\":35,\"ssn_backtracks\":36,\"ssn_prox_updates"
+              "\":37,\"ssn_escapes\":38,\"ssn_uncertain_peak\":39,\"ssn_refinements\":40,\"ssn_refi"
+              "ne_refused\":41,\"ssn_refine_factorizations\":42,\"ssn_refine_neg_duals\":43,\"ssn_s"
+              "ign_swept\":44,\"ssn_sign_sweep_max\":45,\"ssn_escape_budget\":46,\"ssn_escape_singu"
+              "lar\":47,\"ssn_escape_no_contraction\":48,\"ssn_escape_infeasible_suspect\":49,\"ssn"
+              "_escape_indefinite\":50,\"ssn_escape_gate_refused\":51},\"ipqp\":{\"ipqp_iters\":52,"
+              "\"ipqp_factorizations\":53,\"ipqp_symbolic_analyses\":54,\"ipqp_solves\":55,\"ipqp_p"
+              "attern_verifies\":56,\"ipqp_rho_demanded_max\":57,\"ipqp_rho_demanded_last\":58,\"ip"
+              "qp_inertia_retries\":59,\"ipqp_iters_at_elevated_rho\":60,\"ipqp_ladder_reclimbs\":6"
+              "1,\"ipqp_pivot_reroute_primal\":62,\"ipqp_pivot_reroute_dual_fallback\":63,\"ipqp_it"
+              "ers_ladder_armed_no_advance\":64,\"ipqp_final_inertia_read\":65,\"ipqp_reg_decreases"
+              "\":66,\"ipqp_reg_increases\":67,\"ipqp_prox_center_updates\":68,\"ipqp_restart_repai"
+              "rs\":69,\"ipqp_restart_shift_max\":70,\"ipqp_mu_adopted\":71,\"ipqp_warm_restart_aba"
+              "ndoned\":72,\"ipqp_declined_pinned\":73,\"ipqp_tier_retired_after\":74,\"ipqp_face_u"
+              "ncertain\":75,\"ipqp_refine_accepted\":76,\"ipqp_refine_refused\":77,\"ipqp_to_refin"
+              "e\":78,\"ipqp_to_ssn\":79,\"ipqp_to_walk\":80,\"ipqp_escapes\":81,\"ipqp_escape_budg"
+              "et\":82,\"ipqp_escape_stall\":83,\"ipqp_escape_indefinite\":84,\"ipqp_escape_numeric"
+              "al\":85,\"ipqp_escape_infeasible_suspect\":86,\"ipqp_alpha_p_min\":87,\"ipqp_alpha_d"
+              "_min\":88,\"ipqp_read_kept_tight_sides\":89,\"ipqp_read_barrier_noise_sides\":90}}}"
+              "\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
+    // THE OTHER HALF OF RULE 5 (fix round 1, R7): a default-constructed
+    // `SqpCounters` holds the three documented absence sentinels.
+    //
+    // `ipqp_alpha_p_min` and `ipqp_alpha_d_min` at `+infinity` ("no step
+    // observed yet") and `ipqp_tier_retired_after` at 0 ("never retired") must
+    // every one read `null`, not a value.
+    const SqpCounters c;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kNumericalError, 0, c});
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_error"
+              "\",\"majors\":0,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorization"
+              "s\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\""
+              "soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalat"
+              "ions\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_dis"
+              "proved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floo"
+              "r_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_step"
+              "s\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold"
+              "\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":"
+              "0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_see"
+              "ded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"ssn\":{\"ssn_iters\":0,\"s"
+              "sn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ss"
+              "n_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn_refine_fac"
+              "torizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max"
+              "\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\""
+              ":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate"
+              "_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_a"
+              "nalyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\":"
+              "0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_r"
+              "ho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_rerou"
+              "te_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_r"
+              "ead\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates"
+              "\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,"
+              "\"ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_aft"
+              "er\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused"
+              "\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\""
+              "ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_e"
+              "scape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,"
+              "\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise"
+              "_sides\":0}}}\n");
+}
+
+TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {
+    // THE COUNT ASSERTS CANNOT SEE A DROP PAIRED WITH A DUPLICATE (fix round
+    // 1, R10): 90 entries of which one names a field twice and one is missing
+    // still counts 90.
+    //
+    // The emitted KEYS are what settles it.
+    const SqpCounters c = distinct_counters();
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, c});
+    const std::vector<std::string> keys = counters_keys(os.str());
+    // The two nesting keys are the tables' own structure, not fields.
+    EXPECT_EQ(keys.size(),
+              kSqpCountersFieldCount + kSsnCountersFieldCount + kIpqpCountersFieldCount + 2);
+    const std::set<std::string> unique(keys.begin(), keys.end());
+    EXPECT_EQ(unique.size(), keys.size()) << "a key is emitted twice";
+    EXPECT_EQ(unique.count("ssn"), 1u);
+    EXPECT_EQ(unique.count("ipqp"), 1u);
+}
+
+TEST(JsonLinesTraceSink, SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLocal) {
+    // FIX ROUND 1, R1. The `end` line is now written by an explicit statement
+    // in the wrapper, from the object the wrapper is about to return -- not by
+    // a destructor running after the return statement has begun to move it.
+    //
+    // What this pin can see: the line equals the counters the CALLER receives,
+    // on a solve with a non-empty history that the caller then MOVES.
+    //
+    // A read of a moved-from local becomes visible here the day a counter stops
+    // being trivially copyable -- the failure the old shape could not pin.
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(38);
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    SqpSolution sol = driver.solve(*p.model);
+    ASSERT_FALSE(sol.history.empty());
+    const SqpSolution moved = std::move(sol);
+
+    const std::string end = only_line(os.str(), "sqp.solve.end");
+    ASSERT_FALSE(end.empty());
+    EXPECT_EQ(raw_field(end, "majors"), std::to_string(moved.counters.major_iters));
+    expect_end_line_counters(end, moved.counters);
+}
+
+TEST(JsonLinesTraceSink, AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThanTerminating) {
+    // THE LEG THAT WOULD HAVE CAUGHT IT. The T1 armed-mask pin's 4096-byte
+    // budget fails MID-solve, on an ordinary emit.
+    //
+    // The `end` line is the last write of every solve, and written from a
+    // `noexcept` destructor a failure there called `std::terminate`.
+    //
+    // The budget is measured, not guessed: solve once to learn the stream, then
+    // re-solve with room for everything except the final line.
+    SqpOptions opts;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(24);
+    std::ostringstream measure;
+    {
+        JsonLinesTraceSink json(measure);
+        SqpDriver driver(opts);
+        driver.attach_trace(&json);
+        driver.solve(*p.model);
+    }
+    const std::vector<std::string> lines = split_lines(measure.str());
+    ASSERT_GE(lines.size(), 2u);
+    ASSERT_EQ(event_name(lines.back()), "sqp.solve.end") << "the end line must be the last write";
+    const std::streamsize budget =
+        static_cast<std::streamsize>(measure.str().size() - lines.back().size() - 1);
+
+    FailAfterBuf buf(budget);
+    std::ostream out(&buf);
+    out.exceptions(std::ios::badbit);
+    SqpDriver traced(opts);
+    JsonLinesTraceSink json(out);
+    traced.attach_trace(&json);
+    EXPECT_THROW(traced.solve(*p.model), std::ios_base::failure);
+    EXPECT_EQ(buf.taken.size(), static_cast<std::size_t>(budget)) << "it really failed on the last";
+}
+
+TEST(JsonLinesTraceSink, ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero) {
+    // FIX ROUND 1, R3(a)/R11. `SqpDriver::solve` refuses a wrong-sized `x0`
+    // with `std::invalid_argument` -- a recoverable API refusal.
+    //
+    // Emitting `begin` first left the sink one solve deep for ever, and every
+    // later stream on it read `"depth":1`.
+    //
+    // ASSERTED ON THE STREAM, not on `depth()`: the leak is invisible to the
+    // accessor, which reads 0 between solves either way.
+    SqpOptions opts;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(24);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+
+    SqpDriver bad(opts);
+    bad.attach_trace(&json);
+    EXPECT_THROW(bad.solve(*p.model, Vec::Zero(p.model->n() + 1)), std::invalid_argument);
+    EXPECT_EQ(os.str(), "") << "a refused call writes nothing at all";
+    EXPECT_EQ(json.lines_written(), 0);
+
+    SqpDriver good(opts);
+    good.attach_trace(&json);
+    const SqpSolution sol = good.solve(*p.model);
+    ASSERT_GT(sol.counters.major_iters, 0);
+    const std::vector<std::string> lines = split_lines(os.str());
+    ASSERT_FALSE(lines.empty());
+    for (const std::string &l : lines) {
+        EXPECT_EQ(raw_field(l, "depth"), "0") << l;
+    }
+    EXPECT_EQ(event_name(lines.front()), "sqp.solve.begin");
+    EXPECT_EQ(event_name(lines.back()), "sqp.solve.end");
+}
+
+/// @brief A model whose objective gradient throws on the second evaluation.
+///
+/// The one shape that reaches a throw AFTER `begin`: a caller callback failing
+/// mid-solve, which no argument check can refuse in advance.
+class ThrowsOnSecondGradientModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return 0.5 * x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override {
+        if (++calls_ > 1) {
+            throw std::runtime_error("model callback failed mid-solve");
+        }
+        return x;
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec v = Vec::Constant(2, -10.0);
+        return v;
+    }
+    const Vec &upper() const override {
+        static const Vec v = Vec::Constant(2, 10.0);
+        return v;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 3.0); }
+
+  private:
+    mutable Index calls_ = 0;
+};
+
+TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
+    // FIX ROUND 1, R3(b). "Exceptions excluded" stands: a solve that threw
+    // writes `begin` and no `end`, which is the honest record.
+    //
+    // The sink is then one level open, and `reset_nesting()` is how a harness
+    // that keeps using it says so. `seq` is deliberately NOT reset: the lines
+    // already written are part of the artifact.
+    SqpOptions opts;
+    opts.max_iter = 60;
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+
+    ThrowsOnSecondGradientModel bad_model;
+    SqpDriver thrower(opts);
+    thrower.attach_trace(&json);
+    EXPECT_THROW(thrower.solve(bad_model), std::runtime_error);
+    const Index lines_after_throw = json.lines_written();
+    ASSERT_GT(lines_after_throw, 0);
+
+    json.reset_nesting();
+
+    const HsProblem p = make_hs(24);
+    SqpDriver good(opts);
+    good.attach_trace(&json);
+    const SqpSolution sol = good.solve(*p.model);
+    ASSERT_GT(sol.counters.major_iters, 0);
+
+    const std::vector<std::string> lines = split_lines(os.str());
+    Index begins = 0;
+    Index ends = 0;
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        EXPECT_EQ(raw_field(lines[i], "seq"), std::to_string(i + 1)) << "seq is NOT reset";
+        if (static_cast<Index>(i) >= lines_after_throw) {
+            EXPECT_EQ(raw_field(lines[i], "depth"), "0") << lines[i];
+        }
+        begins += (event_name(lines[i]) == "sqp.solve.begin") ? 1 : 0;
+        ends += (event_name(lines[i]) == "sqp.solve.end") ? 1 : 0;
+    }
+    EXPECT_EQ(begins, 2);
+    EXPECT_EQ(ends, 1) << "the solve that threw wrote no end, by design";
+}
+
+TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoration) {
+    // FIX ROUND 1, R9. `restoration_seed_used` was decided AFTER the row had
+    // been pushed and emitted, so the stream disagreed with `history` on
+    // exactly the rows that seeded a restoration.
+    //
+    // No row-by-row pin reached one, because HS24/HS38/HS25 never restore.
+    CircleAndFarLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+    Index seeded_rows = 0;
+    for (const SqpIterate &r : sol.history) {
+        seeded_rows += r.restoration_seed_used ? 1 : 0;
+    }
+    ASSERT_GT(seeded_rows, 0) << "non-vacuous: a row really takes a candidate seed";
+
+    std::vector<std::string> rows;
+    for (const std::string &l : split_lines(os.str())) {
+        if (event_name(l) == "sqp.major" && raw_field(l, "depth") == "0") {
+            rows.push_back(l);
+        }
+    }
+    ASSERT_EQ(rows.size(), sol.history.size());
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        SCOPED_TRACE("row " + std::to_string(i));
+        expect_major_line_is_row(rows[i], sol.history[i], static_cast<Index>(i),
+                                 mode_of_token(raw_field(rows[i], "mode")));
+    }
+}
+
+TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade) {
+    // FIX ROUND 1, R4. `sqp.major.mode` is the arm that produced the ROW's
+    // step; `qp.mode` is the DISPATCH record.
+    //
+    // They agree at kWalk and kSsn, and differ under kIpm on the majors routed
+    // to the SSN warm grade -- not the kSsn arm, and writing no line.
+    //
+    // HS3 at kIpm is the cell that exhibits it (the same cell
+    // test_ipqp_trace.cpp uses for the `to_ssn` row).
+    SqpOptions opts;
+    opts.qp_mode = QpMode::kIpm;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(3);
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    ASSERT_GT(sol.counters.ipqp.ipqp_to_ssn, 0) << "non-vacuous: the grade must be reached";
+    Index rows_reading_ssn = 0;
+    for (const SqpIterate &r : sol.history) {
+        rows_reading_ssn += (r.qp_solved && !r.elastic_applied) ? 0 : 0;
+    }
+    for (const std::string &l : split_lines(os.str())) {
+        if (event_name(l) == "sqp.major" && raw_field(l, "mode") == "\"ssn\"") {
+            ++rows_reading_ssn;
+        }
+    }
+    EXPECT_GT(rows_reading_ssn, 0) << "some row's step came from the warm grade";
+    EXPECT_EQ(qp_mode_census(os.str()).count("\"ssn\""), 0u)
+        << "and no ssn dispatch record exists: the two readings are different questions";
 }
 
 } // namespace
