@@ -581,7 +581,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // deliberately NOT a repair trigger, and a wrong inertia LATER is
         // section 4c's ride to handle.
         if (iter == 0 && verdict == detail::InertiaVerdict::kWrong &&
-            repair_temporary_vertex(qp, ws, x, kkt, *border_, counters, eff_opts)) {
+            repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
             degenerate_run = 0; // observation only -- x moved onto bounds
             // Pinning moved x onto bounds, which can violate general
             // rows; the homotopy picks them up exactly as at a start
@@ -662,7 +662,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // whose ride declined can also spend the restart --
                     // wider than the narrowest intent, sound either way.
                     if (probe_drop_made && !post_probe_restart_spent &&
-                        repair_temporary_vertex(qp, ws, x, kkt, *border_, counters, eff_opts)) {
+                        repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters,
+                                                eff_opts)) {
                         post_probe_restart_spent = true;
                         // Pinning moved x onto bounds, exactly as at the
                         // start-of-solve repair: general rows may now be
@@ -681,7 +682,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     // date before probing (section 4b's ZERO-MULTIPLIER
                     // PROBE).
                     probe.refresh(ws);
-                    if (probe_zero_multiplier_drops(qp, shift, lambda_i, z, ws, kkt, *border_,
+                    if (probe_zero_multiplier_drops(qp, shift, lambda_i, z, ws, kkt, face, *border_,
                                                     counters, probe, last_drop, eff_opts)) {
                         // Negative curvature the full labeling hid: the
                         // drop is real. It arms the POST-PROBE RESTART
@@ -1244,11 +1245,11 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
                                     lambda_e, opts);
     };
 
-    // THE REUSE GUARD: `kkt` already holds this face's factorization unless the
-    // working set moved since the candidate solve, so the common case buys no
-    // factorization at all. See the declaration.
+    // THE REUSE GUARD: the key carries the working set AND the factor's own
+    // identity, so a moved working set and a re-factorized `kkt` both miss.
+    // See EliminatedFace and the declaration.
     detail::KktFactor fresh;
-    const bool reuse = face.holds(ws);
+    const bool reuse = face.holds(ws, kkt);
     const detail::KktFactor &fac = reuse ? kkt : fresh;
     if (!reuse) {
         // rebuild_k0's accounting rule: the decision is taken BEFORE the
@@ -1258,12 +1259,20 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         if (analysis.needed) {
             ++counters.symbolic_analyses;
         }
+        // Charged for the ATTEMPT (eliminated_candidate's convention), so the
+        // decline below stays visible in the counters.
         ++counters.factorizations;
-        detail::factorize_checked(fresh, assembly.K, analysis);
+        try {
+            detail::factorize_checked(fresh, assembly.K, analysis);
+        } catch (const std::runtime_error &) {
+            // THE MISS BRANCH'S OWN DEGRADATION, discriminated: this system is
+            // the twin's, never the walk's, so declining it is the border
+            // twin's class. A logic_error still propagates. See the declaration.
+            return false;
+        }
     }
-    // NOTHING IS SWALLOWED HERE: this path has no degradation to absorb the way
-    // the border twin absorbs a singular Schur complement, so a throw is the
-    // backend fault solve_eqp reports one call earlier. See the declaration.
+    // NOTHING IS SWALLOWED ON THE HIT PATH: `fac` is then a factorization that
+    // already succeeded, so there is nothing left to fail. See the declaration.
     //
     // Replay the CURRENT face's own incumbent -- solve_eqp's solve plus its one
     // mandatory step -- so every step below is one the walk declined.
@@ -1353,7 +1362,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     EqpResult res = solve_eqp(qp, ws, kkt, opts);
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
     // face's factorization and the verdict site may solve through it.
-    face.capture(ws);
+    face.capture(ws, kkt);
     // EXTRA steps only, i.e. identically 0 (solver_counters.h): the eliminated path
     // takes its one mandatory step and has no iterated loop.
     counters.eqp_refine_steps += res.refine_steps;
@@ -1524,21 +1533,23 @@ detail::InertiaVerdict QpEngine::border_inertia_verdict(const QpProblem &qp,
 }
 
 detail::InertiaVerdict QpEngine::probe_inertia(const QpProblem &qp, const WorkingSet &ws,
-                                               detail::KktFactor &kkt, BorderState &border,
-                                               QpCounters &counters, const QpOptions &opts) const {
+                                               detail::KktFactor &kkt, EliminatedFace &face,
+                                               BorderState &border, QpCounters &counters,
+                                               const QpOptions &opts) const {
     detail::InertiaVerdict verdict = detail::InertiaVerdict::kOk;
-    // A THROWAWAY face key: this call re-factorizes `kkt` for a HYPOTHETICAL
-    // working set, and the loop's own key must not be re-armed on it.
-    EliminatedFace probe_face;
-    (void)eqp_candidate(qp, ws, kkt, probe_face, border, counters, verdict, opts);
+    // THE LOOP'S OWN KEY, not a throwaway: this call re-factorizes `kkt` for a
+    // HYPOTHETICAL working set, so the key must follow it there -- disarmed on
+    // the border path, re-armed on the PROBED set otherwise. See EliminatedFace.
+    (void)eqp_candidate(qp, ws, kkt, face, border, counters, verdict, opts);
     return verdict;
 }
 
 bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift,
                                            const Vec &lambda_i, const Vec &z, WorkingSet &ws,
-                                           detail::KktFactor &kkt, BorderState &border,
-                                           QpCounters &counters, ProbeState &probe,
-                                           DropRecord &dropped, const QpOptions &opts) const {
+                                           detail::KktFactor &kkt, EliminatedFace &face,
+                                           BorderState &border, QpCounters &counters,
+                                           ProbeState &probe, DropRecord &dropped,
+                                           const QpOptions &opts) const {
     struct Candidate {
         bool is_ineq = false;
         Index idx = -1;
@@ -1591,7 +1602,8 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift
             ws.bound_state()[si] = BoundState::kFree;
         }
 
-        const detail::InertiaVerdict verdict = probe_inertia(qp, ws, kkt, border, counters, opts);
+        const detail::InertiaVerdict verdict =
+            probe_inertia(qp, ws, kkt, face, border, counters, opts);
         if (verdict == detail::InertiaVerdict::kWrong) {
             dropped = DropRecord{};
             dropped.active = true;
@@ -1689,8 +1701,9 @@ bool QpEngine::pin_at_best_bound(const QpProblem &qp, WorkingSet &ws, Vec &x, co
 }
 
 bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec &x,
-                                       detail::KktFactor &kkt, BorderState &border,
-                                       QpCounters &counters, const QpOptions &opts) const {
+                                       detail::KktFactor &kkt, EliminatedFace &face,
+                                       BorderState &border, QpCounters &counters,
+                                       const QpOptions &opts) const {
     const Index n = qp.n();
     const Vec hdiag = hessian_diagonal(qp);
 
@@ -1718,7 +1731,7 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
             continue; // unbounded both ways: nothing to pin against
         }
         pinned.push_back(i);
-        verdict = probe_inertia(qp, ws, kkt, border, counters, opts);
+        verdict = probe_inertia(qp, ws, kkt, face, border, counters, opts);
         if (verdict != detail::InertiaVerdict::kWrong) {
             break; // repaired, or no longer verifiable
         }
@@ -1741,7 +1754,8 @@ bool QpEngine::repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec 
         const auto si = static_cast<std::size_t>(*it);
         const BoundState held = ws.bound_state()[si];
         ws.bound_state()[si] = BoundState::kFree;
-        if (probe_inertia(qp, ws, kkt, border, counters, opts) != detail::InertiaVerdict::kOk) {
+        if (probe_inertia(qp, ws, kkt, face, border, counters, opts) !=
+            detail::InertiaVerdict::kOk) {
             ws.bound_state()[si] = held; // negative curvature is still there: keep the pin
         }
     }

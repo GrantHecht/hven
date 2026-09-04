@@ -888,38 +888,63 @@ struct BorderState {
     // nothing. See QpEngine::run()'s reuse condition (e).
 };
 
-// THE FACE THE ELIMINATION PATH'S `kkt` CURRENTLY HOLDS (M6 W2 T7 fix 1).
+// THE FACE THE ELIMINATION PATH'S `kkt` CURRENTLY HOLDS (M6 W2 T7, fix 2).
 // Captured where solve_eqp factorizes, read at the verdict site so the face
 // refinement can REUSE that factorization instead of buying its own.
 //
-// assemble_kkt keys K on exactly two things once the problem and the effective
-// (primal_delta, dual_mu) are fixed: which variables are FREE -- the
-// elimination partition, everything else being substituted out -- and which
-// inequality rows are working, in order. Both are recorded WHOLE rather than
-// as counts: refresh_shifts ADDS rows and drop_worst REMOVES them, and neither
-// changes n, so no pair of sizes distinguishes the faces.
+// THE KEY FOLLOWS THE FACTOR. The signature has two halves and BOTH are
+// necessary: WHICH SYSTEM was factorized (the working set) and WHICH
+// FACTORIZATION `kkt` is holding now (the factor's own identity). Fix 1
+// recorded only the first, and probe_inertia -- which re-factorizes `kkt` for
+// a HYPOTHETICAL working set -- could leave the key armed on a signature the
+// live working set still matched: the guard then reused a factorization of a
+// different, differently-SIZED system, and solve() threw out of
+// SymmetricFactor::solve. Both halves are now structural.
 //
-// `factorized` is the second half of the guard and is the stronger half: it is
-// true only on an iteration whose candidate came from solve_eqp on THIS `kkt`.
-// A bordered candidate leaves it false (`kkt` then holds whatever the last
-// fallback left, which is not the current system even when the working set
-// matches), and so does solve_eqp's empty-reduced-system short-circuit, which
-// factorizes nothing at all.
+// HALF ONE, THE SYSTEM. assemble_kkt keys K on exactly two things once the
+// problem and the effective (primal_delta, dual_mu) are fixed: which variables
+// are FREE -- the elimination partition, everything else being substituted out
+// -- and which inequality rows are working, in order. Both are recorded WHOLE
+// rather than as counts: refresh_shifts ADDS rows and drop_worst REMOVES them,
+// and neither changes n, so no pair of sizes distinguishes the faces.
+//
+// HALF TWO, THE FACTORIZATION. (session_id, epoch) is the identity the FACTOR
+// OBJECT owns and advances inside its own factorize path -- symmetric_factor.h
+// names it the identity triple's live half, analyze() moving the session id
+// and every successful factorize() advancing the epoch, the same mechanism
+// BorderState's stale-handle note relies on. Nothing here stamps it, so it is
+// bumped by EVERY path that factorizes `kkt` and not by an enumerated set of
+// call sites: today that is solve_eqp (through eliminated_candidate) reached
+// either from the loop's own eqp_candidate or from probe_inertia, and any
+// future writer is covered by construction. rebuild_k0 factorizes
+// `border.kkt`, never this one. The strength of the invariant IS this: no
+// enumeration of writers, an identity the factor advances itself.
+//
+// `factorized` is the entry condition, not part of the signature: it is true
+// only on an iteration whose candidate came from solve_eqp on THIS `kkt`. A
+// bordered candidate leaves it false (`kkt` then holds whatever the last
+// fallback left), and so does solve_eqp's empty-reduced-system short-circuit,
+// which factorizes nothing at all.
 struct EliminatedFace {
     bool factorized = false;
+    std::uint64_t session_id = 0;
+    std::uint64_t epoch = 0;
     std::vector<BoundState> bound_state;
     std::vector<Index> rows;
 
     // Assignment reuses the vectors' capacity, so steady state allocates
     // nothing.
-    void capture(const WorkingSet &ws) {
+    void capture(const WorkingSet &ws, const detail::KktFactor &kkt) {
         bound_state = ws.bound_state();
         rows = ws.active_ineq();
+        session_id = kkt.factor.session_id();
+        epoch = kkt.factor.epoch();
         factorized = true;
     }
 
-    bool holds(const WorkingSet &ws) const {
-        return factorized && bound_state == ws.bound_state() && rows == ws.active_ineq();
+    bool holds(const WorkingSet &ws, const detail::KktFactor &kkt) const {
+        return factorized && session_id == kkt.factor.session_id() && epoch == kkt.factor.epoch() &&
+               bound_state == ws.bound_state() && rows == ws.active_ineq();
     }
 };
 
@@ -1371,15 +1396,18 @@ class QpEngine {
     /// working set -- `assemble_kkt` is a triplet build over H/Ae/Ai's working
     /// rows plus one sort, no backend call and no session, so the assembly is
     /// not the cost. The FACTORIZATION is, and it is bought only when it has
-    /// to be: `kkt` still holds this iteration's own factorization of this
-    /// face, so the twin REUSES it and pays `solve_vec` calls alone whenever
-    /// `face` still describes the live working set. The one thing that can
-    /// break that is a working-set change between the candidate solve and this
-    /// call -- `refresh_shifts` adding a row, which is exactly what `face`
-    /// detects -- and on such a MISS the twin assembles and factorizes its own
-    /// `KktFactor`, charging one `factorizations` and one `symbolic_analyses`
-    /// (rebuild_k0's accounting rule: the decision taken before the factorize
-    /// and handed to it). A hit charges NEITHER.
+    /// to be: the twin REUSES `kkt` and pays `solve_vec` calls alone whenever
+    /// `face` HOLDS -- the live working set matching the captured one AND
+    /// `kkt`'s factor still standing at the captured (session_id, epoch). Two
+    /// things break that, and the key catches both: a working-set change
+    /// between the candidate solve and this call (`refresh_shifts` adding a
+    /// row), and a RE-FACTORIZATION of `kkt` by any other path in between
+    /// (`repair_temporary_vertex`'s inertia probes, whose working set is
+    /// hypothetical and whose system is a different SIZE). On such a MISS the
+    /// twin assembles and factorizes its own `KktFactor`, charging one
+    /// `factorizations` and one `symbolic_analyses` (rebuild_k0's accounting
+    /// rule: the decision taken before the factorize and handed to it). A hit
+    /// charges NEITHER.
     ///
     /// WHY REUSE IS SOUND, AND WHAT WOULD BREAK IT. `assemble_kkt` keys K on
     /// the elimination partition and the working rows -- which `face` records
@@ -1389,7 +1417,22 @@ class QpEngine {
     /// would-be-kOptimal branch, strictly AFTER this classification, and then
     /// restarts the iteration. A future reorder that moved an options change
     /// ahead of the verdict site would silently break the identity, so it must
-    /// not: `face` guards the working set, not the options.
+    /// not: `face` guards the working set and the factor, not the options.
+    ///
+    /// THE MISS BRANCH MAY DECLINE, THE HIT BRANCH MAY NOT. On a hit the
+    /// factor already succeeded, so there is nothing to fail and nothing is
+    /// caught. On a miss the twin factorizes a system THE WALK NEVER SOLVED --
+    /// the candidate's face plus whatever `refresh_shifts` added -- and that
+    /// system can be exactly singular at a LEGAL setting: `dual_mu = 0` means
+    /// no dual regularization, so a row dependent on the face leaves K
+    /// singular rather than quasi-definite. That is the twin's OWN system
+    /// failing, the border twin's singular-Schur degradation class and not
+    /// section 4's never-swallow class, so `factorize_checked`'s
+    /// std::runtime_error (its backend-error class, discriminated -- a
+    /// std::logic_error is a contract breach and still propagates) DECLINES
+    /// the refinement. The attempted factorization stays charged, which is
+    /// eliminated_candidate's convention and the one that keeps a decline's
+    /// cost visible; nothing else is counted.
     ///
     /// D1/D4, AND THEY NOW HOLD IN BOTH ALGEBRAS (M6 W2 T6b's clauses, carried
     /// here): a kInfeasible exit RETURNS the refined point when it was adopted,
@@ -1475,9 +1518,14 @@ class QpEngine {
     // mode a probe costs a few K0 solves and a dense C rebuild
     // (schur_updates, no factorization); in refactorize mode it costs one
     // factorization, counted like any other.
+    //
+    // `face` is the LOOP's key, not a throwaway: this call may re-factorize
+    // `kkt`, and a key that did not follow it would keep asserting a
+    // factorization the probe overwrote (EliminatedFace, fix 2).
     detail::InertiaVerdict probe_inertia(const QpProblem &qp, const WorkingSet &ws,
-                                         detail::KktFactor &kkt, BorderState &border,
-                                         QpCounters &counters, const QpOptions &opts) const;
+                                         detail::KktFactor &kkt, EliminatedFace &face,
+                                         BorderState &border, QpCounters &counters,
+                                         const QpOptions &opts) const;
 
     // Section 4b's ZERO-MULTIPLIER PROBE, run at the would-be-kOptimal exit.
     // Walks every WEAKLY active working-set member (multiplier numerically
@@ -1495,8 +1543,9 @@ class QpEngine {
     // algebra runs.
     bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift, const Vec &lambda_i,
                                      const Vec &z, WorkingSet &ws, detail::KktFactor &kkt,
-                                     BorderState &border, QpCounters &counters, ProbeState &probe,
-                                     DropRecord &dropped, const QpOptions &opts) const;
+                                     EliminatedFace &face, BorderState &border,
+                                     QpCounters &counters, ProbeState &probe, DropRecord &dropped,
+                                     const QpOptions &opts) const;
 
     // H's diagonal, gathered once (qp.H stores the upper triangle, so the
     // diagonal entries are the ones with col == row).
@@ -1512,10 +1561,11 @@ class QpEngine {
     // `ws` and `x` and returns true iff it reached a second-order consistent
     // working set; on failure both are restored to what they were.
     // `opts` is the effective options this solve resolved (see run()'s
-    // `eff_opts`), threaded through to probe_inertia -> eqp_candidate.
+    // `eff_opts`), threaded through to probe_inertia -> eqp_candidate; `face`
+    // is threaded for the same reason probe_inertia takes it.
     bool repair_temporary_vertex(const QpProblem &qp, WorkingSet &ws, Vec &x,
-                                 detail::KktFactor &kkt, BorderState &border, QpCounters &counters,
-                                 const QpOptions &opts) const;
+                                 detail::KktFactor &kkt, EliminatedFace &face, BorderState &border,
+                                 QpCounters &counters, const QpOptions &opts) const;
 
     // Would re-deriving K0 from `ws` reproduce exactly the state we are in?
     // It would iff K0 already spans the current working ROWS (so the rebuild
