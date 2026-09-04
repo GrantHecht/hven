@@ -3184,6 +3184,7 @@ class SqpDriver {
     void emit_trace_route(const IpqpTraceRouteEvent &event) const;
     void emit_trace_qp_mode(const QpModeTraceEvent &event) const;
     void emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const;
+    void emit_trace_sqp_major(const SqpMajorTraceEvent &event) const;
     // TASK 7's PRESERVED-SEED INGEST (plan ruling 4): the FIRST kIpm
     // subproblem's seed, built from the staged currency's unflattened
     // zL/zU/mu. Empty when nothing staged, not kIpm, or graded COLD.

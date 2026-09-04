@@ -4,9 +4,9 @@
 #pragma once
 
 // ipqp_trace.h -- the IPQP tier's machine-trace schema v0 (spec section 7,
-// :733-749), plus W2's driver-side `fallback.verdict`. Eight event
-// structs + sink interface; `v`/`ev` are the serializer's envelope, not
-// carried on any struct here.
+// :733-749), plus W2's driver-side `fallback.verdict` and W4 T2's whole-solve
+// events. The event structs + the sink interface; `v`/`ev`/`seq`/`depth` are
+// the serializer's envelope, not carried on any struct here.
 
 #include <array>
 #include <optional>
@@ -14,6 +14,7 @@
 
 #include <hven/core/types.h>
 #include <hven/detail/qp/ipqp_engine.h>
+#include <hven/drivers/sqp_types.h>
 
 namespace hven::solvers {
 
@@ -23,7 +24,10 @@ enum class IpqpTraceRestartGrade { kCold, kBase, kFull };
 enum class IpqpTraceRouteTo { kRefine, kSsn, kWalk };
 enum class IpqpTraceFinalInertia { kOk, kWrong, kUnreadable };
 enum class IpqpTraceEscapeReason { kBudget, kStall, kIndefinite, kNumerical, kInfeasibleSuspect };
-enum class IpqpTraceQpMode { kIpqp };
+/// Which KERNEL solved one subproblem (schema `qp.mode`). `kIpqp` is the
+/// interior-point tier; M6 W4 T2 added the other two so the walk and the SSN
+/// arms name themselves in the stream instead of being read off by absence.
+enum class IpqpTraceQpMode { kIpqp, kWalk, kSsn };
 enum class IpqpTraceOutcome { kOptimal, kRouted, kEscaped };
 
 /// @brief One completed predictor+corrector pair (schema `ipqp.iter`).
@@ -141,7 +145,31 @@ struct SqpFallbackVerdictTraceEvent {
     Index qp_factorizations = 0;
 };
 
-/// @brief The W4 hook: one sink, eight pure-virtual methods. `nullptr` is
+/// @brief One exported `SqpSolution::history` row (schema `sqp.major`, M6 W4 T2).
+///
+/// THE ROW IS HELD BY REFERENCE, not copied into a second struct: the serializer
+/// writes `SqpIterate`'s own fields in DECLARATION ORDER, so a field added to
+/// the row cannot be forgotten by the stream (a `static_assert` on the row's
+/// aggregate arity in the serializer fails the build until the key is added).
+///
+/// Emitted from inside the driver's `push_history`, AFTER its scaling map, so
+/// the stream carries exactly what `history` carries -- CALLER units on a
+/// scaled solve, one event per row, from all six push sites at once.
+struct SqpMajorTraceEvent {
+    /// The row, in the units it will be exported in. Valid for the duration of
+    /// the `on_sqp_major` call only.
+    const SqpIterate &row;
+    /// This row's index in `SqpSolution::history` -- the value `history.size()`
+    /// had before the push, so the stream and the vector share one numbering.
+    Index major = 0;
+    /// The arm that OWNED this row's QP. On a row with `qp_solved == false` no
+    /// kernel ran and this reports the solve's CONFIGURED mode instead; the
+    /// same line's `qp_solved` is what tells the two apart.
+    IpqpTraceQpMode mode = IpqpTraceQpMode::kWalk;
+};
+
+/// @brief The W4 hook: one sink; the eight W1/W2 methods are PURE, and every
+/// method W4 adds is non-pure with an empty default (Q-S3). `nullptr` is
 /// the off state every emit site checks before EMITTING; the seven tier
 /// events are also built there, while `fallback.verdict` is the judge's own
 /// out-param and is filled whether or not a sink is attached (a handful of
@@ -157,6 +185,11 @@ class IpqpTraceSink {
     virtual void on_ipqp_escape(const IpqpTraceEscapeEvent &event) = 0;
     virtual void on_qp_mode(const QpModeTraceEvent &event) = 0;
     virtual void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) = 0;
+
+    /// @brief One exported history row. NON-PURE, with an empty out-of-line
+    /// default (plan section 6 Q-S3): the four recording sinks W1/W2 left in
+    /// the tests do not want this event and are not touched by its arrival.
+    virtual void on_sqp_major(const SqpMajorTraceEvent &event);
 };
 
 } // namespace hven::solvers

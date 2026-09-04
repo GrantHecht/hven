@@ -36,6 +36,7 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include <hven/core/detail/aggregate_arity.h>
 #include <hven/detail/globalization/sqp/elastic.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
@@ -469,6 +470,38 @@ const char *spec_spelling(IpqpTraceQpMode v) {
     switch (v) {
     case IpqpTraceQpMode::kIpqp:
         return "\"ipqp\"";
+    case IpqpTraceQpMode::kWalk:
+        return "\"walk\"";
+    case IpqpTraceQpMode::kSsn:
+        return "\"ssn\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(QpStatus v) {
+    switch (v) {
+    case QpStatus::kOptimal:
+        return "\"optimal\"";
+    case QpStatus::kMaxIter:
+        return "\"max_iter\"";
+    case QpStatus::kInfeasible:
+        return "\"infeasible\"";
+    case QpStatus::kNumericalError:
+        return "\"numerical_error\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(StepVerdict v) {
+    switch (v) {
+    case StepVerdict::kAcceptF:
+        return "\"accept_f\"";
+    case StepVerdict::kAcceptH:
+        return "\"accept_h\"";
+    case StepVerdict::kReject:
+        return "\"reject\"";
+    case StepVerdict::kRestore:
+        return "\"restore\"";
     }
     return kUnspelled;
 }
@@ -522,7 +555,9 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(IpqpTraceFinalInertia::kUnreadable) == 3 - 1, "3 readings");
     static_assert(static_cast<int>(IpqpTraceEscapeReason::kInfeasibleSuspect) == 5 - 1,
                   "5 escape reasons");
-    static_assert(static_cast<int>(IpqpTraceQpMode::kIpqp) == 1 - 1, "1 QP mode (T2 adds two)");
+    static_assert(static_cast<int>(IpqpTraceQpMode::kSsn) == 3 - 1, "3 QP modes");
+    static_assert(static_cast<int>(QpStatus::kNumericalError) == 4 - 1, "4 QP statuses");
+    static_assert(static_cast<int>(StepVerdict::kRestore) == 4 - 1, "4 step verdicts");
     static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
     static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
 
@@ -626,6 +661,45 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     verdict(SqpFallbackVerdict::kExhausted);
     verdict(SqpFallbackVerdict::kRungB);
     verdict(SqpFallbackVerdict::kUnfired);
+
+    // W4 T2's three added alphabets, driven through `sqp.major`: the two new
+    // QP modes, and the two DRIVER enums the row carries.
+    const auto major_mode = [](IpqpTraceQpMode m) {
+        const SqpIterate r;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_major(SqpMajorTraceEvent{r, 0, m});
+        EXPECT_EQ(raw_field(os.str(), "mode"), spec_spelling(m));
+    };
+    major_mode(IpqpTraceQpMode::kIpqp);
+    major_mode(IpqpTraceQpMode::kWalk);
+    major_mode(IpqpTraceQpMode::kSsn);
+
+    const auto qp_status = [](QpStatus q) {
+        SqpIterate r;
+        r.qp_status = q;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_major(SqpMajorTraceEvent{r, 0, IpqpTraceQpMode::kWalk});
+        EXPECT_EQ(raw_field(os.str(), "qp_status"), spec_spelling(q));
+    };
+    qp_status(QpStatus::kOptimal);
+    qp_status(QpStatus::kMaxIter);
+    qp_status(QpStatus::kInfeasible);
+    qp_status(QpStatus::kNumericalError);
+
+    const auto step_verdict = [](StepVerdict v) {
+        SqpIterate r;
+        r.verdict = v;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_major(SqpMajorTraceEvent{r, 0, IpqpTraceQpMode::kWalk});
+        EXPECT_EQ(raw_field(os.str(), "verdict"), spec_spelling(v));
+    };
+    step_verdict(StepVerdict::kAcceptF);
+    step_verdict(StepVerdict::kAcceptH);
+    step_verdict(StepVerdict::kReject);
+    step_verdict(StepVerdict::kRestore);
 }
 
 TEST(JsonLinesTraceSink, StringEscapingIsRfc8259AndUtf8PassesThrough) {
@@ -1038,10 +1112,10 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     EXPECT_EQ(a.ipqp.ipqp_read_barrier_noise_sides, b.ipqp.ipqp_read_barrier_noise_sides);
 }
 
-TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesNoLine) {
-    // A REPLAY-CLASS PIN. HS24 at kWalk: the walk and SSN arms have no emit
-    // site in T1, so attaching a sink to them costs nothing AND produces
-    // nothing. W4 T2 adds `qp.mode` there and re-derives the zero.
+TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
+    // A REPLAY-CLASS PIN, RE-DERIVED AT W4 T2(a) (declared). T1 recorded that
+    // the walk arm wrote NOTHING; it now writes one `sqp.major` line per
+    // history row, and the pin records that count beside the counters.
     SqpOptions opts;
     opts.qp_mode = QpMode::kWalk;
     opts.max_iter = 60;
@@ -1060,8 +1134,10 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesNoLine) {
     ASSERT_GT(without.counters.major_iters, 0) << "non-vacuous: the cell really solves";
     expect_counters_identical(without.counters, with.counters);
     EXPECT_EQ(without.history.size(), with.history.size());
-    EXPECT_EQ(os.str(), "") << "the walk arm emits nothing in W4 T1";
-    EXPECT_EQ(json.lines_written(), 0);
+    const std::map<std::string, Index> by_ev = census(os.str());
+    EXPECT_EQ(by_ev.at("sqp.major"), static_cast<Index>(with.history.size()));
+    EXPECT_EQ(by_ev.size(), 1u) << "the walk arm's only W4 T2(a) event is the row";
+    EXPECT_EQ(json.lines_written(), static_cast<Index>(with.history.size()));
 }
 
 // ===========================================================================
@@ -1575,6 +1651,323 @@ TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClass
     EXPECT_GT(out.elastic_floor_retries, 0) << "the subtracted term is live here";
     EXPECT_EQ(fired, out.elastic_from_ipqp_escape - out.elastic_floor_retries);
     EXPECT_EQ(unfired_n, n - fired);
+}
+
+/// The `mode` token back as its enumerator -- the pin compares through
+/// `spec_spelling`, so this is the inverse the comparison needs.
+IpqpTraceQpMode mode_of_token(const std::string &token) {
+    if (token == "\"ipqp\"") {
+        return IpqpTraceQpMode::kIpqp;
+    }
+    if (token == "\"ssn\"") {
+        return IpqpTraceQpMode::kSsn;
+    }
+    return IpqpTraceQpMode::kWalk;
+}
+
+// ===========================================================================
+// W4 T2 (a) -- `sqp.major`: THE ROW, IN CALLER UNITS
+// ===========================================================================
+//
+// THE GOLDEN LINES ARE DECLARED RE-DERIVABLE AT T3 (plan section 2 rule 6):
+// that task ADDS `SqpIterate` fields, and the writer's arity `static_assert`
+// stops the build until they get keys.
+//
+// These four lines move with it, as a declared additive re-derivation. They are
+// not frozen; the eight W1/W2 events' lines are.
+//
+// FOUR LINES, NOT ONE, AND THE REASON IS THE EIGHT BOOLS: one line cannot tell
+// two `true`s apart. Bool i (1-based, declaration order) is true on line A/B/C
+// iff bit 0/1/2 of (i-1) is set, and true on line D unconditionally.
+//
+// So all eight carry DISTINCT four-line signatures, and any swap of two of them
+// changes at least one line's bytes.
+
+/// Bit 0 of (i-1): ipqp_farkas_corroborated, soc_applied,
+/// elastic_rho0_ceiling_hit, watchdog_restored.
+SqpIterate golden_major_a() {
+    SqpIterate r;
+    r.trial = 4;
+    r.f = -2.5;
+    r.stationarity = 1e-7;
+    r.feasibility = 0.25;
+    r.complementarity = 0.125;
+    r.kkt_residual = 0.5;
+    r.violation_l1 = 1.5;
+    r.tr_radius = 2.0;
+    r.mu = 1e-8;
+    r.step_norm = 0.75;
+    r.qp_solved = false;
+    r.ipqp_least_infeasible_primal = 3.25;
+    r.ipqp_farkas_corroborated = true;
+    r.qp_status = QpStatus::kMaxIter;
+    r.qp_minor_iters = 9;
+    r.qp_factorizations = 3;
+    r.tr_binding = false;
+    r.verdict = StepVerdict::kAcceptF;
+    r.soc_applied = true;
+    r.elastic_applied = false;
+    r.elastic_rho0_ceiling_hit = true;
+    r.restoration_seed_used = false;
+    r.watchdog_restored = true;
+    return r;
+}
+
+/// Bit 1: tr_binding, soc_applied, restoration_seed_used, watchdog_restored.
+/// Carries the numeric contract too -- -0.0, a subnormal, DBL_MAX, 1e-300 and
+/// the three non-finite spellings, on the row's own doubles.
+SqpIterate golden_major_b() {
+    SqpIterate r;
+    r.trial = 0;
+    r.f = 0.1;
+    r.stationarity = -0.0;
+    r.feasibility = std::numeric_limits<double>::quiet_NaN();
+    r.complementarity = std::numeric_limits<double>::infinity();
+    r.kkt_residual = -std::numeric_limits<double>::infinity();
+    r.violation_l1 = 1e-300;
+    r.tr_radius = 1.7976931348623157e308;
+    r.mu = 4.9406564584124654e-324;
+    r.step_norm = 0.0;
+    r.qp_solved = false;
+    r.ipqp_least_infeasible_primal = 0.0;
+    r.ipqp_farkas_corroborated = false;
+    r.qp_status = QpStatus::kInfeasible;
+    r.qp_minor_iters = 0;
+    r.qp_factorizations = 0;
+    r.tr_binding = true;
+    r.verdict = StepVerdict::kRestore;
+    r.soc_applied = true;
+    r.elastic_applied = false;
+    r.elastic_rho0_ceiling_hit = false;
+    r.restoration_seed_used = true;
+    r.watchdog_restored = true;
+    return r;
+}
+
+/// Bit 2: elastic_applied, elastic_rho0_ceiling_hit, restoration_seed_used,
+/// watchdog_restored.
+SqpIterate golden_major_c() {
+    SqpIterate r;
+    r.trial = 11;
+    r.f = 1234.5;
+    r.stationarity = 1e-12;
+    r.feasibility = 6.25;
+    r.complementarity = 7.5;
+    r.kkt_residual = 8.75;
+    r.violation_l1 = 9.0;
+    r.tr_radius = 0.03125;
+    r.mu = 1e-6;
+    r.step_norm = 12.5;
+    r.qp_solved = false;
+    r.ipqp_least_infeasible_primal = -1.5;
+    r.ipqp_farkas_corroborated = false;
+    r.qp_status = QpStatus::kNumericalError;
+    r.qp_minor_iters = 21;
+    r.qp_factorizations = 13;
+    r.tr_binding = false;
+    r.verdict = StepVerdict::kAcceptH;
+    r.soc_applied = false;
+    r.elastic_applied = true;
+    r.elastic_rho0_ceiling_hit = true;
+    r.restoration_seed_used = true;
+    r.watchdog_restored = true;
+    return r;
+}
+
+/// Every bool true, which is what gives `qp_solved` -- alone among the eight in
+/// having bit pattern 0 -- a line where it reads `true`.
+SqpIterate golden_major_d() {
+    SqpIterate r;
+    r.trial = 2;
+    r.f = 3.0;
+    r.stationarity = 4.0;
+    r.feasibility = 5.0;
+    r.complementarity = 6.0;
+    r.kkt_residual = 7.0;
+    r.violation_l1 = 8.0;
+    r.tr_radius = 9.0;
+    r.mu = 10.0;
+    r.step_norm = 11.0;
+    r.qp_solved = true;
+    r.ipqp_least_infeasible_primal = 12.0;
+    r.ipqp_farkas_corroborated = true;
+    r.qp_status = QpStatus::kOptimal;
+    r.qp_minor_iters = 13;
+    r.qp_factorizations = 14;
+    r.tr_binding = true;
+    r.verdict = StepVerdict::kReject;
+    r.soc_applied = true;
+    r.elastic_applied = true;
+    r.elastic_rho0_ceiling_hit = true;
+    r.restoration_seed_used = true;
+    r.watchdog_restored = true;
+    return r;
+}
+
+std::string major_line(const SqpIterate &row, Index major, IpqpTraceQpMode mode) {
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_sqp_major(SqpMajorTraceEvent{row, major, mode});
+    return os.str();
+}
+
+TEST(JsonLinesTraceSink, GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode) {
+    EXPECT_EQ(major_line(golden_major_a(), 4, IpqpTraceQpMode::kWalk),
+              "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":4,\"f\":-2.5,\"station"
+              "arity\":9.9999999999999995e-08,\"feasibility\":0.25,\"complementarity\":0.125,\"kkt_"
+              "residual\":0.5,\"violation_l1\":1.5,\"tr_radius\":2,\"mu\":1e-08,\"step_norm\":0.75,"
+              "\"qp_solved\":false,\"ipqp_least_infeasible_primal\":3.25,\"ipqp_farkas_corroborated"
+              "\":true,\"qp_status\":\"max_iter\",\"qp_minor_iters\":9,\"qp_factorizations\":3,\"tr"
+              "_binding\":false,\"verdict\":\"accept_f\",\"soc_applied\":true,\"elastic_applied\":f"
+              "alse,\"elastic_rho0_ceiling_hit\":true,\"restoration_seed_used\":false,\"watchdog_re"
+              "stored\":true,\"major\":4,\"mode\":\"walk\"}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndTheSsnMode) {
+    EXPECT_EQ(major_line(golden_major_b(), 0, IpqpTraceQpMode::kSsn),
+              "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":0,\"f\":0.100000000000"
+              "00001,\"stationarity\":-0,\"feasibility\":\"nan\",\"complementarity\":\"inf\",\"kkt_"
+              "residual\":\"-inf\",\"violation_l1\":1e-300,\"tr_radius\":1.7976931348623157e+308,\""
+              "mu\":4.9406564584124654e-324,\"step_norm\":0,\"qp_solved\":false,\"ipqp_least_infeas"
+              "ible_primal\":0,\"ipqp_farkas_corroborated\":false,\"qp_status\":\"infeasible\",\"qp"
+              "_minor_iters\":0,\"qp_factorizations\":0,\"tr_binding\":true,\"verdict\":\"restore\""
+              ",\"soc_applied\":true,\"elastic_applied\":false,\"elastic_rho0_ceiling_hit\":false,"
+              "\"restoration_seed_used\":true,\"watchdog_restored\":true,\"major\":0,\"mode\":\"ssn"
+              "\"}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode) {
+    EXPECT_EQ(major_line(golden_major_c(), 11, IpqpTraceQpMode::kIpqp),
+              "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":11,\"f\":1234.5,\"stat"
+              "ionarity\":9.9999999999999998e-13,\"feasibility\":6.25,\"complementarity\":7.5,\"kkt"
+              "_residual\":8.75,\"violation_l1\":9,\"tr_radius\":0.03125,\"mu\":9.9999999999999995e"
+              "-07,\"step_norm\":12.5,\"qp_solved\":false,\"ipqp_least_infeasible_primal\":-1.5,\"i"
+              "pqp_farkas_corroborated\":false,\"qp_status\":\"numerical_error\",\"qp_minor_iters\""
+              ":21,\"qp_factorizations\":13,\"tr_binding\":false,\"verdict\":\"accept_h\",\"soc_app"
+              "lied\":false,\"elastic_applied\":true,\"elastic_rho0_ceiling_hit\":true,\"restoratio"
+              "n_seed_used\":true,\"watchdog_restored\":true,\"major\":11,\"mode\":\"ipqp\"}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineSqpMajorEveryBoolTrue) {
+    EXPECT_EQ(
+        major_line(golden_major_d(), 2, IpqpTraceQpMode::kWalk),
+        "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":2,\"f\":3,\"stationari"
+        "ty\":4,\"feasibility\":5,\"complementarity\":6,\"kkt_residual\":7,\"violation_l1\":8"
+        ",\"tr_radius\":9,\"mu\":10,\"step_norm\":11,\"qp_solved\":true,\"ipqp_least_infeasib"
+        "le_primal\":12,\"ipqp_farkas_corroborated\":true,\"qp_status\":\"optimal\",\"qp_mino"
+        "r_iters\":13,\"qp_factorizations\":14,\"tr_binding\":true,\"verdict\":\"reject\",\"s"
+        "oc_applied\":true,\"elastic_applied\":true,\"elastic_rho0_ceiling_hit\":true,\"resto"
+        "ration_seed_used\":true,\"watchdog_restored\":true,\"major\":2,\"mode\":\"walk\"}\n");
+}
+
+// ===========================================================================
+// W4 T2 (a) -- THE WHOLE-SOLVE CLAIM: the stream IS `history`
+// ===========================================================================
+
+/// @brief Every field of one `sqp.major` line against the row it claims to be.
+///
+/// Hand-listed, and the `static_assert` beside it is what keeps the list
+/// complete: a field added to `SqpIterate` moves the arity and fails HERE as
+/// well as at the writer, so the pin cannot silently stop covering the row.
+void expect_major_line_is_row(const std::string &line, const SqpIterate &r, Index major,
+                              IpqpTraceQpMode mode) {
+    static_assert(::hven::detail::kAggregateArity<SqpIterate> == 23,
+                  "SqpIterate gained a field: compare it below, and in the writer's own key list.");
+    EXPECT_EQ(raw_field(line, "trial"), std::to_string(r.trial)) << line;
+    expect_double_field(line, "f", r.f);
+    expect_double_field(line, "stationarity", r.stationarity);
+    expect_double_field(line, "feasibility", r.feasibility);
+    expect_double_field(line, "complementarity", r.complementarity);
+    expect_double_field(line, "kkt_residual", r.kkt_residual);
+    expect_double_field(line, "violation_l1", r.violation_l1);
+    expect_double_field(line, "tr_radius", r.tr_radius);
+    expect_double_field(line, "mu", r.mu);
+    expect_double_field(line, "step_norm", r.step_norm);
+    EXPECT_EQ(raw_field(line, "qp_solved"), r.qp_solved ? "true" : "false");
+    expect_double_field(line, "ipqp_least_infeasible_primal", r.ipqp_least_infeasible_primal);
+    EXPECT_EQ(raw_field(line, "ipqp_farkas_corroborated"),
+              r.ipqp_farkas_corroborated ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "qp_status"), spec_spelling(r.qp_status));
+    EXPECT_EQ(raw_field(line, "qp_minor_iters"), std::to_string(r.qp_minor_iters));
+    EXPECT_EQ(raw_field(line, "qp_factorizations"), std::to_string(r.qp_factorizations));
+    EXPECT_EQ(raw_field(line, "tr_binding"), r.tr_binding ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "verdict"), spec_spelling(r.verdict));
+    EXPECT_EQ(raw_field(line, "soc_applied"), r.soc_applied ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "elastic_applied"), r.elastic_applied ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "elastic_rho0_ceiling_hit"),
+              r.elastic_rho0_ceiling_hit ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "restoration_seed_used"), r.restoration_seed_used ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "watchdog_restored"), r.watchdog_restored ? "true" : "false");
+    EXPECT_EQ(raw_field(line, "major"), std::to_string(major));
+    EXPECT_EQ(raw_field(line, "mode"), spec_spelling(mode));
+}
+
+/// The `sqp.major` lines of a stream, in order.
+std::vector<std::string> major_lines(const std::string &stream) {
+    std::vector<std::string> out;
+    for (const std::string &l : split_lines(stream)) {
+        if (event_name(l) == "sqp.major") {
+            out.push_back(l);
+        }
+    }
+    return out;
+}
+
+TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell) {
+    // TWO ARMS, because `mode` is the field that differs: HS24 at kWalk reports
+    // "walk" on every row, HS38 at kIpm reports whichever arm owned the QP.
+    struct Leg {
+        int hs;
+        QpMode mode;
+    };
+    for (const Leg leg : {Leg{24, QpMode::kWalk}, Leg{38, QpMode::kIpm}}) {
+        SqpOptions opts;
+        opts.qp_mode = leg.mode;
+        opts.max_iter = 60;
+        const HsProblem p = make_hs(leg.hs);
+        SqpDriver driver(opts);
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        driver.attach_trace(&json);
+        const SqpSolution sol = driver.solve(*p.model);
+
+        SCOPED_TRACE("HS" + std::to_string(leg.hs));
+        const std::vector<std::string> rows = major_lines(os.str());
+        ASSERT_GT(sol.history.size(), 1u) << "non-vacuous: the cell really iterates";
+        ASSERT_EQ(rows.size(), sol.history.size());
+        for (std::size_t i = 0; i < rows.size(); ++i) {
+            SCOPED_TRACE("row " + std::to_string(i));
+            const std::string got = raw_field(rows[i], "mode");
+            EXPECT_TRUE(got == "\"walk\"" || got == "\"ssn\"" || got == "\"ipqp\"") << got;
+            expect_major_line_is_row(rows[i], sol.history[i], static_cast<Index>(i),
+                                     mode_of_token(got));
+        }
+    }
+}
+
+TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
+    // THE CALLER-UNITS CLAIM, and the only cell that can make it: the emit sits
+    // INSIDE `push_history`, after its scaling map, so the stream must equal
+    // `history` field for field even where the two spaces differ.
+    SqpOptions opts;
+    opts.enable_scaling = true;
+    opts.max_iter = 60;
+    const HsProblem p = make_hs(25);
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    driver.attach_trace(&json);
+    const SqpSolution sol = driver.solve(*p.model);
+
+    ASSERT_TRUE(sol.scaling.active) << "non-vacuous: the solve really scaled";
+    const std::vector<std::string> rows = major_lines(os.str());
+    ASSERT_GT(sol.history.size(), 1u);
+    ASSERT_EQ(rows.size(), sol.history.size());
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        SCOPED_TRACE("row " + std::to_string(i));
+        expect_major_line_is_row(rows[i], sol.history[i], static_cast<Index>(i),
+                                 IpqpTraceQpMode::kWalk);
+    }
 }
 
 } // namespace

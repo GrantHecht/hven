@@ -1206,6 +1206,25 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
 
 namespace {
 
+/// @brief The CONFIGURED mode, in the trace's own alphabet.
+///
+/// `kIpm` maps to `kIpqp` because the schema names the KERNEL (spec section 7)
+/// while `QpMode` names the setting; the sentinel maps to the walk, which is
+/// where the dispatch's own initializer sends an unhandled mode.
+IpqpTraceQpMode trace_mode_of(QpMode mode) {
+    switch (mode) {
+    case QpMode::kWalk:
+        return IpqpTraceQpMode::kWalk;
+    case QpMode::kSsn:
+        return IpqpTraceQpMode::kSsn;
+    case QpMode::kIpm:
+        return IpqpTraceQpMode::kIpqp;
+    case QpMode::kQpModeCount:
+        break;
+    }
+    return IpqpTraceQpMode::kWalk;
+}
+
 // THE SECTION 5.4 GRADE (plan ruling 4): full warm from the `hven.ipm.polish.v1` payload,
 // base warm from the core's signed price alone, `nullopt` = cold; flow (a) already consumed
 // `primal_` as `x0`. `.superpowers/w1-t7-report.md` FIX ROUND 2, section 3.
@@ -1353,6 +1372,12 @@ void SqpDriver::emit_trace_qp_mode(const QpModeTraceEvent &event) const {
 void SqpDriver::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_fallback_verdict(event);
+    }
+}
+
+void SqpDriver::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_sqp_major(event);
     }
 }
 
@@ -2474,6 +2499,10 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 
         SqpIterate row;
         row.trial = iter;
+        // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone. Starts at the
+        // CONFIGURED mode -- which is what a row with `qp_solved == false`
+        // reports -- and is corrected at the dispatch, where the arm is known.
+        IpqpTraceQpMode row_qp_mode = trace_mode_of(opts_.qp_mode);
         // THE ROW IS MEASURED IN THE SPACE THE SOLVE RUNS IN, and stays there
         // for as long as the loop reads it -- `row.violation_l1` seeds and
         // floors the funnel, `row.f` and `row.violation_l1` drive the
@@ -2528,6 +2557,13 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 exported.feasibility = caller_row.feasibility;
                 exported.violation_l1 = caller_row.violation_l1;
                 exported.kkt_residual = std::max(exported.stationarity, exported.feasibility);
+            }
+            // THE STREAM EQUALS `history`, IN CALLER UNITS: emitted here, after
+            // the map and before the push, so `major` is this row's index in
+            // the vector and all six push sites are covered by one site.
+            if (ipqp_trace_ != nullptr) {
+                emit_trace_sqp_major(SqpMajorTraceEvent{
+                    exported, static_cast<Index>(out.history.size()), row_qp_mode});
             }
             out.history.push_back(std::move(exported));
         };
@@ -3880,6 +3916,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                     walk_owns_this_qp = route_through_ssn_warm_grade(
                         qp, ires, delta, ssn_prox_ingested, ssn_budget_charge, out.counters, qs);
                     ipqp_chain_owns_the_step = !walk_owns_this_qp;
+                    row_qp_mode = IpqpTraceQpMode::kSsn;
                     emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
                 }
             } else if (ires.escape_reason == IpqpEscape::kIndefinite) {
@@ -3892,6 +3929,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
                 walk_owns_this_qp = route_through_ssn_warm_grade(
                     qp, ires, delta, ssn_prox_ingested, ssn_budget_charge, out.counters, qs);
                 ipqp_chain_owns_the_step = !walk_owns_this_qp;
+                row_qp_mode = IpqpTraceQpMode::kSsn;
                 emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
             } else {
                 // --- 5. A GENUINE ESCAPE -> THE WALK, COLD (item 5) -------
@@ -3934,6 +3972,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             row.mu = opts_.qp.dual_mu;
         }
         if (walk_owns_this_qp) {
+            row_qp_mode = IpqpTraceQpMode::kWalk;
             qs = offer_hot   ? engine_.solve(qp, seed, overrides, warm.hot)
                  : have_seed ? engine_.solve(qp, seed, overrides)
                  : use_crash ? engine_.solve(qp, crash_seed, overrides)

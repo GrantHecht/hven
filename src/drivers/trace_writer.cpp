@@ -24,6 +24,9 @@
 
 #include <fmt/format.h>
 
+#include <hven/core/detail/aggregate_arity.h>
+#include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/drivers/sqp_types.h>
 #include <hven/drivers/trace_writer.h>
 
 namespace hven::solvers {
@@ -220,6 +223,41 @@ const char *to_json(IpqpTraceQpMode v) {
     switch (v) {
     case IpqpTraceQpMode::kIpqp:
         return "ipqp";
+    case IpqpTraceQpMode::kWalk:
+        return "walk";
+    case IpqpTraceQpMode::kSsn:
+        return "ssn";
+    }
+    return "unknown";
+}
+
+// Two DRIVER enums the `sqp.major` row carries. Lower-case snake per plan
+// section 2 rule 8, not the PascalCase display strings core/ has -- those name
+// a column in a printed table, and this is machine text.
+const char *to_json(QpStatus v) {
+    switch (v) {
+    case QpStatus::kOptimal:
+        return "optimal";
+    case QpStatus::kMaxIter:
+        return "max_iter";
+    case QpStatus::kInfeasible:
+        return "infeasible";
+    case QpStatus::kNumericalError:
+        return "numerical_error";
+    }
+    return "unknown";
+}
+
+const char *to_json(StepVerdict v) {
+    switch (v) {
+    case StepVerdict::kAcceptF:
+        return "accept_f";
+    case StepVerdict::kAcceptH:
+        return "accept_h";
+    case StepVerdict::kReject:
+        return "reject";
+    case StepVerdict::kRestore:
+        return "restore";
     }
     return "unknown";
 }
@@ -291,6 +329,21 @@ std::string evidence_object(const IpqpTraceEscapeEvidence &e) {
 
     return "{\"stall\":{" + stall + "},\"infeasibility\":{" + infeas + "}}";
 }
+
+// --- the `sqp.major` row -------------------------------------------------
+//
+// THE ROW'S OWN DECLARATION ORDER IS THE KEY ORDER, and this assertion is what
+// keeps the two in step: `SqpIterate` gaining a field stops the build here
+// until the field gets a key below.
+//
+// 23 is a COUNT OF INITIALIZERS, not a sizeof (plan amendment E). W4 T3 ADDS
+// row fields, and this number and the golden line move with it as a declared
+// additive re-derivation (plan section 2 rule 6).
+constexpr std::size_t kSqpIterateFieldCount = 23;
+static_assert(::hven::detail::kAggregateArity<SqpIterate> == kSqpIterateFieldCount,
+              "SqpIterate's field count moved: give the new field a key in "
+              "JsonLinesTraceSink::on_sqp_major (in DECLARATION order, ahead of `major`), "
+              "re-derive the sqp.major golden line, and then update this count.");
 
 } // namespace
 
@@ -449,6 +502,38 @@ void JsonLinesTraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent 
     key_index(b, first, "qp_minor_iters", event.qp_minor_iters);
     key_index(b, first, "qp_factorizations", event.qp_factorizations);
     write_line("fallback.verdict", b);
+}
+
+void JsonLinesTraceSink::on_sqp_major(const SqpMajorTraceEvent &event) {
+    const SqpIterate &r = event.row;
+    std::string b;
+    bool first = true;
+    key_index(b, first, "trial", r.trial);
+    key_double(b, first, "f", r.f);
+    key_double(b, first, "stationarity", r.stationarity);
+    key_double(b, first, "feasibility", r.feasibility);
+    key_double(b, first, "complementarity", r.complementarity);
+    key_double(b, first, "kkt_residual", r.kkt_residual);
+    key_double(b, first, "violation_l1", r.violation_l1);
+    key_double(b, first, "tr_radius", r.tr_radius);
+    key_double(b, first, "mu", r.mu);
+    key_double(b, first, "step_norm", r.step_norm);
+    key_bool(b, first, "qp_solved", r.qp_solved);
+    key_double(b, first, "ipqp_least_infeasible_primal", r.ipqp_least_infeasible_primal);
+    key_bool(b, first, "ipqp_farkas_corroborated", r.ipqp_farkas_corroborated);
+    key_enum(b, first, "qp_status", to_json(r.qp_status));
+    key_index(b, first, "qp_minor_iters", r.qp_minor_iters);
+    key_index(b, first, "qp_factorizations", r.qp_factorizations);
+    key_bool(b, first, "tr_binding", r.tr_binding);
+    key_enum(b, first, "verdict", to_json(r.verdict));
+    key_bool(b, first, "soc_applied", r.soc_applied);
+    key_bool(b, first, "elastic_applied", r.elastic_applied);
+    key_bool(b, first, "elastic_rho0_ceiling_hit", r.elastic_rho0_ceiling_hit);
+    key_bool(b, first, "restoration_seed_used", r.restoration_seed_used);
+    key_bool(b, first, "watchdog_restored", r.watchdog_restored);
+    key_index(b, first, "major", event.major);
+    key_enum(b, first, "mode", to_json(event.mode));
+    write_line("sqp.major", b);
 }
 
 } // namespace hven::solvers

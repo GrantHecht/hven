@@ -70,6 +70,7 @@ class JsonLinesTraceSink final : public IpqpTraceSink {
     void on_ipqp_escape(const IpqpTraceEscapeEvent &event) override;
     void on_qp_mode(const QpModeTraceEvent &event) override;
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override;
+    void on_sqp_major(const SqpMajorTraceEvent &event) override;
 
     /// Lines ATTEMPTED, which is also the `seq` the last line carried (`seq`
     /// starts at 1). Compared against the artifact's own line count it gives the
