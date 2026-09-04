@@ -1989,13 +1989,21 @@ void charge_refused_face_refinement(SqpCounters &total, const QpSolution &refine
 /// predicted from a trajectory. The driver calls it at exactly one site.
 ///
 /// @param qp The subproblem `qs` solves; read for `Ai`, `bi`, `n` and `mi`.
+///           Assumed `validate()`-consistent APART from the two reads this
+///           function makes for itself (`bi.size() == mi()`, `Ai.cols() ==
+///           n()`), which are checked here in `kkt_assembly.h`'s O(1) form.
 /// @param qs This major's answer. A half whose activity vector does not match
 ///           @p qp contributes 0 to that half rather than being indexed.
 /// @param prev_ineq_active The previous REPORTING major's row activity; empty
 ///                         (or short) means the empty set, which is what the
 ///                         first reporting major of a solve compares against.
 /// @param prev_bound_state The previous reporting major's bound states; a
-///                         missing entry reads `kFree`, same rule.
+///                         missing entry reads `kFree`, same rule. THE CALLER
+///                         CARRIES BOTH FORWARD UNCONDITIONALLY, so a half that
+///                         contributed 0 also carries an empty set forward and
+///                         the next major re-counts against it.
+/// @throws std::invalid_argument If @p qp is inconsistent in either of the two
+///         sizes above.
 /// @param slack A caller-owned reused buffer, resized here.
 /// @param row The row to write; the six fields are ASSIGNED, not accumulated,
 ///            except the three census counts, which are incremented from

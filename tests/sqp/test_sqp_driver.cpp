@@ -9063,130 +9063,33 @@ auto w2_row_identity(const SqpIterate &r) {
                     r.elastic_applied, r.elastic_rho0_ceiling_hit, r.watchdog_restored);
 }
 
-/// FIELD-COMPLETE IDENTITY (T3-B, X-4): every member of the output objects, listed explicitly
-/// and IN DECLARATION ORDER -- keep in sync with the structs they mirror. A handful-of-fields
-/// comparator lets an evidence-conditioned write to any other field through.
+/// FIELD-COMPLETE IDENTITY (T3-B, X-4): every member of the output objects, and a
+/// handful-of-fields comparator would let an evidence-conditioned write to any other field
+/// through.
+///
+/// GENERATED FROM THE T2 X-MACRO TABLES since W4 T3 fix round 1 (review I-3), not hand-listed
+/// in declaration order: the four W4 T3 counter folds fell outside the hand list, and a
+/// generated comparator cannot fall behind the struct at all. Order is still the table's,
+/// which is still the declaration's (`solver_counters.h`'s `offsetof` assert).
 void w2_expect_same_ssn_counters(const SsnCounters &a, const SsnCounters &b,
                                  const std::string &tag) {
-    EXPECT_EQ(a.ssn_iters, b.ssn_iters) << tag << " ssn_iters";
-    EXPECT_EQ(a.ssn_bulk_flips, b.ssn_bulk_flips) << tag << " ssn_bulk_flips";
-    EXPECT_EQ(a.ssn_backtracks, b.ssn_backtracks) << tag << " ssn_backtracks";
-    EXPECT_EQ(a.ssn_prox_updates, b.ssn_prox_updates) << tag << " ssn_prox_updates";
-    EXPECT_EQ(a.ssn_escapes, b.ssn_escapes) << tag << " ssn_escapes";
-    EXPECT_EQ(a.ssn_uncertain_peak, b.ssn_uncertain_peak) << tag << " ssn_uncertain_peak";
-    EXPECT_EQ(a.ssn_refinements, b.ssn_refinements) << tag << " ssn_refinements";
-    EXPECT_EQ(a.ssn_refine_refused, b.ssn_refine_refused) << tag << " ssn_refine_refused";
-    EXPECT_EQ(a.ssn_refine_factorizations, b.ssn_refine_factorizations)
-        << tag << " ssn_refine_factorizations";
-    EXPECT_EQ(a.ssn_refine_neg_duals, b.ssn_refine_neg_duals) << tag << " ssn_refine_neg_duals";
-    EXPECT_EQ(a.ssn_sign_swept, b.ssn_sign_swept) << tag << " ssn_sign_swept";
-    EXPECT_EQ(a.ssn_sign_sweep_max, b.ssn_sign_sweep_max) << tag << " ssn_sign_sweep_max";
-    EXPECT_EQ(a.ssn_escape_budget, b.ssn_escape_budget) << tag << " ssn_escape_budget";
-    EXPECT_EQ(a.ssn_escape_singular, b.ssn_escape_singular) << tag << " ssn_escape_singular";
-    EXPECT_EQ(a.ssn_escape_no_contraction, b.ssn_escape_no_contraction)
-        << tag << " ssn_escape_no_contraction";
-    EXPECT_EQ(a.ssn_escape_infeasible_suspect, b.ssn_escape_infeasible_suspect)
-        << tag << " ssn_escape_infeasible_suspect";
-    EXPECT_EQ(a.ssn_escape_indefinite, b.ssn_escape_indefinite) << tag << " ssn_escape_indefinite";
-    EXPECT_EQ(a.ssn_escape_gate_refused, b.ssn_escape_gate_refused)
-        << tag << " ssn_escape_gate_refused";
+#define HVEN_TEST_SAME(f, absent) EXPECT_EQ(a.f, b.f) << tag << " " #f;
+    HVEN_SSN_COUNTERS_FIELDS(HVEN_TEST_SAME)
+#undef HVEN_TEST_SAME
 }
 
 void w2_expect_same_ipqp_counters(const IpqpCounters &a, const IpqpCounters &b,
                                   const std::string &tag) {
-    EXPECT_EQ(a.ipqp_iters, b.ipqp_iters) << tag << " ipqp_iters";
-    EXPECT_EQ(a.ipqp_factorizations, b.ipqp_factorizations) << tag << " ipqp_factorizations";
-    EXPECT_EQ(a.ipqp_symbolic_analyses, b.ipqp_symbolic_analyses)
-        << tag << " ipqp_symbolic_analyses";
-    EXPECT_EQ(a.ipqp_solves, b.ipqp_solves) << tag << " ipqp_solves";
-    EXPECT_EQ(a.ipqp_pattern_verifies, b.ipqp_pattern_verifies) << tag << " ipqp_pattern_verifies";
-    EXPECT_EQ(a.ipqp_rho_demanded_max, b.ipqp_rho_demanded_max) << tag << " ipqp_rho_demanded_max";
-    EXPECT_EQ(a.ipqp_rho_demanded_last, b.ipqp_rho_demanded_last)
-        << tag << " ipqp_rho_demanded_last";
-    EXPECT_EQ(a.ipqp_inertia_retries, b.ipqp_inertia_retries) << tag << " ipqp_inertia_retries";
-    EXPECT_EQ(a.ipqp_iters_at_elevated_rho, b.ipqp_iters_at_elevated_rho)
-        << tag << " ipqp_iters_at_elevated_rho";
-    EXPECT_EQ(a.ipqp_ladder_reclimbs, b.ipqp_ladder_reclimbs) << tag << " ipqp_ladder_reclimbs";
-    EXPECT_EQ(a.ipqp_pivot_reroute_primal, b.ipqp_pivot_reroute_primal)
-        << tag << " ipqp_pivot_reroute_primal";
-    EXPECT_EQ(a.ipqp_pivot_reroute_dual_fallback, b.ipqp_pivot_reroute_dual_fallback)
-        << tag << " ipqp_pivot_reroute_dual_fallback";
-    EXPECT_EQ(a.ipqp_iters_ladder_armed_no_advance, b.ipqp_iters_ladder_armed_no_advance)
-        << tag << " ipqp_iters_ladder_armed_no_advance";
-    EXPECT_EQ(a.ipqp_final_inertia_read, b.ipqp_final_inertia_read)
-        << tag << " ipqp_final_inertia_read";
-    EXPECT_EQ(a.ipqp_reg_decreases, b.ipqp_reg_decreases) << tag << " ipqp_reg_decreases";
-    EXPECT_EQ(a.ipqp_reg_increases, b.ipqp_reg_increases) << tag << " ipqp_reg_increases";
-    EXPECT_EQ(a.ipqp_prox_center_updates, b.ipqp_prox_center_updates)
-        << tag << " ipqp_prox_center_updates";
-    EXPECT_EQ(a.ipqp_restart_repairs, b.ipqp_restart_repairs) << tag << " ipqp_restart_repairs";
-    EXPECT_EQ(a.ipqp_restart_shift_max, b.ipqp_restart_shift_max)
-        << tag << " ipqp_restart_shift_max";
-    EXPECT_EQ(a.ipqp_mu_adopted, b.ipqp_mu_adopted) << tag << " ipqp_mu_adopted";
-    EXPECT_EQ(a.ipqp_warm_restart_abandoned, b.ipqp_warm_restart_abandoned)
-        << tag << " ipqp_warm_restart_abandoned";
-    EXPECT_EQ(a.ipqp_declined_pinned, b.ipqp_declined_pinned) << tag << " ipqp_declined_pinned";
-    EXPECT_EQ(a.ipqp_tier_retired_after, b.ipqp_tier_retired_after)
-        << tag << " ipqp_tier_retired_after";
-    EXPECT_EQ(a.ipqp_face_uncertain, b.ipqp_face_uncertain) << tag << " ipqp_face_uncertain";
-    EXPECT_EQ(a.ipqp_refine_accepted, b.ipqp_refine_accepted) << tag << " ipqp_refine_accepted";
-    EXPECT_EQ(a.ipqp_refine_refused, b.ipqp_refine_refused) << tag << " ipqp_refine_refused";
-    EXPECT_EQ(a.ipqp_to_refine, b.ipqp_to_refine) << tag << " ipqp_to_refine";
-    EXPECT_EQ(a.ipqp_to_ssn, b.ipqp_to_ssn) << tag << " ipqp_to_ssn";
-    EXPECT_EQ(a.ipqp_to_walk, b.ipqp_to_walk) << tag << " ipqp_to_walk";
-    EXPECT_EQ(a.ipqp_escapes, b.ipqp_escapes) << tag << " ipqp_escapes";
-    EXPECT_EQ(a.ipqp_escape_budget, b.ipqp_escape_budget) << tag << " ipqp_escape_budget";
-    EXPECT_EQ(a.ipqp_escape_stall, b.ipqp_escape_stall) << tag << " ipqp_escape_stall";
-    EXPECT_EQ(a.ipqp_escape_indefinite, b.ipqp_escape_indefinite)
-        << tag << " ipqp_escape_indefinite";
-    EXPECT_EQ(a.ipqp_escape_numerical, b.ipqp_escape_numerical) << tag << " ipqp_escape_numerical";
-    EXPECT_EQ(a.ipqp_escape_infeasible_suspect, b.ipqp_escape_infeasible_suspect)
-        << tag << " ipqp_escape_infeasible_suspect";
-    EXPECT_EQ(a.ipqp_alpha_p_min, b.ipqp_alpha_p_min) << tag << " ipqp_alpha_p_min";
-    EXPECT_EQ(a.ipqp_alpha_d_min, b.ipqp_alpha_d_min) << tag << " ipqp_alpha_d_min";
-    EXPECT_EQ(a.ipqp_read_kept_tight_sides, b.ipqp_read_kept_tight_sides)
-        << tag << " ipqp_read_kept_tight_sides";
-    EXPECT_EQ(a.ipqp_read_barrier_noise_sides, b.ipqp_read_barrier_noise_sides)
-        << tag << " ipqp_read_barrier_noise_sides";
+#define HVEN_TEST_SAME(f, absent) EXPECT_EQ(a.f, b.f) << tag << " " #f;
+    HVEN_IPQP_COUNTERS_FIELDS(HVEN_TEST_SAME)
+#undef HVEN_TEST_SAME
 }
 
 void w2_expect_same_sqp_counters(const SqpCounters &a, const SqpCounters &b,
                                  const std::string &tag) {
-    EXPECT_EQ(a.major_iters, b.major_iters) << tag << " major_iters";
-    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters) << tag << " qp_minor_iters";
-    EXPECT_EQ(a.factorizations, b.factorizations) << tag << " factorizations";
-    EXPECT_EQ(a.steps_accepted, b.steps_accepted) << tag << " steps_accepted";
-    EXPECT_EQ(a.rejected_steps, b.rejected_steps) << tag << " rejected_steps";
-    EXPECT_EQ(a.soc_steps, b.soc_steps) << tag << " soc_steps";
-    EXPECT_EQ(a.soc_applied, b.soc_applied) << tag << " soc_applied";
-    EXPECT_EQ(a.soc_qp_infeasible, b.soc_qp_infeasible) << tag << " soc_qp_infeasible";
-    EXPECT_EQ(a.soc_rejected, b.soc_rejected) << tag << " soc_rejected";
-    EXPECT_EQ(a.elastic_activations, b.elastic_activations) << tag << " elastic_activations";
-    EXPECT_EQ(a.elastic_escalations, b.elastic_escalations) << tag << " elastic_escalations";
-    EXPECT_EQ(a.restoration_iters, b.restoration_iters) << tag << " restoration_iters";
-    EXPECT_EQ(a.elastic_from_ipqp_escape, b.elastic_from_ipqp_escape)
-        << tag << " elastic_from_ipqp_escape";
-    EXPECT_EQ(a.ipqp_suspicion_disproved, b.ipqp_suspicion_disproved)
-        << tag << " ipqp_suspicion_disproved";
-    EXPECT_EQ(a.ipqp_fallback_rung_b, b.ipqp_fallback_rung_b) << tag << " ipqp_fallback_rung_b";
-    EXPECT_EQ(a.elastic_rho0_ceiling_hits, b.elastic_rho0_ceiling_hits)
-        << tag << " elastic_rho0_ceiling_hits";
-    EXPECT_EQ(a.elastic_floor_retries, b.elastic_floor_retries) << tag << " elastic_floor_retries";
-    EXPECT_EQ(a.eqp_refine_steps, b.eqp_refine_steps) << tag << " eqp_refine_steps";
-    EXPECT_EQ(a.border_refine_steps, b.border_refine_steps) << tag << " border_refine_steps";
-    EXPECT_EQ(a.suspect_escalations, b.suspect_escalations) << tag << " suspect_escalations";
-    EXPECT_EQ(a.symbolic_analyses, b.symbolic_analyses) << tag << " symbolic_analyses";
-    EXPECT_EQ(a.start_level_used, b.start_level_used) << tag << " start_level_used";
-    EXPECT_EQ(a.full_step_majors, b.full_step_majors) << tag << " full_step_majors";
-    EXPECT_EQ(a.watchdog_restores, b.watchdog_restores) << tag << " watchdog_restores";
-    EXPECT_EQ(a.evals_full, b.evals_full) << tag << " evals_full";
-    EXPECT_EQ(a.evals_values, b.evals_values) << tag << " evals_values";
-    EXPECT_EQ(a.probe_budget_stops, b.probe_budget_stops) << tag << " probe_budget_stops";
-    EXPECT_EQ(a.crash_seeded_rows, b.crash_seeded_rows) << tag << " crash_seeded_rows";
-    EXPECT_EQ(a.crash_seeded_bounds, b.crash_seeded_bounds) << tag << " crash_seeded_bounds";
-    EXPECT_EQ(a.n_seeded, b.n_seeded) << tag << " n_seeded";
-    EXPECT_EQ(a.seeded_clamped, b.seeded_clamped) << tag << " seeded_clamped";
-    EXPECT_EQ(a.ip_activity_inferred, b.ip_activity_inferred) << tag << " ip_activity_inferred";
+#define HVEN_TEST_SAME(f, absent) EXPECT_EQ(a.f, b.f) << tag << " " #f;
+    HVEN_SQP_COUNTERS_FIELDS(HVEN_TEST_SAME)
+#undef HVEN_TEST_SAME
     w2_expect_same_ssn_counters(a.ssn, b.ssn, tag);
     w2_expect_same_ipqp_counters(a.ipqp, b.ipqp, tag);
 }

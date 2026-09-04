@@ -1115,100 +1115,20 @@ TEST(JsonLinesTraceSink, WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKI
 // (iv) NULL SINK -- attaching the writer moves nothing, and writes nothing
 // ===========================================================================
 
+/// FIELD-COMPLETE BY GENERATION (W4 T3 fix round 1, review I-3). Driven off the
+/// three T2 X-macro tables rather than a hand list, so a counter added later
+/// joins the null-sink claim by construction instead of falling outside it --
+/// which is how the four W4 T3 folds slipped past the hand list this replaced.
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    EXPECT_EQ(a.major_iters, b.major_iters);
-    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters);
-    EXPECT_EQ(a.factorizations, b.factorizations);
-    EXPECT_EQ(a.steps_accepted, b.steps_accepted);
-    EXPECT_EQ(a.rejected_steps, b.rejected_steps);
-    EXPECT_EQ(a.soc_steps, b.soc_steps);
-    EXPECT_EQ(a.soc_applied, b.soc_applied);
-    EXPECT_EQ(a.soc_qp_infeasible, b.soc_qp_infeasible);
-    EXPECT_EQ(a.soc_rejected, b.soc_rejected);
-    EXPECT_EQ(a.elastic_activations, b.elastic_activations);
-    EXPECT_EQ(a.elastic_escalations, b.elastic_escalations);
-    EXPECT_EQ(a.restoration_iters, b.restoration_iters);
-    EXPECT_EQ(a.elastic_from_ipqp_escape, b.elastic_from_ipqp_escape);
-    EXPECT_EQ(a.ipqp_suspicion_disproved, b.ipqp_suspicion_disproved);
-    EXPECT_EQ(a.ipqp_fallback_rung_b, b.ipqp_fallback_rung_b);
-    EXPECT_EQ(a.elastic_rho0_ceiling_hits, b.elastic_rho0_ceiling_hits);
-    EXPECT_EQ(a.elastic_floor_retries, b.elastic_floor_retries);
-    EXPECT_EQ(a.eqp_refine_steps, b.eqp_refine_steps);
-    EXPECT_EQ(a.border_refine_steps, b.border_refine_steps);
-    EXPECT_EQ(a.verdict_refine_steps, b.verdict_refine_steps);
-    EXPECT_EQ(a.suspect_escalations, b.suspect_escalations);
-    EXPECT_EQ(a.symbolic_analyses, b.symbolic_analyses);
-    EXPECT_EQ(a.start_level_used, b.start_level_used);
-    EXPECT_EQ(a.full_step_majors, b.full_step_majors);
-    EXPECT_EQ(a.watchdog_restores, b.watchdog_restores);
-    EXPECT_EQ(a.evals_full, b.evals_full);
-    EXPECT_EQ(a.evals_values, b.evals_values);
-    EXPECT_EQ(a.probe_budget_stops, b.probe_budget_stops);
-    EXPECT_EQ(a.crash_seeded_rows, b.crash_seeded_rows);
-    EXPECT_EQ(a.crash_seeded_bounds, b.crash_seeded_bounds);
-    EXPECT_EQ(a.n_seeded, b.n_seeded);
-    EXPECT_EQ(a.seeded_clamped, b.seeded_clamped);
-    EXPECT_EQ(a.ip_activity_inferred, b.ip_activity_inferred);
-    // R6: the two nested aggregates IN FULL -- 18 + 39 fields. Two of each was
-    // enough on a walk cell where they are all zero; the kIpm leg is exactly
-    // where they are not.
-    EXPECT_EQ(a.ssn.ssn_iters, b.ssn.ssn_iters);
-    EXPECT_EQ(a.ssn.ssn_bulk_flips, b.ssn.ssn_bulk_flips);
-    EXPECT_EQ(a.ssn.ssn_backtracks, b.ssn.ssn_backtracks);
-    EXPECT_EQ(a.ssn.ssn_prox_updates, b.ssn.ssn_prox_updates);
-    EXPECT_EQ(a.ssn.ssn_escapes, b.ssn.ssn_escapes);
-    EXPECT_EQ(a.ssn.ssn_uncertain_peak, b.ssn.ssn_uncertain_peak);
-    EXPECT_EQ(a.ssn.ssn_refinements, b.ssn.ssn_refinements);
-    EXPECT_EQ(a.ssn.ssn_refine_refused, b.ssn.ssn_refine_refused);
-    EXPECT_EQ(a.ssn.ssn_refine_factorizations, b.ssn.ssn_refine_factorizations);
-    EXPECT_EQ(a.ssn.ssn_refine_neg_duals, b.ssn.ssn_refine_neg_duals);
-    EXPECT_EQ(a.ssn.ssn_sign_swept, b.ssn.ssn_sign_swept);
-    EXPECT_EQ(a.ssn.ssn_sign_sweep_max, b.ssn.ssn_sign_sweep_max);
-    EXPECT_EQ(a.ssn.ssn_escape_budget, b.ssn.ssn_escape_budget);
-    EXPECT_EQ(a.ssn.ssn_escape_singular, b.ssn.ssn_escape_singular);
-    EXPECT_EQ(a.ssn.ssn_escape_no_contraction, b.ssn.ssn_escape_no_contraction);
-    EXPECT_EQ(a.ssn.ssn_escape_infeasible_suspect, b.ssn.ssn_escape_infeasible_suspect);
-    EXPECT_EQ(a.ssn.ssn_escape_indefinite, b.ssn.ssn_escape_indefinite);
-    EXPECT_EQ(a.ssn.ssn_escape_gate_refused, b.ssn.ssn_escape_gate_refused);
-    EXPECT_EQ(a.ipqp.ipqp_iters, b.ipqp.ipqp_iters);
-    EXPECT_EQ(a.ipqp.ipqp_factorizations, b.ipqp.ipqp_factorizations);
-    EXPECT_EQ(a.ipqp.ipqp_symbolic_analyses, b.ipqp.ipqp_symbolic_analyses);
-    EXPECT_EQ(a.ipqp.ipqp_solves, b.ipqp.ipqp_solves);
-    EXPECT_EQ(a.ipqp.ipqp_pattern_verifies, b.ipqp.ipqp_pattern_verifies);
-    EXPECT_EQ(a.ipqp.ipqp_rho_demanded_max, b.ipqp.ipqp_rho_demanded_max);
-    EXPECT_EQ(a.ipqp.ipqp_rho_demanded_last, b.ipqp.ipqp_rho_demanded_last);
-    EXPECT_EQ(a.ipqp.ipqp_inertia_retries, b.ipqp.ipqp_inertia_retries);
-    EXPECT_EQ(a.ipqp.ipqp_iters_at_elevated_rho, b.ipqp.ipqp_iters_at_elevated_rho);
-    EXPECT_EQ(a.ipqp.ipqp_ladder_reclimbs, b.ipqp.ipqp_ladder_reclimbs);
-    EXPECT_EQ(a.ipqp.ipqp_pivot_reroute_primal, b.ipqp.ipqp_pivot_reroute_primal);
-    EXPECT_EQ(a.ipqp.ipqp_pivot_reroute_dual_fallback, b.ipqp.ipqp_pivot_reroute_dual_fallback);
-    EXPECT_EQ(a.ipqp.ipqp_iters_ladder_armed_no_advance, b.ipqp.ipqp_iters_ladder_armed_no_advance);
-    EXPECT_EQ(a.ipqp.ipqp_final_inertia_read, b.ipqp.ipqp_final_inertia_read);
-    EXPECT_EQ(a.ipqp.ipqp_reg_decreases, b.ipqp.ipqp_reg_decreases);
-    EXPECT_EQ(a.ipqp.ipqp_reg_increases, b.ipqp.ipqp_reg_increases);
-    EXPECT_EQ(a.ipqp.ipqp_prox_center_updates, b.ipqp.ipqp_prox_center_updates);
-    EXPECT_EQ(a.ipqp.ipqp_restart_repairs, b.ipqp.ipqp_restart_repairs);
-    EXPECT_EQ(a.ipqp.ipqp_restart_shift_max, b.ipqp.ipqp_restart_shift_max);
-    EXPECT_EQ(a.ipqp.ipqp_mu_adopted, b.ipqp.ipqp_mu_adopted);
-    EXPECT_EQ(a.ipqp.ipqp_warm_restart_abandoned, b.ipqp.ipqp_warm_restart_abandoned);
-    EXPECT_EQ(a.ipqp.ipqp_declined_pinned, b.ipqp.ipqp_declined_pinned);
-    EXPECT_EQ(a.ipqp.ipqp_tier_retired_after, b.ipqp.ipqp_tier_retired_after);
-    EXPECT_EQ(a.ipqp.ipqp_face_uncertain, b.ipqp.ipqp_face_uncertain);
-    EXPECT_EQ(a.ipqp.ipqp_refine_accepted, b.ipqp.ipqp_refine_accepted);
-    EXPECT_EQ(a.ipqp.ipqp_refine_refused, b.ipqp.ipqp_refine_refused);
-    EXPECT_EQ(a.ipqp.ipqp_to_refine, b.ipqp.ipqp_to_refine);
-    EXPECT_EQ(a.ipqp.ipqp_to_ssn, b.ipqp.ipqp_to_ssn);
-    EXPECT_EQ(a.ipqp.ipqp_to_walk, b.ipqp.ipqp_to_walk);
-    EXPECT_EQ(a.ipqp.ipqp_escapes, b.ipqp.ipqp_escapes);
-    EXPECT_EQ(a.ipqp.ipqp_escape_budget, b.ipqp.ipqp_escape_budget);
-    EXPECT_EQ(a.ipqp.ipqp_escape_stall, b.ipqp.ipqp_escape_stall);
-    EXPECT_EQ(a.ipqp.ipqp_escape_indefinite, b.ipqp.ipqp_escape_indefinite);
-    EXPECT_EQ(a.ipqp.ipqp_escape_numerical, b.ipqp.ipqp_escape_numerical);
-    EXPECT_EQ(a.ipqp.ipqp_escape_infeasible_suspect, b.ipqp.ipqp_escape_infeasible_suspect);
-    EXPECT_EQ(a.ipqp.ipqp_alpha_p_min, b.ipqp.ipqp_alpha_p_min);
-    EXPECT_EQ(a.ipqp.ipqp_alpha_d_min, b.ipqp.ipqp_alpha_d_min);
-    EXPECT_EQ(a.ipqp.ipqp_read_kept_tight_sides, b.ipqp.ipqp_read_kept_tight_sides);
-    EXPECT_EQ(a.ipqp.ipqp_read_barrier_noise_sides, b.ipqp.ipqp_read_barrier_noise_sides);
+#define HVEN_TEST_SAME(f, absent) EXPECT_EQ(a.f, b.f) << #f;
+    HVEN_SQP_COUNTERS_FIELDS(HVEN_TEST_SAME)
+#undef HVEN_TEST_SAME
+#define HVEN_TEST_SAME(f, absent) EXPECT_EQ(a.ssn.f, b.ssn.f) << #f;
+    HVEN_SSN_COUNTERS_FIELDS(HVEN_TEST_SAME)
+#undef HVEN_TEST_SAME
+#define HVEN_TEST_SAME(f, absent) EXPECT_EQ(a.ipqp.f, b.ipqp.f) << #f;
+    HVEN_IPQP_COUNTERS_FIELDS(HVEN_TEST_SAME)
+#undef HVEN_TEST_SAME
 }
 
 TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {

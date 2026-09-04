@@ -1284,6 +1284,11 @@ struct SqpIterate {
     /// `tr_binding` on the same row is the separate reading of "the radius was
     /// binding somewhere". A change of radius that moves a variable between a
     /// real bound and a TR pin therefore DOES move this delta.
+    ///
+    /// ON A SOC-CORRECTED ROW THE SET IS THE ORIGINAL QP's, not the SOC
+    /// re-solve's -- `tr_binding`'s own convention above, for the same reason:
+    /// the chain then compares one main subproblem against the next, rather
+    /// than alternating between two different subproblems' working sets.
     Index active_set_delta = 0;
     /// Active inequality rows whose price is negligible beside the largest one:
     /// `|lambda_i(k)| <= kWeakActivityMargin * max(1, ||lambda_i||inf)`. See

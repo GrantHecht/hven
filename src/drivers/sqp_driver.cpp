@@ -1343,6 +1343,18 @@ void census_major_activity(const QpProblem &qp, const QpSolution &qs,
                            SqpIterate &row) {
     const Index n = qp.n();
     const Index mi = qp.mi();
+    // TWO O(1) SIZE COMPARISONS, NOT qp.validate() -- kkt_assembly.h's rule and
+    // its reason: Eigen's asserts are gone under NDEBUG, so `bi - Ai x` on an
+    // inconsistent problem is an unguarded Release read.
+    if (qp.bi.size() != mi) {
+        throw std::invalid_argument(fmt::format(
+            "census_major_activity: qp.bi has size {}, expected {} (= qp.mi())", qp.bi.size(), mi));
+    }
+    if (qp.Ai.cols() != n) {
+        throw std::invalid_argument(
+            fmt::format("census_major_activity: qp.Ai has {} columns, expected {} (= qp.n())",
+                        qp.Ai.cols(), n));
+    }
     const bool have_rows = static_cast<Index>(qs.ineq_active.size()) == mi;
     const bool have_bounds = static_cast<Index>(qs.bound_state.size()) == n;
     Index delta = 0;
@@ -2643,10 +2655,9 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     Index rows_pushed = 0;
     Index rows_at_major_entry = 0;
 
-    // THE PREVIOUS MAJOR'S QP ACTIVE SET (M6 W4 T3), and the scratch the row
-    // slack is computed into. Both EMPTY here, which is precisely the empty set
-    // `SqpIterate::active_set_delta` says the first reporting major counts
-    // against; a non-reporting major leaves all three untouched.
+    // THE PREVIOUS MAJOR'S QP ACTIVE SET (M6 W4 T3), and the slack scratch.
+    // EMPTY here, which IS the empty set `SqpIterate::active_set_delta` has the
+    // first reporting major count against; a non-reporting major leaves them.
     std::vector<bool> prev_ineq_active;
     std::vector<BoundState> prev_bound_state;
     Vec activity_slack;
@@ -2748,10 +2759,9 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                     out.history.size(), rows_pushed));
             }
         };
-        // THE LAST MAJOR'S OWN EXACTLY-ONCE CHECK (W4 T3, the T2 close's tycho
-        // rider). The loop-entry check above never sees the major the solve
-        // LEAVES from, because there is no next entry; this is that check, and
-        // every `return` out of this loop must call it first.
+        // THE LAST MAJOR'S OWN EXACTLY-ONCE CHECK (W4 T3). The entry check above
+        // never sees the major the solve LEAVES from -- there is no next entry,
+        // so every `return` out of this loop must call this one first.
         auto check_major_pushed_once = [&](Index at_major) {
             if (rows_pushed != rows_at_major_entry + 1) {
                 throw std::logic_error(fmt::format(
@@ -4329,7 +4339,6 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
         // THE MODE-SELECTION TELEMETRY (M6 W4 T3), here because THIS is where
         // `qs` is this major's answer -- the same statement block that gives
         // `tr_binding` its meaning, which is the rule the six fields carry.
-        // Read-only in `qs` and `qp`; nothing below branches on any of it.
         census_major_activity(qp, qs, prev_ineq_active, prev_bound_state, activity_slack, row);
         prev_ineq_active = qs.ineq_active;
         prev_bound_state = qs.bound_state;

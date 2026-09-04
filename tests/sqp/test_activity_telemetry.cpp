@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #include <Eigen/SparseCore>
@@ -189,6 +190,29 @@ TEST(ActivityTelemetry, NearActivityReadsTheNonnegativeSlackAndItsOwnScale) {
     // AN ACTIVE ROW IS NEVER NEAR: it is in the set, not approaching it.
     qs.ineq_active = {false, true, false, true};
     EXPECT_EQ(census(qp, qs).near_active_rows, 0);
+}
+
+TEST(ActivityTelemetry, AnInconsistentQpProblemIsRefusedAtTheBoundary) {
+    // CLAUDE.md section 4 on a PUBLIC entry: Eigen's asserts are gone under
+    // NDEBUG, so `bi - Ai x` on a mis-sized problem is an unguarded Release
+    // read. Two O(1) comparisons, both true on anything `validate()` accepts.
+    QpProblem qp = row_box_qp(2, (Vec(2) << 5.0, 5.0).finished());
+    QpSolution qs;
+    qs.x = Vec::Zero(2);
+    qs.lambda_i = Vec::Zero(2);
+    qs.ineq_active = {false, false};
+    qs.bound_state = {BoundState::kFree, BoundState::kFree};
+
+    QpProblem short_bi = qp;
+    short_bi.bi = Vec(1);
+    EXPECT_THROW(census(short_bi, qs), std::invalid_argument);
+
+    QpProblem wide_ai = qp;
+    wide_ai.Ai = Eigen::MatrixXd::Zero(2, 3).sparseView();
+    EXPECT_THROW(census(wide_ai, qs), std::invalid_argument);
+
+    // AND THE CONSISTENT PROBLEM IS NOT REFUSED, so the guard is not vacuous.
+    EXPECT_NO_THROW(census(qp, qs));
 }
 
 TEST(ActivityTelemetry, AMismatchedExportContributesZeroToItsOwnHalfOnly) {
@@ -467,6 +491,13 @@ TEST(ActivityTelemetry, TheTieFixtureIsFlaggedByBothReadingsForDifferentReasons)
     // So `weak >= 1` alone is a pin a rerun of identical source can break.
     // `weak + near >= 1` holds whichever way it lands: the two halves partition
     // on `ineq_active`.
+    //
+    // WHICH LEG FIRES IS RECORDED, NOT ASSERTED. On this machine it is `near`,
+    // so the `weak` leg is untested here; if the coin flips it rests on the tie
+    // row's price being 0 to tolerance, which it is at the solution.
+    //
+    // `WeakActiveRowsIsNonVacuousOnAControlledPrice` tests the weak leg on a
+    // fixture with no coin in it.
     QpAsNlpModel model(weakly_active_qp(), Vec::Zero(2));
     SqpOptions opts = telemetry_opts();
     opts.qp_mode = QpMode::kSsn;
