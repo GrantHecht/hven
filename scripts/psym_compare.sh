@@ -56,14 +56,20 @@
 # the exceptions file). Any other difference exits 1 and is printed with the
 # offending instruction pair.
 #
-# THE OBJECT SET is the one the phase-C plan names for P-SYM, plus the three
+# THE OBJECT SET is the one the phase-C plan names for P-SYM, plus the five
 # targets M6 W5 T0 added (see below): `libhven.a`, every `hven_sqp_tests`,
-# `hven_interior_tests` and `hven_model_tests` object, and the objects of the
-# bench binaries the asserted artifacts come from (`hven_sqp_corpus`,
-# `hven_sqp_bench`, `hven_sqp_ssn_safeguard_probe`, `hven_sqp_f7_cold`,
-# `hven_sqp_tau_bar_sweep_probe`, `hven_sqp_crossover`). Debug objects are NOT
-# part of P-SYM -- they differ trivially, and Debug correctness is P-SUITE's
-# job.
+# `hven_interior_tests`, `hven_model_tests` and `hven_tests` object, and the
+# objects of the bench binaries the asserted artifacts come from
+# (`hven_sqp_corpus`, `hven_sqp_bench`, `hven_sqp_ssn_safeguard_probe`,
+# `hven_sqp_f7_cold`, `hven_sqp_tau_bar_sweep_probe`, `hven_sqp_crossover`,
+# `hven_sqp_ipqp_e1_arm`). Debug objects are NOT part of P-SYM -- they differ
+# trivially, and Debug correctness is P-SUITE's job.
+#
+# The set is enumerated GROUP by group (one group per CMake target), and
+# `capture` fails naming the group if any group yields zero objects: a target
+# directory that a CMake rename or a partial build left empty would otherwise
+# shrink the instrument silently, and objects outside the instrument are
+# objects nobody guards.
 #
 # The last two of the original bench set joined in phase-C T6 (2026-08-19).
 # They were omitted originally because their artifacts are archived studies
@@ -77,21 +83,29 @@
 # `bench/CMakeFiles/<target>.dir` object sets, so nothing about the comparison
 # changes -- only its coverage.
 #
-# `hven_interior_tests`, `hven_model_tests` and `hven_sqp_crossover` joined in
-# M6 W5 T0 (2026-09-05) for the same reason one step further again: W5 changes
-# the IPM callback surface, the model layer's type names and the driver's TU
-# structure, and the two suites that exercise those surfaces -- plus the
-# crossover runner that links the bench-side adapter -- were outside the
-# instrument. Targets deliberately still OUTSIDE the set, so their absence is a
-# stated choice rather than an oversight: `hven_tests` (the core/linear suite,
-# untouched by the engine work P-SYM guards), `hven_fault_injection_tests` and
+# `hven_interior_tests`, `hven_model_tests`, `hven_sqp_crossover`,
+# `hven_tests` and `hven_sqp_ipqp_e1_arm` joined in M6 W5 T0 (2026-09-05) for
+# the same reason one step further again: W5 changes the IPM callback surface,
+# the model layer's type names and the driver's TU structure, and the suites
+# that exercise those surfaces -- plus the crossover runner that links the
+# bench-side adapter -- were outside the instrument. `hven_tests` (core and
+# linear) joined with them: it is 11 cheap objects and it is the only cover
+# over the core/linear headers a W5 task touches. `hven_sqp_ipqp_e1_arm` joined
+# because the reason first given for excluding it was wrong -- it is the
+# producer of the A4 gate CSV that is compared cell-for-cell against
+# `docs/notes/data/2026-08-m6-w1-acceptance/a4-gate-mu1e-2.csv` at every task
+# that touches the QP engine, which is a gated artifact by any reading, and its
+# single object is the one thing a rename can move that `libhven.a` does not
+# cover.
+#
+# Targets deliberately still OUTSIDE the set, so their absence is a stated
+# choice rather than an oversight: `hven_fault_injection_tests` and
 # `hven_ipqp_seam_tests` (both recompile library TUs a second time under
 # `HVEN_TESTING`, so their objects are not the production library's code and
 # would report a permanent, meaningless difference against it), the
 # `hven_golden_rig*` targets (they compile against pinned OLD-SEAM checkouts,
-# not this tree alone), `hven_sqp_ipqp_e1_arm` (an archived one-off arm with no
-# gated artifact), the `hven_compile_fail_*` targets (they are expected NOT to
-# compile), and `hven_sqp_snopt_f7` (optional, and gated behind a source
+# not this tree alone), the `hven_compile_fail_*` targets (they are expected
+# NOT to compile), and `hven_sqp_snopt_f7` (optional, and gated behind a source
 # firewall this repository does not cross).
 #
 # Adding a target here WIDENS what must be identical, so it can only make the
@@ -186,16 +200,42 @@
 #   * The `capture` mode is unchanged except for the wider object set and the
 #     new `.psym-version` stamp.
 #
-#   * The NO-MAP path through `compare` is unchanged. For a group of one old
-#     object and one new object with no map entry in play, this script still
-#     runs the byte comparison first and then the SAME positional
+#   * The NO-MAP PASS path through `compare` is unchanged. For a group of one
+#     old object and one new object with no map entry in play, this script
+#     still runs the byte comparison first and then the SAME positional
 #     classification, emitting the SAME `IDENTICAL` / `NOISE-ONLY` /
 #     `DIFFERS` / `MOVED` / `MISSING` lines and the same trailing
-#     `P-SYM: N objects - ...` summary line. A relocation batch reads exactly
-#     as it did before. The per-symbol layer engages only where that
-#     positional comparison FAILS, or where a map is in play -- so it can only
-#     turn a former FAIL into a classified, named finding, never a former PASS
-#     into anything else.
+#     `P-SYM: N objects - ...` summary line. A relocation batch that passed
+#     before reads exactly as it did before. The per-symbol layer engages only
+#     where that positional comparison FAILS, or where a map is in play -- so
+#     it can never turn a former PASS into anything else.
+#
+#     DECLARED CHANGE TO WHAT A NO-MAP PASS ASSERTS (M6 W5 T0 fix1). What the
+#     sentence above does NOT say, and what is stated here rather than left to
+#     be inferred: a positional FAILURE now falls through to the per-symbol
+#     verdict EVEN WITH NO MAP IN PLAY, and that verdict is deliberately
+#     address-blind and trailing-padding-blind (see the two paragraphs on the
+#     per-symbol path below). So an object whose only difference is symbol
+#     REORDERING, an address shift, or an end-of-block alignment-nop run --
+#     which the pre-W5 script reported as `DIFFERS` and exit 1, because
+#     `normalize()` leaves the address on each `0000... <_Zsym>:` header line
+#     -- is now `DIFFERS` followed by a PASSING `PER-SYMBOL` line and exit 0.
+#     The same declaration covers the SELF-relative branch/call targets
+#     documented at flatten_symbols(): on the per-symbol path a control
+#     transfer whose objdump label names the enclosing symbol is compared by
+#     its OFFSET, not by its absolute address in the object. Without that rule
+#     no TU split can pass at all, because this project compiles without
+#     `-ffunction-sections`: every function of a TU shares one `.text`, so
+#     splitting the TU moves every function that was not first, and every
+#     relocation-target address printed inside them moves with it.
+#
+#     That widening is intentional: P-SYM is defined as per-symbol INSTRUCTION
+#     identity (docs/notes/2026-08-21-m4-plan-gate-review-hven.md:85), and the
+#     positional path's address sensitivity was an implementation consequence
+#     of comparing flat listings, not a term of the contract. It is recorded
+#     here because a future relocation batch that would once have failed can
+#     now pass, and CLAUDE.md section 7 requires such a change to be declared,
+#     not discovered.
 #
 #   * SYMBOL ACCOUNTING is new and runs on EVERY object in the set, both
 #     arms, always. It is `nm --defined-only` -- every DEFINED symbol, text and
@@ -258,6 +298,69 @@
 #     `STALE-EXCEPTION` (it does not fail the run -- it is a claim that is no
 #     longer needed, not a difference).
 #
+#     An exception may always be written in the PLAIN demangled form this
+#     file's FILE FORMATS block documents, on EITHER side. A finding on a
+#     tagged key (`[D1]`, `[C2]`, `[_ZThn8_]`, `[#n]`) is matched first against
+#     the tagged key and then against the symbol's bare demangled name, and
+#     that fallback is symmetric: `ONLY-BEFORE`, `ONLY-AFTER` and `DIFFERS` all
+#     honour it. Writing the internal tagged form is never required, and the
+#     tag is an implementation detail this script is free to change.
+#
+#     Why that symmetry matters, concretely: the thunk tag carries the
+#     ADJUSTMENT (`_ZThn8_` vs `_ZThn16_`), not just the fact of being a thunk.
+#     A change that removes or reorders a base class -- M6 W5 T1 -- moves a
+#     thunk's adjustment, so the same function's thunk is a different mangled
+#     name and a different tag on the two arms, and it reports as an
+#     `ONLY-BEFORE` plus an `ONLY-AFTER` pair rather than as one `DIFFERS`.
+#     That is the honest report (the thunk really is a different symbol), and
+#     ONE plain-name exception excuses both halves of the pair.
+#
+#   * STALE MAP ENTRIES. A `--symbol-map` line whose OLD name no before-arm
+#     symbol carries, and a `--object-map` line whose OLD relpath is not in the
+#     before manifest, are each printed as
+#     `STALE-MAP <old> (mapped to <new>; nothing used it)` and counted on the
+#     coverage line. Non-fatal, exactly like `STALE-EXCEPTION`: a dead map line
+#     is a claim that is no longer needed, not a difference. It is reported
+#     because a generated map (T8's will be) that drifts by one line against
+#     its generator produces a wall of `ONLY-BEFORE`/`ONLY-AFTER` findings
+#     whose actual cause is the dead line, and the tempting repair -- an
+#     exceptions entry -- would bury a real rename.
+#
+#   * DUPLICATE SYMBOLS ACROSS A SPLIT. A split can legitimately place the SAME
+#     weak/COMDAT body (an inline function, a template instantiation) into BOTH
+#     new objects. Every copy is kept: copy 1 is the one compared against the
+#     before arm, and copies 2..n are compared instruction-by-instruction
+#     against copy 1 through the same classifier, reported as
+#     `DUPLICATE-IDENTICAL <sym>` or `DUPLICATE-DIFFERS <sym>`. A DIFFERS
+#     counts as a differing symbol and FAILS the run. The bar for a duplicate
+#     is stricter than the accepted noise class deliberately: two copies in the
+#     SAME build arm come from the same source through the same preprocessing,
+#     so not even a `__LINE__` immediate can legitimately differ between them,
+#     and an unequal pair is an ODR violation (typically a macro that changes
+#     the inline body in one half) -- exactly the failure a TU split can
+#     introduce and nothing else in this script would see. The
+#     `DUPLICATE-IDENTICAL` lines are capped at 20 per object; the count is on
+#     the `PERSYM` line, and no `DUPLICATE-DIFFERS` line is ever suppressed.
+#
+#   * RANK-TAGGED KEYS ARE COUNTED. The `[#n]` fallback described below is the
+#     one keying construct that is NOT rename-stable, so the number of keys
+#     that needed it is reported per object on the `PERSYM` line
+#     (`N rank-tagged`) and in total on the coverage line, and a run that mints
+#     one WHILE a symbol map is in play prints a `P-SYM warning:` saying so. A
+#     report can then state the measured number instead of asserting that the
+#     fallback did not occur.
+#
+#   * THE SUMMARY LINE'S BUCKETS. The original `P-SYM: N objects - ...` line
+#     keeps its format and its meanings: `differing within the accepted noise
+#     class` counts POSITIONAL noise-class passes only, and never absorbs an
+#     object that passed per symbol. Per-symbol passes are their own bucket,
+#     `K objects passed per symbol`, on the coverage line. Those five counts
+#     plus that bucket account for every object in the set, with two stated
+#     qualifications: `matched by basename after a path move` is a CROSS-CUTTING
+#     tally (a moved object is also counted under whichever bucket its
+#     comparison lands in), and `libhven.a`, when it differs, is reported as
+#     `ARCHIVE` and counted in none of them.
+#
 # FILE FORMATS (comments are whole lines beginning with optional spaces then
 # `#`; blank lines ignored; leading/trailing spaces on each field trimmed):
 #
@@ -298,24 +401,32 @@
 # lines) and exits 1, with the other 59 objects still byte-identical.
 #
 # M6 W5 T0 re-calibrated the extended tool the same way, in both directions,
-# on 117 objects and 118240 defined symbols; the transcripts are pasted in
-# `.superpowers/w5-t0-report.md`.
+# and M6 W5 T0 fix1 re-ran both calibrations against the wider object set: 129
+# objects and 125145 defined symbols. The transcripts are pasted in
+# `.superpowers/w5-t0-fix1-report.md`.
 #
 #   (a) a FULL rebuild of the same commit into the SAME absolute build path
 #       with CCACHE_DISABLE=1 (`ninja -t clean` then rebuild, so every object
-#       is genuinely recompiled rather than replayed): 117/117 byte-identical,
-#       118240 symbols matched, 0 findings, PASS.
+#       is genuinely recompiled rather than replayed): 129/129 byte-identical,
+#       125145 symbols matched, 0 findings, 0 rank-tagged keys, PASS.
 #
 #   (b) a deliberate one-symbol rename -- `hven::solvers::census_variable_bounds`
 #       to `..._probe`, its declaration, its definition and both call sites,
 #       with the fmt string literals left alone so nothing but the name moves.
-#       WITHOUT a map: 113 byte-identical, the two CALLER objects noise-only
-#       with `CHANGED 0` (their bytes differ only in the relocation's symbol
-#       name, which is not an instruction), and `ipqp_trace.cpp.o` reporting
-#       exactly one `ONLY-BEFORE` and one `ONLY-AFTER` -- FAIL, one unmatched
-#       symbol on each side. WITH a one-line symbol map: the same object
-#       reports `115 identical, 0 differing, 1 matched through the symbol map`
-#       and the run PASSes. The mutant was reverted; it is not committed.
+#       WITHOUT a map: the two CALLER objects noise-only with `CHANGED 0`
+#       (their bytes differ only in the relocation's symbol name, which is not
+#       an instruction), and `ipqp_trace.cpp.o` reporting exactly one
+#       `ONLY-BEFORE` and one `ONLY-AFTER` -- FAIL, one unmatched symbol on
+#       each side. WITH a one-line symbol map: the same object passes per
+#       symbol with `1 matched through the symbol map`, and the run PASSes.
+#       The mutant was reverted; it is not committed.
+#
+#   The fix1 round additionally exercised, on purpose-built fixtures rather
+#   than on this tree: a plain-name exception excusing a TAGGED `ONLY-AFTER`;
+#   a stale symbol-map source and a stale object-map source (`STALE-MAP`, both
+#   non-fatal); an inline body emitted into BOTH halves of a split
+#   (`DUPLICATE-IDENTICAL`, PASS); and the ODR-violating variant of the same
+#   split (`DUPLICATE-DIFFERS`, exit 1).
 
 set -euo pipefail
 
@@ -337,19 +448,33 @@ tool_sha() {
     sha256sum "${PSYM_SELF}" | cut -d' ' -f1
 }
 
-# The P-SYM object set, enumerated from a build directory. Kept in one function
-# so `capture` and any future caller cannot disagree about what P-SYM covers.
+# The P-SYM object set, as GROUPS: one entry per CMake target, "<group name>:
+# <object directory relative to the build dir>". Kept in one place so
+# `psym_objects` and `do_capture`'s non-empty assertion cannot disagree about
+# what P-SYM covers, and so a group that yields nothing is named in the error.
+PSYM_GROUPS=(
+    "hven:CMakeFiles/hven.dir"
+    "hven_sqp_tests:tests/sqp/CMakeFiles/hven_sqp_tests.dir"
+    "hven_interior_tests:tests/interior/CMakeFiles/hven_interior_tests.dir"
+    "hven_model_tests:tests/model/CMakeFiles/hven_model_tests.dir"
+    "hven_tests:tests/CMakeFiles/hven_tests.dir"
+    "hven_sqp_corpus:bench/CMakeFiles/hven_sqp_corpus.dir"
+    "hven_sqp_bench:bench/CMakeFiles/hven_sqp_bench.dir"
+    "hven_sqp_ssn_safeguard_probe:bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir"
+    "hven_sqp_f7_cold:bench/CMakeFiles/hven_sqp_f7_cold.dir"
+    "hven_sqp_tau_bar_sweep_probe:bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir"
+    "hven_sqp_crossover:bench/CMakeFiles/hven_sqp_crossover.dir"
+    "hven_sqp_ipqp_e1_arm:bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir"
+)
+
+# Emits "<group><TAB><object path>" for every object in the set.
 psym_objects() {
-    local build="$1"
-    find "${build}/CMakeFiles/hven.dir" -name '*.o' 2>/dev/null | sort
-    local suite
-    for suite in sqp interior model; do
-        find "${build}/tests/${suite}/CMakeFiles/hven_${suite}_tests.dir" -name '*.o' 2>/dev/null | sort
-    done
-    local target
-    for target in hven_sqp_corpus hven_sqp_bench hven_sqp_ssn_safeguard_probe \
-                  hven_sqp_f7_cold hven_sqp_tau_bar_sweep_probe hven_sqp_crossover; do
-        find "${build}/bench/CMakeFiles/${target}.dir" -name '*.o' 2>/dev/null | sort
+    local build="$1" entry name dir
+    for entry in "${PSYM_GROUPS[@]}"; do
+        name="${entry%%:*}"
+        dir="${entry#*:}"
+        find "${build}/${dir}" -name '*.o' 2>/dev/null | LC_ALL=C sort \
+            | sed "s|^|${name}\t|"
     done
 }
 
@@ -365,27 +490,54 @@ do_capture() {
     mkdir -p "${snapshot}"
     : > "${snapshot}/.psym-manifest"
 
-    local count=0 obj rel
-    while IFS= read -r obj; do
+    local count=0 obj rel group entry name
+    declare -A group_count=()
+    while IFS=$'\t' read -r group obj; do
         rel="${obj#"${build}"/}"
         mkdir -p "${snapshot}/$(dirname "${rel}")"
         cp "${obj}" "${snapshot}/${rel}"
         echo "${rel}" >> "${snapshot}/.psym-manifest"
         count=$((count + 1))
+        group_count["${group}"]=$(( ${group_count["${group}"]:-0} + 1 ))
     done < <(psym_objects "${build}")
+
+    # Every group must be non-empty. A target directory a CMake rename or a
+    # partial build left empty would otherwise shrink the object set silently,
+    # and the `.psym-version` stamp only catches shrinkage BETWEEN versions --
+    # it cannot catch a group going missing within one.
+    local empty=""
+    for entry in "${PSYM_GROUPS[@]}"; do
+        name="${entry%%:*}"
+        if [ "${group_count["${name}"]:-0}" -eq 0 ]; then
+            empty="${empty}${empty:+ }${name}"
+        fi
+    done
+    if [ -n "${empty}" ]; then
+        echo "psym_compare: these P-SYM object groups are EMPTY in ${build}: ${empty}" >&2
+        echo "              Every group in PSYM_GROUPS must contribute at least one object;" >&2
+        echo "              an empty group is a silently narrowed instrument. Build the" >&2
+        echo "              missing targets (or fix their directory in PSYM_GROUPS) and" >&2
+        echo "              recapture." >&2
+        exit 1
+    fi
 
     if [ -f "${build}/libhven.a" ]; then
         cp "${build}/libhven.a" "${snapshot}/libhven.a"
         echo "libhven.a" >> "${snapshot}/.psym-manifest"
         count=$((count + 1))
-    fi
-
-    if [ "${count}" -eq 0 ]; then
-        echo "psym_compare: captured nothing from ${build} -- is it built?" >&2
+    else
+        echo "psym_compare: ${build}/libhven.a is missing -- the library itself is the" >&2
+        echo "              one object P-SYM can never be without." >&2
         exit 1
     fi
+
     tool_sha > "${snapshot}/.psym-version"
     echo "captured ${count} objects from ${build} into ${snapshot}"
+    for entry in "${PSYM_GROUPS[@]}"; do
+        name="${entry%%:*}"
+        printf '  %-32s %d\n' "${name}" "${group_count["${name}"]}"
+    done
+    printf '  %-32s %d\n' "libhven.a" 1
     echo "psym_compare: tool sha256 $(tool_sha)"
 }
 
@@ -396,9 +548,14 @@ do_capture() {
 # makes this a PER-SYMBOL comparison rather than one flat instruction stream,
 # so a symbol that moved between sections shows up as a difference instead of
 # cancelling out.
+raw_disasm() {
+    "${OBJDUMP}" -d --no-show-raw-insn "$1" | tail -n +3
+}
+normalize_raw() {
+    sed -e 's/^ *[0-9a-f]*://' -e 's/[ \t]\+#.*$//' -e 's/[ \t]*<[^<>]*>[ \t]*$//'
+}
 normalize() {
-    "${OBJDUMP}" -d --no-show-raw-insn "$1" | tail -n +3 \
-        | sed -e 's/^ *[0-9a-f]*://' -e 's/[ \t]\+#.*$//' -e 's/[ \t]*<[^<>]*>[ \t]*$//'
+    raw_disasm "$1" | normalize_raw
 }
 
 # Scratch directory for the normalized listings. Deliberately NOT a `local` in
@@ -541,10 +698,29 @@ demangle_table() {
             # the demangled text) and the ctor/dtor variant marker. Both are
             # untouched by a type rename, which is what makes them usable as a
             # tag on both arms of a rename comparison.
-            function tagof(mg,   t) {
+            # Position of the LAST match of the dynamic regex STRING `re` in
+            # `s`, or 0 (a string, not a /regex/ constant: awk evaluates a
+            # regex constant passed as an argument as a boolean match against
+            # $0). The ctor/dtor
+            # variant marker is always in the trailing `<name>E<params>`
+            # position, but `[CD][0-9]E` can also occur INSIDE an identifier (a
+            # class named `MyC1Extra` mangles to `9MyC1Extra`), and taking the
+            # first match would mis-tag -- asymmetrically, if a rename removes
+            # the accidental substring on one arm only.
+            function lastpos(s, re,   pos, off, rest) {
+                pos = 0; off = 0; rest = s
+                while (match(rest, re)) {
+                    pos = off + RSTART
+                    off = pos
+                    rest = substr(rest, RSTART + 1)
+                }
+                return pos
+            }
+            function tagof(mg,   t, p) {
                 t = ""
                 if (match(mg, /^_ZT[a-zA-Z]+[0-9]*_(n[0-9]+_)?/)) t = t "[" substr(mg, 1, RLENGTH) "]"
-                if (match(mg, /[CD][0-9]E/)) t = t "[" substr(mg, RSTART, 2) "]"
+                p = lastpos(mg, "[CD][0-9]E")
+                if (p > 0) t = t "[" substr(mg, p, 2) "]"
                 return t
             }
             { mg[NR] = $1; bare[NR] = $2; cnt[$2]++ }
@@ -607,16 +783,21 @@ BEGIN {
     load_pairs_into(f_map, m)
     load_pairs_into(f_exc, exc)
     load_demangle(f_dem)
+    # The `[#n]` rank fallback is the one key that is not rename-stable, so
+    # count how many of this object'"'"'s names needed it. `tag` is keyed by
+    # mangled name over the UNION of both arms, which is the natural per-object
+    # number.
+    for (x in tag) if (index(tag[x], "[#")) nrank++
 }
 NR == FNR {
     key = keyof($2, 1)
     if (key in b) { printf "  COLLISION     two before-arm symbols claim one name: %s\n", key; coll++ }
     b[key] = $1
     borig[key] = bareof($2)
-    if (bareof($2) in m) wasmapped[key] = 1
+    if (bareof($2) in m) { wasmapped[key] = 1; mapused[bareof($2)] = 1 }
     next
 }
-{ a[keyof($2, 0)] = $1 }
+{ akey = keyof($2, 0); a[akey] = $1; aorig[akey] = bareof($2) }
 END {
     for (k in b) {
         if (k in a) { matched++; if (k in wasmapped) mapped++; continue }
@@ -629,13 +810,16 @@ END {
     for (k in a) {
         if (k in b) continue
         if (k in exc) { excused++; used[k] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", k, exc[k]; continue }
+        if (aorig[k] in exc) { excused++; used[aorig[k]] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", aorig[k], exc[aorig[k]]; continue }
         onlya++
         if (onlya <= 20) printf "  ONLY-AFTER    %s\n", k
     }
     if (onlya > 20) printf "  ... and %d more symbols present only in the after arm\n", onlya - 20
     for (k in used) print k >> f_used
     close(f_used)
-    printf "%d\t%d\t%d\t%d\t%d\t%d\n", matched + 0, mapped + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0 > f_stat
+    for (k in mapused) print k >> f_mapused
+    close(f_mapused)
+    printf "%d\t%d\t%d\t%d\t%d\t%d\t%d\n", matched + 0, mapped + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, nrank + 0 > f_stat
     close(f_stat)
     exit (onlyb + onlya + coll > 0) ? 1 : 0
 }
@@ -672,6 +856,7 @@ BEGIN {
     load_pairs_into(f_map, m)
     load_pairs_into(f_exc, exc)
     load_demangle(f_dem)
+    for (x in tag) if (index(tag[x], "[#")) nrank++
     fb = tmpd "/blk-b.txt"
     fa = tmpd "/blk-a.txt"
 }
@@ -694,11 +879,26 @@ NR == FNR {
     if ($1 == "S") {
         k = keyof($2, 0)
         acur = k
-        # A split can legitimately place the SAME weak/COMDAT symbol in both
-        # new objects. Keep the first copy, count the rest, and say so.
-        if (k in asec) { adup[k]++; askip = 1 }
-        else { asec[k] = lit_replace($3, $2, "<SYM>"); an[k] = 0; askip = 0 }
-    } else if (!askip && acur != "") { an[acur]++; ai[acur, an[acur]] = field3($0) }
+        # A split can legitimately place the SAME weak/COMDAT body into both
+        # new objects. Copy 1 is the one compared against the before arm;
+        # copies 2..n are KEPT and compared against copy 1 in END, because two
+        # copies in one build arm share their preprocessing and so cannot
+        # legitimately differ at all.
+        if (k in asec) {
+            adup[k]++
+            adsec[k, adup[k]] = lit_replace($3, $2, "<SYM>")
+            adn[k, adup[k]] = 0
+            adupmode = 1
+        } else {
+            asec[k] = lit_replace($3, $2, "<SYM>")
+            an[k] = 0
+            aorig[k] = bareof($2)
+            adupmode = 0
+        }
+    } else if (acur != "") {
+        if (adupmode) { c = adup[acur]; adn[acur, c]++; adi[acur, c, adn[acur, c]] = field3($0) }
+        else { an[acur]++; ai[acur, an[acur]] = field3($0) }
+    }
 }
 END {
     for (k in bsec) {
@@ -750,24 +950,78 @@ END {
     for (k in asec) {
         if (k in bsec) continue
         if (k in exc) { excused++; used[k] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", k, exc[k]; continue }
+        if (aorig[k] in exc) { excused++; used[aorig[k]] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", aorig[k], exc[aorig[k]]; continue }
         onlya++
         printf "  ONLY-AFTER    %s\n", k
     }
-    for (k in adup) printf "  DUPLICATE     %s is defined %d times across the after-arm objects (weak/COMDAT; the first copy is the one compared)\n", k, adup[k] + 1
+    # Copies 2..n of a weak/COMDAT body, against copy 1. The classifier is the
+    # same one every other comparison uses, but here it only supplies the
+    # printed instruction pair: ANY difference between two copies in one build
+    # is a finding, since both were preprocessed identically.
+    for (k in adup) {
+        na1 = an[k]; while (na1 > 0 && is_pad(ai[k, na1])) na1--
+        for (c = 1; c <= adup[k]; c++) {
+            nc = adn[k, c]; while (nc > 0 && is_pad(adi[k, c, nc])) nc--
+            dupsame = (nc == na1) && (adsec[k, c] == asec[k])
+            if (dupsame) { for (i = 1; i <= nc; i++) if (adi[k, c, i] != ai[k, i]) { dupsame = 0; break } }
+            if (dupsame) {
+                dupok++
+                if (dupok <= 20) printf "  DUPLICATE-IDENTICAL %s (copy %d of %d)\n", k, c + 1, adup[k] + 1
+                continue
+            }
+            printf "" > fb
+            printf "" > fa
+            for (i = 1; i <= na1; i++) print ai[k, i] > fb
+            for (i = 1; i <= nc; i++) print adi[k, c, i] > fa
+            close(fb)
+            close(fa)
+            cmd = "awk -f " f_cls " " fb " " fa " 2>&1"
+            verdict = ""
+            while ((cmd | getline l) > 0) verdict = verdict (verdict == "" ? "" : "\n") l
+            close(cmd)
+            diff++
+            printf "  DUPLICATE-DIFFERS   %s (copy %d of %d differs from copy 1 -- two COMDAT copies in one build share their preprocessing, so this is an ODR finding, not noise)\n", k, c + 1, adup[k] + 1
+            if (adsec[k, c] != asec[k]) printf "                section %s -> %s\n", asec[k], adsec[k, c]
+            n = split(verdict, vl, "\n")
+            for (i = 1; i <= n; i++) printf "                %s\n", vl[i]
+        }
+    }
+    if (dupok > 20) printf "  ... and %d more identical duplicate copies\n", dupok - 20
     for (k in used) print k >> f_used
     close(f_used)
-    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding\n",
-           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0
+    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding, %d duplicate copies identical, %d rank-tagged\n",
+           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0, dupok + 0, nrank + 0
     exit (diff + onlyb + onlya + coll > 0) ? 1 : 0
 }
 '
 
 # ---------------------------------------------------------------------------
-# Per-symbol flattening of an ALREADY-NORMALIZED listing (so the expensive
-# `objdump -d` runs once per object per arm, whichever path consumes it).
+# Per-symbol flattening of the RAW `objdump -d` listing (so the expensive
+# objdump runs once per object per arm, and both paths consume the same bytes).
 # Emits, for each symbol:
 #   S<TAB><mangled><TAB><section>
 #   I<TAB><mangled><TAB><instruction line, leading tab preserved>
+#
+# It applies the same normalization normalize_raw() does -- strip the leading
+# address, strip the trailing ` #` annotation, strip the trailing `<...>`
+# symbolization -- plus ONE rule that only the per-symbol path can apply,
+# because only it knows which symbol a line belongs to:
+#
+#   SELF-RELATIVE BRANCH AND CALL TARGETS. `objdump -d` prints a control
+#   transfer's target as an ABSOLUTE address in the object, followed by its
+#   `<symbol+offset>` label: `call 16 <_ZN4demo4betaEi+0x6>`. For a call
+#   through a relocation the target is simply the next instruction, and for an
+#   intra-function jump it is a point inside the same function -- in both cases
+#   the label names the ENCLOSING symbol, and the OFFSET is the stable part
+#   while the absolute address is pure layout. A TU split moves every function
+#   that was not first in its section, so the same instruction prints
+#   `call 16` in the whole TU and `call 6` in the split one. Where the label
+#   names the enclosing symbol, this rewrites the pair as `call SELF+0x6`,
+#   which is identical on both sides. Where it names some OTHER symbol (a
+#   direct call the assembler resolved to a sibling function in the same
+#   section, which needs no relocation), nothing is rewritten: the absolute
+#   target survives, and a split that moves the callee reports a DIFFERS. That
+#   is the conservative direction -- a false finding, never a masked one.
 # ---------------------------------------------------------------------------
 flatten_symbols() {
     awk '
@@ -785,7 +1039,29 @@ flatten_symbols() {
             printf "S\t%s\t%s\n", cur, sec
             next
         }
-        /^\t/ { if (cur != "") printf "I\t%s\t%s\n", cur, $0 }
+        /^ *[0-9a-f]+:\t/ {
+            if (cur == "") next
+            line = $0
+            sub(/^ *[0-9a-f]*:/, "", line)
+            sub(/[ \t]+#.*$/, "", line)
+            if (match(line, /[ \t]*<[^<>]*>[ \t]*$/)) {
+                grp = substr(line, RSTART, RLENGTH)
+                sub(/^[ \t]*</, "", grp)
+                sub(/>[ \t]*$/, "", grp)
+                gname = grp
+                goff = "+0x0"
+                if ((p = index(grp, "+")) > 0 || (p = index(grp, "-")) > 0) {
+                    gname = substr(grp, 1, p - 1)
+                    goff = substr(grp, p)
+                }
+                if (gname == cur && line ~ /[ \t][0-9a-f]+[ \t]*<[^<>]*>[ \t]*$/) {
+                    sub(/[ \t]*<[^<>]*>[ \t]*$/, "", line)
+                    sub(/[0-9a-f]+$/, "SELF" goff, line)
+                }
+            }
+            sub(/[ \t]*<[^<>]*>[ \t]*$/, "", line)
+            printf "I\t%s\t%s\n", cur, line
+        }
     ' "$1"
 }
 
@@ -886,21 +1162,23 @@ do_compare() {
     fi
 
     : > "${tmp}/exc-used"
+    : > "${tmp}/map-used"
     : > "${tmp}/claimed"
     LC_ALL=C sort "${after}/.psym-manifest" > "${tmp}/after-manifest"
 
     local identical=0 noise=0 unclassified=0 moved=0 missing=0 total=0
-    local mapped_objects=0 unmatched_after=0 persym_objects=0
+    local mapped_objects=0 unmatched_after=0 persym_objects=0 persym_pass=0
     local sym_matched=0 sym_mapped=0 sym_only_before=0 sym_only_after=0
-    local sym_exception=0 sym_collision=0
+    local sym_exception=0 sym_collision=0 sym_rank_tagged=0
     local rc=0
 
-    local rel path_b targets kind ntargets t
+    local rel path_b kind ntargets t
+    local -a targets=()
     while IFS= read -r rel; do
         [ -n "${rel}" ] || continue
         total=$((total + 1))
         path_b="${before}/${rel}"
-        targets=""
+        targets=()
         kind="direct"
 
         if awk -F'\t' -v k="${rel}" '$1 == k { found = 1 } END { exit found ? 0 : 1 }' "${tmp}/objmap.tsv"; then
@@ -911,31 +1189,34 @@ do_compare() {
                     rc=1
                     continue
                 fi
-                targets="${targets}${targets:+ }${t}"
+                targets+=("${t}")
             done < <(awk -F'\t' -v k="${rel}" '$1 == k { print $2 }' "${tmp}/objmap.tsv")
-            if [ -z "${targets}" ]; then
+            echo "${rel}" >> "${tmp}/map-used"
+            if [ "${#targets[@]}" -eq 0 ]; then
                 missing=$((missing + 1))
                 echo "MISSING     ${rel} (object map named no reachable counterpart)"
                 rc=1
                 continue
             fi
             mapped_objects=$((mapped_objects + 1))
-            ntargets="$(echo "${targets}" | wc -w)"
+            ntargets="${#targets[@]}"
             if [ "${ntargets}" -gt 1 ]; then
-                echo "SPLIT       ${rel} -> ${targets// /, }"
+                local joined
+                joined="$(printf '%s, ' "${targets[@]}")"
+                echo "SPLIT       ${rel} -> ${joined%, }"
             else
-                echo "RENAMED     ${rel} -> ${targets}"
+                echo "RENAMED     ${rel} -> ${targets[0]}"
             fi
         elif [ -f "${after}/${rel}" ]; then
-            targets="${rel}"
+            targets=("${rel}")
         else
             local candidates
             candidates="$(find "${after}" -name "$(basename "${rel}")" -type f)"
             if [ "$(echo "${candidates}" | grep -c .)" -eq 1 ] && [ -n "${candidates}" ]; then
-                targets="${candidates#"${after}"/}"
+                targets=("${candidates#"${after}"/}")
                 moved=$((moved + 1))
                 kind="moved"
-                echo "MOVED       ${rel} -> ${targets}"
+                echo "MOVED       ${rel} -> ${targets[0]}"
             else
                 missing=$((missing + 1))
                 echo "MISSING     ${rel} (no counterpart in ${after})"
@@ -944,9 +1225,9 @@ do_compare() {
             fi
         fi
 
-        ntargets="$(echo "${targets}" | wc -w)"
+        ntargets="${#targets[@]}"
         local path_a_list=()
-        for t in ${targets}; do
+        for t in "${targets[@]}"; do
             if grep -qxF "${t}" "${tmp}/claimed"; then
                 echo "COLLISION   ${rel} and an earlier object both claim ${t}"
                 rc=1
@@ -972,6 +1253,7 @@ do_compare() {
                             -v f_map="${tmp}/symmap.tsv" -v f_exc="${tmp}/exc.tsv" \
                             -v f_dem="${tmp}/syms-demangle.tsv" \
                             -v f_used="${tmp}/exc-used" -v f_stat="${tmp}/symstat" \
+                            -v f_mapused="${tmp}/map-used" \
                             -f "${tmp}/symcover.awk" \
                             "${tmp}/syms-b.tsv" "${tmp}/syms-a.tsv")"
             sym_rc=$?
@@ -984,6 +1266,7 @@ do_compare() {
             sym_only_after=$((sym_only_after + $(echo "${st}" | cut -f4)))
             sym_exception=$((sym_exception + $(echo "${st}" | cut -f5)))
             sym_collision=$((sym_collision + $(echo "${st}" | cut -f6)))
+            sym_rank_tagged=$((sym_rank_tagged + $(echo "${st}" | cut -f7)))
             if [ "${sym_rc}" -ne 0 ]; then
                 rc=1
                 echo "SYMBOLS     ${rel}: COVERAGE FINDINGS"
@@ -1009,9 +1292,13 @@ do_compare() {
             continue
         fi
 
-        normalize "${path_b}" > "${tmp}/b.txt"
-        : > "${tmp}/a.txt"
-        for t in "${path_a_list[@]}"; do normalize "${t}" >> "${tmp}/a.txt"; done
+        # ONE objdump per object per arm: the positional path reads the
+        # normalized listing, the per-symbol path reads the raw one.
+        raw_disasm "${path_b}" > "${tmp}/raw-b.txt"
+        : > "${tmp}/raw-a.txt"
+        for t in "${path_a_list[@]}"; do raw_disasm "${t}" >> "${tmp}/raw-a.txt"; done
+        normalize_raw < "${tmp}/raw-b.txt" > "${tmp}/b.txt"
+        normalize_raw < "${tmp}/raw-a.txt" > "${tmp}/a.txt"
 
         # The POSITIONAL comparison, unchanged, first. It is strictly stronger
         # than the per-symbol comparison -- it requires the symbol header lines
@@ -1037,8 +1324,8 @@ do_compare() {
 
         # ---- per-symbol, by DEMANGLED name, through the maps ---------------
         persym_objects=$((persym_objects + 1))
-        flatten_symbols "${tmp}/b.txt" > "${tmp}/flat-b.tsv"
-        flatten_symbols "${tmp}/a.txt" > "${tmp}/flat-a.tsv"
+        flatten_symbols "${tmp}/raw-b.txt" > "${tmp}/flat-b.tsv"
+        flatten_symbols "${tmp}/raw-a.txt" > "${tmp}/flat-a.tsv"
         cut -f2 "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u > "${tmp}/mangled.txt"
         demangle_table < "${tmp}/mangled.txt" > "${tmp}/demangle.tsv"
 
@@ -1060,7 +1347,12 @@ do_compare() {
             unclassified=$((unclassified + 1))
             rc=1
         else
-            noise=$((noise + 1))
+            # NOT `noise`: the original summary line's "differing within the
+            # accepted noise class" means POSITIONAL noise-class passes, and an
+            # object that passed per symbol -- through the maps, or by being
+            # address- and padding-blind -- is a different claim. It gets its
+            # own bucket on the coverage line.
+            persym_pass=$((persym_pass + 1))
         fi
     done < "${before}/.psym-manifest"
 
@@ -1085,9 +1377,43 @@ do_compare() {
         done < <(LC_ALL=C comm -23 "${tmp}/exc-all" "${tmp}/exc-used-sorted")
     fi
 
+    # --- map entries nobody needed -----------------------------------------
+    #
+    # Non-fatal, exactly like STALE-EXCEPTION. The symbol map's OLD names are
+    # marked used by the symbol CENSUS, which runs on every object and sees
+    # every defined symbol, so an unused one really is used by nothing; the
+    # object map's OLD relpaths are marked used by the manifest walk.
+    local stale_map=0 old new
+    LC_ALL=C sort -u "${tmp}/map-used" > "${tmp}/map-used-sorted"
+    if [ -s "${tmp}/symmap.tsv" ]; then
+        while IFS= read -r old; do
+            [ -n "${old}" ] || continue
+            new="$(awk -F'\t' -v k="${old}" '$1 == k { print $2; exit }' "${tmp}/symmap.tsv")"
+            stale_map=$((stale_map + 1))
+            echo "STALE-MAP   ${old} (mapped to ${new}; nothing used it)"
+        done < <(LC_ALL=C comm -23 <(cut -f1 "${tmp}/symmap.tsv" | LC_ALL=C sort -u) "${tmp}/map-used-sorted")
+    fi
+    if [ -s "${tmp}/objmap.tsv" ]; then
+        while IFS= read -r old; do
+            [ -n "${old}" ] || continue
+            new="$(awk -F'\t' -v k="${old}" '$1 == k { print $2; exit }' "${tmp}/objmap.tsv")"
+            stale_map=$((stale_map + 1))
+            echo "STALE-MAP   ${old} (mapped to ${new}; nothing used it)"
+        done < <(LC_ALL=C comm -23 <(cut -f1 "${tmp}/objmap.tsv" | LC_ALL=C sort -u) "${tmp}/map-used-sorted")
+    fi
+
     echo
+    if [ "${sym_rank_tagged}" -gt 0 ] && [ -n "${symbol_map}" ]; then
+        echo "P-SYM warning: ${sym_rank_tagged} key(s) needed the [#n] rank fallback, and a symbol map is"
+        echo "               in play. The rank is assigned over the union of both arms' MANGLED names,"
+        echo "               so it is stable for a name a rename does not touch but NOT across a rename:"
+        echo "               two indistinguishable twins can swap ranks between the arms. A DIFFERS or"
+        echo "               an ONLY-BEFORE/ONLY-AFTER pair on a [#n]-tagged key may be a limit of this"
+        echo "               tool rather than a code difference. The failure direction is conservative"
+        echo "               (a false finding, never a masked one), but read such a finding by hand."
+    fi
     echo "P-SYM: ${total} objects — ${identical} byte-identical, ${noise} differing within the accepted noise class, ${unclassified} with unclassified differences, ${moved} matched by basename after a path move, ${missing} missing"
-    echo "P-SYM coverage: ${mapped_objects} objects matched through the object map, ${persym_objects} compared per symbol, ${unmatched_after} after-arm objects unaccounted for; symbols — ${sym_matched} matched (${sym_mapped} through the symbol map), ${sym_only_before} only-before, ${sym_only_after} only-after, ${sym_exception} excepted, ${sym_collision} collisions, ${stale} stale exceptions"
+    echo "P-SYM coverage: ${mapped_objects} objects matched through the object map, ${persym_objects} compared per symbol, ${persym_pass} objects passed per symbol, ${unmatched_after} after-arm objects unaccounted for; symbols — ${sym_matched} matched (${sym_mapped} through the symbol map), ${sym_only_before} only-before, ${sym_only_after} only-after, ${sym_exception} excepted, ${sym_collision} collisions, ${sym_rank_tagged} rank-tagged, ${stale} stale exceptions, ${stale_map} stale map entries"
     if [ "${rc}" -eq 0 ]; then
         echo "P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)"
     else

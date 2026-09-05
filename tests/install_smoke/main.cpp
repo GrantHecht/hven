@@ -90,9 +90,9 @@ struct Hs071Problem : hven::solvers::NLPProblem {
 };
 } // namespace
 
-// The standalone-include TUs (M6 W5 T0), summed so the six objects are LINKED
-// and not merely compiled: a header that compiles alone but needs a symbol the
-// installed libhven.a does not export is equally broken, and only a link says so.
+// The standalone-include TUs (M6 W5 T0). Each proves COMPILE-TIME
+// self-containment only: none odr-uses anything its header declares, so the
+// link below proves the six objects link, not that libhven.a exports anything.
 namespace hven_install_smoke {
 int standalone_include_trace_writer();
 int standalone_include_ipqp_trace();
