@@ -43,7 +43,13 @@ namespace hven::solvers {
 /// solver retriable. The problem is evaluated single-partition on the calling
 /// thread. Every entry point throws std::invalid_argument when the initial
 /// guess's size does not match the transcribed problem's variable count.
-struct NLPSolver {
+///
+/// FINAL AND NON-POLYMORPHIC. The folded base's virtuals existed for a
+/// derived-class contract that never had a second member; there is no vtable,
+/// no virtual destructor, and jet_run()'s dispatch is five direct calls. A
+/// consumer that derived from this type, or deleted one through a base
+/// pointer, is broken by that and is the subject of the W5 migration guide.
+struct NLPSolver final {
 
     /// @brief Which solve-mode entry point jet_run() dispatches to.
     enum class JetJobModes {
@@ -87,8 +93,6 @@ struct NLPSolver {
     /// True until the first successful transcription; jet_release() restores it.
     bool do_transcription_ = true;
 
-    virtual ~NLPSolver() = default;
-
     /// @brief Takes ownership of @p problem; transcription waits for the first solve.
     ///
     /// Construction order is the folded base's: the optimizer is made and the
@@ -106,20 +110,20 @@ struct NLPSolver {
     // points.
 
     /// Runs the feasibility (SOE-mode) phase sequence on active_variables_.
-    virtual hven::ConvergenceFlags solve();
+    hven::ConvergenceFlags solve();
     /// Runs the optimality (OPT-mode) phase sequence on active_variables_.
-    virtual hven::ConvergenceFlags optimize();
+    hven::ConvergenceFlags optimize();
     /// Runs the SOE-mode phase sequence, then the OPT-mode one. Both always
     /// run.
-    virtual hven::ConvergenceFlags solve_optimize();
+    hven::ConvergenceFlags solve_optimize();
     /// Runs SOE, then OPT, then SOE again. The trailing SOE phase is
     /// conditional: it is skipped when OPT reported
     /// ConvergenceFlags::CONVERGED.
-    virtual hven::ConvergenceFlags solve_optimize_solve();
+    hven::ConvergenceFlags solve_optimize_solve();
     /// Runs the OPT-mode phase sequence, then the SOE-mode one. The trailing
     /// SOE phase is conditional: it is skipped when OPT reported
     /// ConvergenceFlags::CONVERGED.
-    virtual hven::ConvergenceFlags optimize_solve();
+    hven::ConvergenceFlags optimize_solve();
 
     /// Compute default partition count from the global thread budget.
     /// Over-partitions by 4x so the work-stealing pool can smooth out
@@ -136,7 +140,7 @@ struct NLPSolver {
     /// Applies the default partitioning: num_partitions_ from
     /// default_num_partitions(), and the solver's QP thread count capped at
     /// the physical core count.
-    virtual void init_partitions() {
+    void init_partitions() {
         this->num_partitions_ = default_num_partitions();
         this->optimizer_->set_qp_threads(
             std::min(HVEN_DEFAULT_QP_THREADS, utils::get_core_count()));
@@ -150,7 +154,7 @@ struct NLPSolver {
     /// `optimizer_->set_qp_threads(n)`.
     ///
     /// @throws std::invalid_argument if `num_partitions < 1`.
-    virtual void set_num_partitions(int num_partitions) {
+    void set_num_partitions(int num_partitions) {
         if (num_partitions < 1) {
             throw std::invalid_argument("Number of partitions must be positive");
         }
@@ -159,10 +163,10 @@ struct NLPSolver {
 
     /// Prepares the problem for inline (non-partitioned) evaluation inside
     /// jet_run(); must leave num_partitions_ == 1.
-    virtual void jet_initialize();
+    void jet_initialize();
 
     /// @brief Releases whatever jet_initialize() acquired.
-    virtual void jet_release();
+    void jet_release();
 
     /// Runs the configured job mode between jet_initialize()/jet_release(),
     /// returning the dispatched mode's convergence flag.
@@ -176,7 +180,7 @@ struct NLPSolver {
     ///
     /// @throws std::invalid_argument if jet_job_mode_ is NotSet or otherwise
     /// unrecognized.
-    virtual hven::ConvergenceFlags jet_run() {
+    hven::ConvergenceFlags jet_run() {
         this->jet_initialize();
 
         hven::ConvergenceFlags flag;

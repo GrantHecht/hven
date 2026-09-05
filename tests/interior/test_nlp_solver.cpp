@@ -9,6 +9,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "hven/detail/qp/ipqp_trace.h"
@@ -613,6 +614,12 @@ concept SetsPartitionsAndQpThreads = requires(T &t) { t.set_num_partitions(1, 1)
 
 static_assert(SetsPartitionsAlone<NLPSolver>);
 static_assert(!SetsPartitionsAndQpThreads<NLPSolver>);
+
+// M6 W5 T1's DECLARED BREAK, pinned where a future reader will look for it:
+// NLPSolver is not a base class and is not polymorphic. The folded base's
+// virtuals existed for a derived-class contract with no second member.
+static_assert(std::is_final_v<NLPSolver>);
+static_assert(!std::is_polymorphic_v<NLPSolver>);
 
 TEST(NLPSolverTest, PartitionCountAndQpThreadCountAreSetIndependently) {
     NLPSolver solver(std::make_shared<EqOnlyProblem>());
