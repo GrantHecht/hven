@@ -103,7 +103,10 @@ Carried verbatim from tycho's conventions:
 
 - Types and classes: `PascalCase`
 - Member functions: `snake_case`
-- Member variables: `snake_case_` with a trailing underscore
+- Member variables: `snake_case_` with a trailing underscore — on CLASSES.
+  Members of aggregate/POD structs (counters, settings, iterate rows, event
+  structs) are bare `snake_case`, as in tycho (owner ruling 2026-09-04:
+  hven's naming scheme is tycho's)
 - Free functions: `snake_case`
 - Compile-time constants: `kPascalCase`
 - Macros: `HVEN_UPPER_SNAKE`
