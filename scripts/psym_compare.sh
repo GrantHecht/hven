@@ -23,6 +23,17 @@
 #                           compare a pair of captures made by a DIFFERENT
 #                           version of this script (refused by default)
 #
+#   Environment: PSYM_MAX_PAIRS -- how many UNCLASSIFIED instruction pairs the
+#     classifier PRINTS per symbol before it collapses the rest into
+#     "... and N more". Default 5; `0` means unbounded. OUTPUT ONLY: it changes
+#     no verdict, no count and no exit status, and the `UNCLASSIFIED n` figure
+#     on every COUNTS line is the full count either way. It exists because a
+#     class of change whose whole transcript is one repeated instruction shape
+#     (M6 W5 T1's member-displacement shift) cannot be audited from a listing
+#     that hides all but five pairs per symbol -- a claim of "every pair is the
+#     same −8 displacement" is checkable only against every pair. A
+#     non-integer value is refused rather than silently defaulted.
+#
 # Typical session, from a clean configure, CCACHE_DISABLE=1, same host, same
 # preset (a cache hit would replay a stored object instead of compiling the
 # source in front of you, which is the thing under test):
@@ -649,6 +660,18 @@ usage() {
 OBJDUMP="${OBJDUMP:-objdump}"
 NM="${NM:-nm}"
 
+# Normalized and EXPORTED so the classifier's ENVIRON lookup sees it whether or
+# not the caller exported it, and refused when it is not a count: a typo that
+# silently reverted to 5 would leave an audit reading a truncated listing while
+# believing it unbounded.
+PSYM_MAX_PAIRS="${PSYM_MAX_PAIRS:-5}"
+if ! [[ "${PSYM_MAX_PAIRS}" =~ ^[0-9]+$ ]]; then
+    echo "psym_compare: PSYM_MAX_PAIRS must be a non-negative integer (0 = unbounded);" >&2
+    echo "              got '${PSYM_MAX_PAIRS}'" >&2
+    exit 2
+fi
+export PSYM_MAX_PAIRS
+
 # This script's own identity, stamped into every capture and printed by every
 # compare. `compare` refuses two captures whose stamps disagree: the object SET
 # is a property of the capturing script, so an old-vs-new pairing would compare
@@ -902,6 +925,12 @@ END {
         printf "STRUCTURAL: normalized listing is %d lines vs %d -- instructions were added or removed\n", nb, na
         exit 2
     }
+    # Output-only cap on the printed pairs (PSYM_MAX_PAIRS; 0 = unbounded).
+    # Read from the environment rather than passed with -v because this program
+    # is invoked both directly and from inside the per-symbol awk, and an
+    # environment variable reaches both without either call site knowing.
+    cap = ENVIRON["PSYM_MAX_PAIRS"]
+    cap = (cap == "") ? 5 : cap + 0
     changed = 0; bad = 0; insn_b = 0
     for (i = 1; i <= nb; i++) {
         if (b[i] ~ /^\t/) insn_b++
@@ -912,10 +941,10 @@ END {
             deltas[d]++
         } else {
             bad++
-            if (bad <= 5) printf "  UNCLASSIFIED  - %s\n                + %s\n", b[i], a[i]
+            if (cap == 0 || bad <= cap) printf "  UNCLASSIFIED  - %s\n                + %s\n", b[i], a[i]
         }
     }
-    if (bad > 5) printf "  ... and %d more unclassified differences\n", bad - 5
+    if (cap != 0 && bad > cap) printf "  ... and %d more unclassified differences\n", bad - cap
     ds = ""
     for (d in deltas) ds = ds sprintf(" %+d(x%d)", d, deltas[d])
     printf "COUNTS %d insns; CHANGED %d; UNCLASSIFIED %d; DELTAS%s\n", insn_b, changed, bad, ds
