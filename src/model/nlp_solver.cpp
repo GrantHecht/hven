@@ -1,10 +1,14 @@
-// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
+//
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
 
 #include "hven/model/nlp_solver.h"
 
 #include <algorithm>
-#include <cmath>
 #include <stdexcept>
 #include <string>
 
@@ -143,13 +147,14 @@ NLPSolver::JetJobModes NLPSolver::strto_jet_job_mode(const std::string &str) {
     }
 }
 
-NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(problem)) {
+NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) {
     // The folded base constructor's body, verbatim and FIRST: the base
-    // subobject was built before this class's own members, and the header's
-    // declaration records the one ordering the language moved.
+    // subobject was built and configured before the argument was stolen, so
+    // problem_ stays default-constructed here and is assigned below.
     this->optimizer_ = std::make_shared<InteriorPointSolver>();
     this->init_partitions();
 
+    this->problem_ = std::move(problem);
     if (!this->problem_) {
         throw std::invalid_argument("NLPSolver: the problem pointer is null");
     }

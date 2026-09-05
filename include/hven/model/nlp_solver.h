@@ -87,12 +87,11 @@ struct NLPSolver final {
 
     /// @brief Takes ownership of @p problem; transcription waits for the first solve.
     ///
-    /// Construction order is the folded base's: the optimizer is made and the
-    /// default partitioning applied before anything else this constructor does.
-    /// One step the language moves and nothing observes: the argument steal,
-    /// which the member-initializer list now performs BEFORE the optimizer is
-    /// made rather than after it -- visible only to a caller whose @p problem
-    /// would have survived a make_shared that threw.
+    /// Construction order is the folded base's, argument steal included: the
+    /// optimizer is made and the default partitioning applied first, and
+    /// @p problem is moved into this solver only after that -- so a caller
+    /// whose make_shared throws still owns its problem, exactly as before the
+    /// fold.
     ///
     /// @throws std::invalid_argument if @p problem is null.
     explicit NLPSolver(std::shared_ptr<NLPProblem> problem);

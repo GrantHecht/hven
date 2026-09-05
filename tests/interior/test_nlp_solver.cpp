@@ -899,6 +899,16 @@ struct TranscriptionCountingProblem : EqOnlyProblem {
     mutable int n_bounds_ = 0, n_jac_structure_ = 0, n_hess_structure_ = 0;
     mutable int n_eval_jac_ = 0, n_eval_hess_ = 0;
 
+    /// Set by the jet-lifecycle pin only. When it is set, every eval_jac call
+    /// records the solver's partition count AT THAT MOMENT -- an observation
+    /// made DURING the dispatched mode, which is the only place the jet
+    /// lifecycle's first step is visible: jet_initialize() forces
+    /// num_partitions_ to 1, and jet_release() restores it to 1 afterwards, so
+    /// the value after jet_run() returns says nothing about whether the
+    /// initialize step ran at all.
+    const hven::solvers::NLPSolver *watch_ = nullptr;
+    mutable std::vector<int> partitions_during_eval_;
+
     void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
                 Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
         n_bounds_++;
@@ -916,6 +926,9 @@ struct TranscriptionCountingProblem : EqOnlyProblem {
     }
     void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
         n_eval_jac_++;
+        if (watch_ != nullptr) {
+            partitions_during_eval_.push_back(watch_->num_partitions_);
+        }
         EqOnlyProblem::eval_jac(x, v);
     }
     void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
@@ -1187,9 +1200,9 @@ TEST(NLPSolverJobModeTest, AnUnknownSpellingIsRefusedAndNamedInTheMessage) {
         NLPSolver::strto_jet_job_mode("Solve_Then_Give_Up");
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        const std::string what(e.what());
-        EXPECT_NE(what.find("Unrecognized jet_job_mode: "), std::string::npos) << what;
-        EXPECT_NE(what.find("Solve_Then_Give_Up"), std::string::npos) << what;
+        // The whole message, trailing newline included: the format is the
+        // contract, not just the two substrings that happen to be in it.
+        EXPECT_EQ(std::string(e.what()), "Unrecognized jet_job_mode: Solve_Then_Give_Up\n");
     }
 }
 
@@ -1258,14 +1271,31 @@ TEST(NLPSolverJobModeTest, RunNlpSolverRefusesDoNothingAndNotSetWithItsOwnMessag
 //
 // So exactly one transcription per jet_run() is initialize-mode-release and
 // nothing else: a release that ran before the mode would show two.
+//
+// The count alone does NOT separate initialize-mode-release from an OMITTED
+// initialize: run() transcribes lazily, so a mode dispatched with no initialize
+// leaves one transcription and the same final state either way.
+//
+// The separating observable is taken DURING the mode, and it is
+// num_partitions_: jet_initialize() forces it to 1 and jet_release() restores
+// it to 1, so only a value read inside an eval tells the two apart.
 TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) {
     auto problem = std::make_shared<TranscriptionCountingProblem>();
     NLPSolver solver(problem);
     solver.optimizer_->set_print_level(10);
     solver.set_jet_job_mode(JetJobModes::Optimize);
     solver.active_variables_ = Eigen::VectorXd::Zero(2);
+    problem->watch_ = &solver;
+    solver.set_num_partitions(7);
 
     ASSERT_EQ(solver.jet_run(), hven::ConvergenceFlags::CONVERGED);
+
+    // Every evaluation the dispatched mode made saw the single-partition
+    // setting jet_initialize() installed -- not the 7 set above it.
+    ASSERT_FALSE(problem->partitions_during_eval_.empty());
+    for (int p : problem->partitions_during_eval_) {
+        EXPECT_EQ(p, 1);
+    }
 
     EXPECT_EQ(problem->n_bounds_, 1);
     EXPECT_EQ(problem->n_jac_structure_, 1);
@@ -1279,6 +1309,21 @@ TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) 
     EXPECT_TRUE(solver.do_transcription_);
     EXPECT_EQ(solver.nlp_, nullptr);
     solver.optimizer_->set_print_level(10);
+
+    // The falsifying arm, so the assertion above is not vacuous: the same mode
+    // with NO jet_initialize transcribes once too and ends in the same state,
+    // and the observation taken during it reads 7 rather than 1.
+    auto bare_problem = std::make_shared<TranscriptionCountingProblem>();
+    NLPSolver bare(bare_problem);
+    bare.optimizer_->set_print_level(10);
+    bare_problem->watch_ = &bare;
+    bare.set_num_partitions(7);
+    ASSERT_EQ(bare.optimize(Eigen::VectorXd::Zero(2)), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(bare_problem->n_bounds_, 1);
+    ASSERT_FALSE(bare_problem->partitions_during_eval_.empty());
+    for (int p : bare_problem->partitions_during_eval_) {
+        EXPECT_EQ(p, 7);
+    }
 }
 
 // (4) THE MODE SEMANTICS, as the folded base documented them.
@@ -1341,6 +1386,10 @@ IpmPhaseRecordingSink run_with_phase_sink(JetJobModes mode, int max_iters,
     solver.optimizer_->attach_trace(&sink);
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     *flag_out = solver.run_nlp_solver(mode, x0).flag_;
+    // The sink outlives every solve made while it is attached, which is the
+    // documented contract -- but it does not outlive `solver`, so detach it
+    // rather than leave ~NLPSolver holding a pointer to a dead object.
+    solver.optimizer_->attach_trace(nullptr);
     return sink;
 }
 
