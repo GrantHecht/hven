@@ -31,7 +31,12 @@
 #   NOP     both sides are alignment padding of different length.
 #   REND    one side renders a control-transfer target absolutely and the other
 #           as SELF+off, because objdump's nearest-symbol label crossed the
-#           enclosing symbol's range.
+#           enclosing symbol's range. Since M6 W5 T1 fix2 bounded the SELF rule
+#           by the symbol's own SIZE and resolves an out-of-range bare target
+#           to the symbol containing it, this bin is empty on every comparison
+#           in this tree: it is kept because a symbol whose table entry carries
+#           no size still falls back to the label, and a pair from that
+#           fallback is this shape.
 #   SLIP    exactly one side is alignment padding: the POSITIONAL pairing inside
 #           the symbol slipped where a padding run changed length, so every pair
 #           after it is an artifact of the pairing and not a comparison.

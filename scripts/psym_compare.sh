@@ -481,13 +481,15 @@
 #     `STALE-EXCEPTION` (it does not fail the run -- it is a claim that is no
 #     longer needed, not a difference).
 #
-#     An exception may always be written in the PLAIN demangled form this
-#     file's FILE FORMATS block documents, on EITHER side. A finding on a
+#     An exception's SYMBOL may always be written in the PLAIN demangled form
+#     this file's FILE FORMATS block documents, on EITHER side. A finding on a
 #     tagged key (`[D1]`, `[C2]`, `[_ZThn8_]`, `[#n]`) is matched first against
 #     the tagged key and then against the symbol's bare demangled name, and
 #     that fallback is symmetric: `ONLY-BEFORE`, `ONLY-AFTER` and `DIFFERS` all
 #     honour it. Writing the internal tagged form is never required, and the
-#     tag is an implementation detail this script is free to change.
+#     tag is an implementation detail this script is free to change. The OBJECT
+#     qualifier in front of it is not optional (M6 W5 T1 fix2); see FILE
+#     FORMATS.
 #
 #     Why that symmetry matters, concretely: the thunk tag carries the
 #     ADJUSTMENT (`_ZThn8_` vs `_ZThn16_`), not just the fact of being a thunk.
@@ -578,23 +580,46 @@
 #                   never written in these files, precisely because their
 #                   length prefixes make textual substitution unsound.
 #
-#   --exceptions    <demangled name> ## <reason>
-#                   Split on the FIRST ` ## `. The name is the NEW-side name
-#                   for a symbol that exists after, the OLD-side name for one
-#                   that existed only before, and either for a mapped pair.
-#                   Since M6 W5 T1 fix1 a name may carry the FINDING KIND it
-#                   excuses -- `<name> [ONLY-BEFORE]`, `[ONLY-AFTER]`,
-#                   `[DIFFERS]`, `[SECTION]` -- and the qualified form is tried
-#                   first. It matters because this namespace is GLOBAL while
-#                   findings are per object: one weak COMDAT body is
-#                   legitimately ONLY-BEFORE in the object that lost its copy
-#                   and, in the same comparison, a DIFFERS in the object that
-#                   gained the strong one, so an unqualified entry written for
-#                   the first silently covers the second. A plain-name entry
-#                   still excuses any kind, and a plain entry SPENT on a section
-#                   move stops covering that symbol's body. A COMPILER-LOCAL
-#                   FAMILY name (`.L.str`, `GCC_except_table`) excuses a family
-#                   whose per-object count changed.
+#   --exceptions    <object relpath>::<demangled name> [KIND] ## <reason>
+#                   Split on the FIRST ` ## `; the KEY is then split on its
+#                   FIRST `::` into an OBJECT and a SYMBOL. The symbol is the
+#                   NEW-side name for a symbol that exists after, the OLD-side
+#                   name for one that existed only before, and either for a
+#                   mapped pair.
+#
+#                   THE OBJECT QUALIFIER IS MANDATORY (M6 W5 T1 fix2). It is
+#                   the relpath as it appears in `.psym-manifest` -- the
+#                   BEFORE-arm one, which for a split is the old object whose
+#                   symbols are being accounted -- or the literal `*`, which is
+#                   how an entry says explicitly that it applies in EVERY
+#                   object. A key with no `::`, and one whose qualifier is
+#                   neither `*` nor a relpath the BEFORE arm's manifest lists
+#                   (so, a bare C++ name whose leading namespace would
+#                   otherwise parse as an object, and equally a typo'd or
+#                   stale object path), is REFUSED with exit 1 before any
+#                   comparison runs; so is a key that appears twice, which used
+#                   to be silently overwritten by whichever line came last. A
+#                   `*::` entry consumed in more than one object prints a
+#                   `WILDCARD-USED` line naming them.
+#
+#                   Why it is mandatory rather than optional: the exception
+#                   namespace was GLOBAL while findings are per object. The
+#                   same demangled name is one weak COMDAT body in twenty test
+#                   objects, so an entry written about the object that lost its
+#                   copy also excused a MUTATED body of that name in the object
+#                   that gained the strong one. An optional qualifier leaves
+#                   that hole open for anyone who does not use it.
+#
+#                   The KIND a key may also carry -- `[ONLY-BEFORE]`,
+#                   `[ONLY-AFTER]`, `[DIFFERS]`, `[SECTION]`,
+#                   `[LOCAL-FAMILY]` -- arrived with fix1 and is unchanged: the
+#                   qualified form is tried first, a kindless entry still
+#                   excuses any kind, and a kindless entry SPENT on a section
+#                   move stops covering that symbol's body. Object specificity
+#                   is tried before kind specificity. A COMPILER-LOCAL FAMILY
+#                   name (`.L.str`, `GCC_except_table`) excuses a family whose
+#                   count changed IN THAT OBJECT -- the family rule is per
+#                   object, and since fix2 so is the exception that answers it.
 #
 # CALIBRATION, so a later run has a baseline to recognize. Phase-C task C0.3
 # (commit 6875712, a comments-and-docs-only change) was measured with exactly
@@ -667,6 +692,28 @@
 #   same-shape substitution pair (fix2 PASSed with a transcript that said both
 #   "the relocation targets are not literally equal" and "0 relocation records
 #   compared"; fix3 FAILs it with a `RELOC-BLIND` line).
+#
+#   M6 W5 T1 fix2 re-ran both calibrations at its own sha and added the two
+#   fixtures its own declared changes are answerable to:
+#
+#     * ADJACENT-SIBLING CALLEE SWAP (the SQP lane's `s_a`/`s_b`): one TU whose
+#       `caller` tail-jumps to an anonymous-namespace helper, with two helpers
+#       swapped in the layout between the arms so that `caller` reaches a
+#       DIFFERENT function at the SAME offset. fix1 reported `caller` IDENTICAL
+#       -- the hole this round closes; fix2 reports it DIFFERS, naming
+#       `(anonymous namespace)::g(int)` against `(anonymous namespace)::h(int)`.
+#       In the same fixture, a second function that calls BOTH helpers in both
+#       arms is IDENTICAL under fix2 and DIFFERS under fix1, because the two
+#       calls now compare by callee NAME rather than by offset.
+#
+#     * SAME-NAME, SAME-KIND MUTATION IN A SECOND OBJECT: one weak COMDAT body
+#       defined in two objects, mutated in both arms, with an exception written
+#       about the FIRST object. fix1 PASSes (its plain key excused both); fix2
+#       FAILs, reporting the second object's `DIFFERS`, and PASSes only when the
+#       entry is rewritten as an explicit `*::` wildcard -- which then prints
+#       `WILDCARD-USED ... 2 objects`. The same fixture shows the three refusals
+#       the loader now makes: a bare (fix1-format) key, a key whose qualifier
+#       is not an object of the before manifest, and a duplicate key.
 
 # ---------------------------------------------------------------------------
 # M6 W5 T1 fix1: SECTION MOVES, AND THE COMPILER-LOCAL FAMILY RULE ONE LAYER UP
@@ -728,13 +775,58 @@
 #     FUNCTION, and excusing a renumbering must never excuse a body. Its number
 #     is dropped in demangle_table() instead, which routes the family through
 #     the per-symbol layer's `[#n]` rank fallback so the bodies are compared
-#     pairwise. (Measured: this tree defines none, so the routing is exercised
-#     only by fixture.)
+#     pairwise. MEASURED, and corrected in fix2 (the fix1 text here said this
+#     tree defines none): the tree defines 40 of them in 20 objects, and 38
+#     carry a rank tag in every comparison -- the two objects with a single
+#     initialiser need none. They are the whole of the `N rank-tagged` figure
+#     on the coverage line, and they are there BECAUSE of the barename collapse
+#     above: before it, the 40 numbered names were all distinct and none needed
+#     the fallback. On a stable TU the rank is emission order and the pairing is
+#     exact; across a TU SPLIT it is not, which is why the tool prints a
+#     `P-SYM warning:` when it mints one while a symbol map is in play, and why
+#     T6 should key the family by the global each initialiser touches instead.
 #
 #   Both changes make a former FAIL able to pass -- the first only with a named
 #   exception, the second only where the count is equal -- and neither can turn
 #   a passing comparison into a failing one except by finding something: a
 #   family whose count moved, or a moved body whose instructions differ.
+#
+# ---------------------------------------------------------------------------
+# M6 W5 T1 fix2: THE SELF RANGE IS THE SYMBOL'S OWN SIZE, AND AN EXCEPTION
+# NAMES THE OBJECT IT IS ABOUT
+# ---------------------------------------------------------------------------
+#
+# Two more DECLARED changes, both closing a hole a REVIEWER found in fix1
+# rather than one a transcript showed, and both required before the next P-SYM
+# gate reads a comparison that can contain the case they cover.
+#
+#   * THE SELF RULE IS BOUNDED BY THE SYMBOL TABLE, AND AN OUT-OF-RANGE TARGET
+#     IS RESOLVED BY NAME. fix1 bounded the address-based limb by "last
+#     instruction + 16", argued that a sibling function was outside that range
+#     by construction, and was WRONG: functions are 16-byte aligned, so the
+#     next one commonly starts inside that envelope, and two arms whose caller
+#     tail-jumped to two DIFFERENT adjacent siblings compared IDENTICAL. The
+#     range is now `[start, start + size)` from `objdump -t`; a placeholder at
+#     the end of a body is SELF only when the following relocation record
+#     independently names its target; and a bare target outside the range is
+#     resolved through the symbol table to the symbol CONTAINING it and
+#     compared BY NAME. See flatten_symbols() for the four limbs in order. The
+#     direction of this one is STRICTER on both counts: it removes an equation
+#     the tool used to make, and it also compares by name a class of target
+#     that even the PRE-fix1 tool compared by bare address -- a callee swap
+#     that kept the address was masked then too.
+#
+#   * AN EXCEPTION KEY NAMES ITS OBJECT. `<object relpath>::<symbol> [KIND]`,
+#     with `*::<symbol>` as the explicit wildcard, a bare symbol name REFUSED,
+#     and a duplicate key REFUSED (it used to be silently overwritten, so a
+#     file could carry two reasons for one key and print the wrong one). Kind
+#     qualification alone left the namespace global across objects, and the
+#     same demangled name is one weak COMDAT body in twenty test objects. See
+#     the EXCEPTION LOOKUP block. This one can only make a comparison FAIL that
+#     used to pass -- it never excuses more -- and every exception file written
+#     for an earlier version of this script has to be rewritten, which is
+#     deliberate: a file that still parses would be a file whose masking was
+#     never re-examined.
 
 set -euo pipefail
 
@@ -929,8 +1021,9 @@ exec_sections() {
         { if (sec != "" && $0 ~ /(^|[ ,])CODE([ ,]|$)/) print sec; sec = "" }'
 }
 
-# "<section>\t<offset in hex, no leading zeros>\t<mangled name>" for every
-# DEFINED FUNCTION of the object. Reads the same cached listing on stdin.
+# "<section>\t<offset in hex, no leading zeros>\t<SIZE in hex>\t<mangled name>"
+# for every DEFINED FUNCTION of the object. Reads the same cached listing on
+# stdin.
 #
 # FUNCTIONS ONLY, deliberately: objdump also lists a section symbol (`l d`) at
 # offset 0 of every section, and that symbol's name IS the section name, so
@@ -941,6 +1034,12 @@ exec_sections() {
 # The key is (section, offset), never the offset alone: a COMDAT template
 # instantiation and a `.text` helper both sit at offset 0 of their own
 # sections.
+#
+# The SIZE column arrived with M6 W5 T1 fix2. It is what bounds the SELF rule
+# in flatten_symbols() to `[start, start + size)`, and what lets a bare target
+# OUTSIDE that range be resolved to the symbol that actually CONTAINS it
+# instead of being compared as a bare address. Both are the same fact read from
+# the one table that states it, rather than guessed from a disassembly listing.
 sym_addrs() {
     awk '
         /^SYMBOL TABLE:/ { ins = 1; next }
@@ -962,9 +1061,11 @@ sym_addrs() {
             rest = substr($0, p + 1)
             q = index(rest, " ")
             if (q == 0) next
+            sz = substr(rest, 1, q - 1)
+            if (sz !~ /^[0-9a-fA-F]+$/) next
             nm = substr(rest, q + 1)
             if (nm == "") next
-            printf "%s\t%x\t%s\n", sec, strtonum("0x" val), nm
+            printf "%s\t%x\t%x\t%s\n", sec, strtonum("0x" val), strtonum("0x" sz), nm
         }'
 }
 
@@ -1185,15 +1286,38 @@ plain_demangle() {
     rm -f "${names}"
 }
 
-# The relocation-target names in one or more flattened listings, as candidates
-# for plain_demangle: the whole target when it names a symbol, and the embedded
-# mangled name when it names a section or a compiler-local label that carries
-# one (`.rodata._ZN3fmt...`, `.Lswitch.table._ZN4hven...`).
+# The names in one or more flattened listings that need demangling, as
+# candidates for plain_demangle. Two sources, and both are rendered by the same
+# `rdem` table because both name a CALLEE rather than a definition of this
+# object:
+#
+#   * a RELOCATION target -- the whole target when it names a symbol, and the
+#     embedded mangled name when it names a section or a compiler-local label
+#     that carries one (`.rodata._ZN3fmt...`, `.Lswitch.table._ZN4hven...`);
+#
+#   * an `@SYM@<mangled>@` token, which is how flatten_symbols() renders a bare
+#     control-transfer target it resolved to the symbol containing it (limb 3
+#     of the SELF rule). The per-symbol layer rewrites the token to the
+#     demangled, symbol-mapped name before any comparison.
 reloc_names() {
-    awk -F'\t' '$1 == "R" {
-        t = $4
-        if (substr(t, 1, 1) != ".") { print t; next }
-        if (match(t, /_Z[A-Za-z0-9_$]+/)) print substr(t, RSTART, RLENGTH)
+    awk '{
+        i = index($0, "\t"); if (i == 0) next
+        rest = substr($0, i + 1)
+        j = index(rest, "\t"); if (j == 0) next
+        kind = substr($0, 1, i - 1)
+        body = substr(rest, j + 1)
+        if (kind == "R") {
+            k = index(body, "\t"); if (k == 0) next
+            t = substr(body, k + 1)
+            k = index(t, "\t"); if (k > 0) t = substr(t, 1, k - 1)
+            if (substr(t, 1, 1) != ".") { print t; next }
+            if (match(t, /_Z[A-Za-z0-9_$]+/)) print substr(t, RSTART, RLENGTH)
+            next
+        }
+        while (match(body, /@SYM@[^@]+@/)) {
+            print substr(body, RSTART + 5, RLENGTH - 6)
+            body = substr(body, RSTART + RLENGTH)
+        }
     }' "$@"
 }
 
@@ -1257,32 +1381,52 @@ function famnum(s) {
     return s
 }
 # ---- EXCEPTION LOOKUP -----------------------------------------------------
-# The key an exception file entry may take, most specific first:
+# EVERY exception key is OBJECT-QUALIFIED -- `<object relpath>::<symbol>` --
+# and `obj` is the object being compared (the BEFORE-arm relpath from the
+# manifest, which for a split is the one old object whose symbols are being
+# accounted). An entry meant to apply everywhere says so explicitly, as
+# `*::<symbol>`; there is no unqualified form, and load_exceptions() refuses
+# one. Both halves of that arrived with M6 W5 T1 fix2 (Codex I2), because
+# kind-qualification alone left the namespace GLOBAL across objects: the same
+# demangled name is one weak COMDAT body in twenty test objects, so an entry
+# written about the object that lost its copy also excused a mutated body of
+# the same name in the object that gained the strong one. A same-name,
+# same-kind mutation in a SECOND object is now a finding, and the falsifier
+# that proves it is in the fix2 report.
 #
-#   <full key> [<KIND>]   excuses THIS finding kind on this exact key
-#   <bare name> [<KIND>]  ... written in the plain demangled form
-#   <full key>            excuses ANY finding on this key
-#   <bare name>           ... written in the plain demangled form
+# The key an entry may take, most specific first:
 #
-# KIND is ONLY-BEFORE, ONLY-AFTER, DIFFERS or SECTION. The kind-qualified forms
-# arrived with M6 W5 T1 fix1, and the reason is that the exception namespace is
-# GLOBAL while findings are per object: one weak COMDAT body can be legitimately
-# ONLY-BEFORE in the object that lost its copy and, in the SAME comparison, a
-# DIFFERS in the object that gained the strong definition. A plain-name entry
-# written for the first excuses the second too, which is exactly the case a
-# move-out-of-line commit produces -- so without the kind, a changed instruction
-# inside a moved body could be excused by an entry written about a different
-# object. Returns the key to charge, or "" for none. `nofallback` suppresses the
-# two unqualified forms, which is how a plain entry already SPENT on a section
-# move stops covering the body as well.
+#   <obj>::<full key> [<KIND>]  excuses THIS finding kind on this key, HERE
+#   <obj>::<bare name> [<KIND>] ... written in the plain demangled form
+#   *::<full key> [<KIND>]      ... in every object (an explicit wildcard)
+#   *::<bare name> [<KIND>]
+#   <obj>::<full key>           excuses ANY finding on this key, here
+#   <obj>::<bare name>
+#   *::<full key>               ... in every object
+#   *::<bare name>
+#
+# KIND is ONLY-BEFORE, ONLY-AFTER, DIFFERS, SECTION or LOCAL-FAMILY. Object
+# specificity is tried before kind specificity, so the entry written about THIS
+# object always wins over a wildcard, whichever kinds they carry. Returns the
+# key to charge, or "" for none. `nofallback` suppresses the four unqualified
+# forms, which is how an entry already SPENT on a section move stops covering
+# the body as well.
 function excfind(k, bare, kind, nofallback,   c) {
-    c = k " [" kind "]";    if (c in exc) return c
-    if (bare != "") { c = bare " [" kind "]"; if (c in exc) return c }
+    c = obj "::" k " [" kind "]";                   if (c in exc) return c
+    if (bare != "") { c = obj "::" bare " [" kind "]"; if (c in exc) return c }
+    c = "*::" k " [" kind "]";                      if (c in exc) return c
+    if (bare != "") { c = "*::" bare " [" kind "]";   if (c in exc) return c }
     if (nofallback) return ""
-    if (k in exc) return k
-    if (bare != "" && bare in exc) return bare
+    c = obj "::" k;                                 if (c in exc) return c
+    if (bare != "") { c = obj "::" bare;              if (c in exc) return c }
+    c = "*::" k;                                    if (c in exc) return c
+    if (bare != "") { c = "*::" bare;                 if (c in exc) return c }
     return ""
 }
+# Whether the key that was charged carried a FINDING KIND. An entry that did
+# not is SPENT once it has excused a section move (see the SECTION-MOVED path).
+function exc_kindless(ek) { return ek !~ /\[(ONLY-BEFORE|ONLY-AFTER|DIFFERS|SECTION|LOCAL-FAMILY)\]$/ }
+
 function famof(nm,   pre) {
     if (match(nm, /_Z[A-Za-z0-9_$]+/)) {
         pre = substr(nm, 1, RSTART - 1)
@@ -1306,6 +1450,30 @@ function reldem_of(mangled, is_before,   d) {
     d = (mangled in rdem) ? rdem[mangled] : mangled
     if (is_before && (d in m)) { relmapped = 1; relmapold = d; d = m[d] }
     return d
+}
+# ---- assembler-resolved control-transfer targets --------------------------
+# flatten_symbols() renders a bare target it resolved to the symbol CONTAINING
+# it as `@SYM@<mangled>@+0xN` (limb 3 of the SELF rule). The name is rendered
+# here, on the same terms a relocation target naming that callee would be:
+# demangled through the plain `rdem` table, symbol-mapped on the before arm,
+# with no variant tag -- so an assembler-resolved call to an internal-linkage
+# sibling is compared BY NAME, exactly like a relocated call to an external
+# one, and survives a rename the map declares. A line with no token is returned
+# untouched, which is all but a handful of them.
+function render_insn(l, is_before,   p, q, mg, out) {
+    if (index(l, "@SYM@") == 0) return l
+    out = ""
+    while ((p = index(l, "@SYM@")) > 0) {
+        out = out substr(l, 1, p - 1)
+        l = substr(l, p + 5)
+        q = index(l, "@")
+        if (q == 0) return out l
+        mg = substr(l, 1, q - 1)
+        l = substr(l, q + 1)
+        out = out reldem_of(mg, is_before)
+        if (relmapped) relmapused[relmapold] = 1
+    }
+    return out l
 }
 # ---- COMDAT companion sections that name their OWN function ---------------
 # A section-relative relocation target may be the enclosing function'"'"'s own
@@ -1338,15 +1506,12 @@ function load_execsec(f, armn,   line) {
     while ((getline line < f) > 0) if (line != "") xsec[armn, line] = 1
     close(f)
 }
-function load_symaddr(f, armn,   line, n1, n2, rest, sec, off, nm, k) {
+function load_symaddr(f, armn,   line, nf, fld, sec, off, nm, k) {
     if (f == "") return
     while ((getline line < f) > 0) {
-        n1 = index(line, "\t"); if (n1 == 0) continue
-        sec = substr(line, 1, n1 - 1)
-        rest = substr(line, n1 + 1)
-        n2 = index(rest, "\t"); if (n2 == 0) continue
-        off = substr(rest, 1, n2 - 1)
-        nm = substr(rest, n2 + 1)
+        nf = split(line, fld, "\t")
+        if (nf < 4) continue
+        sec = fld[1]; off = fld[2]; nm = fld[4]
         k = armn SUBSEP sec SUBSEP off
         # A split arm is the UNION of several objects, so two of them can
         # define different functions at the same (section, offset). Refuse to
@@ -1467,18 +1632,23 @@ END {
     # name in the exceptions file.
     for (f in bfam) {
         if ((f in afam) && bfam[f] == afam[f]) { famok++; continue }
-        if (f in exc) { excused++; used[f] = 1; printf "  EXCEPTION     LOCAL-FAMILY %s: %d before, %d after ## %s\n", f, bfam[f], afam[f] + 0, exc[f]; continue }
+        ek = excfind(f, "", "LOCAL-FAMILY", 0)
+        if (ek != "") { excused++; used[ek] = 1; printf "  EXCEPTION     LOCAL-FAMILY %s: %d before, %d after ## %s\n", f, bfam[f], afam[f] + 0, exc[ek]; continue }
         famdiff++
         if (famdiff <= 20) printf "  LOCAL-FAMILY  %s: %d before, %d after\n", f, bfam[f], afam[f] + 0
     }
     for (f in afam) {
         if (f in bfam) continue
-        if (f in exc) { excused++; used[f] = 1; printf "  EXCEPTION     LOCAL-FAMILY %s: 0 before, %d after ## %s\n", f, afam[f], exc[f]; continue }
+        ek = excfind(f, "", "LOCAL-FAMILY", 0)
+        if (ek != "") { excused++; used[ek] = 1; printf "  EXCEPTION     LOCAL-FAMILY %s: 0 before, %d after ## %s\n", f, afam[f], exc[ek]; continue }
         famdiff++
         if (famdiff <= 20) printf "  LOCAL-FAMILY  %s: 0 before, %d after\n", f, afam[f]
     }
     if (famdiff > 20) printf "  ... and %d more compiler-local families whose count differs\n", famdiff - 20
-    for (k in used) print k >> f_used
+    # The object is recorded beside the key: the shell reports a
+    # STALE-EXCEPTION from the key column and a WILDCARD-USED (a `*::` entry
+    # consumed in more than one object) from the pair.
+    for (k in used) print k "\t" obj >> f_used
     close(f_used)
     for (k in mapused) print k >> f_mapused
     close(f_mapused)
@@ -1547,7 +1717,7 @@ NR == FNR {
             borig[k] = bareof($2)
             if (bareof($2) in m) bmapped[k] = 1
         }
-    } else if (!bskip && bcur != "") { bn[bcur]++; bi[bcur, bn[bcur]] = field3($0) }
+    } else if (!bskip && bcur != "") { bn[bcur]++; bi[bcur, bn[bcur]] = render_insn(field3($0), 1) }
     next
 }
 {
@@ -1579,8 +1749,9 @@ NR == FNR {
             adupmode = 0
         }
     } else if (acur != "") {
-        if (adupmode) { c = adup[acur]; adn[acur, c]++; adi[acur, c, adn[acur, c]] = field3($0) }
-        else { an[acur]++; ai[acur, an[acur]] = field3($0) }
+        itxt = render_insn(field3($0), 0)
+        if (adupmode) { c = adup[acur]; adn[acur, c]++; adi[acur, c, adn[acur, c]] = itxt }
+        else { an[acur]++; ai[acur, an[acur]] = itxt }
     }
 }
 END {
@@ -1609,9 +1780,9 @@ END {
             secexc = ""
             if (ek != "") {
                 excused++; used[ek] = 1; secexc = exc[ek]
-                # An UNqualified entry is now SPENT: it excused the move, and it
+                # A KINDLESS entry is now SPENT: it excused the move, and it
                 # no longer covers the body this comparison is about to make.
-                if (ek == k || ek == borig[k]) spent[k] = 1
+                if (exc_kindless(ek)) spent[k] = 1
             }
             if (secexc != "")
                 printf "  EXCEPTION     SECTION-MOVED %s: %s -> %s ## %s\n", k, bsec[k], asec[k], secexc
@@ -1693,7 +1864,7 @@ END {
         }
     }
     if (dupok > 20) printf "  ... and %d more identical duplicate copies\n", dupok - 20
-    for (k in used) print k >> f_used
+    for (k in used) print k "\t" obj >> f_used
     close(f_used)
     for (k in relmapused) print k >> f_mapused
     close(f_mapused)
@@ -1744,51 +1915,136 @@ END {
 #   `<SELF+off>`. That is a labelling artifact, not a code difference, and it
 #   is exactly what an inline-to-out-of-line move produces.
 #
-#   So the rule now has a second, address-based limb: a bare control-transfer
-#   target inside the ENCLOSING symbol's own address range is rendered
-#   `SELF+off` whatever objdump called it. The range is [symbol start, last
-#   instruction's address + 16] -- one maximum-length x86 instruction past the
-#   last instruction is the tightest end bound a disassembly listing alone
-#   affords, and the placeholder target of a trailing relocated call lands
-#   exactly there. This cannot equate two DIFFERENT callees: a bare target in a
-#   relocatable object is one the assembler resolved, which it only does within
-#   a section, and a sibling function in the same section is by construction
-#   OUTSIDE the enclosing symbol's range, so it is left absolute exactly as
-#   before. It needs the block to be buffered, which is why this awk holds one
-#   symbol at a time rather than streaming.
-# ---------------------------------------------------------------------------
+#   SO EVERY BARE TARGET IS DECIDED BY THE SYMBOL TABLE, NOT BY THE LABEL
+#   (M6 W5 T1 fix2). fix1 answered the artifact with an address range
+#   `[symbol start, last instruction + 16]`, and that range was WRONG in the
+#   direction that matters: functions are 16-byte aligned, so the NEXT function
+#   commonly begins inside that 16-byte envelope, and a resolved tail
+#   `jmp`/`call` to it was rendered `SELF+off` -- equating two calls to two
+#   DIFFERENT adjacent functions whenever they sat at the same offset from
+#   their caller. Demonstrated on a fixture by the SQP lane, and fixed here by
+#   reading the extent from the place that states it. Four limbs, in order:
+#
+#     1. IN RANGE. The range is `[start, start + size)` from this arm's own
+#        `objdump -t` table (sym_addrs' SIZE column). A target inside the
+#        enclosing symbol's own body is `SELF+off` whatever objdump called it:
+#        an intra-function branch, and the placeholder of a relocated call in
+#        mid-body.
+#
+#     2. A RELOCATED PLACEHOLDER. An instruction that carries a relocation --
+#        the very next record in this stream is that relocation, one line of
+#        lookahead -- has NO target of its own: its operand is a zero
+#        placeholder objdump renders as the following address, and the callee's
+#        identity lives in the relocation record, which reloc_text() compares
+#        by NAME. Such a target is `SELF+off` too, which is what makes the
+#        trailing relocated call of a moved-out-of-line body compare equal.
+#        This limb equates nothing: the R record beside it is compared.
+#
+#     3. OUT OF RANGE, RESOLVED BY NAME. A bare target that is neither of those
+#        is a call or jump the ASSEMBLER resolved, which it only does to a
+#        symbol it can see -- an internal-linkage sibling in the same section.
+#        The symbol table says which one: the target is looked up in the same
+#        (section, address) table the executable-section relocation class uses,
+#        and rendered `<demangled name>+off` through the symbol map, exactly as
+#        a relocation naming that callee would be. That is what makes the
+#        SQP lane's falsifier fail as it should -- two arms whose `caller`
+#        tail-jumps to two different anonymous-namespace siblings now render
+#        two different NAMES -- and it also closes the OLDER hole in the same
+#        place: before fix1 such a target was compared as a bare ADDRESS, so a
+#        callee swap that kept the address was equated too.
+#
+#     4. NOTHING RESOLVES. If the symbol table has no size for the enclosing
+#        symbol, a label naming the enclosing symbol is still honoured (the
+#        pre-fix1 rule, and the only one available without an extent).
+#        Otherwise the bare address survives untouched, exactly as before: a
+#        split that moves such a callee reports a DIFFERS. That is the
+#        conservative direction -- a false finding, never a masked one.
+#
+#   Limbs 1 and 3 need the block's extent and the whole symbol table, so this
+#   awk buffers one symbol at a time rather than streaming.
 flatten_symbols() {
-    awk '
+    awk -v symtab="${2:-}" '
         # objdump labels a target by the nearest symbol at or below it, and in a
         # COMDAT text section the candidates include the SECTION symbol, whose
-        # name is `.text.<the enclosing function it holds>`. A control transfer
-        # to the very end of such a function -- the placeholder target of a
-        # relocated call, which is simply the next instruction -- lands on the
-        # section boundary and gets labelled with the section rather than with
-        # the function. The section holds exactly that one function at offset 0,
-        # so the offset is the same number either way, and the label names the
-        # enclosing symbol just as much as a bare `<sym+off>` does. Treating it
-        # as SELF is what lets a function that moved out of its own COMDAT group
-        # match the same function inside plain `.text` (M6 W5 T1 fix1); a label
-        # naming SOME OTHER symbol or section is untouched.
+        # name is `.text.<the enclosing function it holds>`. Such a label names
+        # the enclosing symbol just as much as a bare `<sym+off>` does, since
+        # the section holds exactly that one function at offset 0. It is only
+        # ever consulted by limb 4, where no size is available to bound the
+        # range with -- limbs 1 to 3 decide by the symbol table alone.
         function is_self_label(gname, cur) {
             if (gname == cur) return 1
             if (substr(gname, 1, 1) != "." || cur == "") return 0
             if (length(gname) <= length(cur) + 1) return 0
             return substr(gname, length(gname) - length(cur)) == "." cur
         }
-        # Emits the buffered block, applying the address-based SELF rule now
-        # that the block s extent is known. btgt[i] is -1 for every line that
-        # carries no bare control-transfer target.
-        function flushblk(   i, l) {
+        # This arm s defined-function table: sizes for the SELF range, and a
+        # per-section list for the containment lookup limb 3 makes. A split
+        # arm is the UNION of several objects, so two of them can define
+        # different functions at one (section, offset) -- both are kept, and a
+        # lookup that finds two DIFFERENT names refuses to guess.
+        function loadsym(   line, nf, fld, k) {
+            if (symtab == "") return
+            while ((getline line < symtab) > 0) {
+                nf = split(line, fld, "\t")
+                if (nf < 4) continue
+                k = fld[1] SUBSEP fld[2] SUBSEP fld[4]
+                if (!(k in ssize)) ssize[k] = strtonum("0x" fld[3])
+                nsec[fld[1]]++
+                secst[fld[1], nsec[fld[1]]] = strtonum("0x" fld[2])
+                secsz[fld[1], nsec[fld[1]]] = strtonum("0x" fld[3])
+                secnm[fld[1], nsec[fld[1]]] = fld[4]
+            }
+            close(symtab)
+        }
+        # The symbol whose [start, start+size) contains `addr` in `section`, or
+        # "" for none and for an ambiguous one. Sets chit_st to its start.
+        # Memoized because a body branches to the same few addresses repeatedly.
+        function containing(section, addr,   i, hit, hst, k) {
+            k = section SUBSEP addr
+            if (k in cmemo) { chit_st = cmemost[k]; return cmemo[k] }
+            hit = ""; hst = 0
+            for (i = 1; i <= nsec[section]; i++) {
+                if (secsz[section, i] <= 0) continue
+                if (addr < secst[section, i] || addr >= secst[section, i] + secsz[section, i]) continue
+                if (hit == "") { hit = secnm[section, i]; hst = secst[section, i] }
+                else if (hit != secnm[section, i]) { hit = ""; hst = 0; break }
+            }
+            cmemo[k] = hit; cmemost[k] = hst
+            chit_st = hst
+            return hit
+        }
+        # Replace the trailing bare-hex target of a control transfer with `t`.
+        # A literal splice, never sub()"s replacement text, because a mangled
+        # name may contain characters sub() would read as backreferences.
+        function retarget(l, t) {
+            if (match(l, /[0-9a-f]+$/)) return substr(l, 1, RSTART - 1) t
+            return l
+        }
+        # Emits the buffered block, applying the four limbs above now that the
+        # block s extent is known. btgt[i] is -1 for every line that carries no
+        # bare control-transfer target.
+        function flushblk(   i, l, nm, selfsz) {
+            selfsz = ((cursec SUBSEP curstart SUBSEP curblk) in ssize) \
+                     ? ssize[cursec SUBSEP curstart SUBSEP curblk] : 0
             for (i = 1; i <= nbuf; i++) {
                 l = buf[i]
-                if (btgt[i] >= sstart && btgt[i] <= imax + 16)
-                    sub(/[0-9a-f]+$/, sprintf("SELF+0x%x", btgt[i] - sstart), l)
+                if (btyp[i] == "I" && btgt[i] >= 0) {
+                    if (selfsz > 0 && btgt[i] >= sstart && btgt[i] < sstart + selfsz)
+                        l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
+                    else if (i < nbuf && btyp[i + 1] == "R")
+                        l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
+                    else if ((nm = containing(cursec, btgt[i])) != "")
+                        l = (nm == curblk) \
+                            ? retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart)) \
+                            : retarget(l, sprintf("@SYM@%s@+0x%x", nm, btgt[i] - chit_st))
+                    else if (selfsz <= 0 && bself[i])
+                        l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
+                }
                 printf "%s\t%s\t%s\n", btyp[i], curblk, l
             }
             nbuf = 0
         }
+        BEGIN { loadsym() }
         /^Disassembly of section / {
             flushblk()
             cur = ""
@@ -1804,15 +2060,17 @@ flatten_symbols() {
             sub(/>:$/, "", name)
             cur = name
             curblk = name
+            cursec = sec
             sstart = strtonum("0x" $1)
-            imax = sstart
+            curstart = sprintf("%x", sstart)
             printf "S\t%s\t%s\n", cur, sec
             next
         }
         # A relocation line: three tabs, the within-section offset, ": ", the
         # type, a tab, then "<target>" with an optional "+0xN"/"-0xN" addend
         # glued to it. It annotates the instruction ABOVE it, so emitting it
-        # here keeps it adjacent to that instruction in the flattened stream.
+        # here keeps it adjacent to that instruction in the flattened stream --
+        # which is also what makes limb 2 above one line of lookahead.
         # It cannot be confused with an instruction line: an instruction address
         # is followed by a COLON-TAB, a relocation offset by a COLON-SPACE.
         /^[ \t]+[0-9a-f]+: [^ \t]+\t/ {
@@ -1831,43 +2089,32 @@ flatten_symbols() {
             btyp[nbuf] = "R"
             buf[nbuf] = rtype "\t" rtarget "\t" radd
             btgt[nbuf] = -1
+            bself[nbuf] = 0
             next
         }
         /^ *[0-9a-f]+:\t/ {
             if (cur == "") next
-            ahex = $0
-            sub(/:.*$/, "", ahex)
-            gsub(/[ \t]/, "", ahex)
-            iaddr = strtonum("0x" ahex)
-            if (iaddr > imax) imax = iaddr
             line = $0
             sub(/^ *[0-9a-f]*:/, "", line)
             sub(/[ \t]+#.*$/, "", line)
-            if (match(line, /[ \t]*<[^<>]*>[ \t]*$/)) {
-                grp = substr(line, RSTART, RLENGTH)
+            # A bare control-transfer target: objdump prints the absolute
+            # address and then its own `<symbol+off>` label for it. Record the
+            # ADDRESS and whether the label named the enclosing symbol, and let
+            # flushblk() decide -- both questions it answers need the block s
+            # extent, which is known only once the block ends.
+            if (line ~ /[ \t][0-9a-f]+[ \t]*<[^<>]*>[ \t]*$/) {
+                grp = line
+                match(grp, /[ \t]*<[^<>]*>[ \t]*$/)
+                grp = substr(grp, RSTART, RLENGTH)
                 sub(/^[ \t]*</, "", grp)
                 sub(/>[ \t]*$/, "", grp)
                 gname = grp
-                goff = "+0x0"
-                if ((p = index(grp, "+")) > 0 || (p = index(grp, "-")) > 0) {
-                    gname = substr(grp, 1, p - 1)
-                    goff = substr(grp, p)
-                }
-                if (line ~ /[ \t][0-9a-f]+[ \t]*<[^<>]*>[ \t]*$/) {
-                    if (is_self_label(gname, cur)) {
-                        sub(/[ \t]*<[^<>]*>[ \t]*$/, "", line)
-                        sub(/[0-9a-f]+$/, "SELF" goff, line)
-                    } else {
-                        # A bare target objdump labelled with SOME OTHER symbol.
-                        # Whether it is nonetheless inside this symbol is a
-                        # question about the block s extent, which is known only
-                        # once the block ends -- so record the address and let
-                        # flushblk() decide.
-                        tline = line
-                        sub(/[ \t]*<[^<>]*>[ \t]*$/, "", tline)
-                        if (match(tline, /[0-9a-f]+$/))
-                            tgt = strtonum("0x" substr(tline, RSTART, RLENGTH))
-                    }
+                if ((p = index(grp, "+")) > 0 || (p = index(grp, "-")) > 0) gname = substr(grp, 1, p - 1)
+                tline = line
+                sub(/[ \t]*<[^<>]*>[ \t]*$/, "", tline)
+                if (match(tline, /[0-9a-f]+$/)) {
+                    tgt = strtonum("0x" substr(tline, RSTART, RLENGTH))
+                    tself = is_self_label(gname, cur)
                 }
             }
             sub(/[ \t]*<[^<>]*>[ \t]*$/, "", line)
@@ -1875,7 +2122,8 @@ flatten_symbols() {
             btyp[nbuf] = "I"
             buf[nbuf] = line
             btgt[nbuf] = (tgt == "") ? -1 : tgt
-            tgt = ""
+            bself[nbuf] = (tgt == "") ? 0 : tself
+            tgt = ""; tself = 0
         }
         END { flushblk() }
     ' "$1"
@@ -1964,7 +2212,51 @@ do_compare() {
     : > "${tmp}/exc.tsv"
     if [ -n "${object_map}" ]; then load_pairs "${object_map}" " => " "object-map" > "${tmp}/objmap.tsv"; fi
     if [ -n "${symbol_map}" ]; then load_pairs "${symbol_map}" " => " "symbol-map" > "${tmp}/symmap.tsv"; fi
-    if [ -n "${exceptions}" ]; then load_pairs "${exceptions}" " ## " "exceptions" > "${tmp}/exc.tsv"; fi
+    if [ -n "${exceptions}" ]; then
+        load_pairs "${exceptions}" " ## " "exceptions" > "${tmp}/exc.tsv"
+        # Every key must be OBJECT-QUALIFIED, and no key may appear twice. See
+        # the EXCEPTION LOOKUP block: an unqualified key is global across
+        # objects, which is the masking M6 W5 T1 fix2 closes, and a duplicate
+        # key used to be silently overwritten by whichever line came last --
+        # so a file could carry two different reasons for one key and print
+        # the wrong one. Both are refused here, before any object is read.
+        awk -F'\t' -v file="${exceptions}" '
+            NR == FNR { mf[$0] = 1; next }
+            {
+                k = $1
+                i = index(k, "::")
+                if (i == 0) {
+                    printf "psym_compare: %s: entry %d is not object-qualified: %s\n", file, FNR, k > "/dev/stderr"
+                    printf "              Every exception key is <object relpath>::<symbol> [KIND], and an\n" > "/dev/stderr"
+                    printf "              entry meant to apply in EVERY object says so explicitly as\n" > "/dev/stderr"
+                    printf "              *::<symbol> [KIND]. A bare symbol name is refused because it is\n" > "/dev/stderr"
+                    printf "              global across objects without saying so.\n" > "/dev/stderr"
+                    bad = 1; next
+                }
+                q = substr(k, 1, i - 1)
+                r = substr(k, i + 2)
+                if (q == "" || r == "") {
+                    printf "psym_compare: %s: entry %d has an empty object or symbol field: %s\n", file, FNR, k > "/dev/stderr"
+                    bad = 1; next
+                }
+                if (q != "*" && !(q in mf)) {
+                    printf "psym_compare: %s: entry %d names an object that is not in the before arm s\n", file, FNR > "/dev/stderr"
+                    printf "              manifest: %s\n", q > "/dev/stderr"
+                    printf "              A qualifier is a relpath exactly as it appears in .psym-manifest,\n" > "/dev/stderr"
+                    printf "              or \"*\" for every object. An entry naming an object that is not\n" > "/dev/stderr"
+                    printf "              compared can never be consumed, and a bare C++ symbol name whose\n" > "/dev/stderr"
+                    printf "              leading namespace parsed as a qualifier lands here too.\n" > "/dev/stderr"
+                    bad = 1; next
+                }
+                if (k in seen) {
+                    printf "psym_compare: %s: entry %d repeats a key first used on entry %d: %s\n", file, FNR, seen[k], k > "/dev/stderr"
+                    printf "              Two reasons for one key means one of them is never printed.\n" > "/dev/stderr"
+                    bad = 1; next
+                }
+                seen[k] = FNR
+            }
+            END { exit bad ? 1 : 0 }' "${before}/.psym-manifest" "${tmp}/exc.tsv" || exit 1
+    fi
 
     # Map-file level collision checks: a repeated old name, or a repeated new
     # name, is rejected before any object is looked at.
@@ -2089,6 +2381,7 @@ do_compare() {
             rm -f "${tmp}/symstat"
             set +e
             sym_out="$(awk -F'\t' \
+                            -v obj="${rel}" \
                             -v f_map="${tmp}/symmap.tsv" -v f_exc="${tmp}/exc.tsv" \
                             -v f_dem="${tmp}/syms-demangle.tsv" \
                             -v f_used="${tmp}/exc-used" -v f_stat="${tmp}/symstat" \
@@ -2201,8 +2494,8 @@ do_compare() {
 
         # ---- per-symbol, by DEMANGLED name, through the maps ---------------
         persym_objects=$((persym_objects + 1))
-        flatten_symbols "${tmp}/raw-b.txt" > "${tmp}/flat-b.tsv"
-        flatten_symbols "${tmp}/raw-a.txt" > "${tmp}/flat-a.tsv"
+        flatten_symbols "${tmp}/raw-b.txt" "${tmp}/saddr-b.tsv" > "${tmp}/flat-b.tsv"
+        flatten_symbols "${tmp}/raw-a.txt" "${tmp}/saddr-a.tsv" > "${tmp}/flat-a.tsv"
         cut -f2 "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u > "${tmp}/mangled.txt"
         demangle_table < "${tmp}/mangled.txt" > "${tmp}/demangle.tsv"
         # Relocation targets get their OWN plain table -- see plain_demangle().
@@ -2210,13 +2503,14 @@ do_compare() {
         # section target resolves to one of them, and those names appear
         # nowhere in the relocation records themselves.
         { reloc_names "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv"
-          cut -f3 "${tmp}/saddr-b.tsv" "${tmp}/saddr-a.tsv"; } | LC_ALL=C sort -u \
+          cut -f4 "${tmp}/saddr-b.tsv" "${tmp}/saddr-a.tsv"; } | LC_ALL=C sort -u \
             | plain_demangle > "${tmp}/reldem.tsv"
 
         local per_out per_rc
         rm -f "${tmp}/relstat"
         set +e
         per_out="$(awk -F'\t' \
+                        -v obj="${rel}" \
                         -v f_map="${tmp}/symmap.tsv" -v f_exc="${tmp}/exc.tsv" \
                         -v f_dem="${tmp}/demangle.tsv" -v f_used="${tmp}/exc-used" \
                         -v f_reldem="${tmp}/reldem.tsv" -v f_mapused="${tmp}/symmap-used" \
@@ -2292,12 +2586,22 @@ do_compare() {
     local stale=0
     if [ -s "${tmp}/exc.tsv" ]; then
         cut -f1 "${tmp}/exc.tsv" | LC_ALL=C sort -u > "${tmp}/exc-all"
-        LC_ALL=C sort -u "${tmp}/exc-used" > "${tmp}/exc-used-sorted"
+        cut -f1 "${tmp}/exc-used" | LC_ALL=C sort -u > "${tmp}/exc-used-sorted"
         while IFS= read -r rel; do
             [ -n "${rel}" ] || continue
             stale=$((stale + 1))
             echo "STALE-EXCEPTION  ${rel} (listed as expected to differ; nothing used it)"
         done < <(LC_ALL=C comm -23 "${tmp}/exc-all" "${tmp}/exc-used-sorted")
+        # A `*::` entry consumed in more than one object is reported with the
+        # objects that consumed it. Non-fatal, and not a widening: the wildcard
+        # is what the file ASKED for. It is printed because the whole point of
+        # the object qualifier is that a reader can see how far an exception
+        # reached, and a wildcard is the one form whose reach is not on its
+        # own line.
+        LC_ALL=C sort -u "${tmp}/exc-used" | awk -F'\t' '
+            $1 ~ /^\*::/ { n[$1]++; o[$1] = o[$1] (o[$1] == "" ? "" : ", ") $2 }
+            END { for (k in n) if (n[k] > 1) printf "WILDCARD-USED  %s  %d objects (%s)\n", k, n[k], o[k] }' \
+            | LC_ALL=C sort
     fi
 
     # --- map entries nobody needed -----------------------------------------
