@@ -19,6 +19,9 @@
 #     --object-map <file>   old-object-relpath => new-object-relpath
 #     --symbol-map <file>   old-demangled-symbol => new-demangled-symbol
 #     --exceptions <file>   demangled-symbol ## reason it may differ
+#     --allow-foreign-captures
+#                           compare a pair of captures made by a DIFFERENT
+#                           version of this script (refused by default)
 #
 # Typical session, from a clean configure, CCACHE_DISABLE=1, same host, same
 # preset (a cache hit would replay a stored object instead of compiling the
@@ -119,6 +122,16 @@
 # script; the runner stamps its own sha into the compare header so a report
 # says which version drew the line.
 #
+# Since M6 W5 T0 fix2 that refusal extends to the RUNNER: a pair of captures
+# whose stamp differs from the running script's own sha256 is REFUSED, not
+# merely noted. The rule it enforces is that EVERY ARM OF A W5 COMPARISON IS
+# CAPTURED BY THE CURRENT TOOL, so the declared object set is the set that was
+# actually compared -- an old pair otherwise passes on an old, narrower
+# universe and this runner cannot say what that universe left out.
+# `--allow-foreign-captures` proceeds anyway and prints a note saying the set
+# compared is the OLDER script's. It is for forensics on an archived snapshot
+# pair, never for a gate.
+#
 # THE ACCEPTED NOISE CLASS, stated so that widening it is a visible act:
 #
 #   (a) `__LINE__`-class -- an immediate-constant move whose two sides are the
@@ -163,6 +176,95 @@
 # `<...>` group the same way it strips the trailing `#` comment, leaving the
 # target address and the mnemonic/operands untouched -- only the cosmetic
 # symbolization goes.
+#
+# RELOCATION TARGETS (M6 W5 T0 fix2). Until fix2 this script disassembled with
+# `objdump -d` and compared DEFINED symbols only, on both paths. That left one
+# hole, and it was the hole that matters most to what W5 is about. In a
+# relocatable object a direct call to a symbol outside the current section is
+# `e8 00 00 00 00` plus a relocation; `objdump -d` prints the zero placeholder
+# as an address labelled with the ENCLOSING symbol, and the callee's name
+# appears NOWHERE in that listing. Two objects that call two DIFFERENT external
+# functions of the same signature at the same offset therefore disassemble
+# identically, and the census sees nothing either, because the callees are
+# undefined here. P-SYM passed such a pair silently. `-r` closes it: the
+# relocation line is the only place the callee's name lives, and the per-symbol
+# path now folds each relocation into the instruction it annotates and compares
+# `<type> <target> <addend>` alongside the instruction text.
+#
+#   * The POSITIONAL path's INPUT is unchanged. `normalize_raw()` deletes the
+#     relocation lines before the classifier sees them, so the positional
+#     listing is byte-for-byte the one `objdump -d` produced and the classifier
+#     returns exactly the verdict it always did. This was verified across every
+#     disassembled object in the set (128 of the 129; `libhven.a` is an archive
+#     and is not disassembled): 0 differences.
+#
+#   * WHEN the relocation comparison runs. A byte-identical object skips it,
+#     because identical bytes are identical relocations. Any other object is
+#     first classified positionally, exactly as before; if that lands in the
+#     accepted noise class, the raw relocation streams are compared literally,
+#     and if THEY agree too the object is finished with the output it has
+#     always produced. Only an object whose relocations actually differ falls
+#     through to the per-symbol layer, which renders each target through the
+#     symbol map and then either matches it or reports the pair. This is a
+#     DECLARED widening of what reaches the per-symbol layer, and it is the
+#     only arrangement in which the tool can see its own falsifier: the
+#     same-shape callee substitution above has a noise-class instruction stream
+#     BY CONSTRUCTION, so a relocation check that only ran behind a positional
+#     failure would never once run on the case it exists for.
+#
+#   * HOW a target is rendered, by class, since not every relocation names a
+#     symbol:
+#
+#       - A NAMED SYMBOL (the target does not begin with `.`) is demangled,
+#         has the symbol map applied on the before arm, and keeps its addend
+#         VERBATIM. No disambiguating tag is applied: a relocation names a
+#         symbol, not a variant, and the referenced symbol is usually not
+#         defined in this object at all. The demangling for targets uses its
+#         own plain table, kept separate from the one that tags DEFINED
+#         symbols, so a mere reference can never perturb those tags.
+#
+#       - A SECTION (`.rodata`, `.rodata._ZN3fmt...`, `.data.rel.ro`) is
+#         compared by section NAME, with an embedded mangled name demangled and
+#         mapped like any other, and its addend NEUTRALISED to `+LOCAL`. The
+#         addend of a section-relative relocation is the byte offset of a datum
+#         within a section this comparison does not read, and it moves whenever
+#         anything ahead of it in that section changes size -- the same layout
+#         property the `__FILE__` class (b) and the SELF rule already exclude.
+#         The section NAME is stable under a split and is compared.
+#
+#       - A COMPILER-LOCAL LABEL (`.L.str.137`, `.LCPI8_0`, `.Lswitch.table._Z...`)
+#         is compared by its FAMILY: digit runs outside any embedded mangled
+#         name are replaced by `N`, and the addend is neutralised as above. An
+#         assembler-local label is a name the compiler mints per TU in emission
+#         order; splitting a TU or adding one string literal renumbers it
+#         wholesale, and it names data in a non-executable section, so its
+#         number carries no information this comparison is entitled to assert
+#         on. What survives is the family, so a reference that moved from a
+#         constant pool to a string table is still a finding.
+#
+#     THE STATED LIMIT of the two neutralisations: a change that makes a call
+#     site reference a DIFFERENT string literal or a different constant of the
+#     same kind is not visible. It was not visible before fix2 either -- the
+#     content lives in `.rodata`, which is class (b) -- so this is the existing
+#     coverage limit restated at a finer grain, not a new one.
+#
+#   * WHAT IT DOES FOR A SPLIT. A cross-half call whose callee already had
+#     EXTERNAL linkage is a PLT32 relocation on BOTH arms (clang does not
+#     resolve such a call intra-section even within one TU, measured), so the
+#     SELF rule neutralises the placeholder, the relocation records are
+#     literally equal, and the caller MATCHES across the split. The residue the
+#     fix1 header warned of is narrower than it said: it is a callee that was
+#     INTERNAL-linkage (`static`, or in an anonymous namespace) before the
+#     split. There the assembler really did resolve the call with no relocation
+#     at all, and the split had to give the callee external linkage to move it.
+#     That pair is deliberately NOT equated. The linkage change is a real
+#     difference -- an interposable call through a PLT is not the call the
+#     assembler resolved -- and the two mangled names (`_ZN4demoL6delta2Ei`
+#     and `_ZN4demo6delta2Ei`) share one demangled name, so the `[#n]` rank
+#     fallback reports the pair as ONLY-BEFORE/ONLY-AFTER as well. Both
+#     findings are false in the sense that the CODE is unchanged and true in
+#     the sense that the LINKAGE is not; the honest handling is a named
+#     exception carrying that reason, not a further widening.
 #
 # Everything else is a real difference. In particular an instruction-COUNT
 # change is never noise: the script reports it as STRUCTURAL and refuses to
@@ -236,6 +338,17 @@
 #     here because a future relocation batch that would once have failed can
 #     now pass, and CLAUDE.md section 7 requires such a change to be declared,
 #     not discovered.
+#
+#     DECLARED CHANGE, THE OTHER DIRECTION (M6 W5 T0 fix2). fix2 makes a
+#     no-map PASS STRICTER as well: relocation targets are compared, so an
+#     object that used to pass -- byte-different, instruction stream in the
+#     accepted noise class -- now FAILS if any call reaches a differently
+#     NAMED callee. Calibration (b) below is exactly that case: the two caller
+#     objects of the renamed function passed as NOISE-ONLY at fix1 and fail at
+#     fix2 without a symbol map. This is the whole point of the round, and it
+#     is declared for the same reason the widening above is: a batch that
+#     passed before can now fail, and no one should have to discover that from
+#     a transcript.
 #
 #   * SYMBOL ACCOUNTING is new and runs on EVERY object in the set, both
 #     arms, always. It is `nm --defined-only` -- every DEFINED symbol, text and
@@ -326,6 +439,13 @@
 #     whose actual cause is the dead line, and the tempting repair -- an
 #     exceptions entry -- would bury a real rename.
 #
+#     The two map kinds have SEPARATE used-namespaces (M6 W5 T0 fix2): an old
+#     symbol name and an old object relpath are different sorts of string, and
+#     when they shared one namespace a coincidental equality between them let
+#     one map's consumption suppress the other's `STALE-MAP`. A symbol-map
+#     entry consumed only by a RELOCATION target counts as used, since a
+#     relocation is a real consumer of the map.
+#
 #   * DUPLICATE SYMBOLS ACROSS A SPLIT. A split can legitimately place the SAME
 #     weak/COMDAT body (an inline function, a template instantiation) into BOTH
 #     new objects. Every copy is kept: copy 1 is the one compared against the
@@ -360,6 +480,16 @@
 #     tally (a moved object is also counted under whichever bucket its
 #     comparison lands in), and `libhven.a`, when it differs, is reported as
 #     `ARCHIVE` and counted in none of them.
+#
+#     One consequence of the relocation comparison, since fix2: an object whose
+#     instruction stream is noise-class prints `NOISE-ONLY` and is counted in
+#     that bucket BEFORE its relocations are looked at. If they then disagree,
+#     a `RELOCATIONS` line says so, the `PER-SYMBOL` line below it is the
+#     verdict exactly as it is under `DIFFERS`, and the object is moved out of
+#     the noise bucket into `with unclassified differences`. The counts on the
+#     summary line always describe the FINAL verdicts; a `NOISE-ONLY` line
+#     followed by a `RELOCATIONS` line is a statement about the instruction
+#     stream alone.
 #
 # FILE FORMATS (comments are whole lines beginning with optional spaces then
 # `#`; blank lines ignored; leading/trailing spaces on each field trimmed):
@@ -400,39 +530,52 @@
 # and re-comparing reports it as STRUCTURAL (the normalized listing gains
 # lines) and exits 1, with the other 59 objects still byte-identical.
 #
-# M6 W5 T0 re-calibrated the extended tool the same way, in both directions,
-# and M6 W5 T0 fix1 re-ran both calibrations against the wider object set: 129
-# objects and 125145 defined symbols. The transcripts are pasted in
-# `.superpowers/w5-t0-fix1-report.md`.
+# M6 W5 T0 re-calibrated the extended tool the same way, in both directions;
+# fix1 re-ran both calibrations against the wider object set, and fix2 re-ran
+# them again with relocations compared: 129 objects and 125145 defined symbols.
+# The fix2 transcripts are pasted in `.superpowers/w5-t0-fix2-report.md`.
 #
 #   (a) a FULL rebuild of the same commit into the SAME absolute build path
 #       with CCACHE_DISABLE=1 (`ninja -t clean` then rebuild, so every object
 #       is genuinely recompiled rather than replayed): 129/129 byte-identical,
-#       125145 symbols matched, 0 findings, 0 rank-tagged keys, PASS.
+#       125145 symbols matched, 0 findings, 0 rank-tagged keys, PASS. Every
+#       object being byte-identical, no relocation record needs comparing --
+#       identical bytes are identical relocations -- so the relocation counters
+#       read 0 and the set's 607085 relocation records (measured) are asserted
+#       by byte identity, which is the stronger statement.
 #
 #   (b) a deliberate one-symbol rename -- `hven::solvers::census_variable_bounds`
 #       to `..._probe`, its declaration, its definition and both call sites,
 #       with the fmt string literals left alone so nothing but the name moves.
-#       WITHOUT a map: the two CALLER objects noise-only with `CHANGED 0`
-#       (their bytes differ only in the relocation's symbol name, which is not
-#       an instruction), and `ipqp_trace.cpp.o` reporting exactly one
-#       `ONLY-BEFORE` and one `ONLY-AFTER` -- FAIL, one unmatched symbol on
-#       each side. WITH a one-line symbol map: the same object passes per
-#       symbol with `1 matched through the symbol map`, and the run PASSes.
-#       The mutant was reverted; it is not committed.
+#       WITHOUT a map: `ipqp_trace.cpp.o` reports exactly one `ONLY-BEFORE` and
+#       one `ONLY-AFTER`, and -- since fix2 -- the two CALLER objects, whose
+#       instruction streams are still identical, FAIL on the relocation target
+#       that names the renamed callee. WITH a one-line symbol map: all three
+#       pass, the definition through the symbol map and the callers through
+#       their relocations. The mutant was reverted; it is not committed.
 #
 #   The fix1 round additionally exercised, on purpose-built fixtures rather
 #   than on this tree: a plain-name exception excusing a TAGGED `ONLY-AFTER`;
 #   a stale symbol-map source and a stale object-map source (`STALE-MAP`, both
 #   non-fatal); an inline body emitted into BOTH halves of a split
 #   (`DUPLICATE-IDENTICAL`, PASS); and the ODR-violating variant of the same
-#   split (`DUPLICATE-DIFFERS`, exit 1).
+#   split (`DUPLICATE-DIFFERS`, exit 1). fix2 added, on the same fixtures: a
+#   same-shape substitution of one external callee for another (silently PASSed
+#   before fix2, `DIFFERS` naming both relocation targets after it), the same
+#   substitution declared in a symbol map (PASS, matched through the map on the
+#   relocation), a split whose cross-half callee was already external (MATCHES)
+#   and one whose callee was `static` before the split (stated limit, DIFFERS),
+#   an object-map path and a symbol-map name that collide as strings (the stale
+#   symbol-map entry was suppressed before fix2 and is reported after it), and
+#   a capture pair stamped by a foreign tool version (REFUSED; PASS under
+#   `--allow-foreign-captures`).
 
 set -euo pipefail
 
 usage() {
     echo "usage: $0 capture <snapshot-dir> [build-dir]" >&2
-    echo "       $0 compare [--object-map <f>] [--symbol-map <f>] [--exceptions <f>] <before-dir> <after-dir>" >&2
+    echo "       $0 compare [--object-map <f>] [--symbol-map <f>] [--exceptions <f>]" >&2
+    echo "                  [--allow-foreign-captures] <before-dir> <after-dir>" >&2
     exit 2
 }
 
@@ -548,11 +691,28 @@ do_capture() {
 # makes this a PER-SYMBOL comparison rather than one flat instruction stream,
 # so a symbol that moved between sections shows up as a difference instead of
 # cancelling out.
+# `-r` interleaves each relocation as its own line, indented, immediately after
+# the instruction it annotates:
+#
+#     31:	call   36 <..caller..+0x36>
+#     		32: R_X86_64_PLT32	_ZN4hven7solvers7NlpEvalC2Ev-0x4
+#
+# That line is the ONLY place a direct external callee's NAME appears -- the
+# instruction itself carries a zero placeholder that objdump labels with the
+# ENCLOSING symbol -- so the per-symbol path needs it (see the RELOCATION
+# TARGETS block in this file's header). Adding `-r` does not change the three
+# header lines `tail -n +3` drops, and it does not change any instruction line.
 raw_disasm() {
-    "${OBJDUMP}" -d --no-show-raw-insn "$1" | tail -n +3
+    "${OBJDUMP}" -dr --no-show-raw-insn "$1" | tail -n +3
 }
+# The POSITIONAL path's input, which must stay exactly what it was before `-r`
+# was added: the relocation lines are deleted here, before any comparison, so
+# the positional listing is byte-identical to the one `objdump -d` produced.
+# The delete pattern cannot touch an instruction line: an instruction's address
+# is followed by a COLON-TAB, a relocation's offset by a COLON-SPACE.
 normalize_raw() {
-    sed -e 's/^ *[0-9a-f]*://' -e 's/[ \t]\+#.*$//' -e 's/[ \t]*<[^<>]*>[ \t]*$//'
+    sed -e '/^[ \t][ \t]*[0-9a-f][0-9a-f]*: [^ \t]/d' \
+        -e 's/^ *[0-9a-f]*://' -e 's/[ \t]\+#.*$//' -e 's/[ \t]*<[^<>]*>[ \t]*$//'
 }
 normalize() {
     raw_disasm "$1" | normalize_raw
@@ -742,6 +902,33 @@ demangle_table() {
     rm -f "${names}"
 }
 
+# Mangled -> demangled, with NO variant tag and no cross-name disambiguation.
+# Used for RELOCATION TARGETS only: a relocation names a symbol (often one this
+# object does not define), so it has no variant to disambiguate, and feeding
+# such a name into demangle_table() would let a mere REFERENCE change the tags
+# that table assigns to the object's own DEFINED symbols.
+plain_demangle() {
+    local names
+    names="$(mktemp)"
+    cat > "${names}"
+    if [ -s "${names}" ]; then
+        paste -d'\t' "${names}" <(c++filt < "${names}")
+    fi
+    rm -f "${names}"
+}
+
+# The relocation-target names in one or more flattened listings, as candidates
+# for plain_demangle: the whole target when it names a symbol, and the embedded
+# mangled name when it names a section or a compiler-local label that carries
+# one (`.rodata._ZN3fmt...`, `.Lswitch.table._ZN4hven...`).
+reloc_names() {
+    awk -F'\t' '$1 == "R" {
+        t = $4
+        if (substr(t, 1, 1) != ".") { print t; next }
+        if (match(t, /_Z[A-Za-z0-9_$]+/)) print substr(t, RSTART, RLENGTH)
+    }' "$@"
+}
+
 # ---------------------------------------------------------------------------
 # The keying both comparison layers share: a symbol is identified by its
 # DEMANGLED name, with the symbol map applied on the before arm, plus the
@@ -767,6 +954,47 @@ function load_demangle(f,   line, n1, n2) {
 function load_pairs_into(f, arr,   line, n) {
     while ((getline line < f) > 0) { n = index(line, "\t"); arr[substr(line, 1, n - 1)] = substr(line, n + 1) }
     close(f)
+}
+# ---- relocation TARGETS ---------------------------------------------------
+# A relocation names a SYMBOL, not a variant, so the disambiguating tag keyof()
+# appends is deliberately NOT applied here: `[D1]` distinguishes two definitions
+# in one object, and a relocation target is a reference that may not be defined
+# in this object at all. `rdem` is a PLAIN mangled->demangled table built over
+# the relocation targets only, kept separate from `dem` so that adding a
+# referenced-but-not-defined name cannot perturb the variant tags `dem`/`tag`
+# assign to the DEFINED symbols of the object.
+#
+# `relmapped` is set as a side effect when the symbol map rewrote the target,
+# and `relmapold` carries the OLD name so the caller can mark the map entry
+# consumed (a map line used only by a relocation is NOT stale).
+function reldem_of(mangled, is_before,   d) {
+    d = (mangled in rdem) ? rdem[mangled] : mangled
+    if (is_before && (d in m)) { relmapped = 1; relmapold = d; d = m[d] }
+    return d
+}
+function normnum(s) { gsub(/[0-9]+/, "N", s); return s }
+# See the RELOCATION TARGETS block in the header of this file for the classes
+# and the reason each is rendered the way it is.
+function render_reloc_target(t, is_before,   pre, mg, suf) {
+    if (substr(t, 1, 1) != ".") return reldem_of(t, is_before)
+    if (match(t, /_Z[A-Za-z0-9_$]+/)) {
+        pre = substr(t, 1, RSTART - 1)
+        mg  = substr(t, RSTART, RLENGTH)
+        suf = substr(t, RSTART + RLENGTH)
+        if (substr(t, 1, 2) == ".L") pre = normnum(pre)
+        return pre reldem_of(mg, is_before) suf
+    }
+    return (substr(t, 1, 2) == ".L") ? normnum(t) : t
+}
+# The comparable rendering of one relocation. Deliberately NOT prefixed with a
+# tab: the classifier counts tab-led lines as instructions, and a relocation is
+# an annotation ON an instruction, not one of its own.
+function reloc_text(type, target, addend, is_before,   t) {
+    relmapped = 0; relmapold = ""
+    t = render_reloc_target(target, is_before)
+    if (substr(target, 1, 1) == ".") addend = "+LOCAL"
+    else if (addend == "") addend = "+0x0"
+    return "RELOC " type " " t " " addend
 }
 '
 
@@ -855,12 +1083,22 @@ BEGIN {
     FS = "\t"
     load_pairs_into(f_map, m)
     load_pairs_into(f_exc, exc)
+    load_pairs_into(f_reldem, rdem)
     load_demangle(f_dem)
     for (x in tag) if (index(tag[x], "[#")) nrank++
     fb = tmpd "/blk-b.txt"
     fa = tmpd "/blk-a.txt"
 }
 NR == FNR {
+    if ($1 == "R") {
+        if (!bskip && bcur != "") {
+            bn[bcur]++
+            bi[bcur, bn[bcur]] = reloc_text($3, $4, $5, 1)
+            brel[bcur]++
+            if (relmapped) { brelmap[bcur]++; relmapused[relmapold] = 1 }
+        }
+        next
+    }
     if ($1 == "S") {
         k = keyof($2, 1)
         bcur = k
@@ -876,6 +1114,14 @@ NR == FNR {
     next
 }
 {
+    if ($1 == "R") {
+        if (acur != "") {
+            rtxt = reloc_text($3, $4, $5, 0)
+            if (adupmode) { c = adup[acur]; adn[acur, c]++; adi[acur, c, adn[acur, c]] = rtxt }
+            else { an[acur]++; ai[acur, an[acur]] = rtxt }
+        }
+        next
+    }
     if ($1 == "S") {
         k = keyof($2, 0)
         acur = k
@@ -914,6 +1160,8 @@ END {
             diff++
             continue
         }
+        nreloc += brel[k] + 0
+        nrelmap += brelmap[k] + 0
         nb = bn[k]; while (nb > 0 && is_pad(bi[k, nb])) nb--
         na = an[k]; while (na > 0 && is_pad(ai[k, na])) na--
         if (bn[k] - nb != an[k] - na) padtrim++
@@ -989,8 +1237,12 @@ END {
     if (dupok > 20) printf "  ... and %d more identical duplicate copies\n", dupok - 20
     for (k in used) print k >> f_used
     close(f_used)
-    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding, %d duplicate copies identical, %d rank-tagged\n",
-           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0, dupok + 0, nrank + 0
+    for (k in relmapused) print k >> f_mapused
+    close(f_mapused)
+    printf "%d\t%d\n", nreloc + 0, nrelmap + 0 > f_relstat
+    close(f_relstat)
+    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding, %d duplicate copies identical, %d rank-tagged, %d relocation records compared (%d through the symbol map)\n",
+           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0, dupok + 0, nrank + 0, nreloc + 0, nrelmap + 0
     exit (diff + onlyb + onlya + coll > 0) ? 1 : 0
 }
 '
@@ -1039,6 +1291,27 @@ flatten_symbols() {
             printf "S\t%s\t%s\n", cur, sec
             next
         }
+        # A relocation line: three tabs, the within-section offset, ": ", the
+        # type, a tab, then "<target>" with an optional "+0xN"/"-0xN" addend
+        # glued to it. It annotates the instruction ABOVE it, so emitting it
+        # here keeps it adjacent to that instruction in the flattened stream.
+        # It cannot be confused with an instruction line: an instruction address
+        # is followed by a COLON-TAB, a relocation offset by a COLON-SPACE.
+        /^[ \t]+[0-9a-f]+: [^ \t]+\t/ {
+            if (cur == "") next
+            line = $0
+            sub(/^[ \t]+[0-9a-f]+: /, "", line)
+            p = index(line, "\t")
+            rtype = substr(line, 1, p - 1)
+            rtarget = substr(line, p + 1)
+            radd = ""
+            if (match(rtarget, /[+-]0x[0-9a-f]+$/)) {
+                radd = substr(rtarget, RSTART)
+                rtarget = substr(rtarget, 1, RSTART - 1)
+            }
+            printf "R\t%s\t%s\t%s\t%s\n", cur, rtype, rtarget, radd
+            next
+        }
         /^ *[0-9a-f]+:\t/ {
             if (cur == "") next
             line = $0
@@ -1067,13 +1340,14 @@ flatten_symbols() {
 
 do_compare() {
     local before="" after=""
-    local object_map="" symbol_map="" exceptions=""
+    local object_map="" symbol_map="" exceptions="" allow_foreign=0
 
     while [ $# -gt 0 ]; do
         case "$1" in
             --object-map) [ $# -ge 2 ] || usage; object_map="$2"; shift 2 ;;
             --symbol-map) [ $# -ge 2 ] || usage; symbol_map="$2"; shift 2 ;;
             --exceptions) [ $# -ge 2 ] || usage; exceptions="$2"; shift 2 ;;
+            --allow-foreign-captures) allow_foreign=1; shift ;;
             --) shift ;;
             -*) echo "psym_compare: unknown option $1" >&2; usage ;;
             *)  if [ -z "${before}" ]; then before="$1"
@@ -1121,8 +1395,22 @@ do_compare() {
     echo "P-SYM tool sha256 (runner):   ${self_sha}"
     echo "P-SYM tool sha256 (captures): ${ver_b}"
     if [ "${ver_b}" != "${self_sha}" ]; then
+        if [ "${allow_foreign}" -eq 0 ]; then
+            echo "psym_compare: both captures were made by a DIFFERENT version of this script" >&2
+            echo "              captures: ${ver_b}" >&2
+            echo "              runner:   ${self_sha}" >&2
+            echo "              The object SET is a property of the CAPTURING script, so an old pair" >&2
+            echo "              compares an old, narrower universe and this runner cannot say what it" >&2
+            echo "              left out. Every arm of a W5 comparison is captured by the current tool," >&2
+            echo "              so the declared object set is what is compared. Recapture both arms," >&2
+            echo "              or pass --allow-foreign-captures if you deliberately want the older" >&2
+            echo "              universe classified by this runner." >&2
+            exit 1
+        fi
         echo "P-SYM note: both captures were made by a DIFFERENT version of this script than the"
-        echo "            one now running (the classification below is this runner's)."
+        echo "            one now running (the classification below is this runner's), and"
+        echo "            --allow-foreign-captures was passed. The object set compared is the OLDER"
+        echo "            script's, which may be narrower than this one's."
     fi
     echo "P-SYM maps: object-map=${object_map:-none} symbol-map=${symbol_map:-none} exceptions=${exceptions:-none}"
     echo
@@ -1162,7 +1450,12 @@ do_compare() {
     fi
 
     : > "${tmp}/exc-used"
-    : > "${tmp}/map-used"
+    # R19: the two map kinds get SEPARATE used-namespaces. An old symbol name
+    # and an old object relpath are different sorts of string, and sharing one
+    # namespace let a coincidental equality between them suppress one map's
+    # STALE-MAP report.
+    : > "${tmp}/symmap-used"
+    : > "${tmp}/objmap-used"
     : > "${tmp}/claimed"
     LC_ALL=C sort "${after}/.psym-manifest" > "${tmp}/after-manifest"
 
@@ -1170,9 +1463,10 @@ do_compare() {
     local mapped_objects=0 unmatched_after=0 persym_objects=0 persym_pass=0
     local sym_matched=0 sym_mapped=0 sym_only_before=0 sym_only_after=0
     local sym_exception=0 sym_collision=0 sym_rank_tagged=0
+    local reloc_compared=0 reloc_mapped=0
     local rc=0
 
-    local rel path_b kind ntargets t
+    local rel path_b kind ntargets t pos_noise=0
     local -a targets=()
     while IFS= read -r rel; do
         [ -n "${rel}" ] || continue
@@ -1180,6 +1474,7 @@ do_compare() {
         path_b="${before}/${rel}"
         targets=()
         kind="direct"
+        pos_noise=0
 
         if awk -F'\t' -v k="${rel}" '$1 == k { found = 1 } END { exit found ? 0 : 1 }' "${tmp}/objmap.tsv"; then
             kind="mapped"
@@ -1191,7 +1486,7 @@ do_compare() {
                 fi
                 targets+=("${t}")
             done < <(awk -F'\t' -v k="${rel}" '$1 == k { print $2 }' "${tmp}/objmap.tsv")
-            echo "${rel}" >> "${tmp}/map-used"
+            echo "${rel}" >> "${tmp}/objmap-used"
             if [ "${#targets[@]}" -eq 0 ]; then
                 missing=$((missing + 1))
                 echo "MISSING     ${rel} (object map named no reachable counterpart)"
@@ -1253,7 +1548,7 @@ do_compare() {
                             -v f_map="${tmp}/symmap.tsv" -v f_exc="${tmp}/exc.tsv" \
                             -v f_dem="${tmp}/syms-demangle.tsv" \
                             -v f_used="${tmp}/exc-used" -v f_stat="${tmp}/symstat" \
-                            -v f_mapused="${tmp}/map-used" \
+                            -v f_mapused="${tmp}/symmap-used" \
                             -f "${tmp}/symcover.awk" \
                             "${tmp}/syms-b.tsv" "${tmp}/syms-a.tsv")"
             sym_rc=$?
@@ -1313,13 +1608,36 @@ do_compare() {
             awk_rc=$?
             set -e
             if [ "${awk_rc}" -eq 0 ]; then
+                # The INSTRUCTION stream is within the accepted noise class.
+                # That verdict is now printed exactly as it always was, but it
+                # is no longer the whole story: `-d` shows a direct external
+                # call as a placeholder, so two objects that call DIFFERENT
+                # functions of the same signature at the same offset have
+                # identical instruction streams. The relocations are what tell
+                # them apart. Compare them raw and mangled first -- if they
+                # agree, nothing a symbol map could do would change that, and
+                # this object is finished exactly as before. Only when they
+                # DISAGREE does the object fall through to the per-symbol
+                # layer, which renders each target through the map and either
+                # matches it or reports the pair.
                 noise=$((noise + 1))
                 echo "NOISE-ONLY  ${rel}"
                 echo "            ${out##*$'\n'}"
-                continue
+                grep '^[[:space:]][[:space:]]*[0-9a-f][0-9a-f]*: [^[:space:]]' "${tmp}/raw-b.txt" \
+                    | sed 's/^[^:]*: //' > "${tmp}/rel-b.txt" || true
+                grep '^[[:space:]][[:space:]]*[0-9a-f][0-9a-f]*: [^[:space:]]' "${tmp}/raw-a.txt" \
+                    | sed 's/^[^:]*: //' > "${tmp}/rel-a.txt" || true
+                if cmp -s "${tmp}/rel-b.txt" "${tmp}/rel-a.txt"; then
+                    continue
+                fi
+                echo "RELOCATIONS ${rel} (the instruction stream is within the accepted noise class,"
+                echo "            but the relocation targets are not literally equal; the PER-SYMBOL"
+                echo "            line below is the verdict)"
+                pos_noise=1
+            else
+                echo "DIFFERS     ${rel} (positional pairing did not hold; the PER-SYMBOL line below is the verdict)"
+                echo "${out}" | sed 's/^/            /'
             fi
-            echo "DIFFERS     ${rel} (positional pairing did not hold; the PER-SYMBOL line below is the verdict)"
-            echo "${out}" | sed 's/^/            /'
         fi
 
         # ---- per-symbol, by DEMANGLED name, through the maps ---------------
@@ -1328,24 +1646,46 @@ do_compare() {
         flatten_symbols "${tmp}/raw-a.txt" > "${tmp}/flat-a.tsv"
         cut -f2 "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u > "${tmp}/mangled.txt"
         demangle_table < "${tmp}/mangled.txt" > "${tmp}/demangle.tsv"
+        # Relocation targets get their OWN plain table -- see plain_demangle().
+        reloc_names "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u \
+            | plain_demangle > "${tmp}/reldem.tsv"
 
         local per_out per_rc
+        rm -f "${tmp}/relstat"
         set +e
         per_out="$(awk -F'\t' \
                         -v f_map="${tmp}/symmap.tsv" -v f_exc="${tmp}/exc.tsv" \
                         -v f_dem="${tmp}/demangle.tsv" -v f_used="${tmp}/exc-used" \
+                        -v f_reldem="${tmp}/reldem.tsv" -v f_mapused="${tmp}/symmap-used" \
+                        -v f_relstat="${tmp}/relstat" \
                         -v f_cls="${tmp}/classify.awk" -v tmpd="${tmp}" \
                         -f "${tmp}/persym.awk" \
                         "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv")"
         per_rc=$?
         set -e
+        if [ -f "${tmp}/relstat" ]; then
+            local rst
+            rst="$(cat "${tmp}/relstat")"
+            reloc_compared=$((reloc_compared + $(echo "${rst}" | cut -f1)))
+            reloc_mapped=$((reloc_mapped + $(echo "${rst}" | cut -f2)))
+        fi
         echo "PER-SYMBOL  ${rel}: ${per_out##*$'\n'}"
         if [ -n "$(echo "${per_out}" | sed '$d')" ]; then
             echo "${per_out}" | sed '$d' | sed 's/^/            /'
         fi
         if [ "${per_rc}" -ne 0 ]; then
+            # An object whose instruction stream was noise-class but whose
+            # relocations disagree is NOT "differing within the accepted noise
+            # class": take it back out of that bucket, so the summary line keeps
+            # meaning what it says.
+            if [ "${pos_noise}" -eq 1 ]; then noise=$((noise - 1)); fi
             unclassified=$((unclassified + 1))
             rc=1
+        elif [ "${pos_noise}" -eq 1 ]; then
+            # The instruction stream was noise-class and the relocations matched
+            # through the map. The object stays in the positional noise bucket
+            # it was already counted in; it is not a per-symbol pass.
+            :
         else
             # NOT `noise`: the original summary line's "differing within the
             # accepted noise class" means POSITIONAL noise-class passes, and an
@@ -1384,14 +1724,15 @@ do_compare() {
     # every defined symbol, so an unused one really is used by nothing; the
     # object map's OLD relpaths are marked used by the manifest walk.
     local stale_map=0 old new
-    LC_ALL=C sort -u "${tmp}/map-used" > "${tmp}/map-used-sorted"
+    LC_ALL=C sort -u "${tmp}/symmap-used" > "${tmp}/symmap-used-sorted"
+    LC_ALL=C sort -u "${tmp}/objmap-used" > "${tmp}/objmap-used-sorted"
     if [ -s "${tmp}/symmap.tsv" ]; then
         while IFS= read -r old; do
             [ -n "${old}" ] || continue
             new="$(awk -F'\t' -v k="${old}" '$1 == k { print $2; exit }' "${tmp}/symmap.tsv")"
             stale_map=$((stale_map + 1))
             echo "STALE-MAP   ${old} (mapped to ${new}; nothing used it)"
-        done < <(LC_ALL=C comm -23 <(cut -f1 "${tmp}/symmap.tsv" | LC_ALL=C sort -u) "${tmp}/map-used-sorted")
+        done < <(LC_ALL=C comm -23 <(cut -f1 "${tmp}/symmap.tsv" | LC_ALL=C sort -u) "${tmp}/symmap-used-sorted")
     fi
     if [ -s "${tmp}/objmap.tsv" ]; then
         while IFS= read -r old; do
@@ -1399,7 +1740,7 @@ do_compare() {
             new="$(awk -F'\t' -v k="${old}" '$1 == k { print $2; exit }' "${tmp}/objmap.tsv")"
             stale_map=$((stale_map + 1))
             echo "STALE-MAP   ${old} (mapped to ${new}; nothing used it)"
-        done < <(LC_ALL=C comm -23 <(cut -f1 "${tmp}/objmap.tsv" | LC_ALL=C sort -u) "${tmp}/map-used-sorted")
+        done < <(LC_ALL=C comm -23 <(cut -f1 "${tmp}/objmap.tsv" | LC_ALL=C sort -u) "${tmp}/objmap-used-sorted")
     fi
 
     echo
@@ -1413,7 +1754,7 @@ do_compare() {
         echo "               (a false finding, never a masked one), but read such a finding by hand."
     fi
     echo "P-SYM: ${total} objects — ${identical} byte-identical, ${noise} differing within the accepted noise class, ${unclassified} with unclassified differences, ${moved} matched by basename after a path move, ${missing} missing"
-    echo "P-SYM coverage: ${mapped_objects} objects matched through the object map, ${persym_objects} compared per symbol, ${persym_pass} objects passed per symbol, ${unmatched_after} after-arm objects unaccounted for; symbols — ${sym_matched} matched (${sym_mapped} through the symbol map), ${sym_only_before} only-before, ${sym_only_after} only-after, ${sym_exception} excepted, ${sym_collision} collisions, ${sym_rank_tagged} rank-tagged, ${stale} stale exceptions, ${stale_map} stale map entries"
+    echo "P-SYM coverage: ${mapped_objects} objects matched through the object map, ${persym_objects} compared per symbol, ${persym_pass} objects passed per symbol, ${unmatched_after} after-arm objects unaccounted for; symbols — ${sym_matched} matched (${sym_mapped} through the symbol map), ${sym_only_before} only-before, ${sym_only_after} only-after, ${sym_exception} excepted, ${sym_collision} collisions, ${sym_rank_tagged} rank-tagged, ${stale} stale exceptions, ${stale_map} stale map entries; relocations — ${reloc_compared} records compared (${reloc_mapped} through the symbol map)"
     if [ "${rc}" -eq 0 ]; then
         echo "P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)"
     else
