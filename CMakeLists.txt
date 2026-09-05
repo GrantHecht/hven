@@ -478,11 +478,12 @@ target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}"
 
 # The engine's two build-supplied sizing knobs.
 #
-# HVEN_DEFAULT_QP_THREADS is PUBLIC because two PUBLIC headers read it
-# directly -- include/hven/drivers/interior_point_solver.h (the qp_threads_ default member
-# initializer) and include/hven/model/nlp_solver.h (init_partitions) -- so a
-# consumer that includes them without the definition would fail on an
-# undefined identifier inside a header it did not write. Carried as a usage
+# HVEN_DEFAULT_QP_THREADS is PUBLIC because a PUBLIC header reads it directly
+# -- include/hven/drivers/interior_point_solver.h, in the qp_threads_ default
+# member initializer -- so a consumer that includes it without the definition
+# would fail on an undefined identifier inside a header it did not write.
+# (M6 W5 T1: it was two headers until the folded init_partitions moved out of
+# the public model/nlp_solver.h into src/model/nlp_solver.cpp.) Carried as a usage
 # requirement, linking hven::hven is all a consumer has to do.
 #
 # HVEN_DEFAULT_ARENA_SIZE is PRIVATE: the only reader is

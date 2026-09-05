@@ -3,10 +3,15 @@
 
 #include "hven/model/nlp_solver.h"
 
+#include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <string>
 
 #include <fmt/format.h>
+
+#include "hven/detail/interior/utils/get_core_count.h"
+#include "hven/detail/interior/utils/thread_pool.h"
 
 namespace hven::solvers {
 
@@ -32,6 +37,111 @@ Eigen::VectorXd model_multiplier_block(const Eigen::VectorXd &solver_block, Inde
 }
 
 } // namespace
+
+int NLPSolver::default_num_partitions() {
+    int nt = hven::utils::get_num_threads();
+    if (nt <= 1)
+        return 1;
+    return nt * 4;
+}
+
+void NLPSolver::init_partitions() {
+    this->num_partitions_ = default_num_partitions();
+    this->optimizer_->set_qp_threads(std::min(HVEN_DEFAULT_QP_THREADS, utils::get_core_count()));
+}
+
+void NLPSolver::set_num_partitions(int num_partitions) {
+    if (num_partitions < 1) {
+        throw std::invalid_argument("Number of partitions must be positive");
+    }
+    this->num_partitions_ = num_partitions;
+}
+
+hven::ConvergenceFlags NLPSolver::jet_run() {
+    this->jet_initialize();
+
+    hven::ConvergenceFlags flag;
+
+    switch (this->jet_job_mode_) {
+    case JetJobModes::Solve: {
+        flag = this->solve();
+        break;
+    }
+    case JetJobModes::Optimize: {
+        flag = this->optimize();
+        break;
+    }
+    case JetJobModes::SolveOptimize: {
+        flag = this->solve_optimize();
+        break;
+    }
+    case JetJobModes::SolveOptimizeSolve: {
+        flag = this->solve_optimize_solve();
+        break;
+    }
+    case JetJobModes::OptimizeSolve: {
+        flag = this->optimize_solve();
+        break;
+    }
+    case JetJobModes::NotSet: {
+        throw ::std::invalid_argument("jet_job_mode_ not set");
+    }
+    default:
+        throw std::invalid_argument("Unrecognized jet_job_mode");
+    }
+
+    this->jet_release();
+    return flag;
+}
+
+NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode,
+                                                    const Eigen::VectorXd &input) {
+    NlpSolveOutput out;
+    switch (mode) {
+    case JetJobModes::Solve:
+        out.variables_ = this->optimizer_->solve(input);
+        break;
+    case JetJobModes::Optimize:
+        out.variables_ = this->optimizer_->optimize(input);
+        break;
+    case JetJobModes::SolveOptimize:
+        out.variables_ = this->optimizer_->solve_optimize(input);
+        break;
+    case JetJobModes::SolveOptimizeSolve:
+        out.variables_ = this->optimizer_->solve_optimize_solve(input);
+        break;
+    case JetJobModes::OptimizeSolve:
+        out.variables_ = this->optimizer_->optimize_solve(input);
+        break;
+    default:
+        throw std::invalid_argument("Unrecognized NLP solve mode");
+    }
+    out.eq_lmults_ = this->optimizer_->result().eq_lmults_;
+    out.iq_lmults_ = this->optimizer_->result().iq_lmults_;
+    out.flag_ = this->optimizer_->result().converge_flag_;
+    return out;
+}
+
+NLPSolver::JetJobModes NLPSolver::strto_jet_job_mode(const std::string &str) {
+
+    if (str == "solve" || str == "Solve")
+        return JetJobModes::Solve;
+    else if (str == "optimize" || str == "Optimize")
+        return JetJobModes::Optimize;
+    else if (str == "solve_optimize" || str == "SolveOptimize" || str == "Solve_Optimize")
+        return JetJobModes::SolveOptimize;
+    else if (str == "solve_optimize_solve" || str == "SolveOptimizeSolve" ||
+             str == "Solve_Optimize_Solve")
+        return JetJobModes::SolveOptimizeSolve;
+    else if (str == "optimize_solve" || str == "OptimizeSolve" || str == "Optimize_Solve")
+        return JetJobModes::OptimizeSolve;
+    else if (str == "DoNothing" || str == "do_nothing" || str == "Do_Nothing")
+        return JetJobModes::DoNothing;
+    else {
+        auto msg = fmt::format("Unrecognized jet_job_mode: {0}\n", str);
+        throw std::invalid_argument(msg);
+    }
+}
 
 NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(problem)) {
     // The folded base constructor's body, verbatim and FIRST: the base
