@@ -203,9 +203,19 @@
 #     first classified positionally, exactly as before; if that lands in the
 #     accepted noise class, the raw relocation streams are compared literally,
 #     and if THEY agree too the object is finished with the output it has
-#     always produced. Only an object whose relocations actually differ falls
+#     always produced. Note what that fast path asserts, since it is the common
+#     case and it is STRONGER than the per-symbol verdict below it: a
+#     `NOISE-ONLY` line with NO `RELOCATIONS` line under it means the two arms'
+#     relocation streams are LITERALLY equal, MANGLED, target for target and
+#     addend for addend -- no demangling, no symbol map, no neutralisation.
+#     Only an object whose relocations actually differ falls
 #     through to the per-symbol layer, which renders each target through the
-#     symbol map and then either matches it or reports the pair. This is a
+#     symbol map and then either matches it or reports the pair. If that layer
+#     then compares ZERO relocation records, the transcript has contradicted
+#     itself -- the streams differ, yet nothing was compared -- and the run
+#     FAILS with a `RELOC-BLIND` line naming the cause (M6 W5 T0 fix3); the
+#     likeliest cause is an objdump whose relocation-line format this script no
+#     longer parses. This is a
 #     DECLARED widening of what reaches the per-symbol layer, and it is the
 #     only arrangement in which the tool can see its own falsifier: the
 #     same-shape callee substitution above has a noise-class instruction stream
@@ -223,10 +233,44 @@
 #         own plain table, kept separate from the one that tags DEFINED
 #         symbols, so a mere reference can never perturb those tags.
 #
-#       - A SECTION (`.rodata`, `.rodata._ZN3fmt...`, `.data.rel.ro`) is
+#       - AN EXECUTABLE SECTION (`.text`, `.text.startup`, `.text._Z...`,
+#         decided by objdump's own CODE flag and never by a name prefix) is
+#         NOT a datum, and this is the one class where neutralising the addend
+#         would mask code identity (M6 W5 T0 fix3). clang references a local
+#         symbol in ANOTHER section as section+offset, so a direct call to an
+#         INTERNAL-linkage function -- a `static` or anonymous-namespace helper
+#         called from a COMDAT template instantiation, a `__cxx_global_var_init`
+#         reached from its TLS wrapper -- arrives as `.text+0x1cdc` with the
+#         callee's NAME nowhere in the record. For that class the addend IS the
+#         callee's identity: neutralising it re-opens, for internal-linkage
+#         callees, precisely the same-shape substitution hole the named class
+#         above closes for external ones.
+#
+#         So the addend is RESOLVED instead. `<addend> + 4` for the 32-bit
+#         PC-relative forms (whose displacement-field width is folded into the
+#         addend) and `<addend>` for the absolute ones is looked up, SECTION-
+#         AWARE, in the SAME arm's `objdump -t` table -- section-aware because
+#         two of this tree's real targets sit at offset 0 of their section, and
+#         an address alone cannot tell `.text+0` from `.text._Zfoo+0`. The
+#         defined FUNCTION at that address is then rendered as the target,
+#         demangled, symbol-mapped on the before arm, with NO variant tag, and
+#         with the residual addend a direct reference to that symbol would have
+#         carried (`-0x4` for a PC-relative form, `+0x0` for an absolute one).
+#         An internal-linkage callee is therefore compared BY NAME, exactly
+#         like an external one, and survives a TU split.
+#
+#         Where NO defined function sits at exactly that address -- or where two
+#         objects of a split's after arm define different functions there, which
+#         this script detects and refuses to guess between -- the target is
+#         rendered `<section>+<LITERAL addend>` instead. That is R17's stated
+#         fallback and the conservative direction: a layout shift then reports a
+#         false DIFFERS, never a masked one.
+#
+#       - A NON-EXECUTABLE SECTION (`.rodata`, `.rodata._ZN3fmt...`,
+#         `.data.rel.ro`, `.bss`) is
 #         compared by section NAME, with an embedded mangled name demangled and
 #         mapped like any other, and its addend NEUTRALISED to `+LOCAL`. The
-#         addend of a section-relative relocation is the byte offset of a datum
+#         addend of such a relocation is the byte offset of a datum
 #         within a section this comparison does not read, and it moves whenever
 #         anything ahead of it in that section changes size -- the same layout
 #         property the `__FILE__` class (b) and the SELF rule already exclude.
@@ -242,11 +286,19 @@
 #         on. What survives is the family, so a reference that moved from a
 #         constant pool to a string table is still a finding.
 #
-#     THE STATED LIMIT of the two neutralisations: a change that makes a call
-#     site reference a DIFFERENT string literal or a different constant of the
-#     same kind is not visible. It was not visible before fix2 either -- the
-#     content lives in `.rodata`, which is class (b) -- so this is the existing
-#     coverage limit restated at a finer grain, not a new one.
+#     THE STATED LIMIT of the two remaining neutralisations (they now apply to
+#     NON-executable sections and to compiler-local labels only): a change that
+#     makes a call site reference a DIFFERENT datum OF THE SAME KIND is not
+#     visible. Three cases, named because a reader of a W5 gate will ask about
+#     all three: a different string literal; a different NUMERIC CONSTANT-POOL
+#     entry, so a tolerance change such as `1e-6` to `1e-4` is a NOISE-ONLY
+#     PASS with 0 relocation records compared; and a different internal-linkage
+#     DATA object (a local vtable or static table in `.bss`/`.data.rel.ro`).
+#     None of it was visible before fix2 either -- the content lives in a
+#     non-executable section, which is class (b) -- so this is the existing
+#     coverage limit restated at a finer grain, not a new one. The EXECUTABLE
+#     class is no longer part of it: since fix3 an internal-linkage CALLEE is
+#     resolved to its symbol and compared by name.
 #
 #   * WHAT IT DOES FOR A SPLIT. A cross-half call whose callee already had
 #     EXTERNAL linkage is a PLT32 relocation on BOTH arms (clang does not
@@ -531,9 +583,16 @@
 # lines) and exits 1, with the other 59 objects still byte-identical.
 #
 # M6 W5 T0 re-calibrated the extended tool the same way, in both directions;
-# fix1 re-ran both calibrations against the wider object set, and fix2 re-ran
-# them again with relocations compared: 129 objects and 125145 defined symbols.
-# The fix2 transcripts are pasted in `.superpowers/w5-t0-fix2-report.md`.
+# fix1 re-ran both calibrations against the wider object set, fix2 re-ran them
+# again with relocations compared, and fix3 re-ran them once more with
+# executable-section targets resolved: 129 objects and 125145 defined symbols.
+# The fix3 transcripts are pasted in `.superpowers/w5-t0-fix3-report.md`, and
+# they are byte-identical to fix2's -- the resolution moves no count on this
+# tree, because none of the three objects calibration (b) touches carries a
+# `.text`-relative relocation. What DID move is measured separately: a survey of
+# all 128 disassembled objects finds 27 executable-section targets (25 `.text`,
+# 2 `.text.startup`, 13 distinct callees), and fix3 resolves 27 of 27 to a
+# symbol name, none falling back to the literal addend.
 #
 #   (a) a FULL rebuild of the same commit into the SAME absolute build path
 #       with CCACHE_DISABLE=1 (`ninja -t clean` then rebuild, so every object
@@ -568,7 +627,15 @@
 #   an object-map path and a symbol-map name that collide as strings (the stale
 #   symbol-map entry was suppressed before fix2 and is reported after it), and
 #   a capture pair stamped by a foreign tool version (REFUSED; PASS under
-#   `--allow-foreign-captures`).
+#   `--allow-foreign-captures`). fix3 added two more: a `.text`-relative call to
+#   an INTERNAL-linkage callee whose identity two arms swap, with the literal
+#   addends coinciding (fix2 reported PASS, 4 relocation records compared; fix3
+#   reports DIFFERS naming both resolved callees, and PASSes with 2 records
+#   through a symbol map that declares the swap), and an R-BLIND copy of the
+#   tool -- one whose relocation-record pattern never matches -- on the
+#   same-shape substitution pair (fix2 PASSed with a transcript that said both
+#   "the relocation targets are not literally equal" and "0 relocation records
+#   compared"; fix3 FAILs it with a `RELOC-BLIND` line).
 
 set -euo pipefail
 
@@ -716,6 +783,78 @@ normalize_raw() {
 }
 normalize() {
     raw_disasm "$1" | normalize_raw
+}
+
+# ---------------------------------------------------------------------------
+# OBJECT LAYOUT: the section headers and the symbol table, from ONE `objdump`
+# run per object per arm, cached in a file that both derivations below read.
+# They exist for the EXECUTABLE-SECTION relocation class documented in the
+# RELOCATION TARGETS block above: a `.text+0x1cdc` target has to be resolved to
+# the function defined at that address, and doing it needs the section flags
+# (which sections are code) and the symbol table (what is where).
+#
+# Cost: this runs ONLY for an object that already reached the disassembly
+# stage, i.e. one that is not byte-identical across the two arms. A no-op
+# rebuild runs it zero times.
+# ---------------------------------------------------------------------------
+obj_layout() {
+    local obj
+    for obj in "$@"; do
+        "${OBJDUMP}" -h -t "${obj}"
+    done
+}
+
+# The names of the object's EXECUTABLE sections, read from `objdump -h`'s own
+# CODE flag rather than from a `.text` name prefix -- `.text.startup` and
+# `.text._Z...` are code, `.init_array` is DATA and must not be treated as
+# code, and a section named `.textual` would not be code at all. Reads a cached
+# `objdump -h -t` listing on stdin.
+exec_sections() {
+    awk '
+        /^Sections:/ { inh = 1; next }
+        /^SYMBOL TABLE:/ { inh = 0; next }
+        !inh { next }
+        /^[ \t]*[0-9]+[ \t]+[^ \t]+[ \t]/ { sec = $2; next }
+        { if (sec != "" && $0 ~ /(^|[ ,])CODE([ ,]|$)/) print sec; sec = "" }'
+}
+
+# "<section>\t<offset in hex, no leading zeros>\t<mangled name>" for every
+# DEFINED FUNCTION of the object. Reads the same cached listing on stdin.
+#
+# FUNCTIONS ONLY, deliberately: objdump also lists a section symbol (`l d`) at
+# offset 0 of every section, and that symbol's name IS the section name, so
+# including it would resolve every `<section>+0` target to the useless string
+# `.text` and shadow the real function that sits there -- which is exactly the
+# case two of this tree's thirteen real targets are in.
+#
+# The key is (section, offset), never the offset alone: a COMDAT template
+# instantiation and a `.text` helper both sit at offset 0 of their own
+# sections.
+sym_addrs() {
+    awk '
+        /^SYMBOL TABLE:/ { ins = 1; next }
+        !ins { next }
+        {
+            p = index($0, "\t")
+            if (p == 0) next
+            s = index($0, " ")
+            if (s < 2) next
+            val = substr($0, 1, s - 1)
+            if (val !~ /^[0-9a-fA-F]+$/) next
+            # The flag field is seven fixed columns; column 7 is the
+            # function/file/object letter.
+            if (substr($0, s + 7, 1) != "F") next
+            head = substr($0, 1, p - 1)
+            n = split(head, hf, /[ \t]+/)
+            sec = hf[n]
+            if (substr(sec, 1, 1) != ".") next
+            rest = substr($0, p + 1)
+            q = index(rest, " ")
+            if (q == 0) next
+            nm = substr(rest, q + 1)
+            if (nm == "") next
+            printf "%s\t%x\t%s\n", sec, strtonum("0x" val), nm
+        }'
 }
 
 # Scratch directory for the normalized listings. Deliberately NOT a `local` in
@@ -973,6 +1112,56 @@ function reldem_of(mangled, is_before,   d) {
     return d
 }
 function normnum(s) { gsub(/[0-9]+/, "N", s); return s }
+# ---- section-relative targets that name CODE ------------------------------
+# `xsec[arm, name]` is the executable-section set and `saddr[arm, sec, off]`
+# the defined-function-by-address table, both per ARM (1 = before, 2 = after)
+# and both built from the same arm'"'"'s own objects, since a target must be
+# resolved in the object that carries the relocation. See the EXECUTABLE
+# SECTION class in the RELOCATION TARGETS block at the head of this file.
+function load_execsec(f, armn,   line) {
+    if (f == "") return
+    while ((getline line < f) > 0) if (line != "") xsec[armn, line] = 1
+    close(f)
+}
+function load_symaddr(f, armn,   line, n1, n2, rest, sec, off, nm, k) {
+    if (f == "") return
+    while ((getline line < f) > 0) {
+        n1 = index(line, "\t"); if (n1 == 0) continue
+        sec = substr(line, 1, n1 - 1)
+        rest = substr(line, n1 + 1)
+        n2 = index(rest, "\t"); if (n2 == 0) continue
+        off = substr(rest, 1, n2 - 1)
+        nm = substr(rest, n2 + 1)
+        k = armn SUBSEP sec SUBSEP off
+        # A split arm is the UNION of several objects, so two of them can
+        # define different functions at the same (section, offset). Refuse to
+        # guess: an ambiguous address falls back to the literal addend.
+        if (!(k in saddr)) saddr[k] = nm
+        else if (saddr[k] != nm) saddr[k] = "@ambiguous@"
+    }
+    close(f)
+}
+# A hex addend with an explicit sign. gawk'"'"'s strtonum() is not documented to
+# accept one, so the sign is taken off first.
+function hexnum(s,   neg) {
+    if (s == "") return 0
+    neg = 0
+    if (substr(s, 1, 1) == "-") { neg = 1; s = substr(s, 2) }
+    else if (substr(s, 1, 1) == "+") s = substr(s, 2)
+    return neg ? -strtonum(s) : strtonum(s)
+}
+# The 32-bit PC-relative forms fold the width of the displacement field into
+# the addend, so the callee sits at addend + 4. The absolute forms do not.
+function is_pcrel(type) { return type ~ /(PLT32|PC32|PCREL)/ }
+function exec_target_symbol(sec, type, addend, armn,   tgt, k, nm) {
+    if (!((armn SUBSEP sec) in xsec)) return ""
+    tgt = hexnum(addend) + (is_pcrel(type) ? 4 : 0)
+    if (tgt < 0) return ""
+    k = armn SUBSEP sec SUBSEP sprintf("%x", tgt)
+    if (!(k in saddr)) return ""
+    nm = saddr[k]
+    return (nm == "@ambiguous@") ? "" : nm
+}
 # See the RELOCATION TARGETS block in the header of this file for the classes
 # and the reason each is rendered the way it is.
 function render_reloc_target(t, is_before,   pre, mg, suf) {
@@ -989,8 +1178,21 @@ function render_reloc_target(t, is_before,   pre, mg, suf) {
 # The comparable rendering of one relocation. Deliberately NOT prefixed with a
 # tab: the classifier counts tab-led lines as instructions, and a relocation is
 # an annotation ON an instruction, not one of its own.
-function reloc_text(type, target, addend, is_before,   t) {
+function reloc_text(type, target, addend, is_before,   t, armn, rs) {
     relmapped = 0; relmapold = ""
+    armn = is_before ? 1 : 2
+    if (substr(target, 1, 1) == "." && ((armn SUBSEP target) in xsec)) {
+        rs = exec_target_symbol(target, type, addend, armn)
+        # Resolved: rendered exactly as a NAMED target is -- demangled, mapped,
+        # untagged -- with the residual addend a direct reference to that
+        # symbol would have carried. The section and the byte offset, both pure
+        # layout, drop out; the callee'"'"'s NAME is what gets compared.
+        if (rs != "") return "RELOC " type " " reldem_of(rs, is_before) " " (is_pcrel(type) ? "-0x4" : "+0x0")
+        # Code, but nothing defined at that address (or two objects of a split
+        # arm disagree about it): compare the LITERAL addend. R17'"'"'s stated
+        # fallback, in its stated direction -- a false DIFFERS, never a mask.
+        return "RELOC " type " " render_reloc_target(target, is_before) " " (addend == "" ? "+0x0" : addend)
+    }
     t = render_reloc_target(target, is_before)
     if (substr(target, 1, 1) == ".") addend = "+LOCAL"
     else if (addend == "") addend = "+0x0"
@@ -1084,6 +1286,8 @@ BEGIN {
     load_pairs_into(f_map, m)
     load_pairs_into(f_exc, exc)
     load_pairs_into(f_reldem, rdem)
+    load_execsec(f_xsec_b, 1); load_execsec(f_xsec_a, 2)
+    load_symaddr(f_saddr_b, 1); load_symaddr(f_saddr_a, 2)
     load_demangle(f_dem)
     for (x in tag) if (index(tag[x], "[#")) nrank++
     fb = tmpd "/blk-b.txt"
@@ -1595,6 +1799,17 @@ do_compare() {
         normalize_raw < "${tmp}/raw-b.txt" > "${tmp}/b.txt"
         normalize_raw < "${tmp}/raw-a.txt" > "${tmp}/a.txt"
 
+        # ONE `objdump -h -t` per object per arm, cached here, read twice: once
+        # for the executable-section set and once for the defined-function
+        # address table. Both feed the EXECUTABLE SECTION relocation class.
+        obj_layout "${path_b}" > "${tmp}/lay-b.txt"
+        : > "${tmp}/lay-a.txt"
+        for t in "${path_a_list[@]}"; do obj_layout "${t}" >> "${tmp}/lay-a.txt"; done
+        exec_sections < "${tmp}/lay-b.txt" | LC_ALL=C sort -u > "${tmp}/xsec-b.txt"
+        exec_sections < "${tmp}/lay-a.txt" | LC_ALL=C sort -u > "${tmp}/xsec-a.txt"
+        sym_addrs < "${tmp}/lay-b.txt" > "${tmp}/saddr-b.tsv"
+        sym_addrs < "${tmp}/lay-a.txt" > "${tmp}/saddr-a.tsv"
+
         # The POSITIONAL comparison, unchanged, first. It is strictly stronger
         # than the per-symbol comparison -- it requires the symbol header lines
         # (name AND address) to line up too -- so a pass here is a pass there,
@@ -1647,7 +1862,11 @@ do_compare() {
         cut -f2 "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u > "${tmp}/mangled.txt"
         demangle_table < "${tmp}/mangled.txt" > "${tmp}/demangle.tsv"
         # Relocation targets get their OWN plain table -- see plain_demangle().
-        reloc_names "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u \
+        # The defined-function names are added to it because an EXECUTABLE
+        # section target resolves to one of them, and those names appear
+        # nowhere in the relocation records themselves.
+        { reloc_names "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv"
+          cut -f3 "${tmp}/saddr-b.tsv" "${tmp}/saddr-a.tsv"; } | LC_ALL=C sort -u \
             | plain_demangle > "${tmp}/reldem.tsv"
 
         local per_out per_rc
@@ -1658,15 +1877,19 @@ do_compare() {
                         -v f_dem="${tmp}/demangle.tsv" -v f_used="${tmp}/exc-used" \
                         -v f_reldem="${tmp}/reldem.tsv" -v f_mapused="${tmp}/symmap-used" \
                         -v f_relstat="${tmp}/relstat" \
+                        -v f_xsec_b="${tmp}/xsec-b.txt" -v f_xsec_a="${tmp}/xsec-a.txt" \
+                        -v f_saddr_b="${tmp}/saddr-b.tsv" -v f_saddr_a="${tmp}/saddr-a.tsv" \
                         -v f_cls="${tmp}/classify.awk" -v tmpd="${tmp}" \
                         -f "${tmp}/persym.awk" \
                         "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv")"
         per_rc=$?
         set -e
+        local rel_this=0
         if [ -f "${tmp}/relstat" ]; then
             local rst
             rst="$(cat "${tmp}/relstat")"
-            reloc_compared=$((reloc_compared + $(echo "${rst}" | cut -f1)))
+            rel_this="$(echo "${rst}" | cut -f1)"
+            reloc_compared=$((reloc_compared + rel_this))
             reloc_mapped=$((reloc_mapped + $(echo "${rst}" | cut -f2)))
         fi
         echo "PER-SYMBOL  ${rel}: ${per_out##*$'\n'}"
@@ -1685,7 +1908,23 @@ do_compare() {
             # The instruction stream was noise-class and the relocations matched
             # through the map. The object stays in the positional noise bucket
             # it was already counted in; it is not a per-symbol pass.
-            :
+            #
+            # R23 (M6 W5 T0 fix3): unless NOTHING was compared. The
+            # `RELOCATIONS` line above asserts the two arms' raw relocation
+            # streams are not equal; a per-symbol layer that then compared ZERO
+            # relocation records has contradicted it, and the PASS it produced
+            # rests on a relocation comparison that never ran. Fail, naming the
+            # cause: the likeliest one by far is an objdump whose relocation
+            # line format is not the one flatten_symbols() parses.
+            if [ "${rel_this}" -eq 0 ]; then
+                echo "RELOC-BLIND ${rel}: the raw relocation streams differ, yet the per-symbol layer"
+                echo "            compared 0 relocation records -- a contradiction, and a PASS here"
+                echo "            would rest on a comparison that never ran. Either this objdump's"
+                echo "            relocation-line format is not the one flatten_symbols() parses"
+                echo "            (three tabs, offset, COLON-SPACE, type, TAB, target), or every"
+                echo "            differing relocation belongs to a symbol matched on one arm only."
+                rc=1
+            fi
         else
             # NOT `noise`: the original summary line's "differing within the
             # accepted noise class" means POSITIONAL noise-class passes, and an
