@@ -13,13 +13,16 @@
 #include <future>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
+
+#include <Eigen/Core>
 
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <fmt/format.h>
 
-#include "hven/drivers/optimization_problem_base.h"
+#include "hven/detail/drivers/interior_point_solver_fwd.h"
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/detail/interior/utils/timer.h"
 #ifdef USE_ACCELERATE_SPARSE
@@ -236,8 +239,7 @@ struct Jet {
                         }
                     }
                     if (suppressed > 1)
-                        fmt::print(stderr,
-                                   "[hven] Jet::map: {} additional exceptions suppressed\n",
+                        fmt::print(stderr, "[hven] Jet::map: {} additional exceptions suppressed\n",
                                    suppressed - 1);
                     break;
                 }

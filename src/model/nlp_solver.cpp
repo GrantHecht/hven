@@ -34,6 +34,12 @@ Eigen::VectorXd model_multiplier_block(const Eigen::VectorXd &solver_block, Inde
 } // namespace
 
 NLPSolver::NLPSolver(std::shared_ptr<NLPProblem> problem) : problem_(std::move(problem)) {
+    // The folded base constructor's body, verbatim and FIRST: the base
+    // subobject was built before this class's own members, and the header's
+    // declaration records the one ordering the language moved.
+    this->optimizer_ = std::make_shared<InteriorPointSolver>();
+    this->init_partitions();
+
     if (!this->problem_) {
         throw std::invalid_argument("NLPSolver: the problem pointer is null");
     }
@@ -100,8 +106,8 @@ hven::ConvergenceFlags NLPSolver::solve_optimize_solve(ConstEigenRef<Eigen::Vect
     return this->run(JetJobModes::SolveOptimizeSolve, x0);
 }
 
-// OptimizationProblemBase's no-arg entry points, mirroring OptimizationProblem:
-// each reuses whatever is currently in active_variables_ as the input iterate.
+// The no-arg entry points, mirroring OptimizationProblem: each reuses whatever
+// is currently in active_variables_ as the input iterate.
 hven::ConvergenceFlags NLPSolver::solve() {
     return this->run(JetJobModes::Solve, this->active_variables_);
 }

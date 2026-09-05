@@ -608,8 +608,6 @@ concept SetsPartitionsAlone = requires(T &t) { t.set_num_partitions(1); };
 template <class T>
 concept SetsPartitionsAndQpThreads = requires(T &t) { t.set_num_partitions(1, 1); };
 
-static_assert(SetsPartitionsAlone<hven::solvers::OptimizationProblemBase>);
-static_assert(!SetsPartitionsAndQpThreads<hven::solvers::OptimizationProblemBase>);
 static_assert(SetsPartitionsAlone<NLPSolver>);
 static_assert(!SetsPartitionsAndQpThreads<NLPSolver>);
 
