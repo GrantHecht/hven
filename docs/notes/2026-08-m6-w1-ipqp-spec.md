@@ -776,6 +776,13 @@ for a cell that did not finish, so a sweep row is never silently blank.
 **Machine-trace schema v0** (W4's JSON-lines stream, versioned here so M7's
 heuristics and M8's human trace share one bookkeeping path):
 
+> **SUPERSEDED BY REFERENCE, 2026-09-05 (M6 W4 T5).** The sketch below is what
+> W1 specified; `docs/trace-schema-v0.md` is what W4 SHIPPED and is the schema of
+> record — every event, every field, the absence rules, the count identities, the
+> reader rules and the freeze table. Read that first; this block is kept as the
+> spec's own historical statement of intent.
+
+
 ```
 {"v":0,"ev":"ipqp.iter","solve":id,"major":k,"it":i,"mu":…,"rho":…,"delta":…,
  "res_p":…,"res_d":…,"res_c":…,"sigma":…,"alpha_p":…,"alpha_d":…,
